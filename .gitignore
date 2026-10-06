@@ -19,6 +19,15 @@ site/_site/
 site/.quarto/
 site/**/*_files/
 *.quarto_ipynb
+# While it renders, Quarto writes each page and the shared libraries next to
+# the sources before it moves them to site/_site/. Without these rules a
+# clean checkout looks changed during its own build, and a lesson's
+# "Reproduce this" section reports uncommitted changes. Only the places where
+# pages are rendered are listed, so an HTML source elsewhere, such as a widget
+# in site/widgets/, is still tracked.
+/site/*.html
+/site/lessons/**/*.html
+/site/site_libs/
 .ipynb_checkpoints/
 
 # Lean build products and fetched packages, including Mathlib
