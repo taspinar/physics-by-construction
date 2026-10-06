@@ -69,7 +69,7 @@ jobs:
           uv run --locked playwright install --with-deps --only-shell chromium
 
       - name: Verify
-        run: ./scripts/verify.sh
+        run: ./scripts/verify.sh --all
 
       # Attached to every run that built a site, so a pull request's site can
       # be reviewed before merge. That includes a run in which a check failed,
