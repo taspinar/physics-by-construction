@@ -145,7 +145,9 @@ agent_session_notice() {
       echo "- When the agent says it is done, type /exit. This script then continues."
       ;;
     codex)
-      echo "- Codex works without asking for permission, inside its workspace sandbox."
+      echo "- Codex works inside this worktree without asking, with network access. It"
+      echo "  asks your permission for a command that needs more, such as writing"
+      echo "  outside the worktree."
       echo "- When the agent says it is done, type /quit. This script then continues."
       ;;
   esac
@@ -155,7 +157,10 @@ agent_session_notice() {
 # agent_run <profile> <provider> <model> <workdir> <prompt> [output-file] [context-file] [schema-file]
 #
 # Profiles:
-#   write      Interactive session that may modify the work directory.
+#   write      Interactive session that may modify the work directory and
+#              use the network. What goes beyond that needs the user's
+#              permission: Claude asks before it runs a shell command, Codex
+#              before a command leaves its work-directory sandbox.
 #   read-only  Non-interactive session that cannot modify files. The agent's
 #              final message is stored in <output-file>. <context-file>, when
 #              given, is supplied to the agent on standard input. With a
@@ -211,9 +216,15 @@ agent_run() {
     codex:write)
       (
         cd "$workdir"
+        # Codex works freely inside the work directory, with network access
+        # so it can install dependencies and run builds; its workspace sandbox
+        # blocks the network by default. For a command the sandbox blocks,
+        # Codex asks the user instead of failing. Without a sandbox Codex has
+        # no policy that asks per command, so that is not used.
         codex \
+          -c sandbox_workspace_write.network_access=true \
           --sandbox workspace-write \
-          --ask-for-approval never \
+          --ask-for-approval on-request \
           --model "$model" \
           --cd "$workdir" \
           "$prompt"
