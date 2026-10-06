@@ -1,0 +1,51 @@
+---
+title: "Physics by Construction"
+---
+
+Physics by Construction teaches physics by building it. Every concept comes
+with code you can run. The path leads from numerical simulation, through
+experiments driven by AI agents, to formal proofs in Lean. Every listing,
+figure, and proof on this site is produced or checked by the same pipeline
+that publishes it.
+
+The site is written for readers who already know undergraduate mechanics and
+can program. It does not teach either again. It teaches what happens when you
+combine them: modelling, numerical methods, experiments run by agents, and
+formal verification, all applied to physics.
+
+## Three pillars
+
+1. **Simulate.** State a model and its assumptions, write it as a short
+   Python program, and compare the result with what theory predicts.
+2. **Experiment with agents.** Let an AI agent propose hypotheses and run
+   the same simulation code to test them, on your own machine with your own
+   API key.
+3. **Prove.** State the result as a theorem in Lean 4 with Mathlib and check
+   the proof by machine.
+
+## One result, three ways
+
+Take a mass $m$ on a spring with stiffness $k$. Its total energy is
+
+$$
+E = \frac{1}{2} m v^{2} + \frac{1}{2} k x^{2}.
+$$
+
+A simulation shows whether a numerical method keeps $E$ constant, and how
+quickly it drifts when it does not. An agent can search for the time step at
+which the drift becomes visible. A proof settles what the model itself
+guarantees, for every initial condition at once.
+
+## Status
+
+The publishing pipeline is in place and the first course, mechanics with
+numerical simulation, is being written. Lessons appear here as they pass
+verification.
+
+## Source and licence
+
+The complete source of this site, including the code behind every figure, is
+in the [repository on GitHub](https://github.com/taspinar/physics-by-construction).
+Code is released under the MIT licence. Lesson text and figures are released
+under the Creative Commons Attribution 4.0 International licence (CC BY 4.0).
+The [About](about.qmd) page has the details.

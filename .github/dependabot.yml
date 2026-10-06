@@ -1,0 +1,22 @@
+# Dependabot proposes updates as pull requests; each one has to pass
+# ./scripts/verify.sh like any other change.
+#
+# Not covered: the Lean toolchain and Mathlib (bumped together by hand,
+# docs/development.md), and the elan release pinned in the CI workflow.
+version: 2
+updates:
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      python:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]

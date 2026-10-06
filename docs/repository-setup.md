@@ -7,6 +7,13 @@ These settings are intentionally not all encoded in repository files,
 because some GitHub settings and rulesets are not inherited
 automatically when creating a new repository from a template.
 
+For this project the required values of the settings that matter for
+publishing (Pages source, the `verify` required status check, security
+features) are listed in `docs/deployment.md`. The sections below on GCP
+authentication, staging and production deployment, and production
+databases do not apply: the site is static files on GitHub Pages with no
+backend.
+
 ------------------------------------------------------------------------
 
 ## 1. General repository settings

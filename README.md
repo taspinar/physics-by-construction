@@ -1,60 +1,59 @@
-# Agentic Coding Template
+# Physics by Construction
 
-A lightweight, model-agnostic repository template for agentic software engineering. It applies the useful parts of GH-600 at individual/small-team scale: plan → act → evaluate, GitHub as control plane, isolated execution, explicit agent contracts, risk-based autonomy, evidence, independent review, CI, and human gates for high-risk actions.
+An educational website that teaches physics by constructing it. Every concept
+comes with code you can run. The learning path leads from numerical
+simulation, through experiments driven by AI agents, to formal proofs in
+Lean 4.
 
-## How it works
+Site: <https://taspinar.github.io/physics-by-construction/>
 
-A project goes from an idea to merged features in two phases, each with an
-independent, read-only review loop and explicit human approvals.
+Every code listing, figure, and proof on the site is produced or checked by
+the same pipeline that publishes it. A lesson whose code fails or whose proof
+does not compile cannot be merged.
 
-```mermaid
-flowchart LR
-  idea["Idea"] --> planning["Planning<br/>review ↔ revise"] --> approval["Planning<br/>approved"]
-  approval --> issue["Feature<br/>Issue"] --> feature["Feature<br/>review ↔ fix"] --> pr["Feature PR<br/>merged"]
-  pr -- next feature --> issue
+## Status
+
+The publishing and verification pipeline is in place. The first course,
+mechanics with numerical simulation, is being written. The plan is in
+[docs/roadmap.md](docs/roadmap.md).
+
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `site/` | The website source, a [Quarto](https://quarto.org) project |
+| `src/pbc/` | The Python package with the reusable lesson code |
+| `lean/` | The Lean 4 project with all proofs, built against Mathlib |
+| `tests/` | Unit tests, tests of the verification checks, and checks on the built site |
+| `scripts/` | Verification and build scripts, and the development workflow |
+| `docs/` | Requirements, architecture, roadmap, and decisions |
+
+## Build and verify
+
+Complete the one-time setup in
+[docs/development.md](docs/development.md#one-time-setup): Git, uv, elan, jq,
+and a browser build for the site checks. Then one command checks everything
+and builds the site:
+
+```bash
+./scripts/verify.sh
 ```
 
-- [Workflow](docs/workflow.md): the workflow in flow, artifact, and reference views.
-- [Worked example](docs/example.md): a complete run with a sample project.
-- [Development](docs/development.md): every command and its options.
-- [Project map](docs/project-map.md): what each file in the template is for.
+It lints and tests the Python code, builds every Lean proof against Mathlib,
+builds the site, checks the built pages, and builds the site a second time to
+confirm the output is byte-identical. The built site is in `site/_site/`.
+The same command runs in CI on every pull request.
 
-## Start a new project
+## Contributing
 
-1. Create a repository from this template, complete `docs/repository-setup.md`,
-   and check your machine with `./scripts/doctor.sh`.
-2. Set the provider and model of each role in `.agents/agents.conf`.
-3. Plan the project in a planning worktree:
+See [CONTRIBUTING.md](CONTRIBUTING.md). Corrections and suggestions are
+welcome as issues.
 
-   ```bash
-   ./scripts/start-planning.sh --description path/to/idea.md
-   cd ../<repository>-planning-project-bootstrap
-   ./scripts/review-planning.sh
-   ./scripts/revise-planning.sh --review .agents/reviews/planning-project-bootstrap-review-01.json
-   ./scripts/review-planning.sh    # again after each revision, until it passes
-   ./scripts/finish-planning.sh
-   ```
+## Licence
 
-   Commit, push, and merge the planning PR as `finish-planning.sh` shows, then
-   remove the planning worktree with
-   `./scripts/cleanup-worktree.sh planning/project-bootstrap`.
-4. For each roadmap feature, from the primary checkout and then the feature
-   worktree:
+- Code, including lesson code, tests, and Lean proofs: [MIT](LICENSE).
+- Lesson text and figures:
+  [Creative Commons Attribution 4.0 International (CC BY 4.0)](LICENSE-CONTENT).
 
-   ```bash
-   ./scripts/create-feature-issue.sh F01
-   ./scripts/start-feature.sh 12 recipes
-   cd ../<repository>-12-recipes
-   ./scripts/review-feature.sh 12
-   ./scripts/triage-review.sh .agents/reviews/feature-12-recipes-review-01.json
-   ./scripts/apply-triage.sh .agents/triage/feature-12-recipes-review-01-triage.json
-   ./scripts/review-feature.sh 12    # again after fixes, until it is resolved
-   ./scripts/finish-feature.sh 12 "Add recipes"
-   ```
-
-   Push, open a PR containing `Closes #12`, merge it after CI, and remove the
-   worktree from the primary checkout with
-   `./scripts/cleanup-worktree.sh 12`, or all merged worktrees at once with
-   `./scripts/cleanup-worktree.sh --merged`.
-
-Rules for agents are in `AGENTS.md`; boundaries are in `.agents/policies/`.
+Third-party material keeps its own licence and is listed on the site's About
+page.

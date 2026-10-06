@@ -1,0 +1,30 @@
+/* Self-hosted math font, so equations look the same in every browser and no
+   font is requested from another origin. Source and licence: fonts/README.md. */
+@font-face {
+  font-family: "STIX Two Math";
+  src: url("fonts/STIXTwoMath-Regular.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+math {
+  font-family: "STIX Two Math", math;
+}
+
+/* A wide display equation scrolls inside its own box instead of widening the
+   page on a narrow screen. The box is focusable (_filters/scroll-regions.lua),
+   so it can be scrolled with the keyboard. */
+.display-math {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* A figure scales down to the width of a narrow screen. Its width and height
+   attributes still reserve the right space before the image loads. */
+main img {
+  max-width: 100%;
+  height: auto;
+}

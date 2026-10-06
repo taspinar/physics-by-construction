@@ -1,0 +1,54 @@
+---
+title: "About"
+---
+
+## What this site is
+
+Physics by Construction is a course site about physics, programming, and
+proof. Lessons are ordered along one path of increasing difficulty: mechanics
+with numerical simulation first, then experiments driven by AI agents, then
+formal proofs in Lean.
+
+## Who it is for
+
+Readers who have undergraduate physics (classical mechanics, calculus, linear
+algebra) and solid programming skills. Lessons state their prerequisites and
+link out instead of repeating them.
+
+## How the site is built
+
+- Code shown in a lesson is code the build ran. Figures and numbers are the
+  output of that code, regenerated on every build.
+- Proofs are compiled by Lean on every change. A lesson whose code fails or
+  whose proof does not compile cannot be published.
+- Equations are MathML. Text, code, equations, and figures are readable with
+  JavaScript turned off.
+- The site is static files. It has no accounts, sets no cookies, runs no
+  analytics, and loads nothing from other websites.
+
+The [rendering check](rendering-check.qmd) page shows sample equations, code,
+and a figure produced by this pipeline.
+
+## Licences
+
+| Material | Licence |
+|---|---|
+| Code, including lesson code, tests, and Lean proofs | [MIT](https://github.com/taspinar/physics-by-construction/blob/main/LICENSE) |
+| Lesson text and figures | [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://github.com/taspinar/physics-by-construction/blob/main/LICENSE-CONTENT) |
+
+You may reuse lesson text and figures, including commercially, when you give
+appropriate credit, link to the licence, and indicate changes. A suitable
+credit is "Physics by Construction, CC BY 4.0", with a link to the page you
+used.
+
+### Third-party material
+
+- Equations are set in STIX Two Math, © The STIX Fonts Project Authors, used
+  under the
+  [SIL Open Font License 1.1](https://github.com/taspinar/physics-by-construction/blob/main/site/assets/fonts/OFL.txt).
+
+## Source
+
+The source is in the
+[repository on GitHub](https://github.com/taspinar/physics-by-construction).
+Corrections and suggestions are welcome as issues there.

@@ -1,6 +1,7 @@
-# Replace @YOUR_GITHUB_USERNAME before enabling required CODEOWNERS review.
-/AGENTS.md @YOUR_GITHUB_USERNAME
-/.agents/policies/ @YOUR_GITHUB_USERNAME
-/.github/workflows/ @YOUR_GITHUB_USERNAME
-/docs/decisions/ @YOUR_GITHUB_USERNAME
-/infra/ @YOUR_GITHUB_USERNAME
+# Changes to the rules, the CI workflow, the recorded decisions, and any
+# infrastructure need the maintainer's review.
+/AGENTS.md @taspinar
+/.agents/policies/ @taspinar
+/.github/workflows/ @taspinar
+/docs/decisions/ @taspinar
+/infra/ @taspinar
