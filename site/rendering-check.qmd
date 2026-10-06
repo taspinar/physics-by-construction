@@ -1,6 +1,6 @@
 ---
 title: "Rendering check"
-description: "Sample equations, code, and a figure, used to check how the site renders."
+description: "Sample equations, code, a figure, and the lesson constructs, used to check how the site renders."
 ---
 
 This page is not a lesson. It holds one sample of each kind of content a
@@ -80,3 +80,47 @@ ax.set_ylabel("position (m)")
 ax.legend()
 plt.show()
 ```
+
+## Lesson constructs
+
+These are the constructs of the lesson format, one of each.
+
+A listing included by reference from the package:
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt
+
+excerpt(damped_oscillation)
+```
+
+Material that the build did not run or check, as a block and inside a
+sentence:
+
+::: {.not-verified}
+```python
+position = damped_oscillation(time)  # a listing nothing executed
+```
+:::
+
+The oscillation loses [about 39 percent]{.not-verified} of its amplitude per
+second.
+
+An exercise with a solution that opens without a script:
+
+::: {.exercise}
+What is the position at $t = 0$?
+
+::: {.solution}
+The amplitude, because $\cos 0 = 1$ and $e^{0} = 1$:
+`{python} f"{damped_oscillation(0.0):.1f}"` m.
+
+A solution can hold material that the build did not run:
+
+::: {.not-verified}
+```python
+damped_oscillation(0.0)  # a listing nothing executed
+```
+:::
+:::
+:::

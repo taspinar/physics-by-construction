@@ -35,7 +35,7 @@ website:
       Code: [MIT](https://github.com/taspinar/physics-by-construction/blob/main/LICENSE).
       Lesson text and figures:
       [CC BY 4.0](https://github.com/taspinar/physics-by-construction/blob/main/LICENSE-CONTENT).
-      Details on the [About](about.qmd) page.
+      Details on the [About](/about.qmd) page.
 
 format:
   html:
@@ -48,6 +48,10 @@ format:
     highlight-style: a11y
     toc: true
     filters:
+      # Before Quarto's own processing, which would otherwise turn a
+      # "solution" div into its proof environment.
+      - at: pre-ast
+        path: _filters/lesson.lua
       - _filters/scroll-regions.lua
       - _filters/cell-ids.lua
 

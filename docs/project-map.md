@@ -9,8 +9,9 @@ in `docs/workflow.md`.
 | Path | Purpose |
 |---|---|
 | `site/` | The website source, a Quarto project. `_quarto.yml` configures it, including the public address in `website.site-url`; `_filters/` holds its Pandoc Lua filters; `assets/` its stylesheet and self-hosted font |
+| `site/lessons/<strand>/<nn>-<slug>/index.qmd` | One lesson per directory, in the format of `docs/authoring.md`. An agent lesson may also hold its replay fixture `replay.json`; nothing else is committed there |
 | `site/_site/` | The built site. Written by `scripts/build-site.sh`, ignored by Git |
-| `src/pbc/` | The Python package with the reusable lesson code |
+| `src/pbc/` | The Python package with the reusable lesson code: `mechanics/` for the mechanics course, `authoring/` for the helpers pages use to show code by reference and to write "Reproduce this" |
 | `lean/` | The Lean project: `lean-toolchain`, `lakefile.toml`, and `lake-manifest.json` pin Lean and Mathlib; proofs live in `PhysicsByConstruction/`; `AxiomAudit.lean` is the audit run by `scripts/check-lean.sh` |
 | `pyproject.toml`, `uv.lock`, `.python-version` | The Python toolchain pins, including Quarto and the browser for the site checks |
 | `LICENSE`, `LICENSE-CONTENT` | MIT for code, CC BY 4.0 for lesson text and figures |
@@ -29,9 +30,10 @@ in `docs/workflow.md`.
 | `scripts/doctor.sh` | Read-only check of the local prerequisites, including those of the development workflow |
 | `scripts/lib/prerequisites.sh`, `scripts/lib/check_browser.py` | The prerequisite checks shared by `preflight.sh` and `doctor.sh` |
 | `tests/unit/` | pytest: behaviour of `src/pbc` |
-| `tests/integration/` | pytest: every check fails on a violating input; boundaries of the CI workflow |
-| `tests/e2e/` | pytest with a headless browser: the required checks on the built site |
-| `tests/support/` | Helpers of the tests: the built-site checks, the sub-path test server, the `verify.conf` reader |
+| `tests/integration/` | pytest: every check fails on a violating input; a lesson made from the template passes; boundaries of the CI workflow |
+| `tests/lessons/` | pytest: the required checks on the lesson sources |
+| `tests/e2e/` | pytest with a headless browser: the required checks on the built site and its lesson pages |
+| `tests/support/` | Helpers of the tests: the lesson source checks, the built-site checks, the sub-path test server, the `verify.conf` reader |
 | `tests/*.sh` | Shell tests of the workflow scripts, of `doctor.sh`, and of `preflight.sh` |
 | `.github/workflows/ci.yml` | CI: prepares the runner, runs `./scripts/verify.sh --all`, and on `main` deploys the verified site |
 | `.github/dependabot.yml` | Update proposals for Python packages and GitHub Actions |
@@ -59,6 +61,7 @@ in `docs/workflow.md`.
 | `docs/PLANNING_APPROVAL.md` | Your approval of the reviewed planning, with its fingerprint | `finish-planning.sh` |
 | `docs/repository-setup.md` | GitHub settings for a new repository | You |
 | `docs/development.md` | The one-time setup, verification, and every workflow command | Template and you |
+| `docs/authoring.md`, `docs/lesson-template.qmd` | How to write a lesson, and the page a new lesson starts from | You |
 | `docs/workflow.md` | The workflow in flow, artifact, and reference views | Template |
 | `docs/example.md` | A complete run with a sample project | Template |
 | `docs/agentic-workflow.md` | Principles: persistent state, roadmap versus Issues, plans versus Issues | Template |

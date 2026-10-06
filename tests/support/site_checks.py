@@ -8,9 +8,10 @@ The browser checks never reach the network: a request to anything but the
 local test server is recorded as a violation and aborted.
 """
 
+import ast
 import re
 from collections import Counter
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from html.parser import HTMLParser
@@ -606,3 +607,158 @@ def check_accessibility(
                         )
                 page.close()
     return violations
+
+
+# --- Lesson constructs -------------------------------------------------------
+#
+# What docs/authoring.md promises about a built lesson page. The checks run
+# on every page of the site, because the constructs work on every page.
+
+
+def check_sections(
+    site_dir: Path, page: str, sections: Sequence[str]
+) -> list[Violation]:
+    """The built page ``page`` exists and has a level-2 section for each
+    identifier in ``sections``."""
+    file = site_dir / page
+    if not file.is_file():
+        return [Violation("lesson-page", page, "the lesson has no built page")]
+    present = {
+        attributes.get("id")
+        for tag, attributes in _parse(file).elements
+        if tag == "section" and "level2" in attributes.get("class", "").split()
+    }
+    return [
+        Violation("lesson-page", page, f"no section with the identifier '{section}'")
+        for section in sections
+        if section not in present
+    ]
+
+
+# Runs in the page. Returns the start of every "not verified" element whose
+# label is missing, does not say so, or is not rendered. An element inside a
+# closed <details> element, such as a solution, is judged as the reader sees
+# it after opening that element: the label has to appear with the material.
+_UNLABELLED = """
+() => {
+  const marked = [...document.querySelectorAll(".not-verified")];
+  for (const element of marked) {
+    let details = element.closest("details");
+    while (details) {
+      details.open = true;
+      details = details.parentElement?.closest("details");
+    }
+  }
+  return marked
+    .filter((element) => {
+      const label = element.querySelector(".not-verified-label");
+      return !(
+        label
+        && /not verified/i.test(label.textContent)
+        && label.checkVisibility({ visibilityProperty: true, opacityProperty: true })
+      );
+    })
+    .map((element) => element.textContent.trim().replace(/\\s+/g, " ").slice(0, 60));
+}
+"""
+
+
+def check_not_verified_labels(
+    browser: Browser, server: SiteServer, site_dir: Path
+) -> list[Violation]:
+    """Material marked "not verified" shows a label that says so, without
+    scripts."""
+    violations = []
+    with _context(
+        browser, server, lambda url: None, viewport=DESKTOP, java_script_enabled=False
+    ) as context:
+        for name, url in _urls(site_dir, server):
+            page = _open(context, url)
+            violations += [
+                Violation("not-verified-label", name, f"no visible label on: {text}")
+                for text in page.evaluate(_UNLABELLED)
+            ]
+            page.close()
+    return violations
+
+
+# Runs in the page. Returns the text of every code element that still starts
+# with a cell or inline-expression marker such as {python}.
+_UNEXECUTED = """
+() => [...document.querySelectorAll("code")]
+  .map((code) => code.textContent.trim())
+  .filter((text) => /^\\{[A-Za-z]+\\}/.test(text))
+  .map((text) => text.replace(/\\s+/g, " ").slice(0, 60))
+"""
+
+# Runs in the page. Returns the declared source and the text of every
+# by-reference excerpt.
+_EXCERPTS = """
+() => [...document.querySelectorAll("[data-source]")].map((element) => ({
+  source: element.getAttribute("data-source"),
+  text: (element.querySelector("code") ?? element).textContent,
+}))
+"""
+
+
+def _source_of(repository: Path, name: str) -> str | None:
+    """Return the source text of ``<module>:<object>`` in ``src/``, read from
+    the file, or None when there is no such top-level function or class."""
+    module, _, target = name.partition(":")
+    file = repository / "src" / Path(*module.split(".")).with_suffix(".py")
+    if module.split(".")[0] != "pbc" or not file.is_file():
+        return None
+    text = file.read_text(encoding="utf-8")
+    for node in ast.parse(text).body:
+        if (
+            isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef)
+            and node.name == target
+        ):
+            first = min([node.lineno, *(d.lineno for d in node.decorator_list)])
+            return "\n".join(text.splitlines()[first - 1 : node.end_lineno])
+    return None
+
+
+def check_displayed_code(
+    browser: Browser, server: SiteServer, site_dir: Path, repository: Path
+) -> list[Violation]:
+    """Every by-reference excerpt is textually identical to its source in
+    ``src/pbc`` of ``repository``, and no page shows a cell or an inline
+    expression that the build did not execute."""
+    violations = []
+    with _context(browser, server, lambda url: None, viewport=DESKTOP) as context:
+        for name, url in _urls(site_dir, server):
+            page = _open(context, url)
+            violations += [
+                Violation("unexecuted-cell", name, f"shown but not executed: {text}")
+                for text in page.evaluate(_UNEXECUTED)
+            ]
+            for excerpt in page.evaluate(_EXCERPTS):
+                source = _source_of(repository, excerpt["source"])
+                if source is None:
+                    violations.append(
+                        Violation(
+                            "excerpt",
+                            name,
+                            f"{excerpt['source']} is not a function or class in"
+                            " src/pbc",
+                        )
+                    )
+                elif excerpt["text"].rstrip("\n") != source.rstrip("\n"):
+                    violations.append(
+                        Violation(
+                            "excerpt",
+                            name,
+                            f"the listing of {excerpt['source']} differs from"
+                            " its source",
+                        )
+                    )
+            page.close()
+    return violations
+
+
+def excerpt_sources(browser: Browser, server: SiteServer, page: str) -> list[str]:
+    """Return the declared source of every excerpt on the built page ``page``."""
+    with _context(browser, server, lambda url: None, viewport=DESKTOP) as context:
+        opened = _open(context, server.url + page)
+        return [excerpt["source"] for excerpt in opened.evaluate(_EXCERPTS)]

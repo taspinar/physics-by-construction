@@ -1,0 +1,140 @@
+---
+title: "Title of the lesson"
+description: >-
+  One sentence that says what the lesson builds and what it checks.
+lesson:
+  id: REPLACE-ME
+  strand: mechanics
+  order: 0
+  difficulty: 1
+  prerequisites:
+    lessons: []
+    outside:
+      - "Replace: what the reader must know that no lesson on this site teaches"
+---
+
+Open with two or three short paragraphs: what the lesson builds, why it
+matters, and how the result is checked. Do not put a heading above them.
+
+## Assumptions
+
+State every assumption of the model and of the program, and for each one what
+goes wrong when it does not hold.
+
+1. **First assumption.** What it means, and what breaks without it.
+2. **Second assumption.** What it means, and what breaks without it.
+
+## Explanation
+
+Explain the physics and the method. Equations are LaTeX and become MathML:
+
+$$
+\frac{\mathrm{d}x}{\mathrm{d}t} = v,
+\qquad
+\frac{\mathrm{d}v}{\mathrm{d}t} = a(t).
+$$
+
+To give the section a title of its own, keep the identifier:
+`## From rates of change to an update rule {#explanation}`.
+
+## Code
+
+Reusable code lives in `src/pbc` with unit tests. Show it by reference; the
+listing is read from the file when the site is built.
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, reproduce_this
+from pbc.mechanics import kinematics
+
+excerpt(kinematics.euler_step)
+```
+
+## Worked examples
+
+### Name of the first example
+
+A code cell is executed by the build. Its code and its output appear on the
+page.
+
+```{python}
+import numpy as np
+
+from pbc.mechanics.kinematics import State, constant_acceleration, simulate
+
+start = State(t=0.0, x=0.0, v=2.0)
+dt = 0.25  # time step, s
+
+
+def braking(t):
+    return -1.0
+
+
+computed = simulate(start, braking, dt, n_steps=8)
+exact = constant_acceleration(start, -1.0, computed.t)
+print(f"position after {computed.t[-1]:.1f} s: {computed.x[-1]:.3f} m")
+```
+
+Put computed numbers into a sentence with an inline expression: the exact
+position is `{python} f"{exact.x[-1]:.3f}"` m. Never type a result by hand.
+
+A cell that draws a figure has a `fig-` label, a caption, and alternative
+text that describes what the figure shows.
+
+```{python}
+#| label: fig-replace-with-a-name
+#| fig-cap: "Caption shown under the figure."
+#| fig-alt: "What a reader who cannot see the figure needs to know: the kind of plot, the axes, and what the curves do."
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+ax.plot(computed.t, exact.x, color="#00429d", label="exact")
+ax.plot(
+    computed.t,
+    computed.x,
+    color="#93003a",
+    linestyle="--",
+    marker="o",
+    label="computed",
+)
+ax.set_xlabel("time (s)")
+ax.set_ylabel("position (m)")
+ax.legend()
+plt.show()
+```
+
+Material that the build does not run or check carries the "not verified"
+marker, as a block or inside a sentence:
+
+::: {.not-verified}
+```python
+state = step(state)  # a sketch that is not executed
+```
+:::
+
+A measured or quoted value is marked the same way:
+[about 9.8 m/s² at sea level]{.not-verified}.
+
+## Exercises
+
+::: {.exercise}
+State the exercise. Given values may be typed here.
+
+::: {.solution}
+Explain the solution. Its numbers come from an executed cell.
+
+```{python}
+print(f"largest error: {np.max(np.abs(computed.x - exact.x)):.3f} m")
+```
+:::
+:::
+
+## Reproduce this
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=["src/pbc/mechanics/kinematics.py"],
+    tests=["tests/unit/test_kinematics.py"],
+)
+```
