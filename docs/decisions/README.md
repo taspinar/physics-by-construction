@@ -42,3 +42,4 @@ Do not create ADRs for trivial implementation details.
 | [002](002-regenerate-artifacts-and-display-by-reference.md) | Regenerate all lesson artifacts on every build and display code by reference |
 | [003](003-single-verification-entry-point-and-ci-budget.md) | One verification entry point, one verified artifact, and a fixed CI time budget |
 | [004](004-agent-lessons-verified-by-replay.md) | Agent lessons run behind a provider interface with a tool allowlist and are verified by replay |
+| [005](005-workflow-self-tests-run-locally-on-workflow-changes.md) | Workflow self-tests have their own file and run locally only when a workflow file changed; amends ADR 003 |

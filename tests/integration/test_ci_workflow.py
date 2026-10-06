@@ -71,6 +71,8 @@ def test_verify_job_runs_checks_only_through_verify_sh():
     commands = [step["run"] for step in job["steps"] if "run" in step]
 
     assert sum("./scripts/verify.sh" in command for command in commands) == 1
+    # CI never skips the workflow self-tests (ADR 005).
+    assert "./scripts/verify.sh --all" in commands
     # The other steps prepare the machine. None of them runs a check tool, so
     # no check exists only in CI.
     setup = "\n".join(c for c in commands if "./scripts/verify.sh" not in c)

@@ -64,11 +64,13 @@ same steps.
 ./scripts/verify.sh
 ```
 
-This one command reproduces the whole site and every lesson output, and is
-what CI runs on every pull request. It leaves the built site in `site/_site/`,
+This one command reproduces the whole site and every lesson output. CI runs it
+on every pull request as `./scripts/verify.sh --all`, which also runs the
+workflow self-tests described below. It leaves the built site in `site/_site/`,
 which Git ignores. Open `site/_site/index.html` in a browser to read it.
 
-The checks are declared in `scripts/verify.conf` and run in this order:
+The checks are declared in `scripts/verify.conf`, and the workflow self-tests
+in `scripts/verify-workflow.conf`. They run in this order:
 
 | Check | What it does |
 |---|---|
@@ -80,7 +82,7 @@ The checks are declared in `scripts/verify.conf` and run in this order:
 | `site-build` | `scripts/build-site.sh`: Quarto executes every page in the locked environment and renders `site/_site/`. A failing cell or an equation that cannot become MathML fails the build. |
 | `site-checks` | pytest on `tests/e2e`, on the built site served under its sub-path: nothing is loaded from another origin, no cookie is set, images have alt text and dimensions, internal links resolve, pages are readable without JavaScript and a script adds no content to them (except inside an element with `data-enhancement`, an `id`, and static content of its own), do not scroll sideways at phone width and keep every image on the screen, and the axe-core scan finds no WCAG 2.1 A or AA violation. |
 | `determinism` | `scripts/check-determinism.sh`: builds a fresh copy of the site sources a second time and requires byte-identical output. |
-| Workflow self-tests | The shell tests of the agentic development workflow in `tests/*.sh`. |
+| Workflow self-tests | The shell tests of the agentic development workflow in `tests/*-test.sh`. Run in CI always, and locally only when a workflow file changed; see "Workflow self-tests" below. |
 
 Run one check on its own with the command from `scripts/verify.conf`, for
 example `uv run --locked pytest tests/unit`. `site-checks` and `determinism`
@@ -137,7 +139,27 @@ after a failure, and a summary lists each check as `PASS` or `FAIL`.
 
 There is no automatic stack detection and no optional check: remove a check
 from `scripts/verify.conf` rather than letting it be skipped. CI declares no
-check of its own; a check that is not in `scripts/verify.conf` does not exist.
+check of its own; a check that is in neither `scripts/verify.conf` nor
+`scripts/verify-workflow.conf` does not exist.
+
+### Workflow self-tests
+
+The tests of the workflow scripts (`tests/*-test.sh`) are declared separately,
+in `scripts/verify-workflow.conf` (ADR 005). They test the workflow, not the
+site, the Python package, or the proofs, so a change can break them only by
+touching a workflow file. That file names those files in its `paths:` entry,
+as Git pathspecs.
+
+`./scripts/verify.sh` runs the self-tests only when one of those files differs
+from the base branch (`origin/main`, or `main`), counting uncommitted and
+untracked files, or when it cannot tell, for example outside a Git repository.
+Otherwise the summary reports them as `SKIP`. `./scripts/verify.sh --all`
+always runs them, and CI uses it, so every pull request runs the self-tests.
+
+The self-tests start `jq`, `git`, and `bash` thousands of times. On an Apple
+Silicon Mac an x86_64 `jq`, such as the one Anaconda installs, runs under
+Rosetta and roughly doubles their duration; `file "$(command -v jq)"` shows
+which one is first on your `PATH`.
 
 ## Configuring agents
 

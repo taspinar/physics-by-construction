@@ -2,7 +2,11 @@
 
 ## Status
 
-Accepted with the approval of the project bootstrap planning.
+Accepted with the approval of the project bootstrap planning. Decisions 1, 2,
+and 7 are amended by
+[ADR 005](005-workflow-self-tests-run-locally-on-workflow-changes.md): the
+workflow self-tests have their own file and run locally only when a workflow
+file changed; CI still runs every check.
 
 Date: 2026-10-06
 

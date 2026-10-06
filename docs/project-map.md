@@ -19,8 +19,9 @@ in `docs/workflow.md`.
 
 | Path | Purpose |
 |---|---|
-| `scripts/verify.sh` | Runs the checks in `scripts/verify.conf`; used by humans, agents, and CI |
+| `scripts/verify.sh` | Runs the checks in `scripts/verify.conf`, and the workflow self-tests when a workflow file changed or with `--all`; used by humans, agents, and CI |
 | `scripts/verify.conf` | The required verification checks of the project |
+| `scripts/verify-workflow.conf` | The self-tests of the workflow scripts and the workflow files they guard |
 | `scripts/preflight.sh` | First check: reports every missing prerequisite of the one-time setup with a fix hint |
 | `scripts/check-lean.sh` | Builds every Lean module against Mathlib from its build cache and fails on `sorry` and project axioms |
 | `scripts/build-site.sh` | Builds the site with Quarto; fails on a failing cell or an equation that is not MathML |
@@ -32,7 +33,7 @@ in `docs/workflow.md`.
 | `tests/e2e/` | pytest with a headless browser: the required checks on the built site |
 | `tests/support/` | Helpers of the tests: the built-site checks, the sub-path test server, the `verify.conf` reader |
 | `tests/*.sh` | Shell tests of the workflow scripts, of `doctor.sh`, and of `preflight.sh` |
-| `.github/workflows/ci.yml` | CI: prepares the runner, runs `./scripts/verify.sh`, and on `main` deploys the verified site |
+| `.github/workflows/ci.yml` | CI: prepares the runner, runs `./scripts/verify.sh --all`, and on `main` deploys the verified site |
 | `.github/dependabot.yml` | Update proposals for Python packages and GitHub Actions |
 
 ## Rules and configuration
