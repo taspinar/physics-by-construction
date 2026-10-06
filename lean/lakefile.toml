@@ -1,0 +1,14 @@
+name = "PhysicsByConstruction"
+version = "0.1.0"
+defaultTargets = ["PhysicsByConstruction"]
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.34.1"
+
+# Every file under PhysicsByConstruction/ is a module of the library, so
+# `lake build` compiles all of them without a hand-maintained import list.
+[[lean_lib]]
+name = "PhysicsByConstruction"
+globs = ["PhysicsByConstruction.+"]

@@ -1,21 +1,123 @@
 # Development
 
-## Prerequisites
+## One-time setup
 
-- Git
-- GitHub CLI (`gh`), installed and authenticated
-- `jq` 1.6 or later
-- Codex or Claude CLI when that agent is selected
-- Project-specific tools documented in this file after the template is adopted
+A supported machine runs macOS or Linux. The setup below runs once per
+machine and is the only step that may need administrator rights. Everything
+after it, including `./scripts/verify.sh`, runs as a normal user and installs
+no system packages.
 
-Run `./scripts/doctor.sh` to check these prerequisites. It reports each check
-as `OK`, `WARNING`, or `FAILED` with a fix hint, exits non-zero when a required
-prerequisite is missing, and never modifies anything. A missing agent CLI
-fails when `.agents/agents.conf` assigns it to a role and is a warning
-otherwise.
+1. Install the tools:
 
-Keep `./scripts/verify.sh` as the stable verification entry point for humans,
-agents, and CI.
+   | Tool | Purpose | macOS | Linux |
+   |---|---|---|---|
+   | Git | Source control | Xcode command line tools, or `brew install git` | System package manager |
+   | [uv](https://docs.astral.sh/uv/getting-started/installation/) | Python, the Python packages, and Quarto, all pinned in `uv.lock` | `brew install uv` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+   | [elan](https://lean-lang.org/install/manual/) | The Lean toolchain pinned in `lean/lean-toolchain` | `brew install elan-init`, or the command for Linux | `curl -sSf https://elan.lean-lang.org/elan-init.sh \| sh` |
+   | jq 1.6 or later | Used by the workflow self-tests | `brew install jq` | `sudo apt-get install jq` |
+
+   Make sure `~/.elan/bin` is on your `PATH` afterwards; the elan installer
+   offers to add it.
+
+2. Install the locked Python environment and the browser build that the
+   built-site checks use. The browser build is fixed by the Playwright
+   version in `uv.lock` and is downloaded into your user cache.
+
+   ```bash
+   uv sync --locked
+   uv run --locked playwright install --only-shell chromium
+   ```
+
+   On Linux the browser also needs system libraries. Add `--with-deps` to the
+   second command to let Playwright install them on the distributions it
+   supports (it asks for administrator rights):
+
+   ```bash
+   uv run --locked playwright install --with-deps --only-shell chromium
+   ```
+
+   On other distributions install the libraries by hand; the preflight check
+   reports a browser that cannot start.
+
+3. Check the result:
+
+   ```bash
+   ./scripts/doctor.sh
+   ```
+
+   It reports each prerequisite as `OK`, `WARNING`, or `FAILED` with a fix
+   hint, exits non-zero when a required prerequisite is missing, and never
+   modifies anything. Besides the tools above it checks what the agentic
+   development workflow needs and verification does not: the GitHub CLI
+   (`gh`), installed and authenticated, and the Codex or Claude CLI. A
+   missing agent CLI fails when `.agents/agents.conf` assigns it to a role
+   and is a warning otherwise.
+
+The first verification run downloads the Lean toolchain and the Mathlib build
+cache: about 0.5 GB of downloads that unpack to roughly 8 GB in `lean/.lake/`
+and 3 GB in `~/.elan/`. Later runs reuse them. CI prepares its runner with the
+same steps.
+
+## Verification
+
+```bash
+./scripts/verify.sh
+```
+
+This one command reproduces the whole site and every lesson output, and is
+what CI runs on every pull request. It leaves the built site in `site/_site/`,
+which Git ignores. Open `site/_site/index.html` in a browser to read it.
+
+The checks are declared in `scripts/verify.conf` and run in this order:
+
+| Check | What it does |
+|---|---|
+| `preflight` | Reports every missing prerequisite of the one-time setup with a fix hint, and confirms that the pinned browser build starts. |
+| `lint`, `format` | Ruff on the Python sources. |
+| `unit-tests` | pytest on `tests/unit`: the behaviour of `src/pbc`. |
+| `lean-build` | `scripts/check-lean.sh`: takes Mathlib from its build cache and never compiles it from source, builds every module under `lean/PhysicsByConstruction/`, then audits every declaration. A declared `axiom`, a `sorry`, or any axiom besides Lean's three standard ones fails the check. |
+| `check-tests` | pytest on `tests/integration`: every check fails on an input that violates it, and the CI workflow keeps its permission boundaries. |
+| `site-build` | `scripts/build-site.sh`: Quarto executes every page in the locked environment and renders `site/_site/`. A failing cell or an equation that cannot become MathML fails the build. |
+| `site-checks` | pytest on `tests/e2e`, on the built site served under its sub-path: nothing is loaded from another origin, no cookie is set, images have alt text and dimensions, internal links resolve, pages are readable without JavaScript and a script adds no content to them (except inside an element with `data-enhancement`, an `id`, and static content of its own), do not scroll sideways at phone width and keep every image on the screen, and the axe-core scan finds no WCAG 2.1 A or AA violation. |
+| `determinism` | `scripts/check-determinism.sh`: builds a fresh copy of the site sources a second time and requires byte-identical output. |
+| Workflow self-tests | The shell tests of the agentic development workflow in `tests/*.sh`. |
+
+Run one check on its own with the command from `scripts/verify.conf`, for
+example `uv run --locked pytest tests/unit`. `site-checks` and `determinism`
+need the output of `site-build`.
+
+While writing, preview the site with live reload:
+
+```bash
+uv run --locked quarto preview site
+```
+
+### Other browser engines
+
+Verification uses Chromium. To run the built-site checks in Firefox or WebKit
+as well, install those engines once and name the engine:
+
+```bash
+uv run --locked playwright install firefox webkit
+uv run --locked pytest tests/e2e --engine firefox
+uv run --locked pytest tests/e2e --engine webkit
+```
+
+### Updating the pinned toolchains
+
+Every update is an ordinary pull request that has to pass verification.
+
+- **Python packages, Quarto, Playwright, and GitHub Actions**: Dependabot
+  proposes updates. By hand: `uv lock --upgrade`. A new Playwright version
+  pins a new browser build; install it with the command of the one-time
+  setup.
+- **Lean and Mathlib** are bumped together by hand: set the Mathlib tag in
+  `lean/lakefile.toml`, run `lake update` in `lean/` (it also updates
+  `lean/lean-toolchain` and `lean/lake-manifest.json`), and commit all three
+  files.
+- **elan in CI** is pinned by version and checksum in
+  `.github/workflows/ci.yml`.
+- **The math font** is vendored; see `site/assets/fonts/README.md`.
 
 ## Configuring verification
 
@@ -26,14 +128,6 @@ per line:
 <name>: <command>
 ```
 
-After adopting the template, replace the template checks with those of the
-project's stack, for example:
-
-```text
-lint: ruff check .
-tests: pytest
-```
-
 Every listed check is required. Each command runs with `bash -eo pipefail`
 from the repository root, so a failing step in a pipeline or command sequence
 fails the check. Its first word is the required tool. Verification fails
@@ -42,7 +136,8 @@ when the configuration is missing, empty, or malformed. All checks run even
 after a failure, and a summary lists each check as `PASS` or `FAIL`.
 
 There is no automatic stack detection and no optional check: remove a check
-from `scripts/verify.conf` rather than letting it be skipped.
+from `scripts/verify.conf` rather than letting it be skipped. CI declares no
+check of its own; a check that is not in `scripts/verify.conf` does not exist.
 
 ## Configuring agents
 

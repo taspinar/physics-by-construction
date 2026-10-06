@@ -2,56 +2,36 @@
 
 set -euo pipefail
 
-# Read-only check of the local prerequisites for the template workflow.
-# Uses only Bash builtins besides the tools it checks.
+# Read-only check of the local prerequisites: the supported-machine contract
+# that ./scripts/verify.sh needs, and the tools of the agentic development
+# workflow. Uses only Bash builtins besides the tools it checks.
 
 script_dir="${BASH_SOURCE[0]%/*}"
 [[ "$script_dir" != "${BASH_SOURCE[0]}" ]] || script_dir="."
 root="$script_dir/.."
 source "$script_dir/lib/agent.sh"
-
-failed=0
-
-ok() {
-  echo "OK       $1"
-}
+source "$script_dir/lib/prerequisites.sh"
 
 warn() {
   echo "WARNING  $1"
   echo "         $2"
 }
 
-missing() {
-  echo "FAILED   $1"
-  echo "         $2"
-  failed=1
-}
+echo "== Doctor =="
 
-have() {
-  command -v "$1" >/dev/null 2>&1
-}
-
-echo "== Agentic template doctor =="
-
-if have git; then
-  ok "git is installed"
+# The supported-machine contract: what ./scripts/verify.sh needs.
+check_git
+check_jq
+check_uv
+check_elan
+if [[ -x "$root/.venv/bin/python" ]]; then
+  check_browser "$root/.venv/bin/python"
 else
-  missing "git is not installed" "Install Git: https://git-scm.com/downloads"
+  missing "the locked Python environment is not installed" \
+    "Run: uv sync --locked && uv run --locked playwright install --only-shell chromium"
 fi
 
-if have jq; then
-  # The workflow scripts are written for jq 1.6 and later.
-  jq_version="$(jq --version 2>/dev/null || true)"
-  if [[ "$jq_version" =~ ^jq-([0-9]+)\.([0-9]+) ]] &&
-    ((BASH_REMATCH[1] < 1 || (BASH_REMATCH[1] == 1 && BASH_REMATCH[2] < 6))); then
-    missing "jq $jq_version is too old" "Install jq 1.6 or later: 'brew install jq' or 'sudo apt-get install jq'"
-  else
-    ok "jq is installed"
-  fi
-else
-  missing "jq is not installed" "Install jq: 'brew install jq' or 'sudo apt-get install jq'"
-fi
-
+# The agentic development workflow: not needed by verification.
 if have gh; then
   ok "GitHub CLI (gh) is installed"
   if gh auth status >/dev/null 2>&1; then

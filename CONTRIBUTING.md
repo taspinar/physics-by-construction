@@ -1,17 +1,48 @@
 # Contributing
 
-All non-trivial changes should originate from a GitHub Issue and use a feature branch. Follow `AGENTS.md` whether work is human-written, AI-assisted, or agent-generated. Keep PRs focused, include verification evidence, and do not bypass required CI or production gates.
+Corrections, suggestions, and lesson ideas are welcome.
 
-## Changing the template itself
+## How to contribute
 
-Everything committed to the template repository is inherited by every project
-created from it. When developing the template:
+1. Open a GitHub Issue that describes the problem or the proposal. All
+   non-trivial changes start from an Issue.
+2. Work on a branch, never on `main`. Changes land through pull requests.
+3. Run `./scripts/verify.sh` before opening the pull request. The setup it
+   needs is in [docs/development.md](docs/development.md#one-time-setup). CI
+   runs the same command, and a pull request with a failing check cannot be
+   merged.
+4. Keep the pull request focused on its Issue and include the verification
+   evidence.
 
-- Do not commit the plans or handoffs of that work under `.agents/`. Keep the
-  design in the GitHub Issue. Review and triage results are ignored by Git and
-  published on the Issue, as in any project.
-- Record design decisions about the template in the Issue and in the workflow
-  documentation under `docs/`. `docs/decisions/` is reserved for the ADRs of
-  projects that use the template.
+`AGENTS.md` holds the working rules for this repository. They apply whether a
+change is written by a person, with AI assistance, or by an agent.
 
-Remove this section after creating a project from the template.
+## What a change must respect
+
+- Code, outputs, figures, and proofs on the site come from the build. Do not
+  paste a figure, a number, or a code listing by hand.
+- Generated files are never committed.
+- Lean proofs contain no `sorry`, no `admit`, and no project-declared axiom.
+  A physical assumption is a hypothesis of the theorem.
+- The site loads nothing from another website and sets no cookie.
+
+`docs/architecture.md` lists all invariants.
+
+## Licence of contributions
+
+By submitting a contribution you agree that it is licensed under the licences
+of this repository:
+
+- code, including lesson code, tests, and Lean proofs, under the
+  [MIT licence](LICENSE);
+- lesson text and figures under the
+  [Creative Commons Attribution 4.0 International licence](LICENSE-CONTENT).
+
+Only contribute material that you have the right to license this way. When
+you include third-party material, name its source and licence in the pull
+request so it can be attributed on the site.
+
+## Security
+
+Do not put secrets in Issues, pull requests, or commits. See
+[SECURITY.md](SECURITY.md) for how to report a security-sensitive finding.

@@ -1,0 +1,57 @@
+project:
+  type: website
+  output-dir: _site
+  # Files the pages do not link to in Markdown but the built site must
+  # contain: the math font that site.css loads, and its licence.
+  resources:
+    - assets/fonts/STIXTwoMath-Regular.woff2
+    - assets/fonts/OFL.txt
+
+website:
+  title: "Physics by Construction"
+  description: >-
+    Physics taught by constructing it: runnable simulations, experiments
+    driven by AI agents, and formal proofs in Lean.
+  # The public address of the site. This is the only place it is configured:
+  # pages link to each other with relative URLs, and the built-site checks
+  # serve the site under the path of this URL.
+  site-url: https://taspinar.github.io/physics-by-construction/
+  repo-url: https://github.com/taspinar/physics-by-construction
+  # Search and a collapsing menu both need JavaScript; the site must be fully
+  # usable without it.
+  search: false
+  navbar:
+    collapse: false
+    left:
+      - text: Home
+        href: index.qmd
+      - text: About
+        href: about.qmd
+    right:
+      - text: Source
+        href: https://github.com/taspinar/physics-by-construction
+  page-footer:
+    center: >-
+      Code: [MIT](https://github.com/taspinar/physics-by-construction/blob/main/LICENSE).
+      Lesson text and figures:
+      [CC BY 4.0](https://github.com/taspinar/physics-by-construction/blob/main/LICENSE-CONTENT).
+      Details on the [About](about.qmd) page.
+
+format:
+  html:
+    lang: en
+    theme: default
+    css: assets/site.css
+    # Equations become MathML at build time: no script, readable by
+    # assistive technology (ADR 001).
+    html-math-method: mathml
+    highlight-style: a11y
+    toc: true
+    filters:
+      - _filters/scroll-regions.lua
+      - _filters/cell-ids.lua
+
+execute:
+  # Every build executes every page; results are never stored (ADR 002).
+  freeze: false
+  cache: false

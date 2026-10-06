@@ -1,7 +1,39 @@
 # Project map
 
-What each part of the template is for. The workflow that connects them is in
-`docs/workflow.md`.
+What each part of the repository is for. The product is described in
+`docs/architecture.md`; the development workflow that connects the scripts is
+in `docs/workflow.md`.
+
+## Product
+
+| Path | Purpose |
+|---|---|
+| `site/` | The website source, a Quarto project. `_quarto.yml` configures it, including the public address in `website.site-url`; `_filters/` holds its Pandoc Lua filters; `assets/` its stylesheet and self-hosted font |
+| `site/_site/` | The built site. Written by `scripts/build-site.sh`, ignored by Git |
+| `src/pbc/` | The Python package with the reusable lesson code |
+| `lean/` | The Lean project: `lean-toolchain`, `lakefile.toml`, and `lake-manifest.json` pin Lean and Mathlib; proofs live in `PhysicsByConstruction/`; `AxiomAudit.lean` is the audit run by `scripts/check-lean.sh` |
+| `pyproject.toml`, `uv.lock`, `.python-version` | The Python toolchain pins, including Quarto and the browser for the site checks |
+| `LICENSE`, `LICENSE-CONTENT` | MIT for code, CC BY 4.0 for lesson text and figures |
+
+## Verification
+
+| Path | Purpose |
+|---|---|
+| `scripts/verify.sh` | Runs the checks in `scripts/verify.conf`; used by humans, agents, and CI |
+| `scripts/verify.conf` | The required verification checks of the project |
+| `scripts/preflight.sh` | First check: reports every missing prerequisite of the one-time setup with a fix hint |
+| `scripts/check-lean.sh` | Builds every Lean module against Mathlib from its build cache and fails on `sorry` and project axioms |
+| `scripts/build-site.sh` | Builds the site with Quarto; fails on a failing cell or an equation that is not MathML |
+| `scripts/check-determinism.sh` | Builds the site a second time and requires byte-identical output |
+| `scripts/doctor.sh` | Read-only check of the local prerequisites, including those of the development workflow |
+| `scripts/lib/prerequisites.sh`, `scripts/lib/check_browser.py` | The prerequisite checks shared by `preflight.sh` and `doctor.sh` |
+| `tests/unit/` | pytest: behaviour of `src/pbc` |
+| `tests/integration/` | pytest: every check fails on a violating input; boundaries of the CI workflow |
+| `tests/e2e/` | pytest with a headless browser: the required checks on the built site |
+| `tests/support/` | Helpers of the tests: the built-site checks, the sub-path test server, the `verify.conf` reader |
+| `tests/*.sh` | Shell tests of the workflow scripts, of `doctor.sh`, and of `preflight.sh` |
+| `.github/workflows/ci.yml` | CI: prepares the runner, runs `./scripts/verify.sh`, and on `main` deploys the verified site |
+| `.github/dependabot.yml` | Update proposals for Python packages and GitHub Actions |
 
 ## Rules and configuration
 
@@ -10,15 +42,14 @@ What each part of the template is for. The workflow that connects them is in
 | `AGENTS.md` | Durable working rules for every agent: source precedence, Definition of Done, boundaries, branch policy |
 | `.agents/agents.conf` | Provider and model per workflow role |
 | `.agents/policies/` | Risk-based autonomy, execution limits, recovery, conflict resolution, and tool permissions |
-| `scripts/verify.conf` | The required verification checks of the project |
-| `.github/` | CI workflow, Issue templates, PR template, and code owners |
+| `.github/` | CI workflow, Dependabot configuration, Issue templates, PR template, and code owners |
 | `CONTRIBUTING.md`, `SECURITY.md` | How to contribute and how to handle security-sensitive findings |
 
 ## Project documents
 
 | Path | Purpose | Written by |
 |---|---|---|
-| `README.md` | What the project is and how to start | You |
+| `README.md` | What the project is and how to build it | You |
 | `docs/PROJECT_DESCRIPTION.md` | Your original project idea, unchanged | `start-planning.sh --description` |
 | `docs/PROJECT_REQUIREMENTS.md` | The requirements you approved | Project Grill, approved by you |
 | `docs/architecture.md` | The current system design | Project planner |
@@ -26,7 +57,7 @@ What each part of the template is for. The workflow that connects them is in
 | `docs/decisions/` | Architecture decision records | Project planner |
 | `docs/PLANNING_APPROVAL.md` | Your approval of the reviewed planning, with its fingerprint | `finish-planning.sh` |
 | `docs/repository-setup.md` | GitHub settings for a new repository | You |
-| `docs/development.md` | Every command and its behaviour | Template |
+| `docs/development.md` | The one-time setup, verification, and every workflow command | Template and you |
 | `docs/workflow.md` | The workflow in flow, artifact, and reference views | Template |
 | `docs/example.md` | A complete run with a sample project | Template |
 | `docs/agentic-workflow.md` | Principles: persistent state, roadmap versus Issues, plans versus Issues | Template |
@@ -37,8 +68,6 @@ What each part of the template is for. The workflow that connects them is in
 
 | Script | Purpose |
 |---|---|
-| `scripts/doctor.sh` | Checks the local prerequisites |
-| `scripts/verify.sh` | Runs the checks in `scripts/verify.conf`; used by humans, agents, and CI |
 | `scripts/start-planning.sh` | Project Grill, requirements approval, and project planning in a planning worktree |
 | `scripts/review-planning.sh` | Independent, read-only review of the planning documents |
 | `scripts/revise-planning.sh` | The planner's decision per planning finding, then the revision |
@@ -90,4 +119,3 @@ What each part of the template is for. The workflow that connects them is in
 | `.agents/plans/` | Optional feature plans | Yes |
 | `.agents/handoffs/` | Continuation notes for interrupted work | Yes |
 | `.agents/lessons/` | Recurring agent failures and the rules learned from them | Yes |
-| `tests/` | Integration tests of the workflow scripts, run by `verify.sh` | Yes |
