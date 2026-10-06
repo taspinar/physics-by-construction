@@ -1,0 +1,26 @@
+.env
+.env.*
+!.env.example
+node_modules/
+.next/
+dist/
+build/
+coverage/
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+*.pyc
+.DS_Store
+*.log
+# Credentials / keys
+*.pem
+*.key
+service-account*.json
+credentials*.json
+# Review and triage results are working files; their reports are published
+# on the feature Issue instead of being committed.
+.agents/reviews/*
+!.agents/reviews/.gitkeep
+.agents/triage/*
+!.agents/triage/.gitkeep
