@@ -13,20 +13,20 @@ does not compile cannot be merged.
 
 ## Status
 
-The publishing and verification pipeline is in place. The first course,
-mechanics with numerical simulation, is being written. The plan is in
-[docs/roadmap.md](docs/roadmap.md).
+The publishing and verification pipeline and the lesson format are in place,
+and the first lesson of the mechanics course, "Kinematics as a program", is
+published. The plan for the rest is in [docs/roadmap.md](docs/roadmap.md).
 
 ## Repository layout
 
 | Path | Contents |
 |---|---|
-| `site/` | The website source, a [Quarto](https://quarto.org) project |
+| `site/` | The website source, a [Quarto](https://quarto.org) project; lessons are in `site/lessons/` |
 | `src/pbc/` | The Python package with the reusable lesson code |
 | `lean/` | The Lean 4 project with all proofs, built against Mathlib |
 | `tests/` | Unit tests, tests of the verification checks, and checks on the built site |
 | `scripts/` | Verification and build scripts, and the development workflow |
-| `docs/` | Requirements, architecture, roadmap, and decisions |
+| `docs/` | Requirements, architecture, roadmap, decisions, and the [authoring guide](docs/authoring.md) |
 
 ## Build and verify
 

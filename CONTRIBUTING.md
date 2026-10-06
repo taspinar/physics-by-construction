@@ -26,7 +26,9 @@ change is written by a person, with AI assistance, or by an agent.
   A physical assumption is a hypothesis of the theorem.
 - The site loads nothing from another website and sets no cookie.
 
-`docs/architecture.md` lists all invariants.
+`docs/architecture.md` lists all invariants. To write or change a lesson,
+follow [docs/authoring.md](docs/authoring.md) and start from
+`docs/lesson-template.qmd`.
 
 ## Licence of contributions
 
@@ -40,7 +42,9 @@ of this repository:
 
 Only contribute material that you have the right to license this way. When
 you include third-party material, name its source and licence in the pull
-request so it can be attributed on the site.
+request so it can be attributed on the site. The rules for third-party
+material in a lesson are in
+[docs/authoring.md](docs/authoring.md#third-party-material).
 
 ## Security
 

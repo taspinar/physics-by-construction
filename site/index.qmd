@@ -36,11 +36,14 @@ quickly it drifts when it does not. An agent can search for the time step at
 which the drift becomes visible. A proof settles what the model itself
 guarantees, for every initial condition at once.
 
-## Status
+## Lessons
 
-The publishing pipeline is in place and the first course, mechanics with
-numerical simulation, is being written. Lessons appear here as they pass
-verification.
+The first course, mechanics with numerical simulation, is being written.
+Lessons appear here as they pass verification.
+
+1. [Kinematics as a program](lessons/mechanics/01-kinematics-as-a-program/index.qmd):
+   motion under a known acceleration as a state and an update rule, checked
+   against the exact solution.
 
 ## Source and licence
 

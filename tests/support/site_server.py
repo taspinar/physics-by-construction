@@ -22,6 +22,12 @@ def configured_site_url(site_source: Path) -> str:
     return url if url.endswith("/") else url + "/"
 
 
+def configured_repository_url(site_source: Path) -> str:
+    """Return the address of the repository: ``website.repo-url``."""
+    config = yaml.safe_load((site_source / "_quarto.yml").read_text())
+    return config["website"]["repo-url"].rstrip("/")
+
+
 def configured_base_path(site_source: Path) -> str:
     """Return the path of the public address, with a trailing slash."""
     return urlsplit(configured_site_url(site_source)).path

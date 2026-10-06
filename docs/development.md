@@ -78,9 +78,10 @@ in `scripts/verify-workflow.conf`. They run in this order:
 | `lint`, `format` | Ruff on the Python sources. |
 | `unit-tests` | pytest on `tests/unit`: the behaviour of `src/pbc`. |
 | `lean-build` | `scripts/check-lean.sh`: takes Mathlib from its build cache and never compiles it from source, builds every module under `lean/PhysicsByConstruction/`, then audits every declaration. A declared `axiom`, a `sorry`, or any axiom besides Lean's three standard ones fails the check. |
-| `check-tests` | pytest on `tests/integration`: every check fails on an input that violates it, and the CI workflow keeps its permission boundaries. |
+| `check-tests` | pytest on `tests/integration`: every check fails on an input that violates it, a lesson made from the template passes, and the CI workflow keeps its permission boundaries. |
+| `lesson-checks` | pytest on `tests/lessons`: the lesson sources follow the format of `docs/authoring.md`. Front matter follows the schema, the required sections are present, displayed code is an executed cell or marked "not verified", figure cells have alternative text, and no generated artifact is committed under `site/` or `src/`. |
 | `site-build` | `scripts/build-site.sh`: Quarto executes every page in the locked environment and renders `site/_site/`. A failing cell or an equation that cannot become MathML fails the build. |
-| `site-checks` | pytest on `tests/e2e`, on the built site served under its sub-path: nothing is loaded from another origin, no cookie is set, images have alt text and dimensions, internal links resolve, pages are readable without JavaScript and a script adds no content to them (except inside an element with `data-enhancement`, an `id`, and static content of its own), do not scroll sideways at phone width and keep every image on the screen, and the axe-core scan finds no WCAG 2.1 A or AA violation. |
+| `site-checks` | pytest on `tests/e2e`, on the built site served under its sub-path: nothing is loaded from another origin, no cookie is set, images have alt text and dimensions, internal links resolve, pages are readable without JavaScript and a script adds no content to them (except inside an element with `data-enhancement`, an `id`, and static content of its own), do not scroll sideways at phone width and keep every image on the screen, and the axe-core scan finds no WCAG 2.1 A or AA violation. For lessons: every lesson has a built page with the required sections, excerpts are identical to their source in `src/pbc`, "not verified" material shows its label, and the commands of each "Reproduce this" section regenerate the published page and its figures within 30 seconds. |
 | `determinism` | `scripts/check-determinism.sh`: builds a fresh copy of the site sources a second time and requires byte-identical output. |
 | Workflow self-tests | The shell tests of the agentic development workflow in `tests/*-test.sh`. Run in CI always, and locally only when a workflow file changed; see "Workflow self-tests" below. |
 
@@ -93,6 +94,9 @@ While writing, preview the site with live reload:
 ```bash
 uv run --locked quarto preview site
 ```
+
+How to write a lesson is described in `docs/authoring.md`; the template is
+`docs/lesson-template.qmd`.
 
 ### Other browser engines
 

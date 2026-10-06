@@ -1,4 +1,4 @@
-"""Fixtures shared by the integration and end-to-end tests."""
+"""Options and fixtures shared by the test directories."""
 
 from collections.abc import Iterator
 
@@ -18,6 +18,11 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "--site-dir",
         default=None,
         help="Built site to check in tests/e2e (default: site/_site).",
+    )
+    parser.addoption(
+        "--repository",
+        default=None,
+        help="Repository whose lessons tests/lessons checks (default: this one).",
     )
 
 

@@ -5,6 +5,8 @@ tests/e2e runs on the real site. A clean site passes every check, so a
 reported violation comes from the violation and not from the test setup.
 """
 
+import html
+import inspect
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -12,8 +14,11 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser
 from support import site_checks
+from support.paths import REPO_ROOT
 from support.site_checks import Violation
 from support.site_server import SiteServer
+
+from pbc.sample import damped_oscillation
 
 BASE_PATH = "/sub-path/"
 SITE_URL = "https://example.org" + BASE_PATH
@@ -324,3 +329,154 @@ def test_wcag_violation_is_reported(make_site: Site, browser: Browser):
         violations = site_checks.check_accessibility(browser, server, site)
 
     assert rules(violations) == {"wcag:color-contrast"}
+
+
+# --- Lesson constructs -------------------------------------------------------
+
+_LABELLED = (
+    '<div class="not-verified"><div class="not-verified-label">'
+    "<p><strong>Not verified.</strong> Nothing checked this.</p></div>"
+    "<p>A quoted value.</p></div>"
+)
+
+
+def _listing(source: str, text: str) -> str:
+    return (
+        f'<div class="sourceCode" data-source="{source}">'
+        f"<pre><code>{html.escape(text)}</code></pre></div>"
+    )
+
+
+def test_lesson_constructs_as_the_build_writes_them_pass(
+    make_site: Site, browser: Browser
+):
+    # The text comes from Python's own reading of the function, the check
+    # reads the file: two routes to the same source.
+    site = make_site(
+        body=_LABELLED
+        + _listing(
+            "pbc.sample:damped_oscillation", inspect.getsource(damped_oscillation)
+        )
+        + '<section id="assumptions" class="level2"><h2>Assumptions</h2></section>'
+    )
+
+    assert site_checks.check_sections(site, "index.html", ["assumptions"]) == []
+    with served(site) as server:
+        assert site_checks.check_not_verified_labels(browser, server, site) == []
+        assert site_checks.check_displayed_code(browser, server, site, REPO_ROOT) == []
+
+
+def _solution(content: str) -> str:
+    return f"<details><summary>Solution to exercise 1</summary>{content}</details>"
+
+
+def test_labelled_material_inside_a_closed_solution_passes(
+    make_site: Site, browser: Browser
+):
+    # The label is not rendered while the solution is closed; it appears
+    # together with the material when the reader opens the solution.
+    site = make_site(body=_solution(_solution(_LABELLED)))
+
+    with served(site) as server:
+        assert site_checks.check_not_verified_labels(browser, server, site) == []
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        '<div class="not-verified"><p>A quoted value.</p></div>',
+        '<p>About <span class="not-verified">9.8</span> metres.</p>',
+        _LABELLED.replace('"not-verified-label"', '"not-verified-label" hidden'),
+        _LABELLED.replace("Not verified.", "Note."),
+        _solution('<div class="not-verified"><p>A quoted value.</p></div>'),
+        _solution(
+            _LABELLED.replace('"not-verified-label"', '"not-verified-label" hidden')
+        ),
+        # The material is in the open and its label in a closed element.
+        _LABELLED.replace(
+            '<div class="not-verified-label">',
+            '<details><div class="not-verified-label">',
+        ).replace("</p></div><p>", "</p></div></details><p>"),
+    ],
+    ids=[
+        "block",
+        "phrase",
+        "hidden-label",
+        "label-with-other-text",
+        "block-in-a-solution",
+        "hidden-label-in-a-solution",
+        "label-in-a-closed-element",
+    ],
+)
+def test_not_verified_material_without_a_visible_label_is_reported(
+    make_site: Site, browser: Browser, body: str
+):
+    site = make_site(body=body)
+
+    with served(site) as server:
+        violations = site_checks.check_not_verified_labels(browser, server, site)
+
+    assert rules(violations) == {"not-verified-label"}
+
+
+@pytest.mark.parametrize(
+    "source, change",
+    [
+        ("pbc.sample:damped_oscillation", lambda text: text.replace("0.5", "0.25")),
+        ("pbc.sample:damped_oscillation", lambda text: text.split('"""')[0]),
+        ("pbc.sample:no_such_function", lambda text: text),
+        ("json:dumps", lambda text: text),
+    ],
+    ids=["changed-value", "shortened", "unknown-object", "outside-the-package"],
+)
+def test_excerpt_that_differs_from_its_source_is_reported(
+    make_site: Site, browser: Browser, source: str, change: Callable[[str], str]
+):
+    site = make_site(
+        body=_listing(source, change(inspect.getsource(damped_oscillation)))
+    )
+
+    with served(site) as server:
+        violations = site_checks.check_displayed_code(browser, server, site, REPO_ROOT)
+
+    assert rules(violations) == {"excerpt"}
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "<blockquote><p><code>{python} print(position)</code></p></blockquote>",
+        "<p>The position is <code>{python} position</code> m.</p>",
+    ],
+    ids=["cell", "inline-expression"],
+)
+def test_cell_that_the_build_did_not_execute_is_reported(
+    make_site: Site, browser: Browser, body: str
+):
+    site = make_site(body=body)
+
+    with served(site) as server:
+        violations = site_checks.check_displayed_code(browser, server, site, REPO_ROOT)
+
+    assert rules(violations) == {"unexecuted-cell"}
+
+
+def test_lesson_page_without_a_required_section_is_reported(make_site: Site):
+    site = make_site(
+        body='<section id="assumptions" class="level2"><h2>Assumptions</h2></section>'
+        '<section id="code" class="level3"><h3>Code</h3></section>'
+    )
+
+    violations = site_checks.check_sections(site, "index.html", ["assumptions", "code"])
+
+    assert [violation.detail for violation in violations] == [
+        "no section with the identifier 'code'"
+    ]
+
+
+def test_lesson_without_a_built_page_is_reported(make_site: Site):
+    site = make_site()
+
+    violations = site_checks.check_sections(site, "lessons/x/index.html", ["code"])
+
+    assert rules(violations, "lessons/x/index.html") == {"lesson-page"}

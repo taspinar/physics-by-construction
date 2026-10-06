@@ -1,0 +1,472 @@
+---
+title: "Kinematics as a program"
+description: >-
+  Motion along a line under a known acceleration, written as a state and an
+  update rule, and checked against the exact solution.
+lesson:
+  id: kinematics
+  strand: mechanics
+  order: 1
+  difficulty: 1
+  prerequisites:
+    lessons: []
+    outside:
+      - "Calculus: derivatives, integrals, and Taylor expansion to second order"
+      - "Python: functions, dataclasses, and NumPy arrays"
+---
+
+Kinematics describes motion without asking what causes it. The acceleration
+$a(t)$ is given, and the task is to find the velocity $v(t)$ and the position
+$x(t)$. This lesson turns that task into a program: it holds a *state*,
+advances the state by a small *time step*, and repeats. The method is explicit
+Euler, the simplest one there is.
+
+Because the acceleration is known, the exact motion is known too. So we can
+measure how wrong the program is, and how the error shrinks when the time step
+does. Checking a simulation against something you can calculate by hand is the
+habit the rest of this course builds on.
+
+## Assumptions
+
+The model and the program rest on these assumptions. Each one names what goes
+wrong when it does not hold.
+
+1. **A point particle on a line.** One number $x(t)$ gives the position. A
+   body that rotates, bends, or moves in a plane needs more state than this
+   lesson carries.
+2. **The acceleration depends on time only.** $a(t)$ is known in advance and
+   does not depend on where the particle is or how fast it moves. A spring
+   (acceleration depends on $x$) or air drag (depends on $v$) breaks this. The
+   update rule below still runs for them, but the exact solutions used here
+   for comparison no longer apply.
+3. **Newtonian motion.** Speeds are far below the speed of light, and one
+   clock serves everyone.
+4. **The acceleration is smooth within a step.** The error estimate needs
+   $a(t)$ to change little during one time step. A jump inside a step, such
+   as an impact, makes the error larger than estimated.
+5. **Round-off is negligible.** The program computes with double-precision
+   floating-point numbers, and every operation rounds its result. For the
+   time steps used here that rounding is many orders of magnitude smaller
+   than the error of the method. With very many very small steps it would
+   become visible.
+
+The worked examples add one more: **free fall without air.** Near the Earth's
+surface and without drag the acceleration is the constant $-g$. For a light
+ball at high speed, drag is not small, and a later lesson adds it.
+
+## From rates of change to an update rule {#explanation}
+
+Velocity is the rate of change of position, and acceleration is the rate of
+change of velocity:
+
+$$
+\frac{\mathrm{d}x}{\mathrm{d}t} = v,
+\qquad
+\frac{\mathrm{d}v}{\mathrm{d}t} = a(t).
+$$
+
+Everything the program needs to know at one instant is the triple
+$(t, x, v)$. That triple is the **state**.
+
+Over a short time $\Delta t$ the Taylor expansions of position and velocity are
+
+$$
+\begin{aligned}
+x(t + \Delta t) &= x(t) + v(t)\,\Delta t + \tfrac{1}{2}\,a(t)\,\Delta t^{2} + \dots \\
+v(t + \Delta t) &= v(t) + a(t)\,\Delta t + \dots
+\end{aligned}
+$$
+
+Explicit Euler keeps the terms that are linear in $\Delta t$ and drops the
+rest. Writing $x_n$ and $v_n$ for the computed values at time
+$t_n = t_0 + n\,\Delta t$, the **update rule** is
+
+$$
+\begin{aligned}
+x_{n+1} &= x_n + v_n\,\Delta t, \\
+v_{n+1} &= v_n + a(t_n)\,\Delta t, \\
+t_{n+1} &= t_n + \Delta t.
+\end{aligned}
+$$
+
+The right-hand sides use only values the program already has, which is what
+"explicit" means.
+
+### How large is the error?
+
+One step drops terms of size $\Delta t^{2}$. Reaching a fixed time $T$ takes
+$T / \Delta t$ steps, so the dropped terms add up to an error of size
+$\Delta t$. Explicit Euler is a **first-order** method: halve the time step
+and the error at time $T$ halves, at twice the work.
+
+For a constant acceleration $a$ we can say exactly what the method does. The
+exact motion from the initial values $x_0$ and $v_0$ at $t_0 = 0$ is
+
+$$
+x(t) = x_0 + v_0\,t + \tfrac{1}{2}\,a\,t^{2},
+\qquad
+v(t) = v_0 + a\,t.
+$$
+
+The update rule adds $a\,\Delta t$ to the velocity in every step, so
+$v_n = v_0 + a\,t_n$: the computed velocity is exact. The position collects
+those velocities:
+
+$$
+x_n
+= x_0 + \sum_{k=0}^{n-1} v_k\,\Delta t
+= x_0 + v_0\,t_n + \tfrac{1}{2}\,a\,t_n\,(t_n - \Delta t).
+$$
+
+Subtracting the exact position leaves
+
+$$
+x_n - x(t_n) = -\tfrac{1}{2}\,a\,t_n\,\Delta t.
+$$
+
+Each step moves the particle with the velocity it had at the *start* of the
+step, so the computed position lags behind the change in velocity. The lag
+grows in proportion to the elapsed time and to the time step. This is a
+prediction the program has to reproduce, digit for digit.
+
+## The program {#code}
+
+The code lives in the module `pbc.mechanics.kinematics` of the repository.
+The listings in this section are read from that file when the site is built.
+
+The state is a small immutable record:
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, reproduce_this
+from pbc.mechanics import kinematics
+
+excerpt(kinematics.State)
+```
+
+One step is a function from a state to the next state. It changes nothing
+and remembers nothing, so it can be tested on its own:
+
+```{python}
+#| echo: false
+excerpt(kinematics.euler_step)
+```
+
+The acceleration is passed in as a function of time, so the same step serves
+every motion in this lesson. A simulation is that step in a loop, with the
+states collected into arrays:
+
+```{python}
+#| echo: false
+excerpt(kinematics.simulate)
+```
+
+The exact motion under a constant acceleration is the reference to compare
+with:
+
+```{python}
+#| echo: false
+excerpt(kinematics.constant_acceleration)
+```
+
+## Worked examples
+
+### A ball thrown straight up
+
+A ball leaves a hand above the ground, moving upward, and we follow it until
+shortly before it is back at that height. The cell sets the numbers, runs the
+simulation, and evaluates the exact motion at the same instants.
+
+```{python}
+import numpy as np
+from scipy.constants import g  # standard gravity, m/s^2
+
+from pbc.mechanics.kinematics import State, constant_acceleration, simulate
+
+# Released above the ground (x in m) and moving upward (v in m/s).
+launch = State(t=0.0, x=1.5, v=12.0)
+dt = 0.1  # time step, s
+n_steps = 24
+
+
+def free_fall(t):
+    return -g
+
+
+euler = simulate(launch, free_fall, dt, n_steps)
+exact = constant_acceleration(launch, -g, euler.t)
+
+print(" t (s)   x Euler (m)   x exact (m)   v Euler (m/s)   v exact (m/s)")
+for i in range(0, n_steps + 1, 4):
+    print(
+        f"{euler.t[i]:6.1f}{euler.x[i]:14.3f}{exact.x[i]:14.3f}"
+        f"{euler.v[i]:16.3f}{exact.v[i]:16.3f}"
+    )
+```
+
+The acceleration is standard gravity, $g$ = `{python} g` m/s², pointing down.
+The two velocity columns agree in every row, as derived above. The position
+columns drift apart. After `{python} f"{euler.t[-1]:.1f}"` s the simulated
+ball is `{python} f"{euler.x[-1] - exact.x[-1]:.3f}"` m above the exact one.
+The predicted lag $-\tfrac{1}{2}\,a\,t\,\Delta t$ with $a = -g$ is
+`{python} f"{g * euler.t[-1] * dt / 2:.3f}"` m.
+
+```{python}
+#| label: fig-ball-thrown-up
+#| fig-cap: "Height of the ball: explicit Euler with a coarse time step against the exact motion."
+#| fig-alt: "Line plot of height in metres against time in seconds. The exact motion is a parabola: the ball rises, peaks halfway through the plotted time, and comes back down almost to its starting height. The explicit Euler points start on the parabola and then lie above it, by a distance that grows steadily with time."
+import matplotlib.pyplot as plt
+
+fine = np.linspace(0.0, euler.t[-1], 241)
+
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+ax.plot(
+    fine,
+    constant_acceleration(launch, -g, fine).x,
+    color="#00429d",
+    label="exact",
+)
+ax.plot(
+    euler.t,
+    euler.x,
+    color="#93003a",
+    linestyle="--",
+    marker="o",
+    markersize=3,
+    label=f"explicit Euler, time step {dt} s",
+)
+ax.set_xlabel("time (s)")
+ax.set_ylabel("height (m)")
+ax.legend()
+plt.show()
+```
+
+### Halving the time step
+
+A first-order method should halve its error when the time step halves. The
+cell repeats the simulation over the same duration, doubling the number of
+steps each time, and compares the final position with the exact one.
+
+```{python}
+duration = dt * n_steps
+
+
+def final_error(acceleration, exact_position, n):
+    """Error of the last simulated position, for n steps over the duration."""
+    end = simulate(launch, acceleration, duration / n, n)
+    return end.x[-1] - exact_position(end.t[-1])
+
+
+def ball(t):
+    return float(constant_acceleration(launch, -g, t).x)
+
+
+step_counts = [n_steps * 2**k for k in range(6)]
+ball_errors = np.array([final_error(free_fall, ball, n) for n in step_counts])
+
+print(" steps    time step (s)    error (m)    previous error / error")
+for i, n in enumerate(step_counts):
+    ratio = f"{ball_errors[i - 1] / ball_errors[i]:10.4f}" if i else ""
+    print(f"{n:6d}{duration / n:17.6f}{ball_errors[i]:13.6f}    {ratio}")
+```
+
+Every halving of the time step halves the error. For a constant acceleration
+the ratio is 2 to all digits shown, because the error is exactly
+$\tfrac{1}{2}\,g\,t\,\Delta t$.
+
+### An acceleration that changes in time
+
+A constant acceleration is a special case: the computed velocity was exact.
+Take instead a cart on a shaking table, driven back and forth with
+$a(t) = a_0 \cos(\omega t)$ from rest. Integrating twice gives the exact
+motion
+
+$$
+v(t) = \frac{a_0}{\omega} \sin(\omega t),
+\qquad
+x(t) = x_0 + \frac{a_0}{\omega^{2}} \bigl(1 - \cos(\omega t)\bigr).
+$$
+
+The same `simulate` runs it; only the acceleration function changes.
+
+```{python}
+a0 = 3.0  # amplitude of the acceleration, m/s^2
+omega = 2.0  # angular frequency, rad/s
+rest = State(t=0.0, x=0.0, v=0.0)
+
+
+def shaking(t):
+    return a0 * np.cos(omega * t)
+
+
+def cart(t):
+    return rest.x + a0 / omega**2 * (1.0 - np.cos(omega * t))
+
+
+def cart_error(n):
+    end = simulate(rest, shaking, duration / n, n)
+    return end.x[-1] - cart(end.t[-1])
+
+
+cart_errors = np.array([cart_error(n) for n in step_counts])
+orders = np.log2(cart_errors[:-1] / cart_errors[1:])
+
+print(" steps    time step (s)    error (m)    observed order")
+for i, n in enumerate(step_counts):
+    order = f"{orders[i - 1]:10.3f}" if i else ""
+    print(f"{n:6d}{duration / n:17.6f}{cart_errors[i]:13.6f}    {order}")
+```
+
+The observed order is the base-2 logarithm of the ratio of successive errors:
+1 means the error halves with the time step. It is no longer exactly 1,
+because the dropped terms now contain more than one power of $\Delta t$, but
+it approaches 1 as the step shrinks. With the smallest step the observed
+order is `{python} f"{orders[-1]:.3f}"`.
+
+On logarithmic axes a first-order error is a straight line of slope 1.
+
+```{python}
+#| label: fig-error-against-time-step
+#| fig-cap: "Error of the final position against the time step, for both examples."
+#| fig-alt: "Log-log plot of the size of the final position error in metres against the time step in seconds. The points for the thrown ball and the points for the cart on the shaking table each lie on a straight line. Both lines are parallel to a dotted reference line of slope 1: the error falls in proportion to the time step."
+steps = duration / np.array(step_counts)
+
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+ax.loglog(steps, np.abs(ball_errors), color="#00429d", marker="o", label="thrown ball")
+ax.loglog(
+    steps,
+    np.abs(cart_errors),
+    color="#93003a",
+    marker="s",
+    linestyle="--",
+    label="cart on a shaking table",
+)
+ax.loglog(steps, steps, color="#555555", linestyle=":", label="slope 1")
+ax.set_xlabel("time step (s)")
+ax.set_ylabel("size of the error (m)")
+ax.legend()
+plt.show()
+```
+
+## Exercises
+
+::: {.exercise}
+**Choose the time step.** For the thrown ball of the first example, how small
+must the time step be for the position after `{python} f"{duration:.1f}"` s
+to be within 1 mm of the exact one? Predict the answer from the error formula,
+then confirm it with a simulation.
+
+::: {.solution}
+The error after the time $T$ is $\tfrac{1}{2}\,g\,T\,\Delta t$, so the time
+step must satisfy $\Delta t \le 2\,\varepsilon / (g\,T)$ for a tolerance
+$\varepsilon$. A simulation needs a whole number of steps, so we round the
+number of steps up.
+
+```{python}
+tolerance = 1e-3  # m
+largest_step = 2 * tolerance / (g * duration)
+n_needed = int(np.ceil(duration / largest_step))
+error_needed = final_error(free_fall, ball, n_needed)
+
+print(f"largest time step: {largest_step * 1e6:.1f} microseconds")
+print(f"steps needed:      {n_needed}")
+print(f"error with them:   {error_needed * 1e3:.5f} mm")
+```
+
+The simulation with `{python} n_needed` steps ends
+`{python} f"{error_needed * 1e3:.5f}"` mm from the exact position, just inside
+the tolerance. The first example used `{python} n_steps` steps. The error
+shrinks only in proportion to the work: that is the price of a first-order
+method.
+:::
+:::
+
+::: {.exercise}
+**A constant jerk.** A particle starts from rest at the origin and its
+acceleration grows linearly, $a(t) = j\,t$ with $j = 2$ m/s³. The exact motion
+is $v(t) = \tfrac{1}{2}\,j\,t^{2}$ and $x(t) = \tfrac{1}{6}\,j\,t^{3}$. Is the
+velocity computed by explicit Euler still exact? Measure the observed order of
+the position error at $t = 3$ s.
+
+::: {.solution}
+The velocity is no longer exact. Each step uses the acceleration at the start
+of the step, which is now smaller than the acceleration during the step, so
+the computed velocity falls behind.
+
+```{python}
+jerk = 2.0  # m/s^3
+end_time = 3.0  # s
+
+
+def growing(t):
+    return jerk * t
+
+
+def jerk_errors(n):
+    end = simulate(rest, growing, end_time / n, n)
+    return (
+        end.v[-1] - jerk * end.t[-1] ** 2 / 2,
+        end.x[-1] - jerk * end.t[-1] ** 3 / 6,
+    )
+
+
+counts = [30 * 2**k for k in range(5)]
+errors = np.array([jerk_errors(n) for n in counts])
+jerk_orders = np.log2(errors[:-1, 1] / errors[1:, 1])
+
+print(" steps    velocity error (m/s)    position error (m)    observed order")
+for i, n in enumerate(counts):
+    order = f"{jerk_orders[i - 1]:10.3f}" if i else ""
+    print(f"{n:6d}{errors[i, 0]:24.6f}{errors[i, 1]:22.6f}    {order}")
+```
+
+Both errors are negative: the computed particle is slower and has not come as
+far. Both halve with the time step, and the observed order of the position
+error tends to 1.
+:::
+:::
+
+::: {.exercise}
+**Keep one more term.** The update rule dropped the term
+$\tfrac{1}{2}\,a(t)\,\Delta t^{2}$ from the position. Write a step that keeps
+it, and run the thrown ball of the first example again with its coarse time
+step of `{python} dt` s. What happens to the error, and why?
+
+::: {.solution}
+```{python}
+def second_order_step(state, acceleration, dt):
+    a = acceleration(state.t)
+    return State(
+        t=state.t + dt,
+        x=state.x + state.v * dt + 0.5 * a * dt**2,
+        v=state.v + a * dt,
+    )
+
+
+state = launch
+for _ in range(n_steps):
+    state = second_order_step(state, free_fall, dt)
+
+improved_error = state.x - ball(state.t)
+print(f"size of the error after {state.t:.1f} s: {abs(improved_error):.9f} m")
+```
+
+The error drops from `{python} f"{ball_errors[0]:.3f}"` m to zero in every
+digit shown; what is left is round-off. For a constant acceleration the Taylor expansion of the position ends after the
+$\Delta t^{2}$ term, so a step that keeps this term drops nothing. This holds
+for a constant acceleration only. For an acceleration that changes in time
+the expansion goes on, and the velocity is still updated by Euler's rule,
+which is then no longer exact, as the previous exercise showed. An error
+remains.
+:::
+:::
+
+## Reproduce this
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=["src/pbc/mechanics/kinematics.py"],
+    tests=["tests/unit/test_kinematics.py"],
+)
+```
