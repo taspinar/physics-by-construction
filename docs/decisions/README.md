@@ -33,3 +33,12 @@ What alternatives were considered?
 What are the positive and negative consequences?
 ```
 Do not create ADRs for trivial implementation details.
+
+## Index
+
+| ADR | Decision |
+|---|---|
+| [001](001-quarto-static-site-with-build-time-execution.md) | Quarto as the site generator, with build-time execution and MathML equations |
+| [002](002-regenerate-artifacts-and-display-by-reference.md) | Regenerate all lesson artifacts on every build and display code by reference |
+| [003](003-single-verification-entry-point-and-ci-budget.md) | One verification entry point, one verified artifact, and a fixed CI time budget |
+| [004](004-agent-lessons-verified-by-replay.md) | Agent lessons run behind a provider interface with a tool allowlist and are verified by replay |
