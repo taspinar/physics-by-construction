@@ -9,6 +9,11 @@ this ADR. Amends decisions 1, 2, and 7 of
 This ADR was not part of a planning review round. The planning approval was
 updated by hand for it; `docs/PLANNING_APPROVAL.md` records that.
 
+Decision 4 was rewritten on 2026-10-07. It first listed the guarded files and
+guarded `scripts/` as a whole, which made `scripts/verify.conf` a guarded
+file: nearly every feature adds a check there, so the self-tests still ran in
+most local runs.
+
 Date: 2026-10-06
 
 ## Context
@@ -46,11 +51,13 @@ do guard the product.
    a guarded file differs from `origin/main` (or `main`), counting uncommitted
    and untracked files, when it cannot determine that, and with `--all`.
    Otherwise the summary reports them as skipped.
-4. **Guarded files** are `scripts/`, `.agents/prompts/`, `.agents/schemas/`,
-   `.agents/agents.conf`, `.gitignore`, `tests/*-test.sh`, and
-   `tests/lib-fakes.sh`. `scripts/` is guarded as a whole, although it also
-   holds project scripts, because the self-tests cover `scripts/preflight.sh`
-   and a complete list is safer than a precise one.
+4. **Guarded files** are listed in `scripts/verify-workflow.conf`. The list
+   covers every file a workflow self-test reads or copies: the workflow
+   scripts, their agent contracts and schemas, the agent configuration, the
+   ignore rules, and the tests themselves. A file that no self-test reads may
+   be excluded there without a new ADR; a new file under `scripts/` is guarded
+   until it is excluded. A test of a project script belongs with the product
+   checks in `scripts/verify.conf`, not with the workflow self-tests.
 5. **ADR 003 stays in force otherwise.** Its decision 1 now reads: no check
    exists only in CI, and every product check runs locally on every run. Its
    decision 7 now reads: the workflow self-tests stay while the workflow

@@ -75,6 +75,7 @@ in `scripts/verify-workflow.conf`. They run in this order:
 | Check | What it does |
 |---|---|
 | `preflight` | Reports every missing prerequisite of the one-time setup with a fix hint, and confirms that the pinned browser build starts. |
+| `preflight-test` | `tests/preflight-test.sh`: the preflight reports each missing prerequisite and is the first check. |
 | `lint`, `format` | Ruff on the Python sources. |
 | `unit-tests` | pytest on `tests/unit`: the behaviour of `src/pbc`. |
 | `lean-build` | `scripts/check-lean.sh`: takes Mathlib from its build cache and never compiles it from source, builds every module under `lean/PhysicsByConstruction/`, then audits every declaration. A declared `axiom`, a `sorry`, or any axiom besides Lean's three standard ones fails the check. |
@@ -152,7 +153,11 @@ The tests of the workflow scripts (`tests/*-test.sh`) are declared separately,
 in `scripts/verify-workflow.conf` (ADR 005). They test the workflow, not the
 site, the Python package, or the proofs, so a change can break them only by
 touching a workflow file. That file names those files in its `paths:` entry,
-as Git pathspecs.
+as Git pathspecs. `scripts/` is guarded as a whole, except the files excluded
+there because no self-test reads them: `scripts/verify.conf` and the
+project's own check scripts. Adding a check to `scripts/verify.conf`
+therefore does not start the self-tests. Exclude a new project script there
+when no self-test reads it.
 
 `./scripts/verify.sh` runs the self-tests only when one of those files differs
 from the base branch (`origin/main`, or `main`), counting uncommitted and
