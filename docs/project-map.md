@@ -21,7 +21,7 @@ in `docs/workflow.md`.
 
 | Path | Purpose |
 |---|---|
-| `scripts/verify.sh` | Runs the checks in `scripts/verify.conf`, and the workflow self-tests when a workflow file changed or with `--all`; used by humans, agents, and CI |
+| `scripts/verify.sh` | Runs the checks in `scripts/verify.conf`, and the workflow self-tests when a workflow file changed or with `--all`; records a pass and skips a repeated run with `--reuse`; used by humans, agents, and CI |
 | `scripts/verify.conf` | The required verification checks of the project |
 | `scripts/verify-workflow.conf` | The self-tests of the workflow scripts and the workflow files they guard |
 | `scripts/preflight.sh` | First check: reports every missing prerequisite of the one-time setup with a fix hint |
@@ -97,6 +97,7 @@ in `docs/workflow.md`.
 | `scripts/lib/review-data.sh` | Validation and rendering of review, triage, and revision JSON |
 | `scripts/lib/review-run.sh` | Running a read-only agent with one retry, and storing a review |
 | `scripts/lib/fingerprint.sh` | Content fingerprints of a working tree or a set of files |
+| `scripts/lib/verification.sh` | The record of the last passed verification of a working tree |
 | `scripts/lib/scope.sh` | File-scope enforcement for write sessions |
 | `scripts/lib/planning.sh` | The planning scope and the planning approval check |
 
@@ -123,6 +124,7 @@ in `docs/workflow.md`.
 |---|---|---|
 | `.agents/reviews/` | Review and revision results (JSON and generated reports) | No |
 | `.agents/triage/` | Approved triage results (JSON and generated reports) | No |
+| `.agents/verification/` | The record of the last passed verification, written by `verify.sh` | No |
 | `.agents/manual-steps/` | Per Issue, the steps a feature needs from you, written by the implementer; copied into the commit message and the pull request | No |
 | `.agents/plans/` | Optional feature plans | Yes |
 | `.agents/handoffs/` | Continuation notes for interrupted work | Yes |
