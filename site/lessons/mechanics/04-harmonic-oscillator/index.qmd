@@ -1,0 +1,565 @@
+---
+title: "The harmonic oscillator"
+description: >-
+  A mass on a spring as the test system of the course: its exact motion, its
+  orbit in phase space, and the proof from the update rule that explicit
+  Euler multiplies its energy by the same factor at every step.
+lesson:
+  id: harmonic-oscillator
+  strand: mechanics
+  order: 4
+  difficulty: 2
+  prerequisites:
+    lessons: [newtons-laws]
+    outside:
+      - "Calculus: the derivatives of sine and cosine, and checking a solution by substitution"
+      - "Logarithms: the natural logarithm and the exponential of a small number"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import lesson_header
+
+lesson_header()
+```
+
+The last exercise of the Newton's laws lesson replaced the drag by a spring
+and found that the simulated particle came back further out than it started.
+This lesson is about that spring. A mass pulled back towards a rest position
+by a force proportional to its displacement is the **harmonic oscillator**,
+and it is the test system of the rest of the course: its exact motion is
+known for all time, and its energy is a quantity that must stay constant,
+which a simulation can be checked against at every single step.
+
+The check fails for explicit Euler, and this time the failure can be
+computed exactly. From the update rule alone, one step multiplies the energy
+of the oscillator by $1 + \omega^2\,\Delta t^2$, whatever the state and
+however small the step. The lesson derives that factor, shows the program
+reproducing it to round-off, and measures what it costs to keep the growth
+small. The next lesson replaces the method; a later lesson in the formal
+proofs strand proves the identity.
+
+## Assumptions
+
+The model and the program rest on these assumptions. Each one names what
+goes wrong when it does not hold.
+
+1. **Hooke's law, $F = -k\,x$, for every displacement.** The restoring
+   force is proportional to the displacement from the rest position. Real
+   springs obey it for small extensions and stiffen or yield beyond them,
+   and a pendulum obeys it only for small angles. The results that depend on
+   it, a period independent of the amplitude and an elliptical orbit in
+   phase space, stop holding; the energy conservation lesson treats the
+   pendulum at large amplitude.
+2. **No friction and no drag.** The energy is conserved and the orbit
+   closes. With drag the energy decays, and a method that feeds energy in
+   can hide the decay: the second exercise constructs a simulation of a
+   damped oscillator whose amplitude does not change.
+3. **A point particle on a massless spring, on a line.** A spring with
+   mass moves too and lowers the frequency; the correction for a uniform
+   spring is [about one third of its mass added to $m$]{.not-verified}. The
+   same code runs in
+   a plane, with the spring equally stiff in every direction, as the third
+   exercise shows.
+4. **Constant mass and spring constant.** A spring that warms up or a load
+   that changes needs a different model.
+5. **The time step is small compared with the period.** The factor derived
+   below holds for every step size; what the step size sets is how much
+   energy is fed in per period. At about six steps per period,
+   $\omega\,\Delta t \approx 1$, the energy doubles at every step, and the
+   simulation says nothing about the oscillator.
+6. **Round-off is negligible.** The identity is checked below to about
+   $10^{-16}$ per step, the resolution of double-precision numbers, and the
+   longest run on this page stays many orders of magnitude above it.
+
+## A mass on a spring {#explanation}
+
+A particle of mass $m$ on a spring with the spring constant $k$ feels the
+force $F = -k\,x$, so Newton's second law reads
+
+$$
+m\,\frac{\mathrm{d}^2 x}{\mathrm{d}t^2} = -k\,x,
+\qquad\text{or}\qquad
+\frac{\mathrm{d}^2 x}{\mathrm{d}t^2} = -\omega^2\,x
+\quad\text{with}\quad
+\omega = \sqrt{\frac{k}{m}}.
+$$
+
+Sine and cosine are the functions whose second derivative is minus
+themselves, scaled, so
+
+$$
+x(t) = x_0 \cos(\omega t) + \frac{v_0}{\omega}\,\sin(\omega t),
+\qquad
+v(t) = -x_0\,\omega\,\sin(\omega t) + v_0 \cos(\omega t)
+$$
+
+solves the equation from any initial position $x_0$ and velocity $v_0$, as
+substitution confirms. The motion repeats after the **period**
+$T = 2\pi/\omega$. The period does not depend on the amplitude: a large
+swing and a small one take the same time, which is what makes a spring, or
+a pendulum at small angles, a clock. The angular frequency $\omega$ is the
+one scale of the problem; the only dimensionless measure of a time step is
+$\omega\,\Delta t$, the fraction of a radian the oscillation advances per
+step.
+
+### Phase space and energy
+
+The state $(x, v)$ of the previous lessons can be drawn as a point in a
+plane with the position along one axis and the velocity along the other:
+the **phase space** of the oscillator. As time passes the point moves, and
+the exact motion traces a closed curve. Which curve follows from the
+**energy**,
+
+$$
+E = \tfrac{1}{2}\,m\,v^2 + \tfrac{1}{2}\,k\,x^2,
+$$
+
+the kinetic energy of the particle plus the energy stored in the spring. Its
+rate of change along the motion is
+
+$$
+\frac{\mathrm{d}E}{\mathrm{d}t}
+= m\,v\,\frac{\mathrm{d}v}{\mathrm{d}t} + k\,x\,\frac{\mathrm{d}x}{\mathrm{d}t}
+= v\,(-k\,x) + k\,x\,v = 0.
+$$
+
+The energy is conserved, so the point stays on the ellipse
+$\tfrac{1}{2} m v^2 + \tfrac{1}{2} k x^2 = E$, with the semi-axes
+$\sqrt{2E/k}$ along $x$ and $\sqrt{2E/m}$ along $v$, and goes round it once
+per period. Every state the simulation produces can be checked against this
+curve, not only against the exact position at one instant, and the check
+asks nothing of the method but one number per step. A simulation that
+leaves the ellipse has changed the energy, which the physics does not do.
+
+### What explicit Euler does to it
+
+The update rule of the previous lessons, with the acceleration
+$-\omega^2 x$, is
+
+$$
+x_{n+1} = x_n + v_n\,\Delta t,
+\qquad
+v_{n+1} = v_n - \omega^2\,x_n\,\Delta t.
+$$
+
+Take the energy after the step, in the form
+$E = \tfrac{1}{2} m\,(v^2 + \omega^2 x^2)$, and substitute:
+
+$$
+\begin{aligned}
+v_{n+1}^2 + \omega^2 x_{n+1}^2
+&= \bigl(v_n - \omega^2 x_n \Delta t\bigr)^2
+ + \omega^2 \bigl(x_n + v_n \Delta t\bigr)^2 \\
+&= v_n^2 - 2\,\omega^2 x_n v_n \Delta t + \omega^4 x_n^2 \Delta t^2
+ + \omega^2 x_n^2 + 2\,\omega^2 x_n v_n \Delta t + \omega^2 v_n^2 \Delta t^2 \\
+&= \bigl(v_n^2 + \omega^2 x_n^2\bigr)\bigl(1 + \omega^2 \Delta t^2\bigr).
+\end{aligned}
+$$
+
+The cross terms cancel and what remains factorises. So
+
+$$
+E_{n+1} = \bigl(1 + \omega^2\,\Delta t^2\bigr)\,E_n
+$$
+
+**at every step, for every state, and for every step size.** The factor is
+never below 1: explicit Euler feeds energy into the oscillator at each step,
+by an amount that does not depend on where in the oscillation the step is
+taken. After $n$ steps the energy is $(1 + \omega^2 \Delta t^2)^n E_0$ and
+the amplitude has grown by the square root of that. In phase space the
+computed point spirals outward, crossing ellipse after ellipse. The same
+algebra shows that each step also turns the point by the angle
+$\arctan(\omega\,\Delta t)$ instead of $\omega\,\Delta t$, so the computed
+oscillation is slightly slow as well.
+
+Over a fixed time $t = n\,\Delta t$ the growth is
+$(1 + \omega^2 \Delta t^2)^{t/\Delta t}$, whose logarithm is
+$\tfrac{t}{\Delta t} \ln(1 + \omega^2 \Delta t^2) \approx \omega^2\,\Delta t\,t$
+for small steps. The energy error after a fixed time is proportional to the
+step, as for every first-order method, and it never averages out: every
+step pushes the same way. Halving the step halves the logarithm of the
+growth, which is the convergence this lesson measures.
+
+## The program {#code}
+
+The reusable code lives in the module `pbc.mechanics.oscillator` of the
+repository and runs on the stepping interface of the Newton's laws lesson,
+with the same `State`, `newton`, and `simulate`. The listings in this
+section are read from the file when the site is built.
+
+The force model is one line, and it serves on a line and in a plane:
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, reproduce_this
+from pbc.mechanics import oscillator
+
+excerpt(oscillator.spring)
+```
+
+The exact motion to compare with:
+
+```{python}
+#| echo: false
+excerpt(oscillator.angular_frequency)
+```
+
+```{python}
+#| echo: false
+excerpt(oscillator.harmonic_motion)
+```
+
+The energy of every state of a trajectory, the quantity the simulation is
+checked against:
+
+```{python}
+#| echo: false
+excerpt(oscillator.energy)
+```
+
+The factor derived above, as a function so that the examples can compare the
+simulation with it:
+
+```{python}
+#| echo: false
+excerpt(oscillator.euler_energy_growth)
+```
+
+## Worked examples
+
+### Three periods
+
+The oscillator of the examples is the one from the last exercise of the
+Newton's laws lesson: half a kilogram on a spring of 2 N/m, so that
+$\omega$ = 2 rad/s and the period is $\pi$ seconds. It is pulled out to one
+metre and let go. The time step is a fraction of the period, which makes
+$\omega\,\Delta t$ the quantity to watch; the cell starts with 64 steps per
+period.
+
+```{python}
+import numpy as np
+
+from pbc.mechanics.dynamics import State, newton, simulate
+from pbc.mechanics.oscillator import (
+    angular_frequency,
+    energy,
+    euler_energy_growth,
+    harmonic_motion,
+    spring,
+)
+
+mass = 0.5  # kg
+k = 2.0  # spring constant, N/m
+omega = angular_frequency(mass, k)
+period = 2 * np.pi / omega
+released = State(t=0.0, x=1.0, v=0.0)  # pulled out 1 m and let go
+oscillator = newton(mass, spring(k))
+
+steps_per_period = 64
+dt = period / steps_per_period
+n_periods = 3
+euler = simulate(released, oscillator, dt, n_periods * steps_per_period)
+exact = harmonic_motion(released, mass, k, euler.t)
+
+print(f"omega {omega:.1f} rad/s, period {period:.4f} s, time step {dt:.4f} s,"
+      f" omega dt = {omega * dt:.4f}\n")
+print(" t (s)   x Euler (m)   x exact (m)   v Euler (m/s)   v exact (m/s)")
+for i in range(steps_per_period // 8, len(euler.t), steps_per_period // 2):
+    print(
+        f"{euler.t[i]:6.2f}{euler.x[i, 0]:14.3f}{exact.x[i, 0]:14.3f}"
+        f"{euler.v[i, 0]:16.3f}{exact.v[i, 0]:16.3f}"
+    )
+```
+
+The rows are half a period apart, starting an eighth of a period in, so
+that neither column is at a zero crossing. The exact motion returns to the
+same two numbers every period. The simulated position swings further out at
+every turn, and the simulated velocity grows with it: in the third period
+the amplitude is
+`{python} f"{np.max(np.abs(euler.x[-steps_per_period:, 0])):.2f}"` m instead
+of 1 m.
+
+```{python}
+#| label: fig-oscillator-position
+#| fig-cap: "Position of the mass on the spring over three periods: explicit Euler with 64 steps per period against the exact motion."
+#| fig-alt: "Line plot of position in metres against time in seconds over three periods. The exact motion is a cosine of constant amplitude 1. The explicit Euler curve starts on it and swings further out at every oscillation, reaching about two and a half times the amplitude by the end, and its peaks fall slightly later than the exact ones."
+import matplotlib.pyplot as plt
+
+fine = np.linspace(0.0, euler.t[-1], 1001)
+
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+ax.plot(fine, harmonic_motion(released, mass, k, fine).x[:, 0], color="#00429d", label="exact")
+ax.plot(
+    euler.t,
+    euler.x[:, 0],
+    color="#93003a",
+    linestyle="--",
+    label=f"explicit Euler, {steps_per_period} steps per period",
+)
+ax.set_xlabel("time (s)")
+ax.set_ylabel("position (m)")
+ax.legend(loc="upper left")
+plt.show()
+```
+
+### The orbit in phase space
+
+The same two trajectories, drawn as curves in the plane of position and
+velocity. The exact motion is the ellipse of constant energy; the simulation
+starts on it and spirals outward.
+
+```{python}
+#| label: fig-oscillator-phase-space
+#| fig-cap: "The same three periods in phase space: the exact orbit is the ellipse of constant energy, and explicit Euler spirals outward from it."
+#| fig-alt: "Plot of velocity in metres per second against position in metres. The exact motion is a closed ellipse through the starting point at position 1 and velocity 0. The explicit Euler curve starts at the same point and spirals outward, each turn wider than the last, ending about two and a half times as far from the centre as the ellipse."
+fig, ax = plt.subplots(figsize=(6.4, 4.8))
+ax.plot(exact.x[:, 0], exact.v[:, 0], color="#00429d", label="exact")
+ax.plot(euler.x[:, 0], euler.v[:, 0], color="#93003a", linestyle="--", label="explicit Euler")
+ax.plot(released.x[0], released.v[0], color="#555555", marker="o", linestyle="none", label="start")
+ax.set_xlabel("position (m)")
+ax.set_ylabel("velocity (m/s)")
+ax.set_aspect(1 / omega)
+ax.legend(loc="upper left")
+plt.show()
+```
+
+The axes are scaled so that the exact orbit is a circle: along the vertical
+axis one unit of velocity is drawn as long as $1/\omega$ units of position.
+In these coordinates each step of explicit Euler is a turn by the angle
+$\arctan(\omega\,\Delta t)$ and a stretch by $\sqrt{1 + \omega^2 \Delta t^2}$,
+which is why the spiral looks the same from every direction.
+
+### The energy, step by step
+
+The derivation says that the energy after any step is the energy before it
+times $1 + \omega^2 \Delta t^2$. The cell computes the energy of every
+simulated state, divides each by the previous one, and compares all
+`{python} f"{n_periods * steps_per_period}"` ratios with the derived factor.
+
+```{python}
+energies = energy(euler, mass, k)
+ratios = energies[1:] / energies[:-1]
+factor = euler_energy_growth(mass, k, dt)
+
+print(f"energy at the start: {energies[0]:.4f} J")
+print("energy after a step divided by the energy before it, first six steps:")
+print("   " + "  ".join(f"{ratio:.6f}" for ratio in ratios[:6]))
+print(f"derived factor 1 + (omega dt)^2:   {factor:.6f}")
+print(f"largest deviation of any ratio from it: {np.max(np.abs(ratios - factor)):.1e}")
+print(f"energy after {n_periods} periods: {energies[-1] / energies[0]:.3f} times the"
+      f" initial energy; predicted {factor ** len(ratios):.3f}")
+```
+
+Every ratio equals the factor to the last digit of double precision: the
+deviation that remains is round-off. This is a stronger statement than a
+small error. The program does exactly what the algebra says, including when
+the step is large, and the energy of the simulated oscillator can be written
+down for any step without running it. On a logarithmic axis the energy is a
+straight line whose slope is proportional to the step:
+
+```{python}
+#| label: fig-oscillator-energy-growth
+#| fig-cap: "Energy of the simulated oscillator relative to its initial energy, on a logarithmic axis, for three time steps."
+#| fig-alt: "Plot of the energy divided by the initial energy against time in seconds, with a logarithmic vertical axis. Three straight lines rise from 1 at time zero. The line for 32 steps per period rises steepest, the line for 64 steps per period half as steeply, and the line for 128 steps per period half as steeply again."
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+for n, style in ((32, "-"), (64, "--"), (128, ":")):
+    run = simulate(released, oscillator, period / n, n_periods * n)
+    growth = energy(run, mass, k) / energies[0]
+    ax.semilogy(run.t, growth, color="#93003a", linestyle=style, label=f"{n} steps per period")
+ax.set_xlabel("time (s)")
+ax.set_ylabel("energy / initial energy")
+ax.legend(loc="upper left")
+plt.show()
+```
+
+### Halving the time step
+
+The logarithm of the growth over a fixed time is
+$\tfrac{t}{\Delta t}\ln(1 + \omega^2 \Delta t^2)$, which is proportional to
+$\Delta t$ for small steps. The cell doubles the number of steps per period
+and watches the logarithm of the energy growth after three periods halve.
+
+```{python}
+step_counts = [32 * 2**i for i in range(8)]
+growths = []
+for n in step_counts:
+    run = simulate(released, oscillator, period / n, n_periods * n)
+    end = energy(run, mass, k)
+    growths.append(end[-1] / end[0])
+log_growths = np.log(growths)
+orders = np.log2(log_growths[:-1] / log_growths[1:])
+
+print(" steps per period   omega dt    energy growth    ln(growth)    observed order")
+for i, n in enumerate(step_counts):
+    order = f"{orders[i - 1]:10.3f}" if i else ""
+    print(f"{n:17d}{2 * np.pi / n:11.5f}{growths[i]:17.4f}{log_growths[i]:14.5f}    {order}")
+```
+
+The observed order tends to 1, from below: the logarithm of the factor is
+$\omega^2 \Delta t^2$ minus smaller terms, so coarse steps grow the energy
+a little less than the linear rule says. At
+`{python} f"{step_counts[-1]}"` steps per period the energy still grows by
+`{python} f"{100 * (growths[-1] - 1):.1f}"` per cent over three periods. The
+first exercise asks what one per cent costs.
+
+## Exercises
+
+::: {.exercise}
+**The price of one per cent.** How many steps per period does explicit
+Euler need for the energy of the oscillator to grow by at most one per cent
+over ten periods? Derive the answer from the factor, then confirm it with a
+simulation.
+
+::: {.solution}
+Ten periods take $n = 10 \cdot 2\pi / (\omega\,\Delta t)$ steps, so the
+growth is $(1 + \omega^2 \Delta t^2)^n$ with the logarithm
+$n \ln(1 + \omega^2 \Delta t^2) \approx 20\pi\,\omega\,\Delta t$. For a
+growth of at most $1.01$ that gives
+$\omega\,\Delta t \le \ln(1.01) / (20\pi)$, and the number of steps per
+period is $2\pi / (\omega\,\Delta t)$.
+
+```{python}
+largest_omega_dt = np.log(1.01) / (20 * np.pi)
+needed = int(np.ceil(2 * np.pi / largest_omega_dt))
+run = simulate(released, oscillator, period / needed, 10 * needed)
+end = energy(run, mass, k)
+print(f"steps per period needed: {needed}")
+print(f"energy after ten periods with them: {100 * (end[-1] / end[0] - 1):.3f} per cent above the start")
+```
+
+About forty thousand steps per period, `{python} f"{10 * needed}"` steps
+in all, to hold one per cent for ten periods. The next lesson holds the
+energy for a thousand periods with a few dozen steps per period, with a
+method that costs the same per step.
+:::
+:::
+
+::: {.exercise}
+**A simulation that hides the damping.** Add linear drag with the constant
+$b$ to the oscillator, so that the real motion loses energy and its
+amplitude decays. Explicit Euler feeds energy in at the rate
+$\omega^2 \Delta t$ per unit time, while the drag removes it at the rate
+$b/m$. Choose $b$ so that the two cancel, run five periods with 64 steps
+per period, and look at the amplitude. Then halve the step and look again.
+
+::: {.solution}
+The rates cancel when $b/m = \omega^2 \Delta t$, that is $b = k\,\Delta t$.
+The drag model of the Newton's laws lesson plugs into `newton` next to the
+spring. The amplitude of each period is the largest distance from the rest
+position during it. For the real motion, with $\gamma = b/(2m)$ and
+$\omega_d = \sqrt{\omega^2 - \gamma^2}$, the exact solution from rest at one
+metre is
+
+$$
+x(t) = e^{-\gamma t}\Bigl(\cos(\omega_d t) + \frac{\gamma}{\omega_d}\,\sin(\omega_d t)\Bigr),
+$$
+
+as substitution into $m\ddot x = -k x - b \dot x$ confirms. Its velocity is
+$-(\omega_d + \gamma^2/\omega_d)\,e^{-\gamma t}\sin(\omega_d t)$, so the
+peaks fall at $t = n\pi/\omega_d$ and there $|x| = e^{-\gamma t}$ exactly:
+the curve $e^{-\gamma t}$ passes through the peaks, and over one undamped
+period $T$ it shrinks by the factor $e^{-bT/(2m)}$. The motion as a whole is
+bounded by the slightly larger envelope
+$\sqrt{1 + (\gamma/\omega_d)^2}\,e^{-\gamma t}$, which it touches just after
+each peak, where the cosine and sine terms combine. The damped oscillation is
+slightly slower than the undamped one, $\omega_d < \omega$, so each peak
+falls a little later than the start of its window of the undamped period,
+and the largest excursion in that window is $e^{-\gamma t}$ at the later
+peak time, a little below its value at the window boundary. The last column
+of the table is the largest excursion of this exact motion in each window of
+the undamped period, the same measure as the simulated columns, taken on a
+fine grid.
+
+```{python}
+from pbc.mechanics.drag import linear_drag
+
+b = k * dt  # drag constant, kg/s
+damped = newton(mass, spring(k), linear_drag(b))
+gamma = b / (2 * mass)
+omega_damped = np.sqrt(omega**2 - gamma**2)
+decay = np.exp(-gamma * period)
+
+
+def damped_motion(t):
+    """The exact position of the damped oscillator released from 1 m."""
+    damping = np.exp(-gamma * t)
+    return damping * (np.cos(omega_damped * t) + gamma / omega_damped * np.sin(omega_damped * t))
+
+
+def largest_excursions(x, per_period):
+    """The largest |x| in each of five periods, with that many samples per period."""
+    return [np.max(np.abs(x[i * per_period : (i + 1) * per_period + 1])) for i in range(5)]
+
+
+def amplitudes(steps):
+    """The largest excursion in each of five periods, with that many steps per period."""
+    run = simulate(released, damped, period / steps, 5 * steps)
+    return largest_excursions(run.x[:, 0], steps)
+
+
+fine = np.linspace(0.0, 5 * period, 5 * 4096 + 1)
+real = largest_excursions(damped_motion(fine), 4096)
+
+print(f"drag constant {b:.4f} kg/s; the peaks of the real motion shrink by the factor"
+      f" {decay:.3f} per period\n")
+print(" period   amplitude, 64 steps (m)   128 steps (m)   256 steps (m)   real motion (m)")
+for i, row in enumerate(zip(amplitudes(64), amplitudes(128), amplitudes(256), real, strict=True)):
+    print(f"{i + 1:7d}{row[0]:26.3f}{row[1]:16.3f}{row[2]:16.3f}{row[3]:18.3f}")
+```
+
+With 64 steps per period the simulated amplitude stays at one metre for
+five periods, to a few parts in a thousand, while the real amplitude falls
+to less than a third. Nothing in the output gives it away. Halving the step
+halves the artificial growth but not the drag, and the amplitude starts to
+decay; halving it again brings it closer to the real motion. A simulation
+of a damped oscillator whose amplitude does not change is reporting its
+time step, and the only way to catch it is to change the step and look
+again.
+:::
+:::
+
+::: {.exercise}
+**In the plane.** Let the spring pull towards the origin of a plane with the
+same stiffness in every direction, and start the mass at $(1, 0)$ m with the
+velocity $(0, 1)$ m/s. What orbit does the exact motion follow, and does the
+factor $1 + \omega^2 \Delta t^2$ still hold for the energy of each step?
+
+::: {.solution}
+The force $-k\,\mathbf{x}$ acts on each component separately, so each
+coordinate is a harmonic oscillator of its own with the same $\omega$:
+$x = \cos(\omega t)$ and $y = \tfrac{1}{\omega}\sin(\omega t)$, an ellipse
+with semi-axes 1 m and $1/\omega$ m traced once per period. The algebra of
+the derivation used only that $\mathbf{x}\cdot\mathbf{v}$ cancels between
+the two cross terms, which holds for vectors too.
+
+```{python}
+in_plane = State(t=0.0, x=[1.0, 0.0], v=[0.0, 1.0])
+run = simulate(in_plane, oscillator, dt, 2 * steps_per_period)
+plane_exact = harmonic_motion(in_plane, mass, k, run.t)
+plane_energies = energy(run, mass, k)
+plane_ratios = plane_energies[1:] / plane_energies[:-1]
+
+print(f"semi-axes of the exact orbit: {np.max(plane_exact.x[:, 0]):.3f} m and"
+      f" {np.max(plane_exact.x[:, 1]):.3f} m")
+print(f"largest deviation of an energy ratio from 1 + (omega dt)^2: "
+      f"{np.max(np.abs(plane_ratios - factor)):.1e}")
+print(f"largest distance between the simulated and the exact position after two"
+      f" periods: {np.max(np.linalg.norm(run.x - plane_exact.x, axis=1)):.3f} m")
+```
+
+The factor holds to round-off in the plane as on the line. The energy growth
+of explicit Euler is a property of the method on this force, not of the
+dimension of the motion.
+:::
+:::
+
+## Reproduce this
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=["src/pbc/mechanics/dynamics.py", "src/pbc/mechanics/oscillator.py"],
+    tests=["tests/unit/test_dynamics.py", "tests/unit/test_oscillator.py"],
+)
+```
