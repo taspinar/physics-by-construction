@@ -30,6 +30,8 @@ LESSONS = [
 KINEMATICS = "lessons/mechanics/01-kinematics-as-a-program/index.html"
 NEWTONS_LAWS = "lessons/mechanics/02-newtons-laws/index.html"
 PROJECTILE = "lessons/mechanics/03-projectile-motion-with-drag/index.html"
+OSCILLATOR = "lessons/mechanics/04-harmonic-oscillator/index.html"
+INTEGRATORS = "lessons/mechanics/05-numerical-integrators/index.html"
 
 
 @pytest.fixture
@@ -58,7 +60,9 @@ def _head_commit() -> str:
 
 def test_the_mechanics_lessons_are_among_the_lessons():
     # Guards the parametrized tests below: without lessons they would not run.
-    assert {KINEMATICS, NEWTONS_LAWS, PROJECTILE} <= set(LESSONS)
+    assert {KINEMATICS, NEWTONS_LAWS, PROJECTILE, OSCILLATOR, INTEGRATORS} <= set(
+        LESSONS
+    )
 
 
 @pytest.mark.parametrize("lesson", LESSONS)
@@ -174,6 +178,28 @@ REFERENCE_ROWS = {
         "without drag: longest throw 63.77 m at 45.0 degrees",
         "95 per cent of it after 4.33 s",
         "drag shortens the range by 4.1 per cent for steel and 44 per cent for tennis",
+    ],
+    OSCILLATOR: [
+        "omega 2.0 rad/s, period 3.1416 s, time step 0.0491 s, omega dt = 0.0982",
+        "8.25 -1.664 -0.707 2.994 1.414",
+        "energy after 3 periods: 6.307 times the initial energy; predicted 6.307",
+        "4096 0.00153 1.0293 0.02891 1.000",
+        "steps per period needed: 39676",
+        "2 1.000 0.857 0.793 0.734",
+        "5 1.001 0.539 0.396 0.291",
+        "semi-axes of the exact orbit: 1.000 m and 0.500 m",
+    ],
+    INTEGRATORS: [
+        "explicit Euler 3.223 0.636 10.487637 150",
+        "800 5.06e-02 (1.04) 3.96e-03 (1.01) 3.45e-05 (2.00) 3.99e-10 (4.00)",
+        "symplectic Euler energy between 0.91060 and 1.10886 times the start,"
+        " 0.91071 at the end; 32000 calls",
+        "Runge-Kutta 4 energy between 0.97497 and 1.00000 times the start,"
+        " 0.97497 at the end; 128000 calls",
+        "3.0 2.094 1.35e+73 1.08e+54 4.01e+52 1.81e-33",
+        "320 4.40e-05 (2.00) 2.15e-11 (4.00)",
+        "Runge-Kutta 4 21 8.4e-04 168",
+        "Runge-Kutta 4 50 400 2.6e-05",
     ],
 }
 
