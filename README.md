@@ -14,8 +14,9 @@ does not compile cannot be merged.
 ## Status
 
 The publishing and verification pipeline and the lesson format are in place,
-and the first lesson of the mechanics course, "Kinematics as a program", is
-published. The plan for the rest is in [docs/roadmap.md](docs/roadmap.md).
+and the first three lessons of the mechanics course are published: kinematics,
+Newton's laws, and projectile motion with drag. The plan for the rest is in
+[docs/roadmap.md](docs/roadmap.md).
 
 ## Repository layout
 

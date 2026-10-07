@@ -13,12 +13,18 @@ from support.paths import REPO_ROOT, SITE_SOURCE
 from support.site_checks import describe
 from support.site_server import SiteServer
 
+from pbc.authoring import STRANDS, LearningPath
+
 TEMPLATE = REPO_ROOT / "docs" / "lesson-template.qmd"
-LESSON = "lessons/mechanics/02-made-from-the-template"
+# The new lesson takes the next position of the mechanics strand, after the
+# lessons the site has.
+MECHANICS = LearningPath.read(SITE_SOURCE).in_strand(STRANDS[0])
+ORDER = len(MECHANICS) + 1
+LESSON = f"lessons/mechanics/{ORDER:02d}-made-from-the-template"
 # The two values the guide tells an author to set before anything else.
 PLACEHOLDERS = {
     "  id: REPLACE-ME\n": "  id: made-from-the-template\n",
-    "  order: 0\n": "  order: 2\n",
+    "  order: 0\n": f"  order: {ORDER}\n",
 }
 
 
@@ -88,9 +94,12 @@ def test_lesson_made_from_the_template_builds_with_every_construct(
     # The marker of the template reached the page as a block and as a phrase.
     assert (built / page).read_text().count('class="not-verified-label"') == 2
     # The new lesson joined the learning path: its header places it after the
-    # first lesson, and the path page lists both.
+    # last mechanics lesson of the site, and the path page lists all of them.
     header = (built / page).read_text().split('class="lesson-header"')[1]
-    assert "lesson 2 of 2" in header
-    assert 'href="../01-kinematics-as-a-program/index.html"' in header
+    assert f"lesson {ORDER} of {ORDER}" in header
+    previous = Path(MECHANICS[-1].page).parent.name
+    assert f'href="../{previous}/index.html"' in header
+    # Each entry of the path page links the lesson and its prerequisites.
     path_page = (built / "path/index.html").read_text()
-    assert path_page.count('<a href="../lessons/mechanics/') == 2
+    links = ORDER + sum(len(lesson.prerequisites) for lesson in MECHANICS)
+    assert path_page.count('<a href="../lessons/mechanics/') == links

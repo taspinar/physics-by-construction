@@ -28,6 +28,8 @@ LESSONS = [
     for page in lesson_checks.lesson_pages(REPO_ROOT)
 ]
 KINEMATICS = "lessons/mechanics/01-kinematics-as-a-program/index.html"
+NEWTONS_LAWS = "lessons/mechanics/02-newtons-laws/index.html"
+PROJECTILE = "lessons/mechanics/03-projectile-motion-with-drag/index.html"
 
 
 @pytest.fixture
@@ -54,9 +56,9 @@ def _head_commit() -> str:
     ).stdout.strip()
 
 
-def test_the_first_lesson_is_among_the_lessons():
+def test_the_mechanics_lessons_are_among_the_lessons():
     # Guards the parametrized tests below: without lessons they would not run.
-    assert KINEMATICS in LESSONS
+    assert {KINEMATICS, NEWTONS_LAWS, PROJECTILE} <= set(LESSONS)
 
 
 @pytest.mark.parametrize("lesson", LESSONS)
@@ -139,33 +141,55 @@ def test_the_first_lesson_shows_mathml_results_and_figures(
     )
 
 
-# Rows of the tables the first lesson prints, at the precision it displays.
-# They were produced on macOS (arm64); the site is built on Linux (x86-64).
-# The same rows on both is what "reproduces at the displayed precision"
-# means across platforms, so this list is checked wherever the tests run.
-KINEMATICS_REFERENCE = [
-    "2.4 3.234 2.057 -11.536 -11.536",
-    "24 0.100000 1.176798",
-    "768 0.003125 0.036775 2.0000",
-    "768 0.003125 0.015908 0.999",
-    "steps needed: 28244",
-    "error with them: 0.99997 mm",
-    "480 -0.018750 -0.056172 0.998",
-    "size of the error after 2.4 s: 0.000000000 m",
-]
+# Rows of the tables the lessons print, at the precision they display. They
+# were produced on macOS (arm64); the site is built on Linux (x86-64). The
+# same rows on both is what "reproduces at the displayed precision" means
+# across platforms, so these lists are checked wherever the tests run.
+REFERENCE_ROWS = {
+    KINEMATICS: [
+        "2.4 3.234 2.057 -11.536 -11.536",
+        "24 0.100000 1.176798",
+        "768 0.003125 0.036775 2.0000",
+        "768 0.003125 0.015908 0.999",
+        "steps needed: 28244",
+        "error with them: 0.99997 mm",
+        "480 -0.018750 -0.056172 0.998",
+        "size of the error after 2.4 s: 0.000000000 m",
+    ],
+    NEWTONS_LAWS: [
+        "time constant 2.0 s, terminal speed 19.613 m/s",
+        "10.0 19.497 19.481 157.139 157.171",
+        "3200 0.003125 0.000516 -0.001032 0.999",
+        "back at the ground after 2.55 s, 17.32 m away",
+        "0.0 49.0 -24.5 85.8 -79.7 168.6 -203.8 354.7 -483.1 773.6 -1111.4",
+        "from the simulation: 9.209 s",
+        "position then: 1.0648 m, exact 1.0000 m",
+    ],
+    PROJECTILE: [
+        "drag constant c = 1.06e-03 kg/m, terminal speed 23.2 m/s",
+        "with drag: range 35.40 m, time of flight 3.01 s, highest point 11.22 m",
+        "exact drag-free range: 63.73 m",
+        "0.000781 63.7461 0.0138 0.0138",
+        "0.000781 35.4021 -0.0041 0.999 35.3980",
+        "without drag: longest throw 63.77 m at 45.0 degrees",
+        "95 per cent of it after 4.33 s",
+        "drag shortens the range by 4.1 per cent for steel and 44 per cent for tennis",
+    ],
+}
 
 
-def test_the_first_lesson_displays_the_same_numbers_on_every_platform(
-    page: Page, server: SiteServer
+@pytest.mark.parametrize("lesson", sorted(REFERENCE_ROWS))
+def test_the_lessons_display_the_same_numbers_on_every_platform(
+    page: Page, server: SiteServer, lesson: str
 ):
-    page.goto(server.url + KINEMATICS, wait_until="load")
+    page.goto(server.url + lesson, wait_until="load")
 
     printed = [
         " ".join(line.split())
         for output in page.locator("main .cell-output-stdout").all_text_contents()
         for line in output.splitlines()
     ]
-    missing = [row for row in KINEMATICS_REFERENCE if row not in printed]
+    missing = [row for row in REFERENCE_ROWS[lesson] if row not in printed]
     assert not missing, f"not printed by the page: {missing}"
 
 
