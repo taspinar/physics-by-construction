@@ -22,8 +22,8 @@ verified".
    in lowercase words joined by hyphens:
 
    ```bash
-   mkdir -p site/lessons/mechanics/06-energy-conservation
-   cp docs/lesson-template.qmd site/lessons/mechanics/06-energy-conservation/index.qmd
+   mkdir -p site/lessons/agents-abm/01-particles-in-a-box
+   cp docs/lesson-template.qmd site/lessons/agents-abm/01-particles-in-a-box/index.qmd
    ```
 
 3. In the front matter of the new `index.qmd`, set `id` and `order` first.

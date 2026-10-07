@@ -1,0 +1,642 @@
+---
+title: "Energy conservation"
+description: >-
+  Work, potential energy, and the pendulum at large amplitude, where no
+  closed form gives the motion: the drift of the energy becomes the
+  diagnostic of a simulation, with what it catches and what it does not.
+lesson:
+  id: energy-conservation
+  strand: mechanics
+  order: 6
+  difficulty: 2
+  prerequisites:
+    lessons: [numerical-integrators]
+    outside:
+      - "Calculus: the chain rule, and the integral of a function along a path"
+      - "Trigonometry: the small-angle approximation of the sine"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import lesson_header
+
+lesson_header()
+```
+
+Every check so far compared a simulation with an exact solution: the
+parabola of the first lesson, the fall with linear drag, the cosine of the
+oscillator. Most forces have no such solution. The pendulum is the simplest
+of them: let the angle grow beyond a few degrees and the restoring force is
+no longer proportional to the displacement, the period depends on the
+amplitude, and no combination of elementary functions gives the angle as a
+function of time. What a simulation of it gets wrong cannot be read off a
+formula.
+
+What can be read off is the **energy**. For any force that depends on the
+position alone and does no net work around a closed path, the kinetic
+energy plus a potential energy is the same at every instant of the true
+motion. A simulation has no such law. Whether it keeps the energy, feeds it
+in, or drains it depends on the method and the step, as the previous lesson
+showed on the oscillator, and the lesson before derived exactly. This
+lesson turns that into a diagnostic: the drift of the energy over a run,
+one number computed from the trajectory alone, that converges at the order
+of the method and catches a simulation that has changed the physics. The
+lesson also shows what the energy cannot see, because a diagnostic is only
+as good as its blind spots are known.
+
+## Assumptions
+
+The model and the program rest on these assumptions. Each one names what
+goes wrong when it does not hold.
+
+1. **A rigid, massless rod of fixed length.** The bob moves on a circle,
+   so one coordinate describes it, and the tension in the rod does no work
+   and is not modelled. A string goes slack above the horizontal when the
+   bob is slow and the motion is no longer on the circle; a rod with mass
+   changes the period.
+2. **No friction and no drag.** The energy is conserved and the swing
+   repeats forever. With drag the energy decreases, and the energy *balance*
+   takes the place of its conservation: the second exercise checks that the
+   loss equals the work done by the drag.
+3. **A conservative force.** The potential energy exists because the
+   tangential weight depends on the position alone and the work it does
+   between two angles does not depend on the path. The energy diagnostic
+   below needs such a force; for a force that depends on the velocity or on
+   time there is no conserved energy to compare with.
+4. **Point mass, constant $g$ and $L$.** The bob is a particle; a swinging
+   body of finite size has a different period. The gravitational
+   acceleration is uniform over the swing.
+5. **The step resolves the swing.** The step is a fraction of the
+   small-angle period. Near the top the bob moves slowly and the step is
+   finer than it needs to be; through the bottom it moves fast, and the
+   stated steps per period are chosen for there.
+6. **Round-off is negligible.** The drifts reported below are far above
+   the $10^{-16}$ of double precision; the smallest, from Runge-Kutta 4 at
+   the finest step, is about $10^{-9}$.
+
+## Work, energy, and the pendulum {#explanation}
+
+A force $\mathbf F$ that acts on a particle moving with the velocity
+$\mathbf v$ does work at the rate $\mathbf F \cdot \mathbf v$. Newton's
+second law and the chain rule turn that into a statement about the kinetic
+energy $K = \tfrac{1}{2} m |\mathbf v|^2$:
+
+$$
+\frac{\mathrm{d}K}{\mathrm{d}t}
+= m\,\mathbf v \cdot \frac{\mathrm{d}\mathbf v}{\mathrm{d}t}
+= \mathbf v \cdot \mathbf F .
+$$
+
+Integrated over a stretch of the motion, the change of kinetic energy
+equals the **work** $W = \int \mathbf F \cdot \mathrm{d}\mathbf x$ done by
+the force along the path: the work-energy theorem. It holds for every
+force, including drag.
+
+A force that depends on the position alone is **conservative** when the
+work it does between two points is the same along every path. Then the
+work defines a function of the position, the **potential energy**
+$U(\mathbf x)$, through $W = -\Delta U$, and the force is minus its
+gradient, $\mathbf F = -\nabla U$. Along the motion
+$\mathrm{d}U/\mathrm{d}t = \nabla U \cdot \mathbf v = -\mathbf F \cdot
+\mathbf v = -\mathrm{d}K/\mathrm{d}t$, so
+
+$$
+E = K + U
+\qquad\text{is constant.}
+$$
+
+For the spring of the harmonic oscillator lesson, $U = \tfrac{1}{2} k x^2$
+and this is the ellipse in phase space. The identity is all that the
+diagnostic needs: a trajectory whose energy changes has left the physics,
+and by how much the energy changed is a measure, in joules, of how far.
+
+### The pendulum on its arc
+
+A bob of mass $m$ on a rod of length $L$ moves on a circle. Measure its
+position by the **arc length** $s = L\,\theta$ from the lowest point, with
+$\theta$ the angle of the rod from the vertical, so that the velocity along
+the arc is $v = L\,\dot\theta$ and the state $(s, v)$ is a position in
+metres and a velocity in metres per second, as in every lesson so far. The
+tension in the rod is perpendicular to the motion and does no work. The
+weight has the component $-m g \sin\theta$ along the arc, towards the
+bottom, so Newton's second law along the arc is
+
+$$
+m\,\frac{\mathrm{d}^2 s}{\mathrm{d}t^2} = -m\,g\,\sin\frac{s}{L},
+\qquad\text{or}\qquad
+\ddot\theta = -\frac{g}{L}\,\sin\theta .
+$$
+
+The force is conservative, with the potential energy equal to the weight
+times the height of the bob above the bottom:
+
+$$
+U(s) = m\,g\,L\,\Bigl(1 - \cos\frac{s}{L}\Bigr),
+\qquad
+E = \tfrac{1}{2}\,m\,v^2 + m\,g\,L\,\Bigl(1 - \cos\frac{s}{L}\Bigr).
+$$
+
+For small angles $\sin\theta \approx \theta$ and the force is
+$-(m g / L)\,s$: Hooke's law with the spring constant $k = m g / L$, so the
+pendulum is the harmonic oscillator with
+$\omega_0 = \sqrt{g/L}$ and the **small-angle period**
+$T_0 = 2\pi\sqrt{L/g}$, independent of the amplitude. Beyond small angles
+the sine is smaller than its argument, the force is weaker than the linear
+one, the bob takes longer to come back, and the period grows with the
+amplitude. For a release from rest at the angle $\theta_0$ the energy fixes
+the speed at every angle, $\tfrac{1}{2} v^2 = g L (\cos\theta - \cos\theta_0)$,
+and integrating $\mathrm{d}t = \mathrm{d}s / v$ over a quarter swing gives
+the exact period
+
+$$
+T(\theta_0) = 4\sqrt{\frac{L}{g}}\;K\!\left(\sin^2\frac{\theta_0}{2}\right),
+\qquad
+K(m) = \int_0^{\pi/2} \frac{\mathrm{d}\varphi}{\sqrt{1 - m\sin^2\varphi}},
+$$
+
+with $K$ the complete elliptic integral of the first kind, a function with
+no elementary form that SciPy evaluates. For small amplitudes
+$T \approx T_0\,(1 + \theta_0^2/16)$; as $\theta_0$ approaches $\pi$ the
+period grows without bound, because the bob lingers near the top. The
+period is the one exact number about the large-amplitude pendulum that
+this lesson has, and the first worked example uses it to check the force
+model before the energy is trusted to check the methods.
+
+The energy also decides what kind of motion the pendulum is in. The
+potential energy at the top is $2 m g L$. A pendulum with $E < 2 m g L$
+cannot reach the top; it swings back and forth between the angles where
+$U = E$. One with $E > 2 m g L$ goes over the top and keeps rotating. The
+line $E = 2 m g L$ separates the two, and a simulation that lets the energy
+cross it has not made a small error but changed the kind of motion.
+
+### Energy drift as a diagnostic
+
+Let a simulation produce the states $(s_n, v_n)$ and compute the energy
+$E_n$ of each. The **drift**
+
+$$
+\delta = \max_n \frac{|E_n - E_0|}{|E_0|}
+$$
+
+is the largest fraction of the initial energy by which the run has strayed.
+It needs no exact solution, costs one evaluation of the potential per
+state, and the previous lesson says what to expect of it. For explicit
+Euler and Runge-Kutta 4 it grows with the length of the run, in one
+direction. For the symplectic methods, at a fixed step small enough for
+the method to be stable on the motion, it is a band that does not grow over
+long runs: the theory behind that bound holds for times that are very long
+but not infinite, it needs a smooth potential and a step well inside the
+stable range, and round-off accumulates underneath it. The lessons measure
+the band over their runs and claim it for those runs. And because the
+energy error of a method is at least of its order, $\delta$ shrinks at
+least as fast as $\Delta t^p$ when the step shrinks: the drift of a
+sequence of runs with halving steps is a convergence test that works
+without a formula for the motion.
+
+What the drift cannot see is a motion that stays on the right energy curve
+but moves along it at the wrong rate. A symplectic method with a bounded
+energy band has an error in the period of the order of the method, and
+over many periods the simulated bob falls steadily behind or ahead of the
+real one while its energy stays in the band. The third worked example
+measures that lag. The energy is a necessary check, not a sufficient one,
+and a run that passes it has passed one test.
+
+## The program {#code}
+
+The reusable code lives in two modules of the repository, on the stepping
+interface of the earlier lessons. `pbc.mechanics.energy` has the energy of
+any trajectory under any potential, and the drift; `pbc.mechanics.pendulum`
+has the force and the potential of the pendulum and its periods. The
+listings in this section are read from the files when the site is built.
+
+The energies take a potential as a function, so the same code serves every
+conservative force of the course:
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, reproduce_this
+from pbc.mechanics import energy, pendulum
+
+excerpt(energy.kinetic_energy)
+```
+
+```{python}
+#| echo: false
+excerpt(energy.potential_energy)
+```
+
+```{python}
+#| echo: false
+excerpt(energy.mechanical_energy)
+```
+
+```{python}
+#| echo: false
+excerpt(energy.energy_drift)
+```
+
+The pendulum: the force along the arc as a force model for `newton`, its
+potential, and the two periods.
+
+```{python}
+#| echo: false
+excerpt(pendulum.pendulum_force)
+```
+
+```{python}
+#| echo: false
+excerpt(pendulum.pendulum_potential)
+```
+
+```{python}
+#| echo: false
+excerpt(pendulum.small_angle_period)
+```
+
+```{python}
+#| echo: false
+excerpt(pendulum.pendulum_period)
+```
+
+## Worked examples
+
+### The period grows with the amplitude
+
+The pendulum of the examples is one kilogram on a one-metre rod under the
+standard gravity. The cell releases it from rest at five amplitudes, runs
+three swings with Runge-Kutta 4 at 200 steps per small-angle period, and
+measures the period from the times at which the bob passes the bottom
+moving forward, interpolated within the step. The exact period comes from
+the elliptic integral.
+
+```{python}
+import numpy as np
+from scipy.constants import g
+
+from pbc.mechanics.dynamics import State, newton, simulate
+from pbc.mechanics.energy import energy_drift, mechanical_energy
+from pbc.mechanics.integrators import INTEGRATORS
+from pbc.mechanics.pendulum import (
+    pendulum_force,
+    pendulum_period,
+    pendulum_potential,
+    small_angle_period,
+)
+
+mass = 1.0  # kg
+length = 1.0  # m
+pendulum = newton(mass, pendulum_force(mass, length))
+potential = pendulum_potential(mass, length)
+t0 = small_angle_period(length)
+euler, symplectic_euler, verlet, rk4 = INTEGRATORS
+
+
+def released(degrees):
+    """At rest at the given angle from the vertical."""
+    return State(t=0.0, x=[length * np.radians(degrees)], v=[0.0])
+
+
+def run(integrator, degrees, steps_per_period, n_swings):
+    """n_swings of the pendulum released at the angle, with the small-angle
+    period divided into steps_per_period steps."""
+    swing = pendulum_period(length, np.radians(degrees))
+    n_steps = round(n_swings * swing / t0 * steps_per_period)
+    return simulate(released(degrees), pendulum, t0 / steps_per_period, n_steps, step=integrator.step)
+
+
+def forward_crossings(trajectory):
+    """The times at which the bob passes the bottom moving forward."""
+    s, t = trajectory.x[:, 0], trajectory.t
+    before = np.where((s[:-1] < 0) & (s[1:] >= 0))[0]
+    fraction = -s[before] / (s[before + 1] - s[before])
+    return t[before] + fraction * (t[before + 1] - t[before])
+
+
+print(f"small-angle period T0 = {t0:.4f} s\n")
+print(" amplitude   exact period (s)   T / T0   simulated period (s)")
+for degrees in (10, 45, 90, 135, 170):
+    exact = pendulum_period(length, np.radians(degrees))
+    measured = np.mean(np.diff(forward_crossings(run(rk4, degrees, 200, 3))))
+    print(f"{degrees:8d}°{exact:17.4f}{exact / t0:10.4f}{measured:17.4f}")
+```
+
+The simulation reproduces the exact period to the four digits shown at
+every amplitude, so the force model and the period formula agree, and the
+amplitude dependence is real and large: at a right angle the period is
+`{python} f"{pendulum_period(length, np.pi / 2) / t0:.2f}"` times the
+small-angle one, and near the top it has more than doubled. The shape of
+the swing changes with it:
+
+```{python}
+#| label: fig-pendulum-swings
+#| fig-cap: "The angle of the pendulum over time for three amplitudes, each divided by its amplitude, against the time in small-angle periods."
+#| fig-alt: "Line plot of the angle divided by the amplitude against time in small-angle periods, over three periods. The curve for 10 degrees is a cosine with period 1. The curve for 120 degrees has a longer period and flatter tops. The curve for 170 degrees has a period more than twice as long, with wide flat tops near plus and minus one and fast passages through zero."
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+for degrees, style in ((10, "-"), (120, "--"), (170, ":")):
+    trajectory = run(rk4, degrees, 200, 3)
+    ax.plot(
+        trajectory.t / t0,
+        np.degrees(trajectory.x[:, 0] / length) / degrees,
+        color="#00429d",
+        linestyle=style,
+        label=f"released at {degrees}°",
+    )
+ax.set_xlabel("time (small-angle periods)")
+ax.set_ylabel("angle / amplitude")
+ax.legend(loc="upper right")
+plt.show()
+```
+
+### Energy drift as a diagnostic
+
+From here on the amplitude is 120°, well beyond the small-angle regime,
+where no formula gives the motion. The cell runs twenty swings with each of
+the four methods at 100 steps per small-angle period and prints the drift
+of the energy.
+
+```{python}
+amplitude = 120  # degrees
+swing = pendulum_period(length, np.radians(amplitude))
+runs = {integrator.name: run(integrator, amplitude, 100, 20) for integrator in INTEGRATORS}
+
+print(f"released at {amplitude}°: period {swing:.4f} s, {swing / t0:.4f} T0;"
+      f" {len(runs['velocity Verlet'].t) - 1} steps of {t0 / 100:.5f} s\n")
+print(" method               energy drift   energy at the end / initial")
+for integrator in INTEGRATORS:
+    energies = mechanical_energy(runs[integrator.name], mass, potential)
+    print(f" {integrator.name:18}{energy_drift(energies):15.1e}{energies[-1] / energies[0]:24.4f}")
+```
+
+```{python}
+#| label: fig-pendulum-energy
+#| fig-cap: "Energy relative to the initial energy over twenty swings at 120 degrees with 100 steps per small-angle period. Each panel has its own vertical scale."
+#| fig-alt: "Four panels of relative energy against time in swings. Explicit Euler: a rising curve on a logarithmic axis, reaching about 4.6 after twenty swings. Symplectic Euler: an oscillation between about 0.975 and 1.025 that repeats every swing without drifting. Velocity Verlet: an oscillation of width about 0.0007 that repeats without drifting. Runge-Kutta 4: a curve that falls steadily from 1 to about 1 minus one millionth."
+fig, axes = plt.subplots(2, 2, figsize=(6.4, 5.6), sharex=True)
+for ax, integrator in zip(axes.flat, INTEGRATORS, strict=True):
+    trajectory = runs[integrator.name]
+    energies = mechanical_energy(trajectory, mass, potential)
+    ax.plot(trajectory.t / swing, energies / energies[0], color="#93003a", linewidth=0.8)
+    if integrator.name == "explicit Euler":
+        ax.set_yscale("log")
+    ax.set_title(integrator.name, fontsize=10)
+for ax in axes[1]:
+    ax.set_xlabel("time (swings)")
+for ax in axes[:, 0]:
+    ax.set_ylabel("energy / initial energy")
+fig.tight_layout()
+plt.show()
+```
+
+The four behaviours are the ones the previous lesson found on the
+oscillator, on a force for which nothing can be derived in closed form:
+explicit Euler has multiplied the energy by
+`{python} f"{mechanical_energy(runs['explicit Euler'], mass, potential)[-1] / mechanical_energy(runs['explicit Euler'], mass, potential)[0]:.1f}"`
+in twenty swings, the two symplectic methods stay in bands that do not
+widen, and Runge-Kutta 4 loses a little at every step. Now halve the step.
+The cell repeats the twenty swings at 50, 100, 200, and 400 steps per
+small-angle period and prints the drift with the observed order, the
+base-2 logarithm of the ratio of successive drifts.
+
+```{python}
+step_counts = [50, 100, 200, 400]
+drifts = {
+    integrator.name: np.array(
+        [energy_drift(mechanical_energy(run(integrator, amplitude, n, 20), mass, potential)) for n in step_counts]
+    )
+    for integrator in INTEGRATORS
+}
+
+print("energy drift over twenty swings, and the observed order\n")
+print(" steps per T0" + "".join(f"{integrator.name:>22}" for integrator in INTEGRATORS))
+for i, n in enumerate(step_counts):
+    row = f"{n:13d}"
+    for integrator in INTEGRATORS:
+        drift = drifts[integrator.name]
+        order = f" ({np.log2(drift[i - 1] / drift[i]):.2f})" if i else "       "
+        row += f"{drift[i]:15.1e}{order}"
+    print(row)
+```
+
+The drift of the two first-order methods halves with the step, the drift
+of velocity Verlet quarters, and the drift of Runge-Kutta 4 falls by about
+thirty: a factor $2^5$ rather than $2^4$, because the leading error of that
+method changes the energy less than it changes the state. The orders are
+those of the methods, or better, measured without a formula for the
+motion. This is the convergence test for a force without a closed form,
+and the drift at the finest step is the accuracy of the energy the run can
+claim.
+
+### What the energy does not see
+
+Velocity Verlet keeps the energy within a band of
+`{python} f"{drifts['velocity Verlet'][1]:.0e}"` over the twenty swings of
+the run, and the band is no wider at the end than at the start. Is the
+simulated motion right to that accuracy? The cell measures, for the
+three stable methods at 100 steps per small-angle period, the time of each
+forward passage through the bottom, and prints how far behind or ahead of
+the exact period the passages fall as the swings go by.
+
+```{python}
+print(" method              energy drift   lag of the bob after 5, 10, and 19 swings (ms)")
+for integrator in INTEGRATORS[1:]:
+    trajectory = runs[integrator.name]
+    crossings = forward_crossings(trajectory)
+    lag = crossings - (crossings[0] + np.arange(len(crossings)) * swing)
+    drift = energy_drift(mechanical_energy(trajectory, mass, potential))
+    print(f" {integrator.name:18}{drift:13.1e}{1e3 * lag[5]:14.2f}{1e3 * lag[10]:10.2f}{1e3 * lag[19]:10.2f}")
+```
+
+The lag grows in proportion to the number of swings for every method: the
+simulated period differs from the exact one by a fixed fraction, and the
+error accumulates. For velocity Verlet the energy band is
+`{python} f"{drifts['symplectic Euler'][1] / drifts['velocity Verlet'][1]:.0f}"`
+times narrower than symplectic Euler's, and the lag is about the same size
+with the opposite sign; after twenty swings both bobs are a few milliseconds off,
+which at the bottom, where the bob moves at
+`{python} f"{np.sqrt(2 * g * length * (1 - np.cos(np.radians(amplitude)))):.1f}"` m/s,
+is a position error of more than a centimetre, with the energy correct to
+a part in a thousand. The energy band bounds the error in the energy and
+nothing else. A phase error leaves the energy exactly alone, because the
+energy is the same at every point of the orbit, and only a comparison in
+time, here against the exact period, can see it.
+
+### Over the top
+
+Released from rest at 170°, the pendulum has
+`{python} f"{potential(released(170).x) / (2 * mass * g * length):.4f}"` of
+the energy $2 m g L$ it would need to reach the top, so it swings back and
+forth forever between $\pm 170°$. The cell runs three swings with explicit
+Euler and with velocity Verlet at 200 steps per small-angle period and
+prints the largest energy and the largest angle each one reaches.
+
+```{python}
+separatrix = 2 * mass * g * length  # the energy at the top, J
+near_the_top = {integrator.name: run(integrator, 170, 200, 3) for integrator in (euler, verlet)}
+
+print(f"energy at the top: {separatrix:.3f} J\n")
+print(" method              initial energy / top   largest energy / top   largest angle")
+for integrator in (euler, verlet):
+    trajectory = near_the_top[integrator.name]
+    energies = mechanical_energy(trajectory, mass, potential)
+    largest_angle = np.degrees(np.max(np.abs(trajectory.x[:, 0])) / length)
+    print(f" {integrator.name:18}{energies[0] / separatrix:23.4f}{np.max(energies) / separatrix:23.4f}"
+          f"{largest_angle:15.0f}°")
+
+euler_energies = mechanical_energy(near_the_top["explicit Euler"], mass, potential)
+crossed = near_the_top["explicit Euler"].t[np.argmax(euler_energies > separatrix)]
+swing_170 = pendulum_period(length, np.radians(170))
+print(f"\nexplicit Euler passes the energy of the top after {crossed:.2f} s, in swing {int(crossed // swing_170) + 1}")
+```
+
+```{python}
+#| label: fig-pendulum-over-the-top
+#| fig-cap: "The angle of the pendulum released at 170 degrees over three swings, with explicit Euler and velocity Verlet at 200 steps per small-angle period."
+#| fig-alt: "Line plot of the angle in degrees against time in seconds. The velocity Verlet curve oscillates between plus and minus 170 degrees, with long flat stretches near the extremes. The explicit Euler curve follows it down through the bottom, then fails to turn back on the far side, passes minus 180 degrees, and decreases without limit, winding round and round, to several thousand degrees in magnitude by the end."
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+for integrator, style in ((verlet, "-"), (euler, "--")):
+    trajectory = near_the_top[integrator.name]
+    ax.plot(
+        trajectory.t,
+        np.degrees(trajectory.x[:, 0] / length),
+        color="#00429d" if integrator is verlet else "#93003a",
+        linestyle=style,
+        label=integrator.name,
+    )
+ax.axhline(180, color="#555555", linewidth=0.8, linestyle=":")
+ax.axhline(-180, color="#555555", linewidth=0.8, linestyle=":")
+ax.set_xlabel("time (s)")
+ax.set_ylabel("angle (degrees)")
+ax.legend(loc="upper left")
+plt.show()
+```
+
+Explicit Euler feeds energy into the pendulum at every step, fastest where
+the bob moves fastest, and at this step the first passage through the
+bottom is enough: the energy crosses $2 m g L$ before the bob has reached
+the far side, it goes over the top there instead of turning back, and from then on the simulation describes a rotating pendulum, a
+different motion from the one that was asked for. The error is not a
+digit; it is the kind of motion. The energy predicted it before the angle
+showed it, and it is the only quantity in the run that did.
+
+## Exercises
+
+::: {.exercise}
+**One per cent.** At what amplitude does the period exceed the small-angle
+period by one per cent? Estimate it from the series
+$T \approx T_0\,(1 + \theta_0^2/16)$, find it from the exact period, and
+confirm it with a simulation.
+
+::: {.solution}
+The series gives $\theta_0^2/16 = 0.01$, so $\theta_0 = 0.4$ rad. The exact
+amplitude is where `pendulum_period` equals $1.01\,T_0$, found by a root
+finder; the simulation measures the period as in the first example.
+
+```{python}
+from scipy.optimize import brentq
+
+from_series = np.degrees(np.sqrt(0.16))
+exact_amplitude = brentq(lambda angle: pendulum_period(length, angle) / t0 - 1.01, 0.01, 1.0)
+measured = np.mean(np.diff(forward_crossings(run(rk4, np.degrees(exact_amplitude), 200, 3))))
+
+print(f"from the series: {from_series:.1f}°; from the exact period: {np.degrees(exact_amplitude):.1f}°")
+print(f"simulated period at that amplitude: {measured / t0:.4f} T0")
+```
+
+About `{python} f"{np.degrees(exact_amplitude):.0f}"`°. The series is good
+to the digit shown; its next term, $11\,\theta_0^4/3072$, is what it leaves
+out. A pendulum clock keeps its
+amplitude small for this reason, and keeps it constant because even a small
+amplitude that varies would vary the period.
+:::
+:::
+
+::: {.exercise}
+**The energy balance with drag.** Add linear drag with the constant
+$b = 0.1$ kg/s to the pendulum released at 120°. The energy is no longer
+conserved; the work-energy theorem says that what is lost equals the work
+done by the drag, $W = -\int b\,v^2\,\mathrm{d}t$. Run five swings with
+velocity Verlet at 100, 200, and 400 steps per small-angle period, compute
+both sides, and compare the gap between them with the drift of the
+undamped run at the same step.
+
+::: {.solution}
+The drag model of the Newton's laws lesson plugs into `newton` next to the
+pendulum force. The work is the integral of the power $-b\,v^2$ over the
+run, by the trapezoidal rule on the simulated velocities.
+
+```{python}
+from pbc.mechanics.drag import linear_drag
+
+b = 0.1  # kg/s
+damped = newton(mass, pendulum_force(mass, length), linear_drag(b))
+
+print(" steps per T0   energy lost (J)   work by drag (J)   gap (J)   undamped drift")
+for n in step_counts[1:]:
+    trajectory = simulate(released(amplitude), damped, t0 / n, round(5 * swing / t0 * n), step=verlet.step)
+    energies = mechanical_energy(trajectory, mass, potential)
+    power = -b * np.sum(trajectory.v**2, axis=1)
+    work = np.trapezoid(power, trajectory.t)
+    print(f"{n:13d}{energies[0] - energies[-1]:18.4f}{-work:19.4f}{energies[0] - energies[-1] + work:11.1e}"
+          f"{drifts['velocity Verlet'][step_counts.index(n)]:17.1e}")
+```
+
+The budget closes to the accuracy of the method: the gap quarters when the
+step halves, like the drift of the undamped run, and is of the same order
+as that drift times the initial energy. With a non-conservative force the
+check is the balance rather than the conservation, and it is just as
+sharp.
+:::
+:::
+
+::: {.exercise}
+**The step for a stated drift.** How many steps per small-angle period
+does velocity Verlet need to keep the energy drift of the 120° pendulum
+below $10^{-5}$? Predict the number from the convergence table, then run
+fifty swings with it.
+
+::: {.solution}
+The drift of a second-order method is proportional to $\Delta t^2$, so the
+step for the drift $\delta$ is the step of a run with the drift $\delta_1$
+times $\sqrt{\delta / \delta_1}$. The run at 100 steps per period is the
+reference. The band of a symplectic method does not widen with the run, so
+the prediction holds for fifty swings as for twenty.
+
+```{python}
+target = 1e-5
+needed = int(np.ceil(100 * np.sqrt(drifts["velocity Verlet"][1] / target)))
+trajectory = run(verlet, amplitude, needed, 50)
+drift = energy_drift(mechanical_energy(trajectory, mass, potential))
+
+print(f"steps per T0 needed: {needed}")
+print(f"drift over fifty swings with them: {drift:.2e}, in {len(trajectory.t) - 1} steps")
+```
+
+The prediction lands on the target. The previous lesson's rule stands:
+over a long run it is the symplectic method whose energy can be trusted,
+and the order tells the cost of the accuracy.
+:::
+:::
+
+## Reproduce this
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/mechanics/dynamics.py",
+        "src/pbc/mechanics/integrators.py",
+        "src/pbc/mechanics/energy.py",
+        "src/pbc/mechanics/pendulum.py",
+        "src/pbc/mechanics/drag.py",
+    ],
+    tests=[
+        "tests/unit/test_dynamics.py",
+        "tests/unit/test_integrators.py",
+        "tests/unit/test_energy.py",
+        "tests/unit/test_pendulum.py",
+        "tests/unit/test_drag.py",
+    ],
+)
+```
