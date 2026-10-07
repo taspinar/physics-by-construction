@@ -1,0 +1,618 @@
+---
+title: "Projectile motion with quadratic drag"
+description: >-
+  A thrown ball with drag that grows with the square of its speed has no
+  closed-form motion, so the simulation is validated by its limiting cases
+  and by convergence, and then used to find the range against the launch
+  angle.
+lesson:
+  id: projectile-with-drag
+  strand: mechanics
+  order: 3
+  difficulty: 2
+  prerequisites:
+    lessons: [newtons-laws]
+    outside:
+      - "Trigonometry: the components of a vector at an angle"
+      - "Logarithms: reading a log-log plot"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import lesson_header
+
+lesson_header()
+```
+
+A ball thrown through air feels a drag that grows with the square of its
+speed and always points against its velocity. That couples the horizontal and
+the vertical motion: how fast the ball slows down horizontally depends on how
+fast it is falling, and the other way round. The equations of motion cannot be
+solved in closed form. Everything the previous lessons compared their
+simulations with is gone.
+
+This lesson is about what to do then. The simulation is checked in the
+limiting cases that do have exact answers, without drag and in a long fall,
+and by refinement: a result that keeps changing as the time step shrinks is
+not a result yet, and the rate at which it stops changing says how far it is
+from the limit. With the simulation validated, the lesson uses it for a
+question that has no textbook answer: at what angle should the ball be thrown
+to go furthest? Without drag the answer is 45 degrees. With drag it is less,
+and by how much depends on the ball.
+
+## Assumptions
+
+The model and the program rest on these assumptions. Each one names what
+goes wrong when it does not hold.
+
+1. **A point particle without spin.** A spinning ball carries a layer of
+   air around with it and feels a sideways force, the Magnus force, that
+   makes topspin dip and backspin float. None of that is in the model; a real
+   throw with spin lands somewhere else.
+2. **Quadratic drag with a constant drag coefficient.** The drag is
+   $-\tfrac{1}{2}\rho C_d A\,|\mathbf{v}|\,\mathbf{v}$ with a fixed $C_d$.
+   This holds while the ball leaves a turbulent wake, at Reynolds numbers
+   from about 1000 to 100 000, which covers balls at throwing speeds. At much
+   lower speeds the law becomes linear, as in the previous lesson. At higher
+   speeds a smooth sphere reaches the drag crisis, where $C_d$ drops abruptly
+   to less than half; a rough or seamed ball reaches it earlier. For a ball
+   thrown that fast the constant $C_d$ overestimates the drag by a factor of
+   two or more.
+3. **Still, uniform air.** No wind, and a constant air density. In a wind
+   the drag acts on the velocity relative to the air. Density changes with
+   altitude by a few per cent per hundred metres, which matters for a shell,
+   not for a ball.
+4. **Uniform gravity and flat ground at the launch height.** The ranges
+   are tens of metres, so the Earth's curvature and rotation are negligible,
+   and the ball lands at the height it was thrown from. A throw from a height
+   is a one-argument change, shown in the code, but the formula for the
+   drag-free range used as a check assumes a launch from the ground.
+5. **A first-order method with a small step.** Explicit Euler's error is
+   proportional to the time step; the convergence study below measures it.
+   The landing point is interpolated linearly within the last step, which
+   adds an error proportional to the square of the step, below the method's
+   own. As in the previous lesson, a step larger than about $m/(c\,|\mathbf{v}|)$
+   makes the method unstable; for the ball below that is about two seconds,
+   far above every step used.
+6. **Round-off is negligible.** The steps are many orders of magnitude above
+   the resolution of double-precision numbers.
+
+## Drag that grows with the square of the speed {#explanation}
+
+At everyday sizes and speeds a body moving through air leaves a turbulent
+wake, and the drag on it is
+
+$$
+\mathbf{F}_d = -c\,|\mathbf{v}|\,\mathbf{v},
+\qquad
+c = \tfrac{1}{2}\,\rho\,C_d\,A,
+$$
+
+where $\rho$ is the density of the air, $A$ the cross-section the body
+presents to the flow, and $C_d$ a dimensionless **drag coefficient** that
+depends on the shape. The constant $c$ has the unit kg/m. The force has the
+magnitude $c\,|\mathbf{v}|^2$ and points against the velocity.
+
+A body falling under this drag reaches the **terminal speed** at which the
+drag balances the weight, $c\,v_T^2 = m g$, so
+
+$$
+v_T = \sqrt{\frac{m g}{c}}.
+$$
+
+The terminal speed is the natural scale of the problem. The ratio of the drag
+to the weight at any moment is $|\mathbf{v}|^2 / v_T^2$. A ball thrown much
+more slowly than its terminal speed hardly notices the air; a ball thrown at
+its terminal speed starts with a drag equal to its weight, and its path looks
+nothing like a parabola.
+
+### Why there is no closed form
+
+With $x$ horizontal and $y$ upward, Newton's second law reads
+
+$$
+\begin{aligned}
+m\,\frac{\mathrm{d}v_x}{\mathrm{d}t} &= -c\,\sqrt{v_x^2 + v_y^2}\;v_x, \\
+m\,\frac{\mathrm{d}v_y}{\mathrm{d}t} &= -m g - c\,\sqrt{v_x^2 + v_y^2}\;v_y.
+\end{aligned}
+$$
+
+The square root contains both components, so neither equation can be solved
+on its own. For linear drag the factor in front of $v_x$ was the constant
+$b$, the components separated, and each was a first-order linear equation
+with an exponential solution. Here the factor is the speed itself, which is
+unknown until the problem is solved. The motion can be reduced to integrals
+by a change of variables, but those integrals have to be evaluated
+numerically anyway, and there is no formula to compare a simulation with.
+
+### How to trust a simulation without one
+
+Three checks replace the comparison with an exact solution. Together they are
+the validation strategy of this lesson, and of every later one whose problem
+has no closed form.
+
+1. **Limiting cases.** Set $c = 0$ and the motion must become the parabola
+   of the first lesson, with the range $R_0 = v_0^2 \sin(2\theta) / g$ for a
+   launch from the ground at speed $v_0$ and angle $\theta$. The first lesson
+   even predicts how far explicit Euler misses it: the computed height lags
+   the exact one by $\tfrac{1}{2} g\,t\,\Delta t$, which makes the computed
+   ball land $\Delta t$ late and so about $v_x \Delta t$ too far. A simulation
+   that reproduces the parabola with exactly that error is doing what it
+   should. The other limit, a long fall, must approach the terminal speed;
+   the first exercise checks it.
+2. **Convergence.** Compute the range with the step $\Delta t$, then with
+   $\Delta t/2$, $\Delta t/4$, and so on. For a first-order method the
+   differences between successive results must halve each time, and the
+   observed order, $\log_2$ of the ratio of successive differences, must
+   tend to 1. When it does, the result behaves like
+   $R(\Delta t) = R^* + C\,\Delta t$, and two steps determine both unknowns:
+   $$
+   R^* \approx 2\,R(\Delta t/2) - R(\Delta t),
+   \qquad
+   R(\Delta t/2) - R^* \approx R(\Delta t) - R(\Delta t/2).
+   $$
+   This is **Richardson extrapolation**. The first formula estimates the
+   limit, the second the error of the finer result, both from the simulation
+   alone.
+3. **Physical sense.** Drag must shorten the range, slow the ball down on the
+   way up, and make the descent steeper than the ascent. These checks catch
+   sign errors that the first two can miss.
+
+### Finding the ground
+
+The simulation steps in time, and no step ends exactly at the ground. The
+loop stops after the first state below it, and the landing point is
+interpolated linearly between that state and the one before: if the last
+step went from a height $y_1 \ge 0$ to $y_2 < 0$, the crossing happened a
+fraction $y_1 / (y_1 - y_2)$ of the way through the step, and the range is
+the horizontal position at that fraction. Within one step the path is nearly
+straight, so the interpolation is off by at most
+$\tfrac{1}{8}\,|\ddot{y}|\,\Delta t^2$ in height, far below the first-order
+error of the method itself.
+
+## The program {#code}
+
+The code lives in the modules `pbc.mechanics.drag` and
+`pbc.mechanics.projectile` of the repository and runs on the stepping
+interface of the previous lesson. The listings in this section are read from
+those files when the site is built.
+
+The force model and the constant it needs:
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, reproduce_this
+from pbc.mechanics import drag, projectile
+
+excerpt(drag.quadratic_drag)
+```
+
+```{python}
+#| echo: false
+excerpt(drag.drag_constant)
+```
+
+A throw starts from a speed, an angle, and a height:
+
+```{python}
+#| echo: false
+excerpt(projectile.launch)
+```
+
+A flight is a simulation that stops at the ground, and the landing point is
+read off the last step:
+
+```{python}
+#| echo: false
+excerpt(projectile.fly)
+```
+
+```{python}
+#| echo: false
+excerpt(projectile.landing)
+```
+
+The function that puts it all together answers the question of this lesson.
+It is the one an experiment, or an agent running an experiment, calls:
+
+```{python}
+#| echo: false
+excerpt(projectile.projectile_range)
+```
+
+The drag-free range for the first check:
+
+```{python}
+#| echo: false
+excerpt(projectile.drag_free_range)
+```
+
+## Worked examples
+
+### One throw
+
+The ball is a tennis ball. Its mass and diameter are set in the cell; the
+density of air at room temperature and the drag coefficient of a sphere in
+this range of speeds, [about 0.5]{.not-verified}, are inputs of the model,
+not results of it.
+
+```{python}
+import numpy as np
+from scipy.constants import g  # standard gravity, m/s^2
+
+from pbc.mechanics.drag import drag_constant, quadratic_drag
+from pbc.mechanics.dynamics import newton, weight
+from pbc.mechanics.projectile import (
+    drag_free_range,
+    fly,
+    landing,
+    launch,
+    projectile_range,
+)
+
+mass = 0.058  # kg
+diameter = 0.067  # m
+air_density = 1.2  # kg/m^3
+drag_coefficient = 0.5
+c = drag_constant(air_density, drag_coefficient, np.pi * (diameter / 2) ** 2)
+terminal_speed = np.sqrt(mass * g / c)
+
+speed = 25.0  # launch speed, m/s
+angle = 45.0  # launch angle, degrees
+dt = 0.001  # time step, s
+
+print(f"drag constant c = {c:.2e} kg/m, terminal speed {terminal_speed:.1f} m/s")
+print(f"drag over weight at launch: {(speed / terminal_speed) ** 2:.2f}")
+```
+
+The ball is thrown at about its terminal speed, so the drag at launch is
+about as large as the weight. The cell simulates the throw with and without
+drag and prints what a thrower would want to know.
+
+```{python}
+down = [0.0, -g]
+ball_in_air = newton(mass, weight(mass, down), quadratic_drag(c))
+ball_in_vacuum = newton(mass, weight(mass, down))
+with_drag = fly(launch(speed, angle), ball_in_air, dt)
+without_drag = fly(launch(speed, angle), ball_in_vacuum, dt)
+
+for name, flight in (("with drag", with_drag), ("without drag", without_drag)):
+    met = landing(flight)
+    print(
+        f"{name:>12}: range {met.x:6.2f} m, time of flight {met.t:5.2f} s,"
+        f" highest point {flight.x[:, 1].max():5.2f} m"
+    )
+print(f"exact drag-free range: {drag_free_range(speed, angle):.2f} m")
+```
+
+Drag takes away `{python} f"{100 * (1 - landing(with_drag).x / landing(without_drag).x):.0f}"`
+per cent of the range. The drag-free simulation is already within
+`{python} f"{100 * (landing(without_drag).x - drag_free_range(speed, angle)):.0f}"` cm
+of the exact formula; the next example looks at that remaining difference.
+The paths show where the range goes:
+
+```{python}
+#| label: fig-throw-with-and-without-drag
+#| fig-cap: "The same throw with and without quadratic drag."
+#| fig-alt: "Plot of height against horizontal distance in metres. The drag-free path is a symmetric parabola. The path with drag rises less high, peaks well before the midpoint of its flight, and comes down steeply to land little more than half as far."
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+ax.plot(
+    without_drag.x[:, 0],
+    without_drag.x[:, 1],
+    color="#555555",
+    linestyle=":",
+    label="without drag",
+)
+ax.plot(with_drag.x[:, 0], with_drag.x[:, 1], color="#93003a", label="with drag")
+ax.set_ylim(bottom=0.0)
+ax.set_xlabel("horizontal distance (m)")
+ax.set_ylabel("height (m)")
+ax.legend()
+plt.show()
+```
+
+The path with drag is not a parabola. It comes down more steeply than it went
+up, because the drag has eaten most of the horizontal velocity by then, and
+it lands at a steeper angle and a lower speed than it was thrown with.
+
+### The drag-free limit
+
+The first check: with $c = 0$ the simulated range must approach the exact
+$R_0 = v_0^2 \sin(2\theta)/g$ as the step shrinks, and the first lesson
+predicts the error to be about $v_x\,\Delta t$, the horizontal velocity times
+the time step.
+
+```{python}
+exact = drag_free_range(speed, angle)
+v_x = launch(speed, angle).v[0]
+steps = [0.1 / 2**k for k in range(8)]
+
+print(" time step (s)    range (m)    error (m)    v_x * time step (m)")
+for step in steps:
+    computed = projectile_range(speed, angle, mass, 0.0, step)
+    print(f"{step:14.6f}{computed:13.4f}{computed - exact:13.4f}{v_x * step:19.4f}")
+```
+
+The error halves with the step and matches the prediction from the first
+lesson to within the small interpolation error. The simulation reproduces
+the one case that can be solved by hand, including the way it misses it.
+
+### Convergence with drag
+
+The second check, on the throw with drag: the range at ever smaller steps,
+the difference to the previous one, the observed order, and the Richardson
+estimate of the limit from each pair of steps.
+
+```{python}
+ranges = np.array([projectile_range(speed, angle, mass, c, step) for step in steps])
+differences = np.diff(ranges)
+orders = np.log2(differences[:-1] / differences[1:])
+limits = 2 * ranges[1:] - ranges[:-1]
+
+print(
+    " time step (s)    range (m)    difference (m)    observed order"
+    "    estimated limit (m)"
+)
+for i, step in enumerate(steps):
+    difference = f"{differences[i - 1]:14.4f}" if i else ""
+    order = f"{orders[i - 2]:14.3f}" if i >= 2 else ""
+    limit = f"{limits[i - 1]:18.4f}" if i else ""
+    print(
+        f"{step:14.6f}{ranges[i]:13.4f}  {difference:>14}    {order:>14}"
+        f"    {limit:>18}"
+    )
+
+best_estimate = limits[-1]
+error_estimate = abs(differences[-1])
+print(f"\nrange with drag: {best_estimate:.3f} m, give or take {error_estimate:.3f} m"
+      f" for the finest step")
+```
+
+The differences halve and the observed order tends to 1, so the method
+behaves as a first-order method should on this problem too, and the
+Richardson estimates settle on a limit long before the direct results do.
+The finest direct result is still about `{python} f"{1000 * error_estimate:.0f}"` mm
+long; the extrapolated range is good to the millimetre. On logarithmic axes
+the error of the direct results against the extrapolated limit is a straight
+line of slope 1:
+
+```{python}
+#| label: fig-convergence-of-the-range
+#| fig-cap: "Error of the computed range against the time step, with the extrapolated limit as the reference."
+#| fig-alt: "Log-log plot of the error of the computed range in metres against the time step in seconds. The points lie on a straight line parallel to a dotted reference line of slope 1: the error falls in proportion to the time step, over more than two decades of both."
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+ax.loglog(
+    steps,
+    np.abs(ranges - best_estimate),
+    color="#93003a",
+    marker="o",
+    label="computed range, against the extrapolated limit",
+)
+ax.loglog(
+    steps,
+    np.array(steps) * v_x,
+    color="#555555",
+    linestyle=":",
+    label="slope 1",
+)
+ax.set_xlabel("time step (s)")
+ax.set_ylabel("size of the error (m)")
+ax.legend()
+plt.show()
+```
+
+### The range against the launch angle
+
+With the simulation validated and its error known, the question of the
+lesson. The cell computes the range for launch angles from 10 to 80 degrees,
+with and without drag, using a step at which the convergence table puts the
+error well below a decimetre, and then finds the angle of the longest throw
+to a tenth of a degree with a one-dimensional minimiser from SciPy.
+
+```{python}
+from scipy.optimize import minimize_scalar
+
+scan_dt = 0.002  # s
+angles = np.arange(10.0, 80.5, 2.5)
+ranges_with_drag = np.array(
+    [projectile_range(speed, a, mass, c, scan_dt) for a in angles]
+)
+ranges_without = np.array(
+    [projectile_range(speed, a, mass, 0.0, scan_dt) for a in angles]
+)
+
+
+def best_angle(drag, ball_mass=mass):
+    """The launch angle of the longest throw, to a tenth of a degree."""
+    result = minimize_scalar(
+        lambda a: -projectile_range(speed, a, ball_mass, drag, scan_dt),
+        bounds=(20.0, 60.0),
+        method="bounded",
+        options={"xatol": 0.05},
+    )
+    return result.x, -result.fun
+
+
+for name, drag in (("with drag", c), ("without drag", 0.0)):
+    best, furthest = best_angle(drag)
+    print(f"{name:>12}: longest throw {furthest:.2f} m at {best:.1f} degrees")
+```
+
+Without drag the longest throw is at 45 degrees, as the formula says, and
+the simulation finds it to the resolution asked of the minimiser. With drag
+the best angle is lower. A flatter throw spends less time in the air, and
+with drag taking away speed all the time, a shorter flight loses less of it;
+the higher drag during the fast early part of a steep throw costs more than
+the extra hang time gains.
+
+```{python}
+#| label: fig-range-against-angle
+#| fig-cap: "Range of the throw against the launch angle, with and without drag."
+#| fig-alt: "Line plot of range in metres against launch angle in degrees, from 10 to 80. The drag-free curve is a symmetric arch peaking at a dashed vertical line at 45 degrees. The curve with drag is much lower, peaks a few degrees to the left of the line, and is asymmetric: it falls off more steeply towards high angles than towards low ones."
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+ax.plot(
+    angles,
+    ranges_without,
+    color="#555555",
+    linestyle=":",
+    marker="s",
+    markersize=3,
+    label="without drag",
+)
+ax.plot(
+    angles,
+    ranges_with_drag,
+    color="#93003a",
+    marker="o",
+    markersize=3,
+    label="with drag",
+)
+ax.axvline(45.0, color="#00429d", linestyle="--", linewidth=0.8)
+ax.set_xlabel("launch angle (degrees)")
+ax.set_ylabel("range (m)")
+ax.legend()
+plt.show()
+```
+
+The curve with drag is not only lower but lopsided: it falls off more
+steeply towards high angles. How far the best angle moves below 45 degrees
+depends on the ratio of the launch speed to the terminal speed, as the third
+exercise shows.
+
+## Exercises
+
+::: {.exercise}
+**The other limit.** Drop the tennis ball from rest from a great height and
+let it fall for 15 s. Check that its speed approaches the terminal speed
+derived above, and find the time at which it reaches 95 per cent of it. Use
+a time step of 1 ms.
+
+::: {.solution}
+On a vertical line with down positive the acceleration is
+$g - (c/m)\,v\,|v|$, and the same functions run it with one-component
+vectors.
+
+```{python}
+from pbc.mechanics.dynamics import State, simulate
+
+dropped = State(t=0.0, x=0.0, v=0.0)
+falling = newton(mass, weight(mass, [g]), quadratic_drag(c))
+fall = simulate(dropped, falling, 0.001, 15_000)
+speeds = fall.v[:, 0]
+reached = fall.t[np.argmax(speeds >= 0.95 * terminal_speed)]
+
+print(f"terminal speed from the formula: {terminal_speed:.3f} m/s")
+print(f"speed after {fall.t[-1]:.0f} s of falling:  {speeds[-1]:.3f} m/s")
+print(f"95 per cent of it after {reached:.2f} s")
+```
+
+The speed creeps up to the terminal speed and stays below it, as it must:
+once the drag balances the weight there is no force left to accelerate the
+ball. The natural time scale is $v_T / g$, the time gravity alone would need
+to produce the terminal speed; 95 per cent of it is reached after
+`{python} f"{reached / (terminal_speed / g):.1f}"` of those.
+:::
+:::
+
+::: {.exercise}
+**A step for a millimetre.** From the convergence table, which time steps
+give a computed range with drag that is within 1 cm of the limit, without
+extrapolation? How small must the step be for 1 mm? Read the first answer
+from the Richardson error estimates in the table, and find the second by
+continuing the halving until the estimate drops below 1 mm.
+
+::: {.solution}
+The error estimate of each result is its difference to the previous one, and
+the estimates halve with the step, so every extra decimal digit costs a
+little more than three halvings.
+
+```{python}
+within_a_centimetre = [
+    step
+    for step, error in zip(steps[1:], np.abs(differences), strict=True)
+    if error < 0.01
+]
+print("steps of the table with an estimated error below 1 cm (s):", within_a_centimetre)
+
+tolerance = 0.001  # m
+step = steps[-1]
+previous = ranges[-1]
+while True:
+    step /= 2
+    current = projectile_range(speed, angle, mass, c, step)
+    estimate = abs(current - previous)
+    print(
+        f"time step {step * 1e3:.4f} ms: range {current:.4f} m,"
+        f" estimated error {estimate * 1e3:.2f} mm"
+    )
+    if estimate < tolerance:
+        break
+    previous = current
+```
+
+A millimetre needs a step of `{python} f"{step * 1e3:.2f}"` ms, that is
+`{python} f"{int(round(landing(with_drag).t / step))}"` steps for one throw.
+That is still cheap here, but a first-order method pays for every extra digit
+with ten times the work. The integrators lesson introduces methods that get
+the same digit for a small fraction of the steps.
+:::
+:::
+
+::: {.exercise}
+**A heavier ball.** A steel ball of the same diameter as the tennis ball has
+a mass of about 1.23 kg, so the same drag constant and a terminal speed
+several times higher. Thrown at the same 25 m/s, by what fraction does drag
+shorten its range at 45 degrees, and where is its best angle? Compare with
+the tennis ball and explain the difference with the ratio of launch speed to
+terminal speed.
+
+::: {.solution}
+```{python}
+steel_mass = 1.23  # kg
+steel_terminal_speed = np.sqrt(steel_mass * g / c)
+steel_range = projectile_range(speed, 45.0, steel_mass, c, scan_dt)
+steel_best, steel_furthest = best_angle(c, steel_mass)
+tennis_range = projectile_range(speed, 45.0, mass, c, scan_dt)
+free_range = projectile_range(speed, 45.0, mass, 0.0, scan_dt)
+
+print(f"steel ball: terminal speed {steel_terminal_speed:.0f} m/s,"
+      f" drag over weight at launch {(speed / steel_terminal_speed) ** 2:.3f}")
+print(f"range at 45 degrees: steel {steel_range:.2f} m, tennis {tennis_range:.2f} m,"
+      f" without drag {free_range:.2f} m")
+print(f"drag shortens the range by {100 * (1 - steel_range / free_range):.1f} per cent"
+      f" for steel and {100 * (1 - tennis_range / free_range):.0f} per cent for tennis")
+print(f"best angle for the steel ball: {steel_best:.1f} degrees,"
+      f" {steel_furthest:.2f} m")
+```
+
+For the steel ball the drag at launch is a few per cent of the weight, so
+the path is nearly a parabola, the range is shortened by a few per cent, and
+the best angle is just below 45 degrees. The tennis ball, thrown at its
+terminal speed, loses nearly half its range,
+`{python} f"{100 * (1 - tennis_range / free_range):.0f}"` per cent of it, and
+its best angle moves several degrees down. The one number that matters is $(v_0 / v_T)^2$, the drag over
+the weight at launch: it is set by the launch speed and the mass, size, and
+shape of the ball, and it is why a shot put is thrown as if there were no
+air while a shuttlecock is not.
+:::
+:::
+
+## Reproduce this
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/mechanics/dynamics.py",
+        "src/pbc/mechanics/drag.py",
+        "src/pbc/mechanics/projectile.py",
+    ],
+    tests=[
+        "tests/unit/test_dynamics.py",
+        "tests/unit/test_drag.py",
+        "tests/unit/test_projectile.py",
+    ],
+)
+```

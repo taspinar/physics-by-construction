@@ -1,0 +1,551 @@
+---
+title: "Newton’s laws as a first-order system"
+description: >-
+  Forces as functions of the state, Newton's second law as a stepper that the
+  rest of the course reuses, and a fall with linear drag checked against its
+  exact solution.
+lesson:
+  id: newtons-laws
+  strand: mechanics
+  order: 2
+  difficulty: 2
+  prerequisites:
+    lessons: [kinematics]
+    outside:
+      - "Calculus: first-order linear differential equations and the exponential function"
+      - "Vectors: components, addition, and scaling"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import lesson_header
+
+lesson_header()
+```
+
+In the first lesson the acceleration was handed to the program as a function
+of time. Mechanics rarely works that way. Newton's second law says that the
+acceleration follows from the forces, and the forces depend on where the
+particle is and how it moves: a spring pulls harder the further it is
+stretched, air drag pushes harder the faster the particle goes. The
+acceleration is a function of the *state*, and the program has to compute it
+from the state at every step.
+
+This lesson builds that program in three parts that the rest of the course
+keeps: force models as plain functions, Newton's second law as the function
+that turns their sum into an acceleration, and a stepper with a fixed
+signature, so that a later lesson can swap explicit Euler for a better method
+without touching anything else. The test problem is a particle falling
+against linear drag, one of the few problems with forces that has an exact
+solution to compare with. The comparison also shows a new way for a
+simulation to fail: not slowly, through accumulated error, but suddenly, when
+the time step is too large for the method.
+
+## Assumptions
+
+The model and the program rest on these assumptions. Each one names what
+goes wrong when it does not hold.
+
+1. **A point particle of constant mass.** The state is one position vector
+   and one velocity vector. A body that rotates needs an orientation and an
+   angular velocity as well; a rocket or a growing raindrop changes its mass,
+   and $m\,\mathrm{d}\mathbf{v}/\mathrm{d}t = \mathbf{F}$ is then the wrong
+   form of the law.
+2. **The force is a known function of time, position, and velocity.** A
+   force that depends on the history of the motion (friction with
+   hysteresis) or on the acceleration itself (the added mass of a body in a
+   fluid, radiation reaction) does not fit the first-order system below.
+3. **Forces add.** The net force is the vector sum of the forces of the
+   separate models. This is how forces behave in Newtonian mechanics; it
+   fails only when one model already includes the effect of another, which
+   would then be counted twice.
+4. **Linear drag, $\mathbf{F} = -b\,\mathbf{v}$.** The fluid pushes back in
+   proportion to the velocity. This holds when the flow around the body is
+   smooth, at Reynolds numbers below about 1: a fog droplet in air, a bead
+   sinking in oil, a dust grain. A ball in air is far outside that range; its
+   drag grows with the square of the speed, and the linear law would predict
+   a terminal speed that is wrong by a large factor. The next lesson has the
+   quadratic law. The numbers in the examples below are chosen to make the
+   tables readable, not taken from any real object.
+5. **Uniform gravity in a fluid at rest.** $\mathbf{g}$ is constant, and
+   the fluid does not move, so the drag acts on the velocity relative to the
+   ground. In a wind the drag acts on the velocity relative to the air, and
+   the model must subtract the wind first.
+6. **The time step is small compared with the time constant $\tau = m/b$.**
+   The derivation below shows exactly what happens otherwise: for
+   $\Delta t > \tau$ the computed velocity overshoots its limit and
+   oscillates, and for $\Delta t > 2\tau$ it grows without bound. No
+   smaller error term is hidden here; the method simply fails.
+7. **Round-off is negligible.** As in the first lesson: the steps used here
+   are many orders of magnitude above the resolution of double-precision
+   numbers.
+
+## From forces to an update rule {#explanation}
+
+Newton's second law for a particle of mass $m$ under a net force
+$\mathbf{F}$ is
+
+$$
+m\,\frac{\mathrm{d}\mathbf{v}}{\mathrm{d}t} = \mathbf{F}(t, \mathbf{x}, \mathbf{v}),
+\qquad
+\frac{\mathrm{d}\mathbf{x}}{\mathrm{d}t} = \mathbf{v}.
+$$
+
+Position and velocity are now vectors, with one component per dimension of
+the motion: one on a line, two in a plane. The two equations together are a
+**first-order system**: the rate of change of the pair
+$(\mathbf{x}, \mathbf{v})$ is a function of $t$ and of the pair itself. Every
+numerical method for ordinary differential equations takes this form as its
+input, which is why the program is organised around it. The second-order
+equation "acceleration equals force over mass" never appears on its own; it is
+split into "position changes at the velocity" and "velocity changes at the
+force over mass".
+
+A **force model** is a function $\mathbf{F}(t, \mathbf{x}, \mathbf{v})$ that
+returns a vector. Two are enough for this lesson. The weight is constant,
+$\mathbf{F}_g = m\,\mathbf{g}$, with $\mathbf{g}$ the gravitational
+acceleration as a vector, so that the program and not the reader decides
+which way is down. Linear drag opposes the velocity,
+$\mathbf{F}_d = -b\,\mathbf{v}$, with the drag constant $b$ in kg/s. Forces
+add, so Newton's law for a particle under both is the function
+
+$$
+\mathbf{a}(t, \mathbf{x}, \mathbf{v})
+= \frac{\mathbf{F}_g + \mathbf{F}_d}{m}
+= \mathbf{g} - \frac{b}{m}\,\mathbf{v}.
+$$
+
+The **update rule** is explicit Euler, exactly as in the first lesson, except
+that the acceleration is evaluated at the whole state instead of at the time
+alone:
+
+$$
+\begin{aligned}
+\mathbf{x}_{n+1} &= \mathbf{x}_n + \mathbf{v}_n\,\Delta t, \\
+\mathbf{v}_{n+1} &= \mathbf{v}_n + \mathbf{a}(t_n, \mathbf{x}_n, \mathbf{v}_n)\,\Delta t.
+\end{aligned}
+$$
+
+### The exact solution for linear drag
+
+Write $\tau = m/b$, which has the dimension of a time. The velocity equation
+is then
+
+$$
+\frac{\mathrm{d}\mathbf{v}}{\mathrm{d}t} = \mathbf{g} - \frac{\mathbf{v}}{\tau},
+$$
+
+a linear first-order equation with constant coefficients. It has one constant
+solution, $\mathbf{v}_T = \mathbf{g}\,\tau$, at which the drag balances the
+weight: the **terminal velocity**. Any other solution approaches it
+exponentially,
+
+$$
+\mathbf{v}(t) = \mathbf{v}_T + (\mathbf{v}_0 - \mathbf{v}_T)\,e^{-t/\tau},
+$$
+
+as substitution confirms. The **time constant** $\tau$ is the time in which
+the remaining difference to the terminal velocity shrinks by the factor $e$;
+after $3\tau$ five per cent of it is left, after $5\tau$ less than one per
+cent. Integrating once more gives the position,
+
+$$
+\mathbf{x}(t) = \mathbf{x}_0 + \mathbf{v}_T\,t
++ (\mathbf{v}_0 - \mathbf{v}_T)\,\tau\,\bigl(1 - e^{-t/\tau}\bigr).
+$$
+
+Because the equation is linear, the components do not interact: the same
+formula holds on a line and in a plane, with $\mathbf{g}$ pointing down and
+$\mathbf{v}_0$ pointing wherever the particle was thrown. That is the property
+the next lesson loses.
+
+### What explicit Euler does to it
+
+The update rule can be solved exactly too. Substituting the acceleration into
+the velocity update and subtracting $\mathbf{v}_T$ on both sides gives
+
+$$
+\mathbf{v}_{n+1} - \mathbf{v}_T
+= \Bigl(1 - \frac{\Delta t}{\tau}\Bigr)\,(\mathbf{v}_n - \mathbf{v}_T),
+\qquad\text{so}\qquad
+\mathbf{v}_n = \mathbf{v}_T + (\mathbf{v}_0 - \mathbf{v}_T)\,
+\Bigl(1 - \frac{\Delta t}{\tau}\Bigr)^{n}.
+$$
+
+The computed velocity approaches the terminal velocity geometrically, by the
+factor $1 - \Delta t/\tau$ per step, where the exact solution uses the factor
+$e^{-\Delta t/\tau} = 1 - \Delta t/\tau + \tfrac{1}{2}(\Delta t/\tau)^2 - \dots$
+The two agree to first order in $\Delta t$, and the difference accumulates
+over $t/\Delta t$ steps into an error proportional to $\Delta t$, as for every
+first-order method.
+
+The formula also says what happens when the step is large. For
+$\Delta t > \tau$ the factor is negative: the computed velocity jumps past
+the terminal velocity and back, alternating sides. For $\Delta t > 2\tau$ the
+factor is less than $-1$, and the alternation grows without bound. The exact
+solution does nothing of the kind. This is **instability**, and it is a
+property of the method and the step, not of the physics. The first exercise
+runs into it on purpose.
+
+## The program {#code}
+
+The reusable code lives in two modules of the repository,
+`pbc.mechanics.dynamics` and `pbc.mechanics.drag`. The listings in this
+section are read from those files when the site is built.
+
+The state carries vectors now. Lists and numbers are converted, so that
+`State(t=0.0, x=0.0, v=0.0)` describes a particle on a line and
+`State(t=0.0, x=[0.0, 0.0], v=[12.0, 15.0])` one in a plane:
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, reproduce_this
+from pbc.mechanics import drag, dynamics
+
+excerpt(dynamics.State)
+```
+
+A force model is any function that takes the time, the position, and the
+velocity and returns the force as a vector of the same shape. Newton's second
+law is the function that turns a mass and any number of force models into the
+acceleration function that a stepper needs:
+
+```{python}
+#| echo: false
+excerpt(dynamics.newton)
+```
+
+The two force models of this lesson:
+
+```{python}
+#| echo: false
+excerpt(dynamics.weight)
+```
+
+```{python}
+#| echo: false
+excerpt(drag.linear_drag)
+```
+
+The stepper has the signature `step(state, acceleration, dt)`. This is the
+**stepping interface** of the course: a later lesson adds steppers with the
+same signature, and the simulation loop below accepts any of them through its
+`step` argument. Explicit Euler is the only one so far:
+
+```{python}
+#| echo: false
+excerpt(dynamics.euler_step)
+```
+
+```{python}
+#| echo: false
+excerpt(dynamics.simulate)
+```
+
+The loop can also stop early, when a condition on the state becomes true; the
+third worked example uses that to stop a throw at the ground, and the next
+lesson relies on it. The exact solution for the fall with linear drag is the
+reference to compare with:
+
+```{python}
+#| echo: false
+excerpt(drag.fall_with_linear_drag)
+```
+
+## Worked examples
+
+### Falling with linear drag
+
+A particle is released from rest and falls against linear drag. On a vertical
+line the position is one number; the cell takes it as the distance fallen, so
+that down is positive and $\mathbf{g}$ is the vector `[g]`. The mass and the
+drag constant are chosen so that the time constant is 2 s.
+
+```{python}
+import numpy as np
+from scipy.constants import g  # standard gravity, m/s^2
+
+from pbc.mechanics.drag import fall_with_linear_drag, linear_drag
+from pbc.mechanics.dynamics import State, newton, simulate, weight
+
+mass = 0.5  # kg
+b = 0.25  # drag constant, kg/s
+tau = mass / b  # time constant, s
+terminal_speed = g * tau  # m/s
+down = [g]  # the gravitational acceleration, on a line with down positive
+
+rest = State(t=0.0, x=0.0, v=0.0)
+falling = newton(mass, weight(mass, down), linear_drag(b))
+dt = 0.1  # time step, s
+n_steps = 100
+
+euler = simulate(rest, falling, dt, n_steps)
+exact = fall_with_linear_drag(rest, mass, b, down, euler.t)
+
+print(f"time constant {tau:.1f} s, terminal speed {terminal_speed:.3f} m/s\n")
+print(" t (s)   v Euler (m/s)   v exact (m/s)   x Euler (m)   x exact (m)")
+for i in range(0, n_steps + 1, 10):
+    print(
+        f"{euler.t[i]:6.1f}{euler.v[i, 0]:16.3f}{exact.v[i, 0]:16.3f}"
+        f"{euler.x[i, 0]:14.3f}{exact.x[i, 0]:14.3f}"
+    )
+```
+
+Both velocities rise towards the terminal speed and are within one per cent
+of it after five time constants. The simulated velocity runs ahead of the
+exact one. The derivation says why: after $n$ steps the computed difference to
+the terminal velocity is $(1 - \Delta t/\tau)^n$ times the initial one, and
+$1 - \Delta t/\tau$ = `{python} f"{1 - dt / tau:.2f}"` is smaller than
+$e^{-\Delta t/\tau}$ = `{python} f"{np.exp(-dt / tau):.4f}"`, so the computed
+velocity loses its initial difference a little faster at every step. The
+cell checks the formula directly, in the last row:
+
+```{python}
+n = np.arange(n_steps + 1)
+predicted = terminal_speed * (1 - (1 - dt / tau) ** n)
+print(f"largest difference between the simulation and the formula for v_n: "
+      f"{np.max(np.abs(euler.v[:, 0] - predicted)):.1e} m/s")
+```
+
+What is left is round-off. The program does exactly what the analysis of the
+method says it does, which is a stronger statement than "the error is small".
+
+```{python}
+#| label: fig-fall-with-linear-drag
+#| fig-cap: "Velocity of the falling particle: explicit Euler with a coarse time step against the exact solution. The dotted line is the terminal speed."
+#| fig-alt: "Line plot of velocity in metres per second against time in seconds, from 0 to 10 seconds. The exact curve rises from zero and bends over towards a dotted horizontal line, the terminal speed, which it approaches without crossing. The explicit Euler points start on the exact curve and lie slightly above it, closest to the terminal speed, with the gap largest around 2 seconds and closing later."
+import matplotlib.pyplot as plt
+
+fine = np.linspace(0.0, euler.t[-1], 201)
+
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+ax.axhline(terminal_speed, color="#555555", linestyle=":", label="terminal speed")
+ax.plot(
+    fine,
+    fall_with_linear_drag(rest, mass, b, down, fine).v[:, 0],
+    color="#00429d",
+    label="exact",
+)
+ax.plot(
+    euler.t,
+    euler.v[:, 0],
+    color="#93003a",
+    linestyle="--",
+    marker="o",
+    markersize=3,
+    label=f"explicit Euler, time step {dt} s",
+)
+ax.set_xlabel("time (s)")
+ax.set_ylabel("velocity (m/s)")
+ax.legend()
+plt.show()
+```
+
+### Halving the time step
+
+The error after a fixed time should halve with the time step. The cell
+repeats the fall over the same duration with ever more steps and compares the
+velocity and the position at the end with the exact ones.
+
+```{python}
+duration = dt * n_steps
+step_counts = [n_steps * 2**k for k in range(6)]
+
+
+def final_errors(n):
+    """Errors of the last simulated velocity and position, for n steps."""
+    end = simulate(rest, falling, duration / n, n)
+    reference = fall_with_linear_drag(rest, mass, b, down, end.t[-1])
+    return end.v[-1, 0] - reference.v[0, 0], end.x[-1, 0] - reference.x[0, 0]
+
+
+errors = np.array([final_errors(n) for n in step_counts])
+orders = np.log2(errors[:-1, 1] / errors[1:, 1])
+
+print(" steps    time step (s)    v error (m/s)    x error (m)    observed order")
+for i, n in enumerate(step_counts):
+    order = f"{orders[i - 1]:10.3f}" if i else ""
+    print(
+        f"{n:6d}{duration / n:17.6f}{errors[i, 0]:17.6f}{errors[i, 1]:15.6f}    {order}"
+    )
+```
+
+Both errors halve with the step, and the observed order of the position
+error tends to 1. Unlike the constant acceleration of the first lesson, where
+the ratio was exactly 2, the order here approaches 1 from below, because the
+dropped terms contain higher powers of $\Delta t / \tau$ as well.
+
+### A throw in the plane
+
+The same functions run a motion in a plane; only the vectors have two
+components. The particle is thrown from the ground with a horizontal and an
+upward velocity, with $y$ upward so that $\mathbf{g}$ is `[0, -g]`, and the
+loop stops at the first state below the ground. For comparison the cell also
+evaluates the drag-free motion, the parabola of the first lesson.
+
+```{python}
+start = State(t=0.0, x=[0.0, 0.0], v=[12.0, 15.0])
+plane = [0.0, -g]
+thrown = newton(mass, weight(mass, plane), linear_drag(b))
+
+
+def on_the_ground(state):
+    return state.x[1] < 0.0
+
+
+flight = simulate(start, thrown, 0.01, 10_000, until=on_the_ground)
+exact_flight = fall_with_linear_drag(start, mass, b, plane, flight.t)
+# The drag-free motion over its own, longer flight: back at the ground when
+# the vertical velocity has reversed, at t = 2 v_y / g.
+free_time = np.linspace(0.0, 2 * start.v[1] / g, 200)[:, None]
+without_drag = start.x + start.v * free_time + 0.5 * np.array(plane) * free_time**2
+
+print(f"back at the ground after {flight.t[-1]:.2f} s, {flight.x[-1, 0]:.2f} m away")
+print(f"largest distance between the simulated and the exact position: "
+      f"{np.max(np.linalg.norm(flight.x - exact_flight.x, axis=1)):.3f} m")
+```
+
+```{python}
+#| label: fig-throw-with-linear-drag
+#| fig-cap: "A throw in the plane with and without linear drag."
+#| fig-alt: "Plot of height against horizontal distance, both in metres. The drag-free parabola is symmetric and reaches furthest. The exact curve with linear drag rises less high, peaks earlier, and comes down more steeply, landing well short of the parabola. The explicit Euler points lie on the drag curve to within the thickness of the line."
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+ax.plot(
+    without_drag[:, 0],
+    without_drag[:, 1],
+    color="#555555",
+    linestyle=":",
+    label="without drag",
+)
+ax.plot(
+    exact_flight.x[:, 0],
+    exact_flight.x[:, 1],
+    color="#00429d",
+    label="linear drag, exact",
+)
+ax.plot(
+    flight.x[::10, 0],
+    flight.x[::10, 1],
+    color="#93003a",
+    linestyle="none",
+    marker="o",
+    markersize=3,
+    label="linear drag, explicit Euler",
+)
+ax.set_ylim(bottom=0.0)
+ax.set_xlabel("horizontal distance (m)")
+ax.set_ylabel("height (m)")
+ax.legend()
+plt.show()
+```
+
+With drag the path is no longer a parabola: it rises less, peaks earlier, and
+comes down more steeply than it went up, because the drag takes away
+horizontal velocity all the time. Here the exact curve was still available
+to draw. For the quadratic drag of a ball in air there is none, and the next
+lesson shows how to trust a simulation without it.
+
+## Exercises
+
+::: {.exercise}
+**Too large a step.** The time constant of the falling particle is
+`{python} f"{tau:.0f}"` s. Predict what explicit Euler computes for the
+velocity with a time step of 3 s and with one of 5 s, then run both for ten
+steps and look at the sequence of computed velocities.
+
+::: {.solution}
+The computed difference to the terminal velocity is multiplied by
+$1 - \Delta t/\tau$ at every step. With $\Delta t = 3$ s the factor is
+$-0.5$: the velocity jumps past the terminal speed, then back below it, with
+the overshoot halving every step. With $\Delta t = 5$ s the factor is
+$-1.5$: the same alternation, but growing by half every step, without bound.
+
+```{python}
+for step in (3.0, 5.0):
+    computed = simulate(rest, falling, step, 10)
+    print(f"time step {step:.0f} s, factor {1 - step / tau:+.1f}:")
+    print("  " + "  ".join(f"{v:8.1f}" for v in computed.v[:, 0]))
+```
+
+The first sequence settles at the terminal speed, the wrong way round but
+settling. The second leaves it further behind at every step. Nothing in the
+physics does this; the particle simply falls. The instability belongs to the
+method, and a simulation that shows it is reporting its own time step, not
+the motion.
+:::
+:::
+
+::: {.exercise}
+**Time to terminal speed.** How long does the particle released from rest
+take to reach 99 per cent of its terminal speed? Derive the answer from the
+exact solution, then find it from a simulation with a time step of 1 ms as
+the first instant at which the simulated speed exceeds that value.
+
+::: {.solution}
+From $v(t) = v_T\,(1 - e^{-t/\tau})$, the speed is $0.99\,v_T$ when
+$e^{-t/\tau} = 0.01$, that is at $t = \tau \ln 100$.
+
+```{python}
+predicted = tau * np.log(100)
+fine_fall = simulate(rest, falling, 0.001, 12_000)
+reached = fine_fall.t[np.argmax(fine_fall.v[:, 0] >= 0.99 * terminal_speed)]
+print(f"from the exact solution: {predicted:.3f} s")
+print(f"from the simulation:     {reached:.3f} s")
+```
+
+The simulation reaches the mark slightly early, as expected: the computed
+velocity runs ahead of the exact one. With a step of 1 ms the difference is
+of the order of the time step itself.
+:::
+:::
+
+::: {.exercise}
+**A force that depends on position.** Replace the drag by a spring that
+pulls the particle back to the origin with the force $F = -k\,x$, with
+$k = 2$ N/m, no gravity, and the particle released from rest at $x_0 = 1$ m.
+The exact motion is $x(t) = x_0 \cos(\omega t)$ with
+$\omega = \sqrt{k/m}$. Write the force model, simulate one full period with a
+time step of 10 ms, and compare the position at the end of the period with
+the exact one. What has happened to the amplitude?
+
+::: {.solution}
+The interface takes any function of time, position, and velocity, so the
+spring is one line. Nothing else changes.
+
+```{python}
+k = 2.0  # spring constant, N/m
+omega = np.sqrt(k / mass)
+period = 2 * np.pi / omega
+
+
+def spring(t, x, v):
+    return -k * x
+
+
+released = State(t=0.0, x=1.0, v=0.0)
+oscillation = simulate(released, newton(mass, spring), 0.01, round(period / 0.01))
+end = oscillation.t[-1]
+print(f"period: {period:.3f} s, simulated until {end:.2f} s")
+print(f"position then: {oscillation.x[-1, 0]:.4f} m, exact {np.cos(omega * end):.4f} m")
+print(f"largest excursion so far: {np.max(np.abs(oscillation.x[:, 0])):.4f} m")
+```
+
+The particle comes back further out than it started, and the excursion keeps
+growing in later periods. Explicit Euler feeds energy into an oscillation at
+every step, for the same reason that it approached the terminal velocity too
+fast here: it uses the rates at the start of the step for the whole step. The
+harmonic oscillator lesson measures that growth exactly and introduces the
+steppers that avoid it. They plug into the same `simulate` through its `step`
+argument.
+:::
+:::
+
+## Reproduce this
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=["src/pbc/mechanics/dynamics.py", "src/pbc/mechanics/drag.py"],
+    tests=["tests/unit/test_dynamics.py", "tests/unit/test_drag.py"],
+)
+```
