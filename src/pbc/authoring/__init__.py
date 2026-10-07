@@ -6,14 +6,30 @@ drift from it (ADR 002). ``docs/authoring.md`` describes their use.
 """
 
 from pbc.authoring.excerpt import Excerpt, excerpt
+from pbc.authoring.path import (
+    DIFFICULTIES,
+    STRANDS,
+    LearningPath,
+    LessonHeader,
+    PathOverview,
+    learning_path,
+    lesson_header,
+)
 from pbc.authoring.repository import BuildCommit, build_commit
 from pbc.authoring.reproduce import Reproduction, reproduce_this
 
 __all__ = [
+    "DIFFICULTIES",
+    "STRANDS",
     "BuildCommit",
     "Excerpt",
+    "LearningPath",
+    "LessonHeader",
+    "PathOverview",
     "Reproduction",
     "build_commit",
     "excerpt",
+    "learning_path",
+    "lesson_header",
     "reproduce_this",
 ]

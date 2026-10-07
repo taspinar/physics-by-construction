@@ -13,6 +13,13 @@ lesson:
       - "Replace: what the reader must know that no lesson on this site teaches"
 ---
 
+```{python}
+#| echo: false
+from pbc.authoring import lesson_header
+
+lesson_header()
+```
+
 Open with two or three short paragraphs: what the lesson builds, why it
 matters, and how the result is checked. Do not put a heading above them.
 

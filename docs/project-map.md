@@ -10,8 +10,9 @@ in `docs/workflow.md`.
 |---|---|
 | `site/` | The website source, a Quarto project. `_quarto.yml` configures it, including the public address in `website.site-url`; `_filters/` holds its Pandoc Lua filters; `assets/` its stylesheet and self-hosted font |
 | `site/lessons/<strand>/<nn>-<slug>/index.qmd` | One lesson per directory, in the format of `docs/authoring.md`. An agent lesson may also hold its replay fixture `replay.json`; nothing else is committed there |
+| `site/path/index.qmd` | The learning path page, generated from the lesson front matter when the site is built |
 | `site/_site/` | The built site. Written by `scripts/build-site.sh`, ignored by Git |
-| `src/pbc/` | The Python package with the reusable lesson code: `mechanics/` for the mechanics course, `authoring/` for the helpers pages use to show code by reference and to write "Reproduce this" |
+| `src/pbc/` | The Python package with the reusable lesson code: `mechanics/` for the mechanics course, `authoring/` for the helpers pages use to show code by reference, to write "Reproduce this", and to generate the learning path page and lesson headers; `authoring/path.py` defines the strands and the difficulty scale |
 | `lean/` | The Lean project: `lean-toolchain`, `lakefile.toml`, and `lake-manifest.json` pin Lean and Mathlib; proofs live in `PhysicsByConstruction/`; `AxiomAudit.lean` is the audit run by `scripts/check-lean.sh` |
 | `pyproject.toml`, `uv.lock`, `.python-version` | The Python toolchain pins, including Quarto and the browser for the site checks |
 | `LICENSE`, `LICENSE-CONTENT` | MIT for code, CC BY 4.0 for lesson text and figures |

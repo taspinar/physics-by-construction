@@ -9,6 +9,7 @@ local test server is recorded as a violation and aborted.
 """
 
 import ast
+import itertools
 import re
 from collections import Counter
 from collections.abc import Callable, Iterator, Sequence
@@ -24,6 +25,7 @@ from playwright.sync_api import Browser, BrowserContext, Page, Route
 from support.site_server import SiteServer
 
 DESKTOP = {"width": 1280, "height": 800}
+TABLET = {"width": 768, "height": 1024}
 # 320 CSS pixels is the width WCAG 2.1 uses for its reflow criterion.
 PHONE = {"width": 320, "height": 568}
 
@@ -544,16 +546,18 @@ _WIDTHS = """
 def check_no_horizontal_scroll(
     browser: Browser, server: SiteServer, site_dir: Path
 ) -> list[Violation]:
-    """At phone width the page is not wider than the screen and every image
-    fits on it, with and without scripts."""
+    """At phone, tablet, and desktop width the page is not wider than the
+    screen and every image fits on it, with and without scripts."""
     violations = []
-    for javascript in (True, False):
+    for javascript, viewport in itertools.product(
+        (True, False), (PHONE, TABLET, DESKTOP)
+    ):
         scripts = "with" if javascript else "without"
         with _context(
             browser,
             server,
             lambda url: None,
-            viewport=PHONE,
+            viewport=viewport,
             java_script_enabled=javascript,
         ) as context:
             for name, url in _urls(site_dir, server):

@@ -11,6 +11,7 @@ a second Markdown parser.
 """
 
 import functools
+import itertools
 import json
 import re
 import secrets
@@ -22,6 +23,7 @@ from typing import Any
 
 import yaml
 
+from pbc.authoring import path as learning_path
 from support.site_checks import Violation
 
 # --- The format ---------------------------------------------------------------
@@ -33,9 +35,10 @@ PAGE = "index.qmd"
 # replay fixture of an agent lesson.
 REPLAY_FIXTURE = "replay.json"
 
-# Strands in learning path order (docs/architecture.md, "Lesson model").
-STRANDS = ("mechanics", "agents-llm", "agents-abm", "lean")
-DIFFICULTIES = (1, 2, 3)
+# The strands in learning path order and the difficulty scale are defined
+# once, where the pages are generated from them (pbc.authoring.path).
+STRANDS = tuple(strand.id for strand in learning_path.STRANDS)
+DIFFICULTIES = tuple(difficulty.level for difficulty in learning_path.DIFFICULTIES)
 
 # Level-2 sections every lesson has, by heading identifier.
 REQUIRED_SECTIONS = (
@@ -362,14 +365,33 @@ def _divs(blocks: list[Node], name: str) -> list[tuple[Node, ...]]:
     return [path for path in _walk(blocks) if _has_class(path[-1], name)]
 
 
+def _calls(lesson: Lesson, blocks: list[Node], function: str) -> bool:
+    """Whether an executed cell among ``blocks`` calls ``function``."""
+    return any(
+        (cell := lesson.cell(path[-1])) is not None
+        and cell.executed
+        and f"{function}(" in cell.code
+        for path in _walk(blocks)
+    )
+
+
 def check_sections(repository: Path) -> list[Violation]:
     """Every lesson has the required sections with content, exercises come
-    with solutions, and "Reproduce this" is produced by its helper."""
+    with solutions, and the header and "Reproduce this" are produced by
+    their helpers."""
     violations = []
     for page in lesson_pages(repository):
         lesson = read_lesson(page)
         sections = _sections(lesson)
-        problems = [
+        problems = []
+        introduction = list(
+            itertools.takewhile(lambda block: block["t"] != "Header", lesson.blocks)
+        )
+        if not _calls(lesson, introduction, "lesson_header"):
+            problems.append(
+                "no executed cell that calls lesson_header() before the first heading"
+            )
+        problems += [
             f"no level-2 section with the identifier '{name}'"
             for name in REQUIRED_SECTIONS
             if name not in sections
@@ -400,11 +422,8 @@ def check_sections(repository: Path) -> list[Violation]:
             if not any(_has_class(node, "exercise") for node in path[:-1])
         ]
 
-        if sections.get("reproduce-this") and not any(
-            (cell := lesson.cell(path[-1])) is not None
-            and cell.executed
-            and "reproduce_this(" in cell.code
-            for path in _walk(sections["reproduce-this"])
+        if sections.get("reproduce-this") and not _calls(
+            lesson, sections["reproduce-this"], "reproduce_this"
         ):
             problems.append(
                 "section 'reproduce-this' has no executed cell that calls"
@@ -415,6 +434,44 @@ def check_sections(repository: Path) -> list[Violation]:
             for problem in problems
         ]
     return violations
+
+
+# --- The learning path --------------------------------------------------------
+
+
+def check_path(repository: Path) -> list[Violation]:
+    """The lessons form one learning path: ids are unique, the orders of a
+    strand run from 1 without gaps or duplicates, and prerequisites exist,
+    come earlier in the path, and form no cycle.
+
+    A lesson whose front matter is outside the schema is left out; that is
+    reported by ``check_metadata``.
+    """
+    lessons = []
+    for page in lesson_pages(repository):
+        lesson = read_lesson(page)
+        if lesson.front_matter_error or _metadata_problems(
+            lesson.front_matter, page.parent.parent.name, page.parent.name
+        ):
+            continue
+        front_matter, meta = lesson.front_matter, lesson.front_matter["lesson"]
+        lessons.append(
+            learning_path.Lesson(
+                page=page.relative_to(repository / SITE).as_posix(),
+                id=meta["id"],
+                title=front_matter["title"],
+                description=front_matter.get("description", ""),
+                strand=meta["strand"],
+                order=meta["order"],
+                difficulty=meta["difficulty"],
+                prerequisites=tuple(meta["prerequisites"]["lessons"]),
+                outside=tuple(meta["prerequisites"]["outside"]),
+            )
+        )
+    return [
+        Violation("path", f"{SITE}/{problem.page}", problem.message)
+        for problem in learning_path.problems(lessons)
+    ]
 
 
 # --- Displayed code -----------------------------------------------------------

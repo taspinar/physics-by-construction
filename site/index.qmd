@@ -38,12 +38,10 @@ guarantees, for every initial condition at once.
 
 ## Lessons
 
-The first course, mechanics with numerical simulation, is being written.
-Lessons appear here as they pass verification.
-
-1. [Kinematics as a program](lessons/mechanics/01-kinematics-as-a-program/index.qmd):
-   motion under a known acceleration as a state and an update rule, checked
-   against the exact solution.
+The [learning path](path/index.qmd) lists every lesson in order, with its
+difficulty and what it builds on. The first course, mechanics with numerical
+simulation, is being written; lessons appear on the path as they pass
+verification.
 
 ## Source and licence
 

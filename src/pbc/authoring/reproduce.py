@@ -10,23 +10,15 @@ from pbc.authoring.repository import (
     build_commit,
     repository_url,
 )
-
-# Where the website project sits in the repository, and the file that marks
-# the root of that project.
-SITE_DIRECTORY = "site"
-_PROJECT_FILE = "_quarto.yml"
-_PAGE_FILE = "index.qmd"
+from pbc.authoring.website import PAGE_FILE, SITE_DIRECTORY, project_root
 
 
 def _lesson_page(directory: Path) -> str:
     """Return the repository path of the lesson page in ``directory``."""
-    if not (directory / _PAGE_FILE).is_file():
-        raise FileNotFoundError(f"no {_PAGE_FILE} in {directory}")
-    for project in directory.parents:
-        if (project / _PROJECT_FILE).is_file():
-            relative = directory.relative_to(project).as_posix()
-            return f"{SITE_DIRECTORY}/{relative}/{_PAGE_FILE}"
-    raise FileNotFoundError(f"{directory} is not inside a website project")
+    if not (directory / PAGE_FILE).is_file():
+        raise FileNotFoundError(f"no {PAGE_FILE} in {directory}")
+    relative = directory.relative_to(project_root(directory)).as_posix()
+    return f"{SITE_DIRECTORY}/{relative}/{PAGE_FILE}"
 
 
 def _repository_files(kind: str, paths: Sequence[str]) -> tuple[str, ...]:

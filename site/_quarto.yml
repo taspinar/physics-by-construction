@@ -25,6 +25,8 @@ website:
     left:
       - text: Home
         href: index.qmd
+      - text: Learning path
+        href: path/index.qmd
       - text: About
         href: about.qmd
     right:

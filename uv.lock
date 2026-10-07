@@ -1396,6 +1396,7 @@ source = { editable = "." }
 dependencies = [
     { name = "matplotlib" },
     { name = "numpy" },
+    { name = "pyyaml" },
     { name = "scipy" },
 ]
 
@@ -1407,7 +1408,6 @@ dev = [
     { name = "nbformat" },
     { name = "playwright" },
     { name = "pytest" },
-    { name = "pyyaml" },
     { name = "quarto-cli" },
     { name = "ruff" },
 ]
@@ -1416,6 +1416,7 @@ dev = [
 requires-dist = [
     { name = "matplotlib", specifier = ">=3.11" },
     { name = "numpy", specifier = ">=2.5" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "scipy", specifier = ">=1.18" },
 ]
 
@@ -1427,7 +1428,6 @@ dev = [
     { name = "nbformat", specifier = ">=5.11" },
     { name = "playwright", specifier = ">=1.63" },
     { name = "pytest", specifier = ">=9.1" },
-    { name = "pyyaml", specifier = ">=6.0" },
     { name = "quarto-cli", specifier = ">=1.10" },
     { name = "ruff", specifier = ">=0.16" },
 ]
