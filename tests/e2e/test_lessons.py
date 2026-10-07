@@ -32,6 +32,9 @@ NEWTONS_LAWS = "lessons/mechanics/02-newtons-laws/index.html"
 PROJECTILE = "lessons/mechanics/03-projectile-motion-with-drag/index.html"
 OSCILLATOR = "lessons/mechanics/04-harmonic-oscillator/index.html"
 INTEGRATORS = "lessons/mechanics/05-numerical-integrators/index.html"
+ENERGY = "lessons/mechanics/06-energy-conservation/index.html"
+MOMENTUM = "lessons/mechanics/07-momentum-and-collisions/index.html"
+KEPLER = "lessons/mechanics/08-kepler-orbit/index.html"
 
 
 @pytest.fixture
@@ -60,9 +63,16 @@ def _head_commit() -> str:
 
 def test_the_mechanics_lessons_are_among_the_lessons():
     # Guards the parametrized tests below: without lessons they would not run.
-    assert {KINEMATICS, NEWTONS_LAWS, PROJECTILE, OSCILLATOR, INTEGRATORS} <= set(
-        LESSONS
-    )
+    assert {
+        KINEMATICS,
+        NEWTONS_LAWS,
+        PROJECTILE,
+        OSCILLATOR,
+        INTEGRATORS,
+        ENERGY,
+        MOMENTUM,
+        KEPLER,
+    } <= set(LESSONS)
 
 
 @pytest.mark.parametrize("lesson", LESSONS)
@@ -200,6 +210,41 @@ REFERENCE_ROWS = {
         "320 4.40e-05 (2.00) 2.15e-11 (4.00)",
         "Runge-Kutta 4 21 8.4e-04 168",
         "Runge-Kutta 4 50 400 2.6e-05",
+    ],
+    ENERGY: [
+        "170° 4.8944 2.4394 4.8944",
+        "released at 120°: period 2.7546 s, 1.3729 T0; 2746 steps of 0.02006 s",
+        "velocity Verlet 7.4e-04 1.0000",
+        "400 8.9e-01 (1.01) 6.5e-03 (1.00) 4.6e-05 (2.00) 1.5e-09 (4.85)",
+        "velocity Verlet 7.4e-04 -0.98 -1.97 -3.74",
+        "explicit Euler 0.9924 1.3224 3289°",
+        "explicit Euler passes the energy of the top after 1.07 s, in swing 1",
+        "from the series: 22.9°; from the exact period: 22.8°",
+        "400 10.6315 10.6307 8.3e-04 4.6e-05",
+        "steps per T0 needed: 861",
+    ],
+    MOMENTUM: [
+        "reduced mass 0.75 kg, omega = 4.0 rad/s, period 1.5708 s",
+        "contact time pi sqrt(mu / k) = 0.0811 s; the spheres overlap from 0.533 s"
+        " to 0.612 s",
+        "10 -1.00095 0.50048 9.5e-04 1.8e-02",
+        "1000 0.0702 1139 54.45° -5.55° 90.00°",
+        "0.1 0.3306 0.3306",
+        "0.00 -0.1301 +0.1499 +0.9801",
+        "1 kg 1.0000 0.5994 0.6667 0.6664",
+    ],
+    KEPLER: [
+        "perihelion 0.50 AU at 51.6 km/s, aphelion 1.50 AU",
+        "Runge-Kutta 4 1.6e-03 6.3e-05 9.2e-06",
+        "3200 1.4e+00 (0.58) 9.0e-03 (0.99) 3.5e-04 (2.00) 5.9e-10 (4.07)",
+        "semi-major axis between 0.9710 and 1.0000 AU",
+        "perihelion turned by -872.3° in all, -0.872° per orbit",
+        "200 -0.2208°",
+        "the star moves at between 17.1 and 51.6 m/s",
+        "4.0 8.0000 1.0000",
+        "99 per cent: after 30 years at 22.7 AU, farthest 24.6 AU; a = 12.6 AU,"
+        " e = 0.960, period 45 yr",
+        "the Sun moves at between 11.9 and 13.1 m/s about the centre of mass",
     ],
 }
 

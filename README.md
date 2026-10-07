@@ -14,9 +14,10 @@ does not compile cannot be merged.
 ## Status
 
 The publishing and verification pipeline and the lesson format are in place,
-and the first five lessons of the mechanics course are published: kinematics,
-Newton's laws, projectile motion with drag, the harmonic oscillator, and the
-comparison of numerical integrators. The plan for the rest is in
+and the mechanics course is complete at eight lessons: kinematics, Newton's
+laws, projectile motion with drag, the harmonic oscillator, the comparison of
+numerical integrators, energy conservation, momentum and collisions, and the
+capstone Kepler orbit. The plan for the rest is in
 [docs/roadmap.md](docs/roadmap.md).
 
 ## Repository layout
