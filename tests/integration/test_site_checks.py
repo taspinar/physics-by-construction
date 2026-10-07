@@ -298,13 +298,23 @@ def test_script_may_add_to_a_declared_enhancement_of_static_content(
     assert violations == []
 
 
-def test_page_wider_than_a_phone_is_reported(make_site: Site, browser: Browser):
+def test_page_wider_than_a_phone_or_a_tablet_is_reported(
+    make_site: Site, browser: Browser
+):
     site = make_site(body='<div style="width: 900px">A wide block.</div>')
 
     with served(site) as server:
         violations = site_checks.check_no_horizontal_scroll(browser, server, site)
 
     assert rules(violations) == {"horizontal-scroll"}
+    # Wider than a phone and a tablet, with and without scripts; a desktop
+    # screen holds it.
+    assert sorted(v.detail.split(" on a ")[1][:6] for v in violations) == [
+        "320px ",
+        "320px ",
+        "768px ",
+        "768px ",
+    ]
 
 
 def test_image_cut_off_at_phone_width_is_reported(make_site: Site, browser: Browser):

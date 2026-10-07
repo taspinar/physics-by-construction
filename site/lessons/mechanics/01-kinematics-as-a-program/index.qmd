@@ -15,6 +15,13 @@ lesson:
       - "Python: functions, dataclasses, and NumPy arrays"
 ---
 
+```{python}
+#| echo: false
+from pbc.authoring import lesson_header
+
+lesson_header()
+```
+
 Kinematics describes motion without asking what causes it. The acceleration
 $a(t)$ is given, and the task is to find the velocity $v(t)$ and the position
 $x(t)$. This lesson turns that task into a program: it holds a *state*,

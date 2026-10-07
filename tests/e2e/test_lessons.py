@@ -73,14 +73,6 @@ def test_lesson_is_published_with_every_required_section(site_dir: Path, lesson:
     assert practice, f"{lesson} has neither exercises nor an interactive visualization"
 
 
-@pytest.mark.parametrize("lesson", LESSONS)
-def test_home_page_links_to_the_lesson(page: Page, server: SiteServer, lesson: str):
-    page.goto(server.url + "index.html", wait_until="load")
-
-    targets = page.locator("main a").evaluate_all("links => links.map(a => a.href)")
-    assert server.url + lesson in targets
-
-
 def test_material_marked_not_verified_shows_a_label(
     browser: Browser, server: SiteServer, site_dir: Path
 ):

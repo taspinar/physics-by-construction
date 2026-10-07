@@ -32,6 +32,11 @@ lesson:
       - "Calculus"
 ---
 
+```{python}
+#| echo: false
+lesson_header()
+```
+
 Introduction.
 
 ## Assumptions
@@ -141,6 +146,7 @@ def all_checks(repository: Path) -> list[Violation]:
     return [
         *lesson_checks.check_metadata(repository),
         *lesson_checks.check_sections(repository),
+        *lesson_checks.check_path(repository),
         *lesson_checks.check_displayed_code(repository),
         *lesson_checks.check_figures(repository),
         *lesson_checks.check_committed_files(repository),
@@ -313,6 +319,27 @@ def test_exercise_without_on_page_solution_is_reported(
     assert rules(violations) == {"sections"}
 
 
+_HEADER = "```{python}\n#| echo: false\nlesson_header()\n```\n"
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {_HEADER: ""},
+        {_HEADER: "", "## Assumptions\n": "## Assumptions\n\n" + _HEADER},
+        {_HEADER: "```{python}\n#| eval: false\nlesson_header()\n```\n"},
+    ],
+    ids=["no-header-cell", "header-after-the-first-heading", "header-not-executed"],
+)
+def test_lesson_without_a_generated_header_is_reported(
+    make_repository: Repository, change: dict[str, str]
+):
+    violations = lesson_checks.check_sections(make_repository(change))
+
+    assert rules(violations) == {"sections"}
+    assert "lesson_header()" in details(violations)
+
+
 def test_hand_written_reproduce_section_is_reported(make_repository: Repository):
     repository = make_repository(
         {
@@ -326,6 +353,80 @@ def test_hand_written_reproduce_section_is_reported(make_repository: Repository)
 
     assert rules(violations) == {"sections"}
     assert "reproduce_this()" in details(violations)
+
+
+# --- The learning path --------------------------------------------------------
+
+
+def second_lesson(
+    id: str = "second",
+    order: int = 2,
+    strand: str = "mechanics",
+    prerequisites: str = "[sample]",
+    difficulty: int = 1,
+) -> dict[str, str]:
+    """A second lesson that follows the format, as ``files`` for the fixture."""
+    text = _VALID
+    for old, new in {
+        "  id: sample\n": f"  id: {id}\n",
+        "  strand: mechanics\n": f"  strand: {strand}\n",
+        "  order: 1\n": f"  order: {order}\n",
+        "  difficulty: 1\n": f"  difficulty: {difficulty}\n",
+        "    lessons: []\n": f"    lessons: {prerequisites}\n",
+    }.items():
+        assert old in text
+        text = text.replace(old, new)
+    return {f"site/lessons/{strand}/{order:02d}-{id}/index.qmd": text}
+
+
+def test_two_lessons_that_form_a_path_pass(make_repository: Repository):
+    assert all_checks(make_repository(files=second_lesson())) == []
+
+
+@pytest.mark.parametrize(
+    "change, files, expected",
+    [
+        ({}, second_lesson(id="sample", prerequisites="[]"), "already used"),
+        ({}, second_lesson(prerequisites="[gravity]"), "not the id of any lesson"),
+        ({"    lessons: []\n": "    lessons: [second]\n"}, second_lesson(), "cycle"),
+        (
+            {"    lessons: []\n": "    lessons: [second]\n"},
+            second_lesson(prerequisites="[]"),
+            "does not come earlier",
+        ),
+        ({}, second_lesson(order=3), "no lesson with order 2"),
+        ({}, second_lesson(order=1), "'lesson.order' 1 is already used"),
+    ],
+    ids=[
+        "duplicate-id",
+        "unknown-prerequisite",
+        "cycle",
+        "prerequisite-later-in-the-path",
+        "gap-in-the-order",
+        "duplicate-order",
+    ],
+)
+def test_lessons_that_do_not_form_a_path_are_reported(
+    make_repository: Repository,
+    change: dict[str, str],
+    files: dict[str, str],
+    expected: str,
+):
+    violations = lesson_checks.check_path(make_repository(change, files=files))
+
+    assert rules(violations) == {"path"}
+    assert expected in details(violations)
+
+
+def test_lesson_outside_the_schema_is_left_out_of_the_path(
+    make_repository: Repository,
+):
+    # The metadata check reports the lesson; the path is checked without it,
+    # so one mistake is reported once.
+    repository = make_repository(files=second_lesson(difficulty=4))
+
+    assert rules(lesson_checks.check_metadata(repository)) == {"metadata"}
+    assert lesson_checks.check_path(repository) == []
 
 
 # --- Displayed code -----------------------------------------------------------
@@ -585,6 +686,15 @@ def test_verification_passes_a_lesson_that_follows_the_format(
         ),
         ({_ALT: ""}, {}, "figure-alt"),
         ({}, {f"{LESSON}/line.png": "generated"}, "committed-artifact"),
+        ({_HEADER: ""}, {}, "sections"),
+        ({}, second_lesson(id="sample", prerequisites="[]"), "path"),
+        ({}, second_lesson(prerequisites="[gravity]"), "path"),
+        ({"    lessons: []\n": "    lessons: [second]\n"}, second_lesson(), "path"),
+        (
+            {"    lessons: []\n": "    lessons: [second]\n"},
+            second_lesson(prerequisites="[]"),
+            "path",
+        ),
     ],
     ids=[
         "missing-metadata-field",
@@ -593,6 +703,11 @@ def test_verification_passes_a_lesson_that_follows_the_format(
         "skipped-cell-without-marker",
         "figure-without-alt-text",
         "committed-generated-figure",
+        "lesson-without-generated-header",
+        "duplicate-lesson-id",
+        "unknown-prerequisite",
+        "prerequisite-cycle",
+        "prerequisite-later-in-the-path",
     ],
 )
 def test_verification_fails_on_a_violating_lesson(

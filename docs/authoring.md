@@ -29,18 +29,18 @@ verified".
 3. In the front matter of the new `index.qmd`, set `id` and `order` first.
    The template leaves both invalid on purpose, so the checks report a lesson
    that still carries them. Then fill in the other fields (next section).
+   The learning path page, the header of the lesson, and its previous and
+   next links are generated from these fields; there is no list to add the
+   lesson to.
 
 4. Put the reusable code of the lesson in `src/pbc/<course>/` with unit tests
    in `tests/unit/`. For a numerical method, one test compares it with a
    closed-form solution or a limiting case, with an explicit tolerance.
 
 5. Write the page. Replace every part of the template; keep its section
-   headings or their identifiers.
+   headings or their identifiers, and keep the header cell at the top.
 
-6. Add the lesson to the list on the home page, `site/index.qmd`, until the
-   learning path page generates that list.
-
-7. Check it:
+6. Check it:
 
    ```bash
    uv run --locked pytest tests/unit                 # the code
@@ -75,11 +75,11 @@ lesson:
 |---|---|---|
 | `title` | yes | The lesson title. |
 | `description` | no | One sentence; shown under the title and used as the page description. |
-| `lesson.id` | yes | Stable identifier: lowercase words joined by hyphens, starting with a letter. Other lessons name it as a prerequisite, so it never changes and is never reused. Do not put the position in it. |
-| `lesson.strand` | yes | One of `mechanics`, `agents-llm`, `agents-abm`, `lean`. Must be the strand directory the lesson is in. |
-| `lesson.order` | yes | Position in the strand, 1 to 99. Must equal the number the directory name starts with. |
-| `lesson.difficulty` | yes | 1, 2, or 3: the one difficulty scale of the site, from least to most demanding. |
-| `lesson.prerequisites.lessons` | yes | List of the `id`s of lessons a reader needs first. May be empty. |
+| `lesson.id` | yes | Stable identifier: lowercase words joined by hyphens, starting with a letter. Unique across the site. Other lessons name it as a prerequisite, so it never changes and is never reused. Do not put the position in it. |
+| `lesson.strand` | yes | One of `mechanics`, `agents-llm`, `agents-abm`, `lean`, in learning path order. Must be the strand directory the lesson is in. |
+| `lesson.order` | yes | Position in the strand, 1 to 99. Must equal the number the directory name starts with. The orders of a strand run from 1 without a gap or a duplicate. |
+| `lesson.difficulty` | yes | 1, 2, or 3 on the one difficulty scale of the site: introductory, intermediate, advanced. The scale is defined in `pbc.authoring.path` and explained on the learning path page. |
+| `lesson.prerequisites.lessons` | yes | List of the `id`s of lessons a reader needs first. Each must exist and come earlier in the learning path. May be empty. |
 | `lesson.prerequisites.outside` | yes | List of texts: what a reader must know that no lesson on the site teaches. May be empty. |
 | `lesson.lean-modules` | no | List of the Lean modules the lesson displays, such as `PhysicsByConstruction.Mechanics.Kinematics`. |
 
@@ -87,6 +87,34 @@ No other key is allowed, neither at the top level nor under `lesson`. Options
 that apply to every page belong in `site/_quarto.yml`. An option that changes
 how one page is executed (`execute`, `freeze`, `jupyter`) would undermine the
 checks and is rejected with the rest.
+
+## The learning path
+
+The learning path is the lessons in order: the strands in the order above,
+and within a strand the lessons by `order`. It is derived from the front
+matter when the site is built, so there is no list to maintain:
+
+- The page `site/path/index.qmd` lists the strands that have a lesson, and
+  for each lesson its difficulty, description, and prerequisites. It also
+  explains the difficulty scale.
+- The first cell of every lesson writes the header of the lesson: its strand
+  and position, its difficulty, its prerequisites with links, and links to
+  the previous and next lesson of the path. The template has the cell; keep
+  it before the introduction:
+
+  ````markdown
+  ```{python}
+  #| echo: false
+  from pbc.authoring import lesson_header
+
+  lesson_header()
+  ```
+  ````
+
+A check validates the path as a whole: ids are unique, the orders of a strand
+run from 1 without gaps or duplicates, and every prerequisite exists, comes
+earlier in the path, and forms no cycle. A violation fails verification, and
+the build of a page fails on it too.
 
 ## Sections
 
@@ -335,17 +363,17 @@ there or carry recordings elsewhere.
 - A lesson page executes and renders within 30 seconds. Reduce the problem
   size when a computation takes longer.
 - Lessons are in English.
-- The page must read completely with JavaScript turned off, at phone width,
-  and pass the automated accessibility scan. The built-site checks cover
-  this for every page.
+- The page must read completely with JavaScript turned off, not scroll
+  sideways at phone, tablet, or desktop width, and pass the automated
+  accessibility scan. The built-site checks cover this for every page.
 
 ## What the checks report
 
 | Check | Reports |
 |---|---|
-| `lesson-checks` (`tests/lessons`) | Front matter outside the schema; a missing or empty required section; an exercise without a solution; a "Reproduce this" section without `reproduce_this()`; code that is neither an executed `{python}` cell nor marked "not verified"; a figure cell without `fig-alt`; an image file in a page; a generated artifact or a stray file under `site/` or `src/`. |
-| `site-build` | A cell that raises; an equation that cannot become MathML. |
-| `site-checks` (`tests/e2e`) | A lesson without a built page or a required section; an excerpt that differs from its source; a cell or inline expression that was not executed; "not verified" material without a visible label; "Reproduce this" commands that fail, take longer than 30 seconds, or do not regenerate the published page; and the checks every page gets (images, links, JavaScript, accessibility). |
+| `lesson-checks` (`tests/lessons`) | Front matter outside the schema; a missing or empty required section; a lesson without the `lesson_header()` cell before its first heading; an exercise without a solution; a "Reproduce this" section without `reproduce_this()`; a duplicate id, a gap or duplicate in the orders of a strand, a prerequisite that does not exist, comes later in the path, or forms a cycle; code that is neither an executed `{python}` cell nor marked "not verified"; a figure cell without `fig-alt`; an image file in a page; a generated artifact or a stray file under `site/` or `src/`. |
+| `site-build` | A cell that raises, including the header cell of a lesson whose path is inconsistent; an equation that cannot become MathML. |
+| `site-checks` (`tests/e2e`) | A lesson without a built page or a required section; a lesson the home page does not lead to without JavaScript; a header whose strand, position, difficulty, prerequisites, or previous and next links differ from the front matter; a path page that does not list every lesson in order; an excerpt that differs from its source; a cell or inline expression that was not executed; "not verified" material without a visible label; "Reproduce this" commands that fail, take longer than 30 seconds, or do not regenerate the published page; and the checks every page gets (images, links, JavaScript, widths, accessibility). |
 | `determinism` | A page that differs between two builds. |
 
 Fix the lesson when a check fails. Do not weaken a check to make a lesson

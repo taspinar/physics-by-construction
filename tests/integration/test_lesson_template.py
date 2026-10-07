@@ -87,3 +87,10 @@ def test_lesson_made_from_the_template_builds_with_every_construct(
     assert not violations, describe(violations)
     # The marker of the template reached the page as a block and as a phrase.
     assert (built / page).read_text().count('class="not-verified-label"') == 2
+    # The new lesson joined the learning path: its header places it after the
+    # first lesson, and the path page lists both.
+    header = (built / page).read_text().split('class="lesson-header"')[1]
+    assert "lesson 2 of 2" in header
+    assert 'href="../01-kinematics-as-a-program/index.html"' in header
+    path_page = (built / "path/index.html").read_text()
+    assert path_page.count('<a href="../lessons/mechanics/') == 2
