@@ -22,11 +22,14 @@ site/**/*_files/
 # While it renders, Quarto writes each page and the shared libraries next to
 # the sources before it moves them to site/_site/. Without these rules a
 # clean checkout looks changed during its own build, and a lesson's
-# "Reproduce this" section reports uncommitted changes. Only the places where
-# pages are rendered are listed, so an HTML source elsewhere, such as a widget
-# in site/widgets/, is still tracked.
-/site/*.html
-/site/lessons/**/*.html
+# "Reproduce this" section reports uncommitted changes. Every page can be
+# rendered anywhere under site/, so all HTML there is ignored, except where
+# HTML is a source: widgets, and directories Quarto does not render (their
+# names start with an underscore). tests/integration/test_build_output.py
+# checks that every page's output is covered.
+/site/**/*.html
+!/site/widgets/**
+!/site/_*/**
 /site/site_libs/
 .ipynb_checkpoints/
 

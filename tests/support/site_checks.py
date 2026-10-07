@@ -613,6 +613,45 @@ def check_accessibility(
     return violations
 
 
+def check_navigation_fits(
+    browser: Browser, server: SiteServer, site_dir: Path
+) -> list[Violation]:
+    """Every entry of the navigation bar stays on the screen at phone width,
+    also with text a quarter wider than here.
+
+    The bar does not collapse into a menu. Its entries must wrap, and how many
+    fit on a line depends on the fonts of the machine: an entry that fits here
+    can lie past the right edge on another machine, where it cannot be reached
+    without a script. The wider text stands in for those fonts.
+    """
+    violations = []
+    for scale in (1.0, 1.25):
+        with _context(browser, server, lambda url: None, viewport=PHONE) as context:
+            for name, url in _urls(site_dir, server):
+                page = _open(context, url)
+                page.add_style_tag(content=f".navbar {{ font-size: {scale}em; }}")
+                outside = page.evaluate(
+                    """(width) => [...document.querySelectorAll('.navbar a')]
+                        .filter((link) => {
+                            const box = link.getBoundingClientRect();
+                            return box.width > 0 && (box.left < 0 || box.right > width);
+                        })
+                        .map((link) => link.textContent.trim())""",
+                    PHONE["width"],
+                )
+                violations += [
+                    Violation(
+                        "navigation",
+                        name,
+                        f"the entry {entry!r} is not on the screen at"
+                        f" {PHONE['width']}px with text {scale} times as wide",
+                    )
+                    for entry in outside
+                ]
+                page.close()
+    return violations
+
+
 # --- Lesson constructs -------------------------------------------------------
 #
 # What docs/authoring.md promises about a built lesson page. The checks run

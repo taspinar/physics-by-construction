@@ -19,6 +19,13 @@ from support.site_server import (
 )
 
 
+def test_navigation_entries_stay_on_a_phone_screen(
+    browser: Browser, server: SiteServer, site_dir: Path
+):
+    violations = site_checks.check_navigation_fits(browser, server, site_dir)
+    assert not violations, describe(violations)
+
+
 def test_images_have_alt_text_and_dimensions(site_dir: Path):
     violations = site_checks.check_images(site_dir)
     assert not violations, describe(violations)

@@ -30,8 +30,15 @@ main img {
 }
 
 /* The navigation bar does not collapse into a menu (that needs a script), so
-   its entries wrap onto a second line on a narrow screen. An entry of two
-   words stays on one line when it wraps. */
+   its entries wrap onto further lines on a narrow screen. The theme lays the
+   bar out as rows that never wrap, which pushes the last entries past the
+   right edge of a phone screen; how many fit depends on the fonts of the
+   machine. An entry of two words stays on one line when it wraps. */
+.navbar .navbar-container,
+.navbar .navbar-nav {
+  flex-wrap: wrap;
+}
+
 .navbar-nav .nav-link {
   white-space: nowrap;
 }
