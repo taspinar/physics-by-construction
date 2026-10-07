@@ -51,7 +51,9 @@ no system packages.
    development workflow needs and verification does not: the GitHub CLI
    (`gh`), installed and authenticated, and the Codex or Claude CLI. A
    missing agent CLI fails when `.agents/agents.conf` assigns it to a role
-   and is a warning otherwise.
+   and is a warning otherwise. It also warns when a pull request into `main`
+   can be merged while its checks fail, because no ruleset requires the
+   `verify` status check; see `docs/deployment.md`.
 
 The first verification run downloads the Lean toolchain and the Mathlib build
 cache: about 0.5 GB of downloads that unpack to roughly 8 GB in `lean/.lake/`
@@ -439,6 +441,16 @@ not matter; modified tracked files do, because they would not be part of the
 new worktree. After the session it prints the worktree path and the next
 commands.
 
+A new worktree has none of the ignored files of the primary checkout.
+`start-feature.sh` therefore runs `scripts/worktree-setup.sh` in the new
+worktree before the agent starts, with the path of the primary checkout as its
+argument. It copies `lean/.lake/`, Lean's packages and the unpacked Mathlib
+build cache of about 8 GB, from the primary checkout, so the worktree does not
+fetch and unpack them again. On macOS the copy shares its disk space with the
+original. Run verification once in the primary checkout to have something to
+copy. The script only saves time: when it fails, `start-feature.sh` reports
+that and starts the agent anyway.
+
 After the implementation agent exits, enter the feature worktree and verify:
 
 ```bash
@@ -618,6 +630,8 @@ Check a review yourself with:
 ```
 
 It exits 0 when the review is current, 1 when it is stale, and 2 on an error.
+Every script that refuses a stale review, and `check-review.sh`, first lists
+the files that changed since the review, as added, modified, or deleted.
 
 ### Finishing a feature
 
@@ -652,14 +666,38 @@ message:
 ./scripts/finish-feature.sh 12 "Fix a typo in the README" --no-review "documentation only"
 ```
 
-Then push and open the pull request:
+When the feature needs a step that only you can do, such as a repository
+setting or a secret, the implementer records it in
+`.agents/manual-steps/<issue>.md`. `finish-feature.sh` shows those steps before
+the commit and records them in the commit message under `Manual steps:`; the
+file itself is a working file and is not committed.
+
+Then publish the feature:
 
 ```bash
-git push -u origin feature/12-player-movement
+./scripts/publish-feature.sh 12
 ```
 
-Open a PR containing `Closes #12`. After CI and required human gates pass,
-merge it; GitHub then closes the linked Issue. From the primary checkout,
+The script pushes the branch, opens a pull request whose description is the
+commit message, the manual steps, and `Closes #12`, and waits for its checks.
+For a pull request that is already open it pushes and replaces the
+description with the current one, since a fix round can change the manual
+steps. It never merges. It ends with the result:
+
+- all checks passed: the pull request is ready for you to merge;
+- a check failed: it exits non-zero and tells you not to merge. Fix the cause
+  in the worktree, then review, finish, and publish again;
+- no checks were reported: the repository has no CI for pull requests, and the
+  script says that nothing verified the change on GitHub.
+
+`--no-wait` stops after the pull request is open. Local verification during a
+feature never runs on a clean checkout, and may run on another operating
+system than CI, so a failure can appear in CI only; wait for it before
+merging. A ruleset that requires the CI status check on `main` makes GitHub
+refuse a merge while a check fails; `./scripts/doctor.sh` warns when `main`
+has no such rule.
+
+After the merge GitHub closes the linked Issue. From the primary checkout,
 remove the merged worktree and its branch:
 
 ```bash
