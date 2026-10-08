@@ -46,6 +46,7 @@ in `docs/workflow.md`.
 |---|---|
 | `AGENTS.md` | Durable working rules for every agent: source precedence, Definition of Done, boundaries, branch policy |
 | `.agents/agents.conf` | Provider and model per workflow role |
+| `.agents/template.conf` | Where the workflow comes from, which files belong to it, and the template version the project has |
 | `.agents/policies/` | Risk-based autonomy, execution limits, recovery, conflict resolution, and tool permissions |
 | `.github/` | CI workflow, Dependabot configuration, Issue templates, PR template, and code owners |
 | `CONTRIBUTING.md`, `SECURITY.md` | How to contribute and how to handle security-sensitive findings |
@@ -56,6 +57,7 @@ in `docs/workflow.md`.
 |---|---|---|
 | `README.md` | What the project is and how to build it | You |
 | `docs/PROJECT_DESCRIPTION.md` | Your original project idea, unchanged | `start-planning.sh --description` |
+| `docs/changes/` | One change request per later change to the approved planning, unchanged | `start-planning.sh <name> --change` |
 | `docs/PROJECT_REQUIREMENTS.md` | The requirements you approved | Project Grill, approved by you |
 | `docs/architecture.md` | The current system design | Project planner |
 | `docs/roadmap.md` | Roadmap features with stable IDs (F01, F02, …) | Project planner |
@@ -81,14 +83,15 @@ in `docs/workflow.md`.
 | `scripts/finish-planning.sh` | Checks and records your approval of the planning; `--check` tests it |
 | `scripts/create-feature-issue.sh` | Creates the Issue of one roadmap feature |
 | `scripts/start-feature.sh` | Creates the feature worktree and starts the implementer |
-| `scripts/review-feature.sh` | Independent, read-only review of the complete feature diff |
+| `scripts/review-feature.sh` | Independent, read-only review of the complete feature diff, or with `--changes` of what changed since the previous round |
 | `scripts/triage-review.sh` | Classifies review findings, creates follow-up Issues, and publishes the reports on the Issue |
 | `scripts/apply-triage.sh` | Lets an implementer resolve only the `FIX_NOW` findings |
 | `scripts/finish-feature.sh` | Checks the feature and creates the commit |
-| `scripts/publish-feature.sh` | Pushes the feature branch, opens its pull request, and waits for CI; never merges |
+| `scripts/publish-feature.sh` | Pushes the feature branch and opens its pull request; with `--wait` stays until CI finishes; never merges |
 | `scripts/check-review.sh` | Reports whether a review still matches what it covers |
 | `scripts/update-issue-with-plan.sh` | Links an optional feature plan to its Issue |
 | `scripts/cleanup-worktree.sh` | Removes a merged worktree and its branch and updates `main` |
+| `scripts/sync-template.sh` | Takes over the template's changes since the version the project has; never commits |
 | `scripts/worktree-setup.sh` | Prepares a new feature worktree before the agent starts: copies `lean/.lake/` from the primary checkout |
 
 ## Script libraries
@@ -98,6 +101,7 @@ in `docs/workflow.md`.
 | `scripts/lib/agent.sh` | Role configuration, `--agent`/`--model` overrides, and starting agents with the `write` or `read-only` profile |
 | `scripts/lib/review-data.sh` | Validation and rendering of review, triage, and revision JSON |
 | `scripts/lib/review-run.sh` | Running a read-only agent with one retry, and storing a review |
+| `scripts/lib/github.sh` | Questions about the repository on GitHub, such as whether a branch requires a status check |
 | `scripts/lib/fingerprint.sh` | Content fingerprints of a working tree or a set of files |
 | `scripts/lib/verification.sh` | The record of the last passed verification of a working tree |
 | `scripts/lib/scope.sh` | File-scope enforcement for write sessions |
@@ -129,5 +133,5 @@ in `docs/workflow.md`.
 | `.agents/verification/` | The record of the last passed verification, written by `verify.sh` | No |
 | `.agents/manual-steps/` | Per Issue, the steps a feature needs from you, written by the implementer; copied into the commit message and the pull request | No |
 | `.agents/plans/` | Optional feature plans | Yes |
-| `.agents/handoffs/` | Continuation notes for interrupted work | Yes |
+| `.agents/handoffs/` | Per Issue, the implementer's continuation note for a session that resumes the work (`start-feature.sh <issue> --resume`) | No |
 | `.agents/lessons/` | Recurring agent failures and the rules learned from them | Yes |
