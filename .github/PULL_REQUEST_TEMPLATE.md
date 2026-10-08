@@ -15,6 +15,10 @@ Closes #
 - [ ] Approved triage published on the feature Issue (link the comment):
 - [ ] Architecture/docs/ADR updated when required
 
+## Agent-drafted content
+- [ ] Not agent-drafted
+- [ ] Agent-drafted (provider, model, proposal Issue, and who reviewed it):
+
 ## Agent involvement
 Planner:
 Implementer:

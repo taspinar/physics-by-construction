@@ -14,6 +14,10 @@ Corrections, suggestions, and lesson ideas are welcome.
 4. Keep the pull request focused on its Issue and include the verification
    evidence.
 
+To propose a new lesson, open an Issue from the **Lesson proposal** form. The
+assessment criteria and the path from an accepted proposal to a merged lesson
+are in [docs/content-proposals.md](docs/content-proposals.md).
+
 `AGENTS.md` holds the working rules for this repository. They apply whether a
 change is written by a person, with AI assistance, or by an agent.
 
@@ -39,6 +43,10 @@ of this repository:
   [MIT licence](LICENSE);
 - lesson text and figures under the
   [Creative Commons Attribution 4.0 International licence](LICENSE-CONTENT).
+
+This covers lesson proposals and drafts too, including a draft an agent writes
+from your proposal. A draft written with an agent is identified as such in its
+pull request.
 
 Only contribute material that you have the right to license this way. When
 you include third-party material, name its source and licence in the pull

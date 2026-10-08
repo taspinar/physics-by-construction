@@ -38,6 +38,7 @@ in `docs/workflow.md`.
 | `tests/*.sh` | Shell tests of the workflow scripts, of `doctor.sh`, and of `preflight.sh` |
 | `.github/workflows/ci.yml` | CI: prepares the runner, runs `./scripts/verify.sh --all`, and on `main` deploys the verified site |
 | `.github/dependabot.yml` | Update proposals for Python packages and GitHub Actions |
+| `.github/ISSUE_TEMPLATE/lesson-proposal.yml` | The Issue form for lesson proposals |
 
 ## Rules and configuration
 
@@ -63,6 +64,7 @@ in `docs/workflow.md`.
 | `docs/repository-setup.md` | GitHub settings for a new repository | You |
 | `docs/development.md` | The one-time setup, verification, and every workflow command | Template and you |
 | `docs/authoring.md`, `docs/lesson-template.qmd` | How to write a lesson, and the page a new lesson starts from | You |
+| `docs/content-proposals.md` | How a lesson is proposed, assessed, drafted, and merged, for contributors and the maintainer | You |
 | `docs/workflow.md` | The workflow in flow, artifact, and reference views | Template |
 | `docs/example.md` | A complete run with a sample project | Template |
 | `docs/agentic-workflow.md` | Principles: persistent state, roadmap versus Issues, plans versus Issues | Template |

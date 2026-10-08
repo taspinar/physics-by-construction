@@ -1,0 +1,89 @@
+name: Lesson proposal
+description: Propose a new lesson for Physics by Construction
+title: "Lesson proposal: "
+labels: [lesson-proposal]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for proposing a lesson. The maintainer assesses every
+        proposal against the [published criteria](https://github.com/taspinar/physics-by-construction/blob/main/docs/content-proposals.md#assessment-criteria)
+        and records the outcome on this Issue. Nothing is merged without a
+        reviewed pull request that passes `./scripts/verify.sh`.
+
+        Do not put secrets, credentials, or private data in this Issue.
+  - type: input
+    attributes:
+      label: Working title
+      description: A short name for the lesson.
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Strand
+      description: Where the lesson belongs in the learning path.
+      options:
+        - mechanics
+        - agents-llm
+        - agents-abm
+        - lean
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What the lesson builds and checks
+      description: >-
+        The program or proof the reader builds, and the physical result it is
+        checked against (a closed-form solution, a conservation law, a limiting
+        case, a theorem).
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Fit and prerequisites
+      description: >-
+        Which existing lessons it follows, which lessons it enables, and what
+        the reader must already know that no lesson on this site teaches.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: How it is verified
+      description: >-
+        What a test or a proof can state and check for this lesson. A lesson
+        that cannot be checked by code or by a proof is out of scope.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Scope and size
+      description: >-
+        What is left out, and why the lesson fits one page and the build time
+        budget.
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Who would draft it
+      options:
+        - I will write it
+        - An agent drafts it on the maintainer's machine
+        - Either
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Sources and third-party material
+      description: >-
+        References, and the source and licence of any third-party text,
+        figure, or code you would like to use. Leave empty if there is none.
+  - type: checkboxes
+    attributes:
+      label: Licence
+      options:
+        - label: >-
+            I have the right to license this proposal, and any draft built from
+            it, under the licences in CONTRIBUTING.md (MIT for code and
+            proofs, CC BY 4.0 for text and figures).
+          required: true
