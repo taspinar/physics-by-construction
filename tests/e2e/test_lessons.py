@@ -341,6 +341,14 @@ def test_reproduce_commands_regenerate_the_page_within_the_time_budget(
     setup = commands.index("uv sync --locked")
     assert commands[0].startswith("git clone ") and commands[1].startswith("cd ")
     clone = _clone_of_the_working_tree(tmp_path / "clone")
+    if any(command.endswith("check-lean.sh") for command in commands):
+        # A learner's first run fetches the Mathlib build cache. The test
+        # shares the packages of this checkout, as test_lean_check.py does, so
+        # it neither downloads Mathlib again nor builds it.
+        (clone / "lean" / ".lake").mkdir()
+        (clone / "lean" / ".lake" / "packages").symlink_to(
+            REPO_ROOT / "lean" / ".lake" / "packages", target_is_directory=True
+        )
 
     # The commands after the setup, exactly as the page shows them. They use
     # the environment of this checkout instead of a second 'uv sync'.

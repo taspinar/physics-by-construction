@@ -8,11 +8,11 @@ in `docs/workflow.md`.
 
 | Path | Purpose |
 |---|---|
-| `site/` | The website source, a Quarto project. `_quarto.yml` configures it, including the public address in `website.site-url`; `_filters/` holds its Pandoc Lua filters; `assets/` its stylesheet and self-hosted font |
+| `site/` | The website source, a Quarto project. `_quarto.yml` configures it, including the public address in `website.site-url`; `_filters/` holds its Pandoc Lua filters; `assets/` its stylesheet, self-hosted font, and Lean syntax definition |
 | `site/lessons/<strand>/<nn>-<slug>/index.qmd` | One lesson per directory, in the format of `docs/authoring.md`. An agent lesson may also hold its replay fixture `replay.json`; nothing else is committed there |
 | `site/path/index.qmd` | The learning path page, generated from the lesson front matter when the site is built |
 | `site/_site/` | The built site. Written by `scripts/build-site.sh`, ignored by Git |
-| `src/pbc/` | The Python package with the reusable lesson code: `mechanics/` for the mechanics course, `authoring/` for the helpers pages use to show code by reference, to write "Reproduce this", and to generate the learning path page and lesson headers; `authoring/path.py` defines the strands and the difficulty scale |
+| `src/pbc/` | The Python package with the reusable lesson code: `mechanics/` for the mechanics course, `authoring/` for the helpers pages use to show Python and Lean code by reference, to write "Reproduce this", and to generate the learning path page and lesson headers; `authoring/path.py` defines the strands and the difficulty scale |
 | `lean/` | The Lean project: `lean-toolchain`, `lakefile.toml`, and `lake-manifest.json` pin Lean and Mathlib; proofs live in `PhysicsByConstruction/`; `AxiomAudit.lean` is the audit run by `scripts/check-lean.sh` |
 | `pyproject.toml`, `uv.lock`, `.python-version` | The Python toolchain pins, including Quarto and the browser for the site checks |
 | `LICENSE`, `LICENSE-CONTENT` | MIT for code, CC BY 4.0 for lesson text and figures |
@@ -25,7 +25,7 @@ in `docs/workflow.md`.
 | `scripts/verify.conf` | The required verification checks of the project |
 | `scripts/verify-workflow.conf` | The self-tests of the workflow scripts and the workflow files they guard |
 | `scripts/preflight.sh` | First check: reports every missing prerequisite of the one-time setup with a fix hint |
-| `scripts/check-lean.sh` | Builds every Lean module against Mathlib from its build cache and fails on `sorry` and project axioms |
+| `scripts/check-lean.sh` | Builds every Lean module against Mathlib from its build cache, fails on `sorry` and project axioms, and records what compiled the proofs for the pages that show them |
 | `scripts/build-site.sh` | Builds the site with Quarto; fails on a failing cell or an equation that is not MathML |
 | `scripts/check-determinism.sh` | Builds the site a second time and requires byte-identical output |
 | `scripts/doctor.sh` | Read-only check of the local prerequisites, including those of the development workflow |

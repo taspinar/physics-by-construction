@@ -18,7 +18,8 @@ from pbc.authoring import STRANDS, LearningPath
 TEMPLATE = REPO_ROOT / "docs" / "lesson-template.qmd"
 # The new lesson takes the next position of the mechanics strand, after the
 # lessons the site has.
-MECHANICS = LearningPath.read(SITE_SOURCE).in_strand(STRANDS[0])
+PATH = LearningPath.read(SITE_SOURCE)
+MECHANICS = PATH.in_strand(STRANDS[0])
 ORDER = len(MECHANICS) + 1
 LESSON = f"lessons/mechanics/{ORDER:02d}-made-from-the-template"
 # The two values the guide tells an author to set before anything else.
@@ -101,11 +102,11 @@ def test_lesson_made_from_the_template_builds_with_every_construct(
     assert f'href="../{previous}/index.html"' in header
     # Each entry of the path page links the lesson and its prerequisites.
     path_page = (built / "path/index.html").read_text()
+    # Lessons of other strands link the mechanics lessons they build on, too.
     mechanics_ids = {lesson.id for lesson in MECHANICS}
     links = ORDER + sum(
-        1
-        for lesson in LearningPath.read(SITE_SOURCE).lessons
+        prerequisite in mechanics_ids
+        for lesson in PATH.lessons
         for prerequisite in lesson.prerequisites
-        if prerequisite in mechanics_ids
     )
     assert path_page.count('<a href="../lessons/mechanics/') == links

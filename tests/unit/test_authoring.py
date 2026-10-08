@@ -204,6 +204,25 @@ def test_commands_check_out_the_built_commit(lesson_directory: Path):
     assert f"/tree/{sha}" in reproduction._repr_markdown_()
 
 
+def test_a_page_that_shows_lean_proofs_runs_the_lean_check_before_rendering(
+    lesson_directory: Path,
+):
+    lean_file = "lean/PhysicsByConstruction/Mechanics/Kinematics.lean"
+
+    with_lean = reproduce_this(code=[lean_file, CODE])
+    without = reproduce_this(code=[CODE])
+
+    commands = with_lean.commands
+    assert commands.index("uv sync --locked") < commands.index(
+        "./scripts/check-lean.sh"
+    )
+    assert commands.index("./scripts/check-lean.sh") < len(commands) - 1
+    assert commands[-1].startswith("uv run --locked quarto render ")
+    assert "./scripts/check-lean.sh" not in without.commands
+    assert "a Lean file the page shows" in with_lean._repr_markdown_()
+    assert "check-lean.sh" not in without._repr_markdown_()
+
+
 def test_uncommitted_changes_are_stated_on_the_page(lesson_directory: Path):
     reproduction = reproduce_this(code=[CODE])
     clean = BuildCommit(sha="abc123", dirty=False)

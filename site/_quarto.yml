@@ -2,8 +2,10 @@ project:
   type: website
   output-dir: _site
   # Files the pages do not link to in Markdown but the built site must
-  # contain: the math font that site.css loads, and its licence.
+  # contain: the math font that site.css loads, and its licence, and the
+  # widgets that lesson pages load as scripts.
   resources:
+    - widgets/*.js
     - assets/fonts/STIXTwoMath-Regular.woff2
     - assets/fonts/OFL.txt
 
@@ -48,6 +50,10 @@ format:
     # assistive technology (ADR 001).
     html-math-method: mathml
     highlight-style: a11y
+    # Pandoc ships no Lean definition. The vendored one (MIT, written for this
+    # project) colours Lean tokens at build time; there is no hover.
+    syntax-definitions:
+      - assets/lean.xml
     toc: true
     filters:
       # Before Quarto's own processing, which would otherwise turn a

@@ -571,6 +571,67 @@ def check_displayed_code(repository: Path) -> list[Violation]:
     return violations
 
 
+# --- Lean modules -------------------------------------------------------------
+
+
+def _modules_in(text: str) -> set[str]:
+    return {found.group(0) for found in _LEAN_MODULE.finditer(text)}
+
+
+def check_lean_modules(repository: Path) -> list[Violation]:
+    """The Lean modules a lesson names in its front matter are the Lean
+    modules it shows: each one exists in ``lean/``, and the body names no
+    module the front matter does not list.
+
+    Whether the displayed text is the compiled text is checked on the built
+    site and by the Lean check; this rule keeps the list honest.
+    """
+    violations = []
+    for page in lesson_pages(repository):
+        name = _name(repository, page)
+        text = page.read_text(encoding="utf-8")
+        front_matter = read_lesson(page).front_matter
+        listed = (
+            front_matter.get("lesson", {}).get("lean-modules", [])
+            if isinstance(front_matter, dict)
+            and isinstance(front_matter.get("lesson"), dict)
+            else []
+        )
+        listed = {module for module in listed if isinstance(module, str)}
+        match = _FRONT_MATTER.match(text)
+        shown = _modules_in(text[match.end() :] if match else text)
+        for module in sorted(listed):
+            file = repository / "lean" / f"{module.replace('.', '/')}.lean"
+            if not file.is_file():
+                violations.append(
+                    Violation(
+                        "lean-module",
+                        name,
+                        f"'lesson.lean-modules' lists {module}, but"
+                        f" {file.relative_to(repository).as_posix()} does not exist",
+                    )
+                )
+        for module in sorted(shown - listed):
+            violations.append(
+                Violation(
+                    "lean-module",
+                    name,
+                    f"the page shows {module}, which 'lesson.lean-modules' does"
+                    " not list",
+                )
+            )
+        for module in sorted(listed - shown):
+            violations.append(
+                Violation(
+                    "lean-module",
+                    name,
+                    f"'lesson.lean-modules' lists {module}, which the page does"
+                    " not show",
+                )
+            )
+    return violations
+
+
 # --- Figures ------------------------------------------------------------------
 
 

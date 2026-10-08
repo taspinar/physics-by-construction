@@ -210,7 +210,11 @@ inside a later check.
 6. **Built-site checks**: no resource loaded from another origin; images have
    alt text and explicit dimensions; internal links resolve; pages are
    readable with JavaScript disabled; automated WCAG 2.1 A/AA scan; no cookies
-   set.
+   set. For widgets: their scripts contain no request, other origin, or use of
+   browser storage, and operating their controls writes nothing to cookies or
+   browser storage beyond what the page does without them; the widget tests
+   check the fallback, keyboard operation, the displayed values against
+   `src/pbc`, and the absence of layout shift (`docs/authoring.md`, "Widgets").
 7. **Determinism**: a second build of the same commit is byte-identical to the
    first.
 8. **Workflow self-tests**: the existing shell tests of the workflow scripts.
@@ -251,13 +255,21 @@ of a live provider, so tool results on the page are recomputed, not recorded
 ### Formal proof lesson
 
 1. The proof lives in `lean/PhysicsByConstruction/...` and is compiled by step
-   3 above.
-2. The lesson page includes the proof text by reference and highlights it at
-   build time.
-3. The page links to the file in the repository at the built commit and to
+   3 above. A passed step leaves a build record in `lean/.lake/` (ignored by
+   Git): the versions of Lean and Mathlib and a checksum of every module. A
+   failed step removes it.
+2. The lesson page includes the proof text by reference: the region of a Lean
+   file between `-- ANCHOR: <name>` and `-- ANCHOR_END: <name>` comments. The
+   helper refuses a file whose checksum differs from the record, so the page
+   cannot show a proof that was not compiled. The syntax definition vendored
+   in `site/assets/lean.xml` colours it at build time.
+3. The page states the evidence: the built commit and the versions in the
+   record. It links to the file in the repository at the built commit and to
    the Lean web editor loading that file. The repository file and the CI
    result are authoritative; the web editor is a convenience that may run a
    different Mathlib version.
+4. The "Reproduce this" commands of such a page include
+   `./scripts/check-lean.sh`, which recreates the record.
 
 ### Learner state (later phase)
 
