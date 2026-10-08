@@ -157,11 +157,11 @@ it verified. Any change to a file that Git does not ignore makes the record
 stale, and a failing run removes it.
 
 `./scripts/verify.sh --reuse` skips the run when the record matches the current
-content exactly, and says so. `review-feature.sh` and `finish-feature.sh` call
-it that way, so in a feature the checks run once per version of the content
-instead of once per step: after fixes, `apply-triage.sh` verifies, and the
-review and the commit that follow reuse that pass. Plain `./scripts/verify.sh`
-always runs every check.
+content exactly, and says so. `review-feature.sh`, `apply-triage.sh`, and
+`finish-feature.sh` call it that way, so in a feature the checks run once per
+version of the content instead of once per step: the agent verifies its final
+result, and the scripts that follow reuse that pass. Plain
+`./scripts/verify.sh` always runs every check.
 
 Two limits:
 
@@ -169,9 +169,13 @@ Two limits:
   on ignored state, such as an installed dependency or a build cache, is not
   run again when only that state changed. CI runs every check on a clean
   checkout.
-- A record is never accepted on an agent's word. `start-feature.sh` and
-  `apply-triage.sh` discard the record when their agent session ends, so a
-  record always comes from a run that you or a script started.
+- A run inside an agent session counts like any other. The implementer and
+  the triage implementer run the verification after their last change, and
+  the review, `apply-triage.sh`, and the commit that follow reuse that pass.
+  An agent could write the record instead of running the checks; that is
+  accepted, because CI runs every check on a clean checkout, and
+  `publish-feature.sh` and a ruleset on `main` make it the gate before a
+  merge.
 
 A record made without the workflow self-tests does not stand in for a run that
 needs them, such as `--reuse --all`.
@@ -264,7 +268,11 @@ The full interface is:
 
 ```text
 ./scripts/start-planning.sh [name] [--description <file>] [--agent <agent>] [--model <model>]
+./scripts/start-planning.sh <name> --change <file> [--grill] [--agent <agent>] [--model <model>]
 ```
+
+The second form changes a planning that is already approved; see "Changing an
+approved planning" below.
 
 If you already have a project description, pass it with `--description`:
 
@@ -412,6 +420,107 @@ Open and merge a planning PR before creating Issues for actionable roadmap
 features. The script never implements features, creates Issues, commits,
 pushes, opens or merges a PR, or deploys.
 
+## Changing an approved planning
+
+A project changes while it runs: a new feature, a requirement that turns out
+different, another technical direction. A change to the planning documents
+goes through the same review and approval as the first planning, in its own
+planning worktree, while feature work continues in its own worktrees.
+
+Which route a change needs:
+
+| Kind of change | Example | What changes | Command |
+|---|---|---|---|
+| Fits a feature that is not built yet | Sorting within the recipe list of F03 | Only the feature Issue | None; edit the Issue |
+| New feature within the approved requirements | A shopping list the requirements already allow | Roadmap | `--change` |
+| New or changed requirement | Sharing between households when one household was agreed | Requirements, and usually architecture, roadmap, and ADRs | `--change --grill` |
+| Technical change only | From local storage to a server database | Architecture and an ADR that supersedes the old one | `--change` |
+| Small technical amendment | One ADR gets an addition | Architecture and ADRs only | `finish-planning.sh --amend`, without a review |
+
+Write the change down in a short file, in your own words, and start the cycle
+from a clean primary checkout:
+
+```bash
+./scripts/start-planning.sh shopping-list --change ~/notes/shopping-list.md
+```
+
+The name is required. It names the branch `planning/shopping-list` and the
+change request, which the script copies to `docs/changes/shopping-list.md`.
+The original `docs/PROJECT_DESCRIPTION.md` stays as it is. The script requires
+that the planning on `origin/main` has a current approval
+(`./scripts/finish-planning.sh --check`).
+
+Without `--grill` the requirements keep their approval and only the planner
+runs. It changes what the change requires: the roadmap, the architecture, an
+ADR, or several of them. With `--grill`, Project Grill runs first and asks
+about the change only. When it changes the requirements, the script shows the
+difference and asks for your approval before the planner starts; when it finds
+that the approved requirements already allow the change, it leaves them
+untouched and no approval is asked.
+
+A change keeps what exists:
+
+- **Feature IDs are stable.** A new feature gets the next unused ID. The
+  script refuses a result that removed or renumbered a feature; a feature that
+  is no longer wanted stays in the roadmap, marked as dropped.
+- **Features with an Issue are not rewritten.** They may be in progress or
+  delivered. A change to their behaviour is a new feature that depends on
+  them.
+- **ADRs are superseded, not removed.** A changed decision is a new ADR that
+  names what it supersedes; the old one only gets a status line that says so.
+  The script refuses a deleted ADR.
+
+After the session, continue as after the first planning, in the planning
+worktree:
+
+```bash
+./scripts/review-planning.sh
+./scripts/revise-planning.sh --review .agents/reviews/planning-shopping-list-review-01.json    # when the review has findings
+./scripts/finish-planning.sh
+```
+
+The reviewer receives the change request and the complete planning with the
+difference against `main`, and checks the rules above. The approval records
+the change request and covers it. Commit, push, and merge the planning pull
+request; `cleanup-worktree.sh planning/shopping-list` then removes the
+worktree and an untracked original of the change request.
+
+Every change to a planning document invalidates the planning approval until
+the new one is merged. In between, `create-feature-issue.sh` creates no new
+Issue. A feature that is already in progress is not affected.
+
+### A small technical amendment
+
+A change that touches only `docs/architecture.md` and the ADRs in
+`docs/decisions/`, such as amending one decision, can be approved without an
+agent and without a review round. Make the change by hand on a branch
+`planning/<name>` and run:
+
+```bash
+git switch -c planning/cache-adr
+# edit docs/architecture.md, add or edit an ADR
+./scripts/finish-planning.sh --amend "Add a cache in front of the storage."
+```
+
+The script shows the difference against `main` and asks for your approval. It
+then adds the amendment to the existing `docs/PLANNING_APPROVAL.md`, with the
+date, the branch, your reason, and the changed files, and updates the
+fingerprint, so the approval is current again. The earlier review rounds stay
+in the record, and the entry says that no independent review took place.
+Commit, push, and merge as the script prints.
+
+Your approval is the only check here, so the route is narrow. The script
+refuses, and points to the change cycle, when:
+
+- the requirements, the roadmap, the project description, or a change request
+  changed;
+- an ADR was deleted, since a decision is superseded, not removed;
+- the planning on `main` has no current approval. An amendment does not repair
+  a missing or stale approval;
+- the branch does not contain the latest `main`, because the amendment is
+  shown and approved against the planning as it is now;
+- a required planning document is missing or empty afterwards.
+
 ## Creating a feature Issue from the roadmap
 
 When a roadmap feature becomes active, create its Issue from its block in
@@ -457,6 +566,7 @@ The full interface is:
 
 ```text
 ./scripts/start-feature.sh <issue> [slug] [base-branch] [--agent <agent>] [--model <model>]
+./scripts/start-feature.sh <issue> --resume [--agent <agent>] [--model <model>]
 ```
 
 The slug names the branch and the worktree. Without one, the script derives it
@@ -468,6 +578,11 @@ not matter; modified tracked files do, because they would not be part of the
 new worktree. After the session it prints the worktree path and the next
 commands.
 
+The implementer verifies its result itself: it finishes every edit to a
+tracked file and then runs `./scripts/verify.sh`. That pass is recorded and
+reused by the review that follows, so you do not run the verification by hand
+between the two.
+
 A new worktree has none of the ignored files of the primary checkout.
 `start-feature.sh` therefore runs `scripts/worktree-setup.sh` in the new
 worktree before the agent starts, with the path of the primary checkout as its
@@ -477,6 +592,38 @@ fetch and unpack them again. On macOS the copy shares its disk space with the
 original. Run verification once in the primary checkout to have something to
 copy. The script only saves time: when it fails, `start-feature.sh` reports
 that and starts the agent anyway.
+
+### Resuming an interrupted feature
+
+A session can end before the work is complete: a closed terminal, a usage
+limit, an agent that got stuck. Continue with:
+
+```bash
+./scripts/start-feature.sh 12 --resume
+```
+
+Run it from any checkout of the repository. It finds the worktree whose branch
+is `feature/12-*` and starts a new implementer session there; it creates
+nothing. `--agent` and `--model` let another provider or model continue.
+
+The new session does not have the earlier conversation. It is told to read
+the state from the repository: the Issue, the plan, `git status` and the diff
+against the base, the latest review or triage if the interrupted session was
+resolving findings, and the handoff note.
+
+The handoff note is `.agents/handoffs/<issue>.md`, a working file that Git
+ignores. The implementer keeps it while it works, updated after each completed
+part and not only at the end, with what is done, what is in progress, what
+remains, and what was tried and rejected. A session that ends abruptly may not
+have updated it, so the script compares it with the files: changed files that
+are newer than the note are named to the new session as not described by it.
+Resuming also works without a note.
+
+After a resumed session, continue as after `start-feature.sh`: review, triage,
+fixes. When the interrupted session was `apply-triage.sh`, the partial fixes
+have made its review stale; resume, then run `review-feature.sh` again.
+
+### Reviewing a feature
 
 After the implementation agent exits, enter the feature worktree. When
 independent review is required by `.agents/policies/autonomy.md`, run it before
@@ -497,7 +644,7 @@ failure reviewed, for example when its cause is unclear, pass
 The full interface is:
 
 ```text
-./scripts/review-feature.sh <issue> [base-branch] [--agent <agent>] [--model <model>] [--unverified "<reason>"]
+./scripts/review-feature.sh <issue> [base-branch] [--agent <agent>] [--model <model>] [--changes] [--unverified "<reason>"]
 ```
 
 It uses role `reviewer` with the `read-only` profile. The review is
@@ -599,7 +746,8 @@ The helper uses role `triage-implementer`. It validates the approved artifact an
 `FIX_NOW` scope, and asks for confirmation before starting a write-capable
 agent. It never passes `DEFER` or `ACCEPT` findings to that agent. After the
 agent exits, it verifies that the review and triage artifacts are unchanged and
-runs `./scripts/verify.sh`.
+verifies the result with `./scripts/verify.sh --reuse`, so a pass that the
+agent recorded for exactly that content is not repeated.
 
 The helper does not commit, push, merge, deploy, or create/close Issues. Inspect
 the resulting diff and run another independent review and triage when fixes
@@ -638,6 +786,45 @@ fields the scripts own, so editing a stored artifact cannot weaken a decision.
 Documents that people maintain, such as the roadmap, requirements, and
 architecture, keep Markdown as their source.
 
+### Reviewing only the changes
+
+Every round reviews the complete feature by default, also after a fix. That
+costs a full review each time, and it is what finds a problem that an earlier
+round missed: a later complete round regularly reports something in code that
+did not change.
+
+After a small fix you can limit a round to what changed since the previous
+one:
+
+```bash
+./scripts/review-feature.sh 12 --changes
+```
+
+The reviewer then receives the difference between the content that the
+previous round reviewed and the current content, with the findings of that
+round and what an approved triage decided about each; without one, every
+finding counts as to be fixed. It checks that every finding
+that was to be fixed is resolved, reviews the changed lines and what they
+affect, and leaves the rest of the feature alone. The review records its
+scope, its report says so at the top, and the commit message of
+`finish-feature.sh` names it.
+
+Use it when the fix is small and local. Run a complete round when the fix
+touches several parts, changes behaviour beyond the finding, or when you are
+not sure. The script refuses `--changes` when it cannot build on the previous
+round:
+
+- there is no previous round;
+- nothing changed since it;
+- the base of the branch changed, for example after merging `main`, so the
+  feature differs in more than your changes;
+- the content that the previous round reviewed is no longer in the object
+  database.
+
+`finish-feature.sh` accepts a review of changes only as the latest round when
+it builds on exactly the content of the round before it, back to a complete
+review. Otherwise it asks for a complete round.
+
 ### When a review becomes stale
 
 Every review records a fingerprint of what it reviewed (`reviewed_tree`): the
@@ -650,7 +837,8 @@ The fingerprint depends on content, not on commits. Committing the reviewed
 content keeps the review current; changing, adding, or deleting a covered file
 makes it stale. `triage-review.sh` and `apply-triage.sh` refuse a stale review
 before they start an agent. After `apply-triage.sh` changes the code, the
-review is stale by design: run a new review when the fixes need confirmation.
+review is stale by design: run a new review round, complete or with
+`--changes`, to confirm the fixes.
 
 Check a review yourself with:
 
@@ -672,7 +860,8 @@ worktree:
 ```
 
 The script refuses another branch than `feature/12-*` or a tree without
-changes, runs `./scripts/verify.sh`, and checks the latest review of the
+changes, verifies the result with `./scripts/verify.sh --reuse`, and checks the
+latest review of the
 feature: it must be current and have no critical or major finding. Every
 review round with findings needs an approved triage that was published on the
 Issue (the newest triage of that round counts), and the latest round may have
@@ -707,24 +896,27 @@ Then publish the feature:
 ./scripts/publish-feature.sh 12
 ```
 
-The script pushes the branch, opens a pull request whose description is the
-commit message, the manual steps, and `Closes #12`, and waits for its checks.
-For a pull request that is already open it pushes and replaces the
-description with the current one, since a fix round can change the manual
-steps. It never merges. It ends with the result:
+The script pushes the branch and opens a pull request whose description is
+the commit message, the manual steps, and `Closes #12`. For a pull request
+that is already open it pushes and replaces the description with the current
+one, since a fix round can change the manual steps. It never merges.
 
-- all checks passed: the pull request is ready for you to merge;
-- a check failed: it exits non-zero and tells you not to merge. Fix the cause
-  in the worktree, then review, finish, and publish again;
-- no checks were reported: the repository has no CI for pull requests, and the
-  script says that nothing verified the change on GitHub.
-
-`--no-wait` stops after the pull request is open. Local verification during a
+The script ends once the pull request is open and prints its address. Follow
+the checks there and merge after they passed. Local verification during a
 feature never runs on a clean checkout, and may run on another operating
-system than CI, so a failure can appear in CI only; wait for it before
-merging. A ruleset that requires the CI status check on `main` makes GitHub
-refuse a merge while a check fails; `./scripts/doctor.sh` warns when `main`
-has no such rule.
+system than CI, so a failure can appear in CI only; a pull request must not be
+merged while a check fails.
+
+- When the base branch requires a passing status check, through a ruleset or
+  branch protection, GitHub refuses that merge, and the script says so.
+- When it does not, the script warns: nothing but your own look at the checks
+  stops the merge. `docs/repository-setup.md` describes how to add the rule,
+  and `./scripts/doctor.sh` reports a `main` without one.
+
+`--wait` keeps the script running until the checks finish, to have the result
+in the terminal: all checks passed, or a non-zero exit and the advice not to
+merge when one failed. After a failed check, fix the cause in the worktree,
+then review, finish, and publish again.
 
 After the merge GitHub closes the linked Issue. From the primary checkout,
 remove the merged worktree and its branch:
@@ -756,6 +948,56 @@ To add or update the plan reference in an existing Issue:
 The helper manages one delimited plan block in the Issue body. Re-running it
 updates that block instead of appending duplicates. It stores only the
 repository-relative plan path; the detailed plan remains in `.agents/plans/`.
+
+## Taking over template changes
+
+A project is created as a copy of the template and does not receive later
+template changes by itself. `scripts/sync-template.sh` takes them over:
+
+```bash
+./scripts/sync-template.sh
+```
+
+Run it from the primary checkout without uncommitted changes to tracked
+files. On `main` it first creates a branch `fix/sync-template-<commit>`. It
+fetches the template named in `.agents/template.conf`, lists the template's
+commits since the version the project has, and applies them to the files
+listed under `paths:` in the template's version of that file. Every other
+file is the project's own and is never touched. To keep a listed file as the
+project's own, add `:(exclude)<path>` to `paths:` in the project's
+`.agents/template.conf`; the project's exclusions always apply.
+
+| Situation | What the script does |
+|---|---|
+| The project did not change the file | Replaces it with the template's version |
+| Both changed it | Merges the two; a conflict is marked in the file and reported |
+| The template added the file | Adds it |
+| The template removed the file | Reports it; the project decides whether to delete it |
+| The template changed a file the project deleted | Reports it and leaves it out |
+| The template changed only the executable bit | Applies it to the project's file |
+| The file, or a directory above it, is a symbolic link in the project | Reports it and writes nothing |
+
+The script records the template commit the project now has in
+`.agents/template.conf` and prints the next steps: resolve conflicts, run
+`./scripts/verify.sh --all`, commit, and open a pull request. It never commits
+or pushes, and exits 1 when it left a conflict. Running it again when nothing
+changed in the template reports that the project is up to date.
+
+A project that has no recorded version yet, because it was created before
+this script existed or has never been synced, gets one on the first run: the
+script uses the template commit that has the most files identical to the
+project's, and says which one. When several versions match equally well and
+differ in template files, it does not guess, because the newest would skip a
+template change to a file the project changed too: it lists them and asks for
+`--from <commit>`, where the oldest is the safe choice. A project that is
+already up to date only gets its version recorded. `--to <ref>` selects
+another template version than its default branch, and
+`--template <url-or-path>` another location, for example a fork; that location
+is recorded, so the next sync continues from it.
+
+A template change can need a decision in the project, such as a new check or
+a changed step. Read the listed commits before merging the result; the sync
+only takes over files.
 
 ## Lifecycle
 
