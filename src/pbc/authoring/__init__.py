@@ -18,6 +18,7 @@ from pbc.authoring.path import (
 )
 from pbc.authoring.repository import BuildCommit, build_commit
 from pbc.authoring.reproduce import Reproduction, reproduce_this
+from pbc.authoring.widgets import WidgetScript, widget_data, widget_module
 
 __all__ = [
     "DIFFICULTIES",
@@ -30,6 +31,7 @@ __all__ = [
     "LessonHeader",
     "PathOverview",
     "Reproduction",
+    "WidgetScript",
     "build_commit",
     "excerpt",
     "lean_evidence",
@@ -37,4 +39,6 @@ __all__ = [
     "learning_path",
     "lesson_header",
     "reproduce_this",
+    "widget_data",
+    "widget_module",
 ]

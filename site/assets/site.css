@@ -172,3 +172,96 @@ main a > code:not(.sourceCode) {
 .lean-evidence li {
   overflow-wrap: anywhere;
 }
+
+/* Widgets (docs/authoring.md, "Widgets"). A widget enhances the static
+   figure inside its [data-enhancement] element: the script replaces the image
+   with a drawing in the image's box and fills .widget-controls. The space for
+   the controls is reserved here, so that the page does not move when the
+   script has run. Nothing animates. */
+.widget-controls {
+  /* Without a script this holds one sentence; with it, the controls, which
+     fit in this height at every width the site supports but a phone's. */
+  min-height: 21rem;
+}
+
+@media (max-width: 575.98px) {
+  .widget-controls {
+    /* On a phone the choices stack in one column and the readout wraps. */
+    min-height: 36rem;
+  }
+}
+
+/* The drawing scales down with the page as a figure image does (main img
+   above); its width and height attributes, taken from the image it replaced,
+   reserve its box. */
+.widget-drawing {
+  max-width: 100%;
+  height: auto;
+}
+
+.widget-panel fieldset {
+  margin: 0 0 1rem;
+  padding: 0;
+  border: 0;
+}
+
+.widget-panel legend {
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.widget-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.25rem 1rem;
+}
+
+.widget-choices label,
+.widget-slider label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2rem;
+}
+
+.widget-slider {
+  margin-bottom: 1rem;
+}
+
+.widget-slider label {
+  font-weight: 600;
+}
+
+.widget-slider input[type="range"] {
+  display: block;
+  width: 100%;
+  max-width: 28rem;
+}
+
+.widget-readout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.25rem 1rem;
+  max-width: 34rem;
+  margin: 0;
+}
+
+.widget-readout dt {
+  font-weight: normal;
+}
+
+.widget-readout dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.widget-panel :focus-visible {
+  outline: 3px solid #00429d;
+  outline-offset: 2px;
+}
+
+.widget-panel output {
+  font-family: inherit;
+}

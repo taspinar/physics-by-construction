@@ -127,7 +127,7 @@ level-2 sections. These are required, and none may be empty:
 | Explanation | `explanation` | The physics and the method. |
 | Code | `code` | The reusable code of the lesson, shown by reference from `src/pbc`. |
 | Worked examples | `worked-examples` | Executed examples that compare the result with something known. |
-| Exercises | `exercises` | At least one exercise; every exercise has its solution on the page. A lesson with an interactive visualization may have the section `interactive-visualization` instead or as well. |
+| Exercises | `exercises` | At least one exercise; every exercise has its solution on the page. A lesson with an interactive visualization may have the section `interactive-visualization` instead or as well (see "Widgets"). |
 | Reproduce this | `reproduce-this` | The output of `reproduce_this()`, see below. Keep it last. |
 
 A section is found by its identifier. Pandoc derives the identifier from the
@@ -368,6 +368,98 @@ Exercises are numbered in page order. The solution becomes a closed
 JavaScript. Numbers in a solution come from executed code like everywhere
 else. Do not use tabsets or collapsible callouts: they need JavaScript.
 
+## Widgets
+
+A widget is an interactive visualization that enhances a figure the page
+already has. Use one only where changing a parameter teaches something a
+fixed figure does not; most lessons need none. The lesson "Numerical
+integrators" has the first one, the integrator explorer, in its section
+`interactive-visualization`; copy its structure.
+
+**The rules**
+
+- The page is complete without the widget. The static figure, its caption,
+  and the numbers (a printed table) are in the page; a reader without
+  JavaScript loses nothing.
+- A widget is one dependency-free ES module in `site/widgets/`, loaded by a
+  relative URL. No package manager, bundler, or third-party code. It makes no
+  request, loads nothing from another origin, and writes no cookie and
+  nothing to browser storage. It does not animate, so the preference for
+  reduced motion is respected by construction; if a widget ever animates,
+  it must stop when `prefers-reduced-motion: reduce` matches.
+- **No physics in the widget.** A widget draws results; it does not compute
+  them. The numbers come from an executed cell that calls the tested code in
+  `src/pbc` when the page is built, and they are embedded in the page. A
+  widget that has to compute in the browser needs a test that compares its
+  results with `pbc` reference values; the Issue that adds it states the
+  tolerance.
+- The controls are native elements (radio buttons, sliders, selects,
+  buttons) with visible labels, so that the keyboard, focus, and assistive
+  technology work as on any form. The drawing has `role="img"`, an
+  `aria-label`, and an `aria-describedby` pointing at text in the page that
+  states the numbers.
+- The page does not move when the widget loads. The script replaces the
+  `<img>` of the figure by a drawing that takes the image's box (its width
+  and height attributes, its class, and its aspect ratio) and fills a slot
+  whose height the stylesheet reserves at every width the site supports.
+
+**The markup**
+
+````markdown
+::: {#integrator-explorer data-widget="integrator-explorer" data-enhancement=""}
+```{python}
+#| label: fig-integrator-explorer
+#| fig-cap: "..."
+#| fig-alt: "..."
+... the static figure, drawn from the same data the widget gets ...
+```
+
+::: {.widget-controls}
+One or two sentences for the reader without JavaScript.
+:::
+:::
+````
+
+- `id` names the widget; the data element is `<id>-data`. `data-widget` is
+  the name the module looks for. `data-enhancement` declares what a script
+  may add: the built-site checks accept content that appears only with
+  scripts inside this element, and nowhere else. The element must hold static
+  content (the figure) in the page.
+- Embed the data and load the module in two cells with `#| echo: false`,
+  after the figure:
+
+  ````markdown
+  ```{python}
+  #| echo: false
+  from pbc.authoring import widget_data, widget_module
+
+  widget_data("integrator-explorer", explorer)
+  ```
+
+  ```{python}
+  #| echo: false
+  widget_module("integrator-explorer.js")
+  ```
+  ````
+
+  `widget_data` writes the data as JSON that no script runs; `widget_module`
+  writes the script tag with a URL relative to the page. The module is
+  listed under `resources` in `site/_quarto.yml` (the pattern `widgets/*.js`
+  covers a new one).
+- Name the module, `pbc.authoring.widgets`, and the code that computes the
+  data under `code` in `reproduce_this()`.
+
+**What the checks do**
+
+| Check | Reports |
+|---|---|
+| `site-checks` | A script in `widgets/` that contains a request, another origin, or a use of browser storage; a widget that, with its controls operated by keyboard, writes a cookie or anything to Web Storage, IndexedDB, the Cache API, or a service worker; content that appears only with scripts outside a `data-enhancement` element; the accessibility scan of the page; and the widget-specific tests in `tests/e2e/test_widgets.py` (fallback, keyboard operation, values against `pbc`, layout shift, reduced motion). |
+
+When you add a widget, add the tests for it to `tests/e2e/test_widgets.py`
+the way the explorer's are written: displayed values against a fresh run of
+`src/pbc` with a stated tolerance, the keyboard path through every control,
+and the fallback with scripts off.
+
 ## Reproduce this
 
 The last section is one cell:
@@ -458,7 +550,7 @@ there or carry recordings elsewhere.
 |---|---|
 | `lesson-checks` (`tests/lessons`) | Front matter outside the schema; a Lean module that the page shows and `lean-modules` does not list, or that it lists without showing or without a file; a missing or empty required section; a lesson without the `lesson_header()` cell before its first heading; an exercise without a solution; a "Reproduce this" section without `reproduce_this()`; a duplicate id, a gap or duplicate in the orders of a strand, a prerequisite that does not exist, comes later in the path, or forms a cycle; code that is neither an executed `{python}` cell nor marked "not verified"; a figure cell without `fig-alt`; an image file in a page; a generated artifact or a stray file under `site/` or `src/`. |
 | `site-build` | A cell that raises, including the header cell of a lesson whose path is inconsistent; an equation that cannot become MathML. |
-| `site-checks` (`tests/e2e`) | A lesson without a built page or a required section; a lesson the home page does not lead to without JavaScript; a header whose strand, position, difficulty, prerequisites, or previous and next links differ from the front matter; a path page that does not list every lesson in order; an excerpt that differs from its source, a Python object or a region of a Lean file; a cell or inline expression that was not executed; "not verified" material without a visible label; "Reproduce this" commands that fail, take longer than 30 seconds, or do not regenerate the published page; and the checks every page gets (images, links, JavaScript, widths, accessibility). |
+| `site-checks` (`tests/e2e`) | A lesson without a built page or a required section; a lesson the home page does not lead to without JavaScript; a header whose strand, position, difficulty, prerequisites, or previous and next links differ from the front matter; a path page that does not list every lesson in order; an excerpt that differs from its source, a Python object or a region of a Lean file; a cell or inline expression that was not executed; "not verified" material without a visible label; "Reproduce this" commands that fail, take longer than 30 seconds, or do not regenerate the published page; a widget script that makes a request, names another origin, or uses browser storage, or a widget that writes to cookies or storage when operated; a widget that does not respond to its controls, cannot be operated by keyboard, shows values that differ from `pbc`, or moves the page when it loads; and the checks every page gets (images, links, JavaScript, widths, accessibility). |
 | `determinism` | A page that differs between two builds. |
 
 Fix the lesson when a check fails. Do not weaken a check to make a lesson
