@@ -1,0 +1,427 @@
+---
+title: "Particles in a box"
+description: >-
+  A gas of colliding discs built from one local rule, and the pressure and
+  the distribution of speeds that emerge from it, checked against kinetic
+  theory within a stated statistical tolerance.
+lesson:
+  id: particles-in-a-box
+  strand: agents-abm
+  order: 1
+  difficulty: 2
+  prerequisites:
+    lessons: [momentum-and-collisions]
+    outside:
+      - "Statistics: the mean, the standard deviation, and the standard error of a mean"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import lesson_header
+
+lesson_header()
+```
+
+An agent-based model has no equation for the whole system. It has many
+agents, each following a simple rule that refers only to what is near it, and
+it runs them. Whatever the system does as a whole, the model has to produce.
+This lesson builds the smallest such model of physics: a gas of identical
+discs in a box. A disc moves in a straight line, bounces off a wall, and
+collides elastically with a disc it touches, the collision of the
+momentum and collisions lesson. No rule mentions pressure, temperature, or
+a distribution of speeds.
+
+The lesson then measures these from the whole. The pressure on the walls is
+the impulse the walls gave, per second and per length. The distribution of
+speeds is read off the discs. Both can be predicted by kinetic theory, so the
+model has something to be checked against: collisions that start from
+discs of one speed should produce the Maxwell distribution, and the walls
+should feel the pressure of the gas law. The checks are statistical, because
+the model is random; the lesson states the tolerance and says what it means.
+
+## Assumptions
+
+1. **Two dimensions, identical hard discs.** Every disc has the same radius
+   and mass, and discs are smooth, so a collision exchanges momentum along
+   the line of centres only and nothing spins. In three dimensions the
+   speeds follow the three-dimensional Maxwell distribution and the numbers
+   below change; the method does not.
+2. **Elastic collisions and perfectly reflecting walls.** Kinetic energy
+   is conserved by every collision and every bounce. A wall at rest only
+   reverses the normal velocity, so it gives momentum to the gas but no
+   energy. With dissipation the gas would cool, and there would be no
+   temperature to compare.
+3. **The gas is dilute.** The area of the discs is a small fraction
+   $\varphi$ of the area their centres can reach. Collisions then involve two
+   discs at a time, and the first correction to the ideal gas law, the area
+   the discs exclude, is enough. This is the first term of a series in
+   $\varphi$; the test of the code compares the pressure with this one term
+   at the packing fraction used, within the statistical error. A dense gas needs more of
+   the series, and a collision of three discs at once is outside the model.
+4. **The time step resolves a collision.** The program moves all discs by
+   $\Delta t$, then collides the pairs that overlap and approach each other,
+   one pair after the other. A disc therefore overlaps another by up to the
+   distance it moves in one step, and a collision is placed at the end of the
+   step, not at the moment of contact. The step must be small against the
+   diameter, or two discs pass through each other. The first worked example
+   prints the distance a disc moves in a step as a fraction of the diameter.
+5. **The gas has relaxed before it is measured.** The start is not a Maxwell
+   distribution. Every disc is first given the same speed in a random
+   direction; the mean velocity is then removed, so that the gas has no
+   bulk motion, and the velocities are rescaled to the stated kinetic
+   energy. Removing the mean velocity changes each speed a little, so the
+   discs start in a narrow band of speeds around the stated root-mean-square
+   speed. The measurement begins after the collisions have had time to
+   change that, and the lesson shows it happening.
+6. **The runs are independent, the discs in a run are not.** The discs of one
+   run share energy through their collisions, and one disc at successive
+   times is correlated with itself. The standard error of a quantity is
+   therefore computed from the spread between independent runs started from
+   different seeds, never from the number of discs or snapshots.
+7. **Randomness is seeded.** A random number generator created from a seed
+   makes the start of a run, so a run is a function of its inputs and the
+   page is the same at every build. A reader on another machine gets the same
+   digits as the page up to the rounding of the floating-point libraries,
+   which the displayed precision is chosen to hide.
+
+## Explanation
+
+### From a local rule to a whole
+
+The state of the model is a position and a velocity for each disc. One step
+does three things in order:
+
+1. every disc moves, $\mathbf x \leftarrow \mathbf x + \mathbf v\,\Delta t$;
+2. a disc that crossed a wall is put back inside and the component of its
+   velocity normal to the wall is reversed;
+3. every pair of discs that overlap and are still approaching collides
+   elastically: the relative velocity along the line of centres reverses,
+   the rest is unchanged (`hard_sphere_collision` of the earlier lesson).
+
+Steps 2 and 3 are the only places where discs affect anything, and each
+involves a disc and its immediate neighbour or wall. The pressure and the
+distribution of speeds below are properties of the many, not of any rule.
+That is what is meant by *emergent* here: the rules are written once for one
+agent, and the quantity is found only by running all of them.
+
+### Pressure
+
+A disc of mass $m$ that bounces off a wall with normal speed $v_n$ gives the
+wall the impulse $2 m v_n$. Add the impulses over a time $T$ and divide by the
+time and by the length of the wall, $4 L$ for a square of side $L$, and the
+result is a force per length, the pressure of a two-dimensional gas. Kinetic
+theory predicts the ideal gas law for point particles,
+
+$$
+P = \frac{N k_B T}{A},
+\qquad
+k_B T = \tfrac12 m \langle v^2 \rangle,
+$$
+
+where $A$ is the area, and the second equation is the definition of the
+temperature of a two-dimensional gas: each of the two directions holds
+$\tfrac12 k_B T$ of kinetic energy per disc. Discs have an area, so
+the centres of $N$ of them are confined to less room than their box suggests,
+and the pressure is higher. The first correction, the second virial
+coefficient of hard discs, is
+
+$$
+P = \frac{N k_B T}{A}\,(1 + 2\varphi),
+\qquad
+\varphi = \frac{N \pi r^2}{A},
+$$
+
+with $r$ the radius. Both $A$ and $L$ here are those of the square that the
+centres of the discs can reach, of side $L_\text{box} - 2r$, because a disc
+meets a wall when its centre is one radius away.
+
+### The distribution of speeds
+
+When the gas has relaxed, each velocity component of a disc is expected to be
+Gaussian with the same variance $\sigma^2 = k_B T / m$, independent of the
+other. Then the speed $v = \sqrt{v_x^2 + v_y^2}$ follows the Rayleigh
+distribution, the two-dimensional Maxwell distribution,
+
+$$
+f(v) = \frac{m v}{k_B T}\exp\!\left(-\frac{m v^2}{2 k_B T}\right).
+$$
+
+The temperature fixes the whole curve. To test the shape without fitting a
+temperature, use a ratio that does not depend on it. For Gaussian components
+$\langle v^2\rangle = 2\sigma^2$ and $\langle v^4\rangle = 8\sigma^4$, so
+
+$$
+\frac{\langle v^4\rangle}{\langle v^2\rangle^2} = 2,
+$$
+
+whatever the temperature. If every disc has the same speed the ratio is 1,
+which is where the model starts.
+
+### What the tolerance means
+
+A run gives one value of each quantity, and another seed gives another. With
+$k$ independent runs, the mean of the values estimates the quantity and the
+standard error $s/\sqrt{k}$, with $s$ the sample standard deviation, says how
+far the mean is likely to be from the value the model would give for
+unlimited runs. A result agrees with theory within $4$ standard errors if
+$\lvert \text{mean} - \text{theory}\rvert \le 4\,\text{standard error}$.
+Four is a chosen tolerance, not a law. Because $s$ is itself estimated from
+only $k = 6$ runs, the discrepancy in standard errors follows Student's $t$
+distribution with $k - 1 = 5$ degrees of freedom, whose tails are much wider
+than a Gaussian's: chance alone exceeds four standard errors in about one
+case in a hundred, where a Gaussian error would do so in one case in fifteen
+thousand. A failure is therefore a strong reason to look at the model or the
+program, not a proof against them; a repeat with other seeds tells the two
+apart. The tests use the same tolerance. It is also a statement about what
+the check can see: a model that is wrong by more than four standard errors
+is caught, and one that is wrong by less is not.
+
+### Not the LLM agents strand
+
+The agents of this strand and the agents of the LLM agents strand share a
+word and little else. Here an agent is a few lines of code with a fixed rule,
+it needs no model, no network, and no key, and the same seed gives the same
+run. The interest is in what many of them do together. In the LLM agents
+strand a single agent is a language model that chooses which experiment
+to run, its choices cannot be predicted from code, and the page shows a
+recording of them. A model of this strand can be checked against theory; an
+LLM agent is checked by replaying what it did.
+
+## Code
+
+The model is `pbc.abm.gas`. One step moves the discs, reflects them from the
+walls while counting the impulse, and collides the overlapping pairs that
+approach each other.
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, reproduce_this
+from pbc.abm import gas
+
+excerpt(gas.step)
+```
+
+`measure` starts a gas from a seed, lets it relax, and records the speeds
+and the pressure of the walls over the measurement time.
+
+```{python}
+#| echo: false
+excerpt(gas.measure)
+```
+
+The formulas of the theory are functions too, so that the page and the tests
+compare with the same code.
+
+```{python}
+#| echo: false
+excerpt(gas.virial_correction)
+```
+
+## Worked examples
+
+```{python}
+#| echo: false
+import numpy as np
+```
+
+### Many collisions turn one speed into a distribution
+
+The gas has `{python} gas.N_DISCS` discs of radius
+`{python} f"{gas.RADIUS * 1000:.0f}"` mm in a box of side
+`{python} f"{gas.SIDE:.0f}"` m. They start at
+`{python} f"{gas.SPEED:.0f}"` m/s in random directions, and the time step is
+`{python} f"{gas.DT * 1000:.0f}"` ms, so a disc at the starting speed
+moves `{python} f"{gas.SPEED * gas.DT / (2 * gas.RADIUS):.2f}"` of its diameter in
+one step and the packing fraction is
+`{python} f"{gas.initial_gas(gas.N_DISCS, gas.RADIUS, gas.SIDE, gas.SPEED, np.random.default_rng(0)).packing_fraction:.3f}"`. A first run records the ratio
+$\langle v^4\rangle / \langle v^2\rangle^2$ over time, averaged over six
+seeds.
+
+```{python}
+from pbc.abm.gas import (
+    DT,
+    EVERY,
+    N_DISCS,
+    RADIUS,
+    RELAX,
+    SIDE,
+    SPEED,
+    initial_gas,
+    mean_and_error,
+    measure,
+    run,
+    speed_ratio,
+    virial_correction,
+)
+
+SEEDS = range(6)
+
+histories = []
+for seed in SEEDS:
+    start = initial_gas(N_DISCS, RADIUS, SIDE, SPEED, np.random.default_rng(seed))
+    recorded = run(start, 1.5, DT, EVERY)
+    histories.append([speed_ratio(row) for row in recorded.speeds])
+times = recorded.times
+ratio_history = np.mean(histories, axis=0)
+
+print(f"ratio after {times[0]:.2f} s: {ratio_history[0]:.2f}")
+print(f"ratio after {times[-1]:.2f} s: {ratio_history[-1]:.2f}")
+assert (ratio_history > 1.9).any(), "the ratio never reached 1.9"
+settled = times[np.argmax(ratio_history > 1.9)]
+assert settled < RELAX, "the gas settled after the relaxation time"
+```
+
+```{python}
+#| label: fig-relaxation
+#| fig-cap: "The ratio of the fourth moment of the speed to the square of the second moment, averaged over six runs, against time. The dashed line is the Maxwell value."
+#| fig-alt: "Line plot of the ratio against time in seconds. The solid line starts near one and rises quickly, then fluctuates around a dashed horizontal line at two for the rest of the time."
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+ax.plot(times, ratio_history, color="#00429d", marker="o", markersize=3, label="gas")
+ax.axhline(2.0, color="#93003a", linestyle="--", label="Maxwell distribution")
+ax.set_xlabel("time (s)")
+ax.set_ylabel(r"$\langle v^4\rangle / \langle v^2\rangle^2$")
+ax.legend()
+plt.show()
+```
+
+The ratio starts at `{python} f"{ratio_history[0]:.2f}"`, close to the 1 of
+one speed, and first exceeds 1.9 after `{python} f"{settled:.2f}"` s, well
+before the measurement begins. Nothing in the rules asks for 2.
+
+### The relaxed gas against kinetic theory
+
+Now the measurement. Each of the six seeds runs a gas, relaxes it for
+`{python} f"{gas.RELAX:.1f}"` s, and measures it for the next
+`{python} f"{gas.DURATION:.1f}"` s.
+
+```{python}
+measurements = [measure(seed) for seed in SEEDS]
+
+print("seed   k_B T (J)   P / P_ideal   <v^4>/<v^2>^2")
+for seed, m in zip(SEEDS, measurements):
+    print(f"{seed:4d}{m.kt:12.4f}{m.pressure / m.ideal_pressure:14.3f}"
+          f"{speed_ratio(m.speeds):16.2f}")
+
+ratio_mean, ratio_error = mean_and_error(
+    np.array([speed_ratio(m.speeds) for m in measurements])
+)
+pressure_mean, pressure_error = mean_and_error(
+    np.array([m.pressure / m.ideal_pressure for m in measurements])
+)
+predicted = virial_correction(measurements[0].packing_fraction)
+
+print(f"speed ratio:    {ratio_mean:.2f} +- {ratio_error:.2f} (theory 2)")
+print(f"P / P_ideal:    {pressure_mean:.3f} +- {pressure_error:.3f} "
+      f"(theory {predicted:.3f} with the excluded area)")
+```
+
+The kinetic energy is the same in every run, because the collisions and
+bounces conserve it and every run starts with the same. The ratio of
+the speeds is `{python} f"{ratio_mean:.2f}"` with a standard error of
+`{python} f"{ratio_error:.2f}"` over the six runs, which is within
+`{python} f"{abs(ratio_mean - 2.0) / ratio_error:.1f}"` standard errors of 2:
+inside the tolerance of 4. The pressure is
+`{python} f"{pressure_mean:.3f}"` times that of ideal points, and the
+prediction with the area of the discs is
+`{python} f"{predicted:.3f}"`, a difference of
+`{python} f"{abs(pressure_mean - predicted) / pressure_error:.1f}"` standard
+errors. The ideal gas law alone is off by
+`{python} f"{(pressure_mean - 1.0) / pressure_error:.0f}"` standard errors,
+so the area of the discs matters and the check can tell the two apart.
+
+```{python}
+#| label: fig-speeds
+#| fig-cap: "Histogram of the speeds of all discs in the six relaxed runs, with the Maxwell distribution at the measured temperature."
+#| fig-alt: "Histogram of disc speeds in metres per second. The bars rise from zero at zero speed to a single peak and fall off in a long tail, and a dashed curve of the Maxwell distribution follows the tops of the bars closely."
+from pbc.abm.gas import rayleigh_pdf, temperature
+
+pooled = np.concatenate([m.speeds.ravel() for m in measurements])
+kt = temperature(pooled, 1.0)
+v = np.linspace(0.0, pooled.max(), 200)
+
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+ax.hist(pooled, bins=40, density=True, color="#9ecae1", label="gas")
+ax.plot(v, rayleigh_pdf(v, kt, 1.0), color="#93003a", linestyle="--",
+        label="Maxwell distribution")
+ax.set_xlabel("speed (m/s)")
+ax.set_ylabel("probability density (s/m)")
+ax.legend()
+plt.show()
+```
+
+### What the check can and cannot say
+
+The check compares two numbers with theory, within the statistical tolerance
+of the runs. It says that the model produces a Maxwell distribution and the
+virial pressure of a dilute gas. It does not say that the model is a gas of
+real molecules: the discs are two-dimensional, smooth, and elastic, and the
+step resolves a collision only to a fraction of a diameter. It also does
+not test the first rule in isolation; that is done by unit tests of one
+wall bounce and one collision, which compare the outcome with the exact
+one.
+
+## Exercises
+
+::: {.exercise}
+**A denser gas.** How many discs of the same radius give a packing
+fraction of 5 %, and what does the virial correction predict for the
+pressure? Run one seed of that gas and compare it with the packing fraction
+of the first worked example.
+
+::: {.solution}
+The packing fraction is $N \pi r^2 / L_\text{free}^2$, with $L_\text{free}$
+the side the centres can reach, so $N = \varphi L_\text{free}^2 / (\pi r^2)$.
+
+```{python}
+free = SIDE - 2.0 * RADIUS
+n_dense = round(0.05 * free**2 / (np.pi * RADIUS**2))
+dense = measure(0, n=n_dense)
+print(f"discs: {n_dense}, packing fraction {dense.packing_fraction:.3f}")
+print(f"predicted P / P_ideal: {virial_correction(dense.packing_fraction):.3f}")
+print(f"measured  P / P_ideal: {dense.pressure / dense.ideal_pressure:.3f}")
+```
+
+One seed is one run, so its pressure differs from the prediction by about
+the spread between the runs of the table above, not by the standard error of
+their mean.
+:::
+:::
+
+::: {.exercise}
+**Same seed, same gas.** Run the gas of seed 0 twice and the gas of seed 1
+once, each for half a second. Which of the final speeds agree?
+
+::: {.solution}
+The generator is created from the seed, and nothing else in the model is
+random, so the same seed gives the same run, bit for bit, and another seed
+gives another.
+
+```{python}
+def final_speeds(seed):
+    gas0 = initial_gas(N_DISCS, RADIUS, SIDE, SPEED, np.random.default_rng(seed))
+    return run(gas0, 0.5, DT, 250).speeds[-1]
+
+first, again, other = final_speeds(0), final_speeds(0), final_speeds(1)
+print(f"seed 0 twice, identical: {np.array_equal(first, again)}")
+print(f"seed 0 against seed 1, identical: {np.array_equal(first, other)}")
+```
+:::
+:::
+
+## Reproduce this
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/abm/gas.py",
+        "src/pbc/mechanics/particles.py",
+    ],
+    tests=[
+        "tests/unit/test_gas.py",
+        "tests/unit/test_particles.py",
+    ],
+)
+```
