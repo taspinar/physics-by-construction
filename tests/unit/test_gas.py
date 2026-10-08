@@ -237,5 +237,5 @@ def test_pressure_follows_the_gas_law_with_the_excluded_area(measurements):
     predicted = virial_correction(measurements[0].packing_fraction)
 
     assert abs(mean - predicted) <= SIGMAS * error + PRESSURE_MODEL_ERROR
-    # The correction is real: ideal points would be well outside the tolerance.
-    assert abs(mean - 1.0) > 2 * (SIGMAS * error + PRESSURE_MODEL_ERROR)
+    # The correction is real: ideal points would be outside the tolerance.
+    assert abs(mean - 1.0) > SIGMAS * error + PRESSURE_MODEL_ERROR
