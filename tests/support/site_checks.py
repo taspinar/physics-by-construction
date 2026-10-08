@@ -836,3 +836,174 @@ def excerpt_sources(browser: Browser, server: SiteServer, page: str) -> list[str
     with _context(browser, server, lambda url: None, viewport=DESKTOP) as context:
         opened = _open(context, server.url + page)
         return [excerpt["source"] for excerpt in opened.evaluate(_EXCERPTS)]
+
+
+# --- Widgets -----------------------------------------------------------------
+
+WIDGETS = "widgets"
+
+# What a widget script must not contain: a reach for the network, for another
+# origin, or for anything the browser keeps for the next visit. The XML
+# namespace of SVG is a name, not a request, and is removed first.
+_NAMESPACES = ("http://www.w3.org/2000/svg", "http://www.w3.org/1999/xhtml")
+_FORBIDDEN_IN_WIDGETS = {
+    "request": re.compile(
+        r"\bfetch\s*\(|XMLHttpRequest|WebSocket|EventSource|sendBeacon"
+        r"|new\s+(?:Shared)?Worker\b|\bimportScripts\b|\bimport\s*\("
+    ),
+    "other origin": re.compile(r"(?:https?:)?//[\w.-]+\.\w+|https?://", re.IGNORECASE),
+    "browser storage": re.compile(
+        r"localStorage|sessionStorage|indexedDB|document\s*\.\s*cookie"
+        r"|\bcaches\b|serviceWorker|cookieStore|openDatabase"
+    ),
+}
+
+
+def check_widget_sources(site_dir: Path) -> list[Violation]:
+    """The scripts in the widgets directory of the built site contain no
+    request, no other origin, and no use of browser storage.
+
+    A static scan of the source is a floor, not proof: the browser check
+    ``check_widgets_store_nothing`` watches what the widgets do.
+    """
+    violations = []
+    for script in sorted((site_dir / WIDGETS).glob("*.js")):
+        source = script.read_text(encoding="utf-8")
+        for namespace in _NAMESPACES:
+            source = source.replace(namespace, "")
+        for kind, pattern in _FORBIDDEN_IN_WIDGETS.items():
+            match = pattern.search(source)
+            if match:
+                violations.append(
+                    Violation(
+                        "widget-source",
+                        _name(site_dir, script),
+                        f"{kind}: {match.group(0)!r}",
+                    )
+                )
+    return violations
+
+
+# Runs before any script of the page. Records each write to cookies, Web
+# Storage, IndexedDB, the Cache API, and service workers.
+_RECORD_STORAGE_WRITES = """
+() => {
+  const writes = [];
+  window.__storageWrites = writes;
+  const record = (what) => writes.push(what);
+  for (const method of ["setItem", "removeItem", "clear"]) {
+    const original = Storage.prototype[method];
+    Storage.prototype[method] = function (...args) {
+      record("Storage." + method + "(" + args.join(", ") + ")");
+      return original.apply(this, args);
+    };
+  }
+  const cookie = Object.getOwnPropertyDescriptor(Document.prototype, "cookie");
+  Object.defineProperty(Document.prototype, "cookie", {
+    configurable: true,
+    get() { return cookie.get.call(this); },
+    set(value) { record("document.cookie = " + value); cookie.set.call(this, value); },
+  });
+  if (window.indexedDB) {
+    const open = IDBFactory.prototype.open;
+    IDBFactory.prototype.open = function (...args) {
+      record("indexedDB.open(" + args[0] + ")");
+      return open.apply(this, args);
+    };
+  }
+  if (window.caches) {
+    const open = CacheStorage.prototype.open;
+    CacheStorage.prototype.open = function (...args) {
+      record("caches.open(" + args[0] + ")");
+      return open.apply(this, args);
+    };
+  }
+  if (navigator.serviceWorker) {
+    const register = ServiceWorkerContainer.prototype.register;
+    ServiceWorkerContainer.prototype.register = function (...args) {
+      record("serviceWorker.register(" + args[0] + ")");
+      return register.apply(this, args);
+    };
+  }
+}
+"""
+
+# Keys that move every kind of native control: radio buttons and sliders,
+# selects, and (with Enter and Space) buttons.
+_CONTROL_KEYS = ("ArrowRight", "ArrowDown", "End", "ArrowLeft", "ArrowUp", "Home")
+_CONTROLS = f"{ENHANCEMENT} :is(input, select, textarea, button, summary, [tabindex])"
+
+
+def drive_controls(page: Page, selector: str = _CONTROLS) -> int:
+    """Operate every control of the declared enhancements with the keyboard,
+    as a reader would; returns how many controls there were."""
+    controls = page.locator(selector)
+    count = controls.count()
+    for index in range(count):
+        control = controls.nth(index)
+        if not control.is_visible():
+            continue
+        control.focus()
+        for key in _CONTROL_KEYS:
+            page.keyboard.press(key)
+        tag = control.evaluate("element => element.localName")
+        if tag in ("button", "summary"):
+            page.keyboard.press("Enter")
+            page.keyboard.press("Space")
+    return count
+
+
+def _storage_activity(
+    browser: Browser, server: SiteServer, url: str, with_widgets: bool
+) -> tuple[Counter, Counter]:
+    """Load the page, operate the controls of its enhancements, and return
+    the writes recorded and the entries left in Web Storage and cookies."""
+    with _context(browser, server, lambda url: None, viewport=DESKTOP) as context:
+        context.add_init_script(f"({_RECORD_STORAGE_WRITES})()")
+        if not with_widgets:
+            context.route(f"**/{WIDGETS}/*.js", lambda route: route.abort())
+        page = context.new_page()
+        page.goto(url, wait_until="networkidle")
+        drive_controls(page)
+        page.wait_for_timeout(100)
+        writes = Counter(page.evaluate("window.__storageWrites"))
+        left = Counter(
+            "entry " + key
+            for key in page.evaluate(
+                "() => [...Object.keys(localStorage), ...Object.keys(sessionStorage)]"
+            )
+        )
+        left += Counter("cookie " + cookie["name"] for cookie in context.cookies())
+        page.close()
+    return writes, left
+
+
+def check_widgets_store_nothing(
+    browser: Browser, server: SiteServer, site_dir: Path
+) -> list[Violation]:
+    """Loading a page with an enhancement and operating its controls writes
+    no cookie and nothing to Web Storage, IndexedDB, the Cache API, or a
+    service worker, beyond what the page does without its widget scripts.
+
+    The writes are recorded as they happen, so a widget that writes and then
+    clears its entry is caught too. The baseline is the same page with the
+    scripts in ``widgets/`` blocked, because the site generator's own scripts
+    keep a little state of their own; the widget must add nothing to it.
+    """
+    violations = []
+    for name, url in _urls(site_dir, server):
+        if "data-enhancement" not in (site_dir / name).read_text(encoding="utf-8"):
+            continue
+        writes, left = _storage_activity(browser, server, url, with_widgets=True)
+        base_writes, base_left = _storage_activity(
+            browser, server, url, with_widgets=False
+        )
+        violations += [
+            Violation("widget-storage", name, f"writes {write}")
+            for write in (writes - base_writes).elements()
+        ]
+        violations += [
+            Violation("widget-storage", name, f"leaves {entry}")
+            for entry in (left - base_left).elements()
+        ]
+    return violations

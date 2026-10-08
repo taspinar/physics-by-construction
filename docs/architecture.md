@@ -210,7 +210,11 @@ inside a later check.
 6. **Built-site checks**: no resource loaded from another origin; images have
    alt text and explicit dimensions; internal links resolve; pages are
    readable with JavaScript disabled; automated WCAG 2.1 A/AA scan; no cookies
-   set.
+   set. For widgets: their scripts contain no request, other origin, or use of
+   browser storage, and operating their controls writes nothing to cookies or
+   browser storage beyond what the page does without them; the widget tests
+   check the fallback, keyboard operation, the displayed values against
+   `src/pbc`, and the absence of layout shift (`docs/authoring.md`, "Widgets").
 7. **Determinism**: a second build of the same commit is byte-identical to the
    first.
 8. **Workflow self-tests**: the existing shell tests of the workflow scripts.
