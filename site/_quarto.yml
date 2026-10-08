@@ -2,8 +2,10 @@ project:
   type: website
   output-dir: _site
   # Files the pages do not link to in Markdown but the built site must
-  # contain: the math font that site.css loads, and its licence.
+  # contain: the math font that site.css loads, and its licence, and the
+  # widgets that lesson pages load as scripts.
   resources:
+    - widgets/*.js
     - assets/fonts/STIXTwoMath-Regular.woff2
     - assets/fonts/OFL.txt
 

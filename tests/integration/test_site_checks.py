@@ -64,6 +64,7 @@ def make_site(tmp_path: Path) -> Site:
         )
         (site / "pixel.png").write_bytes(_PIXEL)
         for name, content in (files or {}).items():
+            (site / name).parent.mkdir(parents=True, exist_ok=True)
             (site / name).write_text(content)
         return site
 
@@ -490,3 +491,127 @@ def test_lesson_without_a_built_page_is_reported(make_site: Site):
     violations = site_checks.check_sections(site, "lessons/x/index.html", ["code"])
 
     assert rules(violations, "lessons/x/index.html") == {"lesson-page"}
+
+
+# --- Widgets -------------------------------------------------------------------
+
+
+def test_a_widget_script_without_requests_or_storage_is_clean(make_site: Site):
+    site = make_site(
+        files={
+            "widgets/w.js": "const ns = 'http://www.w3.org/2000/svg';\n"
+            "// A comment with a space after the slashes.\n"
+            "document.createElementNS(ns, 'svg');\n"
+        }
+    )
+
+    assert site_checks.check_widget_sources(site) == []
+
+
+@pytest.mark.parametrize(
+    "source, kind",
+    [
+        ("fetch('data.json');", "request"),
+        ("new XMLHttpRequest();", "request"),
+        ("import('./other.js');", "request"),
+        ("const url = 'https://example.org/lib.js';", "other origin"),
+        ("const url = '//cdn.example.org/lib.js';", "other origin"),
+        ("localStorage.setItem('a', 'b');", "browser storage"),
+        ("document.cookie = 'a=b';", "browser storage"),
+        ("indexedDB.open('db');", "browser storage"),
+    ],
+)
+def test_a_widget_script_that_reaches_out_or_stores_is_reported(
+    make_site: Site, source: str, kind: str
+):
+    site = make_site(files={"widgets/w.js": source})
+
+    violations = site_checks.check_widget_sources(site)
+
+    assert [v.rule for v in violations] == ["widget-source"]
+    assert violations[0].detail.startswith(kind)
+
+
+_WIDGET = (
+    '<div id="w" data-enhancement><p>Static text.</p>'
+    '<input id="control" type="range" min="0" max="3" value="1"></div>'
+    '<script src="widgets/w.js"></script>'
+)
+
+
+@pytest.mark.parametrize(
+    "script, written",
+    [
+        ("localStorage.setItem('k', 'v');", "Storage.setItem(k, v)"),
+        ("sessionStorage.setItem('k', 'v');", "Storage.setItem(k, v)"),
+        ("localStorage.setItem('k', 'v'); localStorage.clear();", "Storage.setItem"),
+        ("document.cookie = 'a=b';", "document.cookie = a=b"),
+        ("indexedDB.open('db');", "indexedDB.open(db)"),
+        # Only after the reader operates a control.
+        (
+            "document.getElementById('control').addEventListener("
+            "'input', () => localStorage.setItem('k', 'v'));",
+            "Storage.setItem(k, v)",
+        ),
+    ],
+    ids=[
+        "local-storage",
+        "session-storage",
+        "written-and-cleared",
+        "cookie",
+        "indexed-db",
+        "on-input",
+    ],
+)
+def test_a_widget_that_stores_something_is_reported(
+    make_site: Site, browser: Browser, script: str, written: str
+):
+    site = make_site(body=_WIDGET, files={"widgets/w.js": script})
+
+    with served(site) as server:
+        violations = site_checks.check_widgets_store_nothing(browser, server, site)
+
+    assert "widget-storage" in rules(violations)
+    assert any(written in v.detail for v in violations)
+
+
+def test_storage_the_page_itself_uses_is_not_blamed_on_the_widget(
+    make_site: Site, browser: Browser
+):
+    # The site generator's own scripts keep state; the widget adds none.
+    site = make_site(
+        body=_WIDGET + "<script>localStorage.setItem('theme', 'dark')</script>",
+        files={"widgets/w.js": "document.getElementById('w').dataset.on = '';"},
+    )
+
+    with served(site) as server:
+        violations = site_checks.check_widgets_store_nothing(browser, server, site)
+
+    assert violations == []
+
+
+def test_a_widget_that_only_draws_is_not_reported(make_site: Site, browser: Browser):
+    site = make_site(
+        body=_WIDGET,
+        files={
+            "widgets/w.js": "document.getElementById('control')"
+            ".addEventListener('input', () => { document.getElementById('w')"
+            ".dataset.value = 'changed'; });"
+        },
+    )
+
+    with served(site) as server:
+        violations = site_checks.check_widgets_store_nothing(browser, server, site)
+
+    assert violations == []
+
+
+def test_a_page_without_an_enhancement_is_not_driven(make_site: Site, browser: Browser):
+    # A page that writes storage but declares no widget is not this check's
+    # business; the generic page checks apply to it.
+    site = make_site(body="<script>localStorage.setItem('k', 'v')</script>")
+
+    with served(site) as server:
+        violations = site_checks.check_widgets_store_nothing(browser, server, site)
+
+    assert violations == []

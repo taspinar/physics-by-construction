@@ -610,6 +610,108 @@ Euler is the method to understand, not to use: it shows that the order of
 the updates, not the number of evaluations, is what decides whether the
 energy is bounded.
 
+## Interactive visualization {#interactive-visualization}
+
+The figures above fix the step. Here the step and the method are yours. The
+figure below shows the oscillator of this lesson, released at rest, for five
+periods, with all four methods at the same number of steps per period and
+the exact motion for comparison. With scripts enabled, choose the
+integrator to emphasise and to read out, and change the number of steps per
+period to see every curve respond. The interesting settings are the coarse
+ones: at four steps per period $\omega\,\Delta t$ is about 1.6, and the
+stability limits of the explanation decide which curves survive.
+
+The runs behind the figure come from the cell below, which calls the tested
+integrators of this lesson for every method at nine step counts when the page
+is built. The script of the figure draws these results and computes no
+physics of its own.
+
+```{python}
+from pbc.mechanics.explorer import STEPS_PER_PERIOD, explorer_data
+
+explorer = explorer_data(mass=mass, k=k)
+runs = {run["name"]: run["series"] for run in explorer["integrators"]}
+print(f"{len(STEPS_PER_PERIOD)} step counts, {len(runs)} methods,"
+      f" {explorer['n_periods']} periods each")
+```
+
+::: {#integrator-explorer data-widget="integrator-explorer" data-enhancement=""}
+```{python}
+#| label: fig-integrator-explorer
+#| echo: false
+#| fig-cap: "Position and energy over five periods at 16 steps per period, for the four methods. With scripts, the figure responds to the controls below it."
+#| fig-alt: "Two panels against time in periods. Top: position in metres, with the exact motion as a thin cosine curve and the four methods drawn over it. Bottom: energy relative to the initial energy on a logarithmic axis. Explicit Euler rises steadily and ends far above the start. Symplectic Euler and velocity Verlet oscillate in narrow bands around the start. Runge-Kutta 4 stays close to the start."
+import matplotlib.pyplot as plt
+
+LINE_STYLES = [
+    ("#b34700", "-"),
+    ("#005a9c", (0, (7, 4))),
+    ("#00734f", (0, (2, 4))),
+    ("#6a3d9a", (0, (9, 4, 2, 4))),
+]
+default = STEPS_PER_PERIOD.index(16)
+fig, (top, bottom) = plt.subplots(2, 1, figsize=(6.4, 5.2), sharex=True)
+top.plot(
+    np.array(explorer["exact"]["t"]) / period,
+    explorer["exact"]["x"],
+    color="#444444",
+    linewidth=1.0,
+    label="exact",
+)
+for (color, style), integrator in zip(LINE_STYLES, INTEGRATORS, strict=True):
+    series = runs[integrator.name][default]
+    t = np.arange(len(series["x"])) / series["steps_per_period"]
+    top.plot(t, series["x"], color=color, linestyle=style, linewidth=1.4, label=integrator.name)
+    bottom.plot(t, series["e"], color=color, linestyle=style, linewidth=1.4)
+top.set_ylim(-1.5, 1.5)
+top.set_ylabel("position (m)")
+top.legend(loc="upper right", fontsize=7, ncol=3)
+bottom.set_yscale("log")
+bottom.set_ylabel("energy / initial energy")
+bottom.set_xlabel("time (periods)")
+fig.tight_layout()
+plt.show()
+```
+
+::: {.widget-controls}
+With JavaScript, this figure gets controls for the integrator and the
+number of steps per period. Without it, the figure above and the table
+below show the results at 16 steps per period and at every other step
+count.
+:::
+:::
+
+Whatever the script can show is also in this table: for each method, the
+energy after five periods relative to the start, the largest position error
+over the run, and the number of evaluations of the acceleration, at every
+step count the figure offers.
+
+```{python}
+header = "".join(f"{n:>10d}" for n in STEPS_PER_PERIOD)
+print(f"steps per period       {header}\n")
+for title, key, spec in [
+    ("energy after 5 periods / initial energy", "final_energy", ".4g"),
+    ("largest position error (m)", "max_error", ".2e"),
+    ("evaluations of the acceleration", "calls", "d"),
+]:
+    print(title)
+    for name, series in runs.items():
+        print(f" {name:20}" + "".join(f"{s[key]:>10{spec}}" for s in series))
+    print()
+```
+
+```{python}
+#| echo: false
+from pbc.authoring import widget_data, widget_module
+
+widget_data("integrator-explorer", explorer)
+```
+
+```{python}
+#| echo: false
+widget_module("integrator-explorer.js")
+```
+
 ## Exercises
 
 ::: {.exercise}
@@ -729,12 +831,17 @@ reproduce_this(
         "src/pbc/mechanics/integrators.py",
         "src/pbc/mechanics/oscillator.py",
         "src/pbc/mechanics/drag.py",
+        "src/pbc/mechanics/explorer.py",
+        "src/pbc/authoring/widgets.py",
+        "site/widgets/integrator-explorer.js",
     ],
     tests=[
         "tests/unit/test_dynamics.py",
         "tests/unit/test_integrators.py",
         "tests/unit/test_oscillator.py",
         "tests/unit/test_drag.py",
+        "tests/unit/test_explorer.py",
+        "tests/unit/test_widgets.py",
     ],
 )
 ```
