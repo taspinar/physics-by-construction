@@ -81,7 +81,7 @@ lesson:
 | `lesson.difficulty` | yes | 1, 2, or 3 on the one difficulty scale of the site: introductory, intermediate, advanced. The scale is defined in `pbc.authoring.path` and explained on the learning path page. |
 | `lesson.prerequisites.lessons` | yes | List of the `id`s of lessons a reader needs first. Each must exist and come earlier in the learning path. May be empty. |
 | `lesson.prerequisites.outside` | yes | List of texts: what a reader must know that no lesson on the site teaches. May be empty. |
-| `lesson.lean-modules` | no | List of the Lean modules the lesson displays, such as `PhysicsByConstruction.Mechanics.Kinematics`. |
+| `lesson.lean-modules` | no | List of the Lean modules the lesson displays, such as `PhysicsByConstruction.Mechanics.Kinematics`. A lesson that shows Lean lists exactly the modules it names: each must exist in `lean/`, and the page names no other. |
 
 No other key is allowed, neither at the top level nor under `lesson`. Options
 that apply to every page belong in `site/_quarto.yml`. An option that changes
@@ -188,6 +188,91 @@ block, a block in another language, shell commands, pasted output, a cell
 with `eval: false`. Each needs the "not verified" marker below, or the check
 fails. `include` and `embed` shortcodes are not allowed: a lesson is one
 page.
+
+## Lean lessons
+
+A lesson in the `lean` strand states and proves a result of the models of
+another course. It follows the same format as every other lesson (sections,
+header, exercises, "Reproduce this"); this section covers what is different.
+
+### Write the proof
+
+The proofs live in the Lake project, one module per topic, in
+`lean/PhysicsByConstruction/<Course>/<Topic>.lean`. Every file under that
+directory is a module of the library, so `lake build` compiles a new file
+without a list to extend. Import only the Mathlib files the proof needs; the
+Mathlib version is pinned in `lean/lakefile.toml`.
+
+Mark each piece the page will show with a pair of comment lines, and give the
+region a name:
+
+```lean
+-- ANCHOR: velocity_sq_of_constant_acceleration
+theorem velocity_sq_of_constant_acceleration ... := by
+  ...
+-- ANCHOR_END: velocity_sq_of_constant_acceleration
+```
+
+A region holds the declaration with its doc comment. The marker lines are
+ordinary comments, so they do not change the proof, and they are not part of
+what the page shows.
+
+Two rules decide what a proof may contain.
+
+- **Physical assumptions are hypotheses, not axioms.** What the model assumes
+  is a hypothesis of the theorem, or a field of a structure, with a name that
+  says what it constrains (`hnewton`, `hx'`). Then the statement on the page
+  shows every assumption, and the lesson's "Assumptions" section can name the
+  hypothesis that carries each one. The check fails on a `sorry`, on an
+  `axiom` declared in the project, and on any declaration that depends on an
+  axiom besides Lean's three standard ones, so an assumption cannot be hidden.
+- **Proofs are about models, not about the Python code.** A theorem is about
+  real numbers and a rule written in Lean. The program computes with
+  floating-point numbers. A lesson says which model the theorem is about, shows
+  the number the program printed next to what the theorem says, and says what
+  the proof does not cover (the code, round-off, anything not stated). It never
+  claims that `src/pbc` is verified.
+
+### Show the proof
+
+```` markdown
+```{python}
+#| echo: false
+from pbc.authoring import lean_evidence, lean_excerpt
+
+MODULE = "PhysicsByConstruction.Mechanics.Kinematics"
+
+lean_evidence(MODULE)
+```
+
+```{python}
+#| echo: false
+lean_excerpt(MODULE, "velocity_sq_of_constant_acceleration")
+```
+````
+
+- `lean_excerpt(module, anchor)` shows the region between the markers. The
+  text is read from the file when the page is built; the file and lines
+  below the listing link to them at the built commit. The helper refuses a
+  file that changed after `scripts/check-lean.sh` compiled it, so the page
+  never shows a proof that was not checked. Run `./scripts/check-lean.sh`
+  after every change to a Lean file, before `quarto preview` or a build.
+- `lean_evidence(module, ...)` writes the box that states what compiled the
+  proofs: the commit, the versions of Lean and Mathlib, a link to each file
+  in the repository at the built commit, and a link that opens it in the Lean
+  web editor. It says that the repository file and the CI result are
+  authoritative, and that the web editor runs its own version of Mathlib. Put
+  it once, at the start of the section that shows the proofs.
+- The Lean code is coloured when the site is built, with the definition in
+  `site/assets/lean.xml`. It colours tokens only; there is no hover or type
+  information. If a construct you use is coloured wrongly, extend the
+  definition rather than working around it in the lesson.
+- `reproduce_this` lists the Lean files among its `code` (as
+  `lean/PhysicsByConstruction/...lean`). The commands then include
+  `./scripts/check-lean.sh` before the page is rendered.
+
+A code block of Lean that is not an excerpt, such as the shape of a
+declaration, is not verified and carries the marker of the section above.
 
 ## Numbers
 
@@ -463,9 +548,9 @@ there or carry recordings elsewhere.
 
 | Check | Reports |
 |---|---|
-| `lesson-checks` (`tests/lessons`) | Front matter outside the schema; a missing or empty required section; a lesson without the `lesson_header()` cell before its first heading; an exercise without a solution; a "Reproduce this" section without `reproduce_this()`; a duplicate id, a gap or duplicate in the orders of a strand, a prerequisite that does not exist, comes later in the path, or forms a cycle; code that is neither an executed `{python}` cell nor marked "not verified"; a figure cell without `fig-alt`; an image file in a page; a generated artifact or a stray file under `site/` or `src/`. |
+| `lesson-checks` (`tests/lessons`) | Front matter outside the schema; a Lean module that the page shows and `lean-modules` does not list, or that it lists without showing or without a file; a missing or empty required section; a lesson without the `lesson_header()` cell before its first heading; an exercise without a solution; a "Reproduce this" section without `reproduce_this()`; a duplicate id, a gap or duplicate in the orders of a strand, a prerequisite that does not exist, comes later in the path, or forms a cycle; code that is neither an executed `{python}` cell nor marked "not verified"; a figure cell without `fig-alt`; an image file in a page; a generated artifact or a stray file under `site/` or `src/`. |
 | `site-build` | A cell that raises, including the header cell of a lesson whose path is inconsistent; an equation that cannot become MathML. |
-| `site-checks` (`tests/e2e`) | A lesson without a built page or a required section; a lesson the home page does not lead to without JavaScript; a header whose strand, position, difficulty, prerequisites, or previous and next links differ from the front matter; a path page that does not list every lesson in order; an excerpt that differs from its source; a cell or inline expression that was not executed; "not verified" material without a visible label; "Reproduce this" commands that fail, take longer than 30 seconds, or do not regenerate the published page; a widget script that makes a request, names another origin, or uses browser storage, or a widget that writes to cookies or storage when operated; a widget that does not respond to its controls, cannot be operated by keyboard, shows values that differ from `pbc`, or moves the page when it loads; and the checks every page gets (images, links, JavaScript, widths, accessibility). |
+| `site-checks` (`tests/e2e`) | A lesson without a built page or a required section; a lesson the home page does not lead to without JavaScript; a header whose strand, position, difficulty, prerequisites, or previous and next links differ from the front matter; a path page that does not list every lesson in order; an excerpt that differs from its source, a Python object or a region of a Lean file; a cell or inline expression that was not executed; "not verified" material without a visible label; "Reproduce this" commands that fail, take longer than 30 seconds, or do not regenerate the published page; a widget script that makes a request, names another origin, or uses browser storage, or a widget that writes to cookies or storage when operated; a widget that does not respond to its controls, cannot be operated by keyboard, shows values that differ from `pbc`, or moves the page when it loads; and the checks every page gets (images, links, JavaScript, widths, accessibility). |
 | `determinism` | A page that differs between two builds. |
 
 Fix the lesson when a check fails. Do not weaken a check to make a lesson

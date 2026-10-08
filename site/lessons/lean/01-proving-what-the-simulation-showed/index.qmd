@@ -1,0 +1,481 @@
+---
+title: "Proving what the simulation showed"
+description: >-
+  Two results of the mechanics course stated and proved in Lean 4: the
+  identity that links speed and distance under constant acceleration, and the
+  factor by which one step of explicit Euler multiplies the energy of the
+  harmonic oscillator, with the proofs compiled by CI and read from the
+  repository.
+lesson:
+  id: proving-what-the-simulation-showed
+  strand: lean
+  order: 1
+  difficulty: 2
+  prerequisites:
+    lessons: [kinematics, harmonic-oscillator]
+    outside:
+      - "Algebra: expanding and factorising polynomials in several variables"
+      - "Logic: reading a statement that says if these hypotheses hold, then this conclusion holds"
+  lean-modules:
+    - PhysicsByConstruction.Mechanics.Kinematics
+    - PhysicsByConstruction.Mechanics.EulerOscillator
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import lesson_header
+
+lesson_header()
+```
+
+The harmonic oscillator lesson showed a program doing exactly what an
+algebraic derivation predicted: after every step of explicit Euler the
+energy was the energy before it times $1 + \omega^2 \Delta t^2$, to the last
+digit of double precision. A table of ratios is evidence. It
+is not a proof, and it cannot be: no run covers every state of the
+oscillator and every step size.
+
+This lesson proves the statement, and it proves it with a program of a
+different kind. **Lean 4** is a proof assistant: a theorem is a type, a proof
+is a term of that type, and the compiler checks that the term has the type.
+If the file compiles, the theorem holds for every real number it speaks
+about, with no run and no tolerance. The proofs here are short because the
+facts are algebraic, and each one is in a file of the repository that
+`lake build` compiles in CI before this page can be published.
+
+Two results are proved. The first is the identity of constant acceleration
+that the kinematics lesson compared its simulations with. The second is the
+energy growth of explicit Euler. For each, the lesson says what the theorem
+assumes, how it connects to the number the simulation printed, and what it
+leaves unproved.
+
+## Assumptions
+
+A proof is about a **model**. Every assumption of the model is written in the
+Lean statement as a hypothesis, so a reader can see exactly what is assumed
+and nothing is hidden in an axiom of the project; the build fails on `sorry`
+and on any axiom the project declares. The assumptions, and the hypothesis of
+the theorems that carries each one:
+
+1. **Constant acceleration on a line.** The particle moves with the
+   acceleration $a$ for all time, and its position and velocity are the
+   formulas of the kinematics lesson: the hypotheses `hx` and `hv`. A force
+   that depends on position or time makes the formulas false, and the theorem
+   says nothing about that motion.
+2. **Newton's second law with Hooke's law.** The mass $m$ on a spring $k$
+   accelerates as $m\,a = -k\,x$: the hypothesis `hnewton`. A damped or
+   nonlinear spring breaks it, and the energy $\tfrac{1}{2} m v^2 + \tfrac{1}{2} k x^2$
+   is then not the energy of the system.
+3. **A positive mass, and a spring that pulls back.** `hm : 0 < m` lets the
+   proof divide by the mass; `hk : 0 < k` makes the factor greater than one.
+   A negative or zero mass is not a particle.
+4. **The update rule of explicit Euler.** The new position uses the old
+   velocity and the new velocity uses the acceleration at the old state:
+   the hypotheses `hx'` and `hv'`. A different rule is a different theorem:
+   the second exercise shows a rule for which the factor is not constant.
+5. **A step of non-zero size, and some energy to grow.** Strict growth has
+   two more hypotheses than the one-step identity. `hdt : dt ≠ 0` excludes
+   the step of size zero, which leaves the state and its energy where they
+   are, and `hE`, a positive energy before the step, excludes the equilibrium
+   at rest, whose energy is zero and stays zero. A factor greater than one
+   makes a quantity grow only if the quantity is positive.
+6. **Real numbers, not floating-point numbers.** Lean's `ℝ` has no round-off,
+   no overflow, and no step size small enough to vanish. The program
+   computes with doubles. The theorems describe the model that the program
+   approximates, and the page does not claim that the program is verified.
+7. **The facts are algebraic.** No derivative appears in either statement.
+   That the position formula solves $\ddot x = a$ is the content of the
+   kinematics lesson, taken here as a hypothesis, and what the energy does
+   in continuous time is the content of the harmonic oscillator lesson. Both
+   are candidates for later lessons.
+
+## What a Lean theorem says {#explanation}
+
+A Lean declaration has a name, the things it is about, the hypotheses, and
+the conclusion after the colon. This is the shape only, not a theorem of
+the project:
+
+::: {.not-verified}
+```
+theorem name (variables : ℝ) (hypothesis : statement) : conclusion := by
+  proof
+```
+:::
+
+Everything before the colon is given; the conclusion follows from it. The
+proof after `by` is a sequence of tactics, each one an instruction to the
+compiler about how to build the term. Three are enough for this lesson:
+`subst` replaces a variable by an expression that a hypothesis equates it
+with, `ring` proves an equation that holds in every commutative ring by
+normalising both sides, and `field_simp` clears the denominators of an
+equation before `ring` runs. The hypotheses are named `h` followed by the
+letter of what they constrain, so `hx` is the hypothesis about `x`.
+
+### Constant acceleration
+
+With a constant acceleration $a$, a particle that starts at $x_0$ with the
+velocity $v_0$ is at
+
+$$
+x = x_0 + v_0\,t + \tfrac{1}{2}\,a\,t^2
+\qquad\text{with the velocity}\qquad
+v = v_0 + a\,t
+$$
+
+after the time $t$. Eliminating $t$ gives the relation between speed and
+distance that needs no clock:
+
+$$
+v^2 = v_0^2 + 2\,a\,(x - x_0).
+$$
+
+The proof is a substitution and an identity of polynomials, and Lean
+verifies it by doing exactly that. The theorem holds for *every* choice of
+the six real numbers. A second form of the same facts, the distance
+covered is the mean velocity times the time, comes with it.
+
+### Explicit Euler on the oscillator
+
+The energy of the mass on the spring is
+$E = \tfrac{1}{2} m v^2 + \tfrac{1}{2} k x^2$. One step of explicit Euler
+moves the state $(x, v)$ to $(x + \Delta t\,v,\; v + \Delta t\,a)$ with the
+acceleration $a = -k x / m$ of the old state. The harmonic oscillator
+lesson expanded the squares by hand. The theorem says what that expansion
+gives:
+
+$$
+E_{n+1} = \Bigl(1 + \frac{k}{m}\,\Delta t^2\Bigr)\,E_n.
+$$
+
+Two consequences follow in Lean from the one-step theorem. For a positive
+$k$, a step of non-zero size multiplies a positive energy by a factor
+greater than one: the energy *strictly grows*. And an induction on the
+number of steps turns the one-step factor into the factor of $n$ steps,
+$(1 + k\,\Delta t^2/m)^n$. The induction is the part a table of ratios cannot
+replace: it carries the statement from each step to the next without
+checking any step.
+
+## The proofs {#code}
+
+The listings in this section are read from the Lean files of the repository
+when the site is built, and they are the text that `lake build` compiled. The
+box below says which commit, which version of Lean, and which version of
+Mathlib did it, and where to open the files.
+
+```{python}
+#| echo: false
+from pbc.authoring import lean_evidence, lean_excerpt, reproduce_this
+
+KINEMATICS = "PhysicsByConstruction.Mechanics.Kinematics"
+EULER = "PhysicsByConstruction.Mechanics.EulerOscillator"
+
+lean_evidence(KINEMATICS, EULER)
+```
+
+### Constant acceleration
+
+The first theorem. Its two hypotheses are the position and the velocity of
+the motion; its conclusion is the identity. The proof is two tactics.
+
+```{python}
+#| echo: false
+lean_excerpt(KINEMATICS, "velocity_sq_of_constant_acceleration")
+```
+
+The mean-velocity form is proved the same way:
+
+```{python}
+#| echo: false
+lean_excerpt(KINEMATICS, "displacement_of_mean_velocity")
+```
+
+### The energy of the oscillator
+
+The definition the theorems are about. `noncomputable` is Lean's word for a
+definition on the real numbers, which cannot be evaluated by the compiler;
+it does not mean that the definition is vague.
+
+```{python}
+#| echo: false
+lean_excerpt(EULER, "springEnergy")
+```
+
+One step multiplies the energy by the factor. The hypothesis `hnewton` is
+Newton's law for the spring, `hx'` and `hv'` are the update rule, and the
+proof solves the law for the acceleration, substitutes the rule, and lets
+`field_simp` and `ring` check the identity.
+
+```{python}
+#| echo: false
+lean_excerpt(EULER, "euler_energy_step")
+```
+
+The energy grows. This one is not an identity but an inequality, and it
+needs three more hypotheses: a positive spring constant, a step of non-zero
+size, and a positive energy before the step.
+
+```{python}
+#| echo: false
+lean_excerpt(EULER, "euler_energy_grows")
+```
+
+And over any number of steps. The sequences `x`, `v`, and `a` stand for the
+whole run, and each hypothesis now holds for every step `n`.
+
+```{python}
+#| echo: false
+lean_excerpt(EULER, "euler_energy_after_steps")
+```
+
+## Worked examples
+
+Each theorem is a statement about all real numbers. The simulation can only
+sample it, and a sample is the right place to see which number the theorem
+is about.
+
+### The identity on the exact motion
+
+The kinematics lesson's function for the exact motion under constant
+acceleration is the pair of formulas of the hypotheses. The cell evaluates
+$v^2 - v_0^2 - 2a(x - x_0)$ along it, which the theorem says is zero.
+
+```{python}
+import numpy as np
+
+from pbc.mechanics import kinematics
+
+a = -9.81  # m/s^2
+start = kinematics.State(t=0.0, x=0.0, v=20.0)
+times = np.linspace(0.0, 4.0, 9)
+exact = kinematics.constant_acceleration(start, a, times)
+
+residual = exact.v**2 - start.v**2 - 2 * a * (exact.x - start.x)
+print("   t (s)    x (m)    v (m/s)    v^2 - v0^2 - 2 a (x - x0) (m^2/s^2)")
+for t, x, v, r in zip(times, exact.x, exact.v, residual, strict=True):
+    print(f"{t:8.2f}{x:9.2f}{v:11.2f}{r:30.1e}")
+print(f"\nlargest residual: {np.max(np.abs(residual)):.1e}")
+```
+
+The residual is zero up to the round-off of doubles, which the proof does
+not have. The first row is zero identically, as the theorem predicts for
+$t = 0$. The numbers are not the proof: they are the same statement, seen on
+a few of the infinitely many instants that the theorem covers.
+
+### What the hypotheses are worth
+
+The identity needs the *formula* for the position. A simulation does not
+satisfy it, and the theorem does not say it should. Explicit Euler, run on
+the same fall, has the exact velocity and a position that lags behind the
+formula, and the residual of the identity on the simulated motion is not
+zero. It is, in fact, exactly $a^2\,t\,\Delta t$: the quantity the identity
+measures is the error of the method.
+
+```{python}
+fall_dt = 0.25
+fall = kinematics.simulate(start, lambda t: a, fall_dt, 16)
+euler_residual = fall.v**2 - start.v**2 - 2 * a * (fall.x - start.x)
+predicted = a**2 * fall.t * fall_dt
+
+print(f"time step {fall_dt} s; the residual on the simulated motion, in m^2/s^2:")
+print("   t (s)   residual   a^2 t dt")
+for t, r, p in list(zip(fall.t, euler_residual, predicted, strict=True))[::4]:
+    print(f"{t:8.2f}{r:11.3f}{p:11.3f}")
+print(f"\nlargest difference between the two columns: "
+      f"{np.max(np.abs(euler_residual - predicted)):.1e}")
+```
+
+A theorem has the hypotheses it states and not the ones that are
+convenient. Here the position formula is a hypothesis the simulation does
+not meet, so the conclusion does not follow for it. The residual is a
+property of the simulated motion, which a different lemma (not proved in
+this lesson) would describe.
+
+### The factor, step after step
+
+The harmonic oscillator of the earlier lesson: half a kilogram on a spring
+of 2 N/m, pulled out one metre. The cell runs explicit Euler for three
+periods and compares the measured energy after $n$ steps with the
+conclusion of `euler_energy_after_steps`, $(1 + k\,\Delta t^2/m)^n E_0$.
+
+```{python}
+from pbc.mechanics.dynamics import State, newton, simulate
+from pbc.mechanics.oscillator import angular_frequency, energy, spring
+
+mass = 0.5  # kg
+k = 2.0  # N/m
+period = 2 * np.pi / angular_frequency(mass, k)
+released = State(t=0.0, x=1.0, v=0.0)
+oscillator = newton(mass, spring(k))
+
+steps_per_period = 64
+n_steps = 3 * steps_per_period
+dt = period / steps_per_period
+run = simulate(released, oscillator, dt, n_steps)
+measured = energy(run, mass, k)
+factor = 1 + k / mass * dt**2
+proved = factor ** np.arange(n_steps + 1) * measured[0]
+
+relative = np.abs(measured / proved - 1)
+print(f"factor 1 + (k/m) dt^2 = {factor:.6f}")
+print(f"energy after {n_steps} steps: {measured[-1]:.4f} J measured,"
+      f" {proved[-1]:.4f} J from the theorem")
+print(f"largest relative difference over the run: {np.max(relative):.1e}")
+```
+
+```{python}
+#| label: fig-proved-energy-growth
+#| fig-cap: "Energy of the simulated oscillator against the energy the theorem predicts, for three time steps, on a logarithmic axis."
+#| fig-alt: "Plot of the energy divided by the initial energy against time in seconds, with a logarithmic vertical axis. Three solid curves rise from 1 at time zero, one for each of three time steps; the coarsest rises steepest. Over each solid curve lies a dashed curve of the prediction of the theorem, so that the two cannot be told apart."
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+for n, colour in ((32, "#93003a"), (64, "#00429d"), (128, "#555555")):
+    step = period / n
+    steps = 3 * n
+    simulated = energy(simulate(released, oscillator, step, steps), mass, k)
+    theorem = (1 + k / mass * step**2) ** np.arange(steps + 1) * simulated[0]
+    time = step * np.arange(steps + 1)
+    ax.semilogy(time, simulated / simulated[0], color=colour, linestyle="-", linewidth=3,
+                label=f"simulated, {n} steps per period")
+    ax.semilogy(time, theorem / simulated[0], color="white", linestyle="--", linewidth=1.2,
+                label="_nolegend_")
+ax.set_xlabel("time (s)")
+ax.set_ylabel("energy / initial energy")
+ax.legend(loc="upper left")
+plt.show()
+```
+
+The simulated curves lie on the predicted ones. What the figure cannot show
+is why: the theorem is the reason, and it is the same reason for every step
+size, not only for the three drawn.
+
+## What the proofs do not cover {#limits}
+
+- **The Python code.** Nothing here is a statement about `pbc.mechanics`.
+  The theorems are about a model of explicit Euler written in Lean; that the
+  Python code implements that model is what the unit tests and the examples
+  above check, to round-off, for the cases they run. Proving a program
+  correct is a different and much larger project, and this site does not
+  claim it.
+- **Floating-point arithmetic.** `ℝ` is exact. A double carries a relative
+  error of about $10^{-16}$ per operation, and no theorem on this page speaks
+  about it.
+- **Continuous time.** The position and velocity formulas are hypotheses.
+  That they solve the equations of motion is a statement about derivatives,
+  and it is not proved here.
+- **Other methods.** The factor belongs to explicit Euler. Symplectic Euler,
+  velocity Verlet, and Runge--Kutta 4 satisfy other relations, and the second
+  exercise shows one that the theorem does not describe.
+- **That the model is physics.** A Lean proof tells us what follows from the
+  hypotheses. Whether a real spring obeys $m\,a = -k\,x$ is settled by
+  measuring it.
+
+## Exercises
+
+::: {.exercise}
+**Which hypotheses can go?** In `euler_energy_step`, the hypothesis `hm : 0 < m`
+is used. What happens to the theorem without it, if the mass is zero? And in
+`euler_energy_grows`, which of the hypotheses `hk`, `hdt`, and `hE` can be
+dropped if the conclusion is changed from "strictly greater" to "at least"?
+
+::: {.solution}
+With $m = 0$ the hypothesis `hnewton` reads $0 = -k\,x$, which constrains
+the position and says nothing about $a$, so the acceleration cannot be
+recovered and the step is not determined by the law of motion. The proof
+divides by $m$; the statement needs the hypothesis for that, and the physics
+needs it because a particle of zero mass has no inertia.
+
+For the weaker conclusion, the factor $1 + (k/m)\,\Delta t^2$ is at least 1
+whenever $k \ge 0$, so `hk` can become `0 ≤ k`, `hdt` is no longer needed
+because $\Delta t^2 \ge 0$ for every real step, and `hE` becomes
+`0 ≤ springEnergy m k x v`. What is lost is exactly what the strict
+inequality says: the energy grows only if there is energy and something
+moves.
+:::
+:::
+
+::: {.exercise}
+**A rule the theorem does not describe.** Symplectic Euler updates the
+velocity first and then moves the particle with the *new* velocity:
+$v' = v + \Delta t\,a$, $x' = x + \Delta t\,v'$. Which hypothesis of
+`euler_energy_step` does this violate? Compute the ratio of the energies
+after and before a step for the oscillator of the examples, and see whether
+it is constant.
+
+::: {.solution}
+The hypothesis `hx' : x' = x + dt * v` fails: the new position uses `v'`,
+not `v`. The theorem says nothing about the rule, and the ratio is not
+constant, as the cell shows: it depends on the state.
+
+```{python}
+def symplectic_step(x, v):
+    v_new = v - k / mass * x * dt
+    return x + dt * v_new, v_new
+
+
+def spring_energy(x, v):
+    return 0.5 * mass * v**2 + 0.5 * k * x**2
+
+
+x, v = 1.0, 0.0
+ratios = []
+for _ in range(steps_per_period):
+    x_new, v_new = symplectic_step(x, v)
+    ratios.append(spring_energy(x_new, v_new) / spring_energy(x, v))
+    x, v = x_new, v_new
+
+print(f"ratio of the energies after and before a step, symplectic Euler,"
+      f" over one period:\n  from {min(ratios):.4f} to {max(ratios):.4f}")
+print(f"explicit Euler multiplies by {factor:.4f} at every step")
+```
+
+The ratio swings above and below 1, so the energy of this rule oscillates
+instead of growing, and a different theorem, with a different invariant,
+describes it.
+:::
+:::
+
+::: {.exercise}
+**The error of Euler on a fall.** The second worked example found that the
+residual of the identity on the simulated fall is $a^2\,t\,\Delta t$. Derive
+it from the update rule, and say where it would come from in a Lean
+statement.
+
+::: {.solution}
+Explicit Euler under constant acceleration moves by the old velocity
+$v_k = v_0 + a\,k\,\Delta t$ at step $k$, so after $n$ steps
+$x_n - x_0 = n\,v_0\,\Delta t + a\,\Delta t^2\,n(n-1)/2$, which with
+$t = n\,\Delta t$ is
+$v_0\,t + \tfrac{1}{2}\,a\,t^2 - \tfrac{1}{2}\,a\,t\,\Delta t$. The velocity
+is exact, $v = v_0 + a\,t$. So
+$v^2 - v_0^2 - 2a(x_n - x_0) = a^2\,t\,\Delta t$,
+the term that the missing $-\tfrac12\,a\,t\,\Delta t$ leaves. In Lean it is
+the same proof as `velocity_sq_of_constant_acceleration` with the
+hypothesis `hx` replaced by the position of Euler: `subst` and `ring`
+again, with a different left-hand side.
+
+```{python}
+n = 16
+t = n * fall_dt
+derived = a**2 * t * fall_dt
+assert np.isclose(derived, euler_residual[n], rtol=1e-12, atol=0.0)
+print(f"a^2 t dt for the example, {n} steps: {derived:.3f} m^2/s^2;"
+      f" simulated residual {euler_residual[n]:.3f} m^2/s^2")
+```
+:::
+:::
+
+## Reproduce this
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "lean/PhysicsByConstruction/Mechanics/Kinematics.lean",
+        "lean/PhysicsByConstruction/Mechanics/EulerOscillator.lean",
+        "src/pbc/mechanics/kinematics.py",
+        "src/pbc/mechanics/oscillator.py",
+    ],
+    tests=["tests/unit/test_kinematics.py", "tests/unit/test_oscillator.py"],
+)
+```

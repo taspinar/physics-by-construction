@@ -6,12 +6,15 @@ It shares the real project's packages, so Mathlib is neither downloaded nor
 built again.
 """
 
+import hashlib
+import json
+import os
 import shutil
 from pathlib import Path
 
 import pytest
 from support.checks import output, run_check
-from support.paths import LEAN_PROJECT
+from support.paths import LEAN_PROJECT, REPO_ROOT
 
 
 @pytest.fixture
@@ -56,3 +59,59 @@ def test_fails_on_sorry_and_on_a_project_axiom(lean_project: Path):
     assert "'unproved' uses 'sorry'" in output(result)
     assert "'energyIsConserved' is declared as an axiom" in output(result)
     assert "'usesIt' depends on axiom 'energyIsConserved'" in output(result)
+
+
+def test_a_passed_check_records_what_compiled_the_proofs(lean_project: Path):
+    module = lean_project / "PhysicsByConstruction" / "Sound.lean"
+    module.write_text("theorem sound (n : Nat) : n + 0 = n := rfl\n")
+
+    result = run_check("lean-build", lean_project)
+
+    assert result.returncode == 0, output(result)
+    record = json.loads((lean_project / ".lake" / "pbc-build-record.json").read_text())
+    pinned = json.loads((LEAN_PROJECT / "lake-manifest.json").read_text())
+    mathlib = next(p for p in pinned["packages"] if p["name"] == "mathlib")
+    toolchain = (LEAN_PROJECT / "lean-toolchain").read_text().strip()
+    assert record["toolchain"] == toolchain
+    assert toolchain.endswith(f"v{record['lean']['version']}")
+    assert record["mathlib"] == {"tag": mathlib["inputRev"], "rev": mathlib["rev"]}
+    assert record["modules"] == {
+        "PhysicsByConstruction.Sound": hashlib.sha256(module.read_bytes()).hexdigest()
+    }
+
+
+def test_a_failed_check_leaves_no_record_of_an_earlier_pass(lean_project: Path):
+    module = lean_project / "PhysicsByConstruction" / "Changing.lean"
+    module.write_text("theorem changing (n : Nat) : n + 0 = n := rfl\n")
+    assert run_check("lean-build", lean_project).returncode == 0
+    record = lean_project / ".lake" / "pbc-build-record.json"
+    assert record.is_file()
+
+    module.write_text("theorem changing (n : Nat) : n + 0 = n := by\n  sorry\n")
+    result = run_check("lean-build", lean_project)
+
+    assert result.returncode != 0
+    assert not record.exists()
+
+
+def test_a_relative_project_argument_keeps_the_record_in_that_project(
+    lean_project: Path,
+):
+    # The check changes into the project; the record must still be the
+    # project's own, not one resolved relative to the new working directory.
+    relative = Path(os.path.relpath(lean_project, REPO_ROOT))
+    assert not relative.is_absolute()
+    module = lean_project / "PhysicsByConstruction" / "Relative.lean"
+    module.write_text("theorem relative (n : Nat) : n + 0 = n := rfl\n")
+
+    passed = run_check("lean-build", relative)
+
+    assert passed.returncode == 0, output(passed)
+    record = lean_project / ".lake" / "pbc-build-record.json"
+    assert record.is_file()
+
+    module.write_text("theorem relative (n : Nat) : n + 0 = n := by\n  sorry\n")
+    failed = run_check("lean-build", relative)
+
+    assert failed.returncode != 0
+    assert not record.exists()

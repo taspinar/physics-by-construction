@@ -6,6 +6,7 @@ drift from it (ADR 002). ``docs/authoring.md`` describes their use.
 """
 
 from pbc.authoring.excerpt import Excerpt, excerpt
+from pbc.authoring.lean import LeanEvidence, LeanExcerpt, lean_evidence, lean_excerpt
 from pbc.authoring.path import (
     DIFFICULTIES,
     STRANDS,
@@ -24,6 +25,8 @@ __all__ = [
     "STRANDS",
     "BuildCommit",
     "Excerpt",
+    "LeanEvidence",
+    "LeanExcerpt",
     "LearningPath",
     "LessonHeader",
     "PathOverview",
@@ -31,6 +34,8 @@ __all__ = [
     "WidgetScript",
     "build_commit",
     "excerpt",
+    "lean_evidence",
+    "lean_excerpt",
     "learning_path",
     "lesson_header",
     "reproduce_this",

@@ -50,6 +50,10 @@ format:
     # assistive technology (ADR 001).
     html-math-method: mathml
     highlight-style: a11y
+    # Pandoc ships no Lean definition. The vendored one (MIT, written for this
+    # project) colours Lean tokens at build time; there is no hover.
+    syntax-definitions:
+      - assets/lean.xml
     toc: true
     filters:
       # Before Quarto's own processing, which would otherwise turn a

@@ -10,6 +10,11 @@ set -euo pipefail
 #
 # Mathlib always comes from its build cache. When the cache does not provide
 # all of Mathlib, the check fails instead of compiling Mathlib from source.
+#
+# A passed check leaves the build record .lake/pbc-build-record.json in the
+# Lean project, and a failed or interrupted one leaves none. A lesson page
+# reads the record to state what compiled its proofs (pbc.authoring.lean): the
+# versions of Lean and Mathlib, and a checksum of every module.
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 project="${1:-$root/lean}"
@@ -21,7 +26,10 @@ fail() {
 }
 
 [[ -f "$project/lakefile.toml" ]] || fail "no Lean project in $project"
+project="$(cd "$project" && pwd -P)"
 cd "$project"
+record="$project/.lake/pbc-build-record.json"
+rm -f "$record"
 
 echo "== Mathlib build cache =="
 if ! lake build --no-build Mathlib; then
@@ -48,3 +56,23 @@ trap 'rm -rf "$tmp"' EXIT
   cat "$audit"
 } >"$tmp/AxiomAudit.lean"
 lake env lean "$tmp/AxiomAudit.lean"
+
+echo "== Build record =="
+checksums="$(
+  while IFS= read -r module; do
+    printf '%s\t%s\n' "$module" "$(shasum -a 256 "${module//.//}.lean" | cut -d' ' -f1)"
+  done <<<"$modules"
+)"
+lean_version="$(lake env lean --version)"
+jq -n -S \
+  --arg toolchain "$(<lean-toolchain)" \
+  --arg lean "$lean_version" \
+  --argjson mathlib "$(jq -c '.packages[] | select(.name == "mathlib") | {tag: .inputRev, rev: .rev}' lake-manifest.json)" \
+  --arg checksums "$checksums" \
+  '{
+    toolchain: $toolchain,
+    lean: ($lean | capture("version (?<version>[0-9][^,]*), .*commit (?<commit>[0-9a-f]+)") ),
+    mathlib: $mathlib,
+    modules: ($checksums | split("\n") | map(split("\t") | {(.[0]): .[1]}) | add)
+  }' >"$record"
+echo "Wrote $record"

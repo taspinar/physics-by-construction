@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+from pbc.authoring.lean import LEAN_DIRECTORY
 from pbc.authoring.repository import (
     REPOSITORY_ROOT,
     BuildCommit,
@@ -52,6 +53,17 @@ class Reproduction:
         return f"{SITE_DIRECTORY}/_site/{relative.as_posix()}"
 
     @property
+    def _lean_note(self) -> tuple[str, ...]:
+        if "./scripts/check-lean.sh" not in self.commands:
+            return ()
+        return (
+            "`./scripts/check-lean.sh` compiles the Lean proofs and checks them"
+            " for `sorry` and axioms. The first run fetches the Mathlib build"
+            " cache, which is large.",
+            "",
+        )
+
+    @property
     def commands(self) -> tuple[str, ...]:
         """The commands, from cloning to rendering this page."""
         directory = self.repository.rsplit("/", 1)[-1]
@@ -59,6 +71,9 @@ class Reproduction:
         if self.commit.sha is not None:
             commands.append(f"git checkout {self.commit.sha}")
         commands.append("uv sync --locked")
+        if any(path.startswith(f"{LEAN_DIRECTORY}/") for path in self.code):
+            # The page reads the record this check leaves (pbc.authoring.lean).
+            commands.append("./scripts/check-lean.sh")
         if self.tests:
             commands.append("uv run --locked pytest " + " ".join(self.tests))
         commands.append(f"uv run --locked quarto render {self.page}")
@@ -89,7 +104,13 @@ class Reproduction:
                     " from.**"
                 )
         files = [f"- {self._link(self.page)}: this page, with every code cell."]
-        files += [f"- {self._link(path)}: code the cells import." for path in self.code]
+        for path in self.code:
+            purpose = (
+                "a Lean file the page shows"
+                if path.startswith(f"{LEAN_DIRECTORY}/")
+                else "code the cells import"
+            )
+            files.append(f"- {self._link(path)}: {purpose}.")
         files += [f"- {self._link(path)}: tests of that code." for path in self.tests]
         setup = self._link("docs/development.md")
         return "\n".join(
@@ -107,6 +128,7 @@ class Reproduction:
                 *self.commands,
                 "```",
                 "",
+                *self._lean_note,
                 "The last command runs every code cell of this page again and"
                 f" writes the result to `{self.output}`. Its numbers and figures"
                 " match this page to the digits shown. Digits beyond those can"

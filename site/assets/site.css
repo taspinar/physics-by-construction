@@ -151,6 +151,28 @@ main a > code:not(.sourceCode) {
   overflow-wrap: anywhere;
 }
 
+/* The build evidence of a Lean lesson: what compiled the proofs, and where to
+   read them. */
+.lean-evidence {
+  margin: 1rem 0 1.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #767676;
+  border-radius: 0.25rem;
+  font-size: 0.9375em;
+}
+
+.lean-evidence > :first-child {
+  margin-top: 0;
+}
+
+.lean-evidence > :last-child {
+  margin-bottom: 0;
+}
+
+.lean-evidence li {
+  overflow-wrap: anywhere;
+}
+
 /* Widgets (docs/authoring.md, "Widgets"). A widget enhances the static
    figure inside its [data-enhancement] element: the script replaces the image
    with a drawing in the image's box and fills .widget-controls. The space for
