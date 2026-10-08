@@ -37,6 +37,24 @@ Do not:
 If a finding cannot be resolved without changing scope or architecture, stop
 and report the conflict instead of implementing deferred work.
 
+## Handoff note
+
+A session can end at any moment, and the next one starts without this
+conversation. Keep `.agents/handoffs/<issue-number>.md` current while you work,
+after each resolved finding and not only at the end: which `FIX_NOW`
+identifiers are resolved, which one you are working on and its next step,
+which remain, and what you tried and rejected. If an implementer left a note
+there, add to it under a heading for this triage; do not remove its content.
+
+## When a fix fails
+
+Do not try fixes at random. State one hypothesis about the cause, collect
+evidence that confirms or refutes it, make one change that follows from the
+confirmed cause, and verify. Undo a change whose hypothesis was refuted. After
+three materially different failed attempts at one finding, stop: record the
+attempts, the evidence, and the next recommended step in
+`.agents/handoffs/<issue-number>.md`, and report to the human.
+
 ## Manual steps
 
 When a fix adds, changes, or removes a step that only the human can do (a
@@ -53,6 +71,10 @@ Report:
 - checks performed
 - unresolved findings or risks
 
+Run `./scripts/verify.sh` after your last change. A pass is recorded for
+exactly the content it verified, and the script that follows reuses it; a
+change after the run costs another full run.
+
 `scripts/apply-triage.sh` is waiting for this session to end. Ask the human to
-exit the session; the script then checks the protected artifacts and runs the
-repository verification command.
+exit the session; the script then checks the protected artifacts and verifies
+the result, unless your run already verified exactly this content.
