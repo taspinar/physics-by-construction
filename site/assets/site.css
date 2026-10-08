@@ -165,7 +165,7 @@ main a > code:not(.sourceCode) {
 @media (max-width: 575.98px) {
   .widget-controls {
     /* On a phone the choices stack in one column and the readout wraps. */
-    min-height: 29rem;
+    min-height: 36rem;
   }
 }
 
