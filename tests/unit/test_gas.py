@@ -222,11 +222,20 @@ def test_collisions_turn_equal_speeds_into_the_maxwell_distribution(measurements
     assert error < 0.1  # the test can tell 2 from 1.2, the start, by a wide margin
 
 
+# The prediction 1 + 2 phi stops at the second virial coefficient, and the
+# fixed time step resolves collisions late, which lowers the measured
+# pressure a little (1.056 at dt = 0.002 s, 1.0605 at 0.001 s and below, for
+# a prediction of 1.063). Both are systematic and about 0.01 at most, so
+# more runs or other seeds do not make them go away; the tolerance allows
+# for them besides the statistical error of the runs.
+PRESSURE_MODEL_ERROR = 0.01
+
+
 def test_pressure_follows_the_gas_law_with_the_excluded_area(measurements):
     ratios = np.array([m.pressure / m.ideal_pressure for m in measurements])
     mean, error = mean_and_error(ratios)
     predicted = virial_correction(measurements[0].packing_fraction)
 
-    assert abs(mean - predicted) <= SIGMAS * error
-    # The correction is real: ideal points would be many standard errors off.
-    assert abs(mean - 1.0) > 2 * SIGMAS * error
+    assert abs(mean - predicted) <= SIGMAS * error + PRESSURE_MODEL_ERROR
+    # The correction is real: ideal points would be outside the tolerance.
+    assert abs(mean - 1.0) > SIGMAS * error + PRESSURE_MODEL_ERROR
