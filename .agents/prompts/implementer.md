@@ -46,17 +46,62 @@ Do not:
 If the implementation requires violating an ADR, materially changing architecture,
 or substantially expanding scope, stop and report the conflict.
 
+## Handoff note
+
+A session can end at any moment: a closed terminal, a usage limit, a crash. The
+next session starts without this conversation, so keep a short note that lets
+it continue: `.agents/handoffs/<issue-number>.md`. Write it when you have a
+plan for the work, and update it after each completed part, not only at the
+end. It is a working file that Git ignores.
+
+Keep it to what the repository does not already show:
+
+- **Done:** the parts that are complete and verified.
+- **In progress:** what you are working on now, and the next concrete step.
+- **Remaining:** what is left for the Issue's acceptance criteria.
+- **Tried and rejected:** approaches that failed, with the reason, so they are
+  not tried again.
+- **Open questions:** decisions you are waiting for from the human.
+
+When the Issue is complete, reduce the note to one line that says so.
+
+## When something fails
+
+Do not try fixes at random. For a failing check or unexpected behaviour:
+
+1. State one hypothesis about the cause.
+2. Collect evidence that confirms or refutes it: read the failing output
+   completely, reproduce the failure in the smallest way, inspect the code
+   path.
+3. Make one change that follows from the confirmed cause.
+4. Verify that the failure is gone and that nothing else broke.
+
+If the evidence refutes the hypothesis, undo what you changed for it before
+forming the next one. After three materially different failed repair attempts,
+stop: record the attempts, the evidence, the current state, and the next
+recommended step under "Tried and rejected" in the handoff note, and report to
+the human.
+
 ## Completion
 
 Before declaring the issue complete:
 
-1. Run `./scripts/verify.sh`.
-2. Inspect `git diff`.
-3. Verify every acceptance criterion in the GitHub Issue.
-4. Check for unrelated changes.
-5. Record compact verification evidence.
-6. Report unresolved issues or risks.
-7. Record the manual steps, as described below.
+1. Inspect `git diff`.
+2. Verify every acceptance criterion in the GitHub Issue.
+3. Check for unrelated changes.
+4. Record the manual steps, as described below.
+5. Finish every edit to a file that Git tracks, including the plan.
+6. Run `./scripts/verify.sh` as the last thing that touches the repository.
+7. Report the result, with compact verification evidence and unresolved
+   issues or risks, in your final message.
+
+The order of the last steps matters. A pass is recorded for exactly the
+content it verified, and the scripts that follow reuse it instead of running
+every check again. Any later change to a tracked file, also a note in the
+plan about the verification itself, makes the record stale and costs another
+full run. Evidence of the final run therefore belongs in your final message
+or in the handoff note, which Git ignores, not in a tracked file. While you
+work, run the single checks you need; the full run is for the end.
 
 A manual step is something only the human can do and without which the
 feature does not work after the merge: a repository or account setting, a
@@ -67,7 +112,6 @@ not create it when the feature needs no manual step. `scripts/finish-feature.sh`
 shows the steps to the human and records them in the commit and the pull
 request.
 
-Record the final commit/reference in the plan or handoff when applicable.
 
 Do not claim completion when verification fails.
 
