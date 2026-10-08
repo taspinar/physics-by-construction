@@ -148,3 +148,15 @@ def test_rendering_check_page_shows_code_output_figure_and_equations(
         "equations => equations.map(e => e.getBoundingClientRect().width)"
     )
     assert len(boxes) >= 4 and all(width > 0 for width in boxes)
+
+
+def test_the_built_site_makes_no_request_to_an_llm_provider(site_dir: Path):
+    """The site never calls an LLM (architecture, invariant I2)."""
+    hosts = ("api.openai.com", "api.anthropic.com", "generativelanguage.googleapis")
+    offenders = [
+        path.relative_to(site_dir).as_posix()
+        for path in site_dir.rglob("*")
+        if path.suffix in {".html", ".js", ".css", ".json"}
+        and any(host in path.read_text(errors="ignore") for host in hosts)
+    ]
+    assert not offenders, f"these files refer to an LLM provider: {offenders}"

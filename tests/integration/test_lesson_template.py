@@ -101,5 +101,11 @@ def test_lesson_made_from_the_template_builds_with_every_construct(
     assert f'href="../{previous}/index.html"' in header
     # Each entry of the path page links the lesson and its prerequisites.
     path_page = (built / "path/index.html").read_text()
-    links = ORDER + sum(len(lesson.prerequisites) for lesson in MECHANICS)
+    mechanics_ids = {lesson.id for lesson in MECHANICS}
+    links = ORDER + sum(
+        1
+        for lesson in LearningPath.read(SITE_SOURCE).lessons
+        for prerequisite in lesson.prerequisites
+        if prerequisite in mechanics_ids
+    )
     assert path_page.count('<a href="../lessons/mechanics/') == links
