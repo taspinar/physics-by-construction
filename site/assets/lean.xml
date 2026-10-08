@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language SYSTEM "language.dtd">
+<!--
+  Syntax definition for Lean 4 and Mathlib source files, in the Kate format
+  that Pandoc reads (Quarto: `syntax-definitions`). Pandoc ships none for
+  Lean.
+
+  Written for this project and published under its MIT licence (see
+  LICENSE). It colours tokens only: comments, strings, numbers, keywords,
+  tactics, and attributes. It knows nothing about types or names, which is why
+  the site shows no hover information.
+-->
+<language name="Lean 4" section="Sources" version="1" kateversion="5.0"
+          extensions="*.lean" mimetype="text/x-lean" casesensitive="1"
+          author="Physics by Construction" license="MIT">
+  <highlighting>
+    <list name="declarations">
+      <item>theorem</item>
+      <item>lemma</item>
+      <item>def</item>
+      <item>abbrev</item>
+      <item>instance</item>
+      <item>structure</item>
+      <item>class</item>
+      <item>inductive</item>
+      <item>example</item>
+      <item>axiom</item>
+      <item>opaque</item>
+      <item>noncomputable</item>
+      <item>private</item>
+      <item>protected</item>
+      <item>partial</item>
+      <item>unsafe</item>
+    </list>
+    <list name="commands">
+      <item>import</item>
+      <item>open</item>
+      <item>namespace</item>
+      <item>section</item>
+      <item>end</item>
+      <item>variable</item>
+      <item>universe</item>
+      <item>set_option</item>
+      <item>attribute</item>
+      <item>export</item>
+      <item>where</item>
+      <item>deriving</item>
+      <item>extends</item>
+    </list>
+    <list name="keywords">
+      <item>by</item>
+      <item>fun</item>
+      <item>λ</item>
+      <item>at</item>
+      <item>from</item>
+      <item>have</item>
+      <item>show</item>
+      <item>let</item>
+      <item>calc</item>
+      <item>match</item>
+      <item>with</item>
+      <item>do</item>
+      <item>if</item>
+      <item>then</item>
+      <item>else</item>
+      <item>in</item>
+      <item>using</item>
+      <item>termination_by</item>
+      <item>decreasing_by</item>
+    </list>
+    <list name="tactics">
+      <item>intro</item>
+      <item>intros</item>
+      <item>apply</item>
+      <item>exact</item>
+      <item>refine</item>
+      <item>rw</item>
+      <item>rewrite</item>
+      <item>simp</item>
+      <item>simp_all</item>
+      <item>simpa</item>
+      <item>norm_num</item>
+      <item>ring</item>
+      <item>ring_nf</item>
+      <item>field_simp</item>
+      <item>linarith</item>
+      <item>nlinarith</item>
+      <item>positivity</item>
+      <item>omega</item>
+      <item>subst</item>
+      <item>unfold</item>
+      <item>induction</item>
+      <item>cases</item>
+      <item>rcases</item>
+      <item>obtain</item>
+      <item>constructor</item>
+      <item>use</item>
+      <item>exact_mod_cast</item>
+      <item>push_cast</item>
+      <item>nth_rewrite</item>
+      <item>specialize</item>
+      <item>contradiction</item>
+      <item>rfl</item>
+      <item>trivial</item>
+      <item>decide</item>
+      <item>sorry</item>
+      <item>admit</item>
+    </list>
+    <list name="types">
+      <item>Type</item>
+      <item>Prop</item>
+      <item>Sort</item>
+      <item>Nat</item>
+      <item>Int</item>
+      <item>Rat</item>
+      <item>Real</item>
+      <item>Bool</item>
+    </list>
+    <contexts>
+      <context name="Normal" attribute="Normal Text" lineEndContext="#stay">
+        <Detect2Chars char="/" char1="-" attribute="Comment" context="BlockComment" beginRegion="Comment"/>
+        <Detect2Chars char="-" char1="-" attribute="Comment" context="LineComment"/>
+        <DetectChar char="&quot;" attribute="String" context="String"/>
+        <RegExpr String="'(\\.|[^\\'])'" attribute="Char"/>
+        <RegExpr String="@\[[^\]]*\]" attribute="Attribute"/>
+        <keyword String="declarations" attribute="Declaration" context="#stay"/>
+        <keyword String="commands" attribute="Command" context="#stay"/>
+        <keyword String="keywords" attribute="Keyword" context="#stay"/>
+        <keyword String="tactics" attribute="Tactic" context="#stay"/>
+        <keyword String="types" attribute="Data Type" context="#stay"/>
+        <RegExpr String="0[xX][0-9a-fA-F]+|0[bB][01]+|\d+(\.\d+)?([eE][+-]?\d+)?" attribute="Number"/>
+      </context>
+      <context name="LineComment" attribute="Comment" lineEndContext="#pop">
+      </context>
+      <context name="BlockComment" attribute="Comment" lineEndContext="#stay">
+        <Detect2Chars char="/" char1="-" attribute="Comment" context="BlockComment" beginRegion="Comment"/>
+        <Detect2Chars char="-" char1="/" attribute="Comment" context="#pop" endRegion="Comment"/>
+      </context>
+      <context name="String" attribute="String" lineEndContext="#stay">
+        <RegExpr String="\\." attribute="Escape"/>
+        <DetectChar char="&quot;" attribute="String" context="#pop"/>
+      </context>
+    </contexts>
+    <itemDatas>
+      <itemData name="Normal Text" defStyleNum="dsNormal"/>
+      <itemData name="Comment" defStyleNum="dsComment"/>
+      <itemData name="String" defStyleNum="dsString"/>
+      <itemData name="Char" defStyleNum="dsChar"/>
+      <itemData name="Escape" defStyleNum="dsSpecialChar"/>
+      <itemData name="Number" defStyleNum="dsDecVal"/>
+      <itemData name="Attribute" defStyleNum="dsAttribute"/>
+      <itemData name="Declaration" defStyleNum="dsKeyword"/>
+      <itemData name="Command" defStyleNum="dsImport"/>
+      <itemData name="Keyword" defStyleNum="dsControlFlow"/>
+      <itemData name="Tactic" defStyleNum="dsFunction"/>
+      <itemData name="Data Type" defStyleNum="dsDataType"/>
+    </itemDatas>
+  </highlighting>
+  <general>
+    <comments>
+      <comment name="singleLine" start="--"/>
+      <comment name="multiLine" start="/-" end="-/" region="Comment"/>
+    </comments>
+    <keywords casesensitive="1" weakDeliminator="_'" additionalDeliminator="₀₁₂₃₄₅₆₇₈₉"/>
+  </general>
+</language>

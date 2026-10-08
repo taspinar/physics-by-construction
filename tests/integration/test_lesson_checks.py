@@ -148,6 +148,7 @@ def all_checks(repository: Path) -> list[Violation]:
         *lesson_checks.check_sections(repository),
         *lesson_checks.check_path(repository),
         *lesson_checks.check_displayed_code(repository),
+        *lesson_checks.check_lean_modules(repository),
         *lesson_checks.check_figures(repository),
         *lesson_checks.check_committed_files(repository),
     ]
@@ -241,6 +242,47 @@ def test_lean_modules_of_the_project_are_accepted(make_repository: Repository):
     )
 
     assert lesson_checks.check_metadata(repository) == []
+
+
+def test_lean_modules_match_the_modules_the_page_shows(make_repository: Repository):
+    module = "PhysicsByConstruction.Mechanics.Kinematics"
+    front = f"  difficulty: 1\n  lean-modules: [{module}]\n"
+    shown = 'Introduction.\n\n`lean_excerpt("' + module + '", "x")`\n'
+    files = {"lean/PhysicsByConstruction/Mechanics/Kinematics.lean": "-- lean\n"}
+    change = {"  difficulty: 1\n": front, "Introduction.\n": shown}
+
+    assert lesson_checks.check_lean_modules(make_repository(change, files=files)) == []
+
+    # Listed, but the page shows nothing of it.
+    only_listed = make_repository({"  difficulty: 1\n": front}, files=files)
+    assert "does not show" in details(lesson_checks.check_lean_modules(only_listed))
+
+
+def test_lean_module_that_is_shown_but_not_listed_is_reported(
+    make_repository: Repository,
+):
+    shown = "Introduction.\n\n`PhysicsByConstruction.Mechanics.Kinematics`\n"
+    repository = make_repository({"Introduction.\n": shown})
+
+    violations = lesson_checks.check_lean_modules(repository)
+
+    assert rules(violations) == {"lean-module"}
+    assert "does not list" in details(violations)
+
+
+def test_lean_module_without_a_file_is_reported(make_repository: Repository):
+    module = "PhysicsByConstruction.Mechanics.Missing"
+    repository = make_repository(
+        {
+            "  difficulty: 1\n": f"  difficulty: 1\n  lean-modules: [{module}]\n",
+            "Introduction.\n": f"Introduction.\n\n`{module}`\n",
+        }
+    )
+
+    violations = lesson_checks.check_lean_modules(repository)
+
+    assert rules(violations) == {"lean-module"}
+    assert "does not exist" in details(violations)
 
 
 # --- Sections -----------------------------------------------------------------

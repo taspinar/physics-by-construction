@@ -744,10 +744,41 @@ _EXCERPTS = """
 """
 
 
+def _lean_region(repository: Path, name: str) -> str | None:
+    """Return the text between ``-- ANCHOR: <anchor>`` and
+    ``-- ANCHOR_END: <anchor>`` in the Lean module of ``<module>:<anchor>``,
+    or None when the file or the markers are missing.
+
+    Written out here and not imported from ``pbc``, so that the check does not
+    rely on the code that wrote the page.
+    """
+    module, _, anchor = name.partition(":")
+    file = repository / "lean" / Path(*module.split(".")).with_suffix(".lean")
+    if not file.is_file():
+        return None
+    lines = file.read_text(encoding="utf-8").splitlines()
+    start = [
+        i for i, line in enumerate(lines) if line.strip() == f"-- ANCHOR: {anchor}"
+    ]
+    end = [
+        i for i, line in enumerate(lines) if line.strip() == f"-- ANCHOR_END: {anchor}"
+    ]
+    if len(start) != 1 or len(end) != 1 or start[0] >= end[0]:
+        return None
+    return "\n".join(lines[start[0] + 1 : end[0]])
+
+
 def _source_of(repository: Path, name: str) -> str | None:
-    """Return the source text of ``<module>:<object>`` in ``src/``, read from
-    the file, or None when there is no such top-level function or class."""
+    """Return the source text of ``<module>:<object>``, read from the file, or
+    None when there is no such thing.
+
+    A module of ``pbc`` names a top-level function or class of ``src/``; a
+    module of ``PhysicsByConstruction`` names a region of a Lean file in
+    ``lean/``.
+    """
     module, _, target = name.partition(":")
+    if module.split(".")[0] == "PhysicsByConstruction":
+        return _lean_region(repository, name)
     file = repository / "src" / Path(*module.split(".")).with_suffix(".py")
     if module.split(".")[0] != "pbc" or not file.is_file():
         return None
@@ -766,7 +797,7 @@ def check_displayed_code(
     browser: Browser, server: SiteServer, site_dir: Path, repository: Path
 ) -> list[Violation]:
     """Every by-reference excerpt is textually identical to its source in
-    ``src/pbc`` of ``repository``, and no page shows a cell or an inline
+    ``src/pbc`` or ``lean/`` of ``repository``, and no page shows a cell or an inline
     expression that the build did not execute."""
     violations = []
     with _context(browser, server, lambda url: None, viewport=DESKTOP) as context:
@@ -784,7 +815,7 @@ def check_displayed_code(
                             "excerpt",
                             name,
                             f"{excerpt['source']} is not a function or class in"
-                            " src/pbc",
+                            " src/pbc, nor an anchored region of a file in lean/",
                         )
                     )
                 elif excerpt["text"].rstrip("\n") != source.rstrip("\n"):

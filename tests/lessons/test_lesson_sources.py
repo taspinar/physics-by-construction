@@ -40,6 +40,11 @@ def test_displayed_code_is_executed_or_marked_not_verified(repository: Path):
     assert not violations, describe(violations)
 
 
+def test_lean_modules_of_a_lesson_are_the_ones_it_shows(repository: Path):
+    violations = lesson_checks.check_lean_modules(repository)
+    assert not violations, describe(violations)
+
+
 def test_figures_are_drawn_by_cells_and_have_alt_text(repository: Path):
     violations = lesson_checks.check_figures(repository)
     assert not violations, describe(violations)
