@@ -488,13 +488,14 @@ Choices the requirements left to planning, and where they are settled:
 | Exact mechanics lesson list | Eight lessons | `docs/roadmap.md` |
 | Agent-based-modelling lesson in the MVP or after (unresolved question 4) | First follow-up after the MVP | `docs/roadmap.md`, F11 |
 | How agent lessons are verified without credentials in CI | Deterministic replay | ADR 004 |
+| Where content drafting agents run | The maintainer's machine; no LLM key in CI | ADR 006, `docs/content-proposals.md` |
 
 Unresolved questions that stay open, with the feature that must settle them:
 
 | Unresolved question | Settled when | Effect on the architecture |
 |---|---|---|
 | 1. Default LLM provider | F09 planning, by the human | None: the provider sits behind the client interface (ADR 004). |
-| 2. LLM credentials in CI for the content workflow | F12 planning, by the human | Until then I2 holds without exception. |
+| 2. LLM credentials in CI for the content workflow | Settled in F12 planning, by the human: no key in CI, drafting on the maintainer's machine (ADR 006) | None: I2 holds without exception. |
 | 3. Custom domain | F10, by the human, before public launch | None beyond I17. |
 
 ## Assumptions and risks

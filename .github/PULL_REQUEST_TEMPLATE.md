@@ -15,6 +15,10 @@ Closes #
 - [ ] Approved triage published on the feature Issue (link the comment):
 - [ ] Architecture/docs/ADR updated when required
 
+## Agent-drafted content
+- [ ] Not agent-drafted
+- [ ] Agent-drafted (provider, model, proposal Issue, and who reviewed it):
+
 ## Manual steps
 Steps only a human can do for this change to work after the merge, such as a repository setting or a secret. Write `None` when not applicable.
 
