@@ -1,0 +1,472 @@
+---
+title: "An agent runs an experiment"
+description: >-
+  A language model designs and runs an experiment on the projectile
+  simulation through a short, bounded list of tools, and CI checks the
+  recorded run by recomputing every tool result without a model or a key.
+lesson:
+  id: agent-experiment
+  strand: agents-llm
+  order: 1
+  difficulty: 2
+  prerequisites:
+    lessons: [projectile-with-drag]
+    outside:
+      - "Python: functions, dictionaries, and environment variables"
+      - "What a large language model is: a program that continues a text"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import lesson_header
+
+lesson_header()
+```
+
+In the mechanics lessons you chose every simulation yourself: the launch angle,
+the time step, the next run. This lesson hands those choices to a language
+model. The model reads a question, asks for simulations, reads their results,
+and decides what to ask next, until it believes it can answer. The program
+around the model is small, and this lesson builds all of it: a loop, a list of
+the functions the model may call, and a check on every call.
+
+What makes this safe to teach is what the model is **not** given. It cannot
+write or run code, open a file, start a program, or reach the network. It can
+only name one of two functions of this site's simulation library and give
+numbers within stated bounds. Everything else it says is text.
+
+What makes it checkable is a recording. A live model is not repeatable, needs
+a key, and costs money, so the site never calls one. The lesson shows a
+**recorded run**: the model's messages are replayed from a file in the
+repository, but every simulation the model asked for is run again by the build,
+and the page shows the new results. If the simulation changes, the build fails
+instead of showing numbers that no code produced.
+
+## Assumptions
+
+1. **The question has a checkable answer.** The agent looks for the launch
+   angle of the longest throw. The simulation of the projectile lesson can
+   answer that, and so can you. For a question without a way to check the
+   answer, an agent's confident conclusion would be worth nothing.
+2. **The model is untrusted.** Its output is data, whatever it says and
+   however it is worded. If the harness treated the output as something to
+   run, a wrong or manipulated answer would act on your machine. Here it can
+   only select a function from a list.
+3. **The allowlist bounds are the safety boundary.** A bound that is too wide
+   lets one call run for an hour or return nonsense: with a time step of
+   zero the simulation would never end. The bounds on the time step below are
+   there for that reason.
+4. **The step limit ends the run.** A model can keep asking forever. The loop
+   stops after a fixed number of messages whether or not the model is done.
+5. **A recording is a record, not a proof.** It shows what one model once
+   did with this question. It does not show what the model will do again, and
+   it does not show that the model's reasoning was sound. The numbers in it
+   are checked; the words are not.
+6. **The key stays on your machine.** The live run uses your own provider
+   key, read from an environment variable. Anything you commit or paste can
+   be copied, and a key that leaks can be used by others at your cost.
+
+## How the agent is built {#explanation}
+
+An agent here is three parts and a loop.
+
+1. A **model client** is the only part that knows a provider. Given the
+   conversation so far and a description of the tools, it returns the model's
+   next message: some text and zero or more tool calls.
+2. An **allowlist** is the list of tools. Each tool wraps one function of the
+   simulation library with named, numeric arguments and a lower and upper
+   bound for each.
+3. The **loop** asks the client for a message, checks each tool call against
+   the allowlist, runs the calls that pass, sends the results back, and
+   repeats. It stops when the model asks for no tool or when it has reached
+   the step limit.
+
+### What the agent may and may not do
+
+This is the complete list for this lesson.
+
+```{python}
+#| echo: false
+from pbc.agents.display import AllowlistDisplay
+from pbc.agents.projectile_lab import (
+    DRAG,
+    MASS,
+    MAX_STEPS,
+    TOLERANCE,
+    replay_fixture,
+    tools,
+)
+
+AllowlistDisplay(tools())
+```
+
+The agent **may**:
+
+- call `range_with_drag` and `range_without_drag`, with the arguments above;
+- make at most `{python} MAX_STEPS` model messages, and at most four tool
+  calls in one message;
+- write plain text as its answer.
+
+The agent **may not**, and the harness has no code that could let it:
+
+- run code the model wrote, or evaluate any text the model sent;
+- start a program or a shell command;
+- read or write a file;
+- open a network connection. The one network request of a live run is the
+  client's own call to the provider;
+- change the ball: its mass is `{python} f"{MASS * 1000:g}"` g and its drag
+  constant `{python} f"{DRAG:.3g}"` kg/m, fixed in the lesson code;
+- call a function that is not in the list, or call one with an argument
+  outside its bounds. Such a call is rejected without being executed, and the
+  model is told why.
+
+A boundary like this is only as good as its tests. The unit tests of the
+harness try tool names such as `os.system` and `eval`, numbers that are not
+finite, strings where a number belongs, extra arguments, and code in the place
+of a value. A test also reads the source of the harness and fails if it
+imports a module that starts programs or opens connections, or calls `eval`,
+`exec`, or `open`, outside the one module that reads and writes the replay
+fixture.
+
+### Keys
+
+A live run needs a key from the provider. The rules are the same for any
+provider:
+
+- Keep the key in an **environment variable of your shell**, here
+  `OPENAI_API_KEY`. Never put it in code, in a notebook, or in a file you
+  commit. The file `.env.example` in the repository lists the name and nothing
+  else.
+- The client reads the variable once, into an object that prints as
+  `[redacted]`. The loop removes the key from every message the model returns,
+  text and tool calls alike, before the message reaches a transcript, the
+  screen, or the next request, even if the model's own text repeats it. The
+  client removes it from error messages too. A test sets a key and checks the
+  returned transcript, the printed output, the log, the exception text, and
+  the saved recording.
+- Nothing on this site, and no workflow of the repository, holds a key. The
+  build never contacts a provider.
+
+### What changes in a live run
+
+The recorded run below is one run of one model. Your live run will differ:
+
+- **The path differs.** The model may try other angles in another order, ask
+  for other time steps, or take more or fewer steps. Language models do not
+  repeat themselves.
+- **The numbers do not differ for the same question.** If your run asks for the
+  range at 40 degrees with a time step of 0.002 s, it gets exactly the number
+  on this page, because the simulation is deterministic.
+- **The conclusion should agree** to the precision the question asks for, the
+  best angle to within a degree. If it does not, one of the runs is wrong, and
+  the numbers in the transcript let you find out which.
+
+## Code
+
+The model client interface is everything the harness knows about a provider.
+
+```{python}
+#| echo: false
+from pbc.agents.providers import load_client
+from pbc.agents.messages import ModelClient
+from pbc.agents.replay import replay
+from pbc.agents.loop import run
+from pbc.agents.tools import Allowlist, Tool
+from pbc.authoring import excerpt, reproduce_this
+
+excerpt(ModelClient)
+```
+
+A tool validates a call before anything runs. Arguments must be exactly the
+declared ones, each a finite number within its bounds.
+
+```{python}
+#| echo: false
+excerpt(Tool)
+```
+
+The allowlist is a dictionary: the name the model sends is looked up in it and
+nowhere else. A name that is not a key is rejected.
+
+```{python}
+#| echo: false
+excerpt(Allowlist)
+```
+
+The loop:
+
+```{python}
+#| echo: false
+excerpt(run)
+```
+
+### Switching provider
+
+The harness knows a provider by one value, `PROVIDER`, in
+`src/pbc/agents/providers.py`. To use another provider, write one module
+`src/pbc/agents/clients/<name>.py` with a function `make_client()` that returns
+an object of the shape above, and set `PROVIDER` to `"<name>"`. The OpenAI
+client in `src/pbc/agents/clients/openai.py` is the example to copy: it reads
+its own key variable, builds a request from the conversation, reads the
+response, and imports its SDK nowhere else. Nothing outside the client names
+its key variable, so the other provider's key is the only one you need. The
+replay client, the allowlist, and the tests do not change.
+
+```{python}
+#| echo: false
+excerpt(load_client)
+```
+
+### Replay
+
+The replay client returns the recorded messages. The function `replay` runs
+the loop with it, so every tool call goes through the allowlist and the
+simulation again, and then compares each recomputed result with the recorded
+one.
+
+```{python}
+#| echo: false
+excerpt(replay)
+```
+
+## Worked examples
+
+### The allowlist refuses what it should
+
+These calls are what a misbehaving or manipulated model might send. None of
+them reaches a simulation.
+
+```{python}
+from pbc.agents import ToolCall
+
+allowlist = tools()
+attempts = [
+    ToolCall("1", "range_with_drag", {"speed": 25, "angle": 40, "dt": 0.01}),
+    ToolCall("2", "os.system", {"command": "echo hello"}),
+    ToolCall("3", "range_with_drag", {"speed": 25, "angle": 40, "dt": 0.0}),
+    ToolCall("4", "range_with_drag", {"speed": 25, "angle": 40}),
+    ToolCall("5", "range_with_drag", {"speed": "25", "angle": 40, "dt": 0.01}),
+    ToolCall("6", "range_without_drag", {"speed": 25, "angle": 40, "code": "1+1"}),
+]
+for attempt in attempts:
+    result = allowlist.dispatch(attempt)
+    outcome = f"{result.content['range_m']:.3f} m" if result.ok else result.content["error"]
+    print(f"{attempt.name}({attempt.arguments}): {outcome}")
+```
+
+Only the first call ran. The others were turned away with a reason, which is
+also what the model reads in its next request.
+
+### A recorded run, replayed
+
+The cell below replays the committed recording. The model's messages are the
+recorded ones. Each tool result is computed by this build, now.
+
+```{python}
+from pbc.agents.display import RunDisplay
+
+recording, transcript = replay_fixture()
+RunDisplay(recording, transcript)
+```
+
+The messages come from `{python} recording.model`, recorded on
+`{python} recording.recorded`. A different model or a later date would write
+different messages.
+
+### The check that makes the page honest
+
+The replay compares every recomputed result with the recorded one and allows a
+relative difference of `{python} f"{TOLERANCE:g}"`. To see it work, change the
+simulation a little: here the drag constant is one per cent larger, as if the
+ball had been given a rougher surface, and the recording is replayed against
+that.
+
+```{python}
+from pbc.agents import Allowlist, ReplayMismatch, Tool
+from pbc.agents.projectile_lab import (
+    ANGLE,
+    MAX_STEPS,
+    SPEED,
+    SYSTEM,
+    TASK,
+    TIME_STEP,
+    replay_recording,
+)
+from pbc.mechanics.projectile import projectile_range
+
+original = tools()
+rough = Allowlist(
+    (
+        Tool(
+            "range_with_drag",
+            "rough ball",
+            (SPEED, ANGLE, TIME_STEP),
+            lambda speed, angle, dt: {
+                "range_m": projectile_range(speed, angle, MASS, 1.01 * DRAG, dt)
+            },
+        ),
+        original.tools[1],
+    )
+)
+
+try:
+    replay(
+        recording,
+        rough,
+        system=SYSTEM,
+        task=TASK,
+        tolerance=TOLERANCE,
+        max_steps=MAX_STEPS,
+        rerecord="uv run --extra openai python -m pbc.agents.projectile_lab --record",
+    )
+except ReplayMismatch as mismatch:
+    print(mismatch)
+```
+
+The build fails with that message. The maintainer then runs the agent live,
+looks at the new run, and commits the new recording. Nothing on the page can
+silently differ from what the code computes.
+
+### The agent's evidence
+
+The figure plots what the agent saw: the ranges the replay recomputed at the
+smallest time step the agent used, against the angle, and the curve a scan of
+the same simulation gives.
+
+```{python}
+#| label: fig-agent-evidence
+#| fig-cap: "Range of the ball against launch angle at 25 m/s. The curve is a fresh scan; the points are the ranges the agent asked for with a time step of 0.002 s or less, recomputed by this build."
+#| fig-alt: "A line chart of range in metres against launch angle in degrees. The curve rises from about 33 metres at 30 degrees to a flat maximum of about 35.7 metres near 40 degrees and falls to about 35.4 metres at 45 degrees. Dots mark the angles the agent tried, 40, 41 and 45 degrees, lying on the curve."
+import matplotlib.pyplot as plt
+import numpy as np
+
+fine = 0.002
+angles = np.arange(30.0, 50.5, 1.0)
+scan = [projectile_range(25.0, a, MASS, DRAG, fine) for a in angles]
+
+asked = {}
+for step in transcript.steps:
+    for call, result in zip(step.message.tool_calls, step.results, strict=True):
+        if result.ok and call.name == "range_with_drag" and call.arguments["dt"] <= fine:
+            asked[call.arguments["angle"]] = result.content["range_m"]
+
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+ax.plot(angles, scan, color="#00429d", label="scan, dt = 0.002 s")
+ax.plot(
+    list(asked), list(asked.values()), "o", color="#93003a", label="asked by the agent"
+)
+ax.set_xlabel("launch angle (degrees)")
+ax.set_ylabel("range (m)")
+ax.legend()
+plt.show()
+```
+
+The best angle in the scan is
+`{python} f"{angles[int(np.argmax(scan))]:.0f}"` degrees with a range of
+`{python} f"{max(scan):.2f}"` m, and the range at 45 degrees is
+`{python} f"{scan[15]:.2f}"` m. The agent's answer, in its last message, agrees
+to the precision it was asked for. Whether it reasoned well to get there is not
+something the build checks.
+
+### Run the agent yourself
+
+This needs your own key and costs a few cents. The build does not run it, so
+the commands are marked.
+
+::: {.not-verified}
+```bash
+# once: install the optional provider package
+uv sync --extra openai
+
+# in this shell only: the key stays out of code and files
+export OPENAI_API_KEY="..."
+
+uv run --extra openai python -m pbc.agents.projectile_lab
+```
+:::
+
+It prints each message and tool call as they happen. Never paste the key into
+a file, a notebook, or a command you will keep in a history that is shared. If
+a key ever appears in one, revoke it at the provider and make a new one.
+
+The maintainer records the replay fixture of this page from a live run with
+the same command and `--record`, reads the file, and commits it.
+
+## Exercises
+
+::: {.exercise}
+The time step is bounded below by 0.001 s. Call the simulation through the
+allowlist with the smallest allowed step and with the largest, at 40 degrees,
+and say how much the range changes. Why does the allowlist have a lower bound
+at all?
+
+::: {.solution}
+```{python}
+fine = allowlist.dispatch(
+    ToolCall("a", "range_with_drag", {"speed": 25, "angle": 40, "dt": 0.001})
+)
+coarse = allowlist.dispatch(
+    ToolCall("b", "range_with_drag", {"speed": 25, "angle": 40, "dt": 0.05})
+)
+print(f"dt = 0.001 s: {fine.content['range_m']:.3f} m")
+print(f"dt = 0.05 s:  {coarse.content['range_m']:.3f} m")
+print(f"difference: {coarse.content['range_m'] - fine.content['range_m']:.3f} m")
+```
+
+Explicit Euler has an error proportional to the step, so the largest step is
+visibly off, which is why the system prompt tells the model to check
+convergence. The lower bound is a cost limit: the number of steps grows as
+the step shrinks, and a step of zero would never finish. A bound on the cost
+of one call is part of the boundary, not only a bound on what it may touch.
+:::
+:::
+
+::: {.exercise}
+Add a third tool to the allowlist that returns the flight time of a throw
+without drag, for a speed and an angle within the same bounds as
+`range_without_drag`. Show that a call with an angle of 90 degrees is rejected
+and one with 60 degrees is not. The flight time is $2 v \sin\theta / g$.
+
+::: {.solution}
+```{python}
+from scipy.constants import g
+
+flight_time = Tool(
+    "flight_time_without_drag",
+    "Flight time in seconds of the same throw in vacuum.",
+    (SPEED, ANGLE),
+    lambda speed, angle: {
+        "time_s": float(2 * speed * np.sin(np.radians(angle)) / g)
+    },
+)
+extended = Allowlist((*tools().tools, flight_time))
+for angle in (90, 60):
+    result = extended.dispatch(
+        ToolCall("c", "flight_time_without_drag", {"speed": 25, "angle": angle})
+    )
+    print(angle, result.content)
+```
+
+The new tool inherits the bounds of the parameters it reuses, so the 90
+degree call is refused before the function runs. Nothing else about the loop
+or the replay changes; a lesson that uses the tool would record a new run.
+:::
+:::
+
+## Reproduce this
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/agents/tools.py",
+        "src/pbc/agents/loop.py",
+        "src/pbc/agents/replay.py",
+        "src/pbc/agents/projectile_lab.py",
+    ],
+    tests=[
+        "tests/unit/test_agents_tools.py",
+        "tests/unit/test_agents_replay.py",
+    ],
+)
+```

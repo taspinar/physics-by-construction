@@ -494,6 +494,69 @@ cannot be converted. Stay with standard LaTeX and `amsmath` constructs such
 as `aligned`, `\frac`, `\sum`, and `pmatrix`; do not define macros.
 `site/rendering-check.qmd` shows constructs that are known to work.
 
+## Agent lessons
+
+A lesson in the `agents-llm` strand shows an LLM agent running an experiment
+(ADR 004). The page never calls a model. It replays a recording, and the build
+recomputes every tool result. The first such lesson,
+`site/lessons/agents-llm/01-an-agent-runs-an-experiment/index.qmd`, is the
+example to copy.
+
+What a lesson of this kind has:
+
+- **An experiment module** in `src/pbc/agents/`, like `projectile_lab.py`: the
+  system prompt, the task, the step limit, the tolerance, the allowlist, and a
+  `main()` that runs it live. The allowlist wraps functions of `src/pbc` with
+  bounded numeric parameters (`pbc.agents.tools`). Choose the bounds to limit
+  the cost of one call as well as what it may touch.
+- **A plain statement on the page** of what the agent may and may not do
+  (`AllowlistDisplay` renders the table), what a learner should expect to
+  differ in a live run, and how to keep keys: in an environment variable of
+  the shell, never in code, notebooks, or committed files. The live commands
+  go in a `.not-verified` block.
+- **A replay fixture**, `replay.json` next to `index.qmd` (see "What is
+  committed"). The page replays it with `replay_fixture()` and shows it with
+  `RunDisplay`, which labels the model messages as recorded, with the model
+  and the date, and shows the recomputed tool results only.
+- **Tests** of the experiment's allowlist in `tests/unit`. The harness tests
+  of the boundary already cover every allowlist.
+
+Never put a credential in the lesson, the fixture, or a test. The harness
+removes the client's key from every model message before it is kept, printed,
+or saved, but the fixture is reviewed before it is committed. A fixture
+flagged `"placeholder": true` (written by hand, not recorded) may stand in
+while a lesson is developed; a check refuses it in the published lesson.
+
+### Re-record a transcript
+
+Re-record when the replay fails because a recomputed result differs from the
+recorded one beyond the tolerance, or because the task, the system prompt, or
+the allowlist changed. The failure message says so.
+
+1. Check that the change of the simulation is intended.
+2. Install the optional provider package and export your key in the shell,
+   not in a file:
+
+   ```bash
+   uv sync --extra openai
+   export OPENAI_API_KEY="..."
+   ```
+
+3. Run the agent and record it over the fixture:
+
+   ```bash
+   uv run --extra openai python -m pbc.agents.projectile_lab --record
+   ```
+
+4. Read `replay.json`. Check that it holds no credential, that the model and
+   the date are right, and that the agent's conclusion is correct. The page
+   shows the model's words as they are.
+5. Run `./scripts/verify.sh`, then commit the file.
+
+To use another provider, write one client module that reads its own key
+variable and change `PROVIDER` in `src/pbc/agents/providers.py`; the lesson
+page explains it. Only that provider's key is needed then.
+
 ## Third-party material
 
 Lesson text and figures are published under CC BY 4.0 and code under MIT
