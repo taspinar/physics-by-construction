@@ -1,6 +1,8 @@
 project:
   type: website
   output-dir: _site
+  # Puts the skip link before the navigation bar of every page.
+  post-render: skip-link.py
   # Files the pages do not link to in Markdown but the built site must
   # contain: the math font that site.css loads, and its licence, and the
   # widgets that lesson pages load as scripts.

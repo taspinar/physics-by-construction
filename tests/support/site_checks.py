@@ -20,8 +20,9 @@ from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
 
 from axe_playwright_python.sync_playwright import Axe
-from playwright.sync_api import Browser, BrowserContext, Page, Route
+from playwright.sync_api import Browser, BrowserContext, Page, Response, Route
 
+from pbc.authoring.design import CONTROL_CONTRAST, contrast_ratio
 from support.site_server import SiteServer
 
 DESKTOP = {"width": 1280, "height": 800}
@@ -530,15 +531,26 @@ def check_readable_without_javascript(
 
 
 # Runs in the page. Returns the width of the page, the width of the screen,
-# and the images that extend past the right edge of the screen. An image can
-# do that without widening the page, when a container clips it.
+# and the images, figures, and captions that extend past an edge of the
+# screen. They can do that without widening the page, when a container clips
+# them.
 _WIDTHS = """
 () => {
   const screen = document.documentElement.clientWidth;
+  const past = (element) => {
+    const box = element.getBoundingClientRect();
+    return box.right > screen + 1 || box.left < -1 || box.width > screen + 1;
+  };
   const images = [...document.images]
-    .filter((image) => image.getBoundingClientRect().right > screen + 1)
+    .filter(past)
     .map((image) => image.getAttribute("src"));
-  return [document.documentElement.scrollWidth, screen, images];
+  const figures = [...document.querySelectorAll("figure, figcaption")]
+    .filter(past)
+    .map((element) => {
+      const text = element.textContent.trim().slice(0, 40);
+      return `${element.tagName.toLowerCase()} "${text}"`;
+    });
+  return [document.documentElement.scrollWidth, screen, images, figures];
 }
 """
 
@@ -547,7 +559,7 @@ def check_no_horizontal_scroll(
     browser: Browser, server: SiteServer, site_dir: Path
 ) -> list[Violation]:
     """At phone, tablet, and desktop width the page is not wider than the
-    screen and every image fits on it, with and without scripts."""
+    screen and every image, figure, and caption fits on it, with and without scripts."""
     violations = []
     for javascript, viewport in itertools.product(
         (True, False), (PHONE, TABLET, DESKTOP)
@@ -562,7 +574,7 @@ def check_no_horizontal_scroll(
         ) as context:
             for name, url in _urls(site_dir, server):
                 page = _open(context, url)
-                content, screen, images = page.evaluate(_WIDTHS)
+                content, screen, images, figures = page.evaluate(_WIDTHS)
                 if content > screen:
                     violations.append(
                         Violation(
@@ -579,6 +591,15 @@ def check_no_horizontal_scroll(
                         f"{image} extends past a {screen}px screen ({scripts} scripts)",
                     )
                     for image in images
+                ]
+                violations += [
+                    Violation(
+                        "figure-overflow",
+                        name,
+                        f"{figure} extends past a {screen}px screen"
+                        f" ({scripts} scripts)",
+                    )
+                    for figure in figures
                 ]
                 page.close()
     return violations
@@ -650,6 +671,197 @@ def check_navigation_fits(
                 ]
                 page.close()
     return violations
+
+
+# Runs in the page after the first Tab. Describes the focused element: what it
+# is, where it is on the screen, and how its focus ring is drawn.
+_FOCUSED = """
+() => {
+  const element = document.activeElement;
+  if (!element || element === document.body) return null;
+  const style = getComputedStyle(element);
+  const box = element.getBoundingClientRect();
+  const colourOf = (candidate) => {
+    for (let node = candidate; node; node = node.parentElement) {
+      const colour = getComputedStyle(node).backgroundColor;
+      if (colour !== "rgba(0, 0, 0, 0)" && colour !== "transparent") return colour;
+    }
+    return "rgb(255, 255, 255)";
+  };
+  return {
+    text: element.textContent.trim(),
+    skipLink: element.classList.contains("skip-link"),
+    inNavigation: element.closest(".navbar") !== null,
+    inMain: element.closest("main") !== null,
+    box: [box.left, box.top, box.right, box.bottom],
+    width: [window.innerWidth, window.innerHeight],
+    outlineStyle: style.outlineStyle,
+    outlineWidth: parseFloat(style.outlineWidth),
+    outlineColour: style.outlineColor,
+    background: colourOf(element),
+  };
+}
+"""
+
+_RGB = re.compile(r"rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)")
+
+
+def _hex(colour: str) -> str:
+    red, green, blue = (round(float(part)) for part in _RGB.match(colour).groups())
+    return f"#{red:02x}{green:02x}{blue:02x}"
+
+
+def _focus_ring_problem(focused: dict) -> str | None:
+    """Why the focus ring of an element is not visible enough, if it is not:
+    a ring at least two pixels wide with 3:1 against what is behind it
+    (WCAG 2.2, 2.4.13)."""
+    if focused["outlineStyle"] in ("none", "hidden") or focused["outlineWidth"] < 2:
+        return "has no focus ring of two pixels or more"
+    ratio = contrast_ratio(_hex(focused["outlineColour"]), _hex(focused["background"]))
+    if ratio < CONTROL_CONTRAST:
+        return f"has a focus ring with a contrast of {ratio:.2f}:1"
+    return None
+
+
+def check_keyboard_navigation(
+    browser: Browser, server: SiteServer, site_dir: Path
+) -> list[Violation]:
+    """The keyboard pass of the accessibility audit, on every page: the first
+    Tab reaches a skip link that is on the screen and has a visible focus ring,
+    Enter on it moves to the content, and every entry of the navigation bar
+    shows a focus ring that passes WCAG 2.2's focus appearance contrast."""
+    violations = []
+    for viewport in (DESKTOP, PHONE):
+        with _context(browser, server, lambda url: None, viewport=viewport) as context:
+            for name, url in _urls(site_dir, server):
+                where = f"{viewport['width']}px wide"
+                page = _open(context, url)
+                page.keyboard.press("Tab")
+                focused = page.evaluate(_FOCUSED)
+                if not focused or not focused["skipLink"]:
+                    violations.append(
+                        Violation(
+                            "skip-link", name, f"is not the first tab stop ({where})"
+                        )
+                    )
+                    page.close()
+                    continue
+                left, top, right, bottom = focused["box"]
+                width, height = focused["width"]
+                if left < 0 or top < 0 or right > width or bottom > height:
+                    violations.append(
+                        Violation("skip-link", name, f"is off the screen ({where})")
+                    )
+                if problem := _focus_ring_problem(focused):
+                    violations.append(
+                        Violation("skip-link", name, f"{problem} ({where})")
+                    )
+                page.keyboard.press("Enter")
+                if not page.evaluate("location.hash").endswith(
+                    "#quarto-document-content"
+                ):
+                    violations.append(
+                        Violation(
+                            "skip-link", name, f"does not lead to the content ({where})"
+                        )
+                    )
+                if not page.evaluate(
+                    "document.getElementById('quarto-document-content') !== null"
+                ):
+                    violations.append(
+                        Violation("skip-link", name, f"has no target ({where})")
+                    )
+                if not page.evaluate(
+                    "document.activeElement.id === 'quarto-document-content'"
+                ):
+                    violations.append(
+                        Violation(
+                            "skip-link",
+                            name,
+                            f"does not move keyboard focus to the content ({where})",
+                        )
+                    )
+                page.keyboard.press("Tab")
+                after = page.evaluate(_FOCUSED)
+                if after and (after["inNavigation"] or after["skipLink"]):
+                    violations.append(
+                        Violation(
+                            "skip-link",
+                            name,
+                            f"is followed by the navigation on the next Tab ({where})",
+                        )
+                    )
+                page.close()
+
+                page = _open(context, url)
+                entries = 0
+                for _ in range(40):
+                    page.keyboard.press("Tab")
+                    focused = page.evaluate(_FOCUSED)
+                    if not focused or focused["inMain"]:
+                        break
+                    if not focused["inNavigation"]:
+                        continue
+                    entries += 1
+                    if problem := _focus_ring_problem(focused):
+                        violations.append(
+                            Violation(
+                                "navigation-focus",
+                                name,
+                                f"the entry {focused['text']!r} {problem} ({where})",
+                            )
+                        )
+                if entries < 5:
+                    violations.append(
+                        Violation(
+                            "navigation-focus",
+                            name,
+                            f"only {entries} navigation entries took focus ({where})",
+                        )
+                    )
+                page.close()
+    return violations
+
+
+# --- Page payload ------------------------------------------------------------
+
+# The initial payload of a page: HTML, style sheets, fonts, static figures,
+# scripts, and the data of an embedded widget (docs/architecture.md, "Budgets").
+PAYLOAD_BUDGET = 1_500_000
+
+
+def measure_payloads(
+    browser: Browser, server: SiteServer, site_dir: Path
+) -> dict[str, int]:
+    """The bytes every page transfers when it loads, by page. The test server
+    sends files as they are, so this is the uncompressed size, which is the
+    upper bound of what a compressing host transfers."""
+    sizes = {}
+    with _context(browser, server, lambda url: None, viewport=DESKTOP) as context:
+        for name, url in _urls(site_dir, server):
+            total = 0
+
+            def count(response: Response) -> None:
+                nonlocal total
+                if response.status < 400:
+                    total += len(response.body())
+
+            page = context.new_page()
+            page.on("response", count)
+            page.goto(url, wait_until="networkidle")
+            page.close()
+            sizes[name] = total
+    return sizes
+
+
+def check_payload(
+    sizes: dict[str, int], budget: int = PAYLOAD_BUDGET
+) -> list[Violation]:
+    return [
+        Violation("payload", name, f"transfers {size:,} bytes, over {budget:,}")
+        for name, size in sizes.items()
+        if size > budget
+    ]
 
 
 # --- Lesson constructs -------------------------------------------------------

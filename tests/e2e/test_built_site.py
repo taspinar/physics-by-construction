@@ -18,6 +18,8 @@ from support.site_server import (
     configured_site_url,
 )
 
+from pbc.authoring import design
+
 
 def test_navigation_entries_stay_on_a_phone_screen(
     browser: Browser, server: SiteServer, site_dir: Path
@@ -61,7 +63,7 @@ def test_pages_are_readable_without_javascript(
     assert not violations, describe(violations)
 
 
-def test_pages_do_not_scroll_sideways_at_phone_width(
+def test_pages_and_figures_fit_phone_tablet_and_desktop_width(
     browser: Browser, server: SiteServer, site_dir: Path
 ):
     violations = site_checks.check_no_horizontal_scroll(browser, server, site_dir)
@@ -72,6 +74,25 @@ def test_wcag_scan_finds_no_violation(
     browser: Browser, server: SiteServer, site_dir: Path
 ):
     violations = site_checks.check_accessibility(browser, server, site_dir)
+    assert not violations, describe(violations)
+
+
+def test_skip_link_and_navigation_focus_pass_the_keyboard_pass(
+    browser: Browser, server: SiteServer, site_dir: Path
+):
+    violations = site_checks.check_keyboard_navigation(browser, server, site_dir)
+    assert not violations, describe(violations)
+
+
+def test_every_page_loads_within_the_payload_budget(
+    browser: Browser, server: SiteServer, site_dir: Path, capsys: pytest.CaptureFixture
+):
+    sizes = site_checks.measure_payloads(browser, server, site_dir)
+    with capsys.disabled():
+        print("\nInitial payload by page (bytes):")
+        for name, size in sorted(sizes.items()):
+            print(f"  {size:>10,}  {name}")
+    violations = site_checks.check_payload(sizes)
     assert not violations, describe(violations)
 
 
@@ -160,3 +181,52 @@ def test_the_built_site_makes_no_request_to_an_llm_provider(site_dir: Path):
         and any(host in path.read_text(errors="ignore") for host in hosts)
     ]
     assert not offenders, f"these files refer to an LLM provider: {offenders}"
+
+
+def test_sample_page_renders_every_design_component_with_its_colours(
+    browser: Browser, server: SiteServer
+):
+    """Runs in the engine chosen with --engine, so that the sample page can be
+    checked in Chromium, Firefox, and WebKit."""
+    context = browser.new_context(viewport=DESKTOP)
+    page = context.new_page()
+    page.goto(server.url + "rendering-check.html", wait_until="load")
+
+    for selector in (
+        ".learn-box",
+        ".assumptions",
+        "div.claim",
+        ".result-table table",
+        ".annotated-excerpt ol",
+        ".go-deeper",
+        ".exercise.self-check",
+        "details.hint",
+        ".path-cards .path-card",
+        ".prerequisite-graph",
+        ".footer-attribution",
+        "figcaption .figure-status",
+    ):
+        assert page.locator(selector).first.is_visible(), selector
+
+    def colours(selector: str) -> tuple[str, str]:
+        return tuple(
+            page.locator(selector).first.evaluate(
+                f"e => getComputedStyle(e).{property}"
+            )
+            for property in ("color", "backgroundColor")
+        )
+
+    def rgb(colour: str) -> str:
+        red, green, blue = (int(colour[i : i + 2], 16) for i in (1, 3, 5))
+        return f"rgb({red}, {green}, {blue})"
+
+    for kind, selector, labels in (
+        ("claim", "span.claim[data-type='{}']", design.CLAIM_LABELS),
+        ("status", ".figure-status[data-status='{}']", design.STATUS_LABELS),
+    ):
+        for name, label in labels.items():
+            assert colours(selector.format(name)) == (
+                rgb(label.foreground),
+                rgb(label.background),
+            ), f"{kind} {name}"
+    context.close()

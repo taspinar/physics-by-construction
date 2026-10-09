@@ -5,6 +5,11 @@ page shows is read from the repository when the page is built and cannot
 drift from it (ADR 002). ``docs/authoring.md`` describes their use.
 """
 
+from pbc.authoring.design import (
+    CLAIM_TYPES,
+    FIGURE_COLOURS,
+    FIGURE_STATUSES,
+)
 from pbc.authoring.excerpt import Excerpt, excerpt
 from pbc.authoring.lean import LeanEvidence, LeanExcerpt, lean_evidence, lean_excerpt
 from pbc.authoring.path import (
@@ -21,7 +26,10 @@ from pbc.authoring.reproduce import Reproduction, reproduce_this
 from pbc.authoring.widgets import WidgetScript, widget_data, widget_module
 
 __all__ = [
+    "CLAIM_TYPES",
     "DIFFICULTIES",
+    "FIGURE_COLOURS",
+    "FIGURE_STATUSES",
     "STRANDS",
     "BuildCommit",
     "Excerpt",

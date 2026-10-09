@@ -1,3 +1,65 @@
+/* Design tokens (docs/authoring.md, "Visual design"). The colours are the
+   values of src/pbc/authoring/design.py; a unit test compares them and checks
+   the contrast of every pair that sets text or a control. Type and spacing
+   are defined here only. */
+:root {
+  --pbc-text: #1f2328;
+  --pbc-background: #ffffff;
+  --pbc-muted: #57606a;
+  --pbc-link: #0a58ca;
+  --pbc-rule: #767676;
+  --pbc-surface: #f6f8fa;
+  --pbc-focus: #00429d;
+  --pbc-warning: #7a4100;
+  --pbc-warning-surface: #fff8e6;
+  --pbc-navbar: #517699;
+  --pbc-navbar-text: #ffffff;
+  --pbc-claim-observational-fg: #0b4f6c;
+  --pbc-claim-observational-bg: #e3f1f7;
+  --pbc-claim-experimentally-supported-fg: #5b2a86;
+  --pbc-claim-experimentally-supported-bg: #efe6f6;
+  --pbc-claim-numerically-verified-fg: #00429d;
+  --pbc-claim-numerically-verified-bg: #e6edf8;
+  --pbc-claim-formal-theorem-fg: #1d5c2e;
+  --pbc-claim-formal-theorem-bg: #e5f2e8;
+  --pbc-status-measured-fg: #7a2e00;
+  --pbc-status-measured-bg: #fdebdc;
+  --pbc-status-calibrated-fg: #6a4a00;
+  --pbc-status-calibrated-bg: #fbf1d3;
+  --pbc-status-processed-fg: #3b4252;
+  --pbc-status-processed-bg: #eaecf0;
+  --pbc-status-simulated-fg: #00429d;
+  --pbc-status-simulated-bg: #e6edf8;
+  --pbc-status-conceptual-fg: #5a2a5a;
+  --pbc-status-conceptual-bg: #f3e8f3;
+  --pbc-figure-1: #00429d;
+  --pbc-figure-2: #93003a;
+  --pbc-figure-3: #555555;
+  --pbc-figure-4: #8a5a00;
+  --pbc-figure-5: #006b5c;
+  --pbc-figure-6: #6a3d9a;
+
+  /* Type scale (a ratio of 1.25 from the base size) and the line heights. */
+  --pbc-text-small: 0.875rem;
+  --pbc-text-base: 1rem;
+  --pbc-text-large: 1.25rem;
+  --pbc-heading-3: 1.25rem;
+  --pbc-heading-2: 1.5rem;
+  --pbc-heading-1: 2rem;
+  --pbc-leading-tight: 1.25;
+  --pbc-leading-body: 1.6;
+
+  /* Spacing scale. */
+  --pbc-space-1: 0.25rem;
+  --pbc-space-2: 0.5rem;
+  --pbc-space-3: 1rem;
+  --pbc-space-4: 1.5rem;
+  --pbc-space-5: 2.5rem;
+
+  --pbc-radius: 0.25rem;
+  --pbc-focus-width: 3px;
+}
+
 /* Self-hosted math font, so equations look the same in every browser and no
    font is requested from another origin. Source and licence: fonts/README.md. */
 @font-face {
@@ -51,13 +113,13 @@ main img {
 div.not-verified {
   margin: 1rem 0;
   padding: 0.5rem 1rem;
-  border: 1px solid #7a4100;
+  border: 1px solid var(--pbc-warning);
   border-left-width: 0.375rem;
-  background: #fff8e6;
+  background: var(--pbc-warning-surface);
 }
 
 .not-verified-label {
-  color: #7a4100;
+  color: var(--pbc-warning);
 }
 
 div.not-verified-label p {
@@ -65,7 +127,7 @@ div.not-verified-label p {
 }
 
 span.not-verified {
-  border-bottom: 1px dashed #7a4100;
+  border-bottom: 1px dashed var(--pbc-warning);
 }
 
 span.not-verified-label {
@@ -81,7 +143,7 @@ span.not-verified-label {
 .lesson-header {
   margin: 0 0 1.5rem;
   padding: 0.75rem 1rem;
-  border: 1px solid #c6cbd1;
+  border: 1px solid var(--pbc-rule);
   border-radius: 0.25rem;
 }
 
@@ -124,7 +186,7 @@ span.not-verified-label {
 .exercise {
   margin: 1.5rem 0;
   padding-left: 1rem;
-  border-left: 0.25rem solid #00429d;
+  border-left: 0.25rem solid var(--pbc-focus);
 }
 
 details.solution {
@@ -156,7 +218,7 @@ main a > code:not(.sourceCode) {
 .lean-evidence {
   margin: 1rem 0 1.5rem;
   padding: 0.75rem 1rem;
-  border: 1px solid #767676;
+  border: 1px solid var(--pbc-rule);
   border-radius: 0.25rem;
   font-size: 0.9375em;
 }
@@ -258,10 +320,387 @@ main a > code:not(.sourceCode) {
 }
 
 .widget-panel :focus-visible {
-  outline: 3px solid #00429d;
+  outline: 3px solid var(--pbc-focus);
   outline-offset: 2px;
 }
 
 .widget-panel output {
   font-family: inherit;
+}
+
+/* Page chrome ------------------------------------------------------------ */
+
+body {
+  color: var(--pbc-text);
+  line-height: var(--pbc-leading-body);
+}
+
+main a:not(.btn) {
+  color: var(--pbc-link);
+}
+
+/* Heading hierarchy: three clear steps, each closer to the body size. */
+main h1,
+main h2,
+main h3,
+main h4 {
+  line-height: var(--pbc-leading-tight);
+  overflow-wrap: break-word;
+}
+
+main h1.title {
+  font-size: var(--pbc-heading-1);
+}
+
+main h2 {
+  margin-top: var(--pbc-space-5);
+  padding-bottom: var(--pbc-space-1);
+  border-bottom: 1px solid var(--pbc-rule);
+  font-size: var(--pbc-heading-2);
+}
+
+main h3 {
+  margin-top: var(--pbc-space-4);
+  font-size: var(--pbc-heading-3);
+}
+
+main h4 {
+  margin-top: var(--pbc-space-4);
+  font-size: var(--pbc-text-base);
+  font-weight: 700;
+}
+
+.text-muted,
+main .quarto-title-meta,
+.page-footer {
+  color: var(--pbc-muted);
+}
+
+/* The theme's navigation colour, stated so that the contrast of its text and
+   its focus ring is tested against it (src/pbc/authoring/design.py). */
+.navbar {
+  background-color: var(--pbc-navbar);
+}
+
+.navbar .navbar-nav .nav-link,
+.navbar .navbar-brand {
+  color: var(--pbc-navbar-text);
+}
+
+/* The theme's focus ring on the navigation is a pale blue shadow at a quarter
+   of its strength: on this bar it has a contrast of about 1.2:1. A white ring
+   of three pixels has 4.8:1 against the bar (WCAG 2.2, 2.4.13). */
+.navbar a:focus-visible {
+  outline: var(--pbc-focus-width) solid var(--pbc-navbar-text);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* Everywhere else a focused control gets the same ring in the focus colour. */
+main a:focus-visible,
+main summary:focus-visible,
+main [tabindex="0"]:focus-visible,
+main input:focus-visible,
+main button:focus-visible,
+.page-footer a:focus-visible,
+.skip-link:focus-visible {
+  outline: var(--pbc-focus-width) solid var(--pbc-focus);
+  outline-offset: 2px;
+}
+
+/* Skip link: the first stop of the keyboard, off the screen until focused.
+   It sits above the fixed navigation bar. */
+#quarto-document-content:focus {
+  outline: none;
+}
+
+.skip-link {
+  position: absolute;
+  top: var(--pbc-space-2);
+  left: var(--pbc-space-2);
+  z-index: 2000;
+  padding: var(--pbc-space-2) var(--pbc-space-3);
+  border-radius: var(--pbc-radius);
+  background: var(--pbc-background);
+  color: var(--pbc-link);
+  font-weight: 600;
+  transform: translateY(-300%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* Footer attribution slot (F57): one discreet line under the licences. */
+.footer-attribution {
+  margin: var(--pbc-space-2) 0 0;
+  color: var(--pbc-muted);
+  font-size: var(--pbc-text-small);
+  text-align: center;
+}
+
+/* Lesson components ------------------------------------------------------ */
+
+/* "What you'll learn" and the assumptions list: a plain list in a framed
+   box with a short heading, so that both read as part of the lesson. */
+.learn-box,
+.assumptions {
+  margin: var(--pbc-space-3) 0;
+  padding: var(--pbc-space-3);
+  border: 1px solid var(--pbc-rule);
+  border-radius: var(--pbc-radius);
+  background: var(--pbc-surface);
+}
+
+.learn-box > :first-child,
+.assumptions > :first-child {
+  margin-top: 0;
+}
+
+.learn-box > :last-child,
+.assumptions > :last-child {
+  margin-bottom: 0;
+}
+
+.assumptions {
+  border-left-width: 0.375rem;
+}
+
+/* Claim labels. The label is words in the page; the colours only support
+   them, and each type has its own text, so no meaning depends on colour. */
+.claim {
+  padding: 0.0625rem 0.375rem;
+  border-radius: var(--pbc-radius);
+  font-size: var(--pbc-text-small);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+div.claim {
+  display: block;
+  margin: var(--pbc-space-3) 0;
+  padding: var(--pbc-space-2) var(--pbc-space-3);
+  border-left: 0.375rem solid currentcolor;
+  border-radius: 0;
+  font-size: inherit;
+  font-weight: normal;
+  white-space: normal;
+}
+
+.claim[data-type="observational"] {
+  background: var(--pbc-claim-observational-bg);
+  color: var(--pbc-claim-observational-fg);
+}
+
+.claim[data-type="experimentally-supported"] {
+  background: var(--pbc-claim-experimentally-supported-bg);
+  color: var(--pbc-claim-experimentally-supported-fg);
+}
+
+.claim[data-type="numerically-verified"] {
+  background: var(--pbc-claim-numerically-verified-bg);
+  color: var(--pbc-claim-numerically-verified-fg);
+}
+
+.claim[data-type="formal-theorem"] {
+  background: var(--pbc-claim-formal-theorem-bg);
+  color: var(--pbc-claim-formal-theorem-fg);
+}
+
+/* Figures: the image scales (main img above); the caption sits close under
+   it, and the status label opens the caption. */
+main figure {
+  margin: var(--pbc-space-4) 0;
+}
+
+main figcaption {
+  margin-top: var(--pbc-space-2);
+  color: var(--pbc-text);
+  font-size: var(--pbc-text-small);
+}
+
+.figure-status {
+  display: inline-block;
+  margin-right: var(--pbc-space-2);
+  padding: 0 0.375rem;
+  border-radius: var(--pbc-radius);
+  font-size: var(--pbc-text-small);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.figure-status[data-status="measured"] {
+  background: var(--pbc-status-measured-bg);
+  color: var(--pbc-status-measured-fg);
+}
+
+.figure-status[data-status="calibrated"] {
+  background: var(--pbc-status-calibrated-bg);
+  color: var(--pbc-status-calibrated-fg);
+}
+
+.figure-status[data-status="processed"] {
+  background: var(--pbc-status-processed-bg);
+  color: var(--pbc-status-processed-fg);
+}
+
+.figure-status[data-status="simulated"] {
+  background: var(--pbc-status-simulated-bg);
+  color: var(--pbc-status-simulated-fg);
+}
+
+.figure-status[data-status="conceptual"] {
+  background: var(--pbc-status-conceptual-bg);
+  color: var(--pbc-status-conceptual-fg);
+}
+
+/* Semantic result tables (F36): a table with a caption, units in the column
+   headings, and numbers aligned on their digits. The wrapper scrolls inside
+   itself on a narrow screen and is focusable, as a display equation is. */
+.result-table {
+  max-width: 100%;
+  margin: var(--pbc-space-3) 0;
+  overflow-x: auto;
+}
+
+.result-table table {
+  width: auto;
+  min-width: 100%;
+  border-collapse: collapse;
+}
+
+.result-table caption {
+  padding: 0 0 var(--pbc-space-2);
+  caption-side: top;
+  color: var(--pbc-text);
+  font-weight: 600;
+  text-align: left;
+}
+
+.result-table th,
+.result-table td {
+  padding: var(--pbc-space-1) var(--pbc-space-3);
+  border-bottom: 1px solid var(--pbc-rule);
+}
+
+.result-table th {
+  text-align: left;
+  font-weight: 600;
+}
+
+.result-table td {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.result-table tbody th {
+  font-weight: normal;
+}
+
+/* Annotated excerpts (F35): the listing, then the numbered notes that refer
+   to its lines. */
+.annotated-excerpt {
+  margin: var(--pbc-space-3) 0;
+}
+
+.annotated-excerpt > ol {
+  margin: var(--pbc-space-2) 0 0;
+  padding-left: var(--pbc-space-4);
+  font-size: var(--pbc-text-small);
+}
+
+.annotated-excerpt > ol > li + li {
+  margin-top: var(--pbc-space-1);
+}
+
+/* "Go deeper": optional reading, set off from the core text by a dashed
+   frame, so that it is plain what a reader may skip. */
+.go-deeper {
+  margin: var(--pbc-space-4) 0;
+  padding: var(--pbc-space-3);
+  border: 1px dashed var(--pbc-rule);
+  border-radius: var(--pbc-radius);
+}
+
+.go-deeper > :first-child {
+  margin-top: 0;
+}
+
+.go-deeper > :last-child {
+  margin-bottom: 0;
+}
+
+.go-deeper li {
+  overflow-wrap: anywhere;
+}
+
+/* Self-check and hint steps: the exercise bar, with a hint opening in the
+   same way as a solution. */
+.exercise.self-check {
+  padding: var(--pbc-space-2) var(--pbc-space-3);
+  border-left-color: var(--pbc-claim-numerically-verified-fg);
+  background: var(--pbc-surface);
+}
+
+details.hint {
+  margin: var(--pbc-space-2) 0;
+  padding-left: var(--pbc-space-3);
+  border-left: 0.25rem solid var(--pbc-rule);
+}
+
+details.hint > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+details.hint[open] > summary {
+  margin-bottom: var(--pbc-space-2);
+}
+
+/* Path cards (F27): a grid of lesson cards that goes from one column on a
+   phone to as many as fit. */
+.path-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: var(--pbc-space-3);
+  margin: var(--pbc-space-3) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.path-card {
+  padding: var(--pbc-space-3);
+  border: 1px solid var(--pbc-rule);
+  border-radius: var(--pbc-radius);
+}
+
+.path-card > :first-child {
+  margin-top: 0;
+}
+
+.path-card > :last-child {
+  margin-bottom: 0;
+}
+
+.path-card .path-card-meta {
+  color: var(--pbc-muted);
+  font-size: var(--pbc-text-small);
+}
+
+/* The prerequisite graph (F26): the drawing scrolls inside its own box. The
+   box is focusable, so the keyboard can scroll it. */
+.prerequisite-graph {
+  max-width: 100%;
+  margin: var(--pbc-space-3) 0;
+  padding: var(--pbc-space-2);
+  overflow: auto;
+  border: 1px solid var(--pbc-rule);
+  border-radius: var(--pbc-radius);
+}
+
+/* The theme sets the summary of a closed <details> in a muted grey, which
+   has too little contrast on the surface colour. */
+main details > summary {
+  color: var(--pbc-text);
 }

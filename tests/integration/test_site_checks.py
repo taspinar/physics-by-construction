@@ -331,6 +331,30 @@ def test_image_cut_off_at_phone_width_is_reported(make_site: Site, browser: Brow
     assert rules(violations) == {"image-overflow"}
 
 
+def test_figure_or_caption_cut_off_while_its_image_fits_is_reported(
+    make_site: Site, browser: Browser
+):
+    # The container clips both, so the page does not scroll, and each image
+    # sits inside the screen.
+    site = make_site(
+        body='<div style="overflow: hidden">'
+        '<figure style="width: 900px; margin: 0">'
+        '<img src="pixel.png" alt="A small image" width="100" height="10">'
+        "<figcaption>Wide figure</figcaption></figure>"
+        '<figure style="margin: 0"><img src="pixel.png" alt="Another" '
+        'width="100" height="10"><figcaption style="white-space: nowrap; '
+        'width: 900px">Wide caption</figcaption></figure></div>'
+    )
+
+    with served(site) as server:
+        violations = site_checks.check_no_horizontal_scroll(browser, server, site)
+
+    assert rules(violations) == {"figure-overflow"}
+    details = " ".join(v.detail for v in violations)
+    assert 'figure "Wide figure"' in details
+    assert 'figcaption "Wide caption"' in details
+
+
 def test_wcag_violation_is_reported(make_site: Site, browser: Browser):
     site = make_site(
         body='<p style="color: #bbbbbb; background: #ffffff">Low contrast text.</p>'
@@ -615,3 +639,124 @@ def test_a_page_without_an_enhancement_is_not_driven(make_site: Site, browser: B
         violations = site_checks.check_widgets_store_nothing(browser, server, site)
 
     assert violations == []
+
+
+# --- Keyboard pass and payload ------------------------------------------------
+
+_NAVIGATED_PAGE = """\
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Test page</title>
+<style>
+  .skip-link {{ position: absolute; top: 0; left: 0; transform: translateY(-300%); }}
+  .skip-link:focus {{ transform: none; }}
+  .navbar {{ background: #517699; padding: 1rem; }}
+  .navbar a {{ color: #ffffff; }}
+  .navbar a:focus-visible {{ {navigation_focus} }}
+  .skip-link:focus-visible {{ outline: 3px solid #00429d; }}
+</style></head>
+<body>
+{skip_link}
+<nav class="navbar">
+  <a href="index.html">One</a> <a href="index.html">Two</a>
+  <a href="index.html">Three</a> <a href="index.html">Four</a>
+  <a href="index.html">Five</a>
+</nav>
+<main id="quarto-document-content" {target_focus}><h1>Test page</h1><p>Text.</p>
+<a href="index.html">A link in the content</a></main>
+</body>
+</html>
+"""
+
+_SKIP_LINK = '<a class="skip-link" href="#quarto-document-content">Skip</a>'
+_RING = "outline: 3px solid #ffffff; outline-offset: 2px;"
+
+
+def navigated_site(make_site: Site, **fields: str) -> Path:
+    values = {
+        "skip_link": _SKIP_LINK,
+        "navigation_focus": _RING,
+        "target_focus": 'tabindex="-1"',
+        **fields,
+    }
+    page = _NAVIGATED_PAGE.format(**values)
+    return make_site(files={"index.html": page, "other.html": page})
+
+
+def test_a_skip_link_and_a_visible_navigation_focus_pass_the_keyboard_pass(
+    make_site: Site, browser: Browser
+):
+    site = navigated_site(make_site)
+
+    with served(site) as server:
+        assert site_checks.check_keyboard_navigation(browser, server, site) == []
+
+
+def test_a_page_without_a_skip_link_is_reported(make_site: Site, browser: Browser):
+    site = navigated_site(make_site, skip_link="")
+
+    with served(site) as server:
+        violations = site_checks.check_keyboard_navigation(browser, server, site)
+
+    assert rules(violations) == {"skip-link"}
+    assert "is not the first tab stop" in violations[0].detail
+
+
+def test_a_skip_link_target_that_cannot_take_focus_is_reported(
+    make_site: Site, browser: Browser
+):
+    site = navigated_site(make_site, target_focus="")
+
+    with served(site) as server:
+        violations = site_checks.check_keyboard_navigation(browser, server, site)
+
+    assert rules(violations) == {"skip-link"}
+    assert any("keyboard focus" in v.detail for v in violations)
+
+
+def test_a_skip_link_that_stays_off_the_screen_is_reported(
+    make_site: Site, browser: Browser
+):
+    site = navigated_site(make_site)
+    page = (site / "index.html").read_text().replace("transform: none;", "")
+    (site / "index.html").write_text(page)
+
+    with served(site) as server:
+        violations = site_checks.check_keyboard_navigation(browser, server, site)
+
+    assert rules(violations) == {"skip-link"}
+    assert "off the screen" in violations[0].detail
+
+
+@pytest.mark.parametrize(
+    "focus",
+    [
+        "outline: none;",
+        "outline: 3px solid #5a82a5;",
+        "outline: 1px solid #ffffff;",
+    ],
+    ids=["no ring", "low contrast", "thin"],
+)
+def test_a_navigation_focus_ring_that_is_missing_faint_or_thin_is_reported(
+    make_site: Site, browser: Browser, focus: str
+):
+    site = navigated_site(make_site, navigation_focus=focus)
+
+    with served(site) as server:
+        violations = site_checks.check_keyboard_navigation(browser, server, site)
+
+    assert rules(violations) == {"navigation-focus"}
+
+
+def test_payload_over_the_budget_is_reported(make_site: Site, browser: Browser):
+    site = make_site(
+        head='<link rel="stylesheet" href="big.css">',
+        files={"big.css": "/*" + "x" * 2_000 + "*/"},
+    )
+
+    with served(site) as server:
+        sizes = site_checks.measure_payloads(browser, server, site)
+
+    assert sizes["index.html"] > 2_000
+    assert site_checks.check_payload(sizes) == []
+    assert rules(site_checks.check_payload(sizes, budget=2_000)) == {"payload"}
