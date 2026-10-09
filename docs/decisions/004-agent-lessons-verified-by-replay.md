@@ -2,7 +2,10 @@
 
 ## Status
 
-Accepted with the approval of the project bootstrap planning.
+Accepted with the approval of the project bootstrap planning. The sandboxed
+opt-in that "Alternatives considered" leaves to a new ADR is decided in
+[ADR 010](010-coding-agent-exercises-on-the-learners-machine.md)
+(2026-10-09), outside the harness; the decisions below are unchanged.
 
 Date: 2026-10-06
 

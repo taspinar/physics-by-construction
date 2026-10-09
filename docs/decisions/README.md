@@ -44,3 +44,7 @@ Do not create ADRs for trivial implementation details.
 | [004](004-agent-lessons-verified-by-replay.md) | Agent lessons run behind a provider interface with a tool allowlist and are verified by replay |
 | [005](005-workflow-self-tests-run-locally-on-workflow-changes.md) | Workflow self-tests have their own file and run locally only when a workflow file changed; amends ADR 003 |
 | [006](006-content-drafting-runs-on-the-maintainers-machine.md) | Agent-assisted content drafting runs on the maintainer's machine; CI holds no LLM key |
+| [007](007-real-datasets-as-declared-inputs.md) | Real datasets are declared inputs behind a feasibility gate, with small committed samples under a cap and no portal access in builds; extends ADR 002 |
+| [008](008-courses-and-methods-over-stable-strands.md) | Courses by subject and cross-cutting methods as metadata facets over the existing strands, whose identifiers and addresses stay |
+| [009](009-external-references-outside-verification.md) | Curated external references come from a register with selection evidence; link validity is a maintenance check outside verification |
+| [010](010-coding-agent-exercises-on-the-learners-machine.md) | Coding-agent exercises run only on the learner's machine under a sandbox profile; the site verifies the code, never the agent |
