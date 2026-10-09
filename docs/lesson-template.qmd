@@ -13,6 +13,7 @@ lesson:
     - "Replace: what the reader can do after the lesson"
     - "Replace: a second outcome; a lesson states two to five"
   related: []
+  format: 2
   prerequisites:
     lessons: []
     outside:
@@ -26,8 +27,10 @@ from pbc.authoring import lesson_header
 lesson_header()
 ```
 
-Open with two or three short paragraphs: what the lesson builds, why it
-matters, and how the result is checked. Do not put a heading above them.
+Open with two or three short paragraphs, without a heading. Start with the
+physical question: the problem this lesson answers and where it appears, before
+any equation or code. Then say what the lesson builds and how the result is
+checked. "What you'll learn" is added by the header above, from `outcomes`.
 
 ## Assumptions
 
@@ -49,6 +52,24 @@ $$
 
 To give the section a title of its own, keep the identifier:
 `## From rates of change to an update rule {#explanation}`.
+
+Say what each equation is for before you write it, and give the essential
+derivation steps here: the core explanation never lives behind a link. Label a
+statement a reader could take for a result with its claim type
+(`observational`, `experimentally-supported`, `numerically-verified`, or
+`formal-theorem`; the guide defines each). `scope` and `evidence` are optional.
+
+[The computed position agrees with the exact one at every time step shown.]{.claim type="numerically-verified" scope="constant acceleration" evidence="fig-replace-with-a-name"}
+
+An optional "Go deeper" block names a key of `site/references.yaml`, never a
+raw URL. The text is the reason to visit. Delete the block when no source adds
+something this lesson does not contain (the guide gives the selection
+protocol).
+
+::: {.go-deeper ref="REPLACE-WITH-A-REGISTER-KEY"}
+What the source adds that this lesson does not contain, and that the lesson
+does not need it.
+:::
 
 ## Code
 
@@ -89,15 +110,21 @@ print(f"position after {computed.t[-1]:.1f} s: {computed.x[-1]:.3f} m")
 ```
 
 Put computed numbers into a sentence with an inline expression: the exact
-position is `{python} f"{exact.x[-1]:.3f}"` m. Never type a result by hand.
+position is `{python} f"{exact.x[-1]:.3f}"` m. Never type a result by hand;
+the check reports a number in the prose that no expression produced. A value
+you give, not compute, is marked: the start speed is [2 m/s]{.given}. A table
+of results is built with `table()`, not printed; see the guide.
 
-A cell that draws a figure has a `fig-` label, a caption, and alternative
-text that describes what the figure shows.
+A cell that draws a figure has a `fig-` label, a caption that says what the
+figure shows and what to conclude, alternative text that describes its shape,
+and a status: `measured`, `calibrated`, `processed`, `simulated`, or
+`conceptual`.
 
 ```{python}
 #| label: fig-replace-with-a-name
 #| fig-cap: "Caption shown under the figure."
 #| fig-alt: "What a reader who cannot see the figure needs to know: the kind of plot, the axes, and what the curves do."
+#| fig-status: simulated
 import matplotlib.pyplot as plt
 
 fig, ax = plt.subplots(figsize=(6.4, 3.6))
@@ -116,6 +143,9 @@ ax.legend()
 plt.show()
 ```
 
+After each figure or table, say what it means: what the reader sees, where
+the data came from, and what it was checked against.
+
 Material that the build does not run or check carries the "not verified"
 marker, as a block or inside a sentence:
 
@@ -127,6 +157,20 @@ state = step(state)  # a sketch that is not executed
 
 A measured or quoted value is marked the same way:
 [about 9.8 m/s² at sea level]{.not-verified}.
+
+## Limits {#limits}
+
+What the result does not show: where the model or the method fails, and what
+was not measured or proved. One paragraph or a short list.
+
+::: {.exercise .self-check}
+One concise conceptual question, different from the exercises. It closes the
+explanation, so it comes after the limits. It has no number.
+
+::: {.solution}
+The answer, in a few sentences.
+:::
+:::
 
 ## Exercises
 

@@ -1,0 +1,33 @@
+# The reference register (ADR 009, docs/authoring.md "References"). Every
+# curated external link a lesson renders is an entry here; a lesson names the
+# key in a "Go deeper" block and the build renders the link. Fields are
+# described in docs/authoring.md. `reserved` is the one optional field: a
+# reason for an entry no lesson uses yet.
+references:
+  - key: euler-local-global-error
+    concept: Local and global error of explicit Euler
+    url: https://personal.math.ubc.ca/~israel/m215/euler2/euler2.html
+    title: Error Analysis of the Euler Method
+    author: University of British Columbia, mathematics course notes
+    section: local error, global error, and the case of a right-hand side that depends on x only
+    role: derivation
+    statement: >-
+      One step of explicit Euler has an error of size h squared (Taylor's
+      theorem), the global error after a fixed interval is of size h, and the
+      global error is not simply the sum of the local errors. For a right-hand
+      side that depends on x only, Euler's method is a Riemann sum with a
+      global error bounded by K (x - x0) h / 2. Opened and read on 2026-10-09;
+      the notation (h for the step, O(h) for first order) matches the lesson's
+      first-order claim and its time-only acceleration.
+    alternatives: >-
+      Lecture slides of Trinity College Dublin (MATH 11404, Euler method and
+      errors): the PDF text could not be extracted, so its passage was not
+      read and it was not chosen. Course notes of NC State (MA 427) and the
+      University of Vermont (MATH 337) came up in the search and were not
+      opened. The UBC page was chosen because it adds what the lesson does not
+      contain: why the sum of local errors still gives a first-order global
+      error although earlier errors change later steps, and the bound for the
+      time-only case, in a short page that needs no sign-in.
+    lessons: [kinematics]
+    last-checked: 2026-10-09
+    licence: No licence stated on the page; linked, not copied or rehosted.
