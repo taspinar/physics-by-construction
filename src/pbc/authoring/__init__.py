@@ -11,6 +11,7 @@ from pbc.authoring.design import (
     FIGURE_STATUSES,
 )
 from pbc.authoring.excerpt import Excerpt, excerpt
+from pbc.authoring.glossary import Glossary, GlossaryPage, glossary_page
 from pbc.authoring.home import PLANNED, HomeContent, Planned, home_content
 from pbc.authoring.lean import LeanEvidence, LeanExcerpt, lean_evidence, lean_excerpt
 from pbc.authoring.path import (
@@ -40,6 +41,8 @@ __all__ = [
     "STRANDS",
     "BuildCommit",
     "Excerpt",
+    "Glossary",
+    "GlossaryPage",
     "HomeContent",
     "LeanEvidence",
     "LeanExcerpt",
@@ -52,6 +55,7 @@ __all__ = [
     "WidgetScript",
     "build_commit",
     "excerpt",
+    "glossary_page",
     "home_content",
     "is_numeric_console_block",
     "lean_evidence",

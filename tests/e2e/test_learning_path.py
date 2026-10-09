@@ -19,10 +19,12 @@ from support.site_checks import DESKTOP
 from support.site_server import SiteServer
 
 from pbc.authoring import DIFFICULTIES, METHODS, LearningPath
+from pbc.authoring.glossary import Glossary
 from pbc.authoring.path import PATH_PAGE, Lesson
 
 PATH = Path(PATH_PAGE).with_suffix(".html").as_posix()
 LESSON_PATH = LearningPath.read(SITE_SOURCE)
+GLOSSARY = Glossary.read(SITE_SOURCE)
 
 
 def built(lesson: Lesson) -> str:
@@ -250,6 +252,7 @@ def test_lesson_header_shows_the_facts_of_the_path_with_links(
         "Difficulty",
         "What you'll learn",
         "Prerequisites",
+        "Before you begin",
         "Related",
         "Previous",
         "Next",
@@ -280,9 +283,17 @@ def test_lesson_header_shows_the_facts_of_the_path_with_links(
     assert _hrefs(rows["Prerequisites"], "a") == [
         server.url + built(LESSON_PATH.lesson(item)) for item in lesson.prerequisites
     ]
-    assert all(
-        outside in rows["Prerequisites"].inner_text() for outside in lesson.outside
+
+    # Each outside prerequisite is listed with its detail; its term links to
+    # the entry of the glossary.
+    begin = rows["Before you begin"]
+    assert [_plain(text) for text in begin.locator("li").all_inner_texts()] == list(
+        lesson.outside
     )
+    assert _hrefs(begin, "a") == [
+        f"{server.url}glossary.html#{GLOSSARY.entry(outside).anchor}"
+        for outside in lesson.outside
+    ]
 
     if lesson.related:
         assert _hrefs(rows["Related"], "a") == [
@@ -305,3 +316,28 @@ def test_lesson_header_shows_the_facts_of_the_path_with_links(
         else:
             assert rows[name].inner_text() == neighbour.title
             assert _hrefs(rows[name], "a") == [server.url + built(neighbour)]
+
+
+def test_glossary_page_defines_every_entry_and_links_the_lessons_without_javascript(
+    without_scripts: BrowserContext, server: SiteServer
+):
+    page = without_scripts.new_page()
+    page.goto(server.url + "glossary.html", wait_until="load")
+
+    main = page.locator("main")
+    for entry in GLOSSARY.entries:
+        section = main.locator(f"section#{entry.anchor}")
+        assert section.count() == 1, entry.term
+        assert section.locator("h2").inner_text() == entry.term
+        assert entry.definition in section.inner_text()
+        users = [
+            lesson
+            for lesson in LESSON_PATH.lessons
+            if any(GLOSSARY.entry(text) == entry for text in lesson.outside)
+        ]
+        assert users, f"no lesson assumes {entry.term}"
+        assert [
+            link.get_attribute("href")
+            for link in section.locator("a").all()
+            if link.inner_text() in {lesson.title for lesson in users}
+        ] == [f"lessons/{built(lesson).split('lessons/')[1]}" for lesson in users]

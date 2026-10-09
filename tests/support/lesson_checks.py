@@ -25,7 +25,7 @@ from typing import Any
 
 import yaml
 
-from pbc.authoring import is_numeric_console_block
+from pbc.authoring import glossary, is_numeric_console_block
 from pbc.authoring import path as learning_path
 from support.site_checks import Violation
 
@@ -1198,4 +1198,73 @@ def check_console_blocks(repository: Path, site_dir: Path) -> list[Violation]:
             for block in outputs.blocks
             if is_numeric_console_block(block)
         ]
+    return violations
+
+
+# --- The glossary -------------------------------------------------------------
+
+GLOSSARY = f"{SITE}/{glossary.GLOSSARY_FILE}"
+
+
+def check_glossary(repository: Path) -> list[Violation]:
+    """The glossary follows its format, every outside prerequisite of every
+    lesson names an entry, and every entry is assumed by a lesson, which the
+    glossary page links."""
+    try:
+        entries = glossary.Glossary.read(repository / SITE)
+    except ValueError as error:
+        return [Violation("glossary", GLOSSARY, str(error))]
+    violations = [
+        Violation("glossary", GLOSSARY, problem)
+        for problem in glossary.problems(entries.entries)
+    ]
+    lesson_ids: set[str] = set()
+    used: set[str] = set()
+    for page in lesson_pages(repository):
+        lesson = read_lesson(page)
+        if lesson.front_matter_error or not isinstance(lesson.front_matter, dict):
+            continue  # check_metadata reports it
+        meta = lesson.front_matter.get("lesson")
+        if not isinstance(meta, dict):
+            continue
+        lesson_ids.add(str(meta.get("id")))
+        prerequisites = meta.get("prerequisites")
+        outside = (
+            prerequisites.get("outside") if isinstance(prerequisites, dict) else None
+        )
+        if not _text_list(outside):
+            continue
+        for text in outside:
+            entry = entries.entry(text)
+            if entry is None:
+                violations.append(
+                    Violation(
+                        "glossary",
+                        _name(repository, page),
+                        f"outside prerequisite {text!r} names no glossary entry;"
+                        " write it as 'Term: detail' with the term of an entry"
+                        f" of {GLOSSARY}",
+                    )
+                )
+            else:
+                used.add(entry.term)
+    for entry in entries.entries:
+        if entry.term not in used:
+            violations.append(
+                Violation(
+                    "glossary",
+                    GLOSSARY,
+                    f"entry {entry.term!r} is assumed by no lesson, so no lesson"
+                    " links it",
+                )
+            )
+        if entry.see and entry.see not in lesson_ids:
+            violations.append(
+                Violation(
+                    "glossary",
+                    GLOSSARY,
+                    f"entry {entry.term!r}: 'see' {entry.see!r} is not the id of"
+                    " any lesson",
+                )
+            )
     return violations

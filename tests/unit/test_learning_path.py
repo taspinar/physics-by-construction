@@ -15,6 +15,7 @@ from pbc.authoring import (
     LearningPath,
     learning_path,
 )
+from pbc.authoring.glossary import Entry, Glossary
 from pbc.authoring.path import (
     PATH_PAGE,
     Lesson,
@@ -449,6 +450,25 @@ def test_header_names_the_outside_prerequisites(path: LearningPath):
     assert "[Newton](../02-newton/index.html). Also assumed: Calculus." in shown
 
 
+def test_header_with_a_glossary_lists_what_to_know_before_beginning(path: LearningPath):
+    item = lesson(
+        "drag",
+        order=4,
+        prerequisites=("newton",),
+        outside=("Calculus: the chain rule",),
+    )
+    path = LearningPath((*path.lessons, item))
+    glossary = Glossary((Entry("Calculus", "A definition.", ""),))
+
+    shown = LessonHeader(path, item, glossary)._repr_markdown_()
+
+    assert "Prerequisites\n:   [Newton](../02-newton/index.html).\n" in shown
+    assert (
+        "Before you begin\n:   \n"
+        "    - [Calculus](../../../glossary.html#calculus): the chain rule\n"
+    ) in shown
+
+
 def test_overview_lists_courses_with_core_lessons_and_extensions_then_methods(
     path: LearningPath,
 ):
@@ -552,10 +572,14 @@ def test_helpers_find_the_page_from_the_directory_the_cell_runs_in(
 ):
     (site / "path").mkdir()
     (site / PATH_PAGE).write_text("---\ntitle: Learning path\n---\n")
+    (site / "glossary.yaml").write_text(
+        "entries:\n  - term: Calculus\n    definition: A definition.\n"
+    )
 
     monkeypatch.chdir(site / "lessons/mechanics/02-newton")
     header = lesson_header()
     assert header.lesson == NEWTON
+    assert header.glossary is not None
 
     monkeypatch.chdir(site / "path")
     overview = learning_path()
