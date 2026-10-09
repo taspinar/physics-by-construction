@@ -2,7 +2,10 @@
 
 ## Status
 
-Accepted with the approval of the project bootstrap planning.
+Accepted with the approval of the project bootstrap planning. Extended by
+[ADR 007](007-real-datasets-as-declared-inputs.md) (2026-10-09), which adds
+dataset samples as a second kind of committed input a build cannot
+regenerate; the decisions below are unchanged.
 
 Date: 2026-10-06
 

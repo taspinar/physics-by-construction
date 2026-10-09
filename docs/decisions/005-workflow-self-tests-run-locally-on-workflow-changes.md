@@ -9,6 +9,14 @@ this ADR. Amends decisions 1, 2, and 7 of
 This ADR was not part of a planning review round. The planning approval was
 updated by hand for it; `docs/PLANNING_APPROVAL.md` records that.
 
+Decision 2 is to be amended by the ADR that roadmap feature F58 writes under
+decision 6 of ADR 003, together with decision 2 of ADR 003: the single
+`verify` job becomes parallel jobs that each run a named subset of the same
+checks, behind one aggregate required check that keeps the name `verify`.
+CI still calls `./scripts/verify.sh --all` across those jobs, no check is
+skipped in CI, and no path filter is added. Until that ADR is accepted,
+decision 2 stands as written.
+
 Decision 4 was rewritten on 2026-10-07. It first listed the guarded files and
 guarded `scripts/` as a whole, which made `scripts/verify.conf` a guarded
 file: nearly every feature adds a check there, so the self-tests still ran in

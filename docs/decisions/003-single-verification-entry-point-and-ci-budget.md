@@ -8,6 +8,13 @@ and 7 are amended by
 workflow self-tests have their own file and run locally only when a workflow
 file changed; CI still runs every check.
 
+Decision 2 is to be amended by the ADR that roadmap feature F58 writes under
+decision 6: the single `verify` job becomes parallel jobs that each run a
+named subset of the same `verify.conf` checks, behind one aggregate required
+check that keeps the name `verify`. The same ADR amends decision 2 of
+ADR 005, which restates the single job. Until that ADR is accepted,
+decision 2 stands as written.
+
 Date: 2026-10-06
 
 ## Context
