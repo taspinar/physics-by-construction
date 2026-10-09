@@ -31,13 +31,24 @@ PLACEHOLDERS = {
 
 @pytest.fixture(scope="module")
 def repository(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """A copy of the site sources with one more lesson, made from the template."""
+    """A copy of the site sources with one more lesson, made from the template.
+
+    The lessons of the site are reduced to their front matter. The learning
+    path, the header of the new lesson, and the path page are generated from
+    front matter alone, so the new lesson still joins the path; the bodies
+    would only make the build execute every lesson again, which
+    ``site-build`` already does (ADR 003, first response to the time budget).
+    """
     repository = tmp_path_factory.mktemp("template") / "repository"
     shutil.copytree(
         SITE_SOURCE,
         repository / "site",
         ignore=shutil.ignore_patterns("_site", ".quarto", "*_files", "*.quarto_ipynb"),
     )
+    for page in lesson_checks.lesson_pages(repository):
+        front_matter, separator, _ = page.read_text().partition("\n---\n")
+        assert separator, f"{page} has no front matter"
+        page.write_text(front_matter + separator)
     text = TEMPLATE.read_text()
     for placeholder, value in PLACEHOLDERS.items():
         assert placeholder in text
@@ -67,6 +78,8 @@ def test_lesson_made_from_the_template_passes_the_source_checks(repository: Path
         *lesson_checks.check_displayed_code(repository),
         *lesson_checks.check_figures(repository),
     ]
+    # The other lessons are reduced to their front matter and lack the sections.
+    violations = [v for v in violations if v.page == f"site/{LESSON}/index.qmd"]
 
     assert not violations, describe(violations)
 

@@ -51,4 +51,5 @@ used.
 
 The source is in the
 [repository on GitHub](https://github.com/taspinar/physics-by-construction).
-Corrections and suggestions are welcome as issues there.
+Corrections and suggestions are welcome; the [Contribute](contribute.qmd)
+page says how.

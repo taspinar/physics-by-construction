@@ -13,6 +13,7 @@ lesson:
     outside:
       - "Calculus: derivatives, integrals, and Taylor expansion to second order"
       - "Python: functions, dataclasses, and NumPy arrays"
+      - "Logarithms: the base-2 logarithm, and reading a log-log plot"
 ---
 
 ```{python}

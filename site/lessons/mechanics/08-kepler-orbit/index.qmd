@@ -15,6 +15,7 @@ lesson:
     outside:
       - "Vectors: the cross product of two vectors in the plane"
       - "Geometry: the ellipse, its foci, semi-major axis, and eccentricity"
+      - "Numerical methods: the Newton iteration for the root of an equation"
 ---
 
 ```{python}

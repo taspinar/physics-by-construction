@@ -534,9 +534,9 @@ The particle comes back further out than it started, and the excursion keeps
 growing in later periods. Explicit Euler feeds energy into an oscillation at
 every step, for the same reason that it approached the terminal velocity too
 fast here: it uses the rates at the start of the step for the whole step. The
-harmonic oscillator lesson measures that growth exactly and introduces the
-steppers that avoid it. They plug into the same `simulate` through its `step`
-argument.
+harmonic oscillator lesson measures that growth exactly, and the numerical
+integrators lesson introduces the steppers that avoid it. They plug into the
+same `simulate` through its `step` argument.
 :::
 :::
 

@@ -120,12 +120,12 @@ def test_without_javascript_the_lesson_shows_the_static_figure_and_the_table(
 
 
 def test_the_site_check_for_content_only_with_scripts_covers_the_widget(
-    browser: Browser, server: SiteServer, site_dir: Path
+    site_dir: Path,
 ):
-    violations = site_checks.check_readable_without_javascript(
-        browser, server, site_dir
-    )
-    assert not [v for v in violations if v.page == LESSON], describe(violations)
+    # The check visits every page that html_pages lists, and test_built_site
+    # runs it over the whole site once; the lesson being listed is what covers
+    # the widget. A second run of the check here would cost half a minute.
+    assert site_dir / LESSON in site_checks.html_pages(site_dir)
 
 
 # --- With JavaScript -----------------------------------------------------------

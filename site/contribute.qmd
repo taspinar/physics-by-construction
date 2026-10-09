@@ -1,0 +1,51 @@
+---
+title: "Contribute"
+description: >-
+  How to report an error, how to propose a change, and the licence of a
+  contribution.
+---
+
+Corrections and suggestions are welcome.
+
+## Report an error
+
+Open an issue in the
+[repository on GitHub](https://github.com/taspinar/physics-by-construction/issues).
+Say which page it is on, quote the sentence, number, or figure that is wrong,
+and say what you expected. If a listing does not run on your machine, add
+your operating system and the output of `./scripts/preflight.sh`.
+
+Do not put secrets in an issue. A security-sensitive finding follows the
+[security policy](https://github.com/taspinar/physics-by-construction/blob/main/SECURITY.md).
+
+## Propose a change
+
+Start with an issue that describes the problem or the proposal. Changes land
+through pull requests, and a pull request cannot be merged while
+`./scripts/verify.sh` fails. The
+[contributing guide](https://github.com/taspinar/physics-by-construction/blob/main/CONTRIBUTING.md)
+has the steps, and the
+[authoring guide](https://github.com/taspinar/physics-by-construction/blob/main/docs/authoring.md)
+explains how to write a lesson.
+
+To propose a new lesson, open an issue from the **Lesson proposal** form.
+The assessment criteria, and the path from an accepted proposal to a merged
+lesson, are in the
+[content proposals guide](https://github.com/taspinar/physics-by-construction/blob/main/docs/content-proposals.md).
+A draft may be written by you or, from an accepted proposal, by an agent on
+the maintainer's machine; either way it lands through a reviewed pull
+request that passes the same verification as every lesson.
+
+## Licence of contributions
+
+By submitting a contribution you agree that it is licensed under the licences
+of the repository:
+
+- code, including lesson code, tests, and Lean proofs, under the
+  [MIT licence](https://github.com/taspinar/physics-by-construction/blob/main/LICENSE);
+- lesson text and figures under the
+  [Creative Commons Attribution 4.0 International licence](https://github.com/taspinar/physics-by-construction/blob/main/LICENSE-CONTENT).
+
+Only contribute material you have the right to license this way. When you
+include third-party material, name its source and licence in the pull
+request.

@@ -74,8 +74,7 @@ DIFFICULTIES = (
     Difficulty(
         1,
         "Introductory",
-        "Builds one idea from the outside prerequisites alone and shows every"
-        " step. A strand starts here.",
+        "Builds one idea from the outside prerequisites alone and shows every step.",
     ),
     Difficulty(
         2,
