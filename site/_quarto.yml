@@ -33,7 +33,7 @@ website:
         href: path/index.qmd
       - text: About
         href: about.qmd
-      - text: Reproduce
+      - text: Set up
         href: reproduce.qmd
       - text: Contribute
         href: contribute.qmd

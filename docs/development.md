@@ -55,6 +55,14 @@ no system packages.
    can be merged while its checks fail, because no ruleset requires the
    `verify` status check; see `docs/deployment.md`.
 
+For learners, `site/reproduce.qmd` (published as the "Set up" page) is the
+single guide: the required setup, reproduce and extend commands per lesson
+type, the optional workflows, and troubleshooting. A test
+(`tests/integration/test_setup_page.py`) keeps its required commands equal to
+those of `ci.yml`. The external links of the reference register are checked on
+demand with `./scripts/check-links.sh`; see "Link maintenance" in
+`docs/authoring.md`.
+
 The first verification run downloads the Lean toolchain and the Mathlib build
 cache: about 0.5 GB of downloads that unpack to roughly 8 GB in `lean/.lake/`
 and 3 GB in `~/.elan/`. Later runs reuse them. CI prepares its runner with the
