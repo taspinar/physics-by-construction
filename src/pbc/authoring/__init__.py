@@ -23,6 +23,7 @@ from pbc.authoring.path import (
 )
 from pbc.authoring.repository import BuildCommit, build_commit
 from pbc.authoring.reproduce import Reproduction, reproduce_this
+from pbc.authoring.tables import ResultTable, is_numeric_console_block, table
 from pbc.authoring.widgets import WidgetScript, widget_data, widget_module
 
 __all__ = [
@@ -39,14 +40,17 @@ __all__ = [
     "LessonHeader",
     "PathOverview",
     "Reproduction",
+    "ResultTable",
     "WidgetScript",
     "build_commit",
     "excerpt",
+    "is_numeric_console_block",
     "lean_evidence",
     "lean_excerpt",
     "learning_path",
     "lesson_header",
     "reproduce_this",
+    "table",
     "widget_data",
     "widget_module",
 ]

@@ -196,7 +196,7 @@ def test_sample_page_renders_every_design_component_with_its_colours(
         ".learn-box",
         ".assumptions",
         "div.claim",
-        ".result-table table",
+        ".table-scroll table.result-table",
         ".annotated-excerpt ol",
         ".go-deeper",
         ".exercise.self-check",

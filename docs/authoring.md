@@ -295,6 +295,34 @@ Every result on the page is computed by the build.
   builds (times, paths, object addresses). Two builds of the same commit must
   be byte-identical.
 
+### Result tables
+
+A table of numbers is a result table, built by `table()` from a cell and not
+printed as a block of fixed-width text. It has
+
+- a caption that says what the table shows and at what precision;
+- a header cell for every column, with the unit in it: a column is
+  `(name, unit, format)`, where the unit is `""` for a pure number and the
+  format is a format specification such as `".3f"` or `"d"`;
+- numbers right-aligned, formatted at the stated precision (a `None` cell is
+  left empty);
+- after it, a sentence that says what the reader should conclude from it.
+
+```python
+from pbc.authoring import table
+
+table(
+    [(n, duration / n, errors[i]) for i, n in enumerate(step_counts)],
+    columns=[("steps", "", "d"), ("time step", "s", ".6f"), ("error", "m", ".6f")],
+    caption="Error of the final height for each time step, to six decimals.",
+)
+```
+
+A table wider than the screen scrolls inside its own focusable box. The
+function `is_numeric_console_block` reports a cell whose printed output is a
+block of numbers in several lines; it is not yet applied to lessons (F28 does
+that for format-2 lessons).
+
 ## Figures
 
 A figure is drawn by an executed cell. Image files are never part of a
@@ -359,7 +387,7 @@ Colour never tells two series apart alone; vary the line style or the marker.
 | What you'll learn, assumptions | `.learn-box`, `.assumptions` div with a bold first line and a list |
 | Claim label | `[text]{.claim data-type="observational"}` (span) or a `.claim` div; the four types of `pbc.authoring.CLAIM_TYPES` |
 | Figure status | `[simulated]{.figure-status data-status="simulated"}` at the start of the caption; the five statuses of `FIGURE_STATUSES` |
-| Result table | `div.result-table` with `tabindex="0"`, `role="region"`, and an `aria-label`, around a `table` with a `caption` |
+| Result table | The markup of `pbc.authoring.table`: `div.table-scroll` with `tabindex="0"`, `role="region"`, and an `aria-label`, around a `table.result-table` with a `caption`; numeric cells carry `.num` |
 | Annotated excerpt | `.annotated-excerpt` div: the listing, then an ordered list of notes |
 | Go deeper | `.go-deeper` div |
 | Self-check and hint | `.exercise.self-check` div; a hint is `details.hint` |

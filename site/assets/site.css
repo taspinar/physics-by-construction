@@ -555,19 +555,20 @@ main figcaption {
   color: var(--pbc-status-conceptual-fg);
 }
 
-/* Semantic result tables (F36): a table with a caption, units in the column
-   headings, and numbers aligned on their digits. The wrapper scrolls inside
-   itself on a narrow screen and is focusable, as a display equation is. */
-.result-table {
+/* Semantic result tables (pbc.authoring.table, F36): a table with a caption,
+   units in the column headings, and numbers right-aligned in equal-width
+   digits so that the decimals line up. A table wider than the screen scrolls
+   inside its own box, which is focusable like a wide equation and gets its
+   name from the caption. */
+.table-scroll {
   max-width: 100%;
-  margin: var(--pbc-space-3) 0;
   overflow-x: auto;
+  margin: var(--pbc-space-3) 0;
 }
 
-.result-table table {
-  width: auto;
-  min-width: 100%;
+.result-table {
   border-collapse: collapse;
+  margin: 0;
 }
 
 .result-table caption {
@@ -582,20 +583,24 @@ main figcaption {
 .result-table td {
   padding: var(--pbc-space-1) var(--pbc-space-3);
   border-bottom: 1px solid var(--pbc-rule);
+  text-align: left;
 }
 
 .result-table th {
-  text-align: left;
   font-weight: 600;
-}
-
-.result-table td {
-  font-variant-numeric: tabular-nums;
-  text-align: right;
 }
 
 .result-table tbody th {
   font-weight: normal;
+}
+
+.result-table th.num,
+.result-table td.num {
+  text-align: right;
+}
+
+.result-table td.num {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Annotated excerpts (F35): the listing, then the numbered notes that refer

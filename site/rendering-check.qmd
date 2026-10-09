@@ -163,13 +163,13 @@ Each figure status has its own label:
 [conceptual]{.figure-status data-status="conceptual"}
 
 ```{=html}
-<div class="result-table" tabindex="0" role="region" aria-label="Sample result table">
-<table>
+<div class="table-scroll" role="region" tabindex="0" aria-label="Amplitude after whole periods.">
+<table class="result-table">
 <caption>Amplitude after whole periods.</caption>
-<thead><tr><th scope="col">Periods</th><th scope="col">Amplitude (m)</th><th scope="col">Error (m)</th></tr></thead>
+<thead><tr><th scope="col" class="num">Periods</th><th scope="col" class="num">Amplitude (m)</th><th scope="col" class="num">Error (m)</th></tr></thead>
 <tbody>
-<tr><th scope="row">1</th><td>0.6065</td><td>0.0012</td></tr>
-<tr><th scope="row">2</th><td>0.3679</td><td>0.0021</td></tr>
+<tr><td class="num">1</td><td class="num">0.6065</td><td class="num">0.0012</td></tr>
+<tr><td class="num">2</td><td class="num">0.3679</td><td class="num">0.0021</td></tr>
 </tbody>
 </table>
 </div>

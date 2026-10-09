@@ -189,6 +189,7 @@ simulation, and evaluates the exact motion at the same instants.
 import numpy as np
 from scipy.constants import g  # standard gravity, m/s^2
 
+from pbc.authoring import table
 from pbc.mechanics.kinematics import State, constant_acceleration, simulate
 
 # Released above the ground (x in m) and moving upward (v in m/s).
@@ -204,12 +205,21 @@ def free_fall(t):
 euler = simulate(launch, free_fall, dt, n_steps)
 exact = constant_acceleration(launch, -g, euler.t)
 
-print(" t (s)   x Euler (m)   x exact (m)   v Euler (m/s)   v exact (m/s)")
-for i in range(0, n_steps + 1, 4):
-    print(
-        f"{euler.t[i]:6.1f}{euler.x[i]:14.3f}{exact.x[i]:14.3f}"
-        f"{euler.v[i]:16.3f}{exact.v[i]:16.3f}"
-    )
+table(
+    [
+        (euler.t[i], euler.x[i], exact.x[i], euler.v[i], exact.v[i])
+        for i in range(0, n_steps + 1, 4)
+    ],
+    columns=[
+        ("t", "s", ".1f"),
+        ("x Euler", "m", ".3f"),
+        ("x exact", "m", ".3f"),
+        ("v Euler", "m/s", ".3f"),
+        ("v exact", "m/s", ".3f"),
+    ],
+    caption="Height and velocity of the thrown ball, simulated and exact, "
+    "every fourth step; positions and velocities to three decimals.",
+)
 ```
 
 The acceleration is standard gravity, $g$ = `{python} g` m/s², pointing down.
@@ -272,10 +282,25 @@ def ball(t):
 step_counts = [n_steps * 2**k for k in range(6)]
 ball_errors = np.array([final_error(free_fall, ball, n) for n in step_counts])
 
-print(" steps    time step (s)    error (m)    previous error / error")
-for i, n in enumerate(step_counts):
-    ratio = f"{ball_errors[i - 1] / ball_errors[i]:10.4f}" if i else ""
-    print(f"{n:6d}{duration / n:17.6f}{ball_errors[i]:13.6f}    {ratio}")
+table(
+    [
+        (
+            n,
+            duration / n,
+            ball_errors[i],
+            ball_errors[i - 1] / ball_errors[i] if i else None,
+        )
+        for i, n in enumerate(step_counts)
+    ],
+    columns=[
+        ("steps", "", "d"),
+        ("time step", "s", ".6f"),
+        ("error", "m", ".6f"),
+        ("previous error / error", "", ".4f"),
+    ],
+    caption="Error of the final height of the thrown ball for each time step, "
+    "to six decimals, and the ratio to the error before the halving.",
+)
 ```
 
 Every halving of the time step halves the error. For a constant acceleration
@@ -319,10 +344,20 @@ def cart_error(n):
 cart_errors = np.array([cart_error(n) for n in step_counts])
 orders = np.log2(cart_errors[:-1] / cart_errors[1:])
 
-print(" steps    time step (s)    error (m)    observed order")
-for i, n in enumerate(step_counts):
-    order = f"{orders[i - 1]:10.3f}" if i else ""
-    print(f"{n:6d}{duration / n:17.6f}{cart_errors[i]:13.6f}    {order}")
+table(
+    [
+        (n, duration / n, cart_errors[i], orders[i - 1] if i else None)
+        for i, n in enumerate(step_counts)
+    ],
+    columns=[
+        ("steps", "", "d"),
+        ("time step", "s", ".6f"),
+        ("error", "m", ".6f"),
+        ("observed order", "", ".3f"),
+    ],
+    caption="Error of the final position of the cart for each time step, to "
+    "six decimals, and the observed order of the method to three decimals.",
+)
 ```
 
 The observed order is the base-2 logarithm of the ratio of successive errors:
@@ -422,10 +457,20 @@ counts = [30 * 2**k for k in range(5)]
 errors = np.array([jerk_errors(n) for n in counts])
 jerk_orders = np.log2(errors[:-1, 1] / errors[1:, 1])
 
-print(" steps    velocity error (m/s)    position error (m)    observed order")
-for i, n in enumerate(counts):
-    order = f"{jerk_orders[i - 1]:10.3f}" if i else ""
-    print(f"{n:6d}{errors[i, 0]:24.6f}{errors[i, 1]:22.6f}    {order}")
+table(
+    [
+        (n, errors[i, 0], errors[i, 1], jerk_orders[i - 1] if i else None)
+        for i, n in enumerate(counts)
+    ],
+    columns=[
+        ("steps", "", "d"),
+        ("velocity error", "m/s", ".6f"),
+        ("position error", "m", ".6f"),
+        ("observed order", "", ".3f"),
+    ],
+    caption="Velocity and position error of the cart with growing "
+    "acceleration at t = 3 s, to six decimals, and the observed order.",
+)
 ```
 
 Both errors are negative: the computed particle is slower and has not come as
