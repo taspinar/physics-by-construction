@@ -17,6 +17,11 @@ from support.site_checks import Violation
 
 LESSON = "site/lessons/mechanics/01-sample"
 
+_OUTCOMES = (
+    "  outcomes:\n    - Step a position forward in time\n"
+    "    - Check the step against the exact solution\n"
+)
+
 _VALID = """\
 ---
 title: "Sample lesson"
@@ -26,6 +31,12 @@ lesson:
   strand: mechanics
   order: 1
   difficulty: 1
+  course: mechanics
+  methods: [simulation]
+  outcomes:
+    - Step a position forward in time
+    - Check the step against the exact solution
+  related: []
   prerequisites:
     lessons: []
     outside:
@@ -171,6 +182,10 @@ def test_a_lesson_that_follows_the_format_passes_every_check(
         ("  strand: mechanics\n", "lesson.strand"),
         ("  order: 1\n", "lesson.order"),
         ("  difficulty: 1\n", "lesson.difficulty"),
+        ("  course: mechanics\n", "lesson.course"),
+        ("  methods: [simulation]\n", "lesson.methods"),
+        (_OUTCOMES, "lesson.outcomes"),
+        ("  related: []\n", "lesson.related"),
         (
             '  prerequisites:\n    lessons: []\n    outside:\n      - "Calculus"\n',
             "lesson.prerequisites",
@@ -204,6 +219,9 @@ def test_missing_metadata_field_is_reported(
         # that changes how the page is executed.
         ("  difficulty: 1\n", "  difficulty: 1\n  prerequisite: []\n"),
         ("lesson:\n", "freeze: true\nlesson:\n"),
+        ("  methods: [simulation]\n", "  methods: simulation\n"),
+        ("  course: mechanics\n", "  course: [mechanics]\n"),
+        ("  related: []\n", "  related: [Not An Id]\n"),
     ],
     ids=[
         "id",
@@ -218,6 +236,9 @@ def test_missing_metadata_field_is_reported(
         "lean-module-name",
         "unknown-lesson-key",
         "unknown-key",
+        "methods-not-a-list",
+        "course-not-text",
+        "related-not-an-id",
     ],
 )
 def test_invalid_metadata_is_reported(make_repository: Repository, old: str, new: str):
@@ -458,6 +479,72 @@ def test_lessons_that_do_not_form_a_path_are_reported(
 
     assert rules(violations) == {"path"}
     assert expected in details(violations)
+
+
+@pytest.mark.parametrize(
+    "old, new, expected",
+    [
+        ("  course: mechanics\n", "  course: optics\n", "not a course"),
+        ("  methods: [simulation]\n", "  methods: []\n", "names no method"),
+        ("  methods: [simulation]\n", "  methods: [magic]\n", "not a method"),
+        (
+            "  methods: [simulation]\n",
+            "  methods: [simulation, simulation]\n",
+            "twice",
+        ),
+        (_OUTCOMES, "  outcomes:\n    - One only\n", "has 1 outcomes"),
+        (
+            _OUTCOMES,
+            "  outcomes:\n" + "".join(f"    - Outcome {n}\n" for n in range(6)),
+            "has 6 outcomes",
+        ),
+        ("  related: []\n", "  related: [gravity]\n", "not the id of any lesson"),
+        ("  related: []\n", "  related: [sample]\n", "lists itself"),
+    ],
+    ids=[
+        "unknown-course",
+        "no-method",
+        "unknown-method",
+        "method-twice",
+        "one-outcome",
+        "six-outcomes",
+        "related-does-not-exist",
+        "related-is-itself",
+    ],
+)
+def test_facets_outside_the_rules_are_reported_with_the_path(
+    make_repository: Repository, old: str, new: str, expected: str
+):
+    repository = make_repository({old: new})
+
+    assert lesson_checks.check_metadata(repository) == []
+    violations = lesson_checks.check_path(repository)
+    assert rules(violations) == {"path"}
+    assert expected in details(violations)
+
+
+def test_related_lesson_that_is_a_prerequisite_is_reported(
+    make_repository: Repository,
+):
+    files = second_lesson(prerequisites="[sample]")
+    (path,) = files
+    files[path] = files[path].replace("  related: []\n", "  related: [sample]\n")
+
+    violations = lesson_checks.check_path(make_repository(files=files))
+
+    assert rules(violations) == {"path"}
+    assert "already a prerequisite" in details(violations)
+
+
+def test_related_lesson_that_exists_and_is_not_a_prerequisite_passes(
+    make_repository: Repository,
+):
+    # Related links run from the prerequisite side: sample links its extension.
+    repository = make_repository(
+        {"  related: []\n": "  related: [second]\n"}, files=second_lesson()
+    )
+
+    assert lesson_checks.check_path(repository) == []
 
 
 def test_lesson_outside_the_schema_is_left_out_of_the_path(

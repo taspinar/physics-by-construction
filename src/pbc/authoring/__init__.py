@@ -13,7 +13,9 @@ from pbc.authoring.design import (
 from pbc.authoring.excerpt import Excerpt, excerpt
 from pbc.authoring.lean import LeanEvidence, LeanExcerpt, lean_evidence, lean_excerpt
 from pbc.authoring.path import (
+    COURSES,
     DIFFICULTIES,
+    METHODS,
     STRANDS,
     LearningPath,
     LessonHeader,
@@ -28,9 +30,11 @@ from pbc.authoring.widgets import WidgetScript, widget_data, widget_module
 
 __all__ = [
     "CLAIM_TYPES",
+    "COURSES",
     "DIFFICULTIES",
     "FIGURE_COLOURS",
     "FIGURE_STATUSES",
+    "METHODS",
     "STRANDS",
     "BuildCommit",
     "Excerpt",

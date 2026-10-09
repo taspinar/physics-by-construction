@@ -10,6 +10,13 @@ lesson:
   strand: mechanics
   order: 5
   difficulty: 2
+  course: mechanics
+  methods: [simulation]
+  outcomes:
+    - Step a system with explicit Euler, symplectic Euler, velocity Verlet, and Runge-Kutta 4 behind one interface
+    - Compare integrators for accuracy, energy behaviour, and cost
+    - Choose an integrator for what a simulation has to be trusted for
+  related: []
   prerequisites:
     lessons: [harmonic-oscillator]
     outside:

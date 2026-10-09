@@ -7,7 +7,14 @@ from pathlib import Path
 
 import pytest
 
-from pbc.authoring import DIFFICULTIES, STRANDS, LearningPath, learning_path
+from pbc.authoring import (
+    COURSES,
+    DIFFICULTIES,
+    METHODS,
+    STRANDS,
+    LearningPath,
+    learning_path,
+)
 from pbc.authoring.path import (
     PATH_PAGE,
     Lesson,
@@ -26,6 +33,8 @@ def lesson(
     prerequisites: tuple[str, ...] = (),
     difficulty: int = 1,
     outside: tuple[str, ...] = (),
+    methods: tuple[str, ...] = ("simulation",),
+    related: tuple[str, ...] = (),
 ) -> Lesson:
     return Lesson(
         page=f"lessons/{strand}/{order:02d}-{id}/index.qmd",
@@ -37,6 +46,10 @@ def lesson(
         difficulty=difficulty,
         prerequisites=prerequisites,
         outside=outside,
+        course="mechanics",
+        methods=methods,
+        outcomes=(f"Do the first thing of {id}", f"Do the second thing of {id}"),
+        related=related,
     )
 
 
@@ -48,8 +61,28 @@ def messages(lessons: list[Lesson]) -> list[str]:
 KINEMATICS = lesson("kinematics")
 NEWTON = lesson("newton", order=2, prerequisites=("kinematics",), difficulty=2)
 ENERGY = lesson("energy", order=3, prerequisites=("newton",), difficulty=2)
-PROOF = lesson("proof", strand="lean", order=1, prerequisites=("energy",), difficulty=3)
+PROOF = lesson(
+    "proof",
+    strand="lean",
+    order=1,
+    prerequisites=("energy",),
+    difficulty=3,
+    methods=("lean",),
+)
 LESSONS = [PROOF, ENERGY, KINEMATICS, NEWTON]
+
+
+def test_the_courses_and_methods_are_defined_once():
+    assert [course.id for course in COURSES] == ["mechanics"]
+    assert [method.id for method in METHODS] == [
+        "simulation",
+        "llm-agents",
+        "abm",
+        "lean",
+        "measured-data",
+        "coding-agents",
+    ]
+    assert all(item.title and item.description for item in (*COURSES, *METHODS))
 
 
 def test_the_strands_and_the_scale_are_defined_once_in_order():
@@ -84,11 +117,14 @@ def write_lesson(site: Path, item: Lesson, **front_matter: str) -> Path:
     page.parent.mkdir(parents=True, exist_ok=True)
     lessons = ", ".join(item.prerequisites)
     outside = ", ".join(f'"{text}"' for text in item.outside)
+    outcomes = "".join(f'    - "{text}"\n' for text in item.outcomes)
     page.write_text(
         f'---\ntitle: "{item.title}"\n'
         + (f'description: "{item.description}"\n' if item.description else "")
         + f"lesson:\n  id: {item.id}\n  strand: {item.strand}\n"
         f"  order: {item.order}\n  difficulty: {item.difficulty}\n"
+        f"  course: {item.course}\n  methods: [{', '.join(item.methods)}]\n"
+        f"  outcomes:\n{outcomes}  related: [{', '.join(item.related)}]\n"
         f"  prerequisites:\n    lessons: [{lessons}]\n    outside: [{outside}]\n"
         + "".join(f"{key}: {value}\n" for key, value in front_matter.items())
         + "---\n\nIntroduction.\n"
@@ -242,6 +278,85 @@ def test_duplicate_order_in_a_strand_is_reported():
     ]
 
 
+def replaced(item: Lesson, **changes) -> Lesson:
+    return Lesson(**{**item.__dict__, **changes})
+
+
+@pytest.mark.parametrize(
+    "changes, expected",
+    [
+        ({"course": "optics"}, "'lesson.course' 'optics' is not a course"),
+        ({"methods": ()}, "'lesson.methods' names no method"),
+        ({"methods": ("magic",)}, "'magic', which is not a method"),
+        ({"methods": ("lean", "lean")}, "names a method twice"),
+        ({"outcomes": ("Only one",)}, "has 1 outcomes; a lesson states 2 to 5"),
+        ({"outcomes": tuple("abcdef")}, "has 6 outcomes; a lesson states 2 to 5"),
+        ({"related": ("gravity",)}, "related lesson 'gravity' is not the id"),
+        ({"related": ("newton",)}, "lists itself as related"),
+        ({"related": ("energy", "energy")}, "names a lesson twice"),
+    ],
+    ids=[
+        "unknown-course",
+        "no-method",
+        "unknown-method",
+        "method-twice",
+        "one-outcome",
+        "six-outcomes",
+        "related-does-not-exist",
+        "related-is-itself",
+        "related-twice",
+    ],
+)
+def test_facets_outside_the_rules_are_reported(changes: dict, expected: str):
+    bad = replaced(NEWTON, **changes)
+
+    found = messages([KINEMATICS, bad, ENERGY, PROOF])
+
+    assert len(found) == 1 or "twice" in expected
+    assert any(expected in message and bad.page in message for message in found)
+
+
+def test_related_lesson_that_is_a_prerequisite_is_reported():
+    bad = replaced(NEWTON, related=("kinematics",))
+
+    assert messages([KINEMATICS, bad, ENERGY, PROOF]) == [
+        f"{bad.page}: related lesson 'kinematics' is already a prerequisite; a"
+        " prerequisite is linked as one, not as related"
+    ]
+
+
+def test_related_lesson_from_the_prerequisite_side_is_accepted():
+    # Related links run one way: the lesson that is built on links its
+    # extension; the extension keeps the lesson as a prerequisite.
+    linking = replaced(KINEMATICS, related=("proof",))
+
+    assert problems([linking, NEWTON, ENERGY, PROOF]) == []
+
+
+def test_reading_a_site_with_a_lesson_that_lacks_a_facet_fails(site: Path):
+    page = write_lesson(site, lesson("drag", order=4, prerequisites=("energy",)))
+    page.write_text(page.read_text().replace("  course: mechanics\n", ""))
+
+    with pytest.raises(ValueError, match="drag"):
+        read_lessons(site)
+
+
+def test_reading_a_site_with_too_few_outcomes_fails_with_the_problem(site: Path):
+    write_lesson(site, replaced(lesson("drag", order=4), outcomes=("One",)))
+
+    with pytest.raises(ValueError, match="has 1 outcomes"):
+        LearningPath.read(site)
+
+
+def test_only_courses_and_methods_with_a_lesson_are_part_of_the_path(
+    path: LearningPath,
+):
+    assert [course.id for course in path.courses] == ["mechanics"]
+    assert [method.id for method in path.methods] == ["simulation", "lean"]
+    assert path.using(path.methods[1]) == (PROOF,)
+    assert path.in_course(path.courses[0]) == path.lessons
+
+
 def test_reading_an_inconsistent_site_fails_with_every_problem(site: Path):
     write_lesson(site, lesson("orbit", order=5, prerequisites=("gravity",)))
 
@@ -260,21 +375,61 @@ def path(site: Path) -> LearningPath:
     return LearningPath.read(site)
 
 
-def test_header_shows_strand_position_difficulty_prerequisites_and_neighbours(
+def test_header_shows_course_methods_outcomes_prerequisites_and_neighbours(
     path: LearningPath,
 ):
     shown = LessonHeader(path, NEWTON)._repr_markdown_()
 
-    assert "[Mechanics](../../../path/index.html#mechanics), lesson 2 of 3" in shown
+    assert (
+        "Course\n:   [Mechanics](../../../path/index.html#course-mechanics),"
+        " lesson 2 of 4" in shown
+    )
+    assert (
+        "Methods\n:   [Simulation](../../../path/index.html#method-simulation)" in shown
+    )
     assert "[Intermediate, level 2 of 3](../../../path/index.html#difficulty)" in shown
+    assert (
+        "What you'll learn\n:   \n    - Do the first thing of newton\n"
+        "    - Do the second thing of newton\n" in shown
+    )
     assert "Prerequisites\n:   [Kinematics](../01-kinematics/index.html)" in shown
+    assert "Related\n:   none" in shown
     assert "Previous\n:   [Kinematics](../01-kinematics/index.html)" in shown
     assert "Next\n:   [Energy](../03-energy/index.html)" in shown
 
 
-def test_header_links_across_strands_and_states_the_ends_of_the_path(
-    path: LearningPath,
-):
+def test_header_renders_the_outcomes_as_a_list_in_its_row(path: LearningPath):
+    blocks = pandoc_blocks(LessonHeader(path, NEWTON)._repr_markdown_())
+
+    (div,) = blocks
+    definitions = dict(
+        (inlines_text(term), items) for term, items in div["c"][1][0]["c"]
+    )
+    (outcomes,) = definitions["What you'll learn"]
+    assert [block["t"] for block in outcomes] == ["BulletList"]
+    assert len(outcomes[0]["c"]) == 2
+
+
+def inlines_text(inlines: list[dict]) -> str:
+    # Pandoc's smart typography turns the apostrophe into a curly one.
+    text = "".join(i["c"] if i["t"] == "Str" else " " for i in inlines)
+    return text.replace("\u2019", "'")
+
+
+def test_header_links_related_lessons_and_methods():
+    item = lesson("kinematics", methods=("simulation", "lean"), related=("proof",))
+    path = LearningPath((item, PROOF))
+
+    shown = LessonHeader(path, item)._repr_markdown_()
+
+    assert (
+        "[Simulation](../../../path/index.html#method-simulation), [Formal proofs]"
+        in shown
+    )
+    assert "Related\n:   [Proof](../../lean/01-proof/index.html)" in shown
+
+
+def test_header_states_the_ends_of_the_path(path: LearningPath):
     first = LessonHeader(path, KINEMATICS)._repr_markdown_()
     last = LessonHeader(path, PROOF)._repr_markdown_()
 
@@ -282,7 +437,7 @@ def test_header_links_across_strands_and_states_the_ends_of_the_path(
     assert "Next\n:   [Newton](../02-newton/index.html)" in first
     assert "Previous\n:   [Energy](../../mechanics/03-energy/index.html)" in last
     assert "Next\n:   none yet; this is the last lesson" in last
-    assert "[Formal proofs](../../../path/index.html#lean), lesson 1 of 1" in last
+    assert "lesson 4 of 4" in last
 
 
 def test_header_names_the_outside_prerequisites(path: LearningPath):
@@ -294,7 +449,7 @@ def test_header_names_the_outside_prerequisites(path: LearningPath):
     assert "[Newton](../02-newton/index.html). Also assumed: Calculus." in shown
 
 
-def test_overview_explains_the_scale_and_lists_strands_with_lessons_in_order(
+def test_overview_lists_courses_with_core_lessons_and_extensions_then_methods(
     path: LearningPath,
 ):
     shown = str(PathOverview(path, PATH_PAGE))
@@ -302,17 +457,27 @@ def test_overview_explains_the_scale_and_lists_strands_with_lessons_in_order(
     assert "## Difficulty {#difficulty}" in shown
     for difficulty in DIFFICULTIES:
         assert difficulty.description in shown
-    headings = [line for line in shown.splitlines() if line.startswith("## ")]
+    headings = [line for line in shown.splitlines() if line.startswith("#")]
     assert headings == [
         "## Difficulty {#difficulty}",
-        "## Mechanics {#mechanics}",
-        "## Formal proofs {#lean}",
+        "## Order {#order}",
+        "## Courses {#courses}",
+        "### Mechanics {#course-mechanics}",
+        "#### Core lessons {#course-mechanics-core}",
+        "#### Extensions {#course-mechanics-extensions}",
+        "## Methods {#methods}",
+        "### Simulation {#method-simulation}",
+        "### Formal proofs {#method-lean}",
     ]
     assert "LLM agents" not in shown and "Agent-based" not in shown
     lessons = [
         line for line in shown.splitlines() if line[:1].isdigit() and ". [" in line
     ]
     assert lessons == [
+        "1. [Kinematics](../lessons/mechanics/01-kinematics/index.html)",
+        "2. [Newton](../lessons/mechanics/02-newton/index.html)",
+        "3. [Energy](../lessons/mechanics/03-energy/index.html)",
+        "1. [Proof](../lessons/lean/01-proof/index.html)",
         "1. [Kinematics](../lessons/mechanics/01-kinematics/index.html)",
         "2. [Newton](../lessons/mechanics/02-newton/index.html)",
         "3. [Energy](../lessons/mechanics/03-energy/index.html)",
@@ -324,10 +489,21 @@ def test_overview_explains_the_scale_and_lists_strands_with_lessons_in_order(
     )
 
 
+def test_overview_explains_what_previous_and_next_mean(path: LearningPath):
+    section = str(PathOverview(path, PATH_PAGE)).split("## Order {#order}")[1]
+    section = section.split("## Courses")[0]
+
+    assert "Previous and next" in section
+    assert "Mechanics, then Formal proofs" in section
+    assert "course order" in section
+    assert "prerequisites" in section
+
+
 def test_overview_of_a_site_without_lessons_says_so():
     shown = str(PathOverview(LearningPath(()), PATH_PAGE))
 
     assert "No lesson has been published yet." in shown
+    assert "{#courses}" not in shown and "{#methods}" not in shown
     assert "## Difficulty {#difficulty}" in shown
 
 
@@ -357,13 +533,15 @@ def test_overview_keeps_the_facts_of_every_lesson_in_its_item_past_ten_lessons()
 
     blocks = pandoc_blocks(str(PathOverview(path, PATH_PAGE)))
 
+    # One list for the core lessons of the course, one for the method.
     ordered_lists = [block for block in blocks if block["t"] == "OrderedList"]
-    assert len(ordered_lists) == 1
-    items = ordered_lists[0]["c"][1]
-    assert len(items) == 11
-    for order, item in enumerate(items, start=1):
-        paragraphs = [block["t"] for block in item]
-        assert paragraphs == ["Para"] * (3 if order % 2 else 2), order
+    assert len(ordered_lists) == 2
+    for ordered_list in ordered_lists:
+        items = ordered_list["c"][1]
+        assert len(items) == 11
+        for order, item in enumerate(items, start=1):
+            paragraphs = [block["t"] for block in item]
+            assert paragraphs == ["Para"] * (3 if order % 2 else 2), order
 
 
 # --- From the page being built --------------------------------------------------

@@ -7,6 +7,12 @@ lesson:
   strand: mechanics
   order: 0
   difficulty: 1
+  course: mechanics
+  methods: [simulation]
+  outcomes:
+    - "Replace: what the reader can do after the lesson"
+    - "Replace: a second outcome; a lesson states two to five"
+  related: []
   prerequisites:
     lessons: []
     outside:

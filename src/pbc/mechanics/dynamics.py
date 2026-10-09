@@ -116,6 +116,11 @@ def euler_step(state: State, acceleration: Acceleration, dt: float) -> State:
     Position and velocity both change at the rates that hold at the start
     of the step: the old velocity moves the particle, and the acceleration
     at the old state changes the velocity.
+
+    ``state`` (t in s, x in m, v in m/s) is the state at the start of the
+    step. ``acceleration`` (m/s²) is the acceleration, given t, x and v.
+    ``dt`` (s) is the step length. The ``return`` (t in s, x in m, v in m/s)
+    is the state at the end of the step.
     """
     return State(
         t=state.t + dt,

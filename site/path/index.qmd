@@ -1,18 +1,20 @@
 ---
 title: "Learning path"
 description: >-
-  Every lesson of the site in order, with its difficulty and prerequisites.
+  The lessons of the site by course and by method, with their difficulty and
+  prerequisites.
 ---
 
-The lessons form one path. It starts with mechanics and numerical
-simulation, continues with experiments driven by AI agents, and ends with
-formal proofs in Lean. Within a strand the lessons are numbered, and every
-lesson names the lessons it builds on and what it assumes you know from
-elsewhere. Read the lessons in order, or start with any lesson whose
+The lessons are organised by course: a course is a physics subject, and
+every lesson belongs to one. Methods cut across courses: simulation, LLM
+agents, agent-based modelling, and formal proofs in Lean. Each lesson names
+the lessons it builds on and what it assumes you know from elsewhere, and
+says what you will be able to do after it. Read a course from its first
+lesson, follow one method across courses, or start with any lesson whose
 prerequisites you have.
 
-This page is generated from the lessons when the site is built. A strand
-appears once it has a lesson.
+This page is generated from the lessons when the site is built. A course or
+a method appears once it has a lesson.
 
 ```{python}
 #| echo: false

@@ -11,6 +11,13 @@ lesson:
   strand: lean
   order: 1
   difficulty: 2
+  course: mechanics
+  methods: [lean]
+  outcomes:
+    - State a result of the mechanics course as a theorem in Lean 4
+    - Read the proof of the identity between speed and distance under constant acceleration
+    - Read the proof of the factor by which one Euler step multiplies the energy of the oscillator
+  related: []
   prerequisites:
     lessons: [kinematics, harmonic-oscillator]
     outside:

@@ -9,6 +9,13 @@ lesson:
   strand: mechanics
   order: 6
   difficulty: 2
+  course: mechanics
+  methods: [simulation]
+  outcomes:
+    - Compute work and potential energy along a simulated motion
+    - Simulate the pendulum at large amplitude
+    - Use the drift of the energy as a diagnostic, and say what it does not catch
+  related: []
   prerequisites:
     lessons: [numerical-integrators]
     outside:
