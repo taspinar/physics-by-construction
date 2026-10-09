@@ -144,8 +144,10 @@ def test_the_first_lesson_shows_mathml_results_and_figures(
     )
     assert len(widths) >= 10 and all(width > 0 for width in widths)
     assert page.locator(".MathJax, .katex, mjx-container").count() == 0
-    # Numbers are what executed cells printed, and both figures were drawn.
-    assert page.locator("main .cell-output-stdout").count() >= 5
+    # Numbers are what executed cells printed or tabulated, and both figures
+    # were drawn.
+    assert page.locator("main .cell-output-stdout").count() >= 2
+    assert page.locator("main table.result-table").count() == 4
     figures = page.locator("main img.figure-img")
     assert figures.count() == 2
     assert all(
@@ -259,6 +261,9 @@ def test_the_lessons_display_the_same_numbers_on_every_platform(
         " ".join(line.split())
         for output in page.locator("main .cell-output-stdout").all_text_contents()
         for line in output.splitlines()
+    ] + [
+        " ".join(row.split())
+        for row in page.locator("main table.result-table tbody tr").all_text_contents()
     ]
     missing = [row for row in REFERENCE_ROWS[lesson] if row not in printed]
     assert not missing, f"not printed by the page: {missing}"
