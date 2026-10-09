@@ -39,9 +39,13 @@ guarantees, for every initial condition at once.
 ## Lessons
 
 The [learning path](path/index.qmd) lists every lesson in order, with its
-difficulty and what it builds on. The first course, mechanics with numerical
-simulation, is being written; lessons appear on the path as they pass
-verification.
+difficulty and what it builds on. The site has eleven lessons in four
+strands: eight on mechanics with numerical simulation, one on an AI agent
+that runs an experiment, one on a gas of many simple agents and what emerges
+from them, and one on proofs in Lean. Lessons appear on the
+path only after they pass verification. To rebuild everything on your own
+machine, see [Reproduce](reproduce.qmd); to report an error or propose a
+change, see [Contribute](contribute.qmd).
 
 ## Source and licence
 

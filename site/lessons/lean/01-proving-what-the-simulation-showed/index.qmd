@@ -363,9 +363,11 @@ size, not only for the three drawn.
 - **Continuous time.** The position and velocity formulas are hypotheses.
   That they solve the equations of motion is a statement about derivatives,
   and it is not proved here.
-- **Other methods.** The factor belongs to explicit Euler. Symplectic Euler,
-  velocity Verlet, and Runge--Kutta 4 satisfy other relations, and the second
-  exercise shows one that the theorem does not describe.
+- **Other methods.** The factor belongs to explicit Euler. The other steppers
+  of the mechanics course, introduced in its numerical integrators lesson
+  (symplectic Euler, velocity Verlet, and Runge-Kutta 4), satisfy other
+  relations; the second exercise defines one of them in full and shows that
+  the theorem does not describe it.
 - **That the model is physics.** A Lean proof tells us what follows from the
   hypotheses. Whether a real spring obeys $m\,a = -k\,x$ is settled by
   measuring it.

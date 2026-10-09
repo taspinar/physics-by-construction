@@ -1,0 +1,67 @@
+---
+title: "Reproduce the site"
+description: >-
+  How to build this site and re-run every lesson on your own machine.
+---
+
+Every listing, figure, and proof on this site comes from code in the
+repository. One command rebuilds all of it, so you can check any claim a
+lesson makes.
+
+## What you need
+
+A computer running macOS or Linux, with about 11 GB of free disk space for
+the Lean toolchain and the Mathlib build cache, and an internet connection
+for the first run. You need these tools:
+
+- Git
+- [uv](https://docs.astral.sh/uv/getting-started/installation/), which
+  installs the pinned Python, the Python packages, and Quarto
+- [elan](https://lean-lang.org/install/manual/), which installs the pinned
+  Lean toolchain
+- jq 1.6 or later
+
+## Steps
+
+```bash
+git clone https://github.com/taspinar/physics-by-construction.git
+cd physics-by-construction
+uv sync --locked
+uv run --locked playwright install --only-shell chromium
+./scripts/preflight.sh
+./scripts/verify.sh
+```
+
+On Linux, the browser build needs system libraries. Add `--with-deps` to the
+`playwright install` command to install them on the distributions Playwright
+supports; it asks for administrator rights.
+
+`./scripts/preflight.sh` lists every missing prerequisite with a hint to fix
+it, and needs nothing beyond the tools above. `./scripts/verify.sh` runs that
+check first, then runs the tests, builds every Lean proof, builds the site,
+and checks the built pages. The first run downloads the Lean toolchain and
+the Mathlib build cache and takes the longest. Open `site/_site/index.html`
+in a browser to read the result.
+
+The repository also has `./scripts/doctor.sh`, for the people who maintain
+the site. It checks the tools of their workflow as well, such as a GitHub
+account that can push to the repository, and reports them as failures when
+they are absent. Rebuilding the site does not need them.
+
+The
+[development guide](https://github.com/taspinar/physics-by-construction/blob/main/docs/development.md)
+has the full setup, including the commands for each tool on each system.
+
+## Running one lesson
+
+Each lesson's code is in `src/pbc/`, with its tests in `tests/unit/`. To run
+the tests of the code that the lessons use:
+
+```bash
+uv run --locked pytest tests/unit
+```
+
+The lesson on agents records a run made with a language model. You can check
+that record without a model and without a key: the build recomputes every
+tool result in it. Running the agent yourself needs your own API key, as the
+lesson explains.

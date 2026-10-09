@@ -31,6 +31,10 @@ website:
         href: path/index.qmd
       - text: About
         href: about.qmd
+      - text: Reproduce
+        href: reproduce.qmd
+      - text: Contribute
+        href: contribute.qmd
     right:
       - text: Source
         href: https://github.com/taspinar/physics-by-construction

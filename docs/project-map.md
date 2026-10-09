@@ -72,6 +72,7 @@ in `docs/workflow.md`.
 | `docs/agentic-workflow.md` | Principles: persistent state, roadmap versus Issues, plans versus Issues | Template |
 | `docs/evaluation.md` | Review criteria, finding severities, and the testing principle | Template |
 | `docs/deployment.md`, `docs/operations.md` | Deployment and operations of the project | You |
+| `docs/release-readiness.md` | The record of the MVP release checks that CI cannot make | You |
 
 ## Workflow scripts
 

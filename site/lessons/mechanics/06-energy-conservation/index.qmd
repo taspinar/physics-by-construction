@@ -14,6 +14,7 @@ lesson:
     outside:
       - "Calculus: the chain rule, and the integral of a function along a path"
       - "Trigonometry: the small-angle approximation of the sine"
+      - "Vectors: the dot product, and the gradient of a function of the position"
 ---
 
 ```{python}

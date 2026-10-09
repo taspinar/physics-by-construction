@@ -13,6 +13,7 @@ lesson:
     lessons: [momentum-and-collisions]
     outside:
       - "Statistics: the mean, the standard deviation, and the standard error of a mean"
+      - "Probability: the Gaussian distribution and the t distribution"
 ---
 
 ```{python}
@@ -366,7 +367,7 @@ one.
 
 ::: {.exercise}
 **A denser gas.** How many discs of the same radius give a packing
-fraction of 5 %, and what does the virial correction predict for the
+fraction of 5 per cent, and what does the virial correction predict for the
 pressure? Run one seed of that gas and compare it with the packing fraction
 of the first worked example.
 
