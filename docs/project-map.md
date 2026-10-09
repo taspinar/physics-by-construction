@@ -12,7 +12,7 @@ in `docs/workflow.md`.
 | `site/lessons/<strand>/<nn>-<slug>/index.qmd` | One lesson per directory, in the format of `docs/authoring.md`. An agent lesson may also hold its replay fixture `replay.json`; nothing else is committed there |
 | `site/path/index.qmd` | The learning path page, generated from the lesson front matter when the site is built |
 | `site/_site/` | The built site. Written by `scripts/build-site.sh`, ignored by Git |
-| `src/pbc/` | The Python package with the reusable lesson code: `mechanics/` for the mechanics course, `authoring/` for the helpers pages use to show Python and Lean code by reference, to show numeric results as tables, to write "Reproduce this", and to generate the learning path page and lesson headers; `authoring/path.py` defines the strands and the difficulty scale |
+| `src/pbc/` | The Python package with the reusable lesson code: `mechanics/` for the mechanics course, `authoring/` for the helpers pages use to show Python and Lean code by reference, to show numeric results as tables, to write "Reproduce this", and to generate the learning path page and lesson headers; `authoring/path.py` defines the strands and the difficulty scale; `authoring/graph.py` lays out the prerequisite graph of the path page as inline SVG |
 | `lean/` | The Lean project: `lean-toolchain`, `lakefile.toml`, and `lake-manifest.json` pin Lean and Mathlib; proofs live in `PhysicsByConstruction/`; `AxiomAudit.lean` is the audit run by `scripts/check-lean.sh` |
 | `pyproject.toml`, `uv.lock`, `.python-version` | The Python toolchain pins, including Quarto and the browser for the site checks |
 | `LICENSE`, `LICENSE-CONTENT` | MIT for code, CC BY 4.0 for lesson text and figures |

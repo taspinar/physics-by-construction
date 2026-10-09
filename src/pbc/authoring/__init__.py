@@ -11,6 +11,7 @@ from pbc.authoring.design import (
     FIGURE_STATUSES,
 )
 from pbc.authoring.excerpt import Excerpt, excerpt
+from pbc.authoring.graph import Edge, PrerequisiteGraph
 from pbc.authoring.lean import LeanEvidence, LeanExcerpt, lean_evidence, lean_excerpt
 from pbc.authoring.path import (
     COURSES,
@@ -37,12 +38,14 @@ __all__ = [
     "METHODS",
     "STRANDS",
     "BuildCommit",
+    "Edge",
     "Excerpt",
     "LeanEvidence",
     "LeanExcerpt",
     "LearningPath",
     "LessonHeader",
     "PathOverview",
+    "PrerequisiteGraph",
     "Reproduction",
     "ResultTable",
     "WidgetScript",

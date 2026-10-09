@@ -394,10 +394,12 @@ _UNREADABLE_CONTENT = """
     seen.add(element);
     // Not content, or hidden by design: the TeX source kept inside MathML;
     // the table of contents, which repeats the headings of the page and is
-    // dropped on a narrow screen; and the body of a closed <details>, which
-    // opens without a script.
+    // dropped on a narrow screen; the <title> and <desc> of a drawing, which
+    // are its accessible name and description and are never rendered; and
+    // the body of a closed <details>, which opens without a script.
     if (element.closest(
-      "script, style, template, annotation, annotation-xml, nav[role='doc-toc']"
+      "script, style, template, annotation, annotation-xml, nav[role='doc-toc'],"
+        + " svg > title, svg > desc"
     )) continue;
     const details = element.closest("details:not([open])");
     if (details && !element.closest("summary")) continue;
