@@ -2,6 +2,14 @@
 title: "Physics by Construction"
 ---
 
+```{python}
+#| echo: false
+#| output: asis
+from pbc.authoring.identity import description
+
+print(description(), "[About the creator and JIDAI](about.qmd#creator-and-jidai).")
+```
+
 Physics by Construction teaches physics by building it. Every concept comes
 with code you can run. The path leads from numerical simulation, through
 experiments driven by AI agents, to formal proofs in Lean. Every listing,

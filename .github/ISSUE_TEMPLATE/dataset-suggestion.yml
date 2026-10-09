@@ -1,0 +1,53 @@
+name: Dataset suggestion
+description: Suggest a real dataset that a lesson could learn from
+title: "Dataset: "
+labels: [dataset-suggestion]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the suggestion. A dataset can be used in a lesson only
+        when its licence allows redistribution or download at build time, and
+        a lesson that uses it needs independent review like any other. You do
+        not need to contact anyone: the maintainer assesses this Issue and
+        records the outcome on it.
+
+        Do not put secrets, credentials, or private data in this Issue.
+  - type: input
+    attributes:
+      label: Source URL or DOI
+      description: Where the dataset is published.
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Creator
+      description: Who made or published the dataset.
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Licence
+      description: The licence of the dataset, as the source states it.
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Measurement type
+      description: What was measured, for example the position of a falling body.
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Size
+      description: The size of the download and the number of rows.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What a lesson could learn from it
+      description: >-
+        The physical result a lesson could check against this dataset, and the
+        model it would fit.
+    validations:
+      required: true

@@ -1,5 +1,5 @@
 name: Feature
-about: Define a scoped feature for implementation
+description: Define a scoped feature for implementation
 labels: [feature]
 body:
   - type: textarea
