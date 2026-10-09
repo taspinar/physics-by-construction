@@ -38,6 +38,8 @@ website:
         href: index.qmd
       - text: Learning path
         href: path/index.qmd
+      - text: Glossary
+        href: glossary.qmd
       - text: About
         href: about.qmd
       - text: Set up

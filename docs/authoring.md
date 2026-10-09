@@ -94,7 +94,7 @@ lesson:
 | `lesson.outcomes` | yes | List of two to five sentences: what the reader can do after the lesson. Shown in the header as "What you'll learn". Write what the reader does, not what the lesson contains. |
 | `lesson.related` | yes | List of the `id`s of lessons the header links as extensions, such as the agent, measured-data, or Lean counterpart of a lab. May be empty. Each must exist, must not be the lesson itself, and must not already be among its prerequisites. Write the link on the lesson that is built on, towards the extension; the extension keeps that lesson as a prerequisite and does not list it back. |
 | `lesson.prerequisites.lessons` | yes | List of the `id`s of lessons a reader needs first. Each must exist and come earlier in the learning path. May be empty. |
-| `lesson.prerequisites.outside` | yes | List of texts: what a reader must know that no lesson on the site teaches. May be empty. |
+| `lesson.prerequisites.outside` | yes | List of texts `Term: what exactly`: what a reader must know that no lesson on the site teaches. The text before the first colon must be the `term` of an entry of `site/glossary.yaml` (see "Glossary"). May be empty. |
 | `lesson.lean-modules` | no | List of the Lean modules the lesson displays, such as `PhysicsByConstruction.Mechanics.Kinematics`. A lesson that shows Lean lists exactly the modules it names: each must exist in `lean/`, and the page names no other. |
 | `lesson.format` | no | `1` (the default: the MVP template) or `2` (the progressive-depth template, see "Lesson format 2"). The checks of format 2 apply to the lessons that declare it. |
 
@@ -102,6 +102,32 @@ No other key is allowed, neither at the top level nor under `lesson`. Options
 that apply to every page belong in `site/_quarto.yml`. An option that changes
 how one page is executed (`execute`, `freeze`, `jupyter`) would undermine the
 checks and is rejected with the rest.
+
+## Glossary
+
+`site/glossary.yaml` defines the vocabulary the lessons assume; `site/glossary.qmd`
+renders it, and the header of every lesson renders a "Before you begin" list
+from `prerequisites.outside`, with the term of each item linked to its entry.
+
+```yaml
+entries:
+  - term: Calculus
+    definition: >-
+      One to three sentences that say what the lessons mean by the term.
+    see: numerical-integrators   # optional: id of the lesson that explains it
+```
+
+Write an outside prerequisite as `"Calculus: the chain rule"`: the term, a
+colon, and the detail this lesson needs. Add an entry when a lesson needs a
+term that has none. An entry has one to three sentences, a term appears once,
+and a term that no lesson assumes is rejected, so the glossary lists nothing
+that is not used. The page lists the lessons that assume each entry; do not
+write that list by hand.
+
+Prefer an internal link: when a lesson on the site explains the topic, name it
+in `see` and the entry links it. Link an introduction elsewhere only through
+the reference register (a `go-deeper` block in a lesson) and only where it adds
+real depth; the glossary itself contains no external link.
 
 ## The learning path
 
@@ -971,9 +997,9 @@ there or carry recordings elsewhere.
 
 | Check | Reports |
 |---|---|
-| `lesson-checks` (`tests/lessons`) | Front matter outside the schema; a Lean module that the page shows and `lean-modules` does not list, or that it lists without showing or without a file; a missing or empty required section; a lesson without the `lesson_header()` cell before its first heading; an exercise without a solution; a "Reproduce this" section without `reproduce_this()`; a missing or unknown course, a lesson without a method, a number of outcomes outside two to five, a related lesson that does not exist or is a prerequisite, a duplicate id, a gap or duplicate in the orders of a strand, a prerequisite that does not exist, comes later in the path, or forms a cycle; code that is neither an executed `{python}` cell nor marked "not verified"; a figure cell without `fig-alt`; an image file in a page; for a format 2 lesson, a missing or empty `limits` section, a number of self-checks other than one (or one without a solution), a claim of an unknown type, a figure without a valid `fig-status`, a `go-deeper` key that the register lacks, a URL typed in the source, and a hand-typed number in prose or alt text; a register entry with a missing or malformed field, a duplicate key, or no lesson using it that is not reserved; a generated artifact or a stray file under `site/` or `src/`. |
+| `lesson-checks` (`tests/lessons`) | Front matter outside the schema; a Lean module that the page shows and `lean-modules` does not list, or that it lists without showing or without a file; a missing or empty required section; a lesson without the `lesson_header()` cell before its first heading; an exercise without a solution; a "Reproduce this" section without `reproduce_this()`; an outside prerequisite that names no glossary entry, an entry that no lesson assumes or whose definition is not one to three sentences, a missing or unknown course, a lesson without a method, a number of outcomes outside two to five, a related lesson that does not exist or is a prerequisite, a duplicate id, a gap or duplicate in the orders of a strand, a prerequisite that does not exist, comes later in the path, or forms a cycle; code that is neither an executed `{python}` cell nor marked "not verified"; a figure cell without `fig-alt`; an image file in a page; for a format 2 lesson, a missing or empty `limits` section, a number of self-checks other than one (or one without a solution), a claim of an unknown type, a figure without a valid `fig-status`, a `go-deeper` key that the register lacks, a URL typed in the source, and a hand-typed number in prose or alt text; a register entry with a missing or malformed field, a duplicate key, or no lesson using it that is not reserved; a generated artifact or a stray file under `site/` or `src/`. |
 | `site-build` | A cell that raises, including the header cell of a lesson whose path is inconsistent; an equation that cannot become MathML. |
-| `site-checks` (`tests/e2e`) | A lesson without a built page or a required section; a lesson the home page does not lead to without JavaScript; a format 2 page whose cell printed a block of numbers; a header whose course, methods, outcomes, prerequisites, related lessons, or previous and next links differ from the front matter; a path page that does not list every lesson under its course and each of its methods; a lesson address that existed before the courses and no longer resolves; an excerpt that differs from its source, a Python object or a region of a Lean file; a cell or inline expression that was not executed; "not verified" material without a visible label; "Reproduce this" commands that fail, take longer than 30 seconds, or do not regenerate the published page; a widget script that makes a request, names another origin, or uses browser storage, or a widget that writes to cookies or storage when operated; a widget that does not respond to its controls, cannot be operated by keyboard, shows values that differ from `pbc`, or moves the page when it loads; and the checks every page gets (images, links, JavaScript, widths, accessibility). |
+| `site-checks` (`tests/e2e`) | A lesson without a built page or a required section; a lesson the home page does not lead to without JavaScript; a format 2 page whose cell printed a block of numbers; a header whose course, methods, outcomes, prerequisites, "Before you begin" list, related lessons, or previous and next links differ from the front matter; a glossary page that lacks an entry or does not link the lessons that assume it; a path page that does not list every lesson under its course and each of its methods; a lesson address that existed before the courses and no longer resolves; an excerpt that differs from its source, a Python object or a region of a Lean file; a cell or inline expression that was not executed; "not verified" material without a visible label; "Reproduce this" commands that fail, take longer than 30 seconds, or do not regenerate the published page; a widget script that makes a request, names another origin, or uses browser storage, or a widget that writes to cookies or storage when operated; a widget that does not respond to its controls, cannot be operated by keyboard, shows values that differ from `pbc`, or moves the page when it loads; and the checks every page gets (images, links, JavaScript, widths, accessibility). |
 | `determinism` | A page that differs between two builds. |
 
 Fix the lesson when a check fails. Do not weaken a check to make a lesson

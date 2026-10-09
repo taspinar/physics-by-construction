@@ -63,3 +63,8 @@ def test_format_2_lessons_follow_the_format(repository: Path):
 def test_the_reference_register_follows_its_schema_and_is_used(repository: Path):
     violations = lesson_checks.check_references(repository)
     assert not violations, describe(violations)
+
+
+def test_every_outside_prerequisite_has_a_glossary_entry(repository: Path):
+    violations = lesson_checks.check_glossary(repository)
+    assert not violations, describe(violations)

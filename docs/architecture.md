@@ -108,7 +108,8 @@ site/                    Quarto project: the website source
   about.qmd              About: how the site is built, licences, identity (F57)
   path/                  Learning path page (generated from lesson metadata)
   lessons/<strand>/<nn>-<slug>/index.qmd   One directory per lesson
-  glossary.qmd           Glossary and "before you begin" (next phase, F42)
+  glossary.qmd           Glossary page, generated from glossary.yaml and the lessons (F42)
+  glossary.yaml          Glossary entries; lessons reference them by term (F42)
   references.yaml        Reference register of curated external links (next phase, F28, ADR 009)
   widgets/               Self-hosted JavaScript widgets (ES modules)
   assets/                Styles, fonts, vendored Lean syntax definition
@@ -203,7 +204,7 @@ features:
 | `title`, `description` | Lesson title and one-sentence description. | F02 |
 | `strand`, `order` | Position in the learning path. | F02 |
 | `difficulty` | Ordinal level on one site-wide scale (1 to 3). | F02 |
-| `prerequisites` | Lesson `id`s that must come earlier in the path, plus free-text outside prerequisites. | F02 |
+| `prerequisites` | Lesson `id`s that must come earlier in the path, plus outside prerequisites written `Term: detail`, each term an entry of the glossary (F42). | F02 |
 | `lean-modules` | Lean modules this lesson displays, when any. | F08 |
 | `course` | The primary physics course. Required. | F37 |
 | `methods` | The methods the lesson uses, from the fixed vocabulary; at least one. | F37 |
