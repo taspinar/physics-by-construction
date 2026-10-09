@@ -10,6 +10,13 @@ lesson:
   strand: mechanics
   order: 8
   difficulty: 3
+  course: mechanics
+  methods: [simulation]
+  outcomes:
+    - Reduce two bodies under gravity to one
+    - Use the energy and the angular momentum to fix the ellipse
+    - Compare each integrator with the exact orbit over a thousand orbits
+  related: []
   prerequisites:
     lessons: [energy-conservation, momentum-and-collisions]
     outside:

@@ -10,6 +10,13 @@ lesson:
   strand: mechanics
   order: 7
   difficulty: 2
+  course: mechanics
+  methods: [simulation]
+  outcomes:
+    - Write pairwise forces on the stepping interface
+    - Check that the total momentum is conserved to round-off
+    - Model a collision as a brief strong force and compare it with the hard-sphere outcome
+  related: [particles-in-a-box]
   prerequisites:
     lessons: [energy-conservation]
     outside:

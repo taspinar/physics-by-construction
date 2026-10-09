@@ -2,10 +2,10 @@
 
 The path is derived from the front matter of the lessons when a page is
 built; there is no second, hand-maintained list (docs/architecture.md,
-"Lesson model"). This module defines the strands and the one difficulty
-scale of the site, reads the lessons, puts them in order, validates the
-result, and renders the learning path page and the header of a lesson. The
-lesson source checks validate with the same code.
+"Lesson model"). This module defines the strands, the courses, the methods,
+and the one difficulty scale of the site, reads the lessons, puts them in
+order, validates the result, and renders the learning path page and the
+header of a lesson. The lesson source checks validate with the same code.
 """
 
 import posixpath
@@ -90,7 +90,80 @@ DIFFICULTIES = (
     ),
 )
 
+
+@dataclass(frozen=True)
+class Course:
+    id: str
+    title: str
+    description: str
+
+
+# The courses of the site (ADR 008). A lesson belongs to one primary course;
+# a course appears on the learning path page once it has a lesson.
+COURSES = (
+    Course(
+        "mechanics",
+        "Mechanics",
+        "Mechanics with numerical simulation: a model and its assumptions, a"
+        " short program that steps it forward in time, and a comparison with"
+        " what theory predicts. The core lessons are the mechanics lessons;"
+        " the extensions repeat the course's results with an agent, with"
+        " many agents, and with a proof.",
+    ),
+)
+
+
+@dataclass(frozen=True)
+class Method:
+    id: str
+    title: str
+    description: str
+
+
+# The ways of working that cut across courses (ADR 008). A lesson lists the
+# methods it uses; the path page shows one path per method.
+METHODS = (
+    Method(
+        "simulation",
+        "Simulation",
+        "Lessons that build a model as a program and check it against theory.",
+    ),
+    Method(
+        "llm-agents",
+        "LLM agents",
+        "Lessons in which a language model proposes and runs experiments with"
+        " the simulation code, on your own machine with your own API key.",
+    ),
+    Method(
+        "abm",
+        "Agent-based modelling",
+        "Lessons with many simple agents, local rules, and the collective"
+        " behaviour that emerges from them.",
+    ),
+    Method(
+        "lean",
+        "Formal proofs",
+        "Lessons that state results as theorems in Lean 4 with Mathlib and"
+        " check them by machine.",
+    ),
+    Method(
+        "measured-data",
+        "Measured data",
+        "Lessons that compare a model with measurements.",
+    ),
+    Method(
+        "coding-agents",
+        "Coding agents",
+        "Exercises in which a coding agent works on the learner's machine.",
+    ),
+)
+
+# Outcomes a lesson states: what the reader can do afterwards.
+OUTCOMES_RANGE = (2, 5)
+
 _STRAND_INDEX = {strand.id: index for index, strand in enumerate(STRANDS)}
+_COURSE = {course.id: course for course in COURSES}
+_METHOD = {method.id: method for method in METHODS}
 _DIFFICULTY = {difficulty.level: difficulty for difficulty in DIFFICULTIES}
 
 
@@ -107,6 +180,10 @@ class Lesson:
     difficulty: int
     prerequisites: tuple[str, ...]  # lesson ids
     outside: tuple[str, ...]  # what no lesson on the site teaches
+    course: str
+    methods: tuple[str, ...]
+    outcomes: tuple[str, ...]
+    related: tuple[str, ...]  # lesson ids the lesson links as extensions
 
 
 @dataclass(frozen=True)
@@ -127,7 +204,8 @@ def problems(lessons: Sequence[Lesson]) -> list[Problem]:
     """Return every violation of the rules that make the lessons a path:
     ids are unique, orders within a strand run from 1 without gaps or
     duplicates, prerequisites exist, come earlier in the path, and form no
-    cycle."""
+    cycle, and the course, methods, outcomes, and related lessons follow
+    the rules of the front matter."""
     ordered = sorted(lessons, key=_key)
     found: list[Problem] = []
 
@@ -190,6 +268,11 @@ def problems(lessons: Sequence[Lesson]) -> list[Problem]:
                     )
                 )
 
+    for lesson in ordered:
+        found += [
+            Problem(lesson.page, message) for message in _facets(lesson, position)
+        ]
+
     graph = {
         lesson.id: tuple(p for p in lesson.prerequisites if p in position)
         for lesson in first_with_id.values()
@@ -201,6 +284,42 @@ def problems(lessons: Sequence[Lesson]) -> list[Problem]:
                 "prerequisites form a cycle: " + " -> ".join(cycle),
             )
         )
+    return found
+
+
+def _facets(lesson: Lesson, position: dict[str, int]) -> list[str]:
+    """What is wrong with the course, methods, outcomes, and related lessons
+    of ``lesson``; ``position`` has the id of every lesson."""
+    found = []
+    if lesson.course not in _COURSE:
+        found.append(f"'lesson.course' {lesson.course!r} is not a course of the site")
+    if not lesson.methods:
+        found.append("'lesson.methods' names no method")
+    found += [
+        f"'lesson.methods' names {method!r}, which is not a method of the site"
+        for method in lesson.methods
+        if method not in _METHOD
+    ]
+    if len(set(lesson.methods)) != len(lesson.methods):
+        found.append("'lesson.methods' names a method twice")
+    low, high = OUTCOMES_RANGE
+    if not low <= len(lesson.outcomes) <= high:
+        found.append(
+            f"'lesson.outcomes' has {len(lesson.outcomes)} outcomes; a lesson"
+            f" states {low} to {high}"
+        )
+    for related in lesson.related:
+        if related == lesson.id:
+            found.append("the lesson lists itself as related")
+        elif related not in position:
+            found.append(f"related lesson '{related}' is not the id of any lesson")
+        elif related in lesson.prerequisites:
+            found.append(
+                f"related lesson '{related}' is already a prerequisite; a"
+                " prerequisite is linked as one, not as related"
+            )
+    if len(set(lesson.related)) != len(lesson.related):
+        found.append("'lesson.related' names a lesson twice")
     return found
 
 
@@ -270,6 +389,22 @@ class LearningPath:
     def in_strand(self, strand: Strand) -> tuple[Lesson, ...]:
         return tuple(lesson for lesson in self.lessons if lesson.strand == strand.id)
 
+    @property
+    def courses(self) -> tuple[Course, ...]:
+        """The courses that have a lesson, in the order of ``COURSES``."""
+        return tuple(course for course in COURSES if self.in_course(course))
+
+    def in_course(self, course: Course) -> tuple[Lesson, ...]:
+        return tuple(lesson for lesson in self.lessons if lesson.course == course.id)
+
+    @property
+    def methods(self) -> tuple[Method, ...]:
+        """The methods that have a lesson, in the order of ``METHODS``."""
+        return tuple(method for method in METHODS if self.using(method))
+
+    def using(self, method: Method) -> tuple[Lesson, ...]:
+        return tuple(lesson for lesson in self.lessons if method.id in lesson.methods)
+
     def previous(self, lesson: Lesson) -> Lesson | None:
         index = self.lessons.index(lesson)
         return self.lessons[index - 1] if index > 0 else None
@@ -288,6 +423,12 @@ def read_lessons(site: Path) -> list[Lesson]:
     """Read the front matter of every lesson of the website project ``site``."""
     pages = sorted((site / LESSONS_DIRECTORY).glob(f"*/*/{PAGE_FILE}"))
     return [_read(site, page) for page in pages]
+
+
+def _texts(value: object) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        raise TypeError("not a list")
+    return tuple(str(item) for item in value)
 
 
 def _read(site: Path, page: Path) -> Lesson:
@@ -309,6 +450,10 @@ def _read(site: Path, page: Path) -> Lesson:
             difficulty=int(meta["difficulty"]),
             prerequisites=tuple(str(item) for item in prerequisites["lessons"]),
             outside=tuple(str(item) for item in prerequisites["outside"]),
+            course=str(meta["course"]),
+            methods=_texts(meta["methods"]),
+            outcomes=_texts(meta["outcomes"]),
+            related=_texts(meta["related"]),
         )
     except yaml.YAMLError, KeyError, TypeError, ValueError:
         raise ValueError(
@@ -351,10 +496,19 @@ def _prerequisites(path: LearningPath, from_page: str, lesson: Lesson) -> str:
     return text + "."
 
 
+def _course_id(course: Course) -> str:
+    return f"course-{course.id}"
+
+
+def _method_id(method: Method) -> str:
+    return f"method-{method.id}"
+
+
 @dataclass(frozen=True)
 class LessonHeader:
-    """The header of a lesson page: strand, position, difficulty,
-    prerequisites, and the previous and next lesson.
+    """The header of a lesson page: course and position, methods,
+    difficulty, outcomes, prerequisites, related lessons, and the previous
+    and next lesson.
 
     As the result of a code cell it renders as a list of those facts, with
     links.
@@ -365,30 +519,44 @@ class LessonHeader:
 
     def _repr_markdown_(self) -> str:
         path, lesson, page = self.path, self.lesson, self.lesson.page
-        strand = STRANDS[_STRAND_INDEX[lesson.strand]]
-        in_strand = path.in_strand(strand)
-        strand_link = f"[{strand.title}]({_href(page, PATH_PAGE, strand.id)})"
-        position = f"lesson {in_strand.index(lesson) + 1} of {len(in_strand)}"
+        course = _COURSE[lesson.course]
+        in_course = path.in_course(course)
+        course_link = f"[{course.title}]({_href(page, PATH_PAGE, _course_id(course))})"
+        position = f"lesson {in_course.index(lesson) + 1} of {len(in_course)}"
+        methods = ", ".join(
+            f"[{_METHOD[method].title}]"
+            f"({_href(page, PATH_PAGE, _method_id(_METHOD[method]))})"
+            for method in lesson.methods
+        )
         level = f"[{_level(lesson)}]({_href(page, PATH_PAGE, 'difficulty')})"
+        outcomes = "\n".join(f"    - {outcome}" for outcome in lesson.outcomes)
+        related = (
+            ", ".join(_link(page, path.lesson(item)) for item in lesson.related)
+            if lesson.related
+            else "none"
+        )
         previous = path.previous(lesson)
         following = path.next(lesson)
         rows = [
-            ("Strand", f"{strand_link}, {position}"),
+            ("Course", f"{course_link}, {position}"),
+            ("Methods", methods),
             ("Difficulty", level),
+            ("What you'll learn", "\n" + outcomes),
             ("Prerequisites", _prerequisites(path, page, lesson)),
+            ("Related", related),
             (
                 "Previous",
                 _link(page, previous)
                 if previous
                 else "none; this is the first lesson of the"
-                f" [learning path]({_href(page, PATH_PAGE)})",
+                f" [learning path]({_href(page, PATH_PAGE, 'order')})",
             ),
             (
                 "Next",
                 _link(page, following)
                 if following
                 else "none yet; this is the last lesson of the"
-                f" [learning path]({_href(page, PATH_PAGE)}) so far",
+                f" [learning path]({_href(page, PATH_PAGE, 'order')}) so far",
             ),
         ]
         return (
@@ -400,9 +568,10 @@ class LessonHeader:
 
 @dataclass(frozen=True)
 class PathOverview:
-    """The content of the learning path page: the difficulty scale and, for
-    every strand that has a lesson, its lessons in order, as Markdown with
-    a section per strand.
+    """The content of the learning path page: the difficulty scale, what
+    previous and next mean, every course that has a lesson with its core
+    lessons and extensions, and one path per method, as Markdown with a
+    section per course and per method.
 
     Print it from a cell with ``output: asis``, so that the sections are
     part of the page and its table of contents; as a cell result they would
@@ -425,26 +594,99 @@ class PathOverview:
                 f":   {difficulty.description}",
                 "",
             ]
+        lines += self._order()
         if not self.path.lessons:
             lines += ["No lesson has been published yet.", ""]
-        for strand in self.path.strands:
-            lines += [f"## {strand.title} {{#{strand.id}}}", "", strand.description, ""]
-            for number, lesson in enumerate(self.path.in_strand(strand), start=1):
-                marker = f"{number}. "
-                lines.append(marker + _link(self.page, lesson))
-                paragraphs = [lesson.description] if lesson.description else []
-                paragraphs.append(
-                    f"{_level(lesson)}. Prerequisites:"
-                    f" {_prerequisites(self.path, self.page, lesson)}"
-                )
-                for paragraph in paragraphs:
-                    # A paragraph belongs to the item when every line of it
-                    # is indented to where the item's text starts, so the
-                    # indent follows the width of the marker ("10. " is
-                    # wider than "1. ").
-                    lines += ["", _indent(paragraph, len(marker))]
-                lines.append("")
+        if self.path.courses:
+            lines += [
+                "## Courses {#courses}",
+                "",
+                "A lesson belongs to one course. The core lessons of a course"
+                " are the lessons of its own strand, in order; its extensions"
+                " are lessons of other strands that repeat its results with"
+                " another method.",
+                "",
+            ]
+        for course in self.path.courses:
+            lines += [
+                f"### {course.title} {{#{_course_id(course)}}}",
+                "",
+                course.description,
+                "",
+            ]
+            lessons = self.path.in_course(course)
+            core = [lesson for lesson in lessons if lesson.strand == course.id]
+            extensions = [lesson for lesson in lessons if lesson.strand != course.id]
+            for title, group in (("Core lessons", core), ("Extensions", extensions)):
+                if group:
+                    anchor = f"{_course_id(course)}-{title.split()[0].lower()}"
+                    lines += [
+                        f"#### {title} {{#{anchor}}}",
+                        "",
+                    ]
+                    lines += self._items(group)
+        if self.path.methods:
+            lines += [
+                "## Methods {#methods}",
+                "",
+                "A method is a way of working that cuts across courses. Each"
+                " path lists the lessons that use the method, in the order of"
+                " the learning path.",
+                "",
+            ]
+        for method in self.path.methods:
+            lines += [
+                f"### {method.title} {{#{_method_id(method)}}}",
+                "",
+                method.description,
+                "",
+            ]
+            lines += self._items(self.path.using(method))
         return "\n".join(lines)
+
+    def _order(self) -> list[str]:
+        strands = ", then ".join(strand.title for strand in self.path.strands)
+        return [
+            "## Order {#order}",
+            "",
+            "Three orders are in use, and they are not the same.",
+            "",
+            "Previous and next on a lesson page follow the one linear order of the"
+            " site: the strands one after the other"
+            + (f" ({strands})" if strands else "")
+            + ", and within a strand the lessons by their number. Following"
+            " next from the last lesson of one strand leads to the first lesson"
+            " of the following strand, which may belong to another course.",
+            "",
+            "The course order is the order of the lessons of one course in this"
+            " linear order, as listed below. Its extensions come after its core"
+            " lessons because their strands come after.",
+            "",
+            "The prerequisites of a lesson are the lessons it builds on, and"
+            " are the only statement of what you need first. A lesson may"
+            " precede others in the linear order without being a prerequisite"
+            " of them.",
+            "",
+        ]
+
+    def _items(self, lessons: Sequence[Lesson]) -> list[str]:
+        lines: list[str] = []
+        for number, lesson in enumerate(lessons, start=1):
+            marker = f"{number}. "
+            lines.append(marker + _link(self.page, lesson))
+            paragraphs = [lesson.description] if lesson.description else []
+            paragraphs.append(
+                f"{_level(lesson)}. Prerequisites:"
+                f" {_prerequisites(self.path, self.page, lesson)}"
+            )
+            for paragraph in paragraphs:
+                # A paragraph belongs to the item when every line of it
+                # is indented to where the item's text starts, so the
+                # indent follows the width of the marker ("10. " is
+                # wider than "1. ").
+                lines += ["", _indent(paragraph, len(marker))]
+            lines.append("")
+        return lines
 
 
 def _indent(text: str, width: int) -> str:

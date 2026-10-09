@@ -30,12 +30,21 @@ def fields() -> list[dict]:
 def test_form_asks_for_what_each_criterion_needs():
     labels = " | ".join(item["attributes"]["label"] for item in fields())
     for needed in (
+        "Course",
         "Strand",
         "Fit and prerequisites",
         "How it is verified",
         "Scope and size",
     ):
         assert needed in labels, needed
+
+
+def test_form_offers_every_course_of_the_site():
+    from pbc.authoring import COURSES
+
+    course = next(i for i in fields() if i["attributes"]["label"] == "Course")
+    assert [c.id for c in COURSES] <= course["attributes"]["options"]
+    assert "course" in GUIDE.read_text().split("## Assessment criteria")[1].lower()
 
 
 def test_form_requires_its_answers_and_the_licence_confirmation():

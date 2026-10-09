@@ -8,7 +8,9 @@ drift from it (ADR 002). ``docs/authoring.md`` describes their use.
 from pbc.authoring.excerpt import Excerpt, excerpt
 from pbc.authoring.lean import LeanEvidence, LeanExcerpt, lean_evidence, lean_excerpt
 from pbc.authoring.path import (
+    COURSES,
     DIFFICULTIES,
+    METHODS,
     STRANDS,
     LearningPath,
     LessonHeader,
@@ -21,7 +23,9 @@ from pbc.authoring.reproduce import Reproduction, reproduce_this
 from pbc.authoring.widgets import WidgetScript, widget_data, widget_module
 
 __all__ = [
+    "COURSES",
     "DIFFICULTIES",
+    "METHODS",
     "STRANDS",
     "BuildCommit",
     "Excerpt",

@@ -10,6 +10,13 @@ lesson:
   strand: mechanics
   order: 3
   difficulty: 2
+  course: mechanics
+  methods: [simulation]
+  outcomes:
+    - Validate a simulation without an exact solution by limiting cases and convergence
+    - Read the order of convergence from a log-log plot
+    - Find the launch angle of greatest range with and without drag
+  related: [agent-experiment]
   prerequisites:
     lessons: [newtons-laws]
     outside:

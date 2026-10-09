@@ -9,6 +9,13 @@ lesson:
   strand: mechanics
   order: 4
   difficulty: 2
+  course: mechanics
+  methods: [simulation]
+  outcomes:
+    - Solve the mass on a spring exactly and draw its orbit in phase space
+    - Show from the update rule that explicit Euler multiplies the energy by a fixed factor each step
+    - Use the oscillator as the test system for a stepping method
+  related: [proving-what-the-simulation-showed]
   prerequisites:
     lessons: [newtons-laws]
     outside:
