@@ -739,6 +739,28 @@ details.hint[open] > summary {
   font-size: var(--pbc-text-small);
 }
 
+/* The facts inside a path card (pbc.authoring.learning_path). */
+.path-card .lesson-card-title {
+  margin: 0 0 var(--pbc-space-2);
+  font-size: var(--pbc-heading-3);
+}
+
+.path-card dl,
+.path-card dd,
+.path-card dd > ul {
+  margin: 0;
+}
+
+.path-card dt {
+  margin-top: var(--pbc-space-2);
+  font-weight: 600;
+}
+
+.path-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 /* The prerequisite graph (F26): the drawing scrolls inside its own box. The
    box is focusable, so the keyboard can scroll it. */
 .prerequisite-graph {
