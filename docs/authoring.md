@@ -855,6 +855,29 @@ To use another provider, write one client module that reads its own key
 variable and change `PROVIDER` in `src/pbc/agents/providers.py`; the lesson
 page explains it. Only that provider's key is needed then.
 
+## Link maintenance
+
+External links live in the reference register, `site/references.yaml`
+(ADR 009). The build and reading never contact another site, so a link can
+rot unseen. Run the maintenance check on your machine, with a network
+connection:
+
+```bash
+./scripts/check-links.sh
+```
+
+It opens every URL of the register with a timeout and prints one line per
+entry. `BROKEN` names a page that does not answer or an anchor the page no
+longer has; `OK` names the `last_checked` date to set. It changes nothing, is
+not in `scripts/verify.conf`, has no CI job, and never blocks a merge.
+
+- Run it before an editorial pass and at least once a quarter.
+- A rotten link is re-researched with the selection protocol and replaced by
+  an equivalent whose passage you read and whose section URL you verified.
+  Never replace it by a title match, and never drop a link and leave the
+  sentence it supported without its reason.
+- After a run, update `last_checked` of the entries that resolved.
+
 ## Identity and attribution
 
 The project's description, "Physics by Construction is a free, open-source
