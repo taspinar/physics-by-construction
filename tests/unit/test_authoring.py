@@ -5,8 +5,9 @@ from pathlib import Path
 import pytest
 
 from pbc.authoring import BuildCommit, Excerpt, build_commit, excerpt, reproduce_this
+from pbc.authoring.excerpt import select
 from pbc.authoring.repository import REPOSITORY_ROOT, repository_url
-from pbc.mechanics import kinematics
+from pbc.mechanics import dynamics, kinematics
 from pbc.mechanics.kinematics import State, euler_step
 
 
@@ -120,6 +121,109 @@ def test_excerpt_without_a_known_commit_has_no_link():
 
     assert "https://" not in markdown
     assert "src/pbc/example.py" in markdown
+
+
+# --- annotated excerpts -------------------------------------------------------
+
+STEP = "pbc.mechanics.dynamics:euler_step"
+
+
+def test_lines_show_part_of_the_object_with_the_file_lines_of_that_part():
+    shown = excerpt(dynamics.euler_step, lines=(13, 17))
+
+    file = (REPOSITORY_ROOT / shown.path).read_text().splitlines(keepends=True)
+    assert shown.source == "".join(file[shown.first_line - 1 : shown.last_line])
+    assert shown.source.startswith("    return State(")
+    assert shown.lines == (13, 17)
+
+
+def test_region_shows_the_text_between_its_markers():
+    object_lines = [
+        "def f():\n",
+        "    # region: update\n",
+        "    a = 1\n",
+        "    # endregion: update\n",
+        "    return a\n",
+    ]
+
+    assert select(object_lines, None, "update") == (2, ["    a = 1\n"])
+
+
+@pytest.mark.parametrize(
+    "lines, region",
+    [((1, 99), None), ((3, 2), None), (None, "missing"), ((1, 2), "update")],
+    ids=["past-the-end", "reversed", "missing-region", "both"],
+)
+def test_a_part_that_does_not_exist_fails_the_build(lines, region):
+    with pytest.raises(ValueError):
+        excerpt(dynamics.euler_step, lines=lines, region=region)
+
+
+def test_a_note_marks_its_line_and_is_plain_text_in_the_page():
+    shown = excerpt(
+        dynamics.euler_step,
+        lines=(13, 17),
+        notes={"x=state.x + state.v * dt,": "The old velocity moves the particle."},
+    )
+
+    markdown = shown._repr_markdown_()
+    assert [note.line for note in shown.notes] == [shown.first_line + 2]
+    marked = shown.first_line + 2
+    assert f'class="line marked" data-line="{marked}"' in markdown
+    assert f"Line {marked}" in markdown
+    assert "The old velocity moves the particle." in markdown.split("</pre>")[1]
+
+
+def test_a_note_on_a_line_that_is_not_shown_fails_the_build():
+    # The source changed, or the note names a line that lines= hides.
+    with pytest.raises(ValueError, match="exactly one"):
+        excerpt(
+            dynamics.euler_step, lines=(13, 17), notes={"def euler_step(": "Hidden."}
+        )
+
+
+def test_a_note_cannot_contain_a_number_the_build_did_not_compute():
+    with pytest.raises(ValueError, match="contains a number"):
+        excerpt(
+            dynamics.euler_step,
+            lines=(13, 17),
+            notes={"t=state.t + dt,": "Time advances by 0.1 s."},
+        )
+
+
+def test_a_note_shows_the_numbers_it_was_given():
+    shown = excerpt(
+        dynamics.euler_step,
+        lines=(13, 17),
+        notes={"t=state.t + dt,": "Time advances by {dt:.2f} s."},
+        values={"dt": 0.1},
+    )
+
+    assert shown.notes[0].text == "Time advances by 0.10 s."
+
+
+@pytest.mark.parametrize(
+    "notes, values, error",
+    [
+        ({"t=state.t + dt,": "By {dt} s."}, {"dt": "0.1"}, TypeError),
+        ({"t=state.t + dt,": "By {step} s."}, {"dt": 0.1}, ValueError),
+    ],
+    ids=["not-a-number", "unknown-placeholder"],
+)
+def test_values_must_be_numbers_that_the_notes_use(notes, values, error):
+    with pytest.raises(error):
+        excerpt(dynamics.euler_step, lines=(13, 17), notes=notes, values=values)
+
+
+def test_interface_lists_inputs_output_and_the_units_of_the_docstring():
+    shown = excerpt(dynamics.euler_step, interface=True)
+
+    rows = {row.name: row for row in shown.interface}
+    assert list(rows) == ["state", "acceleration", "dt", "return"]
+    assert rows["dt"].unit == "s"
+    assert rows["state"].type == "State"
+    assert rows["return"].kind == "output"
+    assert "| `dt` | input |" in shown._repr_markdown_()
 
 
 # --- build commit -------------------------------------------------------------

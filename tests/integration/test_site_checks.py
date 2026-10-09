@@ -453,6 +453,97 @@ def test_excerpt_that_differs_from_its_source_is_reported(
     assert rules(violations) == {"excerpt"}
 
 
+_REGION_MODULE = """\
+def update(x, v, dt):
+    # region: move
+    x = x + v * dt
+    v = v + dt
+    # endregion: move
+    return x, v
+"""
+
+
+def _annotated(source: str, text: str, anchors: list[str], **attributes: str) -> str:
+    """An annotated listing as the build writes it: marked lines, then notes."""
+    declared = "".join(f' data-{k}="{v}"' for k, v in attributes.items())
+    lines = "".join(
+        f'<span class="line{" marked" if line.strip() in anchors else ""}">'
+        f"{html.escape(line)}</span>\n"
+        for line in text.splitlines()
+    )
+    notes = "".join(f'<li data-anchor="{a}">A note.</li>' for a in anchors)
+    return (
+        '<div class="excerpt">'
+        f'<pre data-source="{source}"{declared}><code>{lines}</code></pre>'
+        f'<ol class="excerpt-notes">{notes}</ol></div>'
+    )
+
+
+@pytest.fixture
+def repository(tmp_path: Path) -> Path:
+    module = tmp_path / "repository" / "src" / "pbc"
+    module.mkdir(parents=True)
+    (module / "example.py").write_text(_REGION_MODULE)
+    return tmp_path / "repository"
+
+
+_MOVE = "    x = x + v * dt\n    v = v + dt"
+
+
+def _violations(make_site: Site, browser: Browser, repository: Path, body: str):
+    site = make_site(body=body)
+    with served(site) as server:
+        return site_checks.check_displayed_code(browser, server, site, repository)
+
+
+def test_annotated_excerpt_of_a_region_and_of_lines_passes(
+    make_site: Site, browser: Browser, repository: Path
+):
+    body = _annotated(
+        "pbc.example:update", _MOVE, ["x = x + v * dt"], region="move"
+    ) + _annotated("pbc.example:update", "    return x, v", [], lines="6-6")
+
+    assert _violations(make_site, browser, repository, body) == []
+
+
+@pytest.mark.parametrize(
+    "attributes",
+    [{"region": "missing"}, {"lines": "5-9"}],
+    ids=["missing-region", "lines-past-the-end"],
+)
+def test_excerpt_of_a_part_that_does_not_exist_is_reported(
+    make_site: Site, browser: Browser, repository: Path, attributes: dict[str, str]
+):
+    body = _annotated("pbc.example:update", _MOVE, [], **attributes)
+
+    violations = _violations(make_site, browser, repository, body)
+
+    assert rules(violations) == {"excerpt"}
+
+
+def test_notes_that_no_longer_match_the_source_are_reported(
+    make_site: Site, browser: Browser, repository: Path
+):
+    # The page was built from a source that said "v = v + dt * 2"; the source
+    # has changed since, so the note's line is gone.
+    body = _annotated("pbc.example:update", _MOVE, ["v = v + dt * 2"], region="move")
+
+    violations = _violations(make_site, browser, repository, body)
+
+    assert rules(violations) == {"excerpt"}
+    assert any("anchored to" in violation.detail for violation in violations)
+
+
+def test_annotated_excerpt_that_differs_from_its_region_is_reported(
+    make_site: Site, browser: Browser, repository: Path
+):
+    body = _annotated(
+        "pbc.example:update", _MOVE.replace("dt", "step"), [], region="move"
+    )
+
+    assert rules(_violations(make_site, browser, repository, body)) == {"excerpt"}
+
+
 @pytest.mark.parametrize(
     "body",
     [

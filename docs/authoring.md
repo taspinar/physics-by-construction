@@ -183,6 +183,42 @@ excerpt(kinematics.euler_step)
 `excerpt` takes a function or class defined at the top level of a module of
 `pbc`. A check compares every excerpt on the built site with the source file.
 
+**An annotated excerpt.** When a lesson shows several excerpts under one
+sentence, or the point is one line, say which lines matter:
+
+````markdown
+```{python}
+#| echo: false
+excerpt(
+    dynamics.euler_step,
+    lines=(8, 12),
+    interface=True,
+    notes={"x=state.x + state.v * dt,": "The old velocity moves the particle."},
+)
+```
+````
+
+- `lines=(first, last)` shows only those lines of the object, counted from 1
+  at its first line. `region="name"` shows the lines between
+  `# region: name` and `# endregion: name` in the source. Give one of them,
+  not both. A part that does not exist fails the build.
+- `notes` maps a line of what is shown, written without its indentation, to
+  a note. The line is marked (bold, a rule at its left, and "note 1" after
+  it, so it does not depend on colour) and the note is listed under the
+  listing as text of the page, with its line number. A note whose line is not
+  shown exactly once fails the build, and the site check fails when the
+  source changed after the page was built.
+- A note holds no digits. Write a number the build computed as `{name}`, with
+  `values={"name": value}`, so a note cannot state a number that nothing
+  computed.
+- `interface=True` adds a table of the inputs and the output from the
+  signature. Units come from the docstring, written as ``` ``dt`` (s) ```.
+- The text of the notes follows the rule of the lesson: say why each shown
+  step implements the physics, then the update order, the state variables,
+  the units, and how the step fails. Hide helpers that are not the point with
+  `lines` or `region`. Link API documentation only through the reference
+  register, and only when it teaches more than the lesson does.
+
 Any other code block is not run by the build: a plain <code>```python</code>
 block, a block in another language, shell commands, pasted output, a cell
 with `eval: false`. Each needs the "not verified" marker below, or the check

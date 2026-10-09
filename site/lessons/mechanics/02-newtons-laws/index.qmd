@@ -232,9 +232,29 @@ The stepper has the signature `step(state, acceleration, dt)`. This is the
 same signature, and the simulation loop below accepts any of them through its
 `step` argument. Explicit Euler is the only one so far:
 
+The table gives the inputs, the output, and their units; the listing shows
+only the update, and each marked line has a note below it:
+
 ```{python}
 #| echo: false
-excerpt(dynamics.euler_step)
+excerpt(
+    dynamics.euler_step,
+    lines=(13, 17),
+    interface=True,
+    notes={
+        "t=state.t + dt,": "Time advances by the step, in seconds.",
+        "x=state.x + state.v * dt,": (
+            "The old velocity moves the particle: the position changes at the"
+            " rate it had at the start of the step."
+        ),
+        "v=state.v + acceleration(state.t, state.x, state.v) * dt,": (
+            "The acceleration at the old state changes the velocity. Both"
+            " lines read the old state, so their order does not matter; a"
+            " stepper that used the new velocity for the position would be a"
+            " different method."
+        ),
+    },
+)
 ```
 
 ```{python}

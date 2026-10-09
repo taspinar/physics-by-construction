@@ -739,7 +739,14 @@ _UNEXECUTED = """
 _EXCERPTS = """
 () => [...document.querySelectorAll("[data-source]")].map((element) => ({
   source: element.getAttribute("data-source"),
+  region: element.getAttribute("data-region"),
+  lines: element.getAttribute("data-lines"),
   text: (element.querySelector("code") ?? element).textContent,
+  // The lines the listing marks, and the line each note is anchored to.
+  marked: [...element.querySelectorAll(".marked")].map((l) => l.textContent.trim()),
+  anchors: [
+    ...(element.closest(".excerpt") ?? element).querySelectorAll("[data-anchor]"),
+  ].map((note) => note.getAttribute("data-anchor")),
 }))
 """
 
@@ -768,9 +775,38 @@ def _lean_region(repository: Path, name: str) -> str | None:
     return "\n".join(lines[start[0] + 1 : end[0]])
 
 
-def _source_of(repository: Path, name: str) -> str | None:
+def _shown_part(text: str, region: str | None, lines: str | None) -> str | None:
+    """Return the part of the source of one object that an excerpt declares
+    to show (``region``, or ``lines`` as "first-last"), or None when the
+    object has no such part."""
+    if not region and not lines:
+        return text
+    object_lines = text.splitlines()
+    if lines:
+        match = re.fullmatch(r"(\d+)-(\d+)", lines)
+        if not match:
+            return None
+        first, last = int(match[1]), int(match[2])
+        if not 1 <= first <= last <= len(object_lines):
+            return None
+        return "\n".join(object_lines[first - 1 : last])
+    starts = [
+        i for i, t in enumerate(object_lines) if t.strip() == f"# region: {region}"
+    ]
+    ends = [
+        i for i, t in enumerate(object_lines) if t.strip() == f"# endregion: {region}"
+    ]
+    if len(starts) != 1 or len(ends) != 1 or starts[0] >= ends[0]:
+        return None
+    return "\n".join(object_lines[starts[0] + 1 : ends[0]])
+
+
+def _source_of(
+    repository: Path, name: str, region: str | None = None, lines: str | None = None
+) -> str | None:
     """Return the source text of ``<module>:<object>``, read from the file, or
-    None when there is no such thing.
+    None when there is no such thing. With ``region`` or ``lines``, only that
+    part of a Python object, or None when it does not exist.
 
     A module of ``pbc`` names a top-level function or class of ``src/``; a
     module of ``PhysicsByConstruction`` names a region of a Lean file in
@@ -778,7 +814,7 @@ def _source_of(repository: Path, name: str) -> str | None:
     """
     module, _, target = name.partition(":")
     if module.split(".")[0] == "PhysicsByConstruction":
-        return _lean_region(repository, name)
+        return None if region or lines else _lean_region(repository, name)
     file = repository / "src" / Path(*module.split(".")).with_suffix(".py")
     if module.split(".")[0] != "pbc" or not file.is_file():
         return None
@@ -789,8 +825,37 @@ def _source_of(repository: Path, name: str) -> str | None:
             and node.name == target
         ):
             first = min([node.lineno, *(d.lineno for d in node.decorator_list)])
-            return "\n".join(text.splitlines()[first - 1 : node.end_lineno])
+            return _shown_part(
+                "\n".join(text.splitlines()[first - 1 : node.end_lineno]), region, lines
+            )
     return None
+
+
+def _note_violations(page: str, excerpt: dict, source: str) -> list[Violation]:
+    """The notes of an excerpt are anchored to lines of its source, and the
+    listing marks exactly those lines."""
+    shown = [line.strip() for line in source.splitlines()]
+    anchors, marked = excerpt["anchors"], excerpt["marked"]
+    violations = [
+        Violation(
+            "excerpt",
+            page,
+            f"a note on {excerpt['source']} is anchored to {anchor!r}, which is not"
+            " on exactly one line of its source",
+        )
+        for anchor in anchors
+        if shown.count(anchor) != 1
+    ]
+    if marked != anchors:
+        violations.append(
+            Violation(
+                "excerpt",
+                page,
+                f"the lines marked in {excerpt['source']} are not the lines its"
+                " notes name",
+            )
+        )
+    return violations
 
 
 def check_displayed_code(
@@ -808,14 +873,18 @@ def check_displayed_code(
                 for text in page.evaluate(_UNEXECUTED)
             ]
             for excerpt in page.evaluate(_EXCERPTS):
-                source = _source_of(repository, excerpt["source"])
+                source = _source_of(
+                    repository, excerpt["source"], excerpt["region"], excerpt["lines"]
+                )
                 if source is None:
                     violations.append(
                         Violation(
                             "excerpt",
                             name,
-                            f"{excerpt['source']} is not a function or class in"
-                            " src/pbc, nor an anchored region of a file in lean/",
+                            f"{excerpt['source']} (region {excerpt['region']},"
+                            f" lines {excerpt['lines']}) is not a function or class"
+                            " in src/pbc, nor an anchored region of a file in lean/,"
+                            " or has no such region or lines",
                         )
                     )
                 elif excerpt["text"].rstrip("\n") != source.rstrip("\n"):
@@ -827,6 +896,8 @@ def check_displayed_code(
                             " its source",
                         )
                     )
+                else:
+                    violations += _note_violations(name, excerpt, source)
             page.close()
     return violations
 

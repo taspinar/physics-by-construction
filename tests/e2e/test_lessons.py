@@ -133,6 +133,34 @@ def test_the_first_lesson_shows_its_program_by_reference(
     }
 
 
+def test_the_stepper_lesson_annotates_its_excerpt_without_javascript(
+    page_without_scripts: Page, server: SiteServer
+):
+    page_without_scripts.goto(server.url + NEWTONS_LAWS, wait_until="load")
+
+    listing = page_without_scripts.locator(
+        "pre[data-source='pbc.mechanics.dynamics:euler_step']"
+    )
+    assert listing.locator(".line.marked").count() == 3
+    # The notes are text of the page, not of a script or of a style.
+    notes = page_without_scripts.locator(".excerpt-notes li")
+    assert notes.count() == 3
+    assert "velocity moves the particle" in notes.nth(1).inner_text()
+    # The marks do not rely on colour alone.
+    mark = listing.locator(".line.marked").first
+    assert mark.evaluate("e => getComputedStyle(e).fontWeight") == "700"
+    assert mark.evaluate("e => getComputedStyle(e, '::after').content").startswith('"')
+    table = page_without_scripts.locator("table", has_text="Unit")
+    assert table.locator("th").count() > 0
+    rows = {
+        row.locator("td").first.inner_text(): row.inner_text()
+        for row in table.locator("tbody tr").all()
+    }
+    assert "m/s²" in rows["acceleration"]
+    assert "m/s" in rows["state"] and "m/s" in rows["return"]
+    assert "not stated" not in table.inner_text()
+
+
 def test_the_first_lesson_shows_mathml_results_and_figures(
     page_without_scripts: Page, server: SiteServer
 ):
