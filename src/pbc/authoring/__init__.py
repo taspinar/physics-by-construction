@@ -12,6 +12,7 @@ from pbc.authoring.design import (
 )
 from pbc.authoring.excerpt import Excerpt, excerpt
 from pbc.authoring.glossary import Glossary, GlossaryPage, glossary_page
+from pbc.authoring.graph import Edge, PrerequisiteGraph
 from pbc.authoring.home import PLANNED, HomeContent, Planned, home_content
 from pbc.authoring.lean import LeanEvidence, LeanExcerpt, lean_evidence, lean_excerpt
 from pbc.authoring.path import (
@@ -40,6 +41,7 @@ __all__ = [
     "PLANNED",
     "STRANDS",
     "BuildCommit",
+    "Edge",
     "Excerpt",
     "Glossary",
     "GlossaryPage",
@@ -50,6 +52,7 @@ __all__ = [
     "LessonHeader",
     "PathOverview",
     "Planned",
+    "PrerequisiteGraph",
     "Reproduction",
     "ResultTable",
     "WidgetScript",

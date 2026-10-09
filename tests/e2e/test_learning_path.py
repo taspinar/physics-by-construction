@@ -15,7 +15,7 @@ from urllib.parse import urldefrag, urljoin
 import pytest
 from playwright.sync_api import Browser, BrowserContext, Locator, Page
 from support.paths import SITE_SOURCE
-from support.site_checks import DESKTOP
+from support.site_checks import DESKTOP, PHONE
 from support.site_server import SiteServer
 
 from pbc.authoring import DIFFICULTIES, METHODS, LearningPath
@@ -341,3 +341,68 @@ def test_glossary_page_defines_every_entry_and_links_the_lessons_without_javascr
             for link in section.locator("a").all()
             if link.inner_text() in {lesson.title for lesson in users}
         ] == [f"lessons/{built(lesson).split('lessons/')[1]}" for lesson in users]
+
+
+def test_graph_and_its_text_alternative_are_present_without_javascript(
+    without_scripts: BrowserContext, server: SiteServer
+):
+    page = without_scripts.new_page()
+    page.goto(server.url + PATH, wait_until="load")
+
+    graph = page.locator("main .prerequisite-graph")
+    assert graph.count() == 1
+    svg = graph.locator("svg")
+    assert svg.get_attribute("role") is None
+    for name in svg.get_attribute("aria-labelledby").split():
+        assert svg.locator(f"#{name}").count() == 1
+
+    # Every lesson is a node that links to it, in path order.
+    nodes = page.locator("main .prerequisite-graph a").evaluate_all(
+        "links => links.map("
+        "a => new URL(a.getAttribute('href'), document.baseURI).href)"
+    )
+    assert nodes == [server.url + built(lesson) for lesson in LESSON_PATH.lessons]
+    # The text list has one sentence for every edge of the front matter.
+    edges = sum(
+        len(lesson.prerequisites) + len(lesson.related)
+        for lesson in LESSON_PATH.lessons
+    )
+    assert page.locator("main ol.visually-hidden > li").count() == edges
+    legend = page.locator("main .graph-legend").inner_text()
+    assert "Requires" in legend and "Related" in legend
+
+
+def test_graph_nodes_are_reached_by_keyboard_in_path_order_with_visible_focus(
+    without_scripts: BrowserContext, server: SiteServer
+):
+    page = without_scripts.new_page()
+    page.goto(server.url + PATH, wait_until="load")
+    nodes = page.locator("main .prerequisite-graph a")
+    nodes.first.focus()
+
+    seen = []
+    for _ in LESSON_PATH.lessons:
+        seen.append(page.evaluate("document.activeElement.getAttribute('href')"))
+        assert seen[-1]
+        # The focused node has a thicker outline than the others.
+        width = page.evaluate(
+            "getComputedStyle(document.activeElement.querySelector('rect')).strokeWidth"
+        )
+        assert float(width.removesuffix("px")) >= 3
+        page.keyboard.press("Tab")
+    assert [urljoin(server.url + PATH, href) for href in seen] == [
+        server.url + built(lesson) for lesson in LESSON_PATH.lessons
+    ]
+
+
+def test_graph_scrolls_inside_its_box_on_a_phone(browser: Browser, server: SiteServer):
+    context = browser.new_context(viewport=PHONE, java_script_enabled=False)
+    page = context.new_page()
+    page.goto(server.url + PATH, wait_until="load")
+
+    box = page.locator("main .prerequisite-graph")
+    widths = box.evaluate("e => [e.clientWidth, e.scrollWidth]")
+    assert widths[1] > widths[0]
+    assert box.get_attribute("tabindex") == "0"
+    assert page.evaluate("document.documentElement.scrollWidth") <= PHONE["width"]
+    context.close()
