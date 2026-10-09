@@ -9,6 +9,7 @@ and not from the test setup.
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import pytest
 from support import lesson_checks
@@ -134,6 +135,7 @@ def make_repository(tmp_path: Path) -> Repository:
         repository = tmp_path / "repository"
         for name, content in {
             "site/_quarto.yml": config,
+            "site/references.yaml": "references: []\n",
             f"{lesson}/index.qmd": text,
             **(files or {}),
         }.items():
@@ -862,3 +864,259 @@ def test_verification_fails_when_there_is_no_lesson(tmp_path: Path):
     result = run_check("lesson-checks", "--repository", tmp_path)
 
     assert result.returncode == 1, output(result)
+
+
+# --- Format 2 -----------------------------------------------------------------
+
+_REGISTER = """\
+references:
+  - key: euler-error
+    concept: Error of explicit Euler
+    url: https://example.org/euler
+    title: Euler error
+    author: A. Author
+    section: Section 2
+    role: derivation
+    statement: The global error is first order.
+    alternatives: Another page was compared and adds nothing.
+    lessons: [sample]
+    last-checked: 2026-10-09
+    licence: None stated.
+"""
+
+# The valid lesson turned into a lesson of format 2.
+_FORMAT_2 = {
+    "  related: []\n": "  related: []\n  format: 2\n",
+    "Introduction.\n": "Introduction.\n",
+    "#| label: fig-line\n": "#| label: fig-line\n#| fig-status: simulated\n",
+    "The position changes at the rate $v$.\n": (
+        "[The position changes at the rate $v$.]"
+        '{.claim type="numerically-verified" evidence="fig-line"}\n'
+        "\n"
+        '::: {.go-deeper ref="euler-error"}\n'
+        "It derives the error step by step.\n"
+        ":::\n"
+    ),
+    "## Exercises\n": (
+        "## Limits\n\nThe model has one dimension.\n\n"
+        "::: {.exercise .self-check}\nWhy one dimension?\n\n"
+        "::: {.solution}\nBecause the particle has one coordinate.\n:::\n:::\n\n"
+        "## Exercises\n"
+    ),
+}
+
+
+@pytest.fixture
+def make_format_2(make_repository: Repository) -> Repository:
+    def make(change: dict[str, str] | None = None, **keywords: Any) -> Path:
+        merged = dict(_FORMAT_2)
+        for old, new in (change or {}).items():
+            for key in merged:
+                if old in merged[key]:
+                    merged[key] = merged[key].replace(old, new)
+                    break
+            else:
+                merged[old] = new
+        files = {"site/references.yaml": _REGISTER, **keywords.pop("files", {})}
+        return make_repository(merged, files=files, **keywords)
+
+    return make
+
+
+def format_2_checks(repository: Path) -> list[Violation]:
+    return [
+        *lesson_checks.check_format_2(repository),
+        *lesson_checks.check_references(repository),
+        *lesson_checks.check_figures(repository),
+        *lesson_checks.check_sections(repository),
+        *lesson_checks.check_metadata(repository),
+    ]
+
+
+def test_a_lesson_of_format_2_that_follows_the_format_passes(
+    make_format_2: Repository,
+):
+    assert format_2_checks(make_format_2()) == []
+
+
+def test_a_lesson_of_format_1_needs_none_of_format_2(make_repository: Repository):
+    repository = make_repository()
+
+    assert lesson_checks.check_format_2(repository) == []
+    assert lesson_checks.check_references(repository) == []
+
+
+def test_an_unknown_format_is_reported(make_repository: Repository):
+    violations = lesson_checks.check_metadata(
+        make_repository({"  related: []\n": "  related: []\n  format: 3\n"})
+    )
+
+    assert "lesson.format" in details(violations)
+
+
+@pytest.mark.parametrize(
+    "change, rule, text",
+    [
+        ({"## Limits\n\nThe model has one dimension.\n\n": ""}, "limits", "limits"),
+        (
+            {"## Limits\n\nThe model has one dimension.\n": "## Limits\n"},
+            "limits",
+            "limits",
+        ),
+        (
+            {
+                "## Exercises\n": "::: {.exercise .self-check}\nAgain?\n\n"
+                "::: {.solution}\nYes.\n:::\n:::\n\n## Exercises\n"
+            },
+            "self-check",
+            "2 self-checks",
+        ),
+        ({".exercise .self-check": ".self-check"}, "self-check", "'.exercise'"),
+        (
+            {'type="numerically-verified"': 'type="plausible"'},
+            "claim-type",
+            "plausible",
+        ),
+        ({'ref="euler-error"': 'ref="unknown-key"'}, "reference-key", "unknown-key"),
+        ({"#| fig-status: simulated\n": ""}, "figure-status", "fig-status"),
+        (
+            {"#| fig-status: simulated\n": "#| fig-status: nice\n"},
+            "figure-status",
+            "fig-status",
+        ),
+        (
+            {"A straight line that rises": "A line with slope 0.5 that rises"},
+            "typed-number",
+            "0.5",
+        ),
+        (
+            {"Because the particle has one coordinate.": "The error is 0.05 m."},
+            "typed-number",
+            "0.05",
+        ),
+        (
+            {"Introduction.\n": "See https://example.org/page for more.\n"},
+            "raw-url",
+            "https://",
+        ),
+    ],
+)
+def test_a_violation_of_format_2_is_reported(
+    make_format_2: Repository, change: dict[str, str], rule: str, text: str
+):
+    violations = format_2_checks(make_format_2(change))
+
+    assert rule in rules(violations), details(violations)
+    assert text in details(violations)
+
+
+def test_given_values_and_math_are_not_hand_typed_numbers(make_format_2: Repository):
+    repository = make_format_2(
+        {
+            "Introduction.\n": "The start is [2 m]{.given} and $x_0 = 1$.\n\n"
+            "::: {.exercise}\nA ball falls for 3 s.\n\n"
+            "::: {.solution}\nIt falls.\n:::\n:::\n"
+        }
+    )
+
+    assert "typed-number" not in rules(format_2_checks(repository))
+
+
+@pytest.mark.parametrize(
+    "sentence, reported",
+    [
+        ("The error is 0.05 m.\n", True),
+        ("The error is `{python} position` m.\n", False),
+    ],
+)
+def test_a_computed_value_in_prose_is_reported_an_inline_expression_is_not(
+    make_format_2: Repository, sentence: str, reported: bool
+):
+    repository = make_format_2({"Introduction.\n": sentence})
+
+    violations = lesson_checks.check_format_2(repository)
+
+    assert ("typed-number" in rules(violations)) is reported
+
+
+@pytest.mark.parametrize(
+    "change, text",
+    [
+        ({"    lessons: [sample]\n": ""}, "no field 'lessons'"),
+        ({"    licence: None stated.\n": ""}, "no field 'licence'"),
+        ({"    role: derivation\n": "    role: blog\n"}, "'role'"),
+        ({"https://example.org": "http://example.org"}, "https://"),
+        ({"    lessons: [sample]\n": "    lessons: []\n"}, "'lessons' is []"),
+        ({"2026-10-09": "yesterday"}, "'last-checked'"),
+        ({"    section: Section 2\n": "    section: ''\n"}, "'section'"),
+    ],
+)
+def test_a_register_entry_that_breaks_the_schema_is_reported(
+    make_format_2: Repository, change: dict[str, str], text: str
+):
+    register = _REGISTER
+    for old, new in change.items():
+        assert old in register
+        register = register.replace(old, new)
+
+    violations = lesson_checks.check_references(
+        make_format_2(files={"site/references.yaml": register})
+    )
+
+    assert text in details(violations), details(violations)
+
+
+def test_an_entry_that_no_lesson_uses_is_reported_unless_it_is_reserved(
+    make_format_2: Repository,
+):
+    unused = _REGISTER + _REGISTER.replace("euler-error", "other").split("\n", 1)[1]
+    # The second entry names the lesson, but the lesson does not use it.
+    reserved = unused + "    reserved: For the lesson on integrators.\n"
+
+    reported = lesson_checks.check_references(
+        make_format_2(files={"site/references.yaml": unused})
+    )
+    accepted = lesson_checks.check_references(
+        make_format_2(files={"site/references.yaml": reserved})
+    )
+
+    assert "'other' is used by no lesson" in details(reported)
+    assert "used by no lesson" not in details(accepted)
+
+
+def test_a_reserved_entry_that_lists_lessons_is_reported(make_format_2: Repository):
+    unused = _REGISTER + _REGISTER.replace("euler-error", "other").split("\n", 1)[1]
+    reserved = unused + "    reserved: For the lesson on integrators.\n"
+
+    violations = lesson_checks.check_references(
+        make_format_2(files={"site/references.yaml": reserved})
+    )
+
+    assert "'other' is reserved, so its 'lessons' must be empty" in details(violations)
+
+
+def test_a_missing_register_is_reported(make_format_2: Repository):
+    repository = make_format_2()
+    (repository / "site/references.yaml").unlink()
+
+    violations = lesson_checks.check_references(repository)
+
+    assert "the register is missing" in details(violations)
+
+
+def test_a_block_of_printed_numbers_in_a_built_page_is_reported(
+    make_format_2: Repository, tmp_path: Path
+):
+    repository = make_format_2()
+    page = tmp_path / "built" / "lessons/mechanics/01-sample/index.html"
+    page.parent.mkdir(parents=True)
+
+    def build(printed: str) -> list[Violation]:
+        page.write_text(
+            '<div class="cell-output cell-output-stdout"><pre><code>'
+            f"{printed}</code></pre></div>"
+        )
+        return lesson_checks.check_console_blocks(repository, tmp_path / "built")
+
+    assert build("0.1 2.5\n0.2 5.0\n0.3 7.5\n") != []
+    assert build("largest time step: 12.3 microseconds\n") == []
