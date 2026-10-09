@@ -8,6 +8,13 @@ lesson:
   strand: mechanics
   order: 1
   difficulty: 1
+  course: mechanics
+  methods: [simulation]
+  outcomes:
+    - Write motion along a line as a state and an update rule
+    - Check a simulation against the exact solution for constant acceleration
+    - Measure how the error of Euler stepping shrinks with the time step
+  related: [proving-what-the-simulation-showed]
   prerequisites:
     lessons: []
     outside:

@@ -33,7 +33,7 @@ A proposal is accepted when it meets all four.
 
 | Criterion | Accepted when |
 |---|---|
-| Fit to the learning path | It has a strand and a position, follows lessons that exist or are planned (`docs/roadmap.md`), and does not repeat a lesson. |
+| Fit to the learning path | It names one course, a strand, and a position, follows lessons that exist or are planned (`docs/roadmap.md`), and does not repeat a lesson. |
 | Prerequisites | Every prerequisite is a lesson on the site, or an outside prerequisite stated in a sentence. The learning path stays acyclic. |
 | Verifiability | The lesson's claims are checked by code (a test against a closed-form solution, a conservation law, or a limiting case) or by a Lean proof. It needs no step that only a person can confirm. |
 | Scope | It fits one lesson page, builds within the CI time budget (ADR 003), needs no new service, secret, or runtime dependency, and fits the invariants in `docs/architecture.md`. |

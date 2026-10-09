@@ -58,7 +58,17 @@ _LESSON_DIRECTORY = re.compile(r"(\d{2})-[a-z0-9]+(-[a-z0-9]+)*")
 _LEAN_MODULE = re.compile(r"PhysicsByConstruction(\.[A-Z][A-Za-z0-9_]*)+")
 
 _FRONT_MATTER_KEYS = {"title", "description", "lesson"}
-_LESSON_KEYS = {"id", "strand", "order", "difficulty", "prerequisites"}
+_LESSON_KEYS = {
+    "id",
+    "strand",
+    "order",
+    "difficulty",
+    "prerequisites",
+    "course",
+    "methods",
+    "outcomes",
+    "related",
+}
 _OPTIONAL_LESSON_KEYS = {"lean-modules"}
 _PREREQUISITE_KEYS = {"lessons", "outside"}
 
@@ -328,6 +338,22 @@ def _metadata_problems(front_matter: Any, strand: str, directory: str) -> list[s
             ]
             if lesson.get("id") in prerequisites["lessons"]:
                 problems.append("the lesson lists itself as a prerequisite")
+    # Which course, methods, outcomes, and related lessons exist is checked
+    # with the path (check_path); here only the shape of the fields.
+    if "course" in lesson and not (
+        isinstance(lesson["course"], str) and _ID.fullmatch(lesson["course"])
+    ):
+        problems.append("'lesson.course' must be the id of a course")
+    for key in ("methods", "outcomes", "related"):
+        if key in lesson and not _text_list(lesson[key]):
+            problems.append(f"'lesson.{key}' must be a list of texts")
+    for key in ("methods", "related"):
+        if _text_list(lesson.get(key)):
+            problems += [
+                f"'lesson.{key}' entry {entry!r} is not an id"
+                for entry in lesson[key]
+                if not _ID.fullmatch(entry)
+            ]
     if "lean-modules" in lesson and not (
         _text_list(lesson["lean-modules"])
         and all(_LEAN_MODULE.fullmatch(module) for module in lesson["lean-modules"])
@@ -441,8 +467,9 @@ def check_sections(repository: Path) -> list[Violation]:
 
 def check_path(repository: Path) -> list[Violation]:
     """The lessons form one learning path: ids are unique, the orders of a
-    strand run from 1 without gaps or duplicates, and prerequisites exist,
-    come earlier in the path, and form no cycle.
+    strand run from 1 without gaps or duplicates, prerequisites exist, come
+    earlier in the path, and form no cycle, and the course, methods,
+    outcomes, and related lessons follow the rules of the front matter.
 
     A lesson whose front matter is outside the schema is left out; that is
     reported by ``check_metadata``.
@@ -466,6 +493,10 @@ def check_path(repository: Path) -> list[Violation]:
                 difficulty=meta["difficulty"],
                 prerequisites=tuple(meta["prerequisites"]["lessons"]),
                 outside=tuple(meta["prerequisites"]["outside"]),
+                course=meta["course"],
+                methods=tuple(meta["methods"]),
+                outcomes=tuple(meta["outcomes"]),
+                related=tuple(meta["related"]),
             )
         )
     return [

@@ -20,8 +20,23 @@ body:
       required: true
   - type: dropdown
     attributes:
+      label: Course
+      description: >-
+        The one physics course the lesson belongs to. A lesson about a method
+        (agents, agent-based modelling, proofs) still names the course whose
+        results it uses.
+      options:
+        - mechanics
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
       label: Strand
-      description: Where the lesson belongs in the learning path.
+      description: >-
+        Where the lesson lives in the learning path: the strand of its course
+        for a lesson about the physics, the strand of its method for a lesson
+        about the method.
       options:
         - mechanics
         - agents-llm

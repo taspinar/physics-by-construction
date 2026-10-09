@@ -9,6 +9,13 @@ lesson:
   strand: agents-llm
   order: 1
   difficulty: 2
+  course: mechanics
+  methods: [simulation, llm-agents]
+  outcomes:
+    - Give a language model a short, bounded list of tools to run a simulation
+    - Read a recorded agent run as an experiment
+    - Recompute every tool result of a run without a model or a key
+  related: []
   prerequisites:
     lessons: [projectile-with-drag]
     outside:

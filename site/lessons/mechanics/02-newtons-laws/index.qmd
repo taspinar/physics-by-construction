@@ -9,6 +9,13 @@ lesson:
   strand: mechanics
   order: 2
   difficulty: 2
+  course: mechanics
+  methods: [simulation]
+  outcomes:
+    - Express a force as a function of the state and step Newton's second law
+    - Reuse one stepper for every system of the course
+    - Check a fall with linear drag against its exact solution
+  related: []
   prerequisites:
     lessons: [kinematics]
     outside:

@@ -14,6 +14,7 @@ from support.site_checks import describe
 from support.site_server import SiteServer
 
 from pbc.authoring import STRANDS, LearningPath
+from pbc.authoring.path import Lesson
 
 TEMPLATE = REPO_ROOT / "docs" / "lesson-template.qmd"
 # The new lesson takes the next position of the mechanics strand, after the
@@ -110,16 +111,30 @@ def test_lesson_made_from_the_template_builds_with_every_construct(
     # The new lesson joined the learning path: its header places it after the
     # last mechanics lesson of the site, and the path page lists all of them.
     header = (built / page).read_text().split('class="lesson-header"')[1]
-    assert f"lesson {ORDER} of {ORDER}" in header
+    # The header places it in its course, after the lessons the course has.
+    in_course = len(PATH.in_course(PATH.courses[0]))
+    assert f"lesson {len(MECHANICS) + 1} of {in_course + 1}" in header
+    assert "Replace: what the reader can do after the lesson" in header
     previous = Path(MECHANICS[-1].page).parent.name
     assert f'href="../{previous}/index.html"' in header
-    # Each entry of the path page links the lesson and its prerequisites.
+    # Each entry of the path page links the lesson and its prerequisites, in
+    # the course and in every method path the lesson is listed under.
     path_page = (built / "path/index.html").read_text()
-    # Lessons of other strands link the mechanics lessons they build on, too.
+    new = Lesson(
+        **{
+            **PATH.lesson(MECHANICS[0].id).__dict__,
+            "strand": "mechanics",
+            "prerequisites": (),
+            "related": (),
+        }
+    )
     mechanics_ids = {lesson.id for lesson in MECHANICS}
-    links = ORDER + sum(
-        prerequisite in mechanics_ids
-        for lesson in PATH.lessons
-        for prerequisite in lesson.prerequisites
+    links = sum(
+        (1 + len(lesson.methods))
+        * (
+            (lesson.strand == "mechanics")
+            + sum(p in mechanics_ids for p in lesson.prerequisites)
+        )
+        for lesson in (*PATH.lessons, new)
     )
     assert path_page.count('<a href="../lessons/mechanics/') == links

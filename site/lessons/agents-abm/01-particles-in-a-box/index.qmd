@@ -9,6 +9,13 @@ lesson:
   strand: agents-abm
   order: 1
   difficulty: 2
+  course: mechanics
+  methods: [simulation, abm]
+  outcomes:
+    - Build a gas of colliding discs from one local rule
+    - Measure the pressure and the distribution of speeds that emerge
+    - Check them against kinetic theory within a stated statistical tolerance
+  related: []
   prerequisites:
     lessons: [momentum-and-collisions]
     outside:
