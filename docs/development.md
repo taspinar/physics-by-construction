@@ -232,9 +232,11 @@ as Codex, and is never replaced: an unknown provider, missing CLI, missing
 model, or malformed configuration fails before the script creates a branch,
 worktree, or file, and a model the provider rejects fails the run.
 
-Agents run with one of two permission profiles. The profile follows from the
-role, not from the provider or model configured for it: a reviewing role is
-always read-only, a writing role always gets `write`.
+Agents run with one of three permission profiles. The profile follows from
+the role and from how the script is run, not from the provider or model: a
+reviewing role is always read-only; a writing role gets `write`, or
+`unattended` when you run the step with `--unattended`, as described under
+"Running feature steps without questions".
 
 - `write`: an interactive session that may modify its worktree and use the
   network, for example to install dependencies and run builds. Anything beyond
@@ -244,6 +246,18 @@ always read-only, a writing role always gets `write`.
   needs to leave that sandbox, for example to write outside the worktree;
   Codex has no setting that asks per command without a sandbox. Used for
   planning, implementation, and applying triage.
+- `unattended`: the reach of `write` without a terminal. The session asks
+  nothing and ends by itself, and the script stores its final message. What
+  `write` would ask you is decided without you. Codex stays inside its
+  workspace-write sandbox and is refused a command that leaves it. Claude runs
+  in its `auto` permission mode, in which its own check allows or denies each
+  action, and anything that would still prompt is denied. As in a read-only
+  session, no MCP servers, apps, or other tools from your configuration are
+  loaded, since they act outside the sandbox: Codex runs without your
+  `config.toml` and with apps, browser use, and computer use disabled, and
+  Claude without MCP configuration. An unattended agent runs commands on your
+  machine while you are not watching: it is meant for work whose result you
+  read afterwards.
 - `read-only`: a non-interactive session that cannot modify files and gets no
   MCP servers, apps, or other tools from the user's configuration. Codex runs
   in a read-only sandbox without the user's `config.toml`, with apps, browser
@@ -871,10 +885,16 @@ publication can be repeated with `./scripts/triage-review.sh --publish
 <triage-json>`.
 
 It then stages all changes (review and triage files are ignored) and opens a
-structured commit message in your editor: the summary, the Issue, a list of
-changes to fill in, the verification, the review round and verdict, and
-`Refs #12`. Emptying the message aborts the commit and leaves the changes
-staged. The script never pushes, opens a PR, or merges.
+structured commit message in your editor: the summary, the Issue, the list of
+changes, the verification, the review round and verdict, and `Refs #12`.
+Emptying the message aborts the commit and leaves the changes staged. The
+script never pushes, opens a PR, or merges.
+
+The list of changes comes from `.agents/summaries/<issue>.md`, which the
+implementer writes and keeps up to date when fixes change what the feature
+does: every line that starts with `- ` is taken over. Like the manual steps
+it is a working file and is not committed. Without it the message has a line
+for you to fill in.
 
 A change that `.agents/policies/autonomy.md` classifies as low risk may be
 finished without an independent review; the reason is recorded in the commit
@@ -936,6 +956,127 @@ is identical to `docs/PROJECT_DESCRIPTION.md`, such as the original idea file. A
 `./scripts/cleanup-worktree.sh planning/<name>`, every merged worktree at once
 with `--merged`, and an abandoned, unmerged one with `--discard` after
 confirmation.
+
+### Running feature steps without questions
+
+The steps of a feature that ask you something, or that start an agent in your
+terminal, accept `--unattended`. The step then asks nothing and ends by
+itself, so a script can run one step after the other.
+
+| Step | With `--unattended` |
+|---|---|
+| `start-feature.sh <issue> [--resume]` | The implementer runs with the `unattended` profile instead of in your terminal. Its final message is stored in `.agents/run/<issue>-implementer.md` in the feature worktree and shown. |
+| `triage-review.sh <review-json>` | The proposed triage is approved without a question. The proposal is validated as always: a critical or major finding cannot be deferred or accepted. |
+| `apply-triage.sh <triage-json>` | The fixes start without confirmation, with the `unattended` profile. The final message is stored in `.agents/run/<issue>-fixes.md` and shown. |
+| `finish-feature.sh <issue> "<summary>"` | The commit message is used as it is, without an editor. Without a summary of the changes, the message says that the implementer supplied none. |
+
+`review-feature.sh` and `publish-feature.sh` ask nothing as they are. The
+planning is yours to decide: its steps refuse the option.
+
+The option needs the working files to be ignored by Git, as the template's
+`.gitignore` does with `.agents/run/` and `.agents/summaries/`; a step stops
+when they are not. A project that was created from an earlier version of the
+template gets the rules with `./scripts/sync-template.sh`.
+
+An unattended agent cannot ask you anything. It is told to stop when it
+needs a decision of yours, or when the work conflicts with the Issue's scope,
+the architecture, or an ADR: it then records the question in the handoff note
+and ends its final message with a line `BLOCKED: <reason>`. The step shows
+the reason and exits with status 3, which it uses for nothing else, so a
+blocked session can be told apart from a failed one. Answer in the handoff note or change the Issue, and
+continue with `./scripts/start-feature.sh <issue> --resume`.
+
+A triage that was approved this way says so: the artifact has
+`"unattended": true`, and the report and the comment on the Issue state that
+no human approved the decisions. Deferred findings still become follow-up
+Issues, and accepted findings keep their rationale, so you can read
+afterwards what was decided without you.
+
+The files in `.agents/run/` are working files, ignored by Git. A Codex
+session also writes its complete output to a file next to its final message,
+with `.log` added to the name; it is shown when the session fails.
+
+### Running a feature with one command
+
+`run-feature.sh` runs the steps of a feature one after the other, from the
+implementation to the open pull request, without asking anything:
+
+```bash
+./scripts/run-feature.sh 12
+```
+
+```text
+./scripts/run-feature.sh <issue> [slug] [base-branch] [--implemented]
+```
+
+From the primary checkout it runs:
+
+1. `start-feature.sh <issue> [slug] [base-branch] --unattended`: the worktree
+   and the implementation.
+2. `review-feature.sh`, and for a review with findings `triage-review.sh
+   --unattended` and, when the triage has `FIX_NOW` findings,
+   `apply-triage.sh --unattended`, followed by the next review round. This
+   repeats until a review has no findings or its triage has nothing to fix.
+3. `finish-feature.sh --unattended`, with the title of the Issue as the
+   summary of the commit, and `publish-feature.sh`.
+
+It uses at most five review rounds. The first round reviews the complete
+feature; a later round reviews only what changed since the round before it
+(`review-feature.sh --changes`). That review knows what was decided about
+the earlier findings, so a finding that was deferred or accepted is not
+reported, triaged, and turned into a follow-up Issue again in every round.
+When the base of the branch changed between two rounds, for example because
+you merged `main` into it while the run was stopped, the next round reviews
+the complete feature.
+The agents and models are those of the roles in `.agents/agents.conf`.
+
+What stays with you: choosing the feature and creating its Issue, reading the
+pull request, following its checks, merging, and `cleanup-worktree.sh`. The
+run never merges, never pushes to `main`, and never removes a worktree.
+
+The run stops with a non-zero status, and keeps the worktree, when:
+
+| Stop | Status |
+|---|---|
+| An agent needs a decision of yours, or reports a conflict with the Issue's scope, the architecture, or an ADR. Its question is in the handoff note | 3 |
+| The implementer, the reviewer, the triage, or the fixing agent fails, for example on a usage limit | 1 |
+| Verification fails after the implementation or after the fixes | 1 |
+| The proposed triage is invalid, for example because it defers a critical or major finding | 1 |
+| Five rounds are used and the last one still has a finding that must be fixed | 1 |
+| The fixes changed nothing, the commit fails, or the pull request cannot be opened | 1 |
+
+It then says why it stopped and which command resolves it. After that, run
+the same command again: `./scripts/run-feature.sh <issue>`. The run reads
+where the feature stands from the worktree, so every step that is done is
+skipped: a current review is not repeated, a stored triage is not made again,
+and a committed feature is only published. The one thing it records itself is
+that the implementation was completed, in `.agents/run/<issue>-state`. As long
+as that is missing, the next run resumes the implementer, as
+`start-feature.sh <issue> --resume` does. The same happens after a fixing
+agent stopped for a decision of yours: the implementer reads your answer in
+the handoff note and continues, and a review follows. When you completed the
+implementation in a session of your own, say so with `--implemented`, and the
+run continues with the review. You can also take over by hand at any point:
+the single scripts work on the same files.
+
+Know what you hand over before you use it:
+
+- An unattended agent runs commands on your machine while nobody watches.
+  Codex stays inside its workspace sandbox; Claude decides with its own
+  permission check. Neither gets the tools of your configuration. See
+  "Configuring agents".
+- Nobody approves the triage. The validation still refuses to defer or
+  accept a critical or major finding, but a minor finding or a suggestion
+  can be accepted or deferred wrongly. You see that in the pull request and
+  on the Issue, where every finding is published with its decision, instead
+  of before the fixes. Read that record before you merge.
+- A part of the feature that no fix touched is reviewed once, in round 1.
+  After a large fix you can run a complete review by hand in the worktree,
+  `./scripts/review-feature.sh <issue>`, before the run continues.
+- Up to five review rounds, each with a triage and a fix session, use the
+  usage limits of your agents without a moment at which you can stop them.
+- The commit message is not edited: its summary is the title of the Issue
+  and its list of changes is what the implementer wrote.
 
 ## Linking a feature plan
 

@@ -88,6 +88,7 @@ in `docs/workflow.md`.
 | `scripts/triage-review.sh` | Classifies review findings, creates follow-up Issues, and publishes the reports on the Issue |
 | `scripts/apply-triage.sh` | Lets an implementer resolve only the `FIX_NOW` findings |
 | `scripts/finish-feature.sh` | Checks the feature and creates the commit |
+| `scripts/run-feature.sh` | Runs a feature from `start-feature.sh` to `publish-feature.sh` without questions, in at most five review rounds; never merges and never removes a worktree |
 | `scripts/publish-feature.sh` | Pushes the feature branch and opens its pull request; with `--wait` stays until CI finishes; never merges |
 | `scripts/check-review.sh` | Reports whether a review still matches what it covers |
 | `scripts/update-issue-with-plan.sh` | Links an optional feature plan to its Issue |
@@ -99,7 +100,7 @@ in `docs/workflow.md`.
 
 | Path | Purpose |
 |---|---|
-| `scripts/lib/agent.sh` | Role configuration, `--agent`/`--model` overrides, and starting agents with the `write` or `read-only` profile |
+| `scripts/lib/agent.sh` | Role configuration, `--agent`/`--model` overrides, and starting agents with the `write`, `unattended`, or `read-only` profile |
 | `scripts/lib/review-data.sh` | Validation and rendering of review, triage, and revision JSON |
 | `scripts/lib/review-run.sh` | Running a read-only agent with one retry, and storing a review |
 | `scripts/lib/github.sh` | Questions about the repository on GitHub, such as whether a branch requires a status check |
@@ -133,6 +134,8 @@ in `docs/workflow.md`.
 | `.agents/triage/` | Approved triage results (JSON and generated reports) | No |
 | `.agents/verification/` | The record of the last passed verification, written by `verify.sh` | No |
 | `.agents/manual-steps/` | Per Issue, the steps a feature needs from you, written by the implementer; copied into the commit message and the pull request | No |
+| `.agents/summaries/` | Per Issue, the implementer's summary of the changes; becomes the list of changes in the commit message | No |
+| `.agents/run/` | The final messages, and for Codex the session logs, of agents that ran with `--unattended`; the mark of `run-feature.sh` that the implementation was completed | No |
 | `.agents/plans/` | Optional feature plans | Yes |
 | `.agents/handoffs/` | Per Issue, the implementer's continuation note for a session that resumes the work (`start-feature.sh <issue> --resume`) | No |
 | `.agents/lessons/` | Recurring agent failures and the rules learned from them | Yes |
