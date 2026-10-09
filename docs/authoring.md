@@ -467,6 +467,15 @@ white focus ring that the built-site check `test_skip_link_and_navigation_focus_
 measures. Browsers other than Chromium: run `pytest tests/e2e --engine firefox`
 (WebKit on macOS does not Tab to links, so the keyboard checks do not apply).
 
+**Search.** `site/_quarto.yml` enables Quarto's own search with its local
+index: the build writes `search.json` into the site, and the page script
+fetches it from the site's own origin. It needs JavaScript. `site/search-fallback.py`
+runs after the render and puts a link to the learning path, inside `noscript`,
+in the place of the search control, so a reader without scripts finds lessons
+there. The search box takes the page's focus ring (`site/assets/site.css`). The
+built-site checks `test_search_*` run a query in a browser and fail on a request
+to another origin, a cookie, or a write to browser storage.
+
 **Payload.** Every page loads at most 1.5 MB (`test_every_page_loads_within_the_payload_budget`
 prints the sizes; run it with `-s`).
 

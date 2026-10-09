@@ -318,7 +318,11 @@ pinning") with a fix hint.
    contain no request, other origin, or use of browser storage, and
    operating their controls writes nothing to cookies or browser storage; the
    widget tests check the fallback, keyboard operation, the displayed values
-   against `src/pbc`, and the absence of layout shift.
+   against `src/pbc`, and the absence of layout shift. Search (F41): a query
+   finds a lesson by a term in its body; while it runs, nothing is requested
+   from another origin and nothing is written to cookies or browser storage;
+   with scripts disabled no search control is shown and a link to the
+   learning path takes its place; the index stays within the payload budget.
 8. **Determinism**: a second build of the same commit is byte-identical to the
    first.
 9. **Workflow self-tests**: the existing shell tests of the workflow scripts
