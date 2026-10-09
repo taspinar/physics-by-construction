@@ -764,10 +764,11 @@ Checked at the change-cycle base commit `2f011ea` against the re-approved
 requirements. No material conflict was found. The following gaps are the
 work of the roadmap features named:
 
-- The home page names three pillars "Simulate, Experiment with agents,
-  Prove"; the requirements now name three activities "Construct,
-  Investigate, Verify" with real measurements as first-class content, and
-  ask the page to show published versus planned content honestly (F25).
+- The home page names the three activities "Construct, Investigate, Verify"
+  and shows published versus planned content honestly (F25, delivered).
+  Published counts and names come from the lesson metadata
+  (`pbc.authoring.home`); the planned items are a short list in that module
+  that names roadmap IDs.
 - The About page, the README, and the footer carry no creator or JIDAI
   attribution, and there is no `CITATION.cff`; the Issue forms have no
   scientific-correction or dataset-suggestion form (F57).

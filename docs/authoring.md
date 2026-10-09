@@ -892,6 +892,14 @@ in `src/pbc/authoring/identity.py`. Rules for every page:
 - The home page has one attribution link, to the About page. The footer line,
   with its one link to `https://jidai.nl`, is not repeated in lessons or in
   any page content. Lessons do not mention JIDAI.
+- The home page states what is published from the lesson front matter
+  (`pbc.authoring.home_content()`): no number or lesson title is typed. What
+  is planned is the `PLANNED` list in `src/pbc/authoring/home.py`; each item
+  names a roadmap ID, is labelled planned, and is not linked. Remove an item
+  when its feature is delivered (`tests/unit/test_home.py` checks the roadmap).
+  A sentence about the site that is not generated must be true of the
+  published site; the examples of the three activities are lessons named by
+  id in the same module.
 - JIDAI is the initiative's company, not a copyright holder, funder, or
   university partner. The copyright line, the licences (MIT for code, CC BY
   4.0 for content), the repository address, and `website.site-url` do not

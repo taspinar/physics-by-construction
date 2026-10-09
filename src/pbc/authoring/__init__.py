@@ -11,6 +11,7 @@ from pbc.authoring.design import (
     FIGURE_STATUSES,
 )
 from pbc.authoring.excerpt import Excerpt, excerpt
+from pbc.authoring.home import PLANNED, HomeContent, Planned, home_content
 from pbc.authoring.lean import LeanEvidence, LeanExcerpt, lean_evidence, lean_excerpt
 from pbc.authoring.path import (
     COURSES,
@@ -35,19 +36,23 @@ __all__ = [
     "FIGURE_COLOURS",
     "FIGURE_STATUSES",
     "METHODS",
+    "PLANNED",
     "STRANDS",
     "BuildCommit",
     "Excerpt",
+    "HomeContent",
     "LeanEvidence",
     "LeanExcerpt",
     "LearningPath",
     "LessonHeader",
     "PathOverview",
+    "Planned",
     "Reproduction",
     "ResultTable",
     "WidgetScript",
     "build_commit",
     "excerpt",
+    "home_content",
     "is_numeric_console_block",
     "lean_evidence",
     "lean_excerpt",

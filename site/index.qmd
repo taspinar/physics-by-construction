@@ -11,27 +11,67 @@ print(description(), "[About the creator and JIDAI](about.qmd#creator-and-jidai)
 ```
 
 Physics by Construction teaches physics by building it. Every concept comes
-with code you can run. The path leads from numerical simulation, through
-experiments driven by AI agents, to formal proofs in Lean. Every listing,
-figure, and proof on this site is produced or checked by the same pipeline
-that publishes it.
+with code you can run, and every listing, figure, and proof on this site is
+produced or checked by the same pipeline that publishes it. Three activities
+run through the content: **Construct**, **Investigate**, and **Verify**.
 
 The site is written for readers who already know undergraduate mechanics and
-can program. It does not teach either again. It teaches what happens when you
-combine them: modelling, numerical methods, experiments run by agents, and
-formal verification, all applied to physics.
+can program. It does not teach either again.
 
-## Three pillars
+```{python}
+#| echo: false
+from pbc.authoring import home_content
 
-1. **Simulate.** State a model and its assumptions, write it as a short
-   Python program, and compare the result with what theory predicts.
-2. **Experiment with agents.** Let an AI agent propose hypotheses and run
-   the same simulation code to test them, on your own machine with your own
-   API key.
-3. **Prove.** State the result as a theorem in Lean 4 with Mathlib and check
-   the proof by machine.
+home = home_content()
+```
 
-## One result, three ways
+## Three activities
+
+### Construct {#construct}
+
+State a model and its assumptions, write it as a short Python program, and
+compare the result with what theory predicts. Published example:
+
+```{python}
+#| echo: false
+#| output: asis
+from pbc.authoring.home import CONSTRUCT_EXAMPLE
+
+print(home.example(CONSTRUCT_EXAMPLE) + ", which compares four ways of stepping a model forward in time.")
+```
+
+### Investigate {#investigate}
+
+The aim is to work from real measurements: quantify uncertainty, fit models,
+and design experiments. No lesson on measured data is published yet; the
+planned labs are listed below. What is published today is an experiment on a
+simulation, run by an AI agent on your own machine with your own API key.
+Published example:
+
+```{python}
+#| echo: false
+#| output: asis
+from pbc.authoring.home import INVESTIGATE_EXAMPLE
+
+print(home.example(INVESTIGATE_EXAMPLE) + ".")
+```
+
+### Verify {#verify}
+
+Check what can actually be established. A lesson whose code fails or whose
+proof does not compile cannot be published. Results about the models are
+stated as theorems in Lean 4 with Mathlib and checked by machine. Published
+example:
+
+```{python}
+#| echo: false
+#| output: asis
+from pbc.authoring.home import VERIFY_EXAMPLE
+
+print(home.example(VERIFY_EXAMPLE) + ".")
+```
+
+## One result, constructed and proved
 
 Take a mass $m$ on a spring with stiffness $k$. Its total energy is
 
@@ -39,26 +79,33 @@ $$
 E = \frac{1}{2} m v^{2} + \frac{1}{2} k x^{2}.
 $$
 
-A simulation shows whether a numerical method keeps $E$ constant, and how
-quickly it drifts when it does not. An agent can search for the time step at
-which the drift becomes visible. A proof settles what the model itself
-guarantees, for every initial condition at once.
+A simulation shows how quickly a numerical method makes $E$ drift. A proof
+settles, for every initial condition at once, the factor by which one step of
+explicit Euler multiplies $E$. The agent lesson runs its experiment on the
+projectile simulation of the course, not on this oscillator.
 
-## Lessons
+## Published {#published}
 
-The [learning path](path/index.qmd) lists every lesson in order, with its
-difficulty and what it builds on. The site has eleven lessons in four
-strands: eight on mechanics with numerical simulation, one on an AI agent
-that runs an experiment, one on a gas of many simple agents and what emerges
-from them, and one on proofs in Lean. Lessons appear on the
-path only after they pass verification. To rebuild everything on your own
-machine, see [Reproduce](reproduce.qmd); to report an error or propose a
-change, see [Contribute](contribute.qmd).
+```{python}
+#| echo: false
+#| output: asis
+print(home.published())
+```
+
+## Planned {#planned}
+
+```{python}
+#| echo: false
+#| output: asis
+print(home.planned())
+```
 
 ## Source and licence
 
-The complete source of this site, including the code behind every figure, is
-in the [repository on GitHub](https://github.com/taspinar/physics-by-construction).
+To rebuild everything on your own machine, see [Reproduce](reproduce.qmd); to
+report an error or propose a change, see [Contribute](contribute.qmd). The
+complete source of this site, including the code behind every figure, is in
+the [repository on GitHub](https://github.com/taspinar/physics-by-construction).
 Code is released under the MIT licence. Lesson text and figures are released
 under the Creative Commons Attribution 4.0 International licence (CC BY 4.0).
 The [About](about.qmd) page has the details.
