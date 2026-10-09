@@ -7,6 +7,10 @@ Lean 4.
 
 Site: <https://taspinar.github.io/physics-by-construction/>
 
+<!-- identity:start (written by pbc.authoring.identity) -->
+Physics by Construction is a free, open-source educational initiative by JIDAI, created by Ahmet Taspinar.
+<!-- identity:end -->
+
 Every code listing, figure, and proof on the site is produced or checked by
 the same pipeline that publishes it. A lesson whose code fails or whose proof
 does not compile cannot be merged.
@@ -53,7 +57,11 @@ The same command runs in CI on every pull request.
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Corrections and suggestions are
-welcome as issues.
+welcome as issues, with no need to contact anyone: use the forms for a
+[bug](https://github.com/taspinar/physics-by-construction/issues/new?template=bug.yml), a
+[scientific correction](https://github.com/taspinar/physics-by-construction/issues/new?template=scientific-correction.yml),
+a [dataset suggestion](https://github.com/taspinar/physics-by-construction/issues/new?template=dataset-suggestion.yml), or a
+[lesson proposal](https://github.com/taspinar/physics-by-construction/issues/new?template=lesson-proposal.yml).
 
 ## Licence
 

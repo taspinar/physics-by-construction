@@ -53,3 +53,13 @@ def test_figures_are_drawn_by_cells_and_have_alt_text(repository: Path):
 def test_no_generated_artifact_is_committed(repository: Path):
     violations = lesson_checks.check_committed_files(repository)
     assert not violations, describe(violations)
+
+
+def test_format_2_lessons_follow_the_format(repository: Path):
+    violations = lesson_checks.check_format_2(repository)
+    assert not violations, describe(violations)
+
+
+def test_the_reference_register_follows_its_schema_and_is_used(repository: Path):
+    violations = lesson_checks.check_references(repository)
+    assert not violations, describe(violations)

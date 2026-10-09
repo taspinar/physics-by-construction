@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: >-
+  If you use this material, please cite it as below. The code is under the MIT
+  licence (LICENSE); lesson text and figures are under CC BY 4.0
+  (LICENSE-CONTENT).
+title: "Physics by Construction"
+type: software
+abstract: "Physics by Construction is a free, open-source educational initiative by JIDAI, created by Ahmet Taspinar."
+authors:
+  - family-names: Taspinar
+    given-names: Ahmet
+url: "https://taspinar.github.io/physics-by-construction/"
+repository-code: "https://github.com/taspinar/physics-by-construction"
+license: MIT

@@ -1,5 +1,5 @@
 name: Bug
-about: Report reproducible incorrect behavior
+description: Report reproducible incorrect behavior
 labels: [bug]
 body:
   - type: textarea

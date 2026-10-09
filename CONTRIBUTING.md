@@ -18,6 +18,14 @@ To propose a new lesson, open an Issue from the **Lesson proposal** form. The
 assessment criteria and the path from an accepted proposal to a merged lesson
 are in [docs/content-proposals.md](docs/content-proposals.md).
 
+The other forms are **Bug**, **Feature**, **Scientific correction** (page, the
+statement, the correction, a source and its licence, the evidence), and
+**Dataset suggestion** (source URL or DOI, creator, licence, measurement type,
+size, and what a lesson could learn from it). A scientific change needs a
+source, a licence that allows its use, and independent review before it is
+merged. You do not need to contact JIDAI or anyone else, create an account
+beyond GitHub, or accept tracking to correct, propose, or suggest.
+
 `AGENTS.md` holds the working rules for this repository. They apply whether a
 change is written by a person, with AI assistance, or by an agent.
 

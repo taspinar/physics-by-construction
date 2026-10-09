@@ -2,7 +2,9 @@ project:
   type: website
   output-dir: _site
   # Puts the skip link before the navigation bar of every page.
-  post-render: skip-link.py
+  post-render:
+    - skip-link.py
+    - attribution.py
   # Files the pages do not link to in Markdown but the built site must
   # contain: the math font that site.css loads, and its licence, and the
   # widgets that lesson pages load as scripts.
@@ -41,6 +43,9 @@ website:
       - text: Source
         href: https://github.com/taspinar/physics-by-construction
   page-footer:
+    # The token becomes the attribution line after the render (attribution.py);
+    # the wording is defined once in pbc.authoring.identity.
+    left: PBC-ATTRIBUTION
     center: >-
       Code: [MIT](https://github.com/taspinar/physics-by-construction/blob/main/LICENSE).
       Lesson text and figures:
