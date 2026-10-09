@@ -17,6 +17,12 @@ from pathlib import Path, PurePosixPath
 
 import yaml
 
+from pbc.authoring.graph import (
+    RELATED_MARKER,
+    REQUIRES,
+    REQUIRES_MARKER,
+    PrerequisiteGraph,
+)
 from pbc.authoring.website import PAGE_FILE, project_root
 
 # Where the lessons and the learning path page sit in the website project.
@@ -643,7 +649,61 @@ class PathOverview:
                 "",
             ]
             lines += self._items(self.path.using(method), 4)
+        lines += self._graph()
         return "\n".join(lines)
+
+    def _graph(self) -> list[str]:
+        if not self.path.lessons:
+            return []
+        graph = PrerequisiteGraph.layout(self.path.lessons, self.path.courses)
+        requires = sum(1 for edge in graph.edges if edge.kind == REQUIRES)
+        related = len(graph.edges) - requires
+        summary = (
+            f"{len(graph.nodes)} lessons in {len(graph.bands)} course"
+            f"{'s' if len(graph.bands) != 1 else ''}, with {requires}"
+            f" prerequisite and {related} related"
+            f" link{'s' if related != 1 else ''}. Arrows point from a"
+            " prerequisite to the lesson that requires it, and from a lesson"
+            " to a related lesson it recommends. The edges are listed as"
+            " sentences after the drawing."
+        )
+        drawing = graph.svg(lambda lesson: _href(self.page, lesson.page), summary)
+        sentences = "\n".join(f"<li>{escape(text)}.</li>" for text in graph.sentences())
+        return [
+            "## Prerequisite graph {#graph}",
+            "",
+            "The graph shows the same prerequisites as the lists above, as a"
+            " picture. Each box is a lesson and links to it. A lesson stands"
+            " one column to the right of its furthest prerequisite, and the"
+            " lessons of a course share a band. On a narrow screen the lists"
+            " above are the way to read the path; the graph scrolls sideways"
+            " inside its box.",
+            "",
+            "```{=html}",
+            '<ul class="graph-legend">',
+            '<li><svg aria-hidden="true" width="56" height="14" viewBox="0 0 56 14">'
+            '<path class="edge-requires" d="M2,7 L52,7"'
+            f' marker-end="url(#{REQUIRES_MARKER})"/></svg>'
+            " <strong>Requires</strong>: a solid line with a filled arrowhead,"
+            " from a prerequisite to the lesson that needs it.</li>",
+            '<li><svg aria-hidden="true" width="56" height="14" viewBox="0 0 56 14">'
+            '<path class="edge-related" d="M2,7 L52,7"'
+            f' marker-end="url(#{RELATED_MARKER})"/></svg>'
+            " <strong>Related</strong>: a dashed line with an open arrowhead,"
+            " from a lesson to a lesson it recommends as an extension; not"
+            " required.</li>",
+            "</ul>",
+            '<div class="prerequisite-graph" tabindex="0" role="region"'
+            ' aria-label="Prerequisite graph, scrolls sideways">',
+            drawing,
+            "</div>",
+            '<ol class="visually-hidden" aria-label="The edges of the'
+            ' prerequisite graph">',
+            sentences,
+            "</ol>",
+            "```",
+            "",
+        ]
 
     def _order(self) -> list[str]:
         strands = ", then ".join(strand.title for strand in self.path.strands)

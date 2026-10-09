@@ -140,4 +140,9 @@ def test_lesson_made_from_the_template_builds_with_every_construct(
         )
         for lesson in (*PATH.lessons, new)
     )
-    assert path_page.count('<a href="../lessons/mechanics/') == links
+    lists, graph = path_page.split('<div class="prerequisite-graph"')
+    graph = graph.split("</svg>")[0]
+    assert lists.count('<a href="../lessons/mechanics/') == links
+    # The graph has a node for every lesson, the new one too.
+    assert graph.count("<a href=") == len(PATH.lessons) + 1
+    assert f'href="../{page}"' in graph

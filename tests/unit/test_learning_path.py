@@ -473,6 +473,7 @@ def test_overview_lists_courses_with_core_lessons_and_extensions_then_methods(
         "## Methods {#methods}",
         "### Simulation {#method-simulation}",
         "### Formal proofs {#method-lean}",
+        "## Prerequisite graph {#graph}",
     ]
     assert "LLM agents" not in shown and "Agent-based" not in shown
     cards = re.findall(r'<h(\d) class="lesson-card-title"><a href="([^"]+)"', shown)

@@ -246,7 +246,13 @@ difficulty, not word count.
 
 The learning path (order, difficulty, prerequisites, courses, methods,
 related lessons, previous and next links) is derived from lesson front
-matter. There is no second, hand-maintained list that could drift.
+matter. There is no second, hand-maintained list that could drift. The
+prerequisite graph on the path page is one inline SVG laid out at build time
+in Python (`pbc.authoring.graph`): columns follow the prerequisites, bands
+are courses, solid arrows are prerequisites, dashed arrows are related
+lessons, each node links to its lesson, and a visually hidden list of
+sentences ("M4 requires M2") is the accessible alternative. It needs no
+browser script.
 
 ### Verified display forms
 
@@ -318,7 +324,11 @@ pinning") with a fix hint.
    contain no request, other origin, or use of browser storage, and
    operating their controls writes nothing to cookies or browser storage; the
    widget tests check the fallback, keyboard operation, the displayed values
-   against `src/pbc`, and the absence of layout shift.
+   against `src/pbc`, and the absence of layout shift. Search (F41): a query
+   finds a lesson by a term in its body; while it runs, nothing is requested
+   from another origin and nothing is written to cookies or browser storage;
+   with scripts disabled no search control is shown and a link to the
+   learning path takes its place; the index stays within the payload budget.
 8. **Determinism**: a second build of the same commit is byte-identical to the
    first.
 9. **Workflow self-tests**: the existing shell tests of the workflow scripts
@@ -764,16 +774,16 @@ Checked at the change-cycle base commit `2f011ea` against the re-approved
 requirements. No material conflict was found. The following gaps are the
 work of the roadmap features named:
 
-- The home page names three pillars "Simulate, Experiment with agents,
-  Prove"; the requirements now name three activities "Construct,
-  Investigate, Verify" with real measurements as first-class content, and
-  ask the page to show published versus planned content honestly (F25).
+- The home page names the three activities "Construct, Investigate, Verify"
+  and shows published versus planned content honestly (F25, delivered).
+  Published counts and names come from the lesson metadata
+  (`pbc.authoring.home`); the planned items are a short list in that module
+  that names roadmap IDs.
 - The About page, the README, and the footer carry no creator or JIDAI
   attribution, and there is no `CITATION.cff`; the Issue forms have no
   scientific-correction or dataset-suggestion form (F57).
 - The learning path is one linear sequence of four strands with no course or
-  method facet, no prerequisite graph, no outcomes, and no cards (F37, F26,
-  F27).
+  method facet, no outcomes, and no cards (F37, F27).
 - Lessons follow format 1: eleven lessons with no typed claims, no figure
   status, no limits section except in the Lean lesson, no self-check
   distinct from the exercises, no curated external references anywhere, one
