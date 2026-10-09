@@ -415,6 +415,60 @@ plt.show()
 - Label the axes with units. Do not tell curves apart by colour alone: vary
   the line style or the marker as well.
 
+## Visual design
+
+The look of the site is one set of tokens and a small set of component styles
+in `site/assets/site.css`. A new component uses the tokens; it does not
+introduce a colour, a size, or a font of its own.
+
+**Tokens.** The `:root` block of `site.css` declares the colours, the type
+scale (`--pbc-text-*`, `--pbc-heading-*`), the spacing scale
+(`--pbc-space-*`), and the focus ring. The colours are defined once, in
+`src/pbc/authoring/design.py`; `tests/unit/test_design.py` fails when the
+stylesheet differs from the module, when a hex colour is used outside the
+`:root` block, and when a pair of text and background has less than 4.5:1
+contrast (3:1 for controls and lines). A change to a colour is made in the
+module and copied to the stylesheet.
+
+**Figure colours.** A figure takes its colours from the sequence
+`pbc.authoring.FIGURE_COLOURS`, so that figures and page agree:
+
+```python
+from pbc.authoring import FIGURE_COLOURS
+
+ax.plot(t, x, color=FIGURE_COLOURS[0], label="exact")
+ax.plot(t, y, color=FIGURE_COLOURS[1], linestyle="--", label="Euler")
+```
+
+Colour never tells two series apart alone; vary the line style or the marker.
+
+**Components.** `rendering-check.qmd` holds one sample of each; copy its markup.
+
+| Component | Markup |
+|---|---|
+| What you'll learn, assumptions | `.learn-box`, `.assumptions` div with a bold first line and a list |
+| Claim label | `[text]{.claim data-type="observational"}` (span) or a `.claim` div; the four types of `pbc.authoring.CLAIM_TYPES` |
+| Figure status | `[simulated]{.figure-status data-status="simulated"}` at the start of the caption; the five statuses of `FIGURE_STATUSES` |
+| Result table | The markup of `pbc.authoring.table`: `div.table-scroll` with `tabindex="0"`, `role="region"`, and an `aria-label`, around a `table.result-table` with a `caption`; numeric cells carry `.num` |
+| Annotated excerpt | `.annotated-excerpt` div: the listing, then an ordered list of notes |
+| Go deeper | `.go-deeper` div |
+| Self-check and hint | `.exercise.self-check` div; a hint is `details.hint` |
+| Path cards | `ul.path-cards` of `li.path-card` |
+| Prerequisite graph | `.prerequisite-graph` with `tabindex="0"`, `role="region"`, and an `aria-label` |
+| Footer attribution | `.footer-attribution` paragraph (filled by F57) |
+
+A label is always words in the page; its colour only supports it. A box that
+scrolls sideways is focusable, so that the keyboard can scroll it.
+
+**Skip link and focus.** `site/skip-link.py` runs after the render and puts a
+skip link before the navigation bar of every page. The navigation bar has a
+white focus ring that the built-site check `test_skip_link_and_navigation_focus_pass_the_keyboard_pass`
+measures. Browsers other than Chromium: run `pytest tests/e2e --engine firefox`
+(WebKit on macOS does not Tab to links, so the keyboard checks do not apply).
+
+**Payload.** Every page loads at most 1.5 MB (`test_every_page_loads_within_the_payload_budget`
+prints the sizes; run it with `-s`).
+
 ## Not verified
 
 Material that the build neither ran nor checked must say so. Wrap a block in

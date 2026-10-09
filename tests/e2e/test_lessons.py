@@ -109,7 +109,7 @@ def test_the_not_verified_label_is_visible_text_on_the_sample_page(
     in_solution = page_without_scripts.locator("details.solution .not-verified-label")
     assert in_solution.count() == 1
     assert not in_solution.is_visible()
-    page_without_scripts.locator("details.solution > summary").click()
+    page_without_scripts.locator("details.solution > summary").first.click()
     for index in range(labels.count()):
         assert labels.nth(index).is_visible()
         assert "not verified" in labels.nth(index).inner_text().lower()

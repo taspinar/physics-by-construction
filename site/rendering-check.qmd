@@ -64,17 +64,18 @@ for time, position in zip(t, damped_oscillation(t), strict=True):
 
 ```{python}
 #| label: fig-damped-oscillation
-#| fig-cap: "A damped oscillation and its envelope."
+#| fig-cap: "[simulated]{.figure-status data-status='simulated'} A damped oscillation and its envelope."
 #| fig-alt: "Line plot of position against time from 0 to 5 seconds. The position oscillates once per second between an upper and a lower envelope curve that both decay towards zero."
 import matplotlib.pyplot as plt
+from pbc.authoring import FIGURE_COLOURS
 
 t = np.linspace(0.0, 5.0, 1001)
 envelope = np.exp(-0.5 * t)
 
 fig, ax = plt.subplots(figsize=(6.4, 3.6))
-ax.plot(t, damped_oscillation(t), color="#00429d", label="position")
-ax.plot(t, envelope, color="#93003a", linestyle="--", label="envelope")
-ax.plot(t, -envelope, color="#93003a", linestyle="--")
+ax.plot(t, damped_oscillation(t), color=FIGURE_COLOURS[0], label="position")
+ax.plot(t, envelope, color=FIGURE_COLOURS[1], linestyle="--", label="envelope")
+ax.plot(t, -envelope, color=FIGURE_COLOURS[1], linestyle="--")
 ax.set_xlabel("time (s)")
 ax.set_ylabel("position (m)")
 ax.legend()
@@ -124,3 +125,90 @@ damped_oscillation(0.0)  # a listing nothing executed
 :::
 :::
 :::
+
+## Design components
+
+One sample of each component of the visual system (docs/authoring.md,
+"Visual design"). The figure above shows the figure status in its caption.
+
+::: {.learn-box}
+**What you'll learn**
+
+- To read a claim label.
+- To tell a measured figure from a simulated one.
+:::
+
+::: {.assumptions}
+**Assumptions**
+
+- The oscillator is linear.
+- Friction is proportional to speed.
+:::
+
+Each claim type has its own label:
+[observational]{.claim data-type="observational"},
+[experimentally supported]{.claim data-type="experimentally-supported"},
+[numerically verified]{.claim data-type="numerically-verified"}, and
+[formal theorem]{.claim data-type="formal-theorem"}.
+
+::: {.claim data-type="numerically-verified"}
+The amplitude falls by the same factor every second.
+:::
+
+Each figure status has its own label:
+[measured]{.figure-status data-status="measured"}
+[calibrated]{.figure-status data-status="calibrated"}
+[processed]{.figure-status data-status="processed"}
+[simulated]{.figure-status data-status="simulated"}
+[conceptual]{.figure-status data-status="conceptual"}
+
+```{=html}
+<div class="table-scroll" role="region" tabindex="0" aria-label="Amplitude after whole periods.">
+<table class="result-table">
+<caption>Amplitude after whole periods.</caption>
+<thead><tr><th scope="col" class="num">Periods</th><th scope="col" class="num">Amplitude (m)</th><th scope="col" class="num">Error (m)</th></tr></thead>
+<tbody>
+<tr><td class="num">1</td><td class="num">0.6065</td><td class="num">0.0012</td></tr>
+<tr><td class="num">2</td><td class="num">0.3679</td><td class="num">0.0021</td></tr>
+</tbody>
+</table>
+</div>
+```
+
+::: {.annotated-excerpt}
+```python
+amplitude = initial * math.exp(-rate * time)
+```
+
+1. The amplitude decays exponentially.
+2. The rate has the unit of one over a second.
+:::
+
+::: {.go-deeper}
+**Go deeper**
+
+- An optional reading, with a short reason to visit it.
+:::
+
+::: {.exercise .self-check}
+Why does the amplitude, and not the period, shrink?
+
+```{=html}
+<details class="hint"><summary>Hint</summary><p>Compare the two lengths of the motion.</p></details>
+```
+
+::: {.solution}
+Friction removes energy, and the period depends on the stiffness and the mass.
+:::
+:::
+
+```{=html}
+<ul class="path-cards">
+<li class="path-card"><h3>Sample lesson</h3><p class="path-card-meta">Mechanics, introductory</p><p>One sentence about the lesson.</p></li>
+<li class="path-card"><h3>Another lesson</h3><p class="path-card-meta">Mechanics, intermediate</p><p>One sentence about the lesson.</p></li>
+</ul>
+<div class="prerequisite-graph" tabindex="0" role="region" aria-label="Sample prerequisite graph">
+<p>Kinematics, then Newton's laws, then the harmonic oscillator.</p>
+</div>
+<p class="footer-attribution">A sample attribution line.</p>
+```
