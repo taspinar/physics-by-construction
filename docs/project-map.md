@@ -10,6 +10,7 @@ in `docs/workflow.md`.
 |---|---|
 | `site/` | The website source, a Quarto project. `_quarto.yml` configures it, including the public address in `website.site-url`; `_filters/` holds its Pandoc Lua filters; `assets/` its stylesheet, self-hosted font, and Lean syntax definition |
 | `site/lessons/<strand>/<nn>-<slug>/index.qmd` | One lesson per directory, in the format of `docs/authoring.md`. An agent lesson may also hold its replay fixture `replay.json`; nothing else is committed there |
+| `site/references.yaml` | The reference register: the selection evidence of every curated external link a lesson renders (ADR 009); lessons name its keys in "Go deeper" blocks |
 | `site/path/index.qmd` | The learning path page, generated from the lesson front matter when the site is built |
 | `site/_site/` | The built site. Written by `scripts/build-site.sh`, ignored by Git |
 | `src/pbc/` | The Python package with the reusable lesson code: `mechanics/` for the mechanics course, `authoring/` for the helpers pages use to show Python and Lean code by reference, to show numeric results as tables, to write "Reproduce this", and to generate the learning path page and lesson headers; `authoring/path.py` defines the strands and the difficulty scale; `authoring/graph.py` lays out the prerequisite graph of the path page as inline SVG |
@@ -28,6 +29,7 @@ in `docs/workflow.md`.
 | `scripts/check-lean.sh` | Builds every Lean module against Mathlib from its build cache, fails on `sorry` and project axioms, and records what compiled the proofs for the pages that show them |
 | `scripts/build-site.sh` | Builds the site with Quarto; fails on a failing cell or an equation that is not MathML |
 | `scripts/check-determinism.sh` | Builds the site a second time and requires byte-identical output |
+| `scripts/check-links.sh`, `scripts/lib/check_links.py` | On-demand check of the external links in the reference register; reports a dead link or a missing anchor. Not in `verify.conf`, no CI job (ADR 009) |
 | `scripts/compare-lessons.sh` | Builds a base revision and the working tree and requires the built lesson pages to be identical apart from the footer and the embedded commit |
 | `scripts/doctor.sh` | Read-only check of the local prerequisites, including those of the development workflow |
 | `scripts/lib/prerequisites.sh`, `scripts/lib/check_browser.py` | The prerequisite checks shared by `preflight.sh` and `doctor.sh` |

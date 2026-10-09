@@ -225,10 +225,10 @@ each major concept, the progressive depth the requirements ask for:
 | Assumptions, explanation, code, worked examples | As format 1 | yes | The core explanation stays on the site: intuition, definitions, essential derivation steps, units, limits of applicability; code explained as physical operations (state variables, update order, units, error modes). |
 | Interpretation | Prose after each figure or table, and the caption | yes | What the figure or table means, its source status, the invariant or reference it was checked against. |
 | Limits | `limits` | yes | What the result does not show: failure modes, what the proof or the measurement does not cover. May be one paragraph. |
-| Self-check | One `.exercise.self-check` div, counted among the exercises | yes | One concise conceptual question with its solution, distinct from the exercises. |
+| Self-check | One `.exercise.self-check` div; it is an exercise for the solution markup and the checks, but is titled "Self-check." and takes no number | yes | One concise conceptual question with its solution, distinct from the exercises. |
 | Go deeper | `.go-deeper` div naming register keys | no | Curated external references at the relevant concept, each with a short reason to visit, rendered from the reference register (ADR 009). Never a substitute for a missing core explanation. |
-| Claim labels | `.claim` span or div with `type`, optional `scope`, and optional `evidence` | yes where a scientific claim is made | One of the four claim types defined below; renders a visible label. `evidence` names the cell label, register or card key, or Lean theorem that supports the claim; reserved by F28 and filled by the editorial passes, validated only by the evidence map (F19). |
-| Figure status | A status on every figure cell | yes | One of `measured`, `calibrated`, `processed`, `simulated`, `conceptual`; renders with the caption. |
+| Claim labels | `.claim` span or div with `type` (the build renders the label as a `data-type` span), optional `scope`, and optional `evidence` | yes where a scientific claim is made | One of the four claim types defined below; renders a visible label. `evidence` names the cell label, register or card key, or Lean theorem that supports the claim; reserved by F28 and filled by the editorial passes, validated only by the evidence map (F19). |
+| Figure status | `#| fig-status:` on every figure cell | yes | One of `measured`, `calibrated`, `processed`, `simulated`, `conceptual`; renders with the caption. |
 
 The claim type names the kind of evidence behind the claim, not the kind of
 lesson that makes it. The type follows what was done to support the claim
@@ -770,10 +770,11 @@ Checked at the change-cycle base commit `2f011ea` against the re-approved
 requirements. No material conflict was found. The following gaps are the
 work of the roadmap features named:
 
-- The home page names three pillars "Simulate, Experiment with agents,
-  Prove"; the requirements now name three activities "Construct,
-  Investigate, Verify" with real measurements as first-class content, and
-  ask the page to show published versus planned content honestly (F25).
+- The home page names the three activities "Construct, Investigate, Verify"
+  and shows published versus planned content honestly (F25, delivered).
+  Published counts and names come from the lesson metadata
+  (`pbc.authoring.home`); the planned items are a short list in that module
+  that names roadmap IDs.
 - The About page, the README, and the footer carry no creator or JIDAI
   attribution, and there is no `CITATION.cff`; the Issue forms have no
   scientific-correction or dataset-suggestion form (F57).

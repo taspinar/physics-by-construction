@@ -414,3 +414,45 @@ def test_reproduce_commands_regenerate_the_page_within_the_time_budget(
         assert regenerated.read_bytes() == (site_dir / figure).read_bytes(), figure
 
     assert seconds[commands[-1]] < LESSON_BUDGET_SECONDS
+
+
+def test_format_2_lessons_print_no_block_of_numbers(site_dir: Path):
+    violations = lesson_checks.check_console_blocks(REPO_ROOT, site_dir)
+    assert not violations, describe(violations)
+
+
+def test_the_first_lesson_shows_the_constructs_of_format_2_as_text(
+    page_without_scripts: Page, server: SiteServer
+):
+    # Labels and the reference are words in the page, so they read without
+    # JavaScript and do not depend on colour.
+    page_without_scripts.goto(server.url + KINEMATICS, wait_until="load")
+
+    labels = page_without_scripts.locator("span.claim[data-type]")
+    assert labels.count() >= 2
+    for index in range(labels.count()):
+        assert "numerically verified" in labels.nth(index).inner_text().lower()
+    status = page_without_scripts.locator("figcaption .figure-status")
+    # The stylesheet shows the word in capitals.
+    assert [status.nth(i).inner_text().lower() for i in range(status.count())] == [
+        "simulated",
+        "simulated",
+    ]
+    go_deeper = page_without_scripts.locator(".go-deeper")
+    assert go_deeper.count() == 1
+    link = go_deeper.locator("a")
+    assert link.get_attribute("href").startswith("https://")
+    assert "Go deeper" in go_deeper.inner_text()
+    # The self-check closes the explanation and does not take an exercise
+    # number: the three exercises keep theirs.
+    self_check = page_without_scripts.locator(".exercise.self-check")
+    assert self_check.count() == 1
+    assert self_check.get_by_text("Self-check.").count() == 1
+    titles = page_without_scripts.locator(
+        ".exercise:not(.self-check) > p > strong:first-child"
+    )
+    assert [titles.nth(i).inner_text() for i in range(titles.count())] == [
+        "Exercise 1.",
+        "Exercise 2.",
+        "Exercise 3.",
+    ]
