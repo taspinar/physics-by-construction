@@ -390,10 +390,21 @@ main .quarto-title-meta,
 /* The theme's focus ring on the navigation is a pale blue shadow at a quarter
    of its strength: on this bar it has a contrast of about 1.2:1. A white ring
    of three pixels has 4.8:1 against the bar (WCAG 2.2, 2.4.13). */
-.navbar a:focus-visible {
+.navbar a:focus-visible,
+.navbar .aa-DetachedSearchButton:focus-visible {
   outline: var(--pbc-focus-width) solid var(--pbc-navbar-text);
   outline-offset: 2px;
   box-shadow: none;
+}
+
+/* The search box is a light field on the dark bar, so its controls take the
+   ring of the page, in the focus colour. The search script removes the
+   outline of its input; the identifier outranks that rule. */
+#quarto-search .aa-Input:focus-visible,
+#quarto-search .aa-SubmitButton:focus-visible,
+#quarto-search .aa-ClearButton:focus-visible {
+  outline: var(--pbc-focus-width) solid var(--pbc-focus);
+  outline-offset: 2px;
 }
 
 /* Everywhere else a focused control gets the same ring in the focus colour. */
