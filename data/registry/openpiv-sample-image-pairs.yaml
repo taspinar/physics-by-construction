@@ -1,0 +1,38 @@
+id: openpiv-sample-image-pairs
+title: OpenPIV tutorial image pairs
+source:
+  url: https://openpiv.readthedocs.io/en/stable/src/tutorial1.html
+  creator: OpenPIV project
+  version: not assessed
+  accessed: &id001 2026-10-09
+rights:
+  licence: not-assessed
+  local_download:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  publication_of_figures:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  modification_and_attribution:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+artifacts:
+- name: particle image pair
+  type: synthetic-test
+  description: Tutorial images; whether they were acquired or generated is unchecked, so the type is the
+    cautious one (as described by the source; no file was inspected)
+size:
+  description: Small tutorial files.
+format: BMP image pairs
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09), with provenance
+    flagged for checking.
+  gate: Establish the acquisition provenance (measured or synthetic) and the licence of the images before
+    any label other than synthetic-test is used.

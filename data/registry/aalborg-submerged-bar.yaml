@@ -1,0 +1,125 @@
+id: aalborg-submerged-bar
+title: 'Wave propagation over a submerged bar: wave-flume experiments and three CFD solutions'
+source:
+  url: https://zenodo.org/records/15049542
+  doi: 10.5281/zenodo.15049542
+  creator: Jacob Andersen, Mads Roge Eldrup, Francesco Ferri, Gael Verao Fernandez (Aalborg University)
+  version: Zenodo record 15049542, published 2025-03-19 (no version number); archive Andersen_etal_2025.zip
+  accessed: &id001 2026-10-09
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: permitted
+    source: Zenodo record https://zenodo.org/records/15049542, licence field 'Creative Commons Attribution
+      4.0 International', read 2026-10-09; CC BY 4.0 permits copying, redistribution, adaptation, and
+      publication of derivatives with attribution
+  redistribution_of_subsets:
+    answer: permitted
+    source: Zenodo record https://zenodo.org/records/15049542, licence field 'Creative Commons Attribution
+      4.0 International', read 2026-10-09; CC BY 4.0 permits copying, redistribution, adaptation, and
+      publication of derivatives with attribution
+  publication_of_figures:
+    answer: permitted
+    source: Zenodo record https://zenodo.org/records/15049542, licence field 'Creative Commons Attribution
+      4.0 International', read 2026-10-09; CC BY 4.0 permits copying, redistribution, adaptation, and
+      publication of derivatives with attribution
+  modification_and_attribution:
+    answer: permitted
+    source: Zenodo record https://zenodo.org/records/15049542, licence field 'Creative Commons Attribution
+      4.0 International', read 2026-10-09; CC BY 4.0 permits copying, redistribution, adaptation, and
+      publication of derivatives with attribution
+  attribution: 'Creators as above, ''Wave Propagation over a Submerged Bar: Datasets from Wave Flume Experiments
+    and CFD'', Zenodo, doi 10.5281/zenodo.15049542, CC BY 4.0; the source paper is Andersen et al. 2025
+    (benchmarking of VoF, sigma-transformation, and SPH models).'
+artifacts:
+- name: Exp/dataset/Exp_WC*_surfaceElevation.csv
+  type: processed-measured
+  description: Surface elevation at 20 wave gauges; five repetitions aligned on gauge 1 and downsampled
+    to 150 Hz, their sample mean, and the expanded uncertainty of the mean at 95 % confidence.
+- name: iVoF/, Msigma/, DSPH/ dataset/*_A.csv
+  type: modelled-reference
+  description: Simulated surface elevation at the 20 gauge positions from the OpenFOAM interFoam (i-VoF),
+    MIKE 3 sigma-transformation (M-sigma), and DualSPHysics delta-SPH (D-SPH) solvers, aligned to the
+    experiment on gauge 1 (Readme.pdf).
+- name: '*_B.csv (dense gauges), */inputFiles/*'
+  type: modelled-reference
+  description: Dense-gauge simulated series (150 gauges, 149 for D-SPH) and the solver input files; not
+    used by the spike.
+calibration: The Readme.pdf of the archive states that the repetitions were aligned on the gauge-1 signal
+  to reduce trigger-time uncertainty and that the numerical series were upsampled and aligned to the experiment
+  on gauge 1; gauge calibration and the uncertainty analysis are in the source paper, which this spike
+  did not read.
+schema: 'CSV with a gauge-number row, a header row (''time [s]'', then ''rep n [m]'', ''mean [m]'', ''expanded
+  unc [m]'' per gauge for the experiment; ''surface elevation [m]'' per gauge for a model), then numeric
+  rows. Experiment: 7 columns per gauge; model: 1 column per gauge.'
+units: Time in seconds, surface elevation in metres.
+cadence: Experiment 150 Hz for 180 s, with time stamps printed to five significant digits (a resolution
+  of 1 ms after 10 s, so the stamps jitter by up to 0.33 ms about k/150 s); i-VoF 100 Hz from 0.01 to
+  20 s; M-sigma 100 Hz from 0 to 30 s (B file from -1 s); D-SPH about 200 Hz from 0 to 14.1 s.
+coordinates: Gauge numbers 1-20 along the flume; the gauge x-positions are given in the source paper,
+  not in the archive, and are not used. Surface elevation is relative to still water.
+masks: 'Model files contain NaN: one at 19.82 s in i-VoF gauge 5, one at the last row (14.1 s) of D-SPH
+  gauge 5, and a first row of NaN in the dense Msigma B file. The experiment has no NaN in wave condition
+  1. The numerical series have start-up transients and end-of-run values near zero.'
+uncertainty: The experiment carries the expanded uncertainty of the sample mean at 95 % confidence (0.32-0.56
+  mm at gauge 5 over the first 30 s). The numerical series carry none.
+size:
+  description: Archive 78,610,248 bytes (234 MB unpacked, 45 files); the experimental CSVs are 40 MB each,
+    the models 0.4-7 MB. The sample is gauge 5 of wave condition 1, 4 files, 480 KB.
+format: ZIP of CSV files (plus input archives and a PDF readme)
+reader: pbc.data.flume.read_elevation (csv and NumPy); no new dependency.
+downloads:
+- url: https://zenodo.org/api/records/15049542/files/Andersen_etal_2025.zip/content
+  filename: Andersen_etal_2025.zip
+  algorithm: md5
+  digest: 982642db25f538084531200b8f2cce21
+  digest_source: published by Zenodo in the record's file listing, read 2026-10-09 and confirmed against
+    the downloaded file
+samples:
+- path: DSPH_WC1_gauge05_surfaceElevation_A.csv
+  sha256: eac15dd4eaea55c3567b38ba53caa69bfad5cb63e34b8e2616b6c46c3410fcef
+  bytes: 45926
+  derivation: rows with time <= 30 s and the columns of wave gauge 5 of Andersen_etal_2025/DSPH/dataset/DSPH_WC1_surfaceElevation_A.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_sample_parses
+- path: Exp_WC1_gauge05_surfaceElevation.csv
+  sha256: eabe19e4222c70c41b59fc18d5d9fceda8d015ec432ee1fa7e9e81d606ae525c
+  bytes: 357000
+  derivation: rows with time <= 30 s and the columns of wave gauge 5 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_sample_parses
+- path: Msigma_WC1_gauge05_surfaceElevation_A.csv
+  sha256: ecdde795d7e48c765d94590477cc9f93f4f07a07e2c7e29d304cde8d84cfd889
+  bytes: 47709
+  derivation: rows with time <= 30 s and the columns of wave gauge 5 of Andersen_etal_2025/Msigma/dataset/Msigma_WC1_surfaceElevation_A.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_sample_parses
+- path: iVoF_WC1_gauge05_surfaceElevation_A.csv
+  sha256: 8e06ebd52a43a10a223d3ded6d1fdc2d978b489004a0a302e0a09fd43f596b80
+  bytes: 31522
+  derivation: rows with time <= 30 s and the columns of wave gauge 5 of Andersen_etal_2025/iVoF/dataset/iVoF_WC1_surfaceElevation_A.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_sample_parses
+estimates:
+  runtime: 'Reference figure from the sample: 1.4 s. From the full download: a 78.6 MB download and one
+    40 MB CSV per wave condition to parse, a few seconds.'
+  memory: About 120 MB peak resident from the sample; about 300 MB for a full experimental CSV as a float
+    array.
+  page_payload: 480 KB committed; a figure PNG of about 330 KB.
+  ci: 'Offline: four committed files.'
+decision:
+  value: go
+  date: *id001
+  reasons:
+  - 'Real files inspected and the archive''s Readme.pdf read: structure, alignment, and the 95 % uncertainty
+    are documented.'
+  - The measured series and the three modelled series are separate files with separate artifact types
+    and are drawn apart.
+  - 'Consistency: the dominant wave period over 2-14 s is 1.508 s in the experiment and 1.50 s in each
+    model; over the window 5-14 s the RMS difference to the measured mean is 0.54 (i-VoF), 0.90 (M-sigma),
+    and 0.86 mm (D-SPH) against a wave amplitude near 12 mm.'
+  - CC BY 4.0 on the record covers local download, subsets, figures, and modification.
+  - 'Caveats: the gauge positions and the wave conditions'' parameters are in the source paper, not read;
+    the series outside the window show start-up transients and end-of-run artefacts, which a lesson must
+    disclose.'
+dossier: docs/datasets/aalborg-submerged-bar.md

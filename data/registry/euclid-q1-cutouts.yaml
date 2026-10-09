@@ -1,0 +1,36 @@
+id: euclid-q1-cutouts
+title: ESA Euclid Q1 deep-field cutouts
+source:
+  url: https://www.cosmos.esa.int/web/euclid/q1-contents
+  creator: European Space Agency, Euclid Consortium
+  version: not assessed
+  accessed: &id001 2026-10-09
+rights:
+  licence: not-assessed
+  local_download:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  publication_of_figures:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  modification_and_attribution:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+artifacts:
+- name: cutouts
+  type: calibrated-observation
+  description: Calibrated image cutouts (as described by the source; no file was inspected)
+size:
+  description: Selectable cutouts; the full release is huge.
+format: FITS and catalogues
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09).
+  gate: Read the data-use terms, select one single-band cutout under the caps, and never present a styled
+    RGB image as raw single-band data.

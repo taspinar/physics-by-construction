@@ -1,0 +1,36 @@
+id: cms-higgs-four-lepton-candidates
+title: CMS Higgs four-lepton candidate events, educational subset
+source:
+  url: https://opendata.cern.ch/record/5200
+  creator: CMS Collaboration, CERN Open Data portal
+  version: not assessed
+  accessed: &id001 2026-10-09
+rights:
+  licence: not-assessed
+  local_download:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  publication_of_figures:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  modification_and_attribution:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+artifacts:
+- name: candidate events
+  type: processed-measured
+  description: Selected four-lepton events for education (as described by the source; no file was inspected)
+size:
+  description: About 27.5 MiB in total per the survey; the CSV files are kilobytes.
+format: CSV and IG JSON
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09).
+  gate: Read the record's terms, inspect a CSV, and state that the educational subset cannot support a
+    full physics analysis.

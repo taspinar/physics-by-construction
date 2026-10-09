@@ -1,0 +1,39 @@
+id: gaia-dr3-astrometry
+title: ESA Gaia DR3 astrometry (query subset)
+source:
+  url: https://gea.esac.esa.int/archive/documentation/GDR3/
+  creator: European Space Agency, Gaia Data Processing and Analysis Consortium
+  version: not assessed
+  accessed: &id001 2026-10-09
+rights:
+  licence: not-assessed
+  local_download:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  publication_of_figures:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  modification_and_attribution:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+artifacts:
+- name: bounded query result
+  type: calibrated-observation
+  description: Catalogue astrometry and photometry of a selected star sample (as described by the source;
+    no file was inspected)
+size:
+  description: Full catalogue enormous; only a bounded query subset would be used.
+format: CSV, FITS, or VOTable from a bounded archive query
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09); no file
+    was retrieved.
+  - Selection effects of a query must be stated before a diagram is called a map of the sky.
+  gate: Show that a small bounded query returns a reproducible file, state the licence and acknowledgement
+    text, and handle the parallax-to-distance bias (the naive reciprocal is biased) in a validated figure.

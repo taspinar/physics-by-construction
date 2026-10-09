@@ -1,0 +1,37 @@
+id: sdo-hmi-magnetograms
+title: NASA SDO HMI line-of-sight magnetograms
+source:
+  url: https://data.nasa.gov/dataset/sdo-hmi-line-of-sight-magnetogram-45-second-data
+  creator: NASA Solar Dynamics Observatory, HMI instrument team
+  version: not assessed
+  accessed: &id001 2026-10-09
+rights:
+  licence: not-assessed
+  local_download:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  publication_of_figures:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  modification_and_attribution:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+artifacts:
+- name: magnetogram
+  type: calibrated-observation
+  description: Calibrated line-of-sight magnetic-field maps (as described by the source; no file was inspected)
+size:
+  description: Selected snapshots; a series is large.
+format: FITS
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09).
+  - Needs a FITS reader.
+  gate: Retrieve one snapshot with its terms and distinguish line-of-sight from vector field and any inversion
+    or model step.
