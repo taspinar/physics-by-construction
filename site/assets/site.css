@@ -755,3 +755,99 @@ details.hint[open] > summary {
 main details > summary {
   color: var(--pbc-text);
 }
+
+/* The graph itself (F26). Lines and arrowheads differ by dash and by shape,
+   not only by colour. */
+.prerequisite-graph {
+  position: relative;
+}
+
+.prerequisite-graph svg {
+  display: block;
+  max-width: none;
+  height: auto;
+}
+
+.prerequisite-graph .band {
+  fill: var(--pbc-surface);
+  stroke: var(--pbc-rule);
+  stroke-width: 1;
+}
+
+.prerequisite-graph .band-label,
+.prerequisite-graph text {
+  fill: var(--pbc-text);
+  font-size: 13px;
+}
+
+.prerequisite-graph .band-label {
+  font-weight: 600;
+}
+
+.prerequisite-graph .node {
+  fill: var(--pbc-background);
+  stroke: var(--pbc-rule);
+  stroke-width: 1.5;
+}
+
+.prerequisite-graph a {
+  cursor: pointer;
+}
+
+.prerequisite-graph a text {
+  fill: var(--pbc-link);
+  text-decoration: underline;
+}
+
+.prerequisite-graph a:focus-visible {
+  outline: none;
+}
+
+.prerequisite-graph a:focus-visible .node {
+  stroke: var(--pbc-focus);
+  stroke-width: var(--pbc-focus-width);
+}
+
+.graph-legend {
+  padding-left: 0;
+  list-style: none;
+}
+
+.graph-legend svg,
+.prerequisite-graph svg {
+  overflow: visible;
+}
+
+.edge-requires,
+.edge-related {
+  fill: none;
+  stroke: var(--pbc-text);
+  stroke-width: 1.5;
+}
+
+.edge-related {
+  stroke-dasharray: 6 4;
+}
+
+.arrow-requires {
+  fill: var(--pbc-text);
+}
+
+.arrow-related {
+  fill: none;
+  stroke: var(--pbc-text);
+  stroke-width: 1.5;
+}
+
+/* Present for assistive technology and without styles, not shown. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

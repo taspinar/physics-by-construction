@@ -246,7 +246,13 @@ difficulty, not word count.
 
 The learning path (order, difficulty, prerequisites, courses, methods,
 related lessons, previous and next links) is derived from lesson front
-matter. There is no second, hand-maintained list that could drift.
+matter. There is no second, hand-maintained list that could drift. The
+prerequisite graph on the path page is one inline SVG laid out at build time
+in Python (`pbc.authoring.graph`): columns follow the prerequisites, bands
+are courses, solid arrows are prerequisites, dashed arrows are related
+lessons, each node links to its lesson, and a visually hidden list of
+sentences ("M4 requires M2") is the accessible alternative. It needs no
+browser script.
 
 ### Verified display forms
 
@@ -773,8 +779,7 @@ work of the roadmap features named:
   attribution, and there is no `CITATION.cff`; the Issue forms have no
   scientific-correction or dataset-suggestion form (F57).
 - The learning path is one linear sequence of four strands with no course or
-  method facet, no prerequisite graph, no outcomes, and no cards (F37, F26,
-  F27).
+  method facet, no outcomes, and no cards (F37, F27).
 - Lessons follow format 1: eleven lessons with no typed claims, no figure
   status, no limits section except in the Lean lesson, no self-check
   distinct from the exercises, no curated external references anywhere, one
