@@ -305,4 +305,39 @@ main a > code:not(.sourceCode) {
 
 .excerpt-notes {
   margin: 0 0 0.75rem;
+/* A result table (pbc.authoring.table). Numbers are right-aligned in
+   equal-width digits so that the decimals line up. A table wider than the
+   screen scrolls inside its own box, which is focusable like a wide equation
+   and gets its name from the caption. */
+.table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+
+.result-table {
+  border-collapse: collapse;
+  margin: 0;
+}
+
+.result-table caption {
+  caption-side: top;
+  text-align: left;
+  padding-bottom: 0.5rem;
+}
+
+.result-table th,
+.result-table td {
+  padding: 0.25rem 0.75rem;
+  border-bottom: 1px solid #ccc;
+  text-align: left;
+}
+
+.result-table th.num,
+.result-table td.num {
+  text-align: right;
+}
+
+.result-table td.num {
+  font-variant-numeric: tabular-nums;
 }
