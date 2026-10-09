@@ -701,6 +701,28 @@ To use another provider, write one client module that reads its own key
 variable and change `PROVIDER` in `src/pbc/agents/providers.py`; the lesson
 page explains it. Only that provider's key is needed then.
 
+## Identity and attribution
+
+The project's description, "Physics by Construction is a free, open-source
+educational initiative by JIDAI, created by Ahmet Taspinar.", is defined once
+in `src/pbc/authoring/identity.py`. Rules for every page:
+
+- Never type the sentence or the footer line by hand. Pages call
+  `pbc.authoring.identity.description()`; the footer line comes from the
+  `PBC-ATTRIBUTION` token in `site/_quarto.yml`, replaced after the render.
+  `python -m pbc.authoring.identity` writes the README block and the
+  `abstract` of `CITATION.cff`; `--check` compares.
+- The home page has one attribution link, to the About page. The footer line,
+  with its one link to `https://jidai.nl`, is not repeated in lessons or in
+  any page content. Lessons do not mention JIDAI.
+- JIDAI is the initiative's company, not a copyright holder, funder, or
+  university partner. The copyright line, the licences (MIT for code, CC BY
+  4.0 for content), the repository address, and `website.site-url` do not
+  change with the wording.
+- Nothing requires an account, contact with JIDAI, tracking, or a corporate
+  link, and no surface advertises. `CITATION.cff` has no DOI until a release
+  policy exists.
+
 ## Third-party material
 
 Lesson text and figures are published under CC BY 4.0 and code under MIT

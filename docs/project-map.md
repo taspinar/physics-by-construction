@@ -28,6 +28,7 @@ in `docs/workflow.md`.
 | `scripts/check-lean.sh` | Builds every Lean module against Mathlib from its build cache, fails on `sorry` and project axioms, and records what compiled the proofs for the pages that show them |
 | `scripts/build-site.sh` | Builds the site with Quarto; fails on a failing cell or an equation that is not MathML |
 | `scripts/check-determinism.sh` | Builds the site a second time and requires byte-identical output |
+| `scripts/compare-lessons.sh` | Builds a base revision and the working tree and requires the built lesson pages to be identical apart from the footer and the embedded commit |
 | `scripts/doctor.sh` | Read-only check of the local prerequisites, including those of the development workflow |
 | `scripts/lib/prerequisites.sh`, `scripts/lib/check_browser.py` | The prerequisite checks shared by `preflight.sh` and `doctor.sh` |
 | `tests/unit/` | pytest: behaviour of `src/pbc` |

@@ -15,6 +15,15 @@ Say which page it is on, quote the sentence, number, or figure that is wrong,
 and say what you expected. If a listing does not run on your machine, add
 your operating system and the output of `./scripts/preflight.sh`.
 
+To correct a scientific statement, use the **Scientific correction** form: it
+asks for the page, the statement, the correction, a source with its licence,
+and the evidence. A scientific change needs a source, a licence that allows
+its use, and independent review before it is merged. To suggest a real dataset
+a lesson could learn from, use the **Dataset suggestion** form: source,
+creator, licence, measurement type, size, and what a lesson could learn from
+it. No form asks for contact details, and you do not need to contact JIDAI or
+anyone else; the outcome is recorded on the issue.
+
 Do not put secrets in an issue. A security-sensitive finding follows the
 [security policy](https://github.com/taspinar/physics-by-construction/blob/main/SECURITY.md).
 
