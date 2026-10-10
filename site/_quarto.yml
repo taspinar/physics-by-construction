@@ -5,6 +5,7 @@ project:
   post-render:
     - skip-link.py
     - search-fallback.py
+    - search-index.py
     - attribution.py
   # Files the pages do not link to in Markdown but the built site must
   # contain: the math font that site.css loads, and its licence, and the
