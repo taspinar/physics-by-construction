@@ -1,0 +1,390 @@
+---
+title: "What symplectic Euler conserves"
+description: >-
+  A modified energy that every step of symplectic Euler leaves exactly
+  unchanged on the harmonic oscillator, stated and proved in Lean 4, with the
+  step size under which it stays bounded, and the reason the energy of the
+  method oscillates and does not grow.
+lesson:
+  id: symplectic-euler-conserved-energy
+  strand: lean
+  order: 3
+  difficulty: 3
+  course: mechanics
+  methods: [lean]
+  outcomes:
+    - State the modified energy of symplectic Euler and its conservation as theorems in Lean 4
+    - Read the proof by induction that the modified energy is the same after any number of steps
+    - Say what the theorem explains about the bounded energy seen in the simulation, and what it does not prove
+  related: []
+  format: 2
+  prerequisites:
+    lessons: [numerical-integrators, proving-what-the-simulation-showed]
+    outside:
+      - "Algebra: completing the square in two variables"
+  lean-modules:
+    - PhysicsByConstruction.Mechanics.SymplecticEuler
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import lesson_header
+
+lesson_header()
+```
+
+The numerical integrators lesson found that symplectic Euler does what
+explicit Euler cannot: on the harmonic oscillator its energy does not drift
+away. It swings a little above and below its starting value, over and over, for
+as long as the run lasts. The first Lean lesson proved the opposite for
+explicit Euler, a factor greater than one at every step. A run shows the
+bounded energy of symplectic Euler for the step sizes it was given and not
+for any other, and it does not say why.
+
+The reason is a quantity that each step of symplectic Euler leaves exactly
+where it was. It is not the energy of the spring but a neighbour of it: the
+energy minus a small term. This lesson states that quantity in Lean and
+proves that it is conserved, for any state and any step size, and then proves
+that it is not negative when the step is small. The energy of the spring
+differs from it by a term that stays small, which is the oscillation the
+simulation shows.
+
+## Assumptions
+
+Every assumption of the model is a hypothesis of a theorem or a definition;
+the build fails on `sorry` and on any axiom the project declares.
+
+1. **Newton's second law with Hooke's law.** The mass $m$ on a spring $k$
+   accelerates as $m\,a = -k\,x$: the hypothesis `hnewton`.
+2. **The update rule of symplectic Euler.** The velocity changes first, with
+   the acceleration at the old position (`hv'`), and the particle moves with
+   the *new* velocity (`hx'`). Moving with the old velocity is explicit Euler,
+   which the first Lean lesson covers and which has no such conserved quantity.
+3. **A positive mass.** `hm : 0 < m` lets the proof divide by the mass.
+4. **For the bound: a spring that pulls back, and a small step.** The
+   non-negativity of the modified energy needs `hk : 0 < k` and
+   `hdt : k * dt ^ 2 < 4 * m`. The condition says that the step is shorter
+   than a fraction of the period; for a longer step the quantity is still
+   conserved but can be negative, and the bound is lost.
+5. **Real numbers, not floating-point numbers.** Lean's `ℝ` has no round-off.
+   The program computes with doubles, and the conservation holds for them
+   only up to the round-off of every step.
+6. **No derivatives.** The facts are algebraic. The theorem does not mention
+   the motion in continuous time, and it does not say how close the modified
+   energy is to the true one.
+
+## What the theorems say {#explanation}
+
+Write $\omega^2 = k/m$ for the squared angular frequency. One step of
+symplectic Euler is
+
+$$
+v' = v - \omega^2\,x\,\Delta t,
+\qquad
+x' = x + \Delta t\,v'.
+$$
+
+The energy of the spring is $E = \tfrac12 m v^2 + \tfrac12 k x^2$. The
+modified energy subtracts a cross term:
+
+$$
+\tilde E = E - \tfrac12\,k\,\Delta t\,x\,v.
+$$
+
+One step leaves $\tilde E$ unchanged. The proof expands the two sides in
+$x$ and $v$ and compares them: the terms in $x v$ that the new velocity
+inside the position update introduces are exactly what the cross term
+removes.
+
+[One step of symplectic Euler on the harmonic oscillator leaves the modified
+energy unchanged.]{.claim type="formal-theorem" scope="symplectic Euler on a
+mass of positive mass on a spring, any step size, real arithmetic"
+evidence="symplectic_modified_energy_step"}
+
+[After any number of steps of symplectic Euler, the modified energy equals its
+initial value.]{.claim type="formal-theorem" scope="symplectic Euler on the
+oscillator, any step size and any number of steps, real arithmetic"
+evidence="symplectic_modified_energy_after_steps"}
+
+[For a spring constant that is positive and a step with $k\,\Delta t^2 < 4m$,
+the modified energy is never negative.]{.claim type="formal-theorem"
+scope="the step sizes below the stated limit, real arithmetic"
+evidence="modified_energy_nonneg"}
+
+The third statement is what turns a conserved number into a bound. With a
+non-negative conserved quantity of this shape, the motion stays inside an
+ellipse in $(x, v)$: position and velocity cannot grow without limit. The
+cross term is small when the step is small, so the true energy stays near
+the modified one, and the simulation sees it oscillate.
+
+## The proofs {#code}
+
+The listings are read from the Lean files of the repository when the site is
+built, and they are the text that `lake build` compiled.
+
+```{python}
+#| echo: false
+from pbc.authoring import lean_evidence, lean_excerpt, reproduce_this
+
+SYMPLECTIC = "PhysicsByConstruction.Mechanics.SymplecticEuler"
+
+lean_evidence(SYMPLECTIC)
+```
+
+The definition. It reuses `springEnergy` from the first Lean lesson's file and
+subtracts the cross term.
+
+```{python}
+#| echo: false
+lean_excerpt(SYMPLECTIC, "modifiedEnergy")
+```
+
+One step. The hypotheses `hv'` and `hx'` are the update rule, and `hnewton`
+is the law of the spring. Compare `hx'` here with the one of explicit Euler:
+the position uses `v'`.
+
+```{python}
+#| echo: false
+lean_excerpt(SYMPLECTIC, "symplectic_modified_energy_step")
+```
+
+Any number of steps, by induction. The base case is the initial state. The
+step rewrites the energy after one more step with the one-step theorem, then
+uses the hypothesis of the induction.
+
+```{python}
+#| echo: false
+lean_excerpt(SYMPLECTIC, "symplectic_modified_energy_after_steps")
+```
+
+The bound. The proof completes a square: the quadratic form in $x$ and $v$ is
+a square plus a positive multiple of $x^2$ whenever the step is short.
+
+```{python}
+#| echo: false
+lean_excerpt(SYMPLECTIC, "modified_energy_nonneg")
+```
+
+## Worked examples
+
+### The conserved quantity in a run
+
+Half a kilogram on a spring of two newtons per metre, pulled out one metre and
+released, run with symplectic Euler for three periods at sixteen steps per
+period. The cell measures the energy of the spring and the modified energy
+along the run.
+
+```{python}
+import numpy as np
+
+from pbc.authoring import table
+from pbc.mechanics.dynamics import State, newton, simulate
+from pbc.mechanics.integrators import symplectic_euler_step
+from pbc.mechanics.oscillator import angular_frequency, energy, spring
+
+mass = 0.5  # kg
+k = 2.0  # N/m
+period = 2 * np.pi / angular_frequency(mass, k)
+steps_per_period = 16
+dt = period / steps_per_period
+n_steps = 3 * steps_per_period
+
+run = simulate(
+    State(t=0.0, x=1.0, v=0.0),
+    newton(mass, spring(k)),
+    dt,
+    n_steps,
+    step=symplectic_euler_step,
+)
+spring_energy = energy(run, mass, k)
+
+
+def modified_energy(trajectory):
+    """The energy of the spring minus k dt x v / 2, at every instant (J)."""
+    cross = np.sum(trajectory.x * trajectory.v, axis=1)
+    return energy(trajectory, mass, k) - 0.5 * k * dt * cross
+
+
+modified = modified_energy(run)
+drift = np.max(np.abs(modified / modified[0] - 1))
+swing = spring_energy.max() / spring_energy.min() - 1
+
+table(
+    [
+        ("energy of the spring", spring_energy.min(), spring_energy.max()),
+        ("modified energy", modified.min(), modified.max()),
+    ],
+    [("quantity", "", ""), ("smallest", "J", ".4f"), ("largest", "J", ".4f")],
+    "The energy of the spring and the modified energy over the run, symplectic Euler.",
+)
+```
+
+The modified energy is the same at every step to round-off (the relative
+change over the run is `{python} f"{drift:.0e}"`), while the energy of the
+spring swings by a relative `{python} f"{swing:.2f}"` between its smallest and
+largest value. That is the theorem on a run, and the swing is the cross term
+at work.
+
+```{python}
+#| label: fig-modified-energy
+#| fig-cap: "The energy of the spring swings above and below its start under symplectic Euler, while the modified energy stays on the line."
+#| fig-alt: "Plot of energy in joules against time in seconds over three periods. One curve, the energy of the spring, oscillates up and down with the period of the motion. A second curve, the modified energy, is a flat horizontal line."
+#| fig-status: simulated
+import matplotlib.pyplot as plt
+
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+ax.plot(run.t, spring_energy, color="#93003a", label="energy of the spring")
+ax.plot(run.t, modified, color="#00429d", linestyle="--", label="modified energy")
+ax.set_xlabel("time (s)")
+ax.set_ylabel("energy (J)")
+ax.legend()
+plt.show()
+```
+
+### The same quantity under explicit Euler
+
+The theorem is about the rule of symplectic Euler. Under explicit Euler the
+same quantity, and the energy of the spring too, are not conserved.
+
+```{python}
+from pbc.mechanics.dynamics import euler_step
+
+explicit = simulate(
+    State(t=0.0, x=1.0, v=0.0), newton(mass, spring(k)), dt, n_steps, step=euler_step
+)
+explicit_modified = modified_energy(explicit)
+growth = explicit_modified[-1] / explicit_modified[0]
+print(f"modified energy after three periods of explicit Euler, relative to the start: {growth:.2f}")
+```
+
+The modified energy of explicit Euler grows with the energy. The quantity is
+a property of the update rule and not of the oscillator alone.
+
+### The bound and the step size
+
+The bound needs $k\,\Delta t^2 < 4m$, that is, a step shorter than the period divided by $\pi$.
+Above it the quadratic form is indefinite. The cell evaluates the smallest
+value of the modified energy over the unit circle in $(x, v)$ for several
+step sizes.
+
+```{python}
+angles = np.linspace(0, 2 * np.pi, 3601)
+rows = []
+for per_period in (64, 16, 4, 3):
+    step = period / per_period
+    x, v = np.cos(angles), np.sin(angles)
+    value = 0.5 * mass * v**2 + 0.5 * k * x**2 - 0.5 * k * step * x * v
+    rows.append((per_period, k * step**2 / (4 * mass), value.min()))
+
+table(
+    rows,
+    [
+        ("steps per period", "", "d"),
+        ("k dt^2 / 4m", "", ".3f"),
+        ("smallest modified energy on the circle", "J", ".4f"),
+    ],
+    "The smallest value of the modified energy on the unit circle in position and velocity, for four step sizes.",
+)
+```
+
+While the ratio $k\,\Delta t^2/4m$ is below one the minimum is positive, which
+is the theorem. The last row has a ratio above one, and its minimum is no longer
+positive: the bound is lost there.
+
+## Limits {#limits}
+
+- **A statement about the method, not the physics.** The modified energy is
+  conserved by the *update rule*. That the energy of the spring stays near it
+  is what the cross term, small for a small step, says, and it is an estimate
+  that is not proved here.
+- **Only the harmonic oscillator.** The conserved quantity was found for the
+  linear force of a spring. For other forces, symplectic methods conserve a
+  modified energy only approximately, a result that needs more than algebra.
+- **The Python code.** Nothing here is a statement about `pbc.mechanics`. The
+  theorem is about the rule written in Lean; the table above checks, for one
+  run, that the program follows it.
+- **Floating-point arithmetic.** `ℝ` is exact. A double carries a rounding
+  error in every step, and the modified energy of a long run of the program
+  drifts by a random walk of those errors.
+- **Stability of the method.** The bound is on the quantity. A step that
+  violates `hdt` is not shown unstable by this lesson, only left without the
+  bound.
+
+::: {.exercise .self-check}
+The theorem says the modified energy is the same after every step. Why does the
+ordinary energy of the spring still change?
+
+::: {.solution}
+Because the conserved quantity is the energy plus a cross term $-\tfrac12 k\,\Delta t\,x\,v$
+that changes during the oscillation: it is positive when the particle moves
+away from the centre and negative when it returns. The sum is constant, so the
+energy of the spring changes by the opposite of the cross term, which is
+bounded and small for a small step.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Why the cross term?** Suppose the conserved quantity had the form
+$\tfrac12 m v^2 + \tfrac12 k x^2 + c\,x v$ for some constant $c$. Find $c$ so
+that the coefficient of $v'^2$ after a step is again $\tfrac12 m$.
+
+::: {.solution}
+After one step the quantity is
+$\tfrac12 m v'^2 + \tfrac12 k x'^2 + c\,x' v'$ with $x' = x + \Delta t\,v'$.
+Collecting the coefficient of $v'^2$ gives
+$\tfrac12 m + \tfrac12 k\,\Delta t^2 + c\,\Delta t$, which equals
+$\tfrac12 m$ only for $c = -\tfrac12 k\,\Delta t$. The coefficient of
+$x v'$ is then $\tfrac12 k\,\Delta t$, and substituting
+$v' = v - (k/m)\,x\,\Delta t$ turns the whole expression back into the
+quantity before the step. The cell checks it on a random state.
+
+```{python}
+# the value of c, checked on a random state
+rng = np.random.default_rng(3)
+x0, v0 = rng.normal(size=2)
+v1 = v0 - k / mass * x0 * dt
+x1 = x0 + dt * v1
+
+
+def quantity(x, v, c):
+    return 0.5 * mass * v**2 + 0.5 * k * x**2 + c * x * v
+
+
+c = -0.5 * k * dt
+print(f"change of the quantity over a step with c = -k dt / 2: "
+      f"{quantity(x1, v1, c) - quantity(x0, v0, c):.1e}")
+```
+:::
+:::
+
+::: {.exercise}
+**How many steps per period?** The bound needs $k\,\Delta t^2 < 4m$. How many
+steps per period is that, at least?
+
+::: {.solution}
+With $\Delta t = T/N$ and $T = 2\pi/\omega$, the condition
+$\omega^2\Delta t^2 < 4$ reads $N > \pi$, so four steps per period are
+enough and three are not, however large $m$ and $k$ are.
+
+```{python}
+print(f"pi = {np.pi:.4f}: the number of steps per period must exceed it")
+```
+:::
+:::
+
+## Reproduce this
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "lean/PhysicsByConstruction/Mechanics/EulerOscillator.lean",
+        "lean/PhysicsByConstruction/Mechanics/SymplecticEuler.lean",
+        "src/pbc/mechanics/integrators.py",
+        "src/pbc/mechanics/oscillator.py",
+    ],
+    tests=["tests/unit/test_integrators.py", "tests/unit/test_oscillator.py"],
+)
+```
