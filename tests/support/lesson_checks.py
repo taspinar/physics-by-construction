@@ -412,10 +412,71 @@ def _calls(lesson: Lesson, blocks: list[Node], function: str) -> bool:
     )
 
 
+_NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
+MAX_HINTS = 3
+
+
+def _numbers_in(blocks: list[Node]) -> set[str]:
+    """The numerals in the prose, the math and the literal inline code of
+    ``blocks``; a computed ``{python}`` expression is not a literal."""
+    found: set[str] = set()
+    for path in _walk(blocks):
+        node = path[-1]
+        if node["t"] == "Str":
+            found.update(_NUMBER.findall(node["c"]))
+        elif node["t"] == "Math" or (
+            node["t"] == "Code" and not node["c"][1].startswith("{python}")
+        ):
+            found.update(_NUMBER.findall(node["c"][1]))
+    return found
+
+
+def _hint_problems(exercise: Node) -> Iterator[str]:
+    """Hints of one exercise: one to three, each before the solution, none
+    holding a number that the statement does not already give, a cell, an
+    inline expression, or a "Go deeper" block."""
+    content = exercise["c"][1]
+    hints = [path[-1] for path in _divs(content, "hint")]
+    if not hints:
+        return
+    if len(hints) > MAX_HINTS:
+        yield f"{len(hints)} hints; an exercise has at most {MAX_HINTS}"
+    top_level = {id(block): index for index, block in enumerate(content)}
+    solution = next(
+        (top_level[id(b)] for b in content if _has_class(b, "solution")), None
+    )
+    statement = [
+        block
+        for block in content
+        if not _has_class(block, "hint") and not _has_class(block, "solution")
+    ]
+    given = _numbers_in(statement)
+    for hint in hints:
+        index = top_level.get(id(hint))
+        if index is None:
+            yield "a '.hint' div is nested in another block; put it in the exercise"
+        elif solution is not None and index > solution:
+            yield "a '.hint' div comes after the '.solution'; hints come before it"
+        body = hint["c"][1]
+        if _numbers_in(body) - given:
+            yield (
+                f"a hint holds the number(s) {sorted(_numbers_in(body) - given)};"
+                " a hint repeats only numbers that the statement gives"
+            )
+        for path in _walk(body):
+            node = path[-1]
+            if node["t"] == "CodeBlock" or (
+                node["t"] == "Code" and node["c"][1].startswith("{")
+            ):
+                yield "a hint holds code; only a solution computes"
+            if _has_class(node, "go-deeper"):
+                yield "a hint holds a 'go-deeper' block; they are distinct"
+
+
 def check_sections(repository: Path) -> list[Violation]:
     """Every lesson has the required sections with content, exercises come
-    with solutions, and the header and "Reproduce this" are produced by
-    their helpers."""
+    with solutions (hints, if any, before them), and the header and
+    "Reproduce this" are produced by their helpers."""
     violations = []
     for page in lesson_pages(repository):
         lesson = read_lesson(page)
@@ -453,6 +514,13 @@ def check_sections(repository: Path) -> list[Violation]:
                 for number, path in enumerate(exercises, start=1)
                 if not _divs(path[-1]["c"][1], "solution")
             ]
+        for path in _divs(lesson.blocks, "exercise"):
+            problems += list(_hint_problems(path[-1]))
+        problems += [
+            "a '.hint' div is outside an '.exercise' div"
+            for path in _divs(lesson.blocks, "hint")
+            if not any(_has_class(node, "exercise") for node in path[:-1])
+        ]
         problems += [
             "a '.solution' div is outside an '.exercise' div"
             for path in _divs(lesson.blocks, "solution")
