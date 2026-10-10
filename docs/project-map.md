@@ -8,7 +8,7 @@ in `docs/workflow.md`.
 
 | Path | Purpose |
 |---|---|
-| `site/` | The website source, a Quarto project. `_quarto.yml` configures it, including the public address in `website.site-url`; `_filters/` holds its Pandoc Lua filters; `assets/` its stylesheet, self-hosted font, and Lean syntax definition |
+| `site/` | The website source, a Quarto project. `_quarto.yml` configures it, including the public address in `website.site-url`; `_filters/` holds its Pandoc Lua filters; `assets/` its stylesheet, self-hosted font, and Lean syntax definition; `learner/` the script that keeps progress in the browser; `learning-path-export.py` writes `path.json` after the render |
 | `site/lessons/<strand>/<nn>-<slug>/index.qmd` | One lesson per directory, in the format of `docs/authoring.md`. An agent lesson may also hold its replay fixture `replay.json`; nothing else is committed there |
 | `site/references.yaml` | The reference register: the selection evidence of every curated external link a lesson renders (ADR 009); lessons name its keys in "Go deeper" blocks |
 | `site/path/index.qmd` | The learning path page, generated from the lesson front matter when the site is built |

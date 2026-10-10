@@ -1021,6 +1021,61 @@ def test_a_lesson_of_format_2_that_follows_the_format_passes(
     assert format_2_checks(make_format_2()) == []
 
 
+_CHOICES = (
+    "::: {.choices}\n"
+    "::: {.choice}\nBecause of friction.\n\n::: {.feedback}\nNo.\n:::\n:::\n\n"
+    '::: {.choice correct="true"}\nBecause of the coordinate.\n\n'
+    "::: {.feedback}\nYes.\n:::\n:::\n"
+    ":::\n\n"
+)
+
+
+def with_choices(markup: str) -> dict[str, str]:
+    return {"Why one dimension?\n\n": "Why one dimension?\n\n" + markup}
+
+
+def test_a_self_check_with_choices_that_follow_the_rules_passes(
+    make_format_2: Repository,
+):
+    assert format_2_checks(make_format_2(with_choices(_CHOICES))) == []
+
+
+@pytest.mark.parametrize(
+    "markup, text",
+    [
+        (_CHOICES.replace(' correct="true"', ""), "0 correct choices"),
+        (
+            _CHOICES.replace("::: {.choice}", '::: {.choice correct="true"}'),
+            "2 correct",
+        ),
+        (_CHOICES.replace("::: {.feedback}\nNo.\n:::\n", ""), "no '.feedback'"),
+        (
+            _CHOICES.replace(
+                "::: {.choice}\nBecause of friction.", "Stray.\n\n::: {.choice}\nF."
+            ),
+            "nothing else",
+        ),
+        (_CHOICES.split("::: {.choice correct")[0] + ":::\n\n", "two or more"),
+        ('correct="maybe"'.join(_CHOICES.split('correct="true"')), "'true' or 'false'"),
+    ],
+)
+def test_a_self_check_with_malformed_choices_is_reported(
+    make_format_2: Repository, markup: str, text: str
+):
+    violations = lesson_checks.check_sections(make_format_2(with_choices(markup)))
+
+    assert text in details(violations)
+
+
+def test_choices_outside_a_self_check_are_reported(make_format_2: Repository):
+    limits = "## Limits\n\nThe model has one dimension.\n"
+    change = {limits: limits + "\n" + _CHOICES}
+
+    assert "outside a '.self-check'" in details(
+        lesson_checks.check_sections(make_format_2(change))
+    )
+
+
 def test_a_lesson_of_format_1_needs_none_of_format_2(make_repository: Repository):
     repository = make_repository()
 

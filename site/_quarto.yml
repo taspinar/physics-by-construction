@@ -6,12 +6,14 @@ project:
     - skip-link.py
     - search-fallback.py
     - search-index.py
+    - learning-path-export.py
     - attribution.py
   # Files the pages do not link to in Markdown but the built site must
   # contain: the math font that site.css loads, and its licence, and the
-  # widgets that lesson pages load as scripts.
+  # widgets and the learner-state script that lesson pages load as scripts.
   resources:
     - widgets/*.js
+    - learner/*.js
     - assets/fonts/STIXTwoMath-Regular.woff2
     - assets/fonts/OFL.txt
 

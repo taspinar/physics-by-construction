@@ -738,6 +738,85 @@ details.hint[open] > summary {
   margin-bottom: var(--pbc-space-2);
 }
 
+/* Self-check choices and learner state (F13). Without a script the choices
+   are a plain list with an explanation each; the script (learner/progress.js)
+   replaces it with radio buttons, and adds the progress status of a lesson
+   and the marks on the path cards. State is never shown by colour alone. */
+ol.choices {
+  padding-left: var(--pbc-space-4);
+}
+
+ol.choices > li {
+  margin: var(--pbc-space-2) 0;
+}
+
+.choice-form {
+  margin: var(--pbc-space-3) 0;
+  padding: 0;
+  border: 0;
+}
+
+.choice-form legend {
+  margin-bottom: var(--pbc-space-1);
+  font-weight: 600;
+}
+
+.choice-option {
+  margin: var(--pbc-space-1) 0;
+}
+
+.choice-option label {
+  display: flex;
+  gap: var(--pbc-space-2);
+  align-items: baseline;
+}
+
+.self-check-result {
+  margin: var(--pbc-space-2) 0;
+}
+
+.learner-panel {
+  margin: var(--pbc-space-3) 0;
+  padding: var(--pbc-space-2) var(--pbc-space-3);
+  border-left: 0.25rem solid var(--pbc-rule);
+  background: var(--pbc-surface);
+}
+
+.learner-panel p,
+.learner-note {
+  margin: var(--pbc-space-1) 0;
+}
+
+.learner-note {
+  color: var(--pbc-muted);
+  font-size: var(--pbc-text-small);
+}
+
+main button {
+  min-height: 2.75rem;
+  padding: var(--pbc-space-1) var(--pbc-space-3);
+  border: 2px solid var(--pbc-focus);
+  border-radius: var(--pbc-radius);
+  background: var(--pbc-background);
+  color: var(--pbc-focus);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.completed-lessons {
+  margin: var(--pbc-space-2) 0;
+}
+
+/* A completed lesson is marked on its card by the script, in words that the
+   markup of the card does not carry, so that the mark does not rest on colour. */
+.path-card[data-completed="true"] .lesson-card-title a::after {
+  content: " \2713 completed";
+  color: var(--pbc-claim-formal-theorem-fg);
+  font-size: var(--pbc-text-small);
+  font-weight: 600;
+}
+
 /* Path cards (F27): a grid of lesson cards that goes from one column on a
    phone to as many as fit. */
 .path-cards {

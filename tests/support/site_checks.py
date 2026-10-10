@@ -23,6 +23,7 @@ from axe_playwright_python.sync_playwright import Axe
 from playwright.sync_api import Browser, BrowserContext, Page, Response, Route
 
 from pbc.authoring.design import CONTROL_CONTRAST, contrast_ratio
+from pbc.authoring.progress import STORAGE_KEY
 from support.site_server import SiteServer
 
 DESKTOP = {"width": 1280, "height": 800}
@@ -1411,4 +1412,129 @@ def check_widgets_store_nothing(
             Violation("widget-storage", name, f"leaves {entry}")
             for entry in (left - base_left).elements()
         ]
+    return violations
+
+
+# --- Learner state -----------------------------------------------------------
+
+LEARNER = "learner"
+
+# What the learner-state script must not contain: it keeps its data in local
+# storage and nowhere else. A request, another origin, a cookie, and every
+# other place the browser can keep data are out; ``localStorage`` itself is
+# what the script is for.
+_FORBIDDEN_IN_LEARNER_SCRIPT = {
+    "request": _FORBIDDEN_IN_WIDGETS["request"],
+    "other origin": _FORBIDDEN_IN_WIDGETS["other origin"],
+    "other storage": re.compile(
+        r"sessionStorage|indexedDB|document\s*\.\s*cookie"
+        r"|\bcaches\b|serviceWorker|cookieStore|openDatabase"
+    ),
+}
+
+
+def check_learner_script_sources(site_dir: Path) -> list[Violation]:
+    """The scripts in the learner directory of the built site contain no
+    request, no other origin, and no storage but local storage.
+
+    A static scan is a floor; ``check_learner_state_stays_local`` watches what
+    the page does.
+    """
+    violations = []
+    for script in sorted((site_dir / LEARNER).glob("*.js")):
+        source = script.read_text(encoding="utf-8")
+        for namespace in _NAMESPACES:
+            source = source.replace(namespace, "")
+        for kind, pattern in _FORBIDDEN_IN_LEARNER_SCRIPT.items():
+            match = pattern.search(source)
+            if match:
+                violations.append(
+                    Violation(
+                        "learner-source",
+                        _name(site_dir, script),
+                        f"{kind}: {match.group(0)!r}",
+                    )
+                )
+    return violations
+
+
+_ELSEWHERE = ("document.cookie", "indexedDB", "caches", "serviceWorker")
+
+
+def check_learner_state_stays_local(
+    browser: Browser,
+    server: SiteServer,
+    page_name: str,
+    act: Callable[[Page], None],
+) -> list[Violation]:
+    """Opening ``page_name`` and doing what ``act`` does with the page, which
+    must store learner state, leaves the state in local storage only.
+
+    Every request is a plain read of a file of the site (a GET with no body),
+    and nothing the script stored, nor the key it stored it under, appears in
+    the address, the headers, or the body of any request. No cookie is set
+    and no write goes to a cookie, IndexedDB, the Cache API, or a service
+    worker. A state that was not stored is reported too: the check would
+    otherwise pass on a page that stores nothing.
+    """
+    violations = []
+    requests: list[tuple[str, str, str | None, dict[str, str]]] = []
+    blocked: list[str] = []
+    with _context(browser, server, blocked.append, viewport=DESKTOP) as context:
+        context.add_init_script(f"({_RECORD_STORAGE_WRITES})()")
+        page = context.new_page()
+        page.on(
+            "request",
+            lambda request: requests.append(
+                (
+                    request.method,
+                    request.url,
+                    request.post_data,
+                    request.headers,
+                )
+            ),
+        )
+        page.goto(server.url + page_name, wait_until="networkidle")
+        act(page)
+        page.wait_for_load_state("networkidle")
+        value = page.evaluate("(key) => localStorage.getItem(key)", STORAGE_KEY)
+        stored = [STORAGE_KEY, value] if value else []
+        writes = page.evaluate("window.__storageWrites")
+        cookies = context.cookies()
+        document_cookie = page.evaluate("document.cookie")
+        page.close()
+    if not stored:
+        violations.append(
+            Violation("state-stored", page_name, f"stored nothing under {STORAGE_KEY}")
+        )
+    for target in blocked:
+        violations.append(Violation("other-origin", page_name, f"requests {target}"))
+    for method, url, body, headers in requests:
+        if not url.startswith(server.origin + "/"):
+            continue
+        if method != "GET" or body:
+            violations.append(
+                Violation("state-request", page_name, f"{method} {url} carries a body")
+            )
+        sent = "\n".join([unquote(url), body or "", *headers.values()])
+        for text in stored:
+            if text in sent:
+                violations.append(
+                    Violation(
+                        "state-request",
+                        page_name,
+                        f"{method} {url} carries stored state {text[:40]!r}",
+                    )
+                )
+    violations += [
+        Violation("state-cookie", page_name, f"sets cookie {cookie['name']}")
+        for cookie in cookies
+    ]
+    if document_cookie:
+        violations.append(Violation("state-cookie", page_name, "sets document.cookie"))
+    violations += [
+        Violation("state-elsewhere", page_name, f"writes {write}")
+        for write in writes
+        if write.startswith(_ELSEWHERE)
+    ]
     return violations
