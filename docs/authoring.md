@@ -350,8 +350,10 @@ lean_excerpt(MODULE, "velocity_sq_of_constant_acceleration")
   proofs: the commit, the versions of Lean and Mathlib, a link to each file
   in the repository at the built commit, and a link that opens it in the Lean
   web editor. It says that the repository file and the CI result are
-  authoritative, and that the web editor runs its own version of Mathlib. Put
-  it once, at the start of the section that shows the proofs.
+  authoritative, and that the web editor runs its own version of Mathlib. The
+  first view is two lines (the versions and the commit); the rest is in a
+  closed `details`. Put it once, at the start of the section that shows the
+  proofs.
 - The Lean code is coloured when the site is built, with the definition in
   `site/assets/lean.xml`. It colours tokens only; there is no hover or type
   information. If a construct you use is coloured wrongly, extend the

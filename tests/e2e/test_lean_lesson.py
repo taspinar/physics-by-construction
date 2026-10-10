@@ -83,7 +83,7 @@ def test_lean_code_is_coloured_when_the_site_is_built(lesson: Page):
 def test_the_page_states_what_compiled_the_proofs(lesson: Page):
     evidence = lesson.locator(".lean-evidence")
     assert evidence.count() == 1
-    text = " ".join(evidence.inner_text().split())
+    text = " ".join(evidence.text_content().split())
 
     toolchain = (LEAN_PROJECT / "lean-toolchain").read_text().strip()
     version = toolchain.rsplit(":v", 1)[1]
@@ -97,7 +97,7 @@ def test_the_page_states_what_compiled_the_proofs(lesson: Page):
 
 
 def test_the_page_says_which_source_is_authoritative(lesson: Page):
-    text = " ".join(lesson.locator(".lean-evidence").inner_text().split())
+    text = " ".join(lesson.locator(".lean-evidence").text_content().split())
 
     assert (
         "repository at that commit and the result of the CI run are authoritative"
@@ -111,7 +111,7 @@ def test_links_point_at_the_built_commit_and_open_the_proofs(lesson: Page):
     repository = configured_repository_url(SITE_SOURCE)
     sha = _head_commit()
     links = {
-        link.get_attribute("href"): link.inner_text()
+        link.get_attribute("href"): link.text_content()
         for link in lesson.locator(".lean-evidence a").all()
     }
 
