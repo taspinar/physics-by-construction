@@ -1,0 +1,460 @@
+---
+title: "Verifying scientific code"
+description: >-
+  How a piece of simulation code is shown to be right or wrong: independent
+  tests from limits, conservation, and convergence, six deliberately faulty
+  steppers that the tests must catch, and the written contract that says what
+  a verifier checks, in what order, and with what evidence.
+lesson:
+  id: verifying-scientific-code
+  strand: mechanics
+  order: 9
+  difficulty: 3
+  course: mechanics
+  methods: [simulation]
+  outcomes:
+    - Test a simulation against limits, conservation, and convergence with references independent of the code
+    - Catch a deliberately faulty stepper with a named test and explain why other tests miss it
+    - Evaluate a piece of code against a stated claim, with the evidence in a fixed form
+  related: []
+  prerequisites:
+    lessons: [numerical-integrators, energy-conservation]
+    outside:
+      - "Programming: reading a short function and a unit test"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import lesson_header
+
+lesson_header()
+```
+
+A simulation that runs and prints a smooth curve has shown nothing. The
+earlier lessons of this course built their integrators carefully, and each
+was compared with an exact solution, but a reader who is given a stepper
+written by someone else, or by a program, has no such history. The question
+is how to find out whether it is right, and what "right" is allowed to mean.
+
+The answer is a set of tests that do not trust the code they test. Each
+compares the result with something the code did not compute: the motion with
+no force, the exact oscillator, a quantity the physics conserves. This lesson
+runs five such tests on the steppers of the course, and then on six steppers
+that are wrong on purpose, each with one fault of the kind that is made in
+practice: a missing factor, a sign, a clock that does not run, a state that
+leaks from one step to the next. Every fault is caught by a test with a name,
+and the tests that miss a fault are as instructive as the one that finds it.
+
+The tests, their order, and the evidence a verifier reports are written down
+as the *Scientific validation contract*, in the file
+`docs/validation-contract.md` of the repository. The lesson follows the
+contract and names it where it applies; the multi-agent review of a later
+lesson and the rubric for code written by an agent use the same contract.
+
+## Assumptions
+
+The tests and the program rest on these assumptions. Each one names what
+goes wrong when it does not hold.
+
+1. **A claim exists.** The tests check what a method says about itself: its
+   order of accuracy and whether it keeps the energy bounded. Code with no
+   claim has nothing to check against, and a claim written after seeing the
+   results is a description, not a test.
+2. **The oscillator is a fair reference.** It has an exact solution, so
+   every error is the stepper's. It is also a linear system with a force that
+   does not depend on the velocity, so a fault that only matters for a
+   nonlinear or velocity-dependent force can pass every test here; the
+   contract says what to add for a new model.
+3. **The tolerances are fixed first.** They are constants of the module,
+   chosen from what a correct method does, before any faulty one is run. A
+   tolerance widened until a test passes makes the test measure nothing, as
+   the first exercise shows.
+4. **Faults are single.** Each faulty stepper has one fault. Real faults
+   come in groups and hide each other; the tests do not become less useful
+   for it, but the pattern of failures becomes harder to read.
+5. **Round-off is below the tolerances.** The exact tests allow $10^{-12}$,
+   several orders above the round-off of the numbers used. A method with
+   large intermediate values would need its own tolerance.
+
+## What a test may compare with {#explanation}
+
+A test of a simulation has three parts: a claim, a reference, and a
+tolerance. The reference decides whether the test is worth anything. If the
+reference is computed by the code under test, or by code written from the same
+mistaken derivation, the two agree whatever the mistake. A reference is
+independent when it comes from somewhere the code did not: an exact solution,
+a limiting case, a law, or the experiment's own bookkeeping.
+
+The contract orders five tests, from the cheapest and most basic to the ones
+that need a reference solution and a long run. They are the names the rest of
+the page uses.
+
+1. **`clock`.** A step of length $\Delta t$ advances the time by $\Delta t$.
+   The reference is the step the experiment asked for.
+2. **`purity`.** A step depends only on its arguments. The same state, taken
+   again after other steps, gives the same result.
+3. **`limits`.** Cases with a closed form. With no force the motion is
+   uniform, $x = x_0 + v_0 t$; under a constant force $a$ the velocity is
+   $v_0 + a t$ exactly, for every method of the course, because the velocity
+   update of each is exact for a constant acceleration, and the position is
+   $x_0 + v_0 t + \tfrac12 a t^2$, exactly for a method of order 2 or more.
+   A method of order 1 may be off by $\tfrac12 a\,\Delta t^2$ in each step,
+   and only the excess over that allowance counts.
+4. **`convergence-order`.** Halving the step divides the error by $2^p$ for a
+   method of order $p$. The reference is the exact oscillator of the earlier
+   lessons, and the number is the slope of the error against the step on
+   logarithmic axes.
+5. **`bounded-energy`.** For a method that claims a bounded energy, the
+   energy of the oscillator stays within a band that does not grow. A single
+   number cannot tell a band from a trend, so the test compares the width of
+   the band in the first periods of a long run with its width in the last.
+
+The first three need no reference solution at all, which is why they come
+first: they cost little, and a method that fails them has a fault that the
+later results cannot be trusted to show. The last two are the ones that find a
+fault which changes the numbers only slightly.
+
+No test proves a method right. Each asks one question that a right method
+answers one way. The contract says what a report must therefore contain:
+for each test the claim, the measured value, the tolerance, and the verdict,
+and a statement of what was not covered. A faulty method is caught when some
+test fails; a method that passes has passed those tests, on this model, at
+these steps, and no more.
+
+## The program {#code}
+
+The estimates are in `pbc.verification.estimates`, the tests and the
+verdict in `pbc.verification.checks`, and the faulty steppers in
+`pbc.verification.faulty`. The listings are read from the files when the site
+is built. The order of convergence between two steps, and the fitted order
+over all of them, are the two estimates the convergence test uses:
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, reproduce_this
+from pbc.verification import checks, estimates
+
+excerpt(estimates.observed_orders)
+```
+
+```{python}
+#| echo: false
+excerpt(estimates.fitted_order)
+```
+
+The claim of a method and the evidence of a test are two small records:
+
+```{python}
+#| echo: false
+excerpt(checks.Claim)
+```
+
+```{python}
+#| echo: false
+excerpt(checks.Finding)
+```
+
+The convergence test measures the largest distance from the exact
+oscillator over a run, at the times of the experiment and not of the stepper,
+for a series of steps, and compares the fitted order with the claim:
+
+```{python}
+#| echo: false
+excerpt(checks.check_convergence_order)
+```
+
+The names of the five tests, in the order of the contract:
+
+```{python}
+from pbc.verification import CHECKS
+
+print(", ".join(CHECKS))
+```
+
+## Worked examples
+
+### The correct steppers pass
+
+Three methods of the course, with what each claims: velocity Verlet is of
+order 2 and keeps the energy bounded, symplectic Euler is of order 1 and keeps
+it bounded, and Runge-Kutta 4 is of order 4 and loses energy steadily, so it
+claims no bound. The cell runs every test that applies to each claim and prints
+the verdict of each as `pass` or `FAIL`, with `-` where the claim does not
+include the test.
+
+```{python}
+from pbc.verification import verify
+from pbc.verification.faulty import CORRECT, GALLERY
+
+
+def verdicts(build, claim):
+    findings = {f.check: f for f in verify(build, claim)}
+    return findings, {
+        check: "-" if check not in findings else "pass" if findings[check].passed else "FAIL"
+        for check in CHECKS
+    }
+
+
+def print_matrix(rows):
+    print(f"{'':38}" + "".join(f"{check:>19}" for check in CHECKS))
+    for name, marks in rows:
+        print(f"{name:38}" + "".join(f"{marks[check]:>19}" for check in CHECKS))
+
+
+correct = {name: verdicts(build, claim) for name, build, claim in CORRECT}
+print_matrix([(name, marks) for name, (_, marks) in correct.items()])
+```
+
+Every applicable test passes, and the tolerances were fixed before this cell
+ran. The evidence behind a verdict is the finding. For velocity Verlet:
+
+```{python}
+for finding in correct["velocity Verlet"][0].values():
+    print(
+        f"{finding.check:18} measured {finding.measured:9.3g}"
+        f"  tolerance {finding.tolerance:7.2g}  {finding.detail}"
+    )
+    print(f"{'':18} claim: {finding.claim}")
+    print(f"{'':18} reproduce: {finding.reproduction}")
+```
+
+The convergence test reports the fitted order, not the table behind it. The
+table is the same estimate one pair of steps at a time, and is how a reader
+looks at a result that is close to a tolerance:
+
+```{python}
+import numpy as np
+
+from pbc.mechanics.integrators import verlet_step
+from pbc.verification import convergence_table, oscillator_error
+
+counts = np.array([50, 100, 200, 400, 800])
+steps = np.pi / counts
+errors = [oscillator_error(lambda: verlet_step, n) for n in counts]
+print(" steps per period   step (s)     error (m)   observed order")
+for n, (h, e, p) in zip(counts, convergence_table(steps, errors), strict=True):
+    print(f"{n:17d}{h:11.5f}{e:14.3e}{'' if p is None else f'{p:15.2f}'}")
+```
+
+The slope on logarithmic axes is the order. The figure puts the correct
+velocity Verlet beside two faulty steppers that pose as methods of higher
+order than they have:
+
+```{python}
+#| label: fig-verification-convergence
+#| fig-cap: "Largest error over two periods against the time step for velocity Verlet, Runge-Kutta 4, and two faulty steppers. A fault shows as a slope below the claimed order."
+#| fig-alt: "Log-log plot of the error in metres against the time step in seconds. Velocity Verlet and Runge-Kutta 4 lie on straight lines of slope 2 and 4, the second far lower. Verlet without the half has slope 1 and lies above velocity Verlet. Runge-Kutta 4 with equal weights has slope 2 and lies on a line parallel to velocity Verlet, far above Runge-Kutta 4."
+import matplotlib.pyplot as plt
+
+from pbc.mechanics.integrators import rk4_step
+from pbc.verification.faulty import rk4_with_equal_weights, verlet_without_the_half
+
+series = {
+    "velocity Verlet": (verlet_step, "#00429d", "-"),
+    "Runge-Kutta 4": (rk4_step, "#00734f", "-"),
+    "verlet without the half": (verlet_without_the_half, "#93003a", "--"),
+    "rk4 with equal weights": (rk4_with_equal_weights, "#b34700", "-."),
+}
+fig, ax = plt.subplots(figsize=(6.4, 4.2))
+for name, (step, color, style) in series.items():
+    errors = [oscillator_error(lambda: step, n) for n in counts]
+    ax.loglog(steps, errors, color=color, linestyle=style, marker="o", markersize=3, label=name)
+ax.set_xlabel("time step (s)")
+ax.set_ylabel("largest error over two periods (m)")
+ax.legend(loc="lower right")
+plt.show()
+```
+
+### Six faulty steppers
+
+Each stepper below is wrong on purpose, in one way. They live in
+`pbc.verification.faulty`, a module that says so in its first line and that
+nothing which simulates may import. Each entry records which correct method it
+poses as, so that it is held to that method's claim, and which tests must
+catch it. Three of them:
+
+```{python}
+#| echo: false
+from pbc.verification import faulty
+
+excerpt(faulty.verlet_without_the_half)
+```
+
+```{python}
+#| echo: false
+excerpt(faulty.verlet_with_a_stopped_clock)
+```
+
+```{python}
+#| echo: false
+excerpt(faulty.verlet_that_remembers_the_acceleration)
+```
+
+The six run the same tests as the correct methods, under the claim of the
+method they pose as:
+
+```{python}
+caught = {g.name: verdicts(g.build, g.claim) for g in GALLERY}
+print_matrix([(name, marks) for name, (_, marks) in caught.items()])
+print()
+for g in GALLERY:
+    named = ", ".join(g.caught_by)
+    print(f"{g.name}: {g.fault}\n    poses as {g.poses_as}; caught by {named}")
+```
+
+Each fault fails the tests the gallery names for it and no others, and no
+correct method fails any test: the same tests separate the two groups. The
+pattern matters more than the count.
+
+- *Verlet without the half* has the wrong coefficient on a term that is of
+  second order in the step. Everything it computes is plausible and the
+  energy stays in its band. The order is wrong, which the convergence test
+  sees, and so is the position under a constant force, which the limit test
+  sees without a reference solution of the oscillator.
+- *Symplectic Euler with the wrong sign* runs the velocity the wrong way.
+  Three tests fail: it is the fault any test would find, and the limit test
+  finds it first, with no reference solution and a run of twenty steps.
+- *Verlet with a stopped clock* is exact in every physical test, because the
+  oscillator does not depend on time. Only the interface test, `clock`, finds
+  it, and it would corrupt every simulation with a time-dependent force.
+- *Runge-Kutta 4 with equal weights* is of order 2, not 4: accurate enough to
+  look like a good method, until the fitted order is compared with the claim.
+- *Explicit Euler as symplectic* is a first-order method, as claimed, so the
+  convergence test passes. Only the energy test sees that the updates are in
+  the wrong order. A test of order alone would have approved it.
+- *Verlet that remembers* is exact when its steps are taken one after
+  another, which is how every simulation takes them, so every test that only
+  runs a simulation passes. Only `purity`, which asks for the same step again
+  after others, finds the leaked state.
+
+### A test that cannot fail
+
+A test that passes everything is not evidence. The first protection is the
+gallery: every test has a faulty stepper it must fail. The second is to claim
+the wrong thing about a correct method. Velocity Verlet claimed to be of order
+1 or of order 4 must fail the convergence test, and the true claim must pass:
+
+```{python}
+from pbc.verification import Claim
+
+for order in (1, 2, 4):
+    findings = verify(lambda: verlet_step, Claim(order=order, bounded_energy=True))
+    result = next(f for f in findings if f.check == "convergence-order")
+    print(f"claimed order {order}: {'pass' if result.passed else 'FAIL'}  ({result.detail})")
+```
+
+Only the true claim passes. A tolerance is part of the claim; how loose it may
+be is the subject of the first exercise.
+
+### An evaluation of a piece of code against the contract
+
+Given a stepper and a claim, the evaluation is the table of findings, a
+verdict, and a sentence on what was covered. For a stepper someone else wrote,
+here the Runge-Kutta 4 with equal weights, claimed to be Runge-Kutta 4, the
+report is generated from the findings and nothing is judged by eye:
+
+```{python}
+def report(name, build, claim):
+    findings = verify(build, claim)
+    failed = [f.check for f in findings if not f.passed]
+    bound = "claimed" if claim.bounded_energy else "not claimed"
+    print(f"subject: {name}; claim: order {claim.order}, energy bound {bound}")
+    for f in findings:
+        print(f"  {'pass' if f.passed else 'FAIL'}  {f.check:18} {f.detail}")
+        print(f"{'':26}claim: {f.claim}")
+        print(f"{'':26}reproduce: {f.reproduction}")
+    print("verdict: " + ("claim not supported by " + ", ".join(failed) if failed else "claim supported"))
+    print("covered: the oscillator at 50 to 800 steps per period")
+    print("not covered: nonlinear forces, velocity-dependent forces, the Kepler orbit")
+
+
+rk4_equal_weights = next(g for g in GALLERY if g.name == "rk4 with equal weights")
+report(rk4_equal_weights.name, rk4_equal_weights.build, rk4_equal_weights.claim)
+```
+
+The last two lines are part of the report. The tests were run on one model,
+and a claim about another is not supported until it is run there.
+
+## Exercises
+
+::: {.exercise}
+**A tolerance that is too loose.** The convergence test accepts a fitted order
+within 0.4 of the claim. Compute the fitted orders of velocity Verlet and of
+Verlet without the half, and judge each against the claim of order 2 with a
+margin of 0.4 and with a margin of 1.5. What does the loose margin do, and what
+does that say about choosing a tolerance after seeing the faulty result?
+
+::: {.solution}
+```{python}
+from pbc.verification import fitted_order
+from pbc.verification.faulty import verlet_without_the_half
+
+for name, step in (
+    ("velocity Verlet", verlet_step),
+    ("verlet without the half", verlet_without_the_half),
+):
+    errors = [oscillator_error(lambda: step, n) for n in counts]
+    order = fitted_order(np.pi / counts, errors)
+    marks = {m: "pass" if abs(order - 2) <= m else "FAIL" for m in (0.4, 1.5)}
+    print(f"{name:26} fitted order {order:.2f}; margin 0.4: {marks[0.4]}, margin 1.5: {marks[1.5]}")
+```
+
+A margin of 1.5 passes both: the fault has made the method first order, and
+the distance from order 2 is smaller than the margin. The margin has to be
+chosen from the scatter of a correct method, here a few hundredths, before the
+faulty one is seen; fixed that way, it fails the fault with room to spare.
+:::
+:::
+
+::: {.exercise}
+**A fault of your own.** Write a stepper that is velocity Verlet except that
+the velocity update uses the acceleration at the start of the step only, and
+claim order 2 with a bounded energy for it. Predict which tests fail, then run
+`verify`.
+
+::: {.solution}
+```{python}
+from pbc.mechanics.dynamics import State
+
+
+def verlet_with_one_acceleration(state, acceleration, dt):
+    a = acceleration(state.t, state.x, state.v)
+    return State(
+        t=state.t + dt,
+        x=state.x + state.v * dt + 0.5 * a * dt**2,
+        v=state.v + a * dt,
+    )
+
+
+findings = verify(lambda: verlet_with_one_acceleration, Claim(order=2, bounded_energy=True))
+for f in findings:
+    print(f"{'pass' if f.passed else 'FAIL'}  {f.check:18} {f.detail}")
+```
+
+The velocity is updated as in explicit Euler, so the method is of order 1
+and the convergence test fails. The clock and purity tests pass, and so does
+the limit test, which only needs a velocity update that is exact for a
+constant force, as this one is. The energy test fails as well, with a band
+that grows by many orders of magnitude over the run: a method that is
+second order in the position and first order in the velocity is not a
+symplectic method of any order. The three failures are one fault seen three
+ways, which is the pattern a verifier reads. The linear oscillator would not
+show a fault that only matters for a force that depends on the velocity; a
+test on the throw with drag of the earlier lessons would be the next one to
+add.
+:::
+:::
+
+## Reproduce this
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/verification/estimates.py",
+        "src/pbc/verification/checks.py",
+        "src/pbc/verification/faulty.py",
+    ],
+    tests=["tests/unit/test_verification.py"],
+)
+```

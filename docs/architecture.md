@@ -114,6 +114,8 @@ site/                    Quarto project: the website source
   assets/                Styles, fonts, vendored Lean syntax definition
 src/pbc/                 Importable Python package with all reusable lesson code
   mechanics/             Models and integrators used by the mechanics course
+  verification/          Order estimation, invariant checks, the named checks of the validation
+                         contract, and a gallery of deliberately faulty steppers (F46)
   abm/                   Agent-based models
   agents/                Agent harness: provider interface, tool allowlist, replay
   authoring/             Helpers lessons use to display code, proofs, tables, diagrams,
@@ -141,7 +143,8 @@ scripts/fetch-data.sh    Learner-side download of a full dataset by its card (ne
 scripts/*.sh, .agents/   Existing agentic development workflow
 .github/workflows/ci.yml Existing CI workflow; extended with setup, caching, deploy, and (F58) parallel verify jobs
 CITATION.cff             Citation metadata: actual authors, project URL, no DOI (next phase, F57)
-docs/                    Requirements, architecture, roadmap, ADRs, authoring guide
+docs/                    Requirements, architecture, roadmap, ADRs, authoring guide,
+                         scientific validation contract (validation-contract.md, F46)
 pyproject.toml, uv.lock, .python-version   Python toolchain pins
 LICENSE, LICENSE-CONTENT MIT for code, CC BY 4.0 for lesson text and figures
 ```

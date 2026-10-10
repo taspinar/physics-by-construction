@@ -1,7 +1,7 @@
 ---
 title: "The Kepler orbit"
 description: >-
-  The capstone of the mechanics course: two bodies under gravity reduced to
+  The physics capstone of the mechanics course: two bodies under gravity reduced to
   one, the energy and the angular momentum that fix the ellipse, the exact
   orbit to measure against, and what each integrator does to a thousand
   orbits, with every tool of the earlier lessons reused.
