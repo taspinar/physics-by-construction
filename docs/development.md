@@ -1209,6 +1209,12 @@ pull request. A feature that needs your approval still gets its pull request;
 request, and an agent or a queue that merges for you must skip one that says
 `required from the project owner`.
 
+**In this project the CI job is not installed.** It uses the trigger
+`pull_request_target`, which invariant I15 of `docs/architecture.md` rules
+out; `.agents/template.conf` excludes the workflow. The gate works locally
+and in every commit message and pull request. The template describes the job
+as follows.
+
 **In CI.** The workflow `Guardrails` runs the gate on the actual diff of every
 pull request, with the script and the rules of the base branch and without
 running code of the pull request. It fails when the diff changes a protected
