@@ -119,12 +119,14 @@ src/pbc/                 Importable Python package with all reusable lesson code
   agents/                Agent harness: provider interface, tool allowlist, replay
   authoring/             Helpers lessons use to display code, proofs, tables, diagrams,
                          references, and claim labels by reference
-  data/                  Readers, calibration, uncertainty, fitting, and the
-                         science-first plotting helpers of measured-data labs (next phase, F51)
-data/                    Real datasets as declared inputs (next phase, F50, ADR 007)
+  data/                  The dataset card schema and check, the minimal readers and
+                         reference figures of the F50 spikes; F51 generalises them into
+                         readers, calibration, uncertainty, fitting, and the science-first
+                         plotting helpers of measured-data labs
+data/                    Real datasets as declared inputs (F50, ADR 007)
   registry/<dataset>.yaml   One metadata card per surveyed dataset, including negative findings
   samples/<dataset>/        Small, version-pinned, rights-cleared samples under the size cap
-docs/datasets/<dataset>.md  Feasibility dossier and go/defer/reject decision per dataset (next phase, F50)
+docs/datasets/<dataset>.md  Feasibility dossier and go/defer/reject decision per dataset (F50)
 docs/instructor-packs/      Instructor packs of published lessons (next phase, F59)
 tests/
   unit/                  pytest: behaviour of src/pbc
@@ -138,7 +140,7 @@ lean/                    One Lake project for all proofs
 scripts/verify.sh        Existing single verification entry point
 scripts/verify.conf      Existing list of required checks; project checks are added here
 scripts/check-links.sh   On-demand link maintenance check, never a required check (next phase, F39, ADR 009)
-scripts/fetch-data.sh    Learner-side download of a full dataset by its card (next phase, F50)
+scripts/fetch-data.sh    Learner-side download of a full dataset by its card (F50)
 scripts/*.sh, .agents/   Existing agentic development workflow
 .github/workflows/ci.yml Existing CI workflow; extended with setup, caching, deploy, and (F58) parallel verify jobs
 CITATION.cff             Citation metadata: actual authors, project URL, no DOI (next phase, F57)
@@ -515,7 +517,7 @@ There is no application runtime. The only executing code is:
 | Toolchain | Pin | Installed by |
 |---|---|---|
 | Python | `.python-version`, `pyproject.toml`, `uv.lock` | `uv` (frozen sync) |
-| Python packages | NumPy, SciPy, Matplotlib, PyYAML (lesson code and authoring); pytest, Ruff (quality); Jupyter kernel (execution); Playwright with an axe-core binding (built-site checks). LLM provider SDK only as an optional extra (F09). Readers for approved data formats are ordinary locked dependencies: HDF5 and Touchstone, added by F50 for the spike samples; MAT or FITS only when F51 or a lab with a go decision needs them. | `uv` |
+| Python packages | NumPy, SciPy, Matplotlib, PyYAML (lesson code and authoring); pytest, Ruff (quality); Jupyter kernel (execution); Playwright with an axe-core binding (built-site checks). LLM provider SDK only as an optional extra (F09). Readers for approved data formats are ordinary locked dependencies when a library is needed; F50 added none: the spike samples are read from the plain-text strain product and by a minimal in-repository Touchstone parser (`src/pbc/data/`). HDF5, MAT, or FITS readers are added only when F51 or a lab with a go decision needs them. | `uv` |
 | Quarto | `quarto-cli` version in `uv.lock`; the package fetches the matching Quarto release | `uv` |
 | Lean 4 | `lean/lean-toolchain` | `elan` |
 | Mathlib | Tagged revision in the lakefile, resolved in `lean/lake-manifest.json` | `lake`, with the Mathlib cache |
@@ -692,7 +694,7 @@ Choices the requirements left to planning, and where they are settled:
 | Site technology | Quarto, build-time execution, MathML equations | ADR 001 |
 | Generated artifacts: regenerate or commit | Regenerate on every build, never commit. Agent replay fixtures and dataset samples are committed verification inputs, checked on every build | ADR 002, 004, 007 |
 | CI time budget | 12 minutes typical, 30 minute timeout; parallel jobs behind one aggregate check when exceeded | This document; ADR 003; F58 |
-| Python packages | NumPy, SciPy, Matplotlib, PyYAML, pytest, Ruff; data readers added by F50 for the spike samples and extended by F51 | Toolchains table |
+| Python packages | NumPy, SciPy, Matplotlib, PyYAML, pytest, Ruff; minimal data readers of F50 in `pbc.data` (no new dependency), extended by F51 | Toolchains table |
 | Exact mechanics lesson list | Eight lessons | `docs/roadmap.md` |
 | Agent-based-modelling lesson in the MVP or after (unresolved question 4) | Delivered as F11 and included in the first release | `docs/roadmap.md`, `docs/release-readiness.md` |
 | How agent lessons are verified without credentials in CI | Deterministic replay | ADR 004 |
@@ -792,7 +794,7 @@ work of the roadmap features named:
   every lesson, descriptive rather than interpretive captions, and
   hand-typed approximate numbers in prose in several lessons (F28, F29, F30,
   F31, F35, F36).
-- No dataset, card, reader, or sample exists (F50, F51).
+- Cards exist for the 25 surveyed datasets and three samples are committed (F50); no lesson uses data, and the readers are minimal until F51.
 - The `verify` job exceeds its wall-clock budget by about three and a half
   minutes with eleven lessons (F58).
 - The first release has no tag yet; `docs/release-readiness.md` lists the

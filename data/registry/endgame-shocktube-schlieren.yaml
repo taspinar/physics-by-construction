@@ -1,0 +1,42 @@
+id: endgame-shocktube-schlieren
+title: ENDGAME laboratory experiment, high-speed camera data
+source:
+  url: https://zenodo.org/records/12748351
+  creator: Giuseppe La Spina, Jacopo Taddeucci, Laura Spina, and others
+  version: not assessed
+  accessed: &id001 2026-10-09
+  doi: 10.5281/zenodo.12748351
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/12748351, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/12748351, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  publication_of_figures:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/12748351, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  modification_and_attribution:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/12748351, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+artifacts:
+- name: high-speed images
+  type: raw-measured
+  description: Schlieren images of a shock-tube experiment (as described by the source; no file was inspected)
+size:
+  description: One archive of 608,020,670 bytes (Zenodo file listing).
+format: ZIP of high-speed images
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09).
+  - High volume.
+  gate: Calibrate the images, review the image processing, and find an excerpt under the caps; otherwise
+    only a documented download is possible.

@@ -1,0 +1,41 @@
+id: sheffield-piv-flume
+title: PIV of a parking-lot configuration with a closed manhole
+source:
+  url: https://zenodo.org/records/4596731
+  creator: Matteo Rubinato, James Shucksmith, Ricardo Martins
+  version: not assessed
+  accessed: &id001 2026-10-09
+  doi: 10.5281/zenodo.4596731
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/4596731, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/4596731, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  publication_of_figures:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/4596731, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  modification_and_attribution:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/4596731, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+artifacts:
+- name: velocity fields
+  type: processed-measured
+  description: Processed PIV vector fields (as described by the source; no file was inspected)
+size:
+  description: One file vel_piv.mat of 516,546 bytes (Zenodo file listing).
+format: MATLAB MAT file
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09).
+  gate: Add a MAT reader, inspect the time support and geometry, and confirm that a single small example
+    teaches something.

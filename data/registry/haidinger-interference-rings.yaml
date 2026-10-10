@@ -1,0 +1,45 @@
+id: haidinger-interference-rings
+title: Haidinger interference rings with microparticle scattering
+source:
+  url: https://zenodo.org/records/19002264
+  creator: Oleksii Voronkin, Sergiy Lushchin
+  version: not assessed
+  accessed: &id001 2026-10-09
+  doi: 10.5281/zenodo.19002264
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/19002264, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/19002264, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  publication_of_figures:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/19002264, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  modification_and_attribution:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/19002264, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+artifacts:
+- name: photographs
+  type: raw-measured
+  description: Photographs and video of interference rings (as described by the source; no file was inspected)
+- name: simulation
+  type: modelled-reference
+  description: A small numerical simulation archive (as described by the source; no file was inspected)
+size:
+  description: Configurations of about 8-50 MB as RAR; a 133 MB video (Zenodo file listing).
+format: JPG and RAR archives, MP4, Python
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09).
+  - RAR archives are not readable with the locked environment.
+  gate: Resolve the rights as for the sibling diffraction record (this record page shows a CC BY 4.0 licence
+    and no copyright line, read 2026-10-09), choose one configuration, and add a RAR path.

@@ -932,6 +932,68 @@ To use another provider, write one client module that reads its own key
 variable and change `PROVIDER` in `src/pbc/agents/providers.py`; the lesson
 page explains it. Only that provider's key is needed then.
 
+## Measured data
+
+Real measurements are inputs that no build can regenerate (ADR 007). A lesson
+may use one only after the dataset has passed the feasibility gate and holds a
+`go` on its card. No lesson page uses data yet; this section is the rule for
+the first one. Evidence and decisions are in `docs/datasets/`.
+
+**The gate.** Before any lesson commitment a dataset gets a dossier,
+`docs/datasets/<dataset>.md`: an actual small file inspected, named with its
+version and checksum; every artifact labelled; one reference figure generated
+by source-controlled code; the four rights questions answered with the source
+of each answer; size, runtime, and payload estimated; and a decision, `go`,
+`defer`, `reject`, or `survey-only`, with reasons. A score from a survey is
+not evidence, and a beautiful figure does not decide.
+
+**The card.** `data/registry/<dataset>.yaml` records the source, the licence,
+the four rights answers (local download, redistribution of subsets,
+publication of figures and derivatives, modification and attribution), the
+type of every artifact, and the calibration, schema, units, cadence,
+coordinates, masks, uncertainty, estimates, and downloads. The dataset check
+(`uv run python -m pbc.data.check`, part of `./scripts/verify.sh`) validates
+every card. Artifact types:
+
+| Type | Meaning |
+|---|---|
+| `raw-measured` | What the instrument recorded |
+| `processed-measured` | Measured, then aligned, averaged, filtered, or selected |
+| `calibrated-observation` | A calibrated product of an instrument or a pipeline |
+| `modelled-reference` | The output of a simulation or a model |
+| `synthetic-test` | Generated for a test, whatever its origin |
+
+**The sample rule.** A small sample may be committed under
+`data/samples/<dataset>/`, only for a `go` and only what the figure needs,
+and only when the card's licence is CC0, CC BY, or a recorded equivalent
+permission and its answer on redistribution of subsets is `permitted`. The
+caps are 2 MB per file, 8 MB per dataset, and 32 MB for all samples. Every
+sample is declared on the card with its checksum, how it derives from the
+source, and a parsing test that asserts the field names, shapes, units, masks,
+and cadence. Anything restricted or larger is never committed: the page links
+to the original and uses a documented download, `./scripts/fetch-data.sh
+<dataset>`, which a learner runs and the build, CI, and verification never do.
+Lesson cells read only committed samples.
+
+**The figure status.** Every figure from data carries one of `measured`,
+`calibrated`, `processed`, `simulated`, or `conceptual`, from the type of its
+source artifact, next to the figure. A measurement is never merged with a
+modelled reference, a fitted curve, or a reconstructed signal: draw them apart
+and label them. Say on the page what was filtered, interpolated, or selected,
+and carry the card's attribution text, and its acknowledgement text where the
+source requires one.
+
+**Typed claims.** A claim about the data is `observational`,
+`experimentally-supported`, `numerically-verified`, or `formal-theorem`, and a
+page states in plain language what the evidence supports and what it does not.
+
+**The no-LLM path.** Everything a learner needs to reproduce a figure from a
+committed sample or a documented download works with no model and no account.
+An agent may help a learner explore, but its conclusions are never data.
+
+To add a dataset, copy the card of a spiked one, read the record and the
+files, and write the dossier; do not copy the rights answers of another card.
+
 ## Link maintenance
 
 External links live in the reference register, `site/references.yaml`
@@ -1025,6 +1087,10 @@ experiment (ADR 004): the recording of the model's messages is committed as
 the replay fixture `replay.json` next to the `index.qmd` of that lesson.
 That location is exempt from the check, and no other file may be placed
 there or carry recordings elsewhere.
+
+The other committed input is a dataset sample under `data/samples/<dataset>/`
+(ADR 007; "Measured data"), declared on its card and checked by the dataset
+check. It lives outside `site/` and `src/`.
 
 ## Limits
 

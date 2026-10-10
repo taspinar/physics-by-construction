@@ -1,0 +1,38 @@
+id: lenslesspicam-measured-psf
+title: LenslessPiCam measured raw images and point-spread functions
+source:
+  url: https://lensless.readthedocs.io/en/latest/data.html
+  creator: LenslessPiCam authors (EPFL)
+  version: not assessed
+  accessed: &id001 2026-10-09
+rights:
+  licence: not-assessed
+  local_download:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  publication_of_figures:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  modification_and_attribution:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+artifacts:
+- name: measured raw and PSF images
+  type: raw-measured
+  description: Lensless camera measurements and a measured point-spread function (as described by the
+    source; no file was inspected)
+size:
+  description: Small demonstrations; some sets exceed 1 GB.
+format: PNG, NPY, MAT
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09).
+  - Licences differ per dataset.
+  gate: Read the licence of each dataset, separate measured from simulated sets, pick one small demonstration
+    under the caps.

@@ -1,0 +1,44 @@
+id: piv-cylinder-wake
+title: Particle image velocimetry of flow past a cylinder
+source:
+  url: https://zenodo.org/records/20765567
+  creator: Jessica Shang, Jonathan Tu
+  version: not assessed
+  accessed: &id001 2026-10-09
+  doi: 10.5281/zenodo.20765567
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/20765567, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/20765567, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  publication_of_figures:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/20765567, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  modification_and_attribution:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/20765567, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+artifacts:
+- name: velocity fields
+  type: processed-measured
+  description: Processed PIV velocity fields, not raw camera frames (as described by the source; no file
+    was inspected)
+size:
+  description: One file cylinder_vel.mat of 1,082,404,799 bytes, processed fields at 20 Hz with zeros
+    in masked regions.
+format: MATLAB MAT file
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09).
+  - A 1.1 GB single file cannot be committed; only a documented download or a small subset could be.
+  gate: Add a MAT reader, design a compact subset that keeps the masks (zeros mean masked), pass the cap,
+    and then read the record's creators' notes on the mask and the cadence.

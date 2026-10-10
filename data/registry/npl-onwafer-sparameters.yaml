@@ -1,0 +1,114 @@
+id: npl-onwafer-sparameters
+title: NPL on-wafer S-parameters of attenuators and loads up to 220 GHz
+source:
+  url: https://zenodo.org/records/22658069
+  doi: 10.5281/zenodo.22658069
+  creator: Liam Ausden, Nick Ridler, Andrej Rumiantsev, Jon Martens, Xiaobang Shang (National Physical
+    Laboratory, MPI Corporation, Anritsu)
+  version: Zenodo record 22658069, published 2025-09-25 (no version number)
+  accessed: &id001 2026-10-09
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/22658069, licence field and readme.txt ''License:
+      CC-BY 4.0 International'', read 2026-10-09; CC BY 4.0 permits copying, redistribution, adaptation,
+      and publication of derivatives with attribution'
+  redistribution_of_subsets:
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/22658069, licence field and readme.txt ''License:
+      CC-BY 4.0 International'', read 2026-10-09; CC BY 4.0 permits copying, redistribution, adaptation,
+      and publication of derivatives with attribution'
+  publication_of_figures:
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/22658069, licence field and readme.txt ''License:
+      CC-BY 4.0 International'', read 2026-10-09; CC BY 4.0 permits copying, redistribution, adaptation,
+      and publication of derivatives with attribution'
+  modification_and_attribution:
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/22658069, licence field and readme.txt ''License:
+      CC-BY 4.0 International'', read 2026-10-09; CC BY 4.0 permits copying, redistribution, adaptation,
+      and publication of derivatives with attribution'
+  attribution: Creators as above, 'Dataset for the Comparison of Broadband Single-Sweep and Conventional
+    Banded System On-Wafer S-Parameter Measurements up to 220 GHz', Zenodo, doi 10.5281/zenodo.22658069,
+    CC BY 4.0; supports the ARFTG 2025 paper doi 10.1109/ARFTG65332.2025.11168146.
+artifacts:
+- name: coaxial_*_CORR.s2p
+  type: calibrated-observation
+  description: Coaxial-system VNA measurement of 3, 6, and 10 dB on-wafer attenuators, 2.5-50 GHz in 250
+    MHz steps; the '_CORR' files are calibrated with multiline TRL (readme.txt).
+- name: broadband_3dB_attenuator_0601_CORR.s2p
+  type: calibrated-observation
+  description: Single-sweep broadband VNA measurement of the 3 dB attenuator, 2.5-220 GHz in 250 MHz steps,
+    multiline-TRL calibrated.
+calibration: Multiline TRL on-wafer calibration, applied by the creators ('_CORR'; readme.txt). The calibration
+  standards and their uncertainty are described in the ARFTG paper, which this spike did not read; the
+  files carry no uncertainty.
+schema: 'Touchstone 1.0 two-port: option line ''# Hz S RI R 50.0'', comment lines, then rows ''freq ReS11
+  ImS11 ReS21 ImS21 ReS12 ImS12 ReS22 ImS22''. Written by scikit-rf per the first comment line.'
+units: Frequency in Hz; S-parameters dimensionless complex amplitude ratios in real/imaginary form, 50
+  ohm reference.
+cadence: '250 MHz frequency step: 191 points for 2.5-50 GHz (coaxial), 871 points for 2.5-220 GHz (single
+  sweep).'
+coordinates: Port 1 and port 2 of the device on the wafer; S21 is transmission from port 1 to port 2 (Touchstone
+  order S11 S21 S12 S22).
+masks: 'None: no missing values in the four sampled files.'
+uncertainty: None in the files. The paper compares two instruments; this spike's cross-check shows the
+  3 dB pad's |S21| differing by at most 0.042 dB between the coaxial and the single-sweep file over 2.5-50
+  GHz.
+size:
+  description: Archive data.zip 3,130,325 bytes with 20 S2P files of 25-161 KB; the sample is four files,
+    230 KB.
+format: Touchstone S2P (plain text) in a zip archive
+reader: pbc.data.touchstone.read_touchstone (NumPy only); an in-repository parser, so no new locked dependency
+  is added.
+downloads:
+- url: https://zenodo.org/api/records/22658069/files/data.zip/content
+  filename: data.zip
+  algorithm: md5
+  digest: 3580300746156d05dbc5de8957f0b911
+  digest_source: published by Zenodo in the record's file listing, read 2026-10-09 and confirmed against
+    the downloaded file
+samples:
+- path: broadband_3dB_attenuator_0601_CORR.s2p
+  sha256: c6c7f183cc2fe3d6d3e7594ee54a2b643a82fcfedf604e9ed3429c37bdef1f11
+  bytes: 152376
+  derivation: member of data.zip ('Main Results/Broadband Single-Sweep/3dB_Attenuator_0601__CORR.S2P'),
+    copied byte for byte, only renamed to lower case
+  test: tests/unit/test_data_samples.py::test_npl_sample_parses
+- path: coaxial_10dB_attenuator_0603_CORR.s2p
+  sha256: 10502556b26765905e479b574fe5feacc94f65493b7828ed7dc4924d173b03dc
+  bytes: 25725
+  derivation: member of data.zip ('Main Results/Coaxial/10dB_Attenuator_0603__CORR.S2P'), copied byte
+    for byte, only renamed to lower case
+  test: tests/unit/test_data_samples.py::test_npl_sample_parses
+- path: coaxial_3dB_attenuator_0601_CORR.s2p
+  sha256: d12fd906ebcb40d2991e83378c23976f1098f4e534786a727395bd2fe551a6d6
+  bytes: 25481
+  derivation: member of data.zip ('Main Results/Coaxial/3dB_Attenuator_0601__CORR.S2P'), copied byte for
+    byte, only renamed to lower case
+  test: tests/unit/test_data_samples.py::test_npl_sample_parses
+- path: coaxial_6dB_attenuator_0602_CORR.s2p
+  sha256: 32359488fb312eeecfc888939f4da0875f6e4b5f4d767da5477a77fd00a4dac0
+  bytes: 25588
+  derivation: member of data.zip ('Main Results/Coaxial/6dB_Attenuator_0602__CORR.S2P'), copied byte for
+    byte, only renamed to lower case
+  test: tests/unit/test_data_samples.py::test_npl_sample_parses
+estimates:
+  runtime: 'Reference figure: 1.4 s.'
+  memory: About 130 MB peak resident for the figure.
+  page_payload: 230 KB committed; a figure PNG of about 190 KB.
+  ci: 'Offline: four committed files.'
+decision:
+  value: go
+  date: *id001
+  reasons:
+  - 'Real files inspected: 191 and 871 frequency points, 50 ohm reference, no missing values.'
+  - 'Physical consistency holds on all four files: largest singular value of S is at most 0.78 (passive),
+    |S21 - S12| is at most 1.3e-3 (reciprocal) for the coaxial files and 2.5e-2 for the single sweep,
+    and the attenuators measure -3.9, -6.8, and -10.5 dB, ordered as labelled.'
+  - Two instruments measured the same 3 dB pad and agree within 0.042 dB in |S21| over 2.5-50 GHz.
+  - CC BY 4.0 on the record covers local download, subsets, figures, and modification.
+  - 'Caveat: the calibration standards and uncertainty are in the ARFTG paper, which was not read; a lesson
+    must read it before it states uncertainties.'
+dossier: docs/datasets/npl-onwafer-sparameters.md

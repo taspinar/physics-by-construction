@@ -1,0 +1,37 @@
+id: ukaea-fair-mast-tokamak
+title: UKAEA FAIR MAST tokamak diagnostics
+source:
+  url: https://www.ukaea.org/service/fair-mast/
+  creator: UK Atomic Energy Authority
+  version: not assessed
+  accessed: &id001 2026-10-09
+rights:
+  licence: not-assessed
+  local_download:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  publication_of_figures:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  modification_and_attribution:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+artifacts:
+- name: diagnostic signals
+  type: raw-measured
+  description: Fusion diagnostic measurements (as described by the source; no file was inspected)
+size:
+  description: Selective downloads per shot.
+format: Zarr and a JSON API
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09).
+  - Large and specialised.
+  gate: Read the service terms, find one small shot extract that fits the caps, and explain the channels
+    and their provenance; a Zarr reader is needed.

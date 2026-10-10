@@ -1,0 +1,37 @@
+id: alma-dsharp-disks
+title: ALMA DSHARP protoplanetary-disk images
+source:
+  url: https://almascience.nao.ac.jp/almadata/lp/DSHARP/
+  creator: ALMA partnership, DSHARP large program
+  version: not assessed
+  accessed: &id001 2026-10-09
+rights:
+  licence: not-assessed
+  local_download:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  publication_of_figures:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  modification_and_attribution:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+artifacts:
+- name: reduced continuum images
+  type: calibrated-observation
+  description: Reduced radio images of 20 disks (as described by the source; no file was inspected)
+size:
+  description: Complete set large; one FITS file would be selected.
+format: FITS; CASA products
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09).
+  - Specialist calibration; ALMA products have their own acknowledgement rules.
+  gate: Read the large-program data terms and the ALMA acknowledgement text, pick one reduced FITS file
+    under the caps, add a FITS reader.
