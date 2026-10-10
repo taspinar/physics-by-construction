@@ -31,6 +31,13 @@ entries:
       A large language model is a program that, given a text, continues it
       with the words that are likely to follow. It has no access to anything
       but the text it is given, unless a program hands it tools.
+  - term: Linear algebra
+    definition: >-
+      A matrix maps a vector to a vector; applying it again and again is how
+      a linear step rule advances a state. The determinant of a two-by-two
+      matrix is the factor by which it scales areas, its trace is the sum of
+      its diagonal, and its eigenvalues are the factors by which it stretches
+      the directions it leaves unturned.
   - term: Logarithms
     definition: >-
       The logarithm to a base is the power that base is raised to in order to

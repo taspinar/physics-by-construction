@@ -113,9 +113,11 @@ def test_without_javascript_the_lesson_shows_the_static_figure_and_the_table(
     # No control is shown, and nothing is left that does nothing.
     assert page.locator(f"{WIDGET} :is(input, button, select, svg)").count() == 0
     # The numbers of every setting are in the page as text.
-    tables = " ".join(page.locator("main .cell-output-stdout").all_text_contents())
-    assert "energy after 5 periods / initial energy" in tables
-    assert "evaluations of the acceleration" in tables
+    tables = " ".join(
+        page.locator("main table.result-table caption").all_text_contents()
+    )
+    assert "Energy after five periods relative to the initial energy" in tables
+    assert "Evaluations of the acceleration" in tables
     context.close()
 
 
@@ -251,18 +253,14 @@ def test_the_displayed_values_are_the_ones_of_the_table_in_the_page(
 ):
     # The static table and the widget come from the same embedded runs.
     open_widget(page, server)
-    outputs = page.locator("main .cell-output-stdout").all_text_contents()
-    table = next(text for text in outputs if "energy after 5 periods" in text)
-    rows: dict[str, list[str]] = {}
-    for line in table.splitlines():
-        for integrator in INTEGRATORS:
-            if line.strip().startswith(integrator.name):
-                rows.setdefault(integrator.name, line.split())
-    for integrator in INTEGRATORS:
-        # The first block of the table holds the energy, one column per step
-        # count; the first column is the coarsest step.
+    energy_table = page.locator("main table.result-table").filter(
+        has_text="Energy after five periods"
+    )
+    # The first row of the table is the coarsest step; one column per method.
+    first_row = energy_table.locator("tbody tr").first.locator("td").all_text_contents()
+    for column, integrator in enumerate(INTEGRATORS, start=1):
         choose(page, integrator.name, STEPS_PER_PERIOD[0])
-        first = float(rows[integrator.name][-len(STEPS_PER_PERIOD)])
+        first = float(first_row[column])
         assert first == pytest.approx(
             displayed(page)["energy-ratio"], rel=ENERGY_TOLERANCE
         )

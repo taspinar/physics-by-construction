@@ -233,13 +233,11 @@ REFERENCE_ROWS = {
     ],
     INTEGRATORS: [
         "explicit Euler 3.223 0.636 10.487637 150",
-        "800 5.06e-02 (1.04) 3.96e-03 (1.01) 3.45e-05 (2.00) 3.99e-10 (4.00)",
-        "symplectic Euler energy between 0.91060 and 1.10886 times the start,"
-        " 0.91071 at the end; 32000 calls",
-        "Runge-Kutta 4 energy between 0.97497 and 1.00000 times the start,"
-        " 0.97497 at the end; 128000 calls",
+        "800 5.06e-02 1.04 3.96e-03 1.01 3.45e-05 2.00 3.99e-10 4.00",
+        "symplectic Euler 0.91060 1.10886 0.91071 2.053 32000",
+        "Runge-Kutta 4 0.97497 1.00000 0.97497 0.077 128000",
         "3.0 2.094 1.35e+73 1.08e+54 4.01e+52 1.81e-33",
-        "320 4.40e-05 (2.00) 2.15e-11 (4.00)",
+        "320 4.40e-05 2.00 2.15e-11 4.00",
         "Runge-Kutta 4 21 8.4e-04 168",
         "Runge-Kutta 4 50 400 2.6e-05",
     ],
