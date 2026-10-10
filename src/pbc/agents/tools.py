@@ -59,6 +59,32 @@ class Parameter:
 
 
 @dataclass(frozen=True)
+class Choice:
+    """One argument of a tool: one of a fixed list of names, and nothing
+    else. It selects among methods the lesson already chose; a value outside
+    the list is rejected, never looked up."""
+
+    name: str
+    description: str
+    options: tuple[str, ...]
+
+    def validate(self, value: Any) -> str:
+        if not isinstance(value, str) or value not in self.options:
+            shown = value if isinstance(value, str) else type(value).__name__
+            raise ToolRejected(
+                f"{self.name} must be one of {', '.join(self.options)}, got {shown!r}"
+            )
+        return value
+
+    def schema(self) -> dict[str, Any]:
+        return {
+            "type": "string",
+            "description": self.description,
+            "enum": list(self.options),
+        }
+
+
+@dataclass(frozen=True)
 class Tool:
     """An allowlisted function of ``pbc``.
 
@@ -68,10 +94,10 @@ class Tool:
 
     name: str
     description: str
-    parameters: tuple[Parameter, ...]
+    parameters: tuple[Parameter | Choice, ...]
     function: Callable[..., Mapping[str, float]]
 
-    def validate(self, arguments: Any) -> dict[str, float | int]:
+    def validate(self, arguments: Any) -> dict[str, float | int | str]:
         """The arguments if they are exactly the declared ones, each within
         its bounds; otherwise raise ``ToolRejected``."""
         if not isinstance(arguments, dict):
@@ -106,7 +132,11 @@ class Tool:
 class Allowlist:
     """The tools of one lesson, by name."""
 
-    def __init__(self, tools: tuple[Tool, ...]):
+    def __init__(self, tools: tuple[Tool, ...], budget: int | None = None):
+        if budget is not None and budget < 1:
+            raise ValueError(f"the budget must be at least 1, got {budget}")
+        self.budget = budget
+        self._used = 0
         names = [tool.name for tool in tools]
         if len(set(names)) != len(names):
             raise ValueError(f"duplicate tool names in {names}")
@@ -116,6 +146,10 @@ class Allowlist:
     def tools(self) -> tuple[Tool, ...]:
         return tuple(self._tools.values())
 
+    def tool(self, name: str) -> Tool:
+        """The tool called ``name``; ``KeyError`` if there is none."""
+        return self._tools[name]
+
     def specs(self) -> tuple[ToolSpec, ...]:
         return tuple(tool.spec() for tool in self.tools)
 
@@ -123,7 +157,9 @@ class Allowlist:
         """Validate ``call`` and run it, or return the reason it was refused.
 
         The name is only a key into the allowlist: a name that is not in it
-        is rejected without looking anything else up. A function that
+        is rejected without looking anything else up. When the allowlist has a
+        budget, the calls that pass validation are counted, and one beyond the
+        budget is refused unexecuted; a rejected call costs nothing. A function that
         refuses its input (``ValueError``, ``RuntimeError``) gives an error
         result as well; any other exception is a bug and propagates.
         """
@@ -134,6 +170,11 @@ class Allowlist:
             arguments = tool.validate(call.arguments)
         except ToolRejected as reason:
             return self._refused(call, str(reason))
+        if self.budget is not None and self._used >= self.budget:
+            return self._refused(
+                call, f"the budget of {self.budget} experiments is spent"
+            )
+        self._used += 1
         try:
             content = dict(tool.function(**arguments))
         except (ValueError, RuntimeError) as reason:

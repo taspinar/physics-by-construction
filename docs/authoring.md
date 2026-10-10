@@ -934,6 +934,33 @@ the allowlist changed. The failure message says so.
    shows the model's words as they are.
 5. Run `./scripts/verify.sh`, then commit the file.
 
+### Counterexample hunts
+
+A hunt (`pbc.agents.hunter`, lesson `agents-llm/02-a-counterexample-hunter`)
+puts a **falsifiable claim** to the agent: a statement, a domain (fixed
+choices and bounded numbers), a predicate on one number the tool returns (at
+most a limit), and a budget of experiments. The allowlist counts the calls that
+pass validation (`Allowlist(..., budget=n)`) and refuses the ones beyond it.
+
+The verdict is computed by `judge`, never read from the agent's text or from
+the results stored in the fixture. It runs each accepted experiment inside the
+domain again and evaluates the predicate on the new value:
+
+- a recomputed value that breaks the predicate is a **counterexample**, and
+  `VerdictDisplay` prints it as a claim of type `numerically-verified`, scoped to
+  that experiment, with the recomputed numbers;
+- otherwise the outcome is **inconclusive**: the page labels it so, gives it no
+  claim type, and does not say that the claim is true.
+
+A lesson with several runs names each fixture `replay-<name>.json`
+next to `index.qmd`, and replays each with its own task. Re-record one with
+`--claim <name> --record` of the experiment module
+(`python -m pbc.agents.hunter_lab`). Choose the limit of a claim and the
+tolerance of the replay before you record, and never change a limit to
+obtain a verdict. Messages written by an author or an assistant, not produced
+by a model through a provider API, are authored examples: the page passes
+`authored=True` to `RunDisplay` and never calls them recorded.
+
 To use another provider, write one client module that reads its own key
 variable and change `PROVIDER` in `src/pbc/agents/providers.py`; the lesson
 page explains it. Only that provider's key is needed then.

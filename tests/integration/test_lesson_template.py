@@ -120,8 +120,9 @@ def test_lesson_made_from_the_template_builds_with_every_construct(
     assert "Replace: what the reader can do after the lesson" in header
     previous = Path(MECHANICS[-1].page).parent.name
     assert f'href="../{previous}/index.html"' in header
-    # Each entry of the path page links the lesson and its prerequisites, in
-    # the course and in every method path the lesson is listed under.
+    # Each entry of the path page links the lesson, its prerequisites, and its
+    # related lessons, in the course and in every method path the lesson is
+    # listed under.
     path_page = (built / "path/index.html").read_text()
     new = Lesson(
         **{
@@ -137,6 +138,7 @@ def test_lesson_made_from_the_template_builds_with_every_construct(
         * (
             (lesson.strand == "mechanics")
             + sum(p in mechanics_ids for p in lesson.prerequisites)
+            + sum(r in mechanics_ids for r in lesson.related)
         )
         for lesson in (*PATH.lessons, new)
     )
