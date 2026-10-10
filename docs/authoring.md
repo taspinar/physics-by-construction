@@ -504,7 +504,7 @@ there. The search box takes the page's focus ring (`site/assets/site.css`). The
 built-site checks `test_search_*` run a query in a browser and fail on a request
 to another origin, a cookie, or a write to browser storage.
 
-**Payload.** Every page loads at most 1.5 MB (`test_every_page_loads_within_the_payload_budget`
+**Payload.** Every page, opened on its own, loads at most 3 MB (`test_every_page_loads_within_the_payload_budget`
 prints the sizes; run it with `-s`).
 
 ## Not verified

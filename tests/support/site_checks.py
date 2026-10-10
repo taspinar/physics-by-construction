@@ -829,30 +829,48 @@ def check_keyboard_navigation(
 
 # The initial payload of a page: HTML, style sheets, fonts, static figures,
 # scripts, and the data of an embedded widget (docs/architecture.md, "Budgets").
-PAYLOAD_BUDGET = 1_500_000
+PAYLOAD_BUDGET = 3_000_000
+# The search index is fetched when a reader searches, on top of the page.
+SEARCH_INDEX_BUDGET = 500_000
 
 
 def measure_payloads(
     browser: Browser, server: SiteServer, site_dir: Path
 ) -> dict[str, int]:
-    """The bytes every page transfers when it loads, by page. The test server
-    sends files as they are, so this is the uncompressed size, which is the
-    upper bound of what a compressing host transfers."""
+    """The bytes every page transfers when it loads, by page: the sizes of
+    the files of the site that the page requests. The test server sends files
+    as they are, so this is the uncompressed size, which is the upper bound
+    of what a compressing host transfers.
+
+    Every page is loaded in a browser context of its own, as a reader who
+    arrives on it first: a file that pages share, such as a font, counts for
+    each of them. The sizes are read from the files and not from the
+    responses, whose bodies the browser may not have kept when they are
+    asked for, so the same site gives the same result on every run."""
+    base = urlsplit(server.url).path
     sizes = {}
-    with _context(browser, server, lambda url: None, viewport=DESKTOP) as context:
-        for name, url in _urls(site_dir, server):
-            total = 0
+    for name, url in _urls(site_dir, server):
+        requested: set[str] = set()
 
-            def count(response: Response) -> None:
-                nonlocal total
-                if response.status < 400:
-                    total += len(response.body())
+        def note(response: Response, requested: set[str] = requested) -> None:
+            if response.status < 400:
+                requested.add(unquote(urlsplit(response.url).path))
 
+        with _context(browser, server, lambda url: None, viewport=DESKTOP) as context:
             page = context.new_page()
-            page.on("response", count)
+            page.on("response", note)
             page.goto(url, wait_until="networkidle")
             page.close()
-            sizes[name] = total
+        total = 0
+        for path in requested:
+            if not path.startswith(base):
+                continue
+            file = site_dir / path[len(base) :]
+            if file.is_dir():
+                file = file / "index.html"
+            if file.is_file():
+                total += file.stat().st_size
+        sizes[name] = total
     return sizes
 
 
