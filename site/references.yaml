@@ -113,3 +113,58 @@ references:
     lessons: [numerical-integrators]
     last-checked: 2026-10-10
     licence: No licence stated on the page; linked, not copied or rehosted.
+  - key: wikipedia-pendulum-period
+    concept: >-
+      The exact period of the pendulum released from rest as a complete
+      elliptic integral of the first kind, and its power series in the amplitude
+    url: https://en.wikipedia.org/wiki/Pendulum_(mechanics)#Arbitrary-amplitude_period
+    title: Pendulum (mechanics)
+    author: Wikipedia contributors
+    section: Arbitrary-amplitude period, with "Power series solution for the elliptic integral"
+    role: derivation
+    statement: >-
+      The page inverts the energy equation to dt/dtheta proportional to
+      1/sqrt(cos theta - cos theta0), integrates over a quarter cycle, notes
+      that the integral is improper but convergent for amplitudes below pi and
+      diverges as the amplitude approaches pi, and writes the result as
+      T = 4 sqrt(l/g) F(pi/2, sin(theta0/2)) with the substitution
+      sin u = sin(theta/2) / sin(theta0/2), the lesson's substitution written
+      inversely; the modulus is k = sin(theta0/2), as in the lesson. Its power
+      series is 1 + theta0^2/16 + 11 theta0^4/3072 + ..., the two terms the
+      lesson derives and uses. Retrieved as raw HTML with curl and read as text
+      by the drafting agent on 2026-10-10; no person has yet compared it with
+      the lesson.
+    alternatives: >-
+      DLMF section 19.2 (fetched and read as text): it defines the elliptic
+      integrals and the modulus convention but has no pendulum, so it adds
+      nothing the lesson lacks. A page of Fitzpatrick's Newtonian dynamics
+      notes (University of Texas) returned no pendulum text. Wikipedia was
+      chosen because it has the whole chain, from the energy equation to the
+      series, in one public page, with a figure of the truncation error of the
+      series.
+    lessons: [energy-conservation]
+    last-checked: 2026-10-10
+    licence: Creative Commons Attribution-ShareAlike (stated on the page); linked, not copied or rehosted.
+  - key: scipy-ellipk
+    concept: The parameter convention of the complete elliptic integral of the first kind in SciPy
+    url: https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.ellipk.html
+    title: scipy.special.ellipk
+    author: SciPy documentation
+    section: ellipk, definition and Notes on the parameterization
+    role: api
+    statement: >-
+      The function is defined as K(m), the integral from 0 to pi/2 of
+      [1 - m sin(t)^2]^(-1/2) dt, with m the parameter; the Notes warn that
+      other parameterizations use the modulus k with k^2 = m, so the
+      convention must be checked. This is the lesson's K(m) with m = k^2, and
+      the program passes k squared. Retrieved as raw HTML with curl and read as
+      text by the drafting agent on 2026-10-10 (version 1.18.0 of the manual);
+      no person has yet compared it with the lesson.
+    alternatives: >-
+      DLMF section 19.2, which defines the integral with the modulus k and not
+      the parameter m; it was read and not chosen because the question is
+      what the function the program calls expects. API documentation does not
+      replace the derivation, which the lesson contains.
+    lessons: [energy-conservation]
+    last-checked: 2026-10-10
+    licence: BSD licence of SciPy for the documentation; linked, not copied or rehosted.
