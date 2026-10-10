@@ -108,22 +108,27 @@ site/                    Quarto project: the website source
   about.qmd              About: how the site is built, licences, identity (F57)
   path/                  Learning path page (generated from lesson metadata)
   lessons/<strand>/<nn>-<slug>/index.qmd   One directory per lesson
-  glossary.qmd           Glossary and "before you begin" (next phase, F42)
+  glossary.qmd           Glossary page, generated from glossary.yaml and the lessons (F42)
+  glossary.yaml          Glossary entries; lessons reference them by term (F42)
   references.yaml        Reference register of curated external links (next phase, F28, ADR 009)
   widgets/               Self-hosted JavaScript widgets (ES modules)
   assets/                Styles, fonts, vendored Lean syntax definition
 src/pbc/                 Importable Python package with all reusable lesson code
   mechanics/             Models and integrators used by the mechanics course
+  verification/          Order estimation, invariant checks, the named checks of the validation
+                         contract, and a gallery of deliberately faulty steppers (F46)
   abm/                   Agent-based models
   agents/                Agent harness: provider interface, tool allowlist, replay
   authoring/             Helpers lessons use to display code, proofs, tables, diagrams,
                          references, and claim labels by reference
-  data/                  Readers, calibration, uncertainty, fitting, and the
-                         science-first plotting helpers of measured-data labs (next phase, F51)
-data/                    Real datasets as declared inputs (next phase, F50, ADR 007)
+  data/                  The dataset card schema and check, the minimal readers and
+                         reference figures of the F50 spikes; F51 generalises them into
+                         readers, calibration, uncertainty, fitting, and the science-first
+                         plotting helpers of measured-data labs
+data/                    Real datasets as declared inputs (F50, ADR 007)
   registry/<dataset>.yaml   One metadata card per surveyed dataset, including negative findings
   samples/<dataset>/        Small, version-pinned, rights-cleared samples under the size cap
-docs/datasets/<dataset>.md  Feasibility dossier and go/defer/reject decision per dataset (next phase, F50)
+docs/datasets/<dataset>.md  Feasibility dossier and go/defer/reject decision per dataset (F50)
 docs/instructor-packs/      Instructor packs of published lessons (next phase, F59)
 tests/
   unit/                  pytest: behaviour of src/pbc
@@ -137,11 +142,12 @@ lean/                    One Lake project for all proofs
 scripts/verify.sh        Existing single verification entry point
 scripts/verify.conf      Existing list of required checks; project checks are added here
 scripts/check-links.sh   On-demand link maintenance check, never a required check (next phase, F39, ADR 009)
-scripts/fetch-data.sh    Learner-side download of a full dataset by its card (next phase, F50)
+scripts/fetch-data.sh    Learner-side download of a full dataset by its card (F50)
 scripts/*.sh, .agents/   Existing agentic development workflow
 .github/workflows/ci.yml Existing CI workflow; extended with setup, caching, deploy, and (F58) parallel verify jobs
 CITATION.cff             Citation metadata: actual authors, project URL, no DOI (next phase, F57)
-docs/                    Requirements, architecture, roadmap, ADRs, authoring guide
+docs/                    Requirements, architecture, roadmap, ADRs, authoring guide,
+                         scientific validation contract (validation-contract.md, F46)
 pyproject.toml, uv.lock, .python-version   Python toolchain pins
 LICENSE, LICENSE-CONTENT MIT for code, CC BY 4.0 for lesson text and figures
 ```
@@ -203,7 +209,7 @@ features:
 | `title`, `description` | Lesson title and one-sentence description. | F02 |
 | `strand`, `order` | Position in the learning path. | F02 |
 | `difficulty` | Ordinal level on one site-wide scale (1 to 3). | F02 |
-| `prerequisites` | Lesson `id`s that must come earlier in the path, plus free-text outside prerequisites. | F02 |
+| `prerequisites` | Lesson `id`s that must come earlier in the path, plus outside prerequisites written `Term: detail`, each term an entry of the glossary (F42). | F02 |
 | `lean-modules` | Lean modules this lesson displays, when any. | F08 |
 | `course` | The primary physics course. Required. | F37 |
 | `methods` | The methods the lesson uses, from the fixed vocabulary; at least one. | F37 |
@@ -246,7 +252,13 @@ difficulty, not word count.
 
 The learning path (order, difficulty, prerequisites, courses, methods,
 related lessons, previous and next links) is derived from lesson front
-matter. There is no second, hand-maintained list that could drift.
+matter. There is no second, hand-maintained list that could drift. The
+prerequisite graph on the path page is one inline SVG laid out at build time
+in Python (`pbc.authoring.graph`): columns follow the prerequisites, bands
+are courses, solid arrows are prerequisites, dashed arrows are related
+lessons, each node links to its lesson, and a visually hidden list of
+sentences ("M4 requires M2") is the accessible alternative. It needs no
+browser script.
 
 ### Verified display forms
 
@@ -318,7 +330,13 @@ pinning") with a fix hint.
    contain no request, other origin, or use of browser storage, and
    operating their controls writes nothing to cookies or browser storage; the
    widget tests check the fallback, keyboard operation, the displayed values
-   against `src/pbc`, and the absence of layout shift.
+   against `src/pbc`, and the absence of layout shift. Search (F41): a query
+   finds a lesson by a term in its body; while it runs, nothing is requested
+   from another origin and nothing is written to cookies or browser storage;
+   with scripts disabled no search control is shown and a link to the
+   learning path takes its place; the index stays within the payload budget
+   and holds the prose of the pages, not their code or printed output, which
+   `site/search-index.py` removes after the render.
 8. **Determinism**: a second build of the same commit is byte-identical to the
    first.
 9. **Workflow self-tests**: the existing shell tests of the workflow scripts
@@ -504,7 +522,7 @@ There is no application runtime. The only executing code is:
 | Toolchain | Pin | Installed by |
 |---|---|---|
 | Python | `.python-version`, `pyproject.toml`, `uv.lock` | `uv` (frozen sync) |
-| Python packages | NumPy, SciPy, Matplotlib, PyYAML (lesson code and authoring); pytest, Ruff (quality); Jupyter kernel (execution); Playwright with an axe-core binding (built-site checks). LLM provider SDK only as an optional extra (F09). Readers for approved data formats are ordinary locked dependencies: HDF5 and Touchstone, added by F50 for the spike samples; MAT or FITS only when F51 or a lab with a go decision needs them. | `uv` |
+| Python packages | NumPy, SciPy, Matplotlib, PyYAML (lesson code and authoring); pytest, Ruff (quality); Jupyter kernel (execution); Playwright with an axe-core binding (built-site checks). LLM provider SDK only as an optional extra (F09). Readers for approved data formats are ordinary locked dependencies when a library is needed; F50 added none: the spike samples are read from the plain-text strain product and by a minimal in-repository Touchstone parser (`src/pbc/data/`). HDF5, MAT, or FITS readers are added only when F51 or a lab with a go decision needs them. | `uv` |
 | Quarto | `quarto-cli` version in `uv.lock`; the package fetches the matching Quarto release | `uv` |
 | Lean 4 | `lean/lean-toolchain` | `elan` |
 | Mathlib | Tagged revision in the lakefile, resolved in `lean/lake-manifest.json` | `lake`, with the Mathlib cache |
@@ -681,7 +699,7 @@ Choices the requirements left to planning, and where they are settled:
 | Site technology | Quarto, build-time execution, MathML equations | ADR 001 |
 | Generated artifacts: regenerate or commit | Regenerate on every build, never commit. Agent replay fixtures and dataset samples are committed verification inputs, checked on every build | ADR 002, 004, 007 |
 | CI time budget | 12 minutes typical, 30 minute timeout; parallel jobs behind one aggregate check when exceeded | This document; ADR 003; F58 |
-| Python packages | NumPy, SciPy, Matplotlib, PyYAML, pytest, Ruff; data readers added by F50 for the spike samples and extended by F51 | Toolchains table |
+| Python packages | NumPy, SciPy, Matplotlib, PyYAML, pytest, Ruff; minimal data readers of F50 in `pbc.data` (no new dependency), extended by F51 | Toolchains table |
 | Exact mechanics lesson list | Eight lessons | `docs/roadmap.md` |
 | Agent-based-modelling lesson in the MVP or after (unresolved question 4) | Delivered as F11 and included in the first release | `docs/roadmap.md`, `docs/release-readiness.md` |
 | How agent lessons are verified without credentials in CI | Deterministic replay | ADR 004 |
@@ -764,16 +782,16 @@ Checked at the change-cycle base commit `2f011ea` against the re-approved
 requirements. No material conflict was found. The following gaps are the
 work of the roadmap features named:
 
-- The home page names three pillars "Simulate, Experiment with agents,
-  Prove"; the requirements now name three activities "Construct,
-  Investigate, Verify" with real measurements as first-class content, and
-  ask the page to show published versus planned content honestly (F25).
+- The home page names the three activities "Construct, Investigate, Verify"
+  and shows published versus planned content honestly (F25, delivered).
+  Published counts and names come from the lesson metadata
+  (`pbc.authoring.home`); the planned items are a short list in that module
+  that names roadmap IDs.
 - The About page, the README, and the footer carry no creator or JIDAI
   attribution, and there is no `CITATION.cff`; the Issue forms have no
   scientific-correction or dataset-suggestion form (F57).
 - The learning path is one linear sequence of four strands with no course or
-  method facet, no prerequisite graph, no outcomes, and no cards (F37, F26,
-  F27).
+  method facet, no outcomes, and no cards (F37, F27).
 - Lessons follow format 1: eleven lessons with no typed claims, no figure
   status, no limits section except in the Lean lesson, no self-check
   distinct from the exercises, no curated external references anywhere, one
@@ -781,7 +799,7 @@ work of the roadmap features named:
   every lesson, descriptive rather than interpretive captions, and
   hand-typed approximate numbers in prose in several lessons (F28, F29, F30,
   F31, F35, F36).
-- No dataset, card, reader, or sample exists (F50, F51).
+- Cards exist for the 25 surveyed datasets and three samples are committed (F50); no lesson uses data, and the readers are minimal until F51.
 - The `verify` job exceeds its wall-clock budget by about three and a half
   minutes with eleven lessons (F58).
 - The first release has no tag yet; `docs/release-readiness.md` lists the

@@ -851,3 +851,106 @@ def test_payload_over_the_budget_is_reported(make_site: Site, browser: Browser):
     assert sizes["index.html"] > 2_000
     assert site_checks.check_payload(sizes) == []
     assert rules(site_checks.check_payload(sizes, budget=2_000)) == {"payload"}
+
+
+# --- Search --------------------------------------------------------------------
+
+_SEARCH_BOX = '<div id="quarto-search"><input aria-label="Search"></div>'
+_RESULTS = '<div id="quarto-search-results"></div>'
+
+
+def _search_script(extra: str = "", href: str = "lesson/index.html?q=x#a") -> str:
+    return (
+        "<script>document.querySelector('#quarto-search input')"
+        ".addEventListener('input', () => {"
+        f"{extra}"
+        "document.getElementById('quarto-search-results').innerHTML ="
+        f'\'<div class="aa-Item"><a href="{href}">Lesson</a></div>\';'
+        "});</script>"
+    )
+
+
+def _search(make_site: Site, browser: Browser, script: str) -> list[Violation]:
+    site = make_site(body=_SEARCH_BOX + _RESULTS + script)
+    with served(site) as server:
+        return site_checks.check_search_finds_a_lesson(
+            browser, server, site, "index.html", "x", "lesson/index.html"
+        )
+
+
+def test_a_search_that_finds_the_lesson_passes(make_site: Site, browser: Browser):
+    assert _search(make_site, browser, _search_script()) == []
+
+
+def test_a_search_that_does_not_list_the_lesson_is_reported(
+    make_site: Site, browser: Browser
+):
+    violations = _search(make_site, browser, _search_script(href="other/index.html"))
+
+    assert rules(violations) == {"search"}
+
+
+@pytest.mark.parametrize(
+    "extra, rule",
+    [
+        ("localStorage.setItem('recent', 'x');", "search-storage"),
+        ("document.cookie = 'recent=x';", "search-storage"),
+        ("fetch('https://search.example.com/q');", "other-origin"),
+    ],
+    ids=["storage", "cookie", "other-origin"],
+)
+def test_a_search_that_stores_or_reaches_out_is_reported(
+    make_site: Site, browser: Browser, extra: str, rule: str
+):
+    violations = _search(make_site, browser, _search_script(extra))
+
+    assert rule in rules(violations)
+
+
+def test_storage_the_page_wrote_before_the_search_is_not_blamed_on_it(
+    make_site: Site, browser: Browser
+):
+    script = "<script>localStorage.setItem('tabs', 'x')</script>" + _search_script()
+
+    assert _search(make_site, browser, script) == []
+
+
+def _fallback(make_site: Site, browser: Browser, body: str) -> list[Violation]:
+    site = make_site(body=body, files={"path/index.html": "<p>Path</p>"})
+    with served(site) as server:
+        return site_checks.check_search_falls_back_without_javascript(
+            browser, server, site, "path/index.html"
+        )
+
+
+def test_a_control_replaced_by_the_path_link_passes_without_javascript(
+    make_site: Site, browser: Browser
+):
+    body = (
+        '<div id="quarto-search"><noscript>'
+        '<a href="path/index.html">Learning path</a></noscript>'
+        "<script>document.getElementById('quarto-search').append("
+        "document.createElement('input'))</script></div>"
+    )
+
+    assert rules(_fallback(make_site, browser, body)) == set()
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        '<div id="quarto-search"><input aria-label="Search"></div>',
+        '<div id="quarto-search"></div>',
+        '<div id="quarto-search"><noscript><a href="other.html">Elsewhere</a>'
+        "</noscript></div>",
+    ],
+    ids=["control-without-script", "empty-place", "link-elsewhere"],
+)
+def test_a_search_control_without_the_fallback_is_reported(
+    make_site: Site, browser: Browser, body: str
+):
+    assert rules(_fallback(make_site, browser, body)) == {"search-fallback"}
+
+
+def test_a_page_without_search_needs_no_fallback(make_site: Site, browser: Browser):
+    assert _fallback(make_site, browser, "") == []

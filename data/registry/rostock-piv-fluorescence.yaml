@@ -1,0 +1,42 @@
+id: rostock-piv-fluorescence
+title: Wave-tank PIV and tracer-concentration measurements above gravelly beds
+source:
+  url: https://zenodo.org/records/17720136
+  creator: Helena Stirnweiss, Leonie Kandler, Sven Grundmann, and others
+  version: not assessed
+  accessed: &id001 2026-10-09
+  doi: 10.5281/zenodo.17720136
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/17720136, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/17720136, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  publication_of_figures:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/17720136, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  modification_and_attribution:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/17720136, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+artifacts:
+- name: phase-averaged velocity and tracer fields
+  type: processed-measured
+  description: Phase-averaged, not time-resolved raw data, per the survey (as described by the source;
+    no file was inspected)
+size:
+  description: 25 files in the record; each configuration archive is about 31-37 MB (Zenodo file listing).
+format: ZIP of NPY and CSV
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09).
+  gate: Inspect one archive, confirm that the fields are phase averages, and describe them so that phases
+    are never presented as instantaneous chronology.

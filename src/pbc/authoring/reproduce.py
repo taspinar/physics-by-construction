@@ -113,10 +113,22 @@ class Reproduction:
             files.append(f"- {self._link(path)}: {purpose}.")
         files += [f"- {self._link(path)}: tests of that code." for path in self.tests]
         setup = self._link("docs/development.md")
+        # The summary is what the first view shows; the listing is complete
+        # but closed. Both are text in the page, so neither needs JavaScript.
         return "\n".join(
             [
                 "::: {.reproduce}",
                 built_from,
+                "",
+                "In a clone at that commit, with the dependencies installed,"
+                " this command renders the page again:",
+                "",
+                "```{.bash .reproduce-summary-command}",
+                self.commands[-1],
+                "```",
+                "",
+                '<details class="reproduce-details">',
+                "<summary>Files, tests, and every command</summary>",
                 "",
                 "The files behind it:",
                 "",
@@ -134,6 +146,8 @@ class Reproduction:
                 " match this page to the digits shown. Digits beyond those can"
                 " differ between machines, because floating-point libraries"
                 " differ; the site is built on Linux.",
+                "",
+                "</details>",
                 ":::",
                 "",
             ]

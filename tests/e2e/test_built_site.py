@@ -4,6 +4,9 @@ The site is served under the path of its public address, so everything here
 also holds when the site sits in a sub-path of its host.
 """
 
+import html
+import json
+import re
 from pathlib import Path
 
 import pytest
@@ -145,10 +148,10 @@ def test_home_page_links_to_the_repository(page: Page, server: SiteServer):
 def test_every_page_states_both_licences_in_the_footer(
     page: Page, server: SiteServer, site_dir: Path
 ):
-    for html in site_checks.html_pages(site_dir):
-        page.goto(server.url + html.relative_to(site_dir).as_posix())
+    for built in site_checks.html_pages(site_dir):
+        page.goto(server.url + built.relative_to(site_dir).as_posix())
         footer = page.locator("footer").inner_text()
-        assert "MIT" in footer and "CC BY 4.0" in footer, html.name
+        assert "MIT" in footer and "CC BY 4.0" in footer, built.name
 
 
 def test_rendering_check_page_shows_code_output_figure_and_equations(
@@ -230,3 +233,56 @@ def test_sample_page_renders_every_design_component_with_its_colours(
                 rgb(label.background),
             ), f"{kind} {name}"
     context.close()
+
+
+def test_search_finds_a_lesson_by_a_term_in_its_body(
+    browser: Browser, server: SiteServer, site_dir: Path
+):
+    violations = site_checks.check_search_finds_a_lesson(
+        browser,
+        server,
+        site_dir,
+        "index.html",
+        "eccentricity",
+        "lessons/mechanics/08-kepler-orbit/index.html",
+    )
+    assert not violations, describe(violations)
+
+
+def test_search_control_is_replaced_by_the_learning_path_without_javascript(
+    browser: Browser, server: SiteServer, site_dir: Path
+):
+    violations = site_checks.check_search_falls_back_without_javascript(
+        browser, server, site_dir, "path/index.html"
+    )
+    assert not violations, describe(violations)
+
+
+def test_the_search_index_is_part_of_the_site_and_within_the_payload_budget(
+    site_dir: Path,
+):
+    index = site_dir / "search.json"
+    assert index.is_file(), "the build wrote no search index"
+    # A page fetches the index when it is searched, on top of what it loads.
+    assert index.stat().st_size < site_checks.PAYLOAD_BUDGET // 3
+
+
+def test_the_search_index_holds_the_prose_of_a_page_and_not_its_code(
+    site_dir: Path,
+):
+    """site/search-index.py removes code and printed output from the index:
+    a reader searches for a concept, and the code would use up the budget."""
+    entries = json.loads((site_dir / "search.json").read_text(encoding="utf-8"))
+    assert entries, "the search index is empty"
+    assert all(entry["text"].strip() for entry in entries)
+    pre = re.compile(r"<pre\b[^>]*>(.*?)</pre>", re.DOTALL)
+    indexed_code = []
+    for entry in entries:
+        page = entry["href"].split("#")[0]
+        text = "".join(entry["text"].split())
+        for block in pre.findall((site_dir / page).read_text(encoding="utf-8")):
+            code = "".join(html.unescape(re.sub(r"<[^>]+>", "", block)).split())
+            # A short block, such as one command, can also stand in the prose.
+            if len(code) >= 80 and code in text:
+                indexed_code.append(f"{entry['href']}: {code[:60]}")
+    assert not indexed_code, "\n".join(indexed_code[:10])

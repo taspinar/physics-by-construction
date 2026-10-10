@@ -20,7 +20,7 @@ lesson:
     lessons: [projectile-with-drag]
     outside:
       - "Python: functions, dictionaries, and environment variables"
-      - "What a large language model is: a program that continues a text"
+      - "Large language models: a program that continues a text"
 ---
 
 ```{python}

@@ -4,6 +4,8 @@ project:
   # Puts the skip link before the navigation bar of every page.
   post-render:
     - skip-link.py
+    - search-fallback.py
+    - search-index.py
     - attribution.py
   # Files the pages do not link to in Markdown but the built site must
   # contain: the math font that site.css loads, and its licence, and the
@@ -23,9 +25,13 @@ website:
   # serve the site under the path of this URL.
   site-url: https://taspinar.github.io/physics-by-construction/
   repo-url: https://github.com/taspinar/physics-by-construction
-  # Search and a collapsing menu both need JavaScript; the site must be fully
-  # usable without it.
-  search: false
+  # Quarto's own search with its local index (search.json, built with the site
+  # and served from its origin). It needs JavaScript; without it the control is
+  # hidden and the learning path stays the way to find a lesson. No Algolia.
+  search:
+    location: navbar
+    type: textbox
+    limit: 10
   navbar:
     collapse: false
     left:
@@ -33,9 +39,11 @@ website:
         href: index.qmd
       - text: Learning path
         href: path/index.qmd
+      - text: Glossary
+        href: glossary.qmd
       - text: About
         href: about.qmd
-      - text: Reproduce
+      - text: Set up
         href: reproduce.qmd
       - text: Contribute
         href: contribute.qmd

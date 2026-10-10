@@ -1,0 +1,43 @@
+id: sandia-qubit-gate-set-tomography
+title: Sandia mid-circuit measurement gate set tomography data and code
+source:
+  url: https://zenodo.org/records/5146074
+  creator: Kenneth Rudinger, Guilhem Ribeill, Luke Govia, and others
+  version: v1.0.2 (record title)
+  accessed: &id001 2026-10-09
+  doi: 10.5281/zenodo.5146074
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/5146074, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/5146074, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  publication_of_figures:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/5146074, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  modification_and_attribution:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/5146074, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+artifacts:
+- name: tomography data
+  type: raw-measured
+  description: Circuit outcome counts from a superconducting qubit, per the record title (as described
+    by the source; no file was inspected)
+size:
+  description: 253,473 bytes (Zenodo file listing).
+format: ZIP, internals not inspected
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09).
+  - Specialised statistical inference.
+  gate: Inspect the archive's files and the statistical inference needed, and decide whether a learner
+    can follow it.

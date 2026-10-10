@@ -1,0 +1,111 @@
+id: gw150914-strain
+title: GW150914 gravitational-wave strain, H1 and L1, 32 s at 4096 Hz
+source:
+  url: https://gwosc.org/events/GW150914/
+  doi: https://doi.org/10.7935/82H3-HH23
+  creator: LIGO Scientific Collaboration and Virgo Collaboration, distributed by the Gravitational Wave
+    Open Science Center (GWOSC)
+  version: GWTC-1-confident, GW150914 v3, strain release R1
+  accessed: &id001 2026-10-09
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: permitted
+    source: GWOSC event page https://gwosc.org/events/GW150914/ ('Data released under a CC BY 4.0 License.
+      Please follow acknowledgement guidelines'), read 2026-10-09; CC BY 4.0 permits copying, redistribution,
+      adaptation, and publication of derivatives with attribution and an indication of changes
+  redistribution_of_subsets:
+    answer: permitted
+    source: GWOSC event page https://gwosc.org/events/GW150914/ ('Data released under a CC BY 4.0 License.
+      Please follow acknowledgement guidelines'), read 2026-10-09; CC BY 4.0 permits copying, redistribution,
+      adaptation, and publication of derivatives with attribution and an indication of changes
+  publication_of_figures:
+    answer: permitted
+    source: GWOSC event page https://gwosc.org/events/GW150914/ ('Data released under a CC BY 4.0 License.
+      Please follow acknowledgement guidelines'), read 2026-10-09; CC BY 4.0 permits copying, redistribution,
+      adaptation, and publication of derivatives with attribution and an indication of changes
+  modification_and_attribution:
+    answer: permitted
+    source: GWOSC event page https://gwosc.org/events/GW150914/ ('Data released under a CC BY 4.0 License.
+      Please follow acknowledgement guidelines'), read 2026-10-09; CC BY 4.0 permits copying, redistribution,
+      adaptation, and publication of derivatives with attribution and an indication of changes
+  attribution: 'Cite one of the GWOSC data-release papers and include: ''This research has made use of
+    data or software obtained from the Gravitational Wave Open Science Center (gwosc.org), a service of
+    the LIGO Scientific Collaboration, the Virgo Collaboration, and KAGRA.'' with the funding text of
+    https://gwosc.org/acknowledgement/ (read 2026-10-09).'
+artifacts:
+- name: H-H1_GWOSC_4KHZ_R1-1126259447-32.txt.gz
+  type: calibrated-observation
+  description: Calibrated strain h(t) of the LIGO Hanford detector, as released by GWOSC; instrument noise
+    included, no signal subtracted.
+- name: L-L1_GWOSC_4KHZ_R1-1126259447-32.txt.gz
+  type: calibrated-observation
+  description: Calibrated strain h(t) of the LIGO Livingston detector.
+- name: whitened, band-passed strain (derived by pbc.data.reference.gw150914)
+  type: calibrated-observation
+  description: 'Not a data file: the figure''s processed series. Filtering is disclosed on the figure;
+    it is labelled processed there.'
+calibration: Strain is calibrated by the LIGO calibration pipeline before release; the plain-text product
+  states no calibration uncertainty. The GWOSC event page and the data-release papers document it; this
+  spike did not verify it.
+schema: Gzip text. Three '#' header lines (event and detector, samples per second, starting GPS and duration),
+  then 131072 lines with one strain value each.
+units: Strain, dimensionless (about 1e-19 rms).
+cadence: 4096 Hz, 32 s starting at GPS 1126259447; the event is at GPS 1126259462.4.
+coordinates: GPS seconds since 1980-01-06 for time; H1 and L1 are separate files with their own detector-site
+  clocks, the 6.9 ms light-travel delay is physical, not an offset in the files.
+masks: 'None in the files: no NaN, no data-quality flags in the text product (the HDF5 product carries
+  them).'
+uncertainty: No per-sample uncertainty is released; the noise is the data's own spectrum, estimated from
+  the 32 s (Welch).
+size:
+  description: 1.29 MB (H1) and 1.22 MB (L1) as gzip text for 32 s at 4096 Hz; the HDF5 and GWF products
+    of the same segment are also published.
+format: gzip-compressed plain text, one number per line
+reader: pbc.data.gwosc.read_strain (standard library gzip and NumPy); the HDF5 product, which needs h5py,
+  is not needed.
+downloads:
+- url: https://gwosc.org/eventapi/json/GWTC-1-confident/GW150914/v3/H-H1_GWOSC_4KHZ_R1-1126259447-32.txt.gz
+  filename: H-H1_GWOSC_4KHZ_R1-1126259447-32.txt.gz
+  algorithm: sha256
+  digest: fefe8717306109460b6c9cff74da6beb9e80ee624824b4b09bdd2c54ce9b4dfc
+  digest_source: computed by this project on 2026-10-09 from the file downloaded from the URL; GWOSC publishes
+    no digest for it
+- url: https://gwosc.org/eventapi/json/GWTC-1-confident/GW150914/v3/L-L1_GWOSC_4KHZ_R1-1126259447-32.txt.gz
+  filename: L-L1_GWOSC_4KHZ_R1-1126259447-32.txt.gz
+  algorithm: sha256
+  digest: 43d30a710d6ed4a8f27d13f45182f3825cbe99f87287b518618c8ff0e25e0d7c
+  digest_source: computed by this project on 2026-10-09 from the file downloaded from the URL; GWOSC publishes
+    no digest for it
+samples:
+- path: H-H1_GWOSC_4KHZ_R1-1126259447-32.txt.gz
+  sha256: fefe8717306109460b6c9cff74da6beb9e80ee624824b4b09bdd2c54ce9b4dfc
+  bytes: 1286320
+  derivation: the file exactly as downloaded from GWOSC, unmodified
+  test: tests/unit/test_data_samples.py::test_gw150914_sample_parses
+- path: L-L1_GWOSC_4KHZ_R1-1126259447-32.txt.gz
+  sha256: 43d30a710d6ed4a8f27d13f45182f3825cbe99f87287b518618c8ff0e25e0d7c
+  bytes: 1219514
+  derivation: the file exactly as downloaded from GWOSC, unmodified
+  test: tests/unit/test_data_samples.py::test_gw150914_sample_parses
+estimates:
+  runtime: 'Reference figure: 3.7 s on the development laptop (whitening, spectrogram, 46-mass matched-filter
+    scan).'
+  memory: About 370 MB peak resident for the figure.
+  page_payload: 2.5 MB committed for both detectors; a figure PNG of about 250 KB; a page would need only
+    the figure, not the strain.
+  ci: 'Offline: reads the two committed files; no portal contact.'
+decision:
+  value: go
+  date: *id001
+  reasons:
+  - 'Real files inspected: 131072 samples each, rate and span match the headers, no NaN.'
+  - The matched-filter fit of a leading-order template to the two files gives a network SNR of 22 at a
+    detector-frame chirp mass of 36 Msun, 15 % above the published 28.6 Msun x (1 + 0.09), the expected
+    bias of a leading-order template, and an H1-L1 delay of 7 ms, as published.
+  - CC BY 4.0 on the record covers local download, subsets, figures, and modification, with a required
+    acknowledgement text that the figure carries.
+  - The sample is 2.5 MB; no new dependency is needed.
+  - 'Caveat: a lesson needs signal-processing background (whitening, spectral estimation); that is a course-fit
+    question for F51, not a data question.'
+dossier: docs/datasets/gw150914-strain.md

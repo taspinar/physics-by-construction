@@ -1,0 +1,41 @@
+id: cms-2012c-25-event-display
+title: CMS 25 selected events of the 2012C run, event display
+source:
+  url: https://opendata.cern.ch/record/7141
+  creator: CMS Collaboration, CERN Open Data portal
+  version: not assessed
+  accessed: &id001 2026-10-09
+rights:
+  licence: not-assessed
+  local_download:
+    answer: not-assessed
+    source: Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09) reports CC0
+      on the record; this project has not read the record
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09) reports CC0
+      on the record; this project has not read the record
+  publication_of_figures:
+    answer: not-assessed
+    source: Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09) reports CC0
+      on the record; this project has not read the record
+  modification_and_attribution:
+    answer: not-assessed
+    source: Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09) reports CC0
+      on the record; this project has not read the record
+artifacts:
+- name: selected events
+  type: processed-measured
+  description: Selected collision events for display (as described by the source; no file was inspected)
+size:
+  description: About 2 MiB per the survey.
+format: IG (ispy) and JSON
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09).
+  - The selection is a display sample, so a figure from it cannot support a statistical statement.
+  gate: Read the record's terms (the survey reports CC0; not verified here), inspect the file, and state
+    that the selection is not representative of all collisions.

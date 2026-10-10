@@ -223,13 +223,20 @@ class LeanEvidence:
                 )
         lines = [
             "::: {.lean-evidence}",
-            "**Compiled with.**"
-            " `./scripts/check-lean.sh` ran `lake build` on every module of the"
+            f"**Compiled with** Lean {self.lean} and Mathlib {self.mathlib}:"
+            " `./scripts/check-lean.sh` found no `sorry` and no axiom declared"
+            " by the project before this page was built.",
+            "",
+            f"{built_from}",
+            "",
+            '<details class="lean-evidence-details">',
+            "<summary>What was checked, and where to read the proofs</summary>",
+            "",
+            "`./scripts/check-lean.sh` ran `lake build` on every module of the"
             " project and found no `sorry` and no axiom declared by the project"
             " before this page was built. CI runs the same check on every pull"
             " request and on `main`.",
             "",
-            f"- {built_from}",
             f"- Lean {self.lean}, from the toolchain pinned in `lean/lean-toolchain`.",
             f"- Mathlib {self.mathlib}, revision `{self.mathlib_revision}`.",
             *(f"- {self._links(module)}" for module in self.modules),
@@ -238,6 +245,8 @@ class LeanEvidence:
             " run are authoritative. The Lean web editor is a convenience: it"
             " runs its own version of Mathlib, which can differ from the one"
             " above, so a proof that compiled here may report an error there.",
+            "",
+            "</details>",
             ":::",
             "",
         ]

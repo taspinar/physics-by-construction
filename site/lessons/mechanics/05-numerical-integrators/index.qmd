@@ -16,7 +16,7 @@ lesson:
     - Step a system with explicit Euler, symplectic Euler, velocity Verlet, and Runge-Kutta 4 behind one interface
     - Compare integrators for accuracy, energy behaviour, and cost
     - Choose an integrator for what a simulation has to be trusted for
-  related: []
+  related: [symplectic-euler-conserved-energy]
   format: 2
   prerequisites:
     lessons: [harmonic-oscillator]
@@ -991,6 +991,17 @@ the second.
 per period, from the stability limits of the explanation, then run 100
 steps with each and print the energy relative to the start.
 
+::: {.hint}
+Turn a number of steps per period into the product of the angular
+frequency and the time step. The stability limits of the explanation are
+stated for that product.
+:::
+
+::: {.hint}
+Compare that product with the limit of each method. A method whose
+product is above its limit grows without bound; one below it does not.
+:::
+
 ::: {.solution}
 Symplectic Euler and velocity Verlet are stable below $z = 2$, so they
 survive the first step size and blow up at the other two. The classical
@@ -1030,6 +1041,17 @@ exact solution for a throw with linear drag. Do velocity Verlet and
 Runge-Kutta 4 keep their orders when the force depends on the velocity?
 Measure them on that throw, over the first two seconds, against the exact
 solution.
+
+::: {.hint}
+The error of one run is the distance between the simulated and the exact
+position at the end. Which module of the Newton's laws lesson gives the
+exact solution?
+:::
+
+::: {.hint}
+Halve the time step several times. The order is the base-two logarithm of
+the ratio of two successive errors.
+:::
 
 ::: {.solution}
 The drag force and the exact solution come from `pbc.mechanics.drag`; the
@@ -1085,6 +1107,16 @@ energy for the method to shadow.
 200 steps for the two Euler methods, 100 for velocity Verlet, 50 for
 Runge-Kutta 4. Which has the smallest error over two periods, and by how
 much?
+
+::: {.hint}
+The cost is the number of calls to the acceleration. How many calls does
+one step of each method make?
+:::
+
+::: {.hint}
+Divide the budget of calls by the calls per step to get the steps per
+period of each method, then compare the largest errors.
+:::
 
 ::: {.solution}
 ```{python}

@@ -1,0 +1,42 @@
+id: electron-diffraction-crystals
+title: Serial electron diffraction data of zeolite crystals
+source:
+  url: https://zenodo.org/record/1158420
+  creator: Stef Smeets
+  version: not assessed
+  accessed: &id001 2026-10-09
+  doi: 10.5281/zenodo.1158421
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/1158420, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/1158420, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  publication_of_figures:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/1158420, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  modification_and_attribution:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/1158420, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+artifacts:
+- name: diffraction images
+  type: raw-measured
+  description: Electron diffraction images of crystals (as described by the source; no file was inspected)
+size:
+  description: Six of seven archives are 0.2-1.6 GB; one is 0.5 MB (Zenodo file listing).
+format: ZIP with HDF5
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09).
+  - Advanced crystallography and very large files.
+  gate: Find a sub-2 MB excerpt that is a faithful measurement, which probably does not exist in the published
+    archives, so a documented download would be the only route.

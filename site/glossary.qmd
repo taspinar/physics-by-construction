@@ -1,0 +1,19 @@
+---
+title: "Glossary"
+description: >-
+  The vocabulary the lessons assume, in a few sentences each, with the
+  lessons that rely on it.
+---
+
+Each lesson opens with a "Before you begin" list of what it assumes you
+already know. Every item links to its entry here. An entry is a reminder, not
+a course: it says what the lessons mean by the term. Where a lesson on this
+site explains the topic, the entry links to it.
+
+```{python}
+#| echo: false
+#| output: asis
+from pbc.authoring import glossary_page
+
+print(glossary_page())
+```

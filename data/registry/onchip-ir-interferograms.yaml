@@ -1,0 +1,41 @@
+id: onchip-ir-interferograms
+title: On-chip phonon-enhanced IR near-field interferograms
+source:
+  url: https://zenodo.org/records/13757138
+  creator: Andrei Bylinkin, Sebastian Castilla, Tetiana Slipchenko, and others
+  version: not assessed
+  accessed: &id001 2026-10-09
+  doi: 10.5281/zenodo.13757138
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/13757138, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/13757138, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  publication_of_figures:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/13757138, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+  modification_and_attribution:
+    answer: not-assessed
+    source: Zenodo record https://zenodo.org/records/13757138, licence field read through the Zenodo API
+      on 2026-10-09; the terms behind the four questions were not assessed
+artifacts:
+- name: interferograms
+  type: raw-measured
+  description: Measured interferograms (as described by the source; no file was inspected)
+size:
+  description: Interferograms.zip 24,947,811 bytes and Source data.xlsx 977,901 bytes (Zenodo file listing).
+format: ZIP of TXT, XLSX
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09).
+  gate: Inspect the archive, separate measurement from reference spectra, and judge whether a learner
+    can follow a specialist instrument.

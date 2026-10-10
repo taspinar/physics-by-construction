@@ -1,0 +1,39 @@
+id: sdo-aia-solar-uv
+title: NASA SDO AIA extreme-ultraviolet solar images
+source:
+  url: https://docs.sunpy.org/en/latest/tutorial/maps.html
+  creator: NASA Solar Dynamics Observatory, AIA instrument team
+  version: not assessed
+  accessed: &id001 2026-10-09
+rights:
+  licence: not-assessed
+  local_download:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  publication_of_figures:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  modification_and_attribution:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+artifacts:
+- name: AIA image
+  type: calibrated-observation
+  description: Calibrated EUV images in several wavelength channels (as described by the source; no file
+    was inspected)
+size:
+  description: A single small sample; a time series is large.
+format: FITS
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09); the linked
+    page is a SunPy tutorial, not a data record, so the terms of the data are unread.
+  - Needs a FITS reader that is not yet a locked dependency.
+  gate: Retrieve one small FITS file with its terms, add a locked FITS reader, and explain the false-colour
+    channels and their temperature response before any figure is labelled.

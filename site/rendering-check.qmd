@@ -193,9 +193,9 @@ amplitude = initial * math.exp(-rate * time)
 ::: {.exercise .self-check}
 Why does the amplitude, and not the period, shrink?
 
-```{=html}
-<details class="hint"><summary>Hint</summary><p>Compare the two lengths of the motion.</p></details>
-```
+::: {.hint}
+Compare the two lengths of the motion.
+:::
 
 ::: {.solution}
 Friction removes energy, and the period depends on the stiffness and the mass.

@@ -1,0 +1,52 @@
+id: fraunhofer-microstructure-diffraction
+title: Fraunhofer diffraction of laser-printed microstructures
+source:
+  url: https://zenodo.org/records/19436924
+  creator: Oleksii Voronkin, Sergiy Lushchin
+  version: not assessed
+  accessed: &id001 2026-10-09
+  doi: 10.5281/zenodo.19436924
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: not-assessed
+    source: 'Zenodo record page read 2026-10-09: licence field CC BY 4.0 next to ''Copyright (c) 2026
+      Oleksii Voronkin and Sergiy Lushchin''; the combination is unresolved'
+  redistribution_of_subsets:
+    answer: unclear
+    source: licence field CC BY 4.0 next to a copyright line on the same record page (read 2026-10-09);
+      the change request flags redistribution as unclear
+  publication_of_figures:
+    answer: unclear
+    source: same record page; the copyright line has not been reconciled with the licence field
+  modification_and_attribution:
+    answer: not-assessed
+    source: 'Zenodo record page read 2026-10-09: licence field CC BY 4.0 next to ''Copyright (c) 2026
+      Oleksii Voronkin and Sergiy Lushchin''; the combination is unresolved'
+artifacts:
+- name: photographs of diffraction patterns
+  type: raw-measured
+  description: Dark-field diffraction photographs, per the survey (as described by the source; no file
+    was inspected)
+- name: numerical Fourier model
+  type: modelled-reference
+  description: Simulated patterns and Python code in the same archives (as described by the source; no
+    file was inspected)
+size:
+  description: Nine RAR archives; the smallest configuration is 46 MB, the largest of the nine files 117
+    MB (Zenodo file listing).
+format: RAR archives with PNG and Python files
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09), which flags
+    the rights.
+  - The record page shows the licence 'Creative Commons Attribution 4.0 International' and, on the same
+    page, 'Copyright (c) 2026 Oleksii Voronkin and Sergiy Lushchin'; the change request flags redistribution
+    as unclear. Both are recorded as read on 2026-10-09; neither is resolved here.
+  - RAR is not readable with the locked environment.
+  gate: Obtain written clarification from the creators that redistribution of subsets and publication
+    of figures are allowed despite the copyright line, then add a RAR extraction path that does not need
+    a new locked dependency, then pick a configuration under the caps.
