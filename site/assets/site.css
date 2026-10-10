@@ -213,6 +213,15 @@ main a > code:not(.sourceCode) {
   overflow-wrap: anywhere;
 }
 
+/* A recorded agent run and a hunt verdict print whole tool calls as inline
+   code. The theme keeps inline code on one line, so a call with three
+   arguments would widen the page on a phone: let it wrap. */
+.agent-run code:not(.sourceCode),
+.verdict code:not(.sourceCode) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 /* The build evidence of a Lean lesson: what compiled the proofs, and where to
    read them. */
 .lean-evidence {

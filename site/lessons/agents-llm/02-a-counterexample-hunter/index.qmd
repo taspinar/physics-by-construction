@@ -1,0 +1,451 @@
+---
+title: "A counterexample hunter"
+description: >-
+  A language model tries to refute two claims about integrators through a
+  bounded list of simulations; the build recomputes every experiment and
+  decides the verdict itself, so that only a recomputed counterexample counts
+  as a result and a failed hunt is labelled inconclusive.
+lesson:
+  id: counterexample-hunter
+  strand: agents-llm
+  order: 2
+  difficulty: 3
+  course: mechanics
+  methods: [simulation, llm-agents]
+  outcomes:
+    - State a falsifiable claim with a predicate and a budget of experiments
+    - Read a worked hunt and the verdict the build recomputed from it
+    - Explain why a failed hunt is inconclusive and not a proof
+  related: [verifying-scientific-code]
+  prerequisites:
+    lessons: [agent-experiment, numerical-integrators]
+    outside:
+      - "Python: functions and dictionaries"
+      - "Large language models: a program that continues a text"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import lesson_header
+
+lesson_header()
+```
+
+A claim about a simulation method, such as "this integrator keeps the energy
+of an oscillator within five per cent", is easy to say and hard to settle. One
+experiment that breaks it settles it for good: that is a **counterexample**.
+No number of experiments that do not break it settles it the other way, because
+the claim speaks about every step and every run length, and a finite search
+visits a few of them. This lesson gives a language model the job of searching
+for the counterexample, and lets the build decide what the search found.
+
+The agent is the one of the previous lesson, with the same harness, the same
+kind of allowlist, and a run replayed without a model or a key. Two
+things are new. A **claim** now has a predicate that the harness evaluates on
+simulation output, and a budget of experiments. And the **verdict** is not
+what the agent says. The build runs every experiment of the agent again, in
+the domain of the claim, and evaluates the predicate on the new numbers. A
+recomputed counterexample is a result of type `numerically-verified`. Anything
+else is **inconclusive**, and the page says so.
+
+## Assumptions
+
+1. **The claim is falsifiable.** It has a domain (which method, which steps,
+   which run lengths) and a predicate on a number the simulation returns. A
+   claim without both cannot be refuted by an experiment, only argued about.
+2. **A counterexample is a recomputed experiment.** It is an experiment inside
+   the domain whose recomputed value breaks the predicate. The agent's
+   description of one is not a counterexample, and a counterexample the agent
+   never mentions still is.
+3. **The budget is part of the claim.** The agent may run a fixed number of
+   experiments. A hunt that ends within the budget without a counterexample
+   says what was tried, not what is true.
+4. **The tolerances come first.** The limit of each claim and the tolerance of
+   the replay are written down before the hunt, as the scientific validation
+   contract requires. Nothing is widened to produce a verdict.
+5. **The agent is untrusted, as before.** It reaches the simulation only
+   through the allowlist, with bounded arguments, and its text is data.
+
+## How the hunt is judged {#explanation}
+
+The claim has four parts.
+
+- A **statement**, in words, that a reader can check against the rest.
+- A **domain**: the method is fixed, the number of steps per period and the
+  number of periods lie between stated bounds. Experiments outside it say
+  nothing about the claim, even when the allowlist accepts them.
+- A **predicate**: the value the simulation returns, here the largest
+  relative drift of the energy, does not exceed a limit.
+- A **budget**: how many experiments the agent may run.
+
+The agent runs experiments through the allowlist; the allowlist counts the
+calls that pass validation and refuses the ones beyond the budget before they
+run. Afterwards, the judge goes through the experiments in the order the agent
+ran them. For each accepted call inside the domain it runs the simulation
+again from the arguments, not from the transcript, and checks the predicate on
+the new value. The first one that breaks it is the **witness**.
+
+- **Counterexample.** A recomputed experiment in the domain breaks the
+  predicate. The verdict is a claim of type `numerically-verified`, about that
+  experiment.
+- **Inconclusive.** No recomputed experiment in the domain broke it. The
+  verdict is not a result and has no claim type; it is not "the claim is
+  true".
+
+The second outcome is the point of the design. A model that stops after a few
+experiments and writes "the claim holds" has said something that its
+experiments cannot support, and the page never repeats that sentence as a
+result. The type `numerically-verified` goes only to the statement that the
+build computed.
+
+The claim and the verdict are the kind of evidence of the scientific
+validation contract: a check that can fail, a tolerance written before the
+run, and a statement of what was not covered.
+
+### Two claims
+
+Both claims are about the oscillator of the course, released from rest, and
+about the **energy drift**: the largest relative deviation of the energy from
+its initial value over a run.
+
+```{python}
+#| echo: false
+from pbc.agents.display import AllowlistDisplay
+from pbc.agents.hunter_lab import (
+    BUDGET,
+    FALSE_CLAIM,
+    MAX_STEPS,
+    OPEN_CLAIM,
+    TOLERANCE,
+    TOOL,
+    replay_hunt,
+    tools,
+)
+
+AllowlistDisplay(tools())
+```
+
+1. `{python} FALSE_CLAIM.statement`.
+2. `{python} OPEN_CLAIM.statement`.
+
+The agent **may** call `{python} TOOL` with the arguments above, run at most
+`{python} BUDGET` experiments, make at most `{python} MAX_STEPS` model
+messages, and write text. It **may not** do anything the harness of the
+previous lesson did not already forbid, and the new argument adds nothing to
+that: the `method` is one of four names in a list, and any other value is
+rejected before it reaches a function.
+
+## Code
+
+The claim is a small record. Its two methods are the whole of the domain and
+the predicate.
+
+```{python}
+#| echo: false
+from pbc.agents.hunter import FalsifiableClaim, judge
+from pbc.agents.tools import Allowlist, Choice
+from pbc.authoring import excerpt, reproduce_this
+
+excerpt(FalsifiableClaim)
+```
+
+The judge is the function that decides. It never reads the model's text, and it
+never reads a result from the transcript.
+
+```{python}
+#| echo: false
+excerpt(judge)
+```
+
+The `method` argument is a choice from a fixed list.
+
+```{python}
+#| echo: false
+excerpt(Choice)
+```
+
+The budget is a count in the allowlist: `dispatch` refuses a call beyond it
+without running anything.
+
+```{python}
+#| echo: false
+excerpt(Allowlist)
+```
+
+## Worked examples
+
+### The boundary of the new allowlist
+
+These are the calls a misbehaving model might send to the new tool. Only the
+first one runs.
+
+```{python}
+from pbc.agents import ToolCall
+
+allowlist = tools()
+good = {"method": "velocity Verlet", "steps_per_period": 32, "periods": 5}
+attempts = [
+    ("a valid experiment", good),
+    ("a method that is not in the list", {**good, "method": "os.system"}),
+    ("a method that is not even text", {**good, "method": ["velocity Verlet"]}),
+    ("zero steps per period", {**good, "steps_per_period": 0}),
+    ("a million periods", {**good, "periods": 1_000_000}),
+    ("a fractional number of steps", {**good, "steps_per_period": 32.5}),
+    ("an extra argument", {**good, "code": "1+1"}),
+]
+for label, arguments in attempts:
+    result = allowlist.dispatch(ToolCall("x", TOOL, arguments))
+    outcome = f"{result.content['max_energy_drift']:.4f}" if result.ok else result.content["error"]
+    print(f"{label}: {outcome}")
+```
+
+A rejected call does not use the budget. The budget is used only by calls that
+reach the simulation, and when it is spent the next call is refused:
+
+```{python}
+allowlist = tools()
+for number in range(1, BUDGET + 2):
+    result = allowlist.dispatch(ToolCall(str(number), TOOL, good))
+    if not result.ok:
+        print(f"experiment {number}: {result.content['error']}")
+```
+
+### A claim with a counterexample
+
+The worked example below puts the first claim to an agent. The messages are
+authored examples, not a recorded model run: a Claude model wrote them in a
+Claude Code session, after reading the tool results. Every result is computed
+by this build now.
+
+```{python}
+from pbc.agents.display import RunDisplay, VerdictDisplay
+
+recording, transcript, verdict = replay_hunt("false")
+RunDisplay(recording, transcript, authored=True)
+```
+
+The verdict does not come from the last message. The judge ran the
+experiments of the domain again and found the first one that breaks the
+predicate:
+
+```{python}
+VerdictDisplay(verdict)
+```
+
+The statement above is labelled with its type, `numerically-verified`, and its
+scope is the experiment. It says nothing about steps the agent did not try,
+beyond what the refutation of a claim about all of them implies: the claim is
+false, and by how much it fails at the other steps is for other experiments to
+say.
+
+### A claim the agent cannot settle
+
+The second claim is about velocity Verlet, which keeps the energy in a band
+whose size grows with the square of the step. The second example is another
+run with the same system prompt, and ends when the budget is spent.
+
+```{python}
+open_recording, open_transcript, open_verdict = replay_hunt("open")
+RunDisplay(open_recording, open_transcript, authored=True)
+```
+
+```{python}
+VerdictDisplay(open_verdict)
+```
+
+The hunt found nothing, and the page says that the outcome is inconclusive. The
+agent's last message, which is authored text, says the same in its own words;
+if it had said "the claim is true", the verdict above would not change.
+
+### The verdict ignores what the agent says
+
+Two checks the build runs on the two examples above. First, the last message of
+the successful hunt is removed and the one of the failed hunt is replaced with
+a confident counterexample that no experiment supports:
+
+```{python}
+from dataclasses import replace
+
+from pbc.agents import ModelMessage, Step
+
+def with_last_text(run, text):
+    *earlier, last = run.steps
+    message = ModelMessage(text, last.message.tool_calls)
+    return replace(run, steps=(*earlier, Step(message, last.results)))
+
+silent = with_last_text(transcript, "")
+boasting = with_last_text(
+    open_transcript, "Counterexample found: Verlet at 16 steps per period drifts by 90 per cent."
+)
+print("silent agent, real counterexample:", judge(FALSE_CLAIM, silent, tools()).outcome)
+print("boasting agent, no counterexample:", judge(OPEN_CLAIM, boasting, tools()).outcome)
+```
+
+Second, the results stored in a transcript are overwritten with a drift of 90
+per cent in every experiment. The judge does not read them:
+
+```{python}
+forged = replace(
+    open_transcript,
+    steps=tuple(
+        Step(
+            step.message,
+            tuple(
+                replace(r, content={"max_energy_drift": 0.9}) if r.ok else r
+                for r in step.results
+            ),
+        )
+        for step in open_transcript.steps
+    ),
+)
+print("forged results:", judge(OPEN_CLAIM, forged, tools()).outcome)
+```
+
+### What the agent saw, and what it did not
+
+The figure is a fresh scan of the same tool at 50 periods, with the two limits.
+The points are the experiments of the two worked hunts at 50 periods.
+
+```{python}
+#| label: fig-hunt
+#| fig-status: simulated
+#| fig-cap: "Largest energy drift of the oscillator against steps per period, for symplectic Euler and velocity Verlet over 50 periods. Dashed lines are the limits of the two claims; the dots are experiments of the worked hunts."
+#| fig-alt: "A log-log chart of energy drift against steps per period from 16 to 200. Both curves fall as the step shrinks. The symplectic Euler curve, falling slowly, crosses its dashed line at 5 per cent between 64 and 100 steps per period. The velocity Verlet curve, falling faster, stays below its dashed line at 4 per cent for every step from 16 on, and comes close to it at the coarsest step."
+import matplotlib.pyplot as plt
+import numpy as np
+
+function = tools().tool(TOOL).function
+steps = np.array([16, 20, 24, 32, 48, 64, 100, 150, 200])
+fig, ax = plt.subplots(figsize=(6.4, 3.8))
+for method, claim, colour in (
+    ("symplectic Euler", FALSE_CLAIM, "#93003a"),
+    ("velocity Verlet", OPEN_CLAIM, "#00429d"),
+):
+    drift = [function(method, int(n), 50)["max_energy_drift"] for n in steps]
+    ax.loglog(steps, drift, color=colour, label=method)
+    ax.axhline(claim.limit, color=colour, linestyle="--", linewidth=1)
+for run in (transcript, open_transcript):
+    for step in run.steps:
+        for call, result in zip(step.message.tool_calls, step.results, strict=True):
+            if result.ok and call.arguments["periods"] == 50:
+                ax.plot(
+                    call.arguments["steps_per_period"],
+                    result.content["max_energy_drift"],
+                    "ko",
+                    markersize=4,
+                )
+ax.set_xlabel("steps per period")
+ax.set_ylabel("largest energy drift")
+ax.legend()
+plt.show()
+```
+
+Verlet's curve stays under its limit on this scan, so on these steps the claim
+holds. That is a scan of nine steps at one run length: it is a better look than
+the agent's eight experiments, and it is not a proof either. The claim is about
+every step from 16 to 200 and every run from 1 to 50 periods.
+
+### Run the agent yourself
+
+This needs your own key and costs a few cents. The build does not run it, so
+the commands are marked.
+
+::: {.not-verified}
+```bash
+# once: install the optional provider package
+uv sync --extra openai
+
+# in this shell only: the key stays out of code and files
+export OPENAI_API_KEY="..."
+
+uv run --extra openai python -m pbc.agents.hunter_lab --claim false
+uv run --extra openai python -m pbc.agents.hunter_lab --claim open
+```
+:::
+
+The program prints each message, each experiment, and, at the end, the verdict
+it computed itself, not the model's words. A maintainer can replace the two
+authored fixtures of this page with real recorded runs, with the same commands
+and `--record`.
+
+## Limits {#limits}
+
+- **A counterexample refutes a claim about every case; it measures nothing
+  else.** The experiment shows that the claim fails at those arguments. It does
+  not show how the method behaves elsewhere, nor that the physics is right: the
+  model is the oscillator of the course, and the energy is the one the code
+  computes.
+- **An inconclusive hunt is not evidence for the claim.** The budget bounds
+  what the agent could try. A claim that the build finds no counterexample to
+  can still have one that the agent did not try; proving it for all cases is
+  a task for a proof, which the Lean strand shows on a different property.
+- **The agent's reasoning is authored text.** The messages of this page are
+  examples written for it, not a measurement of how a model searches. Nothing in the build checks whether its reasoning was sound,
+  only the experiments it asked for.
+- **The examples are not recorded runs.** Each fixture says which model wrote
+  its messages and on what date. These two were written by a Claude model in a
+  Claude Code session, not produced through the provider API of the live
+  client, and a live run will choose other experiments.
+
+## Exercises
+
+::: {.exercise}
+The first claim fails for coarse steps. At 20 periods, what is the smallest
+number of steps per period, an integer from 16 to 200, for which symplectic
+Euler stays within the 5 per cent of the claim? Use the function the tool
+wraps, not the allowlist, so that no budget is used.
+
+::: {.solution}
+```{python}
+function = tools().tool(TOOL).function
+smallest = next(
+    n
+    for n in range(16, 201)
+    if FALSE_CLAIM.holds_on(function("symplectic Euler", n, 20)["max_energy_drift"])
+)
+print(smallest, f"{function('symplectic Euler', smallest, 20)['max_energy_drift']:.4f}")
+print(smallest - 1, f"{function('symplectic Euler', smallest - 1, 20)['max_energy_drift']:.4f}")
+```
+
+Below this step the claim has counterexamples, and from here up to 200 it has
+none at this run length. A hunter with a budget of eight finds the first
+quickly, by trying a coarse step; it would take a scan to find the boundary.
+:::
+:::
+
+::: {.exercise}
+Put a stricter claim to the experiments of the second example: velocity
+Verlet within 3.5 per cent instead of 4. Do the same eight experiments give a
+counterexample? Does the answer say anything about the original claim?
+
+::: {.solution}
+```{python}
+stricter = replace(OPEN_CLAIM, limit=0.035)
+new_verdict = judge(stricter, open_transcript, tools())
+print(new_verdict.outcome, new_verdict.witness)
+print("original claim:", judge(OPEN_CLAIM, open_transcript, tools()).outcome)
+```
+
+The experiment at 16 steps per period drifts by about 3.86 per cent, above
+3.5, so the stricter claim is refuted by an experiment the agent already ran.
+That says nothing new about the original claim: its limit is a different
+number, and its verdict is still inconclusive.
+:::
+:::
+
+## Reproduce this
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/agents/hunter.py",
+        "src/pbc/agents/hunter_lab.py",
+        "src/pbc/agents/tools.py",
+    ],
+    tests=[
+        "tests/unit/test_agents_hunter.py",
+        "tests/unit/test_agents_tools.py",
+    ],
+)
+```

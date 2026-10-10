@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from pbc.agents import load_recording
+from pbc.agents.hunter_lab import HUNTS, replay_hunt
 from pbc.agents.projectile_lab import RECORD_COMMAND, REPLAY_FILE, replay_fixture
 
 ROOT = Path(__file__).parents[2]
@@ -81,3 +82,42 @@ def test_ci_installs_no_provider_package():
     for workflow in WORKFLOWS:
         assert "--extra openai" not in workflow.read_text()
         assert "--all-extras" not in workflow.read_text()
+
+
+HUNT_LESSON = ROOT / "site" / "lessons" / "agents-llm" / "02-a-counterexample-hunter"
+
+
+@pytest.mark.parametrize("name", sorted(HUNTS))
+def test_the_hunts_replay_with_no_network_and_no_credential(name, monkeypatch):
+    """Issue #87: replay passes without credentials, and the verdict is the
+    one the build computed."""
+
+    def refuse(*args, **kwargs):
+        raise AssertionError("the replay opened a network connection")
+
+    monkeypatch.setattr(socket.socket, "connect", refuse)
+    monkeypatch.setattr(socket, "create_connection", refuse)
+    monkeypatch.setattr(socket, "getaddrinfo", refuse)
+    for variable in ("OPENAI_API_KEY", "ANTHROPIC_API_KEY"):
+        monkeypatch.delenv(variable, raising=False)
+    _, transcript, verdict = replay_hunt(name, HUNT_LESSON)
+    assert transcript.steps
+    expected = {"false": "counterexample", "open": "inconclusive"}[name]
+    assert verdict.outcome == expected
+
+
+@pytest.mark.parametrize("name", sorted(HUNTS))
+def test_the_hunt_fixtures_hold_no_credential_and_are_recorded_runs(name):
+    path = HUNT_LESSON / HUNTS[name].fixture
+    assert not CREDENTIAL.search(path.read_text())
+    recording = load_recording(path)
+    assert recording.model.strip()
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", recording.recorded)
+    assert not recording.placeholder
+    assert "placeholder" not in recording.model.lower()
+
+
+def test_the_hunt_lesson_holds_only_the_page_and_its_two_fixtures():
+    kept = {p.name for p in HUNT_LESSON.iterdir() if p.name != "index_files"}
+    fixtures = {hunt.fixture for hunt in HUNTS.values()}
+    assert kept - {"index.html"} == {"index.qmd", *fixtures}

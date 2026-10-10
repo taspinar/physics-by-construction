@@ -31,10 +31,11 @@ from pbc.agents.replay import (
     save_recording,
 )
 from pbc.agents.secrets import Secret, redact
-from pbc.agents.tools import Allowlist, Parameter, Tool
+from pbc.agents.tools import Allowlist, Choice, Parameter, Tool
 
 __all__ = [
     "Allowlist",
+    "Choice",
     "ModelClient",
     "ModelMessage",
     "Parameter",

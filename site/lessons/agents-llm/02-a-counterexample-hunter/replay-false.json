@@ -1,0 +1,92 @@
+{
+  "format": 1,
+  "model": "claude-sonnet-5-5 in a Claude Code session",
+  "recorded": "2026-10-10",
+  "system": "You are a careful experimenter who tries to refute claims. You can only use the tools you are given, and only a limited number of experiments. A counterexample is an experiment, inside the domain of the claim, whose result breaks it: name the experiment's arguments and result. If you find none, say that you found none and what you tried. Do not say that the claim is true because your experiments did not refute it.",
+  "task": "Claim: Symplectic Euler keeps the energy of the oscillator within 5 per cent of its initial value, for every step of 16 to 200 steps per period and every run of 1 to 50 periods. Here the energy drift of a run is the largest relative deviation of the energy from its initial value over the run. Try to refute the claim with at most 8 experiments of the tool, all inside the domain of the claim.",
+  "steps": [
+    {
+      "text": "The claim is about a bound that should get worse as the step grows, so I start at the fine end of the domain and coarsen it: 200, 100 and 64 steps per period, over 20 periods. The energy error of symplectic Euler is a band whose size grows with the step, so I expect the bound to fail at the coarse end.",
+      "tool_calls": [
+        {
+          "id": "c1",
+          "name": "oscillator_energy_drift",
+          "arguments": {
+            "method": "symplectic Euler",
+            "steps_per_period": 200,
+            "periods": 20
+          }
+        },
+        {
+          "id": "c2",
+          "name": "oscillator_energy_drift",
+          "arguments": {
+            "method": "symplectic Euler",
+            "steps_per_period": 100,
+            "periods": 20
+          }
+        },
+        {
+          "id": "c3",
+          "name": "oscillator_energy_drift",
+          "arguments": {
+            "method": "symplectic Euler",
+            "steps_per_period": 64,
+            "periods": 20
+          }
+        }
+      ],
+      "results": [
+        {
+          "call_id": "c1",
+          "ok": true,
+          "content": {
+            "max_energy_drift": 0.015956654396926062
+          }
+        },
+        {
+          "call_id": "c2",
+          "ok": true,
+          "content": {
+            "max_energy_drift": 0.0324348967333814
+          }
+        },
+        {
+          "call_id": "c3",
+          "ok": true,
+          "content": {
+            "max_energy_drift": 0.05156720861978181
+          }
+        }
+      ]
+    },
+    {
+      "text": "The drift is 1.6 per cent at 200 steps per period and 3.2 per cent at 100, and at 64 it is 5.16 per cent, above the limit of 5 per cent. That is a counterexample, but a thin one, so I run one experiment far from the limit, at 32 steps per period.",
+      "tool_calls": [
+        {
+          "id": "c4",
+          "name": "oscillator_energy_drift",
+          "arguments": {
+            "method": "symplectic Euler",
+            "steps_per_period": 32,
+            "periods": 20
+          }
+        }
+      ],
+      "results": [
+        {
+          "call_id": "c4",
+          "ok": true,
+          "content": {
+            "max_energy_drift": 0.10886167570727201
+          }
+        }
+      ]
+    },
+    {
+      "text": "Counterexample found. Symplectic Euler, 64 steps per period, 20 periods: the largest energy drift is 5.157 per cent, above the 5 per cent of the claim. At 32 steps per period it is 10.9 per cent, so the claim fails by a clear margin there too. The experiments at 100 and 200 steps per period stay below 5 per cent (3.2 and 1.6 per cent), so the claim fails only for the coarser steps of its domain. I used 4 of the 8 experiments.",
+      "tool_calls": [],
+      "results": []
+    }
+  ]
+}

@@ -833,6 +833,19 @@ def test_file_at_the_replay_fixture_location_is_accepted(make_repository: Reposi
     assert lesson_checks.check_committed_files(repository) == []
 
 
+def test_named_replay_fixtures_of_a_lesson_are_accepted(make_repository: Repository):
+    repository = make_repository(
+        files={
+            f"{LESSON}/replay-false.json": '{"steps": []}',
+            f"{LESSON}/replay-open.json": '{"steps": []}',
+        }
+    )
+    git(repository, "add", "--all")
+    git(repository, "commit", "--quiet", "--message", "Lesson with two recordings")
+
+    assert lesson_checks.check_committed_files(repository) == []
+
+
 @pytest.mark.parametrize(
     "path",
     [
