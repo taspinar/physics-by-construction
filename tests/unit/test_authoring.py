@@ -308,6 +308,24 @@ def test_commands_check_out_the_built_commit(lesson_directory: Path):
     assert f"/tree/{sha}" in reproduction._repr_markdown_()
 
 
+def test_the_summary_is_short_and_the_full_listing_is_in_a_closed_details(
+    lesson_directory: Path,
+):
+    reproduction = reproduce_this(code=[CODE], tests=[TESTS])
+    text = reproduction._repr_markdown_()
+    summary, details = text.split('<details class="reproduce-details">')
+
+    assert "<details open" not in text
+    # First view: the commit and one command; the files and the other
+    # commands are only in the listing.
+    assert build_commit().sha in summary
+    assert reproduction.commands[-1] in summary
+    assert "git clone" not in summary and CODE not in summary
+    for command in reproduction.commands:
+        assert command in details
+    assert CODE in details and TESTS in details
+
+
 def test_a_page_that_shows_lean_proofs_runs_the_lean_check_before_rendering(
     lesson_directory: Path,
 ):

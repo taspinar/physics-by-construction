@@ -108,7 +108,8 @@ site/                    Quarto project: the website source
   about.qmd              About: how the site is built, licences, identity (F57)
   path/                  Learning path page (generated from lesson metadata)
   lessons/<strand>/<nn>-<slug>/index.qmd   One directory per lesson
-  glossary.qmd           Glossary and "before you begin" (next phase, F42)
+  glossary.qmd           Glossary page, generated from glossary.yaml and the lessons (F42)
+  glossary.yaml          Glossary entries; lessons reference them by term (F42)
   references.yaml        Reference register of curated external links (next phase, F28, ADR 009)
   widgets/               Self-hosted JavaScript widgets (ES modules)
   assets/                Styles, fonts, vendored Lean syntax definition
@@ -205,7 +206,7 @@ features:
 | `title`, `description` | Lesson title and one-sentence description. | F02 |
 | `strand`, `order` | Position in the learning path. | F02 |
 | `difficulty` | Ordinal level on one site-wide scale (1 to 3). | F02 |
-| `prerequisites` | Lesson `id`s that must come earlier in the path, plus free-text outside prerequisites. | F02 |
+| `prerequisites` | Lesson `id`s that must come earlier in the path, plus outside prerequisites written `Term: detail`, each term an entry of the glossary (F42). | F02 |
 | `lean-modules` | Lean modules this lesson displays, when any. | F08 |
 | `course` | The primary physics course. Required. | F37 |
 | `methods` | The methods the lesson uses, from the fixed vocabulary; at least one. | F37 |
@@ -227,10 +228,10 @@ each major concept, the progressive depth the requirements ask for:
 | Assumptions, explanation, code, worked examples | As format 1 | yes | The core explanation stays on the site: intuition, definitions, essential derivation steps, units, limits of applicability; code explained as physical operations (state variables, update order, units, error modes). |
 | Interpretation | Prose after each figure or table, and the caption | yes | What the figure or table means, its source status, the invariant or reference it was checked against. |
 | Limits | `limits` | yes | What the result does not show: failure modes, what the proof or the measurement does not cover. May be one paragraph. |
-| Self-check | One `.exercise.self-check` div, counted among the exercises | yes | One concise conceptual question with its solution, distinct from the exercises. |
+| Self-check | One `.exercise.self-check` div; it is an exercise for the solution markup and the checks, but is titled "Self-check." and takes no number | yes | One concise conceptual question with its solution, distinct from the exercises. |
 | Go deeper | `.go-deeper` div naming register keys | no | Curated external references at the relevant concept, each with a short reason to visit, rendered from the reference register (ADR 009). Never a substitute for a missing core explanation. |
-| Claim labels | `.claim` span or div with `type`, optional `scope`, and optional `evidence` | yes where a scientific claim is made | One of the four claim types defined below; renders a visible label. `evidence` names the cell label, register or card key, or Lean theorem that supports the claim; reserved by F28 and filled by the editorial passes, validated only by the evidence map (F19). |
-| Figure status | A status on every figure cell | yes | One of `measured`, `calibrated`, `processed`, `simulated`, `conceptual`; renders with the caption. |
+| Claim labels | `.claim` span or div with `type` (the build renders the label as a `data-type` span), optional `scope`, and optional `evidence` | yes where a scientific claim is made | One of the four claim types defined below; renders a visible label. `evidence` names the cell label, register or card key, or Lean theorem that supports the claim; reserved by F28 and filled by the editorial passes, validated only by the evidence map (F19). |
+| Figure status | `#| fig-status:` on every figure cell | yes | One of `measured`, `calibrated`, `processed`, `simulated`, `conceptual`; renders with the caption. |
 
 The claim type names the kind of evidence behind the claim, not the kind of
 lesson that makes it. The type follows what was done to support the claim
@@ -248,7 +249,13 @@ difficulty, not word count.
 
 The learning path (order, difficulty, prerequisites, courses, methods,
 related lessons, previous and next links) is derived from lesson front
-matter. There is no second, hand-maintained list that could drift.
+matter. There is no second, hand-maintained list that could drift. The
+prerequisite graph on the path page is one inline SVG laid out at build time
+in Python (`pbc.authoring.graph`): columns follow the prerequisites, bands
+are courses, solid arrows are prerequisites, dashed arrows are related
+lessons, each node links to its lesson, and a visually hidden list of
+sentences ("M4 requires M2") is the accessible alternative. It needs no
+browser script.
 
 ### Verified display forms
 
@@ -320,7 +327,11 @@ pinning") with a fix hint.
    contain no request, other origin, or use of browser storage, and
    operating their controls writes nothing to cookies or browser storage; the
    widget tests check the fallback, keyboard operation, the displayed values
-   against `src/pbc`, and the absence of layout shift.
+   against `src/pbc`, and the absence of layout shift. Search (F41): a query
+   finds a lesson by a term in its body; while it runs, nothing is requested
+   from another origin and nothing is written to cookies or browser storage;
+   with scripts disabled no search control is shown and a link to the
+   learning path takes its place; the index stays within the payload budget.
 8. **Determinism**: a second build of the same commit is byte-identical to the
    first.
 9. **Workflow self-tests**: the existing shell tests of the workflow scripts
@@ -766,16 +777,16 @@ Checked at the change-cycle base commit `2f011ea` against the re-approved
 requirements. No material conflict was found. The following gaps are the
 work of the roadmap features named:
 
-- The home page names three pillars "Simulate, Experiment with agents,
-  Prove"; the requirements now name three activities "Construct,
-  Investigate, Verify" with real measurements as first-class content, and
-  ask the page to show published versus planned content honestly (F25).
+- The home page names the three activities "Construct, Investigate, Verify"
+  and shows published versus planned content honestly (F25, delivered).
+  Published counts and names come from the lesson metadata
+  (`pbc.authoring.home`); the planned items are a short list in that module
+  that names roadmap IDs.
 - The About page, the README, and the footer carry no creator or JIDAI
   attribution, and there is no `CITATION.cff`; the Issue forms have no
   scientific-correction or dataset-suggestion form (F57).
 - The learning path is one linear sequence of four strands with no course or
-  method facet, no prerequisite graph, no outcomes, and no cards (F37, F26,
-  F27).
+  method facet, no outcomes, and no cards (F37, F27).
 - Lessons follow format 1: eleven lessons with no typed claims, no figure
   status, no limits section except in the Lean lesson, no self-check
   distinct from the exercises, no curated external references anywhere, one

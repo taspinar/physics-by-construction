@@ -10,6 +10,7 @@ headings, code blocks, and divs are found where Pandoc finds them and not by
 a second Markdown parser.
 """
 
+import datetime
 import functools
 import itertools
 import json
@@ -18,11 +19,13 @@ import secrets
 import subprocess
 from collections.abc import Iterator
 from dataclasses import dataclass
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from pbc.authoring import glossary, is_numeric_console_block
 from pbc.authoring import path as learning_path
 from support.site_checks import Violation
 
@@ -69,7 +72,9 @@ _LESSON_KEYS = {
     "outcomes",
     "related",
 }
-_OPTIONAL_LESSON_KEYS = {"lean-modules"}
+_OPTIONAL_LESSON_KEYS = {"lean-modules", "format"}
+# The lesson formats; a lesson without a declaration is in format 1.
+FORMATS = (1, 2)
 _PREREQUISITE_KEYS = {"lessons", "outside"}
 
 
@@ -354,6 +359,12 @@ def _metadata_problems(front_matter: Any, strand: str, directory: str) -> list[s
                 for entry in lesson[key]
                 if not _ID.fullmatch(entry)
             ]
+    if "format" in lesson and not (
+        _is_integer(lesson["format"]) and lesson["format"] in FORMATS
+    ):
+        problems.append(
+            f"'lesson.format' must be one of {', '.join(map(str, FORMATS))}"
+        )
     if "lean-modules" in lesson and not (
         _text_list(lesson["lean-modules"])
         and all(_LEAN_MODULE.fullmatch(module) for module in lesson["lean-modules"])
@@ -401,10 +412,71 @@ def _calls(lesson: Lesson, blocks: list[Node], function: str) -> bool:
     )
 
 
+_NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
+MAX_HINTS = 3
+
+
+def _numbers_in(blocks: list[Node]) -> set[str]:
+    """The numerals in the prose, the math and the literal inline code of
+    ``blocks``; a computed ``{python}`` expression is not a literal."""
+    found: set[str] = set()
+    for path in _walk(blocks):
+        node = path[-1]
+        if node["t"] == "Str":
+            found.update(_NUMBER.findall(node["c"]))
+        elif node["t"] == "Math" or (
+            node["t"] == "Code" and not node["c"][1].startswith("{python}")
+        ):
+            found.update(_NUMBER.findall(node["c"][1]))
+    return found
+
+
+def _hint_problems(exercise: Node) -> Iterator[str]:
+    """Hints of one exercise: one to three, each before the solution, none
+    holding a number that the statement does not already give, a cell, an
+    inline expression, or a "Go deeper" block."""
+    content = exercise["c"][1]
+    hints = [path[-1] for path in _divs(content, "hint")]
+    if not hints:
+        return
+    if len(hints) > MAX_HINTS:
+        yield f"{len(hints)} hints; an exercise has at most {MAX_HINTS}"
+    top_level = {id(block): index for index, block in enumerate(content)}
+    solution = next(
+        (top_level[id(b)] for b in content if _has_class(b, "solution")), None
+    )
+    statement = [
+        block
+        for block in content
+        if not _has_class(block, "hint") and not _has_class(block, "solution")
+    ]
+    given = _numbers_in(statement)
+    for hint in hints:
+        index = top_level.get(id(hint))
+        if index is None:
+            yield "a '.hint' div is nested in another block; put it in the exercise"
+        elif solution is not None and index > solution:
+            yield "a '.hint' div comes after the '.solution'; hints come before it"
+        body = hint["c"][1]
+        if _numbers_in(body) - given:
+            yield (
+                f"a hint holds the number(s) {sorted(_numbers_in(body) - given)};"
+                " a hint repeats only numbers that the statement gives"
+            )
+        for path in _walk(body):
+            node = path[-1]
+            if node["t"] == "CodeBlock" or (
+                node["t"] == "Code" and node["c"][1].startswith("{")
+            ):
+                yield "a hint holds code; only a solution computes"
+            if _has_class(node, "go-deeper"):
+                yield "a hint holds a 'go-deeper' block; they are distinct"
+
+
 def check_sections(repository: Path) -> list[Violation]:
     """Every lesson has the required sections with content, exercises come
-    with solutions, and the header and "Reproduce this" are produced by
-    their helpers."""
+    with solutions (hints, if any, before them), and the header and
+    "Reproduce this" are produced by their helpers."""
     violations = []
     for page in lesson_pages(repository):
         lesson = read_lesson(page)
@@ -442,6 +514,13 @@ def check_sections(repository: Path) -> list[Violation]:
                 for number, path in enumerate(exercises, start=1)
                 if not _divs(path[-1]["c"][1], "solution")
             ]
+        for path in _divs(lesson.blocks, "exercise"):
+            problems += list(_hint_problems(path[-1]))
+        problems += [
+            "a '.hint' div is outside an '.exercise' div"
+            for path in _divs(lesson.blocks, "hint")
+            if not any(_has_class(node, "exercise") for node in path[:-1])
+        ]
         problems += [
             "a '.solution' div is outside an '.exercise' div"
             for path in _divs(lesson.blocks, "solution")
@@ -840,6 +919,420 @@ def check_committed_files(repository: Path) -> list[Violation]:
                     f"not part of a lesson; {LESSONS} holds only"
                     f" <strand>/<nn>-<slug>/{PAGE} and, for an agent lesson,"
                     f" {REPLAY_FIXTURE} next to it",
+                )
+            )
+    return violations
+
+
+# --- Format 2 -----------------------------------------------------------------
+#
+# The checks below apply to the lessons that declare ``lesson.format: 2``
+# (architecture, "Lesson model"); a format 1 lesson passes unchanged.
+
+CLAIM_TYPES = (
+    "observational",
+    "experimentally-supported",
+    "numerically-verified",
+    "formal-theorem",
+)
+FIGURE_STATUSES = ("measured", "calibrated", "processed", "simulated", "conceptual")
+REFERENCE_ROLES = ("intuition", "derivation", "figure", "api", "paper", "advanced")
+REFERENCES = f"{SITE}/references.yaml"
+# Every field of a register entry; `reserved` is optional (see below).
+REFERENCE_FIELDS = (
+    "key",
+    "concept",
+    "url",
+    "title",
+    "author",
+    "section",
+    "role",
+    "statement",
+    "alternatives",
+    "lessons",
+    "last-checked",
+    "licence",
+)
+
+_URL = re.compile(r"https?://|\bwww\.", re.IGNORECASE)
+# A number a reader would take for a result: it has a decimal point or an
+# exponent, or at least two digits. Used for alternative text and captions,
+# which cannot hold an inline expression; a single digit there is a given
+# value such as "slope 1".
+_RESULT_LIKE = re.compile(r"\d+[.,]\d|\d[eE][+-]?\d|\d{2}")
+
+
+def lesson_format(lesson: Lesson) -> int:
+    front_matter = lesson.front_matter
+    meta = front_matter.get("lesson") if isinstance(front_matter, dict) else None
+    if isinstance(meta, dict) and meta.get("format") in FORMATS:
+        return meta["format"]
+    return 1
+
+
+def format_2_pages(repository: Path) -> list[Path]:
+    return [
+        page
+        for page in lesson_pages(repository)
+        if lesson_format(read_lesson(page)) == 2
+    ]
+
+
+def _attribute(node: Node, name: str) -> str | None:
+    """The value of the key-value attribute ``name`` of ``node``, or None."""
+    if node["t"] in ("Div", "Span"):
+        return dict(node["c"][0][2]).get(name)
+    return None
+
+
+def _figure_cells(lesson: Lesson) -> Iterator[tuple[Cell, dict[str, Any]]]:
+    for path in _walk(lesson.blocks):
+        cell = lesson.cell(path[-1])
+        if cell is not None:
+            options = cell.options
+            if str(options.get("label", "")).startswith("fig-") or "fig-cap" in options:
+                yield cell, options
+
+
+def _texts_of(value: Any) -> list[str]:
+    return [
+        item
+        for item in (value if isinstance(value, list) else [value])
+        if isinstance(item, str)
+    ]
+
+
+def _hand_typed_numbers(lesson: Lesson) -> Iterator[str]:
+    """Words of prose with a digit that no inline expression produced.
+
+    Allowed: math, code, headings, the statement of an exercise (its given
+    values; not its solution), a span with the class ``given``, and material
+    marked "not verified".
+    """
+    for path in _walk(lesson.blocks):
+        node = path[-1]
+        if node["t"] != "Str" or not any(ch.isdigit() for ch in node["c"]):
+            continue
+        ancestors = path[:-1]
+        if any(
+            parent["t"] == "Header"
+            or _has_class(parent, "given")
+            or _has_class(parent, NOT_VERIFIED)
+            for parent in ancestors
+        ):
+            continue
+        exercises = [
+            i for i, parent in enumerate(ancestors) if _has_class(parent, "exercise")
+        ]
+        if exercises and not any(
+            _has_class(parent, "solution") for parent in ancestors[exercises[-1] :]
+        ):
+            continue
+        yield node["c"]
+
+
+def _format_2_problems(
+    lesson: Lesson, register: set[str], text: str
+) -> Iterator[tuple[str, str]]:
+    sections = _sections(lesson)
+    # The self-check may follow the limits; it is not what the lesson does
+    # not show.
+    limits = [b for b in sections.get("limits", []) if not _has_class(b, "exercise")]
+    if not limits:
+        yield "limits", "no non-empty level-2 section with the identifier 'limits'"
+
+    self_checks = _divs(lesson.blocks, "self-check")
+    if len(self_checks) != 1:
+        yield "self-check", f"{len(self_checks)} self-checks; a lesson has exactly one"
+    for path in self_checks:
+        node = path[-1]
+        if not _has_class(node, "exercise") or not _divs(node["c"][1], "solution"):
+            yield (
+                "self-check",
+                "the self-check is not an '.exercise' div with a '.solution'",
+            )
+
+    for path in _walk(lesson.blocks):
+        node = path[-1]
+        if _has_class(node, "claim") and _attribute(node, "type") not in CLAIM_TYPES:
+            yield (
+                "claim-type",
+                f"claim with type {_attribute(node, 'type')!r}; the types are"
+                f" {', '.join(CLAIM_TYPES)}",
+            )
+        if _has_class(node, "go-deeper") and _attribute(node, "ref") not in register:
+            yield (
+                "reference-key",
+                f"'go-deeper' names {_attribute(node, 'ref')!r}, which is not in"
+                f" {REFERENCES}",
+            )
+
+    for cell, options in _figure_cells(lesson):
+        if options.get("fig-status") not in FIGURE_STATUSES:
+            yield (
+                "figure-status",
+                f"figure cell '{options.get('label') or _first_line(cell.code)}' has no"
+                f" 'fig-status' of {', '.join(FIGURE_STATUSES)}",
+            )
+        for key in ("fig-alt", "fig-cap"):
+            for value in _texts_of(options.get(key)):
+                for word in value.split():
+                    if _RESULT_LIKE.search(word):
+                        yield (
+                            "typed-number",
+                            f"'{key}' of a figure holds {word!r}; describe the shape"
+                            " and leave computed values to the table or the prose",
+                        )
+
+    for found in _URL.finditer(text):
+        yield "raw-url", f"'{found.group(0)}' in the source; link through the register"
+    for word in _hand_typed_numbers(lesson):
+        yield (
+            "typed-number",
+            f"prose holds {word!r} without an inline expression; compute it, or"
+            " mark a given value with [..]{.given}",
+        )
+
+
+def read_register(repository: Path) -> tuple[list[Any], str]:
+    """Return the entries of the register and a problem text ('' if none)."""
+    file = repository / REFERENCES
+    if not file.is_file():
+        return [], "the register is missing"
+    try:
+        data = yaml.safe_load(file.read_text(encoding="utf-8"))
+    except yaml.YAMLError as problem:
+        return [], f"not valid YAML: {problem}"
+    entries = data.get("references") if isinstance(data, dict) else None
+    if not isinstance(entries, list) or set(data) != {"references"}:
+        return [], "must be a mapping with the one key 'references', a list"
+    return entries, ""
+
+
+def check_format_2(repository: Path) -> list[Violation]:
+    """A lesson of format 2 has a limits section, exactly one self-check, a
+    type on every claim, a status on every figure, only keys that the
+    register holds, no URL, and no hand-typed number in prose or in alt text."""
+    entries, _ = read_register(repository)
+    keys = {entry.get("key") for entry in entries if isinstance(entry, dict)}
+    violations = []
+    for page in format_2_pages(repository):
+        text = page.read_text(encoding="utf-8")
+        match = _FRONT_MATTER.match(text)
+        violations += [
+            Violation(rule, _name(repository, page), problem)
+            for rule, problem in _format_2_problems(
+                read_lesson(page), keys, text[match.end() :] if match else text
+            )
+        ]
+    return violations
+
+
+def _lesson_id(lesson: Lesson) -> str | None:
+    front_matter = lesson.front_matter
+    meta = front_matter.get("lesson") if isinstance(front_matter, dict) else None
+    return meta.get("id") if isinstance(meta, dict) else None
+
+
+def _entry_problems(entry: Any) -> Iterator[str]:
+    if not isinstance(entry, dict):
+        yield "entry is not a mapping"
+        return
+    name = entry.get("key")
+    for field in sorted(set(REFERENCE_FIELDS) - set(entry)):
+        yield f"entry {name!r} has no field '{field}'"
+    for field in sorted(set(entry) - set(REFERENCE_FIELDS) - {"reserved"}):
+        yield f"entry {name!r} has the unknown field '{field}'"
+    for field in REFERENCE_FIELDS:
+        if (
+            field in entry
+            and field not in ("lessons", "last-checked")
+            and not _is_text(entry[field])
+        ):
+            yield f"entry {name!r}: '{field}' is not a text"
+    if _is_text(entry.get("key")) and not _ID.fullmatch(entry["key"]):
+        yield f"entry {name!r}: 'key' must be lowercase words joined by '-'"
+    if _is_text(entry.get("url")) and not entry["url"].startswith("https://"):
+        yield f"entry {name!r}: 'url' must start with https://"
+    if "role" in entry and entry["role"] not in REFERENCE_ROLES:
+        yield f"entry {name!r}: 'role' must be one of {', '.join(REFERENCE_ROLES)}"
+    if "lessons" in entry and not (
+        _text_list(entry["lessons"]) and all(_ID.fullmatch(i) for i in entry["lessons"])
+    ):
+        yield f"entry {name!r}: 'lessons' must be a list of lesson ids"
+    if "last-checked" in entry and not isinstance(entry["last-checked"], datetime.date):
+        yield f"entry {name!r}: 'last-checked' must be a date such as 2026-10-09"
+    if "reserved" in entry and not _is_text(entry["reserved"]):
+        yield f"entry {name!r}: 'reserved' must give a reason"
+
+
+def check_references(repository: Path) -> list[Violation]:
+    """The register follows its schema, its keys are unique, and every entry
+    is used by the lessons that its 'lessons' field names, or is reserved."""
+    entries, problem = read_register(repository)
+    if problem:
+        return [Violation("register", REFERENCES, problem)]
+    problems = [problem for entry in entries for problem in _entry_problems(entry)]
+    entries = [entry for entry in entries if isinstance(entry, dict)]
+    keys = [entry.get("key") for entry in entries]
+    problems += [
+        f"key {key!r} appears twice"
+        for key in sorted({k for k in keys if keys.count(k) > 1}, key=str)
+    ]
+
+    users: dict[str, set[str]] = {}
+    for page in lesson_pages(repository):
+        lesson = read_lesson(page)
+        for path in _divs(lesson.blocks, "go-deeper"):
+            key = _attribute(path[-1], "ref")
+            users.setdefault(str(key), set()).add(str(_lesson_id(lesson)))
+    for entry in entries:
+        key = entry.get("key")
+        used = users.get(str(key), set())
+        listed = (
+            set(entry.get("lessons") or [])
+            if _text_list(entry.get("lessons"))
+            else set()
+        )
+        if not used and "reserved" not in entry:
+            problems.append(f"entry {key!r} is used by no lesson and is not reserved")
+        elif used and "reserved" in entry:
+            problems.append(f"entry {key!r} is reserved but lessons use it")
+        elif "reserved" in entry and listed:
+            problems.append(
+                f"entry {key!r} is reserved, so its 'lessons' must be empty, not"
+                f" {sorted(listed)}"
+            )
+        elif used != listed:
+            problems.append(
+                f"entry {key!r}: 'lessons' is {sorted(listed)}, but the lessons that"
+                f" use it are {sorted(used)}"
+            )
+    return [Violation("register", REFERENCES, problem) for problem in problems]
+
+
+class _Outputs(HTMLParser):
+    """The text of each stdout block a cell printed."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.blocks: list[str] = []
+        self._depth = 0
+        self._div_depth = 0
+        self._pre = False
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        classes = dict(attrs).get("class") or ""
+        if tag == "div":
+            if self._div_depth:
+                self._div_depth += 1
+            elif "cell-output-stdout" in classes.split():
+                self._div_depth = 1
+        elif tag == "pre" and self._div_depth:
+            self._pre = True
+            self.blocks.append("")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "div" and self._div_depth:
+            self._div_depth -= 1
+        elif tag == "pre":
+            self._pre = False
+
+    def handle_data(self, data: str) -> None:
+        if self._pre:
+            self.blocks[-1] += data
+
+
+def check_console_blocks(repository: Path, site_dir: Path) -> list[Violation]:
+    """A built page of a format 2 lesson prints no block of numbers; a
+    result table is built by ``table()`` (docs/authoring.md)."""
+    violations = []
+    for page in format_2_pages(repository):
+        built = site_dir / page.relative_to(repository / SITE).with_suffix(".html")
+        if not built.is_file():
+            violations.append(
+                Violation("console-block", _name(repository, page), "no built page")
+            )
+            continue
+        outputs = _Outputs()
+        outputs.feed(built.read_text(encoding="utf-8"))
+        violations += [
+            Violation(
+                "console-block",
+                _name(repository, page),
+                "a cell printed a block of numbers"
+                f" ('{block.strip()[:40]}...'); use table()",
+            )
+            for block in outputs.blocks
+            if is_numeric_console_block(block)
+        ]
+    return violations
+
+
+# --- The glossary -------------------------------------------------------------
+
+GLOSSARY = f"{SITE}/{glossary.GLOSSARY_FILE}"
+
+
+def check_glossary(repository: Path) -> list[Violation]:
+    """The glossary follows its format, every outside prerequisite of every
+    lesson names an entry, and every entry is assumed by a lesson, which the
+    glossary page links."""
+    try:
+        entries = glossary.Glossary.read(repository / SITE)
+    except ValueError as error:
+        return [Violation("glossary", GLOSSARY, str(error))]
+    violations = [
+        Violation("glossary", GLOSSARY, problem)
+        for problem in glossary.problems(entries.entries)
+    ]
+    lesson_ids: set[str] = set()
+    used: set[str] = set()
+    for page in lesson_pages(repository):
+        lesson = read_lesson(page)
+        if lesson.front_matter_error or not isinstance(lesson.front_matter, dict):
+            continue  # check_metadata reports it
+        meta = lesson.front_matter.get("lesson")
+        if not isinstance(meta, dict):
+            continue
+        lesson_ids.add(str(meta.get("id")))
+        prerequisites = meta.get("prerequisites")
+        outside = (
+            prerequisites.get("outside") if isinstance(prerequisites, dict) else None
+        )
+        if not _text_list(outside):
+            continue
+        for text in outside:
+            entry = entries.entry(text)
+            if entry is None:
+                violations.append(
+                    Violation(
+                        "glossary",
+                        _name(repository, page),
+                        f"outside prerequisite {text!r} names no glossary entry;"
+                        " write it as 'Term: detail' with the term of an entry"
+                        f" of {GLOSSARY}",
+                    )
+                )
+            else:
+                used.add(entry.term)
+    for entry in entries.entries:
+        if entry.term not in used:
+            violations.append(
+                Violation(
+                    "glossary",
+                    GLOSSARY,
+                    f"entry {entry.term!r} is assumed by no lesson, so no lesson"
+                    " links it",
+                )
+            )
+        if entry.see and entry.see not in lesson_ids:
+            violations.append(
+                Violation(
+                    "glossary",
+                    GLOSSARY,
+                    f"entry {entry.term!r}: 'see' {entry.see!r} is not the id of"
+                    " any lesson",
                 )
             )
     return violations

@@ -1,0 +1,80 @@
+# The glossary (docs/authoring.md, "Glossary"). Each entry defines one topic
+# that lessons list under `prerequisites.outside`, in one to three sentences.
+# A lesson names a topic as "Term: what exactly it assumes"; the text before
+# the colon must be the `term` of an entry. `see` is optional: the id of the
+# lesson that explains the topic on this site, which the entry links in
+# preference to an outside page. The lessons that use an entry are found from
+# their front matter, not listed here.
+entries:
+  - term: Algebra
+    definition: >-
+      Manipulating expressions with symbols: expanding products, factorising,
+      and collecting terms until two expressions can be compared.
+  - term: Calculus
+    definition: >-
+      The derivative of a function is its rate of change, and the integral
+      accumulates a rate over an interval. Taylor expansion approximates a
+      smooth function near a point by a polynomial in the distance from it.
+  - term: Complex numbers
+    definition: >-
+      A complex number is a point in a plane, written with a real and an
+      imaginary part. Its modulus is the distance from the origin, its
+      argument the angle, and the exponential of an imaginary number is a
+      point on the unit circle.
+  - term: Geometry
+    definition: >-
+      The shapes the lessons use. An ellipse is the set of points whose
+      distances to two foci add up to a constant; its semi-major axis is half
+      its longest width and its eccentricity says how far it is from a circle.
+  - term: Large language models
+    definition: >-
+      A large language model is a program that, given a text, continues it
+      with the words that are likely to follow. It has no access to anything
+      but the text it is given, unless a program hands it tools.
+  - term: Logarithms
+    definition: >-
+      The logarithm to a base is the power that base is raised to in order to
+      give a number: the base-2 logarithm of 8 is 3. On a log-log plot both
+      axes are logarithmic, so a power law shows as a straight line whose
+      slope is the exponent.
+  - term: Logic
+    definition: >-
+      A statement that says if these hypotheses hold, then this conclusion holds
+      says nothing when a hypothesis fails. A proof derives the
+      conclusion from the hypotheses by steps that each follow from the rules.
+  - term: Numerical methods
+    definition: >-
+      Methods that compute an approximate answer by a finite sequence of
+      arithmetic steps. The Newton iteration finds a root of an equation by
+      replacing the function with its tangent line and repeating from the
+      root of that line.
+    see: numerical-integrators
+  - term: Probability
+    definition: >-
+      A probability distribution says how likely each outcome is. The
+      Gaussian distribution is the bell curve set by a mean and a standard
+      deviation, and the t distribution is a wider bell curve for a mean
+      estimated from few samples.
+  - term: Python
+    definition: >-
+      The programming language of the lessons. You should be able to read and
+      write functions, dictionaries, and dataclasses, to use NumPy arrays, and
+      to read environment variables.
+  - term: Statistics
+    definition: >-
+      The mean of samples estimates a quantity, and the standard deviation
+      says how far single samples scatter around it. The standard error of
+      the mean is the standard deviation divided by the square root of the
+      number of samples, and says how far the mean itself is uncertain.
+  - term: Trigonometry
+    definition: >-
+      A vector of length r at angle theta to the x axis has the components
+      r cos(theta) and r sin(theta). For small theta the sine of theta is
+      close to theta itself, with the angle in radians.
+  - term: Vectors
+    definition: >-
+      A vector is a quantity with a direction, written as components along
+      the axes. Vectors add and scale component by component; the dot product
+      of two vectors is a number, the cross product in a plane is a number
+      for the area they span, and the gradient of a function of the position
+      is the vector of its derivatives along each axis.

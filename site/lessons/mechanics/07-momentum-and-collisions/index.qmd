@@ -16,7 +16,7 @@ lesson:
     - Write pairwise forces on the stepping interface
     - Check that the total momentum is conserved to round-off
     - Model a collision as a brief strong force and compare it with the hard-sphere outcome
-  related: [particles-in-a-box]
+  related: [particles-in-a-box, collision-momentum-proved]
   prerequisites:
     lessons: [energy-conservation]
     outside:

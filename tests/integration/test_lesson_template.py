@@ -27,6 +27,8 @@ LESSON = f"lessons/mechanics/{ORDER:02d}-made-from-the-template"
 PLACEHOLDERS = {
     "  id: REPLACE-ME\n": "  id: made-from-the-template\n",
     "  order: 0\n": f"  order: {ORDER}\n",
+    # The one entry of the register that the Go deeper example may name.
+    "REPLACE-WITH-A-REGISTER-KEY": "euler-local-global-error",
 }
 
 
@@ -78,6 +80,7 @@ def test_lesson_made_from_the_template_passes_the_source_checks(repository: Path
         *lesson_checks.check_sections(repository),
         *lesson_checks.check_displayed_code(repository),
         *lesson_checks.check_figures(repository),
+        *lesson_checks.check_format_2(repository),
     ]
     # The other lessons are reduced to their front matter and lack the sections.
     violations = [v for v in violations if v.page == f"site/{LESSON}/index.qmd"]
@@ -137,4 +140,9 @@ def test_lesson_made_from_the_template_builds_with_every_construct(
         )
         for lesson in (*PATH.lessons, new)
     )
-    assert path_page.count('<a href="../lessons/mechanics/') == links
+    lists, graph = path_page.split('<div class="prerequisite-graph"')
+    graph = graph.split("</svg>")[0]
+    assert lists.count('<a href="../lessons/mechanics/') == links
+    # The graph has a node for every lesson, the new one too.
+    assert graph.count("<a href=") == len(PATH.lessons) + 1
+    assert f'href="../{page}"' in graph

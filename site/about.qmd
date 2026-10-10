@@ -2,6 +2,51 @@
 title: "About"
 ---
 
+## Creator and JIDAI {#creator-and-jidai}
+
+```{python}
+#| echo: false
+#| output: asis
+from pbc.authoring.identity import description
+
+print(description())
+```
+
+Ahmet Taspinar, an alumnus of Applied Physics at TU Delft and the founder of
+JIDAI, created the project and maintains it.
+
+[JIDAI](https://jidai.nl) is the company behind the initiative. It is not a
+copyright holder, a funder, or a university partner of the project. The
+copyright line of the repository is "Ahmet Taspinar and the Physics by
+Construction contributors", and that is who holds the rights, under the
+licences below. Creating and maintaining the project is a different thing from
+owning it: the code and the lesson text are open for anyone to reuse and
+change under those licences.
+
+## Why it is open source
+
+The code behind every figure and proof is the lesson, so a reader has to be
+able to read it, run it, and check it. Open licences make that possible, and
+they let anyone correct or build on the material. The content of the site is
+decided by what the checks accept and by reviewed pull requests, not by any
+company: nobody has to contact JIDAI, create an account, or accept tracking to
+use the site or to contribute.
+
+## How to cite
+
+The repository has a `CITATION.cff` file in the
+[Citation File Format](https://citation-file-format.github.io/). GitHub reads
+it and offers "Cite this repository". It names the authors, the project
+address, the repository, and the licences. It has no DOI: none exists until
+the project has a release policy. A suitable citation is "Physics by
+Construction", with a link to the page you used.
+
+## How to contribute
+
+To correct a mistake, propose a change, suggest a dataset, or propose a lesson,
+open an issue from one of the forms. The [Contribute](contribute.qmd) page has
+the steps.
+
 ## What this site is
 
 Physics by Construction is a course site about physics, programming, and

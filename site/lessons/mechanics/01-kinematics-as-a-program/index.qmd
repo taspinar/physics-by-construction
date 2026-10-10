@@ -15,6 +15,7 @@ lesson:
     - Check a simulation against the exact solution for constant acceleration
     - Measure how the error of Euler stepping shrinks with the time step
   related: [proving-what-the-simulation-showed]
+  format: 2
   prerequisites:
     lessons: []
     outside:
@@ -29,6 +30,13 @@ from pbc.authoring import lesson_header
 
 lesson_header()
 ```
+
+Where is a thrown ball one second after it leaves the hand, when all we know is
+how fast it started and how its speed changes? The same question is asked of
+a braking car, a rocket under thrust, and a spacecraft on approach, and almost
+none of them has a formula for the answer. What they share is a rule for how
+the motion changes from one instant to the next, and a program can follow
+such a rule.
 
 Kinematics describes motion without asking what causes it. The acceleration
 $a(t)$ is given, and the task is to find the velocity $v(t)$ and the position
@@ -144,6 +152,20 @@ step, so the computed position lags behind the change in velocity. The lag
 grows in proportion to the elapsed time and to the time step. This is a
 prediction the program has to reproduce, digit for digit.
 
+[For a constant acceleration the position error of explicit Euler is exactly
+$-\tfrac{1}{2}\,a\,t_n\,\Delta t$.]{.claim type="numerically-verified"
+scope="constant acceleration"
+evidence="fig-ball-thrown-up"} The derivation above is the proof for the
+model; the first worked example recomputes it with the program.
+
+::: {.go-deeper ref="euler-local-global-error"}
+It explains why adding up the errors of single steps still gives an error
+that is proportional to the time step, although every step starts from a value
+that is already slightly wrong. It also bounds the error for an acceleration
+that depends on time only, which is the case of this lesson. The lesson does
+not need it: everything used below is derived above.
+:::
+
 ## The program {#code}
 
 The code lives in the module `pbc.mechanics.kinematics` of the repository.
@@ -229,7 +251,7 @@ table(
 )
 ```
 
-The acceleration is standard gravity, $g$ = `{python} g` m/s², pointing down.
+The acceleration is standard gravity, $g$ = `{python} g` $\mathrm{m/s^{2}}$, pointing down.
 The two velocity columns agree in every row, as derived above. The position
 columns drift apart. After `{python} f"{euler.t[-1]:.1f}"` s the simulated
 ball is `{python} f"{euler.x[-1] - exact.x[-1]:.3f}"` m above the exact one.
@@ -238,7 +260,8 @@ The predicted lag $-\tfrac{1}{2}\,a\,t\,\Delta t$ with $a = -g$ is
 
 ```{python}
 #| label: fig-ball-thrown-up
-#| fig-cap: "Height of the ball: explicit Euler with a coarse time step against the exact motion."
+#| fig-cap: "Height of the ball: explicit Euler with a coarse time step against the exact motion. The simulated ball stays above the exact one by a gap that grows with time, the lag of a method that moves the ball with the velocity from the start of each step."
+#| fig-status: simulated
 #| fig-alt: "Line plot of height in metres against time in seconds. The exact motion is a parabola: the ball rises, peaks halfway through the plotted time, and comes back down almost to its starting height. The explicit Euler points start on the parabola and then lie above it, by a distance that grows steadily with time."
 import matplotlib.pyplot as plt
 
@@ -265,6 +288,11 @@ ax.set_ylabel("height (m)")
 ax.legend()
 plt.show()
 ```
+
+The Euler points start on the parabola and drift away from it, always on the
+same side, exactly as the formula predicts. Nothing in the figure suggests a
+different shape of motion: the whole difference is the lag of the position
+behind the velocity.
 
 ### Halving the time step
 
@@ -311,8 +339,8 @@ table(
 ```
 
 Every halving of the time step halves the error. For a constant acceleration
-the ratio is 2 to all digits shown, because the error is exactly
-$\tfrac{1}{2}\,g\,t\,\Delta t$.
+the last ratio of the table is `{python} f"{ball_errors[-2] / ball_errors[-1]:.4f}"`,
+because the error is exactly $\tfrac{1}{2}\,g\,t\,\Delta t$.
 
 ### An acceleration that changes in time
 
@@ -367,17 +395,18 @@ table(
 )
 ```
 
-The observed order is the base-2 logarithm of the ratio of successive errors:
-1 means the error halves with the time step. It is no longer exactly 1,
+The observed order is the binary logarithm of the ratio of successive errors:
+one means the error halves with the time step. It is no longer exactly one,
 because the dropped terms now contain more than one power of $\Delta t$, but
-it approaches 1 as the step shrinks. With the smallest step the observed
+it approaches one as the step shrinks. With the smallest step the observed
 order is `{python} f"{orders[-1]:.3f}"`.
 
-On logarithmic axes a first-order error is a straight line of slope 1.
+On logarithmic axes a first-order error is a straight line of slope one.
 
 ```{python}
 #| label: fig-error-against-time-step
-#| fig-cap: "Error of the final position against the time step, for both examples."
+#| fig-cap: "Error of the final position against the time step, for both examples. Both fall along lines parallel to the reference line: the error is proportional to the time step."
+#| fig-status: simulated
 #| fig-alt: "Log-log plot of the size of the final position error in metres against the time step in seconds. The points for the thrown ball and the points for the cart on the shaking table each lie on a straight line. Both lines are parallel to a dotted reference line of slope 1: the error falls in proportion to the time step."
 steps = duration / np.array(step_counts)
 
@@ -398,6 +427,51 @@ ax.legend()
 plt.show()
 ```
 
+[On logarithmic axes both errors follow the reference line of slope one, so
+the error of explicit Euler is proportional to the time step in both
+examples.]{.claim type="numerically-verified"
+scope="two motions"
+evidence="fig-error-against-time-step"} The straight lines are the visible
+form of the first-order result; they say nothing about time steps far smaller
+or larger than the ones plotted.
+
+## Limits {#limits}
+
+What this lesson shows is a statement about one method on a few motions, not
+about numerical integration in general.
+
+- The exact error formula holds for a constant acceleration only. For the cart
+  the error is only approximately proportional to the time step, and the
+  observed order approaches one as the step shrinks; it is not proved here for
+  every smooth acceleration.
+- The time steps stop where the errors are still far above round-off. The
+  fifth assumption, that round-off is negligible, is stated, not tested: the
+  lesson never shrinks the step far enough to see it matter.
+- The acceleration is given as a function of time. Forces that depend on the
+  position or velocity, such as a spring or drag, are not simulated, and the
+  error behaves differently when the next step starts from a wrong state.
+- An acceleration that jumps within a step, such as an impact, breaks the error
+  estimate (fourth assumption), and nothing here measures by how much.
+- Explicit Euler is the simplest method, not a good one. The exercises show a
+  step that is exact for constant acceleration; the lesson on numerical
+  integrators compares methods properly.
+
+::: {.exercise .self-check}
+Halving the time step halves the error of the
+thrown ball. Could you make the error as small as you like by halving again
+and again? Name what would change on the way.
+
+::: {.solution}
+In exact arithmetic yes: the error is proportional to the time step, so every
+halving halves it, at twice the work. A computer does not calculate exactly.
+Every step rounds its result, and with more and smaller steps these small
+rounding errors add up. At some time step the rounding error becomes as large
+as the error of the method, and halving the step further no longer helps. The
+first assumption of the lesson that fails is the fifth one: round-off is
+negligible only for time steps that are not too small.
+:::
+:::
+
 ## Exercises
 
 ::: {.exercise}
@@ -405,6 +479,15 @@ plt.show()
 must the time step be for the position after `{python} f"{duration:.1f}"` s
 to be within 1 mm of the exact one? Predict the answer from the error formula,
 then confirm it with a simulation.
+
+::: {.hint}
+Solve the error formula for the time step, with the tolerance as the
+error.
+:::
+
+::: {.hint}
+A simulation takes a whole number of steps. Which way must you round?
+:::
 
 ::: {.solution}
 The error after the time $T$ is $\tfrac{1}{2}\,g\,T\,\Delta t$, so the time
@@ -437,6 +520,16 @@ acceleration grows linearly, $a(t) = j\,t$ with $j = 2$ m/s³. The exact motion
 is $v(t) = \tfrac{1}{2}\,j\,t^{2}$ and $x(t) = \tfrac{1}{6}\,j\,t^{3}$. Is the
 velocity computed by explicit Euler still exact? Measure the observed order of
 the position error at $t = 3$ s.
+
+::: {.hint}
+Compare the acceleration at the start of a step with the acceleration
+during it. Does the velocity rule see the difference?
+:::
+
+::: {.hint}
+The observed order is the base-two logarithm of the ratio of the errors
+of two runs, the second with half the time step of the first.
+:::
 
 ::: {.solution}
 The velocity is no longer exact. Each step uses the acceleration at the start
@@ -482,7 +575,7 @@ table(
 
 Both errors are negative: the computed particle is slower and has not come as
 far. Both halve with the time step, and the observed order of the position
-error tends to 1.
+error tends to one.
 :::
 :::
 
@@ -491,6 +584,11 @@ error tends to 1.
 $\tfrac{1}{2}\,a(t)\,\Delta t^{2}$ from the position. Write a step that keeps
 it, and run the thrown ball of the first example again with its coarse time
 step of `{python} dt` s. What happens to the error, and why?
+
+::: {.hint}
+The thrown ball has a constant acceleration. Which terms of the exact
+position does the new step now contain?
+:::
 
 ::: {.solution}
 ```{python}

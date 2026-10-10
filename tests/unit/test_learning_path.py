@@ -2,6 +2,7 @@
 rendered with links that work from the page it is shown on."""
 
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from pbc.authoring import (
     LearningPath,
     learning_path,
 )
+from pbc.authoring.glossary import Entry, Glossary
 from pbc.authoring.path import (
     PATH_PAGE,
     Lesson,
@@ -449,6 +451,25 @@ def test_header_names_the_outside_prerequisites(path: LearningPath):
     assert "[Newton](../02-newton/index.html). Also assumed: Calculus." in shown
 
 
+def test_header_with_a_glossary_lists_what_to_know_before_beginning(path: LearningPath):
+    item = lesson(
+        "drag",
+        order=4,
+        prerequisites=("newton",),
+        outside=("Calculus: the chain rule",),
+    )
+    path = LearningPath((*path.lessons, item))
+    glossary = Glossary((Entry("Calculus", "A definition.", ""),))
+
+    shown = LessonHeader(path, item, glossary)._repr_markdown_()
+
+    assert "Prerequisites\n:   [Newton](../02-newton/index.html).\n" in shown
+    assert (
+        "Before you begin\n:   \n"
+        "    - [Calculus](../../../glossary.html#calculus): the chain rule\n"
+    ) in shown
+
+
 def test_overview_lists_courses_with_core_lessons_and_extensions_then_methods(
     path: LearningPath,
 ):
@@ -457,7 +478,11 @@ def test_overview_lists_courses_with_core_lessons_and_extensions_then_methods(
     assert "## Difficulty {#difficulty}" in shown
     for difficulty in DIFFICULTIES:
         assert difficulty.description in shown
-    headings = [line for line in shown.splitlines() if line.startswith("#")]
+    headings = [
+        line
+        for line in shown.splitlines()
+        if line.startswith("#") and "{.lesson-card-title}" not in line
+    ]
     assert headings == [
         "## Difficulty {#difficulty}",
         "## Order {#order}",
@@ -468,25 +493,56 @@ def test_overview_lists_courses_with_core_lessons_and_extensions_then_methods(
         "## Methods {#methods}",
         "### Simulation {#method-simulation}",
         "### Formal proofs {#method-lean}",
+        "## Prerequisite graph {#graph}",
     ]
     assert "LLM agents" not in shown and "Agent-based" not in shown
-    lessons = [
-        line for line in shown.splitlines() if line[:1].isdigit() and ". [" in line
+    cards = re.findall(r'<h(\d) class="lesson-card-title"><a href="([^"]+)"', shown)
+    kinematics = "../lessons/mechanics/01-kinematics/index.html"
+    newton = "../lessons/mechanics/02-newton/index.html"
+    energy = "../lessons/mechanics/03-energy/index.html"
+    proof = "../lessons/lean/01-proof/index.html"
+    assert cards == [
+        ("5", kinematics),
+        ("5", newton),
+        ("5", energy),
+        ("5", proof),
+        ("4", kinematics),
+        ("4", newton),
+        ("4", energy),
+        ("4", proof),
     ]
-    assert lessons == [
-        "1. [Kinematics](../lessons/mechanics/01-kinematics/index.html)",
-        "2. [Newton](../lessons/mechanics/02-newton/index.html)",
-        "3. [Energy](../lessons/mechanics/03-energy/index.html)",
-        "1. [Proof](../lessons/lean/01-proof/index.html)",
-        "1. [Kinematics](../lessons/mechanics/01-kinematics/index.html)",
-        "2. [Newton](../lessons/mechanics/02-newton/index.html)",
-        "3. [Energy](../lessons/mechanics/03-energy/index.html)",
-        "1. [Proof](../lessons/lean/01-proof/index.html)",
-    ]
+    # The level links to the legend with its definition as the title.
     assert (
-        "   Advanced, level 3 of 3. Prerequisites:"
-        " [Energy](../lessons/mechanics/03-energy/index.html)." in shown
+        f'<a href="index.html#difficulty" title="{DIFFICULTIES[2].description}">'
+        "Advanced, level 3 of 3</a>" in shown
     )
+    assert f'Prerequisites</dt><dd><a href="{energy}">Energy</a>.</dd>' in shown
+
+
+def test_overview_escapes_what_the_front_matter_says_in_a_card():
+    item = Lesson(**{**lesson("tricky", order=9).__dict__, "title": "A < B & C"})
+    shown = str(PathOverview(LearningPath((item,)), PATH_PAGE))
+
+    assert "A &lt; B &amp; C" in shown
+    assert "A < B" not in shown
+
+
+def test_overview_puts_every_lesson_in_one_card_with_its_facts():
+    # A card is one list item: heading, the description when there is one,
+    # and the six facts, so a reader of the page gets the same structure for
+    # each lesson.
+    lessons = []
+    for order in range(1, 12):
+        earlier = ("l1",) if order > 1 else ()
+        item = lesson(f"l{order}", order=order, prerequisites=earlier)
+        description = f"About lesson {order},\nin two lines." if order % 2 else ""
+        lessons.append(Lesson(**{**item.__dict__, "description": description}))
+
+    shown = str(PathOverview(LearningPath(tuple(lessons)), PATH_PAGE))
+
+    assert shown.count('<li class="path-card">') == 22
+    assert shown.count("<dt>") == 22 * 6
+    assert shown.count("<p>") == 2 * 6  # lessons 1, 3, ... 11 have a description
 
 
 def test_overview_explains_what_previous_and_next_mean(path: LearningPath):
@@ -519,31 +575,6 @@ def pandoc_blocks(markdown: str) -> list[dict]:
     return json.loads(result.stdout)["blocks"]
 
 
-def test_overview_keeps_the_facts_of_every_lesson_in_its_item_past_ten_lessons():
-    # A two-digit marker is wider than a one-digit one; the paragraphs of an
-    # item must be indented to the width of its marker, or Pandoc places them
-    # outside the item and starts a new list after it.
-    lessons = []
-    for order in range(1, 12):
-        earlier = ("l1",) if order > 1 else ()
-        item = lesson(f"l{order}", order=order, prerequisites=earlier)
-        description = f"About lesson {order},\nin two lines." if order % 2 else ""
-        lessons.append(Lesson(**{**item.__dict__, "description": description}))
-    path = LearningPath(tuple(lessons))
-
-    blocks = pandoc_blocks(str(PathOverview(path, PATH_PAGE)))
-
-    # One list for the core lessons of the course, one for the method.
-    ordered_lists = [block for block in blocks if block["t"] == "OrderedList"]
-    assert len(ordered_lists) == 2
-    for ordered_list in ordered_lists:
-        items = ordered_list["c"][1]
-        assert len(items) == 11
-        for order, item in enumerate(items, start=1):
-            paragraphs = [block["t"] for block in item]
-            assert paragraphs == ["Para"] * (3 if order % 2 else 2), order
-
-
 # --- From the page being built --------------------------------------------------
 
 
@@ -552,15 +583,19 @@ def test_helpers_find_the_page_from_the_directory_the_cell_runs_in(
 ):
     (site / "path").mkdir()
     (site / PATH_PAGE).write_text("---\ntitle: Learning path\n---\n")
+    (site / "glossary.yaml").write_text(
+        "entries:\n  - term: Calculus\n    definition: A definition.\n"
+    )
 
     monkeypatch.chdir(site / "lessons/mechanics/02-newton")
     header = lesson_header()
     assert header.lesson == NEWTON
+    assert header.glossary is not None
 
     monkeypatch.chdir(site / "path")
     overview = learning_path()
     assert overview.page == PATH_PAGE
-    assert "(../lessons/mechanics/02-newton/index.html)" in str(overview)
+    assert 'href="../lessons/mechanics/02-newton/index.html"' in str(overview)
 
 
 def test_header_outside_a_lesson_directory_is_an_error(
