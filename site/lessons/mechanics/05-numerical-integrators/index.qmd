@@ -16,7 +16,7 @@ lesson:
     - Step a system with explicit Euler, symplectic Euler, velocity Verlet, and Runge-Kutta 4 behind one interface
     - Compare integrators for accuracy, energy behaviour, and cost
     - Choose an integrator for what a simulation has to be trusted for
-  related: []
+  related: [symplectic-euler-conserved-energy]
   prerequisites:
     lessons: [harmonic-oscillator]
     outside:
