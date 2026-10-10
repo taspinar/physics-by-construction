@@ -5,6 +5,8 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$script_dir/lib/review-data.sh"
 source "$script_dir/lib/fingerprint.sh"
+source "$script_dir/lib/planning.sh"
+source "$script_dir/lib/guardrails.sh"
 
 usage() {
   echo "Usage: $0 <issue-number> \"<commit summary>\" [--no-review \"<reason>\"] [--unattended]"
@@ -54,6 +56,37 @@ branch="$(git branch --show-current)"
 
 [[ -n "$(git -C "$root" status --porcelain)" ]] || fail "there are no changes to commit."
 review_data_require_jq
+
+# A feature keeps the architecture and the ADRs up to date, but it does not
+# change what the product is or which features it gets, nor the approval
+# itself: that makes the planning approval stale and needs a planning cycle.
+# Checked in a project with an approved planning, on the feature's base or
+# in the working tree.
+feature_merge_base=""
+feature_base_ref=""
+latest=""
+feature_base_branch="$(git -C "$root" config --get "branch.$branch.workflow-base" || true)"
+if feature_base_lines="$(feature_base "$root" "${feature_base_branch:-main}")"; then
+  feature_merge_base="$(printf '%s\n' "$feature_base_lines" | sed -n 2p)"
+  feature_base_ref="$(guardrails_rules_refs "$root" "${feature_base_branch:-main}")"
+  if [[ -f "$root/$PLANNING_APPROVAL_FILE" ]] ||
+    git -C "$root" cat-file -e "$feature_merge_base:$PLANNING_APPROVAL_FILE" 2>/dev/null; then
+    planning_changes="$(
+      git -C "$root" diff --name-only "$feature_merge_base" -- "${PLANNING_PRODUCT_SCOPE[@]}" "$PLANNING_APPROVAL_FILE"
+      git -C "$root" ls-files --others --exclude-standard -- "${PLANNING_PRODUCT_SCOPE[@]}" "$PLANNING_APPROVAL_FILE"
+    )"
+    if [[ -n "$planning_changes" ]]; then
+      echo "Error: this feature changes planning documents that only a planning cycle may change:" >&2
+      printf '%s\n' "$planning_changes" | sort -u | sed 's/^/  /' >&2
+      echo "Take these changes out of the feature, and make them through a change cycle:" >&2
+      echo "  ./scripts/start-planning.sh <name> --change <file>" >&2
+      echo "The architecture and the ADRs may be updated in a feature. Nothing was committed." >&2
+      exit 1
+    fi
+  fi
+elif [[ -f "$root/$PLANNING_APPROVAL_FILE" ]] || git -C "$root" cat-file -e "HEAD:$PLANNING_APPROVAL_FILE" 2>/dev/null; then
+  fail "could not determine the base of $branch, so it cannot be checked that the feature leaves the approved planning as it is. Nothing was committed."
+fi
 
 # 1. Verification passes. A pass that was already recorded for exactly this
 # content, by apply-triage.sh or review-feature.sh, is not repeated.
@@ -166,6 +199,29 @@ elif [[ "$unattended" -eq 1 ]]; then
   changes="- The implementer supplied no summary of the changes; see the diff and Issue #$issue."
 fi
 
+# The merge approval gate: whether the owner must approve the merge of this
+# feature. The rules are checked on the diff, by the rules of the base; the
+# independent reviewer classified the impact. The heaviest of the two decides,
+# and a missing classification gives no permission.
+if [[ -n "$feature_merge_base" ]]; then
+  approval_lines="$(guardrails_decision "$root" "$feature_base_ref" "$feature_merge_base" "$latest")"
+else
+  approval_lines="owner"$'\n'"the base of the feature could not be determined, so the gate could not check the diff"
+fi
+if [[ "$(printf '%s\n' "$approval_lines" | sed -n 1p)" == "owner" ]]; then
+  merge_approval="- required from the project owner, for exactly this commit"
+  echo "This feature needs the owner's approval before it is merged:"
+  printf '%s\n' "$approval_lines" | sed '1d; s/^/  - /'
+  echo "The pull request can be opened; no script or agent may merge it."
+  echo
+else
+  merge_approval="- not required"
+fi
+merge_approval+=$'\n'"$(printf '%s\n' "$approval_lines" | sed '1d; s/^/- /')"
+if [[ -n "$latest" ]]; then
+  merge_approval+=$'\n'"- decided for the reviewed content $(jq -r '.reviewed_tree' "$latest")"
+fi
+
 # 4. Stage everything and commit with an editable, structured message.
 git -C "$root" add -A
 echo "Changes to commit:"
@@ -189,6 +245,9 @@ Manual steps:
 $manual_steps
 
 $review_line
+
+Merge approval:
+$merge_approval
 
 Refs #$issue
 EOF

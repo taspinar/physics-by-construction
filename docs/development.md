@@ -427,16 +427,37 @@ review rounds, the findings that were not adopted, and the fingerprint of the
 planning documents. Use it for the planning PR description, because review
 and revision files are not committed.
 
-Any later change to a planning document invalidates the approval:
+Whether the approval is still current:
 
 ```bash
 ./scripts/finish-planning.sh --check
 ```
 
-exits 0 when the approval still matches the documents and 1 when it is missing
-or stale. `create-feature-issue.sh <feature-id>` refuses to create a feature
-Issue from a roadmap without a current approval, so a roadmap change after the
-planning PR needs a new review round and approval.
+exits 0 when it is and 1 when it is missing or stale. `create-feature-issue.sh
+<feature-id>` refuses to create a feature Issue from a roadmap without a
+current approval.
+
+What makes the approval stale depends on the document:
+
+| Document | Changed after the approval |
+|---|---|
+| `docs/PROJECT_DESCRIPTION.md`, `docs/PROJECT_REQUIREMENTS.md`, `docs/roadmap.md`, `docs/changes/` | Stale. What the product is and which features it gets changes only through a planning cycle, with a review and your approval |
+| `docs/architecture.md`, `docs/decisions/` | Still current. Features keep these up to date, as the Definition of Done asks, and the feature review covers the change. `--check` lists the commits that changed them since the approval |
+
+So a feature that describes what it built in the architecture, or records a
+decision in an ADR, does not stop the next feature. The approval file itself
+is not touched by a feature, so features that run side by side cannot conflict
+in it. The next approval or amendment covers those updates and names their
+commits in the record, with the Issue and the review of each, under "Updates
+by merged work" or with the amendment. A later approval keeps the entries of
+the earlier ones. Until then `--check` lists them. A feature that changes the
+roadmap or the requirements is refused by `finish-feature.sh` before its
+commit, with the command of the change cycle.
+
+The script finds the approved state from the commit that last changed
+`docs/PLANNING_APPROVAL.md`: the planning documents in that commit must have
+the recorded fingerprint. Change that file only through `finish-planning.sh`;
+after a change by hand that does not match, any difference counts as stale.
 
 Open and merge a planning PR before creating Issues for actionable roadmap
 features. The script never implements features, creates Issues, commits,
@@ -507,9 +528,10 @@ the change request and covers it. Commit, push, and merge the planning pull
 request; `cleanup-worktree.sh planning/shopping-list` then removes the
 worktree and an untracked original of the change request.
 
-Every change to a planning document invalidates the planning approval until
-the new one is merged. In between, `create-feature-issue.sh` creates no new
-Issue. A feature that is already in progress is not affected.
+A change to the requirements, the roadmap, the description, or a change
+request makes the planning approval stale until the new one is merged. In
+between, `create-feature-issue.sh` creates no new Issue. A feature that is
+already in progress is not affected.
 
 ### A small technical amendment
 
@@ -676,6 +698,13 @@ branch, including uncommitted and untracked changes. The reviewer returns its
 result as JSON and the script validates and stores it. An invalid result is
 retried once and then rejected, and a reviewer that changed the working tree or
 created a commit is reported as an error; in both cases no review is stored.
+
+The diff starts where the feature left its base branch. The feature was
+created from `origin/<base>`, and the local `<base>` of your checkout can be
+behind it, for example after pull requests were merged on GitHub. The script
+therefore uses whichever of the two shares the more recent commit with the
+feature, so that work merged before the feature started never counts as the
+feature's own change. You do not have to pull the base branch first.
 
 The review script must run from the matching feature worktree and needs an
 authenticated GitHub CLI. Each round writes a numbered pair of files without
@@ -994,6 +1023,17 @@ the reason and exits with status 3, which it uses for nothing else, so a
 blocked session can be told apart from a failed one. Answer in the handoff note or change the Issue, and
 continue with `./scripts/start-feature.sh <issue> --resume`.
 
+`BLOCKED` is only for a decision. The agent is told not to use it when its
+own run of `./scripts/verify.sh` fails on something outside its work, does not
+finish within the session, or cannot run on the machine: it reports that in
+its final message and ends normally. The step that follows verifies the
+result itself: `review-feature.sh` and `apply-triage.sh` exit with status 4
+when the verification fails, apart from every other failure, and
+`run-feature.sh` repeats and repairs it as described under "Running a feature
+with one command". Common causes on your side are a tool that
+is not in the `PATH` of the terminal you started from, and a verification
+that takes longer than one command of an agent session may.
+
 A triage that was approved this way says so: the artifact has
 `"unattended": true`, and the report and the comment on the Issue state that
 no human approved the decisions. Deferred findings still become follow-up
@@ -1042,16 +1082,36 @@ What stays with you: choosing the feature and creating its Issue, reading the
 pull request, following its checks, merging, and `cleanup-worktree.sh`. The
 run never merges, never pushes to `main`, and never removes a worktree.
 
+The run decides the outcome of every step itself, from exit statuses and from
+the result of the checks. What an agent writes decides one outcome only, and
+only together with what it recorded:
+
+| Outcome | How the run establishes it | What it does |
+|---|---|---|
+| Completed | The step exits 0 | Goes on |
+| Temporary | An agent or a connection fails: a usage limit, a timeout, the network | Tries the step again, three times, with a wait that doubles from two minutes. A fix session that had already changed the content is taken up with `apply-triage.sh <triage-json> --continue`: the same findings, contract, and protections, for the session of this triage that was left unfinished, and for nothing else |
+| Unstable check | The verification is repeated once, and no check failed in both runs | Records the checks and goes on, at most three times in a run |
+| Failed verification | A check failed in both runs | Resumes the implementer with those checks in the handoff note, at most three times (`AGENTS.md`); a review follows. A repair session is retried like any other |
+| Blocked | An agent ends with `BLOCKED:` and the handoff note holds a question under "Open questions" | Stops with status 3. Without such a question there is nothing to answer: the line is ignored and the run goes on |
+
+Every interruption is written to `.agents/run/<issue>-log` in the feature
+worktree, one line each: the time, the step, the outcome, the reason, and
+what the run did. The output of the last step is kept next to it in
+`<issue>-step.log`, and that of a repeated verification in
+`<issue>-verify.log`. Status 4 is kept for a failed verification: the scripts
+turn an agent that happens to exit with it into an ordinary failure. `RUN_FEATURE_RETRIES`, `RUN_FEATURE_RETRY_WAIT` (seconds),
+and `RUN_FEATURE_REPAIRS` change the limits for one run.
+
 The run stops with a non-zero status, and keeps the worktree, when:
 
 | Stop | Status |
 |---|---|
 | An agent needs a decision of yours, or reports a conflict with the Issue's scope, the architecture, or an ADR. Its question is in the handoff note | 3 |
-| The implementer, the reviewer, the triage, or the fixing agent fails, for example on a usage limit | 1 |
-| Verification fails after the implementation or after the fixes | 1 |
+| An agent or a connection keeps failing after the retries | 1 |
+| The verification still fails after three repairs, or checks are unstable more than three times | 1 |
 | The proposed triage is invalid, for example because it defers a critical or major finding | 1 |
 | Five rounds are used and the last one still has a finding that must be fixed | 1 |
-| The fixes changed nothing, the commit fails, or the pull request cannot be opened | 1 |
+| The fixes changed nothing, the commit is refused, or the pull request cannot be opened after the retries | 1 |
 
 It then says why it stopped and which command resolves it. After that, run
 the same command again: `./scripts/run-feature.sh <issue>`. The run reads
@@ -1085,6 +1145,81 @@ Know what you hand over before you use it:
   usage limits of your agents without a moment at which you can stop them.
 - The commit message is not edited: its summary is the title of the Issue
   and its list of changes is what the implementer wrote.
+
+### The merge approval gate
+
+A feature may update the architecture and add an ADR, and in an unattended
+run nobody reads a pull request before it could be merged. The gate decides
+which pull requests only you may merge. It rests on what the diff contains;
+the judgement of a model is a second line, never the only one.
+
+| Source | What it looks at | Who decides |
+|---|---|---|
+| Rules on the diff | ADRs, protected and sensitive paths, the verification configuration | `scripts/check-guardrails.sh` |
+| Independent review | The impact of the whole feature on the architecture | The reviewer, in `architecture_impact` of its result |
+
+The heaviest of the two decides. Your approval is needed when the diff
+changes a protected path, when the reviewer classifies the impact as `major`
+or `breaking`, or when there is no valid classification, as for a feature
+finished with `--no-review`.
+
+**The rules on the diff.** Always protected, in every project:
+
+- every ADR in `docs/decisions/` that is added, changed, or removed. A new
+  ADR can replace an accepted one without touching its file, so no ADR passes
+  without you. A feature writes a new ADR with the status `Proposed`;
+- the CI workflows, and the configuration, scripts, prompts, and schemas that
+  carry out the gate;
+- in `scripts/verify.conf` and `scripts/verify-workflow.conf`: a changed or
+  removed line. An added check is sensitive.
+
+What is fundamental in your project you list in
+`.agents/policies/guardrails.conf`, as Git pathspecs:
+
+```text
+protected: site/_quarto.yml .github/CODEOWNERS deploy
+sensitive: docs/architecture.md pyproject.toml
+```
+
+A protected path needs your approval. A sensitive path does not: it is named
+to the reviewer, who has to look at it. Keep the protected list short, or
+every feature waits for you.
+
+The rules are always read from the base branch as it is now, never from the
+feature itself, so a feature cannot relax the rules it is checked by; a
+change to them is protected. Locally the rules of your base branch and of
+`origin/<base>` both apply, whichever is behind; the script does not fetch,
+and CI checks every pull request against the base on GitHub.
+
+```bash
+./scripts/check-guardrails.sh                      # this worktree against its base
+./scripts/check-guardrails.sh --commits main HEAD  # two commits
+```
+
+**The reviewer's classification.** A feature review must return
+`architecture_impact`: `none`, `minor`, `major`, or `breaking`, with a
+rationale and the ADRs and rules it was checked against. The implementer does
+not classify its own change. A review without a valid classification is
+rejected.
+
+**What happens.** `finish-feature.sh` records the decision and its reasons in
+the commit message, under `Merge approval:`, and `publish-feature.sh` in the
+pull request. A feature that needs your approval still gets its pull request;
+`run-feature.sh` ends with `MERGE APPROVAL REQUIRED`. No script merges a pull
+request, and an agent or a queue that merges for you must skip one that says
+`required from the project owner`.
+
+**In CI.** The workflow `Guardrails` runs the gate on the actual diff of every
+pull request, with the script and the rules of the base branch and without
+running code of the pull request. It fails when the diff changes a protected
+path. It is a signal and not the required check, so that you can merge after
+reading what it lists.
+
+**Your approval is your own merge.** You merge the commit you see, so an
+approval never carries over to content that changed afterwards. This is an
+agreement that the scripts and agents keep, not a lock: the agent works with
+your GitHub account and could do what you can do. A lock needs a separate
+identity for the agent, with code owners and required reviews on GitHub.
 
 ## Linking a feature plan
 
