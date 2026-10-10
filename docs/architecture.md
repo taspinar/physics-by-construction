@@ -337,6 +337,13 @@ pinning") with a fix hint.
    learning path takes its place; the index stays within the payload budget
    and holds the prose of the pages, not their code or printed output, which
    `site/search-index.py` removes after the render.
+   Learner state (F13): the learner-state script contains no request, other
+   origin, or storage but local storage; while a self-check is completed,
+   every request is a plain read of a file of the site, none carries the
+   stored state, no cookie is set, and nothing is written to IndexedDB, the
+   Cache API, or a service worker; stored data of another version is
+   discarded; every self-check is an exercise with a visible solution with
+   scripts disabled; its controls work by keyboard and pass the scan.
 8. **Determinism**: a second build of the same commit is byte-identical to the
    first.
 9. **Workflow self-tests**: the existing shell tests of the workflow scripts
@@ -446,12 +453,31 @@ of a live provider, so tool results on the page are recomputed, not recorded
    `formal-theorem` claim about the model; the page says it proves nothing
    about the measurement or the Python code.
 
-### Learner state (later phase)
+### Learner state (F13)
 
 Progress, self-check results, and recommendations are computed in the browser
 and written to browser local storage under a versioned, site-specific key.
-There is no request that carries them anywhere. Not built yet; the site
-stores no learner state at all until F13.
+There is no request that carries them anywhere.
+
+Delivered by F13 (progress and self-checks; recommendations are F14):
+
+- **Format.** A self-check of a lesson may hold choices with feedback; without
+  scripts it is an exercise with a solution that opens in the page
+  (`docs/authoring.md`, "Self-checks and progress").
+- **Store.** One record under the key `physics-by-construction:learner-state`,
+  `{"version": 1, "lessons": {"<lesson id>": {...}}}`, keyed by the stable
+  lesson ids, written by `site/learner/progress.js` only when the reader acts.
+  Data of another version, or of a wrong shape, is discarded.
+- **Display.** The lesson page shows its completed status; the learning path
+  page marks completed lessons, explains what is stored, and has the control
+  that clears it.
+- **Export.** The build writes `path.json`, the learning path as data, for
+  client-side use. It holds no learner state.
+- **Boundary.** `site/learner/progress.js` is the only script that uses
+  browser storage. It makes no request. Built-site checks scan it, record the
+  requests and writes of a page while a self-check is completed, and fail on a
+  cookie, on a request that is not a plain read, or on stored state in any
+  request (I16).
 
 ## Invariants and boundaries
 
@@ -476,7 +502,7 @@ shown.
 | I13 | Lean proofs are about physics models. Nothing on the site claims the Python code is formally verified or that a proof establishes the physical accuracy of a measurement. | Review; authoring guide (F08, F56). |
 | I14 | Agents in the harness can call only allowlisted functions with validated arguments. No shell, file, or network capability. Credentials come only from environment variables and are never printed or logged. | Harness design and tests (F09); ADR 004. |
 | I15 | Pull requests from forks get a read-only token and no secrets. Workflows use `pull_request`, never `pull_request_target`, and never trigger on Issues. | Workflow review and test (F01, F12). |
-| I16 | Learner state, once it exists, stays in browser local storage and is never transmitted. | Built-site check for network requests (F13). |
+| I16 | Learner state stays in browser local storage and is never transmitted. | Built-site check for network requests and cookies, and a scan of the learner-state script (F13). |
 | I17 | Site URLs are relative or derived from one configured base URL. The repository address and the Pages address stay unchanged; a transfer or a custom domain is a separate decision. | Internal link check on a sub-path build (F01); requirements decision 20. |
 | I18 | Every lesson states its assumptions, has complete metadata, belongs to exactly one primary course, and has the required sections of its format. | Lesson source check (F02, F28, F37). |
 | I19 | English only. Code under MIT, lesson text and figures under CC BY 4.0, third-party material attributed. The copyright line "Ahmet Taspinar and the Physics by Construction contributors" and the licence holders change only by a recorded decision after a licence review with contributor consent. | Licence files (F01); review; requirements decision 20. |
@@ -653,7 +679,7 @@ Per-page and per-lesson budgets that the next phase adds:
 | Dataset samples (small, version-pinned, rights-cleared, next phase) | Git repository, `data/samples/<dataset>/`, with a card in `data/registry/` (ADR 007) | Git history. Verification inputs: replaced only with a new card version. |
 | Full datasets | The portal of record, never the repository | Not retained here; the card pins version, URL, and checksum. |
 | Published site | GitHub Pages artifact | Replaced by each deployment. |
-| Learner state (later phase) | Learner's browser local storage | Until the learner clears it. No recovery. |
+| Learner state (F13) | Learner's browser local storage | Until the learner clears it. No recovery. |
 
 Nothing else is stored anywhere.
 

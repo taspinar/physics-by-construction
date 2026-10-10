@@ -461,6 +461,37 @@ Halving the time step halves the error of the
 thrown ball. Could you make the error as small as you like by halving again
 and again? Name what would change on the way.
 
+::: {.choices}
+::: {.choice}
+Yes. Every halving halves the error, so the error can be made as small as you
+like.
+
+::: {.feedback}
+Not quite: this holds only in exact arithmetic. A computer rounds every step,
+and the rounding errors of many small steps add up.
+:::
+:::
+
+::: {.choice correct="true"}
+No. At some time step the rounding errors become as large as the error of the
+method, and halving the step further no longer helps.
+
+::: {.feedback}
+Correct: this is the fifth assumption of the lesson. Round-off is negligible
+only for time steps that are not too small.
+:::
+:::
+
+::: {.choice}
+No. The error of the method does not depend on the time step at all.
+
+::: {.feedback}
+Not quite: the error of the method does shrink with the time step, in
+proportion to it. The limit comes from round-off, not from the method.
+:::
+:::
+:::
+
 ::: {.solution}
 In exact arithmetic yes: the error is proportional to the time step, so every
 halving halves it, at twice the work. A computer does not calculate exactly.

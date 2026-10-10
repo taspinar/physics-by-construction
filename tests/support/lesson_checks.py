@@ -473,6 +473,37 @@ def _hint_problems(exercise: Node) -> Iterator[str]:
                 yield "a hint holds a 'go-deeper' block; they are distinct"
 
 
+def _choices_problems(lesson: Lesson) -> Iterator[str]:
+    """The rules for the choices of a self-check: inside a self-check, two or
+    more '.choice' divs and nothing else, exactly one with correct="true",
+    each with a '.feedback' div, the whole before the solution."""
+    for path in _divs(lesson.blocks, "choices"):
+        node = path[-1]
+        if not any(_has_class(parent, "self-check") for parent in path[:-1]):
+            yield "a '.choices' div is outside a '.self-check' div"
+        blocks = node["c"][1]
+        choices = [block for block in blocks if _has_class(block, "choice")]
+        if len(choices) < 2 or len(choices) != len(blocks):
+            yield "'.choices' holds two or more '.choice' divs and nothing else"
+        right = [c for c in choices if _attribute(c, "correct") == "true"]
+        if len(right) != 1:
+            yield f"'.choices' has {len(right)} correct choices; it needs exactly one"
+        if any(not _divs(choice["c"][1], "feedback") for choice in choices):
+            yield "a '.choice' has no '.feedback' div"
+        for choice in choices:
+            if _attribute(choice, "correct") not in (None, "true", "false"):
+                yield "the 'correct' attribute of a '.choice' is 'true' or 'false'"
+        checks = [parent for parent in path[:-1] if _has_class(parent, "self-check")]
+        if checks:
+            order = [
+                _has_class(block, "choices")
+                for block in checks[-1]["c"][1]
+                if _has_class(block, "choices") or _has_class(block, "solution")
+            ]
+            if order[:1] == [False]:
+                yield "the '.choices' come after the '.solution'; they come before it"
+
+
 def check_sections(repository: Path) -> list[Violation]:
     """Every lesson has the required sections with content, exercises come
     with solutions (hints, if any, before them), and the header and
@@ -526,6 +557,8 @@ def check_sections(repository: Path) -> list[Violation]:
             for path in _divs(lesson.blocks, "solution")
             if not any(_has_class(node, "exercise") for node in path[:-1])
         ]
+
+        problems += list(_choices_problems(lesson))
 
         if sections.get("reproduce-this") and not _calls(
             lesson, sections["reproduce-this"], "reproduce_this"

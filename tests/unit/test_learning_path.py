@@ -403,7 +403,9 @@ def test_header_shows_course_methods_outcomes_prerequisites_and_neighbours(
 def test_header_renders_the_outcomes_as_a_list_in_its_row(path: LearningPath):
     blocks = pandoc_blocks(LessonHeader(path, NEWTON)._repr_markdown_())
 
-    (div,) = blocks
+    # The header, then the raw block of the learner-state script.
+    div, script = blocks
+    assert script["t"] == "RawBlock" and "learner-state-data" in script["c"][1]
     definitions = dict(
         (inlines_text(term), items) for term, items in div["c"][1][0]["c"]
     )
@@ -484,6 +486,7 @@ def test_overview_lists_courses_with_core_lessons_and_extensions_then_methods(
         if line.startswith("#") and "{.lesson-card-title}" not in line
     ]
     assert headings == [
+        "## Your progress {#your-progress}",
         "## Difficulty {#difficulty}",
         "## Order {#order}",
         "## Courses {#courses}",
@@ -540,9 +543,10 @@ def test_overview_puts_every_lesson_in_one_card_with_its_facts():
 
     shown = str(PathOverview(LearningPath(tuple(lessons)), PATH_PAGE))
 
-    assert shown.count('<li class="path-card">') == 22
+    assert shown.count('<li class="path-card" data-lesson-id=') == 22
     assert shown.count("<dt>") == 22 * 6
-    assert shown.count("<p>") == 2 * 6  # lessons 1, 3, ... 11 have a description
+    cards = shown.split("## Courses {#courses}")[1]
+    assert cards.count("<p>") == 2 * 6  # lessons 1, 3, ... 11 have a description
 
 
 def test_overview_explains_what_previous_and_next_mean(path: LearningPath):

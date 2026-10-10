@@ -14,6 +14,8 @@
 -- for exercise N", in the order written, before the solution. The lesson
 -- source check keeps hints before the solution and free of computed numbers.
 --
+-- A self-check may hold choices (see "Choices of a self-check" below).
+--
 -- Format 2 (docs/authoring.md): a span or div with the class claim and a
 -- type attribute gets a visible label naming the type; a cell with a
 -- fig-status option gets a status label that opens the caption; a div
@@ -72,6 +74,35 @@ local function count_hints(el)
   return total
 end
 
+-- The controls of a self-check are declared as an enhancement of the page
+-- (an element with an id and the attribute data-enhancement), so that what the
+-- script of the site adds is not required content and what the page has
+-- without it stands in the element. With choices, the element holds the list
+-- of choices, which the script turns into radio buttons. Without, it holds a
+-- sentence, before the solution, and the script puts the button there.
+local function self_check_controls(content)
+  local attr = pandoc.Attr("self-check-controls", {}, { { "data-enhancement", "" } })
+  for index, block in ipairs(content) do
+    if block.t == "Div" and block.classes:includes("choices") then
+      content[index] = pandoc.Div({ block }, attr)
+      return content
+    end
+  end
+  local sentence = pandoc.read(
+    "With scripts, you can record in this browser that you answered this question.",
+    "markdown"
+  ).blocks[1]
+  local controls = pandoc.Div({ sentence }, attr)
+  for index, block in ipairs(content) do
+    if block.t == "Div" and block.classes:includes("solution") then
+      content:insert(index, controls)
+      return content
+    end
+  end
+  content:insert(controls)
+  return content
+end
+
 local function exercises(doc)
   local count = 0
   return doc:walk({
@@ -98,6 +129,9 @@ local function exercises(doc)
           first.content:insert(1, title)
         else
           el.content:insert(1, pandoc.Para({ title }))
+        end
+        if self_check then
+          el.content = self_check_controls(el.content)
         end
         local hints = count_hints(el)
         local hint_number = 0
@@ -280,9 +314,60 @@ local function go_deeper(el)
   return el
 end
 
+-- Choices of a self-check: a div with the class choices holds two or more
+-- divs with the class choice, one of them with correct="true", each with a
+-- div with the class feedback. It becomes an ordered list that reads on its
+-- own: the question, the options, and what each option means. The script of
+-- the site (learner/progress.js) turns it into radio buttons with immediate
+-- feedback; without the script the closed solution of the self-check is the
+-- way to the answer. The build fails on a malformed list.
+local function choices(el)
+  if not el.classes:includes("choices") then
+    return nil
+  end
+  local items = pandoc.List()
+  for _, block in ipairs(el.content) do
+    if block.t == "Div" and block.classes:includes("choice") then
+      items:insert(block)
+    end
+  end
+  if #items < 2 or #items ~= #el.content then
+    error("choices holds " .. #items .. " choice divs among " .. #el.content .. " blocks; it needs two or more and nothing else")
+  end
+  local correct = 0
+  local blocks = pandoc.List({ pandoc.RawBlock("html", '<ol class="choices">') })
+  for _, item in ipairs(items) do
+    local right = item.attributes["correct"] == "true"
+    if right then
+      correct = correct + 1
+    end
+    local has_feedback = false
+    item.content:walk({
+      Div = function(inner)
+        if inner.classes:includes("feedback") then
+          has_feedback = true
+        end
+      end,
+    })
+    if not has_feedback then
+      error("a choice has no feedback div")
+    end
+    blocks:insert(pandoc.RawBlock("html", '<li class="choice" data-correct="' .. tostring(right) .. '">'))
+    blocks:extend(item.content)
+    blocks:insert(pandoc.RawBlock("html", "</li>"))
+  end
+  if correct ~= 1 then
+    error("choices has " .. correct .. " correct choices; it needs exactly one")
+  end
+  blocks:insert(pandoc.RawBlock("html", "</ol>"))
+  return blocks
+end
+
 local function div(el)
   if el.classes:includes("claim") then
     return claim_div(el)
+  elseif el.classes:includes("choices") then
+    return choices(el)
   elseif el.classes:includes("go-deeper") then
     return go_deeper(el)
   elseif el.classes:includes("cell") then

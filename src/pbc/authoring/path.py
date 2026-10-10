@@ -23,6 +23,12 @@ from pbc.authoring.graph import (
     REQUIRES_MARKER,
     PrerequisiteGraph,
 )
+from pbc.authoring.progress import (
+    EXPLANATION_ANCHOR,
+    STORAGE_KEY,
+    progress_markup,
+    raw_html,
+)
 from pbc.authoring.website import PAGE_FILE, page_href, project_root
 
 _href = page_href
@@ -570,11 +576,13 @@ class LessonHeader:
                 f" [learning path]({_href(page, PATH_PAGE, 'order')}) so far",
             ),
         ]
-        return (
+        header = (
             "::: {.lesson-header}\n"
             + "\n".join(f"{term}\n:   {definition}\n" for term, definition in rows)
             + ":::\n"
         )
+        # The script that keeps the learner's progress in the browser.
+        return header + raw_html(progress_markup(page, lesson))
 
     def _before_you_begin(self) -> list[tuple[str, str]]:
         if self.glossary is None:
@@ -602,6 +610,7 @@ class PathOverview:
 
     def __str__(self) -> str:
         lines = [
+            *self._progress(),
             "## Difficulty {#difficulty}",
             "",
             f"Every lesson states one of {len(DIFFICULTIES)} levels.",
@@ -662,7 +671,34 @@ class PathOverview:
             ]
             lines += self._items(self.path.using(method), 4)
         lines += self._graph()
+        # The script that shows progress on the cards and clears it.
+        lines += [raw_html(progress_markup(self.page, None))]
         return "\n".join(lines)
+
+    def _progress(self) -> list[str]:
+        """The section that explains what the site stores in the browser and
+        holds the clear-data control, which a script shows."""
+        return [
+            f"## Your progress {{#{EXPLANATION_ANCHOR}}}",
+            "",
+            "```{=html}",
+            "<p>This site can remember which lessons you have completed and how"
+            " you answered the self-checks. It keeps that in your browser and"
+            " nowhere else, in local storage under the key"
+            f" <code>{STORAGE_KEY}</code>: for each lesson, whether you marked"
+            " it completed, whether you finished its self-check, and how often"
+            " you checked an answer. No account is needed. Nothing is sent to"
+            " a server, no cookie is set, and nothing is shared with other"
+            " sites or other devices. Clearing the data of this site in your"
+            " browser removes it too, and so does the button below.</p>",
+            "<p>Without scripts nothing is stored, and the self-checks work as"
+            " exercises with a solution you can open.</p>",
+            '<div id="progress-controls" data-enhancement="">'
+            "<p>With scripts, this place shows which lessons you have completed"
+            " and a button that clears them.</p></div>",
+            "```",
+            "",
+        ]
 
     def _graph(self) -> list[str]:
         if not self.path.lessons:
@@ -796,7 +832,8 @@ class PathOverview:
             f"<p>{escape(lesson.description)}</p>" if lesson.description else ""
         )
         return (
-            f'<li class="path-card"><h{heading} class="lesson-card-title">'
+            f'<li class="path-card" data-lesson-id="{escape(lesson.id)}">'
+            f'<h{heading} class="lesson-card-title">'
             f"{link(lesson.page, lesson.title)}</h{heading}>{description}"
             f"<dl>{facts}</dl></li>"
         )

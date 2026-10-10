@@ -18,6 +18,7 @@ from support.paths import REPO_ROOT
 from support.site_checks import Violation
 from support.site_server import SiteServer
 
+from pbc.authoring.progress import STORAGE_KEY
 from pbc.sample import damped_oscillation
 
 BASE_PATH = "/sub-path/"
@@ -730,6 +731,93 @@ def test_a_page_without_an_enhancement_is_not_driven(make_site: Site, browser: B
         violations = site_checks.check_widgets_store_nothing(browser, server, site)
 
     assert violations == []
+
+
+# --- Learner state --------------------------------------------------------------
+
+_KEY = STORAGE_KEY
+_STATE = '{"version":1,"lessons":{"a":{"completed":true}}}'
+_BUTTON = (
+    '<button id="go" type="button">Go</button><script src="learner/s.js"></script>'
+)
+
+
+def store(extra: str = "") -> str:
+    """A learner script that stores the state when the button is pressed."""
+    return (
+        "document.getElementById('go').addEventListener('click', () => {"
+        f"localStorage.setItem({_KEY!r}, {_STATE!r});{extra}}});"
+    )
+
+
+def press(page) -> None:
+    page.click("#go")
+
+
+def stays_local(site: Path, browser: Browser) -> list[Violation]:
+    with served(site) as server:
+        return site_checks.check_learner_state_stays_local(
+            browser, server, "index.html", press
+        )
+
+
+def test_a_learner_script_that_only_uses_local_storage_is_clean(make_site: Site):
+    site = make_site(files={"learner/s.js": store()})
+
+    assert site_checks.check_learner_script_sources(site) == []
+
+
+@pytest.mark.parametrize(
+    "source, kind",
+    [
+        ("fetch('/state');", "request"),
+        ("navigator.sendBeacon('/state', 'x');", "request"),
+        ("const url = 'https://example.org/x';", "other origin"),
+        ("sessionStorage.setItem('a', 'b');", "other storage"),
+        ("document.cookie = 'a=b';", "other storage"),
+        ("indexedDB.open('db');", "other storage"),
+    ],
+)
+def test_a_learner_script_that_reaches_out_or_keeps_data_elsewhere_is_reported(
+    make_site: Site, source: str, kind: str
+):
+    site = make_site(files={"learner/s.js": source})
+
+    violations = site_checks.check_learner_script_sources(site)
+
+    assert [v.rule for v in violations] == ["learner-source"]
+    assert violations[0].detail.startswith(kind)
+
+
+def test_state_kept_in_local_storage_alone_passes(make_site: Site, browser: Browser):
+    site = make_site(body=_BUTTON, files={"learner/s.js": store()})
+
+    assert stays_local(site, browser) == []
+
+
+@pytest.mark.parametrize(
+    "extra, rule",
+    [
+        (f"fetch('/beacon?state=' + encodeURIComponent({_STATE!r}));", "state-request"),
+        (f"fetch('/beacon?k=' + {_KEY!r});", "state-request"),
+        ("fetch('/beacon', {method: 'POST', body: 'x'});", "state-request"),
+        ("document.cookie = 'state=1';", "state-cookie"),
+        ("indexedDB.open('state');", "state-elsewhere"),
+    ],
+    ids=["state-in-url", "key-in-url", "post", "cookie", "indexed-db"],
+)
+def test_state_that_leaves_local_storage_is_reported(
+    make_site: Site, browser: Browser, extra: str, rule: str
+):
+    site = make_site(body=_BUTTON, files={"learner/s.js": store(extra)})
+
+    assert rule in {v.rule for v in stays_local(site, browser)}
+
+
+def test_a_page_that_stores_nothing_is_reported(make_site: Site, browser: Browser):
+    site = make_site(body=_BUTTON, files={"learner/s.js": "// nothing"})
+
+    assert {v.rule for v in stays_local(site, browser)} == {"state-stored"}
 
 
 # --- Keyboard pass and payload ------------------------------------------------
