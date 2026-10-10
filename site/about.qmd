@@ -12,25 +12,17 @@ from pbc.authoring.identity import description
 print(description())
 ```
 
-Ahmet Taspinar, an alumnus of Applied Physics at TU Delft and the founder of
-JIDAI, created the project and maintains it.
+Ahmet is an Applied Physics alumnus of TU Delft and the founder of
+[JIDAI](https://jidai.nl). He maintains the project with contributions from
+the open-source community.
 
-[JIDAI](https://jidai.nl) is the company behind the initiative. It is not a
-copyright holder, a funder, or a university partner of the project. The
-copyright line of the repository is "Ahmet Taspinar and the Physics by
-Construction contributors", and that is who holds the rights, under the
-licences below. Creating and maintaining the project is a different thing from
-owning it: the code and the lesson text are open for anyone to reuse and
-change under those licences.
+## Why open source
 
-## Why it is open source
+Physics is best understood by building, experimenting, and verifying results
+yourself. That's why the code behind every simulation, figure, and proof is
+openly available for anyone to explore, reproduce, and improve.
 
-The code behind every figure and proof is the lesson, so a reader has to be
-able to read it, run it, and check it. Open licences make that possible, and
-they let anyone correct or build on the material. The content of the site is
-decided by what the checks accept and by reviewed pull requests, not by any
-company: nobody has to contact JIDAI, create an account, or accept tracking to
-use the site or to contribute.
+The project is freely accessible without registration or tracking.
 
 ## How to cite
 
