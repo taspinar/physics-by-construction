@@ -480,6 +480,15 @@ must the time step be for the position after `{python} f"{duration:.1f}"` s
 to be within 1 mm of the exact one? Predict the answer from the error formula,
 then confirm it with a simulation.
 
+::: {.hint}
+Solve the error formula for the time step, with the tolerance as the
+error.
+:::
+
+::: {.hint}
+A simulation takes a whole number of steps. Which way must you round?
+:::
+
 ::: {.solution}
 The error after the time $T$ is $\tfrac{1}{2}\,g\,T\,\Delta t$, so the time
 step must satisfy $\Delta t \le 2\,\varepsilon / (g\,T)$ for a tolerance
@@ -511,6 +520,16 @@ acceleration grows linearly, $a(t) = j\,t$ with $j = 2$ m/s³. The exact motion
 is $v(t) = \tfrac{1}{2}\,j\,t^{2}$ and $x(t) = \tfrac{1}{6}\,j\,t^{3}$. Is the
 velocity computed by explicit Euler still exact? Measure the observed order of
 the position error at $t = 3$ s.
+
+::: {.hint}
+Compare the acceleration at the start of a step with the acceleration
+during it. Does the velocity rule see the difference?
+:::
+
+::: {.hint}
+The observed order is the base-two logarithm of the ratio of the errors
+of two runs, the second with half the time step of the first.
+:::
 
 ::: {.solution}
 The velocity is no longer exact. Each step uses the acceleration at the start
@@ -565,6 +584,11 @@ error tends to one.
 $\tfrac{1}{2}\,a(t)\,\Delta t^{2}$ from the position. Write a step that keeps
 it, and run the thrown ball of the first example again with its coarse time
 step of `{python} dt` s. What happens to the error, and why?
+
+::: {.hint}
+The thrown ball has a constant acceleration. Which terms of the exact
+position does the new step now contain?
+:::
 
 ::: {.solution}
 ```{python}
