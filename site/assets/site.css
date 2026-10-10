@@ -223,6 +223,24 @@ main a > code:not(.sourceCode) {
   font-size: 0.9375em;
 }
 
+/* The "Reproduce this" section and the Lean evidence show a short summary
+   and keep the full listing in a closed details element. */
+.reproduce-details,
+.lean-evidence-details {
+  margin-top: 0.75rem;
+}
+
+.reproduce-details > summary,
+.lean-evidence-details > summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reproduce-details[open] > summary,
+.lean-evidence-details[open] > summary {
+  margin-bottom: 0.75rem;
+}
+
 .lean-evidence > :first-child {
   margin-top: 0;
 }
@@ -390,10 +408,21 @@ main .quarto-title-meta,
 /* The theme's focus ring on the navigation is a pale blue shadow at a quarter
    of its strength: on this bar it has a contrast of about 1.2:1. A white ring
    of three pixels has 4.8:1 against the bar (WCAG 2.2, 2.4.13). */
-.navbar a:focus-visible {
+.navbar a:focus-visible,
+.navbar .aa-DetachedSearchButton:focus-visible {
   outline: var(--pbc-focus-width) solid var(--pbc-navbar-text);
   outline-offset: 2px;
   box-shadow: none;
+}
+
+/* The search box is a light field on the dark bar, so its controls take the
+   ring of the page, in the focus colour. The search script removes the
+   outline of its input; the identifier outranks that rule. */
+#quarto-search .aa-Input:focus-visible,
+#quarto-search .aa-SubmitButton:focus-visible,
+#quarto-search .aa-ClearButton:focus-visible {
+  outline: var(--pbc-focus-width) solid var(--pbc-focus);
+  outline-offset: 2px;
 }
 
 /* Everywhere else a focused control gets the same ring in the focus colour. */
@@ -737,6 +766,28 @@ details.hint[open] > summary {
 .path-card .path-card-meta {
   color: var(--pbc-muted);
   font-size: var(--pbc-text-small);
+}
+
+/* The facts inside a path card (pbc.authoring.learning_path). */
+.path-card .lesson-card-title {
+  margin: 0 0 var(--pbc-space-2);
+  font-size: var(--pbc-heading-3);
+}
+
+.path-card dl,
+.path-card dd,
+.path-card dd > ul {
+  margin: 0;
+}
+
+.path-card dt {
+  margin-top: var(--pbc-space-2);
+  font-weight: 600;
+}
+
+.path-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* The prerequisite graph (F26): the drawing scrolls inside its own box. The

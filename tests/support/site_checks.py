@@ -866,6 +866,108 @@ def check_payload(
     ]
 
 
+# --- Search ------------------------------------------------------------------
+
+SEARCH_CONTROL = "#quarto-search"
+_SEARCH_INPUT = f"{SEARCH_CONTROL} input"
+_SEARCH_RESULTS = "#quarto-search-results .aa-Item a, .aa-Panel .aa-Item a"
+_STORAGE_ENTRIES = (
+    "() => [...Object.keys(localStorage), ...Object.keys(sessionStorage)]"
+)
+
+
+def check_search_finds_a_lesson(
+    browser: Browser,
+    server: SiteServer,
+    site_dir: Path,
+    page_name: str,
+    query: str,
+    expected: str,
+) -> list[Violation]:
+    """On ``page_name``, typing ``query`` into the search control lists a
+    result whose address ends with ``expected``. While it searches, the page
+    requests nothing from another origin and writes no cookie and nothing to
+    Web Storage, IndexedDB, the Cache API, or a service worker; what the page
+    wrote while it loaded is not counted."""
+    violations = []
+    blocked: list[str] = []
+    with _context(browser, server, blocked.append, viewport=DESKTOP) as context:
+        context.add_init_script(f"({_RECORD_STORAGE_WRITES})()")
+        page = context.new_page()
+        page.goto(server.url + page_name, wait_until="networkidle")
+        before = len(page.evaluate("window.__storageWrites"))
+        entries = set(page.evaluate(_STORAGE_ENTRIES))
+        if not page.locator(_SEARCH_INPUT).count():
+            return [Violation("search", page_name, "has no search input")]
+        page.fill(_SEARCH_INPUT, query)
+        try:
+            page.wait_for_selector(_SEARCH_RESULTS, timeout=5000)
+        except Exception:
+            return [Violation("search", page_name, f"'{query}' lists no result")]
+        found = [
+            link.get_attribute("href") or ""
+            for link in page.locator(_SEARCH_RESULTS).all()
+        ]
+        if not any(urlsplit(href).path.endswith(expected) for href in found):
+            violations.append(
+                Violation("search", page_name, f"'{query}' does not find {expected}")
+            )
+        page.wait_for_load_state("networkidle")
+        violations += [
+            Violation("search-storage", page_name, f"writes {write}")
+            for write in page.evaluate("window.__storageWrites")[before:]
+        ]
+        violations += [
+            Violation("search-storage", page_name, f"leaves entry {key}")
+            for key in set(page.evaluate(_STORAGE_ENTRIES)) - entries
+        ]
+        violations += [
+            Violation("search-storage", page_name, f"sets cookie {cookie['name']}")
+            for cookie in context.cookies()
+        ]
+        violations += [
+            Violation("other-origin", page_name, f"requests {target}")
+            for target in blocked
+        ]
+        page.close()
+    return violations
+
+
+def check_search_falls_back_without_javascript(
+    browser: Browser, server: SiteServer, site_dir: Path, path_page: str
+) -> list[Violation]:
+    """With scripts disabled, no page shows a search control that cannot work:
+    the place of the control holds a visible link to ``path_page`` instead."""
+    violations = []
+    with _context(
+        browser, server, lambda url: None, viewport=DESKTOP, java_script_enabled=False
+    ) as context:
+        for name, url in _urls(site_dir, server):
+            page = _open(context, url)
+            control = page.locator(SEARCH_CONTROL)
+            if control.count():
+                if control.locator("input, button, [role=search]").count():
+                    violations.append(
+                        Violation("search-fallback", name, "shows a search control")
+                    )
+                link = control.locator("a")
+                target = link.get_attribute("href") if link.count() == 1 else None
+                if (
+                    target is None
+                    or not link.is_visible()
+                    or urljoin(url, target) != server.url + path_page
+                ):
+                    violations.append(
+                        Violation(
+                            "search-fallback",
+                            name,
+                            f"does not show one visible link to {path_page}",
+                        )
+                    )
+            page.close()
+    return violations
+
+
 # --- Lesson constructs -------------------------------------------------------
 #
 # What docs/authoring.md promises about a built lesson page. The checks run

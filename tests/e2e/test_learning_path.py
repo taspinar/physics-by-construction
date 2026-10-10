@@ -19,10 +19,12 @@ from support.site_checks import DESKTOP, PHONE
 from support.site_server import SiteServer
 
 from pbc.authoring import DIFFICULTIES, METHODS, LearningPath
+from pbc.authoring.glossary import Glossary
 from pbc.authoring.path import PATH_PAGE, Lesson
 
 PATH = Path(PATH_PAGE).with_suffix(".html").as_posix()
 LESSON_PATH = LearningPath.read(SITE_SOURCE)
+GLOSSARY = Glossary.read(SITE_SOURCE)
 
 
 def built(lesson: Lesson) -> str:
@@ -90,18 +92,53 @@ def test_path_page_explains_the_difficulty_scale(
 def _check_items(
     items: Locator, lessons: tuple[Lesson, ...], server: SiteServer
 ) -> None:
+    """Each card shows what the front matter of its lesson says."""
     assert items.count() == len(lessons)
     for item, lesson in zip(items.all(), lessons, strict=True):
-        # The first link is the lesson, the others its prerequisites.
-        links = item.locator("a").evaluate_all("links => links.map(a => a.href)")
-        assert links[0] == server.url + built(lesson)
-        assert links[1:] == [
+        difficulty = DIFFICULTIES[lesson.difficulty - 1]
+        heading = item.locator(".lesson-card-title")
+        assert heading.count() == 1
+        assert _plain(heading.inner_text()) == _plain(lesson.title)
+        assert _hrefs(heading, "a") == [server.url + built(lesson)]
+        if lesson.description:
+            assert _plain(item.locator("> p").first.inner_text()) == _plain(
+                " ".join(lesson.description.split())
+            )
+
+        facts = {
+            term: item.locator(f"dt:text-is('{term}') + dd")
+            for term in ("Course", "Methods", "Level", "What you\u2019ll learn")
+        }
+        assert facts["Course"].inner_text() == next(
+            c.title for c in LESSON_PATH.courses if c.id == lesson.course
+        )
+        assert facts["Methods"].inner_text() == ", ".join(
+            next(m.title for m in METHODS if m.id == method)
+            for method in lesson.methods
+        )
+        # The level links to the legend and carries its definition on hover.
+        assert difficulty.title in facts["Level"].inner_text()
+        assert _hrefs(facts["Level"], "a") == [f"{server.url}{PATH}#difficulty"]
+        assert facts["Level"].locator("a").get_attribute("title") == (
+            difficulty.description
+        )
+        assert [
+            _plain(text)
+            for text in facts["What you\u2019ll learn"].locator("li").all_inner_texts()
+        ] == list(lesson.outcomes)
+
+        # The links after the heading: course, methods, level, prerequisites,
+        # related lessons.
+        prerequisites = item.locator("dt:text-is('Prerequisites') + dd")
+        assert _hrefs(prerequisites, "a") == [
             server.url + built(LESSON_PATH.lesson(item))
             for item in lesson.prerequisites
         ]
-        text = item.inner_text()
-        assert DIFFICULTIES[lesson.difficulty - 1].title in text
-        assert all(outside in text for outside in lesson.outside)
+        assert all(outside in prerequisites.inner_text() for outside in lesson.outside)
+        related = item.locator("dt:text-is('Related') + dd")
+        assert _hrefs(related, "a") == [
+            server.url + built(LESSON_PATH.lesson(item)) for item in lesson.related
+        ]
 
 
 def test_path_page_lists_the_lessons_of_each_course_in_order(
@@ -117,12 +154,12 @@ def test_path_page_lists_the_lessons_of_each_course_in_order(
         core = tuple(lesson for lesson in lessons if lesson.strand == course.id)
         extensions = tuple(lesson for lesson in lessons if lesson.strand != course.id)
         _check_items(
-            section.locator(f"section#course-{course.id}-core > ol > li"),
+            section.locator(f"section#course-{course.id}-core li.path-card"),
             core,
             server,
         )
         _check_items(
-            section.locator(f"section#course-{course.id}-extensions > ol > li"),
+            section.locator(f"section#course-{course.id}-extensions li.path-card"),
             extensions,
             server,
         )
@@ -143,7 +180,7 @@ def test_path_page_lists_the_lessons_of_each_method_in_path_order(
     for method in LESSON_PATH.methods:
         section = page.locator(f"main section#method-{method.id}")
         assert section.locator("h3").first.inner_text() == method.title
-        _check_items(section.locator("ol > li"), LESSON_PATH.using(method), server)
+        _check_items(section.locator("li.path-card"), LESSON_PATH.using(method), server)
     # A method without a lesson has no section.
     assert page.locator("main section#methods > section.level3").count() == len(
         LESSON_PATH.methods
@@ -161,8 +198,7 @@ def test_path_page_lists_every_lesson_under_its_course_and_its_methods(
     for lesson in LESSON_PATH.lessons:
         sections = page.locator("main section.level3").evaluate_all(
             "(sections, href) => sections"
-            ".filter(s => [...s.querySelectorAll(':scope > ol > li > p:first-child > a,"
-            " :scope > section > ol > li > p:first-child > a')]"
+            ".filter(s => [...s.querySelectorAll('.lesson-card-title > a')]"
             ".some(a => a.href === href))"
             ".map(s => s.id)",
             server.url + built(lesson),
@@ -250,6 +286,7 @@ def test_lesson_header_shows_the_facts_of_the_path_with_links(
         "Difficulty",
         "What you'll learn",
         "Prerequisites",
+        "Before you begin",
         "Related",
         "Previous",
         "Next",
@@ -280,9 +317,17 @@ def test_lesson_header_shows_the_facts_of_the_path_with_links(
     assert _hrefs(rows["Prerequisites"], "a") == [
         server.url + built(LESSON_PATH.lesson(item)) for item in lesson.prerequisites
     ]
-    assert all(
-        outside in rows["Prerequisites"].inner_text() for outside in lesson.outside
+
+    # Each outside prerequisite is listed with its detail; its term links to
+    # the entry of the glossary.
+    begin = rows["Before you begin"]
+    assert [_plain(text) for text in begin.locator("li").all_inner_texts()] == list(
+        lesson.outside
     )
+    assert _hrefs(begin, "a") == [
+        f"{server.url}glossary.html#{GLOSSARY.entry(outside).anchor}"
+        for outside in lesson.outside
+    ]
 
     if lesson.related:
         assert _hrefs(rows["Related"], "a") == [
@@ -305,6 +350,31 @@ def test_lesson_header_shows_the_facts_of_the_path_with_links(
         else:
             assert rows[name].inner_text() == neighbour.title
             assert _hrefs(rows[name], "a") == [server.url + built(neighbour)]
+
+
+def test_glossary_page_defines_every_entry_and_links_the_lessons_without_javascript(
+    without_scripts: BrowserContext, server: SiteServer
+):
+    page = without_scripts.new_page()
+    page.goto(server.url + "glossary.html", wait_until="load")
+
+    main = page.locator("main")
+    for entry in GLOSSARY.entries:
+        section = main.locator(f"section#{entry.anchor}")
+        assert section.count() == 1, entry.term
+        assert section.locator("h2").inner_text() == entry.term
+        assert entry.definition in section.inner_text()
+        users = [
+            lesson
+            for lesson in LESSON_PATH.lessons
+            if any(GLOSSARY.entry(text) == entry for text in lesson.outside)
+        ]
+        assert users, f"no lesson assumes {entry.term}"
+        assert [
+            link.get_attribute("href")
+            for link in section.locator("a").all()
+            if link.inner_text() in {lesson.title for lesson in users}
+        ] == [f"lessons/{built(lesson).split('lessons/')[1]}" for lesson in users]
 
 
 def test_graph_and_its_text_alternative_are_present_without_javascript(

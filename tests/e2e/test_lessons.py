@@ -314,6 +314,34 @@ def test_solutions_open_without_javascript(
     assert answer.is_visible()
 
 
+@pytest.mark.parametrize("lesson", [KINEMATICS, INTEGRATORS])
+def test_hints_open_without_javascript_and_come_before_the_solution(
+    page_without_scripts: Page, server: SiteServer, lesson: str
+):
+    page = page_without_scripts
+    page.goto(server.url + lesson, wait_until="load")
+
+    exercise = page.locator("#exercises .exercise:has(details.hint)").first
+    hints = exercise.locator("details.hint")
+    assert 1 <= hints.count() <= 3
+    # Closed until opened, titled by position, and before the solution in
+    # the order of the page.
+    assert not hints.first.evaluate("el => el.open")
+    assert (
+        hints.first.locator("summary")
+        .inner_text()
+        .startswith(f"Hint 1 of {hints.count()} for exercise")
+    )
+    assert exercise.evaluate(
+        "el => el.querySelector('details.hint').compareDocumentPosition("
+        "el.querySelector('details.solution')) & Node.DOCUMENT_POSITION_FOLLOWING"
+    )
+    body = hints.first.locator("p").first
+    assert not body.is_visible()
+    hints.first.locator("summary").click()
+    assert body.is_visible()
+
+
 # Runs in the page. Returns the links that extend past the right edge of the
 # screen. A long file path in a link does that when it cannot wrap, and the
 # page clips it without scrolling, so the rule for page width does not see it.

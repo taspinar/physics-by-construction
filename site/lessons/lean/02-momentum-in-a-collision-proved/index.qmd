@@ -1,0 +1,351 @@
+---
+title: "Momentum in a collision, proved"
+description: >-
+  The collision rule of two hard spheres from the momentum lesson, stated in
+  Lean 4, with a proof that it conserves the total momentum along every axis
+  for every choice of masses, velocities, and direction.
+lesson:
+  id: collision-momentum-proved
+  strand: lean
+  order: 2
+  difficulty: 2
+  course: mechanics
+  methods: [lean]
+  outcomes:
+    - State the collision rule of two hard spheres as a definition in Lean 4
+    - Read the proof that the rule conserves the total momentum along every axis
+    - Say which part of the momentum conservation seen in the simulation the theorem covers, and which it leaves out
+  related: []
+  format: 2
+  prerequisites:
+    lessons: [momentum-and-collisions, proving-what-the-simulation-showed]
+    outside:
+      - "Vectors: components and the dot product"
+  lean-modules:
+    - PhysicsByConstruction.Mechanics.Collision
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import lesson_header
+
+lesson_header()
+```
+
+The momentum lesson ran collisions and found that the total momentum of the
+pair was the same before and after, to round-off. That is what a program
+reports for the collisions it ran. A collision rule is supposed to conserve
+momentum for *every* pair of masses, every pair of velocities, and every
+direction of contact, and a run cannot cover them all.
+
+This lesson takes the rule that the momentum lesson uses for hard spheres,
+`hard_sphere_collision`, writes it down in Lean, and proves that it
+conserves the total momentum. The proof is a short piece of algebra, and the
+compiler checks it for all real numbers at once. The lesson says what the
+theorem is about, how it connects to the numbers the simulation printed, and
+what it leaves unproved.
+
+## Assumptions
+
+The model is two particles that collide once, and the rule that gives their
+velocities afterwards. Each assumption is a hypothesis or a definition in the
+Lean text, not an axiom, and the build fails on `sorry` and on any axiom the
+project declares.
+
+1. **The rule is the one of the momentum lesson.** The velocity of the first
+   sphere changes by a multiple of the direction `n`, and the multiple is
+   $-2\,m_2/(m_1+m_2)$ times the component of the relative velocity along
+   `n`; the second sphere changes by $+2\,m_1/(m_1+m_2)$ times the same.
+   This is the definition `firstAfter` and `secondAfter`. A rule with other
+   coefficients is another definition, and the theorem says nothing about it.
+2. **Positive masses.** `hm₁ : 0 < m₁` and `hm₂ : 0 < m₂`. They make the sum
+   $m_1 + m_2$ non-zero, which the rule divides by, and they say that the
+   spheres are particles.
+3. **Any number of axes.** The velocities are vectors with one real number per
+   axis (`ι → ℝ` with a finite set of axes `ι`), so the theorem holds on a
+   line, in a plane, and in space.
+4. **Any direction.** The direction `n` is an arbitrary vector. The momentum
+   is conserved whether or not `n` has length one; the unit length matters
+   for the energy and for the physical meaning of `n` as the line of centres,
+   and neither is part of this theorem.
+5. **Real numbers, not floating-point numbers.** Lean's `ℝ` has no round-off.
+   The program computes with doubles, and the theorem describes the model that
+   it approximates.
+6. **The collision is instantaneous.** The rule gives the velocities
+   before and after, and says nothing about the contact in between. The soft
+   contact of the momentum lesson, a force that acts for a short time, is a
+   different model and is not proved here.
+
+## What the theorem says {#explanation}
+
+The total momentum of two particles is $p = m_1 \mathbf{v}_1 + m_2 \mathbf{v}_2$.
+The collision rule changes both velocities by multiples of the same direction
+$\mathbf{n}$:
+
+$$
+\mathbf{v}_1' = \mathbf{v}_1 - \frac{2 m_2}{m_1 + m_2}\,\bigl((\mathbf{v}_1 - \mathbf{v}_2)\cdot\mathbf{n}\bigr)\,\mathbf{n},
+\qquad
+\mathbf{v}_2' = \mathbf{v}_2 + \frac{2 m_1}{m_1 + m_2}\,\bigl((\mathbf{v}_1 - \mathbf{v}_2)\cdot\mathbf{n}\bigr)\,\mathbf{n}.
+$$
+
+The change of momentum of the first sphere is $-2\,m_1 m_2/(m_1+m_2)$ times a
+vector, and that of the second is $+2\,m_1 m_2/(m_1+m_2)$ times the same
+vector: equal and opposite. The sum of the two cannot change, and the proof
+checks it by clearing the denominator and cancelling.
+
+[For two particles of positive mass, the collision rule conserves the total
+momentum along every axis, for all velocities and every direction.]{.claim
+type="formal-theorem" scope="the instantaneous collision rule of two hard
+spheres, real arithmetic" evidence="collision_momentum"}
+
+[The change of momentum of the first sphere is the negative of the change of
+momentum of the second.]{.claim type="formal-theorem" scope="the same rule,
+real arithmetic" evidence="collision_impulses"}
+
+The first statement is what the simulation of the momentum lesson observed.
+The second is the reason: a force between two bodies acts on both, and the
+rule is the net effect of that force.
+
+## The proofs {#code}
+
+The listings are read from the Lean files of the repository when the site is
+built, and they are the text that `lake build` compiled. The box says which
+commit, which version of Lean, and which version of Mathlib did it.
+
+```{python}
+#| echo: false
+from pbc.authoring import lean_evidence, lean_excerpt, reproduce_this
+
+COLLISION = "PhysicsByConstruction.Mechanics.Collision"
+
+lean_evidence(COLLISION)
+```
+
+The rule itself comes first. `dot` is the scalar product, a sum over the axes;
+`firstAfter` and `secondAfter` return the velocity along each axis `i`.
+
+```{python}
+#| echo: false
+lean_excerpt(COLLISION, "collision_rule")
+```
+
+The theorem for the momentum. The conclusion is one equation for each axis
+`i`, and the proof is the same pattern as in the first Lean lesson: unfold the
+definitions, clear the denominator with `field_simp`, and let `ring` check the
+identity. The hypothesis `hM` is derived inside the proof from the two
+positive masses.
+
+```{python}
+#| echo: false
+lean_excerpt(COLLISION, "collision_momentum")
+```
+
+And the equal and opposite impulses:
+
+```{python}
+#| echo: false
+lean_excerpt(COLLISION, "collision_impulses")
+```
+
+## Worked examples
+
+### The same statement on sampled collisions
+
+The cell draws random masses, velocities, and unit directions in three
+dimensions, applies the rule of the momentum lesson, and measures the
+change of the total momentum. The theorem says the change is zero for all of
+them. Doubles show it to the round-off of their arithmetic.
+
+```{python}
+import numpy as np
+
+from pbc.authoring import table
+from pbc.mechanics.particles import hard_sphere_collision
+
+rng = np.random.default_rng(7)
+rows = []
+for sample in range(6):
+    m1, m2 = rng.uniform(0.1, 10.0, size=2)
+    v1, v2 = rng.normal(size=(2, 3))
+    n = rng.normal(size=3)
+    n /= np.linalg.norm(n)
+    w1, w2 = hard_sphere_collision(m1, v1, m2, v2, n)
+    before = m1 * v1 + m2 * v2
+    after = m1 * w1 + m2 * w2
+    rows.append((m1, m2, np.max(np.abs(after - before)), np.linalg.norm(before)))
+
+table(
+    rows,
+    [
+        ("m1", "kg", ".2f"),
+        ("m2", "kg", ".2f"),
+        ("largest change of a momentum component", "kg m/s", ".1e"),
+        ("size of the total momentum", "kg m/s", ".2f"),
+    ],
+    "The change of the total momentum in a collision, for six random draws.",
+)
+```
+
+The change is many orders of magnitude below the momentum itself, as the
+momentum lesson found for its collisions. The theorem explains why the table
+has this shape for every draw, not only these six.
+
+The same check over many more collisions, with the mass ratio over six
+orders of magnitude, shows what the table suggests.
+
+```{python}
+#| label: fig-momentum-residual
+#| fig-cap: "Change of the total momentum, relative to its size, in two thousand random collisions against the mass ratio. The rule never changes it by more than round-off."
+#| fig-alt: "Scatter plot with a logarithmic horizontal axis, the ratio of the two masses, and a logarithmic vertical axis, the relative change of the total momentum. The points form a flat band far below one, with no trend as the mass ratio changes."
+#| fig-status: simulated
+import matplotlib.pyplot as plt
+
+ratio, change = [], []
+for _ in range(2000):
+    m1, m2 = 10 ** rng.uniform(-3, 3, size=2)
+    v1, v2 = rng.normal(size=(2, 3))
+    n = rng.normal(size=3)
+    n /= np.linalg.norm(n)
+    w1, w2 = hard_sphere_collision(m1, v1, m2, v2, n)
+    before = m1 * v1 + m2 * v2
+    ratio.append(m1 / m2)
+    change.append(np.linalg.norm(m1 * w1 + m2 * w2 - before) / np.linalg.norm(before))
+
+fig, ax = plt.subplots(figsize=(6.4, 3.6))
+ax.loglog(ratio, np.maximum(change, 1e-18), ".", color="#00429d", markersize=3)
+ax.set_xlabel("mass ratio m1 / m2")
+ax.set_ylabel("relative change of the momentum")
+plt.show()
+```
+
+The points lie on a band at the level of double precision, and the band does
+not widen with the mass ratio: the cancellation of the theorem does not depend
+on the masses. Points at the bottom edge are collisions whose change was
+exactly zero.
+
+### A rule the theorem does not describe
+
+The theorem is about *this* rule. Take a rule that is almost the same, with
+the coefficient of an equal-mass collision used for unequal masses: both
+spheres change velocity by the same amount along $\mathbf{n}$, in opposite
+directions. Every part of the statement still looks plausible. The cell shows
+that the momentum is not conserved.
+
+```{python}
+m1, m2 = 1.0, 3.0  # kg
+v1 = np.array([2.0, 0.5, 0.0])
+v2 = np.array([-1.0, 0.0, 0.5])
+n = np.array([1.0, 0.0, 0.0])
+approach = (v1 - v2) @ n
+
+wrong = (v1 - approach * n, v2 + approach * n)  # coefficient 1 for any masses
+right = hard_sphere_collision(m1, v1, m2, v2, n)
+before = m1 * v1 + m2 * v2
+
+rule_rows = [
+    ("rule with equal coefficients", *(m1 * wrong[0] + m2 * wrong[1] - before)),
+    ("rule of the momentum lesson", *(m1 * right[0] + m2 * right[1] - before)),
+]
+table(
+    rule_rows,
+    [("rule", "", ""), ("x", "kg m/s", ".1e"), ("y", "kg m/s", ".1e"), ("z", "kg m/s", ".1e")],
+    "The change of the total momentum along each axis, for two rules.",
+)
+```
+
+The first rule changes the momentum along the line of contact. It fails the
+proof at the place where the coefficients $m_2$ and $m_1$ cancel, which is
+exactly the algebra that `ring` checks in the theorem.
+
+## Limits {#limits}
+
+- **Momentum only.** The theorem says nothing about the kinetic energy. That
+  the rule conserves it for a unit direction `n` is a second theorem, not proved
+  here. A rule can conserve momentum and lose energy, as an inelastic
+  collision does.
+- **The rule, not the force.** The theorem takes the velocities after the
+  collision from the rule. It does not derive the rule from forces, and it
+  does not cover the soft contact that the simulation of the momentum lesson
+  integrates; that conserves momentum for another reason, the equal and
+  opposite forces of the pair, which is a statement about a sum over steps.
+- **The Python code.** Nothing here is a statement about `pbc.mechanics`.
+  That the program implements the rule is what its unit tests and the table
+  above check, for the cases they run.
+- **Floating-point arithmetic.** `ℝ` is exact; a double has a relative error
+  of about one part in $10^{16}$ per operation, and the theorem does not
+  speak about it.
+- **More than two bodies.** The statement is about one pair. A gas of many
+  spheres is a sequence of pair collisions, and an induction over it is not
+  proved here.
+
+::: {.exercise .self-check}
+The theorem holds for every direction `n`, including one of length two. Does
+the rule then describe a physical collision for such an `n`?
+
+::: {.solution}
+No. The theorem only uses the shape of the rule: the two changes are multiples
+of the same vector with opposite signs and masses that cancel. A direction
+of length two makes the rule reverse the relative velocity along it by more
+than the factor that conserves the kinetic energy, so the collision creates
+or destroys energy, while the momentum stays. Conservation of momentum
+alone does not make a collision elastic.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Which hypotheses can go?** The theorem needs `hm₁` and `hm₂`. Which of them
+does the proof use, and where? What happens to the rule if $m_1 + m_2 = 0$?
+
+::: {.solution}
+Neither positivity is used on its own: the proof needs only that
+$m_1 + m_2 \neq 0$, which is what `hM` states, and the two positive masses
+give it. If the masses summed to zero, Lean's division by zero would make
+both coefficients zero, the rule would leave both velocities as they are, and
+momentum would be conserved for a trivial reason. A formal statement can hold
+for a reason that has nothing to do with the physics, which is why the
+hypotheses are stated and not only the conclusion. The physics needs positive
+masses anyway.
+
+```{python}
+total = m1 + m2
+print(f"the rule divides by m1 + m2 = {total:.1f} kg for the example masses")
+```
+:::
+:::
+
+::: {.exercise}
+**The centre of mass.** The centre-of-mass velocity of the pair is
+$(m_1 \mathbf{v}_1 + m_2 \mathbf{v}_2)/(m_1 + m_2)$. What does the theorem
+say about it, and which Lean statement would you write?
+
+::: {.solution}
+It is the same before and after, because the numerator is the total momentum
+and the denominator does not change. In Lean the statement is
+`(m₁ * firstAfter m₁ m₂ v₁ v₂ n i + m₂ * secondAfter m₁ m₂ v₁ v₂ n i) / (m₁ + m₂)`
+equal to the same expression with `v₁ i` and `v₂ i`, and the proof is
+`collision_momentum` followed by `congrArg`.
+
+```{python}
+w1, w2 = right
+centre_before = (m1 * v1 + m2 * v2) / (m1 + m2)
+centre_after = (m1 * w1 + m2 * w2) / (m1 + m2)
+print(f"largest change of the centre-of-mass velocity: "
+      f"{np.max(np.abs(centre_after - centre_before)):.1e} m/s")
+```
+:::
+:::
+
+## Reproduce this
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "lean/PhysicsByConstruction/Mechanics/Collision.lean",
+        "src/pbc/mechanics/particles.py",
+    ],
+    tests=["tests/unit/test_particles.py"],
+)
+```

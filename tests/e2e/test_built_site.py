@@ -230,3 +230,35 @@ def test_sample_page_renders_every_design_component_with_its_colours(
                 rgb(label.background),
             ), f"{kind} {name}"
     context.close()
+
+
+def test_search_finds_a_lesson_by_a_term_in_its_body(
+    browser: Browser, server: SiteServer, site_dir: Path
+):
+    violations = site_checks.check_search_finds_a_lesson(
+        browser,
+        server,
+        site_dir,
+        "index.html",
+        "eccentricity",
+        "lessons/mechanics/08-kepler-orbit/index.html",
+    )
+    assert not violations, describe(violations)
+
+
+def test_search_control_is_replaced_by_the_learning_path_without_javascript(
+    browser: Browser, server: SiteServer, site_dir: Path
+):
+    violations = site_checks.check_search_falls_back_without_javascript(
+        browser, server, site_dir, "path/index.html"
+    )
+    assert not violations, describe(violations)
+
+
+def test_the_search_index_is_part_of_the_site_and_within_the_payload_budget(
+    site_dir: Path,
+):
+    index = site_dir / "search.json"
+    assert index.is_file(), "the build wrote no search index"
+    # A page fetches the index when it is searched, on top of what it loads.
+    assert index.stat().st_size < site_checks.PAYLOAD_BUDGET // 3

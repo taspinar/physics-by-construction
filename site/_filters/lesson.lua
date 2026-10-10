@@ -9,7 +9,10 @@
 -- with the class solution becomes a closed <details> element, which opens
 -- without a script (ADR 001). A div with the classes exercise and self-check
 -- is the self-check of a format 2 lesson: it is titled "Self-check." and does
--- not take a number, so the exercises keep theirs.
+-- not take a number, so the exercises keep theirs. A div with the class hint
+-- inside an exercise becomes a closed <details> element titled "Hint k of n
+-- for exercise N", in the order written, before the solution. The lesson
+-- source check keeps hints before the solution and free of computed numbers.
 --
 -- Format 2 (docs/authoring.md): a span or div with the class claim and a
 -- type attribute gets a visible label naming the type; a cell with a
@@ -43,14 +46,30 @@ local function not_verified_span(el)
   return el
 end
 
-local function solution(el, summary)
+local function details(class, el, summary)
   local blocks = pandoc.List({
-    pandoc.RawBlock("html", '<details class="solution">'),
+    pandoc.RawBlock("html", '<details class="' .. class .. '">'),
     pandoc.RawBlock("html", "<summary>" .. summary .. "</summary>"),
   })
   blocks:extend(el.content)
   blocks:insert(pandoc.RawBlock("html", "</details>"))
   return blocks
+end
+
+local function solution(el, summary)
+  return details("solution", el, summary)
+end
+
+local function count_hints(el)
+  local total = 0
+  el:walk({
+    Div = function(inner)
+      if inner.classes:includes("hint") then
+        total = total + 1
+      end
+    end,
+  })
+  return total
 end
 
 local function exercises(doc)
@@ -80,10 +99,15 @@ local function exercises(doc)
         else
           el.content:insert(1, pandoc.Para({ title }))
         end
+        local hints = count_hints(el)
+        local hint_number = 0
         el = el:walk({
           Div = function(inner)
             if inner.classes:includes("solution") then
               return solution(inner, "Solution to " .. name)
+            elseif inner.classes:includes("hint") then
+              hint_number = hint_number + 1
+              return details("hint", inner, "Hint " .. hint_number .. " of " .. hints .. " for " .. name)
             end
           end,
         })

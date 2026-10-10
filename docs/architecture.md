@@ -108,7 +108,8 @@ site/                    Quarto project: the website source
   about.qmd              About: how the site is built, licences, identity (F57)
   path/                  Learning path page (generated from lesson metadata)
   lessons/<strand>/<nn>-<slug>/index.qmd   One directory per lesson
-  glossary.qmd           Glossary and "before you begin" (next phase, F42)
+  glossary.qmd           Glossary page, generated from glossary.yaml and the lessons (F42)
+  glossary.yaml          Glossary entries; lessons reference them by term (F42)
   references.yaml        Reference register of curated external links (next phase, F28, ADR 009)
   widgets/               Self-hosted JavaScript widgets (ES modules)
   assets/                Styles, fonts, vendored Lean syntax definition
@@ -206,7 +207,7 @@ features:
 | `title`, `description` | Lesson title and one-sentence description. | F02 |
 | `strand`, `order` | Position in the learning path. | F02 |
 | `difficulty` | Ordinal level on one site-wide scale (1 to 3). | F02 |
-| `prerequisites` | Lesson `id`s that must come earlier in the path, plus free-text outside prerequisites. | F02 |
+| `prerequisites` | Lesson `id`s that must come earlier in the path, plus outside prerequisites written `Term: detail`, each term an entry of the glossary (F42). | F02 |
 | `lean-modules` | Lean modules this lesson displays, when any. | F08 |
 | `course` | The primary physics course. Required. | F37 |
 | `methods` | The methods the lesson uses, from the fixed vocabulary; at least one. | F37 |
@@ -327,7 +328,11 @@ pinning") with a fix hint.
    contain no request, other origin, or use of browser storage, and
    operating their controls writes nothing to cookies or browser storage; the
    widget tests check the fallback, keyboard operation, the displayed values
-   against `src/pbc`, and the absence of layout shift.
+   against `src/pbc`, and the absence of layout shift. Search (F41): a query
+   finds a lesson by a term in its body; while it runs, nothing is requested
+   from another origin and nothing is written to cookies or browser storage;
+   with scripts disabled no search control is shown and a link to the
+   learning path takes its place; the index stays within the payload budget.
 8. **Determinism**: a second build of the same commit is byte-identical to the
    first.
 9. **Workflow self-tests**: the existing shell tests of the workflow scripts

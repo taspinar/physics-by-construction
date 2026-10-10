@@ -8,22 +8,24 @@ order, validates the result, and renders the learning path page and the
 header of a lesson. The lesson source checks validate with the same code.
 """
 
-import posixpath
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from html import escape
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
 import yaml
 
+from pbc.authoring.glossary import Glossary, before_you_begin
 from pbc.authoring.graph import (
     RELATED_MARKER,
     REQUIRES,
     REQUIRES_MARKER,
     PrerequisiteGraph,
 )
-from pbc.authoring.website import PAGE_FILE, project_root
+from pbc.authoring.website import PAGE_FILE, page_href, project_root
+
+_href = page_href
 
 # Where the lessons and the learning path page sit in the website project.
 LESSONS_DIRECTORY = "lessons"
@@ -479,13 +481,6 @@ def _read(site: Path, page: Path) -> Lesson:
 # --- Rendering ----------------------------------------------------------------
 
 
-def _href(from_page: str, to_page: str, fragment: str = "") -> str:
-    """A relative link from the built ``from_page`` to the built ``to_page``."""
-    target = PurePosixPath(to_page).with_suffix(".html").as_posix()
-    href = posixpath.relpath(target, PurePosixPath(from_page).parent.as_posix())
-    return f"{href}#{fragment}" if fragment else href
-
-
 def _link(from_page: str, lesson: Lesson) -> str:
     return f"[{lesson.title}]({_href(from_page, lesson.page)})"
 
@@ -495,10 +490,12 @@ def _level(lesson: Lesson) -> str:
     return f"{difficulty.title}, level {difficulty.level} of {len(DIFFICULTIES)}"
 
 
-def _prerequisites(path: LearningPath, from_page: str, lesson: Lesson) -> str:
+def _prerequisites(
+    path: LearningPath, from_page: str, lesson: Lesson, outside: bool = True
+) -> str:
     links = [_link(from_page, path.lesson(item)) for item in lesson.prerequisites]
     text = ", ".join(links) if links else "none on this site"
-    if lesson.outside:
+    if outside and lesson.outside:
         text += ". Also assumed: " + "; ".join(lesson.outside)
     return text + "."
 
@@ -523,6 +520,9 @@ class LessonHeader:
 
     path: LearningPath
     lesson: Lesson
+    # With a glossary, the outside prerequisites are a "Before you begin"
+    # list that links each to its entry; without, they end the Prerequisites.
+    glossary: Glossary | None = None
 
     def _repr_markdown_(self) -> str:
         path, lesson, page = self.path, self.lesson, self.lesson.page
@@ -549,7 +549,11 @@ class LessonHeader:
             ("Methods", methods),
             ("Difficulty", level),
             ("What you'll learn", "\n" + outcomes),
-            ("Prerequisites", _prerequisites(path, page, lesson)),
+            (
+                "Prerequisites",
+                _prerequisites(path, page, lesson, outside=self.glossary is None),
+            ),
+            *self._before_you_begin(),
             ("Related", related),
             (
                 "Previous",
@@ -571,6 +575,14 @@ class LessonHeader:
             + "\n".join(f"{term}\n:   {definition}\n" for term, definition in rows)
             + ":::\n"
         )
+
+    def _before_you_begin(self) -> list[tuple[str, str]]:
+        if self.glossary is None:
+            return []
+        if not self.lesson.outside:
+            return [("Before you begin", "nothing beyond the prerequisites above.")]
+        items = before_you_begin(self.lesson.page, self.glossary, self.lesson.outside)
+        return [("Before you begin", "\n" + _indent(items, 4))]
 
 
 @dataclass(frozen=True)
@@ -631,7 +643,7 @@ class PathOverview:
                         f"#### {title} {{#{anchor}}}",
                         "",
                     ]
-                    lines += self._items(group)
+                    lines += self._items(group, 5)
         if self.path.methods:
             lines += [
                 "## Methods {#methods}",
@@ -648,7 +660,7 @@ class PathOverview:
                 method.description,
                 "",
             ]
-            lines += self._items(self.path.using(method))
+            lines += self._items(self.path.using(method), 4)
         lines += self._graph()
         return "\n".join(lines)
 
@@ -730,24 +742,64 @@ class PathOverview:
             "",
         ]
 
-    def _items(self, lessons: Sequence[Lesson]) -> list[str]:
-        lines: list[str] = []
-        for number, lesson in enumerate(lessons, start=1):
-            marker = f"{number}. "
-            lines.append(marker + _link(self.page, lesson))
-            paragraphs = [lesson.description] if lesson.description else []
-            paragraphs.append(
-                f"{_level(lesson)}. Prerequisites:"
-                f" {_prerequisites(self.path, self.page, lesson)}"
-            )
-            for paragraph in paragraphs:
-                # A paragraph belongs to the item when every line of it
-                # is indented to where the item's text starts, so the
-                # indent follows the width of the marker ("10. " is
-                # wider than "1. ").
-                lines += ["", _indent(paragraph, len(marker))]
-            lines.append("")
-        return lines
+    def _items(self, lessons: Sequence[Lesson], heading: int) -> list[str]:
+        """The lessons as cards (``ul.path-cards`` of ``li.path-card``, the
+        F44 component): a heading of the given depth, the description, and
+        the facts of the lesson as plain terms and lists."""
+        cards = [self._card(lesson, heading) for lesson in lessons]
+        return ["```{=html}", '<ul class="path-cards">', *cards, "</ul>", "```", ""]
+
+    def _card(self, lesson: Lesson, heading: int) -> str:
+        page, path = self.page, self.path
+
+        def link(to_page: str, text: str, fragment: str = "", title: str = "") -> str:
+            tip = f' title="{escape(title)}"' if title else ""
+            href = escape(_href(page, to_page, fragment))
+            return f'<a href="{href}"{tip}>{escape(text)}</a>'
+
+        def lesson_link(item: str) -> str:
+            other = path.lesson(item)
+            return link(other.page, other.title)
+
+        course = _COURSE[lesson.course]
+        difficulty = _DIFFICULTY[lesson.difficulty]
+        methods = ", ".join(
+            link(PATH_PAGE, _METHOD[m].title, _method_id(_METHOD[m]))
+            for m in lesson.methods
+        )
+        # The title of the link is the definition of the level, shown on
+        # hover; the legend states it in text.
+        level = link(PATH_PAGE, _level(lesson), "difficulty", difficulty.description)
+        outcomes = "".join(f"<li>{escape(outcome)}</li>" for outcome in lesson.outcomes)
+        prerequisites = (
+            ", ".join(lesson_link(item) for item in lesson.prerequisites)
+            if lesson.prerequisites
+            else "none on this site"
+        )
+        if lesson.outside:
+            prerequisites += ". Also assumed: " + escape("; ".join(lesson.outside))
+        related = (
+            ", ".join(lesson_link(item) for item in lesson.related)
+            if lesson.related
+            else "none"
+        )
+        rows = [
+            ("Course", link(PATH_PAGE, course.title, _course_id(course))),
+            ("Methods", methods),
+            ("Level", level),
+            ("What you\u2019ll learn", f"<ul>{outcomes}</ul>"),
+            ("Prerequisites", prerequisites + "."),
+            ("Related", related),
+        ]
+        facts = "".join(f"<dt>{term}</dt><dd>{value}</dd>" for term, value in rows)
+        description = (
+            f"<p>{escape(lesson.description)}</p>" if lesson.description else ""
+        )
+        return (
+            f'<li class="path-card"><h{heading} class="lesson-card-title">'
+            f"{link(lesson.page, lesson.title)}</h{heading}>{description}"
+            f"<dl>{facts}</dl></li>"
+        )
 
 
 def _indent(text: str, width: int) -> str:
@@ -769,7 +821,7 @@ def lesson_header() -> LessonHeader:
     """
     site, page = _page_being_built()
     path = LearningPath.read(site)
-    return LessonHeader(path, path.at_page(page))
+    return LessonHeader(path, path.at_page(page), Glossary.read(site))
 
 
 def learning_path() -> PathOverview:

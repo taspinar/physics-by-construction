@@ -95,6 +95,13 @@ reproduce_this(code=[])
 ```
 """
 
+_GLOSSARY = """\
+entries:
+  - term: Calculus
+    definition: The derivative is a rate of change. The integral accumulates it.
+"""
+
+
 Repository = Callable[..., Path]
 
 
@@ -136,6 +143,7 @@ def make_repository(tmp_path: Path) -> Repository:
         for name, content in {
             "site/_quarto.yml": config,
             "site/references.yaml": "references: []\n",
+            "site/glossary.yaml": _GLOSSARY,
             f"{lesson}/index.qmd": text,
             **(files or {}),
         }.items():
@@ -382,6 +390,80 @@ def test_exercise_without_on_page_solution_is_reported(
     violations = lesson_checks.check_sections(make_repository({old: new}))
 
     assert rules(violations) == {"sections"}
+
+
+_STATEMENT = "Where is the particle after one second?\n\n"
+_SOLUTION = "::: {.solution}\nAt `{python} position` m.\n:::\n"
+
+
+def _hinted(*hints: str, after: bool = False) -> dict[str, str]:
+    block = "".join(f"::: {{.hint}}\n{hint}\n:::\n\n" for hint in hints)
+    if after:
+        return {_SOLUTION: _SOLUTION + "\n" + block.rstrip("\n") + "\n"}
+    return {_STATEMENT: _STATEMENT + block}
+
+
+def test_hints_before_the_solution_pass(make_repository: Repository):
+    repository = make_repository(
+        _hinted("Use the rate.", "Multiply the rate by the time.")
+    )
+
+    assert lesson_checks.check_sections(repository) == []
+
+
+def test_a_hint_may_repeat_a_number_of_the_statement(make_repository: Repository):
+    repository = make_repository(
+        {
+            _STATEMENT: "Where is the particle after 1 s?\n\n"
+            "::: {.hint}\nWhat is the rate over 1 s?\n:::\n\n"
+        }
+    )
+
+    assert lesson_checks.check_sections(repository) == []
+
+
+@pytest.mark.parametrize(
+    "hints, after, text",
+    [
+        (("Use the rate.",), True, "after the '.solution'"),
+        (("a", "b", "c", "d"), False, "at most 3"),
+        (("It is 2.0 m.",), False, "number"),
+        (("It is `2.0` m.",), False, "number"),
+        (("It is `{2.0}` m.",), False, "number"),
+        (("```{python}\nprint(1)\n```",), False, "holds code"),
+        (("Compute `{python} position` first.",), False, "holds code"),
+        (('::: {.go-deeper ref="x"}\nRead.\n:::',), False, "go-deeper"),
+    ],
+    ids=[
+        "after-solution",
+        "four-hints",
+        "number",
+        "code-span",
+        "brace-code-span",
+        "cell",
+        "inline",
+        "go-deeper",
+    ],
+)
+def test_a_misplaced_or_leaking_hint_is_reported(
+    make_repository: Repository, hints: tuple[str, ...], after: bool, text: str
+):
+    violations = lesson_checks.check_sections(
+        make_repository(_hinted(*hints, after=after))
+    )
+
+    assert rules(violations) == {"sections"}
+    assert text in details(violations)
+
+
+def test_a_hint_outside_an_exercise_is_reported(make_repository: Repository):
+    violations = lesson_checks.check_sections(
+        make_repository(
+            {"Introduction.\n": "Introduction.\n\n::: {.hint}\nA stray hint.\n:::\n"}
+        )
+    )
+
+    assert "outside an '.exercise'" in details(violations)
 
 
 _HEADER = "```{python}\n#| echo: false\nlesson_header()\n```\n"
@@ -1120,3 +1202,75 @@ def test_a_block_of_printed_numbers_in_a_built_page_is_reported(
 
     assert build("0.1 2.5\n0.2 5.0\n0.3 7.5\n") != []
     assert build("largest time step: 12.3 microseconds\n") == []
+
+
+# --- The glossary -------------------------------------------------------------
+
+
+def _glossary_repository(
+    make_repository: Repository,
+    outside: str = '"Calculus: derivatives"',
+    glossary: str = _GLOSSARY,
+) -> Path:
+    return make_repository(
+        {'      - "Calculus"\n': f"      - {outside}\n"},
+        files={"site/glossary.yaml": glossary},
+    )
+
+
+def test_outside_prerequisites_that_name_entries_pass_the_glossary_check(
+    make_repository: Repository,
+):
+    assert lesson_checks.check_glossary(_glossary_repository(make_repository)) == []
+
+
+def test_an_outside_prerequisite_without_an_entry_is_reported(
+    make_repository: Repository,
+):
+    repository = _glossary_repository(make_repository, '"Topology: open sets"')
+
+    messages = [v.detail for v in lesson_checks.check_glossary(repository)]
+
+    assert any("'Topology: open sets' names no glossary entry" in m for m in messages)
+    # The entry that no lesson assumes is reported too: nothing links it.
+    assert any("'Calculus' is assumed by no lesson" in m for m in messages)
+
+
+@pytest.mark.parametrize(
+    ("definition", "expected"),
+    [
+        ("Derivatives.", None),
+        ("One. Two. Three. Four.", "4 sentences"),
+        ("No sentence end", "0 sentences"),
+    ],
+)
+def test_an_entry_is_one_to_three_sentences(
+    make_repository: Repository, definition: str, expected: str | None
+):
+    glossary = f"entries:\n  - term: Calculus\n    definition: {definition}\n"
+    repository = _glossary_repository(make_repository, glossary=glossary)
+
+    messages = [v.detail for v in lesson_checks.check_glossary(repository)]
+
+    if expected is None:
+        assert messages == []
+    else:
+        assert any(expected in m for m in messages)
+
+
+def test_an_entry_that_sees_a_missing_lesson_is_reported(make_repository: Repository):
+    glossary = _GLOSSARY + "    see: nowhere\n"
+    repository = _glossary_repository(make_repository, glossary=glossary)
+
+    messages = [v.detail for v in lesson_checks.check_glossary(repository)]
+
+    assert any("'see' 'nowhere' is not the id of any lesson" in m for m in messages)
+
+
+def test_a_missing_glossary_is_reported(make_repository: Repository):
+    repository = make_repository()
+    (repository / "site/glossary.yaml").unlink()
+
+    violations = lesson_checks.check_glossary(repository)
+
+    assert [v.rule for v in violations] == ["glossary"]
