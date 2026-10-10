@@ -20,7 +20,7 @@ lesson:
   prerequisites:
     lessons: [numerical-integrators, energy-conservation]
     outside:
-      - "Programming: reading a short function and a unit test"
+      - "Python: reading a short function and a unit test"
 ---
 
 ```{python}
