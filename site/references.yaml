@@ -31,3 +31,85 @@ references:
     lessons: [kinematics]
     last-checked: 2026-10-09
     licence: No licence stated on the page; linked, not copied or rehosted.
+  - key: brorson-symplectic-euler
+    concept: >-
+      Symplectic Euler applied to the harmonic oscillator: phase-space area
+      preservation, a bounded oscillating energy error, and the linear
+      stability condition that the step times the angular frequency lies
+      strictly between zero and two, where both growth factors have modulus one
+    url: https://math.libretexts.org/Bookshelves/Differential_Equations/Numerically_Solving_Ordinary_Differential_Equations_(Brorson)/07%3A_Symplectic_integrators
+    title: "Symplectic integrators (chapter 7 of Numerically Solving Ordinary Differential Equations)"
+    author: Stuart Brorson, LibreTexts Mathematics
+    section: 7.2 Symplectic Euler and 7.3 Example, the simple harmonic oscillator; 7.4 and 7.5 on phase-space volume and Liouville's theorem
+    role: derivation
+    statement: >-
+      Symplectic Euler updates the velocity first, then moves the position with
+      the new velocity, which is the ordering of the lesson (the chapter also
+      writes the position-first ordering separately, which is not the lesson's
+      method). For the simple harmonic oscillator the chapter finds a growth
+      factor of modulus one when the step times the angular frequency is below
+      two (stated after its equation 7.11), the lesson's stability limit for
+      symplectic Euler, and relates the method to the preservation of
+      phase-space volume, Liouville's theorem, and the symplectic condition on
+      the step matrix. The inequality is strict: at a product of exactly two
+      the growth factor is a repeated minus one and the state can grow
+      linearly, which the lesson states. The chapter sometimes says that
+      symplectic Euler conserves energy; it does not conserve the energy of
+      the oscillator at every step, only bounds its oscillation, as the
+      chapter's own figure 7.2 shows and as the lesson says. The chapter is
+      about symplectic Euler only and does not derive the modified energy,
+      which the lesson does. First selected by a drafting agent from a summary
+      of the page; the project owner opened the page and checked the equations
+      and these statements against it on 2026-10-10.
+    alternatives: >-
+      Course slides of the University of Lethbridge (symplectic integrators)
+      and the Kansas State course page (Class 6, numerical ODE integrators):
+      the slides were a PDF whose text could not be extracted, so they were
+      not read and not chosen; the Kansas State page writes the same
+      velocity-first rule but gives no derivation of the energy behaviour.
+      Hairer, Lubich, and Wanner, Geometric Numerical Integration (Springer),
+      was considered because the previous lesson text named it: its public
+      record at the University of Geneva archive offers an unspecified extract
+      under all rights reserved, without a section the reader can be sent to,
+      so it was not kept. The Brorson chapter was chosen because it adds the
+      phase-space-volume argument and the oscillator example in a short
+      public page.
+    lessons: [numerical-integrators]
+    last-checked: 2026-10-10
+    licence: CC BY-SA 3.0 on the LibreTexts page; linked, not copied or rehosted.
+  - key: nmm-verlet-semi-implicit
+    concept: >-
+      Velocity Verlet derived by composing a half step of velocity-first
+      symplectic Euler with a half step of its position-first counterpart,
+      which gives the second-order kick-drift-kick integrator
+    url: https://fab.cba.mit.edu/classes/864.23/people/Erik/verlet-integration
+    title: Verlet Integration (Numerical Methods for Mechanics, 2023)
+    author: MIT course page "NMM 2023" (author not named on the page)
+    section: Derivation, "As a Variation of Semi-Implicit Euler"; Properties, "Symplectic Properties"
+    role: derivation
+    statement: >-
+      The page writes velocity Verlet as a half kick, a drift with the half-step
+      velocity, and a second half kick with the force at the new position, which
+      is the lesson's update for a force that depends on position only. It
+      writes semi-implicit Euler in both orderings, velocity first and position
+      first, and obtains velocity Verlet by applying the two in sequence with
+      half the time step each; two half steps in the same ordering would not
+      give it. It states that both are symplectic and that Verlet is time
+      reversible and nearly preserves the energy. The page does not treat a
+      force that depends on the velocity, so the predicted-velocity evaluation
+      of the lesson's implementation is not covered by it. Its wording on the
+      order (local and global) is loose, and the lesson's own derivation, not
+      the page, is the reference for the order. First selected by a drafting
+      agent from a summary of the page; the project owner opened the page and
+      checked the derivation and these statements against it on 2026-10-10.
+    alternatives: >-
+      Wikipedia, "Verlet integration" (section Velocity Verlet), which gives the
+      same algorithm and says explicitly that the method assumes an acceleration
+      that depends on position only, but has no derivation from symplectic
+      Euler; the Helsinki atomistic-simulation lecture notes (lecture 4), a PDF
+      whose text could not be extracted, so not read and not chosen. The MIT page
+      was chosen because it adds the link between the first-order and the
+      second-order symplectic method that the lesson does not contain.
+    lessons: [numerical-integrators]
+    last-checked: 2026-10-10
+    licence: No licence stated on the page; linked, not copied or rehosted.

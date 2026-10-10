@@ -560,6 +560,12 @@ in the alt text or caption of a figure, unless it is
   the problem;
 - marked as a given value in the prose: `[0.1 s]{.given}`.
 
+A method or a symbol whose name holds a digit (Runge-Kutta 4, `RK45`) counts
+as a number in prose. Write the name without the digit ("the classical
+Runge-Kutta method", "the fourth-order method"), put the exact identifier in
+code font, or mark it `{.given}`; in a table cell, a caption, or math the name
+is free. (A finding of the M5 editorial pass, F30.)
+
 The check is a heuristic. Write small whole numbers that are not results as
 words ("first order", "slope one") and mark a number you really give as
 `{.given}`; do not rewrite a correct sentence to please it.
