@@ -64,3 +64,6 @@ credentials*.json
 
 .DS_Store
 *.log
+
+# Full datasets a learner downloads with scripts/fetch-data.sh (ADR 007)
+data/downloads/

@@ -14,6 +14,10 @@ in `docs/workflow.md`.
 | `site/path/index.qmd` | The learning path page, generated from the lesson front matter when the site is built |
 | `site/_site/` | The built site. Written by `scripts/build-site.sh`, ignored by Git |
 | `src/pbc/` | The Python package with the reusable lesson code: `mechanics/` for the mechanics course, `verification/` for the checks of the scientific validation contract (`docs/validation-contract.md`) and the gallery of faulty steppers the verification lesson catches, `authoring/` for the helpers pages use to show Python and Lean code by reference, to show numeric results as tables, to write "Reproduce this", and to generate the learning path page and lesson headers; `authoring/path.py` defines the strands and the difficulty scale; `authoring/graph.py` lays out the prerequisite graph of the path page as inline SVG |
+| `src/pbc/data/` | Real datasets as declared inputs (ADR 007): `card.py` is the card schema, `check.py` the dataset check, `gwosc.py`, `touchstone.py`, and `flume.py` the minimal readers, `reference/` the reference figure of each spiked dataset (`python -m pbc.data.reference`) |
+| `data/registry/<dataset>.yaml` | One card per surveyed dataset: source, rights, artifact types, schema, estimates, and the go, defer, reject, or survey-only decision |
+| `data/samples/<dataset>/` | The committed samples of datasets with a go decision, under the caps of 2 MB per file, 8 MB per dataset, 32 MB in all; `data/downloads/` is the ignored target of `scripts/fetch-data.sh` |
+| `docs/datasets/` | The feasibility dossier of each spiked dataset and `README.md` with the decision table and the recommendation for the first lab |
 | `lean/` | The Lean project: `lean-toolchain`, `lakefile.toml`, and `lake-manifest.json` pin Lean and Mathlib; proofs live in `PhysicsByConstruction/`; `AxiomAudit.lean` is the audit run by `scripts/check-lean.sh` |
 | `pyproject.toml`, `uv.lock`, `.python-version` | The Python toolchain pins, including Quarto and the browser for the site checks |
 | `LICENSE`, `LICENSE-CONTENT` | MIT for code, CC BY 4.0 for lesson text and figures |
@@ -29,12 +33,13 @@ in `docs/workflow.md`.
 | `scripts/check-lean.sh` | Builds every Lean module against Mathlib from its build cache, fails on `sorry` and project axioms, and records what compiled the proofs for the pages that show them |
 | `scripts/build-site.sh` | Builds the site with Quarto; fails on a failing cell or an equation that is not MathML |
 | `scripts/check-determinism.sh` | Builds the site a second time and requires byte-identical output |
+| `scripts/fetch-data.sh` | Learner-side download of a full dataset by its card's URLs and checksums; never run by verification, the build, or CI, and refuses to run when `CI` is set |
 | `scripts/check-links.sh`, `scripts/lib/check_links.py` | On-demand check of the external links in the reference register; reports a dead link or a missing anchor. Not in `verify.conf`, no CI job (ADR 009) |
 | `scripts/compare-lessons.sh` | Builds a base revision and the working tree and requires the built lesson pages to be identical apart from the footer and the embedded commit |
 | `scripts/doctor.sh` | Read-only check of the local prerequisites, including those of the development workflow |
 | `scripts/lib/prerequisites.sh`, `scripts/lib/check_browser.py` | The prerequisite checks shared by `preflight.sh` and `doctor.sh` |
 | `tests/unit/` | pytest: behaviour of `src/pbc` |
-| `tests/integration/` | pytest: every check fails on a violating input; a lesson made from the template passes; boundaries of the CI workflow |
+| `tests/integration/` | pytest: every check fails on a violating input, among them the dataset check and `fetch-data.sh`; a lesson made from the template passes; boundaries of the CI workflow |
 | `tests/lessons/` | pytest: the required checks on the lesson sources |
 | `tests/e2e/` | pytest with a headless browser: the required checks on the built site and its lesson pages |
 | `tests/support/` | Helpers of the tests: the lesson source checks, the built-site checks, the sub-path test server, the `verify.conf` reader |

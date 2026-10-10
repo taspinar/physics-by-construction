@@ -1,0 +1,37 @@
+id: alma-hltau-verification
+title: ALMA HL Tau science verification products
+source:
+  url: https://almascience.eso.org/alma-data/science-verification
+  creator: ALMA partnership
+  version: not assessed
+  accessed: &id001 2026-10-09
+rights:
+  licence: not-assessed
+  local_download:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  publication_of_figures:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  modification_and_attribution:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+artifacts:
+- name: reduced images
+  type: calibrated-observation
+  description: Reduced FITS products of interferometric observations (as described by the source; no file
+    was inspected)
+size:
+  description: Variable; many archives are large.
+format: FITS; CASA data
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09).
+  gate: Read the terms, pick a reduced FITS file under the caps rather than the interferometric data,
+    and add a FITS reader.

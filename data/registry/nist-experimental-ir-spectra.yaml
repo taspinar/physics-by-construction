@@ -1,0 +1,37 @@
+id: nist-experimental-ir-spectra
+title: NIST Chemistry WebBook experimental infrared spectra
+source:
+  url: https://webbook.nist.gov/chemistry/
+  creator: National Institute of Standards and Technology, with contributing collections
+  version: not assessed
+  accessed: &id001 2026-10-09
+rights:
+  licence: not-assessed
+  local_download:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  publication_of_figures:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  modification_and_attribution:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+artifacts:
+- name: compiled spectra
+  type: processed-measured
+  description: Compiled measured spectra from several underlying collections (as described by the source;
+    no file was inspected)
+size:
+  description: Per compound extracts.
+format: JCAMP-DX and plots
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09).
+  - Redistribution may be restricted by the contributing collection.
+  gate: Read the terms of the underlying collection of one spectrum; usage restrictions depend on it.

@@ -1,0 +1,37 @@
+id: tess-exoplanet-light-curves
+title: NASA TESS photometric light curves
+source:
+  url: https://heasarc.gsfc.nasa.gov/docs/tess/tutorial_landing.html
+  creator: NASA TESS mission, distributed through MAST and HEASARC
+  version: not assessed
+  accessed: &id001 2026-10-09
+rights:
+  licence: not-assessed
+  local_download:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  redistribution_of_subsets:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  publication_of_figures:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+  modification_and_attribution:
+    answer: not-assessed
+    source: 'not assessed: the record''s terms have not been read for this survey card'
+artifacts:
+- name: light curve
+  type: calibrated-observation
+  description: Calibrated photometric time series (as described by the source; no file was inspected)
+size:
+  description: Per object and cadence; selectable.
+format: FITS
+reader: none yet
+decision:
+  value: survey-only
+  date: *id001
+  reasons:
+  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09); the linked
+    page is a tutorial, so the terms of the data are unread.
+  gate: Retrieve one small light curve with its terms, add a FITS reader, and handle gaps, systematics,
+    and detrending before a transit is claimed.
