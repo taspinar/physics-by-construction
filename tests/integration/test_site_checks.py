@@ -853,6 +853,27 @@ def test_payload_over_the_budget_is_reported(make_site: Site, browser: Browser):
     assert rules(site_checks.check_payload(sizes, budget=2_000)) == {"payload"}
 
 
+def test_a_file_that_pages_share_counts_for_each_of_them(
+    make_site: Site, browser: Browser
+):
+    """Whatever the order of the pages: each is measured as the first page a
+    reader opens, so the result does not depend on what the browser kept."""
+    page = (
+        '<html><head><link rel="stylesheet" href="big.css"></head>'
+        "<body><main>x</main></body></html>"
+    )
+    site = make_site(
+        head='<link rel="stylesheet" href="big.css">',
+        files={"big.css": "/*" + "x" * 5_000 + "*/", "second.html": page},
+    )
+
+    with served(site) as server:
+        sizes = site_checks.measure_payloads(browser, server, site)
+
+    assert sizes["index.html"] > 5_000
+    assert sizes["second.html"] > 5_000
+
+
 # --- Search --------------------------------------------------------------------
 
 _SEARCH_BOX = '<div id="quarto-search"><input aria-label="Search"></div>'
