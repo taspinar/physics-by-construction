@@ -35,6 +35,7 @@ INTEGRATORS = "lessons/mechanics/05-numerical-integrators/index.html"
 ENERGY = "lessons/mechanics/06-energy-conservation/index.html"
 MOMENTUM = "lessons/mechanics/07-momentum-and-collisions/index.html"
 KEPLER = "lessons/mechanics/08-kepler-orbit/index.html"
+VERIFYING = "lessons/mechanics/09-verifying-scientific-code/index.html"
 
 
 @pytest.fixture
@@ -72,6 +73,7 @@ def test_the_mechanics_lessons_are_among_the_lessons():
         ENERGY,
         MOMENTUM,
         KEPLER,
+        VERIFYING,
     } <= set(LESSONS)
 
 
