@@ -26,19 +26,20 @@ runs:
       uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       with:
         enable-cache: true
+        cache-suffix: cold1
 
     - name: Restore elan and the Lean toolchain
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.elan
-        key: elan-${{ runner.os }}-${{ hashFiles('lean/lean-toolchain') }}
+        key: cold1-elan-${{ runner.os }}-${{ hashFiles('lean/lean-toolchain') }}
 
     - name: Restore Lean packages with the Mathlib build products
       if: ${{ inputs.lean-packages == 'save' }}
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: lean/.lake
-        key: lake-${{ runner.os }}-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}
+        key: cold1-lake-${{ runner.os }}-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}
 
     - name: Restore Lean packages with the Mathlib build products, without saving
       id: lake
@@ -46,14 +47,14 @@ runs:
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: lean/.lake
-        key: lake-${{ runner.os }}-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}
+        key: cold1-lake-${{ runner.os }}-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}
 
     - name: Restore the browser build
       if: ${{ inputs.browser == 'true' }}
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/ms-playwright
-        key: playwright-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+        key: cold1-playwright-${{ runner.os }}-${{ hashFiles('uv.lock') }}
 
     - name: Install elan
       shell: bash
