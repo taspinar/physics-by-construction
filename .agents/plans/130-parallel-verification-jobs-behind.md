@@ -338,3 +338,5 @@ F58 measures and records the run time on three consecutive pull requests; the
 12 minutes become a criterion of the feature that makes verification
 proportional to what a pull request changes (planning change
 `final-curriculum`). The Issue and ADR 012, decision 8, say so.
+
+Measurement runs of step 4: draft pull requests on the branches `measure/130-step4-warm` and `measure/130-step4-cold`, closed afterwards.
