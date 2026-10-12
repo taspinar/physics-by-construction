@@ -22,6 +22,10 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Trial only, name the processor
+      shell: bash
+      run: grep -m1 "model name" /proc/cpuinfo; grep -m1 -o "avx512[a-z]*" /proc/cpuinfo || echo "no avx512"
+
     - name: Install uv
       uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
       with:
