@@ -12,19 +12,25 @@ attached to its workflow run for review before merge.
 ## How a change is published
 
 ```text
-pull request -> CI verify job -> merge to main -> CI verify job on main
-             -> site artifact -> deploy job -> GitHub Pages
+pull request -> CI jobs, check verify -> merge to main -> CI jobs on main
+             -> site artifact -> check verify -> deploy job -> GitHub Pages
 ```
 
-1. The `verify` job of `.github/workflows/ci.yml` runs `./scripts/verify.sh`
-   and uploads `site/_site/` as the `github-pages` artifact. It runs on every
-   pull request and on every push to `main`. The site is also uploaded when a
-   check failed after the site was built, so that it can be inspected; the
-   job still fails.
-2. On a push to `main`, and only when the `verify` job succeeded, the
-   `deploy` job publishes exactly that artifact. It builds nothing and checks
-   out nothing, so the published bytes are the verified bytes.
-3. The workflow is read-only (`contents: read`). Only the deploy job has
+1. The jobs of `.github/workflows/ci.yml` each run a group of the checks
+   through `./scripts/verify.sh --all --only <group>`, on every pull request
+   and on every push to `main` (ADR 012). The `build` job builds the site
+   once and uploads `site/_site/` as the `github-pages` artifact, with a
+   list of the checksum of every file. The jobs that check the site download
+   that artifact and compare it with the list before they check anything.
+   The site is also uploaded when the build failed after it wrote a site, so
+   that it can be inspected; the job still fails.
+2. The job `verify` is the one required check. It passes only when every
+   other job succeeded: a job that failed, was cancelled, or was skipped
+   fails it.
+3. On a push to `main`, and only when `verify` passed, the `deploy` job
+   publishes exactly that artifact. It builds nothing and checks out
+   nothing, so the published bytes are the verified bytes.
+4. The workflow is read-only (`contents: read`). Only the deploy job has
    `pages: write` and `id-token: write`, and it authenticates with the
    short-lived token GitHub issues to the run. No secret is stored or
    referenced.

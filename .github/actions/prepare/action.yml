@@ -1,0 +1,89 @@
+name: Prepare the runner
+description: >
+  The one-time setup of docs/development.md for one CI job: uv and the locked
+  Python environment, elan, and on request the Lean packages with Mathlib's
+  build products and the browser build. It installs and restores; it runs no
+  check (ADR 012).
+
+inputs:
+  lean-packages:
+    description: >
+      'save' restores lean/.lake and saves it after the job, for the job that
+      builds the Lean project. 'restore' restores it without saving, and
+      fetches Mathlib's build cache when nothing was restored, for a job that
+      needs the packages and builds nothing of its own. 'none' leaves it out.
+    required: false
+    default: none
+  browser:
+    description: "'true' installs the browser build of the built-site checks."
+    required: false
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Install uv
+      uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+      with:
+        enable-cache: true
+
+    - name: Restore elan and the Lean toolchain
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.elan
+        key: elan-${{ runner.os }}-${{ hashFiles('lean/lean-toolchain') }}
+
+    - name: Restore Lean packages with the Mathlib build products
+      if: ${{ inputs.lean-packages == 'save' }}
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: lean/.lake
+        key: lake-trial2-${{ runner.os }}-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}
+
+    - name: Restore Lean packages with the Mathlib build products, without saving
+      id: lake
+      if: ${{ inputs.lean-packages == 'restore' }}
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: lean/.lake
+        key: lake-trial2-${{ runner.os }}-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}
+
+    - name: Restore the browser build
+      if: ${{ inputs.browser == 'true' }}
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+
+    - name: Install elan
+      shell: bash
+      env:
+        ELAN_VERSION: v4.2.4
+        ELAN_SHA256: 42b94d4244e8353142c456ec0e4ca6528fd898a6c604d4059f494e706e431f63
+      run: |
+        if [ ! -x "$HOME/.elan/bin/elan" ]; then
+          curl -sSfL -o "$RUNNER_TEMP/elan.tar.gz" \
+            "https://github.com/leanprover/elan/releases/download/$ELAN_VERSION/elan-x86_64-unknown-linux-gnu.tar.gz"
+          echo "$ELAN_SHA256  $RUNNER_TEMP/elan.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+        fi
+        echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+    # Preparation, like installing the browser: it downloads the build
+    # products that Mathlib publishes and compiles and checks nothing. Only
+    # when the cache of this repository had nothing to restore.
+    - name: Fetch Mathlib's build cache
+      if: ${{ inputs.lean-packages == 'restore' && steps.lake.outputs.cache-hit != 'true' }}
+      shell: bash
+      working-directory: lean
+      run: lake exe cache get
+
+    - name: Install the Python environment
+      shell: bash
+      run: uv sync --locked
+
+    - name: Install the browser build
+      if: ${{ inputs.browser == 'true' }}
+      shell: bash
+      run: uv run --locked playwright install --with-deps --only-shell chromium

@@ -34,18 +34,21 @@ in `docs/workflow.md`.
 | `scripts/check-lean.sh` | Builds every Lean module against Mathlib from its build cache, fails on `sorry` and project axioms, pairs every exercise stub with its checked solution, and records what compiled the proofs for the pages that show them |
 | `scripts/build-site.sh` | Builds the site with Quarto; fails on a failing cell or an equation that is not MathML |
 | `scripts/check-determinism.sh` | Builds the site a second time and requires byte-identical output |
+| `scripts/ci-aggregate.sh` | Decides the required CI check `verify` from the results of the jobs: passes only when every expected job succeeded (ADR 012) |
+| `scripts/fetch-built-site.sh` | Hands the site of the CI `build` job to the jobs that check it: records the checksum of every file, and in the other jobs unpacks the artifact and requires exactly those files (ADR 012) |
 | `scripts/fetch-data.sh` | Learner-side download of a full dataset by its card's URLs and checksums; never run by verification, the build, or CI, and refuses to run when `CI` is set |
 | `scripts/check-links.sh`, `scripts/lib/check_links.py` | On-demand check of the external links in the reference register; reports a dead link or a missing anchor. Not in `verify.conf`, no CI job (ADR 009) |
 | `scripts/compare-lessons.sh` | Builds a base revision and the working tree and requires the built lesson pages to be identical apart from the footer and the embedded commit |
 | `scripts/doctor.sh` | Read-only check of the local prerequisites, including those of the development workflow |
 | `scripts/lib/prerequisites.sh`, `scripts/lib/check_browser.py` | The prerequisite checks shared by `preflight.sh` and `doctor.sh` |
 | `tests/unit/` | pytest: behaviour of `src/pbc` |
-| `tests/integration/` | pytest: every check fails on a violating input, among them the dataset check and `fetch-data.sh`; a lesson made from the template passes; boundaries of the CI workflow |
+| `tests/integration/` | pytest: every check fails on a violating input, among them the dataset check and `fetch-data.sh`; a lesson made from the template passes; boundaries of the CI workflow and the two scripts that hold its jobs together |
 | `tests/lessons/` | pytest: the required checks on the lesson sources |
 | `tests/e2e/` | pytest with a headless browser: the required checks on the built site and its lesson pages |
 | `tests/support/` | Helpers of the tests: the lesson source checks, the built-site checks, the analysis of which cells are made from a dataset, the sub-path test server, the `verify.conf` reader, the division of the built-site checks over parts (`shards.py`, with `tests/e2e/shards.json`) |
 | `tests/*.sh` | Shell tests of the workflow scripts, of `doctor.sh`, and of `preflight.sh` |
-| `.github/workflows/ci.yml` | CI: prepares the runner, runs `./scripts/verify.sh --all`, and on `main` deploys the verified site |
+| `.github/workflows/ci.yml` | CI: parallel jobs that each run groups of checks with `./scripts/verify.sh --all --only`, the required check `verify` that passes only when all succeeded, and on `main` the deploy of the verified site |
+| `.github/actions/prepare/` | The preparation of a CI runner, shared by the jobs: uv, elan, and on request the Lean packages and the browser. Runs no check |
 | `.github/dependabot.yml` | Update proposals for Python packages and GitHub Actions |
 | `.github/ISSUE_TEMPLATE/lesson-proposal.yml` | The Issue form for lesson proposals |
 

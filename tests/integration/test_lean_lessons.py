@@ -75,6 +75,17 @@ def axioms_report(tmp_path_factory: pytest.TempPathFactory) -> str:
     )
     file = tmp_path_factory.mktemp("axioms") / "Displayed.lean"
     file.write_text(source)
+    # The modules have to be built before they can be imported. After the
+    # check lean-build that takes no time; in a CI job that runs these tests
+    # without it (ADR 012) it builds them, with Mathlib from its build cache.
+    built = subprocess.run(
+        ["lake", "build", *sorted(imports)],
+        cwd=LEAN_PROJECT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert built.returncode == 0, built.stdout + built.stderr
     result = subprocess.run(
         ["lake", "env", "lean", str(file)],
         cwd=LEAN_PROJECT,

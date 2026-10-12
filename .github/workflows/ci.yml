@@ -15,67 +15,76 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # The one required status check on main. It prepares the runner like the
-  # one-time setup in docs/development.md and then runs every check through
-  # ./scripts/verify.sh; no check is declared here.
-  verify:
+  # Every check is declared in scripts/verify.conf with a group, and each job
+  # below runs the checks of its groups through ./scripts/verify.sh --only;
+  # no check is declared here (ADR 012). The job 'verify' at the end is the
+  # one required status check on main.
+
+  # Lint, format, and the tests that need neither Lean nor a browser.
+  code:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: ./.github/actions/prepare
+      - name: Verify the group code
+        run: ./scripts/verify.sh --all --only code
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+  # The checks without a group, and with --all the self-tests of the
+  # development workflow, which CI never skips.
+  workflow:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          enable-cache: true
-
-      - name: Restore elan and the Lean toolchain
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+          persist-credentials: false
+      - uses: ./.github/actions/prepare
         with:
-          path: ~/.elan
-          key: elan-${{ runner.os }}-${{ hashFiles('lean/lean-toolchain') }}
+          browser: "true"
+      - name: Verify the group default
+        run: ./scripts/verify.sh --all --only default
 
-      - name: Restore Lean packages with the Mathlib build products
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+  # Every check fails on an input that violates it.
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          path: lean/.lake
-          key: lake-${{ runner.os }}-${{ hashFiles('lean/lean-toolchain', 'lean/lake-manifest.json') }}
-
-      - name: Restore the browser build
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+          persist-credentials: false
+      - uses: ./.github/actions/prepare
         with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          lean-packages: restore
+          browser: "true"
+      - name: Verify the group integration
+        run: ./scripts/verify.sh --all --only integration
 
-      - name: Install elan
-        env:
-          ELAN_VERSION: v4.2.4
-          ELAN_SHA256: 42b94d4244e8353142c456ec0e4ca6528fd898a6c604d4059f494e706e431f63
-        run: |
-          if [ ! -x "$HOME/.elan/bin/elan" ]; then
-            curl -sSfL -o "$RUNNER_TEMP/elan.tar.gz" \
-              "https://github.com/leanprover/elan/releases/download/$ELAN_VERSION/elan-x86_64-unknown-linux-gnu.tar.gz"
-            echo "$ELAN_SHA256  $RUNNER_TEMP/elan.tar.gz" | sha256sum --check
-            tar -xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP"
-            "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
-          fi
-          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+  # Builds the Lean project and the site, once. The jobs below check this
+  # site, and on main the deploy job publishes exactly this artifact.
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/prepare
+        with:
+          lean-packages: save
+      - name: Verify the group build
+        run: ./scripts/verify.sh --all --only build
 
-      - name: Install the Python environment and the browser build
-        run: |
-          uv sync --locked
-          uv run --locked playwright install --with-deps --only-shell chromium
-
-      - name: Verify
-        run: ./scripts/verify.sh --all
+      - name: Record the files of the built site
+        run: ./scripts/fetch-built-site.sh --record "$RUNNER_TEMP/built-site-record"
 
       # Attached to every run that built a site, so a pull request's site can
-      # be reviewed before merge. That includes a run in which a check failed,
-      # where the built site helps to find out why; without the condition the
-      # step would be skipped then. The job still fails, so the deploy job
-      # does not run. On main the deploy job publishes exactly this artifact.
+      # be reviewed before merge. That includes a run in which the build
+      # failed after it wrote a site; without the condition the step would
+      # be skipped then. The job still fails, so 'verify' fails and the
+      # deploy job does not run.
       - name: Upload the built site
         if: ${{ !cancelled() && hashFiles('site/_site/index.html') != '' }}
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
@@ -83,8 +92,93 @@ jobs:
           path: site/_site
           retention-days: 7
 
-  # Publishes the artifact the verify job built for this commit. It builds
-  # nothing.
+      - name: Upload the record of the built site
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: built-site-record
+          path: ${{ runner.temp }}/built-site-record
+          retention-days: 7
+          if-no-files-found: error
+
+  # Builds the site a second time and compares it with the site of 'build'.
+  determinism:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/prepare
+      - name: Download the built site
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: github-pages
+          path: ${{ runner.temp }}/built-site
+      - name: Download the record of the built site
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: built-site-record
+          path: ${{ runner.temp }}/built-site
+      - name: Unpack the built site and compare it with its record
+        run: ./scripts/fetch-built-site.sh "$RUNNER_TEMP/built-site"
+      - name: Verify the group determinism
+        run: ./scripts/verify.sh --all --only determinism
+
+  # The checks of the built site, in a browser, side by side. The parts of
+  # the lessons reproduce Lean lessons and need the Lean packages.
+  e2e:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [lessons-1, lessons-2, pages-1, pages-2, other]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/prepare
+        with:
+          lean-packages: ${{ startsWith(matrix.part, 'lessons-') && 'restore' || 'none' }}
+          browser: "true"
+      - name: Download the built site
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: github-pages
+          path: ${{ runner.temp }}/built-site
+      - name: Download the record of the built site
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: built-site-record
+          path: ${{ runner.temp }}/built-site
+      - name: Unpack the built site and compare it with its record
+        run: ./scripts/fetch-built-site.sh "$RUNNER_TEMP/built-site"
+      - name: Verify the group e2e-${{ matrix.part }}
+        env:
+          PART: ${{ matrix.part }}
+        run: ./scripts/verify.sh --all --only "e2e-$PART"
+
+  # The one required status check on main. It runs whatever happened to the
+  # jobs it needs and passes only when each of them succeeded: a job that
+  # failed, was cancelled, or was skipped fails it.
+  verify:
+    if: ${{ always() }}
+    needs: [code, workflow, integration, build, determinism, e2e]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Require that every job succeeded
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: ./scripts/ci-aggregate.sh code workflow integration build determinism e2e
+
+  # Publishes the artifact the build job made for this commit, after every
+  # job succeeded. It builds nothing.
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: verify

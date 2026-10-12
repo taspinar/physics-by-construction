@@ -16,6 +16,7 @@ from support.verify_conf import checks
 
 PAGE = REPO_ROOT / "site" / "reproduce.qmd"
 CI = REPO_ROOT / ".github" / "workflows" / "ci.yml"
+PREPARE = REPO_ROOT / ".github" / "actions" / "prepare" / "action.yml"
 
 _FENCE = re.compile(r"^```\{?\.?(bash)\b([^}]*)\}?\s*$")
 _BARE_FENCE = re.compile(r"^```bash\s*$")
@@ -73,15 +74,27 @@ def blocks() -> list[Block]:
 
 
 def ci_commands() -> list[str]:
-    """The commands CI runs to prepare the runner and to verify."""
-    workflow = yaml.safe_load(CI.read_text())
-    steps = {step.get("name"): step for step in workflow["jobs"]["verify"]["steps"]}
-    install = steps["Install the Python environment and the browser build"]["run"]
-    verify = steps["Verify"]["run"]
-    return [
-        *(line.strip() for line in install.splitlines() if line.strip()),
-        verify.strip(),
+    """The commands CI runs to prepare a runner, and how it verifies.
+
+    The jobs of CI share one preparation; each then runs groups of the checks
+    with ``--only`` (ADR 012). Together they run what one
+    ``./scripts/verify.sh --all`` runs, which is the last entry here.
+    """
+    prepare = yaml.safe_load(PREPARE.read_text())["runs"]["steps"]
+    steps = {step.get("name"): step for step in prepare}
+    install = [
+        steps["Install the Python environment"]["run"],
+        steps["Install the browser build"]["run"],
     ]
+    jobs = yaml.safe_load(CI.read_text())["jobs"]
+    verify = {
+        step["run"].split(" --only ")[0]
+        for job in jobs.values()
+        for step in job["steps"]
+        if "./scripts/verify.sh" in step.get("run", "")
+    }
+    assert len(verify) == 1, verify
+    return [*(command.strip() for command in install), *verify]
 
 
 def setup_block(system: str) -> Block:

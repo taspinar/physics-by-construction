@@ -49,3 +49,4 @@ Do not create ADRs for trivial implementation details.
 | [009](009-external-references-outside-verification.md) | Curated external references come from a register with selection evidence; link validity is a maintenance check outside verification |
 | [010](010-coding-agent-exercises-on-the-learners-machine.md) | Coding-agent exercises run only on the learner's machine under a sandbox profile; the site verifies the code, never the agent |
 | [011](011-lean-exercise-stubs-outside-the-checked-library.md) | Lean exercise stubs live in `lean/Exercises/`, outside the checked library; their solutions are library modules and a check pairs them |
+| [012](012-parallel-verification-jobs-behind-one-required-check.md) | Verification runs in parallel CI jobs that each run groups of the same checks, behind one required check that passes only when every job succeeded; supersedes decision 2 of ADR 003 and of ADR 005 |
