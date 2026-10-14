@@ -393,7 +393,9 @@ pinning") with a fix hint.
    schema; every sample is parsed by a test that asserts field names,
    shapes, units, masks, and cadence.
 6. **Site build**: Quarto executes every lesson page in the locked Python
-   environment and renders the static site. A failing cell, an agent replay
+   environment and renders the static site. A full run of CI does this in
+   same-machine lesson shards and one assembly (see "CI pipeline and time
+   budget"); a local run without options does it in one build on one machine. A failing cell, an agent replay
    mismatch, or an equation that cannot be converted to MathML fails the
    build. No cell opens a network connection.
 7. **Built-site checks**: no resource loaded from another origin; images have
@@ -881,31 +883,43 @@ is attached to the workflow run for review before merge.
 
 One workflow, triggered by `pull_request` and by `push` to `main`:
 
-- **The jobs that run checks** (always; ADR 012): `code`, `workflow`,
-  `integration`, and `build` start together; the three `e2e` jobs wait for
-  `build`. `build` also makes the comparisons of bytes with the built site
-  (the second build, the reproduction of every lesson), which need the
-  machine of the build. Each checks out, prepares its runner with
-  what its checks need (uv, the Lean toolchain, the `.lake` packages with
-  Mathlib's build products, the browser), and runs its groups with
-  `./scripts/verify.sh --all --only <groups>`. `build` uploads the site
-  artifact with the checksums of its files; the jobs after it download that
-  site and compare it with the checksums before they check it.
-  Workflow-level permissions: `contents: read`. In the final curriculum
-  (ADR 014 decision 11, F113) `build` is a matrix of same-machine lesson
-  shards (shares of the lessons; the `e2e-pages` jobs keep their own
-  division of the built-site tests in `tests/e2e/shards.json`), each
-  executing at most 32 lessons twice and reproducing them against its
-  own render, and an `assemble` job after the lesson shards renders every
-  page from their executed results without executing a scientific cell
-  of any lesson (it runs only the context cells of ADR 014 decision 9,
-  if F61 keeps them as executed cells, and its runner holds the Lean
-  build record they read), checks
-  the determinism of that render on its own machine, requires that each
-  lesson page equals the page its lesson shard reproduced, and uploads
-  the one site; the `e2e` jobs then wait for `assemble`. At 110 lessons
-  that is four lesson shards; the script derives the number from the
-  lesson count and a test keeps the workflow's lesson shards equal to it.
+- **The jobs that run checks** (always; ADR 012 and ADR 014 decision 11):
+  `code`, `workflow`, `integration`, and `plan` start together; the lesson
+  shards of `build` wait for `plan`, `assemble` waits for every lesson shard,
+  and the three `e2e` jobs wait for `assemble`. `plan` runs no check: it
+  derives the lesson shards (`./scripts/verify.sh --shards`, from the lesson
+  count and the `shard-size` of `scripts/verify.conf`, read from no other
+  file), which are the matrix of `build`, and on a pull request it takes the
+  verified base once, so that every job selects against the same one. `build`
+  is a matrix of same-machine lesson shards (shares of the lessons, at most
+  32 each; the `e2e-pages` jobs keep their own division of the built-site
+  tests in `tests/e2e/shards.json`). A shard runs the group `build` through
+  `./scripts/verify.sh --all --shard <k>/<N>`: the Lean build in full, the
+  execution of its share of the lessons, their second execution for
+  determinism, and the reproduction of each in a fresh clone against the
+  pages and figure files this shard rendered, all on its own machine. It
+  uploads its part (the share's entries of the store, the pages and figures
+  it rendered, and the checksum of every file) as the artifact
+  `lesson-shard-<k>`; no shard uploads a Pages artifact. `assemble` runs
+  `./scripts/verify.sh --all --assemble <parts>`: it requires the parts to be
+  exactly the derived ones, every file the recorded one, every part made from
+  the sources and the commit it assembles, and the shares to cover every
+  lesson exactly once; it renders every page from the union of the parts
+  without executing a lesson (the cells of a lesson leave markers, and the
+  post-render step regenerates the context of ADR 014 decision 9; the Lean
+  build record they read is recreated by the Lean build of the group
+  `build`, cheap with Mathlib's cache), renders a second time and compares
+  the bytes on its own machine, requires every file of every lesson a shard
+  executed to equal the one that shard rendered and reproduced, and uploads
+  the one site with the checksums of its files. The jobs after it download
+  that site and compare it with the checksums before they check it.
+  Each job checks out and prepares its runner with what its checks need (uv,
+  the Lean toolchain, the `.lake` packages with Mathlib's build products, the
+  browser). Workflow-level permissions: `contents: read`; the jobs that look
+  for the base (`plan`, `build`, `e2e`) add `actions: read`. At 110 lessons
+  there are four lesson shards; the transition from four to five is at 129
+  lessons and needs no change of the workflow, and a test keeps the
+  workflow's matrix equal to what the script derives.
 - **verify** (always, also after a failure): passes only when every job
   above succeeded.
 - **deploy job** (only `push` to `main`, after verify succeeds): publish the
@@ -963,10 +977,11 @@ to the executed and checked time, and the per-check budgets stay the guard.
 The `build` job of a full run, which holds the three executions of every
 lesson, took 20 min 27 s with cold caches at twenty-two lessons; at the
 measured cost it leaves the full-run budget of 35 minutes at about 40
-lessons and would need about 80 minutes at 110. F113 splits it into
+lessons and would need about 80 minutes at 110. F113 delivers the split into
 same-machine lesson shards before the lesson count reaches the lesson-shard
-size of 32;
-F61 records the projection and the count.
+size of 32; its measurements on the hosted runners follow once the workflow
+is on `main` (`docs/release-readiness.md`); F61 recorded the projection and
+the count.
 Dropping a check, adding path filters, or moving a check to a schedule
 stays unavailable: ADR 014 selects by content, in the verification script,
 and fails safe.

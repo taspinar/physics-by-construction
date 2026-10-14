@@ -62,28 +62,33 @@ jobs:
       - name: Verify the group integration
         run: ./scripts/verify.sh --all --only integration
 
-  # Builds the Lean project and the site, once, and makes the comparisons
-  # that need the machine of the build: the second build for determinism and
-  # the reproduction of every lesson. The jobs below check this site, and on
-  # main the deploy job publishes exactly this artifact.
-  build:
+  # Derives the lesson shards of a full run from the lesson count, which only
+  # ./scripts/verify.sh knows (ADR 014 decision 11): the matrix of the job
+  # 'build' is made of what it prints, so no file lists the shards and the
+  # workflow needs no change when the lessons pass a multiple of the shard
+  # size. On a pull request it also looks for the verified base once, so that
+  # every shard and every checking job takes the same one.
+  plan:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 10
     # The one added scope: reading the runs and artifacts of earlier runs, to
     # find the verified base of a pull request (ADR 014 decision 2).
     permissions:
       contents: read
       actions: read
     outputs:
+      matrix: ${{ steps.shards.outputs.matrix }}
       base-run: ${{ steps.base.outputs.run-id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: ./.github/actions/prepare
-        with:
-          lean-packages: save
-          browser: "true"
+      - name: Derive the lesson shards
+        id: shards
+        run: |
+          shards="$(./scripts/verify.sh --shards)"
+          echo "matrix=$(jq -Rsc 'split("\n") | map(select(. != "") | tonumber)' <<<"$shards")" >> "$GITHUB_OUTPUT"
 
       # Only a pull request run looks for a base; a run on main never receives
       # one and executes and checks every lesson. The script accepts a base
@@ -94,12 +99,90 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: ./scripts/fetch-base.sh "$RUNNER_TEMP/base"
-      - name: Verify the group build against the base
+
+  # Builds the Lean project in full and executes the lessons of one lesson
+  # shard: a share of the lessons, at most the shard size of scripts/verify.conf,
+  # each shard on its own machine. It makes the comparisons that need the
+  # machine of the build there: the second build for determinism and the
+  # reproduction of every lesson of the share. Its part (the share's entries
+  # of the store, the pages and figures it rendered, and the checksum of every
+  # file) goes to the job 'assemble'. No shard uploads a Pages artifact.
+  build:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/prepare
+        with:
+          lean-packages: save
+          browser: "true"
+
+      # The base the plan job took, by its run, checked again by the same script.
+      - name: Fetch the verified base of the plan job
+        id: base
+        if: ${{ github.event_name == 'pull_request' && needs.plan.outputs.base-run != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_RUN: ${{ needs.plan.outputs.base-run }}
+        run: ./scripts/fetch-base.sh --run "$BASE_RUN" "$RUNNER_TEMP/base"
+      - name: Verify the group build on the lesson shard against the base
         if: ${{ steps.base.outputs.accepted == 'true' }}
-        run: ./scripts/verify.sh --all --only build --base "$RUNNER_TEMP/base"
-      - name: Verify the group build
+        env:
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ strategy.job-total }}
+          PBC_PART_DIR: ${{ runner.temp }}/part
+        run: ./scripts/verify.sh --all --shard "$SHARD/$SHARDS" --base "$RUNNER_TEMP/base"
+      - name: Verify the group build on the lesson shard
         if: ${{ steps.base.outputs.accepted != 'true' }}
-        run: ./scripts/verify.sh --all --only build
+        env:
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ strategy.job-total }}
+          PBC_PART_DIR: ${{ runner.temp }}/part
+        run: ./scripts/verify.sh --all --shard "$SHARD/$SHARDS"
+
+      - name: Upload the part of the lesson shard
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lesson-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/part
+          retention-days: 2
+          if-no-files-found: error
+
+  # Renders the one site from the parts of the shards, after every shard
+  # passed: it requires the parts to be exactly the recorded ones and to cover
+  # every lesson once, executes no lesson, renders twice and compares the bytes
+  # on this machine, and requires every lesson page to be the page its shard
+  # rendered and reproduced. The jobs below check this site, and on main the
+  # deploy job publishes exactly this artifact.
+  assemble:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/prepare
+        with:
+          lean-packages: restore
+          browser: "true"
+      - name: Download the parts of the lesson shards
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: lesson-shard-*
+          path: ${{ runner.temp }}/parts
+      - name: Verify the group build on the parts
+        run: ./scripts/verify.sh --all --assemble "$RUNNER_TEMP/parts"
 
       - name: Record the files of the built site
         run: ./scripts/fetch-built-site.sh --record "$RUNNER_TEMP/built-site-record"
@@ -124,9 +207,9 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
-      # A run on main built and checked every lesson. What it stored is kept
-      # for the job 'base', which publishes it as the base of later pull
-      # requests once 'verify' passed.
+      # A run on main executed and checked every lesson. What the assembly
+      # stored is kept for the job 'base', which publishes it as the base of
+      # later pull requests once 'verify' passed.
       - name: Collect the base
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: ./scripts/collect-base.sh "$RUNNER_TEMP/verification-base"
@@ -142,7 +225,7 @@ jobs:
   # The checks of the built site that compare no bytes with it, in a
   # browser, side by side.
   e2e:
-    needs: build
+    needs: [plan, assemble]
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
@@ -171,14 +254,14 @@ jobs:
           path: ${{ runner.temp }}/built-site
       - name: Unpack the built site and compare it with its record
         run: ./scripts/fetch-built-site.sh "$RUNNER_TEMP/built-site"
-      # The base the build job took, by its run, checked again by the same
+      # The base the plan job took, by its run, checked again by the same
       # script, so that every job selects against the same base.
-      - name: Fetch the verified base of the build job
+      - name: Fetch the verified base of the plan job
         id: base
-        if: ${{ github.event_name == 'pull_request' && needs.build.outputs.base-run != '' }}
+        if: ${{ github.event_name == 'pull_request' && needs.plan.outputs.base-run != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
-          BASE_RUN: ${{ needs.build.outputs.base-run }}
+          BASE_RUN: ${{ needs.plan.outputs.base-run }}
         run: ./scripts/fetch-base.sh --run "$BASE_RUN" "$RUNNER_TEMP/base"
       - name: Verify the group e2e-${{ matrix.part }} against the base
         if: ${{ steps.base.outputs.accepted == 'true' }}
@@ -196,7 +279,7 @@ jobs:
   # failed, was cancelled, or was skipped fails it.
   verify:
     if: ${{ always() }}
-    needs: [code, workflow, integration, build, e2e]
+    needs: [code, workflow, integration, plan, build, assemble, e2e]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -206,9 +289,9 @@ jobs:
       - name: Require that every job succeeded
         env:
           NEEDS: ${{ toJSON(needs) }}
-        run: ./scripts/ci-aggregate.sh code workflow integration build e2e
+        run: ./scripts/ci-aggregate.sh code workflow integration plan build assemble e2e
 
-  # Publishes the artifact the build job made for this commit, after every
+  # Publishes the artifact the assemble job made for this commit, after every
   # job succeeded. It builds nothing.
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

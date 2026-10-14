@@ -13,6 +13,8 @@ _CHECK = re.compile(
     r"^([a-z0-9][a-z0-9-]*)(?:\s*\[([a-z0-9][a-z0-9-]*)\])?:\s*(.*\S)\s*$"
 )
 DEFAULT_GROUP = "default"
+# The entry of verify.conf that declares no check (ADR 014 decision 11).
+SHARD_SIZE = "shard-size"
 
 
 def _lines() -> list[tuple[str, str, str]]:
@@ -21,6 +23,8 @@ def _lines() -> list[tuple[str, str, str]]:
         if not line.strip() or line.lstrip().startswith("#"):
             continue
         match = _CHECK.match(line)
+        if match is not None and match.group(1) == SHARD_SIZE:
+            continue
         if match is None:
             raise ValueError(f"malformed line in verify.conf: {line!r}")
         result.append((match.group(1), match.group(2) or DEFAULT_GROUP, match.group(3)))
@@ -43,3 +47,14 @@ def command(name: str) -> str:
         return checks()[name]
     except KeyError:
         raise AssertionError(f"verify.conf has no check named {name!r}") from None
+
+
+def shard_size() -> int:
+    """Return S, the most lessons of one lesson shard, as verify.conf declares it."""
+    found = [
+        line.split(":", 1)[1].strip()
+        for line in (SCRIPTS / "verify.conf").read_text().splitlines()
+        if line.startswith(f"{SHARD_SIZE}:")
+    ]
+    assert len(found) == 1, "verify.conf declares the shard size once"
+    return int(found[0])

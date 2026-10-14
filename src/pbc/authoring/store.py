@@ -26,6 +26,7 @@ import time
 from pathlib import Path
 
 from pbc.authoring import selection as selecting
+from pbc.authoring import shards as sharding
 from pbc.authoring.digest import LESSONS, render
 from pbc.authoring.repository import REPOSITORY_ROOT
 
@@ -69,16 +70,27 @@ def restore(site: Path, base: Path, lessons: list[str]) -> list[str]:
     return sorted(lessons)
 
 
-def prepare(site: Path, selection: dict | None) -> list[str]:
+def prepare(site: Path, selection: dict | None, shard: dict | None = None) -> list[str]:
     """Leave in ``site`` the store a build starts from: the entries of the
-    unchanged lessons of a selective run, and nothing else."""
+    unchanged lessons of a selective run, and nothing else. A lesson shard
+    restores only the entries of its own share (ADR 014 decision 11)."""
     shutil.rmtree(site / STORE, ignore_errors=True)
     if selection is None or selection.get("mode") != "selective":
         return []
     directory = selection.get("base_directory")
     if not isinstance(directory, str):
         raise InvalidStore("the selection names no base directory")
-    return restore(site, Path(directory), list(selection["reuse"]))
+    reuse = list(selection["reuse"])
+    if shard is not None:
+        mine = set(shard["lessons"])
+        reuse = [lesson for lesson in reuse if lesson in mine]
+    return restore(site, Path(directory), reuse)
+
+
+def shards_executed(selection: dict, shard: dict | None) -> list[str]:
+    """The lessons of the selection that this run executes."""
+    chosen = sharding.executed(shard, selection)
+    return list(selection["execute"]) if chosen is None else chosen
 
 
 def _read_selection(path: Path | None) -> dict | None:
@@ -153,6 +165,11 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="the selection file; without it the store starts empty",
     )
+    prep.add_argument(
+        "--shard-file",
+        type=Path,
+        help="the lesson shard of the run: only its share is restored",
+    )
     digests = sub.add_parser("digests", help="write the digests of every lesson")
     digests.add_argument("--root", type=Path, default=REPOSITORY_ROOT)
     digests.add_argument("--out", type=Path, required=True)
@@ -161,8 +178,14 @@ def main(argv: list[str] | None = None) -> int:
     arguments = parser.parse_args(argv)
     if arguments.command == "prepare":
         selection = _read_selection(arguments.selection)
+        shard = sharding.read(arguments.shard_file) if arguments.shard_file else None
+        if arguments.shard_file and shard is None:
+            print(
+                f"Error: {arguments.shard_file} is not a shard file.", file=sys.stderr
+            )
+            return 1
         try:
-            restored = prepare(arguments.site, selection)
+            restored = prepare(arguments.site, selection, shard)
         except InvalidStore as error:
             print(
                 f"Error: the base cannot be restored: {error}. Run"
@@ -174,9 +197,10 @@ def main(argv: list[str] | None = None) -> int:
         if selection is None or selection["mode"] != "selective":
             print("Store: empty; every page executes.")
         else:
+            executing = len(shards_executed(selection, shard))
             print(
                 f"Store: {len(restored)} lesson(s) restored from the base, "
-                f"{len(selection['execute'])} execute."
+                f"{executing} execute."
             )
         return 0
     if arguments.command == "digests":

@@ -18,6 +18,12 @@ set -euo pipefail
 # of the unchanged lessons of that base; every other page executes (ADR 014,
 # decisions 3, 6 and 9). The time of each page goes to <source>/_timings.json.
 #
+# A lesson shard (./scripts/verify.sh --shard, ADR 014 decision 11) renders only
+# the lesson pages of its share that the run executes, one page after the other,
+# each as the reproduction of the lesson renders it, and restores only the
+# entries of its share from the base. What the shard holds is its part of the
+# store and of the site; the assembly renders the one site from the parts.
+#
 # The build fails when a page fails to execute or an equation cannot be
 # converted to MathML.
 
@@ -46,8 +52,19 @@ selection_args=()
 if [[ -n "$selection_file" && -f "$selection_file" ]]; then
   selection_args=(--selection "$selection_file")
 fi
+# The lesson shard of this run, likewise: the determinism check names it for its
+# copy of the sources.
+shard_file="${PBC_SHARD_FILE:-}"
+if [[ -z "$shard_file" && "$source_dir" == "$root/site" ]]; then
+  shard_file="$root/.agents/verification/shard.json"
+fi
+shard_args=()
+if [[ -n "$shard_file" && -f "$shard_file" ]]; then
+  shard_args=(--shard-file "$shard_file")
+fi
 uv run --locked --project "$root" \
-  python -m pbc.authoring.store prepare --site "$source_dir" ${selection_args[@]+"${selection_args[@]}"} ||
+  python -m pbc.authoring.store prepare --site "$source_dir" \
+  ${selection_args[@]+"${selection_args[@]}"} ${shard_args[@]+"${shard_args[@]}"} ||
   fail "the store of the build could not be prepared."
 if [[ "$source_dir" == "$root/site" ]]; then
   uv run --locked --project "$root" \
@@ -59,8 +76,29 @@ log="$(mktemp "${TMPDIR:-/tmp}/build-site.XXXXXX")"
 trap 'rm -f "$log"' EXIT
 
 # The profile makes Quarto write the store and replay an entry that exists.
-QUARTO_PROFILE=store uv run --locked --project "$root" \
-  quarto render "$source_dir" --output-dir "$output_dir" 2>&1 |
+render() {
+  if [[ ${#shard_args[@]} -eq 0 ]]; then
+    QUARTO_PROFILE=store uv run --locked --project "$root" \
+      quarto render "$source_dir" --output-dir "$output_dir" 2>&1
+    return
+  fi
+  # A lesson shard: the pages of its share that this run executes.
+  local pages=() page index=0 listing
+  listing="$(uv run --locked --project "$root" python -m pbc.authoring.shards \
+    --root "$root" render-list --site "$source_dir" --shard-file "$shard_file" \
+    ${selection_args[@]+"${selection_args[@]}"})" || return 1
+  while IFS= read -r page; do
+    [[ -z "$page" ]] || pages+=("$page")
+  done <<<"$listing"
+  echo "Lesson shard: ${#pages[@]} page(s) to render."
+  for page in ${pages[@]+"${pages[@]}"}; do
+    index=$((index + 1))
+    echo "[$index/${#pages[@]}] $page"
+    QUARTO_PROFILE=store uv run --locked --project "$root" \
+      quarto render "$source_dir/$page" --output-dir "$output_dir" 2>&1 || return 1
+  done
+}
+render |
   uv run --locked --project "$root" \
     python -m pbc.authoring.store timings --out "$source_dir/_timings.json" |
   tee "$log"

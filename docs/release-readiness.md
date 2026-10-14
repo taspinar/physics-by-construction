@@ -435,6 +435,40 @@ F61 (none is applied):**
 4. Accept the budget as 15 minutes for a pull request until the fixed cost is
    reduced: this is a change of ADR 003 decision 5 and the owner's decision.
 
+### Lesson shards (F113): state of the measurement
+
+The workflow of F113 (jobs `plan`, `build` as a matrix of lesson shards, and
+`assemble`) is not on `main` when this is written, so nothing below is
+measured on a hosted runner and **no acceptance criterion of F113 that needs a
+CI run is claimed as met**: not the full run on `main` within 35 minutes with
+warm and with cold caches, not the time per shard and for the assembly, not the
+cost per lesson on the slowest runner, not the confirmation of the shard size
+of 32, and not the three consecutive warm-cache pull requests within 12 minutes
+(or the 15 minutes the owner is moving the budget to). What exists:
+
+- What ran locally, on one machine, for two real lessons as one shard: the
+  build, the second build for determinism, and the tests marked `same_machine`
+  (the reproduction of both lessons in a fresh clone and the previews of a
+  second build) passed, and the part was written. This shows the path works; it
+  says nothing about the time on a hosted runner.
+- What the tests of `tests/integration` show with synthetic lessons: the shares
+  at 31, 32, 33, 63, 64, 65, 96, 97, 127, 128, and 129 lessons, the equality of
+  the workflow's matrix with the script's, and the assembly's refusal of a
+  missing, extra, altered, duplicated, or inconsistent part. Synthetic lessons
+  prove the orchestration; they are not evidence of the time a lesson takes.
+
+To measure, after the merge: read the time of every job of a full run on `main`
+with warm caches (a rerun) and with cold caches (a change of `lake-manifest.json`
+or the key of the cache), the time of `plan`, each `build` shard, and `assemble`;
+the cost per lesson is the slowest shard's time less its fixed cost (Lean build,
+runner preparation), over its lessons; project it to 125 lessons (the planning
+target of the Issue; four shards at 32) and to 110, and compare each job with
+the 35 minutes of ADR 014 decision 7 and the timeout of 45. For criterion 5 run
+three pull requests one after the other that each change one lesson, and record
+their wall clock, the time of `assemble`, and the projection. The critical path
+of a pull request is `plan`, one shard (its fixed cost, because the shard of the
+changed lesson executes one lesson), `assemble`, then the longest `e2e` job.
+
 ## Release (human)
 
 After the items above: tag the merge commit (`git tag -a mvp-v1.0.0`) and

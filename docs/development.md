@@ -202,6 +202,9 @@ tests-in-a-browser [e2e]: pytest tests/e2e
 - `./scripts/verify.sh --only code` runs the checks of one group, and
   `--only code,build` those of several, in the order of the file.
 - `./scripts/verify.sh --groups` prints the groups that have a check.
+- `./scripts/verify.sh --shard <k>/<N>` and `--assemble <parts>` run the group
+  `build` as a lesson shard and as the assembly of the parts of the shards
+  (see "Lesson shards" below); `--shards` prints the shards of this tree.
 - A check without a group is in the group `default`.
 - An unknown group is an error, so a renamed group cannot pass unnoticed.
 
@@ -276,6 +279,46 @@ What the selection controls (ADR 014 decision 3):
   (`site_checks.checked_pages`); **the reproduction in a fresh clone** runs for
   the executed lessons, and compares bytes with the page this run built. Every
   other check runs as before.
+
+### Lesson shards
+
+A full run of CI would outgrow the job timeout with the lessons (every lesson
+runs three times on one machine, about 41 seconds each), so CI splits the group
+`build` into same-machine **lesson shards** and one assembly (ADR 014 decision
+11). A lesson shard is a share of the lessons; it is not the division of the
+tests of the built site in `tests/e2e/shards.json`.
+
+- `scripts/verify.conf` declares the most lessons of a shard, `shard-size: 32`.
+  The number of shards `N` is the ceiling of the lesson count over it, derived
+  by `pbc.authoring.shards` and never read from a file; lesson `i` of the sorted
+  list goes to shard `i mod N + 1`, so no shard exceeds the size, none is idle,
+  and sizes differ by one at most. `./scripts/verify.sh --shards` prints the
+  numbers `1..N`; the job `plan` of the workflow turns them into its matrix, so
+  adding a lesson never needs a change of the workflow, also at the transition
+  from four to five shards (128 to 129 lessons).
+- `./scripts/verify.sh --shard <k>/<N>` runs the group `build` on share `k`:
+  `N` must be the derived one. The build renders the lesson pages of the share
+  that the run executes, one `quarto render` of a page after the other (as the
+  reproduction does), restores only the share's entries from a base, and the
+  second build and the reproduction cover the same pages. A shard with nothing
+  to execute renders nothing and costs its fixed time. A passed shard writes its
+  part to `.agents/verification/part` (`PBC_PART_DIR` names another place):
+  `part.json`, the digests, the store entries of the share, the files of the
+  lessons it executed, and `files.sha256`.
+- `./scripts/verify.sh --assemble <parts>` takes the directory with the parts
+  (`lesson-shard-1` ... `lesson-shard-N`), requires them to be exactly the
+  derived ones with every file as recorded, made from these sources at this
+  commit, covering every lesson once (`pbc.authoring.assemble verify`), and
+  runs the group `build` against the union of their stores: the selection must
+  execute no lesson, and the Lean build of the group recreates the record the
+  Lean excerpts read. Finally `assemble compare` requires every file of every
+  lesson a shard executed to be the file that shard rendered and reproduced.
+- The shard file, the selection, and the parts stay in `.agents/verification/`
+  until the next run of `verify.sh` removes them; a script run on its own in
+  between (`build-site.sh`) reads them.
+- Both are partial runs, like `--only`: they verify nothing by themselves, record
+  nothing, and are refused with `--reuse`. `./scripts/verify.sh` without options
+  still runs everything in one build on one machine.
 
 ### Recorded verification
 

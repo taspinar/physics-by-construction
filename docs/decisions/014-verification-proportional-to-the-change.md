@@ -24,6 +24,22 @@ read` on the jobs `build` and `e2e`) are in the pull request that adds
 workflow has run on `main`. The status of this ADR changes with the human's
 merge decision, not with this note.
 
+Implementation of decision 11 (F113, Issue #150): `pbc.authoring.shards`
+derives the lesson shards (`S = 32` as `shard-size` in `scripts/verify.conf`,
+`N` the ceiling of the lesson count over `S`); `./scripts/verify.sh --shard
+<k>/<N>` runs the group `build` on one share and leaves its part;
+`./scripts/verify.sh --assemble <parts>` verifies the parts
+(`pbc.authoring.assemble`), renders the one site from their store without
+executing a lesson (the Lean build record is recreated by the Lean build of
+the group), and compares every lesson page with the one its shard rendered and
+reproduced. The workflow has the jobs `plan`, `build` (matrix), and `assemble`
+in front of `e2e`; the matrix is computed by `plan` from the script, so no
+file lists the shards. The measurements of this decision (every job of a full
+run within 35 minutes, the cost per lesson, and three warm pull requests within
+12 minutes on the sharded workflow) need runs of that workflow on `main` and
+are recorded in `docs/release-readiness.md` when they exist; until then they
+are not claimed.
+
 Date: 2026-10-12
 
 ## Context

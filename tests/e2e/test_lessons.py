@@ -14,6 +14,7 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser, Page
 from support import lesson_checks, second_build, site_checks
+from support.lesson_shard import idle_shard
 from support.paths import REPO_ROOT, SITE_SOURCE
 from support.site_checks import DESKTOP, PHONE, describe
 from support.site_server import SiteServer, configured_repository_url
@@ -491,7 +492,8 @@ def test_a_second_build_gives_byte_identical_previews(site_dir: Path, tmp_path: 
     build = second_build.build_copy(SITE_SOURCE, second, tmp_path)
     assert build.returncode == 0, build.stdout[-2000:] + build.stderr[-2000:]
     first_files = sorted((site_dir / "previews").glob("*"))
-    assert first_files, "the first build wrote no previews"
+    # A lesson shard with nothing to execute renders nothing, twice.
+    assert first_files or idle_shard(), "the first build wrote no previews"
     assert sorted(f.name for f in (second / "previews").glob("*")) == [
         f.name for f in first_files
     ]

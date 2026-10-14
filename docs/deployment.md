@@ -18,12 +18,17 @@ pull request -> CI jobs, check verify -> merge to main -> CI jobs on main
 
 1. The jobs of `.github/workflows/ci.yml` each run a group of the checks
    through `./scripts/verify.sh --all --only <group>`, on every pull request
-   and on every push to `main` (ADR 012). The `build` job builds the site
-   once and uploads `site/_site/` as the `github-pages` artifact, with a
-   list of the checksum of every file. The jobs that check the site download
-   that artifact and compare it with the list before they check anything.
-   The site is also uploaded when the build failed after it wrote a site, so
-   that it can be inspected; the job still fails.
+   and on every push to `main` (ADR 012). The group `build` runs in
+   same-machine lesson shards (ADR 014 decision 11): the job `plan` derives
+   the shards from the lesson count, each shard of the job `build` executes
+   its share of the lessons on its own machine and uploads its part as the
+   artifact `lesson-shard-<k>` (never a Pages artifact), and the job
+   `assemble` verifies the parts, renders the one site from them without
+   executing a lesson, and uploads `site/_site/` as the `github-pages`
+   artifact, with a list of the checksum of every file. The jobs that check
+   the site download that artifact and compare it with the list before they
+   check anything. The site is also uploaded when the assembly failed after
+   it wrote a site, so that it can be inspected; the job still fails.
 2. The job `verify` is the one required check. It passes only when every
    other job succeeded: a job that failed, was cancelled, or was skipped
    fails it.
@@ -33,11 +38,12 @@ pull request -> CI jobs, check verify -> merge to main -> CI jobs on main
 4. The workflow is read-only (`contents: read`). Only the deploy job has
    `pages: write` and `id-token: write`, and it authenticates with the
    short-lived token GitHub issues to the run. No secret is stored or
-   referenced. The jobs `build` and `e2e` have one more scope, `actions: read`,
+   referenced. The jobs `plan`, `build`, and `e2e` have one more scope, `actions: read`,
    so that a pull request run can read the runs and artifacts of earlier runs
    to find the base of step 5; no job has any other write permission.
 5. **The base of a pull request** (ADR 014 decision 2). On a push to `main`
-   the `build` job runs every lesson, collects what it stored (the executed
+   the lesson shards run every lesson and the `assemble` job collects what the
+   assembled build stored (the executed
    results, the digest of every lesson, and the checksum of every page,
    `scripts/collect-base.sh`) and uploads it as `verification-base-candidate`
    for one day. The job `base` runs after `verify` passed, only on `main`,
@@ -52,8 +58,8 @@ pull request -> CI jobs, check verify -> merge to main -> CI jobs on main
    cannot upload one (the job `base` does not run for it). The archive is
    unpacked only when it holds plain relative paths, no link, and the three
    parts of a base; nothing in it is executed or read as configuration. The
-   `e2e` jobs take the very base the `build` job took, by its run number, and
-   check it again. A base that is missing, rejected, damaged, or of another
+   shards and the `e2e` jobs take the very base the `plan` job took, by its
+   run number, and check it again. A base that is missing, rejected, damaged, or of another
    format gives a full run, never a failed one. A run on `main` is never
    given a base.
 

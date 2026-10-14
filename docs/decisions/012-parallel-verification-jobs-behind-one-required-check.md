@@ -20,6 +20,14 @@ group in decision 2. The lesson shards are not the division of
 `tests/e2e/shards.json`, which splits the built-site tests between the
 `e2e-pages` jobs of this ADR and stands.
 
+Implementation of F113 (Issue #150): the workflow has the jobs `plan`
+(derives the lesson shards, and takes the base of a pull request once),
+`build` (a matrix of lesson shards, `./scripts/verify.sh --shard <k>/<N>`),
+and `assemble` (`./scripts/verify.sh --assemble`), and the `e2e` jobs wait for
+`assemble`. The measurements of F113 on the hosted runners follow once that
+workflow has run on `main`; the status of this ADR changes with the human's
+merge decision, not with this note.
+
 Date: 2026-10-12
 
 ## Context

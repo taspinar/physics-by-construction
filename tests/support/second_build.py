@@ -15,16 +15,21 @@ import subprocess
 from pathlib import Path
 
 from pbc.authoring import selection as selecting
+from pbc.authoring import shards as sharding
 from support.paths import REPO_ROOT, SITE_SOURCE
 
 
 def selection_environment(root: Path = REPO_ROOT) -> dict[str, str]:
     """The environment that gives a build of a copy the selection of the run,
     and nothing for a full run."""
+    environment = {}
     chosen = selecting.read(root)
-    if chosen is None or chosen.get("mode") != "selective":
-        return {}
-    return {"PBC_STORE_SELECTION": str(root / selecting.SELECTION_FILE)}
+    if chosen is not None and chosen.get("mode") == "selective":
+        environment["PBC_STORE_SELECTION"] = str(root / selecting.SELECTION_FILE)
+    # A lesson shard builds its share again, and only that (ADR 014 decision 11).
+    if sharding.read(root=root) is not None:
+        environment["PBC_SHARD_FILE"] = str(root / sharding.SHARD_FILE)
+    return environment
 
 
 def build_copy(

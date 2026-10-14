@@ -16,6 +16,11 @@ set -euo pipefail
 # belongs to the group 'default'. --only runs the checks of the named groups,
 # for a CI that spreads the same checks over parallel jobs. Such a partial
 # run is never a verification: it records nothing.
+#
+# A full run of CI spreads the group 'build' over same-machine lesson shards
+# (ADR 014 decision 11). --shard k/N runs that group on the k-th share of the
+# lessons, which the script derives from the lesson count; --assemble renders
+# the one site from the parts the shards made. Both are partial runs.
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 config="$root/scripts/verify.conf"
@@ -29,7 +34,10 @@ usage() {
   echo "Usage: $0 [--all] [--reuse]"
   echo "       $0 [--all] --base <directory> [--only <group>[,<group>...]]"
   echo "       $0 [--all] --only <group>[,<group>...]"
+  echo "       $0 [--all] [--base <directory>] --shard <k>/<N>"
+  echo "       $0 [--all] --assemble <parts-directory>"
   echo "       $0 --groups"
+  echo "       $0 --shards"
   echo
   echo "Runs the checks in scripts/verify.conf. The workflow self-tests in"
   echo "scripts/verify-workflow.conf run only when a file listed under 'paths:' in"
@@ -49,7 +57,17 @@ usage() {
   echo "and records the base. Without it every lesson is executed and checked. A"
   echo "base that cannot be used gives a full run, with the reason (ADR 014)."
   echo
+  echo "--shard runs the group 'build' on the k-th lesson shard: a share of the lessons"
+  echo "that this script derives from their count (at most the 'shard-size' of"
+  echo "scripts/verify.conf per shard; N is derived, never given freely). It leaves a part"
+  echo "in .agents/verification/part for the assembly. --assemble verifies the parts"
+  echo "of every shard (a directory holding one directory per part), renders the one"
+  echo "site from them without executing a lesson, and compares each lesson page with"
+  echo "the page its shard made. Both are partial runs: they record nothing, cannot be"
+  echo "combined with --reuse, and verify nothing by themselves."
+  echo
   echo "--groups prints the groups that have a check, one per line."
+  echo "--shards prints the numbers of the lesson shards of this tree, one per line."
   exit 1
 }
 
@@ -62,14 +80,30 @@ config_fail() {
 run_all=0
 reuse=0
 list_groups=0
+list_shards=0
 only=""
 partial=0
 base=""
+shard=""
+assemble=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --all) run_all=1 ;;
     --reuse) reuse=1 ;;
     --groups) list_groups=1 ;;
+    --shards) list_shards=1 ;;
+    --shard)
+      [[ $# -ge 2 && "$2" =~ ^[0-9]+/[0-9]+$ ]] || usage
+      shard="$2"
+      partial=1
+      shift
+      ;;
+    --assemble)
+      [[ $# -ge 2 && -n "$2" ]] || usage
+      assemble="$2"
+      partial=1
+      shift
+      ;;
     --base)
       [[ $# -ge 2 && -n "$2" ]] || usage
       base="$2"
@@ -85,15 +119,30 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
+# The two lesson-shard modes run the group 'build' and nothing else.
+if [[ -n "$shard" || -n "$assemble" ]]; then
+  [[ -z "$shard" || -z "$assemble" ]] ||
+    { echo "Error: --shard and --assemble cannot be combined." >&2; exit 1; }
+  [[ -z "$only" || "$only" == "build" ]] ||
+    { echo "Error: --shard and --assemble run the group build; --only $only cannot be combined with them." >&2; exit 1; }
+  [[ -z "$assemble" || -z "$base" ]] ||
+    { echo "Error: --assemble takes no --base: the selection is made against the parts." >&2; exit 1; }
+  only="build"
+  if [[ -n "$assemble" ]]; then
+    [[ -d "$assemble" ]] || { echo "Error: --assemble names $assemble, which is not a directory of parts." >&2; exit 1; }
+    assemble="$(cd "$assemble" && pwd -P)"
+  fi
+fi
 if [[ -n "$base" && "$reuse" -eq 1 ]]; then
   echo "Error: --base cannot be combined with --reuse: a run with a base is a verification against that base, not of the content alone." >&2
   exit 1
 fi
 if [[ "$partial" -eq 1 && "$reuse" -eq 1 ]]; then
-  echo "Error: --only cannot be combined with --reuse: a partial run is not a verification, so there is nothing to reuse." >&2
+  echo "Error: --only, --shard, and --assemble cannot be combined with --reuse: a partial run is not a verification, so there is nothing to reuse." >&2
   exit 1
 fi
-if [[ "$list_groups" -eq 1 && ( "$partial" -eq 1 || "$reuse" -eq 1 || "$run_all" -eq 1 || -n "$base" ) ]]; then
+if [[ "$list_groups" -eq 1 && "$list_shards" -eq 1 ]]; then usage; fi
+if [[ ( "$list_groups" -eq 1 || "$list_shards" -eq 1 ) && ( "$partial" -eq 1 || "$reuse" -eq 1 || "$run_all" -eq 1 || -n "$base" ) ]]; then
   usage
 fi
 
@@ -139,6 +188,12 @@ load_checks() {
     name="${BASH_REMATCH[1]}"
     group="${BASH_REMATCH[3]}"
     value="${BASH_REMATCH[4]}"
+    # The size of a lesson shard is declared in verify.conf; it is no check.
+    if [[ "$file" == "$config" && "$name" == "shard-size" ]]; then
+      [[ -z "$group" && "$value" =~ ^[1-9][0-9]*$ ]] ||
+        config_fail "'shard-size' takes a number of lessons and no group on line $line_number of $label."
+      continue
+    fi
     if [[ "$paths_entry" == "yes" && "$name" == "paths" ]]; then
       [[ -z "$group" ]] || config_fail "'paths' takes no group on line $line_number of $label."
       [[ -z "$workflow_paths" ]] ||
@@ -189,6 +244,14 @@ workflow_files_changed() {
   )" || return 2
   [[ -n "$changed" ]]
 }
+
+# The lesson shards of this tree: derived from the lesson count and the size
+# declared in scripts/verify.conf, read from no other file.
+if [[ "$list_shards" -eq 1 ]]; then
+  (cd "$root" && uv run --locked python -m pbc.authoring.shards --root "$root" matrix) |
+    tr -d '[],' | tr ' ' '\n'
+  exit "${PIPESTATUS[0]}"
+fi
 
 [[ "$list_groups" -eq 1 ]] || echo "== Agentic project verification =="
 
@@ -244,8 +307,28 @@ fi
 # to the one file the checks read. A run without --base removes any selection
 # an earlier run left, so that it verifies everything.
 selection_file="$root/.agents/verification/selection.json"
+shard_file="$root/.agents/verification/shard.json"
+assembly_dir="$root/.agents/verification/assembly"
+part_dir="${PBC_PART_DIR:-$root/.agents/verification/part}"
 if [[ -e "$selection_file" ]]; then rm -f "$selection_file"; fi
+# Likewise the shard of an earlier run, and what an earlier shard or assembly left.
+for leftover in "$shard_file" "$assembly_dir" "$root/.agents/verification/part"; do
+  if [[ -e "$leftover" ]]; then rm -rf "$leftover"; fi
+done
 selection_note=""
+if [[ -n "$shard" ]]; then
+  (cd "$root" && uv run --locked python -m pbc.authoring.shards --root "$root" write "$shard") ||
+    { echo "Error: the lesson shard $shard cannot be run." >&2; exit 1; }
+fi
+if [[ -n "$assemble" ]]; then
+  # The parts are data: they are verified as such, and the selection is made
+  # against what they hold. A run that would execute a lesson is no assembly.
+  echo "== Assembly of the parts in $assemble =="
+  (cd "$root" && uv run --locked python -m pbc.authoring.assemble verify \
+    --root "$root" --parts "$assemble" --union "$assembly_dir/union") ||
+    { echo "Error: the parts in $assemble cannot be assembled." >&2; exit 1; }
+  selection_note="assembly of the parts of $assemble"
+fi
 if [[ -n "$base" ]]; then
   [[ -d "$base" ]] || echo "Note: the base $base is not a directory; the run is a full run."
   base_abs="$(cd "$base" 2>/dev/null && pwd -P || printf '%s' "$base")"
@@ -313,6 +396,31 @@ for index in "${!names[@]}"; do
   fi
 done
 
+# The part a passed shard hands to the assembly, and the comparison of the
+# lesson pages of the assembly with those of the shards that made them.
+if [[ "$failed" -eq 0 && -n "$shard" ]]; then
+  echo
+  echo "-- part: the results of the lesson shard $shard"
+  if (cd "$root" && uv run --locked python -m pbc.authoring.assemble part \
+    --root "$root" --out "$part_dir"); then
+    results+=("PASS  part")
+  else
+    results+=("FAIL  part")
+    failed=1
+  fi
+fi
+if [[ "$failed" -eq 0 && -n "$assemble" ]]; then
+  echo
+  echo "-- compare: every lesson page equals the page its shard made"
+  if (cd "$root" && uv run --locked python -m pbc.authoring.assemble compare \
+    --root "$root" --parts "$assemble"); then
+    results+=("PASS  compare")
+  else
+    results+=("FAIL  compare")
+    failed=1
+  fi
+fi
+
 echo
 echo "== Verification summary =="
 [[ "${#results[@]}" -eq 0 ]] || printf '%s\n' "${results[@]}"
@@ -327,7 +435,7 @@ fi
 # A partial run passed its own checks and says nothing about the others: an
 # existing record is left as it is, and none is written.
 if [[ "$partial" -eq 1 ]]; then
-  echo "The checks of the groups ${only//,/, } passed. Not a verification: run ./scripts/verify.sh without --only for that."
+  echo "The checks of the groups ${only//,/, } passed. Not a verification: run ./scripts/verify.sh without --only, --shard, or --assemble for that."
   exit 0
 fi
 

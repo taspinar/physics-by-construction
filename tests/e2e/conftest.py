@@ -5,16 +5,17 @@ from pathlib import Path
 
 import pytest
 from support import shards
+from support.lesson_shard import executed_lessons, idle_shard
 from support.paths import BUILT_SITE, REPO_ROOT, SITE_SOURCE
 from support.site_server import SiteServer, configured_base_path
-
-from pbc.authoring import selection as selecting
 
 
 @pytest.fixture(scope="session")
 def site_dir(request: pytest.FixtureRequest) -> Path:
     directory = Path(request.config.getoption("--site-dir") or BUILT_SITE)
-    if not (directory / "index.html").is_file():
+    # A lesson shard with nothing to execute renders no page: there is no site
+    # to check, and its part holds the entries it restored.
+    if not idle_shard() and not (directory / "index.html").is_file():
         # A missing site is a failure, never a skip: these checks are required.
         pytest.fail(
             f"no built site in {directory}; run ./scripts/build-site.sh first",
@@ -37,12 +38,11 @@ def _reproductions_of_unchanged_lessons(items: list[pytest.Item]) -> list[pytest
     for a lesson restored from the base there is none. A run without a base, a
     full run, and a base that cannot be used select every lesson (ADR 014
     decision 3)."""
-    selection = selecting.read(REPO_ROOT)
-    if selection is None or selection.get("mode") != "selective":
+    chosen = executed_lessons()
+    if chosen is None:
         return []
     executed = {
-        f"{Path(lesson).relative_to('site').as_posix()}/index.html"
-        for lesson in selection["execute"]
+        f"{Path(lesson).relative_to('site').as_posix()}/index.html" for lesson in chosen
     }
     return [
         item

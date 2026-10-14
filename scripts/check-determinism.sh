@@ -15,7 +15,8 @@ set -euo pipefail
 # With a base (./scripts/verify.sh --base) the second build starts from the
 # same restored state as the first: the copy holds no store of the first
 # build, and the build restores the entries of the unchanged lessons from the
-# base again, so the changed lessons execute twice (ADR 014 decision 3).
+# base again, so the changed lessons execute twice (ADR 014 decision 3). In a
+# lesson shard the second build renders the share of the shard, as the first one did.
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
@@ -40,6 +41,11 @@ rm -f "$tmp/site/_digests.json" "$tmp/site/_timings.json"
 # The selection of the run applies to the sources it was made for.
 if [[ "$source_dir" == "$root/site" && -f "$root/.agents/verification/selection.json" ]]; then
   export PBC_STORE_SELECTION="$root/.agents/verification/selection.json"
+fi
+
+# A lesson shard builds its share again, and only that (ADR 014 decision 11).
+if [[ "$source_dir" == "$root/site" && -f "$root/.agents/verification/shard.json" ]]; then
+  export PBC_SHARD_FILE="$root/.agents/verification/shard.json"
 fi
 
 "$root/scripts/build-site.sh" "$tmp/site" "$tmp/second" >"$tmp/build.log" 2>&1 || {

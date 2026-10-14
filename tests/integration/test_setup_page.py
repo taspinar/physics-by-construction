@@ -87,11 +87,17 @@ def ci_commands() -> list[str]:
         steps["Install the browser build"]["run"],
     ]
     jobs = yaml.safe_load(CI.read_text())["jobs"]
+    # The partial runs of a job are the same ``--all`` run spread over groups
+    # (``--only``), over lesson shards (``--shard``), or assembled from their
+    # parts (``--assemble``, ADR 014 decision 11). ``--shards`` only lists the
+    # shards and verifies nothing.
+    partial = re.compile(r" --(?:only|shard|assemble) ")
     verify = {
-        step["run"].split(" --only ")[0]
+        partial.split(line.strip())[0]
         for job in jobs.values()
         for step in job["steps"]
-        if "./scripts/verify.sh" in step.get("run", "")
+        for line in step.get("run", "").splitlines()
+        if "./scripts/verify.sh" in line and " --shards" not in line
     }
     assert len(verify) == 1, verify
     return [*(command.strip() for command in install), *verify]

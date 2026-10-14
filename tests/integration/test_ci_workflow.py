@@ -7,13 +7,22 @@ every group of checks runs in exactly one job, and only the success of every
 job passes the required check.
 """
 
+import json
+import math
+import os
 import re
+import shutil
+import stat
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 import yaml
+from support import verify_conf
 from support.paths import REPO_ROOT
+
+from pbc.authoring import shards as sharding
 
 WORKFLOWS = sorted((REPO_ROOT / ".github" / "workflows").glob("*.y*ml"))
 CI = REPO_ROOT / ".github" / "workflows" / "ci.yml"
@@ -27,6 +36,14 @@ FETCH = './scripts/fetch-built-site.sh "$RUNNER_TEMP/built-site"'
 RECORD = './scripts/fetch-built-site.sh --record "$RUNNER_TEMP/built-site-record"'
 # The jobs that run checks; 'verify' decides from them and 'deploy' publishes.
 AGGREGATE, DEPLOY = "verify", "deploy"
+# The job that derives the lesson shards and takes the base of a pull request
+# once; the job that renders the one site from the parts of the shards (ADR 014
+# decision 11).
+PLAN, BUILD, ASSEMBLE = "plan", "build", "assemble"
+SHARD_RUN = f'{VERIFY} --all --shard "$SHARD/$SHARDS"'
+ASSEMBLE_RUN = f'{VERIFY} --all --assemble "$RUNNER_TEMP/parts"'
+MATRIX = "${{ fromJSON(needs.plan.outputs.matrix) }}"
+BASE_RUN_OF_PLAN = "${{ needs.plan.outputs.base-run }}"
 # The job that publishes the base of a run on main (ADR 014 decision 2).
 BASE_JOB = "base"
 FETCH_BASE = './scripts/fetch-base.sh "$RUNNER_TEMP/base"'
@@ -38,8 +55,9 @@ ON_MAIN = "${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
 
 
 def check_jobs() -> dict[str, dict]:
+    """The jobs that run checks of verify.conf; the plan job runs none."""
     jobs = load(CI)["jobs"]
-    others = (AGGREGATE, DEPLOY, BASE_JOB)
+    others = (AGGREGATE, DEPLOY, BASE_JOB, PLAN)
     return {name: job for name, job in jobs.items() if name not in others}
 
 
@@ -59,8 +77,18 @@ def commands(job: dict) -> list[str]:
 
 
 def groups_of(job: dict) -> list[str]:
-    """The groups a job runs, with the parts of a matrix written out."""
+    """The groups a job runs, with the parts of a matrix written out. The job
+    that assembles the parts runs the group build as the assembly of its
+    shards (ADR 014 decision 11): it is counted with them, not again."""
     command = plain_verify(job)
+    if command == ASSEMBLE_RUN:
+        return []
+    if command == SHARD_RUN:
+        assert job["strategy"]["matrix"] == {"shard": MATRIX}
+        [step] = [s for s in job["steps"] if s.get("run") == command]
+        assert step["env"]["SHARD"] == "${{ matrix.shard }}"
+        assert step["env"]["SHARDS"] == "${{ strategy.job-total }}"
+        return ["build"]
     match = re.fullmatch(
         rf'{re.escape(VERIFY)} --all --only "?([a-z0-9,$A-Z-]+)"?', command
     )
@@ -123,7 +151,7 @@ def test_the_one_added_scope_is_reading_actions_in_the_jobs_that_take_the_base()
     # other job has it.
     jobs = load(CI)["jobs"]
     for name, job in jobs.items():
-        if name in ("build", "e2e"):
+        if name in (PLAN, BUILD, "e2e"):
             assert job["permissions"] == {"contents": "read", "actions": "read"}, name
         elif name != "deploy":
             assert "permissions" not in job, name
@@ -157,12 +185,12 @@ def test_the_jobs_run_checks_only_through_verify_sh():
         # One run of verify.sh, always with --all, so that CI never skips the
         # workflow self-tests (ADR 005), and always with --only: a run
         # without it would run every check a second time.
-        assert groups_of(job), name
+        assert groups_of(job) or name == ASSEMBLE, name
         # One run of verify.sh, or the same run with the base of a pull
         # request, chosen by a condition; never both and never another.
         with_base = [c for c in verify_commands(job) if BASE_OPTION in c]
         assert len(verify_commands(job)) == 1 + len(with_base), name
-        assert len(with_base) == (1 if name in ("build", "e2e") else 0), name
+        assert len(with_base) == (1 if name in (BUILD, "e2e") else 0), name
         for command in with_base:
             assert command.replace(BASE_OPTION, "") == plain_verify(job), name
         # The only other commands hand the built site from one job to the
@@ -206,7 +234,7 @@ def test_the_required_check_passes_only_when_every_job_succeeded():
     # It runs whatever happened to the jobs before it; without this GitHub
     # would skip it after a failure, and a skipped required check passes.
     assert job["if"] == "${{ always() }}"
-    assert sorted(job["needs"]) == sorted(check_jobs())
+    assert sorted(job["needs"]) == sorted([*check_jobs(), PLAN])
     [step] = [step for step in job["steps"] if "run" in step]
     assert step["env"] == {"NEEDS": "${{ toJSON(needs) }}"}
     assert step["run"] == "./scripts/ci-aggregate.sh " + " ".join(job["needs"])
@@ -252,7 +280,7 @@ def allowed_conditions(step: dict) -> list[str]:
     if "--run" in run:
         return [
             "${{ github.event_name == 'pull_request' && "
-            "needs.build.outputs.base-run != '' }}"
+            "needs.plan.outputs.base-run != '' }}"
         ]
     if BASE_OPTION in run:
         return ["${{ steps.base.outputs.accepted == 'true' }}"]
@@ -267,19 +295,19 @@ def test_the_jobs_have_the_agreed_timeouts():
     jobs = load(CI)["jobs"]
     for name, job in check_jobs().items():
         assert job["timeout-minutes"] == 45, name
+    assert jobs[PLAN]["timeout-minutes"] == 10
     assert jobs[AGGREGATE]["timeout-minutes"] == 5
     assert jobs[DEPLOY]["timeout-minutes"] == 10
     assert jobs[BASE_JOB]["timeout-minutes"] == 10
 
 
-def test_the_site_is_built_in_one_job_and_uploaded_with_its_record():
+def test_the_site_is_assembled_in_one_job_and_uploaded_with_its_record():
     jobs = check_jobs()
-    builders = [name for name, job in jobs.items() if "build" in groups_of(job)]
-    assert builders == ["build"]
-    steps = jobs["build"]["steps"]
+    assert jobs[ASSEMBLE]["needs"] == BUILD
+    steps = jobs[ASSEMBLE]["steps"]
     names = [step.get("run") or step["uses"].split("@")[0] for step in steps]
-    verify = names.index(f"{VERIFY} --all --only build")
-    # The record is written after the build passed and before the uploads;
+    verify = names.index(ASSEMBLE_RUN)
+    # The record is written after the assembly passed and before the uploads;
     # what a run on main stored follows the uploads of the site.
     assert names[verify + 1 :] == [
         RECORD,
@@ -300,12 +328,62 @@ def test_the_site_is_built_in_one_job_and_uploaded_with_its_record():
     assert record["with"]["if-no-files-found"] == "error"
 
 
+def test_no_lesson_shard_uploads_a_pages_artifact():
+    jobs = load(CI)["jobs"]
+    shard = jobs[BUILD]["steps"]
+    assert not [s for s in shard if "upload-pages-artifact" in s.get("uses", "")]
+    assert not [s for s in shard if "deploy-pages" in s.get("uses", "")]
+    uploads = [
+        s for s in shard if s.get("uses", "").startswith("actions/upload-artifact@")
+    ]
+    assert [u["with"]["name"] for u in uploads] == ["lesson-shard-${{ matrix.shard }}"]
+    # The one Pages artifact of the workflow is the one the assembly uploads.
+    pages = [
+        name
+        for name, job in jobs.items()
+        for s in job["steps"]
+        if s.get("uses", "").startswith("actions/upload-pages-artifact@")
+    ]
+    assert pages == [ASSEMBLE]
+
+
+def test_the_assembly_takes_the_parts_of_every_shard_and_nothing_else():
+    steps = load(CI)["jobs"][ASSEMBLE]["steps"]
+    [download] = [
+        s
+        for s in steps
+        if s.get("uses", "").startswith("actions/download-artifact@")
+        and "lesson-shard" in str(s["with"])
+    ]
+    assert download["with"] == {
+        "pattern": "lesson-shard-*",
+        "path": "${{ runner.temp }}/parts",
+    }
+    # Downloaded before the run that verifies them.
+    names = [s.get("run") or s["uses"] for s in steps]
+    assert steps.index(download) < names.index(ASSEMBLE_RUN)
+
+
+def test_a_shard_hands_over_its_part_only_after_its_checks_passed():
+    steps = load(CI)["jobs"][BUILD]["steps"]
+    [upload] = [
+        s for s in steps if s.get("uses", "").startswith("actions/upload-artifact@")
+    ]
+    assert "if" not in upload  # runs only while every step before it succeeded
+    assert upload["with"]["if-no-files-found"] == "error"
+    assert upload["with"]["path"] == "${{ runner.temp }}/part"
+    verifying = [i for i, s in enumerate(steps) if VERIFY in s.get("run", "")]
+    assert verifying and max(verifying) < steps.index(upload)
+    for index in verifying:
+        assert steps[index]["env"]["PBC_PART_DIR"] == "${{ runner.temp }}/part"
+
+
 def test_a_job_that_checks_the_built_site_checks_the_one_that_was_built():
     for name, job in check_jobs().items():
         groups = groups_of(job)
         # The build job checks its own site; the others get it handed over.
         reads_the_site = any(group.startswith("e2e-") for group in groups)
-        assert (job.get("needs") == "build") == reads_the_site, name
+        assert (job.get("needs") == [PLAN, ASSEMBLE]) == reads_the_site, name
         runs = commands(job)
         assert (FETCH in runs) == reads_the_site, name
         if not reads_the_site:
@@ -372,7 +450,7 @@ def test_a_run_on_main_never_receives_a_base():
         assert "github.event_name == 'pull_request'" in step.get("if", "") or (
             "steps.base.outputs.accepted == 'true'" in step.get("if", "")
         ), (name, step)
-    for name in ("build", "e2e"):
+    for name in (PLAN, BUILD, "e2e"):
         [fetch] = [
             s
             for s in jobs[name]["steps"]
@@ -381,25 +459,25 @@ def test_a_run_on_main_never_receives_a_base():
         assert "github.event_name == 'pull_request'" in fetch["if"]
         assert "push" not in fetch["if"]
     # The step that passes the base needs the step that accepted one.
-    for name in ("build", "e2e"):
+    for name in (BUILD, "e2e"):
         [with_base] = steps_with(jobs[name], BASE_OPTION)
         assert with_base["if"] == "${{ steps.base.outputs.accepted == 'true' }}"
 
 
 def test_the_base_is_fetched_with_the_read_token_and_nothing_else():
     jobs = load(CI)["jobs"]
-    for name in ("build", "e2e"):
+    for name in (PLAN, BUILD, "e2e"):
         for step in steps_with(jobs[name], "fetch-base.sh"):
             assert step["env"]["GH_TOKEN"] == "${{ github.token }}"
             assert set(step["env"]) <= {"GH_TOKEN", "BASE_RUN"}
-    # What the build job accepted reaches the checking jobs as a run number,
-    # which the script checks again; the number is never put into a command.
-    assert load(CI)["jobs"]["build"]["outputs"] == {
-        "base-run": "${{ steps.base.outputs.run-id }}"
-    }
-    for step in steps_with(jobs["e2e"], "--run"):
-        assert step["env"]["BASE_RUN"] == "${{ needs.build.outputs.base-run }}"
-        assert "${{" not in step["run"]
+    # What the plan job accepted reaches the shards and the checking jobs as a
+    # run number, which the script checks again; the number is never put into
+    # a command.
+    assert jobs[PLAN]["outputs"]["base-run"] == "${{ steps.base.outputs.run-id }}"
+    for name in (BUILD, "e2e"):
+        for step in steps_with(jobs[name], "--run"):
+            assert step["env"]["BASE_RUN"] == BASE_RUN_OF_PLAN
+            assert "${{" not in step["run"]
 
 
 def test_the_base_is_published_by_main_only_after_verify_passed():
@@ -435,7 +513,7 @@ def test_the_base_is_published_by_main_only_after_verify_passed():
 
 
 def test_the_candidate_of_the_base_is_made_on_main_only():
-    build = load(CI)["jobs"]["build"]
+    build = load(CI)["jobs"][ASSEMBLE]
     candidate = [
         s
         for s in build["steps"]
@@ -455,6 +533,156 @@ def test_the_scripts_that_take_the_base_use_the_run_record():
     assert "download-artifact" in text
     for step in (s for j in load(CI)["jobs"].values() for s in j["steps"]):
         if step.get("uses", "").startswith("actions/download-artifact@"):
-            assert step["with"]["name"] != "verification-base"
+            assert step["with"].get("name") != "verification-base"
             assert "run-id" not in step["with"]
             assert "github-token" not in step["with"]
+
+
+# --- the lesson shards (ADR 014 decision 11, F113) -------------------------------
+
+
+def test_the_matrix_of_the_lesson_shards_is_derived_and_listed_in_no_file():
+    jobs = load(CI)["jobs"]
+    # A matrix that is a list in this file would be bumped by hand, and an
+    # over-covering one would run idle shards.
+    assert jobs[BUILD]["strategy"]["matrix"] == {"shard": MATRIX}
+    assert jobs[BUILD]["needs"] == PLAN
+    assert jobs[BUILD]["strategy"]["fail-fast"] is False
+    assert jobs[PLAN]["outputs"]["matrix"] == "${{ steps.shards.outputs.matrix }}"
+    derive = plan_step()
+    assert f"{VERIFY} --shards" in derive["run"]
+    assert "GITHUB_OUTPUT" in derive["run"]
+    assert "env" not in derive and "with" not in derive
+    # The shard count of the run is the size of the matrix, which the script
+    # checks against its own derivation: N is never given freely.
+    shard = [s for s in jobs[BUILD]["steps"] if s.get("run") == SHARD_RUN]
+    assert len(shard) == 1
+    assert shard[0]["env"]["SHARDS"] == "${{ strategy.job-total }}"
+
+
+def plan_step() -> dict:
+    [derive] = [s for s in load(CI)["jobs"][PLAN]["steps"] if s.get("id") == "shards"]
+    return derive
+
+
+COUNTS = [1, 22, 31, 32, 33, 63, 64, 65, 96, 97, 110, 125, 127, 128, 129]
+
+
+@pytest.fixture
+def project(tmp_path: Path) -> Path:
+    """A repository with the real script and a stub for ``uv`` that runs this
+    source tree, in which the step of the plan job can run."""
+    root = tmp_path / "repo"
+    (root / "scripts" / "lib").mkdir(parents=True)
+    for name in (
+        "verify.sh",
+        "lib/verification.sh",
+        "lib/fingerprint.sh",
+        "verify.conf",
+    ):
+        shutil.copy2(REPO_ROOT / "scripts" / name, root / "scripts" / name)
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    stub = bin_dir / "uv"
+    stub.write_text(
+        '#!/usr/bin/env bash\nwhile [[ "$1" != python ]]; do shift; done; shift\n'
+        f'PYTHONPATH="{REPO_ROOT / "src"}" exec "{sys.executable}" "$@"\n'
+    )
+    stub.chmod(stub.stat().st_mode | stat.S_IEXEC)
+    return root
+
+
+def lessons(root: Path, count: int) -> None:
+    shutil.rmtree(root / "site", ignore_errors=True)
+    for number in range(count):
+        page = root / f"site/lessons/s{number // 40}/{number:03d}-l/index.qmd"
+        page.parent.mkdir(parents=True, exist_ok=True)
+        page.write_text("---\ntitle: T\n---\n")
+
+
+def environment(project: Path) -> dict[str, str]:
+    return {**os.environ, "PATH": f"{project.parent / 'bin'}:{os.environ['PATH']}"}
+
+
+def workflow_matrix(project: Path) -> list[int]:
+    """The matrix the plan job makes of the lessons of ``project``: its step,
+    run as the runner runs it."""
+    output = project.parent / "github-output"
+    output.unlink(missing_ok=True)
+    subprocess.run(
+        ["bash", "-e", "-c", plan_step()["run"]],
+        cwd=project,
+        env={**environment(project), "GITHUB_OUTPUT": str(output)},
+        check=True,
+    )
+    [line] = output.read_text().splitlines()
+    return json.loads(line.removeprefix("matrix="))
+
+
+@pytest.mark.parametrize("count", COUNTS)
+def test_the_matrix_the_workflow_makes_has_as_many_shards_as_the_script_derives(
+    count: int, project: Path
+):
+    lessons(project, count)
+    matrix = workflow_matrix(project)
+    # N, the ceiling of the count over S: never more and never fewer.
+    assert matrix == list(range(1, math.ceil(count / verify_conf.shard_size()) + 1))
+    assert matrix == sharding.matrix(project)
+    # Every job of the matrix is a shard the script accepts for that count; one
+    # more would be an idle shard, and the script refuses it.
+    for number in matrix:
+        assert sharding.share(project, f"{number}/{len(matrix)}")[:2] == (
+            number,
+            len(matrix),
+        )
+    with pytest.raises(sharding.ShardError, match="derived"):
+        sharding.share(project, f"1/{len(matrix) + 1}")
+
+
+def test_the_transition_from_four_to_five_shards_needs_no_change_of_the_workflow(
+    project: Path,
+):
+    before = CI.read_text()
+    sizes = {}
+    for count in (128, 129):
+        lessons(project, count)
+        sizes[count] = len(workflow_matrix(project))
+    assert sizes == {128: 4, 129: 5}
+    assert CI.read_text() == before
+
+
+def test_the_tests_that_compare_bytes_run_in_the_jobs_that_computed_them():
+    # ADR 012 decision 4, extended by ADR 014 decision 11: the reproduction of a
+    # lesson runs in the shard that rendered it, and the determinism of the
+    # one site runs in the assembly that rendered it. No job that compares
+    # bytes with a site takes that site from another job.
+    jobs = load(CI)["jobs"]
+    groups = verify_conf.groups()
+    assert groups["site-checks-reproduction"] == groups["site-build"] == "build"
+    assert groups["determinism"] == "build"
+    runners = [
+        name
+        for name, job in jobs.items()
+        if any(
+            f"{VERIFY} --all --shard" in c or f"{VERIFY} --all --assemble" in c
+            for c in commands(job)
+        )
+    ]
+    assert runners == [BUILD, ASSEMBLE]
+    for name in runners:
+        downloads = [
+            s["with"]
+            for s in jobs[name]["steps"]
+            if s.get("uses", "").startswith("actions/download-artifact@")
+        ]
+        # A shard downloads nothing; the assembly downloads the parts, never a site.
+        assert all("github-pages" not in str(d) for d in downloads), name
+    assert not [
+        s
+        for s in jobs[BUILD]["steps"]
+        if s.get("uses", "").startswith("actions/download-artifact@")
+    ]
+    # The jobs that check a site they were handed run the tests that do not
+    # compare bytes with it.
+    command = verify_conf.command("site-checks-other")
+    assert '-m "not same_machine"' in command
