@@ -26,6 +26,8 @@ lesson:
       - "Logarithms: the natural logarithm and the exponential of a small number"
 ---
 
+<!-- F61 measurement only: one lesson changed, do not merge -->
+
 ```{python}
 #| echo: false
 import numpy as np
