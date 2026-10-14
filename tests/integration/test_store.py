@@ -11,6 +11,7 @@ import shutil
 from pathlib import Path
 
 import pytest
+from support import second_build
 from support.checks import output, run_check
 
 from pbc.authoring import selection as selecting
@@ -183,6 +184,56 @@ def test_the_second_build_of_the_determinism_check_starts_from_the_same_state(
     assert result.returncode == 0, output(result)
     # The changed lesson executed again, the restored one did not.
     assert executed(log) == ["b2"]
+
+
+def test_a_second_build_of_a_copy_starts_from_the_state_of_the_run(
+    site: Path, tmp_path: Path
+):
+    """The second build of the preview test restores the unchanged lesson from the
+    base like the first build, so no result of the base is compared with one this
+    machine computed; without the selection it would execute both lessons."""
+    log = tmp_path / "log"
+    assert build(site, tmp_path / "one", log).returncode == 0
+    base = make_base(site, tmp_path / "base")
+    write(site, "lessons/s/02-b/index.qmd", lesson("b2"))
+    chosen = selection(tmp_path / "selection.json", base, [LESSON_B], [LESSON_A])
+    log.unlink()
+    assert build(site, tmp_path / "first", log, chosen).returncode == 0
+    assert executed(log) == ["b2"]
+    log.unlink()
+
+    environment = {"PBC_TEST_LOG": str(log), "PBC_STORE_SELECTION": str(chosen)}
+    result = second_build.build_copy(
+        site, tmp_path / "second", tmp_path / "work", environment=environment
+    )
+    assert result.returncode == 0, result.stdout[-2000:] + result.stderr[-2000:]
+    assert executed(log) == ["b2"]
+    log.unlink()
+
+    # A copy built without the selection executes every lesson.
+    (tmp_path / "plain").mkdir()
+    result = second_build.build_copy(
+        site,
+        tmp_path / "second-plain",
+        tmp_path / "plain",
+        environment={"PBC_TEST_LOG": str(log)},
+    )
+    assert result.returncode == 0, result.stdout[-2000:] + result.stderr[-2000:]
+    assert executed(log) == ["a", "b2"]
+
+
+def test_the_selection_of_the_run_reaches_a_build_of_a_copy(tmp_path: Path):
+    chosen = tmp_path / selecting.SELECTION_FILE
+    chosen.parent.mkdir(parents=True)
+    assert second_build.selection_environment(tmp_path) == {}
+    selection(chosen, tmp_path / "base", [LESSON_B], [LESSON_A])
+    assert second_build.selection_environment(tmp_path) == {
+        "PBC_STORE_SELECTION": str(chosen)
+    }
+    data = json.loads(chosen.read_text())
+    data["mode"] = "full"
+    chosen.write_text(json.dumps(data))
+    assert second_build.selection_environment(tmp_path) == {}
 
 
 @pytest.mark.parametrize(

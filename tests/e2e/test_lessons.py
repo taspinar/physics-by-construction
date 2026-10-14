@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 from playwright.sync_api import Browser, Page
-from support import lesson_checks, site_checks
+from support import lesson_checks, second_build, site_checks
 from support.paths import REPO_ROOT, SITE_SOURCE
 from support.site_checks import DESKTOP, PHONE, describe
 from support.site_server import SiteServer, configured_repository_url
@@ -483,21 +483,12 @@ def test_the_first_lesson_shows_the_constructs_of_format_2_as_text(
 # (ADR 012).
 @pytest.mark.same_machine
 def test_a_second_build_gives_byte_identical_previews(site_dir: Path, tmp_path: Path):
-    """Two builds of the lessons, each executing every figure, write the same
-    bytes for every preview (F63)."""
-    source = tmp_path / "site"
-    shutil.copytree(
-        SITE_SOURCE,
-        source,
-        ignore=shutil.ignore_patterns("_site", ".quarto"),
-    )
+    """Two builds of the lessons, each executing the same figures, write the same
+    bytes for every preview (F63). With a base both restore the previews of the
+    unchanged lessons and execute the changed ones."""
     second = tmp_path / "second"
-    build = subprocess.run(
-        [str(REPO_ROOT / "scripts/build-site.sh"), str(source), str(second)],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    # With a base the second build starts from the same restored state.
+    build = second_build.build_copy(SITE_SOURCE, second, tmp_path)
     assert build.returncode == 0, build.stdout[-2000:] + build.stderr[-2000:]
     first_files = sorted((site_dir / "previews").glob("*"))
     assert first_files, "the first build wrote no previews"
