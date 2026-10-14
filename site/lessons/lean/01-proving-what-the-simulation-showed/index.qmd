@@ -31,6 +31,8 @@ lesson:
     - PhysicsByConstruction.Mechanics.EulerOscillator
 ---
 
+<!-- F61 measurement only: one lesson changed, do not merge -->
+
 ```{python}
 #| echo: false
 from pbc.authoring import lesson_header
