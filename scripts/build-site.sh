@@ -90,6 +90,9 @@ render() {
   while IFS= read -r page; do
     [[ -z "$page" ]] || pages+=("$page")
   done <<<"$listing"
+  # Quarto renders a single page into what the directory holds: start from nothing,
+  # as a render of the whole project does, so no page of an earlier build stays.
+  rm -rf "${output_dir:?}"/*
   echo "Lesson shard: ${#pages[@]} page(s) to render."
   for page in ${pages[@]+"${pages[@]}"}; do
     index=$((index + 1))

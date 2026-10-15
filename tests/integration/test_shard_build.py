@@ -197,3 +197,19 @@ def test_the_assembly_executes_no_lesson_and_renders_the_pages_the_shards_render
     )
     assert again.returncode == 0, output(again)
     assert executed(log) == []
+
+
+def test_a_shard_leaves_no_page_of_an_earlier_build_in_its_output(
+    site: Path, tmp_path: Path
+):
+    """A render of one page keeps what the directory holds; the shard starts clean."""
+    out = tmp_path / "out"
+    out.mkdir()
+    (out / "stale.html").write_text("an earlier build")
+    shard = shard_file(tmp_path / "shard.json", 1, [LESSON_A])
+
+    result = build_shard(site, out, tmp_path / "log", shard)
+
+    assert result.returncode == 0, output(result)
+    assert (out / "lessons/s/01-a/index.html").is_file()
+    assert not (out / "stale.html").exists()

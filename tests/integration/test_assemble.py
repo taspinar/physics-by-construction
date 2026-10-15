@@ -393,9 +393,10 @@ def command(root: Path, *arguments: str | Path) -> subprocess.CompletedProcess[s
             sys.executable,
             "-m",
             "pbc.authoring.assemble",
+            str(arguments[0]),
             "--root",
             str(root),
-            *map(str, arguments),
+            *map(str, arguments[1:]),
         ],
         capture_output=True,
         text=True,
@@ -513,3 +514,25 @@ def test_the_assembly_of_every_size_rejects_a_missing_extra_or_changed_part(
     assemble.verify_parts(root, parts)
     next(last.glob("site/lessons/*/*/index.html")).write_text("changed")
     refused(root, parts, "recorded")
+
+
+def test_the_command_lines_of_verify_sh_are_accepted_by_the_parser():
+    """The CI run failed on `part --root`: the option sat after the sub-command."""
+    import re
+    import shlex
+
+    script = (REPO_ROOT / "scripts/verify.sh").read_text()
+    lines = re.findall(
+        r"python -m pbc\.authoring\.assemble "
+        r"((?:part|verify|compare)(?:[^\n]*\\\n)*[^\n]*?)\)",
+        script,
+    )
+    assert {line.split()[0] for line in lines} == {"part", "verify", "compare"}
+    for line in lines:
+        words = shlex.split(line.replace("\\\n", " "))
+        words = [re.sub(r"\$\{?\w+\}?", "x", word) for word in words]
+        # the parser accepts every option the script passes; --help style exit
+        # codes (2) would raise SystemExit on an unrecognized argument
+        parser_arguments = assemble.build_parser().parse_args(words)
+        assert parser_arguments.command == words[0]
+        assert parser_arguments.root == Path("x")

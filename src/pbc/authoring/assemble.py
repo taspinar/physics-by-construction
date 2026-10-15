@@ -360,18 +360,30 @@ def compare(root: Path, parts: Path) -> int:
     return count
 
 
-def main(argv: list[str] | None = None) -> int:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="The parts of the lesson shards.")
-    parser.add_argument("--root", type=Path, default=REPOSITORY_ROOT)
+    # --root is accepted after the sub-command, where scripts/verify.sh passes it.
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--root", type=Path, default=REPOSITORY_ROOT)
     sub = parser.add_subparsers(dest="command", required=True)
-    part = sub.add_parser("part", help="write the part of this lesson shard")
+    part = sub.add_parser(
+        "part", parents=[common], help="write the part of this lesson shard"
+    )
     part.add_argument("--out", type=Path)
-    verify = sub.add_parser("verify", help="verify the parts, build the union")
+    verify = sub.add_parser(
+        "verify", parents=[common], help="verify the parts, build the union"
+    )
     verify.add_argument("--parts", type=Path, required=True)
     verify.add_argument("--union", type=Path, required=True)
-    again = sub.add_parser("compare", help="compare the assembled site with the parts")
+    again = sub.add_parser(
+        "compare", parents=[common], help="compare the assembled site with the parts"
+    )
     again.add_argument("--parts", type=Path, required=True)
-    arguments = parser.parse_args(argv)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    arguments = build_parser().parse_args(argv)
     root = arguments.root.resolve()
     try:
         if arguments.command == "part":
