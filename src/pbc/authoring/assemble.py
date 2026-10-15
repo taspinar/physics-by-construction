@@ -221,6 +221,29 @@ def _read_part(directory: Path) -> dict:
     return data
 
 
+def _layout(parts: Path, shards: int) -> dict[int, Path]:
+    """The directory of every part, in the two layouts that downloading the job
+    artifacts produces: one directory ``lesson-shard-<k>`` per part, or, when
+    the lessons have a single shard, the one part extracted into ``parts``
+    itself. Nothing else is a layout of parts."""
+    if not parts.is_dir() or parts.is_symlink():
+        raise InvalidParts(f"{parts} is not a directory of parts")
+    present = {path.name for path in parts.iterdir()}
+    if PART_FILE in present:
+        if shards != 1:
+            raise InvalidParts(
+                f"{PART_FILE} lies directly in the directory of parts, "
+                f"but the lessons have {shards} shards"
+            )
+        return {1: parts}
+    expected = {part_name(number) for number in range(1, shards + 1)}
+    for name in sorted(present - expected):
+        raise InvalidParts(f"unexpected {name}: the lessons have {shards} shard(s)")
+    for name in sorted(expected - present):
+        raise InvalidParts(f"missing the part {name}: every shard hands over one")
+    return {number: parts / part_name(number) for number in range(1, shards + 1)}
+
+
 def verify_parts(root: Path, parts: Path, *, sources: bool = True) -> list[dict]:
     """The parts in ``parts``, in shard order, after every requirement.
 
@@ -230,21 +253,14 @@ def verify_parts(root: Path, parts: Path, *, sources: bool = True) -> list[dict]
 
     Raises InvalidParts naming the first thing that is wrong."""
     division = sharding.shares(sharding.lessons(root), sharding.size(root))
-    expected = {part_name(number): number for number in range(1, len(division) + 1)}
     if not parts.is_dir() or parts.is_symlink():
         raise InvalidParts(f"{parts} is not a directory of parts")
-    present = {path.name for path in parts.iterdir()}
-    for name in sorted(present - set(expected)):
-        raise InvalidParts(
-            f"unexpected {name}: the lessons have {len(division)} shard(s)"
-        )
-    for name in sorted(set(expected) - present):
-        raise InvalidParts(f"missing the part {name}: every shard hands over one")
+    directories = _layout(parts, len(division))
     current = render(root) if sources else None
     commit = build_commit(root).sha
     result: list[dict] = []
-    for name, number in expected.items():
-        directory = parts / name
+    for number, directory in directories.items():
+        name = part_name(number)
         if directory.is_symlink() or not directory.is_dir():
             raise InvalidParts(f"{name} is not a directory")
         _check_files(directory)
@@ -304,11 +320,12 @@ def build_union(root: Path, parts: Path, union: Path) -> dict:
     and the store of every lesson. Writes the selection of the run against it,
     which must execute no lesson."""
     result = verify_parts(root, parts)
+    directories = _layout(parts, len(result))
     shutil.rmtree(union, ignore_errors=True)
     union.mkdir(parents=True)
-    shutil.copy2(parts / part_name(1) / DIGESTS, union / DIGESTS)
+    shutil.copy2(directories[1] / DIGESTS, union / DIGESTS)
     for number in range(1, len(result) + 1):
-        source = parts / part_name(number) / STORE
+        source = directories[number] / STORE
         for path in sorted(source.rglob("*")):
             target = union / STORE / path.relative_to(source)
             if path.is_dir():
@@ -333,13 +350,14 @@ def compare(root: Path, parts: Path) -> int:
     """Require every file of every lesson the shards executed to be the same
     file in the assembled site. Returns the number of lessons compared."""
     result = verify_parts(root, parts, sources=False)
+    directories = _layout(parts, len(result))
     built = root / BUILT_SITE
     problems = []
     count = 0
     for number, data in enumerate(result, start=1):
         for lesson in data["executed"]:
             count += 1
-            shard_files = _files(parts / part_name(number) / SITE / _relative(lesson))
+            shard_files = _files(directories[number] / SITE / _relative(lesson))
             directory = built / _relative(lesson)
             site_files = _files(directory) if directory.is_dir() else {}
             for name in sorted(set(shard_files) | set(site_files)):

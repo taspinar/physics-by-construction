@@ -900,7 +900,10 @@ One workflow, triggered by `pull_request` and by `push` to `main`:
   pages and figure files this shard rendered, all on its own machine. It
   uploads its part (the share's entries of the store, the pages and figures
   it rendered, and the checksum of every file) as the artifact
-  `lesson-shard-<k>`; no shard uploads a Pages artifact. `assemble` runs
+  `lesson-shard-<k>`; no shard uploads a Pages artifact. The download gives
+  one directory `lesson-shard-<k>` per part, or, when the lessons have a
+  single shard, the one part extracted into the target directory itself; the
+  assembly accepts those two layouts and nothing else. `assemble` runs
   `./scripts/verify.sh --all --assemble <parts>`: it requires the parts to be
   exactly the derived ones, every file the recorded one, every part made from
   the sources and the commit it assembles, and the shares to cover every

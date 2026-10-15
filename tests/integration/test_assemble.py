@@ -536,3 +536,93 @@ def test_the_command_lines_of_verify_sh_are_accepted_by_the_parser():
         parser_arguments = assemble.build_parser().parse_args(words)
         assert parser_arguments.command == words[0]
         assert parser_arguments.root == Path("x")
+
+
+# -- the layouts that downloading the job artifacts produces -----------------------
+# actions/download-artifact with a pattern extracts a single matching artifact
+# straight into the target and several into one directory each (found by the first
+# assemble job on a hosted runner, which had one shard).
+
+
+@pytest.fixture
+def single(tmp_path: Path) -> tuple[Path, Path]:
+    """One shard (two lessons at shard-size 32): the repository and a part."""
+    root = tmp_path / "single"
+    for name, text in FILES.items():
+        if "02-two" not in name:
+            _write(root, name, text)
+    _write(root, "src/pbc/data/__init__.py", 'SAMPLES_DIR = "data/samples"\n')
+    _write(root, "scripts/verify.conf", "shard-size: 32\nfake: true\n")
+    for lesson in LESSONS[:2]:
+        _write(root, f"{lesson}/index.qmd", _lesson("x = 1\n"))
+    build_shard(root, 1, total=1)
+    part = tmp_path / "made"
+    assemble.write_part(root, part)
+    return root, part
+
+
+def extracted_directly(part: Path, tmp_path: Path) -> Path:
+    target = tmp_path / "direct"
+    shutil.copytree(part, target)
+    return target
+
+
+def in_a_directory(part: Path, tmp_path: Path) -> Path:
+    target = tmp_path / "per-directory"
+    shutil.copytree(part, target / assemble.part_name(1))
+    return target
+
+
+def test_a_single_part_extracted_directly_and_one_directory_per_part_give_the_same_result(
+    single: tuple[Path, Path], tmp_path: Path
+):
+    root, part = single
+    direct = assemble.verify_parts(root, extracted_directly(part, tmp_path))
+    nested = assemble.verify_parts(root, in_a_directory(part, tmp_path))
+    assert direct == nested and [d["shard"] for d in direct] == [1]
+    for layout in (
+        extracted_directly(part, tmp_path / "a"),
+        in_a_directory(part, tmp_path / "b"),
+    ):
+        chosen = assemble.build_union(root, layout, tmp_path / "union")
+        assert chosen["execute"] == []
+        assert assemble.compare(root, layout) == 2
+
+
+def test_the_command_assembles_a_single_part_extracted_directly(
+    single: tuple[Path, Path], tmp_path: Path
+):
+    root, part = single
+    direct = extracted_directly(part, tmp_path)
+    done = command(root, "verify", "--parts", direct, "--union", tmp_path / "u")
+    assert done.returncode == 0, done.stderr + done.stdout
+
+
+def test_the_direct_layout_is_refused_when_the_lessons_have_several_shards(
+    repository: Path, parts: Path, tmp_path: Path
+):
+    refused_parts = extracted_directly(part_of(parts, 1), tmp_path)
+    refused(repository, refused_parts, "directly", "3 shards")
+
+
+def test_the_direct_layout_is_refused_beside_another_part_or_a_stray_file(
+    single: tuple[Path, Path], tmp_path: Path
+):
+    root, part = single
+    direct = extracted_directly(part, tmp_path)
+    (direct / "notes.txt").write_text("x")
+    refused(root, direct, "unexpected notes.txt")
+    (direct / "notes.txt").unlink()
+    shutil.copytree(part, direct / "lesson-shard-1")
+    refused(root, direct, "unexpected lesson-shard-1")
+
+
+def test_the_direct_layout_keeps_every_integrity_rule(
+    single: tuple[Path, Path], tmp_path: Path
+):
+    root, part = single
+    direct = extracted_directly(part, tmp_path)
+    next(direct.glob("site/lessons/*/*/index.html")).write_text("changed")
+    refused(root, direct, "recorded")
+    (direct / assemble.LIST_FILE).unlink()
+    refused(root, direct, "is missing")
