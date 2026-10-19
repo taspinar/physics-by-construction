@@ -1,0 +1,474 @@
+---
+title: "Shallow-water equations: still water and the dam break"
+description: >-
+  The depth-averaged balance of mass and momentum for water that is shallow
+  compared with its waves, solved with the shared finite-volume interface;
+  a lake at rest over a bump kept still to round-off, the dam break checked
+  against its exact solution, the depth kept positive over a dry bed, and
+  the budgets of a closed tank.
+lesson:
+  id: shallow-water-equations
+  strand: fluids
+  order: 4
+  difficulty: 3
+  course: fluids
+  slot: FL5
+  methods: [simulation]
+  outcomes:
+    - Derive the shallow-water equations from the conservation of mass and momentum in a column of water, and the speed of their waves
+    - Keep water at rest over an uneven bed exactly still, and explain why a pointwise bed source does not
+    - Check a computed dam break against its exact solution under stated assumptions and a fixed error measure
+    - Keep the depth positive where the water runs onto a dry bed, and check the budgets of a closed tank
+  related: []
+  format: 2
+  preview: fig-dam-break
+  experiment: pbc.fluids.experiments.shallow_water_equations
+  prerequisites:
+    lessons: [finite-volume-methods-and-conservation-laws]
+    outside:
+      - "Calculus: integrals over the depth of a column, and the derivative of an integral whose limits move"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.fluids import shallow_water
+from pbc.fluids.experiments import shallow_water_equations as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+When a dam fails, the water behind it does not fall over all at once. A
+wall of water runs downstream at a speed set by the depth behind the dam,
+and a wave of lowering water runs back into the reservoir. Tsunamis crossing
+an ocean, the tide entering an estuary, and the bore that runs up a river
+behave the same way. In all of them the water is shallow compared with the
+length of its waves, and that one fact turns three-dimensional fluid
+mechanics into two equations for a depth and a velocity.
+
+This lesson derives those equations, the shallow-water equations, and
+computes them with the finite-volume interface of the previous lesson and a
+Riemann solver of their own. Two tests are classic. Still water over an uneven
+bed must stay still; a scheme that sets a lake in motion will invent currents
+in every computation over real terrain. And a dam break has an exact
+solution, against which the computed one is measured. Two more follow from
+the physics: a depth can never be negative, also where water runs onto dry
+land, and in a closed tank the water's volume never changes.
+
+## Assumptions
+
+1. **Shallow water.** The depth is small compared with the length of the
+   waves, so vertical accelerations are negligible and the pressure is
+   hydrostatic, the weight of the water above. Short waves, whose speed
+   depends on their length, are outside the model.
+2. **Depth-averaged velocity.** The horizontal velocity is the same from the
+   bed to the surface, or is replaced by its average. Friction at the bed,
+   which slows the bottom layer, is not in the model.
+3. **One horizontal dimension.** The water moves along a channel of unit
+   width; a real flood spreads in two dimensions.
+4. **A fixed, frictionless bed.** The bed has a height $b(x)$ that does not
+   change, and pushes on the water only through its slope. Erosion and bed
+   friction are not included.
+5. **For the dam break: an ideal model.** A flat frictionless bed, a dam that
+   vanishes at once, and still water on both sides at the start. The exact
+   solution used as a reference holds under exactly these assumptions; a real
+   dam break has friction, a dam that opens in finite time, and vertical
+   motion at the front.
+
+## From a column of water to two equations {#explanation}
+
+### Mass
+
+Consider a column of water of unit width above a stretch $[a, c]$ of the
+bed. With $h(x, t)$ the depth and $u(x, t)$ the depth-averaged velocity, the
+volume in the column changes only by what flows through its two vertical
+sides, $h u$ at each:
+
+$$
+\frac{\mathrm{d}}{\mathrm{d}t}\int_a^c h\,\mathrm{d}x = (h u)\big|_a - (h u)\big|_c
+\quad\Longrightarrow\quad
+\frac{\partial h}{\partial t} + \frac{\partial (h u)}{\partial x} = 0 .
+$$
+
+### Momentum
+
+The momentum of the column, per unit density, is $\int h u\,\mathrm{d}x$. It
+changes by the momentum carried through the sides, $h u^2$, by the pressure
+on the sides, and by the push of a sloping bed. The pressure is
+hydrostatic, $\rho g$ times the depth below the surface, so its integral over a
+side of depth $h$ is $\rho g h^2/2$. The bed, sloping by $b_x$, pushes on the
+column with the horizontal force $-\rho g h\,b_x$ per unit length. Divided by
+the density,
+
+$$
+\frac{\partial (h u)}{\partial t} + \frac{\partial}{\partial x}\!\left(h u^2 + \frac{g h^2}{2}\right) = -g h\,\frac{\partial b}{\partial x} .
+$$
+
+Over a flat bed this is a conservation law for $q = (h, hu)$ with the flux
+$f(q) = (hu,\ hu^2 + g h^2/2)$, the system that the previous lesson put into
+the shared interface. Over a sloping bed the momentum has a source.
+
+### Waves
+
+Small disturbances of still water of depth $h_0$ satisfy, to first order,
+$h_t + h_0 u_x = 0$ and $u_t + g h_x = 0$, which combine into the wave
+equation with the speed
+
+$$
+c = \sqrt{g h_0} .
+$$
+
+Long waves in shallow water travel at a speed set by the depth alone: a
+tsunami over an ocean four kilometres deep moves at the speed of an aircraft,
+and slows as it reaches the coast. In a flow of velocity $u$ the two waves
+move at $u - c$ and $u + c$; the CFL condition limits the step by the larger
+of $|u| + c$.
+
+### Water at rest over a bump
+
+For still water, $u = 0$, with a flat surface $h + b = \text{const}$, the two
+sides of the momentum equation are each non-zero and cancel exactly: the
+pressure gradient $\partial_x(g h^2/2) = g h\,h_x$ equals $-g h\,b_x$. A scheme
+that approximates the flux difference and the source independently makes
+two errors of order $\Delta x$ that do not cancel, and the lake starts to move.
+Hydrostatic reconstruction, introduced by Audusse and co-authors, rebuilds
+the depth on each side of a face over the higher of the two beds,
+$h^* = \max(0,\ h + b - \max(b_L, b_R))$, takes the flux between the rebuilt
+states, and adds to each cell the pressure difference
+$g(h^2 - h^{*2})/2$ at its faces as the source. For a lake at rest the rebuilt
+states on the two sides of a face are equal, and the source cancels the flux
+difference to the last bit. The scheme is called well balanced. Its mass
+update is still a difference of fluxes, so the water's volume is conserved.
+
+### The dam break
+
+Still water of depth $h_u$ left of $x = 0$ and $h_d < h_u$ right of it, over a
+flat bed, with the dam removed at $t = 0$. The exact solution, a Riemann
+problem of the system, has two waves:
+
+- a **rarefaction** running into the deep water, from $x = -c_u t$, in which
+  $u + 2c$ keeps its upstream value $2c_u$ and the depth falls as
+  $h = (2c_u - x/t)^2/(9g)$;
+- a **shock**, the front, running into the shallow water. Mass and momentum
+  conserved across it give the middle depth $h_m$ as the root of
+  $$
+  2\left(c_u - \sqrt{g h_m}\right) = (h_m - h_d)\sqrt{\frac{g\,(h_m + h_d)}{2 h_m h_d}},
+  $$
+  the velocity $u_m$ behind both waves, and the front speed
+  $s = h_m u_m/(h_m - h_d)$.
+
+Over a dry bed, $h_d = 0$, there is no shock: the rarefaction reaches all the
+way to a front at $x = 2c_u t$, where the depth goes to zero.
+
+**The comparison, fixed in advance.** One-dimensional ideal shallow water
+over a flat frictionless bed, $g = 9.81\ \mathrm{m/s^2}$; still water of depth
+$2$ m left of the dam at $x = 0$ and $0.5$ m right of it, on a domain from
+$-10$ to $10$ m with open ends; the time $t = 1$ s, before any wave reaches
+an end. The reference is the exact solution above. The error measures are
+the integral over the domain of the absolute difference of the depths, and
+the position of the front, taken where the computed depth crosses the mean of
+$h_m$ and $h_d$, against the exact front $s\,t$, in cell widths.
+
+### The Riemann solver and the depth
+
+The HLL flux of the previous lesson needs the speeds of the slowest and
+fastest waves of a face. With the estimates of Einfeldt, the smallest and
+largest of $u - c$ and $u + c$ of the two states and of their Roe average,
+the scheme keeps every depth non-negative under the CFL condition, also where
+one side of a face is dry. A dry cell has no velocity; the program sets it to
+zero below a depth of $10^{-10}$ m.
+
+## Code
+
+The physical flux, the HLL Riemann solver, the reflecting walls, and the
+well-balanced bed are the shallow-water parts; the update, the steps, and
+the budgets are those of the shared finite-volume interface.
+
+```{python}
+#| echo: false
+excerpt(shallow_water.flux)
+```
+
+```{python}
+#| echo: false
+excerpt(shallow_water.well_balanced)
+```
+
+```{python}
+#| echo: false
+excerpt(shallow_water.pointwise_source)
+```
+
+```{python}
+#| echo: false
+excerpt(shallow_water.dam_break)
+```
+
+## Worked examples
+
+### A lake at rest
+
+A lake with a flat surface one metre above the datum, over a bed with a
+smooth bump of [half a metre]{.given}, between two walls ten metres apart.
+The water is at rest and must stay so. It is run for
+[five seconds]{.given}, long enough for a wave to cross the lake several
+times, once with hydrostatic reconstruction and once with the pointwise bed
+source.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="lake")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.lake_run)
+```
+
+```{python}
+#| label: lake-run
+#| echo: false
+result.table("lake-run")
+```
+
+[With hydrostatic reconstruction a lake at rest over an uneven bed stays at
+rest to round-off; with a pointwise bed source it starts to move, with a speed
+that falls only in proportion to the cell width.]{.claim
+type="numerically-verified"
+scope="the lake and bump of the example, HLL flux, walls at both ends, five seconds"
+evidence="lake-run"}
+The reconstruction keeps every speed and the surface within
+`{python} result["still-bound"]`. The pointwise source drives currents of
+up to `{python} result["lake-worst"]` m/s on the coarsest grid, in water that
+should not move; the fitted order is `{python} result["lake-order"]`. Over real
+terrain, with bumps everywhere, such currents would be indistinguishable from
+the flow the model is meant to compute.
+
+### The dam break against its exact solution
+
+The comparison fixed in the explanation, on grids from one hundred to
+sixteen hundred cells. The exact solution has a middle depth of
+`{python} result["middle-depth"]` m and a velocity of
+`{python} result["middle-velocity"]` m/s between the waves, and a front that
+moves at `{python} result["front-speed"]` m/s.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="dam")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.dam_run)
+```
+
+```{python}
+#| label: dam-run
+#| echo: false
+result.table("dam-run")
+```
+
+[The computed dam break converges to the exact solution of the ideal model:
+the integrated depth error falls with an order near one, and the front lies
+within one cell of the exact front on every grid.]{.claim
+type="numerically-verified"
+scope="one-dimensional ideal shallow water, flat frictionless bed, the depths, domain, and time of the comparison, HLL flux"
+evidence="dam-run fig-dam-break"}
+The fitted order of the depth error is `{python} result["dam-order"]`, a little
+below one: the error is largest at the corners of the rarefaction, where the
+first-order scheme rounds the kinks, as the fan of the Burgers lesson showed.
+The front is captured within a fraction of a cell; its speed comes out of the
+conservative fluxes, which is the Rankine-Hugoniot condition of the system.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_dam_break)
+```
+
+```{python}
+#| label: fig-dam-break
+#| echo: false
+#| fig-cap: "The dam break after one second: the computed depth and velocity follow the exact solution, a rarefaction into the deep water and a front into the shallow water, rounded at the corners of the rarefaction and sharp at the front."
+#| fig-alt: "Two plots sharing a position axis. Top: depth against position. The exact depth is flat and high on the left, falls along a straight-sided ramp, is flat at a middle level, and drops in a vertical step to the low level on the right. The computed points follow it, with rounded corners at the ends of the ramp and a step one or two points wide. Bottom: velocity against position. The exact velocity is zero on the left, rises linearly across the ramp, is constant in the middle, and drops to zero at the front. The computed points follow it in the same way."
+#| fig-status: simulated
+result.show("fig-dam-break")
+```
+
+The figure shows both waves of the Riemann problem. The data are simulated
+on two hundred cells, and the reference is the exact solution of the ideal
+model, which says nothing about friction or the vertical motion at a real
+front.
+
+### Water onto a dry bed
+
+The dam now holds [one metre]{.given} of water, and the bed beyond it is dry.
+The exact front runs at $2c_u$, reaching `{python} result["dry-front"]` m after
+one second. The program steps the solution itself, to see the depth of every
+cell at every step.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="dry")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.dry_run)
+```
+
+```{python}
+#| label: dry-run
+#| echo: false
+result.table("dry-run")
+```
+
+[With the HLL flux and Einfeldt's wave speeds under the CFL condition, no depth
+becomes negative at any step of the dry dam break, and the depth error falls as
+the grid is refined.]{.claim type="numerically-verified"
+scope="the dry dam break of the example, four grids, Courant number nine tenths"
+evidence="dry-run"}
+The smallest depth of any cell at any step is zero, on the dry bed, and never
+below. The wet front, the last cell deeper than a millimetre, lags behind the
+exact front: near the tip the exact depth falls as the square of the distance
+to it, so the last metre of the rarefaction is a film thinner than the
+threshold, and a first-order scheme spreads that film over many cells. The
+lag shrinks with the cell width, slowly.
+
+## Limits {#limits}
+
+- **The exact solution is of the model.** The dam-break reference is exact for
+  ideal one-dimensional shallow water over a flat frictionless bed. It is not a
+  measured dam break; real fronts are slowed by friction and are not vertical.
+- **Hydrostatic pressure.** The model has no dispersion: all long waves travel
+  at $\sqrt{g h}$. Waves shorter than a few depths travel slower in reality,
+  and a real bore breaks into undulations that the model cannot show.
+- **Lake at rest only.** Hydrostatic reconstruction keeps water at rest still.
+  A steady flow over a bump, which moves but does not change, is not kept
+  exactly by it.
+- **Dry fronts converge slowly.** Positivity is guaranteed, accuracy at a wet
+  and dry boundary is not; the front of the dry run lags on every grid of the
+  table.
+- **One dimension.** A flood, a tsunami, or a tide spreads in two horizontal
+  dimensions; the method extends face by face, which the capstone of the
+  course does.
+
+::: {.exercise .self-check}
+A model of a harbour over an uneven seabed, started from still water and
+run with no wind, tide, or waves, shows currents of a few centimetres per
+second after an hour. What is the most likely cause?
+
+::: {.choices}
+::: {.choice}
+The shallow-water equations predict slow currents over an uneven bed even
+without forcing.
+
+::: {.feedback}
+Still water with a flat surface is an exact solution of the equations over any
+bed: the pressure gradient and the bed slope cancel. The currents are not in
+the model.
+:::
+:::
+
+::: {.choice correct="true"}
+The scheme is not well balanced: its flux differences and its bed source do
+not cancel for water at rest.
+
+::: {.feedback}
+Correct: a pointwise bed source leaves an error of order of the cell width,
+which drives currents that look like flow, as the lake example measured.
+:::
+:::
+
+::: {.choice}
+Round-off accumulates over the many steps of an hour.
+
+::: {.feedback}
+Round-off stays at its level; the well-balanced run of the lake example kept
+the speeds below its bound over many crossings.
+:::
+:::
+:::
+
+::: {.solution}
+The scheme. Still water over any bed is an exact solution of the shallow-water
+equations, and a well-balanced scheme keeps it to round-off. A scheme that
+discretises the pressure flux and the bed source independently leaves an
+error of order of the cell width that drives currents, which shrink as the
+grid is refined; refining the grid is the test that tells them apart from
+physics.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**The speed of a long wave.** Put a small hump of water,
+$1$ mm high and about $1$ m wide, on still water $1$ m deep. It splits into
+two waves running apart. Measure the speed of the right-going wave from the
+position of its crest at two times, and compare it with $\sqrt{g h}$.
+
+::: {.hint}
+Take the two times after the waves have separated, and far apart.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.wave_speed)
+```
+
+The crest moves at `{python} result["wave-measured"]` m/s, against
+$\sqrt{g h} =$ `{python} result["wave-expected"]` m/s. The difference is
+within a cell width per second, the resolution of a crest found at a cell
+centre, plus the slight extra speed of a wave of finite height, which travels
+on water a little deeper than the rest.
+:::
+:::
+
+::: {.exercise}
+**A closed tank.** Run the dam break of the second example between two
+walls for $10$ s, while the waves reflect back and forth. Is the volume of the
+water conserved? Is its momentum?
+
+::: {.hint}
+The walls let no water through, but the water presses on them.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.tank_run)
+```
+
+```{python}
+#| echo: false
+result.table("tank-run")
+```
+
+The volume does not change: the mass flux through a wall, computed from the
+water and its mirror image, is exactly zero. The momentum changes, because
+the walls push on the water with the pressure of the water against them, and
+the budget accounts for it to round-off. The water sloshes, and its total
+momentum swings with it.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/fluids/shallow_water.py",
+        "src/pbc/fluids/finite_volume.py",
+        "src/pbc/fluids/experiments/shallow_water_equations.py",
+        "src/pbc/verification/estimates.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_fluids.py",
+        "tests/unit/test_shallow_water_equations_experiment.py",
+    ],
+)
+```

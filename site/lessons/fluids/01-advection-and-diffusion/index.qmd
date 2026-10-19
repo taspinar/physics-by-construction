@@ -1,0 +1,551 @@
+---
+title: "Advection and diffusion: schemes, stability, and the diffusion a grid adds"
+description: >-
+  A quantity carried by a steady flow, computed with three difference
+  schemes; the diffusion the upwind scheme adds measured from its runs and
+  checked against its modified equation, the stability of each scheme
+  against its Courant number, and a front fed through an inflow boundary.
+lesson:
+  id: advection-and-diffusion
+  strand: fluids
+  order: 1
+  difficulty: 2
+  course: fluids
+  slot: FL1
+  methods: [simulation]
+  outcomes:
+    - Write the upwind, central, and Lax-Wendroff schemes for a quantity carried by a flow, with boundaries for an inflow and an outflow
+    - Measure the diffusion a scheme adds and check it against the modified equation
+    - Predict from the Courant and diffusion numbers whether a scheme is stable, and check it on the factor of each Fourier mode
+    - Tell the physical diffusion of a model from the numerical diffusion of its grid
+  related: []
+  format: 2
+  preview: fig-advected-pulse
+  experiment: pbc.fluids.experiments.advection_and_diffusion
+  prerequisites:
+    lessons: [numerical-integrators, random-walks-and-diffusion]
+    outside:
+      - "Calculus: partial derivatives, and Taylor expansion of a function of two variables"
+      - "Complex numbers: the exponential of an imaginary number, and the modulus of a complex number"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.fluids import advection
+from pbc.fluids.experiments import advection_and_diffusion as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A river carries a patch of dye downstream. The patch moves with the water,
+and it also spreads: molecules wander across the edges of the patch, and the
+sharp edges blur. The first is advection, transport by a flow; the second is
+diffusion. Smoke from a chimney, salt in an estuary, heat in a pipe, and a
+pollutant in the air all do both, and a model of any of them begins with the
+same equation.
+
+The equation is linear and has an exact solution, so it is the place to learn
+what a grid does to it. A computer stores the dye only at points a cell width
+apart and advances it in steps. This lesson writes three schemes that do so,
+and asks three questions of them. How much does a scheme spread the dye on its
+own, with no diffusion in the physics? When does a scheme blow up? And what
+does a scheme need to know at the ends of the domain, where the water enters
+and leaves? Each answer is measured from the runs of the program and compared
+with a prediction made before the run.
+
+## Assumptions
+
+1. **One dimension, a steady and uniform flow.** The water moves at one
+   constant speed $a > 0$ everywhere. A real river is faster in the middle
+   than at the banks, and that shear spreads a patch far more than molecular
+   diffusion does; it is not in this lesson.
+2. **A passive quantity.** The dye does not change the flow. Heat that makes
+   the water rise, or a sediment heavy enough to slow it, would couple back.
+3. **Constant diffusion.** The diffusion coefficient $\nu$ is the same
+   everywhere. Turbulent mixing, which depends on the flow, is not.
+4. **A uniform grid and explicit steps.** The cells are equal and each step
+   uses only the values of the step before. An implicit scheme, which solves
+   a system of equations each step, has other stability limits.
+5. **Smooth profiles for the modified equation.** The prediction of the
+   numerical diffusion is an expansion in the cell width; it describes a
+   profile that varies over many cells, not the sharp edge of a square pulse.
+
+## The equation and three schemes {#explanation}
+
+### Advection and diffusion
+
+A quantity $u(x, t)$ carried by a flow of speed $a$ and diffusing with the
+coefficient $\nu$ obeys
+
+$$
+\frac{\partial u}{\partial t} + a\,\frac{\partial u}{\partial x}
+= \nu\,\frac{\partial^2 u}{\partial x^2}.
+$$
+
+Without diffusion the solution is the initial profile moved downstream,
+$u(x, t) = u_0(x - a t)$: nothing spreads. With diffusion alone a sine of
+wavenumber $k$ keeps its shape and decays as $\mathrm{e}^{-\nu k^2 t}$; short
+waves die fast, which is why sharp edges blur first. With both, the sine moves
+at the speed $a$ and decays at the rate $\nu k^2$.
+
+### A grid and a step
+
+The program keeps $u_j^n$, the value in cell $j$ after $n$ steps, on cells of
+width $\Delta x$ with steps $\Delta t$. Two numbers decide how a scheme
+behaves:
+
+$$
+C = \frac{a\,\Delta t}{\Delta x},
+\qquad
+r = \frac{\nu\,\Delta t}{\Delta x^2}.
+$$
+
+The Courant number $C$ is the fraction of a cell the flow crosses in one step;
+the diffusion number $r$ plays the same part for diffusion. Each scheme below
+updates a cell from itself and its two neighbours:
+
+$$
+\begin{aligned}
+\text{upwind:}\quad & u_j^{n+1} = u_j^n - C\,(u_j^n - u_{j-1}^n), \\
+\text{central:}\quad & u_j^{n+1} = u_j^n - \tfrac{C}{2}\,(u_{j+1}^n - u_{j-1}^n), \\
+\text{Lax-Wendroff:}\quad & u_j^{n+1} = u_j^n - \tfrac{C}{2}\,(u_{j+1}^n - u_{j-1}^n) + \tfrac{C^2}{2}\,(u_{j+1}^n - 2u_j^n + u_{j-1}^n),
+\end{aligned}
+$$
+
+and the diffusion adds $r\,(u_{j+1}^n - 2u_j^n + u_{j-1}^n)$. The upwind
+scheme takes the difference on the side the flow comes from; the central
+scheme on both sides; Lax-Wendroff adds the term that makes it exact to second
+order in $\Delta t$ for a smooth profile.
+
+### The modified equation
+
+What equation does the upwind scheme actually solve? Expand each value in a
+Taylor series about $(x_j, t_n)$, $u_{j-1} = u - \Delta x\,u_x + \tfrac12 \Delta x^2 u_{xx} - \dots$
+and $u^{n+1} = u + \Delta t\,u_t + \tfrac12 \Delta t^2 u_{tt} + \dots$, and put them into the
+scheme. Using $u_{tt} = a^2 u_{xx}$ from the equation itself, the scheme
+agrees to second order with
+
+$$
+\frac{\partial u}{\partial t} + a\,\frac{\partial u}{\partial x}
+= \left(\nu + \frac{a\,\Delta x}{2}\,(1 - C)\right)\frac{\partial^2 u}{\partial x^2}.
+$$
+
+The upwind scheme diffuses with the extra coefficient
+$\nu_{\text{num}} = a\,\Delta x\,(1 - C)/2$, whether the physics has any
+diffusion or not. It is proportional to the cell width, so it falls as the
+grid is refined, and it vanishes at $C = 1$, where each step moves the profile
+by exactly one cell. The next term of the expansion is of order
+$\Delta x^2$, so a measured diffusion should differ from $\nu_{\text{num}}$ by
+a relative amount that falls as $\Delta x^2$. That is the first prediction the
+lesson tests.
+
+### Stability
+
+Put a single Fourier mode $u_j^n = G^n \mathrm{e}^{\mathrm{i} j \theta}$ into a
+scheme: every scheme above returns the same mode times a factor $G(\theta)$,
+the amplification factor. A scheme is stable when $|G| \le 1$ for every
+$\theta$; otherwise the mode with the largest $|G|$ grows each step until it
+swamps the solution (von Neumann's condition). For the three schemes, each
+with the diffusion added,
+
+$$
+\begin{aligned}
+\text{upwind:}\quad & G = 1 - C\,(1 - \mathrm{e}^{-\mathrm{i}\theta}) - 2r\,(1 - \cos\theta), \\
+\text{central:}\quad & G = 1 - 2r\,(1 - \cos\theta) - \mathrm{i}\,C \sin\theta, \\
+\text{Lax-Wendroff:}\quad & G = 1 - (C^2 + 2r)(1 - \cos\theta) - \mathrm{i}\,C \sin\theta .
+\end{aligned}
+$$
+
+With $x = 1 - \cos\theta$, which runs from $0$ to $2$, and
+$\sin^2\theta = x\,(2 - x)$, the last two give
+
+$$
+\begin{aligned}
+\text{central:}\quad & |G|^2 = 1 - 2x\,(2r - C^2) + x^2\,(4r^2 - C^2), \\
+\text{Lax-Wendroff:}\quad & |G|^2 = 1 - 4r\,x + x^2\left((C^2 + 2r)^2 - C^2\right).
+\end{aligned}
+$$
+
+Each is $1$ plus $x$ times a function linear in $x$, so $|G| \le 1$ for every
+mode exactly when that function is not positive at both ends, at the long
+waves, $x \to 0$, and at the sawtooth, $\theta = \pi$, $x = 2$. The upwind
+scheme is stable for $C + 2r \le 1$: the worst mode is the sawtooth, with
+$G = 1 - 2(C + 2r)$. Lax-Wendroff is stable for $C^2 + 2r \le 1$, with the
+sawtooth again the worst mode, $G = 1 - 2(C^2 + 2r)$; without diffusion that is
+$C \le 1$. The central scheme is stable for $C^2 \le 2r \le 1$: the long waves
+grow unless $C^2 \le 2r$, the sawtooth unless $r \le 1/2$. Without diffusion
+it grows for every $C > 0$; enough diffusion damps that growth, though not
+more than $r = 1/2$, where the diffusion breaks the scheme on its own. With
+$r = 0$ the limit of upwind and Lax-Wendroff is $C \le 1$, the
+Courant-Friedrichs-Lewy condition: in one step the flow must not carry the
+quantity further than the scheme looks, one cell. Diffusion only narrows it.
+
+### Boundaries
+
+At the ends of a finite domain a scheme needs the value beyond the last cell,
+which the program supplies as a ghost cell. Where the flow enters, the ghost
+holds what the flow brings in: an inflow value is physics. Where it leaves,
+the flow takes the quantity away and nothing comes back, so the exact solution
+needs no condition at all. The upwind scheme agrees: it never reads the cell
+downstream. Lax-Wendroff and the central scheme read both neighbours, so they
+need a value at the outflow that the physics does not give, and a wrong one
+sends an error back into the domain.
+
+## Code
+
+`step` applies a scheme to every cell at once, with the ghost cells of the
+boundary; `amplification` measures the factor of each Fourier mode by applying
+one step to the mode itself, and `modified_diffusion` is the coefficient of
+the modified equation.
+
+```{python}
+#| echo: false
+excerpt(advection.step)
+```
+
+```{python}
+#| echo: false
+excerpt(advection.amplification)
+```
+
+```{python}
+#| echo: false
+excerpt(advection.modified_diffusion)
+```
+
+## Worked examples
+
+### The diffusion of the upwind scheme
+
+A sine of one wave is carried once across a periodic domain by the upwind
+scheme, with no physical diffusion, on grids of [twenty-five to four hundred
+cells]{.given}. Its amplitude after the run gives the diffusion the scheme
+added, $D = -\ln(A_{\text{end}}/A_{\text{start}})/(k^2 T)$, which is compared
+with $\nu_{\text{num}}$ of the modified equation.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="diffusion")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.measured_diffusion)
+```
+
+```{python}
+#| label: diffusion-run
+#| echo: false
+result.table("diffusion-run")
+```
+
+[The upwind scheme diffuses a smooth profile with the coefficient
+$a\,\Delta x\,(1 - C)/2$ of its modified equation; the measured and predicted
+coefficients differ by a relative amount that falls as the square of the cell
+width.]{.claim type="numerically-verified"
+scope="upwind scheme, a sine of one wave, Courant number one half, periodic domain"
+evidence="diffusion-run"}
+The fitted order of the relative difference is
+`{python} result["diffusion-order"]`. The measured diffusion halves with the
+cell width, as a first-order scheme must: on the coarsest grid the sine loses
+`{python} result["coarse-loss"]` per cent of its amplitude in one crossing,
+though the equation that was meant to be solved keeps it forever. The data are simulated, and the reference is
+the modified equation, derived before the run.
+
+### Physical diffusion under numerical diffusion
+
+The same sine on [one hundred cells]{.given}, now with a physical diffusion
+added to the upwind scheme, for viscosities from
+[two thousandths]{.given} of a square metre per second down to zero.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="physical")
+```
+
+```{python}
+#| label: physical-run
+#| echo: false
+result.table("physical-run")
+```
+
+[With a physical diffusion $\nu$, the upwind scheme diffuses with
+$\nu + a\,\Delta x\,(1 - C)/2$: the two add.]{.claim type="numerically-verified"
+scope="upwind scheme with explicit central diffusion, one hundred cells, Courant number one half"
+evidence="physical-run"}
+At the smallest viscosity the grid adds
+`{python} result["ratio-smallest"]` times more diffusion than the physics. A
+run on this grid of a flow with that viscosity computes the diffusion of the
+grid and calls it the flow. Before a simulation of a slightly diffusive flow
+is believed, the numerical diffusion has to be estimated and shown to be
+smaller than the physical one, as the first exercise does.
+
+### Stability and the Courant number
+
+Each scheme is run for [two hundred steps]{.given} from a square pulse of
+height one, at the Courant and diffusion numbers of the table, and the factor
+of every Fourier mode of the grid is measured by applying one step to it.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="stability")
+```
+
+```{python}
+#| label: stability-run
+#| echo: false
+result.table("stability-run")
+```
+
+[The upwind scheme is stable for $C + 2r \le 1$, Lax-Wendroff for
+$C^2 + 2r \le 1$, and the central scheme for $C^2 \le 2r \le 1$, so for no
+$C > 0$ without diffusion; where the largest factor exceeds one, the pulse
+grows without bound.]{.claim type="numerically-verified"
+scope="the three schemes on a periodic grid of sixty-four cells, the Courant and diffusion numbers of the table"
+evidence="stability-run"}
+The factors measured by the program are the closed forms of the explanation:
+$2(C + 2r) - 1$ for upwind and $2(C^2 + 2r) - 1$ for Lax-Wendroff beyond their
+limits, at the sawtooth; for the central scheme $\sqrt{1 + C^2}$ without
+diffusion, at $\theta = \pi/2$, $4r - 1$ at the sawtooth for $r = 0.6$, and the
+largest $|G|$ of the closed form over the modes of the grid for $C = 0.8$,
+$r = 0.1$, where the growing modes are the long waves. A diffusion number that
+is too large breaks the upwind scheme even at a safe Courant number, and
+Lax-Wendroff at $C = 0.9$, stable on its own, breaks with $r = 0.2$. The
+central scheme, unstable on its own, is stable at $C = 0.5$ with $r = 0.25$ and
+not at $C = 0.8$ with $r = 0.1$, though $C$ is below one there: diffusion
+damps its growth only where $C^2 \le 2r$. Lax-Wendroff is stable at $C$ below one yet its
+largest value exceeds the height of the pulse: stability bounds the growth of
+the modes, not the overshoot at an edge, which the figure below shows.
+
+### A front fed through the inflow
+
+The domain now has ends. The left end is an inflow that brings $u = 1$; the
+right end is an open outflow. At the start the domain holds a front, $u = 1$
+behind it and $u = 0$ ahead, and the upwind scheme carries it downstream.
+The exact solution is the sharp front moved by $a\,t$. The modified equation
+predicts a smeared front instead, the error function of a front that diffuses
+with $\nu_{\text{num}}$:
+
+$$
+u(x, t) = \tfrac12\,\operatorname{erfc}\!\left(\frac{x - x_0 - a\,t}{2\sqrt{\nu_{\text{num}}\,t}}\right).
+$$
+
+```{python}
+#| echo: false
+excerpt(experiment, region="front")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.front_profile)
+```
+
+```{python}
+#| label: front-run
+#| echo: false
+result.table("front-run")
+```
+
+[The upwind front fed by the inflow differs from the sharp front by nearly
+half its height at every resolution, and from the error-function front of the
+modified equation by an amount that falls in proportion to the cell
+width.]{.claim type="numerically-verified"
+scope="upwind scheme, Courant number one half, an inflow value of one, the start and duration of the example"
+evidence="front-run"}
+The fitted order of the second difference is `{python} result["front-order"]`.
+The front never gets sharper than the grid allows: the width of the smeared
+front, $\sqrt{\nu_{\text{num}} t}$, falls only as the square root of the cell
+width, so the largest difference from the sharp front shrinks very slowly, and
+at the front itself never. The inflow boundary keeps the domain fed: the
+region behind the front stays at the inflow value.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_advected_pulse)
+```
+
+```{python}
+#| label: fig-advected-pulse
+#| echo: false
+#| fig-cap: "A square pulse carried once around a periodic domain: the upwind scheme smears its edges, Lax-Wendroff keeps them steeper but rings around them, and neither returns the pulse it started from."
+#| fig-alt: "Line plot of u against position across the domain. The exact profile is a square pulse of height one in the middle. The upwind points form a smooth hump that is lower than the pulse and wider at the base. The Lax-Wendroff points follow the edges more closely but oscillate, overshooting above one near the leading edge and dipping below zero behind the trailing edge."
+#| fig-status: simulated
+result.show("fig-advected-pulse")
+```
+
+The figure shows the two errors a scheme can make. The upwind scheme is
+monotone: it makes no new maximum or minimum, and pays for it with the
+diffusion of its modified equation. Lax-Wendroff has no numerical diffusion at
+second order, and its leading error is dispersion: waves of different lengths
+travel at different speeds, and the short waves of the edges fall behind and
+ring. The run is simulated on one hundred cells, and the reference is the
+exact solution, the pulse where it started.
+
+## Limits {#limits}
+
+- **A model equation.** Real advection happens in a flow that changes in space
+  and time, in three dimensions; the schemes carry over, the closed forms of
+  this lesson do not.
+- **The modified equation is an expansion.** It predicts the diffusion of a
+  profile resolved by many cells. A sharp edge has components at every
+  wavelength, down to the cell width, where the expansion fails; the stability
+  factors, not the modified equation, decide what happens there.
+- **Von Neumann's condition is for a periodic, uniform grid.** Boundaries and
+  variable coefficients can make a scheme unstable that passes it, which is
+  why the stability examples run the schemes as well as compute the factors.
+- **Only explicit schemes.** An implicit scheme can take larger steps but
+  still adds its own numerical diffusion; that trade is not measured here.
+
+::: {.exercise .self-check}
+On a fixed grid, with the upwind scheme and no physical diffusion, you halve
+the time step to make the run more accurate. What happens to the numerical
+diffusion?
+
+::: {.choices}
+::: {.choice}
+It halves, because the error of an explicit scheme is proportional to the
+time step.
+
+::: {.feedback}
+The local error of a step does shrink, but the numerical diffusion is
+$a\,\Delta x\,(1 - C)/2$, and halving the step halves $C$: the factor
+$1 - C$ grows.
+:::
+:::
+
+::: {.choice correct="true"}
+It grows, because the Courant number falls and the factor $1 - C$ rises.
+
+::: {.feedback}
+Correct: with the cell width fixed, the smaller step moves the scheme away
+from $C = 1$, where the upwind scheme is exact, and the profile diffuses
+more.
+:::
+:::
+
+::: {.choice}
+It does not change, because it depends only on the cell width.
+
+::: {.feedback}
+It depends on the cell width and on the Courant number; the time step enters
+through $C$.
+:::
+:::
+:::
+
+::: {.solution}
+It grows. The numerical diffusion of the upwind scheme is
+$a\,\Delta x\,(1 - C)/2$, largest for small steps, at $\Delta x\,a/2$, and zero
+at $C = 1$. A smaller step makes more steps, each of which smears the profile
+over the same cell width. The way to less numerical diffusion is a finer grid
+or a scheme of higher order, not a smaller step.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A grid fine enough for the physics.** A dye diffuses with
+$\nu = 10^{-2}\ \mathrm{m^2/s}$ in a flow of $1$ m/s, on a periodic domain of
+$1$ m. Choose a number of cells and a time step so that the numerical
+diffusion of the upwind scheme is at most a tenth of $\nu$ and the scheme is
+stable, and check the diffusion the run measures.
+
+::: {.hint}
+Since $1 - C$ is at most one, a cell width with $a\,\Delta x/2 \le \nu/10$ is
+enough whatever the step.
+:::
+
+::: {.hint}
+With diffusion the stability limit is $C + 2r \le 1$; solve it for the step.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.grid_for)
+```
+
+A cell width of $\nu/(5a)$ gives `{python} result["fine-cells"]` cells. The
+stability limit, $\Delta t \le 1/(a/\Delta x + 2\nu/\Delta x^2)$, then needs
+`{python} result["fine-steps"]` steps to cross the domain once: a Courant
+number of `{python} result["fine-courant"]` and a diffusion number of
+`{python} result["fine-r"]`. Diffusion, not advection, sets the step. The
+numerical diffusion is `{python} result["fine-numerical"]` $\mathrm{m^2/s}$,
+and the run measures `{python} result["fine-diffusion"]` $\mathrm{m^2/s}$,
+the viscosity plus that. Taking the step of the advection alone, a Courant
+number of one half, would have broken the stability limit.
+:::
+:::
+
+::: {.exercise}
+**The Courant number one.** Run the upwind scheme at $C = 1$ with no
+diffusion. What does the modified equation predict, and what does the run
+show?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.courant_one)
+```
+
+At $C = 1$ the scheme is $u_j^{n+1} = u_{j-1}^n$: every step moves the profile
+by exactly one cell, which is the exact solution. The modified equation gives
+$\nu_{\text{num}} = 0$, and the run changes the amplitude of the sine by less
+than `{python} result["round-off"]`. The exactness is fragile: a flow whose
+speed varies from place to place has no single step with $C = 1$ in every
+cell.
+:::
+:::
+
+::: {.exercise}
+**Which schemes need an outflow condition?** Carry a narrow pulse out through
+the right end of a domain with the upwind and with the Lax-Wendroff scheme,
+once with an open outflow and once with the value zero fixed beyond it. Which
+scheme notices the difference?
+
+::: {.hint}
+Look at which neighbours each scheme reads.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.outflow_run)
+```
+
+```{python}
+#| echo: false
+result.table("outflow-run")
+```
+
+The upwind runs are identical to the last bit: the scheme reads only the
+neighbour upstream, so the value beyond the outflow never enters the
+computation, as the exact solution says it should not. Lax-Wendroff reads it,
+and a fixed zero there changes the solution as the pulse reaches the end. A
+scheme that reads downstream needs an outflow condition that the physics does
+not supply, and an extrapolation such as copying the last cell is the usual
+choice.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/fluids/advection.py",
+        "src/pbc/fluids/finite_volume.py",
+        "src/pbc/fluids/experiments/advection_and_diffusion.py",
+        "src/pbc/verification/estimates.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_fluids.py",
+        "tests/unit/test_advection_and_diffusion_experiment.py",
+    ],
+)
+```
