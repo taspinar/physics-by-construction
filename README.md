@@ -8,7 +8,7 @@ Lean 4.
 Site: <https://taspinar.github.io/physics-by-construction/>
 
 <!-- identity:start (written by pbc.authoring.identity) -->
-Physics by Construction is a free, open-source educational initiative by JIDAI, created by Ahmet Taspinar.
+Physics by Construction is a free, open-source educational initiative by [JIDAI](https://jidai.nl/), created by Ahmet Taspinar.
 <!-- identity:end -->
 
 Every code listing, figure, and proof on the site is produced or checked by
