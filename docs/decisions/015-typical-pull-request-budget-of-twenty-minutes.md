@@ -14,6 +14,15 @@ decision 8, and
 Every other row and decision of those records stands; their older wording
 is history.
 
+Amended in one respect by [ADR 020](020-risk-proportionate-verification-and-review.md) (2026-10-19, change
+cycle `risk-proportionate-workflow`, requirements decision 39): decision
+4's "nothing else changes" stands, and a run above the 20 minutes is
+recorded as a measurement and decided by the owner at the re-assessment
+points ADR 020 decision 6 names, never as a mandate to optimise; the
+"45-minute timeout per job" it names has been 60 minutes for the one
+`build` job of a full run since the owner's interim gate of the same day
+(ADR 014, status), 45 for every other job.
+
 Date: 2026-10-15
 
 ## Context

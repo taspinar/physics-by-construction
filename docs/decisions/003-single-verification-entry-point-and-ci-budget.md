@@ -46,6 +46,23 @@ third build, consolidated into the determinism check) has its coverage
 evidence in `docs/verification-audit.md` and its regression test in
 `tests/integration/test_determinism_check.py`.
 
+Decisions 5 and 6 are amended in one respect by [ADR 020](020-risk-proportionate-verification-and-review.md)
+(2026-10-19, change cycle `risk-proportionate-workflow`, requirements
+decision 39): an exceeded wall-clock budget is recorded as a measurement
+and decided by the owner at the re-assessment points ADR 020 decision 6
+names (42 lessons measured, 44 decided, or a complete run on `main` above
+45 minutes); the order of responses of decision 6 is what the owner
+chooses from, not a standing obligation, and nothing of it ever changes
+scientific content; a hard check such as the 30-second lesson page budget
+keeps failing, with the documented exception table. The "45 minutes per
+job" above is the timeout of every job but one: the one `build` job of a
+full run has had 60 minutes since the owner's interim full-run gate of
+2026-10-15 (ADR 014, status). Decisions 1, 3, 4, and 7, as amended before,
+and the invariants they carry are unchanged by ADR 020; decision 1 as ADR
+005 decision 5 restates it reads, since ADR 017 decision 7, as the status
+line above says, and ADR 020 decision 5 adds only that an intermediate
+Level 3 round may run `--only` groups as feedback that is never evidence.
+
 Date: 2026-10-06
 
 ## Context

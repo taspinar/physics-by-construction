@@ -5,10 +5,11 @@ Project direction for Physics by Construction, derived from the approved
 2026-10-09 with the change request `docs/changes/physics-next-phase.md`,
 on 2026-10-12 with the change request
 `docs/changes/final-curriculum.md`, on 2026-10-15 with the change
-request `docs/changes/pbc-planning-change-four-workstreams.md`, and on
+request `docs/changes/pbc-planning-change-four-workstreams.md`, on
 2026-10-17 with the change request
-`docs/changes/scientific-atelier-atlas.md`) and consistent with
-`docs/architecture.md` and ADRs 001 to 019.
+`docs/changes/scientific-atelier-atlas.md`, and on 2026-10-19 with the
+change request `docs/changes/risk-proportionate-workflow.md`) and
+consistent with `docs/architecture.md` and ADRs 001 to 020.
 
 Keep this high-level. GitHub Issues are the actionable backlog and the source
 of truth for a feature once its Issue exists. Each feature below has a stable
@@ -285,7 +286,9 @@ F113 is paused. **Until the owner decides the interim gate (requirements,
 unresolved question 10: an approved timeout for the one `build` job of a
 full run, from F118's record, with the lesson count it covers), or ADR
 017 is accepted and F121 delivered, or F113 is resumed, no lesson feature
-starts.** The dependency tables keep "F113" and "F113 by the lesson-shard
+starts.** [Decided the same day, 2026-10-15: 60 minutes for the one
+`build` job, up to 45 lessons (ADR 014 status); the sentence is history
+since.] The dependency tables keep "F113" and "F113 by the lesson-shard
 rule"; the amended gate under "Phase 4" says how to read them. F118 is
 therefore the first feature of the verification workstream, and its
 measurement record is short work: the runs above exist.
@@ -498,6 +501,216 @@ pull request (ADR 014 decision 4); they add no lesson.
   are covered by F122 to F129; nothing of the request falls outside the
   approved requirements, and nothing of it is planned around them.
 
+## State at the change cycle `risk-proportionate-workflow`
+
+Checked on 2026-10-19 at the base commit `36e9d3b` of the planning branch
+`planning/risk-proportionate-workflow`, against the repository, `gh issue
+list --state all`, `gh pr list --state all`, the runs of
+`.github/workflows/ci.yml` on `main` read from the Actions API, and the
+ruleset of `main` read from the GitHub API. This is the refresh that
+section 9 of `docs/changes/risk-proportionate-workflow.md` asks for; the
+request was written on 2026-10-18 against an earlier `main`. The files
+are the truth, this section is their summary at that commit. The change
+request asks for a workflow change and no change to any page of the
+site; its requirements decision is 39, its decision record ADR 020, and
+its features F130 and F131 (the roadmap's last identifier before this
+cycle is F129; none of F130 and F131 was used).
+
+### Published lessons
+
+Thirty-eight lessons in seven strands (mechanics 16, agents-llm 7,
+agents-abm 1, lean 5, thermodynamics 3, waves 3, electromagnetism 3):
+the thirty-two of the previous state plus the six of F66 (pull request
+#208, D1 to D3) and F72 (pull request #207, EM1 to EM3), both merged on
+2026-10-17. The count is within the interim full-run gate of 45 lessons;
+the re-assessment points of ADR 020 decision 6 (measure at 42, decide at
+44) are four and six lessons away.
+
+### Features: state
+
+| Feature, Issue | State at `36e9d3b` | Note |
+|---|---|---|
+| F117, #202 | **Closed** 2026-10-17; delivered, with the measurement recorded by pull request #210 | The follow-ups #203 and #204 are open as ordinary Issues. |
+| F114, #181 | **Closed** 2026-10-17 | The style guide is merged; F115 and F116 have no Issue. |
+| F118, #180; F119, #185 | Delivered | ADR 017 decisions 7 and 8 are accepted and applied; the three tiers are what ADR 020 builds on. |
+| F120, #196 | **Closed** 2026-10-19; pull request #224 merged as partial (the final acceptance of ADR 017 is parked) | The evidence is in `docs/incremental-main-evidence.md`; the owner amended ADR 017 without accepting it (its status, 2026-10-16). By decision 39 the feature is finished by that publication, and ADR 017 decisions 1 to 6 and 9 stay proposed and paused until the owner's triggers. |
+| F121 | No Issue; not started | Conditional on ADR 017's acceptance, which is paused (ADR 020 decision 8); its block carries a dated note. |
+| F113, #150 | Paused, open, not superseded | Its block carries a dated note; reopened only at the owner's triggers. |
+| F61, #147 | Open; the selection delivered and measured; the follow-ups M1 to M3 (#213, #212, #211) **closed** on 2026-10-17 to 2026-10-19 (pull requests #226, #222, #216) | The base is accepted only for a provable branch push on `main` (the stamped ref of M3), the digest follows every real dependency or falls back to executing (M2), and a non-HTML difference of the site record selects every page (M1): each is part of what ADR 020 decision 9 keeps unchanged. |
+| F122, #215 | **Closed** 2026-10-18; pull request #220 merged as partial (criterion 7, the owner's approval of the contract, followed on the Issue) | ADR 019 delivered; the skills are in `.agents/skills/`. |
+| F123, #217 | Open since 2026-10-18; no pull request | In progress under the contracts it started with (`AGENTS.md`, ADR 003, 005, 012, 014, 015, and 017 as they stand); nothing of ADR 020 applies to it, except that a pull request it finishes after F130's merge is checked against the protected list of `guardrails.conf` as it then is and needs the owner's approval of its diff when it touches a path that list adds (the stated exception; "Phase 7"). On 2026-10-19 the owner accepted, by approving the round 4 revision of this planning's review (11:42 UTC), that the merge approval gate is the one exception to the rule of requirements decision 39 that a feature in progress finishes under the contracts it started with; the requirements are not edited for it (ADR 020, Status). |
+| F124 to F129 | No Issue | Wait for F123 and the preview gate of Phase 6. |
+| F66, #189; F72, #187 | **Closed** 2026-10-17; delivered | Six lessons; the count is 38. |
+| F67, #190; F73, #188 | Open, no pull request | Lesson features of wave C1, within the interim gate. |
+| F112, #151 | Open as a status report | Cannot declare completion with 81 slots open. |
+| #206, #218, #219, #223 | **Closed**; lesson fixes and budget decisions, not roadmap features | The statistically justified pressure test (pull request #209); the parallel seeds (#218); the documented 60-second budget of the gas lesson in `scripts/lesson-budgets.conf`, read by both checks (#219, pull request #221), which is the exception table ADR 020 decision 6 names; the search index budget of 3.5 MB (#223, pull request #225). |
+| The deferred findings #8, #34, #66, #138 and the workflow Issue #165 | Open | #165 ("Select agent models by feature risk") concerns the agent configuration and may be decided with F130's risk level; it is no roadmap feature. |
+| Pull request #227 | Open, from a fork, a README link | Not a feature; outside this cycle. |
+
+### The verification gate and the runs on `main`
+
+Every push to `main` executes and checks every lesson (ADR 014 decision
+4, invariant I26). The eight complete runs on `main` from 2026-10-17 to
+2026-10-19 at 38 lessons (39065685718, 39079012220, 39161066259,
+39164144807, 39192858558, 39198159262, 39204451130, 39226518978, read
+from the Actions API as run creation to last update, which includes the
+deployment; cache state not read) took 29 min 12 s to 39 min 16 s; the
+`build` job of 39079012220 took 20 min 40 s. All are below the 45-minute
+trigger at which the owner re-assesses the capacity (ADR 020 decision
+6), and the owner's interim full-run gate of 2026-10-15 (60 minutes for
+the one `build` job, up to 45 lessons; ADR 014 status) stands. The
+verification matrix of that run (five executions of every lesson, three
+in a page) is recorded in `docs/architecture.md`, "The verification
+matrix and the risk-proportionate workflow", as the standing reference;
+a complete verification on one machine is about 68 minutes.
+
+### The ruleset and the code owners
+
+The ruleset `protect main` (read 2026-10-19): a pull request is required
+with zero required approving reviews, no code-owner review, no last-push
+approval, and stale reviews not dismissed on push; the status check
+`verify` is required; deletion and non-fast-forward pushes are blocked;
+there are no bypass actors. `.github/CODEOWNERS` names only the owner's
+own login for `AGENTS.md`, `.agents/policies/`, `.github/workflows/`,
+`docs/decisions/`, and `infra/`. The agent's `gh` login is that login.
+That is the state mechanism A of ADR 020 decision 3 changes by the owner's
+hand, never an agent's: a second identity, a code-owner review required
+with zero approving reviews, stale approvals dismissed on push, the last
+push approved, the Level 3 paths of ADR 020 decision 1 (the one list,
+`.agents/approvals/` and `.github/CODEOWNERS` itself among them) assigned
+to the identity, and a test pull request that shows a Level 2 pull request
+needs no review while a code-owned change cannot be merged without the
+identity. This planning could not perform that test (no code-owner rule
+exists yet, and an agent changes no setting and opens no pull request);
+the recommended default of requirements decision 39 is verified by the
+owner's test, recorded on F130's Issue. Because the agent's login
+administers the repository, GitHub's enforcement excludes forgery and not
+circumvention: the policy that an agent never changes a repository
+setting holds the ruleset and the code-owners file, and the owner may
+give the agent a token without administration rights (ADR 020, residual
+risks). `.agents/policies/guardrails.conf` protects on this day only
+`scripts/verify.sh` beyond its always protected set (the ADRs, the CI
+workflows, the gate scripts, the prompts, the schemas, and itself) and
+lists `docs/architecture.md` and the dependency files as sensitive; F130
+brings its protected list in line with ADR 020 decision 1.
+
+### Architecture decisions of this change cycle
+
+- **ADR 020** records the three risk levels (the highest of the paths'
+  minimum, the escalation triggers, and the assessment; raised freely,
+  lowered only by the owner's authorization verified at the merge gate,
+  which may lower a trigger reading or an assessed level and never the
+  path minimum, with the change at its required level until the owner's
+  word; a changed scientific claim is a change to or a removal of a
+  published claim, so a new lesson's claims leave it at Level 2);
+  the evidence lifecycle in the one completion record (a gate per
+  criterion, `pending` for the later gates, `complete` only when every
+  criterion is met, three readiness points derived and never stored);
+  the owner-approval mechanism A (an approving review by a second GitHub
+  identity that only the owner holds, enforced by the ruleset and
+  `CODEOWNERS`, with a committed approval request for a Level 3 change by
+  trigger or assessment and for every lowering; no script trusts an
+  agent's assertion; the present practice until the setup exists); review
+  in proportion to the level (none at Level 1, a traceable chain of delta
+  reviews with the disposition of every finding and no changed-lines
+  threshold at Level 2, full every round at Level 3; mechanical triage of
+  minor and suggestion findings at Levels 1 and 2; the completion record
+  and the handoff in the fingerprint); verification in proportion to the
+  level (intermediate partial runs of a Level 3 change as feedback that
+  is never evidence; the final acceptance a complete verification, a full
+  review made after it, and the full CI); budgets as measurements for the
+  owner at the chosen re-assessment points; the time log and the base
+  re-fetch rule; ADR 017 decisions 1 to 6 and 9 and F113 paused with
+  their triggers; what stays unchanged; the two features and the pilot.
+  It amends the process statements of ADR 002 (the lesson budget), ADR
+  003 decisions 5 and 6, ADR 005 decision 3 (its decisions 4 and 5
+  reviewed and unamended), ADR 012 decisions 1 and 8, ADR 014 decision 7
+  and its consequences, and ADR 015 decision 4, each through a dated
+  status line; it changes no invariant and supersedes no decision.
+- **ADR 017's status** records the pause with its reason (not justified
+  by lead-time evidence), the triggers, F120 finished, F121 not started,
+  and the two stale statements of its status (the experiment check joined
+  the render script with F117; the F119 measurement was recorded). The
+  statuses of ADR 003 and ADR 015 say that the "45 minutes per job" they
+  quote has been 60 minutes for the one `build` job of a full run since
+  2026-10-15; ADR 014's status says that "no lesson feature takes the
+  count past 32 before F113" is history since the interim gate.
+- No accepted ADR conflicts with the re-approved requirements: ADR 014's
+  selection, base provenance, and check identity, ADR 012's one required
+  check, ADR 003's one entry point, and ADR 017 decisions 7 and 8 are what
+  ADR 020 keeps unchanged and builds on.
+
+### Reconciliation notes
+
+- The two deliverables of the change request's section 4 are F130
+  (Deliverable 1) and F131 (Deliverable 2), the next free identifiers,
+  in that order and never concurrent; F131 starts after F130 is merged
+  and two features have run under it (owner's answer, 2026-10-19).
+- When the new rules take effect: the change request disagrees with
+  itself. Its preamble applies the new rules to features started after
+  the second deliverable is merged, while its section 6 pilots two
+  features under Deliverable 1 before Deliverable 2 starts, which needs
+  Deliverable 1's rules to apply earlier. The approved requirements
+  (decision 39) chose the staged start: F130's rules apply to features
+  started after F130 is merged, F131's to features started after F131 is
+  merged; ADR 020's status and the rules of Phase 7 follow them, and a
+  feature in progress finishes under the contracts it started with, with
+  the one stated exception of the merge approval gate: the protected
+  list of `guardrails.conf` is read from the base branch and the
+  code-owner rule is enforced by GitHub at the merge, so both apply to
+  every pull request finished after F130's merge (ADR 020, Status;
+  "Phase 7"). On 2026-10-19 the owner accepted, by approving the round 4
+  revision of this planning's review (11:42 UTC), that the merge
+  approval gate is the one exception to the rule of requirements
+  decision 39 that a feature in progress finishes under the contracts it
+  started with, for the reason stated there; the requirements are not
+  edited for it, and ADR 020's status carries the same note.
+- The Level 3 paths: requirements decision 39 and ADR 020 describe them
+  as "the protected paths of `guardrails.conf`" and enumerate them, but
+  `.agents/policies/guardrails.conf` protects on 2026-10-19 only
+  `scripts/verify.sh` beyond its always protected set. The enumerated
+  list is the owner's decision and the file lags; ADR 020 decision 1
+  names the paths directly as the one authoritative list (with
+  `docs/architecture.md`, which carries the invariants, among the
+  planning documents, and `.github/CODEOWNERS` itself), F130 brings the
+  file in line with it (its in-scope item and acceptance criterion 11),
+  and the owner's `CODEOWNERS` action covers the same list. The
+  requirements' phrase is true from F130's merge and needs no change.
+- The change request's section 5 asks the planning to change
+  `.agents/policies/autonomy.md` and the Definition of Done of
+  `AGENTS.md`. Both are protected workflow files outside the planner's
+  file scope (`scripts/lib/scope.sh`: the architecture, the roadmap, and
+  the ADRs), so they are unchanged by this cycle and F130 changes them
+  with the scripts (its acceptance criterion 10); ADR 020 and the
+  requirements say what they will say. On 2026-10-19 the owner accepted
+  this deferral by approving the round 1 revision of the planning review
+  (10:56 UTC): the planning change's acceptance criterion that "the
+  policy updates exist" (change request section 7) is met at F130's
+  merge, the sentence of requirements decision 39 that both files refer
+  to ADR 020 holds from that merge, and the requirements are not edited
+  for it; ADR 020's status carries the same note.
+- The status claims of the request refreshed: F120 is closed, not "still
+  unpublished"; the lesson count is 38, not 32; the latest complete runs
+  took 29 to 39 minutes; the ruleset is as recorded above; the roadmap's
+  last identifier is F129, so F130 and F131 are confirmed.
+- What this planning could not verify from the repository: the review
+  rounds, triages, review files, and local verification counts and
+  durations of the baseline table (the review, triage, and completion
+  files are working files of the feature worktrees that Git ignores); the
+  9 min 35 s of the reproduction inside the `build` job (from the CI
+  logs, not re-read); the "about half of the twenty workflow gates" count;
+  and the CI durations of the three lesson-fix pull requests. The lead
+  times of #206 (7 h 02), F119 (12 h 04 to merge, 20 h 38 to close), F122
+  (21 h 13), the lesson fixes (12 to 16 minutes from pull request to
+  merge), and F61 (eight pull requests in two days, Issue open) were
+  confirmed from GitHub; F120 closed 67 h after its creation. The
+  verification matrix and the job durations of run 39079012220 were
+  confirmed from `scripts/verify.conf` and the Actions API.
+- The owner's open decisions of the request's section 10: the mechanism
+  is A (requirements decision 39, the "Authentication and authorization"
+  section); F131 starts after two features; the cycle was started on
+  2026-10-19.
+
 ## Overview
 
 Phases: Phase 1 is the MVP; Phase 2 is the work the requirements placed
@@ -506,7 +719,9 @@ waves R0 to R5 by dependency; Phase 4 is the change cycle
 `final-curriculum`, ordered in waves C0 to C4; Phase 5 is the change cycle
 `pbc-planning-change-four-workstreams`, the four workstreams F114 to F121;
 Phase 6 is the change cycle `scientific-atelier-atlas`, the atelier, the
-atlas, and the governed visual skills F122 to F129
+atlas, and the governed visual skills F122 to F129; Phase 7 is the change
+cycle `risk-proportionate-workflow`, the two workflow features F130 and
+F131, strictly one after the other
 (see "Execution order"). A wave is a suggested grouping, not a gate: a
 feature may start when its
 dependencies are done. The gates of Phase 4 (F61 and F62 before every
@@ -685,10 +900,26 @@ F126.
 | F128 | The validated interactive pendulum on the home page | G | F124, F68, F07, F43, the owner's decision (question 14) | Medium |
 | F129 | The scientific-figure and conceptual-diagram skill pilots, and the owner's decision on authoring integration | H | F122, F32, F33, F05; coordinated with F114 to F116 | Medium |
 
-Risk levels follow `.agents/policies/autonomy.md`. Every feature that adds a
-lesson is at least Medium, because physics and proof content needs independent
-review, not only passing checks. Features that change CI, repository
-settings, legal text, or let an agent write code are High.
+Phase 7, the change cycle `risk-proportionate-workflow` (2026-10-19): the
+two deliverables of `docs/changes/risk-proportionate-workflow.md`
+(requirements decision 39; ADR 020), which change the development
+workflow and no page of the site. Both are Level 3 under ADR 020
+decision 1 and never in flight together (see "Phase 7").
+
+| ID | Feature | Deliverable | Depends on | Risk |
+|---|---|---|---|---|
+| F130 | Risk-proportionate workflow, part 1: the evidence lifecycle, the risk level, the merge-gate verification, intermediate Level 3 verification, the budget policy, and the time log | 1 | This planning and ADR 020 approved; F119; F61; F122 | High |
+| F131 | Risk-proportionate workflow, part 2: the review chain, the review fingerprint of the completion record and the handoff, and mechanical triage | 2 | F130 merged, and two features run under it with their effect observed | High |
+
+Risk levels follow `.agents/policies/autonomy.md` and, since
+`risk-proportionate-workflow`, ADR 020 decision 1. Every feature that adds
+a lesson is Level 2 (Medium) under ADR 020 decision 1, with independent
+scientific review by a different model, because physics and proof content
+needs independent review, not only passing checks; the claims a new
+lesson introduces are not the "changed scientific claim" trigger, and the
+feature is Level 3 (High) when it changes or removes a published claim or
+hits another trigger. Features that change CI, repository settings, legal
+text, or let an agent write code are High.
 
 ## Product structure
 
@@ -3630,9 +3861,12 @@ block:
   controls an instrument; the acoustics lesson is numerical, and the
   video-reasoning lesson uses generated or rights-cleared existing clips.
 
-Risk levels follow `.agents/policies/autonomy.md`: every lesson feature is
-at least Medium (independent scientific review); a feature that changes CI,
-workflow permissions, or the required check is High.
+Risk levels follow `.agents/policies/autonomy.md` and, since
+`risk-proportionate-workflow`, ADR 020 decision 1: every lesson feature is
+Level 2 (Medium), with independent scientific review, and Level 3 (High)
+when it changes or removes a published claim or hits another escalation
+trigger (a new lesson's own claims are not the trigger); a feature that
+changes CI, workflow permissions, or the required check is High.
 
 ### Wave C0 — Governance, verification, and the learning path
 
@@ -3895,6 +4129,13 @@ and reports rather than hides.
 **Detailed implementation plan expected.** Yes.
 
 ### F113 — Bounded full verification: same-machine lesson shards of the build
+
+**Still paused by the change cycle `risk-proportionate-workflow`
+(requirements decision 39, ADR 020 decision 8, 2026-10-19):** not
+justified by lead-time evidence; Issue #150 stays open and the branch
+preserved; no work on it is scheduled; it is reopened only at the owner's
+triggers (42 lessons measured, the capacity decided at 44 at the latest,
+or a complete run on `main` above 45 minutes).
 
 **Paused by the change cycle `pbc-planning-change-four-workstreams`
 (requirements decision 35, 2026-10-15).** The pull request #175 of this
@@ -6377,6 +6618,15 @@ explicit approval and security-focused review.
 
 ### F120 — Incremental `main`: the staged evidence and the decision record
 
+**Delivered and closed (pull request #224 merged, Issue #196 closed on
+2026-10-19).** The evidence is published in
+`docs/incremental-main-evidence.md` and ADR 017 carries the owner's
+decision (amend, not yet accept); by the change cycle
+`risk-proportionate-workflow` (requirements decision 39, ADR 020 decision
+8) the feature is finished by that publication and no further work on
+ADR 017 is scheduled until the owner's triggers. The block below is the
+record of the feature as approved.
+
 **Source.** Change 4, "A", "B", and "Required evidence and staged
 acceptance" items 1 to 4, 7, 9, and 10; requirements decision 35 and
 unresolved questions 9, 10, 11, and 12; ADR 017 (proposed).
@@ -6507,6 +6757,13 @@ measurement branch only and is reviewed as such.
 **Detailed implementation plan expected.** Yes.
 
 ### F121 — Incremental `main` and the exceptional full run, if ADR 017 is accepted
+
+**Not started, by the change cycle `risk-proportionate-workflow`
+(requirements decision 39, ADR 020 decision 8, 2026-10-19):** ADR 017
+decisions 1 to 6 and 9 stay proposed and paused, not justified by
+lead-time evidence, and this feature waits for the owner's triggers (42
+lessons measured, the capacity decided at 44 at the latest, or a complete
+run on `main` above 45 minutes) and the owner's acceptance.
 
 **Conditional.** This feature starts only when the status of ADR 017 says
 the owner accepted it, with the mitigations the owner required. If ADR
@@ -7715,6 +7972,433 @@ guard them.
 **Detailed implementation plan expected.** Yes, short: the two choices,
 the rubric, the record.
 
+## Phase 7 — The risk-proportionate workflow (change cycle `risk-proportionate-workflow`)
+
+Both features of this phase come from
+`docs/changes/risk-proportionate-workflow.md` (2026-10-18; version 2 of
+the workflow proposal with the owner's refinements R1 to R4) and the
+requirements re-approved with it on 2026-10-19 (decision 39), with ADR
+020 as their decision record. They change the development workflow and no
+page of the site. What they inherit without repeating it: the invariants
+of `docs/architecture.md`, the guarantees ADR 020 decision 9 keeps
+unchanged, the three local tiers of ADR 017 decision 7, and the rule that
+a feature that changes CI, a protected script, the merge gate, or the
+instructions of a write-capable agent is High and needs the owner's
+explicit approval of its diff before the merge.
+
+Rules of this phase:
+
+- **Strictly one after the other, never concurrent.** F131 starts only
+  after F130 is merged and two features have run under it with their
+  effect observed (owner's answer, 2026-10-19). Two changes to the
+  workflow scripts (`scripts/lib/*`, `finish-feature.sh`,
+  `review-feature.sh`, `triage-review.sh`, `apply-triage.sh`,
+  `publish-feature.sh`, `verify.sh`) are never in flight together; a
+  workflow fix outside these features waits for the one in flight.
+- **Nothing before the approval.** Neither feature starts before this
+  planning and ADR 020 are approved; the owner's actions of ADR 020
+  decision 3 (the second identity, the ruleset, `CODEOWNERS`, the test
+  pull request) are the owner's, performed when the owner chooses, and no
+  agent performs or simulates them.
+- **Features in progress finish under the contracts they started with**
+  (`AGENTS.md`, ADR 003, 005, 012, 014, 015, and 017 as they stand on the
+  day they started). The rules of F130 apply to features started after
+  F130 is merged; the rules of F131 to features started after F131 is
+  merged. **One stated exception, the merge approval gate** (ADR 020,
+  Status): the protected list of `.agents/policies/guardrails.conf` that
+  F130 widens is read by `scripts/check-guardrails.sh` from the base
+  branch as it is at the check, and the code-owner rule of ADR 020
+  decision 3 is enforced by GitHub at the merge, so both apply to every
+  pull request finished or published after F130's merge, whatever day
+  the feature started. A feature in flight that touches a path the wider
+  list adds (`docs/architecture.md`, `scripts/build-site.sh`,
+  `.agents/skills/`, among the others F130's in-scope item names) is
+  reported as protected, is published without an agent merge, and needs
+  the owner's approval of its diff; nothing else changes for it (no
+  verification tier, no review, no evidence). No feature is
+  grandfathered by reading the list at its merge base. On 2026-10-19 the
+  owner accepted, by approving the round 4 revision of this planning's
+  review (11:42 UTC), that the merge approval gate is the one exception
+  to the rule of requirements decision 39 that a feature in progress
+  finishes under the contracts it started with, for the reason stated
+  here; the requirements are not edited for it (ADR 020, Status).
+- **Each feature is Level 3** under ADR 020 decision 1 (the gate scripts,
+  the prompts, the policies, the schemas, `AGENTS.md`), with a full
+  review in every round, a complete verification of its final tree, a
+  full review made after it, the full CI, and the owner's approval of the
+  diff before the merge under the present practice (the owner's explicit
+  word in the conversation, naming the head) until mechanism A exists.
+- **No new mandatory agent and no new mandatory reporting gate.** The
+  evaluation (ADR 020 decision 10) is derived afterwards from existing
+  artifacts and the time log; a defect found after the merge in a Level 1
+  or 2 change that the full process could have caught gets an Issue with
+  the label `process-miss`, and a miss in an escalation-trigger category
+  stops the pilot and restores full strictness at that level until the
+  owner decides.
+- **Template-synced files** are changed in the smallest way or through
+  the configuration the template offers, and every change is recorded for
+  the next template sync (`docs/development.md`, "Taking over template
+  changes").
+
+### F130 — Risk-proportionate workflow, part 1: the evidence lifecycle, the risk level, the merge-gate verification, intermediate Level 3 verification, the budget policy, and the time log
+
+**Source.** Change request section 4, Deliverable 1 (items 1 to 7), with
+sections 3.1, 3.2, 3.4, 3.5, 3.6, and 3.7; requirements decision 39 and
+its "Authentication and authorization" section (mechanism A); ADR 020
+decisions 1, 2, 3, 5, 6, 7, and 8.
+
+**Problem.** A feature whose only outstanding evidence waits for CI, the
+owner, or a post-merge measurement needs an owner exception to be
+committed and published (five in three days); no script reads a risk
+level, so every change pays the same verification and the same owner
+attention; a Level 3 feature runs a complete local verification of about
+68 minutes after every fix; and the owner's approval rests on an
+agreement that an agent working with the owner's login could break
+(`docs/development.md`, "Your approval is your own merge").
+
+**Goal.** Deliver ADR 020 decisions 1, 2, 3, 5, 6, and 7 in the scripts,
+the schemas, the prompts, the policies, and the guides, each with the
+tests the acceptance criteria name, without changing what a verification
+executes, what CI runs, or what a review is.
+
+**User-visible outcome.** None on the site. A feature with pending
+later-gate criteria is committed and published as a matter of course and
+its Issue stays open until the evidence exists; every feature carries a
+risk level the scripts derive and refuse to lower; a Level 3 feature gets
+quick feedback from partial runs and one complete verification and one
+full review of its final tree; the merge-gate verification refuses every
+forgeable form of approval; `verify.sh` leaves a time log the evaluation
+reads.
+
+**In scope.**
+
+- **The evidence lifecycle** (ADR 020 decision 2): the gate per criterion
+  and the `pending` status in the completion record
+  (`scripts/lib/completion.sh`, its documentation, the implementer's
+  prompt), with `complete` meaning every criterion met; the three
+  readiness points derived from the record; `finish-feature.sh` and
+  `publish-feature.sh` accepting a record whose only unmet criteria are
+  pending for later gates, without `--partial`, `--no-review`, or an
+  owner exception, the pull request not closing the Issue while a
+  criterion is pending, and the commit message and the pull request
+  naming the pending criteria and their gates; the reviewer's guidance
+  that a criterion whose evidence belongs to a later gate is not a
+  finding and that an open major finding is never a pending criterion.
+- **The risk level** (ADR 020 decision 1): derived by the scripts from
+  the paths (the minimum), the mechanically detectable escalation
+  triggers on the diff against the base branch (a widened tolerance or
+  budget, a new skip or expected failure, a removed assertion or test, a
+  changed marker such as `same_machine`, a changed dependency file), and
+  the level the agent records and the reviewer assesses, raise-only;
+  recorded in the completion record, the review, the commit message, and
+  the pull request; the approval request's own path
+  (`.agents/approvals/`) left out of the path minimum; a recorded level
+  below the path minimum refused, and below a trigger reading refused
+  unless the committed approval request names the lowering; a lowering
+  accepted only as a request in the approval request of the feature,
+  never applied by a script as an approval, and only of a trigger
+  reading or an assessed level, never of the path minimum; the change
+  kept at its required level by finish, review, triage, and verification
+  until the owner's explicit word names the level requested, the scripts
+  then recording the required level, the requested level, and the head,
+  and a lowering the identity has not approved for the head redone at
+  the required level before the merge (ADR 020 decision 1); the
+  "changed scientific claim" trigger read as a change to or a removal of
+  a published claim, so that a new lesson's claims leave it at Level 2;
+  the reviewer's
+  prompt assessing the triggers the scripts cannot detect with the impact
+  classification it already fills, with no new agent and no new report.
+- **The merge-gate verification** (ADR 020 decision 3): the committed
+  approval request `.agents/approvals/<issue>.md` that a Level 3 change by
+  trigger or assessment and every lowering request writes (for a
+  lowering: the required level, the level requested, the reason, and the
+  owner's word that let the agent proceed), and that
+  `finish-feature.sh` requires for them; the scripts recording what is
+  required and the head or tree it applies to, in the commit message, the
+  review, and the pull request, with no repeated network request; the
+  refusal, with a test, of every forgeable form (an agent-written
+  assertion, a comment or review by the agent's own login, a file, a flag,
+  a statement in chat); the merge step of `run-feature.sh` and the guides
+  applying GitHub's decision only (the identity's approving review of the
+  exact head) once mechanism A exists, and the present practice until
+  then; the owner's actions documented in `docs/repository-setup.md` and
+  `docs/development.md` as the owner's (the `CODEOWNERS` entries for the
+  Level 3 paths of ADR 020 decision 1, `.agents/approvals/` and
+  `.github/CODEOWNERS` itself among them; the option of an agent token
+  without administration rights), with the test pull request recorded on
+  this Issue when the owner performs it.
+- **The protected list of `guardrails.conf`** (ADR 020 decision 1): the
+  protected paths of `.agents/policies/guardrails.conf` brought in line
+  with the Level 3 paths ADR 020 decision 1 names (the planning documents
+  `docs/PROJECT_REQUIREMENTS.md`, `docs/roadmap.md`, and
+  `docs/architecture.md`, which moves from sensitive to protected;
+  `AGENTS.md`, `.agents/agents.conf`, and `scripts/verify.conf`; the
+  digest, the selection, `scripts/fetch-base.sh`, `scripts/collect-base.sh`,
+  and the provenance module; `scripts/build-site.sh`; `.agents/skills/`;
+  `.agents/approvals/`; and `.github/CODEOWNERS`), so that the gate's
+  own list and the requirements' phrase "the protected paths of
+  `guardrails.conf`" name the same paths; the dependency files stay
+  sensitive (dependency selection is an escalation trigger, not a path).
+  The file's header says the owner decides the list, so this is a Level 3
+  change with the owner's approval of the diff, and
+  `scripts/check-guardrails.sh` keeps reading the file from the base
+  branch (the F58 and F61 tests pass). Because it reads the list from the
+  base branch, the wider list knowingly applies to every pull request
+  finished or published after F130's merge, including features started
+  before it (the stated exception to the rule of this phase that a
+  feature in progress finishes under its starting contracts; ADR 020,
+  Status): such a feature is reported as protected when it touches a
+  path the list adds, is published without an agent merge, and needs
+  the owner's approval of its diff, and nothing else changes for it.
+  F130 says so in the guides where the merge approval gate is described
+  and does not grandfather a feature by reading the list at its merge
+  base. On 2026-10-19 the owner accepted, by approving the round 4
+  revision of this planning's review (11:42 UTC), that the merge
+  approval gate is the one exception to the rule of requirements
+  decision 39 that a feature in progress finishes under the contracts it
+  started with; the requirements are not edited for it (ADR 020,
+  Status).
+- **Intermediate Level 3 verification** (ADR 020 decision 5): the
+  intermediate fix rounds of a Level 3 change may run
+  `./scripts/verify.sh --only <group>` for the groups the changed paths
+  touch plus the unit tests of the changed modules, recorded as feedback
+  and never as evidence; `finish-feature.sh` and `review-feature.sh`
+  requiring, for Level 3, a complete verification of the final tree and
+  the latest review made on that verified tree, with a review made with
+  `--unverified` never counting as the final one; the targeted tier still
+  refused when the check identity differs.
+- **The budget policy** (ADR 020 decision 6) written in the one place the
+  checks read their lesson budgets, the header of
+  `scripts/lesson-budgets.conf` (an exception needs a reason and the
+  owner's approval; a lesson over its budget still fails), and the
+  wall-clock policy (a measurement for the owner at the re-assessment
+  points, never a mandate) in `docs/development.md` and
+  `docs/release-readiness.md` where the measurements are recorded.
+- **The time log** (ADR 020 decision 7): `./scripts/verify.sh` appends
+  one line per run (timestamp, tier, tree, duration, result) to a
+  per-machine log outside the worktrees, documented, never committed, and
+  read by no gate (a test that no script reads it).
+- **The base re-fetch rule** (ADR 020 decision 7): `scripts/fetch-base.sh`
+  does not fetch again when the latest accepted run on `main` is the one
+  recorded, with the provenance rule of ADR 014 decision 2 unchanged (a
+  test that recency never decides).
+- **The policy and the definition of done**: `.agents/policies/autonomy.md`
+  and the Definition of Done of `AGENTS.md` refer to ADR 020 and define
+  the three levels and the evidence states, in the smallest change; the
+  implementer's, reviewer's, and planner's prompts and `docs/workflow.md`
+  and `docs/development.md` describe the behaviour; the template-synced
+  changes recorded for the next sync.
+- **The evaluation's first measurement**: after two features have run
+  under this feature, the six measurements of ADR 020 decision 10 derived
+  from the existing artifacts and recorded on this Issue (no new report),
+  which is what F131 waits for.
+
+**Out of scope.** The review chain, stable finding identifiers, the
+fingerprint of the completion record and the handoff, and mechanical
+triage (F131); any change to what a verification executes, to
+`scripts/verify.conf`'s checks, to CI, to the digest, the selection, the
+base provenance, the check identity, the build, or the deployment; the
+owner's actions of mechanism A (the identity, the ruleset, `CODEOWNERS`,
+the test pull request), which no agent performs; mechanism B; any work on
+ADR 017, F113, or F121; a changed-lines threshold or an impact graph; a
+new agent, report, or gate; optimisation of the full run.
+
+**Dependencies.** This planning and ADR 020 approved; F119 (the three
+tiers and the targeted run); F61 (the base and the selection, delivered);
+F122 (the skills configuration check, which the gate scripts leave as it
+is). The owner's actions of mechanism A are not a dependency of the
+feature's start: the scripts are built and tested against the recorded
+ruleset and the forged assertion, and relied on for the merge gate from
+the day the owner's setup exists.
+
+**Visual deliverables and skills.** None (a workflow change with no page,
+diagram, figure, or animation). Skills: none (no visual deliverable).
+
+**Acceptance criteria.**
+
+1. The criterion gates and `pending` exist in the completion record, and
+   a record whose only unmet criteria are pending for later gates is
+   committed by `finish-feature.sh` and published by `publish-feature.sh`
+   without `--partial`, `--no-review`, or an owner exception and without
+   closing the Issue (a test per script).
+2. `complete` means every criterion met; a test shows that a record with
+   a pending criterion is not complete and that `pending` is refused for
+   the `implementation` gate.
+3. The risk level is the highest of the paths' minimum, the mechanical
+   triggers on the diff, and the recorded assessment; the approval
+   request's own path does not count in the path minimum; a recorded
+   level below the path minimum is refused, and below a trigger reading
+   is refused unless the committed approval request names the lowering;
+   a lowering is accepted only as a request that needs the owner's
+   authorization verified at the merge gate, may lower a trigger reading
+   or an assessed level and never the path minimum, and the scripts
+   record the required level, the requested level, and the head (tests
+   per reading, per mechanical trigger, for a change whose only Level 3
+   path is its own approval request, for a lowering of the path minimum
+   that is refused, and for a lowering of a trigger reading that is
+   recorded with both levels and the head).
+4. No script accepts an agent-written assertion, a comment or review by
+   the agent's own login, a file, a flag, or a statement in chat as the
+   owner's approval (a test per form).
+5. The merge-gate verification of mechanism A works in a test with a
+   forged assertion that it refuses, and with a lowering request whose
+   head has no approving review by the identity, which it refuses to
+   merge; a Level 3 change by trigger or
+   assessment and a lowering request cannot be finished without the
+   committed approval request, and no script reads that request as the
+   owner's decision; the merge step applies GitHub's decision
+   only, and the guides say that a lowering the identity has not
+   approved for the head is redone at the required level; the owner's
+   actions and the test pull request are documented,
+   and the owner's test is recorded on this Issue when performed.
+6. Intermediate Level 3 rounds can use `--only` partial runs, recorded as
+   feedback; `finish-feature.sh` and the final review require a complete
+   verification of the final tree and a review made after it, and a
+   review made with `--unverified` is refused as the final review (tests).
+7. The time log exists with its five fields, is documented, and no gate
+   reads it (a test).
+8. The budget policy is written where the checks read their budgets
+   (`scripts/lesson-budgets.conf`) and where the measurements are
+   recorded; the base is not re-fetched when the latest accepted run is
+   the one recorded (a test), and the provenance rule is unchanged (the
+   F61 tests pass).
+9. Every invariant and the full CI are unchanged and guarded by the
+   existing tests (the F58, F61, F119, and F122 tests pass unchanged;
+   `scripts/verify.conf`, `.github/workflows/ci.yml`, the digest, the
+   selection, `scripts/fetch-base.sh`'s acceptance rule, and the build and
+   deploy scripts are not changed except as criterion 8 says).
+10. `.agents/policies/autonomy.md` and the Definition of Done of
+    `AGENTS.md` refer to ADR 020 and define the three levels and the
+    evidence states; the prompts and the guides describe the behaviour;
+    the verification tier the change needs passes (a full run, since the
+    check identity and the workflow files change), with a full review made
+    after it, and the owner's approval of the diff is recorded with the
+    head it applies to.
+11. The protected list of `.agents/policies/guardrails.conf` names every
+    Level 3 path of ADR 020 decision 1 and nothing a Level 1 or 2 change
+    touches; a test shows that a change to each named path is reported as
+    protected by `scripts/check-guardrails.sh`, and the owner's approval
+    of the list is part of the approval of the diff.
+
+**Risk.** High (Level 3): it changes the gate scripts, the prompts, the
+policies (`guardrails.conf` among them), the schemas, and `AGENTS.md`,
+which need the owner's explicit approval and a full review in every round.
+
+**Detailed implementation plan expected.** Yes.
+
+### F131 — Risk-proportionate workflow, part 2: the review chain, the review fingerprint of the completion record and the handoff, and mechanical triage
+
+**Source.** Change request section 4, Deliverable 2 (items 1 to 3), with
+section 3.3 (refinement R1); requirements decision 39; ADR 020 decision 4,
+and decision 1 as it applies to the review.
+
+**Problem.** Every change to a feature, however small, needs a new review
+of the complete feature before it can be committed (`finish-feature.sh`
+requires that the latest review is a full one), every finding needs a
+triage session with the owner's approval whatever its severity, and the
+completion record and the handoff note can change after the review
+without making it stale.
+
+**Goal.** Deliver ADR 020 decision 4: the traceable chain of delta
+reviews for Level 2 with the disposition of every finding and a full
+review whenever the reach of a delta is not certain; no review at Level 1
+and a full review in every round at Level 3; the completion record and the
+handoff in the review fingerprint; mechanical triage of minor and
+suggestion findings at Levels 1 and 2.
+
+**User-visible outcome.** None on the site. A Level 2 feature's later
+rounds review what changed when the change's reach is certain, every
+finding is followed to its disposition, and minor and suggestion findings
+no longer wait for a triage session; Level 3 keeps a full review in every
+round.
+
+**In scope.**
+
+- **The review chain** (ADR 020 decision 4): stable finding identifiers
+  across rounds; each review recording the tree it compared against and
+  the tree it reviewed; the disposition of every earlier open finding
+  (resolved with evidence, still open, accepted) in each later review;
+  `finish-feature.sh` verifying, for Level 2 only, that the chain begins
+  with a full review, is contiguous, ends at exactly the current tree, and
+  leaves no finding open, instead of requiring that the last review is a
+  full one; a gap or a break requiring a full review.
+- **The bounded-impact rule**: a delta review allowed only when the delta
+  is confined to tests, documentation, lesson content, and a change to one
+  source module whose importers are all among the files the baseline
+  review covered, found by a plain textual search for the module name
+  with the import knowledge the digest already has; anything else (a
+  Level 3 path, an escalation trigger, a shared input of ADR 014 decision
+  4, a changed exported interface, a file with an unresolved finding, an
+  undecidable search) requiring a full review; no changed-lines threshold
+  and no general-purpose impact graph.
+- **The levels applied to the review**: no independent review required at
+  Level 1 (recorded as such, without `--no-review` or an owner exception);
+  the chain at Level 2; a full review in every round at Level 3.
+- **The fingerprint**: the completion record and the handoff note included
+  in what a review fingerprints (`scripts/lib/fingerprint.sh`,
+  `scripts/check-review.sh`), so that a change to either after the review
+  makes it stale.
+- **Mechanical triage**: minor and suggestion findings at Levels 1 and 2
+  triaged automatically (ACCEPT or DEFER with a reason), published once on
+  the Issue, with a follow-up Issue for every DEFER; critical and major
+  findings, and every finding at Level 3, keeping the full triage per
+  finding with the owner's approval.
+- The prompts (reviewer, triage), the schemas, `docs/development.md`,
+  `docs/workflow.md`, and the policy updated; the template-synced changes
+  recorded for the next sync; after the pilot of five features, the six
+  measurements of ADR 020 decision 10 derived from the existing artifacts
+  and recorded on this Issue.
+
+**Out of scope.** Everything of F130 (the lifecycle, the level, the
+merge-gate verification, the Level 3 verification rule, the budgets, the
+time log); any change to what a verification executes, to CI, or to the
+guarantees of ADR 020 decision 9; a changed-lines threshold, an impact
+graph, a new agent, report, or gate; a relaxation of Level 3's full
+review; any work on ADR 017, F113, or F121.
+
+**Dependencies.** F130 merged, and two features run under it with their
+effect observed and recorded on F130's Issue (owner's answer,
+2026-10-19); nothing else of the workflow scripts in flight.
+
+**Visual deliverables and skills.** None (a workflow change). Skills:
+none (no visual deliverable).
+
+**Acceptance criteria.**
+
+1. Stable finding identifiers and the traceable chain exist: each review
+   records the tree it compared against and the tree it reviewed, and
+   each later review gives the disposition of every earlier open finding
+   (tests).
+2. `finish-feature.sh` accepts a Level 2 delta chain only when the chain
+   begins with a full review, is contiguous, ends at exactly the current
+   tree, and every earlier finding has a disposition with no finding
+   open, and otherwise requires a full review (a test per condition).
+3. A test shows that a delta whose impact cannot be bounded (a Level 3
+   path, an escalation trigger, a shared input, a changed exported
+   interface, an unresolved earlier finding, an undecidable importer
+   search) requires a full review, and that no line-count threshold
+   exists.
+4. The completion record and the handoff note are in the review
+   fingerprint: a change to either after the review makes it stale (a
+   test per file).
+5. Mechanical triage exists for minor and suggestion findings at Levels 1
+   and 2, published once, with a follow-up Issue per DEFER, and a full
+   triage per finding at Level 3 (tests); a critical or major finding is
+   never triaged mechanically.
+6. Level 3 keeps a full review in every round, and Level 1 needs no
+   review, recorded without an owner exception (tests).
+7. The invariants and the full CI are unchanged and guarded by the
+   existing tests; the verification tier the change needs passes (a full
+   run), with a full review made after it, and the owner's approval of
+   the diff is recorded with the head it applies to (under mechanism A if
+   the owner's setup exists by then, otherwise under the present
+   practice).
+
+**Risk.** High (Level 3): it changes the review and triage scripts, the
+prompts, and the schemas.
+
+**Detailed implementation plan expected.** Yes.
+
 ## Candidate mapping
 
 Every candidate of the change request and its outcome. "Kept" means a
@@ -8093,7 +8777,9 @@ Phase 4, by dependency; the first wave stays reviewable because every
 feature in it is a tooling change with tests (F61, F113, F62, F63) or one
 page with accuracy checks (F64). No lesson of the phase is drafted before
 F61 and F62 have landed, no lesson that takes the count past 32 before
-F113 has, and no lesson of waves C2 to C4 before F64 and F113 have (the
+F113 has [since 2026-10-15: past 45 before the owner's further decision,
+under the interim full-run gate that replaced this sentence; F113 stays
+paused], and no lesson of waves C2 to C4 before F64 and F113 have (the
 gates under "Phase 4"); there is no cost exception.
 
 | Wave | Order within the wave | Outcome |
@@ -8154,6 +8840,30 @@ F112 for completion reporting only when the slots and the checks support
 it. This is a scheduling recommendation, not a gate: nothing of the
 atelier requires the verification work to finish first, and no lesson
 waits for the atelier.
+
+Phase 7, the change cycle `risk-proportionate-workflow` (2026-10-19):
+two features, strictly one after the other, never beside another change
+to the workflow scripts, each Level 3 with the owner's approval of its
+diff. Nothing of it starts before this planning and ADR 020 are approved;
+features in progress (F123) finish under the contracts they started with,
+except that the protected list of `guardrails.conf` and the code-owner
+rule apply at the merge gate to every pull request finished after F130's
+merge (ADR 020, Status; "Phase 7"). On 2026-10-19 the owner accepted, by
+approving the round 4 revision of this planning's review (11:42 UTC),
+that the merge approval gate is the one exception to the rule of
+requirements decision 39 that a feature in progress finishes under the
+contracts it started with; the requirements are not edited for it.
+Lesson features and the atelier are not blocked by it and run beside it
+in their own worktrees, under the workflow of the day they started.
+
+| Wave | Order within the wave | Outcome |
+|---|---|---|
+| Workflow 1 | F130, after the approval of this planning; then two features of any kind run under its rules and their effect is recorded on its Issue | Pending later-gate evidence committed and published without an owner exception; the risk level derived and refused to lower; the merge-gate verification that refuses every forgeable approval; quick partial feedback for Level 3 with an unchanged final acceptance; the budget policy where the checks read it; the time log |
+| Workflow 2 | F131, after F130 is merged and the two features are observed; then the pilot of five features and the six measurements recorded on its Issue | The traceable chain of delta reviews for Level 2 with every finding's disposition, the fingerprint closed, mechanical triage of minor and suggestion findings, Level 3 full in every round |
+
+The owner's actions of mechanism A (ADR 020 decision 3) are performed by
+the owner at any time; from the day they exist the merge gate is GitHub's,
+and until then the present practice continues.
 
 Features F13 (#89) and F14 (#94) are delivered with their approved scope;
 F64 keeps their progress marks and recommendations on the redesigned path.
@@ -8237,6 +8947,18 @@ Added by the change cycle `scientific-atelier-atlas`:
 | The interactive pendulum, if decided | The browser trajectory equal to the Python reference within the stated tolerance at the reference parameters (a built-site test); starts paused; reduced motion; the controls by keyboard; the static fallback; no request, cookie, or storage; the payload | F128 |
 | The skill pilots | The piloted lesson's values at displayed precision, commands, claims, and references unchanged (the experiment and reproduction checks); the diagram's science reviewed independently; the record with before and after artifacts, cost, limitations, and the owner's decision | F129 |
 
+Added by the change cycle `risk-proportionate-workflow`:
+
+| Artifact | Check | Feature |
+|---|---|---|
+| The completion record with criterion gates | A record whose only unmet criteria are pending for a later gate is committed and published without an owner exception and without closing the Issue; `complete` only when every criterion is met; `pending` refused for the `implementation` gate; the record and the handoff note in the review fingerprint (a test per rule) | F130, F131 |
+| The risk level of a change | The highest of the paths' minimum (the approval request's own path not counted), the mechanical triggers on the diff, and the recorded assessment; a level below the path minimum refused, and below a trigger reading refused unless the approval request names the lowering; a lowering accepted only as a request for the owner's authorization at the merge gate, of a trigger reading or an assessed level and never of the path minimum, with the required level kept until the owner's word and the required level, the requested level, and the head recorded; no script accepts an agent's assertion, a comment or review by the agent's own login, a file, a flag, or a chat statement as the owner's approval; a forged assertion refused (a test per form) | F130 |
+| Level 3 verification | Intermediate `--only` runs recorded as feedback, never evidence; the final review made on a complete verification of the final tree and never with `--unverified`; the targeted tier refused when the check identity differs (tests) | F130 |
+| The time log and the base re-fetch | Five fields per run, read by no gate (a test); the base not re-fetched when the latest accepted run is the one recorded, with the provenance rule unchanged (the F61 tests) | F130 |
+| The review chain | A Level 2 chain accepted only when it begins with a full review, is contiguous, ends at the current tree, and every finding has a disposition; a delta whose reach is not certain (a Level 3 path, a trigger, a shared input, an exported interface, an unresolved finding, an undecidable search) requires a full review; no line-count threshold; Level 3 full in every round; Level 1 without a review (a test per rule) | F131 |
+| Mechanical triage | Minor and suggestion findings at Levels 1 and 2 accepted or deferred with a reason, published once, a follow-up Issue per DEFER; critical and major, and everything at Level 3, triaged in full (tests) | F131 |
+| The guarantees that stay | The complete CI run, the required check `verify`, the deployment of the verified artifact, the digest, the selection, the base provenance, the check identity, the determinism check, and independent review unchanged: the F58, F61, F119, and F122 tests pass unchanged on both features | F130, F131 |
+
 Manual gates that stay manual: independent physics and pedagogy reviews per
 lesson (through the existing review workflow); the human's approval of
 identity copy, of the sandbox profile, of any CI or ruleset change, of
@@ -8253,7 +8975,15 @@ owner's review of the preview before the rollout and the final visual
 acceptance (decision 36, F126, F127), the owner's decision on the
 interactive pendulum (question 14, F128), the owner's naming of an
 explanation for a Manim pilot (question 15), and the owner's decision
-after the skill pilots (F129).
+after the skill pilots (F129); since `risk-proportionate-workflow`, also
+the owner's approval of the diff of F130 and of F131 before their merges,
+the owner's actions of mechanism A (the second identity, the ruleset,
+`CODEOWNERS`, the test pull request; ADR 020 decision 3), the owner's
+authorization of every lowered risk level and approval of every Level 3
+change as a GitHub review by that identity, the owner's decisions at the
+re-assessment points (42 lessons measured, 44 decided, or a complete run
+on `main` above 45 minutes), and the owner's decision after a
+`process-miss` in an escalation-trigger category.
 
 ## Not on the roadmap
 
@@ -8306,5 +9036,19 @@ skill, a third-party installer in CI, or a skill as a dependency of the
 build, the deployment, or any CI job; an additional mandatory review agent or a change to the owner
 approval hierarchy; a Manim pilot without the owner's named explanation;
 a narrative structure imposed on every lesson by the redesign; and a
-curriculum change by way of the map manifest. Adding any of them is a
+curriculum change by way of the map manifest. Since the change cycle
+`risk-proportionate-workflow`, also: any weakening of the digest, the
+selection, the base provenance, the build, the deployment, or the
+determinism guarantees, of the complete CI run on every pull request and
+push, or of independent review by a different model, for the sake of lead
+time; a new mandatory agent or a new mandatory reporting gate in the
+feature workflow; a workflow rule that an agent can satisfy with its own
+assertion of the owner's approval, or an approval mechanism that rests on
+the authorship of a comment or on a flag; a changed-lines threshold or a
+general-purpose impact graph for delta reviews; mandatory optimisation
+work started by an exceeded time budget, or any budget response that
+changes scientific content; further work on ADR 017, F113, F120, or F121
+before the owner's triggers; concurrent changes to the workflow scripts;
+and an agent that changes repository settings, creates accounts, or sets
+up the owner-approval mechanism. Adding any of them is a
 requirements change that returns to Project Grill.

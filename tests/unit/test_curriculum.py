@@ -75,7 +75,12 @@ def test_the_labs_and_capstones_are_where_the_roadmap_puts_them():
 def test_the_teaching_order_of_the_file_is_not_the_label_order():
     curriculum = Curriculum.read(SITE_SOURCE)
     first = lambda *labels: [curriculum.index(label) for label in labels]  # noqa: E731
-    for labels in (("T0", "T1"), ("T6", "T10", "T11"), ("AST10", "AST4")):
+    for labels in (
+        ("T0", "T1"),
+        ("T6", "T10", "T11"),
+        ("AST10", "AST4"),
+        ("FL1", "FL4", "FL9", "FL5", "FL10"),
+    ):
         indexes = first(*labels)
         assert indexes == sorted(indexes)
     assert (
@@ -304,6 +309,10 @@ def test_the_published_lessons_that_fill_a_slot_carry_it():
         "electric-fields-and-potential": "EM1",
         "charged-particles-in-fields": "EM2",
         "faradays-law-and-induction": "EM3",
+        "advection-and-diffusion": "FL1",
+        "shock-waves-and-burgers-equation": "FL4",
+        "finite-volume-methods-and-conservation-laws": "FL9",
+        "shallow-water-equations": "FL5",
         # The gas lesson gets its slot with its course (F70), with T1 to T3.
         "particles-in-a-box": "T0",
         "random-walks-and-diffusion": "T1",
@@ -437,12 +446,13 @@ def test_a_course_without_a_lesson_is_named_in_one_sentence_and_shows_no_slot(
     page: str,
 ):
     path = LearningPath.read(SITE_SOURCE)
-    # Mechanics has lessons, thermodynamics since F70, waves since F71, and
-    # electromagnetism since F72; the others have none yet.
+    # Mechanics has lessons, thermodynamics since F70, waves since F71,
+    # electromagnetism since F72, and fluids since F73; the others have none
+    # yet.
     without = [
         course
         for course in COURSES[2:]
-        if course.id not in {"waves", "electromagnetism"}
+        if course.id not in {"waves", "electromagnetism", "fluids"}
     ]
     assert [course.id for course in path.planned_courses] == [
         course.id for course in without
@@ -458,6 +468,7 @@ def test_a_course_without_a_lesson_is_named_in_one_sentence_and_shows_no_slot(
         assert f"{{#course-{course.id}}}" not in page
     assert "Waves and optics" not in sentences[0]
     assert "Electromagnetism" not in sentences[0]
+    assert "Fluid dynamics" not in sentences[0]
     assert f"{{#course-{COURSES[1].id}}}" in page
 
 

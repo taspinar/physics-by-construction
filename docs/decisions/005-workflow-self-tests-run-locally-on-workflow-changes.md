@@ -34,6 +34,22 @@ verification of the content; CI runs every check on every pull request
 and push. The workflow self-tests keep the rule of decision 1 in every
 tier: they run when a workflow file changed, and always in CI.
 
+[ADR 020](020-risk-proportionate-verification-and-review.md) (2026-10-19, change cycle
+`risk-proportionate-workflow`, requirements decision 39) amends decision
+3 in one respect beyond ADR 017 decision 7: an intermediate fix
+round of a Level 3 change (ADR 020 decision 1) may run
+`./scripts/verify.sh --only <group>` for the groups its paths touch as
+quick feedback, which verifies nothing and records nothing (ADR 012
+decision 1 stands), and the final acceptance of such a change is always a
+complete verification of the final tree, a full independent review made
+after it, and the full CI. Decision 3's rule for the workflow self-tests
+(run when a guarded file changed, always in CI) is unchanged. Decisions
+4 and 5 were reviewed with it, as the change request's section 5 asked,
+and stand unamended: decision 4 (the guarded files) is untouched by a
+run with `--only`, and decision 5's restatement of ADR 003 decision 1
+was already amended by ADR 017 decision 7, to which ADR 020 decision 5
+adds nothing; its restatement of ADR 003 decision 6 is unchanged.
+
 Date: 2026-10-06
 
 ## Context
