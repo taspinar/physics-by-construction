@@ -295,6 +295,8 @@ def test_the_published_lessons_that_fill_a_slot_carry_it():
         "black-box-force-law": "D1",
         "prior-knowledge-in-discovery": "D2",
         "modified-force-law": "D3",
+        "symbolic-regression": "D7",
+        "discovering-differential-equations": "D8",
         "proving-what-the-simulation-showed": "L1",
         "wave-equation": "W1",
         "interference-and-resonance": "W2",

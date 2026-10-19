@@ -1408,6 +1408,16 @@ does not build its own environment, baselines, or scoring. The rules are in
   the two after it, module `pbc.discovery.force_lab`, experiment
   `pbc.mechanics.experiments.black_box_force_law` and the two beside it) are
   the example to copy.
+- **Without an agent.** A discovery lesson that uses no model (methods
+  `[simulation]`, no `llm-agents`) has no fixture, no prompt, and no live
+  run; its last section is "Run this experiment". It still states the
+  grammar or library it searches, fixes its tolerance, threshold, and seeds
+  in its experiment before any result is read, tests what it finds on
+  held-out cases, shows when the data admit several answers, and reports a
+  failure as a result. The lessons D7 and D8
+  (`site/lessons/agents-llm/08-symbolic-regression/index.qmd` and the two
+  after it, modules `pbc.discovery.symbolic` and `pbc.discovery.equations`)
+  are the example to copy.
 - **Recomputed score and baselines.** Show the held-out error from
   `score_transcript` and the table of `comparison` with `run_baselines`, failures
   included. State a claim about a law only as far as that evidence supports it.

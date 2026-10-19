@@ -1,0 +1,366 @@
+---
+title: "Discovering differential equations from trajectories"
+description: >-
+  The equation of motion of a damped oscillator recovered from positions alone,
+  with numerical derivatives and a sparse regression over a library of terms,
+  tested from a start it never saw, and the cases where the data or the library
+  cannot settle the equation.
+lesson:
+  id: discovering-differential-equations
+  strand: agents-llm
+  order: 9
+  difficulty: 3
+  course: mechanics
+  slot: D8
+  experiment: pbc.mechanics.experiments.discovering_differential_equations
+  methods: [simulation]
+  outcomes:
+    - Estimate velocity and acceleration from sampled positions with central differences, and state their error
+    - Find an equation of motion as a sparse sum of library terms with sequentially thresholded least squares
+    - Test a found equation by integrating it from a held-out start
+    - Detect with the singular values of the library when the data admit several equations, and say which data remove the ambiguity
+  related: [equations-from-noisy-trajectories]
+  format: 2
+  preview: fig-held-out
+  prerequisites:
+    lessons: [harmonic-oscillator, numerical-integrators, symbolic-regression]
+    outside:
+      - "Calculus: derivatives and the Taylor expansion to fourth order"
+      - "Linear algebra: least squares and the singular values of a matrix"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.discovery import equations
+from pbc.mechanics.experiments import discovering_differential_equations as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The previous lesson found a formula for one number, the period. Mechanics is
+mostly not about such numbers: it is about **equations of motion**, the rule
+that gives the acceleration from the state. Newton wrote them down from
+principles. A camera that tracks a mass on a spring records something else, a
+list of positions at equal times. Can the equation be read back from that
+list?
+
+The approach of this lesson, known as sparse identification of nonlinear
+dynamics, has two steps. First the derivatives that the equation is about,
+velocity and acceleration, are estimated from the positions. Then the
+acceleration is written as a combination of a few terms out of a large
+library of candidates, $1, x, v, x^2, xv, \dots$, keeping only those the data
+need. The result is an equation a person can read, and that can be integrated
+from any start to test it.
+
+The lesson uses clean data: the positions are exact up to the simulation. The
+next lesson adds measurement noise, which is where this approach meets its
+hardest problem. No language model is used.
+
+## Assumptions
+
+1. **The positions come from a simulation and are sampled without noise.**
+   A damped oscillator, $\ddot x = -\omega^2 x - b\,\dot x$, is integrated
+   with the fourth-order Runge-Kutta method and sampled every hundredth of a
+   second. Only the positions are kept. With noise, the derivatives degrade;
+   that is the next lesson.
+2. **The equation is autonomous and of second order.** The acceleration is a
+   function of the position and the velocity, not of time. A driven
+   oscillator would need time in the library.
+3. **The law is a sum of the library's terms.** The library holds every
+   product $x^i v^j$ with $i + j \le 3$. A law that is not such a sum, like
+   the $\sin x$ of a pendulum, can only be approximated; the exercise shows
+   what that means.
+4. **Small terms are dropped by a stated rule.** A term whose contribution to
+   the acceleration is below two percent of the root-mean-square acceleration
+   is removed. A real term smaller than that is lost; a spurious term larger
+   than that is kept.
+5. **The trajectories decide what can be told apart.** Four orbits from
+   different starts are used. What one orbit cannot distinguish is shown in
+   the worked examples.
+
+## From positions to an equation {#explanation}
+
+### Derivatives from samples
+
+With positions $x_k$ every $\Delta t$, the central differences
+$$v_k \approx \frac{x_{k+1} - x_{k-1}}{2\Delta t}, \qquad a_k \approx \frac{x_{k+1} - 2x_k + x_{k-1}}{\Delta t^2}$$
+follow from the Taylor expansion of $x(t \pm \Delta t)$: the odd terms cancel
+in the first, the even ones in the second, and what is left is an error
+proportional to $\Delta t^2$. For a motion of angular frequency $\omega$, the
+relative error of the acceleration is about $(\omega\Delta t)^2/12$, here far
+below the tolerance.
+
+```{python}
+#| echo: false
+excerpt(equations.central_differences)
+```
+
+### A sparse sum of library terms
+
+Every sample gives one equation: the acceleration estimate equals the sum of
+the library terms, evaluated at that sample's position and velocity, times
+unknown coefficients. Thousands of samples and ten terms make an
+overdetermined linear system, solved by least squares. Least squares alone
+would give every term a small coefficient, because the derivative errors leak
+into all of them. **Sequentially thresholded least squares** removes the terms
+whose contribution is below the threshold and fits the rest again, until
+nothing changes.
+
+```{python}
+#| echo: false
+excerpt(equations.sparse_regression)
+```
+
+### The damped oscillator
+
+```{python}
+#| echo: false
+excerpt(experiment, region="oscillator")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment, region="criterion")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.discover)
+```
+
+```{python}
+#| label: coefficients
+#| echo: false
+result.table("coefficients")
+```
+
+[From the positions of four orbits, `{python} result["samples"]` samples in
+all, the regression over `{python} result["terms"]` terms finds
+`{python} result["found"]`: it keeps exactly the two terms of the true
+equation, and its largest coefficient error is
+`{python} result["largest-error"]` percent, within the tolerance of
+`{python} result["tolerance"]` percent. The equation is
+`{python} result["recovered"]`.]{.claim type="numerically-verified"
+scope="the simulated damped oscillator, positions without noise every 0.01 s, the cubic library"
+evidence="coefficients"}
+The other terms are not merely small: they are absent. That is the
+point of the threshold. A coefficient of a millionth on $x^3$ would claim a
+nonlinearity that the oscillator does not have.
+
+## The program {#code}
+
+The library is generated from its degree, and every term is a product of
+powers of the position and the velocity. The regression scales each column
+to a root-mean-square of one before it fits, so that the threshold compares
+contributions, not coefficients in different units.
+
+```{python}
+#| echo: false
+excerpt(equations.polynomial_library)
+```
+
+```{python}
+#| echo: false
+excerpt(equations.singular_values)
+```
+
+## Worked examples {#worked-examples}
+
+### A start the regression never saw {#held-out}
+
+An equation is a claim about every start, not only the four it was read
+from. The test is to integrate it from a start outside every training orbit
+and compare with the true motion.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="held-out")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.held_out)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_held_out)
+```
+
+```{python}
+#| label: fig-held-out
+#| echo: false
+#| fig-cap: "The motion from a held-out start under the true equation (solid) and under the found one (dashed), and their difference below. The curves coincide over the ten seconds, and the difference stays small against the amplitude."
+#| fig-alt: "Two panels sharing a time axis from zero to ten seconds. The upper panel shows a decaying oscillation of position; a solid and a dashed curve lie on top of each other. The lower panel shows the difference between them as a small oscillation that grows slowly with time, on an axis scaled by a power of ten."
+#| fig-status: simulated
+result.show("fig-held-out")
+```
+
+[Integrated from the held-out start, of amplitude
+`{python} result["held-out-amplitude"]` m, larger than any training orbit,
+the found equation follows the true motion over ten seconds within
+`{python} result["held-out-error"]` m.]{.claim type="numerically-verified"
+scope="one held-out start, ten seconds, the damped oscillator"
+evidence="fig-held-out"}
+The difference grows slowly because the found coefficients differ slightly
+from the true ones, and an error of the frequency accumulates as a phase. The
+test supports the equation over this range of amplitudes and this duration;
+it says nothing about amplitudes where a real spring stops being linear.
+
+### One orbit admits several equations {#identifiability}
+
+Now take an oscillator without damping and a single orbit. On that orbit the
+energy is conserved: $\omega^2 x^2 + v^2$ keeps the value $E$ it started
+with. So the combination $x\,(\omega^2 x^2 + v^2 - E)$ of library terms is
+zero at every sample. Add any multiple of it to the true equation and the new
+equation fits the orbit exactly as well.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="one-orbit")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.one_orbit)
+```
+
+```{python}
+#| label: rival-equations
+#| echo: false
+result.table("rival-equations")
+```
+
+The two equations differ by three terms and fit the orbit equally well, to the
+error of the differences. On an orbit of another energy the added terms no
+longer vanish, and the rival is far off. The data of one orbit contain no
+reason to prefer the simpler equation; only the threshold, a rule of the
+method, does.
+
+The singular values of the library show the problem without guessing the
+rival. A singular value near zero is a combination of terms that vanishes on
+the data: a direction in which the coefficients are not determined.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_singular_values)
+```
+
+```{python}
+#| label: fig-singular-values
+#| echo: false
+#| fig-cap: "Singular values of the library, relative to the largest, on one orbit and on four orbits of the undamped oscillator. On one orbit several of them collapse, drawn at the floor of the axis: conserved energy ties combinations of terms. Four orbits of different energies remove the ties."
+#| fig-alt: "Line plot with markers on a logarithmic vertical axis of relative singular value against its rank, largest first. The solid curve for four orbits falls gently and stays within two orders of magnitude of one. The dashed curve for one orbit follows a similar course for its first values and then drops by many orders of magnitude to a flat floor for its last values."
+#| fig-status: simulated
+result.show("fig-singular-values")
+```
+
+[On one orbit of the undamped oscillator `{python} result["near-zero"]`
+singular values of the library are below `{python} result["bound"]` of the
+largest: energy conservation makes $1, x^2, v^2$ dependent, and multiplying
+the relation by $x$ and by $v$ gives two more. On four orbits the smallest is
+`{python} result["smallest-several"]`, and the equation is
+determined.]{.claim type="numerically-verified"
+scope="the undamped oscillator, the cubic library, central differences of exact positions"
+evidence="fig-singular-values rival-equations"}
+This is identifiability in its plainest form. Several formulas describe the
+same observations whenever the observations satisfy a relation the library
+can express. A conserved quantity is such a relation, which is a little
+ironic: the most important property of the motion hides its equation. The
+remedy is data that break the relation, such as several energies, or a
+library chosen so that the relation cannot be written in it.
+
+## Limits {#limits}
+
+- **Clean data only.** The derivatives here are exact up to the time step.
+  With measurement noise, the second difference is the weak point; the next
+  lesson measures how weak and compares a smoothing differentiator.
+- **The library is the hypothesis space.** The regression can only answer in
+  terms of $x^i v^j$ up to degree three. A law outside it is approximated by a
+  sum that fits the training range and may fail beyond, as the pendulum
+  exercise shows.
+- **The threshold is a choice.** Two percent of the acceleration is the stated
+  rule. A real term below it, a weak damping for instance, would be dropped,
+  and nothing in the data would warn.
+- **One held-out start is one test.** The found equation agrees with the
+  truth from one start for ten seconds. That supports it over the probed
+  amplitudes, not for every start or every time.
+- **Recovered is not explained.** The regression returns coefficients, not
+  their meaning. That the $x$ coefficient is a stiffness over a mass and the
+  $v$ coefficient a damping rate is the reader's physics, not the method's
+  output.
+
+In plain words: numerical derivatives and a sparse regression read the
+equation of a simulated oscillator back from its positions, and the equation
+holds from a start it never saw. Whether it is *the* equation depends on
+whether the data could have told it apart from others, and the singular
+values of the library are the place to look.
+
+::: {.exercise .self-check}
+A regression on a single long orbit of an undamped oscillator returns
+$a = -4x$, the right equation. Why is this not evidence that the data
+determine the equation?
+
+::: {.solution}
+On one orbit the conserved energy makes a combination of library terms vanish,
+so the true equation plus any multiple of that combination fits equally well.
+The threshold picked the simplest member of that family; the data did not.
+Orbits of different energies, or a check of the singular values, are needed
+before the result is evidence.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A pendulum through a polynomial library.** A pendulum with $g/L = 4$ per
+square second obeys $\ddot x = -4\sin x$, which is not a sum of the library's
+terms. Run the regression on two swings that reach at most 0.2 rad, and on two
+that reach 1.5 rad. Which equations are found, and how far does each drift
+from the pendulum's motion when released from 2 rad?
+
+::: {.hint}
+Expand $\sin x$ in a Taylor series. Which of its terms is larger than two
+percent of the first one for each set of swings?
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.pendulum)
+```
+
+```{python}
+#| echo: false
+result.table("pendulum")
+```
+
+The small swings give a linear spring: the cubic term of $\sin x$ is too small
+to pass the threshold, and the regression cannot tell the pendulum from a
+harmonic oscillator. The large swings give a cubic term with the sign of
+$-\sin x$, an approximation of the sine over that range. Both fit their own
+data; from $2$ rad the linear equation runs out of phase completely, and the
+cubic one drifts less. Neither found the sine, because the library does not
+contain it. The found equation is a law of the training range.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/discovery/equations.py",
+        "src/pbc/mechanics/integrators.py",
+        "src/pbc/mechanics/experiments/discovering_differential_equations.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_equations.py",
+        "tests/unit/test_discovering_differential_equations_experiment.py",
+    ],
+)
+```

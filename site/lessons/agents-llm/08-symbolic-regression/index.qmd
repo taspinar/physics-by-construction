@@ -1,0 +1,480 @@
+---
+title: "Symbolic regression: a law from simulated data"
+description: >-
+  An exhaustive search over power laws finds the period of a pendulum in
+  simulated measurements, checks it on pendulums it never saw, and shows when
+  the data cannot single out the law and at what noise the search stops
+  finding it.
+lesson:
+  id: symbolic-regression
+  strand: agents-llm
+  order: 8
+  difficulty: 3
+  course: mechanics
+  slot: D7
+  experiment: pbc.mechanics.experiments.symbolic_regression
+  methods: [simulation]
+  outcomes:
+    - Search a stated grammar of formulas for the simplest one that the data cannot reject, and say why the simplest
+    - Test a recovered formula on held-out cases and state the range in which it holds
+    - Recognise when several formulas describe the same observations, and name the measurement or the prior knowledge that separates them
+    - Predict the noise at which a search loses a term of the law, and check the prediction over seeded repetitions
+  related: []
+  format: 2
+  preview: fig-pareto
+  prerequisites:
+    lessons: [energy-conservation, inverse-physics]
+    outside:
+      - "Logarithms: the logarithm of a product and of a power"
+      - "Statistics: least squares and the chi-square of residuals"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.discovery import symbolic
+from pbc.mechanics.experiments import symbolic_regression as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The inverse-physics lesson started from a model and asked for its
+parameters. Here the model itself is unknown. A table of measurements, the
+period of a pendulum next to its length, the gravity it swings in, its mass,
+and the angle it was released from, should be turned into a formula that a
+person can read. That is **symbolic regression**: a search over formulas
+rather than over the numbers in one formula.
+
+The question sounds easy because we know the answer, $T = 2\pi\sqrt{L/g}$.
+That is exactly why it is a good first case. A method that cannot find a law
+we know from data we made has no business being trusted with a law we do not
+know. And even here the honest answers are more interesting than "found it":
+the formula holds only where the data were taken, the data sometimes cannot
+tell two formulas apart, and noise removes terms in a way that can be
+predicted in advance.
+
+No language model is used in this lesson. The search is a plain program that
+tries every formula of a stated grammar. It is the baseline that the later
+discovery lessons, with or without an agent, are compared with.
+
+## Assumptions
+
+1. **The measurements come from a simulation.** Each period is the time a
+   simulated pendulum (`pbc.mechanics.pendulum`, integrated with the
+   fourth-order Runge-Kutta method) takes to swing out and back. If the
+   simulation were wrong, the search would faithfully find the wrong law; the
+   page checks the simulated periods against the exact period first.
+2. **The law is a power law of the variables.** The grammar holds the
+   products $c\,L^{p_1} g^{p_2} m^{p_3} \theta_0^{p_4}$ with every exponent
+   on the half-integers from $-2$ to $2$. A law of another shape cannot be
+   found, only approximated; the search then says that no form fits.
+3. **The noise is relative, Gaussian in the logarithm, and known.** The
+   search judges a form by its chi-square at the stated noise. If the stated
+   noise is too small, every form is rejected; if it is too large, wrong forms
+   pass.
+4. **Simpler is chosen, not proved.** Among the forms the data do not reject,
+   the search picks the one with the fewest variables and the smallest
+   exponents. That is a rule of the method. The data only say which forms are
+   rejected.
+5. **The probed ranges are the domain of the result.** Lengths, gravities,
+   masses, and amplitudes are drawn within fixed ranges. A formula found there
+   is a statement about that region.
+
+## A grammar, a fit, and a rule for choosing {#explanation}
+
+### The data
+
+```{python}
+#| echo: false
+excerpt(experiment, region="world")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.simulated_period)
+```
+
+The simulated periods of the `{python} result["samples"]` pendulums agree
+with the exact period, a complete elliptic integral of the amplitude, to a
+relative difference below `{python} result["simulation-error"]`. That is far
+below the stated resolution, so the search sees the pendulum and not the
+integrator.
+
+### Every form of the grammar
+
+Take logarithms, and every power law becomes a straight line:
+$$\begin{aligned}\ln T = \ln c &+ p_1 \ln L + p_2 \ln g \\ &+ p_3 \ln m + p_4 \ln \theta_0.\end{aligned}$$
+For
+given exponents the best constant is the mean of what is left of $\ln T$, and
+the chi-square is the sum of the squared remainders over the noise squared.
+Nothing has to be optimised, so the search can try all
+`{python} result["forms"]` forms and miss none.
+
+```{python}
+#| echo: false
+excerpt(symbolic.power_law_search)
+```
+
+A form is **consistent** when its chi-square is what the noise alone would
+give: at most the number of degrees of freedom plus three standard deviations
+of the chi-square distribution, here `{python} result["limit"]` for
+`{python} result["dof"]` degrees of freedom. Among the consistent forms the
+search chooses the simplest by its **complexity**, the number of variables
+the form uses plus the number of half steps in its exponents. The square root
+of $L/g$ has complexity four; $L$ alone, three.
+
+### What the search finds on clean data
+
+```{python}
+#| echo: false
+excerpt(experiment, region="law")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.clean_search)
+```
+
+```{python}
+#| label: pareto
+#| echo: false
+result.table("pareto")
+```
+
+The table is the **Pareto front**: for each complexity, the best form, kept
+only if it fits better than every simpler one. A constant period is far off,
+a period that grows as the square root of the length is better but still
+rejected, and the next step, dividing by the square root of the gravity,
+drops the chi-square below the limit. Of all `{python} result["forms"]` forms,
+`{python} result["consistent-forms"]` is consistent.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_pareto)
+```
+
+```{python}
+#| label: fig-pareto
+#| echo: false
+#| fig-cap: "The best power law of each complexity on the clean periods. The chi-square falls by orders of magnitude as the square root of the length and then of the gravity enter, and only the small-angle law lies below the limit of consistency (dashed)."
+#| fig-alt: "Line plot with markers on a logarithmic vertical axis of chi-square against the complexity of the form. The points fall steeply from left to right: a constant at the top, the square root of the length below it, and the small-angle law, marked with a star, far below. A dashed horizontal line, the limit of consistency, lies between the last two points."
+#| fig-status: simulated
+result.show("fig-pareto")
+```
+
+[The search chooses `{python} result["chosen"]` from the clean periods, the
+small-angle law with a constant of `{python} result["constant"]` against
+$2\pi =$ `{python} result["two-pi"]`, an error of
+`{python} result["constant-error"]` percent within the tolerance of
+`{python} result["tolerance"]` percent: the law is
+`{python} result["recovered"]`. The mass and the amplitude are left out
+because no form with them fits better.]{.claim type="numerically-verified"
+scope="simulated pendulums in the probed ranges, power laws with half-integer exponents, relative resolution 0.1 percent"
+evidence="pareto fig-pareto"}
+The constant is a little above $2\pi$, and not by chance: the pendulums swing
+at small but finite amplitudes, and a finite amplitude makes the period
+slightly longer. The correction is smaller than the resolution, so the search
+cannot see it as a term, but it can see it in the constant.
+
+## The program {#code}
+
+The search itself is the one excerpt above. Its result, a `Search`, turns the
+fitted forms into statements about the data: the consistent forms, the rivals
+of the chosen one, and the Pareto front, which is the trade-off the choice was
+made on. A helper gives the noise at which a given form stops being rejected,
+which the section on noise uses.
+
+```{python}
+#| echo: false
+excerpt(symbolic.Search)
+```
+
+```{python}
+#| echo: false
+excerpt(symbolic.noise_floor)
+```
+
+## Worked examples {#worked-examples}
+
+### Held-out pendulums {#held-out-pendulums}
+
+A formula found in a region is tested outside it. The held-out pendulums are
+longer than any probed one, swing in a gravity not drawn, or are released far
+higher.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="held-out")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.held_out)
+```
+
+```{python}
+#| label: held-out
+#| echo: false
+result.table("held-out")
+```
+
+[On the held-out pendulums at small amplitude the chosen form predicts the
+simulated period within `{python} result["held-out-small"]` percent, also at
+lengths ten times the longest probed one; at an amplitude of
+$1.5$ rad it is off by `{python} result["held-out-large"]`
+percent.]{.claim type="numerically-verified"
+scope="the held-out pendulums of the table"
+evidence="held-out"}
+The search found the law of small swings, which is all the data contained.
+Whether it is "the" law of the pendulum is not a question these data can
+answer: only data at large amplitude can, and there the formula fails.
+
+### Data that cannot single out the law {#identifiability}
+
+Suppose every pendulum swings on the Earth. The gravity is then the same in
+every row, and its exponent can be anything: whatever power of $g$ the form
+has, the constant absorbs it.
+
+```{python}
+#| echo: false
+excerpt(experiment.earth_only)
+```
+
+```{python}
+#| label: earth-rivals
+#| echo: false
+result.table("earth-rivals")
+```
+
+[On pendulums that all swing at the gravity of the Earth,
+`{python} result["earth-rivals"]` forms, one for each exponent of the gravity
+in the grammar, fit with the same chi-square. The search chooses the simplest,
+`{python} result["earth-chosen"]`, which predicts the period of a pendulum on
+the Moon `{python} result["moon-error"]` percent too
+short.]{.claim type="numerically-verified"
+scope="power laws with half-integer exponents; simulated pendulums at one gravity"
+evidence="earth-rivals"}
+None of these forms is wrong about the data. The data do not contain the
+answer, and the choice of the simplest is a rule, not evidence. Two things
+separate the forms. A **measurement**: pendulums in other gravities, as in the
+first search. Or **prior knowledge**: the period is a time, and only the
+square root of $L/g$ makes a time out of a length and an acceleration. The
+first exercise applies that rule to the search.
+
+A law outside the grammar is the other way to fail. With amplitudes up to
+$1.2$ rad, the period depends on the amplitude through an elliptic
+integral, which no power law follows:
+
+```{python}
+#| echo: false
+excerpt(experiment.wide_amplitudes)
+```
+
+The search reports: `{python} result["wide-reason"]`. The best form,
+`{python} result["wide-best"]`, is the small-angle law with a larger constant,
+an average over the amplitudes. The search does not offer it as a result, and
+neither should a reader.
+
+### Noise {#noise}
+
+Measured periods have noise. The search is run on noisy copies of the clean
+periods, each period multiplied by the exponential of a Gaussian draw, with
+the noise known to the search, at `{python} result["levels"]` levels and
+over `{python} result["seeds"]` seeds each.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="noise")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.noise_sweep)
+```
+
+```{python}
+#| label: noise-sweep
+#| echo: false
+result.table("noise-sweep")
+```
+
+The failure can be predicted from the clean data. On them, the simplest
+rejected form, `{python} result["rival"]`, misses by a fixed amount. A noise
+large enough to hide that misfit makes the form consistent, and once it is
+consistent the search prefers it, because it is simpler. The helper
+`noise_floor` turns the misfit into that noise:
+`{python} result["floor"]` percent.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_noise_sweep)
+```
+
+```{python}
+#| label: fig-noise-sweep
+#| echo: false
+#| fig-cap: "How often the search chooses the form of the small-angle law, and how often another form, against the noise of the period. The switch comes where the misfit of the simpler form drops below what the noise hides, close to the predicted level (dotted)."
+#| fig-alt: "Line plot with markers of a fraction from zero to one against relative noise in percent on a logarithmic axis. The solid curve for the law stays at one for small noise and drops to near zero at the largest noise levels; the dashed curve for another form mirrors it, rising from zero. A dotted vertical line marks the predicted level, close to where the two curves cross."
+#| fig-status: simulated
+result.show("fig-noise-sweep")
+```
+
+[The search chooses the form of the small-angle law on every noisy copy up to
+a noise of `{python} result["sure-noise"]` percent, and loses the gravity at higher noise, where it
+prefers `{python} result["rival"]`; the switch lies near the predicted level of
+`{python} result["floor"]` percent. Where the form is found, the error of its
+constant follows the noise divided by the square root of the number of
+pendulums.]{.claim type="numerically-verified"
+scope="these pendulums, twenty seeds per noise level, noise known to the search"
+evidence="noise-sweep fig-noise-sweep"}
+The failure is not a defect to tune away. A term of a law is visible only
+when its effect over the probed range is larger than what the noise hides;
+below that, a simpler formula describes the data as well, and choosing it is
+the honest reading. Wider ranges or more pendulums move the level, as the
+second exercise shows.
+
+## Limits {#limits}
+
+- **The grammar decides what can be found.** Power laws with half-integer
+  exponents contain the small-angle law. A search over a richer grammar
+  (sums, functions of the variables) would have more forms that fit by chance,
+  and the rule for choosing would matter even more.
+- **Consistent is not true.** A consistent form describes the data within the
+  noise in the probed ranges. The held-out table shows where that holds; the
+  large-amplitude row shows where it stops.
+- **The choice of the simplest is a convention.** The complexity counts
+  variables and half steps; another count could prefer another form among
+  consistent ones. Only where exactly one form is consistent does the rule not
+  matter.
+- **The noise is known and of one kind.** The search uses the true noise. A
+  noise that is underestimated rejects the law; one that is overestimated lets
+  simpler forms in earlier. Systematic errors, such as a timer that runs fast,
+  are not modelled.
+- **One simulated system.** The lesson recovers a law we already knew, from a
+  simulation of it. It shows how the method behaves, not that it finds laws
+  of nature from real measurements.
+
+In plain words: the search finds the simplest formula that the data cannot
+reject. That is the law only as far as the data reach, and only when nothing
+simpler fits as well. Test it where it was not fitted, and know the noise at
+which it would have lost a term.
+
+::: {.exercise .self-check}
+Two forms fit a data set with the same chi-square, one with the gravity and
+one without. What does the search tell you, and what do you need to decide
+between them?
+
+::: {.choices}
+::: {.choice}
+The simpler form is the law, because the search chose it.
+
+::: {.feedback}
+The choice of the simplest is a rule of the method, not evidence. When the
+chi-square is the same, the data have no preference.
+:::
+:::
+
+::: {.choice correct="true"}
+The data cannot tell them apart; a measurement that varies the gravity, or a
+constraint such as the units of the period, is needed.
+
+::: {.feedback}
+Right. Equal chi-square means the observations carry no information about
+the term. A new measurement or prior knowledge has to supply it.
+:::
+:::
+
+::: {.choice}
+The form with the gravity, because the true law has it.
+
+::: {.feedback}
+That is knowledge from outside the data. It is a valid reason only if it is
+stated as an assumption, as the units are in the first exercise.
+:::
+:::
+:::
+
+::: {.solution}
+The search shows that the data do not determine the exponent of the gravity:
+the two forms are rivals. To decide, vary the gravity in the measurements, or
+add a constraint the data cannot supply, such as that the period has the
+units of a time.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Units as prior knowledge.** Keep only the consistent forms of the search on
+the Earth that have the units of a time, with $L$ in metres, $g$ in metres
+per second squared, $m$ in kilograms, and the amplitude without a unit. How
+many are left, and which?
+
+::: {.hint}
+A product of powers has the units of a time when the metres cancel, the
+seconds come out to the power one, and the kilograms cancel.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.units_filter)
+```
+
+`{python} result["units-forms"]` form remains, `{python} result["units-chosen"]`:
+the small-angle law with its constant. The units fixed the exponent of the
+gravity that the data could not, so the constant came out as $2\pi$ although
+every pendulum swung at the same gravity. This is the same information as
+pendulums on other planets, supplied as an assumption instead of a
+measurement.
+:::
+:::
+
+::: {.exercise}
+**More pendulums.** Repeat the noise sweep with four times as many pendulums,
+from 10 to 50 percent noise. Where does the search now lose the gravity, and
+by how much did the level move?
+
+::: {.hint}
+The misfit of the simpler form is a sum over the pendulums, while the margin
+of the limit grows only as the square root of their number.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.more_samples)
+```
+
+```{python}
+#| echo: false
+result.table("more-samples")
+```
+
+The law survives at noise levels where it was lost before. The misfit grows
+with the number of pendulums $n$, the margin as $\sqrt{n}$, so the noise floor
+grows as $n^{1/4}$: four times the pendulums move it by a factor of about
+$\sqrt{2}$, with the seeds adding scatter around that.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/discovery/symbolic.py",
+        "src/pbc/discovery/baselines.py",
+        "src/pbc/mechanics/pendulum.py",
+        "src/pbc/mechanics/integrators.py",
+        "src/pbc/mechanics/experiments/symbolic_regression.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_symbolic.py",
+        "tests/unit/test_symbolic_regression_experiment.py",
+    ],
+)
+```
