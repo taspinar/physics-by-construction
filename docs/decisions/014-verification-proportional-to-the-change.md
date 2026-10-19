@@ -103,6 +103,24 @@ Change cycle `pbc-planning-change-four-workstreams` (2026-10-15):
   the developer's machine. Decision 4 is unchanged: a run on `main`
   executes every lesson.
 
+- **Change cycle `risk-proportionate-workflow`, 2026-10-19
+  ([ADR 020](020-risk-proportionate-verification-and-review.md), requirements decision 39).** Decision 7 and the consequences
+  are amended in one respect: an exceeded wall-clock budget is a
+  measurement for the owner's decision at the re-assessment points ADR
+  020 decision 6 names (42 lessons measured, 44 decided, or a complete
+  run on `main` above 45 minutes), not a mandate; the consequence "no
+  lesson feature takes the count past it before F113 is delivered" is
+  history since the interim full-run gate above (up to 45 lessons). ADR
+  017 decisions 1 to 6 and 9 stay proposed and paused, not justified by
+  lead-time evidence, and decision 11 of this record (F113, Issue #150)
+  stays paused and open; both are reopened only at those triggers. F120's
+  evidence was published (pull request #224) and Issue #196 closed on
+  2026-10-19 without accepting ADR 017. Decisions 1 to 6, 8, 9, and 10,
+  the selection, the base provenance (with the stamped ref of F61 M3,
+  pull request #216), and the check identity are unchanged, and any change
+  to them is Level 3 under ADR 020. The site publishes thirty-eight lessons
+  since 2026-10-17 (F66 and F72), within the interim gate.
+
 Date: 2026-10-12
 
 ## Context

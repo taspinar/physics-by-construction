@@ -1,7 +1,7 @@
 # Project Requirements
 
 Status: Approved
-Approved at: 2026-10-17T13:56:42Z
+Approved at: 2026-10-19T10:07:11Z
 
 Project Grill owns the Draft content. `scripts/start-planning.sh` records human
 approval before project architecture and roadmap planning begins.
@@ -11,8 +11,10 @@ change requests `docs/changes/physics-next-phase.md` (human-supplied,
 2026-10-09), `docs/changes/final-curriculum.md` (human-supplied,
 2026-10-10, revision 3), and
 `docs/changes/pbc-planning-change-four-workstreams.md` (human-supplied,
-2026-10-14), and `docs/changes/scientific-atelier-atlas.md` (human-supplied,
-2026-10-17), plus the decisions recorded in "Major product decisions" below.
+2026-10-14), `docs/changes/scientific-atelier-atlas.md` (human-supplied,
+2026-10-17), and `docs/changes/risk-proportionate-workflow.md`
+(human-supplied, 2026-10-18), plus the decisions recorded in "Major product
+decisions" below.
 
 ## Project goal
 
@@ -241,6 +243,12 @@ Later phases (in scope for the project, out of scope for the MVP):
   project-owned scientific-visualization skill, and the planner,
   implementer, reviewer, and verification contract that makes their use
   traceable, piloted on bounded features before any wider adoption.
+- The risk-proportionate verification and review workflow of decision 39:
+  three risk levels, an evidence lifecycle with per-criterion gates, a
+  traceable chain of delta reviews for medium-risk changes, and owner
+  approval that GitHub enforces at the merge, delivered as two bounded
+  workflow features in strict order and evaluated on a pilot of features
+  from existing artifacts.
 - Trustworthy scientific coding: agent-assisted simulation development,
   independent code verification and review, a counterexample-hunting agent,
   further Lean proofs and local Lean exercises.
@@ -350,6 +358,13 @@ Later phases (in scope for the project, out of scope for the MVP):
 - No removal of the internal CI site build, the deployment of the verified
   artifact, provenance, accessibility, scientific checks, or the ability
   to run complete verification, under any verification simplification.
+- No weakening of the digest, selection, base provenance, build,
+  deployment, or determinism guarantees, of the complete CI run on every
+  pull request and push, or of independent review by a different model,
+  for the sake of lead time; no new mandatory agent and no new mandatory
+  reporting gate in the feature workflow; and no workflow rule that an
+  agent can satisfy with its own assertion of the owner's approval
+  (decision 39).
 
 ## UX expectations
 
@@ -656,6 +671,17 @@ Later phases (in scope for the project, out of scope for the MVP):
   protected; changes land via pull requests with passing CI. Outside
   contributions arrive as Issues and pull requests under the repository's
   CODEOWNERS and review rules.
+- Owner approval of a Level 3 change and of a lowered risk level
+  (decision 39): a second GitHub identity, held only by the owner and
+  never used by an agent, gives an approving review of the pull request;
+  the ruleset of `main` requires a code-owner review, and `CODEOWNERS`
+  assigns the protected paths of `guardrails.conf` to that identity, so
+  GitHub itself refuses the merge without it. The agent's `gh` login is
+  the owner's account, so nothing that login writes (a comment, a review,
+  a file, a flag, or a statement in chat) is proof of the owner's
+  approval. The owner creates the identity, grants it access, and changes
+  the ruleset and `CODEOWNERS`; an agent never changes repository
+  settings or creates accounts.
 - CI: GitHub Actions deploys to GitHub Pages using the workflow's own
   short-lived token with least-privilege permissions; no long-lived deploy
   credentials.
@@ -786,6 +812,23 @@ Later phases (in scope for the project, out of scope for the MVP):
   configuration). CI owns the validation of the publishable site and
   remains the publication gate; `./scripts/verify.sh` without options
   still runs everything.
+- Risk-proportionate verification and review (decision 39): every change
+  carries one of three risk levels, the highest of the minimum its paths
+  imply, the escalation triggers its nature hits, and the level an agent
+  or the reviewer assesses; a level is raised freely and lowered only by
+  the owner's authorization verified at the merge gate. Intermediate
+  rounds of a Level 3 change may run targeted partial verification as
+  feedback that is never evidence; the final acceptance is the
+  verification tier the change needs on the final tree (a complete
+  verification for Level 3), an independent review made after it, and the
+  full CI, which stays the publication gate. Each acceptance criterion of
+  a feature names the gate that clears it (implementation, pull-request
+  CI, owner approval, or post-merge); a criterion whose evidence belongs
+  to a later gate is pending, never a met criterion and never a reason for
+  an owner exception. The complete CI run on every pull request and push,
+  the aggregate required check `verify`, the deployment of only the
+  verified artifact, the digest, selection, base provenance, check
+  identity, and the safe fall-back to executing everything are unchanged.
 - CI cost and time: Mathlib builds are heavy; the pipeline must use the
   Mathlib cache (or equivalent) and dependency caching so a typical pull
   request verifies in minutes, not hours. The planner must set a concrete
@@ -1425,6 +1468,177 @@ project-owned adapter or is dropped, without blocking the other slices;
 the three-part rendered review records its screenshots as evidence
 artifacts of the feature, not as committed site assets.
 
+Decided during the change cycle `risk-proportionate-workflow` (2026-10-19),
+from `docs/changes/risk-proportionate-workflow.md` (human-supplied,
+2026-10-18, version 2 of the workflow proposal with the owner's four
+refinements R1 to R4) and the owner's answers recorded here. The change is
+a workflow requirement change: one planning change delivered as two bounded
+features; nothing of it is implemented before the planning and its decision
+record are approved; features already in progress finish under the
+contracts they started with; and two changes to the workflow scripts are
+never in flight together.
+
+39. **Risk-proportionate verification and review.** The objective is a
+    shorter feature lead time and less rework without weakening
+    scientific correctness, reproducibility, security, or independent
+    review. The measured baseline is the table of the change request's
+    section 1, and the exact verification matrix of that section (per
+    lesson in a full run, three pages, one experiment through the
+    learner path, and one experiment in the unit tests; about 68 minutes
+    sequentially at 38 lessons) is recorded in the architecture as the
+    standing reference. One new decision record, ADR 020, is the only
+    authoritative place for the rules; the process statements of ADR
+    002, 003, 005, 012, 014, 015, and 017 are amended through status
+    lines, never their invariants; `AGENTS.md` and
+    `.agents/policies/autonomy.md` refer to ADR 020 and define the
+    levels and the evidence states.
+    - *Three risk levels.* The level of a change is the highest of the
+      minimum its paths imply (Level 1: documentation and process files
+      outside the ADRs and the planning documents, such as plans,
+      handoffs, and summaries; Level 2: lessons, `src/`, tests, and
+      unprotected scripts; Level 3: the protected paths of
+      `guardrails.conf`: ADRs, planning documents, workflows, gate
+      scripts, prompts, `agents.conf`, `verify.conf` and `verify.sh`,
+      digest, selection, `fetch-base.sh`, provenance, build and deploy,
+      skills), any escalation trigger its nature hits wherever the files
+      are (a changed scientific claim; weakened test strength; security;
+      verification guarantees; dependency selection, as the change
+      request's section 3.1 lists them), and the level an agent or the
+      reviewer assesses. The scripts detect the mechanically detectable
+      triggers on the diff; the agent names the rest in the completion
+      record, and the independent reviewer assesses them with the impact
+      classification it already fills, with no new agent and no new
+      report. A level is raised at any time and never lowered without
+      the owner's authorization, verified only at the merge gate.
+    - *Evidence lifecycle.* The completion record stays the single
+      record with its three statuses and their present meaning. Each
+      criterion names the gate that clears it (`implementation`,
+      `pr_ci`, `owner_approval`, or `post_merge`) and is `met`,
+      `not_met`, or `pending`; `pending` names one of the last three
+      gates and is never allowed for `implementation`. `complete` keeps
+      one meaning: every acceptance criterion met; a record with a
+      pending criterion is `partial`. Three readiness points are derived
+      from the record, never stored: ready for a pull request (every
+      implementation criterion met), ready for merge (additionally CI
+      green on the exact published head, a current review chain, no
+      open major finding, and for Level 3 the verified owner approval),
+      and done (every criterion met, the Issue may close). A record
+      whose only unmet criteria are pending for later gates is committed
+      and published without `--partial`, `--no-review`, or any owner
+      exception; its pull request does not close the Issue; pending CI
+      blocks the merge, not the publication; outstanding post-merge
+      evidence keeps the Issue open and never blocks the merge; an open
+      major finding is never a pending criterion, and criteria whose
+      evidence belongs to a later gate are not review findings.
+    - *Review.* Level 1 needs no review. Level 2 allows an initial full
+      review followed by a traceable chain of delta reviews: each review
+      records the tree it compared against and the tree it reviewed; the
+      chain begins with a full review and ends at exactly the current
+      tree, and a gap or a break means a full review; every finding has
+      a stable identifier; every later review gives the disposition of
+      every earlier open finding (resolved with evidence, still open, or
+      accepted); finish requires no open finding. A delta review is
+      allowed only when the delta is confined to kinds of change whose
+      reach is certain (tests, documentation, lesson content, and one
+      source module whose importers are all among the files the
+      baseline review covered, found by a plain textual search with the
+      import knowledge of the digest); a Level 3 path, an escalation
+      trigger, a shared input, a changed exported interface, a file with
+      an unresolved finding, or an undecidable search requires a full
+      review; there is no changed-lines threshold and no general-purpose
+      impact graph. Level 3 keeps a full review in every round. Minor
+      and suggestion findings at Levels 1 and 2 are triaged mechanically
+      (an accept or a deferral with a reason, published once, with a
+      follow-up Issue for every deferral); Level 3 keeps a full triage
+      per finding. The completion record and the handoff note are part
+      of the review fingerprint.
+    - *Owner approval* (owner's answer, 2026-10-19): mechanism A of the
+      change request. The approval of a Level 3 change and the
+      authorization to lower a level are pre-merge requirements, given
+      as an approving review of the pull request by a second GitHub
+      identity held only by the owner, naming the head commit it applies
+      to and, for a lowering, the level; GitHub enforces it at the merge
+      through the ruleset of `main` and `CODEOWNERS`, as "Authentication
+      and authorization" states, and the workflow scripts (finish,
+      review, triage, publish) only record what is required and the head
+      it applies to, without repeated network requests. No script
+      accepts an agent-written assertion, a comment or review by the
+      agent's own login, a flag, or a statement in chat as the owner's
+      approval, and the merge-gate verification is tested with a forged
+      assertion that it refuses. Until the identity, the code-owner rule,
+      and the ruleset change exist, the present practice continues: an
+      agent merges a Level 3 change only after the owner's explicit word
+      in the conversation and states the head commit it applies to.
+    - *Verification.* Intermediate rounds of a Level 3 change may use
+      targeted partial verification (`verify.sh --only <group>` for the
+      groups the changed paths touch, plus the unit tests of the changed
+      modules) as quick feedback that is never evidence; the final
+      acceptance is always a complete verification of the final tree,
+      then a complete independent review of that tree made after the
+      verification (a review made with `--unverified` never counts as
+      the final review), then the full CI, which stays the publication
+      gate. The targeted tier stays refused when the check identity
+      differs. An exceeded time budget is a measurement for the owner at
+      the re-assessment points already chosen (re-measure at 42 lessons,
+      decide the capacity at 44 at the latest, or earlier if a complete
+      `main` run exceeds 45 minutes); it starts no mandatory optimisation
+      and never changes scientific content; hard checks such as the
+      30-second lesson page budget keep failing, with the documented
+      exception table. A small time log appended by `verify.sh`
+      (timestamp, tier, tree, duration, result) serves the evaluation and
+      is read by no gate; the base is not re-fetched when the latest
+      accepted `main` run is the one recorded.
+    - *ADR 017 and F113 stay paused.* Neither is justified by lead-time
+      evidence: ADR 017 decisions 1 to 6 and 9 are not accepted, its
+      status records the pause and the triggers, F113 and Issue #150
+      stay paused and open, F121 is not started, and F120 is finished
+      (its evidence was published by pull request #224 and Issue #196
+      closed on 2026-10-19, after the change request was written). They
+      are reopened only at the owner's triggers above.
+    - *Unchanged.* The complete CI run on every pull request and push;
+      the aggregate required check `verify` and the deployment of only
+      the verified artifact; the digest, selection, base provenance (with
+      the stamped ref of F61 M3) and check identity, with the safe
+      fall-back to executing everything; independent review by a
+      different model for Levels 2 and 3; and no scientific check removed
+      without coverage evidence (ADR 017 decision 8). Any change to these
+      is Level 3. No new mandatory agent and no new mandatory reporting
+      gate.
+    - *Delivery and evaluation.* Two roadmap features with the next free
+      identifiers, F130 and F131 at this cycle: F130 delivers the
+      evidence lifecycle, the risk level, the merge-gate verification,
+      the intermediate Level 3 verification, the budget policy where the
+      checks read their budgets, the time log, and the base re-fetch
+      rule; F131 delivers the review chain, the fingerprint of the
+      completion record and the handoff, and the mechanical triage. Each
+      is Level 3 with the owner's approval of its diff, strictly one
+      after the other; F131 starts only after F130 is merged and two
+      features have run under it with their effect observed (owner's
+      answer, 2026-10-19). The new rules apply to features started after
+      F130 is merged, for its part, and after F131 is merged, for the
+      rest. The evaluation is a pilot of five features after F131 (two
+      after F130 for its own effect), with six measurements derived
+      afterwards from existing artifacts and no new report, agent, or
+      gate: lead time, repeated verification from the time log, review
+      rounds, owner waiting time, defects missed by the reduced process
+      under the Issue label `process-miss`, and the baseline; a miss in
+      an escalation-trigger category stops the pilot and restores full
+      strictness at that level until the owner decides. The acceptance
+      criteria of the change request's section 7 apply to the planning
+      change and to each deliverable.
+
+Recommended defaults adopted in this change cycle (reversible during
+planning): the planner verifies on the real ruleset of `main`, with a test
+pull request, that a required code-owner review with zero required
+approving reviews leaves Level 1 and 2 pull requests without a GitHub
+review requirement, and records the owner actions mechanism A needs; the
+lists and thresholds of the change request's section 3 are the owner's
+decisions, not planning questions; the status claims of the change request
+are refreshed against `main` (the roadmap's last identifier is F129; Issue
+#196 closed on 2026-10-19; the ruleset of `main` requires a pull request
+and the check `verify` with zero approving reviews and no code-owner
+review; `CODEOWNERS` names only the owner's own login).
+
 ## Unresolved questions
 
 Questions 1 to 4 and 6 are settled. They keep their numbers, because other
@@ -1465,7 +1679,10 @@ documents refer to them; questions 5, 7, 8, 9 to 12, and 13 to 15 are open.
    the current commit, and with which minimum mitigations, is decided on
    the decision record that decision 35 requires, after the staged
    evidence exists. Until then every push to `main` executes and checks
-   every lesson.
+   every lesson. The staged evidence of F120 exists (pull request #224,
+   2026-10-19), the record was amended without being accepted, and by
+   decision 39 it stays paused until the owner's triggers (42 lessons
+   measured, 44 decided, or a complete `main` run above 45 minutes).
 10. **Timeout of an exceptional full run.** The per-job timeout and the
     budget of a complete verification at representative larger lesson
     counts are set from measurements under decision 35, not from the

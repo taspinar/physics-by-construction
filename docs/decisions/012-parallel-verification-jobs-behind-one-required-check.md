@@ -43,6 +43,21 @@ the job `integration` into three jobs (`integration-quarto`,
 `scripts/verify.conf` as decision 2 requires, behind the same required
 check.
 
+[ADR 020](020-risk-proportionate-verification-and-review.md) (2026-10-19, change cycle
+`risk-proportionate-workflow`, requirements decision 39) amends decisions
+1 and 8 in one respect each. Decision 1: a run with `--only` still
+verifies nothing and records nothing; ADR 020 decision 5 names the one
+use the workflow makes of it, the intermediate fix rounds of a Level 3
+change, as feedback that is never evidence, and requires a complete
+verification of the final tree before the final review. Decision 8: an
+exceeded wall-clock budget is a measurement for the owner's decision at
+the re-assessment points of ADR 020 decision 6, not a failed gate and not
+a mandate; the budgets themselves, the groups, the one required check, and
+decision 9's timeout (60 minutes for the one `build` job of a full run
+since 2026-10-15, 45 for every other job) are unchanged. ADR 017
+decisions 1 to 6 and 9 stay proposed and paused by ADR 020 decision 8, so
+the pause of decision 11 of ADR 014 (F113) continues.
+
 Date: 2026-10-12
 
 ## Context

@@ -10,16 +10,20 @@ final curriculum adds, and the boundaries every feature must respect.
   2026-10-06, re-approved with the change cycle `physics-next-phase` on
   2026-10-09, with the change cycle `final-curriculum` on 2026-10-12,
   with the change cycle `pbc-planning-change-four-workstreams` on
-  2026-10-15, and with the change cycle `scientific-atelier-atlas` on
-  2026-10-17).
+  2026-10-15, with the change cycle `scientific-atelier-atlas` on
+  2026-10-17, and with the change cycle `risk-proportionate-workflow` on
+  2026-10-19).
   Where this document and the requirements disagree, the requirements win
   and the disagreement is a defect in this document.
-- Decisions with a durable record: `docs/decisions/001` to `019`; ADR 017
-  is proposed and not accepted (see "Verification simplification under
-  review"); ADR 018 (the atelier, the asset classes, and the atlas) and
-  ADR 019 (the agent skills) are proposed with the change cycle
-  `scientific-atelier-atlas` and accepted when its planning is approved
-  (see "The scientific atelier").
+- Decisions with a durable record: `docs/decisions/001` to `020`; ADR 017
+  is proposed, not accepted, and paused (see "Verification simplification
+  under review"); ADR 018 (the atelier, the asset classes, and the atlas)
+  and ADR 019 (the agent skills) were accepted with the planning of the
+  change cycle `scientific-atelier-atlas` (see "The scientific atelier");
+  ADR 020 (risk-proportionate verification and review) is proposed with
+  the change cycle `risk-proportionate-workflow` and accepted when its
+  planning is approved (see "The verification matrix and the
+  risk-proportionate workflow").
 - Planning base commits: `502ced0` for the bootstrap planning, when the
   repository held only the workflow template; `2f011ea` for the change cycle
   `physics-next-phase` (`docs/changes/physics-next-phase.md`), when F01 to
@@ -34,8 +38,12 @@ final curriculum adds, and the boundaries every feature must respect.
   `scientific-atelier-atlas` (`docs/changes/scientific-atelier-atlas.md`),
   when the site still published thirty-two lessons, F117 had just merged
   (pull request #205, 2026-10-17), and the first run on `main` after it
-  had failed on a stochastic unit test (Issue #206). `docs/roadmap.md`
-  orders the remaining work.
+  had failed on a stochastic unit test (Issue #206); `36e9d3b` for the
+  change cycle `risk-proportionate-workflow`
+  (`docs/changes/risk-proportionate-workflow.md`), when the site published
+  thirty-eight lessons in seven strands, F117, F119, F120, and F122 were
+  delivered, F123 had started, and every push to `main` still executed
+  every lesson. `docs/roadmap.md` orders the remaining work.
 
 Sections marked **(next phase)** describe what the change cycle
 `physics-next-phase` added; most of it is delivered, and the marker names
@@ -44,7 +52,9 @@ what the change cycle `final-curriculum` adds; sections marked **(four
 workstreams)** describe what the change cycle
 `pbc-planning-change-four-workstreams` adds; sections marked
 **(scientific atelier)** describe what the change cycle
-`scientific-atelier-atlas` adds. Each names the roadmap
+`scientific-atelier-atlas` adds; sections marked **(risk-proportionate
+workflow)** describe what the change cycle `risk-proportionate-workflow`
+adds to the development workflow, which touches no page of the site. Each names the roadmap
 feature that builds it; until that feature is delivered the section is a
 target, not a description of the repository.
 
@@ -1204,6 +1214,12 @@ Boundaries for agents working in this repository, in addition to `AGENTS.md`:
   recorded revision, do not fetch one at run time, and do not present a
   skill's guidance as evidence; record the skill and its revision in the
   completion evidence where one was used (ADR 019).
+- Do not lower the risk level of a change below the minimum its paths and
+  escalation triggers imply, do not present your own assertion, comment,
+  file, flag, or chat statement as the owner's approval, do not treat a
+  partial run (`--only`) or a review made without verification as
+  evidence, and do not record a criterion whose evidence belongs to a
+  later gate as met (ADR 020).
 
 ## Runtime and deployment
 
@@ -1401,7 +1417,8 @@ size exceeds the growth from 28 to 32 lessons, so the cost per lesson is
 left to F118 to separate. The roadmap's full-run gate (no lesson feature
 past 32 lessons before F113) is reached with F113 paused; the interim
 gate is the owner's decision under unresolved question 10 on F118's
-record. The `build` job of a full run executed every lesson in the site
+record (decided the same day: 60 minutes for the one `build` job, up to
+45 lessons, so the 32-lesson sentence is history). The `build` job of a full run executed every lesson in the site
 build, in the determinism build, in the build of the preview test
 (`test_a_second_build_gives_byte_identical_previews`, a third build
 through the same helper), and in the reproduction in a fresh clone: four
@@ -1431,7 +1448,16 @@ switch.
 This section is a target under review, not a description of the
 repository, and it becomes one only if the owner accepts ADR 017 on the
 evidence of F118 and F120. Until then every push to `main` executes and
-checks every lesson (ADR 014 decision 4, invariant I26).
+checks every lesson (ADR 014 decision 4, invariant I26). **Paused since
+2026-10-19** (change cycle `risk-proportionate-workflow`, requirements
+decision 39, ADR 020 decision 8): ADR 017 decisions 1 to 6 and 9 are not
+justified by lead-time evidence and stay proposed; F120 is finished (its
+evidence in `docs/incremental-main-evidence.md`, pull request #224, Issue
+#196 closed), F121 is not started, F113 stays paused and open, and they
+are reopened only at the owner's triggers (42 lessons measured, the
+capacity decided at 44 at the latest, or a complete run on `main` above
+45 minutes). Decisions 7 and 8, accepted and applied, are the tiers the
+workflow uses.
 
 - **Incremental `main` from a chain of verified bases** (ADR 017 decisions
   1 to 5; F120 for the evidence, F121 for the delivery; the evidence of
@@ -1543,6 +1569,180 @@ decides before it is reached between a summary index (titles, headings and the
 beginning of each section, which would change the F41 criterion that a query
 finds a lesson by a term in its body) and a further increase of the budget.
 
+### The verification matrix and the risk-proportionate workflow (risk-proportionate workflow, requirements decision 39, ADR 020)
+
+This section is the standing reference of what a verification executes
+and of the rules the agent workflow follows in proportion to the risk of a
+change. The matrix describes the repository; the workflow rules are a
+target until F130 and F131 deliver them, and features in progress finish
+under the contracts they started with, except that the protected list of
+`.agents/policies/guardrails.conf` and the code-owner rule apply at the
+merge gate to every pull request finished after F130's merge, because
+the gate reads the list from the base branch and GitHub enforces the
+rule at the merge (ADR 020, Status). On 2026-10-19 the owner accepted, by
+approving the round 4 revision of this planning's review (11:42 UTC),
+that the merge approval gate is the one exception to the rule of
+requirements decision 39 that a feature in progress finishes under the
+contracts it started with; the requirements are not edited for it (ADR
+020, Status).
+
+**The verification matrix**, read from `scripts/verify.conf`,
+`scripts/check-determinism.sh`, `tests/e2e/test_lessons.py`, and the CI
+logs of the run on `main` 39079012220 (2026-10-17, 38 lessons, 29 min 12 s
+from creation to deployment). In a full run every lesson is executed five
+times, three of them inside a page:
+
+| Execution of a lesson | Check (`scripts/verify.conf`) | Job | Where |
+|---|---|---|---|
+| The page, rendered by the site build | `site-build` | `build` | In a page |
+| The page, rendered a second time for the determinism comparison | `determinism` | `build` | In a page |
+| The page, rendered in a fresh clone and compared with the built page | `site-checks-reproduction` (the page reproduction, `same_machine`) | `build` | In a page |
+| The experiment, run through the learner path in a fresh clone and compared with the built page's figures and numbers | `site-checks-reproduction` (the experiment check, `same_machine`) | `build` | The experiment entry point |
+| The experiment, in the unit test of its entry point | `unit-tests` | `code` | The unit tests |
+
+Measured on that run (job start to job end): `build` 20 min 40 s, of
+which the reproduction is 9 min 35 s (from the CI logs as the change
+request read them; not re-read by this planning); `code` 4 min 00 s;
+`workflow` 4 min 14 s; the three `integration` jobs 6 min 17 s to 9 min
+18 s, 22 min 02 s in all; the three `e2e` jobs 4 min 26 s to 8 min 02 s,
+17 min 20 s in all. Run in parallel, the critical path of CI is `build`
+and then the `e2e` jobs; run sequentially on one machine, a complete
+verification is about 68 minutes (about 4 `code`, 4 `workflow`, 22
+`integration`, 21 `build`, 17 `e2e`), and `./scripts/verify.sh --only
+code,integration-other` about 13. The eight complete runs on `main` from
+2026-10-17 to 2026-10-19 at 38 lessons took 29 to 39 minutes of wall
+clock, below the 45-minute trigger of the owner's re-assessment. A
+targeted run (`./scripts/verify.sh --targeted`, the groups `default` and
+`code`) performs, for each selected lesson, a single-page render and the
+lesson's experiment in a fresh clone through `lesson-pages` (comparable
+to the third and fourth rows, but against the working tree and outside
+`site-checks-reproduction`) and the unit tests of the fifth row; it
+performs no site build, no determinism build, and no check of a built
+site. A run with `--base` performs every row for the selected lessons and
+renders the rest from the base.
+
+**Three risk levels** (ADR 020 decision 1). Every change carries the
+highest of: the minimum its paths imply (Level 1: documentation and
+process files outside the ADRs and the planning documents, such as
+`.agents/plans/`, handoffs, and summaries; Level 2: lessons, `src/`,
+tests, and scripts that are not Level 3; Level 3: the paths ADR 020
+decision 1 names directly as the one authoritative list: the ADRs; the
+planning documents `docs/PROJECT_REQUIREMENTS.md`, `docs/roadmap.md`, and
+this document, which carries the invariants; the CI workflows and
+`.github/CODEOWNERS` itself; the gate (the workflow scripts and
+`scripts/lib/`, the prompts, the schemas, the policies, `AGENTS.md`,
+`.agents/agents.conf`, `scripts/verify.conf`, `scripts/verify.sh`); the
+digest and the selection (`src/pbc/authoring/digest.py`,
+`src/pbc/authoring/selection.py`); the base and its provenance
+(`scripts/fetch-base.sh`, `scripts/collect-base.sh`,
+`src/pbc/authoring/provenance.py`); the build and the deployment
+(`scripts/build-site.sh`, the deploy job); the skills `.agents/skills/`;
+and the approval requests `.agents/approvals/`, which are code-owned
+but do not count in the path minimum, so that a request never raises
+the level of the change it belongs to. On 2026-10-19
+`.agents/policies/guardrails.conf` protects only `scripts/verify.sh`
+beyond its always protected set and lists this document as sensitive;
+F130 brings its protected list in line with the ADR's list, so that
+"the protected paths of `guardrails.conf`" in the requirements is that
+list from F130's merge); any escalation trigger its nature
+hits wherever the files are (a changed scientific claim, which is a
+change to or a removal of a claim `main` already publishes, so that a
+new lesson's own claims leave it at Level 2 with independent scientific
+review; weakened test strength; security; a verification guarantee;
+dependency selection); and
+the level the agent or the reviewer assesses. The scripts detect the
+mechanically detectable triggers on the diff; the agent names the rest in
+the completion record; the independent reviewer assesses them with the
+impact classification it already fills. A level is raised at any time and
+lowered only by the owner's authorization verified at the merge gate: an
+authorization may lower a trigger reading or an assessed level, never
+the path minimum, which GitHub enforces through `CODEOWNERS` whatever is
+recorded; the change keeps its required level at finish, review, triage,
+and verification until the owner's explicit word names the level
+requested, the scripts then record the required level, the requested
+level, and the head, the identity's approving review of that head is the
+verification, and a refused lowering is redone at the required level
+before the merge.
+
+**The evidence lifecycle** (ADR 020 decision 2). The completion record
+stays the single record; each criterion names the gate that clears it
+(`implementation`, `pr_ci`, `owner_approval`, `post_merge`) and is `met`,
+`not_met`, `not_applicable`, or `pending` for one of the last three
+gates. `complete` means every criterion met. Ready for a pull request,
+ready for merge, and done are derived from the record, never stored. A
+record whose only unmet criteria are pending for later gates is committed
+and published without an owner exception, its pull request does not close
+the Issue, pending CI blocks the merge and not the publication, and
+outstanding post-merge evidence keeps the Issue open and never blocks the
+merge.
+
+**Owner approval at the merge gate** (ADR 020 decision 3, mechanism A of
+the change request). A Level 3 change and a lowered level need an
+approving review of the pull request by a second GitHub identity that
+only the owner holds, naming the head it applies to; the ruleset of
+`main` requires a code-owner review with zero required approving reviews,
+and `.github/CODEOWNERS` assigns the Level 3 paths of ADR 020 decision 1
+to that identity, among them the approval requests
+`.agents/approvals/<issue>.md` (a committed request that a Level 3 change
+by trigger or assessment, and every lowering request, writes so that the
+pull request touches a code-owned path; for a lowering it names the
+required level, the level requested, the reason, and the owner's word
+that let the agent proceed, and it is never read by a script as the
+owner's decision) and `.github/CODEOWNERS` itself,
+so that the code-owners file cannot change without the identity. GitHub
+refuses the merge without it; the workflow scripts only record what is
+required and the head it applies to, and no script accepts an
+agent-written assertion, a comment or review by the agent's own login, a
+file, a flag, or a statement in chat as the owner's approval. The owner
+creates the identity, changes the ruleset and `CODEOWNERS`, and verifies
+the setup with a test pull request; until then the present practice
+continues (the owner's explicit word in the conversation, naming the
+head). On 2026-10-19 the ruleset `protect main` requires a pull request
+with zero approving reviews and no code-owner review, the check `verify`,
+and has no bypass actors, and `CODEOWNERS` names only the owner's login.
+
+**Review and verification in proportion to the level** (ADR 020
+decisions 4 and 5). Level 1: no independent review. Level 2: an initial
+full review, then a traceable chain of delta reviews (each recording the
+tree it compared against and the tree it reviewed; stable finding
+identifiers; the disposition of every earlier finding; a full review
+whenever the delta's reach is not certain: a Level 3 path, a trigger, a
+shared input, an exported interface, a file with an unresolved finding,
+or an undecidable importer search; no changed-lines threshold and no
+impact graph); minor and suggestion findings triaged mechanically with a
+follow-up Issue per deferral. Level 3: a full review in every round and a
+full triage per finding; intermediate fix rounds may run
+`./scripts/verify.sh --only <group>` for the groups their paths touch as
+feedback that is never evidence; the final acceptance is a complete
+verification of the final tree, a full review made after it (never one
+made with `--unverified`), and the full CI. At every level the tier of
+ADR 017 decision 7 applies, the targeted tier stays refused when the
+check identity differs, and CI runs everything on every pull request and
+push. The completion record and the handoff note are part of the review
+fingerprint.
+
+**Budgets and the time log** (ADR 020 decisions 6 and 7). An exceeded
+wall-clock budget is a measurement for the owner at the chosen
+re-assessment points (42 lessons measured, the capacity decided at 44 at
+the latest, or a complete run on `main` above 45 minutes); it starts no
+mandatory optimisation and never changes scientific content; hard checks
+keep failing, with the exception table `scripts/lesson-budgets.conf`.
+`./scripts/verify.sh` appends one line per run (timestamp, tier, tree,
+duration, result) to a per-machine log outside the worktrees, never
+committed and read by no gate; `scripts/fetch-base.sh` does not fetch
+again when the latest accepted run on `main` is the one recorded.
+
+**Unchanged, and Level 3 to touch** (ADR 020 decision 9): the complete CI
+run on every pull request and push, the aggregate required check `verify`
+and the deployment of only the verified artifact, the digest, the
+selection, the base provenance with the stamped ref of F61 M3 and the
+check identity with the safe fall-back to executing everything,
+independent review by a different model for Levels 2 and 3, no scientific
+check removed without coverage evidence, and the invariants I1 to I32. No
+new mandatory agent and no new mandatory reporting gate; the evaluation
+of the pilot (five features after F131, two after F130) reads existing
+artifacts and the time log.
+
 ### Deployment and recovery
 
 - Deployment is automatic for every verified commit on `main`.
@@ -1587,6 +1787,22 @@ Nothing else is stored anywhere.
   provenance record, never fetched at run time, and never installed by a
   third-party installer in CI; a missing required skill fails a feature's
   configuration visibly.
+- **Owner approval of the workflow** (risk-proportionate workflow, ADR
+  020): the agent works with the owner's own GitHub login, so nothing that
+  login writes proves the owner's approval; the approval of a Level 3
+  change and of a lowered risk level is an approving review by a second
+  GitHub identity that only the owner holds, required by the ruleset of
+  `main` through `CODEOWNERS` and checked by GitHub at the merge. No
+  script accepts an agent's assertion, comment, file, flag, or chat
+  statement as that approval; an agent never changes repository settings
+  or creates accounts. What this excludes is forgery, not circumvention:
+  the owner's login administers the repository, so it could change the
+  ruleset or the code-owners file, and only the policy that an agent
+  never changes a repository setting holds that back. The Level 3 paths
+  of ADR 020 decision 1 therefore include `.github/CODEOWNERS` itself,
+  and the owner may give the agent a token without administration rights
+  (ADR 020, residual risks; an option of the owner's setup, not a
+  requirement).
 - **Agent safety**: allowlisted tools with bounded arguments and a step limit
   in the harness; the model's text is data, never code to run. Coding-agent
   exercises are learner-operated, sandboxed, budgeted, and reviewed, and
@@ -1849,9 +2065,49 @@ that must settle them:
 
 ## Repository state compared with the requirements
 
-Checked at the change-cycle base commit `b4baed1` (2026-10-17) against the
-requirements re-approved with `scientific-atelier-atlas`. No material
+Checked at the change-cycle base commit `36e9d3b` (2026-10-19) against the
+requirements re-approved with `risk-proportionate-workflow`. No material
 conflict was found; the reconciliation of lessons, features, runs, Issues,
+the ruleset, and ADRs is in `docs/roadmap.md`, "State at the change cycle
+`risk-proportionate-workflow`". The gaps are the work of F130 and F131
+and of the owner's actions:
+
+- The completion record has no gate per criterion and no `pending`
+  status (`scripts/lib/completion.sh`: `met`, `not_met`,
+  `not_applicable`); a criterion whose evidence can only exist after the
+  publication, the merge, or the owner's approval needs `--partial` or
+  `--no-review`, which the pull requests #205, #220, and #224 record
+  (F130).
+- No script reads a risk level: `.agents/policies/autonomy.md` names
+  three levels in prose, the guardrails gate classifies paths as
+  protected or sensitive, and the reviewer classifies the architecture
+  impact; no escalation trigger is detected on a diff (F130).
+- The owner's approval is the present practice: the owner's word in the
+  conversation and the owner's own merge; the ruleset `protect main`
+  requires a pull request with zero approving reviews and no code-owner
+  review, `CODEOWNERS` names only the owner's login, and no second
+  identity exists (the owner's actions of ADR 020 decision 3; F130 tests
+  the merge-gate verification against a forged assertion).
+- `finish-feature.sh` requires that the latest review is a review of the
+  complete feature; a review of changes only (`--changes`) builds on the
+  previous round by tree but no chain is verified, findings have no
+  disposition across rounds, and the completion record and the handoff
+  note are outside the review fingerprint (F131).
+- Every finding is triaged by a session with the owner's approval of the
+  triage, whatever its severity and the change's level (F131).
+- `./scripts/verify.sh` keeps no time log, and `scripts/fetch-base.sh`
+  fetches the base on every run (F130).
+- The site publishes thirty-eight lessons in seven strands (mechanics
+  16, agents-llm 7, agents-abm 1, lean 5, thermodynamics 3, waves 3,
+  electromagnetism 3); the complete runs on `main` at that count took 29
+  to 39 minutes of wall clock (2026-10-17 to 2026-10-19), within the
+  interim full-run gate of 45 lessons and below the 45-minute trigger;
+  ADR 017 decisions 1 to 6 and 9 stay proposed and paused, F120 is
+  finished, F121 is not started, F113 stays paused.
+
+The gaps recorded at the change-cycle base commit `b4baed1` (2026-10-17)
+against the requirements re-approved with `scientific-atelier-atlas`,
+kept for the history of that phase. No material conflict was found; the reconciliation of lessons, features, runs, Issues,
 and ADRs is in `docs/roadmap.md`, "State at the change cycle
 `scientific-atelier-atlas`". The gaps are the work of the features named:
 
