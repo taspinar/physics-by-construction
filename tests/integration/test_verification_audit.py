@@ -11,14 +11,17 @@ audit cannot go stale unnoticed. They run no lesson and no browser.
 """
 
 import ast
+import json
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 from support import lesson_checks, verify_conf
 from support.paths import REPO_ROOT, SCRIPTS
 
 from pbc.authoring import digest
+from pbc.authoring import selection as selecting
 from pbc.authoring import store as storing
 
 AUDIT = REPO_ROOT / "docs" / "verification-audit.md"
@@ -83,6 +86,45 @@ def test_the_audit_names_every_check_of_the_group_build_and_the_e2e_groups():
             assert f"`{name}`" in graph, f"the call graph does not name {name}"
 
 
+def _lessons_left_by(selection: dict | None) -> list[str]:
+    """The lessons whose same-machine tests a run with ``selection`` collects.
+
+    tests/e2e/conftest.py drops the reproduction and the experiment of every
+    lesson a selective run does not execute; without a selection, or with one
+    that is not selective, every lesson stays."""
+    lessons = [
+        page.parent.relative_to(REPO_ROOT / "site").as_posix()
+        for page in lesson_checks.lesson_pages(REPO_ROOT)
+    ]
+    if selection is None or selection.get("mode") != "selective":
+        return lessons
+    executed = {
+        Path(lesson).relative_to("site").as_posix() for lesson in selection["execute"]
+    }
+    return [lesson for lesson in lessons if lesson in executed]
+
+
+def test_the_lessons_left_by_a_selection(tmp_path):
+    every = _lessons_left_by(None)
+    assert len(every) == len(lesson_checks.lesson_pages(REPO_ROOT))
+    assert len(every) >= 2
+    chosen = every[0]
+    path = tmp_path / selecting.SELECTION_FILE
+    path.parent.mkdir(parents=True)
+
+    def left(selection: dict) -> list[str]:
+        path.write_text(json.dumps(selection), encoding="utf-8")
+        return _lessons_left_by(selecting.read(tmp_path))
+
+    base = {"format": selecting.SELECTION_FORMAT}
+    assert _lessons_left_by(selecting.read(tmp_path)) == every  # no file
+    assert left({**base, "mode": "full", "reason": "x", "execute": []}) == every
+    assert left({**base, "mode": "selective", "execute": [f"site/{chosen}"]}) == [
+        chosen
+    ]
+    assert left({**base, "mode": "selective", "execute": []}) == []
+
+
 def test_a_lesson_executes_four_times_in_a_full_run():
     # build 1 is site-build, build 2 is determinism, the third execution is
     # the reproduction of the page, and the fourth the experiment of the
@@ -122,8 +164,10 @@ def test_a_lesson_executes_four_times_in_a_full_run():
     # One reproduction and one experiment per lesson, and nothing else
     # compares bytes on the machine of the build.
     assert sorted(reproductions + experiments) == sorted(collected)
-    assert len(reproductions) == len(lesson_checks.lesson_pages(REPO_ROOT))
-    assert len(experiments) == len(lesson_checks.lesson_pages(REPO_ROOT))
+    # A selective local run (--base) keeps those of the executed lessons only.
+    left = _lessons_left_by(selecting.read(REPO_ROOT))
+    assert len(reproductions) == len(left)
+    assert len(experiments) == len(left)
 
     # The reproduction renders in a clone, which holds no store and no
     # selection, so it executes the lesson itself.
