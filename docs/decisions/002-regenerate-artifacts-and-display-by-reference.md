@@ -26,6 +26,16 @@ that the register names, and no raster and no other image type anywhere.
 Conceptual illustrations stay drawn by code in executed cells, and
 nothing generated is committed; the other decisions below are unchanged.
 
+Amended by [ADR 020](020-risk-proportionate-verification-and-review.md) (2026-10-19, change cycle
+`risk-proportionate-workflow`, requirements decision 39) in one process
+statement of the consequences below, the lesson budget: the 30 seconds per
+lesson stay a hard check that fails, with the documented exception table
+`scripts/lesson-budgets.conf` (a lesson listed there has its own budget,
+with a reason and the owner's approval; both checks read the table); an
+exceeded wall-clock budget of a run is a measurement for the owner's
+decision at the chosen re-assessment points, never a mandate to change
+scientific content. The decisions below are unchanged.
+
 Date: 2026-10-06
 
 ## Context

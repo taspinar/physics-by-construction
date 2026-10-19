@@ -120,6 +120,29 @@ to 6 and 9. Until then every push to `main` executes and checks every
 lesson. F113 (Issue #150) stays paused: it is neither closed nor superseded
 until the full-run fallback strategy is adequately covered.
 
+**Paused by the change cycle `risk-proportionate-workflow`, 2026-10-19
+([ADR 020](020-risk-proportionate-verification-and-review.md), requirements decision 39).** Decisions 1 to 6 and 9 are not
+justified by lead-time evidence (the change request's section 1: a
+feature takes hours to days while a CI run takes minutes) and stay
+proposed and not accepted; the heading of this record stays "(proposed)".
+F120 is finished: its evidence was published by pull request #224 and
+Issue #196 was closed on 2026-10-19, with the owner's decision above
+(amend, not yet accept) as the record's state. F121 is not started. F113
+(Issue #150) stays paused and open. No further work on any of them is
+scheduled; they are reopened only at the owner's triggers: the measure at
+42 lessons, the capacity decision at 44 at the latest, or a complete run
+on `main` above 45 minutes (ADR 020 decision 6). Decisions 7 and 8 stay
+accepted and applied; ADR 020 builds on them (its decision 5 adds the
+intermediate partial runs of a Level 3 change as feedback that is never
+evidence). Two statements of the status above are stale and read as
+follows: the experiment check joined `scripts/check-lesson-pages.sh` and
+`site-checks-reproduction` when F117 delivered the entry points (pull
+request #205, 2026-10-17), and the measurement after F119 was recorded
+(pull request #199, `docs/release-readiness.md`). The site publishes
+thirty-eight lessons since 2026-10-17; the complete runs on `main` of
+2026-10-18 and 2026-10-19 took 29 to 39 minutes of wall clock, below the
+45-minute trigger.
+
 **What decision 7 amends on acceptance.** Decision 7 changes the accepted
 meaning of a local verification and of the finish and review gate of the
 agent workflow, and names what it amends:
