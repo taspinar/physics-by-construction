@@ -1,0 +1,373 @@
+---
+title: "Equations from noisy trajectories: where differentiation fails"
+description: >-
+  The same equation discovery with measurement noise on the positions: how
+  numerical differentiation amplifies noise, how a smoothing differentiator
+  trades it for bias, and at which noise each way stops recovering the
+  equation, reproducibly over seeded copies.
+lesson:
+  id: equations-from-noisy-trajectories
+  strand: agents-llm
+  order: 10
+  difficulty: 3
+  course: mechanics
+  experiment: pbc.mechanics.experiments.equations_from_noisy_trajectories
+  methods: [simulation]
+  outcomes:
+    - Explain why a second difference divides the noise of the positions by the square of the time step, and find the step that balances noise against truncation
+    - Compare central differences with a Savitzky-Golay filter on the same noisy data, and state the noise at which each stops recovering the equation
+    - Choose the window of a smoothing filter by the bias it adds on clean data and the noise it removes
+    - Report a failure of a discovery method as a result, with the evidence of where and why it fails
+  related: []
+  format: 2
+  preview: fig-sweep
+  prerequisites:
+    lessons: [discovering-differential-equations]
+    outside:
+      - "Statistics: the standard deviation of a sum of independent errors"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.discovery import equations
+from pbc.mechanics.experiments import discovering_differential_equations as clean
+from pbc.mechanics.experiments import equations_from_noisy_trajectories as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The previous lesson read the equation of a damped oscillator from its
+positions. The positions were exact. A camera, a laser tracker, or an encoder
+gives positions with errors, and those errors are small compared with the
+motion: a millimetre on a swing of a metre. It seems that such small errors
+should barely matter.
+
+They matter a great deal, because the equation is about the acceleration,
+and the acceleration is a second derivative. Differentiating measured data
+is the classical ill-posed step of equation discovery. This lesson measures
+how ill-posed, compares two ways to differentiate, and records where each
+fails. The owner's rule for the lesson is that a failure is a result: the
+page does not tune a setting until something succeeds, it shows reproducibly,
+over seeded copies of the noise, at what noise level each method breaks, and
+why.
+
+## Assumptions
+
+1. **The system and the regression are those of the previous lesson.** The
+   damped oscillator, its four orbits sampled every hundredth of a second,
+   the cubic library, the threshold, and the tolerance of five percent on
+   each coefficient are unchanged.
+2. **The noise is Gaussian, independent between samples, and the same for
+   every position.** Real trackers have correlated errors, outliers, and
+   quantisation; each of these behaves differently under differentiation.
+3. **Nothing is known about the noise when differentiating.** Neither
+   method uses the noise level; the threshold of the regression is the same
+   at every level.
+4. **The verdict is per noisy copy.** At each noise level ten copies of the
+   noise are drawn with fixed seeds, and the page counts in how many the
+   regression keeps exactly the true terms within the tolerance. A count is
+   reproducible; it is not a probability with an error bar.
+5. **The positions are what is noisy.** The library terms are evaluated at
+   the estimated position and velocity, so the noise enters both sides of
+   the regression.
+
+```{python}
+#| echo: false
+excerpt(clean, region="oscillator")
+```
+
+## Two ways to differentiate {#explanation}
+
+### Noise against truncation
+
+A central second difference adds three positions with weights $1, -2, 1$
+and divides by $\Delta t^2$. If each position carries an independent error of
+standard deviation $\sigma$, the error of the sum has the standard deviation
+$\sigma\sqrt{1 + 4 + 1} = \sqrt 6\,\sigma$, so the acceleration has a noise of
+$$\sqrt 6\,\frac{\sigma}{\Delta t^2}.$$
+The truncation error, from the Taylor expansion, is
+$\tfrac{1}{12}\Delta t^2\,x^{(4)}$. Shrinking the step reduces the second and
+increases the first. With noise there is a best step, and below it the
+estimate gets worse the finer the sampling.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="steps")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.step_errors)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_step_errors)
+```
+
+```{python}
+#| label: fig-step-errors
+#| echo: false
+#| fig-cap: "Log-log error of the central second difference against the sampling interval, without noise and with two noise levels. Without noise the error falls as the square of the step; with noise it rises as one over the square below a best step, which grows with the noise. The dotted lines are the slope of truncation and the noise predicted for the noisier record, not fits."
+#| fig-alt: "Log-log plot of the error of the acceleration against the sampling interval. The curve without noise is a straight line rising to the right with slope two. The two noisy curves start high at the smallest step, fall with slope minus two, reach a minimum, and then join the curve without noise at the largest steps; the noisier curve has its minimum further right and higher. A dotted line of slope two runs along the curve without noise, and a dotted line of slope minus two, the predicted noise, runs along the steep part of the noisier curve."
+#| fig-status: simulated
+result.show("fig-step-errors")
+```
+
+```{python}
+#| label: best-steps
+#| echo: false
+result.table("best-steps")
+```
+
+The best step of a noisy record is far coarser than the sampling interval of
+the lesson, and even there the error is large compared with a clean record.
+A fixed recording cannot choose its step freely, so the remedy is to estimate
+the derivative from more than three samples.
+
+### Smoothing: a polynomial over a window
+
+A **Savitzky-Golay filter** fits a polynomial, here of degree three, by least
+squares to the samples in a window around each point, and differentiates the
+polynomial. Over a window of $w$ samples the noise of the derivative shrinks
+roughly as a power of $w$, because many samples are averaged. The price is a
+**bias**: whatever of the motion is not a cubic over the window is smoothed
+away, and the bias grows with the window.
+
+```{python}
+#| echo: false
+excerpt(equations.savitzky_golay)
+```
+
+## The program {#code}
+
+The comparison runs the regression of the previous lesson on noisy copies of
+the four orbits, once for each differentiator, and counts the copies in which
+it recovers the equation.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="noise")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.trials)
+```
+
+## Worked examples {#worked-examples}
+
+### Recovery against noise {#recovery-against-noise}
+
+```{python}
+#| echo: false
+excerpt(experiment.sweep)
+```
+
+```{python}
+#| label: sweep
+#| echo: false
+result.table("sweep")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_sweep)
+```
+
+```{python}
+#| label: fig-sweep
+#| echo: false
+#| fig-cap: "Above, the fraction of noisy copies from which the regression recovers the equation, against the noise of the positions. Below, the median over the copies of the largest relative error of a coefficient, with the tolerance as a dotted line. Central differences fail at a far smaller noise than the Savitzky-Golay filter, and both fail at the largest noise."
+#| fig-alt: "Two line plots with markers sharing a logarithmic axis of the noise of the positions. The upper plot shows a fraction from zero to one: the solid curve for central differences stays at one for the smallest noise levels and drops abruptly to zero, and the dashed curve for the Savitzky-Golay filter stays at one much longer and drops to zero only at the largest noise level. The lower plot shows the median relative coefficient error on a logarithmic axis with a dotted horizontal line at the tolerance: the error of central differences starts far below the tolerance, rises through it at a noise of about a half millimetre and keeps rising by orders of magnitude, while the error of the filter stays flat just under the tolerance and crosses it only at the largest noise."
+#| fig-status: simulated
+result.show("fig-sweep")
+```
+
+[With central differences the regression recovers the equation from every
+copy up to a noise of `{python} result["central-last"]` m, and from none at
+`{python} result["central-fail"]` m and above. With the Savitzky-Golay filter
+of `{python} result["window"]` samples it recovers it from every copy up to
+`{python} result["filter-last"]` m.]{.claim type="numerically-verified"
+scope="the damped oscillator of the previous lesson, four orbits sampled every 0.01 s, ten seeded copies per noise level, tolerance of five percent"
+evidence="sweep fig-sweep"}
+
+The lower panel shows how the estimates degrade before the equation is lost.
+The error of central differences grows with the noise from the smallest level
+and passes the tolerance between `{python} result["central-last"]` m and
+`{python} result["central-fail"]` m. The error of the filter starts higher, at the bias of its
+window (`{python} result["bias-window"]` percent on clean data, see the window table below), and
+stays under the tolerance until the largest noise.
+
+**Why central differences fail.** At a noise of
+`{python} result["central-fail"]` m the second difference has a noise of about `{python} result["central-drowned"]`
+$\mathrm{m/s^2}$, while the acceleration itself has a root-mean-square of
+`{python} result["rms-acceleration"]` $\mathrm{m/s^2}$ on the first orbit. The
+signal is buried, and the least squares fit attributes the noise to whichever
+term it correlates with: the damping term, the smallest, is lost first.
+
+**Why the filter works, and why it fails too.** The window of
+`{python} result["window-seconds"]` s averages the noise of many samples, so
+the derivatives stay usable at much larger noise. At the
+largest noise, `{python} result["loudest-noise"]` m, it finds
+`{python} result["loudest"]` from the first copy, with a spurious cubic
+term. The remaining noise in the smoothed velocity
+and position enters the library columns as well as the target, and the
+regression mistakes it for structure.
+
+### The window: bias against noise {#window}
+
+```{python}
+#| echo: false
+excerpt(experiment.windows)
+```
+
+```{python}
+#| label: windows
+#| echo: false
+result.table("windows")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.clean_bias)
+```
+
+[The window that tolerates the most noise is not the widest. On clean
+positions the filter of `{python} result["window"]` samples biases a
+coefficient by `{python} result["bias-window"]` percent, within the
+tolerance, and the filter of `{python} result["wide-window"]` samples by
+`{python} result["bias-wide"]` percent, beyond it, so the wide windows fail
+even without noise, while the narrow ones fail at lower
+noise.]{.claim type="numerically-verified"
+scope="the damped oscillator, cubic filter, ten seeded copies per cell"
+evidence="windows"}
+There is no window that works for every noise level, and the best one depends
+on the time scale of the motion: the window must be short against the period
+for the cubic to follow the oscillation, and long against the sampling
+interval to average the noise. Choosing it by trying windows until the
+expected equation appears would be choosing the answer; here the window was
+fixed before the sweep, and the table shows what the others would have done.
+
+## Limits {#limits}
+
+- **One system, one library, one threshold.** The noise levels at which the
+  methods fail are properties of this oscillator, sampled this way, with this
+  regression. A faster motion, a longer record, or a different threshold
+  moves them.
+- **Counts over ten seeds are coarse.** A level where five of ten copies
+  succeed is a transition, not a measured probability. More seeds would
+  narrow it; the seeds are fixed so that the counts are reproducible.
+- **The noise is white and known only to the simulation.** Correlated noise,
+  outliers, or a quantised encoder change the picture; a filter tuned for one
+  can fail on another.
+- **Other remedies exist and are not tested here.** Fitting splines,
+  regularised differentiation, or the weak formulation (integrating the
+  equation against test functions instead of differentiating the data) can
+  tolerate more noise. They also have settings, and the same rule applies:
+  fix them before looking at the result.
+- **Recovered means the terms and the tolerance.** A copy counts as a success
+  only with exactly the true terms within five percent. A copy that fails
+  this test may still predict the motion well; prediction is a different
+  question, and the previous lesson's held-out test is the way to ask it.
+
+In plain words: differentiation turns small errors in positions into large
+errors in accelerations. Smoothing helps by orders of magnitude and adds a
+bias of its own, and at enough noise every method in this lesson fails. That
+level, and the reason, are results worth stating.
+
+::: {.exercise .self-check}
+A colleague doubles the sampling rate of the tracker to get better
+accelerations from central differences, with the same noise per position.
+What happens to the noise of the second difference?
+
+::: {.choices}
+::: {.choice}
+It halves, because there are twice as many samples.
+
+::: {.feedback}
+Each second difference uses only three neighbouring samples; more samples
+elsewhere do not average its noise.
+:::
+:::
+
+::: {.choice correct="true"}
+It grows fourfold, because the noise is divided by the square of the step.
+
+::: {.feedback}
+Right. Halving the step multiplies $\sqrt 6\,\sigma/\Delta t^2$ by four, while
+the truncation error falls by four, which matters only if it was the larger
+error.
+:::
+:::
+
+::: {.choice}
+It stays the same, because the noise per position is the same.
+
+::: {.feedback}
+The noise per position is the same, but the difference divides it by a
+smaller step.
+:::
+:::
+:::
+
+::: {.solution}
+It grows by a factor of four: the noise of a central second difference is
+$\sqrt 6\,\sigma/\Delta t^2$. Faster sampling helps only a method that
+averages over a fixed duration, like the filter with a window of the same
+length in seconds.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Sample twice as fast.** Halve the sampling interval to 0.005 s, keep the
+noise per position, and keep the filter's window at 0.4 s, which is now 81
+samples. Count the recoveries of both methods at noise levels of 0.0003,
+0.03, and 0.1 m.
+
+::: {.hint}
+Central differences use three samples whatever the rate. How many samples
+does the filter now average over in its window?
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.finer_sampling)
+```
+
+```{python}
+#| echo: false
+result.table("finer-sampling")
+```
+
+Central differences lose the equation at a noise they handled before: the
+step is halved, so the noise of the acceleration is four times larger. The
+filter, averaging twice as many samples over the same duration, does as well
+or better, and recovers some copies at the largest noise. More data help a
+method only if the method uses them.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/discovery/equations.py",
+        "src/pbc/mechanics/integrators.py",
+        "src/pbc/mechanics/experiments/discovering_differential_equations.py",
+        "src/pbc/mechanics/experiments/equations_from_noisy_trajectories.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_equations.py",
+        "tests/unit/test_equations_from_noisy_trajectories_experiment.py",
+    ],
+)
+```

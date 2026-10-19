@@ -98,6 +98,21 @@ The same environment, the same budget, no agent (`pbc.discovery.baselines`):
 - **sparse identification**: sequentially thresholded least squares over a
   library of terms, in pure Python with NumPy.
 
+Two baselines work on data rather than on an environment, and every later
+discovery lesson can compare with them (F67, lessons D7 and D8):
+
+- **symbolic regression over power laws** (`pbc.discovery.symbolic`): an
+  exhaustive search of the products of the variables with exponents on a
+  fixed grid, each fitted in logarithms; it chooses the simplest form whose
+  chi-square passes the rule below, reports every form as good as the best
+  (the forms the data cannot tell apart), and reports a failure when no form
+  passes;
+- **equations of motion from trajectories** (`pbc.discovery.equations`):
+  velocity and acceleration from sampled positions by central differences or
+  a Savitzky-Golay filter, and sequentially thresholded least squares over a
+  polynomial library in position and velocity, with the singular values of
+  the library as the test of whether the data determine the equation.
+
 A baseline succeeds only when its chi-square is within three standard
 deviations of what the noise gives and its parameters are determined. Otherwise
 it reports why, and its claim is not a result: sparse identification fails on a
@@ -105,7 +120,8 @@ law that is not a sum of its terms, and least squares on a law outside its
 family. Failures are shown beside the agent. No symbolic-regression library is
 locked: PySR needs Julia and is never required (architecture, dependencies);
 a pure-Python library such as PySINDy would be locked only with its licence
-and weight recorded here, and F65 adds none.
+and weight recorded here, and neither F65 nor F67 adds one: the baselines
+above use NumPy and SciPy, which are locked already.
 
 ## The frozen trace and the replay
 
