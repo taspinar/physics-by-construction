@@ -1,0 +1,479 @@
+---
+title: "Finite-volume methods and conservation laws"
+description: >-
+  A conservation law computed as what flows through the faces of cells, with
+  one interface for any system and a Riemann solver for each; the budgets of
+  mass and momentum closed to round-off, the CFL limit, and a shock that the
+  conservative scheme places right and a non-conservative one places wrong.
+lesson:
+  id: finite-volume-methods-and-conservation-laws
+  strand: fluids
+  order: 3
+  difficulty: 2
+  course: fluids
+  slot: FL9
+  methods: [simulation]
+  outcomes:
+    - Write a conservation law in integral form and turn it into a finite-volume update of cell averages by face fluxes
+    - Plug a Riemann solver for a system into one shared interface, and check the budgets of its conserved quantities to round-off
+    - Choose the time step by the CFL condition and recognise what happens beyond it
+    - Show that a non-conservative discretisation of the same equation converges to a wrong shock, and explain why
+  related: []
+  format: 2
+  preview: fig-conservative-and-not
+  experiment: pbc.fluids.experiments.finite_volume_methods_and_conservation_laws
+  prerequisites:
+    lessons: [shock-waves-and-burgers-equation]
+    outside:
+      - "Calculus: the fundamental theorem, and integrals over an interval whose ends are fixed"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.fluids import burgers, finite_volume, shallow_water
+from pbc.fluids.experiments import finite_volume_methods_and_conservation_laws as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A flood model that loses a few per cent of the water it was given, or a
+weather model that creates momentum out of nothing, gives wrong answers
+however fine its grid: the error does not go away, it accumulates. Mass,
+momentum, and energy are conserved in nature, and a program that moves them
+around should conserve them too, not approximately but by construction.
+
+The finite-volume method does that. It does not approximate derivatives; it
+keeps the amount of each conserved quantity in each cell and moves amounts
+between neighbours, so what leaves one cell enters the next. This lesson
+builds the method once, as an interface into which any system plugs its own
+rule for the flux through a face, and uses it for the Burgers equation of the
+previous lesson and for the shallow-water equations of the next. It then
+checks three things: that the budgets close to the last digits, that the step
+must obey the CFL condition, and that a scheme which is not written as a
+difference of fluxes gets the speed of a shock wrong, on every grid.
+
+## Assumptions
+
+1. **One dimension, uniform cells.** The cells are intervals of equal width.
+   In two or three dimensions the faces are edges or areas and the method is
+   the same; the geometry of the cells is not in this lesson.
+2. **First-order reconstruction.** The state on each side of a face is the
+   average of the cell on that side. A second-order method reconstructs a
+   slope in each cell, with a limiter near shocks.
+3. **Explicit steps.** Each step computes the fluxes from the state at the
+   start of the step. The step is then limited by the CFL condition.
+4. **Conservation is of the model.** The schemes conserve the quantities of
+   the equations they discretise. Whether the equations describe the real
+   flow is a separate question; a conservative scheme of the wrong model
+   conserves the wrong things exactly.
+
+## From a conservation law to cells {#explanation}
+
+### The integral form
+
+A conservation law for a vector of quantities $q(x, t)$ with the flux
+$f(q)$ is
+
+$$
+\frac{\partial q}{\partial t} + \frac{\partial f(q)}{\partial x} = 0 .
+$$
+
+Integrate it over a cell $[x_{j-1/2}, x_{j+1/2}]$ of width $\Delta x$ and
+over a step from $t_n$ to $t_{n+1}$. With $Q_j$ the average of $q$ over the
+cell, the fundamental theorem of calculus gives, exactly,
+
+$$
+Q_j^{n+1} = Q_j^n - \frac{1}{\Delta x}\left(\int_{t_n}^{t_{n+1}} f\big(q(x_{j+1/2}, t)\big)\,\mathrm{d}t - \int_{t_n}^{t_{n+1}} f\big(q(x_{j-1/2}, t)\big)\,\mathrm{d}t\right).
+$$
+
+The integral form holds also where $q$ jumps, where the differential form
+has no meaning. A finite-volume method keeps this structure and approximates
+only the time integral of the flux through each face by $\Delta t\,F_{j+1/2}$:
+
+$$
+Q_j^{n+1} = Q_j^n - \frac{\Delta t}{\Delta x}\left(F_{j+1/2} - F_{j-1/2}\right).
+$$
+
+### Why the budget closes
+
+Sum the update over all cells. Each interior face appears twice, once with a
+plus sign for the cell on its left and once with a minus for the cell on its
+right, and cancels. What is left is
+
+$$
+\Delta x \sum_j Q_j^{n+1} = \Delta x \sum_j Q_j^n + \Delta t\,\big(F_{\text{left end}} - F_{\text{right end}}\big).
+$$
+
+The total changes only by what flows through the two ends of the domain,
+whatever the fluxes are, as long as each face has one flux used by both of its
+cells. That is the budget the program checks. It is exact in arithmetic, so
+in floating point it closes to round-off, step after step. On a periodic
+domain the two ends are the same face and the total does not change at all.
+
+### The flux through a face: a Riemann problem
+
+What flux crosses a face during a step? At the start of the step the state
+is constant in each cell, so at each face there is a jump from $Q_j$ to
+$Q_{j+1}$. The solution of the conservation law from a single jump is the
+Riemann problem; the previous lesson solved it for Burgers' equation: a
+shock or a fan. Godunov's method takes the flux of that solution at the face.
+A system has one Riemann problem per pair of states, and each system has its
+own solver:
+
+- **Burgers, exactly:** the Godunov flux of the previous lesson.
+- **Shallow water, approximately:** the HLL flux keeps only the fastest wave
+  to each side, with speeds $s_L$ and $s_R$, and averages what lies between
+  them so that the integral form holds:
+  $$
+  F = \frac{s_R f(Q_L) - s_L f(Q_R) + s_L s_R\,(Q_R - Q_L)}{s_R - s_L}
+  \quad\text{when } s_L < 0 < s_R .
+  $$
+- **Any system, crudely:** the Rusanov flux,
+  $$
+  F = \tfrac12\big(f(Q_L) + f(Q_R)\big) - \tfrac12 a\,(Q_R - Q_L),
+  $$
+  with $a$ the largest signal speed of the two states. It needs only the flux and a
+  bound on the speeds, and diffuses more than the others.
+
+All three are functions of a left and a right state. That is the shared
+interface: the update, the boundaries, and the budget are written once, and
+a system supplies its Riemann solver.
+
+### The CFL condition
+
+The Riemann solution at a face is valid as long as the waves from the two
+neighbouring faces do not reach it. The fastest wave moves at
+$\max|\lambda|$, the largest signal speed (for Burgers $|u|$, for shallow water
+$|u| + \sqrt{g h}$), so the step must satisfy
+
+$$
+\Delta t \le C_{\max}\,\frac{\Delta x}{\max|\lambda|},
+$$
+
+with the Courant number at most one. For Burgers' equation with $C \le 1$ the
+Godunov scheme is total-variation diminishing: the sum of the jumps between
+neighbouring cells never grows, so no new oscillation appears. Beyond the
+limit the scheme uses a flux from a state the wave has already left, and
+nothing stops the solution from growing. The budget still closes, because it
+closes for any fluxes: conservation is not stability.
+
+### Conservative and non-conservative
+
+Where $u$ is smooth, $\partial_x(u^2/2) = u\,\partial_x u$, so the Burgers
+equation can also be discretised as an upwind difference of $u$ times $u$:
+
+$$
+u_j^{n+1} = u_j^n - \frac{\Delta t}{\Delta x}\,u_j^n\,(u_j^n - u_{j-1}^n)
+\qquad (u > 0).
+$$
+
+It is consistent: for smooth $u$ it differs from the equation by terms that
+vanish with $\Delta x$. But it is not a difference of fluxes, so the sum over
+the cells does not telescope, and nothing makes it conserve $u$ across a jump,
+where $u$ is not smooth. The Lax-Wendroff theorem says that a conservative
+and consistent scheme that converges converges to a weak solution, one that
+satisfies the integral form and hence the Rankine-Hugoniot speed. A
+non-conservative scheme has no such guarantee, and the third example shows it
+converging to a shock at another speed.
+
+## Code
+
+`interface_fluxes` adds the ghost cells of the boundary and calls the
+Riemann solver on every face at once; `conservative_update` is the update by
+flux differences; `evolve` chooses each step by the CFL condition and records
+the totals and what entered through the ends.
+
+```{python}
+#| echo: false
+excerpt(finite_volume.interface_fluxes)
+```
+
+```{python}
+#| echo: false
+excerpt(finite_volume.conservative_update)
+```
+
+```{python}
+#| echo: false
+excerpt(finite_volume.evolve)
+```
+
+The shallow-water system plugs in through `hll_flux`, with the wave speeds of
+Einfeldt; its equations are derived in the next lesson.
+
+```{python}
+#| echo: false
+excerpt(shallow_water.hll_flux)
+```
+
+## Worked examples
+
+### Budgets to round-off
+
+Four runs on [two hundred cells]{.given}: Burgers' equation with a smooth
+wave on a periodic domain until well after it breaks, and with a jump
+between open ends; the shallow-water equations with a hump of water moving
+on a periodic domain, and with a dam break in a tank with walls at both
+ends. Each records the total of each conserved quantity and what entered
+through the ends, at every step.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="budgets")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.budget_run)
+```
+
+```{python}
+#| label: budget-run
+#| echo: false
+result.table("budget-run")
+```
+
+[With the face fluxes of the shared interface, the change of the total of
+every conserved quantity equals what entered through the ends, to round-off,
+at every step, for both systems and every kind of end.]{.claim
+type="numerically-verified"
+scope="Burgers with the Godunov flux and shallow water with the HLL flux, the four runs of the table"
+evidence="budget-run"}
+The open Burgers run gains $u$ because more enters on the fast side than
+leaves on the slow side; the periodic runs keep their totals. In the tank the
+water's mass stays fixed while its momentum changes: the walls push on the
+water, and that push is the momentum flux through the end faces, mostly the
+pressure $g h^2/2$ of the water against the wall, which the budget counts. A
+budget does not say that the momentum is conserved; it says that it changes
+only by what the ends let through.
+
+### The CFL limit
+
+The smooth wave of the first run, now with the step chosen at six Courant
+numbers from one half to two.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="courant")
+```
+
+```{python}
+#| label: courant-run
+#| echo: false
+result.table("courant-run")
+```
+
+[Within the CFL condition, $C \le 1$, the Godunov scheme for Burgers'
+equation does not increase the total variation or the largest value of the
+solution; beyond it both can grow without bound, while the budget still closes
+to round-off.]{.claim type="numerically-verified"
+scope="the smooth wave of the first example, one second, the Courant numbers of the table"
+evidence="courant-run"}
+Up to $C = 1$ the total variation falls, as the shock that forms absorbs the
+wave, and no value exceeds the largest at the start. Just beyond, the
+guarantee is gone and the variation rises; at the largest steps the solution
+blows up. Every one of these runs, the unstable ones included, closes its
+budget below `{python} result["budget-bound"]`: a conservative scheme can be
+perfectly conservative and worthless.
+
+### Conservative and non-conservative schemes
+
+A jump from [two to one half]{.given} metres per second, which the
+Rankine-Hugoniot condition makes a shock of speed
+`{python} result["exact-speed"]` m/s, run for [four tenths of a second]{.given}
+by the conservative Godunov scheme and by the non-conservative upwind scheme,
+on grids from one hundred to sixteen hundred cells.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="jump")
+```
+
+```{python}
+#| echo: false
+excerpt(burgers.nonconservative_step)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.nonconservative)
+```
+
+```{python}
+#| label: comparison-run
+#| echo: false
+result.table("comparison-run")
+```
+
+[The conservative scheme converges to the exact shock with order one; the
+non-conservative scheme converges to a shock at another speed, and its error
+does not fall as the grid is refined.]{.claim type="numerically-verified"
+scope="the jump of the example, Burgers' equation, Courant number nine tenths"
+evidence="comparison-run fig-conservative-and-not"}
+The fitted orders are `{python} result["right-order"]` and
+`{python} result["wrong-order"]`. The non-conservative shock settles at
+`{python} result["wrong-speed"]` m/s, and refining the grid only sharpens
+it there. The scheme creates $u$ at the rate
+`{python} result["created"]` $\mathrm{m^2/s^2}$, measured from its budget,
+which is exactly the speed difference times the jump,
+`{python} result["deficit"]` $\mathrm{m^2/s^2}$: the shock is slow because the
+scheme loses the quantity whose conservation fixes the speed.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_conservative_and_not)
+```
+
+```{python}
+#| label: fig-conservative-and-not
+#| echo: false
+#| fig-cap: "The same jump after the same time, computed from the same equation in two forms: the conservative scheme puts the shock where the exact solution has it, the non-conservative scheme leaves it behind."
+#| fig-alt: "Line plot of the velocity u against position. The exact solution is a step down from the higher to the lower state. The conservative points follow it, with the step at the same place. The non-conservative points also form a sharp step, but well to the left of the exact one."
+#| fig-status: simulated
+result.show("fig-conservative-and-not")
+```
+
+Both computed shocks are sharp, and nothing in the picture of the
+non-conservative one looks wrong: it is a clean jump between the right
+states, in the wrong place. The data are simulated on two hundred cells, and
+the reference is the exact solution of the Riemann problem.
+
+## Limits {#limits}
+
+- **Conservation is not accuracy.** A budget that closes says the scheme moves
+  the quantities without losing any. It says nothing about where it moves
+  them: the unstable runs of the second example close their budgets, and so
+  would a scheme with far too much numerical diffusion.
+- **Conservation is of the discretised model.** The shallow-water equations
+  conserve the momentum of a depth-averaged flow over a flat bed; a real river
+  has friction and a bed that pushes back, and its budget has terms that the
+  model of this lesson does not.
+- **First order.** The errors fall with the first power of the cell width.
+  Reconstructing slopes gives second order away from shocks; at a shock every
+  method is first order in this error measure.
+- **The CFL condition is necessary, not sufficient.** It keeps the waves of
+  one face from reaching the next. Stability of a particular scheme, and
+  positivity of a depth, need more, as the next lesson shows for the depth.
+
+::: {.exercise .self-check}
+A scheme for a conservation law closes its budget to round-off at every
+step. What can you conclude?
+
+::: {.choices}
+::: {.choice}
+The scheme is stable, because a solution that grows would change the total.
+
+::: {.feedback}
+A solution can grow in some cells and fall in others with the same total;
+the unstable runs of the CFL example closed their budgets.
+:::
+:::
+
+::: {.choice correct="true"}
+The scheme is written as a difference of face fluxes, so any shocks it
+converges to move at the Rankine-Hugoniot speed; stability and accuracy are
+separate questions.
+
+::: {.feedback}
+Correct: conservation fixes the shock speed of a converging scheme (the
+Lax-Wendroff theorem), and nothing else.
+:::
+:::
+
+::: {.choice}
+The computed solution is the physical one.
+
+::: {.feedback}
+The scheme conserves the quantities of its model. A wrong model, an unstable
+step, or too coarse a grid all close their budgets.
+:::
+:::
+:::
+
+::: {.solution}
+Only that the scheme is conservative: one flux per face, shared by its two
+cells. That is what makes a convergent scheme converge to a solution with the
+right shock speeds. It guarantees neither stability (the CFL example) nor
+accuracy, nor that the model describes the real flow.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Two Riemann solvers.** Compute the jump of the third example on
+$400$ cells with the Godunov and the Rusanov flux, and also the smooth wave
+of the first example at $0.2$ s, before it breaks. Do the two fluxes put the
+shock in the same place? Which is more accurate?
+
+::: {.hint}
+The Rusanov flux plugs into the same interface; it needs only the flux and a
+bound on the signal speed.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.rusanov_run)
+```
+
+```{python}
+#| echo: false
+result.table("rusanov-run")
+```
+
+Both shocks move at the Rankine-Hugoniot speed: both schemes are
+conservative, so the speed is not theirs to choose. The Rusanov flux adds more
+diffusion at the shock, where the two states differ much, and has the larger
+error there. In the smooth wave the neighbouring states nearly agree and the
+two fluxes nearly coincide.
+:::
+:::
+
+::: {.exercise}
+**The same scheme, written conservatively.** For a jump in which $u$ is
+positive everywhere, the upwind scheme can be written as a difference of
+fluxes, $u_j^{n+1} = u_j^n - \frac{\Delta t}{\Delta x}\left(u_j^2/2 - u_{j-1}^2/2\right)$.
+Put it into the shared interface and measure the shock speed of the third
+example on the finest grid.
+
+::: {.hint}
+The face flux is the flux of the state on its left, whatever the state on its
+right.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.upwind_flux_speed)
+```
+
+The shock moves at `{python} result["upwind-flux-speed"]` m/s, the
+Rankine-Hugoniot speed, where the non-conservative form of the same upwind
+difference gave `{python} result["wrong-speed"]` m/s. The two schemes agree to
+first order wherever $u$ is smooth; they differ only in whether the change of
+a cell is a difference of fluxes, and at a shock that is all that matters.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/fluids/finite_volume.py",
+        "src/pbc/fluids/burgers.py",
+        "src/pbc/fluids/shallow_water.py",
+        "src/pbc/fluids/experiments/finite_volume_methods_and_conservation_laws.py",
+        "src/pbc/verification/estimates.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_fluids.py",
+        "tests/unit/test_finite_volume_methods_and_conservation_laws_experiment.py",
+    ],
+)
+```

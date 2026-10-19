@@ -81,9 +81,9 @@ slots:
   - {label: FL2, title: "Navier-Stokes fundamentals", course: fluids, kind: lesson}
   - {label: FL3, title: "Vortex formation and flow around obstacles", course: fluids, kind: lesson}
   - {label: FL4, title: "Shock waves and Burgers' equation", course: fluids, kind: lesson}
+  - {label: FL9, title: "Finite-volume methods and conservation laws", course: fluids, kind: lesson}
   - {label: FL5, title: "Shallow-water equations", course: fluids, kind: lesson}
   - {label: FL6, title: "Particle-based fluid simulation", course: fluids, kind: lesson}
-  - {label: FL9, title: "Finite-volume methods and conservation laws", course: fluids, kind: lesson}
   - {label: FL7, title: "Experimental: particle image velocimetry", course: fluids, kind: measured-data lab}
   - {label: FL8, title: "Experimental: real turbulence or flow measurements", course: fluids, kind: measured-data lab}
   - {label: FL10, title: "Applied capstone: reconstructing the 2025 Kamchatka tsunami", course: fluids, kind: applied capstone}

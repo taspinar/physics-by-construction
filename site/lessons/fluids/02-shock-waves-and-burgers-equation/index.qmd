@@ -1,0 +1,432 @@
+---
+title: "Shock waves and the Burgers equation"
+description: >-
+  A wave whose speed depends on its own height steepens until it breaks into
+  a shock; the computed wave checked against the characteristic solution
+  before the break, the speed of shocks against the Rankine-Hugoniot
+  condition, and the energy a shock destroys against its closed form.
+lesson:
+  id: shock-waves-and-burgers-equation
+  strand: fluids
+  order: 2
+  difficulty: 2
+  course: fluids
+  slot: FL4
+  methods: [simulation]
+  outcomes:
+    - Explain why a wave whose speed grows with its height steepens, and predict when it breaks
+    - Derive the speed of a shock from conservation, and check a computed shock against it
+    - Measure the energy a shock removes from the flow, and tell it apart from the numerical dissipation of smooth flow
+    - Compute a Burgers flow with the Godunov flux and check its order against an exact solution
+  related: []
+  format: 2
+  preview: fig-burgers-steepening
+  experiment: pbc.fluids.experiments.shock_waves_and_burgers_equation
+  prerequisites:
+    lessons: [advection-and-diffusion]
+    outside:
+      - "Calculus: the chain rule, and the derivative of an integral whose limits move"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.fluids import burgers
+from pbc.fluids.experiments import shock_waves_and_burgers_equation as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A wave that approaches a beach grows steeper at its front until it topples.
+The traffic on a motorway bunches into a queue whose tail moves backwards
+with a sharp edge. A supersonic aircraft drags a thin layer behind which the
+pressure jumps. All three are the same mechanism: the speed of the wave
+depends on the wave itself, the faster parts catch up with the slower parts
+ahead, and a smooth profile becomes a jump, a shock.
+
+The previous lesson carried a profile at one fixed speed. This lesson lets
+each value of the profile travel at its own speed, the simplest equation that
+does so, the inviscid Burgers equation. It asks when a smooth wave breaks,
+how fast the shock that forms then moves, and what happens to the energy of
+the flow at the shock. Each answer is predicted on paper and measured from a
+computation that knows nothing of the prediction.
+
+## Assumptions
+
+1. **One dimension, one quantity.** The velocity $u(x, t)$ is the only
+   unknown, and it carries itself. Real gas dynamics has a density and a
+   pressure as well; the shallow-water lesson of this course has two
+   unknowns.
+2. **No viscosity.** The equation has no diffusion, so a shock is a true
+   jump. In a real fluid viscosity gives the shock a thickness, very small
+   for a gas, and the inviscid shock is the limit as the viscosity goes to
+   zero.
+3. **The conserved quantity is $u$.** The equation is written as the
+   conservation of $u$, with the flux $u^2/2$. Another conserved quantity,
+   such as $u^2$, would give the same smooth solutions and other shocks
+   (the next lesson shows how much that matters).
+4. **Entropy shocks only.** Of the jumps that conservation allows, only those
+   with the larger value behind, $u_L > u_R$, occur; the others open into a
+   fan. That selection is the vanishing-viscosity limit of assumption two.
+
+## Characteristics, shocks, and conservation {#explanation}
+
+### The equation and its characteristics
+
+The inviscid Burgers equation is the conservation law
+
+$$
+\frac{\partial u}{\partial t} + \frac{\partial}{\partial x}\!\left(\frac{u^2}{2}\right) = 0,
+\qquad\text{or, where } u \text{ is smooth,}\qquad
+\frac{\partial u}{\partial t} + u\,\frac{\partial u}{\partial x} = 0 .
+$$
+
+The second form is the advection of the previous lesson with the speed $u$
+itself. Along a curve with $\mathrm{d}x/\mathrm{d}t = u$, a characteristic,
+the chain rule gives $\mathrm{d}u/\mathrm{d}t = u_t + u\,u_x = 0$: $u$ is
+constant, so the characteristic is a straight line, and the solution is
+
+$$
+u(x, t) = u_0\big(x - u(x, t)\,t\big),
+$$
+
+an equation for $u$ at each point that the program solves numerically.
+
+### Breaking
+
+Two characteristics that start at $x_1 < x_2$ with $u_0(x_1) > u_0(x_2)$
+meet: the faster one catches up. Differentiating the implicit solution gives
+the slope $u_x = u_0'/(1 + u_0'\,t)$ along a characteristic, which becomes
+infinite when $1 + u_0' t = 0$. The first such moment is the breaking time
+
+$$
+t_b = -\frac{1}{\min_x u_0'(x)} ,
+$$
+
+set by the steepest descending slope of the initial profile. After it the
+characteristic solution gives several values at one point, which is not a
+velocity; the conservation form decides what happens instead.
+
+### The Rankine-Hugoniot condition
+
+Integrate the conservation law over an interval $[a, b]$ that contains a jump
+at $x_s(t)$ from $u_L$ on the left to $u_R$ on the right. The integral of $u$
+changes only by the fluxes at the ends, and the jump moving at
+$s = \mathrm{d}x_s/\mathrm{d}t$ trades the value $u_L$ for $u_R$ at the rate
+$s\,(u_L - u_R)$. Equating the two,
+
+$$
+s\,(u_L - u_R) = \frac{u_L^2}{2} - \frac{u_R^2}{2}
+\quad\Longrightarrow\quad
+s = \frac{u_L + u_R}{2}.
+$$
+
+A shock moves at the mean of the two states. Nothing in the derivation uses
+the smooth form of the equation: it is conservation, and only conservation.
+
+### Energy at a shock
+
+For smooth flow, multiplying the equation by $u$ gives another conservation
+law, $(u^2/2)_t + (u^3/3)_x = 0$: the energy $u^2/2$ is conserved. At a
+shock it is not. The energy in $[a, b]$ changes at the rate
+$s\,(u_L^2 - u_R^2)/2$ while the ends let in $u_L^3/3 - u_R^3/3$; with the
+shock speed above, the difference is
+
+$$
+\frac{u_L^3 - u_R^3}{3} - s\,\frac{u_L^2 - u_R^2}{2} = \frac{(u_L - u_R)^3}{12},
+$$
+
+which is positive exactly for the entropy shocks of assumption four. A shock
+destroys energy at this rate however thin it is: in a real fluid the
+viscosity inside the shock turns it into heat.
+
+### The Godunov flux
+
+The program divides the line into cells and stores the average of $u$ in
+each. A cell changes only by the fluxes through its two faces, which is the
+conservation law cell by cell. The flux through a face comes from the exact
+solution of the jump between the two neighbouring cells, the Riemann
+problem: a shock at the speed $s$ if $u_L > u_R$, a fan otherwise. The face
+sees the state on the side the wave leaves, or the value zero inside a fan
+that straddles it. The next lesson builds this method in full; here it is the
+tool, and each step is limited by $\Delta t \le \Delta x / \max |u|$.
+
+## Code
+
+`godunov_flux` is the flux through a face from the exact Riemann solution,
+and `characteristic_solution` solves $u = u_0(x - u t)$ point by point with a
+bracketing root finder, for comparison. The update of the cells is the shared
+finite-volume method of the course, used by `evolve`.
+
+```{python}
+#| echo: false
+excerpt(burgers.godunov_flux)
+```
+
+```{python}
+#| echo: false
+excerpt(burgers.characteristic_solution)
+```
+
+## Worked examples
+
+### A wave steepens
+
+A wave of velocity $u_0(x) = 1 + \tfrac12 \sin(2\pi x)$ m/s on a periodic
+domain of one metre. Its steepest slope gives the breaking time
+$t_b = 1/\pi$ s, which the program computes from the sampled slope as
+`{python} result["breaking-time"]` s. Before that, at
+[a fifth of a second]{.given}, the Godunov run is compared with the
+characteristic solution.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="wave")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.steepening_run)
+```
+
+```{python}
+#| label: steepening-run
+#| echo: false
+result.table("steepening-run")
+```
+
+[Before the wave breaks, the Godunov solution converges to the characteristic
+solution with order one in the cell width.]{.claim type="numerically-verified"
+scope="the wave of the example, before its breaking time, Courant number nine tenths"
+evidence="steepening-run"}
+The fitted order is `{python} result["smooth-order"]`, the order of a scheme
+that takes one value per cell on each side of a face. Each halving of the cell
+halves the error.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_steepening)
+```
+
+```{python}
+#| label: fig-burgers-steepening
+#| echo: false
+#| fig-cap: "A smooth wave of the Burgers equation steepens where it descends, becomes vertical at the breaking time, and then travels on as a shock; before the break the computed wave lies on the characteristic solution."
+#| fig-alt: "Line plot of the velocity u against position on a periodic domain, at four times. At the start the profile is a sine. A little later the descending part is steeper and the crests have moved to the right; crosses marking the characteristic solution lie on the computed curve. At the breaking time the descending part is nearly vertical. At the last time the profile is a sawtooth: a straight ramp rising to the right, ending in a vertical jump down."
+#| fig-status: simulated
+result.show("fig-burgers-steepening")
+```
+
+The crests travel faster than the troughs, so the front of each crest
+catches up with the trough ahead of it. At the breaking time the profile is
+vertical, and from then on it is a shock with a straight ramp behind it: the
+sawtooth that every periodic wave of this equation ends as. The run is
+simulated on four hundred cells; before the break the reference is the
+characteristic solution.
+
+### The speed of a shock
+
+Four jumps, each from a left state $u_L$ to a right state $u_R$ with
+$u_L > u_R$, start in the middle of a domain of one metre with open ends. The
+position of each shock, where the computed profile crosses the mean of the two
+states, is measured at two times, and the speed is their difference over the
+time between them.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="shocks")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.measured_speed)
+```
+
+```{python}
+#| label: shock-run
+#| echo: false
+result.table("shock-run")
+```
+
+[A computed Burgers shock moves at the Rankine-Hugoniot speed, the mean of
+the two states.]{.claim type="numerically-verified"
+scope="Godunov scheme, four hundred cells, the four jumps of the table"
+evidence="shock-run"}
+The largest difference is `{python} result["speed-gap"]` per cent of the
+largest speed in the jump, with no knowledge of the shock speed in the
+scheme: the speed comes out of the fluxes, because the scheme conserves $u$
+exactly. The shock in the last row moves to the left though the fluid on its
+left moves to the right: a shock is a wave, not a parcel of fluid.
+
+### The energy a shock destroys
+
+The energy budget of the run, with what enters and leaves through the ends
+accounted for, gives the energy the scheme removed per unit time. For the
+smooth wave before it breaks, the exact solution removes none; for the shock
+from [two metres per second to zero]{.given}, it removes
+$(u_L - u_R)^3/12 =$ `{python} result["dissipation-exact"]` $\mathrm{m^3/s^3}$.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="energy")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.shock_energy_rate)
+```
+
+```{python}
+#| label: dissipation-run
+#| echo: false
+result.table("dissipation-run")
+```
+
+[The Godunov scheme removes energy at a shock at the rate $(u_L - u_R)^3/12$
+whatever the grid, and from smooth flow at a rate that falls in proportion to
+the cell width.]{.claim type="numerically-verified"
+scope="the shock and the smooth wave of the examples, Godunov scheme"
+evidence="dissipation-run"}
+On the finest grid the shock rate differs from the closed form by
+`{python} result["dissipation-gap"]` per cent. The two columns show two kinds of
+dissipation. In smooth flow it is the numerical diffusion of the previous
+lesson, an error of the grid that a finer grid removes. At a shock it is
+physics: the grid only decides over how many cells the energy is destroyed,
+not how much.
+
+## Limits {#limits}
+
+- **First order.** The Godunov scheme of this lesson takes one value per cell
+  on each side of a face. Schemes of higher order reconstruct a slope in each
+  cell and need limiters near a shock; they are not built here.
+- **Inviscid shocks.** A real shock has a thickness set by viscosity and a
+  structure inside it, which the inviscid limit replaces by a jump. The
+  energy it destroys does not depend on that structure.
+- **A scalar equation.** Burgers' equation has one wave. A system such as gas
+  dynamics or shallow water has several, and its Riemann problem has
+  several waves at once; the method carries over, the closed forms change.
+- **Measured shock positions.** The position is where the profile crosses the
+  mean of the two states, interpolated between cells. A smeared shock makes
+  that a measurement accurate to a fraction of a cell, which is why the speed
+  is taken from two positions far apart.
+
+::: {.exercise .self-check}
+A smooth wave of the Burgers equation is computed on a very fine grid until
+long after it breaks. Does the total energy $\int u^2/2\,\mathrm{d}x$ of the
+computed solution stay constant as the grid is refined further?
+
+::: {.choices}
+::: {.choice}
+Yes: the numerical dissipation vanishes as the cell width goes to zero, so on
+a fine enough grid the energy is conserved.
+
+::: {.feedback}
+That holds before the break, where all the dissipation is numerical. After it
+the shock destroys energy at a rate set by the jump, not by the grid.
+:::
+:::
+
+::: {.choice correct="true"}
+No: after the break the shock removes energy at the rate $(u_L - u_R)^3/12$,
+which does not vanish as the grid is refined.
+
+::: {.feedback}
+Correct: the dissipation at a shock is a property of the solution, the
+inviscid limit of a viscous fluid, and the grid only spreads it over a few
+cells.
+:::
+:::
+
+::: {.choice}
+No: the energy grows, because the shock steepens the profile.
+
+::: {.feedback}
+A shock never adds energy; an entropy shock has $u_L > u_R$, and the rate
+$(u_L - u_R)^3/12$ is then positive, a loss.
+:::
+:::
+:::
+
+::: {.solution}
+No. Before the break the energy is conserved by the equation and lost only to
+the numerical diffusion, which a finer grid removes. After it the shock
+removes energy at the rate $(u_L - u_R)^3/12$, which the solution itself
+fixes. The finest grid gives the same loss as a coarse one: the third example
+measured it at every resolution.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A fan instead of a shock.** Start the Burgers equation from $u_L = 0$ on
+the left of $x_0 = 0.3$ m and $u_R = 1$ m/s on the right. The faster fluid
+is ahead, so no shock forms; the exact solution is the fan $u = (x - x_0)/t$
+between the two states. Compute it on several grids and measure the order of
+the error.
+
+::: {.hint}
+The fan has a corner at each end, where the slope jumps.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.rarefaction_run)
+```
+
+```{python}
+#| echo: false
+result.table("rarefaction-run")
+```
+
+The fitted order is `{python} result["fan-order"]`, below the one of the
+smooth wave. The fan itself is a straight line, which the scheme follows well;
+the error comes from its two corners, where the profile has a kink that the
+numerical diffusion rounds. A first-order scheme converges more slowly at a
+kink than in smooth flow, and more slowly still at a jump that is not a shock.
+:::
+:::
+
+::: {.exercise}
+**A shock that stands still.** Start from $u_L = 1$ m/s and $u_R = -1$ m/s
+at $x_0 = 0.5$ m. Where is the shock after $0.3$ s?
+
+::: {.hint}
+The Rankine-Hugoniot speed is the mean of the two states.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.standing_shock)
+```
+
+The mean of the two states is zero, so the shock stands still. The run
+measures a speed of `{python} result["standing-speed"]` m/s, and the shock is at
+`{python} result["standing-position"]` m after the run, where it started.
+The flux $u^2/2$ is the same on both sides of the jump, so conservation needs
+no motion of it. The characteristics run into the shock from both sides, and
+the energy they bring is destroyed there, at the rate of the third example.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/fluids/burgers.py",
+        "src/pbc/fluids/finite_volume.py",
+        "src/pbc/fluids/experiments/shock_waves_and_burgers_equation.py",
+        "src/pbc/verification/estimates.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_fluids.py",
+        "tests/unit/test_shock_waves_and_burgers_equation_experiment.py",
+    ],
+)
+```
