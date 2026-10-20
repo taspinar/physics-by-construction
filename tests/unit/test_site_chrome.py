@@ -2,6 +2,9 @@
 the primary navigation, and the start link, configured once in
 site/_quarto.yml."""
 
+import importlib.util
+
+import pytest
 import yaml
 from support.paths import SITE_SOURCE
 
@@ -48,3 +51,52 @@ def test_the_primary_navigation_names_every_section_once():
         "Source",
     ]
     assert NAVBAR["collapse"] is False
+
+
+def _mark_module():
+    spec = importlib.util.spec_from_file_location("mark", SITE_SOURCE / "mark.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+LOGOS = "".join(
+    f'<img src="a/mark.svg" alt="Physics by Construction" class="navbar-logo {mode}">'
+    for mode in ("light-content", "dark-content")
+)
+FIGURE = '<img src="figure.png" alt="A figure" width="640" height="480">'
+
+
+def test_the_post_render_script_sizes_the_mark_and_only_the_mark(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+):
+    mark = _mark_module()
+    page = tmp_path / "lessons" / "x" / "index.html"
+    page.parent.mkdir(parents=True)
+    page.write_text(f'<nav>{LOGOS}</nav>{FIGURE}<img src="b.png" alt="b">')
+    monkeypatch.setenv("QUARTO_PROJECT_OUTPUT_DIR", str(tmp_path))
+
+    mark.main()
+
+    text = page.read_text()
+    size = f'width="{mark.SIZE}" height="{mark.SIZE}"'
+    assert text.count(size) == 2  # the light and the dark mark
+    assert text.count("<img ") == 4
+    assert FIGURE in text  # an image with a size keeps it
+    assert '<img src="b.png" alt="b">' in text  # another image is not touched
+
+
+def test_the_post_render_script_is_idempotent(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+):
+    mark = _mark_module()
+    page = tmp_path / "index.html"
+    page.write_text(f"<nav>{LOGOS}</nav>")
+    monkeypatch.setenv("QUARTO_PROJECT_OUTPUT_DIR", str(tmp_path))
+
+    mark.main()
+    once = page.read_text()
+    mark.main()
+
+    assert page.read_text() == once
+    assert once.count("width=") == 2

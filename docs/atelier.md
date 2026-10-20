@@ -161,6 +161,10 @@ kept.
   the first stop of the keyboard. The header scrolls away with the page:
   a fixed header covered a third of a phone screen and could hide the
   focused element, and the theme's reveal on scrolling is motion.
+  On a phone (below 768 CSS px) the bar is compact: the mark and the title
+  share a row with the search control, and the entries wrap onto two rows
+  below it; the lesson's contents are one wrapped row of section names above
+  the title, not a column, so that the title is on the first screen.
 - **Footer** (every page). A thin rule, then three groups: the F57
   attribution line exactly as `pbc.authoring.identity` writes it; the
   licences (code MIT, text and figures CC BY 4.0) with the About page; the
@@ -220,6 +224,11 @@ Every visual belongs to one class (ADR 018 decision 2). An example of each:
 An authored SVG under `site/assets/` passes the committed-artifact check
 only with its provenance entry; a raster, an unregistered SVG, and every
 other image file stay rejected (ADR 018 decision 2).
+
+Known limit: for an entry that names a generating module, the check confirms
+that the module can be imported, not that it writes the registered file; the
+author of such an entry keeps the two in agreement. A stronger check is a
+follow-up, not part of this feature.
 
 ## The mobile rule
 

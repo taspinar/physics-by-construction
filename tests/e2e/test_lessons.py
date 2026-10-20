@@ -573,3 +573,30 @@ def test_the_first_lesson_shows_the_constructs_of_format_2_as_text(
         "Exercise 2.",
         "Exercise 3.",
     ]
+
+
+def test_a_wide_equation_scrolls_by_keyboard_inside_its_box_on_a_phone(
+    browser: Browser, server: SiteServer
+):
+    context = browser.new_context(viewport=PHONE, java_script_enabled=False)
+    page = context.new_page()
+    page.goto(server.url + INTEGRATORS, wait_until="load")
+
+    boxes = page.locator("main .display-math")
+    wide = [
+        i
+        for i in range(boxes.count())
+        if boxes.nth(i).evaluate("e => e.scrollWidth > e.clientWidth")
+    ]
+    assert wide, "the lesson has a display equation wider than a phone"
+    box = boxes.nth(wide[0])
+    assert box.get_attribute("tabindex") == "0"
+
+    box.focus()
+    page.keyboard.press("ArrowRight")
+    page.keyboard.press("ArrowRight")
+    # The browser scrolls a focused box by a short animation.
+    page.wait_for_timeout(300)
+    assert box.evaluate("e => e.scrollLeft") > 0
+    assert page.evaluate("document.documentElement.scrollWidth") <= PHONE["width"]
+    context.close()
