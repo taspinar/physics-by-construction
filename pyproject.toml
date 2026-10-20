@@ -18,7 +18,7 @@ dependencies = [
 # The live client of pbc.agents for the default provider (ADR 004). Only a
 # learner who runs an agent lesson with their own key installs it; the site
 # build and CI never do.
-openai = ["openai>=3.29.0"]
+openai = ["openai>=3.33.0"]
 
 [project.urls]
 Homepage = "https://taspinar.github.io/physics-by-construction/"
@@ -30,14 +30,14 @@ Repository = "https://github.com/taspinar/physics-by-construction"
 dev = [
     # Quality
     "pytest>=9.1",
-    "ruff>=0.17.0",
+    "ruff>=0.17.1",
     # Site generator (ADR 001) and the Jupyter kernel it executes pages with
     "quarto-cli>=1.10",
     "ipykernel>=7.4",
     "nbclient>=0.11",
     "nbformat>=5.11",
     # Built-site checks: headless browser and the axe-core accessibility scan
-    "playwright>=1.63",
+    "playwright>=1.64.0",
     "axe-playwright-python>=0.1.8",
 ]
 
