@@ -153,12 +153,26 @@ flowchart TD
 - A session that ends is not a feature that is complete. The implementer
   records where the work stands in a completion record; the commit and a
   pull request that closes the Issue need a record that says complete, which
-  the reviewer of the complete feature checks against the code.
+  the reviewer of the complete feature checks against the code. A criterion
+  whose evidence can only exist at a later gate (CI on the head, the owner's
+  approval, a measurement after the merge) is `pending`: such a feature is
+  committed and published as a matter of course, and its Issue stays open
+  until the evidence exists (ADR 020 decision 2).
+- Every change carries a risk level, 1 to 3 (ADR 020 decision 1), which the
+  scripts derive from its paths, the escalation triggers on its diff, and the
+  stated and assessed level, record in the commit and the pull request, and
+  refuse to lower; only the owner lowers a trigger reading or an assessed
+  level. A Level 3 change takes quick feedback from partial runs in its
+  intermediate rounds and ends with one full verification and a full review
+  of its final tree, and the owner's approval of the exact commit.
 - When the triage has no `FIX_NOW` findings, only deferred and accepted ones,
   you can finish directly.
 - `publish-feature.sh` pushes the branch and opens the pull request that
   closes the Issue. Follow its checks on the pull request and merge it
-  yourself, after they passed. When `main` requires a passing check, GitHub
+  yourself, after they passed, or let an agent merge it with
+  `merge-feature.sh <issue>`, which applies GitHub's decision only and, for a
+  pull request that needs you, your identity's approving review of exactly
+  its head. When `main` requires a passing check, GitHub
   enforces that; otherwise the script warns that nothing does. A failed check
   means a fix in the worktree and another round: review, finish, publish.
 - After the merge, remove the worktree and its branch with
@@ -265,6 +279,7 @@ exits with status 3.
 | `apply-triage.sh` | `triage-implementer` (write) | Start the fixes | Fixes for `FIX_NOW` findings | Yes, by `finish-feature.sh` | Yes, unless it already passed for this content |
 | `finish-feature.sh` | None | Edit and confirm the commit message | The commit | Yes | Yes, unless it already passed for this content |
 | `publish-feature.sh` | None | Merge after the checks passed, which you follow on the pull request | The pushed branch and the pull request | Not applicable | Yes, in CI |
+| `merge-feature.sh` | None | For a pull request that needs you: your identity's approving review of its head | The merge, at exactly the head | Not applicable | No; GitHub's required checks |
 
 ### Checks that stop a step
 
@@ -278,12 +293,13 @@ exits with status 3.
 | `finish-planning.sh --amend` | Anything but the architecture and the ADRs changed, an ADR was deleted, the planning on `main` has no current approval, the branch lacks the latest `main`, or a required planning document is missing |
 | `create-feature-issue.sh` | The planning approval is missing or stale, the feature ID is unknown, duplicated, or empty, or the feature already has an Issue |
 | `start-feature.sh` | Tracked files in the checkout are modified, or the feature branch or worktree exists. With `--resume`: no worktree, or more than one, is on a branch of the Issue |
-| `review-feature.sh` | Not on `feature/<issue>-*`, nothing to review, or verification fails (unless `--unverified "<reason>"` is given) |
+| `review-feature.sh` | Not on `feature/<issue>-*`, nothing to review, or verification fails (unless `--unverified "<reason>"` is given); a Level 3 change needs the full run, or `--feedback` in an intermediate round, which is refused below Level 3 |
 | `review-feature.sh --changes` | Also: there is no previous round, nothing changed since it, the base of the branch changed, or the content of the previous round is no longer known |
 | `triage-review.sh` | The review is stale or invalid, or it is a planning review |
 | `apply-triage.sh` | The triage is unapproved, invalid, or does not match its review, or the review is stale |
-| `finish-feature.sh` | Verification fails, the latest review is stale or has a critical or major finding, a round with findings has no published triage, `FIX_NOW` findings are left, or a latest review of changes only does not build on the round before it, or the feature changes the roadmap, the requirements, the description, or a change request, which only a planning cycle may change |
+| `finish-feature.sh` | Verification fails, the latest review is stale or has a critical or major finding, a round with findings has no published triage, `FIX_NOW` findings are left, or a latest review of changes only does not build on the round before it, or the feature changes the roadmap, the requirements, the description, or a change request, which only a planning cycle may change. With a `completion/v2` record also: a stated level below the derived one without a lowering request, a lowering of the path minimum, a Level 3 change by trigger or assessment without its approval request, and for Level 3 a pass that is not the full run or a latest review not made on one |
 | `publish-feature.sh` | There are uncommitted changes or the branch belongs to another Issue. With `--wait` it exits non-zero when a check fails |
+| `merge-feature.sh` | Any option; a draft; another head than the finished one; GitHub does not report the pull request mergeable; or it needs the owner (Level 3, a lowering, a criterion pending for `owner_approval`, a protected path, an escalation trigger its diff shows, a Level 3 assessment or named trigger of the latest review, a latest review that is not of exactly the head, no risk statement) and the change, when it is Level 3 by a trigger or an assessment without a protected path, does not commit its approval request, or the owner's identity (the `owner-identity` login of `guardrails.conf` of the base, a code owner other than the agent's login) does not approve exactly its head |
 | `run-feature.sh` | A step fails or is refused as described above, an agent needs your decision (status 3), five review rounds are used while a finding must still be fixed, or the fixes changed nothing |
 | `check-guardrails.sh` | Nothing stops: it reports `protected` when the feature changes an ADR, a file of the workflow, a changed or removed check, or a path the project protects. `finish-feature.sh` then records that only you may merge |
 

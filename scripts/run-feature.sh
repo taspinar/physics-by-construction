@@ -6,6 +6,8 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$script_dir/lib/review-data.sh"
 source "$script_dir/lib/fingerprint.sh"
 source "$script_dir/lib/completion.sh"
+source "$script_dir/lib/guardrails.sh"
+source "$script_dir/lib/risk.sh"
 
 MAX_ROUNDS=5
 # A session of the implementer that ends without an error has not completed
@@ -34,9 +36,15 @@ usage() {
   echo "complete feature again. It never merges and never removes a worktree."
   echo
   echo "The review starts only when the completion gate passes: the implementer's"
-  echo "completion record says complete, its handoff note lists no remaining work,"
-  echo "and it wrote the summary of the changes. Until then the implementer is"
-  echo "resumed, for at most $MAX_SESSIONS sessions in a run."
+  echo "completion record says complete, or every criterion it does not meet is"
+  echo "pending for a later gate (CI, the owner, the merge; ADR 020 decision 2), its"
+  echo "handoff note lists no remaining work, and it wrote the summary of the"
+  echo "changes. Until then the implementer is resumed, for at most $MAX_SESSIONS"
+  echo "sessions in a run."
+  echo
+  echo "A Level 3 change (ADR 020 decisions 1 and 5) is reviewed in its later rounds"
+  echo "on the feedback of a partial run (review-feature.sh --feedback), and its last"
+  echo "round is a review of the complete feature on the full verification."
   echo
   echo "The run stops with a non-zero status when a step fails or needs you, and"
   echo "says which command continues. Status 3 means that an agent needs a decision"
@@ -397,7 +405,7 @@ await_completion() {
       gate="$(completion_gate "$worktree" "$issue")"
       gate_status="$(printf '%s\n' "$gate" | sed -n 1p)"
       gate_reasons="$(printf '%s\n' "$gate" | sed 1d)"
-      if [[ "$gate_status" == "complete" ]] && ! completion_summary_present "$worktree" "$issue"; then
+      if [[ "$gate_status" == "complete" || "$gate_status" == "pending" ]] && ! completion_summary_present "$worktree" "$issue"; then
         # Nobody edits the commit message of this run, so the summary of the
         # changes has to come from the implementer.
         gate_status="no summary"
@@ -405,7 +413,9 @@ await_completion() {
       fi
       gate_summary="$(printf '%s' "$gate_reasons" | tr '\n' ';' | sed 's/;/; /g')"
       case "$gate_status" in
-        complete)
+        complete | pending)
+          # Pending criteria wait for CI, the owner, or the merge; they do not
+          # stand in the way of the review, the commit, and the pull request.
           echo "implemented" >"$state_file"
           return 0
           ;;
@@ -501,6 +511,27 @@ changes_only() {
   [[ "$(jq -r '.scope.kind // "full"' "$1")" == "changes" ]]
 }
 
+# level3
+# Succeeds when the change is Level 3 under a completion/v2 record (ADR 020
+# decision 1), whose rounds follow ADR 020 decision 5.
+level3() {
+  local merge_base
+
+  [[ "$(jq -r '.schema' "$(completion_record "$worktree" "$issue")" 2>/dev/null)" == "completion/v2" ]] || return 1
+  merge_base="$(feature_base "$worktree" "$base" | sed -n 2p)"
+  [[ -n "$merge_base" ]] || return 1
+  risk_assess "$worktree" "$(guardrails_rules_refs "$worktree" "$base")" "$merge_base" "$issue" "$(latest_review)" 2>/dev/null || return 1
+  [[ "$RISK_REQUIRED" -eq 3 ]]
+}
+
+# final_for_level3 <review>
+# Succeeds when a review can be the final review of a Level 3 change: one of
+# the complete feature, made on the full verification.
+final_for_level3() {
+  [[ "$(jq -r 'if (.verification | type) == "object" and .verification.status == "passed"
+                then (.verification.tier // "full") else "" end' "$1")" == "full" ]] && ! changes_only "$1"
+}
+
 # The round that ends the run reviews the complete feature against the Issue,
 # also when the rounds before it reviewed only changes: a review of changes
 # confirms fixes, it does not establish that the Issue is done.
@@ -546,6 +577,13 @@ if uncommitted; then
       elif [[ -n "$review" ]] && changes_reviewable "$review"; then
         review_options=(--changes)
       fi
+      # An intermediate round of a Level 3 change is reviewed on the feedback
+      # of a partial run; the round of the complete feature that ends the run
+      # gets the full verification first (ADR 020 decision 5).
+      if [[ -n "$review" && "$complete_review" -eq 0 ]] && level3; then
+        review_options+=(--feedback)
+        review_title="$review_title on the feedback of a partial run"
+      fi
       complete_review=0
       step "$review_title, round $((round + 1)) of at most $MAX_ROUNDS" \
         ./scripts/review-feature.sh "$issue" "$base" ${review_options[@]+"${review_options[@]}"}
@@ -566,7 +604,11 @@ if uncommitted; then
 
     review_relative="${review#"$worktree"/}"
     if [[ "$(jq '.findings | length' "$review")" -eq 0 ]]; then
-      changes_only "$review" || break
+      if level3; then
+        final_for_level3 "$review" && break
+      else
+        changes_only "$review" || break
+      fi
       complete_review=1
       continue
     fi
@@ -590,7 +632,11 @@ if uncommitted; then
     fi
 
     if [[ "$(jq '[.decisions[] | select(.decision == "FIX_NOW")] | length' "$triage")" -eq 0 ]]; then
-      changes_only "$review" || break
+      if level3; then
+        final_for_level3 "$review" && break
+      else
+        changes_only "$review" || break
+      fi
       complete_review=1
       continue
     fi
@@ -659,8 +705,11 @@ echo "run-feature.sh is done: the pull request of Issue #$issue is open."
 if git -C "$worktree" log -1 --format=%b | grep -Fqx -- "- required from the project owner, for exactly this commit"; then
   echo
   echo "MERGE APPROVAL REQUIRED. This pull request changes what only the owner may"
-  echo "approve; the reasons are in its description. Nothing may merge it for you:"
-  echo "read it and merge it yourself. A queue that merges pull requests skips it."
+  echo "approve; the reasons are in its description. The approval is the owner's"
+  echo "identity's approving review of exactly its head (ADR 020 decision 3); no"
+  echo "file, flag, comment, or statement of an agent is one. Until that identity"
+  echo "exists, read it and merge it yourself. An agent or a queue that merges uses"
+  echo "./scripts/merge-feature.sh $issue, which merges only on GitHub's decision."
   echo
 fi
 echo "Read it, also the triage decisions that were approved without you, follow its"

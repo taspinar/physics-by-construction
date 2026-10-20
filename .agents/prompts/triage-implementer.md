@@ -81,7 +81,11 @@ Report:
 Run `./scripts/verify.sh --targeted` after your last change, or the tier it
 names when it reports that the change needs the full `./scripts/verify.sh`
 or `./scripts/verify.sh --base` (ADR 017 decision 7; `docs/development.md`,
-"Verification"). A pass is recorded for exactly the content it verified,
+"Verification"). A fix round of a Level 3 change (ADR 020 decision 5) is an
+intermediate round: run `./scripts/verify.sh --only <groups>` for the groups
+your changed paths touch plus the unit tests of the changed modules, as
+quick feedback; `apply-triage.sh` runs that partial run itself. It is never
+evidence: the final tree gets the full run before its final review. A pass is recorded for exactly the content it verified,
 with its tier, and the script that follows reuses it; a change after the run
 costs another run.
 

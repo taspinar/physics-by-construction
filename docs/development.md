@@ -130,6 +130,44 @@ and the review name the tier, the base, and the selection. CI stays the
 publication gate: it builds and validates the site on every pull request and
 push, whatever tier ran locally.
 
+**A Level 3 change** (ADR 020 decisions 1 and 5; "The risk level" below) is
+accepted on a complete verification of its final tree: `finish-feature.sh`
+runs `./scripts/verify.sh --reuse` and takes only a full pass, and the latest
+review must have been made on a full pass of that tree, after it. Its
+intermediate fix rounds may take quick feedback from a partial run instead,
+`./scripts/verify.sh --only <groups>` for the groups the changed paths touch
+plus the unit tests of the changed modules (typically `code` and
+`integration-other`, about 13 minutes against about 68): `apply-triage.sh`
+runs the groups `default`, `code`, and `integration-other` for a fix round
+of a Level 3 change, and `review-feature.sh --feedback` reviews an
+intermediate round on them. A partial run records nothing and is never
+evidence; a review made with `--feedback` or `--unverified` is never the
+final review. The targeted tier is unchanged and stays refused when the
+check identity differs from the base's.
+
+**The time log** (ADR 020 decision 7). Every run of `./scripts/verify.sh`
+appends one line, `<UTC time> | <tier> | <tree> | <seconds> | <result>`, to
+`verify-time.log` in the Git directory that every worktree of the clone
+shares (`git rev-parse --git-common-dir`), or to the file
+`VERIFY_TIME_LOG` names. The tier is `full`, `base`, `targeted`, or
+`only:<groups>`; the result `passed`, `failed`, `refused`, or `reused`. The
+log is per machine, never committed, and read by no gate: the evaluation of
+ADR 020 decision 10 reads it afterwards. A log that cannot be written
+changes nothing about the run.
+
+**Budgets** (ADR 020 decision 6). The 30-second budget of a lesson page is a
+hard check: a lesson over its budget fails, and `scripts/lesson-budgets.conf`
+is the table of exceptions, each with a reason and the owner's approval (a
+new or a raised entry is the escalation trigger "a budget widened"). A
+budget is never met by changing scientific content. A wall-clock budget of a
+whole run, the 20 minutes of a pull request (ADR 015), the planning budget
+of a full run, or a complete run on `main` above 45 minutes, is a
+measurement for the owner when it is exceeded, not a failed gate and not a
+mandate to optimise: the owner decides at the re-assessment points (re-measure
+at 42 lessons, decide the capacity at 44 at the latest, or earlier when a run
+on `main` exceeds 45 minutes), choosing from the responses of ADR 003
+decision 6. `docs/release-readiness.md` records the measurements.
+
 The checks are declared in `scripts/verify.conf`, and the workflow self-tests
 in `scripts/verify-workflow.conf`. They run in this order:
 
@@ -899,36 +937,65 @@ The implementer writes a completion record before it ends, in every session:
 
 ```json
 {
-  "schema": "completion/v1",
+  "schema": "completion/v2",
   "status": "partial",
+  "risk": {"level": 2, "triggers": [], "rationale": "src/ and tests only"},
   "criteria": [
     {"criterion": "Recipes can be searched by ingredient",
-     "status": "met",
+     "gate": "implementation", "status": "met",
      "evidence": "tests/test_search.py::test_search_by_ingredient passes"},
-    {"criterion": "The search page works without JavaScript",
-     "status": "not_met",
-     "evidence": "not started; plan step 4"}
+    {"criterion": "CI passes on the published head",
+     "gate": "pr_ci", "status": "pending",
+     "evidence": "the checks of the pull request"}
   ],
-  "remaining": ["Plan steps 4 to 6: the page without JavaScript, the documentation"]
+  "remaining": ["CI on the pull request"]
 }
 ```
 
-`status` is `complete`, `partial`, or `blocked`. A criterion is `met`,
-`not_met`, or `not_applicable`, each with evidence. `complete` needs every
-criterion met or not applicable and nothing remaining; the other two need
-something that remains. A record that breaks these rules is invalid.
+`status` is `complete`, `partial`, or `blocked`. Each criterion names the gate
+that clears it (ADR 020 decision 2): `implementation` (tests, the local
+verification, the review), `pr_ci` (CI on exactly the published head),
+`owner_approval` (the owner's approval of the exact commit, verified at the
+merge gate), or `post_merge` (a measurement or an observation that exists
+only after the merge). A criterion is `met`, `not_met`, `not_applicable`, or
+`pending`, each with evidence; `pending` names a later gate and is never
+allowed for `implementation`. `complete` means every criterion met or not
+applicable and nothing remaining; a record with a pending criterion is
+`partial`, and the other two need something that remains. `risk` is the
+level the implementer states ("The risk level" below). A record that breaks
+these rules is invalid. A record of the schema `completion/v1`, without
+gates and risk, is the contract of a feature started before ADR 020 was
+delivered (F130) and stays valid for it.
 
 The gate passes when the record is valid and says `complete`, and the handoff
 note lists nothing under "Remaining". The note outweighs the record: remaining
 work listed there means not complete, whatever the record says.
 
+Three readiness points are derived from the record, never stored:
+
+- **Ready for a pull request**: every `implementation` criterion is met and
+  every other unmet criterion is `pending`, with nothing under "Remaining"
+  in the handoff note (pending evidence goes under "Pending"). The gate says
+  `pending`. The feature is reviewed, committed, and published as a matter of
+  course, without `--partial`, `--no-review`, or an owner exception; the
+  commit message names the pending criteria and their gates under
+  `Readiness:`, and the pull request, ready for review, names them and does
+  not close the Issue.
+- **Ready for merge**: additionally CI passed on the exact head, the review
+  is current and covers the implementation, no major finding is open, and
+  for Level 3 the owner's approval of the exact commit is verified at the
+  merge gate. Pending CI blocks the merge, never the pull request.
+- **Done**: every criterion met, so `complete`; the Issue closes then.
+  Outstanding post-merge evidence keeps the Issue open and never blocks the
+  merge.
+
 | Script | What the gate decides there |
 |---|---|
 | `start-feature.sh` | After the session it says whether the Issue is complete, and offers the review only then |
-| `run-feature.sh` | Goes on to the review only when the gate passes and the summary of the changes exists; otherwise it resumes the implementer with the reasons in the handoff note, at most four sessions in a run. `blocked` stops the run with status 3. The gate is asked again before every later review, because a session that repairs the verification is a session of the implementer too |
+| `run-feature.sh` | Goes on to the review only when the gate passes, or says `pending`, and the summary of the changes exists; otherwise it resumes the implementer with the reasons in the handoff note, at most four sessions in a run. `blocked` stops the run with status 3. The gate is asked again before every later review, because a session that repairs the verification is a session of the implementer too |
 | `review-feature.sh` | Gives the record to the reviewer of the complete feature, as a claim to check |
-| `finish-feature.sh` | Refuses a missing, invalid, partial, or blocked record. `--partial` commits partial work as your explicit choice |
-| `publish-feature.sh` | Asks the gate again. The pull request closes the Issue only when the commit says `Completion: complete` and the gate still passes; otherwise it is a draft that refers to the Issue and says why it does not close it |
+| `finish-feature.sh` | Commits a complete record, and one whose only unmet criteria are pending (`pending`). Refuses a missing, invalid, partial, or blocked record. `--partial` commits partial work as your explicit choice |
+| `publish-feature.sh` | Asks the gate again. The pull request closes the Issue only when the commit says `Completion: complete` and the gate still passes; for pending criteria it is ready for review, names them, and keeps the Issue open; otherwise it is a draft that refers to the Issue and says why it does not close it |
 
 The record is a claim of the implementer, and an implementer can claim
 `complete` wrongly. The scripts only read the status. What checks the claim
@@ -1514,7 +1581,21 @@ sensitive: docs/architecture.md pyproject.toml
 
 A protected path needs your approval. A sensitive path does not: it is named
 to the reviewer, who has to look at it. Keep the protected list short, or
-every feature waits for you.
+every feature waits for you. In this project the protected list is the list
+of Level 3 paths of ADR 020 decision 1 ("The risk level" below), so "the
+protected paths of `guardrails.conf`" and the Level 3 paths are one list;
+`tests/risk-level-test.sh` shows that a change to each is reported as
+protected.
+
+Because the list is read from the base branch, the wider list of F130
+applies to every pull request finished or published after F130's merge,
+including features started before it (ADR 020, Status: the one stated
+exception to the rule that a feature in progress finishes under the
+contracts it started with). Such a feature is reported as protected when it
+touches a path the list added, such as `docs/architecture.md`,
+`scripts/build-site.sh`, or `.agents/skills/`; it is published without an
+agent merge and needs your approval of its diff, and nothing else changes
+for it. No feature is grandfathered by reading the list at its merge base.
 
 The rules are always read from the base branch as it is now, never from the
 feature itself, so a feature cannot relax the rules it is checked by; a
@@ -1534,11 +1615,99 @@ not classify its own change. A review without a valid classification is
 rejected.
 
 **What happens.** `finish-feature.sh` records the decision and its reasons in
-the commit message, under `Merge approval:`, and `publish-feature.sh` in the
-pull request. A feature that needs your approval still gets its pull request;
-`run-feature.sh` ends with `MERGE APPROVAL REQUIRED`. No script merges a pull
-request, and an agent or a queue that merges for you must skip one that says
-`required from the project owner`.
+the commit message, under `Merge approval:`, with the risk level under
+`Risk level:`, and `publish-feature.sh` both in the pull request, with the
+head they apply to. A feature that needs your approval still gets its pull
+request; `run-feature.sh` ends with `MERGE APPROVAL REQUIRED`. A Level 3
+change and a requested lowering need your approval too, and so does a
+feature with a completion criterion pending for your approval
+(`owner_approval`), at any level.
+
+**The risk level** (ADR 020 decision 1, `scripts/lib/risk.sh`). Every change
+carries one level, the highest of three readings: the path minimum (Level 1
+for documentation and process files only, Level 2 for lessons, `src/`,
+tests, and other scripts, Level 3 for a protected path; the approval
+requests in `.agents/approvals/` do not count), the escalation triggers
+(any one gives Level 3), and the level the completion record states and the
+review assesses (`architecture_impact.risk_level`). The scripts detect these
+triggers on the diff against the base: a changed or removed tolerance or
+budget line (Python or lesson lines naming `rtol`, `atol`, `tol`,
+`tolerance`, `budget`, `approx`, `isclose`, or `allclose` with a number,
+a new such Python line, and the entries of `scripts/lesson-budgets.conf`), a
+new skip or expected
+failure (in a Lean proof, a new `sorry`, `admit`, or `axiom`), a removed or
+changed assertion and a removed test or test file, a changed marker such as
+`same_machine`, and a changed dependency manifest or lock file. Assertions
+are read in the formats of this project's checks: a Python `assert`; in a
+shell test, a line that calls `fail`, exits with a failure, or calls an
+`expect_` or `assert_` helper; in a Lean proof, the first line of a
+`theorem`, `lemma`, or `example`, and a `#guard`, `#guard_msgs`,
+`#check_failure`, or `#print axioms` command. A Lean statement changed below
+its first line is left to the review. The reading is conservative: a
+narrowed tolerance reads as changed too. The implementer names the triggers no script can detect (a
+changed or removed published scientific claim, security, verification
+guarantees), and the reviewer assesses every trigger, reporting one the
+record missed as a major finding. A new lesson's own claims are no trigger.
+
+An agent may raise the level; no agent lowers it. With a `completion/v2`
+record, `finish-feature.sh` refuses a stated level below the path minimum,
+refuses a stated level below a trigger reading or an assessed level unless
+the approval request names that lowering, refuses a lowering of the path
+minimum, and refuses a Level 3 change by trigger or assessment without its
+approval request. The commit message, the review, and the pull request
+record the required level, what gives it, the requested level, and the
+content or head they apply to.
+
+**The approval request**, `.agents/approvals/<issue>.md`, is committed with a
+Level 3 change by trigger or assessment and with every lowering request, so
+that the pull request touches a code-owned path and GitHub requires your
+identity's review. It names the Issue (`Issue: #<n>`), the required level
+(`Level:`, which the scripts check against their derivation), how it was
+derived (`Derived from:`), and the content it was written for (`Tree:`); a lowering adds `Required level:`, `Requested level:`
+(a trigger reading or an assessed level, never the path minimum),
+`Reason:`, and `Owner's word:`, your words in the conversation that let the
+agent proceed. It is a request, never an approval: no script reads it as
+your decision. Until you authorize a lowering, the change keeps its required
+level for the finish, the review, the triage, and the verification; a
+lowering your identity has not approved for the head to be merged is redone
+at the required level before the merge.
+
+**The merge-gate verification** (ADR 020 decision 3, mechanism A). Your
+approval of a Level 3 change, and your authorization of a lowering, is an
+approving review of exactly the head of the pull request by a second GitHub
+identity that only you hold and no agent ever uses; GitHub enforces it at
+the merge through the ruleset of `main` and `.github/CODEOWNERS`. No script
+accepts an agent-written assertion, a comment or review by the agent's own
+login, a file, a flag, or a statement in a conversation as your approval
+(`tests/merge-feature-test.sh`). An agent or a queue that merges uses
+
+```bash
+./scripts/merge-feature.sh 12
+```
+
+which applies GitHub's decision only: it merges when GitHub reports the pull
+request mergeable and, for one that needs you, when the latest review of
+your identity approves exactly the head. Whether it needs you is derived
+from the diff against the base as well as read from the commit: a protected
+path or an escalation trigger that the diff shows (`scripts/lib/risk.sh`)
+needs you whatever the commit's risk lines say, since those can be written
+by hand and only raise the level. The assessed level is read from the
+latest review of the feature in the worktree, which must be of exactly the
+head: a review that assesses Level 3 or names a trigger needs you, and so
+does a review of other content, or no review when the commit does not say
+that it was finished without one. A change that is Level 3 by a trigger or
+an assessment, without a protected path, is refused until it commits its
+approval request. Your identity is the one login that the line
+`owner-identity: <login>` of `.agents/policies/guardrails.conf` of the base
+names, a code owner in `.github/CODEOWNERS` other than the agent's login. No
+other code owner's review counts. When the pull request touches no
+code-owned path, the ruleset requires no review and GitHub reports no
+review decision; your identity's approving review of the head decides then.
+It merges with `--match-head-commit`, so
+content pushed after the approval is never merged on it. Until your identity
+exists, the gate configuration has no such line, and the script merges no
+such pull request: the present practice continues, and you merge it, or tell the agent
+in the conversation, naming the head commit, that it may merge it.
 
 **In this project the CI job is not installed.** It uses the trigger
 `pull_request_target`, which invariant I15 of `docs/architecture.md` rules
@@ -1552,11 +1721,17 @@ running code of the pull request. It fails when the diff changes a protected
 path. It is a signal and not the required check, so that you can merge after
 reading what it lists.
 
-**Your approval is your own merge.** You merge the commit you see, so an
-approval never carries over to content that changed afterwards. This is an
-agreement that the scripts and agents keep, not a lock: the agent works with
-your GitHub account and could do what you can do. A lock needs a separate
-identity for the agent, with code owners and required reviews on GitHub.
+**Your approval is your own review of the head.** You approve or merge the
+commit you see, so an approval never carries over to content that changed
+afterwards. Until your second identity, the code-owner rule, and the
+ruleset change exist (your actions, `docs/repository-setup.md`, "The
+owner's identity for Level 3 approvals"), this is an agreement that the
+scripts and agents keep, not a lock: the agent works with your GitHub
+account and could do what you can do. With them, GitHub enforces it, and
+what remains is stated in ADR 020: the agent's login, which administers the
+repository, could still change the ruleset; the policy that an agent never
+changes a repository setting holds it back, or a token without
+administration rights makes that a lock too.
 
 ## Linking a feature plan
 

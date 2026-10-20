@@ -214,6 +214,20 @@ address. Update the URLs in `README.md` and `docs/deployment.md`.
 
 ## CI time against the budget
 
+**How these measurements are used** (ADR 020 decision 6, from F130). An
+exceeded wall-clock budget recorded here, the 20 minutes of a pull request
+(ADR 015), the planning budget of a full run, or a complete run on `main`
+above 45 minutes, is a measurement for the owner's decision, not a failed
+gate and not a mandate to optimise. The owner decides at the re-assessment
+points already chosen: re-measure at 42 lessons, decide the capacity at 44
+at the latest, or earlier when a complete run on `main` exceeds 45 minutes,
+choosing from the responses of ADR 003 decision 6. A budget is never met by
+changing scientific content, and the hard 30-second budget of a lesson page
+keeps failing, with its exception table `scripts/lesson-budgets.conf`. Local
+runs leave their durations in the time log of `./scripts/verify.sh`
+(`docs/development.md`, "Verification"), which the evaluation of ADR 020
+decision 10 reads.
+
 Measured on 2026-10-08 from the Actions log of the `verify` job of CI run
 37770709319, the push of `6b4a000` to `main` with all ten lessons and warm
 caches. The budget is the one of ADR 003 and the architecture.

@@ -62,7 +62,9 @@
       "required": [
         "level",
         "rationale",
-        "checked_against"
+        "checked_against",
+        "risk_level",
+        "escalation_triggers"
       ],
       "properties": {
         "level": {
@@ -78,6 +80,20 @@
           "type": "string"
         },
         "checked_against": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "risk_level": {
+          "type": "integer",
+          "enum": [
+            1,
+            2,
+            3
+          ]
+        },
+        "escalation_triggers": {
           "type": "array",
           "items": {
             "type": "string"

@@ -12,8 +12,11 @@ usage() {
   echo
   echo "The pull request closes the Issue only when the feature is complete: the"
   echo "commit carries 'Completion: complete' of finish-feature.sh and the"
-  echo "completion gate still passes. Otherwise it is opened as a draft that"
-  echo "refers to the Issue and says why it does not close it."
+  echo "completion gate still passes. A feature whose only unmet criteria are"
+  echo "pending for later gates (ADR 020 decision 2) gets a pull request that is"
+  echo "ready for review and names them, and the Issue stays open until they are"
+  echo "met. Otherwise it is opened as a draft that refers to the Issue and says"
+  echo "why it does not close it."
   echo
   echo "The script ends once the pull request is open; follow its checks on the pull"
   echo "request page and merge after they passed. It warns when the base branch does"
@@ -63,8 +66,15 @@ committed_completion="$(git -C "$root" log -1 --format=%b | sed -n 's/^Completio
 gate="$(completion_gate "$root" "$issue")"
 gate_status="$(printf '%s\n' "$gate" | sed -n 1p)"
 closes=0
+# Ready for a pull request with criteria pending for later gates: committed
+# so by finish-feature.sh, and the gate still says so.
+ready=0
+committed_readiness="$(git -C "$root" log -1 --format=%b | sed -n 's/^Readiness: //p' | sed -n 1p)"
 if [[ "$committed_completion" == "complete" && "$gate_status" == "complete" ]]; then
   closes=1
+elif [[ "$committed_readiness" == "ready for a pull request"* && "$gate_status" == "pending" ]]; then
+  ready=1
+  not_closing="criteria are pending for later gates: $(printf '%s\n' "$gate" | sed 1d | paste -sd ';' - | sed 's/;/; /g')"
 elif [[ "$committed_completion" == "complete" ]]; then
   not_closing="the commit says the feature is complete, but the completion gate does not pass now ($gate_status)"
 elif [[ -n "$committed_completion" ]]; then
@@ -134,6 +144,13 @@ closing_allowed() {
     echo "The merge approval above was decided for commit \`$(git -C "$root" rev-parse HEAD)\`."
     echo
   fi
+  # The level was derived for this commit's content (ADR 020 decision 1); a
+  # requested lowering is a request until the owner's identity approves
+  # exactly this head.
+  if git -C "$root" log -1 --format=%b | grep -Fqx "Risk level:"; then
+    echo "The risk level above applies to commit \`$(git -C "$root" rev-parse HEAD)\`."
+    echo
+  fi
   if [[ "$closes" -eq 1 ]]; then
     echo "Closes #$issue"
   else
@@ -149,11 +166,11 @@ if [[ -n "$url" ]]; then
     fail "could not update the description of $url. The branch is pushed."
   echo "Updated its description from the latest commit."
   is_draft="$(gh pr view "$url" --json isDraft --jq '.isDraft' 2>/dev/null)" || is_draft=""
-  if [[ "$closes" -eq 1 && "$is_draft" == "true" ]]; then
+  if [[ ( "$closes" -eq 1 || "$ready" -eq 1 ) && "$is_draft" == "true" ]]; then
     # Opened as a draft for partial work that is complete now.
     gh pr ready "$url" >/dev/null ||
       echo "Warning: could not mark $url as ready for review; do that on GitHub." >&2
-  elif [[ "$closes" -eq 0 && "$is_draft" != "true" ]]; then
+  elif [[ "$closes" -eq 0 && "$ready" -eq 0 && "$is_draft" != "true" ]]; then
     # A pull request that is ready for review, with work that is not
     # complete: back to a draft, so that it is not merged as a finished
     # feature. When that fails, the description still says that the Issue
@@ -166,11 +183,11 @@ if [[ -n "$url" ]]; then
   fi
 else
   create_options=()
-  [[ "$closes" -eq 1 ]] || create_options=(--draft)
+  [[ "$closes" -eq 1 || "$ready" -eq 1 ]] || create_options=(--draft)
   url="$(gh pr create --head "$branch" --title "$(git -C "$root" log -1 --format=%s)" --body-file "$body" ${create_options[@]+"${create_options[@]}"})" ||
     fail "could not open the pull request. The branch is pushed; open it by hand, with 'Closes #$issue' in its description only when the feature is complete."
   url="$(printf '%s\n' "$url" | tail -n 1)"
-  if [[ "$closes" -eq 1 ]]; then
+  if [[ "$closes" -eq 1 || "$ready" -eq 1 ]]; then
     echo "Opened pull request: $url"
   else
     echo "Opened draft pull request: $url"

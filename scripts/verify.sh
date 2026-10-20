@@ -24,6 +24,14 @@ set -euo pipefail
 # builds no site. The targeted run never guesses: without an acceptable base,
 # or when the selection says CI will run everything, it reports that and
 # verifies nothing.
+#
+# Every run appends one line to a time log (ADR 020 decision 7):
+# '<UTC time> | <tier> | <tree> | <seconds> | <result>', with the tier full,
+# base, targeted, or only:<groups>, and the result passed, failed, refused,
+# or reused. The log is per clone and machine, in the Git directory that
+# every worktree of the clone shares (<git common dir>/verify-time.log), or
+# where VERIFY_TIME_LOG says; it is never committed, and no gate reads it.
+# It is read afterwards, to measure (docs/development.md, "Verification").
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 config="$root/scripts/verify.conf"
@@ -75,6 +83,9 @@ usage() {
   echo "runs every check."
   echo
   echo "--groups prints the groups that have a check, one per line."
+  echo
+  echo "Every run appends '<time> | <tier> | <tree> | <seconds> | <result>' to the"
+  echo "time log, <git common dir>/verify-time.log or \$VERIFY_TIME_LOG; no gate reads it."
   exit 1
 }
 
@@ -147,8 +158,61 @@ if declare -F verification_recordable >/dev/null && declare -F fingerprint_workt
   verification_recordable "$root"; then
   recordable=1
   scratch="$(mktemp -d "${TMPDIR:-/tmp}/verify.XXXXXX")"
-  trap 'rm -rf "$scratch"' EXIT
 fi
+
+# The time log (ADR 020 decision 7): one line per run, written when the run
+# ends, whatever ends it. Writing it never changes the outcome of the run,
+# also on a machine without a tool it uses: the duration is bash's own clock.
+log_started="$SECONDS"
+log_tier="full"
+if [[ "$partial" -eq 1 ]]; then
+  log_tier="only:$only"
+elif [[ "$targeted" -eq 1 ]]; then
+  log_tier="targeted"
+elif [[ -n "$base" || "$fetch_base" -eq 1 ]]; then
+  log_tier="base"
+fi
+log_result=""
+log_tree=""
+time_log_path() {
+  local common
+
+  if [[ -n "${VERIFY_TIME_LOG:-}" ]]; then
+    printf '%s\n' "$VERIFY_TIME_LOG"
+    return 0
+  fi
+  command -v git >/dev/null 2>&1 || return 1
+  common="$(git -C "$root" rev-parse --git-common-dir 2>/dev/null)" || return 1
+  [[ -n "$common" ]] || return 1
+  [[ "$common" == /* ]] || common="$root/$common"
+  [[ -d "$common" ]] || return 1
+  printf '%s/verify-time.log\n' "$common"
+}
+write_time_log() {
+  local status="$1"
+  local log
+  local tree="${log_tree:-${tree_before:-}}"
+  local dir
+  local now
+
+  # Nothing here may fail the run or change its exit status.
+  set +e
+  if [[ "$list_groups" -eq 0 ]] && log="$(time_log_path)"; then
+    if [[ -z "$tree" ]] && declare -F fingerprint_worktree >/dev/null; then
+      dir="$(mktemp -d "${TMPDIR:-/tmp}/verify-log.XXXXXX")" &&
+        tree="$(fingerprint_worktree "$root" "$dir" 2>/dev/null)" || tree=""
+      [[ -z "${dir:-}" ]] || rm -rf "$dir"
+    fi
+    [[ -n "$log_result" ]] || { if [[ "$status" -eq 0 ]]; then log_result="passed"; else log_result="failed"; fi; }
+    now="$(date -u +'%Y-%m-%dT%H:%M:%SZ' 2>/dev/null)"
+    { [[ -n "$now" ]] && mkdir -p "$(dirname "$log")"; } 2>/dev/null &&
+      printf '%s | %s | %s | %s | %s\n' "$now" "$log_tier" "${tree:--}" \
+        "$((SECONDS - log_started))" "$log_result" >>"$log" 2>/dev/null
+  fi
+  [[ -z "$scratch" ]] || rm -rf "$scratch" 2>/dev/null
+  return 0
+}
+trap 'write_time_log $?' EXIT
 
 names=()
 commands=()
@@ -317,6 +381,8 @@ elif [[ -n "$base" || "$fetch_base" -eq 1 ]]; then
   tier="base"
 fi
 [[ "$partial" -eq 0 ]] || selected_groups="$only"
+log_tier="$tier"
+[[ "$partial" -eq 0 ]] || log_tier="only:$only"
 
 # With --reuse, a recorded pass for exactly this content stands in for a run:
 # a full run, or with --targeted a run of any tier. A record made without the
@@ -339,6 +405,7 @@ if [[ "$recordable" -eq 1 ]]; then
           echo
           echo "Verification already passed for this content at $(verification_field "$root" verified-at) (a $recorded_tier run); not run again."
           echo "Run ./scripts/verify.sh without --reuse to run every check."
+          log_result="reused"
           exit 0
         fi
       fi
@@ -373,11 +440,13 @@ if [[ "$fetch_base" -eq 1 ]]; then
     echo "CI will run everything. The targeted run cannot tell what CI will execute, so it verifies nothing; run the full ./scripts/verify.sh."
     echo
     echo "REFUSED  targeted-run (no base: CI will run everything; the change needs the full ./scripts/verify.sh)"
+    log_result="refused"
     exit 1
   else
     echo "The run is a full run: every lesson is executed and checked."
     base=""
     tier="full"
+    log_tier="full"
   fi
 elif [[ -n "$base" ]]; then
   base_record="directory $base"
@@ -406,6 +475,7 @@ if [[ -n "$base" ]]; then
     echo "The targeted run verifies nothing for this change."
     echo
     echo "REFUSED  targeted-run (${selection_note##*$'\n'})"
+    log_result="refused"
     exit 1
   elif [[ "$selection_status" -ne 0 ]]; then
     config_fail "the selection against the base $base failed."
@@ -416,6 +486,7 @@ if [[ -n "$base" ]]; then
       echo
       echo "Verification already passed for this content at $(verification_field "$root" verified-at) (a targeted run) against this base and selection; not run again."
       echo "Run ./scripts/verify.sh without --reuse to run every check."
+      log_result="reused"
       exit 0
     fi
     echo

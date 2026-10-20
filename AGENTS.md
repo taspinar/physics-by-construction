@@ -25,6 +25,20 @@ If a material conflict remains, stop and report it.
   (`.agents/completion/<issue-number>.json`) says so with evidence for each.
   A session that ends is not a finished Issue: work that is not complete is
   recorded as `partial` or `blocked`.
+- Evidence states (ADR 020 decision 2): each criterion names the gate that
+  clears it (`implementation`, `pr_ci`, `owner_approval`, `post_merge`) and
+  is `met`, `not_met`, `not_applicable`, or `pending` for a later gate, never
+  for `implementation`. `complete` means every criterion met; a feature whose
+  only unmet criteria are pending is ready for a pull request that does not
+  close the Issue.
+- Risk levels (ADR 020 decision 1): every change carries Level 1
+  (documentation and process files), 2 (lessons, source, tests, other
+  scripts), or 3 (the protected paths of `.agents/policies/guardrails.conf`,
+  or an escalation trigger), the highest of its paths, its triggers, and the
+  assessed level. An agent may raise a level and never lowers one; only the
+  owner's approving review of the exact head lowers a trigger reading or an
+  assessed level. A Level 3 change ends with a full verification, a full
+  review made after it, and the owner's approval of the exact commit.
 - Tests are added/updated where appropriate.
 - The verification tier the change needs passes, run last (ADR 017
   decision 7; `docs/development.md`, "Verification"): `./scripts/verify.sh

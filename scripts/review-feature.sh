@@ -10,6 +10,7 @@ source "$script_dir/lib/verification.sh"
 source "$script_dir/lib/review-run.sh"
 source "$script_dir/lib/guardrails.sh"
 source "$script_dir/lib/completion.sh"
+source "$script_dir/lib/risk.sh"
 
 fail() {
   echo "Error: $*" >&2
@@ -17,15 +18,20 @@ fail() {
 }
 
 # --unverified "<reason>" reviews although verification fails. --changes
-# reviews only what changed since the previous round.
+# reviews only what changed since the previous round. --feedback reviews an
+# intermediate round of a Level 3 change on the feedback of a partial run.
 unverified_reason=""
 changes_only=0
+feedback=0
 arguments=()
 while [[ $# -gt 0 ]]; do
   if [[ "$1" == "--unverified" ]]; then
     [[ $# -ge 2 && "$2" =~ [^[:space:]] ]] || fail "--unverified requires a reason."
     unverified_reason="$2"
     shift 2
+  elif [[ "$1" == "--feedback" ]]; then
+    feedback=1
+    shift
   elif [[ "$1" == "--changes" ]]; then
     changes_only=1
     shift
@@ -37,7 +43,7 @@ done
 
 agent_parse_args ${arguments[@]+"${arguments[@]}"}
 if [[ "${#AGENT_POSITIONAL[@]}" -lt 1 || "${#AGENT_POSITIONAL[@]}" -gt 2 ]]; then
-  echo "Usage: $0 <issue-number> [base-branch] [--agent <agent>] [--model <model>] [--changes] [--unverified \"<reason>\"]"
+  echo "Usage: $0 <issue-number> [base-branch] [--agent <agent>] [--model <model>] [--changes] [--feedback | --unverified \"<reason>\"]"
   echo
   echo "The agent and model come from role 'reviewer' in .agents/agents.conf"
   echo "unless --agent and --model are given."
@@ -48,6 +54,13 @@ if [[ "${#AGENT_POSITIONAL[@]}" -lt 1 || "${#AGENT_POSITIONAL[@]}" -gt 2 ]]; the
   echo "of any tier, is reused. --unverified"
   echo "reviews anyway, for a review that must help diagnose a failure; the reason"
   echo "is recorded in the review."
+  echo
+  echo "A Level 3 change (ADR 020 decisions 1 and 5) is reviewed on the full run:"
+  echo "./scripts/verify.sh --reuse. Its intermediate rounds may use --feedback"
+  echo "instead, which runs ./scripts/verify.sh --only for the groups default, code,"
+  echo "and integration-other as quick feedback and records it as such; that is never"
+  echo "evidence, and finish-feature.sh takes no review made on feedback or with"
+  echo "--unverified as the final review."
   echo
   echo "Every round reviews the complete feature. --changes makes a later round"
   echo "review only what changed since the previous round, with that round's"
@@ -64,6 +77,7 @@ fi
 
 issue="${AGENT_POSITIONAL[0]}"
 base="${AGENT_POSITIONAL[1]:-main}"
+[[ "$feedback" -eq 0 || -z "$unverified_reason" ]] || fail "--feedback and --unverified exclude each other."
 
 [[ "$issue" =~ ^[0-9]+$ ]] || fail "issue number must be numeric: $issue"
 
@@ -144,10 +158,43 @@ fi
 tmp_work="$(mktemp -d "${TMPDIR:-/tmp}/review-feature.XXXXXX")"
 trap 'rm -rf "$tmp_work"' EXIT
 
+# The risk level before this round (ADR 020 decision 1): the diff, the
+# completion record, and the rounds before. A Level 3 change of a
+# completion/v2 record is reviewed on the full run, or, in an intermediate
+# round, on the feedback of a partial run (ADR 020 decision 5).
+guardrail_rules="$(guardrails_rules_refs "$root" "$base")"
+risk_assess "$root" "$guardrail_rules" "$merge_base" "$issue" "$previous_review" ||
+  fail "could not derive the risk level of the change."
+level3=0
+[[ "$RISK_ENFORCED" -ne 1 || "$RISK_REQUIRED" -ne 3 ]] || level3=1
+[[ "$feedback" -eq 0 || "$level3" -eq 1 ]] ||
+  fail "--feedback is for the intermediate rounds of a Level 3 change, and this change is level $RISK_REQUIRED$([[ "$RISK_ENFORCED" -eq 1 ]] || echo " under the earlier contract (completion/$RISK_SCHEMA)"); it is reviewed on the tier it needs."
+
 verified_tree=""
 if [[ -n "$unverified_reason" ]]; then
   echo "Reviewing without verification: $unverified_reason"
   verification="$(jq -n --arg reason "$unverified_reason" '{status: "not-verified", reason: $reason}')"
+elif [[ "$feedback" -eq 1 ]]; then
+  feedback_groups="$(risk_feedback_groups "$root")"
+  echo "An intermediate round of a Level 3 change: the partial run of the groups ${feedback_groups//,/, } as feedback, never as evidence."
+  verified_tree="$(fingerprint_worktree "$root" "$tmp_work")" ||
+    fail "could not compute the fingerprint of the working tree."
+  (cd "$root" && ./scripts/verify.sh --only "$feedback_groups") || {
+    echo "Error: the partial run failed; the review was not started. Fix the failing check, or review anyway with --unverified \"<reason>\"." >&2
+    exit 4
+  }
+  verification="$(jq -n --arg groups "$feedback_groups" --arg at "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+    '{status: "feedback", groups: $groups, ran_at: $at}')"
+elif [[ "$level3" -eq 1 ]]; then
+  echo "The change is Level 3: checking that the full verification passes for the content under review..."
+  verified_tree="$(fingerprint_worktree "$root" "$tmp_work")" ||
+    fail "could not compute the fingerprint of the working tree."
+  (cd "$root" && ./scripts/verify.sh --reuse) || {
+    echo "Error: verification failed; the review was not started. Fix the failing check, or review an intermediate round with --feedback." >&2
+    exit 4
+  }
+  verification="$(jq -n --arg at "$(verification_field "$root" verified-at)" --arg tier "$(verification_tier "$root")" \
+    '{status: "passed", verified_at: (if $at == "" then (now | todate) else $at end), tier: (if $tier == "" then "full" else $tier end)}')"
 else
   echo "Checking that verification passes for the content under review..."
   # The content as it is before the checks run. The review below must cover
@@ -268,7 +315,6 @@ fi
 # The merge approval gate: what the feature changes that needs the owner's
 # approval or a closer look, by the rules of its base. The reviewer is told,
 # and the artifact records it.
-guardrail_rules="$(guardrails_rules_refs "$root" "$base")"
 guardrail_findings="$(guardrails_classify "$root" "$guardrail_rules" "$merge_base" | sort -u)"
 guardrails="$(printf '%s\n' "$guardrail_findings" |
   jq -Rn --arg level "$(printf '%s\n' "$guardrail_findings" | guardrails_level)" \
@@ -294,6 +340,37 @@ guardrails="$(printf '%s\n' "$guardrail_findings" |
     echo "You see only what changed since then, so classify that. The heaviest"
     echo "classification of the rounds counts: this round cannot lower an earlier one."
   fi
+} >>"$context_file"
+
+# The risk level the scripts derive, and what the reviewer assesses with the
+# impact classification (ADR 020 decision 1).
+{
+  echo
+  echo "## Risk level"
+  echo
+  echo "Derived by the scripts for the content under review, before your assessment:"
+  echo
+  risk_statement_lines
+  echo
+  echo "Assess every escalation trigger of ADR 020 decision 1, also those no script"
+  echo "can detect (a changed or removed published scientific claim, security,"
+  echo "verification guarantees), and give the level you assess in"
+  echo "architecture_impact.risk_level and the triggers the change hits in"
+  echo "architecture_impact.escalation_triggers. A trigger the completion record"
+  echo "does not name is a major finding. Your level can only raise the derived one."
+  case "$RISK_SCHEMA" in
+    completion/v1)
+      echo
+      if git -C "$root" show "$merge_base:scripts/lib/completion.sh" 2>/dev/null | grep -Fq 'completion/v2'; then
+        echo "The completion record uses completion/v1, but the base of this feature"
+        echo "already knew completion/v2: the feature started under ADR 020, and a v1"
+        echo "record escapes its rules. Report that as a major finding."
+      else
+        echo "The completion record uses completion/v1: the feature started before"
+        echo "ADR 020 was delivered and finishes under the contract it started with."
+      fi
+      ;;
+  esac
 } >>"$context_file"
 
 # What the implementer says about how far the Issue is done. It is given to
@@ -330,7 +407,8 @@ fi
 
 echo "Preparing independent review:"
 echo "  Issue:    #$issue"
-echo "  Verified: $(jq -r 'if .status == "passed" then "\(.tier // "full") run" + (if .base then ", base \(.base)" else "" end) else "not verified" end' <<<"$verification")"
+echo "  Verified: $(jq -r 'if .status == "passed" then "\(.tier // "full") run" + (if .base then ", base \(.base)" else "" end) elif .status == "feedback" then "feedback of the partial run \(.groups), not evidence" else "not verified" end' <<<"$verification")"
+echo "  Level:    $RISK_REQUIRED (by the $RISK_BY)"
 echo "  Branch:   $branch"
 echo "  Base:     $base_ref"
 echo "  Agent:    $agent"
@@ -428,12 +506,40 @@ metadata="$(jq -n \
 review_store "$report_file" "$out" "$metadata"
 
 # The decision of the gate for the reviewed content: the rules on the diff
-# and the classification of this review, with the rounds it builds on.
+# and the classification of this review, with the rounds it builds on. The
+# level, now with this review's assessment, is recorded with the content it
+# applies to; a Level 3 change and a requested lowering need the owner.
 approval_lines="$(guardrails_decision "$root" "$guardrail_rules" "$merge_base" "$out.json")"
-jq --arg lines "$approval_lines" '
+risk_assess "$root" "$guardrail_rules" "$merge_base" "$issue" "$out.json" ||
+  fail "could not derive the risk level of the reviewed content."
+if [[ "$RISK_ENFORCED" -eq 1 && ( "$RISK_REQUIRED" -eq 3 || -n "$RISK_REQUESTED" ) ]]; then
+  [[ "$(printf '%s\n' "$approval_lines" | sed -n 1p)" == "owner" ]] || approval_lines="owner"
+  [[ "$RISK_REQUIRED" -ne 3 ]] || approval_lines+=$'\n'"the risk level is 3, by the $RISK_BY (ADR 020 decision 1)"
+  [[ -z "$RISK_REQUESTED" ]] ||
+    approval_lines+=$'\n'"a lowering from level $RISK_REQUIRED to level $RISK_REQUESTED is requested in $RISK_REQUEST; only the owner authorizes it"
+fi
+risk="$(jq -n --argjson required "$RISK_REQUIRED" --arg by "$RISK_BY" --argjson path "$RISK_PATH_MIN" \
+  --arg path_reasons "$RISK_PATH_REASONS" --arg triggers "$RISK_TRIGGERS" --arg named "$RISK_NAMED_TRIGGERS" \
+  --arg schema "$RISK_SCHEMA" --arg stated "$RISK_RECORDED" --arg assessed "$RISK_REVIEWED" \
+  --arg request "$RISK_REQUEST" --arg requested "$RISK_REQUESTED" --arg tree "$RISK_TREE" --arg errors "$RISK_ERRORS" '
+  def lines: split("\n") | map(select(length > 0));
+  {required: $required, by: $by, path_minimum: $path, path_reasons: ($path_reasons | lines),
+   triggers: ($triggers | lines), named_triggers: ($named | lines), record_schema: $schema,
+   stated: (if $stated == "" then null else ($stated | tonumber) end),
+   assessed: (if $assessed == "" then null else ($assessed | tonumber) end),
+   approval_request: (if $request == "" then null else $request end),
+   requested: (if $requested == "" then null else ($requested | tonumber) end),
+   tree: $tree, problems: ($errors | lines)}')"
+jq --arg lines "$approval_lines" --argjson risk "$risk" '
   ($lines | split("\n") | map(select(length > 0))) as $l
-  | .merge_approval = {required: ($l[0] == "owner"), reasons: $l[1:]}' "$out.json" >"$out.json.tmp"
+  | .merge_approval = {required: ($l[0] == "owner"), reasons: $l[1:]}
+  | .risk = $risk' "$out.json" >"$out.json.tmp"
 mv "$out.json.tmp" "$out.json"
+echo "  Risk level: $RISK_REQUIRED, by the $RISK_BY${RISK_REQUESTED:+; level $RISK_REQUESTED requested in $RISK_REQUEST, a request only}"
+if [[ -n "$RISK_ERRORS" ]]; then
+  echo "  The level is not consistent; finish-feature.sh will refuse the commit until it is:"
+  printf '%s\n' "$RISK_ERRORS" | sed 's/^/    - /'
+fi
 if [[ "$(jq -r '.merge_approval.required' "$out.json")" == "true" ]]; then
   echo "  Merge approval: required from the owner"
   jq -r '.merge_approval.reasons[] | "    - \(.)"' "$out.json"

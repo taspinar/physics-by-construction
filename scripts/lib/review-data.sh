@@ -40,12 +40,19 @@ _review_data_rules='
     | if ($absent | length) > 0 then "\($where) lacks required fields: \($absent | join(", "))" else empty end;
 
   # The impact of a feature on the architecture, as the reviewer classifies
-  # it. Input: the value of architecture_impact.
+  # it, with the risk level it assesses and the escalation triggers it names
+  # (ADR 020 decision 1). Input: the value of architecture_impact.
   def architecture_impact_rules:
     if type != "object" then
       "architecture_impact must be an object with level, rationale, and checked_against"
     else
-      unexpected(["checked_against", "level", "rationale"]; "architecture_impact"),
+      unexpected(["checked_against", "escalation_triggers", "level", "rationale", "risk_level"]; "architecture_impact"),
+      (if has("risk_level") | not then empty
+       elif (.risk_level | IN(1, 2, 3)) then empty
+       else "architecture_impact.risk_level must be 1, 2, or 3" end),
+      (if has("escalation_triggers") | not then empty
+       elif (.escalation_triggers | type) == "array" and (.escalation_triggers | all(nonempty)) then empty
+       else "architecture_impact.escalation_triggers must be a list of the triggers the change hits" end),
       (if (.level | IN("none", "minor", "major", "breaking")) then empty
        else "architecture_impact.level must be none, minor, major, or breaking" end),
       (if (.rationale | nonempty) then empty else "architecture_impact needs a rationale" end),
@@ -228,7 +235,7 @@ review_artifact_errors() {
     else
       unexpected(["architecture_impact", "base", "branch", "created_at", "findings", "guardrails", "head",
                   "issue", "kind", "limitations", "merge_approval", "merge_base", "reviewed_paths", "reviewed_tree", "reviewer",
-                  "round", "schema", "scope", "verdict", "verification"]; "the review"),
+                  "risk", "round", "schema", "scope", "verdict", "verification"]; "the review"),
       (if has("architecture_impact") then (.architecture_impact | architecture_impact_rules) else empty end),
       (if has("guardrails") | not then empty
        elif (.guardrails | type) == "object" and (.guardrails.level | IN("none", "sensitive", "protected"))
@@ -244,8 +251,12 @@ review_artifact_errors() {
        else "scope must be full, or changes since an earlier round with its reviewed tree" end),
       (if .verification == null
           or (.verification.status == "passed" and (.verification.verified_at | nonempty))
+          or (.verification.status == "feedback" and (.verification.groups | nonempty) and (.verification.ran_at | nonempty))
           or (.verification.status == "not-verified" and (.verification.reason | nonempty)) then empty
-       else "verification must be a passed run with its time or a not-verified reason" end),
+       else "verification must be a passed run with its time, the feedback of a partial run with its groups and time, or a not-verified reason" end),
+      (if has("risk") | not then empty
+       elif (.risk | type) == "object" and (.risk.required | IN(1, 2, 3)) and (.risk.path_minimum | IN(1, 2, 3)) then empty
+       else "risk must hold the required level and the path minimum" end),
       (if .reviewed_paths == null
           or ((.reviewed_paths | type) == "array" and (.reviewed_paths | length) > 0 and (.reviewed_paths | all(nonempty))) then empty
        else "reviewed_paths must be null or a non-empty list of paths" end),
