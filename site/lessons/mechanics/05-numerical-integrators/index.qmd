@@ -5,6 +5,7 @@ description: >-
   one stepping interface, compared on the harmonic oscillator for accuracy,
   energy behaviour, and cost, so that a later simulation can choose its
   method for what it has to be trusted for.
+body-classes: pbc-reading-column
 lesson:
   id: numerical-integrators
   strand: mechanics

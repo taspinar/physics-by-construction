@@ -59,21 +59,29 @@ STATUS_LABELS = {
     "conceptual": Label("#5a2a5a", "#f3e8f3"),
 }
 
-# The base palette of the page.
+# The base palette of the page: the scientific atelier (docs/atelier.md,
+# "Tokens"). Paper and ink, cobalt for links and the construction rules,
+# vermilion for the current position only, and the white plate figures sit on.
 PAGE = {
-    "text": "#1f2328",
-    "background": "#ffffff",
+    "text": "#1c1b19",
+    "background": "#faf8f3",
+    # Also the grey of axes and annotations that lesson cells draw (and show
+    # as code), so it keeps its value: no figure changes with the palette.
     "muted": "#57606a",
-    "link": "#0a58ca",
-    "rule": "#767676",
-    "surface": "#f6f8fa",
-    "focus": "#00429d",
+    "link": "#0047ab",
+    "accent": "#c2381d",
+    "rule": "#857f73",
+    "surface": "#f1ede4",
+    "plate": "#ffffff",
+    "focus": "#0047ab",
     "warning": "#7a4100",
-    "warning-surface": "#fff8e6",
-    # The navigation bar keeps the colour the theme gives it; the text and the
-    # focus ring are the colours drawn on it.
-    "navbar": "#517699",
-    "navbar-text": "#ffffff",
+    "warning-surface": "#fbf0dc",
+    # The header is on paper with ink entries; the start link is the one
+    # filled control, paper on cobalt.
+    "header": "#faf8f3",
+    "header-text": "#1c1b19",
+    "start": "#0047ab",
+    "start-text": "#faf8f3",
 }
 
 
@@ -122,13 +130,18 @@ def colour_pairs() -> list[tuple[str, str, str, float]]:
         ("rule", PAGE["rule"], page, CONTROL_CONTRAST),
         ("focus ring", PAGE["focus"], page, CONTROL_CONTRAST),
         ("focus ring on surface", PAGE["focus"], PAGE["surface"], CONTROL_CONTRAST),
-        ("navigation text", PAGE["navbar-text"], PAGE["navbar"], TEXT_CONTRAST),
-        (
-            "navigation focus ring",
-            PAGE["navbar-text"],
-            PAGE["navbar"],
-            CONTROL_CONTRAST,
-        ),
+        ("accent", PAGE["accent"], page, TEXT_CONTRAST),
+        ("accent on surface", PAGE["accent"], PAGE["surface"], TEXT_CONTRAST),
+        ("text on plate", PAGE["text"], PAGE["plate"], TEXT_CONTRAST),
+        ("link on plate", PAGE["link"], PAGE["plate"], TEXT_CONTRAST),
+        ("rule on surface", PAGE["rule"], PAGE["surface"], CONTROL_CONTRAST),
+        ("rule on plate", PAGE["rule"], PAGE["plate"], CONTROL_CONTRAST),
+        ("start link", PAGE["start-text"], PAGE["start"], TEXT_CONTRAST),
+        ("start link on paper", PAGE["start"], page, CONTROL_CONTRAST),
+        ("header text", PAGE["header-text"], PAGE["header"], TEXT_CONTRAST),
+        ("header link", PAGE["link"], PAGE["header"], TEXT_CONTRAST),
+        ("header accent", PAGE["accent"], PAGE["header"], CONTROL_CONTRAST),
+        ("header focus ring", PAGE["focus"], PAGE["header"], CONTROL_CONTRAST),
     ]
     for kind, labels in (("claim", CLAIM_LABELS), ("status", STATUS_LABELS)):
         for name, label in labels.items():
@@ -137,4 +150,12 @@ def colour_pairs() -> list[tuple[str, str, str, float]]:
             )
     for number, colour in enumerate(FIGURE_COLOURS, start=1):
         pairs.append((f"figure colour {number}", colour, page, CONTROL_CONTRAST))
+        pairs.append(
+            (
+                f"figure colour {number} on plate",
+                colour,
+                PAGE["plate"],
+                CONTROL_CONTRAST,
+            )
+        )
     return pairs

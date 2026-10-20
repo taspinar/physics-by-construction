@@ -234,6 +234,10 @@ def test_missing_metadata_field_is_reported(
         ("  course: mechanics\n", "  course: [mechanics]\n"),
         ("  related: []\n", "  related: [Not An Id]\n"),
         ("  difficulty: 1\n", "  difficulty: 1\n  experiment: [a, b]\n"),
+        # The one page class the format admits, and only it.
+        ("lesson:\n", "body-classes: wide\nlesson:\n"),
+        ("lesson:\n", "body-classes: pbc-reading-column wide\nlesson:\n"),
+        ("lesson:\n", "body-classes: [pbc-reading-column]\nlesson:\n"),
     ],
     ids=[
         "id",
@@ -252,12 +256,23 @@ def test_missing_metadata_field_is_reported(
         "course-not-text",
         "related-not-an-id",
         "experiment-not-text",
+        "other-body-class",
+        "body-class-and-another",
+        "body-classes-not-text",
     ],
 )
 def test_invalid_metadata_is_reported(make_repository: Repository, old: str, new: str):
     violations = lesson_checks.check_metadata(make_repository({old: new}))
 
     assert rules(violations) == {"metadata"}
+
+
+def test_the_reading_column_opt_in_is_accepted(make_repository: Repository):
+    repository = make_repository(
+        {"lesson:\n": "body-classes: pbc-reading-column\nlesson:\n"}
+    )
+
+    assert lesson_checks.check_metadata(repository) == []
 
 
 def test_page_without_front_matter_is_reported(make_repository: Repository):
@@ -1024,6 +1039,178 @@ def test_file_that_is_not_part_of_a_lesson_is_reported(
     assert [(violation.rule, violation.page) for violation in violations] == [
         ("lesson-layout", path)
     ]
+
+
+# --- Interface artwork under site/assets (ADR 018 decision 2) -----------------
+
+_MARK = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8"/>\n'
+_AUTHORED = (
+    "  {name}:\n"
+    "    author: A. Author\n"
+    "    licence: CC-BY-4.0\n"
+    "    source: drawn for the project\n"
+)
+
+
+def register(*entries: str) -> dict[str, str]:
+    """The provenance register of site/assets with the given entries."""
+    return {lesson_checks.ASSET_REGISTER: "assets:\n" + "".join(entries)}
+
+
+def authored(name: str) -> str:
+    return _AUTHORED.format(name=name)
+
+
+def test_registered_svg_under_site_assets_is_accepted(make_repository: Repository):
+    repository = make_repository(
+        files={"site/assets/mark.svg": _MARK, **register(authored("mark.svg"))}
+    )
+    git(repository, "add", "--all")
+    git(repository, "commit", "--quiet", "--message", "The mark and its entry")
+
+    assert lesson_checks.check_committed_files(repository) == []
+    assert lesson_checks.check_asset_sources(repository) == []
+
+
+def test_unregistered_svg_under_site_assets_is_reported(make_repository: Repository):
+    repository = make_repository(files={"site/assets/mark.svg": _MARK})
+
+    violations = lesson_checks.check_committed_files(repository)
+
+    assert [(violation.rule, violation.page) for violation in violations] == [
+        ("committed-artifact", "site/assets/mark.svg")
+    ]
+    assert rules(lesson_checks.check_asset_sources(repository)) == {"asset-source"}
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        "  mark.svg:\n    author: A. Author\n    source: drawn\n",
+        "  mark.svg:\n    licence: CC-BY-4.0\n    source: drawn\n",
+        '  mark.svg:\n    author: ""\n    licence: CC-BY-4.0\n',
+        "  mark.svg:\n    module: pbc.authoring.design\n",
+    ],
+    ids=["no-licence", "no-author", "empty-author", "generated"],
+)
+def test_svg_registered_without_author_and_licence_is_reported(
+    make_repository: Repository, entry: str
+):
+    repository = make_repository(
+        files={"site/assets/mark.svg": _MARK, **register(entry)}
+    )
+
+    assert rules(lesson_checks.check_committed_files(repository)) == {
+        "committed-artifact"
+    }
+
+
+@pytest.mark.parametrize(
+    "path", ["site/assets/mark.png", "site/assets/mark.webp", "site/assets/mark.gif"]
+)
+def test_raster_under_site_assets_is_reported_even_when_registered(
+    make_repository: Repository, path: str
+):
+    name = path.removeprefix("site/assets/")
+    repository = make_repository(files={path: "raster", **register(authored(name))})
+
+    violations = lesson_checks.check_committed_files(repository)
+
+    assert [(violation.rule, violation.page) for violation in violations] == [
+        ("committed-artifact", path)
+    ]
+    assert "not an SVG" in details(lesson_checks.check_asset_sources(repository))
+
+
+@pytest.mark.parametrize("path", ["site/mark.svg", "src/pbc/mark.svg"])
+def test_svg_outside_site_assets_is_reported_even_when_registered(
+    make_repository: Repository, path: str
+):
+    repository = make_repository(
+        files={
+            "site/assets/mark.svg": _MARK,
+            path: _MARK,
+            **register(authored("mark.svg")),
+        }
+    )
+
+    violations = lesson_checks.check_committed_files(repository)
+
+    assert [(violation.rule, violation.page) for violation in violations] == [
+        ("committed-artifact", path)
+    ]
+
+
+def test_register_entry_that_leaves_site_assets_is_reported(
+    make_repository: Repository,
+):
+    repository = make_repository(
+        files={"site/mark.svg": _MARK, **register(authored("../mark.svg"))}
+    )
+
+    assert rules(lesson_checks.check_committed_files(repository)) == {
+        "committed-artifact"
+    }
+    assert rules(lesson_checks.check_asset_sources(repository)) == {"asset-source"}
+
+
+def test_no_register_and_no_svg_passes_the_asset_source_rule(
+    make_repository: Repository,
+):
+    assert lesson_checks.check_asset_sources(make_repository()) == []
+
+
+def test_generated_svg_entry_naming_a_module_that_imports_is_accepted(
+    make_repository: Repository,
+):
+    repository = make_repository(
+        files=register("  plot.svg:\n    module: pbc.authoring.design\n")
+    )
+
+    assert lesson_checks.check_asset_sources(repository) == []
+
+
+@pytest.mark.parametrize(
+    "files, problem",
+    [
+        (register(authored("mark.svg")), "no file"),
+        (
+            {
+                "site/assets/mark.svg": _MARK,
+                **register(authored("mark.svg") + "    year: 2026\n"),
+            },
+            "'year'",
+        ),
+        (register("  plot.svg:\n    module: pbc.no_such_module\n"), "import"),
+        (
+            {
+                "site/assets/mark.svg": _MARK,
+                **register(
+                    "  mark.svg:\n    module: pbc.authoring.design\n"
+                    "    author: A. Author\n    licence: CC-BY-4.0\n"
+                ),
+            },
+            "either",
+        ),
+        ({lesson_checks.ASSET_REGISTER: "- mark.svg\n"}, "mapping"),
+        ({lesson_checks.ASSET_REGISTER: "assets: [mark.svg\n"}, "YAML"),
+    ],
+    ids=[
+        "entry-without-file",
+        "unknown-field",
+        "module-not-importable",
+        "authored-and-generated",
+        "not-a-mapping",
+        "not-yaml",
+    ],
+)
+def test_register_that_breaks_its_format_is_reported(
+    make_repository: Repository, files: dict[str, str], problem: str
+):
+    violations = lesson_checks.check_asset_sources(make_repository(files=files))
+
+    assert rules(violations) == {"asset-source"}
+    assert problem in details(violations)
 
 
 # --- The check as verification runs it ------------------------------------------
