@@ -9,6 +9,7 @@ from support.paths import SITE_SOURCE
 from pbc.authoring import CLAIM_TYPES, FIGURE_COLOURS, FIGURE_STATUSES
 from pbc.authoring.design import (
     CLAIM_LABELS,
+    PAGE,
     STATUS_LABELS,
     colour_pairs,
     contrast_ratio,
@@ -71,3 +72,27 @@ def test_the_stylesheet_uses_a_colour_only_through_a_token():
 def test_every_token_the_stylesheet_uses_is_declared():
     used = set(re.findall(r"var\((--pbc-[\w-]+)\)", STYLESHEET))
     assert used <= set(declared()), sorted(used - set(declared()))
+
+
+def test_every_page_colour_is_checked_in_a_pair():
+    checked = {colour for _, colour, background, _ in colour_pairs()} | {
+        background for _, _, background, _ in colour_pairs()
+    }
+    assert set(PAGE.values()) <= checked, sorted(set(PAGE.values()) - checked)
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "accent",
+        "accent on surface",
+        "text on plate",
+        "link on plate",
+        "rule on plate",
+        "start link",
+        "header text",
+        "header focus ring",
+    ],
+)
+def test_the_atelier_pairs_are_checked(name):
+    assert name in {pair[0] for pair in colour_pairs()}

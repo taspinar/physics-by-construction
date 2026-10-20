@@ -62,6 +62,11 @@ def test_no_generated_artifact_is_committed(repository: Path):
     assert not violations, describe(violations)
 
 
+def test_every_svg_under_site_assets_has_its_provenance(repository: Path):
+    violations = lesson_checks.check_asset_sources(repository)
+    assert not violations, describe(violations)
+
+
 def test_format_2_lessons_follow_the_format(repository: Path):
     violations = lesson_checks.check_format_2(repository)
     assert not violations, describe(violations)

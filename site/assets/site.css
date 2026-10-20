@@ -1,19 +1,23 @@
-/* Design tokens (docs/authoring.md, "Visual design"). The colours are the
-   values of src/pbc/authoring/design.py; a unit test compares them and checks
-   the contrast of every pair that sets text or a control. Type and spacing
-   are defined here only. */
+/* Design tokens of the scientific atelier (docs/atelier.md, "Tokens"). The
+   colours are the values of src/pbc/authoring/design.py; a unit test compares
+   them and checks the contrast of every pair that sets text or a control.
+   Type, spacing, and rules are defined here only. */
 :root {
-  --pbc-text: #1f2328;
-  --pbc-background: #ffffff;
+  --pbc-text: #1c1b19;
+  --pbc-background: #faf8f3;
   --pbc-muted: #57606a;
-  --pbc-link: #0a58ca;
-  --pbc-rule: #767676;
-  --pbc-surface: #f6f8fa;
-  --pbc-focus: #00429d;
+  --pbc-link: #0047ab;
+  --pbc-accent: #c2381d;
+  --pbc-rule: #857f73;
+  --pbc-surface: #f1ede4;
+  --pbc-plate: #ffffff;
+  --pbc-focus: #0047ab;
   --pbc-warning: #7a4100;
-  --pbc-warning-surface: #fff8e6;
-  --pbc-navbar: #517699;
-  --pbc-navbar-text: #ffffff;
+  --pbc-warning-surface: #fbf0dc;
+  --pbc-header: #faf8f3;
+  --pbc-header-text: #1c1b19;
+  --pbc-start: #0047ab;
+  --pbc-start-text: #faf8f3;
   --pbc-claim-observational-fg: #0b4f6c;
   --pbc-claim-observational-bg: #e3f1f7;
   --pbc-claim-experimentally-supported-fg: #5b2a86;
@@ -39,23 +43,36 @@
   --pbc-figure-5: #006b5c;
   --pbc-figure-6: #6a3d9a;
 
-  /* Type scale (a ratio of 1.25 from the base size) and the line heights. */
+  /* The faces: one serif for headings and body, the companion of the math
+     font, and a monospace for code and values. Metric-close local faces
+     stand in while a file loads (font-display: swap). */
+  --pbc-font-text: "STIX Two Text", "Times New Roman", serif;
+  --pbc-font-code: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  /* Type scale (a ratio of about 1.25 from the body size, which a serif of
+     this x-height needs larger on screen) and the line heights. */
   --pbc-text-small: 0.875rem;
-  --pbc-text-base: 1rem;
+  --pbc-text-base: 1.125rem;
   --pbc-text-large: 1.25rem;
+  --pbc-text-code: 0.9375rem;
   --pbc-heading-3: 1.25rem;
-  --pbc-heading-2: 1.5rem;
-  --pbc-heading-1: 2rem;
+  --pbc-heading-2: 1.625rem;
+  --pbc-heading-1: 2.25rem;
+  --pbc-leading-title: 1.15;
   --pbc-leading-tight: 1.25;
   --pbc-leading-body: 1.6;
 
-  /* Spacing scale. */
+  /* Spacing scale, and the measure of prose in the reading column. */
   --pbc-space-1: 0.25rem;
   --pbc-space-2: 0.5rem;
   --pbc-space-3: 1rem;
   --pbc-space-4: 1.5rem;
   --pbc-space-5: 2.5rem;
+  --pbc-measure: 68ch;
 
+  /* Rules: thin separators, and the one construction line under the header. */
+  --pbc-rule-width: 1px;
+  --pbc-construction-width: 2px;
   --pbc-radius: 0.25rem;
   --pbc-focus-width: 3px;
 }
@@ -72,6 +89,39 @@
 
 math {
   font-family: "STIX Two Math", math;
+}
+
+/* The text faces (fonts/README.md). Only the weights the pages use. */
+@font-face {
+  font-family: "STIX Two Text";
+  src: url("fonts/STIXTwoText-Regular.subset.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "STIX Two Text";
+  src: url("fonts/STIXTwoText-Italic.subset.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "STIX Two Text";
+  src: url("fonts/STIXTwoText-SemiBold.subset.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("fonts/IBMPlexMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
 
 /* A wide display equation scrolls inside its own box instead of widening the
@@ -427,44 +477,142 @@ pre.sourceCode {
 
 /* Page chrome ------------------------------------------------------------ */
 
+/* The page: paper ground, ink text, the serif at the body size. The theme's
+   own font and body colour are replaced through its custom properties. */
+:root {
+  --bs-body-font-family: var(--pbc-font-text);
+  --bs-font-monospace: var(--pbc-font-code);
+  --bs-body-bg: var(--pbc-background);
+  --bs-body-color: var(--pbc-text);
+}
+
 body {
+  background-color: var(--pbc-background);
   color: var(--pbc-text);
+  font-family: var(--pbc-font-text);
+  font-size: var(--pbc-text-base);
   line-height: var(--pbc-leading-body);
 }
 
-main a:not(.btn) {
-  color: var(--pbc-link);
+/* The parts of the page the browser draws: the selection, the caret, the
+   scrollbars of scroll regions, and numerals in tables. */
+::selection {
+  background-color: color-mix(in srgb, var(--pbc-link) 18%, var(--pbc-plate));
+  color: var(--pbc-text);
 }
 
-/* Heading hierarchy: three clear steps, each closer to the body size. */
+main input,
+main textarea {
+  caret-color: var(--pbc-link);
+}
+
+main .display-math,
+main .table-scroll,
+main div.sourceCode,
+main .excerpt-listing,
+main .prerequisite-graph {
+  scrollbar-color: var(--pbc-rule) transparent;
+}
+
+main table {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Links: cobalt, underlined in running text; the underline thickens on
+   hover. */
+main a:not(.btn) {
+  color: var(--pbc-link);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+
+main a:not(.btn):hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Code: IBM Plex Mono at the code size. Listings sit on the white plate with
+   a thin rule: the colours of the a11y highlight style keep their 4.5:1 there
+   and on the paper, not on the darker surface. */
+code,
+kbd,
+pre,
+samp,
+.sourceCode {
+  font-family: var(--pbc-font-code);
+}
+
+pre,
+pre code,
+.excerpt-listing {
+  font-size: var(--pbc-text-code);
+}
+
+/* Inline code wraps: at the body size of the serif a module path such as
+   pbc.mechanics.oscillator is wider than a 320 px screen, and the theme keeps
+   inline code on one line. */
+main :not(pre) > code:not(.sourceCode) {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+main div.sourceCode,
+main .excerpt-listing {
+  border: var(--pbc-rule-width) solid var(--pbc-rule);
+  border-radius: 0;
+  background-color: var(--pbc-plate);
+}
+
+main pre.sourceCode,
+main div.sourceCode pre {
+  background-color: transparent;
+}
+
+/* Heading hierarchy: three clear steps, each closer to the body size, in the
+   serif's SemiBold, with more space above a heading than below it. */
 main h1,
 main h2,
 main h3,
 main h4 {
+  font-family: var(--pbc-font-text);
+  font-weight: 600;
   line-height: var(--pbc-leading-tight);
   overflow-wrap: break-word;
+  text-wrap: balance;
 }
 
 main h1.title {
   font-size: var(--pbc-heading-1);
+  line-height: var(--pbc-leading-title);
 }
 
 main h2 {
   margin-top: var(--pbc-space-5);
+  margin-bottom: var(--pbc-space-3);
   padding-bottom: var(--pbc-space-1);
-  border-bottom: 1px solid var(--pbc-rule);
+  border-bottom: var(--pbc-rule-width) solid var(--pbc-rule);
   font-size: var(--pbc-heading-2);
 }
 
 main h3 {
   margin-top: var(--pbc-space-4);
+  margin-bottom: var(--pbc-space-2);
   font-size: var(--pbc-heading-3);
 }
 
 main h4 {
   margin-top: var(--pbc-space-4);
+  margin-bottom: var(--pbc-space-2);
   font-size: var(--pbc-text-base);
-  font-weight: 700;
+}
+
+/* The title of every page stands clear of the header; its description
+   follows at a small distance. */
+#title-block-header {
+  margin-top: var(--pbc-space-5);
+}
+
+#title-block-header :is(.subtitle, .description) {
+  margin-top: var(--pbc-space-2);
 }
 
 .text-muted,
@@ -473,30 +621,144 @@ main .quarto-title-meta,
   color: var(--pbc-muted);
 }
 
-/* The theme's navigation colour, stated so that the contrast of its text and
-   its focus ring is tested against it (src/pbc/authoring/design.py). */
+/* The header (docs/atelier.md, "Components"): Quarto's navigation bar on
+   paper with ink entries, the mark and the title on the left, and the
+   construction line, one cobalt rule, under it. The current entry is
+   underlined in vermilion; the start link is the one filled control. */
 .navbar {
-  background-color: var(--pbc-navbar);
+  border-bottom: var(--pbc-construction-width) solid var(--pbc-link);
+  background-color: var(--pbc-header);
+  box-shadow: none;
 }
 
 .navbar .navbar-nav .nav-link,
-.navbar .navbar-brand {
-  color: var(--pbc-navbar-text);
+.navbar .navbar-brand,
+.navbar .navbar-title {
+  color: var(--pbc-header-text);
 }
 
-/* The theme's focus ring on the navigation is a pale blue shadow at a quarter
-   of its strength: on this bar it has a contrast of about 1.2:1. A white ring
-   of three pixels has 4.8:1 against the bar (WCAG 2.2, 2.4.13). */
+.navbar .navbar-title {
+  font-weight: 600;
+}
+
+/* The header stays at the top of the page and scrolls away with it: fixed,
+   it covered a third of a phone screen and could hide the focused element
+   (WCAG 2.2, 2.4.11), and the theme's reveal on scrolling up is motion in
+   the chrome. The theme's script sets the offsets of a fixed header inline,
+   so these rules need !important. */
+#quarto-header.headroom {
+  position: static !important;
+  transform: none !important;
+}
+
+body.nav-fixed {
+  padding-top: 0 !important;
+}
+
+#quarto-margin-sidebar {
+  top: var(--pbc-space-3) !important;
+  max-height: calc(100vh - 2 * var(--pbc-space-3)) !important;
+}
+
+/* The search icon of a narrow screen is a control in ink, not the theme's
+   pale grey. */
+.navbar .aa-DetachedSearchButton,
+.navbar .aa-DetachedSearchButton .aa-SubmitIcon,
+.navbar .aa-DetachedSearchButtonIcon {
+  color: var(--pbc-header-text);
+}
+
+/* The entries a step smaller than the body, so that the bar holds them, the
+   start link, and the search box on one line at desktop width; the title
+   wraps rather than being cut off on a phone. */
+.navbar .navbar-nav {
+  align-items: center;
+  font-size: 1rem;
+}
+
+.navbar .navbar-nav .nav-link {
+  padding-right: 0.375rem;
+  padding-left: 0.375rem;
+}
+
+@media (min-width: 992px) {
+  .navbar #quarto-search {
+    width: 9rem;
+  }
+
+  .navbar #quarto-search .aa-Autocomplete,
+  .navbar #quarto-search .aa-Form {
+    width: 100%;
+  }
+}
+
+.navbar .navbar-brand,
+.navbar .navbar-title {
+  min-width: 0;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.navbar .navbar-brand-container {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.navbar .navbar-brand-logo {
+  padding-right: var(--pbc-space-2);
+}
+
+/* The mark keeps its size and never hides an entry. */
+.navbar .navbar-logo {
+  width: 2.25rem;
+  max-width: 2.25rem;
+  height: 2.25rem;
+  max-height: 2.25rem;
+}
+
+.navbar .navbar-nav .nav-link:hover {
+  color: var(--pbc-link);
+}
+
+.navbar .navbar-nav .nav-link.active,
+.navbar .navbar-nav .nav-link[aria-current="page"] {
+  color: var(--pbc-header-text);
+  text-decoration: underline;
+  text-decoration-color: var(--pbc-accent);
+  text-decoration-thickness: var(--pbc-construction-width);
+  text-underline-offset: 0.35em;
+}
+
+/* The start link: its class comes from the Markdown of its text
+   (site/_quarto.yml), so the filled shape is the span inside the link, and
+   the link keeps the focus ring of the header around it. */
+.navbar .nav-link .pbc-start {
+  display: inline-block;
+  padding: var(--pbc-space-1) var(--pbc-space-3);
+  border-radius: var(--pbc-radius);
+  background-color: var(--pbc-start);
+  color: var(--pbc-start-text);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.navbar .nav-link:hover .pbc-start {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+/* The focus ring of the header is the ring of the page. The theme's own is a
+   pale shadow with too little contrast on paper (WCAG 2.2, 2.4.13). */
 .navbar a:focus-visible,
 .navbar .aa-DetachedSearchButton:focus-visible {
-  outline: var(--pbc-focus-width) solid var(--pbc-navbar-text);
+  outline: var(--pbc-focus-width) solid var(--pbc-focus);
   outline-offset: 2px;
   box-shadow: none;
 }
 
-/* The search box is a light field on the dark bar, so its controls take the
-   ring of the page, in the focus colour. The search script removes the
-   outline of its input; the identifier outranks that rule. */
+/* The search box's controls take the same ring. The search script removes
+   the outline of its input; the identifier outranks that rule. */
 #quarto-search .aa-Input:focus-visible,
 #quarto-search .aa-SubmitButton:focus-visible,
 #quarto-search .aa-ClearButton:focus-visible {
@@ -537,6 +799,44 @@ main button:focus-visible,
 
 .skip-link:focus {
   transform: none;
+}
+
+/* The footer: a thin rule, then the attribution, the licences, and the
+   source with the secondary navigation, in small muted text with cobalt
+   links. */
+.nav-footer {
+  border-top: var(--pbc-rule-width) solid var(--pbc-rule);
+  background-color: var(--pbc-background);
+  color: var(--pbc-muted);
+  font-size: var(--pbc-text-small);
+}
+
+/* The theme gives the footer's paragraphs its own grey, which has too little
+   contrast on the paper. */
+.nav-footer p {
+  color: var(--pbc-muted);
+}
+
+.page-footer a,
+.nav-footer a {
+  color: var(--pbc-link);
+  text-underline-offset: 0.15em;
+}
+
+.nav-footer .footer-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--pbc-space-3);
+  justify-content: center;
+}
+
+.nav-footer .footer-items .nav-link {
+  padding: var(--pbc-space-1) 0;
+  white-space: nowrap;
+}
+
+.nav-footer .footer-items .nav-link > p {
+  margin: 0;
 }
 
 /* Footer attribution slot (F57): one discreet line under the licences. */
@@ -626,7 +926,19 @@ main figure {
   margin: var(--pbc-space-4) 0;
 }
 
+/* A figure is a plate: the box that holds the image, or the widget's drawing
+   that replaces it, on white with a thin rule, set into the paper page. The
+   figure itself does not change; its white ground becomes the plate. The
+   plate is the holder and not the image, so that the drawing, whose aspect
+   ratio the widget sets on its border box, takes exactly the image's box. */
+main figure.figure > div:has(> img.figure-img, > .widget-drawing) {
+  padding: var(--pbc-space-2);
+  border: var(--pbc-rule-width) solid var(--pbc-rule);
+  background-color: var(--pbc-plate);
+}
+
 main figcaption {
+  max-width: var(--pbc-measure);
   margin-top: var(--pbc-space-2);
   color: var(--pbc-text);
   font-size: var(--pbc-text-small);
@@ -639,8 +951,6 @@ main figcaption {
   border-radius: var(--pbc-radius);
   font-size: var(--pbc-text-small);
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .figure-status[data-status="measured"] {
@@ -723,6 +1033,20 @@ main figcaption {
 .result-table {
   border-collapse: collapse;
   margin: 0;
+  background-color: var(--pbc-plate);
+}
+
+/* No zebra stripes (docs/atelier.md): the theme's striped table paints every
+   other row with an inset shadow. The header row stands over an ink rule. */
+.result-table > :not(caption) > * > * {
+  --bs-table-accent-bg: transparent;
+  --bs-table-bg-type: transparent;
+  background-color: var(--pbc-plate);
+  box-shadow: none;
+}
+
+.result-table thead th {
+  border-bottom-color: var(--pbc-text);
 }
 
 .result-table caption {
@@ -1210,6 +1534,8 @@ main details > summary {
    scan requires, so the listing keeps the page background. */
 div.not-verified div.sourceCode {
   background-color: var(--pbc-background);
+}
+
 /* Suggestions of what to do next (F14): the reason of each stays visible. */
 .recommendations {
   margin: var(--pbc-space-2) 0;
@@ -1226,4 +1552,95 @@ div.not-verified div.sourceCode {
 .recommendation-reason {
   margin: var(--pbc-space-1) 0;
   color: var(--pbc-muted);
+}
+
+/* The lesson reading column (docs/atelier.md, "Lesson reading column"): a
+   page opts in with the front-matter line body-classes: pbc-reading-column.
+   Prose keeps a real measure; display equations, listings, figures, tables,
+   and the widget keep the full width of the main column, wider than the
+   prose. The lesson header sits on the surface with a thin rule. */
+body.pbc-reading-column main.content > :is(p, ul, ol, dl, blockquote, h2, h3, h4),
+body.pbc-reading-column main.content section > :is(p, ul, ol, dl, blockquote, h2, h3, h4),
+body.pbc-reading-column main.content :is(.learn-box, .assumptions, .go-deeper, .exercise, details.hint, details.solution) {
+  max-width: var(--pbc-measure);
+}
+
+body.pbc-reading-column #title-block-header {
+  margin-bottom: var(--pbc-space-4);
+}
+
+body.pbc-reading-column #title-block-header :is(p, .description) {
+  max-width: var(--pbc-measure);
+}
+
+/* The table of contents of every page: ink entries, the current section in
+   vermilion. In the right margin from the tablet width; below it the theme
+   hides the margin, so the reading column shows the contents before the
+   body instead. */
+#TOC .nav-link {
+  color: var(--pbc-text);
+}
+
+.sidebar nav[role="doc-toc"] ul > li > a.active,
+.sidebar nav[role="doc-toc"] ul > li > ul > li > a.active {
+  /* The theme sets this colour with !important; only !important overrides it. */
+  color: var(--pbc-accent) !important;
+  border-left-color: var(--pbc-accent);
+}
+
+@media (max-width: 767.98px) {
+  /* A row for the contents above the theme's content row. */
+  body.pbc-reading-column #quarto-content.page-rows-contents {
+    grid-template-rows:
+      [contents-top] max-content [content-top] minmax(max-content, 1fr)
+      [content-bottom] minmax(60px, max-content) [page-bottom];
+  }
+
+  body.pbc-reading-column #quarto-margin-sidebar {
+    display: block;
+    position: static;
+    grid-column: body-content-start / body-content-end;
+    grid-row: contents-top / content-top;
+    max-height: none;
+    margin: var(--pbc-space-4) 0 0;
+    padding: var(--pbc-space-3);
+    border: var(--pbc-rule-width) solid var(--pbc-rule);
+  }
+
+  body.pbc-reading-column #quarto-margin-sidebar #TOC {
+    display: block;
+  }
+
+  /* Above the body the contents mark no current section: the reader is at
+     the top, whatever the scroll script highlights. */
+  body.pbc-reading-column .sidebar nav[role="doc-toc"] ul > li > a.active,
+  body.pbc-reading-column .sidebar nav[role="doc-toc"] ul > li > ul > li > a.active {
+    color: var(--pbc-text) !important;
+    border-left-color: var(--pbc-rule);
+  }
+}
+
+body.pbc-reading-column .lesson-header {
+  max-width: var(--pbc-measure);
+  border: var(--pbc-rule-width) solid var(--pbc-rule);
+  border-radius: 0;
+  background-color: var(--pbc-surface);
+}
+
+body.pbc-reading-column main.content section.level2 {
+  margin-top: var(--pbc-space-5);
+}
+
+/* Nothing in the chrome moves. The theme already drops its own transitions
+   and its smooth scrolling for a reader who asks for less motion; the header
+   and the footer add none, and a jump to an anchor stays instant. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .navbar *,
+  .nav-footer * {
+    transition: none;
+  }
 }

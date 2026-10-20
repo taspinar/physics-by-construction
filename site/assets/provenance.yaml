@@ -1,0 +1,14 @@
+# The provenance of every SVG under site/assets/ (ADR 018 decision 2;
+# docs/atelier.md, "The three asset classes"). A path, relative to this
+# directory, maps either to an authored source (author, licence, and an
+# optional source) or to the module that generates the file at build time
+# (module). The asset-source check (tests/lessons) fails on an SVG here
+# without its entry, and the committed-artifact check admits a committed SVG
+# here only with an author and a licence.
+assets:
+  mark.svg:
+    author: Ahmet Taspinar
+    licence: CC-BY-4.0
+    source: >-
+      Authored for the project (F123): Euclid's construction of the
+      equilateral triangle, the mark in the header of every page.

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" aria-hidden="true">
+  <!-- The mark of Physics by Construction: Euclid's first construction, the
+       equilateral triangle on a given segment. Two arcs of the segment's
+       length, drawn from its ends, cross at the constructed point.
+       Authored for the project (F123); Ahmet Taspinar; CC BY 4.0.
+       Provenance: site/assets/provenance.yaml. -->
+  <g fill="none" stroke="#0047ab" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21.32 11.14 A20 20 0 0 0 9.47 4.3" stroke-width="1.25"/>
+    <path d="M22.53 4.3 A20 20 0 0 0 10.68 11.14" stroke-width="1.25"/>
+    <path d="M6 24 L16 6.68 L26 24" stroke-width="1.5"/>
+    <path d="M6 24 H26" stroke-width="2.25"/>
+  </g>
+  <g fill="#0047ab">
+    <circle cx="6" cy="24" r="1.75"/>
+    <circle cx="26" cy="24" r="1.75"/>
+  </g>
+  <circle cx="16" cy="6.68" r="2.5" fill="#c2381d"/>
+</svg>

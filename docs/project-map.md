@@ -105,6 +105,7 @@ the website describes the current template.
 | `docs/repository-setup.md` | GitHub settings for a new repository | You |
 | `docs/development.md` | The one-time setup, verification, and every workflow command | Template and you |
 | `docs/authoring.md`, `docs/lesson-template.qmd` | How to write a lesson, and the page a new lesson starts from | You |
+| `docs/atelier.md` | The design specification of the scientific atelier (F123): the direction, the tokens, the components, the asset classes, the mobile and accessibility rules, and what the agent skills changed | You |
 | `docs/content-proposals.md` | How a lesson is proposed, assessed, drafted, and merged, for contributors and the maintainer | You |
 | `docs/workflow.md` | The workflow in flow, artifact, reference, and principles views | Template |
 | `docs/example.md` | A complete run with a sample project | Template |

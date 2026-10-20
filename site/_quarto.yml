@@ -1,26 +1,33 @@
 project:
   type: website
   output-dir: _site
-  # Puts the skip link before the navigation bar of every page.
+  # Puts the skip link before the navigation bar of every page, and gives the
+  # mark in the header its dimensions (mark.py).
   # context.py first: it replaces the markers the lesson cells leave by the
   # header, the commit, and the excerpts (ADR 014 decision 9), and the scripts
   # after it read the finished pages.
   post-render:
     - context.py
     - skip-link.py
+    - mark.py
     - search-fallback.py
     - search-index.py
     - lesson-previews.py
     - learning-path-export.py
     - attribution.py
   # Files the pages do not link to in Markdown but the built site must
-  # contain: the math font that site.css loads, and its licence, and the
+  # contain: the fonts that site.css loads, and their licences, and the
   # widgets and the learner-state script that lesson pages load as scripts.
   resources:
     - widgets/*.js
     - learner/*.js
     - assets/fonts/STIXTwoMath-Regular.woff2
+    - assets/fonts/STIXTwoText-Regular.subset.woff2
+    - assets/fonts/STIXTwoText-Italic.subset.woff2
+    - assets/fonts/STIXTwoText-SemiBold.subset.woff2
+    - assets/fonts/IBMPlexMono-Regular.woff2
     - assets/fonts/OFL.txt
+    - assets/fonts/OFL-IBMPlex.txt
 
 website:
   title: "Physics by Construction"
@@ -39,8 +46,18 @@ website:
     location: navbar
     type: textbox
     limit: 10
+  # The shared header of every page (docs/atelier.md, "Components"): the
+  # mark and the title, the primary navigation, and the start link, the one
+  # filled control, to the first lesson of the learning path. Quarto's navbar
+  # items take no class, so the start link's comes from the Markdown of its
+  # text. Nothing collapses: the entries wrap without a script.
   navbar:
     collapse: false
+    # A light bar, so that the theme draws the header's controls for a light
+    # ground; site.css sets the paper on it.
+    background: light
+    logo: assets/mark.svg
+    logo-alt: "Physics by Construction"
     left:
       - text: Home
         href: index.qmd
@@ -59,6 +76,8 @@ website:
     right:
       - text: Source
         href: https://github.com/taspinar/physics-by-construction
+      - text: "[Start the course]{.pbc-start}"
+        href: lessons/mechanics/01-kinematics-as-a-program/index.qmd
   page-footer:
     # The token becomes the attribution line after the render (attribution.py);
     # the wording is defined once in pbc.authoring.identity.
@@ -68,6 +87,22 @@ website:
       Lesson text and figures:
       [CC BY 4.0](https://github.com/taspinar/physics-by-construction/blob/main/LICENSE-CONTENT).
       Details on the [About](/about.qmd) page.
+    # The source and the secondary navigation.
+    right:
+      - text: Source
+        href: https://github.com/taspinar/physics-by-construction
+      - text: Learning path
+        href: path/index.qmd
+      - text: Glossary
+        href: glossary.qmd
+      - text: Evidence
+        href: evidence.qmd
+      - text: Set up
+        href: reproduce.qmd
+      - text: Contribute
+        href: contribute.qmd
+      - text: About
+        href: about.qmd
 
 format:
   html:

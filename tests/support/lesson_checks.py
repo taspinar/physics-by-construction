@@ -13,6 +13,7 @@ a second Markdown parser.
 import ast
 import datetime
 import functools
+import importlib.util
 import itertools
 import json
 import re
@@ -69,7 +70,10 @@ _ID = re.compile(r"[a-z][a-z0-9]*(-[a-z0-9]+)*")
 _LESSON_DIRECTORY = re.compile(r"(\d{2})-[a-z0-9]+(-[a-z0-9]+)*")
 _LEAN_MODULE = re.compile(r"PhysicsByConstruction(\.[A-Z][A-Za-z0-9_]*)+")
 
-_FRONT_MATTER_KEYS = {"title", "description", "lesson"}
+_FRONT_MATTER_KEYS = {"title", "description", "lesson", "body-classes"}
+# The one page class a lesson may set: the reading column (docs/atelier.md,
+# "The page opt-in"). Any other Quarto option stays outside the format.
+READING_COLUMN = "pbc-reading-column"
 _LESSON_KEYS = {
     "id",
     "strand",
@@ -290,6 +294,10 @@ def _metadata_problems(front_matter: Any, strand: str, directory: str) -> list[s
         problems.append("front matter has no 'title'")
     if "description" in front_matter and not _is_text(front_matter["description"]):
         problems.append("'description' is not a text")
+    if "body-classes" in front_matter and front_matter["body-classes"] != (
+        READING_COLUMN
+    ):
+        problems.append(f"'body-classes' is not '{READING_COLUMN}'")
 
     lesson = front_matter.get("lesson")
     if not isinstance(lesson, dict):
@@ -1051,6 +1059,9 @@ _GENERATED_SUFFIXES = {
 }
 # Where pages take their content from.
 _SOURCE_TREES = (SITE, "src")
+# The interface artwork of the site and its provenance register.
+ASSETS = f"{SITE}/assets"
+ASSET_REGISTER = f"{ASSETS}/provenance.yaml"
 
 
 def _generated(path: Path) -> str | None:
@@ -1105,14 +1116,19 @@ def check_committed_files(repository: Path) -> list[Violation]:
 
     The replay fixture is exempt by its location alone (ADR 002): it is the
     file ``replay.json``, or ``replay-<name>.json`` where a lesson records
-    several runs, next to the page of a lesson.
+    several runs, next to the page of a lesson. The one other exemption is
+    interface artwork (ADR 018 decision 2): an SVG under ``site/assets/``
+    that the provenance register names with an author and a licence.
     """
     violations = []
+    artwork = _authored_artwork(repository)
     for path in committed_files(repository):
         if path.parts[0] not in _SOURCE_TREES:
             continue
         in_lessons = path.parts[:2] == Path(LESSONS).parts
         if in_lessons and _lesson_file(path):
+            continue
+        if path in artwork:
             continue
         kind = _generated(path)
         if kind is not None:
@@ -1131,6 +1147,139 @@ def check_committed_files(repository: Path) -> list[Violation]:
                     f"not part of a lesson; {LESSONS} holds only"
                     f" <strand>/<nn>-<slug>/{PAGE} and, for an agent lesson,"
                     f" {REPLAY_FIXTURE} next to it",
+                )
+            )
+    return violations
+
+
+# --- Interface artwork ----------------------------------------------------------
+#
+# The provenance register, site/assets/provenance.yaml, maps the path of every
+# SVG under site/assets/ (relative to that directory) to its source: authored,
+# with ``author``, ``licence``, and an optional ``source``, or generated at
+# build time by ``module`` (ADR 018 decision 2; docs/atelier.md, "The three
+# asset classes").
+
+_AUTHORED_FIELDS = {"author", "licence", "source"}
+_GENERATED_FIELDS = {"module"}
+
+
+def _register_entries(repository: Path) -> tuple[dict[str, Any], list[str]]:
+    """Return the entries of the register and the problems of its format."""
+    path = repository / ASSET_REGISTER
+    if not path.is_file():
+        return {}, []
+    try:
+        data = yaml.safe_load(path.read_text())
+    except yaml.YAMLError as error:
+        return {}, [f"the register is not valid YAML: {error}"]
+    if not isinstance(data, dict) or set(data) != {"assets"}:
+        return {}, ["the register is not a mapping with the one key 'assets'"]
+    entries = data["assets"]
+    if not isinstance(entries, dict):
+        return {}, ["'assets' is not a mapping of paths to entries"]
+    return entries, []
+
+
+def _asset_path(name: Any) -> Path | None:
+    """The repository path of a register key, or None when it is no plain
+    path under site/assets."""
+    if not _is_text(name) or "\\" in name:
+        return None
+    relative = Path(name)
+    if relative.is_absolute() or ".." in relative.parts or "." in relative.parts:
+        return None
+    return Path(ASSETS) / relative
+
+
+def _is_authored(entry: Any) -> bool:
+    return (
+        isinstance(entry, dict)
+        and set(entry) <= _AUTHORED_FIELDS
+        and _is_text(entry.get("author"))
+        and _is_text(entry.get("licence"))
+        and ("source" not in entry or _is_text(entry["source"]))
+    )
+
+
+def _authored_artwork(repository: Path) -> set[Path]:
+    """The SVGs under site/assets that the register names with an author and
+    a licence: the files the committed-artifact check admits."""
+    entries, problems = _register_entries(repository)
+    if problems:
+        return set()
+    artwork = set()
+    for name, entry in entries.items():
+        path = _asset_path(name)
+        if path is not None and path.suffix == ".svg" and _is_authored(entry):
+            artwork.add(path)
+    return artwork
+
+
+def _asset_entry_problems(name: Any, entry: Any, files: set[Path]) -> list[str]:
+    path = _asset_path(name)
+    if path is None:
+        return [f"'{name}' is not a path under {ASSETS}"]
+    if path.suffix != ".svg":
+        return [f"'{name}' is not an SVG; the register names SVGs only"]
+    if not isinstance(entry, dict):
+        return [f"the entry of '{name}' is not a mapping"]
+    problems = [
+        f"the entry of '{name}' has the unknown field '{field}'"
+        for field in sorted(set(entry) - _AUTHORED_FIELDS - _GENERATED_FIELDS)
+    ]
+    if set(entry) & _GENERATED_FIELDS:
+        if set(entry) & _AUTHORED_FIELDS:
+            problems.append(
+                f"the entry of '{name}' is either authored (author, licence)"
+                " or generated (module), not both"
+            )
+        module = entry["module"]
+        if not _is_text(module) or not _importable(module):
+            problems.append(f"the module of '{name}' does not import: {module!r}")
+        return problems
+    if not _is_authored({key: entry[key] for key in entry if key in _AUTHORED_FIELDS}):
+        problems.append(
+            f"the entry of '{name}' needs an 'author' and a 'licence' (authored)"
+            " or a 'module' (generated)"
+        )
+    if path not in files:
+        problems.append(f"'{name}' is authored, but there is no file {path}")
+    return problems
+
+
+def _importable(module: str) -> bool:
+    try:
+        return importlib.util.find_spec(module) is not None
+    except ImportError, ValueError:
+        return False
+
+
+def check_asset_sources(repository: Path) -> list[Violation]:
+    """Every SVG under site/assets has its entry in the provenance register,
+    and every entry follows the register's format."""
+    entries, problems = _register_entries(repository)
+    violations = [
+        Violation("asset-source", ASSET_REGISTER, problem) for problem in problems
+    ]
+    files = set(committed_files(repository))
+    for name, entry in entries.items():
+        violations += [
+            Violation("asset-source", ASSET_REGISTER, problem)
+            for problem in _asset_entry_problems(name, entry, files)
+        ]
+    registered = {_asset_path(name) for name in entries}
+    for path in sorted(files):
+        if (
+            path.parts[:2] == Path(ASSETS).parts
+            and path.suffix.lower() == ".svg"
+            and path not in registered
+        ):
+            violations.append(
+                Violation(
+                    "asset-source",
+                    path.as_posix(),
+                    f"an SVG under {ASSETS} without its entry in {ASSET_REGISTER}",
                 )
             )
     return violations
