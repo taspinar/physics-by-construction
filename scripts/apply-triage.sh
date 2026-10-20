@@ -6,6 +6,9 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$script_dir/lib/agent.sh"
 source "$script_dir/lib/review-data.sh"
 source "$script_dir/lib/fingerprint.sh"
+source "$script_dir/lib/guardrails.sh"
+source "$script_dir/lib/completion.sh"
+source "$script_dir/lib/risk.sh"
 
 usage() {
   echo "Usage: $0 <triage-json> [--agent <agent>] [--model <model>] [--unattended] [--continue]"
@@ -308,15 +311,34 @@ fi
 # The fixed content must pass verification, in the tier the change needs
 # (ADR 017 decision 7): the targeted run for an ordinary change. A pass that
 # the agent's own run recorded for exactly this content, of any tier, is not
-# repeated.
+# repeated. A fix round of a Level 3 change with a completion/v2 record is an
+# intermediate round (ADR 020 decision 5): the partial run of the feedback
+# groups, which is quick feedback and never evidence; the final tree gets the
+# full run before its final review.
+feedback_groups=""
+if [[ "$(jq -r '.schema' "$(completion_record "$root" "$source_issue")" 2>/dev/null)" == "completion/v2" ]] &&
+  risk_assess "$root" "$(guardrails_rules_refs "$root" "$(jq -r '.base' "$source_review_path")")" \
+    "$(jq -r '.merge_base' "$source_review_path")" "$source_issue" "$source_review_path" 2>/dev/null &&
+  [[ "$RISK_REQUIRED" -eq 3 ]]; then
+  feedback_groups="$(risk_feedback_groups "$root")"
+fi
 echo
-echo "Checking repository verification..."
 set +e
-(
-  cd "$root"
-  ./scripts/verify.sh --reuse --targeted
-)
-verification_status=$?
+if [[ -n "$feedback_groups" ]]; then
+  echo "The change is Level 3: the partial run of the groups ${feedback_groups//,/, }, as feedback for this round..."
+  (
+    cd "$root"
+    ./scripts/verify.sh --only "$feedback_groups"
+  )
+  verification_status=$?
+else
+  echo "Checking repository verification..."
+  (
+    cd "$root"
+    ./scripts/verify.sh --reuse --targeted
+  )
+  verification_status=$?
+fi
 set -e
 
 if [[ "$protected_artifact_changed" -ne 0 ]]; then
@@ -357,6 +379,15 @@ fi
 
 echo
 rm -f "$started_mark"
-echo "FIX_NOW implementation completed and verification passed."
+if [[ -n "$feedback_groups" ]]; then
+  echo "FIX_NOW implementation completed, and the partial run of ${feedback_groups//,/, } passed (feedback, not a verification)."
+else
+  echo "FIX_NOW implementation completed and verification passed."
+fi
 echo "The code changed, so the review is stale. Next: review again to confirm the fixes:"
-echo "  ./scripts/review-feature.sh $source_issue"
+if [[ -n "$feedback_groups" ]]; then
+  echo "  ./scripts/review-feature.sh $source_issue --feedback    # an intermediate round"
+  echo "  ./scripts/review-feature.sh $source_issue               # the final round: the full run, then the review"
+else
+  echo "  ./scripts/review-feature.sh $source_issue"
+fi

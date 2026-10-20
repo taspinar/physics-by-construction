@@ -30,6 +30,17 @@ set -euo pipefail
 # there and is rejected; a base without the record is rejected too. The
 # record can only reject a base, never make one acceptable.
 #
+# A base that was already retrieved is not downloaded again (ADR 020
+# decision 7) when the run these checks choose is the run it came from: every
+# check above is made as always, and the choice of the run is theirs alone.
+# The download is skipped only when <directory>.fetched records that run, the
+# digest of its artifact, and the digest of the contents unpacked from it,
+# <directory> still has exactly those contents (every name and every file's
+# digest), and <directory>/provenance.json names the run and its commit. A
+# base changed after its retrieval is fetched again. Recency never decides; a
+# base from any other run is replaced, and without an accepted base both are
+# removed.
+#
 # --run <id> names the producing run; the same checks apply to it. The jobs
 # that check a built site use it to take the very base the build job took.
 #
@@ -66,6 +77,8 @@ if [[ "${1:-}" == "--run" ]]; then
 fi
 [[ $# -eq 1 ]] || fail "usage: $0 [--run <id>] <directory>"
 target="$1"
+# The record of the base in <directory>: the run and the artifact digest.
+fetched_record="${target%/}.fetched"
 
 for tool in gh jq unzip; do
   command -v "$tool" >/dev/null 2>&1 || fail "$tool is required."
@@ -80,6 +93,18 @@ fi
 scratch="$(mktemp -d "${TMPDIR:-/tmp}/fetch-base.XXXXXX")"
 trap 'rm -rf "$scratch"' EXIT
 
+# The digest of the contents of directory $1: the sorted names of its
+# directories and the digest of each file under its name. Fails when it holds
+# anything other than files and directories.
+contents_digest() {
+  [[ -d "$1" && -z "$(find "$1" ! -type f ! -type d -print -quit)" ]] || return 1
+  (
+    cd "$1" || exit 1
+    find . -type d -print0 | LC_ALL=C sort -z | tr '\0' '\n'
+    find . -type f -print0 | LC_ALL=C sort -z | xargs -0 "${sum[@]}"
+  ) | "${sum[@]}" | cut -d' ' -f1
+}
+
 output() {
   if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
     printf '%s\n' "$@" >>"$GITHUB_OUTPUT"
@@ -89,7 +114,7 @@ output() {
 # Without a base the run verifies everything. Says why, and why only.
 without_base() {
   echo "No base: $1. Every lesson is executed and checked."
-  rm -rf "$target"
+  rm -rf "$target" "$fetched_record"
   output "accepted=false" "run-id="
   exit 0
 }
@@ -232,6 +257,22 @@ artifact_id="$(jq -r '.id' "$scratch/artifact.json")"
 expected="$(jq -r '.digest' "$scratch/artifact.json")"
 expected="${expected#sha256:}"
 
+# The accepted run is the one whose base is already here: not fetched again.
+if [[ -f "$fetched_record" && -f "$target/provenance.json" ]] &&
+  [[ "$(sed -n 's/^run-id=//p' "$fetched_record")" == "$chosen" ]] &&
+  [[ "$(sed -n 's/^artifact-digest=//p' "$fetched_record")" == "$expected" ]] &&
+  recorded_contents="$(sed -n 's/^contents-digest=//p' "$fetched_record")" &&
+  [[ "$recorded_contents" =~ ^[0-9a-f]{64}$ ]] &&
+  [[ "$(contents_digest "$target" 2>/dev/null)" == "$recorded_contents" ]] &&
+  jq -e --arg sha "$chosen_sha" --argjson run "$chosen" '
+    type == "object" and .ref == "refs/heads/main" and .sha == $sha and .run_id == $run' \
+    "$target/provenance.json" >/dev/null 2>&1; then
+  echo "Base accepted: the artifact of the push run $chosen on main, whose job verify succeeded; it is the base already retrieved, so it was not fetched again."
+  output "accepted=true" "run-id=$chosen"
+  exit 0
+fi
+rm -f "$fetched_record"
+
 api "repos/$repo/actions/artifacts/$artifact_id/zip" >"$scratch/base.zip" 2>/dev/null ||
   without_base "the artifact of run $chosen cannot be downloaded"
 found="$("${sum[@]}" "$scratch/base.zip" | cut -d' ' -f1)"
@@ -283,5 +324,7 @@ jq -e --arg sha "$chosen_sha" --argjson run "$chosen" '
 rm -rf "$target"
 mkdir -p "$(dirname "$target")"
 mv "$stage" "$target"
+contents="$(contents_digest "$target")" || without_base "the contents of the base cannot be read"
+printf 'run-id=%s\nartifact-digest=%s\ncontents-digest=%s\n' "$chosen" "$expected" "$contents" >"$fetched_record"
 echo "Base accepted: the artifact of the push run $chosen on main, whose job verify succeeded."
 output "accepted=true" "run-id=$chosen"

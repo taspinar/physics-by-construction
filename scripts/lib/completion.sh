@@ -6,25 +6,41 @@
 # The implementer therefore states where the work stands in a completion
 # record, .agents/completion/<issue>.json, and the scripts go on to the
 # commit and the pull request only when that record and the handoff note
-# agree that the Issue is done. The record is a claim of the implementer: the
-# independent review of the complete feature checks it against the code and
-# the tests.
+# agree. The record is a claim of the implementer: the independent review
+# of the complete feature checks it against the code and the tests.
 #
 #   {
-#     "schema": "completion/v1",
+#     "schema": "completion/v2",
 #     "status": "complete" | "partial" | "blocked",
+#     "risk": {"level": 1 | 2 | 3,
+#              "triggers": ["<an escalation trigger the change hits>", ...],
+#              "rationale": "<why this level>"},
 #     "criteria": [
 #       {"criterion": "<an acceptance criterion of the Issue, or a plan step>",
-#        "status": "met" | "not_met" | "not_applicable",
+#        "gate": "implementation" | "pr_ci" | "owner_approval" | "post_merge",
+#        "status": "met" | "not_met" | "not_applicable" | "pending",
 #        "evidence": "<the test, file, or command that shows it; for
-#                     not_applicable the reason>"}
+#                     not_applicable the reason; for pending what is
+#                     awaited>"}
 #     ],
 #     "remaining": ["<what is left>", ...]
 #   }
 #
+# The gate of a criterion is the point that clears it (ADR 020 decision 2):
+# the implementation (tests, the local verification, the review), CI on the
+# exact head of the pull request, the owner's approval of the exact commit
+# at the merge gate, or a measurement after the merge. 'pending' names a
+# later gate and is never allowed for 'implementation'.
+#
 # 'complete' needs every criterion met or not applicable and nothing
-# remaining. 'partial' and 'blocked' need something that remains.
-
+# remaining. 'partial' and 'blocked' need something that remains; a record
+# with a pending criterion is partial. Whether a partial record is ready for
+# a pull request is derived, never stored: every criterion that is not met is
+# pending for a later gate.
+#
+# 'completion/v1' is the record of a feature started before ADR 020 was
+# delivered (F130): no gate, no 'pending', and no risk. It stays valid, so
+# that such a feature finishes under the contract it started with.
 COMPLETION_DIR=".agents/completion"
 
 # completion_record <root> <issue>
@@ -47,9 +63,20 @@ completion_errors() {
     def text: type == "string" and test("[^[:space:]]");
     if type != "object" then "it is not a JSON object"
     else
-      (if .schema != "completion/v1" then "schema must be \"completion/v1\"" else empty end),
+      (.schema == "completion/v2") as $v2
+      | (if (.schema | IN("completion/v1", "completion/v2")) | not
+         then "schema must be \"completion/v2\" (or \"completion/v1\" for a feature started before ADR 020)" else empty end),
       (if (.status | IN("complete", "partial", "blocked")) | not
        then "status must be complete, partial, or blocked" else empty end),
+      (if $v2 then
+         if (.risk | type) != "object" then "risk must hold the level, the triggers, and the rationale"
+         else
+           (if (.risk.level | IN(1, 2, 3)) | not then "risk.level must be 1, 2, or 3" else empty end),
+           (if (.risk.triggers | type) != "array" or ([.risk.triggers[]? | text] | all | not)
+            then "risk.triggers must be a list of texts; an empty list when none applies" else empty end),
+           (if (.risk.rationale | text) | not then "risk needs a rationale" else empty end)
+         end
+       elif has("risk") then "risk needs the schema completion/v2" else empty end),
       (if (.criteria | type) != "array" or (.criteria | length) == 0
        then "criteria must list at least one acceptance criterion"
        else (.criteria | to_entries[] |
@@ -57,8 +84,18 @@ completion_errors() {
          if type != "object" then "criterion \($n) is not an object"
          else
            (if (.criterion | text) | not then "criterion \($n) has no text" else empty end),
-           (if (.status | IN("met", "not_met", "not_applicable")) | not
-            then "criterion \($n): status must be met, not_met, or not_applicable" else empty end),
+           (if $v2 then
+              (if (.gate | IN("implementation", "pr_ci", "owner_approval", "post_merge")) | not
+               then "criterion \($n): gate must be implementation, pr_ci, owner_approval, or post_merge" else empty end),
+              (if (.status | IN("met", "not_met", "not_applicable", "pending")) | not
+               then "criterion \($n): status must be met, not_met, not_applicable, or pending"
+               elif .status == "pending" and .gate == "implementation"
+               then "criterion \($n): pending is never allowed for the gate implementation" else empty end)
+            else
+              (if (.status | IN("met", "not_met", "not_applicable")) | not
+               then "criterion \($n): status must be met, not_met, or not_applicable" else empty end),
+              (if has("gate") then "criterion \($n): a gate needs the schema completion/v2" else empty end)
+            end),
            (if (.evidence | text) | not then "criterion \($n) has no evidence" else empty end)
          end)
        end),
@@ -67,6 +104,9 @@ completion_errors() {
       (if .status == "complete" and (.criteria | type) == "array"
           and ([.criteria[]? | objects | .status] | index("not_met")) != null
        then "status is complete, but a criterion is not met" else empty end),
+      (if .status == "complete" and (.criteria | type) == "array"
+          and ([.criteria[]? | objects | .status] | index("pending")) != null
+       then "status is complete, but a criterion is pending; complete means every criterion is met" else empty end),
       (if .status == "complete" and (.remaining | type) == "array" and (.remaining | length) > 0
        then "status is complete, but work remains" else empty end),
       (if (.status == "partial" or .status == "blocked") and (.remaining | type) == "array"
@@ -90,7 +130,7 @@ handoff_remaining() {
       print text
     }
     # Another part of the note ends the list.
-    found && (/^#/ || tolower($0) ~ /^[[:space:]]*([-*][[:space:]]*)?\**(done|in progress|tried and rejected|open questions?)\**[[:space:]]*:/) {
+    found && (/^#/ || tolower($0) ~ /^[[:space:]]*([-*][[:space:]]*)?\**(done|in progress|pending|tried and rejected|open questions?)\**[[:space:]]*:/) {
       found = 0
     }
     tolower($0) ~ /^[[:space:]]*(#+[[:space:]]*|[-*][[:space:]]*)?\**remaining( work)?\**[[:space:]]*:?\**[[:space:]]*/ &&
@@ -120,6 +160,10 @@ completion_summary_present() {
 #
 #   complete  the record is valid and says so, and the handoff note lists
 #             no remaining work
+#   pending   ready for a pull request: the record says partial, every
+#             criterion that is not met is pending for a later gate, and the
+#             handoff note lists no remaining work; the reasons name the
+#             pending criteria and their gates
 #   partial   work remains, by the record or by the handoff note
 #   blocked   the implementer cannot go on without the human
 #   missing   there is no record
@@ -146,14 +190,23 @@ completion_gate() {
   fi
 
   status="$(jq -r '.status' "$record")"
+  left="$(handoff_remaining "$root/.agents/handoffs/$issue.md")"
+  # Ready for a pull request (ADR 020 decision 2): a partial record whose
+  # only unmet criteria are pending for a later gate, with no remaining work
+  # in the handoff note.
+  if [[ "$status" == "partial" && -z "$left" ]] && completion_only_pending "$record"; then
+    echo "pending"
+    completion_pending_lines "$record"
+    return 0
+  fi
   if [[ "$status" != "complete" ]]; then
     echo "$status"
     jq -r '.criteria[] | select(.status == "not_met") | "not met: \(.criterion)"' "$record"
+    jq -r '.criteria[] | select(.status == "pending") | "pending (\(.gate)): \(.criterion)"' "$record"
     jq -r '.remaining[] | "remaining: \(.)"' "$record"
     return 0
   fi
 
-  left="$(handoff_remaining "$root/.agents/handoffs/$issue.md")"
   if [[ -n "$left" ]]; then
     echo "partial"
     echo "the completion record says complete, but the handoff note (.agents/handoffs/$issue.md) lists remaining work:"
@@ -161,6 +214,20 @@ completion_gate() {
     return 0
   fi
   echo "complete"
+}
+
+# completion_only_pending <record>
+# Succeeds when a valid record has a pending criterion and every criterion
+# that is not met or not applicable is pending.
+completion_only_pending() {
+  jq -e '[.criteria[].status] | (index("pending") != null) and (index("not_met") == null)' "$1" >/dev/null 2>&1
+}
+
+# completion_pending_lines <record>
+# Prints one line per pending criterion of a valid record:
+# 'pending (<gate>): <criterion>'.
+completion_pending_lines() {
+  jq -r '.criteria[] | select(.status == "pending") | "pending (\(.gate)): \(.criterion)"' "$1"
 }
 
 # completion_closing_pattern <issue>
@@ -203,6 +270,6 @@ completion_commit_lines() {
   record="$(completion_record "$1" "$2")"
   jq -r '
     "Completion: \(.status)",
-    (.criteria[] | "- \(.status | gsub("_"; " ")): \(.criterion) (\(.evidence))"),
+    (.criteria[] | "- \(.status | gsub("_"; " "))\(if .status == "pending" then " (\(.gate))" else "" end): \(.criterion) (\(.evidence))"),
     (.remaining[] | "- remaining: \(.)")' "$record"
 }

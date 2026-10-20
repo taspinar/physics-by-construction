@@ -127,7 +127,55 @@ The file takes effect only when the ruleset of `main` requires a review from
 code owners. For one developer that would mean approving your own pull
 requests, which GitHub does not allow, so leave that setting off and rely on
 the merge approval gate of the workflow, which flags these paths in the
-commit message and the pull request. In a team, turn it on.
+commit message and the pull request. In a team, turn it on. A single owner
+who works with agents can turn it on with a second identity, as the next
+section describes.
+
+### The owner's identity for Level 3 approvals
+
+ADR 020 decision 3 (mechanism A) makes your approval of a Level 3 change,
+and your authorization to lower a level, an approving review of exactly the
+head of the pull request by a second GitHub identity that only you hold.
+The agent works with your own login, so a comment, review, label, file, or
+flag that login writes proves nothing, and no script accepts one. These are
+your actions; an agent never performs them, never changes a repository
+setting, and never holds the identity's credentials:
+
+1.  Create the second identity (a GitHub account only you use) and grant it
+    write access to the repository.
+2.  Change `.github/CODEOWNERS` to name that identity for the Level 3 paths
+    of ADR 020 decision 1, the protected list of
+    `.agents/policies/guardrails.conf`: among them `/docs/decisions/`, the
+    planning documents, `/.github/workflows/`, the workflow scripts and
+    `scripts/lib/`, `/.agents/prompts/`, `/.agents/schemas/`,
+    `/.agents/policies/`, `/AGENTS.md`, `/.agents/agents.conf`,
+    `scripts/verify.conf`, `scripts/verify.sh`, the digest, the selection,
+    the base and its provenance, `scripts/build-site.sh`, `/.agents/skills/`,
+    `/.agents/approvals/`, and `/.github/CODEOWNERS` itself, so that the
+    code-owners file cannot change without the identity's review. Name the
+    identity also on the line `owner-identity: <login>` of
+    `.agents/policies/guardrails.conf`: `./scripts/merge-feature.sh` accepts
+    the approval of that one login only, never another code owner's.
+3.  Change the ruleset of `main`: require a review from code owners, with
+    zero required approving reviews (so that a Level 1 or 2 pull request
+    needs no review), dismiss stale approvals when new commits are pushed,
+    require approval of the most recent push, and keep the bypass list
+    empty.
+4.  Verify it with one test pull request: one that changes only a Level 2
+    path can be merged without a review, and one that touches a code-owned
+    path cannot be merged without the identity's approval. Record the result
+    on the Issue of F130 (#236).
+5.  Optionally, give the agent a token without administration rights on the
+    repository (a fine-grained token, or a login that is not an
+    administrator). Mechanism A excludes forgery, not circumvention: a login
+    that administers the repository can change the ruleset, and only the
+    policy that an agent never changes a setting holds it back; such a token
+    turns that policy into a lock.
+
+Until these exist, the present practice continues: an agent merges a Level
+3 change only after your explicit word in the conversation, naming the head
+commit, and `./scripts/merge-feature.sh` merges no pull request that needs
+you (`docs/development.md`, "The merge approval gate").
 
 ------------------------------------------------------------------------
 
@@ -353,6 +401,10 @@ template.
 -   [ ] Pull Request required before merge
 -   [ ] `@YOUR_GITHUB_USERNAME` replaced in `.github/CODEOWNERS`
 -   [ ] In a team: code owner review required for the paths in `CODEOWNERS`
+-   [ ] With agents: the owner's second identity named in `CODEOWNERS` for
+    the Level 3 paths, code owner review required with zero approvals,
+    stale approvals dismissed, last push approved, no bypass actors, and
+    the test pull request recorded
 
 ### CI
 

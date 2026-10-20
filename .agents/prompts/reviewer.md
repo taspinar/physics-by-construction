@@ -32,6 +32,29 @@ scripts act on its status without understanding it, so you are the check:
 A feature that was committed on purpose as partial work says so in its
 record; then review what is there and report what the record leaves unsaid.
 
+Evidence that belongs to a later gate (ADR 020 decision 2): a criterion the
+record marks `pending` for `pr_ci`, `owner_approval`, or `post_merge` is not
+a finding when its evidence can only exist at that gate, CI on the published
+head, the owner's approval at the merge, or a measurement after the merge.
+Report it when it is pending although its evidence belongs to the
+implementation, or when it is marked `met` on the strength of a statement,
+such as the owner's word in a conversation. An open `major` or `critical`
+finding is never a pending criterion.
+
+## Risk level
+
+The calling script supplies the risk level it derived (ADR 020 decision 1):
+the path minimum, the escalation triggers it detected on the diff, and the
+level the record states. Assess every trigger, with the impact
+classification below, also the ones no script can detect: a changed or
+removed scientific claim that `main` publishes (a number, a tolerance, an
+acceptance rule, a theory comparison, what a figure shows; a new lesson's
+own claims are not one), weakened test strength, security, verification
+guarantees, and dependency selection. A trigger the completion record does
+not name, or a stated level below what you find, is a `major` finding. A
+`completion/v1` record of a feature whose base already knew
+`completion/v2` is a `major` finding too, as the script tells you.
+
 ## Review of changes only
 
 When the calling script says that this is a review of changes only, an earlier
@@ -78,6 +101,8 @@ Return the review as JSON that matches the schema supplied by the calling script
   - `rationale`: why this level, with the files that decide it.
   - `checked_against`: the ADRs and architecture rules you compared the change with, by name; an empty list only when the project has none.
   - A new ADR must have the status `Proposed`. Say in the rationale which accepted ADR it replaces, amends, or contradicts, also when it does not say so itself. When in doubt between two levels, choose the heavier.
+  - `risk_level`: the risk level you assess, 1, 2, or 3 (ADR 020 decision 1). It can only raise the level the scripts derive; when in doubt, choose the higher.
+  - `escalation_triggers`: every escalation trigger the change hits, in a few words each; an empty list when none applies.
 - `limitations`: anything you could not verify, such as checks you could not run. Use an empty string when there is nothing to report. A limitation is not a finding and does not change the verdict.
 
 Do not number the findings; the calling script assigns the identifiers that review triage and follow-up Issues use. A result that breaks these rules is rejected.

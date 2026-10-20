@@ -8,6 +8,8 @@ Produce an implementation plan for one selected non-trivial issue. Do not implem
 ## Output
 Write `.agents/plans/<issue>-<slug>.md` containing: goal, acceptance criteria, current-state findings, affected components, constraints/ADRs, risk classification, ordered implementation steps, test/verification strategy, context/base commit, open questions, and next action. Classify every new visual deliverable and name the skills it selects, or why none applies, as `AGENTS.md`, "Visual deliverables and skills", says.
 
+The risk classification names the level of ADR 020 decision 1 (1, 2, or 3), the paths and escalation triggers it rests on, and, for each acceptance criterion, the gate that clears it (`implementation`, `pr_ci`, `owner_approval`, or `post_merge`), so that evidence that can only exist after the publication or the merge is planned as `pending` and not as a reason to hold the feature back. A Level 3 plan says which partial runs give its intermediate rounds feedback and that its final tree gets the full verification and a full review after it.
+
 Prefer the smallest design that satisfies the issue. Surface ambiguity instead of inventing product requirements.
 
 ## Before modifying files

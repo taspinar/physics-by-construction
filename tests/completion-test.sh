@@ -53,7 +53,7 @@ expect_errors "a partial record" "$partial"
 expect_errors "a blocked record" "$(printf '%s' "$partial" | sed 's/"partial"/"blocked"/')"
 expect_errors "not JSON" "status: complete" "it is not valid JSON"
 expect_errors "not an object" '["complete"]' "it is not a JSON object"
-expect_errors "an empty object" '{}' 'schema must be "completion/v1"' "status must be complete, partial, or blocked" \
+expect_errors "an empty object" '{}' 'schema must be "completion/v2" (or "completion/v1" for a feature started before ADR 020)' "status must be complete, partial, or blocked" \
   "criteria must list at least one acceptance criterion" "remaining must be a list of texts; an empty list when nothing remains"
 expect_errors "an unknown status" "$(printf '%s' "$complete" | sed 's/"complete"/"done"/')" \
   "status must be complete, partial, or blocked"
@@ -181,6 +181,77 @@ if printf '%s\n' "Closes #12" "Fixes #12 and resolves #12" | completion_neutrali
   grep -Eiq "$(completion_closing_pattern 12)"; then
   fail "a closing keyword survived the rewriting"
 fi
+
+# The record of ADR 020 decision 2 (completion/v2): a gate per criterion, the
+# status pending for a later gate, and the level the implementer records.
+v2() {
+  # v2 <status> <remaining-json> <criterion-json>...
+  local status="$1"
+  local remaining="$2"
+
+  shift 2
+  jq -n --arg status "$status" --argjson remaining "$remaining" --argjson criteria "[$(IFS=,; printf '%s' "$*")]" '{
+    schema: "completion/v2", status: $status,
+    risk: {level: 2, triggers: [], rationale: "src/ and tests only"},
+    criteria: $criteria, remaining: $remaining
+  }'
+}
+met='{"criterion": "Recipes can be searched", "gate": "implementation", "status": "met", "evidence": "tests/test_search.py"}'
+ci='{"criterion": "CI passes on the head", "gate": "pr_ci", "status": "pending", "evidence": "the checks of the pull request"}'
+owner='{"criterion": "The owner approves the diff", "gate": "owner_approval", "status": "pending", "evidence": "at the merge gate"}'
+later='{"criterion": "Two features ran under it", "gate": "post_merge", "status": "pending", "evidence": "after the merge"}'
+open_work='{"criterion": "The page works without JavaScript", "gate": "implementation", "status": "not_met", "evidence": "plan step 4"}'
+expect_errors "a complete v2 record" "$(v2 complete '[]' "$met")"
+expect_errors "a partial v2 record with criteria pending for each later gate" \
+  "$(v2 partial '["the evidence of the later gates"]' "$met" "$ci" "$owner" "$later")"
+# complete keeps one meaning: every criterion met.
+expect_errors "complete with a pending criterion" "$(v2 complete '[]' "$met" "$later")" \
+  "status is complete, but a criterion is pending; complete means every criterion is met"
+expect_errors "pending for the gate implementation" \
+  "$(v2 partial '["the tests"]' '{"criterion": "Tests exist", "gate": "implementation", "status": "pending", "evidence": "later"}')" \
+  "criterion 1: pending is never allowed for the gate implementation"
+expect_errors "a v2 criterion without a gate" \
+  "$(v2 complete '[]' '{"criterion": "It works", "status": "met", "evidence": "a test"}')" \
+  "criterion 1: gate must be implementation, pr_ci, owner_approval, or post_merge"
+expect_errors "a v2 record without a risk" \
+  "$(v2 complete '[]' "$met" | jq 'del(.risk)')" "risk must hold the level, the triggers, and the rationale"
+expect_errors "a v2 record with an unknown level and no rationale" \
+  "$(v2 complete '[]' "$met" | jq '.risk = {level: 0, triggers: "none", rationale: ""}')" \
+  "risk.level must be 1, 2, or 3" "risk.triggers must be a list of texts; an empty list when none applies" "risk needs a rationale"
+# The earlier contract knows neither the gates nor pending.
+expect_errors "pending in a v1 record" \
+  '{"schema": "completion/v1", "status": "partial", "criteria": [{"criterion": "CI", "status": "pending", "evidence": "x"}], "remaining": ["CI"]}' \
+  "criterion 1: status must be met, not_met, or not_applicable"
+expect_errors "a gate in a v1 record" \
+  '{"schema": "completion/v1", "status": "complete", "criteria": [{"criterion": "CI", "gate": "pr_ci", "status": "met", "evidence": "x"}], "remaining": []}' \
+  "criterion 1: a gate needs the schema completion/v2"
+
+# The readiness points are derived. Only pending criteria left: ready for a
+# pull request ('pending', with the criteria and their gates), and still not
+# complete.
+rm -f "$note"
+v2 partial '["the evidence of the later gates"]' "$met" "$ci" "$later" >"$record"
+expect_gate "only pending criteria" pending "pending (pr_ci): CI passes on the head" \
+  "pending (post_merge): Two features ran under it"
+[[ "$(completion_gate "$root" 7 | sed -n 1p)" != "complete" ]] || fail "a record with a pending criterion counts as complete"
+[[ "$(completion_commit_lines "$root" 7)" == "Completion: partial
+- met: Recipes can be searched (tests/test_search.py)
+- pending (pr_ci): CI passes on the head (the checks of the pull request)
+- pending (post_merge): Two features ran under it (after the merge)
+- remaining: the evidence of the later gates" ]] || fail "the completion statement of a record with pending criteria is wrong"
+# Pending evidence is listed under its own label in the handoff note.
+printf '**Done:** all.\n**Remaining:** none.\n**Pending:** CI on the head; two features after the merge.\n' >"$note"
+expect_gate "only pending criteria, and a note that lists them as pending" pending
+printf '**Remaining:** the documentation.\n' >"$note"
+expect_gate "only pending criteria, but the note lists remaining work" partial
+rm -f "$note"
+v2 partial '["plan step 4"]' "$met" "$ci" "$open_work" >"$record"
+expect_gate "a pending criterion beside one that is not met" partial "not met: The page works without JavaScript" \
+  "pending (pr_ci): CI passes on the head"
+v2 blocked '["the owner decides"]' "$met" "$owner" >"$record"
+expect_gate "a blocked record with a pending criterion" blocked
+v2 complete '[]' "$met" >"$record"
+expect_gate "a complete v2 record" complete
 
 # The summary of the changes, which an unattended commit needs.
 if completion_summary_present "$root" 7; then fail "a missing summary counts as present"; fi
