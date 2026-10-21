@@ -261,6 +261,27 @@ sed -i.bak 's/\[1, 2, 3\]/[1, 2]/' "$repo/tests/unit/test_code.py" && rm "$repo/
 assess "$repo"
 expect_trigger "a parametrize that drops a case" "marker changed: tests/unit/test_code.py (@pytest.mark.parametrize(\"n\", [1, 2, 3]))"
 
+# A parametrize added to a test that is already on the base is risk-sensitive
+# (#243, the owner's review of PR #249): it changes the cases the test runs.
+# Giving the test a parameter changes its signature, which reads as a changed
+# test; parametrizing an argument it already has changes no line of the test,
+# so the added decorator itself is the reading.
+repo="$(setup_repo parametrize-existing-signature)"
+git -C "$repo" switch -q main
+printf '\n\ndef test_five(n):\n    assert n > 0\n' >>"$repo/tests/unit/test_code.py"
+git -C "$repo" commit -qam "A test with an argument"
+git -C "$repo" switch -q feature/5-thing
+git -C "$repo" reset -q --hard main
+sed -i.bak 's/^def test_five(n):/@pytest.mark.parametrize("n", [1])\ndef test_five(n):/' "$repo/tests/unit/test_code.py" && rm "$repo/tests/unit/test_code.py.bak"
+assess "$repo"
+expect_trigger "a parametrize on an existing test, signature unchanged" \
+  "marker changed: tests/unit/test_code.py (@pytest.mark.parametrize(\"n\", [1]))"
+
+repo="$(setup_repo parametrize-existing-parameter)"
+sed -i.bak 's/^def test_one():/@pytest.mark.parametrize("n", [1])\ndef test_one(n):/' "$repo/tests/unit/test_code.py" && rm "$repo/tests/unit/test_code.py.bak"
+assess "$repo"
+expect_trigger "a parametrize that gives an existing test a parameter" "test removed: tests/unit/test_code.py (def test_one():)"
+
 repo="$(setup_repo dependency)"
 printf 'dependencies = ["numpy"]\n' >>"$repo/pyproject.toml"
 assess "$repo"
