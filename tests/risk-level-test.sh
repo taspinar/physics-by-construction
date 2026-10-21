@@ -225,6 +225,42 @@ sed -i.bak '/@pytest.mark.same_machine/d' "$repo/tests/unit/test_code.py" && rm 
 assess "$repo"
 expect_trigger "a removed marker" "marker changed: tests/unit/test_code.py (@pytest.mark.same_machine)"
 
+# A marker that only structures new cases is no trigger (#243); one that
+# selects, excludes, or relocates tests stays one, also beside it.
+repo="$(setup_repo parametrize)"
+printf '\n\n@pytest.mark.parametrize("n", [1, 2, 3])\ndef test_four(n):\n    assert n > 0\n' >>"$repo/tests/unit/test_code.py"
+assess "$repo"
+expect "an added parametrize" RISK_TRIGGERS ""
+expect "an added parametrize" RISK_REQUIRED 2
+
+repo="$(setup_repo added-marker)"
+printf '\n\n@pytest.mark.same_machine\ndef test_four():\n    assert True\n' >>"$repo/tests/unit/test_code.py"
+assess "$repo"
+expect_trigger "an added same_machine marker" "marker changed: tests/unit/test_code.py (@pytest.mark.same_machine)"
+
+repo="$(setup_repo added-skipif)"
+printf '\n\n@pytest.mark.skipif(True, reason="slow")\n@pytest.mark.parametrize("n", [1])\ndef test_four(n):\n    assert n\n' >>"$repo/tests/unit/test_code.py"
+assess "$repo"
+expect_trigger "an added skipif beside a parametrize" "skip or expected failure added: tests/unit/test_code.py (@pytest.mark.skipif(True, reason=\"slow\"))"
+printf '%s\n' "$RISK_TRIGGERS" | grep -Fq "parametrize" && fail "the parametrize beside a skipif was read as a trigger: $RISK_TRIGGERS"
+
+repo="$(setup_repo parametrize-and-marker)"
+printf '\n\npytestmark = [pytest.mark.parametrize("n", [1]), pytest.mark.same_machine]\n' >>"$repo/tests/unit/test_code.py"
+assess "$repo"
+expect_trigger "a same_machine marker on the line of a parametrize" \
+  "marker changed: tests/unit/test_code.py (pytestmark = [pytest.mark.parametrize(\"n\", [1]), pytest.mark.same_machine])"
+
+# A parametrize already on the base that loses a case stays a reading.
+repo="$(setup_repo changed-parametrize)"
+git -C "$repo" switch -q main
+printf '\n\n@pytest.mark.parametrize("n", [1, 2, 3])\ndef test_four(n):\n    assert n > 0\n' >>"$repo/tests/unit/test_code.py"
+git -C "$repo" commit -qam "Parametrize"
+git -C "$repo" switch -q feature/5-thing
+git -C "$repo" reset -q --hard main
+sed -i.bak 's/\[1, 2, 3\]/[1, 2]/' "$repo/tests/unit/test_code.py" && rm "$repo/tests/unit/test_code.py.bak"
+assess "$repo"
+expect_trigger "a parametrize that drops a case" "marker changed: tests/unit/test_code.py (@pytest.mark.parametrize(\"n\", [1, 2, 3]))"
+
 repo="$(setup_repo dependency)"
 printf 'dependencies = ["numpy"]\n' >>"$repo/pyproject.toml"
 assess "$repo"
@@ -339,7 +375,7 @@ expect "a requested lowering" RISK_REQUIRED 3
 expect "a requested lowering" RISK_REQUESTED 2
 statement="$(risk_statement_lines)"
 for line in "- required: level 3, by the triggers" "- stated in the completion record: level 2" \
-  "- derived for the content $RISK_TREE"; do
+  "- derived for the content $RISK_TREE" "- content tree for the approval request (Tree:): $RISK_CONTENT_TREE"; do
   printf '%s\n' "$statement" | grep -Fqx -- "$line" || fail "the statement of a lowering lacks '$line': $statement"
 done
 printf '%s\n' "$statement" | grep -Fq "requested: level 2, in .agents/approvals/5.md: a request only. The change keeps level 3" ||
@@ -361,6 +397,37 @@ request "$repo" 3 2
 sed -i.bak "/^Owner's word:/d" "$repo/.agents/approvals/5.md" && rm "$repo/.agents/approvals/5.md.bak"
 assess "$repo"
 expect_error "a lowering without the owner's word" "has no line 'Owner's word: ...'"
+
+# The content tree an approval request names: the request is not part of
+# it, so editing the request leaves it unchanged, while the request is part
+# of the worktree's fingerprint; every other file of the change, and the
+# completion record and the handoff note that Git ignores, are part of it.
+repo="$(setup_repo content-tree)"
+printf '# more\n' >>"$repo/scripts/lib/completion.sh"
+record "$repo" 3
+mkdir -p "$repo/.agents/handoffs" "$repo/lessons"
+printf '# Handoff\n' >"$repo/.agents/handoffs/5.md"
+printf 'A lesson.\n' >"$repo/lessons/a.qmd"
+request "$repo"
+assess "$repo"
+content="$RISK_CONTENT_TREE"
+tree="$RISK_TREE"
+[[ "$content" =~ ^[0-9a-f]{40}$ ]] || fail "the content tree is not a tree: '$content'"
+sed -i.bak 's/^Tree: .*$/Tree: '"$content"'/' "$repo/.agents/approvals/5.md" && rm "$repo/.agents/approvals/5.md.bak"
+assess "$repo"
+expect "an edited approval request" RISK_CONTENT_TREE "$content"
+[[ "$RISK_TREE" != "$tree" ]] || fail "the edited approval request did not change the fingerprint of the worktree"
+git -C "$repo" ls-tree -r --name-only "$content" | grep -Fqx ".agents/approvals/5.md" &&
+  fail "the content tree holds the approval request"
+for edit in scripts/lib/completion.sh lessons/a.qmd tests/unit/test_code.py .agents/completion/5.json .agents/handoffs/5.md; do
+  cp "$repo/$edit" "$tmp/saved"
+  printf '\n' >>"$repo/$edit"
+  assess "$repo"
+  [[ "$RISK_CONTENT_TREE" != "$content" ]] || fail "editing $edit did not change the content tree"
+  cp "$tmp/saved" "$repo/$edit"
+done
+assess "$repo"
+expect "the content restored" RISK_CONTENT_TREE "$content"
 
 # The earlier contract: the level is derived and recorded, nothing refused.
 repo="$(setup_repo v1)"
