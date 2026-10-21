@@ -1563,6 +1563,334 @@ main details > summary {
   stroke-width: 1.5;
 }
 
+/* The course atlas (F125, docs/atelier.md, "The course atlas"). The breadcrumb
+   and the switch are plain links; the map scrolls in its own focusable box at
+   its natural size, so its labels never shrink; the panels are native
+   disclosures. The three edge types differ by dash and by end mark, a
+   planned concept by its dashed outline, italic name, and the word planned:
+   never by colour alone. */
+.pbc-breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pbc-space-1) var(--pbc-space-2);
+  margin: 0 0 var(--pbc-space-3);
+  padding: 0;
+  list-style: none;
+  font-size: var(--pbc-text-small);
+}
+
+.pbc-breadcrumb li + li::before {
+  content: "/";
+  margin-right: var(--pbc-space-2);
+  color: var(--pbc-muted);
+}
+
+.atlas-switch ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pbc-space-2);
+  margin: var(--pbc-space-3) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.atlas-switch a {
+  display: inline-block;
+  padding: var(--pbc-space-1) var(--pbc-space-3);
+  border: 1px solid var(--pbc-link);
+  border-radius: var(--pbc-radius);
+  text-decoration: none;
+}
+
+.atlas-switch a:hover {
+  background: var(--pbc-surface);
+}
+
+.atlas-legend {
+  max-width: var(--pbc-measure);
+  padding-left: 0;
+  list-style: none;
+  font-size: var(--pbc-text-small);
+}
+
+.atlas-legend li {
+  margin: var(--pbc-space-2) 0;
+}
+
+.atlas-legend svg {
+  vertical-align: middle;
+  overflow: visible;
+}
+
+/* The map is wider than the text column on a desktop; the contents in the
+   margin stay at the top of the page instead of following the reader over
+   it. */
+body.pbc-atlas #quarto-margin-sidebar {
+  position: static;
+}
+
+.atlas-map {
+  max-width: 100%;
+  margin: var(--pbc-space-3) 0;
+  overflow: auto;
+  border-top: var(--pbc-construction-width) solid var(--pbc-link);
+  border-bottom: 1px solid var(--pbc-rule);
+  background: var(--pbc-background);
+  scrollbar-color: var(--pbc-rule) transparent;
+}
+
+.atlas-map svg {
+  display: block;
+  max-width: none;
+  height: auto;
+  margin: 0 auto;
+}
+
+.atlas-map text {
+  fill: var(--pbc-text);
+  font-family: var(--pbc-font-text);
+  font-size: 13px;
+}
+
+.atlas-map .atlas-heading {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.atlas-area-box {
+  fill: var(--pbc-background);
+  stroke: var(--pbc-rule);
+  stroke-width: 1;
+}
+
+.atlas-path .atlas-area-box {
+  fill: var(--pbc-surface);
+}
+
+.atlas-map .atlas-area-title,
+.atlas-map .atlas-view-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.atlas-map .atlas-area-count,
+.atlas-map .atlas-node-state {
+  fill: var(--pbc-muted);
+  font-size: 11.5px;
+}
+
+.atlas-rail {
+  fill: none;
+  stroke: var(--pbc-link);
+  stroke-width: 2;
+}
+
+.atlas-illustration * {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.atlas-illustration .ill-line {
+  stroke: var(--pbc-link);
+  stroke-width: 1.5;
+}
+
+.atlas-illustration .ill-faint {
+  stroke: var(--pbc-rule);
+  stroke-width: 1;
+}
+
+.atlas-illustration .ill-rule {
+  stroke: var(--pbc-text);
+  stroke-width: 1.5;
+}
+
+.atlas-illustration .ill-fill {
+  fill: var(--pbc-link);
+}
+
+.atlas-illustration .ill-plate {
+  fill: var(--pbc-plate);
+  stroke: var(--pbc-link);
+  stroke-width: 1.5;
+}
+
+.atlas-edge {
+  fill: none;
+  stroke-width: 1.25;
+}
+
+.atlas-edge-prerequisite {
+  stroke: var(--pbc-rule);
+}
+
+.atlas-edge-conceptual {
+  stroke: var(--pbc-link);
+  stroke-dasharray: 6 4;
+}
+
+.atlas-edge-capstone {
+  stroke: var(--pbc-text);
+  stroke-dasharray: 1.5 3.5;
+  stroke-linecap: round;
+  stroke-width: 1.75;
+}
+
+.atlas-arrowhead {
+  fill: var(--pbc-rule);
+}
+
+.atlas-open-end {
+  fill: var(--pbc-plate);
+  stroke: var(--pbc-text);
+  stroke-width: 1.25;
+}
+
+.atlas-node-box,
+.atlas-node-inner,
+.atlas-lesson-box {
+  fill: var(--pbc-plate);
+  stroke: var(--pbc-rule);
+  stroke-width: 1;
+}
+
+.atlas-node-inner {
+  fill: none;
+}
+
+.atlas-map a {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.atlas-map .atlas-node-name,
+.atlas-map .atlas-lesson text {
+  text-decoration: underline;
+}
+
+.atlas-map .atlas-node-name,
+.atlas-map .atlas-lesson text {
+  fill: var(--pbc-link);
+}
+
+.atlas-map .atlas-lesson text {
+  font-size: 12.5px;
+}
+
+.atlas-planned .atlas-node-box,
+.atlas-planned .atlas-node-inner,
+.atlas-legend-planned {
+  fill: var(--pbc-background);
+  stroke: var(--pbc-rule);
+  stroke-dasharray: 4 3;
+}
+
+.atlas-map .atlas-planned .atlas-node-name {
+  fill: var(--pbc-text);
+  font-style: italic;
+}
+
+.atlas-view-box {
+  fill: var(--pbc-surface);
+  stroke: none;
+}
+
+.atlas-map a:hover .atlas-node-box,
+.atlas-map a:hover .atlas-lesson-box {
+  stroke: var(--pbc-link);
+}
+
+.atlas-map a:focus-visible {
+  outline: none;
+}
+
+.atlas-map a:focus-visible .atlas-node-box,
+.atlas-map a:focus-visible .atlas-lesson-box {
+  stroke: var(--pbc-focus);
+  stroke-width: var(--pbc-focus-width);
+}
+
+.atlas-capstone-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--pbc-space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.atlas-capstone-item {
+  padding: var(--pbc-space-3);
+  border: 1px dashed var(--pbc-rule);
+}
+
+.atlas-capstone-item p {
+  margin: 0 0 var(--pbc-space-2);
+}
+
+.atlas-capstone-name {
+  font-weight: 600;
+}
+
+.atlas-capstone-state,
+.atlas-planned-word,
+.concept-state {
+  color: var(--pbc-muted);
+  font-weight: 400;
+}
+
+.atlas-label {
+  font-family: var(--pbc-font-code);
+  font-size: var(--pbc-text-small);
+}
+
+.atlas-panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--pbc-space-3) var(--pbc-space-4);
+  align-items: start;
+}
+
+.atlas-panel-group h4 {
+  margin: 0 0 var(--pbc-space-2);
+  font-size: var(--pbc-text-base);
+}
+
+.concept-panel {
+  border-top: 1px solid var(--pbc-rule);
+  font-size: var(--pbc-text-small);
+}
+
+.concept-panel > summary {
+  padding: var(--pbc-space-1) 0;
+}
+
+.concept-panel[data-concept-state="planned"] .concept-name {
+  font-style: italic;
+}
+
+.concept-panel:target {
+  border-top: var(--pbc-construction-width) solid var(--pbc-accent);
+}
+
+.concept-body {
+  padding: 0 0 var(--pbc-space-3);
+}
+
+.concept-body dt {
+  margin-top: var(--pbc-space-2);
+  font-weight: 600;
+}
+
+.concept-body dd {
+  margin: 0;
+}
+
+.concept-body ul {
+  margin: 0;
+  padding-left: var(--pbc-space-3);
+}
+
 /* Present for assistive technology and without styles, not shown. */
 .visually-hidden {
   position: absolute;

@@ -173,6 +173,7 @@ def all_checks(repository: Path) -> list[Violation]:
         *lesson_checks.check_experiments(repository),
         *lesson_checks.check_figures(repository),
         *lesson_checks.check_committed_files(repository),
+        *lesson_checks.check_atlas(repository),
     ]
 
 
@@ -1211,6 +1212,25 @@ def test_register_that_breaks_its_format_is_reported(
 
     assert rules(violations) == {"asset-source"}
     assert problem in details(violations)
+
+
+# --- The map manifest ------------------------------------------------------------
+
+
+def test_a_map_manifest_that_breaks_a_rule_is_reported(make_repository: Repository):
+    manifest = (
+        "concepts:\n"
+        "  - {id: motion, area: mechanics, position: [1, 1], slots: [M1],\n"
+        "     explanation: Motion., title: Motion}\n"
+        "connections: []\n"
+    )
+    violations = lesson_checks.check_atlas(
+        make_repository(files={"site/atlas.yaml": manifest})
+    )
+
+    assert rules(violations) == {"atlas"}
+    assert "'title' is held by the curriculum file" in details(violations)
+    assert "'M1' is not a slot of the curriculum" in details(violations)
 
 
 # --- The check as verification runs it ------------------------------------------

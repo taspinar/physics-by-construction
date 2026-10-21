@@ -3,7 +3,16 @@ title: "Learning path"
 description: >-
   The lessons of the site by course and by method, with their difficulty and
   prerequisites.
+body-classes: pbc-atlas
 ---
+
+```{python}
+#| echo: false
+#| output: asis
+from pbc.authoring.atlas import course_atlas
+
+print(course_atlas())
+```
 
 ## Choose a physics course {#choose}
 
