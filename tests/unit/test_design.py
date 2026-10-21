@@ -92,6 +92,9 @@ def test_every_page_colour_is_checked_in_a_pair():
         "start link",
         "header text",
         "header focus ring",
+        "text on night",
+        "muted text on night",
+        "line on night",
     ],
 )
 def test_the_atelier_pairs_are_checked(name):

@@ -82,6 +82,13 @@ PAGE = {
     "header-text": "#1c1b19",
     "start": "#0047ab",
     "start-text": "#faf8f3",
+    # The dark navy ground a capstone may frame its visual in (ADR 018
+    # decision 5): paper text on it, a pale secondary text, and the pale
+    # cobalt of lines and the focus ring there.
+    "night": "#0f2240",
+    "night-text": "#faf8f3",
+    "night-muted": "#b4c2d9",
+    "night-line": "#7ea6e0",
 }
 
 
@@ -142,6 +149,9 @@ def colour_pairs() -> list[tuple[str, str, str, float]]:
         ("header link", PAGE["link"], PAGE["header"], TEXT_CONTRAST),
         ("header accent", PAGE["accent"], PAGE["header"], CONTROL_CONTRAST),
         ("header focus ring", PAGE["focus"], PAGE["header"], CONTROL_CONTRAST),
+        ("text on night", PAGE["night-text"], PAGE["night"], TEXT_CONTRAST),
+        ("muted text on night", PAGE["night-muted"], PAGE["night"], TEXT_CONTRAST),
+        ("line on night", PAGE["night-line"], PAGE["night"], CONTROL_CONTRAST),
     ]
     for kind, labels in (("claim", CLAIM_LABELS), ("status", STATUS_LABELS)):
         for name, label in labels.items():
