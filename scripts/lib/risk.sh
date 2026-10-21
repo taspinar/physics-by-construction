@@ -160,12 +160,13 @@ risk_path_minimum() {
 #   test removed                    a test function (Python def test_, shell
 #                                   test_ function) or a test file removed
 #   marker changed                  a pytest marker or same_machine added or
-#                                   removed, except a parametrize added
-#                                   with a new test (the same added block
-#                                   adds a def test_), which only structures
-#                                   new cases; on a test that is already
-#                                   there, and when removed or changed, it
-#                                   stays a reading;
+#                                   removed, except a parametrize that
+#                                   decorates a new test (the first def after
+#                                   it in its added block is a new def
+#                                   test_), which only structures new cases;
+#                                   on a test that is already there, and
+#                                   when removed or changed, it stays a
+#                                   reading;
 #                                   the shell tests and the Lean proofs have
 #                                   no markers
 #   dependency file changed         a dependency manifest or lock file
@@ -209,6 +210,16 @@ risk_triggers() {
         key = kind SUBSEP file SUBSEP line
         if (!(key in seen)) { seen[key] = 1; printf "%s\t%s\t%s\n", kind, file, short(line) }
       }
+      # Whether the first def or class that follows added line i in its own
+      # added block is a new def test_: the decorator on line i then decorates
+      # that new test. A def that is not in the block is an existing one.
+      function decorates_new_test(i,   k) {
+        for (k = i + 1; k <= nadded && addblock[k] == addblock[i]; k++) {
+          if (addlist[k] ~ /^(async[[:space:]]+)?def[[:space:]]+test_/) return 1
+          if (addlist[k] ~ /^(async[[:space:]]+)?def[[:space:]]/ || addlist[k] ~ /^class[[:space:]]/) return 0
+        }
+        return 0
+      }
       function finish(   i, line) {
         if (file == "") return
         for (i = 1; i <= nremoved; i++) {
@@ -249,11 +260,12 @@ risk_triggers() {
             report("skip or expected failure added", line)
           else {
             # A marker that only structures tests is no trigger when it is
-            # added with a new test (the same added block adds a def test_);
+            # added to a new test (the first def after it in its added block is
+            # a new def test_);
             # on a test that is already there it changes the cases the test
             # runs, so it is one; every other marker on the line still is.
             rest = line
-            if (newtest[addblock[i]]) gsub(structuring, "", rest)
+            if (decorates_new_test(i)) gsub(structuring, "", rest)
             if (rest ~ /pytest\.mark\.|same_machine/) report("marker changed", line)
           }
         }
@@ -269,7 +281,7 @@ risk_triggers() {
         is_shell_test = (file ~ /\.sh$/ && (file ~ /^tests\// || file ~ /(^|\/)[^\/]*-test\.sh$/))
         is_lean = (file ~ /\.lean$/ && file !~ /(^|\/)lakefile\.lean$/)
         nremoved = 0; nadded = 0; block = 0
-        delete added; delete gone; delete removed; delete addlist; delete addblock; delete newtest
+        delete added; delete gone; delete removed; delete addlist; delete addblock
         next
       }
       /^(---|\+\+\+) / { next }
@@ -277,7 +289,6 @@ risk_triggers() {
       /^\+/ {
         line = trim(substr($0, 2)); addlist[++nadded] = line; added[line] = 1
         addblock[nadded] = block
-        if (line ~ /^(async[[:space:]]+)?def[[:space:]]+test_/) newtest[block] = 1
         next
       }
       { block++ }

@@ -277,6 +277,29 @@ assess "$repo"
 expect_trigger "a parametrize on an existing test, signature unchanged" \
   "marker changed: tests/unit/test_code.py (@pytest.mark.parametrize(\"n\", [1]))"
 
+# The same added block adds a different new test before the existing one
+# (the owner's review of PR #250): the decorator belongs to the existing test
+# that follows it, not to the new test, so it still reads as a trigger.
+repo="$(setup_repo parametrize-existing-after-new)"
+git -C "$repo" switch -q main
+printf '\n\ndef test_five(n):\n    assert n > 0\n' >>"$repo/tests/unit/test_code.py"
+git -C "$repo" commit -qam "A test with an argument"
+git -C "$repo" switch -q feature/5-thing
+git -C "$repo" reset -q --hard main
+python3 - "$repo/tests/unit/test_code.py" <<'PY'
+import sys
+path = sys.argv[1]
+text = open(path).read()
+text = text.replace(
+    "def test_five(n):",
+    'def test_six():\n    assert True\n\n\n@pytest.mark.parametrize("n", [1])\ndef test_five(n):',
+)
+open(path, "w").write(text)
+PY
+assess "$repo"
+expect_trigger "a parametrize on an existing test after a new test in the same block" \
+  "marker changed: tests/unit/test_code.py (@pytest.mark.parametrize(\"n\", [1]))"
+
 repo="$(setup_repo parametrize-existing-parameter)"
 sed -i.bak 's/^def test_one():/@pytest.mark.parametrize("n", [1])\ndef test_one(n):/' "$repo/tests/unit/test_code.py" && rm "$repo/tests/unit/test_code.py.bak"
 assess "$repo"
