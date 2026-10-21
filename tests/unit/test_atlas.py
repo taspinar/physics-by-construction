@@ -555,3 +555,50 @@ def test_no_two_edges_lie_on_one_another():
                     low = max(min(a[along], b[along]), min(c[along], d[along]))
                     high = min(max(a[along], b[along]), max(c[along], d[along]))
                     assert high - low <= 0.5, (a, b, c, d)
+
+
+# --- What the atlas modules read (F126) -----------------------------------------
+
+
+def test_each_concept_node_carries_its_area_lessons_and_planned_slots(page: str):
+    drawing = svg(page)
+    for item in ATLAS.concepts:
+        node = re.search(rf'<a [^>]*data-concept="{item.id}"[^>]*>', drawing).group(0)
+        attributes = dict(re.findall(r'([\w-]+)="([^"]*)"', node))
+        assert attributes["data-area"] == item.area
+        assert attributes["data-lessons"].split() == [
+            lesson.id for lesson in ATLAS.lessons_of(item)
+        ]
+        assert int(attributes["data-planned"]) == len(ATLAS.planned_of(item))
+
+
+def test_each_lesson_of_the_views_carries_what_the_index_rows_carry(page: str):
+    drawing = svg(page)
+    plates = re.findall(r'<a [^>]*class="atlas-lesson"[^>]*>', drawing)
+    assert len(plates) == sum(len(lessons) for _, lessons in ATLAS.views())
+    for plate in plates:
+        attributes = dict(re.findall(r'([\w-]+)="([^"]*)"', plate))
+        lesson = PATH.lesson(attributes["data-lesson"])
+        slot = CURRICULUM.slot(lesson.slot)
+        assert attributes["data-course"] == lesson.course
+        assert attributes["data-path"] == (slot.path if slot else "")
+        assert attributes["data-methods"].split() == list(lesson.methods)
+        assert attributes["data-difficulty"] == str(lesson.difficulty)
+    # A lesson of a method path says so.
+    assert any('data-path=""' not in plate for plate in plates)
+
+
+def test_the_controls_and_the_selection_are_declared_enhancements_with_a_fallback(
+    page: str,
+):
+    for name in ("atlas-controls", "atlas-selection"):
+        block = re.search(
+            rf'<div class="{name}" id="{name}" data-enhancement="">(.*?)</div>',
+            page,
+            re.S,
+        )
+        assert block and "<p>" in block.group(1), name
+    # The controls come before the map, the selection after it.
+    assert page.index('id="atlas-controls"') < page.index('id="atlas-map"')
+    assert page.index('id="atlas-map"') < page.index('id="atlas-selection"')
+    assert '<script type="module" src="../learner/atlas.js"></script>' in page

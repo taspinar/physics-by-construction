@@ -240,6 +240,21 @@ the map). Every concept-to-slot association and every connection is a
 scientific claim about the curriculum: it is reviewed independently, and
 the owner approves the file.
 
+When scripts run, `site/learner/atlas.js` (F126) adds the atlas's controls:
+selection with the selected concept's panel under the map, what the map
+shows (every relationship, the concepts alone, the prerequisites, or the
+conceptual connections), zoom from the natural size upwards, a region
+selector with the region's list, and filters in step with the course
+index's (`site/learner/path.js`). It reads only what the page holds: the
+edges' `data-kind`, `data-from`, and `data-to`; on each concept box
+`data-area`, `data-lessons`, and `data-planned`; on each lesson plate of the
+views `data-course`, `data-path`, `data-methods`, and `data-difficulty`; and
+the concept panels it copies. A change to the generator keeps those
+attributes, and the two places the page declares for the script
+(`#atlas-controls` and `#atlas-selection`, each with its sentence for a
+reader without scripts). The modules store nothing and request nothing;
+nothing on the page depends on them.
+
 ## Sections
 
 A lesson opens with a short introduction without a heading, followed by

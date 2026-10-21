@@ -592,6 +592,13 @@ CROWD = 12  # the cost of a gutter's stretch for each edge already on it
 FULL = 400  # the cost of a stretch with no free track left
 
 TITLE_ID = "atlas-title"
+# The module that adds the atlas's controls when scripts run (F126); the
+# page is complete without it.
+ATLAS_SCRIPT = "learner/atlas.js"
+# The declared enhancements around the map (docs/architecture.md, "Atlas
+# modules"): the controls before it, the selected concept after it.
+CONTROLS_ID = "atlas-controls"
+SELECTION_ID = "atlas-selection"
 DESCRIPTION_ID = "atlas-description"
 PREREQUISITE_MARKER = "atlas-arrow-prerequisite"
 CONCEPTUAL_MARKER = "atlas-end-conceptual"
@@ -1340,9 +1347,12 @@ class AtlasMap:
                     f' width="{box.width - 6}" height="{box.height - 6}"/>'
                 )
             text_top = box.y + 20
+            lessons = " ".join(lesson.id for lesson in atlas.lessons_of(concept))
             parts.append(
                 f'<a href="#concept-{concept.id}" class="{classes}"'
                 f' data-concept="{concept.id}" data-concept-state="{state}"'
+                f' data-area="{escape(concept.area)}" data-lessons="{lessons}"'
+                f' data-planned="{len(atlas.planned_of(concept))}"'
                 f' aria-label="{escape(label)}">'
                 + outline
                 + f'<text class="atlas-node-name" x="{box.x + 8}" y="{text_top}">'
@@ -1380,9 +1390,14 @@ class AtlasMap:
             for lesson, chip in chips:
                 text, cut = _short(lesson.title, CHIP_CHARACTERS)
                 label = f' aria-label="{escape(lesson.title)}"' if cut else ""
+                slot = atlas.path.curriculum.slot(lesson.slot)
                 parts.append(
                     f'<a href="{escape(href(lesson))}" class="atlas-lesson"'
-                    f' data-lesson="{lesson.id}"{label}>'
+                    f' data-lesson="{lesson.id}"'
+                    f' data-course="{escape(lesson.course)}"'
+                    f' data-path="{escape(slot.path if slot else "")}"'
+                    f' data-methods="{escape(" ".join(lesson.methods))}"'
+                    f' data-difficulty="{lesson.difficulty}"{label}>'
                     f'<rect class="atlas-lesson-box" x="{chip.x}" y="{chip.y}"'
                     f' width="{chip.width}" height="{chip.height}"/>'
                     f'<text x="{chip.x + 8}" y="{chip.y + 16}">{escape(text)}</text>'
@@ -1409,7 +1424,13 @@ class AtlasSection:
     """The atlas section of the path page: the breadcrumb, the switch, the
     map with its legend, the capstone projects, a panel per concept, and the
     textual equivalent. Print it from a cell with ``output: asis`` before
-    the course index."""
+    the course index.
+
+    Around the map it declares the two places the atlas module fills when
+    scripts run (F126), the controls and the selected concept, each with a
+    sentence for a reader without scripts, and it loads the module; the
+    module reads the data attributes of the drawing and changes nothing the
+    page states."""
 
     atlas: Atlas
     page: str = PATH_PAGE
@@ -1461,10 +1482,20 @@ class AtlasSection:
             "",
             "::: {.column-page}",
             "```{=html}",
+            f'<div class="atlas-controls" id="{CONTROLS_ID}" data-enhancement="">'
+            "<p>With scripts, the map has its controls here: a region to focus"
+            " on, what to show, zoom, and filters by course, path, method,"
+            " difficulty, and publication. Without them, every concept box"
+            " links to its panel below, and the course index lists every"
+            " lesson.</p></div>",
             '<div class="atlas-map" id="atlas-map" tabindex="0" role="region"'
             ' aria-label="Course atlas, scrolls in its box">'
             + layout.svg(lambda lesson: page_href(self.page, lesson.page), summary)
             + "</div>",
+            f'<div class="atlas-selection" id="{SELECTION_ID}" data-enhancement="">'
+            "<p>A concept box leads to the concept's panel in the list of"
+            " concepts below, with its explanation, its lessons, and its"
+            " relationships.</p></div>",
             "```",
             ":::",
             "",
@@ -1472,6 +1503,8 @@ class AtlasSection:
             self._capstones(),
             self._panels(),
             self._text(),
+            f'<script type="module" src="{"../" * self.page.count("/")}'
+            f'{escape(ATLAS_SCRIPT)}"></script>',
             "```",
             "",
         ]
