@@ -27,7 +27,13 @@ from typing import Any
 
 import yaml
 
-from pbc.authoring import evidence, glossary, is_numeric_console_block, previews
+from pbc.authoring import (
+    atlas,
+    evidence,
+    glossary,
+    is_numeric_console_block,
+    previews,
+)
 from pbc.authoring import path as learning_path
 from pbc.authoring.reproduce import HEADINGS, kind_of
 from pbc.data import REGISTRY_DIR
@@ -655,6 +661,19 @@ def check_path(repository: Path) -> list[Violation]:
         Violation("path", f"{SITE}/{problem.page}", problem.message)
         for problem in learning_path.problems(lessons, curriculum)
     ]
+
+
+def check_atlas(repository: Path) -> list[Violation]:
+    """The map manifest of the course atlas follows its rules (ADR 018
+    decision 3): every reference resolves, every capstone slot is represented
+    by one concept, and nothing that the curriculum file or the front matter
+    holds, and no prerequisite, is written in it."""
+    try:
+        curriculum = learning_path.Curriculum.read(repository / SITE)
+        atlas.AtlasManifest.read(repository / SITE, curriculum)
+    except ValueError as error:
+        return [Violation("atlas", f"{SITE}/{atlas.ATLAS_FILE}", str(error))]
+    return []
 
 
 # --- Displayed code -----------------------------------------------------------

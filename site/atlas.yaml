@@ -1,0 +1,673 @@
+# The map manifest of the course atlas (ADR 018 decision 3, F125).
+#
+# It holds only what neither the curriculum file nor a lesson's front matter
+# holds: concept identifiers with a short explanation, their placement on the
+# map (the area, a course or a path of site/curriculum.yaml, and the position
+# [column, row] in the area's grid of 2 columns and 4 rows), the slots each
+# concept belongs to, and the curated conceptual connections with their
+# rationale. No title, description, outcome, prerequisite, publication state,
+# count, lesson, or illustration is written here: the build derives them.
+#
+# The display name of a concept is its identifier in words. A concept whose
+# only slot is a capstone slot represents that capstone, and its explanation
+# is the capstone's planned description (kept consistent with the roadmap,
+# F80, F87, F88); a concept that names a capstone slot beside its own slots
+# is a member of that capstone. Every conceptual connection is a scientific
+# claim about the curriculum and is reviewed as one. The rules are checked
+# by pbc.authoring.atlas; docs/authoring.md, "The course atlas", describes
+# them.
+
+concepts:
+  # --- Classical mechanics
+  - id: motion-as-a-program
+    area: mechanics
+    position: [1, 1]
+    slots: [M1, M2, M3]
+    explanation: >-
+      Motion written as a state and an update rule: Newton's second law turns
+      the forces on a body into the change of its position and velocity, one
+      time step after another.
+  - id: numerical-integration
+    area: mechanics
+    position: [2, 1]
+    slots: [M5]
+    explanation: >-
+      How a simulation advances its state in time, and how the choice of
+      method decides which errors grow and which quantities stay conserved.
+  - id: oscillation-and-resonance
+    area: mechanics
+    position: [1, 2]
+    slots: [M4, M12, M15]
+    explanation: >-
+      Motion about a stable equilibrium under a restoring force, its damping,
+      and its strong response when a periodic drive matches its natural
+      frequency.
+  - id: conservation-laws
+    area: mechanics
+    position: [2, 2]
+    slots: [M6, M7]
+    explanation: >-
+      Energy and momentum: quantities that stay constant when the laws of
+      motion have the right symmetry, and that test whether a simulation is
+      right.
+  - id: gravitation-and-orbits
+    area: mechanics
+    position: [1, 3]
+    slots: [M8, M13, M16]
+    explanation: >-
+      Newton's inverse-square gravitation and the orbits it produces, from one
+      planet about a star to many bodies, with the gravitational-wave signal
+      of a merging binary as data.
+  - id: rotational-motion
+    area: mechanics
+    position: [2, 3]
+    slots: [M17]
+    explanation: >-
+      Rigid bodies that turn: torque, moment of inertia, and the angular
+      momentum that a body keeps when no external torque acts.
+  - id: chaos-and-nonlinear-dynamics
+    area: mechanics
+    position: [1, 4]
+    slots: [M9, M14]
+    explanation: >-
+      Deterministic systems whose nearby trajectories separate exponentially,
+      and the bifurcations through which a system's behaviour changes as a
+      parameter varies.
+  - id: analytical-mechanics
+    area: mechanics
+    position: [2, 4]
+    slots: [M10, M11]
+    explanation: >-
+      Mechanics from energies instead of forces: the Lagrangian and the
+      Hamiltonian give the equations of motion, their phase-space structure,
+      and the link between a symmetry and a conserved quantity.
+
+  # --- Thermodynamics and statistical physics
+  - id: kinetic-theory
+    area: thermodynamics
+    position: [1, 1]
+    slots: [T0, T2, T5]
+    explanation: >-
+      A gas as many moving particles: its pressure is the average momentum
+      their collisions transfer to a wall, and its temperature measures their
+      average kinetic energy.
+  - id: random-walks-and-diffusion
+    area: thermodynamics
+    position: [2, 1]
+    slots: [T1, T8]
+    explanation: >-
+      Many independent random steps add up to diffusion: a spread whose
+      variance grows in proportion to time, seen in Brownian motion.
+  - id: entropy-and-the-second-law
+    area: thermodynamics
+    position: [1, 2]
+    slots: [T3, T9]
+    explanation: >-
+      Entropy measures how many microscopic states are compatible with a
+      macroscopic state: it is proportional to the logarithm of their number.
+      Its growth in an isolated system sets the direction of time and limits
+      the work a heat engine can do.
+  - id: phase-transitions
+    area: thermodynamics
+    position: [2, 2]
+    slots: [T4]
+    explanation: >-
+      Collective order that appears or disappears at a critical temperature,
+      as in the Ising model of a magnet.
+  - id: heat-conduction
+    area: thermodynamics
+    position: [1, 3]
+    slots: [T6, T7, T11]
+    explanation: >-
+      Heat flowing from hot to cold through a material, described by the heat
+      equation and compared with measurements.
+  - id: finite-elements-and-meshes
+    area: thermodynamics
+    position: [2, 3]
+    slots: [T10, T11]
+    explanation: >-
+      Solving a field equation on a mesh of small elements, which can follow
+      the shape of a real object where a regular grid cannot.
+  - id: accelerator-thermal-design
+    area: thermodynamics
+    position: [1, 4]
+    slots: [T11]
+    explanation: >-
+      Thermal engineering of a hypothetical multi-hotspot AI accelerator
+      package: steady and transient temperature fields computed with finite
+      elements, checked against the finite-difference baseline, and used to
+      weigh cooling, material, and layout choices under stated constraints. A
+      teaching prototype, not a model of any real chip.
+
+  # --- Waves and optics
+  - id: wave-propagation
+    area: waves
+    position: [1, 1]
+    slots: [W1, W8]
+    explanation: >-
+      Disturbances that travel while the medium stays in place, described by
+      the wave equation and measured in a wave flume.
+  - id: interference-and-diffraction
+    area: waves
+    position: [2, 1]
+    slots: [W2, W5, W7, EM9]
+    explanation: >-
+      Waves that overlap add up, reinforcing or cancelling each other; the
+      same superposition spreads a wave behind an aperture and limits the
+      sharpness of an image.
+  - id: refraction-and-polarisation
+    area: waves
+    position: [1, 2]
+    slots: [W3, W4]
+    explanation: >-
+      Light bending where its speed changes between two media, and the
+      direction in which its electric field oscillates.
+  - id: acoustic-waves
+    area: waves
+    position: [2, 2]
+    slots: [W9]
+    explanation: >-
+      Sound as a pressure wave in air: its speed, its resonances, and the
+      shift in frequency when the source or the listener moves.
+  - id: inverse-optics
+    area: waves
+    position: [1, 3]
+    slots: [W6]
+    explanation: >-
+      Working back from a measured image or pattern to the object or the
+      optical system that produced it.
+
+  # --- Electromagnetism
+  - id: electrostatics
+    area: electromagnetism
+    position: [1, 1]
+    slots: [EM1]
+    explanation: >-
+      The electric field and potential of charges at rest, from Coulomb's
+      inverse-square law.
+  - id: charged-particle-motion
+    area: electromagnetism
+    position: [2, 1]
+    slots: [EM2]
+    explanation: >-
+      Charges moving under electric and magnetic fields through the Lorentz
+      force: drift, gyration, and their numerical integration.
+  - id: electromagnetic-induction
+    area: electromagnetism
+    position: [1, 2]
+    slots: [EM3]
+    explanation: >-
+      A changing magnetic flux induces an electromotive force, which drives a
+      current in a closed circuit: Faraday's law, the principle of generators
+      and transformers.
+  - id: circuits-and-resonance
+    area: electromagnetism
+    position: [2, 2]
+    slots: [EM5, EM8]
+    explanation: >-
+      Resistors, inductors, and capacitors in a circuit, its oscillations and
+      resonance, compared with a real circuit's measurements.
+  - id: electromagnetic-waves
+    area: electromagnetism
+    position: [1, 3]
+    slots: [EM4, EM6, EM7, EM9]
+    explanation: >-
+      Maxwell's equations solved in time on a grid: waves of light and
+      microwaves, guided and resonant modes, and the measured response of
+      microwave devices.
+  - id: phased-array-beam-steering
+    area: electromagnetism
+    position: [2, 3]
+    slots: [EM9]
+    explanation: >-
+      Adaptive phased-array beam steering: a finite array's field and array
+      factor steered by the phases of its elements toward a moving receiver,
+      with a null toward an interferer, checked against the analytic steering
+      angle, nulls, and grating lobes. An array-factor model, not a full-wave
+      antenna design or a fabricated device.
+
+  # --- Fluid dynamics
+  - id: advection-and-diffusion
+    area: fluids
+    position: [1, 1]
+    slots: [FL1]
+    explanation: >-
+      A quantity carried along by a flow while it spreads out, the simplest
+      transport equation of fluid dynamics.
+  - id: viscous-flow
+    area: fluids
+    position: [2, 1]
+    slots: [FL2, FL3, FL7, FL8]
+    explanation: >-
+      The Navier-Stokes equations of a viscous fluid: vortices behind
+      obstacles, turbulence, and the measured velocity fields of real flows.
+  - id: shocks-and-conservation-laws
+    area: fluids
+    position: [1, 2]
+    slots: [FL4, FL9, FL10]
+    explanation: >-
+      Conservation laws whose solutions steepen into shocks, and the
+      finite-volume methods that keep mass and momentum conserved across them.
+  - id: shallow-water-waves
+    area: fluids
+    position: [2, 2]
+    slots: [FL5, FL10]
+    explanation: >-
+      Long waves in water much shallower than their wavelength, whose speed
+      depends on the depth.
+  - id: particle-based-fluids
+    area: fluids
+    position: [1, 3]
+    slots: [FL6]
+    explanation: >-
+      A fluid represented by moving particles that carry its mass and
+      momentum, instead of values on a fixed grid.
+  - id: tsunami-reconstruction
+    area: fluids
+    position: [2, 3]
+    slots: [FL10]
+    explanation: >-
+      Reconstructing the 2025 Kamchatka tsunami: a teaching-scale
+      two-dimensional propagation model from the shallow-water equations and
+      conservative fluxes, with benchmark cases, travel times, and wave
+      heights, and a comparison with ocean-bottom records only after its data
+      gate. Not for warning or hazard forecasting.
+
+  # --- Quantum physics
+  - id: wave-mechanics
+    area: quantum
+    position: [1, 1]
+    slots: [Q1, Q2]
+    explanation: >-
+      The Schrödinger equation for a wave function, and tunnelling through a
+      barrier that a classical particle could not cross.
+  - id: bound-states-and-spectra
+    area: quantum
+    position: [2, 1]
+    slots: [Q3, Q7]
+    explanation: >-
+      A particle held in a potential has discrete energy levels; transitions
+      between them give the lines of a measured spectrum.
+  - id: spin-and-measurement
+    area: quantum
+    position: [1, 2]
+    slots: [Q4, Q8]
+    explanation: >-
+      Spin as a two-level system, and measurement outcomes that are random,
+      with probabilities the theory predicts.
+  - id: entanglement
+    area: quantum
+    position: [2, 2]
+    slots: [Q5]
+    explanation: >-
+      Correlations between two quantum systems that, for suitable
+      measurements, no local hidden-variable theory can reproduce, tested by
+      Bell and CHSH inequalities.
+  - id: open-quantum-systems
+    area: quantum
+    position: [1, 3]
+    slots: [Q6]
+    explanation: >-
+      A quantum system coupled to its environment loses its coherence, and its
+      interference effects fade toward classical behaviour.
+
+  # --- Astrophysics, cosmology, and relativity
+  - id: three-body-dynamics
+    area: astrophysics
+    position: [1, 1]
+    slots: [AST1]
+    explanation: >-
+      Three gravitating bodies: no general closed-form solution, and motion
+      that is often chaotic.
+  - id: modified-gravity
+    area: astrophysics
+    position: [2, 1]
+    slots: [AST2, AST9]
+    explanation: >-
+      Changes to the law of gravity, and the galaxy rotation curves that test
+      them against the hypothesis of dark matter.
+  - id: special-relativity
+    area: astrophysics
+    position: [1, 2]
+    slots: [AST10]
+    explanation: >-
+      Space and time as one spacetime in which the speed of light in vacuum is
+      the same for every inertial observer.
+  - id: curved-spacetime
+    area: astrophysics
+    position: [2, 2]
+    slots: [AST3, AST4]
+    explanation: >-
+      Gravity as the curvature of spacetime: light bent by a mass, and orbits
+      that precess.
+  - id: gravitational-waves
+    area: astrophysics
+    position: [1, 3]
+    slots: [AST6]
+    explanation: >-
+      Ripples of spacetime from masses in asymmetric accelerated motion, such
+      as the rising chirp of two compact objects spiralling together.
+  - id: cosmic-expansion
+    area: astrophysics
+    position: [2, 3]
+    slots: [AST5]
+    explanation: >-
+      The expansion of the universe, and the redshift it gives to the light of
+      distant galaxies.
+  - id: exoplanet-transits
+    area: astrophysics
+    position: [1, 4]
+    slots: [AST7, AST8]
+    explanation: >-
+      A planet crossing its star dims it slightly; the depth and shape of the
+      dip in a light curve, repeated each orbit, give the planet's size
+      relative to the star and its orbit.
+
+  # --- Condensed matter and materials physics
+  - id: crystal-lattices-and-phonons
+    area: materials
+    position: [1, 1]
+    slots: [MAT1, MAT5]
+    explanation: >-
+      Atoms in a periodic lattice, their collective vibrations, and the
+      diffraction pattern that reveals the lattice.
+  - id: electronic-bands
+    area: materials
+    position: [2, 1]
+    slots: [MAT2]
+    explanation: >-
+      The allowed energies of electrons in a crystal form bands separated by
+      gaps; how the electrons fill them decides whether the crystal is a
+      metal, a semiconductor, or an insulator.
+  - id: elasticity
+    area: materials
+    position: [1, 2]
+    slots: [MAT3, MAT6]
+    explanation: >-
+      How a solid deforms under load and returns to its shape, from stress and
+      strain to measured stress-strain curves.
+  - id: defects-and-material-properties
+    area: materials
+    position: [2, 2]
+    slots: [MAT4]
+    explanation: >-
+      Vacancies, dislocations, and other imperfections of a crystal, and the
+      properties of a material that they control.
+
+  # --- Physics reasoning and scientific agents
+  - id: agent-designed-experiments
+    area: reasoning
+    position: [1, 1]
+    slots: [AI0, AI5]
+    explanation: >-
+      A language-model agent that proposes experiments, runs the simulation or
+      the lab analysis, and reports what it measured.
+  - id: agent-assisted-development
+    area: reasoning
+    position: [2, 1]
+    slots: [AI1, AI2]
+    explanation: >-
+      Building and debugging scientific code with an agent, and verifying the
+      result against physics instead of trusting it.
+  - id: scientific-review-by-agents
+    area: reasoning
+    position: [1, 2]
+    slots: [AI3, AI4]
+    explanation: >-
+      Agents that search for counterexamples to a claim and review a result
+      from independent points of view.
+  - id: multimodal-reasoning
+    area: reasoning
+    position: [2, 2]
+    slots: [AI6, AI8]
+    explanation: >-
+      Physical reasoning from images, plots, and video as well as from text.
+  - id: interpretable-explanations
+    area: reasoning
+    position: [1, 3]
+    slots: [AI7]
+    explanation: >-
+      Explanations of a model's physical reasoning that can be checked against
+      known constraints.
+
+  # --- Scientific law discovery
+  - id: force-law-discovery
+    area: law-discovery
+    position: [1, 1]
+    slots: [D1, D3, D4]
+    explanation: >-
+      Finding the law of a force from the motion it produces, including a
+      modified law and gravity itself.
+  - id: discovery-in-unknown-worlds
+    area: law-discovery
+    position: [2, 1]
+    slots: [D2, D5, D12]
+    explanation: >-
+      Discovery with little or no prior knowledge, in worlds whose physics is
+      unfamiliar, and whether the result generalises to new systems.
+  - id: parameter-inference
+    area: law-discovery
+    position: [1, 2]
+    slots: [D6, D10]
+    explanation: >-
+      Estimating the parameters of a model from noisy measurements, with the
+      uncertainty that the noise leaves.
+  - id: equation-discovery
+    area: law-discovery
+    position: [2, 2]
+    slots: [D7, D8]
+    explanation: >-
+      Searching for a symbolic formula or a differential equation that
+      reproduces the data.
+  - id: active-experimental-design
+    area: law-discovery
+    position: [1, 3]
+    slots: [D9]
+    explanation: >-
+      Choosing the next experiment so that its result tells the most about the
+      unknown law.
+  - id: hidden-variables
+    area: law-discovery
+    position: [2, 3]
+    slots: [D11]
+    explanation: >-
+      Inferring forces and variables that act on a system but are never
+      observed directly.
+  - id: discovered-invariants
+    area: law-discovery
+    position: [1, 4]
+    slots: [D13]
+    explanation: >-
+      Finding from data the quantities that a motion conserves.
+
+  # --- Physics agent benchmarking
+  - id: reasoning-benchmarks
+    area: benchmarking
+    position: [1, 1]
+    slots: [EV1, EV2]
+    explanation: >-
+      Measuring how well agents reason about physics and discover laws, on
+      fixed questions and in interactive tasks.
+  - id: baselines-and-efficiency
+    area: benchmarking
+    position: [2, 1]
+    slots: [EV3, EV4]
+    explanation: >-
+      Comparing agents with methods that use no agent, and weighing
+      robustness, cost, and the number of experiments needed.
+  - id: failure-analysis
+    area: benchmarking
+    position: [1, 2]
+    slots: [EV5]
+    explanation: >-
+      Classifying how and why agents fail at scientific tasks.
+
+  # --- Autonomous scientific research
+  - id: analysis-pipelines
+    area: autonomous-research
+    position: [1, 1]
+    slots: [R1]
+    explanation: >-
+      Automated analysis of measurements from raw data to a result, each step
+      recorded and repeatable.
+  - id: evidence-and-literature
+    area: autonomous-research
+    position: [2, 1]
+    slots: [R2, R3]
+    explanation: >-
+      Mapping claims to their evidence, and working with the literature so
+      that every statement can be traced.
+  - id: paper-reproduction
+    area: autonomous-research
+    position: [1, 2]
+    slots: [R4]
+    explanation: >-
+      Reproducing the results of a published physics paper with several
+      agents that divide the work.
+  - id: autonomous-discovery
+    area: autonomous-research
+    position: [2, 2]
+    slots: [R5, R6]
+    explanation: >-
+      Agents that run a research loop on their own, from a question to a
+      checked result, in materials discovery and in an open challenge.
+
+connections:
+  - concepts: [oscillation-and-resonance, circuits-and-resonance]
+    type: same-mathematics
+    rationale: >-
+      A driven, damped mass on a spring and a series RLC circuit obey the same
+      linear second-order equation, with inductance in place of mass,
+      resistance in place of damping, and inverse capacitance in place of
+      stiffness.
+  - concepts: [oscillation-and-resonance, bound-states-and-spectra]
+    type: same-mathematics
+    rationale: >-
+      The quantum harmonic oscillator quantises the same quadratic potential
+      as the classical oscillator; its levels are equally spaced by the
+      classical frequency times Planck's reduced constant.
+  - concepts: [oscillation-and-resonance, crystal-lattices-and-phonons]
+    type: same-mathematics
+    rationale: >-
+      Phonons are the quantised normal modes of atoms coupled to their
+      neighbours like masses on springs.
+  - concepts: [random-walks-and-diffusion, advection-and-diffusion]
+    type: same-mathematics
+    rationale: >-
+      In the limit of many small steps, the density of random walkers obeys
+      the diffusion equation, the diffusion term of the advection-diffusion
+      equation.
+  - concepts: [random-walks-and-diffusion, heat-conduction]
+    type: same-mathematics
+    rationale: >-
+      Heat conduction obeys the same diffusion equation, with temperature in
+      place of the walkers' density.
+  - concepts: [viscous-flow, advection-and-diffusion]
+    type: same-mathematics
+    rationale: >-
+      The Navier-Stokes equations carry momentum along with the flow and
+      spread it by viscosity: the advection and diffusion terms of the
+      transport equation, applied to momentum.
+  - concepts: [wave-propagation, electromagnetic-waves]
+    type: same-mathematics
+    rationale: >-
+      In vacuum, Maxwell's equations give every component of the fields the
+      wave equation, with the speed of light as its speed.
+  - concepts: [acoustic-waves, wave-propagation]
+    type: application
+    rationale: >-
+      Small pressure disturbances in a gas obey the wave equation, with the
+      speed of sound as its speed.
+  - concepts: [wave-propagation, shallow-water-waves]
+    type: limit
+    rationale: >-
+      For small amplitudes the shallow-water equations reduce to the wave
+      equation, with a speed equal to the square root of gravity times the
+      depth.
+  - concepts: [electrostatics, gravitation-and-orbits]
+    type: same-mathematics
+    rationale: >-
+      Coulomb's law and Newton's law of gravitation are both inverse-square
+      central forces, with the same field and potential mathematics.
+  - concepts: [charged-particle-motion, motion-as-a-program]
+    type: application
+    rationale: >-
+      The motion of a charge is Newton's second law with the Lorentz force,
+      integrated step by step like any other force.
+  - concepts: [circuits-and-resonance, electromagnetic-induction]
+    type: application
+    rationale: >-
+      The voltage across an inductor is Faraday's law applied to the changing
+      magnetic flux of the circuit's own current.
+  - concepts: [gravitation-and-orbits, curved-spacetime]
+    type: limit
+    rationale: >-
+      Newtonian gravitation and Kepler orbits are the limit of general
+      relativity for weak fields and speeds far below the speed of light.
+  - concepts: [gravitational-waves, curved-spacetime]
+    type: limit
+    rationale: >-
+      Gravitational waves are small disturbances of flat spacetime that the
+      linearised field equations of general relativity describe; they travel
+      at the speed of light.
+  - concepts: [special-relativity, curved-spacetime]
+    type: limit
+    rationale: >-
+      Special relativity is general relativity where the curvature of
+      spacetime is negligible over the region and the time considered: flat
+      spacetime, or a small freely falling region of a curved one.
+  - concepts: [three-body-dynamics, gravitation-and-orbits]
+    type: same-mathematics
+    rationale: >-
+      Both integrate Newton's inverse-square gravitation for point masses; the
+      three-body problem adds a third body to the two of a Kepler orbit.
+  - concepts: [three-body-dynamics, chaos-and-nonlinear-dynamics]
+    type: application
+    rationale: >-
+      The general three-body problem is a classic chaotic system: nearby
+      initial conditions lead to trajectories that separate exponentially.
+  - concepts: [numerical-integration, analytical-mechanics]
+    type: same-mathematics
+    rationale: >-
+      A symplectic integrator preserves the phase-space structure of
+      Hamiltonian mechanics, which is why its energy error stays bounded.
+  - concepts: [electronic-bands, wave-mechanics]
+    type: application
+    rationale: >-
+      Band structure is the Schrödinger equation solved for an electron in
+      the periodic potential of a crystal.
+  - concepts: [crystal-lattices-and-phonons, interference-and-diffraction]
+    type: application
+    rationale: >-
+      X-ray diffraction is interference of waves scattered by the lattice
+      planes of a crystal, which Bragg's law describes.
+  - concepts: [entanglement, spin-and-measurement]
+    type: application
+    rationale: >-
+      Bell and CHSH tests correlate spin measurements made along different
+      directions on entangled pairs.
+  - concepts: [kinetic-theory, particle-based-fluids]
+    type: same-method
+    rationale: >-
+      Both follow many particles that interact with their neighbours, and read
+      the bulk behaviour of the gas or the fluid from averages over them.
+  - concepts: [force-law-discovery, motion-as-a-program]
+    type: application
+    rationale: >-
+      Discovering a force law runs Newton's second law backwards: from the
+      observed motion to the force that produced it.
+  - concepts: [discovered-invariants, conservation-laws]
+    type: application
+    rationale: >-
+      Discovering an invariant searches the data for quantities such as
+      energy and momentum that the motion conserves.
+  - concepts: [agent-designed-experiments, active-experimental-design]
+    type: same-method
+    rationale: >-
+      In both, an agent chooses the next experiment; active design chooses it
+      to be the most informative about the unknown law.
+  - concepts: [paper-reproduction, evidence-and-literature]
+    type: application
+    rationale: >-
+      Reproducing a paper traces each of its claims to its evidence and
+      checks it again.

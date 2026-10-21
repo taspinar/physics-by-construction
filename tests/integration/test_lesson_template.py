@@ -159,8 +159,11 @@ def test_lesson_made_from_the_template_builds_with_every_construct(
         + 1  # the reproduce link of the new lesson
         + (first.strand == "mechanics")  # "Start with" of the course panel
     )
-    drawings = re.findall(r"<svg xmlns.*?</svg>", path_page, re.S)
-    lists = re.sub(r"<svg xmlns.*?</svg>", "", path_page, flags=re.S)
+    # The course atlas above the index links lessons through the concepts of
+    # their slots (F125, tests/unit/test_atlas.py); the count is the index's.
+    index = path_page[path_page.index('id="choose"') :]
+    drawings = re.findall(r"<svg xmlns.*?</svg>", index, re.S)
+    lists = re.sub(r"<svg xmlns.*?</svg>", "", index, flags=re.S)
     # The whole map comes last, after the map of each course.
     graph = drawings[-1]
     assert lists.count('<a href="../lessons/mechanics/') == links

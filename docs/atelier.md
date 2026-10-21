@@ -201,8 +201,41 @@ kept.
   F44 shapes, with the paper and surface grounds and the rules of this
   file; the dashed rule of "Go deeper" stays its distinguishing mark.
 - **Path rows, path cards, the prerequisite graph** (F26, F64). Unchanged
-  in structure; on paper with the rules of this file. The atlas is F125
-  and F126.
+  in structure; on paper with the rules of this file.
+- **The course atlas** (F125; F126 adds its scripts). Above the course
+  index of the path page: a breadcrumb under the title, a switch of three
+  plain links (map, course index, concepts) with the radius of a control,
+  a legend, then the map, wider than the text column on a desktop
+  (Quarto's `column-page`; the page's contents in the margin stay at the
+  top instead of following the reader over it, `body.pbc-atlas`). The map
+  is one inline SVG at its natural size in a focusable box with the cobalt
+  construction line above it; on a narrow screen it scrolls sideways in
+  that box and is never shrunk. Course areas are thin-ruled boxes on paper
+  with the course title, the published count, and a small illustration in
+  cobalt and rule strokes; the four path lanes sit on `surface`, joined by
+  one cobalt rail. A concept is a white plate with its name as a cobalt
+  link and its state in `muted`; a planned concept has a dashed rule, an
+  italic name in ink, and the word planned; a capstone's concept a double
+  outline. Edges run at right angles along the gutters between the nodes
+  and the areas, never across a node or an area's title, each on its own
+  track in a gutter and its own point on a node's side: a prerequisite
+  solid in `rule` with a filled arrowhead, a conceptual connection dashed
+  in cobalt with an open circle at each end, a capstone membership dotted
+  in ink with an open diamond. The view layer lists every lesson as a small white plate per
+  method on `surface`. Below the map: the capstone projects in dashed
+  boxes, the concept panels (native disclosures in a grid of course and
+  path groups; a targeted panel has a vermilion top rule, the current
+  position of the signature), and the textual equivalent, visually hidden.
+  **Known limitation, accepted by the owner (2026-10-21).** The static map
+  draws every connection at once; about 80 of them cross and crowd one
+  another, which makes the relationships hard to follow. The owner accepted
+  this for F125, provided that the three relationship types stay
+  distinguishable, the relationships and their directions are accurate, no
+  concept, label or link is obscured, and the textual equivalent stays
+  complete. Reading the relationships through selection and focused
+  highlighting (a chosen concept highlights its prerequisites and conceptual
+  connections, with direction and meaning, reachable by keyboard) is an
+  acceptance consideration of F126, not of F125.
 - **Widget.** On a plate; its controls take the radius, the focus ring,
   and the cobalt of this file.
 - **Focus.** A 3px cobalt ring with a 2px offset on every focusable element,
@@ -326,6 +359,42 @@ glossary, and `rendering-check.qmd` in Chromium, Firefox, and WebKit):
   secondary navigation gained About; the mark grew to 2.25rem. Its finding
   that the construction reads faintly at header size was weighed against
   the restraint of the frame and left to the owner's preview.
+
+**The atlas** (F125; impeccable at 08d5b470, frontend-design at dbd4588f,
+diagram-design at 550fd66e), from screenshots of the built path page at
+1280, 768, and 375 CSS px:
+
+- Impeccable's adapt playbook and the mobile rule above: the first render
+  in Quarto's `column-page` ran under the sticky contents in the margin; the
+  contents stay at the top of the page now, and the map's width (1120) was
+  cut until it fits the page column at 1280 px without scrolling, while a
+  phone scrolls it in its box at full size.
+- Impeccable's layout and clarify playbooks: the state line of a
+  three-line concept name collided with the name (the node grew to 76
+  units), a capstone's state was shortened to "capstone, planned" to stay
+  in its box, the view names wrap onto two lines, and on a phone the switch
+  comes before the explanation, which was cut to the facts, so the course
+  index is one tap away.
+- Frontend Design's "visual structure is information": the areas are a
+  grid in the curriculum's order, not a geography; the only accents are the
+  construction rail of the paths and the cobalt of links; no card shadows,
+  no numbering, no eyebrow labels.
+- Diagram Design's principles for the illustrations: one system per course
+  in a 44-unit box, about nine elements at most, meaning by line and shape
+  (no colour-only cue), no text and no number, `aria-hidden` because the
+  course title beside it names the area; the geometry is right (the
+  pendulum's arc is centred on its pivot, the star sits at a focus of the
+  orbit, the oscillator's levels are equally spaced from half a spacing
+  above the bottom of a true parabola, the field lines and the streamlines
+  are symmetric).
+- Diagram Design's "arrows mean something, and the legend says what": three
+  edge types, three dash patterns, three end marks, each named in the
+  legend; the remove test dropped labels on edges, which the panels and the
+  textual equivalent carry. Its rule that an arrow passes behind no element
+  it does not connect, raised by the independent review of the first
+  render (straight edges crossed the concepts at 1280 px): the edges are
+  routed along the gutters at right angles, each on its own track, and the
+  gutters were widened for them.
 
 The automated detector of Impeccable did not run and will not: the project
 runs none of a skill's scripts (ADR 019).

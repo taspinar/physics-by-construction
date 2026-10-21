@@ -202,6 +202,44 @@ unknown course or path, a duplicate label, a slot without a home or with two,
 and any field that belongs to a lesson's front matter fail it. A violation fails verification, and
 the build of a page fails on it too.
 
+### The course atlas
+
+Since F125 the path page opens with the course atlas (ADR 018 decision 3):
+a map of the eight courses, the four method paths, and the Lean and method
+views, written by `pbc.authoring.atlas` when the page is built, above the
+course index. Its data come from three places and nowhere else: courses,
+paths, and slots from `site/curriculum.yaml`; titles, publication,
+prerequisites, and addresses from the front matter; and from the map
+manifest `site/atlas.yaml` only what neither holds:
+
+- `concepts`: each with an `id` (lower case and hyphens; the map shows it
+  in words, so it is the concept's name), an `area` (a course or a path),
+  a `position` `[column, row]` in the area's grid of 2 by 4, its `slots`,
+  and a one-sentence `explanation`;
+- `connections`: two `concepts`, a `type` (`same-mathematics`, `limit`,
+  `same-method`, or `application`; `limit` and `application` read "the
+  first is a limit of / applies the second"), and a `rationale`.
+
+A concept whose only slot is a capstone slot represents that capstone: its
+explanation is the capstone's planned description, the one place that text
+lives, kept consistent with the roadmap. A concept that names a capstone
+slot beside its own slots is a member of that capstone. The build derives
+everything else: a concept's lessons from its slots (never from a title),
+its state and counts, the prerequisite edges between concepts from the
+lessons' prerequisites, and capstone membership.
+
+The lesson source checks reject a manifest with an unknown field, a field
+that the curriculum file or the front matter holds (a title, a description,
+an outcome, a prerequisite, a state, a count, a lesson), an illustration
+reference, a connection of type `prerequisite` or `capstone`, a reference
+that does not resolve, a concept without a slot or with a slot outside its
+area, two concepts on one position, and a capstone slot that is not
+represented by exactly one concept. A new slot in the curriculum file needs
+its concept here (a unit test checks that every course and path slot is on
+the map). Every concept-to-slot association and every connection is a
+scientific claim about the curriculum: it is reviewed independently, and
+the owner approves the file.
+
 ## Sections
 
 A lesson opens with a short introduction without a heading, followed by

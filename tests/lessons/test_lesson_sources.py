@@ -35,6 +35,11 @@ def test_lessons_form_a_learning_path(repository: Path):
     assert not violations, describe(violations)
 
 
+def test_the_map_manifest_follows_its_rules(repository: Path):
+    violations = lesson_checks.check_atlas(repository)
+    assert not violations, describe(violations)
+
+
 def test_displayed_code_is_executed_or_marked_not_verified(repository: Path):
     violations = lesson_checks.check_displayed_code(repository)
     assert not violations, describe(violations)
