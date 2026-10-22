@@ -1637,8 +1637,9 @@ a new such Python line, and the entries of `scripts/lesson-budgets.conf`), a
 new skip or expected
 failure (in a Lean proof, a new `sorry`, `admit`, or `axiom`), a removed or
 changed assertion and a removed test or test file, a changed marker such as
-`same_machine` (an added `parametrize`, which only structures new cases, is
-none; a removed or changed one is), and a changed dependency manifest or lock
+`same_machine` (a `parametrize` added with a new test, which only structures
+new cases, is none; one added to a test that is already there, and a removed
+or changed one, is), and a changed dependency manifest or lock
 file. Assertions
 are read in the formats of this project's checks: a Python `assert`; in a
 shell test, a line that calls `fail`, exits with a failure, or calls an
