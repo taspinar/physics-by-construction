@@ -149,8 +149,9 @@ kept.
 - **Header** (every page). Quarto's navigation bar, on paper, with ink
   entries and the construction line below it. Left: the mark and the site
   title (the mark 2.25rem, with the title as its link's name), both links to
-  the home page. Then the primary navigation: Home, Learning path (the
-  atlas's display label is settled in the owner's preview), Glossary,
+  the home page. Then the primary navigation: Home, Course Atlas (the
+  display label of the learning path page, chosen by the owner on 2026-10-22;
+  the address `path/` and every anchor are unchanged), Glossary,
   Evidence, About, Set up, Contribute. Right: Source, the start link,
   "Start the course", the one filled control of the site (paper on
   cobalt), to the first lesson of the learning path, and the search box
@@ -168,7 +169,7 @@ kept.
 - **Footer** (every page). A thin rule, then three groups: the F57
   attribution line exactly as `pbc.authoring.identity` writes it; the
   licences (code MIT, text and figures CC BY 4.0) with the About page; the
-  source repository and the secondary navigation (Learning path, Glossary,
+  source repository and the secondary navigation (Course Atlas, Glossary,
   Evidence, Set up, Contribute, About). Small text in `muted`, links in
   cobalt.
 - **Lesson reading column** (opt-in, see below). The title, then the lesson

@@ -61,7 +61,7 @@ website:
     left:
       - text: Home
         href: index.qmd
-      - text: Learning path
+      - text: Course Atlas
         href: path/index.qmd
       - text: Glossary
         href: glossary.qmd
@@ -91,7 +91,7 @@ website:
     right:
       - text: Source
         href: https://github.com/taspinar/physics-by-construction
-      - text: Learning path
+      - text: Course Atlas
         href: path/index.qmd
       - text: Glossary
         href: glossary.qmd

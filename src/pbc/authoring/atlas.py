@@ -1456,10 +1456,10 @@ class AtlasSection:
             "```{=html}",
             '<nav class="pbc-breadcrumb" aria-label="Breadcrumb"><ol>'
             f'<li><a href="{escape(page_href(self.page, "index.qmd"))}">Home</a></li>'
-            '<li><span aria-current="page">Learning path</span></li></ol></nav>',
+            '<li><span aria-current="page">Course Atlas</span></li></ol></nav>',
             "```",
             "",
-            "## Course atlas {#atlas}",
+            "## The curriculum map {#atlas}",
             "",
             "```{=html}",
             '<nav class="atlas-switch" aria-label="Map or course index"><ul>'
