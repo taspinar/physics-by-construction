@@ -1,6 +1,77 @@
 ---
-title: "Physics by Construction"
+title: "Build a world. See if it obeys physics."
+pagetitle: "Physics by Construction"
+toc: false
+page-layout: full
+body-classes: pbc-home
 ---
+
+```{python}
+#| echo: false
+from pbc.authoring import home_content
+from pbc.mechanics.experiments import home_opening
+
+home = home_content()
+result = home_opening.run()
+```
+
+:::: {.home-opening}
+
+::: {.home-lead}
+Physics by Construction teaches physics by building it. A model becomes a
+short program you can run. Depending on the lesson, that program is compared
+with theory, investigated in simulations or against real measurements, or
+its result is backed by a proof checked by machine.
+:::
+
+```{python}
+#| echo: false
+#| output: asis
+print(home.actions())
+```
+
+::: {.home-figure}
+
+```{python}
+#| label: fig-opening
+#| echo: false
+#| fig-cap: "A double pendulum released at rest with both rods raised to the same angle: the paths of its two bobs over ten seconds, with the pendulum at the start (solid) and at the end (dashed)."
+#| fig-alt: "A square plot of a vertical plane, both axes in metres, with the pivot at the centre. The path of the first bob is a thick arc of the circle about the pivot; the path of the second bob is a thin line that loops irregularly around and below it, reaching almost to the edges of the plot. The pendulum is drawn as two rods, raised to the upper right at the start and hanging below the pivot at the end; a label beside each bob at the start names it."
+#| fig-status: simulated
+result.show("fig-opening")
+```
+
+```{=html}
+<details class="home-details">
+<summary>How this figure was computed</summary>
+```
+
+::: {.home-provenance}
+```{python}
+#| echo: false
+#| output: asis
+print(home.opening_note(result))
+```
+:::
+
+```{python}
+#| label: fig-opening-energy
+#| echo: false
+#| fig-cap: "The change of the pendulum's total energy relative to its start, against time, in the run drawn above. The exact motion keeps it at zero."
+#| fig-alt: "A line plot of the relative change of the total energy against time in seconds, on a very small vertical scale: the line stays at zero apart from brief spikes and small steps."
+#| fig-status: simulated
+result.show("fig-opening-energy")
+```
+
+```{=html}
+</details>
+```
+
+:::
+
+::::
+
+## What this site is {#about-the-site}
 
 ```{python}
 #| echo: false
@@ -10,103 +81,54 @@ from pbc.authoring.identity import description
 print(description(), "[About the creator and JIDAI](about.qmd#creator-and-jidai).")
 ```
 
-Physics by Construction teaches physics by building it. Every concept comes
-with code you can run, and every listing, figure, and proof on this site is
-produced or checked by the same pipeline that publishes it. Three activities
-run through the content: **Construct**, **Investigate**, and **Verify**.
-
-The site is written for readers who already know undergraduate mechanics and
-can program. It does not teach either again.
-
 ```{python}
 #| echo: false
-from pbc.authoring import home_content
+#| output: asis
+from pbc.authoring.home import CONSTRUCT_EXAMPLE, INVESTIGATE_EXAMPLE, VERIFY_EXAMPLE
 
-home = home_content()
+print(
+    "Its goal is to teach three activities together: to **construct** a model"
+    f" and the program that runs it (for example, {home.example(CONSTRUCT_EXAMPLE)}),"
+    " to **investigate** it as an experiment is investigated, from"
+    " simulations and, in the labs, from real measurements (for example,"
+    f" {home.example(INVESTIGATE_EXAMPLE)}), and to **verify** what can be established, with tests and"
+    f" with theorems in Lean 4 checked by machine (for example,"
+    f" {home.example(VERIFY_EXAMPLE)}). A lesson whose code fails or whose"
+    " proof does not compile cannot be published. The site is written for"
+    " readers who know undergraduate mechanics and can program. Its complete"
+    " source, with the code behind every figure, is in the [repository on"
+    " GitHub](https://github.com/taspinar/physics-by-construction)."
+)
 ```
 
-## Three activities
-
-### Construct {#construct}
-
-State a model and its assumptions, write it as a short Python program, and
-compare the result with what theory predicts. Published example:
+## Part A: physics courses {#part-a}
 
 ```{python}
 #| echo: false
 #| output: asis
-from pbc.authoring.home import CONSTRUCT_EXAMPLE
-
-print(home.example(CONSTRUCT_EXAMPLE) + ", which compares four ways of stepping a model forward in time.")
+print(home.part_a())
 ```
 
-### Investigate {#investigate}
-
-The aim is to work from real measurements: quantify uncertainty, fit models,
-and design experiments. The planned courses and method paths, with their
-labs, are listed below. What is published today is an experiment on a
-simulation, run by an AI agent on your own machine with your own API key.
-Published example:
+## Physics + AI {#part-b}
 
 ```{python}
 #| echo: false
 #| output: asis
-from pbc.authoring.home import INVESTIGATE_EXAMPLE
-
-print(home.example(INVESTIGATE_EXAMPLE) + ".")
+print(home.part_b())
 ```
 
-### Verify {#verify}
-
-Check what can actually be established. A lesson whose code fails or whose
-proof does not compile cannot be published. Results about the models are
-stated as theorems in Lean 4 with Mathlib and checked by machine. Published
-example:
+## Capstone projects {#capstones}
 
 ```{python}
 #| echo: false
 #| output: asis
-from pbc.authoring.home import VERIFY_EXAMPLE
-
-print(home.example(VERIFY_EXAMPLE) + ".")
+print(home.capstones())
 ```
 
-## One result, constructed and proved
-
-Take a mass $m$ on a spring with stiffness $k$. Its total energy is
-
-$$
-E = \frac{1}{2} m v^{2} + \frac{1}{2} k x^{2}.
-$$
-
-A simulation shows how quickly a numerical method makes $E$ drift. A proof
-settles, for every initial condition at once, the factor by which one step of
-explicit Euler multiplies $E$. The agent lesson runs its experiment on the
-projectile simulation of the course, not on this oscillator.
-
-## Published {#published}
+## Begin {#begin}
 
 ```{python}
 #| echo: false
 #| output: asis
-print(home.published())
+print(home.begin())
 ```
-
-## Planned {#planned}
-
-```{python}
-#| echo: false
-#| output: asis
-print(home.planned())
-```
-
-## Source and licence
-
-To run the experiment of a lesson on your own machine, see
-[Set up and run](reproduce.qmd); to
-report an error or propose a change, see [Contribute](contribute.qmd). The
-complete source of this site, including the code behind every figure, is in
-the [repository on GitHub](https://github.com/taspinar/physics-by-construction).
-Code is released under the MIT licence. Lesson text and figures are released
-under the Creative Commons Attribution 4.0 International licence (CC BY 4.0).
-The [About](about.qmd) page has the details.

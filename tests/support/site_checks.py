@@ -994,7 +994,10 @@ def check_search_index(site_dir: Path) -> list[Violation]:
 
 
 def measure_payloads(
-    browser: Browser, server: SiteServer, site_dir: Path
+    browser: Browser,
+    server: SiteServer,
+    site_dir: Path,
+    pages: list[Path] | None = None,
 ) -> dict[str, int]:
     """The bytes every page transfers when it loads, by page: the sizes of
     the files of the site that the page requests. The test server sends files
@@ -1005,10 +1008,13 @@ def measure_payloads(
     arrives on it first: a file that pages share, such as a font, counts for
     each of them. The sizes are read from the files and not from the
     responses, whose bodies the browser may not have kept when they are
-    asked for, so the same site gives the same result on every run."""
+    asked for, so the same site gives the same result on every run.
+    ``pages`` limits the measure to those pages; by default every checked
+    page is measured."""
     base = urlsplit(server.url).path
     sizes = {}
-    for name, url in _urls(site_dir, server, checked_pages(site_dir)):
+    chosen = checked_pages(site_dir) if pages is None else pages
+    for name, url in _urls(site_dir, server, chosen):
         requested: set[str] = set()
 
         def note(response: Response, requested: set[str] = requested) -> None:
@@ -1150,6 +1156,22 @@ _SEARCH_RESULTS = "#quarto-search-results .aa-Item a, .aa-Panel .aa-Item a"
 _STORAGE_ENTRIES = (
     "() => [...Object.keys(localStorage), ...Object.keys(sessionStorage)]"
 )
+
+
+def search_results(page: Page, query: str) -> list[str]:
+    """Type ``query`` into the search control of ``page`` and return the
+    addresses of the results it lists, in their order; none when it lists
+    nothing within five seconds."""
+    page.fill(_SEARCH_INPUT, "")
+    page.fill(_SEARCH_INPUT, query)
+    try:
+        page.wait_for_selector(_SEARCH_RESULTS, timeout=5000)
+    except Exception:
+        return []
+    return [
+        urlsplit(link.get_attribute("href") or "").path
+        for link in page.locator(_SEARCH_RESULTS).all()
+    ]
 
 
 def check_search_finds_a_lesson(
@@ -1956,4 +1978,124 @@ def check_learner_state_stays_local(
         for write in writes
         if write.startswith(_ELSEWHERE)
     ]
+    return violations
+
+
+# --- The atlas modules (F126) ------------------------------------------------
+
+# The scripts of the learner directory that enhance the course atlas and the
+# index of the path page. They keep nothing at all: no request, no other
+# origin, and no browser storage, local storage included;
+# site/learner/progress.js stays the only script that stores anything.
+ATLAS_MODULES = ("atlas.js", "path.js")
+_FORBIDDEN_IN_ATLAS_MODULES = {
+    "request": _REQUEST,
+    "other origin": _FORBIDDEN_IN_WIDGETS["other origin"],
+    "browser storage": _FORBIDDEN_IN_WIDGETS["browser storage"],
+}
+
+
+def check_atlas_module_sources(site_dir: Path) -> list[Violation]:
+    """Each atlas module is in the built site and contains no request, no
+    other origin, and no use of browser storage.
+
+    A static scan is a floor; ``check_controls_keep_nothing`` watches what
+    the page does while its controls are operated."""
+    violations = []
+    for name in ATLAS_MODULES:
+        script = site_dir / LEARNER / name
+        if not script.is_file():
+            violations.append(Violation("atlas-source", f"{LEARNER}/{name}", "missing"))
+            continue
+        source = script.read_text(encoding="utf-8")
+        for namespace in _NAMESPACES:
+            source = source.replace(namespace, "")
+        for kind, pattern in _FORBIDDEN_IN_ATLAS_MODULES.items():
+            match = pattern.search(source)
+            if match:
+                violations.append(
+                    Violation(
+                        "atlas-source",
+                        _name(site_dir, script),
+                        f"{kind}: {match.group(0)!r}",
+                    )
+                )
+    return violations
+
+
+# A lazy image loads when scrolling or a relayout brings it near the
+# viewport: a request of the page, not of a control. Loading every image
+# before the recording keeps the check strict for every request (#259).
+_LOAD_LAZY_IMAGES = """
+() => {
+  for (const image of document.images) image.loading = "eager";
+}
+"""
+_IMAGES_LOADED = "() => [...document.images].every((image) => image.complete)"
+
+
+def _load_lazy_images(page: Page) -> None:
+    page.evaluate(_LOAD_LAZY_IMAGES)
+    page.wait_for_function(_IMAGES_LOADED)
+    page.wait_for_load_state("networkidle")
+
+
+def check_controls_keep_nothing(
+    browser: Browser,
+    server: SiteServer,
+    page_name: str,
+    operate: Callable[[Page], int],
+    viewport: dict[str, int] = DESKTOP,
+) -> list[Violation]:
+    """Opening ``page_name`` and doing what ``operate`` does with its controls
+    makes no request once the page and its images have loaded (lazy ones
+    included), sets no cookie, and writes
+    nothing to Web Storage, IndexedDB, the Cache API, or a service worker;
+    the entries of Web Storage are what they were after the page loaded.
+
+    The writes are recorded as they happen, so a script that writes and then
+    clears an entry is caught too. ``operate`` returns how many controls it
+    operated; none is reported, since the check would otherwise pass on a
+    page whose controls are missing."""
+    violations = []
+    blocked: list[str] = []
+    requests: list[str] = []
+    with _context(browser, server, blocked.append, viewport=viewport) as context:
+        context.add_init_script(f"({_RECORD_STORAGE_WRITES})()")
+        page = context.new_page()
+        page.goto(server.url + page_name, wait_until="networkidle")
+        _load_lazy_images(page)
+        before = len(page.evaluate("window.__storageWrites"))
+        entries = Counter(page.evaluate(_STORAGE_ENTRIES))
+        page.on("request", lambda request: requests.append(request.url))
+        operated = operate(page)
+        page.wait_for_timeout(100)
+        writes = page.evaluate("window.__storageWrites")[before:]
+        left = Counter(page.evaluate(_STORAGE_ENTRIES))
+        cookies = context.cookies()
+        document_cookie = page.evaluate("document.cookie")
+        page.close()
+    if not operated:
+        violations.append(Violation("controls", page_name, "operated no control"))
+    violations += [
+        Violation("controls-request", page_name, f"requests {url}") for url in requests
+    ]
+    violations += [
+        Violation("other-origin", page_name, f"requests {url}") for url in blocked
+    ]
+    violations += [
+        Violation("controls-storage", page_name, f"writes {write}") for write in writes
+    ]
+    violations += [
+        Violation("controls-storage", page_name, f"leaves entry {key}")
+        for key in (left - entries).elements()
+    ]
+    violations += [
+        Violation("controls-cookie", page_name, f"sets cookie {cookie['name']}")
+        for cookie in cookies
+    ]
+    if document_cookie:
+        violations.append(
+            Violation("controls-cookie", page_name, "sets document.cookie")
+        )
     return violations

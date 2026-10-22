@@ -4,8 +4,13 @@
 //
 //   - opens the disclosure that the address points into, so that a link to a
 //     course or a lesson of the page lands on the lessons, and
-//   - offers filters by course, method, difficulty, and publication state
-//     that hide the rows that do not match.
+//   - offers filters by course, method path, method, difficulty, and
+//     publication state that hide the rows that do not match.
+//
+// The filters of the course atlas (learner/atlas.js, F126) are the same
+// filters: after it applies them this script announces the values with the
+// event "pbc:filters" on the document, and it takes values that the atlas
+// sends with "pbc:set-filters". Either script works without the other.
 //
 // It stores nothing, makes no request, and sets no cookie. The filters only
 // hide rows of the page; the search index is built from the page when the
@@ -65,6 +70,22 @@ function filters() {
     const heading = panel.closest("section")?.querySelector("h3");
     return [panel.dataset.course, heading ? heading.textContent.trim() : panel.dataset.course];
   });
+  const paths = [...document.querySelectorAll("section[id^='path-'] > h3")].map((heading) => [
+    heading.parentElement.id.replace(/^path-/, ""),
+    heading.textContent.trim(),
+  ]);
+  // A method path's lessons are the ones its section lists; a path filter
+  // keeps them wherever the page lists them, and the path's planned slots.
+  const inPath = Object.fromEntries(
+    paths.map(([id]) => [
+      id,
+      new Set(
+        [...document.querySelectorAll(`section#path-${id} [data-lesson-id]`)].map(
+          (item) => item.dataset.lessonId,
+        ),
+      ),
+    ]),
+  );
   const methods = [...document.querySelectorAll("section[id^='method-'] > h3")].map((heading) => [
     heading.parentElement.id.replace(/^method-/, ""),
     heading.textContent.trim(),
@@ -74,6 +95,7 @@ function filters() {
     .map((level) => [level, `Level ${level}`]);
   const controls = {
     course: select("course", "Course", courses),
+    path: select("path", "Path", paths),
     method: select("method", "Method", methods),
     difficulty: select("difficulty", "Difficulty", levels),
     state: select("state", "Publication", [
@@ -103,6 +125,10 @@ function filters() {
       const home = item.dataset.course || item.dataset.home;
       const matches =
         (!want.course || home === want.course) &&
+        (!want.path ||
+          (item.dataset.lessonId
+            ? inPath[want.path]?.has(item.dataset.lessonId)
+            : item.dataset.home === want.path)) &&
         (!want.method || (item.dataset.methods || "").split(" ").includes(want.method)) &&
         (!want.difficulty || item.dataset.difficulty === want.difficulty) &&
         (!want.state || item.dataset.state === want.state);
@@ -117,6 +143,7 @@ function filters() {
     status.textContent = Object.values(want).some(Boolean)
       ? `${shown} entries match the filters.`
       : "";
+    document.dispatchEvent(new CustomEvent("pbc:filters", { detail: want }));
   };
   for (const { control } of Object.values(controls)) {
     control.addEventListener("change", apply);
@@ -124,6 +151,13 @@ function filters() {
   reset.addEventListener("click", () => {
     for (const { control } of Object.values(controls)) {
       control.value = "";
+    }
+    apply();
+  });
+  // The atlas's filters: take every value it sends, then apply.
+  document.addEventListener("pbc:set-filters", (event) => {
+    for (const [key, { control }] of Object.entries(controls)) {
+      control.value = event.detail[key] || "";
     }
     apply();
   });
