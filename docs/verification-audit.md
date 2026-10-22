@@ -352,6 +352,12 @@ every pull request and push, whatever the agent ran locally.
 
 **Decided by the owner on 2026-10-15** (pull request #184, ADR 014 status): a
 timeout of 60 minutes for the job `build`, approved for up to 45 lessons.
+Extended by the owner on 2026-10-21 (ADR 014 status, Issue #253) to 64
+lessons with the same 60 minutes, as a planning boundary re-measured at 55
+lessons and decided again by 60 at the latest, or earlier if the `build` job
+approaches 55 minutes, repeated runs show too little margin, or verification
+failures point to a capacity problem (the amendment note in the status of
+ADR 014 records the decision).
 
 For the unresolved question 10 of the requirements and the full-run gate of
 Phase 4 (`docs/roadmap.md`, "The full run on `main` at the current lesson

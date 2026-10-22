@@ -1364,7 +1364,7 @@ Budget (required by the requirements; rationale in ADR 003):
 | Cold caches (for example after a Mathlib bump) | 25 minutes or less, for a pull request |
 | Run on `main`, or any full run | Verifies everything; grows with the curriculum; no wall-clock budget, but every job of it fits the job timeout at 110 lessons (ADR 014, decision 7) |
 | One job of a full run | 35 minutes with cold caches, leaving 10 minutes of the timeout for a runner slower than any measured; a shard of the build holds at most 32 lessons, about 27 minutes at 41 seconds per lesson over about 5 minutes of fixed cost, both derived from the slowest run F58 measured (the cold `build` job, 20 min 27 s at twenty-two lessons), so about 8 minutes under the budget on that runner; the shard size is confirmed or lowered by the per-lesson cost F61 and F113 measure on the slowest runner of their runs (ADR 014, decisions 7 and 11; F113). Since 2026-10-15: F113 is paused, the one `build` job carries thirty-two lessons in 21 to 31 minutes (measured, below), and the timeout and lesson count of an exceptional full run are the owner's decision on F118's record (requirements, unresolved question 10) |
-| Job timeout | 45 minutes per job, and 60 minutes for the one `build` job of a full run since 2026-10-15 (the owner's interim full-run gate, ADR 014 status, approved for up to 45 lessons; 30 in ADR 003; raised by the owner on 2026-10-11, kept by ADR 012, decision 9, and by ADR 014, decision 7, which bounds a full run with shards instead of raising it); unchanged by ADR 015; the timeout of the one job of an exceptional full run is reconsidered from measurements under ADR 017 and unresolved question 10 |
+| Job timeout | 45 minutes per job, and 60 minutes for the one `build` job of a full run since 2026-10-15 (the owner's interim full-run gate, ADR 014 status, approved for up to 45 lessons and, since the owner's decision of 2026-10-21, for up to 64 lessons as a planning boundary that no check enforces, re-measured at 55 lessons and decided again by 60 at the latest, or earlier if the `build` job approaches 55 minutes, repeated runs show too little margin, or verification failures point to a capacity problem; 30 in ADR 003; raised by the owner on 2026-10-11, kept by ADR 012, decision 9, and by ADR 014, decision 7, which bounds a full run with shards instead of raising it); unchanged by ADR 015; the timeout of the one job of an exceptional full run is reconsidered from measurements under ADR 017 and unresolved question 10 |
 | Unit tests | 2 minutes or less |
 | Lean build after the Mathlib cache is in place | 3 minutes or less |
 | One lesson page, executed | 30 seconds or less |
@@ -1456,9 +1456,12 @@ decision 39, ADR 020 decision 8): ADR 017 decisions 1 to 6 and 9 are not
 justified by lead-time evidence and stay proposed; F120 is finished (its
 evidence in `docs/incremental-main-evidence.md`, pull request #224, Issue
 #196 closed), F121 is not started, F113 stays paused and open, and they
-are reopened only at the owner's triggers (42 lessons measured, the
-capacity decided at 44 at the latest, or a complete run on `main` above
-45 minutes). Decisions 7 and 8, accepted and applied, are the tiers the
+are reopened only at the owner's triggers (since the decision of
+2026-10-21, ADR 014 status: 55 lessons measured, the capacity decided at
+60 at the latest, or earlier if the `build` job approaches 55 minutes,
+repeated runs show too little margin, or verification failures point to a
+capacity problem; the former points of 42 and 44 lessons are superseded
+history). Decisions 7 and 8, accepted and applied, are the tiers the
 workflow uses.
 
 - **Incremental `main` from a chain of verified bases** (ADR 017 decisions
@@ -1725,8 +1728,12 @@ fingerprint.
 
 **Budgets and the time log** (ADR 020 decisions 6 and 7). An exceeded
 wall-clock budget is a measurement for the owner at the chosen
-re-assessment points (42 lessons measured, the capacity decided at 44 at
-the latest, or a complete run on `main` above 45 minutes); it starts no
+re-assessment points (since the owner's decision of 2026-10-21, ADR 014
+status: 55 lessons measured, the capacity decided at 60 at the latest, or
+earlier if the `build` job approaches 55 minutes, repeated runs show too
+little margin, or verification failures point to a capacity problem, with
+the job's duration and the run's total duration reported separately; the
+former points of 42 and 44 lessons are superseded history); it starts no
 mandatory optimisation and never changes scientific content; hard checks
 keep failing, with the exception table `scripts/lesson-budgets.conf`.
 `./scripts/verify.sh` appends one line per run (timestamp, tier, tree,
@@ -1947,8 +1954,18 @@ that must settle them:
   2026-10-15): the one `build` job is allowed 60 minutes for up to 45
   lessons, lesson features proceed within it (two are in open pull
   requests, "Repository state"), and the gate is reassessed before the
-  count reaches 45 lessons. The routes past it are F121 (inherited
-  results on `main`, if the owner accepts ADR 017) or F113 resumed. The
+  count reaches 45 lessons. The owner extended it on 2026-10-21 (ADR 014
+  status, Issue #253) to 64 lessons with the 60 minutes unchanged: 64 is
+  a planning boundary that no check enforces, capacity is re-measured at
+  55 lessons, and the next decision is the owner's by 60 lessons at the
+  latest, or earlier if the `build` job approaches 55 minutes, repeated
+  runs show too little margin, or verification failures point to a
+  capacity problem. The `build` job's own duration and the run's total
+  duration (from its creation to its last update, with the preparation
+  and the deployment) are reported separately. The routes past it are
+  F121 (inherited results on `main`, if the owner accepts ADR 017) or
+  F113 resumed; both stay paused and neither is started by the
+  extension. The
   80 minutes at 110 lessons remain a projection from the 2026-10-12 cost;
   F118 restates it from the measured runs.
 - **Inherited results are a weaker guarantee than execution on the

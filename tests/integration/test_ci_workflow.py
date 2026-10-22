@@ -265,7 +265,7 @@ def test_the_jobs_have_the_agreed_timeouts():
     # 45 minutes per job since 2026-10-11, by the owner, and kept by ADR 012,
     # decision 9, in place of the 30 of ADR 003; 60 minutes for the one job
     # `build` of a full run since 2026-10-15 (the interim full-run gate of
-    # ADR 014, approved for up to 45 lessons).
+    # ADR 014, approved for up to 64 lessons since 2026-10-21; 45 before).
     jobs = load(CI)["jobs"]
     for name, job in check_jobs().items():
         assert job["timeout-minutes"] == (60 if name == "build" else 45), name

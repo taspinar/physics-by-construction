@@ -121,6 +121,20 @@ Change cycle `pbc-planning-change-four-workstreams` (2026-10-15):
   to them is Level 3 under ADR 020. The site publishes thirty-eight lessons
   since 2026-10-17 (F66 and F72), within the interim gate.
 
+- *Amendment note (Issue #253, 2026-10-21).* The owner extended the
+  interim full-run gate above from 45 to **64 lessons**, with the timeout
+  of the one `build` job kept at 60 minutes and every other timeout
+  unchanged, as a planning boundary that no check enforces: capacity is
+  re-measured at 55 lessons and the next decision is the owner's by 60
+  lessons at the latest, or earlier if the `build` job approaches 55
+  minutes, repeated runs show too little margin, or verification failures
+  point to a capacity problem, with the `build` job's duration and the
+  run's total duration reported separately; these points replace, for
+  this boundary, the re-assessment points of 42 and 44 lessons named
+  above and in ADR 020 decisions 6 and 8, every push to `main` still
+  executes every lesson, and decision 11 (F113) and ADR 017 decisions 1
+  to 6 and 9 stay paused.
+
 Date: 2026-10-12
 
 ## Context
