@@ -219,9 +219,14 @@ exceeded wall-clock budget recorded here, the 20 minutes of a pull request
 (ADR 015), the planning budget of a full run, or a complete run on `main`
 above 45 minutes, is a measurement for the owner's decision, not a failed
 gate and not a mandate to optimise. The owner decides at the re-assessment
-points already chosen: re-measure at 42 lessons, decide the capacity at 44
-at the latest, or earlier when a complete run on `main` exceeds 45 minutes,
-choosing from the responses of ADR 003 decision 6. A budget is never met by
+points of the decision of 2026-10-21 (ADR 014 status, Issue #253), which
+extends the interim full-run gate to 64 lessons with the `build` job's 60
+minutes unchanged: re-measure at 55 lessons, decide the capacity at 60 at
+the latest, or earlier when the `build` job approaches 55 minutes, repeated
+runs show too little margin, or verification failures point to a capacity
+problem, with the `build` job's duration and the run's total duration
+reported separately (the former points, 42 and 44 lessons or a complete
+run on `main` above 45 minutes, are superseded history), choosing from the responses of ADR 003 decision 6. A budget is never met by
 changing scientific content, and the hard 30-second budget of a lesson page
 keeps failing, with its exception table `scripts/lesson-budgets.conf`. Local
 runs leave their durations in the time log of `./scripts/verify.sh`
@@ -686,9 +691,15 @@ executions of each lesson in the build was not measured separately here.
 
 **Capacity of the temporary 45-lesson gate.** At 38 lessons the slowest
 measured complete run (35 min 18 s) leaves 24 min 42 s of the 60 minutes.
-The owner's rule of 2026-10-17 stands: re-measure at 42 lessons, decide the
+The owner's rule of 2026-10-17 was: re-measure at 42 lessons, decide the
 capacity at 44 lessons at the latest, or earlier if a complete run exceeds
-45 minutes (Issue #150).
+45 minutes (Issue #150). On 2026-10-21 the owner extended the gate to 64
+lessons with the 60 minutes unchanged (ADR 014 status, Issue #253): 64 is a
+planning boundary, capacity is re-measured at 55 lessons, and the next
+decision is due by 60 lessons at the latest, or earlier if the `build` job
+approaches 55 minutes, repeated runs show too little margin, or verification
+failures point to a capacity problem; the `build` job's duration and the run's total
+duration are reported separately.
 
 **Learner walkthrough (criterion 7).** A fresh subagent that did not write
 the pages followed the published instructions on a clean clone of the merged
