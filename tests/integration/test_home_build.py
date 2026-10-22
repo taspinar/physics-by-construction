@@ -70,8 +70,16 @@ def site(tmp_path: Path) -> Path:
     source.mkdir()
     (source / "_quarto.yml").write_text(_CONFIG)
     shutil.copy(SITE_SOURCE / "index.qmd", source / "index.qmd")
-    # The three lessons the home page names as examples.
+    # The three lessons the home page names as examples, and the lesson of
+    # its opening figure.
     write_lesson(source, "numerical-integrators", "First lesson")
+    write_lesson(
+        source,
+        "double-pendulum-chaos",
+        "Pendulum lesson",
+        order=2,
+        prerequisite="numerical-integrators",
+    )
     write_lesson(
         source,
         "agent-experiment",
@@ -97,19 +105,21 @@ def built_text(site: Path, tmp_path: Path, name: str) -> str:
 
 def test_the_counts_and_names_follow_the_lessons(site: Path, tmp_path: Path):
     before = built_text(site, tmp_path, "before")
-    assert "publishes 3 lessons in 3 strands" in before
+    assert "The site publishes 4 lessons." in before
     assert "Second lesson" not in before
 
     write_lesson(
         site,
         "second",
         "Second lesson",
-        order=2,
+        order=3,
         prerequisite="numerical-integrators",
     )
     after = built_text(site, tmp_path, "after")
 
-    assert "publishes 4 lessons in 3 strands" in after
-    assert "Second lesson" in after
-    assert "mechanics course is published with 2 core lessons" in after.lower()
-    assert "mechanics course is published with 1 core lesson and" in before.lower()
+    assert "The site publishes 5 lessons." in after
+    assert "Start with Second lesson" not in after
+    # The mechanics course holds every lesson of the fixture.
+    assert "4 lessons published" in before and "5 lessons published" in after
+    # The first lesson of the course is the start of the invitation.
+    assert "Start with First lesson" in before

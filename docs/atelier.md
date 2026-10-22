@@ -71,6 +71,7 @@ for text and 3:1 for controls and lines, unchanged from F44.
 | `warning`, `warning-surface` | `#7a4100`, `#fbf0dc` | the "not verified" mark | 7.2; ink on it 15.2 |
 | `header`, `header-text` | paper, ink | the header (it replaces the navbar's blue bar) | 16.2 |
 | `start`, `start-text` | cobalt, paper | the start link, the one filled control | 8.0 |
+| `night`, `night-text`, `night-muted`, `night-line` | `#0f2240`, paper, `#b4c2d9`, `#7ea6e0` | the dark navy ground of a featured capstone (ADR 018 decision 5; F124's tsunami section), its text, its secondary text, and its lines and focus ring | 15.0, 8.8, 6.4 |
 
 The bright vermilion of the mockups (about `#e34234`) has 3.9:1 on paper:
 enough for a line or the mark's point, not for text, so text in the accent
@@ -237,6 +238,33 @@ kept.
   highlighting (a chosen concept highlights its prerequisites and conceptual
   connections, with direction and meaning, reachable by keyboard) is an
   acceptance consideration of F126, not of F125.
+- **Home page** (F124; `body.pbc-home`, `page-layout: full`; the
+  composition the owner approved on Issue #238 on 2026-10-21). The title
+  is the opening line, "Build a world. See if it obeys physics.", at a
+  display size between the first heading and 3.25rem. Below it the
+  opening: a short lead in the large text size, the two ways in (the atlas
+  as the one filled control of the page, the shape of the start link; the
+  first lesson as a text link), and the double pendulum, the largest thing
+  on the page, on its plate under the cobalt construction line: the paths
+  of both bobs, a concise caption, and below it a native disclosure, closed,
+  "How this figure was computed", with the provenance (the module and the
+  commit), the run's numbers, and the energy figure. From 992 CSS px the
+  lead stands in a narrow column beside the figure; below that width they
+  follow one another. No control, timer, or anything that looks
+  interactive. Then the sections: what the site is (the attribution
+  sentence and the three activities as one paragraph, never as steps or
+  headings); Part A with three featured courses (the course illustration
+  of the atlas at 4.5rem, the name, the counts, the first lesson, under the
+  construction line; three columns from 768 px) and the other five in a
+  compact row of ruled entries with the illustration at 2rem; Part B under
+  the editorial heading "Physics + AI", the four method paths on the
+  surface, each under the construction line; the capstone projects, the
+  featured one across the full width of the window on the `night` ground
+  (its editorial heading, the course and the state, the manifest's
+  explanation, and the conceptual artwork with its label), the others
+  smaller in the dashed boxes of the atlas; the invitation. A planned
+  entry has no link and the word planned in a dashed outline, as on the
+  atlas. Prose keeps the measure.
 - **The atlas's controls** (F126, `site/learner/atlas.js`). Without a
   script the two places around the map hold one sentence each. With it, a
   strip of native controls above the map on paper: the region selector, the
@@ -275,6 +303,7 @@ Every visual belongs to one class (ADR 018 decision 2). An example of each:
 | Class | Example | Source | Rules |
 |---|---|---|---|
 | Interface artwork | the project mark in the header | an authored SVG under `site/assets/` with its entry (author, licence) in the provenance register there | no number, no caption of a result, no evidence claim; decorative or named by its link |
+| Interface artwork, generated | the wavefronts beside the featured capstone of the home page | `pbc.authoring.home_artwork`, written into the built site by `site/home-artwork.py`, its entry (`module`) in the provenance register | as above; labelled conceptual artwork for a planned capstone, no axis, scale, or measurement label |
 | Conceptual illustration | the diagrams drawn by `pbc.authoring.diagrams` in a lesson cell | an executed cell, `fig-status: conceptual` | drawn by code, labelled `conceptual`, never a result |
 | Scientific result | the phase-space figure of "Numerical integrators" | an executed cell over `pbc.mechanics.integrators` | the rules of "Scientifically faithful figures" and the F63 preview contract |
 
@@ -420,6 +449,37 @@ diagram-design at 550fd66e), from screenshots of the built path page at
   routed along the gutters at right angles, each on its own track, and the
   gutters were widened for them.
 
+**The home page** (F124; impeccable at 08d5b470, frontend-design at
+dbd4588f, pbc-scientific-visualization at a70b5016), from screenshots of
+the built home page at 1280, 768, and 375 CSS px:
+
+- Frontend Design's "open with the most characteristic thing in the
+  subject's world": the opening is a computed figure of the site's own
+  physics, not a hero metric or an illustration; its one memorable move is
+  the construction line over the plate, shared with the atlas, and the rest
+  stays quiet.
+- Impeccable's Persuade mode ("make the offer intelligible, expose a clear
+  action, demonstrate something only this product can prove") and its
+  layout playbook: the first render stacked the lead and the figure, which
+  put the figure below the first screen at 1280 px; the figure now stands
+  beside the lead from 992 px, the title runs on one line, the lead was cut
+  to four sentences, and the provenance line comes before the numbers, so
+  the provenance is in the first screen. The action is the link to the
+  atlas, the filled control of the opening.
+- Impeccable's craft floor and Frontend Design's refusals: no eyebrow
+  labels, no numbered sections, no identical cards for the courses (a
+  ruled list), no arrow after a link; the three activities are a sentence,
+  not a three-step formula.
+- PBC Scientific Visualization: the figure's values come from the verified
+  implementation, every axis names its quantity and unit, the two series
+  are told apart by panel, shape, and line style as well as colour, the
+  caption states the conclusion without computed numbers (they are in the
+  note, from the run), the alt text describes the plots, and the status is
+  `simulated`. The first draft carried text labels on the poses and a
+  legend that covered the path; they moved into the caption and the panel
+  titles. The figure was narrowed to 7.2 inches so that its text keeps its
+  size on the plate at 1280 px.
+
 **The atlas's controls** (F126; impeccable at 08d5b470, frontend-design at
 dbd4588f), from screenshots of the built path page at 1280, 768, and 375
 CSS px, with a concept chosen and without:
@@ -450,3 +510,33 @@ CSS px, with a concept chosen and without:
 
 The automated detector of Impeccable did not run and will not: the project
 runs none of a skill's scripts (ADR 019).
+
+**The home page, the visual revision** (F124, the owner's decisions of
+2026-10-21; the same skills and revisions), from screenshots at 1280, 768,
+and 375 CSS px:
+
+- Frontend Design's "spend your boldness in one place" and Impeccable's
+  Persuade mode: the double pendulum became the dominant visual (one square
+  panel, both bobs' paths, the lead in a narrow column beside it), and the
+  one contrasting move further down is the dark tsunami section; the rest
+  stays on paper. The first version's two-panel figure and the provenance
+  in the first screen gave way to a concise caption and a closed native
+  disclosure.
+- Impeccable's layout playbook ("repeated cards are genuinely equivalent?"):
+  the eight courses are not eight equal rows any more: three featured with
+  the atlas's illustrations, five in a compact row; at 768 px the featured
+  grid broke two and one, and was fixed to three columns from 768 px. The
+  method paths are a second layer on the surface, not a ninth to twelfth
+  course.
+- Impeccable's craft floor: the "planned" outline stretched across the
+  compact grid cell in the first render and was set to its own width; no
+  eyebrow above "Model a wave. Understand a coastline."; the night tokens
+  are checked for contrast like the others.
+- PBC Scientific Visualization: the two paths are told apart by width and a
+  direct label at each bob's start as well as by colour; the axes keep
+  their quantities and units; the energy axis says it is dimensionless
+  (review 01, MIN1); the tsunami drawing is interface artwork, labelled as
+  such, without axes, scales, or numbers. Its first render filled the land
+  and showed a hard rectangle at the drawing's edge; the land is now only
+  the coastline.
+

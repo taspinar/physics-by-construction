@@ -123,10 +123,15 @@ async () => {
 """
 
 
-def test_home_page_renders_an_equation_as_mathml_in_the_site_font(
+# A page with display equations. The home page had one until F124 replaced its
+# section "One result, constructed and proved"; the first lesson has several.
+EQUATION_PAGE = "lessons/mechanics/01-kinematics-as-a-program/index.html"
+
+
+def test_a_page_renders_an_equation_as_mathml_in_the_site_font(
     page: Page, server: SiteServer
 ):
-    page.goto(server.url + "index.html", wait_until="load")
+    page.goto(server.url + EQUATION_PAGE, wait_until="load")
 
     equation = page.locator('math[display="block"]').first
     box = equation.bounding_box()

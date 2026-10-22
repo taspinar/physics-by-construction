@@ -15,6 +15,9 @@ project:
     - lesson-previews.py
     - learning-path-export.py
     - attribution.py
+    # The conceptual artwork of the home page's featured capstone, generated
+    # into the built site (assets/provenance.yaml names its module).
+    - home-artwork.py
   # Files the pages do not link to in Markdown but the built site must
   # contain: the fonts that site.css loads, and their licences, and the
   # widgets and the learner-state script that lesson pages load as scripts.

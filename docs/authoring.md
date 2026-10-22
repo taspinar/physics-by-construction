@@ -1711,14 +1711,41 @@ in `src/pbc/authoring/identity.py`. Rules for every page:
 - The home page has one attribution link, to the About page. The footer line,
   with its one link to `https://jidai.nl`, is not repeated in lessons or in
   any page content. Lessons do not mention JIDAI.
-- The home page states what is published from the lesson front matter
-  (`pbc.authoring.home_content()`): no number or lesson title is typed. What
-  is planned is the `PLANNED` list in `src/pbc/authoring/home.py`; each item
-  names a roadmap ID, is labelled planned, and is not linked. Remove an item
-  when its feature is delivered (`tests/unit/test_home.py` checks the roadmap).
-  A sentence about the site that is not generated must be true of the
-  published site; the examples of the three activities are lessons named by
-  id in the same module.
+- The home page states what is published from the lesson front matter and
+  what is planned from the curriculum file (`pbc.authoring.home_content()`,
+  F124): Part A and Part B list every course and method path with its
+  published and planned counts; one with a published lesson links to its
+  place on the path page (`#course-<id>`, `#path-<id>`), and one without is
+  labelled planned and is not linked. The capstone projects come from the
+  capstone slots of the curriculum file, and each is described only by the
+  explanation of its concept in `site/atlas.yaml`: no title, count, or
+  description of a lesson or a capstone is typed into the page. A sentence
+  about the site that is not generated must be true of the published site;
+  the examples of the three activities, and the lesson of the opening
+  figure, are lessons named by id in the same module.
+- The opening figure of the home page is drawn by
+  `pbc.mechanics.experiments.home_opening` from the double pendulum of
+  `pbc.mechanics.chaos`, through the figure-writing pattern of a lesson
+  (ADR 016 decision 2): the page's cell shows the bytes its `run()` encodes,
+  and `uv run --locked --no-dev python -m
+  pbc.mechanics.experiments.home_opening out` writes the same file. Its
+  status is `simulated`; the page states the module and the commit it was
+  built from. Its second figure, the change of the energy, sits with the
+  provenance and the run's numbers in a native disclosure below the caption.
+  It moves only with the validated interactive pendulum, a separate feature
+  (requirements decision 36).
+- The home page's composition is the owner's (Issue #238, 2026-10-21):
+  three courses featured with the course illustrations of the atlas
+  (`FEATURED_COURSES`), the other five in a compact row; Part B under the
+  editorial heading "Physics + AI"; one capstone (`FEATURED_CAPSTONE`) on the
+  dark navy ground under its editorial heading (`FEATURED_HEADING`), the
+  others smaller. The editorial headings never replace the manifest's
+  explanation. The artwork beside the featured capstone is conceptual
+  interface artwork drawn by `pbc.authoring.home_artwork`, written into the
+  built site by the post-render script `site/home-artwork.py` and registered
+  with its module in `site/assets/provenance.yaml`; it carries no axis,
+  scale, number, or measurement label, and its label says it shows no data
+  and no simulation.
 - JIDAI is the initiative's company, not a copyright holder, funder, or
   university partner. The copyright line, the licences (MIT for code, CC BY
   4.0 for content), the repository address, and `website.site-url` do not
