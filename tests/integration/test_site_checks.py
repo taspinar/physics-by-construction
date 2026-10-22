@@ -1319,3 +1319,98 @@ def test_a_search_control_without_the_fallback_is_reported(
 
 def test_a_page_without_search_needs_no_fallback(make_site: Site, browser: Browser):
     assert _fallback(make_site, browser, "") == []
+
+
+# --- The atlas modules (F126) ---------------------------------------------------
+
+
+def _atlas_modules(atlas: str = "", path: str = "") -> dict[str, str]:
+    return {"learner/atlas.js": atlas, "learner/path.js": path}
+
+
+def test_atlas_modules_that_keep_nothing_are_clean(make_site: Site):
+    site = make_site(files=_atlas_modules("document.title = 'a';", "let x = 1;"))
+
+    assert site_checks.check_atlas_module_sources(site) == []
+
+
+def test_a_missing_atlas_module_is_reported(make_site: Site):
+    site = make_site(files={"learner/path.js": ""})
+
+    violations = site_checks.check_atlas_module_sources(site)
+
+    assert [(v.rule, v.detail) for v in violations] == [("atlas-source", "missing")]
+
+
+@pytest.mark.parametrize(
+    "source, kind",
+    [
+        ("fetch('/state');", "request"),
+        ("import('./more.js');", "request"),
+        ("const url = 'https://example.org/x';", "other origin"),
+        ("localStorage.setItem('a', 'b');", "browser storage"),
+        ("sessionStorage.setItem('a', 'b');", "browser storage"),
+        ("document.cookie = 'a=b';", "browser storage"),
+    ],
+)
+def test_an_atlas_module_that_reaches_out_or_keeps_data_is_reported(
+    make_site: Site, source: str, kind: str
+):
+    site = make_site(files=_atlas_modules(atlas=source))
+
+    violations = site_checks.check_atlas_module_sources(site)
+
+    assert [v.rule for v in violations] == ["atlas-source"]
+    assert violations[0].detail.startswith(kind)
+
+
+_CONTROL = '<button id="go" type="button">Go</button><script src="control.js"></script>'
+
+
+def _operated(make_site: Site, browser: Browser, action: str) -> list[Violation]:
+    script = (
+        f"document.getElementById('go').addEventListener('click', () => {{{action}}});"
+    )
+    site = make_site(body=_CONTROL, files={"control.js": script})
+
+    def operate(page) -> int:
+        page.click("#go")
+        return 1
+
+    with served(site) as server:
+        return site_checks.check_controls_keep_nothing(
+            browser, server, "index.html", operate
+        )
+
+
+def test_a_control_that_keeps_nothing_passes(make_site: Site, browser: Browser):
+    assert _operated(make_site, browser, "document.title = 'x';") == []
+
+
+@pytest.mark.parametrize(
+    "action, rule",
+    [
+        ("fetch('other.html');", "controls-request"),
+        ("localStorage.setItem('a', 'b');", "controls-storage"),
+        (
+            "sessionStorage.setItem('a', 'b'); sessionStorage.clear();",
+            "controls-storage",
+        ),
+        ("document.cookie = 'a=b';", "controls-cookie"),
+    ],
+)
+def test_a_control_that_requests_or_stores_is_reported(
+    make_site: Site, browser: Browser, action: str, rule: str
+):
+    assert rule in rules(_operated(make_site, browser, action))
+
+
+def test_a_check_that_operated_no_control_is_reported(
+    make_site: Site, browser: Browser
+):
+    site = make_site()
+    with served(site) as server:
+        violations = site_checks.check_controls_keep_nothing(
+            browser, server, "index.html", lambda page: 0
+        )
+    assert rules(violations) == {"controls"}
