@@ -1405,6 +1405,44 @@ def test_a_control_that_requests_or_stores_is_reported(
     assert rule in rules(_operated(make_site, browser, action))
 
 
+# A lazy image far below the control: scrolling to it loads it.
+_LAZY_IMAGE = (
+    '<div style="height: 5000px"></div>'
+    '<img id="far" src="pixel.png" alt="A single pixel" width="1" height="1"'
+    ' loading="lazy">'
+)
+
+
+@pytest.mark.parametrize(
+    "action, found",
+    [
+        ("document.getElementById('far').scrollIntoView();", set()),
+        (
+            "document.getElementById('far').scrollIntoView(); fetch('other.html');",
+            {"controls-request"},
+        ),
+    ],
+)
+def test_a_lazy_image_the_page_loads_is_no_request_of_a_control(
+    make_site: Site, browser: Browser, action: str, found: set[str]
+):
+    script = (
+        f"document.getElementById('go').addEventListener('click', () => {{{action}}});"
+    )
+    site = make_site(body=_CONTROL + _LAZY_IMAGE, files={"control.js": script})
+
+    def operate(page) -> int:
+        page.click("#go")
+        page.wait_for_timeout(200)
+        return 1
+
+    with served(site) as server:
+        violations = site_checks.check_controls_keep_nothing(
+            browser, server, "index.html", operate
+        )
+    assert rules(violations) == found
+
+
 def test_a_check_that_operated_no_control_is_reported(
     make_site: Site, browser: Browser
 ):
