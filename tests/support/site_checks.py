@@ -2023,6 +2023,23 @@ def check_atlas_module_sources(site_dir: Path) -> list[Violation]:
     return violations
 
 
+# A lazy image loads when scrolling or a relayout brings it near the
+# viewport: a request of the page, not of a control. Loading every image
+# before the recording keeps the check strict for every request (#259).
+_LOAD_LAZY_IMAGES = """
+() => {
+  for (const image of document.images) image.loading = "eager";
+}
+"""
+_IMAGES_LOADED = "() => [...document.images].every((image) => image.complete)"
+
+
+def _load_lazy_images(page: Page) -> None:
+    page.evaluate(_LOAD_LAZY_IMAGES)
+    page.wait_for_function(_IMAGES_LOADED)
+    page.wait_for_load_state("networkidle")
+
+
 def check_controls_keep_nothing(
     browser: Browser,
     server: SiteServer,
@@ -2031,7 +2048,8 @@ def check_controls_keep_nothing(
     viewport: dict[str, int] = DESKTOP,
 ) -> list[Violation]:
     """Opening ``page_name`` and doing what ``operate`` does with its controls
-    makes no request once the page has loaded, sets no cookie, and writes
+    makes no request once the page and its images have loaded (lazy ones
+    included), sets no cookie, and writes
     nothing to Web Storage, IndexedDB, the Cache API, or a service worker;
     the entries of Web Storage are what they were after the page loaded.
 
@@ -2046,6 +2064,7 @@ def check_controls_keep_nothing(
         context.add_init_script(f"({_RECORD_STORAGE_WRITES})()")
         page = context.new_page()
         page.goto(server.url + page_name, wait_until="networkidle")
+        _load_lazy_images(page)
         before = len(page.evaluate("window.__storageWrites"))
         entries = Counter(page.evaluate(_STORAGE_ENTRIES))
         page.on("request", lambda request: requests.append(request.url))
