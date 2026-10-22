@@ -55,6 +55,13 @@ not name, or a stated level below what you find, is a `major` finding. A
 `completion/v1` record of a feature whose base already knew
 `completion/v2` is a `major` finding too, as the script tells you.
 
+An approval request, `.agents/approvals/<issue>.md`, names on its line
+`Tree:` the content tree it was written for. Compare it with the content
+tree of the risk statement (`content tree for the approval request`), never
+with the fingerprint of the whole worktree: the content tree leaves out
+`.agents/approvals/`, so the request can name the tree under review, and it
+holds the completion record and the handoff note.
+
 ## Review of changes only
 
 When the calling script says that this is a review of changes only, an earlier

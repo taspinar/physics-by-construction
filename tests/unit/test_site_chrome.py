@@ -42,7 +42,7 @@ def test_the_primary_navigation_names_every_section_once():
     texts = [entry["text"] for entry in entries()]
     assert texts[:-1] == [
         "Home",
-        "Learning path",
+        "Course Atlas",
         "Glossary",
         "Evidence",
         "About",

@@ -1637,7 +1637,10 @@ a new such Python line, and the entries of `scripts/lesson-budgets.conf`), a
 new skip or expected
 failure (in a Lean proof, a new `sorry`, `admit`, or `axiom`), a removed or
 changed assertion and a removed test or test file, a changed marker such as
-`same_machine`, and a changed dependency manifest or lock file. Assertions
+`same_machine` (a `parametrize` added with a new test, which only structures
+new cases, is none; one added to a test that is already there, and a removed
+or changed one, is), and a changed dependency manifest or lock
+file. Assertions
 are read in the formats of this project's checks: a Python `assert`; in a
 shell test, a line that calls `fail`, exits with a failure, or calls an
 `expect_` or `assert_` helper; in a Lean proof, the first line of a
@@ -1663,7 +1666,14 @@ Level 3 change by trigger or assessment and with every lowering request, so
 that the pull request touches a code-owned path and GitHub requires your
 identity's review. It names the Issue (`Issue: #<n>`), the required level
 (`Level:`, which the scripts check against their derivation), how it was
-derived (`Derived from:`), and the content it was written for (`Tree:`); a lowering adds `Required level:`, `Requested level:`
+derived (`Derived from:`), and the content it was written for (`Tree:`): the
+content tree, which the risk statement of the review and of the commit
+prints (`content tree for the approval request`). It is the fingerprint of
+the worktree without `.agents/approvals/`, with the Issue's completion record
+and handoff note: the request is the vehicle of a level and of a lowering,
+never part of the content it is about, so editing it leaves the content tree
+unchanged and it can name the tree under review, which the reviewer compares
+it with. A lowering adds `Required level:`, `Requested level:`
 (a trigger reading or an assessed level, never the path minimum),
 `Reason:`, and `Owner's word:`, your words in the conversation that let the
 agent proceed. It is a request, never an approval: no script reads it as

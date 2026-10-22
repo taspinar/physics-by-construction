@@ -150,8 +150,9 @@ kept.
 - **Header** (every page). Quarto's navigation bar, on paper, with ink
   entries and the construction line below it. Left: the mark and the site
   title (the mark 2.25rem, with the title as its link's name), both links to
-  the home page. Then the primary navigation: Home, Learning path (the
-  atlas's display label is settled in the owner's preview), Glossary,
+  the home page. Then the primary navigation: Home, Course Atlas (the
+  display label of the learning path page, chosen by the owner on 2026-10-22;
+  the address `path/` and every anchor are unchanged), Glossary,
   Evidence, About, Set up, Contribute. Right: Source, the start link,
   "Start the course", the one filled control of the site (paper on
   cobalt), to the first lesson of the learning path, and the search box
@@ -169,7 +170,7 @@ kept.
 - **Footer** (every page). A thin rule, then three groups: the F57
   attribution line exactly as `pbc.authoring.identity` writes it; the
   licences (code MIT, text and figures CC BY 4.0) with the About page; the
-  source repository and the secondary navigation (Learning path, Glossary,
+  source repository and the secondary navigation (Course Atlas, Glossary,
   Evidence, Set up, Contribute, About). Small text in `muted`, links in
   cobalt.
 - **Lesson reading column** (opt-in, see below). The title, then the lesson
@@ -264,6 +265,29 @@ kept.
   smaller in the dashed boxes of the atlas; the invitation. A planned
   entry has no link and the word planned in a dashed outline, as on the
   atlas. Prose keeps the measure.
+- **The atlas's controls** (F126, `site/learner/atlas.js`). Without a
+  script the two places around the map hold one sentence each. With it, a
+  strip of native controls above the map on paper: the region selector, the
+  radio buttons "Show" (all relationships, concepts only, prerequisites,
+  conceptual connections), zoom out, the level in Plex Mono, zoom in,
+  actual size (the map is never drawn below its natural size, so zoom out
+  stops there), and the filters behind a disclosure, mirrored with the
+  index's. A chosen concept has a 3px vermilion outline, the current
+  position of the signature; the concepts at the other ends of its
+  relationships an ink outline; its edges grow to 2 units, a prerequisite
+  in ink; every other edge fades to 12 % and every other concept to a
+  surface plate with a muted name, so text keeps its contrast. Direction
+  and kind stay those of the static drawing (arrowheads, dash patterns,
+  end marks); the panel says them in words. Focus and hover preview the
+  same marks; keyboard focus keeps its cobalt ring over them. The chosen
+  concept's panel is a white plate with a vermilion top rule, docked at the
+  foot of the screen while the map is in view (at most a third of the
+  screen on a desktop, explanation beside the facts), with a close button;
+  its concept links walk the relationships. A filter fades what it leaves
+  out in the same way and never removes it. A region shows one area at its
+  natural size (on a phone the map opens on the first course), the rest
+  out of sight, and its concepts as an ordinary list under the map with a
+  link to the area in the course index. Nothing moves.
 - **Widget.** On a plate; its controls take the radius, the focus ring,
   and the cobalt of this file.
 - **Focus.** A 3px cobalt ring with a 2px offset on every focusable element,
@@ -455,6 +479,34 @@ the built home page at 1280, 768, and 375 CSS px:
   legend that covered the path; they moved into the caption and the panel
   titles. The figure was narrowed to 7.2 inches so that its text keeps its
   size on the plate at 1280 px.
+
+**The atlas's controls** (F126; impeccable at 08d5b470, frontend-design at
+dbd4588f), from screenshots of the built path page at 1280, 768, and 375
+CSS px, with a concept chosen and without:
+
+- Impeccable's operate playbook: native controls only (a select, radio
+  buttons, buttons, a disclosure), one vocabulary with the index's filters;
+  the selection's states (current, related, faded) standardised and used
+  for nothing else; the vermilion kept for the current position, as in the
+  targeted panel; no modal: the chosen concept's panel is inline and docked.
+- Impeccable's adapt playbook: the first render docked the panel at 45 % of
+  the screen and hid the very marks a choice shows; it is a third of the
+  screen now, with the explanation beside the facts from the tablet width,
+  and the page scrolls so that the chosen box stays above it. On a phone
+  the strip stacked into a tall column; the four "Show" choices sit in two
+  columns and the zoom buttons on one row now, and the map opens on one
+  region at its natural size (the whole map is one choice away), with its
+  ordinary list below.
+- Impeccable's craft floor: zoom is named in words, not by Unicode glyphs;
+  a faded concept keeps a muted name on a surface plate instead of an
+  opacity, so its text keeps its contrast; the zoom level uses tabular
+  numerals; the select's focus ring is the site's cobalt ring.
+- Impeccable's animate playbook and the Issue: no motion at all, so the
+  reduced-motion rule holds by construction.
+- Frontend Design's "spend your boldness in one place": the map stays the
+  one memorable thing; the controls are a quiet strip on paper, with no
+  card, no shadow, no eyebrow label, and copy that names the action ("Zoom
+  in", "Show all", "Close").
 
 The automated detector of Impeccable did not run and will not: the project
 runs none of a skill's scripts (ADR 019).

@@ -1895,6 +1895,341 @@ body.pbc-atlas #quarto-margin-sidebar {
   padding-left: var(--pbc-space-3);
 }
 
+/* The atlas's controls (F126, learner/atlas.js; docs/atelier.md, "The course
+   atlas"). Without the script the two places hold one sentence each. With
+   it: a strip of native controls above the map, the selected concept's
+   panel docked at the foot of the screen while the map is in view, and the
+   focused region's list under the map. A selection is marked by line
+   weight and the vermilion of the current position, a filter fades what it
+   leaves out; text keeps its contrast, nothing moves, and the map is never
+   drawn below its natural size. */
+.atlas-controls,
+.atlas-selection > p {
+  max-width: var(--pbc-measure);
+  font-size: var(--pbc-text-small);
+}
+
+.atlas-controls.is-enhanced {
+  max-width: none;
+  margin: var(--pbc-space-3) 0 var(--pbc-space-2);
+}
+
+.atlas-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pbc-space-3) var(--pbc-space-4);
+  align-items: flex-end;
+}
+
+.atlas-field {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--pbc-space-1);
+  max-width: 100%;
+  font-weight: 600;
+}
+
+.atlas-controls select {
+  max-width: 100%;
+  min-height: 2.75rem;
+  box-sizing: border-box;
+  padding: var(--pbc-space-1) var(--pbc-space-2);
+  border: 1px solid var(--pbc-rule);
+  border-radius: var(--pbc-radius);
+  background: var(--pbc-plate);
+  color: var(--pbc-text);
+  font: inherit;
+  font-weight: 400;
+}
+
+.atlas-controls select:focus-visible,
+.atlas-selected h3:focus-visible {
+  outline: var(--pbc-focus-width) solid var(--pbc-focus);
+  outline-offset: 2px;
+}
+
+.atlas-show {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.atlas-show-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--pbc-space-3);
+}
+
+.atlas-show legend {
+  margin: 0 0 var(--pbc-space-1);
+  padding: 0;
+  font-size: inherit;
+  font-weight: 600;
+}
+
+.atlas-show label {
+  display: inline-flex;
+  gap: var(--pbc-space-1);
+  align-items: center;
+  min-height: 2.75rem;
+}
+
+.atlas-show input {
+  accent-color: var(--pbc-link);
+}
+
+.atlas-zoom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pbc-space-2);
+  align-items: center;
+}
+
+.atlas-zoom button,
+.atlas-filter-form button,
+.atlas-close {
+  font-size: var(--pbc-text-small);
+}
+
+.atlas-zoom button:disabled {
+  border-color: var(--pbc-rule);
+  color: var(--pbc-muted);
+  cursor: default;
+}
+
+.atlas-zoom-level {
+  min-width: 3.5em;
+  font-family: var(--pbc-font-code);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.atlas-filters {
+  margin: var(--pbc-space-3) 0 0;
+}
+
+.atlas-filters > summary {
+  display: inline-block;
+  min-height: 2.75rem;
+  padding: var(--pbc-space-2) 0;
+  color: var(--pbc-link);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.atlas-filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pbc-space-2) var(--pbc-space-3);
+  align-items: flex-end;
+  padding: var(--pbc-space-2) 0 var(--pbc-space-1);
+}
+
+.atlas-status:empty {
+  display: none;
+}
+
+.atlas-status {
+  margin: var(--pbc-space-2) 0 0;
+  color: var(--pbc-muted);
+}
+
+/* The map's marks. What lies outside a focused region is out of sight. */
+.atlas-map .atlas-outside {
+  visibility: hidden;
+}
+
+.atlas-svg[data-show="concepts"] .atlas-edge,
+.atlas-svg[data-show="prerequisite"] .atlas-edge:not(.atlas-edge-prerequisite),
+.atlas-svg[data-show="conceptual"] .atlas-edge:not(.atlas-edge-conceptual) {
+  display: none;
+}
+
+.atlas-has-focus .atlas-edge:not(.is-related) {
+  opacity: 0.12;
+}
+
+.atlas-has-focus .atlas-edge.is-related {
+  stroke-width: 2;
+}
+
+.atlas-has-focus .atlas-edge-prerequisite.is-related {
+  stroke: var(--pbc-text);
+}
+
+.atlas-has-focus .atlas-node:not(.is-current, .is-neighbour) .atlas-node-box,
+.atlas-filtered .atlas-node.is-filtered-out .atlas-node-box,
+.atlas-filtered .atlas-lesson.is-filtered-out .atlas-lesson-box {
+  fill: var(--pbc-surface);
+  stroke: var(--pbc-surface);
+}
+
+.atlas-map .atlas-has-focus .atlas-node:not(.is-current, .is-neighbour) .atlas-node-name,
+.atlas-map .atlas-filtered .atlas-node.is-filtered-out .atlas-node-name,
+.atlas-map .atlas-filtered .atlas-lesson.is-filtered-out text {
+  fill: var(--pbc-muted);
+  text-decoration: none;
+}
+
+.atlas-node.is-neighbour .atlas-node-box {
+  stroke: var(--pbc-text);
+  stroke-width: 2;
+}
+
+.atlas-node.is-current .atlas-node-box,
+.atlas-node.is-selected .atlas-node-box {
+  stroke: var(--pbc-accent);
+  stroke-width: 3;
+}
+
+/* Keyboard focus keeps its cobalt ring over every other mark. */
+.atlas-map a.atlas-node:focus-visible .atlas-node-box {
+  stroke: var(--pbc-focus);
+  stroke-width: var(--pbc-focus-width);
+}
+
+/* The selected concept and the region's list. The place itself makes no
+   box, so that the panel stays at the foot of the screen while any part of
+   the map is in view. */
+.atlas-selection.is-enhanced {
+  display: contents;
+}
+
+.atlas-selection-hint {
+  margin: var(--pbc-space-2) 0;
+  color: var(--pbc-muted);
+}
+
+.atlas-region-list {
+  margin: var(--pbc-space-3) 0;
+  font-size: var(--pbc-text-small);
+}
+
+.atlas-region-list h3 {
+  margin: 0 0 var(--pbc-space-2);
+  font-size: var(--pbc-text-base);
+}
+
+.atlas-region-list ul {
+  columns: 15rem;
+  column-gap: var(--pbc-space-4);
+  margin: 0 0 var(--pbc-space-2);
+  padding-left: var(--pbc-space-3);
+}
+
+.atlas-region-list li {
+  break-inside: avoid;
+  margin: 0 0 var(--pbc-space-1);
+}
+
+.atlas-selected {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  max-height: min(34vh, 20rem);
+  overflow: auto;
+  margin: var(--pbc-space-3) 0;
+  padding: var(--pbc-space-3) var(--pbc-space-4);
+  border-top: var(--pbc-construction-width) solid var(--pbc-accent);
+  border-bottom: 1px solid var(--pbc-rule);
+  background: var(--pbc-plate);
+  font-size: var(--pbc-text-small);
+  overscroll-behavior: contain;
+}
+
+.atlas-selected-head {
+  display: flex;
+  gap: var(--pbc-space-3);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.atlas-selected h3 {
+  margin: 0;
+  font-size: var(--pbc-heading-3);
+}
+
+.atlas-selected[data-concept-state="planned"] h3 {
+  font-style: italic;
+}
+
+.atlas-selected-head p {
+  margin: var(--pbc-space-1) 0 0;
+}
+
+.atlas-selected-body {
+  padding: var(--pbc-space-2) 0 0;
+}
+
+.atlas-selected-body > p {
+  max-width: var(--pbc-measure);
+  margin: 0;
+}
+
+/* On a wide screen the explanation and the facts sit side by side, so that
+   the panel stays low and the map stays in view above it. */
+@media (min-width: 48em) {
+  .atlas-selected-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    gap: 0 var(--pbc-space-5);
+    align-items: start;
+  }
+
+  .atlas-selected-body > dl {
+    margin: 0;
+  }
+
+  .atlas-selected-body > dl > dt:first-child {
+    margin-top: 0;
+  }
+}
+
+.atlas-selected-key,
+.atlas-selected-more {
+  max-width: var(--pbc-measure);
+  margin: var(--pbc-space-2) 0 0;
+  color: var(--pbc-muted);
+}
+
+@media (max-width: 40em) {
+  .atlas-toolbar {
+    flex-direction: column;
+    gap: var(--pbc-space-2);
+    align-items: stretch;
+  }
+
+  .atlas-region .atlas-field,
+  .atlas-region select {
+    width: 100%;
+  }
+
+  .atlas-show-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 var(--pbc-space-2);
+  }
+
+  .atlas-zoom {
+    flex-wrap: nowrap;
+    gap: var(--pbc-space-1);
+  }
+
+  .atlas-zoom button {
+    padding: 0 var(--pbc-space-2);
+  }
+
+  .atlas-zoom-level {
+    min-width: 3em;
+  }
+
+  .atlas-selected {
+    max-height: 40vh;
+    padding: var(--pbc-space-2) var(--pbc-space-3);
+  }
+}
+
 /* Present for assistive technology and without styles, not shown. */
 .visually-hidden {
   position: absolute;

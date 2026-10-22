@@ -83,6 +83,33 @@ risk_snapshot() {
   fingerprint_worktree "$1" "$2"
 }
 
+# risk_content_tree <root> <scratch-dir> <issue>
+# Prints the content tree an approval request names (its line 'Tree:'): the
+# fingerprint of the working tree without .agents/approvals/, with the
+# completion record and the handoff note of the Issue, which Git ignores. The
+# request is the vehicle of a level and of a lowering, never part of the
+# content it is about, so editing it leaves this tree unchanged and the
+# request can name the tree under review.
+risk_content_tree() {
+  local root="$1"
+  local index="$2/content.index"
+  local tree
+  local path
+  local paths=()
+
+  tree="$(fingerprint_worktree "$root" "$2")" || return 1
+  for path in "$COMPLETION_DIR/$3.json" ".agents/handoffs/$3.md"; do
+    [[ ! -e "$root/$path" && ! -L "$root/$path" ]] || paths+=("$path")
+  done
+  rm -f "$index"
+  GIT_INDEX_FILE="$index" git -C "$root" read-tree "$tree" &&
+    GIT_INDEX_FILE="$index" git -C "$root" rm -r -q --cached --ignore-unmatch -- "$RISK_APPROVALS_DIR" >/dev/null || return 1
+  if [[ "${#paths[@]}" -gt 0 ]]; then
+    GIT_INDEX_FILE="$index" git -C "$root" add -f -- "${paths[@]}" >/dev/null || return 1
+  fi
+  GIT_INDEX_FILE="$index" git -C "$root" write-tree
+}
+
 # risk_path_minimum <root> <rules-refs> <from> <tree>
 # Prints the path minimum on the first line and, for Level 3, one line
 # '<path>: <reason>' per Level 3 path.
@@ -133,8 +160,15 @@ risk_path_minimum() {
 #   test removed                    a test function (Python def test_, shell
 #                                   test_ function) or a test file removed
 #   marker changed                  a pytest marker or same_machine added or
-#                                   removed (the shell tests and the Lean
-#                                   proofs have no markers)
+#                                   removed, except a parametrize that
+#                                   decorates a new test (the first def after
+#                                   it in its added block is a new def
+#                                   test_), which only structures new cases;
+#                                   on a test that is already there, and
+#                                   when removed or changed, it stays a
+#                                   reading;
+#                                   the shell tests and the Lean proofs have
+#                                   no markers
 #   dependency file changed         a dependency manifest or lock file
 #
 # The reading is conservative: a narrowed tolerance reads as changed too, and
@@ -167,13 +201,24 @@ risk_triggers() {
     awk '
       BEGIN {
         tolerance = "(rtol|atol|tolerance|[^[:alnum:]_]tol[^[:alnum:]_]|^tol[^[:alnum:]_]|budget|approx|isclose|allclose)"
-        lean_declaration = "^(@\\[[^]]*\\][[:space:]]*)?((private|protected|noncomputable|nonrec|unsafe)[[:space:]]+)*(theorem|lemma|example)([[:space:]]|$)"
+        structuring = "pytest\\.mark\\.parametrize([^[:alnum:]_]|$)"
+        lean_declaration ="^(@\\[[^]]*\\][[:space:]]*)?((private|protected|noncomputable|nonrec|unsafe)[[:space:]]+)*(theorem|lemma|example)([[:space:]]|$)"
       }
       function trim(text) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", text); return text }
       function short(text) { return length(text) > 100 ? substr(text, 1, 97) "..." : text }
       function report(kind, line) {
         key = kind SUBSEP file SUBSEP line
         if (!(key in seen)) { seen[key] = 1; printf "%s\t%s\t%s\n", kind, file, short(line) }
+      }
+      # Whether the first def or class that follows added line i in its own
+      # added block is a new def test_: the decorator on line i then decorates
+      # that new test. A def that is not in the block is an existing one.
+      function decorates_new_test(i,   k) {
+        for (k = i + 1; k <= nadded && addblock[k] == addblock[i]; k++) {
+          if (addlist[k] ~ /^(async[[:space:]]+)?def[[:space:]]+test_/) return 1
+          if (addlist[k] ~ /^(async[[:space:]]+)?def[[:space:]]/ || addlist[k] ~ /^class[[:space:]]/) return 0
+        }
+        return 0
       }
       function finish(   i, line) {
         if (file == "") return
@@ -213,7 +258,16 @@ risk_triggers() {
           if (!is_python) continue
           if (line ~ /pytest\.mark\.(skip|skipif|xfail)|pytest\.(skip|xfail|importorskip)[[:space:]]*\(|unittest\.(skip|expectedFailure)|@skip/)
             report("skip or expected failure added", line)
-          else if (line ~ /pytest\.mark\.|same_machine/) report("marker changed", line)
+          else {
+            # A marker that only structures tests is no trigger when it is
+            # added to a new test (the first def after it in its added block is
+            # a new def test_);
+            # on a test that is already there it changes the cases the test
+            # runs, so it is one; every other marker on the line still is.
+            rest = line
+            if (decorates_new_test(i)) gsub(structuring, "", rest)
+            if (rest ~ /pytest\.mark\.|same_machine/) report("marker changed", line)
+          }
         }
       }
       /^diff --git / {
@@ -226,13 +280,18 @@ risk_triggers() {
         is_budgets = (file ~ /budgets\.conf$/)
         is_shell_test = (file ~ /\.sh$/ && (file ~ /^tests\// || file ~ /(^|\/)[^\/]*-test\.sh$/))
         is_lean = (file ~ /\.lean$/ && file !~ /(^|\/)lakefile\.lean$/)
-        nremoved = 0; nadded = 0
-        delete added; delete gone; delete removed; delete addlist
+        nremoved = 0; nadded = 0; block = 0
+        delete added; delete gone; delete removed; delete addlist; delete addblock
         next
       }
       /^(---|\+\+\+) / { next }
-      /^-/ { line = trim(substr($0, 2)); removed[++nremoved] = line; gone[line] = 1; next }
-      /^\+/ { line = trim(substr($0, 2)); addlist[++nadded] = line; added[line] = 1; next }
+      /^-/ { block++; line = trim(substr($0, 2)); removed[++nremoved] = line; gone[line] = 1; next }
+      /^\+/ {
+        line = trim(substr($0, 2)); addlist[++nadded] = line; added[line] = 1
+        addblock[nadded] = block
+        next
+      }
+      { block++ }
       END { finish() }'
 }
 
@@ -288,6 +347,7 @@ approval_request_level() {
 # <from>, and sets:
 #
 #   RISK_TREE            the fingerprint the derivation applies to
+#   RISK_CONTENT_TREE    the content tree an approval request names (risk_content_tree)
 #   RISK_PATH_MIN        the path minimum, and RISK_PATH_REASONS its Level 3 paths
 #   RISK_TRIGGERS        the detected triggers, one '<trigger>: <path> (<detail>)' per line
 #   RISK_NAMED_TRIGGERS  the triggers the record and the review name, one per line
@@ -320,6 +380,7 @@ risk_assess() {
   local field
 
   RISK_TREE=""
+  RISK_CONTENT_TREE=""
   RISK_PATH_MIN=""
   RISK_PATH_REASONS=""
   RISK_TRIGGERS=""
@@ -335,7 +396,8 @@ risk_assess() {
   RISK_ERRORS=""
 
   scratch="$(mktemp -d "${TMPDIR:-/tmp}/risk.XXXXXX")"
-  RISK_TREE="$(risk_snapshot "$root" "$scratch")" || { rm -rf "$scratch"; return 1; }
+  RISK_TREE="$(risk_snapshot "$root" "$scratch")" &&
+    RISK_CONTENT_TREE="$(risk_content_tree "$root" "$scratch" "$issue")" || { rm -rf "$scratch"; return 1; }
   rm -rf "$scratch"
 
   path_lines="$(risk_path_minimum "$root" "$rules" "$from" "$RISK_TREE")"
@@ -458,4 +520,5 @@ risk_statement_lines() {
     echo "- approval request: $RISK_REQUEST, a request for the owner's review, never an approval"
   fi
   echo "- derived for the content $RISK_TREE"
+  echo "- content tree for the approval request (Tree:): $RISK_CONTENT_TREE"
 }
