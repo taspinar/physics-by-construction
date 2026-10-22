@@ -52,6 +52,14 @@ mkdir -p .lake
 """
 
 
+# The options of the fixture's git commands. Its repository holds enough loose
+# objects for the commit to start an automatic gc, which by default runs in
+# the background and packs and removes them while a test copies the
+# repository; with these, nothing rewrites it after the fixture returns.
+IDENTITY = ["-c", "user.name=t", "-c", "user.email=t@example.com"]
+FIXTURE_GIT = [*IDENTITY, "-c", "gc.auto=0", "-c", "gc.autoDetach=false"]
+
+
 @pytest.fixture(scope="module")
 def pristine(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """A repository of the committed files of this checkout, on main."""
@@ -59,7 +67,7 @@ def pristine(tmp_path_factory: pytest.TempPathFactory) -> Path:
     for file in lesson_checks.committed_files(REPO_ROOT):
         (root / file).parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(REPO_ROOT / file, root / file)
-    git = ["git", "-c", "user.name=t", "-c", "user.email=t@example.com", "-C", root]
+    git = ["git", *FIXTURE_GIT, "-C", root]
     subprocess.run([*git, "init", "-q", "-b", "main"], check=True)
     subprocess.run([*git, "add", "-A"], check=True)
     subprocess.run([*git, "commit", "-qm", "The committed files"], check=True)
@@ -111,6 +119,40 @@ def check(
 def lean_runs(tmp_path: Path) -> list[str]:
     log = tmp_path / "lean.log"
     return log.read_text().splitlines() if log.exists() else []
+
+
+def loose_objects(root: Path) -> list[Path]:
+    objects = root / ".git" / "objects"
+    return sorted(p for p in objects.glob("[0-9a-f][0-9a-f]/*") if p.is_file())
+
+
+@pytest.mark.parametrize("options", [[], FIXTURE_GIT], ids=["plain", "fixture"])
+def test_the_fixture_commit_leaves_its_loose_objects_in_place(tmp_path, options):
+    # A repository over the automatic-gc threshold: gc.auto=1 asks for a gc
+    # when the sampled object directory holds more than one loose object.
+    root = tmp_path / "repo"
+    root.mkdir()
+    for n in range(2000):
+        (root / f"{n}.txt").write_text(f"{n}\n")
+    git = ["git", *IDENTITY, "-C", root]
+    subprocess.run([*git, "init", "-q", "-b", "main"], check=True)
+    subprocess.run([*git, "config", "gc.auto", "1"], check=True)
+    subprocess.run([*git, "config", "gc.autoDetach", "false"], check=True)
+    subprocess.run([*git, "add", "-A"], check=True)
+    before = loose_objects(root)
+    # The repository's own gc.autoDetach=false makes the plain commit's gc
+    # finish before it returns, so the control needs no wait.
+    subprocess.run([*git, *options, "commit", "-qm", "c"], check=True)
+    after = loose_objects(root)
+    packs = list((root / ".git" / "objects" / "pack").glob("*.pack"))
+    if options:
+        # The blobs of git add, and the trees and the commit of git commit.
+        assert set(before) <= set(after) and len(after) > len(before)
+        assert packs == []
+        assert not (root / ".git" / "gc.log").exists()
+    else:
+        assert packs, "the control commit started no gc: the test shows nothing"
+        assert not set(before) & set(after)
 
 
 def test_without_a_selection_there_is_nothing_to_render(tree, tmp_path):
