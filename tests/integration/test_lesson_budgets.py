@@ -1,4 +1,4 @@
-"""The budget of a lesson: the default, the one exception, and the agreement of
+"""The budget of a lesson: the default, the exceptions, and the agreement of
 the shell check with the tests (scripts/lesson-budgets.conf)."""
 
 import re
@@ -15,6 +15,13 @@ from support.budgets import (
 from support.paths import REPO_ROOT, SCRIPTS, SITE_SOURCE
 
 MONTE_CARLO = "lessons/agents-abm/01-particles-in-a-box"
+# Raised by the owner on 2026-10-22 (#261): measured or projected close to the
+# default on CI runners.
+RAISED = [
+    "lessons/mechanics/08-kepler-orbit",
+    "lessons/mechanics/11-gravitational-wave-strain",
+    "lessons/mechanics/12-inverse-physics-parameter-discovery",
+]
 SCRIPT = SCRIPTS / "check-lesson-pages.sh"
 LESSONS = [
     page.parent.relative_to(SITE_SOURCE).as_posix()
@@ -49,15 +56,17 @@ def test_the_default_budget_is_30_seconds():
     )
 
 
-def test_only_the_monte_carlo_lesson_has_a_larger_budget_and_it_has_a_reason():
-    assert MONTE_CARLO in LESSONS
+def test_only_the_listed_lessons_have_a_larger_budget_and_each_has_a_reason():
+    exceptions = {MONTE_CARLO: "#206"} | {lesson: "#261" for lesson in RAISED}
+    assert set(exceptions) <= set(LESSONS)
     assert {lesson: seconds for lesson, (seconds, _) in read_budgets().items()} == {
-        MONTE_CARLO: 60
+        lesson: 60 for lesson in exceptions
     }
-    assert "#206" in read_budgets()[MONTE_CARLO][1]
+    for lesson, issue in exceptions.items():
+        assert issue in read_budgets()[lesson][1]
     for lesson in LESSONS:
         assert budget_seconds(lesson + "/index.html") == (
-            60 if lesson == MONTE_CARLO else 30
+            60 if lesson in exceptions else 30
         )
 
 
