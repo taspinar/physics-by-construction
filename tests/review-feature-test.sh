@@ -234,6 +234,33 @@ if grep -Fq "tracked.log" "$repo.log.stdin"; then
   fail "an unchanged tracked file matching an ignore rule appeared in the reviewed diff"
 fi
 
+# The approval requests are no part of the reviewed content (Issue #266), but
+# the reviewer reads them in the diff: the feature's own request is supplied,
+# a request the base already holds is not supplied as deleted, and editing the
+# request leaves the review current.
+repo="$(setup_repo approvals)"
+git -C "$repo" add -A
+git -C "$repo" commit -qm "More feature work"
+git -C "$repo" switch -q main
+mkdir -p "$repo/.agents/approvals"
+printf 'Issue: #3\nTree: earlier\n' >"$repo/.agents/approvals/3.md"
+git -C "$repo" add .agents/approvals/3.md
+git -C "$repo" commit -qm "An earlier feature's request"
+git -C "$repo" switch -q feature/7-marker
+git -C "$repo" merge -q --no-edit main
+printf 'Issue: #7\nTree: the content\n' >"$repo/.agents/approvals/7.md"
+run_review "$repo" 7 || {
+  cat "$repo.out" >&2
+  fail "review with an approval request failed"
+}
+grep -Fqx "+Issue: #7" "$repo.log.stdin" || fail "the feature's approval request was not supplied to the reviewer"
+if grep -Fq ".agents/approvals/3.md" "$repo.log.stdin"; then
+  fail "the base's approval request was supplied to the reviewer as changed"
+fi
+printf 'Tree: corrected\n' >>"$repo/.agents/approvals/7.md"
+(cd "$repo" && ./scripts/check-review.sh .agents/reviews/feature-7-marker-review-01.json >/dev/null 2>&1) ||
+  fail "editing the approval request made the review stale"
+
 # The review starts only on content that passes verification, and records
 # that. A pass for the same content is not run a second time.
 verification_runs() {

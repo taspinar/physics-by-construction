@@ -60,7 +60,10 @@ An approval request, `.agents/approvals/<issue>.md`, names on its line
 tree of the risk statement (`content tree for the approval request`), never
 with the fingerprint of the whole worktree: the content tree leaves out
 `.agents/approvals/`, so the request can name the tree under review, and it
-holds the completion record and the handoff note.
+holds the completion record and the handoff note. The scripts refuse a
+request whose `Tree:` differs from the content tree, so a difference you see
+is also a refusal of `finish-feature.sh`; the request is no part of the
+reviewed fingerprint, but the diff you receive holds it.
 
 ## Review of changes only
 

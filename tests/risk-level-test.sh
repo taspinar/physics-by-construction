@@ -105,16 +105,19 @@ record() {
 }
 
 # request <repo> [<required> <requested>]: the approval request; with levels,
-# a lowering request.
+# a lowering request. It names the content tree as it is when it is written.
 request() {
-  mkdir -p "$1/.agents/approvals"
+  local tree
+
+  mkdir -p "$1/.agents/approvals" "$tmp/request"
+  tree="$(risk_content_tree "$1" "$tmp/request" 5)" || fail "the content tree of $1 could not be derived"
   {
     echo "# Approval request: Issue #5"
     echo
     echo "Issue: #5"
     echo "Level: ${2:-3}"
     echo "Derived from: the triggers"
-    echo "Tree: 0123abcd"
+    echo "Tree: $tree (the content tree under review)"
     if [[ -n "${3:-}" ]]; then
       echo "Required level: $2"
       echo "Requested level: $3"
@@ -443,9 +446,9 @@ assess "$repo"
 expect_error "a lowering without the owner's word" "has no line 'Owner's word: ...'"
 
 # The content tree an approval request names: the request is not part of
-# it, so editing the request leaves it unchanged, while the request is part
-# of the worktree's fingerprint; every other file of the change, and the
-# completion record and the handoff note that Git ignores, are part of it.
+# it, nor of the worktree's fingerprint, so editing the request leaves both
+# unchanged; every other file of the change, and the completion record and
+# the handoff note that Git ignores, are part of it.
 repo="$(setup_repo content-tree)"
 printf '# more\n' >>"$repo/scripts/lib/completion.sh"
 record "$repo" 3
@@ -460,7 +463,8 @@ tree="$RISK_TREE"
 sed -i.bak 's/^Tree: .*$/Tree: '"$content"'/' "$repo/.agents/approvals/5.md" && rm "$repo/.agents/approvals/5.md.bak"
 assess "$repo"
 expect "an edited approval request" RISK_CONTENT_TREE "$content"
-[[ "$RISK_TREE" != "$tree" ]] || fail "the edited approval request did not change the fingerprint of the worktree"
+expect "an edited approval request" RISK_TREE "$tree"
+[[ -z "$RISK_ERRORS" ]] || fail "an approval request that names the content tree was refused: $RISK_ERRORS"
 git -C "$repo" ls-tree -r --name-only "$content" | grep -Fqx ".agents/approvals/5.md" &&
   fail "the content tree holds the approval request"
 for edit in scripts/lib/completion.sh lessons/a.qmd tests/unit/test_code.py .agents/completion/5.json .agents/handoffs/5.md; do
@@ -472,6 +476,22 @@ for edit in scripts/lib/completion.sh lessons/a.qmd tests/unit/test_code.py .age
 done
 assess "$repo"
 expect "the content restored" RISK_CONTENT_TREE "$content"
+
+# The request leaves the fingerprint, so a script checks its tree: a request
+# that names another tree is refused with the value to write, also after a
+# change to the content it was written for; the tree in backticks is accepted.
+sed -i.bak 's/^Tree: .*$/Tree: 0123abcd (the content tree under review)/' "$repo/.agents/approvals/5.md" &&
+  rm "$repo/.agents/approvals/5.md.bak"
+assess "$repo"
+expect_error "a request that names another tree" \
+  "the approval request .agents/approvals/5.md names tree 0123abcd, but the content tree is $content; state it on a line 'Tree: $content'"
+sed -i.bak 's/^Tree: .*$/Tree: `'"$content"'`/' "$repo/.agents/approvals/5.md" && rm "$repo/.agents/approvals/5.md.bak"
+assess "$repo"
+[[ -z "$RISK_ERRORS" ]] || fail "an approval request that names the content tree in backticks was refused: $RISK_ERRORS"
+printf 'A changed lesson.\n' >"$repo/lessons/a.qmd"
+assess "$repo"
+expect_error "a request written for earlier content" \
+  "names tree $content, but the content tree is $RISK_CONTENT_TREE; state it on a line 'Tree: $RISK_CONTENT_TREE'"
 
 # The earlier contract: the level is derived and recorded, nothing refused.
 repo="$(setup_repo v1)"

@@ -6,10 +6,13 @@
 # A fingerprint is the Git tree hash of the current file contents, including
 # uncommitted and untracked changes. It depends on content only, so committing
 # unchanged content keeps it valid, and any change to a covered file changes
-# it. Review and triage artifacts are never part of a fingerprint. The real
-# Git index is not touched; objects may be written to the object database.
+# it. Review and triage artifacts and the approval requests are never part of
+# a fingerprint: correcting an approval request leaves a recorded verification
+# and a review valid, and scripts/lib/risk.sh checks the request itself. The
+# real Git index is not touched; objects may be written to the object
+# database.
 
-FINGERPRINT_EXCLUDES=(".agents/reviews" ".agents/triage")
+FINGERPRINT_EXCLUDES=(".agents/reviews" ".agents/triage" ".agents/approvals")
 
 # feature_base <root> <base>
 # Prints two lines: the ref of the base branch a feature is compared with,
@@ -70,7 +73,7 @@ fingerprint_worktree() {
 # fingerprint_files <root> <scratch-dir> <path>...
 # Prints the fingerprint of exactly the given repository-relative paths, which
 # may be files, symlinks, or directories. A missing path is part of the
-# fingerprint as absent. Review and triage artifacts are excluded here too.
+# fingerprint as absent. The excluded artifacts are excluded here too.
 fingerprint_files() {
   local root="$1"
   local index="$2/fingerprint-files.index"
@@ -95,8 +98,9 @@ fingerprint_files() {
 }
 
 # fingerprint_artifacts <root>
-# Prints a hash of the review and triage artifacts, which every other
-# fingerprint leaves out, so a run can detect that an agent changed them.
+# Prints a hash of the review and triage artifacts and the approval requests,
+# which every other fingerprint leaves out, so a run can detect that an agent
+# changed them.
 fingerprint_artifacts() {
   (
     cd "$1" || exit 1

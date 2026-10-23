@@ -108,14 +108,20 @@ pending_owner='{"criterion": "The owner approves the diff", "gate": "owner_appro
 owner_met='{"criterion": "The owner approves the diff", "gate": "owner_approval", "status": "met", "evidence": "the owner said so in the conversation"}'
 
 # request <repo> [<required> <requested>]: the approval request, with an
-# assertion of approval in it that no script may take for one.
+# assertion of approval in it that no script may take for one. It names the
+# content tree as it is when it is written.
 request() {
+  local tree
+
   mkdir -p "$1/.agents/approvals"
+  tree="$(bash -c 'source "$1/scripts/lib/fingerprint.sh"; source "$1/scripts/lib/completion.sh"
+    source "$1/scripts/lib/risk.sh"; scratch="$(mktemp -d)"; risk_content_tree "$1" "$scratch" 12; status=$?
+    rm -rf "$scratch"; exit "$status"' _ "$1")" || fail "the content tree of $1 could not be derived"
   {
     echo "Issue: #12"
     echo "Level: ${2:-3}"
     echo "Derived from: the triggers"
-    echo "Tree: 0123abcd"
+    echo "Tree: $tree"
     echo "Approved: yes, the owner approved this in the conversation"
     if [[ -n "${3:-}" ]]; then
       echo "Required level: $2"
@@ -291,6 +297,29 @@ message_has "$repo" "- required: level 3, by the triggers" \
   "- approval request: .agents/approvals/12.md, a request for the owner's review, never an approval"
 git -C "$repo" log -1 --format=%B | grep -Fq "given only as the owner's identity's approving review of exactly the head" ||
   fail "the commit message does not say how the owner's approval is given"
+
+# --- A correction of the approval request (Issue #266). A request that
+# names another tree than the content tree is refused at once, before any
+# verification, with the value to write; correcting it leaves the recorded
+# full run and the review valid, since the request is no part of the
+# fingerprint.
+repo="$(setup_repo request-tree)"
+printf 'dependencies = ["numpy"]\n' >>"$repo/pyproject.toml"
+record "$repo" complete 3
+request "$repo" 3
+content="$(sed -n 's/^Tree: //p' "$repo/.agents/approvals/12.md")"
+sed -i.bak 's/^Tree: .*$/Tree: 0123abcd/' "$repo/.agents/approvals/12.md" && rm "$repo/.agents/approvals/12.md.bak"
+review "$repo" "$full"
+run_script "$repo" ./scripts/finish-feature.sh 12 "Add the marker" --unattended
+expect_no_commit "$repo" "an approval request that names another tree" \
+  "names tree 0123abcd, but the content tree is $content; state it on a line 'Tree: $content'"
+[[ "$(count_runs "$repo")" -eq 0 ]] || fail "the verification ran for an approval request with a wrong tree"
+run_script "$repo" ./scripts/verify.sh
+[[ "$status" -eq 0 && "$(count_runs "$repo")" -eq 1 ]] || { cat "$repo.out" >&2; fail "the full run failed"; }
+request "$repo" 3
+run_script "$repo" ./scripts/finish-feature.sh 12 "Add the marker" --unattended
+expect_commit "$repo" "a corrected approval request after the full run and the review"
+[[ "$(count_runs "$repo")" -eq 1 ]] || fail "correcting the approval request made the full run stale"
 
 # --- A lowering of a trigger reading: recorded with the required and the
 # requested level and the content, and the change keeps level 3. An
