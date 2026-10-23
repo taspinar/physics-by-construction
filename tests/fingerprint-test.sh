@@ -23,11 +23,16 @@ source "$source_root/scripts/lib/fingerprint.sh"
 source "$source_root/tests/lib-fakes.sh"
 
 repo="$tmp/repo"
-mkdir -p "$repo/docs" "$repo/.agents/reviews" "$repo/.agents/triage" "$repo/scripts/lib"
+mkdir -p "$repo/docs" "$repo/.agents/reviews" "$repo/.agents/triage" "$repo/.agents/approvals" "$repo/.agents/plans" \
+  "$repo/scripts/lib" "$repo/lessons" "$repo/tests"
 cp "$source_root/scripts/check-review.sh" "$repo/scripts/"
 cp "$source_root/scripts/lib/"*.sh "$repo/scripts/lib/"
 printf 'one\n' >"$repo/a.txt"
 printf 'plan\n' >"$repo/docs/plan.md"
+printf 'Issue: #7\nTree: 0123abcd\n' >"$repo/.agents/approvals/7.md"
+printf '# Plan of Issue 8\n' >"$repo/.agents/plans/8-thing.md"
+printf 'A lesson.\n' >"$repo/lessons/a.qmd"
+printf 'def test_a():\n    assert True\n' >"$repo/tests/test_a.py"
 printf '*.log\n' >"$repo/.gitignore"
 printf 'tracked although ignored\n' >"$repo/kept.log"
 git -C "$repo" init -q -b main
@@ -52,6 +57,32 @@ printf '{}\n' >"$repo/.agents/reviews/x-review-01.json"
 printf '{}\n' >"$repo/.agents/triage/x-review-01-triage.json"
 printf 'build output\n' >"$repo/build.log"
 [[ "$(whole)" == "$base" ]] || fail "review artifacts or ignored files changed the fingerprint"
+
+# An approval request does not count either, also one that the base already
+# holds: editing, adding, or removing it leaves the fingerprint, so a recorded
+# verification and a review stay valid. The artifact hash sees the edit.
+artifacts="$(fingerprint_artifacts "$repo")"
+set_all="$(fingerprint_files "$repo" "$tmp" . .agents/approvals/7.md)"
+printf 'Tree: 4567cdef\n' >>"$repo/.agents/approvals/7.md"
+printf 'Issue: #8\n' >"$repo/.agents/approvals/8.md"
+[[ "$(whole)" == "$base" ]] || fail "an edited or added approval request changed the fingerprint"
+[[ "$(fingerprint_files "$repo" "$tmp" . .agents/approvals/7.md)" == "$set_all" ]] ||
+  fail "an approval request is part of a file-set fingerprint"
+[[ "$(fingerprint_artifacts "$repo")" != "$artifacts" ]] || fail "the artifact hash did not see the edited approval request"
+rm "$repo/.agents/approvals/7.md"
+[[ "$(whole)" == "$base" ]] || fail "a removed approval request changed the fingerprint"
+git -C "$repo" checkout -q -- .agents/approvals/7.md
+rm "$repo/.agents/approvals/8.md"
+
+# Every other file of a change counts: a script, a lesson, a test, and the
+# plan, which holds the acceptance criteria, the risk, and the skills.
+for edit in scripts/check-review.sh lessons/a.qmd tests/test_a.py .agents/plans/8-thing.md; do
+  cp "$repo/$edit" "$tmp/saved"
+  printf '\n' >>"$repo/$edit"
+  [[ "$(whole)" != "$base" ]] || fail "editing $edit did not change the fingerprint"
+  cp "$tmp/saved" "$repo/$edit"
+done
+[[ "$(whole)" == "$base" ]] || fail "restoring the edited files did not restore the fingerprint"
 
 # A changed, an untracked, and a deleted file each change it.
 printf 'two\n' >>"$repo/a.txt"

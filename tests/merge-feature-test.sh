@@ -386,9 +386,15 @@ git -C "$repo" commit -q --amend --no-edit
 head="$(git -C "$repo" rev-parse HEAD)"
 pr "$repo" CLEAN "" '[]'
 run_merge "$repo" 12
-expect_refused "$repo" "a review that is not of the head" \
-  "the latest review .agents/reviews/feature-12-marker-review-01.json is not a review of exactly the head $head" \
+# The request is no part of the reviewed content (Issue #266), so committing
+# it leaves the review a review of the head; the identity's approval of
+# exactly the new head is still required.
+expect_refused "$repo" "a committed request without the identity's approval of the new head" \
+  "the independent review .agents/reviews/feature-12-marker-review-01.json assesses the change as Level 3" \
   "the owner's identity owner-identity does not approve exactly the head $head"
+if grep -Fq "is not a review of exactly the head" "$repo.out"; then
+  fail "committing the approval request made the review stale"
+fi
 feature_review "$repo" 2 3
 pr "$repo" CLEAN APPROVED "[$(review owner-identity APPROVED "$head")]"
 run_merge "$repo" 12

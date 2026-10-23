@@ -85,9 +85,9 @@ risk_snapshot() {
 
 # risk_content_tree <root> <scratch-dir> <issue>
 # Prints the content tree an approval request names (its line 'Tree:'): the
-# fingerprint of the working tree without .agents/approvals/, with the
-# completion record and the handoff note of the Issue, which Git ignores. The
-# request is the vehicle of a level and of a lowering, never part of the
+# fingerprint of the working tree, which leaves out .agents/approvals/, with
+# the completion record and the handoff note of the Issue, which Git ignores.
+# The request is the vehicle of a level and of a lowering, never part of the
 # content it is about, so editing it leaves this tree unchanged and the
 # request can name the tree under review.
 risk_content_tree() {
@@ -102,8 +102,7 @@ risk_content_tree() {
     [[ ! -e "$root/$path" && ! -L "$root/$path" ]] || paths+=("$path")
   done
   rm -f "$index"
-  GIT_INDEX_FILE="$index" git -C "$root" read-tree "$tree" &&
-    GIT_INDEX_FILE="$index" git -C "$root" rm -r -q --cached --ignore-unmatch -- "$RISK_APPROVALS_DIR" >/dev/null || return 1
+  GIT_INDEX_FILE="$index" git -C "$root" read-tree "$tree" || return 1
   if [[ "${#paths[@]}" -gt 0 ]]; then
     GIT_INDEX_FILE="$index" git -C "$root" add -f -- "${paths[@]}" >/dev/null || return 1
   fi
@@ -377,6 +376,7 @@ risk_assess() {
   local request_issue
   local request_required
   local request_level
+  local request_tree
   local field
 
   RISK_TREE=""
@@ -468,6 +468,12 @@ risk_assess() {
       [[ -n "$(approval_request_field "$request_file" "$field")" ]] ||
         RISK_ERRORS+="the approval request $RISK_REQUEST has no line '$field: ...'"$'\n'
     done
+    # The request leaves the fingerprint, so a wrong tree would not make a
+    # verification or a review stale; it is refused here instead.
+    request_tree="$(approval_request_field "$request_file" "Tree" | awk '{ print $1 }' | tr -d '`')"
+    if [[ -n "$request_tree" && "$request_tree" != "$RISK_CONTENT_TREE" ]]; then
+      RISK_ERRORS+="the approval request $RISK_REQUEST names tree $request_tree, but the content tree is $RISK_CONTENT_TREE; state it on a line 'Tree: $RISK_CONTENT_TREE'"$'\n'
+    fi
     if [[ -n "$RISK_REQUESTED" ]]; then
       request_required="$(approval_request_level "$request_file" "Required level")"
       if [[ "$RISK_REQUESTED" -lt "$RISK_PATH_MIN" ]]; then

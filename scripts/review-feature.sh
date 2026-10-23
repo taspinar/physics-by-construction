@@ -231,6 +231,13 @@ head_before="$(git -C "$root" rev-parse HEAD)"
 tree_before="$(fingerprint_worktree "$root" "$tmp_work")" ||
   fail "could not compute the fingerprint of the working tree."
 cp "$tmp_work/fingerprint.index" "$tmp_work/index.before"
+# The approval requests are no part of the fingerprint, but the reviewer reads
+# them in the diff: without them, the requests of the base would show as
+# deleted and the feature's own request would be missing.
+if [[ -e "$root/$RISK_APPROVALS_DIR" ]]; then
+  GIT_INDEX_FILE="$tmp_work/index.before" git -C "$root" add -A -- "$RISK_APPROVALS_DIR" >/dev/null ||
+    fail "could not add the approval requests to the diff for the review."
+fi
 [[ -z "$verified_tree" || "$tree_before" == "$verified_tree" ]] ||
   fail "the content changed while verification ran, so the pass does not cover what would be reviewed. A check may modify a file; the review was not started."
 

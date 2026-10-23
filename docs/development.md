@@ -1234,8 +1234,10 @@ review. Otherwise it asks for a complete round.
 
 Every review records a fingerprint of what it reviewed (`reviewed_tree`): the
 Git tree hash of the file contents at review time, including uncommitted and
-untracked changes. Review and triage artifacts and ignored files are not part
-of it, except files Git already tracks. A review may instead cover an explicit
+untracked changes. Review and triage artifacts, the approval requests
+(`.agents/approvals/`), and ignored files are not part of it, except ignored
+files Git already tracks; the plans are part of it, since a plan holds the
+acceptance criteria, the risk, and the selected skills the review rests on. A review may instead cover an explicit
 list of files (`reviewed_paths`); then only those files count.
 
 The fingerprint depends on content, not on commits. Committing the reviewed
@@ -1679,7 +1681,11 @@ the worktree without `.agents/approvals/`, with the Issue's completion record
 and handoff note: the request is the vehicle of a level and of a lowering,
 never part of the content it is about, so editing it leaves the content tree
 unchanged and it can name the tree under review, which the reviewer compares
-it with. A lowering adds `Required level:`, `Requested level:`
+it with. The request is no part of the fingerprint either, so correcting it
+leaves a recorded verification and a review valid; instead `finish-feature.sh`
+refuses at once a request whose `Tree:` (its first word) is not the content
+tree, and names the value to write, and you approve the request with the diff
+at the merge. A lowering adds `Required level:`, `Requested level:`
 (a trigger reading or an assessed level, never the path minimum),
 `Reason:`, and `Owner's word:`, your words in the conversation that let the
 agent proceed. It is a request, never an approval: no script reads it as
