@@ -1544,6 +1544,7 @@ Per-page and per-lesson budgets that the next phase adds:
 | Executed time of a measured-data lesson page | 30 seconds, as any lesson; the sample size is chosen for it | Site build (F51) |
 | Committed dataset sample | 2 MB per file, 8 MB per dataset, 32 MB for all of `data/samples/` | Dataset check (F50, ADR 007) |
 | Initial payload of a page (HTML, CSS, fonts, static figures, embedded widget data), measured for the page opened on its own, so shared files count for every page | 3 MB transferred | Built-site check (F44) |
+| The Learning path page together with the preview of every lesson it shows | 4 MB, its own budget since the owner's decision of 2026-10-23 (Issue #264; 3 MB until then): the page is about 1.90 MB and grows by about 23 KB per lesson, about 3.4 MB at the 64 lessons of the capacity decision of 2026-10-21, a margin of about 15 percent; revisited at the next capacity decision (55 to 60 lessons). Every other page keeps the 3 MB above | Built-site check (F63) |
 | Search index (`search.json`), fetched when a reader searches | 3.5 MB uncompressed, for the planned curriculum (derivation and checkpoints below) | Built-site check (F41) |
 | Optional data a page loads on demand (animation frames, field data, the short motion clips of the video-reasoning lesson) | 3 MB per page, from the site's own origin, only after a user action, never required to read the page | Built-site check (F43) |
 | Reference artifact of an optional tool (a mesh, a reference solution, a reference waveform), as a `modelled-reference` sample | The sample caps above | Dataset check (F50, ADR 007) |
@@ -1856,7 +1857,7 @@ Choices the requirements left to planning, and where they are settled:
 | Where content drafting agents run (unresolved question 2) | The maintainer's machine; no LLM key in CI | ADR 006 |
 | Custom domain (unresolved question 3) | None for the first release; revisit only as its own decision | `docs/release-readiness.md` (F10) |
 | Committed-sample size cap | 2 MB per file, 8 MB per dataset, 32 MB in all | This document; ADR 007 |
-| Page payload budget for heavy visuals | 3 MB initial (raised from 1.5 MB by the project owner on 2026-10-10: the heaviest lesson opened on its own loads 2.4 MB, of which about 1.3 MB are the shared style sheets, scripts, and the math font), 3 MB on demand, 5 MB in all | This document |
+| Page payload budget for heavy visuals | 3 MB initial (raised from 1.5 MB by the project owner on 2026-10-10: the heaviest lesson opened on its own loads 2.4 MB, of which about 1.3 MB are the shared style sheets, scripts, and the math font), 3 MB on demand, 5 MB in all; the Learning path page with its previews 4 MB (owner's decision of 2026-10-23, Issue #264; 3 MB until then) | This document |
 | Link checking | A non-blocking maintenance check run on demand, outside `verify.conf` | ADR 009 |
 | Citation metadata | `CITATION.cff` with the actual authors and the project URL, no DOI until a release policy exists | F57 |
 | Courses, methods, and the existing strands | Course and method facets in front matter; strand identifiers and URLs unchanged | ADR 008 |
