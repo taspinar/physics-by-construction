@@ -918,7 +918,9 @@ lesson. It is never an image file: the build makes it.
   status or alt text, fails the lesson checks; a named cell that drew no
   figure fails the build. The built-site check requires one preview per
   lesson, traced to its cell or to the fallback, and the previews together
-  fit in the payload budget of the learning path page.
+  fit in the payload budget of the learning path page: 4 MB for the page
+  with its previews (owner's decision of 2026-10-23, Issue #264; 3 MB until
+  then), while every other page keeps 3 MB.
 
 ### Numbers in prose
 

@@ -961,6 +961,12 @@ def check_keyboard_navigation(
 # The initial payload of a page: HTML, style sheets, fonts, static figures,
 # scripts, and the data of an embedded widget (docs/architecture.md, "Budgets").
 PAYLOAD_BUDGET = 3_000_000
+# The learning path page together with the preview of every lesson it shows:
+# 4 MB (owner's decision of 2026-10-23, Issue #264; 3 MB until then). The page
+# grows by about 23 KB per lesson; 4 MB covers the 64 lessons of the capacity
+# decision of 2026-10-21 with a margin of about 15 percent. Revisit at the next
+# capacity decision (docs/architecture.md, "Budgets").
+PATH_PAGE_BUDGET = 4_000_000
 # The search index is fetched when a reader searches, on top of the page. One
 # budget for the planned curriculum of 119 lessons (docs/architecture.md,
 # "Budgets").
@@ -1062,8 +1068,8 @@ def check_previews(
     scales, or the conceptual fallback drawn for the lesson; ``path.json``
     names the file with alt text that starts with the status; the previews
     hold nothing else; no image of the path page comes from another origin;
-    and the previews together fit in what is left of the payload budget of the
-    path page."""
+    and the previews together fit in the payload budget of the path page
+    (``PATH_PAGE_BUDGET``)."""
     violations = []
     exported = json.loads((site_dir / EXPORT_FILE).read_text(encoding="utf-8"))
     entries = {entry["id"]: entry for entry in exported["lessons"]}
@@ -1119,20 +1125,21 @@ def check_previews(
                     "preview", "path/index.html", f"image from another origin: {source}"
                 )
             )
-    if total > PAYLOAD_BUDGET:
+    if total > PATH_PAGE_BUDGET:
         violations.append(
             Violation(
-                "preview", "previews", f"{total:,} bytes, over {PAYLOAD_BUDGET:,}"
+                "preview", "previews", f"{total:,} bytes, over {PATH_PAGE_BUDGET:,}"
             )
         )
     return violations
 
 
 def check_path_payload_with_previews(
-    sizes: dict[str, int], site_dir: Path, budget: int = PAYLOAD_BUDGET
+    sizes: dict[str, int], site_dir: Path, budget: int = PATH_PAGE_BUDGET
 ) -> list[Violation]:
     """The learning path page with every preview it will show stays within
-    the initial payload budget."""
+    its own budget, ``PATH_PAGE_BUDGET``; every other page keeps
+    ``PAYLOAD_BUDGET``."""
     previews_size = sum(
         file.stat().st_size
         for file in (site_dir / previews.PREVIEW_DIRECTORY).glob("*")

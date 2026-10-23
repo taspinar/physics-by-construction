@@ -1197,6 +1197,33 @@ def test_payload_over_the_budget_is_reported(make_site: Site, browser: Browser):
     assert rules(site_checks.check_payload(sizes, budget=2_000)) == {"payload"}
 
 
+@pytest.mark.parametrize(
+    ("page_size", "reported"),
+    [
+        (3_500_000 - 1_000, set()),
+        (site_checks.PATH_PAGE_BUDGET - 1_000, set()),
+        (site_checks.PATH_PAGE_BUDGET - 999, {"payload"}),
+        (4_500_000, {"payload"}),
+    ],
+    ids=["over 3 MB", "at 4 MB", "one byte over", "well over"],
+)
+def test_the_path_page_with_its_previews_has_a_budget_of_4_mb(
+    tmp_path: Path, page_size: int, reported: set[str]
+):
+    # The owner's decision of 2026-10-23 (Issue #264): the learning path page
+    # with its previews may load 4 MB; every other page keeps 3 MB.
+    preview_dir = tmp_path / "previews"
+    preview_dir.mkdir()
+    (preview_dir / "lesson.svg").write_bytes(b"x" * 1_000)
+    sizes = {"path/index.html": page_size}
+
+    violations = site_checks.check_path_payload_with_previews(sizes, tmp_path)
+
+    assert site_checks.PATH_PAGE_BUDGET == 4_000_000
+    assert site_checks.PAYLOAD_BUDGET == 3_000_000
+    assert rules(violations, page="path/index.html") == reported
+
+
 def test_a_file_that_pages_share_counts_for_each_of_them(
     make_site: Site, browser: Browser
 ):
