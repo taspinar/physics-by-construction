@@ -390,3 +390,201 @@ def test_the_build_script_records_the_pages_the_next_run_compares_with():
     script = (REPO_ROOT / "scripts" / "build-site.sh").read_text()
 
     assert "pbc.authoring.pages" in script and "_pages.json" in script
+
+
+# --- A comparison with a fresh run on this machine (issue 268) ---------------------
+
+GW_LESSON = "site/lessons/mechanics/11-gravitational-wave-strain"
+
+
+def recorded(root: Path, selection: object) -> Path:
+    """Write ``selection`` where verify.sh writes the selection of the run."""
+    path = root / selecting.SELECTION_FILE
+    path.parent.mkdir(parents=True)
+    text = selection if isinstance(selection, str) else json.dumps(selection)
+    path.write_text(text, encoding="utf-8")
+    return root
+
+
+def restoring(lesson: str) -> dict:
+    """A selective run that restores ``lesson`` from the base."""
+    return {
+        **selective(Path("/base"), execute=["site/lessons/s/01-one"]),
+        "base": {"id": "c" * 64, "identity": "i"},
+        "lessons": sorted(["site/lessons/s/01-one", lesson]),
+        "reuse": [lesson],
+    }
+
+
+def test_a_lesson_is_executed_in_a_run_without_a_selection(tmp_path: Path):
+    # verify.sh removes the selection for a run without a base: every lesson
+    # is executed, and the comparison runs.
+    site = tmp_path / "site"
+
+    assert site_checks.inherited(site, GW_LESSON, tmp_path, site) is None
+
+
+@pytest.mark.parametrize(
+    "selection",
+    [
+        {
+            "format": selecting.SELECTION_FORMAT,
+            "mode": "full",
+            "base": None,
+            "lessons": [GW_LESSON],
+            "execute": [GW_LESSON],
+            "reuse": [],
+        },
+        {
+            **restoring("site/lessons/s/01-one"),
+            "lessons": sorted(["site/lessons/s/01-one", GW_LESSON]),
+            "execute": [GW_LESSON],
+        },
+    ],
+    ids=["a full run", "a selection that executes it"],
+)
+def test_a_lesson_the_selection_executes_is_executed(tmp_path: Path, selection):
+    root, site = recorded(tmp_path, selection), tmp_path / "site"
+
+    assert site_checks.inherited(site, GW_LESSON, root, site) is None
+
+
+def test_a_restored_lesson_is_inherited_from_the_base_it_names(tmp_path: Path):
+    root, site = recorded(tmp_path, restoring(GW_LESSON)), tmp_path / "site"
+
+    reason = site_checks.inherited(site, GW_LESSON, root, site)
+
+    assert reason is not None
+    assert GW_LESSON in reason and "c" * 12 in reason and "not executed" in reason
+
+
+def test_a_site_built_elsewhere_is_not_described_by_the_selection(tmp_path: Path):
+    root = recorded(tmp_path, restoring(GW_LESSON))
+
+    assert (
+        site_checks.inherited(tmp_path / "other", GW_LESSON, root, tmp_path / "site")
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    ("selection", "why"),
+    [
+        ("{not json", "cannot be read"),
+        ({**restoring(GW_LESSON), "format": 0}, "another format"),
+        ({**restoring(GW_LESSON), "mode": "partial"}, "another format"),
+        ({**restoring(GW_LESSON), "reuse": None}, "does not list"),
+        ({**restoring(GW_LESSON), "lessons": ["site/lessons/s/01-one"]}, "once"),
+        ({**restoring(GW_LESSON), "reuse": []}, "once"),
+        (
+            {**restoring(GW_LESSON), "execute": ["site/lessons/s/01-one", GW_LESSON]},
+            "once",
+        ),
+        ({**restoring(GW_LESSON), "mode": "full"}, "without a base"),
+        ({**restoring(GW_LESSON), "base": None}, "without a base"),
+        ({**restoring(GW_LESSON), "base": {"identity": "i"}}, "name the base"),
+        (
+            {**restoring(GW_LESSON), "base": {"id": "c" * 12, "identity": "i"}},
+            "name the base",
+        ),
+        ({**restoring(GW_LESSON), "base": {"id": "c" * 64}}, "name the base"),
+        (
+            {**restoring(GW_LESSON), "base": {"id": "c" * 64, "identity": 1}},
+            "name the base",
+        ),
+    ],
+    ids=[
+        "unreadable",
+        "another format",
+        "another mode",
+        "no list",
+        "not among the lessons",
+        "neither executed nor restored",
+        "executed and restored",
+        "restored in a full run",
+        "restored without a base",
+        "a base without an id",
+        "a base with a malformed id",
+        "a base without an identity",
+        "a base with a malformed identity",
+    ],
+)
+def test_a_selection_that_cannot_be_trusted_is_an_error_never_a_skip(
+    tmp_path: Path, selection, why: str
+):
+    root, site = recorded(tmp_path, selection), tmp_path / "site"
+
+    with pytest.raises(site_checks.SelectionError, match=why):
+        site_checks.inherited(site, GW_LESSON, root, site)
+
+
+@pytest.fixture
+def comparator():
+    spec = importlib.util.spec_from_file_location(
+        "e2e_test_comparator", REPO_ROOT / "tests" / "e2e" / "test_comparator.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class _Compared(Exception):
+    """The comparison asked for the fresh run."""
+
+
+def run_comparison(comparator, monkeypatch: pytest.MonkeyPatch, decision) -> None:
+    """Run the comparison of the e2e test with ``decision`` as the answer of
+    the selection; asking for the fresh run raises _Compared."""
+
+    def answer(site_dir, lesson):
+        assert lesson == GW_LESSON
+        return decision()
+
+    def fresh(name):
+        assert name == "fresh"
+        raise _Compared
+
+    monkeypatch.setattr(comparator.site_checks, "inherited", answer)
+    comparator.test_the_embedded_series_and_metrics_agree_with_a_fresh_run_of_pbc(
+        Path("site"), {}, types.SimpleNamespace(getfixturevalue=fresh)
+    )
+
+
+def test_the_comparator_compares_a_lesson_this_run_executed(
+    comparator, monkeypatch: pytest.MonkeyPatch
+):
+    with pytest.raises(_Compared):
+        run_comparison(comparator, monkeypatch, lambda: None)
+
+
+def test_the_comparator_skips_a_restored_lesson_with_the_reason(
+    comparator, monkeypatch: pytest.MonkeyPatch
+):
+    with pytest.raises(pytest.skip.Exception, match="restored from the base"):
+        run_comparison(
+            comparator, monkeypatch, lambda: "the lesson was restored from the base"
+        )
+
+
+def test_the_comparator_fails_when_the_selection_cannot_be_trusted(
+    comparator, monkeypatch: pytest.MonkeyPatch
+):
+    def broken():
+        raise site_checks.SelectionError("selection.json cannot be read")
+
+    with pytest.raises(pytest.fail.Exception, match="cannot be read"):
+        run_comparison(comparator, monkeypatch, broken)
+
+
+def test_the_comparator_fails_on_a_base_the_selection_cannot_name(
+    comparator, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    # The selection restores the lesson but names no base: never a skip.
+    selection = {**restoring(GW_LESSON), "base": {"id": "c" * 64}}
+    root, site = recorded(tmp_path, selection), tmp_path / "site"
+    inherited = site_checks.inherited
+
+    with pytest.raises(pytest.fail.Exception, match="name the base"):
+        run_comparison(
+            comparator, monkeypatch, lambda: inherited(site, GW_LESSON, root, site)
+        )

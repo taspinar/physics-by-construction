@@ -230,6 +230,17 @@ test runs in the group `build`, in the job that built the site, like the
 second build of `determinism`. A test that compares bytes and is not marked
 passes locally and fails in CI now and then.
 
+**A test that recomputes a lesson's result on the checking machine** and
+compares it with the data embedded in the page asks
+`support.site_checks.inherited` first, as
+`tests/e2e/test_comparator.py` does for the gravitational-wave lesson
+(issue 268). It compares when this run executed the lesson (a run without
+a base, a full run, or a selection that executes it) and skips with the
+reason when the selection restored it from the base, whose run executed
+and compared it on its own machine. A selection that cannot be read or
+does not name the lesson once as executed or restored, or the base it
+restores from by its id and identity, fails the test; it never skips it. The tolerance is not widened for another platform.
+
 `--shard <part>/<parts>` selects a part of `tests/e2e/test_built_site.py`.
 What a part holds is written in `tests/e2e/shards.json` and does not follow
 from the order in which pytest finds the tests. A new test of that file runs
