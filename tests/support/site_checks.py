@@ -25,6 +25,7 @@ from playwright.sync_api import Browser, BrowserContext, Page, Response, Route
 
 from pbc.authoring import pages as page_selection
 from pbc.authoring import previews
+from pbc.authoring import selection as selecting
 from pbc.authoring.design import CONTROL_CONTRAST, contrast_ratio
 from pbc.authoring.path import LearningPath
 from pbc.authoring.progress import EXPORT_FILE, STORAGE_KEY
@@ -434,6 +435,73 @@ def _urls(
         (_name(site_dir, page), server.url + _name(site_dir, page))
         for page in (html_pages(site_dir) if pages is None else pages)
     ]
+
+
+class SelectionError(Exception):
+    """The selection of the run cannot say whether it executed a lesson."""
+
+
+def inherited(
+    site_dir: Path, lesson: str, root: Path = REPO_ROOT, built: Path = BUILT_SITE
+) -> str | None:
+    """Why the results of ``lesson`` (a path such as ``site/lessons/s/01-one``)
+    in the site at ``site_dir`` were not executed by this run, or None when
+    they were (issue 268).
+
+    The record is the selection that verify.sh writes (ADR 014 decision 5),
+    the one the reproduction reads in tests/e2e/conftest.py. A run without a
+    base removes it and executes every lesson, and a site built from a
+    fixture is not the site it describes: both give None, so the check that
+    asks runs. A selection that cannot be read, is of another format, or does
+    not name the lesson exactly once as executed or restored raises
+    SelectionError: a check never skips on a record it cannot trust."""
+    if site_dir.resolve() != built.resolve():
+        return None
+    path = root / selecting.SELECTION_FILE
+    if not path.exists():
+        return None
+    try:
+        selection = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        raise SelectionError(f"{path.name} cannot be read: {error}") from None
+    if (
+        not isinstance(selection, dict)
+        or selection.get("format") != selecting.SELECTION_FORMAT
+        or selection.get("mode") not in ("full", "selective")
+    ):
+        raise SelectionError(f"{path.name} is of another format")
+    lists = [selection.get(key) for key in ("lessons", "execute", "reuse")]
+    if not all(
+        isinstance(names, list) and all(isinstance(n, str) for n in names)
+        for names in lists
+    ):
+        raise SelectionError(f"{path.name} does not list its lessons")
+    lessons, execute, reuse = lists
+    named = (lessons.count(lesson), execute.count(lesson), reuse.count(lesson))
+    if named not in ((1, 1, 0), (1, 0, 1)):
+        raise SelectionError(
+            f"{path.name} does not name {lesson} once as executed or restored"
+        )
+    if lesson in execute:
+        return None
+    base = selection.get("base")
+    if selection["mode"] != "selective" or not isinstance(base, dict):
+        raise SelectionError(f"{path.name} restores {lesson} without a base")
+    # The base as pbc.authoring.selection names it: the SHA-256 of its digests
+    # and the identity of its checks. A base it cannot name is no base.
+    identifier, identity = base.get("id"), base.get("identity")
+    if (
+        not isinstance(identifier, str)
+        or not re.fullmatch(r"[0-9a-f]{64}", identifier)
+        or not isinstance(identity, str)
+        or not identity
+    ):
+        raise SelectionError(f"{path.name} does not name the base it restores from")
+    return (
+        f"{lesson} was restored from the base {identifier[:12]}, not "
+        "executed in this run: the run that made the base executed and checked "
+        "it (ADR 014 decisions 2 to 4)"
+    )
 
 
 def checked_pages(site_dir: Path) -> list[Path]:
