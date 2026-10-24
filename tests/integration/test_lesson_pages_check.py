@@ -59,6 +59,26 @@ mkdir -p .lake
 IDENTITY = ["-c", "user.name=t", "-c", "user.email=t@example.com"]
 FIXTURE_GIT = [*IDENTITY, "-c", "gc.auto=0", "-c", "gc.autoDetach=false"]
 
+# The budget of the lessons these tests render, in the copy's own
+# scripts/lesson-budgets.conf, which the check reads. The tests are about what
+# the check renders and runs, not about the budget: the render in the clone
+# includes the cold start of uv and Quarto, which took 31 to 40 s for a light
+# lesson when another verification ran on the machine (#267). The budget is
+# checked by test_a_lesson_over_its_budget_fails_the_check, which sets its own.
+GENEROUS_BUDGET_SECONDS = 600
+
+
+def set_budget(root: Path, lesson: str, seconds: int, reason: str) -> None:
+    """Give a lesson its own budget in the copy, replacing any it has."""
+    table = root / "scripts" / "lesson-budgets.conf"
+    key = lesson.removeprefix("site/")
+    lines = [
+        line
+        for line in table.read_text().splitlines()
+        if line.split("|", 1)[0].strip() != key
+    ]
+    table.write_text("\n".join([*lines, f"{key} | {seconds} | {reason}"]) + "\n")
+
 
 @pytest.fixture(scope="module")
 def pristine(tmp_path_factory: pytest.TempPathFactory) -> Path:
@@ -81,6 +101,13 @@ def tree(pristine: Path, tmp_path: Path) -> Path:
     fake = root / "scripts" / "check-lean.sh"
     fake.write_text(FAKE_LEAN)
     fake.chmod(fake.stat().st_mode | stat.S_IXUSR)
+    for lesson in (KINEMATICS, LEAN_LESSON):
+        set_budget(
+            root,
+            lesson,
+            GENEROUS_BUDGET_SECONDS,
+            "the tests of the check, whose clone render starts uv and Quarto cold",
+        )
     return root
 
 
@@ -201,6 +228,17 @@ def test_a_page_that_does_not_render_fails_the_check(tree, tmp_path):
     assert result.returncode != 0
     assert f"the page {KINEMATICS}/index.qmd does not render" in result.stderr
     assert "broken cell" in result.stderr
+
+
+def test_a_lesson_over_its_budget_fails_the_check(tree, tmp_path):
+    # A budget of 0 s, which no render can stay under: the check compares the
+    # seconds with the budget of the lesson's own entry and fails.
+    set_budget(tree, KINEMATICS, 0, "a budget no render can meet")
+    select(tree, [KINEMATICS], "targeted")
+    result = check(tree, tmp_path)
+    assert result.returncode != 0
+    assert f"the page {KINEMATICS}/index.qmd took " in result.stderr
+    assert "the budget of a lesson page is 0 s" in result.stderr
 
 
 def test_an_experiment_that_does_not_write_what_its_page_shows_fails(tree, tmp_path):
