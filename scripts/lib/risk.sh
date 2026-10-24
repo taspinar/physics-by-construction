@@ -144,8 +144,14 @@ risk_path_minimum() {
 #   tolerance or budget changed     a Python or lesson line that names a
 #                                   tolerance or a budget with a number, removed
 #                                   or changed; such a Python line added (a new
-#                                   tolerance can widen what a check accepts);
-#                                   a data line of a budget table
+#                                   tolerance can widen what a check accepts),
+#                                   except in a new test: a test file
+#                                   (test_*.py or *_test.py) that is new in
+#                                   the diff, or a line whose first def
+#                                   or class at or above it in its added block
+#                                   is a new def test_ (a new test weakens
+#                                   none that is there); a data line of a
+#                                   budget table
 #   skip or expected failure added  a new skip, skipif, xfail, or importorskip;
 #                                   in Lean, a new sorry, admit, or axiom
 #   assertion removed or changed    a line that is not added back as it was: a
@@ -219,6 +225,17 @@ risk_triggers() {
         }
         return 0
       }
+      # Whether added line i belongs to a new test: the first def or class at
+      # or above it in its own added block is a def test_ that is not removed
+      # elsewhere in the file (a def that only moved is an existing test). The
+      # lines are trimmed, so a test method of a class counts as a test too.
+      function in_new_test(i,   k) {
+        for (k = i; k >= 1 && addblock[k] == addblock[i]; k--) {
+          if (addlist[k] ~ /^(async[[:space:]]+)?def[[:space:]]+test_/) return !(addlist[k] in gone)
+          if (addlist[k] ~ /^(async[[:space:]]+)?def[[:space:]]/ || addlist[k] ~ /^class[[:space:]]/) return 0
+        }
+        return 0
+      }
       function finish(   i, line) {
         if (file == "") return
         for (i = 1; i <= nremoved; i++) {
@@ -250,7 +267,8 @@ risk_triggers() {
           line = addlist[i]
           if (line in gone) continue
           if (is_budgets && line !~ /^#/ && line != "") report("tolerance or budget changed", line)
-          if (is_python && line !~ /^#/ && line ~ tolerance && line ~ /[0-9]/) report("tolerance or budget changed", line)
+          if (is_python && line !~ /^#/ && line ~ tolerance && line ~ /[0-9]/ && !(is_new_test_file || in_new_test(i)))
+            report("tolerance or budget changed", line)
           if (is_lean && line !~ /^--/ &&
               (line ~ /(^|[^[:alnum:]_.\047`])(sorry|admit)([^[:alnum:]_\047`]|$)/ || line ~ /^(@\[[^]]*\][[:space:]]*)?((private|protected|noncomputable|unsafe)[[:space:]]+)*axiom[[:space:]]/))
             report("skip or expected failure added", line)
@@ -279,10 +297,13 @@ risk_triggers() {
         is_budgets = (file ~ /budgets\.conf$/)
         is_shell_test = (file ~ /\.sh$/ && (file ~ /^tests\// || file ~ /(^|\/)[^\/]*-test\.sh$/))
         is_lean = (file ~ /\.lean$/ && file !~ /(^|\/)lakefile\.lean$/)
+        is_test_file = (file ~ /(^|\/)(test_[^\/]*|[^\/]*_test)\.py$/)
+        is_new_test_file = 0
         nremoved = 0; nadded = 0; block = 0
         delete added; delete gone; delete removed; delete addlist; delete addblock
         next
       }
+      /^new file mode / { is_new_test_file = is_test_file; next }
       /^(---|\+\+\+) / { next }
       /^-/ { block++; line = trim(substr($0, 2)); removed[++nremoved] = line; gone[line] = 1; next }
       /^\+/ {
