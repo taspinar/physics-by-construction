@@ -15,6 +15,9 @@ from support.budgets import (
 from support.paths import REPO_ROOT, SCRIPTS, SITE_SOURCE
 
 MONTE_CARLO = "lessons/agents-abm/01-particles-in-a-box"
+# Raised from 60 to 90 seconds by the owner on 2026-10-24 (#272): its
+# reproduction measured 67 to 69 seconds.
+MONTE_CARLO_SECONDS = 90
 # Raised by the owner on 2026-10-22 (#261): measured or projected close to the
 # default on CI runners.
 RAISED = [
@@ -57,16 +60,19 @@ def test_the_default_budget_is_30_seconds():
 
 
 def test_only_the_listed_lessons_have_a_larger_budget_and_each_has_a_reason():
-    exceptions = {MONTE_CARLO: "#206"} | {lesson: "#261" for lesson in RAISED}
+    exceptions = {MONTE_CARLO: (MONTE_CARLO_SECONDS, ["#206", "#272"])} | {
+        lesson: (60, ["#261"]) for lesson in RAISED
+    }
     assert set(exceptions) <= set(LESSONS)
     assert {lesson: seconds for lesson, (seconds, _) in read_budgets().items()} == {
-        lesson: 60 for lesson in exceptions
+        lesson: seconds for lesson, (seconds, _) in exceptions.items()
     }
-    for lesson, issue in exceptions.items():
-        assert issue in read_budgets()[lesson][1]
+    for lesson, (_, issues) in exceptions.items():
+        for issue in issues:
+            assert issue in read_budgets()[lesson][1]
     for lesson in LESSONS:
         assert budget_seconds(lesson + "/index.html") == (
-            60 if lesson in exceptions else 30
+            exceptions[lesson][0] if lesson in exceptions else 30
         )
 
 
