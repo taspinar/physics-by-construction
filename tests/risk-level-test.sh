@@ -178,10 +178,128 @@ sed -i.bak 's/rel=1e-9/rel=1e-6/' "$repo/tests/unit/test_code.py" && rm "$repo/t
 assess "$repo"
 expect_trigger "a widened tolerance" "tolerance or budget changed: tests/unit/test_code.py (assert 0.3 == pytest.approx(0.1 + 0.2, rel=1e-9))"
 
+# A tolerance added to a test that is already there can widen what it
+# accepts; one in a new test weakens no test that is there (#269).
 repo="$(setup_repo added-tolerance)"
+printf '    assert 0.31 == pytest.approx(0.1 + 0.2, rel=0.1)\n' >>"$repo/tests/unit/test_code.py"
+assess "$repo"
+expect_trigger "a tolerance added to an existing test" "tolerance or budget changed: tests/unit/test_code.py (assert 0.31 == pytest.approx(0.1 + 0.2, rel=0.1))"
+
+repo="$(setup_repo new-test-tolerance)"
 printf '\n\ndef test_four():\n    assert 0.31 == pytest.approx(0.1 + 0.2, rel=0.1)\n' >>"$repo/tests/unit/test_code.py"
 assess "$repo"
-expect_trigger "a newly added tolerance" "tolerance or budget changed: tests/unit/test_code.py (assert 0.31 == pytest.approx(0.1 + 0.2, rel=0.1))"
+expect "a tolerance in a new test of an existing file" RISK_TRIGGERS ""
+expect "a tolerance in a new test of an existing file" RISK_REQUIRED 2
+
+repo="$(setup_repo new-test-file-tolerance)"
+cat >"$repo/tests/unit/test_new.py" <<'PY'
+import pytest
+
+tolerance = 1e-9
+
+
+def helper(x):
+    return pytest.approx(x, abs=1e-9)
+
+
+class TestThing:
+    def test_sum(self):
+        assert 0.3 == pytest.approx(0.1 + 0.2, rel=1e-6)
+PY
+assess "$repo"
+expect "tolerances in a new test file" RISK_TRIGGERS ""
+expect "tolerances in a new test file" RISK_REQUIRED 2
+
+# A test method in a class is a test like a function (#269 review): a new
+# one is exempt; a tolerance added to an existing one, or in a method that is
+# no test, stays a reading.
+repo="$(setup_repo new-class-test-tolerance)"
+printf '\n\nclass TestFour:\n    def test_sum(self):\n        assert 0.31 == pytest.approx(0.1 + 0.2, rel=0.1)\n' >>"$repo/tests/unit/test_code.py"
+assess "$repo"
+expect "a tolerance in a new test method of a class" RISK_TRIGGERS ""
+expect "a tolerance in a new test method of a class" RISK_REQUIRED 2
+
+# class_fixture <repo>: an existing class-based test on main, below which
+# the feature branch starts.
+class_fixture() {
+  git -C "$1" switch -q main
+  printf '\n\nclass TestFive:\n    def test_sum(self):\n        assert 0.3 == pytest.approx(0.1 + 0.2, rel=1e-8)\n' >>"$1/tests/unit/test_code.py"
+  git -C "$1" commit -qam "A class-based test"
+  git -C "$1" switch -q feature/5-thing
+  git -C "$1" merge -q --ff-only main
+}
+
+repo="$(setup_repo existing-class-test-widened)"
+class_fixture "$repo"
+sed -i.bak 's/rel=1e-8/rel=1e-3/' "$repo/tests/unit/test_code.py" && rm "$repo/tests/unit/test_code.py.bak"
+assess "$repo"
+expect_trigger "a tolerance widened in an existing test method of a class" \
+  "tolerance or budget changed: tests/unit/test_code.py (assert 0.3 == pytest.approx(0.1 + 0.2, rel=1e-8))"
+
+repo="$(setup_repo existing-class-test-added)"
+class_fixture "$repo"
+printf '        assert 0.31 == pytest.approx(0.1 + 0.2, rel=0.1)\n' >>"$repo/tests/unit/test_code.py"
+assess "$repo"
+expect_trigger "a tolerance added to an existing test method of a class" \
+  "tolerance or budget changed: tests/unit/test_code.py (assert 0.31 == pytest.approx(0.1 + 0.2, rel=0.1))"
+
+repo="$(setup_repo class-helper-tolerance)"
+printf '\n\nclass TestSix:\n    def loose(self, x):\n        return pytest.approx(x, rel=0.1)\n' >>"$repo/tests/unit/test_code.py"
+assess "$repo"
+expect_trigger "a tolerance in a new method of a class that is no test" \
+  "tolerance or budget changed: tests/unit/test_code.py (return pytest.approx(x, rel=0.1))"
+
+# A new file outside the tests is no new test: its tolerance stays a reading.
+repo="$(setup_repo new-source-tolerance)"
+printf 'tolerance = 1e-3\n' >"$repo/src/check.py"
+assess "$repo"
+expect_trigger "a tolerance in a new source file" "tolerance or budget changed: src/check.py (tolerance = 1e-3)"
+
+# A new helper under tests/ that is no test file is no new test (#269 review).
+repo="$(setup_repo new-support-tolerance)"
+mkdir -p "$repo/tests/support"
+printf 'tolerance = 1e-3\n' >"$repo/tests/support/limits.py"
+assess "$repo"
+expect_trigger "a tolerance in a new support module under tests/" "tolerance or budget changed: tests/support/limits.py (tolerance = 1e-3)"
+
+# In the same added block as a new test, a tolerance below a helper def, or
+# below an existing test that only moved, is no part of the new test.
+repo="$(setup_repo new-test-then-helper)"
+printf '\n\ndef test_four():\n    assert True\n\n\ndef loose(x):\n    return pytest.approx(x, rel=0.1)\n' >>"$repo/tests/unit/test_code.py"
+assess "$repo"
+expect_trigger "a tolerance in a helper after a new test" "tolerance or budget changed: tests/unit/test_code.py (return pytest.approx(x, rel=0.1))"
+
+repo="$(setup_repo moved-test-tolerance)"
+python3 - "$repo/tests/unit/test_code.py" <<'PY'
+import sys
+path = sys.argv[1]
+text = open(path).read()
+text = text.replace("def test_one():\n    assert 1 + 1 == 2\n", "")
+text = text.replace(
+    "    assert abs(0.1 + 0.2 - 0.3) < 1e-12\n    assert 0.3 == pytest.approx(0.1 + 0.2, rel=1e-9)\n",
+    "",
+)
+text += (
+    "\n\ndef test_four():\n    assert True\n\n\ndef test_one():\n    assert 1 + 1 == 2\n"
+    "    assert abs(0.1 + 0.2 - 0.3) < 1e-12\n    assert 0.3 == pytest.approx(0.1 + 0.2, rel=1e-9)\n"
+    "    assert 0.31 == pytest.approx(0.1 + 0.2, rel=0.1)\n"
+)
+open(path, "w").write(text)
+PY
+assess "$repo"
+expect_trigger "a tolerance added to an existing test that moved below a new test" \
+  "tolerance or budget changed: tests/unit/test_code.py (assert 0.31 == pytest.approx(0.1 + 0.2, rel=0.1))"
+
+# A tolerance widened or removed in an existing test stays a reading.
+repo="$(setup_repo widened-tolerance)"
+sed -i.bak 's/rel=1e-9/rel=1e-3/' "$repo/tests/unit/test_code.py" && rm "$repo/tests/unit/test_code.py.bak"
+assess "$repo"
+expect_trigger "a tolerance widened from rel=1e-9 to rel=1e-3" "tolerance or budget changed: tests/unit/test_code.py (assert 0.3 == pytest.approx(0.1 + 0.2, rel=1e-9))"
+
+repo="$(setup_repo removed-tolerance)"
+sed -i.bak '/rel=1e-9/d' "$repo/tests/unit/test_code.py" && rm "$repo/tests/unit/test_code.py.bak"
+assess "$repo"
+expect_trigger "a removed tolerance" "tolerance or budget changed: tests/unit/test_code.py (assert 0.3 == pytest.approx(0.1 + 0.2, rel=1e-9))"
 
 repo="$(setup_repo budget)"
 printf 'lessons/b | 90 | slower\n' >>"$repo/scripts/lesson-budgets.conf"
