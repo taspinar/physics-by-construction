@@ -1,0 +1,575 @@
+---
+title: "Many-body gravitation"
+description: >-
+  Several bodies under their mutual gravity, with no closed form to check
+  against: the two-body limit against Kepler's exact motion, the energy and
+  angular-momentum drift of each integrator over twelve centuries of the Sun,
+  Jupiter, and Saturn, and the figure-eight orbit of three equal masses.
+lesson:
+  id: many-body-gravitation
+  strand: mechanics
+  order: 17
+  difficulty: 3
+  course: mechanics
+  slot: M13
+  methods: [simulation]
+  outcomes:
+    - Write the gravitational acceleration of many bodies and the energy and angular momentum they conserve
+    - Validate a many-body code where no closed form exists, through its two-body limit and its conserved quantities
+    - Report the energy and angular-momentum drift of each integrator over a long run, and tell a bounded band from a trend
+    - Explain why a symplectic step keeps the total angular momentum to round-off
+  related: []
+  format: 2
+  preview: fig-figure-eight
+  experiment: pbc.mechanics.experiments.many_body_gravitation
+  prerequisites:
+    lessons: [kepler-orbit, numerical-integrators, momentum-and-collisions, hamiltonian-mechanics]
+    outside:
+      - "Vectors: the cross product, and the sum of vectors written component by component"
+      - "Numerical methods: the order of a method, read from the error at two step sizes"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.mechanics import nbody
+from pbc.mechanics.experiments import many_body_gravitation as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The Kepler lesson solved the motion of two bodies exactly: the pair reduces to
+one body about a fixed centre, and its orbit is an ellipse. Add a third body
+and the reduction is gone. Jupiter pulls on Saturn, Saturn on Jupiter, both on
+the Sun, and none of the orbits is an ellipse any more. Newton already knew
+that the problem of three bodies had no simple answer, and [Poincaré showed
+that it has no general solution in closed form]{.not-verified}. Yet planetary ephemerides,
+spacecraft trajectories, and the stability of the solar system over millions
+of years are all computed: by simulation.
+
+The question of the lesson is how to trust such a simulation when there is
+nothing exact to compare it with. Three answers carry over from the earlier
+lessons. A many-body code must reduce to the known solution when only two
+bodies are left. The total energy and the total angular momentum of an
+isolated system are constant, and how far a run moves them, and whether that
+error stays in a band or grows, measures the run. And a few special orbits of
+three bodies are known, periodic solutions that close on themselves, so that
+the simulation can be asked to close too.
+
+## Assumptions
+
+The model and the program rest on these assumptions. Each one names what
+goes wrong when it does not hold.
+
+1. **Point masses under Newton's law.** Every body is a point, and every
+   pair attracts with $G m_i m_j / r^2$ along the line between them. Real
+   planets are extended and spin, which adds tidal forces and the
+   precession of their axes; close to the Sun, general relativity turns
+   the perihelion of Mercury by a small, measured amount that Newton's law
+   does not give. Neither matters for the orbits of the lesson.
+2. **No collisions or close encounters.** The force grows without bound as
+   two bodies approach each other, and a fixed time step cannot follow a
+   near collision: the step jumps over the encounter and the energy
+   changes in one step. The systems of the lesson keep their bodies apart.
+3. **An isolated system.** No force from outside acts, so the total
+   momentum, angular momentum, and energy are conserved. The rest of the
+   solar system is left out: the Sun, Jupiter, and Saturn of the lesson are a
+   model, not the solar system.
+4. **Motion in a plane.** The bodies start in one plane with velocities in it,
+   so they stay in it. The real orbits of Jupiter and Saturn are inclined to
+   each other by a little, which this model ignores.
+5. **Round, illustrative starts.** Jupiter and Saturn start on circular
+   orbits at round distances from the Sun, with round masses; their real
+   orbits are slightly eccentric. The lesson measures the integrators and
+   the physics of the model, not the positions of the real planets.
+6. **A fixed time step.** Every integrator takes the same step throughout.
+   Production codes use steps that adapt, or symplectic methods built for
+   near-Kepler motion; both are beyond the lesson.
+
+## Gravity between many bodies {#explanation}
+
+### The equations of motion
+
+Body $i$ of mass $m_i$ at $\mathbf x_i$ is pulled towards every other body
+$j$ by $G m_i m_j / |\mathbf x_i - \mathbf x_j|^2$. Divided by $m_i$, the
+mass of the body itself drops out:
+
+$$
+\ddot{\mathbf x}_i = -G \sum_{j \ne i} m_j\,
+\frac{\mathbf x_i - \mathbf x_j}{|\mathbf x_i - \mathbf x_j|^3}.
+$$
+
+For $n$ bodies that is $n$ vector equations, coupled through every pair: the
+cost of one evaluation grows as $n^2$. With two bodies the equations reduce,
+as in the Kepler lesson, to the relative position $\mathbf r = \mathbf x_1 -
+\mathbf x_2$ under the gravitational parameter $G(m_1 + m_2)$:
+
+$$
+\ddot{\mathbf r} = -G (m_1 + m_2)\,\frac{\mathbf r}{|\mathbf r|^3},
+$$
+
+whose motion is the exact ellipse of that lesson. A many-body code with two
+bodies left must reproduce it.
+
+### What stays constant
+
+Three quantities survive for any number of bodies. The forces of a pair are
+equal and opposite, so the **total momentum** $\mathbf P = \sum_i m_i \dot{\mathbf
+x}_i$ is constant, and the centre of mass moves in a straight line. In the
+frame in which it is at rest, the barycentric frame, the system stays where it
+is. The forces of a pair also act along the line between the two, so their
+torques cancel and the **total angular momentum** is constant; in the plane it
+is one number,
+
+$$
+L = \sum_i m_i\,(x_i\,\dot y_i - y_i\,\dot x_i).
+$$
+
+The force derives from a potential, so the **total energy**
+
+$$
+E = \sum_i \tfrac12 m_i |\dot{\mathbf x}_i|^2
+- \sum_{i<j} \frac{G m_i m_j}{|\mathbf x_i - \mathbf x_j|}
+$$
+
+is constant. With two bodies these are enough to solve the problem; with three
+or more they are not, and the motion can be chaotic. They remain exact
+statements about the true motion, and so exact checks of a simulation.
+
+### What a step does to them
+
+Each integrator of the course changes the three quantities in its own way,
+and the reason is in the update.
+
+A **momentum** error never arises for any of them: every step adds to the
+velocities $\Delta t$ times the accelerations, and the forces of each pair
+cancel in the sum $\sum_i m_i \ddot{\mathbf x}_i$, whatever the method.
+
+The **angular momentum** depends on the method. Symplectic Euler first
+**kicks** the velocities, $\mathbf v_i \to \mathbf v_i + \Delta t\,\mathbf a_i$,
+with the accelerations at the current positions, then **drifts** the
+positions with the new velocities, $\mathbf x_i \to \mathbf x_i + \Delta t\,
+\mathbf v_i$. The kick changes $L$ by
+$\Delta t \sum_i m_i\,\mathbf x_i \times \mathbf a_i$, the total torque, which
+is zero because each pair force lies along the line between its two bodies.
+The drift changes $L$ by $\Delta t \sum_i m_i\,\mathbf v_i \times \mathbf v_i$,
+which is zero too. So symplectic Euler keeps $L$ exactly, up to round-off.
+Velocity Verlet is a half kick, a drift, and a half kick, so it keeps $L$ the
+same way. Explicit Euler moves the positions with the old velocities and the
+velocities with the old accelerations in one step; the product of the two
+changes leaves the term $\Delta t^2 \sum_i m_i\,\mathbf v_i \times \mathbf
+a_i$, which is not zero. The classical Runge-Kutta method mixes evaluations at
+predicted states and keeps $L$ only to its order of accuracy.
+
+The **energy** is kept exactly by none of them. The symplectic methods of the
+Hamiltonian lesson keep a modified energy that differs from $E$ by a term of
+the order of $\Delta t$ (symplectic Euler) or $\Delta t^2$ (Verlet). The error
+of $E$ then oscillates in a band of fixed width for as long as the run lasts.
+The other methods let the error accumulate step after step: a trend, which in
+a long run eventually exceeds any band.
+
+## The program {#code}
+
+The reusable code is `pbc.mechanics.nbody`. The acceleration takes all pairs
+at once: the separations of every body from every other form one array, and a
+weight $m_j / |\mathbf x_i - \mathbf x_j|^3$ with zero on the diagonal keeps a
+body from acting on itself.
+
+```{python}
+#| echo: false
+excerpt(
+    nbody.gravity,
+    notes={
+        "separation = positions[:, np.newaxis, :] - positions[np.newaxis, :, :]": (
+            "Every separation x_i - x_j at once, an array with one row and one"
+            " column per body."
+        ),
+        "weight[others] = m[np.nonzero(others)[1]] / distance[others] ** 3": (
+            "The mass of the other body over the cube of the distance; the"
+            " diagonal, a body and itself, stays zero."
+        ),
+        "return (-G * np.einsum(\"ij,ijk->ik\", weight, separation)).reshape(-1)": (
+            "The sum over the other bodies, returned as the stacked vector that"
+            " the integrators of the course step."
+        ),
+    },
+)
+```
+
+The state of the system is the stacked vector of the collisions lesson, one
+row per body, so the four integrators of the course step it unchanged. The
+conserved quantities follow the formulas of the explanation:
+
+```{python}
+#| echo: false
+excerpt(nbody.total_energy)
+```
+
+```{python}
+#| echo: false
+excerpt(nbody.angular_momentum)
+```
+
+A start is moved to the barycentric frame, so that the system does not drift
+across the page and its angular momentum is the one about its centre:
+
+```{python}
+#| echo: false
+excerpt(nbody.barycentric)
+```
+
+## Worked examples
+
+### Three bodies of the solar system
+
+The model has the Sun, Jupiter, and Saturn in astronomical units, years, and
+solar masses, in which $G = 4\pi^2$. Jupiter and Saturn start on circular
+speeds at their mean distances, a quarter turn apart.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.solar_system)
+```
+
+```{python}
+#| label: fig-solar-system
+#| echo: false
+#| fig-cap: "The orbits of Jupiter and Saturn about the Sun over one orbit of Saturn (left), and the path of the Sun itself about the centre of mass, enlarged (right). The Sun is not fixed: it circles the centre of mass, pulled by both planets."
+#| fig-alt: "Two panels. Left: two concentric near-circles, a dashed inner one for Jupiter and a dotted outer one for Saturn, around a dot at the centre for the Sun. Right: the path of the Sun on a scale a thousand times finer, a looping curve that circles a cross at the centre of mass, made of loops of different sizes as Jupiter and Saturn pull it in turn."
+#| fig-status: simulated
+result.show("fig-solar-system")
+```
+
+The left panel looks like two Kepler orbits; the right one shows what makes
+the problem many-body. The Sun moves about the centre of mass on a path of a
+few thousandths of an astronomical unit, the sum of its answers to both
+planets. Jupiter and Saturn also pull on each other, and their orbits change
+slowly: an exercise measures it.
+
+### The two-body limit
+
+Before the code is trusted with three bodies, it is run with two: a star and a
+planet of a thousandth of its mass on an ellipse of eccentricity one half,
+started in the barycentric frame. The relative position of the two is compared
+with the exact Kepler motion of `pbc.mechanics.orbit`, for velocity Verlet at
+three time steps.
+
+```{python}
+#| echo: false
+excerpt(experiment.two_body_check)
+```
+
+```{python}
+#| label: two-body-check
+#| echo: false
+result.table("two-body-check")
+```
+
+[The many-body code with two bodies follows the exact Kepler motion, and its
+error falls with the square of the step]{.claim type="numerically-verified"
+scope="two bodies, eccentricity one half, five orbits, velocity Verlet"
+evidence="two-body-check"}: the observed order is
+`{python} result["two-body-order"]`, the order of the method, and at the finest
+step the largest error of the relative position is
+`{python} result["two-body-error"]` AU. A wrong sign, a wrong power of the
+distance, or a body that acted on itself would break the agreement or the
+order. The acceleration is also tested against the pairwise forces of the
+collisions lesson for four bodies of different masses.
+
+### Drift per integrator over twelve centuries
+
+The four integrators of the course run the Sun, Jupiter, and Saturn for twelve
+hundred years with the same step of [0.05 years]{.given}, about two hundred
+and forty steps per orbit of Jupiter and `{python} result["orbits-of-jupiter"]`
+orbits of Jupiter in all. For each, the table gives the largest relative
+change of the total energy within the first tenth and within the last tenth of
+the run, and of the total angular momentum over the whole run.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="long-run")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.drift_per_integrator)
+```
+
+```{python}
+#| label: drift-per-integrator
+#| echo: false
+result.table("drift-per-integrator")
+```
+
+[Symplectic Euler and velocity Verlet keep the energy of the three bodies in a
+band that is as wide at the end of the run as at its start, and keep the total
+angular momentum to round-off; explicit Euler and the classical Runge-Kutta
+method let both drift]{.claim type="numerically-verified" scope="the Sun,
+Jupiter, and Saturn model, twelve hundred years, one time step"
+evidence="drift-per-integrator fig-energy-drift"}. The angular momentum is
+exactly the kick-and-drift argument of the explanation at work. The energy
+columns tell a band from a trend: for the two symplectic methods the first and
+the last tenth agree, for the classical Runge-Kutta method the last tenth is
+about ten times the first, and explicit Euler has lost the system within the
+first tenth, the planets spiralling outwards.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_energy_drift)
+```
+
+```{python}
+#| label: fig-energy-drift
+#| echo: false
+#| fig-cap: "The relative error of the total energy of the Sun, Jupiter, and Saturn over twelve centuries, the largest within each five years, for the four integrators at one step. The symplectic methods stay in bands of constant width; the classical Runge-Kutta method starts far lower and grows steadily; explicit Euler is wrong within decades."
+#| fig-alt: "Log-scale plot of relative energy error against time in years. A solid curve for explicit Euler rises in the first decades to near one and stays there. A dashed curve for symplectic Euler is a flat band. A solid curve with circle markers for velocity Verlet is a lower flat band. A dotted curve with square markers for the classical Runge-Kutta method starts lowest and rises steadily, approaching the band of Verlet by the end."
+#| fig-status: simulated
+result.show("fig-energy-drift")
+```
+
+The figure is the table over time. At this step the classical Runge-Kutta
+method is the most accurate for the whole run, at twice the cost of Verlet per
+step; but its error grows in proportion to the time, so that by the end of the
+run it approaches the band of Verlet, and in a longer run it would exceed it. A
+study of the stability of a planetary system over millions of orbits therefore
+uses a symplectic method: not because its error is small at every instant, but
+because its error does not grow.
+
+### Three bodies that close: the figure-eight
+
+Most starts of three bodies give motion that never repeats, and often one body
+is eventually thrown out. A few starts give periodic orbits. In the
+figure-eight, three equal masses chase each other along one path shaped like
+the figure eight, a third of a period apart. [Chenciner and Montgomery proved
+in 2000 that the orbit exists; the starting values below, to eight digits, are
+the ones published by Simó]{.not-verified}. The lesson does not take the period from
+the literature: it measures it.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="figure-eight")
+```
+
+The program runs the start with the classical Runge-Kutta method, finds the
+step at which the state of all three bodies is closest to the start, and
+refines the time by a parabola through the squared distance at the three
+steps around it. It then runs exactly one measured period in three thousand
+steps and compares the end with the start, and the state after a third of a
+period with the start with the bodies relabelled.
+
+```{python}
+#| echo: false
+excerpt(experiment.figure_eight)
+```
+
+```{python}
+#| label: figure-eight
+#| echo: false
+result.table("figure-eight")
+```
+
+[The figure-eight start returns to itself after the measured period of
+`{python} result["period"]` in the units of the problem, to within
+`{python} result["closure"]` in every coordinate, and after a third of the
+period the three bodies stand where the others started, to within
+`{python} result["permuted"]`]{.claim type="numerically-verified"
+scope="three equal masses, G equal to one, the start to eight digits, the classical
+Runge-Kutta method at three thousand steps per period"
+evidence="figure-eight fig-figure-eight"}. The relabelling is
+`{python} result["relabelling"]`: each body takes the place of the one before
+it. The closure is limited by the eight digits of the start, not by the
+integrator, whose energy error over the period is below the bound in the
+table. The total angular momentum of the figure-eight is zero, and stays so.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_figure_eight)
+```
+
+```{python}
+#| label: fig-figure-eight
+#| echo: false
+#| fig-cap: "One period of the figure-eight orbit of three equal masses: one path, traced by all three bodies in turn. Filled markers show the bodies at the start, open markers a twelfth of a period later; each body runs along the same curve, a third of a period behind the next."
+#| fig-alt: "Plot of the plane of the motion with equal axes. A single grey curve in the shape of a figure eight lying on its side, crossing itself at the centre. Three filled markers, a circle, a square, and a triangle, sit at the start: one at the centre and one on each lobe. Three open markers of the same shapes sit a short way further along the curve."
+#| fig-status: simulated
+result.show("fig-figure-eight")
+```
+
+The figure is the check made visible: the three paths are drawn separately and
+fall on one curve.
+
+## Limits {#limits}
+
+- No closed form exists to compare the long run with: the drift of the
+  conserved quantities shows how far the integrator moves the run off the
+  constant-energy surface, not how far its positions are from the true ones.
+  In a chaotic system the positions can be far off while the energy is
+  right.
+- The Sun, Jupiter, and Saturn model is planar, starts from circular orbits,
+  and leaves out the other planets; it is no ephemeris.
+- Every run uses one fixed step. Close encounters, and highly eccentric orbits
+  with fast passages, need adaptive or regularised methods, which the lesson
+  does not cover.
+- The drift is measured for one step and one length of run; how the band and
+  the trend scale with the step is the subject of the first exercise, for
+  velocity Verlet only.
+- No reference artifact from a dedicated N-body code is declared for this
+  lesson. [Production codes such as REBOUND, with symplectic integrators
+  adapted to near-Kepler orbits, would be the comparison for long runs of the
+  solar system]{.not-verified}; the lesson's references are the exact two-body
+  motion and the closure of the figure-eight.
+- The figure-eight is reproduced over one period. Whether it survives small
+  changes of its start over many periods, its stability, is not measured here.
+
+::: {.exercise .self-check}
+Symplectic Euler keeps the total angular momentum of the three bodies to
+round-off, but not the total energy. What property of the force does the first
+fact rest on, and why does the same argument not work for the energy?
+
+::: {.choices}
+::: {.choice}
+On the force being conservative; the energy is not kept because the step is
+not small enough.
+
+::: {.feedback}
+The force is conservative, but that is what keeps the energy of the exact
+motion, not the angular momentum of a step. Every finite step changes the
+energy of a symplectic method a little, whatever its size.
+:::
+:::
+
+::: {.choice correct="true"}
+On each pair force acting along the line between the two bodies, so the kick
+adds no torque; the energy has no such step-by-step argument and is kept only
+in a band.
+
+::: {.feedback}
+Right. The kick changes the angular momentum by the total torque, zero for
+central pair forces, and the drift moves each body along its own velocity,
+which adds no angular momentum. The energy depends on positions and velocities
+together, and a step of finite length changes it; the symplectic method keeps
+a nearby modified energy instead.
+:::
+:::
+
+::: {.choice}
+On the total momentum being zero in the barycentric frame.
+
+::: {.feedback}
+The frame does not matter: the angular momentum about any fixed point is kept,
+as the argument of the explanation shows for arbitrary positions and
+velocities.
+:::
+:::
+:::
+
+::: {.solution}
+The angular momentum rests on the pair forces being central: equal, opposite,
+and along the line between the bodies, so that their torques cancel. The kick
+then changes the angular momentum by zero, and the drift of each body along
+its own velocity adds nothing either, so every step keeps it exactly. The
+energy is a function of the positions and the velocities together; a step that
+kicks and then drifts does not keep it, because the kinetic energy is changed
+by the kick before the potential energy is changed by the drift. What the
+symplectic step keeps is a modified energy, close to the true one, so the
+error of the true energy stays in a band.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**The order of the band.** Run velocity Verlet on the Sun, Jupiter, and Saturn
+for a hundred years at the step of the lesson, at half of it, and at a quarter
+of it. By what factor should the width of the energy band fall each time the
+step is halved? Does it?
+
+::: {.hint}
+The modified energy of velocity Verlet differs from the energy by a term
+proportional to the square of the step.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.halved_step)
+```
+
+```{python}
+#| echo: false
+result.table("halved-step")
+```
+
+A band proportional to $\Delta t^2$ falls by four when the step is halved. The
+ratios are `{python} result["halved-ratio"]` and then
+`{python} result["quartered-ratio"]`: above four, and closer to it at the
+smaller step. The band is $\Delta t^2$ times a fixed function plus terms of
+higher order in $\Delta t$; at the step of the lesson those terms still add a
+little, and they shrink faster than the leading one as the step falls.
+:::
+:::
+
+::: {.exercise}
+**Jupiter's pull on Saturn.** Saturn starts on a circular orbit about the Sun.
+Alone with the Sun it would stay circular. Read the eccentricity of Saturn's
+orbit about the Sun once a year for three hundred years, with and without
+Jupiter, from Saturn's position and velocity relative to the Sun. How much does
+Jupiter change it?
+
+::: {.hint}
+`pbc.mechanics.orbit.orbital_elements` gives the eccentricity of the Kepler
+orbit through a position and a velocity relative to the centre.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.saturn_eccentricity)
+```
+
+```{python}
+#| echo: false
+result.table("jupiter-on-saturn")
+```
+
+Without Jupiter the eccentricity stays at its starting value, zero, to within
+`{python} result["saturn-alone"]`, the error of the integrator. With Jupiter it
+ranges over `{python} result["saturn-with-jupiter"]`: Jupiter's pull makes the
+orbit of Saturn an ellipse that changes in time. The eccentricity read this way
+is that of the Kepler orbit that Saturn would follow if Jupiter vanished at that
+instant, the osculating orbit; it is how astronomers describe an orbit that is
+not quite an ellipse.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/mechanics/dynamics.py",
+        "src/pbc/mechanics/integrators.py",
+        "src/pbc/mechanics/particles.py",
+        "src/pbc/mechanics/orbit.py",
+        "src/pbc/mechanics/nbody.py",
+        "src/pbc/verification/estimates.py",
+        "src/pbc/mechanics/experiments/many_body_gravitation.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_dynamics.py",
+        "tests/unit/test_integrators.py",
+        "tests/unit/test_particles.py",
+        "tests/unit/test_orbit.py",
+        "tests/unit/test_nbody.py",
+        "tests/unit/test_many_body_gravitation_experiment.py",
+    ],
+)
+```
