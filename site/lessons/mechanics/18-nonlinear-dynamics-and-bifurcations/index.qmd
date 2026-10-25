@@ -1,0 +1,605 @@
+---
+title: "Nonlinear dynamics and bifurcations"
+description: >-
+  A bead on a spinning hoop that leaves the bottom when the hoop turns fast
+  enough, and an oscillator that excites itself into a cycle: attractors,
+  bifurcation diagrams checked against their known thresholds, and the places
+  where linearisation stops telling the truth.
+lesson:
+  id: nonlinear-dynamics-and-bifurcations
+  strand: mechanics
+  order: 18
+  difficulty: 3
+  course: mechanics
+  slot: M14
+  methods: [simulation]
+  outcomes:
+    - Find the equilibria of a nonlinear system and their stability by linearisation
+    - Simulate a bifurcation diagram and check it against the known threshold and branch
+    - Recognise where linearisation fails, at the threshold and for large motion, and measure what happens instead
+    - Tell a fixed point from a limit cycle, and derive the amplitude of a cycle by averaging
+  related: []
+  format: 2
+  preview: fig-hoop-bifurcation
+  experiment: pbc.mechanics.experiments.nonlinear_dynamics_and_bifurcations
+  prerequisites:
+    lessons: [harmonic-oscillator, numerical-integrators, double-pendulum-chaos, lagrangian-mechanics, resonance]
+    outside:
+      - "Calculus: the Taylor expansions of sine and cosine to third order"
+      - "Linear algebra: the eigenvalues of a two-by-two matrix"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.mechanics import bifurcation
+from pbc.mechanics.experiments import nonlinear_dynamics_and_bifurcations as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+Press on the ends of a ruler and nothing happens, until the force reaches a
+certain value and the ruler bows out, to one side or the other. Turn a
+governor faster and its weights swing out from the axis. Draw a bow across a
+violin string and the string, which a single pluck would leave to die away,
+settles into a steady note. A wing in a fast enough airstream begins to
+flutter. In each case a small change of one parameter changes the long-run
+behaviour of the system completely: a state of rest becomes unstable, and new
+states appear. Such a change is a **bifurcation**, and the states a system
+settles into, whatever its start, are its **attractors**.
+
+The linear systems of the earlier lessons cannot do this: their response is
+proportional to what drives them, and they have one state of rest. The
+question of the lesson is what a nonlinear system settles into, how that
+changes with a parameter, and how far the linear analysis that served so far
+can be trusted. Two mechanical systems carry the lesson: a bead on a hoop that
+spins about its vertical diameter, and an oscillator that pumps energy into
+its own small motions. Both have thresholds known in closed form, so the
+simulated bifurcation diagrams can be checked against them.
+
+## Assumptions
+
+The model and the program rest on these assumptions. Each one names what
+goes wrong when it does not hold.
+
+1. **A bead that slides with a drag proportional to its speed.** The bead
+   has no size, and the friction of the hoop is a linear drag. Dry
+   friction would let the bead stick anywhere near an equilibrium, and the
+   diagram would get a band of resting angles instead of a curve.
+2. **A hoop that turns at a fixed rate.** A motor holds the rotation rate
+   whatever the bead does. A hoop that turned freely would slow down when
+   the bead moved out, as a spinning skater slows on spreading their arms,
+   and the threshold would move.
+3. **A perfect hoop, a perfectly vertical axis.** The system is symmetric:
+   left and right are the same. A slightly tilted axis breaks the symmetry,
+   the pitchfork becomes an imperfect one, and the bead goes to one side
+   gradually instead of suddenly.
+4. **A self-excited oscillator of the simplest form.** The oscillator's
+   damping is negative at small amplitude and grows with the square of the
+   displacement. Real self-excited systems have other nonlinearities, which
+   change the size and shape of the cycle but not its existence.
+5. **Simulated long enough to settle.** An attractor is read at the end of a
+   run. Near a threshold the approach slows down without bound, and a finite
+   run can mistake a slow approach for a state; the lesson measures how slow.
+
+## Equilibria, stability, and where linearisation stops {#explanation}
+
+### A bead on a spinning hoop
+
+A bead of mass $m$ slides on a vertical hoop of radius $R$ that turns at the
+rate $\Omega$ about its vertical diameter. With $\theta$ the angle of the bead
+from the bottom, its kinetic energy has a part along the hoop and a part from
+being carried round, and its potential energy is that of its height:
+
+$$
+\mathcal L = \tfrac12 m R^2\bigl(\dot\theta^2 + \Omega^2 \sin^2\theta\bigr)
++ m g R \cos\theta .
+$$
+
+The Euler-Lagrange equation of the Lagrangian lesson, with a drag that slows
+the bead along the hoop at the rate $2\gamma\dot\theta$, gives
+
+$$
+\ddot\theta = \sin\theta\,\bigl(\Omega^2\cos\theta - \Omega_c^2\bigr)
+- 2\gamma\,\dot\theta,
+\qquad \Omega_c^2 = \frac{g}{R}.
+$$
+
+The first term is the outward pull of the rotation, the second the weight.
+
+### Equilibria and their stability
+
+The bead is at rest where $\ddot\theta = 0$ with $\dot\theta = 0$: at the
+bottom, $\theta = 0$, at every rate, and where $\cos\theta^* = \Omega_c^2 /
+\Omega^2$, which has a solution only when $\Omega > \Omega_c$: two tilted
+equilibria, $\pm\theta^*$, one on each side.
+
+Whether an equilibrium is stable is decided by **linearisation**: write
+$\theta = \theta_e + \delta$ with a small $\delta$ and keep the first order
+of the right-hand side. With $f(\theta) = \sin\theta\,(\Omega^2\cos\theta -
+\Omega_c^2)$,
+
+$$
+\ddot\delta = f'(\theta_e)\,\delta - 2\gamma\,\dot\delta,
+\qquad
+f'(0) = \Omega^2 - \Omega_c^2,
+\qquad
+f'(\theta^*) = -\Omega^2 \sin^2\theta^* .
+$$
+
+This is the damped oscillator of the earlier lessons with the stiffness
+$k = -f'(\theta_e)$. Its solutions are $e^{st}$ with
+$s^2 + 2\gamma s + k = 0$, so
+
+$$
+s = -\gamma \pm \sqrt{\gamma^2 - k}.
+$$
+
+For $k > 0$ both roots have negative real parts and the equilibrium is
+stable; for $k < 0$ one root is positive and it is unstable. The bottom has
+$k = \Omega_c^2 - \Omega^2$: stable below the critical rate, unstable above.
+The tilted equilibria have $k = \Omega^2\sin^2\theta^* > 0$: stable whenever
+they exist. At $\Omega_c$ the bottom hands its stability over to two new
+equilibria that grow out of it, $\theta^{*2} \approx 4(\Omega - \Omega_c) /
+\Omega_c$ just above the threshold: a **supercritical pitchfork
+bifurcation**, named after the shape of its diagram.
+
+When the motion is overdamped, $\gamma^2 > k$, a small displacement decays at
+the slow rate $\lambda = \gamma - \sqrt{\gamma^2 - k}$; underdamped, its
+envelope decays at $\gamma$.
+
+### Where linearisation fails
+
+As $\Omega \to \Omega_c$ from below, $k \to 0$ and the slow rate
+$\lambda \approx k / (2\gamma)$ goes to zero: the bead takes longer and longer
+to return to the bottom, without limit. At the threshold itself linearisation
+says $\ddot\delta = -2\gamma\dot\delta$: a displacement that does not decay at
+all. That is wrong, because the restoring force does not vanish; only its
+linear part does. The next term of the Taylor expansion of
+$f(\theta) = \Omega_c^2 \sin\theta(\cos\theta - 1)$ is cubic,
+
+$$
+f(\theta) \approx -\tfrac12\,\Omega_c^2\,\theta^3 .
+$$
+
+Once the fast motion has died, the inertia is negligible and the bead creeps,
+$2\gamma\dot\theta \approx -\tfrac12\Omega_c^2\theta^3$. Divided by
+$\theta^3$ this integrates to
+
+$$
+\frac{1}{\theta^2} = \frac{1}{\theta_0^2} + \frac{\Omega_c^2}{2\gamma}\,t,
+\qquad
+\theta \approx \frac{\sqrt{2\gamma}}{\Omega_c}\,t^{-1/2} \text{ for long times}:
+$$
+
+an algebraic decay, slower than any exponential. Linearisation fails in a
+second place too: it describes small motion only. Near the threshold the
+stiffness is small, so even a modest amplitude is large compared with the
+range in which the linear force dominates the cubic one; an exercise measures
+how much the period changes.
+
+### A self-excited oscillator
+
+The oscillator
+
+$$
+\ddot x - (\mu - x^2)\,\dot x + x = 0
+$$
+
+(time in units of the inverse natural angular frequency) has the damping
+$-(\mu - x^2)$, negative for small $x$ when $\mu > 0$: a small motion is
+pumped up, a large one is damped. A bowed string and the escapement of a clock
+behave this way. Linearised about rest, $\ddot x - \mu\dot x + x = 0$, whose
+solutions grow as $e^{\mu t/2}$ for $\mu > 0$: rest is unstable, and the
+linear equation predicts growth without end. It cannot say where the growth
+stops.
+
+Averaging can. For small $\mu$ the motion is nearly $x = A\cos t$ with an
+amplitude $A$ that changes slowly. The energy $E = \tfrac12(\dot x^2 + x^2)$
+changes at the rate $(\mu - x^2)\dot x^2$, which averages over one period to
+
+$$
+\overline{\dot E} = \frac{\mu A^2}{2} - \frac{A^4}{8}.
+$$
+
+The negative damping feeds in energy in proportion to $A^2$, the cubic term
+takes it out in proportion to $A^4$, and they balance at
+
+$$
+A = 2\sqrt{\mu}.
+$$
+
+Every motion, from inside or from outside, approaches this closed orbit: a
+**limit cycle**, an attractor that is not a point. It is born at $\mu = 0$
+with zero amplitude and grows as the square root of the distance from the
+threshold, as the tilted equilibria of the hoop do: a **supercritical Hopf
+bifurcation**.
+
+## The program {#code}
+
+The reusable code is `pbc.mechanics.bifurcation`. Each acceleration takes its
+parameter as an array, one entry per copy of the system: one simulation with
+the course's classical Runge-Kutta stepper runs a whole bifurcation diagram,
+every rotation rate at once.
+
+```{python}
+#| echo: false
+excerpt(
+    bifurcation.hoop,
+    notes={
+        "return np.sin(x) * (omega_sq * np.cos(x) - stiffness) - 2.0 * gamma * v": (
+            "The equation of the explanation, for every copy of the bead at"
+            " once: the outward pull of the rotation, the weight, and the drag."
+        ),
+    },
+)
+```
+
+```{python}
+#| echo: false
+excerpt(bifurcation.hoop_equilibrium)
+```
+
+```{python}
+#| echo: false
+excerpt(
+    bifurcation.hoop_linear_rate,
+    notes={
+        "return np.where(gamma**2 > k, gamma - np.sqrt(np.maximum(gamma**2 - k, 0.0)), gamma)": (
+            "The slow root of the characteristic equation when overdamped, the"
+            " decay of the envelope when underdamped."
+        ),
+    },
+)
+```
+
+```{python}
+#| echo: false
+excerpt(bifurcation.self_excited)
+```
+
+```{python}
+#| echo: false
+excerpt(bifurcation.limit_cycle_amplitude)
+```
+
+The linearised rate is tested against the eigenvalues of the Jacobian of the
+equations, computed by central differences of the acceleration, independently
+of the formula.
+
+## Worked examples
+
+### The bifurcation diagram of the hoop
+
+The hoop has a radius of [a quarter of a metre]{.given}, so that
+$\Omega_c =$ `{python} result["omega-c"]` rad/s, and the bead a damping rate of
+[two per second]{.given}. At each rotation rate the bead is released at rest
+[0.3 rad]{.given} to one side of the bottom and, in a second copy, to the
+other, and the angle it rests at after [eighty seconds]{.given} is recorded.
+The rates run from half to twice the critical rate, more densely near it,
+skipping the critical rate itself.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment, region="diagram")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.bifurcation_diagram)
+```
+
+```{python}
+#| label: bifurcation-diagram
+#| echo: false
+result.table("bifurcation-diagram")
+```
+
+[The simulated bead leaves the bottom between `{python} result["below"]` and
+`{python} result["above"]` rad/s, the neighbouring rates of the diagram on
+either side of the known threshold $\sqrt{g/R} =$
+`{python} result["omega-c"]` rad/s, and above it rests on the tilted
+equilibrium of its own side]{.claim type="numerically-verified" scope="the
+hoop of the lesson, the rates of the diagram, eighty seconds to settle"
+evidence="bifurcation-diagram fig-hoop-bifurcation"}: the largest difference
+between a settled angle and the closed form, over every rate and both sides,
+is `{python} result["branch-gap"]` rad. The side is decided by the start: the
+symmetric system has two attractors above the threshold, and each start
+belongs to one of them.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_bifurcation)
+```
+
+```{python}
+#| label: fig-hoop-bifurcation
+#| echo: false
+#| fig-cap: "The bifurcation diagram of the bead on the spinning hoop: the angle at which the damped bead comes to rest against the rotation rate, simulated from both sides (markers) over the branches of the closed form (lines). Below the critical rate the bead returns to the bottom; above it the bottom is unstable and the bead rests on the tilted equilibrium of its side. The simulation and the closed form agree, and the change happens at the known threshold."
+#| fig-alt: "Plot of the angle of the bead in radians against the rotation rate of the hoop. A solid line lies at zero up to a vertical dotted line at the critical rate; beyond it the line at zero is dashed, and two solid curves branch off symmetrically, one rising and one falling, steeply at first and then flattening. Round markers lie on the zero line on the left and on the upper branch on the right; open square markers lie on the zero line on the left and on the lower branch on the right."
+#| fig-status: simulated
+result.show("fig-hoop-bifurcation")
+```
+
+The figure has the shape that gives the pitchfork its name: one stable state
+that splits into two. The markers sit on the lines everywhere they were
+computed. Close to the threshold on either side the markers are denser, and
+there the simulation needs its eighty seconds: the next example shows why.
+
+### Critical slowing down
+
+The bead is released near the bottom at rates just below the threshold and at
+the threshold itself, and followed for [two minutes]{.given}. Below the
+threshold the logarithm of the angle over the second minute is fitted by a
+straight line, whose slope is the decay rate; it is compared with the slow
+rate of the linearised equation.
+
+```{python}
+#| echo: false
+excerpt(experiment.near_threshold)
+```
+
+```{python}
+#| label: near-threshold
+#| echo: false
+result.table("near-threshold")
+```
+
+[Below the threshold the bead returns exponentially at the slow rate of the
+linearised equation, and that rate falls towards zero as the rotation
+approaches the critical rate]{.claim type="numerically-verified" scope="the
+hoop of the lesson, five rates just below the critical rate"
+evidence="near-threshold"}. At the critical rate itself the linear rate is
+zero, and the bead still returns. [At the threshold the inverse square of the
+angle grows at `{python} result["inverse-square-slope"]` per square radian per
+second, against $\Omega_c^2 / 2\gamma =$ `{python} result["cubic-slope"]` from
+the cubic term, a relative difference of
+`{python} result["slope-difference"]`: the bead returns algebraically, as the
+first nonlinear term predicts and linearisation does not]{.claim
+type="numerically-verified" scope="the critical rate, the second minute of the
+run" evidence="near-threshold fig-critical-slowing"}.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_critical_slowing)
+```
+
+```{python}
+#| label: fig-critical-slowing
+#| echo: false
+#| fig-cap: "The angle of the bead released near the bottom, against time on log-log axes, just below the critical rate and at it. Below it the angle falls exponentially, later the closer the rate is to the threshold; at the threshold it falls algebraically, along the reference line of slope minus one half that the cubic term predicts."
+#| fig-alt: "Log-log plot of the angle in radians against time in seconds. All curves start flat at the release angle. Three broken curves, for rates below the threshold, bend down steeply and leave the bottom of the plot, the one closest to the threshold last. A thick solid curve for the critical rate bends down gently and then follows a dotted straight reference line falling with slope minus one half to the end."
+#| fig-status: simulated
+result.show("fig-critical-slowing")
+```
+
+The straight reference line is drawn from the formula of the explanation,
+not fitted: the solid curve joins it once the fast part of the motion has
+died. The broken curves show the price of being near a threshold: the run
+must last longer than $1/\lambda$, which has no bound.
+
+### The limit cycle of a self-excited oscillator
+
+The self-excited oscillator starts from rest at $x = 1$ for each of several
+values of $\mu$, runs for [four hundred]{.given} time units with the classical
+Runge-Kutta method, and the largest displacement over the last two periods is
+its amplitude.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="cycle")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.limit_cycle)
+```
+
+```{python}
+#| label: limit-cycle
+#| echo: false
+result.table("limit-cycle")
+```
+
+[Below the threshold the oscillator comes to rest; above it the motion settles
+on a limit cycle whose amplitude agrees with $2\sqrt\mu$, the square of the
+amplitude rising along a line that crosses zero at
+$\mu =$ `{python} result["hopf-threshold"]` with the slope
+`{python} result["hopf-slope"]`, against the threshold zero and the slope four
+of the averaged equation]{.claim type="numerically-verified" scope="the
+self-excited oscillator, the values of mu in the table, the line fitted for mu
+up to two tenths" evidence="limit-cycle"}. The relative difference from
+$2\sqrt\mu$ grows with $\mu$: averaging is exact only as $\mu$ goes to zero,
+and the cycle becomes less round as $\mu$ grows. At the smallest $\mu$ the
+difference is larger again, because there the approach to the cycle is slow
+and the run has not quite finished it.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_limit_cycle)
+```
+
+```{python}
+#| label: fig-limit-cycle
+#| echo: false
+#| fig-cap: "Two motions of the self-excited oscillator at mu equal to two tenths in the phase plane, one starting near rest and one far outside. The first spirals out, the second spirals in, and both end on the same closed orbit, close to the circle of radius two times the root of mu that averaging predicts: an attractor that is a cycle, not a point."
+#| fig-alt: "Phase-plane plot of velocity against displacement with equal axes. A solid curve starts at the centre and spirals outwards in widening loops. A dashed curve starts far to the right, swings round in a large loop, and spirals inwards. Both settle on the same slightly squashed closed loop, which lies close to a dotted circle drawn round the centre."
+#| fig-status: simulated
+result.show("fig-limit-cycle")
+```
+
+The cycle does not depend on the start: that is what makes it an attractor.
+Its amplitude is set by the balance of energy, not by the initial condition,
+in contrast with the oscillators of the earlier lessons, whose amplitude was
+whatever they started with.
+
+## Limits {#limits}
+
+- The threshold of the hoop is located only to the spacing of the rates of
+  the diagram; the precise value is the closed form, which the simulation
+  agrees with but does not measure more finely.
+- Attractors are read after a finite run. Near a threshold the approach is
+  slow without bound, and a point of a diagram computed too close to it is
+  a transient, not an attractor; the diagram skips the critical rate for
+  that reason.
+- Both bifurcations of the lesson are supercritical: the new states grow
+  continuously from zero. In a subcritical bifurcation the system jumps to a
+  distant state and shows hysteresis; it is not treated here.
+- The systems are low-dimensional and their attractors are points and a
+  cycle. Damped and driven systems with more dimensions can also have chaotic
+  attractors, which neither system of the lesson has.
+- The amplitude $2\sqrt\mu$ is the result of averaging, accurate for small
+  $\mu$; for large $\mu$ the cycle becomes a relaxation oscillation of another
+  shape and the formula no longer applies.
+- The bead, the hoop, and the oscillator are models; the lesson validates the
+  program against their closed forms, not against a measured system.
+
+::: {.exercise .self-check}
+Linearisation about the bottom of the hoop at the critical rate gives a
+stiffness of zero. What does the linear equation then predict for a small
+displacement, and what does the bead actually do?
+
+::: {.choices}
+::: {.choice}
+The linear equation predicts an exponential decay at the damping rate, and the
+bead decays that way.
+
+::: {.feedback}
+With zero stiffness the linear equation is $\ddot\delta = -2\gamma\dot\delta$:
+the velocity decays, but the displacement it reaches stays where it is. And
+the bead does not decay exponentially at the threshold.
+:::
+:::
+
+::: {.choice correct="true"}
+The linear equation predicts that the displacement stays (only the velocity
+dies), but the cubic term pulls the bead back, slowly: the angle falls as one
+over the square root of the time.
+
+::: {.feedback}
+Right. The linear part of the restoring force vanishes at the threshold, not
+the force itself. Its cubic part, minus a half of the square of the critical
+rate times the cube of the angle, brings the bead back, so slowly that the
+decay is algebraic.
+:::
+:::
+
+::: {.choice}
+The linear equation predicts growth, and the bead leaves the bottom.
+
+::: {.feedback}
+Growth needs a negative stiffness, which the bottom has only above the
+threshold. At the threshold the stiffness is zero, and the bead does return.
+:::
+:::
+:::
+
+::: {.solution}
+At zero stiffness the linear equation is $\ddot\delta = -2\gamma\dot\delta$:
+the velocity decays and the bead stops wherever it happens to be, so the
+linear model predicts no return at all, neither stability nor instability.
+The model is then silent, and the first nonlinear term decides. Here it is
+$-\tfrac12\Omega_c^2\theta^3$, a restoring force, so the bead returns, but at a
+rate that falls with the angle itself: $1/\theta^2$ grows in proportion to the
+time, and the angle falls as $t^{-1/2}$.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Oscillations about the tilted equilibrium.** With a weak damping rate of
+0.1 per second, release the bead 0.01 rad beyond its tilted equilibrium at
+1.2, 1.5, and 2 times the critical rate. Measure the angular frequency of the
+oscillation about the equilibrium and compare it with the linearised one.
+
+::: {.hint}
+The stiffness about the tilted equilibrium is the square of the rotation rate
+times the square of the sine of the angle.
+:::
+
+::: {.hint}
+With damping, the oscillation of a linear system has the angular frequency
+$\sqrt{k - \gamma^2}$.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.tilted_oscillation)
+```
+
+```{python}
+#| echo: false
+result.table("tilted-oscillation")
+```
+
+The measured and the linearised frequencies agree to a relative
+`{python} result["tilted-difference"]` or better: for a small displacement
+about a stable equilibrium away from the threshold, linearisation is
+accurate. The frequency rises with the rotation rate, as the stiffness
+$\Omega^2\sin^2\theta^*$ does.
+:::
+:::
+
+::: {.exercise}
+**The period near the threshold.** Without damping, release the bead from
+rest at 0.01 rad and at 0.2 rad from the bottom, at 0.6, 0.9, and 0.99 of the
+critical rate. Compare the periods with the linearised period
+$2\pi / \sqrt{\Omega_c^2 - \Omega^2}$. Where does linearisation fail?
+
+::: {.hint}
+Compare the linear part of the restoring force with the cubic part at the
+amplitude of the motion.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.undamped_period)
+```
+
+```{python}
+#| echo: false
+result.table("undamped-period")
+```
+
+At the small amplitude the period follows the linearised one everywhere; even
+at the rate closest to the threshold it is `{python} result["near-small"]` of
+it. At the
+larger amplitude the period agrees far from the threshold and fails close to
+it, where it is only `{python} result["near-large"]` of the linearised period.
+The linear restoring force is $(\Omega_c^2 - \Omega^2)\theta$ and the cubic
+one about $\tfrac12\Omega^2\theta^3$ for small angles; they are equal at
+$\theta^2 \approx 2(\Omega_c^2 - \Omega^2)/\Omega^2$, which near the threshold
+is small. An amplitude that is small in absolute terms is then large for the
+linear model: the range of linearisation shrinks to nothing at the threshold.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/mechanics/dynamics.py",
+        "src/pbc/mechanics/integrators.py",
+        "src/pbc/mechanics/bifurcation.py",
+        "src/pbc/mechanics/experiments/nonlinear_dynamics_and_bifurcations.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_dynamics.py",
+        "tests/unit/test_integrators.py",
+        "tests/unit/test_bifurcation.py",
+        "tests/unit/test_nonlinear_dynamics_and_bifurcations_experiment.py",
+    ],
+)
+```

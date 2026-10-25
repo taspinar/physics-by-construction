@@ -1,0 +1,608 @@
+---
+title: "Rotational motion, torque, and angular momentum"
+description: >-
+  Rigid bodies that turn: the inertia tensor of a disc built from point
+  masses, torque as the rate of change of angular momentum, and a gyroscope
+  simulated in space, checked for its energy, its conserved angular momentum,
+  its units, and its precession rate against the fast-top limit.
+lesson:
+  id: rotational-motion
+  strand: mechanics
+  order: 19
+  difficulty: 3
+  course: mechanics
+  slot: M17
+  methods: [simulation]
+  outcomes:
+    - Compute the inertia tensor of a body and use the parallel-axis theorem
+    - Relate torque to the rate of change of angular momentum, and say which components a torque leaves constant
+    - Simulate a heavy symmetric top and check its energy, its angular momentum, and its units
+    - Derive the gyroscopic precession rate and check a simulation against it in the fast-top limit
+  related: []
+  format: 2
+  preview: fig-axis-path
+  experiment: pbc.mechanics.experiments.rotational_motion
+  prerequisites:
+    lessons: [momentum-and-collisions, kepler-orbit, numerical-integrators, lagrangian-mechanics, hamiltonian-mechanics]
+    outside:
+      - "Vectors: the cross product, its right-hand rule, and the identity a × (b × c) = b (a·c) − c (a·b)"
+      - "Linear algebra: matrix-vector products, and the eigenvectors of a symmetric matrix"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.mechanics import rigid_body
+from pbc.mechanics.experiments import rotational_motion as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A top that spins stands on its point; the same top at rest falls over at once.
+A spinning bicycle wheel held by one end of its axle does not drop: its axle
+turns slowly about the vertical instead. Gyroscopes keep aircraft and
+spacecraft pointed, and the spinning Earth, pulled at its equatorial bulge by
+the Sun and the Moon, turns its axis slowly round the sky. In each case a
+torque that would tip a body at rest instead turns the axis of a spinning
+one sideways, at right angles to the push. That is the strangest result of
+elementary mechanics, and it follows from one equation: torque is the rate of
+change of angular momentum.
+
+The question of the lesson is how a rigid body turns, and how fast a
+gyroscope precesses. The lesson builds the inertia tensor that connects the
+angular velocity of a body with its angular momentum, simulates a toy
+gyroscope in three dimensions, checks the simulation by the quantities the
+exact motion keeps and by its units, and checks the precession rate against
+the analytic limit of a fast top.
+
+## Assumptions
+
+The model and the program rest on these assumptions. Each one names what
+goes wrong when it does not hold.
+
+1. **A rigid body.** The distances between the parts of the body never
+   change. A body that bends or wobbles exchanges energy between its shape
+   and its rotation, and a spinning body that flexes can end up turning about
+   another axis.
+2. **A thin disc on a massless axle.** The gyroscope is a flat disc whose
+   centre is on its axle, at a fixed distance from the pivot; the axle has no
+   mass. A real gyroscope has a thick rotor and a frame, which change the
+   moments of inertia but not the form of the results.
+3. **A frictionless fixed pivot.** The tip of the axle is held at one point
+   and exerts no torque. Friction at the pivot slowly removes the spin, so
+   the precession speeds up in time, and a pivot that slides lets the top
+   wander.
+4. **Uniform gravity, no air.** The weight acts at the centre of mass;
+   there is no air resistance on the spinning disc.
+5. **A step that resolves the nodding.** The simulation takes many steps per
+   period of the fast nodding motion of the axis. A step too long for it
+   makes the energy drift.
+
+## How a rigid body turns {#explanation}
+
+### Angular velocity and the inertia tensor
+
+A rigid body turning about a fixed point has an angular velocity
+$\boldsymbol\omega$: its direction is the axis of the turn, its length the
+rate in rad/s, and a point of the body at $\mathbf r$ from the fixed point
+moves with $\mathbf v = \boldsymbol\omega \times \mathbf r$. The angular
+momentum of the body is the sum of $\mathbf r \times m\mathbf v$ over its
+parts, and with the identity of the double cross product,
+
+$$
+\mathbf L = \sum_k m_k\,\mathbf r_k \times (\boldsymbol\omega \times \mathbf r_k)
+= \mathsf I\,\boldsymbol\omega,
+\qquad
+\mathsf I = \sum_k m_k\bigl(|\mathbf r_k|^2\,\mathsf 1 - \mathbf r_k \mathbf r_k^{\mathsf T}\bigr).
+$$
+
+The **inertia tensor** $\mathsf I$ is a symmetric three-by-three matrix in
+$\mathrm{kg\,m^2}$. It has three perpendicular eigenvectors, the **principal
+axes** of the body, and its eigenvalues are the **principal moments**. Only
+when the body turns about a principal axis is $\mathbf L$ parallel to
+$\boldsymbol\omega$; otherwise the two point in different directions, which
+is why an unbalanced wheel shakes its bearings. For a flat disc of mass $m$
+and radius $r$ the moment about its symmetry axis is $\tfrac12 m r^2$ and
+about any diameter $\tfrac14 m r^2$. About a point at the offset $\mathbf d$
+from the centre of mass the tensor is
+
+$$
+\mathsf I_{\text{point}} = \mathsf I_{\text{centre}}
++ m\bigl(|\mathbf d|^2\,\mathsf 1 - \mathbf d\,\mathbf d^{\mathsf T}\bigr),
+$$
+
+the **parallel-axis theorem**: the same formula applied to the whole mass at
+the centre of mass. The kinetic energy of the rotation is
+$T = \tfrac12\,\boldsymbol\omega\cdot\mathbf L$.
+
+### Torque
+
+Differentiate $\mathbf L = \sum \mathbf r \times m\mathbf v$ in time. The
+term $\dot{\mathbf r} \times m\mathbf v$ vanishes, $\mathbf v$ being parallel
+to itself, and $m\dot{\mathbf v}$ is the force on each part, so
+
+$$
+\frac{d\mathbf L}{dt} = \boldsymbol\tau = \sum_k \mathbf r_k \times \mathbf F_k,
+$$
+
+the total **torque** about the fixed point; the internal forces of a rigid
+body cancel in pairs, as in the many-body lesson. This is Newton's second law
+for rotation, in $\mathrm{N\,m} = \mathrm{kg\,m^2/s^2}$. A component of
+$\mathbf L$ along which no torque acts is constant.
+
+### The heavy symmetric top
+
+A gyroscope on a pivot is a **heavy symmetric top**: a body with two equal
+principal moments $I_1$ about axes through the pivot across its symmetry
+axis, a third $I_3$ about that axis, and its centre of mass at the distance
+$l$ along the axis $\mathbf e_3$ from the pivot. Gravity exerts the torque
+
+$$
+\boldsymbol\tau = l\,\mathbf e_3 \times (-m g\,\hat{\mathbf z}),
+\qquad |\boldsymbol\tau| = m g l \sin\theta,
+$$
+
+with $\theta$ the tilt of the axis from the vertical. Three quantities are
+kept. The torque is horizontal, so the **vertical component** $L_z$ is
+constant. The torque is also perpendicular to the axis, and the symmetry of
+the body makes the axis turn without changing the projection of $\mathbf L$
+on it, so the **axial component** $\mathbf L\cdot\mathbf e_3 = I_3\omega_3$ is
+constant, with $\omega_3$ the spin about the axis. Gravity is conservative, so
+the **energy** $\tfrac12\boldsymbol\omega\cdot\mathbf L + m g l\cos\theta$ is
+constant.
+
+### Gyroscopic precession
+
+When the top spins fast, almost all of its angular momentum is the spin,
+$\mathbf L \approx I_3\omega_3\,\mathbf e_3$. The torque is horizontal and
+perpendicular to $\mathbf e_3$, so it does not change the length of
+$\mathbf L$ or its tilt: it turns its horizontal part, of length
+$I_3\omega_3\sin\theta$, about the vertical. In a time $dt$ that part turns
+by $|\boldsymbol\tau|\,dt / (I_3\omega_3\sin\theta)$, so the axis
+**precesses** at the rate
+
+$$
+\Omega_p = \frac{m g l\sin\theta}{I_3\,\omega_3 \sin\theta}
+= \frac{m g l}{I_3\,\omega_3},
+$$
+
+independent of the tilt, and slower the faster the spin. Its units are a
+check of the formula: $m g l$ is in $\mathrm{kg\,m^2/s^2}$, $I_3\omega_3$ in
+$\mathrm{kg\,m^2/s}$, and their ratio is in $1/\mathrm{s}$, a rate.
+
+This is a limit. The exact top can precess steadily at a constant tilt only at
+the rates that solve the equation of the tilt with $\ddot\theta =
+\dot\theta = 0$,
+
+$$
+I_1\cos\theta\;\Omega^2 - I_3\omega_3\;\Omega + m g l = 0,
+$$
+
+which has a slow and a fast root. The slow root is
+$\Omega_p\,(1 + I_1 m g l\cos\theta / (I_3\omega_3)^2 + \dots)$: the limit,
+with a correction that falls as the inverse square of the spin. A top
+released without precession does not start on this steady motion. It drops
+a little, picks up the precession, and its axis **nods** (nutation) at about
+the rate $I_3\omega_3/I_1$, tracing loops with cusps, while it precesses on
+average at a rate that also tends to $\Omega_p$ as the spin grows.
+
+## The program {#code}
+
+The reusable code is `pbc.mechanics.rigid_body`. The inertia tensor of point
+masses and the parallel-axis theorem are the formulas of the explanation:
+
+```{python}
+#| echo: false
+excerpt(rigid_body.inertia_tensor)
+```
+
+```{python}
+#| echo: false
+excerpt(rigid_body.parallel_axis)
+```
+
+The top is integrated in space. Its orientation is a unit **quaternion**
+$q$, four numbers that encode a rotation without the singular directions of
+angles and turn the body frame into space; its angular momentum
+$\mathbf L$ is kept in space. The angular velocity follows from
+$\mathbf L$ through the inertia tensor turned into space, and the two
+equations of motion are $dq/dt = \tfrac12 (0, \boldsymbol\omega)\,q$ and
+$d\mathbf L/dt = \boldsymbol\tau$:
+
+```{python}
+#| echo: false
+excerpt(
+    rigid_body.Top,
+    region="top-equations",
+    notes={
+        "return np.cross(self.length * rotation[:, 2], -self.mass * self.g * VERTICAL)": (
+            "The torque of gravity about the pivot: the arm along the axis of"
+            " the top, crossed with the weight."
+        ),
+        "return rotation @ (body / np.array([self.i1, self.i1, self.i3]))": (
+            "The angular momentum taken into the body frame, divided by the"
+            " principal moments, and the angular velocity brought back into"
+            " space."
+        ),
+    },
+)
+```
+
+```{python}
+#| echo: false
+excerpt(
+    rigid_body.simulate_top,
+    notes={
+        "qs.append(q1 / np.linalg.norm(q1))": (
+            "The quaternion is scaled back to unit length: the method keeps"
+            " its length only to its own accuracy, and only a unit quaternion"
+            " is a rotation."
+        ),
+        "ls.append(l0 + dt / 6.0 * (k1l + 2 * k2l + 2 * k3l + k4l))": (
+            "The angular momentum changes by the weighted torque of the four"
+            " stages: the rotational form of Newton's second law."
+        ),
+    },
+)
+```
+
+The steady-precession rates and the fast-top limit:
+
+```{python}
+#| echo: false
+excerpt(rigid_body.steady_precession_rates)
+```
+
+```{python}
+#| echo: false
+excerpt(rigid_body.fast_top_rate)
+```
+
+## Worked examples
+
+### The inertia tensor of a disc
+
+A disc of [half a kilogram]{.given} and [four centimetres]{.given} radius is
+cut into rings of equal width, each ring into equal sectors, and each piece
+replaced by a point mass at its middle, in proportion to its area. The
+inertia tensor of the points is compared with the moments of the closed form.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.inertia_of_a_disc)
+```
+
+```{python}
+#| label: inertia-of-a-disc
+#| echo: false
+result.table("inertia-of-a-disc")
+```
+
+[The inertia tensor of the disc of point masses converges to the moments of
+the closed form, the error falling with the square of the width of the
+rings]{.claim type="numerically-verified" scope="a flat disc, four divisions"
+evidence="inertia-of-a-disc"}: the fitted order is
+`{python} result["disc-order"]`, the order of the midpoint rule, and the moment
+across the axis is half the moment about it at every division. The tensor
+about the pivot, computed from the points moved along the axis, and the one
+from the parallel-axis theorem agree: their largest difference, relative to
+the moment across the axis, is `{python} result["parallel-gap"]`.
+
+### A gyroscope, checked
+
+The gyroscope has that disc on an axle, its centre at
+[five centimetres]{.given} from the pivot, its moments about the pivot from the
+closed forms and the parallel-axis theorem. It is released at rest about the
+vertical, its axis tilted by [half a radian]{.given}, spinning at
+[two hundred radians per second]{.given}, about two thousand revolutions per
+minute, and followed for [three seconds]{.given} with the classical
+Runge-Kutta method at [half a millisecond]{.given} per step.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="top")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.conservation)
+```
+
+```{python}
+#| label: conservation
+#| echo: false
+result.table("conservation")
+```
+
+[The simulated gyroscope changes its angular momentum at the rate of the
+torque of gravity, keeps the vertical component of its angular momentum to
+round-off, and keeps its energy and its axial angular momentum to the accuracy
+of the method]{.claim type="numerically-verified" scope="one release, three
+seconds, the classical Runge-Kutta method at the stated step"
+evidence="conservation"}. The vertical component is kept exactly because the
+torque the program computes has no vertical component at all; the other two
+quantities are kept by the exact motion and drift in the simulation only by
+the error of the method, which is small at this step.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_axis_path)
+```
+
+```{python}
+#| label: fig-axis-path
+#| echo: false
+#| fig-cap: "The centre of mass of the gyroscope seen from above over three seconds after its release. The axis does not fall: it precesses about the vertical through the pivot, and nods as it goes, the path coming to a cusp each time the axis momentarily stops."
+#| fig-alt: "Plot of the horizontal position of the centre of mass in centimetres, with equal axes. A curve starts at a marker on the right and runs anticlockwise almost all the way round a circle about a cross at the centre, in a chain of small arcs that meet the outer edge in sharp points, like the edge of a flower or a scalloped border."
+#| fig-status: simulated
+result.show("fig-axis-path")
+```
+
+The cusps are the release condition repeated: each time the nodding brings
+the axis back to its highest point, it stands still for an instant, as it
+did at the start, and then drops and moves on again.
+
+### The precession rate against the fast-top limit
+
+The gyroscope is released in the same way at four spins, and the mean rate of
+the azimuth of its axis is read as the slope of a straight line fitted to it,
+which averages over the nodding. It is compared with the slow steady rate at
+the same tilt and with the fast-top limit $m g l / (I_3\omega_3)$.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="spins")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.precession)
+```
+
+```{python}
+#| label: precession
+#| echo: false
+result.table("precession")
+```
+
+[The measured mean precession rate of the gyroscope approaches the analytic
+fast-top limit $m g l / (I_3\omega_3)$ as the spin grows, the relative
+difference falling as the inverse of the spin to the power
+`{python} result["precession-power"]`, down to
+`{python} result["largest-spin-difference"]` at the fastest spin]{.claim
+type="numerically-verified" scope="the gyroscope of the lesson, released
+without precession at one tilt, four spins" evidence="precession
+fig-precession-rate"}. The power two is the one the slow root of the steady
+equation predicts for its correction, and at the faster spins the measured
+mean rate and the slow steady rate agree to the precision of the table. At the
+slowest spin the top is barely a gyroscope: the limit is far off, and so is
+the steady rate, which the released top does not reach.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_precession)
+```
+
+```{python}
+#| label: fig-precession-rate
+#| echo: false
+#| fig-cap: "The relative difference between the measured mean precession rate and the fast-top limit, against the spin, on log-log axes. It falls along the reference line of slope minus two: the faster the spin, the better the limit, with a correction that falls as the inverse square of the spin."
+#| fig-alt: "Log-log plot of the relative difference from the limit against the spin in radians per second. Round markers joined by a solid line fall in a straight line from the top left to the bottom right. A dotted reference line of slope minus two, drawn through the first marker, lies almost on top of them."
+#| fig-status: simulated
+result.show("fig-precession-rate")
+```
+
+The reference line is drawn through the first point with the slope of the
+correction derived for steady precession, not fitted. The measured points
+follow it: the simulation reproduces both the limit and the way it is
+approached.
+
+### Steady precession
+
+Released with the slow steady rate of the closed form instead of at rest, the
+gyroscope should precess at that rate without nodding.
+
+```{python}
+#| echo: false
+excerpt(experiment.steady)
+```
+
+```{python}
+#| label: steady
+#| echo: false
+result.table("steady")
+```
+
+[Released on its slow steady precession, the gyroscope precesses at the rate
+of the closed form, with a relative difference
+`{python} result["steady-difference"]`, and its tilt stays constant to within the integrator's error]{.claim
+type="numerically-verified" scope="one spin, one tilt, three seconds"
+evidence="steady"}. The fast root is a precession that is almost as quick as
+the nodding; a gyroscope is seldom seen in it.
+
+### The unit check
+
+A program that mixes units, a radius in centimetres beside a mass in
+kilograms, gives wrong numbers without any error. The check runs the same
+gyroscope with every input converted to grams and centimetres, $g$ included;
+angles and times keep their units, so the precession rate in radians per
+second must not change.
+
+```{python}
+#| echo: false
+excerpt(experiment.other_units)
+```
+
+```{python}
+#| label: other-units
+#| echo: false
+result.table("other-units")
+```
+
+[The simulation gives the same precession rate in grams and centimetres as in
+kilograms and metres, with a relative difference
+`{python} result["units-difference"]`]{.claim
+type="numerically-verified" scope="one spin, the two systems of units"
+evidence="other-units"}: every formula of the program combines its inputs
+in dimensionally consistent ways, as the units of the fast-top limit in the
+explanation do.
+
+## Limits {#limits}
+
+- The gyroscope is a model: a thin disc, a massless axle, a perfect pivot,
+  no friction, no air. A real gyroscope slows down, and its precession speeds
+  up as it does.
+- The precession rate is checked in the fast-top limit and against the
+  steady rates of the closed form. The full motion of the released top, with
+  its nodding, has a closed form in elliptic functions, which the lesson does
+  not compute; the mean rate is read by a linear fit over the run, which
+  averages the nodding only to within the run's length.
+- The energy and the axial angular momentum drift slowly with the classical
+  Runge-Kutta method; the run is short. A long run would need a smaller step
+  or a geometric integrator built for rigid bodies.
+- The inertia tensor is introduced for point masses and a flat disc. Bodies
+  that are not symmetric turn in more complicated ways, including the
+  instability of rotation about the middle principal axis, which the lesson
+  does not treat.
+- The unit check shows that the program is consistent between two systems
+  of units; it does not check a quantity entered in a wrong unit in both.
+
+::: {.exercise .self-check}
+Why does a fast-spinning gyroscope on a pivot not fall over when its axis is
+tilted, although gravity exerts a torque that would tip it?
+
+::: {.choices}
+::: {.choice}
+The spin creates an upward force at the centre of mass that balances the
+weight.
+
+::: {.feedback}
+There is no such force. The pivot holds the gyroscope up, as it would a
+gyroscope at rest; the difference is in what the torque does, not in the
+forces.
+:::
+:::
+
+::: {.choice correct="true"}
+The torque changes the angular momentum, which points mostly along the axis;
+the change is horizontal and perpendicular to it, so the axis turns sideways
+instead of down.
+
+::: {.feedback}
+Right. $d\mathbf L/dt = \boldsymbol\tau$: the torque of gravity is horizontal
+and perpendicular to the axis, so the large spin angular momentum is turned
+about the vertical, at the rate the torque divided by the horizontal part of
+the angular momentum.
+:::
+:::
+
+::: {.choice}
+The angular momentum is conserved, so the axis cannot move.
+
+::: {.feedback}
+Only its vertical component and its component along the axis are conserved.
+The torque is not zero, so the angular momentum changes, and the axis does
+move: it precesses.
+:::
+:::
+:::
+
+::: {.solution}
+The torque of gravity about the pivot is horizontal and perpendicular to the
+axis. For a gyroscope at rest it tips the body over, because the angular
+momentum it creates is the start of a fall. For a fast gyroscope the angular
+momentum is large and points along the axis; the torque adds to it a small
+horizontal change perpendicular to it, which turns it about the vertical
+instead of tilting it. The axis follows, precessing at $m g l / (I_3\omega_3)$.
+The pivot still carries the weight; the gyroscope does not float.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A longer arm.** Move the disc of the gyroscope to 10 cm from the pivot and
+release it with the spin of 400 rad/s. By what factor does the fast-top limit
+change? By what factor does the measured mean precession rate change, and
+why is it not exactly the same?
+
+::: {.hint}
+The torque doubles with the arm, the axial angular momentum does not change;
+but the moment of inertia across the axis grows with the square of the arm.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.longer_arm)
+```
+
+```{python}
+#| echo: false
+result.table("longer-arm")
+```
+
+The limit is proportional to $l$, so it doubles exactly. The measured rate
+grows by `{python} result["arm-ratio"]`: more than double, because the
+correction to the limit grows with $I_1 m g l / (I_3\omega_3)^2$, and both
+$I_1$ and $l$ are larger. At the same spin the gyroscope with the longer arm
+is further from the fast-top limit.
+:::
+:::
+
+::: {.exercise}
+**Spin about a tilted axis.** Spin the disc about an axis through its centre
+tilted by an angle $\alpha$ from its symmetry axis. Compute the angle between
+the angular velocity and the angular momentum from the inertia tensor for
+several $\alpha$, and compare with the angle that follows from the principal
+moments, $\alpha - \arctan(\tfrac12\tan\alpha)$.
+
+::: {.hint}
+In the frame of the principal axes, $\mathbf L$ has the components of
+$\boldsymbol\omega$ multiplied by the principal moments.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.tilted_spin)
+```
+
+```{python}
+#| echo: false
+result.table("tilted-spin")
+```
+
+The two columns agree. About a principal axis, the symmetry axis or a
+diameter, the angle is zero: $\mathbf L$ and $\boldsymbol\omega$ are parallel.
+In between they are not, because the moment about a diameter is half the moment
+about the axis: $\mathbf L$ leans towards the symmetry axis. A wheel mounted
+slightly askew on its axle therefore has an angular momentum that turns with
+it, and the bearings must supply the torque that turns it: the wheel shakes.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/mechanics/rigid_body.py",
+        "src/pbc/verification/estimates.py",
+        "src/pbc/mechanics/experiments/rotational_motion.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_rigid_body.py",
+        "tests/unit/test_verification.py",
+        "tests/unit/test_rotational_motion_experiment.py",
+    ],
+)
+```
