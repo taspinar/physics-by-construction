@@ -1,0 +1,423 @@
+---
+title: "Heat engines and thermodynamic cycles"
+description: >-
+  Idealised engines as closed paths of an ideal gas in the p-V plane: heat and
+  work integrated along the paths, the first law checked leg by leg, and the
+  efficiency of the Otto, Stirling, and Brayton cycles checked against the
+  Carnot bound.
+lesson:
+  id: heat-engines-and-thermodynamic-cycles
+  strand: thermodynamics
+  order: 6
+  difficulty: 2
+  course: thermodynamics
+  slot: T9
+  methods: [simulation]
+  outcomes:
+    - Compute the work and the heat of an ideal-gas process by integrating along its path in the p-V plane
+    - Check the first law leg by leg and over a cycle, as a test of two independent integrals against a function of state
+    - Compute the efficiency of the Carnot, Otto, Stirling, and Brayton cycles and show with the entropy of the reservoirs why none exceeds the Carnot bound
+  related: []
+  format: 2
+  preview: fig-cycles-pv
+  experiment: pbc.thermodynamics.experiments.heat_engines_and_thermodynamic_cycles
+  prerequisites:
+    lessons: [kinetic-theory-of-gases, entropy-from-ensembles]
+    outside:
+      - "Calculus: the integral as an area, and the trapezoidal rule"
+      - "Logarithms: the natural logarithm of a ratio, and of a power"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.thermodynamics import cycles
+from pbc.thermodynamics.experiments import heat_engines_and_thermodynamic_cycles as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A car engine, a power station, and a jet turbine all turn heat into work by
+taking a gas through a cycle: compress it, heat it, let it expand, cool it, and
+start again. Each cycle returns the gas to its starting state, so whatever work
+the engine delivers must come from heat. How much of the heat can become work?
+The first law says at most all of it; the second law says less, and gives a
+bound that depends only on the temperatures of the hot source and the cold sink.
+
+This lesson computes idealised engines exactly as the textbook draws them: as
+closed paths of an ideal gas in the pressure-volume plane. The work is the
+area the path encloses, the heat is integrated along it, and both come from the
+sampled path by numerical integration. The computation then has to agree with
+the first law on every leg, the Carnot cycle has to reach the bound
+$1 - T_c/T_h$, and every other cycle between the same temperatures has to stay
+below it. The engines are one mole of an ideal diatomic gas between reservoirs
+at $600\,\mathrm{K}$ and $300\,\mathrm{K}$; quantities are in SI units.
+
+## Assumptions
+
+1. **An ideal gas.** $pV = nRT$, with a molar heat capacity at constant volume
+   $c_v = \tfrac52 R$, independent of temperature, as for air near room
+   temperature. Real working gases deviate, and burning fuel changes their
+   composition.
+2. **Quasi-static legs.** Each leg is slow enough that the gas is in
+   equilibrium at every point and its state is a point of the p-V plane. There
+   is no friction, no turbulence, and no leak, so every leg is reversible.
+3. **Two reservoirs.** The engine takes all its heat from a reservoir at
+   $T_h$ and gives all it rejects to one at $T_c$, the highest and the lowest
+   temperatures of the cycle. The reservoirs are so large that their
+   temperatures do not change.
+4. **An ideal regenerator where stated.** In one variant of the Stirling cycle,
+   the heat given out on one leg is stored and returned on another without
+   loss, and never passes through a reservoir.
+5. **Sampled paths.** Each leg is sampled at a stated number of points, and the
+   integrals use the trapezoidal rule. The error this makes is measured, not
+   assumed away.
+
+## Explanation
+
+### Work, heat, and the first law
+
+When the gas expands by $dV$ against its own pressure it does the work
+$\delta W = p\,dV$; over a leg, $W = \int p\,dV$, the area under the path. In a
+reversible process the heat taken in is $\delta Q = T\,dS$, with the entropy of
+the ideal gas
+
+$$
+S = n c_v \ln T + nR\ln V + \text{const}.
+$$
+
+The internal energy $U = n c_v T$ depends on the state only. The first law is
+$\Delta U = Q - W$ for every leg. In the program, $W$ and $Q$ are two different
+integrals along the sampled path and $\Delta U$ is a difference of a function
+at the end points, so the first law is a check, not a definition.
+
+### The legs
+
+- **Isotherm**, constant $T$: $U$ does not change, so $Q = W = nRT\ln(V_2/V_1)$.
+- **Adiabat**, no heat: $dS = 0$ gives $TV^{\gamma-1} = \text{const}$ with
+  $\gamma = (c_v + R)/c_v$, here $\tfrac75$. The work is $-\Delta U$.
+- **Isochore**, constant $V$: no work, $Q = n c_v\Delta T$.
+- **Isobar**, constant $p$: $W = p\,\Delta V$ and $Q = n c_p \Delta T$.
+
+### Efficiency and the second law
+
+Over a cycle $\Delta U = 0$, so the net work is the heat taken in minus the heat
+given out, $W = Q_{\mathrm{in}} - Q_{\mathrm{out}}$, and the efficiency is
+$\eta = W/Q_{\mathrm{in}}$. The gas returns to its state, so its entropy does
+too. The reservoirs do not: the hot one loses $Q_{\mathrm{in}}/T_h$ and the cold
+one gains $Q_{\mathrm{out}}/T_c$. The second law requires the total entropy not
+to fall,
+
+$$
+\Delta S_{\mathrm{res}} = -\frac{Q_{\mathrm{in}}}{T_h} + \frac{Q_{\mathrm{out}}}{T_c} \ge 0
+\quad\Longleftrightarrow\quad
+\eta \le 1 - \frac{T_c}{T_h}.
+$$
+
+The equality holds only when all heat passes between the gas and a reservoir at
+the same temperature, that is when the gas takes in heat only at $T_h$ and
+gives it out only at $T_c$. That is the Carnot cycle: two isotherms joined by
+two adiabats.
+
+### The comparison cycles
+
+The other cycles take in or give out heat while the gas temperature changes,
+so part of the heat crosses a temperature difference, which produces entropy.
+Their efficiencies have closed forms:
+
+- **Otto**, the petrol engine: adiabats and isochores, compression ratio
+  $r = V_{\max}/V_{\min}$, $\eta = 1 - r^{1-\gamma}$.
+- **Brayton**, the gas turbine: adiabats and isobars, pressure ratio $r_p$,
+  $\eta = 1 - r_p^{(1-\gamma)/\gamma}$.
+- **Stirling**: isotherms and isochores. Without a regenerator the isochoric
+  heating also draws on the hot reservoir,
+  $\eta = \dfrac{R\ln r\,(T_h - T_c)}{c_v(T_h - T_c) + RT_h\ln r}$; with an ideal
+  regenerator the isochores exchange heat only with each other and the cycle
+  reaches the Carnot efficiency.
+
+## Code
+
+The model is `pbc.thermodynamics.cycles`. The gas holds its state functions:
+
+```{python}
+#| echo: false
+excerpt(cycles.Gas)
+```
+
+The work and the heat along a sampled leg:
+
+```{python}
+#| echo: false
+excerpt(cycles.work)
+```
+
+```{python}
+#| echo: false
+excerpt(cycles.heat_increments)
+```
+
+The balance of a cycle sums the heat interval by interval into what comes in
+and what goes out, and computes the entropy the reservoirs gain:
+
+```{python}
+#| echo: false
+excerpt(cycles.balance)
+```
+
+A cycle is a list of legs, for example the Carnot cycle:
+
+```{python}
+#| echo: false
+excerpt(cycles.carnot)
+```
+
+## Worked examples
+
+### The first law, leg by leg
+
+```{python}
+#| echo: false
+excerpt(experiment, region="engines")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.first_law)
+```
+
+```{python}
+#| label: first-law
+#| echo: false
+result.table("first-law")
+```
+
+[Along every leg of the Otto cycle the heat, integrated as $\int T\,dS$, equals
+the change of the internal energy plus the work, integrated as $\int p\,dV$, to a
+residual of at most `{python} result["first-law-largest"]` of the heat taken in
+per cycle.]{.claim type="numerically-verified" scope="ideal diatomic gas, Otto cycle
+of compression ratio four between 300 K and 600 K, 2001 samples per leg"
+evidence="first-law"} The adiabats take in no heat, the isochores do no work,
+and what is left is the error of the trapezoidal rule, which the next example
+measures.
+
+### Five engines between the same reservoirs
+
+```{python}
+#| echo: false
+excerpt(experiment.comparison)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_cycles_pv)
+```
+
+```{python}
+#| label: fig-cycles-pv
+#| echo: false
+#| fig-cap: "Three engines between the same two isotherms: the Carnot cycle takes in and gives out heat only along them, the Otto cycle crosses between them along constant volumes, and the Stirling cycle follows them and crosses at constant volume. The enclosed area is the work per cycle."
+#| fig-alt: "Three log-log panels of pressure against volume, each with two dotted straight lines for the isotherms of the hot and the cold reservoir. Left: a thin quadrilateral whose upper and lower sides lie on the two isotherms and whose other sides are steeper adiabats. Middle: a thin quadrilateral of two parallel adiabats joined by two vertical sides, lying between the isotherms. Right: a wide quadrilateral whose upper and lower sides lie on the isotherms, joined by two vertical sides."
+#| fig-status: simulated
+result.show("fig-cycles-pv")
+```
+
+```{python}
+#| label: comparison
+#| echo: false
+result.table("comparison")
+```
+
+[The Carnot cycle computed from its sampled path has the efficiency
+$1 - T_c/T_h$, `{python} result["carnot-efficiency"]`; every other engine
+between the same reservoirs has the efficiency of its closed form and stays
+below it, unless an ideal regenerator keeps its heat from crossing a
+temperature difference.]{.claim type="numerically-verified" scope="one mole of
+an ideal diatomic gas, reservoirs at 600 K and 300 K, reversible legs, 2001
+samples per leg" evidence="comparison refinement"} [The reservoirs gain no
+entropy from the Carnot cycle and the regenerated Stirling cycle, and a positive
+entropy from each of the others, at least `{python} result["smallest-entropy"]`
+J/K per cycle.]{.claim type="numerically-verified" scope="the five engines of the
+table" evidence="comparison"} The Stirling cycle without a regenerator does
+as much work as the regenerated one, the most of the five, and has the lowest
+efficiency: its isochoric heating draws a large heat from the hot reservoir into
+a gas that is colder than it.
+
+The Carnot efficiency is computed, not typed: it comes from the area of the
+sampled path and the heat along it. As the paths are sampled more finely, its
+error falls at second order, as the trapezoidal rule should:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="refinement")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.refinement)
+```
+
+```{python}
+#| label: refinement
+#| echo: false
+result.table("refinement")
+```
+
+The fitted order is `{python} result["refinement-order"]`. Along the isotherms
+the heat integral is exact, because $T$ is constant; the error comes from the
+work, the integral of the curved $p(V)$.
+
+### How close can an Otto engine come?
+
+The Otto efficiency grows with the compression ratio. Between fixed reservoirs,
+though, compression alone heats the gas, and at
+$r = (T_h/T_c)^{1/(\gamma-1)}$ it reaches $T_h$ before any heat is added.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_otto_against_carnot)
+```
+
+```{python}
+#| label: fig-otto-against-carnot
+#| echo: false
+#| fig-cap: "The Otto efficiency computed from the sampled path follows its closed form and approaches the Carnot bound as the compression ratio grows, while the work per cycle falls to zero: the engine reaches the bound only when it does nothing."
+#| fig-alt: "Two panels against the compression ratio. Top: efficiency; a solid curve of the closed form rises steeply and then slowly towards a dashed horizontal line of the Carnot bound, with points from the sampled path on the curve. Bottom: work per cycle; points rise to a maximum at a small ratio and fall towards zero at a dotted vertical line where compression alone reaches the hot temperature."
+#| fig-status: simulated
+result.show("fig-otto-against-carnot")
+```
+
+Efficiency and work pull in opposite directions. An engine that is useful
+works at a ratio well below the limit, where the efficiency is clearly below the
+bound. The Carnot cycle has the same problem in another form: its isotherms
+transfer heat across no temperature difference, which takes forever.
+
+## Limits {#limits}
+
+- **Reversible idealisations.** Every leg is quasi-static and frictionless.
+  Real engines run fast, with friction, turbulence, heat lost through the
+  walls, and combustion that changes the gas; their efficiencies are well below
+  these, and the lesson does not model the losses.
+- **Heat from reservoirs at the extreme temperatures.** The entropy check
+  assumes all heat comes from $T_h$ and goes to $T_c$. A cycle supplied from a
+  series of reservoirs at the temperatures of its legs would produce less
+  entropy; the bound itself still holds.
+- **Constant heat capacity.** $c_v$ of real air rises with temperature, which
+  changes the closed forms slightly; the program uses one constant value.
+- **A quadrature error.** The integrals are exact only in the limit of fine
+  sampling. The error is measured and is far below the differences between the
+  engines, but it is not zero, so a computed Carnot efficiency agrees with the
+  bound to the precision shown, not exactly.
+- **No measured engine.** Nothing here is compared with a measurement.
+
+::: {.exercise .self-check}
+The regenerated Stirling cycle has isochoric legs on which the gas temperature
+changes, yet it reaches the Carnot efficiency. How?
+
+::: {.choices}
+::: {.choice}
+Because its isochores do no work, so they do not count in the efficiency.
+
+::: {.feedback}
+No. The Otto cycle has isochores too and does no work on them, yet it stays
+below the bound. What matters is where their heat comes from.
+:::
+:::
+
+::: {.choice correct="true"}
+Because the regenerator returns the heat of the cooling leg to the heating leg,
+so the reservoirs exchange heat with the gas only along the isotherms, at their
+own temperatures.
+
+::: {.feedback}
+Right. No heat crosses a temperature difference on its way to or from a
+reservoir, so the reservoirs gain no entropy, and the efficiency is the Carnot
+one.
+:::
+:::
+:::
+
+::: {.solution}
+The bound is reached when the reservoirs gain no entropy, which happens when
+every heat that a reservoir exchanges passes at the reservoir's own
+temperature. In the regenerated Stirling cycle the isochoric heats never reach a
+reservoir: the regenerator stores the heat of cooling and gives it back for
+heating. Only the isotherms exchange heat with the reservoirs, at $T_h$ and
+$T_c$, as in the Carnot cycle. The shape of the legs does not matter; where the
+heat goes does.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**An inventor's claim.** An engine between reservoirs at 600 K and 300 K is
+said to deliver 600 J of work for every 1000 J of heat it takes in. Show that
+this is impossible, with the entropy the reservoirs would gain.
+
+::: {.solution}
+The claimed efficiency is above the bound, and the reservoirs would lose
+entropy:
+
+```{python}
+#| echo: false
+excerpt(experiment.impossible_engine)
+```
+
+```{python}
+#| echo: false
+result.table("impossible-engine")
+```
+
+The hot reservoir loses $Q_{\mathrm{in}}/T_h$ and the cold one gains only
+$Q_{\mathrm{out}}/T_c$, which is less. The total entropy of an isolated system
+would fall, which the second law forbids.
+:::
+:::
+
+::: {.exercise}
+**A monatomic Otto engine.** For a monatomic ideal gas, $c_v = \tfrac32 R$. What
+is the largest compression ratio of an Otto cycle between 300 K and 600 K, and
+its efficiency there?
+
+::: {.hint}
+Compression alone must not heat the gas above the hot reservoir. Follow the
+temperature along the adiabat of the compression.
+:::
+
+::: {.solution}
+$\gamma = \tfrac53$, so $r \le (T_h/T_c)^{3/2}$, and there
+$\eta = 1 - r^{1-\gamma} = 1 - T_c/T_h$, the Carnot efficiency, with no work.
+
+```{python}
+#| echo: false
+excerpt(experiment.monatomic_otto)
+```
+
+```{python}
+#| echo: false
+result.table("monatomic-otto")
+```
+
+A monatomic gas heats more on compression, so it reaches the limit at a smaller
+ratio than air; at the limit every Otto cycle, whatever its gas, has the Carnot
+efficiency and does no work.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/thermodynamics/cycles.py",
+        "src/pbc/thermodynamics/experiments/heat_engines_and_thermodynamic_cycles.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_thermodynamics.py",
+        "tests/unit/test_heat_engines_and_thermodynamic_cycles_experiment.py",
+    ],
+)
+```

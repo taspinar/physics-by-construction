@@ -1,0 +1,491 @@
+---
+title: "Ising model and phase transitions"
+description: >-
+  A lattice of spins sampled by the Metropolis algorithm, checked against an
+  exact enumeration and Onsager's solution, and the critical temperature
+  estimated from finite lattices with the shift that their size causes.
+lesson:
+  id: ising-model-and-phase-transitions
+  strand: thermodynamics
+  order: 4
+  difficulty: 3
+  course: thermodynamics
+  slot: T4
+  methods: [simulation]
+  outcomes:
+    - Sample the two-dimensional Ising model with the Metropolis algorithm and check the sampler against an exact enumeration
+    - Measure the magnetisation of finite lattices and compare it with Onsager's exact curve, saying where and why they differ
+    - Estimate the critical temperature from the crossing of Binder cumulants and state the finite-size shift of the estimate
+  related: []
+  format: 2
+  preview: fig-ising-magnetisation
+  experiment: pbc.thermodynamics.experiments.ising_model_and_phase_transitions
+  prerequisites:
+    lessons: [entropy-from-ensembles]
+    outside:
+      - "Probability: a probability distribution over many outcomes, and drawing from it at random"
+      - "Statistics: the mean, the standard deviation, and the standard error of a mean"
+      - "Logarithms: the natural logarithm and the exponential function"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.thermodynamics import ising
+from pbc.thermodynamics.experiments import ising_model_and_phase_transitions as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A piece of iron is a magnet below about a thousand kelvin and is not one above
+it. Nothing in the forces between its atoms changes at that temperature. What
+changes is which of two tendencies wins: neighbouring magnetic moments lower
+their energy by pointing the same way, and heat randomises them. Below the
+critical temperature the alignment spreads across the whole sample; above it,
+aligned patches stay finite and the sample has no magnetisation. The change is
+sharp, a phase transition, although every ingredient is smooth.
+
+The Ising model is the smallest model with this behaviour, and in two
+dimensions one of the few models of a phase transition that has been solved
+exactly. This lesson samples it on a computer and asks three questions. Does
+the sampler draw configurations with the right probabilities? Does the
+magnetisation it measures follow the exact solution? And can a finite lattice,
+which strictly has no phase transition, still tell where the transition of
+the infinite one is? The data are simulated; energies are in units of the
+coupling $J$ and temperatures in units of $J/k_B$.
+
+## Assumptions
+
+1. **Spins on a square lattice.** Each site of an $L\times L$ lattice carries a
+   spin $s = \pm 1$. Real magnetic moments are quantum vectors; the model keeps
+   only their two orientations along one axis.
+2. **Nearest-neighbour coupling, no field.** The energy is
+   $E = -J\sum_{\langle ij\rangle} s_i s_j$ over the pairs of neighbours, with
+   $J > 0$, so aligned neighbours are favoured. There is no external field and
+   no longer-range interaction.
+3. **Periodic boundaries.** The right neighbour of the last column is the
+   first column, and likewise for rows, so the lattice has no edge. It is a
+   torus, not a finite crystal with surfaces.
+4. **Thermal equilibrium.** A configuration with energy $E$ has the Boltzmann
+   probability $e^{-E/k_BT}/Z$. The sampler is run long enough before it
+   measures, a burn-in, so that its start is forgotten; the lesson says where
+   that is hard.
+5. **Independent runs give the errors.** Each temperature is sampled by several
+   runs from independent seeds. The standard error comes from the spread of
+   the runs, never from the sweeps of one run, which are correlated.
+
+## Explanation
+
+### The Boltzmann distribution and why it has to be sampled
+
+At temperature $T$ the probability of a configuration $s$ is
+
+$$
+P(s) = \frac{e^{-E(s)/k_BT}}{Z}, \qquad Z = \sum_s e^{-E(s)/k_BT},
+$$
+
+and a thermal average is $\langle A\rangle = \sum_s A(s)P(s)$. The sum has
+$2^{L^2}$ terms. For a lattice of four by four sites that is $65\,536$, and a
+computer adds them in a moment; for $L = 32$ it is about $10^{308}$. Instead of
+summing, the computer draws configurations with probability $P(s)$ and
+averages over the draws.
+
+### The Metropolis algorithm
+
+A Markov chain moves from configuration to configuration. If every move from
+$s$ to $s'$ and its reverse happen equally often at equilibrium,
+
+$$
+P(s)\,W(s\to s') = P(s')\,W(s'\to s),
+$$
+
+the chain keeps the Boltzmann distribution once it has it, and, if it can reach
+every configuration, reaches it from any start. This is detailed balance. The
+Metropolis rule meets it: propose to flip one spin, which changes the energy by
+$\Delta E = 2Js_i h_i$ with $h_i$ the sum of its four neighbours, and accept the
+flip with probability $\min(1, e^{-\Delta E/k_BT})$. Since $h_i$ is one of
+$-4, -2, 0, 2, 4$, only two exponentials are ever needed.
+
+A sweep proposes one flip per site. The program flips the sites of a
+checkerboard in two halves: no two neighbours are in the same half, so each
+half can be updated at once and the rule is still applied to each spin with its
+current neighbours.
+
+### What is measured
+
+The magnetisation per spin is $m = \frac{1}{L^2}\sum_i s_i$. On a finite
+lattice with no field, $m$ and $-m$ are equally likely, so $\langle m\rangle = 0$
+at every temperature; the lattice flips between the two signs, rarely when it
+is cold. The order is measured by $\langle|m|\rangle$ instead. The heat capacity
+and the susceptibility per spin are fluctuations,
+
+$$
+C = \frac{L^2\left(\langle e^2\rangle - \langle e\rangle^2\right)}{k_BT^2}, \qquad
+\chi = \frac{L^2\left(\langle m^2\rangle - \langle |m|\rangle^2\right)}{k_BT},
+$$
+
+with $e$ the energy per spin.
+
+### Onsager's exact results
+
+For the infinite lattice Onsager found the critical temperature,
+
+$$
+\sinh\frac{2J}{k_BT_c} = 1, \qquad k_BT_c = \frac{2J}{\ln(1+\sqrt2)} \approx 2.269\,J,
+$$
+
+and the spontaneous magnetisation below it,
+
+$$
+m_0(T) = \left(1 - \sinh^{-4}\frac{2J}{k_BT}\right)^{1/8} \quad (T < T_c),
+$$
+
+which is zero above $T_c$. Near $T_c$ it vanishes as $(T_c - T)^{1/8}$, so
+steeply that the curve looks vertical there.
+
+### A finite lattice has no transition
+
+Every average of a finite lattice is a finite sum of smooth functions of $T$,
+so it is smooth: there is no sharp transition and no exact $T_c$. Near $T_c$
+the correlation length of the infinite lattice grows without bound; once it
+exceeds $L$, the lattice feels its size. The curves of a finite lattice are
+rounded and shifted, and they become sharp only as $L$ grows. Any estimate of
+$T_c$ from finite lattices has to deal with this.
+
+### The Binder cumulant
+
+The Binder cumulant,
+
+$$
+U = 1 - \frac{\langle m^4\rangle}{3\langle m^2\rangle^2},
+$$
+
+is $2/3$ in the ordered phase, where $m$ is close to $\pm m_0$, and tends to zero
+in the disordered phase, where $m$ is Gaussian with a width that shrinks with
+$L$. At $T_c$ the distribution of $m/\langle m^2\rangle^{1/2}$ has the same
+shape for every large $L$, so $U$ has the same value: the curves $U(T)$ of
+different sizes cross at $T_c$. No critical exponent enters. For small lattices
+the crossing is shifted by corrections that die out as $L$ grows; the lesson
+measures how far.
+
+## Code
+
+The model is `pbc.thermodynamics.ising`. One Metropolis sweep updates a batch
+of lattices, each with its own temperature:
+
+```{python}
+#| echo: false
+excerpt(ising.metropolis_sweep)
+```
+
+A run starts every lattice with all spins up, discards the burn-in, and records
+the magnetisation and the energy per spin after each sweep:
+
+```{python}
+#| echo: false
+excerpt(ising.simulate)
+```
+
+The exact averages of a small lattice sum the Boltzmann weight over every
+configuration:
+
+```{python}
+#| echo: false
+excerpt(ising.exact_averages)
+```
+
+The crossing of two cumulants is found by fitting a straight line to each
+near $T_c$, and its error by the jackknife: the estimate is repeated with one
+run left out at a time.
+
+```{python}
+#| echo: false
+excerpt(ising.crossing)
+```
+
+```{python}
+#| echo: false
+excerpt(ising.jackknife)
+```
+
+## Worked examples
+
+### The sampler against an exact enumeration
+
+A lattice of four by four sites has few enough configurations to sum. Sixteen
+independent runs sample it at three temperatures, and their averages are
+compared with the exact ones.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="exact")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.exact_check)
+```
+
+```{python}
+#| label: exact-check
+#| echo: false
+result.table("exact-check")
+```
+
+[The Metropolis sampler reproduces the exact mean absolute magnetisation and
+mean energy of the four by four lattice within four standard errors at three
+temperatures.]{.claim type="numerically-verified" scope="four by four periodic
+lattice, sixteen runs, four standard errors" evidence="exact-check"} The
+largest difference is `{python} result["exact-largest"]` standard errors. This
+checks the acceptance rule, the checkerboard, and the measurement together; an
+error in any of them would move the averages.
+
+### The magnetisation against Onsager's curve
+
+Three lattice sizes, each at thirteen temperatures with six independent runs:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="curve")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.magnetisation_table)
+```
+
+```{python}
+#| label: magnetisation
+#| echo: false
+result.table("magnetisation")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_magnetisation)
+```
+
+```{python}
+#| label: fig-ising-magnetisation
+#| echo: false
+#| fig-cap: "Below the critical temperature the magnetisation of every lattice follows Onsager's curve; near and above it the finite lattices keep a magnetisation that the infinite lattice does not have, and less of it the larger they are."
+#| fig-alt: "Line plot of the mean absolute magnetisation against the temperature. A solid curve, Onsager's solution, falls slowly from near one and drops vertically to zero at a dotted vertical line marking the exact critical temperature. Points with error bars for three lattice sizes lie on the solid curve at low temperature; near the critical temperature they bend away from it and decrease smoothly above it, the smallest lattice highest and the largest lowest."
+#| fig-status: simulated
+result.show("fig-ising-magnetisation")
+```
+
+[At temperatures up to $2.1\,J/k_B$ the mean absolute magnetisation of the
+thirty-two by thirty-two lattice agrees with Onsager's spontaneous
+magnetisation within four standard errors.]{.claim type="numerically-verified"
+scope="L = 32, periodic, six runs of a thousand sweeps per temperature, four
+standard errors, T up to 2.1 J/k_B" evidence="magnetisation
+fig-ising-magnetisation"} The largest difference there is
+`{python} result["onsager-largest"]` standard errors. Closer to $T_c$ the
+lattices lie above the curve, and above $T_c$ they keep a magnetisation that
+falls with size: on a lattice smaller than the correlation length, the spins
+are aligned across a good part of the lattice by chance. That is the
+finite-size rounding, and it is why the transition cannot be read off where
+the magnetisation of a finite lattice vanishes.
+
+The peak of the susceptibility shows the same effect from the other side:
+
+```{python}
+#| echo: false
+excerpt(experiment.susceptibility_peaks)
+```
+
+```{python}
+#| label: susceptibility-peaks
+#| echo: false
+result.table("susceptibility-peaks")
+```
+
+The peak grows with the lattice, because the susceptibility of the infinite
+lattice diverges at $T_c$, and it sits above $T_c$, closer to it for the larger
+lattices. On a grid this coarse the position of the peak is a rough guide, not
+an estimate.
+
+### The critical temperature from the Binder cumulants
+
+Three small lattice sizes, sampled densely near $T_c$ with twelve runs each and
+long runs, so that the cumulants are precise:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="binder")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.crossing_check)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_binder_crossing)
+```
+
+```{python}
+#| label: fig-binder-crossing
+#| echo: false
+#| fig-cap: "The Binder cumulants of three lattice sizes fall with the temperature and cross close to the exact critical temperature; the larger the lattices, the closer the crossing."
+#| fig-alt: "Line plot of the Binder cumulant against the temperature near the critical temperature. Three curves with error bars fall from left to right, the largest lattice most steeply. The curves cross each other slightly to the left of a dotted vertical line that marks the exact critical temperature."
+#| fig-status: simulated
+result.show("fig-binder-crossing")
+```
+
+```{python}
+#| label: crossings
+#| echo: false
+result.table("crossings")
+```
+
+[The Binder cumulants of lattices with $L = 8$ and $L = 16$ cross within one
+per cent of Onsager's critical temperature, below it, and closer to it than the
+crossing of $L = 4$ and $L = 8$.]{.claim type="numerically-verified"
+scope="periodic lattices of L = 4, 8, 16, twelve runs per size, straight lines
+fitted between 2.22 and 2.32 J/k_B" evidence="crossings fig-binder-crossing"}
+The crossing of the two smallest lattices lies
+`{python} result["crossing-first"]` per cent below the exact value, that of the
+two larger ones `{python} result["crossing-last"]` per cent below it. Both
+deviations are several standard errors, so they are not noise: they are the
+finite-size shift of the crossing, which shrinks as the lattices grow. A
+statement of $T_c$ from these lattices alone is a statement of a value that
+moves upwards with size, and its distance from the exact
+`{python} result["critical-temperature"]` is the size of that shift, not
+the statistical error.
+
+## Limits {#limits}
+
+- **Small lattices.** The crossings use lattices of at most sixteen by sixteen
+  sites. Their finite-size shift is larger than their statistical error, and
+  the lesson does not extrapolate it to infinite size; doing so needs larger
+  lattices and a model of the corrections.
+- **Critical slowing down.** Near $T_c$ a single-spin-flip sampler needs a time
+  that grows roughly as $L^2$ to decorrelate the large aligned patches. The
+  runs here are long enough for the sizes shown, and the burn-in removes their
+  ordered start; for much larger lattices the Metropolis algorithm becomes
+  impractical, and cluster algorithms that flip whole patches at once are used
+  instead.
+- **Errors from a few runs.** Six or twelve independent runs give a standard
+  error that is itself uncertain, so four standard errors is a tolerance that
+  chance exceeds now and then, not a guarantee.
+- **A model, not a magnet.** Onsager's solution is exact for this model. It
+  says nothing about iron, whose moments are not Ising spins and whose
+  lattice is three-dimensional; there, no exact solution is known, and the
+  measured critical temperature is a property of the material.
+- **No field, no dynamics.** The algorithm samples equilibrium. Its sweeps are
+  not the time evolution of a real magnet, and the lesson makes no claim about
+  how fast a magnet orders.
+
+::: {.exercise .self-check}
+Above the critical temperature, the mean absolute magnetisation of the lattice
+of eight by eight sites is clearly larger than zero. Has the small lattice
+ordered at a temperature where the infinite one is disordered?
+
+::: {.choices}
+::: {.choice}
+Yes: small lattices order at higher temperatures, so their critical
+temperature is higher.
+
+::: {.feedback}
+No. A finite lattice has no sharp transition and no critical temperature of
+its own. Its magnetisation is a smooth function of the temperature.
+:::
+:::
+
+::: {.choice correct="true"}
+No: the absolute value of a sum of a few random spins is not zero, and on a
+lattice smaller than the correlation length the spins are aligned over much of
+it by chance.
+
+::: {.feedback}
+Right. Even fully random spins give $\langle|m|\rangle$ of order $1/L$. Near
+$T_c$ the aligned patches are as large as the lattice, so the value is larger
+still. It falls as the lattice grows, as the larger lattices of the figure show.
+:::
+:::
+:::
+
+::: {.solution}
+The mean of $|m|$ is positive for any finite lattice at any temperature, because
+an absolute value is never negative and the spins do not cancel exactly. For
+independent spins it is about $\sqrt{2/\pi}/L$. Above $T_c$ the spins are
+correlated over the correlation length, which is large near $T_c$, so a small
+lattice can be aligned over much of its size. That is a property of the size,
+not order: it disappears as $L$ grows, whereas the magnetisation below $T_c$
+stays.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Where Onsager's magnetisation vanishes.** Show that $m_0(T)$ becomes zero
+where $\sinh(2J/k_BT) = 1$, and that this gives
+$k_BT_c = 2J/\ln(1+\sqrt2)$. Check it with a root finder.
+
+::: {.hint}
+$\sinh x = 1$ means $e^x - e^{-x} = 2$, a quadratic equation in $e^x$.
+:::
+
+::: {.solution}
+$m_0^8 = 1 - \sinh^{-4}(2J/k_BT)$ vanishes where $\sinh(2J/k_BT) = 1$. With
+$y = e^x$, $y - 1/y = 2$ gives $y = 1 + \sqrt2$, so $x = \ln(1+\sqrt2)$ and
+$k_BT_c = 2J/\ln(1+\sqrt2)$.
+
+```{python}
+#| echo: false
+excerpt(experiment.critical_point)
+```
+
+```{python}
+#| echo: false
+result.table("critical-point")
+```
+:::
+:::
+
+::: {.exercise}
+**An exact finite-size shift.** The heat capacity of a finite lattice has a
+smooth peak instead of the divergence of the infinite lattice. Compute it
+exactly for the lattices of two by two and four by four sites, and find the
+temperature of the peak. How does it compare with $T_c$?
+
+::: {.solution}
+The exact sum gives the heat capacity at every temperature with no statistical
+error:
+
+```{python}
+#| echo: false
+excerpt(experiment.small_lattice_peak)
+```
+
+```{python}
+#| echo: false
+result.table("small-lattice-peak")
+```
+
+Both peaks are above $T_c$, and the larger lattice's is closer to it and
+higher. The shift is a property of the finite lattice, present without any
+sampling at all.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/thermodynamics/ising.py",
+        "src/pbc/thermodynamics/experiments/ising_model_and_phase_transitions.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_thermodynamics.py",
+        "tests/unit/test_ising_model_and_phase_transitions_experiment.py",
+    ],
+)
+```
