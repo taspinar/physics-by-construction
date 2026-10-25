@@ -1641,7 +1641,9 @@ review assesses (`architecture_impact.risk_level`). The scripts detect these
 triggers on the diff against the base: a changed or removed tolerance or
 budget line (Python or lesson lines naming `rtol`, `atol`, `tol`,
 `tolerance`, `budget`, `approx`, `isclose`, or `allclose` with a number,
-a new such Python line, and the entries of `scripts/lesson-budgets.conf`), a
+a new such Python line except in a new test, that is, in a test file
+(`test_*.py` or `*_test.py`) new in the diff or below a new `def test_` in
+its added block, and the entries of `scripts/lesson-budgets.conf`), a
 new skip or expected
 failure (in a Lean proof, a new `sorry`, `admit`, or `axiom`), a removed or
 changed assertion and a removed test or test file, a changed marker such as
