@@ -165,14 +165,19 @@ of a full run, or a complete run on `main` above 45 minutes, is a
 measurement for the owner when it is exceeded, not a failed gate and not a
 mandate to optimise: the owner decides at the re-assessment points, choosing
 from the responses of ADR 003 decision 6. Since the owner's decision of
-2026-10-21 (ADR 014 status), which extends the interim full-run gate to 64
-lessons with the `build` job's 60 minutes unchanged, they are: re-measure at
-55 lessons, decide the capacity at 60 at the latest, or earlier when the
-`build` job approaches 55 minutes, repeated runs show too little margin, or
-verification failures point to a capacity problem, with the job's duration and the run's
-total duration reported separately (the former points of 42 and 44
-lessons are superseded history). The 64
-lessons are a planning boundary, not a check. `docs/release-readiness.md` records the measurements.
+2026-10-24 (ADR 014 status, Issue #278), which raises the interim full-run
+gate to 110 lessons, the whole reference curriculum, with the `build` job's
+timeout raised from 60 to 90 minutes, they are: re-measure at 75 and at 95
+lessons, and decide earlier when a complete run on `main` approaches 80
+minutes, repeated runs show too little margin, or verification failures
+point to a capacity problem, with the job's duration and the run's total
+duration reported separately (the former points of 42 and 44 lessons, and
+of 55 and 60 lessons under the decision of 2026-10-21, are superseded
+history). The 110 lessons are a planning boundary, not a check. The owner
+accepted the cost: a run on `main` can last up to about 90 minutes, so the
+publication after a merge comes later; a pull request is not affected, since
+it pays for what it changes. `docs/release-readiness.md` records the
+measurements.
 
 The checks are declared in `scripts/verify.conf`, and the workflow self-tests
 in `scripts/verify-workflow.conf`. They run in this order:
