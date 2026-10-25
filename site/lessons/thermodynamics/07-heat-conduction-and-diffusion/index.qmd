@@ -1,0 +1,546 @@
+---
+title: "Heat conduction and diffusion"
+description: >-
+  From Newton's lumped cooling to the heat equation on a grid: an explicit
+  finite-difference scheme with fixed and convective boundaries, its energy
+  balance, its stability limit and its convergence measured, and a plate heated
+  along one edge.
+lesson:
+  id: heat-conduction-and-diffusion
+  strand: thermodynamics
+  order: 7
+  difficulty: 2
+  course: thermodynamics
+  slot: T6
+  methods: [simulation]
+  outcomes:
+    - Decide with the Biot number when one lumped temperature describes a cooling solid, and check the decision against the exact solution of a slab
+    - Write the explicit finite-difference scheme of the heat equation in one and two dimensions, with fixed-temperature and convective boundaries, in SI units
+    - Measure the stability limit of the scheme and its order of convergence in the grid spacing and in the time step
+  related: []
+  format: 2
+  preview: fig-plate-temperature
+  experiment: pbc.thermodynamics.experiments.heat_conduction_and_diffusion
+  prerequisites:
+    lessons: [random-walks-and-diffusion, numerical-integrators]
+    outside:
+      - "Calculus: partial derivatives, and the Taylor expansion to second order"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.thermodynamics import conduction
+from pbc.thermodynamics.experiments import heat_conduction_and_diffusion as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A steel part leaves a furnace and is quenched, a chip heats a copper spreader,
+a wall loses heat to a winter night. In each case heat flows through a solid
+from where it is hot to where it is cold, and leaves at a surface into a fluid.
+How fast does the solid cool, and how unevenly? Sometimes one temperature for
+the whole part is enough; sometimes the inside lags far behind the surface,
+and the temperature has to be computed as a field.
+
+This lesson starts from that simplest model, Newton's lumped cooling, and
+shows when it fails by comparing it with the heat equation for a slab, solved
+on a grid by the explicit finite-difference scheme and against the exact
+solution. The scheme then gets the scrutiny any numerical method needs: its
+energy balance, the time step beyond which it explodes, and how fast its error
+falls as the grid and the step are refined, all measured rather than quoted.
+It ends with a plate heated along one edge, by the same scheme in two
+dimensions and by a direct sparse solve of its steady state; the next lesson
+replaces that grid by finite elements.
+
+## Assumptions
+
+1. **Fourier's law.** The heat flux is $\mathbf{q} = -k\nabla T$, with a
+   conductivity $k$ that depends neither on the temperature nor on the
+   direction. Real conductivities change with temperature, by several per cent
+   over the range here for steel.
+2. **Constant properties.** Density $\rho$ and specific heat $c$ are constant.
+   The material does not melt, change phase, or generate heat.
+3. **Convection by a coefficient.** A surface loses heat to a fluid at
+   $T_f$ as $h\,(T - T_f)$ per unit area, with one constant heat transfer
+   coefficient $h$. In reality $h$ depends on the flow, on the temperature
+   difference, and on the position along the surface; boiling or radiation
+   would add a different law.
+4. **A slab is one-dimensional.** The slab is wide compared with its
+   thickness, so heat flows across it only. The plate is thin, insulated on
+   its faces, so heat flows only in its plane.
+5. **A grid of equal spacing.** The scheme stores the temperature at nodes a
+   distance $\Delta x$ apart and advances it by a fixed step $\Delta t$.
+
+## Explanation
+
+### The heat equation
+
+Energy is conserved in every small piece of the solid: the heat it stores,
+$\rho c\,\partial T/\partial t$ per unit volume, is what flows in minus what
+flows out, $-\nabla\cdot\mathbf{q}$. With Fourier's law,
+
+$$
+\frac{\partial T}{\partial t} = \alpha\,\nabla^2 T,
+\qquad
+\alpha = \frac{k}{\rho c}.
+$$
+
+The diffusivity $\alpha$ has the unit $\mathrm{m^2/s}$, like the diffusion
+coefficient of the random walks of an earlier lesson: heat spreads as a
+random walk does. A disturbance spreads over a length $L$ in a time of the
+order of $L^2/\alpha$, and the dimensionless time is the Fourier number
+$\mathrm{Fo} = \alpha t/L^2$.
+
+At a convective surface the heat that arrives by conduction leaves into the
+fluid:
+
+$$
+-k\,\frac{\partial T}{\partial n} = h\,(T - T_f),
+$$
+
+with $n$ the outward normal. A fixed-temperature surface simply has $T$ given.
+
+### The lumped model and the Biot number
+
+If heat moves inside the solid much more easily than it leaves through the
+surface, the inside stays nearly uniform, and the energy balance of the whole
+body is an ordinary differential equation,
+
+$$
+\rho c V\,\frac{dT}{dt} = -hA\,(T - T_f)
+\quad\Longrightarrow\quad
+T - T_f = (T_0 - T_f)\,e^{-t/\tau},
+\qquad \tau = \frac{\rho c V}{hA}.
+$$
+
+For a slab of thickness $2L$ cooled on both faces, $V/A = L$. Whether the
+inside is nearly uniform is decided by the ratio of the resistance to
+conduction across $L$ to the resistance to convection at the surface, the Biot
+number $\mathrm{Bi} = hL/k$. The rule of thumb is $\mathrm{Bi} < 0.1$.
+
+The exact temperature of the slab, started uniform, is a series of cosines
+whose decay rates $\lambda_n^2$ solve $\lambda\tan\lambda = \mathrm{Bi}$:
+
+$$
+\frac{T - T_f}{T_0 - T_f}
+= \sum_{n} C_n\,e^{-\lambda_n^2\,\mathrm{Fo}}\cos\!\left(\lambda_n\frac{x}{L}\right),
+\qquad
+C_n = \frac{4\sin\lambda_n}{2\lambda_n + \sin 2\lambda_n}.
+$$
+
+### The explicit scheme
+
+Replace the second derivative by the centred difference of the nodes and the
+time derivative by a forward step:
+
+$$
+T_i^{n+1} = T_i^n + r\left(T_{i+1}^n - 2T_i^n + T_{i-1}^n\right),
+\qquad
+r = \frac{\alpha\,\Delta t}{\Delta x^2}.
+$$
+
+Each new value is a weighted mean of three old ones as long as $1 - 2r \ge 0$.
+The Taylor expansion gives a truncation error of order $\Delta t$ in time and
+$\Delta x^2$ in space. In two dimensions on a square grid the same idea uses
+the four neighbours, and the weight of the centre is $1 - 4r$.
+
+At a convective end the scheme needs a value outside the grid. A ghost node
+$T_{-1}$ is chosen so that the centred difference across the end satisfies the
+boundary condition, $T_{-1} = T_1 - 2\Delta x\,(h/k)(T_0 - T_f)$, and the end
+node is then updated like the others. Its weight is $1 - 2r(1 + h\Delta x/k)$,
+so a convective end asks for a slightly smaller step.
+
+### Stability
+
+Whether the scheme is stable is a question about its largest multiplier. On a
+grid of $N$ unknowns between fixed ends the scheme multiplies the sine mode $m$
+by $1 - 4r\sin^2\!\big(m\pi/(2(N+1))\big)$ each step. The highest mode reaches
+$-1$ first, at
+
+$$
+r_{\max} = \frac{1}{2d\,\cos^2\!\big(\pi/(2(N+1))\big)} \;\to\; \frac{1}{2d},
+$$
+
+in $d$ dimensions. Beyond it the highest mode, which alternates in sign from
+node to node, grows without bound, however small it was at first.
+
+## Code
+
+The model is `pbc.thermodynamics.conduction`. One explicit step in one
+dimension, with each end either fixed or convective:
+
+```{python}
+#| echo: false
+excerpt(conduction.ftcs_step)
+```
+
+```{python}
+#| echo: false
+excerpt(conduction._boundary_value)
+```
+
+The same step on a plate, and the lumped model:
+
+```{python}
+#| echo: false
+excerpt(conduction.ftcs_step_2d)
+```
+
+```{python}
+#| echo: false
+excerpt(conduction.lumped_temperature)
+```
+
+The growth per step is measured by applying the step to a random state many
+times and normalising after each, so that only the fastest-growing (or
+slowest-decaying) mode survives:
+
+```{python}
+#| echo: false
+excerpt(conduction.growth_per_step)
+```
+
+```{python}
+#| echo: false
+excerpt(conduction.stability_limit)
+```
+
+## Worked examples
+
+### When is one temperature enough?
+
+A steel slab, started uniform and cooled by a fluid on both faces:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="slab")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.lumped_against_slab)
+```
+
+```{python}
+#| label: lumped-against-slab
+#| echo: false
+result.table("lumped-against-slab")
+```
+
+```{python}
+#| label: fig-lumped-against-slab
+#| echo: false
+#| fig-cap: "The slab follows the lumped exponential when the Biot number is small and falls behind it when it is large: its inside cannot deliver heat to the surface as fast as the fluid takes it."
+#| fig-alt: "Line plot of the mean dimensionless temperature against time in lumped time constants, from one down towards zero. A dotted exponential curve for the lumped model; a solid curve for the smallest Biot number lies on it; a dashed curve for the middle Biot number lies a little above it; a dash-dotted curve for the largest Biot number lies far above, decaying much more slowly."
+#| fig-status: simulated
+result.show("fig-lumped-against-slab")
+```
+
+[The mean temperature of the slab computed by the explicit scheme agrees with
+the exact series to `{python} result["series-gap"]` of the initial temperature
+difference at all three Biot numbers.]{.claim type="numerically-verified"
+scope="steel slab, twenty grid cells, constant h" evidence="lumped-against-slab"}
+[At the smallest Biot number the lumped model is within
+`{python} result["lumped-gap-small"]` of the slab; at the largest it is off by
+`{python} result["lumped-gap-large"]`.]{.claim type="numerically-verified"
+scope="mean temperature over three lumped time constants"
+evidence="lumped-against-slab fig-lumped-against-slab"} The fast quench, with
+the largest $h$, is where the lumped model fails: the surface is cooled at
+once, but the heat of the inside has to cross the slab first, so the time scale
+is set by conduction, $L^2/\alpha$, not by $\tau$.
+
+The scheme conserves energy exactly, in the sense that the energy it removes
+from the grid (by the trapezoidal rule over the nodes) is the heat it lets out
+through the ends, step by step:
+
+```{python}
+#| echo: false
+excerpt(experiment.energy_balance)
+```
+
+```{python}
+#| label: energy-balance
+#| echo: false
+result.table("energy-balance")
+```
+
+[The relative gap between the energy lost by the slab and the heat that left
+through its faces is `{python} result["energy-gap"]`.]{.claim
+type="numerically-verified" scope="explicit scheme with ghost-node convective
+ends, middle Biot number" evidence="energy-balance"} That is round-off: the
+interior differences cancel in pairs, and the ghost node turns the boundary
+condition into exactly the heat $h\,(T_0 - T_f)\,\Delta t$ per step.
+
+### The stability limit, measured
+
+```{python}
+#| echo: false
+excerpt(experiment, region="stability")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.stability)
+```
+
+```{python}
+#| label: stability-limits
+#| echo: false
+result.table("stability")
+```
+
+```{python}
+#| label: fig-stability-limit
+#| echo: false
+#| fig-cap: "The growth per step of a random state is below one up to a sharp limit of r and grows beyond it, in one dimension near one half and in two near one quarter, where the limit of the grid predicts."
+#| fig-alt: "Line plot of the measured growth per step against r. Two curves, solid with circles for one dimension and dashed with squares for two, stay just below a horizontal line at one and then rise steeply. Two dotted vertical lines mark the predicted limits; each curve leaves the line at its own vertical line."
+#| fig-status: simulated
+result.show("fig-stability-limit")
+```
+
+[The bisection on the measured growth finds the limit $r =$
+`{python} result["limit-1d"]` in one dimension and
+`{python} result["limit-2d"]` in two, equal to the limit of the grid to within
+the tolerance of the bisection.]{.claim type="numerically-verified"
+scope="explicit scheme, twenty unknowns per direction between fixed ends"
+evidence="stability-limits fig-stability-limit"} The limits lie slightly above one
+half and one quarter because a grid of twenty unknowns has no mode that
+alternates perfectly; on a fine grid they approach $1/(2d)$. Below the limit
+the measured growth is that of the slowest-decaying mode, just under one.
+
+The limit is a hard constraint on cost: halving $\Delta x$ forces $\Delta t$ to
+a quarter, so a grid twice as fine costs eight times as much in one dimension.
+An implicit scheme removes the limit at the price of solving a linear system
+each step.
+
+### Convergence in the grid and in the step
+
+The slab at the Biot number one, to a fixed Fourier number, against its exact
+series, with $r$ held fixed while the grid is refined:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="convergence")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.grid_convergence)
+```
+
+```{python}
+#| label: grid-convergence
+#| echo: false
+result.table("grid-convergence")
+```
+
+Holding $r$ fixed shrinks $\Delta t$ with $\Delta x^2$, so both error terms fall
+as $\Delta x^2$ and the fitted order is `{python} result["grid-order"]`. To see
+the time error alone, take one sine mode on a fixed grid and compare with the
+exact solution of the grid's own ordinary differential equations, in which the
+mode decays as $e^{-\lambda_h t}$ with
+$\lambda_h = (4\alpha/\Delta x^2)\sin^2\!\big(\pi\Delta x/(2\ell)\big)$:
+
+```{python}
+#| echo: false
+excerpt(experiment.time_convergence)
+```
+
+```{python}
+#| label: time-convergence
+#| echo: false
+result.table("time-convergence")
+```
+
+```{python}
+#| label: fig-heat-convergence
+#| echo: false
+#| fig-cap: "The error of the explicit scheme falls with the square of the grid spacing at fixed r (left) and in proportion to the time step on a fixed grid (right), parallel to the reference slopes."
+#| fig-alt: "Two log-log panels. Left: largest error against the grid spacing, five points on a straight line parallel to a dotted reference line of slope two. Right: largest error against the time step, five points on a straight line parallel to a dotted reference line of slope one."
+#| fig-status: simulated
+result.show("fig-heat-convergence")
+```
+
+[The explicit scheme converges at the fitted order
+`{python} result["grid-order"]` in the grid spacing, with the convective
+boundary included, and at `{python} result["time-order"]` in the time
+step.]{.claim type="numerically-verified" scope="the convective slab against
+its exact series at fixed r; one sine mode against the semi-discrete solution"
+evidence="grid-convergence time-convergence fig-heat-convergence"} The
+reference lines are drawn below the data for comparison; they are not fits. The
+first order in time is why the scheme is usually run near its stability limit:
+there the time error and the space error are of the same size.
+
+### A plate heated along one edge
+
+A square steel plate, held at a high temperature along its bottom edge and at
+the fluid temperature along the other three, starts cold:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="plate")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.plate)
+```
+
+The steady state solves $\nabla^2 T = 0$ directly. The five-point stencil at
+every interior node gives one equation per node, a sparse linear system that
+SciPy solves at once:
+
+```{python}
+#| echo: false
+excerpt(conduction.steady_plate)
+```
+
+```{python}
+#| label: fig-plate-temperature
+#| echo: false
+#| fig-cap: "Heat creeps into the plate from its hot edge: after a minute only the lowest few centimetres have warmed, and the transient settles on the steady field computed by one sparse solve."
+#| fig-alt: "Two square false-colour maps of the plate temperature on one colour scale, with white labelled isotherms. Left, after a minute: a warm band along the bottom edge, the rest still cold. Right, the steady state: the isotherms bulge further up into the plate, highest in the middle and pinned to the cold side edges."
+#| fig-status: simulated
+result.show("fig-plate-temperature")
+```
+
+[Marched with a step of `{python} result["plate-step"]` s to the end time of
+the example, the transient plate differs from the steady sparse solve by
+`{python} result["plate-gap"]` °C at every node.]{.claim
+type="numerically-verified" scope="forty cells per side, r of the example"
+evidence="fig-plate-temperature"} The transient converges to the steady state
+of the same grid, not to the exact solution of the plate: both share the
+five-point error. Near the two lower corners the boundary temperature jumps,
+and there the grid cannot resolve the field, whatever the scheme.
+
+## Limits {#limits}
+
+- **Constant properties and a constant h.** The model ignores the change of
+  conductivity with temperature, radiation from a hot surface, and the
+  dependence of $h$ on the flow. A real quench passes through boiling regimes
+  in which $h$ changes by an order of magnitude.
+- **One-dimensional slab.** The edges of a real plate cool from the side as
+  well; the slab result holds away from them.
+- **A stability analysis for fixed ends.** The measured limit is that of
+  fixed ends. A convective end needs the smaller step of its own weight, which
+  the lesson uses but does not measure; a convective end with a large
+  $h\Delta x/k$ restricts the step more than the interior.
+- **First order in time.** The explicit scheme is only first order in
+  $\Delta t$ and conditionally stable. Implicit schemes (backward Euler,
+  Crank-Nicolson) are not built here.
+- **No measurement.** Every comparison is with an exact solution or with a
+  second computation; nothing is compared with a measured temperature.
+
+::: {.exercise .self-check}
+On a grid that is twice as fine, with the same material and the explicit
+scheme at its stability limit, how many times more work does it take to reach
+the same time in two dimensions?
+
+::: {.choices}
+::: {.choice}
+Four times: there are four times as many nodes.
+
+::: {.feedback}
+That counts the nodes but not the steps. The stable step depends on the grid
+spacing too.
+:::
+:::
+
+::: {.choice correct="true"}
+Sixteen times: four times the nodes and four times the steps.
+
+::: {.feedback}
+Right. The limit fixes $\alpha\Delta t/\Delta x^2$, so halving $\Delta x$
+quarters $\Delta t$, and each step updates four times as many nodes.
+:::
+:::
+:::
+
+::: {.solution}
+The stability limit holds $r = \alpha\Delta t/\Delta x^2$ below about one
+quarter. Halving $\Delta x$ therefore quarters $\Delta t$: four times as many
+steps. In two dimensions the grid also has four times as many nodes, so the
+work grows sixteen-fold, while the error falls only four-fold. This is the
+price of an explicit scheme, and the reason implicit schemes and direct
+steady solves exist.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Choose the time step.** The slab of the first example is 40 mm thick on a
+grid of 20 cells and is quenched at the largest Biot number of the lesson. What
+is the largest time step for which every new value is still a weighted mean of
+old ones?
+
+::: {.hint}
+The convective end has the smallest weight of the old value. Set it to zero
+and solve for $r$.
+:::
+
+::: {.solution}
+The end node's weight is $1 - 2r(1 + h\Delta x/k)$, so
+$r \le 1/\big(2(1 + h\Delta x/k)\big)$, and $\Delta t = r\,\Delta x^2/\alpha$:
+
+```{python}
+#| echo: false
+excerpt(experiment.largest_step)
+```
+
+```{python}
+#| echo: false
+result.table("largest-step")
+```
+
+The quench lowers the step below what the interior alone would allow; in this
+example by a third.
+:::
+:::
+
+::: {.exercise}
+**A thin sheet in air.** A steel sheet 2 mm thick, at 200 °C, cools in still
+air at 20 °C with $h = 25\ \mathrm{W/(m^2\,K)}$ on both faces. How long until
+it reaches 50 °C? Is the lumped model good enough?
+
+::: {.hint}
+Compute the Biot number with half the thickness first.
+:::
+
+::: {.solution}
+The Biot number is far below the rule of thumb, so the lumped model should do;
+the exact series agrees:
+
+```{python}
+#| echo: false
+excerpt(experiment.cooling_time)
+```
+
+```{python}
+#| echo: false
+result.table("cooling-time")
+```
+
+Inside a thin steel sheet heat moves so easily that the sheet cools as one
+body; the time is set by the air, through $\tau = \rho c L/h$.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/thermodynamics/conduction.py",
+        "src/pbc/thermodynamics/experiments/heat_conduction_and_diffusion.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_conduction.py",
+        "tests/unit/test_heat_conduction_and_diffusion_experiment.py",
+    ],
+)
+```

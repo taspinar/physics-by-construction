@@ -1,0 +1,516 @@
+---
+title: "From finite differences to finite elements and meshes"
+description: >-
+  Steady heat conduction with piecewise-linear finite elements on triangular
+  meshes generated in the lesson: the weak form, a sparse system assembled and
+  solved with SciPy, a manufactured solution refined to measure the orders,
+  the five-point grid recovered as a special case, and an insulated pipe whose
+  heat balance closes.
+lesson:
+  id: from-finite-differences-to-finite-elements
+  strand: thermodynamics
+  order: 8
+  difficulty: 3
+  course: thermodynamics
+  slot: T10
+  methods: [simulation]
+  outcomes:
+    - Derive the weak form of steady heat conduction with fixed and convective boundaries, and see what each term means as a heat flow
+    - Generate a triangular mesh, inspect its quality, and assemble and solve the sparse system of linear finite elements with SciPy
+    - Verify a finite-element solver with a manufactured solution, measuring the orders of its errors under refinement
+    - Compute the heat flowing through a boundary from the residual of the system, and close the heat balance of a model
+  related: []
+  format: 2
+  preview: fig-pipe-temperature
+  experiment: pbc.thermodynamics.experiments.from_finite_differences_to_finite_elements
+  prerequisites:
+    lessons: [heat-conduction-and-diffusion]
+    outside:
+      - "Calculus: integration by parts, and the divergence theorem in the plane"
+      - "Linear algebra: a sparse linear system and its direct solution"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.fem import assembly, mesh
+from pbc.thermodynamics.experiments import from_finite_differences_to_finite_elements as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A hot-water pipe wrapped in insulation, a heat spreader under a chip, a
+turbine blade with cooling channels: the parts engineers need temperatures for
+are rarely squares. The finite-difference grid of the previous lesson needs a
+node on every boundary, which a curved or cut-out part does not offer. Finite
+elements cut the part into triangles that follow its shape, and ask the
+temperature to be linear on each, which is enough to state the physics as a
+balance of heat for every node.
+
+This lesson builds that method from the ground up for steady conduction: the
+weak form, the hat functions, the assembly of a sparse linear system, and the
+boundaries. The solver is checked three ways. A manufactured solution, chosen
+first and then made to hold by its source and boundary data, is refined to
+measure the orders of the errors. On a square mesh the method turns out to be
+the five-point grid of the previous lesson. And an insulated pipe, on a mesh
+generated and inspected in the lesson, is compared with its exact heat loss
+while its heat balance is closed. The solver is `pbc.fem`, a few hundred lines
+on NumPy and SciPy that later lessons reuse.
+
+## Assumptions
+
+1. **Steady conduction.** Nothing changes with time; the heat equation
+   becomes $-\nabla\cdot(k\nabla T) = q$, with a source $q$ in
+   $\mathrm{W/m^3}$.
+2. **A constant conductivity per problem.** $k$ is the same everywhere in a
+   domain. The method handles a $k$ per triangle as easily; the lessons do not
+   need it.
+3. **Two-dimensional cross-sections.** The pipe is long, so its temperature
+   depends on the position in the cross-section only, and heat flows are per
+   metre of length.
+4. **Polygons for curves.** A circle becomes the polygon of its boundary
+   nodes. This geometric error shrinks as the square of the mesh size, as fast
+   as the error of the elements themselves.
+5. **The boundary conditions of the previous lesson.** A wall at a fixed
+   temperature, or convection to a fluid with a constant coefficient $h$.
+
+## Explanation
+
+### The weak form
+
+Multiply the heat equation by any smooth function $v$ that vanishes where the
+temperature is fixed, integrate over the domain $\Omega$, and integrate by
+parts with the divergence theorem:
+
+$$
+\int_\Omega k\,\nabla T\cdot\nabla v\,dA
++ \int_{\Gamma_h} h\,T\,v\,ds
+= \int_\Omega q\,v\,dA
++ \int_{\Gamma_h} h\,T_f\,v\,ds .
+$$
+
+The boundary term of the integration by parts, $\oint k\,\partial_n T\,v\,ds$,
+is where the boundary conditions enter: on a fixed wall $v = 0$, and on a
+convective side $\Gamma_h$ the flux $-k\,\partial_n T$ is $h\,(T - T_f)$. Read
+with a $v$ that is one on a small patch and zero elsewhere, the equation says:
+the heat conducted out of the patch plus the heat it gives to the fluid equals
+the heat generated in it plus the heat the fluid brings. The weak form is a
+heat balance for every choice of patch.
+
+### Linear elements
+
+On a mesh of triangles, the hat function $\phi_i$ of node $i$ is one at the
+node, zero at all others, and linear on every triangle. The approximate
+temperature is $T_h = \sum_j T_j\phi_j$, and taking $v = \phi_i$ for every free
+node gives one equation per node, the linear system
+
+$$
+K\,\mathbf{T} = \mathbf{F},
+\qquad
+K_{ij} = \int_\Omega k\,\nabla\phi_i\cdot\nabla\phi_j\,dA + \int_{\Gamma_h} h\,\phi_i\phi_j\,ds .
+$$
+
+A hat function overlaps only the hats of its neighbours, so $K$ is sparse:
+each row has about seven entries, however large the mesh. On a triangle the
+gradients of the hats are constant, so the stiffness of the triangle is its
+area times their dot products, and the global matrix is the sum of these small
+matrices, added at the rows and columns of their nodes.
+
+### Fixed values and boundary fluxes
+
+A fixed temperature is imposed explicitly: its node is removed from the
+unknowns, and its known value moves to the right-hand side. The rows of the
+removed nodes are not wasted. Their residual, $(K\mathbf{T} - \mathbf{F})_i$,
+is the heat that the solution needs to flow in at node $i$ to balance every
+patch around it. This consistent flux closes the heat balance of the discrete
+model exactly, unlike the flux read off the gradient of the boundary
+triangles, which is constant per triangle and only first-order accurate.
+
+### What to expect under refinement
+
+For a smooth solution and a mesh of size $h$ (the longest side of a triangle)
+whose triangles do not degenerate, linear elements have an error of order
+$h^2$ in the temperature (the $L^2$ norm) and of order $h$ in its gradient (the
+$H^1$ seminorm). A slender triangle with an angle near $180°$ spoils the
+gradient; the angles and the radius ratio $2r_{\mathrm{in}}/r_{\mathrm{out}}$
+measure how far a mesh is from that.
+
+## Code
+
+The solver is `pbc.fem`, two modules. The hat-function gradients of every
+triangle, from its node coordinates:
+
+```{python}
+#| echo: false
+excerpt(assembly.gradients)
+```
+
+The stiffness matrix, assembled from the triangles' small matrices into one
+sparse matrix:
+
+```{python}
+#| echo: false
+excerpt(assembly.stiffness)
+```
+
+```{python}
+#| echo: false
+excerpt(assembly._scatter)
+```
+
+The convective edges, the explicit fixed values, and the residual:
+
+```{python}
+#| echo: false
+excerpt(assembly.convection)
+```
+
+```{python}
+#| echo: false
+excerpt(assembly.solve)
+```
+
+```{python}
+#| echo: false
+excerpt(assembly.residual)
+```
+
+## Worked examples
+
+### A manufactured solution
+
+To test a solver against an exact answer on a problem that has none, choose
+the answer first. Take
+$u = \sin(2x + \tfrac12)\,e^{y}$ on the unit square with $k = 1$, compute the
+source that makes it a solution, $f = -\nabla^2 u = 3u$, fix $u$ on three
+sides, and on the top side choose the fluid temperature $g = u + u_y/h$ that
+makes the convective condition hold:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="manufactured")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.solve_manufactured)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.manufactured_convergence)
+```
+
+```{python}
+#| label: manufactured
+#| echo: false
+result.table("manufactured")
+```
+
+[Under refinement the $L^2$ error of the finite-element solution falls at the
+fitted order `{python} result["l2-order"]` and its $H^1$ error at
+`{python} result["h1-order"]`, the orders of linear elements, with the
+convective side included.]{.claim type="numerically-verified" scope="the
+manufactured solution on the unit square, structured meshes of four to
+sixty-four cells per side" evidence="manufactured fig-fem-convergence"} A wrong
+sign in the convective edge, a factor missing in the load, or a misplaced
+entry in the assembly would break one of these orders; the exact solution
+needs no trust in the solver.
+
+### The five-point grid, recovered
+
+On the structured mesh of the previous example every square is cut along the
+same diagonal. At an interior node, the stiffness row is then exactly the
+five-point stencil of the finite differences, scaled by $\Delta x^2$:
+
+```{python}
+#| echo: false
+excerpt(experiment.stencil_gap)
+```
+
+[The largest difference between a stiffness row at an interior node and the
+five-point stencil is `{python} result["stencil-gap"]`.]{.claim
+type="numerically-verified" scope="linear elements on the structured mesh with
+one diagonal direction, constant k" evidence="fd-against-fem"} The two methods
+differ only in the right-hand side: the finite differences take the source at
+the node, the elements average it over the node's hat. On a plate with a
+sine-shaped source and zero edges both converge to the exact solution at the
+same rate, by different routes:
+
+```{python}
+#| echo: false
+excerpt(experiment.fd_against_fem)
+```
+
+```{python}
+#| label: fd-against-fem
+#| echo: false
+result.table("fd-against-fem")
+```
+
+[The largest errors of the finite differences and of the elements against the
+exact plate both fall by four with each halving of the spacing, and the two
+solutions differ by the same order.]{.claim type="numerically-verified"
+scope="unit plate, sine source, zero edges" evidence="fd-against-fem"} The
+errors have opposite signs, which is why the difference between the methods is
+larger than either error; neither method is the reference for the other.
+
+### An insulated pipe, meshed
+
+A pipe at a fixed temperature is wrapped in mineral wool and cooled by still
+air outside:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="pipe")
+```
+
+The mesh is generated here: rings of nodes across the insulation, spaced so
+that the triangles come out nearly equilateral, joined by a Delaunay
+triangulation, with the triangles inside the pipe removed:
+
+```{python}
+#| echo: false
+excerpt(mesh.annulus)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.inspect_meshes)
+```
+
+```{python}
+#| label: mesh-quality
+#| echo: false
+result.table("mesh-quality")
+```
+
+```{python}
+#| label: fig-annulus-mesh
+#| echo: false
+#| fig-cap: "A mesh of the insulation generated in the lesson, with the pipe wall and the outer surface marked, and the smallest angles of its triangles: they stay in the same narrow band as the mesh is refined, far from a slender triangle."
+#| fig-alt: "Left: a ring-shaped mesh of small triangles between an inner polygon, drawn solid, and an outer polygon, drawn dashed. Right: step histograms of the smallest angle per triangle for three refinements, solid, dashed, and dotted; all three lie in one narrow band, well clear of zero and left of a vertical line marking the equilateral triangle."
+#| fig-status: simulated
+result.show("fig-annulus-mesh")
+```
+
+[No triangle of any of the five meshes has an angle below
+`{python} result["smallest-angle"]` degrees, and the triangles of each mesh fill
+the area between its two boundary polygons.]{.claim type="numerically-verified"
+scope="the annulus meshes of the table" evidence="mesh-quality fig-annulus-mesh"}
+The quality does not degrade with refinement, which the expected orders
+assume.
+
+The exact heat loss per metre of pipe is the temperature difference over two
+resistances in series, conduction through the cylinder and convection at its
+surface:
+
+$$
+Q' = \frac{2\pi\,(T_{\mathrm{pipe}} - T_{\mathrm{air}})}{\ln(r_o/r_i)/k + 1/(h\,r_o)},
+\qquad
+T(r) = T_{\mathrm{pipe}} - \frac{Q'}{2\pi k}\ln\frac{r}{r_i}.
+$$
+
+Its value here is `{python} result["exact-heat-loss"]` W/m. The elements give
+the heat that enters at the pipe wall (the residual of the fixed nodes), the
+heat that leaves into the air (the convective edges), and, for contrast, the
+heat read from the gradient of the triangles at the wall:
+
+```{python}
+#| echo: false
+excerpt(experiment.heat_flows)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.pipe_refinement)
+```
+
+```{python}
+#| label: pipe
+#| echo: false
+result.table("pipe")
+```
+
+```{python}
+#| label: fig-pipe-temperature
+#| echo: false
+#| fig-cap: "The temperature in the insulation computed on a mesh of eight layers falls from the pipe wall to the outer surface, the same at every angle, and its node values lie on the exact logarithmic profile."
+#| fig-alt: "Left: a ring-shaped false-colour map of temperature with a colour bar and a faint white mesh, hottest at the inner circle and coolest at the outer, in concentric bands. Right: temperature against radius; points for the node values lie on a dashed curve of the exact profile, which falls steeply near the pipe and flattens outwards."
+#| fig-status: simulated
+result.show("fig-pipe-temperature")
+```
+
+[On every mesh the heat into the insulation at the pipe and the heat out into
+the air differ by a relative `{python} result["balance-gap"]`: the consistent
+flux closes the heat balance of the discrete model.]{.claim
+type="numerically-verified" scope="the five annulus meshes, no source"
+evidence="pipe"} [The heat loss from the residual converges to the exact one
+at the fitted order `{python} result["pipe-order"]`, with a relative error of
+`{python} result["pipe-error"]` on the finest mesh, while the flux from the
+gradient converges only at `{python} result["gradient-order"]`.]{.claim
+type="numerically-verified" scope="insulated pipe of the example, meshes of
+two to thirty-two layers" evidence="pipe fig-fem-convergence"}
+
+```{python}
+#| label: fig-fem-convergence
+#| echo: false
+#| fig-cap: "Linear elements converge as expected: the temperature error falls with the square of the mesh size and the gradient error in proportion to it (left), and the pipe's heat loss from the residual falls with the square of the mesh size, the flux from the gradient only in proportion to it (right)."
+#| fig-alt: "Two log-log panels against the mesh size h. Left: the L2 error, solid with circles, parallel to a dotted reference of slope two; the H1 error, dashed with squares, parallel to a dash-dotted reference of slope one. Right: the relative error of the heat loss from the residual, solid with circles, near the slope-two reference; from the gradient, dashed with squares, parallel to the slope-one reference and far above."
+#| fig-status: simulated
+result.show("fig-fem-convergence")
+```
+
+The reference lines are drawn below the data for comparison, not fitted. The
+residual flux of the pipe does not fall perfectly smoothly, because each
+Delaunay mesh is a different arrangement of triangles, not a subdivision of
+the one before; the trend is second order.
+
+## Limits {#limits}
+
+- **No optional reference tool was used.** Gmsh and FEniCSx are the usual
+  tools for meshing and for finite elements at scale. They are not
+  dependencies of the site, and this lesson needs neither: the manufactured
+  and the exact pipe solutions are the references. A reference solution from
+  such a tool would be a declared `modelled-reference` input with a dataset
+  card, as the architecture requires; this lesson has none.
+- **Linear triangles, scalar problems, steady state.** The solver has no
+  quadratic elements, no time stepping, and no vector unknowns such as the
+  displacements of elasticity; later lessons extend it where they need to.
+- **Small meshes and a direct solver.** The sparse direct solve is fast for
+  the tens of thousands of unknowns here; meshes of millions of unknowns need
+  iterative solvers and preconditioners.
+- **A teaching mesh generator.** The ring-and-Delaunay generator works for an
+  annulus; a general domain needs a real mesh generator, with control of the
+  size and the quality near corners.
+- **Verification, not validation.** Every check compares the solver with
+  mathematics: an exact solution, a manufactured one, or another method. None
+  compares a computed temperature with a measured one; the conductivity of
+  mineral wool and the coefficient of still air are typical values, not
+  measured properties of a real pipe.
+
+::: {.exercise .self-check}
+The heat balance of the pipe closes to round-off on the coarsest mesh, whose
+heat loss is measurably off the exact one. How can both be true?
+
+::: {.choices}
+::: {.choice}
+The coarse mesh is accurate after all; the exact formula assumes something the
+model does not.
+
+::: {.feedback}
+No. The error of the heat loss shrinks under refinement towards the exact
+value, so it is a discretisation error of the coarse mesh.
+:::
+:::
+
+::: {.choice correct="true"}
+The balance is a property of the discrete equations, which conserve heat on
+any mesh; the error measures how well the discrete model approximates the real
+temperature.
+
+::: {.feedback}
+Right. The residual flux is the flux of the discrete model, which balances
+exactly; whether that model is close to the physics is what the refinement
+shows.
+:::
+:::
+:::
+
+::: {.solution}
+The stiffness rows sum to zero, so summing all equations of the system leaves
+only the boundary terms: the residual at the fixed nodes equals the heat given
+to the air, on every mesh, up to round-off. That is conservation, a property
+of the scheme. Accuracy is another question: the coarse model conserves the
+heat of a temperature field that is not quite right. A closed balance is
+necessary but never evidence of convergence; only refinement against a
+reference shows that.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**The critical radius.** A wire of radius 1 mm is 40 °C warmer than the air
+($h = 10\ \mathrm{W/(m^2\,K)}$) and is coated with plastic of conductivity
+$0.2\ \mathrm{W/(m\,K)}$. Does a thicker coating always reduce the heat it
+loses? Compute the heat loss for several outer radii, exactly and with the
+finite elements.
+
+::: {.hint}
+Differentiate the denominator of the exact heat loss with respect to $r_o$
+and set it to zero.
+:::
+
+::: {.solution}
+The denominator $\ln(r_o/r_i)/k + 1/(h r_o)$ is smallest at $r_o = k/h$, so
+the heat loss rises up to that radius and falls beyond it. The elements, on
+meshes graded towards the thin wire, follow the exact values:
+
+```{python}
+#| echo: false
+excerpt(experiment.critical_radius)
+```
+
+```{python}
+#| echo: false
+result.table("critical-radius")
+```
+
+A thin coating adds more surface for convection than it adds resistance to
+conduction. For a wire that must stay cool this helps; for a hot pipe, whose
+radius is already well above $k/h$, insulation always reduces the loss. The
+graded mesh matters here: with rings evenly spaced across a coating eighty
+times the wire's radius, the steep logarithm near the wire would fall within
+the first few layers.
+:::
+:::
+
+::: {.exercise}
+**How fine for the gradient flux?** On the finest pipe mesh the flux read from
+the gradient is still off by a few per cent. If its error stays proportional
+to the mesh size, how many layers would it need for one per cent?
+
+::: {.hint}
+The number of layers is inversely proportional to the mesh size.
+:::
+
+::: {.solution}
+Scale the layers by the ratio of the present error to the target:
+
+```{python}
+#| echo: false
+excerpt(experiment.gradient_mesh)
+```
+
+```{python}
+#| echo: false
+result.table("gradient-mesh")
+```
+
+With triangles in two dimensions, that is several times as many nodes, to
+reach an accuracy that the residual flux already beats by orders of magnitude
+on the present mesh. The flux is not a post-processing detail: computing it
+from the residual is both cheaper and more accurate.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/fem/mesh.py",
+        "src/pbc/fem/assembly.py",
+        "src/pbc/thermodynamics/conduction.py",
+        "src/pbc/thermodynamics/experiments/from_finite_differences_to_finite_elements.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_fem.py",
+        "tests/unit/test_from_finite_differences_to_finite_elements_experiment.py",
+    ],
+)
+```
