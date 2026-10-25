@@ -321,6 +321,9 @@ def test_the_published_lessons_that_fill_a_slot_carry_it():
         "random-walks-and-diffusion": "T1",
         "kinetic-theory-of-gases": "T2",
         "entropy-from-ensembles": "T3",
+        "ising-model-and-phase-transitions": "T4",
+        "molecular-dynamics": "T5",
+        "heat-engines-and-thermodynamic-cycles": "T9",
     }
     # The Lean lessons beyond the baseline have no slot.
     for lesson_id in (
@@ -438,10 +441,11 @@ def test_every_unfilled_slot_of_a_course_with_a_lesson_and_of_every_path_is_plan
     ]
     assert planned == expected
     assert "M15" in planned and "AI1" in planned and "EV1" in planned
-    # The thermodynamics course shows its eight planned slots (F70), not T0 to T3.
+    # The thermodynamics course shows its five planned slots, not the published
+    # T0 to T5 and T9 (F70, F75).
     thermodynamics = [slot.label for slot in path.planned_in_course(COURSES[1])]
-    assert thermodynamics == ["T4", "T5", "T6", "T9", "T10", "T11", "T7", "T8"]
-    assert not {"T0", "T1", "T2", "T3"} & set(planned)
+    assert thermodynamics == ["T6", "T10", "T11", "T7", "T8"]
+    assert not {"T0", "T1", "T2", "T3", "T4", "T5", "T9"} & set(planned)
     assert not {item.slot for item in path.lessons} & set(planned)
 
 

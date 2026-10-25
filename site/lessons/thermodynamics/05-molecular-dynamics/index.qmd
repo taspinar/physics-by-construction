@@ -1,0 +1,442 @@
+---
+title: "Molecular dynamics"
+description: >-
+  Particles with a Lennard-Jones interaction moved by Newton's laws in a
+  periodic box: the energy conserved to second order in the time step, a
+  mixture of light and heavy particles reaching one temperature, and the
+  pressure from the virial.
+lesson:
+  id: molecular-dynamics
+  strand: thermodynamics
+  order: 5
+  difficulty: 2
+  course: thermodynamics
+  slot: T5
+  methods: [simulation]
+  outcomes:
+    - Integrate many interacting particles in a periodic box with velocity Verlet and a cut-off pair potential
+    - Check the conservation of the energy, telling the bounded error of the integrator from a drift, and measure its order in the time step
+    - Check equipartition on a mixture of light and heavy particles, and compute the temperature and the pressure from the motion
+  related: []
+  format: 2
+  preview: fig-equipartition
+  experiment: pbc.thermodynamics.experiments.molecular_dynamics
+  prerequisites:
+    lessons: [kinetic-theory-of-gases, numerical-integrators]
+    outside:
+      - "Vectors: components, the dot product, and the gradient of a function of position"
+      - "Statistics: the mean, the standard deviation, and the standard error of a mean"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.thermodynamics import molecular
+from pbc.thermodynamics.experiments import molecular_dynamics as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+Temperature, pressure, and the heat a fluid stores are averages over the
+motion of its molecules. The gas of the first lessons of this course was made of
+hard discs that only collide. Real molecules attract each other at a distance
+and repel when they come close, and that changes how a fluid stores energy and
+pushes on its container. Molecular dynamics computes such a fluid by brute
+force: give every particle a position and a velocity, compute the forces
+between them, and integrate Newton's laws for all of them at once. The averages
+of thermodynamics are then averages over the computed motion.
+
+Two things have to hold for the averages to mean anything. The integrator has
+to conserve the energy, because an isolated system does, and an error that
+slowly heats or cools the fluid would change its temperature. And the motion
+has to share the energy among the particles as statistical physics says it
+should: equally among the degrees of freedom, whatever the mass. This lesson
+builds the method, checks both, and computes the pressure. The data are
+simulated, in reduced units: lengths in $\sigma$, energies in $\epsilon$, masses
+in the mass of the lighter particles, temperatures in $\epsilon/k_B$, and times
+in $\sigma\sqrt{m/\epsilon}$.
+
+## Assumptions
+
+1. **Classical point particles in a plane.** Each particle has a position and
+   a velocity in two dimensions and follows Newton's laws. Quantum effects,
+   rotations, and internal vibrations are left out.
+2. **A pair potential.** The energy is a sum over pairs of the Lennard-Jones
+   potential $u(r) = 4\epsilon\left[(\sigma/r)^{12} - (\sigma/r)^6\right]$, a
+   steep repulsion and a weaker attraction. Forces between three or more
+   particles at once are not modelled.
+3. **A cut-off.** Pairs further apart than $r_c = 2.5\,\sigma$ do not interact,
+   and the potential is shifted so that it and its force reach zero at $r_c$.
+   The shifted potential is a slightly different fluid from the full one.
+4. **A periodic box.** The particles fill a square with periodic boundaries,
+   and each pair interacts through its nearest image. There are no walls; the
+   box has no surface.
+5. **An isolated system.** No thermostat adds or removes energy, so the
+   energy is constant and the temperature is whatever the motion gives. The
+   total momentum is set to zero at the start and stays so.
+6. **Independent runs give the errors.** Averages over time within one run are
+   correlated. The standard errors come from runs with independent starting
+   velocities.
+
+## Explanation
+
+### Forces from a potential
+
+The force on particle $i$ is minus the gradient of the total potential energy
+with respect to its position. For a pair potential this is a sum over the
+other particles,
+
+$$
+\mathbf F_i = -\sum_{j\neq i} u'(r_{ij})\,\frac{\mathbf r_{ij}}{r_{ij}},
+\qquad \mathbf r_{ij} = \mathbf r_i - \mathbf r_j ,
+$$
+
+and $\mathbf F_{ij} = -\mathbf F_{ji}$, so the total force and the change of
+the total momentum are zero. With the cut-off, $u$ is replaced by the
+shifted-force potential
+
+$$
+u_{\mathrm{sf}}(r) = u(r) - u(r_c) - (r - r_c)\,u'(r_c), \qquad r < r_c,
+$$
+
+which is zero beyond $r_c$. Both $u_{\mathrm{sf}}$ and its derivative are
+continuous at $r_c$: a pair crossing the cut-off feels no jump in its energy or
+its force. A potential that is only truncated would jump there, and every
+crossing would add a small error to the energy that the time step cannot
+remove.
+
+### Velocity Verlet
+
+The integrator of the mechanics course that keeps the energy best is velocity
+Verlet:
+
+$$
+\mathbf v_{n+1/2} = \mathbf v_n + \frac{\Delta t}{2m}\mathbf F_n, \quad
+\mathbf r_{n+1} = \mathbf r_n + \Delta t\,\mathbf v_{n+1/2}, \quad
+\mathbf v_{n+1} = \mathbf v_{n+1/2} + \frac{\Delta t}{2m}\mathbf F_{n+1}.
+$$
+
+It is time-reversible and symplectic. Its energy is not exactly constant: it
+oscillates about the energy of a nearby, slightly different system, with an
+amplitude proportional to $\Delta t^2$, and it does not drift away for a very
+long time. A drift that grows with time would point to something else: a time
+step too large for the fastest motion, or a force that is not the gradient of
+the energy.
+
+### Temperature and equipartition
+
+In equilibrium at temperature $T$ every quadratic term of the energy has the
+mean $k_BT/2$, whatever the mass: $\langle m v_x^2\rangle = k_BT$ for a light
+particle and for a heavy one alike. A heavy particle is therefore slower, by the
+square root of the mass ratio, and has the same kinetic energy. This is
+equipartition. The kinetic temperature of a group of particles is the mean of
+$m v_x^2$ over the group.
+
+One correction matters here. The total momentum is zero, so the motion of the
+centre of mass is not free: of the kinetic energy a particle of mass $m_i$
+would have, a share $m_i/M$ belongs to the centre of mass, with $M$ the total
+mass. The temperature of a group is therefore
+
+$$
+k_BT = \frac{\sum_i m_i v_{ix}^2}{\sum_i (1 - m_i/M)} .
+$$
+
+Without the factor, a light and a heavy species would seem to differ in
+temperature by a relative amount of order $1/N$, a few per cent in a small
+system, which is comparable to the errors here.
+
+### Pressure from the virial
+
+Without walls the pressure is computed from the motion and the forces. The
+virial theorem gives, in two dimensions,
+
+$$
+pA = N k_BT + \frac{1}{2}\sum_{i<j} \mathbf r_{ij}\cdot\mathbf F_{ij},
+$$
+
+with $A$ the area. The first term is the ideal gas; the second is the effect of
+the interactions, positive when the particles mostly push each other apart.
+
+## Code
+
+The model is `pbc.thermodynamics.molecular`. The forces, the potential energy,
+and the virial come from one function over all pairs at once:
+
+```{python}
+#| echo: false
+excerpt(molecular.forces)
+```
+
+The integrator records the energies, the virial, and the temperatures of
+groups of particles:
+
+```{python}
+#| echo: false
+excerpt(molecular.velocity_verlet)
+```
+
+The temperature of a group, with the share of the centre of mass:
+
+```{python}
+#| echo: false
+excerpt(molecular.temperature)
+```
+
+## Worked examples
+
+### The potential
+
+```{python}
+#| echo: false
+excerpt(experiment, region="system")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.potential_table)
+```
+
+```{python}
+#| label: potential
+#| echo: false
+result.table("potential")
+```
+
+The shifted potential is strongly repulsive inside $\sigma$, has its minimum at
+$2^{1/6}\sigma$, where it is a little shallower than the full potential's
+$-\epsilon$ because of the shift, and is zero at the cut-off.
+
+### Is the energy conserved?
+
+The same starting state, a fluid that has moved away from its starting lattice,
+is integrated with three time steps:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="energy")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.energy_check)
+```
+
+```{python}
+#| label: energy-check
+#| echo: false
+result.table("energy-check")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_energy_drift)
+```
+
+```{python}
+#| label: fig-energy-drift
+#| echo: false
+#| fig-cap: "The total energy fluctuates about its start without drifting away, with sharp spikes at close encounters of two particles, and the fluctuation falls by four each time the step is halved, as the reference line of slope two."
+#| fig-alt: "Two panels. Left: the change of the energy per particle against the time for three time steps; each curve fluctuates about zero with occasional spikes, the largest step with the largest fluctuation, and none drifts away. Right: log-log plot of the fluctuation against the time step, three points lying along a dotted reference line of slope two."
+#| fig-status: simulated
+result.show("fig-energy-drift")
+```
+
+[The fluctuation of the total energy of velocity Verlet falls with the time step
+at a measured order of `{python} result["energy-order"]`, and over the run the
+energy drifts by less than its fluctuation at every step.]{.claim
+type="numerically-verified" scope="thirty-six Lennard-Jones particles, shifted
+force at 2.5 sigma, density 0.4, steps 0.0025 to 0.01, twenty time units"
+evidence="energy-check fig-energy-drift"} The drift, the slope of a straight
+line fitted to the energy times the duration, is at most
+`{python} result["drift-ratio"]` of the fluctuation. The reference line is for
+comparison, not a fit. The error of the integrator is a bounded oscillation of
+second order, not a slow heating of the fluid, so the temperature of a long run
+is the temperature of the system and not of the integrator.
+
+### Equipartition in a mixture
+
+Half the particles are four times heavier than the others. The light particles
+start at temperature two, the heavy ones nearly at rest, and twelve
+independent runs follow the exchange of energy:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="mixture")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.equipartition_check)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_equipartition)
+```
+
+```{python}
+#| label: fig-equipartition
+#| echo: false
+#| fig-cap: "Light particles started hot and heavy particles started nearly at rest exchange energy through collisions and reach one temperature within a few time units, after which both fluctuate about it."
+#| fig-alt: "Line plot of the kinetic temperature against the time, averaged over the runs. A solid curve for the light particles starts high and falls; a dashed curve for the heavy particles starts near zero and rises; they meet within a few time units and then fluctuate about the same value. A dotted vertical line marks where the averages start."
+#| fig-status: simulated
+result.show("fig-equipartition")
+```
+
+```{python}
+#| label: equipartition
+#| echo: false
+result.table("equipartition")
+```
+
+[After the mixture has settled, the light and the heavy particles have the same
+kinetic temperature, and so do the two directions of motion, within four
+standard errors.]{.claim type="numerically-verified" scope="thirty-six particles,
+mass ratio four, twelve runs, time averages after five time units, four
+standard errors" evidence="equipartition fig-equipartition"} The species
+differ by `{python} result["species-distance"]` standard errors and the
+directions by `{python} result["axes-distance"]`. The heavy particles end with
+the same mean of $m v_x^2$ as the light ones, at half their speed: the mass does
+not decide the share of the energy, the number of degrees of freedom does. The
+temperature they share is not the start of either; it is set by the total
+energy, part of which the potential energy released as the particles left the
+starting lattice and settled into each other's wells.
+
+### Thermodynamic observables
+
+```{python}
+#| echo: false
+excerpt(experiment.pressure_table)
+```
+
+```{python}
+#| label: observables
+#| echo: false
+result.table("observables")
+```
+
+The potential energy per particle is negative: neighbours sit mostly in the
+attractive well. The pressure from the virial is above that of an ideal gas at
+the same density and temperature, so at this temperature, well above the
+depth of the well, the repulsive cores dominate the interaction term. These
+are numbers for this model fluid, its cut-off, and its small size, and the
+lesson makes no comparison with a measured fluid.
+
+## Limits {#limits}
+
+- **A small system.** Thirty-six particles in a periodic box are far from a
+  macroscopic fluid. Averages carry corrections of order $1/N$, and the
+  fluctuations of the temperature are large; the claims are about this
+  system.
+- **A cut-off and shifted potential.** The fluid is that of the shifted-force
+  potential, not the full Lennard-Jones fluid. Its energy and pressure differ
+  from those of the full potential by amounts the lesson does not correct.
+- **Bounded, not zero, energy error.** Velocity Verlet keeps the energy close to
+  constant for the runs shown. For a step that is too large, the error grows and
+  the run fails (the first exercise); for very long runs, round-off adds a slow random
+  walk of the energy.
+- **Equilibrium is assumed after five time units.** The averages start where
+  the figure shows the two temperatures have met. A slower process, such as a
+  phase separation, would not be noticed in runs this short.
+- **No measurement.** The reduced units can be scaled to argon, but the lesson
+  compares nothing with a measured property, and the model is two-dimensional.
+
+::: {.exercise .self-check}
+In the settled mixture the heavy particles move at about half the speed of the
+light ones. Why does that not mean they are colder?
+
+::: {.choices}
+::: {.choice}
+Because temperature measures the speed of the fastest particles, and the light
+ones set it for both.
+
+::: {.feedback}
+No. Each group has its own kinetic temperature, the mean of $m v_x^2$ over the
+group, and the two are computed separately.
+:::
+:::
+
+::: {.choice correct="true"}
+Because temperature measures the mean kinetic energy per degree of freedom, and
+a mass four times larger at half the speed has the same kinetic energy.
+
+::: {.feedback}
+Right. $\tfrac12 m v_x^2$ is the same on average for both: the heavy particle
+makes up in mass what it lacks in speed.
+:::
+:::
+:::
+
+::: {.solution}
+Equipartition gives every quadratic term of the energy the same mean,
+$k_BT/2$. For a velocity component that is $\tfrac12 m\langle v_x^2\rangle$, so
+$\langle v_x^2\rangle$ is inversely proportional to the mass, and the typical
+speed to its square root. Equal temperatures mean equal kinetic energies, not
+equal speeds.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**How large a step?** Run the same start for ten time units with the steps
+0.01, 0.02, 0.03, and 0.04, and record the largest change of the energy per
+particle. Where does the second-order behaviour end, and what happens beyond
+it?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.larger_steps)
+```
+
+```{python}
+#| echo: false
+result.table("larger-steps")
+```
+
+Doubling the step from the smallest grows the error by about four, as second
+order says; the next increase grows it by much more, and at the largest step
+the run fails: particles step into each other's repulsive cores, gain huge
+energies, and the integration breaks down. The step has to resolve the fastest
+motion, a collision of two cores.
+:::
+:::
+
+::: {.exercise}
+**Equipartition without the correction.** The temperature of a group divides by
+$\sum_i(1 - m_i/M)$. With half the particles of mass one and half of mass four,
+how large a relative difference between the species would appear if it divided
+by the number of particles instead?
+
+::: {.hint}
+Work out $1 - m_i/M$ for each species, with $M$ the total mass of thirty-six
+particles.
+:::
+
+::: {.solution}
+$M = 18\times 1 + 18\times 4 = 90$. The light share is $1 - 1/90$, the heavy
+share $1 - 4/90$. Dividing by the number of particles instead would make the
+heavy species look colder by the ratio $(1 - 4/90)/(1 - 1/90)$, that is by
+$3/89$, about three per cent, a difference of the size of the standard errors
+of the table, which the correction removes.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/thermodynamics/molecular.py",
+        "src/pbc/thermodynamics/experiments/molecular_dynamics.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_thermodynamics.py",
+        "tests/unit/test_molecular_dynamics_experiment.py",
+    ],
+)
+```
