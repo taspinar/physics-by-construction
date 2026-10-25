@@ -263,12 +263,13 @@ def allowed_conditions(step: dict) -> list[str]:
 
 def test_the_jobs_have_the_agreed_timeouts():
     # 45 minutes per job since 2026-10-11, by the owner, and kept by ADR 012,
-    # decision 9, in place of the 30 of ADR 003; 60 minutes for the one job
-    # `build` of a full run since 2026-10-15 (the interim full-run gate of
-    # ADR 014, approved for up to 64 lessons since 2026-10-21; 45 before).
+    # decision 9, in place of the 30 of ADR 003; for the one job `build` of a
+    # full run, 60 minutes from 2026-10-15 and 90 minutes since 2026-10-24
+    # (the interim full-run gate of ADR 014, approved for up to 110 lessons;
+    # 64 lessons at 60 minutes before).
     jobs = load(CI)["jobs"]
     for name, job in check_jobs().items():
-        assert job["timeout-minutes"] == (60 if name == "build" else 45), name
+        assert job["timeout-minutes"] == (90 if name == "build" else 45), name
     assert jobs[AGGREGATE]["timeout-minutes"] == 5
     assert jobs[DEPLOY]["timeout-minutes"] == 10
     assert jobs[BASE_JOB]["timeout-minutes"] == 10

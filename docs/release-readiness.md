@@ -219,14 +219,16 @@ exceeded wall-clock budget recorded here, the 20 minutes of a pull request
 (ADR 015), the planning budget of a full run, or a complete run on `main`
 above 45 minutes, is a measurement for the owner's decision, not a failed
 gate and not a mandate to optimise. The owner decides at the re-assessment
-points of the decision of 2026-10-21 (ADR 014 status, Issue #253), which
-extends the interim full-run gate to 64 lessons with the `build` job's 60
-minutes unchanged: re-measure at 55 lessons, decide the capacity at 60 at
-the latest, or earlier when the `build` job approaches 55 minutes, repeated
-runs show too little margin, or verification failures point to a capacity
-problem, with the `build` job's duration and the run's total duration
-reported separately (the former points, 42 and 44 lessons or a complete
-run on `main` above 45 minutes, are superseded history), choosing from the responses of ADR 003 decision 6. A budget is never met by
+points of the decision of 2026-10-24 (ADR 014 status, Issue #278), which
+raises the interim full-run gate to 110 lessons, the whole reference
+curriculum, with the `build` job's timeout raised from 60 to 90 minutes:
+re-measure at 75 and at 95 lessons, and decide earlier when a complete run
+on `main` approaches 80 minutes, repeated runs show too little margin, or
+verification failures point to a capacity problem, with the `build` job's
+duration and the run's total duration reported separately (the former
+points, 42 and 44 lessons or a complete run on `main` above 45 minutes, and
+55 and 60 lessons or a `build` job approaching 55 minutes under the
+decision of 2026-10-21, are superseded history), choosing from the responses of ADR 003 decision 6. A budget is never met by
 changing scientific content, and the hard 30-second budget of a lesson page
 keeps failing, with its exception table `scripts/lesson-budgets.conf`. Local
 runs leave their durations in the time log of `./scripts/verify.sh`
@@ -694,12 +696,25 @@ measured complete run (35 min 18 s) leaves 24 min 42 s of the 60 minutes.
 The owner's rule of 2026-10-17 was: re-measure at 42 lessons, decide the
 capacity at 44 lessons at the latest, or earlier if a complete run exceeds
 45 minutes (Issue #150). On 2026-10-21 the owner extended the gate to 64
-lessons with the 60 minutes unchanged (ADR 014 status, Issue #253): 64 is a
-planning boundary, capacity is re-measured at 55 lessons, and the next
-decision is due by 60 lessons at the latest, or earlier if the `build` job
-approaches 55 minutes, repeated runs show too little margin, or verification
-failures point to a capacity problem; the `build` job's duration and the run's total
-duration are reported separately.
+lessons with the 60 minutes unchanged (ADR 014 status, Issue #253): 64 was
+a planning boundary, with capacity to be re-measured at 55 lessons and the
+next decision due by 60 lessons at the latest, or earlier if the `build` job
+approached 55 minutes (superseded history: these points are replaced by
+those of the decision of 2026-10-24 below); the `build` job's duration and
+the run's total duration are reported separately. On 2026-10-24 the owner raised the gate to
+110 lessons, the whole reference curriculum, with the `build` job's timeout
+raised from 60 to 90 minutes and every other job at 45 (ADR 014 status,
+Issue #278). The evidence is the measured cost of 39 to 46 s per lesson over
+about 2 minutes of preparation (F120, `docs/incremental-main-evidence.md`),
+which projects the `build` job at 110 lessons at about 73 to 86 minutes (a
+projection, not a measurement). 110 is a planning boundary that no check
+enforces; capacity is re-measured at 75 and at 95 lessons, and the next
+decision is the owner's earlier if a complete run on `main` approaches 80
+minutes, repeated runs show too little margin, or verification failures
+point to a capacity problem. The cost the owner accepted: a run on `main`
+can last up to about 90 minutes, so the publication after a merge comes
+later; pull requests are not affected, since they pay for what they change
+(F61).
 
 **Learner walkthrough (criterion 7).** A fresh subagent that did not write
 the pages followed the published instructions on a clean clone of the merged

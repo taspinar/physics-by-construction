@@ -357,7 +357,14 @@ lessons with the same 60 minutes, as a planning boundary re-measured at 55
 lessons and decided again by 60 at the latest, or earlier if the `build` job
 approaches 55 minutes, repeated runs show too little margin, or verification
 failures point to a capacity problem (the amendment note in the status of
-ADR 014 records the decision).
+ADR 014 records the decision). Raised by the owner on 2026-10-24 (ADR 014
+status, Issue #278) to 110 lessons, the whole reference curriculum, with
+the timeout of the job `build` raised to 90 minutes and every other job at
+45, as a planning boundary re-measured at 75 and at 95 lessons and decided
+again earlier if a complete run on `main` approaches 80 minutes, repeated
+runs show too little margin, or verification failures point to a capacity
+problem; a run on `main` can then last up to about 90 minutes, which the
+owner accepted, and pull requests are not affected.
 
 For the unresolved question 10 of the requirements and the full-run gate of
 Phase 4 (`docs/roadmap.md`, "The full run on `main` at the current lesson

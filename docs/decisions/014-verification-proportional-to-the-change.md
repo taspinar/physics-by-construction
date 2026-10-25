@@ -135,6 +135,27 @@ Change cycle `pbc-planning-change-four-workstreams` (2026-10-15):
   executes every lesson, and decision 11 (F113) and ADR 017 decisions 1
   to 6 and 9 stay paused.
 
+- *Amendment note (Issue #278, 2026-10-24).* The owner raised the
+  interim full-run gate above from 64 to **110 lessons**, the whole
+  reference curriculum, with the timeout of the one `build` job raised
+  from 60 to **90 minutes** and every other timeout unchanged. The
+  evidence is the measured cost of the `build` job of a full run, 39 to
+  46 seconds per lesson over about 2 minutes of preparation (F120,
+  `docs/incremental-main-evidence.md`), which projects the `build` job
+  at 110 lessons at about 73 to 86 minutes (a projection). 110 is a planning boundary that no check
+  enforces: capacity is re-measured at 75 and at 95 lessons, and the
+  next decision is the owner's earlier if a complete run on `main`
+  approaches 80 minutes, repeated runs show too little margin, or
+  verification failures point to a capacity problem; these points
+  replace those of the note of 2026-10-21 (55 and 60 lessons, a `build`
+  job approaching 55 minutes). The owner accepted the cost: a run on
+  `main` can last up to about 90 minutes, so the publication after a
+  merge comes later; pull requests are not affected, since they pay for
+  what they change. Every push to `main` still executes every lesson,
+  the 30-second budget of a lesson page and the payload budgets are
+  unchanged, and decision 11 (F113) and ADR 017 decisions 1 to 6 and 9
+  stay paused.
+
 Date: 2026-10-12
 
 ## Context
