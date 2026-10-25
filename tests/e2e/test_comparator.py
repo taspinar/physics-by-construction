@@ -32,6 +32,7 @@ from pbc.data.gwstrain import (
 )
 
 LESSON = "lessons/mechanics/11-gravitational-wave-strain/index.html"
+SOURCE = "site/lessons/mechanics/11-gravitational-wave-strain"
 DATA = (
     "lessons/mechanics/11-gravitational-wave-strain/"
     "index_files/figure-html/chirp-masses.json"
@@ -282,8 +283,19 @@ def fresh() -> dict:
 
 
 def test_the_embedded_series_and_metrics_agree_with_a_fresh_run_of_pbc(
-    embedded: dict, fresh: dict
+    site_dir: Path, embedded: dict, request: pytest.FixtureRequest
 ):
+    # A fresh run on this machine is compared with a result of the same
+    # machine only. A result restored from the base was computed and compared
+    # by the run that made it, on another platform whose floating point differs
+    # by more than the rounding (issue 268); the tolerance stays as it is.
+    try:
+        reason = site_checks.inherited(site_dir, SOURCE)
+    except site_checks.SelectionError as error:
+        pytest.fail(f"whether this run executed the lesson is unknown: {error}")
+    if reason is not None:
+        pytest.skip(reason)
+    fresh = request.getfixturevalue("fresh")
     time, data, fit = fresh["time"], fresh["data"], fresh["fit"]
     shown = (time >= -0.25) & (time <= 0.05)  # the window of the page
     assert shown.sum() == len(embedded["time"])
