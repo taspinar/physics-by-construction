@@ -1,8 +1,14 @@
 """The reference curriculum file, the slot of a lesson, the prerequisite rule
-over the graph, and the planned slots on the learning path page (ADR 013)."""
+over the graph, and the planned slots on the learning path page (ADR 013).
+
+The progress of the curriculum is never written into a test: it is computed
+from site/curriculum.yaml and the front matter of the lessons, and compared
+with the generated view (#277)."""
 
 import re
+import shutil
 from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
@@ -275,56 +281,18 @@ def test_without_a_curriculum_no_slot_exists():
 
 
 def test_the_published_lessons_that_fill_a_slot_carry_it():
-    slots = {item.id: item.slot for item in read_lessons(SITE_SOURCE)}
-    assert {key: value for key, value in slots.items() if value} == {
-        "kinematics": "M1",
-        "newtons-laws": "M2",
-        "projectile-with-drag": "M3",
-        "harmonic-oscillator": "M4",
-        "numerical-integrators": "M5",
-        "energy-conservation": "M6",
-        "momentum-and-collisions": "M7",
-        "kepler-orbit": "M8",
-        "double-pendulum-chaos": "M9",
-        "lagrangian-mechanics": "M10",
-        "hamiltonian-mechanics": "M11",
-        "resonance": "M12",
-        "many-body-gravitation": "M13",
-        "nonlinear-dynamics-and-bifurcations": "M14",
-        "rotational-motion": "M17",
-        "gravitational-wave-strain": "M16",
-        "verifying-scientific-code": "AI2",
-        "automated-analysis-pipelines": "R1",
-        "inverse-physics": "D6",
-        "agent-experiment": "AI0",
-        "counterexample-hunter": "AI3",
-        "scientific-review": "AI4",
-        "experimental-design-agent": "D9",
-        "black-box-force-law": "D1",
-        "prior-knowledge-in-discovery": "D2",
-        "modified-force-law": "D3",
-        "symbolic-regression": "D7",
-        "discovering-differential-equations": "D8",
-        "proving-what-the-simulation-showed": "L1",
-        "wave-equation": "W1",
-        "interference-and-resonance": "W2",
-        "sound-and-the-doppler-effect": "W9",
-        "electric-fields-and-potential": "EM1",
-        "charged-particles-in-fields": "EM2",
-        "faradays-law-and-induction": "EM3",
-        "advection-and-diffusion": "FL1",
-        "shock-waves-and-burgers-equation": "FL4",
-        "finite-volume-methods-and-conservation-laws": "FL9",
-        "shallow-water-equations": "FL5",
-        # The gas lesson gets its slot with its course (F70), with T1 to T3.
-        "particles-in-a-box": "T0",
-        "random-walks-and-diffusion": "T1",
-        "kinetic-theory-of-gases": "T2",
-        "entropy-from-ensembles": "T3",
-        "ising-model-and-phase-transitions": "T4",
-        "molecular-dynamics": "T5",
-        "heat-engines-and-thermodynamic-cycles": "T9",
-    }
+    # The course and the slot of every lesson, as its front matter declares
+    # them, read without pbc.authoring.path.
+    sources = Progress.read(SITE_SOURCE)
+    lessons = read_lessons(SITE_SOURCE)
+    assert {item.id: (item.course, item.slot) for item in lessons} == sources.lessons
+    assert sources.problems() == []
+    slots = {item.id: item.slot for item in lessons}
+    # The header of every lesson that fills a slot names it.
+    path = LearningPath.read(SITE_SOURCE)
+    for label, lesson_id in sources.filled().items():
+        header = LessonHeader(path, path.lesson(lesson_id)).markdown()
+        assert f"Slot\n:   {label}, " in header
     # The Lean lessons beyond the baseline have no slot.
     for lesson_id in (
         "collision-momentum-proved",
@@ -440,43 +408,46 @@ def test_every_unfilled_slot_of_a_course_with_a_lesson_and_of_every_path_is_plan
         slot.label for method in path.paths for slot in path.planned_in_path(method)
     ]
     assert planned == expected
-    assert "M15" in planned and "AI1" in planned and "EV1" in planned
-    # The thermodynamics course shows its five planned slots, not the published
-    # T0 to T5 and T9 (F70, F75).
-    thermodynamics = [slot.label for slot in path.planned_in_course(COURSES[1])]
-    assert thermodynamics == ["T6", "T10", "T11", "T7", "T8"]
-    assert not {"T0", "T1", "T2", "T3", "T4", "T5", "T9"} & set(planned)
-    assert not {item.slot for item in path.lessons} & set(planned)
+    # The expectation computed from the sources: the unfilled slots of each
+    # course with a lesson, then of every path, in the order of the YAML.
+    sources = Progress.read(SITE_SOURCE)
+    assert planned == sources.page_planned()
+    # A slot is filled or planned, never both, and every slot of a course with
+    # a lesson and of every path is on the page once, as one or the other.
+    assert not set(sources.filled()) & set(planned)
+    assert not path.filled() & set(planned)
+    homes = [("course", course) for course in sources.shown_courses()]
+    homes += [("path", method_path) for method_path in sources.paths]
+    for key, home in homes:
+        labels = [slot["label"] for slot in sources.slots if slot.get(key) == home]
+        shown = [
+            label
+            for label in labels
+            if (label in sources.filled()) != (label in planned)
+        ]
+        assert shown == labels
 
 
 def test_a_course_without_a_lesson_is_named_in_one_sentence_and_shows_no_slot(
     page: str,
 ):
     path = LearningPath.read(SITE_SOURCE)
-    # Mechanics has lessons, thermodynamics since F70, waves since F71,
-    # electromagnetism since F72, and fluids since F73; the others have none
-    # yet.
-    without = [
-        course
-        for course in COURSES[2:]
-        if course.id not in {"waves", "electromagnetism", "fluids"}
-    ]
-    assert [course.id for course in path.planned_courses] == [
-        course.id for course in without
-    ]
+    sources = Progress.read(SITE_SOURCE)
+    titles = {course.id: course.title for course in COURSES}
+    without = sources.planned_courses()
+    assert [course.id for course in path.planned_courses] == without
     sentences = [
         line
         for line in page.splitlines()
         if line.startswith(f"{len(without)} further courses")
     ]
-    assert len(sentences) == 1
-    for course in without:
-        assert course.title in sentences[0]
-        assert f"{{#course-{course.id}}}" not in page
-    assert "Waves and optics" not in sentences[0]
-    assert "Electromagnetism" not in sentences[0]
-    assert "Fluid dynamics" not in sentences[0]
-    assert f"{{#course-{COURSES[1].id}}}" in page
+    assert len(sentences) == (1 if without else 0)
+    for course_id in without:
+        assert titles[course_id] in sentences[0]
+        assert f"{{#course-{course_id}}}" not in page
+    for course_id in sources.shown_courses():
+        assert f"{{#course-{course_id}}}" in page
+        assert not sentences or titles[course_id] not in sentences[0]
 
 
 def test_a_planned_slot_has_no_link_and_no_card(page: str):
@@ -554,3 +525,405 @@ def test_the_page_script_stores_nothing():
     script = (SITE_SOURCE / "learner" / "path.js").read_text(encoding="utf-8")
     for forbidden in ("localStorage", "sessionStorage", "document.cookie", "fetch("):
         assert forbidden not in script
+
+
+# --- The expected progress, computed from the sources (#277) -----------------
+#
+# The progress of the curriculum (which slots the lessons fill, which are
+# planned, and in which order the page shows them) is computed here from
+# site/curriculum.yaml and the front matter of the lessons, without
+# pbc.authoring.path, and compared with the generated view: LearningPath and
+# the learning path page. A new lesson therefore needs no edit of a test, and
+# a mismatch between the sources and the view still fails.
+
+LESSON_FRONT_MATTER = re.compile(r"\A---\n(.*?\n)(?:---|\.\.\.)[ \t]*\n", re.S)
+
+
+@dataclass(frozen=True)
+class Progress:
+    """What the sources declare: the courses and paths of the YAML in their
+    order, its slots in teaching order, and the course and slot of each
+    lesson by id, in the order of the lesson files."""
+
+    courses: tuple[str, ...]
+    paths: tuple[str, ...]
+    slots: tuple[dict, ...]
+    lessons: dict[str, tuple[str, str]]  # id -> (course, slot or "")
+
+    @classmethod
+    def read(cls, site: Path) -> Progress:
+        content = yaml.safe_load((site / "curriculum.yaml").read_text(encoding="utf-8"))
+        lessons = {}
+        for page in sorted((site / "lessons").glob("*/*/index.qmd")):
+            match = LESSON_FRONT_MATTER.match(page.read_text(encoding="utf-8"))
+            assert match, f"{page} has no front matter"
+            meta = yaml.safe_load(match.group(1))["lesson"]
+            lessons[str(meta["id"])] = (
+                str(meta["course"]),
+                str(meta.get("slot") or ""),
+            )
+        return cls(
+            tuple(item["id"] for item in content["courses"]),
+            tuple(item["id"] for item in content["paths"]),
+            tuple(content["slots"]),
+            lessons,
+        )
+
+    def problems(self) -> list[str]:
+        """A slot a lesson names that is not in the YAML, that is the slot of
+        another course, or that another lesson already fills."""
+        found = []
+        homes = {slot["label"]: slot.get("course", "") for slot in self.slots}
+        filled: dict[str, str] = {}
+        for lesson_id, (course, label) in self.lessons.items():
+            if not label:
+                continue
+            if label not in homes:
+                found.append(f"{lesson_id}: slot {label!r} is not in the curriculum")
+            elif homes[label] and homes[label] != course:
+                found.append(
+                    f"{lesson_id}: slot {label!r} is a slot of {homes[label]!r},"
+                    f" not of {course!r}"
+                )
+            if label in filled:
+                found.append(
+                    f"{lesson_id}: slot {label!r} is already filled by {filled[label]}"
+                )
+            filled.setdefault(label, lesson_id)
+        return found
+
+    def filled(self) -> dict[str, str]:
+        """The label of each slot a lesson fills, and the lesson."""
+        return {
+            label: lesson_id for lesson_id, (_, label) in self.lessons.items() if label
+        }
+
+    def shown_courses(self) -> list[str]:
+        """The courses with a lesson, in the order of the YAML."""
+        return [
+            course
+            for course in self.courses
+            if any(home == course for home, _ in self.lessons.values())
+        ]
+
+    def planned_courses(self) -> list[str]:
+        return [course for course in self.courses if course not in self.shown_courses()]
+
+    def rows(self, key: str, home: str) -> list[tuple[str, str]]:
+        """The rows of the course or path ``home`` in the order of the YAML:
+        ("lesson", id) for a slot of ``home`` that a lesson fills,
+        ("planned", label) for one that none fills, and, under a course, also
+        ("lesson", id) for a lesson of the course that fills a slot of a path
+        or a strand."""
+        filled = self.filled()
+        rows = []
+        for slot in self.slots:
+            label = slot["label"]
+            if slot.get(key) == home:
+                rows.append(
+                    ("lesson", filled[label]) if label in filled else ("planned", label)
+                )
+            elif (
+                key == "course"
+                and label in filled
+                and not slot.get("course")
+                and self.lessons[filled[label]][0] == home
+            ):
+                rows.append(("lesson", filled[label]))
+        return rows
+
+    def planned(self, key: str, home: str) -> list[str]:
+        return [label for kind, label in self.rows(key, home) if kind == "planned"]
+
+    def unslotted(self, course: str) -> set[str]:
+        """The lessons of the course without a slot: shown after every slot."""
+        return {
+            lesson_id
+            for lesson_id, (home, label) in self.lessons.items()
+            if home == course and not label
+        }
+
+    def page_planned(self) -> list[str]:
+        """The planned slots in the order of the page: those of each course
+        with a lesson, then those of every path."""
+        labels = [
+            label for c in self.shown_courses() for label in self.planned("course", c)
+        ]
+        return labels + [label for p in self.paths for label in self.planned("path", p)]
+
+
+def counts(lessons: int, planned: int) -> str:
+    text = f"{lessons} published lesson{'s' if lessons != 1 else ''}"
+    return text + (f", {planned} planned" if planned else "")
+
+
+PLANNED_LABEL = re.compile(
+    r'<li class="planned-slot"[^>]*><span class="slot-label">([A-Z]+[0-9]+)</span>'
+)
+PAGE_ROW = re.compile(
+    r'<li class="(?:path-card|path-link)" data-lesson-id="([^"]+)"'
+    r'|<li class="planned-slot"[^>]*><span class="slot-label">([A-Z]+[0-9]+)</span>'
+)
+
+
+def page_rows(section: str) -> list[tuple[str, str]]:
+    return [
+        ("lesson", lesson_id) if lesson_id else ("planned", label)
+        for lesson_id, label in PAGE_ROW.findall(section)
+    ]
+
+
+def mismatches(sources: Progress, path: LearningPath, page: str) -> list[str]:
+    """Every way the view differs from the progress the sources declare, and
+    every problem of the sources themselves."""
+    found = sources.problems()
+
+    def compare(what: str, view: object, expected: object) -> None:
+        if view != expected:
+            found.append(f"{what}: the view shows {view}, the sources give {expected}")
+
+    compare(
+        "the course and the slot of each lesson",
+        {item.id: (item.course, item.slot) for item in path.lessons},
+        sources.lessons,
+    )
+    compare(
+        "the courses with a lesson",
+        [c.id for c in path.courses],
+        sources.shown_courses(),
+    )
+    compare(
+        "the courses without a lesson",
+        [c.id for c in path.planned_courses],
+        sources.planned_courses(),
+    )
+    courses = {course.id: course for course in COURSES}
+    for course_id in sources.shown_courses():
+        course = courses[course_id]
+        rows = sources.rows("course", course_id)
+        slotted = [value for kind, value in rows if kind == "lesson"]
+        taught = [item.id for item in path.in_course(course)]
+        compare(f"the slotted lessons of {course_id}", taught[: len(slotted)], slotted)
+        compare(
+            f"the lessons of {course_id} without a slot",
+            set(taught[len(slotted) :]),
+            sources.unslotted(course_id),
+        )
+        compare(
+            f"the planned slots of {course_id}",
+            [slot.label for slot in path.planned_in_course(course)],
+            sources.planned("course", course_id),
+        )
+        if f"{{#course-{course_id}}}" not in page:
+            found.append(f"the page has no section of the course {course_id}")
+            continue
+        section = page.split(f"{{#course-{course_id}}}")[1].split("\n#")[0]
+        shown = page_rows(section)
+        compare(f"the rows of {course_id} on the page", shown[: len(rows)], rows)
+        compare(
+            f"the rows of {course_id} without a slot on the page",
+            set(value for _, value in shown[len(rows) :]),
+            sources.unslotted(course_id),
+        )
+        compare(
+            f"the count of {course_id} on the page",
+            re.findall(r'<p class="course-count">([^<]*)\.</p>', section),
+            [
+                counts(
+                    len(slotted) + len(sources.unslotted(course_id)),
+                    len(rows) - len(slotted),
+                )
+            ],
+        )
+    for course_id in sources.planned_courses():
+        if f"{{#course-{course_id}}}" in page:
+            found.append(f"the page shows the course {course_id}, which has no lesson")
+    for method_path in path.paths:
+        rows = sources.rows("path", method_path.id)
+        compare(
+            f"the lessons of the path {method_path.id}",
+            [item.id for item in path.in_path(method_path)],
+            [value for kind, value in rows if kind == "lesson"],
+        )
+        compare(
+            f"the planned slots of the path {method_path.id}",
+            [slot.label for slot in path.planned_in_path(method_path)],
+            sources.planned("path", method_path.id),
+        )
+        if f"{{#path-{method_path.id}}}" not in page:
+            found.append(f"the page has no section of the path {method_path.id}")
+            continue
+        section = page.split(f"{{#path-{method_path.id}}}")[1].split("\n#")[0]
+        compare(
+            f"the rows of the path {method_path.id} on the page",
+            page_rows(section),
+            rows,
+        )
+        planned = sum(kind == "planned" for kind, _ in rows)
+        compare(
+            f"the count of the path {method_path.id} on the page",
+            re.findall(r'<p class="path-count">([^<]*)</p>', section),
+            [counts(len(rows) - planned, planned)],
+        )
+    compare(
+        "the planned slots on the page",
+        PLANNED_LABEL.findall(page),
+        sources.page_planned(),
+    )
+    return found
+
+
+def view_failures(site: Path) -> list[str]:
+    """The mismatches between the sources of ``site`` and the view generated
+    from them; a view that rejects the sources is one."""
+    sources = Progress.read(site)
+    try:
+        path = LearningPath.read(site)
+    except ValueError as error:
+        return [*sources.problems(), f"the view rejects the sources: {error}"]
+    return mismatches(sources, path, str(PathOverview(path, PATH_PAGE)))
+
+
+def test_the_view_shows_the_progress_the_sources_declare():
+    assert view_failures(SITE_SOURCE) == []
+
+
+# --- The check still fails (#277) ---------------------------------------------
+
+
+def site_copy(tmp_path: Path) -> Path:
+    """A throwaway copy of the sources of the progress: the curriculum file
+    and the lesson pages."""
+    shutil.copy(FILE, tmp_path / CURRICULUM_FILE)
+    for page in (SITE_SOURCE / "lessons").glob("*/*/index.qmd"):
+        target = tmp_path / page.relative_to(SITE_SOURCE)
+        target.parent.mkdir(parents=True)
+        shutil.copy(page, target)
+    return tmp_path
+
+
+def front_matter(page: Path) -> tuple[dict, str]:
+    text = page.read_text(encoding="utf-8")
+    match = LESSON_FRONT_MATTER.match(text)
+    assert match
+    return yaml.safe_load(match.group(1)), text[match.end() :]
+
+
+def write_front_matter(page: Path, content: dict, body: str = "") -> None:
+    page.parent.mkdir(parents=True, exist_ok=True)
+    page.write_text(
+        f"---\n{yaml.safe_dump(content, sort_keys=False)}---\n{body}", encoding="utf-8"
+    )
+
+
+def page_of(site: Path, lesson_id: str) -> Path:
+    for page in (site / "lessons").glob("*/*/index.qmd"):
+        if front_matter(page)[0]["lesson"]["id"] == lesson_id:
+            return page
+    raise LookupError(lesson_id)
+
+
+def first_slot_of(course: str) -> str:
+    return next(
+        slot["label"] for slot in data()["slots"] if slot.get("course") == course
+    )
+
+
+@pytest.mark.parametrize(
+    ("slot", "expected"),
+    [
+        ("M99", "kinematics: slot 'M99' is not in the curriculum"),
+        (first_slot_of("quantum"), "is a slot of 'quantum', not of 'mechanics'"),
+        ("M2", "slot 'M2' is already filled by"),
+    ],
+)
+def test_a_lesson_whose_front_matter_names_the_wrong_slot_fails(
+    tmp_path: Path, slot: str, expected: str
+):
+    site = site_copy(tmp_path)
+    page = page_of(site, "kinematics")
+    content, body = front_matter(page)
+    content["lesson"]["slot"] = slot
+    write_front_matter(page, content, body)
+
+    failures = view_failures(site)
+
+    assert any(expected in failure for failure in failures), failures
+
+
+class FillsLess(LearningPath):
+    """A defective view: it forgets that a lesson fills one slot, so the page
+    shows that slot as planned."""
+
+    def filled(self) -> frozenset[str]:
+        filled = super().filled()
+        return filled - {min(filled)}
+
+
+class DropsPlanned(LearningPath):
+    """A defective view: it drops the last planned slot of each course and
+    path."""
+
+    def planned_in_course(self, course):
+        return super().planned_in_course(course)[:-1]
+
+    def planned_in_path(self, path):
+        return super().planned_in_path(path)[:-1]
+
+
+@pytest.mark.parametrize("view", [FillsLess, DropsPlanned])
+def test_a_view_that_misstates_the_planned_slots_fails(view: type[LearningPath]):
+    path = LearningPath.read(SITE_SOURCE)
+    defective = view(path.lessons, path.curriculum)
+
+    failures = mismatches(
+        Progress.read(SITE_SOURCE), defective, str(PathOverview(defective, PATH_PAGE))
+    )
+
+    assert any("planned" in failure for failure in failures), failures
+
+
+def test_a_page_that_shows_a_filled_slot_as_planned_or_drops_one_fails(page: str):
+    sources = Progress.read(SITE_SOURCE)
+    path = LearningPath.read(SITE_SOURCE)
+    label, lesson_id = next(iter(sources.filled().items()))
+    planned = (
+        f'<li class="planned-slot" data-state="planned"><span class="slot-label">'
+        f"{label}</span> (planned, not published)</li>\n"
+    )
+    row = f'<li class="path-card" data-lesson-id="{lesson_id}"'
+    shown_as_planned = page.replace(row, planned + row, 1)
+    dropped = re.sub(r'<li class="planned-slot".*?</li>\n', "", page, count=1)
+
+    for broken_page in (shown_as_planned, dropped):
+        assert broken_page != page
+        failures = mismatches(sources, path, broken_page)
+        assert any("the planned slots on the page" in item for item in failures)
+
+
+def test_a_new_lesson_that_fills_a_slot_needs_no_edit_of_a_test(tmp_path: Path):
+    site = site_copy(tmp_path)
+    before = Progress.read(site)
+    course = next(c for c in before.shown_courses() if before.planned("course", c))
+    label = before.planned("course", course)[0]
+    pages = sorted((site / "lessons" / course).glob("*/index.qmd"))
+    template, _ = front_matter(pages[-1])
+    order = max(front_matter(page)[0]["lesson"]["order"] for page in pages) + 1
+    template["title"] = "A throwaway lesson"
+    template["lesson"].update(
+        id="throwaway-lesson",
+        order=order,
+        slot=label,
+        prerequisites={"lessons": [], "outside": []},
+        related=[],
+    )
+    write_front_matter(
+        site / "lessons" / course / f"{order:02d}-throwaway" / "index.qmd", template
+    )
+
+    after = Progress.read(site)
+
+    assert after.filled()[label] == "throwaway-lesson"
+    assert label not in after.page_planned()
+    assert len(after.page_planned()) == len(before.page_planned()) - 1
+    assert view_failures(site) == []
