@@ -249,11 +249,36 @@ assess "$repo"
 expect_trigger "a tolerance in a new method of a class that is no test" \
   "tolerance or budget changed: tests/unit/test_code.py (return pytest.approx(x, rel=0.1))"
 
-# A new file outside the tests is no new test: its tolerance stays a reading.
+# A new source file widens no check that is there: its tolerances are no
+# reading (#297). The same line added to an existing source file stays one,
+# and a new source file at a protected path keeps Level 3 by the path rule.
 repo="$(setup_repo new-source-tolerance)"
-printf 'tolerance = 1e-3\n' >"$repo/src/check.py"
+mkdir -p "$repo/src/pbc/experiments"
+cat >"$repo/src/pbc/experiments/refraction.py" <<'PY'
+import numpy as np
+
+ANGLE_TOLERANCE = 1e-6
+
+
+def agrees(a, b):
+    return np.isclose(a, b, rtol=1e-9)
+PY
 assess "$repo"
-expect_trigger "a tolerance in a new source file" "tolerance or budget changed: src/check.py (tolerance = 1e-3)"
+expect "tolerances in a new source file" RISK_TRIGGERS ""
+expect "tolerances in a new source file" RISK_REQUIRED 2
+
+repo="$(setup_repo existing-source-tolerance)"
+printf 'agrees = np.isclose(a, b, rtol=1e-9)\n' >>"$repo/src/code.py"
+assess "$repo"
+expect_trigger "a tolerance added to an existing source file" "tolerance or budget changed: src/code.py (agrees = np.isclose(a, b, rtol=1e-9))"
+
+repo="$(setup_repo new-protected-source-tolerance)"
+mkdir -p "$repo/src/pbc/authoring"
+printf 'agrees = np.isclose(a, b, rtol=1e-9)\n' >"$repo/src/pbc/authoring/digest.py"
+assess "$repo"
+expect "a tolerance in a new source file at a protected path" RISK_TRIGGERS ""
+expect "a tolerance in a new source file at a protected path" RISK_PATH_MIN 3
+expect "a tolerance in a new source file at a protected path" RISK_REQUIRED 3
 
 # A new helper under tests/ that is no test file is no new test (#269 review).
 repo="$(setup_repo new-support-tolerance)"

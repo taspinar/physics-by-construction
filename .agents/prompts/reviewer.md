@@ -53,7 +53,10 @@ own claims are not one), weakened test strength, security, verification
 guarantees, and dependency selection. A trigger the completion record does
 not name, or a stated level below what you find, is a `major` finding. A
 `completion/v1` record of a feature whose base already knew
-`completion/v2` is a `major` finding too, as the script tells you.
+`completion/v2` is a `major` finding too, as the script tells you. A
+tolerance constant in a new source file (a Python file under `src/` that the
+base does not have) is not an escalation trigger to name: the detector is
+authoritative for that reading.
 
 An approval request, `.agents/approvals/<issue>.md`, names on its line
 `Tree:` the content tree it was written for. Compare it with the content
