@@ -1,0 +1,540 @@
+---
+title: "Refraction and Snell’s law"
+description: >-
+  Light crossing from one medium into another: the bend of a ray found as
+  the path of least time, the reflected and transmitted fractions found from
+  the boundary conditions, and a pulse on a grid splitting at a step of the
+  refractive index, each checked against its closed form.
+lesson:
+  id: refraction-and-snells-law
+  strand: waves
+  order: 4
+  difficulty: 2
+  course: waves
+  slot: W3
+  methods: [simulation]
+  outcomes:
+    - Find the path of a ray across an interface by minimising the travel time, and check that it obeys Snell's law
+    - Compute the reflected and transmitted fractions of light from the boundary conditions, and find the Brewster and the critical angles
+    - Simulate a pulse crossing a step of the refractive index and check its reflected and transmitted parts against the Fresnel amplitudes
+  related: []
+  format: 2
+  preview: fig-refraction
+  experiment: pbc.waves.experiments.refraction_and_snells_law
+  prerequisites:
+    lessons: [wave-equation]
+    outside:
+      - "Trigonometry: sine, cosine, and their inverses, and the angle of a right triangle"
+      - "Calculus: the minimum of a function of one variable"
+      - "Complex numbers: the modulus of a complex number"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.waves import refraction
+from pbc.waves.experiments import refraction_and_snells_law as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A straw in a glass of water looks broken at the surface, a swimming pool
+looks shallower than it is, and a window shows a faint reflection of the room
+behind you even in daylight. All three happen where light passes from one
+medium into another. The light changes direction, and part of it does not
+pass at all but is reflected.
+
+This lesson asks how much the light bends, and how much of it is reflected.
+The answers are Snell's law and the Fresnel equations, and the lesson
+computes both without using them. The bend is found by searching for the path
+along which light takes the least time. The reflected fraction is found by
+solving the conditions that the electric and magnetic fields must satisfy at
+the surface. And a pulse of light is followed on a grid as it reaches a step
+of the refractive index, using the wave equation of the first lesson of the
+course. Each result is then compared with the formula.
+
+## Assumptions
+
+1. **Two uniform media and a flat interface.** Each medium has one
+   refractive index $n$, the same everywhere in it, and the surface between
+   them is a plane. A curved surface is flat on the scale of the wavelength,
+   so the results apply to it locally; a medium whose index varies bends a
+   ray continuously, as in a mirage.
+2. **One wavelength, no absorption.** The index does not depend on the
+   colour and is real. In glass $n$ falls slowly with the wavelength, which
+   spreads white light into colours in a prism. An absorbing medium, such as
+   a metal, has a complex index and the Fresnel amplitudes change.
+3. **Non-magnetic, isotropic media.** The magnetic permeability is that of
+   vacuum and the index is the same for every direction of the field.
+   A crystal such as calcite has two indices, which is a subject of the next
+   lesson.
+4. **Plane waves and rays.** A ray is the normal of a plane wavefront, and
+   a beam is wide compared with the wavelength. A beam narrower than a few
+   wavelengths diffracts as it goes, which is the subject of a later lesson
+   on diffraction.
+5. **The grid pulse is a model on its own scale.** The pulse on the grid has
+   a width of centimetres and travels at a speed of one, in units of the
+   speed of light. The equation and the reflection do not depend on the
+   scale, so the result carries over to a light pulse of any width that is
+   large compared with the step of the grid.
+
+## Explanation
+
+### Snell's law from the time of travel
+
+Light travels in a medium of index $n$ at the speed $c_0/n$, where $c_0$ is
+the speed in vacuum. Place a source at height $h_1$ above the interface and
+a target at depth $h_2$ below it, a distance $D$ away along the interface.
+A path that crosses the interface at the point $x$ and is straight in each
+medium takes the time
+
+$$
+T(x) = \frac{1}{c_0}\left(n_1\sqrt{h_1^2 + x^2} + n_2\sqrt{h_2^2 + (D - x)^2}\right).
+$$
+
+Fermat's principle says that light follows the path of least time (more
+precisely, a path at which the time is stationary). Setting $dT/dx = 0$
+gives
+
+$$
+\frac{n_1 x}{\sqrt{h_1^2 + x^2}} = \frac{n_2 (D-x)}{\sqrt{h_2^2 + (D-x)^2}},
+$$
+
+and the two fractions are the sines of the angles from the normal:
+
+$$
+n_1 \sin\theta_1 = n_2 \sin\theta_2 .
+$$
+
+This is Snell's law. The program does not solve it: it searches $T(x)$ for
+its minimum by a golden-section search, which compares values of $T$ and
+never computes a derivative, and then reads the two angles from the geometry
+of the path it found.
+
+When light goes from a denser into a thinner medium, $n_1 > n_2$, the sine
+of the refracted angle reaches one at the **critical angle**
+$\theta_c = \arcsin(n_2/n_1)$. Beyond it no refracted ray exists, and all
+the light is reflected.
+
+### The Fresnel equations from the boundary conditions
+
+The fields of light obey Maxwell's equations, which at an interface without
+charges or currents require that the components of $\mathbf{E}$ and of
+$\mathbf{H}$ along the surface are the same on both sides. In a
+non-magnetic medium the magnetic field of a plane wave is proportional to
+$n$ times its electric field. Let an incident wave of unit amplitude produce
+a reflected wave $r$ and a transmitted wave $t$.
+
+For light polarised **across** the plane of incidence, called s, the field
+is along the surface, and the two conditions are
+
+$$
+1 + r_s = t_s, \qquad n_1\cos\theta_1\,(1 - r_s) = n_2\cos\theta_2\, t_s .
+$$
+
+For light polarised **in** the plane of incidence, called p, the magnetic
+field is along the surface:
+
+$$
+n_1 (1 + r_p) = n_2\, t_p, \qquad \cos\theta_1\,(1 - r_p) = \cos\theta_2\, t_p .
+$$
+
+Each pair is a linear system of two equations for two unknowns. The program
+solves it at every angle. Solved by hand they give the closed forms
+
+$$
+r_s = \frac{n_1\cos\theta_1 - n_2\cos\theta_2}{n_1\cos\theta_1 + n_2\cos\theta_2},
+\qquad
+r_p = \frac{n_2\cos\theta_1 - n_1\cos\theta_2}{n_2\cos\theta_1 + n_1\cos\theta_2},
+$$
+
+with $t_s = 1 + r_s$ and $t_p = n_1(1 + r_p)/n_2$. The reflected power is
+$R = |r|^2$. The transmitted power is $T = (n_2\cos\theta_2)/(n_1\cos\theta_1)\,|t|^2$:
+the intensity of a wave scales with $n|E|^2$, and the cross-section of the
+beam changes with the cosine of its angle. Energy is conserved if
+$R + T = 1$, which the program checks on its own solution.
+
+Two angles stand out. $r_p$ vanishes at the **Brewster angle**,
+$\tan\theta_B = n_2/n_1$, where the reflected light is polarised entirely
+across the plane of incidence. Beyond the critical angle $\cos\theta_2$
+becomes imaginary: the field in the second medium decays away from the
+surface instead of travelling, $|r| = 1$, and no power crosses.
+
+The sign of $r_p$ depends on how the directions of the reflected fields are
+chosen; textbooks differ. With the choice here $r_s$ and $r_p$ have opposite
+signs at normal incidence. The reflected power does not depend on it.
+
+### A pulse at a step of the index
+
+In a non-magnetic medium each component of the electric field obeys the
+wave equation of the first lesson,
+$\partial^2 E/\partial t^2 = c(x)^2\,\partial^2 E/\partial x^2$ with
+$c = c_0/n$, and at the interface both $E$ and $\partial E/\partial x$ are
+continuous. A pulse $g(x - c_1 t)$ that arrives at normal incidence splits
+into a reflected pulse $r\,g$ and a transmitted pulse $t\,g$, compressed by
+the factor $c_2/c_1$, with
+
+$$
+r = \frac{n_1 - n_2}{n_1 + n_2}, \qquad t = \frac{2 n_1}{n_1 + n_2},
+$$
+
+the Fresnel amplitudes at $\theta = 0$. The grid uses the scheme of the
+first lesson with a speed at each node. The node on the interface holds
+half a cell of each medium, so its $1/c^2$ is the mean of the two; this is
+the discrete form of the continuity of $\partial E/\partial x$.
+
+## Code
+
+The path of least time searches the travel time:
+
+```{python}
+#| echo: false
+excerpt(refraction.travel_time)
+```
+
+```{python}
+#| echo: false
+excerpt(refraction.golden_minimum)
+```
+
+```{python}
+#| echo: false
+excerpt(refraction.least_time_path)
+```
+
+The Fresnel amplitudes come from the linear system of the boundary
+conditions:
+
+```{python}
+#| echo: false
+excerpt(refraction.fresnel_solved)
+```
+
+```{python}
+#| echo: false
+excerpt(refraction.transmittance)
+```
+
+The grid with a step of the speed, and the scheme:
+
+```{python}
+#| echo: false
+excerpt(refraction.node_speeds)
+```
+
+```{python}
+#| echo: false
+excerpt(refraction.solve_varying)
+```
+
+## Worked examples
+
+### The path of least time
+
+A source is a metre above a flat interface and a target a metre below it.
+For six distances of the target along the interface, the program finds the
+path of least time and reads its angles. This is done for light going from
+air into water, from air into glass, and from glass into air. The indices
+are those of the setup below.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="media")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.least_time_run)
+```
+
+```{python}
+#| label: least-time
+#| echo: false
+result.table("least-time")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_refraction)
+```
+
+```{python}
+#| label: fig-refraction
+#| echo: false
+#| fig-cap: "The angle of the refracted ray against the angle of incidence, for three pairs of media. The lines are Snell's law, the markers the paths of least time found by searching the travel time; they lie on the lines. Going from glass into air, the refracted angle reaches a right angle at the critical angle."
+#| fig-alt: "Plot of the angle of refraction against the angle of incidence, both from zero to ninety degrees. Two curves for air into water and air into glass rise below the diagonal and flatten towards the right. A third curve for glass into air rises above the diagonal and turns steeply up to ninety degrees at a dotted vertical line marked critical angle. Markers of the least-time paths lie on all three curves."
+#| fig-status: simulated
+result.show("fig-refraction")
+```
+
+[The path of least time across a flat interface refracts by Snell's law:
+the refracted angle of every path found agrees with
+$\arcsin(n_1\sin\theta_1/n_2)$ to within the tolerance.]{.claim
+type="numerically-verified"
+scope="two uniform media, a flat interface, a golden-section search of the travel time"
+evidence="least-time"}
+The largest difference is `{python} result["angle-gap"]` rad, inside the
+chosen tolerance of `{python} result["angle-tolerance"]` rad; the search stops at
+the precision with which the minimum of a smooth function can be located, the
+square root of the round-off. The figure shows the paths and the formula
+together. Going from glass into air no path has an angle of incidence beyond
+`{python} result["critical-glass"]` degrees, the critical angle: a path of least
+time to a target in the air never meets the surface more steeply than that.
+The data are simulated, and the check is Snell's law.
+
+### Reflection and transmission
+
+The two linear systems are solved at one hundred eighty angles from zero to
+almost ninety degrees, for air into glass and for glass into air. The Brewster
+angle is found as the zero of the solved $r_p$ by bisection.
+
+```{python}
+#| echo: false
+excerpt(experiment.fresnel_run)
+```
+
+```{python}
+#| label: fresnel
+#| echo: false
+result.table("fresnel")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_fresnel)
+```
+
+```{python}
+#| label: fig-fresnel
+#| echo: false
+#| fig-cap: "The reflected fraction of the power for light polarised across (R_s) and in (R_p) the plane of incidence, from the solved boundary conditions. From air into glass, R_p vanishes at the Brewster angle. From glass into air, both rise to one at the critical angle and stay there."
+#| fig-alt: "Two panels of the reflected fraction against the angle of incidence. In the left panel, air into glass, both curves start at a small value at normal incidence; the solid R_s curve rises steadily to one at grazing incidence, the dashed R_p curve first falls to zero at a dotted line marked Brewster angle and then rises to one. In the right panel, glass into air, the same shapes are compressed: R_p touches zero at the Brewster line, and both curves jump to one at a dash-dotted line marked critical angle and stay flat at one beyond it."
+#| fig-status: simulated
+result.show("fig-fresnel")
+```
+
+[The amplitudes solved from the boundary conditions are the Fresnel
+equations, they conserve the power, $R + T = 1$, at every angle, and $r_p$
+vanishes at $\arctan(n_2/n_1)$.]{.claim type="numerically-verified"
+scope="two non-magnetic, non-absorbing media, a flat interface, one hundred eighty angles of incidence"
+evidence="fresnel"}
+At normal incidence glass reflects `{python} result["normal-reflectance"]`
+per cent of the light, the faint reflection of a window. The Brewster angle is
+`{python} result["brewster-glass"]` degrees from air and
+`{python} result["brewster-inside"]` degrees from inside the glass. Beyond the critical
+angle the reflected fraction departs from one by `{python} result["total-gap"]`:
+the reflection is total, which is why an optical fibre keeps its light. The
+data are simulated, and the check is the closed forms.
+
+### A pulse crossing into glass
+
+A smooth pulse of the electric field starts in air, at a quarter of a line a
+metre long, and moves towards glass that fills the right half. The program
+computes the field after the pulse has crossed, on four grids, and compares
+it with the exact reflected and transmitted pulses.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="pulse")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.pulse)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.pulse_run)
+```
+
+```{python}
+#| label: pulse-run
+#| echo: false
+result.table("pulse-run")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_interface_pulse)
+```
+
+```{python}
+#| label: fig-interface-pulse
+#| echo: false
+#| fig-cap: "A pulse of the electric field that started in air, after it has met glass (shaded): a reflected pulse of opposite sign travels back, and a narrower transmitted pulse travels on. The grid values lie on the exact pulses."
+#| fig-alt: "Line plot of the electric field against position along a line. A dotted bell-shaped pulse at the start sits in the left, unshaded half. After the crossing, a smaller inverted pulse lies in the left half and a narrower upright pulse in the right, shaded half. Grid markers follow the exact solid curve closely."
+#| fig-status: simulated
+result.show("fig-interface-pulse")
+```
+
+[The scheme with the mean slowness at the interface node converges to the
+exact reflected and transmitted pulses at second order, and the parts it
+reflects and transmits are the Fresnel amplitudes at normal
+incidence.]{.claim type="numerically-verified"
+scope="normal incidence from air into glass, a smooth pulse, four grids, a Courant number of one half"
+evidence="pulse-run"}
+The fitted order of the error is `{python} result["pulse-order"]`. On the
+finest grid the reflected pulse carries `{python} result["reflected"]` of the
+incident one, against $r =$ `{python} result["r-normal"]`, and the transmitted
+pulse `{python} result["transmitted"]`, against $t =$ `{python} result["t-normal"]`,
+both read from the area under each pulse. The reflection inverts the pulse,
+because glass is the denser medium. The power balances:
+$r^2 + (n_2/n_1)\,t^2 =$ `{python} result["flux-balance"]`. The data are
+simulated, and the check is the exact solution.
+
+## Limits {#limits}
+
+- **One colour.** The index of glass is a number here; a real glass has a
+  dispersion, so each colour has its own Snell angle and its own Fresnel
+  fractions. The lesson does not show a prism.
+- **Ideal, flat surfaces.** A rough surface scatters, a coated surface has
+  interference in its coating (which is how an anti-reflection coating
+  works), and a surface of a metal absorbs. None of these is computed.
+- **Rays only for the angles, a wave only at normal incidence.** The grid
+  pulse is one-dimensional, so it tests the Fresnel amplitudes at normal
+  incidence only. An oblique incidence on a grid needs two dimensions, and
+  the evanescent wave beyond the critical angle is shown only through
+  $|r| = 1$, not as a field.
+- **No measurement.** The indices are textbook values and every result is
+  numerical; the checks are the closed forms, not an experiment.
+
+::: {.exercise .self-check}
+Light inside a glass block meets the surface to the air at an angle larger
+than the critical angle. A drop of water is put on the surface at that spot.
+What changes?
+
+::: {.choices}
+::: {.choice}
+Nothing. Beyond the critical angle all the light is reflected, whatever is
+outside.
+
+::: {.feedback}
+The critical angle depends on both indices. Water has a larger index than
+air, so the critical angle from glass into water is larger.
+:::
+:::
+
+::: {.choice correct="true"}
+Some light may now leave the glass into the water, because the critical
+angle from glass into water is larger than into air.
+
+::: {.feedback}
+Correct: $\arcsin(n_2/n_1)$ grows with $n_2$. A ray beyond the critical
+angle to air can be inside the critical angle to water, and then it is
+partly transmitted. This is how a fingerprint sensor based on a prism works.
+:::
+:::
+
+::: {.choice}
+All the light now leaves the glass, because water is denser than air.
+
+::: {.feedback}
+Light that crosses is never all of it: the Fresnel equations give a
+reflected part at every angle unless the two indices are equal.
+:::
+:::
+:::
+
+::: {.solution}
+The critical angle from glass ($n_1$) into a medium of index $n_2$ is
+$\arcsin(n_2/n_1)$. Replacing air by water raises $n_2$, so the critical
+angle grows, and a ray that was totally reflected may now fall inside it. It
+is then partly transmitted into the drop, with fractions given by the Fresnel
+equations; the reflection at that spot is no longer total.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A glass slab.** A ray in air meets a flat glass plate [1 cm]{.given} thick
+at [45 degrees]{.given}. At what angle does it travel inside the glass, at
+what angle does it leave, and how far is it shifted sideways?
+
+::: {.hint}
+Apply Snell's law at both faces. The two faces are parallel.
+:::
+
+::: {.hint}
+Draw the path inside the plate: its length is the thickness over the cosine
+of the inner angle, and the shift is that length times the sine of the
+difference of the angles.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.glass_slab)
+```
+
+Inside the glass the ray travels at `{python} result["slab-inside"]` degrees
+from the normal, and it leaves at `{python} result["slab-leaving"]` degrees,
+parallel to the incoming ray: the second face undoes the first. It is shifted
+sideways by `{python} result["slab-shift-mm"]` mm.
+:::
+:::
+
+::: {.exercise}
+**Snell's window.** A fish looks up at the calm surface of a pond. Within
+what cone does it see the sky, and what does it see outside that cone?
+
+::: {.hint}
+Reverse the light: the rays from the sky that reach the fish come in at all
+angles up to grazing.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.snells_window)
+```
+
+Light from the whole sky, down to the horizon, is bent into a cone of half
+angle `{python} result["window"]` degrees, the critical angle from water into
+air, about `{python} result["window-full"]` degrees across. Outside the cone
+the fish sees the underwater scene reflected totally by the surface.
+:::
+:::
+
+::: {.exercise}
+**Glare from a lake.** At what angle of incidence is the light reflected by
+calm water polarised entirely across the plane of incidence, and how much of
+the s light is reflected there?
+
+::: {.hint}
+Use the Brewster angle with the index of water.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.lake_glare)
+```
+
+At `{python} result["lake-brewster"]` degrees from the normal, $R_p$ is
+`{python} result["lake-rp"]` and $R_s$ is `{python} result["lake-rs"]` per
+cent. The reflected glare is all s-polarised, horizontal for a lake, which is
+why sunglasses with a vertical polarising axis remove it; the next lesson
+computes what such a polariser does.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/waves/refraction.py",
+        "src/pbc/waves/experiments/refraction_and_snells_law.py",
+        "src/pbc/verification/estimates.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_optics.py",
+        "tests/unit/test_refraction_and_snells_law_experiment.py",
+    ],
+)
+```
