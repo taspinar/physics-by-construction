@@ -123,6 +123,37 @@ a pure-Python library such as PySINDy would be locked only with its licence
 and weight recorded here, and neither F65 nor F67 adds one: the baselines
 above use NumPy and SciPy, which are locked already.
 
+## Invariants
+
+A discovery of conserved quantities (lesson D13, `pbc.discovery.invariants`
+and `pbc.discovery.invariant_lab`, F82) follows the same rules with a claim
+of another kind: a candidate is a combination of a public library of terms of
+the state, and no equation of motion is fitted or assumed.
+
+- **The box** is a particle in a plane under a hidden force, integrated by its
+  own method and step. The agent starts it from bounded starts, one of a
+  budget of trajectories each, and reads the state at fixed times; a
+  `variation` tool gives the conservation ratio of a candidate on the agent's
+  own trajectories; `submit` states a candidate, a bounded number of them.
+- **The conservation ratio** of a candidate is the root-mean-square change of
+  its value about its mean on each trajectory, divided by the square root of
+  the sum of each coefficient squared times the mean square of its term.
+- **The verdict**, fixed before any run, is given on held-out starts (some
+  beyond the bounds) at three integration settings: the box's own, half its
+  step, and a reference (classical Runge-Kutta at a fine step). A candidate is
+  an **invariant** when its ratio at the reference is at most the tolerance
+  and its value differs between trajectories; an **identity** when it is
+  conserved with one value on every trajectory; an **integration artefact**
+  when it is conserved at the box's own setting only; a **coincidence** when
+  it is conserved on its own trajectories only; otherwise **not conserved**.
+- **The score** counts the independent invariants among the candidates
+  against the number the box has in the library (the baseline's count at the
+  reference, a number the judge returns and nothing else), recomputed from
+  the tool calls on a fresh box.
+- **The baseline** is the null space of the terms' changes, each column scaled
+  by the size of its term, by the singular value decomposition, with the
+  tolerance as its threshold; its candidates are judged by the same rules.
+
 ## The frozen trace and the replay
 
 A **frozen trace** (`pbc.discovery.save_trace`) is a directory with
@@ -135,8 +166,8 @@ The replay needs no credential and no network.
 
 A lesson commits only the fixture next to its page, because a lesson directory
 holds nothing else (ADR 002): its `TraceInfo` is kept in the lesson's module
-beside the protocol (for D1 to D3, `pbc.discovery.force_lab`), and a test
-checks the two against each other.
+beside the protocol (for D1 to D3, `pbc.discovery.force_lab`; for D13,
+`pbc.discovery.invariant_lab`), and a test checks the two against each other.
 
 ## Cost
 
