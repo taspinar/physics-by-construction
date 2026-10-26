@@ -142,8 +142,12 @@ risk_path_minimum() {
 #                                   the diff, or a line whose first def
 #                                   or class at or above it in its added block
 #                                   is a new def test_ (a new test weakens
-#                                   none that is there); a data line of a
-#                                   budget table
+#                                   none that is there), or in a new source
+#                                   file: a Python file under src/ that is new
+#                                   in the diff (it widens no check that is
+#                                   there; a protected path keeps Level 3 by
+#                                   the path rule); a data line of a budget
+#                                   table
 #   skip or expected failure added  a new skip, skipif, xfail, or importorskip;
 #                                   in Lean, a new sorry, admit, or axiom
 #   assertion removed or changed    a line that is not added back as it was: a
@@ -259,7 +263,7 @@ risk_triggers() {
           line = addlist[i]
           if (line in gone) continue
           if (is_budgets && line !~ /^#/ && line != "") report("tolerance or budget changed", line)
-          if (is_python && line !~ /^#/ && line ~ tolerance && line ~ /[0-9]/ && !(is_new_test_file || in_new_test(i)))
+          if (is_python && line !~ /^#/ && line ~ tolerance && line ~ /[0-9]/ && !(is_new_test_file || is_new_source_file || in_new_test(i)))
             report("tolerance or budget changed", line)
           if (is_lean && line !~ /^--/ &&
               (line ~ /(^|[^[:alnum:]_.\047`])(sorry|admit)([^[:alnum:]_\047`]|$)/ || line ~ /^(@\[[^]]*\][[:space:]]*)?((private|protected|noncomputable|unsafe)[[:space:]]+)*axiom[[:space:]]/))
@@ -290,12 +294,14 @@ risk_triggers() {
         is_shell_test = (file ~ /\.sh$/ && (file ~ /^tests\// || file ~ /(^|\/)[^\/]*-test\.sh$/))
         is_lean = (file ~ /\.lean$/ && file !~ /(^|\/)lakefile\.lean$/)
         is_test_file = (file ~ /(^|\/)(test_[^\/]*|[^\/]*_test)\.py$/)
+        is_source_file = (file ~ /^src\/.*\.py$/)
         is_new_test_file = 0
+        is_new_source_file = 0
         nremoved = 0; nadded = 0; block = 0
         delete added; delete gone; delete removed; delete addlist; delete addblock
         next
       }
-      /^new file mode / { is_new_test_file = is_test_file; next }
+      /^new file mode / { is_new_test_file = is_test_file; is_new_source_file = is_source_file; next }
       /^(---|\+\+\+) / { next }
       /^-/ { block++; line = trim(substr($0, 2)); removed[++nremoved] = line; gone[line] = 1; next }
       /^\+/ {
