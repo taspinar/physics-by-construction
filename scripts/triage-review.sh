@@ -6,6 +6,9 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$script_dir/lib/agent.sh"
 source "$script_dir/lib/review-data.sh"
 source "$script_dir/lib/fingerprint.sh"
+source "$script_dir/lib/guardrails.sh"
+source "$script_dir/lib/completion.sh"
+source "$script_dir/lib/risk.sh"
 
 usage() {
   echo "Usage: $0 <review-json> [--agent <agent>] [--model <model>]"
@@ -190,16 +193,31 @@ if [[ "$(jq -r '.kind // "feature"' "$review_path" 2>/dev/null)" == "planning" ]
   fail "this is a planning review; it is not triaged. Handle it with ./scripts/revise-planning.sh and review again with ./scripts/review-planning.sh."
 fi
 
-# Mechanical triage (ADR 020 decision 4): the level the review recorded for
-# its content, 1 or 2 under a completion/v2 record, and only minor and
-# suggestion findings. finish-feature.sh derives the level again and refuses
-# a mechanical triage of a Level 3 change.
+# Mechanical triage (ADR 020 decision 4): a change of Level 1 or 2 under a
+# completion/v2 record, and only minor and suggestion findings. The level is
+# derived again here from the base of the feature and the current content,
+# not taken from the review: the review must record that same level, and
+# otherwise the review gets the full triage. finish-feature.sh derives it
+# once more and refuses a mechanical triage of a Level 3 change.
 mechanical=0
 mechanical_level="$(jq -r 'if (.risk | type) == "object" and .risk.record_schema == "completion/v2"
   and (.risk.required | IN(1, 2)) and (.findings | type) == "array" and (.findings | length) > 0
   and ([.findings[] | select(.severity == "critical" or .severity == "major")] | length) == 0
   then .risk.required else empty end' "$review_path" 2>/dev/null || true)"
-[[ -z "$mechanical_level" ]] || mechanical=1
+if [[ -n "$mechanical_level" ]]; then
+  triage_branch="$(git -C "$root" rev-parse --abbrev-ref HEAD)"
+  triage_base="$(git -C "$root" config --get "branch.$triage_branch.workflow-base" || true)"
+  triage_base="${triage_base:-main}"
+  if triage_base_lines="$(feature_base "$root" "$triage_base")" &&
+    risk_assess "$root" "$(guardrails_rules_refs "$root" "$triage_base")" \
+      "$(printf '%s\n' "$triage_base_lines" | sed -n 2p)" "$(jq -r '.issue' "$review_path")" "$review_path" &&
+    [[ "$RISK_ENFORCED" -eq 1 && -z "$RISK_ERRORS" && "$RISK_REQUIRED" == "$mechanical_level" ]]; then
+    mechanical=1
+  else
+    echo "The review records Level $mechanical_level, but the level derived now for the change is ${RISK_REQUIRED:-unknown}$([[ -z "${RISK_ERRORS:-}" ]] || echo ", with problems"): the review gets the full triage per finding." >&2
+    mechanical_level=""
+  fi
+fi
 
 if [[ "$mechanical" -eq 1 ]]; then
   agent="mechanical"

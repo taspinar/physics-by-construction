@@ -660,4 +660,19 @@ run_script "$repo" ./scripts/finish-feature.sh 12 "Explain the speed" --unattend
 grep -Fq "was made mechanically; every finding of a Level 3 change keeps the full triage" "$repo.out" ||
   { cat "$repo.out" >&2; fail "the refusal of the mechanical triage at Level 3 was not explained"; }
 
+# A review that claims Level 2 for a Level 3 change is not triaged
+# mechanically: triage-review.sh derives the level of the change again.
+repo="$(setup_repo mechanical-claims-level2)"
+printf '# more\n' >>"$repo/scripts/lib/completion.sh"
+record "$repo" 3
+claimed_review="$(review "$repo" 1 '{"kind": "full"}' "[$(finding MIN1 minor)]" '[]')"
+MOCK_OUTPUT='{"decisions": [{"finding_id": "MIN1", "decision": "DEFER", "rationale": "Later.", "followup": {"title": "Check the speed", "recommended_action": "Add the check.", "acceptance_criteria": ["The speed is checked."]}}]}' \
+  run_script "$repo" ./scripts/triage-review.sh "$claimed_review" --unattended
+[[ "$status" -eq 0 ]] || { cat "$repo.out" >&2; fail "the full triage of a review that claims Level 2 failed"; }
+[[ -e "$repo.agent.log" ]] || fail "a Level 3 change whose review claims Level 2 was triaged mechanically"
+[[ "$(jq -r '.mechanical // false' "$repo/.agents/triage/feature-12-speed-review-01-triage.json")" == "false" ]] ||
+  fail "a Level 3 change whose review claims Level 2 got a mechanical triage"
+grep -Fq "the level derived now for the change is 3" "$repo.out" ||
+  { cat "$repo.out" >&2; fail "the full triage of a review that claims Level 2 was not explained"; }
+
 echo "review chain tests passed"

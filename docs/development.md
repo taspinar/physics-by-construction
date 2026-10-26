@@ -1111,11 +1111,14 @@ decisions are retried once and then rejected. A review without findings needs
 no triage agent.
 
 **Mechanical triage** (ADR 020 decision 4). A review of a Level 1 or 2
-change under a `completion/v2` record, as the review recorded its level,
-whose findings are all minor or suggestion, is triaged without an agent and
+change under a `completion/v2` record, whose findings are all minor or
+suggestion, is triaged without an agent and
 without a question: every minor finding is deferred, with a follow-up Issue
 made from the finding, and every suggestion is accepted, each with the rule
-as its reason. The artifact says `mechanical: true`, its report says that
+as its reason. The script derives the level again from the base of the
+feature and the current content, as `finish-feature.sh` does; when it is
+not the level the review recorded, or is 3, the review gets the full triage.
+The artifact says `mechanical: true`, its report says that
 no human approved it, and it is published once: running the triage again
 publishes nothing more. A review with a critical or major finding, and every
 review of a Level 3 change, gets the full triage per finding with your

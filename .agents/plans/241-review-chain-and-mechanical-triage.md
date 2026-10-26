@@ -75,7 +75,8 @@ the F131 block.
    verification, and no finding is open; `review-feature.sh` makes no
    review of changes at Level 3, and `run-feature.sh` asks for none.
 5. **Mechanical triage.** `triage-review.sh` triages a review at Level 1
-   or 2 (from the review's recorded risk, completion/v2) whose findings
+   or 2 (completion/v2; the level derived again from the base and the
+   current content, and equal to the review's recorded one) whose findings
    are all minor or suggestion without an agent and without a question:
    a minor finding is deferred with a follow-up Issue made from the
    finding, a suggestion is accepted, each with the rule as its reason;
