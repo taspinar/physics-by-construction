@@ -388,3 +388,42 @@ references:
     lessons: [agent-experiment]
     last-checked: 2026-10-10
     licence: No licence stated on the page; linked, not copied or rehosted.
+  - key: roshko-vortex-street-strouhal
+    concept: >-
+      The measured shedding frequency of a circular cylinder at low Reynolds
+      number, its fit S = 0.212 (1 - 21.2 / R), and the regimes of the wake
+      (stable, transition, irregular)
+    url: https://ntrs.nasa.gov/citations/19930092207
+    title: "On the Development of Turbulent Wakes from Vortex Streets (NACA Report 1191)"
+    author: Anatol Roshko, National Advisory Committee for Aeronautics (NASA Technical Reports Server)
+    section: "Regular and irregular vortex streets; Use of shedding frequency for velocity measurements, equations (1a) and (2a), page 11 of the report"
+    role: paper
+    statement: >-
+      The report names three ranges of the shedding regime of a circular
+      cylinder, the stable range 40 < R < 150 with regular vortex streets
+      and no turbulent fluctuations, the transition range 150 < R < 300,
+      and the irregular range above 300, and says that their limits are
+      somewhat in doubt and may depend on configuration and free-stream
+      turbulence. It fits the measured shedding frequencies of the stable
+      range by F = 0.212 R - 4.5, that is S = 0.212 (1 - 21.2 / R), stated
+      for 50 < R < 150, with S = f d / U and R = U d / nu, the definitions
+      of the lesson. The lesson takes the fit's value at R = 100 and its
+      span over 50 < R < 150 as the published reference, and the stable
+      range as the regime its two-dimensional computation is meant for.
+      The text of the report was read from the PDF that the NTRS record
+      links (an OCR text layer of the scan) on 2026-10-26; the equations
+      and ranges above were read on its page 11.
+    alternatives: >-
+      Williamson's review "Vortex dynamics in the cylinder wake" (Annual
+      Review of Fluid Mechanics, 1996) and his universal Strouhal-Reynolds
+      relation (Physics of Fluids, 1988) give a refined curve for parallel
+      shedding, about 0.164 at R = 100; both are behind a paywall and were
+      not opened, so they are not chosen. Roshko's report is a primary
+      measurement, free to read on NTRS, and adds what the lesson does not
+      contain: the experiments, the hot-wire method, and the development of
+      the wake into turbulence beyond the stable range.
+    lessons: [vortex-formation-and-flow-around-obstacles]
+    last-checked: 2026-10-26
+    licence: >-
+      A NACA report, a work of the United States government; linked, not
+      copied or rehosted.
