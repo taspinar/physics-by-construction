@@ -1,0 +1,550 @@
+---
+title: "Waveguides and antenna basics"
+description: >-
+  A hollow rectangular waveguide: its cut-off frequencies from a sparse
+  eigenproblem against the closed form, and its fields simulated in time
+  above and below the cut-off against the guide's dispersion relation. Then
+  the radiation of a wire built by superposing short current elements,
+  compared with the analytic dipole patterns, and two wires as an element
+  pattern times an array factor.
+lesson:
+  id: waveguides-and-antenna-basics
+  strand: electromagnetism
+  order: 6
+  difficulty: 3
+  course: electromagnetism
+  slot: EM6
+  methods: [simulation]
+  outcomes:
+    - Derive the modes and cut-off frequencies of a rectangular waveguide from the boundary conditions on its walls
+    - Compute cut-off frequencies of a cross-section as a sparse eigenvalue problem and measure its convergence
+    - Simulate a guide above and below its cut-off and check the travelling and the evanescent fields against the dispersion relation
+    - Build the radiation pattern of a wire antenna by superposing short current elements, and check it against the analytic dipole patterns
+    - Explain an array's pattern as the element pattern times the array factor, and say where these idealised models fail
+  related: []
+  format: 2
+  preview: fig-guide-field
+  experiment: pbc.electromagnetism.experiments.waveguides_and_antenna_basics
+  prerequisites:
+    lessons: [maxwells-equations-and-fdtd, interference-and-resonance]
+    outside:
+      - "Linear algebra: eigenvalues and eigenvectors of a symmetric matrix"
+      - "Complex numbers: the exponential of an imaginary number, and the modulus and argument of a complex ratio"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.electromagnetism import antennas, waveguides
+from pbc.electromagnetism.experiments import waveguides_and_antenna_basics as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A radar, a satellite ground station, and the magnetron of a microwave oven
+all send their microwaves through hollow metal pipes. A pipe guides a wave
+with almost no loss and no radiation, but not every wave: below a frequency
+set by its width, nothing gets through, and the field dies away within a few
+centimetres. The standard pipe of the X band, around [10 GHz]{.given}, is a rectangle of
+[22.86 mm]{.given} by [10.16 mm]{.given}; this lesson finds out why those
+numbers, and what the pipe does to a wave inside it.
+
+At the end of the pipe the wave has to leave, through an antenna, and spread
+into space. The second half of the lesson builds the simplest antenna, a
+straight wire, by the superposition of the interference lesson: each short
+piece of current radiates, and the antenna's pattern is the sum of their
+waves. The same sum with pieces in other places is the pattern of an array
+of antennas, which the capstone of this course steers.
+
+## Assumptions
+
+1. **Perfect conductors.** The walls of the guide and the wires of the
+   antennas conduct perfectly: the tangential electric field vanishes on
+   them. Real copper loses a little energy per metre.
+2. **An empty guide.** Vacuum fills the guide; there is no dielectric and no
+   obstacle inside, and the guide is straight and infinitely long, or ends in
+   an absorber that returns little.
+3. **One frequency.** Every field varies in time as $e^{j\omega t}$, after
+   any transient.
+4. **A thin wire with a given current.** The wire is much thinner than the
+   wavelength, and its current is a standing wave, assumed rather than
+   computed from the source that drives it:
+   $$
+   I(z) = I_0\,\frac{\sin\big(k(L/2 - |z|)\big)}{\sin(kL/2)}.
+   $$
+5. **The far field.** Patterns are those at distances much larger than the
+   antenna and the wavelength, where the field falls as $1/r$.
+6. **No coupling.** Two antennas of an array carry the currents they would
+   carry alone; neither changes the other's current.
+
+## Explanation
+
+### Modes of a hollow guide
+
+Take the guide along $z$, with walls at $x = 0, a$ and $y = 0, b$. A field
+travelling along the guide varies as $e^{j(\omega t - \beta z)}$. Inside, Maxwell's equations
+reduce to the Helmholtz equation for the longitudinal components,
+
+$$
+\left(\frac{\partial^2}{\partial x^2} + \frac{\partial^2}{\partial y^2}\right)\psi
++ k_c^2\,\psi = 0,
+\qquad
+k_c^2 = k^2 - \beta^2,
+\quad k = \frac{\omega}{c},
+$$
+
+and all the transverse components follow from $E_z$ and $H_z$. The walls
+split the solutions into two families: TM modes have $H_z = 0$ and
+$E_z = 0$ on the walls; TE modes have $E_z = 0$ and
+$\partial H_z/\partial n = 0$ on the walls. On a rectangle the equation
+separates, and
+
+$$
+k_c = \pi\sqrt{\left(\frac{m}{a}\right)^2 + \left(\frac{n}{b}\right)^2},
+\qquad
+f_c = \frac{c\,k_c}{2\pi},
+$$
+
+with $m + n > 0$ for TE$_{mn}$ and $m, n \ge 1$ for TM$_{mn}$. These are the
+eigenvalues of the cross-section, the resonances of a two-dimensional drum
+of its shape with the matching edge condition.
+
+### Above and below the cut-off
+
+From $\beta^2 = k^2 - k_c^2$:
+
+- above $f_c$, $\beta = (2\pi/c)\sqrt{f^2 - f_c^2}$ is real and the mode
+  travels, with the guide wavelength $2\pi/\beta$ longer than in free
+  space, a phase velocity $\omega/\beta$ above $c$, and a group velocity
+  $c\sqrt{1 - (f_c/f)^2}$ below it, their product being $c^2$;
+- below $f_c$, $\beta$ is imaginary: the field decays as $e^{-\alpha z}$
+  with $\alpha = (2\pi/c)\sqrt{f_c^2 - f^2}$, and carries no power along the
+  guide. It is evanescent.
+
+The lowest mode of a guide with $a > b$ is TE$_{10}$, with $f_c = c/(2a)$
+and a field $E_y \propto \sin(\pi x/a)$ that does not depend on $y$. When
+$a \ge 2b$, as here, the next mode is TE$_{20}$ at twice that frequency.
+Between the two cut-offs a guide carries one mode alone, which is why guides
+are chosen with the band of use in that window.
+
+The TE$_{m0}$ fields depend on $x$ and $z$ only, with $\mathbf{E}$ along $y$:
+they are exactly the two-dimensional TM fields of the FDTD lesson, with the
+plane of the computation spanning the width and the length of the guide.
+The solver of that lesson therefore simulates the guide without change.
+
+### Radiation from a current
+
+A short piece of wire of length $dl$ with the current $I$, at the origin
+along $z$, radiates far away, in the direction at the angle $\theta$ from
+the wire,
+
+$$
+E_\theta = j\eta\,\frac{k\,I\,dl}{4\pi r}\,\sin\theta\;e^{-jkr},
+\qquad \eta = \sqrt{\mu_0/\varepsilon_0}.
+$$
+
+A piece at height $z$ is closer, for the direction $\theta$, by
+$z\cos\theta$, so its wave arrives with the extra phase $e^{jkz\cos\theta}$.
+A wire is the sum of its pieces:
+
+$$
+E_\theta \propto \sin\theta \int I(z)\,e^{jkz\cos\theta}\,dz,
+$$
+
+the pattern of one piece, $\sin\theta$, times the sum of the pieces' waves.
+With the standing-wave current this has closed forms: $\sin\theta$ for a
+short dipole, and $\cos\big(\tfrac{\pi}{2}\cos\theta\big)/\sin\theta$ for a
+half-wave dipole. The same reasoning for identical antennas at the places
+$\mathbf{r}_n$ with weights $w_n$ gives **pattern multiplication**: the field
+is the element pattern times the **array factor**
+$\sum_n w_n e^{jk\hat{\mathbf{u}}\cdot\mathbf{r}_n}$.
+
+Two numbers summarise an antenna. Its **directivity** $D$ is the largest
+power per solid angle over the mean over all directions. Its **radiation
+resistance** $R_r$ is the resistance that would take the radiated power
+$P$ from the feed current $I_0$, $P = R_r I_0^2/2$; for the half-wave dipole
+it is $\eta\,\mathrm{Cin}(2\pi)/(4\pi)$, with the cosine integral
+$\mathrm{Cin}$.
+
+## Code
+
+The modes in closed form, and the cross-section as a sparse eigenproblem:
+
+```{python}
+#| echo: false
+excerpt(waveguides.cutoff_frequency)
+```
+
+```{python}
+#| echo: false
+excerpt(waveguides.cross_section_cutoffs)
+```
+
+```{python}
+#| echo: false
+excerpt(waveguides.guide_wavenumber)
+```
+
+```{python}
+#| echo: false
+excerpt(waveguides.attenuation)
+```
+
+The far field of a set of current elements, and the array factor it is
+built on:
+
+```{python}
+#| echo: false
+excerpt(antennas.far_field)
+```
+
+```{python}
+#| echo: false
+excerpt(antennas.array_factor)
+```
+
+```{python}
+#| echo: false
+excerpt(antennas.wire_current)
+```
+
+```{python}
+#| echo: false
+excerpt(antennas.radiation_resistance)
+```
+
+## Worked examples
+
+### The cut-off frequencies of a WR-90 guide
+
+```{python}
+#| echo: false
+excerpt(experiment, region="guide")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.cutoffs)
+```
+
+```{python}
+#| label: cutoffs
+#| echo: false
+result.table("cutoffs")
+```
+
+```{python}
+#| label: cutoff-convergence
+#| echo: false
+result.table("cutoff-convergence")
+```
+
+```{python}
+#| label: fig-cutoff-convergence
+#| echo: false
+#| fig-cap: "The error of the cut-off frequencies from the five-point eigenproblem falls with the square of the cell size."
+#| fig-alt: "Log-log plot of the largest relative error of the cut-off frequencies against the cell size: four circle markers on a straight line parallel to a dotted reference line of slope two."
+#| fig-status: simulated
+result.show("fig-cutoff-convergence")
+```
+
+[The eight lowest cut-off frequencies from the eigenproblem agree with the
+closed form to a relative `{python} result["cutoff-error"]` on the finest
+grid, and the error falls at the fitted order
+`{python} result["cutoff-order"]`.]{.claim type="numerically-verified"
+scope="WR-90 cross-section, five TE and three TM modes, square cells"
+evidence="cutoffs cutoff-convergence fig-cutoff-convergence"} The lowest
+mode, TE$_{10}$, has its cut-off at `{python} result["te10"]` GHz; the next,
+TE$_{20}$, at twice that. A wave between the two travels in one mode only,
+which is why the X band of this guide starts above the first and ends below
+the second. TE$_{11}$ and TM$_{11}$ share a cut-off: two different fields
+with one eigenvalue, a degeneracy of the rectangle. The grid errs low because
+the five-point Laplacian underestimates the curvature of a sine.
+
+### The guide in time: above and below the cut-off
+
+The guide's width and length, twenty cells across, with a closed end on the
+left, a source with the shape of TE$_{10}$ near it, and a conductivity that
+rises gradually over the last cells to absorb what arrives there:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="fdtd")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.guide_run)
+```
+
+```{python}
+#| label: fig-guide-field
+#| echo: false
+#| fig-cap: "Above the cut-off the field travels down the guide as a wave; below it the field clings to the source and dies away within a few centimetres."
+#| fig-alt: "Two false-colour maps of the electric field in the guide, the length of the guide horizontal and its width vertical. Top: regular stripes of alternating sign along the whole guide, strongest in the middle of the width. Bottom: a single patch near the left end that fades to nothing within a short distance."
+#| fig-status: simulated
+result.show("fig-guide-field")
+```
+
+From the steady state, the complex amplitude of $E_z$ on the centre line
+gives the wavenumber from the slope of its phase above the cut-off, and the
+attenuation from the slope of the logarithm of its size below it. The grid
+has a dispersion relation of its own, the one of the FDTD lesson with the
+transverse sine of the mode:
+
+```{python}
+#| echo: false
+excerpt(experiment.grid_wavenumber)
+```
+
+```{python}
+#| label: transmission
+#| echo: false
+result.table("transmission")
+```
+
+```{python}
+#| label: fig-guide-dispersion
+#| echo: false
+#| fig-cap: "The measured wavenumber above the cut-off and the attenuation below it lie on the dispersion relation of the guide, both vanishing at the cut-off."
+#| fig-alt: "Line plot against frequency, with a dotted vertical line at the cut-off. To the right a solid curve of the wavenumber rises from zero at the cut-off, with circle markers of the simulation on it. To the left a dashed curve of the attenuation falls to zero at the cut-off, with square markers on it."
+#| fig-status: simulated
+result.show("fig-guide-dispersion")
+```
+
+[The measured wavenumber and attenuation agree with the dispersion relation
+of the grid to a relative `{python} result["transmission-to-grid"]`, and the
+wavenumber with the continuum relation to
+`{python} result["beta-to-continuum"]`; the cut-off frequency each
+measurement implies lies within a relative
+`{python} result["inferred-cutoff-gap"]` of $c/(2a)$.]{.claim
+type="numerically-verified" scope="the TE10 field of the WR-90 guide,
+twenty cells across, from three frequencies below to five above the
+cut-off" evidence="transmission fig-guide-dispersion"} The cut-off is thus
+measured twice over: in the eigenvalues of the cross-section and in the
+time-domain behaviour of the guide, with nothing in the simulation that
+knows the formula. The remaining gap to $c/(2a)$ is the grid's: twenty cells
+across a wavelength of the transverse sine lower the cut-off of the grid
+slightly, as they lowered the speed of the pulse in the FDTD lesson.
+
+```{python}
+#| label: velocities
+#| echo: false
+result.table("velocities")
+```
+
+The wave crests in the guide move faster than light, but they carry
+nothing: the energy travels at the group velocity, below $c$, and the
+product of the two is $c^2$.
+
+### A wire antenna by superposition
+
+Two wires along $z$, a half-wave and a short dipole, each cut into short
+elements with the standing-wave current:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="antenna")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.patterns)
+```
+
+```{python}
+#| label: patterns
+#| echo: false
+result.table("patterns")
+```
+
+[The pattern of the half-wave wire built from short elements agrees with the
+analytic pattern of the half-wave dipole to
+`{python} result["half-wave-gap"]`, and its radiation resistance is
+`{python} result["half-wave-resistance"]` ohm against the closed form
+`{python} result["closed-resistance"]` ohm.]{.claim
+type="numerically-verified" scope="a thin wire with the assumed
+standing-wave current, four hundred elements"
+evidence="patterns fig-dipole-patterns"} [The short wire differs from the
+$\sin\theta$ pattern of the short dipole by `{python} result["short-gap"]`,
+and its radiation resistance, `{python} result["short-resistance"]` ohm, is
+close to the textbook value `{python} result["short-estimate"]` ohm for a
+triangular current.]{.claim type="numerically-verified" scope="a wire a tenth
+of a wavelength long" evidence="patterns fig-dipole-patterns"} The short
+wire's small gap to $\sin\theta$ is physics, not error: a wire of finite
+length is not a point. Its tiny radiation resistance is why short antennas
+are inefficient: a feed current that sends a watt into a half-wave dipole
+sends only a few per cent of that into the short one, and the rest of the
+circuit's resistance takes the difference.
+
+Two half-wave dipoles side by side, half a wavelength apart, fed in phase or
+in antiphase, computed once by superposing all the elements of both wires
+and once as one wire's pattern times the array factor:
+
+```{python}
+#| echo: false
+excerpt(experiment.two_elements)
+```
+
+```{python}
+#| label: fig-dipole-patterns
+#| echo: false
+#| fig-cap: "Left: the patterns built from short current elements lie on the analytic patterns of the half-wave and the short dipole, which radiate most across the wire and nothing along it. Right: two wires fed in phase radiate across the line joining them, fed in antiphase along it."
+#| fig-alt: "Two polar plots. Left: two figure-eight patterns with nulls along the wire, the half-wave one slightly narrower than the short one, each a line with markers of the superposition on it. Right: a figure eight with lobes perpendicular to the line joining the two wires, solid, and another with lobes along that line, dash-dotted."
+#| fig-status: simulated
+result.show("fig-dipole-patterns")
+```
+
+[For both feeds the direct superposition and the element pattern times the
+array factor differ by `{python} result["multiplication-gap"]` of the
+largest field.]{.claim type="numerically-verified" scope="two identical
+half-wave wires, half a wavelength apart, ideal currents without coupling"
+evidence="fig-dipole-patterns"} That is pattern multiplication: as long as
+the elements are identical and do not change each other's currents, the
+array's pattern separates into what one element does and where the elements
+are. Steering an array, the subject of the capstone, changes only the
+weights of the array factor.
+
+## Limits {#limits}
+
+- **Perfect walls and wires.** Real guides lose a fraction of a decibel per
+  metre in their walls, more near the cut-off; real wires have resistance,
+  which competes with the radiation resistance of a short antenna.
+- **An assumed current.** The current of the wire is assumed sinusoidal,
+  not computed. A thick wire, or one fed off-centre, carries another
+  current; the method of moments or a full-wave solver computes it. The
+  feed point's reactance, which decides how well an antenna matches its
+  line, is not computed at all.
+- **No coupling.** Two antennas near each other change each other's
+  currents. Pattern multiplication is exact only for the idealised
+  currents; in a real array the element pattern differs from element to
+  element, most at the edges.
+- **No junction or transition.** The lesson does not compute how the wave
+  gets from the guide into the antenna; the reflection at such a junction
+  needs a full-wave computation or a measurement.
+- **A two-dimensional guide.** The FDTD guide carries only the TE$_{m0}$
+  fields, exactly; modes that vary across the height $b$ are only in the
+  eigenproblem. The absorbing end returns a little of the wave, more near
+  the cut-off, where frequencies close to it are left out for that reason.
+
+::: {.exercise .self-check}
+A WR-90 guide is fed at 5 GHz, below the cut-off of its TE$_{10}$ mode.
+What happens to the energy that the source supplies?
+
+::: {.choices}
+::: {.choice}
+It travels down the guide, but more slowly than at [10 GHz]{.given}.
+
+::: {.feedback}
+Below the cut-off the wavenumber is imaginary: the field decays along the
+guide instead of travelling.
+:::
+:::
+
+::: {.choice correct="true"}
+Almost none is carried away: the field decays within a short distance, and
+the source sees an almost purely reactive load.
+
+::: {.feedback}
+Right. An evanescent field stores energy near the source but carries no
+power along an infinitely long guide.
+:::
+:::
+
+::: {.choice}
+It radiates through the walls of the guide.
+
+::: {.feedback}
+Perfectly conducting walls let nothing through; the field inside them only
+decays along the guide.
+:::
+:::
+:::
+
+::: {.solution}
+Below the cut-off $\beta^2 = k^2 - k_c^2$ is negative, so the field varies as
+$e^{-\alpha z}$, with no travelling part. Its electric and magnetic fields
+are a quarter period out of phase, so the power flow along the guide
+averages to zero: the energy sloshes back and forth near the source. A short
+stretch of guide below the cut-off is therefore used on purpose as an
+attenuator, or as a window that lets air or light through but not
+microwaves, like the mesh of a microwave oven's door.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A cavity.** Close a 30 mm length of WR-90 guide with conducting plates at
+both ends. At which frequencies does it resonate in the TE$_{10p}$ modes?
+
+::: {.hint}
+Between two plates the wave along the guide must fit a whole number of half
+guide wavelengths, so $\beta$ takes the values $p\pi/d$.
+:::
+
+::: {.solution}
+With $\beta = p\pi/d$ in $\beta^2 = (2\pi f/c)^2 - (2\pi f_c/c)^2$,
+$f = \sqrt{f_c^2 + (pc/2d)^2}$:
+
+```{python}
+#| echo: false
+excerpt(experiment.cavity)
+```
+
+```{python}
+#| echo: false
+result.table("cavity")
+```
+
+A cavity resonates only at separate frequencies, a three-dimensional
+version of the cut-offs of the cross-section; a narrow-band filter or the
+resonator of a microwave oscillator is such a box.
+:::
+:::
+
+::: {.exercise}
+**How far does an evanescent field reach?** A 5 GHz field is launched into
+the WR-90 guide. Over what distance does it fall by 20 dB, and by 60 dB?
+
+::: {.hint}
+Convert the fall in decibels into a ratio of fields first, then solve
+$e^{-\alpha z}$ for $z$.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.evanescent_length)
+```
+
+```{python}
+#| echo: false
+result.table("evanescent")
+```
+
+Within a few centimetres the field is gone: below the cut-off, a guide is an
+excellent shield, and a hole in a metal box much smaller than half a
+wavelength leaks very little.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/electromagnetism/waveguides.py",
+        "src/pbc/electromagnetism/antennas.py",
+        "src/pbc/electromagnetism/fdtd.py",
+        "src/pbc/electromagnetism/experiments/waveguides_and_antenna_basics.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_waveguides.py",
+        "tests/unit/test_waveguides_and_antenna_basics_experiment.py",
+    ],
+)
+```

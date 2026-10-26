@@ -1,0 +1,465 @@
+---
+title: "RLC circuits and resonance"
+description: >-
+  A resistor, an inductor, and a capacitor in series, simulated in time and
+  solved with complex impedance: the step response in the three damping
+  regimes against its closed forms, and the resonance curve of the current
+  measured on simulated steady states against V/|Z|, with its peak, its
+  half-power width R/L, and its quality factor.
+lesson:
+  id: rlc-circuits-and-resonance
+  strand: electromagnetism
+  order: 5
+  difficulty: 2
+  course: electromagnetism
+  slot: EM5
+  methods: [simulation]
+  outcomes:
+    - Write the equation of a series RLC circuit from Kirchhoff's voltage law and recognise its three damping regimes
+    - Simulate the transient after a step of the source and check it against the closed form of each regime
+    - Compute the steady response to a sinusoidal source with phasors and the complex impedance
+    - Measure the resonance, the half-power width, and the quality factor of a simulated circuit and check them against R/L and 1/sqrt(LC)
+  related: []
+  format: 2
+  preview: fig-rlc-resonance
+  experiment: pbc.electromagnetism.experiments.rlc_circuits_and_resonance
+  prerequisites:
+    lessons: [faradays-law-and-induction, resonance]
+    outside:
+      - "Complex numbers: the exponential of an imaginary number, and the modulus and argument of a complex ratio"
+      - "Calculus: linear differential equations of second order with constant coefficients"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.electromagnetism import circuits
+from pbc.electromagnetism.experiments import rlc_circuits_and_resonance as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+Turn the dial of an old radio and one station after another comes through,
+each alone. The dial changes a capacitor in a circuit with a coil, and the
+pair responds strongly to one frequency and hardly at all to the others. The
+same circuit filters the supply of a computer, rings when a switch opens, and
+sets the clock of a quartz watch through its electrical model.
+
+This lesson builds that circuit, a resistor, an inductor, and a capacitor in
+series, twice over. First as a differential equation in time, integrated
+numerically: what happens when a voltage is switched on, and how the answer
+depends on how much resistance there is. Then as a problem in the frequency
+domain, where a complex number, the impedance, replaces the differential
+equation. The resonance curve the impedance predicts is then measured on the
+simulation, frequency by frequency, and the two must agree: in the peak, in
+the width, and in the phase.
+
+## Assumptions
+
+1. **Lumped, ideal elements.** The resistor has only resistance $R$, the
+   coil only inductance $L$, the capacitor only capacitance $C$, each
+   constant. A real coil has resistance and capacitance between its turns;
+   a real capacitor leaks.
+2. **A circuit much smaller than a wavelength.** The current is the same at
+   every point of the loop at every instant. At the frequencies here, a few
+   kilohertz, the wavelength is tens of kilometres; the waves of the previous
+   lesson play no part.
+3. **An ideal source.** The source sets the voltage $V(t)$ whatever the
+   current; its own resistance is zero or counted in $R$.
+4. **Linear behaviour.** No element saturates or breaks down; the response
+   to a sum of sources is the sum of the responses.
+
+## Explanation
+
+### The circuit equation
+
+Going once around the loop, the voltages across the three elements add up to
+the voltage of the source (Kirchhoff's voltage law). Across the inductor the
+voltage is $L\,di/dt$, by the induced electromotive force of the induction
+lesson; across the resistor $Ri$; across the capacitor $q/C$. With
+$i = dq/dt$,
+
+$$
+L\,\frac{d^2q}{dt^2} + R\,\frac{dq}{dt} + \frac{q}{C} = V(t).
+$$
+
+This is the equation of the damped, driven oscillator of the mechanics
+course with $L$ for the mass, $R$ for the drag coefficient, and $1/C$ for
+the spring constant. Its natural frequency, damping rate, and quality factor
+are
+
+$$
+\omega_0 = \frac{1}{\sqrt{LC}},
+\qquad
+\alpha = \frac{R}{2L},
+\qquad
+Q = \frac{\omega_0 L}{R} = \frac{1}{R}\sqrt{\frac{L}{C}}.
+$$
+
+### The three regimes
+
+Switched on at $t = 0$ to a constant $V$, the circuit at rest charges the
+capacitor towards $V$. The free solutions decay as $e^{st}$ with
+$s = -\alpha \pm \sqrt{\alpha^2 - \omega_0^2}$, and the charging takes one of
+three forms:
+
+- **underdamped**, $\alpha < \omega_0$: an oscillation that overshoots the
+  step and rings down, with $\omega_d = \sqrt{\omega_0^2 - \alpha^2}$,
+  $$
+  v_C = V\Big[1 - e^{-\alpha t}\Big(\cos\omega_d t
+  + \frac{\alpha}{\omega_d}\sin\omega_d t\Big)\Big];
+  $$
+- **critically damped**, $\alpha = \omega_0$, that is $R = 2\sqrt{L/C}$:
+  the fastest approach without overshoot,
+  $$
+  v_C = V\big[1 - e^{-\alpha t}(1 + \alpha t)\big];
+  $$
+- **overdamped**, $\alpha > \omega_0$: a slow creep set by the smaller of
+  the two real rates $s_1$, $s_2$,
+  $$
+  v_C = V\left[1 + \frac{s_2 e^{s_1 t} - s_1 e^{s_2 t}}{s_1 - s_2}\right].
+  $$
+
+### Phasors and impedance
+
+For a source $V\cos\omega t$, write it as the real part of $Ve^{j\omega t}$
+($j$ is the imaginary unit of electrical engineering). After the transient
+the current is the real part of $Ie^{j\omega t}$, and each derivative becomes
+a factor $j\omega$. The equation becomes algebra:
+
+$$
+I = \frac{V}{Z},
+\qquad
+Z = R + j\left(\omega L - \frac{1}{\omega C}\right).
+$$
+
+The modulus $|I| = V/|Z|$ is the amplitude of the current and the argument
+of $I$ its phase relative to the source. At $\omega_0$ the two reactances
+cancel, $Z = R$, and the current is largest and in phase with the source.
+Below $\omega_0$ the capacitor dominates and the current leads; above, the
+inductor dominates and it lags.
+
+### Width and quality
+
+The power taken by the resistor is $R|I|^2/2$. It falls to half its peak where
+$|Z|^2 = 2R^2$, that is where $\omega L - 1/(\omega C) = \pm R$. The two
+positive roots satisfy
+
+$$
+\omega_2 - \omega_1 = \frac{R}{L} = \frac{\omega_0}{Q},
+\qquad
+\omega_1\,\omega_2 = \omega_0^2,
+$$
+
+exactly, for any $Q$. The capacitor voltage $|I|/(\omega C)$ peaks a little
+below $\omega_0$, at $\omega_0\sqrt{1 - 1/(2Q^2)}$, where it is about $Q$
+times the source voltage. And $Q$ is also $2\pi$ times the energy stored in
+the circuit over the energy the resistor turns into heat per cycle at
+resonance.
+
+## Code
+
+The model is `pbc.electromagnetism.circuits`. The circuit and its frequency
+response:
+
+```{python}
+#| echo: false
+excerpt(circuits.SeriesRLC)
+```
+
+The simulation in time, independent of the closed forms:
+
+```{python}
+#| echo: false
+excerpt(circuits.simulate)
+```
+
+The closed forms of the step response:
+
+```{python}
+#| echo: false
+excerpt(circuits.step_response)
+```
+
+Reading the amplitude and phase of a simulated steady signal:
+
+```{python}
+#| echo: false
+excerpt(circuits.steady_phasor)
+```
+
+## Worked examples
+
+### Switching on a voltage
+
+A coil of [10 mH]{.given} and a capacitor of [100 nF]{.given}, switched on to a step of
+[5 V]{.given}, with three resistances, one in each regime:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="circuit")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment, region="step")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.step_responses)
+```
+
+```{python}
+#| label: fig-step-response
+#| echo: false
+#| fig-cap: "The capacitor charges with ringing when the resistance is small, without overshoot and fastest at the critical resistance, and slowly when it is large; the simulation lies on the closed form in each regime."
+#| fig-alt: "Line plot of the capacitor voltage over the step against time. A solid curve rises steeply, overshoots well above one, and rings down to one; a dashed curve rises to one without overshoot; a dash-dotted curve creeps up to one more slowly. Markers of the simulation lie on each curve."
+#| fig-status: simulated
+result.show("fig-step-response")
+```
+
+```{python}
+#| label: step-response
+#| echo: false
+result.table("step-response")
+```
+
+[In each regime the simulated capacitor voltage agrees with its closed form,
+the gap `{python} result["step-gap"]` in units of the step.]{.claim type="numerically-verified"
+scope="the circuit of the example, over the run after the step"
+evidence="step-response fig-step-response"} The underdamped circuit
+overshoots by `{python} result["overshoot"]` per cent: the inductor keeps the
+current flowing after the capacitor has reached the source voltage. The
+critical circuit settles without overshoot and faster than the overdamped
+one, which is why a designer who wants a fast, clean step, in a measuring
+instrument or a power supply, aims near the critical resistance.
+
+### The resonance curve
+
+With a small resistance the circuit has a sharp resonance near
+`{python} result["natural-frequency"]` Hz, with the quality factor
+`{python} result["quality-factor"]`. The source is now
+$V\cos\omega t$; the simulation runs from rest until the transient has
+decayed by a factor $e^{-25}$, and the amplitude and phase of the current
+are then read over four periods:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="sweep")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.steady_state)
+```
+
+```{python}
+#| label: fig-rlc-resonance
+#| echo: false
+#| fig-cap: "The current measured on the simulated steady states lies on the response of the impedance: largest and in phase with the source at the natural frequency, leading below it and lagging above it, with the half-power band shaded."
+#| fig-alt: "Two panels against the driving frequency over the natural frequency. Top: the current amplitude, a sharp peak at one, with circle markers of the simulation on the solid curve and a shaded band around the peak. Bottom: the phase of the current, falling from near plus ninety degrees through zero at one to near minus ninety degrees, the markers on the curve."
+#| fig-status: simulated
+result.show("fig-rlc-resonance")
+```
+
+```{python}
+#| label: resonance-curve
+#| echo: false
+result.table("resonance-curve")
+```
+
+[Over the whole sweep the simulated amplitude agrees with $V/|Z|$, its
+relative gap `{python} result["amplitude-gap"]`, and the phase agrees with
+the argument of $V/Z$, its gap `{python} result["phase-gap"]`
+degrees.]{.claim
+type="numerically-verified" scope="the circuit of the example, driving
+frequencies from half to one and a half times the natural frequency"
+evidence="resonance-curve fig-rlc-resonance"} The simulation knows nothing of
+complex numbers; it integrates the equation in time. That the two agree is
+the content of the phasor method: a linear circuit driven at one frequency
+settles at that frequency, and only the amplitude and phase are left to
+find.
+
+The peak and the half-power points are then searched on the simulation
+itself, each point of the search a new simulated steady state:
+
+```{python}
+#| echo: false
+excerpt(experiment.resonance_measures)
+```
+
+```{python}
+#| label: resonance-measures
+#| echo: false
+result.table("resonance-measures")
+```
+
+[The simulated current peaks at $\omega_0 = 1/\sqrt{LC}$, its half-power
+width is $R/L$, the product of the half-power frequencies is $\omega_0^2$, and
+the capacitor voltage peaks at $\omega_0\sqrt{1 - 1/(2Q^2)}$, each with a
+gap `{python} result["measures-gap"]` in units of $\omega_0$.]{.claim
+type="numerically-verified" scope="the circuit of the example; peak and
+half-power points found by a bounded search on simulated steady states"
+evidence="resonance-measures fig-rlc-resonance"} The two peaks differ: the
+current is largest where the reactances cancel, the capacitor voltage where
+$|I|/\omega$ is, slightly below. The difference shrinks as $1/Q^2$, so for a
+sharp resonance the distinction rarely matters, but it does for a heavily
+damped one.
+
+### Energy and the quality factor
+
+At resonance the energy moves back and forth between the magnetic field of
+the coil and the electric field of the capacitor, and the source only makes
+up what the resistor turns into heat:
+
+```{python}
+#| echo: false
+excerpt(experiment.energy_per_cycle)
+```
+
+```{python}
+#| label: energy-per-cycle
+#| echo: false
+result.table("energy-per-cycle")
+```
+
+[At resonance the stored energy is constant over the cycle, and $2\pi$ times
+the stored energy over the energy lost per cycle equals $Q$ to the four
+decimals shown.]{.claim type="numerically-verified" scope="the circuit of the
+example at resonance, one simulated period" evidence="energy-per-cycle"}
+That is the third meaning of the quality factor, next to the sharpness of
+the peak and the gain of the capacitor voltage: at resonance a circuit loses
+the fraction $2\pi/Q$ of its stored energy each cycle and, left alone, rings
+for about $Q/\pi$ cycles before its energy falls by $e^{-2}$.
+
+## Limits {#limits}
+
+- **Ideal elements.** Real coils have winding resistance and capacitance,
+  which give them a resonance of their own; real capacitors have series
+  resistance and inductance. At high frequencies these parasitic elements
+  dominate, and the lumped model fails.
+- **Lumped circuit.** When the circuit is comparable to a wavelength, the
+  current is no longer the same around the loop, and the circuit radiates.
+  That is the regime of transmission lines, waveguides, and antennas, the
+  next lesson.
+- **Linear components.** Iron-core inductors saturate and some capacitors
+  change with voltage; the resonance then depends on the amplitude, and the
+  phasor method no longer applies.
+- **No measurement.** The simulation is checked against closed forms, not
+  against a real circuit; the measured-data lab of this course compares the
+  model with measurements, including the resistance of the components.
+
+::: {.exercise .self-check}
+A series RLC circuit is driven at its natural frequency. You double the
+resistance and keep everything else. What happens to the peak current and to
+the half-power width?
+
+::: {.choices}
+::: {.choice}
+The peak current halves and the width stays the same.
+
+::: {.feedback}
+The width is $R/L$, so it changes with the resistance.
+:::
+:::
+
+::: {.choice correct="true"}
+The peak current halves and the width doubles.
+
+::: {.feedback}
+Right: at $\omega_0$ the impedance is $R$, and the width is $R/L$.
+:::
+:::
+
+::: {.choice}
+The peak moves to a lower frequency and the width doubles.
+
+::: {.feedback}
+The current peaks where the reactances cancel, at $1/\sqrt{LC}$, whatever
+the resistance; only the capacitor voltage's peak moves.
+:::
+:::
+:::
+
+::: {.solution}
+At $\omega_0$ the reactances of the coil and the capacitor cancel, so the
+impedance is just $R$ and the peak current $V/R$ halves. The half-power
+points satisfy $\omega L - 1/(\omega C) = \pm R$, whose roots differ by
+exactly $R/L$: the width doubles and the quality factor halves. The peak
+of the current stays at $1/\sqrt{LC}$.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Tune a radio.** A medium-wave receiver has a coil of 250 µH with 12 Ω of
+resistance. Which capacitance tunes it to 1 MHz? What are its quality factor
+and its bandwidth in hertz? Would it separate two stations 9 kHz apart?
+
+::: {.hint}
+Set the natural frequency to the station's and solve for $C$; the bandwidth
+in hertz is the half-power width in radians per second divided by a full
+turn in radians.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.tuning)
+```
+
+```{python}
+#| echo: false
+result.table("tuning")
+```
+
+The bandwidth is a little narrower than the spacing of the stations, so the
+neighbour is attenuated, but not by much: its current is still the fraction
+in the last column of the tuned station's. Real receivers use several tuned stages, or a
+fixed sharp filter after mixing the signal to an intermediate frequency.
+:::
+:::
+
+::: {.exercise}
+**The gain of the capacitor.** Show that at $\omega_0$ the amplitude of the
+voltage across the capacitor is $Q$ times the source voltage. For the circuit
+of the resonance example, with a source of 5 V, how large is it? Why can this
+be dangerous?
+
+::: {.hint}
+At resonance $|I| = V/R$, and the capacitor voltage is $|I|/(\omega_0 C)$.
+:::
+
+::: {.solution}
+$$
+|V_C| = \frac{V}{R\,\omega_0 C} = \frac{V}{R}\sqrt{\frac{L}{C}} = QV.
+$$
+
+With the quality
+factor of the example, `{python} result["quality-factor"]`, the capacitor
+sees `{python} result["capacitor-at-resonance"]` V from a source of five
+volts. A capacitor rated for
+the source voltage alone can break down; in power circuits, a resonance
+excited by accident raises voltages to destructive levels.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/electromagnetism/circuits.py",
+        "src/pbc/electromagnetism/experiments/rlc_circuits_and_resonance.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_circuits.py",
+        "tests/unit/test_rlc_circuits_and_resonance_experiment.py",
+    ],
+)
+```

@@ -1,0 +1,528 @@
+---
+title: "The Maxwell equations and the FDTD method"
+description: >-
+  The curl equations of Maxwell stepped in time on the staggered grid of Yee:
+  the speed of a pulse measured against the speed of light and against the
+  dispersion relation of the grid, its reflection at a dielectric and at a
+  conductor against the Fresnel coefficients, and the stability limit of the
+  time step shown in one and two dimensions.
+lesson:
+  id: maxwells-equations-and-fdtd
+  strand: electromagnetism
+  order: 4
+  difficulty: 3
+  course: electromagnetism
+  slot: EM4
+  methods: [simulation]
+  outcomes:
+    - Derive the one-dimensional wave equation of light from Maxwell's two curl equations, and the speed c = 1/sqrt(mu_0 eps_0)
+    - Write Yee's finite-difference time-domain scheme in one and two dimensions, with dielectrics and conducting walls, in SI units
+    - Measure the speed of a pulse on the grid and explain its gap to c with the numerical dispersion relation
+    - Check the reflection and transmission at an interface against the Fresnel coefficients, and show where the time step becomes unstable
+  related: []
+  format: 2
+  preview: fig-fdtd-plane
+  experiment: pbc.electromagnetism.experiments.maxwells_equations_and_fdtd
+  prerequisites:
+    lessons: [faradays-law-and-induction, wave-equation]
+    outside:
+      - "Vectors: the curl and the divergence of a vector field"
+      - "Calculus: partial derivatives, and the Taylor expansion to second order"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.electromagnetism import fdtd
+from pbc.electromagnetism.experiments import maxwells_equations_and_fdtd as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A radar pulse leaves an antenna, a microwave crosses the glass door of an
+oven, light reflects from a window. Each is an electromagnetic wave, and each
+obeys the same four equations that Maxwell completed. For a plane wave
+in empty space they can be solved with pencil and paper; for a pulse in a
+room full of walls, dielectrics, and metal they cannot. Then the equations
+are solved on a grid, step by step in time.
+
+The finite-difference time-domain (FDTD) method, due to Kane Yee, does that
+with almost nothing but centred differences. This lesson builds it, first on
+a line and then in a plane, and asks the three questions any wave solver must
+answer: do its waves travel at the speed of light, do they reflect where the
+material changes by the amount the physics says, and how large may the time
+step be before the computation explodes? Each answer is measured, and each
+measurement is compared with what the theory of the grid predicts.
+
+## Assumptions
+
+1. **Linear, isotropic, lossless media.** A material has one relative
+   permittivity $\varepsilon_r$, the same in every direction and at every
+   frequency, and the permeability of vacuum $\mu_0$. Real dielectrics are
+   dispersive: their permittivity depends on the frequency.
+2. **No free charges or currents** in the region computed, except a
+   conductivity $\sigma$ where it is said, used to absorb waves.
+3. **Perfect conductors.** The ends of the line and the walls of the plane
+   are perfectly conducting: the tangential electric field vanishes on them.
+4. **Fields that depend on one or two coordinates.** On the line the fields
+   depend on $x$ only; in the plane on $x$ and $y$, with $E_z$, $H_x$, $H_y$
+   the only components (the TM polarisation). A pulse from a point of the
+   plane is the field of a line source in three dimensions.
+5. **A uniform grid.** Cells of equal size $\Delta x$ in every direction and
+   a fixed time step $\Delta t$.
+
+## Explanation
+
+### Maxwell's equations
+
+In a linear medium without free charges or currents, with
+$\mathbf{D} = \varepsilon\mathbf{E}$ and $\mathbf{B} = \mu_0\mathbf{H}$,
+
+$$
+\nabla\cdot(\varepsilon\mathbf{E}) = 0,\qquad
+\nabla\cdot\mathbf{H} = 0,\qquad
+\mu_0\,\frac{\partial\mathbf{H}}{\partial t} = -\nabla\times\mathbf{E},\qquad
+\varepsilon\,\frac{\partial\mathbf{E}}{\partial t} = \nabla\times\mathbf{H}.
+$$
+
+The third is Faraday's law of the induction lesson in differential form; the
+fourth is Ampère's law with Maxwell's displacement current. The two
+divergence equations are not independent: the divergence of a curl vanishes,
+so if they hold at the start, the curl equations keep them.
+
+On a line, with $\mathbf{E} = E_z(x,t)\,\hat{z}$ and
+$\mathbf{H} = H_y(x,t)\,\hat{y}$, the curl equations become
+
+$$
+\mu_0\,\frac{\partial H_y}{\partial t} = \frac{\partial E_z}{\partial x},
+\qquad
+\varepsilon\,\frac{\partial E_z}{\partial t} = \frac{\partial H_y}{\partial x}.
+$$
+
+Differentiating the second in time and using the first gives the wave
+equation of the wave equation lesson,
+
+$$
+\frac{\partial^2 E_z}{\partial t^2} = \frac{1}{\mu_0\varepsilon}\,
+\frac{\partial^2 E_z}{\partial x^2},
+\qquad
+v = \frac{1}{\sqrt{\mu_0\varepsilon}} = \frac{c}{n},
+\quad c = \frac{1}{\sqrt{\mu_0\varepsilon_0}},
+\quad n = \sqrt{\varepsilon_r}.
+$$
+
+A wave travelling to the right has $H_y = -E_z/Z$ with the wave impedance
+$Z = \sqrt{\mu_0/\varepsilon}$, about $377\ \Omega$ in vacuum.
+
+### Reflection at an interface
+
+Where a wave from a medium of index $n_1$ meets one of index $n_2$, the
+tangential $E$ and $H$ are continuous. With an incident field $E_i$, a
+reflected $E_r$, and a transmitted $E_t$, continuity of $E$ gives
+$E_i + E_r = E_t$ and continuity of $H$ gives $n_1(E_i - E_r) = n_2 E_t$:
+
+$$
+r = \frac{E_r}{E_i} = \frac{n_1 - n_2}{n_1 + n_2},
+\qquad
+t = \frac{E_t}{E_i} = \frac{2n_1}{n_1 + n_2},
+\qquad
+r^2 + \frac{n_2}{n_1}\,t^2 = 1.
+$$
+
+The last identity is the conservation of energy. A perfect conductor is the
+limit $n_2 \to \infty$: $r = -1$, the field turns over and nothing enters.
+
+### Yee's scheme
+
+Yee stores $E_z$ at the nodes $x_i = i\Delta x$ and $H_y$ halfway between
+them, and advances them half a step apart in time, so that every derivative
+is a centred difference over one cell:
+
+$$
+H^{n+1/2}_{i+1/2} = H^{n-1/2}_{i+1/2}
+ + \frac{\Delta t}{\mu_0\Delta x}\left(E^n_{i+1} - E^n_i\right),
+\qquad
+E^{n+1}_i = E^n_i
+ + \frac{\Delta t}{\varepsilon_i\Delta x}\left(H^{n+1/2}_{i+1/2} - H^{n+1/2}_{i-1/2}\right).
+$$
+
+Both differences are accurate to second order. In two dimensions $E_z$ sits
+at the nodes, $H_x$ and $H_y$ on the edges between them, and the curl of each
+field is a difference around a cell. Because the two differences of the
+discrete curl commute, the discrete divergence of $\mathbf{H}$ cannot change:
+the scheme keeps $\nabla\cdot\mathbf{H} = 0$ exactly, not only to the order of
+the scheme.
+
+### The dispersion relation of the grid
+
+A wave $e^{i(kx - \omega t)}$ solves the scheme only if
+
+$$
+\sin\frac{\omega\Delta t}{2} = S\,\sin\frac{k\Delta x}{2},
+\qquad S = \frac{v\,\Delta t}{\Delta x},
+$$
+
+with $S$ the Courant number. For long waves this is $\omega = vk$; for waves
+a few cells long $\omega$ falls below $vk$, and a pulse travels at the group
+velocity $d\omega/dk$, slower than $v$ by about
+$(k\Delta x)^2(1 - S^2)/8$. At $S = 1$ in one dimension the relation is
+exact: the scheme moves every wave by one cell per step.
+
+### Stability
+
+The relation has a real $\omega$ only while its right side is at most one.
+The largest $\sin(k\Delta x/2)$ on a grid of $N$ cells between conducting
+walls is $\cos\!\big(\pi/(2N)\big)$, in each direction, so the scheme is
+stable for
+
+$$
+S \le S_{\max} = \frac{1}{\sqrt{d}\,\cos\!\big(\pi/(2N)\big)}
+\;\to\; \frac{1}{\sqrt{d}}
+$$
+
+in $d$ dimensions. Beyond it, the highest mode of the grid, which alternates
+in sign from node to node, grows each step by the factor
+$g = 2a^2 - 1 + 2a\sqrt{a^2 - 1}$ with $a = S/S_{\max}$.
+
+## Code
+
+The model is `pbc.electromagnetism.fdtd`. The line, with a relative
+permittivity at every node and conducting ends:
+
+```{python}
+#| echo: false
+excerpt(fdtd.Line)
+```
+
+The plane: the same two updates with the curl taken around each cell, and a
+conductivity that removes energy from $E_z$:
+
+```{python}
+#| echo: false
+excerpt(fdtd.Plane)
+```
+
+The theory of the grid that the runs are compared with:
+
+```{python}
+#| echo: false
+excerpt(fdtd.group_velocity)
+```
+
+```{python}
+#| echo: false
+excerpt(fdtd.stability_limit)
+```
+
+```{python}
+#| echo: false
+excerpt(fdtd.highest_mode_growth)
+```
+
+## Worked examples
+
+### How fast does a pulse travel?
+
+A pulse with a carrier of one wavelength $\lambda$ under a Gaussian envelope
+travels twenty wavelengths in vacuum and in a dielectric of index two. Its
+speed is measured from the centre of its electromagnetic energy:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="pulse")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.launch)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.pulse_speed)
+```
+
+```{python}
+#| label: wave-speed
+#| echo: false
+result.table("wave-speed")
+```
+
+```{python}
+#| label: fig-fdtd-dispersion
+#| echo: false
+#| fig-cap: "A pulse on the grid is slower than light by an amount that falls with the square of the cell size, in vacuum and in a dielectric."
+#| fig-alt: "Log-log plot of one minus the measured speed over the speed of light in the medium, against the cell size. Two straight lines of markers, circles for vacuum and squares for the dielectric, run parallel to a dotted reference line of slope two, the dielectric slightly above vacuum."
+#| fig-status: simulated
+result.show("fig-fdtd-dispersion")
+```
+
+[The measured speed of the pulse agrees with the group velocity of the grid's
+dispersion relation to a relative `{python} result["speed-to-grid"]` on every
+grid, and its gap to $c/n$ falls at the fitted order
+`{python} result["speed-order-1"]` in vacuum and
+`{python} result["speed-order-2"]` in the dielectric.]{.claim
+type="numerically-verified" scope="one-dimensional Yee scheme, Courant number
+one half, a carrier of ten to eighty cells per wavelength"
+evidence="wave-speed fig-fdtd-dispersion"} With eighty cells per wavelength the
+pulse is still `{python} result["speed-gap-fine"]` slower than light. The
+small remaining gap to the grid's group velocity comes from the width of the
+pulse's spectrum: its components travel at slightly different speeds. The
+dielectric curve lies above the vacuum one because its Courant number,
+measured with the slower speed $c/n$, is smaller, and the error grows with
+$1 - S^2$.
+
+### Reflection at a dielectric and at a conductor
+
+A Gaussian pulse, with no carrier, runs from vacuum onto a dielectric of index
+two that fills the right half of the line. The node on the interface gets the
+mean of the two permittivities:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="interface")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.interface_run)
+```
+
+```{python}
+#| label: fig-pulse-at-interface
+#| echo: false
+#| fig-cap: "A pulse meets a dielectric of index two: a third of its field returns with its sign turned, two thirds enter as a pulse half as long and moving at half the speed."
+#| fig-alt: "Line plot of the electric field along the line at three times, the right half shaded as the dielectric. A solid positive pulse on the left at the start; a dashed positive pulse at the interface; a dash-dotted negative pulse returning on the left and a narrower positive pulse inside the dielectric afterwards."
+#| fig-status: simulated
+result.show("fig-pulse-at-interface")
+```
+
+```{python}
+#| label: interface
+#| echo: false
+result.table("interface")
+```
+
+[For the widest pulse the reflected and transmitted fields agree with the
+Fresnel coefficients to `{python} result["interface-gap"]`, the gap falling
+at the fitted order `{python} result["interface-order"]` as the pulse is
+resolved by more cells, and the two energies add up to the starting energy to
+`{python} result["energy-balance"]`.]{.claim type="numerically-verified"
+scope="normal incidence from vacuum onto n = 2, one-dimensional Yee scheme"
+evidence="interface fig-pulse-at-interface"} [A perfect conductor in place of
+the dielectric returns the pulse with the factor
+`{python} result["conductor-reflection"]`.]{.claim type="numerically-verified"
+scope="the widest pulse, line ending at the conductor" evidence="interface"}
+The pulse inside the dielectric is half as long, since it moves at half the
+speed, and carries the larger part of the energy although its field is
+smaller: the energy density there is four times that of vacuum at the same
+field.
+
+### The stability limit, shown
+
+A random field on a grid of forty cells per direction is run one per cent
+below and one per cent above the limit of the grid:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="stability")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.stability_run)
+```
+
+```{python}
+#| label: fig-fdtd-stability
+#| echo: false
+#| fig-cap: "One per cent below the limit of the grid the field stays bounded; one per cent above it grows exponentially, in one and in two dimensions."
+#| fig-alt: "Two panels, one dimension and two dimensions, of the largest field over its first value against the step, on a log scale. In each, a solid line stays flat near one, and a dashed line rises as a straight line on the log scale by many orders of magnitude."
+#| fig-status: simulated
+result.show("fig-fdtd-stability")
+```
+
+```{python}
+#| label: stability-runs
+#| echo: false
+result.table("stability")
+```
+
+[Below the limit, $S_{\max} =$ `{python} result["limit-1d"]` on the line and
+`{python} result["limit-2d"]` in the plane, the largest field never exceeds
+`{python} result["stable-growth"]` times its first value; above it, the field
+grows per step at the amplification of the highest mode of the grid to a
+relative `{python} result["growth-gap"]`.]{.claim type="numerically-verified"
+scope="forty cells per direction between conducting walls, four hundred steps"
+evidence="stability-runs fig-fdtd-stability"} The limit is not a rule of thumb: it
+is where the highest mode of the grid stops oscillating and starts growing,
+and the measured growth beyond it is the growth of that mode. A finite grid
+has no mode that alternates exactly, so its limit lies slightly above the
+fine-grid values one and $1/\sqrt{2}$.
+
+### A pulse in the plane
+
+A short pulse of $E_z$ at one point of the plane spreads as a ring and meets a
+dielectric block of index two:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="plane")
+```
+
+```{python}
+#| label: fig-fdtd-plane
+#| echo: false
+#| fig-cap: "The pulse spreads as a ring; where it meets the dielectric block, part of it returns as a reflected arc and part enters, slower, with a flatter front."
+#| fig-alt: "Two false-colour maps of the electric field in the plane, side by side, with a dashed rectangle marking the dielectric block on the right. Left: a thin circular ring around the starting point, not yet at the block. Right: a larger ring whose right side has entered the block, where its front lags behind and is flatter, and a faint arc reflected back towards the start."
+#| fig-status: simulated
+result.show("fig-fdtd-plane")
+```
+
+[Over the run the discrete divergence of $\mathbf{H}$ stays
+`{python} result["divergence-h"]` of the size of $\mathbf{H}$ per cell.]{.claim
+type="numerically-verified" scope="the run of the figure, which starts with
+H = 0" evidence="fig-fdtd-plane"} That is round-off: Yee's staggering keeps
+Gauss's law for the magnetic field by construction. The ring behind the
+front has the opposite sign; in two dimensions a pulse leaves a wake behind
+it, unlike a pulse on a line.
+
+## Limits {#limits}
+
+- **Numerical dispersion.** Every wave on the grid travels slower than in
+  nature, by an amount that depends on its wavelength and, in two and three
+  dimensions, on its direction. Ten cells per wavelength cost several per
+  cent of speed; a long path accumulates the error as a phase.
+- **The stability limit binds the cost.** Halving the cell size halves the
+  time step; in three dimensions a grid twice as fine costs sixteen times as
+  much.
+- **Staircased geometry.** Materials and walls are set node by node, so a
+  curved or oblique surface becomes a staircase. The interface here lies
+  between nodes by construction; a general geometry needs sub-cell models.
+- **No open boundaries.** Waves reflect from the conducting walls. Real
+  solvers surround the grid by an absorbing layer (a perfectly matched
+  layer); the next lesson uses a simpler graded conductivity.
+- **Ideal materials.** No dispersion, loss, or magnetism in the dielectrics,
+  and perfect conductors; no comparison with a measurement.
+
+::: {.exercise .self-check}
+A pulse on the grid of this lesson arrives slightly late at a distant probe.
+Which change brings its arrival time closer to the exact one, without making
+the scheme unstable?
+
+::: {.choices}
+::: {.choice}
+Lower the Courant number, so that each step moves the wave less.
+
+::: {.feedback}
+Lowering $S$ makes the dispersion error larger, since it grows with
+$1 - S^2$. Smaller steps do not help when the error is set by the cells.
+:::
+:::
+
+::: {.choice correct="true"}
+Use smaller cells, keeping the Courant number.
+
+::: {.feedback}
+Right. The speed error falls with the square of the cell size at a fixed
+Courant number.
+:::
+:::
+
+::: {.choice}
+Raise the Courant number above the stability limit for a short time.
+
+::: {.feedback}
+Beyond the limit the highest mode grows exponentially; round-off seeds it,
+and it soon swamps the pulse.
+:::
+:::
+:::
+
+::: {.solution}
+The gap between the speed of a pulse on the grid and the speed of light is
+about $(k\Delta x)^2(1 - S^2)/8$: it falls with the square of the cell size
+and vanishes in one dimension at $S = 1$. Lowering $S$ increases it, and
+going beyond the stability limit destroys the solution. Smaller cells at the
+same Courant number are the safe remedy, at the price of more cells and more
+steps.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**The cost of a room.** A microwave of 10 GHz crosses a room 3 m wide.
+With 20 cells per wavelength, how many time steps does a fine grid at its
+stability limit need for the wave to cross the room, in one, two, and three
+dimensions, and how many cells does it hold?
+
+::: {.hint}
+The limit of a fine grid is one over the square root of the number of
+dimensions, and the step follows from the Courant number, $\Delta t = S\Delta x/c$.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.light_crossing)
+```
+
+```{python}
+#| echo: false
+result.table("light-crossing")
+```
+
+The time step shrinks with $1/\sqrt{d}$, but the number of cells grows with
+the power $d$: three dimensions need billions of cells for a room at
+microwave frequencies, which is why full-wave solvers of large spaces run on
+clusters, and why simpler models, rays and the array factor of later lessons,
+exist.
+:::
+:::
+
+::: {.exercise}
+**A window.** Light falls at normal incidence from air onto glass of index
+1.5. What fraction of its energy is reflected, and what fraction from the
+glass back into the air on the far side? Why is the reflected field turned
+over in one case and not the other?
+
+::: {.hint}
+Use the Fresnel coefficients with the two indices in both orders.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.impedance_step)
+```
+
+```{python}
+#| echo: false
+result.table("glass")
+```
+
+Each surface reflects the same fraction of the energy, but the field turns
+over only where the wave enters the denser medium ($n_2 > n_1$, $r < 0$). A
+window therefore reflects a little under twice that fraction in all, which
+is why an anti-reflection coating is worth adding to a lens.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/electromagnetism/fdtd.py",
+        "src/pbc/electromagnetism/experiments/maxwells_equations_and_fdtd.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_fdtd.py",
+        "tests/unit/test_maxwells_equations_and_fdtd_experiment.py",
+    ],
+)
+```
