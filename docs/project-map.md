@@ -148,10 +148,11 @@ the website describes the current template.
 | `scripts/lib/review-data.sh` | Validation and rendering of review, triage, and revision JSON |
 | `scripts/lib/review-run.sh` | Running a read-only agent with one retry, and storing a review |
 | `scripts/lib/github.sh` | Questions about the repository on GitHub, such as whether a branch requires a status check |
-| `scripts/lib/fingerprint.sh` | Content fingerprints of a working tree or a set of files |
+| `scripts/lib/fingerprint.sh` | Content fingerprints of a working tree or a set of files, and of a working tree with the Git-ignored completion record and handoff note a review covers |
 | `scripts/lib/verification.sh` | The record of the last passed verification of a working tree |
 | `scripts/lib/completion.sh` | The completion gate: validation of the implementer's completion record (with the gate per criterion and `pending`), the remaining work a handoff note lists, and the decision the scripts act on |
 | `scripts/lib/risk.sh` | The risk level of a change (ADR 020 decision 1): the path minimum, the escalation triggers detected on the diff, the stated and assessed levels, the approval request, and the refusals |
+| `scripts/lib/review-chain.sh` | The chain of reviews (ADR 020 decision 4): the open findings by their stable identifiers, their dispositions, the bounded-impact rule that allows a review of changes, and the chain `finish-feature.sh` accepts |
 | `scripts/lib/scope.sh` | File-scope enforcement for write sessions |
 | `scripts/lib/planning.sh` | The planning scope and the planning approval check |
 

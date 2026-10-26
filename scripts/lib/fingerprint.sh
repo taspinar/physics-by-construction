@@ -6,7 +6,10 @@
 # A fingerprint is the Git tree hash of the current file contents, including
 # uncommitted and untracked changes. It depends on content only, so committing
 # unchanged content keeps it valid, and any change to a covered file changes
-# it. Review and triage artifacts and the approval requests are never part of
+# it. A review also covers the completion record and the handoff note of its
+# Issue, which Git ignores (ADR 020 decision 4): fingerprint_with_records adds
+# them, so that neither can change after the review without making it stale.
+# Review and triage artifacts and the approval requests are never part of
 # a fingerprint: correcting an approval request leaves a recorded verification
 # and a review valid, and scripts/lib/risk.sh checks the request itself. The
 # real Git index is not touched; objects may be written to the object
@@ -70,6 +73,39 @@ fingerprint_worktree() {
     GIT_INDEX_FILE="$index" git -C "$root" write-tree
 }
 
+# fingerprint_issue_records <issue>
+# Prints the Git-ignored files of an Issue that a review fingerprints, one
+# per line: the completion record and the handoff note.
+fingerprint_issue_records() {
+  printf '%s\n' ".agents/completion/$1.json" ".agents/handoffs/$1.md"
+}
+
+# fingerprint_with_records <root> <scratch-dir> <path>...
+# Prints the fingerprint of the whole working tree with the given files added
+# although Git ignores them. A missing path is left out, so creating it
+# changes the fingerprint.
+fingerprint_with_records() {
+  local root="$1"
+  local index="$2/records.index"
+  local tree
+  local path
+  local paths=()
+
+  tree="$(fingerprint_worktree "$root" "$2")" || return 1
+  shift 2
+  for path in "$@"; do
+    [[ ! -e "$root/$path" && ! -L "$root/$path" ]] || paths+=("$path")
+  done
+  if [[ "${#paths[@]}" -eq 0 ]]; then
+    printf '%s\n' "$tree"
+    return 0
+  fi
+  rm -f "$index"
+  GIT_INDEX_FILE="$index" git -C "$root" read-tree "$tree" &&
+    GIT_INDEX_FILE="$index" git -C "$root" add -f -- "${paths[@]}" >/dev/null &&
+    GIT_INDEX_FILE="$index" git -C "$root" write-tree
+}
+
 # fingerprint_files <root> <scratch-dir> <path>...
 # Prints the fingerprint of exactly the given repository-relative paths, which
 # may be files, symlinks, or directories. A missing path is part of the
@@ -118,7 +154,9 @@ fingerprint_artifacts() {
 
 # fingerprint_review <root> <scratch-dir> <review-json>
 # Prints the current fingerprint of what the review covers: the paths in
-# reviewed_paths when the review lists them, otherwise the whole working tree.
+# reviewed_paths when the review lists them, otherwise the whole working tree
+# with the files in record_paths, which a review made before ADR 020 decision
+# 4 was delivered does not have.
 fingerprint_review() {
   local root="$1"
   local scratch="$2"
@@ -131,6 +169,11 @@ fingerprint_review() {
       paths+=("$path")
     done < <(jq -r '.reviewed_paths[]' "$review")
     fingerprint_files "$root" "$scratch" ${paths[@]+"${paths[@]}"}
+  elif jq -e '(.record_paths | type) == "array"' "$review" >/dev/null; then
+    while IFS= read -r path; do
+      paths+=("$path")
+    done < <(jq -r '.record_paths[]' "$review")
+    fingerprint_with_records "$root" "$scratch" ${paths[@]+"${paths[@]}"}
   else
     fingerprint_worktree "$root" "$scratch"
   fi

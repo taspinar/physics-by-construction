@@ -48,5 +48,17 @@ The approved `.agents/triage/*.json` artifact is the source of truth for these
 decisions. Use `./scripts/apply-triage.sh` to hand only its `FIX_NOW` scope to a
 write-capable implementation agent. The helper verifies the result but does not
 commit it. The fixes make the review stale, so run a new review round before
-committing. With `--changes` a round confirms a small, local fix; the round a
-feature is committed on reviews the complete feature against the Issue.
+committing. With `--changes` a round confirms a small, local fix. What the
+round a feature is committed on must be follows its risk level (ADR 020
+decision 4; `docs/development.md`, "Reviewing only the changes"):
+
+- **`completion/v1`:** the round a feature is committed on reviews the complete
+  feature against the Issue.
+- **`completion/v2`, Level 1:** no independent review is required.
+- **`completion/v2`, Level 2:** the feature may be committed on a chain of
+  reviews: a review of the complete feature, followed by reviews of the
+  changes, each built on the round right before it, every one bounded, ending
+  at the current tree, and leaving no finding open or without its disposition.
+  Otherwise the round it is committed on reviews the complete feature.
+- **`completion/v2`, Level 3:** every round reviews the complete feature, and
+  the last one is made on the full verification.

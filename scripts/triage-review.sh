@@ -14,6 +14,13 @@ usage() {
   echo "The agent and model come from role 'triage' in .agents/agents.conf"
   echo "unless --agent and --model are given."
   echo
+  echo "A review of a Level 1 or 2 change (completion/v2) whose findings are all"
+  echo "minor or suggestion is triaged mechanically, without an agent and without a"
+  echo "question (ADR 020 decision 4): a minor finding is deferred with a follow-up"
+  echo "Issue, a suggestion is accepted, and the triage is published once. A review"
+  echo "with a critical or major finding, and every review of a Level 3 change, gets"
+  echo "the full triage per finding with your approval."
+  echo
   echo "Examples:"
   echo "  $0 .agents/reviews/feature-5-rendering-review-01.json"
   echo "  $0 .agents/reviews/feature-5-rendering-review-01.json --agent claude --model fable"
@@ -183,9 +190,25 @@ if [[ "$(jq -r '.kind // "feature"' "$review_path" 2>/dev/null)" == "planning" ]
   fail "this is a planning review; it is not triaged. Handle it with ./scripts/revise-planning.sh and review again with ./scripts/review-planning.sh."
 fi
 
-agent_resolve "$root" triage "$AGENT_CLI_PROVIDER" "$AGENT_CLI_MODEL"
-agent="$AGENT_PROVIDER"
-model="$AGENT_MODEL"
+# Mechanical triage (ADR 020 decision 4): the level the review recorded for
+# its content, 1 or 2 under a completion/v2 record, and only minor and
+# suggestion findings. finish-feature.sh derives the level again and refuses
+# a mechanical triage of a Level 3 change.
+mechanical=0
+mechanical_level="$(jq -r 'if (.risk | type) == "object" and .risk.record_schema == "completion/v2"
+  and (.risk.required | IN(1, 2)) and (.findings | type) == "array" and (.findings | length) > 0
+  and ([.findings[] | select(.severity == "critical" or .severity == "major")] | length) == 0
+  then .risk.required else empty end' "$review_path" 2>/dev/null || true)"
+[[ -z "$mechanical_level" ]] || mechanical=1
+
+if [[ "$mechanical" -eq 1 ]]; then
+  agent="mechanical"
+  model="ADR 020 decision 4"
+else
+  agent_resolve "$root" triage "$AGENT_CLI_PROVIDER" "$AGENT_CLI_MODEL"
+  agent="$AGENT_PROVIDER"
+  model="$AGENT_MODEL"
+fi
 
 command -v gh >/dev/null 2>&1 || fail "GitHub CLI 'gh' is not installed."
 gh auth status >/dev/null 2>&1 || fail "GitHub CLI is not authenticated. Run: gh auth login"
@@ -236,6 +259,23 @@ esac
 decisions_file="$tmp_work/decisions.json"
 context_file="$tmp_work/context.md"
 
+# A mechanical triage is published once: a stored one is not made again.
+if [[ "$mechanical" -eq 1 ]]; then
+  existing="$(review_latest_triage "$root" "$review_path")"
+  if [[ -n "$existing" && "$(jq -r '.mechanical // false' "$existing")" == "true" &&
+        -z "$(triage_artifact_errors "$existing" "$review_path")" ]]; then
+    artifact="${existing%.json}"
+    if [[ -n "$(jq -r '.published_at // empty' "$existing")" ]]; then
+      echo "${existing#"$root"/} already triaged this review mechanically, and it is published on Issue #$source_issue."
+    else
+      [[ -f "$artifact.md" ]] || triage_render_markdown "$artifact.json" "$(basename "$artifact").json" >"$artifact.md"
+      publish_triage
+    fi
+    print_next_step
+    exit 0
+  fi
+fi
+
 echo "Starting independent review triage:"
 echo "  Review: $review_relative"
 echo "  Agent:  $agent"
@@ -245,6 +285,22 @@ echo
 if [[ "$finding_count" -eq 0 ]]; then
   echo "The review has no findings; no triage agent is needed."
   echo '{"decisions": []}' >"$decisions_file"
+elif [[ "$mechanical" -eq 1 ]]; then
+  echo "The change is Level $mechanical_level and the review has only minor and suggestion findings:"
+  echo "they are triaged mechanically (ADR 020 decision 4), without an agent."
+  jq --argjson level "$mechanical_level" '{decisions: [.findings[] |
+    if .severity == "minor" then
+      {finding_id: .id, decision: "DEFER",
+       rationale: "A minor finding of a Level \($level) change is deferred mechanically, with a follow-up Issue (ADR 020 decision 4).",
+       followup: {title: .title, recommended_action: .recommendation,
+                  acceptance_criteria: ["The finding is resolved: \(.title)"]}}
+    else
+      {finding_id: .id, decision: "ACCEPT",
+       rationale: "A suggestion of a Level \($level) change is accepted mechanically: it is recorded on the Issue and asks for no change (ADR 020 decision 4).",
+       followup: null}
+    end]}' "$review_path" >"$decisions_file"
+  decision_errors="$(triage_decision_errors "$decisions_file" "$review_path")"
+  [[ -z "$decision_errors" ]] || fail "the mechanical triage is invalid: ${decision_errors//$'\n'/; }"
 else
   {
     echo "# Triage context"
@@ -363,7 +419,9 @@ if [[ "$deferred_count" -gt 0 ]]; then
 fi
 echo "Approval will publish the review and triage reports as a comment on Issue #$source_issue."
 
-if [[ "$AGENT_UNATTENDED" -eq 1 ]]; then
+if [[ "$mechanical" -eq 1 ]]; then
+  echo "Triaged mechanically, without a question (ADR 020 decision 4)."
+elif [[ "$AGENT_UNATTENDED" -eq 1 ]]; then
   echo "Approved without a question (--unattended)."
 else
   printf "Proceed with this triage? [y/N] "
@@ -413,7 +471,8 @@ jq -n \
   --arg agent "$agent" \
   --arg model "$model" \
   --arg approved_at "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
-  --argjson unattended "$([[ "$AGENT_UNATTENDED" -eq 1 ]] && echo true || echo false)" '
+  --argjson unattended "$([[ "$AGENT_UNATTENDED" -eq 1 && "$mechanical" -eq 0 ]] && echo true || echo false)" \
+  --argjson mechanical "$([[ "$mechanical" -eq 1 ]] && echo true || echo false)" '
   {
     schema: "triage/v1",
     source_review: $source_review,
@@ -423,7 +482,8 @@ jq -n \
     triage: {agent: $agent, model: $model},
     approved_at: $approved_at,
     decisions: $decisions[0]
-  } + (if $unattended then {unattended: true} else {} end)' >"$pending"
+  } + (if $unattended then {unattended: true} else {} end)
+    + (if $mechanical then {mechanical: true} else {} end)' >"$pending"
 
 record_issue() {
   local finding_id="$1"

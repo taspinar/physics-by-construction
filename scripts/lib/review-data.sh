@@ -60,13 +60,51 @@ _review_data_rules='
        else "architecture_impact.checked_against must be a list of the ADRs and rules it was checked against" end)
     end;
 
+  # The stable identifier of a finding across the rounds: its round and its
+  # identifier in that round, R01-M1 (ADR 020 decision 4).
+  def stable_id: type == "string" and test("^R[0-9]{2,}-(C|M|MIN|S)[1-9][0-9]*$");
+
+  # Input: the result. The dispositions of the earlier open findings, each
+  # resolved or accepted with its evidence, or open and carried on by a
+  # finding of this review that names it in continues.
+  def disposition_rules:
+    (if has("dispositions") | not then empty
+     elif (.dispositions | type) != "array" then "dispositions must be an array"
+     else
+       (.dispositions | to_entries[] | (.key + 1) as $n | .value as $d |
+         if ($d | type) != "object" then "disposition \($n) is not an object"
+         else
+           ($d | unexpected(["evidence", "finding_id", "status"]; "disposition \($n)")),
+           (if ($d.finding_id | stable_id) then empty
+            else "disposition \($n) must name an earlier finding by its stable identifier, such as R01-M1" end),
+           (if ($d.status | IN("resolved", "open", "accepted")) then empty
+            else "disposition \($n) must be resolved, open, or accepted" end),
+           (if ($d.evidence | nonempty) then empty else "disposition \($n) has no evidence" end)
+         end),
+       ([.dispositions[] | objects | .finding_id] as $ids
+        | if ($ids | unique | length) != ($ids | length) then "an earlier finding has more than one disposition" else empty end)
+     end),
+    (if (.findings | type) != "array" then empty
+     else
+       ([.dispositions // [] | .[]? | objects | select(.status == "open") | .finding_id]) as $open
+       | ([.findings[] | objects | .continues // empty]) as $carried
+       | (.findings | to_entries[] | (.key + 1) as $n | .value as $f
+          | select(($f | type) == "object" and ($f.continues // null) != null)
+          | if ($f.continues | stable_id) | not then "finding \($n) continues no valid stable identifier"
+            elif ($open | index($f.continues) | not) then "finding \($n) continues \($f.continues), which no disposition gives as open"
+            else empty end),
+         ($open[] | . as $id | select($carried | index($id) | not) | "the open finding \($id) is not carried on by a finding of this review that names it in continues"),
+         (if ($carried | unique | length) != ($carried | length) then "an earlier finding is continued by more than one finding" else empty end)
+     end);
+
   # Input: {verdict, findings, limitations}, and for a feature review
-  # architecture_impact.
+  # architecture_impact and dispositions.
   def review_result_rules:
     if type != "object" then
       "the result is not a JSON object"
     else
-      unexpected(["architecture_impact", "findings", "limitations", "verdict"]; "the result"),
+      unexpected(["architecture_impact", "dispositions", "findings", "limitations", "verdict"]; "the result"),
+      disposition_rules,
       (if has("architecture_impact") then (.architecture_impact | architecture_impact_rules) else empty end),
       (if (.verdict | IN("PASS", "PASS_WITH_MINOR_FINDINGS", "CHANGES_REQUIRED")) then empty
        else "verdict must be PASS, PASS_WITH_MINOR_FINDINGS, or CHANGES_REQUIRED" end),
@@ -79,7 +117,7 @@ _review_data_rules='
            if ($f | type) != "object" then
              "finding \($n) is not an object"
            else
-             ($f | unexpected(["evidence", "impact", "recommendation", "severity", "title"]; "finding \($n)")),
+             ($f | unexpected(["continues", "evidence", "impact", "recommendation", "severity", "title"]; "finding \($n)")),
              (if ($f.severity | IN("critical", "major", "minor", "suggestion")) then empty
               else "finding \($n) has an invalid severity" end),
              (("title", "evidence", "impact", "recommendation") as $field |
@@ -198,7 +236,8 @@ feature_review_result_errors() {
 
 # review_result_with_ids <result-file>
 # Prints the validated result, reduced to its known fields, with a stable
-# identifier per finding: C1, M1, MIN1, S1.
+# identifier per finding: C1, M1, MIN1, S1. Across the rounds a finding is
+# R<round>-<identifier>, such as R01-M1.
 review_result_with_ids() {
   jq '
     def prefix: {"critical": "C", "major": "M", "minor": "MIN", "suggestion": "S"}[.];
@@ -215,10 +254,11 @@ review_result_with_ids() {
               evidence: $f.evidence,
               impact: $f.impact,
               recommendation: $f.recommendation
-            }]
+            } + (if ($f.continues // null) != null then {continues: $f.continues} else {} end)]
         ) | .out
       )
     } + (if has("architecture_impact") then {architecture_impact} else {} end)
+      + (if has("dispositions") then {dispositions} else {} end)
   ' "$1"
 }
 
@@ -233,9 +273,20 @@ review_artifact_errors() {
     if type != "object" or .schema != "review/v1" then
       "the file is not a review/v1 artifact"
     else
-      unexpected(["architecture_impact", "base", "branch", "created_at", "findings", "guardrails", "head",
-                  "issue", "kind", "limitations", "merge_approval", "merge_base", "reviewed_paths", "reviewed_tree", "reviewer",
-                  "risk", "round", "schema", "scope", "verdict", "verification"]; "the review"),
+      unexpected(["architecture_impact", "base", "branch", "compared_tree", "created_at", "dispositions", "findings",
+                  "guardrails", "head", "issue", "kind", "limitations", "merge_approval", "merge_base", "record_paths",
+                  "reviewed_paths", "reviewed_tree", "reviewer", "risk", "round", "schema", "scope", "verdict",
+                  "verification"]; "the review"),
+      (if has("compared_tree") | not then empty
+       elif (.compared_tree | nonempty) then empty
+       else "compared_tree must name the tree the review compared against" end),
+      (if has("compared_tree") and (.dispositions | type) != "array"
+       then "a review that records compared_tree must give the dispositions of the earlier open findings" else empty end),
+      (if .record_paths == null
+          or ((.record_paths | type) == "array" and (.record_paths | all(nonempty))) then empty
+       else "record_paths must be null or a list of paths" end),
+      (if .record_paths == null or .reviewed_paths == null then empty
+       else "a review lists reviewed_paths or record_paths, not both" end),
       (if has("architecture_impact") then (.architecture_impact | architecture_impact_rules) else empty end),
       (if has("guardrails") | not then empty
        elif (.guardrails | type) == "object" and (.guardrails.level | IN("none", "sensitive", "protected"))
@@ -287,7 +338,7 @@ review_artifact_errors() {
         findings: (if (.findings | type) == "array"
                    then (.findings | map(if type == "object" then del(.id) else . end))
                    else .findings end)
-      } | review_result_rules)
+      } + (if has("dispositions") then {dispositions} else {} end) | review_result_rules)
     end
   ' "$1"
 }
@@ -301,6 +352,7 @@ review_render_markdown() {
        | if ($items | length) == 0 then "None.\n"
          else ($items | map(
            "### \(.id). \(.title)\n\n" +
+           (if .continues then "**Continues:** \(.continues), still open\n\n" else "" end) +
            "**Evidence:** \(.evidence)\n\n" +
            "**Impact:** \(.impact)\n\n" +
            "**Recommended action:** \(.recommendation)\n"
@@ -320,6 +372,10 @@ review_render_markdown() {
      elif .verification.status == "passed" then "Verification: passed for the reviewed tree at \(.verification.verified_at)\n\n"
      else "Verification: NOT verified (\(.verification.reason))\n\n" end) +
     "Reviewer: \(.reviewer.agent) (\(.reviewer.model)), read-only\n\n" +
+    (if (.dispositions | type) == "array" and (.dispositions | length) > 0 then
+       "## Earlier findings\n\n" +
+       (.dispositions | map("- \(.finding_id): \(.status). \(.evidence)\n") | join("")) + "\n"
+     else "" end) +
     section("critical"; "Critical") + "\n" +
     section("major"; "Major") + "\n" +
     section("minor"; "Minor") + "\n" +
@@ -364,10 +420,28 @@ triage_artifact_errors() {
     if type != "object" or .schema != "triage/v1" then
       "the file is not a triage/v1 artifact"
     else
-      unexpected(["approved_at", "decisions", "issue", "published_at", "review_verdict", "reviewed_tree",
+      unexpected(["approved_at", "decisions", "issue", "mechanical", "published_at", "review_verdict", "reviewed_tree",
                   "schema", "source_review", "triage", "unattended"]; "the triage"),
       (if .unattended == null or .unattended == true then empty
        else "unattended must be true or absent" end),
+      (if .mechanical == null then empty
+       elif .mechanical != true then "mechanical must be true or absent"
+       elif ([$review[0].findings[] | select(.severity == "critical" or .severity == "major")] | length) > 0 then
+         "a review with a critical or major finding is never triaged mechanically (ADR 020 decision 4)"
+       else
+         # The mapping of triage-review.sh, checked again on the stored
+         # artifact: every minor finding deferred with its follow-up Issue,
+         # every suggestion accepted.
+         ($review[0].findings | map({key: .id, value: .severity}) | from_entries) as $severity
+         | (.decisions[]? | objects | select($severity[.finding_id] != null)
+            | if $severity[.finding_id] == "minor" and .decision != "DEFER" then
+                "a mechanical triage defers every minor finding; \(.finding_id) is \(.decision | tostring)"
+              elif $severity[.finding_id] == "suggestion" and .decision != "ACCEPT" then
+                "a mechanical triage accepts every suggestion; \(.finding_id) is \(.decision | tostring)"
+              elif .decision == "DEFER" and ((.followup | type) != "object" or .followup.issue_number == null) then
+                "a mechanical triage defers a minor finding only with its follow-up Issue; \(.finding_id) has none"
+              else empty end)
+       end),
       (if .published_at == null or ((.published_at | type) == "string"
           and (.published_at | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"))) then empty
        else "published_at must be a UTC timestamp" end),
@@ -512,7 +586,7 @@ triage_render_markdown() {
     "Source feature Issue: #\(.issue)\n\n" +
     "Reviewer verdict: \(.review_verdict | gsub("_"; " "))\n\n" +
     "Triage agent: \(.triage.agent) (\(.triage.model))\n\n" +
-    "Approved at: \(.approved_at)\(if .unattended == true then ", by an unattended run; no human approved these decisions" else "" end)\n\n" +
+    "Approved at: \(.approved_at)\(if .mechanical == true then ", mechanically: minor and suggestion findings at Level 1 or 2 (ADR 020 decision 4); no human approved these decisions" elif .unattended == true then ", by an unattended run; no human approved these decisions" else "" end)\n\n" +
     group("FIX_NOW"; "Fix now") + "\n" +
     group("DEFER"; "Deferred") + "\n" +
     group("ACCEPT"; "Accepted")

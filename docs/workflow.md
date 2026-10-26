@@ -148,8 +148,13 @@ flowchart TD
   review round. A passed newer round confirms the fixes of earlier rounds. A
   round reviews the complete feature; after a small fix,
   `review-feature.sh <issue> --changes` reviews only what changed since the
-  previous round. The round a feature is committed on always covers the
-  complete feature: it is what establishes that the Issue is done.
+  previous round, when the reach of the change is certain. The review follows
+  the level (ADR 020 decision 4): Level 1 needs none; Level 2 is committed on
+  a chain that begins with a review of the complete feature, in which every
+  finding keeps its identifier (`R01-M1`) and every later round gives the
+  disposition of every finding still open; Level 3 reviews the complete
+  feature in every round. A review covers the completion record and the
+  handoff note too, so a change to either makes it stale.
 - A session that ends is not a feature that is complete. The implementer
   records where the work stands in a completion record; the commit and a
   pull request that closes the Issue need a record that says complete, which
@@ -166,7 +171,9 @@ flowchart TD
   intermediate rounds and ends with one full verification and a full review
   of its final tree, and the owner's approval of the exact commit.
 - When the triage has no `FIX_NOW` findings, only deferred and accepted ones,
-  you can finish directly.
+  you can finish directly. Minor and suggestion findings of a Level 1 or 2
+  change are triaged mechanically, without a question: deferred with a
+  follow-up Issue, or accepted.
 - `publish-feature.sh` pushes the branch and opens the pull request that
   closes the Issue. Follow its checks on the pull request and merge it
   yourself, after they passed, or let an agent merge it with
@@ -294,10 +301,10 @@ exits with status 3.
 | `create-feature-issue.sh` | The planning approval is missing or stale, the feature ID is unknown, duplicated, or empty, or the feature already has an Issue |
 | `start-feature.sh` | Tracked files in the checkout are modified, or the feature branch or worktree exists. With `--resume`: no worktree, or more than one, is on a branch of the Issue |
 | `review-feature.sh` | Not on `feature/<issue>-*`, nothing to review, or verification fails (unless `--unverified "<reason>"` is given); a Level 3 change needs the full run, or `--feedback` in an intermediate round, which is refused below Level 3 |
-| `review-feature.sh --changes` | Also: there is no previous round, nothing changed since it, the base of the branch changed, or the content of the previous round is no longer known |
+| `review-feature.sh --changes` | Also: there is no previous round, nothing changed since it, the base of the branch changed, or the content of the previous round is no longer known. A change whose reach is not certain, or a Level 3 change, gets a review of the complete feature instead |
 | `triage-review.sh` | The review is stale or invalid, or it is a planning review |
 | `apply-triage.sh` | The triage is unapproved, invalid, or does not match its review, or the review is stale |
-| `finish-feature.sh` | Verification fails, the latest review is stale or has a critical or major finding, a round with findings has no published triage, `FIX_NOW` findings are left, or a latest review of changes only does not build on the round before it, or the feature changes the roadmap, the requirements, the description, or a change request, which only a planning cycle may change. With a `completion/v2` record also: a stated level below the derived one without a lowering request, a lowering of the path minimum, a Level 3 change by trigger or assessment without its approval request, and for Level 3 a pass that is not the full run or a latest review not made on one |
+| `finish-feature.sh` | Verification fails, the latest review is stale or has a critical or major finding, a round with findings has no published triage, `FIX_NOW` findings are left, or a latest review of changes only does not end a chain that holds (it begins with a review of the complete feature, builds every round on the one before, keeps every round of changes bounded, and leaves no finding open or without its disposition), or the feature changes the roadmap, the requirements, the description, or a change request, which only a planning cycle may change. With a `completion/v2` record also: a stated level below the derived one without a lowering request, a lowering of the path minimum, a Level 3 change by trigger or assessment without its approval request, for Level 1 `--no-review`, and for Level 3 `--no-review`, a pass that is not the full run, a latest review not made on one, or a round of changes anywhere in its reviews |
 | `publish-feature.sh` | There are uncommitted changes or the branch belongs to another Issue. With `--wait` it exits non-zero when a check fails |
 | `merge-feature.sh` | Any option; a draft; another head than the finished one; GitHub does not report the pull request mergeable; or it needs the owner (Level 3, a lowering, a criterion pending for `owner_approval`, a protected path, an escalation trigger its diff shows, a Level 3 assessment or named trigger of the latest review, a latest review that is not of exactly the head, no risk statement) and the change, when it is Level 3 by a trigger or an assessment without a protected path, does not commit its approval request, or the owner's identity (the `owner-identity` login of `guardrails.conf` of the base, a code owner other than the agent's login) does not approve exactly its head |
 | `run-feature.sh` | A step fails or is refused as described above, an agent needs your decision (status 3), five review rounds are used while a finding must still be fixed, or the fixes changed nothing |

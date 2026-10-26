@@ -65,16 +65,35 @@ request whose `Tree:` differs from the content tree, so a difference you see
 is also a refusal of `finish-feature.sh`; the request is no part of the
 reviewed fingerprint, but the diff you receive holds it.
 
+## Earlier findings
+
+Every finding has a stable identifier, its round and its identifier in that
+round, such as `R01-M1` (ADR 020 decision 4). The calling script lists the
+findings of earlier rounds that are still open, by that identifier. Give, in
+`dispositions`, every one of them exactly once, and no other:
+
+- `resolved`, with the evidence in the current files that it is fixed;
+- `accepted`, with the reason, when what is left is acceptable as it is;
+- `open`, when it is not resolved or only in part: report it then also as a
+  finding of this review, with the severity it has now, whose `continues`
+  names its identifier. The finding is triaged and fixed again under the
+  identifier of this round; the chain keeps both.
+
+Set `continues` to `null` for every new finding. When no earlier finding is
+listed as open, return an empty `dispositions` list.
+
 ## Review of changes only
 
 When the calling script says that this is a review of changes only, an earlier
 round reviewed the complete feature, and you receive the findings of the
 previous round, what was decided about each, and the diff since that round
-instead of the complete feature diff. Then:
+instead of the complete feature diff. The scripts allow it only for a Level 1
+or 2 change whose reach is certain: tests, documentation, lesson content, and
+one source module whose importers the review of the complete feature covered
+(ADR 020 decision 4). Then:
 
-- For every finding that was to be fixed (`FIX_NOW`, or not triaged), check
-  in the current files that it is resolved. Report one that is not, or only
-  partly, again with its severity, and say in the title that it is unresolved.
+- For every earlier open finding, check in the current files whether it is
+  resolved, and give its disposition as above.
 - Review the changed lines and what they affect: callers, tests, and
   documentation of the changed behaviour. Read the surrounding code; a fix
   can break something next to it.
@@ -84,9 +103,12 @@ instead of the complete feature diff. Then:
 - State in `limitations` that this round covered only the changes since the
   previous round.
 
-A review of changes confirms fixes. It does not establish that the Issue is
-done: the round a feature is committed on is always a review of the complete
-feature.
+A review of changes confirms fixes. Under a `completion/v1` record the round a
+feature is committed on is always a review of the complete feature; under
+`completion/v2` a Level 2 feature may be committed on a chain of reviews of
+changes that begins with one, so report a change whose reach the diff shows
+to be wider than the scripts assumed (an importer outside the files the
+complete review covered, a changed interface) as a `major` finding.
 
 ## Result
 
@@ -98,6 +120,8 @@ Return the review as JSON that matches the schema supplied by the calling script
   - `evidence`: file locations and what you observed there.
   - `impact`: why it matters.
   - `recommendation`: the recommended action.
+  - `continues`: `null`, or the stable identifier of the earlier open finding this finding carries on (see "Earlier findings").
+- `dispositions`: one entry per earlier open finding the calling script lists, with `finding_id` (its stable identifier), `status` (`resolved`, `open`, or `accepted`), and `evidence`; an empty array when none is listed.
 - `verdict`: derived from the findings only.
   - `PASS`: no findings.
   - `PASS_WITH_MINOR_FINDINGS`: only minor or suggestion findings.

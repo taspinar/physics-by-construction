@@ -6,12 +6,18 @@ scripts derive the level (`scripts/lib/risk.sh`) and refuse to lower it.
 
 ## Level 1: low risk
 Documentation and process files only (outside the ADRs and the planning
-documents), with no escalation trigger. Self-check + CI may be sufficient.
+documents), with no escalation trigger. Self-check + CI may be sufficient:
+no independent review is required (ADR 020 decision 4), and minor and
+suggestion findings of a review that was made anyway are triaged
+mechanically.
 
 ## Level 2: medium risk
 Lessons, `src/`, tests, and scripts that are not Level 3; normal features,
 business logic, APIs, non-destructive DB changes. Require independent AI
-review by a different model + CI.
+review by a different model + CI: a review of the complete feature, then a
+traceable chain of reviews of the changes whose reach is certain; minor and
+suggestion findings are triaged mechanically, critical and major ones with
+the owner's approval.
 
 ## Level 3: high risk
 The protected paths of `guardrails.conf` (ADRs, planning documents,
@@ -20,7 +26,8 @@ skills), or an escalation trigger: a changed or removed published scientific
 claim, weakened test strength, security (authentication/authorization,
 secrets, IAM, network, external content), verification guarantees,
 production data or infrastructure, or dependency selection. Require a full
-verification of the final tree, a full independent review made after it,
+verification of the final tree, a full independent review in every round
+and made after it, the full triage of every finding with the owner's approval,
 relevant security evaluation, CI, and the owner's explicit approval of the
 exact commit at the merge gate.
 

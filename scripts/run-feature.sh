@@ -32,8 +32,10 @@ usage() {
   echo "apply-triage.sh until a review leaves nothing to fix, then finish-feature.sh"
   echo "and publish-feature.sh. Agents run unattended and the triage is approved"
   echo "without you; at most $MAX_ROUNDS review rounds are used, of which the later ones"
-  echo "review only the changes since the round before, and the last one reviews the"
-  echo "complete feature again. It never merges and never removes a worktree."
+  echo "review only the changes since the round before when their reach is certain"
+  echo "(ADR 020 decision 4). Under a completion/v1 record the last round reviews"
+  echo "the complete feature again; under completion/v2 a Level 1 or 2 change ends"
+  echo "on the chain of reviews. It never merges and never removes a worktree."
   echo
   echo "The review starts only when the completion gate passes: the implementer's"
   echo "completion record says complete, or every criterion it does not meet is"
@@ -42,9 +44,9 @@ usage() {
   echo "changes. Until then the implementer is resumed, for at most $MAX_SESSIONS"
   echo "sessions in a run."
   echo
-  echo "A Level 3 change (ADR 020 decisions 1 and 5) is reviewed in its later rounds"
-  echo "on the feedback of a partial run (review-feature.sh --feedback), and its last"
-  echo "round is a review of the complete feature on the full verification."
+  echo "A Level 3 change (ADR 020 decisions 1, 4, and 5) is reviewed complete in"
+  echo "every round, in its later rounds on the feedback of a partial run"
+  echo "(review-feature.sh --feedback), and its last round on the full verification."
   echo
   echo "The run stops with a non-zero status when a step fails or needs you, and"
   echo "says which command continues. Status 3 means that an agent needs a decision"
@@ -511,13 +513,20 @@ changes_only() {
   [[ "$(jq -r '.scope.kind // "full"' "$1")" == "changes" ]]
 }
 
+# record_v2
+# Succeeds when the completion record is a completion/v2 record, whose rules
+# of ADR 020 apply.
+record_v2() {
+  [[ "$(jq -r '.schema' "$(completion_record "$worktree" "$issue")" 2>/dev/null)" == "completion/v2" ]]
+}
+
 # level3
 # Succeeds when the change is Level 3 under a completion/v2 record (ADR 020
-# decision 1), whose rounds follow ADR 020 decision 5.
+# decision 1), whose rounds follow ADR 020 decisions 4 and 5.
 level3() {
   local merge_base
 
-  [[ "$(jq -r '.schema' "$(completion_record "$worktree" "$issue")" 2>/dev/null)" == "completion/v2" ]] || return 1
+  record_v2 || return 1
   merge_base="$(feature_base "$worktree" "$base" | sed -n 2p)"
   [[ -n "$merge_base" ]] || return 1
   risk_assess "$worktree" "$(guardrails_rules_refs "$worktree" "$base")" "$merge_base" "$issue" "$(latest_review)" 2>/dev/null || return 1
@@ -532,9 +541,13 @@ final_for_level3() {
                 then (.verification.tier // "full") else "" end' "$1")" == "full" ]] && ! changes_only "$1"
 }
 
-# The round that ends the run reviews the complete feature against the Issue,
-# also when the rounds before it reviewed only changes: a review of changes
-# confirms fixes, it does not establish that the Issue is done.
+# Under a completion/v1 record the round that ends the run reviews the
+# complete feature against the Issue, also when the rounds before it
+# reviewed only changes: a review of changes confirms fixes, it does not
+# establish that the Issue is done. Under a completion/v2 record a Level 1 or
+# 2 change ends on the chain of reviews that finish-feature.sh checks, and
+# a Level 3 change reviews the complete feature in every round (ADR 020
+# decision 4).
 complete_review=0
 if uncommitted; then
   while true; do
@@ -574,7 +587,7 @@ if uncommitted; then
       review_title="review"
       if [[ "$complete_review" -eq 1 ]]; then
         review_title="review of the complete feature"
-      elif [[ -n "$review" ]] && changes_reviewable "$review"; then
+      elif [[ -n "$review" ]] && changes_reviewable "$review" && ! level3; then
         review_options=(--changes)
       fi
       # An intermediate round of a Level 3 change is reviewed on the feedback
@@ -607,7 +620,7 @@ if uncommitted; then
       if level3; then
         final_for_level3 "$review" && break
       else
-        changes_only "$review" || break
+        changes_only "$review" && ! record_v2 || break
       fi
       complete_review=1
       continue
@@ -635,7 +648,7 @@ if uncommitted; then
       if level3; then
         final_for_level3 "$review" && break
       else
-        changes_only "$review" || break
+        changes_only "$review" && ! record_v2 || break
       fi
       complete_review=1
       continue

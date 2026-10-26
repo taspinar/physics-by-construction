@@ -47,6 +47,17 @@ valid_result="{\"architecture_impact\": {\"level\": \"minor\", \"rationale\": \"
 inconsistent_result="{\"architecture_impact\": {\"level\": \"minor\", \"rationale\": \"Stays within the accepted architecture.\", \"checked_against\": []}, \"verdict\": \"CHANGES_REQUIRED\", \"limitations\": \"\", \"findings\": [$(finding minor "Marker name is vague")]}"
 export MOCK_OUTPUT="$valid_result"
 
+# disposed <result> <status> <stable-id>...
+# The result with a disposition of each earlier open finding.
+disposed() {
+  local result="$1"
+  local status="$2"
+
+  shift 2
+  jq --arg status "$status" '.dispositions = [$ARGS.positional[] | {finding_id: ., status: $status, evidence: "feature.txt:2"}]' \
+    --args "$@" <<<"$result"
+}
+
 # Creates a repository on feature/7-marker with one committed, one modified,
 # and one untracked file relative to main.
 setup_repo() {
@@ -127,7 +138,7 @@ done
 
 # A second round is numbered and points the reviewer at the previous review,
 # which is not part of the reviewed diff.
-run_review "$repo" 7 --agent codex --model model-c || {
+MOCK_OUTPUT="$(disposed "$valid_result" resolved R01-MIN1 R01-M1)" run_review "$repo" 7 --agent codex --model model-c || {
   cat "$repo.out" >&2
   fail "re-review with an overridden agent failed"
 }
@@ -135,9 +146,23 @@ run_review "$repo" 7 --agent codex --model model-c || {
 grep -Fq "feature-7-marker-review-01.json" "$repo.log" || fail "re-review did not reference the previous review"
 grep -Fq -- "--sandbox read-only" "$repo.log" || fail "Codex reviewer was not sandboxed read-only"
 grep -Fq -- "--output-schema" "$repo.log" || fail "Codex reviewer was not given the schema"
-if grep -Fq "Marker content is unchecked" "$repo.log.stdin"; then
+# The earlier findings are listed by their stable identifiers, as open, but
+# the artifact itself is no part of the diff.
+if grep -Fq "diff --git a/.agents/reviews/" "$repo.log.stdin"; then
   fail "previous review artifact was included in the reviewed diff"
 fi
+grep -Fq "### R01-M1 [major] Marker content is unchecked" "$repo.log.stdin" ||
+  fail "the open finding of round 1 was not listed by its stable identifier"
+[[ "$(jq -c '[.dispositions[] | [.finding_id, .status]]' "$repo/.agents/reviews/feature-7-marker-review-02.json")" == \
+  '[["R01-MIN1","resolved"],["R01-M1","resolved"]]' ]] || fail "the re-review did not store the dispositions"
+[[ "$(jq -r '.compared_tree' "$repo/.agents/reviews/feature-7-marker-review-02.json")" == \
+  "$(git -C "$repo" rev-parse "main^{tree}")" ]] || fail "a complete review did not record the merge base's tree as compared against"
+# Without the disposition of every open earlier finding the result is invalid.
+if MOCK_OUTPUT="$(disposed "$valid_result" resolved R01-M1)" run_review "$repo" 7; then
+  fail "a result without the disposition of an open earlier finding was accepted"
+fi
+grep -Fq "the earlier finding R02-MIN1 is open and has no disposition" "$repo.out" ||
+  fail "the missing disposition was not reported"
 
 # A review without findings is valid.
 repo="$(setup_repo no-findings)"
@@ -277,10 +302,11 @@ review="$repo/.agents/reviews/feature-7-marker-review-01.json"
 [[ "$(jq -r '.verification.status' "$review")" == "passed" ]] || fail "the review does not record the passed verification"
 grep -Fq "Verification: passed for the reviewed tree" "${review%.json}.md" ||
   fail "the report does not show the verification"
-run_review "$repo" 7 || fail "a second review of the same content failed"
+MOCK_OUTPUT="$(disposed "$valid_result" accepted R01-MIN1 R01-M1)" run_review "$repo" 7 ||
+  fail "a second review of the same content failed"
 [[ "$(verification_runs "$repo")" -eq 1 ]] || fail "verification ran again for unchanged content"
 printf 'another change\n' >>"$repo/feature.txt"
-run_review "$repo" 7 || fail "a review of changed content failed"
+MOCK_OUTPUT="$(disposed "$valid_result" accepted R02-MIN1 R02-M1)" run_review "$repo" 7 || fail "a review of changed content failed"
 [[ "$(verification_runs "$repo")" -eq 2 ]] || fail "verification did not run again for changed content"
 
 # A partial run of one group is not a verification: the review still runs
@@ -346,7 +372,7 @@ add_first_triage() {
 add_first_triage "$repo"
 printf 'the fix\n' >>"$repo/feature.txt"
 rm -f "$repo.log" "$repo.log.stdin"
-run_review "$repo" 7 --changes || {
+MOCK_OUTPUT="$(disposed "$valid_result" resolved R01-M1)" run_review "$repo" 7 --changes || {
   cat "$repo.out" >&2
   fail "a review of changes only failed"
 }
@@ -369,7 +395,7 @@ grep -Fq "This is a review of changes only" "$repo.log" || fail "the reviewer wa
 # Without the option a later round reviews the complete feature again.
 printf 'more\n' >>"$repo/feature.txt"
 rm -f "$repo.log" "$repo.log.stdin"
-run_review "$repo" 7 || fail "a complete third round failed"
+MOCK_OUTPUT="$(disposed "$valid_result" resolved R02-MIN1 R02-M1)" run_review "$repo" 7 || fail "a complete third round failed"
 third="$repo/.agents/reviews/feature-7-marker-review-03.json"
 [[ "$(jq -r '.scope.kind' "$third")" == "full" ]] || fail "a round without --changes is not a complete review"
 grep -Fq "untracked marker" "$repo.log.stdin" || fail "a complete later round was not given the complete diff"
@@ -379,7 +405,8 @@ repo="$(setup_repo changes-untriaged)"
 run_review "$repo" 7 || fail "the complete first round failed"
 printf 'the fix\n' >>"$repo/feature.txt"
 rm -f "$repo.log.stdin"
-run_review "$repo" 7 --changes || fail "a review of changes without a triage failed"
+MOCK_OUTPUT="$(disposed "$valid_result" resolved R01-MIN1 R01-M1)" run_review "$repo" 7 --changes ||
+  fail "a review of changes without a triage failed"
 grep -Fq "The findings were not triaged; treat each one as to be fixed." "$repo.log.stdin" ||
   fail "untriaged findings were not supplied as to be fixed"
 
@@ -393,7 +420,8 @@ for defect in 'del(.approved_at)' '.reviewed_tree = "012345678901234567890123456
   jq "$defect" "$triage_file" >"$triage_file.tmp" && mv "$triage_file.tmp" "$triage_file"
   printf 'the fix\n' >>"$repo/feature.txt"
   rm -f "$repo.log.stdin"
-  run_review "$repo" 7 --changes || fail "a review of changes with an invalid triage failed"
+  MOCK_OUTPUT="$(disposed "$valid_result" resolved R01-MIN1 R01-M1)" run_review "$repo" 7 --changes ||
+    fail "a review of changes with an invalid triage failed"
   grep -Fq "treat each one as to be fixed" "$repo.log.stdin" || fail "an invalid triage was not ignored: $defect"
   if grep -Fq "Decision: ACCEPT" "$repo.log.stdin"; then fail "an invalid triage told the reviewer to skip a finding: $defect"; fi
   grep -Fq "its decisions are not used" "$repo.out" || fail "the ignored triage was not reported: $defect"
