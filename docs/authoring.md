@@ -1501,7 +1501,12 @@ does not build its own environment, baselines, or scoring. The rules are in
   to D3 (`site/lessons/agents-llm/05-discovering-a-force-law/index.qmd` and
   the two after it, module `pbc.discovery.force_lab`, experiment
   `pbc.mechanics.experiments.black_box_force_law` and the two beside it) are
-  the example to copy.
+  the example to copy. A lesson whose claim is not the parameters of a
+  law adds its own box and tools in `pbc.discovery` and its own score, as D13
+  does for conserved quantities
+  (`site/lessons/agents-llm/11-discovering-conservation-laws/index.qmd`,
+  modules `pbc.discovery.invariants` and `pbc.discovery.invariant_lab`;
+  `docs/discovery-protocol.md`, "Invariants").
 - **Without an agent.** A discovery lesson that uses no model (methods
   `[simulation]`, no `llm-agents`) has no fixture, no prompt, and no live
   run; its last section is "Run this experiment". It still states the
