@@ -11,6 +11,7 @@ source "$script_dir/lib/review-run.sh"
 source "$script_dir/lib/guardrails.sh"
 source "$script_dir/lib/completion.sh"
 source "$script_dir/lib/risk.sh"
+source "$script_dir/lib/review-chain.sh"
 
 fail() {
   echo "Error: $*" >&2
@@ -65,7 +66,10 @@ if [[ "${#AGENT_POSITIONAL[@]}" -lt 1 || "${#AGENT_POSITIONAL[@]}" -gt 2 ]]; the
   echo "Every round reviews the complete feature. --changes makes a later round"
   echo "review only what changed since the previous round, with that round's"
   echo "findings and their triage: cheaper after a small fix, but it does not look"
-  echo "at the rest of the feature again."
+  echo "at the rest of the feature again. Under a completion/v2 record it does so"
+  echo "only when the reach of the changes is certain and the change is Level 1 or"
+  echo "2 (ADR 020 decision 4); otherwise the round reviews the complete feature and"
+  echo "says why. Every round gives the disposition of every earlier open finding."
   echo
   echo "Examples:"
   echo "  $0 2"
@@ -169,6 +173,11 @@ level3=0
 [[ "$RISK_ENFORCED" -ne 1 || "$RISK_REQUIRED" -ne 3 ]] || level3=1
 [[ "$feedback" -eq 0 || "$level3" -eq 1 ]] ||
   fail "--feedback is for the intermediate rounds of a Level 3 change, and this change is level $RISK_REQUIRED$([[ "$RISK_ENFORCED" -eq 1 ]] || echo " under the earlier contract (completion/$RISK_SCHEMA)"); it is reviewed on the tier it needs."
+# Level 3 keeps a full review in every round (ADR 020 decision 4).
+if [[ "$changes_only" -eq 1 && "$level3" -eq 1 ]]; then
+  echo "The change is Level 3, which keeps a review of the complete feature in every round (ADR 020 decision 4): this round reviews the complete feature, not only the changes."
+  changes_only=0
+fi
 
 verified_tree=""
 if [[ -n "$unverified_reason" ]]; then
@@ -240,6 +249,19 @@ if [[ -e "$root/$RISK_APPROVALS_DIR" ]]; then
 fi
 [[ -z "$verified_tree" || "$tree_before" == "$verified_tree" ]] ||
   fail "the content changed while verification ran, so the pass does not cover what would be reviewed. A check may modify a file; the review was not started."
+# What the review fingerprints: the content with the completion record and
+# the handoff note of the Issue, which Git ignores (ADR 020 decision 4), so
+# that a change to either after the review makes it stale.
+record_paths=()
+while IFS= read -r record_path; do
+  record_paths+=("$record_path")
+done < <(fingerprint_issue_records "$issue")
+reviewed_tree="$(fingerprint_with_records "$root" "$tmp_work" "${record_paths[@]}")" ||
+  fail "could not compute the fingerprint of the reviewed content."
+# The findings of the earlier rounds that are still open, by their stable
+# identifiers; this round gives the disposition of each.
+review_chain_open "$root" "$slug" "$review_number" >"$tmp_work/open.json" ||
+  fail "could not determine the open findings of the earlier rounds."
 
 review_paths=(. ":(exclude).agents/reviews" ":(exclude).agents/triage")
 context_file="$tmp_work/context.md"
@@ -253,8 +275,31 @@ fi
 # reviewed content and the same base, and something must have changed.
 scope='{"kind": "full"}'
 if [[ "$changes_only" -eq 1 ]]; then
-  ! git -C "$root" diff --quiet "$previous_tree" "$tree_before" ||
+  ! git -C "$root" diff --quiet "$previous_tree" "$reviewed_tree" ||
     fail "nothing changed since round $previous_round; there is nothing for --changes to review."
+fi
+# A review of changes only when the reach of the delta is certain (ADR 020
+# decision 4): the chain back to a review of the complete feature holds, and
+# the delta is bounded. Otherwise the round reviews the complete feature.
+if [[ "$changes_only" -eq 1 && "$RISK_ENFORCED" -eq 1 ]]; then
+  unbounded=""
+  if chain="$(review_chain_baseline "$root" "$previous_review" 2>"$tmp_work/chain-reason")"; then
+    unbounded="$(review_delta_unbounded "$root" "$guardrail_rules" "$(printf '%s\n' "$chain" | sed -n 1p)" \
+      "$previous_tree" "$reviewed_tree" "$tmp_work/open.json")"
+  else
+    unbounded="$(cat "$tmp_work/chain-reason")"
+  fi
+  if [[ -n "$unbounded" ]]; then
+    echo "The reach of the changes since round $previous_round is not certain, so this round reviews the complete feature (ADR 020 decision 4):"
+    printf '%s\n' "$unbounded" | sed 's/^/  - /'
+    echo
+    changes_only=0
+  fi
+fi
+compared_tree="$(git -C "$root" rev-parse "$merge_base^{tree}")" ||
+  fail "could not read the tree of the merge base."
+if [[ "$changes_only" -eq 1 ]]; then
+  compared_tree="$previous_tree"
   scope="$(jq -n --argjson round "$previous_round" --arg tree "$previous_tree" \
     '{kind: "changes", since_round: $round, base_tree: $tree}')"
 fi
@@ -295,11 +340,11 @@ if [[ "$changes_only" -eq 1 ]]; then
     echo
     echo "## Files changed since round $previous_round"
     echo
-    git -C "$root" diff --stat --no-color "$previous_tree" "$tree_before"
+    git -C "$root" diff --stat --no-color "$previous_tree" "$reviewed_tree"
     echo
     echo "## Diff since round $previous_round: from the content that round reviewed to the current content"
     echo
-    git -C "$root" diff --no-color "$previous_tree" "$tree_before"
+    git -C "$root" diff --no-color "$previous_tree" "$reviewed_tree"
   } >"$context_file"
 else
   {
@@ -378,6 +423,23 @@ guardrails="$(printf '%s\n' "$guardrail_findings" |
       fi
       ;;
   esac
+} >>"$context_file"
+
+# The disposition of every earlier open finding (ADR 020 decision 4).
+{
+  echo
+  echo "## Earlier findings that are open"
+  echo
+  if [[ "$(jq 'length' "$tmp_work/open.json")" -eq 0 ]]; then
+    echo "No finding of an earlier round is open: return an empty dispositions list."
+  else
+    echo "Give, in dispositions, every one of these by its stable identifier, exactly"
+    echo "once: resolved or accepted, with the evidence in the current files, or open."
+    echo "A finding that is still open is carried on by a finding of this review that"
+    echo "names it in continues, with the severity it has now."
+    echo
+    jq -r '.[] | "### \(.id) [\(.severity)] \(.title)\n\nEvidence: \(.evidence)\n"' "$tmp_work/open.json"
+  fi
 } >>"$context_file"
 
 # What the implementer says about how far the Issue is done. It is given to
@@ -463,7 +525,7 @@ This is a re-review.
 Read the previous review (JSON):
 .agents/reviews/$(basename "$previous_review")
 
-Check whether its findings have been resolved, but perform an independent review of the complete current implementation. Do not limit the review to the previous findings."
+Give the disposition of every earlier open finding that standard input lists, but perform an independent review of the complete current implementation. Do not limit the review to the previous findings."
   fi
 fi
 
@@ -476,8 +538,16 @@ script validates and stores it."
 echo "Starting $agent reviewer ($model) with read-only permissions..."
 echo
 
+# The result classifies the impact and gives the disposition of every earlier
+# open finding.
+feature_result_errors() {
+  feature_review_result_errors "$1"
+  if review_data_is_json "$1" && jq -e 'type == "object"' "$1" >/dev/null 2>&1; then
+    review_chain_disposition_errors "$1" "$tmp_work/open.json"
+  fi
+}
 review_run_reviewer "$agent" "$model" "$root" "$START_PROMPT" "$context_file" "$schema_file" "$report_file" "$tmp_work" \
-  feature_review_result_errors
+  feature_result_errors
 
 metadata="$(jq -n \
   --argjson issue "$issue" \
@@ -486,7 +556,9 @@ metadata="$(jq -n \
   --arg base "$base_ref" \
   --arg merge_base "$merge_base" \
   --arg head "$head_before" \
-  --arg tree "$tree_before" \
+  --arg tree "$reviewed_tree" \
+  --arg compared "$compared_tree" \
+  --argjson records "$(printf '%s\n' "${record_paths[@]}" | jq -R . | jq -s .)" \
   --arg agent "$agent" \
   --arg model "$model" \
   --arg created_at "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
@@ -505,8 +577,11 @@ metadata="$(jq -n \
     base: $base,
     merge_base: $merge_base,
     head: $head,
+    compared_tree: $compared,
     reviewed_tree: $tree,
     reviewed_paths: null,
+    record_paths: $records,
+    dispositions: [],
     reviewer: {agent: $agent, model: $model},
     created_at: $created_at
   }')"

@@ -16,6 +16,14 @@ Read:
 The source review is authoritative. Do not invent, combine, split, omit, or
 silently downgrade findings.
 
+## When you are started
+
+The calling script triages a review of a Level 1 or 2 change whose findings
+are all minor or suggestion mechanically, without you (ADR 020 decision 4):
+it defers every minor finding with a follow-up Issue and accepts every
+suggestion. You triage a review with a critical or major finding, and every
+review of a Level 3 change, finding by finding, for the owner's approval.
+
 ## Decisions
 
 Classify every finding exactly once:

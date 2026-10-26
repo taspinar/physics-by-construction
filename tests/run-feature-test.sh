@@ -101,6 +101,12 @@ elif [[ -f "$RUN_CONTROL/$role.sh" ]]; then
 else
   eval "$default"
 fi
+# A reviewer that gives no dispositions resolves every earlier open finding
+# its context lists (ADR 020 decision 4).
+if [[ "$role" == "reviewer" ]] && printf '%s' "$reply" | jq -e 'type == "object" and (has("dispositions") | not)' >/dev/null 2>&1; then
+  reply="$(sed -n '/^## Earlier findings that are open/,/^## /s/^### \(R[0-9]*-[A-Z]*[0-9]*\) .*/\1/p' "$RUN_CONTROL/$role-$count.context" |
+    jq -R . | jq -s --argjson reply "$reply" '$reply + {dispositions: map({finding_id: ., status: "resolved", evidence: "feature.txt"})}')"
+fi
 printf '%s\n' "$reply" >"$out"
 AGENT
 chmod +x "$tmp/bin/codex"

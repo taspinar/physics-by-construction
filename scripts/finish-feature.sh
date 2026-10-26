@@ -10,6 +10,7 @@ source "$script_dir/lib/guardrails.sh"
 source "$script_dir/lib/completion.sh"
 source "$script_dir/lib/verification.sh"
 source "$script_dir/lib/risk.sh"
+source "$script_dir/lib/review-chain.sh"
 
 usage() {
   echo "Usage: $0 <issue-number> \"<commit summary>\" [--no-review \"<reason>\"] [--unattended] [--partial]"
@@ -37,8 +38,19 @@ usage() {
   echo "change needs a full verification of this content and a latest review made"
   echo "on a fully verified tree."
   echo
+  echo "The review follows the level (ADR 020 decision 4), with a completion/v2"
+  echo "record: a Level 1 change needs no review, which the message records; a"
+  echo "Level 2 change is committed on a chain of reviews that begins with a review"
+  echo "of the complete feature, builds every review of changes on the round right"
+  echo "before it, ends at exactly this content, and leaves no finding open; a Level"
+  echo "3 change on a review of the complete feature in every round, the latest"
+  echo "made on its full verification."
+  echo "With a completion/v1 record the latest review covers the complete feature."
+  echo
   echo "--no-review is only for changes that .agents/policies/autonomy.md classifies"
-  echo "as low risk; the reason is recorded in the commit message."
+  echo "as low risk; the reason is recorded in the commit message. With a"
+  echo "completion/v2 record it is refused at Level 1, which needs no review, and"
+  echo "at Level 3."
   echo
   echo "The list of changes in the message comes from .agents/summaries/<issue>.md,"
   echo "which the implementer writes. --unattended commits that message as it is,"
@@ -184,7 +196,9 @@ elif [[ "$(jq -r '.schema' "$completion_file" 2>/dev/null)" == "completion/v2" ]
   fail "the risk level of the change cannot be derived (the base of the feature could not be determined). Nothing was committed."
 fi
 level3=0
+enforced=0
 if [[ "$risk_known" -eq 1 && "$RISK_ENFORCED" -eq 1 ]]; then
+  enforced=1
   if [[ -n "$RISK_ERRORS" ]]; then
     echo "Error: the risk level of the change is not consistent (ADR 020 decision 1):" >&2
     printf '%s\n' "$RISK_ERRORS" | sed 's/^/  - /' >&2
@@ -234,7 +248,15 @@ fi
 if [[ -n "$no_review_reason" ]]; then
   [[ "$level3" -eq 0 ]] ||
     fail "the change is Level 3, which keeps a full independent review (ADR 020 decision 4): --no-review is refused. Nothing was committed."
+  # Level 1 needs no review by the rule of the level, never as an exception.
+  [[ "$enforced" -eq 0 || "$RISK_REQUIRED" -ne 1 ]] ||
+    fail "the change is Level 1, which needs no independent review (ADR 020 decision 4) and records that as the rule of the level: --no-review is refused. Run ./scripts/finish-feature.sh without it. Nothing was committed."
   review_line="Review: no independent review (low risk: $no_review_reason)"
+elif [[ "$enforced" -eq 1 && "$RISK_REQUIRED" -eq 1 && "${#reviews[@]}" -eq 0 ]]; then
+  # Level 1 needs no independent review (ADR 020 decision 4); that is the
+  # rule of the level, not an exception. A review that exists is checked as
+  # at Level 2.
+  review_line="Review: none required (Level 1: documentation and process files only; ADR 020 decision 4)"
 else
   [[ "${#reviews[@]}" -gt 0 ]] ||
     fail "no review of this feature exists. Run ./scripts/review-feature.sh $issue, or use --no-review for a low-risk change."
@@ -259,10 +281,12 @@ else
     *) fail "could not compute the fingerprint of the working tree." ;;
   esac
 
-  # The review that a commit rests on covers the complete feature. A round
-  # that reviewed only changes confirms fixes; whether the Issue is done is
-  # judged on the whole diff against the Issue.
-  [[ "$(jq -r '.scope.kind // "full"' "$latest")" != "changes" ]] ||
+  # The review that a commit rests on covers the complete feature, or, at
+  # Level 1 or 2 under a completion/v2 record, is the end of a chain that
+  # begins with one (ADR 020 decision 4), checked below. Under a
+  # completion/v1 record a round that reviewed only changes confirms fixes;
+  # whether the Issue is done is judged on the whole diff against the Issue.
+  [[ "$(jq -r '.scope.kind // "full"' "$latest")" != "changes" || ( "$enforced" -eq 1 && "$level3" -eq 0 ) ]] ||
     fail "the latest review (round $(jq -r '.round' "$latest")) covers only the changes since round $(jq -r '.scope.since_round' "$latest"). A feature is committed on a review of the complete feature: run ./scripts/review-feature.sh $issue (without --changes)."
 
   # The final review of a Level 3 change is made on the tree the full run
@@ -273,6 +297,12 @@ else
       elif .verification.status == "passed" then (.verification.tier // "full") else .verification.status end' "$latest")"
     [[ "$review_verification" == "full" ]] ||
       fail "the change is Level 3, and the latest review (round $(jq -r '.round' "$latest")) was not made on a fully verified tree (its verification: $review_verification). Run the full ./scripts/verify.sh, then ./scripts/review-feature.sh $issue without --unverified or --feedback."
+    # Level 3 keeps a review of the complete feature in every round (ADR 020
+    # decision 4), not only in the latest one.
+    for review in "${reviews[@]}"; do
+      [[ "$(jq -r '.scope.kind // "full"' "$review")" != "changes" ]] ||
+        fail "the change is Level 3, which keeps a review of the complete feature in every round (ADR 020 decision 4), and round $(jq -r '.round' "$review") covers only the changes since round $(jq -r '.scope.since_round' "$review"). Nothing was committed."
+    done
   fi
 
   round="$(jq -r '.round' "$latest")"
@@ -294,6 +324,10 @@ else
     triage_relative="${triage#"$root"/}"
     errors="$(triage_artifact_errors "$triage" "$review")"
     [[ -z "$errors" ]] || fail "the triage of round $review_round is invalid: ${errors//$'\n'/; }"
+    # Every finding of a Level 3 change keeps the full triage with the
+    # owner's approval (ADR 020 decision 4).
+    [[ "$level3" -eq 0 || "$(jq -r '.mechanical // false' "$triage")" != "true" ]] ||
+      fail "the change is Level 3, and the triage of round $review_round was made mechanically; every finding of a Level 3 change keeps the full triage with the owner's approval. Run ./scripts/triage-review.sh ${review#"$root"/} again."
     [[ "$(jq -r '.published_at // empty' "$triage")" != "" ]] ||
       fail "the triage of round $review_round was not published on Issue #$issue. Run ./scripts/triage-review.sh --publish $triage_relative."
     if [[ "$review" == "$latest" ]]; then
@@ -302,7 +336,24 @@ else
     fi
     triage_note="; triage published on #$issue"
   done
-  review_line="Review: round $round, $verdict, by $(jq -r '"\(.reviewer.agent) (\(.reviewer.model))"' "$latest")$triage_note"
+
+  # The chain of reviews (ADR 020 decision 4): from a review of the complete
+  # feature, contiguous, every review of changes bounded, every earlier open
+  # finding given its disposition, and no finding open.
+  chain_note=""
+  if [[ "$enforced" -eq 1 ]]; then
+    errors="$(review_chain_errors "$root" "$feature_base_ref" "$slug" "$latest")"
+    if [[ -n "$errors" ]]; then
+      echo "Error: the chain of reviews does not hold (ADR 020 decision 4):" >&2
+      printf '%s\n' "$errors" | sed 's/^/  - /' >&2
+      echo "A gap, a break, or a review of changes whose reach is not certain needs a review of the complete feature: run ./scripts/review-feature.sh $issue. An open finding is fixed and given its disposition in the next review. Nothing was committed." >&2
+      exit 1
+    fi
+    if [[ "$(jq -r '.scope.kind // "full"' "$latest")" == "changes" ]]; then
+      chain_note="; reviews of changes since round $(jq -r '.round' "$(review_chain_baseline "$root" "$latest" | sed -n 1p)"), a review of the complete feature, with every finding given its disposition"
+    fi
+  fi
+  review_line="Review: round $round, $verdict, by $(jq -r '"\(.reviewer.agent) (\(.reviewer.model))"' "$latest")$chain_note$triage_note"
 fi
 
 # 3. Show the manual steps the implementer recorded for this feature.

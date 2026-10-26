@@ -86,27 +86,19 @@ risk_snapshot() {
 # risk_content_tree <root> <scratch-dir> <issue>
 # Prints the content tree an approval request names (its line 'Tree:'): the
 # fingerprint of the working tree, which leaves out .agents/approvals/, with
-# the completion record and the handoff note of the Issue, which Git ignores.
-# The request is the vehicle of a level and of a lowering, never part of the
-# content it is about, so editing it leaves this tree unchanged and the
-# request can name the tree under review.
+# the completion record and the handoff note of the Issue, which Git ignores:
+# the tree a review fingerprints (ADR 020 decision 4). The request is the
+# vehicle of a level and of a lowering, never part of the content it is
+# about, so editing it leaves this tree unchanged and the request can name
+# the tree under review.
 risk_content_tree() {
-  local root="$1"
-  local index="$2/content.index"
-  local tree
-  local path
   local paths=()
+  local path
 
-  tree="$(fingerprint_worktree "$root" "$2")" || return 1
-  for path in "$COMPLETION_DIR/$3.json" ".agents/handoffs/$3.md"; do
-    [[ ! -e "$root/$path" && ! -L "$root/$path" ]] || paths+=("$path")
-  done
-  rm -f "$index"
-  GIT_INDEX_FILE="$index" git -C "$root" read-tree "$tree" || return 1
-  if [[ "${#paths[@]}" -gt 0 ]]; then
-    GIT_INDEX_FILE="$index" git -C "$root" add -f -- "${paths[@]}" >/dev/null || return 1
-  fi
-  GIT_INDEX_FILE="$index" git -C "$root" write-tree
+  while IFS= read -r path; do
+    paths+=("$path")
+  done < <(fingerprint_issue_records "$3")
+  fingerprint_with_records "$1" "$2" "${paths[@]}"
 }
 
 # risk_path_minimum <root> <rules-refs> <from> <tree>

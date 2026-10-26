@@ -1024,8 +1024,9 @@ The record is a claim of the implementer, and an implementer can claim
 is the independent review of the complete feature: the reviewer goes through
 every acceptance criterion of the Issue against the diff and the tests, and
 reports a criterion that is not met, or a `met` the code does not support, as
-a major finding. That is why a feature is committed only on a review of the
-complete feature (see "Reviewing only the changes").
+a major finding. That is why every chain of reviews begins with a review of
+the complete feature, which is given the record, and why the record is part
+of what a review fingerprints (see "Reviewing only the changes").
 
 When you implemented a feature yourself, write the record yourself: it is the
 statement that the Issue is done, with where to see it.
@@ -1108,6 +1109,24 @@ decided exactly once, Critical and Major findings are `FIX_NOW`, and a deferred
 finding has a follow-up title, action, and acceptance criteria. Invalid
 decisions are retried once and then rejected. A review without findings needs
 no triage agent.
+
+**Mechanical triage** (ADR 020 decision 4). A review of a Level 1 or 2
+change under a `completion/v2` record, whose findings are all minor or
+suggestion, is triaged without an agent and
+without a question: every minor finding is deferred, with a follow-up Issue
+made from the finding, and every suggestion is accepted, each with the rule
+as its reason. The script derives the level again from the base of the
+feature and the current content, as `finish-feature.sh` does; when it is
+not the level the review recorded, or is 3, the review gets the full triage.
+The artifact says `mechanical: true`, its report says that
+no human approved it, and it is published once: running the triage again
+publishes nothing more. A review with a critical or major finding, and every
+review of a Level 3 change, gets the full triage per finding with your
+approval; its minor findings are triaged with it. A stored mechanical
+triage is checked against the rule again: it is invalid when its review has
+a critical or major finding, when a minor finding is not deferred with its
+follow-up Issue, or when a suggestion is not accepted, and
+`finish-feature.sh` refuses it then and for a Level 3 change.
 
 The script displays the complete proposal before side effects. Only after
 interactive approval does it create one GitHub Issue per `DEFER` finding and
@@ -1207,12 +1226,23 @@ architecture, keep Markdown as their source.
 Every round reviews the complete feature by default, also after a fix. That
 costs a full review each time, and it is what finds a problem that an earlier
 round missed: a later complete round regularly reports something in code that
-did not change.
+did not change. What a feature needs follows its risk level (ADR 020
+decision 4), under a `completion/v2` record:
 
-A review of changes confirms fixes. It does not establish that the Issue is
-done, so **a feature is committed on a review of the complete feature**:
-`finish-feature.sh` refuses when the latest round reviewed only changes, and
-asks for a complete round. A round of changes is for the rounds in between.
+- **Level 1** (documentation and process files only) needs no independent
+  review. `finish-feature.sh` commits it without one and records "Review:
+  none required (Level 1 ...)"; that is the rule of the level, not
+  `--no-review`, which it refuses for a Level 1 change. A review that was
+  made anyway is checked as at Level 2.
+- **Level 2** may be committed on a **chain of reviews**: a review of the
+  complete feature followed by reviews of the changes since the round right
+  before each.
+- **Level 3** keeps a review of the complete feature in every round:
+  `review-feature.sh --changes` reviews the complete feature at Level 3, and
+  `finish-feature.sh` refuses a round of changes anywhere in its reviews.
+
+A feature with a `completion/v1` record, started before ADR 020, is
+committed on a review of the complete feature, as before.
 
 After a small fix you can limit a round to what changed since the previous
 one:
@@ -1224,16 +1254,60 @@ one:
 The reviewer then receives the difference between the content that the
 previous round reviewed and the current content, with the findings of that
 round and what an approved triage decided about each; without one, every
-finding counts as to be fixed. It checks that every finding
-that was to be fixed is resolved, reviews the changed lines and what they
+finding counts as to be fixed. It reviews the changed lines and what they
 affect, and leaves the rest of the feature alone. The review records its
-scope, its report says so at the top, and the commit message of
-`finish-feature.sh` names it.
+scope, the tree it compared against, and the tree it reviewed; its report
+says so at the top.
 
-Use it when the fix is small and local. Run a complete round when the fix
-touches several parts, changes behaviour beyond the finding, or when you are
-not sure. The script refuses `--changes` when it cannot build on the previous
-round:
+**When the reach is certain.** A round of changes is made only when the
+delta is confined to kinds of change whose reach is certain: tests,
+documentation and process files (the completion record and the handoff note
+among them), lesson content under `site/lessons/`, and one module of
+`src/pbc` whose importers are all among the files the chain's review of the
+complete feature covered. The importers are found by a plain textual search
+of the import lines in `.py` and `.qmd` files for the module's name. Any of
+these makes the round a review of the complete feature, which the script
+says, with the reason:
+
+- a Level 3 path, or an escalation trigger detected on the delta;
+- a shared input of ADR 014 decision 4 (the authoring package, the site
+  outside the lessons, the pins);
+- a change to the module's exported interface (a public top-level name, a
+  decorator, `__all__`), or more than one module;
+- a file named by a finding that a review already found still open;
+- a search that cannot decide: a package's `__init__.py`, a `__main__.py`,
+  a module that loads code by a computed name (the digest's dynamic names),
+  or any other Python or lesson file of the repository that does, since it
+  may load the changed module;
+- an importer that the review of the complete feature did not cover;
+- any other kind of file.
+
+There is no changed-lines threshold and no impact graph: a large change of
+the documentation is a round of changes, and a one-line change of a shared
+input is not.
+
+**Stable identifiers and dispositions.** Every finding has a stable
+identifier, its round and its identifier in the round: `R01-M1`. Every later
+round, complete or of changes, is given the findings of the earlier rounds
+that are still open (a finding is open until a later round resolves it,
+unless the triage of its round accepted or deferred it), and gives each one
+its disposition: `resolved` or `accepted` with the evidence, or `open`, in
+which case a finding of the round carries it on by naming it in `continues`,
+and it is triaged and fixed again under the new identifier. A result that
+leaves out an open finding is rejected, and so is a stored review that
+records `compared_tree` without `dispositions`: only a review made before
+F131, with neither field, closes the earlier findings by re-reporting them,
+and none follows a review made under the rule.
+
+**The chain at the finish.** `finish-feature.sh` accepts a Level 2 feature
+whose latest round reviewed only changes when the chain holds: it begins with
+a review of the complete feature that compared against the tree of its merge
+base; every round of changes builds on the round
+right before it, on the tree that round reviewed, with the same base; every
+round of changes in it still meets the rule above; it ends at exactly the
+current content; every earlier open finding was given its disposition; and no
+finding is open. A gap or a break asks for a review of the complete feature.
+The script refuses `--changes` when it cannot build on the previous round:
 
 - there is no previous round;
 - nothing changed since it;
@@ -1242,10 +1316,6 @@ round:
 - the content that the previous round reviewed is no longer in the object
   database.
 
-`finish-feature.sh` accepts a review of changes only as the latest round when
-it builds on exactly the content of the round before it, back to a complete
-review. Otherwise it asks for a complete round.
-
 ### When a review becomes stale
 
 Every review records a fingerprint of what it reviewed (`reviewed_tree`): the
@@ -1253,8 +1323,14 @@ Git tree hash of the file contents at review time, including uncommitted and
 untracked changes. Review and triage artifacts, the approval requests
 (`.agents/approvals/`), and ignored files are not part of it, except ignored
 files Git already tracks; the plans are part of it, since a plan holds the
-acceptance criteria, the risk, and the selected skills the review rests on. A review may instead cover an explicit
-list of files (`reviewed_paths`); then only those files count.
+acceptance criteria, the risk, and the selected skills the review rests on.
+A feature review also covers, in `record_paths`, the completion record and
+the handoff note of its Issue, which Git ignores (ADR 020 decision 4): a
+change to either after the review makes it stale, so neither can claim more
+than the review saw. Its fingerprint is the content tree an approval request
+names. A review made before F131 has no `record_paths` and covers the
+working tree only. A review may instead cover an explicit list of files
+(`reviewed_paths`); then only those files count.
 
 The fingerprint depends on content, not on commits. Committing the reviewed
 content keeps the review current; changing, adding, or deleting a covered file
@@ -1325,7 +1401,8 @@ carries `Completion: partial` with the criteria and what remains, and
 
 A change that `.agents/policies/autonomy.md` classifies as low risk may be
 finished without an independent review; the reason is recorded in the commit
-message:
+message. Under a `completion/v2` record the option is refused at Level 1,
+which needs no review, and at Level 3:
 
 ```bash
 ./scripts/finish-feature.sh 12 "Fix a typo in the README" --no-review "documentation only"
@@ -1475,19 +1552,24 @@ From the primary checkout it runs:
 2. `review-feature.sh`, and for a review with findings `triage-review.sh
    --unattended` and, when the triage has `FIX_NOW` findings,
    `apply-triage.sh --unattended`, followed by the next review round. This
-   repeats until a review of the complete feature has no findings or its
-   triage has nothing to fix.
+   repeats until a review of the kind the level needs (below) has no
+   findings or its triage has nothing to fix.
 3. `finish-feature.sh --unattended`, with the title of the Issue as the
    summary of the commit, and `publish-feature.sh`.
 
 It uses at most five review rounds. The first round reviews the complete
-feature; a round after fixes reviews only what changed since the round before
-it (`review-feature.sh --changes`). That review knows what was decided about
+feature; below Level 3 a round after fixes reviews only what changed since
+the round before it when its reach is certain (`review-feature.sh --changes`).
+That review knows what was decided about
 the earlier findings, so a finding that was deferred or accepted is not
 reported, triaged, and turned into a follow-up Issue again in every round.
-The round that ends the run reviews the complete feature again, against the
-Issue and the completion record: a feature with one fix round therefore has
-three reviews, the complete feature, the fix, and the complete feature.
+Under a `completion/v1` record the round that ends the run reviews the
+complete feature again, against the Issue and the completion record: a feature
+with one fix round therefore has three reviews, the complete feature, the fix,
+and the complete feature. Under a `completion/v2` record a Level 1 or 2 change
+ends on the chain of reviews that `finish-feature.sh` checks, and a Level 3
+change reviews the complete feature in every round, its last one on the full
+verification.
 When the base of the branch changed between two rounds, for example because
 you merged `main` into it while the run was stopped, the next round reviews
 the complete feature.

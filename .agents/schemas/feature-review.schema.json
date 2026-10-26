@@ -5,7 +5,8 @@
     "verdict",
     "findings",
     "limitations",
-    "architecture_impact"
+    "architecture_impact",
+    "dispositions"
   ],
   "properties": {
     "verdict": {
@@ -26,7 +27,8 @@
           "title",
           "evidence",
           "impact",
-          "recommendation"
+          "recommendation",
+          "continues"
         ],
         "properties": {
           "severity": {
@@ -48,6 +50,40 @@
             "type": "string"
           },
           "recommendation": {
+            "type": "string"
+          },
+          "continues": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "dispositions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "finding_id",
+          "status",
+          "evidence"
+        ],
+        "properties": {
+          "finding_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "resolved",
+              "open",
+              "accepted"
+            ]
+          },
+          "evidence": {
             "type": "string"
           }
         }
