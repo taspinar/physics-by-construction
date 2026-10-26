@@ -63,7 +63,10 @@ with the fingerprint of the whole worktree: the content tree leaves out
 holds the completion record and the handoff note. The scripts refuse a
 request whose `Tree:` differs from the content tree, so a difference you see
 is also a refusal of `finish-feature.sh`; the request is no part of the
-reviewed fingerprint, but the diff you receive holds it.
+reviewed fingerprint, but the diff you receive holds it. The script has made
+this comparison and states its result in the risk statement (`checked by the
+script`): report a finding about the line `Tree:` only if the context lists
+the error.
 
 ## Earlier findings
 

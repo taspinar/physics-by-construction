@@ -286,6 +286,56 @@ printf 'Tree: corrected\n' >>"$repo/.agents/approvals/7.md"
 (cd "$repo" && ./scripts/check-review.sh .agents/reviews/feature-7-marker-review-01.json >/dev/null 2>&1) ||
   fail "editing the approval request made the review stale"
 
+# The reviewer is told which tree the line 'Tree:' of the approval request is
+# compared with, apart from the worktree fingerprint, and that the script has
+# made the comparison: its result for a request that names the content tree,
+# and the error for one that names another (Issue #296).
+approval_request_for() {
+  local repo="$1"
+  local tree="$2"
+
+  mkdir -p "$repo/.agents/completion" "$repo/.agents/approvals"
+  jq -n '{schema: "completion/v2", status: "complete",
+    risk: {level: 2, triggers: [], rationale: "as derived"},
+    criteria: [{criterion: "The marker file exists", gate: "implementation", status: "met", evidence: "marker.txt"}],
+    remaining: []}' >"$repo/.agents/completion/7.json"
+  if [[ -z "$tree" ]]; then
+    tree="$(source "$repo/scripts/lib/fingerprint.sh" && source "$repo/scripts/lib/completion.sh" &&
+      source "$repo/scripts/lib/risk.sh" && risk_content_tree "$repo" "$(mktemp -d "$tmp/content.XXXXXX")" 7)" ||
+      fail "the content tree of $repo could not be derived"
+  fi
+  printf 'Issue: #7\nLevel: 2\nDerived from: the paths\nTree: %s\n' "$tree" >"$repo/.agents/approvals/7.md"
+  printf '%s\n' "$tree"
+}
+
+repo="$(setup_repo request-tree)"
+content="$(approval_request_for "$repo" "")"
+run_review "$repo" 7 || {
+  cat "$repo.out" >&2
+  fail "review with an approval request that names the content tree failed"
+}
+grep -Fqx -- "- checked by the script: the request names the current content tree" "$repo.log.stdin" ||
+  fail "the context does not state that the script checked the request's tree"
+grep -Fqx -- "- content tree for the approval request (the only value to compare with its line 'Tree:'): $content" \
+  "$repo.log.stdin" || fail "the context does not label the content tree for the approval request"
+grep -Eqx -- "- worktree fingerprint \(identifies the content the level was derived for; never compared with the line 'Tree:' of an approval request\): [0-9a-f]{40}" \
+  "$repo.log.stdin" || fail "the context does not label the worktree fingerprint apart from the content tree"
+if grep -Fq "checked by the script, error" "$repo.log.stdin"; then
+  fail "the context lists an error for a request that names the content tree"
+fi
+
+repo="$(setup_repo request-other-tree)"
+approval_request_for "$repo" 0123abcd >/dev/null
+run_review "$repo" 7 || {
+  cat "$repo.out" >&2
+  fail "review with an approval request that names another tree failed"
+}
+grep -Eqx -- "- checked by the script, error: the approval request .agents/approvals/7.md names tree 0123abcd, but the content tree is [0-9a-f]{40}; state it on a line 'Tree: [0-9a-f]{40}'" \
+  "$repo.log.stdin" || fail "the context does not list the error of a request that names another tree"
+if grep -Fq "the request names the current content tree" "$repo.log.stdin"; then
+  fail "the context states that a request naming another tree names the content tree"
+fi
+
 # The review starts only on content that passes verification, and records
 # that. A pass for the same content is not run a second time.
 verification_runs() {

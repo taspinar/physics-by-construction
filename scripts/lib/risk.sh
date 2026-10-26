@@ -372,6 +372,9 @@ approval_request_level() {
 #   RISK_REQUESTED       the level it asks for, when it names a lowering
 #   RISK_ENFORCED        1 for a completion/v2 record, whose rules apply
 #   RISK_ERRORS          what the rules refuse, one problem per line
+#   RISK_REQUEST_TREE    the check of the request's line 'Tree:': 'checked' when it
+#                        names the content tree, the problem when it does not, or
+#                        empty when no request was checked
 #
 # Returns 1 when the working tree cannot be read.
 risk_assess() {
@@ -407,6 +410,7 @@ risk_assess() {
   RISK_REQUESTED=""
   RISK_ENFORCED=0
   RISK_ERRORS=""
+  RISK_REQUEST_TREE=""
 
   scratch="$(mktemp -d "${TMPDIR:-/tmp}/risk.XXXXXX")"
   RISK_TREE="$(risk_snapshot "$root" "$scratch")" &&
@@ -481,11 +485,15 @@ risk_assess() {
       [[ -n "$(approval_request_field "$request_file" "$field")" ]] ||
         RISK_ERRORS+="the approval request $RISK_REQUEST has no line '$field: ...'"$'\n'
     done
+    RISK_REQUEST_TREE="checked"
     # The request leaves the fingerprint, so a wrong tree would not make a
     # verification or a review stale; it is refused here instead.
     request_tree="$(approval_request_field "$request_file" "Tree" | awk '{ print $1 }' | tr -d '`')"
-    if [[ -n "$request_tree" && "$request_tree" != "$RISK_CONTENT_TREE" ]]; then
-      RISK_ERRORS+="the approval request $RISK_REQUEST names tree $request_tree, but the content tree is $RISK_CONTENT_TREE; state it on a line 'Tree: $RISK_CONTENT_TREE'"$'\n'
+    if [[ -z "$request_tree" ]]; then
+      RISK_REQUEST_TREE="the approval request $RISK_REQUEST has no line 'Tree: ...'"
+    elif [[ "$request_tree" != "$RISK_CONTENT_TREE" ]]; then
+      RISK_REQUEST_TREE="the approval request $RISK_REQUEST names tree $request_tree, but the content tree is $RISK_CONTENT_TREE; state it on a line 'Tree: $RISK_CONTENT_TREE'"
+      RISK_ERRORS+="$RISK_REQUEST_TREE"$'\n'
     fi
     if [[ -n "$RISK_REQUESTED" ]]; then
       request_required="$(approval_request_level "$request_file" "Required level")"
@@ -507,9 +515,10 @@ risk_assess() {
   RISK_ERRORS="${RISK_ERRORS%$'\n'}"
 }
 
-# risk_statement_lines
+# risk_statement_lines [review]
 # Prints the statement of the level for a commit message or a pull request,
-# from the variables risk_assess set, one list item per line.
+# from the variables risk_assess set, one list item per line. With 'review',
+# the two trees are labelled for the reviewer instead (risk_review_tree_lines).
 risk_statement_lines() {
   local reasons
 
@@ -538,6 +547,29 @@ risk_statement_lines() {
   elif [[ -n "$RISK_REQUEST" ]]; then
     echo "- approval request: $RISK_REQUEST, a request for the owner's review, never an approval"
   fi
+  if [[ "${1:-}" == "review" ]]; then
+    risk_review_tree_lines
+    return 0
+  fi
   echo "- derived for the content $RISK_TREE"
   echo "- content tree for the approval request (Tree:): $RISK_CONTENT_TREE"
+}
+
+# risk_review_tree_lines
+# Prints the two trees for the reviewer, each labelled with what it is for,
+# and the result of the script's check of the approval request's 'Tree:'.
+# Reviewers compared the line 'Tree:' with the worktree fingerprint and
+# reported a correct request as wrong (Issue #296).
+risk_review_tree_lines() {
+  echo "- worktree fingerprint (identifies the content the level was derived for; never compared with the line 'Tree:' of an approval request): $RISK_TREE"
+  echo "- content tree for the approval request (the only value to compare with its line 'Tree:'): $RISK_CONTENT_TREE"
+  if [[ -z "$RISK_REQUEST" ]]; then
+    echo "- the line 'Tree:' of an approval request: not checked, there is no approval request"
+  elif [[ -z "$RISK_REQUEST_TREE" ]]; then
+    echo "- the line 'Tree:' of $RISK_REQUEST: not checked by the script, the rules apply to a completion/v2 record only"
+  elif [[ "$RISK_REQUEST_TREE" == "checked" ]]; then
+    echo "- checked by the script: the request names the current content tree"
+  else
+    echo "- checked by the script, error: $RISK_REQUEST_TREE"
+  fi
 }
