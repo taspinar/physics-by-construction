@@ -1,0 +1,557 @@
+---
+title: "Polarisation and Malus’s law"
+description: >-
+  The direction in which the field of light oscillates: polarisation states
+  as Jones vectors, the intensity behind a polariser measured from the field
+  and checked against Malus's law, unpolarised light as an ensemble, and the
+  limits of real polarisers and wave plates.
+lesson:
+  id: polarisation-and-maluss-law
+  strand: waves
+  order: 5
+  difficulty: 2
+  course: waves
+  slot: W4
+  methods: [simulation]
+  outcomes:
+    - Describe linear, circular, and elliptical light by a Jones vector and an optical element by a matrix
+    - Measure the intensity behind a polariser from the field and check it against Malus's law, also for a leaky polariser
+    - Model unpolarised light as an ensemble of states and measure the Stokes parameters of a beam with six analysers
+    - Explain why a polariser's extinction ratio and a wave plate's design wavelength limit what they can do
+  related: []
+  format: 2
+  preview: fig-malus
+  experiment: pbc.waves.experiments.polarisation_and_maluss_law
+  prerequisites:
+    lessons: [wave-equation, refraction-and-snells-law]
+    outside:
+      - "Complex numbers: the form exp(i x) of a wave and the modulus of a sum"
+      - "Linear algebra: the product of a matrix and a vector, and of two matrices"
+      - "Statistics: the mean of a sample and its standard error"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.waves import polarisation
+from pbc.waves.experiments import polarisation_and_maluss_law as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+Hold two pairs of polarising sunglasses in front of each other and turn one:
+the view darkens until, at a right angle, almost nothing comes through. Put a
+third pair between the two, turned halfway, and light comes back. A computer
+screen goes dark through the same sunglasses when you tilt your head, and the
+glare from a lake disappears. All of this is polarisation: light is a
+transverse wave, and its field oscillates in a direction across the beam.
+
+This lesson describes that direction with two complex numbers, the Jones
+vector, and an optical element with a two by two matrix. It then asks how
+much light passes a polariser. The answer is Malus's law, and the program
+does not use it: it computes the real field behind the polariser over one
+period and averages its square, which is what a detector measures. The same
+measurement, made with six analysers, gives the Stokes parameters of any
+beam, also of unpolarised light, which is modelled as many states that do
+not interfere. The last part is about real elements: a polariser that leaks
+and a wave plate used at the wrong colour.
+
+## Assumptions
+
+1. **A plane wave of one frequency.** The field is
+   $\mathbf{E}(t) = \mathrm{Re}\,(\mathbf{J}\,e^{-i\omega t})$ in a plane
+   across the beam, with a constant complex vector $\mathbf{J}$. Light of a
+   spread of frequencies can change its state from one moment to the next;
+   that is what unpolarised light is, and it is modelled here as an
+   ensemble.
+2. **Ideal linear elements.** A polariser passes the field along its axis
+   and, if it is leaky, a fixed small fraction across it. A wave plate
+   delays one component by a fixed phase. Neither absorbs light along its
+   pass axis, scatters, or depends on the angle at which the beam enters.
+3. **A detector that averages.** A detector measures the power averaged
+   over many periods. The average of one period is the same, and it is what
+   the program computes.
+4. **No interference between the states of an ensemble.** The intensities
+   of the states of unpolarised light add, not their fields. Coherent
+   beams would interfere, which is not the situation here.
+5. **A retardance inversely proportional to the wavelength.** A wave plate
+   delays one component by a path difference that is the same at every
+   wavelength; the phase is that path over the wavelength. The small change
+   of the birefringence of the crystal with the colour is left out.
+
+## Explanation
+
+### Jones vectors
+
+A beam along $z$ has the transverse field $\mathbf{E}(t) = \mathrm{Re}(\mathbf{J}e^{-i\omega t})$
+with $\mathbf{J} = (E_x, E_y)$. The direction and the relative phase of the
+two components define the state:
+
+- $\mathbf{J} = (\cos\alpha, \sin\alpha)$: **linear** light along the angle
+  $\alpha$ from the $x$ axis. The field oscillates on a line.
+- $\mathbf{J} = (1, \pm i)/\sqrt{2}$: **circular** light. The two components
+  are a quarter period apart, and the tip of the field runs round a circle,
+  from $x$ towards $y$ for the plus sign.
+- Any other $\mathbf{J}$: **elliptical** light.
+
+An optical element changes $\mathbf{J}$ by a matrix. A polariser with its
+axis along $x$ is $\mathrm{diag}(1, \sqrt{\varepsilon})$, where $\varepsilon$
+is the fraction of the power across the axis that it lets through
+($\varepsilon = 0$ for an ideal one, and $1/\varepsilon$ is its extinction
+ratio); a wave plate with its fast axis along $x$ is $\mathrm{diag}(1, e^{i\Gamma})$,
+which delays the $y$ component by the phase $\Gamma$. Turned to the angle
+$\theta$, an element $M$ becomes $R(\theta)\,M\,R(-\theta)$, with $R$ the
+rotation matrix. A sequence of elements is the product of their matrices.
+
+### Intensity, measured from the field
+
+The intensity is the time average of $|\mathbf{E}(t)|^2$. The program samples
+the real field at equal steps over one period and averages its square; with
+three or more steps the average of $\cos^2$ is exactly one half, so this is
+exact up to round-off. Light polarised along $x$ behind an ideal polariser at
+the angle $\theta$ has the field $\cos\theta$ along the axis, and the average
+of its square is
+
+$$
+I = I_0\cos^2\theta ,
+$$
+
+**Malus's law**. For a leaky analyser the component across the axis adds
+$\varepsilon\sin^2\theta$, so crossed polarisers never quite go dark:
+$I(90^\circ) = \varepsilon I_0$.
+
+### Unpolarised light and the Stokes parameters
+
+Sunlight or the light of a bulb is a rapid succession of states with no
+preference, and a detector averages over them. The program models it as an
+ensemble of states with random, independent complex components. One ideal
+polariser passes half of the intensity, since the average of $\cos^2$ over
+all directions is one half; behind it the light is linear.
+
+A beam is described completely by four numbers measured with six analysers:
+polarisers along $x$, $y$, $+45^\circ$, and $-45^\circ$, and two that pass
+the two circular states (a quarter-wave plate followed by a polariser at
+$\mp 45^\circ$):
+
+$$
+S_0 = I_x + I_y,\quad S_1 = I_x - I_y,\quad S_2 = I_{+45} - I_{-45},\quad
+S_3 = I_{\circlearrowleft} - I_{\circlearrowright}.
+$$
+
+For a pure state $S_1^2 + S_2^2 + S_3^2 = S_0^2$, and the **degree of
+polarisation** $\sqrt{S_1^2 + S_2^2 + S_3^2}/S_0$ is one; for unpolarised
+light it is zero. For one Jones vector they have the closed forms
+$|E_x|^2 \pm |E_y|^2$, $2\,\mathrm{Re}(E_x^*E_y)$, and
+$2\,\mathrm{Im}(E_x^*E_y)$, which the measurement is compared with.
+
+### A chain of polarisers
+
+Crossed polarisers block everything. Put $N$ polarisers between them,
+each turned by $\pi/(2N)$ from the one before. Each passes $\cos^2(\pi/2N)$
+of the light that reaches it, so the chain passes
+
+$$
+T_N = \cos^{2N}\!\left(\frac{\pi}{2N}\right) \approx 1 - \frac{\pi^2}{4N}
+\quad\text{for large } N,
+$$
+
+which approaches one: many small turns rotate the polarisation almost without
+loss. This is the effect of the third pair of sunglasses, and in the limit it is
+how a twisted liquid crystal turns the polarisation of a screen.
+
+### Wave plates and their wavelength
+
+A quarter-wave plate has $\Gamma = \pi/2$ at its design wavelength
+$\lambda_0$, and turns light polarised at $45^\circ$ to its axis into
+circular light: $S_3/S_0 = \sin\Gamma = 1$. The phase is a path difference
+divided by the wavelength, $\Gamma(\lambda) = \Gamma_0\lambda_0/\lambda$, so
+at another wavelength the light is elliptical. A **zero-order** plate has
+$\Gamma_0 = \pi/2$; a cheaper, thicker **multi-order** plate has
+$\Gamma_0 = 2\pi m + \pi/2$, which is the same phase at $\lambda_0$ and
+changes $m$ times faster with the wavelength.
+
+## Code
+
+The elements and the measurement of the intensity:
+
+```{python}
+#| echo: false
+excerpt(polarisation.polariser)
+```
+
+```{python}
+#| echo: false
+excerpt(polarisation.retarder)
+```
+
+```{python}
+#| echo: false
+excerpt(polarisation.field)
+```
+
+```{python}
+#| echo: false
+excerpt(polarisation.intensity)
+```
+
+The six analysers and the Stokes parameters they measure, and the ensemble
+of unpolarised light:
+
+```{python}
+#| echo: false
+excerpt(polarisation.analysers)
+```
+
+```{python}
+#| echo: false
+excerpt(polarisation.stokes_measured)
+```
+
+```{python}
+#| echo: false
+excerpt(polarisation.unpolarised)
+```
+
+## Worked examples
+
+### Malus's law, ideal and leaky
+
+Light polarised along $x$ meets an analyser at thirteen angles from zero to
+a half turn. The analyser is ideal, and then it lets through the fraction
+`{python} result["leak"]` of the power across its axis, an extinction ratio of
+`{python} result["extinction"]`, typical of a polarising film.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.transmitted)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.malus_run)
+```
+
+```{python}
+#| label: malus-run
+#| echo: false
+result.table("malus-run")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_malus)
+```
+
+```{python}
+#| label: fig-malus
+#| echo: false
+#| fig-cap: "The intensity behind an analyser against its angle to the polarisation of the light. The curves are Malus's law for an ideal and for a leaky analyser, the markers the intensity measured from the sampled field. On the logarithmic scale the leaky analyser never goes dark: crossed, it passes its leak."
+#| fig-alt: "Two panels of the transmitted intensity against the analyser angle from zero to one hundred eighty degrees. On the linear left panel a single cosine-squared curve falls from one to zero at ninety degrees and rises back to one; markers of both analysers lie on it. On the logarithmic right panel the solid ideal curve plunges towards zero at ninety degrees, while the dashed leaky curve and its square markers level off at a floor."
+#| fig-status: simulated
+result.show("fig-malus")
+```
+
+[The intensity behind an analyser at the angle $\theta$ to linearly
+polarised light, measured from the field, is $I_0\cos^2\theta$ for an ideal
+analyser and $I_0(\cos^2\theta + \varepsilon\sin^2\theta)$ for one that
+leaks the fraction $\varepsilon$.]{.claim type="numerically-verified"
+scope="a monochromatic plane wave, ideal or leaky linear analysers, thirteen angles"
+evidence="malus-run"}
+The largest difference from the closed forms is `{python} result["malus-gap"]`,
+round-off. On a linear scale the two analysers look the same; the leak shows
+only near the crossing, where the ideal analyser goes to zero and the leaky one
+stays at its leak. That floor is what limits a real measurement near the dark
+position. The data are simulated, and the check is the two closed forms.
+
+### Unpolarised light
+
+An ensemble of `{python} result["ensemble"]` random states models unpolarised
+light. It passes one polariser, then three at $0^\circ$, $45^\circ$, and
+$90^\circ$, and then two crossed ones.
+
+```{python}
+#| echo: false
+excerpt(experiment.unpolarised_run)
+```
+
+```{python}
+#| label: unpolarised-run
+#| echo: false
+result.table("unpolarised-run")
+```
+
+[Unpolarised light, modelled as an ensemble of random states, passes one
+ideal polariser by half, three polarisers at $0^\circ$, $45^\circ$, and
+$90^\circ$ by one eighth, and two crossed polarisers not at all.]{.claim
+type="numerically-verified"
+scope="an incoherent ensemble of random states, ideal polarisers"
+evidence="unpolarised-run"}
+The ensemble means lie within `{python} result["ensemble-sigmas"]` standard
+errors of the closed forms. The degree of polarisation of the ensemble,
+measured with the six analysers, is `{python} result["ensemble-degree"]`; for a finite
+ensemble it is not zero but of the order of one over the square root of its
+size, `{python} result["ensemble-scale"]`. Two crossed polarisers block every state, so
+that case has no spread and is exact. The data are simulated, with a fixed
+seed, and the check is the closed forms.
+
+### A chain of polarisers
+
+Light polarised along $x$ passes $N$ ideal polarisers, the last at a right
+angle to the light, for every $N$ from one to sixty.
+
+```{python}
+#| echo: false
+excerpt(experiment.chain_run)
+```
+
+```{python}
+#| label: chain-run
+#| echo: false
+result.table("chain-run")
+```
+
+```{python}
+#| label: fig-polariser-chain
+#| echo: false
+#| fig-cap: "The intensity that passes N polarisers which turn the polarisation by a right angle in equal steps. The line is the closed form, the markers are measured from the field; for many polarisers the loss falls as one over N."
+#| fig-alt: "Plot of the transmitted intensity against the number of polarisers on a logarithmic axis from one to sixty. A solid curve starts at zero for one polariser and rises steeply, then slowly approaches one. Markers lie on it. A dotted curve of the large-N approximation joins the solid curve from below at large N."
+#| fig-status: simulated
+result.show("fig-polariser-chain")
+```
+
+[A chain of $N$ ideal polarisers that turns linear light by a right angle in
+equal steps transmits $\cos^{2N}(\pi/2N)$ of it.]{.claim
+type="numerically-verified" scope="ideal polarisers, from one to sixty"
+evidence="chain-run"}
+The largest difference is `{python} result["chain-gap"]`. One polariser at a
+right angle blocks everything; two pass `{python} result["chain-two"]`, and sixty
+pass `{python} result["chain-sixty"]`. The data are simulated, and the check is
+the closed form.
+
+### Stokes parameters from six analysers
+
+Five states of unit intensity are measured with the six analysers.
+
+```{python}
+#| echo: false
+excerpt(experiment.stokes_run)
+```
+
+```{python}
+#| label: stokes-run
+#| echo: false
+result.table("stokes-run")
+```
+
+[The Stokes parameters measured with six analysers equal the closed forms
+of the Jones vector.]{.claim type="numerically-verified"
+scope="five pure states of unit intensity, ideal analysers"
+evidence="stokes-run"}
+The largest difference is `{python} result["stokes-gap"]`. Each pure state has a
+degree of polarisation of one; the linear states have $S_3 = 0$ and the
+circular ones $S_1 = S_2 = 0$, and the elliptical state shares its power
+between the three. The data are simulated, and the check is the closed
+forms.
+
+### A quarter-wave plate at other wavelengths
+
+A zero-order and a multi-order quarter-wave plate are made for
+`{python} result["design-nm"]` nm, the red line of a helium-neon laser. Light
+polarised at $45^\circ$ to their axis passes them at thirteen wavelengths
+across the visible.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="wave-plate")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.circular_degree)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.wave_plate_run)
+```
+
+```{python}
+#| label: wave-plate-run
+#| echo: false
+result.table("wave-plate-run")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_wave_plate)
+```
+
+```{python}
+#| label: fig-wave-plate
+#| echo: false
+#| fig-cap: "The degree of circular polarisation behind a quarter-wave plate against the wavelength. Both plates make circular light at their design wavelength. The zero-order plate stays close to circular across the visible; the multi-order plate swings between the two senses of circular light."
+#| fig-alt: "Plot of the degree of circular polarisation, from minus one to one, against the wavelength from four hundred fifty to seven hundred fifty nanometres. A solid curve for the zero-order plate stays near one with a gentle maximum at a dotted vertical line marking the design wavelength. A dashed curve for the multi-order plate oscillates several times between minus one and one, touching one at the design wavelength. Markers lie on both curves."
+#| fig-status: simulated
+result.show("fig-wave-plate")
+```
+
+[Behind a quarter-wave plate of retardance $\Gamma(\lambda) = \Gamma_0\lambda_0/\lambda$,
+light polarised at $45^\circ$ to its axis has the degree of circular
+polarisation $\sin\Gamma(\lambda)$.]{.claim type="numerically-verified"
+scope="a retardance inversely proportional to the wavelength, ideal analysers"
+evidence="wave-plate-run"}
+The largest difference is `{python} result["plate-gap"]`. Across the visible
+the zero-order plate stays above `{python} result["zero-worst"]`, while the
+multi-order plate reaches `{python} result["multi-worst"]`: the opposite circular
+state. A multi-order plate works only near its design wavelength. The data
+are simulated, and the check is the sine of the retardance.
+
+## Limits {#limits}
+
+- **Practical limits are modelled, not measured.** The leak of the analyser
+  and the retardance of the plates are set, not taken from a component. A
+  real polariser also absorbs some of the light along its axis, and its leak
+  and its absorption depend on the wavelength and on the angle of the beam.
+- **One frequency, plane waves.** A focused beam has a spread of directions,
+  and a polariser treats them differently. Partially coherent light is
+  modelled only as an ensemble of pure states with a fixed seed, so the
+  unpolarised results carry a statistical error.
+- **The Malus check is exact by construction of the measurement.** The
+  sampled average of $\cos^2$ is exact, so the agreement is at round-off; it
+  shows that the matrices and the time average are consistent, not that a
+  real polariser follows the law.
+- **No dispersion of the birefringence.** A real crystal's retardance does
+  not scale exactly as one over the wavelength; an achromatic plate combines
+  two materials to cancel the change.
+
+::: {.exercise .self-check}
+Two ideal polarisers are crossed, and no light passes. A third ideal
+polariser is put after both, at $45^\circ$. Does light now pass?
+
+::: {.choices}
+::: {.choice}
+Yes, a quarter of the light that left the first polariser.
+
+::: {.feedback}
+That is the result for a polariser placed between the crossed pair. After
+the second polariser nothing is left to pass.
+:::
+:::
+
+::: {.choice correct="true"}
+No. The crossed pair has already blocked all of it.
+
+::: {.feedback}
+Correct: an ideal polariser only removes light. The order matters; between
+the two, the same polariser would let through a quarter.
+:::
+:::
+
+::: {.choice}
+Yes, half of it, as for unpolarised light.
+
+::: {.feedback}
+Behind the second polariser there is no light at all, polarised or not.
+:::
+:::
+:::
+
+::: {.solution}
+The matrices act in the order the light meets them. After the crossed pair
+the field is zero, and no matrix makes it non-zero. Between the two, the
+polariser at $45^\circ$ would pass $\cos^2 45^\circ$ of the light, and the
+last polariser again $\cos^2 45^\circ$, a quarter in all: the effect of the
+third pair of sunglasses of the introduction.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Finding the dark position.** With the leaky analyser of the first example,
+how far from the crossed position may it be turned before the transmitted
+light is twice its floor?
+
+::: {.hint}
+Set the law of the leaky analyser equal to twice the leak, and write the
+angle from the crossed position.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.crossing_width)
+```
+
+About `{python} result["crossing-width"]` degrees on either side. Near the dark
+position the intensity changes slowly, and the leak hides a turn of that size,
+so the crossed position is a poor reference for an angle. It is better to
+measure on the steep part of the curve.
+:::
+:::
+
+::: {.exercise}
+**Where Malus's law is steepest.** At what angle does the transmitted
+intensity change fastest with the angle of the analyser, and by how much per
+degree?
+
+::: {.hint}
+Differentiate Malus's law with respect to the angle.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.steepest)
+```
+
+At `{python} result["steepest"]` degrees, where the slope of $\cos^2\theta$,
+$-\sin 2\theta$, is largest; the intensity changes by
+`{python} result["per-degree"]` per cent of $I_0$ per degree there. An instrument
+that measures a small rotation of the polarisation sets its analyser there.
+:::
+:::
+
+::: {.exercise}
+**A half-wave plate.** Light polarised along $x$ passes a half-wave plate
+with its fast axis at [22.5 degrees]{.given}. What is the state behind it?
+
+::: {.hint}
+A half-wave plate reflects the direction of linear light about its axis.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.half_wave)
+```
+
+The light is linear, with a degree of polarisation of
+`{python} result["half-wave-degree"]`, along `{python} result["half-wave-direction"]`
+degrees: twice the angle of the axis. A half-wave plate turns linear light
+without loss, unlike a polariser.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/waves/polarisation.py",
+        "src/pbc/waves/experiments/polarisation_and_maluss_law.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_optics.py",
+        "tests/unit/test_polarisation_and_maluss_law_experiment.py",
+    ],
+)
+```

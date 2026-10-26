@@ -1,0 +1,500 @@
+---
+title: "Inverse optics"
+description: >-
+  From a diffraction pattern back to the aperture: the width and the
+  separation of two slits estimated from synthetic photon counts with their
+  standard errors, the errors checked over many data sets, and what the
+  intensity cannot tell, the wavelength against the size and an aperture
+  against its mirror image.
+lesson:
+  id: inverse-optics
+  strand: waves
+  order: 7
+  difficulty: 3
+  course: waves
+  slot: W6
+  methods: [simulation]
+  outcomes:
+    - Estimate the geometry of a double slit and its standard errors by fitting the Fraunhofer model to photon counts
+    - Check a fitting procedure on synthetic data whose true values are known, through the pulls of many independent data sets
+    - Show from the Jacobian and from fits with other assumed values that the wavelength and the size of an aperture cannot be estimated together
+    - Explain why an intensity pattern cannot tell an aperture from its mirror image
+  related: []
+  format: 2
+  preview: fig-fit
+  experiment: pbc.waves.experiments.inverse_optics
+  prerequisites:
+    lessons: [diffraction-and-imaging]
+    outside:
+      - "Statistics: least squares, the chi-square of residuals, and a standard error"
+      - "Linear algebra: the singular values of a matrix"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.waves import inverse
+from pbc.waves.experiments import inverse_optics as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The previous lesson went from an aperture to its diffraction pattern. A
+laboratory usually needs the opposite: a camera records the pattern of a
+grating, a slit, or a crystal, and the question is what made it. How wide are
+the slits, and how far apart? How sure can we be? And are there things about
+the aperture that the pattern cannot tell at all?
+
+This lesson answers these questions on data whose answer is known. The
+"measurement" is synthetic: photon counts on a row of pixels, drawn from the
+exact sum of wavelets of the previous lesson at a finite distance, with the
+noise of counting photons. The model fitted to it is the simpler Fraunhofer
+formula, as it would be for a real measurement, so the model is not the
+generator. The fit is checked as a procedure, not as a single number: it is
+repeated on many independent data sets, and the errors it states must match
+the scatter it shows. Then the lesson looks for the limits of what the
+intensity identifies. A measured diffraction image takes the place of the
+synthetic one in a planned measured-data lab of this course.
+
+## Assumptions
+
+1. **A known wavelength and a known distance.** The light comes from a laser
+   of known wavelength, and the distance from the slits to the detector is
+   measured. The lesson shows what happens when the wavelength is not known.
+2. **Two equal, long slits.** The model has two slits of one width; it does
+   not allow for unequal slits, a tilted slit, or slits of rounded edges. An
+   aperture outside the model would be fitted badly or, worse, well with
+   wrong values.
+3. **Poisson counts and a flat background.** The only noise is the counting
+   of photons, and the background of stray light is the same in every pixel.
+   A real camera adds read noise, a gain, and pixels of unequal response.
+4. **The far field for the model, a finite distance for the data.** The data
+   come from the exact sum of wavelets at the distance of the detector, the
+   model from the Fraunhofer formula. The Fresnel number of the whole
+   aperture is small, and the bias this leaves is measured.
+5. **Pixels as points.** The intensity is taken at the centre of each pixel.
+   A pixel that is wide compared with a fringe would average the fringes and
+   needs the model integrated over the pixel.
+
+## Explanation
+
+### The forward model
+
+Two slits of width $a$ with their centres $d$ apart, in light of
+wavelength $\lambda$, give in the far field the intensity of the previous
+lesson. With an amplitude $A$ and a background $b$ the expected number of
+photons in the direction $s = \sin\theta$ is
+
+$$
+\mu(s) = A\,\mathrm{sinc}^2\!\left(\frac{a s}{\lambda}\right)\cos^2\!\left(\frac{\pi d s}{\lambda}\right) + b,
+\qquad \mathrm{sinc}\,x = \frac{\sin \pi x}{\pi x}.
+$$
+
+A pixel at the height $y$ on a detector at the distance $L$ sees the direction
+$s = y/\sqrt{y^2 + L^2}$. The number of photons it counts is a Poisson number of
+mean $\mu$, with variance $\mu$.
+
+### The fit and its errors
+
+The estimate minimises the chi-square
+
+$$
+\chi^2 = \sum_i \frac{(n_i - \mu_i)^2}{\mu_i}
+$$
+
+over $(A, b, a, d)$, with the counts $n_i$ and the variance of each pixel
+taken from the model. Near the minimum $\chi^2$ is a quadratic form of the
+parameters, and the covariance of the estimate is $(J^\top J)^{-1}$, where $J$
+is the Jacobian of the weighted residuals $(n_i - \mu_i)/\sqrt{\mu_i}$. Its
+diagonal gives the standard errors. For a good fit $\chi^2$ is close to the
+number of pixels minus the number of parameters.
+
+A fit needs a start. The separation is read from the data: the fringes
+$\cos^2(\pi d s/\lambda)$ are a frequency $d/\lambda$ in $s$, the strongest
+in the spectrum of the counts past the envelope. The width then comes from a
+scan of $\chi^2$, and the amplitude and the background from the largest and
+the smallest counts. None of them uses the values the data were made from.
+
+### Checking a procedure: pulls
+
+One fit that lands near the truth shows little. On synthetic data the truth
+is known, and the **pull** $(\hat p - p)/\sigma_{\hat p}$ of each parameter can
+be computed for many independent data sets. If the estimate is unbiased and
+its stated error honest, the pulls have mean zero and spread one. A spread
+above one means errors that are too small; a mean away from zero means a
+bias, here for example from the difference between the generator and the model.
+
+### What the intensity cannot tell
+
+**The wavelength and the size.** The model depends on $a$, $d$, and $\lambda$
+only through $a/\lambda$ and $d/\lambda$. Scaling all three by the same factor
+leaves every $\mu_i$ unchanged. The Jacobian with respect to the logarithms of
+$(A, b, a, d, \lambda)$ then has a column that is minus the sum of two others,
+and one of its singular values is zero: a direction in which the data cannot
+move the estimate. Measured in units of the wavelength the aperture is
+identified; in metres it is not, unless the wavelength is known.
+
+**The phase.** A detector records $|U|^2$, not $U$. The far field of an
+aperture mirrored about its centre is the complex conjugate of the original
+one, so their intensities are equal. Two slits of unequal width and the same
+slits swapped give the same far-field pattern, and no fit to the intensity can
+tell which slit is the wider. Recovering that needs the phase, for example by
+adding a known reference wave, as holography does.
+
+## Code
+
+The model, the residuals, the start, and the fit:
+
+```{python}
+#| echo: false
+excerpt(inverse.double_slit_model)
+```
+
+```{python}
+#| echo: false
+excerpt(inverse.residuals)
+```
+
+```{python}
+#| echo: false
+excerpt(inverse.start)
+```
+
+```{python}
+#| echo: false
+excerpt(inverse.fit)
+```
+
+```{python}
+#| echo: false
+excerpt(inverse.scaled_jacobian)
+```
+
+## Worked examples
+
+### One synthetic measurement
+
+Two slits in the red light of a helium-neon laser, a detector at a distance of
+two metres, and a peak of a few thousand photons per pixel above a background
+of stray light. The data are drawn once with a fixed seed and fitted with the
+known wavelength.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.expected_counts)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.fit_run)
+```
+
+```{python}
+#| label: fit-run
+#| echo: false
+result.table("fit-run")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_fit)
+```
+
+```{python}
+#| label: fig-fit
+#| echo: false
+#| fig-cap: "Synthetic photon counts of a double slit on a row of pixels, from the exact sum of wavelets with Poisson noise, and the fitted Fraunhofer model; below, the residuals in units of their standard deviation, which scatter about zero with no structure."
+#| fig-alt: "Two stacked panels against the direction on the detector. The top panel shows grey points of counts forming bright fringes under a broad envelope with weaker side lobes; a dashed line of the fitted model runs through them. The bottom panel shows the residuals as a band of points scattered evenly about a horizontal line at zero, mostly within two or three units."
+#| fig-status: simulated
+result.show("fig-fit")
+```
+
+[The width and the separation of the slits estimated from one synthetic
+data set lie within four standard errors and within the chosen relative
+tolerance of the values the data were made from.]{.claim
+type="numerically-verified"
+scope="synthetic counts from the sum of wavelets at a finite distance, Poisson noise, a known wavelength and distance"
+evidence="fit-run"}
+The tolerance is `{python} result["relative-tolerance"]` per cent; the standard errors are
+much smaller, `{python} result["separation-relative"]` per cent of the separation and
+`{python} result["width-relative"]` per cent of the width. The fringes fix the
+separation more precisely than the envelope fixes the width. The chi-square
+per degree of freedom is `{python} result["chi2-dof"]` for
+`{python} result["dof"]` degrees of freedom, as expected for a model that
+describes the data within their noise. The data are simulated, and the check
+is the geometry they were made from.
+
+### Are the errors honest?
+
+The fit is repeated on `{python} result["repeats"]` independent data sets drawn
+from the same expected counts.
+
+```{python}
+#| echo: false
+excerpt(experiment.pulls_run)
+```
+
+```{python}
+#| label: pulls-run
+#| echo: false
+result.table("pulls-run")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_pulls)
+```
+
+```{python}
+#| label: fig-pulls
+#| echo: false
+#| fig-cap: "The pulls of the width and of the separation over many independent synthetic data sets, against the unit normal distribution they follow if the fit is unbiased and its errors honest."
+#| fig-alt: "Two histograms of pulls from minus four to four, one for the width and one, hatched, for the separation. Each is bell-shaped and centred on zero, and a dashed unit normal curve follows the bars closely."
+#| fig-status: simulated
+result.show("fig-pulls")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.model_bias)
+```
+
+[Over many independent synthetic data sets the pulls of the width and of the
+separation have a mean within four standard errors of zero and a spread
+within four standard errors of one: the fit is unbiased at that precision and
+its stated errors match its scatter.]{.claim type="numerically-verified"
+scope="the stated detector, light level, and geometry; Poisson noise; a fixed seed"
+evidence="pulls-run"}
+The mean chi-square per degree of freedom over the data sets is
+`{python} result["mean-chi2"]`. The difference between the generator, the exact
+sum at a finite distance, and the Fraunhofer model leaves a bias that a fit to
+the expected counts without noise shows directly: `{python} result["bias-width"]`
+standard errors in the width and `{python} result["bias-separation"]` in the separation,
+too small to see in the pulls. With more light or a closer detector it would
+not stay so. The data are simulated, and the check is the unit normal.
+
+### The wavelength cannot be fitted with the slits
+
+The same data set is fitted three times, each time assuming another
+wavelength. The singular values of the Jacobian are computed with the
+wavelength known and with the wavelength free.
+
+```{python}
+#| echo: false
+excerpt(experiment.degeneracy_run)
+```
+
+```{python}
+#| label: degeneracy-run
+#| echo: false
+result.table("degeneracy-run")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_degeneracy)
+```
+
+```{python}
+#| label: fig-degeneracy
+#| echo: false
+#| fig-cap: "The chi-square of the fit, in false colour on a logarithmic scale, over the assumed wavelength and the separation, with the width scaled with the wavelength. Its minimum is not a point but a valley along a line of constant separation over wavelength (dashed): the data fix only the ratio."
+#| fig-alt: "False-colour map with the assumed wavelength on the horizontal axis and the separation on the vertical axis. Most of the map is bright, meaning a large chi-square. A narrow dark valley runs diagonally from the lower left to the upper right, and a dashed line of constant separation over wavelength runs along its bottom. A colour bar on the right gives the logarithm of the chi-square above its minimum."
+#| fig-status: simulated
+result.show("fig-degeneracy")
+```
+
+[With the wavelength unknown, the intensity of a double slit identifies only
+the ratios of the width and the separation to the wavelength: fits with other
+assumed wavelengths give other slits, the same ratio, and the same
+chi-square.]{.claim type="numerically-verified"
+scope="the Fraunhofer model of two equal slits fitted to one synthetic data set"
+evidence="degeneracy-run"}
+With the wavelength known, the smallest singular value of the scaled Jacobian
+is `{python} result["singular-known"]` of the largest: the four parameters are
+identified. With the wavelength free it is `{python} result["singular-free"]`,
+round-off of the finite differences: one direction is invisible to the data.
+A grating measured in light of an uncertain wavelength has an uncertain period,
+however good the image. The data are simulated, and the check is the exact
+scaling of the model.
+
+### An aperture and its mirror image
+
+Two slits of unequal width, and the same slits mirrored about their centre.
+
+```{python}
+#| echo: false
+excerpt(experiment.mirror_run)
+```
+
+```{python}
+#| label: mirror-run
+#| echo: false
+result.table("mirror-run")
+```
+
+[In the far field an aperture and its mirror image have the same intensity
+pattern, so a fit to the intensity cannot tell which of two unequal slits is
+the wider.]{.claim type="numerically-verified"
+scope="two slits of unequal width, the far field, scalar waves"
+evidence="mirror-run"}
+The far-field intensities agree to round-off, as the conjugate symmetry of the
+far field requires. On the detector at a finite distance they differ, by
+`{python} result["mirror-near"]` of the peak: the Fresnel terms break the symmetry
+a little. In principle a fit with a near-field model could use that; in
+practice so small a difference is buried under the noise and under the errors
+of a real setup. The data are simulated, and the check is the symmetry.
+
+## Limits {#limits}
+
+- **Synthetic data only.** No camera, no measured image. The noise is ideal
+  Poisson noise and the background flat; a real image has read noise,
+  pixel-to-pixel response, saturation, and a background that varies. These
+  would widen the errors and can bias them; the pulls test here does not cover
+  them.
+- **The model is right by construction, up to the far-field step.** The data
+  come from two equal slits, so the model of two equal slits has the right
+  form. A real aperture outside the model can be fitted with a good chi-square
+  and wrong values; a good fit is not evidence that the model is the aperture.
+- **Errors from the curvature of the chi-square.** The standard errors are
+  those of a quadratic minimum. With few photons, or a parameter near a limit
+  of what the data show, the errors are not symmetric and the quadratic form
+  understates them; a profile of the chi-square is then needed.
+- **Identifiability is shown, not exhausted.** Two limits are shown: the
+  wavelength against the size, and the mirror image. A narrow detector that
+  sees only the central fringes is a third, in the first exercise.
+
+::: {.exercise .self-check}
+A fit of a double-slit pattern gives a separation of $d$ with a small
+standard error, and the chi-square is good. Later you learn that the laser
+was not the one you thought, and its wavelength is a tenth larger. What is
+your best estimate of the separation now?
+
+::: {.choices}
+::: {.choice}
+Still $d$: the fit was good, so the separation is right.
+
+::: {.feedback}
+The fit was good for any wavelength. The data fix $d/\lambda$, not $d$.
+:::
+:::
+
+::: {.choice correct="true"}
+A tenth larger than $d$, with the same relative error.
+
+::: {.feedback}
+Correct: the pattern fixes $d/\lambda$, so $d$ scales with the wavelength.
+A refit would give the same chi-square with the new value.
+:::
+:::
+
+::: {.choice}
+Unknown: the whole fit has to be redone from new data.
+
+::: {.feedback}
+The data are fine; only the conversion from units of the wavelength to
+metres changes, and that is a scaling.
+:::
+:::
+:::
+
+::: {.solution}
+The model depends on $d$ and $\lambda$ only through $d/\lambda$. The fit
+measured that ratio, and the separation in metres is the ratio times the
+wavelength. With a wavelength larger by a tenth, the separation is larger by a
+tenth, and so are the width and the standard errors.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A narrow detector.** Fit the same data using only the central pixels: all
+of them, the central [800]{.given}, and the central [200]{.given}. How do the
+standard errors of the width and of the separation change?
+
+::: {.hint}
+The width is set by the envelope, the separation by the fringes. Which of the
+two does a narrow window still show?
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.narrow_window)
+```
+
+The standard error of the width grows from `{python} result["window-2000-width"]` µm
+with all pixels to `{python} result["window-800-width"]` µm and then to
+`{python} result["window-200-width"]` µm; that of the separation from
+`{python} result["window-2000-separation"]` µm to `{python} result["window-800-separation"]` µm
+and `{python} result["window-200-separation"]` µm. The central fringes still show
+the separation, but they barely show the envelope, so the width becomes almost
+unidentified when the window does not reach the first zeros of one slit.
+:::
+:::
+
+::: {.exercise}
+**Less light.** Repeat the fit with a tenth of the light from the slits and
+the same background. By what factor does the standard error of the separation
+grow? Why not by the square root of ten?
+
+::: {.hint}
+Where does the background start to matter?
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.fewer_photons)
+```
+
+The standard error grows by `{python} result["dim-ratio"]`, more than the square root
+of ten, `{python} result["sqrt-ten"]`. The background is unchanged, so in the dark
+fringes and the side lobes it now dominates the counts, and those pixels carry
+less information than before. Only when the signal dominates everywhere does
+the error scale as one over the square root of the light.
+:::
+:::
+
+::: {.exercise}
+**The wavelength as a limit.** Suppose the wavelength of the laser is known
+only to [1 nm]{.given}. What uncertainty does that put on the separation, and
+how does it compare with the statistical error of the fit?
+
+::: {.hint}
+Only $d/\lambda$ is measured; propagate a relative error.
+:::
+
+::: {.solution}
+The relative uncertainty of $d$ is at least that of $\lambda$, so the
+separation is uncertain by `{python} result["laser-limit"]` µm, more than ten
+times the statistical error of `{python} result["statistical"]` µm. The
+precision of this measurement is set by the knowledge of the wavelength, not
+by the photons.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/waves/inverse.py",
+        "src/pbc/waves/diffraction.py",
+        "src/pbc/waves/experiments/inverse_optics.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_optics.py",
+        "tests/unit/test_inverse_optics_experiment.py",
+    ],
+)
+```

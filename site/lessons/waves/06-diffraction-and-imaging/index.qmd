@@ -1,0 +1,590 @@
+---
+title: "Diffraction and imaging"
+description: >-
+  Light through slits, gratings, and a round aperture as a sum of wavelets:
+  the zeros and the maxima of the pattern and the fringe spacing checked
+  against their formulas, the Airy pattern and the Rayleigh limit of an
+  instrument, the resolving power of a grating, and the distance at which the
+  far-field pattern holds.
+lesson:
+  id: diffraction-and-imaging
+  strand: waves
+  order: 6
+  difficulty: 2
+  course: waves
+  slot: W5
+  methods: [simulation]
+  outcomes:
+    - Compute the diffraction pattern of slits and gratings by adding the wavelets of the aperture, and check its zeros, maxima, and fringe spacing against the formulas
+    - Compute the Airy pattern of a round aperture and use it to explain the Rayleigh limit of a telescope or an eye
+    - Decide from the resolving power whether a grating separates two close wavelengths
+    - Estimate with the Fresnel number when the far-field pattern describes what a screen shows
+  related: []
+  format: 2
+  preview: fig-slits
+  experiment: pbc.waves.experiments.diffraction_and_imaging
+  prerequisites:
+    lessons: [interference-and-resonance, refraction-and-snells-law]
+    outside:
+      - "Complex numbers: the form exp(i x) of a wave and the modulus of a sum"
+      - "Trigonometry: the sine of a small angle, and the angle from a distance on a screen"
+      - "Calculus: an integral as the limit of a sum of small pieces"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.waves import diffraction
+from pbc.waves.experiments import diffraction_and_imaging as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+Shine a laser pointer through a narrow slit and the spot on the wall becomes
+a row of bright and dark patches, wider the narrower the slit. Look at a
+street light through a fine curtain and it spreads into a cross of colours.
+And no telescope, however well made, shows a star as a point. All three are
+diffraction: a wave that passes an opening spreads, and the parts of it
+interfere.
+
+This lesson computes the patterns. The aperture is cut into many small pieces,
+each piece sends a wavelet, and the program adds the wavelets with their
+phases, as the previous lesson added the waves of two sources. No formula of a
+pattern is used; the formulas for the zeros and the maxima are compared with
+afterwards. The lesson then turns to what diffraction does to an instrument:
+it sets the smallest angle a telescope can separate and the closest
+wavelengths a grating can tell apart. Gratings return in a planned
+measured-data lab of this course, which is to infer a grating from a
+photograph of its pattern.
+
+## Assumptions
+
+1. **Scalar waves of one wavelength.** One component of the field is
+   computed, as if the polarisation did not matter. That holds for openings
+   much larger than the wavelength and for small angles; near an edge on the
+   scale of a wavelength the polarisation matters.
+2. **The Kirchhoff picture of an aperture.** In the opening the wave is the
+   incident plane wave, and on the screen around it the wave is zero. Each
+   piece of the opening is a source of a wavelet. The real field near the
+   edges differs, which changes the pattern at large angles only.
+3. **Long slits.** The slits are long compared with their width, so the
+   problem is in a plane and a wavelet is a cylindrical wave. The round
+   aperture is the exception, and it is computed with its own integral.
+4. **The far field or the focus of a lens.** Most results are for a screen
+   so far away, or in the focal plane of a lens, that only the direction of
+   a ray matters. The last example measures how far away is far enough.
+5. **Point sources that do not interfere.** For the resolution of an
+   instrument, two stars or two lines of a lamp add their intensities, not
+   their fields.
+
+## Explanation
+
+### Adding the wavelets
+
+Cut the aperture into pieces of width $\Delta x$ at the positions $x_j$.
+A piece sends a wavelet $e^{ikr}/\sqrt{r}$, with $k = 2\pi/\lambda$, to a
+point at the distance $r$. The field at the point is the sum
+
+$$
+U = \sum_j \frac{e^{ikr_j}}{\sqrt{r_j}}\,\Delta x .
+$$
+
+The program computes this with the exact distance from every piece, which
+holds at any distance from the aperture. Far away, in the direction
+$\theta$, the distances differ from that of the centre by $-x_j\sin\theta$,
+and the sum becomes
+
+$$
+U(\theta) = \sum_j e^{-ikx_j\sin\theta}\,\Delta x ,
+$$
+
+the **Fraunhofer** pattern, the one a lens forms in its focal plane. As the
+pieces become small it is the Fourier transform of the aperture.
+
+### Slits and gratings
+
+For one slit of width $a$ the sum is a geometric series, and it vanishes
+when the slit can be split into pairs of pieces half a wavelength apart in
+path. The zeros are at
+
+$$
+\sin\theta = \frac{m\lambda}{a}, \qquad m = \pm1, \pm2, \dots
+$$
+
+Two slits a distance $d$ apart multiply this by the pattern of two sources
+of the previous lesson, $\cos^2(\pi d\sin\theta/\lambda)$, which adds zeros
+at $\sin\theta = (m + \tfrac12)\lambda/d$. On a flat screen at the distance $L$
+they are spaced by
+
+$$
+\Delta y \approx \frac{\lambda L}{d}
+$$
+
+for small angles. $N$ slits with the period $d$, a **grating**, have sharp
+principal maxima where all slits add in phase,
+
+$$
+d\sin\theta = m\lambda ,
+$$
+
+of the width $\lambda/(Nd)$ in $\sin\theta$. The single-slit pattern is an
+envelope over them: where an envelope zero falls on a principal maximum, that
+order is **missing**.
+
+### Instruments: the Airy pattern and the Rayleigh limit
+
+A lens or a mirror of diameter $D$ is a round aperture, and the image of a
+point is its far-field pattern, the **Airy pattern**: a bright disc and faint
+rings. In polar coordinates the sum over the aperture becomes an integral
+over rings with the Bessel function $J_0$,
+
+$$
+U(\theta) \propto \int_0^{D/2} J_0(k r\sin\theta)\, r\,dr ,
+$$
+
+which the program evaluates as a sum over thin rings. Its first zero, the
+edge of the bright disc, is at
+
+$$
+\sin\theta = 1.21967\,\frac{\lambda}{D},
+$$
+
+where $1.21967$ is the first zero of $J_1$ divided by $\pi$. Two points that
+do not interfere are images of two Airy patterns, and Rayleigh's criterion
+calls them resolved when one centre falls on the first zero of the other. It
+is a convention: the dip between the two peaks is then about a quarter, which
+an eye can see.
+
+### The resolving power of a grating
+
+Two wavelengths $\lambda$ and $\lambda + \Delta\lambda$ in the order $m$ of a
+grating are separated when the maximum of one falls on the first zero beside
+the maximum of the other, which gives
+
+$$
+\frac{\lambda}{\Delta\lambda} = mN .
+$$
+
+The resolving power grows with the number of lit slits, not with their
+density.
+
+### When the far field holds
+
+At a finite distance $L$ the path from a piece of an opening of width $a$
+differs from the far-field path by about $x^2/(2L)$, a phase of the order of
+$\pi a^2/(4\lambda L)$. The **Fresnel number** $N_F = a^2/(\lambda L)$ says
+how large that is. The quadratic phase is even across a symmetric opening and
+changes the intensity only at second order, so the departure from the
+Fraunhofer pattern should fall as $N_F^2$; the last example measures it.
+
+## Code
+
+The aperture, the two sums of wavelets, and the round aperture:
+
+```{python}
+#| echo: false
+excerpt(diffraction.aperture)
+```
+
+```{python}
+#| echo: false
+excerpt(diffraction.slits)
+```
+
+```{python}
+#| echo: false
+excerpt(diffraction.far_field)
+```
+
+```{python}
+#| echo: false
+excerpt(diffraction.field_at)
+```
+
+```{python}
+#| echo: false
+excerpt(diffraction.huygens_field)
+```
+
+```{python}
+#| echo: false
+excerpt(diffraction.circular_field)
+```
+
+```{python}
+#| echo: false
+excerpt(diffraction.two_points)
+```
+
+## Worked examples
+
+### Zeros and maxima of slits and a grating
+
+Red laser light passes one slit, two slits, and a grating of ten narrow
+slits. The zeros and the maxima are found by searching the computed
+intensity near each closed-form position, with a golden-section search; for a
+maximum the search minimises the negative intensity.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="slits")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.located)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.slits_run)
+```
+
+```{python}
+#| label: slits-run
+#| echo: false
+result.table("slits-run")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_slits)
+```
+
+```{python}
+#| label: fig-slits
+#| echo: false
+#| fig-cap: "The far-field intensity of one slit, two slits, and a grating of ten slits, each computed as a sum of wavelets. The dotted lines are the closed forms: the zeros of one slit, the zeros of two slits within the central lobe, and the orders of the grating, including the fourth, which the envelope of one slit removes."
+#| fig-alt: "Three stacked panels of intensity against the direction on the screen. The top panel shows one broad central peak with small side lobes; dotted lines pass through every zero between them. The middle panel shows many narrow fringes under the same kind of envelope, with dotted lines through the dark fringes in the centre. The bottom panel shows sharp peaks at evenly spaced dotted lines, their heights falling outwards, and no peak at the outermost dotted lines."
+#| fig-status: simulated
+result.show("fig-slits")
+```
+
+[The zeros of the sum of wavelets of one slit and of two slits lie at
+$m\lambda/a$ and $(m + \tfrac12)\lambda/d$ in $\sin\theta$, and the principal
+maxima of a grating at $m\lambda/d$, shifted only by a small fraction of
+their width by the envelope of one slit.]{.claim
+type="numerically-verified"
+scope="the far field of long slits, scalar waves, red light"
+evidence="slits-run"}
+The relative difference of the zeros is `{python} result["zero-gap"]`,
+within the chosen tolerance of `{python} result["zero-tolerance"]`. The maxima of
+the grating are pulled towards the centre by up to `{python} result["grating-shift"]`
+per cent of their width, because the envelope of one slit falls across each
+peak: a real effect, which a measurement of the orders of a grating has to
+allow for. At the fourth order the intensity is `{python} result["missing-order"]`
+of the centre, since the slits are a quarter of the period wide. The data are
+simulated, and the check is the closed forms.
+
+### The fringes on a screen
+
+The zeros of the two slits are placed on a flat screen at the distance
+[1 m]{.given} by $y = L\tan\theta$.
+
+```{python}
+#| echo: false
+excerpt(experiment.spacing_run)
+```
+
+```{python}
+#| label: spacing-run
+#| echo: false
+result.table("spacing-run")
+```
+
+[The dark fringes of two slits on a distant flat screen are spaced by
+$\lambda L/d$ near the axis.]{.claim type="numerically-verified"
+scope="the far field, ten fringes about the axis, small angles"
+evidence="spacing-run"}
+The mean spacing is `{python} result["spacing"]` mm, against
+$\lambda L/d =$ `{python} result["paraxial"]` mm, a difference of
+`{python} result["spacing-gap"]` per cent. The difference is that of the small-angle
+form; it grows as the square of the angle for fringes further out. The data
+are simulated, and the check is the formula.
+
+### The resolution of a telescope
+
+A telescope of [10 cm]{.given} aperture in green light. The first zero of the
+Airy pattern is found by bisection, and two stars are imaged at four
+separations.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="imaging")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.airy_run)
+```
+
+```{python}
+#| label: airy-run
+#| echo: false
+result.table("airy-run")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_airy_rayleigh)
+```
+
+```{python}
+#| label: fig-airy-rayleigh
+#| echo: false
+#| fig-cap: "Left: the Airy pattern of a round aperture, with its first zeros dotted. Right: the image of two points that do not interfere, at three separations; at the Rayleigh separation the dip between them is about a quarter of the peak."
+#| fig-alt: "Two panels against the direction in units of lambda over D. The left panel shows a single central peak with faint rings, and dotted vertical lines at its first zeros on either side. The right panel shows three curves of two merged peaks: the solid curve for the smallest separation is nearly flat on top, the dashed curve for the Rayleigh separation has a clear dip in the middle, and the dash-dotted curve for the largest separation has two distinct peaks with a deep dip."
+#| fig-status: simulated
+result.show("fig-airy-rayleigh")
+```
+
+[The first zero of the Airy pattern, computed from its radial integral, is
+at $1.21967\,\lambda/D$, and two points at that separation give an image whose
+centre is below its peaks.]{.claim type="numerically-verified"
+scope="a round aperture without obstruction, the far field, two points that do not interfere"
+evidence="airy-run"}
+The zero is at `{python} result["airy-zero"]` $\lambda/D$, against
+`{python} result["airy-closed"]`. At the Rayleigh separation the centre of the image is
+`{python} result["rayleigh-dip"]` of its peak. At smaller separations the dip shrinks
+and then vanishes; there is no sharp limit, which is why the criterion is a
+convention. The data are simulated, and the check is the zero of $J_1$.
+
+### Separating the sodium doublet
+
+The yellow light of sodium is two lines a little over half a nanometre apart.
+A grating of [500 lines per mm]{.given} separates them in the first order if
+enough of its slits are lit.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="doublet")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.doublet_image)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.doublet_run)
+```
+
+```{python}
+#| label: doublet-run
+#| echo: false
+result.table("doublet-run")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_doublet)
+```
+
+```{python}
+#| label: fig-doublet
+#| echo: false
+#| fig-cap: "The first-order image of the sodium doublet through a grating with three numbers of lit slits. With too few slits the two lines merge into one peak; at the resolving power of the doublet a dip appears; with twice as many the lines are apart."
+#| fig-alt: "Plot of intensity against the direction near the first order of a grating. Two thin vertical lines mark the two wavelengths. A dotted curve for the fewest slits is a single broad peak between them. A dashed curve for the middle number has two peaks on the lines with a shallow dip between. A solid curve for the most slits has two narrow, separate peaks on the lines."
+#| fig-status: simulated
+result.show("fig-doublet")
+```
+
+[A grating separates two wavelengths in the order $m$ when $mN$ reaches
+$\lambda/\Delta\lambda$.]{.claim type="numerically-verified"
+scope="the sodium doublet, the first order, three numbers of lit slits"
+evidence="doublet-run"}
+The doublet needs $\lambda/\Delta\lambda =$ `{python} result["needed"]` slits in the
+first order. With that number the intensity between the lines falls to
+`{python} result["dip-limit"]` of the peaks, the same kind of dip as Rayleigh's; with
+fewer there is none, and with more the lines separate fully. The data are
+simulated, and the check is the resolving power.
+
+### How far is far
+
+A slit of a tenth of a millimetre, red light, and a screen on an arc at seven
+distances. The pattern of the exact sum of wavelets at each distance is
+compared with the far-field pattern.
+
+```{python}
+#| echo: false
+excerpt(experiment.fraunhofer_run)
+```
+
+```{python}
+#| label: fraunhofer-run
+#| echo: false
+result.table("fraunhofer-run")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_fraunhofer_limit)
+```
+
+```{python}
+#| label: fig-fraunhofer-limit
+#| echo: false
+#| fig-cap: "The largest departure of the pattern at a finite distance from the far-field pattern, against the Fresnel number, log-log. It falls as the square of the Fresnel number; the dotted reference line of slope two is drawn above the points."
+#| fig-alt: "Log-log plot of the largest departure of the intensity against the Fresnel number from one hundredth to one. Markers joined by a line fall along a straight line; a dotted reference line of slope two runs parallel to it, a little above."
+#| fig-status: simulated
+result.show("fig-fraunhofer-limit")
+```
+
+[The pattern at a finite distance departs from the Fraunhofer pattern by
+an amount that falls as the square of the Fresnel number.]{.claim
+type="numerically-verified"
+scope="one slit, Fresnel numbers from one hundredth to one, three zeros on each side"
+evidence="fraunhofer-run"}
+The fitted slope over the four smallest Fresnel numbers is
+`{python} result["fresnel-slope"]`. At a Fresnel number of one tenth the departure is
+`{python} result["departure-small"]` of the central intensity; at one it is
+`{python} result["departure-one"]` per cent, and the pattern is no longer the far-field
+one. A laser and a slit on a desk are therefore in the far field only for
+narrow slits or a distant wall. The data are simulated, and the check is
+the far-field pattern.
+
+## Limits {#limits}
+
+- **Scalar Kirchhoff diffraction.** The model ignores the polarisation and
+  takes the field in the opening as undisturbed. It describes small angles
+  and openings much wider than the wavelength. Openings of the size of a
+  wavelength need Maxwell's equations at the edges.
+- **Perfect optics.** The telescope has no obstruction, no aberration, and
+  no atmosphere. For a ground-based telescope larger than a few tens of
+  centimetres, the turbulence of the air, not diffraction, sets the limit.
+- **The criteria are conventions.** Rayleigh's criterion and the resolving
+  power describe when an eye or a simple reading separates two peaks. A fit
+  of a model to a measured image can separate closer points, if the noise
+  allows it: that is the subject of the next lesson.
+- **Simulated patterns.** Nothing here is measured. A planned measured-data
+  lab of this course is to compare a photographed grating pattern with this
+  model.
+
+::: {.exercise .self-check}
+A slit is made narrower. What happens to the diffraction pattern in the far
+field?
+
+::: {.choices}
+::: {.choice}
+It becomes narrower, as the beam through the slit is narrower.
+
+::: {.feedback}
+The beam is narrower just behind the slit, but it spreads more: the zeros
+are at $m\lambda/a$, which grows as $a$ shrinks.
+:::
+:::
+
+::: {.choice correct="true"}
+It spreads wider, and it becomes fainter.
+
+::: {.feedback}
+Correct: the angular width of the central peak is about $2\lambda/a$, and a
+narrower slit lets less light through.
+:::
+:::
+
+::: {.choice}
+It does not change; only the brightness changes.
+
+::: {.feedback}
+The positions of the zeros depend on the width of the slit.
+:::
+:::
+:::
+
+::: {.solution}
+The far-field pattern is the Fourier transform of the aperture, and a
+narrower function has a wider transform. The first zeros, at
+$\sin\theta = \pm\lambda/a$, move outwards as $a$ falls, and the power through
+the slit falls in proportion to $a$. This is the reason a pinhole camera has
+an optimum pinhole: smaller holes make a sharper shadow but a wider
+diffraction blur.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A telescope and two headlights.** What is the smallest angle, in seconds of
+arc, that a telescope of [10 cm]{.given} aperture separates in green light of
+[550 nm]{.given}? From how far away could it separate the two headlights of a
+car, [1.5 m]{.given} apart?
+
+::: {.hint}
+Use the Rayleigh criterion, and the small-angle relation between an angle,
+a separation, and a distance.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.telescope)
+```
+
+The smallest angle is `{python} result["telescope-arcsec"]` seconds of arc, and
+the headlights merge beyond about `{python} result["telescope-km"]` km, if the air
+were perfectly still.
+:::
+:::
+
+::: {.exercise}
+**The eye.** Do the same for the pupil of an eye, [3 mm]{.given} across.
+
+::: {.hint}
+Only the diameter changes.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.eye)
+```
+
+The smallest angle is `{python} result["eye-arcmin"]` minutes of arc, close to the
+resolution of a sharp eye, and the headlights merge at about
+`{python} result["eye-km"]` km. The spacing of the receptors in the retina is
+matched to this diffraction limit.
+:::
+:::
+
+::: {.exercise}
+**The width of a hair.** A hair in a red laser beam of [633 nm]{.given}
+gives dark fringes [2.5 cm]{.given} apart on a wall [2 m]{.given} away. How
+thick is the hair?
+
+::: {.hint}
+By Babinet's principle a hair diffracts like a slit of the same width. Use
+the spacing of the zeros of one slit.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.hair)
+```
+
+The zeros of one slit are spaced by $\lambda L/a$, so the hair is
+`{python} result["hair-um"]` micrometres thick, the thickness of a typical human hair.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/waves/diffraction.py",
+        "src/pbc/waves/refraction.py",
+        "src/pbc/waves/experiments/diffraction_and_imaging.py",
+        "src/pbc/verification/estimates.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_optics.py",
+        "tests/unit/test_diffraction_and_imaging_experiment.py",
+    ],
+)
+```
