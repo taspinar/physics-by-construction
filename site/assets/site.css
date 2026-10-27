@@ -936,7 +936,8 @@ main button:focus-visible,
 }
 
 /* A label with a scope can be longer than a phone screen. */
-.claim-statement > .claim {
+.claim-statement > .claim,
+div.claim .claim {
   white-space: normal;
 }
 

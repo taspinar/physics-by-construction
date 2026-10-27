@@ -17,6 +17,11 @@ the unknowns.
 The residual K u - F of the full system, which vanishes at the free nodes,
 is at a fixed node the heat that flows into the domain there: the boundary
 flux consistent with the discrete balance.
+
+The mass matrix M, the integral of c phi_i phi_j, adds what the steady
+problem lacks: heat stored, c du/dt, for a transient (``pbc.fem.transient``),
+and heat exchanged at every point with a fluid, c (u - g), for a thin plate
+cooled over its face.
 """
 
 from collections.abc import Callable
@@ -71,15 +76,37 @@ def _scatter(mesh: Mesh, local: Array) -> sparse.csr_matrix:
     return sparse.coo_matrix((local.ravel(), (rows, cols)), shape=(n, n)).tocsr()
 
 
-def stiffness(mesh: Mesh, conductivity: float = 1.0) -> sparse.csr_matrix:
+def per_triangle(mesh: Mesh, coefficient: float | Array) -> Array:
+    """A coefficient as one value per triangle: a constant is repeated, an
+    array of one value per triangle is taken as it is."""
+    values = np.asarray(coefficient, dtype=float)
+    if values.ndim == 0:
+        return np.full(len(mesh.triangles), float(values))
+    if values.shape != (len(mesh.triangles),):
+        raise ValueError("a coefficient is a constant or one value per triangle")
+    return values
+
+
+def stiffness(mesh: Mesh, conductivity: float | Array = 1.0) -> sparse.csr_matrix:
     """K_ij = integral of k grad phi_i . grad phi_j, triangle by triangle:
-    k A times the dot products of the constant gradients (W/K)."""
+    k A times the dot products of the constant gradients (W/K). The
+    conductivity is a constant or one value per triangle, so that a part of
+    the domain can be another material."""
     grad = gradients(mesh)
-    local = (
-        conductivity
-        * np.abs(areas(mesh))[:, None, None]
-        * np.einsum("tia,tja->tij", grad, grad)
-    )
+    weight = per_triangle(mesh, conductivity) * np.abs(areas(mesh))
+    local = weight[:, None, None] * np.einsum("tia,tja->tij", grad, grad)
+    return _scatter(mesh, local)
+
+
+def mass(mesh: Mesh, coefficient: float | Array = 1.0) -> sparse.csr_matrix:
+    """M_ij = integral of c phi_i phi_j, with c a constant or one value per
+    triangle: c A / 12 times [[2, 1, 1], [1, 2, 1], [1, 1, 2]] on every
+    triangle, exact for linear hats. With c the heat capacity per unit
+    volume it stores heat; with c a coefficient of exchange it couples every
+    point of the domain to a fluid, as h couples a convective edge. Its
+    entries sum to the integral of c."""
+    weight = per_triangle(mesh, coefficient) * np.abs(areas(mesh)) / 12.0
+    local = weight[:, None, None] * (np.ones((3, 3)) + np.eye(3))
     return _scatter(mesh, local)
 
 
@@ -117,13 +144,22 @@ def convection(
     rows = np.repeat(edges, 2, axis=1).ravel()
     cols = np.tile(edges, (1, 2)).ravel()
     matrix = sparse.coo_matrix((local.ravel(), (rows, cols)), shape=(n, n)).tocsr()
-    vector = np.zeros(n)
+    return matrix, edge_load(mesh, edges, lambda x, y: h * ambient(x, y))
+
+
+def edge_load(mesh: Mesh, edges: Indices, flux: Field) -> Array:
+    """The integral of g phi_i along the edges, with g(x, y) (W/m^2, or W/m
+    per unit depth) at two Gauss points per edge: a heat flux into the domain
+    through a part of its boundary."""
+    a, b = mesh.nodes[edges[:, 0]], mesh.nodes[edges[:, 1]]
+    length = np.linalg.norm(b - a, axis=1)
+    vector = np.zeros(len(mesh.nodes))
     for s in _EDGE_POINTS:
         point = (1.0 - s) * a + s * b
-        g = h * ambient(point[:, 0], point[:, 1]) * 0.5 * length
+        g = flux(point[:, 0], point[:, 1]) * 0.5 * length
         np.add.at(vector, edges[:, 0], g * (1.0 - s))
         np.add.at(vector, edges[:, 1], g * s)
-    return matrix, vector
+    return vector
 
 
 def solve(

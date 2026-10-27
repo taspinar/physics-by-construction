@@ -150,15 +150,23 @@ def test_planned_concepts_are_labelled_and_never_link_a_lesson(page: Page):
     assert slots.locator("a").count() == 0
 
 
-def test_the_capstones_are_planned_with_the_manifests_description(page: Page):
+def test_the_capstones_show_their_state_with_the_manifests_description(page: Page):
     items = page.locator(".atlas-capstone-item")
     assert items.count() == 3
+    published = {lesson.slot: lesson for lesson in ATLAS.path.lessons if lesson.slot}
     for item in items.all():
         label = item.get_attribute("data-slot")
-        assert "Planned, not published." in item.inner_text()
         description = item.locator(".capstone-description").inner_text()
         assert description == ATLAS.manifest.capstone(label).explanation
-        assert item.locator(".atlas-capstone-name a").count() == 0
+        links = item.locator(".atlas-capstone-name a")
+        if label in published:
+            assert "Published." in item.inner_text()
+            assert links.count() == 1
+            href = "../" + published[label].page.removesuffix(".qmd") + ".html"
+            assert links.get_attribute("href") == href
+        else:
+            assert "Planned, not published." in item.inner_text()
+            assert links.count() == 0
     # EM9 stays in the index of its course as a planned slot (in a closed
     # disclosure, so read by its text, not as rendered).
     em9 = page.locator("main section#course-electromagnetism li.planned-slot")
