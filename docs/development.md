@@ -1060,7 +1060,10 @@ The full interface is:
 It uses role `reviewer` with the `read-only` profile. The review is
 non-interactive: the reviewer cannot modify files and has no network access, so
 the script supplies the GitHub Issue and the complete diff against the base
-branch, including uncommitted and untracked changes. The reviewer returns its
+branch, including uncommitted and untracked changes. A dataset sample under
+`data/samples/` larger than 64 KB is left out of that diff and listed by its
+path, size, and sha256 instead; it stays part of the reviewed content and of
+every verification. The reviewer returns its
 result as JSON and the script validates and stores it. An invalid result is
 retried once and then rejected, and a reviewer that changed the working tree or
 created a commit is reported as an error; in both cases no review is stored.

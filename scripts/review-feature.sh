@@ -347,6 +347,31 @@ if [[ "$changes_only" -eq 1 ]]; then
     git -C "$root" diff --no-color "$previous_tree" "$reviewed_tree"
   } >"$context_file"
 else
+  # A measured dataset sample is a table of numbers that the reviewer cannot
+  # usefully read and that can exceed the length of its input (Issue #312): a
+  # sample under data/samples/ larger than the threshold is left out of the
+  # diff and listed by path, size, and sha256 from the reviewed content. It
+  # stays in the reviewed tree and the fingerprint.
+  sample_dir="data/samples"
+  sample_limit=65536
+  if command -v sha256sum >/dev/null 2>&1; then
+    sample_sum=(sha256sum)
+  else
+    sample_sum=(shasum -a 256)
+  fi
+  diff_paths=("${review_paths[@]}")
+  omitted_samples=()
+  while IFS= read -r -d '' sample; do
+    sample_size="$(GIT_INDEX_FILE="$tmp_work/index.before" git -C "$root" cat-file -s ":$sample")" ||
+      fail "could not read the size of $sample."
+    [[ "$sample_size" -gt "$sample_limit" ]] || continue
+    sample_digest="$(GIT_INDEX_FILE="$tmp_work/index.before" git -C "$root" cat-file blob ":$sample" |
+      "${sample_sum[@]}" | cut -d' ' -f1)" ||
+      fail "could not compute the sha256 of $sample."
+    diff_paths+=(":(exclude,literal)$sample")
+    omitted_samples+=("$(printf '%s\t%s\t%s' "$sample" "$sample_size" "$sample_digest")")
+  done < <(GIT_INDEX_FILE="$tmp_work/index.before" git -C "$root" diff --cached --name-only -z --no-renames \
+    --diff-filter=d "$merge_base" -- "$sample_dir")
   {
     echo "# Review context for Issue #$issue"
     echo
@@ -356,11 +381,24 @@ else
     echo
     echo "## Changed files"
     echo
-    GIT_INDEX_FILE="$tmp_work/index.before" git -C "$root" diff --cached --stat --no-color "$merge_base" -- "${review_paths[@]}"
+    GIT_INDEX_FILE="$tmp_work/index.before" git -C "$root" diff --cached --stat --no-color "$merge_base" -- "${diff_paths[@]}"
     echo
     echo "## Complete diff against $base_ref, including uncommitted and untracked changes"
     echo
-    GIT_INDEX_FILE="$tmp_work/index.before" git -C "$root" diff --cached --no-color "$merge_base" -- "${review_paths[@]}"
+    GIT_INDEX_FILE="$tmp_work/index.before" git -C "$root" diff --cached --no-color "$merge_base" -- "${diff_paths[@]}"
+    if [[ "${#omitted_samples[@]}" -gt 0 ]]; then
+      echo
+      echo "## Dataset samples not shown in the diff"
+      echo
+      echo "These files under $sample_dir/ are larger than $sample_limit bytes. They are part"
+      echo "of the reviewed content and of every verification; the diff above leaves them"
+      echo "out. Path, size in bytes, and sha256 in the reviewed content:"
+      echo
+      for omitted in "${omitted_samples[@]}"; do
+        IFS=$'\t' read -r sample sample_size sample_digest <<<"$omitted"
+        echo "- $sample: $sample_size bytes, sha256 $sample_digest"
+      done
+    fi
   } >"$context_file"
 fi
 
