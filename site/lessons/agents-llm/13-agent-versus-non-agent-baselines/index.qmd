@@ -1,0 +1,389 @@
+---
+title: "The agent against methods without one"
+description: >-
+  On the three systems of the discovery benchmark, the agent's claim is set
+  beside a plain model that cannot measure, random selection with least
+  squares, a grid with least squares, and a grid with a symbolic fit; the
+  build scores them all with one judge and says which comparisons are fair.
+lesson:
+  id: agent-versus-non-agent-baselines
+  strand: agents-llm
+  order: 13
+  difficulty: 3
+  course: mechanics
+  slot: EV3
+  experiment: pbc.mechanics.experiments.agent_versus_non_agent_baselines
+  methods: [simulation, llm-agents]
+  outcomes:
+    - Set an agent beside a plain model, random selection, and symbolic fitting on the same systems, budgets, and judge
+    - Separate what the tools add from what the model already knows, with a plain model as the control
+    - Recognise a comparison made unfair by a difference in budget, and say what it measures instead
+    - Explain why a method that can be rerun on many seeds is easier to rank than one recorded run
+  related: []
+  format: 2
+  preview: fig-agent-versus-baselines
+  prerequisites:
+    lessons: [interactive-discovery-benchmarks]
+    outside:
+      - "Statistics: least squares and the chi-square of residuals"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.mechanics.experiments import agent_versus_non_agent_baselines as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+An agent that discovers a law by experiment has two things a plain fit does
+not: a language model that knows a lot of physics, and tools that let it
+choose its own experiments. Is the combination better than simpler methods?
+The honest answer depends on what "better" is measured against, and the
+comparisons are easy to rig by accident.
+
+This lesson sets the agent of the discovery benchmark beside four methods on
+the same three simulated systems: a **plain model**, the same language model
+with the same task but no way to measure; **random selection**, settings drawn
+at random and fitted by least squares; a **grid** of settings fitted by least
+squares; and a grid fitted by **sparse identification**, the symbolic fit of
+the discovery package. One judge scores them all on the same held-out
+settings, and the build checks, for every row, whether the comparison with the
+agent is one the protocol allows.
+
+## Assumptions
+
+1. **The systems and the judge are those of the benchmark.** The projectile,
+   the spring, and the central force, each under its protocol: the same hidden
+   value, held-out settings, seed, and tolerance for every method. A method
+   recovers the law when its claim's held-out error is at most
+   `{python} result["tolerance"]`, and a baseline only when its fit is also
+   consistent with the noise.
+2. **The agent is the partial condition.** On each system the agent's run is
+   the run of the benchmark in which it was told the names of the parameters
+   to report, but not the form of the law.
+3. **The plain model gets the same task.** Its task text is the agent's; its
+   system prompt says that it cannot measure, and its only tool is `submit`. It
+   was recorded once on each system, like the agent.
+4. **A budget is the number of probes allowed.** The agent and the baselines
+   are each allowed `{python} result["budget"]` probes. The baselines spend
+   all of them; the agent spends what it chooses. A method allowed a different
+   number is a different comparison, and the build says so.
+5. **The baselines are deterministic.** Each is a fixed procedure with a fixed
+   seed, so it gives the same result on every build and can be rerun on any
+   number of seeds at no cost.
+
+## What each comparison measures {#explanation}
+
+Each method differs from the agent in a known way, and the comparison measures
+exactly that difference:
+
+- **Plain model**: it has no probes, so the comparison measures what the
+  experiments add to what the model knows.
+- **Random selection**: the settings are not chosen, so it measures what
+  choosing the experiments adds.
+- **Grid with least squares**: the settings are fixed in advance, so it
+  measures the same against a regular design.
+- **Grid with sparse identification**: the form of the law is searched for,
+  not given, so it measures what the model's knowledge of forms adds.
+
+A comparison is **meaningful** when nothing else differs: the same system, the
+same hidden world, the same held-out settings and tolerance, and the same
+number of probes allowed. The build's check, `comparable`, reads these from
+the protocols of the two entries:
+
+```{python}
+#| echo: false
+from pbc.discovery.benchmark import comparable
+
+excerpt(comparable)
+```
+
+The plain model fails one condition by design: it is allowed no probe. Its
+comparison with the agent is still informative, but it measures the tools and
+the probes together, and the check says the budgets differ rather than
+calling it a like-for-like comparison.
+
+### The plain model's inputs
+
+```{python}
+#| echo: false
+excerpt(experiment.plain_task)
+```
+
+```{python}
+#| label: ev3-inputs
+#| echo: false
+result.table("ev3-inputs")
+```
+
+The task text is the agent's; the system prompt differs because it tells the
+model that it cannot measure. Its tools:
+
+```{python}
+#| echo: false
+result.display("plain-allowlist")
+```
+
+## Code
+
+Every row is scored by the judge of its system's protocol. A recorded run is
+replayed and scored again from its tool calls; a baseline probes a fresh copy
+of the system and fits.
+
+```{python}
+#| echo: false
+from pbc.discovery.benchmark import baseline_entry, random_fit
+
+excerpt(baseline_entry)
+```
+
+```{python}
+#| echo: false
+excerpt(random_fit)
+```
+
+## Worked examples
+
+### The plain model's runs
+
+Recorded on the same day by the same Claude model as the agent's runs of the
+benchmark, in a Claude Code session, each as a fresh sub-agent given only the
+system prompt, the task, and the tool.
+
+```{python}
+#| echo: false
+result.display("run-plain-projectile")
+```
+
+```{python}
+#| echo: false
+result.display("run-plain-oscillator")
+```
+
+```{python}
+#| echo: false
+result.display("run-plain-central-force")
+```
+
+Each said that its claim was a prior, not a measurement: the gravity of the
+Earth, a period of one second, and an inverse-square law with a guessed
+strength.
+
+### Every method, one judge
+
+```{python}
+#| echo: false
+excerpt(experiment.entries)
+```
+
+```{python}
+#| label: ev3-entries
+#| echo: false
+result.table("ev3-entries")
+```
+
+[On each of the three systems, the plain model's claim does not predict the
+held-out settings within the tolerance.]{.claim type="numerically-verified"
+scope="one recorded run per system, the simulated systems of the benchmark"
+evidence="ev3-entries replay-plainprojectile replay-plainoscillator
+replay-plaincentral"} The model's knowledge gives it the form of
+each law; it cannot give it the hidden value. The experiments are what find
+that value, so on these systems the tools are not optional.
+
+[With the same budget allowed, least squares on a grid and at random settings
+recover the law on all three systems, and the agent on two.]{.claim
+type="numerically-verified" scope="one recorded agent run per system and one
+seed per baseline, the simulated systems of the benchmark"
+evidence="ev3-entries ev3-tally"} The agent's failure is the spring, where its
+readings supported a recovery (the benchmark lesson shows the fit) and its
+estimate did not.
+
+### In one table
+
+```{python}
+#| echo: false
+excerpt(experiment.tally)
+```
+
+```{python}
+#| label: ev3-tally
+#| echo: false
+result.table("ev3-tally")
+```
+
+The last row is random selection with exactly the number of probes the agent
+spent on each system. It recovers the law everywhere, and the check marks it
+not comparable with the agent: it was allowed fewer probes. It answers a
+different question, how well a method does with the agent's spending rather
+than its allowance, and both questions are fair as long as they are not
+confused.
+
+### The comparison in one picture
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_methods)
+```
+
+```{python}
+#| label: fig-agent-versus-baselines
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Held-out error of every method on each system, with the tolerance dashed. The plain model is above the tolerance everywhere; the baselines with the full budget are below it wherever they make a claim; the agent is at the floor on two systems and above the tolerance on the spring."
+#| fig-alt: "A scatter plot on a log scale of held-out error against three systems, projectile, oscillator and central force, with six methods side by side in each, told apart by marker shape and colour: agent, plain model, random plus least squares, grid plus least squares, grid plus sparse identification, and random plus least squares with the agent's probes. A dashed line marks the tolerance, and a dotted floor near the bottom is labelled error zero. The plain model's crosses are above the tolerance on all three systems. On the oscillator the agent's circle is above the tolerance and the sparse identification marker sits at the top, labelled no claim. Every other marker is below the tolerance, and the agent's circles on the projectile and the central force lie on the floor."
+result.show("fig-agent-versus-baselines")
+```
+
+The figure shows errors of simulated runs and fits that this build computed.
+The agent's two zeros come from rounding onto round hidden values (see the
+limits); the baselines' small errors come from the noise.
+
+### Run the plain model yourself
+
+This needs your own key. The build does not run it, so the commands are
+marked.
+
+::: {.not-verified}
+```bash
+uv sync --locked --no-dev --extra openai
+export OPENAI_API_KEY="..."
+cd site/lessons/agents-llm/13-agent-versus-non-agent-baselines
+uv run --locked --no-dev --extra openai python -m pbc.discovery.benchmark plain-projectile plain-oscillator plain-central-force
+```
+:::
+
+## Limits {#limits}
+
+- **One agent run per system.** The baselines can be run on any number of
+  seeds; the agent was recorded once. A ranking of the agent against them needs
+  many agent runs, and the exercise shows what the baselines look like over
+  many seeds.
+- **Easy systems favour simple baselines.** Each law has one or two parameters
+  and a known form, which least squares exploits directly. A system whose form
+  is unknown, or whose informative settings are rare, could reverse the order;
+  this lesson does not test one.
+- **Round hidden values flatter the agent.** On two systems the agent rounded
+  onto the hidden value and scored zero, better than any fit. That is luck of
+  the benchmark's design, not skill the score can show.
+- **The symbolic fit has a fixed library.** Sparse identification finds only
+  sums of its terms; on the spring it has none and makes no claim. A richer
+  library, or the power-law search of the symbolic-regression lesson, would be
+  a different baseline. The power-law search assumes noise proportional to the
+  reading, which these systems do not have.
+- **The plain model's system prompt differs from the agent's.** It has to,
+  because the agent's says how many probes it has. The task text is the same.
+- **The recordings are not API runs.** As in the benchmark lesson: Claude Code
+  sessions, no token count or price reported.
+
+::: {.exercise .self-check}
+Random selection with least squares recovered the law on all three systems,
+the agent on two. Which conclusion does this lesson support?
+
+::: {.choices}
+::: {.choice}
+Random selection is a better discovery method than the agent.
+
+::: {.feedback}
+One agent run per system cannot rank the two, and the systems are easy for a
+fit that is told the form of the law. The comparison is fair; the sample is
+too small for a ranking.
+:::
+:::
+
+::: {.choice correct="true"}
+On these systems, with the same budget allowed, the baselines recovered every
+law and the agent missed one; the plain model, which could not measure,
+missed all three, so the measurements, not the model's prior, found the
+hidden values.
+
+::: {.feedback}
+Right. Each part is a statement about these runs under one judge, and the
+plain model is the control that shows what the tools add.
+:::
+:::
+
+::: {.choice}
+The agent used fewer probes, so it is more efficient than the baselines.
+
+::: {.feedback}
+The baselines spend their whole allowance by design. Random selection with the
+agent's number of probes also recovered every law, so on these systems spending
+fewer probes is not an advantage only the agent has.
+:::
+:::
+:::
+
+::: {.solution}
+The supported conclusion is the narrow one: one judge, the same allowance,
+these runs. The plain model shows that the hidden values come from the
+experiments. Ranking the agent against the baselines needs many agent runs on
+many hidden values.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+A baseline can be rerun at no cost. Run random selection with least squares
+with the agent's number of probes on each system, over twenty seeds, and
+count how often it recovers the law. What does this tell you about reading
+one agent run?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.seeds)
+```
+
+```{python}
+#| echo: false
+result.table("ev3-seeds")
+```
+
+With so few probes, random selection fails on some seeds of the spring: a
+handful of random times may miss the late, informative ones, or fit an alias
+of the frequency. One run of any method is one draw from a distribution like
+this. The agent's single failure on the spring could be its usual result or a
+bad draw; only many runs tell which.
+:::
+:::
+
+::: {.exercise}
+The plain model is allowed no probe, and the check marks its comparison with
+the agent "not meaningful". Is the comparison then useless? Say what it
+measures, and what a fairer control for the value of the model's knowledge
+would be.
+
+::: {.solution}
+It is not useless: it measures what the tools and the probes together add to
+the model's prior, which is the question "does tool use help?" in its plainest
+form. It cannot separate the value of choosing experiments from the value of
+having data. Two controls separate them: the baselines with the same
+allowance, which have data but no model, and the matched random selection,
+which has the agent's number of probes but no choice. The plain model is the
+control for the opposite end: the model without data.
+:::
+:::
+
+## Replay this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/discovery/benchmark.py",
+        "src/pbc/discovery/baselines.py",
+        "src/pbc/discovery/protocol.py",
+        "src/pbc/discovery/environment.py",
+        "src/pbc/mechanics/experiments/agent_versus_non_agent_baselines.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_benchmark.py",
+        "tests/unit/test_discovery.py",
+        "tests/unit/test_agent_versus_non_agent_baselines_experiment.py",
+    ],
+)
+```

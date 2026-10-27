@@ -1520,6 +1520,18 @@ does not build its own environment, baselines, or scoring. The rules are in
 - **Recomputed score and baselines.** Show the held-out error from
   `score_transcript` and the table of `comparison` with `run_baselines`, failures
   included. State a claim about a law only as far as that evidence supports it.
+- **Benchmarks and comparisons.** A lesson that compares runs or methods
+  (the agent-benchmark path) lays them out on `pbc.discovery.benchmark`: one
+  protocol per environment, its grid of conditions, the plain model as the
+  control without probes, and the baselines with the same budget. Every score
+  set beside another carries the verdict of `comparable`, and the page says
+  what a comparison marked "not meaningful" measures instead; it never ranks
+  conditions or methods from one run per cell. The lessons EV2 and EV3
+  (`site/lessons/agents-llm/12-interactive-discovery-benchmarks/index.qmd` and
+  the one after it) are the example to copy; EV2 replays the fixtures of D1
+  and D2 from their pages through path constants of its experiment, each used
+  by name: a dictionary of paths cannot be followed by the input digest, and
+  the lesson would then have no digest.
 - **Cost.** Quote the cost record of the trace as recorded by the run that
   produced it, never as measured by the build. A count the run did not report
   (a Claude Code session reports no tokens or price) is `None`, and the page
