@@ -1,0 +1,520 @@
+---
+title: "Quantum tunnelling"
+description: >-
+  An electron at a rectangular barrier: the transmission and reflection
+  coefficients against the energy, computed by integrating the stationary
+  equation across the barrier and checked against the closed form, the
+  exponential fall with the width, and a wave packet that splits at the
+  barrier.
+lesson:
+  id: quantum-tunnelling
+  strand: quantum
+  order: 2
+  difficulty: 2
+  course: quantum
+  slot: Q2
+  methods: [simulation]
+  outcomes:
+    - Set up the scattering of a particle by a barrier as a stationary problem with an incoming, a reflected, and a transmitted wave
+    - Compute the transmission and reflection coefficients by integrating the Schrödinger equation across the barrier, and check them against the closed form and against R + T = 1
+    - Explain why the transmission below the top of the barrier falls exponentially with its width, and estimate the rate
+    - Connect the stationary coefficients with the probability that a wave packet passes the barrier
+  related: []
+  format: 2
+  preview: fig-transmission
+  experiment: pbc.quantum.experiments.quantum_tunnelling
+  prerequisites:
+    lessons: [schrodinger-equation]
+    outside:
+      - "Complex numbers: the modulus of a complex number, and the exponential of an imaginary number"
+      - "Calculus: second-order linear differential equations with constant coefficients"
+      - "Numerical methods: the classical fourth-order Runge-Kutta method"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.quantum import barrier
+from pbc.quantum.experiments import quantum_tunnelling as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A ball rolled at a hill too high for its energy rolls back; there is no
+chance at all that it turns up on the other side. An electron at an
+energy barrier sometimes does. The tip of a scanning tunnelling microscope
+hovers a fraction of a nanometre above a surface, the gap between them is
+a barrier the electrons do not have the energy to cross, and a current flows
+anyway, so sensitive to the width of the gap that it maps single atoms. The
+same effect sets the rate of alpha decay and lets charge leak through the
+thin oxide of a transistor.
+
+This lesson computes how likely an electron is to cross a barrier, the
+**transmission coefficient** $T$, as a function of its energy. It does so in
+two independent ways, a closed formula and a numerical integration of the
+Schrödinger equation across the barrier, and checks a third, time-dependent
+picture with the solver of the previous lesson: a wave packet sent at the
+barrier, part of which comes out on the far side.
+
+## Assumptions
+
+1. **A rectangular barrier.** The potential is $V_0$ on $0 \le x \le a$ and
+   zero elsewhere. Real barriers have rounded edges; the integration method
+   takes any shape, which the last exercise uses, but the closed form needs
+   the rectangle.
+2. **An electron, non-relativistic, in one dimension.** The constants are
+   CODATA values, in electronvolts, nanometres, and femtoseconds:
+   $\hbar^2/2m_e \approx 0.0381\ \mathrm{eV\,nm^2}$ and
+   $\hbar \approx 0.658\ \mathrm{eV\,fs}$.
+3. **A single energy for the stationary problem.** A plane wave of definite
+   energy fills all of space; it stands for a beam, not for one particle. The
+   packet of the last example is the bridge to a single particle.
+4. **Nothing else happens.** No other electrons, no loss of energy in the
+   barrier, no image forces; the electron sees only the potential.
+
+## A wave at a wall {#explanation}
+
+Outside the barrier the potential is zero, and the stationary Schrödinger
+equation $-(\hbar^2/2m)\psi'' + V\psi = E\psi$ is solved by plane waves of
+wavenumber $k = \sqrt{2mE}/\hbar$. An electron coming from the left is an
+incoming wave plus a reflected one, and on the right there is only what
+went through:
+
+$$
+\psi(x) =
+\begin{cases}
+A\,e^{\mathrm{i}kx} + B\,e^{-\mathrm{i}kx}, & x < 0, \\
+e^{\mathrm{i}kx}, & x > a .
+\end{cases}
+$$
+
+The transmitted amplitude is set to one, which fixes the scale. A plane wave
+$e^{\mathrm{i}kx}$ carries the probability current $\hbar k/m$ per unit
+density, so the fraction transmitted is $T = 1/|A|^2$ and the fraction
+reflected $R = |B|^2/|A|^2$. Probability is neither made nor lost, and the
+current is the same everywhere for a stationary state, so
+
+$$
+R + T = 1 .
+$$
+
+### Inside the barrier
+
+Inside, the equation is $\psi'' = (2m/\hbar^2)(V_0 - E)\psi$. Below the top,
+$E < V_0$, its solutions are not waves but rising and falling exponentials
+$e^{\pm\kappa x}$, with
+
+$$
+\kappa = \frac{\sqrt{2m(V_0 - E)}}{\hbar}.
+$$
+
+A classical particle has no business there; the wave function does not
+vanish, it decays. Matching $\psi$ and $\psi'$ at both edges, four
+conditions for the four amplitudes of the three regions, gives the closed
+form
+
+$$
+T = \left[1 + \frac{V_0^2\,\sinh^2(\kappa a)}{4E(V_0 - E)}\right]^{-1},
+\qquad E < V_0 .
+$$
+
+Above the top, $\kappa$ becomes imaginary, $\sinh$ turns into $\sin$, and
+$T$ reaches one wherever $q a$ is a multiple of $\pi$, with
+$q = \sqrt{2m(E - V_0)}/\hbar$: the waves reflected at the two edges then
+cancel. For a thick barrier, $\kappa a \gg 1$, $\sinh(\kappa a) \approx
+e^{\kappa a}/2$ and
+
+$$
+T \approx \frac{16E(V_0 - E)}{V_0^2}\,e^{-2\kappa a},
+$$
+
+so each extra length $\ln 10/2\kappa$ of barrier divides the transmission by
+ten. That is the sensitivity of the tunnelling microscope.
+
+### Integrating across the barrier
+
+The closed form is the solution of a matching problem. A program can solve
+the same problem without it, and for any shape of barrier. Start on the
+right with the transmitted wave, $\psi = e^{\mathrm{i}ka}$ and
+$\psi' = \mathrm{i}k\,e^{\mathrm{i}ka}$ at $x = a$, and integrate the
+second-order equation as a pair of first-order ones for $(\psi, \psi')$,
+leftwards, to $x = 0$. There the two numbers fix both amplitudes of the
+left side:
+
+$$
+A = \tfrac12\Bigl(\psi + \frac{\psi'}{\mathrm{i}k}\Bigr),
+\qquad
+B = \tfrac12\Bigl(\psi - \frac{\psi'}{\mathrm{i}k}\Bigr).
+$$
+
+The integration uses the classical fourth-order Runge-Kutta method with a
+fixed step. Its error should fall as the fourth power of the step, and
+$R + T = 1$ is not built into it: both are checks.
+
+## Code
+
+The closed form, valid below, at, and above the top of the barrier:
+
+```{python}
+#| echo: false
+excerpt(barrier.transmission)
+```
+
+The integration from the transmitted side, for many energies at once:
+
+```{python}
+#| echo: false
+excerpt(barrier.scattering)
+```
+
+## Worked examples
+
+### Transmission and reflection against the energy
+
+The barrier is [1 eV]{.given} high and [0.5 nm]{.given} wide, about the gap
+under the tip of a tunnelling microscope.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment, region="spectrum")
+```
+
+```{python}
+#| label: spectrum-run
+#| echo: false
+excerpt(experiment.spectrum_run)
+```
+
+```{python}
+#| label: spectrum
+#| echo: false
+result.table("spectrum")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_transmission)
+```
+
+```{python}
+#| label: fig-transmission
+#| echo: false
+#| fig-cap: "The electron passes the barrier with a probability that rises smoothly through the top of the barrier, where a classical particle would jump from never to always; the integrated points lie on the closed form."
+#| fig-alt: "Plot of probability against energy over barrier height. A solid transmission curve rises from zero, passes the barrier height well below one, and approaches one above it with a shallow dip. A dashed reflection curve mirrors it. Open circles and squares for the numerical values lie on the curves. A dotted step at the barrier height marks the classical particle."
+#| fig-status: simulated
+result.show("fig-transmission")
+```
+
+[The transmission and reflection coefficients from the integration agree
+with the closed form, and $R + T = 1$, at every energy of the table.]{.claim
+type="numerically-verified"
+scope="a rectangular barrier of 1 eV and 0.5 nm, an electron from 0.1 to 3 eV, forty Runge-Kutta steps"
+evidence="spectrum-run spectrum"}
+The largest difference from the closed form is
+`{python} result["spectrum-gap"]`, and the largest $|R + T - 1|$ is
+`{python} result["balance"]`. At half the barrier height the electron still
+passes with the probability `{python} result["t-low"]`; at twice the height
+it is still reflected with `{python} result["r-high"]`. Neither happens to a
+classical particle. Both computations rest on the same stationary equation;
+what the agreement checks is the closed form against an integration that
+does not know it.
+
+### The order of the integration
+
+The step across the barrier is halved at the energy [0.5 eV]{.given}.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="convergence")
+```
+
+```{python}
+#| label: convergence-run
+#| echo: false
+excerpt(experiment.convergence)
+```
+
+```{python}
+#| label: convergence
+#| echo: false
+result.table("convergence")
+```
+
+[The error of the integrated transmission falls as the fourth power of the
+step.]{.claim type="numerically-verified"
+scope="the barrier of the first example at 0.5 eV, ten to eighty steps"
+evidence="convergence-run convergence"}
+The fitted order is `{python} result["order"]`, rising towards four as the
+step shrinks, as a fourth-order method should. The balance $R + T - 1$ falls
+with it: the integration does not conserve the current exactly, and its
+failure to do so measures its error.
+
+### Thicker barriers
+
+At the same energy the barrier is made thicker, and the transmission is
+compared with the thick-barrier law.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="widths")
+```
+
+```{python}
+#| label: widths-run
+#| echo: false
+excerpt(experiment.widths_run)
+```
+
+```{python}
+#| label: widths
+#| echo: false
+result.table("widths")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_widths)
+```
+
+```{python}
+#| label: fig-widths
+#| echo: false
+#| fig-cap: "On a logarithmic axis the transmission falls along a straight line with the width once the barrier is thick; the thick-barrier law joins the closed form there."
+#| fig-alt: "Semi-logarithmic plot of transmission against barrier width. The solid closed-form curve bends at small widths and then falls along a straight line over several decades. A dashed straight line for the thick-barrier law lies above it at small widths and on it beyond. Open circles for the numerical values lie on the solid curve."
+#| fig-status: simulated
+result.show("fig-widths")
+```
+
+[Below the top of the barrier the transmission falls exponentially with the
+width, as $e^{-2\kappa a}$ once $\kappa a$ is large.]{.claim
+type="numerically-verified"
+scope="an electron at 0.5 eV, a barrier of 1 eV, widths from 0.25 to 2 nm"
+evidence="widths-run widths"}
+Here $\kappa$ = `{python} result["kappa"]` per nanometre, so every
+`{python} result["decade"]` nm of extra width divides the transmission by
+ten. At a width of one nanometre the law is within
+`{python} result["law-gap"]` per cent of the closed form. The integrated
+values follow the closed form over six decades.
+
+### A wave packet at the barrier
+
+The stationary problem describes a steady beam. A single electron is a
+packet, which the solver of the previous lesson can send at the barrier.
+Its mean energy is [0.6 eV]{.given}, below the top, and it is several
+nanometres wide, so it contains a narrow range of energies. The barrier is
+placed on the grid as the mean of the potential over each cell, so the grid
+sees a barrier of exactly the right width.
+
+```{python}
+#| echo: false
+excerpt(barrier.on_grid)
+```
+
+The packet that passes should carry the transmission averaged over the
+packet's wavenumbers, which `barrier.packet_transmission` computes from the
+closed form.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="packet")
+```
+
+```{python}
+#| label: packet-run
+#| echo: false
+excerpt(experiment.packet_run)
+```
+
+```{python}
+#| label: packet
+#| echo: false
+result.table("packet")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_packet)
+```
+
+```{python}
+#| label: fig-packet
+#| echo: false
+#| fig-cap: "The packet reaches the barrier, interferes with its own reflection, and splits: most of it goes back, a small part comes out on the far side."
+#| fig-alt: "Three stacked panels of probability density against position, with a narrow shaded barrier at the centre. Top: one bell-shaped packet on the left. Middle: the packet pressed against the barrier, with dense interference fringes. Bottom: a large packet moving back to the left and a small one on the right of the barrier."
+#| fig-status: simulated
+result.show("fig-packet")
+```
+
+[The probability that the packet passes the barrier equals the closed-form
+transmission averaged over the packet's wavenumbers.]{.claim
+type="numerically-verified"
+scope="an electron packet of mean energy 0.6 eV and width 3 nm at the barrier of the first example, grids of 0.04 to 0.01 nm"
+evidence="packet-run packet"}
+On the middle grid, `{python} result["packet-passed"]` of the probability
+has passed, against `{python} result["packet-expected"]` from the averaged
+closed form; the transmission at the mean energy alone,
+`{python} result["packet-t0"]`, is a little lower, because the more
+energetic part of the packet passes more easily. The gap falls as the grid
+is refined. Two computations that share no code beyond the potential, a
+time-dependent and a stationary one, agree on the same probability.
+
+## Limits {#limits}
+
+- **A one-dimensional rectangle.** A tunnelling microscope has a
+  three-dimensional tip, a barrier shaped by image charges, and many
+  electrons; the lesson gives the exponential sensitivity, not the current.
+- **The closed form needs flat regions.** The integration takes any shape on
+  the barrier, as the last exercise shows, but it starts and ends where
+  $V = 0$ exactly. A potential with long tails, such as the Coulomb barrier
+  of alpha decay, needs the wave matched to the solutions of that tail.
+- **Stationary means steady.** $T$ is a property of a beam of one energy. A
+  packet passes with the transmission averaged over its energies, and the
+  lesson does not compute how long tunnelling takes, a question with several
+  competing definitions.
+- **The packet run is checked in one quantity.** The fringes in front of the
+  barrier and the shapes of the two outgoing packets are shown, not compared
+  with a closed form.
+
+::: {.exercise .self-check}
+An electron and a proton have the same energy, below the top of the same
+barrier. Which is more likely to cross?
+
+::: {.choices}
+::: {.choice correct="true"}
+The electron, by a very large factor.
+
+::: {.feedback}
+Correct: $\kappa$ grows as the square root of the mass, and $T$ falls as
+$e^{-2\kappa a}$. The proton's mass is nearly two thousand times larger, so
+its $\kappa$ is over forty times larger.
+:::
+:::
+
+::: {.choice}
+The proton, because it carries more momentum at the same energy.
+
+::: {.feedback}
+More momentum outside the barrier means a faster decay inside it, not an
+easier crossing.
+:::
+:::
+
+::: {.choice}
+Both equally, because the energies and the barrier are the same.
+
+::: {.feedback}
+The mass enters through $\hbar^2/2m$, in $\kappa$ and in $k$.
+:::
+:::
+:::
+
+::: {.solution}
+Inside the barrier the wave function decays as $e^{-\kappa x}$ with
+$\kappa = \sqrt{2m(V_0 - E)}/\hbar$. For a thick barrier
+$T \propto e^{-2\kappa a}$, so a heavier particle is exponentially less
+likely to cross. That is why tunnelling matters for electrons and light
+nuclei and not for a ball.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**The tip moves back.** A barrier stands 4 eV above an electron of 1 eV,
+as under the tip of a tunnelling microscope. The tip moves back from
+0.5 nm to 0.6 nm. By what factor does the transmission change? Compare
+with $e^{-2\kappa\,\Delta a}$.
+
+::: {.hint}
+The height of the barrier is the electron's energy plus the gap. Use
+`scattering` with a `rectangle` of that height at the two widths.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.tip)
+```
+
+The transmission falls from `{python} result["tip-near"]` to
+`{python} result["tip-far"]`, a factor of `{python} result["tip-ratio"]`,
+and the law gives `{python} result["tip-law"]`. A tenth of a nanometre
+changes the current almost tenfold, which is why the microscope resolves
+atoms.
+:::
+:::
+
+::: {.exercise}
+**Perfect transmission above the barrier.** The closed form says $T = 1$
+where $qa = n\pi$. Find the first two such energies for the barrier of the
+examples and locate them on a fine scan of the integrated $T$.
+
+::: {.hint}
+Solve $qa = n\pi$ for the energy, and scan a narrow window around each
+answer.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.resonances)
+```
+
+The scan peaks at `{python} result["resonance-1"]` eV and
+`{python} result["resonance-2"]` eV, against
+`{python} result["resonance-1-predicted"]` and
+`{python} result["resonance-2-predicted"]` eV predicted; there $1 - T$ is
+`{python} result["resonance-1-peak"]` and
+`{python} result["resonance-2-peak"]`. The waves reflected at the two edges
+cancel when the barrier holds a whole number of half wavelengths.
+:::
+:::
+
+::: {.exercise}
+**A smooth barrier.** Replace the rectangle by
+$V_0\sin^2(\pi x/a)$ on the same width, which has no closed form. Compute $T$
+at 0.5 eV with 20, 40, and 80 steps. Is the result converged? Is it larger
+or smaller than for the rectangle, and why?
+
+::: {.hint}
+`scattering` takes any function of $x$ as the potential.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.smooth_barrier)
+```
+
+The three step counts give `{python} result["smooth-20"]`,
+`{python} result["smooth-40"]`, and `{python} result["smooth-80"]`: converged
+to the digits shown. The rectangle passes only
+`{python} result["smooth-rectangle"]`. The smooth barrier reaches its full
+height only at its centre and holds half the area of the rectangle, so the
+wave decays over a shorter effective width.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/quantum/barrier.py",
+        "src/pbc/quantum/schrodinger.py",
+        "src/pbc/quantum/experiments/quantum_tunnelling.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_quantum.py",
+        "tests/unit/test_quantum_tunnelling_experiment.py",
+    ],
+)
+```
