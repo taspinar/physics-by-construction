@@ -206,7 +206,7 @@ def test_the_atlas_anchors_the_home_page_links_exist(home, browser, server):
     context.close()
 
 
-def test_the_capstones_are_planned_and_show_only_the_manifest_explanation(home):
+def test_the_capstones_show_their_state_and_only_the_manifest_explanation(home):
     slots = [slot for slot in LESSONS.curriculum.slots if slot.kind == CAPSTONE]
     boxes = home.locator("main section#capstones .home-capstone")
     assert boxes.count() == len(slots) == 3
@@ -214,10 +214,19 @@ def test_the_capstones_are_planned_and_show_only_the_manifest_explanation(home):
         slot.label for slot in slots if slot.label != FEATURED_CAPSTONE
     ]
     assert boxes.evaluate_all("boxes => boxes.map(b => b.dataset.slot)") == order
+    published = {lesson.slot: lesson for lesson in LESSONS.lessons if lesson.slot}
     for box in boxes.all():
         label = box.get_attribute("data-slot")
-        assert box.locator("a").count() == 0
-        assert box.locator(".home-planned").inner_text() == "planned"
+        if label in published:
+            # The name links to the capstone's lesson, and nothing else does.
+            links = box.locator("a")
+            assert links.count() == 1
+            href = published[label].page.removesuffix(".qmd") + ".html"
+            assert links.get_attribute("href") == href
+            assert box.locator(".home-published").inner_text() == "published"
+        else:
+            assert box.locator("a").count() == 0
+            assert box.locator(".home-planned").inner_text() == "planned"
         descriptions = box.locator(".capstone-description").all_inner_texts()
         assert [plain(d) for d in descriptions] == [
             plain(MANIFEST.capstone(label).explanation)

@@ -331,13 +331,20 @@ def _with_published_capstone() -> Atlas:
 
 
 def test_a_capstone_is_linked_only_when_it_is_published():
-    planned = str(AtlasSection(ATLAS))
+    section = str(AtlasSection(ATLAS))
     for label in ("T11", "EM9", "FL10"):
         item = re.search(
-            rf'<li class="atlas-capstone-item" data-slot="{label}">(.*?)</li>', planned
+            rf'<li class="atlas-capstone-item" data-slot="{label}">(.*?)</li>', section
         ).group(1)
-        assert "Planned, not published." in item
-        assert "lessons/" not in item
+        lesson = next((x for x in PATH.lessons if x.slot == label), None)
+        if lesson is None:
+            assert "Planned, not published." in item
+            assert "lessons/" not in item
+        else:
+            href = "../" + lesson.page.removesuffix(".qmd") + ".html"
+            assert f'href="{href}"' in item
+            assert "Published." in item
+            assert "Planned" not in item
     published = str(AtlasSection(_with_published_capstone()))
     item = re.search(
         r'<li class="atlas-capstone-item" data-slot="FL10">(.*?)</li>', published

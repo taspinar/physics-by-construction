@@ -1,0 +1,732 @@
+---
+title: "Applied capstone: thermal engineering of an AI accelerator"
+description: >-
+  A hypothetical accelerator package with two compute dies and four memory
+  stacks on a heat spreader and a cold plate: steady and transient temperature
+  fields by finite elements, checked against an exact solution, the
+  finite-difference baseline, and a cross-section through the thickness;
+  cooling, material, and layout compared, the hottest junction minimised under
+  mass, size, and heat-removal limits, and a qualified recommendation.
+lesson:
+  id: thermal-engineering-of-an-ai-accelerator
+  strand: thermodynamics
+  order: 9
+  difficulty: 3
+  course: thermodynamics
+  slot: T11
+  methods: [simulation]
+  outcomes:
+    - Turn a thermal design question into a model with stated loads, materials, contact and cooling assumptions, and constraints
+    - Compute steady and transient temperature fields of a package with finite elements, and close their energy balances
+    - Verify the computation against an exact solution, a second method, a model that resolves more, and refinement in space and time
+    - Compare cooling, material, and layout options under constraints, measure the sensitivity to uncertain inputs, and qualify a recommendation
+  related: []
+  format: 2
+  preview: fig-package-temperature
+  experiment: pbc.thermodynamics.experiments.thermal_engineering_of_an_ai_accelerator
+  prerequisites:
+    lessons: [heat-conduction-and-diffusion, from-finite-differences-to-finite-elements]
+    outside:
+      - "Linear algebra: the generalised eigenvalue problem of two symmetric matrices"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.fem import assembly, transient
+from pbc.thermodynamics import package
+from pbc.thermodynamics.experiments import thermal_engineering_of_an_ai_accelerator as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+An accelerator for machine learning puts several hundred watts into a few
+square centimetres of silicon. The heat has to cross a contact layer into a
+metal lid, spread sideways, cross another contact layer into a cold plate, and
+leave with the coolant, while no point of any die may exceed its temperature
+limit. Which spreader, which cooling, and which arrangement of the dies keep
+the hottest point coolest, within a budget of mass, height, and coolant flow?
+
+This capstone works through that question for an invented package, from the
+requirements to a recommendation. It builds the model on the heat equation of
+the heat-conduction lesson and solves it with the finite elements of the
+finite-element lesson, extended to time and to two materials. Before any design is compared, the
+computation is checked four ways: against an exact solution, against the
+finite differences of the heat-conduction lesson on the same nodes, against a
+model that resolves the thickness of the spreader, and by refinement in space
+and in time.
+
+::: {.claim type="numerically-verified" scope="the hypothetical package of this lesson: a two-dimensional model of a heat spreader with the stated, invented loads, materials, contact resistances, cold-plate coefficients, and constraints" evidence="cosine-mode mesh-study cross-section time-step-study"}
+**A digital-twin-style teaching prototype, not a calibrated twin.** Every
+temperature on this page is a computed property of a hypothetical model,
+checked against an exact solution, a second method, a more resolved model, and
+refinement. That is verification of the computation, not validation of the
+model: no measurement of any device enters it, it uses no vendor data, it
+models no proprietary or real accelerator, and its temperatures are not
+operating temperatures of real hardware. The coolant is a boundary condition,
+not a flow: there is no three-dimensional computational fluid dynamics.
+:::
+
+## Assumptions
+
+### Requirements
+
+The package is a heat spreader of `{python} result["spreader-area"]` $\mathrm{cm^2}$ with
+two compute dies and four memory stacks on top, dissipating
+`{python} result["power"]` W together. Every number is invented and round:
+
+```{python}
+#| label: loads
+#| echo: false
+result.table("loads")
+```
+
+```{python}
+#| label: inputs
+#| echo: false
+result.table("inputs")
+```
+
+The design must keep the hottest junction, the hottest point of any die, at
+or below the limit; the spreader within the mass and the thickness limits; the
+cold plate within the coefficient the coolant loop can provide; and the dies
+at least the clearance apart and from the edges.
+
+### The model and its assumptions
+
+The spreader is described by the temperature $T(x, y)$ of its middle plane.
+Per unit area it stores heat as $\rho c t$, conducts it sideways as $k t$,
+and gives it to the coolant through the resistance below its middle plane:
+
+$$
+\rho c t\,\frac{\partial T}{\partial t}
+= \nabla\cdot(k t\,\nabla T) + q'' - \frac{T - T_c}{R_\mathrm{base}},
+$$
+
+$$
+R_\mathrm{base} = \frac{t}{2k} + R_\mathrm{lid\text{-}plate} + \frac{1}{h},
+$$
+
+with $q''(x, y)$ the heat flux of the dies. Its assumptions:
+
+1. **A thin plate.** The temperature varies across the plate's area, and its
+   variation through the thickness is summarised by the middle plane.
+2. **Heat crosses the thickness straight down.** A die is hotter than the
+   middle plane under it by its flux times the contact and the upper half of
+   the plate: $T_j = T + q''\,(R_\mathrm{die\text{-}lid} + t/(2k))$. The
+   spreading length $\sqrt{k t R_\mathrm{base}}$ of the [3 mm]{.given} aluminium
+   spreader is `{python} result["spreading-length"]` mm, not much more than
+   its thickness; the half-thickness alone is
+   `{python} result["half-share"]` of its $R_\mathrm{base}$. Whether
+   straight-down crossing is good enough is checked against a cross-section
+   that resolves the thickness.
+3. **Insulated elsewhere.** The edges of the spreader and its top outside the
+   dies lose no heat; air carries away little next to the cold plate.
+4. **A uniform coolant.** The cold plate is a coefficient $h$ to coolant at
+   one temperature. The coolant's warming along the plate and the flow inside
+   the plate are not modelled; the second exercise estimates the warming.
+5. **Constant properties.** Conductivities, heat capacities, contact
+   resistances, and $h$ do not depend on temperature.
+6. **The dies as fluxes.** A die is its power spread evenly over its
+   footprint; its own thickness and heat capacity are left out.
+
+## Explanation
+
+### The plate equation as a finite-element system
+
+The weak form of the plate equation is that of the previous lesson with two
+new terms, and both are the mass matrix $M_{ij} = \int c\,\phi_i\phi_j\,dA$:
+with $c = \rho c t$ it stores heat, with $c = 1/R_\mathrm{base}$ it hands heat
+to the coolant at every point of the plate, as a convective edge does along
+a boundary. The system is
+
+$$
+C\,\frac{d\mathbf{T}}{dt} = \mathbf{F} - (K + S)\,\mathbf{T} + S\,\mathbf{T}_c ,
+$$
+
+with $K$ the conduction (with $k t$ per triangle, so an insert of another
+material is a set of triangles), $C$ the capacity, $S$ the exchange with the
+coolant, and $\mathbf{F}$ the load of the dies. The rows of $K$ sum to zero, so
+summing all equations leaves only the balance of the plate: the heat generated
+equals the heat stored plus the heat given to the coolant. It holds on any
+mesh, at every step.
+
+### In time
+
+The theta method evaluates the right-hand side between the old and the new
+state: backward Euler ($\theta = 1$) is first order and damps every mode,
+Crank-Nicolson ($\theta = \tfrac12$) is second order. Both solve one sparse
+system per step with a matrix that does not change, so it is factorised once.
+The explicit step of the heat-conduction lesson needs no solve, but on a plate
+it is stable only below a step set by the finest mesh spacing, which the
+lesson measures.
+
+### Three references
+
+- **An exact solution.** A load shaped as one cosine mode of the insulated
+  plate, a uniform $q_0$ plus $q_1\cos(\pi x/W)\cos(\pi y/H)$, keeps its shape: the
+  uniform part and the mode each rise to their load over their conductance,
+  $1/R_\mathrm{base}$ and $k t\pi^2(1/W^2 + 1/H^2) + 1/R_\mathrm{base}$.
+- **The finite-difference baseline.** The five-point grid of the
+  heat-conduction lesson on the same nodes, with mirrored ghost nodes at the
+  insulated edges and the dies' flux averaged over each node's control volume.
+  On these meshes the stiffness of the elements is that grid, weighted by the
+  control areas (a unit test shows it), so the two methods differ only in how
+  they spread the load, the capacity, and the exchange over the nodes, and
+  their difference measures that choice.
+- **A more resolved model.** A vertical cut through the spreader, solved with
+  the same elements in $x$ and $z$, with the dies' flux entering the top: it
+  lets the heat spread within the thickness, which the plate model does not.
+
+## Code
+
+The mass matrix and the theta method, added to `pbc.fem`:
+
+```{python}
+#| echo: false
+excerpt(assembly.mass)
+```
+
+```{python}
+#| echo: false
+excerpt(transient.theta_march)
+```
+
+The plate model of a package assembled from them, with the half-thickness in
+the resistance below each triangle, and the hottest junction:
+
+```{python}
+#| echo: false
+excerpt(package.fem_system)
+```
+
+```{python}
+#| echo: false
+excerpt(package.Package, region="resistances")
+```
+
+```{python}
+#| echo: false
+excerpt(package.junction_maximum)
+```
+
+The finite-difference baseline: the insulated five-point grid and its explicit
+rate of change.
+
+```{python}
+#| echo: false
+excerpt(package.fd_laplacian)
+```
+
+```{python}
+#| echo: false
+excerpt(package.FiniteDifference, region="rate")
+```
+
+## Worked examples
+
+### Verification against an exact solution
+
+The cosine-mode load on a [2 mm]{.given} copper plate, by both methods on
+meshes of [4 mm]{.given} down to [0.5 mm]{.given}:
+
+```{python}
+#| echo: false
+excerpt(experiment.cosine_mode)
+```
+
+```{python}
+#| label: cosine-mode
+#| echo: false
+result.table("cosine-mode")
+```
+
+[The root-mean-square errors of the finite elements and of the finite
+differences against the exact solution fall at the fitted orders
+`{python} result["cosine-fem-order"]` and `{python} result["cosine-fd-order"]`:
+both are second order.]{.claim type="numerically-verified" scope="the
+cosine-mode load on the insulated 2 mm copper plate, spacings 4 to 0.5 mm"
+evidence="cosine-mode fig-package-refinement"} The largest error of the
+elements sits at two corners of the plate, where the triangles of a mesh with
+one diagonal direction are least symmetric, and falls more slowly there
+(order `{python} result["cosine-corner-order"]` between the two finest
+meshes); over the plate the elements converge as expected.
+
+### The mesh study and the heat balance
+
+The hottest junction of the copper design by both methods as the mesh is
+refined, with the heat balance of every solution:
+
+```{python}
+#| echo: false
+excerpt(experiment.mesh_study)
+```
+
+```{python}
+#| label: mesh-study
+#| echo: false
+result.table("mesh-study")
+```
+
+[On every mesh, the heat the load of each method receives and the heat it
+gives to the coolant equal the dies' power to a relative
+`{python} result["balance-gap"]`; the difference between the two methods'
+hottest junctions falls at the order `{python} result["method-order"]` and is
+`{python} result["method-difference"]` K on the finest mesh.]{.claim
+type="numerically-verified" scope="the copper design on the full flow,
+spacings 2 to 0.25 mm" evidence="mesh-study"} The balance holds by
+construction and proves nothing about accuracy; the shrinking difference
+between two independently coded methods, and the exact solution above, do.
+
+The design with copper inserts has no finite-difference baseline: a
+conductivity per triangle is what the elements add. Its own refinement:
+
+```{python}
+#| echo: false
+excerpt(experiment.insert_refinement)
+```
+
+```{python}
+#| label: insert-refinement
+#| echo: false
+result.table("insert-refinement")
+```
+
+[With the inserts the hottest junction changes by only
+`{python} result["insert-change"]` K between the two finest meshes, but the
+changes shrink at the observed order `{python} result["inserts-order"]`; with
+the inserts extended to strips across the spreader, so that the material
+boundary has no corner inside the plate, the order is
+`{python} result["strips-order"]`.]{.claim type="numerically-verified"
+scope="the aluminium spreader with copper inserts and its strip variant, full
+flow, spacings 2 to 0.25 mm" evidence="insert-refinement"} The temperature is
+less smooth at a corner where the conductivity jumps, and that corner, far
+from the hottest point, slows the convergence of the whole solution. The
+heat balance of these solutions also closes, to a relative
+`{python} result["insert-balance-gap"]`.
+
+### Does the plate model hold? A cross-section
+
+To compare with a cut through the spreader, the compute dies and the inserts
+are extended across the whole spreader, so that nothing varies along $y$; the
+cut then needs no third dimension. The cut resolves the thickness with square
+cells:
+
+```{python}
+#| echo: false
+excerpt(package.cross_section)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.section_check)
+```
+
+```{python}
+#| label: cross-section
+#| echo: false
+result.table("cross-section")
+```
+
+[For every spreader the plate model's hottest junction lies above the
+cross-section's, by `{python} result["section-least"]` to
+`{python} result["section-gap"]` K, while the cross-section changes by at most
+`{python} result["section-change"]` K when its mesh is halved.]{.claim
+type="numerically-verified" scope="compute dies and inserts across the whole
+spreader, each material at its thickest admissible spreader, full flow"
+evidence="cross-section"} Crossing the thickness straight down is slightly
+pessimistic, because in the real plate the heat already spreads on its way
+down. This gap, not the much smaller discretisation error, is the resolution
+of the model: two designs whose hottest junctions differ by less than it are
+not told apart.
+
+### Transients and the time step
+
+The exact solution of the finite-element equations in time follows from the
+generalised eigenproblem $A\mathbf{v} = \lambda C\mathbf{v}$: every mode
+relaxes as $e^{-\lambda t}$. Against it, on the [2 mm]{.given} mesh:
+
+```{python}
+#| echo: false
+excerpt(experiment.semi_discrete_exact)
+```
+
+```{python}
+#| label: time-step-study
+#| echo: false
+result.table("time-step-study")
+```
+
+```{python}
+#| label: fig-package-refinement
+#| echo: false
+#| fig-cap: "Both methods converge at second order in space against the exact cosine mode (left); in time, backward Euler converges at first order and Crank-Nicolson at second order against the exact solution of the same equations (right)."
+#| fig-alt: "Two log-log panels. Left: root-mean-square error in kelvin against mesh spacing in millimetres; finite elements, solid with circles, and finite differences, dashed with squares, both parallel to a dotted reference line of slope two. Right: largest error in kelvin against time step in seconds; backward Euler, solid with circles, parallel to a dash-dotted reference of slope one; Crank-Nicolson, dashed with squares, steeper and parallel to a dotted reference of slope two."
+#| fig-status: simulated
+result.show("fig-package-refinement")
+```
+
+[Backward Euler converges at the fitted order `{python} result["euler-order"]`
+and Crank-Nicolson at `{python} result["crank-order"]` over the three smallest
+steps.]{.claim type="numerically-verified" scope="one second after switch-on,
+the design with copper inserts on the 2 mm mesh, 4 to 64 steps"
+evidence="time-step-study fig-package-refinement"} At the largest steps
+Crank-Nicolson converges faster than its order: its error there is dominated
+by the fast modes, which it damps poorly. The reference lines are drawn for
+comparison, not fitted.
+
+The dies are switched on at full power from the coolant temperature. The
+copper design is computed by the elements with backward Euler, and by the
+explicit finite differences below their stability limit, which is measured:
+
+```{python}
+#| echo: false
+excerpt(experiment.explicit_limit)
+```
+
+```{python}
+#| label: explicit-limit
+#| echo: false
+result.table("explicit-limit")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.power_step)
+```
+
+```{python}
+#| label: transient
+#| echo: false
+result.table("transient")
+```
+
+```{python}
+#| label: fig-package-transient
+#| echo: false
+#| fig-cap: "After a power step the hottest junction rises to its steady value within a few seconds, the implicit elements and the explicit finite differences agreeing (left), while every step of both conserves energy to round-off (right)."
+#| fig-alt: "Left: hottest junction in degrees Celsius against time in seconds; a dashed curve for the explicit finite differences, circles for the elements, and a dash-dotted curve for the design with inserts, all rising steeply then levelling below a dotted horizontal limit line. Right: relative energy-balance gap, dimensionless, on a logarithmic axis against step number; scattered points of the three computations, all several decades below a dotted tolerance line."
+#| fig-status: simulated
+result.show("fig-package-transient")
+```
+
+[The measured stability limit of the explicit step agrees with the exact
+discrete limit to the precision of the measurement, and at the implicit step,
+`{python} result["step-ratio"]` times the limit, the explicit step multiplies
+its fastest mode at every step by the factor in the table and diverges; the
+explicit run needs `{python} result["explicit-steps"]` steps where the
+implicit one takes `{python} result["implicit-steps"]`.]{.claim
+type="numerically-verified" scope="the copper design, 1 mm spacing"
+evidence="explicit-limit"} [The two methods' hottest junctions differ by at
+most `{python} result["transient-gap"]` K, and by at most
+`{python} result["late-gap"]` K after the first second; every step of every
+transient conserves energy to a relative `{python} result["energy-gap"]`. The
+copper design reaches [95 per cent]{.given} of its steady rise in
+`{python} result["settle-copper"]` s, the design with inserts in
+`{python} result["settle-insert"]` s.]{.claim type="numerically-verified"
+scope="the power step of the two designs on the full flow, 1 mm spacing, 20
+ms implicit steps" evidence="transient fig-package-transient"} The gap is
+largest early, where the first-order error of backward Euler at [20 ms]{.given} steps is
+largest. The junction jumps at switch-on, because the contact and the half
+plate above the middle plane carry no heat capacity in the model.
+
+### Optimising the layout
+
+With the materials and the cooling fixed, the separation of the compute dies
+is free within the clearances. Every admissible separation, [2 mm]{.given} apart, is
+computed, and the best one is recomputed with its neighbours on a finer mesh:
+
+```{python}
+#| echo: false
+excerpt(experiment.layout_search)
+```
+
+```{python}
+#| label: layout
+#| echo: false
+result.table("layout")
+```
+
+```{python}
+#| label: fig-package-layout
+#| echo: false
+#| fig-cap: "For every spreader the hottest junction is lowest with the compute dies centred in the two halves of the spreader, and rises as they crowd together or towards the edges."
+#| fig-alt: "Hottest junction in degrees Celsius against the separation of the compute dies in millimetres, linear axes. Three U-shaped curves, solid with circles for aluminium, dashed with squares for copper, dash-dotted with triangles for aluminium with copper inserts; the last is shorter because the inserts need more room; each has its lowest point circled at the same separation in the middle; a dotted horizontal line marks the junction limit."
+#| fig-status: simulated
+result.show("fig-package-layout")
+```
+
+[For all three spreaders the coolest layout puts the compute dies
+`{python} result["best-separation"]` mm apart, and the finer mesh finds the
+same optimum.]{.claim type="numerically-verified" scope="separations 2 mm
+apart within the clearances, each material at its thickest admissible
+spreader, full flow" evidence="layout fig-package-layout"} The optimum has a
+reason: an insulated edge reflects heat as a mirror does, so a die near an
+edge heats itself as if it had a twin beyond it. Centred in its half of the
+spreader, each die is as far from its neighbour as from its mirror images.
+
+The thickness and the cold-plate coefficient need no search:
+
+```{python}
+#| label: bounds
+#| echo: false
+result.table("bounds")
+```
+
+[A thicker spreader and a larger cold-plate coefficient only lower the hottest
+junction, so the optimum lies on their limits: the thickest spreader the mass
+and the height allow, and the full flow.]{.claim type="numerically-verified"
+scope="the aluminium spreader with copper inserts, 1 to 3 mm, the three
+cooling options" evidence="bounds"}
+
+### Sensitivity to the inputs
+
+Each uncertain input is lowered and raised by a fifth, the others held, for
+the copper design by both methods and for the design with inserts:
+
+```{python}
+#| echo: false
+excerpt(experiment.sensitivity)
+```
+
+```{python}
+#| label: sensitivity
+#| echo: false
+result.table("sensitivity")
+```
+
+```{python}
+#| label: fig-package-sensitivity
+#| echo: false
+#| fig-cap: "The compute power moves the hottest junction most, then the cold-plate coefficient; the finite differences give the same changes as the elements for the copper design (left), and the inserts make the spreader's own conductivity matter little (right)."
+#| fig-alt: "Two horizontal bar charts, inputs listed on the vertical axis, change of the hottest junction in kelvin on a linear horizontal axis centred on zero. Hatched bars for a decrease by a fifth, solid bars for an increase. The bars for compute-die power are longest in both panels, those of the cold-plate coefficient next. In the left panel crosses for the finite differences sit at the ends of the bars."
+#| fig-status: simulated
+result.show("fig-package-sensitivity")
+```
+
+[The finite-difference baseline reproduces every change of the copper design
+to within `{python} result["sensitivity-agreement"]` K. For the design with
+inserts, the largest change, `{python} result["largest-swing"]` K, comes from
+the `{python} result["leading-input"]`; the next largest is
+`{python} result["second-swing"]` K.]{.claim
+type="numerically-verified" scope="each input changed by a fifth alone, full
+flow, 1 mm spacing" evidence="sensitivity fig-package-sensitivity"}
+
+### The trade-off and the recommendation
+
+Every one of the `{python} result["scenario-count"]` scenarios against every
+constraint:
+
+```{python}
+#| echo: false
+excerpt(experiment.trade_off)
+```
+
+```{python}
+#| label: trade-off
+#| echo: false
+result.table("trade-off")
+```
+
+```{python}
+#| label: fig-package-temperature
+#| echo: false
+#| fig-cap: "The plain aluminium spreader on the nominal flow lets hot spots form under the compute dies; copper inserts and the full flow spread and remove the heat, and the hottest junction stays below the limit."
+#| fig-alt: "Two false-colour maps of the plate temperature on one colour scale with a colour bar, x and y in millimetres. Dashed white rectangles outline the two compute dies and four memory stacks; in the right map dotted rectangles outline the copper inserts around the compute dies. The left map shows two bright hot spots under the compute dies; the right map is much cooler and more even."
+#| fig-status: simulated
+result.show("fig-package-temperature")
+```
+
+The rule of the decision is stated before the result: of the
+`{python} result["feasible-count"]` designs that meet every constraint, take the
+coolest; designs whose hottest junctions differ by less than the plate
+model's gap to the cross-section are not told apart, and of those the
+lightest is taken.
+
+::: {.claim type="numerically-verified" scope="the hypothetical package and its constraints; the eleven scenarios of the table, 1 mm spacing" evidence="trade-off cross-section sensitivity"}
+**Recommendation: `{python} result["recommended"]`.** Its hottest junction is
+`{python} result["recommended-junction"]` °C, a margin of
+`{python} result["recommended-margin"]` K to the limit, with a spreader of
+`{python} result["recommended-mass"]` g. The solid copper spreader,
+`{python} result["runner-up"]`, is `{python} result["runner-up-direction"]`
+by only `{python} result["runner-up-difference"]` K, within the model's
+resolution,
+and weighs `{python} result["runner-up-mass"]` g, at the mass limit. No
+design meets the limit on the nominal flow or with air, and the plain
+aluminium spreader does not meet it at all.
+:::
+
+The recommendation is qualified. Its margin covers an error of a fifth in
+any single input except the compute power, whose error of a fifth moves the
+hottest junction by about the margin itself. Before this design is relied on,
+the compute power must be known to better than that, or capped. The coolant
+must also flow fast enough to stay near its inlet temperature (second
+exercise), and the margin is a steady one: a burst of power uses it up within
+a second (first exercise).
+
+### Two simpler estimates, and why they fail
+
+```{python}
+#| label: estimates
+#| echo: false
+result.table("estimates")
+```
+
+[Spreading the power evenly over the spreader puts the hottest junction at
+least `{python} result["even-error"]` K too low for every spreader, and
+cooling every die straight down without spreading puts it at least
+`{python} result["straight-error"]` K too high.]{.claim
+type="numerically-verified" scope="the three spreaders at their thickest
+admissible thickness, full flow" evidence="estimates"} The answer lies between
+them and depends on how far the heat spreads before it leaves, which is what
+the field computes. An estimate that averages away the hot spots misses the
+very points the limit is about.
+
+## Limits {#limits}
+
+- **Verification, not validation.** Every check compares the computation with
+  mathematics or with another computation. None compares a computed
+  temperature with a measured one; the materials are textbook values, the
+  contact resistances and cold-plate coefficients assumptions, and the
+  package invented. The recommendation is about this model, not about any
+  device.
+- **The model's resolution.** The plate model differs from a cross-section
+  through the thickness by up to `{python} result["section-gap"]` K, and that
+  check covers only loads uniform along one direction. The dies' own
+  conduction and heat capacity, a thermal interface that varies in
+  thickness, and warping are not modelled.
+- **No coolant flow.** The cold plate is a coefficient. Its value depends on
+  the flow, the channels, and the coolant, which a three-dimensional flow
+  model or a measurement would supply; the coolant's warming along the plate
+  is left out.
+- **No optional reference tool.** A three-dimensional finite-element or CFD
+  solution (FEniCSx, a commercial code) would test the plate model further.
+  Its output would enter as a declared `modelled-reference` input with a
+  dataset card, as the architecture requires; this lesson has none.
+- **A crude optimisation.** The search covers one layout parameter on a [2 mm]{.given}
+  grid and sweeps for the thickness and the cooling; a real design would
+  optimise more parameters together, with the costs of pump power, material,
+  and manufacture in the objective.
+- **Steady limits.** The constraint is checked at steady full power; bursts,
+  power cycling, and the fatigue they cause are outside it.
+
+::: {.exercise .self-check}
+The solid copper spreader and the aluminium spreader with copper
+inserts differ in hottest junction by less than the plate model's gap to the
+cross-section, yet the mesh study shows the computation itself accurate to
+far better than that. Which number decides whether the two designs can be
+told apart?
+
+::: {.choices}
+::: {.choice}
+The discretisation error, because a finer mesh would separate them.
+
+::: {.feedback}
+No. Refining the mesh makes the solution of the plate model more accurate,
+but the plate model itself differs from the more resolved cross-section by
+more than the difference between the designs.
+:::
+:::
+
+::: {.choice correct="true"}
+The model's gap to the cross-section, because it is the larger uncertainty.
+
+::: {.feedback}
+Right. A difference smaller than the error of the model's own assumptions
+says nothing about which design is better.
+:::
+:::
+:::
+
+::: {.solution}
+Errors add up along a chain of approximations, and the largest dominates.
+The discretisation error of the [1 mm]{.given} mesh is a hundredth of a kelvin or less,
+the plate model's gap to the cross-section a few tenths. Two designs
+that differ by less than that gap are equal as far as this model can tell, so
+the decision between them goes to another criterion, here the mass. A finer
+mesh would not change that; a better model, or a measurement, would.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A burst of work.** From the steady state at full power, the compute dies of
+the recommended design run at one and a half times their power for two
+seconds. Does the hottest junction stay below the limit?
+
+::: {.hint}
+Start the theta method from the steady temperature, with the load of the
+burst.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.burst)
+```
+
+```{python}
+#| echo: false
+result.table("burst")
+```
+
+No: the hottest junction crosses the limit within the first second and
+approaches the steady value of the higher power. The design's margin is a
+steady margin; a burst needs either a lower power ceiling, a capacity that
+buys time (a thicker spreader, a vapour chamber), or a controller that
+throttles the dies.
+:::
+:::
+
+::: {.exercise}
+**The warming coolant.** The model takes the coolant at one temperature. If
+water carries the package's power away, how fast must it flow for its
+temperature to rise by less than a few kelvin across the cold plate?
+
+::: {.hint}
+The heat the water carries away is its mass flow times its specific heat
+times its rise in temperature.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.coolant_rise)
+```
+
+```{python}
+#| echo: false
+result.table("coolant-rise")
+```
+
+The rise is inversely proportional to the flow. At about two litres per
+minute it is a few kelvin, a part of the margin; at half a litre per minute it
+would exceed the margin by itself. The assumption of a uniform coolant holds
+only with enough flow, and the flow is also what sets the cold-plate
+coefficient.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/fem/mesh.py",
+        "src/pbc/fem/assembly.py",
+        "src/pbc/fem/transient.py",
+        "src/pbc/thermodynamics/conduction.py",
+        "src/pbc/thermodynamics/package.py",
+        "src/pbc/thermodynamics/experiments/thermal_engineering_of_an_ai_accelerator.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_fem.py",
+        "tests/unit/test_package.py",
+        "tests/unit/test_thermal_engineering_of_an_ai_accelerator_experiment.py",
+    ],
+)
+```
