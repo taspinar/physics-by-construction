@@ -140,8 +140,16 @@ def _name(slot) -> str:
     )
 
 
+def _without_published_capstones() -> HomeContent:
+    """The home of the path without the lessons that fill a capstone slot,
+    so that every capstone is planned."""
+    labels = {slot.label for slot in PATH.curriculum.slots if slot.kind == CAPSTONE}
+    lessons = tuple(lesson for lesson in PATH.lessons if lesson.slot not in labels)
+    return HomeContent(replace(PATH, lessons=lessons), MANIFEST)
+
+
 def test_the_capstones_show_only_the_manifest_explanation_and_are_planned():
-    text = HOME.capstones()
+    text = _without_published_capstones().capstones()
     slots = [slot for slot in PATH.curriculum.slots if slot.kind == CAPSTONE]
     assert {slot.label for slot in slots} == {"T11", "EM9", "FL10"}
     blocks = _capstone_blocks(text)
@@ -182,6 +190,13 @@ def test_the_featured_capstone_has_the_conceptual_artwork_and_its_label():
     # smaller boxes.
     assert text.index(FEATURED_HEADING) < text.index(WAVEFRONT)
     assert text.index(WAVEFRONT) < text.index("::: {.home-capstones}")
+
+
+def test_the_published_em9_capstone_links_to_its_lesson():
+    block = _capstone_blocks(HOME.capstones())["EM9"]
+    lesson = next(lesson for lesson in PATH.lessons if lesson.slot == "EM9")
+    assert "[published]{.home-published}" in block
+    assert LINK.findall(block) == [lesson.page.removesuffix(".qmd") + ".html"]
 
 
 def test_a_published_capstone_links_to_its_lesson():

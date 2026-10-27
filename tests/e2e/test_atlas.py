@@ -150,19 +150,28 @@ def test_planned_concepts_are_labelled_and_never_link_a_lesson(page: Page):
     assert slots.locator("a").count() == 0
 
 
-def test_the_capstones_are_planned_with_the_manifests_description(page: Page):
+def test_the_capstones_carry_their_state_and_the_manifests_description(page: Page):
     items = page.locator(".atlas-capstone-item")
     assert items.count() == 3
+    published = {lesson.slot for lesson in LESSONS if lesson.slot}
     for item in items.all():
         label = item.get_attribute("data-slot")
-        assert "Planned, not published." in item.inner_text()
         description = item.locator(".capstone-description").inner_text()
         assert description == ATLAS.manifest.capstone(label).explanation
-        assert item.locator(".atlas-capstone-name a").count() == 0
-    # EM9 stays in the index of its course as a planned slot (in a closed
-    # disclosure, so read by its text, not as rendered).
-    em9 = page.locator("main section#course-electromagnetism li.planned-slot")
-    assert "EM9" in em9.locator(".slot-label").all_text_contents()
+        if label in published:
+            assert "Published." in item.inner_text()
+            assert item.locator(".atlas-capstone-name a").count() == 1
+        else:
+            assert "Planned, not published." in item.inner_text()
+            assert item.locator(".atlas-capstone-name a").count() == 0
+    # EM9 is published (F80): it is no planned slot in the index of its course
+    # (in a closed disclosure, so read by its text, not as rendered); T11
+    # stays planned in its own.
+    assert "EM9" in published
+    em = page.locator("main section#course-electromagnetism li.planned-slot")
+    assert "EM9" not in em.locator(".slot-label").all_text_contents()
+    thermo = page.locator("main section#course-thermodynamics li.planned-slot")
+    assert "T11" in thermo.locator(".slot-label").all_text_contents()
 
 
 def test_the_textual_equivalent_is_in_the_page(page: Page):

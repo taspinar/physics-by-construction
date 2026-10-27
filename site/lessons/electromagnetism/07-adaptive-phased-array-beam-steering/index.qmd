@@ -1,0 +1,734 @@
+---
+title: "Applied capstone: adaptive phased-array beam steering"
+description: >-
+  A finite linear array's complex field and array factor, checked against
+  the closed-form steering angle, nulls, symmetries, and grating-lobe onset;
+  then a design worked through from requirements to a qualified decision:
+  spacing, taper, a null toward an interferer, quantised phase shifters,
+  channel errors, frequency and element pattern, and a receiver tracked as
+  it passes. An array-factor model, not a full-wave antenna design.
+lesson:
+  id: adaptive-phased-array-beam-steering
+  strand: electromagnetism
+  order: 7
+  difficulty: 3
+  course: electromagnetism
+  slot: EM9
+  methods: [simulation]
+  outcomes:
+    - Compute the far field of a finite array as a sum of complex element contributions, and check it against the closed-form array factor, its nulls, and its symmetries
+    - Steer a beam with the phases of the elements, place a null toward an interferer, and say when a null is not feasible
+    - Predict the onset of grating lobes and the squint of phase steering across a band, and check both against the computed patterns
+    - Measure how quantised phase shifters and random channel errors degrade the gain and the null, and compare the measurement with the exact expectation
+    - Turn requirements into a qualified design decision, and state where the array-factor model stops being credible
+  related: []
+  format: 2
+  preview: fig-tracking-sequence
+  experiment: pbc.electromagnetism.experiments.adaptive_phased_array_beam_steering
+  prerequisites:
+    lessons: [waveguides-and-antenna-basics, maxwells-equations-and-fdtd, interference-and-resonance]
+    outside:
+      - "Complex numbers: the exponential of an imaginary number, and the modulus and argument of a sum of complex numbers"
+      - "Probability: the mean and the variance of a random variable, and the average of independent draws"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.electromagnetism import arrays
+from pbc.electromagnetism.experiments import adaptive_phased_array_beam_steering as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A radar that follows an aircraft without turning, a base station that
+serves a car driving past, a satellite terminal on a moving ship: each
+points its beam by electronics, not by motors. A row of small antennas
+radiates the same signal, and a phase shifter behind each one delays it a
+little. Where the delayed waves arrive in step, they add up to a beam; where
+they arrive out of step, they cancel. Change the delays and the beam moves,
+in microseconds.
+
+This capstone brings together the course and the waves course. The
+interference lesson added waves from two sources; the antenna lesson built
+a wire from short elements and showed that identical antennas in a row give
+the element pattern times an **array factor**. Here that array factor is the
+whole model: it is checked against its closed forms, then used the way an
+engineer would, to turn a set of requirements into a design decision, with
+the model's failures in view.
+
+**The credibility boundary.** The model is an **array factor**: identical,
+ideal elements that do not change each other's currents, fed with exactly
+the weights the design asks for. It is not a full-wave computation of an
+antenna, of a metasurface, or of the feed network, and it describes no
+fabricated or tested device. The requirements below are hypothetical
+teaching values. Every claim on this page is typed numerically verified: it
+is about the model, checked against closed forms and exact expectations,
+and none of it is physically validated by a measurement. What the model can
+support is the comparison of design choices under its assumptions; what it
+cannot support is a claim about the performance of real hardware.
+
+## Assumptions
+
+1. **A linear array of identical elements.** Sixteen elements on a line,
+   evenly spaced, each radiating the same pattern; the direction $\psi$ is
+   measured from broadside in the plane of the line.
+2. **No mutual coupling.** Each element radiates as if alone (pattern
+   multiplication, from the antenna lesson); the edge elements are not
+   different from the middle ones.
+3. **The far field, one frequency.** Patterns are those far from the array,
+   at one frequency at a time, as $e^{j\omega t}$.
+4. **Phase shifters, not delay lines.** The steering phases are set at the
+   carrier; at other frequencies of the band they stay the same.
+5. **Known directions.** The array is told the directions of the receiver
+   and of the interferer at every update (from a position report, say); it
+   does not estimate them from noisy signals.
+6. **Independent channel errors.** The errors of different elements are
+   independent, with known standard deviations.
+
+## Explanation
+
+### The array factor
+
+Element $n$ sits at $x_n$ on the line and is fed with the complex weight
+$w_n$. A wave leaving toward $\psi$ from element $n$ starts ahead of one
+from the origin by the path $x_n \sin\psi$, so its phase is ahead by
+$k x_n \sin\psi$, with $k = 2\pi/\lambda$. The far field is the element
+pattern $E(\psi)$ times
+
+$$
+\mathrm{AF}(\psi) = \sum_{n} w_n\, e^{j k x_n \sin\psi}.
+$$
+
+With $w_n = a_n e^{-j k x_n \sin\psi_0}$ every term arrives at $\psi_0$ with
+the phase it had, and the sum is largest there: the beam is **steered** to
+$\psi_0$. For $N$ equal amplitudes, spacing $d$, and the array centred on
+the origin, the sum is a geometric series:
+
+$$
+\mathrm{AF}(\psi) = \frac{\sin(N x / 2)}{\sin(x / 2)},
+\qquad x = k d\,(\sin\psi - \sin\psi_0).
+$$
+
+Everything follows from this closed form:
+
+- the peak, $N$, at $\sin\psi = \sin\psi_0$;
+- **nulls** where $N x/2$ is a multiple of $\pi$ but $x/2$ is not:
+  $\sin\psi = \sin\psi_0 + m\lambda/(Nd)$, $m \ne 0$ not a multiple of $N$;
+- **symmetries**: steering to $-\psi_0$ mirrors the pattern, and steering
+  only translates it in $u = \sin\psi$, so the beam broadens as
+  $1/\cos\psi_0$ when it is steered away from broadside;
+- **grating lobes**: $x = 2\pi$ gives another peak of full height, at
+  $\sin\psi = \sin\psi_0 - \lambda/d$. It is a real direction when
+  $|\sin\psi| \le 1$, so the array is free of grating lobes for every
+  steering angle up to $\psi_0$ only if
+  $$
+  d < \frac{\lambda}{1 + |\sin\psi_0|}.
+  $$
+
+### Amplitudes, nulls, and errors
+
+Equal amplitudes give the narrowest beam but sidelobes only about
+$13$ dB below it. Tapering the amplitudes toward the edges lowers the
+sidelobes and widens the beam; the **Dolph-Chebyshev** taper puts every
+sidelobe exactly at a chosen level, with the narrowest beam for that level.
+
+A **null** toward an interferer at $\psi_i$ is a linear condition on the
+weights, $\mathrm{AF}(\psi_i) = 0$. The weights closest to the steered ones
+that satisfy it are their projection on the complement of the interferer's
+steering vector. For equal amplitudes the projection keeps the fraction
+
+$$
+G = 1 - r^2, \qquad r = \frac{\mathrm{AF}_{\psi_0}(\psi_i)}{N},
+$$
+
+of the gain toward the receiver, where $r$ is the steered beam's own
+field toward the interferer: a null in the sidelobes is almost free, a null
+inside the main lobe costs almost everything.
+
+A real array realises each weight with an error: $w_n g_n$, with $g_n$ a
+small random change of amplitude and phase. If the errors are independent,
+with $\mathrm{E}\,g_n = \mu$ and $\mathrm{E}\,|g_n|^2 = s$, then exactly
+
+$$
+\mathrm{E}\,|\mathrm{AF}(\psi)|^2 = \mu^2\,|\mathrm{AF}_\text{ideal}(\psi)|^2
++ (s - \mu^2) \sum_n |w_n|^2 .
+$$
+
+The beam loses the factor $\mu^2$, and a floor $(s - \mu^2)\sum|w_n|^2$
+fills every null and sidelobe. A $b$-bit phase shifter rounds the phase to
+steps of $\Delta = 2\pi/2^b$; if the rounding error is uniform on
+$(-\Delta/2, \Delta/2)$, $\mu = \sin(\Delta/2)/(\Delta/2)$ and $s = 1$. A
+normal phase error of standard deviation $\sigma$ gives
+$\mu = e^{-\sigma^2/2}$. Rounding errors are uniform and independent only if
+the phases being rounded differ at random from element to element; a fixed,
+known feed-line phase per element, an *insertion phase*, makes them so.
+
+### Frequency and the element
+
+A phase shifter gives the phase $k_0 x_n \sin\psi_0$ that is right at the
+carrier. At the frequency $f$ the waves arrive in step where
+$k \sin\psi = k_0 \sin\psi_0$:
+
+$$
+\sin\psi_\text{peak} = \frac{f_0}{f}\,\sin\psi_0 ,
+$$
+
+the **squint** of phase steering. Delay lines instead of phase shifters
+(true time delay) remove it. Finally, the element pattern multiplies the
+array factor: a half-wave dipole lying along the line radiates nothing
+along it, and pulls a steered beam back toward broadside.
+
+## Code
+
+The array factor is the direct sum of the antenna lesson, in the plane of
+the array; the closed form is there to check it:
+
+```{python}
+#| echo: false
+excerpt(arrays.factor)
+```
+
+```{python}
+#| echo: false
+excerpt(arrays.uniform_factor)
+```
+
+Steering, the null, and the realisation of a weight by a phase shifter:
+
+```{python}
+#| echo: false
+excerpt(arrays.steering_weights)
+```
+
+```{python}
+#| echo: false
+excerpt(arrays.null_weights)
+```
+
+```{python}
+#| echo: false
+excerpt(arrays.quantise)
+```
+
+The exact expected pattern under independent errors, and the measurement of
+gain for a given total power:
+
+```{python}
+#| echo: false
+excerpt(arrays.expected_power)
+```
+
+```{python}
+#| echo: false
+excerpt(arrays.realised_gain)
+```
+
+The search for the peak and the onset of grating lobes:
+
+```{python}
+#| echo: false
+excerpt(arrays.peak_direction)
+```
+
+```{python}
+#| echo: false
+excerpt(arrays.grating_onset)
+```
+
+## Worked examples
+
+### The requirements
+
+A hypothetical array has to keep a beam on a receiver passing on a road and
+hold a null toward a fixed interferer, over a band around the carrier:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="requirements")
+```
+
+The phase shifters and the channels it may be built with, and the pass:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="errors")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment, region="pass")
+```
+
+### Is the model right?
+
+Before the model decides anything it is checked against the closed form.
+The beam of equal amplitudes steered to $30^\circ$:
+
+```{python}
+#| echo: false
+excerpt(experiment.model_checks)
+```
+
+```{python}
+#| label: fig-steered-pattern
+#| echo: false
+#| fig-cap: "The pattern computed by the direct sum lies on the closed-form array factor, with its peak at the commanded angle and its nulls where the closed form puts them."
+#| fig-alt: "Line plot of power in decibels against direction from broadside. A main lobe peaks on a dashed vertical line at the commanded angle, flanked by smaller sidelobes that shrink away from it and grow again toward the far left and right edges. Circle markers of the closed form sit on the line, and dotted vertical lines mark the nulls, each at a deep dip of the curve."
+#| fig-status: simulated
+result.show("fig-steered-pattern")
+```
+
+```{python}
+#| label: steering
+#| echo: false
+result.table("steering")
+```
+
+```{python}
+#| label: nulls
+#| echo: false
+result.table("nulls")
+```
+
+[The direct sum agrees with the closed-form array factor to
+`{python} result["closed-form-gap"]` of its peak; the peak found by search
+lies at the commanded angle to `{python} result["steering-gap"]` degree, and
+the nulls at the closed-form directions to `{python} result["null-gap"]`
+degree.]{.claim type="numerically-verified" scope="sixteen equal elements,
+half a wavelength apart, steered from broadside to fifty degrees"
+evidence="fig-steered-pattern steering nulls"} [Steering to $-\psi_0$
+mirrors the pattern to `{python} result["mirror-gap"]` of the peak, and
+steering is a pure translation in $\sin\psi$ to
+`{python} result["translation-gap"]`.]{.claim type="numerically-verified"
+scope="the same array, steered to thirty degrees"
+evidence="fig-steered-pattern"} The sidelobes rise again toward the right
+edge because the pattern is a translated copy in $\sin\psi$: near endfire a
+small step in $\sin\psi$ is a large step in angle.
+
+### Spacing and grating lobes
+
+The bisection of the onset spacing, for each steering angle:
+
+```{python}
+#| echo: false
+excerpt(experiment.grating_lobes)
+```
+
+```{python}
+#| label: fig-grating-lobes
+#| echo: false
+#| fig-cap: "Left: at a spacing of a wavelength, a beam steered to thirty degrees has a second lobe of full height; at half a wavelength it has none. Right: the spacing at which the second lobe appears follows the closed form."
+#| fig-alt: "Two panels. Left: two power patterns against direction, both peaking at the same angle; the dashed one has a second peak of full height on the far side of broadside, the solid one does not. Right: a curve of onset spacing in wavelengths falling with the steering angle, with square markers of the bisection on it."
+#| fig-status: simulated
+result.show("fig-grating-lobes")
+```
+
+```{python}
+#| label: grating-onset
+#| echo: false
+result.table("grating-onset")
+```
+
+[The grating-lobe onset found by bisection on the computed pattern lies
+below $\lambda/(1 + \sin\psi_0)$ by the relative
+`{python} result["onset-shift"]` at every steering angle, which is exactly
+the amount by which a threshold a millionth below full height detects a lobe
+early; the remainder is `{python} result["onset-residual"]`.]{.claim
+type="numerically-verified" scope="sixteen equal elements, steered from
+broadside to sixty degrees" evidence="grating-onset fig-grating-lobes"} The
+shift comes from the shape of a lobe near its top, which falls as
+$1 - (N^2 - 1)x^2/24$:
+
+```{python}
+#| echo: false
+excerpt(experiment.onset_shift)
+```
+
+For the design, the top of the band has the shortest wavelength, and the
+receiver may be $50^\circ$ away: the spacing must stay below
+`{python} result["largest-spacing"]` mm. The chosen
+`{python} result["spacing"]` mm, half a wavelength at the carrier, keeps a
+margin: at the top of the band its first grating lobe would appear only for
+a beam steered beyond `{python} result["onset-scan"]` degrees.
+
+### Amplitudes and the null
+
+```{python}
+#| echo: false
+excerpt(experiment.taper_and_null)
+```
+
+```{python}
+#| label: fig-taper-and-null
+#| echo: false
+#| fig-cap: "The Chebyshev taper holds every sidelobe at the design level; the null toward the interferer cuts a deep notch there and leaves the rest of the pattern almost unchanged."
+#| fig-alt: "Line plot of power in decibels against direction, with a horizontal dash-dotted line at the design level and a thin vertical line at the interferer. The solid tapered pattern has one main lobe and sidelobes that all touch the design line. The dashed pattern with the null follows the tapered one except for a deep notch at the interferer."
+#| fig-status: simulated
+result.show("fig-taper-and-null")
+```
+
+```{python}
+#| label: taper
+#| echo: false
+result.table("taper")
+```
+
+[The largest sidelobe of the Chebyshev taper lies at the design level to
+`{python} result["taper-gap"]` dB, against
+`{python} result["uniform-sidelobe"]` dB for equal amplitudes; the taper
+costs `{python} result["taper-loss"]` dB of gain and widens the
+beam.]{.claim type="numerically-verified" scope="sixteen elements steered
+to minus ten degrees, taper designed for thirty decibels"
+evidence="taper fig-taper-and-null"} That is the first trade-off: lower
+sidelobes for a little gain and a wider beam.
+
+```{python}
+#| label: null-cost
+#| echo: false
+result.table("null-cost")
+```
+
+[The ideal null is deep to round-off, `{python} result["ideal-null"]` of
+the field toward the receiver, and the gain it costs equal amplitudes agrees
+with $1 - r^2$ to `{python} result["null-cost-gap"]`.]{.claim
+type="numerically-verified" scope="equal amplitudes, interferer at twenty
+degrees, receiver from two to thirty degrees away"
+evidence="null-cost fig-taper-and-null"} The cost is small while the
+interferer sits in the receiver beam's sidelobes, oscillates with them, and
+grows steeply once it enters the main lobe: there the two directions are
+too close for this aperture to separate. For the taper the projection can
+even raise the gain slightly, because it moves the amplitudes back toward
+equal; the design's feasibility rule is therefore computed with the
+taper, not with the closed form.
+
+### Quantised phase shifters
+
+```{python}
+#| echo: false
+excerpt(experiment.degradation)
+```
+
+```{python}
+#| label: quantisation
+#| echo: false
+result.table("quantisation")
+```
+
+```{python}
+#| label: fig-quantisation
+#| echo: false
+#| fig-cap: "The mean null depth of quantised arrays falls by about six decibels per bit, as the exact expectation predicts."
+#| fig-alt: "Line plot of mean null depth in decibels against the number of phase-shifter bits: a straight falling line of the expectation with circle markers of the Monte Carlo mean on it."
+#| fig-status: simulated
+result.show("fig-quantisation")
+```
+
+[Over `{python} result["draws"]` realised arrays per row, the mean gain
+loss agrees with the expected $\mu^2$ to `{python} result["quantisation-gap"]`
+dB and the mean null depth with the exact expectation to
+`{python} result["quantisation-null-gap"]` dB.]{.claim
+type="numerically-verified" scope="the design beam, quantised phase
+shifters of two to seven bits with random insertion phases"
+evidence="quantisation fig-quantisation"} The remaining gap is the scatter
+of a finite Monte Carlo average. With plain rounding, the
+`{python} result["lobe-bits"]`-bit errors repeat along the array and add
+coherently into a lobe `{python} result["rounding-lobe"]` dB below the
+peak; with insertion phases, the largest sidelobe averaged over
+`{python} result["lobe-draws"]` realisations is
+`{python} result["offset-lobe"]` dB. For sixteen elements that is only a
+modest gain: insertion phases make the errors independent, which the
+expectation formula needs, but a short array still has few elements to
+average them over. Without insertion phases the formula does not describe
+the array at all.
+
+### Errors of the channels
+
+```{python}
+#| label: channel-errors
+#| echo: false
+result.table("channel-errors")
+```
+
+[Random amplitude and phase errors of the channels degrade the gain and
+fill the null as the exact expectation predicts: the mean null depths agree
+with it to `{python} result["channel-null-gap"]` dB.]{.claim
+type="numerically-verified" scope="the design beam, normal phase errors of
+one to ten degrees rms and amplitude errors of two per cent rms"
+evidence="channel-errors"} The gain hardly suffers, a few hundredths of a
+decibel even at ten degrees; the null suffers first. A deep null is a
+cancellation of sixteen contributions, and any error in any of them is left
+over.
+
+### The choice of phase shifter
+
+With the channel-error budget of the requirements, the number of bits:
+
+```{python}
+#| label: decision
+#| echo: false
+result.table("decision")
+```
+
+[With channel errors of two degrees and two per cent rms,
+`{python} result["chosen-bits"]`-bit phase shifters are the fewest for which
+nineteen realised arrays in twenty hold the null at least thirty decibels
+below the main beam.]{.claim type="numerically-verified" scope="the design
+beam of this hypothetical array, its error model, and the Monte Carlo
+sample above" evidence="decision quantisation channel-errors"} Beyond that,
+more bits buy little: the channel errors set the floor.
+
+### Across the band
+
+```{python}
+#| echo: false
+excerpt(experiment.band)
+```
+
+```{python}
+#| label: band
+#| echo: false
+result.table("band")
+```
+
+[The peak of the beam found at each frequency agrees with
+$\arcsin\big((f_0/f)\sin\psi_0\big)$ to `{python} result["squint-gap"]`
+degree; at the top of the band the beam set for fifty degrees points
+`{python} result["squint"]` degrees closer to broadside, and the band edges
+lose `{python} result["edge-loss"]` dB toward the receiver.]{.claim
+type="numerically-verified" scope="equal amplitudes, phases set at the
+carrier, over the band of the requirements" evidence="band"} The null moves
+too. [Exact at the carrier, the null of the ideal weights is only
+`{python} result["edge-null"]` dB deep at the worst band edge: it still
+meets the requirement of thirty decibels, with
+`{python} result["edge-null-margin"]` dB to spare.]{.claim
+type="numerically-verified" scope="the ideal weights of the design, without
+quantisation or channel errors, for the interferer of the requirements, at
+the frequencies of the table" evidence="band"} The channel errors were
+measured at the carrier only; how they add to this fill at the band edges
+is not computed here, and a wider band or an interferer farther from
+broadside would fill the null further. Delay lines would hold the beam;
+nulls over a band need more than one weight per element.
+
+### The element pattern
+
+```{python}
+#| label: element
+#| echo: false
+result.table("element")
+```
+
+[With dipole elements, the beam commanded to fifty degrees peaks
+`{python} result["element-pull"]` degree closer to broadside, and the
+element pattern there is `{python} result["element-loss"]` dB below its
+broadside value.]{.claim type="numerically-verified" scope="half-wave
+dipoles along the array axis with the assumed sinusoidal current, no
+coupling" evidence="element"} Scan loss is the price
+of a wide scan: whatever the array factor does, the element sends less
+power sideways. A real element in a real array, with its neighbours,
+has another pattern, which only a full-wave computation or a measurement
+gives.
+
+### The receiver passes
+
+The receiver drives past on a road; at each of
+`{python} result["steps"]` updates over `{python} result["pass-time"]` s,
+the array recomputes the weights for the receiver's direction, places the
+null if it costs at most $3$ dB, and realises them with its phase shifters
+and channel errors (one realised array, fixed):
+
+```{python}
+#| echo: false
+excerpt(experiment.tracking)
+```
+
+```{python}
+#| label: fig-tracking-sequence
+#| echo: false
+#| fig-cap: "Six moments of the pass: the realised beam follows the receiver and keeps a notch at the interferer, until the receiver is too close to the interferer for a null to be worth its cost."
+#| fig-alt: "Six small power patterns against direction, in time order. In each a dashed vertical line marks the receiver and a dotted one the fixed interferer. The main lobe moves from the far left to the far right, always on the dashed line. In five panels the pattern dips at the dotted line; in the fifth, where the two lines nearly coincide, the main lobe covers both and there is no dip."
+#| fig-status: simulated
+result.show("fig-tracking-sequence")
+```
+
+```{python}
+#| label: fig-tracking-history
+#| echo: false
+#| fig-cap: "Over the pass the gain toward the receiver stays close to the taper's loss, and the interferer stays below the requirement, except in the short window where the receiver is in line with the interferer and no null is placed."
+#| fig-alt: "Two stacked plots against time with a shaded vertical band in the middle where no null is placed. Top: the gain toward the receiver, nearly flat, with two short dips at the edges of the band. Bottom: the interferer's level below the receiver, scattered well under a dashed requirement line, except inside the band, where it jumps up to near zero."
+#| fig-status: simulated
+result.show("fig-tracking-history")
+```
+
+```{python}
+#| label: tracking
+#| echo: false
+result.table("tracking")
+```
+
+[Wherever the null was placed, the interferer stayed at least
+`{python} result["worst-null"]` dB below the receiver in this realised
+array, at a gain loss of at most `{python} result["worst-gain"]` dB; the
+null was not feasible while the receiver was between
+`{python} result["window-low"]` and `{python} result["window-high"]`
+degrees, and over the whole pass the requirement held at a share
+`{python} result["met-share"]` of the updates.]{.claim
+type="numerically-verified" scope="one realised array of the design,
+the road and speed of the requirements, directions known exactly"
+evidence="tracking fig-tracking-history fig-tracking-sequence"}
+
+### The decision
+
+The design that meets the hypothetical requirements, under this model:
+`{python} result["spacing"]` mm spacing, a thirty-decibel Chebyshev taper,
+`{python} result["chosen-bits"]`-bit phase shifters with insertion phases,
+channels calibrated to two degrees and two per cent, and a null placed only
+where it costs at most three decibels. It is a **qualified** decision. It
+fails in a window of a few degrees around the interferer, which no weight
+of this aperture can avoid: only a longer array, with a narrower beam,
+shrinks that window. At the band edges only the ideal null is shown to
+meet the requirement, for the interferer of the requirements; the error
+budget was measured at the carrier, and everything holds only for ideal,
+uncoupled elements with the errors assumed. The next step for a real design would be the one this
+model cannot take: element patterns with coupling from a full-wave
+computation of the array, and measured channel errors.
+
+## Limits {#limits}
+
+- **An array factor, not an antenna.** No mutual coupling, no edge
+  effects, no feed network, no matching: the realised element patterns and
+  the active impedance of a real array differ from element to element and
+  change with the steering angle. None of the numbers above is a property
+  of a fabricated device, and the model is not a design of a metasurface.
+- **One plane, one line.** The array is a line and the patterns are cuts in
+  one plane; a planar array steers in two angles and has grating lobes in
+  two dimensions.
+- **Known directions.** The weights use the true directions. A real
+  adaptive array estimates them, or forms the null from the measured
+  signals (sample-matrix inversion), and its own estimation noise then
+  limits the null as well; that is not modelled.
+- **Independent errors with known statistics.** The expectation formula is
+  exact only for independent errors. Plain rounding of a progressive
+  phase, the drift of a whole column with temperature, or a failed element
+  are correlated errors that it does not describe.
+- **Narrow band.** Each frequency is computed alone; a wideband signal,
+  dispersion in the feed, and the time a pulse takes to cross the array are
+  left out.
+
+::: {.exercise .self-check}
+The design steers with phase shifters set at the carrier. A user proposes
+to widen the band to twice its width without other changes. What happens
+to a beam steered far from broadside?
+
+::: {.choices}
+::: {.choice}
+Nothing: the phases are correct for every frequency once set.
+
+::: {.feedback}
+A phase is a fixed fraction of a period only at one frequency; the delay it
+represents changes across the band.
+:::
+:::
+
+::: {.choice correct="true"}
+It squints more: the beam swings toward broadside at the top of the band
+and away from it at the bottom, by more the farther it is steered.
+
+::: {.feedback}
+Right. The peak is at $\arcsin\big((f_0/f)\sin\psi_0\big)$, which departs
+from $\psi_0$ more for larger $\sin\psi_0$ and larger $|f - f_0|$.
+:::
+:::
+
+::: {.choice}
+It develops a grating lobe at every frequency.
+
+::: {.feedback}
+A grating lobe needs a larger spacing in wavelengths; only the top of a
+wider band moves toward that limit, and not at every frequency.
+:::
+:::
+:::
+
+::: {.solution}
+The steering phase $k_0 x_n \sin\psi_0$ is a time delay
+$x_n \sin\psi_0 / c$ only at $f_0$. At another frequency the waves arrive
+in step where $f\sin\psi = f_0\sin\psi_0$, so the beam squints, the more
+the farther it is steered and the wider the band. The top of a wider band
+also has a shorter wavelength, which brings the grating-lobe limit closer.
+True-time-delay steering removes the squint.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Spacing for a wider scan.** An array has to steer to 60 degrees at
+12 GHz without a grating lobe. What is the largest element spacing?
+
+::: {.hint}
+A grating lobe enters when its direction, the steering direction less
+$\lambda/d$ in $\sin\psi$, reaches endfire on the far side of broadside.
+:::
+
+::: {.solution}
+From $d < \lambda/(1 + \sin\psi_0)$ with $\lambda = c/f$:
+
+```{python}
+#| echo: false
+excerpt(experiment.largest_spacing)
+```
+
+The spacing must stay below `{python} result["exercise-spacing"]` mm, a
+little more than half a wavelength. Wider scans and higher frequencies push
+the elements closer, and more of them are needed for the same aperture.
+:::
+:::
+
+::: {.exercise}
+**Bits for a deeper null.** For sixteen equal amplitudes steered to
+-10 degrees with a null at 20 degrees, and no error but the quantisation
+(with insertion phases), how many bits give an expected null depth of
+40 dB?
+
+::: {.hint}
+The null is exact without errors, so its expected power is only the floor
+of the error term of the expectation formula; compare it with the expected
+main-beam power.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.bits_for_null)
+```
+
+```{python}
+#| echo: false
+result.table("exercise-bits")
+```
+
+Each bit halves the step and quarters the floor, about six decibels per
+bit. A forty-decibel null needs the first row at or below that level; in a
+real array the channel errors, not the bits, usually set the limit first.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/electromagnetism/arrays.py",
+        "src/pbc/electromagnetism/antennas.py",
+        "src/pbc/electromagnetism/experiments/adaptive_phased_array_beam_steering.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_arrays.py",
+        "tests/unit/test_adaptive_phased_array_beam_steering_experiment.py",
+    ],
+)
+```
