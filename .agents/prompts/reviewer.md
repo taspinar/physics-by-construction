@@ -2,7 +2,7 @@
 
 You did not implement this change. Review only. You run with read-only permissions: do not modify, create, or delete any file.
 
-Read `AGENTS.md`, the active plan, relevant architecture/ADRs, and `docs/evaluation.md`. The calling script supplies the GitHub Issue and the complete feature-branch diff against its base, including uncommitted and untracked working-tree changes; review that complete diff and read repository files for context. For a review of changes only, see the section below.
+Read `AGENTS.md`, the active plan, relevant architecture/ADRs, and `docs/evaluation.md`. The calling script supplies the GitHub Issue and the complete feature-branch diff against its base, including uncommitted and untracked working-tree changes; review that complete diff and read repository files for context. A dataset sample under `data/samples/` larger than 64 KB is left out of the diff and listed under "Dataset samples not shown in the diff" with its path, size, and sha256; the dataset checks compare it with the digest of its card, so review the card (source, licence, provenance, digest), the code that reads the sample, and the claims the lesson makes from it, not the numbers. For a review of changes only, see the section below.
 
 Check correctness, issue/plan compliance, architecture, security, edge cases, test coverage, reliability, and unnecessary complexity.
 

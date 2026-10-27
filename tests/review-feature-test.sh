@@ -601,4 +601,36 @@ grep -Fq "## Merge approval gate" "$repo.log.stdin" || fail "the reviewer was no
 grep -Fq -- "- protected: docs/decisions/009-storage.md" "$repo.log.stdin" || fail "the reviewer was not told about the added ADR"
 grep -Fq -- "- sensitive: feature.txt" "$repo.log.stdin" || fail "the reviewer was not told about the sensitive path"
 
+# A dataset sample under data/samples/ above the threshold is listed by path,
+# size, and sha256 instead of being put in the diff, so the input stays below
+# the reviewer's limit; the card, a small sample, and a large file elsewhere
+# stay in the diff (Issue #312).
+repo="$(setup_repo samples)"
+mkdir -p "$repo/data/registry" "$repo/data/samples/probe" "$repo/assets"
+printf 'id: probe\nlicence: CC0\n' >"$repo/data/registry/probe.yaml"
+printf 'time,value\n0,1.5\n' >"$repo/data/samples/probe/small.csv"
+awk 'BEGIN { print "time,value"; for (i = 0; i < 120000; i++) printf "%d,%.6f\n", i, i / 7 }' \
+  >"$repo/data/samples/probe/large.csv"
+awk 'BEGIN { for (i = 0; i < 8000; i++) printf "row %d of another large file\n", i }' >"$repo/assets/other.txt"
+large_size="$(wc -c <"$repo/data/samples/probe/large.csv" | tr -d ' ')"
+large_digest="$(if command -v sha256sum >/dev/null 2>&1; then sha256sum; else shasum -a 256; fi \
+  <"$repo/data/samples/probe/large.csv" | cut -d' ' -f1)"
+[[ "$large_size" -gt 1048576 ]] || fail "the large sample of the test is not larger than the reviewer's limit"
+run_review "$repo" 7 || {
+  cat "$repo.out" >&2
+  fail "review of a feature with a large dataset sample failed"
+}
+[[ "$(wc -c <"$repo.log.stdin" | tr -d ' ')" -lt 1048576 ]] ||
+  fail "the review input with a large dataset sample is not below the reviewer's limit"
+grep -Fqx "## Dataset samples not shown in the diff" "$repo.log.stdin" ||
+  fail "the review input lacks the section of the omitted samples"
+grep -Fqx -- "- data/samples/probe/large.csv: $large_size bytes, sha256 $large_digest" "$repo.log.stdin" ||
+  fail "the review input does not list the large sample with its path, size, and sha256"
+if grep -Fq "diff --git a/data/samples/probe/large.csv" "$repo.log.stdin"; then
+  fail "the large sample is still in the diff"
+fi
+grep -Fqx "+licence: CC0" "$repo.log.stdin" || fail "the dataset card is not in the diff"
+grep -Fqx "+0,1.5" "$repo.log.stdin" || fail "the small sample is not in the diff"
+grep -Fqx "+row 7999 of another large file" "$repo.log.stdin" || fail "a large file under another path is not in the diff"
+
 echo "review-feature tests passed"
