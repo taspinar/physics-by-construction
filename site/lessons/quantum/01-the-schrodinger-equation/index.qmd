@@ -1,0 +1,530 @@
+---
+title: "The Schrödinger equation"
+description: >-
+  A free wave packet evolved on a grid by Crank-Nicolson: why the scheme
+  keeps the total probability and explicit Euler does not, how the packet
+  moves and spreads against the exact solution, and how the grid bends the
+  free-particle dispersion.
+lesson:
+  id: schrodinger-equation
+  strand: quantum
+  order: 1
+  difficulty: 2
+  course: quantum
+  slot: Q1
+  methods: [simulation]
+  outcomes:
+    - Write the one-dimensional Schrödinger equation on a grid as a tridiagonal matrix, with the centred second difference of the wave equation
+    - Explain why Crank-Nicolson keeps the norm of the wave function and explicit Euler increases it, and predict the increase from the spectrum
+    - Check a computed free wave packet against the exact one, its centre, its width, and its order of convergence
+    - Compare the dispersion of the grid and of the scheme with the free-particle dispersion and say when a packet is resolved
+  related: []
+  format: 2
+  preview: fig-packet
+  experiment: pbc.quantum.experiments.schrodinger_equation
+  prerequisites:
+    lessons: [wave-equation]
+    outside:
+      - "Complex numbers: the modulus, the phase, and the exponential of an imaginary number"
+      - "Linear algebra: eigenvalues and eigenvectors of a symmetric matrix"
+      - "Calculus: partial derivatives, and the Gaussian integral"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.quantum import schrodinger
+from pbc.quantum.experiments import schrodinger_equation as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+An electron fired at a screen does not follow a path that can be drawn in
+advance. What can be computed is a **wave function** $\psi(x,t)$, a complex
+number at every place, whose squared modulus $|\psi|^2$ is the probability
+density of finding the electron there. The wave function obeys an equation
+that is first order in time, the **Schrödinger equation**, and everything
+quantum mechanics predicts for a single particle follows from solving it.
+
+This lesson solves it on a grid, with the centred differences of the wave
+equation lesson, and asks what a solver has to respect to be believed. Two
+things come out. The total probability must stay one, which one scheme
+guarantees and another breaks at a rate that can be predicted. And a free
+particle has a definite relation between its wavenumber and its frequency,
+the **dispersion**, which the grid reproduces only for waves that are long
+compared with a cell. Both are checked against the exact solution of a
+Gaussian packet.
+
+## Assumptions
+
+1. **One particle in one dimension, without spin.** The wave function is a
+   complex function of one position. Spin is the subject of a later lesson of
+   the course.
+2. **Non-relativistic.** The kinetic energy is $p^2/2m$. A particle whose
+   speed approaches that of light needs another equation.
+3. **Units with $\hbar = m = 1$.** Positions, times, and wavenumbers are
+   then pure numbers, and a plane wave of wavenumber $k$ has the energy
+   $k^2/2$. The tunnelling lesson restores the units of an electron.
+4. **Walls far away.** The grid ends at two walls where $\psi = 0$. They
+   stand so far from the packet that its density there stays at the level of
+   round-off for the whole run, so the free packet on the whole line is the
+   reference.
+5. **No potential in the worked examples.** The method takes any potential;
+   the exact checks of this lesson need a free particle.
+
+## From a wave function to a program {#explanation}
+
+The **time-dependent Schrödinger equation** in one dimension reads
+
+$$
+\mathrm{i}\hbar\,\frac{\partial \psi}{\partial t} = \hat H \psi,
+\qquad
+\hat H = -\frac{\hbar^2}{2m}\frac{\partial^2}{\partial x^2} + V(x).
+$$
+
+The operator $\hat H$ is the **Hamiltonian**, the energy written as an
+operation on $\psi$: a kinetic part with the second derivative, and the
+potential $V$. Two properties carry over to the program. The equation is
+linear, so packets add. And $\hat H$ is Hermitian, which makes the total
+probability $\int |\psi|^2\,\mathrm{d}x$ constant in time: differentiating it
+and using the equation and its complex conjugate leaves only the difference
+of $\langle \psi, \hat H\psi\rangle$ and its conjugate, which is zero for a
+Hermitian operator.
+
+### The Hamiltonian as a matrix
+
+Put the wave function on the nodes $x_i = x_0 + i h$ of a line between two
+walls. The second derivative becomes the centred second difference of the
+wave equation lesson,
+$(\psi_{i+1} - 2\psi_i + \psi_{i-1})/h^2$, with an error of order $h^2$, and
+$\hat H$ becomes a real symmetric matrix $H$ with three diagonals:
+
+$$
+(H\psi)_i = -\frac{\hbar^2}{2m}\,\frac{\psi_{i+1} - 2\psi_i + \psi_{i-1}}{h^2}
++ V_i\,\psi_i .
+$$
+
+The walls enter as $\psi = 0$ beyond the last nodes. A real symmetric matrix
+has real eigenvalues $E_k$ and orthogonal eigenvectors $\phi_k$, the
+**stationary states** of the grid. Writing $\psi = \sum_k c_k \phi_k$, the
+exact solution of the equation on the grid is
+$\sum_k c_k e^{-\mathrm{i}E_k t/\hbar}\phi_k$: every coefficient keeps its
+modulus and turns its phase at the frequency $E_k/\hbar$.
+
+### Two steps in time
+
+A step in time replaces the factor $e^{-\mathrm{i}E\Delta t/\hbar}$ by
+something a program can compute. **Explicit Euler**,
+$\psi^{n+1} = (1 - \mathrm{i}\Delta t H/\hbar)\psi^n$, multiplies each
+stationary state by $1 - \mathrm{i}\Delta t E/\hbar$, whose modulus is
+$\sqrt{1 + (\Delta t E/\hbar)^2}$. That is above one for every non-zero
+energy, so the norm grows at every step, whatever the step:
+
+$$
+\lVert\psi^n\rVert^2 = \sum_k |c_k|^2 \bigl(1 + (\Delta t E_k/\hbar)^2\bigr)^n .
+$$
+
+**Crank-Nicolson** takes the average of the two ends of the step:
+
+$$
+\Bigl(1 + \frac{\mathrm{i}\Delta t}{2\hbar}H\Bigr)\psi^{n+1}
+= \Bigl(1 - \frac{\mathrm{i}\Delta t}{2\hbar}H\Bigr)\psi^n .
+$$
+
+It multiplies each stationary state by
+$(1 - \mathrm{i}a)/(1 + \mathrm{i}a)$ with $a = \Delta t E/2\hbar$, a
+complex number divided by its conjugate. Its modulus is exactly one, so the
+norm is kept for any step, and its phase is $-2\arctan a$, which agrees with
+$-E\Delta t/\hbar$ to second order. Crank-Nicolson is **unitary** and second
+order in time. Its price is a linear system at every step, cheap for a
+tridiagonal matrix.
+
+### The dispersion of a free particle
+
+A free plane wave $e^{\mathrm{i}(kx - \omega t)}$ solves the equation when
+$\hbar\omega = \hbar^2 k^2/2m$. This **dispersion relation** says that waves
+of different wavenumbers travel at different speeds, so a packet that
+contains several wavenumbers spreads. A Gaussian packet of width $\sigma$ and
+mean wavenumber $k_0$ has an exact solution: its centre moves at the **group
+velocity** $\hbar k_0/m$ and its width grows as
+
+$$
+\sigma(t) = \sigma\sqrt{1 + \Bigl(\frac{\hbar t}{2m\sigma^2}\Bigr)^2}.
+$$
+
+On the grid a sine mode of wavenumber $k$ is an exact eigenvector of the
+second difference, with the energy
+$E_h(k) = (\hbar^2/m h^2)(1 - \cos kh)$, which equals $\hbar^2k^2/2m$ only
+for $kh \ll 1$; the relative gap is $(kh)^2/12$. Crank-Nicolson then turns
+its phase at $\omega = 2\arctan(E_h\Delta t/2\hbar)/\Delta t$ instead of
+$E_h/\hbar$. Both closed forms are checked below against single steps of the
+program.
+
+## Code
+
+The Hamiltonian is kept as its diagonal and off-diagonal:
+
+```{python}
+#| echo: false
+excerpt(schrodinger.hamiltonian)
+```
+
+Crank-Nicolson factorises $1 + \mathrm{i}\Delta t H/2\hbar$ once and then
+does one product and one solve per step:
+
+```{python}
+#| echo: false
+excerpt(schrodinger.crank_nicolson)
+```
+
+The exact free packet, the reference of every check:
+
+```{python}
+#| echo: false
+excerpt(schrodinger.free_packet)
+```
+
+The unit tests check this closed form against an independent propagation:
+the Fourier transform of the packet multiplied by
+$e^{-\mathrm{i}k^2 t/2}$, the exact free evolution of each plane wave.
+
+## Worked examples
+
+### A packet that moves and spreads
+
+The packet starts at rest in shape, centred at $x_0 = -10$ with
+$\sigma = 1$ and $k_0 = 2$, between walls at $-30$ and $40$.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment, region="packet")
+```
+
+```{python}
+#| label: packet-run
+#| echo: false
+excerpt(experiment.packet_run)
+```
+
+```{python}
+#| label: packet
+#| echo: false
+result.table("packet")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_packet)
+```
+
+```{python}
+#| label: fig-packet
+#| echo: false
+#| fig-cap: "The packet moves to the right at its group velocity and spreads, and the computed density covers the exact one at every time shown."
+#| fig-alt: "Line plot of probability density against position. Five bell-shaped curves, labelled by their times, move from left to right; each is lower and wider than the one before. Each solid computed curve lies on a dashed exact curve."
+#| fig-status: simulated
+result.show("fig-packet")
+```
+
+[Crank-Nicolson keeps the norm of the packet to round-off, and the packet's
+centre and width follow the exact free solution.]{.claim
+type="numerically-verified"
+scope="a free Gaussian packet, sigma = 1, k0 = 2, h = 0.05, time step 0.01, up to t = 6, units with hbar = m = 1"
+evidence="packet-run packet"}
+The largest change of the norm over the run is
+`{python} result["norm-drift"]`. At $t = `{python} result["end-time"]`$ the
+width is `{python} result["end-width"]` against the exact
+$\sqrt{10} \approx 3.162$, and the largest difference of the wave
+functions is `{python} result["end-error"]`. The centre lags the exact one
+by a few hundredths: on the grid a wave of wavenumber $k$ travels at
+$\sin(kh)/h$ instead of $k$, slightly slower, which the last example
+explains. The reference is the exact solution, which the unit tests check
+against a Fourier propagation.
+
+### The error falls as the square of the spacing
+
+The packet is computed again with the spacing halved four times and the
+time step kept at a fifth of the spacing, so both errors shrink together.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="convergence")
+```
+
+```{python}
+#| label: convergence-run
+#| echo: false
+excerpt(experiment.convergence)
+```
+
+```{python}
+#| label: convergence
+#| echo: false
+result.table("convergence")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_convergence)
+```
+
+```{python}
+#| label: fig-convergence
+#| echo: false
+#| fig-cap: "The largest error of the wave function falls along a line of slope two as the spacing and the time step are halved together."
+#| fig-alt: "Log-log plot of the largest error of the wave function against the grid spacing. Five circles fall in a straight line, parallel to a dotted reference line of slope two drawn below them."
+#| fig-status: simulated
+result.show("fig-convergence")
+```
+
+[The error of the computed wave function falls as the second power of the
+spacing when the time step is refined with it.]{.claim
+type="numerically-verified"
+scope="the free packet of the first example at t = 6, h from 0.2 to 0.0125, time step 0.2 h"
+evidence="convergence-run convergence"}
+The fitted order is `{python} result["order"]`. The dotted line is a
+reference of slope two, not a fit. Both the space and the time error are of
+second order here; the table cannot tell them apart. The last exercise
+lengthens the step alone, and the time error then dominates.
+
+### The dispersion of the grid and of the scheme
+
+Each sine mode of the grid is stepped once, and the phase it turns through
+is compared with the two closed forms of the explanation and with the free
+dispersion $k^2/2$.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="dispersion")
+```
+
+```{python}
+#| label: dispersion-run
+#| echo: false
+excerpt(experiment.dispersion_run)
+```
+
+```{python}
+#| label: dispersion
+#| echo: false
+result.table("dispersion")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_dispersion)
+```
+
+```{python}
+#| label: fig-dispersion
+#| echo: false
+#| fig-cap: "The free dispersion, the energy of the grid, and the frequency of Crank-Nicolson agree for long waves and part for short ones; the measured modes lie on the scheme's curve."
+#| fig-alt: "Plot of angular frequency against wavenumber up to the shortest wave of the grid. A dotted parabola for the free particle rises fastest; a dashed curve for the grid energy bends below it and levels off; a solid curve for Crank-Nicolson bends lower still. Open circles for the measured modes lie on the solid curve."
+#| fig-status: simulated
+result.show("fig-dispersion")
+```
+
+[The frequency at which Crank-Nicolson turns each mode of the grid is the
+closed form $2\arctan(E_h\Delta t/2)/\Delta t$ with the grid energy
+$E_h = (1 - \cos kh)/h^2$.]{.claim type="numerically-verified"
+scope="sine modes of the grid from k h = 0.05 to 2, h = 0.05, time step 0.01, units with hbar = m = 1"
+evidence="dispersion-run dispersion"}
+The relative gap between the measured and the predicted frequencies is
+`{python} result["dispersion-gap"]`. The packet of the first example has
+$k_0 h$ = `{python} result["packet-kh"]`, where the grid energy is low by
+about `{python} result["packet-grid-error"]` per cent; a mode with $kh$ near
+one is already off by nearly a tenth, and the scheme adds its own lag on top. A
+packet is resolved when its wavenumbers lie on the part of the curve where
+the three agree.
+
+### Explicit Euler gains probability
+
+The same packet is now stepped by explicit Euler, on a coarser grid and with
+a short step, and its norm is compared with the formula of the explanation,
+computed from the eigenvalues and eigenvectors of $H$.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="euler")
+```
+
+```{python}
+#| label: euler-run
+#| echo: false
+excerpt(experiment.euler_run)
+```
+
+```{python}
+#| label: euler
+#| echo: false
+result.table("euler")
+```
+
+[Explicit Euler increases the norm at every step, by the amount that the
+spectrum of the grid predicts.]{.claim type="numerically-verified"
+scope="the free packet of the first example, h = 0.1, time step 0.002, three hundred steps"
+evidence="euler-run euler"}
+After three hundred steps the packet has gained
+`{python} result["euler-gain"]` per cent of probability, as predicted. The
+gain is slow here only because the packet's energies are small. The shortest
+wave of this grid has the energy $2/h^2$, and its factor per step is
+`{python} result["euler-top"]`: a trace of it at the level of round-off
+grows by orders of magnitude within a few hundred more steps, and a longer
+step makes it worse. Explicit Euler is not a scheme for this equation at any
+step.
+
+## Limits {#limits}
+
+- **A free particle in one dimension.** The exact checks need the free
+  Gaussian packet. With a potential the scheme is the same, and the next
+  lesson checks it against a closed form of another kind.
+- **Unitary is not accurate.** Crank-Nicolson keeps the norm for any step,
+  also for one that is far too long; the norm says nothing about the phase
+  error, which the convergence table measures.
+- **The walls are part of the model.** A packet that reaches a wall is
+  reflected by it. Here the walls are far enough that nothing reaches them;
+  a longer run needs a longer line or absorbing boundaries, which this
+  lesson does not have.
+- **No comparison with another package.** The references are closed forms
+  and a Fourier propagation. A quantum toolbox such as QuTiP would be an
+  optional comparator; the lesson does not need it, and nothing here depends
+  on it.
+
+::: {.exercise .self-check}
+Two programs step the same packet. One keeps the norm at one to round-off,
+the other lets it grow by a tenth of a per cent. Which statement is right?
+
+::: {.choices}
+::: {.choice}
+The first program is accurate.
+
+::: {.feedback}
+Not necessarily. Crank-Nicolson keeps the norm for any time step, also for a
+step so long that the phases are wrong. A kept norm is necessary, not
+sufficient.
+:::
+:::
+
+::: {.choice correct="true"}
+The second program cannot be a unitary scheme; the first may still have a
+large phase error.
+
+::: {.feedback}
+Correct: a unitary step keeps the norm exactly, so a growing norm rules it
+out, while the accuracy has to be measured against a reference.
+:::
+:::
+
+::: {.choice}
+The second program only has a larger round-off error.
+
+::: {.feedback}
+Round-off changes the norm by about one part in $10^{13}$ over thousands of
+steps, not by a tenth of a per cent. A steady growth is the scheme.
+:::
+:::
+:::
+
+::: {.solution}
+A unitary scheme multiplies each stationary state by a number of modulus
+one, so the norm cannot change beyond round-off. The second program is
+therefore not unitary, explicit Euler for instance. The first may be
+Crank-Nicolson with too long a step: its norm is kept, but its error has to
+be measured against the exact solution, as the convergence example does.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**When has the packet doubled its width?** From the formula for
+$\sigma(t)$, find the time at which the width of the packet of the first
+example has doubled. Run the solver to that time and measure the width.
+
+::: {.hint}
+Set the width equal to twice its starting value and solve for $t$ in the
+units of the lesson.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.doubling)
+```
+
+$\sigma(t) = 2\sigma$ gives $t/2\sigma^2 = \sqrt3$, so
+$t = 2\sqrt3\,\sigma^2$ = `{python} result["doubling-time"]`. The computed
+width there is `{python} result["doubling-ratio"]` times the starting
+width. The small shortfall from two is the grid's dispersion: its short
+waves are slightly too slow, so the packet spreads slightly too little.
+:::
+:::
+
+::: {.exercise}
+**Is the momentum kept?** A free particle feels no force, so its mean
+momentum $\langle p\rangle = \hbar\,\mathrm{Im}\int \psi^*\psi'\,\mathrm{d}x$
+should not change. Compute it at the start and at the end of the first
+example.
+
+::: {.hint}
+`schrodinger.mean_momentum` uses the centred difference for $\psi'$.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.momentum)
+```
+
+It is `{python} result["momentum-start"]` at the start and
+`{python} result["momentum-end"]` at the end: kept. It reads a little below
+$k_0$ at both times because the centred difference measures $\sin(kh)/h$
+for a wave of wavenumber $k$, not $k$; that is the difference formula, not
+the motion.
+:::
+:::
+
+::: {.exercise}
+**A step fifty times longer.** Repeat the first example with a time step
+fifty times longer. What happens to the norm, and to the error?
+
+::: {.hint}
+Crank-Nicolson is unitary for any step.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.long_step)
+```
+
+The change of the norm is still `{python} result["long-drift"]`, while the
+largest error of the wave function has grown to
+`{python} result["long-error"]`: the packet is in the wrong place with the
+wrong phases. The scheme is stable for any step and accurate only for small
+ones.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/quantum/schrodinger.py",
+        "src/pbc/quantum/experiments/schrodinger_equation.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_quantum.py",
+        "tests/unit/test_schrodinger_equation_experiment.py",
+    ],
+)
+```

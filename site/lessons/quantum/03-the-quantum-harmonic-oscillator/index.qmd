@@ -1,0 +1,445 @@
+---
+title: "The quantum harmonic oscillator"
+description: >-
+  The stationary states of a particle in a quadratic potential, computed as
+  the eigenvalues and eigenvectors of the finite-difference Hamiltonian:
+  equally spaced levels against the exact spectrum, an error whose
+  coefficient is predicted level by level, and walls that come too close.
+lesson:
+  id: quantum-harmonic-oscillator
+  strand: quantum
+  order: 3
+  difficulty: 2
+  course: quantum
+  slot: Q3
+  methods: [simulation]
+  outcomes:
+    - Turn the time-independent Schrödinger equation into a matrix eigenvalue problem and compute its lowest eigenpairs
+    - Check the computed levels and eigenfunctions of the oscillator against the exact spectrum and the Hermite functions
+    - Predict the leading error of each level from the difference formula, and confirm its order and its coefficient by refinement
+    - Recognise when the walls of the computational box change the levels
+  related: []
+  format: 2
+  preview: fig-levels
+  experiment: pbc.quantum.experiments.quantum_harmonic_oscillator
+  prerequisites:
+    lessons: [schrodinger-equation, harmonic-oscillator]
+    outside:
+      - "Linear algebra: eigenvalues and eigenvectors of a symmetric matrix"
+      - "Numerical methods: the order of a method and how it is measured from the error at two step sizes"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.quantum import eigenstates
+from pbc.quantum.experiments import quantum_harmonic_oscillator as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A mass on a spring can oscillate with any energy. A diatomic molecule
+cannot: its vibration absorbs and emits light only at definite frequencies,
+and even at absolute zero it keeps a vibration it cannot give away. Both are
+the same potential, the quadratic well of a spring, treated classically in
+the mechanics course and quantum mechanically here. The quantum version
+allows only a ladder of **energy levels**, equally spaced by $\hbar\omega$
+and starting half a step above the bottom.
+
+That ladder is one of the few exact results of quantum mechanics, which
+makes it the test a numerical method has to pass before it is trusted with a
+potential that has no exact answer. This lesson computes the levels as the
+eigenvalues of the matrix of the previous lessons, checks them against the
+exact ones, and goes a step further than measuring the order of the error:
+it predicts the error of each level, coefficient included, and confirms it.
+
+## Assumptions
+
+1. **The potential $V = \tfrac12 m\omega^2 x^2$ in one dimension.** A real
+   molecule's potential is quadratic only near its minimum, and higher levels
+   feel the difference.
+2. **Units with $\hbar = m = \omega = 1$.** Energies are then in units of
+   $\hbar\omega$ and lengths in units of $\sqrt{\hbar/m\omega}$, the width of
+   the ground state.
+3. **The bound states only.** The lesson computes a few of the lowest levels;
+   the matrix has as many eigenvalues as nodes, and the high ones are
+   artefacts of the grid, not levels of the oscillator.
+4. **Walls far out, unless the example moves them in.** The wave functions
+   decay like $e^{-x^2/2}$, so walls a few widths beyond the last turning
+   point change nothing that the grid can see.
+
+## Levels as eigenvalues {#explanation}
+
+A stationary state has the form $\psi(x,t) = \phi(x)e^{-\mathrm{i}Et/\hbar}$:
+its density does not change. Putting it into the Schrödinger equation of the
+first lesson leaves the **time-independent Schrödinger equation**
+
+$$
+-\frac{\hbar^2}{2m}\phi'' + V(x)\phi = E\phi .
+$$
+
+For a bound particle only some energies have a solution that vanishes far
+away; those are the levels. On the grid of the first lesson the left side is
+the tridiagonal matrix $H$ times the vector of node values, and the equation
+becomes the matrix eigenvalue problem $H\phi = E\phi$. A symmetric
+tridiagonal matrix has an efficient solver that returns only the lowest few
+eigenpairs; `scipy.linalg.eigh_tridiagonal` is one.
+
+### The exact spectrum
+
+For the oscillator the levels and eigenfunctions are known in closed form:
+
+$$
+E_n = \Bigl(n + \tfrac12\Bigr)\hbar\omega,
+\qquad
+\phi_n(x) \propto H_n(x)\,e^{-x^2/2},
+$$
+
+with $H_n$ the Hermite polynomials. The **Hermite functions** $\phi_n$ are
+computed by a three-term recurrence. The lowest level is not zero: a state
+of zero energy would sit still at the bottom, with a definite position and a
+definite momentum at once, which the uncertainty relation forbids. The level
+$n$ has $n$ nodes, and it reaches beyond the classical turning points
+$\pm\sqrt{2n+1}$ into the region a classical particle cannot enter, as the
+barrier of the previous lesson does.
+
+### The error of each level, predicted
+
+The second difference is not the second derivative. Its Taylor expansion
+from the wave equation lesson gives
+
+$$
+\frac{\phi_{i+1} - 2\phi_i + \phi_{i-1}}{h^2}
+= \phi'' + \frac{h^2}{12}\phi'''' + O(h^4),
+$$
+
+so the grid solves the equation of a Hamiltonian with an extra term
+$-(\hbar^2 h^2/24m)\,\mathrm{d}^4/\mathrm{d}x^4$. To first order, a small
+extra term shifts each level by its average in that level's state. With
+$\hbar = m = 1$, $\mathrm{d}^4/\mathrm{d}x^4 = p^4$, and for the oscillator
+$\langle p^4\rangle_n = \tfrac34(2n^2 + 2n + 1)$, which follows from writing
+$p$ with the ladder operators. The prediction is
+
+$$
+E_n(h) - E_n = -\frac{h^2}{32}\bigl(2n^2 + 2n + 1\bigr) + O(h^4).
+$$
+
+Every level comes out too low, the error is second order in the spacing,
+and it grows with $n$ as $n^2$: higher states oscillate faster and need a
+finer grid. The examples check the order and the coefficient.
+
+## Code
+
+The lowest eigenpairs of the grid's Hamiltonian, normalised and with the
+sign of the Hermite functions:
+
+```{python}
+#| echo: false
+excerpt(eigenstates.eigenstates)
+```
+
+The reference, the Hermite functions by their recurrence:
+
+```{python}
+#| echo: false
+excerpt(eigenstates.hermite_functions)
+```
+
+and the predicted error:
+
+```{python}
+#| echo: false
+excerpt(eigenstates.oscillator_shift)
+```
+
+## Worked examples
+
+### The ladder of levels
+
+The walls stand far out, and the six lowest levels are computed on a grid of
+spacing [0.05]{.given}.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment, region="levels")
+```
+
+```{python}
+#| label: levels-run
+#| echo: false
+excerpt(experiment.levels_run)
+```
+
+```{python}
+#| label: levels
+#| echo: false
+result.table("levels")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_levels)
+```
+
+```{python}
+#| label: fig-levels
+#| echo: false
+#| fig-cap: "The computed eigenfunctions, drawn at the height of their levels in the quadratic potential, cover the Hermite functions; the levels are equally spaced, and each state reaches past its classical turning points."
+#| fig-alt: "The parabola of the potential with six equally spaced horizontal levels inside it, each a dotted line between the two sides of the parabola. On each level a wave function is drawn, with as many nodes as its level number, solid for the grid and dashed for the Hermite function, which coincide. The wave functions extend a little beyond the parabola on both sides."
+#| fig-status: simulated
+result.show("fig-levels")
+```
+
+[The levels of the grid equal $n + \tfrac12$ up to an error that is the
+predicted $-(h^2/32)(2n^2 + 2n + 1)$ within one part in a thousand of
+itself, and the eigenfunctions agree with the Hermite functions.]{.claim
+type="numerically-verified"
+scope="the oscillator with hbar = m = omega = 1, walls at plus and minus 8, h = 0.05, levels 0 to 5"
+evidence="levels-run levels"}
+The ground level is `{python} result["ground"]` against one half, and the
+spacings of the ladder differ from one by at most
+`{python} result["spacing-gap"]`. The table shows the error and its
+prediction side by side; they share their first three digits. The largest
+gap between the computed and the exact eigenfunctions grows with the level,
+as the error of the energies does.
+
+### Order and coefficient
+
+The spacing is halved four times, and the error of three levels is compared
+with its prediction.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="convergence")
+```
+
+```{python}
+#| label: convergence-run
+#| echo: false
+excerpt(experiment.convergence)
+```
+
+```{python}
+#| label: convergence
+#| echo: false
+result.table("convergence")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_convergence)
+```
+
+```{python}
+#| label: fig-convergence
+#| echo: false
+#| fig-cap: "The error of three levels falls as the square of the spacing and lies on its predicted value, coefficient included; the higher the level, the larger the error at every spacing."
+#| fig-alt: "Log-log plot of the size of the energy error against the grid spacing for three levels. Each set of markers lies on a dashed straight line of slope two, its prediction; the lines are parallel, the highest level above and the lowest below."
+#| fig-status: simulated
+result.show("fig-convergence")
+```
+
+[The eigenvalues of the grid converge to the analytic spectrum at order two,
+with the coefficient predicted by first-order perturbation theory.]{.claim
+type="numerically-verified"
+scope="levels 0, 2, and 5 of the oscillator, h from 0.4 to 0.025"
+evidence="convergence-run convergence"}
+The fitted orders are `{python} result["order-0"]`,
+`{python} result["order-2"]`, and `{python} result["order-5"]` for the three
+levels. The ratio of the error to its prediction approaches one as the
+spacing shrinks, from a few per cent at the coarsest grid: what is left is
+the next term of the expansion, of order $h^4$. The dashed lines are the
+formula, not a fit.
+
+### Walls that come too close
+
+The grid is kept fine and the walls are moved in, from far beyond the
+turning points to inside them.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="walls")
+```
+
+```{python}
+#| label: walls-run
+#| echo: false
+excerpt(experiment.walls_run)
+```
+
+```{python}
+#| label: walls
+#| echo: false
+result.table("walls")
+```
+
+[Walls inside or near the classical turning points raise the levels; once
+they stand a few widths beyond, the levels show only the error of the
+grid.]{.claim type="numerically-verified"
+scope="the four lowest levels, walls at half-widths 2 to 6, spacing 0.02"
+evidence="walls-run walls"}
+With the walls at plus and minus two the levels are far too high: the
+turning points of level three lie beyond the walls, and the walls, not the
+potential, set its energy. At the half-width six every error equals the grid
+error of the explanation, for level three `{python} result["grid-error-3"]`.
+Squeezing a state raises its energy, and the higher levels, which reach
+further out, feel the walls first.
+
+## Limits {#limits}
+
+- **One exactly solvable potential.** The oscillator is the reference
+  because its answer is known. The method applies to any potential, and for
+  most of them the refinement study is the only check.
+- **The low levels only.** The error grows as $n^2 h^2$, and a level whose
+  wave function changes over a few cells is not resolved. The matrix also
+  has high eigenvalues that belong to the grid, not to the oscillator.
+- **First-order prediction.** The predicted coefficient is the leading term.
+  The table shows its remainder, which is small here, not zero.
+- **Bound states in one dimension.** Degenerate levels, spin, and the levels
+  of three-dimensional potentials such as the hydrogen atom are outside this
+  lesson.
+
+::: {.exercise .self-check}
+A program computes the first twenty levels of a potential on one grid, and
+the low levels agree with a reference to six digits. Why should the high
+levels be trusted less?
+
+::: {.choices}
+::: {.choice}
+Because round-off grows with the energy.
+
+::: {.feedback}
+Round-off is far below the error of the grid for any level of this kind.
+:::
+:::
+
+::: {.choice correct="true"}
+Because their wave functions oscillate faster, and the error of the grid
+grows with how fast the wave function changes.
+
+::: {.feedback}
+Correct: for the oscillator the error is $-(h^2/32)(2n^2 + 2n + 1)$, which
+grows as the square of the level number at a fixed spacing.
+:::
+:::
+
+::: {.choice}
+They should not; the error is the same for every level on a given grid.
+
+::: {.feedback}
+The error depends on the fourth derivative of the wave function, which grows
+with the level.
+:::
+:::
+:::
+
+::: {.solution}
+The error of the second difference is proportional to $h^2$ times the fourth
+derivative of the wave function. A level with more nodes changes faster, so
+its error is larger: for the oscillator it grows as $n^2$. Agreement of the
+low levels says nothing about the high ones; their error has to be measured
+by refining the grid.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A particle in a box.** Take no potential at all between walls 2 apart:
+the infinite square well. Compute its four lowest levels on a grid of 200
+cells and compare them with the exact levels $\tfrac12(n\pi/L)^2$ and with
+the grid energies of the sine modes from the first lesson.
+
+::: {.hint}
+`eigenstates` takes any potential; give it zeros.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.square_well)
+```
+
+The computed levels equal the grid energies $(1 - \cos kh)/h^2$ of the sine
+modes, with a relative gap `{python} result["well-gap"]`: the sine modes are
+exact eigenvectors of the grid, as the dispersion example of the first
+lesson showed. Against the exact well they are low by at most
+`{python} result["well-exact-gap"]` per cent, the dispersion error of the
+grid.
+:::
+:::
+
+::: {.exercise}
+**A slightly anharmonic oscillator.** Add $\lambda x^4$ with
+$\lambda = 0.001$ to the potential. First-order perturbation theory says
+level $n$ moves by $\lambda\langle x^4\rangle_n$, with
+$\langle x^4\rangle_n = \tfrac34(2n^2 + 2n + 1)$. Check it for the three
+lowest levels.
+
+::: {.hint}
+Compute the levels with and without the extra term on the same grid and
+divide the difference by $\lambda$, so the error of the grid cancels.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.quartic)
+```
+
+The shifts per unit $\lambda$ are `{python} result["quartic-0"]`,
+`{python} result["quartic-1"]`, and `{python} result["quartic-2"]`, against
+`{python} result["moment-0"]`, `{python} result["moment-1"]`, and
+`{python} result["moment-2"]`. The small shortfall, larger for the higher
+levels, is the second-order term of perturbation theory, which is negative
+for the ground state of every perturbation.
+:::
+:::
+
+::: {.exercise}
+**Removing the leading error.** Because the error is $c\,h^2$ plus smaller
+terms, two levels computed at $h$ and at $h/2$ can be combined as
+$(4E_{h/2} - E_h)/3$ to cancel it. Do this for level 5 at $h = 0.1$ and
+$h = 0.05$.
+
+::: {.hint}
+Write $E_h = E + ch^2$ and $E_{h/2} = E + ch^2/4$ and eliminate $c$.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.richardson)
+```
+
+The two errors are `{python} result["richardson-coarse"]` and
+`{python} result["richardson-fine"]`; the combination is off by only
+`{python} result["richardson-combined"]`, the size of the next term. This is
+Richardson extrapolation, and it works because the order of the error, and
+here even its coefficient, is known.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/quantum/eigenstates.py",
+        "src/pbc/quantum/schrodinger.py",
+        "src/pbc/quantum/experiments/quantum_harmonic_oscillator.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_quantum.py",
+        "tests/unit/test_quantum_harmonic_oscillator_experiment.py",
+    ],
+)
+```
