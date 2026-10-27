@@ -1,0 +1,518 @@
+---
+title: "Quantum entanglement, Bell and CHSH"
+description: >-
+  Two spins in the singlet state, measured at two settings: correlations
+  computed from sampled counts against the quantum prediction, the CHSH
+  combination against the local bound and Tsirelson's bound, and a local
+  hidden-variable model whose expected value reaches the first bound and
+  does not exceed it.
+lesson:
+  id: quantum-entanglement
+  strand: quantum
+  order: 5
+  difficulty: 2
+  course: quantum
+  slot: Q5
+  methods: [simulation]
+  outcomes:
+    - Write the state of two spins, compute the joint probabilities of their outcomes, and recognise an entangled state
+    - Estimate a correlation and its standard error from counts of outcomes
+    - Derive the CHSH bound of every local hidden-variable model and compute the CHSH value of the singlet from sampled correlations
+    - Distinguish the quantum prediction, the local bound, and what a simulation or a single experiment can and cannot establish
+  related: []
+  format: 2
+  preview: fig-chsh
+  experiment: pbc.quantum.experiments.quantum_entanglement
+  prerequisites:
+    lessons: [spin-and-stern-gerlach]
+    outside:
+      - "Linear algebra: the Kronecker product of two matrices, and the trace of a matrix"
+      - "Probability: a joint distribution of two outcomes, its marginals, and the standard deviation of a mean"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.quantum import bell
+from pbc.quantum.experiments import quantum_entanglement as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+Two spins are created together and fly apart, one to Alice and one to Bob.
+Each measures her or his spin along a direction of their own choosing, and
+each sees $+1$ or $-1$ at random, half the time each. Yet when they compare
+notes the outcomes are correlated, and when both chose the same direction
+they are always opposite. Correlations by themselves are not mysterious: a
+pair of gloves sent in two boxes is correlated too, because each box
+already held its glove. The question that John Bell turned into a number is
+whether every correlation of the spins can be explained that way, by
+instructions the pair carried from the source.
+
+The answer is no. Any such explanation, a **local hidden-variable model**,
+keeps a certain combination of four correlations, the **CHSH value**
+$S$, between $-2$ and $2$. Quantum mechanics predicts values up to
+$2\sqrt2$ for the right state and settings. This lesson computes the
+quantum correlations, samples pairs from them as an experiment would,
+computes $S$ from the counts with its standard error, and compares it with
+both bounds; a local model is sampled the same way. In expectation it
+reaches the first bound and does not exceed it; its sampled value scatters
+around $2$ by its standard error and can land a little above it.
+
+## Assumptions
+
+1. **Two spins one half in the singlet state**, measured in the $x$-$z$
+   plane at the angles $\alpha$ (Alice) and $\beta$ (Bob) from $z$.
+2. **Ideal measurements.** Every pair is detected and every outcome is
+   recorded, with no noise; a later exercise adds noise to the state.
+3. **Independent pairs, one setting each.** As in an experiment, each pair
+   is measured once, at one pair of settings, and the four CHSH settings use
+   four separate sets of pairs.
+4. **The outcomes are drawn from the predicted probabilities** with a fixed
+   seed, by a program that knows both settings. What this does and does not
+   show is the first item of the limits.
+
+## Correlations, local models, and CHSH {#explanation}
+
+### The state of two spins
+
+The state of a pair is a vector of four amplitudes, in the basis
+$|{\uparrow\uparrow}\rangle, |{\uparrow\downarrow}\rangle,
+|{\downarrow\uparrow}\rangle, |{\downarrow\downarrow}\rangle$ along $z$. A
+**product state** $|a\rangle\otimes|b\rangle$ gives each spin a state of its
+own. The **singlet**
+
+$$
+|\Psi^-\rangle = \frac{1}{\sqrt2}\bigl(|{\uparrow\downarrow}\rangle
+- |{\downarrow\uparrow}\rangle\bigr)
+$$
+
+is not a product of any two states: it is **entangled**. It has the same
+form along every axis, so the two outcomes are opposite whenever the two
+directions are the same.
+
+The joint probability of Alice's outcome $a$ and Bob's outcome $b$ is
+$p(a,b) = \langle\Psi^-|P_a(\alpha)\otimes P_b(\beta)|\Psi^-\rangle$, with
+the projectors of the spin lesson. For the singlet
+
+$$
+p(a,b) = \frac{1 - ab\cos(\alpha - \beta)}{4},
+\qquad
+E(\alpha,\beta) = \sum_{a,b} ab\,p(a,b) = -\cos(\alpha - \beta),
+$$
+
+where the **correlation** $E$ is the mean of the product of the two
+outcomes. Each side alone sees $+1$ and $-1$ with probability one half
+whatever the other chose: Bob's setting does not change Alice's statistics,
+and no message can be sent this way.
+
+### Estimating a correlation from counts
+
+From $N$ pairs with the counts $N_{++}, N_{+-}, N_{-+}, N_{--}$, the
+estimate is
+
+$$
+\hat E = \frac{N_{++} + N_{--} - N_{+-} - N_{-+}}{N} .
+$$
+
+The product
+$ab$ is $\pm1$, so its variance is $1 - E^2$ and the standard error of
+$\hat E$ is $\sqrt{(1-\hat E^2)/N}$.
+
+### The bound of a local model
+
+A local hidden-variable model gives each pair a value $\lambda$, drawn from
+some distribution at the source, and fixes Alice's outcome as a function of
+her setting and $\lambda$ only, $A(\alpha,\lambda)$, and Bob's as
+$B(\beta,\lambda)$. With two settings each, $a, a'$ for Alice and $b, b'$
+for Bob, take
+
+$$
+S = E(a,b) - E(a,b') + E(a',b) + E(a',b').
+$$
+
+For one $\lambda$ the four outcomes $A, A', B, B'$ are fixed numbers $\pm1$,
+and
+
+$$
+AB - AB' + A'B + A'B' = A(B - B') + A'(B + B').
+$$
+
+One of $B - B'$ and $B + B'$ is zero and the other is $\pm2$, so the sum is
+$\pm2$. The average over $\lambda$ of numbers between $-2$ and $2$ stays
+between them:
+
+$$
+|S| \le 2 .
+$$
+
+This is the **CHSH inequality** of Clauser, Horne, Shimony, and Holt. A
+local model is a mixture of the sixteen ways of fixing the four outcomes,
+and each has $|S| = 2$; the code checks all sixteen.
+
+### What quantum mechanics predicts
+
+With the singlet's correlation, the settings $a = 0$, $a' = \pi/2$,
+$b = \pi/4$, $b' = 3\pi/4$ give four correlations of size $1/\sqrt2$ with
+signs that add up:
+
+$$
+|S| = 4\cdot\frac{1}{\sqrt2} = 2\sqrt2 .
+$$
+
+No quantum state and no choice of measurements does better; $2\sqrt2$ is
+**Tsirelson's bound**. Between $2$ and $2\sqrt2$ lies the region that
+quantum mechanics reaches and no local model can.
+
+### A local model to compare with
+
+For the comparison the lesson uses one explicit local model: $\lambda$ is
+an angle drawn evenly from a full turn, Alice's outcome is the sign of
+$\cos(\alpha - \lambda)$ and Bob's the opposite of the sign of
+$\cos(\beta - \lambda)$. It reproduces the perfect anticorrelation at equal
+settings and gives the straight-line correlation
+$E = -1 + 2\delta/\pi$, with $\delta$ the angle between the settings folded
+into $[0, \pi]$.
+
+## Code
+
+The joint probabilities, the correlation and its standard error, and the
+outcomes of the local model:
+
+```{python}
+#| echo: false
+excerpt(bell.joint_probabilities)
+```
+
+```{python}
+#| echo: false
+excerpt(bell.correlation_error)
+```
+
+```{python}
+#| echo: false
+excerpt(bell.local_outcomes)
+```
+
+The CHSH sum and the sixteen deterministic strategies:
+
+```{python}
+#| echo: false
+excerpt(bell.chsh)
+```
+
+```{python}
+#| echo: false
+excerpt(bell.deterministic_strategies)
+```
+
+## Worked examples
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+### Correlations at every angle
+
+Alice keeps her setting at zero and Bob turns his; two thousand pairs are
+sampled at each angle, for the singlet and for the local model.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="correlations")
+```
+
+```{python}
+#| label: correlations-run
+#| echo: false
+excerpt(experiment.correlations_run)
+```
+
+```{python}
+#| label: correlations
+#| echo: false
+result.table("correlations")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_correlations)
+```
+
+```{python}
+#| label: fig-correlations
+#| echo: false
+#| fig-cap: "The two models agree where the settings are equal, opposite, or at a right angle; in between the singlet's correlation is stronger than the local model's straight line, and the sampled points follow each model's own prediction."
+#| fig-alt: "Plot of the correlation against the angle between the settings. A dashed cosine-shaped curve rises from minus one to plus one, with circles and error bars on it. A dotted straight line rises between the same end points, with squares and error bars on it. The curve and the line cross at the middle and meet at the ends; elsewhere the curve lies further from zero."
+#| fig-status: simulated
+result.show("fig-correlations")
+```
+
+[The correlations sampled from the singlet follow $-\cos(\alpha - \beta)$
+and those of the local model follow its straight line, each within a few
+standard errors.]{.claim type="numerically-verified"
+scope="two thousand sampled pairs per angle, a fixed seed"
+evidence="correlations-run correlations fig-correlations"}
+At equal settings both models give perfect anticorrelation, and at a right
+angle neither shows any correlation. The difference is in between: at an
+eighth of a turn the singlet gives $-1/\sqrt2$ and the local model
+$-1/2$. That gap, combined over the right four settings, is what CHSH
+measures.
+
+### The CHSH value from sampled counts
+
+Ten thousand pairs are sampled at each of the four settings, for each
+model, and $S$ is computed from the four estimated correlations.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="chsh")
+```
+
+```{python}
+#| label: chsh-run
+#| echo: false
+excerpt(experiment.chsh_run)
+```
+
+```{python}
+#| label: chsh-settings
+#| echo: false
+result.table("chsh-settings")
+```
+
+```{python}
+#| label: chsh
+#| echo: false
+result.table("chsh")
+```
+
+::: {.claim type="numerically-verified" scope="ten thousand sampled pairs per setting, ideal detection, a fixed seed" evidence="chsh-run chsh-settings chsh"}
+The size $|S|$ of the singlet's CHSH value, computed from its sampled
+correlations, is `{python} result["s-quantum"]` with a standard error of
+`{python} result["e-quantum"]`: above the local bound $2$ by
+`{python} result["sigmas"]` standard errors, and within the statistical
+scatter of Tsirelson's bound `{python} result["tsirelson"]`. The local
+model's value is `{python} result["s-local"]` with a standard error of
+`{python} result["e-local"]`, within its scatter of the bound $2$ that it
+reaches exactly in expectation.
+:::
+
+A sampled value can land a little above a bound it cannot exceed in
+expectation: the table shows how far, in standard errors, and such a small
+excess is the scatter of a finite sample. What is significant is the
+singlet's distance from $2$. The bound itself is checked without sampling:
+of the `{python} result["strategies"]` deterministic strategies, the
+largest $|S|$ is `{python} result["largest-strategy"]`.
+
+### Searching the settings
+
+The settings are spread by a common angle $\theta$: $a = 0$, $b = \theta$,
+$a' = 2\theta$, $b' = 3\theta$. Three of the four pairs of settings are
+$\theta$ apart and one is $3\theta$ apart.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="family")
+```
+
+```{python}
+#| label: family-run
+#| echo: false
+excerpt(experiment.family_run)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_family)
+```
+
+```{python}
+#| label: fig-chsh
+#| echo: false
+#| fig-cap: "The singlet's CHSH value rises above the local bound for every spread up to about three quarters of a right angle and touches Tsirelson's bound at an eighth of a turn; the local model sits on its bound and never above it."
+#| fig-alt: "Plot of the size of the CHSH value against the angle between neighbouring settings, from zero to a right angle. Two horizontal lines mark the local bound and the higher Tsirelson bound. A dashed curve for the singlet starts at the local bound, rises to touch the upper line at the middle of the left half, and falls to zero at a right angle, with circles and error bars on it. A dotted line for the local model stays on the local bound until about two thirds of the way and then falls, with squares and error bars on it."
+#| fig-status: simulated
+result.show("fig-chsh")
+```
+
+[Along this family of settings the singlet's sampled CHSH value follows
+$|3\cos\theta - \cos 3\theta|$ and exceeds $2$ up to a largest spread, with its
+maximum $2\sqrt2$ at $\theta = \pi/4$; the local model's never exceeds its
+bound beyond its scatter.]{.claim type="numerically-verified"
+scope="two thousand sampled pairs per setting at each spread, a fixed seed"
+evidence="family-run fig-chsh"}
+For a spread of zero all four settings coincide and both models give
+exactly $2$. The quantum advantage is largest at an eighth of a turn, the
+standard settings of the previous example, and disappears once the spread
+passes `{python} result["crossing"]` degrees, where
+$3\cos\theta - \cos 3\theta$ falls back to $2$. The local model stays on
+its bound until the spread reaches a third of a half turn, where the
+setting $b'$ wraps past the opposite of $a$, and then falls.
+
+## Limits {#limits}
+
+- **A simulation is not a Bell test.** The program that drew the outcomes
+  knew both settings of every pair; it is itself a non-local model. The
+  examples check that the code computes the quantum prediction and the
+  statistics of $S$ correctly. Whether nature breaks the bound is a question
+  for measurements; the measured-data lab of this course is planned to
+  analyse Bell-test counts if a suitable, licensed dataset is approved.
+- **The loopholes of real experiments are absent here.** A real test has to
+  choose the settings at random after the pair has left the source, far
+  enough apart that no signal could connect the two sides (the locality
+  loophole), detect enough of the pairs that the detected ones cannot be a
+  biased selection (the detection loophole), and make the choices
+  independent of the source. Ideal detection and given settings sidestep all
+  three.
+- **What a violation rules out.** Breaking the CHSH bound excludes every
+  model in which each outcome depends only on the local setting and on
+  something carried from the source. It does not single out one
+  interpretation of quantum mechanics, and it does not allow a signal to be
+  sent: each side's marginal statistics are independent of the other's
+  setting.
+- **One local model is shown, every local model is bounded.** The
+  straight-line model is one example that reaches the bound; the bound
+  itself comes from the argument of the explanation and the enumeration of
+  the sixteen strategies, not from this model.
+
+::: {.exercise .self-check}
+Alice and Bob each see a random sequence of $+1$ and $-1$, half of each,
+whatever the other does. Can Bob learn Alice's choice of setting from his
+own outcomes alone?
+
+::: {.choices}
+::: {.choice}
+Yes: because the singlet breaks the CHSH bound, Alice's choice changes
+Bob's outcomes.
+
+::: {.feedback}
+Breaking the bound is about the correlations, which need both lists of
+outcomes; it says nothing about one side alone.
+:::
+:::
+
+::: {.choice correct="true"}
+No: his outcomes are $+1$ and $-1$ with probability one half for every
+setting of Alice's; the correlation shows only when the two lists are
+compared.
+
+::: {.feedback}
+Correct: the marginal of each side is independent of the other's setting,
+so no signal passes.
+:::
+:::
+
+::: {.choice}
+Only if he measures along the same direction as Alice.
+
+::: {.feedback}
+Then his outcomes are the opposite of hers, but he does not know hers, and
+his own list still looks like fair coin flips.
+:::
+:::
+:::
+
+::: {.solution}
+Summing $p(a,b)$ over Alice's outcomes gives Bob's probabilities,
+$\tfrac14(1 - b\cos\delta) + \tfrac14(1 + b\cos\delta) = \tfrac12$, whatever
+the angle. The correlations of entangled pairs are stronger than any local
+model allows, but they can only be seen by bringing the two records
+together, which takes an ordinary signal.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Noise.** Mix the singlet with white noise: the state
+$\rho = V|\Psi^-\rangle\langle\Psi^-| + (1 - V)\,\mathbb{1}/4$ with the
+visibility $V$. Compute $|S|$ at the standard settings for $V$ = 0.6, 0.7,
+0.8, and 0.9, and find the visibility below which the local bound is no
+longer broken.
+
+::: {.hint}
+The noise contributes no correlation, so each correlation is multiplied by
+$V$.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.visibility_threshold)
+```
+
+The values are `{python} result["werner-6"]`, `{python} result["werner-7"]`,
+`{python} result["werner-8"]`, and `{python} result["werner-9"]`, which is
+$2\sqrt2\,V$. The bound is broken only for $V > 1/\sqrt2$, about
+`{python} result["threshold"]`. Noise, and the loss of coherence that the
+open systems lesson describes, turn an entangled pair into one that a local
+model can imitate.
+:::
+:::
+
+::: {.exercise}
+**A product state.** Take the unentangled pair with Alice's spin up and
+Bob's spin down along $z$. Compute $|S|$ at the standard settings.
+
+::: {.hint}
+For a product state the correlation is the product of the two means.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.product_state)
+```
+
+$|S|$ is `{python} result["product"]`, the square root of two: within the
+local bound. A product state is a local model in which $\lambda$ is the
+pair's state itself, so no product state can break the bound; the unit
+tests check this for many random product states and settings.
+:::
+:::
+
+::: {.exercise}
+**No signal.** From the counts of the CHSH run, compute the fraction of
+Alice's outcomes that are $+1$ at her setting $a$, once with Bob at $b$ and
+once with Bob at $b'$.
+
+::: {.hint}
+The fraction is the sum of the first row of the table of counts over the
+number of pairs.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.no_signalling)
+```
+
+The fractions are `{python} result["marginal-b"]` and
+`{python} result["marginal-b2"]`, each with a standard error of
+`{python} result["marginal-error"]`: `{python} result["marginal-b-sigmas"]`
+and `{python} result["marginal-b2-sigmas"]` standard errors from one half.
+Bob's choice leaves no mark on Alice's statistics, as the self-check
+argued.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/quantum/bell.py",
+        "src/pbc/quantum/spin.py",
+        "src/pbc/quantum/experiments/quantum_entanglement.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_quantum_spin.py",
+        "tests/unit/test_quantum_entanglement_experiment.py",
+    ],
+)
+```
