@@ -1,0 +1,617 @@
+---
+title: "Navier-Stokes fundamentals: pressure, projection, and a solver checked"
+description: >-
+  A two-dimensional incompressible flow solver on a staggered grid, built
+  from momentum balance and the constraint that the velocity has no
+  divergence: the pressure found as the field that enforces it, the
+  projection method, and the solver checked against the Taylor-Green vortex,
+  a manufactured solution, and its own energy budget.
+lesson:
+  id: navier-stokes-fundamentals
+  strand: fluids
+  order: 5
+  difficulty: 3
+  course: fluids
+  slot: FL2
+  methods: [simulation]
+  outcomes:
+    - Write the incompressible Navier-Stokes equations as a momentum balance per unit mass, and explain why the pressure has no equation of its own
+    - Remove the divergence of a velocity field by a projection, and say why the projection never adds kinetic energy
+    - Build a solver on a staggered grid and check its order of convergence against an exact and a manufactured solution
+    - Close the energy budget of a computed flow, with and without viscosity
+  related: []
+  format: 2
+  preview: fig-projection
+  experiment: pbc.fluids.experiments.navier_stokes_fundamentals
+  prerequisites:
+    lessons: [advection-and-diffusion, finite-volume-methods-and-conservation-laws]
+    outside:
+      - "Calculus: partial derivatives, the divergence and the gradient, and integration by parts"
+      - "Complex numbers: the discrete Fourier transform of a sampled signal, its spectrum, and what a window does to it"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.fluids import navier_stokes
+from pbc.fluids.experiments import navier_stokes_fundamentals as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+Water in a pipe, air around a wing, and blood in an artery move far slower
+than sound. At those speeds a fluid behaves as if it could not be compressed:
+whatever flows into a small region must flow out of it at once. That single
+constraint changes the character of the equations. There is no longer an
+equation of state that tells the pressure from the density; the pressure is
+whatever it has to be, at every instant and everywhere at once, to keep the
+flow free of compression.
+
+This lesson writes the momentum balance of such a fluid, the incompressible
+Navier-Stokes equations, and builds a solver for them in two dimensions. Its
+central step is the projection: a field that has picked up some divergence is
+split into a part without divergence and a gradient, and the gradient is
+thrown away. The solver is then checked as every solver must be: against an
+exact solution, against a manufactured solution that makes every term act,
+and against its own energy budget. The next lesson uses it to form vortices
+and shed them from a cylinder.
+
+## Assumptions
+
+1. **Incompressible.** The density is constant, so the velocity has no
+   divergence. The flow is slow compared with the speed of sound (a Mach
+   number well below one third); sound waves and shocks are outside the model.
+2. **Newtonian, constant viscosity.** The viscous stress is proportional to
+   the rate of strain with one viscosity. Paints, blood at low shear rates,
+   and polymer solutions do not obey this, and their stress depends on the
+   history of the flow.
+3. **Two dimensions.** The flow does not vary along the third direction. Real
+   flows at high Reynolds number are three-dimensional; the vortex stretching
+   that drives turbulence does not exist in two dimensions.
+4. **A periodic box.** The flow repeats with the period of the box in both
+   directions: there are no walls. Walls, inflow, and outflow need boundary
+   conditions this lesson does not treat; the next lesson places a body in
+   the flow.
+5. **Units of the box.** The box is $2\pi$ long on each side and the flow's
+   amplitude is one, so lengths, times, and velocities are in metres,
+   seconds, and metres per second of a box of that size. The pressure is the
+   kinematic pressure, pressure divided by density, in
+   $\mathrm{m^2/s^2}$.
+
+## From momentum balance to a projection {#explanation}
+
+### The momentum of a fluid parcel
+
+Follow a small parcel of fluid. Its acceleration is the rate of change of the
+velocity $\mathbf{u}$ at the parcel, which moves:
+
+$$
+\frac{\mathrm{D}\mathbf{u}}{\mathrm{D}t} = \frac{\partial\mathbf{u}}{\partial t} + (\mathbf{u}\cdot\nabla)\mathbf{u} .
+$$
+
+Newton's second law per unit mass sets
+it equal to the forces per unit mass: the pressure pushing from high to low,
+the viscous stress, which for a Newtonian fluid of constant density reduces
+to $\nu\nabla^2\mathbf{u}$ with the kinematic viscosity $\nu$, and any body
+force $\mathbf{f}$:
+
+$$
+\frac{\partial\mathbf{u}}{\partial t} + (\mathbf{u}\cdot\nabla)\mathbf{u}
+= -\nabla p + \nu\nabla^2\mathbf{u} + \mathbf{f},
+\qquad
+\nabla\cdot\mathbf{u} = 0 .
+$$
+
+The advection term $(\mathbf{u}\cdot\nabla)\mathbf{u}$ is the one the
+advection lesson introduced, now carrying the velocity itself: it is
+nonlinear, and it is where the richness of fluid flow comes from. For a flow
+without divergence it can be written as the divergence of a flux,
+$\nabla\cdot(\mathbf{u}\mathbf{u})$, the momentum carried across the faces of
+a cell, which is the form the solver uses.
+
+### The Reynolds number
+
+Measure velocities in a typical speed $U$ and lengths in a typical size
+$L$. The equations then depend on one number,
+
+$$
+\mathrm{Re} = \frac{U L}{\nu},
+$$
+
+the ratio of advection to viscous diffusion. At small $\mathrm{Re}$ viscosity
+smooths everything and the flow is orderly; at large $\mathrm{Re}$ advection
+dominates, thin layers and vortices form, and the flow may become unsteady.
+Two flows of the same shape and the same Reynolds number are the same flow in
+different units.
+
+### What the pressure is
+
+Take the divergence of the momentum equation. The velocity has no divergence
+at any time, so neither has its time derivative, and what remains is an
+equation for the pressure:
+
+$$
+\nabla^2 p = \nabla\cdot\left(-(\mathbf{u}\cdot\nabla)\mathbf{u} + \nu\nabla^2\mathbf{u} + \mathbf{f}\right).
+$$
+
+The pressure is not a property of the fluid's state, as it is in a gas: it is
+the field whose gradient removes from the other forces exactly the part that
+would compress the fluid. A Poisson equation has no speed of propagation;
+the pressure answers a change anywhere in the flow at once, which is what an
+infinitely fast sound speed means.
+
+### The projection
+
+Every smooth field $\mathbf{w}$ on a periodic box splits into a part without
+divergence and a gradient, $\mathbf{w} = \mathbf{u} + \nabla\phi$ (the
+Helmholtz decomposition). Taking the divergence gives
+$\nabla^2\phi = \nabla\cdot\mathbf{w}$: one Poisson equation finds $\phi$,
+and $\mathbf{u} = \mathbf{w} - \nabla\phi$ is the projection of
+$\mathbf{w}$. The two parts are orthogonal, because by integration by parts
+
+$$
+\int\mathbf{u}\cdot\nabla\phi = -\int\phi\,\nabla\cdot\mathbf{u} = 0 .
+$$
+
+So the kinetic energy of $\mathbf{w}$ is the sum of the energies of its two
+parts, and the projection can only remove energy, never add it.
+
+The projection method (Chorin's method) advances the velocity in two moves.
+It first takes a step with every force except the pressure,
+
+$$
+\mathbf{u}^* = \mathbf{u}^n + \Delta t\,\left(-(\mathbf{u}^n\cdot\nabla)\mathbf{u}^n + \nu\nabla^2\mathbf{u}^n + \mathbf{f}\right),
+$$
+
+which leaves the divergence-free fields, and then projects
+$\mathbf{u}^*$ back. The gradient removed is $\Delta t\,\nabla p$: the
+pressure appears as the price of the constraint.
+
+### The staggered grid
+
+On a grid the projection must be exact in the discrete sense: the discrete
+divergence of the discrete gradient must be the discrete Laplacian that the
+Poisson solve inverts. The marker-and-cell grid of Harlow and Welch arranges
+this. The pressure sits at the centre of a cell, the velocity $u$ on the
+middle of its left and right faces, and $v$ on the middle of its bottom and
+top faces. The divergence of a cell is the net outflow through its four faces,
+
+$$
+(\nabla\cdot\mathbf{u})_{i,j} = \frac{u_{i+1,j} - u_{i,j}}{\Delta x} + \frac{v_{i,j+1} - v_{i,j}}{\Delta y},
+$$
+
+and the pressure gradient on a face is the difference of the two cells it
+separates. Their composition is the five-point Laplacian of the cell centres.
+On a periodic grid each Fourier mode $e^{\mathrm{i}(kx + ly)}$ is an
+eigenvector of that Laplacian, with the eigenvalue
+
+$$
+\frac{2\cos k\Delta x - 2}{\Delta x^2} + \frac{2\cos l\Delta y - 2}{\Delta y^2},
+$$
+
+so the fast Fourier transform solves the Poisson equation exactly, to
+round-off. A grid that stores all components at the same points does not
+have this property, and lets a checkerboard pressure through that no
+difference can see.
+
+### Time step and stability
+
+Central differences of advection, taken with a single forward step, are
+unstable for every step, as the advection lesson showed. The solver takes
+three stages instead, the strong-stability-preserving Runge-Kutta method of
+third order, with a projection after each stage; its region of stability
+contains a stretch of the imaginary axis, where central advection lives. The
+step is limited by the Courant condition and by the viscous condition,
+
+$$
+\Delta t\left(\frac{|u|}{\Delta x} + \frac{|v|}{\Delta y}\right) \le C,
+\qquad
+\nu\,\Delta t\left(\frac{1}{\Delta x^2} + \frac{1}{\Delta y^2}\right) \le \frac14 .
+$$
+
+### Energy
+
+Multiply the momentum equation by $\mathbf{u}$ and integrate over the box. The
+pressure does no work on a flow without divergence, and neither does
+advection, which only moves energy around. What remains is
+
+$$
+\frac{\mathrm{d}}{\mathrm{d}t}\int\frac{|\mathbf{u}|^2}{2}
+= -\nu\int|\nabla\mathbf{u}|^2 + \int\mathbf{f}\cdot\mathbf{u} .
+$$
+
+The divergence form of advection on the staggered grid keeps this property
+exactly in the discrete sense, for a discrete divergence of zero. So without
+viscosity and force the computed energy can change only through the time
+step, and with viscosity the energy lost must equal the sum over the faces of
+$\nu$ times the squared differences of the velocity, which the solver
+computes as its dissipation.
+
+## Code
+
+The divergence, the gradient, and the advection on the staggered grid. Each
+difference uses the neighbours of a periodic grid, so the arrays wrap around.
+
+```{python}
+#| echo: false
+excerpt(navier_stokes.divergence)
+```
+
+```{python}
+#| echo: false
+excerpt(
+    navier_stokes.advection,
+    notes={
+        "uu = (0.5 * (u + _right(u))) ** 2  # at the centres": "The flux of x-momentum through a cell centre, from the two faces on either side.",
+        "uv = (0.5 * (u + _below(u))) * (0.5 * (v + _left(v)))  # at the corners": "The cross flux lives at the corners, where a u face and a v face meet.",
+    },
+)
+```
+
+The Poisson solve divides each Fourier mode by its eigenvalue; the mean of
+the right side, which a periodic Poisson equation cannot balance, is dropped.
+
+```{python}
+#| echo: false
+excerpt(navier_stokes.solve_poisson)
+```
+
+```{python}
+#| echo: false
+excerpt(navier_stokes.project)
+```
+
+A step is three stages, each an explicit update by the tendency and a
+projection. The pressure, when it is wanted, comes from its own Poisson
+equation.
+
+```{python}
+#| echo: false
+excerpt(navier_stokes.step)
+```
+
+```{python}
+#| echo: false
+excerpt(navier_stokes.pressure)
+```
+
+## Worked examples
+
+### The projection of a field
+
+The Taylor-Green vortex, a pattern of four counter-rotating cells without
+divergence, plus the gradient of $\phi = 0.6\cos(x + 2y)$, on a grid of
+$32 \times 32$ cells. The projection should return the vortex and remove
+everything else.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="projection")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.projection_example)
+```
+
+```{python}
+#| label: projection-run
+#| echo: false
+result.table("projection-run")
+```
+
+[The projection on the staggered grid removes the divergence to round-off and
+returns the divergence-free part exactly; the energy removed is the energy of
+the gradient part alone.]{.claim type="numerically-verified"
+scope="the field of the example, periodic grid, discrete divergence and gradient of the staggered grid"
+evidence="projection-run fig-projection"}
+The projected field differs from the vortex by less than
+`{python} result["round-off"]` m/s. The energy removed,
+`{python} result["removed-energy"]`, is the energy of the gradient that was
+added: the two parts are orthogonal, so their energies add.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_projection)
+```
+
+```{python}
+#| label: fig-projection
+#| echo: false
+#| fig-cap: "The projection removes the compression and keeps the vortex: before it, the field has a divergence that alternates in stripes; after it, the divergence is zero everywhere and the arrows circle four cells."
+#| fig-alt: "Two square panels side by side, x and y from zero to two pi, sharing a false-colour scale of divergence centred on zero. Left, before the projection: diagonal stripes of positive and negative divergence, with arrows pointing across the stripes. Right, after the projection: a uniform neutral colour, and arrows that circle in four cells, alternately clockwise and anticlockwise."
+#| fig-status: simulated
+result.show("fig-projection")
+```
+
+The field is computed on the grid of the example; the arrows show every
+second cell. The figure shows a single projection, not a flow in time.
+
+### Two solutions to converge to
+
+The Taylor-Green vortex decays without changing its shape,
+
+$$
+\mathbf{u} = e^{-2\nu t}\,(\sin x\cos y,\ -\cos x\sin y),
+$$
+
+an exact solution without any force. It is a weak test of the nonlinear term, because its
+advection is a pure gradient, which the pressure absorbs completely.
+
+A manufactured solution closes that gap. Choose any velocity without
+divergence and any pressure, put them into the equations, and call what is
+left over the force. Here
+
+$$
+u = A\sin x\cos y + B\cos y,\qquad v = -A\cos x\sin y,\qquad
+p = \tfrac{1}{4}A^2(\cos 2x + \cos 2y),
+$$
+
+with $A = \cos t$ and $B = \sin t$. The term $B\cos y$ is a shear that is not
+a cell of the vortex, and with it the advection is no longer a gradient. The
+force, worked out by hand and checked by a unit test against finite
+differences of the solution, is
+
+$$
+\begin{aligned}
+f_x &= A'\sin x\cos y + B'\cos y + AB\cos x + \nu\,(2A\sin x\cos y + B\cos y),\\
+f_y &= -A'\cos x\sin y + AB\sin x\sin y\cos y - 2\nu A\cos x\sin y .
+\end{aligned}
+$$
+
+Both problems run with $\nu = 0.05\ \mathrm{m^2/s}$ to one second, on four
+grids, with the time step set by the Courant number one half. The error is the
+largest difference of any velocity component, or of the pressure after both
+are given mean zero, from the exact values at the grid points.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="convergence")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.solve_manufactured)
+```
+
+```{python}
+#| label: convergence-run
+#| echo: false
+result.table("convergence-run")
+```
+
+[The solver converges at second order in the cell width to both exact
+solutions, in the velocity and in the pressure.]{.claim
+type="numerically-verified"
+scope="periodic box, viscosity 0.05, one second, Courant number one half, grids of 16 to 128 cells per side"
+evidence="convergence-run fig-ns-convergence"}
+The fitted orders are `{python} result["order-vortex"]` for the vortex,
+and `{python} result["order-velocity"]` and `{python} result["order-pressure"]`
+for the velocity and the pressure of the manufactured solution. The time step
+shrinks with the cell width, and the error of the third-order time stepping
+falls faster than that of the second-order differences, so the space error
+is what the table measures.
+
+```{python}
+#| label: fig-ns-convergence
+#| echo: false
+#| fig-cap: "Halving the cell width divides each error by four: the three errors fall parallel to the reference line of slope two."
+#| fig-alt: "Log-log plot of the largest error at one second against the cell width. Three straight lines of points, for the Taylor-Green velocity, the manufactured velocity, and the manufactured pressure, fall from right to left parallel to a dash-dotted reference line of slope two. The pressure error is the largest and the Taylor-Green error the smallest."
+#| fig-status: simulated
+result.show("fig-ns-convergence")
+```
+
+The reference line is drawn with slope two through a point above the data;
+it is not a fit. The four grids are simulated; nothing in the figure says how
+the solver behaves with walls or at Reynolds numbers where the flow is
+under-resolved.
+
+### The energy budget
+
+The flow of the manufactured solution at the time one, plus a shear
+$0.5\sin 2y$ along $x$, projected, runs without force on a grid of
+$64 \times 64$ cells for two seconds. Without viscosity its energy should not
+change; with viscosity it should lose exactly what it dissipates.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="energy")
+```
+
+```{python}
+#| label: inviscid-run
+#| echo: false
+result.table("inviscid-run")
+```
+
+[Without viscosity the computed kinetic energy changes only through the time
+step, by an amount that falls at third order.]{.claim
+type="numerically-verified"
+scope="the flow of the example, no viscosity, no force, grid of 64 cells per side, two seconds"
+evidence="inviscid-run"}
+The fitted order of the change is `{python} result["inviscid-order"]`, the
+order of the Runge-Kutta method: the space discretisation conserves the
+energy, and what changes it is the time step alone.
+
+```{python}
+#| echo: false
+excerpt(experiment.budget_history)
+```
+
+[With viscosity the kinetic energy lost equals the integrated discrete
+dissipation, to a small relative mismatch.]{.claim
+type="numerically-verified"
+scope="the flow of the example, viscosity 0.02, steps of 0.01 s, two seconds"
+evidence="fig-energy-budget"}
+In two seconds the flow loses `{python} result["budget-lost"]` of its energy,
+`{python} result["budget-fraction"]` per cent of it, and the dissipation adds
+up to `{python} result["budget-dissipated"]`; they differ by a relative
+`{python} result["budget-mismatch"]`, which is the error of the time
+stepping and of the trapezoidal sum of the dissipation rate.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_energy_budget)
+```
+
+```{python}
+#| label: fig-energy-budget
+#| echo: false
+#| fig-cap: "The energy that viscosity removes is exactly the energy the flow loses: the two curves coincide, and their difference stays far below the energy itself."
+#| fig-alt: "Two plots sharing a time axis from zero to two seconds. Top: the kinetic energy falls along a gently curving line, and a dashed line for the energy at the start minus the dissipated energy lies on top of it. Bottom: their difference relative to the starting energy, on a scale of one in a billion, rises slowly from zero."
+#| fig-status: simulated
+result.show("fig-energy-budget")
+```
+
+The budget is that of the discrete equations. It checks that the solver
+does what its equations say, not that the equations describe a real fluid.
+
+## Limits {#limits}
+
+- **No walls.** The box is periodic. Walls need boundary conditions for the
+  velocity and, in the projection, for the pressure; at a wall the projection
+  method has a splitting error that a periodic box does not show. The
+  lid-driven cavity, the classic test with walls, is not computed here.
+- **Two dimensions.** In two dimensions vorticity is only carried and
+  diffused, never stretched, and energy flows to large scales rather than to
+  small ones. Two-dimensional results do not describe turbulence.
+- **Resolution.** Second order holds once the grid resolves the smallest
+  structures of the flow. The examples are smooth; a flow at high Reynolds
+  number makes thin layers, and on a grid that cannot resolve them the
+  central differences produce oscillations, as the next lesson shows.
+- **The checks are of the equations.** The exact and manufactured solutions
+  verify the code, not the model: whether incompressible Newtonian flow
+  describes a given fluid is a question for measurements.
+
+::: {.exercise .self-check}
+A student removes the pressure from a solver, keeping advection, viscosity,
+and force, and finds that the velocity soon develops a divergence. What has
+gone wrong?
+
+::: {.choices}
+::: {.choice}
+The viscosity is too small to keep the divergence down.
+
+::: {.feedback}
+Viscosity diffuses the divergence but does not remove it; nothing in the
+viscous term forces it to zero.
+:::
+:::
+
+::: {.choice correct="true"}
+Without the pressure nothing enforces the constraint: the pressure is exactly
+the field whose gradient removes the part of the other forces that would
+compress the fluid.
+
+::: {.feedback}
+Correct: the pressure has no equation of state in incompressible flow. Its
+gradient, computed from a Poisson equation, is what keeps the divergence at
+zero, which the projection does once per stage.
+:::
+:::
+
+::: {.choice}
+The time step is too large for the Courant condition.
+
+::: {.feedback}
+A smaller step makes the divergence produced in one step smaller, but it is
+still produced; without the projection it accumulates at any step.
+:::
+:::
+:::
+
+::: {.solution}
+The pressure is missing. In an incompressible fluid the pressure is not a
+state variable but the Lagrange multiplier of the constraint: its gradient
+removes, at every instant, the part of advection, viscosity, and force that
+would compress the flow. A solver without it computes the motion of a fluid
+that can be squeezed without any resistance.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Reynolds numbers of everyday flows.** Compute the Reynolds number
+$UL/\nu$ of four flows: honey poured from a spoon ($0.01$ m/s over a stream
+$5$ mm wide, $\nu = 10^{-2}\ \mathrm{m^2/s}$); blood in the aorta ($0.3$ m/s,
+$25$ mm, $3.3\times10^{-6}\ \mathrm{m^2/s}$); a swimmer ($1.5$ m/s, $2$ m,
+water at $10^{-6}\ \mathrm{m^2/s}$); and air past a car on a motorway
+($30$ m/s, $4$ m, $1.5\times10^{-5}\ \mathrm{m^2/s}$). Which of them could
+the solver of this lesson resolve on a grid of a few hundred cells?
+
+::: {.hint}
+A grid resolves a flow when its cells are smaller than the thinnest layer of
+the flow, which at high Reynolds number scales like the size divided by the
+square root of the Reynolds number, or worse.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.reynolds_run)
+```
+
+```{python}
+#| echo: false
+result.table("reynolds-run")
+```
+
+The numbers span ten orders of magnitude. Honey is pure viscous flow, far
+below one, and the grid resolves it trivially. Blood in the aorta sits in the
+thousands, near the transition to turbulence in a pipe. The swimmer and the
+car are in the millions: their boundary layers are a thousandth of their
+size or thinner, and turbulent, so a direct simulation would need far more
+cells than a few hundred per side, and three dimensions.
+:::
+:::
+
+::: {.exercise}
+**Without the projection.** Take one explicit step of the manufactured
+problem on $32 \times 32$ cells with steps of $0.04$, $0.02$, and $0.01$ s,
+without the projection and with it. How large is the divergence after the
+step, and how does it depend on the step?
+
+::: {.hint}
+The explicit update adds the time step times the tendency. What is the
+divergence of the tendency?
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.unprojected_run)
+```
+
+```{python}
+#| echo: false
+result.table("unprojected-run")
+```
+
+Without the projection the divergence is proportional to the step: the
+tendency without the pressure has a divergence of its own, the right side of
+the pressure equation, and one step adds the step times it. Halving the step
+halves the divergence of one step, but a flow takes twice as many steps, so
+the divergence is not reduced by refining. With the projection it is at
+round-off after every step.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/fluids/navier_stokes.py",
+        "src/pbc/fluids/experiments/navier_stokes_fundamentals.py",
+        "src/pbc/verification/estimates.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_navier_stokes.py",
+        "tests/unit/test_navier_stokes_fundamentals_experiment.py",
+    ],
+)
+```

@@ -1,0 +1,605 @@
+---
+title: "Discovering conservation laws and invariants"
+description: >-
+  Conserved quantities found from trajectories alone, without an equation of
+  motion: a method without a model and a language model's recorded run, each
+  candidate judged by the build on trajectories nobody started and under
+  other integrations, so that true invariants are told apart from
+  integration artefacts, coincidences, and identities.
+lesson:
+  id: discovering-conservation-laws
+  strand: agents-llm
+  order: 11
+  difficulty: 3
+  course: mechanics
+  slot: D13
+  experiment: pbc.mechanics.experiments.discovering_conservation_laws
+  methods: [simulation, llm-agents]
+  outcomes:
+    - Find the combinations of a library of terms that stay constant along trajectories, from the trajectories alone, by the null space of their changes
+    - Tell a true invariant from an integration artefact by changing the step and the method, and from a coincidence by trajectories nobody probed
+    - Recognise an identity of the state's description and an invariant that is a function of another
+    - Test a symmetry from trajectories and connect it with the conservation law it implies, without first recovering the equation of motion
+    - Judge an agent's candidates by evidence the agent could not influence, beside a baseline that uses no model
+  related: []
+  format: 2
+  preview: fig-verdicts
+  prerequisites:
+    lessons: [hamiltonian-mechanics, black-box-force-law]
+    outside:
+      - "Linear algebra: the null space of a matrix and the singular value decomposition"
+      - "Large language models: a program that continues a text"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.discovery import invariant_lab, invariants
+from pbc.mechanics.experiments import discovering_conservation_laws as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+Energy, momentum, and angular momentum were known as conserved before
+anyone wrote them as consequences of an equation of motion. They were found
+in measurements: something stayed the same while everything else changed.
+This lesson asks for that discovery directly. Given the trajectories of a
+system whose equations are hidden, which functions of the state keep their
+value along every one of them?
+
+The question has traps that a careless search falls into. A simulation is
+integrated with a finite step, and the method conserves quantities of its
+own that the motion does not. A handful of trajectories can share a property
+by the way they were started. And some functions are constant for a reason
+that has nothing to do with the motion at all. This lesson builds a method
+without a model that finds candidates, and a test by the build that sorts
+them. It then gives the same task to a language model, through tools, and
+judges its answers by the same test on trajectories it never saw.
+
+## Assumptions
+
+1. **A candidate is a combination of a public library of terms.** For a
+   particle in a plane with position $(x, y)$ and velocity $(v_x, v_y)$ the
+   library holds the products of two of the four coordinates and the
+   quartic terms $x^4$, $y^4$, $x^2 y^2$. A conserved quantity outside the
+   library cannot be found, only its best approximation in it.
+2. **No equation of motion is fitted.** The trajectories are sampled states,
+   and the method works with the values of the terms along them. Neither the
+   force nor the acceleration is estimated.
+3. **The trajectories come from a numerical integration.** Each system is a
+   simulation of a model of the course with a method and a step of its own,
+   so a quantity conserved by the motion is conserved by the data only up to
+   the integration error.
+4. **The rules come first.** The library, the tolerance on the conservation
+   ratio, the held-out starts, the three integration settings of the test,
+   the budget of the agent, and the hidden force were fixed in
+   `pbc.discovery.invariant_lab` before the run was recorded.
+5. **The agent is untrusted.** It reaches the system through three tools
+   with bounded arguments, and its score is a function of its tool calls
+   alone.
+
+## Invariants from trajectories {#explanation}
+
+A function $I$ of the state is **conserved** when $I(s(t))$ is the same at
+every time $t$ of every trajectory $s$. Look for $I$ as a combination of the
+library,
+
+$$
+I(s) = \sum_k c_k\, \theta_k(s),
+$$
+
+with unknown coefficients $c_k$. Along a trajectory, sample the terms at
+times $t_1, \dots, t_n$ and subtract their mean on that trajectory. Stack
+the rows of all trajectories into a matrix $\Delta$, one row per sampled
+state and one column per term. A conserved $I$ is exactly a vector $c$ with
+
+$$
+\Delta\, c = 0 ,
+$$
+
+a vector of the **null space** of $\Delta$. With integration error the
+equation holds only approximately, so measure how nearly. Let $m_k$ be the
+root-mean-square size of term $k$ on the data. The **conservation ratio**
+
+$$
+\rho(c) = \frac{\lVert \Delta c \rVert / \sqrt{N}}{\sqrt{\sum_k c_k^2 m_k^2}}
+$$
+
+is the root-mean-square change of the candidate along its trajectories,
+over the scale its terms give it, with $N$ the number of rows. It is zero for
+an invariant and does not depend on the units or the size of the
+coefficients. Divide each column of $\Delta$ by its $m_k$; the singular value
+decomposition then gives the right singular vectors in order of their
+singular values, and a singular value divided by $\sqrt N$ is exactly the
+ratio of its vector. The **baseline** keeps the vectors whose ratio is at
+most the tolerance, `{python} result["tolerance"]`, and writes their span in
+reduced row echelon form, so that each candidate is readable. A term that
+vanishes on all the data is reported apart: it is constant there trivially.
+
+### Four ways to be constant without being a law
+
+A candidate that is constant on the data it came from may be any of these.
+
+- **An invariant** of the motion, which the build accepts.
+- **An integration artefact.** A symplectic method conserves a *modified*
+  energy exactly, which differs from the true energy by terms in the step
+  $\Delta t$ (the lesson on Hamiltonian mechanics). On data from such a
+  method the modified energy is the better invariant. Change the step, or
+  integrate with another method, and it stops being conserved, while the
+  change of a true invariant falls with the step as the method's error does.
+- **A coincidence** of the trajectories. Trajectories that all start on one
+  axis never leave it, and every term that involves the other coordinate is
+  zero on all of them. Trajectories nobody chose expose it.
+- **An identity** of the state's description. The components of a unit
+  vector have squares that sum to one in every state, moving or not. Such a
+  function is constant along every trajectory and takes the *same* value on
+  all of them; a conservation law takes the value its start gives it.
+
+The build's **verdict** applies these in order, on held-out starts that
+nobody probed (some beyond the bounds of the tools) and at three integration
+settings: the system's own method and step, the same method at half the
+step, and a reference, the classical Runge-Kutta method at a step of
+`{python} result["reference-dt"]` s.
+
+```{python}
+#| echo: false
+excerpt(invariants.judge)
+```
+
+### Symmetry and conservation
+
+Emmy Noether's theorem ties each continuous symmetry of a system's
+dynamics to a conserved quantity: invariance under shifts in time to the
+energy, under rotations to the angular momentum. Here the direction is
+reversed and nothing assumes the equations. A symmetry is tested on
+trajectories: start the system, start it again from the start turned by an
+angle, and compare the second trajectory with the first one turned. If the
+two agree, the dynamics commutes with the rotation, and an angular momentum
+should be among the invariants found; if they do not, it should not. The test
+uses two trajectories and no model of the force.
+
+## Code
+
+```{python}
+#| echo: false
+excerpt(invariants.conservation_ratio)
+```
+
+```{python}
+#| echo: false
+excerpt(invariants.find_invariants)
+```
+
+## Worked examples
+
+### A test system with a known answer
+
+```{python}
+#| echo: false
+excerpt(experiment, region="test-system")
+excerpt(experiment.test_system)
+```
+
+The test oscillator pulls with a different stiffness along each axis and is
+integrated by symplectic Euler at a coarse step of
+`{python} result["test-dt"]` s. Its true invariants are known: the energy of
+each axis, $v_x^2 + k_x x^2$ and $v_y^2 + k_y y^2$ up to a factor.
+
+```{python}
+#| label: test-system
+#| echo: false
+result.table("test-system")
+```
+
+[On the trajectories of the box's own step, the baseline finds two
+combinations with a cross term $x v_x$ or $y v_y$ whose coefficient is minus
+the step: the modified energies of symplectic Euler. The build rejects both
+as integration artefacts, because their ratio at the reference is above the
+tolerance and halves with the step; on the reference trajectories the
+baseline finds the two energies of the axes, which the build
+accepts.]{.claim type="numerically-verified" scope="the test oscillator of
+this lesson, six probed and eight held-out trajectories"
+evidence="test-system"} A search on one integration setting alone would
+have reported the method's invariants as the system's. The energy of each
+axis, in turn, varies on the box's own step, by as much as the artefact
+varies at the reference: it is the change of the setting that tells them
+apart.
+
+### Coincidences of the trajectories
+
+```{python}
+#| echo: false
+excerpt(experiment.coincidences)
+```
+
+```{python}
+#| label: coincidences
+#| echo: false
+result.table("coincidences")
+```
+
+[Started only on the x axis, the test oscillator gives the baseline
+`{python} result["axis-found"]` candidates: every term with $y$ or $v_y$ in
+it vanishes and is constant trivially, and the one combination that is not
+trivial is the modified energy of the x axis. Off the axis, the build
+rejects the vanishing terms as coincidences and the combination as an
+integration artefact.]{.claim type="numerically-verified" scope="three starts
+on the x axis of the test oscillator" evidence="coincidences"} What
+trajectories are chosen decides what can be found. The held-out starts are
+fixed in the box, away from any axis, before anyone probes it.
+
+### The box and the agent's tools
+
+The box is a particle of unit mass in a plane, pulled by a hidden force and
+integrated by velocity Verlet at a step of `{python} result["box-dt"]` s. Its
+force, its parameters, and its held-out starts are hidden from the agent and
+from this page.
+
+```{python}
+#| echo: false
+result.display("allowlist")
+```
+
+The agent **may** start `{python} result["budget"]` trajectories, test any
+candidate on its own trajectories with `variation`, submit at most
+`{python} result["max-candidates"]` candidates, and send at most
+`{python} result["max-steps"]` messages with at most
+`{python} result["max-calls"]` tool calls each. It **may not** run code,
+read a file of the project, or call the judge. A test of
+`pbc.discovery.invariant_lab` checks that the tools and the prompt are the
+same text whatever the hidden force is.
+
+### The recorded run
+
+```{python}
+#| echo: false
+excerpt(experiment.run, region="replay")
+```
+
+```{python}
+#| echo: false
+result.display("run")
+```
+
+The model was a Claude model working in a Claude Code session, recorded on
+`{python} result["recorded"]`: a fresh sub-agent that was given the system
+prompt, the task, and the tool descriptions above, and nothing else. It
+chose every call after reading the results the harness computed, from the
+file in which the harness wrote them; the session relayed only the name of
+that file. It was not called through the provider API, and the session
+reported no token count or price. Two earlier attempts were discarded before
+this one: one model's session stopped with an error of its provider, and in
+the other the session copied a result wrongly by hand.
+
+### The verdicts on the agent's candidates
+
+```{python}
+#| echo: false
+excerpt(invariant_lab.score_run)
+```
+
+```{python}
+#| label: agent-verdicts
+#| echo: false
+result.table("agent-verdicts")
+```
+
+[The build judges both of the agent's candidates invariants on trajectories
+the agent could not start: an energy, the squared speed over two plus a
+potential with a quartic part, and the angular momentum $x v_y - y v_x$. They
+hold `{python} result["found"]` independent invariants of the
+`{python} result["known"]` that the box has in the library, and the outcome
+is `{python} result["outcome"]`.]{.claim type="numerically-verified"
+scope="the simulated box of this protocol, one recorded run"
+evidence="agent-verdicts replay"} The agent used
+`{python} result["trajectories"]` of its trajectories. It read the angular
+momentum off its first trajectory and fitted the potential to the changes
+of the kinetic energy on two of them, which is an equation of motion in all
+but name; the build's test does not care how a candidate was reached.
+
+The agent explained the small ratio of its energy on its own trajectories
+by the rounding of the returned states. The build's columns say otherwise:
+the ratio falls by a factor of `{python} result["energy-factor"]` when the
+step is halved and to round-off at the reference, which is the signature of
+the second-order integrator, not of rounding (the variation tool works on the
+unrounded states). A right candidate can come with a wrong explanation.
+
+### Beside the baseline
+
+```{python}
+#| echo: false
+excerpt(experiment.baseline_on_the_box)
+```
+
+```{python}
+#| label: box-baseline
+#| echo: false
+result.table("box-baseline")
+```
+
+[With the same budget at random starts and no model, the baseline finds
+`{python} result["baseline-found"]` combinations on the box, an energy and
+the angular momentum, and the build accepts both.]{.claim
+type="numerically-verified" scope="the simulated box, one seed of random
+starts" evidence="box-baseline"} The baseline's energy carries the integration
+error of the box in its coefficients: they differ from round values in the
+fourth digit, and coefficients below a thousandth of the largest are not
+written. It is still within the tolerance at the reference.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_verdicts)
+```
+
+```{python}
+#| label: fig-verdicts
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "The conservation ratio of every candidate on held-out trajectories at three integration settings: the test oscillator's artefacts are conserved at its own step and fail at the reference, the true invariants pass at the reference, and the agent's and the baseline's candidates pass at every setting."
+#| fig-alt: "A dot chart on a logarithmic vertical axis of the conservation ratio, one column of three markers per candidate: circles for the system's own step, squares for half the step, triangles for the reference. A dashed horizontal line marks the tolerance. For the first two candidates the circle lies at the bottom and the square and triangle above the line; for the next two the triangle lies at the bottom and the others above the line; for the agent's and the baseline's candidates all markers lie below the line."
+result.show("fig-verdicts")
+```
+
+The figure shows simulated trajectories, recomputed by this build. The ratios
+near the bottom of the axis are round-off, and their exact place means
+nothing. Only the reference decides; the
+other two settings show how a candidate behaves when the integration
+changes, which is what separates an artefact from an invariant.
+
+### Symmetry from trajectories
+
+```{python}
+#| echo: false
+excerpt(experiment.symmetry)
+```
+
+```{python}
+#| label: symmetry
+#| echo: false
+result.table("symmetry")
+```
+
+[Turning the start of the box turns its trajectory to round-off, and the
+angular momentum is among its invariants; the test oscillator fails the same
+test, and no angular momentum is among the invariants the baseline finds for
+it.]{.claim type="numerically-verified" scope="one start and one angle on
+each system" evidence="symmetry test-system box-baseline"} This is
+Noether's connection seen from data: a symmetry tested on trajectories,
+a conserved quantity found in trajectories, and neither one taken from the
+equations. One start and one angle are evidence, not a proof of the
+symmetry.
+
+### The heavy top
+
+The heavy symmetric top of the lesson on rotational motion has a state of
+two vectors in space: its angular momentum $L$ and its symmetry axis $e_3$.
+Its library holds their components, $L \cdot e_3$, $|L|^2$, $(L\cdot e_3)^2$,
+and the squares of the components of $e_3$.
+
+```{python}
+#| echo: false
+excerpt(experiment.top_invariants)
+```
+
+```{python}
+#| label: top
+#| echo: false
+result.table("top")
+```
+
+[On the top the baseline finds `{python} result["top-found"]` combinations,
+and the build accepts four as invariants and one as an identity: the vertical
+angular momentum $L_z$, the energy written as
+$e_{3z} + |L|^2 / (2 I_1 m g l)$ with the coefficient
+`{python} result["top-coefficient"]`, the axial component $L\cdot e_3$, its
+square, and $e_{3x}^2 + e_{3y}^2 + e_{3z}^2$, which is one in every
+state.]{.claim type="numerically-verified" scope="the simulated top of this
+lesson, four probed and three held-out trajectories" evidence="top"} The
+energy's other part, in $(L\cdot e_3)^2$, has been absorbed by the
+separate row of that square: the echelon form writes a basis of the span,
+not the energy as a physicist would. The identity has no spread between
+trajectories; the invariants do. And the square of the axial component is a
+conserved quantity, but not a new law: it is a function of another.
+
+### Totals of a conservation law
+
+For a field, a candidate is a total over the domain. Burgers' equation
+$\partial_t u + \partial_x (u^2/2) = 0$ on a periodic interval conserves the
+total of $u$ for every solution, and the total of every function of $u$ for
+a smooth solution. After a shock forms, only the first survives. The
+finite-volume method of the lesson on finite-volume methods, here with
+Godunov's flux, gives a test of the same kind as the step of an integrator:
+refine the cells.
+
+```{python}
+#| echo: false
+excerpt(experiment.burgers_totals)
+```
+
+```{python}
+#| label: burgers
+#| echo: false
+result.table("burgers")
+```
+
+[The total of $u$ is kept to round-off by the flux form at every
+resolution. Before the shock forms, the loss of the total of $u^2$ halves
+with each doubling of the cells, the error of a first-order scheme falling
+towards an invariant of the equation; after it, the loss converges to a
+value that is not zero, the dissipation in the shock.]{.claim
+type="numerically-verified" scope="one smooth start, four resolutions,
+Godunov's flux" evidence="burgers"} The shock forms at
+`{python} result["burgers-breaking"]` s.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_burgers)
+```
+
+```{python}
+#| label: fig-burgers-totals
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "The loss of the total of the square of the field over time for four numbers of cells: before the shock forms the curves fall towards zero as the cells are refined, and after it they converge to a common rising curve."
+#| fig-alt: "A line chart of the relative loss of the total of u squared against time, with one line per number of cells in a different style and a thin vertical line where the shock forms. Before that line the curves are small and lower for more cells; after it every curve rises, and the curves for more cells lie close together."
+result.show("fig-burgers-totals")
+```
+
+The figure shows simulated runs, recomputed by this build. The refinement
+does for the field what the reference integration does for the particle:
+a loss that vanishes with the resolution is the method's, a loss that does
+not is the solution's.
+
+### Run the agent yourself
+
+This needs your own key and costs a few cents. The build does not run it, so
+the commands are marked.
+
+::: {.not-verified}
+```bash
+uv sync --locked --no-dev --extra openai
+export OPENAI_API_KEY="..."
+cd site/lessons/agents-llm/11-discovering-conservation-laws
+uv run --locked --no-dev --extra openai python -m pbc.discovery.invariant_lab
+```
+:::
+
+The program prints each message and result, the verdict on each candidate,
+and the score. With `--record` it writes `replay.json` in the current
+directory; the record of the run in `pbc.discovery.invariant_lab` then needs
+the new model, date, and cost.
+
+## Limits {#limits}
+
+- **A library bounds what can be found.** A conserved quantity that is not a
+  combination of the terms is not found; its nearest combination may fail
+  the tolerance or pass it by accident of the data.
+- **A tolerance, not a proof.** A candidate is accepted when its ratio is at
+  most `{python} result["tolerance"]` on eight held-out trajectories at the
+  reference. A quantity that changes slowly, or only on trajectories nobody
+  started, would pass. The verdict is evidence about these trajectories.
+- **A linear basis is not a list of laws.** The baseline returns a basis of a
+  span, so an energy can be split across rows, and a function of an
+  invariant, such as its square, counts as another row. The score counts
+  linear independence, not functional independence.
+- **One run of one model.** The page shows what one model once did with this
+  box; it does not say how often a model finds both invariants, and a live
+  run will choose other starts.
+- **The recording is not an API run.** The messages are those of a Claude
+  model in a Claude Code session, which read each result from a file and
+  used no other tool. A run through the provider API may differ.
+- **The symmetry test is a test.** One start and one angle agree to
+  round-off; that is not a proof that the force turns with the plane at every
+  start.
+
+::: {.exercise .self-check}
+On the trajectories of the test oscillator's own step, the combination
+$x^2 + v_x^2 - \Delta t\, x v_x$ is conserved to round-off, better than the
+energy of the axis. Why does the build reject it?
+
+::: {.choices}
+::: {.choice}
+Because its ratio on the probed trajectories is above the tolerance.
+
+::: {.feedback}
+On the probed trajectories its ratio is at round-off, the best of any
+candidate. The build does not reject it there.
+:::
+:::
+
+::: {.choice correct="true"}
+Because it is conserved by the method at that step and not by the motion:
+on held-out trajectories at the reference its ratio is above the tolerance,
+and at half the step it is halfway there.
+
+::: {.feedback}
+Right. It is the modified energy of symplectic Euler. Change the step or the
+method and the combination that is conserved changes with it.
+:::
+:::
+
+::: {.choice}
+Because it has a cross term, and a conserved energy cannot have one.
+
+::: {.feedback}
+A conserved quantity can have any terms; the angular momentum is made of
+cross terms only. The verdict rests on the ratios, not on the form.
+:::
+:::
+:::
+
+::: {.solution}
+The combination is the modified energy that symplectic Euler conserves at
+its step. On data from that method it is constant to round-off, and on data
+from the exact motion, approximated by the reference, it is not: its ratio
+there is above the tolerance, and at half the step it is about half that,
+because its cross term belongs to the old step. The energy of the axis
+behaves the other way round. That is why the verdict asks for the
+reference, and why it reports the other settings beside it.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+The baseline found five combinations for the heavy top. How many independent
+conservation laws does the top have, and which of the five are not laws of
+its motion?
+
+::: {.solution}
+```{python}
+#| echo: false
+result.table("top")
+```
+
+Three. The vertical angular momentum $L_z$, the axial component
+$L\cdot e_3$, and the energy are the conservation laws: rotations about the
+vertical leave gravity unchanged, rotations about the symmetry axis leave the
+body unchanged, and the dynamics does not change in time. Of the other two
+rows, $(L\cdot e_3)^2$ is conserved but is a function of $L\cdot e_3$, so it
+is no new law, and $e_{3x}^2 + e_{3y}^2 + e_{3z}^2$ is an identity: it is one
+in every state, which its spread between trajectories shows. The energy's row
+lacks its $(L\cdot e_3)^2$ part, which the echelon form moved to the row of
+that square.
+:::
+:::
+
+::: {.exercise}
+The agent's energy has a ratio at the box's own step, a smaller one at half
+the step, and round-off at the reference. From the factor between the first
+two, what is the order of the box's integrator?
+
+::: {.solution}
+```{python}
+#| echo: false
+result.table("agent-verdicts")
+```
+
+The factor is `{python} result["energy-factor"]`, about four for half the
+step: the error falls as the square of the step, the order of velocity Verlet,
+which is the box's integrator. A candidate that were wrong would keep its
+ratio as the step falls, as the test oscillator's artefacts keep theirs at
+the reference. A ratio that falls at the order of the method is the error of
+the method on a true invariant.
+:::
+:::
+
+## Replay this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/discovery/invariants.py",
+        "src/pbc/discovery/invariant_lab.py",
+        "src/pbc/mechanics/experiments/discovering_conservation_laws.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_invariants.py",
+        "tests/unit/test_invariant_lab.py",
+        "tests/unit/test_discovering_conservation_laws_experiment.py",
+    ],
+)
+```

@@ -7,7 +7,7 @@ import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
 
 MODULE = "pbc.mechanics.experiments.agent_versus_non_agent_baselines"
-PAGE = "agents-llm/12-agent-versus-non-agent-baselines"
+PAGE = "agents-llm/13-agent-versus-non-agent-baselines"
 
 
 @pytest.fixture(scope="module")

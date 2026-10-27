@@ -63,7 +63,7 @@ LIVE = (
 D1 = REPOSITORY_ROOT / "site/lessons/agents-llm/05-discovering-a-force-law"
 D2 = REPOSITORY_ROOT / "site/lessons/agents-llm/06-prior-knowledge-in-discovery"
 D3 = REPOSITORY_ROOT / "site/lessons/agents-llm/07-a-modified-force-law"
-LESSON = REPOSITORY_ROOT / "site/lessons/agents-llm/11-interactive-discovery-benchmarks"
+LESSON = REPOSITORY_ROOT / "site/lessons/agents-llm/12-interactive-discovery-benchmarks"
 PAGES = {
     "D1": "the force-law lesson",
     "D2": "the prior-knowledge lesson",

@@ -1781,7 +1781,9 @@ the worktree without `.agents/approvals/`, with the Issue's completion record
 and handoff note: the request is the vehicle of a level and of a lowering,
 never part of the content it is about, so editing it leaves the content tree
 unchanged and it can name the tree under review, which the reviewer compares
-it with. The request is no part of the fingerprint either, so correcting it
+it with. The review's statement labels it apart from the worktree fingerprint
+and gives the result of the script's own comparison (`checked by the
+script`), so a reviewer reports the line `Tree:` only on the error it lists. The request is no part of the fingerprint either, so correcting it
 leaves a recorded verification and a review valid; instead `finish-feature.sh`
 refuses at once a request whose `Tree:` (its first word) is not the content
 tree, and names the value to write, and you approve the request with the diff

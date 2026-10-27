@@ -8,7 +8,7 @@ description: >-
 lesson:
   id: agent-versus-non-agent-baselines
   strand: agents-llm
-  order: 12
+  order: 13
   difficulty: 3
   course: mechanics
   slot: EV3
@@ -249,7 +249,7 @@ marked.
 ```bash
 uv sync --locked --no-dev --extra openai
 export OPENAI_API_KEY="..."
-cd site/lessons/agents-llm/12-agent-versus-non-agent-baselines
+cd site/lessons/agents-llm/13-agent-versus-non-agent-baselines
 uv run --locked --no-dev --extra openai python -m pbc.discovery.benchmark plain-projectile plain-oscillator plain-central-force
 ```
 :::

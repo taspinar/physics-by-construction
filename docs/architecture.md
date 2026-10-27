@@ -186,7 +186,8 @@ src/pbc/                 Importable Python package with all reusable lesson code
                          (final curriculum, F65); the protocols and frozen runs of the
                          black-box force-law lessons D1 to D3 (`force_lab`, F66); symbolic
                          regression and equation discovery from trajectories (`symbolic`,
-                         `equations`, F67)
+                         `equations`, F67); conserved quantities from trajectories and their
+                         verdicts (`invariants`, `invariant_lab`, F82)
   verification/          Order estimation, invariant checks, the named checks of the validation
                          contract, and a gallery of deliberately faulty steppers (F46)
   abm/                   Agent-based models

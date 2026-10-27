@@ -1,0 +1,488 @@
+---
+title: "Vortex formation and flow around obstacles"
+description: >-
+  Vorticity in two dimensions, the roll-up of shear layers into vortices, and
+  the wake of a circular cylinder computed with the projection solver: steady
+  below the onset of shedding, a vortex street above it, and a Strouhal number
+  compared with Roshko's measurements, with the Reynolds regime and the
+  model's biases stated.
+lesson:
+  id: vortex-formation-and-flow-around-obstacles
+  strand: fluids
+  order: 6
+  difficulty: 3
+  course: fluids
+  slot: FL3
+  methods: [simulation]
+  outcomes:
+    - Explain with the vorticity equation where vortices come from in a two-dimensional flow, and why the circulation of a periodic box stays zero
+    - Watch shear layers roll up into vortices, and check the computation by its circulation, its energy budget, and its convergence under refinement
+    - Compute the wake of a circular cylinder, tell steady flow from vortex shedding, and measure the Strouhal number from a probe signal
+    - Compare a computed Strouhal number with published measurements, stating the Reynolds regime and the biases of the model
+  related: []
+  format: 2
+  preview: fig-karman-street
+  experiment: pbc.fluids.experiments.vortex_formation_and_flow_around_obstacles
+  prerequisites:
+    lessons: [navier-stokes-fundamentals]
+    outside:
+      - "Calculus: partial derivatives, the divergence and the gradient, and integration by parts"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.fluids import vortices
+from pbc.fluids.experiments import vortex_formation_and_flow_around_obstacles as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A telephone wire sings in a light wind, and a chimney sways in a steady one.
+Behind an island in the trade winds, satellite pictures show clouds in two
+staggered rows of eddies that stretch for hundreds of kilometres. In each case
+a steady stream meets a blunt body and leaves behind it a regular procession
+of vortices, alternately turning one way and the other: a von Kármán vortex
+street. The vortices leave at a definite frequency, and that frequency is what
+the wire sings and what makes the chimney sway.
+
+This lesson asks where vortices come from and how a computation can be
+trusted to produce them. It first follows two thin shear layers in a periodic
+box as they roll up into vortices, and checks the computation by quantities
+that must not change and by refining the grid. It then puts a circular
+cylinder into a stream with the solver of the previous lesson, finds a steady
+wake at a low Reynolds number and a vortex street at a higher one, and
+compares the frequency of the street with the measurements Roshko made in a
+wind tunnel. The street is also the flow that the particle image velocimetry
+lab of this course will measure.
+
+## Assumptions
+
+1. **Incompressible Newtonian flow in two dimensions**, as in the previous
+   lesson. Above Roshko's stable range the real cylinder wake becomes
+   irregular and three-dimensional; the computation cannot show it.
+2. **A body imposed by direct forcing.** The cylinder is not a boundary of
+   the grid. Before each projection the velocity is set to zero in the cells
+   the body covers, with a ramp one cell wide across its surface. The no-slip
+   condition then holds only to the width of a cell, and the surface is a
+   smoothed staircase.
+3. **A stream made periodic.** The box is periodic in both directions. Across
+   the stream the box therefore holds an infinite row of cylinders, twelve
+   diameters apart; along it, a fringe region of three diameters before the
+   right end relaxes the flow back to the free stream, so that the wake does
+   not re-enter on the left. Both change the flow near the cylinder slightly,
+   as a wind tunnel's walls do.
+4. **Units of the cylinder.** Lengths are in diameters $D$, velocities in the
+   free-stream speed $U$, times in $D/U$; the Reynolds number is
+   $\mathrm{Re} = UD/\nu$. The shear layer uses the units of its box, as in
+   the previous lesson.
+5. **A coarse grid.** The cylinder spans ten cells. That is enough for the
+   frequency of the street to a few per cent, as the comparison shows, not for
+   the thin boundary layer on its surface.
+
+## Vorticity, shear layers, and the wake {#explanation}
+
+### The vorticity equation
+
+The vorticity $\omega = \partial v/\partial x - \partial u/\partial y$
+measures the local rotation of the fluid: a small paddle wheel carried by the
+flow turns at the angular velocity $\omega/2$. Taking the curl of the
+momentum equation removes the pressure, which has no curl, and in two
+dimensions leaves
+
+$$
+\frac{\partial\omega}{\partial t} + (\mathbf{u}\cdot\nabla)\,\omega = \nu\nabla^2\omega .
+$$
+
+Vorticity is carried with the fluid and diffuses; nothing else happens to it.
+In three dimensions a further term, $(\boldsymbol\omega\cdot\nabla)\mathbf{u}$,
+stretches vortex tubes and makes them spin faster, which is the engine of
+turbulence; in two dimensions it vanishes identically. So a two-dimensional
+flow cannot create vorticity in its interior. It can only concentrate what
+it has, and the only sources are boundaries, where the no-slip condition
+forces the fluid to rotate in the boundary layer.
+
+The circulation around a closed curve, $\Gamma = \oint\mathbf{u}\cdot
+\mathrm{d}\mathbf{l}$, equals the vorticity enclosed (Stokes' theorem). For a
+periodic box the curve is the box's edge, whose opposite sides cancel, so the
+total vorticity of the box is zero at all times. On the staggered grid the
+vorticity at a corner is the circulation around the dual cell, and the sum
+over all corners telescopes to zero in the same way, to round-off.
+
+### Shear layers roll up
+
+A shear layer is a thin sheet of vorticity: a jump in velocity across a small
+thickness. It is unstable. A small wave on it bunches the vorticity into its
+troughs, the bunched vorticity induces a rotation that steepens the wave, and
+the layer rolls up into a row of concentrated vortices, the Kelvin-Helmholtz
+instability. The double shear layer is the standard computation of it: in
+the unit box,
+
+$$
+u = \begin{cases}\tanh\!\big(\rho\,(y - \tfrac14)\big), & y \le \tfrac12\\[2pt]
+\tanh\!\big(\rho\,(\tfrac34 - y)\big), & y > \tfrac12\end{cases}
+\qquad
+v = \delta\sin\!\big(2\pi(x + \tfrac14)\big),
+$$
+
+two layers of opposite sign, of thickness about $1/\rho$, with a disturbance
+of amplitude $\delta$. Here $\rho = 30$, $\delta = 0.05$, and
+$\nu = 10^{-4}$, a Reynolds number of ten thousand on the box.
+
+### Flow past a cylinder
+
+A cylinder in a stream is the simplest body that makes a wake. Its boundary
+layer carries the vorticity created at the surface; at the back the layer
+separates, and the two separated layers, of opposite sign, bound a region of
+slow, recirculating fluid. What happens next depends on the Reynolds number.
+
+At small $\mathrm{Re}$ the separated layers close behind the body in a
+steady pair of vortices, longer as $\mathrm{Re}$ grows. Above a critical
+value the pair is unstable: the two layers begin to roll up alternately,
+each releasing a vortex of its own sign, and the wake becomes a periodic
+street. Roshko, measuring wakes in a wind tunnel with hot wires, called the
+range from `{python} result["stable-low"]` to
+`{python} result["stable-high"]` the stable range: regular streets with no
+turbulent fluctuations. Above it, the transition range and then the
+irregular range, the wake is turbulent; a two-dimensional laminar
+computation does not describe it there.
+
+[Roshko's measurements give the stable-range regimes of the cylinder wake and
+fit the shedding frequency there by
+$S = 0.212\,(1 - 21.2/\mathrm{Re})$, stated for Reynolds numbers from fifty to
+one hundred and fifty.]{.claim type="observational"
+scope="circular cylinders in a wind tunnel, as quoted from the report"
+evidence="roshko-vortex-street-strouhal"}
+The Strouhal number $S = fD/U$ is the frequency $f$ of the street, one full
+period being one vortex of each sign, made dimensionless by the time the
+stream takes to pass one diameter. Over the fitted range it rises from
+`{python} result["range-low"]` to `{python} result["range-high"]`; at
+$\mathrm{Re} =$ `{python} result["shedding-re"]` the fit gives
+`{python} result["roshko"]`.
+
+### The cylinder on the grid
+
+The solver of the previous lesson has no walls, so the cylinder enters as a
+constraint on each stage of a step. In the fringe the velocity relaxes
+towards the free stream at a rate that rises smoothly from zero to its full
+value; then the velocity at each face is multiplied by one minus the fraction
+of the face inside the body. The projection that follows makes the result
+divergence-free again, which leaves a small velocity inside the body: the
+no-slip condition holds to about the width of a cell.
+
+The flow starts as the free stream with the body cut out, plus a small
+cross-stream push behind the cylinder, off its axis. Without it the computed
+flow would stay symmetric for a long time, because the instability grows
+from round-off; with it, shedding starts after a few periods. A probe two
+diameters behind the cylinder records the cross-stream velocity at every
+step, and the frequency is measured from the upward crossings of the
+signal's mean, each placed by interpolation between two steps.
+
+## Code
+
+```{python}
+#| echo: false
+excerpt(vortices.double_shear_layer)
+```
+
+```{python}
+#| echo: false
+excerpt(vortices.solid_fraction)
+```
+
+```{python}
+#| echo: false
+excerpt(vortices.wake_constraint)
+```
+
+```{python}
+#| echo: false
+excerpt(vortices.shedding_frequency)
+```
+
+```{python}
+#| echo: false
+excerpt(vortices.roshko_strouhal)
+```
+
+## Worked examples
+
+### Two shear layers roll up
+
+The double shear layer on three grids, from $64$ to $256$ cells per side, up
+to the times $0.4$, $0.8$, and $1.2$ s.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="shear")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.shear_layer)
+```
+
+```{python}
+#| label: shear-layer-run
+#| echo: false
+result.table("shear-layer-run")
+```
+
+[The circulation of the periodic box stays zero to round-off on every grid,
+the energy lost matches the integrated dissipation more closely on each finer
+grid, and the vorticity converges under refinement at an order near
+two.]{.claim type="numerically-verified"
+scope="the double shear layer of the example, three grids, up to the last snapshot"
+evidence="shear-layer-run"}
+The largest change of the vorticity between successive grids falls with a
+fitted order of `{python} result["shear-order"]`, and the circulation stays
+below `{python} result["round-off"]`. The coarsest grid puts barely two cells
+across a layer: its energy budget is the worst and its vorticity differs
+most, which is what an under-resolved shear layer looks like.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_shear_layer)
+```
+
+```{python}
+#| label: fig-shear-layer
+#| echo: false
+#| fig-cap: "Two thin shear layers, disturbed by a small wave, roll up into two vortices of opposite sign, joined by thin braids of vorticity that are stretched out between them."
+#| fig-alt: "Three square panels of vorticity in false colour, at three increasing times. First: two horizontal bands, one of each sign, at a quarter and three quarters of the height, slightly wavy. Second: each band has curled up at one place into a spiral, with the rest of the band thinning. Third: two round spiral vortices, one of each sign, diagonally opposite each other, linked by thin straight braids."
+#| fig-status: simulated
+result.show("fig-shear-layer")
+```
+
+The fields are those of the finest grid. Nothing in the box created
+vorticity: the two vortices hold the vorticity the layers had at the start,
+gathered into two spots by the instability and slowly diffused by viscosity.
+
+### The wake of a cylinder
+
+The cylinder at two Reynolds numbers in a box twelve diameters wide, a
+blockage of `{python} result["blockage"]`, on a grid of
+`{python} result["cells-per-diameter"]` cells per diameter: at
+`{python} result["steady-re"]`, the lower end of Roshko's stable range, and
+at `{python} result["shedding-re"]`, well inside it.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="wake")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.wake_run)
+```
+
+```{python}
+#| label: fig-wake-signal
+#| echo: false
+#| fig-cap: "Below the onset of shedding the wake settles: the cross-stream velocity behind the cylinder dies away. Above it, the same small push grows into a steady oscillation of fixed amplitude and period, the vortex street."
+#| fig-alt: "Line plot of the cross-stream velocity at the probe against time. The solid curve, at the higher Reynolds number, oscillates with an amplitude that grows over the first periods and then stays constant; the last part of the run is shaded as the window where the frequency is measured. The dashed curve, at the lower Reynolds number, starts from the same push, oscillates a few times with a shrinking amplitude, and flattens towards zero."
+#| fig-status: simulated
+result.show("fig-wake-signal")
+```
+
+```{python}
+#| label: wake-run
+#| echo: false
+result.table("wake-run")
+```
+
+[At a Reynolds number of forty the computed wake settles to a steady flow,
+and at one hundred it sheds vortices periodically with a Strouhal number of
+`{python} result["strouhal"]`, measured over `{python} result["periods"]`
+full periods.]{.claim type="numerically-verified"
+scope="two-dimensional incompressible model, direct-forcing cylinder, ten cells per diameter, box twelve diameters wide with a fringe"
+evidence="wake-run fig-wake-signal"}
+At forty the swing of the probe signal falls by a factor of
+`{python} result["steady-decay"]` from one third of the run to the next; at one hundred it is the same in both halves
+of the window, so the oscillation has saturated. Roshko's regular streets
+begin at about forty; in the model the wake there still settles, but slowly,
+over tens of passage times, which is how a flow behaves close to the onset of
+an instability: the disturbance is barely damped. The computation agrees with
+him in kind, and puts the onset of its own shedding a little above forty.
+
+[The computed Strouhal number at a Reynolds number of one hundred lies
+within the span of Roshko's fit over the stable range, and
+`{python} result["strouhal-excess"]` per cent above the fit's value at that
+Reynolds number.]{.claim type="numerically-verified"
+scope="Reynolds number one hundred, the model, grid, and box of the example; against Roshko's fit to his wind-tunnel measurements"
+evidence="wake-run roshko-vortex-street-strouhal"}
+The computation runs high, and the model says why it may. The box holds a row
+of cylinders one box width apart, which squeezes the stream between them and
+speeds up the shedding, as the first exercise measures; the body's surface is
+smoothed over a cell, and ten cells per diameter is coarse. A higher frequency
+than the measured one is the usual sign of blockage. The comparison is between
+a model with stated biases and a fit to measurements with their own scatter,
+not a test that either is exact.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_karman_street)
+```
+
+```{python}
+#| label: fig-karman-street
+#| echo: false
+#| fig-cap: "The vortex street behind the cylinder at a Reynolds number of one hundred: the two separated shear layers roll up alternately, and vortices of opposite sign leave in two staggered rows."
+#| fig-alt: "Vorticity in false colour around and behind a white disc that marks the cylinder, in a stream flowing from left to right. Two thin layers of opposite sign leave the top and bottom of the disc; behind it they curl into blobs that alternate above and below the centre line, in a wavy, staggered row that fades with distance downstream."
+#| fig-status: simulated
+result.show("fig-karman-street")
+```
+
+The field is the computed vorticity at the end of the run, with the fringe
+left out of the picture and the colours clipped at three units, so that the
+weaker vortices downstream stay visible. The speckle at the front of the
+disc is the staircase of the body on the grid, not a feature of the flow.
+
+::: {.go-deeper ref="roshko-vortex-street-strouhal"}
+Roshko's report describes how the frequencies were measured with hot wires,
+and follows the wake downstream from the regular street to a turbulent wake
+in the irregular range, which a two-dimensional computation cannot reach.
+:::
+
+## Limits {#limits}
+
+- **Two dimensions.** Above the stable range the real wake goes through
+  Roshko's transition range into turbulence, in three dimensions; a
+  two-dimensional computation keeps shedding regular vortices there, with a
+  frequency and a drag that no longer describe the measurements.
+- **Blockage and the fringe.** The box is a row of cylinders, and the fringe
+  forces the free stream a few diameters upstream of the body. Both shift the
+  frequency; only the width was varied here, in the first exercise.
+- **Resolution.** Ten cells per diameter and a body smoothed over one cell
+  were not refined on this page. The boundary layer on the cylinder is not
+  resolved, and quantities that depend on it, the drag and the separation
+  point, are not computed.
+- **The onset of shedding** lies between the two Reynolds numbers computed,
+  close above forty to judge by the slow decay there; where exactly the
+  steady wake becomes unstable was not located.
+- **The reference is a fit to measurements.** Roshko's relation summarises
+  wind-tunnel data with scatter and with limits he calls somewhat in doubt;
+  the comparison is with that fit, not with each measurement.
+
+::: {.exercise .self-check}
+A two-dimensional computation of the flow past a cylinder at a Reynolds
+number of one thousand produces a beautifully regular vortex street. What
+should you conclude about the real flow at that Reynolds number?
+
+::: {.choices}
+::: {.choice}
+That it sheds the same regular street, since the computation solves the
+Navier-Stokes equations.
+
+::: {.feedback}
+It solves them in two dimensions. At that Reynolds number the real wake is in
+the irregular range: three-dimensional and turbulent, which the computation
+cannot represent.
+:::
+:::
+
+::: {.choice correct="true"}
+Little: the computation is outside the regime its model describes, and the
+regularity is a property of the two-dimensional model.
+
+::: {.feedback}
+Correct. Two-dimensional flow cannot stretch vortices, so it cannot become
+turbulent in the way the real wake does. Above the stable range the measured
+wake is irregular, and the computed frequency and street are not evidence
+about it.
+:::
+:::
+
+::: {.choice}
+That the grid is too coarse, since a finer grid would show the turbulence.
+
+::: {.feedback}
+A finer two-dimensional grid would resolve the same two-dimensional flow
+better; the missing physics, vortex stretching, is absent from the equations
+being solved, not from the grid.
+:::
+:::
+:::
+
+::: {.solution}
+Very little. The computation is a correct answer to a question that the real
+flow does not ask: at a Reynolds number of one thousand the measured wake is
+in Roshko's irregular range, three-dimensional and turbulent. A
+two-dimensional model is trustworthy where the real flow is two-dimensional,
+which for the cylinder means the stable range.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Blockage.** Repeat the computation at a Reynolds number of $100$ in a box
+$8$ diameters wide instead of $12$. Does the Strouhal number move towards
+Roshko's value or away from it?
+
+::: {.hint}
+A narrower box puts the neighbouring cylinders of the periodic row closer.
+What does that do to the speed of the stream between them?
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.blockage_run)
+```
+
+With a blockage of `{python} result["narrow-blockage"]` the Strouhal number
+is `{python} result["narrow-strouhal"]`, against `{python} result["strouhal"]`
+in the wider box: further from Roshko's `{python} result["roshko"]`. The
+stream must squeeze between the cylinders of the row, it passes them faster,
+and the vortices are shed sooner. A wider box would bring the computed value
+down; how far it would go, and how much of the remaining difference is due to
+the resolution, was not computed.
+:::
+:::
+
+::: {.exercise}
+**The singing wire.** A wire $1$ mm thick stands in a wind of $1.5$ m/s;
+air has $\nu = 1.5\times10^{-5}\ \mathrm{m^2/s}$. What is its Reynolds
+number, and at what frequency does it sing, by Roshko's fit and by the
+Strouhal number computed in the lesson?
+
+::: {.hint}
+The frequency of the street is $f = S U/D$; the wire is pushed sideways once
+for every vortex, at that frequency.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.wire_tone)
+```
+
+The Reynolds number is `{python} result["wire-re"]`, in the stable range.
+The wire sings at `{python} result["wire-roshko"]` Hz by Roshko's fit and at
+`{python} result["wire-computed"]` Hz with the computed Strouhal number: an
+audible hum, which is the Aeolian tone. Strictly the force that pushes the
+wire sideways alternates once per period of the street, while the drag
+pulses twice per period, at an octave above.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/fluids/vortices.py",
+        "src/pbc/fluids/navier_stokes.py",
+        "src/pbc/fluids/experiments/vortex_formation_and_flow_around_obstacles.py",
+        "src/pbc/verification/estimates.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_vortices.py",
+        "tests/unit/test_vortex_formation_and_flow_around_obstacles_experiment.py",
+    ],
+)
+```

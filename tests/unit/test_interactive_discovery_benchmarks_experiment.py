@@ -6,7 +6,7 @@ import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
 
 MODULE = "pbc.mechanics.experiments.interactive_discovery_benchmarks"
-PAGE = "agents-llm/11-interactive-discovery-benchmarks"
+PAGE = "agents-llm/12-interactive-discovery-benchmarks"
 
 
 @pytest.fixture(scope="module")

@@ -142,8 +142,12 @@ risk_path_minimum() {
 #                                   the diff, or a line whose first def
 #                                   or class at or above it in its added block
 #                                   is a new def test_ (a new test weakens
-#                                   none that is there); a data line of a
-#                                   budget table
+#                                   none that is there), or in a new source
+#                                   file: a Python file under src/ that is new
+#                                   in the diff (it widens no check that is
+#                                   there; a protected path keeps Level 3 by
+#                                   the path rule); a data line of a budget
+#                                   table
 #   skip or expected failure added  a new skip, skipif, xfail, or importorskip;
 #                                   in Lean, a new sorry, admit, or axiom
 #   assertion removed or changed    a line that is not added back as it was: a
@@ -259,7 +263,7 @@ risk_triggers() {
           line = addlist[i]
           if (line in gone) continue
           if (is_budgets && line !~ /^#/ && line != "") report("tolerance or budget changed", line)
-          if (is_python && line !~ /^#/ && line ~ tolerance && line ~ /[0-9]/ && !(is_new_test_file || in_new_test(i)))
+          if (is_python && line !~ /^#/ && line ~ tolerance && line ~ /[0-9]/ && !(is_new_test_file || is_new_source_file || in_new_test(i)))
             report("tolerance or budget changed", line)
           if (is_lean && line !~ /^--/ &&
               (line ~ /(^|[^[:alnum:]_.\047`])(sorry|admit)([^[:alnum:]_\047`]|$)/ || line ~ /^(@\[[^]]*\][[:space:]]*)?((private|protected|noncomputable|unsafe)[[:space:]]+)*axiom[[:space:]]/))
@@ -290,12 +294,14 @@ risk_triggers() {
         is_shell_test = (file ~ /\.sh$/ && (file ~ /^tests\// || file ~ /(^|\/)[^\/]*-test\.sh$/))
         is_lean = (file ~ /\.lean$/ && file !~ /(^|\/)lakefile\.lean$/)
         is_test_file = (file ~ /(^|\/)(test_[^\/]*|[^\/]*_test)\.py$/)
+        is_source_file = (file ~ /^src\/.*\.py$/)
         is_new_test_file = 0
+        is_new_source_file = 0
         nremoved = 0; nadded = 0; block = 0
         delete added; delete gone; delete removed; delete addlist; delete addblock
         next
       }
-      /^new file mode / { is_new_test_file = is_test_file; next }
+      /^new file mode / { is_new_test_file = is_test_file; is_new_source_file = is_source_file; next }
       /^(---|\+\+\+) / { next }
       /^-/ { block++; line = trim(substr($0, 2)); removed[++nremoved] = line; gone[line] = 1; next }
       /^\+/ {
@@ -372,6 +378,9 @@ approval_request_level() {
 #   RISK_REQUESTED       the level it asks for, when it names a lowering
 #   RISK_ENFORCED        1 for a completion/v2 record, whose rules apply
 #   RISK_ERRORS          what the rules refuse, one problem per line
+#   RISK_REQUEST_TREE    the check of the request's line 'Tree:': 'checked' when it
+#                        names the content tree, the problem when it does not, or
+#                        empty when no request was checked
 #
 # Returns 1 when the working tree cannot be read.
 risk_assess() {
@@ -407,6 +416,7 @@ risk_assess() {
   RISK_REQUESTED=""
   RISK_ENFORCED=0
   RISK_ERRORS=""
+  RISK_REQUEST_TREE=""
 
   scratch="$(mktemp -d "${TMPDIR:-/tmp}/risk.XXXXXX")"
   RISK_TREE="$(risk_snapshot "$root" "$scratch")" &&
@@ -481,11 +491,15 @@ risk_assess() {
       [[ -n "$(approval_request_field "$request_file" "$field")" ]] ||
         RISK_ERRORS+="the approval request $RISK_REQUEST has no line '$field: ...'"$'\n'
     done
+    RISK_REQUEST_TREE="checked"
     # The request leaves the fingerprint, so a wrong tree would not make a
     # verification or a review stale; it is refused here instead.
     request_tree="$(approval_request_field "$request_file" "Tree" | awk '{ print $1 }' | tr -d '`')"
-    if [[ -n "$request_tree" && "$request_tree" != "$RISK_CONTENT_TREE" ]]; then
-      RISK_ERRORS+="the approval request $RISK_REQUEST names tree $request_tree, but the content tree is $RISK_CONTENT_TREE; state it on a line 'Tree: $RISK_CONTENT_TREE'"$'\n'
+    if [[ -z "$request_tree" ]]; then
+      RISK_REQUEST_TREE="the approval request $RISK_REQUEST has no line 'Tree: ...'"
+    elif [[ "$request_tree" != "$RISK_CONTENT_TREE" ]]; then
+      RISK_REQUEST_TREE="the approval request $RISK_REQUEST names tree $request_tree, but the content tree is $RISK_CONTENT_TREE; state it on a line 'Tree: $RISK_CONTENT_TREE'"
+      RISK_ERRORS+="$RISK_REQUEST_TREE"$'\n'
     fi
     if [[ -n "$RISK_REQUESTED" ]]; then
       request_required="$(approval_request_level "$request_file" "Required level")"
@@ -507,9 +521,10 @@ risk_assess() {
   RISK_ERRORS="${RISK_ERRORS%$'\n'}"
 }
 
-# risk_statement_lines
+# risk_statement_lines [review]
 # Prints the statement of the level for a commit message or a pull request,
-# from the variables risk_assess set, one list item per line.
+# from the variables risk_assess set, one list item per line. With 'review',
+# the two trees are labelled for the reviewer instead (risk_review_tree_lines).
 risk_statement_lines() {
   local reasons
 
@@ -538,6 +553,29 @@ risk_statement_lines() {
   elif [[ -n "$RISK_REQUEST" ]]; then
     echo "- approval request: $RISK_REQUEST, a request for the owner's review, never an approval"
   fi
+  if [[ "${1:-}" == "review" ]]; then
+    risk_review_tree_lines
+    return 0
+  fi
   echo "- derived for the content $RISK_TREE"
   echo "- content tree for the approval request (Tree:): $RISK_CONTENT_TREE"
+}
+
+# risk_review_tree_lines
+# Prints the two trees for the reviewer, each labelled with what it is for,
+# and the result of the script's check of the approval request's 'Tree:'.
+# Reviewers compared the line 'Tree:' with the worktree fingerprint and
+# reported a correct request as wrong (Issue #296).
+risk_review_tree_lines() {
+  echo "- worktree fingerprint (identifies the content the level was derived for; never compared with the line 'Tree:' of an approval request): $RISK_TREE"
+  echo "- content tree for the approval request (the only value to compare with its line 'Tree:'): $RISK_CONTENT_TREE"
+  if [[ -z "$RISK_REQUEST" ]]; then
+    echo "- the line 'Tree:' of an approval request: not checked, there is no approval request"
+  elif [[ -z "$RISK_REQUEST_TREE" ]]; then
+    echo "- the line 'Tree:' of $RISK_REQUEST: not checked by the script, the rules apply to a completion/v2 record only"
+  elif [[ "$RISK_REQUEST_TREE" == "checked" ]]; then
+    echo "- checked by the script: the request names the current content tree"
+  else
+    echo "- checked by the script, error: $RISK_REQUEST_TREE"
+  fi
 }

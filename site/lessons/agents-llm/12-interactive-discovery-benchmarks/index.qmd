@@ -8,7 +8,7 @@ description: >-
 lesson:
   id: interactive-discovery-benchmarks
   strand: agents-llm
-  order: 11
+  order: 12
   difficulty: 3
   course: mechanics
   slot: EV2
@@ -341,7 +341,7 @@ it, so the commands are marked.
 ```bash
 uv sync --locked --no-dev --extra openai
 export OPENAI_API_KEY="..."
-cd site/lessons/agents-llm/11-interactive-discovery-benchmarks
+cd site/lessons/agents-llm/12-interactive-discovery-benchmarks
 uv run --locked --no-dev --extra openai python -m pbc.discovery.benchmark projectile-full projectile-partial projectile-none central-full central-none
 ```
 :::

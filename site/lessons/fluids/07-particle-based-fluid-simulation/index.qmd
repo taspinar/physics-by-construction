@@ -1,0 +1,508 @@
+---
+title: "Particle-based fluid simulation"
+description: >-
+  Smoothed particle hydrodynamics in two dimensions: a fluid as particles that
+  carry its mass, a kernel that reads fields from them, a free-surface drop
+  checked against its exact solution, the conservation of momentum, angular
+  momentum, and energy measured, and where particles do worse than a grid.
+lesson:
+  id: particle-based-fluid-simulation
+  strand: fluids
+  order: 7
+  difficulty: 3
+  course: fluids
+  slot: FL6
+  methods: [simulation]
+  outcomes:
+    - Describe a fluid as particles with a smoothing kernel, and derive the symmetric pressure force that conserves momentum and angular momentum pair by pair
+    - Check a particle simulation of a free-surface flow against an exact solution
+    - Measure which conserved quantities a particle method keeps to round-off and which it keeps only to the accuracy of its time step
+    - Compare particle and grid approximations of a derivative, and explain why particle estimates stop converging on disordered particles
+  related: []
+  format: 2
+  preview: fig-elliptical-drop
+  experiment: pbc.fluids.experiments.particle_based_fluid_simulation
+  prerequisites:
+    lessons: [navier-stokes-fundamentals, numerical-integrators]
+    outside:
+      - "Calculus: partial derivatives, the divergence and the gradient, and integration by parts"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.fluids import sph
+from pbc.fluids.experiments import particle_based_fluid_simulation as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A wave breaks on a beach, a glass of water is knocked over, a jet of fuel
+splits into droplets. In each the fluid has a surface that folds, tears, and
+joins, and that surface is the hardest thing a grid can represent: a grid
+stores values at fixed places, and the fluid keeps leaving some of them and
+filling others. A different idea is to give up the grid and follow the fluid
+itself, as a crowd of particles that each carry a piece of its mass. Where
+there are particles there is fluid; where there are none there is not, and
+the free surface takes care of itself.
+
+This lesson builds the oldest such method, smoothed particle hydrodynamics
+(SPH), in two dimensions. It reads fields from the particles with a smoothing
+kernel, writes the pressure force so that every pair of particles pushes
+equally and oppositely, and runs a drop of liquid that stretches into an
+ellipse, a free-surface flow with an exact solution. Then it measures what
+the method conserves exactly and what only approximately, and where it falls
+behind the grid of the previous lessons: a particle estimate of a derivative
+converges only while the particles stay orderly.
+
+## Assumptions
+
+1. **A weakly compressible liquid.** The liquid is given a pressure
+   $P = c_0^2(\rho - \rho_0)$ with a speed of sound $c_0$ ten times the
+   largest speed of the flow, instead of the incompressibility constraint of
+   the grid lessons. The density then changes by about a per cent, and sound
+   waves of that size run through the drop. A real liquid's sound speed is far
+   higher.
+2. **Inviscid, except where asked.** The drop has no viscosity. The
+   conservation example adds Monaghan's artificial viscosity, a numerical
+   damping between approaching particles, and turns the energy it removes into
+   heat, so that the total can be checked.
+3. **A fixed kernel width.** The kernel width $h$ is the same for every
+   particle and every time, $1.3$ times the starting spacing. Where the drop
+   stretches, the particles move apart in one direction and the kernel reaches
+   fewer neighbours.
+4. **Two dimensions, no gravity, no surface tension.** Masses are per metre of
+   depth. The free surface carries no force at all: the pressure there is
+   zero.
+5. **Particles start on a square lattice** cut to a circle. The starting
+   arrangement is remembered by the flow, as the figures show.
+
+## Particles, kernels, and conservation {#explanation}
+
+### Fields from particles
+
+Each particle $i$ has a position $\mathbf{x}_i$, a velocity $\mathbf{v}_i$, a
+density $\rho_i$, and the same mass $m$. A field $f$ is read from the
+particles by smoothing it with a kernel $W$, a bell of width $h$ that
+integrates to one, and replacing the integral by a sum over the particles,
+each standing for the volume $m/\rho_j$:
+
+$$
+f(\mathbf{x}) \approx \int f(\mathbf{y})\,W(\mathbf{x} - \mathbf{y}, h)\,\mathrm{d}\mathbf{y}
+\approx \sum_j \frac{m}{\rho_j}\,f_j\,W(\mathbf{x} - \mathbf{x}_j, h).
+$$
+
+The kernel here is Monaghan's cubic spline, zero beyond $2h$, so each sum
+runs over the neighbours within that reach, found with a k-d tree. Taking
+$f = \rho$ gives the density as a sum of masses, and moving the derivative
+onto the kernel gives the gradient,
+
+$$
+\nabla f(\mathbf{x}_i) \approx \sum_j \frac{m}{\rho_j}\,f_j\,\nabla_i W_{ij}.
+$$
+
+The first approximation, the smoothing, has an error of order $h^2$. The
+second, the sum, is exact only when the particles sample the integral
+exactly: on a regular lattice nearly so, on disordered particles not at all.
+The plain sum gives a non-zero gradient of a constant on disordered particles,
+since $\sum_j (m/\rho_j)\nabla_i W_{ij}$ is not zero there. Subtracting $f_i$
+times that sum gives the difference form
+$\sum_j (m/\rho_j)(f_j - f_i)\nabla_i W_{ij}$, exact for a constant.
+
+### The equations of motion
+
+The density of a particle changes as the velocity around it diverges, which
+the continuity equation, read through the kernel, gives as
+
+$$
+\frac{\mathrm{d}\rho_i}{\mathrm{d}t} = \sum_j m\,(\mathbf{v}_i - \mathbf{v}_j)\cdot\nabla_i W_{ij}.
+$$
+
+For the acceleration, the plain gradient of the pressure would not push two
+particles equally and oppositely. The symmetric form
+
+$$
+\frac{\mathrm{d}\mathbf{v}_i}{\mathrm{d}t} = -\sum_j m\left(\frac{P_i}{\rho_i^2} + \frac{P_j}{\rho_j^2}\right)\nabla_i W_{ij}
+$$
+
+does. The gradient of the kernel points along the line between the two
+particles, and $\nabla_j W_{ji} = -\nabla_i W_{ij}$: so the force of $j$ on
+$i$ is minus the force of $i$ on $j$, and both lie on the line between them.
+The first fact conserves the total momentum; the second, the total angular
+momentum, because a pair of opposite forces on one line exerts no torque.
+
+### Energy
+
+Each particle stores an internal energy per unit mass $e(\rho)$ with
+$\mathrm{d}e/\mathrm{d}\rho = P/\rho^2$, the work done in compressing it; for
+the pressure of the model,
+$e = c_0^2\left(\ln(\rho/\rho_0) + \rho_0/\rho - 1\right)$. Multiplying the
+acceleration by $m\mathbf{v}_i$, the density equation by
+$m P_i/\rho_i^2$, and summing over the particles, the two sums are the same
+pair sum with opposite signs. The total energy
+
+$$
+E = \sum_i m\left(\tfrac12|\mathbf{v}_i|^2 + e(\rho_i)\right)
+$$
+
+is conserved by the equations exactly. Monaghan's artificial viscosity adds
+to the bracket of each pair a term that is non-zero only for particles that
+approach each other; it removes kinetic energy, and adding to each particle
+the heat it receives keeps the total conserved.
+
+### Time stepping
+
+The equations conserve momentum, angular momentum, and energy; whether the
+computation does depends on the time step too. Every Runge-Kutta method keeps
+a linear invariant such as the momentum exactly, so the momentum stays at
+round-off. The angular momentum and the energy are not linear in the state,
+and an explicit method changes them by an amount that falls with the step.
+The program uses the midpoint method, second order: rates at the start carry
+the state half a step, and rates there carry it the whole step. The leapfrog
+of the mechanics lessons keeps angular momentum exactly when the forces
+depend on the positions alone; here the rate of the density depends on the
+velocities as well, and the midpoint method keeps its order for any rates.
+
+### The elliptical drop
+
+A circular drop of radius $R$, with no pressure at its surface, starts with
+the velocity $(Ax, -Ay)$: stretched along $x$, squeezed along $y$. If the
+liquid is incompressible and inviscid, the velocity stays linear, the drop
+stays an ellipse with semi-axes $a$ along $x$ and $b$ along $y$, its area
+stays $\pi R^2$, and the pressure is $P_0(1 - x^2/a^2 - y^2/b^2)$. The
+momentum balance along each axis at the surface gives the exact motion,
+
+$$
+\frac{\mathrm{d}A}{\mathrm{d}t} = A^2\,\frac{b^2 - a^2}{a^2 + b^2},
+\qquad
+\frac{\mathrm{d}a}{\mathrm{d}t} = A a,
+\qquad ab = R^2,
+$$
+
+an ordinary differential equation that the program integrates to the
+precision of its fourth-order step. The particles start with that velocity and
+with the density of the exact pressure; their semi-axes are read from their
+second moments, $a = 2\sqrt{\langle x^2\rangle}$ for a uniform ellipse.
+
+## Code
+
+```{python}
+#| echo: false
+excerpt(sph.kernel)
+```
+
+```{python}
+#| echo: false
+excerpt(
+    sph.accelerations,
+    region="forces",
+    notes={
+        "force = -weight[:, None] * grad  # on i from j; j gets the opposite": "One force per pair, added to one particle and subtracted from the other: momentum is conserved pair by pair.",
+        "np.add.at(drho, j, flux)": "Both particles of a pair get the same rate of density, since both the velocity difference and the kernel gradient change sign.",
+    },
+)
+```
+
+```{python}
+#| echo: false
+excerpt(sph.step)
+```
+
+```{python}
+#| echo: false
+excerpt(sph.elliptical_drop)
+```
+
+## Worked examples
+
+### A derivative from particles and from a grid
+
+The kernel integrates to `{python} result["kernel-integral"]` over the plane,
+by a fine quadrature in the radius. To see the sum at work, take
+$f = \sin(kx)\cos(ky)$ with $k = 2\pi\ \mathrm{m^{-1}}$ on the unit square,
+estimate its gradient in the middle of the square, away from the edges, where
+the kernel is cut off, and compare with the exact gradient. The particles sit
+on a lattice, or on the same lattice with each particle moved at random by up
+to a fifth of a spacing; the kernel width is twice the spacing, and the
+volume of a particle is the square of the spacing. The grid's central
+difference at the same spacing is the reference.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="gradient")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.gradient_errors)
+```
+
+```{python}
+#| label: gradient-run
+#| echo: false
+result.table("gradient-run")
+```
+
+[On a lattice the particle estimate of the gradient converges at second
+order, like the central difference of a grid; on disordered particles the
+plain sum diverges as the spacing shrinks, and the difference form stalls.]{.claim
+type="numerically-verified"
+scope="the function and square of the example, kernel width twice the spacing, disorder of a fifth of a spacing, three spacings"
+evidence="gradient-run fig-particle-gradient"}
+The fitted order on the lattice is `{python} result["lattice-order"]`. On the
+disordered particles the plain sum carries a gradient of a constant that grows
+as one over the spacing, and the difference form, which removes it, still
+carries the noise of the arrangement, which refining at a fixed number of
+neighbours does not reduce.
+
+```{python}
+#| label: fig-particle-gradient
+#| echo: false
+#| fig-cap: "On a lattice, particles converge like a grid; on disordered particles they do not converge at all. The plain sum gets worse as the spacing shrinks, and the difference form stalls."
+#| fig-alt: "Log-log plot of the largest gradient error against the spacing. The grid's central difference and the particles on a lattice fall together, parallel to a thin reference line of slope two. The plain sum on disordered particles rises as the spacing shrinks, and the difference form on disordered particles stays nearly flat, far above the lattice."
+#| fig-status: simulated
+result.show("fig-particle-gradient")
+```
+
+The errors are those of one estimate of one function, not of a flow. They
+show why the arrangement of the particles matters to everything a particle
+method computes: in a flow the particles disorder themselves.
+
+### The elliptical drop
+
+The drop of radius $1$ m with $A = 1\ \mathrm{s^{-1}}$ at the start,
+$\rho_0 = 1$, and a speed of sound of $10$ m/s, run for half a second on two
+particle spacings, in equal steps of a quarter of $h/c_0$. The exact semi-axes
+are `{python} result["exact-a"]` m and `{python} result["exact-b"]` m.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="drop")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.drop_run)
+```
+
+```{python}
+#| label: drop-run
+#| echo: false
+result.table("drop-run")
+```
+
+[The particle drop follows the exact semi-axes of the incompressible drop to
+within one per cent after half a second, on both spacings, and the error does
+not fall when the spacing is halved.]{.claim type="numerically-verified"
+scope="the drop of the example, sound speed ten times the largest speed, kernel width 1.3 spacings, half a second"
+evidence="drop-run fig-elliptical-drop"}
+The long semi-axis agrees to a fraction of a per cent; the short one is a
+little too long, by about the same amount on both spacings. Halving the
+spacing does not reduce it: at a fixed kernel width in spacings, the
+particle sums keep their error, as the derivative example showed, and the
+weak compressibility of the model adds its own.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_elliptical_drop)
+```
+
+```{python}
+#| label: fig-elliptical-drop
+#| echo: false
+#| fig-cap: "A circular drop stretched by its own motion: the particles fill the exact ellipse at each time, with no surface tracked, and keep the columns of the lattice they started on."
+#| fig-alt: "Three panels at increasing times. First: a disc of particles in a square lattice, inside a dashed circle. Second: the particles fill a horizontal ellipse that matches a dashed exact outline. Third: a longer, flatter ellipse, still matching its dashed outline, with the particles arranged in vertical columns that have drawn apart from each other."
+#| fig-status: simulated
+result.show("fig-elliptical-drop")
+```
+
+The surface of the particles is wherever the outermost particles are; no
+part of the program knows the drop has a surface. The columns are the lattice
+the particles started on, stretched along $x$: a particle method remembers
+its initial arrangement, a grid does not have one.
+
+### Conservation, measured
+
+The drop on the coarser spacing, now spinning as well, with
+$\Omega = 0.5\ \mathrm{s^{-1}}$ of rigid rotation added, and with Monaghan's
+artificial viscosity, run for half a second with three time steps.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="conservation")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.conservation_run)
+```
+
+```{python}
+#| label: conservation-run
+#| echo: false
+result.table("conservation-run")
+```
+
+[The particle method keeps the number of particles and the total momentum to
+round-off, and changes the angular momentum and the total energy, heat
+included, only through the time step, by amounts that fall at second order or
+faster.]{.claim type="numerically-verified"
+scope="the spinning drop of the example with artificial viscosity, midpoint method, three time steps"
+evidence="conservation-run"}
+The mass is exact by construction: each particle keeps its mass, and no
+particle is created or lost. The momentum changes by less than
+`{python} result["round-off"]`. The angular momentum falls with the fitted
+order `{python} result["angular-order"]` and the energy with
+`{python} result["energy-order"]`. The viscosity turned a fraction
+`{python} result["heat-fraction"]` of the energy into heat, the same for
+every step: it is a property of the equations, not of the step.
+
+## Limits {#limits}
+
+- **No convergence at a fixed number of neighbours.** The particle sums
+  converge only on a lattice; in a flow the particles disorder, and the error
+  of the drop did not fall with the spacing. Convergence needs the number of
+  neighbours to grow as the spacing shrinks, which costs more than refining a
+  grid.
+- **Stretched flows lose neighbours.** With a fixed kernel width the drop's
+  particles move apart along $x$; the second exercise measures what happens
+  when it runs longer.
+- **Weak compressibility.** The liquid is compressible by design, and the
+  particles add sound waves of their own, as the first exercise measures.
+- **The surface is free, not modelled.** There is no surface tension, and the
+  kernel is cut off at the surface, so densities there are less accurate.
+- **Nothing here is measured.** The reference is the exact solution of an
+  ideal model. The comparison with a grid is for one derivative, not for a
+  flow; on the shear layers and the wake of the previous lessons a grid is far
+  more accurate for the same cost, and a particle method earns its place where
+  surfaces fold and tear.
+
+::: {.exercise .self-check}
+A particle simulation keeps its total momentum to round-off over a long run.
+A colleague concludes that its forces are accurate. What does the
+conservation actually show?
+
+::: {.choices}
+::: {.choice}
+That the pressure forces are accurate, since inaccurate forces would change
+the momentum.
+
+::: {.feedback}
+Any force written pair by pair, equal and opposite, conserves the momentum,
+however wrong its size. The derivative example shows errors of order one in
+estimates that still conserve.
+:::
+:::
+
+::: {.choice correct="true"}
+That the forces come in equal and opposite pairs; it says nothing about
+whether they are the right forces.
+
+::: {.feedback}
+Correct. Conservation is a property of the structure of the equations, the
+symmetric pair force, and of a step that keeps linear invariants. Accuracy has
+to be checked against something else, such as an exact solution.
+:::
+:::
+
+::: {.choice}
+That the time step is small enough.
+
+::: {.feedback}
+The momentum is kept to round-off at every step size of the conservation
+example; it does not depend on the step at all.
+:::
+:::
+:::
+
+::: {.solution}
+Only the structure. The symmetric pressure force pushes each pair of
+particles equally and oppositely, and a Runge-Kutta step keeps any linear
+invariant, so the momentum is conserved whatever the accuracy of the
+forces. Accuracy is checked against an exact solution, as the drop is, or by
+refinement; conservation and accuracy are different questions.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**How compressible is the liquid?** For the drop on the coarser spacing, the
+density change should be the pressure divided by $c_0^2$, about the square of
+the Mach number. Run it with $c_0 = 5$, $10$, $20$, and $40$ m/s and compare
+the mean density change with what the exact pressure gives at the particles.
+How does what is left over depend on the Mach number?
+
+::: {.hint}
+Fit the logarithm of each column against the logarithm of the Mach number.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.compressibility_run)
+```
+
+```{python}
+#| echo: false
+result.table("compressibility-run")
+```
+
+The mean density change falls with the power `{python} result["mean-power"]`
+of the Mach number, as the estimate says, and follows the exact pressure
+roughly. What is left, particle by particle, falls only with the power
+`{python} result["noise-power"]`: it is sound, set off by the irregular
+forces of the particles and by the start, and a sound wave changes the density
+in proportion to the Mach number, not its square. Raising $c_0$ reduces both,
+at the cost of a proportionally smaller time step.
+:::
+:::
+
+::: {.exercise}
+**A longer stretch.** Run the drop on the coarser spacing to $0.75$ s instead
+of $0.5$ s. How do the errors of the semi-axes change, and how far does the
+kernel reach along $x$, measured in the stretched spacing of the particles?
+
+::: {.hint}
+The particles started one spacing apart; along $x$ that distance grows with
+$a$.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.long_run)
+```
+
+```{python}
+#| echo: false
+result.table("long-run")
+```
+
+The short semi-axis drifts away from the exact one: its error grows from
+`{python} result["long-error-start"]` to `{python} result["long-error-end"]`
+per cent. Along $x$ the kernel now reaches little more than one stretched
+spacing, so a particle has barely one neighbour on each side in that
+direction, and the sums no longer approximate the integrals. A kernel width
+that grows with the local spacing, used by production codes, delays this.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/fluids/sph.py",
+        "src/pbc/fluids/experiments/particle_based_fluid_simulation.py",
+        "src/pbc/verification/estimates.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_sph.py",
+        "tests/unit/test_particle_based_fluid_simulation_experiment.py",
+    ],
+)
+```

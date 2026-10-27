@@ -402,7 +402,7 @@ guardrails="$(printf '%s\n' "$guardrail_findings" |
   echo
   echo "Derived by the scripts for the content under review, before your assessment:"
   echo
-  risk_statement_lines
+  risk_statement_lines review
   echo
   echo "Assess every escalation trigger of ADR 020 decision 1, also those no script"
   echo "can detect (a changed or removed published scientific claim, security,"
@@ -410,6 +410,10 @@ guardrails="$(printf '%s\n' "$guardrail_findings" |
   echo "architecture_impact.risk_level and the triggers the change hits in"
   echo "architecture_impact.escalation_triggers. A trigger the completion record"
   echo "does not name is a major finding. Your level can only raise the derived one."
+  echo
+  echo "The script has compared the line 'Tree:' of the approval request with the"
+  echo "content tree (checked by the script, above). Report a finding about that"
+  echo "line only if the statement above lists the error."
   case "$RISK_SCHEMA" in
     completion/v1)
       echo

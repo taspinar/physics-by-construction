@@ -57,8 +57,8 @@ LIVE = "pbc.discovery.benchmark plain-projectile plain-oscillator plain-central-
 # The pages that hold the frozen runs.
 D1 = REPOSITORY_ROOT / "site/lessons/agents-llm/05-discovering-a-force-law"
 D2 = REPOSITORY_ROOT / "site/lessons/agents-llm/06-prior-knowledge-in-discovery"
-EV2 = REPOSITORY_ROOT / "site/lessons/agents-llm/11-interactive-discovery-benchmarks"
-LESSON = REPOSITORY_ROOT / "site/lessons/agents-llm/12-agent-versus-non-agent-baselines"
+EV2 = REPOSITORY_ROOT / "site/lessons/agents-llm/12-interactive-discovery-benchmarks"
+LESSON = REPOSITORY_ROOT / "site/lessons/agents-llm/13-agent-versus-non-agent-baselines"
 
 
 def home(cell: Cell) -> Path:

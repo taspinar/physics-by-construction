@@ -34,8 +34,8 @@ LESSONS = Path(__file__).parents[2] / "site" / "lessons" / "agents-llm"
 HOMES = {
     "D1": LESSONS / "05-discovering-a-force-law",
     "D2": LESSONS / "06-prior-knowledge-in-discovery",
-    "EV2": LESSONS / "11-interactive-discovery-benchmarks",
-    "EV3": LESSONS / "12-agent-versus-non-agent-baselines",
+    "EV2": LESSONS / "12-interactive-discovery-benchmarks",
+    "EV3": LESSONS / "13-agent-versus-non-agent-baselines",
 }
 CELLS = {
     **{f"{e}/{c}": cell for (e, c), cell in GRID.items()},

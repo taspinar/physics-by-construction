@@ -12,8 +12,8 @@ Two format 2 lessons in `agents-llm` with `course: mechanics`, methods
 
 | Dir | Id | Slot | Content |
 |---|---|---|---|
-| `11-interactive-discovery-benchmarks` | `interactive-discovery-benchmarks` | EV2 | Three environments (projectile, oscillator, central force) times three conditions (full, partial, none): nine frozen runs, one protocol per environment, every score recomputed; the readings of each run fitted; the baselines of each environment at the same budget; the comparability check of the comparisons a reader might make |
-| `12-agent-versus-non-agent-baselines` | `agent-versus-non-agent-baselines` | EV3 | On the same three protocols: the agent (the partial runs), a plain model (the same task, no `measure` tool), random selection with least squares, grid with least squares, grid with sparse identification (symbolic fitting); budgets stated; the comparability check on every row |
+| `12-interactive-discovery-benchmarks` | `interactive-discovery-benchmarks` | EV2 | Three environments (projectile, oscillator, central force) times three conditions (full, partial, none): nine frozen runs, one protocol per environment, every score recomputed; the readings of each run fitted; the baselines of each environment at the same budget; the comparability check of the comparisons a reader might make |
+| `13-agent-versus-non-agent-baselines` | `agent-versus-non-agent-baselines` | EV3 | On the same three protocols: the agent (the partial runs), a plain model (the same task, no `measure` tool), random selection with least squares, grid with least squares, grid with sparse identification (symbolic fitting); budgets stated; the comparability check on every row |
 
 - **Subjects.** The oscillator runs of D2 (`06-prior-knowledge-in-discovery`)
   and the central-force run of D1 (`05-discovering-a-force-law`) are reused
@@ -104,3 +104,12 @@ Skills: pbc-scientific-visualization@a70b501
 4. Docs: authoring "Discovery lessons", `docs/discovery-protocol.md`
    (comparability, the plain model), `docs/project-map.md`.
 5. Verification: `./scripts/verify.sh --base` (new lessons).
+
+## Merge with main after F82 (2026-10-27)
+
+F82 took `agents-llm` order 11 (`11-discovering-conservation-laws`). EV2 moves
+to order 12 (`12-interactive-discovery-benchmarks`) and EV3 to order 13
+(`13-agent-versus-non-agent-baselines`); the directory prefix follows the
+order, and the path constants, tests, and docs follow the directories. No
+lesson content changed. `docs/discovery-protocol.md` and
+`docs/project-map.md` keep both F81's and F82's text.
