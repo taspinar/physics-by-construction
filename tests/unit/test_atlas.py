@@ -330,33 +330,27 @@ def _with_published_capstone() -> Atlas:
     return Atlas(path, ATLAS.manifest)
 
 
-def _without_published_capstones() -> Atlas:
-    labels = ("T11", "EM9", "FL10")
-    lessons = tuple(lesson for lesson in PATH.lessons if lesson.slot not in labels)
-    return Atlas(replace(PATH, lessons=lessons), ATLAS.manifest)
-
-
 def test_a_capstone_is_linked_only_when_it_is_published():
-    planned = str(AtlasSection(_without_published_capstones()))
+    section = str(AtlasSection(ATLAS))
     for label in ("T11", "EM9", "FL10"):
         item = re.search(
-            rf'<li class="atlas-capstone-item" data-slot="{label}">(.*?)</li>', planned
+            rf'<li class="atlas-capstone-item" data-slot="{label}">(.*?)</li>', section
         ).group(1)
-        assert "Planned, not published." in item
-        assert "lessons/" not in item
+        lesson = next((x for x in PATH.lessons if x.slot == label), None)
+        if lesson is None:
+            assert "Planned, not published." in item
+            assert "lessons/" not in item
+        else:
+            href = "../" + lesson.page.removesuffix(".qmd") + ".html"
+            assert f'href="{href}"' in item
+            assert "Published." in item
+            assert "Planned" not in item
     published = str(AtlasSection(_with_published_capstone()))
     item = re.search(
         r'<li class="atlas-capstone-item" data-slot="FL10">(.*?)</li>', published
     ).group(1)
     assert 'href="../lessons/x.html"' in item
     assert "Published." in item
-    # EM9 is published (F80) and linked on the real path.
-    item = re.search(
-        r'<li class="atlas-capstone-item" data-slot="EM9">(.*?)</li>',
-        str(AtlasSection(ATLAS)),
-    ).group(1)
-    assert "Published." in item
-    assert "07-adaptive-phased-array-beam-steering/index.html" in item
 
 
 def test_the_capstones_planned_description_is_only_the_manifests_explanation():

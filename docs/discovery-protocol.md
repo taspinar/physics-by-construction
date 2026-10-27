@@ -57,8 +57,8 @@ their scores compare. They differ in the task text (`pbc.discovery.prompts`):
 
 - **Probed settings** lie within the bounds of the controls.
 - **Held-out settings** lie outside them (farther, faster, later), are fixed by
-  the environment, and are never probed by the agent. A claim is scored on
-  them against the noise-free law.
+  the environment unless the protocol's `held_out` names others, and are never
+  probed by the agent. A claim is scored on them against the noise-free law.
 - A **held-out world** is a different hidden truth (another gravity, stiffness,
   or exponent) in the protocol's `world`. A benchmark that varies it states
   every world it ran.
@@ -123,6 +123,66 @@ a pure-Python library such as PySINDy would be locked only with its licence
 and weight recorded here, and neither F65 nor F67 adds one: the baselines
 above use NumPy and SciPy, which are locked already.
 
+## Comparability
+
+Two scores compare only when nothing but the thing compared differs:
+the same environment, the same hidden world and seeds, the same held-out
+settings and tolerance, and the same number of probes **allowed**
+(`pbc.discovery.benchmark.comparable`). The check reads the protocols of the
+two entries, never the transcripts, and names what differs without its value.
+A page that sets two scores side by side shows its verdict, and says what a
+comparison it marks "not meaningful" measures instead. Examples of the
+lessons EV2 and EV3: conditions across environments; a run against one of
+another hidden world; a baseline given another budget.
+
+A benchmark is a grid of environments and conditions, one protocol per
+environment (`benchmark.GRID`): within an environment only the task text
+differs, and across environments only the shared numbers (budget, step limit,
+seed, tolerance) are equal, so its results are read per environment.
+
+## The plain model
+
+A **plain model** is the agent's model with the agent's task (the `partial`
+task) and only the `submit` tool, so it states a claim without a probe
+(`benchmark.plain_allowlist`, `plain_prompts`; its system prompt says that it
+cannot measure). It is the control for what the probes add to what the model
+knows. It is allowed no probe, so the comparability check marks its
+comparison with the agent as one of different budgets: it measures the tools
+and the probes together. Its run is replayed and scored with its own tools
+(`score_transcript(..., tools=...)`), so a `measure` call it attempted would
+be refused in the score as it was in the run.
+
+## Invariants
+
+A discovery of conserved quantities (lesson D13, `pbc.discovery.invariants`
+and `pbc.discovery.invariant_lab`, F82) follows the same rules with a claim
+of another kind: a candidate is a combination of a public library of terms of
+the state, and no equation of motion is fitted or assumed.
+
+- **The box** is a particle in a plane under a hidden force, integrated by its
+  own method and step. The agent starts it from bounded starts, one of a
+  budget of trajectories each, and reads the state at fixed times; a
+  `variation` tool gives the conservation ratio of a candidate on the agent's
+  own trajectories; `submit` states a candidate, a bounded number of them.
+- **The conservation ratio** of a candidate is the root-mean-square change of
+  its value about its mean on each trajectory, divided by the square root of
+  the sum of each coefficient squared times the mean square of its term.
+- **The verdict**, fixed before any run, is given on held-out starts (some
+  beyond the bounds) at three integration settings: the box's own, half its
+  step, and a reference (classical Runge-Kutta at a fine step). A candidate is
+  an **invariant** when its ratio at the reference is at most the tolerance
+  and its value differs between trajectories; an **identity** when it is
+  conserved with one value on every trajectory; an **integration artefact**
+  when it is conserved at the box's own setting only; a **coincidence** when
+  it is conserved on its own trajectories only; otherwise **not conserved**.
+- **The score** counts the independent invariants among the candidates
+  against the number the box has in the library (the baseline's count at the
+  reference, a number the judge returns and nothing else), recomputed from
+  the tool calls on a fresh box.
+- **The baseline** is the null space of the terms' changes, each column scaled
+  by the size of its term, by the singular value decomposition, with the
+  tolerance as its threshold; its candidates are judged by the same rules.
+
 ## The frozen trace and the replay
 
 A **frozen trace** (`pbc.discovery.save_trace`) is a directory with
@@ -135,8 +195,12 @@ The replay needs no credential and no network.
 
 A lesson commits only the fixture next to its page, because a lesson directory
 holds nothing else (ADR 002): its `TraceInfo` is kept in the lesson's module
-beside the protocol (for D1 to D3, `pbc.discovery.force_lab`), and a test
-checks the two against each other.
+beside the protocol (for D1 to D3, `pbc.discovery.force_lab`; for D13,
+`pbc.discovery.invariant_lab`; for EV2 and EV3, `pbc.discovery.benchmark`),
+and a test checks the two against each other. A lesson may replay the
+fixtures of another lesson's page (EV2 replays those of D1 and D2) through a
+path constant of its experiment, so that the input digest of the lesson
+covers them.
 
 ## Cost
 
@@ -150,8 +214,10 @@ measures a cost and never shows one as its own.
 A full benchmark (many seeds, conditions, worlds, and live models) is not part
 of `scripts/verify.sh` and not in `scripts/verify.conf`. It runs on the
 maintainer's machine and is marked "not verified" where shown. What is
-verified is a small deterministic replay: one frozen trace per page, scored
-again and compared with the baselines.
+verified is a small deterministic replay: a few frozen traces per page (one
+per cell of a benchmark grid), scored again and compared with the baselines.
+No build or test calls a model: a replay needs no credential and no network,
+and a test runs every replay with the network refused.
 
 ## Limits
 

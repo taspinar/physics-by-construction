@@ -1,7 +1,8 @@
 """The triangular finite-element solver (pbc.fem): meshes and their quality,
 the assembly against hand-computed elements, solutions that P1 elements
-reproduce exactly, the orders of convergence, the boundary fluxes, and the
-boundary of its imports."""
+reproduce exactly, the orders of convergence, the boundary fluxes, a
+conductivity per triangle, the mass matrix, the theta method in time, and
+the boundary of its imports."""
 
 import ast
 import re
@@ -13,7 +14,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from pbc.fem import assembly, mesh
+from pbc.fem import assembly, mesh, transient
 from pbc.verification.estimates import fitted_order
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -248,6 +249,110 @@ def test_the_gradient_outflow_of_a_linear_field():
 # --- the import boundary ---------------------------------------------------------
 
 
+def test_two_layers_in_series_are_reproduced_exactly():
+    """With the conductivity jumping on a mesh line, the temperature is linear
+    in each layer and the heat flux is continuous: q = dT / (L1/k1 + L2/k2).
+    P1 elements with a conductivity per triangle find it at round-off."""
+    m = mesh.rectangle(2.0, 1.0, 8, 3)
+    x_centre = m.nodes[m.triangles].mean(axis=1)[:, 0]
+    k = np.where(x_centre < 1.0, 1.0, 4.0)
+    fixed = m.boundary_nodes("left", "right")
+    u = assembly.solve(
+        assembly.stiffness(m, k),
+        np.zeros(len(m.nodes)),
+        fixed,
+        np.where(m.nodes[fixed, 0] < 1.0, 0.0, 1.0),
+    )
+    q = 1.0 / (1.0 / 1.0 + 1.0 / 4.0)
+    x = m.nodes[:, 0]
+    exact = np.where(x < 1.0, q * x / 1.0, q / 1.0 + q * (x - 1.0) / 4.0)
+    np.testing.assert_allclose(u, exact, atol=1e-12)
+
+
+def test_a_coefficient_is_a_constant_or_one_per_triangle():
+    m = mesh.rectangle(1.0, 1.0, 2, 2)
+    constant = assembly.stiffness(m, 3.0).toarray()
+    repeated = assembly.stiffness(m, np.full(len(m.triangles), 3.0)).toarray()
+    np.testing.assert_allclose(constant, repeated)
+    with pytest.raises(ValueError, match="one value per triangle"):
+        assembly.mass(m, np.ones(len(m.triangles) + 1))
+
+
+def test_the_mass_matrix_integrates_products_of_linear_fields_exactly():
+    """u^T M v is the integral of c u v for linear hats, so for u = x and
+    v = y on the unit square with c = 3 it is 3/4; its entries sum to the
+    integral of c, and it is symmetric and positive definite."""
+    m = mesh.rectangle(1.0, 1.0, 5, 4)
+    matrix = assembly.mass(m, 3.0)
+    x, y = m.nodes.T
+    assert x @ matrix @ y == pytest.approx(3.0 / 4.0, rel=1e-12)
+    assert matrix.sum() == pytest.approx(3.0, rel=1e-12)
+    dense = matrix.toarray()
+    np.testing.assert_allclose(dense, dense.T)
+    assert np.linalg.eigvalsh(dense).min() > 0.0
+
+
+def test_the_mass_of_one_triangle_is_the_textbook_element():
+    np.testing.assert_allclose(
+        assembly.mass(one_triangle(), 12.0).toarray(),
+        0.5 * np.array([[2, 1, 1], [1, 2, 1], [1, 1, 2]]),
+    )
+
+
+def uniform_relaxation(theta: float, dt: float, steps: int):
+    """A plate exchanging heat with a fluid at zero over its whole face,
+    heated uniformly: C du/dt = F - S u with C and S mass matrices. A uniform
+    state stays uniform (the stiffness annihilates it), so every node follows
+    the scalar equation c du/dt = q - u / R."""
+    m = mesh.rectangle(1.0, 1.0, 3, 3)
+    c, resistance, q = 2.0, 0.5, 4.0
+    capacity = assembly.mass(m, c)
+    matrix = assembly.stiffness(m, 7.0) + assembly.mass(m, 1.0 / resistance)
+    vector = assembly.load(m, lambda x, y: q + 0.0 * x)
+    initial = np.full(len(m.nodes), 1.0)
+    states = transient.theta_march(capacity, matrix, vector, initial, dt, steps, theta)
+    tau, final = c * resistance, q * resistance
+    return states, tau, final
+
+
+def test_backward_euler_and_crank_nicolson_have_their_amplification_factors():
+    dt, steps = 0.3, 5
+    for theta, factor in (
+        (1.0, lambda z: 1.0 / (1.0 + z)),
+        (0.5, lambda z: (1.0 - 0.5 * z) / (1.0 + 0.5 * z)),
+    ):
+        states, tau, final = uniform_relaxation(theta, dt, steps)
+        expected = final + (1.0 - final) * factor(dt / tau) ** np.arange(steps + 1)
+        np.testing.assert_allclose(states, expected[:, None] + 0 * states, rtol=1e-12)
+
+
+def test_the_theta_methods_converge_at_orders_one_and_two():
+    span = 1.0
+    for theta, order in ((1.0, 1.0), (0.5, 2.0)):
+        steps, errors = [], []
+        for count in (8, 16, 32, 64):
+            states, tau, final = uniform_relaxation(theta, span / count, count)
+            exact = final + (1.0 - final) * np.exp(-span / tau)
+            steps.append(span / count)
+            errors.append(np.max(np.abs(states[-1] - exact)))
+        assert fitted_order(steps, errors) == pytest.approx(order, abs=0.05)
+
+
+def test_the_theta_method_is_only_defined_between_one_half_and_one():
+    m = mesh.rectangle(1.0, 1.0, 1, 1)
+    capacity = assembly.mass(m)
+    with pytest.raises(ValueError, match="theta"):
+        transient.theta_march(capacity, capacity, np.zeros(4), np.zeros(4), 0.1, 1, 0.3)
+
+
+def test_the_midpoints_weigh_the_old_and_the_new_state():
+    states = np.array([[0.0, 2.0], [4.0, 6.0], [8.0, 10.0]])
+    np.testing.assert_allclose(
+        transient.midpoints(states, 0.5), [[2.0, 4.0], [6.0, 8.0]]
+    )
+    np.testing.assert_allclose(transient.midpoints(states, 1.0), states[1:])
+
+
 def runtime_import_names() -> set[str]:
     """The import names of the project's runtime dependencies, each of which
     uv.lock pins."""
@@ -292,7 +397,7 @@ class Block:
             raise ImportError(name)
 sys.meta_path.insert(0, Block())
 import numpy as np
-from pbc.fem import assembly, mesh
+from pbc.fem import assembly, mesh, transient
 m = mesh.rectangle(1.0, 1.0, 4, 4)
 fixed = m.boundary_nodes("left", "right")
 k = assembly.stiffness(m)

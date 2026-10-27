@@ -132,24 +132,32 @@ def _feature(text: str) -> tuple[str, str]:
     return slot, block
 
 
+def _capstone_lesson(slot):
+    return next((lesson for lesson in PATH.lessons if lesson.slot == slot.label), None)
+
+
+def _href(lesson) -> str:
+    return lesson.page.removesuffix(".qmd") + ".html"
+
+
 def _name(slot) -> str:
+    """The name line: the course and the state, planned, or published and
+    linked to the capstone's lesson."""
     course = next(course for course in COURSES if course.id == slot.course)
+    lesson = _capstone_lesson(slot)
+    if lesson is None:
+        return (
+            f"[{course.title}, capstone project [planned]{{.home-planned}}]"
+            "{.home-capstone-name}"
+        )
     return (
-        f"[{course.title}, capstone project [planned]{{.home-planned}}]"
-        "{.home-capstone-name}"
+        f"[[{course.title}, capstone project]({_href(lesson)})"
+        " [published]{.home-published}]{.home-capstone-name}"
     )
 
 
-def _without_published_capstones() -> HomeContent:
-    """The home of the path without the lessons that fill a capstone slot,
-    so that every capstone is planned."""
-    labels = {slot.label for slot in PATH.curriculum.slots if slot.kind == CAPSTONE}
-    lessons = tuple(lesson for lesson in PATH.lessons if lesson.slot not in labels)
-    return HomeContent(replace(PATH, lessons=lessons), MANIFEST)
-
-
-def test_the_capstones_show_only_the_manifest_explanation_and_are_planned():
-    text = _without_published_capstones().capstones()
+def test_the_capstones_show_only_the_manifest_explanation_and_their_state():
+    text = HOME.capstones()
     slots = [slot for slot in PATH.curriculum.slots if slot.kind == CAPSTONE]
     assert {slot.label for slot in slots} == {"T11", "EM9", "FL10"}
     blocks = _capstone_blocks(text)
@@ -174,7 +182,9 @@ def test_the_capstones_show_only_the_manifest_explanation_and_are_planned():
             assert blank == ""
         assert name == _name(slot)
         assert found == description
-        assert "](" not in block
+        # The only link is a published capstone's, to its lesson.
+        lesson = _capstone_lesson(slot)
+        assert LINK.findall(block) == ([] if lesson is None else [_href(lesson)])
         # The curriculum file's title is not a second description.
         assert slot.title not in block
     assert "hypothetical" in MANIFEST.capstone("T11").explanation
@@ -192,18 +202,18 @@ def test_the_featured_capstone_has_the_conceptual_artwork_and_its_label():
     assert text.index(WAVEFRONT) < text.index("::: {.home-capstones}")
 
 
-def test_the_published_em9_capstone_links_to_its_lesson():
-    block = _capstone_blocks(HOME.capstones())["EM9"]
-    lesson = next(lesson for lesson in PATH.lessons if lesson.slot == "EM9")
-    assert "[published]{.home-published}" in block
-    assert LINK.findall(block) == [lesson.page.removesuffix(".qmd") + ".html"]
-
-
 def test_a_published_capstone_links_to_its_lesson():
+    # Only EM9 published: the lessons of the other capstones are set aside.
+    capstones = {slot.label for slot in PATH.curriculum.slots if slot.kind == CAPSTONE}
     lesson = PATH.lessons[0]
     published = replace(lesson, slot="EM9")
     path = replace(
-        PATH, lessons=tuple(published if x is lesson else x for x in PATH.lessons)
+        PATH,
+        lessons=tuple(
+            published if x is lesson else x
+            for x in PATH.lessons
+            if x.slot not in capstones
+        ),
     )
     text = HomeContent(path, MANIFEST).capstones()
     block = _capstone_blocks(text)["EM9"]
