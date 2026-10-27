@@ -167,10 +167,13 @@ def test_the_capstones_show_their_state_with_the_manifests_description(page: Pag
         else:
             assert "Planned, not published." in item.inner_text()
             assert links.count() == 0
-    # EM9 stays in the index of its course as a planned slot (in a closed
-    # disclosure, so read by its text, not as rendered).
-    em9 = page.locator("main section#course-electromagnetism li.planned-slot")
-    assert "EM9" in em9.locator(".slot-label").all_text_contents()
+    # The slots of the electromagnetism course that no published lesson fills
+    # stay in the index of the course as planned slots (in a closed disclosure,
+    # so read by their text, not as rendered); what a lesson fills is not there.
+    course = next(c for c in ATLAS.path.courses if c.id == "electromagnetism")
+    expected = [slot.label for slot in ATLAS.path.planned_in_course(course)]
+    planned = page.locator("main section#course-electromagnetism li.planned-slot")
+    assert planned.locator(".slot-label").all_text_contents() == expected
 
 
 def test_the_textual_equivalent_is_in_the_page(page: Page):
