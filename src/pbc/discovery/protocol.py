@@ -15,12 +15,13 @@ import datetime
 import hashlib
 import json
 import math
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from pbc.agents.loop import MAX_CALLS_PER_MESSAGE, Transcript
 from pbc.agents.replay import Recording, load_recording, save_recording
+from pbc.agents.tools import Allowlist
 from pbc.discovery.baselines import BaselineResult
 from pbc.discovery.environment import ENVIRONMENTS, Environment
 from pbc.discovery.tools import MEASURE, SUBMIT, environment_allowlist
@@ -35,8 +36,10 @@ class Protocol:
     """One benchmark: an environment, a hidden world, the budget, the seeds
     (one run each), and the held-out error that counts as recovering the law.
 
-    ``world`` holds the constructor arguments that set the hidden truth. It is
-    the judge's configuration: it reaches no prompt, tool, or page.
+    ``world`` holds the constructor arguments that set the hidden truth, and
+    ``held_out`` the settings a claim is scored on, the environment's own when
+    it is ``None``. Both are the judge's configuration: they reach no prompt,
+    tool, or page.
     """
 
     version: str
@@ -47,10 +50,21 @@ class Protocol:
     tolerance: float
     max_steps: int
     replay_tolerance: float = 1e-9
+    held_out: tuple[Mapping[str, float], ...] | None = None
 
     def make(self, seed: int) -> Environment:
         cls = ENVIRONMENTS[self.environment]
-        return cls(budget=self.budget, seed=seed, **self.world)  # type: ignore[call-arg]
+        environment = cls(budget=self.budget, seed=seed, **self.world)  # type: ignore[call-arg]
+        if self.held_out is not None:
+            environment._held_out = self.held_out
+        return environment
+
+    def held_out_settings(self) -> tuple[dict[str, float], ...]:
+        """The settings a claim is scored on under this protocol."""
+        settings = self.held_out
+        if settings is None:
+            settings = ENVIRONMENTS[self.environment]._held_out
+        return tuple(dict(s) for s in settings)
 
 
 def prompts(environment: Environment, condition: str) -> tuple[str, str]:
@@ -158,11 +172,17 @@ class Score:
         return "recovered" if self.recovered else "not recovered"
 
 
-def score_transcript(protocol: Protocol, transcript: Transcript, seed: int) -> Score:
-    """Score ``transcript`` by running its tool calls again on a fresh
-    environment of ``seed``. The same calls give the same score."""
+def score_transcript(
+    protocol: Protocol,
+    transcript: Transcript,
+    seed: int,
+    tools: Callable[[Environment], Allowlist] = environment_allowlist,
+) -> Score:
+    """Score ``transcript`` by running its tool calls again with ``tools``
+    (the run's own) on a fresh environment of ``seed``. The same calls give
+    the same score."""
     environment = protocol.make(seed)
-    allowlist = environment_allowlist(environment)
+    allowlist = tools(environment)
     probes = refused = 0
     claim: dict[str, float] | None = None
     for step in transcript.steps:

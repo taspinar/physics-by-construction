@@ -23,6 +23,7 @@ prompt, tool, or page shows them.
 import argparse
 import datetime
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -30,6 +31,7 @@ import numpy as np
 
 from pbc.agents.loop import Step, Transcript, run
 from pbc.agents.replay import Recording, load_recording, replay, save_recording
+from pbc.agents.tools import Allowlist
 from pbc.data.fit import FitResult, fit_curve
 from pbc.discovery.baselines import (
     BaselineResult,
@@ -200,29 +202,52 @@ def replay_run(
     name: str, directory: Path = Path()
 ) -> tuple[Recording, Transcript, Score]:
     """Replay the fixture of run ``name`` from ``directory`` against the
-    current code and score it again.
+    current code and score it again (``replay_entry``)."""
+    entry = RUNS[name]
+    protocol = PROTOCOLS[entry.protocol]
+    system, task = task_of(entry.protocol, entry.condition)
+    return replay_entry(
+        entry,
+        protocol,
+        directory,
+        system,
+        task,
+        environment_allowlist,
+        record_command(name),
+    )
+
+
+def replay_entry(
+    entry: Run,
+    protocol: Protocol,
+    directory: Path,
+    system: str,
+    task: str,
+    tools: Callable[[Environment], Allowlist],
+    rerecord: str,
+) -> tuple[Recording, Transcript, Score]:
+    """Replay the fixture of ``entry`` from ``directory`` with the ``tools``
+    over a fresh environment of ``protocol``, and score it again with the
+    same tools.
 
     Raises ``ValueError`` when the fixture and the record of the run disagree
     on the model, the date, or the prompt, and ``ReplayMismatch`` when a
     recomputed tool result differs from the recorded one."""
-    entry = RUNS[name]
-    protocol = PROTOCOLS[entry.protocol]
     recording = load_recording(directory / entry.fixture)
-    system, task = task_of(entry.protocol, entry.condition)
     if (recording.model, recording.recorded) != (entry.info.model, entry.info.recorded):
-        raise ValueError(f"{entry.fixture} is not the run recorded for {name}")
+        raise ValueError(f"{entry.fixture} is not the run recorded for {rerecord}")
     if prompt_sha(recording.system, recording.task) != entry.info.prompt_sha256:
         raise ValueError(f"{entry.fixture} was recorded with another prompt")
     transcript = replay(
         recording,
-        environment_allowlist(protocol.make(SEED)),
+        tools(protocol.make(SEED)),
         system=system,
         task=task,
         tolerance=protocol.replay_tolerance,
         max_steps=protocol.max_steps,
-        rerecord=record_command(name),
+        rerecord=rerecord,
     )
-    return recording, transcript, score_transcript(protocol, transcript, SEED)
+    return recording, transcript, score_transcript(protocol, transcript, SEED, tools)
 
 
 def probes(protocol: str, transcript: Transcript) -> Dataset:

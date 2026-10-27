@@ -1,0 +1,488 @@
+---
+title: "An interactive discovery benchmark"
+description: >-
+  A language model probes three simulated systems under full, partial, and no
+  prior knowledge, with one protocol per system; the build replays the nine
+  runs, scores every claim on held-out settings, fits each run's own readings,
+  sets the baselines beside them, and says which comparisons mean something.
+lesson:
+  id: interactive-discovery-benchmarks
+  strand: agents-llm
+  order: 11
+  difficulty: 3
+  course: mechanics
+  slot: EV2
+  experiment: pbc.mechanics.experiments.interactive_discovery_benchmarks
+  methods: [simulation, llm-agents]
+  outcomes:
+    - Lay out a benchmark as a grid of systems and conditions with one protocol per system, and check that it holds
+    - Score frozen runs again from their tool calls and set them beside baselines with the same budget
+    - Say which comparisons of a benchmark are meaningful and which are not, and why
+    - Explain why a handful of runs cannot rank conditions of prior knowledge
+  related: []
+  format: 2
+  preview: fig-benchmark-errors
+  prerequisites:
+    lessons: [prior-knowledge-in-discovery]
+    outside:
+      - "Statistics: least squares and the chi-square of residuals"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.mechanics.experiments import interactive_discovery_benchmarks as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The lesson on prior knowledge asked one question of one spring: does it help
+an agent to be told the form of the law? One system is one data point. A
+**benchmark** asks the same question of several systems, under rules fixed
+before any run, so that its results can be read side by side and checked by
+someone else.
+
+This lesson builds a small one. Three simulated systems from the mechanics
+course hide a parameter: a projectile in a world of unknown gravity, a mass
+on a spring of unknown stiffness, and a force that falls with an unknown
+power of the distance. On each, the same language model is asked to find the
+law under three conditions of prior knowledge, **full**, **partial**, and
+**none**, as in the lesson on prior knowledge. That makes a grid of
+`{python} result["runs"]` runs. Four of them are the frozen runs of the
+earlier lessons, read from their pages; the other five were recorded for this
+one under the same protocols.
+
+The build replays every run, scores it again on settings the agent could not
+probe, and asks two further questions. Did the readings each run collected
+support the answer, whatever the agent concluded? And of the comparisons a
+reader might draw from the grid, which does the design actually allow?
+
+## Assumptions
+
+1. **One protocol per system.** On each system the model, the system prompt,
+   the tools and their bounds, the budget of `{python} result["budget"]`
+   probes, the step limit, the seed, the tolerance, and the held-out settings
+   belong to one protocol object (the Discovery evaluation protocol). Only
+   the task text differs between the conditions, and a cell below checks it.
+2. **The three protocols share their numbers, not their systems.** The budget,
+   the step limit, the seed, and the tolerance are the same on every system.
+   The systems, their hidden values, and their held-out settings are not, so
+   a result on one system says nothing directly about another.
+3. **The systems are simulated, and their noise is repeatable.** Each reading
+   has Gaussian noise that depends on the setting and the seed only: probing
+   the same setting twice gives the same reading. A replay is therefore exact,
+   and an agent that repeats a probe learns nothing new.
+4. **One run per cell.** Each system and condition was run once, by a Claude
+   model in a Claude Code session, as described under "The runs".
+5. **The hidden values are the judge's.** The page never prints them, and the
+   comparability check below names what differs between two protocols, never
+   its value.
+
+## A benchmark as a grid {#explanation}
+
+A benchmark of discovery has three parts, and each must be fixed before the
+first run:
+
+- **The tasks**: here three systems, each a black box with controls, a noisy
+  reading, and a hidden law of known form.
+- **The conditions**: here what the agent is told. Within a system, only this
+  may change from run to run.
+- **The judge**: the held-out settings, outside the range the agent may probe,
+  and the error that counts as recovering the law. The score of a claim is the
+  root-mean-square error of its predictions there, relative to the size of the
+  reading, and the law is recovered when that error is at most
+  `{python} result["tolerance"]`.
+
+A comparison read from the grid is meaningful only when everything but the
+thing compared is equal. Within a column (one system) the conditions can be
+compared, because the protocol is shared. Across columns they cannot be
+compared directly: a projectile and a spring differ in the law, the hidden
+value, the held-out settings, and how hard the noise makes them. Between an
+agent and a method without one, the comparison is meaningful when both had
+the same system and the same number of probes allowed. The build does not
+leave this to the reader: `comparable` reads the protocols of two scored
+entries and lists what differs.
+
+```{python}
+#| echo: false
+from pbc.discovery.benchmark import comparable
+
+excerpt(comparable)
+```
+
+### One protocol per system
+
+```{python}
+#| echo: false
+excerpt(experiment.fairness)
+```
+
+```{python}
+#| label: ev2-fairness
+#| echo: false
+result.table("ev2-fairness")
+```
+
+[Within each of the three systems, the three runs share the protocol, the
+model, the system prompt, the tools and their bounds, and the seed; only the
+task text differs.]{.claim type="numerically-verified" scope="the protocols
+and the run records of this benchmark" evidence="ev2-fairness"}
+
+The tools are the same two on every system: `measure`, with the controls of
+the system, and `submit`, with the parameters of its law. The projectile's
+are shown here; the other two are on the pages of the earlier lessons.
+
+```{python}
+#| echo: false
+result.display("allowlist")
+```
+
+In every run the agent may call `measure` at most `{python} result["budget"]`
+times and `submit` once, in at most `{python} result["max-steps"]` messages of
+at most `{python} result["max-calls"]` tool calls each; calls beyond that
+number in one message are refused unrun and cost no probe.
+
+## Code
+
+Every run is replayed from its frozen trace with the tools of its run, and
+scored again by executing its tool calls on a fresh copy of its system. The
+replay and the score are those of the Discovery evaluation protocol.
+
+```{python}
+#| echo: false
+from pbc.discovery.benchmark import fit_readings, replay_cell
+
+excerpt(replay_cell)
+```
+
+What a run's readings support is answered apart from what its agent
+concluded, by fitting the law's family to exactly the readings the agent saw:
+
+```{python}
+#| echo: false
+excerpt(fit_readings)
+```
+
+## Worked examples
+
+### The runs
+
+The five new runs were recorded on the same day by the same Claude model
+working in a Claude Code session, each as a fresh sub-agent that was given the
+system prompt, its task, the tool descriptions, and an instruction to answer in
+the harness's format and to use no tool of its own. It chose every call after
+reading the readings the harness computed; none knew of the others. The four
+runs of the earlier lessons were recorded the same way, by the same model, on
+an earlier date.
+
+```{python}
+#| echo: false
+excerpt(experiment.replay_grid, region="replay")
+```
+
+```{python}
+#| echo: false
+result.display("run-projectile-full")
+```
+
+```{python}
+#| echo: false
+result.display("run-projectile-partial")
+```
+
+```{python}
+#| echo: false
+result.display("run-projectile-none")
+```
+
+```{python}
+#| echo: false
+result.display("run-central-force-full")
+```
+
+```{python}
+#| echo: false
+result.display("run-central-force-none")
+```
+
+Two of the agents sent more calls in one message than the harness runs, and
+the extra calls were refused without a reading. Both noticed that a
+repeated probe returns the same reading.
+
+### The grid, scored again
+
+```{python}
+#| echo: false
+excerpt(experiment.score_table)
+```
+
+```{python}
+#| label: ev2-scores
+#| echo: false
+result.table("ev2-scores")
+```
+
+[Of the `{python} result["runs"]` runs, `{python} result["recovered"]` end
+with a claim that predicts the held-out settings within the tolerance; the
+two that do not are the partial and none runs on the spring.]{.claim
+type="numerically-verified" scope="one recorded run per system and condition,
+one seed, the simulated systems of these protocols" evidence="ev2-scores"}
+Several errors are exactly zero. The agents rounded their estimates, and on
+those systems the rounded value is the hidden one; the limits say why that
+flatters them.
+
+### What the readings supported
+
+```{python}
+#| echo: false
+excerpt(experiment.reading_fits)
+```
+
+```{python}
+#| label: ev2-readings
+#| echo: false
+result.table("ev2-readings")
+```
+
+[A least-squares fit to the readings of every one of the nine runs predicts the
+held-out settings within the tolerance.]{.claim type="numerically-verified"
+scope="the readings of the nine recorded runs" evidence="ev2-readings"} Every
+run collected enough to recover its law. Where a claim failed, the failure
+lies in the agent's estimate, as the lesson on prior knowledge found for the
+spring.
+
+### Per condition
+
+```{python}
+#| echo: false
+excerpt(experiment.tally)
+```
+
+```{python}
+#| label: ev2-tally
+#| echo: false
+result.table("ev2-tally")
+```
+
+The tally adds runs on different systems. It is a count over the same three
+protocols, which is a fair thing to count, but each condition has one run per
+system: the exercise below asks how much such a count can say.
+
+### Beside the baselines
+
+```{python}
+#| echo: false
+excerpt(experiment.beside_the_baselines)
+```
+
+```{python}
+#| label: ev2-baselines
+#| echo: false
+result.table("ev2-baselines")
+```
+
+With the whole budget, least squares on a grid or at random settings recovers
+every law. Sparse identification recovers the two laws that are sums of its
+terms and reports that it has no terms for an oscillation; the failure stays
+in the table. The baselines spent every probe they were allowed; the agents
+spent a few. The lesson on agents against baselines takes that comparison
+apart.
+
+### Which comparisons mean something
+
+```{python}
+#| echo: false
+excerpt(experiment.comparisons)
+```
+
+```{python}
+#| label: ev2-comparisons
+#| echo: false
+result.table("ev2-comparisons")
+```
+
+[The check finds the conditions on one system, and an agent against a
+baseline on the same system with the same budget, comparable; it finds a
+comparison across systems, and one with the run of the lesson on a modified force law, not
+meaningful.]{.claim type="numerically-verified" scope="the protocols of this
+benchmark and of the modified-law lesson" evidence="ev2-comparisons"} That run probes the same
+kind of system as the central-force column, with the same tools, budget, and
+tolerance. It is still not comparable: its hidden law is another one, and a
+recovery there is a different task. Nothing on the surface of the two runs
+shows it; the protocols do.
+
+### The grid in one picture
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_benchmark_errors)
+```
+
+```{python}
+#| label: fig-benchmark-errors
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Held-out error of every claim (filled) and of a fit to the same run's readings (open), by system and condition, with the tolerance dashed. Every fit is below the tolerance; two claims on the spring are above it. Claims equal to the hidden value score zero and are drawn on the dotted floor."
+#| fig-alt: "A scatter plot of held-out error, on a logarithmic vertical axis, against three systems, projectile, oscillator and central force, with three conditions side by side in each, told apart by marker shape and colour. Filled markers are the agents' claims, open markers the fits to each run's readings. A dashed horizontal line marks the tolerance and a dotted line near the bottom marks a floor labelled error zero. All open markers lie below the tolerance. On the projectile and the central force the filled markers lie at or near the floor. On the oscillator the full claim is below the tolerance and the partial and none claims are above it."
+result.show("fig-benchmark-errors")
+```
+
+The figure shows errors of simulated runs that this build scored again. Read it
+column by column: a column is one protocol. Comparing heights across columns
+mixes systems whose held-out errors mean different things.
+
+### Run the agents yourself
+
+This needs your own key and costs a few cents per run. The build does not run
+it, so the commands are marked.
+
+::: {.not-verified}
+```bash
+uv sync --locked --no-dev --extra openai
+export OPENAI_API_KEY="..."
+cd site/lessons/agents-llm/11-interactive-discovery-benchmarks
+uv run --locked --no-dev --extra openai python -m pbc.discovery.benchmark projectile-full projectile-partial projectile-none central-full central-none
+```
+:::
+
+With `--record` the command writes the fixture of each run in the current
+directory. A benchmark worth stating runs every cell many times, on several
+seeds and several hidden values; it runs outside the build, and its results
+would be marked "not verified" here.
+
+## Limits {#limits}
+
+- **One run per cell cannot rank the conditions.** Full recovered on all three
+  systems and the other conditions on two; with one run each, a second round
+  could reverse that.
+- **Round hidden values flatter the agents.** On the projectile and the
+  central force the hidden values are round numbers, and agents that rounded
+  their estimates landed on them exactly. A benchmark should draw its hidden
+  values so that rounding gains nothing, and should vary them (held-out
+  worlds); this one fixed one value per system before the runs and kept it.
+- **The systems are easy.** Each hides one or two parameters of a law whose
+  form the tools reveal. The conditions leak through the tools: the claim's
+  parameters are named and described in every condition.
+- **The noise repeats.** A repeated probe returns the same reading. That makes
+  the replay exact, and it means repetition cannot average noise away; an
+  agent must vary its settings.
+- **The recordings are not API runs.** They are Claude Code sessions, told by
+  the session to answer in the harness's format and to use no tool of their
+  own. A first round of recordings for this lesson was refused by the model
+  provider's safeguards because of the wording of that instruction, and one
+  retry answered with a summary instead of a message; both were discarded
+  before any run was kept. The sessions reported no token count or price.
+- **Simulated, not measured.** Nothing here is a reading of a real system.
+
+::: {.exercise .self-check}
+On the central force, the full, partial, and none runs all recovered the law,
+and the full runs on the projectile and on the spring both recovered it. Which
+statement does this benchmark support?
+
+::: {.choices}
+::: {.choice}
+The projectile is as easy for the agent as the spring, because both full runs
+recovered.
+
+::: {.feedback}
+The two systems have different laws, hidden values, and held-out settings.
+The comparability check says the comparison is not meaningful, and one run
+each could not support it anyway.
+:::
+:::
+
+::: {.choice correct="true"}
+On each system, under one protocol, these runs recovered the law in the
+cells the table shows; the readings of every run supported a recovery; and
+nothing here ranks the conditions or the systems.
+
+::: {.feedback}
+Right. The benchmark supports statements about its runs and its protocols;
+ranking needs many runs per cell.
+:::
+:::
+
+::: {.choice}
+Prior knowledge does not matter on the central force, because every condition
+recovered the law.
+
+::: {.feedback}
+Three runs that all succeed are consistent with prior knowledge helping a
+little, a lot, or not at all; the round hidden values also made the task
+easy to hit exactly.
+:::
+:::
+:::
+
+::: {.solution}
+The supported statement is the narrow one: each claim's score on its
+system's held-out settings, the fit to each run's readings, and which
+comparisons the protocols allow. The other two compare across systems or
+read an effect into one run per cell.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+Full recovered on three systems of three, partial and none on two of three.
+How likely is a difference at least this large if the condition made no
+difference at all? Use Fisher's exact test on the two-by-two table of
+recovered and not recovered.
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.chance)
+```
+
+```{python}
+#| echo: false
+result.table("ev2-chance")
+```
+
+A difference of one recovery in three runs is what chance gives most of the
+time: the test cannot tell it from no effect. To detect even a large effect
+the benchmark needs many runs per cell, which is why a full benchmark runs
+outside the build.
+:::
+:::
+
+::: {.exercise}
+The run of the lesson on a modified force law uses the same environment class, tools, budget,
+and tolerance as the central-force column. Why does the check still refuse
+to compare it with the partial run of that column, and what would have to
+change for the comparison to be meaningful?
+
+::: {.solution}
+The check reads the protocols: the hidden worlds differ, so a recovery in
+one is a different task from a recovery in the other, even though nothing in
+the transcripts shows it. To compare them, both runs would have to be scored
+under one protocol, with the same hidden world and held-out settings; or the
+benchmark would have to draw the hidden worlds from one stated distribution
+and compare recovery rates over many worlds, not two runs.
+:::
+:::
+
+## Replay this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/discovery/benchmark.py",
+        "src/pbc/discovery/force_lab.py",
+        "src/pbc/discovery/environment.py",
+        "src/pbc/discovery/protocol.py",
+        "src/pbc/discovery/baselines.py",
+        "src/pbc/mechanics/experiments/interactive_discovery_benchmarks.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_benchmark.py",
+        "tests/unit/test_discovery.py",
+        "tests/unit/test_interactive_discovery_benchmarks_experiment.py",
+    ],
+)
+```
