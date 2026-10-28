@@ -1297,8 +1297,13 @@ metrics of each, a slider, and the displayed values as text.
   `pbc.authoring`; it returns the URL relative to the page, and the file is
   published beside the page (`index_files/figure-html/<name>.json`: Quarto
   publishes that directory with the page, also when the page is rendered alone). The data is computed by `src/pbc`
-  (for the comparator, `pbc.data.comparison.waveform_comparison`), never by
-  the widget.
+  (for the comparator, `pbc.data.comparison.waveform_comparison` for a
+  family of trial parameters, `named_comparison` for named models), never by
+  the widget. The comparator takes every word it shows about the data from
+  the file (the legend, the slider, the metrics and their decimals, the
+  details of a model), and the text of its button and of a failed load from
+  the element's `data-load-label` and `data-load-failed`, so that one
+  component serves every lab.
 - The element of the widget names the file in `data-ondemand` (space-separated
   relative addresses). Until the reader presses a button inside that element,
   the widget requests nothing; the static figure stays and the controls slot
@@ -1543,11 +1548,13 @@ does not build its own environment, baselines, or scoring. The rules are in
 
 Real measurements are inputs that no build can regenerate (ADR 007). A lesson
 may use one only after the dataset has passed the feasibility gate and holds a
-`go` on its card. Two lessons use measured data: the analysis pipelines lesson
+`go` on its card. Three lessons use measured data: the analysis pipelines lesson
 (`site/lessons/mechanics/10-automated-analysis-pipelines`), with the wave
-gauges of the flume, and the gravitational-wave lab
+gauges of the flume, the gravitational-wave lab
 (`site/lessons/mechanics/11-gravitational-wave-strain`), the first lab built
-around one dataset. `site/rendering-check.qmd` shows the pattern in the
+around one dataset, and the wave flume lab
+(`site/lessons/waves/08-wave-flume-lab`), which keeps the measurement, its own
+predictions, and the CFD solvers of the card apart. `site/rendering-check.qmd` shows the pattern in the
 smallest form.
 Evidence and decisions are in `docs/datasets/`.
 

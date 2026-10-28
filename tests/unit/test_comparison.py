@@ -7,7 +7,7 @@ import pytest
 
 from pbc.authoring.widgets import widget_asset
 from pbc.data import SAMPLES_DIR, gwstrain
-from pbc.data.comparison import DECIMALS, SCHEMA, waveform_comparison
+from pbc.data.comparison import DECIMALS, SCHEMA, named_comparison, waveform_comparison
 from pbc.data.gwosc import FILES, read_strain
 from pbc.data.gwstrain import (
     cut_segment,
@@ -127,6 +127,56 @@ def test_the_embedded_measured_series_is_the_data_to_the_stated_rounding(lab):
     assert np.array(payload["models"][0]["residual"]) == pytest.approx(
         (data["H1"] - models[0].model["H1"])[shown], abs=0.5 * 10.0**-DECIMALS + 1e-12
     )
+    json.dumps(payload, allow_nan=False)
+
+
+def test_the_chirp_family_carries_the_words_the_component_showed_before(lab):
+    # The text of the gravitational-wave lab's component moved into its data;
+    # what the reader sees is the same.
+    time, data, white, delays, sigma, fit = lab
+    models = models_at_masses(
+        time, data, white, delays, np.array([fit.mc]), window=WINDOW, sigma=sigma,
+        mc_start=fit.mc, t_c_start=fit.t_c,
+    )  # fmt: skip
+    payload = waveform_comparison(
+        time, data["H1"], models, "H1", sigma=sigma, window=WINDOW,
+        show=(-0.25, 0.05), quantity="whitened strain", unit="1", best=fit.mc,
+    )  # fmt: skip
+    labels = payload["labels"]
+    assert labels["measured"] == "measured, whitened"
+    assert labels["model"] == "model, chirp mass, detector frame "
+    assert labels["title"] == "whitened strain of detector H1, measured and model"
+    assert labels["notes"] == [f"noise standard deviation: {payload['sigma']!r}"]
+    assert [m[2] for m in payload["metrics"]] == [1, 3, 4, 4]
+    assert payload["details"][0][0] == "coalescence_time"
+
+
+def test_a_named_family_holds_the_measurement_each_model_and_its_metrics():
+    time = np.linspace(0.0, 3.0, 301)
+    measured = 0.01 * np.sin(2 * np.pi * time)
+    models = {
+        "exact": measured.copy(),
+        "shifted": 0.01 * np.sin(2 * np.pi * (time - 0.25)),
+    }
+    payload = named_comparison(
+        time, measured, models, window=(1.0, 2.0), quantity="elevation",
+        unit="mm", measured_label="measured", title="elevation", scale=1000.0,
+    )  # fmt: skip
+    assert payload["schema"] == SCHEMA
+    assert payload["best_parameter"] is None
+    assert [m["parameter"] for m in payload["models"]] == ["exact", "shifted"]
+    assert np.array(payload["measured"]) == pytest.approx(1000 * measured, abs=1e-5)
+    exact, shifted = payload["models"]
+    assert exact["metrics"]["rms_residual"] == 0.0
+    assert exact["metrics"]["correlation"] == 1.0
+    # A quarter period out of phase: the residual of two sines of 10 mm.
+    assert shifted["metrics"]["rms_residual"] == pytest.approx(10.0, abs=0.05)
+    assert shifted["metrics"]["correlation"] == pytest.approx(0.0, abs=0.01)
+    # The residual is the model minus the measurement, as the static figure.
+    assert np.array(shifted["residual"]) == pytest.approx(
+        np.array(shifted["values"]) - np.array(payload["measured"]), abs=2e-5
+    )
+    assert payload["labels"]["notes"][0] == "residual: model minus measured"
     json.dumps(payload, allow_nan=False)
 
 

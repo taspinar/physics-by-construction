@@ -1,0 +1,630 @@
+---
+title: "Wave flume lab"
+description: >-
+  A regular wave measured at twenty gauges along a laboratory flume with a
+  submerged bar, against the linear dispersion relation of water waves, the
+  dispersion-free wave equation, and three CFD solvers: the arrival of the
+  wave train, the phase at every gauge, the local wavenumber with its
+  uncertainty, and where linear theory stops.
+lesson:
+  id: wave-flume-lab
+  strand: waves
+  order: 8
+  difficulty: 3
+  course: waves
+  slot: W8
+  methods: [measured-data, simulation]
+  outcomes:
+    - Derive the phase and the group speed of a water wave from the linear dispersion relation, and its long-wave limit, the wave equation
+    - Measure the phase and the amplitude of a periodic wave at a gauge by a least-squares fit of its harmonics, with an uncertainty from repeated runs
+    - Test a dispersion relation against gauges along a flume, keeping the measurement, our predictions, and the solvers' modelled references apart
+    - State what the comparison supports, with its uncertainty, and where the linear model fails
+  related: []
+  format: 2
+  preview: fig-phase
+  experiment: pbc.waves.experiments.wave_flume_lab
+  prerequisites:
+    lessons: [interference-and-resonance]
+    outside:
+      - "Complex numbers: the form exp(i x) of a wave and the modulus of a sum"
+      - "Complex numbers: the discrete Fourier transform of a sampled signal, its spectrum, and what a window does to it"
+      - "Statistics: least squares and the chi-square of residuals"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.data import flume
+from pbc.waves import water
+from pbc.waves.experiments import wave_flume_lab as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The wave equation of the first lesson of this course sends every wave at the
+same speed. The second lesson showed that a grid does not: a scheme on a grid
+is dispersive, and its short waves fall behind. Water is dispersive by
+nature. A wave on water of finite depth travels at a speed that depends on its
+length, and the energy of a wave train travels at yet another speed. This lab
+puts that to a measurement.
+
+The measurement is a regular wave in a laboratory flume at Aalborg University,
+recorded at twenty gauges along the flume while it passes over a submerged
+bar. The archive holds the measurement, repeated five times, and three
+simulations of the same experiment by three CFD solvers. The lab reads the
+measurement, predicts it with the linear theory of water waves and with the
+wave equation, and shows the solvers beside both. At every step the page says
+which curve is a measurement, which is our prediction, and which is a
+solver's modelled reference.
+
+## Assumptions
+
+1. **Linear waves.** The wave is small: its height is about
+   `{python} result["height-low"]` to `{python} result["height-high"]` mm on
+   `{python} result["depth"]` cm of water. Linear theory keeps only the terms
+   of first order in the height. Over the bar the depth halves and the wave
+   steepens, and the lesson measures there how much this assumption costs.
+2. **A bed that changes slowly.** Over the slopes of the bar the wave is
+   taken to keep its frequency and to take, at each position, the wavenumber
+   of a flat bed of the local depth. Reflection by the slopes is left out.
+3. **Inviscid water, a straight flume.** No friction at the bed or the walls,
+   no surface tension, and no motion across the flume.
+4. **The geometry of the input files.** The archive's data files and its
+   readme do not give the positions of the gauges or the shape of the bar.
+   The input files of two of the solvers do, and agree on every gauge; the two
+   bars differ slightly, and the lesson shows how much that matters.
+5. **One clock.** The repetitions were aligned on the first gauge by the
+   authors, and the solvers' series were aligned on it too. Phases are
+   therefore compared relative to the first gauge, never as absolute times.
+
+## Waves on water of finite depth {#explanation}
+
+### The dispersion relation
+
+A small wave $\eta = a\cos(\omega t - k x)$ on still water of depth $h$
+exists only if its angular frequency $\omega$ and its wavenumber $k$ satisfy
+
+$$
+\omega^2 = g k \tanh(k h) .
+$$
+
+It follows from the equations of an incompressible, irrotational flow with a
+free surface, linearised in the height of the wave. Two limits show what it
+says. For a long wave, $k h \ll 1$, $\tanh(kh) \approx kh$ and the relation is
+$\omega = \sqrt{g h}\,k$: every frequency has the speed $\sqrt{g h}$, and the
+surface obeys the wave equation of the first lesson with that speed. For a
+short wave, $k h \gg 1$, $\tanh(kh) \approx 1$ and $\omega^2 = g k$: the depth
+no longer matters. Between the two the phase speed of a crest and the group
+speed of the energy are
+
+$$
+c = \frac{\omega}{k}, \qquad
+c_g = \frac{\mathrm{d}\omega}{\mathrm{d}k}
+= \frac{c}{2}\left(1 + \frac{2kh}{\sinh 2kh}\right) ,
+$$
+
+and both depend on the frequency: the water is dispersive.
+
+### The wave of the flume
+
+The relation has no closed-form solution for $k$. The function below solves
+it by Newton's method, from a starting value within about two percent of the
+root.
+
+```{python}
+#| echo: false
+excerpt(water.wavenumber)
+```
+
+```{python}
+#| label: dispersion-example
+#| echo: false
+result.table("dispersion-example")
+```
+
+On the flat bed of the flume the wave of period `{python} result["period"]` s
+has $kh =$ `{python} result["kh-flat"]` and a wavelength of
+`{python} result["wavelength"]` m. It is neither long nor short: the speed
+$\sqrt{gh}$ of the wave equation, `{python} result["long-flat"]` m/s, is
+`{python} result["long-excess"]` percent above its phase speed,
+`{python} result["c-flat"]` m/s, and its energy travels at only
+`{python} result["cg-flat"]` m/s. On the crest of the bar, in
+`{python} result["crest-depth"]` cm of water, $kh$ falls to
+`{python} result["kh-crest"]`. These three speeds are the three predictions
+the measurement can tell apart.
+
+### Over a bed of changing depth
+
+Over the bar the depth changes, and with it the wavenumber. If the depth
+changes slowly on the scale of a wavelength, the wave keeps its frequency and
+takes at every position the wavenumber of the local depth, so the phase it
+accumulates from a point $x_0$ is the integral $\int_{x_0}^{x} k(h(s))\,\mathrm{d}s$.
+The same integral with the long-wave wavenumber $\omega/\sqrt{g h}$ is the
+prediction of the wave equation; with $1/c_g$ in place of $k$ it gives the
+travel time of the energy.
+
+```{python}
+#| echo: false
+excerpt(water.accumulated_phase)
+```
+
+## The program {#code}
+
+The phase of the wave at a gauge is read by a least-squares fit of a constant
+and the first harmonics of the known frequency to the record in a window. The
+complex amplitude of the first harmonic carries the phase: for a wave
+travelling towards larger $x$ its argument is $-kx$ plus a constant.
+
+```{python}
+#| echo: false
+excerpt(flume.harmonics)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment, region="wave")
+```
+
+## Worked examples {#worked-examples}
+
+### The measured wave {#data}
+
+```{python}
+#| echo: false
+from pbc.authoring import data_card
+
+data_card("aalborg-submerged-bar")
+```
+
+The experiment's files give, for each gauge, the five repetitions, their
+mean, and the expanded uncertainty of the mean at a confidence of ninety-five
+percent, sampled at one hundred and fifty samples per second. They are a
+processed measurement: the authors aligned the repetitions on the first gauge
+and resampled them. The page uses the mean with its standard uncertainty, the
+expanded one divided by its coverage factor, and the repetitions for the
+spread of the phase. The committed sample holds the first part of each record;
+the card says how it was cut. The solvers' files hold one simulated record per
+gauge: they are modelled references, and the page never draws them as data.
+
+The geometry comes from the solvers' input files in the archive: the gauge
+positions of the i-VoF probe definitions, which the D-SPH definition repeats
+at the same twenty positions, the depth `{python} result["depth"]` cm, the bar,
+and the period. The two solvers' bars differ by a few millimetres in depth and
+a couple of centimetres in position.
+
+```{python}
+#| echo: false
+excerpt(flume.depth_at)
+```
+
+The windows: the wave train starts from rest, so each gauge sees a front pass
+before the wave is steady. The cell below finds the arrival of the front at
+each gauge, the first time the root-mean-square elevation over one period
+reaches half of its largest value, and takes as window the three periods that
+start one period later. The last window ends at
+`{python} result["last-window-end"]` s, inside the
+`{python} result["lab-end"]` s of the sample.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="windows")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.arrival_time)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_records)
+```
+
+```{python}
+#| label: fig-records
+#| echo: false
+#| fig-cap: "The measured mean surface elevation at three of the twenty gauges: the first, one on the crest of the bar, and the first behind it, with the arrival of the front (dotted) and the window of the analysis (shaded). The wave reaches the far gauges later and changes shape behind the bar."
+#| fig-alt: "Three stacked panels of surface elevation in millimetres against time in seconds. Each starts flat, shows a small first swell, then a regular train of waves. The dotted arrival line and the shaded window move to later times from the top panel to the bottom one. In the second panel the crests are sharper than the troughs, and the third shows a secondary bump between crests."
+#| fig-status: processed
+#| fig-dataset: aalborg-submerged-bar
+#| fig-artifact: processed-measured
+result.show("fig-records")
+```
+
+The band of one standard uncertainty is drawn but is thinner than the line:
+the five repetitions agree to a fraction of a millimetre. The shape tells the
+first part of the story. Before the bar the wave is close to a sine; on the
+bar its crests sharpen; behind it a second bump travels between the crests.
+
+### The front travels at the group speed {#arrival}
+
+The front of a wave train carries its energy, so it should travel at the
+group speed, not at the speed of the crests. The arrival times can be
+compared with the three travel times along the bed. The wavemaker's start is
+not in the files, so each travel time gets the one offset that fits best.
+
+```{python}
+#| echo: false
+excerpt(experiment.arrival_run)
+```
+
+```{python}
+#| label: fig-arrival
+#| echo: false
+#| fig-cap: "The arrival of the front at every gauge against position, with the travel times along the bed at the group speed, the phase speed, and the long-wave speed of linear theory, each shifted by its best offset, and the residuals below."
+#| fig-alt: "Two stacked panels sharing a position axis. The upper panel shows measured arrival times as dots rising with position, and three straight-ish lines; the dashed line of the group speed passes through the dots, the other two are too steep at the start and too shallow at the end. The lower panel shows the residuals: the group-speed residuals stay near zero, the other two run from negative at the first gauges to positive at the last."
+#| fig-status: processed
+#| fig-dataset: aalborg-submerged-bar
+#| fig-artifact: processed-measured
+result.show("fig-arrival")
+```
+
+[The front of the wave train reaches the twenty gauges at the times of
+travel at the linear group speed along the bed, with a root-mean-square
+residual of `{python} result["arrival-rms-group"]` s and at most
+`{python} result["arrival-largest-group"]` s, while travel at the phase speed
+leaves `{python} result["arrival-rms-phase"]` s and at the long-wave speed
+`{python} result["arrival-rms-long"]` s.]{.claim type="experimentally-supported"
+scope="wave condition 1, the front defined as half the largest RMS over one period, one free offset"
+evidence="fig-arrival aalborg-submerged-bar"}
+The definition of the front is a choice, and a front is not sharp, so the
+residual of the group speed is not zero; the first five gauges, close to the
+wavemaker, see the front a fifth of a second early. But only the group speed
+follows the whole flume.
+
+### The phase at every gauge {#phase}
+
+The phase of the fundamental at each gauge, relative to the first gauge,
+is measured in each gauge's window, for the mean and for each repetition.
+The repetitions were aligned on the first gauge, so the spread of their
+relative phases measures how well the experiment repeats from there on.
+
+```{python}
+#| label: gauge-phases
+#| echo: false
+excerpt(experiment.gauge_phases)
+```
+
+A phase is known only up to whole cycles. Between neighbouring gauges of a
+cluster the spacing is less than half a wavelength, so the cycles are not in
+doubt there. Between the clusters, in the gaps of more than a wavelength,
+they are; so the comparison with each prediction is made on the difference,
+brought into one cycle. A model that was wrong by exactly a whole cycle at a
+gauge would pass this test; the local wavenumbers below do not depend on it.
+
+```{python}
+#| label: phase-table
+#| echo: false
+result.table("phase-table")
+```
+
+The table is the text alternative of the next figure.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_phase)
+```
+
+```{python}
+#| label: fig-phase
+#| echo: false
+#| fig-cap: "The measured phase of the fundamental relative to the first gauge minus two predictions accumulated along the bed, brought into one cycle: linear dispersion (dots) and the wave equation without dispersion (open squares); the three solvers' phases minus the measured one; and the bed with the gauges."
+#| fig-alt: "Three stacked panels sharing a position axis along the flume. In the upper panel the dots of linear dispersion stay on the zero line at every gauge, while the open squares climb steadily away from zero with distance and jump to the bottom edge at the last gauge, where the difference wraps around. The middle panel shows three dashed series of the solvers close to zero; one of them drifts below zero after the bar. The lower panel shows the bed: flat, a ramp up to a flat crest, a steeper ramp down, flat again, with tick marks for the gauges."
+#| fig-status: processed
+#| fig-dataset: aalborg-submerged-bar
+#| fig-artifact: processed-measured
+result.show("fig-phase")
+```
+
+Over the `{python} result["total-phase"]` radians that linear theory
+accumulates from the first gauge to the last, the measured phase never leaves
+it by more than `{python} result["worst-linear"]` radians; the root-mean-square
+difference is `{python} result["rms-linear"]` radians. The wave equation falls
+behind gauge after gauge: its difference grows with distance to
+`{python} result["worst-long"]` radians at the last gauge, almost half a cycle.
+The standard errors of the repetitions, from `{python} result["sigma-low"]` to
+`{python} result["sigma-high"]` milliradians, are smaller than the markers.
+
+The solvers are modelled references and are drawn apart, in the middle panel,
+as their own phase from their own first gauge minus the measured one. The
+table gives the gauges each run covers: the runs stop at different times, and
+a gauge counts only if the run covers its whole window.
+
+```{python}
+#| label: solver-table
+#| echo: false
+result.table("solver-table")
+```
+
+[The three solvers reproduce the measured phase of the fundamental at the
+gauges their runs cover to within `{python} result["solvers-worst"]` radians,
+in the measurement's windows.]{.claim type="observational"
+scope="wave condition 1, fundamental only, the solvers' archived A files as published, relative to each solver's first gauge"
+evidence="solver-table aalborg-submerged-bar"}
+That is a statement about published simulations, not about their methods,
+and the lesson does not rank them.
+
+### The local wavenumber, with its uncertainty {#wavenumber}
+
+Inside a cluster the phase can be followed from gauge to gauge, and its slope
+against position is the local wavenumber. The cell fits a straight line
+through the phases of each cluster twice: once with the standard errors of the
+repetitions, and once with the uncertainty set by the scatter about the line.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="clusters")
+```
+
+```{python}
+#| label: cluster-fit
+#| echo: false
+excerpt(experiment.cluster_fit)
+```
+
+```{python}
+#| label: cluster-table
+#| echo: false
+result.table("cluster-table")
+```
+
+The two uncertainties differ by more than ten times. With the errors of the
+repetitions the reduced chi-square of the line before the bar is
+`{python} result["chi2-before"]`: the experiment repeats far better than the
+phases lie on a straight line. The departure is real and the same in every
+repetition. Part of the wave is reflected by the bar and by the beach, and the
+sum of the incident and the reflected wave has a phase that wobbles about the
+straight line along the flume. The page therefore takes the scatter as the
+uncertainty, which is the larger one. The predictions have uncertainties of
+their own, which are smaller: the gravity of the other solver changes the
+wavenumber of the flat bed by `{python} result["spread-gravity"]` milliradians
+per metre, a depth wrong by three millimetres by
+`{python} result["spread-depth"]`, and the two solvers' bars change the phase
+accumulated to the last gauge by at most `{python} result["spread-bars"]`
+radians.
+
+[Before the bar the measured local wavenumber is
+`{python} result["k-before"]` ± `{python} result["k-before-sigma"]` rad/m and
+behind it `{python} result["k-behind"]` ± `{python} result["k-behind-sigma"]`
+rad/m, against `{python} result["k-linear"]` rad/m of the linear dispersion
+relation, with which both agree within two of their standard uncertainties.
+The wave equation's `{python} result["k-long"]` rad/m lies
+`{python} result["pull-long-before"]` and `{python} result["pull-long-behind"]`
+standard uncertainties away.]{.claim type="experimentally-supported"
+scope="wave condition 1, the flat bed of depth 0.3 m, fundamental only, uncertainty from the scatter of the phases about a straight line"
+evidence="cluster-table cluster-fit aalborg-submerged-bar"}
+
+On the crest of the bar only two gauges lie on the flat part, so the scatter
+cannot be estimated, and the uncertainty in the table is that of the
+repetitions alone, `{python} result["k-crest-sigma"]` rad/m. The measured
+`{python} result["k-crest"]` rad/m is above
+the linear `{python} result["k-crest-linear"]` rad/m and further above the
+long-wave `{python} result["k-crest-long"]` rad/m. This is where the wave is
+steepest and the second harmonic grows (below), so the linear model is not
+expected to hold there; with two gauges the page does not claim more than the
+numbers of the table.
+
+### A waveform carried along the flume {#waveform}
+
+The phases compare one number per gauge. The whole record can be compared as
+well. The cell takes the measured record of the first gauge over four periods
+of the steady wave, carries it `{python} result["distance"]` m along the flat
+bed to the fifth gauge by linear theory, once with the dispersion relation and
+once with the wave equation, which delays it by
+`{python} result["delay-long-ms"]` ms, and compares both with the record
+measured there. The three solvers' records at the fifth gauge are compared in
+the same way, interpolated to the measurement's samples; they are in the
+comparator below the figure and in the table after it, not in the static
+figure, which keeps the page light. A solver whose run ended inside the window
+would be left out; all three cover it.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="propagation")
+```
+
+```{python}
+#| echo: false
+excerpt(water.propagate)
+```
+
+::: {#waveform-comparator data-widget="waveform-comparator" data-enhancement="" data-ondemand="index_files/figure-html/gauge-five.json" data-load-label="Compare the models one by one" data-load-failed="The figure above and the table below show every model."}
+
+```{python}
+#| echo: false
+excerpt(experiment.propagation_run)
+```
+
+```{python}
+#| label: fig-waveform
+#| echo: false
+#| fig-cap: "The measured mean at the fifth gauge (solid, with its band) against the record of the first gauge carried there by linear theory with and without dispersion (dashed, simulated), with the residuals below. Only the dispersive prediction keeps the crests in place."
+#| fig-alt: "Two stacked panels sharing a time axis. The upper panel shows four regular waves: the solid measured curve, a dashed prediction close to it with slightly deeper troughs, and a dashed prediction visibly shifted earlier. The lower panel shows the residuals: the shifted prediction gives a large oscillation, the other prediction a smaller one."
+#| fig-status: processed
+#| fig-dataset: aalborg-submerged-bar
+#| fig-artifact: processed-measured
+result.show("fig-waveform")
+```
+
+::: {.widget-controls}
+With scripts, a button below the figure loads the records, and a slider
+shows one model at a time against the measurement, with its residual and its
+error metrics, the solvers included. Without scripts the figure shows the
+two predictions and the table below lists every model.
+:::
+:::
+
+```{python}
+#| echo: false
+from pbc.authoring import widget_asset, widget_module
+
+widget_asset("gauge-five", result.widget("gauge-five"))
+widget_module("waveform-comparator.js")
+```
+
+```{python}
+#| label: waveform-table
+#| echo: false
+result.table("waveform-table")
+```
+
+The prediction without dispersion arrives too early, by a quarter of a period:
+its root-mean-square residual is `{python} result["rms-long"]` mm. With the
+dispersion relation the residual falls to `{python} result["rms-dispersive"]`
+mm, and what is left has the period of the wave and its harmonics. It does not
+come from the propagation alone: the amplitude of the fundamental is not the
+same at the two gauges (the table of phases), because the reflected wave adds
+differently at each, and linear theory carries the small second harmonic at
+its own speed. The solvers model the whole flume, the bar and its reflection
+included, and leave the smallest residuals; they are simulations of the
+experiment, shown as such, and not a measurement.
+
+### Where linear theory stops {#harmonics}
+
+The fit at every gauge also gives the amplitudes of the higher harmonics;
+the second one is a column of the table of phases above.
+
+[The second harmonic of the measured wave grows from
+`{python} result["second-before"]` mm at the first gauge to
+`{python} result["second-most"]` mm at gauge
+`{python} result["second-most-gauge"]`, just behind the bar, and decays
+further on.]{.claim type="observational"
+scope="wave condition 1, the mean of the repetitions, harmonics fitted in each gauge's window"
+evidence="phase-table aalborg-submerged-bar"}
+In a linear model the harmonics cannot exchange energy, so this growth is a
+nonlinear effect the model does not contain. On the shallow crest the wave is
+steep enough for the fundamental to feed its harmonics. Behind the bar the
+water is deep again, the harmonics travel at their own speeds, slower than
+the fundamental, and the shape of the wave changes from gauge to gauge: the
+second bump of the records figure at the far gauges. The fundamental's phase still follows
+linear theory there; the shape of the wave does not.
+
+## Limits {#limits}
+
+What the comparison does and does not show:
+
+- **One wave condition.** The archive has three more, of growing height and
+  with breaking; the lesson uses the smallest, where linear theory has its
+  best chance. Its conclusions are not tested on the others.
+- **The fundamental, not the waveform.** The claims are about the phase and
+  the speed of the first harmonic. The shape of the wave behind the bar,
+  shaped by the harmonics, is outside linear theory.
+- **Reflection.** The phases wobble about a straight line by more than the
+  repetitions allow, as a reflected wave would make them; the lesson uses the
+  scatter as the uncertainty and does not separate the reflected wave.
+- **Whole cycles.** Between the clusters the comparison is made within one
+  cycle; the local wavenumbers inside the clusters are the evidence that does
+  not depend on it.
+- **The geometry.** Gauge positions and the bar come from the solvers' input
+  files, not from a survey of the flume; the source paper, which would state
+  them, was not read. The two solvers' bars differ, and the page shows that
+  the difference is small for the phase.
+- **The solvers.** They are published simulations of this experiment. The
+  page shows how close they are to the measurement in phase and in one
+  waveform; it does not test their methods or rank them.
+
+In plain words: a wave in a flume of laboratory water travels at the speed the
+linear dispersion relation gives it, not the speed of the wave equation; its
+front travels slower still, at the group speed; and where the bar makes the
+water shallow and the wave steep, the wave starts to change in ways a linear
+model cannot follow.
+
+::: {.exercise .self-check}
+The wave equation and the dispersion relation both predict a phase at every
+gauge, and the comparison above is made within one cycle. Why could the phase
+alone, measured at the first and the last gauge only, not decide between them?
+
+::: {.solution}
+A phase is known only up to whole cycles. Two predictions that differ by a
+whole number of cycles at the last gauge give the same phase there, so a
+measurement at two distant gauges cannot tell them apart. Gauges closer than
+half a wavelength remove the doubt: the phase can then be followed from one to
+the next, and its slope gives the wavenumber, which is what distinguishes the
+two models without any choice of cycles.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A longer wave.** A wave of period 2 s runs in the same 0.3 m of water. What
+are its $kh$, its wavelength, and its phase and group speeds, and by how much
+is the long-wave speed now above its phase speed?
+
+::: {.solution}
+The dispersion relation, solved for the new frequency:
+
+```{python}
+#| echo: false
+excerpt(experiment.longer_period)
+```
+
+```{python}
+#| echo: false
+print(result.output("longer-period"), end="")
+```
+
+The longer wave is closer to the long-wave limit, so the wave equation is a
+better description of it than of the wave of the flume.
+:::
+:::
+
+::: {.exercise}
+**Cycles in the gap.** Between gauges 12 and 13 the flume has no gauge for
+more than 3 m. How many cycles does each prediction accumulate across the
+gap, and why does this gap need the comparison within one cycle?
+
+::: {.hint}
+`accumulated_phase` with the start at gauge 12 gives the phase at gauge 13;
+divide it by the phase of one whole cycle.
+:::
+
+::: {.solution}
+The phase across the gap by each prediction:
+
+```{python}
+#| echo: false
+excerpt(experiment.cycles_in_the_gap)
+```
+
+```{python}
+#| echo: false
+print(result.output("cycles-in-the-gap"), end="")
+```
+
+Both predictions put more than one whole cycle into the gap, so the
+measured phase at the next gauge cannot say which whole number of cycles was
+crossed. Only the fraction of a cycle is measured, and that is what the
+comparison uses.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/waves/water.py",
+        "src/pbc/waves/experiments/wave_flume_lab.py",
+        "src/pbc/experiment.py",
+        "src/pbc/data/flume.py",
+        "src/pbc/data/reference/aalborg_flume.py",
+        "src/pbc/data/comparison.py",
+        "src/pbc/authoring/widgets.py",
+        "site/widgets/waveform-comparator.js",
+    ],
+    tests=[
+        "tests/unit/test_water.py",
+        "tests/unit/test_flume.py",
+        "tests/unit/test_comparison.py",
+        "tests/unit/test_data_samples.py",
+        "tests/unit/test_wave_flume_lab_experiment.py",
+    ],
+)
+```
+
+The data card above gives the command that downloads the whole archive into
+`data/downloads/aalborg-submerged-bar`; the committed sample is enough for this
+page, and no model and no account are needed to read either.

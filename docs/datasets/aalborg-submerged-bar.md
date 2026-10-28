@@ -69,7 +69,16 @@ Outside the window the series disagree for a stated reason: the numerical runs s
 
 Sample 480 KB. Figure from the sample: 1.4 s and about 120 MB; PNG about 330 KB. From the full download: 78.6 MB to fetch, and one 40 MB CSV per wave condition (about 300 MB as an array). CI reads only the committed files; a learner's full download is a documented step.
 
+## The wave flume lab (F74, 2026-10-27)
+
+The lesson `site/lessons/waves/08-wave-flume-lab` uses wave condition 1 at all twenty gauges.
+
+- **Geometry, found in the archive.** The data files and the Readme do not give the gauge positions, but the solver input files do: the twenty sets of `iVoF/inputFiles/iVoF_WC1_inputFiles/waveGaugesNProbes/WGset1_sets`, in order, and the same twenty positions in the gauges of the D-SPH definition XML. The i-VoF `blockMeshDict` and the D-SPH bathymetry polygon give the still-water depth 0.3 m and the bar; they differ by 20 mm in the position of the crest and 3 mm in its depth, and the lesson shows that this moves the predicted phase by at most 0.06 rad. Both give the period 1.5 s; the heights are 0.024 m (D-SPH) and 0.025 m (i-VoF). The values are in `pbc.data.flume` with their source. Gauge k of the data files is taken to be the k-th set of the i-VoF list, which the order along the flume and the agreement of the two lists support; the source paper, which would confirm it, is still not read.
+- **The sample, widened within the caps.** The experiment's seven columns of the other nineteen gauges and the three models' A files with all twenty gauges, rows with time <= 22 s, cell text unchanged (`extract_lab_sample` in `src/pbc/data/reference/aalborg_flume.py`): 22 files, 6.55 MB, 7.03 MB for the dataset (cap 8 MiB), no file over 2 MiB. The parsing test is `tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses`.
+- **Windows.** Each gauge is analysed in the three periods that start one period after the arrival of the front (half its largest RMS over one period). The last gauge's window ends at 20.1 s. The i-VoF run (to 20 s) covers 19 gauges, D-SPH (to 14.1 s) 12, M-sigma all 20.
+- **What the data support** (asserted by `tests/unit/test_wave_flume_lab_experiment.py`): the phase of the fundamental follows the linear dispersion relation integrated along the bed to within 0.1 rad at every gauge (the long-wave limit misses by up to 3.1 rad); the local wavenumber before and behind the bar agrees with linear theory within two standard uncertainties, the uncertainty set by the scatter of the phases about a line (the repetitions alone give a reduced chi-square of thousands: the reflected wave is systematic); the front travels at the group speed. On the crest, with two gauges, the measured wavenumber is 4 % above linear theory, and the second harmonic grows to half the first behind the bar.
+
 ## Open items
 
-- Read the source paper (Andersen et al. 2025) for the gauge positions, the wave parameters of each condition, and the uncertainty analysis before a lesson states them.
-- Decide whether wave condition 1 or a breaking wave condition suits the lesson; the cost of another condition's gauge is about 0.5 MB.
+- Read the source paper (Andersen et al. 2025) for the uncertainty analysis and to confirm the gauge numbering and positions taken from the input files, before a lesson states them as the paper's.
+- Wave conditions 2 to 4 (growing nonlinearity, breaking) are not used; the cost of another condition's gauge is about 0.5 MB, within the remaining 1 MB of the dataset cap only for two gauges.
