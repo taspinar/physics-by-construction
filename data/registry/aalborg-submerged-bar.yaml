@@ -43,8 +43,9 @@ artifacts:
     experiment on gauge 1 (Readme.pdf).
 - name: '*_B.csv (dense gauges), */inputFiles/*'
   type: modelled-reference
-  description: Dense-gauge simulated series (150 gauges, 149 for D-SPH) and the solver input files; not
-    used by the spike.
+  description: Dense-gauge simulated series (150 gauges, 149 for D-SPH) and the solver input files. The
+    B files are not used; the i-VoF and D-SPH input files were read by F74 for the geometry (see coordinates)
+    and are not committed.
 calibration: The Readme.pdf of the archive states that the repetitions were aligned on the gauge-1 signal
   to reduce trigger-time uncertainty and that the numerical series were upsampled and aligned to the experiment
   on gauge 1; gauge calibration and the uncertainty analysis are in the source paper, which this spike
@@ -56,8 +57,13 @@ units: Time in seconds, surface elevation in metres.
 cadence: Experiment 150 Hz for 180 s, with time stamps printed to five significant digits (a resolution
   of 1 ms after 10 s, so the stamps jitter by up to 0.33 ms about k/150 s); i-VoF 100 Hz from 0.01 to
   20 s; M-sigma 100 Hz from 0 to 30 s (B file from -1 s); D-SPH about 200 Hz from 0 to 14.1 s.
-coordinates: Gauge numbers 1-20 along the flume; the gauge x-positions are given in the source paper,
-  not in the archive, and are not used. Surface elevation is relative to still water.
+coordinates: 'Gauge numbers 1-20 along the flume. The x-positions (m from the wavemaker) are not in the
+  data files or the Readme but are in the solver input files of the archive: the 20 sets of iVoF/inputFiles/iVoF_WC1_inputFiles/waveGaugesNProbes/WGset1_sets
+  in order, and the same 20 positions in the gauges of the D-SPH definition XML (read 2026-10-27, F74);
+  pbc.data.flume.GAUGE_X holds them. The same files give the still-water depth 0.3 m and the bar (i-VoF
+  blockMeshDict: front slope from 2.813 m, crest 0.147 m deep from 4.323 to 5.327 m, lee slope to 6.112
+  m; D-SPH: crest 0.150 m deep from 4.343 to 5.347 m), and the wave of condition 1 (period 1.5 s, height
+  0.024 m in D-SPH, 0.025 m in i-VoF). Surface elevation is relative to still water.'
 masks: 'Model files contain NaN: one at 19.82 s in i-VoF gauge 5, one at the last row (14.1 s) of D-SPH
   gauge 5, and a first row of NaN in the dense Msigma B file. The experiment has no NaN in wave condition
   1. The numerical series have start-up transients and end-of-run values near zero.'
@@ -65,7 +71,9 @@ uncertainty: The experiment carries the expanded uncertainty of the sample mean 
   mm at gauge 5 over the first 30 s). The numerical series carry none.
 size:
   description: Archive 78,610,248 bytes (234 MB unpacked, 45 files); the experimental CSVs are 40 MB each,
-    the models 0.4-7 MB. The sample is gauge 5 of wave condition 1, 4 files, 480 KB.
+    the models 0.4-7 MB. The sample is wave condition 1 - gauge 5 to 30 s (4 files, 480 KB, F50) and,
+    for the wave flume lab (F74), the experiment's other 19 gauges and the three models' A files with all
+    20 gauges to 22 s (22 files, 6.55 MB); 26 files, 7.03 MB in all.
 format: ZIP of CSV files (plus input archives and a PDF readme)
 reader: pbc.data.flume.read_elevation (csv and NumPy); no new dependency.
 downloads:
@@ -100,13 +108,146 @@ samples:
   derivation: rows with time <= 30 s and the columns of wave gauge 5 of Andersen_etal_2025/iVoF/dataset/iVoF_WC1_surfaceElevation_A.csv,
     cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_sample
   test: tests/unit/test_data_samples.py::test_aalborg_sample_parses
+- path: DSPH_WC1_surfaceElevation_A.csv
+  sha256: bd7255acace1467e7270e6397a4dbdd9fd5e204047dd569dea2025b6dc3b469b
+  bytes: 624526
+  derivation: rows with time <= 22 s and all 20 gauge columns of Andersen_etal_2025/DSPH/dataset/DSPH_WC1_surfaceElevation_A.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge01_surfaceElevation.csv
+  sha256: 7482e6fcd4d3277de2d897d9e0cda28ab05e4e4d276e61fedf0832d689ba181b
+  bytes: 258261
+  derivation: rows with time <= 22 s and the columns of wave gauge 1 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge02_surfaceElevation.csv
+  sha256: fc5cbe016625893fe9c6cdf51832d8072e8dbe672a92c9c13b5fe472313d6df1
+  bytes: 259975
+  derivation: rows with time <= 22 s and the columns of wave gauge 2 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge03_surfaceElevation.csv
+  sha256: ed33aa04770e87b96373e51e17e4f0365ac251001c81e04e12610666a9796479
+  bytes: 259748
+  derivation: rows with time <= 22 s and the columns of wave gauge 3 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge04_surfaceElevation.csv
+  sha256: 4a8f6f04ff2bd5534a12e33bea0e1521ab936cde26d9265788861db7ea1a97dc
+  bytes: 261136
+  derivation: rows with time <= 22 s and the columns of wave gauge 4 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge06_surfaceElevation.csv
+  sha256: e3a915a6b71efbc9205be521f81fcfdcc36dc17be202f805613cd19752f528a1
+  bytes: 261013
+  derivation: rows with time <= 22 s and the columns of wave gauge 6 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge07_surfaceElevation.csv
+  sha256: 816566224fa127974f7c726c853463707357eca5c1fcbc3a09ecb790dfdd8015
+  bytes: 261101
+  derivation: rows with time <= 22 s and the columns of wave gauge 7 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge08_surfaceElevation.csv
+  sha256: 991c0420591315f3058fcd438af51e1cdceee816ffe364be97da9e4825929e33
+  bytes: 262279
+  derivation: rows with time <= 22 s and the columns of wave gauge 8 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge09_surfaceElevation.csv
+  sha256: b78963f19a3b3a5d29945e0e45f8f6a55764add313e165b19a6c06bdafc88197
+  bytes: 263637
+  derivation: rows with time <= 22 s and the columns of wave gauge 9 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge10_surfaceElevation.csv
+  sha256: 1b5a610aaa2289622a93c5e3d83944405702f7b70b52fd32984bee30659d6842
+  bytes: 267428
+  derivation: rows with time <= 22 s and the columns of wave gauge 10 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge11_surfaceElevation.csv
+  sha256: 63ef3a48cb9af3ec267f14f7154e4c71c608cc63605e24456368760206d67e0c
+  bytes: 267617
+  derivation: rows with time <= 22 s and the columns of wave gauge 11 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge12_surfaceElevation.csv
+  sha256: f53e5b5f4159e229f2c1f56be2a688e4a828920ea31451513f51eac103c409a9
+  bytes: 266431
+  derivation: rows with time <= 22 s and the columns of wave gauge 12 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge13_surfaceElevation.csv
+  sha256: 99464ae1fb45a22fb09cda70084e44d5d5860583ad582495958be45a8d3cead5
+  bytes: 268448
+  derivation: rows with time <= 22 s and the columns of wave gauge 13 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge14_surfaceElevation.csv
+  sha256: 9b452b43cf86c115c9b2d878d554d8d1e55d03a33b279f71fd8040874c4042f0
+  bytes: 268986
+  derivation: rows with time <= 22 s and the columns of wave gauge 14 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge15_surfaceElevation.csv
+  sha256: 954a14fd11021e2527a83cdd65254daf4e84a692df6591ce7f26948ae73b08cc
+  bytes: 268780
+  derivation: rows with time <= 22 s and the columns of wave gauge 15 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge16_surfaceElevation.csv
+  sha256: 39c8381e74c019ec9bd737265aa51ebf02de20d7b0ca681a3406810e1814c07a
+  bytes: 267607
+  derivation: rows with time <= 22 s and the columns of wave gauge 16 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge17_surfaceElevation.csv
+  sha256: 809fb24e8260a3b524b5a099fec843f978f8f3be80830a077a5515307442f9f4
+  bytes: 268002
+  derivation: rows with time <= 22 s and the columns of wave gauge 17 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge18_surfaceElevation.csv
+  sha256: 4020a0ea1e2f1131d4ec02370f85d6769f36e68c1497e20e4ce7ff8cd292ef9d
+  bytes: 268667
+  derivation: rows with time <= 22 s and the columns of wave gauge 18 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge19_surfaceElevation.csv
+  sha256: 19f751b40f7416df29304142289e541bd26da02f6a6bbf7b5f3bcd9811d186dc
+  bytes: 270341
+  derivation: rows with time <= 22 s and the columns of wave gauge 19 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Exp_WC1_gauge20_surfaceElevation.csv
+  sha256: 51c462967167f19d47a1dcac8d226f8e1d04e799a3aa0f5650849d5906a30885
+  bytes: 273579
+  derivation: rows with time <= 22 s and the columns of wave gauge 20 of Andersen_etal_2025/Exp/dataset/Exp_WC1_surfaceElevation.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: Msigma_WC1_surfaceElevation_A.csv
+  sha256: 340879c58b6460d50c153ab5c177b4e2e3ace0e533bfe8a27bb5c3b9dac736a3
+  bytes: 448794
+  derivation: rows with time <= 22 s and all 20 gauge columns of Andersen_etal_2025/Msigma/dataset/Msigma_WC1_surfaceElevation_A.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
+- path: iVoF_WC1_surfaceElevation_A.csv
+  sha256: cc61c250dfdc21873ccb2362045996a2e2b41ffaae699ac8879e8b2efb94147e
+  bytes: 433706
+  derivation: rows with time <= 22 s and all 20 gauge columns of Andersen_etal_2025/iVoF/dataset/iVoF_WC1_surfaceElevation_A.csv,
+    cell text unchanged, written by pbc.data.reference.aalborg_flume.extract_lab_sample
+  test: tests/unit/test_data_samples.py::test_aalborg_lab_sample_parses
 estimates:
   runtime: 'Reference figure from the sample: 1.4 s. From the full download: a 78.6 MB download and one
     40 MB CSV per wave condition to parse, a few seconds.'
   memory: About 120 MB peak resident from the sample; about 300 MB for a full experimental CSV as a float
     array.
-  page_payload: 480 KB committed; a figure PNG of about 330 KB.
-  ci: 'Offline: four committed files.'
+  page_payload: 7.03 MB committed; a figure PNG of about 330 KB; the wave flume lab's four figures (about
+    0.7 MB) and its 100 KB of on-demand comparator data.
+  ci: 'Offline: 26 committed files; the lab''s experiment runs in about 5 s.'
 decision:
   value: go
   date: *id001

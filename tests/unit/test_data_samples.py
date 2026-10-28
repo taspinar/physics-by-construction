@@ -102,6 +102,48 @@ def test_aalborg_sample_parses():
             np.testing.assert_allclose(np.diff(model.time), cadence[name], atol=1e-9)
 
 
+def test_aalborg_lab_sample_parses():
+    experiment, models = aalborg_flume.load_lab(AAL)
+    # Every gauge, each with its own file and the experiment's seven columns.
+    assert list(experiment) == list(aalborg_flume.GAUGES) == list(range(1, 21))
+    for gauge, record in experiment.items():
+        assert set(record.gauges) == {gauge}
+        assert record.labels[-2:] == ("mean", "expanded unc")
+        # Cadence: 150 Hz from 0 to LAB_END (to 30 s for the gauge of F50).
+        end = 30.0 if gauge == aalborg_flume.GAUGE else aalborg_flume.LAB_END
+        assert record.values.shape == (round(150 * end) + 1, 7)
+        index = np.arange(record.time.size)
+        np.testing.assert_allclose(record.time, index / 150, atol=5e-4)
+        assert np.isfinite(record.values).all()
+        # Units: metres, a wave of about 10 to 20 mm crest; the mean is the mean.
+        mean = record.column(gauge, "mean")
+        reps = np.stack([record.column(gauge, f"rep {k}") for k in range(1, 6)], 1)
+        np.testing.assert_allclose(mean, reps.mean(axis=1), atol=2e-6)
+        assert 0.009 < np.abs(mean).max() < 0.025
+        assert (record.column(gauge, "expanded unc") > 0).all()
+    # The solvers: twenty gauge columns each, own cadence and end, NaN masks.
+    ends = {
+        "i-VoF (OpenFOAM)": (0.01, 20.0, 1),
+        "M-sigma (MIKE 3)": (0.0, aalborg_flume.LAB_END, 0),
+        "D-SPH (DualSPHysics)": (0.0, 14.1, 1),
+    }
+    for name, model in models.items():
+        start, end, nans = ends[name]
+        assert model.gauges == aalborg_flume.GAUGES
+        assert set(model.labels) == {"surface elevation"}
+        assert model.time[0] == pytest.approx(start)
+        assert model.time[-1] == pytest.approx(end)
+        assert (np.isnan(model.values).sum(axis=0) == nans).all()
+        assert np.nanmax(np.abs(model.values)) < 0.03
+    # The gauge-5 column of each solver equals the sample of F50 where both run.
+    _, single = aalborg_flume.load(AAL)
+    for name, model in models.items():
+        n = min(model.time.size, single[name].time.size)
+        np.testing.assert_array_equal(
+            model.values[:n, aalborg_flume.GAUGE - 1], single[name].values[:n, 0]
+        )
+
+
 def test_the_reader_of_a_flume_file_refuses_a_file_without_a_time_column(tmp_path):
     path = tmp_path / "bad.csv"
     path.write_text(",1\nx [s],surface elevation [m]\n0,0.1\n")

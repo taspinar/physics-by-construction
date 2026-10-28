@@ -403,3 +403,134 @@ def test_the_on_demand_data_is_within_its_budget_and_only_loads_after_an_action(
     )
 
     assert not violations, describe(violations)
+
+
+# --- The same component on the wave flume lab (W8) -----------------------------------
+#
+# A family of named models instead of trial masses: the words come from the
+# data, no model is the best one, and the residual is the model minus the
+# measurement, as in the static figure.
+
+FLUME = "lessons/waves/08-wave-flume-lab/index.html"
+FLUME_DATA = "lessons/waves/08-wave-flume-lab/index_files/figure-html/gauge-five.json"
+FLUME_FORMATS = {
+    "rms_residual": "{:.3f}",
+    "largest_residual": "{:.3f}",
+    "correlation": "{:.4f}",
+}
+
+
+@pytest.fixture(scope="module")
+def flume_embedded(site_dir: Path) -> dict:
+    return json.loads((site_dir / FLUME_DATA).read_text(encoding="utf-8"))
+
+
+def load_flume(page: Page, server: SiteServer) -> None:
+    page.goto(server.url + FLUME, wait_until="networkidle")
+    page.locator(LOAD).click()
+    page.locator(f"{COMPARATOR}.widget-active").wait_for()
+
+
+def test_the_flume_page_shows_its_static_figure_without_javascript(
+    browser: Browser, server: SiteServer
+):
+    context = browser.new_context(viewport=DESKTOP, java_script_enabled=False)
+    page = context.new_page()
+    page.goto(server.url + FLUME, wait_until="load")
+
+    figure = page.locator(f"{COMPARATOR} img")
+    assert figure.count() == 1
+    assert figure.evaluate("image => image.complete && image.naturalWidth > 0")
+    assert page.locator(f"{COMPARATOR} figcaption").inner_text().strip()
+    assert page.locator(f"{COMPARATOR} :is(input, svg)").count() == 0
+    context.close()
+
+
+def test_the_flume_button_names_its_models_and_requests_nothing_before(
+    page: Page, server: SiteServer
+):
+    requested: list[str] = []
+    page.on("request", lambda request: requested.append(request.url))
+    page.goto(server.url + FLUME, wait_until="networkidle")
+
+    assert page.locator(LOAD).inner_text() == "Compare the models one by one"
+    assert not [url for url in requested if url.endswith("gauge-five.json")]
+
+
+def test_every_flume_model_is_listed_by_name_with_its_metrics_as_embedded(
+    page: Page, server: SiteServer, flume_embedded: dict
+):
+    load_flume(page, server)
+    assert page.locator(f'{COMPARATOR} output[data-quantity="best"]').count() == 0
+    for index, model in enumerate(flume_embedded["models"]):
+        to_slider_index(page, index)
+        assert displayed(page, "parameter") == model["parameter"]
+        for key, pattern in FLUME_FORMATS.items():
+            assert displayed(page, key) == pattern.format(model["metrics"][key])
+    names = [m["parameter"] for m in flume_embedded["models"]]
+    # Our predictions are simulated; every solver is labelled by its artifact.
+    assert all("modelled-reference" in n for n in names if "gauge 1" not in n)
+
+
+def test_the_flume_drawing_and_export_hold_exactly_the_embedded_values(
+    page: Page, server: SiteServer, flume_embedded: dict
+):
+    load_flume(page, server)
+    to_slider_index(page, 1)
+    model = flume_embedded["models"][1]
+    for series, values in (
+        ("measured", flume_embedded["measured"]),
+        ("model", model["values"]),
+        ("residual", model["residual"]),
+    ):
+        points = page.locator(
+            f'{COMPARATOR} polyline[data-series="{series}"]'
+        ).get_attribute("points")
+        xy = np.array([[float(c) for c in p.split(",")] for p in points.split()])
+        assert len(xy) == len(values) == len(flume_embedded["time"])
+        fit = np.polyfit(values, xy[:, 1], 1)
+        assert np.abs(np.polyval(fit, values) - xy[:, 1]).max() <= 0.06
+    legend = page.locator(f"{COMPARATOR} svg text").all_text_contents()
+    assert "measured mean, gauge 5" in legend
+    assert model["parameter"] in legend
+
+    page.get_by_role("button", name="Show the displayed values as text").click()
+    text = page.locator(f"{COMPARATOR} textarea").input_value()
+    rows = [line.split("\t") for line in text.splitlines() if not line.startswith("#")]
+    assert rows[0] == ["time (s)", "measured", "model", "residual"]
+    for row, t, y, f, r in zip(
+        rows[1:], flume_embedded["time"], flume_embedded["measured"],
+        model["values"], model["residual"], strict=True,
+    ):  # fmt: skip
+        assert [float(v) for v in row] == [t, y, f, r]
+    assert f"# model: {model['parameter']}" in text
+    assert "# residual: model minus measured" in text
+
+
+def test_the_flume_data_agree_with_a_fresh_run_of_pbc(flume_embedded: dict):
+    # No skip for a result restored from the base: the flume series are
+    # averages, Fourier phases and closed-form dispersion, with no fit, so
+    # another platform differs far below the rounding of the page (unlike
+    # the fit of issue 268), and the comparison holds for every run.
+    from pbc.waves.experiments import wave_flume_lab
+
+    fresh = wave_flume_lab.run().widget("gauge-five")
+    assert flume_embedded["time"] == pytest.approx(fresh["time"], abs=1e-5)
+    assert flume_embedded["measured"] == pytest.approx(fresh["measured"], abs=1e-5)
+    for shown, reference in zip(flume_embedded["models"], fresh["models"], strict=True):
+        assert shown["parameter"] == reference["parameter"]
+        assert shown["values"] == pytest.approx(reference["values"], abs=1e-5)
+        for key, value in reference["metrics"].items():
+            assert shown["metrics"][key] == pytest.approx(value, abs=2e-3)
+
+
+@pytest.mark.parametrize("viewport", [DESKTOP, PHONE], ids=["desktop", "phone"])
+def test_the_flume_comparator_passes_the_accessibility_scan(
+    browser: Browser, server: SiteServer, viewport: dict[str, int]
+):
+    context = browser.new_context(viewport=viewport)
+    page = context.new_page()
+    load_flume(page, server)
+    results = Axe().run(page, options={"runOnly": {"type": "tag", "values": WCAG_TAGS}})
+    assert results.violations_count == 0, results.generate_report()
+    context.close()

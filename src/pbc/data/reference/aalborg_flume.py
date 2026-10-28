@@ -64,6 +64,72 @@ def extract_sample(archive_dir: Path, out_dir: Path) -> list[Path]:
     return written
 
 
+# The sample of the wave flume lab (W8): every gauge, for the comparison of
+# the propagation along the flume. The experiment's seven columns of each
+# gauge other than GAUGE (whose file above runs to SAMPLE_END already), and
+# the A file of each model with all its gauges, rows with time <= LAB_END.
+GAUGES = tuple(range(1, 21))
+LAB_END = 22.0  # s; the last gauge's analysis window ends before it
+
+
+def lab_sample_name(source: str, gauge: int | None = None) -> str:
+    if gauge is None:
+        return source
+    return source.replace("surfaceElevation", f"gauge{gauge:02d}_surfaceElevation")
+
+
+def _rows(source: Path) -> list[list[str]]:
+    with open(source, newline="", encoding="utf-8") as fh:
+        return list(csv.reader(fh))
+
+
+def _copy_rows(rows: list[list[str]], target: Path, columns: list[int], end: float):
+    with open(target, "w", newline="", encoding="utf-8") as fh:
+        writer = csv.writer(fh, lineterminator="\n")
+        for k, row in enumerate(rows):
+            if k >= 2 and float(row[0]) > end:
+                break
+            writer.writerow([row[c] for c in columns])
+
+
+def extract_lab_sample(archive_dir: Path, out_dir: Path) -> list[Path]:
+    """Write the lab's part of the committed sample from the extracted archive.
+
+    As ``extract_sample``: the two header rows and the rows with time <=
+    ``LAB_END``, cell text unchanged.
+    """
+    archive_dir, out_dir = Path(archive_dir), Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    written = []
+    rows = _rows(archive_dir / "Exp/dataset" / EXPERIMENT)
+    for gauge in GAUGES:
+        if gauge == GAUGE:
+            continue
+        target = out_dir / lab_sample_name(EXPERIMENT, gauge)
+        columns = [0, *range(1 + (gauge - 1) * 7, 8 + (gauge - 1) * 7)]
+        _copy_rows(rows, target, columns, LAB_END)
+        written.append(target)
+    for folder, name in MODELS.values():
+        target = out_dir / lab_sample_name(name)
+        source = _rows(archive_dir / folder / "dataset" / name)
+        _copy_rows(source, target, [0, *GAUGES], LAB_END)
+        written.append(target)
+    return written
+
+
+def load_lab(data_dir: Path) -> tuple[dict[int, Elevation], dict[str, Elevation]]:
+    """The experiment at every gauge, and each model with all its gauges."""
+    data_dir = Path(data_dir)
+    experiment = {}
+    for gauge in GAUGES:
+        name = sample_name(EXPERIMENT) if gauge == GAUGE else None
+        experiment[gauge] = read_elevation(
+            data_dir / (name or lab_sample_name(EXPERIMENT, gauge))
+        )
+    models = {k: read_elevation(data_dir / f) for k, (_, f) in MODELS.items()}
+    return experiment, models
+
+
 def load(data_dir: Path) -> tuple[Elevation, dict[str, Elevation]]:
     data_dir = Path(data_dir)
     experiment = read_elevation(data_dir / sample_name(EXPERIMENT))

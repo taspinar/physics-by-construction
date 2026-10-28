@@ -372,7 +372,7 @@ excerpt(experiment.analyse)
 excerpt(experiment.primary_fit)
 ```
 
-::: {#waveform-comparator data-widget="waveform-comparator" data-enhancement="" data-ondemand="index_files/figure-html/chirp-masses.json"}
+::: {#waveform-comparator data-widget="waveform-comparator" data-enhancement="" data-ondemand="index_files/figure-html/chirp-masses.json" data-load-label="Compare other chirp masses" data-load-failed="The figure above shows the best fit."}
 
 ```{python}
 #| echo: false

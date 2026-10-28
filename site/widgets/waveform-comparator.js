@@ -10,11 +10,13 @@
 // changes, smooths, or resamples a value. It enhances the static figure in
 // the page: after loading it replaces that image and uses the reserved
 // controls slot. It uses no storage and does not animate; the static figure
-// is the keyframe of every state it can show.
+// is the keyframe of every state it can show. Every word it shows about the
+// data (the button, the legend, the metrics and their digits, the slider)
+// comes from the file, so that one component serves every lab.
 // Convention: docs/authoring.md, "Widgets".
 
 const SVG_NS = "http://www.w3.org/2000/svg";
-const SCHEMA = "waveform-comparison-1";
+const SCHEMA = "waveform-comparison-2";
 
 // The drawing is 640 x 520 units, as the static figure's proportions allow.
 const WIDTH = 640;
@@ -50,13 +52,17 @@ function scale(domainLow, domainHigh, rangeLow, rangeHigh) {
     rangeLow + ((value - domainLow) / (domainHigh - domainLow)) * (rangeHigh - rangeLow);
 }
 
-// Numbers are written the same way in every browser language.
-const METRICS = [
-  ["chi2", "Chi-square of the fit window, H1 and L1 combined", (v) => v.toFixed(1)],
-  ["reduced_chi2", "Chi-square per sample, H1 and L1 combined", (v) => v.toFixed(3)],
-  ["rms_residual", "Root-mean-square residual, H1 and L1 combined (whitened units)", (v) => v.toFixed(4)],
-  ["correlation", "Correlation of data and model, H1 and L1 combined", (v) => v.toFixed(4)],
-];
+// Numbers are written the same way in every browser language: a metric with
+// the number of decimals the file gives it.
+function metricFormat(decimals) {
+  return (v) => v.toFixed(decimals);
+}
+
+// The parameter with its unit, as a label: "chirp mass (solar masses)", or
+// the name alone when it has no unit.
+function withUnit(parameter) {
+  return parameter.unit ? `${parameter.name} (${parameter.unit})` : parameter.name;
+}
 
 function niceTicks(low, high) {
   const span = high - low;
@@ -84,6 +90,7 @@ class WaveformComparator {
       throw new Error("the data is not on the site's own origin");
     }
     this.selected = 0;
+    this.loadLabel = root.dataset.loadLabel || "Compare the models";
     this.fallback = Array.from(this.slot.childNodes);
   }
 
@@ -93,7 +100,7 @@ class WaveformComparator {
     this.button = html(
       "button",
       { type: "button", id: `${this.id}-load`, "data-loads-ondemand": "" },
-      "Compare other chirp masses",
+      this.loadLabel,
     );
     this.button.addEventListener("click", () => this.load());
     this.slot.replaceChildren(
@@ -115,7 +122,7 @@ class WaveformComparator {
     } catch (error) {
       console.error("waveform comparator data not loaded:", error);
       this.status.textContent =
-        "The data could not be loaded. The figure above shows the best fit.";
+        `The data could not be loaded. ${this.root.dataset.loadFailed || "The figure above stays as it is."}`;
       this.button.disabled = false;
       return;
     }
@@ -124,11 +131,14 @@ class WaveformComparator {
 
   build() {
     const { data } = this;
+    this.metrics = data.metrics.map(([key, label, decimals]) => [key, label, metricFormat(decimals)]);
+    this.details = data.details ?? [];
+    this.hasBest = data.best_parameter !== null && data.best_parameter !== undefined;
     this.best = Math.max(
       0,
       data.models.findIndex((m) => m.parameter === data.best_parameter),
     );
-    this.selected = this.best;
+    this.selected = this.hasBest ? this.best : 0;
     const t = data.time;
     this.t0 = t[0];
     this.t1 = t[t.length - 1];
@@ -139,8 +149,7 @@ class WaveformComparator {
     this.drawing = svg("svg", {
       viewBox: `0 0 ${WIDTH} ${HEIGHT}`,
       role: "img",
-      "aria-label":
-        `The ${data.quantity} of detector ${data.detector} against time, with the model for the chosen ${data.parameter.name}, and the residuals below.`,
+      "aria-label": data.labels.description,
       "aria-describedby": `${this.id}-readout`,
       class: `widget-drawing ${this.image.getAttribute("class") ?? ""}`.trim(),
     });
@@ -182,16 +191,16 @@ class WaveformComparator {
     const sliderRow = html(
       "div",
       { class: "widget-slider" },
-      html("label", { for: sliderId }, `Trial ${data.parameter.name} (${data.parameter.unit}): `, this.parameterLabel),
+      html("label", { for: sliderId }, `${data.labels.slider} ${withUnit(data.parameter)}: `, this.parameterLabel),
       this.slider,
     );
 
     this.readout = html("dl", { id: `${this.id}-readout`, class: "widget-readout", "aria-live": "polite" });
     this.values = {};
     const rows = [
-      ["best", "Is this the best fit of the page?"],
-      ["coalescence_time", "Coalescence time of this model (s)"],
-      ...METRICS.map(([key, label]) => [key, label]),
+      ...(this.hasBest ? [["best", "Is this the best fit of the page?"]] : []),
+      ...this.details,
+      ...this.metrics.map(([key, label]) => [key, label]),
     ];
     for (const [key, label] of rows) {
       const output = html("output", { "data-quantity": key });
@@ -227,12 +236,12 @@ class WaveformComparator {
     const { data } = this;
     const m = this.model();
     const lines = [
-      `# ${data.quantity} of detector ${data.detector}, measured and model`,
-      `# ${data.parameter.name} (${data.parameter.unit}): ${m.parameter}`,
-      `# coalescence time (s): ${m.coalescence_time}`,
-      ...METRICS.map(([key, label]) => `# ${label}: ${m.metrics[key]}`),
-      `# fit window (s): ${data.window[0]} to ${data.window[1]}`,
-      `# noise standard deviation: ${data.sigma}`,
+      `# ${data.labels.title}`,
+      `# ${withUnit(data.parameter)}: ${m.parameter}`,
+      ...this.details.map(([key, , exported]) => `# ${exported}: ${m[key]}`),
+      ...this.metrics.map(([key, label]) => `# ${label}: ${m.metrics[key]}`),
+      `# ${data.labels.window} (s): ${data.window[0]} to ${data.window[1]}`,
+      ...(data.labels.notes ?? []).map((note) => `# ${note}`),
       ["time (s)", "measured", "model", "residual"].join("\t"),
     ];
     data.time.forEach((time, i) => {
@@ -255,17 +264,20 @@ class WaveformComparator {
     if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);
     this.objectUrl = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
     this.download.setAttribute("href", this.objectUrl);
-    this.download.setAttribute("download", `${this.id}-${this.model().parameter}.txt`);
+    const name = String(this.model().parameter).toLowerCase().replace(/[^a-z0-9.]+/g, "-");
+    this.download.setAttribute("download", `${this.id}-${name}.txt`);
   }
 
   render() {
     const { data } = this;
     const m = this.model();
     this.parameterLabel.textContent = String(m.parameter);
-    this.slider.setAttribute("aria-valuetext", `${m.parameter} ${data.parameter.unit}`);
-    this.values.best.textContent = this.selected === this.best ? "yes" : "no";
-    this.values.coalescence_time.textContent = String(m.coalescence_time);
-    for (const [key, , format] of METRICS) {
+    this.slider.setAttribute("aria-valuetext", `${m.parameter} ${data.parameter.unit}`.trim());
+    if (this.hasBest) this.values.best.textContent = this.selected === this.best ? "yes" : "no";
+    for (const [key] of this.details) {
+      this.values[key].textContent = String(m[key]);
+    }
+    for (const [key, , format] of this.metrics) {
       this.values[key].textContent = format(m.metrics[key]);
     }
     this.root.dataset.parameter = String(m.parameter);
@@ -336,9 +348,9 @@ class WaveformComparator {
     // Legend inside the upper panel.
     layer.append(
       svg("line", { x1: LEFT + 12, x2: LEFT + 44, y1: TOP_PANEL.top + 14, y2: TOP_PANEL.top + 14, stroke: MEASURED_COLOR, "stroke-width": "1.5" }),
-      svg("text", { ...text, x: LEFT + 50, y: TOP_PANEL.top + 19 }, "measured, whitened"),
+      svg("text", { ...text, x: LEFT + 50, y: TOP_PANEL.top + 19 }, data.labels.measured),
       svg("line", { x1: LEFT + 12, x2: LEFT + 44, y1: TOP_PANEL.top + 36, y2: TOP_PANEL.top + 36, stroke: MODEL_COLOR, "stroke-width": "2.2", "stroke-dasharray": "7 4" }),
-      svg("text", { ...text, x: LEFT + 50, y: TOP_PANEL.top + 41 }, `model, ${data.parameter.name} ${m.parameter}`),
+      svg("text", { ...text, x: LEFT + 50, y: TOP_PANEL.top + 41 }, `${data.labels.model}${m.parameter}`),
     );
     this.plot.replaceWith(layer);
     this.plot = layer;
