@@ -446,7 +446,7 @@ def draw_records(experiment_data, rows) -> Figure:
     standard uncertainty, the arrival, and the analysis window."""
     shown = (1, 9, 13)
     fig, axes = plt.subplots(
-        len(shown), 1, figsize=(6.4, 4.2), sharex=True, constrained_layout=True
+        len(shown), 1, figsize=(5.4, 3.9), sharex=True, constrained_layout=True
     )
     for row, (ax, gauge) in enumerate(zip(axes, shown, strict=True)):
         series = measured_elevation(experiment_data[gauge], gauge)
@@ -475,7 +475,7 @@ def draw_records(experiment_data, rows) -> Figure:
         )  # fmt: skip
         ax.set_ylabel("η [mm]")
         ax.set_title(f"gauge {gauge}, x = {GAUGE_X[gauge]:.2f} m", fontsize=9)
-    axes[0].legend(fontsize=7, ncols=4, loc="lower center", bbox_to_anchor=(0.5, 1.25))
+    axes[0].legend(fontsize=7, ncols=2, loc="lower center", bbox_to_anchor=(0.5, 1.35))
     axes[-1].set_xlabel("time [s]")
     label_status(fig, "processed")
     add_credit(fig, CREDIT)
@@ -486,7 +486,7 @@ def draw_arrival(x, arrival, fits) -> Figure:
     """The arrival of the front against position, with the three travel
     times, and the residuals."""
     fig, (top, bottom) = plt.subplots(
-        2, 1, figsize=(6.4, 4.6), sharex=True, constrained_layout=True,
+        2, 1, figsize=(5.4, 4.2), sharex=True, constrained_layout=True,
         gridspec_kw={"height_ratios": [2, 1]},
     )  # fmt: skip
     top.plot(x, arrival, "o", color=COLOURS[0], label="measured arrival [processed]")
@@ -505,13 +505,14 @@ def draw_arrival(x, arrival, fits) -> Figure:
         )  # fmt: skip
     bottom.axhline(0, color="0.5", lw=0.8)
     top.set_ylabel("time [s]")
+    top.set_ylim(top=19)  # room for the legend above the arrivals
     top.set_title("Arrival of the front (half its final RMS) and three travel times")
-    top.legend(fontsize=8)
+    top.legend(fontsize=7, loc="upper left")
     bottom.set_ylabel("residual [s]")
     bottom.set_xlabel("position along the flume [m]")
     bottom.set_title("Residual: measured minus travel time and its best offset")
     bottom.set_ylim(-1.6, 3.2)
-    bottom.legend(fontsize=6.5, loc="upper left", ncols=3)
+    bottom.legend(fontsize=6.5, loc="upper left", ncols=2)
     label_status(fig, "processed")
     add_credit(fig, CREDIT)
     return fig
@@ -576,14 +577,14 @@ def draw_waveform(measured, predictions) -> Figure:
     """Gauge 5, measured, against the two predictions from gauge 1, with the
     residuals. The solvers are in the comparator and its table."""
     fig, (top, bottom) = measured_vs_model(
-        measured, predictions, window=STEADY, figsize=(6.4, 5.4)
+        measured, predictions, window=STEADY, figsize=(5.8, 4.8)
     )
     top.set_title(
         f"Gauge {TO_GAUGE}: measured mean (solid), predictions from gauge "
         f"{FROM_GAUGE} (dashed)"
     )
     top.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.1))
-    bottom.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.3))
+    bottom.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.48))
     add_credit(fig, CREDIT)
     return fig
 

@@ -107,7 +107,11 @@ claim's evidence), the records show three gauges instead of five, the
 waveform comparison uses four periods and its static figure the two linear
 predictions only (the solvers are in the comparator and in a table of every
 model's metrics), and the canvases are smaller: 0.69 MB of figures, about
-2.8 MB for the page. A unit test keeps the figures under 0.75 MB.
+2.8 MB for the page. A unit test keeps the figures under 0.75 MB. The CI
+runner writes the same PNGs about 14 % larger than macOS (778 kB, over the
+limit), so the records, arrival and waveform canvases were made smaller
+again, with their legends rearranged: 0.62 MB on macOS. The phase figure
+keeps its size; its labels need it.
 
 Scientific validation: every figure shows quantities that the lesson's
 checks or its unit tests assert. Accessible fallback: alt text, the tables
