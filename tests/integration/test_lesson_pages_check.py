@@ -157,6 +157,11 @@ def loose_objects(root: Path) -> list[Path]:
 def test_the_fixture_commit_leaves_its_loose_objects_in_place(tmp_path, options):
     # A repository over the automatic-gc threshold: gc.auto=1 asks for a gc
     # when the sampled object directory holds more than one loose object.
+    # A commit starts the automatic maintenance, whose default strategy since
+    # git 2.55 repacks by its own threshold (maintenance.geometric-repack.auto,
+    # 100 in 2.55 and 6700 from 2.56, above these objects) and not by gc.auto
+    # (#316); maintenance.strategy=gc makes it the gc of gc.auto on every
+    # version. Older versions read no strategy for it and run the gc anyway.
     root = tmp_path / "repo"
     root.mkdir()
     for n in range(2000):
@@ -164,10 +169,12 @@ def test_the_fixture_commit_leaves_its_loose_objects_in_place(tmp_path, options)
     git = ["git", *IDENTITY, "-C", root]
     subprocess.run([*git, "init", "-q", "-b", "main"], check=True)
     subprocess.run([*git, "config", "gc.auto", "1"], check=True)
+    subprocess.run([*git, "config", "maintenance.strategy", "gc"], check=True)
     subprocess.run([*git, "config", "gc.autoDetach", "false"], check=True)
+    subprocess.run([*git, "config", "maintenance.autoDetach", "false"], check=True)
     subprocess.run([*git, "add", "-A"], check=True)
     before = loose_objects(root)
-    # The repository's own gc.autoDetach=false makes the plain commit's gc
+    # The repository's own autoDetach=false makes the plain commit's gc
     # finish before it returns, so the control needs no wait.
     subprocess.run([*git, *options, "commit", "-qm", "c"], check=True)
     after = loose_objects(root)
