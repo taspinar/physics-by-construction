@@ -1201,17 +1201,20 @@ def test_payload_over_the_budget_is_reported(make_site: Site, browser: Browser):
     ("page_size", "reported"),
     [
         (3_500_000 - 1_000, set()),
+        (4_022_544 - 1_000, set()),
         (site_checks.PATH_PAGE_BUDGET - 1_000, set()),
         (site_checks.PATH_PAGE_BUDGET - 999, {"payload"}),
-        (4_500_000, {"payload"}),
+        (5_000_000, {"payload"}),
     ],
-    ids=["over 3 MB", "at 4 MB", "one byte over", "well over"],
+    ids=["over 3 MB", "over 4 MB", "at 4.5 MB", "one byte over", "well over"],
 )
-def test_the_path_page_with_its_previews_has_a_budget_of_4_mb(
+def test_the_path_page_with_its_previews_has_a_budget_of_4_5_mb(
     tmp_path: Path, page_size: int, reported: set[str]
 ):
-    # The owner's decision of 2026-10-23 (Issue #264): the learning path page
-    # with its previews may load 4 MB; every other page keeps 3 MB.
+    # The owner's decision of 2026-10-28 (Issue #318): the learning path page
+    # with its previews may load 4.5 MB, temporarily (4 MB from Issue #264);
+    # every other page keeps 3 MB. The page with its previews measured
+    # 4,022,544 bytes at 75 lessons.
     preview_dir = tmp_path / "previews"
     preview_dir.mkdir()
     (preview_dir / "lesson.svg").write_bytes(b"x" * 1_000)
@@ -1219,7 +1222,7 @@ def test_the_path_page_with_its_previews_has_a_budget_of_4_mb(
 
     violations = site_checks.check_path_payload_with_previews(sizes, tmp_path)
 
-    assert site_checks.PATH_PAGE_BUDGET == 4_000_000
+    assert site_checks.PATH_PAGE_BUDGET == 4_500_000
     assert site_checks.PAYLOAD_BUDGET == 3_000_000
     assert rules(violations, page="path/index.html") == reported
 
