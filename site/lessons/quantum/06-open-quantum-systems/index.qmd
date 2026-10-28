@@ -1,0 +1,529 @@
+---
+title: "Open quantum systems and decoherence"
+description: >-
+  A qubit that loses energy and phase to its environment, described by a
+  density matrix and the Lindblad master equation: Ramsey fringes that fade
+  against the closed form, three integrators judged by whether they keep the
+  trace and the positivity of the state, and their orders of convergence.
+lesson:
+  id: open-quantum-systems
+  strand: quantum
+  order: 6
+  difficulty: 3
+  course: quantum
+  slot: Q6
+  methods: [simulation]
+  outcomes:
+    - Describe a mixed state by its density matrix and read off its populations, coherences, purity, and Bloch vector
+    - Write the Lindblad master equation of a qubit with decay and dephasing and derive its relaxation times
+    - Check an integrator of the master equation for the trace and the positivity of the density matrix, and use the Choi matrix to decide whether a step is completely positive
+    - Measure the order of convergence of explicit Euler and the classical Runge-Kutta method on the master equation, and explain why the exponential integrator is exact
+  related: []
+  format: 2
+  preview: fig-ramsey
+  experiment: pbc.quantum.experiments.open_quantum_systems
+  prerequisites:
+    lessons: [spin-and-stern-gerlach, quantum-entanglement]
+    outside:
+      - "Linear algebra: the eigenvalues of a Hermitian matrix, the trace, and the exponential of a matrix"
+      - "Calculus: first-order linear differential equations and exponential decay"
+      - "Numerical methods: explicit Euler and the classical fourth-order Runge-Kutta method, and the order of a method"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.quantum import open_systems
+from pbc.quantum.experiments import open_quantum_systems as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A qubit in a quantum computer, an atom in a clock, a spin in a magnetic
+resonance scanner: each is put into a superposition, left alone for a while,
+and measured. Left alone is never quite alone. The system exchanges energy
+with its surroundings and picks up random phase shifts from fields that
+nobody records, and the interference that made it quantum fades. After long
+enough the superposition behaves like a coin that was already heads or
+tails before anyone looked. This loss of coherence is **decoherence**, and
+how fast it happens sets how long a quantum device can compute or a clock
+can count.
+
+A state that has lost coherence is no longer one vector: it is a mixture of
+vectors with probabilities. This lesson describes it by a **density
+matrix**, writes the equation the matrix obeys when the environment is
+forgotten, the **Lindblad master equation**, and integrates that equation
+for a qubit. A density matrix has two properties every solution must keep:
+its trace is one, and it has no negative eigenvalue. The examples check
+three integrators for both, and only one keeps them at every step size.
+
+## Assumptions
+
+1. **A qubit with two processes.** **Decay** at the rate $\gamma$ takes the
+   excited state to the ground state, as an atom emits a photon; **pure
+   dephasing** at the rate $\gamma_\phi$ randomises the relative phase of
+   the two states without exchanging energy.
+2. **A memoryless environment.** The environment forgets each interaction
+   faster than anything the qubit does: the Markov approximation behind the
+   Lindblad equation. Its effect is a constant rate, not a history.
+3. **Units with $\hbar = 1$ and the detuning $\Delta = 1$.** The qubit is
+   described in the frame of the drive that prepared it, where its phase
+   turns at the detuning; times are in units of $1/\Delta$. The rates of the
+   examples are given: $\gamma$ = [0.05]{.given} and $\gamma_\phi$ =
+   [0.1]{.given}.
+4. **Zero temperature.** The environment takes energy and never gives it
+   back, so the qubit relaxes to its ground state.
+
+## Density matrices and the master equation {#explanation}
+
+### The density matrix
+
+A system in the pure state $|\psi\rangle$ has the **density matrix**
+$\rho = |\psi\rangle\langle\psi|$. A system that is in $|\psi_k\rangle$
+with the probability $p_k$, for reasons nobody tracks, has
+
+$$
+\rho = \sum_k p_k |\psi_k\rangle\langle\psi_k| .
+$$
+
+Every prediction follows from $\rho$: the mean of an observable $A$ is
+$\operatorname{tr}(\rho A)$ and the probability of an outcome is
+$\operatorname{tr}(\rho P)$. Three properties make a matrix a density
+matrix: it is Hermitian, its **trace** is one (the probabilities add up),
+and it is **positive**, with no negative eigenvalue (no outcome has a
+negative probability). Its **purity** $\operatorname{tr}\rho^2$ is one for
+a pure state and smaller for a mixture.
+
+For a qubit in the basis $(|e\rangle, |g\rangle)$, excited and ground,
+
+$$
+\rho = \begin{pmatrix} \rho_{ee} & \rho_{eg} \\ \rho_{ge} & \rho_{gg}\end{pmatrix}
+= \tfrac12\bigl(\mathbb 1 + x\sigma_x + y\sigma_y + z\sigma_z\bigr).
+$$
+
+The diagonal holds the **populations**; the off-diagonal **coherence**
+$\rho_{eg}$ carries the phase between the two states, which interference
+needs. The **Bloch vector** $(x, y, z)$ of the spin lesson describes every
+qubit state: its eigenvalues are $(1 \pm r)/2$ with $r$ its length, so
+$\rho$ is positive exactly when the vector lies in the unit ball, pure on
+its surface and fully mixed at its centre.
+
+A mixed state also appears without any noise. One spin of the singlet,
+looked at alone, is described by the **partial trace** of the pair's
+density matrix over the other spin; an exercise shows that it is fully
+mixed. Entanglement with something unobserved is what decoherence is.
+
+### The Lindblad equation
+
+An isolated system obeys $\dot\rho = -\mathrm{i}[H, \rho]$, which keeps a
+pure state pure. For a memoryless environment the most general equation
+that keeps $\rho$ a density matrix at all times is the **Lindblad
+equation**
+
+$$
+\frac{\mathrm d\rho}{\mathrm dt} = -\mathrm{i}[H,\rho]
++ \sum_k \Bigl(L_k\rho L_k^\dagger - \tfrac12\{L_k^\dagger L_k, \rho\}\Bigr),
+$$
+
+with one **jump operator** $L_k$ per process. For the qubit,
+$H = \tfrac{\Delta}{2}\sigma_z$, decay is $L = \sqrt\gamma\,\sigma_-$ with
+$\sigma_- = |g\rangle\langle e|$, and dephasing is
+$L = \sqrt{\gamma_\phi/2}\,\sigma_z$. Working the products out entry by
+entry gives
+
+$$
+\rho_{ee}(t) = \rho_{ee}(0)\,e^{-\gamma t},
+\qquad
+\rho_{eg}(t) = \rho_{eg}(0)\,e^{-\mathrm{i}\Delta t}\,e^{-t/T_2},
+\qquad
+\frac{1}{T_2} = \frac{\gamma}{2} + \gamma_\phi .
+$$
+
+The population relaxes with $T_1 = 1/\gamma$ and the coherence with $T_2$,
+which is never longer than $2T_1$: losing energy also loses phase.
+
+### Ramsey fringes
+
+A Ramsey experiment puts the qubit along $+x$, waits a time $t$, and
+measures along $x$. The probability of $+1$ is
+$(1 + \langle\sigma_x\rangle)/2 = \tfrac12\bigl(1 + e^{-t/T_2}\cos\Delta t\bigr)$:
+fringes at the detuning inside an envelope that decays with $T_2$. An
+isolated qubit would oscillate between zero and one for ever.
+
+### Integrators as matrices
+
+The Lindblad equation is linear in $\rho$. Stacking the four entries of
+$\rho$ into a vector turns it into $\dot{\mathbf r} = G\mathbf r$, with a
+$4\times4$ **generator** $G$. Every integrator of this lesson is then a
+matrix $M$ that advances one step:
+
+- **explicit Euler**, $M = 1 + \Delta t\,G$, of order one;
+- **the classical Runge-Kutta method**, the Taylor polynomial of
+  $e^{\Delta t\,G}$ up to the fourth power of $\Delta t\,G$, of order four;
+- **the exponential integrator**, $M = e^{\Delta t\,G}$, exact for a
+  constant $G$.
+
+The trace of $G\mathbf r$ is zero for every $\rho$, since the trace of a
+commutator and of each dissipator term vanishes. Each of the three steps is
+the identity plus powers of $G$, so each keeps the trace exactly, up to
+round-off. Positivity is different. The exponential step is the exact
+solution over $\Delta t$, which is positive for any step; the two
+polynomials only approximate it, and a large step can carry the Bloch
+vector out of the ball.
+
+### Positive and completely positive
+
+A step must keep $\rho$ positive even when the qubit is half of an
+entangled pair whose other half is left alone; this stronger property is
+**complete positivity**. It is decided by one matrix, the **Choi matrix**
+$\sum_{kl} |k\rangle\langle l| \otimes M(|k\rangle\langle l|)$: the step
+is completely positive exactly when the Choi matrix has no negative
+eigenvalue. The exponential of a Lindblad generator always passes; the
+examples compute the Choi matrix of every step.
+
+## Code
+
+The generator of the Lindblad equation, the three steps, and the Choi
+matrix:
+
+```{python}
+#| echo: false
+excerpt(open_systems.generator)
+```
+
+```{python}
+#| echo: false
+excerpt(open_systems.rk4_step)
+```
+
+```{python}
+#| echo: false
+excerpt(open_systems.exponential_step)
+```
+
+```{python}
+#| echo: false
+excerpt(open_systems.choi)
+```
+
+The closed form the results are checked against:
+
+```{python}
+#| echo: false
+excerpt(open_systems.exact_qubit)
+```
+
+## Worked examples
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+### Fading fringes
+
+The qubit starts along $+x$ and is advanced by the exponential integrator.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="ramsey")
+```
+
+```{python}
+#| label: ramsey-run
+#| echo: false
+excerpt(experiment.ramsey_run)
+```
+
+```{python}
+#| label: ramsey-table
+#| echo: false
+result.table("ramsey")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_ramsey)
+```
+
+```{python}
+#| label: fig-ramsey
+#| echo: false
+#| fig-cap: "The probability of +1 along x oscillates at the detuning inside an envelope that decays with T2, and settles at one half; the integrated master equation lies on the closed form, while an isolated qubit would keep its full fringes."
+#| fig-alt: "Plot of the probability of the outcome plus one along x against time. A thin grey curve oscillates between zero and one with constant amplitude. A thick solid curve starts at one and oscillates at the same frequency with an amplitude that shrinks until it settles at one half; open circles of the closed form lie on it. A dotted curve above it marks the decaying upper envelope."
+#| fig-status: simulated
+result.show("fig-ramsey")
+```
+
+[The density matrix advanced by the exponential integrator agrees with the
+closed-form solution of the Lindblad equation to round-off, fringes,
+populations, and purity included.]{.claim type="numerically-verified"
+scope="the qubit with the given detuning and rates, started along +x, step 0.1, to t = 40"
+evidence="ramsey-run ramsey-table fig-ramsey"}
+With these rates $T_1$ is `{python} result["t1"]` and
+$T_2$ is `{python} result["t2"]`, and the largest difference from the
+closed form over the run is `{python} result["ramsey-gap"]`. The purity
+first falls, as dephasing mixes the state, and later rises again: the decay
+drives the qubit into its ground state, which is pure. Decoherence is not
+only mixing; it is the loss of the coherence $\rho_{eg}$, wherever the
+populations go.
+
+### Trace and positivity
+
+Each integrator advances the same qubit to $t = 60$ at two step sizes. The
+step [0.5]{.given} is coarse but still within the stability region of the
+Runge-Kutta method; [3]{.given} is far outside it.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="integrators")
+```
+
+```{python}
+#| label: integrators-run
+#| echo: false
+excerpt(experiment.integrators_run)
+```
+
+```{python}
+#| label: integrators
+#| echo: false
+result.table("integrators")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_lengths)
+```
+
+```{python}
+#| label: fig-bloch-length
+#| echo: false
+#| fig-cap: "At the coarse step explicit Euler carries the Bloch vector out of the unit ball and its length grows without bound, so the state stops being positive; the Runge-Kutta and exponential steps stay inside and coincide at this scale."
+#| fig-alt: "Plot of the length of the Bloch vector against time, with a logarithmic vertical axis and a horizontal line at one marking the surface of the Bloch ball. A solid line with circles rises from one in a straight line on the logarithmic scale, far above the surface. A dashed line with squares and a dotted line with triangles lie on top of each other: they dip below one and climb back towards it."
+#| fig-status: simulated
+result.show("fig-bloch-length")
+```
+
+::: {.claim type="numerically-verified" scope="the qubit of the examples to t = 60, steps 0.5 and 3" evidence="integrators-run integrators fig-bloch-length"}
+All three integrators keep the trace of $\rho$ at one to round-off at both
+steps. Only the exponential integrator keeps $\rho$ positive at both steps,
+and its step is completely positive, its Choi matrix having no negative
+eigenvalue beyond round-off. Explicit Euler loses positivity at the coarse
+step, and the classical Runge-Kutta method keeps it there but loses it far
+outside its stability region.
+:::
+
+The table explains the figure. Per Euler step the coherence is multiplied
+by $1 - (1/T_2 + \mathrm{i}\Delta)\Delta t$, whose size here is
+`{python} result["euler-growth"]`: above one, so the coherence grows
+geometrically and the Bloch vector leaves the ball within the first steps. Its
+Choi matrix has a negative eigenvalue: Euler's step is not completely
+positive at this size. The trace stays one throughout, because it is
+built into every step; a check of the trace alone would not have caught
+the failure. The Runge-Kutta method is positive at the coarse step only
+because the step is small enough for its stability region; far outside it,
+its Bloch vector grows as Euler's does. The exponential step is exact, so
+it is positive at any step size.
+
+### Orders of convergence
+
+The step is halved four times, and the error of $\rho$ at $t = 10$ is
+measured against the closed form.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="convergence")
+```
+
+```{python}
+#| label: convergence-run
+#| echo: false
+excerpt(experiment.convergence_run)
+```
+
+```{python}
+#| label: convergence
+#| echo: false
+result.table("convergence")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_convergence)
+```
+
+```{python}
+#| label: fig-convergence
+#| echo: false
+#| fig-cap: "Explicit Euler converges at first order and the classical Runge-Kutta method at fourth order; the exponential integrator, exact for a constant generator, is at round-off for every step and is not drawn."
+#| fig-alt: "Log-log plot of the error of the density matrix against the step. Circles for explicit Euler fall gently, parallel to a dotted reference line labelled slope one. Squares for the Runge-Kutta method fall steeply, parallel to a dotted reference line labelled slope four, many orders of magnitude below the circles."
+#| fig-status: simulated
+result.show("fig-convergence")
+```
+
+[Explicit Euler converges to the closed form at order one and the classical
+Runge-Kutta method at order four; the exponential integrator is exact to
+round-off at every step.]{.claim type="numerically-verified"
+scope="the qubit of the examples, t = 10, steps 0.1 to 0.00625"
+evidence="convergence-run convergence fig-convergence"}
+The fitted orders are `{python} result["order-euler"]` and
+`{python} result["order-rk4"]`. Euler's is slightly above one because its
+coarsest steps are not yet in the asymptotic range. The dotted reference
+lines are drawn for comparison, not fitted. The exact
+integrator is a luxury of a constant generator; with a time-dependent drive
+or environment it becomes one splitting method among others, with an order
+of its own.
+
+## Limits {#limits}
+
+- **Markovian and at zero temperature.** The Lindblad equation assumes an
+  environment without memory. A slow environment, such as the low-frequency
+  noise that dominates many solid-state qubits, needs other models, and its
+  dephasing is not a single exponential.
+- **Rates are given, not derived.** The lesson takes $\gamma$ and
+  $\gamma_\phi$ as inputs. Deriving them from a model of the environment is
+  the Born-Markov derivation, which this lesson does not reproduce.
+- **One qubit and a constant generator.** For a constant $G$ the exponential
+  step is the exact solution, so it is the reference; with a time-dependent
+  Hamiltonian it is no longer exact, and a large system cannot afford the
+  matrix exponential of its generator.
+- **Positivity is checked, not proved, for the polynomial steps.** The table
+  shows where Euler and the Runge-Kutta method fail for this qubit and these
+  steps; it is not a general rule for their safe step sizes.
+
+::: {.exercise .self-check}
+A program integrates the master equation with explicit Euler and checks at
+every step that the trace of $\rho$ is one. The check always passes. Is the
+solution a valid density matrix?
+
+::: {.choices}
+::: {.choice}
+Yes: a trace of one means the probabilities add up to one.
+
+::: {.feedback}
+The probabilities can add up to one while one of them is negative.
+:::
+:::
+
+::: {.choice correct="true"}
+Not necessarily: Euler keeps the trace for any step, but it can produce a
+negative eigenvalue, which the trace does not see.
+
+::: {.feedback}
+Correct: the coarse-step row of the table shows exactly this.
+:::
+:::
+
+::: {.choice}
+No: explicit Euler never produces a valid density matrix.
+
+::: {.feedback}
+It converges to the exact solution as the step shrinks, as the convergence
+example shows; the failure comes from a step that is too large.
+:::
+:::
+:::
+
+::: {.solution}
+The trace of the generator's output is zero for every $\rho$, so every step
+of the form identity plus powers of $G$ keeps the trace exactly. Positivity
+is a separate condition, on the eigenvalues, and has to be checked
+separately: for a qubit by the length of the Bloch vector, in general by the
+smallest eigenvalue, and for the step itself by its Choi matrix.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Dephasing from random kicks.** Two thousand qubits start along $+x$, and
+the relative phase of each takes independent random kicks, a random walk
+whose variance grows as $2\gamma_\phi t$. Each qubit stays in a pure state.
+Average the coherence over the qubits and compare it with
+$e^{-\gamma_\phi t}$.
+
+::: {.hint}
+The mean of $e^{-\mathrm{i}\phi}$ for a Gaussian $\phi$ with zero mean is
+the exponential of minus half its variance.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.phase_kicks)
+```
+
+The averaged coherence follows $e^{-\gamma_\phi t}$ everywhere within
+`{python} result["kick-worst"]` standard errors, and its imaginary part
+stays within `{python} result["kick-imaginary"]` of zero. No single qubit
+decoheres: each one is pure. The mixture, and the decay of the coherence,
+appear in the average over kicks that nobody records, which is what the
+dephasing term of the master equation describes.
+:::
+:::
+
+::: {.exercise}
+**Half of a singlet.** Take the singlet of the entanglement lesson and
+compute the state of one spin alone, by the partial trace, and its purity.
+
+::: {.hint}
+Trace over the second spin: sum the entries of the pair's density matrix
+whose indices of the second spin agree.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.half_of_a_singlet)
+```
+
+The state of one spin differs from the fully mixed state $\mathbb 1/2$ by
+`{python} result["singlet-gap"]`, with the purity
+`{python} result["purity-one"]`, while the pair's purity is
+`{python} result["purity-pair"]`. The pair is pure and each half is as
+mixed as a qubit can be: a qubit entangled with an environment that nobody
+measures looks, to itself, exactly like a decohered qubit.
+:::
+:::
+
+::: {.exercise}
+**The limit $T_2 = 2T_1$.** Switch off the dephasing and the detuning, and
+compute the size of the coherence at $t = T_1$ relative to its start.
+
+::: {.hint}
+Without dephasing the coherence decays at half the rate $\gamma$.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.pure_decay)
+```
+
+The ratio is `{python} result["decay-ratio"]` against
+$e^{-1/2}$, which is `{python} result["decay-expected"]`. With decay alone,
+$T_2 = 2T_1$: a qubit that loses its energy loses its phase at half the
+rate, and any extra dephasing only shortens $T_2$.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/quantum/open_systems.py",
+        "src/pbc/quantum/bell.py",
+        "src/pbc/quantum/spin.py",
+        "src/pbc/quantum/experiments/open_quantum_systems.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_quantum_spin.py",
+        "tests/unit/test_open_quantum_systems_experiment.py",
+    ],
+)
+```
