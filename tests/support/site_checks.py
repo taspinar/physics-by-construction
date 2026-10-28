@@ -1233,14 +1233,47 @@ _STORAGE_ENTRIES = (
 )
 
 
+# Quarto closes the results whenever the page scrolls, and typing into the
+# control scrolls it into view first: a scroll that lands after the results of
+# the query hides them for good (#306). The control is brought into view
+# before the query, and every scroll event is counted from then on.
+_BRING_SEARCH_INTO_VIEW = """input => {
+  if (!("__pbcScrolls" in window)) {
+    window.__pbcScrolls = 0;
+    addEventListener("scroll", () => window.__pbcScrolls++);
+  }
+  window.__pbcSeen = -1;
+  input.scrollIntoView({block: "nearest", behavior: "instant"});
+}"""
+# The page has settled when the control is in view and a whole frame has passed
+# without a scroll event: a browser dispatches the scroll events of a frame
+# before its animation frame callbacks, so a pending scroll, the one of the
+# control or another, has been handled by then. The scroll lands the control on
+# a fraction of a pixel, so the view is allowed a pixel either way.
+_SEARCH_IN_VIEW_AND_SETTLED = """selector => {
+  const box = document.querySelector(selector).getBoundingClientRect();
+  const settled = window.__pbcSeen === window.__pbcScrolls;
+  window.__pbcSeen = window.__pbcScrolls;
+  return settled && box.top > -1 && box.bottom < innerHeight + 1;
+}"""
+
+
 def search_results(page: Page, query: str) -> list[str]:
     """Type ``query`` into the search control of ``page`` and return the
     addresses of the results it lists, in their order; none when it lists
-    nothing within five seconds."""
+    nothing within the timeout of the page.
+
+    The results counted are those of this query: the list of an earlier one
+    is cleared first, and no scroll of the page closes the new one."""
+    page.locator(_SEARCH_INPUT).evaluate(_BRING_SEARCH_INTO_VIEW)
+    page.wait_for_function(
+        _SEARCH_IN_VIEW_AND_SETTLED, arg=_SEARCH_INPUT, polling="raf"
+    )
     page.fill(_SEARCH_INPUT, "")
+    page.wait_for_function("s => !document.querySelector(s)", arg=_SEARCH_RESULTS)
     page.fill(_SEARCH_INPUT, query)
     try:
-        page.wait_for_selector(_SEARCH_RESULTS, timeout=5000)
+        page.wait_for_selector(_SEARCH_RESULTS)
     except Exception:
         return []
     return [
