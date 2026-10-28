@@ -1,0 +1,532 @@
+---
+title: "Gravitational lensing"
+description: >-
+  Light bent by a mass: the exact deflection of the photon orbit checked
+  against the weak-field formula and its next term, the images and the
+  magnification of a point lens by inverse ray shooting, and three lenses of
+  different mass that give the same light curve.
+lesson:
+  id: gravitational-lensing
+  strand: astrophysics
+  order: 3
+  difficulty: 3
+  course: astrophysics
+  slot: AST3
+  methods: [simulation]
+  outcomes:
+    - Compute the deflection of light by a spherical mass from the photon orbit, and check it against the weak-field formula and its next term
+    - Solve the lens equation of a point mass for its images and magnifications, and confirm them by inverse ray shooting
+    - Explain why a microlensing light curve determines a combination of mass, distance, and speed, and not the mass alone
+  related: []
+  format: 2
+  preview: fig-images
+  experiment: pbc.astrophysics.experiments.gravitational_lensing
+  prerequisites:
+    lessons: [kepler-orbit, modified-gravity]
+    outside:
+      - "Geometry: small angles, and the angle a length subtends at a distance"
+      - "Calculus: a definite integral with an integrable singularity at an end point, and a change of variable"
+---
+
+```{python}
+#| echo: false
+from pbc.astrophysics import lensing
+from pbc.astrophysics.experiments import gravitational_lensing as experiment
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+
+result = experiment.run()
+lesson_header()
+```
+
+A ray of light that passes the Sun is bent towards it by less than two
+arcseconds. [That small angle was one of the first tests of general
+relativity]{.not-verified}, because Newton's theory, treating light as fast
+particles, predicts half of it. The same bending makes every mass in the universe a
+lens: a star in front of a more distant star brightens it for a few weeks, a
+galaxy in front of a quasar splits it into several images, and a cluster of
+galaxies stretches the galaxies behind it into arcs.
+
+Lensing is used to weigh things that cannot otherwise be seen, which makes
+it important to know what it measures. This lesson computes the deflection
+exactly and checks the weak-field formula that astronomers use, builds the
+simplest lens, a point mass, and checks its images and magnifications by an
+independent computation, and then shows the limit of the method: a lensing
+light curve does not tell the mass of the lens on its own.
+
+## Assumptions
+
+1. **A spherical, static mass.** The deflection is that of the
+   Schwarzschild geometry, the outside of a spherical mass in general
+   relativity. The lesson takes the photon's orbit equation from that theory
+   and does not derive it.
+2. **Geometric units for the deflection.** With $G = c = 1$ the mass has the
+   length $m = GM/c^2$, about a kilometre and a half for the Sun, and the
+   impact parameter $b$ is measured in units of $m$.
+3. **A thin lens on a straight line of sight.** All the bending happens at
+   the lens, the angles are small, and the distances add along the line of
+   sight; the expansion of the universe, which changes how distances add
+   over cosmological scales, is left out.
+4. **A point lens and a uniform, circular source.** The lens is a point
+   mass; the source has a uniform brightness across its disk.
+5. **SI units for the scales.** The constants are those of `scipy.constants`,
+   with the Sun's mass parameter $GM_\odot$ and its nominal radius as given
+   in the setup of the experiment (`GM_SUN` and `R_SUN`).
+
+## Bending and lensing {#explanation}
+
+### The deflection
+
+In the Kepler lesson an orbit under the inverse square obeys a linear
+equation for $u = 1/r$ as a function of the angle. For a ray of light in the
+Schwarzschild geometry the corresponding equation has one extra term,
+
+$$
+\frac{\mathrm d^2u}{\mathrm d\varphi^2} + u = 3m u^2 .
+$$
+
+Without the right side the solution is a straight line, $u = \sin\varphi/b$,
+with impact parameter $b$. With it the ray comes in from $u = 0$, turns at
+its closest approach $r_0$, and leaves symmetrically. A first integral of the
+equation gives $(\mathrm du/\mathrm d\varphi)^2 = 1/b^2 - u^2(1 - 2mu)$, so
+the angle swept is twice the integral from $u = 0$ to $u_0 = 1/r_0$, and the
+**deflection** is its excess over $\pi$:
+
+$$
+\alpha = 2\int_0^{u_0}\frac{\mathrm du}{\sqrt{1/b^2 - u^2(1 - 2mu)}} - \pi .
+$$
+
+The integrand is infinite at the turning point, where the root vanishes. With
+$u = u_0 w$ and then $w = 1 - s^2$ the singularity cancels, and the
+integral becomes a smooth one over $s$ from zero to one, which Gauss-Legendre
+quadrature does accurately with a few dozen points; the unit tests compare it
+with the orbit equation integrated step by step.
+
+### The weak-field formula
+
+Far from the mass, $m/b$ is small, and an expansion of the integral in it
+gives
+
+$$
+\alpha = \frac{4m}{b} + \frac{15\pi}{4}\Bigl(\frac{m}{b}\Bigr)^2
++ O\Bigl(\frac{m}{b}\Bigr)^3 .
+$$
+
+In ordinary units the first term is $4GM/(c^2 b)$.
+
+The first term is the **weak-field formula**. A Newtonian particle that passes
+the mass at the speed of light follows a hyperbola and is turned by
+$2\arctan(m/b) \approx 2m/b$, half of it. Half of the relativistic bending
+comes from the curvature of space, which a Newtonian picture lacks.
+
+### The point lens
+
+Let a point mass at the distance $D_l$ lie close to the line of sight to a
+source at $D_s$. A ray seen at the small angle $\theta$ from the lens passes
+it at $b = D_l\theta$ and is bent by $4GM/(c^2 D_l \theta)$; by the time it
+reaches the source's distance it has moved sideways by that angle times
+$D_{ls} = D_s - D_l$. The source at the angle $\beta$ is seen at the angles
+$\theta$ that satisfy the **lens equation**
+
+$$
+\beta = \theta - \frac{\theta_E^2}{\theta},
+$$
+
+$$
+\theta_E = \sqrt{\frac{4GM}{c^2}\,\frac{D_{ls}}{D_l D_s}} ,
+$$
+
+where $\theta_E$ is the **Einstein radius**: a source exactly behind the lens
+appears as a ring of that radius. In units of $\theta_E$, a source at the
+offset $u = \beta/\theta_E$ has two images on the line through the lens,
+
+$$
+x_\pm = \frac{u \pm \sqrt{u^2 + 4}}{2},
+$$
+
+one outside the ring on the source's side and one inside it on the other
+side. A lens keeps the surface brightness of what it images and changes its
+area, so the **magnification** of an image is the ratio of its area to the
+source's. Adding the two gives
+
+$$
+A(u) = \frac{u^2 + 2}{u\sqrt{u^2 + 4}} ,
+$$
+
+which grows without bound as the source approaches the line of sight.
+
+### Ray shooting
+
+The images can be found without solving anything. Send a ray back from every
+cell of a grid on the sky, move it to the source plane with the lens equation,
+and keep the cells whose rays land on the source. Those cells *are* the
+images, and their total area over the area of the source is the
+magnification. For a source of finite size this is the average of $A$ over
+its disk, which is what the comparison uses.
+
+### What a light curve measures
+
+The Einstein radius of a star in the Galaxy is about a milliarcsecond, as an
+exercise computes, far too small for a telescope to separate the images. What is seen is the total
+brightness. As the lens moves across the line of sight with the speed $v$,
+the offset changes on the **Einstein time** $t_E = D_l\theta_E/v$, and the
+light curve is $A\bigl(\sqrt{u_0^2 + (t - t_0)^2/t_E^2}\bigr)$. The curve
+depends on $u_0$, $t_0$, and $t_E$ only, and $t_E$ mixes the mass, the two
+distances, and the speed.
+
+## Code
+
+The deflection by quadrature, and the weak-field formula:
+
+```{python}
+#| echo: false
+excerpt(lensing.deflection)
+```
+
+```{python}
+#| echo: false
+excerpt(lensing.weak_field_deflection)
+```
+
+The point lens: the lens equation, the images, and the magnification of a
+point source:
+
+```{python}
+#| echo: false
+excerpt(lensing.lens_map)
+```
+
+```{python}
+#| echo: false
+excerpt(lensing.image_positions)
+```
+
+```{python}
+#| echo: false
+excerpt(lensing.magnification)
+```
+
+Ray shooting, and the average of the magnification over a disk:
+
+```{python}
+#| echo: false
+excerpt(lensing.ray_shoot)
+```
+
+```{python}
+#| echo: false
+excerpt(lensing.disk_magnification)
+```
+
+## Worked examples
+
+### The deflection against the weak-field formula
+
+The exact deflection is computed for impact parameters from ten to a hundred
+thousand times $m$.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment, region="deflection")
+```
+
+```{python}
+#| label: deflection-run
+#| echo: false
+excerpt(experiment.deflection_scan)
+```
+
+```{python}
+#| label: deflection
+#| echo: false
+result.table("deflection")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_deflection)
+```
+
+```{python}
+#| label: fig-deflection
+#| echo: false
+#| fig-cap: "The exact deflection approaches the weak-field formula 4m/b far from the mass and lies above it close in; what remains, scaled by the square of b/m, approaches the predicted coefficient of the next term. The Newtonian turn is half."
+#| fig-alt: "Two panels. Left: log-log plot of the deflection against the impact parameter in units of m. Open circles, the exact deflection, lie on a dashed straight line, the weak-field formula, except at the smallest impact parameter where they lie above it; a dotted line, the Newtonian turn, runs parallel at half the height. Right: the scaled remainder against the impact parameter on a log axis; square markers fall from high values at small impact parameters onto a dashed horizontal line, the predicted coefficient."
+#| fig-status: simulated
+result.show("fig-deflection")
+```
+
+[The exact deflection converges to the weak-field formula $4GM/(c^2 b)$ as
+$m/b \to 0$, and its remainder scaled by $(b/m)^2$ converges to the
+second-order coefficient $15\pi/4$.]{.claim type="numerically-verified"
+scope="Schwarzschild deflection by quadrature, b from 10 m to 100000 m"
+evidence="deflection-run deflection fig-deflection"}
+At the largest impact parameter the scaled remainder is
+`{python} result["coefficient-far"]`, against
+$15\pi/4 =$ `{python} result["coefficient-limit"]`; what is left is the
+third-order term. Close to the mass the formula fails: at ten times $m$ the
+exact angle is `{python} result["near-excess"]` per cent larger. For the
+Sun, whose surface lies a few hundred thousand times $m$ from its centre,
+the weak-field formula is more than good enough; the exercises compute the
+angle.
+
+### Images and magnification by ray shooting
+
+A source of radius one tenth of the Einstein radius is placed at five
+offsets, and the magnification of each is measured by ray shooting on a grid
+of two thousand two hundred rays a side.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="images")
+```
+
+```{python}
+#| label: images-run
+#| echo: false
+excerpt(experiment.images_run)
+```
+
+```{python}
+#| label: images
+#| echo: false
+result.table("images")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_images)
+```
+
+```{python}
+#| label: fig-images
+#| echo: false
+#| fig-cap: "Inverse ray shooting turns a small circular source behind a point lens into two arcs near the Einstein ring, one outside it on the source's side and a smaller one inside on the other side, centred where the lens equation puts the images."
+#| fig-alt: "A square map of the sky in Einstein radii. A dashed circle of radius one is the Einstein ring, a cross at the centre the lens. A small dotted circle a little to the right of the lens is where the source would appear without the lens. Two grey arcs are the cells whose rays hit the source: a larger one just outside the ring on the right and a thinner one just inside the ring on the left, each bent along the ring. An x marker sits in the middle of each arc."
+#| fig-status: simulated
+result.show("fig-images")
+```
+
+[The magnification measured by inverse ray shooting agrees with the average
+of the point-lens magnification over the source's disk, and the images lie
+where the lens equation puts them.]{.claim type="numerically-verified"
+scope="point lens, uniform source of radius 0.1 Einstein radii at offsets 0.2 to 1.2, a grid of 2200 by 2200 rays"
+evidence="images-run images fig-images"}
+The largest relative gap between the two is `{python} result["ray-gap"]`,
+the size expected from counting whole cells along the edge of an arc. The
+point-source value differs more: at the smallest offset the disk is
+magnified `{python} result["finite-excess"]` per cent more than its centre
+alone, because $A$ is curved and the side of the disk nearer the lens gains
+more than the far side loses.
+
+### Three lenses, one light curve
+
+Three point lenses of very different mass lie at different distances in
+front of a source at eight kiloparsecs, each moving across the line of sight
+at the speed that gives an Einstein time of thirty days.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="degeneracy")
+```
+
+```{python}
+#| label: degeneracy-run
+#| echo: false
+excerpt(experiment.degeneracy)
+```
+
+```{python}
+#| label: degeneracy
+#| echo: false
+result.table("degeneracy")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_light_curves)
+```
+
+```{python}
+#| label: fig-light-curves
+#| echo: false
+#| fig-cap: "Three lenses whose masses differ by a factor of twenty produce the same microlensing light curve, because the curve depends on them only through the Einstein time."
+#| fig-alt: "Magnification against time from the closest approach in days. A single symmetric peak rises from near one on both sides to a maximum at time zero. Three curves, one per lens, drawn solid, dashed with circles, and dotted with squares, lie exactly on top of one another."
+#| fig-status: simulated
+result.show("fig-light-curves")
+```
+
+[Point lenses of different mass, distance, and speed with the same Einstein
+time and the same closest approach produce the same light curve; the curve
+alone does not determine the mass.]{.claim type="numerically-verified"
+scope="point lenses of 0.1, 0.5, and 2 solar masses at 7, 4, and 1 kpc, a source at 8 kpc, Einstein time 30 days, u0 = 0.2"
+evidence="degeneracy-run degeneracy fig-light-curves"}
+The three curves differ by `{python} result["curve-spread"]`, and all peak at
+the magnification `{python} result["peak"]`. A light curve measures $t_E$;
+the mass follows only when the distance and the speed are known from
+something else, such as a model of the Galaxy, a measurement of $\theta_E$
+from the finite size of the source, or a parallax from a second observer.
+[The speeds in the table are all of the order of the speeds of stars in the
+Galaxy]{.not-verified}, so none of the three can be ruled out from the
+curve.
+
+## Limits {#limits}
+
+- **A point lens.** Real lenses are extended (a galaxy) or multiple (a star
+  with a planet), and their images and light curves differ; what a lens of
+  any circular shape measures is the mass inside its Einstein radius, not
+  its total mass.
+- **Weak field, thin lens.** Close to a black hole the deflection is no
+  longer small, and the exact formula of the first example replaces the
+  weak-field one; light that passes closer than $b = \sqrt{27}\,m$ is
+  captured, which the code refuses to compute. Over cosmological distances
+  the distances in the Einstein radius are angular-diameter distances, which
+  the lesson does not compute.
+- **A uniform source, static lens.** Real stars are darker at the edge, and
+  the lens and the source move during an event; both change the details of a
+  light curve near its peak.
+- **The relativistic orbit is taken as given.** The equation of the photon
+  orbit comes from general relativity; the lesson tests the computations
+  that follow from it, not the theory itself.
+- **No measured data.** The lesson's light curves are simulated. Microlensing
+  surveys measure such curves with noise and blending, and infer $t_E$ with
+  an uncertainty.
+
+::: {.exercise .self-check}
+A microlensing event has a well-measured Einstein time of thirty days. What
+can be concluded about the mass of the lens?
+
+::: {.choices}
+::: {.choice}
+The mass, because the Einstein time grows with the mass.
+
+::: {.feedback}
+It grows with the mass, but also with the distances and inversely with the
+speed. Many combinations give the same time, as the example shows.
+:::
+:::
+
+::: {.choice correct="true"}
+Only a relation between the mass, the distances, and the speed; the mass
+needs at least one more measurement or an assumption.
+
+::: {.feedback}
+Correct: $t_E = D_l\theta_E/v$ mixes all of them, and the light curve of a
+point lens depends on nothing else.
+:::
+:::
+
+::: {.choice}
+Nothing at all, because the light curve depends only on the source.
+
+::: {.feedback}
+The curve depends on the lens through $t_E$; it constrains a combination,
+which is not nothing.
+:::
+:::
+:::
+
+::: {.solution}
+For a point lens the light curve is fixed by $u_0$, $t_0$, and $t_E$. The
+Einstein time combines the mass, the lens and source distances, and the
+transverse speed, so a measured $t_E$ is one equation for several unknowns.
+A second observable, such as the Einstein radius from finite-source effects
+together with a parallax, or a model of the Galaxy, is needed to separate
+them.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Starlight grazing the Sun.** Compute the deflection of a ray that grazes
+the Sun's surface with the weak-field formula and with the Newtonian one, in
+arcseconds. How large is $m/b$ there?
+
+::: {.hint}
+For $m$, divide the Sun's mass parameter by the square of the speed of
+light; $b$ is the Sun's radius.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.solar_limb)
+```
+
+The weak-field deflection is `{python} result["limb-weak"]` arcseconds and
+the Newtonian one `{python} result["limb-newtonian"]`. With
+$m/b =$ `{python} result["limb-size"]`, the second-order term is smaller than
+the first by a factor of order a hundred thousand.
+:::
+:::
+
+::: {.exercise}
+**The ring of a star.** Compute the Einstein radius of a star of one solar
+mass halfway to a source at 8 kpc, and the separation of the two images of a
+source at $u = 0.5$, in milliarcseconds.
+
+::: {.hint}
+`einstein_radius` takes the distances in metres; a kiloparsec is a thousand
+parsecs.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.star_ring)
+```
+
+The Einstein radius is `{python} result["star-ring"]` milliarcseconds and the
+images are `{python} result["star-separation"]` milliarcseconds apart, far
+below what a telescope can separate in visible light: such an event is seen
+only as a brightening.
+:::
+:::
+
+::: {.exercise}
+**A mass from a measured ring.** Suppose the Einstein radius of an event has
+been measured as 0.5 milliarcseconds, for a source at 8 kpc. What is the mass
+of the lens if it lies at 1, 2, 4, 6, or 7 kpc?
+
+::: {.hint}
+Solve the formula of the Einstein radius for the mass.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.mass_from_ring)
+```
+
+```{python}
+#| echo: false
+result.table("mass-from-ring")
+```
+
+Even with the Einstein radius measured, the mass changes by a factor of
+`{python} result["ring-mass-ratio"]` along the line of sight. A parallax measurement, which gives
+the relative distance, is what finally fixes it.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/astrophysics/lensing.py",
+        "src/pbc/astrophysics/experiments/gravitational_lensing.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_astrophysics.py",
+        "tests/unit/test_gravitational_lensing_experiment.py",
+    ],
+)
+```

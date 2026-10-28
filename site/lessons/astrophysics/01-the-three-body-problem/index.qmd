@@ -1,0 +1,542 @@
+---
+title: "The three-body problem"
+description: >-
+  Three bodies under their mutual gravity: Lagrange's rotating triangle
+  reproduced against its exact motion, the growth of a small disturbance
+  against Routh's stability prediction, and Burrau's Pythagorean problem,
+  where the energy is kept to nine digits while nearby starts part company.
+lesson:
+  id: three-body-problem
+  strand: astrophysics
+  order: 1
+  difficulty: 3
+  course: astrophysics
+  slot: AST1
+  methods: [simulation]
+  outcomes:
+    - Construct Lagrange's equilateral solution of three bodies and reproduce it against its exact rigid rotation, with the conserved quantities tracked
+    - Predict from Routh's criterion whether a disturbance of the triangle grows, and check the predicted growth rate against a simulation
+    - Integrate a close-encounter problem with an adaptive step, and tell a conserved quantity that is kept from a trajectory that is right
+    - Explain how sensitivity to the initial conditions limits what a simulation of three bodies can predict
+  related: []
+  format: 2
+  preview: fig-pythagorean
+  experiment: pbc.astrophysics.experiments.three_body_problem
+  prerequisites:
+    lessons: [many-body-gravitation, double-pendulum-chaos]
+    outside:
+      - "Linear algebra: eigenvalues of a small matrix, and complex roots of a polynomial"
+      - "Numerical methods: the order of a method, read from the error at several step sizes"
+---
+
+```{python}
+#| echo: false
+from pbc.astrophysics import three_body
+from pbc.astrophysics.experiments import three_body_problem as experiment
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+
+result = experiment.run()
+lesson_header()
+```
+
+Two bodies under gravity move on ellipses that repeat forever. Three bodies
+almost never do. The many-body gravitation lesson simulated three bodies and
+checked the runs through their conserved quantities and one special orbit,
+the figure-eight. This lesson asks the questions that astronomy asks of
+three bodies: which configurations can last, how a configuration that cannot
+last comes apart, and how far ahead a simulation of a close encounter can be
+believed.
+
+Three examples answer them. The oldest exact solution of the problem,
+Lagrange's rotating triangle, exists for any three masses, and a simulation
+has to reproduce it. Whether it survives a small push depends on the masses
+through one number, and linear stability theory predicts how fast the push
+grows. And Burrau's Pythagorean problem, three bodies released from rest,
+shows motion in which the conserved quantities are kept to many digits while
+two runs that differ in the last digits end in different places.
+
+## Assumptions
+
+1. **Point masses under Newton's law**, as in the many-body gravitation
+   lesson. Real bodies have size, so a close encounter in the model can be a
+   collision in reality; general relativity adds small corrections near
+   massive bodies.
+2. **Motion in a plane.** The bodies start in a plane with velocities in it
+   and stay in it. A disturbance out of the plane is a separate set of modes
+   that the lesson does not test.
+3. **Units of the problem.** $G = 1$ with masses and lengths of order one,
+   except in the exercise on Jupiter's Trojans, which uses astronomical units
+   and years with $G = 4\pi^2\,\mathrm{AU}^3/(M_\odot\,\mathrm{yr}^2)$.
+4. **An isolated system.** No outside force acts, so the energy, the momentum,
+   and the angular momentum are conserved, and the centre of mass stays at
+   the origin.
+5. **The tolerance is the error budget.** The long and close-encounter runs
+   use an adaptive method whose step is chosen to keep an estimate of the
+   error per step below a tolerance. The estimate is not the error of the
+   trajectory, as the third example shows.
+
+## Three bodies {#explanation}
+
+### Lagrange's triangle
+
+Place three bodies of any masses at the corners of an equilateral triangle of
+side $a$, with the centre of mass at the origin. The pull on each body from
+the other two adds up to a force that points exactly at the centre of mass
+and is proportional to the body's distance from it. The proportionality is
+the same for all three bodies,
+
+$$
+\ddot{\mathbf x}_i = -\omega^2\,\mathbf x_i,
+\qquad
+\omega^2 = \frac{G(m_1 + m_2 + m_3)}{a^3},
+$$
+
+so if each body starts on a circle about the centre of mass with the speed
+$\omega |\mathbf x_i|$, the whole triangle turns rigidly with the angular
+speed $\omega$ and keeps its shape for ever. This is **Lagrange's solution**:
+a periodic orbit, known in closed form for all times, with period
+$2\pi/\omega$. That the sum of two inverse-square pulls points at the centre
+of mass needs the triangle to be equilateral; the code checks it in its unit
+tests by evaluating the force of the many-body lesson at the corners.
+
+### Stability: Routh's criterion
+
+A solution that exists is not necessarily a solution that is seen. Push one
+body a little and linearise the equations about the rotating triangle: the
+disturbance grows or oscillates as $e^{\lambda t}$, and the shape-changing
+modes satisfy
+
+$$
+\lambda^4 + \omega^2\lambda^2 + \tfrac{27}{4}\,\beta\,\omega^4 = 0,
+\qquad
+\beta = \frac{m_1 m_2 + m_2 m_3 + m_3 m_1}{(m_1 + m_2 + m_3)^2}.
+$$
+
+The masses enter only through **Routh's parameter** $\beta$. The equation is
+quadratic in $\lambda^2$, with roots
+$\lambda^2 = \tfrac12\omega^2\bigl(-1 \pm \sqrt{1 - 27\beta}\bigr)$. For
+$27\beta < 1$ both are negative, every $\lambda$ is imaginary, and the
+triangle only oscillates about its shape: it is linearly stable. For
+$27\beta > 1$ the roots are complex, two values of $\lambda$ have a positive
+real part, and a disturbance grows with the rate
+
+$$
+\sigma = \frac{\omega}{2}\sqrt{\sqrt{27\beta} - 1}.
+$$
+
+Equal masses give $\beta = 1/3$ and $\sigma = \omega/\sqrt2$: the triangle
+falls apart within a few turns. A dominant mass makes $\beta$ small: the Sun
+and Jupiter with a small third body give $27\beta$ near
+$27\,m_\mathrm{J}/M_\odot$, far below one, and the third body can stay at
+the corner. [The Trojan asteroids, which share Jupiter's orbit about the
+Sun, sit near such corners.]{.not-verified}
+
+To measure the growth in a simulation, the lesson needs a measure of the
+disturbance that ignores what the triangle is allowed to do. Rotating the
+triangle, or changing its size and its rate together, leaves it equilateral,
+so the **departure from equilateral**, the largest relative difference of a
+side from the mean of the three, sees only the modes of the equation above.
+
+### Close encounters and sensitivity
+
+Release three bodies from rest and they fall together. Two of them pass
+close, are flung apart, and the pattern repeats with different pairs until,
+usually, one body leaves and the other two stay as a binary. Near a close
+pass the force is huge and the bodies move fast; far from it they drift. A
+fixed step small enough for the passes is wasteful everywhere else, so the
+runs use an adaptive method, the Dormand-Prince pair of order eight
+(`DOP853`), which shrinks its step near an encounter and grows it again.
+
+Each close pass also amplifies a small difference in the approach into a
+large difference in the outgoing direction. A difference in the last digits,
+a rounding or the error of one step, grows from pass to pass. The total
+energy cannot see this: it measures the error that the method makes along
+the trajectory, not how far the trajectory has moved from the true one.
+
+## Code
+
+The starting state of Lagrange's solution, and its exact motion:
+
+```{python}
+#| echo: false
+excerpt(three_body.lagrange_triangle)
+```
+
+```{python}
+#| echo: false
+excerpt(three_body.rigid_rotation)
+```
+
+Routh's parameter and the predicted growth rate:
+
+```{python}
+#| echo: false
+excerpt(three_body.lagrange_growth_rate)
+```
+
+The measure of the disturbance, and the adaptive integration of the
+many-body force of the mechanics course:
+
+```{python}
+#| echo: false
+excerpt(three_body.shape_departure)
+```
+
+```{python}
+#| echo: false
+excerpt(three_body.adaptive)
+```
+
+## Worked examples
+
+### Lagrange's triangle reproduced
+
+Masses one, two, and three at the corners of a triangle of side one, for one
+period, with the classical Runge-Kutta method of the course at four step
+sizes.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment, region="triangle")
+```
+
+```{python}
+#| label: triangle-run
+#| echo: false
+excerpt(experiment.triangle_run)
+```
+
+```{python}
+#| label: triangle
+#| echo: false
+result.table("triangle")
+```
+
+[The simulated triangle follows the exact rigid rotation, with an error that
+falls at order four as the step is halved, and with energy and angular
+momentum changes that fall with it.]{.claim type="numerically-verified"
+scope="Lagrange's triangle of masses 1, 2, and 3, side 1, G = 1, one period, 50 to 400 steps per period"
+evidence="triangle-run triangle"}
+The period is `{python} result["triangle-period"]` in the units of the
+problem, and the observed order at the finest step is
+`{python} result["triangle-order"]`. The energy and the angular momentum are
+not kept exactly by this method; their change falls as the step does, which
+is what a correct fourth-order method does. The run is one period long, and
+for a good reason: these masses give $27\beta =$
+`{python} result["triangle-beta"]`, and the next example shows what that
+means for a longer run.
+
+### Stability against Routh's prediction
+
+The masses are one, $q$, and $q$, the first body is moved by a hundred
+millionth of the side, and the departure from equilateral is followed for
+eight periods. Its growth rate is fitted where it is well above its start
+and still small.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="stability")
+```
+
+```{python}
+#| label: stability-run
+#| echo: false
+excerpt(experiment.stability_scan)
+```
+
+```{python}
+#| label: stability
+#| echo: false
+result.table("stability")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_stability)
+```
+
+```{python}
+#| label: fig-stability
+#| echo: false
+#| fig-cap: "A disturbance of Lagrange's triangle stays at its starting size when one mass dominates and grows exponentially when the masses are comparable; the growth rate follows Routh's prediction on both sides of the threshold."
+#| fig-alt: "Two panels. Left: the departure from an equilateral shape against time in periods, on a log scale. The curve for a small second and third mass oscillates near its starting level; the curve for equal masses rises along a straight line for about four periods and then levels off near one. Right: the growth rate divided by omega against twenty-seven times Routh's parameter. A dashed curve, the prediction, is zero up to a dotted vertical line at the threshold and then rises steeply and flattens. Open circles, the measurements, lie on it, one at zero below the threshold and the others on the rising part."
+#| fig-status: simulated
+result.show("fig-stability")
+```
+
+[The growth rate of a small disturbance of Lagrange's triangle agrees with
+Routh's linear-stability prediction, zero below the threshold
+$27\beta = 1$ and positive above it.]{.claim type="numerically-verified"
+scope="masses 1, q, q with q from 0.01 to 1, first body moved by 1e-8, eight periods, DOP853 at tolerance 1e-12"
+evidence="stability-run stability fig-stability"}
+The measured and the predicted rates differ by at most
+`{python} result["rate-gap"]` per cent; the fit to a curve that also
+oscillates, as the complex roots make it, is the main source of the gap. For
+equal masses the measured rate is `{python} result["equal-rate"]` times
+$\omega$: the disturbance grows by a factor of about
+`{python} result["equal-factor"]` in every turn. Once the departure reaches
+order one the linear theory no longer applies, and the left panel shows the
+triangle broken up.
+
+### The Pythagorean problem
+
+Masses three, four, and five start at rest at the corners of a right triangle
+whose sides are three, four, and five, each mass opposite the side of its own
+length. The run goes to the time seventy at two tolerances, and once more
+from a start in which one coordinate is moved by a millionth.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="pythagorean")
+```
+
+```{python}
+#| label: pythagorean-run
+#| echo: false
+excerpt(experiment.pythagorean_runs)
+```
+
+```{python}
+#| label: pythagorean
+#| echo: false
+result.table("pythagorean")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_pythagorean)
+```
+
+```{python}
+#| label: fig-pythagorean
+#| echo: false
+#| fig-cap: "The Pythagorean problem: a sequence of close passes between changing pairs, and at the end the lightest body leaving while the other two stay bound to each other."
+#| fig-alt: "Two panels of paths in the plane, one line style per body. Left, the early stretch: the three bodies start at the corners of a right triangle, marked by filled symbols, fall together, and trace tangled loops near the centre. Right, the late stretch, on a larger scale: one body moves away along a nearly straight line to the upper right while the other two, wound around each other, move in the opposite direction to the lower left; open symbols mark the end."
+#| fig-status: simulated
+result.show("fig-pythagorean")
+```
+
+[At both tolerances the lightest body ends outside the tightly bound pair of
+the other two, with a positive energy relative to that pair, so it escapes;
+the total energy changes by about a part in a billion and the angular
+momentum stays zero.]{.claim type="numerically-verified"
+scope="the Pythagorean problem, G = 1, to t = 70, DOP853 at tolerances 1e-12 and 1e-13"
+evidence="pythagorean-run pythagorean fig-pythagorean"}
+The body that leaves is body `{python} result["escaper"]`, the mass three.
+[This is the outcome Szebehely and Peters first computed in
+1967.]{.not-verified} The two tolerances agree on what happens, not on where
+the bodies are at the end: the table shows different final energies of the
+pair.
+
+### How far the runs agree
+
+```{python}
+#| label: divergence-run
+#| echo: false
+excerpt(experiment.divergence)
+```
+
+```{python}
+#| label: divergence
+#| echo: false
+result.table("divergence")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_divergence)
+```
+
+```{python}
+#| label: fig-divergence
+#| echo: false
+#| fig-cap: "The difference between runs grows by many orders of magnitude, in jumps at the close passes, while the energy error of the reference run stays near one part in a billion: a kept energy does not mean a right trajectory."
+#| fig-alt: "Log-scale plot against time. A solid curve, the difference between the two tolerances, rises from the level of round-off in steps and spikes to order one by the end. A dashed curve, the difference from the moved start, starts higher and rises the same way, ending above ten. A dotted curve, the relative energy error, rises in two steps early and then stays flat near one part in a billion."
+#| fig-status: simulated
+result.show("fig-divergence")
+```
+
+[A difference between two runs grows by orders of magnitude over the run,
+mostly at close passes, while the energy error of each run stays near one
+part in a billion; a millionth moved in the start changes the state at the
+end by more than the size of the system.]{.claim type="numerically-verified"
+scope="the Pythagorean problem, G = 1, to t = 70, DOP853 at tolerances 1e-12 and 1e-13, one start moved by 1e-6"
+evidence="divergence-run divergence fig-divergence"}
+The relative energy error of the reference run is about
+`{python} result["pythagorean-energy"]`. If the energy were the only test,
+this run would look perfect up to its end. Yet the two tolerances part by a
+tenth of the unit of length at the time the table gives, and the run from
+the moved start ends in another state altogether: its largest coordinate
+differs from the reference by `{python} result["moved-final"]` units at the
+end, and its tightest pair is a different one, as the earlier table shows. A trajectory of a chaotic
+three-body system can be predicted only up to a horizon set by how fast
+differences grow and how small they start; beyond it, a simulation still
+says what kinds of outcome occur and how often, not which one will.
+
+## Limits {#limits}
+
+- **Planar, point-mass, Newtonian.** Out-of-plane disturbances, the size of
+  the bodies, and relativity are left out. A close pass of the Pythagorean
+  problem comes within a few thousandths of the unit of length, which for
+  stars could be a collision.
+- **Linear stability only.** Routh's criterion is about small disturbances.
+  A triangle that is linearly stable can still be broken by a large push, and
+  over long times weak resonances can matter; the lesson tests neither.
+- **The growth rate is fitted.** The disturbance grows and oscillates at
+  once, and the fitted rate depends a little on the window; the agreement is
+  to about a per cent, not to the digits of the prediction.
+- **An outcome at a finite time.** The escape is judged from the energies at
+  the end of the run. A positive energy of the body against a bound pair
+  means it will not return in the three-body model; the run itself stops at
+  a finite time.
+- **No comparison with another code.** The references are the closed forms,
+  the linear theory, and the tolerance study; no reference artefact such as
+  a REBOUND run is used.
+
+::: {.exercise .self-check}
+Two runs of a three-body encounter keep the total energy to one part in a
+billion, and they end with the bodies in quite different places. Which
+conclusion is right?
+
+::: {.choices}
+::: {.choice}
+One of the two runs has a bug, because a correct method that keeps the
+energy so well must give the same trajectory.
+
+::: {.feedback}
+Both runs can be correct to their tolerance. The energy measures one error
+along the trajectory; the trajectory itself can drift far away from the
+true one while the energy stays put.
+:::
+:::
+
+::: {.choice correct="true"}
+Small differences between the runs were amplified by the close encounters;
+the final positions cannot be trusted, but the kind of outcome that both
+runs agree on can be.
+
+::: {.feedback}
+Correct: in a chaotic system the error of position grows with every close
+pass, while the energy is kept. Agreement between tolerances on the outcome
+is the evidence for the outcome.
+:::
+:::
+
+::: {.choice}
+The energy error is too large; tightening the tolerance to keep it to one
+part in a trillion would make the two final states agree.
+
+::: {.feedback}
+A tighter tolerance moves the horizon of predictability later by a little,
+since differences grow exponentially; it does not remove it.
+:::
+:::
+:::
+
+::: {.solution}
+A conserved quantity is a necessary check, not a sufficient one. Close passes
+amplify any small difference, a rounding or the error of one step, and the
+amplified difference can be as large as the system while the energy is still
+kept. What the runs can support is what they agree on across tolerances: here,
+which body escapes.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**The Trojan limit.** For a star and a planet with a third body of negligible
+mass at the corner of the triangle, $\beta$ is close to
+$\mu(1 - \mu)$ with $\mu = m_2/(m_1 + m_2)$. Find the largest mass ratio
+$\mu$ for which the corner is linearly stable.
+
+::: {.hint}
+Put $\beta = \mu(1 - \mu)$ into Routh's threshold and take the smaller
+root of the quadratic in $\mu$.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.critical_mass_ratio)
+```
+
+The critical ratio is `{python} result["critical-mu"]`. Jupiter's mass is
+about a thousandth of the Sun's, far below it; a planet with more than about
+a twenty-sixth of its star's mass could not keep bodies at its corners.
+:::
+:::
+
+::: {.exercise}
+**A Trojan's libration.** Below the threshold both roots are imaginary, and
+the slower frequency is $\omega\sqrt{(1 - \sqrt{1 - 27\beta})/2}$. Put the
+Sun, Jupiter at 5.2 AU, and a small third body at the corner, turn the third
+body forward along the orbit by 0.01 AU, and measure the period of its slow
+swing about the corner.
+
+::: {.hint}
+Follow the angle between the body and Jupiter as seen from the Sun, and find
+the strongest slow peak of its spectrum.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.trojan_libration)
+```
+
+The measured period is `{python} result["libration-measured"]` years
+against the predicted `{python} result["libration-predicted"]` years, more
+than ten of Jupiter's years; the body swings through
+`{python} result["libration-swing"]` degrees about the corner. Real Trojans
+swing much further, where the linear theory is only a first estimate.
+:::
+:::
+
+::: {.exercise}
+**A loose tolerance.** Run the Pythagorean problem with the tolerance
+$10^{-6}$ instead of $10^{-12}$. How large is the energy error, and does the
+same body escape?
+
+::: {.hint}
+Use the same `escaper` test on the final state.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.loose_tolerance)
+```
+
+The energy changes by up to `{python} result["loose-energy"]` of itself, and
+at the end the body outside the tightest pair is body
+`{python} result["loose-body"]`, with the energy
+`{python} result["loose-outer"]` relative to the pair: negative, so it has
+not escaped, and the pair's energy is `{python} result["loose-inner"]`. The
+loose run tells a different story. Its energy error is the warning sign; the
+tight runs agreed with each other, this one does not agree with them.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/astrophysics/three_body.py",
+        "src/pbc/mechanics/nbody.py",
+        "src/pbc/astrophysics/experiments/three_body_problem.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_astrophysics.py",
+        "tests/unit/test_three_body_problem_experiment.py",
+    ],
+)
+```

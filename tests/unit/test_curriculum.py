@@ -436,11 +436,12 @@ def test_a_course_without_a_lesson_is_named_in_one_sentence_and_shows_no_slot(
     titles = {course.id: course.title for course in COURSES}
     without = sources.planned_courses()
     assert [course.id for course in path.planned_courses] == without
-    sentences = [
-        line
-        for line in page.splitlines()
-        if line.startswith(f"{len(without)} further courses")
-    ]
+    count = (
+        "1 further course has"
+        if len(without) == 1
+        else f"{len(without)} further courses have"
+    )
+    sentences = [line for line in page.splitlines() if line.startswith(count)]
     assert len(sentences) == (1 if without else 0)
     for course_id in without:
         assert titles[course_id] in sentences[0]

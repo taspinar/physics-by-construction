@@ -1,0 +1,497 @@
+---
+title: "Modified gravity"
+description: >-
+  Orbits under central forces that are deliberately not the inverse square:
+  the conserved quantities that survive, the turn of the periapsis that
+  appears, its first-order prediction checked against simulation, and what
+  an orbit can and cannot say about a Yukawa term of unknown range.
+lesson:
+  id: modified-gravity
+  strand: astrophysics
+  order: 2
+  difficulty: 3
+  course: astrophysics
+  slot: AST2
+  methods: [simulation]
+  outcomes:
+    - Simulate an orbit under a modified central force and check which quantities it still conserves
+    - Measure the turn of the periapsis per orbit from located periapsis passages
+    - Derive the first-order turn of the periapsis for a small radial perturbation, and confirm that the simulation departs from it at second order
+    - Explain why an orbit constrains a modification of gravity only near the orbit's own scale
+  related: []
+  format: 2
+  preview: fig-rosette
+  experiment: pbc.astrophysics.experiments.modified_gravity
+  prerequisites:
+    lessons: [kepler-orbit, numerical-integrators]
+    outside:
+      - "Calculus: a definite integral over a period, and the first term of a Taylor expansion"
+      - "Numerical methods: the order of an error, read from its size at several parameter values"
+---
+
+```{python}
+#| echo: false
+from pbc.astrophysics import central_force
+from pbc.astrophysics.experiments import modified_gravity as experiment
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+
+result = experiment.run()
+lesson_header()
+```
+
+The Kepler lesson's ellipse closes: after one orbit the planet is back where it
+started, and its nearest point to the Sun, the **periapsis**, stays fixed in
+space. That is a special property of the inverse square, not of gravity in
+general. A force that falls a little faster or a little slower makes the
+orbit miss its starting point, and the periapsis turns a little at every
+pass. A turning periapsis is therefore the classic signature of a force law
+that is not exactly Newton's. [An unexplained turn of Mercury's periapsis
+was the first sign that Newton's law is incomplete.]{.not-verified}
+
+This lesson modifies the law of gravity on purpose and watches what changes.
+Three questions organise it. What stays conserved under a modified central
+force? How large is the turn of the periapsis, and can it be predicted
+without a simulation? And how well can a measured orbit pin down a
+modification whose strength and range are both unknown?
+
+## Assumptions
+
+1. **One body about a fixed centre.** The central mass is so heavy that it
+   does not move; for two comparable masses the same results hold for the
+   relative orbit with the total mass.
+2. **A central force per unit mass $f(r)$.** It depends only on the distance
+   and points along the line to the centre. Both modifications of the lesson
+   derive from a potential.
+3. **Units with $GM = 1$ and $a = 1$.** The starting ellipse has semi-major
+   axis one and eccentricity [0.5]{.given}; an unmodified orbit takes $2\pi$.
+4. **Small modifications for the prediction.** The first-order prediction
+   assumes the modification is small; the examples check how small.
+5. **Toy laws, not a theory.** The power law and the Yukawa term are the
+   simplest families of modified forces, used to learn what an orbit
+   measures. Neither is a theory of gravity, and general relativity is the
+   subject of a later lesson.
+
+## A force that is not the inverse square {#explanation}
+
+### What survives
+
+The angular momentum per unit mass $h = x\dot y - y\dot x$ is conserved by
+**any** central force, because a force along the line to the centre exerts
+no torque about it. The energy per unit mass
+$\tfrac12|\dot{\mathbf x}|^2 + V(r)$ is conserved by any force with a
+potential, $f = -\mathrm{d}V/\mathrm{d}r$. Both checks of the Kepler lesson
+survive the modification, so they remain checks of the simulation. What does
+not survive is the third conserved quantity of Kepler's problem, the
+direction of the ellipse: only the inverse square and the linear spring close
+every bound orbit, which is Bertrand's theorem.
+
+### The turn per orbit, to first order
+
+Write the modified force as Newton's plus a small radial perturbation,
+$f(r) = -GM/r^2 + R(r)$. Over one orbit the perturbation turns the ellipse
+slowly. Gauss's equation for the rate of turn of the periapsis under a
+radial force, integrated along the unperturbed ellipse
+$r(\nu) = a(1 - e^2)/(1 + e\cos\nu)$ with $\mathrm d t = r^2\,\mathrm
+d\nu/h$, gives the turn per orbit
+
+$$
+\Delta\varpi = -\frac{1}{e\,GM}\int_0^{2\pi} R\bigl(r(\nu)\bigr)\,
+r(\nu)^2\cos\nu\,\mathrm d\nu .
+$$
+
+The weight $\cos\nu$ compares the perturbation near periapsis
+($\nu = 0$) with the perturbation near apoapsis ($\nu = \pi$). An extra pull
+that is stronger close in turns the periapsis forward, in the sense of the
+motion; a constant change of $GM$ gives $R \propto 1/r^2$, for which the
+integral vanishes: it changes the period, not the shape.
+
+### The power law
+
+Take $f = -GM a^\delta / r^{2+\delta}$, equal to Newton's at $r = a$. For
+small $\delta$, $R \approx GM\,\delta\,\ln(r/a)/r^2$, and the integral can
+be done in closed form:
+
+$$
+\Delta\varpi = \frac{2\pi\,\delta\,\bigl(1 - \sqrt{1 - e^2}\bigr)}{e^2}
+\;\xrightarrow{\;e\to 0\;}\; \pi\delta .
+$$
+
+A force that falls faster than the inverse square ($\delta > 0$) turns the
+periapsis forward. For a nearly circular orbit the turn is known for any
+$\delta < 1$, from the frequency of small radial oscillations about the
+circle: the angle from periapsis to apoapsis is $\pi/\sqrt{1 - \delta}$, so
+the turn per orbit is $2\pi\bigl(1/\sqrt{1-\delta} - 1\bigr)$, whose first
+term is again $\pi\delta$.
+
+### A Yukawa term
+
+Many proposed modifications of gravity add a short-range term to Newton's
+potential,
+
+$$
+V(r) = -\frac{GM}{r}\Bigl(1 + \alpha\,e^{-r/\lambda}\Bigr),
+$$
+
+with a strength $\alpha$ and a range $\lambda$. Far inside the range it only
+changes $G$ to $G(1 + \alpha)$; far outside it vanishes. Neither changes the
+shape of an orbit, so an orbit turns only when its distance from the centre
+spans the range. The turn per orbit is the integral above with
+$R = -\alpha\,GM\,(1 + r/\lambda)\,e^{-r/\lambda}/r^2$, done by quadrature.
+
+## Code
+
+The modified forces:
+
+```{python}
+#| echo: false
+excerpt(central_force.power_law)
+```
+
+```{python}
+#| echo: false
+excerpt(central_force.yukawa)
+```
+
+The orbit, with every periapsis located as the moment the radial velocity
+$\mathbf x\cdot\mathbf v$ crosses zero upwards, and the turn per orbit:
+
+```{python}
+#| echo: false
+excerpt(central_force.orbit)
+```
+
+```{python}
+#| echo: false
+excerpt(central_force.precession_per_orbit)
+```
+
+The first-order prediction, for any radial perturbation, and its closed form
+for the power law:
+
+```{python}
+#| echo: false
+excerpt(central_force.first_order_precession)
+```
+
+```{python}
+#| echo: false
+excerpt(central_force.power_law_precession)
+```
+
+## Worked examples
+
+### Diagnostics of a modified orbit
+
+The inverse square and the power law with $\delta = 0.1$ start from the
+periapsis of the same ellipse and run for ten and a half unperturbed
+periods.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment, region="diagnostics")
+```
+
+```{python}
+#| label: diagnostics-run
+#| echo: false
+excerpt(experiment.diagnostics)
+```
+
+```{python}
+#| label: diagnostics
+#| echo: false
+result.table("diagnostics")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_rosette)
+```
+
+```{python}
+#| label: fig-rosette
+#| echo: false
+#| fig-cap: "The inverse square retraces one ellipse; the steeper power law traces a rosette whose periapsis turns forward at every pass, while its energy and angular momentum stay constant."
+#| fig-alt: "Orbits in the plane about a central cross. A thick dashed ellipse, the inverse square, is traced over and over without moving. A thin solid curve, the power law, draws a sequence of loops of the same size whose orientation turns anticlockwise, forming a rosette; open circles mark its points nearest the centre, spaced around a small arc."
+#| fig-status: simulated
+result.show("fig-rosette")
+```
+
+[Under the inverse square the periapsis does not turn; under the power law it
+turns forward by a fixed angle per orbit; under both the energy and the
+angular momentum are conserved to the tolerance of the
+integrator.]{.claim type="numerically-verified"
+scope="GM = 1, a = 1, e = 0.5, delta = 0 and 0.1, ten and a half periods, DOP853 at tolerance 1e-12"
+evidence="diagnostics-run diagnostics fig-rosette"}
+The power law turns the periapsis by `{python} result["shown-turn"]` rad per
+orbit; the first-order formula gives `{python} result["shown-first-order"]`.
+The conserved quantities do not reveal the modification at all: they are
+checks of the integration, and the turn of the periapsis is the measurement
+of the law.
+
+### The turn against its prediction
+
+The power law is run for six values of $\delta$, and the turn per orbit is
+compared with the first-order closed form.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="power-law")
+```
+
+```{python}
+#| label: power-law-run
+#| echo: false
+excerpt(experiment.power_law_scan)
+```
+
+```{python}
+#| label: power-law
+#| echo: false
+result.table("power-law")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_power_law)
+```
+
+```{python}
+#| label: fig-power-law
+#| echo: false
+#| fig-cap: "The turn of the periapsis grows in proportion to the departure from the inverse square and follows the first-order prediction, until the departure is large enough for the next order to show."
+#| fig-alt: "Log-log plot of the turn of the periapsis per orbit against delta. Open circles, the measured turns, lie on a dashed straight line of slope one, the first-order prediction, at small delta, and rise slightly above it at the largest delta. A dotted line, the nearly circular formula, runs close to both."
+#| fig-status: simulated
+result.show("fig-power-law")
+```
+
+[The measured turn per orbit agrees with the first-order perturbative
+prediction, and the gap between them grows as the square of $\delta$, so
+the prediction is right to first order.]{.claim type="numerically-verified"
+scope="power law with delta from 0.001 to 0.3, GM = 1, a = 1, e = 0.5, DOP853 at tolerance 1e-12"
+evidence="power-law-run power-law fig-power-law"}
+The relative gap divided by $\delta$ stays nearly constant across two orders
+of magnitude of $\delta$; the absolute gap falls with the fitted order
+`{python} result["gap-order"]`. That is how a perturbative prediction is
+checked: not by agreement to a fixed tolerance, but by a disagreement that
+shrinks at the rate the next term predicts.
+
+### A Yukawa term of unknown range
+
+A Yukawa term of strength $\alpha = 0.001$ and of several ranges is added to
+Newton's attraction, and each turn is compared with the first-order integral
+by quadrature. The runs are repeated with ten times the strength.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="yukawa")
+```
+
+```{python}
+#| label: yukawa-run
+#| echo: false
+excerpt(experiment.yukawa_scan)
+```
+
+```{python}
+#| label: yukawa
+#| echo: false
+result.table("yukawa")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_yukawa)
+```
+
+```{python}
+#| label: fig-yukawa
+#| echo: false
+#| fig-cap: "The turn per orbit per unit strength of a Yukawa term is largest when its range is near the size of the orbit and falls off for ranges much shorter or much longer."
+#| fig-alt: "Log-log plot of the turn per orbit divided by alpha against the range lambda in units of the semi-major axis. A dashed curve, the first-order prediction, rises from short ranges to a peak just short of the first of two dotted vertical lines, which mark the periapsis and apoapsis distances, and then falls steadily towards long ranges. Open circles, the measurements, lie on the curve."
+#| fig-status: simulated
+result.show("fig-yukawa")
+```
+
+[The turn of the periapsis caused by a Yukawa term agrees with the
+first-order prediction, with a relative gap that grows in proportion to the
+strength, and the turn per unit strength peaks for a range comparable to the
+orbit.]{.claim type="numerically-verified"
+scope="Yukawa term with alpha 0.001 and 0.01, ranges 0.1 to 30 in units of a, GM = 1, a = 1, e = 0.5"
+evidence="yukawa-run yukawa fig-yukawa"}
+The largest relative gap is `{python} result["yukawa-gap"]` at
+$\alpha = 0.001$ and `{python} result["yukawa-gap-large"]` at ten times the
+strength: a second-order effect, mostly because the extra pull also changes
+the ellipse the orbit actually follows. The prediction peaks at a range of
+`{python} result["yukawa-peak"]` semi-major axes, comparable to the
+periapsis distance, where the orbit spends the least time but the pull is
+strongest, and at the longest range of the table it is
+`{python} result["yukawa-fall"]` times smaller than at the peak. For the
+inference this is the central point: an orbit is a probe of the force at the
+distances it visits, and a modification that acts only far inside or far
+outside them leaves the orbit almost unchanged, whatever its strength.
+
+## Limits {#limits}
+
+- **One body about a fixed centre.** Two comparable masses, and other bodies
+  that also turn the periapsis, are left out. [For Mercury most of the
+  observed turn comes from the other planets; only a small remainder needs a
+  new explanation.]{.not-verified}
+- **First order only.** The prediction is the leading term. The examples show
+  where the next term appears; they do not compute it.
+- **One orbit shape.** The prediction depends on the eccentricity, and the
+  examples use one. The formula holds for others, as the unit tests check.
+- **A turn alone does not identify a law.** Different perturbations can give
+  the same turn for one orbit. Several orbits of different sizes, or other
+  observables, are needed to tell them apart; this lesson measures, it does
+  not fit.
+- **No measured data.** The lesson's orbits are simulated. Planetary
+  ephemerides and lunar laser ranging test such laws for real, with their
+  own uncertainties.
+
+::: {.exercise .self-check}
+A simulated orbit under a modified central force keeps its energy and its
+angular momentum to ten digits. What does that show about the force law?
+
+::: {.choices}
+::: {.choice}
+That the law is the inverse square, because only the inverse square conserves
+both.
+
+::: {.feedback}
+Any central force conserves the angular momentum, and any force with a
+potential conserves the energy. The power law of the lesson does both.
+:::
+:::
+
+::: {.choice correct="true"}
+Nothing about the law; it shows that the integration is accurate. The law
+shows in the turn of the periapsis.
+
+::: {.feedback}
+Correct: the conserved quantities check the simulation. The quantity that
+distinguishes the laws is the one the inverse square alone conserves, the
+direction of the ellipse.
+:::
+:::
+
+::: {.choice}
+That the force has no Yukawa term, because a Yukawa term would change the
+energy.
+
+::: {.feedback}
+A Yukawa term has a potential, so the energy that includes it is conserved
+as well.
+:::
+:::
+:::
+
+::: {.solution}
+Energy and angular momentum are conserved by every central force with a
+potential, so keeping them says the integrator is right and nothing about
+which law it integrates. The turn of the periapsis is zero only for the
+inverse square, among the laws of the lesson, and its size measures how far
+the law departs from it.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Beyond first order.** Run the power law with $\delta = 0.3$ from a nearly
+circular orbit, $e = 0.01$, and compare the turn per orbit with the
+near-circular formula $2\pi\bigl(1/\sqrt{1-\delta} - 1\bigr)$ and with the
+first-order one.
+
+::: {.hint}
+`run_law` takes the eccentricity as an argument.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.near_circular)
+```
+
+The measured turn is `{python} result["circle-measured"]` rad, the
+near-circular formula gives `{python} result["circle-formula"]`, and the
+first-order term only `{python} result["circle-first-order"]`. For a nearly
+circular orbit the frequency argument is exact in $\delta$, while the first
+order is not.
+:::
+:::
+
+::: {.exercise}
+**Hall's exponent.** Mercury's periapsis turns by about 43 arcseconds per
+century more than the planets explain. Mercury's period is 87.969 days and
+its eccentricity 0.2056. What $\delta$ would a power law need to explain the
+excess?
+
+::: {.hint}
+Divide the excess by the number of Mercury's orbits in a century, then invert
+the first-order formula.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.hall_exponent)
+```
+
+Mercury makes `{python} result["mercury-orbits"]` orbits per century, and
+the exponent would be two plus `{python} result["hall-delta"]`. [Asaph Hall
+proposed such an exponent in 1894; it predicts a turn for every orbit that
+general relativity, with its different dependence on the size of the orbit,
+does not.]{.not-verified} One measured turn fixes one number; it cannot tell
+a power law from another modification.
+:::
+:::
+
+::: {.exercise}
+**A bound on a Yukawa term.** Suppose the turn of the periapsis of the
+lesson's orbit has been measured to agree with Newton's law to within
+$10^{-6}$ rad per orbit. How large may $\alpha$ be, as a function of the
+range?
+
+::: {.hint}
+At first order the turn is $\alpha$ times the prediction per unit strength.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.yukawa_bound)
+```
+
+```{python}
+#| echo: false
+result.table("yukawa-bound")
+```
+
+The bound is tightest for ranges near the orbit and weakens quickly on both
+sides. This is why tests of gravity at many scales, from the laboratory to
+the planets, are needed to exclude a Yukawa term of any range.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/astrophysics/central_force.py",
+        "src/pbc/astrophysics/experiments/modified_gravity.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_astrophysics.py",
+        "tests/unit/test_modified_gravity_experiment.py",
+    ],
+)
+```
