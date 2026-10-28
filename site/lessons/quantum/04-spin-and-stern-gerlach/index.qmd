@@ -1,0 +1,472 @@
+---
+title: "Spin and Stern-Gerlach measurements"
+description: >-
+  A spin one half as a two-component state, the probabilities of measuring
+  it along any direction, and a modelled Stern-Gerlach magnet: two spots on
+  the screen where a classical magnet would paint a band, sampled
+  frequencies against the Born rule, and magnets in a row.
+lesson:
+  id: spin-and-stern-gerlach
+  strand: quantum
+  order: 4
+  difficulty: 2
+  course: quantum
+  slot: Q4
+  methods: [simulation]
+  outcomes:
+    - Write the state of a spin one half as a two-component vector and the measurement along any direction as a pair of projectors
+    - Compute the probabilities of the outcomes with the Born rule and the state after the measurement
+    - Model a Stern-Gerlach magnet and state the assumptions that turn the field gradient into a deflection on the screen
+    - Compare frequencies sampled atom by atom with the predicted probabilities, using the standard error of a fraction
+  related: []
+  format: 2
+  preview: fig-screen
+  experiment: pbc.quantum.experiments.spin_and_stern_gerlach
+  prerequisites:
+    lessons: [schrodinger-equation]
+    outside:
+      - "Complex numbers: the modulus of a complex number and the exponential of an imaginary number"
+      - "Linear algebra: a matrix acting on a vector, and the eigenvalues and eigenvectors of a two-by-two matrix"
+      - "Probability: the binomial count of independent trials, its mean and its standard deviation"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.quantum import spin
+from pbc.quantum.experiments import spin_and_stern_gerlach as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A beam of silver atoms passes between the poles of a magnet shaped so that
+the field is stronger near one pole than near the other. Each atom is a
+small magnet, and a magnet in a field that changes from place to place feels
+a force. If the atoms' magnets pointed every which way, as compass needles
+shaken in a box do, the beam would be smeared into a band on the screen
+behind the magnet. In the experiment of Otto Stern and Walther Gerlach the
+beam split into two spots and nothing landed between them.
+
+The atoms carry **spin**, an angular momentum that, measured along any
+direction, has only two values. This lesson writes spin as a state with two
+components, derives the probabilities of the two outcomes along any
+direction, and builds a model of the magnet that turns an outcome into a
+place on the screen. Every atom in the examples is drawn at random from the
+predicted probabilities, so the checks are statistical: a sampled fraction
+is compared with its prediction in units of its standard error.
+
+## Assumptions
+
+1. **A spin one half and nothing else.** A silver atom's magnetic moment
+   comes from its one outer electron; the other electrons pair up and the
+   nucleus's moment is thousands of times smaller. The atom is a
+   two-level system for the magnet.
+2. **The moment of the electron.** Its size along any axis is
+   $\mu$, `{python} result["moment"]` J/T (CODATA), and it points against
+   the spin, so spin up along $z$ is pushed toward the weaker field.
+3. **A field gradient along $z$ only, uniform in the magnet.** A real
+   magnet's field also changes sideways, and the force on the atom has other
+   components. The model keeps the force $F_z = \mu_z\,\partial B/\partial z$
+   and nothing else, and switches it off at the end of the magnet.
+4. **One speed for every atom.** The atoms leave the oven with a spread of
+   speeds; a velocity selector is assumed, so the deflection of each atom
+   depends only on its outcome. The beam has a small spread in height.
+5. **Given apparatus values.** The gradient, the lengths, and the speed are
+   round values of the right size for such an experiment, stated in the
+   code; they are not those of the historical magnet.
+
+## States, measurements, and the magnet {#explanation}
+
+### A state with two components
+
+The state of a spin one half is a vector of two complex numbers,
+
+$$
+|\psi\rangle = \begin{pmatrix} a \\ b \end{pmatrix},
+\qquad |a|^2 + |b|^2 = 1,
+$$
+
+in the basis of spin up and spin down along $z$. Up to an overall phase,
+which no measurement sees, every state is spin up along some direction
+$\mathbf{n}$ at the polar angle $\theta$ from $z$ and the azimuth $\varphi$:
+
+$$
+|{+}\mathbf{n}\rangle =
+\begin{pmatrix} \cos(\theta/2) \\ e^{\mathrm{i}\varphi}\sin(\theta/2) \end{pmatrix}.
+$$
+
+The half angles are the signature of spin one half: turning the direction
+by $\pi$, from up to down, turns the state by only a right angle in its own
+space, which is what makes up and down **orthogonal** states.
+
+### A measurement along a direction
+
+Spin along $\mathbf{n}$ is measured by the matrix
+$\mathbf{n}\cdot\boldsymbol{\sigma} = n_x\sigma_x + n_y\sigma_y + n_z\sigma_z$,
+with the **Pauli matrices**
+
+$$
+\sigma_x = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix},\quad
+\sigma_y = \begin{pmatrix} 0 & -\mathrm{i} \\ \mathrm{i} & 0 \end{pmatrix},\quad
+\sigma_z = \begin{pmatrix} 1 & 0 \\ 0 & -1 \end{pmatrix}.
+$$
+
+Its eigenvalues $+1$ and $-1$ are the two possible outcomes, and the
+projectors onto its eigenvectors are
+$P_{\pm} = (1 \pm \mathbf{n}\cdot\boldsymbol{\sigma})/2$. The **Born rule**
+gives the probability of each outcome,
+$p_{\pm} = \langle\psi|P_{\pm}|\psi\rangle$, and after the outcome $s$ the
+state is $P_s|\psi\rangle$, normalised: the spin now points along
+$s\mathbf{n}$. For a spin prepared along a direction at the angle $\theta$
+from $\mathbf{n}$ the rule gives
+
+$$
+p_+ = \cos^2(\theta/2),
+\qquad
+\langle \mathbf{n}\cdot\boldsymbol{\sigma}\rangle = p_+ - p_- = \cos\theta .
+$$
+
+The mean outcome is the classical projection of a unit vector,
+$\cos\theta$. The single outcomes are not: each is $+1$ or $-1$, never
+anything in between.
+
+### The magnet as a model
+
+Inside the magnet an atom with the moment component $\mu_z$ feels the
+constant force $\mu_z G$, with $G = \partial B/\partial z$. In the time
+$L/v$ it takes to cross a magnet of length $L$ at the speed $v$, it moves
+$\tfrac12(\mu_z G/m)(L/v)^2$ sideways and gains the sideways speed
+$(\mu_z G/m)(L/v)$, which carries it a further $(\mu_z G/m)LD/v^2$ over the
+drift $D$ to the screen. Altogether
+
+$$
+z = \frac{\mu_z G}{m v^2}\left(\frac{L^2}{2} + L D\right).
+$$
+
+A quantum spin has $\mu_z = \pm\mu$, so the beam lands in two spots at
+$\pm z$. A classical moment of the same size pointing in a random direction
+has $\mu_z = \mu\cos\theta$ with $\cos\theta$ spread evenly between $-1$
+and $1$, so the beam lands evenly on the band between the two spots.
+
+### How close a sampled fraction should be
+
+Each atom is an independent trial with the probability $p$ of the outcome
+$+1$. The fraction $f$ of $N$ atoms has the mean $p$ and the **standard
+error** $\sqrt{p(1-p)/N}$. A sampled fraction a few standard errors from its
+prediction is expected; one many standard errors away is a disagreement.
+
+## Code
+
+The Born rule, the measurement with its random outcome, and the deflection:
+
+```{python}
+#| echo: false
+excerpt(spin.probability)
+```
+
+```{python}
+#| echo: false
+excerpt(spin.measure)
+```
+
+```{python}
+#| echo: false
+excerpt(spin.deflection)
+```
+
+## Worked examples
+
+The apparatus of the examples:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+### Two spots, not a band
+
+A beam of atoms leaves the oven with spins in random directions. The same
+sampled atoms are sent through the magnet twice: once as quantum spins,
+whose outcome along $z$ is drawn with the Born probability
+$\cos^2(\theta/2)$, and once as classical magnets with $\mu_z = \mu\cos\theta$.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="screen")
+```
+
+```{python}
+#| label: screen-run
+#| echo: false
+excerpt(experiment.screen_run)
+```
+
+```{python}
+#| label: screen
+#| echo: false
+result.table("screen")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_screen)
+```
+
+```{python}
+#| label: fig-screen
+#| echo: false
+#| fig-cap: "The same atoms on the screen: as quantum spins they land in two narrow spots at the predicted deflection and none between; as classical moments they cover the whole band between the spots."
+#| fig-alt: "Histogram of the height at which atoms reach the screen. A solid outline shows two tall narrow peaks, one on each side of the axis, each centred on a dotted vertical line marking the predicted deflection, with nothing between them. A lighter filled histogram shows a flat band of uniform height that stretches from one dotted line to the other."
+#| fig-status: simulated
+result.show("fig-screen")
+```
+
+[In the model, quantum spins land at the predicted deflection and classical
+moments of the same atoms spread evenly between the two spots; half of each
+beam goes either way.]{.claim type="numerically-verified"
+scope="the modelled magnet of the example, one speed, twenty thousand sampled atoms"
+evidence="screen-run screen fig-screen"}
+The predicted deflection is `{python} result["spot"]` mm. The quantum atoms'
+mean distance from the axis equals it to the width of the beam, and none of
+them lands closer to the axis than half of it; the classical atoms' mean
+distance is half the deflection, and half of them land in the middle half
+of the band. Both are what the formula of the explanation predicts. Each
+atom's mean outcome is $\cos\theta$ in both models: what tells them apart is
+not the mean but that a quantum outcome is always one of two values.
+
+### Probabilities at an angle
+
+Atoms that passed a first magnet along $z$ with the outcome $+1$ are spin
+up along $z$. A second magnet, the analyser, is turned by an angle $\theta$
+in the $x$-$z$ plane, and a thousand atoms are measured at each angle.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="angles")
+```
+
+```{python}
+#| label: angles-run
+#| echo: false
+excerpt(experiment.angles_run)
+```
+
+```{python}
+#| label: angles
+#| echo: false
+result.table("angles")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_angles)
+```
+
+```{python}
+#| label: fig-angles
+#| echo: false
+#| fig-cap: "The fraction of atoms with the outcome +1 falls from one to zero as the analyser turns from the spin's direction to the opposite one, and the sampled fractions scatter about the Born curve by about their standard error."
+#| fig-alt: "Plot of the fraction of atoms with the outcome plus one against the angle of the analyser from zero to a half turn. A dashed curve falls smoothly from one to zero in the shape of a squared cosine of half the angle. Circles with small error bars sit on or very near the curve at every fifteen degrees."
+#| fig-status: simulated
+result.show("fig-angles")
+```
+
+[The sampled fractions agree with the Born probabilities
+$\cos^2(\theta/2)$ within the scatter their standard errors
+predict.]{.claim type="numerically-verified"
+scope="a thousand sampled atoms at each of thirteen analyser angles, a fixed seed"
+evidence="angles-run angles fig-angles"}
+The largest difference is `{python} result["worst-deviation"]` standard
+errors. A difference of one standard error or so is the expected scatter
+of a thousand random outcomes; at the angles where the outcome is certain,
+along and against the spin, the standard error is zero and every atom gives
+the predicted outcome. The agreement is a check that the sampling code does
+what the Born rule says, not a test of the Born rule: the atoms were drawn
+from it.
+
+### Magnets in a row
+
+Unpolarised atoms go through three magnets in a row, and after each one the
+atoms with the outcome $-1$ are blocked. In the first row all three magnets
+are along $z$; in the second the middle one is along $x$.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="sequence")
+```
+
+```{python}
+#| label: sequence-run
+#| echo: false
+excerpt(experiment.sequence_run)
+```
+
+```{python}
+#| label: sequence
+#| echo: false
+result.table("sequence")
+```
+
+[A measurement along $x$ between two measurements along $z$ erases the
+first result: half of the atoms that passed the first $z$ magnet fail the
+last one, while without the $x$ magnet every one of them passes.]{.claim
+type="numerically-verified"
+scope="twenty thousand sampled unpolarised atoms through each row"
+evidence="sequence-run sequence"}
+After the first magnet the atoms are spin up along $z$, and a second $z$
+magnet passes all of them. A magnet along $x$ leaves the atoms that pass it
+spin up along $x$, a state with equal amplitudes for up and down along $z$,
+and the third magnet then splits them in half again. The spin does not keep
+a hidden record of its $z$ value through the $x$ measurement; the state after
+a measurement is the projection, and nothing else.
+
+## Limits {#limits}
+
+- **A model of the apparatus, not a simulation of the field.** The force is
+  taken uniform and along $z$, the atoms move at one speed, and the moment is
+  switched on and off at the magnet's ends. A real beam has a spread of
+  speeds that smears each spot, and a real field has components that the
+  model leaves out.
+- **The outcomes are drawn from the Born rule.** The examples check that the
+  code samples the predicted probabilities and that the statistics behave as
+  stated. They are not evidence that nature obeys the rule; that comes from
+  measurements, which the measured-data lab of this course will analyse.
+- **The spin's motion between magnets is ignored.** In a field the spin
+  precesses about the field direction; the model treats the magnets as
+  instantaneous measurements and the space between them as free of fields.
+- **Statistical agreement only.** A sampled fraction a few standard errors
+  from its prediction is expected. A different seed gives different numbers
+  with the same scatter.
+
+::: {.exercise .self-check}
+A beam of spins all prepared along $+x$ is measured along $z$, and half the
+atoms give $+1$. A beam of spins in random directions gives the same
+half-and-half split along $z$. What measurement tells the two beams apart?
+
+::: {.choices}
+::: {.choice}
+None: both beams give the same frequencies, so they are the same.
+
+::: {.feedback}
+They give the same frequencies along $z$, not along every direction.
+:::
+:::
+
+::: {.choice correct="true"}
+A measurement along $x$: every atom of the first beam gives $+1$, half of
+the second.
+
+::: {.feedback}
+Correct: the prepared beam has a definite spin along $x$; the random beam
+gives half and half along every direction.
+:::
+:::
+
+::: {.choice}
+Measuring along $z$ with more atoms, to reduce the standard error.
+
+::: {.feedback}
+More atoms bring both fractions closer to the same one half; the difference
+is not along $z$.
+:::
+:::
+:::
+
+::: {.solution}
+Along $z$ both beams have $p_+ = 1/2$. Along $x$ the prepared beam has
+$p_+ = \cos^2 0 = 1$, while a random direction averages to one half along
+every axis. A state is told apart by measurements along several directions;
+one direction alone does not determine it. The difference between a beam of
+one pure state and a random mixture is what the density matrix of the open
+systems lesson describes.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A slower beam.** By what factor does the deflection grow if the atoms move
+at half the speed, everything else unchanged?
+
+::: {.hint}
+The time spent in the magnet and in the drift both scale inversely with the
+speed.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.slow_beam)
+```
+
+The deflection grows by the factor `{python} result["slow-ratio"]`: it goes
+as $1/v^2$, because both the sideways speed gained and the time to reach
+the screen scale as $1/v$. This is also why a spread of speeds smears the
+spots: slow atoms land further out.
+:::
+:::
+
+::: {.exercise}
+**The mean outcome.** Spins prepared along $z$ are measured along a
+direction 60 degrees from $z$. Estimate the mean outcome from 4000 sampled
+atoms and compare it with $\cos\theta$.
+
+::: {.hint}
+The mean outcome is the number of plus outcomes minus the number of minus
+outcomes, divided by the number of atoms; write it with the fraction $f$ of
+plus outcomes, and carry the standard error of $f$ along.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.mean_spin)
+```
+
+The sampled mean is `{python} result["mean-spin"]` against
+$\cos\theta$, which is `{python} result["mean-expected"]`, with a standard error of
+`{python} result["mean-error"]`. The mean outcome follows the classical
+projection; each single outcome is still $+1$ or $-1$.
+:::
+:::
+
+::: {.exercise}
+**How many atoms?** How many atoms are needed for the fraction at
+$\theta = 90$ degrees to have a standard error of 0.01? Check the answer by
+repeating the run 500 times and measuring the spread of the fractions.
+
+::: {.hint}
+Set the standard error of the explanation equal to the target and solve for
+$N$, with $p$ one half.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.how_many)
+```
+
+It takes `{python} result["needed"]` atoms. Over the repeated runs the root
+mean square difference of the fraction from one half is
+`{python} result["spread"]`, the standard error predicted. Halving the error
+takes four times as many atoms.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/quantum/spin.py",
+        "src/pbc/quantum/experiments/spin_and_stern_gerlach.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_quantum_spin.py",
+        "tests/unit/test_spin_and_stern_gerlach_experiment.py",
+    ],
+)
+```
