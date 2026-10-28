@@ -1030,11 +1030,13 @@ def check_keyboard_navigation(
 # scripts, and the data of an embedded widget (docs/architecture.md, "Budgets").
 PAYLOAD_BUDGET = 3_000_000
 # The learning path page together with the preview of every lesson it shows:
-# 4 MB (owner's decision of 2026-10-23, Issue #264; 3 MB until then). The page
-# grows by about 23 KB per lesson; 4 MB covers the 64 lessons of the capacity
-# decision of 2026-10-21 with a margin of about 15 percent. Revisit at the next
-# capacity decision (docs/architecture.md, "Budgets").
-PATH_PAGE_BUDGET = 4_000_000
+# 4.5 MB, temporarily (owner's decision of 2026-10-28, Issue #318; 4 MB from
+# the decision of 2026-10-23, Issue #264; 3 MB before that). At 75 lessons the
+# page with its previews measured 4,022,544 bytes, over the 4 MB; it grows by
+# about 23 KB per lesson. Temporary, to be reduced: what contributes to the
+# weight is investigated and reduced in a separate Issue. A fixed number, not
+# one that grows with the lesson count (docs/architecture.md, "Budgets").
+PATH_PAGE_BUDGET = 4_500_000
 # The search index is fetched when a reader searches, on top of the page. One
 # budget for the planned curriculum of 119 lessons (docs/architecture.md,
 # "Budgets").
