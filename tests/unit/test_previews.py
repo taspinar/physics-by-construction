@@ -93,6 +93,31 @@ def test_scaling_gives_the_fixed_size_and_the_same_bytes_every_time():
     assert previews.scale(png(1200, 300)) == wide
 
 
+def test_a_preview_is_lossless_webp_and_lighter_than_a_png():
+    # A figure of exactly the preview size is not resampled, so the preview
+    # must decode to the very pixels of the figure: the encoding that makes
+    # the path page lighter (Issue #319) simplifies no figure.
+    noise = Image.frombytes(
+        "RGB",
+        (previews.WIDTH, previews.HEIGHT),
+        bytes(
+            (i * 7919 + i // 3) % 251
+            for i in range(previews.WIDTH * previews.HEIGHT * 3)
+        ),
+    )
+    out = io.BytesIO()
+    noise.save(out, format="PNG", compress_level=9)
+    scaled = previews.scale(out.getvalue())
+    with Image.open(io.BytesIO(scaled)) as picture:
+        assert picture.format == "WEBP"
+        assert picture.convert("RGB").tobytes() == noise.tobytes()
+    plot = Image.new("RGB", (previews.WIDTH, previews.HEIGHT), "white")
+    plot.paste((30, 90, 200), (20, 100, 300, 104))
+    as_png = io.BytesIO()
+    plot.save(as_png, format="PNG", compress_level=9)
+    assert len(previews.scale(as_png.getvalue())) < len(as_png.getvalue())
+
+
 def test_the_fallback_is_drawn_from_course_and_methods_only():
     drawing = previews.fallback(lesson())
     assert drawing == previews.fallback(lesson())
@@ -108,7 +133,7 @@ def test_a_lesson_without_preview_gets_the_conceptual_fallback(tmp_path: Path):
     assert fallback.fallback and fallback.file == "previews/a.svg"
     assert fallback.alt.startswith("Preview, conceptual: ")
     chosen = previews.preview_of(lesson("fig-result"), tmp_path)
-    assert chosen.source == "fig-result" and chosen.file == "previews/a.png"
+    assert chosen.source == "fig-result" and chosen.file == "previews/a.webp"
     assert chosen.alt == "Preview, simulated: A curve that falls to zero."
     with pytest.raises(ValueError, match="not the label of a figure cell"):
         previews.preview_of(lesson("fig-missing"), tmp_path)

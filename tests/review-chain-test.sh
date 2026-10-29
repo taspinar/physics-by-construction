@@ -11,7 +11,8 @@ set -euo pipefail
 # the review fingerprint; Level 1 without a review and Level 3 with a review
 # of the complete feature in every round; and mechanical triage of minor and
 # suggestion findings at Levels 1 and 2, never of a critical or major one or
-# at Level 3.
+# at Level 3; and no triage of an earlier round whose findings a later review
+# gives as resolved or accepted, at Level 2 (Issue #326).
 
 # Run as on CI: without the user's global or system Git configuration, so a
 # test cannot depend on a local Git identity or setting.
@@ -491,6 +492,57 @@ review "$repo" 2 "$(jq -r '.scope' "$SECOND")" '[]' "$(jq -c '.dispositions' "$S
 finish "$repo"
 expect_no_commit "$repo" "a chain with a review of changes whose reach is not certain" \
   "round 2 reviewed only changes whose reach is not certain: a shared input of ADR 014 decision 4: site/styles.css"
+
+# --- Issue #326: an earlier round whose findings a later review of the chain
+# gives their disposition needs no triage at Level 2. minor_chain_repo
+# <label> <dispositions-json> [<round-2 findings-json>]: round 1 finds a
+# minor that nobody triages, the implementer fixes it, and round 2 reviews
+# the changes with the given dispositions.
+minor_chain_repo() {
+  local repo
+
+  repo="$(setup_repo "$1")"
+  FIRST="$(review "$repo" 1 '{"kind": "full"}' "[$(finding MIN1 minor)]" '[]')"
+  printf '\n\ndef test_speed_two():\n    assert speed(2) == 2\n' >>"$repo/tests/test_speed.py"
+  SECOND="$(review "$repo" 2 "$(jq -n --arg tree "$(jq -r '.reviewed_tree' "$FIRST")" '{kind: "changes", since_round: 1, base_tree: $tree}')" \
+    "${3:-[]}" "$2")"
+  REPO="$repo"
+}
+minor_chain_repo dispositioned '[{"finding_id": "R01-MIN1", "status": "resolved", "evidence": "tests/test_speed.py:9 checks it"}]'
+repo="$REPO"
+finish "$repo"
+expect_commit "$repo" "a round whose minor finding a later review gives as resolved"
+git -C "$repo" log -1 --format=%B | grep -Fq "the findings of round 1 given their disposition by a later review, without a triage" ||
+  { git -C "$repo" log -1 --format=%B >&2; fail "the commit message does not say how the findings of round 1 were closed"; }
+# A disposition of accepted closes it as well.
+minor_chain_repo dispositioned-accepted '[{"finding_id": "R01-MIN1", "status": "accepted", "evidence": "the name is the convention"}]'
+repo="$REPO"
+finish "$repo"
+expect_commit "$repo" "a round whose minor finding a later review gives as accepted"
+# A finding that no later review mentions still needs the triage of its round.
+minor_chain_repo not-dispositioned '[]'
+repo="$REPO"
+finish "$repo"
+expect_no_commit "$repo" "a round whose finding no later review gives a disposition" \
+  "the findings of round 1 are not triaged. Run ./scripts/triage-review.sh"
+# A finding that a later review leaves open still needs it too.
+minor_chain_repo left-open '[{"finding_id": "R01-MIN1", "status": "open", "evidence": "the name is still vague"}]' \
+  "[$(jq '. + {continues: "R01-MIN1"}' <<<"$(finding MIN1 minor tests/test_speed.py:9)")]"
+repo="$REPO"
+finish "$repo"
+expect_no_commit "$repo" "a round whose finding a later review leaves open" \
+  "the findings of round 1 are not triaged. Run ./scripts/triage-review.sh"
+# Level 3 keeps the triage of every round, whatever a later review records.
+repo="$(setup_repo level3-dispositioned)"
+printf '# more\n' >>"$repo/scripts/lib/completion.sh"
+record "$repo" 3
+FIRST="$(review "$repo" 1 '{"kind": "full"}' "[$(finding MIN1 minor)]" '[]')"
+printf '\n\ndef test_speed_two():\n    assert speed(2) == 2\n' >>"$repo/tests/test_speed.py"
+latest="$(review "$repo" 2 '{"kind": "full"}' '[]' '[{"finding_id": "R01-MIN1", "status": "resolved", "evidence": "tests/test_speed.py:9 checks it"}]')"
+jq '.verification.tier = "full" | .risk.required = 3' "$latest" >"$tmp/l.json" && mv "$tmp/l.json" "$latest"
+finish "$repo"
+expect_no_commit "$repo" "a Level 3 round whose finding a later review gives as resolved, without a triage" \
+  "the findings of round 1 are not triaged. Run ./scripts/triage-review.sh"
 
 # --- Criterion 6: Level 1 needs no review, recorded without an exception.
 repo="$(setup_repo level1)"

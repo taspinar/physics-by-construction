@@ -906,8 +906,9 @@ lesson. It is never an image file: the build makes it.
   The cell needs a `fig-status` and a `fig-alt`, as every figure does.
 - After the render, `site/lesson-previews.py` scales the figure that this
   cell drew to 320 by 200 pixels, on a white canvas, and writes it to
-  `previews/<lesson id>.png` of the built site. Nothing is cropped by hand,
-  and two builds give the same bytes. The alt text in `path.json` is the alt
+  `previews/<lesson id>.webp` of the built site, as lossless WebP: every
+  pixel kept, in about half the bytes of a PNG (Issue #319). Nothing is
+  cropped by hand, and two builds give the same bytes. The alt text in `path.json` is the alt
   text of the figure, started by `Preview, <status>:`, so the status travels
   with the picture.
 - A lesson without `lesson.preview` gets a conceptual card in
@@ -918,10 +919,9 @@ lesson. It is never an image file: the build makes it.
   status or alt text, fails the lesson checks; a named cell that drew no
   figure fails the build. The built-site check requires one preview per
   lesson, traced to its cell or to the fallback, and the previews together
-  fit in the payload budget of the learning path page: 4.5 MB for the page
-  with its previews, temporary, to be reduced (owner's decision of
-  2026-10-28, Issue #318: the page with its previews measured 4,022,544
-  bytes at 75 lessons; 4 MB from Issue #264, 3 MB before that), while every
+  fit in the payload budget of the learning path page: 4 MB for the page
+  with its previews (Issue #264; 3 MB before that; temporarily 4.5 MB by
+  Issue #318 until the lossless WebP previews of Issue #319), while every
   other page keeps 3 MB.
 
 ### Numbers in prose
