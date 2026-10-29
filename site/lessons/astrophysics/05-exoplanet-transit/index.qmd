@@ -1,0 +1,488 @@
+---
+title: "Exoplanet transit simulation"
+description: >-
+  A planet crossing its star, simulated: the orbit integrated in three
+  dimensions, the light lost counted cell by cell over the planet's disk,
+  the depth and the durations checked against the analytic geometry, and
+  what the impact parameter and a darker limb do to the shape of the dip.
+lesson:
+  id: exoplanet-transit
+  strand: astrophysics
+  order: 5
+  difficulty: 2
+  course: astrophysics
+  slot: AST7
+  methods: [simulation]
+  outcomes:
+    - Simulate the light curve of a transiting planet from its orbit and the brightness of the star's disk
+    - Derive the depth and the total and full durations of a transit from the geometry, and check them against the simulation
+    - Explain how the impact parameter, the period, and limb darkening change the depth, the duration, and the shape of a transit
+  related: []
+  format: 2
+  preview: fig-transit
+  experiment: pbc.astrophysics.experiments.exoplanet_transit
+  prerequisites:
+    lessons: [kepler-orbit]
+    outside:
+      - "Geometry: the area of a circular segment, and the chord of a circle at a given distance from its centre"
+      - "Trigonometry: sine, cosine, and their inverses, and the angle of a right triangle"
+---
+
+```{python}
+#| echo: false
+from pbc.astrophysics import transit
+from pbc.astrophysics.experiments import exoplanet_transit as experiment
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+
+result = experiment.run()
+lesson_header()
+```
+
+[Most of the planets known outside the solar system were found because
+they pass in front of their star.]{.not-verified} The planet itself is far too faint and too
+close to the star to be seen, but while it crosses, it blocks a small part
+of the star's disk, and the star dims by a fraction of a per cent for a few
+hours, once every orbit. The depth of the dip gives the size of the planet
+relative to the star, the time between dips its period, and the length and
+shape of each dip the geometry of the orbit.
+
+This lesson simulates a transit from first principles: it integrates the
+planet's orbit in three dimensions, finds the moments at which the planet's
+disk touches the star's, and counts the light lost on a grid over the
+planet. It checks the result against the analytic geometry, then varies the
+impact parameter and the brightness profile of the star. It is the
+simulated counterpart of the measured-data lab of this course on real
+exoplanet light curves, where the same quantities are read from a
+measurement with noise.
+
+## Assumptions
+
+1. **A dark disk in front of a bright one.** The planet is an opaque disk
+   of radius $p$ in units of the star's radius $R$; it emits and reflects
+   nothing, and has no atmosphere or rings.
+2. **A circular Keplerian orbit.** The planet moves about the star under
+   Newtonian gravity on a circular orbit of radius $a$; the star's motion
+   and the other planets are left out.
+3. **A distant observer.** The light arrives along parallel lines, so the
+   star and the planet are seen as disks on the plane of the sky.
+4. **A spherical star of fixed brightness profile.** The brightness of the
+   star's disk depends only on the distance from its centre: uniform, or
+   with the quadratic limb-darkening law; spots, flares, and oscillations
+   are left out.
+5. **SI units.** The star has the mass parameter $GM_\odot$ and the
+   nominal radius of the Sun, as set in the experiment (`GM_SUN` and
+   `R_SUN`); times are reported in hours.
+
+## The geometry of a transit {#explanation}
+
+### The planet on the sky
+
+Let the observer look along $+z$, so that the sky is the $x$–$y$ plane, and
+let the orbit be inclined by $i$ from the sky, with $i$ close to a right
+angle for a transit. At mid-transit the planet is closest to the star's
+centre in projection, at the **impact parameter**
+
+$$
+b = \frac{a\cos i}{R} .
+$$
+
+The planet's projected distance $d$ from the star's centre, in stellar
+radii, falls to $b$ and rises again. The transit begins when the disks
+first touch, at $d = 1 + p$ (the **first contact**), the planet is wholly on
+the star between $d = 1 - p$ (second and third contacts), and the transit
+ends at $d = 1 + p$ again (fourth contact). For $b > 1 - p$ the planet never
+lies wholly on the star: the transit is **grazing**.
+
+### The durations
+
+On a circular orbit of period $P$ the planet turns through the angle
+$2\pi t/P$ in the time $t$. After it turns through the angle $\theta$ from
+mid-transit, its projected distance satisfies
+$d^2 = b^2 + (a\sin\theta\,\sin i/R)^2$, so it reaches a contact at the
+distance $d$ when $\sin\theta = R\sqrt{d^2 - b^2}/(a\sin i)$. Twice the time
+to turn through that angle gives the **total duration** and the **full
+duration**,
+
+$$
+T_{14} = \frac{P}{\pi}\arcsin\!\left(\frac{R}{a}\,
+\frac{\sqrt{(1 + p)^2 - b^2}}{\sin i}\right),
+\qquad
+T_{23} = \frac{P}{\pi}\arcsin\!\left(\frac{R}{a}\,
+\frac{\sqrt{(1 - p)^2 - b^2}}{\sin i}\right),
+$$
+
+with no full phase when $b > 1 - p$. For $a \gg R$ and a central transit,
+$T_{14} \approx PR(1 + p)/(\pi a)$; with Kepler's third law,
+$a \propto P^{2/3}$, so a planet on a wider orbit crosses its star more
+slowly but for longer, $T_{14} \propto P^{1/3}$.
+
+### The light lost
+
+The light the star sends is the integral of its brightness $I$ over its
+disk. The planet hides the part of its own disk that lies on the star, so
+the flux relative to the flux out of transit is
+
+$$
+F = 1 - \frac{\int_\text{planet on star} I\,\mathrm dA}{\int_\text{star} I\,\mathrm dA}.
+$$
+
+For a uniform star the hidden part is the area of overlap of two disks,
+which is two circular segments in closed form, divided by $\pi$. With the
+planet wholly on the star, the **depth** is
+
+$$
+\delta = p^2 ,
+$$
+
+the ratio of the areas. The simulation does not use the overlap formula: it
+lays a grid over the planet's disk and adds up the brightness of the cells
+that are also on the star.
+
+### A darker limb
+
+The edge of a star looks darker than its centre, because there the line of
+sight enters the hot interior at a slant and sees only the cooler outer
+layers. The **quadratic law** writes the brightness in terms of
+$\mu = \sqrt{1 - r^2}$, the cosine of the angle at which the surface is
+seen,
+
+$$
+I(r) = 1 - u_1(1 - \mu) - u_2(1 - \mu)^2 ,
+$$
+
+whose integral over the disk is $\pi\bigl(1 - u_1/3 - u_2/6\bigr)$. A planet
+in front of the bright centre hides more than its share of light, so the
+depth of a central transit exceeds $p^2$; near the limb it hides less. For
+a planet at the centre the hidden light is an integral over rings,
+$2\pi\int_0^p I(r)\,r\,\mathrm dr$, which the substitution
+$r\,\mathrm dr = -\mu\,\mathrm d\mu$ turns into polynomials in $\mu$.
+
+## Code
+
+The orbit is integrated in three dimensions, and the contacts are events of
+the projected separation, with the planet in front of the star:
+
+```{python}
+#| echo: false
+excerpt(transit.orbit_start)
+```
+
+```{python}
+#| echo: false
+excerpt(transit.transit_orbit)
+```
+
+The light lost, by counting the cells of a grid over the planet's disk:
+
+```{python}
+#| echo: false
+excerpt(transit.grid_flux)
+```
+
+The references: the overlap of two disks, the analytic durations, and the
+depth of a central transit on a limb-darkened star:
+
+```{python}
+#| echo: false
+excerpt(transit.overlap_area)
+```
+
+```{python}
+#| echo: false
+excerpt(transit.durations)
+```
+
+```{python}
+#| echo: false
+excerpt(transit.central_depth)
+```
+
+## Worked examples
+
+### One transit, simulated
+
+A planet of a tenth of the star's radius, about the size of Jupiter in
+front of the Sun, is put on a three-day orbit about a star of the Sun's
+mass and radius, at an impact parameter of three tenths. Kepler's third law
+puts it at `{python} result["a-over-r"]` stellar radii.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.simulate)
+```
+
+```{python}
+#| label: transit-run
+#| echo: false
+excerpt(experiment.one_transit)
+```
+
+```{python}
+#| label: one-transit
+#| echo: false
+result.table("one-transit")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_transit)
+```
+
+```{python}
+#| label: fig-transit
+#| echo: false
+#| fig-cap: "The light curve simulated by counting grid cells over the planet follows the closed-form overlap of the two disks; the contacts of the integrated orbit bound the ingress and the egress, and the flat bottom lies at one minus the ratio of the areas."
+#| fig-alt: "Flux against time from mid-transit in hours. A flat line at one on both sides drops steeply to a flat bottom just below one and rises again symmetrically, like a box with sloping sides. Open circles, the simulation, lie on a dashed curve, the closed form, throughout. Four dotted vertical lines, the contacts, mark the start and end of the descent on the left and of the ascent on the right."
+#| fig-status: simulated
+result.show("fig-transit")
+```
+
+[The depth of the simulated light curve is the ratio of the areas $p^2$, the
+simulated flux follows the closed-form overlap of the two disks through
+ingress and egress, and the contacts of the integrated orbit give the
+analytic total and full durations.]{.claim type="numerically-verified"
+scope="uniform star of the Sun's mass and radius, planet of radius 0.1, three-day circular orbit, b = 0.3, a grid of 400 cells across the planet"
+evidence="transit-run one-transit fig-transit"}
+The largest gap between the grid and the closed form is
+`{python} result["flux-gap"]` of the depth, the size of the error of
+counting whole cells along the edge of a disk; the durations agree to the
+tolerance of the integration. The transit lasts `{python} result["t14"]`
+hours, a small fraction of the orbit, which is why a survey has to watch a
+star continuously to catch one.
+
+### The impact parameter
+
+The same planet is put on orbits of five inclinations, from a central
+transit to a grazing one.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="impacts")
+```
+
+```{python}
+#| label: impacts-run
+#| echo: false
+excerpt(experiment.impact_scan)
+```
+
+```{python}
+#| label: impacts
+#| echo: false
+result.table("impacts")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_impacts)
+```
+
+```{python}
+#| label: fig-impacts
+#| echo: false
+#| fig-cap: "A larger impact parameter makes the transit shorter and its ingress and egress longer; a grazing transit has no flat bottom and is shallower than the ratio of the areas."
+#| fig-alt: "Flux against time from mid-transit in hours for five impact parameters, drawn solid, dashed, dash-dotted, dotted, and finely dotted. The first four are box-like dips to the same flat bottom, each narrower than the one before and with longer sloping sides. The fifth, the grazing transit, is a shallower V-shaped dip that does not reach the common bottom."
+#| fig-status: simulated
+result.show("fig-impacts")
+```
+
+[For impact parameters from a central to a grazing transit, the contacts of
+the integrated orbit give the analytic durations $T_{14}$ and $T_{23}$, and
+the depth is $p^2$ for every transit that is not grazing.]{.claim
+type="numerically-verified"
+scope="uniform star, planet of radius 0.1, three-day circular orbit, b = 0, 0.3, 0.6, 0.85, 0.95"
+evidence="impacts-run impacts fig-impacts"}
+The durations agree to `{python} result["duration-gap"]` in relative terms.
+The grazing transit reaches only `{python} result["grazing-depth"]` of
+$p^2$, so a grazing planet looks smaller than it is unless its shape is
+fitted. A single dip gives the depth, $T_{14}$, and $T_{23}$, three numbers
+from which $p$, $b$, and $a/R$ follow for a known period; with the period,
+Kepler's third law then gives the density of the star.
+
+### A darker limb
+
+The central transit is simulated on a uniform star and on a star with the
+quadratic law with given coefficients, and the grid depth is compared with the closed form for a centred planet at
+three grid sizes.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="limb")
+```
+
+```{python}
+#| label: limb-run
+#| echo: false
+excerpt(experiment.limb_darkening)
+```
+
+```{python}
+#| label: limb
+#| echo: false
+result.table("limb")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_limb)
+```
+
+```{python}
+#| label: fig-limb
+#| echo: false
+#| fig-cap: "On a limb-darkened star the transit has no flat bottom: it is shallow near the limb and deeper than the ratio of the areas in the middle, where the planet hides the bright centre."
+#| fig-alt: "Flux against time from mid-transit in hours. A solid box-shaped dip, the uniform star, has a flat bottom on a dotted horizontal line, one minus the ratio of the areas. A dashed dip, the limb-darkened star, starts at the same times but falls more gently, crosses the flat bottom, and reaches a rounded minimum below it at mid-transit."
+#| fig-status: simulated
+result.show("fig-limb")
+```
+
+[The depth of a central transit on a limb-darkened star, counted on the
+grid, converges to the closed form for a centred planet as the grid is
+refined.]{.claim type="numerically-verified"
+scope="quadratic law u1 = 0.4, u2 = 0.26, planet of radius 0.1, b = 0, grids of 100 to 400 cells across the planet"
+evidence="limb-run limb fig-limb"}
+On the finest grid the gap is `{python} result["limb-gap"]`. The central
+depth is `{python} result["limb-excess"]` per cent larger than $p^2$: a fit
+that took the star as uniform would overestimate the planet's size. The
+rounded bottom is how limb darkening shows itself in a measured light curve,
+and its coefficients are fitted together with the planet.
+
+## Limits {#limits}
+
+- **Circular orbits.** On an eccentric orbit the planet's speed during the
+  transit differs from the mean, and the durations change by a factor that
+  depends on the eccentricity and the orientation of the orbit; the
+  integration would handle it, the formulas used here would not.
+- **An opaque disk.** A planet with an atmosphere is slightly larger at
+  wavelengths its gases absorb, which transmission spectroscopy measures;
+  rings, moons, and an oblate planet change the shape slightly.
+- **A simple star.** Real stars have spots that the planet may cross, and
+  other limb-darkening laws fit some stars better. The quadratic law with
+  given coefficients is a model, not a measurement of the Sun.
+- **No noise, no sampling.** The light curves are noise-free and finely
+  sampled. A measured light curve is integrated over exposures of minutes,
+  which smooths the ingress, and has noise that makes $T_{23}$ and $b$
+  hard to pin down for a small planet; the measured-data lab of this course
+  meets both.
+- **Other dips.** A star eclipsed by a companion star behind it, blended
+  with the target, can make a dip that looks like a transit; a simulation of
+  one planet does not decide what a measured dip is.
+
+::: {.exercise .self-check}
+Two transits of the same planet across the same uniform star have the same
+depth, but the second is shorter and has longer ingress and egress. What
+changed?
+
+::: {.choices}
+::: {.choice}
+The planet is larger in the second transit.
+
+::: {.feedback}
+A larger planet would make a deeper transit; the depths are the same.
+:::
+:::
+
+::: {.choice correct="true"}
+The impact parameter is larger: the planet crosses the star further from
+its centre.
+
+::: {.feedback}
+Correct: the chord across the star is shorter, and the planet crosses the
+edge at a slant, which lengthens the ingress and egress.
+:::
+:::
+
+::: {.choice}
+The star is limb-darkened in the second transit.
+
+::: {.feedback}
+The star is the same; limb darkening rounds the bottom of every transit of
+that star, and does not shorten one.
+:::
+:::
+:::
+
+::: {.solution}
+On a uniform star the depth is $p^2$ for any transit that is not grazing,
+so the planet's size is unchanged. $T_{14}$ falls as
+$\sqrt{(1 + p)^2 - b^2}$ when $b$ grows, and the planet meets the star's
+edge at a slant, so the time between the first and second contacts grows
+relative to the whole: the second transit has the larger impact parameter.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**The Earth seen from afar.** An observer far away watches the Earth, of
+radius 6371 km, cross the Sun centrally once a year. How deep is the
+transit, in parts per million, and how long does it last? What is the
+chance that a randomly oriented orbit of this size shows a transit at all?
+
+::: {.hint}
+A transit happens when $|\cos i| < R/a$, roughly, and $\cos i$ is uniform
+for random orientations.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.earth_transit)
+```
+
+The depth is `{python} result["earth-depth"]` parts per million, the transit
+lasts `{python} result["earth-hours"]` hours, and the chance of a transit is
+`{python} result["earth-chance"]` per cent. A survey therefore watches many
+thousands of stars, and an Earth-like transit is hidden in the noise of most
+of them.
+:::
+:::
+
+::: {.exercise}
+**Duration and period.** For the planet of the examples on central
+transits about a Sun-like star, compute $T_{14}$ for periods of 1, 3, 10,
+30, and 365.25 days, and check how it grows with the period.
+
+::: {.hint}
+`semi_major_axis` takes the period in seconds; `durations` takes $a/R$.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.duration_with_period)
+```
+
+```{python}
+#| echo: false
+result.table("durations-with-period")
+```
+
+The ratio $T_{14}/P^{1/3}$ settles to a constant as the orbit widens, as the
+approximation $T_{14} \approx PR(1 + p)/(\pi a)$ with Kepler's third law
+predicts; at the shortest period the orbit is close enough to the star for
+the arcsine to differ from its argument.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/astrophysics/transit.py",
+        "src/pbc/astrophysics/experiments/exoplanet_transit.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_astrophysics.py",
+        "tests/unit/test_exoplanet_transit_experiment.py",
+    ],
+)
+```

@@ -1,0 +1,572 @@
+---
+title: "Gravitational-wave chirp simulation"
+description: >-
+  The wave of two bodies spiralling together, computed from their motion by
+  the quadrupole formula and checked against the closed form of the chirp
+  and its first correction; its two polarisations, the binaries that share
+  one chirp mass, and where the model of a slowly shrinking orbit ends.
+lesson:
+  id: gravitational-wave-chirp
+  strand: astrophysics
+  order: 4
+  difficulty: 3
+  course: astrophysics
+  slot: AST6
+  methods: [simulation]
+  outcomes:
+    - Compute the gravitational wave of a binary from the motion of its two bodies with the quadrupole formula
+    - Check the computed waveform against the closed-form chirp, and explain the remaining gap as the first correction for an orbit that shrinks during a turn
+    - Explain why the leading-order chirp determines the chirp mass and not the two masses, and where the model of a slowly shrinking circular orbit stops
+  related: [chirp-law-proved]
+  format: 2
+  preview: fig-waveform
+  experiment: pbc.astrophysics.experiments.gravitational_wave_chirp
+  prerequisites:
+    lessons: [gravitational-wave-strain]
+    outside:
+      - "Calculus: the chain rule and the derivative of a power and of a quotient"
+      - "Trigonometry: the sine and cosine, and polar coordinates"
+---
+
+```{python}
+#| echo: false
+from pbc.astrophysics import gravitational_waves
+from pbc.astrophysics.experiments import gravitational_wave_chirp as experiment
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+
+result = experiment.run()
+lesson_header()
+```
+
+The gravitational-wave strain lab of the mechanics course derives the chirp
+of two bodies spiralling together and fits it to the strain that the LIGO
+detectors measured. It checks the frequency of the chirp and leaves the
+amplitude free, because the fit needs only the shape. That lab is where the
+measurement is; this lesson does not show it again. The Lean lesson on the
+chirp law proves the algebra that leads from Kepler's third law and the
+radiated power to the closed form.
+
+This lesson builds the wave itself from the motion of the two bodies.
+Their positions are computed along a slowly shrinking orbit, the
+**quadrupole formula** of general relativity turns the motion of the masses
+into a strain, and the result is compared with the closed forms of the
+chirp: its frequency, its phase, and an amplitude that the lab did not need.
+The comparison does not come out exact, and the gap turns out to have a
+predicted size. The lesson then looks at the two polarisations of the wave,
+at binaries that the leading-order chirp cannot tell apart, and at where
+the model ends.
+
+## Assumptions
+
+1. **Two point masses on a circular orbit.** The orbit is that of the
+   Kepler lesson with zero eccentricity, and it stays circular while it
+   shrinks.
+2. **The quadrupole formula, taken as given.** Both the strain far from the
+   source and the power it carries away come from general relativity at its
+   lowest order; the lesson uses them and does not derive them.
+3. **A slow inspiral.** The orbit shrinks by the rate of the radiated power,
+   as in the strain lab; the model is cut off at the innermost stable
+   circular orbit, $a = 6GM/c^2$.
+4. **A distant observer in flat space.** The wave is computed at a distance
+   much larger than the orbit; the expansion of the universe, which
+   stretches the wave on its way, is left out.
+5. **SI units.** The constants are those of `pbc.mechanics.chirp`: the
+   Sun's mass parameter $GM_\odot$, the speed of light, and $G$; masses are
+   given in solar masses.
+
+## From motion to strain {#explanation}
+
+### The quadrupole formula
+
+A wave of gravity is a small strain $h$ of space across its direction of
+travel. Far from a source of slowly moving masses it is set by the second
+time derivative of the source's **mass quadrupole**, the trace-free moment
+
+$$
+Q_{ij} = \sum_k m_k \Bigl(x_{k,i}\,x_{k,j} - \tfrac13 \delta_{ij}\,|\mathbf x_k|^2\Bigr).
+$$
+
+An observer at the distance $D$ in the direction $\mathbf n$ measures two
+independent strains, the **polarisations** $h_+$ and $h_\times$. With two
+unit vectors $\mathbf p$ and $\mathbf q$ across $\mathbf n$,
+
+$$
+h_+ = \frac{G}{c^4 D}\bigl(\ddot Q_{pp} - \ddot Q_{qq}\bigr),
+\qquad
+h_\times = \frac{2G}{c^4 D}\,\ddot Q_{pq} .
+$$
+
+A sphere that pulses has no quadrupole at all and sends no wave; two bodies
+on an orbit have one that turns with them. Because the pair
+looks the same after half a turn, its quadrupole repeats twice per orbit,
+and the wave has twice the orbital frequency.
+
+### The circular orbit
+
+Put the orbit in the $x$–$y$ plane with separation $a$ and orbital phase
+$\phi$, and let $\mu = m_1 m_2/M$ be the reduced mass, $M = m_1 + m_2$.
+Seen face on, along the orbit's axis, the formula gives
+
+$$
+h_+ - \mathrm i\,h_\times \approx -\frac{4G\mu a^2\omega^2}{c^4 D}\,\mathrm e^{-2\mathrm i\phi},
+$$
+
+with $\omega = \dot\phi = \sqrt{GM/a^3}$. Eliminating $a$ with Kepler's
+third law and writing $f = \omega/\pi$ for the wave frequency gives the
+**amplitude**
+
+$$
+h_0 = \frac{4}{D}\left(\frac{G\mathcal M}{c^2}\right)^{5/3}
+\left(\frac{\pi f}{c}\right)^{2/3},
+$$
+
+in which, as in the frequency, the masses enter only through the chirp mass
+$\mathcal M$. At the inclination $\iota$ between the orbit's axis and the
+line of sight, $h_+$ is smaller by $(1 + \cos^2\iota)/2$ and $h_\times$ by
+$\cos\iota$; edge on, the wave is purely $h_+$.
+
+### What the closed form leaves out
+
+The approximation sign above hides a step. The second derivative of
+$a^2\mathrm e^{2\mathrm i\phi}$ is
+
+$$
+\frac{\mathrm d^2}{\mathrm dt^2}\bigl(a^2\mathrm e^{2\mathrm i\phi}\bigr)
+= -4\omega^2a^2\mathrm e^{2\mathrm i\phi}
+\Bigl(1 - \frac{\ddot{(a^2)}}{4\omega^2a^2}
+- \mathrm i\,\frac{\dot{(a^2)}}{\omega a^2} - \mathrm i\,\frac{\dot\omega}{2\omega^2}\Bigr),
+$$
+
+and the closed form keeps only the one. The terms it drops are measured by
+the **slowness**
+
+$$
+\varepsilon = \frac{|\dot a|}{a\,\omega},
+$$
+
+the fraction by which the orbit shrinks while it turns through one radian.
+For the inspiral, $a \propto (t_c - t)^{1/4}$ and $\omega \propto
+a^{-3/2}$, so the bracket is $1 + \varepsilon^2 + \tfrac54\mathrm i\,
+\varepsilon$.
+
+The sign of the phase needs a convention, and it is this one. The phase of
+the wave is $\Phi = \arg\bigl(-(h_+ + \mathrm i\,h_\times)\bigr)$; by the
+formula above it is $2\phi$ for an orbit that does not shrink, and it
+grows at $2\omega = 2\pi f$, as the closed-form phase of the strain lab
+does. The closed form is the solution of the same two equations that move
+the bodies, $\dot a$ from the radiated power and $\dot\phi = \omega$, so
+twice the orbital phase equals it, counted from the start. With the
+bracket, $-(h_+ + \mathrm i\,h_\times)$ is proportional to
+$\mathrm e^{2\mathrm i\phi}\bigl(1 + \tfrac54\mathrm i\,\varepsilon\bigr)$
+to first order, so $\Phi = 2\phi + \tfrac54\varepsilon$: the computed
+wave should be ahead of the closed form in phase by $\tfrac54\varepsilon$,
+and larger in amplitude by
+$\bigl|1 + \varepsilon^2 + \tfrac54\mathrm i\,\varepsilon\bigr| - 1
+\approx \tfrac{57}{32}\varepsilon^2$. The slowness grows as the orbit
+shrinks, so both gaps grow towards the end.
+
+### The innermost stable orbit
+
+The slowly shrinking circular orbit cannot be followed to the end. In
+general relativity a circular orbit of a small body about a black hole is
+unstable inside $a = 6GM/c^2$, the **innermost stable circular orbit**, and
+the body plunges in from there. For two comparable masses the boundary is
+not sharp and lies at a somewhat different separation, but this value is
+the usual place to stop a model of the inspiral; at that separation the wave frequency is
+
+$$
+f_\mathrm{ISCO} = \frac{c^3}{6^{3/2}\,\pi\,GM},
+$$
+
+which depends on the total mass $M$, not on the chirp mass. The model of
+this lesson stops there.
+
+## Code
+
+The inspiral integrates the separation and the orbital phase together, the
+first with the shrink rate of the strain lab and the second with Kepler's
+third law, and stops at the innermost stable orbit:
+
+```{python}
+#| echo: false
+excerpt(gravitational_waves.inspiral)
+```
+
+The positions of the two bodies about their centre of mass, and their
+quadrupole:
+
+```{python}
+#| echo: false
+excerpt(gravitational_waves.positions)
+```
+
+```{python}
+#| echo: false
+excerpt(gravitational_waves.quadrupole)
+```
+
+The second derivative is taken from the samples by a fourth-order central
+difference, and the polarisations follow from the formula:
+
+```{python}
+#| echo: false
+excerpt(gravitational_waves.second_derivative)
+```
+
+```{python}
+#| echo: false
+excerpt(gravitational_waves.polarisations)
+```
+
+The closed-form amplitude, the innermost orbit, and the number of cycles in
+a band:
+
+```{python}
+#| echo: false
+excerpt(gravitational_waves.strain_amplitude)
+```
+
+```{python}
+#| echo: false
+excerpt(gravitational_waves.isco_frequency)
+```
+
+```{python}
+#| echo: false
+excerpt(gravitational_waves.cycles_in_band)
+```
+
+## Worked examples
+
+### The wave of two black holes
+
+Two bodies of thirty solar masses each are followed from a wave frequency of
+twenty hertz to their innermost stable orbit, sampled at a rate far above
+the wave's frequency, and seen face on from a distance of four hundred
+megaparsecs.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.waveform)
+```
+
+```{python}
+#| label: chirp-run
+#| echo: false
+excerpt(experiment.chirp_check)
+```
+
+```{python}
+#| label: chirp-check
+#| echo: false
+result.table("chirp-check")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_waveform)
+```
+
+```{python}
+#| label: fig-waveform
+#| echo: false
+#| fig-cap: "The wave computed from the motion of the two bodies rises in frequency and amplitude until the innermost stable orbit, and follows the closed-form amplitude and frequency of the chirp throughout."
+#| fig-alt: "Two stacked panels sharing a time axis. Top: an oscillating solid curve, the plus polarisation, whose oscillations become faster and larger towards the right, between two dashed curves, the closed-form amplitude above and below, which touch its peaks. Bottom: the wave frequency against time; open circles from the computed wave lie on a dashed rising curve, the closed form, which steepens and reaches a dotted horizontal line, the innermost stable orbit, at the right edge."
+#| fig-status: simulated
+result.show("fig-waveform")
+```
+
+[The waveform computed from the motion of the two bodies by the quadrupole
+formula agrees with the closed forms of `pbc.mechanics.chirp`; the gaps that
+remain are the predicted first corrections for an orbit that shrinks during
+a turn, $\tfrac{57}{32}\varepsilon^2$ in amplitude and
+$\tfrac54\varepsilon$ in phase.]{.claim type="numerically-verified"
+scope="two bodies of 30 solar masses, circular orbit, quadrupole order, from 20 Hz to the innermost stable orbit"
+evidence="chirp-run chirp-check fig-waveform"}
+The amplitude gap divided by $\varepsilon^2$ stays within
+`{python} result["coefficient-spread"]` of
+$\tfrac{57}{32} =$ `{python} result["coefficient"]` all the way. The phase
+is checked in its two steps: twice the orbital phase differs from the
+closed-form phase by `{python} result["orbit-gap"]` radians, and the phase
+of the wave is ahead of twice the orbital phase, with a lead divided by
+$\varepsilon$ that stays within `{python} result["lead-spread"]` of
+$+\tfrac54$; at the innermost orbit the lead is
+`{python} result["lead-end"]` radians. The
+slowness grows from `{python} result["eps-start"]` at the start to
+`{python} result["eps-end"]` at the innermost orbit, where the amplitude is
+off by `{python} result["amplitude-gap-end"]` and the phase by
+`{python} result["phase-gap-end"]` radians. The pair has the chirp mass
+`{python} result["chirp-mass"]` solar masses and reaches its innermost orbit
+after `{python} result["end"]` s, at `{python} result["isco"]` Hz; the
+closed form would put the coalescence at `{python} result["t-c"]` s. The
+`{python} result["left"]` ms between the two is what the closed form gives
+as the time left at that frequency, `{python} result["left-closed"]` ms: the
+end of the integration and the closed form agree. The peak strain is
+`{python} result["peak-strain"]`, a relative change of length far smaller
+than any that a ruler could show; the strain lab shows how such a change is
+measured and what the noise does to it.
+
+### Seen from an angle
+
+The same binary is computed at four inclinations, and the size of each
+polarisation is compared with the face-on wave by a least-squares factor
+over the whole record.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="inclinations")
+```
+
+```{python}
+#| label: inclination-run
+#| echo: false
+excerpt(experiment.inclination_scan)
+```
+
+```{python}
+#| label: inclinations
+#| echo: false
+result.table("inclinations")
+```
+
+[The two polarisations computed from the motion depend on the inclination as
+$(1 + \cos^2\iota)/2$ and $\cos\iota$.]{.claim type="numerically-verified"
+scope="the binary of the first example at inclinations of 0, 30, 60, and 90 degrees"
+evidence="inclination-run inclinations"}
+The largest gap is `{python} result["inclination-gap"]`, in the plus
+polarisation away from the axis: the shrinking orbit also changes its
+quadrupole along the axis, slowly and without oscillating, a term of the
+order $\varepsilon^2$ that a face-on observer does not see. Edge on, the
+cross polarisation vanishes and the plus one is half as large; a detector
+that measures only one combination of the two cannot tell a distant face-on
+binary from a nearer inclined one, one reason why the distance of a source is
+hard to measure.
+
+### One chirp mass, three binaries
+
+The mass of the first body is set to thirty, forty-five, and sixty solar
+masses, and the second is chosen in each case to keep the chirp mass of the
+first example.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="same-chirp-mass")
+```
+
+```{python}
+#| label: same-run
+#| echo: false
+excerpt(experiment.same_chirp_mass)
+```
+
+```{python}
+#| label: same-chirp-mass
+#| echo: false
+result.table("same-chirp-mass")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_same_chirp_mass)
+```
+
+```{python}
+#| label: fig-same-chirp-mass
+#| echo: false
+#| fig-cap: "Three binaries with one chirp mass have one frequency track; they differ only in where the model ends, at the innermost stable orbit of each total mass."
+#| fig-alt: "Two panels of wave frequency against time. Left, the whole record: three curves, solid, dashed, and dotted, lie on top of one another and rise ever faster; each ends with a hollow marker, a triangle lowest, a square higher, a circle at the top. Right, the last tenth of a second enlarged: the same single curve, with the triangle, the square, and the circle at successively later times and higher frequencies."
+#| fig-status: simulated
+result.show("fig-same-chirp-mass")
+```
+
+[Binaries of different masses with the same chirp mass have the same
+leading-order waveform, computed from their motion, until the first of them
+reaches its innermost stable orbit.]{.claim type="numerically-verified"
+scope="m1 = 30, 45, 60 solar masses, m2 for a chirp mass of 26.12 solar masses, face on, from 20 Hz"
+evidence="same-run same-chirp-mass fig-same-chirp-mass"}
+The three plus polarisations differ by `{python} result["same-difference"]`
+of their peak over the common part. The chirp of this model measures one
+number; the strain lab reads that number from data. The two masses
+separately enter only through the end of the inspiral, which the model
+cuts off, and through the corrections of the next order in $v/c$, which it
+leaves out; that is where a measurement of the masses has to look.
+
+### Time and cycles in a detector's band
+
+How long a binary stays in a detector's band and how many cycles it makes
+there decides how well it can be measured. For three kinds of binary the
+orbit is integrated from ten hertz to the innermost stable orbit, and the
+time and the number of cycles are compared with the closed forms.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="band")
+```
+
+```{python}
+#| label: band-run
+#| echo: false
+excerpt(experiment.band)
+```
+
+```{python}
+#| label: band
+#| echo: false
+result.table("band")
+```
+
+[The time from ten hertz to the innermost stable orbit and the number of
+wave cycles in it, from the integrated orbit, agree with the closed forms of
+the chirp.]{.claim type="numerically-verified"
+scope="two neutron stars of 1.4, a neutron star of 1.4 and a black hole of 10, two black holes of 30 solar masses"
+evidence="band-run band"}
+The largest relative gap is `{python} result["band-gap"]`. The two neutron
+stars spend `{python} result["bns-minutes"]` minutes in the band and make
+`{python} result["bns-cycles"]` cycles; the two black holes make
+`{python} result["bbh-cycles"]`. Many cycles mean a long record to match a
+waveform against, and a small error in the phase per cycle adds up over
+them, which is why the light binaries test the model hardest.
+
+## Limits {#limits}
+
+- **Lowest order in $v/c$.** The waveform and the shrink rate are those of
+  the quadrupole formula, the lowest order of an expansion in the orbital
+  speed over the speed of light. The next orders bring in the mass ratio and
+  the spins, change the phase by many radians over a long record, and are
+  needed to read the masses from data.
+- **Circular orbit.** A binary formed with an eccentric orbit radiates at
+  several harmonics; radiation makes an orbit more circular, which is why the
+  circular model fits most binaries late in their inspiral.
+- **No merger and ringdown.** The model stops at the innermost stable orbit.
+  The plunge, the merger, and the ringing of the final black hole need
+  numerical relativity or a model calibrated to it.
+- **The closed form is adiabatic.** It assumes the orbit does not change
+  during a turn; its first correction, checked above, grows to a few
+  hundredths of a radian in phase at the innermost orbit of equal masses,
+  and is smaller for unequal ones (the second exercise).
+- **The quadrupole formula is taken as given.** The lesson checks what
+  follows from it, not the formula. The strain lab compares the chirp with a
+  measurement.
+
+::: {.exercise .self-check}
+Two binaries have the same chirp mass but different total masses. Their
+leading-order waveforms, from a low frequency up to the innermost stable
+orbit of the heavier one, are
+
+::: {.choices}
+::: {.choice correct="true"}
+the same, because both the frequency evolution and the amplitude depend on
+the masses only through the chirp mass.
+
+::: {.feedback}
+Correct: the rate of the frequency and the amplitude contain only
+$\mathcal M$; the total mass sets where the model ends.
+:::
+:::
+
+::: {.choice}
+different in amplitude, because the heavier binary radiates more.
+
+::: {.feedback}
+The amplitude $h_0$ depends on the masses through $\mathcal M^{5/3}$ alone,
+at a given frequency; the example shows the waveforms agree.
+:::
+:::
+
+::: {.choice}
+different in frequency, because the frequency of a circular orbit depends on
+the total mass.
+
+::: {.feedback}
+At a given separation it does, but the binaries are compared at a given
+frequency, and the rate at which that frequency rises depends only on the
+chirp mass.
+:::
+:::
+:::
+
+::: {.solution}
+At leading order $\dot f \propto \mathcal M^{5/3} f^{11/3}$ and
+$h_0 \propto \mathcal M^{5/3} f^{2/3}$, so two binaries with the same
+$\mathcal M$ trace the same $f(t)$ and the same $h(t)$. They differ where
+the model ends, at $f_\mathrm{ISCO} \propto 1/M$, and at the next orders in
+$v/c$, which bring in the mass ratio.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**How large a strain?** Two neutron stars of 1.4 solar masses each, at a
+distance of 40 Mpc, are seen face on when their wave has the frequency
+100 Hz. What is the strain amplitude, and by how much does it change the
+length of a detector arm of 4 km?
+
+::: {.hint}
+`strain_amplitude` takes the chirp mass in solar masses and the distance in
+metres; a strain is a relative change of length.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.neutron_star_amplitude)
+```
+
+The amplitude is `{python} result["ns-strain"]`, and the arm changes by
+`{python} result["ns-change"]` m, a small fraction of the size of a proton.
+:::
+:::
+
+::: {.exercise}
+**The slowness at the innermost orbit.** Show that the slowness at the
+innermost stable orbit depends only on the symmetric mass ratio
+$\eta = m_1 m_2/M^2$, as $\varepsilon = \tfrac{64}{5}\,\eta\,6^{-5/2}$, and
+compute it for the mass ratios 1, 4, and 10.
+
+::: {.hint}
+Write $\dot a/(a\omega)$ with the shrink rate and Kepler's third law, and
+put $a = 6GM/c^2$; the product $m_1 m_2$ is $\eta M^2$.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.slowness_at_isco)
+```
+
+```{python}
+#| echo: false
+result.table("slowness-at-isco")
+```
+
+With the shrink rate,
+$\varepsilon = \tfrac{64}{5}\,\eta\,(GM/(c^2 a))^{5/2}$, and at
+$a = 6GM/c^2$ the bracket is $6^{-5/2}$. For equal masses it is
+`{python} result["eps-isco-equal"]`, the value the first example reached at
+its end; unequal masses end their inspiral more slowly.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/astrophysics/gravitational_waves.py",
+        "src/pbc/mechanics/chirp.py",
+        "src/pbc/astrophysics/experiments/gravitational_wave_chirp.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_astrophysics.py",
+        "tests/unit/test_gravitational_wave_chirp_experiment.py",
+    ],
+)
+```

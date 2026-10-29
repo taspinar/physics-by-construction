@@ -1,5 +1,6 @@
-"""Three bodies, modified central forces, and the deflection of light
-(lessons AST1, AST2, AST3): each result is compared with a closed-form
+"""Three bodies, modified central forces, the deflection of light, the
+gravitational wave of a binary, and the transit of a planet (lessons AST1,
+AST2, AST3, AST6, AST7): each result is compared with a closed-form
 solution, a limiting case, or an independent computation, with a stated
 tolerance."""
 
@@ -21,6 +22,19 @@ from pbc.astrophysics.central_force import (
     yukawa,
     yukawa_potential,
     yukawa_term,
+)
+from pbc.astrophysics.gravitational_waves import (
+    cycles_in_band,
+    inspiral,
+    isco_frequency,
+    isco_separation,
+    mass_for_chirp_mass,
+    polarisations,
+    positions,
+    quadrupole,
+    second_derivative,
+    strain_amplitude,
+    wave_phase,
 )
 from pbc.astrophysics.lensing import (
     closest_approach,
@@ -45,6 +59,25 @@ from pbc.astrophysics.three_body import (
     rigid_rotation,
     routh_beta,
     shape_departure,
+)
+from pbc.astrophysics.transit import (
+    central_depth,
+    durations,
+    grid_flux,
+    overlap_area,
+    quadratic_limb,
+    total_flux,
+    transit_orbit,
+    uniform_flux,
+)
+from pbc.mechanics.chirp import (
+    GM_SUN,
+    chirp_frequency,
+    chirp_mass,
+    chirp_phase,
+    frequency_from_separation,
+    shrink_rate,
+    time_to_coalescence,
 )
 from pbc.mechanics.dynamics import simulate
 from pbc.mechanics.integrators import rk4_step
@@ -296,3 +329,212 @@ def test_the_einstein_radius_and_the_light_curve():
         einstein_radius(1.0, 2.0, 1.0, 1.0)
     curve = light_curve([0.0, 3.0], 0.0, 3.0, 0.5)
     assert curve == pytest.approx(magnification([0.5, np.sqrt(1.25)]))
+
+
+# --- AST6: the gravitational wave of a binary -------------------------------------
+
+
+def test_the_innermost_orbit_and_its_frequency_agree_with_kepler():
+    for total in (2.8, 60.0):
+        assert isco_frequency(total) == pytest.approx(
+            float(frequency_from_separation(isco_separation(total), total)), rel=1e-12
+        )
+
+
+def test_the_inspiral_ends_at_the_closed_form_time_and_cycles():
+    m1, m2, f0 = 10.0, 1.4, 30.0
+    mc = chirp_mass(m1, m2)
+    f_end = isco_frequency(m1 + m2)
+    end, a, phi = inspiral(m1, m2, f0)
+    assert a[0] == pytest.approx(isco_separation(m1 + m2), rel=1e-9)
+    assert end[0] == pytest.approx(
+        time_to_coalescence(f0, mc) - time_to_coalescence(f_end, mc), rel=1e-9
+    )
+    assert phi[0] / np.pi == pytest.approx(cycles_in_band(f0, f_end, mc), rel=1e-9)
+    with pytest.raises(ValueError):
+        inspiral(m1, m2, 2 * f_end)
+
+
+def test_the_quadrupole_is_symmetric_trace_free_and_centred():
+    x1, x2 = positions([1.0, 2.0], [0.3, 1.1], 3.0, 1.0)
+    assert 3.0 * x1 + 1.0 * x2 == pytest.approx(np.zeros((2, 3)), abs=1e-15)
+    q = quadrupole(x1, x2, 3.0, 1.0)
+    assert np.einsum("nii->n", q) == pytest.approx(
+        [0.0, 0.0], abs=1e-12 * np.abs(q).max()
+    )
+    assert q == pytest.approx(np.swapaxes(q, 1, 2))
+
+
+def test_the_second_difference_is_exact_for_a_quintic():
+    t = np.linspace(0.0, 1.0, 41)
+    y = 2 - t + 3 * t**2 - t**3 + 0.5 * t**4 - 2 * t**5
+    exact = 6 - 6 * t + 6 * t**2 - 40 * t**3
+    assert second_derivative(y, t[1] - t[0]) == pytest.approx(exact[2:-2], rel=1e-9)
+
+
+def test_a_rigid_orbit_radiates_the_closed_form_amplitude():
+    # An orbit that does not shrink: the quadrupole formula gives exactly the
+    # closed-form amplitude at twice the orbital frequency.
+    m1, m2, f = 20.0, 10.0, 40.0
+    a = float(frequency_from_separation(1.0, m1 + m2) / f) ** (2 / 3)  # f ∝ a^(-3/2)
+    rate = 2**16
+    t = np.arange(0.0, 0.1, 1 / rate)
+    phi = np.pi * f * t
+    x1, x2 = positions(np.full_like(t, a), phi, m1, m2)
+    q_ddot = second_derivative(quadrupole(x1, x2, m1, m2), 1 / rate)
+    distance = 1e25
+    h0 = float(strain_amplitude(f, chirp_mass(m1, m2), distance))
+    for inclination in (0.0, 0.7, np.pi / 2):
+        plus, cross = polarisations(q_ddot, distance, inclination)
+        c = np.cos(inclination)
+        assert np.max(np.abs(plus)) == pytest.approx(h0 * (1 + c**2) / 2, rel=1e-6)
+        assert np.max(np.abs(cross)) == pytest.approx(
+            h0 * abs(c), rel=1e-6, abs=1e-12 * h0
+        )
+
+
+def test_the_wave_phase_of_a_rigid_orbit_is_twice_the_orbital_phase():
+    # The convention of wave_phase, from the quadrupole formula: seen face
+    # on, h+ = -A cos 2 phi and hx = -A sin 2 phi, so the phase is +2 phi,
+    # not -2 phi, and it grows with time.
+    m1, m2, f = 20.0, 10.0, 40.0
+    a = float(frequency_from_separation(1.0, m1 + m2) / f) ** (2 / 3)
+    rate = 2**16
+    t = np.arange(0.0, 0.1, 1 / rate)
+    phi = np.pi * f * t
+    x1, x2 = positions(np.full_like(t, a), phi, m1, m2)
+    q_ddot = second_derivative(quadrupole(x1, x2, m1, m2), 1 / rate)
+    plus, cross = polarisations(q_ddot, 1e25, 0.0)
+    h0 = float(strain_amplitude(f, chirp_mass(m1, m2), 1e25))
+    assert plus == pytest.approx(-h0 * np.cos(2 * phi[2:-2]), abs=1e-6 * h0)
+    assert cross == pytest.approx(-h0 * np.sin(2 * phi[2:-2]), abs=1e-6 * h0)
+    assert wave_phase(plus, cross) == pytest.approx(2 * phi[2:-2], abs=1e-6)
+
+
+def test_twice_the_orbital_phase_is_the_closed_form_phase():
+    # chirp_phase grows at 2 pi f, and the integrated orbit turns as it says.
+    m1, m2, f0 = 30.0, 30.0, 20.0
+    mc = chirp_mass(m1, m2)
+    t_c = time_to_coalescence(f0, mc)
+    end, _, _ = inspiral(m1, m2, f0)
+    t = np.linspace(0.0, end[0], 2001)
+    t, _, phi = inspiral(m1, m2, f0, t)
+    reference = chirp_phase(t, mc, t_c)
+    assert np.gradient(reference, t)[1:-1] == pytest.approx(
+        2 * np.pi * chirp_frequency(t, mc, t_c)[1:-1], rel=1e-3
+    )
+    assert 2 * phi == pytest.approx(reference - reference[0], abs=1e-8)
+
+
+def test_the_wave_of_a_shrinking_orbit_leads_by_five_quarters_of_the_slowness():
+    # The derivatives of a and omega in Q'' turn the wave ahead of 2 phi by
+    # +(5/4) eps, eps = |da/dt| / (a omega): a sign error in the phase
+    # convention would give -(5/4) eps.
+    m1, m2, f0 = 30.0, 30.0, 60.0
+    rate = 2**15
+    end, _, _ = inspiral(m1, m2, f0)
+    t = np.arange(0.0, end[0], 1 / rate)
+    t, a, phi = inspiral(m1, m2, f0, t)
+    x1, x2 = positions(a, phi, m1, m2)
+    q_ddot = second_derivative(quadrupole(x1, x2, m1, m2), 1 / rate)
+    plus, cross = polarisations(q_ddot, 1e25, 0.0)
+    a, phi = a[2:-2], phi[2:-2]
+    eps = -shrink_rate(a, m1, m2) / (a * np.sqrt((m1 + m2) * GM_SUN / a**3))
+    lead = wave_phase(plus, cross) - 2 * phi
+    assert np.all(lead > 0)
+    assert lead / eps == pytest.approx(np.full_like(eps, 5 / 4), rel=5e-3)
+
+
+def test_the_second_mass_gives_the_chirp_mass():
+    m2 = mass_for_chirp_mass(50.0, 20.0)
+    assert chirp_mass(50.0, m2) == pytest.approx(20.0, rel=1e-12)
+    assert mass_for_chirp_mass(30.0, chirp_mass(30.0, 30.0)) == pytest.approx(30.0)
+
+
+# --- AST7: the transit of a planet ------------------------------------------------
+
+
+def test_the_overlap_has_its_limits_and_is_continuous():
+    p = 0.1
+    assert overlap_area([0.0, 0.5, 0.9], p) == pytest.approx([np.pi * p**2] * 3)
+    assert overlap_area([1.1, 2.0], p) == pytest.approx([0.0, 0.0])
+    near = overlap_area([0.9 + 1e-9, 1.1 - 1e-9], p)
+    assert near == pytest.approx([np.pi * p**2, 0.0], abs=1e-7)
+    # A planet as large as the star, centre on the limb: two equal lenses
+    # of the classic closed form (2 pi / 3 - sqrt(3) / 2).
+    assert overlap_area(1.0, 1.0)[0] == pytest.approx(2 * np.pi / 3 - np.sqrt(3) / 2)
+
+
+def test_the_grid_counts_the_overlap():
+    d = np.linspace(0.85, 1.15, 13)
+    assert grid_flux(d, 0.1, cells=600) == pytest.approx(uniform_flux(d, 0.1), abs=2e-6)
+
+
+def test_a_central_planet_on_a_limb_darkened_star():
+    assert central_depth(0.1) == pytest.approx(0.01, rel=1e-12)
+    # The whole star covered: the depth is one, whatever the law.
+    assert central_depth(1.0, 0.4, 0.26) == pytest.approx(1.0, rel=1e-12)
+    darker = quadratic_limb(0.4, 0.26)
+    depth = 1 - grid_flux([0.0], 0.2, darker, 600, total_flux(0.4, 0.26))[0]
+    assert depth == pytest.approx(central_depth(0.2, 0.4, 0.26), rel=5e-4)
+    # A small planet in front of the centre hides I(0) / mean(I) times p².
+    assert central_depth(1e-3, 0.4, 0.26) == pytest.approx(
+        1e-6 * np.pi / total_flux(0.4, 0.26), rel=1e-5
+    )
+
+
+def test_the_durations_have_their_limits():
+    period, a, p = 10.0, 20.0, 0.1
+    t14, t23 = durations(period, a, np.pi / 2, p)
+    assert t14 == pytest.approx(period / np.pi * np.arcsin(1.1 / a))
+    assert t23 == pytest.approx(period / np.pi * np.arcsin(0.9 / a))
+    grazing = durations(period, a, np.arccos(0.95 / a), p)
+    assert np.isfinite(grazing[0]) and np.isnan(grazing[1])
+    assert all(np.isnan(durations(period, a, np.arccos(1.2 / a), p)))
+
+
+def test_the_integrated_orbit_crosses_at_the_analytic_contacts():
+    gm, a, p, b = 1.0, 10.0, 0.1, 0.5
+    period = 2 * np.pi * np.sqrt(a**3 / gm)
+    inclination = np.arccos(b / a)
+    t14, t23 = durations(period, a, inclination, p)
+    before = 0.1
+    t = np.linspace(0.0, 2 * before * period / (2 * np.pi), 201)
+    _, d, contacts = transit_orbit(gm, a, inclination, p, t, before)
+    assert np.min(d) == pytest.approx(b, rel=1e-4)
+    assert np.diff(contacts["outer"])[0] == pytest.approx(t14, rel=1e-9)
+    assert np.diff(contacts["inner"])[0] == pytest.approx(t23, rel=1e-9)
+    # Mid-transit in the middle of the run.
+    assert np.mean(contacts["outer"]) == pytest.approx(t[-1] / 2, rel=1e-9)
+
+
+def test_the_transit_functions_reject_inputs_outside_their_domain():
+    for p in (0.0, 1.5):
+        with pytest.raises(ValueError):
+            central_depth(p)
+    with pytest.raises(ValueError):
+        overlap_area(0.5, 0.0)
+    with pytest.raises(ValueError):
+        grid_flux([0.0], -0.1)
+    with pytest.raises(ValueError):
+        grid_flux([0.0], 0.1, cells=0)
+    with pytest.raises(ValueError):
+        grid_flux([0.0], 0.1, cells=10.5)
+    with pytest.raises(ValueError):
+        grid_flux([0.0], 0.1, full=0.0)
+    with pytest.raises(ValueError):
+        durations(0.0, 20.0, np.pi / 2, 0.1)
+    with pytest.raises(ValueError):
+        durations(10.0, 1.05, np.pi / 2, 0.1)  # the planet grazes the surface
+    for inclination in (0.0, np.pi, np.nan):
+        with pytest.raises(ValueError):
+            durations(10.0, 20.0, inclination, 0.1)
+    gm, a, p = 1.0, 10.0, 0.1
+    inclination = np.pi / 2
+    for t in ([0.0], [0.0, 0.0, 1.0], [1.0, 0.5], [0.0, np.inf], [[0.0, 1.0]]):
+        with pytest.raises(ValueError):
+            transit_orbit(gm, a, inclination, p, t, 0.1)
+    with pytest.raises(ValueError):
+        transit_orbit(-1.0, a, inclination, p, [0.0, 1.0], 0.1)
+    with pytest.raises(ValueError):
+        transit_orbit(gm, a, inclination, p, [0.0, 1.0], 0.1, radius=0.0)
