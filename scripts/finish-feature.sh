@@ -313,12 +313,22 @@ else
 
   # Every round with findings needs an approved triage that was published on
   # the Issue; only the latest round may not have FIX_NOW findings left, since
-  # a newer, current review confirms the fixes of earlier rounds.
+  # a newer, current review confirms the fixes of earlier rounds. At Level 1
+  # or 2 under a completion/v2 record, an earlier round without a triage
+  # whose findings a later review of the chain all gives as resolved or
+  # accepted needs none: the chain, checked below, closes them (Issue #326).
+  # Level 3 keeps the triage of every round with the owner's approval.
   triage_note=""
+  dispositioned_rounds=()
   for review in "${reviews[@]}"; do
     [[ "$(jq '.findings | length' "$review")" -gt 0 ]] || continue
     review_round="$(jq -r '.round' "$review")"
     triage="$(review_latest_triage "$root" "$review")"
+    if [[ -z "$triage" && "$enforced" -eq 1 && "$level3" -eq 0 && "$review" != "$latest" ]] &&
+      review_chain_dispositioned "$root" "$slug" "$review"; then
+      dispositioned_rounds+=("$review_round")
+      continue
+    fi
     [[ -n "$triage" ]] ||
       fail "the findings of round $review_round are not triaged. Run ./scripts/triage-review.sh ${review#"$root"/}."
     triage_relative="${triage#"$root"/}"
@@ -336,6 +346,9 @@ else
     fi
     triage_note="; triage published on #$issue"
   done
+  if [[ "${#dispositioned_rounds[@]}" -gt 0 ]]; then
+    triage_note+="; the findings of round $(IFS=,; printf '%s' "${dispositioned_rounds[*]}" | sed 's/,/, /g') given their disposition by a later review, without a triage"
+  fi
 
   # The chain of reviews (ADR 020 decision 4): from a review of the complete
   # feature, contiguous, every review of changes bounded, every earlier open

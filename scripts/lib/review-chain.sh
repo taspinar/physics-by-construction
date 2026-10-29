@@ -78,6 +78,28 @@ review_chain_open() {
   printf '%s\n' "$open"
 }
 
+# review_chain_dispositioned <root> <slug> <review-json>
+# Succeeds when a later review of the feature gives every finding of the
+# review as resolved or accepted, so that the chain, not a triage, closes
+# them (Issue #326). A finding a later review gives as open, or none gives,
+# is not closed this way. Whether the chain holds is checked by the caller.
+review_chain_dispositioned() {
+  local round
+  local ids
+  local closed='[]'
+  local later
+
+  round="$(jq -r '.round' "$3")"
+  ids="$(jq -c '(.round | tostring | if length < 2 then "0" + . else . end) as $round
+    | [.findings[] | "R\($round)-\(.id)"]' "$3")" || return 1
+  while IFS= read -r later; do
+    [[ -n "$later" && "$(jq -r '.round' "$later")" -gt "$round" ]] || continue
+    closed="$(jq -c --argjson closed "$closed" '$closed + [.dispositions // [] | .[]? | objects
+      | select(.status == "resolved" or .status == "accepted") | .finding_id]' "$later")" || return 1
+  done < <(review_chain_reviews "$1" "$2")
+  jq -en --argjson ids "$ids" --argjson closed "$closed" '($ids | length) > 0 and ($ids - $closed | length) == 0' >/dev/null
+}
+
 # review_chain_disposition_errors <result-json> <open-json-file>
 # Prints what is wrong with the dispositions of a result or a review against
 # the findings that were open before it, one problem per line.
