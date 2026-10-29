@@ -1,0 +1,581 @@
+---
+title: "Electronic band structure"
+description: >-
+  An electron hopping between the sites of a crystal, in the tight-binding
+  model: the energies of a ring computed as eigenvalues and checked against
+  the closed-form bands, the counting of states, the effective mass, the gap
+  that decides between a metal and an insulator, and a packet under a
+  constant force that oscillates instead of accelerating.
+lesson:
+  id: electronic-band-structure
+  strand: materials
+  order: 2
+  difficulty: 3
+  course: materials
+  slot: MAT2
+  methods: [simulation]
+  outcomes:
+    - Build the tight-binding Hamiltonian of a periodic chain hop by hop and compute its energies as eigenvalues
+    - Derive the bands of a chain with one and with two sites per cell, and check the computed energies against them
+    - Count the states of a band, read the effective mass from its bottom, and decide from the filling whether the chain conducts
+    - Explain why an electron in a perfect band under a constant force oscillates, and check the oscillation against its closed form
+  related: []
+  format: 2
+  preview: fig-bands
+  experiment: pbc.materials.experiments.electronic_band_structure
+  prerequisites:
+    lessons: [crystal-lattices-and-phonons, quantum-harmonic-oscillator]
+    outside:
+      - "Linear algebra: eigenvalues and eigenvectors of a Hermitian matrix"
+      - "Complex numbers: a plane wave written as an exponential of an imaginary phase"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.materials import bands
+from pbc.materials.experiments import electronic_band_structure as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+Copper conducts electricity, diamond does not, and silicon sits in between.
+All three are crystals of atoms with electrons around them, so the
+difference cannot be in the electrons alone. It is in the energies the
+electrons are allowed to have in a periodic crystal. These energies form
+**bands**, separated by **gaps**, and whether the electrons fill a band
+completely or only partly decides whether a small electric field can move
+them.
+
+The previous lesson found that waves on a periodic chain of masses have a
+dispersion relation with branches and gaps. An electron in a crystal is a
+wave too, and the same periodicity gives it the same structure. This lesson
+uses the simplest model that shows it, the **tight-binding model**: the
+electron sits on the atoms and hops to its neighbours. It computes the
+energies of a ring of atoms as the eigenvalues of a matrix, checks them
+against the closed-form bands, fills them with electrons, and then pushes
+an electron with a constant force to see what a band does to its motion.
+
+## Assumptions
+
+1. **One electron state per site.** Each atom offers one orbital, of energy
+   $\varepsilon$, and the electron's state is a combination of these
+   orbitals, assumed orthonormal. Several orbitals per atom would give
+   several bands per site.
+2. **Nearest-neighbour hopping.** The electron moves to a neighbouring site
+   with the amplitude $-t$, $t > 0$; hopping further would add terms to the
+   bands and change their shape.
+3. **Independent electrons.** Each electron moves in a fixed potential, and
+   the electrons fill the levels from the bottom, two per level (spin up
+   and down). The repulsion between electrons is left out; it can make a
+   chain with a partly filled band insulating.
+4. **A rigid, perfect lattice.** The atoms do not move and there are no
+   impurities. A lattice that can distort, and any disorder, change the
+   results of the filling and of the motion under a force (see the limits).
+5. **A ring for the bands, an open chain for the motion.** The bands are
+   computed on a ring, whose allowed wavenumbers are exactly
+   $2\pi n/(Na)$. The motion under a force needs a chain with a potential
+   that grows along it, so it runs on an open chain long enough that the
+   packet never reaches its ends.
+6. **Units with $\hbar = a = t = 1$.** Energies are in units of $t$,
+   wavenumbers in units of $1/a$, times in units of $\hbar/t$, and forces
+   in units of $t/a$; $a$ is the length of the repeating cell.
+
+## Bands from hopping {#explanation}
+
+### The tight-binding Hamiltonian
+
+Write $|j\rangle$ for the orbital on site $j$. The Hamiltonian of the chain
+is
+
+$$
+H = \sum_j \varepsilon_j\,|j\rangle\langle j|
+- t\sum_j \bigl(|j\rangle\langle j+1| + |j+1\rangle\langle j|\bigr),
+$$
+
+a matrix with the site energies on its diagonal and $-t$ beside it. On a
+ring the last site is joined to the first. The energies of the electron are
+the eigenvalues of this Hermitian matrix: computing them is the same kind of
+problem as the normal modes of the previous lesson.
+
+### One site per cell
+
+With every site energy equal to $\varepsilon_0$ and the spacing $a$, try a
+wave $\psi_n = \mathrm e^{\mathrm ikna}$, the amplitude of the state on site
+$n$. The eigenvalue equation
+$\varepsilon_0\psi_n - t(\psi_{n+1} + \psi_{n-1}) = E\psi_n$ gives
+
+$$
+E(k) = \varepsilon_0 - 2t\cos ka .
+$$
+
+This is a **band** of width $4t$, centred on the site energy: hopping
+spreads one atomic level into a continuum of levels, one for each allowed
+wavenumber. Near the bottom, $E \approx \varepsilon_0 - 2t + t a^2 k^2$,
+which is the energy $\hbar^2k^2/(2m^*)$ of a free particle of the
+**effective mass**
+
+$$
+m^* = \frac{\hbar^2}{2ta^2} .
+$$
+
+The easier the hopping, the lighter the electron appears.
+
+On a ring of $N$ sites the allowed wavenumbers are $2\pi n/(Na)$, and the
+number of levels below an energy $E$ is the number of them with
+$\cos ka > (\varepsilon_0 - E)/(2t)$:
+
+$$
+\mathcal N(E) \approx \frac{N}{\pi}\arccos\frac{\varepsilon_0 - E}{2t} .
+$$
+
+The condition selects the allowed wavenumbers in an interval centred on
+zero, and the number of points of spacing $2\pi/(Na)$ in such an interval
+differs from its length divided by the spacing by at most one, so the true
+count differs from this formula by at most one level. The slope of
+$\mathcal N$ is the **density of states**; it is largest at the band edges,
+where the band is flat.
+
+### Two sites per cell
+
+Let each cell of length $a$ hold two sites, a half cell apart, with the
+energies $+\Delta$ and $-\Delta$, as in a crystal of two kinds of atom. With
+the amplitudes $\alpha\,\mathrm e^{\mathrm ikna}$ and
+$\beta\,\mathrm e^{\mathrm ikna}$ on the two sites of cell $n$, the
+eigenvalue equation becomes
+
+$$
+\begin{pmatrix} \Delta & -t(1 + \mathrm e^{-\mathrm ika}) \\
+-t(1 + \mathrm e^{\mathrm ika}) & -\Delta \end{pmatrix}
+\begin{pmatrix} \alpha \\ \beta \end{pmatrix}
+= E \begin{pmatrix} \alpha \\ \beta \end{pmatrix},
+$$
+
+whose eigenvalues are
+
+$$
+E_\mp(k) = \mp\sqrt{\Delta^2 + 4t^2\cos^2\frac{ka}{2}} .
+$$
+
+Two bands, as two branches for the diatomic chain of masses. At the edge of
+the zone, $k = \pi/a$, the cosine vanishes and the bands end at $-\Delta$
+and $+\Delta$: a **gap** of width $2\Delta$ opens between them. At
+$\Delta = 0$ the two sites are the same, and the two bands are the one band
+of the chain of spacing $a/2$, folded into the smaller zone.
+
+### Filling the bands
+
+Each level holds two electrons. With **one electron per site**, the
+one-band chain of $N$ sites has $N$ electrons and fills $N/2$ of its $N$
+levels: the band is half full, and the lowest empty level lies just above
+the highest filled one, at the **Fermi level**. A small push can move
+electrons into empty states of slightly higher energy and set up a current:
+the chain is a **metal**. The two-site chain of $N$ cells has $2N$ sites,
+$2N$ electrons, and fills exactly its $N$ lower levels, the whole lower
+band. The next empty level is across the gap $2\Delta$, which a small push
+cannot bridge: the chain is an **insulator**. The same number of electrons
+per site gives a metal or an insulator depending on the band structure.
+
+For the metal the step from the highest filled to the lowest empty level is
+set by the spacing of the allowed wavenumbers near the Fermi wavenumber
+$k_F = \pi/(2a)$: about
+$\bigl(\mathrm dE/\mathrm dk\bigr)\,2\pi/(Na) = 4\pi t/N$, which vanishes
+for a large crystal.
+
+### An electron under a constant force
+
+A constant force $F$ along the chain, such as an electric field, adds the
+potential energy $-Fx_n$ at site $n$, $x_n = na$. For a free electron the
+force would raise its speed without limit. In a band it does not. Write $T$
+for the translation by one site, $T|n\rangle = |n+1\rangle$. On an infinite
+chain the hopping commutes with $T$, while the potential gives
+$[-Fx, T] = -FaT$, so in the Heisenberg picture
+
+$$
+T(t) = \mathrm e^{-\mathrm i\omega_B t}\,T(0), \qquad
+\omega_B = \frac{Fa}{\hbar} .
+$$
+
+The band energy is $-t\,(\langle T\rangle + \langle T\rangle^*)$, and the
+total energy, band energy minus $F\langle x\rangle$, is conserved. Together
+they give the centre of any state exactly:
+
+$$
+\langle x\rangle(t) = \langle x\rangle(0) + \frac{2t}{F}
+\Bigl(\operatorname{Re}\langle T\rangle_0
+- \operatorname{Re}\bigl(\langle T\rangle_0\,\mathrm e^{-\mathrm i\omega_B t}\bigr)\Bigr).
+$$
+
+The electron does not run away; it oscillates with the **Bloch period**
+$T_B = 2\pi\hbar/(Fa)$, and for a packet at rest it swings over the
+distance $4t\operatorname{Re}\langle T\rangle_0/F$: the band width divided
+by the force, reduced by the factor $\operatorname{Re}\langle T\rangle_0$,
+which is close to one for a broad packet. In the semiclassical picture the
+force raises the wavenumber steadily, $\hbar\dot k = F$, and the velocity
+$\hbar^{-1}\mathrm dE/\mathrm dk$ changes sign each time $k$ passes the zone
+edge or the zone centre. For short times the packet accelerates like a free particle of mass
+$m^*$.
+
+## Code
+
+The Hamiltonian of a ring, hop by hop, and its energies:
+
+```{python}
+#| echo: false
+excerpt(bands.ring_hamiltonian)
+```
+
+```{python}
+#| echo: false
+excerpt(bands.ring_energies)
+```
+
+The closed-form bands, at the allowed wavenumbers of a ring:
+
+```{python}
+#| echo: false
+excerpt(bands.one_band)
+```
+
+```{python}
+#| echo: false
+excerpt(bands.two_site_bands)
+```
+
+```{python}
+#| echo: false
+excerpt(bands.closed_form_energies)
+```
+
+The filling, the exact propagation of a state on the open chain under a
+force, and the closed-form centre:
+
+```{python}
+#| echo: false
+excerpt(bands.filled)
+```
+
+```{python}
+#| echo: false
+excerpt(bands.propagate)
+```
+
+```{python}
+#| echo: false
+excerpt(bands.bloch_centre)
+```
+
+## Worked examples
+
+### The energies of the ring against the closed-form bands
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| label: bands-run
+#| echo: false
+excerpt(experiment.bands_check)
+```
+
+```{python}
+#| label: bands
+#| echo: false
+result.table("bands")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_bands)
+```
+
+```{python}
+#| label: fig-bands
+#| echo: false
+#| fig-cap: "The energies of the two-site ring lie on the closed-form bands, with a gap of two Delta at the zone edge; with one electron per site the lower band is exactly full."
+#| fig-alt: "Energy against wavenumber from minus pi over a to pi over a. A solid lower band curves up from its bottom at zero wavenumber to the zone edges, a dashed upper band curves down from its top at zero to the zone edges; a shaded horizontal strip between them marks the gap. Dotted curves, the bands without a gap, cross the middle of the strip at the zone edges. Filled circles, the ring's filled levels, lie on the lower band and open circles, its empty levels, on the upper band."
+#| fig-status: simulated
+result.show("fig-bands")
+```
+
+[The eigenvalues of the tight-binding Hamiltonian of the ring, built hop by
+hop, are the closed-form bands at the ring's allowed wavenumbers to
+round-off, for one and for two sites per cell.]{.claim
+type="numerically-verified"
+scope="rings of 24 cells, nearest-neighbour hopping t = 1, eps0 = 0, Delta = 0.5"
+evidence="bands-run bands fig-bands"}
+As for the chain of masses, the check compares two sorted lists and needs
+no assignment of wavenumbers; the figure reads the wavenumber of each level
+from the Fourier transform of its eigenvector from cell to cell and draws
+each level at $+k$ and $-k$, the two states of a ring that share the
+energy.
+
+### Counting the states and the effective mass
+
+```{python}
+#| label: one-band-run
+#| echo: false
+excerpt(experiment.one_band_checks)
+```
+
+```{python}
+#| label: one-band
+#| echo: false
+result.table("one-band")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_counting)
+```
+
+```{python}
+#| label: fig-counting
+#| echo: false
+#| fig-cap: "The number of levels of a ring below an energy is a staircase that follows the closed-form count within one level, with steep rises at the band edges where the band is flat."
+#| fig-alt: "Plot of the number of levels below an energy against the energy. A solid staircase, the ring's levels, rises from zero at the band bottom to its full count at the band top in steps of two, with a single step at each end. A dashed smooth curve, the closed form, rises steeply at both band edges and more gently in the middle, and passes through the steps."
+#| fig-status: simulated
+result.show("fig-counting")
+```
+
+[The number of levels of the one-band ring below any energy differs from
+$(N/\pi)\arccos((\varepsilon_0 - E)/(2t))$ by at most one level, and the
+mass read from the two lowest levels approaches $\hbar^2/(2ta^2)$ with a
+relative gap that falls as the square of the wavenumber.]{.claim
+type="numerically-verified"
+scope="one-band rings of 16 to 128 sites, t = 1, eps0 = 0, energies on a grid of 2001 points"
+evidence="one-band-run one-band fig-counting"}
+The fitted order of the mass gap is `{python} result["mass-order"]`. The
+staircase rises in steps of two because the waves $k$ and $-k$ have the same
+energy; the closed form sees the levels as a continuum, which is what the
+count of a large crystal is.
+
+### Metal or insulator
+
+```{python}
+#| echo: false
+excerpt(experiment, region="filling")
+```
+
+```{python}
+#| label: filling-run
+#| echo: false
+excerpt(experiment.fill)
+```
+
+```{python}
+#| label: filling
+#| echo: false
+result.table("filling")
+```
+
+[With one electron per site, the step from the highest filled to the lowest
+empty level of the one-band ring equals its closed form and falls as the
+inverse of the ring's size, while the two-site ring keeps the gap
+$2\Delta$ at every size.]{.claim type="numerically-verified"
+scope="independent electrons, rings of 18 to 130 cells, t = 1, Delta = 0.5"
+evidence="filling-run filling"}
+The fitted order in $1/N$ is `{python} result["fill-order"]`, and $N$ times
+the step approaches $4\pi t$. In this model the half-filled band has empty
+states at vanishing cost above its highest filled level, the filled band
+none closer than $2\Delta$: the first is a metal, the second an insulator,
+with the same number of electrons per site.
+
+### Bloch oscillations
+
+A Gaussian packet at rest is placed in the middle of a long open chain and
+propagated exactly, by the eigendecomposition of its Hamiltonian, for two
+Bloch periods under three forces, and once more with a narrow packet:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="bloch")
+```
+
+```{python}
+#| label: bloch-run
+#| echo: false
+excerpt(experiment.bloch)
+```
+
+```{python}
+#| label: bloch
+#| echo: false
+result.table("bloch")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_bloch)
+```
+
+```{python}
+#| label: fig-bloch
+#| echo: false
+#| fig-cap: "Under a constant force the centre of an electron packet in a band oscillates with the Bloch period; only at the start does it follow the free particle of the effective mass."
+#| fig-alt: "Plot of the displacement of the packet's centre against time over two periods. Open circles, the exact propagation, lie on a dashed curve, the closed form, that rises from zero to a maximum, returns to zero, and repeats. A dotted parabola, the free particle of the effective mass, follows the curve at the start and then rises steeply out of the plot."
+#| fig-status: simulated
+result.show("fig-bloch")
+```
+
+[Under a constant force the centre of a packet in the band oscillates
+instead of accelerating: it follows the closed form to round-off, swings
+over $4t\operatorname{Re}\langle T\rangle_0/F$, and the state returns to
+its start after one Bloch period $2\pi\hbar/(Fa)$.]{.claim
+type="numerically-verified"
+scope="open chain of 600 sites, t = 1, packet at rest of width 10 and 1.5 sites, F from 0.05 to 0.2, two Bloch periods"
+evidence="bloch-run bloch fig-bloch"}
+The swing is the band width divided by the force, reduced slightly for the
+narrow packet, whose wavenumbers spread further over the zone. The return
+of the whole state after one period is the sign of the **Wannier-Stark
+ladder**: on the infinite chain under a force the energies are exactly
+spaced by $Fa$, so every component returns in phase. The closed form holds
+for the infinite chain; the open chain differs from it only near its ends,
+which the packet never reaches.
+
+## Limits {#limits}
+
+- **Independent electrons.** The repulsion between electrons is left out.
+  [In a half-filled one-dimensional band it can open a gap and make the
+  chain insulating, as can a distortion of the lattice that doubles the
+  cell (the Peierls instability).]{.not-verified} The metal of this lesson
+  is a metal of the model.
+- **One orbital per site, nearest neighbours.** Real bands come from several
+  orbitals per atom and hopping beyond neighbours; the closed forms hold for
+  this model only. The hopping and the site energies are chosen, not
+  computed from atoms.
+- **A perfect, rigid lattice.** Without scattering by impurities or by
+  lattice vibrations, a constant field makes the electron oscillate and no
+  current flows on average. [In ordinary crystals scattering ends each
+  oscillation long before a period is complete; Bloch oscillations have
+  been observed in semiconductor superlattices and with cold atoms in
+  optical lattices.]{.not-verified}
+- **One dimension.** [In two and three dimensions the bands of different
+  directions can overlap in energy, so a crystal with a gap in every
+  direction can still be a metal.]{.not-verified} A chain cannot show
+  this.
+- **No measured data.** The lesson checks a model against its own closed
+  forms. Measured band structures come from photoemission spectroscopy and
+  are computed for real materials by density-functional methods.
+
+::: {.exercise .self-check}
+The one-band chain and the two-site chain both have one electron per site.
+Why is the first a metal and the second an insulator in this model?
+
+::: {.choices}
+::: {.choice}
+The two-site chain has fewer electrons per cell, so its band is less full.
+
+::: {.feedback}
+The number of electrons per site is the same. The two-site cell has twice
+the sites and twice the electrons.
+:::
+:::
+
+::: {.choice correct="true"}
+The two-site cell holds two electrons per wavenumber in each of its two
+bands, so its electrons exactly fill the lower band, and the next empty
+level is across the gap; the one-band chain fills only half of its band.
+
+::: {.feedback}
+Correct: a full band with a gap above it cannot respond to a small push, a
+partly filled band can.
+:::
+:::
+
+::: {.choice}
+The site energies $\pm\Delta$ trap each electron on its site, so it cannot
+hop.
+
+::: {.feedback}
+The electrons still hop: the bands have a width. What changes is that the
+filled band ends at a gap.
+:::
+:::
+:::
+
+::: {.solution}
+Each band of a ring of $N$ cells has $N$ levels and holds $2N$ electrons.
+The one-band chain of $N$ sites has $N$ electrons, half of what its band
+holds, so there are empty levels just above the filled ones. The two-site
+chain of $N$ cells has $2N$ electrons, exactly what its lower band holds, so
+the lowest empty level lies across the gap $2\Delta$. Whether a crystal
+conducts is decided by where the Fermi level falls in the band structure,
+not by the number of electrons alone.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Closing the gap.** Fill the two-site ring of 24 cells with one electron
+per site, for $\Delta = 0.5$, $0.1$, $0.01$, and $0$. How large is the step
+from the highest filled to the lowest empty level?
+
+::: {.hint}
+`filled(energies, electrons)` returns the highest filled and the lowest
+empty level.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.gap_closes)
+```
+
+```{python}
+#| echo: false
+result.table("gap-closes")
+```
+
+The step is $2\Delta$ for every $\Delta$, because the ring's allowed
+wavenumbers include the zone edge, and it closes at $\Delta = 0$, where the
+two-site chain is the one-band chain folded and its band is half full. A
+small difference between the two atoms of a cell is enough to turn the
+metal into an insulator, if the gap opens at the Fermi level.
+:::
+:::
+
+::: {.exercise}
+**The width of a band.** How wide is each band of the two-site chain, with
+$\Delta = 0.5$, from the ring's energies? Compare with the closed form.
+
+::: {.hint}
+Each band runs from its value at the zone centre to its value at the zone
+edge.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.band_widths)
+```
+
+The lower band is `{python} result["width-lower"]` wide and the upper band
+`{python} result["width-upper"]`; the closed form
+$\sqrt{\Delta^2 + 4t^2} - \Delta$ gives `{python} result["width-closed"]`.
+The two bands are mirror images of each other, and together with the gap
+they span the width $2\sqrt{\Delta^2 + 4t^2}$: the gap is taken out of the
+middle of the band, while the outer edges move out only a little.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/materials/bands.py",
+        "src/pbc/materials/experiments/electronic_band_structure.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_materials.py",
+        "tests/unit/test_electronic_band_structure_experiment.py",
+    ],
+)
+```
