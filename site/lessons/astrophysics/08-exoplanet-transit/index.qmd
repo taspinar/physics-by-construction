@@ -8,7 +8,7 @@ description: >-
 lesson:
   id: exoplanet-transit
   strand: astrophysics
-  order: 5
+  order: 8
   difficulty: 2
   course: astrophysics
   slot: AST7

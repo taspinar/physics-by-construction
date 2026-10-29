@@ -8,7 +8,7 @@ description: >-
 lesson:
   id: gravitational-wave-chirp
   strand: astrophysics
-  order: 4
+  order: 7
   difficulty: 3
   course: astrophysics
   slot: AST6

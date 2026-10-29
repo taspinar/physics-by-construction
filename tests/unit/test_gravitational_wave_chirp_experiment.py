@@ -6,7 +6,7 @@ import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
 
 MODULE = "pbc.astrophysics.experiments.gravitational_wave_chirp"
-PAGE = "astrophysics/04-gravitational-wave-chirp"
+PAGE = "astrophysics/07-gravitational-wave-chirp"
 
 
 @pytest.fixture(scope="module")

@@ -6,7 +6,7 @@ import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
 
 MODULE = "pbc.astrophysics.experiments.exoplanet_transit"
-PAGE = "astrophysics/05-exoplanet-transit"
+PAGE = "astrophysics/08-exoplanet-transit"
 
 
 @pytest.fixture(scope="module")
