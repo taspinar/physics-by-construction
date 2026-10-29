@@ -1,0 +1,514 @@
+---
+title: "Cosmic expansion and redshift"
+description: >-
+  Toy models of an expanding universe: the scale factor integrated from the
+  Friedmann equation against its analytic forms, the distance-redshift
+  relation by quadrature and by a ray of light followed back in time checked
+  against the analytic cases, the Hubble law recovered at low redshift, and
+  the distance beyond which galaxies look larger again.
+lesson:
+  id: cosmic-expansion
+  strand: astrophysics
+  order: 6
+  difficulty: 3
+  course: astrophysics
+  slot: AST5
+  methods: [simulation]
+  outcomes:
+    - Integrate the scale factor of a Friedmann model and check it against the matter-only, empty, and cosmological-constant solutions
+    - Compute the comoving, luminosity, and angular diameter distances to a redshift, and check them against the analytic cases by two independent methods
+    - Recover the Hubble law and its first correction at low redshift, and read the deceleration of the expansion from it
+    - Explain why distant galaxies look larger again, and what a distance-redshift relation can and cannot tell about the contents of a model
+  related: []
+  format: 2
+  preview: fig-expansion
+  experiment: pbc.astrophysics.experiments.cosmic_expansion
+  prerequisites:
+    lessons: [special-relativity, numerical-integrators]
+    outside:
+      - "Calculus: a definite integral, and a change of variable"
+      - "Logarithms: the logarithm of a ratio, for the magnitude scale of brightness"
+---
+
+```{python}
+#| echo: false
+from pbc.astrophysics import cosmology
+from pbc.astrophysics.experiments import cosmic_expansion as experiment
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+
+result = experiment.run()
+lesson_header()
+```
+
+The light of a distant galaxy arrives with its spectral lines shifted to
+longer wavelengths, and the farther the galaxy, the larger the shift.
+[Hubble's measurements of this relation in the late 1920s were the first
+evidence that the universe expands.]{.not-verified} The shift is not a Doppler
+shift of galaxies flying through space: space itself stretches while the light
+is on its way, and the light's wavelength stretches with it.
+
+"How far away is a galaxy?" then has no single answer. The galaxy was closer
+when the light left it and is farther now, and a distance measured from
+brightness differs from a distance measured from angular size. This lesson
+builds the simplest models of an expanding universe, computes how the size of
+the universe changed with time and what each kind of distance is, and checks
+every computation against the cases that can be solved on paper. The models
+are toys: their contents are given, not fitted to observations.
+
+## Assumptions
+
+1. **Homogeneous and isotropic.** On large scales the universe is the same
+   everywhere and in every direction, so its geometry is one number, the
+   **scale factor** $a(t)$, equal to one today, by which every distance
+   between distant galaxies grows.
+2. **The Friedmann equation is taken from general relativity.** The lesson
+   uses it and does not derive it.
+3. **A few ingredients with given densities.** Matter, radiation, a
+   cosmological constant $\Lambda$, and curvature, each a fixed fraction of
+   the critical density today. The toy model with matter
+   [0.3]{.given} and $\Lambda$ [0.7]{.given} is flat; its numbers are
+   chosen to look like the measured universe, not fitted to it.
+4. **Units of the Hubble rate.** Times are in Hubble times $1/H_0$ and
+   distances in Hubble distances $c/H_0$; a toy value $H_0 =$
+   [70 km/s/Mpc]{.given} converts them to years and megaparsecs.
+5. **Ideal sources.** A standard candle has a known luminosity, a standard
+   ruler a known size; nothing absorbs or bends the light on the way.
+
+## Expansion and distance {#explanation}
+
+### The Friedmann equation
+
+The **Hubble rate** $H = \dot a/a$ measures how fast the universe expands.
+General relativity relates it to the contents:
+
+$$
+\frac{H^2}{H_0^2} = E(a)^2 = \frac{\Omega_r}{a^4} + \frac{\Omega_m}{a^3} +
+\frac{\Omega_k}{a^2} + \Omega_\Lambda ,\qquad
+\Omega_k = 1 - \Omega_r - \Omega_m - \Omega_\Lambda .
+$$
+
+Each term falls with its own power of $a$: matter is diluted by the volume,
+radiation also loses energy to the stretching of its wavelength, a
+cosmological constant does not dilute at all. The equation is a first-order
+differential equation for $a(t)$, which the code integrates. Three cases
+have closed forms: matter only (Einstein-de Sitter), $a = (3H_0t/2)^{2/3}$ and
+an age of $2/(3H_0)$; an empty universe (Milne), $a = H_0t$; a cosmological
+constant only (de Sitter), $a = e^{H_0(t - t_0)}$, with no beginning. The flat
+model of matter and $\Lambda$ has one too,
+$a \propto \sinh^{2/3}\bigl(\tfrac32\sqrt{\Omega_\Lambda}H_0t\bigr)$.
+Whether the expansion slows or speeds up today is measured by the
+**deceleration parameter** $q_0 = \Omega_r + \Omega_m/2 - \Omega_\Lambda$.
+
+### Redshift and distances
+
+Light emitted when the scale factor was $a$ arrives with its wavelength
+stretched by the same factor as every other length, so the **redshift** is
+$1 + z = 1/a$. Along its way the light crosses the **comoving distance**, the
+distance today between the source and us,
+
+$$
+D_C = \frac{c}{H_0}\int_0^z \frac{\mathrm dz'}{E(z')} .
+$$
+
+Two observable distances follow from it, with $D_M = D_C$ in a flat model and
+$\sinh$ or $\sin$ of $\sqrt{|\Omega_k|}\,D_C$ over $\sqrt{|\Omega_k|}$ in
+units of $c/H_0$ in an open or closed one:
+
+- the **luminosity distance** $D_L = (1 + z)\,D_M$, which gives the flux
+  $L/(4\pi D_L^2)$ of a source of luminosity $L$: each photon loses energy to
+  the redshift, and the photons arrive more slowly;
+- the **angular diameter distance** $D_A = D_M/(1 + z)$, which gives the
+  angle $\ell/D_A$ of a source of size $\ell$: the light left when the source
+  was closer to us.
+
+Astronomers quote a luminosity distance as the **distance modulus**
+$\mu = 5\log_{10}(D_L/10\,\mathrm{pc})$, in magnitudes.
+
+### The analytic cases and the Hubble law
+
+Einstein-de Sitter gives $D_C = 2(c/H_0)\bigl(1 - 1/\sqrt{1 + z}\bigr)$,
+Milne $D_L = (c/H_0)\,z(1 + z/2)$, de Sitter $D_C = (c/H_0)\,z$. At small
+redshift every model gives
+
+$$
+D_L = \frac{c}{H_0}\Bigl(z + \frac{1 - q_0}{2}z^2 + \dots\Bigr),
+$$
+
+whose first term is the **Hubble law**, $cz = H_0 D$, and whose second term
+measures the deceleration: in an accelerating universe ($q_0 < 0$) a source
+at a given redshift is farther, and fainter, than in a decelerating one.
+
+## Code
+
+The Hubble rate of a model:
+
+```{python}
+#| echo: false
+excerpt(cosmology.hubble_rate)
+```
+
+The scale factor integrated in time, and the age by quadrature:
+
+```{python}
+#| echo: false
+excerpt(cosmology.expansion)
+```
+
+```{python}
+#| echo: false
+excerpt(cosmology.age)
+```
+
+The distances by quadrature in redshift:
+
+```{python}
+#| echo: false
+excerpt(cosmology.comoving_distance)
+```
+
+```{python}
+#| echo: false
+excerpt(cosmology.transverse_distance)
+```
+
+```{python}
+#| echo: false
+excerpt(cosmology.luminosity_distance)
+```
+
+```{python}
+#| echo: false
+excerpt(cosmology.angular_diameter_distance)
+```
+
+The same comoving distance by a second method, following a ray back in time
+together with the scale factor:
+
+```{python}
+#| echo: false
+excerpt(cosmology.ray_distance)
+```
+
+## Worked examples
+
+### Four expansion histories
+
+Four models are integrated back from today until the scale factor is a
+thousandth, and forward into the future.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| label: expansion-run
+#| echo: false
+excerpt(experiment.expansion_histories)
+```
+
+```{python}
+#| label: expansion
+#| echo: false
+result.table("expansion")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_expansion)
+```
+
+```{python}
+#| label: fig-expansion
+#| echo: false
+#| fig-cap: "All four models expand at the same rate today, but differ in their past and their future: matter alone slows the expansion and gives the youngest universe, a cosmological constant speeds it up, and the toy model turns from one to the other."
+#| fig-alt: "Line plot of the scale factor against the time from today in Hubble times, with a vertical line at today, where all four curves cross at one with the same slope. The dashed matter-only curve starts from zero closest to today and bends downwards; the dotted empty-universe curve is a straight line from zero; the dash-dotted cosmological-constant curve never reaches zero and bends upwards steeply; the solid toy-model curve starts from zero near the empty one, bends down at first and then up, following the cosmological constant into the future."
+#| fig-status: simulated
+result.show("fig-expansion")
+```
+
+[The scale factor integrated from the Friedmann equation agrees with the
+analytic solutions of the four models, and the ages by quadrature agree with
+their closed forms.]{.claim type="numerically-verified"
+scope="Einstein-de Sitter, Milne, de Sitter, and flat matter 0.3 with Lambda 0.7; 1.5 Hubble times back and forward; DOP853 at tolerance 1e-12"
+evidence="expansion-run expansion fig-expansion"}
+With $H_0 =$ [70 km/s/Mpc]{.given} the Hubble time is
+`{python} result["hubble-time"]` billion years and the Hubble distance
+`{python} result["hubble-distance"]` Mpc. A universe of matter alone
+would be only two thirds of that old, while the toy model, whose expansion
+slowed and then sped up, is nearly as old as the empty one. [An age shorter
+than that of the oldest stars was one of the reasons to doubt a matter-only
+universe.]{.not-verified}
+
+### The distance-redshift relation
+
+For each model and six redshifts from $0.1$ to $10$, the luminosity distance
+is computed by quadrature and compared with its closed form, and the comoving
+distance is computed again by following a ray of light back in time.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="redshifts")
+```
+
+```{python}
+#| label: distances-run
+#| echo: false
+excerpt(experiment.distances)
+```
+
+```{python}
+#| label: distance-checks
+#| echo: false
+result.table("distance-checks")
+```
+
+```{python}
+#| label: distances
+#| echo: false
+result.table("distances")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_distances)
+```
+
+```{python}
+#| label: fig-distances
+#| echo: false
+#| fig-cap: "The luminosity distances by quadrature lie on the analytic curves of the three solvable models; all models follow the Hubble law at low redshift and part from it, and from each other, beyond a redshift of a few tenths."
+#| fig-alt: "Log-log plot of the luminosity distance in Hubble distances against redshift. Three lines, the analytic matter-only, empty, and cosmological-constant relations, start together at low redshift and fan out upwards, the cosmological constant highest and matter only lowest; open markers from the quadrature sit on each line. Diamonds for the toy model lie between the empty and the matter-only lines at high redshift. A dotted line, the Hubble law, runs below all of them."
+#| fig-status: simulated
+result.show("fig-distances")
+```
+
+[The luminosity distance by quadrature agrees with the analytic
+distance-redshift relation of the Einstein-de Sitter, Milne, and de Sitter
+models, and the comoving distance of a ray followed back in time agrees with
+the quadrature in every model.]{.claim type="numerically-verified"
+scope="redshifts 0.1 to 10, the four toy models"
+evidence="distances-run distance-checks fig-distances"}
+The two methods share only the Friedmann equation: one integrates over
+redshift, the other over time while the scale factor is integrated alongside.
+For the toy model there is no closed form, and the agreement of the two
+methods is the check. In the table of the toy model the luminosity distance at
+$z = 1$ is $(1 + z)^2 = 4$ times the angular diameter distance, which is why a
+distance quoted without its kind is ambiguous.
+
+### The Hubble law and the deceleration
+
+At low redshift the toy model's luminosity distance is compared with the
+Hubble law and with the second-order form that includes $q_0$.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="low")
+```
+
+```{python}
+#| label: hubble-law-run
+#| echo: false
+excerpt(experiment.hubble_law)
+```
+
+```{python}
+#| label: hubble-law
+#| echo: false
+result.table("hubble-law")
+```
+
+[The Hubble law is the first order of the distance-redshift relation, with a
+relative gap that falls in proportion to $z$; with the deceleration term the
+gap falls as $z^2$.]{.claim type="numerically-verified"
+scope="flat toy model, matter 0.3 and Lambda 0.7, z from 0.003 to 0.3"
+evidence="hubble-law-run hubble-law"}
+The fitted orders are `{python} result["first-order"]` and
+`{python} result["second-order"]`. The toy model has
+$q_0 =$ `{python} result["toy-q0"]`: it accelerates, so its sources are
+farther than the Hubble law says, and the second-order term is the first
+place where the contents of the universe show in a distance measurement.
+
+### Galaxies that look larger again
+
+The angular diameter distance of the matter-only and the toy model is
+searched numerically for its largest value.
+
+```{python}
+#| label: turnover-run
+#| echo: false
+excerpt(experiment.turnover)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_angular)
+```
+
+```{python}
+#| label: fig-angular
+#| echo: false
+#| fig-cap: "The angular diameter distance rises, reaches a largest value, and falls again: beyond that redshift a galaxy of a given size looks larger the farther away it is."
+#| fig-alt: "Line plot of the angular diameter distance in Hubble distances against redshift for two models. Both curves rise steeply from zero, reach a broad maximum marked by an open marker, and then decline slowly. The dashed matter-only curve peaks lower and at a smaller redshift than the solid toy-model curve."
+#| fig-status: simulated
+result.show("fig-angular")
+```
+
+[The angular diameter distance of the matter-only model is largest at
+$z = 5/4$, as its closed form predicts.]{.claim type="numerically-verified"
+scope="Einstein-de Sitter, bounded numerical maximisation between z = 0.1 and 10"
+evidence="turnover-run fig-angular"}
+The search finds the largest distance at $z =$
+`{python} result["eds-peak"]` for matter only, and at
+$z =$ `{python} result["toy-peak"]` for the toy model, where it is
+`{python} result["toy-peak-distance"]` Mpc. The light of a more distant
+galaxy left it when the universe was so much smaller that the galaxy filled
+a larger angle of the sky.
+
+## Limits {#limits}
+
+- **Toy models.** The density parameters are given, not measured; the lesson
+  fits no data. A real Hubble diagram of supernovae, with its uncertainties,
+  is what decides between the models.
+- **Smooth universe.** Galaxies and clusters, their own motions, and the
+  lensing of light by them are left out; at low redshift the motions of
+  galaxies are comparable to the expansion.
+- **A cosmological constant, not dark energy in general.** An energy whose
+  density changes with time would change $E(a)$; the code takes only the
+  four classic ingredients.
+- **The Friedmann equation is not derived.** It follows from general
+  relativity for a homogeneous universe; the lesson integrates it and checks
+  the integration, not the theory.
+- **Degeneracy.** One distance-redshift relation constrains combinations of
+  the parameters; different contents can give nearly the same curve over a
+  limited range of redshifts.
+
+::: {.exercise .self-check}
+Two galaxies have the same redshift. One is a standard candle, the other a
+standard ruler. An astronomer finds a distance from each and gets two
+different numbers. What is wrong?
+
+::: {.choices}
+::: {.choice}
+One of the measurements, because a galaxy has one distance.
+
+::: {.feedback}
+In an expanding universe the distance from brightness and the distance from
+angle are different quantities, with a factor $(1+z)^2$ between them.
+:::
+:::
+
+::: {.choice correct="true"}
+Nothing: the luminosity distance and the angular diameter distance differ by
+$(1 + z)^2$.
+
+::: {.feedback}
+Correct: the light is redshifted and spread out on the way, and the source
+was closer when the light left it; both distances describe the same source.
+:::
+:::
+
+::: {.choice}
+The value of the Hubble constant, because a correct one makes the distances
+agree.
+
+::: {.feedback}
+The Hubble constant scales both distances by the same factor; their ratio
+$(1 + z)^2$ does not depend on it.
+:::
+:::
+:::
+
+::: {.solution}
+$D_L = (1 + z)D_M$ and $D_A = D_M/(1 + z)$, so $D_L/D_A = (1 + z)^2$ in every
+model. Distances in cosmology are defined by what is measured; each
+definition is correct for its own kind of measurement.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Fainter supernovae.** A standard candle is seen at redshift 0.5. How much
+fainter, in magnitudes, does it look in the toy model than in a matter-only
+universe and than in an empty one with the same $H_0$?
+
+::: {.hint}
+The difference of the distance moduli is five times the decimal logarithm
+of the ratio of the luminosity distances.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.supernova)
+```
+
+It looks `{python} result["fainter-eds"]` magnitudes fainter than in a
+matter-only universe and `{python} result["fainter-milne"]` magnitudes
+fainter than in an empty one. [Supernovae fainter than an empty universe
+allows were the evidence for an accelerating expansion reported in
+1998.]{.not-verified}
+:::
+:::
+
+::: {.exercise}
+**From slowing to speeding up.** At what redshift did the toy model's
+expansion stop slowing down and start speeding up? Find it numerically from
+the expansion speed $\dot a = H_0\,aE(a)$ and compare with the closed form
+$z = (2\Omega_\Lambda/\Omega_m)^{1/3} - 1$.
+
+::: {.hint}
+The expansion speed is smallest where the acceleration changes sign.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.acceleration)
+```
+
+The expansion speed is smallest at $z =$ `{python} result["turn-z"]`; the
+closed form gives `{python} result["turn-z-closed"]`. The acceleration begins
+once the density of matter, diluted by the expansion, falls below twice the
+density of the cosmological constant.
+:::
+:::
+
+::: {.exercise}
+**The size of a galaxy.** A galaxy 30 kpc across is seen at redshift 1 in the
+toy model. What angle does it fill on the sky?
+
+::: {.hint}
+Use the angular diameter distance, not the comoving or the luminosity one.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.angular_size)
+```
+
+At an angular diameter distance of `{python} result["galaxy-distance"]` Mpc
+it fills `{python} result["galaxy-angle"]` arcseconds. A galaxy of the same
+size at a higher redshift, beyond the largest angular diameter distance, would
+look larger.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/astrophysics/cosmology.py",
+        "src/pbc/astrophysics/experiments/cosmic_expansion.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_astrophysics.py",
+        "tests/unit/test_cosmic_expansion_experiment.py",
+    ],
+)
+```

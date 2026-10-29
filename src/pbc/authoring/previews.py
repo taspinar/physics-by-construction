@@ -13,8 +13,12 @@ that is never committed, copied, or fetched. It comes from one of two places.
 ``write_previews`` runs after the site is rendered (``site/lesson-previews.py``)
 and writes one file per lesson to ``previews/`` of the built site; the path
 export names the file and its alt text. The alt text starts with the status of
-the figure. The same input gives the same bytes: the scaling and the PNG
+the figure. The same input gives the same bytes: the scaling and the
 encoding have no state, and the drawing is a string.
+
+A figure preview is lossless WebP: every pixel of the scaled figure is kept,
+in about half the bytes of a PNG (Issue #319), so the learning path page with
+every preview stays within its payload budget.
 """
 
 from __future__ import annotations
@@ -35,6 +39,9 @@ PREVIEW_DIRECTORY = "previews"
 # The size of every preview in pixels, whatever the figure it comes from.
 WIDTH = 320
 HEIGHT = 200
+# The effort of the lossless WebP encoder: within 2 percent of its smallest
+# output for the figures of the site, at a fraction of the encoding time.
+_WEBP = {"lossless": True, "quality": 80, "method": 6}
 # Where Quarto writes the figure of an executed cell, beside the page.
 _FIGURES = "index_files/figure-html"
 
@@ -151,13 +158,14 @@ def preview_of(lesson: Lesson, site: Path) -> Preview:
     )
     alt = f"Preview, {cell.status}: {cell.alt}"
     return Preview(
-        lesson.id, f"{PREVIEW_DIRECTORY}/{lesson.id}.png", alt, cell.label, cell.status
+        lesson.id, f"{PREVIEW_DIRECTORY}/{lesson.id}.webp", alt, cell.label, cell.status
     )
 
 
 def scale(figure: bytes) -> bytes:
     """``figure`` (a PNG) scaled to fit ``WIDTH`` by ``HEIGHT`` and centred
-    on a white canvas of exactly that size, as a PNG without metadata."""
+    on a white canvas of exactly that size, as a lossless WebP without
+    metadata."""
     with Image.open(io.BytesIO(figure)) as opened:
         picture = opened.convert("RGBA")
     ratio = min(WIDTH / picture.width, HEIGHT / picture.height)
@@ -166,7 +174,7 @@ def scale(figure: bytes) -> bytes:
     canvas = Image.new("RGB", (WIDTH, HEIGHT), "white")
     canvas.paste(picture, ((WIDTH - size[0]) // 2, (HEIGHT - size[1]) // 2), picture)
     out = io.BytesIO()
-    canvas.save(out, format="PNG", optimize=False, compress_level=9)
+    canvas.save(out, format="WEBP", **_WEBP)
     return out.getvalue()
 
 

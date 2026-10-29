@@ -1,0 +1,557 @@
+---
+title: "Special relativity and spacetime"
+description: >-
+  Events and momenta under Lorentz boosts: the interval and the invariant
+  mass kept by every observer, time dilation and length contraction read off
+  transformed events, a collision whose four-momentum is conserved in every
+  frame while Newton's momentum is not, and Newton's mechanics recovered at
+  low speed.
+lesson:
+  id: special-relativity
+  strand: astrophysics
+  order: 4
+  difficulty: 2
+  course: astrophysics
+  slot: AST10
+  methods: [simulation]
+  outcomes:
+    - Transform events between inertial frames with a Lorentz boost, and check that the interval between them does not change
+    - Derive time dilation and length contraction from transformed events rather than from formulas
+    - Check a collision with four-momenta, and show why Newton's momentum is not conserved in every frame at high speed
+    - Recover Newton's kinetic energy, velocity addition, and Galileo's transformation at low speed, with a gap that shrinks as the square of the speed
+  related: []
+  format: 2
+  preview: fig-spacetime
+  experiment: pbc.astrophysics.experiments.special_relativity
+  prerequisites:
+    lessons: [kinematics, momentum-and-collisions]
+    outside:
+      - "Linear algebra: a matrix acting on a vector, and the product of two matrices"
+      - "Calculus: the first terms of a Taylor expansion"
+---
+
+```{python}
+#| echo: false
+from pbc.astrophysics import special_relativity
+from pbc.astrophysics.experiments import special_relativity as experiment
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+
+result = experiment.run()
+lesson_header()
+```
+
+Two observers who move past each other at a steady speed agree on the laws of
+physics, and both measure the same speed for light in vacuum. Those two
+statements cannot both hold if time is the same for everyone, as Newton
+assumed. Something has to give, and what gives is the separation of space
+from time: the observers disagree about which events happen at the same
+moment, how long a moving clock takes to tick, and how long a moving rod is.
+
+What they still agree on is the subject of this lesson. A quantity that every
+observer computes to the same value, an **invariant**, is the solid ground of
+the theory, and checking that it really is invariant is the first test of any
+relativistic calculation. The lesson builds the transformation between
+observers, confirms what it keeps, derives the strange effects from it by
+transforming events instead of quoting formulas, uses it to check a
+collision, and finally shows that at everyday speeds it gives back Newton's
+mechanics, which every later lesson of the course, from orbits to cosmology,
+relies on.
+
+## Assumptions
+
+1. **Inertial frames.** Every observer moves at a constant velocity; none
+   accelerates or rotates. An accelerated observer needs the same tools
+   applied piece by piece, as in the exercise on the twins.
+2. **Flat spacetime.** There is no gravity. The orbits and the bending of
+   light of the neighbouring lessons need a curved spacetime, of which this
+   one is the local approximation.
+3. **Units with $c = 1$.** A time is measured in seconds and a distance in
+   light-seconds, so a speed is the fraction $\beta = v/c$ of the speed of
+   light and a mass is also an energy. A number in metres is converted with
+   the given value of $c$.
+4. **Point particles and point events.** A particle has a rest mass and a
+   velocity, nothing else; a collision happens at one event.
+5. **Arithmetic to round-off.** The transformation is exact; the checks of
+   an invariant compare numbers that differ only by the rounding of the
+   arithmetic, and show a bound instead of a value.
+
+## Events, boosts, and invariants {#explanation}
+
+### The interval
+
+An **event** is a place at a time, $(t, x, y, z)$. Two observers, one of whom
+moves with velocity $\beta$ along $x$ relative to the other, give the same
+event different coordinates. The **Lorentz boost**
+
+$$
+t' = \gamma\,(t - \beta x),\qquad x' = \gamma\,(x - \beta t),\qquad
+y' = y,\quad z' = z,\qquad \gamma = \frac{1}{\sqrt{1 - \beta^2}}
+$$
+
+is the transformation that keeps the speed of light the same in both frames.
+It keeps one more thing: the **interval** between two events,
+
+$$
+s^2 = -(\Delta t)^2 + (\Delta x)^2 + (\Delta y)^2 + (\Delta z)^2 ,
+$$
+
+is the same for every observer. Written with the matrix
+$\eta = \mathrm{diag}(-1, 1, 1, 1)$, a boost $\Lambda$ keeps the interval
+because $\Lambda^{\mathsf T}\eta\Lambda = \eta$. A negative $s^2$ means that
+a clock can travel from one event to the other (timelike); a positive one
+means that no signal can (spacelike); zero means light connects them.
+
+For a boost in any direction $\mathbf n$ the time mixes with the component
+of the position along $\mathbf n$ only. Two boosts along one line add their
+**rapidities** $\phi = \operatorname{artanh}\beta$, not their velocities,
+which gives the addition of collinear velocities
+
+$$
+\beta_{\text{sum}} = \frac{\beta_1 + \beta_2}{1 + \beta_1\beta_2},
+$$
+
+never faster than light.
+
+### Moving clocks and moving rods
+
+A clock at rest in the moving frame ticks at the events $(\tau, 0)$ of that
+frame. Carried into the lab by the inverse boost, a tick lands at
+$t = \gamma\tau$: the lab sees the moving clock run slow, **time dilation**.
+The time the clock itself shows is the square root of $-s^2$ along its
+worldline, its **proper time**, which every observer agrees on.
+
+A rod at rest in the moving frame has two ends whose worldlines are straight
+lines in the lab. Its lab length is the distance between the two ends at the
+same lab time. Because the frames disagree about which events are
+simultaneous, that distance is $L/\gamma$, **length contraction**. The code
+below finds both results by transforming events and reading off positions and
+times; the formulas serve only as the check.
+
+### Energy and momentum
+
+A particle of rest mass $m$ and velocity $\mathbf v$ has the
+**four-momentum** $p = (E, \mathbf p) = m\gamma\,(1, \mathbf v)$. It is
+transformed by the same boost as an event, so its square is invariant:
+
+$$
+E^2 - |\mathbf p|^2 = m^2 ,
+$$
+
+the **invariant mass**. For a system the invariant mass of the total
+four-momentum is the energy in the frame where the total momentum vanishes.
+Because the boost is linear, a collision that conserves the total
+four-momentum in one frame conserves it in every frame. Newton's momentum
+$\sum m\mathbf v$ has no such guarantee: velocities do not transform
+linearly, so a collision that conserves it for one observer generally breaks
+it for another.
+
+### The Newtonian limit
+
+At small $\beta$, $\gamma = 1 + \beta^2/2 + \dots$, so
+
+$$
+E - m = (\gamma - 1)\,m = \tfrac12 m\beta^2\Bigl(1 + \tfrac34\beta^2 + \dots\Bigr),
+$$
+
+the velocity sum is $\beta_1 + \beta_2$ up to a relative correction
+$\beta_1\beta_2$, and the boost becomes Galileo's $x' = x - \beta t$,
+$t' = t$, for events that slow bodies connect. Every correction is of order
+$\beta^2$: a relativistic program is checked at low speed by a gap that
+falls as the square of the speed.
+
+## Code
+
+The boost and the interval:
+
+```{python}
+#| echo: false
+excerpt(special_relativity.boost)
+```
+
+```{python}
+#| echo: false
+excerpt(special_relativity.interval)
+```
+
+The proper time along a worldline of straight pieces, and the length of a
+moving rod from its transformed ends:
+
+```{python}
+#| echo: false
+excerpt(special_relativity.proper_time)
+```
+
+```{python}
+#| echo: false
+excerpt(special_relativity.moving_rod_length)
+```
+
+The four-momentum, the invariant mass, and an elastic collision computed in
+the frame of zero total momentum:
+
+```{python}
+#| echo: false
+excerpt(special_relativity.four_momentum)
+```
+
+```{python}
+#| echo: false
+excerpt(special_relativity.invariant_mass)
+```
+
+```{python}
+#| echo: false
+excerpt(special_relativity.elastic_collision)
+```
+
+The kinetic energy, written so that it keeps its digits at small speed:
+
+```{python}
+#| echo: false
+excerpt(special_relativity.kinetic_energy)
+```
+
+## Worked examples
+
+### What every observer agrees on
+
+Five events, two timelike, two spacelike, and one on the light cone, are
+boosted into five frames, three along $x$ and two oblique.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| label: invariants-run
+#| echo: false
+excerpt(experiment.invariants)
+```
+
+```{python}
+#| label: invariants
+#| echo: false
+result.table("invariants")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_spacetime)
+```
+
+```{python}
+#| label: fig-spacetime
+#| echo: false
+#| fig-cap: "Boosts move events along the hyperbolas of constant interval and never across the light cone; the axes of a moving frame tilt symmetrically towards the light cone."
+#| fig-alt: "Spacetime diagram with x horizontal and t vertical. Two dotted diagonal lines through the origin form the light cone. A dashed hyperbola opens upwards inside the cone and passes through t equal to one; open circles, the images of the event at t equal to one under several boosts, lie on it. A dash-dotted hyperbola opens to the right outside the cone and passes through x equal to one; open squares, the images of the event at x equal to one, lie on it. Two solid lines through the origin, the time and space axes of a moving frame, are tilted towards the upper-right diagonal from either side."
+#| fig-status: simulated
+result.show("fig-spacetime")
+```
+
+[A boost in any direction keeps the squared interval of every pair of events
+and the metric to round-off, and two collinear boosts of half the rapidity
+make one boost.]{.claim type="numerically-verified"
+scope="five events, five boosts of speed 0.3 to 0.99, c = 1"
+evidence="invariants-run invariants fig-spacetime"}
+The events slide along their hyperbolas as the observer changes: the time
+of the event $(1, 0)$, which is the tick of a clock at rest, grows in every
+other frame, and the order of the spacelike events $(0, 1)$ and the origin
+in time changes sign with the direction of the boost. No boost moves an event
+from inside the light cone to outside it, so the order of events that a
+signal can connect is the same for all observers.
+
+### Moving clocks and moving rods
+
+A clock at rest in a moving frame ticks once; the tick is carried into the lab
+by the inverse boost. A rod one light-second long at rest in the same frame
+is measured in the lab from its two ends at one lab time.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="dilation")
+```
+
+```{python}
+#| label: dilation-run
+#| echo: false
+excerpt(experiment.dilation)
+```
+
+```{python}
+#| label: dilation
+#| echo: false
+result.table("dilation")
+```
+
+[The lab time of one tick equals $\gamma$, the clock's own time along its
+worldline stays one second, and the rod's measured length equals $1/\gamma$,
+each to round-off, although no dilation or contraction formula is used to
+compute them.]{.claim type="numerically-verified"
+scope="speeds 0.1 to 0.999 c, c = 1"
+evidence="dilation-run dilation"}
+The lab and the clock disagree about how much time passed and agree about
+what the clock shows. That is the general pattern: the coordinates of events
+depend on the observer, and the physical answer is the invariant built from
+them.
+
+### A collision in every frame
+
+Two particles of rest masses $m$ and $3m$ approach each other at $0.8c$ and
+$-0.4c$ in the lab and rebound elastically. The collision is solved once, in
+the frame of zero total momentum, and then seen by observers moving along $x$.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="collision")
+```
+
+```{python}
+#| label: collision-run
+#| echo: false
+excerpt(experiment.collision)
+```
+
+```{python}
+#| label: collision
+#| echo: false
+result.table("collision")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_collision)
+```
+
+```{python}
+#| label: fig-collision
+#| echo: false
+#| fig-cap: "The relativistic momentum of the collision is conserved for every observer; Newton's momentum of the same collision changes by an amount that depends on who watches."
+#| fig-alt: "Line plot of the change of the total momentum in the collision against the observer's velocity. A dashed horizontal line at zero is the relativistic momentum. A solid curve, Newton's momentum, is a hump that is largest for the lab observer and falls on both sides, crossing zero for two fast observers and turning negative beyond them; open circles mark the observers of the table on the curve."
+#| fig-status: simulated
+result.show("fig-collision")
+```
+
+[The total four-momentum of the collision is conserved to round-off for
+every observer and its invariant mass is the same for all, while the sum of
+$m v$ changes in the collision by an amount that depends on the
+observer.]{.claim type="numerically-verified"
+scope="elastic head-on collision of masses m and 3 m at 0.8 c and -0.4 c, observers from -0.95 c to 0.95 c"
+evidence="collision-run collision fig-collision"}
+After the collision the lighter particle moves at
+`{python} result["after-light"]` c and the heavier at
+`{python} result["after-heavy"]` c in the lab, and Newton's momentum has
+changed there by `{python} result["newtonian-lab"]` $mc$. A collision check
+written with $m v$ would report a violation of momentum conservation that is
+not there; written with four-momenta, it passes for every observer, which is
+the test a relativistic collision code should be held to.
+
+### Back to Newton
+
+The kinetic energy, the sum of two equal velocities, and the coordinates of
+an event are computed relativistically and by Newton's rules, for speeds
+from a thousandth of the speed of light upwards.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="limit")
+```
+
+```{python}
+#| label: limit-run
+#| echo: false
+excerpt(experiment.low_speed)
+```
+
+```{python}
+#| label: limit
+#| echo: false
+result.table("limit")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_limit)
+```
+
+```{python}
+#| label: fig-limit
+#| echo: false
+#| fig-cap: "Every relativistic correction to Newton's mechanics falls as the square of the speed: the three gaps run parallel to the slope-two reference over three decades of speed."
+#| fig-alt: "Log-log plot of the relative gap from Newton's result against the speed beta. Three series, the kinetic energy with circles, velocity addition with squares, and Lorentz against Galileo with triangles, are straight parallel lines rising from the lower left to the upper right, close together; a dotted reference line of slope two runs parallel to them below."
+#| fig-status: simulated
+result.show("fig-limit")
+```
+
+[Newton's kinetic energy, velocity addition, and Galileo's transformation
+are recovered at low speed, each with a relative gap of order $\beta^2$;
+the gap of the kinetic energy approaches $\tfrac34\beta^2$.]{.claim
+type="numerically-verified"
+scope="speeds 0.001 to 0.3 c, c = 1"
+evidence="limit-run limit fig-limit"}
+The fitted order of the three gaps is at least
+`{python} result["limit-order"]`, and the gap of the kinetic energy divided
+by $\beta^2$ is `{python} result["ke-coefficient"]` at the slowest speed, the
+coefficient of the Taylor expansion. At the speed of a satellite in low orbit,
+a few hundred-thousandths of $c$, the gaps are far below anything that
+matters for its orbit; that is why the earlier lessons of the course could use
+Newton's mechanics.
+
+## Limits {#limits}
+
+- **No acceleration and no gravity.** The lesson's frames are inertial and
+  its spacetime flat. Accelerated motion is handled piece by piece; gravity
+  needs the curved spacetime of the next lesson.
+- **Non-collinear boosts are not one boost.** Two boosts in different
+  directions compose to a boost and a rotation (the Thomas-Wigner rotation);
+  the lesson composes boosts only along one line.
+- **Point particles.** Spin, extended bodies, and fields are left out; the
+  collision is solved in its centre-of-momentum frame without a model of the
+  force that acts.
+- **Round-off, not truth.** The invariants are checked to round-off, which
+  shows that the code applies the transformation correctly. That nature obeys
+  the transformation is a matter of experiment, which the lesson does not
+  reproduce.
+
+::: {.exercise .self-check}
+Two observers disagree about the time between two events. What do they
+certainly agree on?
+
+::: {.choices}
+::: {.choice}
+The distance between the events, because a rigid ruler is the same for
+everyone.
+
+::: {.feedback}
+Lengths depend on the observer as times do: a moving rod is shorter in the
+lab than in its own frame.
+:::
+:::
+
+::: {.choice correct="true"}
+The squared interval $-(\Delta t)^2 + |\Delta\mathbf x|^2$ between the events.
+
+::: {.feedback}
+Correct: every Lorentz boost keeps the interval, so every inertial observer
+computes the same value from their own coordinates.
+:::
+:::
+
+::: {.choice}
+Nothing, because each observer's measurements are equally valid and
+unrelated.
+
+::: {.feedback}
+The measurements are related by the Lorentz transformation, and the
+interval, the proper time of a clock, and the invariant mass are the same for
+all.
+:::
+:::
+:::
+
+::: {.solution}
+The interval is invariant: the boost changes $\Delta t$ and $\Delta x$ so that
+$-(\Delta t)^2 + |\Delta\mathbf x|^2$ stays the same. Times and lengths
+separately are coordinates of one observer; the interval, and the proper time
+built from it, are what all observers agree on.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Muons that reach the ground.** Muons are made about 15 km above the ground
+and move down at $0.995c$. A muon at rest lives on average 2.197
+microseconds. How far does an average muon travel before it decays, with and
+without time dilation, and what fraction reaches the ground?
+
+::: {.hint}
+In the lab a moving muon lives $\gamma$ times longer than at rest; the
+surviving fraction after a distance $d$ is $e^{-d/\ell}$ for a mean decay
+length $\ell$.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.muon)
+```
+
+With $\gamma =$ `{python} result["muon-gamma"]`, the mean decay length is
+`{python} result["muon-dilated"]` km instead of
+`{python} result["muon-naive"]` m. Without dilation a fraction
+`{python} result["muon-survive-naive"]` would reach the ground; with it,
+`{python} result["muon-survive"]` does. In the muon's own frame the same
+answer comes from length contraction: the atmosphere it crosses is $\gamma$
+times thinner.
+:::
+:::
+
+::: {.exercise}
+**The travelling twin.** One twin stays on Earth for 10 years. The other
+travels out at $0.8c$ for 5 years of Earth's time and comes back at the same
+speed. How much older is each when they meet?
+
+::: {.hint}
+Write the travelling twin's worldline as two straight pieces and add the
+proper times of the pieces.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.twins)
+```
+
+The twin at home ages `{python} result["twin-home"]` years, the traveller
+`{python} result["twin-away"]` years. The situation is not symmetric: the
+traveller changes frame at the turn, and the straight worldline between two
+events is the one with the longest proper time.
+:::
+:::
+
+::: {.exercise}
+**Where the kinetic energy goes.** Two equal masses meet head-on at $\beta$
+and $-\beta$ and stick together. Compare the mass of the lump less the two
+rest masses with Newton's kinetic energy of the pair, for $\beta$ = 0.01, 0.1,
+0.5, and 0.9.
+
+::: {.hint}
+The lump is at rest, so its mass is the invariant mass of the total
+four-momentum.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.sticking)
+```
+
+```{python}
+#| echo: false
+result.table("sticking")
+```
+
+The kinetic energy is not lost: it becomes rest mass of the lump. At low speed
+the mass gained equals Newton's kinetic energy, divided by $c^2$; at high
+speed it is larger, because the relativistic kinetic energy grows without
+bound as the speed approaches $c$.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/astrophysics/special_relativity.py",
+        "src/pbc/astrophysics/experiments/special_relativity.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_astrophysics.py",
+        "tests/unit/test_special_relativity_experiment.py",
+    ],
+)
+```

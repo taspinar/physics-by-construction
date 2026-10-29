@@ -1370,7 +1370,11 @@ feature: it must be current, cover the complete feature, and have no critical
 or major finding. Every
 review round with findings needs an approved triage that was published on the
 Issue (the newest triage of that round counts), and the latest round may have
-no `FIX_NOW` findings left to apply. After fixes, run a new review round first;
+no `FIX_NOW` findings left to apply. At Level 1 or 2 under a `completion/v2`
+record, an earlier round without a triage needs none when a later review of
+the chain gives every one of its findings as resolved or accepted; a finding
+that a later review leaves open, or that no later review mentions, still needs
+the triage of its round. Level 3 keeps the triage of every round. After fixes, run a new review round first;
 a passed newer round confirms the fixes of earlier rounds. A failed
 publication can be repeated with `./scripts/triage-review.sh --publish
 <triage-json>`.

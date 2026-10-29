@@ -1,0 +1,530 @@
+---
+title: "Relativistic orbits"
+description: >-
+  The orbit of a body about a mass in general relativity: the turn of the
+  periapsis per orbit checked against the first-order post-Newtonian formula
+  from the exact orbit, its elliptic integral, and the post-Newtonian
+  equations of motion, with the gap of second order that
+  states the approximation, and the innermost stable circular orbit.
+lesson:
+  id: relativistic-orbits
+  strand: astrophysics
+  order: 5
+  difficulty: 3
+  course: astrophysics
+  slot: AST4
+  methods: [simulation]
+  outcomes:
+    - Integrate the relativistic orbit equation of a test body and measure the turn of its periapsis per orbit
+    - Check the turn against the first-order formula and show that the gap shrinks as the square of the field strength, which states the approximation
+    - Compare the post-Newtonian equations of motion with the exact orbit, and say which order they are right to
+    - Find the innermost stable circular orbit from the effective potential
+  related: []
+  format: 2
+  preview: fig-orbit
+  experiment: pbc.astrophysics.experiments.relativistic_orbits
+  prerequisites:
+    lessons: [special-relativity, modified-gravity, gravitational-lensing]
+    outside:
+      - "Calculus: a definite integral, and the first terms of a Taylor expansion"
+      - "Numerical methods: the order of an error, read from its size at several parameter values"
+---
+
+```{python}
+#| echo: false
+from pbc.astrophysics import relativistic_orbits
+from pbc.astrophysics.experiments import relativistic_orbits as experiment
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+
+result = experiment.run()
+lesson_header()
+```
+
+The modified-gravity lesson showed that a periapsis that turns is the
+signature of a force law that is not exactly the inverse square, and that
+one measured turn cannot say which law is at work. General relativity makes a
+definite prediction: around a spherical mass, every bound orbit turns
+forward, by an amount that depends on how deep in the field the orbit is.
+[For Mercury the prediction is the long-standing excess in the turn of its
+periapsis, about 43 arcseconds per century.]{.not-verified}
+
+Astronomers almost never use the full theory to compute it. They use the
+**post-Newtonian** approximation: Newton's mechanics plus the first
+correction in the small number $GM/(c^2 r)$, which for Mercury is a few parts
+in a hundred million. This lesson computes the turn of the periapsis exactly,
+for a test body in the field of a spherical mass, and uses the exact result to
+check the first-order formula and to show what "first order" means: a gap
+that shrinks as the square of the field strength. It ends where the field is
+strong enough that no stable orbit exists.
+
+## Assumptions
+
+1. **A test body about a spherical, static mass.** The orbiting body is so
+   light that it does not disturb the field, which is the Schwarzschild
+   geometry of the lensing lesson. Two comparable masses, as in a binary
+   pulsar, need the two-body post-Newtonian equations.
+2. **Geometric units.** With $G = c = 1$ the mass is a length,
+   $m = GM/c^2$; the orbit's size is measured by the semi-latus rectum $p$,
+   and $m/p$ is the strength of the field the orbit feels.
+3. **The orbit equation is taken from general relativity.** The lesson uses
+   the equation of a bound orbit and does not derive it from the field
+   equations.
+4. **Turning points as the orbit's label.** An orbit is named by its
+   closest and farthest distances $p/(1 + e)$ and $p/(1 - e)$, the same as
+   for Kepler's ellipse; the eccentricity is [0.5]{.given} throughout the
+   examples.
+5. **The turn of the periapsis is measured as an angle.** The angle from one
+   periapsis to the next does not depend on how time is measured, so it can
+   be compared between the exact orbit and the post-Newtonian one.
+
+## The turn of the periapsis {#explanation}
+
+### The orbit equation
+
+Kepler's orbit, written for $u = 1/r$ as a function of the angle, obeys
+$u'' + u = GM/h^2$, with $h$ the angular momentum per unit mass; its
+solution is the closed ellipse $u = (1 + e\cos\varphi)/p$. In the
+Schwarzschild geometry a bound orbit obeys
+
+$$
+u'' + u = \frac{m}{h^2} + 3m u^2 ,
+$$
+
+with one extra term, the same as in the photon equation of the lensing
+lesson. The extra term is an attraction that grows as $1/r^4$, so in the
+language of the modified-gravity lesson it is a radial perturbation
+$R = -3mh^2/r^4$ of Newton's force.
+
+### Exact: an elliptic integral
+
+Multiplying by $u'$ and integrating once gives a cubic,
+
+$$
+\begin{aligned}
+(u')^2 &= 2m u^3 - u^2 + \frac{2m}{h^2}\,u + C\\
+&= 2m\,(u - u_1)(u_2 - u)(u_3 - u),
+\end{aligned}
+$$
+
+with $C$ a constant of the orbit. Its roots $u_1 = (1 - e)/p$ and
+$u_2 = (1 + e)/p$ are the turning points, where $u' = 0$, and the third
+follows from the sum of the roots, $u_3 = 1/(2m) - u_1 - u_2$. The leading
+coefficient $2m$ is positive, so the cubic is positive between $u_1$ and
+$u_2$, where the orbit lives, and negative between $u_2$ and $u_3$. The
+angle from periapsis to the next periapsis is twice the integral of
+$\mathrm du/u'$ between the turning points, a complete elliptic integral of
+the first kind $K$:
+
+$$
+\Delta\varphi = \frac{4K(k)}{\sqrt{2m(u_3 - u_1)}} - 2\pi,\qquad
+k^2 = \frac{u_2 - u_1}{u_3 - u_1}.
+$$
+
+As $m \to 0$, $u_3 \to \infty$, $k \to 0$, $K \to \pi/2$, and the turn
+vanishes: Newton's ellipse closes.
+
+### First order: the post-Newtonian formula
+
+Expanded in the small number $m/p$,
+
+$$
+\Delta\varphi = 6\pi\frac{m}{p} + \frac{3\pi}{2}\,(18 + e^2)
+\Bigl(\frac{m}{p}\Bigr)^2 + \dots,\qquad
+\text{in SI units}\quad \Delta\varphi \approx \frac{6\pi GM}{c^2 a(1 - e^2)} .
+$$
+
+The first term is the classic formula. It is what Gauss's equation of the
+modified-gravity lesson gives for the perturbation $R = -3mh^2/r^4$ on
+Kepler's ellipse, and it is what the **post-Newtonian equations of motion**
+of a test body give,
+
+$$
+\mathbf a = -\frac{m}{r^2}\Bigl[\Bigl(1 + v^2 - \frac{4m}{r}\Bigr)\mathbf n
+- 4(\mathbf n\cdot\mathbf v)\,\mathbf v\Bigr],
+$$
+
+Newton's acceleration with every correction of first order in $m/r$ and
+$v^2$ (in harmonic coordinates, with $\mathbf n = \mathbf x/r$). **The
+approximation is the statement that the second term is dropped.** It is
+checked not by a fixed tolerance, but by a gap from the exact turn that falls
+as $(m/p)^2$.
+
+### Circular orbits and the innermost stable one
+
+The energy per unit rest mass $E$ of the orbit satisfies
+$E^2 = \dot r^2 + V(r)$ with the **effective potential**
+
+$$
+V(r) = \Bigl(1 - \frac{2m}{r}\Bigr)\Bigl(1 + \frac{h^2}{r^2}\Bigr).
+$$
+
+Its minimum is a stable circular orbit, its maximum an unstable one. Unlike
+Newton's effective potential, it has a minimum only when $h^2 \ge 12m^2$, and
+the stable circular orbits all lie outside $r = 6m$: the **innermost stable
+circular orbit**. Closer in, a body spirals into the mass.
+
+## Code
+
+The exact turn per orbit, from the elliptic integral, and the first-order
+formula:
+
+```{python}
+#| echo: false
+excerpt(relativistic_orbits.exact_precession)
+```
+
+```{python}
+#| echo: false
+excerpt(relativistic_orbits.first_order_precession)
+```
+
+The orbit integrated in angle, with each periapsis located as the angle at
+which $u'$ crosses zero downwards:
+
+```{python}
+#| echo: false
+excerpt(relativistic_orbits.geodesic)
+```
+
+The post-Newtonian acceleration and its orbit, integrated in time:
+
+```{python}
+#| echo: false
+excerpt(relativistic_orbits.post_newtonian_acceleration)
+```
+
+```{python}
+#| echo: false
+excerpt(relativistic_orbits.post_newtonian_orbit)
+```
+
+The effective potential and its circular orbits:
+
+```{python}
+#| echo: false
+excerpt(relativistic_orbits.effective_potential)
+```
+
+```{python}
+#| echo: false
+excerpt(relativistic_orbits.circular_orbit_radii)
+```
+
+## Worked examples
+
+### An orbit in a strong field
+
+An orbit with $m/p = 0.04$, whose periapsis lies
+`{python} result["strong-periapsis"]` times $m$ from the centre, is integrated
+for six and a half turns.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment, region="strong")
+```
+
+```{python}
+#| label: strong-run
+#| echo: false
+excerpt(experiment.strong_field)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_orbit)
+```
+
+```{python}
+#| label: fig-orbit
+#| echo: false
+#| fig-cap: "Close to a mass the relativistic orbit does not close: with the same turning points as Kepler's ellipse, it turns forward at every pass and traces a rosette."
+#| fig-alt: "Orbits in the plane about a central cross. A dashed ellipse, Kepler's orbit, extends to the left of the centre. A thin solid curve, the relativistic orbit, starts at the same point on the right and draws loops of the same size whose orientation turns anticlockwise by a large angle at every pass; open circles mark its points nearest the centre, spread around a circle about the centre."
+#| fig-status: simulated
+result.show("fig-orbit")
+```
+
+[The orbit integrated in angle turns its periapsis by the exact amount of the
+elliptic integral, well above the first-order formula in so strong a
+field.]{.claim type="numerically-verified"
+scope="test body, m/p = 0.04, e = 0.5, DOP853 at tolerance 1e-12"
+evidence="strong-run fig-orbit"}
+The periapsis turns by `{python} result["strong-turn"]` rad per orbit; the
+elliptic integral gives `{python} result["strong-exact"]` and the first-order
+formula only `{python} result["strong-first"]`. Near a neutron star or a
+black hole the first order is not enough. The next example shows where it is.
+
+### The first-order formula and its gap
+
+The field is weakened from $m/p = 0.03$ to $10^{-4}$. For each strength the
+turn per orbit is computed four ways: from the first-order formula, from the
+elliptic integral, from the orbit integrated in angle, and from the
+post-Newtonian equations integrated in time over ten and a half periods.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="scan")
+```
+
+```{python}
+#| label: precession-run
+#| echo: false
+excerpt(experiment.precession_scan)
+```
+
+```{python}
+#| label: precession
+#| echo: false
+result.table("precession")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_precession)
+```
+
+```{python}
+#| label: fig-precession
+#| echo: false
+#| fig-cap: "The first-order formula follows the exact turn of the periapsis and the post-Newtonian orbit as the field weakens; both depart from it by a gap that falls as the square of the field strength."
+#| fig-alt: "Two log-log panels against the field strength m over p. Top: the turn per orbit; a dashed straight line, the first order, with open circles, the exact turn, and open triangles, the post-Newtonian orbit, on it at weak fields, the circles slightly above and the triangles slightly below it at the strongest field. Bottom: the size of the gap from the first order; circles and triangles fall along a dotted straight line of slope two, the second-order term of the exact turn, the triangles slightly above it."
+#| fig-status: simulated
+result.show("fig-precession")
+```
+
+[The exact turn of the periapsis of a test body agrees with the first-order
+formula $6\pi m/p$, with a gap that falls as $(m/p)^2$ and approaches the
+second-order term $\tfrac{3\pi}{2}(18 + e^2)(m/p)^2$; the orbit integrated in
+angle reproduces the elliptic integral.]{.claim type="numerically-verified"
+scope="test body in the Schwarzschild geometry, e = 0.5, m/p from 1e-4 to 0.03"
+evidence="precession-run precession fig-precession"}
+The gap of the exact turn falls with the fitted order
+`{python} result["exact-order"]`, and divided by $(m/p)^2$ it approaches the
+coefficient `{python} result["second-order"]`. Gauss's equation of the
+modified-gravity lesson, applied to the perturbation $R = -3mh^2/r^4$, gives the
+first-order formula with a relative gap `{python} result["gauss-gap"]`.
+
+[The post-Newtonian equations of motion reproduce the first-order turn, with
+a gap of second order that differs from the exact second-order
+term.]{.claim type="numerically-verified"
+scope="test body, harmonic coordinates, started at the periapsis of Kepler's ellipse with Kepler's speed, e = 0.5, m/p from 1e-4 to 0.03"
+evidence="precession-run precession fig-precession"}
+Their gap falls with the fitted order `{python} result["pn-order"]`, but its
+coefficient has the opposite sign to the exact one. That is not a fault of the
+integration: the post-Newtonian equations claim nothing beyond first order,
+and at second order the result also depends on how the starting point is
+matched between the two descriptions. Stating an approximation means exactly
+this: what agrees, to which order, and that the next order is not
+reproduced.
+
+### The innermost stable circular orbit
+
+For several angular momenta the minimum of the effective potential is found
+numerically, from where its slope changes sign, and compared with the closed
+form.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="circular")
+```
+
+```{python}
+#| label: circular-run
+#| echo: false
+excerpt(experiment.circular)
+```
+
+```{python}
+#| label: circular
+#| echo: false
+result.table("circular")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_potential)
+```
+
+```{python}
+#| label: fig-potential
+#| echo: false
+#| fig-cap: "The relativistic effective potential has a well, a stable circular orbit, only for a large enough angular momentum; the wells never lie inside six times GM/c^2."
+#| fig-alt: "Line plot of the effective potential against the radius in units of m. Four curves for increasing angular momentum. The lowest two rise steadily from the left with no dip; the second of them has a flat step near the dotted vertical line of the innermost stable orbit. The upper two rise to a peak close in and then dip into a well, marked by an open circle, before rising slowly outwards; the higher the angular momentum, the farther out the well."
+#| fig-status: simulated
+result.show("fig-potential")
+```
+
+[The effective potential has a minimum only for $h^2 \ge 12m^2$, and the
+numerical minima agree with the closed form of the stable circular orbits,
+which approach $r = 6m$ as $h^2$ falls to $12m^2$.]{.claim
+type="numerically-verified"
+scope="test body in the Schwarzschild geometry, h/m from 3.4 to 8"
+evidence="circular-run circular fig-potential"}
+Below the critical angular momentum there is no well at all, and a body
+that comes in falls through. At the critical value the stable and the
+unstable orbits meet at $r = 6m$, [the inner edge of the accretion disks
+around black holes]{.not-verified}, a limit that Newton's mechanics, in which a circular
+orbit exists at any radius, does not have.
+
+## Limits {#limits}
+
+- **A test body.** The orbiting body does not disturb the field. For two
+  comparable masses the first-order turn keeps its form with the total mass,
+  but the second order changes, and the system loses energy to
+  gravitational waves, the subject of a later lesson.
+- **A spherical, static, isolated mass.** The rotation of the central body,
+  its flattening, and other bodies also turn the periapsis. [For Mercury the
+  other planets turn the periapsis about ten times more than general
+  relativity does.]{.not-verified}
+- **First order, stated.** The formula $6\pi GM/(c^2 a(1 - e^2))$ is the
+  leading term. The lesson shows its gap and the next coefficient; it does not
+  derive the higher terms.
+- **Coordinates.** The exact orbit is written in Schwarzschild coordinates and
+  the post-Newtonian one in harmonic coordinates. The turn per orbit is the
+  same angle in both to first order; distances and times are not compared.
+- **No measured data.** The orbits are simulated; the Mercury exercise uses
+  given orbital elements, not a fit to observations.
+
+::: {.exercise .self-check}
+An integrated orbit and the first-order formula $6\pi m/p$ disagree by a few
+parts in a thousand at $m/p = 10^{-3}$, and by a few parts in a hundred at
+$m/p = 10^{-2}$. What does that say?
+
+::: {.choices}
+::: {.choice}
+That the integration is inaccurate, because the gap should not depend on the
+field.
+
+::: {.feedback}
+The exact orbit and its elliptic integral agree to round-off; the gap is real
+and belongs to the formula, not to the integration.
+:::
+:::
+
+::: {.choice correct="true"}
+That the formula is right to first order: its relative error grows in
+proportion to $m/p$, so the absolute gap grows as $(m/p)^2$.
+
+::: {.feedback}
+Correct: a relative gap proportional to the field is what a first-order
+approximation must show, and it is how the approximation is stated.
+:::
+:::
+
+::: {.choice}
+That general relativity fails in strong fields.
+
+::: {.feedback}
+The exact orbit is general relativity; the first-order formula is an
+approximation to it, and it is the approximation that departs.
+:::
+:::
+:::
+
+::: {.solution}
+A first-order formula leaves out terms of order $(m/p)^2$, so its relative
+error is proportional to $m/p$: ten times the field, ten times the relative
+gap. A gap that shrinks at that rate confirms the formula and states its
+range; a gap that did not shrink would point to an error.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Mercury.** The Sun's mass parameter $GM_\odot$ is
+$1.32712440018\times10^{20}$ $\mathrm{m^3/s^2}$. Mercury's semi-major axis
+is $5.7909\times10^{10}$ m, its eccentricity 0.2056, and its period 87.969 days. How much
+does general relativity turn Mercury's periapsis per orbit and per century?
+
+::: {.hint}
+Use the first-order formula in SI units, then multiply by the number of
+orbits in a Julian century.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.mercury)
+```
+
+The turn is `{python} result["mercury-orbit"]` rad per orbit, or
+`{python} result["mercury-century"]` arcseconds per century. Mercury's field
+strength $m/p$ is only `{python} result["mercury-field"]`, so the second-order
+term is smaller than the first by about that factor: the first order is all
+that a planetary orbit needs.
+:::
+:::
+
+::: {.exercise}
+**Close to the innermost orbit.** For a nearly circular orbit at radius $r$,
+the turn per orbit is $2\pi\bigl(1/\sqrt{1 - 6m/r} - 1\bigr)$. Check it with
+the exact turn at $e = 0.001$ for $r$ = 7, 10, 20, and 100 times $m$, and
+compare with the first order.
+
+::: {.hint}
+`exact_precession` takes $m$, $p$, and $e$; with $p = 1$, $m$ is $m/r$.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.near_circular)
+```
+
+```{python}
+#| echo: false
+result.table("near-circular")
+```
+
+The exact turn and the circular formula agree; the first order falls far short
+close in. As $r$ approaches $6m$, the turn per orbit grows without bound: the
+radial oscillation becomes infinitely slow, which is the innermost stable
+orbit seen from the turn of the periapsis.
+:::
+:::
+
+::: {.exercise}
+**When the first order is not enough.** For $e = 0.5$, at what field strength
+$m/p$ does the first-order formula fall 10 per cent short of the exact turn?
+
+::: {.hint}
+Find where the ratio of the first-order turn to the exact turn equals nine
+tenths.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.ten_percent)
+```
+
+At $m/p =$ `{python} result["ten-percent"]`, a periapsis about
+`{python} result["ten-percent-r"]` times $m$ from the centre. That is far
+closer than any planet: only orbits a few tens of $m$ from a compact mass,
+such as matter about to fall into a black hole, need more than the first
+order.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/astrophysics/relativistic_orbits.py",
+        "src/pbc/astrophysics/central_force.py",
+        "src/pbc/astrophysics/experiments/relativistic_orbits.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_astrophysics.py",
+        "tests/unit/test_relativistic_orbits_experiment.py",
+    ],
+)
+```

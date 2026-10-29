@@ -1,13 +1,16 @@
 """Three bodies, modified central forces, the deflection of light, the
-gravitational wave of a binary, and the transit of a planet (lessons AST1,
-AST2, AST3, AST6, AST7): each result is compared with a closed-form
+gravitational wave of a binary, the transit of a planet, special relativity,
+relativistic orbits, and cosmic expansion (lessons AST1, AST2, AST3, AST6,
+AST7, AST10, AST4, AST5): each result is compared with a closed-form
 solution, a limiting case, or an independent computation, with a stated
 tolerance."""
 
 import numpy as np
 import pytest
-from scipy.integrate import solve_ivp
+from scipy.integrate import quad, solve_ivp
 
+from pbc.astrophysics import cosmology, relativistic_orbits
+from pbc.astrophysics import special_relativity as sr
 from pbc.astrophysics.central_force import (
     angular_momentum,
     energy,
@@ -84,6 +87,7 @@ from pbc.mechanics.integrators import rk4_step
 from pbc.mechanics.nbody import angular_momentum as total_angular_momentum
 from pbc.mechanics.nbody import gravity, total_energy
 from pbc.mechanics.particles import unstack
+from pbc.verification.estimates import fitted_order
 
 # --- AST1: three bodies --------------------------------------------------------
 
@@ -538,3 +542,250 @@ def test_the_transit_functions_reject_inputs_outside_their_domain():
         transit_orbit(-1.0, a, inclination, p, [0.0, 1.0], 0.1)
     with pytest.raises(ValueError):
         transit_orbit(gm, a, inclination, p, [0.0, 1.0], 0.1, radius=0.0)
+
+
+# --- AST10: special relativity -------------------------------------------------
+
+
+def test_a_boost_along_x_is_the_textbook_transformation():
+    beta, gamma = 0.6, 1.25
+    t, x, y, z = 2.0, 1.0, 3.0, -1.0
+    moved = sr.boost([beta, 0.0, 0.0]) @ [t, x, y, z]
+    assert moved == pytest.approx(
+        [gamma * (t - beta * x), gamma * (x - beta * t), y, z]
+    )
+    assert sr.boost([0.0, 0.0, 0.0]) == pytest.approx(np.eye(4))
+
+
+def test_a_boost_in_any_direction_keeps_the_metric_and_the_interval():
+    rng = np.random.default_rng(3)
+    events = rng.normal(size=(20, 4))
+    for _ in range(10):
+        v = rng.normal(size=3)
+        v *= rng.uniform(0.0, 0.999) / np.linalg.norm(v)
+        matrix = sr.boost(v)
+        assert matrix.T @ sr.METRIC @ matrix == pytest.approx(sr.METRIC, abs=1e-9)
+        assert sr.interval(events @ matrix.T) == pytest.approx(
+            sr.interval(events), abs=1e-9
+        )
+        # The boost and the boost with the opposite velocity undo each other.
+        assert sr.boost(-v) @ matrix == pytest.approx(np.eye(4), abs=1e-9)
+        # The frame's own origin is at rest in it.
+        assert (matrix @ np.concatenate([[1.0], v]))[1:] == pytest.approx(
+            np.zeros(3), abs=1e-12
+        )
+    with pytest.raises(ValueError):
+        sr.boost([1.0, 0.0, 0.0])
+
+
+def test_collinear_boosts_add_rapidities_and_velocities():
+    u, v = 0.5, 0.7
+    product = sr.boost([u, 0, 0]) @ sr.boost([v, 0, 0])
+    combined = float(sr.add_velocities(u, v))
+    assert combined == pytest.approx(np.tanh(sr.rapidity(u) + sr.rapidity(v)))
+    assert product == pytest.approx(sr.boost([combined, 0, 0]))
+    assert float(sr.add_velocities(0.9, 1.0)) == pytest.approx(1.0)  # light stays light
+
+
+def test_proper_time_and_the_moving_rod_against_their_formulas():
+    beta = 0.8
+    assert sr.proper_time([[0, 0, 0, 0], [5, 4, 0, 0]]) == pytest.approx(3.0)
+    # A curved worldline in many straight pieces: x = sin t, proper time
+    # integral of sqrt(1 - cos² t) dt = integral of |sin t| over (0, pi) = 2.
+    t = np.linspace(0.0, np.pi, 20001)
+    worldline = np.stack([t, 0.5 * np.sin(t), 0 * t, 0 * t], axis=1)
+    exact, _ = quad(lambda s: np.sqrt(1 - 0.25 * np.cos(s) ** 2), 0, np.pi)
+    assert sr.proper_time(worldline) == pytest.approx(exact, rel=1e-8)
+    assert sr.moving_rod_length(2.0, beta) == pytest.approx(2.0 * 0.6)
+    assert sr.moving_rod_length(2.0, -beta) == pytest.approx(2.0 * 0.6)
+    with pytest.raises(ValueError):
+        sr.proper_time([[0, 0, 0, 0], [1, 2, 0, 0]])  # spacelike
+
+
+def test_four_momentum_mass_and_velocity():
+    p = sr.four_momentum(2.0, [0.6, 0.0, 0.0])
+    assert p == pytest.approx([2.5, 1.5, 0.0, 0.0])
+    assert float(sr.invariant_mass(p)) == pytest.approx(2.0)
+    assert sr.velocity(p) == pytest.approx([0.6, 0.0, 0.0])
+
+
+def test_an_elastic_collision_conserves_four_momentum_and_matches_newton_slowly():
+    before = np.array(
+        [sr.four_momentum(1.0, [0.3, 0.1, 0]), sr.four_momentum(2.5, [-0.2, 0, 0])]
+    )
+    after = sr.elastic_collision(before, deflection=1.0)
+    assert after.sum(axis=0) == pytest.approx(before.sum(axis=0), abs=1e-12)
+    assert sr.invariant_mass(after) == pytest.approx([1.0, 2.5], abs=1e-12)
+    # At low speed a head-on rebound gives Newton's elastic result.
+    m1, m2, u1, u2 = 1.0, 3.0, 1e-4, -2e-4
+    slow = np.array(
+        [sr.four_momentum(m1, [u1, 0, 0]), sr.four_momentum(m2, [u2, 0, 0])]
+    )
+    v1 = sr.velocity(sr.elastic_collision(slow))[0, 0]
+    newton = ((m1 - m2) * u1 + 2 * m2 * u2) / (m1 + m2)
+    assert v1 == pytest.approx(newton, rel=1e-7)
+
+
+def test_the_kinetic_energy_keeps_its_digits_and_tends_to_newtons():
+    beta = np.array([1e-8, 1e-3, 0.5])
+    gamma = 1 / np.sqrt(1 - beta**2)
+    assert sr.kinetic_energy(2.0, beta)[2] == pytest.approx(2.0 * (gamma[2] - 1))
+    ratio = sr.kinetic_energy(2.0, beta) / sr.newtonian_kinetic_energy(2.0, beta)
+    assert ratio[:2] == pytest.approx(1 + 0.75 * beta[:2] ** 2, rel=1e-12)
+    assert sr.galilean([0.5, 0, 0]) @ [2.0, 1.0, 0, 0] == pytest.approx(
+        [2.0, 0.0, 0, 0]
+    )
+
+
+# --- AST4: relativistic orbits -------------------------------------------------
+
+
+def test_the_exact_turn_tends_to_the_first_order_and_its_known_second_term():
+    for e in (0.1, 0.5, 0.9):
+        m = 1e-4
+        exact = relativistic_orbits.exact_precession(m, 1.0, e)
+        first = float(relativistic_orbits.first_order_precession(m, 1.0))
+        gap = (exact - first) / m**2
+        assert gap == pytest.approx(
+            relativistic_orbits.second_order_coefficient(e), rel=2e-3
+        )
+
+
+def test_the_exact_turn_against_a_direct_quadrature_of_the_cubic():
+    m, p, e = 0.02, 1.0, 0.4
+    u1, u2 = (1 - e) / p, (1 + e) / p
+    u3 = 1 / (2 * m) - u1 - u2
+    h2 = relativistic_orbits.angular_momentum(m, p, e) ** 2
+    # u = u1 + (u2 - u1) sin² w removes both end singularities of
+    # du / sqrt(2 m (u - u1)(u2 - u)(u3 - u)), leaving 2 dw / sqrt(2 m (u3 - u)),
+    # smooth and periodic, so the trapezoidal rule converges fast.
+    w = np.linspace(0, np.pi / 2, 2001)
+    u = u1 + (u2 - u1) * np.sin(w) ** 2
+    angle = 2 * np.trapezoid(2 / np.sqrt(2 * m * (u3 - u)), w)
+    assert angle - 2 * np.pi == pytest.approx(
+        relativistic_orbits.exact_precession(m, p, e), rel=1e-10
+    )
+    # The cubic with this h is the first integral of the orbit equation,
+    # 2 m u³ - u² + 2 m u / h² + const, with its turning points at u1 and u2.
+    cubic = 2 * m * (u - u1) * (u2 - u) * (u3 - u)
+    polynomial = 2 * m * u**3 - u**2 + 2 * m * u / h2
+    assert np.ptp(cubic - polynomial) < 1e-12
+
+
+def test_the_integrated_geodesic_turns_by_the_exact_amount_and_closes_without_mass():
+    path = relativistic_orbits.geodesic(0.01, 1.0, 0.3, 5.5)
+    assert len(path.periapsis_phi) == 5
+    assert relativistic_orbits.turn_per_orbit(path.periapsis_phi) == pytest.approx(
+        relativistic_orbits.exact_precession(0.01, 1.0, 0.3), abs=1e-10
+    )
+    assert path.u.max() == pytest.approx(1.3, rel=1e-10)
+    tiny = relativistic_orbits.geodesic(1e-9, 1.0, 0.3, 3.5)
+    assert abs(relativistic_orbits.turn_per_orbit(tiny.periapsis_phi)) < 1e-7
+
+
+def test_the_post_newtonian_orbit_turns_at_first_order():
+    for m in (1e-3, 1e-4):
+        turn = relativistic_orbits.turn_per_orbit(
+            relativistic_orbits.post_newtonian_orbit(m, 1.0, 0.3, 5.5)
+        )
+        first = float(relativistic_orbits.first_order_precession(m, 1.0))
+        assert turn == pytest.approx(first, rel=200 * m)
+
+
+def test_circular_orbits_and_the_innermost_stable_one():
+    unstable, stable = relativistic_orbits.circular_orbit_radii(4.0, 1.0)
+    assert (unstable, stable) == pytest.approx((4.0, 12.0))
+    r = np.array([stable * (1 - 1e-4), stable, stable * (1 + 1e-4)])
+    v = relativistic_orbits.effective_potential(r, 4.0, 1.0)
+    assert v[1] < v[0] and v[1] < v[2]
+    assert relativistic_orbits.circular_orbit_radii(
+        np.sqrt(12) * (1 + 1e-12), 1.0
+    ) == pytest.approx((6.0, 6.0), abs=1e-4)
+    assert relativistic_orbits.circular_orbit_radii(3.0, 1.0) is None
+    with pytest.raises(ValueError):
+        relativistic_orbits.exact_precession(0.2, 1.0, 0.5)  # falls in
+
+
+# --- AST5: cosmic expansion ----------------------------------------------------
+
+
+def test_the_hubble_rate_is_one_today_and_the_curvature_closes_the_budget():
+    for model in (
+        cosmology.Model(1.0),
+        cosmology.Model(0.3, 1e-4, 0.7),
+        cosmology.Model(0.2),
+    ):
+        assert float(cosmology.hubble_rate(model, 1.0)) == pytest.approx(1.0)
+        assert (
+            model.matter + model.radiation + model.lam + model.curvature
+            == pytest.approx(1)
+        )
+    radiation = cosmology.Model(0.0, radiation=1.0)
+    assert cosmology.age(radiation) == pytest.approx(0.5, rel=1e-10)  # a = sqrt(2 t)
+
+
+def test_the_ages_against_their_closed_forms():
+    assert cosmology.age(cosmology.Model(1.0)) == pytest.approx(2 / 3, rel=1e-12)
+    assert cosmology.age(cosmology.Model(0.0)) == pytest.approx(1.0, rel=1e-12)
+    for m in (0.1, 0.3, 0.8):
+        assert cosmology.age(cosmology.Model(m, lam=1 - m)) == pytest.approx(
+            cosmology.flat_lambda_age(m), rel=1e-10
+        )
+    # An open universe of matter only:
+    # H0 t0 = 1/(1 - m) - m/(2 (1 - m)^1.5) acosh(2/m - 1).
+    m = 0.3
+    open_age = 1 / (1 - m) - m / (2 * (1 - m) ** 1.5) * np.arccosh(2 / m - 1)
+    assert cosmology.age(cosmology.Model(m)) == pytest.approx(open_age, rel=1e-10)
+
+
+def test_the_integrated_scale_factor_against_the_analytic_histories():
+    eds = cosmology.expansion(cosmology.Model(1.0), 1.0, 1.0)
+    assert eds.a == pytest.approx((1.5 * (eds.tau + 2 / 3)) ** (2 / 3), rel=1e-9)
+    assert eds.a[0] == pytest.approx(1e-3)  # stopped where a reaches its floor
+    sitter = cosmology.expansion(cosmology.Model(0.0, lam=1.0), 1.0, 1.0)
+    assert sitter.a == pytest.approx(np.exp(sitter.tau), rel=1e-10)
+    toy = cosmology.expansion(cosmology.Model(0.3, lam=0.7), 0.5, 0.5)
+    assert toy.a == pytest.approx(
+        cosmology.flat_lambda_scale_factor(
+            0.3, toy.tau + cosmology.flat_lambda_age(0.3)
+        ),
+        rel=1e-9,
+    )
+
+
+def test_the_distances_against_the_analytic_cases_and_each_other():
+    z = 1.7
+    eds, milne, sitter = (
+        cosmology.Model(1.0),
+        cosmology.Model(0.0),
+        cosmology.Model(0.0, lam=1.0),
+    )
+    assert cosmology.comoving_distance(eds, z) == pytest.approx(
+        float(cosmology.einstein_de_sitter_comoving(z)), rel=1e-12
+    )
+    assert cosmology.luminosity_distance(milne, z) == pytest.approx(
+        float(cosmology.milne_luminosity(z)), rel=1e-12
+    )
+    assert cosmology.comoving_distance(sitter, z) == pytest.approx(z, rel=1e-12)
+    for model in (eds, milne, cosmology.Model(0.3, lam=0.7), cosmology.Model(2.0)):
+        d_l = cosmology.luminosity_distance(model, z)
+        d_a = cosmology.angular_diameter_distance(model, z)
+        assert d_l / d_a == pytest.approx((1 + z) ** 2)  # Etherington's relation
+        assert cosmology.ray_distance(model, z) == pytest.approx(
+            cosmology.comoving_distance(model, z), rel=1e-10
+        )
+    # A closed model bends the transverse distance below the comoving one.
+    closed = cosmology.Model(2.0)
+    d_c = cosmology.comoving_distance(closed, z)
+    assert cosmology.transverse_distance(closed, d_c) == pytest.approx(
+        np.sin(d_c) / 1.0
+    )
+
+
+def test_the_low_redshift_form_is_second_order():
+    model = cosmology.Model(0.3, lam=0.7)
+    z = np.array([0.02, 0.01, 0.005])
+    exact = np.array([cosmology.luminosity_distance(model, x) for x in z])
+    gap = np.abs(exact - cosmology.low_redshift_luminosity(model, z))
+    assert fitted_order(z, gap) == pytest.approx(3.0, abs=0.05)
+    assert model.deceleration == pytest.approx(-0.55)

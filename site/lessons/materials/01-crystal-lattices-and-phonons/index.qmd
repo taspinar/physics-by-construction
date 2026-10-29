@@ -1,0 +1,550 @@
+---
+title: "Crystal lattices and phonons"
+description: >-
+  A crystal as a periodic chain of masses and springs: its normal modes
+  computed as the eigenvalues of a matrix, the closed-form dispersion that
+  Bloch's argument predicts for them, the sound speed and the gap between
+  the acoustic and the optical branch, and a wave packet that travels at
+  the group velocity.
+lesson:
+  id: crystal-lattices-and-phonons
+  strand: materials
+  order: 1
+  difficulty: 2
+  course: materials
+  slot: MAT1
+  methods: [simulation]
+  outcomes:
+    - Build the force-constant matrix of a periodic chain spring by spring and compute its normal modes as eigenvalues
+    - Derive the dispersion of the monatomic and the diatomic chain from a plane-wave trial solution, and check the computed modes against it
+    - Explain the acoustic and the optical branch, the sound speed at long wavelengths, and the gap at the edge of the Brillouin zone
+    - Show by a time integration that a wave packet moves at the group velocity, not at the phase velocity
+  related: []
+  format: 2
+  preview: fig-dispersion
+  experiment: pbc.materials.experiments.crystal_lattices_and_phonons
+  prerequisites:
+    lessons: [harmonic-oscillator, interference-and-resonance]
+    outside:
+      - "Linear algebra: eigenvalues and eigenvectors of a symmetric matrix"
+      - "Complex numbers: a plane wave written as an exponential of an imaginary phase"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.materials import phonons
+from pbc.materials.experiments import crystal_lattices_and_phonons as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The atoms of a crystal sit in a pattern that repeats: a **lattice**. Pushed
+a little from their places, they pull on their neighbours through the
+chemical bonds, and a disturbance travels through the crystal as a wave.
+These waves carry sound and heat through a solid, and their quantised
+versions are called **phonons**. Which waves can a lattice carry, at which
+frequencies, and how fast does a disturbance travel?
+
+The question has a sharp answer because the lattice repeats. A mass on a
+spring has one frequency; a periodic chain of them has a whole curve of
+frequencies, one for each wavelength, called the **dispersion relation**.
+This lesson computes the vibrations of a chain directly, as the eigenvalues
+of a matrix built spring by spring, and checks them against the dispersion
+relation that the periodicity predicts. Then it lets a wave packet run along
+the chain and measures how fast it goes.
+
+## Assumptions
+
+1. **One dimension.** The atoms sit on a line and move along it
+   (longitudinal waves). A real crystal is three-dimensional and also has
+   transverse waves; each direction of propagation gives a chain-like
+   problem, but the branches then come in threes.
+2. **Nearest-neighbour springs.** Each atom is joined to its two neighbours
+   by a spring of constant $K$, the curvature of the bond's energy at its
+   minimum. Longer-range forces would add terms to the dispersion; the shape
+   of the branches and the closed forms below would change.
+3. **Small vibrations.** The springs are linear (harmonic). Large amplitudes
+   make the bond anharmonic, the modes exchange energy, and the clean
+   separation into independent modes fails; thermal expansion and the finite
+   thermal conductivity of a crystal come from that.
+4. **A ring of cells.** The chain closes on itself, so the last atom is
+   joined to the first, and every mode is a wave of one of the ring's
+   allowed wavenumbers. A finite chain with free ends has standing waves at
+   other wavenumbers instead, and the closed forms at the allowed
+   wavenumbers below would not list its modes exactly. [With two atoms per
+   cell, free ends can also bind modes whose frequency lies in the
+   gap.]{.not-verified}
+5. **Classical motion.** The modes are computed as classical vibrations.
+   [A phonon is a quantum of one of these modes, with energy $\hbar\omega$;
+   the classical mode frequencies are the same.]{.not-verified}
+6. **Units with $K = m_1 = a = 1$.** Frequencies are in units of
+   $\sqrt{K/m_1}$, wavenumbers in units of $1/a$, and times in units of
+   $\sqrt{m_1/K}$; $a$ is the length of the repeating cell.
+
+## Waves on a periodic chain {#explanation}
+
+### The normal modes as eigenvalues
+
+Write $u_j$ for the displacement of atom $j$ from its place. The spring
+between atoms $i$ and $j$ stores the energy $\tfrac12 K(u_j - u_i)^2$, and
+the equations of motion of all atoms together are
+
+$$
+M\,\ddot{\mathbf u} = -C\,\mathbf u ,
+$$
+
+with $M$ the diagonal matrix of the masses and $C$ the **force-constant
+matrix**: each spring adds $K$ to the two diagonal entries of its atoms and
+$-K$ to the two entries between them. A **normal mode** is a motion in which
+every atom oscillates at one frequency, $\mathbf u = \mathbf e\cos\omega t$.
+Substituting it gives $C\mathbf e = \omega^2 M\mathbf e$, and with
+$\mathbf e = M^{-1/2}\mathbf y$ the symmetric eigenvalue problem
+
+$$
+M^{-1/2} C M^{-1/2}\,\mathbf y = \omega^2\,\mathbf y .
+$$
+
+A ring of $N$ atoms has $N$ modes, one for each degree of freedom. One of
+them is the rigid translation of the whole ring, with $\omega = 0$.
+
+### The monatomic chain
+
+When every atom has the mass $m$ and the spacing is $a$, atom $n$ obeys
+$m\ddot u_n = K(u_{n+1} - 2u_n + u_{n-1})$. Because the chain looks the same
+from every atom, try a wave, $u_n = \mathrm e^{\mathrm i(kna - \omega t)}$.
+The common factor cancels and leaves $m\omega^2 = 2K(1 - \cos ka)$, that is
+
+$$
+\omega(k) = 2\sqrt{\frac{K}{m}}\,\Bigl|\sin\frac{ka}{2}\Bigr| .
+$$
+
+Two facts follow from the lattice alone. First, $k$ and $k + 2\pi/a$ give
+the same displacement at every atom, because the atoms sit only at the
+points $na$; all distinct waves have $k$ in one interval of length $2\pi/a$,
+the **Brillouin zone** $-\pi/a < k \le \pi/a$. Second, on a ring of $N$
+atoms the wave must join up with itself, $\mathrm e^{\mathrm ikNa} = 1$, so
+the **allowed wavenumbers** are $k = 2\pi n/(Na)$ for $n = 0, \dots, N - 1$.
+The closed form at these $N$ wavenumbers must give exactly the $N$
+eigenvalues of the ring's matrix.
+
+For long waves, $ka \ll 1$, the sine is its argument and
+$\omega \approx a\sqrt{K/m}\,k$: the chain carries sound at the speed
+$v_s = a\sqrt{K/m}$, like a continuous elastic rod. At the edge of the zone,
+$k = \pi/a$, neighbouring atoms move in opposite directions and $\omega$
+reaches its largest value, $2\sqrt{K/m}$.
+
+### The diatomic chain
+
+Now let each cell of length $a$ hold two atoms, of masses $m_1$ and $m_2$, a
+half cell apart, with the same springs throughout. Write $u_n$ and $v_n$ for
+the displacements of the two atoms of cell $n$:
+
+$$
+m_1\ddot u_n = K(v_n + v_{n-1} - 2u_n), \qquad
+m_2\ddot v_n = K(u_{n+1} + u_n - 2v_n).
+$$
+
+With $u_n = U\mathrm e^{\mathrm i(kna - \omega t)}$ and
+$v_n = V\mathrm e^{\mathrm i(kna - \omega t)}$ these become two linear
+equations for $U$ and $V$,
+
+$$
+\begin{pmatrix} 2K - m_1\omega^2 & -K(1 + \mathrm e^{-\mathrm ika}) \\
+-K(1 + \mathrm e^{\mathrm ika}) & 2K - m_2\omega^2 \end{pmatrix}
+\begin{pmatrix} U \\ V \end{pmatrix} = 0 ,
+$$
+
+which have a solution only when the determinant vanishes. With
+$|1 + \mathrm e^{\mathrm ika}|^2 = 4\cos^2(ka/2)$ the condition is
+
+$$
+m_1 m_2\,\omega^4 - 2K(m_1 + m_2)\,\omega^2 + 4K^2\sin^2\frac{ka}{2} = 0 ,
+$$
+
+so
+
+$$
+\omega^2_\mp = K S \mp K\sqrt{S^2 - \frac{4\sin^2(ka/2)}{m_1 m_2}},
+\qquad S = \frac{1}{m_1} + \frac{1}{m_2} .
+$$
+
+Each wavenumber now has two frequencies, and the dispersion has two
+**branches**. The lower one, the **acoustic branch**, starts at zero: at
+long wavelengths the two atoms of a cell move together, and the small-$k$
+expansion gives the sound speed $v_s = a\sqrt{K/(2(m_1 + m_2))}$. The upper
+one, the **optical branch**, starts at $\omega = \sqrt{2KS}$: the two atoms
+of a cell move against each other. [In an ionic crystal the two atoms carry
+opposite charges, so this motion couples to light, which gives the branch
+its name.]{.not-verified} At the zone edge, where
+$S^2 - 4/(m_1 m_2) = (1/m_1 - 1/m_2)^2$, the branches end at
+$\sqrt{2K/m_{\max}}$ and $\sqrt{2K/m_{\min}}$. Between them lies a **gap**:
+no wave of a frequency inside it can travel through the chain.
+
+### Group velocity
+
+A single wave $\mathrm e^{\mathrm i(kna - \omega t)}$ has crests that move
+at the **phase velocity** $\omega/k$. A localised disturbance, a **wave
+packet**, is a superposition of waves with wavenumbers near some $k_0$; its
+envelope moves at the **group velocity** $\mathrm d\omega/\mathrm dk$ at
+$k_0$. For the monatomic chain
+
+$$
+v_g = a\sqrt{\frac{K}{m}}\cos\frac{ka}{2},
+$$
+
+which equals the sound speed at long wavelengths and falls to zero at the
+zone edge, where the modes are standing waves. The phase velocity
+$\omega/k$ is larger than $v_g$ at every $k > 0$ of the zone, so measuring
+how fast a packet moves tells the two apart.
+
+## Code
+
+The force-constant matrix, spring by spring, and the frequencies of the
+ring as the eigenvalues of the mass-weighted matrix:
+
+```{python}
+#| echo: false
+excerpt(phonons.force_constants)
+```
+
+```{python}
+#| echo: false
+excerpt(phonons.ring_frequencies)
+```
+
+The closed-form dispersion of both chains, and the closed form at the
+allowed wavenumbers of a ring:
+
+```{python}
+#| echo: false
+excerpt(phonons.monatomic_dispersion)
+```
+
+```{python}
+#| echo: false
+excerpt(phonons.diatomic_dispersion)
+```
+
+```{python}
+#| echo: false
+excerpt(phonons.closed_form_frequencies)
+```
+
+The wave packet: its start, built from the ring's own modes so that it
+travels in one direction, and its integration by velocity Verlet with the
+energy-weighted centre recorded:
+
+```{python}
+#| echo: false
+excerpt(phonons.packet_start)
+```
+
+```{python}
+#| echo: false
+excerpt(phonons.verlet_packet)
+```
+
+## Worked examples
+
+### The modes of the ring against the closed form
+
+A ring of cells of each chain, the diatomic one with $m_2 = 2m_1$:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| label: dispersion-run
+#| echo: false
+excerpt(experiment.dispersion)
+```
+
+```{python}
+#| label: dispersion
+#| echo: false
+result.table("dispersion")
+```
+
+[The eigenvalues of the ring's force-constant matrix, built spring by
+spring, are the closed-form dispersion at the ring's allowed wavenumbers, to
+round-off, for the monatomic and for the diatomic chain.]{.claim
+type="numerically-verified"
+scope="rings of 24 cells, nearest-neighbour springs, K = m1 = a = 1, m2 = 2 m1"
+evidence="dispersion-run dispersion"}
+The comparison is between two sorted lists of numbers and needs no guess of
+which mode belongs to which wavenumber; it holds because the plane-wave
+argument above is right for this matrix. The number of modes is the number
+of atoms: one branch for one atom per cell, two for two.
+
+The edges of the branches of the diatomic chain, where the ring's allowed
+wavenumbers include both $k = 0$ and $k = \pi/a$:
+
+```{python}
+#| label: branches-run
+#| echo: false
+excerpt(experiment.branches)
+```
+
+```{python}
+#| label: branches
+#| echo: false
+result.table("branches")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_dispersion)
+```
+
+```{python}
+#| label: fig-dispersion
+#| echo: false
+#| fig-cap: "The normal modes of the ring lie on the closed-form dispersion: one branch for one atom per cell, an acoustic and an optical branch with a gap between them for two."
+#| fig-alt: "Two panels of frequency against wavenumber from zero to pi over a. Left, the monatomic chain: a solid sine-shaped curve rises from zero and flattens at the zone edge; a dotted straight line, the sound line, follows it at small wavenumbers and then rises above it; open circles, the ring's modes, lie on the curve. Right, the diatomic chain: a solid acoustic curve rises from zero and flattens, a dashed optical curve falls gently from its top at zero wavenumber; a shaded horizontal band between them marks the gap; open squares lie on both curves."
+#| fig-status: simulated
+result.show("fig-dispersion")
+```
+
+[The diatomic chain's branches end at the zone edge at $\sqrt{2K/m_2}$ and
+$\sqrt{2K/m_1}$, the optical branch starts at $\sqrt{2K(1/m_1 + 1/m_2)}$,
+and no mode lies in the gap between the branches.]{.claim
+type="numerically-verified"
+scope="ring of 24 cells, m2 = 2 m1, K = 1"
+evidence="branches-run branches fig-dispersion"}
+For $m_2 = 2m_1$ the edges of the gap are in the ratio
+`{python} result["gap-ratio"]`, the square root of the mass ratio. The
+wavenumber of each plotted mode is read from the Fourier transform of its
+displacements from cell to cell; it serves the picture only, and the check
+in the table above does not use it.
+
+### The sound speed
+
+The slope of the acoustic branch at $k = 0$ is the speed of sound. A ring
+of $N$ cells has its smallest nonzero wavenumber at $2\pi/(Na)$, so larger
+rings probe longer waves:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="sound")
+```
+
+```{python}
+#| label: sound-run
+#| echo: false
+excerpt(experiment.sound)
+```
+
+```{python}
+#| label: sound
+#| echo: false
+result.table("sound")
+```
+
+[The ratio $\omega/k$ of the lowest mode approaches the sound speeds
+$a\sqrt{K/m}$ and $a\sqrt{K/(2(m_1 + m_2))}$, with a relative gap that falls
+as the square of the wavenumber.]{.claim type="numerically-verified"
+scope="rings of 16 to 128 cells, K = m1 = a = 1, m2 = 2 m1"
+evidence="sound-run sound"}
+The fitted orders of the gaps are `{python} result["sound-order-mono"]`
+(monatomic) and `{python} result["sound-order-di"]` (diatomic). For the
+monatomic chain the gap is exactly $\sin(ka/2)/(ka/2) - 1$, whose first term
+is $-(ka)^2/24$; a crystal is a continuous elastic medium only for waves
+much longer than its cells.
+
+### A wave packet travels at the group velocity
+
+A Gaussian packet of carrier wavenumber $k_0 = \pi/(2a)$ starts on a long
+monatomic ring and moves for a long time. Each Fourier component of the
+starting displacement is given the velocity of a wave moving forward at the
+ring's own frequency, so the packet travels in one direction. The equations
+of motion are integrated by velocity Verlet, and the packet's position is
+its **energy-weighted centre**:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="packet")
+```
+
+```{python}
+#| label: packet-run
+#| echo: false
+excerpt(experiment.packets)
+```
+
+```{python}
+#| label: packet
+#| echo: false
+result.table("packet")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_packet)
+```
+
+```{python}
+#| label: fig-packet
+#| echo: false
+#| fig-cap: "A wave packet on the monatomic chain moves at the group velocity; its crests run faster, at the phase velocity, through the envelope."
+#| fig-alt: "Two panels. Top: the displacement of the atoms at three times, each a rapidly oscillating carrier inside a bell-shaped envelope; the envelope moves to the right between the times and keeps nearly its shape. Bottom: the centre of the packet against time; open circles lie on a dashed straight line, the motion at the group velocity, and a dotted straight line, the motion at the phase velocity, rises more steeply away from them."
+#| fig-status: simulated
+result.show("fig-packet")
+```
+
+[The centre of a wave packet moves at the closed-form group velocity, not at
+the phase velocity; the relative gap from the group velocity falls as the
+inverse square of the packet's width.]{.claim type="numerically-verified"
+scope="monatomic ring of 1024 atoms, k0 = pi / (2a), widths 10, 20, 40 a, velocity Verlet with time step 0.01 to t = 400"
+evidence="packet-run packet fig-packet"}
+The phase velocity is larger by a fraction `{python} result["phase-excess"]`
+and is plainly not what the packet follows. The fitted order of the gap in
+the inverse width is `{python} result["packet-order"]`: a packet of width
+$w$ contains wavenumbers within about $1/w$ of $k_0$, and the average of the
+group velocity over them differs from its value at $k_0$ only at second
+order. The time step changes the dispersion itself: velocity Verlet on
+this linear chain follows $\sin(\tilde\omega\Delta t/2) = \omega\Delta t/2$
+exactly, so its group velocity is larger by the factor
+$1/\sqrt{1 - (\omega\Delta t/2)^2}$, a relative excess of
+`{python} result["verlet-excess"]` at $k_0$, below the smallest gap of the
+table.
+
+## Limits {#limits}
+
+- **One dimension, one polarisation.** A three-dimensional crystal has a
+  branch for each polarisation and a dispersion that depends on the
+  direction; the chain shows the mechanism, not the branches of a real
+  material.
+- **Nearest neighbours and harmonic springs.** The closed forms hold for
+  this model. Forces of longer range change the shape of the branches;
+  anharmonic springs let the modes exchange energy, which a linear model
+  cannot show.
+- **Classical modes.** The lesson computes classical frequencies. The
+  quantisation into phonons, their occupation at a temperature, and the
+  heat capacity that follows are not computed here.
+- **No measured data.** The spring constant and the masses are chosen, not
+  fitted to a material. Measured phonon dispersions come from inelastic
+  neutron or X-ray scattering.
+- **The packet's speed is a fit.** The table reports the slope of a
+  straight line fitted to the centre over the run; the agreement with the
+  group velocity is to the stated relative gap, not exact.
+
+::: {.exercise .self-check}
+A mode of the monatomic chain has $k = \pi/a$: neighbouring atoms move in
+exactly opposite directions. What is the group velocity of a packet made of
+waves near this wavenumber?
+
+::: {.choices}
+::: {.choice}
+The sound speed $a\sqrt{K/m}$, because every disturbance of the chain
+travels at the speed of sound.
+
+::: {.feedback}
+Only long waves travel at the sound speed. The dispersion bends away from
+the sound line as $k$ grows.
+:::
+:::
+
+::: {.choice correct="true"}
+Zero: the dispersion is flat at the zone edge, so a packet there does not
+move; the mode is a standing wave.
+
+::: {.feedback}
+Correct: $v_g = a\sqrt{K/m}\cos(ka/2)$ vanishes at $k = \pi/a$. The waves
+of $k$ and $-k$ are the same pattern there, so nothing travels.
+:::
+:::
+
+::: {.choice}
+The phase velocity $\omega/k = 2a\sqrt{K/m}/\pi$, because the crests move.
+
+::: {.feedback}
+The crests of a single wave move, but a packet follows the slope of the
+dispersion, not the ratio $\omega/k$.
+:::
+:::
+:::
+
+::: {.solution}
+The group velocity is the slope $\mathrm d\omega/\mathrm dk$, and the
+dispersion $2\sqrt{K/m}\,|\sin(ka/2)|$ has its maximum, a zero slope, at
+$k = \pi/a$. At the zone edge the waves travelling left and right have the
+same displacement pattern, so the modes there are standing waves and carry
+no energy along the chain.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Equal masses.** Set $m_2 = m_1$ in the diatomic chain. What happens to the
+gap? Show that the diatomic closed form then gives the monatomic chain with
+twice as many atoms at half the spacing.
+
+::: {.hint}
+Set $m_1 = m_2$ in the closed form, simplify the square root, and use the
+half-angle formulas for one minus and one plus a cosine.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.equal_masses)
+```
+
+The gap of the ring with equal masses is `{python} result["equal-gap"]`,
+and the diatomic closed form agrees with the monatomic one of half the
+spacing to `{python} result["equal-difference"]` in $\omega^2$. With equal
+masses the cell of two atoms is a choice of description, not a property of
+the chain: the monatomic branch is folded into the smaller zone, and the
+optical branch is its outer half. A gap opens only when the two atoms
+differ.
+:::
+:::
+
+::: {.exercise}
+**A heavy partner.** Keep $m_1 = 1$ and make $m_2$ heavier: $2$, $10$, and
+$100$. How wide is the optical branch, from its top at $k = 0$ to its bottom
+at $k = \pi/a$?
+
+::: {.hint}
+Use the edges $\sqrt{2K(1/m_1 + 1/m_2)}$ and $\sqrt{2K/m_1}$.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.flat_optical_branch)
+```
+
+```{python}
+#| echo: false
+result.table("flat-optical")
+```
+
+The optical branch flattens as $m_2$ grows: the light atom then vibrates
+between two nearly fixed heavy neighbours at $\sqrt{2K/m_1}$, whatever the
+wavenumber. A flat branch has a group velocity near zero, so such
+vibrations store energy but carry little of it.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/materials/phonons.py",
+        "src/pbc/materials/experiments/crystal_lattices_and_phonons.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_materials.py",
+        "tests/unit/test_crystal_lattices_and_phonons_experiment.py",
+    ],
+)
+```
