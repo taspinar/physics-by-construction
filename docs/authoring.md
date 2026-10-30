@@ -1513,7 +1513,14 @@ does not build its own environment, baselines, or scoring. The rules are in
   does for conserved quantities
   (`site/lessons/agents-llm/11-discovering-conservation-laws/index.qmd`,
   modules `pbc.discovery.invariants` and `pbc.discovery.invariant_lab`;
-  `docs/discovery-protocol.md`, "Invariants").
+  `docs/discovery-protocol.md`, "Invariants"). A lesson that scores a law on
+  a system other than the one probed overrides the environment's
+  `score_predictor`, as D4 does with orbits
+  (`site/lessons/agents-llm/14-discovering-gravity/index.qmd`, module
+  `pbc.discovery.gravity_lab`); a world of several bodies has its box and
+  predictive test in `pbc.discovery.worlds`, as D5 does
+  (`site/lessons/agents-llm/15-unknown-physical-worlds/index.qmd`). Neither
+  draws a held-out setting or start on the page.
 - **Without an agent.** A discovery lesson that uses no model (methods
   `[simulation]`, no `llm-agents`) has no fixture, no prompt, and no live
   run; its last section is "Run this experiment". It still states the
