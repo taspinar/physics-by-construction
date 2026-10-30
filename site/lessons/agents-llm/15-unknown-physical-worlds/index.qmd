@@ -1,0 +1,426 @@
+---
+title: "Unknown physical worlds"
+description: >-
+  Three bodies in a world whose pair forces are hidden: a language model
+  places them at rest and reads their accelerations, and the build scores
+  the couplings it claims by the motion they predict from starts nobody
+  probed, beside least squares, a sparse sum of whole powers, and Newton's
+  gravity.
+lesson:
+  id: unknown-physical-worlds
+  strand: agents-llm
+  order: 15
+  difficulty: 3
+  course: astrophysics
+  slot: D5
+  experiment: pbc.astrophysics.experiments.unknown_physical_worlds
+  methods: [simulation, llm-agents]
+  outcomes:
+    - Design static configurations of three bodies that separate the couplings of the pairs and the exponent of a pair force
+    - Infer unknown couplings, of either sign, and a common exponent from noisy accelerations
+    - Score a claimed law by the motion it predicts from held-out starts, and read the error as it grows in time
+    - Recognise when a familiar law, Newton's gravity, or a sum of whole powers fails the readings and the prediction
+  related: []
+  format: 2
+  preview: fig-predictive-test
+  prerequisites:
+    lessons: [three-body-problem, black-box-force-law]
+    outside:
+      - "Vectors: components of a force along a line in the plane"
+      - "Statistics: least squares and the chi-square of residuals"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.astrophysics.experiments import unknown_physical_worlds as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The three-body problem of this course moved three bodies under gravity: every
+pair attracts in proportion to the product of its masses and the inverse
+square of its distance. Change the world, and nothing of the method changes.
+The bodies still pull or push each other along the lines between them, the
+forces of a pair are still equal and opposite, and the motion is still found
+by integrating Newton's second law. What changes is the law of the pair: its
+strength, its sign, and how fast it falls with distance. A world of charged
+bodies has couplings that are not their masses; a world in another number of
+dimensions has another exponent.
+
+This lesson puts a language model in such a world. Three bodies of known
+masses interact through pair forces whose **couplings and exponent are
+hidden**. The model may place the bodies at rest anywhere in a box and read
+their accelerations, with noise. It must state the three couplings and the
+exponent. The build then sets the bodies **moving**, from starts the model
+never saw, some of them outside the box, integrates the motion under the
+claimed law and under the hidden one, and compares the positions. The claim
+is scored by what it predicts, not by what it fits.
+
+## Assumptions
+
+1. **The world is simulated, and its law is in the family.** The force of the
+   pair $i, j$ is $k_{ij}\,r_{ij}^{-p}$ along the line between them, positive
+   for attraction, with one exponent $p$ for every pair (`PairForceWorld` of
+   `pbc.discovery.worlds`). Newton's gravity is the case
+   $k_{ij} = G\,m_i m_j$, $p = 2$, and the accelerations then equal those of the
+   N-body model of this course (`pbc.mechanics.nbody`), which a test checks.
+2. **The truth is out of reach.** The couplings, the exponent, and the
+   held-out starts are in no tool, prompt, or page. A test shows that no tool
+   description, prompt, or public attribute contains them, and that no tool
+   reaches the judge. The page prints claims and their scores.
+3. **The predictive test.** From each held-out start the bodies are integrated
+   by the adaptive Dormand-Prince method of order eight at a tight tolerance,
+   and their positions are compared at four times up to four seconds. The
+   error is the root-mean-square position error divided by the
+   root-mean-square distance of the bodies from their centre of mass. The claim
+   is **recovered** when it is at most `{python} result["tolerance"]`.
+4. **The rules came before the run.** The world, the starts, the budget, and
+   the tolerance were fixed in `pbc.discovery.world_lab` before the run was
+   recorded. The condition is **`{python} result["condition"]`**: the agent is
+   told the form of the pair force, not its couplings or exponent.
+5. **The agent is untrusted and its words are data.** The score is a function
+   of its tool calls.
+
+## Reading a pair force from a still picture {#explanation}
+
+At rest, the acceleration of body $i$ is the sum of the pulls of the other
+two, each divided by its mass:
+
+$$
+\mathbf{a}_i = \frac{1}{m_i}\sum_{j \ne i} k_{ij}\, r_{ij}^{-p}\,
+\hat{\mathbf{r}}_{ij},
+\qquad \hat{\mathbf{r}}_{ij} = \frac{\mathbf{x}_j - \mathbf{x}_i}{r_{ij}}.
+$$
+
+Six numbers come back per configuration, and four are unknown, so one
+configuration could in principle determine them; in practice the noise and
+the coupling of the unknowns call for several. A configuration chosen with
+care makes the arithmetic simple. Put the first body at a corner, the second
+along one axis and the third along the other: the pull of the second on the
+first is then purely along the first axis and that of the third purely along
+the second, so each
+component of $\mathbf{a}_1$ measures one coupling at one distance. Two such
+configurations with different distances give the exponent from a ratio,
+$p = \ln(a/a')/\ln(r'/r)$.
+
+**Static readings, dynamic test.** A law found from bodies at rest is tested
+on bodies in motion. The motion integrates the force over many
+configurations and over time, so a small error in a coupling or the exponent
+becomes a drift in position that grows. The predictive test reads that
+drift.
+
+### What the agent may and may not do
+
+```{python}
+#| echo: false
+result.display("allowlist")
+```
+
+The agent may call `accelerations` at most `{python} result["budget"]` times
+and `submit` to state its claim, in at most `{python} result["max-steps"]`
+messages of at most `{python} result["max-calls"]` tool calls each, and write
+text. It may not run code, read a file, reach the network, or call the judge.
+
+## Code
+
+The accelerations of a configuration, and the judge: the claim's motion
+against the hidden world's, from the held-out starts.
+
+```{python}
+#| echo: false
+from pbc.discovery.worlds import PairForceWorld, accelerations_of
+
+excerpt(accelerations_of)
+```
+
+```{python}
+#| echo: false
+excerpt(PairForceWorld, region="judge")
+```
+
+## Worked examples
+
+### Baselines without a model
+
+```{python}
+#| echo: false
+excerpt(experiment.the_baselines)
+```
+
+```{python}
+#| label: d5-baselines
+#| echo: false
+result.table("d5-baselines")
+```
+
+[Least squares of the family on random configurations predicts the motion
+within the tolerance; Newton's gravity and a sparse sum of whole powers of the
+distance fail the chi-square and the prediction.]{.claim
+type="numerically-verified" scope="the simulated world, one seed, the
+protocol's budget of random configurations, the held-out starts"
+evidence="d5-baselines"} The world is not gravity: its couplings are not
+proportional to the products of the masses, and the fitted exponent is not
+two. The sparse sum shows a subtler failure:
+
+```{python}
+#| label: d5-sparse
+#| echo: false
+result.table("d5-sparse")
+```
+
+It approximates a fractional power by a difference of whole powers, and the
+threshold dropped one pair's coupling altogether because it was smaller than
+a fifth of the largest coefficient. A method that can only state whole
+powers cannot state this world.
+
+### The agent's run
+
+```{python}
+#| echo: false
+excerpt(experiment.run, region="replay")
+```
+
+```{python}
+#| echo: false
+result.display("run")
+```
+
+The model was a Claude model in a Claude Code session on
+`{python} result["recorded"]`, as a fresh sub-agent that knew nothing of this
+lesson. It was given the system prompt, the task, and the tool descriptions,
+and nothing else; it read the results the harness computed from a file the
+harness wrote and chose every call itself.
+
+```{python}
+#| echo: false
+excerpt(experiment.score_table)
+```
+
+```{python}
+#| label: d5-score
+#| echo: false
+result.table("d5-score")
+```
+
+[The agent's claim is scored `{python} result["outcome"]` by the predictive
+test, from `{python} result["probes"]` configurations: it found one repulsive
+pair and an exponent that is not two.]{.claim type="numerically-verified"
+scope="one recorded run, one seed, the simulated world and its held-out
+starts" evidence="d5-score replay"} It used the right-angle design of the
+explanation, with the far bodies at four distances, and solved for each
+coupling and the exponent by hand. Its claim has two or three significant
+figures.
+How does it compare with a fit to the same readings?
+
+```{python}
+#| echo: false
+excerpt(experiment.the_agents_readings)
+```
+
+```{python}
+#| label: d5-agent-readings
+#| echo: false
+result.table("d5-agent-readings")
+```
+
+The `{python} result["agent-readings"]` numbers of its four configurations,
+fitted by least squares, give a law that is consistent with the noise
+(`{python} result["agent-fit-consistent"]`) and predicts the motion with an
+error of `{python} result["agent-fit-error"]`. The agent's rounded claim
+agrees with that fit to within a unit of its last figure. Beside the baselines:
+
+```{python}
+#| echo: false
+excerpt(experiment.beside_the_baselines)
+```
+
+```{python}
+#| label: d5-comparison
+#| echo: false
+result.table("d5-comparison")
+```
+
+The agent spent a third of the budget that the baselines spent. One run says
+nothing about whether its design is better in general; the exercise on the
+budget shows that random configurations also suffice with fewer.
+
+### The predictive test in time
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_predictive_test)
+```
+
+```{python}
+#| label: fig-predictive-test
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Position error relative to the size of the system against time on the held-out starts. The agent's claim and the least-squares fit stay orders of magnitude below the tolerance; Newton's gravity and the sparse sum of whole powers cross it within the first two seconds."
+#| fig-alt: "A chart with a logarithmic vertical axis of relative position error against time from zero to four seconds. Four rising curves: the agent's and the least-squares fit lie close together far below a dashed tolerance line; the sparse identification and Newton's gravity curves start higher and cross the tolerance line early, ending well above it."
+result.show("fig-predictive-test")
+```
+
+The motions are simulated and recomputed by this build; the held-out starts
+are not drawn, since they are the judge's. Every error grows with time,
+because an error in the force accumulates into an error of velocity and then
+of position. [A wrong law fails the test within the first two seconds, while
+the claims of the right family stay more than ten times below the tolerance
+over the whole four seconds.]{.claim type="numerically-verified" scope="the
+simulated world, the held-out starts, four seconds" evidence="fig-predictive-test
+d5-comparison"} Over a longer time, or near a close encounter, even small
+errors would grow faster: three bodies can be chaotic, as the three-body
+lesson shows, and a predictive test of a chaotic system has a horizon.
+
+### Run the agent yourself
+
+This needs your own key and costs a few cents. The build does not run it, so
+the commands are marked.
+
+::: {.not-verified}
+```bash
+uv sync --locked --no-dev --extra openai
+export OPENAI_API_KEY="..."
+cd site/lessons/agents-llm/15-unknown-physical-worlds
+uv run --locked --no-dev --extra openai python -m pbc.discovery.world_lab
+```
+:::
+
+A live run may use another design, misread a sign, or assume gravity. The
+predictive test says which.
+
+## Limits {#limits}
+
+- **One run, one world.** The page shows one agent, once, in one world with
+  one repulsive pair. It does not show that agents find unknown couplings in
+  general, or with another prompt or condition.
+- **The form was told.** The condition is `full`: the agent knew that the
+  force is a power of the distance with one exponent for every pair. A world
+  with another form, a force that depends on velocity, or a coupling of three
+  bodies at once, cannot be claimed here.
+- **A short, gentle horizon.** The held-out starts keep the bodies apart for
+  four seconds. The test does not reach close encounters or long times, where
+  small errors in the law would grow much faster.
+- **Simulated, not observed.** Nothing here observes a physical system. Real
+  astronomical N-body problems are observed, not probed: no one places stars
+  at rest. The lesson isolates the inference from the observation.
+- **The recording is not an API run.** It is a Claude Code session, told to
+  answer in the harness's format and to use no tool of its own; the session
+  reported no token count or price.
+
+::: {.exercise .self-check}
+An agent reads the accelerations of a few configurations, sees that every
+body is pulled toward the others most of the time, and submits Newton's
+gravity with a fitted $G$. Least squares of the family, on the same readings,
+finds a repulsive pair. How should the run be reported?
+
+::: {.choices}
+::: {.choice}
+As a success, since gravity explains most of the readings.
+
+::: {.feedback}
+The score is the predictive error on the held-out starts, and gravity's error
+exceeds the tolerance. "Most of the readings" is not a criterion the protocol
+uses.
+:::
+:::
+
+::: {.choice correct="true"}
+As a failure, with its score: the chi-square of gravity is far beyond the
+noise, and its predicted motion leaves the tolerance within seconds.
+
+::: {.feedback}
+Right. The baseline shows that the readings contained the repulsive pair;
+the failure is the claim's.
+:::
+:::
+
+::: {.choice}
+As inconclusive, because the world is unusual.
+
+::: {.feedback}
+The world and the test were fixed before the run. An unusual world is the
+point of the test, not a reason to suspend it.
+:::
+:::
+:::
+
+::: {.solution}
+As a failure. The familiar law does not describe the readings (its
+chi-square is orders of magnitude above the noise) and does not predict the
+motion. The least-squares baseline on the same budget shows that the
+information was there, which is what makes the failure informative.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+Under Newton's gravity, each coupling divided by the product of the masses
+of its pair is the same number, $G$. Divide the agent's couplings by the
+products of the masses. Is this world gravity with other masses?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.coupling_ratios)
+```
+
+```{python}
+#| echo: false
+result.table("coupling-ratios")
+```
+
+The ratios differ between the pairs, and one is negative. No choice of $G$
+makes them equal, and no choice of positive masses could either, since a
+product of positive masses is positive. The bodies carry a property other
+than their mass, which couples them, and in one pair it repels.
+:::
+:::
+
+::: {.exercise}
+How many configurations are needed? Fit the family by least squares to
+random configurations with budgets from two to twelve configurations, and
+score each fit by the predictive test.
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.budget_scan)
+```
+
+```{python}
+#| echo: false
+result.table("budget-scan")
+```
+
+Each configuration returns six numbers and the law has four unknowns, so two
+configurations already over-determine it, and with this noise every budget
+predicts the motion within the tolerance. A larger budget mostly lowers the
+error further. With noisier readings, or a law with more unknowns, the
+smallest sufficient budget would rise, and the predictive test is what would
+show where.
+:::
+:::
+
+## Replay this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/discovery/worlds.py",
+        "src/pbc/discovery/world_lab.py",
+        "src/pbc/discovery/protocol.py",
+        "src/pbc/discovery/baselines.py",
+        "src/pbc/mechanics/nbody.py",
+        "src/pbc/astrophysics/experiments/unknown_physical_worlds.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_worlds.py",
+        "tests/unit/test_unknown_physical_worlds_experiment.py",
+    ],
+)
+```

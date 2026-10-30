@@ -30,7 +30,8 @@ out-of-bounds control, spent budget) costs nothing.
 The worked environments are the projectile (hidden gravity), the oscillator
 (hidden stiffness), and the central force, whose law is modified: the force
 falls as a hidden power of the distance, not necessarily the inverse square.
-An N-body environment follows when the N-body model exists (F69).
+Two lessons add their own (F99): the gravity laboratory of D4 and the
+three-body world of D5 ("Transfer" and "Unknown worlds" below).
 
 ## What the agent may do
 
@@ -183,6 +184,50 @@ the state, and no equation of motion is fitted or assumed.
   by the size of its term, by the singular value decomposition, with the
   tolerance as its threshold; its candidates are judged by the same rules.
 
+## Transfer
+
+A law may be scored on a system other than the one probed (lesson D4,
+`pbc.discovery.gravity` and `pbc.discovery.gravity_lab`, F99). The **gravity
+laboratory** is an environment: the agent sets a source mass, a test mass,
+and their distance and reads the attraction with noise; the claim is the
+coefficient and the three powers of the public family
+`G source_mass^a test_mass^b distance^-p`. Its held-out settings are not
+settings of the controls but **orbits**: a light body about a fixed heavy one,
+with masses and distances far outside the laboratory's, started at an apsis
+with the velocity perpendicular to the radius. The environment's
+`score_predictor` integrates each orbit under the predicted force and under
+the hidden one (`pbc.astrophysics.central_force.orbit`) and returns the
+root-mean-square relative error of the radial period; a law under which the
+body escapes or does not come round twice in the window scores infinity. Any
+force predictor transfers, so the baselines of this protocol are scored the
+same way. Its protocol is a `Protocol` whose `make` builds the laboratory
+(`GravityProtocol`), so that `score_transcript` scores it unchanged.
+
+## Unknown worlds
+
+A world of several bodies with hidden pair forces (lesson D5,
+`pbc.discovery.worlds` and `pbc.discovery.world_lab`, F99) follows the same
+rules with a box of its own, as the invariants do:
+
+- **The world** holds three bodies of public masses; each pair attracts or
+  repels along its line with `k_ij r^-p`, the couplings and the exponent
+  hidden. Newton's gravity is the case `k_ij = G m_i m_j`, `p = 2`, and a test
+  checks the accelerations against `pbc.mechanics.nbody`.
+- **The tools**: `accelerations` places the bodies at rest within a box (no
+  pair closer than a set distance; one of a budget) and returns their six
+  noisy acceleration components; `submit` states the couplings and the
+  exponent, the last claim counting.
+- **The predictive test**: from held-out starts, positions and velocities
+  some outside the box, the bodies are integrated under the claim and the
+  hidden law (DOP853) and compared at fixed times; the error is the
+  root-mean-square position error relative to the root-mean-square distance
+  of the bodies from their centre of mass. The held-out starts are never
+  drawn on a page.
+- **The baselines** spend the same budget at random configurations: least
+  squares of the family, sparse identification over whole powers of each
+  pair's distance, and Newton's gravity with `G` fitted, each judged by the
+  chi-square rule and scored by the same test.
+
 ## The frozen trace and the replay
 
 A **frozen trace** (`pbc.discovery.save_trace`) is a directory with
@@ -196,7 +241,8 @@ The replay needs no credential and no network.
 A lesson commits only the fixture next to its page, because a lesson directory
 holds nothing else (ADR 002): its `TraceInfo` is kept in the lesson's module
 beside the protocol (for D1 to D3, `pbc.discovery.force_lab`; for D13,
-`pbc.discovery.invariant_lab`; for EV2 and EV3, `pbc.discovery.benchmark`),
+`pbc.discovery.invariant_lab`; for EV2 and EV3, `pbc.discovery.benchmark`;
+for D4 and D5, `pbc.discovery.gravity_lab` and `pbc.discovery.world_lab`),
 and a test checks the two against each other. A lesson may replay the
 fixtures of another lesson's page (EV2 replays those of D1 and D2) through a
 path constant of its experiment, so that the input digest of the lesson

@@ -1,0 +1,475 @@
+---
+title: "Discovering gravity from experiments"
+description: >-
+  A language model measures the attraction between two masses in a laboratory
+  whose law is hidden; the build scores its law on orbits it never probed,
+  about bodies a thousand times heavier, and shows which errors of a law the
+  laboratory hides and the orbits expose.
+lesson:
+  id: discovering-gravity
+  strand: agents-llm
+  order: 14
+  difficulty: 3
+  course: mechanics
+  slot: D4
+  experiment: pbc.mechanics.experiments.discovering_gravity
+  methods: [simulation, llm-agents]
+  outcomes:
+    - Infer a law of attraction between two masses, its powers of both masses and of the distance, from noisy laboratory readings
+    - Test a law on a transfer to a system nobody probed, the periods of orbits about a far heavier body, and read the score as a prediction
+    - Explain why an error in the power of a mass grows with the distance of the extrapolation, and find which parameter the transfer is most sensitive to
+    - Tell laws that the laboratory cannot tell apart, and decide whether its precision suffices for the transfer
+  related: []
+  format: 2
+  preview: fig-transfer
+  prerequisites:
+    lessons: [black-box-force-law, kepler-orbit]
+    outside:
+      - "Statistics: least squares, standard errors, and the chi-square of residuals"
+      - "Logarithms: the logarithm of a product and of a power"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.mechanics.experiments import discovering_gravity as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+Cavendish weighed the Earth with two lead balls on a torsion wire. The force
+between them was tiny, a few tenths of a micronewton, and the masses were a
+few kilograms. From that one laboratory number, and Newton's law, follow the
+mass of the Earth and the periods of the planets: an extrapolation over more
+than twenty orders of magnitude in mass. It works because the law found in
+the laboratory is the same law that holds the planets in their orbits. A law
+that fitted the torsion balance equally well but carried the masses with a
+slightly different power would have failed there.
+
+This lesson gives a language model a laboratory in a simulated world whose
+law of attraction is **hidden**. The model sets two masses and their distance
+and reads the force with noise. It must state the law as four numbers: a
+coefficient $G$, the power of each mass, and the power of the distance. The
+build then scores the law where the model never looked: the periods of orbits
+of a light body about a heavy one, with masses hundreds to thousands of times
+those of the laboratory and distances tens of times larger. This is the
+**transfer test**. A law is scored by what it predicts in a system it was not
+made from, not by how well it fits the readings.
+
+## Assumptions
+
+1. **The world is simulated, and its law is in the family.** The force is
+   $F = G\,M^{a}\,m^{b}\,r^{-p}$, with source mass $M$, test mass $m$, and
+   distance $r$; $G$, $a$, $b$, and $p$ are hidden (`GravityEnvironment` of
+   `pbc.discovery.gravity`). The page prints claims and their scores, never the
+   hidden values, and never the masses, distances, or speeds of the orbits.
+2. **The transfer is a different experiment.** Each orbit starts at an apsis
+   with the velocity perpendicular to the radius, and the heavy body is held
+   fixed: its pull toward the light body is neglected, since the light body
+   is at most a fifth of a percent of its mass. Both the claimed and the
+   hidden law are integrated by `pbc.astrophysics.central_force.orbit`, and the
+   observable is the **radial period**, the time from one periapsis to the next.
+3. **The score is a relative error.** The transfer error is the
+   root-mean-square relative error of the predicted periods; a law under which
+   the body escapes, or does not come round twice in the window, scores
+   infinity. The law is **recovered** when the error is at most
+   `{python} result["tolerance"]`.
+4. **The rules came before the run.** The hidden law, the orbits, the budget,
+   and the tolerance were fixed in `pbc.discovery.gravity_lab` before the run
+   was recorded. The condition of prior knowledge is
+   **`{python} result["condition"]`**: the agent is told the names of the four
+   parameters, not that the law is Newton's.
+5. **The agent is untrusted and its words are data.** The score is a function
+   of its tool calls.
+
+## Why a transfer test {#explanation}
+
+Two laws that agree in the laboratory can disagree outside it. Suppose the
+true power of the source mass is $a$ and a claim has $a + \delta a$, with the
+coefficient adjusted so that the two agree at a typical laboratory mass
+$M_0$. Their forces at a source mass $M$ then differ by the factor
+
+$$
+\left(\frac{M}{M_0}\right)^{\delta a} = e^{\,\delta a \ln(M/M_0)}
+\approx 1 + \delta a \,\ln\frac{M}{M_0}.
+$$
+
+In the laboratory, $M/M_0$ is at most about ten, and the factor is within
+$2.3\,\delta a$ of one. About a body a thousand times heavier, the logarithm
+is about seven, and the same $\delta a$ costs three times as much. The power
+of the distance behaves the same way with $\ln(r/r_0)$. The coefficient $G$
+does not: an error in it is the same everywhere.
+
+The period carries the error further. For a body started at an apsis at
+distance $r_0$ with speed $v_0$ under an inverse-square attraction $GM/r^2$,
+the vis-viva equation gives the semi-major axis
+
+$$
+a_{\mathrm{orbit}} = \frac{r_0}{2 - x}, \qquad x = \frac{v_0^2\, r_0}{G M},
+$$
+
+and Kepler's third law the period $T = 2\pi \sqrt{a_{\mathrm{orbit}}^3/GM}$.
+A relative change $\epsilon$ in the strength $GM$ changes the period by about
+$-\left(\tfrac{3}{2}\,\tfrac{x}{2-x} + \tfrac{1}{2}\right)\epsilon$: more
+than the strength itself, and the more so the closer the orbit is to
+escape ($x \to 2$). The orbits of this test are well bound, but the
+amplification is still nearly three.
+
+**What the laboratory can and cannot say.** The readings determine the
+parameters to within their standard errors. A law held a few standard errors
+away, with the other parameters refitted, describes the readings almost as
+well: its chi-square rises by the square of the shift. Whether such laws also
+agree on the orbits is the question the transfer answers.
+
+### What the agent may and may not do
+
+```{python}
+#| echo: false
+result.display("allowlist")
+```
+
+The agent may call `measure` at most `{python} result["budget"]` times and
+`submit` to state its claim, in at most `{python} result["max-steps"]`
+messages of at most `{python} result["max-calls"]` tool calls each, and write
+text. It may not run code, read a file, reach the network, or call the judge.
+The orbits are in no tool, prompt, or description: the task says only that
+the claim is scored on settings it cannot probe.
+
+## Code
+
+The transfer judge: each orbit is integrated under the claimed force and
+under the hidden one, and the periods are compared.
+
+```{python}
+#| echo: false
+from pbc.discovery.gravity import GravityEnvironment, radial_period
+
+excerpt(GravityEnvironment, region="judge")
+```
+
+```{python}
+#| echo: false
+excerpt(radial_period)
+```
+
+The scan of laws the readings cannot tell apart: one parameter held, the
+others refitted, each law scored on the orbits.
+
+```{python}
+#| echo: false
+from pbc.discovery.gravity_lab import sensitivity
+
+excerpt(sensitivity)
+```
+
+## Worked examples
+
+### Baselines without a model
+
+```{python}
+#| echo: false
+excerpt(experiment.the_baselines)
+```
+
+```{python}
+#| label: d4-baselines
+#| echo: false
+result.table("d4-baselines")
+```
+
+```{python}
+#| label: d4-sparse
+#| echo: false
+result.table("d4-sparse")
+```
+
+[Least squares of the family, on the grid and on random settings, and sparse
+identification over products of the masses and whole powers of the distance
+all pass the transfer within the tolerance with the protocol's budget of
+probes.]{.claim type="numerically-verified" scope="the simulated laboratory,
+one seed, the protocol's budget, the three orbits of the transfer"
+evidence="d4-baselines"} Sparse identification kept one term, the product of
+the two masses over the square of the distance. The random settings give
+the larger transfer error of the two least-squares fits; both are far within
+the tolerance, and which of the two is smaller depends on the noise of the
+readings each happened to take.
+
+### The agent's run
+
+```{python}
+#| echo: false
+excerpt(experiment.run, region="replay")
+```
+
+```{python}
+#| echo: false
+result.display("run")
+```
+
+The model was a Claude model in a Claude Code session on
+`{python} result["recorded"]`, as a fresh sub-agent that knew nothing of this
+lesson. It was given the system prompt, the task, and the tool descriptions,
+and nothing else; it read the results the harness computed from a file the
+harness wrote and chose every call itself.
+
+```{python}
+#| echo: false
+excerpt(experiment.score_table)
+```
+
+```{python}
+#| label: d4-score
+#| echo: false
+result.table("d4-score")
+```
+
+[The agent's law is scored `{python} result["outcome"]` by the transfer test,
+with a transfer error that is exactly zero.]{.claim
+type="numerically-verified" scope="one recorded run, one seed, the simulated
+laboratory and the three orbits of the transfer" evidence="d4-score replay"}
+It spent `{python} result["probes"]` of the `{python} result["budget"]`
+probes: a design that changed one factor at a time by a factor of ten, then
+readings at the shortest distance, where the force is largest and the noise
+matters least. It recognised that a repeated probe returns the same reading,
+so that repeating one does not average the noise. It then submitted whole
+powers and a coefficient of three significant figures.
+
+An error of exactly zero means that the claim is the hidden law to the last
+digit: the hidden coefficient has three significant figures, and the agent
+rounded onto it. Is that what its readings support? Fit the family to exactly
+the agent's readings:
+
+```{python}
+#| echo: false
+excerpt(experiment.the_agents_readings)
+```
+
+```{python}
+#| label: d4-agent-readings
+#| echo: false
+result.table("d4-agent-readings")
+```
+
+[Every claimed parameter lies within two standard errors of the fit to the
+agent's own readings, and that fit is consistent with the noise.]{.claim
+type="numerically-verified" scope="the agent's readings of the recorded run"
+evidence="d4-agent-readings"} Its chi-square is `{python} result["agent-chi2"]`
+for `{python} result["agent-dof"]` degrees of freedom (consistent:
+`{python} result["agent-fit-consistent"]`), and the fit itself passes the
+transfer with an error of `{python} result["agent-fit-transfer"]`. The rounded
+claim is supported by the readings, and the readings alone would have
+recovered the law too. That the rounding landed exactly on the hidden values
+is a property of this world, not a measure of the agent: a world with a
+coefficient of more digits would have given the claim an error near that of
+the fit.
+
+```{python}
+#| echo: false
+excerpt(experiment.beside_the_baselines)
+```
+
+```{python}
+#| label: d4-comparison
+#| echo: false
+result.table("d4-comparison")
+```
+
+The agent used fewer probes than the baselines. With one run, this says
+nothing about which way of probing is better in general.
+
+### Laws the laboratory cannot tell apart
+
+```{python}
+#| echo: false
+excerpt(experiment.the_scan)
+```
+
+```{python}
+#| label: d4-scan
+#| echo: false
+result.table("d4-scan")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_transfer)
+```
+
+```{python}
+#| label: fig-transfer
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Transfer error of laws that fit the agent's readings almost as well as the best fit: each parameter held a number of standard errors from the fit, the others refitted. Holding the coefficient barely moves the error; holding the power of the source mass or of the distance moves it most. Every law stays below the tolerance."
+#| fig-alt: "A chart with a logarithmic vertical axis of transfer error against the shift of the held parameter, from minus three to plus three standard errors. Four lines, for the coefficient, the source power, the test power, and the exponent, meet at the same point at zero shift. The coefficient line is nearly flat; the source power and exponent lines rise and fall the most, each dipping toward a minimum on one side. A dashed horizontal line marks the tolerance above all the points."
+result.show("fig-transfer")
+```
+
+The laws are simulated and scored by this build. All of them are equally
+consistent with the readings to within a chi-square increase of about nine.
+[Over the same range of three standard errors, the transfer error moves
+about ten times as much when the power of the source mass is held as when
+the coefficient is.]{.claim type="numerically-verified" scope="the agent's
+readings, the scan of three standard errors, the three orbits of the
+transfer" evidence="d4-scan fig-transfer"} This is the logarithm of the
+explanation: the orbits' source masses lie far beyond the laboratory's, the
+coefficient does not depend on where it is used. Each curve dips where the
+held parameter happens to lie closer to the hidden value than the free fit
+does; the depth of a dip is luck of the noise, not a property of the law.
+Every law of the scan passes the transfer: this laboratory, with this budget
+and noise, determines the law well enough for these orbits.
+
+### Run the agent yourself
+
+This needs your own key and costs a few cents. The build does not run it, so
+the commands are marked.
+
+::: {.not-verified}
+```bash
+uv sync --locked --no-dev --extra openai
+export OPENAI_API_KEY="..."
+cd site/lessons/agents-llm/14-discovering-gravity
+uv run --locked --no-dev --extra openai python -m pbc.discovery.gravity_lab
+```
+:::
+
+A live run may round onto other values, probe less carefully, or carry the
+masses with the wrong power. The transfer score says which.
+
+## Limits {#limits}
+
+- **One run, a familiar law, and a round world.** The hidden law has the form
+  of Newton's, and its coefficient has three significant figures. An agent
+  that knows Newton's law and rounds well scores exactly zero; the page shows
+  that its readings supported the claim, but one run cannot separate
+  measurement from recognition.
+- **Three orbits.** The transfer is three bound orbits about a fixed body. It
+  does not test the law at distances below the laboratory's, on unbound
+  orbits, or for bodies of comparable mass, where the heavy body moves too.
+- **The family contains the truth.** A law outside the family, such as one
+  that depends on the sum of the masses or on their composition, cannot be
+  claimed here; the sparse baseline is the only method that could state
+  another form, and only within its library.
+- **Simulated, not measured.** Nothing here measures gravity. A real torsion
+  balance has systematic errors (the attraction of the apparatus, thermal
+  drift, the calibration of the wire) that no noise model of this laboratory
+  contains.
+- **The recording is not an API run.** It is a Claude Code session, told to
+  answer in the harness's format and to use no tool of its own; the session
+  reported no token count or price.
+
+::: {.exercise .self-check}
+A second agent submits the power of the source mass as 1.03, with a
+coefficient adjusted so that its forces match the laboratory readings at a
+source mass of five kilograms. Its laboratory chi-square is acceptable at that
+mass but not across the range. What does the transfer test add?
+
+::: {.choices}
+::: {.choice}
+Nothing: the chi-square already decides, so the transfer is redundant.
+
+::: {.feedback}
+The chi-square tests the readings where they were taken. Whether an accepted
+law also predicts orbits about far heavier bodies is a different question,
+and the answer can differ.
+:::
+:::
+
+::: {.choice correct="true"}
+It measures the consequence of the error where the law is used: at a source
+mass a thousand times larger, a power off by 0.03 changes the force by about
+a fifth, and the periods by more than the tolerance.
+
+::: {.feedback}
+Right. The factor is the mass ratio to the power of the error, here about
+$1000^{0.03} \approx 1.23$, which the period carries further.
+:::
+:::
+
+::: {.choice}
+It rewards the agent for matching the laboratory at five kilograms.
+
+::: {.feedback}
+The transfer test scores the orbits only; agreement at one laboratory mass
+earns nothing there.
+:::
+:::
+:::
+
+::: {.solution}
+The transfer test scores the law where it is used. Matched at five
+kilograms, the claimed force differs from the true one by the factor
+$(M/5\,\mathrm{kg})^{0.03}$, which is about a fifth more than one at a source mass a thousand
+times larger. The period of a bound orbit changes by more than the strength,
+so the claim fails the tolerance of five percent by far. The laboratory may
+or may not reject it, depending on its range and noise; the orbits do.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+How far from the fit to the agent's readings can the power of the source mass
+be held before the orbits notice? Hold it at 3, 10, 30, and 100 standard
+errors, refit the other parameters each time, and compare the rise of the
+laboratory chi-square with the transfer error.
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.far_shifts)
+```
+
+```{python}
+#| echo: false
+result.table("far-shifts")
+```
+
+The chi-square grows with the square of the shift and rejects the law long
+before the transfer does: at ten standard errors it has risen by about a
+hundred and the orbits still pass. In this world the laboratory is the
+stricter test, because its noise is small against the force. With a noisier
+balance or a smaller budget the order reverses: laws the laboratory accepts
+would fail on the orbits, and only the transfer would show it.
+:::
+:::
+
+::: {.exercise}
+Use the vis-viva equation to show that holding $v_0$ and $r_0$ fixed, a
+relative change $\epsilon$ in $GM$ changes the period by
+$-\left(\tfrac{3}{2}\,\tfrac{x}{2-x} + \tfrac{1}{2}\right)\epsilon$ with
+$x = v_0^2 r_0/GM$. What happens as $x$ approaches two?
+
+::: {.solution}
+Write $T = 2\pi\, a^{3/2} (GM)^{-1/2}$ with $a = r_0/(2-x)$. Then
+$\ln T = \tfrac{3}{2}\ln a - \tfrac{1}{2}\ln GM + \text{const}$ and
+$\ln a = -\ln(2-x) + \text{const}$. Since $x \propto 1/GM$,
+$d x/x = -\epsilon$, so $d\ln a = d x/(2-x) = -\epsilon\, x/(2-x)$, and
+$d\ln T = -\tfrac{3}{2}\tfrac{x}{2-x}\,\epsilon - \tfrac{1}{2}\epsilon$. As
+$x \to 2$ the orbit approaches escape, its semi-major axis diverges, and the
+period becomes arbitrarily sensitive to the strength: a transfer test on
+nearly unbound orbits would amplify any error of a law without limit.
+:::
+:::
+
+## Replay this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/discovery/gravity.py",
+        "src/pbc/discovery/gravity_lab.py",
+        "src/pbc/discovery/environment.py",
+        "src/pbc/discovery/protocol.py",
+        "src/pbc/discovery/baselines.py",
+        "src/pbc/astrophysics/central_force.py",
+        "src/pbc/mechanics/experiments/discovering_gravity.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_gravity_lab.py",
+        "tests/unit/test_discovering_gravity_experiment.py",
+    ],
+)
+```
