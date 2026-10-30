@@ -1,0 +1,562 @@
+---
+title: "Elasticity and deformation"
+description: >-
+  Stress, strain, and Hooke's law for a solid: a hanging bar computed with
+  linear finite elements and checked against its closed form, a plate in
+  plane stress that contracts sideways as it stretches, and a clamped edge
+  whose disturbance fades within a distance of the plate's height.
+lesson:
+  id: elasticity-and-deformation
+  strand: materials
+  order: 3
+  difficulty: 3
+  course: materials
+  slot: MAT3
+  methods: [simulation]
+  outcomes:
+    - Define stress and strain, and relate them by Young's modulus and Poisson's ratio in Hooke's law
+    - Solve a bar loaded along its axis with linear finite elements and check the solution against the closed form of the loaded bar
+    - Build plane-stress finite elements with two displacements per node, impose supports and a traction, and recover a uniform tension exactly
+    - Explain how a support changes the stress near it and why the disturbance fades with distance, and where linear elasticity stops being a good model
+  related: []
+  format: 2
+  preview: fig-plate
+  experiment: pbc.materials.experiments.elasticity_and_deformation
+  prerequisites:
+    lessons: [crystal-lattices-and-phonons, from-finite-differences-to-finite-elements]
+    outside:
+      - "Calculus: a derivative as a rate of change, and a second-order differential equation with two boundary conditions"
+      - "Linear algebra: solving a linear system of equations"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.materials import elasticity
+from pbc.materials.experiments import elasticity_and_deformation as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+Pull on a steel rod and it gets longer; let go and it returns to its
+length. Push on the side of a block and it leans; let go and it stands
+straight again. A solid that returns to its shape is **elastic**, and for
+small loads the change of shape is proportional to the load. How far does a
+loaded part move, where in it is the load concentrated, and how much does
+the way it is held matter?
+
+The lesson on crystal lattices modelled a solid as atoms joined by
+springs. Seen from far away, the springs average into a continuous
+material with two numbers, a stiffness and a sideways contraction. This
+lesson writes down that continuous model, solves it with the finite-element
+method of the thermodynamics course, extended to displacements that are
+vectors, and checks the solutions against the cases with a closed form.
+
+## Assumptions
+
+1. **Small deformations.** Displacements and their gradients are small, so
+   the strain is linear in the displacement and the loads act on the shape
+   before deformation. Large rotations or stretches need a nonlinear
+   measure of strain.
+2. **Linear elastic, isotropic material.** Stress is proportional to strain
+   (Hooke's law), the same in every direction, with Young's modulus $E$ and
+   Poisson's ratio $\nu$. Beyond the yield stress a metal deforms
+   permanently, which this model cannot describe.
+3. **Static equilibrium.** The loads are applied slowly; the part is at rest
+   and the forces on every piece of it balance. Vibrations are not included.
+4. **One or two dimensions.** The bar carries its load along its axis only,
+   with a uniform stress over each cross-section. The plate is thin and
+   loaded in its plane (**plane stress**): the stresses across its thickness
+   vanish.
+5. **Illustrative steel.** $E = 200\ \mathrm{GPa}$ and $\nu = 0.3$, of the
+   size of a structural steel; the values are chosen, not measured.
+6. **SI units.** Lengths in metres, forces in newtons, stresses in pascals
+   ($1\ \mathrm{MPa} = 10^6\ \mathrm{Pa}$).
+
+## Stress, strain, and the loaded bar {#explanation}
+
+### Stress and strain
+
+Cut a loaded rod across. The two halves pull on each other with a force
+$N$ spread over the cross-section $A$; the force per area is the **stress**
+$\sigma = N/A$, in pascals. A segment of length $\mathrm dx$ that moves by
+$u(x)$ at one end and by $u(x + \mathrm dx)$ at the other is stretched by
+the fraction
+
+$$
+\varepsilon = \frac{\mathrm du}{\mathrm dx},
+$$
+
+the **strain**, a pure number. In the elastic range the two are
+proportional, $\sigma = E\varepsilon$, and $E$, Young's modulus, is the
+stiffness of the material, independent of the size of the part.
+
+A chain of atoms of spacing $a$ joined by springs of constant $K$ behaves
+the same way: a force $F$ stretches each spring by $F/K$, a strain
+$F/(Ka)$. With one chain per area $a^2$ the stress is $F/a^2$, so
+$E = K/a$. With the density $\rho = m/a^3$ the speed of sound
+$\sqrt{E/\rho} = a\sqrt{K/m}$ is the long-wavelength sound speed of the
+chain from the lesson on lattices. [For real crystals the relation between
+bond stiffness and $E$ also involves the arrangement of the bonds in three
+dimensions.]{.not-verified}
+
+### The loaded bar
+
+A bar hangs from its top at $x = 0$ and carries its own weight
+$q = \rho g A$ per length and a force $F$ at its free end $x = L$. The
+section at $x$ holds up everything below it,
+
+$$
+N(x) = F + q\,(L - x), \qquad \sigma(x) = \frac{F + q(L - x)}{A},
+$$
+
+largest at the support. With $\sigma = E\,\mathrm du/\mathrm dx$ and
+$u(0) = 0$, integrating once gives the **closed form of the loaded bar**:
+
+$$
+u(x) = \frac{F x + q\left(L x - \tfrac12 x^2\right)}{EA} .
+$$
+
+Written as an equation for $u$ alone, the balance of forces on a slice is
+$-EA\,u'' = q$, with $u(0) = 0$ (the support, a fixed displacement) and
+$EA\,u'(L) = F$ (the free end, a given force). These are the two kinds of
+**boundary condition**: a support fixes where the material is, a load fixes
+the force it carries.
+
+### Linear elements: the bar as a chain of springs
+
+The finite-element method of the thermodynamics course asks the balance of
+forces to hold on average against every hat function, which gives a linear
+system $K\mathbf u = \mathbf f$. For the bar on elements of length $h$ with
+linear $u$ on each, the element between two nodes contributes the matrix
+
+$$
+\frac{EA}{h}\begin{pmatrix} 1 & -1 \\ -1 & 1 \end{pmatrix},
+$$
+
+exactly a spring of stiffness $EA/h$; and the load $q$ on the element is
+handed to its two nodes in halves of $qh/2$. The finite-element bar *is* a
+chain of springs with point loads, the reverse of the step from chain to
+continuum above. The strain $(u_{i+1} - u_i)/h$, and so the stress, is
+constant on each element.
+
+For this equation, linear elements give the exact displacement at the
+nodes. The response of the bar to a point force at a node is straight on
+either side of the node, so it is one of the element solutions; and the
+finite-element value at a node is the work of the true loads on that
+response, the same as the true displacement there. [This nodal exactness
+is special to one-dimensional problems of this form; in two dimensions the
+nodal values are only approximate in general.]{.not-verified} The element stress, a constant, equals the true
+linear stress at the element's midpoint and misses it by $qh/(2A)$ at its
+ends.
+
+### Stress and strain in a plate
+
+In a plate the displacement has two components, $(u_x, u_y)$, and the
+strain three:
+
+$$
+\varepsilon_{xx} = \frac{\partial u_x}{\partial x},\quad
+\varepsilon_{yy} = \frac{\partial u_y}{\partial y},\quad
+\gamma_{xy} = \frac{\partial u_x}{\partial y} + \frac{\partial u_y}{\partial x},
+$$
+
+stretching along each axis and the change of a right angle (shear). A
+plate pulled along $x$ also gets narrower: **Poisson's ratio** is the
+contraction per stretch, $\nu = -\varepsilon_{yy}/\varepsilon_{xx}$ under a
+pull along $x$ alone. Hooke's law for a thin plate (plane stress) is
+
+$$
+\begin{pmatrix}\sigma_{xx}\\ \sigma_{yy}\\ \tau_{xy}\end{pmatrix}
+= \frac{E}{1 - \nu^2}
+\begin{pmatrix} 1 & \nu & 0\\ \nu & 1 & 0\\ 0 & 0 & \tfrac{1 - \nu}{2}\end{pmatrix}
+\begin{pmatrix}\varepsilon_{xx}\\ \varepsilon_{yy}\\ \gamma_{xy}\end{pmatrix}
+= D\,\boldsymbol\varepsilon .
+$$
+
+A uniform pull $\sigma_0$ on the right edge of a plate free to contract
+sideways gives the uniform state $\sigma_{xx} = \sigma_0$,
+$\sigma_{yy} = \tau_{xy} = 0$, and, fixed at $x = 0$ and at the origin,
+
+$$
+u_x = \frac{\sigma_0 x}{E}, \qquad u_y = -\frac{\nu\sigma_0 y}{E} .
+$$
+
+### Linear vector elements
+
+On a mesh of triangles each displacement component is linear on every
+triangle, with two unknowns per node. On a triangle with the hat gradients
+$(b_i, c_i)$ of its three nodes, the strain is $\boldsymbol\varepsilon = B\mathbf u_e$
+with
+
+$$
+B = \begin{pmatrix}
+b_0 & 0 & b_1 & 0 & b_2 & 0\\
+0 & c_0 & 0 & c_1 & 0 & c_2\\
+c_0 & b_0 & c_1 & b_1 & c_2 & b_2
+\end{pmatrix},
+$$
+
+and the stored energy $\tfrac12 t A\,\boldsymbol\varepsilon^\mathsf T D\boldsymbol\varepsilon$
+of a triangle of area $A$ and thickness $t$ gives its stiffness
+$tA\,B^\mathsf T D B$. A traction on an edge is spread over the edge's
+nodes like the heat flux of the thermodynamics course. Because every
+linear displacement field is in the space of the elements, a uniform
+strain is reproduced exactly: the **patch test**, which any correct element
+passes.
+
+Supports decide what is uniform. The **roller** support holds $u_x = 0$
+along the left edge and $u_y = 0$ at one corner only, which removes the
+rigid motions and lets the edge contract freely. A **clamp** holds both
+displacements on the whole edge. The clamp forbids the sideways
+contraction at the wall, so the state near it cannot be uniform.
+**Saint-Venant's principle** says that two loads with the same resultant
+produce the same stress far from where they act; [for a strip the
+difference decays exponentially, over a distance of the order of its
+width]{.not-verified}.
+
+## Code
+
+The bar: the stiffness assembled element by element, the loads, and the
+solution with its support:
+
+```{python}
+#| echo: false
+excerpt(elasticity.bar_stiffness)
+```
+
+```{python}
+#| echo: false
+excerpt(elasticity.bar_load)
+```
+
+```{python}
+#| echo: false
+excerpt(elasticity.solve_bar)
+```
+
+The closed form of the loaded bar:
+
+```{python}
+#| echo: false
+excerpt(elasticity.bar_displacement)
+```
+
+The plate: Hooke's law, the strain matrices from the hat gradients of
+`pbc.fem`, the stiffness, the traction, and the two supports:
+
+```{python}
+#| echo: false
+excerpt(elasticity.plane_stress)
+```
+
+```{python}
+#| echo: false
+excerpt(elasticity.strain_matrices)
+```
+
+```{python}
+#| echo: false
+excerpt(elasticity.plate_stiffness)
+```
+
+```{python}
+#| echo: false
+excerpt(elasticity.traction_load)
+```
+
+```{python}
+#| echo: false
+excerpt(elasticity.solve_plate)
+```
+
+```{python}
+#| echo: false
+excerpt(elasticity.roller_supports)
+```
+
+```{python}
+#| echo: false
+excerpt(elasticity.clamped_supports)
+```
+
+## Worked examples
+
+### A hanging rod against the closed form
+
+A steel rod hangs in a shaft and carries a load at its lower end:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="bar")
+```
+
+```{python}
+#| label: bar-run
+#| echo: false
+excerpt(experiment.bars)
+```
+
+```{python}
+#| label: bar
+#| echo: false
+result.table("bar")
+```
+
+[The nodal displacements of the linear elements are the closed form of the
+loaded bar to round-off on every mesh, from one element up; the element
+stress is exact at the element midpoints, and its largest error, at the
+element ends, is $qh/(2A)$ and halves with the element length.]{.claim
+type="numerically-verified"
+scope="bar fixed at one end, constant load along it and a force at the free end, linear elements of equal length"
+evidence="bar-run bar"}
+The rod's own weight, `{python} result["weight-kn"]` kN, is comparable
+with the load at its end. The end moves `{python} result["tip-mm"]` mm, and
+the stress is largest at the support, `{python} result["top-stress"]` MPa,
+[far below the yield stress of a structural steel]{.not-verified}. The reaction at the
+support balances the weight and the load to round-off.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_bar)
+```
+
+```{python}
+#| label: fig-bar
+#| echo: false
+#| fig-cap: "Four linear elements give the hanging rod's displacement exactly at the nodes, and a stress constant on each element that crosses the true linear stress at the element's midpoint."
+#| fig-alt: "Two panels against the distance from the support. Left, the displacement: a solid curve rising and bending slightly downward, with open circles joined by dashed straight segments lying on it at five nodes. Right, the stress: a solid straight line falling from the support to the free end, and a dashed staircase of four steps, each step crossing the line at its middle, where an open square marks it."
+#| fig-status: simulated
+result.show("fig-bar")
+```
+
+Between the nodes the elements are straight, so the displacement is
+slightly below the curve; the stress, a derivative, is the less accurate
+quantity, and it is the one an engineer needs at the support. A finer
+mesh, or a stress read at the midpoints, fixes that.
+
+### A plate in tension: the patch test and Poisson's ratio
+
+The plate is four times as wide as high and is pulled on its right edge:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="plate")
+```
+
+```{python}
+#| label: patch-run
+#| echo: false
+excerpt(experiment.patch)
+```
+
+```{python}
+#| label: patch
+#| echo: false
+result.table("patch")
+```
+
+[With the roller support, the linear vector elements reproduce the closed
+form of uniform tension, displacements and stresses, to round-off on every
+mesh, and the ratio of the sideways to the lengthwise strain is Poisson's
+ratio.]{.claim type="numerically-verified"
+scope="rectangular plate in plane stress, uniform traction on one edge, roller support on the opposite edge, meshes of 32 to 512 triangles"
+evidence="patch-run patch"}
+The test does not depend on the mesh, because the exact solution is linear
+and linear elements contain it. It checks the assembly of $B$, of $D$, and
+of the traction together: an error in any of them would show here first.
+
+### A clamped plate: what a support does
+
+Now the left edge is glued to a rigid wall. The plate tries to contract
+sideways everywhere and cannot at the wall:
+
+```{python}
+#| label: clamped-run
+#| echo: false
+excerpt(experiment.clamped)
+```
+
+```{python}
+#| label: clamped
+#| echo: false
+result.table("clamped")
+```
+
+```{python}
+#| label: recovery
+#| echo: false
+result.table("recovery")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_plate)
+```
+
+```{python}
+#| label: fig-plate
+#| echo: false
+#| fig-cap: "The clamped edge stops the plate from contracting at the wall and raises the stress at its corners; within about one height of the wall the plate returns to the uniform state of free tension."
+#| fig-alt: "Two panels. Top: the plate drawn as a long rectangle in false colour, its shape exaggerated, attached to a thick vertical bar on the left that marks the clamped edge; a dotted outline shows the undeformed plate. The colour is uniform over most of the plate and changes only near the clamped edge, darker along the top and bottom edges there and brightest at its two corners; the stretched plate reaches past the outline at its right end. Bottom: the change of the plate's height, relative to its free value, against the distance from the clamp in units of the height, for three meshes with circles, squares, and triangles. The curves start well below one near the wall, rise steeply, overshoot one slightly, and settle on a dash-dotted horizontal line at one, the free contraction; the three meshes nearly coincide."
+#| fig-status: simulated
+result.show("fig-plate")
+```
+
+[The reactions of the clamped edge balance the applied load to round-off;
+the plate's change of height recovers its free value within about one
+height of the clamp and agrees with it at two heights to
+`{python} result["recovery-two"]` on all three meshes.]{.claim
+type="numerically-verified"
+scope="rectangular plate four times as wide as high, nu = 0.3, clamped on one edge, uniform traction on the other, meshes of 512 to 8192 triangles"
+evidence="clamped-run clamped recovery fig-plate"}
+The three meshes agree on the recovery curve: at one height from the wall
+their values differ by `{python} result["mesh-spread-one"]`. The clamp
+makes the plate slightly stiffer, so its loaded edge moves a little less
+than in free tension. Saint-Venant's principle is visible: whatever the
+wall does, a plate longer than a few heights carries the load in the
+uniform state over most of its length.
+
+[The largest stress, at the corners of the clamped edge, grows with every
+refinement of the mesh and does not converge.]{.claim
+type="numerically-verified"
+scope="the clamped plate on meshes of 512, 2048, and 8192 triangles"
+evidence="clamped-run clamped"}
+The mesh is not at fault: [the linear elastic solution itself has an
+infinite stress at a corner where a clamped edge meets a free one, for
+$\nu > 0$]{.not-verified}. A real wall yields a little, and real steel
+yields plastically when the stress reaches its yield stress; near such a
+corner, the model of this lesson stops describing the material.
+
+## Limits {#limits}
+
+- **Small strains, linear material.** The model holds while the stress
+  stays below the yield stress; it predicts no permanent deformation,
+  hardening, or fracture. Measured stress-strain curves, a later lesson,
+  show where a real metal leaves the straight line.
+- **Plane stress.** The plate is thin and loaded in its plane. A thick
+  body needs three-dimensional elements; a long body held along its length
+  is in plane strain instead, with a different $D$.
+- **Isotropic material.** A single crystal is not isotropic: its stiffness
+  depends on the direction, through the arrangement of the bonds.
+- **Linear triangles.** They pass the patch test and converge, but their
+  stress is constant on each triangle and first-order accurate, and they
+  are too stiff in bending on coarse meshes. Stresses near corners and
+  supports need fine meshes and care.
+- **Singular corners.** Where the model predicts an infinite stress, no
+  mesh gives the stress there; the table reports the largest triangle
+  value, which depends on the mesh.
+- **No measured data.** Young's modulus and Poisson's ratio are chosen, not
+  fitted to a material.
+
+::: {.exercise .self-check}
+A rod hangs from the ceiling, loaded only by its own weight. Where is the
+stress in it largest?
+
+::: {.choices}
+::: {.choice}
+At the free lower end, because that is where it moves the most.
+
+::: {.feedback}
+The lower end moves the most, but its section holds up nothing below it:
+the stress there is zero.
+:::
+:::
+
+::: {.choice correct="true"}
+At the support, because the section there holds up the whole rod.
+
+::: {.feedback}
+Correct: the force through a section is the weight below it,
+$q(L - x)$, largest at $x = 0$.
+:::
+:::
+
+::: {.choice}
+The same everywhere, because the rod has one cross-section.
+
+::: {.feedback}
+The area is the same, but the force through each section is not: each
+holds up a different length of rod.
+:::
+:::
+:::
+
+::: {.solution}
+The stress is $\sigma(x) = q(L - x)/A$: the weight of the rod below the
+section divided by its area. It is largest, $qL/A$, at the support and
+zero at the free end, while the displacement does the opposite, zero at the
+support and largest at the free end.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Two materials in series.** A bar of 1 m of steel ($E = 200$ GPa) joined
+to 1 m of aluminium ($E = 70$ GPa), both with a cross-section of 1 cm²,
+is fixed at the steel end and pulled with 10 kN at the other. How far does
+the end move? Is the stress or the strain the same in both parts?
+
+::: {.hint}
+Each part is a spring of stiffness $EA/L$; two springs in series carry the
+same force.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.two_materials)
+```
+
+The elements give an end displacement of `{python} result["series-end-mm"]`
+mm, and the closed form $F(L_1/(E_1 A) + L_2/(E_2 A))$ gives
+`{python} result["series-closed-mm"]` mm, the same to a relative
+`{python} result["series-gap"]`. The stress of every element is the same,
+to a relative spread of `{python} result["series-stress-spread"]`: both
+parts carry the same force through the same area. The strain is not: the
+aluminium, about three times softer, stretches about three times more.
+:::
+:::
+
+::: {.exercise}
+**No Poisson effect.** Repeat the clamped plate with $\nu = 0$. How does
+the clamped solution compare with the roller solution, and why?
+
+::: {.hint}
+What does the uniform tension do to the left edge when $\nu = 0$?
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.no_contraction)
+```
+
+The two solutions agree to `{python} result["no-contraction"]` of
+$\sigma_0 W/E$. With $\nu = 0$ the uniform tension has $u_y = 0$
+everywhere, so it already satisfies the clamp: the wall has nothing to
+prevent. The disturbance near a clamp comes entirely from the sideways
+contraction that the wall forbids.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/materials/elasticity.py",
+        "src/pbc/fem/mesh.py",
+        "src/pbc/fem/assembly.py",
+        "src/pbc/materials/experiments/elasticity_and_deformation.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_materials.py",
+        "tests/unit/test_elasticity_and_deformation_experiment.py",
+    ],
+)
+```

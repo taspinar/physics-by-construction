@@ -1,11 +1,14 @@
-"""The vibrations of a chain and the bands of its electrons (lessons MAT1,
-MAT2): each result is compared with a closed-form solution, a limiting
-case, or an independent computation, with a stated tolerance."""
+"""The vibrations of a chain, the bands of its electrons, elasticity, and
+point defects (lessons MAT1 to MAT4): each result is compared with a
+closed-form solution, a limiting case, or an independent computation, with
+a stated tolerance."""
 
 import numpy as np
 import pytest
 from scipy.linalg import expm
+from scipy.special import gammaln
 
+from pbc.fem.mesh import rectangle
 from pbc.materials.bands import (
     allowed_wavenumbers as band_wavenumbers,
 )
@@ -23,6 +26,31 @@ from pbc.materials.bands import (
     ring_hamiltonian,
     translation,
     two_site_bands,
+)
+from pbc.materials.defects import (
+    exact_vacancies,
+    free_energy,
+    free_energy_step,
+    hop_rate,
+    lattice_walks,
+    vacancy_exchanges,
+    vacancy_fraction,
+)
+from pbc.materials.elasticity import (
+    bar_displacement,
+    bar_load,
+    bar_stiffness,
+    bar_stress,
+    clamped_supports,
+    element_dofs,
+    plane_stress,
+    plate_stiffness,
+    roller_supports,
+    solve_bar,
+    solve_plate,
+    strain_matrices,
+    traction_load,
+    uniform_tension,
 )
 from pbc.materials.phonons import (
     allowed_wavenumbers,
@@ -220,3 +248,173 @@ def test_without_a_force_the_closed_form_is_the_group_velocity():
     t = 1e-3
     speed = (bloch_centre(t, 0.0, shift, 1.0, 1e-6) - 0.0) / t
     assert speed == pytest.approx(2 * np.sin(0.7) * abs(shift), rel=1e-5)
+
+
+# --- MAT3: elasticity ----------------------------------------------------------
+
+
+def test_the_bar_stiffness_stores_the_energy_of_every_element():
+    rng = np.random.default_rng(2)
+    x = np.cumsum(rng.uniform(0.5, 1.5, size=6)) - 0.5
+    modulus = rng.uniform(1.0, 3.0, size=5)
+    u = rng.normal(size=6)
+    k = bar_stiffness(x, modulus, 0.2)
+    springs = 0.5 * np.sum(modulus * 0.2 / np.diff(x) * np.diff(u) ** 2)
+    assert 0.5 * u @ k @ u == pytest.approx(springs, rel=1e-13)
+    assert np.allclose(k @ np.ones(6), 0.0)  # a rigid translation
+    with pytest.raises(ValueError):
+        bar_stiffness(np.array([0.0, 1.0, 1.0]), 1.0, 1.0)
+
+
+def test_the_bar_load_is_the_total_load():
+    x = np.array([0.0, 0.3, 1.0, 1.6])
+    f = bar_load(x, 2.0, 5.0)
+    assert f.sum() == pytest.approx(2.0 * 1.6 + 5.0, rel=1e-14)
+    assert f[0] == pytest.approx(2.0 * 0.3 / 2)
+
+
+@pytest.mark.parametrize("elements", [1, 3, 7])
+def test_the_bar_is_exact_at_the_nodes(elements):
+    bar = solve_bar(2.0, elements, 3.0, 0.5, 1.5, 4.0)
+    exact = bar_displacement(bar.x, 2.0, 3.0, 0.5, 1.5, 4.0)
+    assert np.allclose(bar.u, exact, rtol=1e-12, atol=1e-14)
+    mid = (bar.x[:-1] + bar.x[1:]) / 2
+    assert np.allclose(bar.stress, bar_stress(mid, 2.0, 0.5, 1.5, 4.0), rtol=1e-12)
+    assert bar.reaction == pytest.approx(-(4.0 + 1.5 * 2.0), rel=1e-12)
+
+
+def test_the_closed_form_of_the_bar_solves_its_equation():
+    # -E A u'' = q, u(0) = 0, E A u'(L) = F, by finite differences of the form.
+    length, modulus, area, q, force = 3.0, 2.0, 0.7, 1.1, 0.4
+    h = 1e-3
+    x = 1.3
+    second = (
+        bar_displacement(x + h, length, modulus, area, q, force)
+        - 2 * bar_displacement(x, length, modulus, area, q, force)
+        + bar_displacement(x - h, length, modulus, area, q, force)
+    ) / h**2
+    assert -modulus * area * second == pytest.approx(q, rel=1e-6)
+    assert bar_displacement(0.0, length, modulus, area, q, force) == 0.0
+    slope = (
+        bar_displacement(length + h, length, modulus, area, q, force)
+        - bar_displacement(length - h, length, modulus, area, q, force)
+    ) / (2 * h)
+    assert modulus * area * slope == pytest.approx(force, rel=1e-6)
+
+
+def test_hookes_law_in_plane_stress_contracts_by_poissons_ratio():
+    d = plane_stress(2.0, 0.25)
+    strain = np.linalg.solve(d, [1.0, 0.0, 0.0])  # a pull along x alone
+    assert strain[0] == pytest.approx(1 / 2.0)
+    assert -strain[1] / strain[0] == pytest.approx(0.25)
+    # Shear: tau = G gamma with G = E / (2 (1 + nu)).
+    assert d[2, 2] == pytest.approx(2.0 / (2 * 1.25))
+
+
+def test_the_strain_matrices_differentiate_a_linear_field():
+    mesh = rectangle(2.0, 1.0, 5, 3)
+    g = np.array([[0.3, -0.2], [0.7, 0.1]])  # u = g x
+    u = (mesh.nodes @ g.T).ravel()
+    strain = np.einsum("tkj,tj->tk", strain_matrices(mesh), u[element_dofs(mesh)])
+    expected = [g[0, 0], g[1, 1], g[0, 1] + g[1, 0]]
+    assert np.allclose(strain, expected, atol=1e-13)
+
+
+def test_the_plate_stiffness_has_the_rigid_motions_as_its_null_space():
+    mesh = rectangle(2.0, 1.0, 4, 2)
+    k = plate_stiffness(mesh, 3.0, 0.3, 0.1).toarray()
+    assert np.allclose(k, k.T)
+    x, y = mesh.nodes[:, 0], mesh.nodes[:, 1]
+    for motion in (
+        np.column_stack([np.ones_like(x), 0 * x]),
+        np.column_stack([0 * x, np.ones_like(x)]),
+        np.column_stack([-y, x]),  # a small rotation
+    ):
+        assert np.allclose(k @ motion.ravel(), 0.0, atol=1e-12)
+    assert np.sum(np.linalg.eigvalsh(k) > 1e-9) == k.shape[0] - 3
+
+
+def test_the_traction_load_is_the_force_on_the_edge():
+    mesh = rectangle(2.0, 0.5, 4, 3)
+    f = traction_load(mesh, "right", (3.0, -1.0), 0.2)
+    assert f[0::2].sum() == pytest.approx(3.0 * 0.5 * 0.2)
+    assert f[1::2].sum() == pytest.approx(-1.0 * 0.5 * 0.2)
+    off = np.setdiff1d(np.arange(len(mesh.nodes)), mesh.boundary_nodes("right"))
+    assert np.all(f[2 * off] == 0)
+
+
+def test_the_roller_plate_reproduces_uniform_tension():
+    mesh = rectangle(1.0, 0.4, 7, 3)
+    load = traction_load(mesh, "right", (5.0, 0.0), 0.1)
+    plate = solve_plate(mesh, 20.0, 0.35, 0.1, load, roller_supports(mesh))
+    assert np.allclose(
+        plate.u, uniform_tension(mesh.nodes, 20.0, 0.35, 5.0), atol=1e-13
+    )
+    assert np.allclose(plate.stress, [5.0, 0.0, 0.0], atol=1e-11)
+    assert len(roller_supports(mesh)) == 4 + 1  # u_x on the left edge, u_y once
+
+
+def test_the_clamped_reactions_balance_the_load():
+    mesh = rectangle(1.0, 0.4, 8, 4)
+    load = traction_load(mesh, "right", (5.0, 0.0), 0.1)
+    plate = solve_plate(mesh, 20.0, 0.35, 0.1, load, clamped_supports(mesh))
+    assert plate.reactions[0::2].sum() == pytest.approx(-5.0 * 0.4 * 0.1, rel=1e-12)
+    assert plate.reactions[1::2].sum() == pytest.approx(0.0, abs=1e-12)
+    free = np.setdiff1d(np.arange(2 * len(mesh.nodes)), clamped_supports(mesh))
+    assert np.allclose(plate.reactions[free], 0.0, atol=1e-12)
+    # The wall stops the contraction: the left edge keeps its height.
+    left = mesh.boundary_nodes("left")
+    assert np.allclose(plate.u[left], 0.0)
+
+
+# --- MAT4: defects -------------------------------------------------------------
+
+
+def test_the_free_energy_counts_the_arrangements_exactly():
+    counts = np.arange(0, 30)
+    g = free_energy(1000, counts, 0.3, 0.05)
+    choose = gammaln(1001) - gammaln(counts + 1) - gammaln(1001 - counts)
+    assert np.allclose(g, counts * 0.3 - 0.05 * choose, atol=1e-10)
+    steps = [free_energy_step(1000, n, 0.3, 0.05) for n in counts[:-1]]
+    assert np.allclose(steps, np.diff(g), atol=1e-10)
+
+
+@pytest.mark.parametrize("kt", [0.04, 0.06, 0.1])
+def test_the_exact_minimum_is_the_argmin_and_near_the_closed_form(kt):
+    sites = 10**6
+    n = exact_vacancies(sites, 0.5, kt)
+    counts = np.arange(0, 3 * n + 10)
+    assert n == int(np.argmin(free_energy(sites, counts, 0.5, kt)))
+    assert abs(n - sites * float(vacancy_fraction(0.5, kt))) < 1
+
+
+def test_the_vacancy_fraction_is_the_boltzmann_factor_when_small():
+    assert float(vacancy_fraction(1.0, 0.05)) == pytest.approx(np.exp(-20), rel=1e-8)
+    assert float(vacancy_fraction(1.0, 1e6)) == pytest.approx(0.5, rel=1e-5)
+    assert float(hop_rate(2.0, 0.3, 0.1)) == pytest.approx(2.0 * np.exp(-3))
+
+
+def test_the_lattice_walk_takes_lattice_steps_at_the_rate():
+    rng = np.random.default_rng(4)
+    times = np.array([1.0, 2.0, 5.0])
+    paths = lattice_walks(20000, times, 3.0, 0.5, rng)
+    assert paths.shape == (4, 20000, 2)
+    assert np.allclose(paths / 0.5, np.round(paths / 0.5))
+    assert np.all(paths[0] == 0)
+    # <r^2> = 4 Gamma a^2 t: z Gamma t hops of a^2, with z = 4.
+    msd = np.mean(np.sum(paths[-1] ** 2, axis=1))
+    assert msd == pytest.approx(4 * 3.0 * 0.25 * 5.0, rel=0.03)
+    with pytest.raises(ValueError):
+        lattice_walks(2, np.array([1.0, 1.0]), 1.0, 1.0, rng)
+
+
+def test_a_vacancy_moves_one_atom_per_jump():
+    rng = np.random.default_rng(5)
+    atoms, vacancy = vacancy_exchanges(5, [1, 2], 400, rng)
+    # One jump: one atom moved by one spacing, the vacancy by one.
+    assert np.all(atoms[0] == 1) and np.all(vacancy[0] == 1)
+    # Two jumps: straight back (the same atom returns), a turn, or straight on.
+    back = vacancy[1] == 0
+    assert np.all(atoms[1][back] == 0) and np.all(atoms[1][~back] == 2)
+    assert set(np.unique(vacancy[1])) == {0.0, 2.0, 4.0}
+    assert np.mean(back) == pytest.approx(0.25, abs=0.07)
