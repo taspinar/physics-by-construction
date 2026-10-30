@@ -48,10 +48,28 @@ class ToolResult:
 
 
 @dataclass(frozen=True)
+class Picture:
+    """A still image the human gives with the task: a label the task names it
+    by, and the PNG bytes (``pbc.experiment.encode`` of a verified figure).
+
+    A picture is input only. A recording holds no picture: the lesson draws it
+    again from the same code.
+    """
+
+    label: str
+    png: bytes
+
+    def __post_init__(self):
+        if not self.png.startswith(b"\x89PNG\r\n\x1a\n"):
+            raise ValueError(f"picture {self.label!r} is not a PNG")
+
+
+@dataclass(frozen=True)
 class UserTurn:
-    """The task, as the human gave it."""
+    """The task, as the human gave it, with the pictures it refers to."""
 
     text: str
+    pictures: tuple[Picture, ...] = ()
 
 
 Turn = UserTurn | ModelMessage | ToolResult

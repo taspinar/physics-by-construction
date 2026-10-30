@@ -1409,6 +1409,19 @@ What a lesson of this kind has:
 - **Tests** of the experiment's allowlist in `tests/unit`. The harness tests
   of the boundary already cover every allowlist.
 
+**Pictures.** A model that accepts images can be given still pictures with
+the task (`run(..., pictures=...)`, `pbc.agents.Picture`). A picture is a
+verified figure of the site, drawn again by the `draw_` function of its own
+lesson and encoded by `pbc.experiment.encode`; it is never a committed image,
+and a recording holds none. Because the picture is drawn again on every
+build, the answers it was recorded against are kept in the lesson's module
+as the key at recording time, and a test compares it with the key the build
+computes: a change of a source figure's physics then asks for a new
+recording. Keep a measured picture, and every part of the key computed from
+its data, in a module apart from the rest, so that the figures that use no
+data are not made from a dataset (`pbc.agents.multimodal_questions` and
+`pbc.agents.multimodal_lab`, the lessons AI6 and AI7).
+
 Never put a credential in the lesson, the fixture, or a test. The harness
 removes the client's key from every model message before it is kept, printed,
 or saved, but the fixture is reviewed before it is committed. A fixture

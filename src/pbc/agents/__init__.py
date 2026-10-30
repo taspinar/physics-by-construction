@@ -17,6 +17,7 @@ from pbc.agents.loop import Step, Transcript, run
 from pbc.agents.messages import (
     ModelClient,
     ModelMessage,
+    Picture,
     ToolCall,
     ToolResult,
     ToolSpec,
@@ -39,6 +40,7 @@ __all__ = [
     "ModelClient",
     "ModelMessage",
     "Parameter",
+    "Picture",
     "Recording",
     "ReplayClient",
     "ReplayMismatch",
