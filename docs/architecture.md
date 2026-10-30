@@ -11,11 +11,12 @@ final curriculum adds, and the boundaries every feature must respect.
   2026-10-09, with the change cycle `final-curriculum` on 2026-10-12,
   with the change cycle `pbc-planning-change-four-workstreams` on
   2026-10-15, with the change cycle `scientific-atelier-atlas` on
-  2026-10-17, and with the change cycle `risk-proportionate-workflow` on
-  2026-10-19).
+  2026-10-17, with the change cycle `risk-proportionate-workflow` on
+  2026-10-19, and with the change cycle `site-navigation-and-atlas` on
+  2026-10-30).
   Where this document and the requirements disagree, the requirements win
   and the disagreement is a defect in this document.
-- Decisions with a durable record: `docs/decisions/001` to `020`; ADR 017
+- Decisions with a durable record: `docs/decisions/001` to `021`; ADR 017
   is proposed, not accepted, and paused (see "Verification simplification
   under review"); ADR 018 (the atelier, the asset classes, and the atlas)
   and ADR 019 (the agent skills) were accepted with the planning of the
@@ -23,7 +24,11 @@ final curriculum adds, and the boundaries every feature must respect.
   ADR 020 (risk-proportionate verification and review) is proposed with
   the change cycle `risk-proportionate-workflow` and accepted when its
   planning is approved (see "The verification matrix and the
-  risk-proportionate workflow").
+  risk-proportionate workflow"); ADR 021 (the quieter site, the two-layer
+  atlas, and raster interface artwork on non-lesson pages) is proposed
+  with the change cycle `site-navigation-and-atlas`, accepted when its
+  planning is approved, and supersedes ADR 018 decisions 2 to 4 in part
+  (see "The quieter site").
 - Planning base commits: `502ced0` for the bootstrap planning, when the
   repository held only the workflow template; `2f011ea` for the change cycle
   `physics-next-phase` (`docs/changes/physics-next-phase.md`), when F01 to
@@ -43,7 +48,11 @@ final curriculum adds, and the boundaries every feature must respect.
   (`docs/changes/risk-proportionate-workflow.md`), when the site published
   thirty-eight lessons in seven strands, F117, F119, F120, and F122 were
   delivered, F123 had started, and every push to `main` still executed
-  every lesson. `docs/roadmap.md` orders the remaining work.
+  every lesson; `c94c045` for the change cycle `site-navigation-and-atlas`
+  (`docs/changes/site-navigation-and-atlas.md`), when the site published
+  ninety-one lessons in eleven strands, F123 to F126 were merged with the
+  owner's rendered pass outstanding, and F127 had not started.
+  `docs/roadmap.md` orders the remaining work.
 
 Sections marked **(next phase)** describe what the change cycle
 `physics-next-phase` added; most of it is delivered, and the marker names
@@ -54,7 +63,9 @@ workstreams)** describe what the change cycle
 **(scientific atelier)** describe what the change cycle
 `scientific-atelier-atlas` adds; sections marked **(risk-proportionate
 workflow)** describe what the change cycle `risk-proportionate-workflow`
-adds to the development workflow, which touches no page of the site. Each names the roadmap
+adds to the development workflow, which touches no page of the site;
+sections marked **(site navigation)** describe what the change cycle
+`site-navigation-and-atlas` changes. Each names the roadmap
 feature that builds it; until that feature is delivered the section is a
 target, not a description of the repository.
 
@@ -146,11 +157,18 @@ site/                    Quarto project: the website source
   about.qmd              About: how the site is built, licences, identity (F57)
   path/                  Learning path page (generated from lesson metadata and the curriculum file); since the
                          scientific atelier the course atlas at the same address, generated also from the map
-                         manifest (F125, F126, ADR 018)
+                         manifest (F125, F126, ADR 018); since the site navigation the two-layer Course Atlas
+                         of twelve sequence cards and the open sequence's lessons (F133, ADR 021)
   curriculum.yaml        The reference curriculum: courses, method paths, slots (final curriculum, F62, ADR 013)
   atlas.yaml             The map manifest of the course atlas (scientific atelier, F125, ADR 018): concept
                          identifiers, display placement, concept-to-slot associations, curated conceptual
-                         connections with their rationale; nothing the curriculum file or front matter holds
+                         connections with their rationale; nothing the curriculum file or front matter holds;
+                         since the site navigation also each sequence's one-line description and
+                         illustration (F133, ADR 021)
+  hero.yaml              The hero's headlines and subtexts with the default pair (site navigation, F134,
+                         ADR 021); no page carries the copy
+  verify.qmd             "How we verify the science": the claim types with worked examples, leading to the
+                         Evidence map (site navigation, F134)
   lessons/<strand>/<nn>-<slug>/index.qmd   One directory per lesson; a strand per course
                          (mechanics, thermodynamics, waves, electromagnetism, fluids, quantum,
                          astrophysics, materials) and the three method strands (ADR 013)
@@ -160,9 +178,12 @@ site/                    Quarto project: the website source
   references.yaml        Reference register of curated external links (next phase, F28, ADR 009)
   widgets/               Self-hosted JavaScript widgets (ES modules)
   learner/               The learner-state, recommendation, and path scripts (F13, F14, F64); the
-                         dependency-free atlas modules (scientific atelier, F126)
+                         dependency-free atlas modules (scientific atelier, F126), replaced by one address
+                         module of the two-layer atlas and the hero script (site navigation, F133, F134)
   assets/                Styles (the F44 tokens, extended by the atelier's tokens and components, F123),
-                         self-hosted fonts with their licence texts, vendored Lean syntax definition
+                         self-hosted fonts with their licence texts, vendored Lean syntax definition, the
+                         provenance register (provenance.yaml) of the committed interface artwork: authored
+                         SVGs (F123) and, since the site navigation, derived WebP illustrations (F133, ADR 021)
   (template partials)    The shared header, footer, and opening templates and includes of the atelier,
                          where Quarto's template partials live (scientific atelier, F123)
 src/pbc/                 Importable Python package with all reusable lesson code
@@ -247,10 +268,10 @@ LICENSE, LICENSE-CONTENT MIT for code, CC BY 4.0 for lesson text and figures
 | **Lesson pages** (`site/lessons/`) | Explanation, assumptions, worked examples, exercises with solutions, the last section, "Run this experiment", "Replay this experiment", or "Check this proof" by the kind of the lesson (ADR 016, F117; the identifier `reproduce-this` is kept), listing the commands from a clone to the lesson's tested experiment and never a render command; in the next phase also the physical question, outcomes, interpretation, limits, self-check, and optional "Go deeper" references. Display code, outputs, figures, proofs, and data only through the verified display forms below. | Contain hand-copied code, pasted figures, hand-typed results, image files, or a curated external link that is not in the reference register (the structural links helpers generate are named in I22). |
 | **Lesson code package** (`src/pbc/`) | All reusable simulation and analysis code: models, integrators, analysis helpers, data readers; in the final curriculum one package per course, the shared finite-element and finite-volume solvers, and the discovery environments. Unit-tested. The code learners import when they reproduce a lesson and the functions agents are allowed to call. | Depend on the site generator, on network access, or on an LLM provider SDK outside `pbc.agents`. Fetch data from a portal. Depend on an optional comparator (FEniCSx, Gmsh, REBOUND, QuTiP, GeoClaw, PySR, ...) in a required code path. |
 | **Curriculum file** (site/curriculum.yaml, final curriculum, ADR 013) | The reference curriculum as data: the eight courses, the four method paths, and every slot with its label, working title, home, position, and kind. Lessons fill slots through their `slot` field; the path page and the home page derive the planned structure from it and every published fact from front matter. | Hold anything front matter holds (titles of published lessons, descriptions, outcomes, prerequisites, difficulty, methods), or name a lesson that does not exist. |
-| **Map manifest** (site/atlas.yaml, scientific atelier, ADR 018) | The one addition the course atlas needs, in the requirements' words: concept identifiers (each with its short explanation), display placement, concept-to-slot associations (capstone membership among them, as an association whose slot is a capstone slot), and curated conceptual connections with their rationale. The short explanation of the concept that represents a capstone slot is the planned description the atlas reveals and the home page shows. Validated by `pbc.authoring`: every course, path, slot, and concept reference resolves (the schema defines course, path, slot, and concept references only, and rejects any other field; it admits no lesson reference, so the requirements' lesson-reference rule holds vacuously); a concept names at least one slot; every capstone slot of the curriculum file is represented by exactly one concept. | Hold a title, description, outcome, prerequisite, publication state, or count; hold an illustration reference (the course areas' illustrations are drawn by code, mapped from the curriculum file's courses by the generator) or a lesson reference; infer a concept from a lesson's title; list a prerequisite (those come from the front matter); be a second lesson catalogue. |
+| **Map manifest** (site/atlas.yaml, scientific atelier, ADR 018; amended by ADR 021) | The one addition the course atlas needs, in the requirements' words: concept identifiers (each with its short explanation), display placement (optional since ADR 021, removed with its check when nothing reads it), concept-to-slot associations (capstone membership among them, as an association whose slot is a capstone slot), and curated conceptual connections with their rationale; since the site navigation (F133) also one entry per sequence (every course and method path of the curriculum file, no other) with its one-line description and its illustration, a path the provenance register names. The short explanation of the concept that represents a capstone slot is the planned description the atlas reveals and the home page shows. Validated by `pbc.authoring`: every course, path, slot, and concept reference resolves (the schema defines course, path, slot, and concept references only, and rejects any other field; it admits no lesson reference, so the requirements' lesson-reference rule holds vacuously); a concept names at least one slot; every capstone slot of the curriculum file is represented by exactly one concept. | Hold a title, outcome, prerequisite, publication state, or count, or a description other than a sequence's one line and a concept's explanation; hold an illustration reference outside the sequence entries, or a lesson reference; infer a concept from a lesson's title; list a prerequisite (those come from the front matter); be a second lesson catalogue. |
 | **Lean project** (`lean/`) | All formal proofs, built with `lake build` against pinned Lean 4 and Mathlib. | Contain `sorry`, `admit`, or project-declared `axiom`s. Claim anything about the Python code or about the physical accuracy of a measurement. |
 | **Widgets** (`site/widgets/`) | Optional interactive visualizations that enhance a static figure already present in the page; in the next phase a small set of science-first components (F43). | Load code or data from another origin, load data before the reader asks for it, store or transmit learner data, compute physics the page did not verify, alter claimed observed values, or be required to read a lesson. |
-| **Atlas modules** (`site/learner/`, scientific atelier, F126, ADR 018) | Small dependency-free ES modules that enhance the generated atlas: the switch between map and index, selection and the selected-concept panel, zoom, filters, and the phone's region selector. Without them the page is complete: every published lesson is reachable through native links and disclosures, and the textual equivalent of the map is in the page. | Make a request, set a cookie, use browser storage (`site/learner/progress.js` stays the only script that stores anything), compute physics, change which lessons exist or count as published, or be required to reach a lesson. |
+| **Atlas modules** (`site/learner/`, scientific atelier, F126, ADR 018; since the site navigation, F133 and F134, ADR 021) | Until F133: small dependency-free ES modules that enhance the generated atlas (the switch between map and index, selection and the selected-concept panel, zoom, filters, the phone's region selector). From F133: one module of about twenty lines that makes the address follow the open sequence and opens the sequence an address names; from F134: the hero script, which sets one of the build-embedded headline and subtext pairs before first paint, or the pair the `hero` parameter forces. Without them every page is complete: every published lesson is reachable through native links and exclusive disclosures, and the default hero pair is in the HTML. | Make a request, set a cookie, use browser storage (`site/learner/progress.js` stays the only script that stores anything), compute physics, change which lessons exist or count as published, or be required to reach a lesson. |
 | **Dataset registry and samples** (`data/`, next phase, ADR 007) | One card per surveyed dataset with provenance, rights, artifact types, schema, units, cadence, uncertainty, checksums, and the feasibility decision; small rights-cleared samples under the size cap, each parsed by a test. | Hold a file above the cap, a restricted or unlicensed sample, a file without a card, or anything a build could regenerate. |
 | **Reference register** (`site/references.yaml`, next phase, ADR 009) | The selection evidence of every curated external link: concept, URL, author or publisher, section, pedagogical role, statement checked, alternatives, last-checked date, licence note. Pages render links from it. | Be required by the build to be reachable; hold a paywalled or sign-in-only core reference. |
 | **Site generator** (Quarto, ADR 001) | Executes lesson pages, renders equations to MathML, highlights code at build time, emits static HTML. | Add third-party runtime resources (CDN scripts, web fonts, analytics). |
@@ -361,7 +382,9 @@ in Python (`pbc.authoring.graph`): columns follow the prerequisites, bands
 are courses, solid arrows are prerequisites, dashed arrows are related
 lessons, each node links to its lesson, and a visually hidden list of
 sentences ("M4 requires M2") is the accessible alternative. It needs no
-browser script.
+browser script. Since the site navigation (ADR 021, F133) the path page
+no longer draws the graph; the prerequisite data, its checks, and its
+other consumers stay ("The quieter site").
 
 **The reference curriculum and the learning path page (final curriculum,
 ADR 013, F62 to F64).** The curriculum file is the one declared source of
@@ -406,8 +429,15 @@ disclosure, drawn with ids scoped to the course, besides the whole map at the
 bottom of the page.
 Every existing link, bookmark, and graph node address stays valid. A test
 compares the page with the front matter and the curriculum file.
+Since the site navigation (ADR 021, F133) this describes what F64
+delivered: the page at the same address becomes the two-layer Course
+Atlas, which keeps the course-first order, the planned slots, the progress
+marks, and the recommendations ("The quieter site").
 
-**The course atlas (scientific atelier, ADR 018, F125, F126).** The same
+**The course atlas (scientific atelier, ADR 018, F125, F126).** Since the
+site navigation, this paragraph describes what F125 and F126 delivered;
+ADR 021 supersedes the map, its views, and its controls, and "The quieter
+site" is the target (F133). The same
 page, at the same address, gains a physics map before the index ("the
 atlas" may be its display label; the label and the navigation wording are
 settled in the owner's review of the first preview): a breadcrumb, the
@@ -448,7 +478,7 @@ ADR 009):
 | Program output and numbers | Output of an executed cell, including values computed inline. Tabular results are rendered as semantic tables with units and a caption by a helper, not as console dumps (F36). |
 | Figures | Produced by an executed cell during the build, with alt text, explicit dimensions, labelled axes with units, a legend where there is more than one series, and a status label. A measured-versus-model figure shows residuals or uncertainties where relevant. Since ADR 016 and F117 the cell draws the figure by calling the lesson's figure-writing function, the one the experiment entry point calls, and shows the file it wrote, so that one encoder produces the page's figure and the learner's. |
 | Conceptual diagrams (next phase, F32 to F34; the conceptual-illustration class of ADR 018) | Drawn by code in an executed cell (`pbc.authoring.diagrams` or Matplotlib), labelled `conceptual`, never presented as a numerical or experimental result. Image files are never committed; a third-party diagram is cited and linked, not rehosted. Since the scientific atelier the approved Diagram Design guidance of ADR 019 informs the drawing; its science and semantics are checked independently of any skill. Requirements decision 37 also permits an authored committed SVG for this class; ADR 018 decision 2 keeps lessons code-drawn as a planning choice within that permission, because every check of a lesson's figure (the figure-status label, the figure-writing pattern with the experiment and reproduction checks, the lesson-directory layout) acts on executed cells. An authored conceptual SVG in a lesson is a later decision, in an ADR that would add this display form, a layout rule, and a wider committed-artifact exemption; until then this row governs. |
-| Interface artwork (scientific atelier, ADR 018) | Visual identity and navigation only: the project mark, the course areas and small illustrations of the atlas, the openings of courses, modules, and capstones. Produced by code in the repository at build time, or an SVG source authored for this project under `site/assets/` with its author and licence recorded; never a raster, never stock, copied, or externally hosted. The authored SVG is the third committed input a build cannot regenerate (I6): the committed-artifact check exempts a tracked `.svg` under `site/assets/` only when the provenance register of the asset-source rule names it with an author and a licence, and keeps rejecting an unregistered SVG, every raster, and every other image type everywhere (ADR 018 amending ADR 002; F123). Carries no caption of a result and no number; its alternative text names what it is or marks it decorative. Never inside a lesson's body as if it were a figure. |
+| Interface artwork (scientific atelier, ADR 018; since the site navigation, ADR 021) | The current rule (ADR 021): visual identity, navigation, and atmosphere in the chrome and on non-lesson pages (Home and its hero, the atlas, course, module, and capstone openings, About, the informational pages); computed, authored, or made with an image model; an SVG drawn by code at build time, an authored SVG, or a derived WebP (PNG where the feature records why), the last two committed under `site/assets/` and named in the provenance register with its origin (script path, author, or image model with prompt and date), licence or terms, and the hash of its master; no formula, number, or text in its pixels; no physical-fidelity requirement; never in a lesson's body and never presented as a result, so it carries no caption of a result and no number; never stock, copied, or externally hosted; its alternative text names what it is or marks it decorative. The authored SVG and the registered raster are the committed inputs a build cannot regenerate (I6): the committed-artifact check exempts a tracked `.svg` under `site/assets/` only when the provenance register names it with an author and a licence, and, since ADR 021, a registered derived `.webp` or `.png` there; it keeps rejecting an unregistered image, every other image type, and every image outside `site/assets/` (ADR 018 amending ADR 002, widened by ADR 021; F123, F133). History: before ADR 021, ADR 018 decision 2 allowed interface artwork only as visual identity and navigation (the project mark, the course areas and small illustrations of the atlas, the openings of courses, modules, and capstones), produced by code at build time or as an authored SVG with its author and licence, and never as a raster. |
 | Animations (scientific atelier, ADR 018) | Allowed in any class when pedagogically justified: generated by the build or driven by data the build computed, with a meaningful static alternative in the page, starting paused or respecting the reduced-motion preference, with play, pause, and reset controls and with units and sensible parameter limits where it has parameters; mandatory in no lesson; never rendered in CI as a routine step. A widget that computes in the browser (the validated interactive pendulum, F128, if decided) is tested against reference values from `src/pbc`, as the row above says. |
 | Lean code | An excerpt included by reference from a file in `lean/` that `lake build` compiled. |
 | Agent run transcripts | Produced by the replay run during the build (ADR 004). Recorded model messages come from the committed replay fixture and are labelled as recorded; tool results are the recomputed ones, never the recorded ones. |
@@ -984,6 +1014,13 @@ display forms for scientific results, the curriculum file, the selection,
 or the learner-state contract changes. Until the named features deliver
 it, this section is a target.
 
+Since the change cycle `site-navigation-and-atlas` (ADR 021), the parts of
+this section about the home page's opening, its Part A and Part B
+introduction and capstone highlights, the atlas's map, edge types, views,
+switch, and controls, and the sources of interface artwork describe what
+F124 to F126 delivered and what F132 to F135 replace; "The quieter site"
+below is the target for them, and the rest of this section stands.
+
 **Pages.** The home page: the shared header with a small project mark,
 concise primary navigation, and a clear start link; the opening "Build a
 world. See if it obeys physics." with a static figure from an existing
@@ -1148,6 +1185,139 @@ directory absent. Manim is not scheduled; a pilot starts only when
 the owner names one explanation where a static figure is inadequate, with
 its dependencies outside the pinned learner and CI environments.
 
+### The quieter site: navigation, the two-layer atlas, and the landing page (site navigation, ADR 021, F132 to F135)
+
+The change cycle `site-navigation-and-atlas` (requirements decisions 40
+and 41; `docs/changes/site-navigation-and-atlas.md`) reorganises the site
+for its three kinds of visitor (a learner who wants to begin, a researcher
+who wants to know whether results reproduce, a contributor who wants
+instructions) and lets interface artwork on non-lesson pages be raster
+images. Nothing of the lesson model, the verified display forms of
+scientific results, the curriculum file, the selection, or the
+learner-state contract changes. Until the named features deliver it, this
+section is a target.
+
+**Navigation** (F132). The shared header of F123 carries the project mark,
+exactly four menu items (Home, Course Atlas, About, and the Start learning
+button), and the search; the footer carries the attribution of F57, the
+licences, and the secondary pages (Run the code, Glossary, Scientific
+evidence, For educators, Contribute, Source), with no link shown twice.
+Every page stays reachable and every address unchanged (`site/_quarto.yml`
+and the shared partials; a shared input, so a full run). About says who
+makes PBC, why, for whom, and how its scientific reliability is secured,
+and names the eight courses and four method paths.
+
+**The Course Atlas** (F133). Generated by `pbc.authoring` at build time
+into the page at the path address:
+
+1. The reader validates the curriculum file, the front matter, and the
+   manifest under the rules of ADR 018 decision 3 that stand, and the
+   sequence entries of ADR 021 decision 3: one per course and method path
+   of the curriculum file and no other, each with a one-line description
+   and an illustration the provenance register names.
+2. The page is twelve native `<details name="atlas">` elements and a
+   smaller entry for the Lean lessons without a slot. Each `<summary>` is a
+   card (illustration, title, published count, the progress mark that
+   `progress.js` sets as today); each panel holds the larger illustration,
+   the description, the published and planned counts, and the lesson rows
+   (label, a title that is a link only when published, the marks for a
+   measured-data lab, a capstone, and Lean). A planned row is
+   distinguishable without colour and never counted as published. A
+   visually hidden textual equivalent lists every sequence with its
+   lessons and their state. Under the sequences the page keeps the
+   learner state of F13 and F14 with its contract (requirements, "Course
+   atlas"; ADR 021 decision 3): the section that explains what is stored
+   (`#your-progress`, linked from every lesson page) with the control that
+   clears it, and the "What to do next" recommendations panel; the page
+   still carries the learning path (each lesson's id, title, address, and
+   prerequisites) as data, which `recommend.js` reads ("Learner state"),
+   so the prerequisite graph leaves the drawing but not the data.
+3. CSS lays the open panel beside the cards on wide screens through
+   `::details-content`, with the accordion as the fallback (tested by
+   disabling the rule, not assumed) and the phone's layout; one sequence
+   is open at a time without a script. The address module of the
+   component table syncs the address and the open sequence. The existing
+   anchors of the courses and paths (today `#course-<id>` and
+   `#path-<id>`) open their sequence; every other existing anchor
+   resolves.
+4. The manifest's relationships leave the atlas: a lesson page shows, beside
+   its prerequisites, the conceptual connections (with their rationale) and
+   the capstone membership of the concept its slot belongs to, for a
+   published lesson only. The lesson template is a shared input.
+5. The checks: the manifest rules; the twelve sequences and the Lean entry
+   present; every published lesson reachable without scripts and by
+   keyboard; one sequence open at a time; the counts equal to the lessons;
+   no planned slot linked or counted; the relationships on the lesson pages
+   equal to the manifest and the front matter; every previous address and
+   anchor resolving; the accessibility scan, the keyboard pass, the reflow
+   at 320 CSS px, the three engines; the payload with the illustrations; no
+   request, cookie, or storage from the module; the search index unchanged
+   in meaning; byte-stable rebuilds; the progress marks and the
+   recommendations on the page, with the F13 and F14 tests unchanged or
+   replaced by equivalent ones. The F125 and F126 tests of the removed
+   map, views, and controls are replaced by these, and no check of
+   scientific or curriculum correctness is weakened.
+
+**Raster interface artwork** (ADR 021 decisions 1 and 2). The twelve
+sequence illustrations and the hero image's parts are derived WebP files
+committed under `site/assets/` at the sizes the pages show, never rendered
+by the build. The provenance register `site/assets/provenance.yaml` names
+each with its origin (a script with its path, an author, or an image model
+with the model, the prompt, and the date), a licence or terms that permit
+publication, and the SHA-256 hash of its master. A script, where one
+exists, lives outside `site/` and outside the build and CI; a regeneration
+check on demand, outside `scripts/verify.conf`, compares a regenerated
+master's hash with the register. The committed-artifact check admits a
+tracked `.webp` or `.png` under `site/assets/` only through its complete
+register entry; the asset-source rule fails an entry without its file. No
+text, number, or formula is in the pixels; the acceptance is a visual
+check, not a scientific checklist.
+
+**Home** (F134). The hero: one fixed default pair in the HTML and one
+`<h1>`; the eight pairs of the hero data file, each a headline and one of
+its subtexts, identified 1a, 1b, 1c, 2a, 2b, 2c, 3a, and 3b (headline
+number, subtext letter: three subtexts for the first two headlines, two
+for the third), validated as exactly that set and embedded by the build; the
+hero script picks one at random per visit before first paint, or the one
+the `hero` parameter names; the text block's height reserved for the
+longest pair; no storage, no request; beside it the hero image, two
+connected constellations composed from the sequence illustrations with
+HTML or SVG labels. Then three sentences on what the site is; three
+example lessons from different courses and one published capstone,
+chosen by `pbc.authoring.home` from the front matter and the manifest;
+the invitation. The verified double-pendulum figure leaves Home; its
+figure-writing function, energy check, and provenance stay in `src/pbc`.
+The central message and the start button are visible without scrolling at
+1280 by 800 and 390 by 844 CSS px.
+
+**Run the code and How we verify the science** (F134). The setup page,
+retitled "Run the code" at its address, opens with three routes (run a
+simulation, replay an AI experiment, verify a formal proof) before the
+shared installation; the verified-command classes and their checks are
+unchanged. The new page "How we verify the science" explains the four
+claim types with worked examples from published lessons, each linked to
+its place in the lesson and its row of the Evidence map; the build fails
+when an example's target is missing, as it fails for a claim; the
+Evidence map stays at its address as the appendix.
+
+**Glossary and contribution** (F135). In "Before you begin", each outside
+prerequisite with a glossary entry shows its short definition on demand in
+a native disclosure, from `site/glossary.yaml`, with a link to the
+glossary page. Every published lesson ends with "Suggest an improvement":
+links to the issue forms of `.github/ISSUE_TEMPLATE/` (scientific
+correction, report a problem, propose a change) with the lesson's address
+pre-filled through a field `id` of the form; a unit test fails on a link
+to a form or a parameter that does not exist. A GitHub account is needed
+and issues are public, as the Contribute page says. No server, no secret,
+no script: a form that works without an account is the owner's open
+decision (requirements, unresolved question 16).
+
+**Order and verification cost.** F132 first; then F133; then F134, which
+links into the atlas; F135 independent, but never written beside F133,
+since both change the lesson template and the shared CSS. Each changes
+shared inputs, so each is verified by the full run its targeted run
+reports; F133 and F135 change what every lesson page displays.
+
 ## Invariants and boundaries
 
 Agents and reviewers must preserve these. Each names how it is enforced; an
@@ -1161,7 +1331,7 @@ shown.
 | I3 | No analytics, tracking, cookies, or third-party runtime resources. All scripts, styles, fonts, and images are served from the site's own origin. Outbound links are the only contact with other sites. | Built-site check (F01). |
 | I4 | All text, code, equations, diagrams, proof explanations, and static figures are readable with JavaScript disabled. Interactives enhance a static fallback. | Built-site check with scripting disabled (F01, F07). |
 | I5 | Code, outputs, figures, proofs, data, and claims on the site come only through the verified display forms. Unverified material is visibly marked. | Lesson source check (F02, F28); ADR 002, 007, 009, 010. |
-| I6 | Generated artifacts are never committed. Figures, outputs, and rendered pages are regenerated by every build. The only committed inputs a build cannot regenerate are the replay fixture of an agent lesson, the dataset samples under `data/samples/`, including the reference artifacts of optional tools declared as `modelled-reference` (final curriculum), and the authored interface-artwork SVGs under `site/assets/` that the provenance register names with an author and a licence (scientific atelier), each at its declared location, free of credentials and restricted material, and checked on every build (recorded tool results against recomputed ones; sample checksums against their cards; every registered SVG present and every tracked SVG registered). No raster and no other image type is committed anywhere. An execution cache restored from a verified artifact of `main` is a build input of a pull request run, never a committed file (ADR 014). | Lesson source check and `.gitignore` (F02); replay (F09); dataset checks (F50); the committed-artifact check narrowed to the registered-SVG exemption, with the asset-source rule (F123); ADR 002, 004, 007, 014, 018. |
+| I6 | Generated artifacts are never committed. Figures, outputs, and rendered pages are regenerated by every build. The only committed inputs a build cannot regenerate are the replay fixture of an agent lesson, the dataset samples under `data/samples/`, including the reference artifacts of optional tools declared as `modelled-reference` (final curriculum), and the interface artwork under `site/assets/` that the provenance register names: authored SVGs with an author and a licence (scientific atelier), and, since the site navigation, derived WebP or PNG files with their origin, licence or terms, and master hash (ADR 021), each at its declared location, free of credentials and restricted material, and checked on every build (recorded tool results against recomputed ones; sample checksums against their cards; every registered file present and every tracked image under `site/assets/` registered). No other raster, no unregistered image, and no image outside `site/assets/` is committed anywhere. An execution cache restored from a verified artifact of `main` is a build input of a pull request run, never a committed file (ADR 014). | Lesson source check and `.gitignore` (F02); replay (F09); dataset checks (F50); the committed-artifact check narrowed to the registered-SVG exemption, with the asset-source rule (F123), widened to registered rasters under `site/assets/` (F133); ADR 002, 004, 007, 014, 018, 021. |
 | I7 | A lesson whose code fails, whose proof does not compile, whose sample does not parse, or whose page does not build cannot be merged. | Required status check on `main` (F01, F58). |
 | I8 | CI and local verification run the same product checks through `./scripts/verify.sh`. CI also runs the workflow self-tests on every run; a local run includes them when a workflow file changed. A local run is one of three tiers (ADR 017 decision 7, F119): the full run runs every product check; the targeted run and the run with a base run the checks of their tier against the selection and are recorded with their tier, and CI runs every check on every pull request and push. Parallel CI jobs run groups of the same `verify.conf` checks behind one aggregate required check; every group runs in exactly one job, or, for the group that executes the lessons, in one lesson-shard matrix whose lesson shards the script derives (ADR 014 decision 11, paused with F113 since 2026-10-15: one job today). | Workflow calls only that script, and a test compares the declared groups with the groups the jobs run (F01, F58); ADR 003, ADR 005, ADR 012. |
 | I9 | The deployed site is the artifact the CI run built for that `main` commit, and the one its jobs checked. The deploy job does not build, and runs only after the required check passed. | Workflow structure (F01); the comparison of the downloaded site with its recorded checksums (F58); ADR 003, ADR 012. |
@@ -1185,8 +1355,8 @@ shown.
 | I27 | The hidden truth of a discovery environment (the law, the parameters, the invariant, the held-out worlds) is never reachable by the agent's tools, the prompt, or the displayed data; a benchmark score shown on the site is recomputed by the build from a frozen trace, with its non-agent baselines (final curriculum). | Allowlist tests of `pbc.discovery` and replay (F65); ADR 004. |
 | I28 | The reference curriculum has one declared source, lessons fill its slots by front matter, no slot is filled twice, and a planned slot is never shown as published or counted; the site's course-first path and its method paths are views over the canonical lesson pages (final curriculum). | Lesson source check and path page test (F62, F64); ADR 013. |
 | I29 | An applied capstone is labelled with its credibility boundary (teaching prototype, array-factor model, teaching-scale propagation model), compares with a stated reference, shows refinement and failure modes, and says which aspects are physically validated; its required path runs on the pinned stack, and any heavy tool is optional and its output a declared `modelled-reference` input (final curriculum). | Lesson source check for the required claim and figure labels; review (F76, F80, F87, F88); ADR 007. |
-| I30 | Every visual on the site belongs to one of three asset classes and is identifiable as such: interface artwork makes no scientific evidence claim and appears only in the chrome, on the home page, on the atlas, and in course, module, and capstone openings; a conceptual illustration is labelled `conceptual` and is never presented as a result; a scientific result keeps the verified display forms and the F63 preview contract. An animation has a static alternative, accessible controls, and respects reduced motion, and is mandatory nowhere. Every asset of the first two classes has its generating or authored source in the repository; no stock, copied, or externally hosted image and no committed raster exists anywhere (scientific atelier). | Built-site checks for other-origin resources and image files (F01, F63); the figure-status check (F28); the asset-source rule (F123); review; ADR 018. |
-| I31 | The course atlas has one source of truth: course, path, and slot structure from the curriculum file; publication, titles, prerequisites, and addresses from the front matter; and from the map manifest only concept identifiers, display placement, concept-to-slot associations, and curated conceptual connections with their rationale (capstone membership is a concept-to-slot association whose slot is a capstone slot; the manifest holds no illustration reference and no lesson reference, and the Lean and method views come from the front matter). Every reference in the manifest resolves, concept membership is never inferred from a title, the three edge types are explicit, a planned concept or slot is never a lesson link and never counted, every published lesson is reachable from the atlas without scripts, the atlas's controls store nothing, and the path address and every earlier anchor stay valid (scientific atelier). | The manifest check and the atlas page tests (F125, F126); the F64 tests; the scan of I16 extended to the atlas modules; ADR 018, ADR 013. |
+| I30 | Every visual on the site belongs to one of three asset classes, decided by what it claims, and is identifiable as such: interface artwork makes no scientific evidence claim, carries no formula, number, or text in its pixels, and appears only in the chrome and on non-lesson pages (Home, the atlas, course, module, and capstone openings, About, the informational pages); a conceptual illustration in a lesson is labelled `conceptual` and is never presented as a result; a scientific result keeps the verified display forms and the F63 preview contract on every page. An animation has a static alternative, accessible controls, and respects reduced motion, and is mandatory nowhere. A conceptual illustration and a scientific result have their generating source in the repository; interface artwork has its source or its provenance entry (origin, licence or terms, master hash); no stock, copied, or externally hosted image exists, and the only committed rasters are the registered interface artwork under `site/assets/` (scientific atelier; site navigation, ADR 021). | Built-site checks for other-origin resources and image files (F01, F63); the figure-status check (F28); the asset-source rule and the committed-artifact check (F123, F133); review; ADR 018, ADR 021. |
+| I31 | The course atlas has one source of truth: course, path, and slot structure from the curriculum file; publication, titles, prerequisites, and addresses from the front matter; and from the map manifest only concept identifiers, display placement (optional since ADR 021: it may be removed with its check when nothing reads it), concept-to-slot associations, curated conceptual connections with their rationale, and, since the site navigation, each sequence's one-line description and illustration (capstone membership is a concept-to-slot association whose slot is a capstone slot; the manifest holds no lesson reference). Every reference in the manifest resolves, concept membership is never inferred from a title, the three relationship types stay explicit as data and are never invented for a planned lesson, a planned concept or slot is never a lesson link and never counted, every published lesson is reachable from the atlas without scripts, the atlas's controls store nothing, and the path address and every earlier anchor stay valid (scientific atelier; site navigation, ADR 021). | The manifest check and the atlas page tests (F125, F126, replaced in part by F133); the F64 tests; the scan of I16 extended to the atlas modules; ADR 018, ADR 021, ADR 013. |
 | I32 | An agent skill is development guidance read from `.agents/skills/` at its recorded revision: never a dependency of the site, the build, the lesson and built-site checks, the deployment, or any CI job, none of which invokes, installs, fetches, or depends on a skill; the skills configuration check is the one check that reads the directory, as data to validate; a skill is never evidence that a figure, a page, or a claim is correct; a required skill that is missing fails a feature's configuration visibly (scientific atelier). | The skills configuration check and the provenance records (F122); the boundary test F122 creates (no workflow, script, check, build step, or CI job invokes, installs, or fetches a skill; the build and every other check pass with the directory absent), which F45 later extends to coding agents (I24); review; ADR 019. |
 
 Boundaries for agents working in this repository, in addition to `AGENTS.md`:
@@ -1194,10 +1364,10 @@ Boundaries for agents working in this repository, in addition to `AGENTS.md`:
 - Do not add a runtime dependency on any external service to the site.
 - Do not introduce a JavaScript build toolchain, a second site generator, or
   committed generated outputs without a new ADR. Replay fixtures (ADR 002),
-  dataset samples (ADR 007), and authored interface-artwork SVGs under
-  `site/assets/` with their provenance entry (ADR 018) are the only
-  committed inputs a build cannot regenerate; no raster and no other image
-  type is committed anywhere.
+  dataset samples (ADR 007), and interface artwork under `site/assets/`
+  with its provenance entry (authored SVGs, ADR 018; derived WebP or PNG
+  files, ADR 021) are the only committed inputs a build cannot regenerate;
+  no other image is committed anywhere.
 - Do not weaken or skip a check in `scripts/verify.conf` to make a lesson
   pass. Fix the lesson or mark the material "not verified".
 - Do not change repository settings, Pages configuration, workflow
@@ -1209,10 +1379,11 @@ Boundaries for agents working in this repository, in addition to `AGENTS.md`:
   structural links of I22 come from helpers, never typed into a lesson), and
   do not add a register entry without having opened and read the target.
 - Do not add an image, illustration, or animation outside the three asset
-  classes of ADR 018, one whose source is not in the repository, or one
-  that presents artwork or a mockup as a scientific result; do not shrink
-  a desktop map until its labels are unreadable, and do not store the
-  atlas's controls in the browser.
+  classes of ADR 018 and ADR 021, a lesson visual whose source is not in
+  the repository, interface artwork without its provenance entry or with
+  text, a number, or a formula in its pixels, or anything that presents
+  artwork or a mockup as a scientific result; do not store the atlas's
+  controls or the hero's variant in the browser.
 - Do not use an agent skill that is not in `.agents/skills/` at its
   recorded revision, do not fetch one at run time, and do not present a
   skill's guidance as evidence; record the skill and its revision in the
@@ -1777,9 +1948,11 @@ artifacts and the time log.
 | Published site | GitHub Pages artifact | Replaced by each deployment. |
 | Learner state (F13) | Learner's browser local storage | Until the learner clears it. No recovery. |
 | The map manifest of the atlas (scientific atelier, ADR 018) | Git repository, beside the curriculum file | Git history. A reviewed input: every reference in it must resolve, and every conceptual connection carries its rationale. |
-| Authored interface-artwork SVGs (scientific atelier, ADR 018 amending ADR 002) | Git repository, under `site/assets/`, each named in the provenance register with its author and licence (F123) | Git history. The third committed input a build cannot regenerate; the committed-artifact check exempts a registered SVG there and nothing else. |
+| Authored interface-artwork SVGs (scientific atelier, ADR 018 amending ADR 002) | Git repository, under `site/assets/`, each named in the provenance register with its author and licence (F123) | Git history. The third committed input a build cannot regenerate; the committed-artifact check exempts a registered SVG there. |
+| Derived raster interface artwork (site navigation, ADR 021 amending ADR 002) | Git repository, WebP (or PNG) under `site/assets/`, each named in the provenance register with its origin, licence or terms, and the hash of its master (F133, F134); a generating script, where one exists, outside `site/` | Git history; replaced by a commit that updates the register. Masters, intermediates, and option boards are not committed. |
+| The hero's headlines and subtexts (site navigation, ADR 021) | Git repository, one data file beside the curriculum file (F134) | Git history; the owner's copy, validated by `pbc.authoring.home`. |
 | Agent skills with their provenance records (scientific atelier, ADR 019) | Git repository, `.agents/skills/` | Git history; a pin moves only by a re-audited pull request. Development tooling, never read by the build. |
-| The state of the atlas's controls (selection, zoom, filters, the switch between map and index) | Nowhere: in the page while it is open | Lost on navigation, by design; no browser storage (ADR 018). |
+| The state of the atlas's controls (selection, zoom, filters, the switch between map and index; since F133 the open sequence) and the hero's variant (F134) | Nowhere: in the page while it is open, and the open sequence in the address | Lost on navigation, by design; no browser storage (ADR 018, ADR 021). |
 
 Nothing else is stored anywhere.
 
@@ -1849,7 +2022,7 @@ Choices the requirements left to planning, and where they are settled:
 | Open choice in the requirements | Decision | Record |
 |---|---|---|
 | Site technology | Quarto, build-time execution, MathML equations | ADR 001 |
-| Generated artifacts: regenerate or commit | Regenerate on every build, never commit. Agent replay fixtures, dataset samples, and provenance-registered authored interface-artwork SVGs are committed inputs, checked on every build | ADR 002, 004, 007, 018 |
+| Generated artifacts: regenerate or commit | Regenerate on every build, never commit. Agent replay fixtures, dataset samples, provenance-registered authored interface-artwork SVGs and, since ADR 021, provenance-registered derived raster interface artwork (WebP, or PNG where recorded) under `site/assets/` are committed inputs, checked on every build | ADR 002, 004, 007, 018, 021 |
 | CI time budget | 20 minutes typical for the wall clock of a pull request run with warm caches, 15 minutes as a non-blocking target (12 minutes until the owner's decision of 2026-10-14), 25 minutes with cold caches, 45 minute timeout per job (30 in ADR 003, raised on 2026-10-11); parallel jobs behind one aggregate check | This document; ADR 003; ADR 012; ADR 015; F58, F61 |
 | Python packages | NumPy, SciPy, Matplotlib, PyYAML, pytest, Ruff; minimal data readers of F50 in `pbc.data` (no new dependency), extended by F51 | Toolchains table |
 | Exact mechanics lesson list | Eight lessons in the MVP; 17 slots in the reference curriculum (final curriculum) | `docs/roadmap.md`, "MVP lesson list" and "Slot mapping" |
@@ -1876,6 +2049,8 @@ Choices the requirements left to planning, and where they are settled:
 | First measured-data lab | Decided by the feasibility gate of F50; the planner's recommendation is the gravitational-wave strain lab (F60) with the microwave S-parameter lab (F54) as the compact fallback once F15 has given it a course, because every lesson needs a primary course (ADR 008, I18) | `docs/roadmap.md`, "Experimental data choice" |
 | The scientific atelier and the course atlas (decision 36) | Scoped CSS, shared templates and includes, and self-hosted fonts on the Quarto baseline; the home page with a static verified opening figure and without the rejected section; the atlas at the path address generated from the curriculum file, the front matter, and one validated map manifest, as semantic HTML and SVG with a textual equivalent, enhanced by dependency-free modules that store nothing; one end-to-end preview (home, atlas, one lesson) before the rollout; the interactive pendulum as its own gated feature | ADR 018; F123 to F128 |
 | Visual asset classes (decision 37) | Interface artwork, conceptual illustration, scientific result, with animation allowed in any class under conditions; sources in the repository; the blanket exclusion of decorative imagery and animation superseded where ADR 018 says, the exclusion of stock, copied, and external imagery kept. Of the two sources decision 37 permits, interface artwork may be authored (a provenance-registered SVG under `site/assets/`, the one committed-artifact exemption ADR 018 adds to ADR 002), and conceptual illustrations in lessons stay code-drawn as a planning choice, the authored form left to a later ADR | ADR 018; I6; I30; the notes on F25, F44, and F64 in `docs/roadmap.md` |
+| The quieter site (decision 40) | A four-item menu with the secondary pages in the footer; the Course Atlas as twelve sequence cards with the open sequence's lessons, in native exclusive disclosures with one address module; the map's relationships as data on the lesson pages; Home as a landing page with a randomised hero from one data file and examples chosen by code; "Run the code" with three routes; "How we verify the science"; the glossary on demand and "Suggest an improvement" through GitHub's forms; the sequences' descriptions and illustrations in the atlas manifest | ADR 021; F132 to F135; "The quieter site" |
+| Visual freedom on non-lesson pages (decision 41) | Classes by claim; interface artwork as SVG or a committed derived WebP from a script, an author, or an image model, registered with origin, licence, and master hash, admitted by the committed-artifact check only through its entry; committed rather than rendered at build time, with a regeneration check on demand where a script exists | ADR 021; I6; I30; F133 |
 | Governed visual agent skills (decision 38) | Audited, pinned, project-local skills at `.agents/skills/`, a project-owned scientific-visualization skill, the planner, implementer, reviewer, and verification contract, bounded pilots, no mandatory review agent | ADR 019; I32; F122, F129 |
 | Fonts of the atelier | Self-hosted with their licences, counted in the initial payload, subset or dropped when they do not fit | This document; ADR 018; F123 |
 
@@ -1893,8 +2068,9 @@ that must settle them:
 | 11. Scheduled full audits | Not authorised; the owner decides on ADR 017's analysis if ever | None unless approved. |
 | 12. Closing F113 | By the owner once question 9 is decided; F120 proposes it on Issue #150 | None: the branch and the closed pull request stay as a record either way. |
 | 13. Which third-party skills pass the audit | Per candidate, by the audit of F122 and the owner's approval of each outcome (vendored, adapted, or dropped) | None for the site; the skills directory and the skills configuration check of ADR 019 hold whatever passes. |
-| 14. The validated interactive pendulum | By the owner, as its own feature (F128) after the numerical validation and the cross-language reference check exist | The home opening stays a static verified figure until then; if decided, a widget that computes in the browser under the verified display forms. |
+| 14. The validated interactive pendulum | By the owner, as its own feature (F128) after the numerical validation and the cross-language reference check exist; since decision 40 also where (the mechanics course or "How we verify the science") | Since F134 the home opening is the hero, not the pendulum figure; if decided, a widget that computes in the browser under the verified display forms, on the page the owner names. |
 | 15. A Manim pilot | Not scheduled; starts only when the owner names one explanation where a static figure is inadequate | None; a pilot's dependencies stay outside the pinned learner and CI environments and its rendering out of normal CI. |
+| 16. A contribution form without a GitHub account | By the owner, as its own decision; a yes amends "No backend or runtime server" and "no runtime secrets" through its own change and Issue | None until then: I1 holds, and F135's links to GitHub's forms are the only route. |
 
 ## Assumptions and risks
 
@@ -2081,7 +2257,8 @@ that must settle them:
   the front matter, and an independent review reads the manifest as a set
   of scientific claims about the curriculum before it is merged.
 - **Browser physics could drift from the verified Python.** The home
-  opening stays a static figure drawn by the verified implementation; the
+  opening computes no physics (a static verified figure until F134, the
+  hero after it); the
   interactive pendulum, if decided, is a widget whose browser computation
   is tested against reference values from `src/pbc`, as the verified
   display forms require, and the owner decides it as its own feature.
@@ -2098,11 +2275,55 @@ that must settle them:
   to this stack and reviewed as any change; the reviewer checks the
   rendered or generated artifact and its sources, never a self-report,
   and the scientific checks are not weakened for a visual match.
+- **Image-model artwork could be taken for science, or carry terms that
+  forbid publication** (site navigation). Interface artwork is kept off
+  lesson bodies, carries no text, number, or formula, is never captioned
+  as a result, and its register entry records the model's terms or the
+  licence; the reviewer checks the rendered pages, and a later
+  illustration that is not physically exact needs no new decision.
+- **`::details-content` is not supported everywhere** (site navigation).
+  A browser without it shows the exclusive disclosures as an accordion,
+  which F133 tests by disabling the wide rule in the three engines, and
+  a Safari behaviour that WebKit under Playwright does not cover gets a
+  recorded manual check.
+- **The hero could flash or shift** (site navigation). The default pair is
+  in the HTML, the script runs before first paint, and the text block's
+  height is reserved for the longest pair; F134 tests every pair through
+  the `hero` parameter and measures the layout shift.
 
 ## Repository state compared with the requirements
 
-Checked at the change-cycle base commit `36e9d3b` (2026-10-19) against the
-requirements re-approved with `risk-proportionate-workflow`. No material
+Checked at the change-cycle base commit `c94c045` (2026-10-30) against the
+requirements of `site-navigation-and-atlas` (decisions 40 and 41). One
+material conflict was found and corrected in this cycle: the requirements
+called the thermal capstone planned and Home's capstone "the published
+one", while T11 and EM9 are both published at the base commit (finding M1
+of the planning review, round 1, escalated and resolved by the correction
+of the requirements). The reconciliation is in `docs/roadmap.md`, "State at
+the change cycle `site-navigation-and-atlas`". The gaps are the work of F132
+to F135:
+
+- The header carries eight items, with Glossary, Evidence, Set up, and
+  Contribute in the bar and Source both in the bar and in the footer
+  (F132); the About page still describes one ascending path (F132).
+- The Course Atlas page is the map of F125 and F126 (the concept map with
+  three edge types, the Lean and method bands, the controls), followed by
+  the course index, the method paths, and the methods, so that a lesson
+  appears four to five times (F133).
+- Home carries the opening of F124 followed by the Part A, Part B, and
+  capstone blocks; "Set up" opens with the installation, not with its
+  three routes; no page tells in readable form how the science is checked
+  (F134).
+- The glossary is a page only, with no definition in "Before you begin";
+  no lesson ends with a link to an issue form, and none of the five issue
+  templates defines a field `id`, which a pre-filled link needs (F135).
+- A raster file is not allowed as interface artwork (requirements decision
+  37 before this change); the twelve illustrations and the hero are the
+  owner's material outside the repository (F133, F134).
+
+The gaps recorded at the change-cycle base commit `36e9d3b` (2026-10-19)
+against the requirements re-approved with `risk-proportionate-workflow`,
+kept for the history of that phase. No material
 conflict was found; the reconciliation of lessons, features, runs, Issues,
 the ruleset, and ADRs is in `docs/roadmap.md`, "State at the change cycle
 `risk-proportionate-workflow`". The gaps are the work of F130 and F131
