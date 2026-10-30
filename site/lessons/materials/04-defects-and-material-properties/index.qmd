@@ -1,0 +1,541 @@
+---
+title: "Defects and material properties"
+description: >-
+  Why every crystal holds vacancies in equilibrium, counted from the balance
+  of energy and entropy; a vacancy that hops at the Arrhenius rate and
+  diffuses like the random walker of the thermodynamics course; and the
+  atoms it moves, whose correlated jumps make a crystal's self-diffusion
+  slower than a random walk would.
+lesson:
+  id: defects-and-material-properties
+  strand: materials
+  order: 4
+  difficulty: 3
+  course: materials
+  slot: MAT4
+  methods: [simulation]
+  outcomes:
+    - Derive the equilibrium vacancy fraction from the free energy of a crystal and check it against the exact count of arrangements
+    - Simulate a vacancy hopping on a lattice at the Arrhenius rate and check its diffusion coefficient against the random-walk law
+    - Recover a migration energy from an Arrhenius plot and explain why atomic self-diffusion has the activation energy of formation plus migration
+    - Measure the tracer correlation factor of the vacancy mechanism and explain the statistical and finite-size limits of the estimate
+  related: []
+  format: 2
+  preview: fig-arrhenius
+  experiment: pbc.materials.experiments.defects_and_material_properties
+  prerequisites:
+    lessons: [random-walks-and-diffusion, entropy-from-ensembles, crystal-lattices-and-phonons]
+    outside:
+      - "Calculus: the logarithm and the exponential, and the minimum of a function"
+      - "Probability: the mean and the standard error of a sample"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.materials import defects
+from pbc.materials.experiments import defects_and_material_properties as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The lessons on lattices and bands treated a perfect crystal: every atom on
+its site, the pattern repeating without end. No real crystal is perfect.
+Some sites are empty (**vacancies**), some atoms sit between sites
+(**interstitials**), foreign atoms replace the host, and whole lines of
+atoms are out of register (**dislocations**). These **defects** are few,
+yet many properties of a material depend on them: how fast atoms move
+through it, how it conducts, how it deforms permanently.
+
+This lesson asks two questions about the simplest defect, the vacancy. How
+many vacancies does a crystal hold at a temperature, if making one costs
+energy? And how does a crystal's atom move, if it can only jump into a
+vacancy beside it? The first answer comes from counting; the second from
+the random walk of the thermodynamics course, with a twist.
+
+## Assumptions
+
+1. **Point defects only, and dilute.** Vacancies are few and far apart;
+   they do not interact, and nothing else changes the crystal. Clusters of
+   vacancies, dislocations, and grain boundaries are left out.
+2. **A fixed formation energy.** Removing an atom to the surface costs the
+   energy $E_f$, independent of where the vacancy is and of how many there
+   are. [The vibrational entropy of formation, which changes the prefactor
+   of the vacancy fraction, is set to zero.]{.not-verified}
+3. **Thermally activated hops.** A vacancy jumps to one of its $z$
+   neighbouring sites at the rate $\Gamma = \nu\,\mathrm e^{-E_m/k_BT}$,
+   with the attempt frequency $\nu$ and the barrier $E_m$; jumps are
+   independent, and the waiting time between them is exponential.
+4. **A square lattice in the plane.** The simulations run on a square
+   lattice, $z = 4$, $d = 2$, with spacing $a$; the arguments hold in three
+   dimensions with $z$, $d$, and the correlation factor of the lattice.
+5. **Illustrative values.** $E_f = 1.0\ \mathrm{eV}$,
+   $E_m = 0.7\ \mathrm{eV}$, $\nu = 10^{13}\ \mathrm{s}^{-1}$,
+   $a = 0.25\ \mathrm{nm}$, of the size of those of a metal and not fitted
+   to one. Energies in electronvolts, temperatures in kelvin, diffusion
+   coefficients in $\mathrm{cm}^2/\mathrm{s}$.
+
+## Vacancies and how they move atoms {#explanation}
+
+### How many vacancies?
+
+Making $n$ vacancies on $N$ sites costs the energy $nE_f$. There are
+$\binom{N}{n} = N!/(n!\,(N - n)!)$ ways to choose which sites are empty, so
+the vacancies add the configurational entropy $S = k_B\ln\binom{N}{n}$ of
+the lesson on entropy. At fixed temperature, the crystal settles at the
+minimum of the free energy
+
+$$
+G(n) = nE_f - k_BT\ln\binom{N}{n} .
+$$
+
+The energy grows in proportion to $n$; the entropy grows fastest for the
+first few vacancies. With Stirling's approximation
+$\ln n! \approx n\ln n - n$, the condition $\mathrm dG/\mathrm dn = 0$ reads
+$E_f = k_BT\ln((N - n)/n)$, so
+
+$$
+\frac{n}{N - n} = \mathrm e^{-E_f/k_BT}, \qquad
+c_v = \frac{n}{N} = \frac{\mathrm e^{-E_f/k_BT}}{1 + \mathrm e^{-E_f/k_BT}}
+\approx \mathrm e^{-E_f/k_BT} .
+$$
+
+A perfect crystal is not the state of lowest free energy at any temperature
+above zero: the first vacancies lower $G$ because they add more entropy
+than energy. Without Stirling's approximation, the step from $n$ to $n + 1$
+vacancies changes $G$ by exactly
+
+$$
+G(n + 1) - G(n) = E_f - k_BT\ln\frac{N - n}{n + 1},
+$$
+
+which grows with $n$; the exact minimum is the first $n$ at which the step
+is no longer negative. That is a statement about integers the code can
+search for, without the closed form.
+
+### A hopping vacancy is a random walker
+
+A vacancy moves when a neighbouring atom jumps into it. Each of the $z$
+neighbours jumps at the rate $\Gamma$, so the vacancy hops at the total
+rate $z\Gamma$, the mean time between hops is $\tau = 1/(z\Gamma)$, and
+each hop is a step of length $a$ in a random lattice direction. This is
+the random walk of the thermodynamics course, whose law
+$\langle r^2\rangle = 2dDt$ with
+
+$$
+D = \frac{a^2}{2d\tau}
+$$
+
+needs only independent steps of mean square $a^2$, taken on average every
+$\tau$. On the square lattice, $D_v = a^2 z\Gamma/(2d) = \Gamma a^2$. The
+temperature enters only through $\Gamma$, so
+
+$$
+\ln D_v = \ln(\nu a^2) - \frac{E_m}{k_BT},
+$$
+
+a straight line against $1/k_BT$ with the slope $-E_m$: an **Arrhenius
+plot**.
+
+### The atoms the vacancy moves
+
+An atom of the crystal moves only when a vacancy is beside it. Its jump
+rate is the vacancy fraction times the vacancy's rate, and a naive count
+gives the self-diffusion coefficient $c_v D_v$. But the atom's jumps are
+not independent. Right after an atom has jumped, the vacancy sits exactly
+behind it, so the atom's most likely next jump is straight back. The
+backward jumps undo part of the motion, and
+
+$$
+D^* = f\,c_v\,D_v ,
+$$
+
+with the **tracer correlation factor** $f < 1$. Each jump of the vacancy
+moves exactly one atom by $a$, so without correlation the sum of the
+squared displacements of all atoms would grow by $a^2$ per vacancy jump;
+with it, the sum grows by $f a^2$ per jump. [For the square lattice the
+exact value is $f = 1/(\pi - 1)$.]{.not-verified} The atom's diffusion has
+the activation energy of formation plus migration:
+
+$$
+D^* \approx f\,\nu a^2\,\mathrm e^{-(E_f + E_m)/k_BT} .
+$$
+
+At the start of a run no atom has a jump behind it, so its first jump has
+no backward partner yet. The sum of the squared displacements then grows
+as $f a^2$ per jump *plus a constant*, and dividing the sum by the number
+of jumps overestimates $f$ by that constant over the jumps. The growth
+between two numbers of jumps removes the constant.
+
+## Code
+
+The free energy, its exact step, the exact minimum by bisection, and the
+closed form:
+
+```{python}
+#| echo: false
+excerpt(defects.free_energy)
+```
+
+```{python}
+#| echo: false
+excerpt(defects.free_energy_step)
+```
+
+```{python}
+#| echo: false
+excerpt(defects.exact_vacancies)
+```
+
+```{python}
+#| echo: false
+excerpt(defects.vacancy_fraction)
+```
+
+The hop rate and the vacancy's walk on the lattice, sampled exactly at the
+recorded times:
+
+```{python}
+#| echo: false
+excerpt(defects.hop_rate)
+```
+
+```{python}
+#| echo: false
+excerpt(defects.lattice_walks)
+```
+
+The vacancy exchanging places with the atoms of a periodic lattice, and
+the correlation factor from the growth of their squared displacements:
+
+```{python}
+#| echo: false
+excerpt(defects.vacancy_exchanges)
+```
+
+```{python}
+#| echo: false
+excerpt(defects.correlation_factor)
+```
+
+## Worked examples
+
+### The number of vacancies
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+```{python}
+#| label: vacancies-run
+#| echo: false
+excerpt(experiment.vacancies)
+```
+
+```{python}
+#| label: vacancies
+#| echo: false
+result.table("vacancies")
+```
+
+[The exact minimum of the free energy, found by bisection on its integer
+steps, lies within one vacancy of the closed form at every
+temperature.]{.claim type="numerically-verified"
+scope="10^12 sites, formation energy 1.0 eV, 600 to 1200 K"
+evidence="vacancies-run vacancies"}
+The closed form is the minimum of a smooth approximation to $G$; the exact
+minimum is an integer, and the two can only differ by the rounding. The
+fraction rises steeply with temperature: at $T = 1000\ \mathrm K$ the
+vacancy fraction is $c_v$ = `{python} result["fraction-1000"]`.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_free_energy)
+```
+
+```{python}
+#| label: fig-free-energy
+#| echo: false
+#| fig-cap: "The energy of the vacancies rises in proportion to their number and the entropy term falls; their sum, the free energy, has a shallow minimum at the closed-form number of vacancies."
+#| fig-alt: "Two panels against the number of vacancies, sharing the horizontal axis. Top: a dashed straight line rising, the energy; a dotted curve falling almost as a mirror image, the entropy term; and a solid curve between them that stays near zero. Bottom: the solid curve enlarged; it falls steeply from zero, reaches a broad minimum, and rises again; an open circle marks the exact minimum, and a dash-dotted vertical line at the closed-form number passes through it."
+#| fig-status: simulated
+result.show("fig-free-energy")
+```
+
+The figure uses a smaller crystal at the same temperature, so that the
+numbers on its axis stay readable. The minimum is shallow: near it,
+adding or removing a vacancy changes $G$ by much less than $k_BT$, and
+the number of vacancies in a real crystal fluctuates around the minimum.
+
+### The vacancy's walk against the random-walk law
+
+The vacancy hops at the Arrhenius rate; its diffusion coefficient is
+fitted with the estimator of the thermodynamics course, and so is that of
+a walker of that course with the same step and the same mean time between
+steps:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="walk")
+```
+
+```{python}
+#| label: walk-run
+#| echo: false
+excerpt(experiment.against_t1)
+```
+
+```{python}
+#| label: walk
+#| echo: false
+result.table("walk")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_msd)
+```
+
+```{python}
+#| label: fig-msd
+#| echo: false
+#| fig-cap: "The vacancy hopping on the lattice and the walker of the thermodynamics course with the same step and mean time between steps spread at the same rate, the one predicted by the random-walk law."
+#| fig-alt: "The mean squared displacement against time. A dashed straight line through the origin, the prediction; open circles for the vacancy on the lattice and open squares for the walker of the thermodynamics course lie on it along its whole length."
+#| fig-status: simulated
+result.show("fig-msd")
+```
+
+[The vacancy's diffusion coefficient on the square lattice, with
+exponential waiting times, agrees with the random-walk prediction
+$a^2/(2d\tau)$ within three standard errors, and so does the walker of the
+thermodynamics course with random directions and a fixed time
+step.]{.claim type="numerically-verified"
+scope="8000 walkers, about 200 hops each, 1000 K, migration barrier 0.7 eV, one fixed seed"
+evidence="walk-run walk fig-msd"}
+The law needs only the mean square of a step and the mean time between
+steps: neither the lattice directions nor the random waiting times change
+the coefficient, only the scatter.
+
+### The Arrhenius plot
+
+```{python}
+#| label: arrhenius-run
+#| echo: false
+excerpt(experiment.arrhenius)
+```
+
+```{python}
+#| label: arrhenius
+#| echo: false
+result.table("arrhenius")
+```
+
+[A straight-line fit of $\ln D_v$ against $1/k_BT$, weighted by the
+standard errors, recovers the migration energy,
+`{python} result["migration-fit"]` eV with a standard error of
+`{python} result["migration-error"]` eV, within three standard errors of
+the barrier the simulation was given.]{.claim type="numerically-verified"
+scope="four temperatures from 600 to 1200 K, 8000 walkers each, one fixed seed"
+evidence="arrhenius-run arrhenius"}
+In the laboratory this runs the other way: the coefficient is measured at
+several temperatures, and the slope of the Arrhenius plot is how a barrier
+is found.
+
+### Correlated jumps of the atoms
+
+A single vacancy wanders through a periodic lattice of atoms, and the
+squared displacements of all atoms are summed:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="exchange")
+```
+
+```{python}
+#| label: correlation-run
+#| echo: false
+excerpt(experiment.correlations)
+```
+
+```{python}
+#| label: correlation
+#| echo: false
+result.table("correlation")
+```
+
+[The growth of the atoms' summed squared displacements per vacancy jump is
+the correlation factor $1/(\pi - 1)$ of the square lattice within three
+standard errors, while the vacancy's own squared displacement per jump is
+one spacing squared, the uncorrelated walk.]{.claim
+type="numerically-verified"
+scope="one vacancy, periodic square lattice of 64 x 64 sites, growth from 2000 to 8000 jumps, 2000 runs, one fixed seed"
+evidence="correlation-run correlation"}
+The measured value lies `{python} result["f-gap"]` standard errors from
+$1/(\pi - 1)$. The atoms' sum divided by the jumps lies above it, more after
+fewer jumps: that is the constant from the start of the run. The jumps
+back into the vacancy just left cut an atom's mean squared displacement to
+less than half of what the same number of independent jumps would give.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_arrhenius)
+```
+
+```{python}
+#| label: fig-arrhenius
+#| echo: false
+#| fig-cap: "The vacancy diffuses with the activation energy of migration; the atoms, which need a vacancy beside them and lose part of each jump to correlation, diffuse many orders of magnitude more slowly, with the activation energy of formation plus migration."
+#| fig-alt: "An Arrhenius plot, the diffusion coefficient on a log scale against one thousand over the temperature. A solid straight line falls gently, the vacancy, with open circles with error bars on it at four temperatures. A dashed straight line far below it falls much more steeply, the atoms, with open squares on it at the same temperatures."
+#| fig-status: simulated
+result.show("fig-arrhenius")
+```
+
+At $T = 1000\ \mathrm K$ the vacancy diffuses with $D_v$ =
+`{python} result["dv-1000"]` $\mathrm{cm}^2/\mathrm{s}$ and the atoms with $D^*$ =
+`{python} result["datoms-1000"]` $\mathrm{cm}^2/\mathrm{s}$, slower by a factor of
+`{python} result["slowdown-1000"]`. The error bars of the vacancy are one
+standard error and smaller than the markers. The atoms' points combine the
+measured $f$ and $D_v$ with the closed-form $c_v$, which no simulation here
+measures.
+
+## Limits {#limits}
+
+- **A statistical estimate.** The diffusion coefficients and the
+  correlation factor are Monte Carlo averages with a standard error. The
+  comparison is within three standard errors with one fixed seed; another
+  seed gives other numbers in the same range.
+- **Finite lattices and finite runs.** On a small periodic lattice the
+  vacancy returns to the atom it has just moved through its periodic
+  images, and the measured $f$ is too large; dividing the sum by the jumps
+  instead of taking its growth adds a further bias that falls with the
+  length of the run. The exercise below shows the first.
+- **Dilute, independent vacancies.** At high concentration vacancies meet,
+  form pairs, and block each other; the formulas here hold only when
+  $c_v \ll 1$.
+- **A simple rate.** The Arrhenius rate with a constant attempt frequency
+  is a model of the hop; [transition-state theory gives the prefactor from
+  the vibrations of the crystal, and a vibrational entropy changes the
+  vacancy fraction by a constant factor]{.not-verified}.
+- **Other defects and paths.** Interstitials, impurities, dislocations, and
+  grain boundaries give other and often faster diffusion paths; a measured
+  diffusion coefficient of a real material mixes them.
+- **No measured data.** The energies and the attempt frequency are chosen,
+  not fitted. Real formation and migration energies come from measurements
+  of diffusion, positron annihilation, or quenching experiments.
+
+::: {.exercise .self-check}
+An atom of the crystal has just jumped into the vacancy beside it. Which of
+its next jumps is the most likely?
+
+::: {.choices}
+::: {.choice}
+Any of the four directions with equal probability, because the jumps of a
+random walk are independent.
+
+::: {.feedback}
+That holds for the vacancy, which always has an atom to exchange with in
+every direction, but not for the atom, which needs a vacancy beside it.
+:::
+:::
+
+::: {.choice correct="true"}
+Straight back, because the vacancy now sits exactly where the atom came
+from.
+
+::: {.feedback}
+Correct: the vacancy's next jump has a chance of one in four of bringing
+the atom straight back, and every other direction needs the vacancy to go
+around first. These backward jumps make $f$ less than one.
+:::
+:::
+
+::: {.choice}
+Forward, in the direction of its last jump, because it keeps its momentum.
+
+::: {.feedback}
+The jumps are thermally activated and the atom is at rest between them;
+it keeps no memory of its velocity, only of where the vacancy is.
+:::
+:::
+:::
+
+::: {.solution}
+After the jump the vacancy sits on the site the atom left. The next jump
+of the vacancy is to any of its four neighbours, and one of them is the
+atom, which then jumps back. The other atoms around the atom have no
+vacancy beside them until it wanders around. Backward jumps undo motion,
+so the atom's mean squared displacement grows more slowly than a random
+walk with the same number of jumps: $f < 1$.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Hot crystals.** At what temperature does the vacancy fraction of this
+lesson's crystal ($E_f = 1.0$ eV) reach $10^{-6}$? And $10^{-4}$?
+
+::: {.hint}
+Solve the closed form of $c_v$ for $T$: isolate the exponential, then take
+the logarithm of both sides.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.vacancy_temperature)
+```
+
+The fraction reaches $10^{-6}$ at `{python} result["t-1e-6"]` K and
+$10^{-4}$ at `{python} result["t-1e-4"]` K. A hundredfold change of the
+fraction needs only a moderate change of temperature, because the
+temperature sits in an exponent. [In metals near their melting point,
+measured vacancy fractions are of the order of $10^{-4}$.]{.not-verified}
+:::
+:::
+
+::: {.exercise}
+**Small lattices.** Repeat the measurement of $f$ on periodic lattices of
+side 4, 8, 16, and 32 sites. How does the result depend on the size, and
+why?
+
+::: {.hint}
+On a small torus, how soon can the vacancy come back to the atom it has
+just moved, from the other side?
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+result.table("finite-size")
+```
+
+The measured $f$ is too large on small lattices and approaches
+$1/(\pi - 1)$ as the side grows. [On a small periodic lattice the vacancy
+reaches the atom it has moved again soon, through the periodic images and
+from any side, which makes the backward jump less dominant;]{.not-verified}
+the value $1/(\pi - 1)$ belongs to an infinite crystal. A simulation of a defect in a
+periodic box always has this kind of finite-size effect, and the size has
+to be increased until the result no longer changes within its error.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/materials/defects.py",
+        "src/pbc/thermodynamics/diffusion.py",
+        "src/pbc/materials/experiments/defects_and_material_properties.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_materials.py",
+        "tests/unit/test_defects_and_material_properties_experiment.py",
+    ],
+)
+```
