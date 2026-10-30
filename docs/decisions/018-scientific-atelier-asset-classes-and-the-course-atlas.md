@@ -33,6 +33,22 @@ generated is committed. Reaffirms the Quarto baseline of
 Delivered by F123 to F127; the interactive pendulum of decision 4 by F128,
 if the owner decides it.
 
+Superseded in part by
+[ADR 021](021-quieter-site-two-layer-atlas-and-raster-interface-artwork.md)
+(2026-10-30, change cycle `site-navigation-and-atlas`, requirements
+decisions 40 and 41): in decision 2, the definition, places, and sources
+of interface artwork ("never a raster file") and the committed-artifact
+exemption, which now also admits a registered derived raster (WebP or
+PNG) under `site/assets/`; in decision 3, the map with its three edge
+types, the Lean and method view bands, the switch, selection, zoom,
+filters, the region selector, the course areas' illustrations drawn by
+code, and the rule that the manifest holds no illustration reference,
+replaced by the two-layer atlas; in decision 4, the opening headline and
+figure, the Part A and Part B introduction, and the capstone highlights,
+replaced by the hero and the landing page. The rest of those decisions
+and decisions 1, 5, and 6 stand; ADR 021 lists what stands. Delivered by
+F132 to F135.
+
 Date: 2026-10-17
 
 ## Context

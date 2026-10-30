@@ -25,6 +25,15 @@ one further declared exemption, a tracked `.svg` under `site/assets/`
 that the register names, and no raster and no other image type anywhere.
 Conceptual illustrations stay drawn by code in executed cells, and
 nothing generated is committed; the other decisions below are unchanged.
+Amended again by
+[ADR 021](021-quieter-site-two-layer-atlas-and-raster-interface-artwork.md)
+(2026-10-30), in the same exemption: a derived raster of interface artwork
+(WebP, or PNG where its feature records why) under `site/assets/`, which
+the provenance register names with its origin, licence, and the hash of
+its master, is admitted as a registered SVG is; an unregistered raster,
+every other image type, and every image file outside `site/assets/` stay
+rejected. Such a file is an input the build cannot regenerate, not a
+build output; the other decisions below are unchanged.
 
 Amended by [ADR 020](020-risk-proportionate-verification-and-review.md) (2026-10-19, change cycle
 `risk-proportionate-workflow`, requirements decision 39) in one process
