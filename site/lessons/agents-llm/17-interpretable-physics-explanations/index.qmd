@@ -1,0 +1,351 @@
+---
+title: "A prediction and its explanation"
+description: >-
+  A language model predicts four quantities of a particle falling with drag
+  and explains each prediction with a relation; the build tests the
+  predictions against the exact solution and, separately, tests each
+  explanation by its units, its dimensions, its physics, and its interval.
+lesson:
+  id: interpretable-physics-explanations
+  strand: agents-llm
+  order: 17
+  difficulty: 3
+  course: mechanics
+  slot: AI7
+  experiment: pbc.mechanics.experiments.interpretable_physics_explanations
+  methods: [simulation, llm-agents]
+  outcomes:
+    - Tell a correct prediction apart from a correct explanation, and give an example of each without the other
+    - Test an explanation by its unit, by a scaling test of its dimensions, and against a verified result
+    - Check that an explanation supports the prediction it came with, and that a stated interval covers the truth
+    - Compare a model with a curve fit, which predicts without explaining, and with dimensional analysis, which explains without data
+  related: []
+  format: 2
+  preview: fig-explanation-intervals
+  prerequisites:
+    lessons: [multimodal-physics-reasoning, newtons-laws]
+    outside:
+      - "Large language models: a program that continues a text"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.mechanics.experiments import interpretable_physics_explanations as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A forecast can be right for the wrong reason. A curve fitted to last week's
+data may predict tomorrow well and say nothing about why; a formula with the
+right shape and a wrong constant may explain the mechanism and predict
+badly. When a language model gives a number *and* a reason, the two can be
+checked apart, and they should be: a right number does not make the reason
+right, and a reason is worth something only if it would predict.
+
+This lesson asks a model for four predictions about a particle falling with
+linear drag, the particle of the lesson on Newton's laws. With each prediction
+the model gives an interval, a unit, and an explanation: one relation, chosen
+from a short list of candidates. The build then tests the prediction against
+the exact solution, and the explanation against three standards physics has
+for an explanation: its units, its consistency with the physics, and its
+uncertainty.
+
+## Assumptions
+
+1. **The scene is given.** The model sees the velocity plot of the falling
+   particle and is told the mass, the drag constant, and the gravitational
+   acceleration. It starts from rest; down is positive.
+2. **The verified result is the exact solution.** Every truth is computed from
+   the exact fall of `pbc.mechanics.drag`, not from a candidate relation; the
+   time constant is found by root finding on the exact velocity.
+3. **An explanation is one relation from a list.** A free-text explanation
+   cannot be tested by a build. The candidates include the right relation, ones
+   with the wrong dimensions, and ones with the right dimensions and the wrong
+   physics.
+4. **A prediction is right within `{python} result["prediction-tolerance"]`
+   per cent.** A relation agrees with the verified result within a relative
+   `{python} result["agreement"]`: both evaluate the same physics.
+5. **The model's words are data.** Its message is shown as recorded; nothing is
+   scored from it.
+
+## Five tests of one answer {#explanation}
+
+For each question the model calls the tool `explain` once, with a prediction,
+the ends of an interval, a unit, and a relation. The build runs one test on the
+prediction and five on the rest:
+
+- **prediction**: within the tolerance of the verified result;
+- **unit**: the unit named is the unit of the quantity asked;
+- **dimensions**: the relation passes a *scaling test*. Express the given
+  values in larger units of mass, length, and time, evaluate the relation
+  again, and compare: a relation whose two sides have the same dimensions
+  changes exactly as a quantity of the asked unit does. The test needs no
+  algebra of units, only the relation and the change of units, and catches an
+  exponential of a time in seconds as surely as a square root too many;
+- **physics**: the relation, evaluated at the given values, gives the verified
+  result. Right dimensions are necessary for this, not sufficient: the
+  velocity of free fall has the dimensions of a velocity too;
+- **support**: the relation, evaluated, lies within the model's own interval.
+  An explanation that does not support the number it came with is not the
+  explanation of that number;
+- **interval**: the interval covers the verified result.
+
+The scaling test:
+
+```{python}
+#| echo: false
+from pbc.agents.explanation_lab import dimensionally_consistent, examine
+
+excerpt(dimensionally_consistent)
+```
+
+The tests of one answer, built from the recorded call and the verified
+result, never from the model's text:
+
+```{python}
+#| echo: false
+excerpt(examine)
+```
+
+## Code
+
+The picture the model receives is picture B of the previous lesson, drawn by
+the lesson on Newton's laws:
+
+```{python}
+#| label: fig-explanation-picture
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "The picture of the task, from Newton's laws: the velocity of the falling particle against time, explicit Euler against the exact solution, with the terminal speed dotted."
+#| fig-alt: "Line plot of velocity in metres per second against time in seconds. The exact curve rises from zero and bends over towards a dotted horizontal line, the terminal speed, which it approaches without crossing. The explicit Euler points start on the exact curve and lie slightly above it."
+result.show("fig-explanation-picture")
+```
+
+The model's one tool, as the model sees it. It refuses an interval that does
+not contain the prediction, a relation another question offers, and a second
+answer to a question:
+
+```{python}
+#| echo: false
+result.display("allowlist")
+```
+
+## Worked examples
+
+### The recorded run
+
+Recorded on `{python} result["recorded"]` by a Claude model in a Claude Code
+session: a fresh sub-agent given only the system prompt, the task, the tool,
+and the picture as an image. The harness ran every call.
+
+```{python}
+#| echo: false
+result.display("run")
+```
+
+### The explanation beside the verified result
+
+```{python}
+#| label: ai7-explanations
+#| echo: false
+result.table("ai7-explanations")
+```
+
+The left half of the table is what the model said; the right half is what the
+build computed and tested. [All `{python} result["predictions-right"]` of
+`{python} result["questions"]` predictions are within the tolerance, and all
+`{python} result["explanations-right"]` explanations pass the unit, scaling,
+physics, and support tests, with intervals that cover the verified
+results.]{.claim type="numerically-verified"
+scope="one recorded run, the linear-drag fall of Newton's laws"
+evidence="ai7-explanations replay"} The model said in its last message which
+answers came from the relation and which from the picture; that statement is
+shown, not tested. What *is* tested is that each relation it named gives its
+number.
+
+### Prediction without explanation, explanation without data
+
+Two methods without a model show that the two halves can come apart:
+
+- a **curve fit**: $v = A\,(1 - e^{-t/T})$ fitted to the explicit Euler
+  points of the picture. It predicts without explaining: it has no mass in it,
+  so it cannot say what changes when the mass does;
+- **dimensional analysis**: the candidate relations that pass the scaling
+  test. It explains without data: where one candidate is left, the form is
+  identified; where several are, it cannot choose.
+
+```{python}
+#| echo: false
+from pbc.agents.explanation_lab import curve_fit_baseline, dimensional_baseline
+
+excerpt(curve_fit_baseline)
+```
+
+```{python}
+#| label: ai7-baselines
+#| echo: false
+result.table("ai7-baselines")
+```
+
+```{python}
+#| label: fig-explanation-intervals
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Each prediction over the verified result, with the model's interval, and the curve fit's prediction. The model's predictions and the curve fit's agree with the verified result within the tolerance on three questions; on the counterfactual question, the terminal speed of a heavier particle, the curve fit is far below it."
+#| fig-alt: "A plot of prediction over verified result against four questions, with a grey band for the tolerance around one. Circles with error bars mark the model's predictions and intervals; squares mark the curve fit. The circles sit on one on all four questions, the second with the widest interval. The squares sit inside the band on the first, second, and fourth questions and far below it, near one half, on the third."
+result.show("fig-explanation-intervals")
+```
+
+[On the counterfactual question the curve fit predicts the terminal speed of
+the original particle, outside the tolerance, while it is within the tolerance
+on the three questions about the plotted motion.]{.claim
+type="numerically-verified" scope="the linear-drag fall of Newton's laws"
+evidence="ai7-baselines fig-explanation-intervals"} A fit to what was
+observed predicts what was observed; it is an explanation, a relation with the
+mass in it, that predicts what was not. [Dimensional analysis identifies the
+terminal speed and the time constant uniquely among the candidates, and leaves
+the velocity after four seconds undecided.]{.claim
+type="numerically-verified" scope="the candidate relations of this lesson"
+evidence="ai7-baselines"} The velocity at a time depends on the
+dimensionless ratio of the time to the time constant, and dimensions cannot
+say through which function.
+
+## Limits {#limits}
+
+- **One recorded run on an easy scene.** The model passed every test on a
+  textbook problem whose given values make every answer a calculation. A
+  harder scene, or one where the picture and the given values disagree,
+  could separate its predictions from its explanations; this one did not.
+- **A list of candidates is not an explanation in words.** The build can test
+  a relation, not a paragraph. The model's message is shown as recorded and
+  not tested; a paragraph that contradicts the relation it chose would not be
+  caught here.
+- **The scaling test is about dimensions only.** It cannot see a wrong
+  dimensionless factor: a relation off by a factor of two passes it, and only
+  the physics test catches it.
+- **The verified result is a model's.** The exact solution is the exact
+  solution of linear drag; a real falling object with quadratic drag would
+  need another verified result.
+- **The recording is not an API run.** As in the previous lesson: a Claude
+  Code session, no token count or price reported.
+
+::: {.exercise .self-check}
+A model predicts the velocity after four seconds correctly and explains it
+with "v = g t". What do the tests say?
+
+::: {.choices}
+::: {.choice}
+The prediction is right, so the explanation is right.
+
+::: {.feedback}
+The prediction test and the explanation tests are separate. Free fall,
+evaluated at four seconds, is far from the velocity with drag.
+:::
+:::
+
+::: {.choice correct="true"}
+The prediction passes; the explanation passes the units and the scaling test
+but fails the physics and does not support the prediction.
+
+::: {.feedback}
+Right. The relation has the dimensions of a velocity and is the wrong physics;
+evaluated, it lies outside the model's own interval, so it is not the
+explanation of that number.
+:::
+:::
+
+::: {.choice}
+The explanation fails the scaling test.
+
+::: {.feedback}
+An acceleration times a time is a velocity, so the relation passes the scaling
+test. Dimensions are necessary for an explanation, not sufficient.
+:::
+:::
+:::
+
+::: {.solution}
+A right number with a wrong reason passes the prediction test and fails the
+physics and support tests. Testing the two apart is what shows it.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+Three answers to the question of the velocity after four seconds are written
+below, not by a model. Before reading the table, say which tests each one
+passes.
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.constructed_examples)
+```
+
+```{python}
+#| label: ai7-examples
+#| echo: false
+result.table("ai7-examples")
+```
+
+The first is a right number with free fall as its reason: dimensions pass,
+physics and support fail. The second names the right relation and predicts a
+number the relation does not give: physics passes, support and prediction
+fail. The third uses an exponential of a time in seconds: the scaling test
+fails, and with it the physics, although the number happens to be right.
+:::
+:::
+
+::: {.exercise}
+The curve fit predicts the plotted motion within the tolerance. Add the mass to
+it so that it can answer the counterfactual question. What have you added, a
+better fit or an explanation?
+
+::: {.solution}
+To answer for another mass the fitted constants have to depend on the mass:
+the terminal speed in proportion to it and the time constant too, with the
+drag constant and gravity setting the scale. That dependence is the relation
+$v_t = m g / b$, $\tau = m / b$: what is added is not a better fit to these
+points, which it already had, but the explanation, which no fit to one mass can
+supply.
+:::
+:::
+
+### Run it yourself
+
+This needs your own key and a model that accepts images. The build does not
+run it, so the commands are marked.
+
+::: {.not-verified}
+```bash
+uv sync --locked --no-dev --extra openai
+export OPENAI_API_KEY="..."
+cd site/lessons/agents-llm/17-interpretable-physics-explanations
+uv run --locked --no-dev --extra openai python -m pbc.agents.explanation_lab
+```
+:::
+
+Expect other words and possibly other answers: a live run is not a replay.
+Keep the key in the environment of the shell, never in a file.
+
+## Replay this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/agents/explanation_lab.py",
+        "src/pbc/agents/vision.py",
+        "src/pbc/mechanics/drag.py",
+        "src/pbc/mechanics/experiments/interpretable_physics_explanations.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_agents_vision.py",
+        "tests/unit/test_interpretable_physics_explanations_experiment.py",
+    ],
+)
+```

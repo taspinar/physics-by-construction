@@ -10,6 +10,7 @@ The SDK is an optional dependency (``uv sync --extra openai``). Building the
 request and reading the response are plain functions, tested without it.
 """
 
+import base64
 import json
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -41,7 +42,18 @@ def build_request(
     """The arguments of one chat completion request."""
     messages: list[dict[str, Any]] = [{"role": "system", "content": system}]
     for turn in conversation:
-        if isinstance(turn, UserTurn):
+        if isinstance(turn, UserTurn) and turn.pictures:
+            parts: list[dict[str, Any]] = [{"type": "text", "text": turn.text}]
+            for picture in turn.pictures:
+                data = base64.b64encode(picture.png).decode("ascii")
+                parts.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/png;base64,{data}"},
+                    }
+                )
+            messages.append({"role": "user", "content": parts})
+        elif isinstance(turn, UserTurn):
             messages.append({"role": "user", "content": turn.text})
         elif isinstance(turn, ModelMessage):
             message: dict[str, Any] = {"role": "assistant", "content": turn.text}

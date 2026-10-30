@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pbc.agents.messages import (
     ModelClient,
     ModelMessage,
+    Picture,
     ToolCall,
     ToolResult,
     Turn,
@@ -65,6 +66,7 @@ def run(
     task: str,
     max_steps: int,
     on_step: Callable[[Step], None] | None = None,
+    pictures: tuple[Picture, ...] = (),
 ) -> Transcript:
     """Run the agent for at most ``max_steps`` model messages.
 
@@ -72,10 +74,12 @@ def run(
     model repeats reaches no transcript, callback, or later request. Each tool
     call of each message is then validated against ``allowlist`` and run if
     it passes; the results go back to the model in the next request.
+    ``pictures`` go with the task, in the first request; the transcript keeps
+    the task's text only.
     """
     if max_steps < 1:
         raise ValueError(f"max_steps must be at least 1, got {max_steps}")
-    conversation: list[Turn] = [UserTurn(task)]
+    conversation: list[Turn] = [UserTurn(task, pictures)]
     steps: list[Step] = []
     finished = False
     for _ in range(max_steps):

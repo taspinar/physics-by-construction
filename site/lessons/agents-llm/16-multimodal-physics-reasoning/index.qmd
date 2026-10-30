@@ -1,0 +1,401 @@
+---
+title: "Reading physics from pictures"
+description: >-
+  A language model answers questions about four figures of this site, a force
+  sketch, a velocity plot, a field image, and a measured spectrum: what an
+  object is doing, where things are, and what would change. The build
+  computes every answer from the physics code and scores the recorded runs,
+  with the pictures and without them.
+lesson:
+  id: multimodal-physics-reasoning
+  strand: agents-llm
+  order: 16
+  difficulty: 3
+  course: mechanics
+  slot: AI6
+  experiment: pbc.mechanics.experiments.multimodal_physics_reasoning
+  methods: [simulation, llm-agents]
+  outcomes:
+    - Ask a model questions about a still picture whose answers the build can compute from the code that drew it
+    - Tell apart questions of property, of spatial relation, and of counterfactual prediction, and say what each needs from the picture
+    - Use a run without the pictures as the control for what the pictures add
+    - Read a score together with the distance of each answer from the truth, not as a count alone
+  related: []
+  format: 2
+  preview: fig-multimodal-readings
+  prerequisites:
+    lessons: [agent-experiment, newtons-laws, electric-fields-and-potential, gravitational-wave-strain]
+    outside:
+      - "Logarithms: reading a plot with a logarithmic axis"
+      - "Large language models: a program that continues a text"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this
+from pbc.mechanics.experiments import multimodal_physics_reasoning as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A physicist reads a figure before reading the text around it: which way the
+arrows point, where a curve levels off, which detector is noisier. A language
+model that accepts images can be asked to do the same. Whether it *reads* the
+figure, or answers from what it already knows about such figures, is a
+question the answers alone cannot settle.
+
+This lesson gives a model four figures of this site and eleven questions
+about them. Every figure is a verified figure of another lesson, drawn again
+by that lesson's own code, and every answer is computed by the build from
+the same physics code. The model is run twice on the same task: once with
+the pictures, once without them. The second run is the control: what it gets
+right, it did not need the pictures for.
+
+## Assumptions
+
+1. **The pictures are the site's own.** Each is drawn by the `draw_` function
+   of the lesson it comes from; none is a copied or committed image. The
+   measured one is the calibrated strain of `GW150914`, published by GWOSC
+   under [CC BY 4.0]{.given}.
+2. **The truth is computed, not typed.** The key comes from the code that
+   computes the physics of each figure: the exact fall with linear drag,
+   Coulomb's law by superposition, and the noise spectrum of the committed
+   strain.
+3. **A reading is not a computation.** A numeric answer is correct within
+   `{python} result["tolerance"]` per cent of the truth, a tolerance fixed
+   before the runs were recorded. A choice is correct when it is the true
+   option.
+4. **The model cannot reach the truth.** Its only tool records an answer and
+   says nothing about whether it is right.
+5. **A recording is a record.** It shows what one model once did with this
+   task. The answers in it are scored; the words are not.
+
+## Three kinds of question {#explanation}
+
+The questions come in three kinds, after what a reader needs from the
+picture to answer them:
+
+- a **property** of an object: which force is larger, where a curve levels
+  off, which frequency a narrow line sits at. It is in the picture, and a
+  reader has to find it;
+- a **spatial relation**: which way the field points at a place, which of two
+  curves lies lower. It is in the picture too, as a relation between parts of
+  it;
+- a **counterfactual prediction**: what the picture would show if the mass,
+  the drag, or a charge were different. It is *not* in the picture. The
+  picture gives the starting point, and physics gives the change.
+
+The four pictures, as the model received them, with the captions their own
+lessons give them:
+
+```{python}
+#| label: fig-picture-a
+#| echo: false
+#| fig-status: conceptual
+#| fig-cap: "Picture A, from Newton's laws: the forces on a particle falling from rest with linear drag, at three moments. A sketch, not a computed result."
+#| fig-alt: "Sketch of the same falling particle at three moments, from left to right: just released, speeding up, and at terminal speed. A solid arrow for the weight points down and has the same length each time. A dashed arrow for the drag points up and is absent at release, medium in the middle, and as long as the weight on the right. A dotted arrow for the velocity points down and grows in the same way as the drag."
+result.show("fig-picture-a")
+```
+
+```{python}
+#| label: fig-picture-b
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Picture B, from Newton's laws: the velocity of that particle against time, explicit Euler against the exact solution, with the terminal speed dotted."
+#| fig-alt: "Line plot of velocity in metres per second against time in seconds. The exact curve rises from zero and bends over towards a dotted horizontal line, the terminal speed, which it approaches without crossing. The explicit Euler points start on the exact curve and lie slightly above it."
+result.show("fig-picture-b")
+```
+
+```{python}
+#| label: fig-picture-c
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Picture C, from the lesson on electric fields: field lines and equipotentials of two opposite point charges, in a plane through both, computed by superposition."
+#| fig-alt: "A square plot of the plane through two charges, a positive one above and a negative one below the centre. Blue curved lines with arrows run from the upper charge out and around to the lower charge. Thin grey closed curves, the equipotentials, surround each charge."
+result.show("fig-picture-c")
+```
+
+```{python}
+#| echo: false
+data_card("gw150914-strain")
+```
+
+```{python}
+#| label: fig-picture-d
+#| echo: false
+#| fig-status: calibrated
+#| fig-dataset: gw150914-strain
+#| fig-cap: "Picture D, from the lesson on gravitational-wave strain: four seconds of the calibrated strain of the two LIGO detectors around the first detected merger of black holes, and the noise spectrum of each, processed from the whole file."
+#| fig-alt: "Two stacked panels. The upper panel shows the strain of two detectors against time over four seconds, two wandering curves, one offset below the other. The lower panel shows the amplitude spectral density against frequency on logarithmic axes: a steep falling curve at low frequency, a flat floor, and narrow tall spikes, the tallest a little above five hundred hertz."
+result.show("fig-picture-d")
+```
+
+Picture D is a measurement: the strain is calibrated data of GWOSC, and the
+spectrum is processed from it. Its credit is on the figure, and the card
+above says what the sample is.
+
+## Code
+
+The task names each picture by its label and states every question; a
+question of choice lists its options, a numeric one its unit and range:
+
+```{python}
+#| echo: false
+from pbc.agents.multimodal_lab import key
+from pbc.agents.vision import Question, answer_sheet, score
+
+excerpt(Question)
+```
+
+The model's one tool, as the model sees it. It records an answer, refuses a
+second answer to the same question, and refuses an option number that a
+question does not have:
+
+```{python}
+#| echo: false
+result.display("allowlist")
+```
+
+```{python}
+#| echo: false
+excerpt(answer_sheet)
+```
+
+The key is computed from the physics of each picture. For the field, the
+direction is read from the vector that Coulomb's law gives at the point; for
+the spectrum, from the amplitude spectrum of the committed strain:
+
+```{python}
+#| echo: false
+excerpt(key)
+```
+
+The score reads the accepted calls of a run, never its text:
+
+```{python}
+#| echo: false
+excerpt(score)
+```
+
+## Worked examples
+
+### The run with the pictures
+
+Recorded on `{python} result["recorded"]` by a Claude model in a Claude Code
+session: a fresh sub-agent given only the system prompt, the task, the tool,
+and the four pictures as images. The harness ran every call.
+
+```{python}
+#| echo: false
+result.display("run-pictures")
+```
+
+### The run without the pictures
+
+The same model, the same task, a fresh sub-agent; its system prompt says that
+the pictures are not available and that it should answer from what it
+knows.
+
+```{python}
+#| echo: false
+result.display("run-text")
+```
+
+### The answers, scored
+
+```{python}
+#| label: ai6-answers
+#| echo: false
+result.table("ai6-answers")
+```
+
+```{python}
+#| label: ai6-tally
+#| echo: false
+result.table("ai6-tally")
+```
+
+[With the pictures the model answered `{python} result["correct-pictures"]`
+of `{python} result["questions"]` questions correctly; without them, also
+`{python} result["correct-text"]`.]{.claim type="numerically-verified"
+scope="one recorded run per condition, these eleven questions, a reading tolerance fixed before the runs"
+evidence="ai6-answers replay-pictures replay-text"} Uniform guessing would
+get about `{python} result["chance"]` right. So the model knows the physics
+of these pictures well, and the control shows the catch: on this question
+set, the count does not show that the pictures were read at all. Every
+question of property or relation in the force sketch and the field image is
+also a question about textbook physics, and the run without pictures
+answered them from the textbook. It even guessed the quieter detector and
+the frequency of the line correctly, and said that it guessed.
+
+### What the pictures did add
+
+The count hides how close each answer was. For the numeric questions about
+the velocity plot, the distance from the truth tells the runs apart (the
+question about the spectrum is in the table above):
+
+```{python}
+#| echo: false
+excerpt(experiment.readings)
+```
+
+```{python}
+#| label: fig-multimodal-readings
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Distance of each numeric answer about the velocity plot from the truth, for the run with the pictures and the run without, with the tolerance of the score dashed. Every answer is within the tolerance; the run with the pictures is closer on every question."
+#| fig-alt: "A scatter plot on a log scale of the relative distance from the truth against three numeric questions about the velocity plot. For each question a circle marks the run with the pictures and a square the run without, slightly to the right. A dashed line marks the tolerance near the top. All markers lie below it, and on every question the circle lies below the square, by more than a factor of ten on two of them."
+result.show("fig-multimodal-readings")
+```
+
+[On each of the four numeric questions, the answer of the run with the
+pictures is closer to the truth than that of the run without.]{.claim
+type="numerically-verified" scope="one recorded run per condition"
+evidence="ai6-answers fig-multimodal-readings replay-pictures replay-text"} The run
+without pictures gave round numbers from what such a figure usually shows;
+the run with them read the terminal speed off the dotted line, and the line
+in the spectrum off the axis (the table gives both answers). The figure shows answers of recorded runs, scored
+against the build's key; it says nothing about another model or another
+day.
+
+## Limits {#limits}
+
+- **One run per condition.** A model's answers vary from run to run; a
+  difference between two runs is a single draw from each.
+- **Questions that knowledge can answer.** Most questions here have a
+  textbook answer. A test of reading needs pictures whose content cannot be
+  known in advance: an unfamiliar setup, a measurement of something new. The
+  control run is how this lesson finds that out, not something it avoids.
+- **A generous tolerance.** A tenth of the truth lets an informed guess pass.
+  The tolerance was fixed before the runs and is not changed after them; the
+  first exercise shows what a stricter one would have done.
+- **Still pictures only.** Motion, order in time, and video are another
+  lesson. A still image of a process shows one moment or one summary.
+- **The pictures are this site's.** They are clean, labelled, and drawn in
+  one style. Pictures from elsewhere, with clutter, glare, or no axis labels,
+  would be harder, and are not tested here.
+- **The recordings are not API runs.** Claude Code sessions, as in the other
+  recent agent lessons; no token count or price reported, and the live command
+  below uses another provider's model.
+
+::: {.exercise .self-check}
+Both runs answered every question correctly. Which conclusion does this
+lesson support?
+
+::: {.choices}
+::: {.choice}
+The model reads physics pictures perfectly.
+
+::: {.feedback}
+The run without the pictures scored the same. A perfect count that the
+control also reaches does not show reading.
+:::
+:::
+
+::: {.choice correct="true"}
+On these questions the count cannot separate reading from knowing; the
+distances from the truth show that the run with the pictures read the
+numbers more closely.
+
+::: {.feedback}
+Right. The control run is what makes the count interpretable, and the
+distances carry the information the count throws away.
+:::
+:::
+
+::: {.choice}
+The pictures make no difference, so a model does not need them.
+
+::: {.feedback}
+The run with the pictures was closer on every numeric question. The pictures
+made no difference to the *count* at this tolerance, which is a property of
+the question set.
+:::
+:::
+:::
+
+::: {.solution}
+A score means something only beside its control. Here the control matched
+the count, so the count says nothing about reading; the distances from the
+truth are where the pictures show.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+The tolerance of a reading was fixed at a tenth of the truth before the runs.
+Count the numeric answers each run gets right at stricter tolerances. At which
+tolerance do the runs part, and why would choosing that tolerance after
+seeing the runs be a mistake?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.stricter)
+```
+
+```{python}
+#| label: ai6-stricter
+#| echo: false
+result.table("ai6-stricter")
+```
+
+The runs part where the tolerance falls below the error of a good guess: the
+run without the pictures misses first. A tolerance picked after seeing the
+answers can make either run win; it measures the choice of the tolerance, not
+the model. Fix it from the precision a careful reader could reach on the
+picture, before any run.
+:::
+:::
+
+::: {.exercise}
+Write one question about picture C that the run without the pictures could
+not answer from physics alone. What makes it a test of reading?
+
+::: {.solution}
+The direction of the field at the midpoint follows from "a positive charge
+above a negative one", and the control assumed exactly that. A question about
+something only the picture fixes would not: which charge is drawn as a square,
+the range of the axes, or where a given equipotential crosses the vertical
+axis. Its answer is a property of this drawing, not of dipoles in general, and
+the key computes it from the same code.
+:::
+:::
+
+### Run it yourself
+
+This needs your own key and a model that accepts images. The build does not
+run it, so the commands are marked.
+
+::: {.not-verified}
+```bash
+uv sync --locked --no-dev --extra openai
+export OPENAI_API_KEY="..."
+cd site/lessons/agents-llm/16-multimodal-physics-reasoning
+uv run --locked --no-dev --extra openai python -m pbc.agents.multimodal_lab
+```
+:::
+
+Expect other words and possibly other answers: a live run is not a replay.
+Keep the key in the environment of the shell, never in a file.
+
+## Replay this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/agents/multimodal_lab.py",
+        "src/pbc/agents/vision.py",
+        "src/pbc/mechanics/experiments/multimodal_physics_reasoning.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_agents_vision.py",
+        "tests/unit/test_agents_pictures.py",
+        "tests/unit/test_multimodal_physics_reasoning_experiment.py",
+    ],
+)
+```
