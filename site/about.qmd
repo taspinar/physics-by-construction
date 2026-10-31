@@ -1,5 +1,8 @@
 ---
 title: "About"
+description: >-
+  Who makes Physics by Construction, why it exists, who it is for, how its
+  results are checked, and how to cite and reuse it.
 ---
 
 ## Creator and JIDAI {#creator-and-jidai}
@@ -16,13 +19,82 @@ Ahmet is an Applied Physics alumnus of TU Delft and the founder of
 [JIDAI](https://jidai.nl). He maintains the project with contributions from
 the open-source community.
 
-## Why open source
+## Why it exists {#why-it-exists}
 
 Physics is best understood by building, experimenting, and verifying results
-yourself. That's why the code behind every simulation, figure, and proof is
-openly available for anyone to explore, reproduce, and improve.
+yourself. A textbook states a result; here you construct it as a program,
+test it against measurements or against a second method, and, where it can be
+done, prove it. Doing all three on one problem shows what each kind of
+evidence can and cannot establish.
 
-The project is freely accessible without registration or tracking.
+### Why open source {#why-open-source}
+
+The code behind every simulation, figure, and proof is openly available for
+anyone to explore, reproduce, and improve. The project is freely accessible
+without registration or tracking.
+
+## Who it is for {#who-it-is-for}
+
+Readers who have undergraduate physics (classical mechanics, calculus, linear
+algebra) and solid programming skills: students who want to see a result
+computed rather than asserted, researchers who want to check that it
+reproduces, and teachers who want material they can run in class. Lessons
+state their prerequisites and link out instead of repeating them. Teaching
+with a lesson? The [For educators](educators.qmd) page lists the instructor
+packs.
+
+## What makes it different {#what-this-site-is}
+
+The lessons are organised in two parts, not as one ladder from easy to hard.
+Computational and experimental physics has eight courses:
+
+```{python}
+#| echo: false
+#| output: asis
+from pbc.authoring.path import COURSES, METHOD_PATHS
+
+print("\n".join(f"- {course.title}" for course in COURSES))
+print()
+print(
+    "Physics with language models and AI agents has four method paths, each a"
+    " sequence of lessons that may draw on any of the courses:"
+)
+print()
+print("\n".join(f"- {title}" for _, title in METHOD_PATHS))
+```
+
+Every lesson belongs to one course and teaches by three activities:
+**construct** the physics as a program you can run, **investigate** it with
+simulations, with real measurements, and with experiments that an AI agent
+helps to run, and **verify** the result by tests, by independent checks, or
+by a proof in Lean that a machine checks. Each lesson names the lessons it
+builds on, so you can read a course from its start, follow one method across
+courses, or begin with any lesson whose prerequisites you have. The
+[Course Atlas](path/index.qmd) shows every course, path, and lesson.
+
+## How the results are checked {#how-the-site-is-built}
+
+- Code shown in a lesson is code the build ran. Figures and numbers are the
+  output of that code, regenerated on every build.
+- Proofs are compiled by Lean on every change. A lesson whose code fails or
+  whose proof does not compile cannot be published.
+- A statement that could be read as a scientific result is marked as a claim
+  with its type and the evidence behind it; a claim without evidence stops
+  the build. The [Evidence map](evidence.qmd) lists every claim.
+- Every lesson ends with the commands that reproduce it on your own
+  computer; [Run the code](reproduce.qmd) says what to install.
+- Equations are MathML. Text, code, equations, and figures are readable with
+  JavaScript turned off. The site is static files. It has no accounts, sets
+  no cookies, runs no analytics, and loads nothing from other websites.
+
+The [rendering check](rendering-check.qmd) page shows sample equations, code,
+and a figure produced by this pipeline.
+
+## How to contribute
+
+To correct a mistake, propose a change, suggest a dataset, or propose a lesson,
+open an issue from one of the forms. The [Contribute](contribute.qmd) page has
+the steps.
 
 ## How to cite
 
@@ -31,41 +103,7 @@ The repository has a `CITATION.cff` file in the
 it and offers "Cite this repository". It names the authors, the project
 address, the repository, and the licences. It has no DOI: none exists until
 the project has a release policy. A suitable citation is "Physics by
-Construction", with a link to the page you used. Teaching with a lesson? The
-[For educators](educators.qmd) page lists the instructor packs.
-
-## How to contribute
-
-To correct a mistake, propose a change, suggest a dataset, or propose a lesson,
-open an issue from one of the forms. The [Contribute](contribute.qmd) page has
-the steps.
-
-## What this site is
-
-Physics by Construction is a course site about physics, programming, and
-proof. Lessons are ordered along one path of increasing difficulty: mechanics
-with numerical simulation first, then experiments driven by AI agents, then
-formal proofs in Lean.
-
-## Who it is for
-
-Readers who have undergraduate physics (classical mechanics, calculus, linear
-algebra) and solid programming skills. Lessons state their prerequisites and
-link out instead of repeating them.
-
-## How the site is built
-
-- Code shown in a lesson is code the build ran. Figures and numbers are the
-  output of that code, regenerated on every build.
-- Proofs are compiled by Lean on every change. A lesson whose code fails or
-  whose proof does not compile cannot be published.
-- Equations are MathML. Text, code, equations, and figures are readable with
-  JavaScript turned off.
-- The site is static files. It has no accounts, sets no cookies, runs no
-  analytics, and loads nothing from other websites.
-
-The [rendering check](rendering-check.qmd) page shows sample equations, code,
-and a figure produced by this pipeline.
+Construction", with a link to the page you used.
 
 ## Licences
 

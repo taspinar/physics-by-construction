@@ -56,7 +56,7 @@ no system packages.
    `verify` status check; see `docs/deployment.md`.
 
 This setup is the maintainers' and agents' contract, not a reader's. For
-readers, `site/reproduce.qmd` (published as the "Set up" page) is the single
+readers, `site/reproduce.qmd` (published as the "Run the code" page) is the single
 guide, organised by what they do: run an experiment with Git and uv, replay
 an agent lesson or run it live with their own key, and check a proof with
 elan (ADR 016). A test (`tests/integration/test_setup_page.py`) performs its

@@ -50,10 +50,12 @@ website:
     type: textbox
     limit: 10
   # The shared header of every page (docs/atelier.md, "Components"): the
-  # mark and the title, the primary navigation, and the start link, the one
-  # filled control, to the first lesson of the learning path. Quarto's navbar
-  # items take no class, so the start link's comes from the Markdown of its
-  # text. Nothing collapses: the entries wrap without a script.
+  # mark and the title, the primary navigation of four items (Home, Course
+  # Atlas, About, and the start link), and the search. The start link, the
+  # one filled control, goes to the first lesson of the learning path.
+  # Quarto's navbar items take no class, so the start link's comes from the
+  # Markdown of its text. The secondary pages are in the footer; no link is
+  # in both. Nothing collapses: the entries wrap without a script.
   navbar:
     collapse: false
     # A light bar, so that the theme draws the header's controls for a light
@@ -66,20 +68,10 @@ website:
         href: index.qmd
       - text: Course Atlas
         href: path/index.qmd
-      - text: Glossary
-        href: glossary.qmd
-      - text: Evidence
-        href: evidence.qmd
       - text: About
         href: about.qmd
-      - text: Set up
-        href: reproduce.qmd
-      - text: Contribute
-        href: contribute.qmd
     right:
-      - text: Source
-        href: https://github.com/taspinar/physics-by-construction
-      - text: "[Start the course]{.pbc-start}"
+      - text: "[Start learning]{.pbc-start}"
         href: lessons/mechanics/01-kinematics-as-a-program/index.qmd
   page-footer:
     # The token becomes the attribution line after the render (attribution.py);
@@ -89,23 +81,20 @@ website:
       Code: [MIT](https://github.com/taspinar/physics-by-construction/blob/main/LICENSE).
       Lesson text and figures:
       [CC BY 4.0](https://github.com/taspinar/physics-by-construction/blob/main/LICENSE-CONTENT).
-      Details on the [About](/about.qmd) page.
-    # The source and the secondary navigation.
+    # The secondary pages and the source, none of them in the header.
     right:
-      - text: Source
-        href: https://github.com/taspinar/physics-by-construction
-      - text: Course Atlas
-        href: path/index.qmd
+      - text: Run the code
+        href: reproduce.qmd
       - text: Glossary
         href: glossary.qmd
-      - text: Evidence
+      - text: Scientific evidence
         href: evidence.qmd
-      - text: Set up
-        href: reproduce.qmd
+      - text: For educators
+        href: educators.qmd
       - text: Contribute
         href: contribute.qmd
-      - text: About
-        href: about.qmd
+      - text: Source
+        href: https://github.com/taspinar/physics-by-construction
 
 format:
   html:
