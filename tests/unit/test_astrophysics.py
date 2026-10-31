@@ -544,6 +544,40 @@ def test_the_transit_functions_reject_inputs_outside_their_domain():
         transit_orbit(gm, a, inclination, p, [0.0, 1.0], 0.1, radius=0.0)
 
 
+def test_the_durations_reject_a_planet_larger_than_the_star():
+    assert np.isfinite(durations(10.0, 20.0, np.pi / 2, 1.0)[0])  # p = 1 is kept
+    with pytest.raises(ValueError, match="no larger than the star"):
+        durations(10.0, 20.0, np.pi / 2, 1.5)
+
+
+def test_the_integrated_orbit_rejects_inputs_that_describe_no_transit():
+    gm, p, before = 1.0, 0.1, 0.1
+    t = [0.0, 1.0]
+    with pytest.raises(ValueError, match="no larger than the star"):
+        transit_orbit(gm, 10.0, np.pi / 2, 1.5, t, before)
+    # The orbit must clear the star and the planet, in the star's radius.
+    for a, radius in ((1.05, 1.0), (0.5, 1.0), (3.0, 2.8)):
+        with pytest.raises(ValueError, match="outside the star"):
+            transit_orbit(gm, a, np.pi / 2, p, t, before, radius)
+    # The planet must cross the disk: |b| < 1 + p, on either side.
+    a = 10.0
+    for b in (1.1, 1.5, -1.2, a):
+        with pytest.raises(ValueError, match="impact parameter"):
+            transit_orbit(gm, a, np.arccos(b / a), p, t, before)
+    with pytest.raises(ValueError, match="impact parameter"):
+        transit_orbit(gm, a, np.nan, p, t, before)
+    # An on-disk impact parameter with the planet behind the star at
+    # mid-transit (sin i <= 0) is no transit either.
+    for inclination in (-np.pi / 2, 3 * np.pi / 2, -np.pi / 2 + 0.05, -1.6):
+        with pytest.raises(ValueError, match="inclination"):
+            transit_orbit(gm, a, inclination, p, t, before)
+    # A grazing transit, 1 - p < b < 1 + p, is kept, with no inner contacts.
+    period = 2 * np.pi * np.sqrt(a**3 / gm)
+    times = np.linspace(0.0, 2 * before * period / (2 * np.pi), 201)
+    _, _, contacts = transit_orbit(gm, a, np.arccos(1.05 / a), p, times, before)
+    assert contacts["outer"].size == 2 and contacts["inner"].size == 0
+
+
 # --- AST10: special relativity -------------------------------------------------
 
 

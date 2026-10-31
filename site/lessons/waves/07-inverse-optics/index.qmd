@@ -254,8 +254,8 @@ excerpt(experiment.draw_pulls)
 ```{python}
 #| label: fig-pulls
 #| echo: false
-#| fig-cap: "The pulls of the width and of the separation over many independent synthetic data sets, against the unit normal distribution they follow if the fit is unbiased and its errors honest."
-#| fig-alt: "Two histograms of pulls from minus four to four, one for the width and one, hatched, for the separation. Each is bell-shaped and centred on zero, and a dashed unit normal curve follows the bars closely."
+#| fig-cap: "The pulls of the width and of the separation, the error of each estimate over its standard error (dimensionless), over many independent synthetic data sets, as histograms of the probability density per unit pull (dimensionless) on a pull axis from minus four to four, against the unit normal distribution they follow if the fit is unbiased and its errors honest."
+#| fig-alt: "Two histograms of the probability density per unit pull, dimensionless, against the pull, the dimensionless error over the standard error, from minus four to four, one for the width and one, hatched, for the separation. Each is bell-shaped and centred on zero, and a dashed unit normal curve follows the bars closely."
 #| fig-status: simulated
 result.show("fig-pulls")
 ```
