@@ -1,0 +1,470 @@
+---
+title: "Scientific discovery under measurement noise"
+description: >-
+  A language model finds a force law through a faulty gauge, with noise, a
+  hidden zero offset, and faulty readings; the build scores its law beyond
+  the probed distances, analyses which remedy each failure of the gauge
+  needs, and measures how every baseline degrades as the noise grows.
+lesson:
+  id: discovery-under-noise
+  strand: agents-llm
+  order: 18
+  difficulty: 3
+  course: mechanics
+  slot: D10
+  experiment: pbc.mechanics.experiments.discovery_under_noise
+  methods: [simulation, llm-agents]
+  outcomes:
+    - Tell the three failures of a measuring instrument apart, random noise, a calibration offset, and faulty readings, by what each does to a fit
+    - Calibrate a gauge with a null measurement and reject faulty readings with a robust fit and a stated threshold
+    - Measure how the held-out error of a method degrades as the noise grows, over several seeds, and read where a method stops recovering the law
+    - Analyse a failed fit by its chi-square and decide which remedy the failure needs
+  related: [modified-force-law]
+  format: 2
+  preview: fig-degradation
+  prerequisites:
+    lessons: [black-box-force-law]
+    outside:
+      - "Statistics: least squares, the chi-square of residuals, the median, and systematic error"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.mechanics.experiments import discovery_under_noise as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+No instrument reads the truth. Its readings scatter about the value (noise),
+it may read a little high or low everywhere (an offset of its zero, a
+calibration error), and now and then it reads something absurd (a faulty
+reading: a loose contact, a cosmic ray, a typing error in a log book). A law
+found from such readings is only as good as the way the three were dealt
+with, and each needs its own remedy. Averaging does nothing against an
+offset; a calibration does nothing against a faulty reading; and a fit that
+lets one faulty reading pull it can miss the law by more than all the noise
+together.
+
+This lesson gives a language model the central force of the lesson on
+black-box force laws, read through a **faulty gauge**. The model sets the
+distance and the mass of a test body and reads the force. It is told the
+standard deviation of the noise and that the gauge may read with an offset
+and that some readings may be faulty, and it may set the mass to zero, where
+the true force vanishes. It must state the law as a strength and an
+exponent. The build scores the law on the noise-free force at distances
+beyond those it could probe, then measures what the lesson is about: which
+method survives which failure of the gauge, and how each degrades as the
+noise grows.
+
+## Assumptions
+
+1. **The world is simulated, and its law is in the family.** The force is
+   $F = s\,m\,r^{-p}$; $s$ and $p$ are hidden. The gauge adds Gaussian noise
+   of standard deviation `{python} result["sigma"]` N, a hidden constant
+   offset, and, at a hidden fraction of settings, a fault of at least a
+   newton (`FaultyGaugeEnvironment` of `pbc.discovery.noise_lab`). The page
+   prints claims and scores, never the hidden values or the held-out
+   distances.
+2. **Noise and faults are fixed per setting.** Each is a function of the
+   seed and the setting, so a repeated probe returns the same reading. A
+   replay is exact, and averaging needs different settings.
+3. **The score ignores the gauge.** The held-out error is the
+   root-mean-square relative error of the claimed force against the
+   noise-free force, without the offset, at distances beyond the bounds. The
+   law is **recovered** when the error is at most
+   `{python} result["tolerance"]`.
+4. **The rules came before the run.** The hidden law and gauge, the budget,
+   the tolerance, the rejection threshold of the robust fit, and the noise
+   levels and seeds of the degradation were fixed in
+   `pbc.discovery.noise_lab` and the lesson's experiment before the run was
+   recorded. The condition of prior knowledge is
+   **`{python} result["condition"]`**, with one sentence about the gauge
+   added to the task.
+5. **The agent is untrusted and its words are data.** The score is a
+   function of its tool calls.
+
+## Three failures, three remedies {#explanation}
+
+Write a reading as
+
+$$
+y_i = s\,m_i\,r_i^{-p} + b + \sigma\,\varepsilon_i + f_i ,
+$$
+
+with the offset $b$, standard normal $\varepsilon_i$, and a fault $f_i$ that
+is zero for most readings and large for a few.
+
+**Noise.** Least squares weighs each squared residual equally and is the
+best estimator when only $\varepsilon_i$ is present: its errors shrink as
+$\sigma/\sqrt{n}$, and its chi-square, the sum of the squared residuals in
+units of $\sigma$, is about the number of degrees of freedom.
+
+**An offset.** A fit without $b$ must absorb it into $s$ and $p$. Because
+the law falls with distance, a constant shift looks to the fit like a
+slower fall, and the exponent comes out too small. The remedy is a
+**calibration**: a reading where the law is known to vanish, here at zero
+mass, measures $b$ directly, and a fit with $b$ as a parameter uses every
+reading to determine it.
+
+**Faulty readings.** A single reading off by $f$ adds $(f/\sigma)^2$ to the
+chi-square. A fault of a newton with a noise of three hundredths adds about
+a thousand: least squares bends towards it. The remedy is a **robust** fit,
+whose loss grows only linearly for large residuals (here the soft $L_1$ loss
+$2(\sqrt{1 + z^2} - 1)$ of the residual $z$ in units of $\sigma$), followed
+by the rejection of readings more than
+`{python} result["reject-sigmas"]` standard deviations from it and a
+weighted refit of the rest. The threshold is stated in advance; a
+threshold chosen after seeing which readings it removes is no test.
+
+**How a method fails is diagnosed by its chi-square.** A fit whose
+chi-square is far above its degrees of freedom does not describe the
+readings, whatever its claim. The chi-square does not say what is wrong;
+the failure analysis below does, by removing one failure at a time.
+
+### What the agent may and may not do
+
+```{python}
+#| echo: false
+result.display("allowlist")
+```
+
+The agent may call `measure` at most `{python} result["budget"]` times and
+`submit` to state its claim, in at most `{python} result["max-steps"]`
+messages of at most `{python} result["max-calls"]` tool calls each, and write
+text. It may not run code, read a file, reach the network, or call the judge.
+The task says only that the claim is scored on settings it cannot probe.
+
+## Code
+
+The gauge: the force with the noise of the base environment, its offset,
+and the fault of the setting.
+
+```{python}
+#| echo: false
+from pbc.discovery.noise_lab import FaultyGaugeEnvironment, calibrated_fit, degradation
+
+excerpt(FaultyGaugeEnvironment, region="gauge")
+```
+
+The calibrated robust fit, the baseline that deals with all three failures:
+
+```{python}
+#| echo: false
+excerpt(calibrated_fit)
+```
+
+## Worked examples
+
+### Baselines without a model
+
+```{python}
+#| echo: false
+excerpt(experiment.the_baselines)
+```
+
+```{python}
+#| label: d10-baselines
+#| echo: false
+result.table("d10-baselines")
+```
+
+[On the faulty gauge, only the calibrated robust fit recovers the law, on
+the grid and on random settings; least squares, least squares with an
+offset, and sparse identification all fail the chi-square rule.]{.claim
+type="numerically-verified" scope="the simulated gauge, one seed, the
+protocol's budget" evidence="d10-baselines"} Some failed fits still lie
+close to the law on the held-out distances: a fit is judged by whether it
+describes the readings, and a claim that happens to land near the truth
+from a fit that does not is luck, not a result.
+
+### The agent's run
+
+```{python}
+#| echo: false
+excerpt(experiment.run, region="replay")
+```
+
+```{python}
+#| echo: false
+result.display("run")
+```
+
+The model was a Claude model in a Claude Code session on
+`{python} result["recorded"]`, as a fresh sub-agent that knew nothing of this
+lesson. It was given the system prompt, the task, and the tool descriptions,
+and nothing else; it read the results the harness computed from a file the
+harness wrote and chose every call itself.
+
+```{python}
+#| echo: false
+excerpt(experiment.score_table)
+```
+
+```{python}
+#| label: d10-score
+#| echo: false
+result.table("d10-score")
+```
+
+[The agent's law is scored `{python} result["outcome"]` on the held-out
+distances.]{.claim type="numerically-verified" scope="one recorded run, one
+seed, the simulated gauge and the held-out distances" evidence="d10-score
+replay"} It spent all `{python} result["probes"]` probes. It read the gauge
+at zero mass twice for its offset, found that a repeated probe returns the
+same reading, and spent the rest on new settings. It compared the force per
+unit mass at the nearest distance across masses, named the readings that
+disagreed with the others by far more than the noise as faulty, and left
+them out of its estimate.
+
+Is that what the readings support? Apply the calibrated robust fit to
+exactly the agent's readings:
+
+```{python}
+#| echo: false
+excerpt(experiment.the_agents_readings)
+```
+
+```{python}
+#| label: d10-agent-readings
+#| echo: false
+result.table("d10-agent-readings")
+```
+
+[The calibrated robust fit to the agent's own readings is consistent with
+the noise and drops `{python} result["agent-dropped"]` of its
+`{python} result["agent-readings"]` readings, at
+`{python} result["agent-dropped-settings"]` settings; its held-out error is
+smaller than that of the agent's claim.]{.claim type="numerically-verified"
+scope="the agent's readings of the recorded run" evidence="d10-agent-readings"}
+Consistent with the noise: `{python} result["agent-fit-consistent"]`. The
+settings the fit drops are the two the agent named as faulty in its messages
+(one of them probed twice). The agent's claim is less accurate than the fit
+to the same readings, because it took the offset from its
+`{python} result["agent-null-readings"]` null readings alone, which carry the
+noise of two readings, while the fit determines the offset from every
+reading together.
+
+```{python}
+#| echo: false
+excerpt(experiment.beside_the_baselines)
+```
+
+```{python}
+#| label: d10-comparison
+#| echo: false
+result.table("d10-comparison")
+```
+
+With one run, the comparison says nothing about which way of probing is
+better in general.
+
+### Failure analysis: one failure at a time
+
+```{python}
+#| echo: false
+excerpt(experiment.the_failure_analysis)
+```
+
+```{python}
+#| label: d10-failures
+#| echo: false
+result.table("d10-failures")
+```
+
+[With noise alone, least squares recovers the law; an offset defeats it and
+is cured by fitting the offset; faulty readings defeat least squares with an
+offset; only the calibrated robust fit recovers the law from every gauge.]{.claim
+type="numerically-verified" scope="the simulated gauge, its grid of probes,
+one seed, the lesson's noise" evidence="d10-failures"} Sparse identification
+over whole powers of the distance fails even with noise alone: the exponent
+is not a whole number. Each row removes the other failures, so each column
+shows what a method can and cannot survive.
+
+### Degradation under noise
+
+```{python}
+#| echo: false
+excerpt(degradation)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.the_degradation)
+```
+
+```{python}
+#| label: d10-degradation
+#| echo: false
+result.table("d10-degradation")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_degradation)
+```
+
+```{python}
+#| label: fig-degradation
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "The median held-out error of each baseline over five seeds, against the standard deviation of the noise, the offset and the faulty readings of the gauge held: every method on the grid, and least squares and the calibrated robust fit on random settings drawn anew for each seed. The calibrated robust fit, on either design, stays below the tolerance until the noise is a sizeable fraction of the faults and then degrades; the other methods are limited by the offset and the faults at every level."
+#| fig-alt: "A log-log chart of median held-out error against the standard deviation of the noise for six baselines, told apart by colour, line style and marker, the two on random settings drawn dotted with open markers, with a dashed horizontal line for the tolerance. The calibrated robust fit on the grid rises steadily from far below the tolerance at small noise and crosses it at the largest noise; on random settings it lies a little higher and crosses the tolerance one noise level earlier. Least squares and least squares with an offset lie at about the tolerance at small noise, dip below it at an intermediate noise, and rise above it at the largest; least squares on random settings follows the same course, a little higher at the smallest and the largest noise. Sparse identification lies above the tolerance throughout and rises with the noise."
+result.show("fig-degradation")
+```
+
+The errors are computed by this build, five seeds per point. [The
+calibrated robust fit recovers the law on every seed up to a noise of a
+tenth of a newton, on the grid and on random settings, and on none at a
+newton, where noise and faults are of the same size and can no longer be
+told apart.]{.claim type="numerically-verified" scope="the simulated gauge,
+its grid of probes and random settings drawn for each seed, five seeds, six
+noise levels" evidence="d10-degradation fig-degradation"} On random
+settings its error is about twice that on the grid, and at three tenths of
+a newton it recovers the law on one seed of five where the grid recovers it
+on four: the design of the probes matters as well as the method.
+Its error grows roughly in proportion to the noise, as the $\sigma/\sqrt{n}$
+of least squares predicts. The other methods are limited by the failures
+they do not handle, not by the noise: their error barely moves with it at
+small noise, and least squares even passes the chi-square rule on some seeds
+at the largest noise, because there the faults are hidden in the scatter and
+the rule can no longer see them. A failure the chi-square cannot see is the
+most dangerous kind.
+
+### Run the agent yourself
+
+This needs your own key and costs a few cents. The build does not run it, so
+the commands are marked.
+
+::: {.not-verified}
+```bash
+uv sync --locked --no-dev --extra openai
+export OPENAI_API_KEY="..."
+cd site/lessons/agents-llm/18-discovery-under-noise
+uv run --locked --no-dev --extra openai python -m pbc.discovery.noise_lab
+```
+:::
+
+A live run may not calibrate, may miss a faulty reading, or may reject a
+good one. The held-out score says how much it mattered.
+
+## Limits {#limits}
+
+- **One run, one gauge.** The faults are large and few, the offset constant,
+  and the noise Gaussian with a stated standard deviation. A gauge whose
+  offset drifts, whose noise grows with the reading, or whose faults are
+  small and frequent would need other remedies.
+- **The threshold is a choice.** Rejecting at four standard deviations
+  keeps nearly every good reading and drops every fault here, because the
+  faults are at least a newton; a fault of a few standard deviations would
+  survive it and bias the fit.
+- **The degradation is of two designs.** The methods are measured on the
+  grid of probes of the protocol, and two of them on uniformly random
+  settings; another design of probes would change the numbers, though not
+  which failure each method survives.
+- **Simulated, not measured.** No force here was measured.
+- **The recording is not an API run.** It is a Claude Code session, told to
+  answer in the harness's format and to use no tool of its own; the session
+  reported no token count or price.
+
+::: {.exercise .self-check}
+A fit of the family without an offset to readings of a gauge that reads a
+little high everywhere has a chi-square far above its degrees of freedom.
+What does the chi-square tell you?
+
+::: {.choices}
+::: {.choice}
+That the readings contain faulty ones, which must be removed.
+
+::: {.feedback}
+The chi-square says the model does not describe the readings; it does not
+say why. Here no reading is faulty; removing readings would hide the offset,
+not cure it.
+:::
+:::
+
+::: {.choice correct="true"}
+That the model does not describe the readings; removing one failure at a
+time, as the failure analysis does, finds which.
+
+::: {.feedback}
+Right. A fit with an offset would pass; that identifies the failure as a
+calibration error.
+:::
+:::
+
+::: {.choice}
+That the noise is larger than stated, so the standard deviation should be
+increased until the chi-square passes.
+
+::: {.feedback}
+That makes any model pass. The noise was stated; changing it to fit the
+model is no test.
+:::
+:::
+:::
+
+::: {.solution}
+The chi-square tests the model against the readings and their stated noise.
+A failure says the model, the noise, or the readings are wrong, not which.
+Adding the offset as a parameter, and nothing else, and seeing the
+chi-square pass identifies the failure as a calibration error.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+A single faulty reading off by $f$ is fitted by least squares together with
+$n - 1$ good ones. Show that the fitted constant of a model $y = c$ moves by
+$f/n$, and that a robust fit with the soft $L_1$ loss moves it by much less when
+$f \gg \sigma$.
+
+::: {.solution}
+Least squares of a constant is the mean, so one reading off by $f$ moves it
+by $f/n$: with $n = 24$ and $f$ a newton, by four hundredths of a newton,
+more than the noise of one reading. The soft $L_1$ loss has the derivative
+$z/\sqrt{1+z^2}$ in the scaled residual $z$, which tends to $\pm 1$ for a
+large residual: a faulty reading pulls the fit with the force of a reading
+one standard deviation off, not with its full residual. The fit moves by
+about $\sigma/n$, a thousandth of a newton here, and the rejection step then
+removes the reading entirely.
+:::
+:::
+
+::: {.exercise}
+At zero mass the true force vanishes. Why is it not enough to read the
+gauge there once and subtract that reading from every other?
+
+::: {.solution}
+The null reading carries the noise of one reading, so the subtracted offset
+is off by a standard deviation, and that error enters every corrected
+reading alike: it does not average away. It is worst where the force is
+smallest, at the largest distances, which are the ones the law is
+extrapolated from. Fitting the offset as a parameter of the whole set lets
+every reading contribute to it, and a null reading that happened to be
+faulty would be found by the robust fit rather than subtracted from
+everything.
+:::
+:::
+
+## Replay this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/discovery/noise_lab.py",
+        "src/pbc/discovery/environment.py",
+        "src/pbc/discovery/protocol.py",
+        "src/pbc/discovery/baselines.py",
+        "src/pbc/mechanics/experiments/discovery_under_noise.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_noise_lab.py",
+        "tests/unit/test_discovery_under_noise_experiment.py",
+    ],
+)
+```
