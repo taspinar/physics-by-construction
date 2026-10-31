@@ -255,8 +255,8 @@ excerpt(experiment.draw_slits)
 ```{python}
 #| label: fig-slits
 #| echo: false
-#| fig-cap: "The far-field intensity of one slit, two slits, and a grating of ten slits, each computed as a sum of wavelets. The dotted lines are the closed forms: the zeros of one slit, the zeros of two slits within the central lobe, and the orders of the grating, including the fourth, which the envelope of one slit removes."
-#| fig-alt: "Three stacked panels of intensity against the direction on the screen. The top panel shows one broad central peak with small side lobes; dotted lines pass through every zero between them. The middle panel shows many narrow fringes under the same kind of envelope, with dotted lines through the dark fringes in the centre. The bottom panel shows sharp peaks at evenly spaced dotted lines, their heights falling outwards, and no peak at the outermost dotted lines."
+#| fig-cap: "The far-field intensity of one slit, two slits, and a grating of ten slits, each computed as a sum of wavelets and shown relative to its own peak, a dimensionless intensity, against the direction on the screen as the sine of the angle (dimensionless). The dotted lines are the closed forms: the zeros of one slit, the zeros of two slits within the central lobe, and the orders of the grating, including the fourth, which the envelope of one slit removes."
+#| fig-alt: "Three stacked panels of the intensity, relative to the peak of each panel and dimensionless, against the direction on the screen, the sine of the angle. The top panel shows one broad central peak with small side lobes; dotted lines pass through every zero between them. The middle panel shows many narrow fringes under the same kind of envelope, with dotted lines through the dark fringes in the centre. The bottom panel shows sharp peaks at evenly spaced dotted lines, their heights falling outwards, and no peak at the outermost dotted lines."
 #| fig-status: simulated
 result.show("fig-slits")
 ```
@@ -333,8 +333,8 @@ excerpt(experiment.draw_airy_rayleigh)
 ```{python}
 #| label: fig-airy-rayleigh
 #| echo: false
-#| fig-cap: "Left: the Airy pattern of a round aperture, with its first zeros dotted. Right: the image of two points that do not interfere, at three separations; at the Rayleigh separation the dip between them is about a quarter of the peak."
-#| fig-alt: "Two panels against the direction in units of lambda over D. The left panel shows a single central peak with faint rings, and dotted vertical lines at its first zeros on either side. The right panel shows three curves of two merged peaks: the solid curve for the smallest separation is nearly flat on top, the dashed curve for the Rayleigh separation has a clear dip in the middle, and the dash-dotted curve for the largest separation has two distinct peaks with a deep dip."
+#| fig-cap: "Left: the Airy pattern of a round aperture, its intensity relative to the centre, with its first zeros dotted. Right: the image of two points that do not interfere, at three separations, its intensity relative to its brightest point. Both intensities are dimensionless, and the direction is in units of lambda over D. At the Rayleigh separation the dip between the two points is about a quarter of the peak."
+#| fig-alt: "Two panels of a dimensionless intensity against the direction, the sine of the angle in units of lambda over D: on the left relative to the centre, on the right relative to the brightest point. The left panel shows a single central peak with faint rings, and dotted vertical lines at its first zeros on either side. The right panel shows three curves of two merged peaks: the solid curve for the smallest separation is nearly flat on top, the dashed curve for the Rayleigh separation has a clear dip in the middle, and the dash-dotted curve for the largest separation has two distinct peaks with a deep dip."
 #| fig-status: simulated
 result.show("fig-airy-rayleigh")
 ```
@@ -385,8 +385,8 @@ excerpt(experiment.draw_doublet)
 ```{python}
 #| label: fig-doublet
 #| echo: false
-#| fig-cap: "The first-order image of the sodium doublet through a grating with three numbers of lit slits. With too few slits the two lines merge into one peak; at the resolving power of the doublet a dip appears; with twice as many the lines are apart."
-#| fig-alt: "Plot of intensity against the direction near the first order of a grating. Two thin vertical lines mark the two wavelengths. A dotted curve for the fewest slits is a single broad peak between them. A dashed curve for the middle number has two peaks on the lines with a shallow dip between. A solid curve for the most slits has two narrow, separate peaks on the lines."
+#| fig-cap: "The first-order image of the sodium doublet through a grating with three numbers of lit slits, its intensity relative to the brightest point of each image (dimensionless), against the direction near the first order as the sine of the angle times a thousand (dimensionless). With too few slits the two lines merge into one peak; at the resolving power of the doublet a dip appears; with twice as many the lines are apart."
+#| fig-alt: "Plot of the intensity, relative to the brightest point and dimensionless, against the direction near the first order of a grating, the sine of the angle times a thousand. Two thin vertical lines mark the two wavelengths. A dotted curve for the fewest slits is a single broad peak between them. A dashed curve for the middle number has two peaks on the lines with a shallow dip between. A solid curve for the most slits has two narrow, separate peaks on the lines."
 #| fig-status: simulated
 result.show("fig-doublet")
 ```
@@ -426,8 +426,8 @@ excerpt(experiment.draw_fraunhofer_limit)
 ```{python}
 #| label: fig-fraunhofer-limit
 #| echo: false
-#| fig-cap: "The largest departure of the pattern at a finite distance from the far-field pattern, against the Fresnel number, log-log. It falls as the square of the Fresnel number; the dotted reference line of slope two is drawn above the points."
-#| fig-alt: "Log-log plot of the largest departure of the intensity against the Fresnel number from one hundredth to one. Markers joined by a line fall along a straight line; a dotted reference line of slope two runs parallel to it, a little above."
+#| fig-cap: "The largest departure of the pattern at a finite distance from the far-field pattern, both intensities relative to the centre, against the Fresnel number, log-log; both axes are dimensionless. It falls as the square of the Fresnel number; the dotted reference line of slope two is drawn above the points."
+#| fig-alt: "Log-log plot of the largest departure of the intensity, relative to the centre and dimensionless, against the dimensionless Fresnel number from one hundredth to one. Markers joined by a line fall along a straight line; a dotted reference line of slope two runs parallel to it, a little above."
 #| fig-status: simulated
 result.show("fig-fraunhofer-limit")
 ```

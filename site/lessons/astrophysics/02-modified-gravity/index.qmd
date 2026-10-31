@@ -264,8 +264,8 @@ excerpt(experiment.draw_power_law)
 ```{python}
 #| label: fig-power-law
 #| echo: false
-#| fig-cap: "The turn of the periapsis grows in proportion to the departure from the inverse square and follows the first-order prediction, until the departure is large enough for the next order to show."
-#| fig-alt: "Log-log plot of the turn of the periapsis per orbit against delta. Open circles, the measured turns, lie on a dashed straight line of slope one, the first-order prediction, at small delta, and rise slightly above it at the largest delta. A dotted line, the nearly circular formula, runs close to both."
+#| fig-cap: "The turn of the periapsis grows in proportion to the departure from the inverse square and follows the first-order prediction, until the departure is large enough for the next order to show. Both axes are logarithmic: the turn in radians against the dimensionless departure delta of the exponent from two."
+#| fig-alt: "Log-log plot of the turn of the periapsis per orbit, in radians, against delta, the dimensionless departure of the exponent from two. Open circles, the measured turns, lie on a dashed straight line of slope one, the first-order prediction, at small delta, and rise slightly above it at the largest delta. A dotted line, the nearly circular formula, runs close to both."
 #| fig-status: simulated
 result.show("fig-power-law")
 ```
@@ -312,8 +312,8 @@ excerpt(experiment.draw_yukawa)
 ```{python}
 #| label: fig-yukawa
 #| echo: false
-#| fig-cap: "The turn per orbit per unit strength of a Yukawa term is largest when its range is near the size of the orbit and falls off for ranges much shorter or much longer."
-#| fig-alt: "Log-log plot of the turn per orbit divided by alpha against the range lambda in units of the semi-major axis. A dashed curve, the first-order prediction, rises from short ranges to a peak just short of the first of two dotted vertical lines, which mark the periapsis and apoapsis distances, and then falls steadily towards long ranges. Open circles, the measurements, lie on the curve."
+#| fig-cap: "The turn per orbit per unit strength of a Yukawa term is largest when its range is near the size of the orbit and falls off for ranges much shorter or much longer. Both axes are logarithmic: the turn per orbit over alpha in radians against the dimensionless range lambda over the semi-major axis a."
+#| fig-alt: "Log-log plot of the turn per orbit divided by alpha, in radians, against the dimensionless range lambda over the semi-major axis a. A dashed curve, the first-order prediction, rises from short ranges to a peak just short of the first of two dotted vertical lines, which mark the periapsis and apoapsis distances, and then falls steadily towards long ranges. Open circles, the measurements, lie on the curve."
 #| fig-status: simulated
 result.show("fig-yukawa")
 ```

@@ -159,7 +159,7 @@ def draw_slits() -> Figure:
     ):
         i = np.abs(far_field(s, points, widths, WAVELENGTH)) ** 2
         ax.plot(s, i / i.max(), color=colour, linewidth=0.9)
-        ax.set_ylabel("intensity")
+        ax.set_ylabel("intensity\n(of the peak,\ndimensionless)")
         ax.set_title(name, fontsize="small", loc="left")
     for m in (1, 2, 3, 4, 5):
         for sign in (-1, 1):
@@ -232,7 +232,7 @@ def draw_airy_rayleigh() -> Figure:
     left.axvline(AIRY_FIRST_ZERO, color=FIGURE_COLOURS[2], linestyle=":")
     left.axvline(-AIRY_FIRST_ZERO, color=FIGURE_COLOURS[2], linestyle=":")
     left.set_xlabel("sin(theta) in units of lambda / D")
-    left.set_ylabel("intensity (of the centre)")
+    left.set_ylabel("intensity\n(of the centre, dimensionless)")
     left.set_title("one point: the Airy pattern", fontsize="small")
     styles = [
         ("-", FIGURE_COLOURS[0]),
@@ -250,6 +250,7 @@ def draw_airy_rayleigh() -> Figure:
         )
     right.set_xlim(-2.5, 2.5)
     right.set_xlabel("sin(theta) in units of lambda / D")
+    right.set_ylabel("intensity\n(of the brightest, dimensionless)")
     right.set_title("two points", fontsize="small")
     right.legend(fontsize=7, loc="lower center")
     fig.tight_layout()
@@ -323,7 +324,7 @@ def draw_doublet() -> Figure:
             linewidth=0.6,
         )
     ax.set_xlabel("sin(theta), times 1000")
-    ax.set_ylabel("intensity (of the brightest)")
+    ax.set_ylabel("intensity\n(of the brightest, dimensionless)")
     ax.legend(fontsize=7, loc="upper left")
     return fig
 
@@ -388,8 +389,8 @@ def draw_fraunhofer_limit(numbers, departures) -> Figure:
         linestyle=":",
         label="slope 2 (reference, drawn above)",
     )
-    ax.set_xlabel("Fresnel number a^2 / (lambda L)")
-    ax.set_ylabel("largest departure of the intensity")
+    ax.set_xlabel("Fresnel number a^2 / (lambda L), dimensionless")
+    ax.set_ylabel("largest departure of the intensity\n(of the centre, dimensionless)")
     ax.legend(fontsize=8, loc="upper left")
     return fig
 

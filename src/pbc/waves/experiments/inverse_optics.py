@@ -205,9 +205,9 @@ def draw_pulls(pulls) -> Figure:
             label=f"pulls of the {name}",
         )
         ax.plot(x, normal, color=FIGURE_COLOURS[2], linestyle="--", label="unit normal")
-        ax.set_xlabel("(estimate - used) / standard error")
+        ax.set_xlabel("pull (estimate - used) / standard error,\ndimensionless")
         ax.legend(fontsize=7, loc="upper left")
-    axes[0].set_ylabel("density")
+    axes[0].set_ylabel("probability density\n(per unit pull, dimensionless)")
     fig.tight_layout()
     return fig
 

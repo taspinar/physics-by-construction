@@ -170,7 +170,7 @@ def draw_packet(grid: Line, run, exact) -> Figure:
     ax.set_xlim(-20, 25)
     ax.set_ylim(0, 0.46)
     ax.set_xlabel("position x (units with hbar = m = 1)")
-    ax.set_ylabel(r"probability density $|\psi|^2$")
+    ax.set_ylabel(r"probability density $|\psi|^2$" "\n(per unit length, hbar = m = 1)")
     ax.legend(loc="upper right")
     return fig
 

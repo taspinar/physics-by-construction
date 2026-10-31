@@ -265,7 +265,7 @@ def draw_fresnel() -> Figure:
         ax.set_title(name, fontsize="medium")
         ax.set_xlabel("angle of incidence (degrees)")
         ax.set_xlim(0, 90)
-    axes[0].set_ylabel("reflected fraction of the power")
+    axes[0].set_ylabel("reflected fraction of the power\n(dimensionless)")
     axes[0].legend(fontsize=7, loc="upper left")
     axes[1].legend(fontsize=7, loc="center right")
     return fig
