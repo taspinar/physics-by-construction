@@ -1,5 +1,5 @@
 ---
-title: "Set up and run"
+title: "Run the code"
 description: >-
   What to install to run a lesson's experiment, to replay an agent lesson, or
   to check a proof, and what to do when a step fails.

@@ -750,11 +750,13 @@ scrolls sideways is focusable, so that the keyboard can scroll it.
 **Header, footer, skip link, and focus.** The header and the footer of every
 page are Quarto's navigation bar and page footer, configured in
 `site/_quarto.yml` and restyled by `site.css`: the mark and the title, the
-primary navigation, and the start link "Start the course" (its class
-`pbc-start` comes from the Markdown of its text, since Quarto's navbar items
-take no class; `tests/unit/test_site_chrome.py` keeps it pointed at the first
-lesson of the learning path); the footer holds the attribution, the licences,
-the source, and the secondary navigation. `site/skip-link.py` runs after the
+primary navigation (Home, Course Atlas, About), and the start link "Start
+learning" (its class `pbc-start` comes from the Markdown of its text, since
+Quarto's navbar items take no class; `tests/unit/test_site_chrome.py` keeps it
+pointed at the first lesson of the learning path); the footer holds the
+attribution, the licences, and the secondary pages with the source (Run the
+code, Glossary, Scientific evidence, For educators, Contribute, Source), none
+of them also in the header. `site/skip-link.py` runs after the
 render and puts a skip link before the navigation bar of every page. The
 header takes the page's cobalt focus ring, which the built-site check `test_skip_link_and_navigation_focus_pass_the_keyboard_pass`
 measures. Browsers other than Chromium: run `pytest tests/e2e --engine firefox`

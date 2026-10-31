@@ -152,11 +152,10 @@ kept.
   title (the mark 2.25rem, with the title as its link's name), both links to
   the home page. Then the primary navigation: Home, Course Atlas (the
   display label of the learning path page, chosen by the owner on 2026-10-22;
-  the address `path/` and every anchor are unchanged), Glossary,
-  Evidence, About, Set up, Contribute. Right: Source, the start link,
-  "Start the course", the one filled control of the site (paper on
-  cobalt), to the first lesson of the learning path, and the search box
-  (9rem from 992 CSS px, so that one line holds the bar at desktop width;
+  the address `path/` and every anchor are unchanged), and About. Right:
+  the start link, "Start learning", the one filled control of the site
+  (paper on cobalt), to the first lesson of the learning path, and the
+  search box (9rem from 992 CSS px, so that one line holds the bar at desktop width;
   an ink icon below that width). The current page's entry has a 2px vermilion underline and
   `aria-current`. Without a script nothing collapses: the entries wrap onto
   further lines, an entry of two words stays together, and the skip link is
@@ -169,10 +168,10 @@ kept.
   the title, not a column, so that the title is on the first screen.
 - **Footer** (every page). A thin rule, then three groups: the F57
   attribution line exactly as `pbc.authoring.identity` writes it; the
-  licences (code MIT, text and figures CC BY 4.0) with the About page; the
-  source repository and the secondary navigation (Course Atlas, Glossary,
-  Evidence, Set up, Contribute, About). Small text in `muted`, links in
-  cobalt.
+  licences (code MIT, text and figures CC BY 4.0); the secondary pages and
+  the source (Run the code, Glossary, Scientific evidence, For educators,
+  Contribute, Source). No link is both in the header and in the footer (F132).
+  Small text in `muted`, links in cobalt.
 - **Lesson reading column** (opt-in, see below). The title, then the lesson
   header (strand, position, difficulty, prerequisites, previous and next) on
   `surface` with a thin rule, then the body. Prose at the measure; display

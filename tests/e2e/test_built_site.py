@@ -159,6 +159,42 @@ def test_every_page_states_both_licences_in_the_footer(
         assert "MIT" in footer and "CC BY 4.0" in footer, built.name
 
 
+def test_the_built_header_has_four_items_and_the_footer_the_secondary_pages(
+    page: Page, server: SiteServer
+):
+    """No link of the navigation and the footer appears twice; the mark's
+    link to the home page is the brand, not an item."""
+    first = LearningPath.read(SITE_SOURCE).lessons[0].page.removesuffix(".qmd")
+    for name in ("index.html", "about.html", f"{first}.html"):
+        page.goto(server.url + name, wait_until="load")
+        items = page.locator(".navbar .navbar-nav .nav-link")
+        assert [text.strip() for text in items.all_inner_texts()] == [
+            "Home",
+            "Course Atlas",
+            "About",
+            "Start learning",
+        ], name
+        assert page.locator(".navbar .navbar-nav .nav-link .pbc-start").count() == 1
+        secondary = page.locator("footer .footer-items .nav-link")
+        assert [text.strip() for text in secondary.all_inner_texts()] == [
+            "Run the code",
+            "Glossary",
+            "Scientific evidence",
+            "For educators",
+            "Contribute",
+            "Source",
+        ], name
+        links = hrefs(page.locator(".navbar .navbar-nav a, footer a"))
+        assert len(links) == len(set(links)), name
+        for link in links:
+            if link.startswith(server.url):
+                assert page.request.get(link).ok, link
+
+
+def hrefs(locator) -> list[str]:
+    return locator.evaluate_all("links => links.map(a => a.href.split('#')[0])")
+
+
 def test_rendering_check_page_shows_code_output_figure_and_equations(
     page: Page, server: SiteServer
 ):
