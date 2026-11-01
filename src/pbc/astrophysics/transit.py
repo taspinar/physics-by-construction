@@ -142,8 +142,11 @@ def durations(
     """The analytic total and full durations ``(T14, T23)`` of a circular
     orbit, in the unit of ``period``; ``T23`` is nan for a grazing transit
     and both are nan when there is no transit. ``a`` is in stellar radii and
-    larger than 1 + p, the inclination between 0 and pi."""
+    larger than 1 + p, the inclination between 0 and pi, and the planet no
+    larger than the star, 0 < p <= 1."""
     _positive(period=period, p=p)
+    if p > 1.0:
+        raise ValueError("the planet must be no larger than the star, p <= 1")
     if not a > 1.0 + p:
         raise ValueError("the orbit must lie outside the star and the planet")
     if not 0.0 < inclination < np.pi:
@@ -195,8 +198,25 @@ def transit_orbit(
     separation crosses 1 + p and ``"inner"`` where it crosses 1 - p, with
     the planet in front of the star. The step is kept below the spacing of
     ``t``, so that no pair of crossings falls within one step unseen. The
-    times must be finite and strictly increasing, at least two of them."""
+    times must be finite and strictly increasing, at least two of them.
+
+    The inputs must describe a transit: the planet no larger than the star
+    (p <= 1), the orbit clear of the star and the planet (``a`` larger than
+    (1 + p) ``radius``), the impact parameter ``a cos i / radius`` so
+    small in size that the planet's disk crosses the star's (below 1 + p),
+    and the inclination between 0 and pi, so that mid-transit falls in front
+    of the star (z = a sin i > 0) and not behind it."""
     _positive(gm=gm, a=a, p=p, radius=radius)
+    if p > 1.0:
+        raise ValueError("the planet must be no larger than the star, p <= 1")
+    if not a > (1.0 + p) * radius:
+        raise ValueError("the orbit must lie outside the star and the planet")
+    if not abs(a * np.cos(inclination)) / radius < 1.0 + p:
+        raise ValueError(
+            "the impact parameter must put the planet on the star's disk, |b| < 1 + p"
+        )
+    if not 0.0 < inclination < np.pi:
+        raise ValueError("the inclination must lie between 0 and pi")
     t = np.asarray(t, dtype=float)
     if t.ndim != 1 or t.size < 2 or not np.all(np.isfinite(t)):
         raise ValueError("t must hold at least two finite times")

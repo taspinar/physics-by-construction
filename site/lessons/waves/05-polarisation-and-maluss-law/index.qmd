@@ -251,8 +251,8 @@ excerpt(experiment.draw_malus)
 ```{python}
 #| label: fig-malus
 #| echo: false
-#| fig-cap: "The intensity behind an analyser against its angle to the polarisation of the light. The curves are Malus's law for an ideal and for a leaky analyser, the markers the intensity measured from the sampled field. On the logarithmic scale the leaky analyser never goes dark: crossed, it passes its leak."
-#| fig-alt: "Two panels of the transmitted intensity against the analyser angle from zero to one hundred eighty degrees. On the linear left panel a single cosine-squared curve falls from one to zero at ninety degrees and rises back to one; markers of both analysers lie on it. On the logarithmic right panel the solid ideal curve plunges towards zero at ninety degrees, while the dashed leaky curve and its square markers level off at a floor."
+#| fig-cap: "The intensity behind an analyser, as a dimensionless fraction of the incident intensity, against its angle to the polarisation of the light, from zero to one hundred eighty degrees; the intensity axis is linear on the left and logarithmic on the right. The curves are Malus's law for an ideal and for a leaky analyser, the markers the intensity measured from the sampled field. On the logarithmic scale the leaky analyser never goes dark: crossed, it passes its leak."
+#| fig-alt: "Two panels of the transmitted intensity, a dimensionless fraction of the incident, against the analyser angle from zero to one hundred eighty degrees. On the linear left panel a single cosine-squared curve falls from one to zero at ninety degrees and rises back to one; markers of both analysers lie on it. On the right panel, whose intensity axis is logarithmic, the solid ideal curve plunges towards zero at ninety degrees, while the dashed leaky curve and its square markers level off at a floor."
 #| fig-status: simulated
 result.show("fig-malus")
 ```
@@ -319,8 +319,8 @@ result.table("chain-run")
 ```{python}
 #| label: fig-polariser-chain
 #| echo: false
-#| fig-cap: "The intensity that passes N polarisers which turn the polarisation by a right angle in equal steps. The line is the closed form, the markers are measured from the field; for many polarisers the loss falls as one over N."
-#| fig-alt: "Plot of the transmitted intensity against the number of polarisers on a logarithmic axis from one to sixty. A solid curve starts at zero for one polariser and rises steeply, then slowly approaches one. Markers lie on it. A dotted curve of the large-N approximation joins the solid curve from below at large N."
+#| fig-cap: "The intensity that passes N polarisers, as a dimensionless fraction of the incident intensity, which turn the polarisation by a right angle in equal steps, on a linear axis against the number N of polarisers on a logarithmic axis. The line is the closed form, the markers are measured from the field; for many polarisers the loss falls as one over N."
+#| fig-alt: "Plot of the transmitted intensity, a dimensionless fraction of the incident on a linear axis from zero to one, against the number of polarisers on a logarithmic axis from one to sixty. A solid curve starts at zero for one polariser and rises steeply, then slowly approaches one. Markers lie on it. A dotted curve of the large-N approximation joins the solid curve from below at large N."
 #| fig-status: simulated
 result.show("fig-polariser-chain")
 ```
@@ -395,8 +395,8 @@ excerpt(experiment.draw_wave_plate)
 ```{python}
 #| label: fig-wave-plate
 #| echo: false
-#| fig-cap: "The degree of circular polarisation behind a quarter-wave plate against the wavelength. Both plates make circular light at their design wavelength. The zero-order plate stays close to circular across the visible; the multi-order plate swings between the two senses of circular light."
-#| fig-alt: "Plot of the degree of circular polarisation, from minus one to one, against the wavelength from four hundred fifty to seven hundred fifty nanometres. A solid curve for the zero-order plate stays near one with a gentle maximum at a dotted vertical line marking the design wavelength. A dashed curve for the multi-order plate oscillates several times between minus one and one, touching one at the design wavelength. Markers lie on both curves."
+#| fig-cap: "The degree of circular polarisation, dimensionless from minus one to one, behind a quarter-wave plate against the wavelength in nanometres. Both plates make circular light at their design wavelength. The zero-order plate stays close to circular across the visible; the multi-order plate swings between the two senses of circular light."
+#| fig-alt: "Plot of the degree of circular polarisation, dimensionless from minus one to one, against the wavelength from four hundred fifty to seven hundred fifty nanometres. A solid curve for the zero-order plate stays near one with a gentle maximum at a dotted vertical line marking the design wavelength. A dashed curve for the multi-order plate oscillates several times between minus one and one, touching one at the design wavelength. Markers lie on both curves."
 #| fig-status: simulated
 result.show("fig-wave-plate")
 ```

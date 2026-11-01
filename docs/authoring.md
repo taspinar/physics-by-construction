@@ -1550,7 +1550,12 @@ does not build its own environment, baselines, or scoring. The rules are in
   `pbc.discovery.gravity_lab`); a world of several bodies has its box and
   predictive test in `pbc.discovery.worlds`, as D5 does
   (`site/lessons/agents-llm/15-unknown-physical-worlds/index.qmd`). Neither
-  draws a held-out setting or start on the page.
+  draws a held-out setting or start on the page. A lesson that tells the
+  agent about its instrument or its latent effects appends one sentence to
+  the task of `pbc.discovery.prompts` and keeps it beside the protocol, as
+  D10 and D11 do (`pbc.discovery.noise_lab`, `pbc.discovery.latent_lab`); a
+  suite of held-out worlds shows from the trace that none was probed, as D12
+  does (`site/lessons/agents-llm/20-generalisation-to-unseen-systems/index.qmd`).
 - **Without an agent.** A discovery lesson that uses no model (methods
   `[simulation]`, no `llm-agents`) has no fixture, no prompt, and no live
   run; its last section is "Run this experiment". It still states the

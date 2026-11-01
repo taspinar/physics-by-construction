@@ -228,6 +228,66 @@ rules with a box of its own, as the invariants do:
   pair's distance, and Newton's gravity with `G` fitted, each judged by the
   chi-square rule and scored by the same test.
 
+## Noise, calibration, and faulty readings
+
+Lesson D10 (`pbc.discovery.noise_lab`, F98) reads the central force through a
+**faulty gauge**: Gaussian noise of a stated standard deviation, a hidden
+constant offset, and, at a hidden fraction of settings, a fault of at least a
+set size. The fault, like the noise, is a function of the seed and the
+setting, so a repeated probe repeats it. The mass may be set to zero, where
+the true force vanishes: the null reading is the calibration. The claim is
+scored on the noise-free force without the offset. The task of
+`pbc.discovery.prompts` gets one sentence about the gauge (its noise, and
+that it may read with an offset and some readings may be faulty).
+
+- **The calibrated robust fit** is a baseline of its own: the family plus an
+  offset, fitted with a soft-L1 loss, the readings beyond a stated number of
+  standard deviations of it dropped, and the rest refitted by weighted least
+  squares and judged by the chi-square rule.
+- **The failure analysis** runs every method on the grid of the gauge with
+  one failure at a time (noise only, with the offset, with the faults, with
+  both), so that each failure is matched to its remedy.
+- **The degradation** runs every baseline (every method on the grid, and
+  least squares and the calibrated robust fit on random settings drawn anew
+  for each seed) at several standard deviations of the noise, the offset and
+  faults held, over several seeds, and reports the median and largest
+  held-out error and the seeds recovered.
+
+## Latent effects
+
+Lesson D11 (`pbc.discovery.latent_lab`, F98) hides effects rather than
+parameters: a body falls under gravity, a constant force against the fall,
+and linear drag, the last two hidden, and the claim names all three, an
+absent effect as zero (condition `full`, with one sentence of the task saying
+that the body may feel forces it cannot see).
+
+- **Hypotheses** are members of the family with some effects held at zero,
+  each fitted and judged by the chi-square rule and by whether the readings
+  determine its parameters.
+- **The observational record** is a fixed set of readings at one mass and
+  short times, taken by the build: every hypothesis is consistent with it.
+- **The rivals** of a record are the laws of a grid of the hidden effects,
+  gravity fitted to the record, whose chi-square passes. **The
+  disambiguating experiment** is the setting where the rivals' predictions
+  spread most, in standard deviations of the noise.
+
+## Generalisation
+
+Lesson D12 (`pbc.discovery.generalisation_lab`, F98) challenges a claim on a
+**suite of held-out worlds**, each with its own error, none in a tool, a
+prompt, or a page: settings within the bounds that the run did not probe
+(drawn with a fixed seed), distances beyond the bounds, test masses far
+beyond them, orbits under the claimed force (radial periods, as in
+"Transfer"), and distances below the bounds. The hidden law is the family
+plus a short-range term below the noise within the bounds. The score is the
+largest error of the first four worlds; the last is reported apart, since no
+probe can reach it, and fails every claim of the family.
+
+- **Never probed.** The trace is read probe by probe: every accepted probe
+  lies within the bounds and on no held-out setting, and the page shows the
+  nearest probe to each world in units of the controls' ranges. A test
+  checks the same on the committed fixture.
+
 ## The frozen trace and the replay
 
 A **frozen trace** (`pbc.discovery.save_trace`) is a directory with
@@ -242,7 +302,9 @@ A lesson commits only the fixture next to its page, because a lesson directory
 holds nothing else (ADR 002): its `TraceInfo` is kept in the lesson's module
 beside the protocol (for D1 to D3, `pbc.discovery.force_lab`; for D13,
 `pbc.discovery.invariant_lab`; for EV2 and EV3, `pbc.discovery.benchmark`;
-for D4 and D5, `pbc.discovery.gravity_lab` and `pbc.discovery.world_lab`),
+for D4 and D5, `pbc.discovery.gravity_lab` and `pbc.discovery.world_lab`;
+for D10 to D12, `pbc.discovery.noise_lab`, `pbc.discovery.latent_lab`, and
+`pbc.discovery.generalisation_lab`),
 and a test checks the two against each other. A lesson may replay the
 fixtures of another lesson's page (EV2 replays those of D1 and D2) through a
 path constant of its experiment, so that the input digest of the lesson

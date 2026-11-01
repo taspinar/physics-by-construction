@@ -129,7 +129,7 @@ def draw_malus() -> Figure:
         )
         ax.set_xlabel("analyser angle (degrees)")
         ax.set_xticks([0, 45, 90, 135, 180])
-    left.set_ylabel("transmitted intensity (of the incident)")
+    left.set_ylabel("transmitted intensity\n(of the incident, dimensionless)")
     right.set_yscale("log")
     right.set_ylim(1e-5, 2.0)
     right.set_title("logarithmic scale", fontsize="medium")
@@ -243,7 +243,7 @@ def draw_polariser_chain(counts, computed) -> Figure:
     ax.set_xticks([1, 2, 5, 10, 20, 50], labels=["1", "2", "5", "10", "20", "50"])
     ax.set_ylim(-0.02, 1.02)
     ax.set_xlabel("number of polarisers N")
-    ax.set_ylabel("transmitted intensity (of the incident)")
+    ax.set_ylabel("transmitted intensity\n(of the incident, dimensionless)")
     ax.legend(fontsize=7, loc="lower right")
     return fig
 
@@ -374,7 +374,7 @@ def draw_wave_plate() -> Figure:
         DESIGN * 1e9, color=FIGURE_COLOURS[2], linestyle=":", label="design wavelength"
     )
     ax.set_xlabel("wavelength (nm)")
-    ax.set_ylabel("degree of circular polarisation")
+    ax.set_ylabel("degree of circular polarisation\n(dimensionless)")
     ax.legend(fontsize=7, loc="upper left", bbox_to_anchor=(1.02, 1.0))
     fig.tight_layout()
     return fig

@@ -1,0 +1,471 @@
+---
+title: "Hidden forces and unobserved variables"
+description: >-
+  A body falls under gravity and two effects nobody sees, a constant force
+  against the fall and drag; a record taken at one mass cannot tell the
+  hypotheses apart, the build chooses the experiment that can, and a
+  language model designs its own and states all three.
+lesson:
+  id: hidden-variables
+  strand: agents-llm
+  order: 19
+  difficulty: 3
+  course: mechanics
+  slot: D11
+  experiment: pbc.mechanics.experiments.hidden_variables
+  methods: [simulation, llm-agents]
+  outcomes:
+    - State competing hypotheses about latent effects as members of one family, each holding some effects at zero
+    - Show that an observational record can be consistent with every hypothesis while their predictions part far outside it
+    - Choose a disambiguating experiment as the setting where the laws the record cannot tell apart disagree most, in units of the noise
+    - Judge hypotheses by the chi-square and by whether the readings determine their parameters
+  related: [experimental-design-agent]
+  format: 2
+  preview: fig-disambiguation
+  prerequisites:
+    lessons: [prior-knowledge-in-discovery, projectile-with-drag]
+    outside:
+      - "Statistics: least squares, the chi-square of residuals, and identifiability"
+      - "Calculus: the exponential function and its series"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.mechanics.experiments import hidden_variables as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+Some of what moves a body cannot be seen. The buoyancy of the air, a magnet
+under the floor, the drag of a fluid: each is felt only through what it does
+to the motion. A careful experimenter who watches one body fall can measure
+its acceleration exactly and still not know whether gravity is weak or a
+hidden force holds the body back, since for one body the two look the same.
+Only a second body, of another mass, tells them apart, because gravity
+accelerates every body alike and a constant force does not.
+
+This lesson poses that problem. A body of a set mass is released from rest
+in a simulated world, and the distance it has fallen at a set time is read
+with noise. Besides gravity it feels two **latent effects**: a constant force
+against the fall and linear drag, both hidden. The lesson first shows that
+an observational record taken at one mass is consistent with every
+hypothesis about them, then chooses the experiment that resolves the
+ambiguity. A language model then designs its own experiments and states all
+three quantities. The build scores its law at masses and times it never
+probed.
+
+## Assumptions
+
+1. **The world is simulated, and its law is in the family.** With
+   $a = g - F/m$ and $k = b/m$, the distance fallen from rest is
+
+   $$
+   x(t) = \frac{a}{k}\left(t - \frac{1 - e^{-kt}}{k}\right),
+   $$
+
+   which is $a t^2/2$ when there is no drag (`HiddenForceEnvironment` and
+   `fall` of `pbc.discovery.latent_lab`). Gravity $g$, the hidden force $F$,
+   and the drag coefficient $b$ are hidden. The page prints claims and their
+   scores, never the hidden values or the held-out settings.
+2. **The noise is Gaussian, of standard deviation
+   `{python} result["sigma"]` m, and fixed per setting.** A repeated probe
+   returns the same reading.
+3. **The score is a prediction.** The held-out error is the root-mean-square
+   relative error of the claimed distance at masses and times outside the
+   bounds. The law is **recovered** when the error is at most
+   `{python} result["tolerance"]`.
+4. **The rules came before the run.** The hidden world, the held-out
+   settings, the budget, the tolerance, the observational record, and the
+   candidate laws were fixed in `pbc.discovery.latent_lab` before the run
+   was recorded. The condition of prior knowledge is
+   **`{python} result["condition"]`**: the agent is told the form of the law
+   and that the body may feel forces it cannot see, not which.
+5. **The agent is untrusted and its words are data.** The score is a
+   function of its tool calls.
+
+## Latent effects and ambiguity {#explanation}
+
+Four **hypotheses** describe the latent effects, each holding some of them at
+zero: free fall ($F = b = 0$), a hidden force ($b = 0$), drag ($F = 0$), and
+both. They are members of one family, so the same fit judges them all.
+
+**Why one mass is not enough.** Without drag the distance is
+$\tfrac{1}{2}(g - F/m)\,t^2$. At one mass $m_0$ every pair $(g, F)$ with
+$g - F/m_0$ equal to the measured acceleration gives exactly the same
+readings: the record determines a line in the plane of $g$ and $F$, not a
+point. The fit says so: its parameters are **not determined**, a combination
+of them being unconstrained. A second mass $m_1$ gives a second line, and two
+lines meet in a point.
+
+**Why short times are not enough.** Expand the fall with drag for small
+$kt$:
+
+$$
+x(t) = \frac{a t^2}{2}\left(1 - \frac{kt}{3} + \frac{(kt)^2}{12} -
+\dots\right).
+$$
+
+The first correction of drag is of the order $kt$; over a short fall it is
+smaller than the noise and drag hides in the acceleration as a slightly
+weaker gravity. A long fall, at a light mass where $k = b/m$ is large, makes
+it visible.
+
+**A disambiguating experiment.** Let the laws the record cannot tell apart be
+its **rivals**: for each value of $F$ and $b$ on a grid, gravity fitted to
+the record, kept when its chi-square passes. At a setting $s$, the rivals
+predict a spread of distances. In units of the noise,
+
+$$
+D(s) = \frac{\max_i x_i(s) - \min_i x_i(s)}{\sigma}
+$$
+
+says how well one reading at $s$ tells them apart. The experiment worth
+doing is the one where $D$ is largest.
+
+### What the agent may and may not do
+
+```{python}
+#| echo: false
+result.display("allowlist")
+```
+
+The agent may call `measure` at most `{python} result["budget"]` times and
+`submit` to state its claim, in at most `{python} result["max-steps"]`
+messages of at most `{python} result["max-calls"]` tool calls each, and write
+text. It may not run code, read a file, reach the network, or call the judge.
+The task says only that the claim is scored on settings it cannot probe.
+
+## Code
+
+The fall, with its series below the threshold where the closed form loses
+digits:
+
+```{python}
+#| echo: false
+from pbc.discovery.latent_lab import disagreement, fall, judge_hypotheses, rivals
+
+excerpt(fall)
+```
+
+The hypotheses judged on a set of readings, the rivals of a record, and the
+disagreement that chooses the experiment:
+
+```{python}
+#| echo: false
+excerpt(judge_hypotheses)
+```
+
+```{python}
+#| echo: false
+excerpt(rivals)
+```
+
+```{python}
+#| echo: false
+excerpt(disagreement)
+```
+
+## Worked examples
+
+### Baselines without a model
+
+```{python}
+#| echo: false
+excerpt(experiment.the_baselines)
+```
+
+```{python}
+#| label: d11-baselines
+#| echo: false
+result.table("d11-baselines")
+```
+
+[Least squares of the family recovers the law on the grid and on random
+settings; free fall and sparse identification over powers of the time and
+the inverse mass are rejected by the chi-square rule.]{.claim
+type="numerically-verified" scope="the simulated fall, one seed, the
+protocol's budget" evidence="d11-baselines"} A grid and a random design
+both span the masses and times of the bounds, so between them they contain
+the experiments that resolve the latent effects. A sum of a few powers is
+not the fall with drag, and sparse identification cannot state it.
+
+### An observational record cannot tell the hypotheses apart
+
+The record holds `{python} result["record-readings"]` readings, all at a mass
+of `{python} result["record-mass"]` kg and times up to
+`{python} result["record-last-time"]` s, taken from the same world.
+
+```{python}
+#| echo: false
+excerpt(experiment.the_ambiguity)
+```
+
+```{python}
+#| label: d11-record
+#| echo: false
+result.table("d11-record")
+```
+
+[Every hypothesis is consistent with the observational record, the
+parameters of the hypotheses with a hidden force are not determined by it,
+and the best fits of free fall and of drag alone fail the held-out settings
+by far.]{.claim type="numerically-verified" scope="the observational record
+of one mass and short times, the four hypotheses" evidence="d11-record"} A
+hypothesis with a hidden force has no single best fit: the record fixes
+$g - F/m$, and the laws along that line fit it equally well but predict the
+light and heavy bodies of the held-out settings differently. Of the
+`{python} result["candidate-laws"]` candidate laws on the grid of hidden
+forces and drags, `{python} result["rival-laws"]` are consistent with the
+record. The record is not wrong; it is silent on the question.
+
+### The disambiguating experiment
+
+```{python}
+#| echo: false
+excerpt(experiment.the_experiment)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_disambiguation)
+```
+
+```{python}
+#| label: fig-disambiguation
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "The spread of the distances that the laws consistent with the record predict, in standard deviations of the noise, against the mass, one line per time. The spread is smallest at the mass of the record and grows towards light bodies and long falls, where the chosen experiment lies."
+#| fig-alt: "A chart with a logarithmic vertical axis of the disagreement of the rival laws, in noise standard deviations, against the mass of the body, with four lines for four times told apart by line style and marker. Every line has a minimum at the mass of the record, marked by a dotted vertical line, and rises on both sides, steeply towards the lightest masses. Longer times lie higher. A star marks the chosen experiment at the lightest mass and the longest time."
+result.show("fig-disambiguation")
+```
+
+The disagreement is computed by this build from the rivals of the record.
+[The rivals disagree most at the lightest mass and the longest time, by about
+`{python} result["chosen-spread"]` standard deviations of the noise, against
+`{python} result["record-spread"]` at the record's own mass and the same
+time.]{.claim type="numerically-verified" scope="the rivals of the
+observational record, the grid of masses and times of the experiment"
+evidence="fig-disambiguation"} The chosen mass is
+`{python} result["chosen-mass"]` kg and the time
+`{python} result["chosen-time"]` s. Readings at that mass, one at each time
+of the grid, are added to the record and the hypotheses judged again:
+
+```{python}
+#| label: d11-resolved
+#| echo: false
+result.table("d11-resolved")
+```
+
+[With readings at the chosen mass added to the record, only the hypothesis
+of a hidden force and drag is consistent with the noise; its parameters are
+determined and its best fit recovers the law.]{.claim
+type="numerically-verified" scope="the observational record with readings at
+the chosen mass, the four hypotheses" evidence="d11-resolved"} Of the rivals
+of the record, `{python} result["rival-laws-after"]` survive: none of the
+grid's values of the hidden force and the drag is close enough to the
+truth.
+
+### The agent's run
+
+```{python}
+#| echo: false
+excerpt(experiment.run, region="replay")
+```
+
+```{python}
+#| echo: false
+result.display("run")
+```
+
+The model was a Claude model in a Claude Code session on
+`{python} result["recorded"]`, as a fresh sub-agent that knew nothing of this
+lesson. It was given the system prompt, the task, and the tool descriptions,
+and nothing else; it read the results the harness computed from a file the
+harness wrote and chose every call itself.
+
+```{python}
+#| echo: false
+excerpt(experiment.score_table)
+```
+
+```{python}
+#| label: d11-score
+#| echo: false
+result.table("d11-score")
+```
+
+[The agent's law is scored `{python} result["outcome"]` at the held-out
+masses and times.]{.claim type="numerically-verified" scope="one recorded
+run, one seed, the simulated fall and its held-out settings"
+evidence="d11-score replay"} It spent `{python} result["probes"]` of the
+`{python} result["budget"]` probes, at `{python} result["agent-masses"]`
+masses from `{python} result["agent-lightest"]` kg and times up to
+`{python} result["agent-longest"]` s. Its first four probes were the corners
+of the bounds in mass at two times: it read drag from the ratio of the
+distances at the two times and the hidden force from the accelerations at
+the two masses, the two experiments of the explanation. It then added light
+masses, where drag shows most, and reported all three effects as present.
+
+The hypotheses fitted to exactly the agent's readings:
+
+```{python}
+#| echo: false
+excerpt(experiment.the_agents_readings)
+```
+
+```{python}
+#| label: d11-agent-readings
+#| echo: false
+result.table("d11-agent-readings")
+```
+
+[The agent's readings reject free fall, a hidden force alone, and drag
+alone, and determine the parameters of the hypothesis with both.]{.claim
+type="numerically-verified" scope="the agent's readings of the recorded run"
+evidence="d11-agent-readings"} Its own design, unlike the observational
+record, could not be satisfied by a law with a latent effect missing.
+
+```{python}
+#| echo: false
+excerpt(experiment.beside_the_baselines)
+```
+
+```{python}
+#| label: d11-comparison
+#| echo: false
+result.table("d11-comparison")
+```
+
+The least-squares fits of a grid and of random settings recover the law more
+closely than the agent's claim, which is a rounded result of mental
+arithmetic. With one run, this says nothing about which way of probing is
+better in general.
+
+### Run the agent yourself
+
+This needs your own key and costs a few cents. The build does not run it, so
+the commands are marked.
+
+::: {.not-verified}
+```bash
+uv sync --locked --no-dev --extra openai
+export OPENAI_API_KEY="..."
+cd site/lessons/agents-llm/19-hidden-variables
+uv run --locked --no-dev --extra openai python -m pbc.discovery.latent_lab
+```
+:::
+
+A live run may probe only one mass, report an effect as absent, or trade
+drag against the hidden force. The held-out score says which.
+
+## Limits {#limits}
+
+- **One run, a family that names the effects.** The agent is told the form
+  of the law, so its latent effects are named parameters. A latent variable
+  that the family does not contain, such as a force that depends on the
+  height, cannot be claimed here, and would show only as a failed
+  chi-square.
+- **A grid of rivals.** The rivals are the laws of a grid of hidden forces
+  and drags; a finer grid gives a different count but the same choice of
+  experiment.
+- **One step of design.** The disambiguating experiment is chosen once,
+  from the record. A sequential design would choose again after each
+  reading, as the lesson on an experimental-design agent does.
+- **Simulated, not measured.** No body fell here.
+- **The recording is not an API run.** It is a Claude Code session, told to
+  answer in the harness's format and to use no tool of its own; the session
+  reported no token count or price.
+
+::: {.exercise .self-check}
+An experimenter has a long record of one body falling and finds that
+$x = \tfrac{1}{2} a t^2$ fits it within the noise. Which conclusion does the
+record support?
+
+::: {.choices}
+::: {.choice}
+There is no hidden force: gravity is $a$.
+
+::: {.feedback}
+At one mass a hidden force only lowers the acceleration; $g = a$ with no
+force and $g = a + F/m$ with a force $F$ fit the record equally well.
+:::
+:::
+
+::: {.choice correct="true"}
+The acceleration of this body is $a$; whether gravity or a hidden force
+makes it so needs a body of another mass.
+
+::: {.feedback}
+Right. The record determines $g - F/m$ only; a second mass determines both.
+:::
+:::
+
+::: {.choice}
+There is no drag, since the fall is a parabola.
+
+::: {.feedback}
+If the record is short, drag's first correction $kt/3$ may be below the
+noise; a longer fall or a lighter body could still reveal it.
+:::
+:::
+:::
+
+::: {.solution}
+The record fixes the acceleration of the one body and, over its duration,
+bounds the drag. It cannot separate gravity from a constant force, because
+both enter the motion of one body only through $g - F/m$. Another mass is
+the disambiguating experiment.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+Show from the series of the fall that, at a fixed time, the first effect of
+drag on the distance is proportional to $b/m$, and explain why the
+disagreement of the rivals grows towards light bodies.
+
+::: {.solution}
+The series gives $x \approx \tfrac{1}{2}(g - F/m)\,t^2\,(1 - bt/3m)$, so the
+correction of drag is $-\tfrac{1}{6}(g - F/m)\,(b/m)\,t^3$: proportional to
+$b/m$ and to $t^3$. The rivals differ in $F$ and $b$, which enter as $F/m$
+and $b/m$; both grow as the mass falls, so the rivals' predictions part most
+for the lightest body, and drag's the more at the longest time.
+:::
+:::
+
+::: {.exercise}
+The hidden-force hypothesis fitted to the record is not determined, yet its
+best fit has a held-out error. What does that number mean?
+
+::: {.solution}
+The fit chose one point on the line of pairs $(g, F)$ the record cannot tell
+apart: wherever the optimiser stopped. Its held-out error belongs to that
+point, not to the hypothesis; another point on the line would score
+differently. A score of an undetermined fit is no evidence for or against
+the hypothesis, which is why the table reports whether the parameters are
+determined.
+:::
+:::
+
+## Replay this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/discovery/latent_lab.py",
+        "src/pbc/discovery/environment.py",
+        "src/pbc/discovery/protocol.py",
+        "src/pbc/discovery/baselines.py",
+        "src/pbc/mechanics/experiments/hidden_variables.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_latent_lab.py",
+        "tests/unit/test_hidden_variables_experiment.py",
+    ],
+)
+```

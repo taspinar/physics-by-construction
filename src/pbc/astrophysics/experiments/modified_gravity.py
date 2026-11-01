@@ -202,7 +202,7 @@ def draw_power_law(measured) -> Figure:
         linestyle=":",
         label="nearly circular orbit, any delta",
     )
-    ax.set_xlabel("delta (departure of the exponent from 2)")
+    ax.set_xlabel("delta, the departure of the exponent from 2 (dimensionless)")
     ax.set_ylabel("turn of the periapsis per orbit (rad)")
     ax.legend(fontsize="small")
     return fig
@@ -280,7 +280,7 @@ def draw_yukawa(measured) -> Figure:
             va="bottom",
             transform=ax.get_xaxis_transform(),
         )
-    ax.set_xlabel("range lambda (units of a)")
+    ax.set_xlabel("range lambda / a (dimensionless)")
     ax.set_ylabel("turn per orbit / alpha (rad)")
     ax.legend(fontsize="small", loc="lower left")
     return fig

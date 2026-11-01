@@ -101,7 +101,24 @@ def test_part_b_names_every_method_path_with_real_counts():
             assert _lessons(published) in line
         else:
             assert "](" not in line and "[planned]{.home-planned}" in line
-        assert f"{len(PATH.planned_in_path(method_path))} planned" in line
+        if PATH.planned_in_path(method_path) or not published:
+            assert f"{len(PATH.planned_in_path(method_path))} planned" in line
+
+
+def test_part_b_counts_no_planned_lesson_on_a_path_whose_every_lesson_is_published():
+    lines = HOME.part_b().splitlines()
+    complete = [
+        method_path
+        for method_path in PATH.paths
+        if PATH.in_path(method_path) and not PATH.planned_in_path(method_path)
+    ]
+    assert complete  # the law-discovery path is complete with D10 to D12
+    for method_path in complete:
+        (line,) = [
+            line for line in lines if line.startswith(f"- [{method_path.title}](")
+        ]
+        assert _lessons(len(PATH.in_path(method_path))) in line
+        assert "planned" not in line
 
 
 def test_a_planned_lesson_is_never_part_of_a_published_count():

@@ -308,8 +308,8 @@ excerpt(experiment.draw_fresnel)
 ```{python}
 #| label: fig-fresnel
 #| echo: false
-#| fig-cap: "The reflected fraction of the power for light polarised across (R_s) and in (R_p) the plane of incidence, from the solved boundary conditions. From air into glass, R_p vanishes at the Brewster angle. From glass into air, both rise to one at the critical angle and stay there."
-#| fig-alt: "Two panels of the reflected fraction against the angle of incidence. In the left panel, air into glass, both curves start at a small value at normal incidence; the solid R_s curve rises steadily to one at grazing incidence, the dashed R_p curve first falls to zero at a dotted line marked Brewster angle and then rises to one. In the right panel, glass into air, the same shapes are compressed: R_p touches zero at the Brewster line, and both curves jump to one at a dash-dotted line marked critical angle and stay flat at one beyond it."
+#| fig-cap: "The reflected fraction of the power, a dimensionless number from zero to one, for light polarised across (R_s) and in (R_p) the plane of incidence, against the angle of incidence in degrees, from the solved boundary conditions. From air into glass, R_p vanishes at the Brewster angle. From glass into air, both rise to one at the critical angle and stay there."
+#| fig-alt: "Two panels of the reflected fraction of the power, dimensionless from zero to one, against the angle of incidence in degrees. In the left panel, air into glass, both curves start at a small value at normal incidence; the solid R_s curve rises steadily to one at grazing incidence, the dashed R_p curve first falls to zero at a dotted line marked Brewster angle and then rises to one. In the right panel, glass into air, the same shapes are compressed: R_p touches zero at the Brewster line, and both curves jump to one at a dash-dotted line marked critical angle and stay flat at one beyond it."
 #| fig-status: simulated
 result.show("fig-fresnel")
 ```

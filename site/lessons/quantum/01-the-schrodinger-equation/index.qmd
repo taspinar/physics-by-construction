@@ -226,8 +226,8 @@ excerpt(experiment.draw_packet)
 ```{python}
 #| label: fig-packet
 #| echo: false
-#| fig-cap: "The packet moves to the right at its group velocity and spreads, and the computed density covers the exact one at every time shown."
-#| fig-alt: "Line plot of probability density against position. Five bell-shaped curves, labelled by their times, move from left to right; each is lower and wider than the one before. Each solid computed curve lies on a dashed exact curve."
+#| fig-cap: "The packet moves to the right at its group velocity and spreads, and the computed density covers the exact one at every time shown. The probability density |ψ|² is per unit length and the position is in the units with ħ = m = 1."
+#| fig-alt: "Line plot of the probability density |ψ|², per unit length, against the position x, both in the units with ħ = m = 1. Five bell-shaped curves, labelled by their times, move from left to right; each is lower and wider than the one before. Each solid computed curve lies on a dashed exact curve."
 #| fig-status: simulated
 result.show("fig-packet")
 ```
