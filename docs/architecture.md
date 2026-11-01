@@ -12,11 +12,12 @@ final curriculum adds, and the boundaries every feature must respect.
   with the change cycle `pbc-planning-change-four-workstreams` on
   2026-10-15, with the change cycle `scientific-atelier-atlas` on
   2026-10-17, with the change cycle `risk-proportionate-workflow` on
-  2026-10-19, and with the change cycle `site-navigation-and-atlas` on
-  2026-10-30).
+  2026-10-19, with the change cycle `site-navigation-and-atlas` on
+  2026-10-30, and with the change cycle
+  `part-b-scientific-products-and-research` on 2026-11-01).
   Where this document and the requirements disagree, the requirements win
   and the disagreement is a defect in this document.
-- Decisions with a durable record: `docs/decisions/001` to `021`; ADR 017
+- Decisions with a durable record: `docs/decisions/001` to `022`; ADR 017
   is proposed, not accepted, and paused (see "Verification simplification
   under review"); ADR 018 (the atelier, the asset classes, and the atlas)
   and ADR 019 (the agent skills) were accepted with the planning of the
@@ -28,7 +29,15 @@ final curriculum adds, and the boundaries every feature must respect.
   atlas, and raster interface artwork on non-lesson pages) is proposed
   with the change cycle `site-navigation-and-atlas`, accepted when its
   planning is approved, and supersedes ADR 018 decisions 2 to 4 in part
-  (see "The quieter site").
+  (see "The quieter site"); ADR 022 (Part B as four method paths with
+  core and extension slots and product capstones, the learner-run local
+  products, the instrument contract, and the evidence contract) is
+  proposed with the change cycle `part-b-scientific-products-and-research`,
+  accepted when its planning is approved, and amends ADR 013 decisions 3
+  and 5 and, in its one rule that the curriculum file gains no field, ADR
+  021 decision 3 (a slot gains the key `extension` and the kind `product
+  capstone`, still no description field; see "Part B: method paths that
+  end in local scientific products").
 - Planning base commits: `502ced0` for the bootstrap planning, when the
   repository held only the workflow template; `2f011ea` for the change cycle
   `physics-next-phase` (`docs/changes/physics-next-phase.md`), when F01 to
@@ -51,7 +60,12 @@ final curriculum adds, and the boundaries every feature must respect.
   every lesson; `c94c045` for the change cycle `site-navigation-and-atlas`
   (`docs/changes/site-navigation-and-atlas.md`), when the site published
   ninety-one lessons in eleven strands, F123 to F126 were merged with the
-  owner's rendered pass outstanding, and F127 had not started.
+  owner's rendered pass outstanding, and F127 had not started;
+  `cd69524` for the change cycle `part-b-scientific-products-and-research`
+  (`docs/changes/part-b-scientific-products-and-research.md`), when the
+  site published ninety-four lessons in eleven strands, twenty-two of them
+  in Part B slots and one more Part B lesson without a slot, F98 had just
+  merged, and F133 was open as pull request #351.
   `docs/roadmap.md` orders the remaining work.
 
 Sections marked **(next phase)** describe what the change cycle
@@ -65,7 +79,9 @@ workstreams)** describe what the change cycle
 workflow)** describe what the change cycle `risk-proportionate-workflow`
 adds to the development workflow, which touches no page of the site;
 sections marked **(site navigation)** describe what the change cycle
-`site-navigation-and-atlas` changes. Each names the roadmap
+`site-navigation-and-atlas` changes; sections marked **(Part B
+products)** describe what the change cycle
+`part-b-scientific-products-and-research` adds. Each names the roadmap
 feature that builds it; until that feature is delivered the section is a
 target, not a description of the repository.
 
@@ -79,6 +95,7 @@ target, not a description of the repository.
 | University educator (next phase) | Downloads a published lesson's instructor pack, adapts it under the content licence, cites the project, and reports improvements through Issues. Never a mailing list. |
 | Maintainer/author (with AI agents) | Writes lessons, code, proofs, and dataset cards in the repository; researches external references at edit time; merges through pull requests gated by CI. For visual and scientific-illustration work the agents follow the audited, pinned skills of ADR 019 (scientific atelier): guidance, never evidence. |
 | Outside contributor | Proposes content, corrections, and datasets through GitHub Issues and reviewed pull requests (F12, extended by F57). |
+| Learner building a Part B product (Part B products, ADR 022) | Copies a path's version-pinned starter from `products/<product>/starter/` into their own project, through the guided route with a pinned Agentic Coding Template revision or the equivalent manual route; builds and runs the product on their own machine against the deterministic simulator, recorded data, or, optionally, their own low-voltage instrument; exports raw data, a report, and an evidence package. Nothing of it reaches the site, the build, or CI. |
 
 There are no signed-in or administrator roles and no server that could hold
 them.
@@ -113,6 +130,7 @@ flowchart LR
   local -- learner's own key --> llm
   local -- learner's own account --> coding
   local -. documented download .-> portals
+  local -. optional, local only .-> instrument["Learner's instrument<br/>(Part B products)"]
   learner -. outbound link .-> leanweb
   learner -. outbound link .-> external
   learner -. outbound link .-> portals
@@ -138,6 +156,9 @@ Outside the boundary, with the direction of dependency:
 | Lean web editor (live.lean-lang.org) | Learner's browser | Outbound link only. |
 | External notebook services | Learner's browser | Optional outbound links only; none are planned. |
 | Upstream repositories of the agent skills (Impeccable, Anthropic Frontend Design, Diagram Design) (scientific atelier, ADR 019) | The maintainer, at audit time | Read once per audit; the approved copy is pinned in the repository at its upstream revision. Never contacted by the site, the build, CI, or a running agent. |
+| Agentic Coding Template (`taspinar/agentic-coding-template`) (Part B products, ADR 022) | A learner's guided route to building a capstone product, on the learner's machine | A pinned, demonstrated revision named by the product's guided route; never a site, build, or CI dependency, and never evidence of scientific truth (ADR 010). |
+| A learner's own instrument and its driver (Part B products, ADR 022) | The live adapter of the Autonomous Physics Lab and the System Discovery Lab, on the learner's machine | Optional; the driver is in an optional dependency group; never contacted by the site, the build, or CI; supported only after the physical pilot (F140). |
+| External scientific-agent and research repositories (AI-Scientist, Agent Laboratory, Robin, Aviary, PaperQA, Bluesky, Bluesky Adaptive, QCoDeS, PySINDy, PySR, Jobflow, Atomate2, R&D-Agent, ShinkaEvolve) (Part B products) | The maintainer, as design references; an integration only when a feature chooses it with evidence | Guidance only; any reuse is pinned, licence-checked, attributed, and an optional dependency (requirements, "External integrations"). |
 
 The published site itself depends on nothing at runtime except GitHub Pages
 serving its files.
@@ -191,7 +212,7 @@ src/pbc/                 Importable Python package with all reusable lesson code
                          double pendulum and Lyapunov estimate (`chaos`), the Euler-Lagrange
                          operator (`lagrangian`), phase-space and modified-energy checks
                          (`hamiltonian`), and the verified damped driven oscillator
-                         (`resonance`, F68; the reference solution F45 reuses)
+                         (`resonance`, F68; the reference solution SA2 reuses, F141)
   thermodynamics/        Random walks and diffusion, the Maxwell distribution of a simulated gas,
                          and the entropy of an ensemble (F70)
   waves/                 The one-dimensional wave equation, interference and standing waves,
@@ -211,6 +232,18 @@ src/pbc/                 Importable Python package with all reusable lesson code
                          verdicts (`invariants`, `invariant_lab`, F82)
   verification/          Order estimation, invariant checks, the named checks of the validation
                          contract, and a gallery of deliberately faulty steppers (F46)
+  evidence/              The minimal capstone evidence contract: run and attempt records, the
+                         evaluator's recomputed scores apart from candidate diagnostics, claim links
+                         with an evidence status, the frozen candidate and the versioned final
+                         evaluation (Part B products, F137, ADR 022)
+  instruments/           The instrument contract (configuration with units and ranges, excitation,
+                         acquisition, validation, state snapshots, the safety envelope) and its
+                         simulated, recorded, and optional live adapters (Part B products, F138,
+                         F140, ADR 022)
+  products/<product>/    The reference code of each Part B capstone product: the Autonomous Physics
+                         Lab, the System Discovery Lab, the Scientific Agent Testbench, the Scientific
+                         Research Workspace, with its local interface (Part B products, F138, F145,
+                         F148, F151, F155, ADR 022)
   abm/                   Agent-based models
   agents/                Agent harness: provider interface, tool allowlist, replay; the lesson
                          modules (`projectile_lab`, `review_lab`: three reviewers, F18; `design` and
@@ -228,6 +261,11 @@ data/                    Real datasets as declared inputs (F50, ADR 007)
   samples/<dataset>/        Small, version-pinned, rights-cleared samples under the size cap
 docs/datasets/<dataset>.md  Feasibility dossier and go/defer/reject decision per dataset (F50)
 docs/instructor-packs/      Instructor packs of published lessons (next phase, F59)
+products/<product>/      Learner material of each Part B capstone product: the product brief, the scientific
+                         acceptance criteria, example inputs, the reference workflow, the assessment rubric,
+                         the manual and guided routes, fixtures/ (the product's one replay-fixture location,
+                         I6), and starter/, the version-pinned starter a learner copies into their own
+                         project (Part B products, ADR 022)
 tests/
   unit/                  pytest: behaviour of src/pbc
   integration/           pytest: every check fails on a violating input; CI workflow boundaries
@@ -267,7 +305,7 @@ LICENSE, LICENSE-CONTENT MIT for code, CC BY 4.0 for lesson text and figures
 |---|---|---|
 | **Lesson pages** (`site/lessons/`) | Explanation, assumptions, worked examples, exercises with solutions, the last section, "Run this experiment", "Replay this experiment", or "Check this proof" by the kind of the lesson (ADR 016, F117; the identifier `reproduce-this` is kept), listing the commands from a clone to the lesson's tested experiment and never a render command; in the next phase also the physical question, outcomes, interpretation, limits, self-check, and optional "Go deeper" references. Display code, outputs, figures, proofs, and data only through the verified display forms below. | Contain hand-copied code, pasted figures, hand-typed results, image files, or a curated external link that is not in the reference register (the structural links helpers generate are named in I22). |
 | **Lesson code package** (`src/pbc/`) | All reusable simulation and analysis code: models, integrators, analysis helpers, data readers; in the final curriculum one package per course, the shared finite-element and finite-volume solvers, and the discovery environments. Unit-tested. The code learners import when they reproduce a lesson and the functions agents are allowed to call. | Depend on the site generator, on network access, or on an LLM provider SDK outside `pbc.agents`. Fetch data from a portal. Depend on an optional comparator (FEniCSx, Gmsh, REBOUND, QuTiP, GeoClaw, PySR, ...) in a required code path. |
-| **Curriculum file** (site/curriculum.yaml, final curriculum, ADR 013) | The reference curriculum as data: the eight courses, the four method paths, and every slot with its label, working title, home, position, and kind. Lessons fill slots through their `slot` field; the path page and the home page derive the planned structure from it and every published fact from front matter. | Hold anything front matter holds (titles of published lessons, descriptions, outcomes, prerequisites, difficulty, methods), or name a lesson that does not exist. |
+| **Curriculum file** (site/curriculum.yaml, final curriculum, ADR 013) | The reference curriculum as data: the eight courses, the four method paths, and every slot with its label, working title, home, position, and kind; since the Part B products (ADR 022, F136) also whether a method-path slot is an extension slot, outside the core counts, and the kind `product capstone`. Lessons fill slots through their `slot` field; the path page and the home page derive the planned structure from it and every published fact from front matter. | Hold anything front matter holds (titles of published lessons, descriptions, outcomes, prerequisites, difficulty, methods), or name a lesson that does not exist. |
 | **Map manifest** (site/atlas.yaml, scientific atelier, ADR 018; amended by ADR 021) | The one addition the course atlas needs, in the requirements' words: concept identifiers (each with its short explanation), display placement (optional since ADR 021, removed with its check when nothing reads it), concept-to-slot associations (capstone membership among them, as an association whose slot is a capstone slot), and curated conceptual connections with their rationale; since the site navigation (F133) also one entry per sequence (every course and method path of the curriculum file, no other) with its one-line description and its illustration, a path the provenance register names. The short explanation of the concept that represents a capstone slot is the planned description the atlas reveals and the home page shows. Validated by `pbc.authoring`: every course, path, slot, and concept reference resolves (the schema defines course, path, slot, and concept references only, and rejects any other field; it admits no lesson reference, so the requirements' lesson-reference rule holds vacuously); a concept names at least one slot; every capstone slot of the curriculum file is represented by exactly one concept. | Hold a title, outcome, prerequisite, publication state, or count, or a description other than a sequence's one line and a concept's explanation; hold an illustration reference outside the sequence entries, or a lesson reference; infer a concept from a lesson's title; list a prerequisite (those come from the front matter); be a second lesson catalogue. |
 | **Lean project** (`lean/`) | All formal proofs, built with `lake build` against pinned Lean 4 and Mathlib. | Contain `sorry`, `admit`, or project-declared `axiom`s. Claim anything about the Python code or about the physical accuracy of a measurement. |
 | **Widgets** (`site/widgets/`) | Optional interactive visualizations that enhance a static figure already present in the page; in the next phase a small set of science-first components (F43). | Load code or data from another origin, load data before the reader asks for it, store or transmit learner data, compute physics the page did not verify, alter claimed observed values, or be required to read a lesson. |
@@ -300,7 +338,7 @@ facets:
 | **Course** | A physics subject. Eight courses with fixed identifiers (final curriculum, ADR 013): `mechanics`, `thermodynamics`, `waves`, `electromagnetism`, `fluids`, `quantum`, `astrophysics`, `materials`; `mechanics`, `thermodynamics`, and `waves` are the ones with lessons today (F68, F70, F71). Every lesson, including an agent, proof, or measured-data lesson, belongs to exactly one primary course. The learning path page is organised by course. | `pbc.authoring.path` (`COURSES`, from the curriculum file after F62); lesson front matter `lesson.course` (F37). |
 | **Method** | A cross-cutting way of working: `simulation`, `llm-agents`, `abm`, `lean`, `measured-data`, `coding-agents`. A lesson lists the methods it uses; the path page shows one method path per method across courses, and lesson pages cross-link related lessons. | `pbc.authoring.path` (`METHODS`); `lesson.methods` and `lesson.related` (F37). |
 | **Strand** | The URL group and ordering key a lesson lives in: `mechanics`, `agents-llm`, `agents-abm`, `lean`, unchanged in identifier and address; in the final curriculum every course is a strand with the same identifier, created by the first feature that publishes a lesson of it (ADR 013). Strand order (the eight courses in curriculum order, then the three method strands) and `lesson.order` still define the one linear learning path; previous and next links follow it. That order is a reading route, not the dependency order: a prerequisite may live in a later strand (ADR 013 decision 8). | `pbc.authoring.path` (`STRANDS`); `lesson.strand`, `lesson.order` (existing). |
-| **Slot and method path** (final curriculum, ADR 013) | The place of a lesson in the reference curriculum: a label such as `M17`, `T10`, or `D13` that the curriculum file defines with a working title, a home (a course, or one of the four method paths with a position in it), and a kind (lesson, measured-data lab, applied capstone); the one Lean slot, L1, has the strand `lean` as its home and may be filled by a lesson of any course. A lesson fills at most one slot; a slot is filled by at most one lesson; a lesson without a slot (the Lean lessons beyond the baseline) is allowed. The four method paths (physics reasoning and scientific agents, scientific law discovery, physics agent benchmarking, autonomous scientific research) are a view over the lessons whose slots belong to them, never courses, strands, or pages. | site/curriculum.yaml; lesson front matter `lesson.slot` (F62). |
+| **Slot and method path** (final curriculum, ADR 013) | The place of a lesson in the reference curriculum: a label such as `M17`, `T10`, or `D13` that the curriculum file defines with a working title, a home (a course, or one of the four method paths with a position in it), and a kind (lesson, measured-data lab, applied capstone, and since ADR 022 product capstone, the capstone of a method path); a method-path slot may be an extension slot, optional depth shown after the path's core slots and outside the core counts (ADR 022); the one Lean slot, L1, has the strand `lean` as its home and may be filled by a lesson of any course. A lesson fills at most one slot; a slot is filled by at most one lesson; a lesson without a slot (the Lean lessons beyond the baseline) is allowed. The four method paths (physics reasoning and scientific agents, scientific law discovery, physics agent benchmarking, autonomous scientific research; since ADR 022 and F136, under the same keys, reliable scientific agents and experiment automation, physical model discovery through active experiments, scientific agent evaluation and improvement, and reproducible research with agents) are a view over the lessons whose slots belong to them, never courses, strands, or pages. | site/curriculum.yaml; lesson front matter `lesson.slot` (F62). |
 
 Placement rule for new lessons: a lesson whose subject is the physics of a
 course, including a measured-data lab or an applied capstone of that
@@ -1318,6 +1356,138 @@ since both change the lesson template and the shared CSS. Each changes
 shared inputs, so each is verified by the full run its targeted run
 reports; F133 and F135 change what every lesson page displays.
 
+### Part B: method paths that end in local scientific products (Part B products, ADR 022, F136 to F155)
+
+The change cycle `part-b-scientific-products-and-research` (requirements
+decision 42 and the amendments of decisions 23, 25, 26, 28, and 31;
+`docs/changes/part-b-scientific-products-and-research.md`) reorganises the
+four method paths around one progression (experiment execution, model
+discovery, system evaluation, reproducible research), each ending in a
+capstone that delivers a usable local software product. The site stays
+static: products are applications the learner runs on their own machine,
+and the site teaches them through ordinary lesson pages. Part A, the Lean
+strand, the atlas's design, the lesson model, the verified display forms,
+the selection, and the learner-state contract do not change. Until the
+named features deliver it, this section is a target.
+
+**The curriculum** (F136, ADR 022 decisions 1 to 4). The Part B part of
+the curriculum file becomes 34 core slots under the four existing path
+keys with their new display titles: `reasoning` (SA1 to SA8 and the
+capstone SA9, the Autonomous Physics Lab), `law-discovery` (MD1 to MD9 and
+MD10, the System Discovery Lab), `benchmarking` (AE1 to AE6 and AE7, the
+Scientific Agent Testbench), and `autonomous-research` (RR1 to RR7 and
+RR8, the Scientific Research Workspace); the labels are the planner's
+proposal, approved by the owner with F136 (unresolved question 20). After
+the core slots come the extension slots: AI6, D1, D3, D4, and D5, which
+keep their published lessons and their meaning, and AI8 and R5, planned
+and filled only if the owner schedules F97 or F110. Only AI8, D4, and R5
+are the requirements' deliberate extensions (video-based inference,
+gravity discovery, materials discovery). For AI6, D1, D3, and D5 only the
+published lesson is optional depth: their outcomes belong to core slots
+and are attached to acceptance criteria of F142, F146, F147, and F149,
+never claimed from a link to the extension lesson (ADR 022 decision 2).
+The reference curriculum counts its core: 116 slots (81, 34, 1). Seventeen published
+lessons move to a core slot by their `slot` field; every other old Part B
+label is retired with its successor recorded in `docs/roadmap.md`, "Slot
+mapping (change cycle `part-b-scientific-products-and-research`)". The
+path view, the atlas, the lesson header, and Home read the extension flag
+and the `product capstone` kind from the curriculum file; the four sequence
+descriptions and the concept-to-slot associations of the map manifest are
+updated in the same change, never written into a page. The path's
+recommended order (Path 1 to 2 to 3 to 4) is a reading route, not a
+prerequisite: each lesson's prerequisites are its own front matter,
+validated as a graph (ADR 013 decision 8), and point only at published
+lessons.
+
+**Components.**
+
+| Component | Responsibility | Must not |
+|---|---|---|
+| `pbc.instruments` (F138; live adapter F140) | One small contract: configuration with units and validated ranges, excitation, acquisition, validation, and instrument-state snapshots; the adapters *simulated* (deterministic, over a model of `src/pbc`, first the RLC circuit of the electromagnetism course), *recorded* (a declared dataset sample, ADR 007), and *live* (an optional driver, imported only with its optional group); the safety envelope (ranges, interlocks, timeouts, stop) enforced before an operation reaches a device. | Let a caller, an agent, or generated code reach a driver directly; enforce a limit in a prompt; import a driver in the default environment; present a recorded run as a new experiment. |
+| `pbc.evidence` (F137) | The minimal evidence contract of the requirements' "Data and persistence": run and attempt records with identities, seeds, budgets, splits, and environment; evaluator-recomputed correctness and resource use, stored apart from the candidate's own diagnostics; claim-to-run and claim-to-source links with an evidence status and scope; the frozen candidate (by digest) and its versioned final evaluation. Extends `docs/discovery-protocol.md` and replay (ADR 004). | Trust a candidate's log or self-reported cost as evaluation; let final-evaluation feedback tune the frozen candidate; treat a digest as scientific truth; be a general provenance platform. |
+| `pbc.products.<product>` (F138 for the slice; F145, F148, F151, F155) | The reference product: the scientific workflow over `pbc.instruments`, `pbc.discovery`, `pbc.agents`, and `pbc.evidence`; a scripted baseline and a bounded agent route in the ADR 004 harness with replay; the export of raw data, report, and evidence package; a thin local interface for configuration, progress, results, and failures. | Run in the site build except through its capstone page's deterministic simulator route; contact a model, an instrument, or the network in CI; mix the instrument adapter with the physical models or the agent orchestration. |
+| `products/<product>/` (the same features) | The learner material: brief, scientific acceptance criteria, example inputs, reference workflow, rubric, manual route, guided route with the pinned ACT revision, `fixtures/` (the replay traces of the product's and the starter's agent route, the one fixture location of the product, ADR 022 decision 8), and `starter/` (already-verified lower-level components and marked places for the learner's work, depending on `pbc` at a pinned revision of this repository: the full commit hash of a verified commit on `main`, installed by its Git address, since `pbc` is not a published package; ADR 022 decision 5). | Hold generated outputs (I6), credentials, or a second copy of `src/pbc` code; promise a learner workload before the ACT pilot (F139). |
+| Capstone page (kind `product capstone`, in `agents-llm`) | Teaches the product: the brief, the criteria, the outcomes each product feature exercises, the reference workflow executed on the simulator through the verified display forms, the operating limits, and the run command in the last section (ADR 016). | Show a live result as the lesson's result; claim hardware support before F140's physical pilot; replace the physical argument, worked examples, and interpreted results by a README. |
+
+**Execution modes** (requirements, "Data and persistence"). Every run
+record names its mode. *Simulated*: new experiments, hidden systems,
+active selection, and full assessment without equipment; the only mode the
+build executes. *Recorded*: real noise and reproducible analysis from a
+declared dataset sample, typed as measured data on a page after the
+dataset gate, never as a new experiment. *Live*: new local measurements on
+the learner's own instrument, with device, calibration, configuration,
+timestamps, units, processing, and operating conditions recorded and
+declared tolerances; it stays on the learner's machine, and a captured
+trace reaches the repository only as a dataset sample with its card and
+feasibility decision (ADR 007), never as a seventeenth designated lab.
+
+**Data flow of a product run (learner's machine).**
+
+```mermaid
+flowchart LR
+  ui["Local interface<br/>(loopback only)"] --> wf["Product workflow<br/>pbc.products"]
+  wf --> agent["Bounded agent<br/>harness, allowlist (ADR 004)"]
+  wf --> base["Scripted baseline"]
+  agent -- validated operations --> inst["pbc.instruments<br/>safety envelope"]
+  base --> inst
+  inst --> sim["Simulated adapter"]
+  inst --> rec["Recorded adapter<br/>dataset sample"]
+  inst -. optional .-> live["Live adapter<br/>learner's device"]
+  wf --> ev["pbc.evidence<br/>evaluator recomputes"]
+  ev --> export["Export: raw data,<br/>report, evidence package"]
+```
+
+The agent never receives the hidden truth of a simulated system, the
+evaluator's answers, or a withheld test (I27); a model is optional behind
+the provider interface, and every essential outcome is reachable through
+the scripted baseline and recorded replay traces without a model account.
+
+**Development routes.** A learner builds a product either by the manual
+route or by the guided route with the Agentic Coding Template at a pinned,
+demonstrated revision, with growing independence from Path 1 (guided
+specification and supplied criteria) to Path 4 (independent bounded
+delivery). A coding agent that builds a product is distinct from the
+scientific agent the product runs; it runs on the learner's machine under
+ADR 010, and an optional exercise that lets an agent change experiment
+code runs in an isolated simulator workspace, validated independently
+before the code joins a scientific workflow. F139 pilots the guided route
+on one real capstone feature and verifies the manual route before any
+workload is promised.
+
+**Verification.** CI verifies the offline route: pytest over
+`pbc.instruments`, `pbc.evidence`, the product packages, and each starter
+twice, installed against the current tree (a change that breaks what the
+starter imports fails its pull request) and at its pinned commit, taken
+from the repository's own history without an external fetch (what a
+learner installs was verified), with the replay traces committed at the
+product's one fixture location `products/<product>/fixtures/` under ADR
+002's replay-fixture conditions (no credentials; tool results recomputed,
+never shown or exported from the record; a mismatch fails; ADR 022
+decision 8, I6); the pin moves only to a merged commit of `main`, in a
+small change after the feature that altered the starter's dependency
+surface (ADR 022 decision 5). A new starter's pin is `pending` until the
+first pin bump after its feature merged: until then the at-pin check
+skips it, names the skip in its output, and the feature's completion
+record states it, while the current-tree check runs; F138 adds the at-pin
+check and the CI checkout with the repository's history it needs; each capstone page executes its simulator route within the
+page budget. Live hardware, paid or local models, heavy live evaluations, and
+optional integrations run outside `verify.conf` and are evidenced
+separately; nothing is weakened to fit them. The product packages are
+ordinary inputs of the selection (ADR 014): a change to a product package
+that a capstone page imports re-executes that page, and a change to
+`pbc.instruments` or `pbc.evidence` follows the same input digests.
+
+**Pilots and gates** (requirements decision 42, "Pilots"). The evidence
+pilot (F137) and the simulator vertical slice (F138) are the only common
+prerequisites of the Part B delivery; the one-instrument pilot (F140)
+gates only live-hardware support; an integration-specific comparison
+(PySR, PySINDy, PaperQA, Bluesky, QCoDeS) is required only for an
+integration a feature actually chooses; the solver-optimisation exercise
+stays optional and blocks nothing. Each pilot has explicit compute and
+time limits in its plan and ends in a go or no-go recommendation with its
+evidence and cost; exhausting the limit ends it with an honest partial
+result.
+
 ## Invariants and boundaries
 
 Agents and reviewers must preserve these. Each names how it is enforced; an
@@ -1331,7 +1501,7 @@ shown.
 | I3 | No analytics, tracking, cookies, or third-party runtime resources. All scripts, styles, fonts, and images are served from the site's own origin. Outbound links are the only contact with other sites. | Built-site check (F01). |
 | I4 | All text, code, equations, diagrams, proof explanations, and static figures are readable with JavaScript disabled. Interactives enhance a static fallback. | Built-site check with scripting disabled (F01, F07). |
 | I5 | Code, outputs, figures, proofs, data, and claims on the site come only through the verified display forms. Unverified material is visibly marked. | Lesson source check (F02, F28); ADR 002, 007, 009, 010. |
-| I6 | Generated artifacts are never committed. Figures, outputs, and rendered pages are regenerated by every build. The only committed inputs a build cannot regenerate are the replay fixture of an agent lesson, the dataset samples under `data/samples/`, including the reference artifacts of optional tools declared as `modelled-reference` (final curriculum), and the interface artwork under `site/assets/` that the provenance register names: authored SVGs with an author and a licence (scientific atelier), and, since the site navigation, derived WebP or PNG files with their origin, licence or terms, and master hash (ADR 021), each at its declared location, free of credentials and restricted material, and checked on every build (recorded tool results against recomputed ones; sample checksums against their cards; every registered file present and every tracked image under `site/assets/` registered). No other raster, no unregistered image, and no image outside `site/assets/` is committed anywhere. An execution cache restored from a verified artifact of `main` is a build input of a pull request run, never a committed file (ADR 014). | Lesson source check and `.gitignore` (F02); replay (F09); dataset checks (F50); the committed-artifact check narrowed to the registered-SVG exemption, with the asset-source rule (F123), widened to registered rasters under `site/assets/` (F133); ADR 002, 004, 007, 014, 018, 021. |
+| I6 | Generated artifacts are never committed. Figures, outputs, and rendered pages are regenerated by every build. The only committed inputs a build cannot regenerate are the replay fixture of an agent lesson, the replay traces of a Part B product and its starter at the product's one declared fixture location `products/<product>/fixtures/` under the same replay-fixture conditions (ADR 022 decision 8 amending ADR 002 condition 2), the dataset samples under `data/samples/`, including the reference artifacts of optional tools declared as `modelled-reference` (final curriculum), and the interface artwork under `site/assets/` that the provenance register names: authored SVGs with an author and a licence (scientific atelier), and, since the site navigation, derived WebP or PNG files with their origin, licence or terms, and master hash (ADR 021), each at its declared location, free of credentials and restricted material, and checked on every build (recorded tool results against recomputed ones; sample checksums against their cards; every registered file present and every tracked image under `site/assets/` registered). No other raster, no unregistered image, and no image outside `site/assets/` is committed anywhere. An execution cache restored from a verified artifact of `main` is a build input of a pull request run, never a committed file (ADR 014). | Lesson source check and `.gitignore` (F02); replay (F09); dataset checks (F50); the committed-artifact check narrowed to the registered-SVG exemption, with the asset-source rule (F123), widened to registered rasters under `site/assets/` (F133); ADR 002, 004, 007, 014, 018, 021, 022. |
 | I7 | A lesson whose code fails, whose proof does not compile, whose sample does not parse, or whose page does not build cannot be merged. | Required status check on `main` (F01, F58). |
 | I8 | CI and local verification run the same product checks through `./scripts/verify.sh`. CI also runs the workflow self-tests on every run; a local run includes them when a workflow file changed. A local run is one of three tiers (ADR 017 decision 7, F119): the full run runs every product check; the targeted run and the run with a base run the checks of their tier against the selection and are recorded with their tier, and CI runs every check on every pull request and push. Parallel CI jobs run groups of the same `verify.conf` checks behind one aggregate required check; every group runs in exactly one job, or, for the group that executes the lessons, in one lesson-shard matrix whose lesson shards the script derives (ADR 014 decision 11, paused with F113 since 2026-10-15: one job today). | Workflow calls only that script, and a test compares the declared groups with the groups the jobs run (F01, F58); ADR 003, ADR 005, ADR 012. |
 | I9 | The deployed site is the artifact the CI run built for that `main` commit, and the one its jobs checked. The deploy job does not build, and runs only after the required check passed. | Workflow structure (F01); the comparison of the downloaded site with its recorded checksums (F58); ADR 003, ADR 012. |
@@ -1349,15 +1519,17 @@ shown.
 | I21 | Every figure states its source status; every scientific claim is typed and scoped; measurements stay distinct from modelled references, fitted curves, reconstructed signals, and agent conclusions, with filtering, interpolation, and selection disclosed. | Lesson source check for format 2 (F28); review of real-data lessons (F51 onward). |
 | I22 | A curated external reference is an optional depth path at the relevant concept, never a substitute for a core explanation, and comes from the reference register with its selection evidence. The structural links helpers generate are not references and are outside the register: the repository file at the built commit behind an excerpt, the Lean web editor link of a proof, the original data record a dataset card names (ADR 007), licence texts, and the attribution link (F57). The F28 check rejects a URL typed in lesson source, not a helper-generated link. Builds and reading never depend on an external page; link validity is a maintenance check, not a merge gate. | Register check on URLs typed in lesson source (F28); `scripts/check-links.sh` outside `verify.conf` (F39); ADR 009. |
 | I23 | One canonical project description and attribution, discreet, truthful, and consistent across home, footer, About, README, instructor packs, and citation metadata; no marketing surface, lead form, mailing list, analytics, or endorsement claim. | Built-site check that the canonical text appears where required and nowhere else (F57); review. |
-| I24 | Coding agents and Lean generation run only on the learner's machine under a sandbox profile with an allowlist, a budget, and human review. The site and CI verify the produced code, tests, and proofs and never run an agent. | Authoring rule and workflow test (F45); the boundary test F122 creates for the agent skills (I32), which F45 extends to coding agents; ADR 010. |
+| I24 | Coding agents and Lean generation run only on the learner's machine under a sandbox profile with an allowlist, a budget, and human review. The site and CI verify the produced code, tests, and proofs and never run an agent. | Authoring rule and workflow test (F45; since the change cycle `part-b-scientific-products-and-research` F141, which carries the coding-agent workflow of the dropped F45, covering the Agentic Coding Template of the products' guided route); the boundary test F122 creates for the agent skills (I32), which F141 extends to coding agents; ADR 010, ADR 022. |
 | I25 | Every page stays within the payload budget below; heavy interactive data loads only on demand from the site's own origin. | Built-site check (F44, F43). |
 | I26 | A run on `main` executes and checks every lesson. A pull request run executes and checks every lesson whose inputs changed and every page whose bytes differ from the verified base; when the inputs of a lesson cannot be followed, when a shared input changed, or when the checks differ from those that produced the base, every lesson is executed; a page's navigation and the commit it names are never taken from the base; a comparison of bytes is made only against a result the run computed on the machine of the comparison; the selection is made by `./scripts/verify.sh` from content digests, never by a path filter in the workflow; no check is dropped; and every job of a full run fits the job timeout at 110 lessons (final curriculum). The first sentence stands until the owner accepts ADR 017 (four workstreams, requirements decision 35, unresolved question 9); the last clause is not established: at thirty-two lessons the one `build` job fits the timeout (measured), and the bound at 110 lessons is re-established by the owner's interim timeout (question 10), by F121, or by F113 resumed. | The verification script and its tests; the workflow passes a base only on pull requests (F61); the lesson shards and the assembly (F113, paused); ADR 014; ADR 017 (proposed); F118, F120, F121. |
-| I27 | The hidden truth of a discovery environment (the law, the parameters, the invariant, the held-out worlds) is never reachable by the agent's tools, the prompt, or the displayed data; a benchmark score shown on the site is recomputed by the build from a frozen trace, with its non-agent baselines (final curriculum). | Allowlist tests of `pbc.discovery` and replay (F65); ADR 004. |
-| I28 | The reference curriculum has one declared source, lessons fill its slots by front matter, no slot is filled twice, and a planned slot is never shown as published or counted; the site's course-first path and its method paths are views over the canonical lesson pages (final curriculum). | Lesson source check and path page test (F62, F64); ADR 013. |
+| I27 | The hidden truth of a discovery environment (the law, the parameters, the invariant, the held-out worlds) is never reachable by the agent's tools, the prompt, or the displayed data; a benchmark score shown on the site is recomputed by the build from a frozen trace, with its non-agent baselines (final curriculum). Since the Part B products (ADR 022), the same holds for a product's hidden systems, withheld tests, and evaluator answers: a hidden or final evaluation states its actual isolation assumptions, a test the agent can read is not called private, the evaluator recomputes scores and resource use from the records, and a candidate's own log or reported cost is never the evaluation. | Allowlist tests of `pbc.discovery` and replay (F65); the evidence contract's tests, including a candidate that fabricates a high score and fails (F137), and the product tests (F145, F148, F151, F155); ADR 004, ADR 022. |
+| I28 | The reference curriculum has one declared source, lessons fill its slots by front matter, no slot is filled twice, and a planned slot is never shown as published or counted; the site's course-first path and its method paths are views over the canonical lesson pages (final curriculum). Since ADR 022, the reference curriculum's counts are those of its core slots (116: 81, 34, 1); an extension slot of a method path is shown as optional depth after the path's core slots and counted apart; no old slot label changes meaning, and a retired label is never reused (Part B products). | Lesson source check and path page test (F62, F64); the curriculum test of core and extension counts (F136); ADR 013, ADR 022. |
 | I29 | An applied capstone is labelled with its credibility boundary (teaching prototype, array-factor model, teaching-scale propagation model), compares with a stated reference, shows refinement and failure modes, and says which aspects are physically validated; its required path runs on the pinned stack, and any heavy tool is optional and its output a declared `modelled-reference` input (final curriculum). | Lesson source check for the required claim and figure labels; review (F76, F80, F87, F88); ADR 007. |
 | I30 | Every visual on the site belongs to one of three asset classes, decided by what it claims, and is identifiable as such: interface artwork makes no scientific evidence claim, carries no formula, number, or text in its pixels, and appears only in the chrome and on non-lesson pages (Home, the atlas, course, module, and capstone openings, About, the informational pages); a conceptual illustration in a lesson is labelled `conceptual` and is never presented as a result; a scientific result keeps the verified display forms and the F63 preview contract on every page. An animation has a static alternative, accessible controls, and respects reduced motion, and is mandatory nowhere. A conceptual illustration and a scientific result have their generating source in the repository; interface artwork has its source or its provenance entry (origin, licence or terms, master hash); no stock, copied, or externally hosted image exists, and the only committed rasters are the registered interface artwork under `site/assets/` (scientific atelier; site navigation, ADR 021). | Built-site checks for other-origin resources and image files (F01, F63); the figure-status check (F28); the asset-source rule and the committed-artifact check (F123, F133); review; ADR 018, ADR 021. |
 | I31 | The course atlas has one source of truth: course, path, and slot structure from the curriculum file; publication, titles, prerequisites, and addresses from the front matter; and from the map manifest only concept identifiers, display placement (optional since ADR 021: it may be removed with its check when nothing reads it), concept-to-slot associations, curated conceptual connections with their rationale, and, since the site navigation, each sequence's one-line description and illustration (capstone membership is a concept-to-slot association whose slot is a capstone slot; the manifest holds no lesson reference). Every reference in the manifest resolves, concept membership is never inferred from a title, the three relationship types stay explicit as data and are never invented for a planned lesson, a planned concept or slot is never a lesson link and never counted, every published lesson is reachable from the atlas without scripts, the atlas's controls store nothing, and the path address and every earlier anchor stay valid (scientific atelier; site navigation, ADR 021). | The manifest check and the atlas page tests (F125, F126, replaced in part by F133); the F64 tests; the scan of I16 extended to the atlas modules; ADR 018, ADR 021, ADR 013. |
-| I32 | An agent skill is development guidance read from `.agents/skills/` at its recorded revision: never a dependency of the site, the build, the lesson and built-site checks, the deployment, or any CI job, none of which invokes, installs, fetches, or depends on a skill; the skills configuration check is the one check that reads the directory, as data to validate; a skill is never evidence that a figure, a page, or a claim is correct; a required skill that is missing fails a feature's configuration visibly (scientific atelier). | The skills configuration check and the provenance records (F122); the boundary test F122 creates (no workflow, script, check, build step, or CI job invokes, installs, or fetches a skill; the build and every other check pass with the directory absent), which F45 later extends to coding agents (I24); review; ADR 019. |
+| I32 | An agent skill is development guidance read from `.agents/skills/` at its recorded revision: never a dependency of the site, the build, the lesson and built-site checks, the deployment, or any CI job, none of which invokes, installs, fetches, or depends on a skill; the skills configuration check is the one check that reads the directory, as data to validate; a skill is never evidence that a figure, a page, or a claim is correct; a required skill that is missing fails a feature's configuration visibly (scientific atelier). | The skills configuration check and the provenance records (F122); the boundary test F122 creates (no workflow, script, check, build step, or CI job invokes, installs, or fetches a skill; the build and every other check pass with the directory absent), which F141 (formerly F45) later extends to coding agents (I24); review; ADR 019. |
+| I33 | A Part B capstone product is a learner-run local application: the site, the build, and CI never run a product live, contact an instrument or a model, or need an optional dependency; CI verifies each product's and starter's offline simulator route deterministically, from simulated inputs regenerated from their seeds, dataset samples, and replay traces committed only at the product's declared fixture location (I6, ADR 022 decision 8), and checks each starter against the current tree and at its pin; every run record names its execution mode (simulated, recorded, live), a recorded run is never presented as a new experiment, a live result never appears on the site as a lesson's result, and real hardware support is called demonstrated only after a physical pilot; the product's local interface binds to the loopback interface only and is never part of the site (Part B products). | Product and starter tests in pytest; the capstone pages' simulator route under the page budget; the boundary test of I32 and I24 extended to products and drivers (F138, F141); review; ADR 022. |
+| I34 | Instrument safety does not depend on a model: permitted ranges, interlocks, timeouts, and stop behaviour are enforced by `pbc.instruments` before an operation reaches a device; an agent requests only allowlisted, validated, bounded operations; no driver, shell, or generated code reaches an instrument directly; no automatic rewiring without separately scoped switching hardware; no mains-voltage work and no unrestricted actuation (Part B products). | Contract tests with a fake driver that records every call and refuses out-of-envelope operations (F138); the physical pilot's recorded checks and the security-focused review (F140); ADR 022. |
 
 Boundaries for agents working in this repository, in addition to `AGENTS.md`:
 
@@ -1388,6 +1560,13 @@ Boundaries for agents working in this repository, in addition to `AGENTS.md`:
   recorded revision, do not fetch one at run time, and do not present a
   skill's guidance as evidence; record the skill and its revision in the
   completion evidence where one was used (ADR 019).
+- Do not let a Part B product, a starter, or a test contact an instrument,
+  a model, or the network in the build or CI; do not give an agent or
+  generated code a path to an instrument other than the validated
+  operations of `pbc.instruments`; do not show a live result as a lesson's
+  result or call hardware support demonstrated before the physical pilot;
+  do not adopt an external framework or repository without a pinned
+  version, a licence check, and a feature's recorded evidence (ADR 022).
 - Do not lower the risk level of a change below the minimum its paths and
   escalation triggers imply, do not present your own assertion, comment,
   file, flag, or chat statement as the owner's approval, do not treat a
@@ -1942,6 +2121,7 @@ artifacts and the time log.
 | Lessons, code, tests, proofs, configuration, dataset cards, the reference register, instructor packs | Git repository | Git history. |
 | Figures, outputs, rendered site | Build output only, never committed | Replaced by each build. |
 | Agent replay fixtures (recorded model messages and the expected tool results, no credentials) | Git repository, at the declared fixture location in the lesson directory (ADR 002) | Git history. Verification inputs: re-recorded when the replay fails. |
+| Replay traces of a Part B product and its starter (recorded model messages and the expected tool results, no credentials; Part B products) | Git repository, at the product's one declared fixture location `products/<product>/fixtures/` (ADR 022 decision 8 amending ADR 002 condition 2); never in `src/pbc/` or elsewhere | Git history. Verification inputs under ADR 002's replay-fixture conditions: tool results recomputed and never shown or exported from the record, a mismatch fails; re-recorded when the replay fails. |
 | Dataset samples (small, version-pinned, rights-cleared, next phase) | Git repository, `data/samples/<dataset>/`, with a card in `data/registry/` (ADR 007) | Git history. Verification inputs: replaced only with a new card version. |
 | The base of selective verification: the executed results and input digests of every lesson, and the identity of the checks that produced them (final curriculum, ADR 014) | Artifact of the latest successful run on `main`, published after `verify` passed; never committed | The artifact retention of GitHub Actions; a pull request without a base, or whose checks differ from the base's, runs in full. |
 | Full datasets | The portal of record, never the repository | Not retained here; the card pins version, URL, and checksum. |
@@ -2022,7 +2202,7 @@ Choices the requirements left to planning, and where they are settled:
 | Open choice in the requirements | Decision | Record |
 |---|---|---|
 | Site technology | Quarto, build-time execution, MathML equations | ADR 001 |
-| Generated artifacts: regenerate or commit | Regenerate on every build, never commit. Agent replay fixtures, dataset samples, provenance-registered authored interface-artwork SVGs and, since ADR 021, provenance-registered derived raster interface artwork (WebP, or PNG where recorded) under `site/assets/` are committed inputs, checked on every build | ADR 002, 004, 007, 018, 021 |
+| Generated artifacts: regenerate or commit | Regenerate on every build, never commit. Agent replay fixtures, the replay traces of a Part B product at its declared fixture location (ADR 022), dataset samples, provenance-registered authored interface-artwork SVGs and, since ADR 021, provenance-registered derived raster interface artwork (WebP, or PNG where recorded) under `site/assets/` are committed inputs, checked on every build | ADR 002, 004, 007, 018, 021, 022 |
 | CI time budget | 20 minutes typical for the wall clock of a pull request run with warm caches, 15 minutes as a non-blocking target (12 minutes until the owner's decision of 2026-10-14), 25 minutes with cold caches, 45 minute timeout per job (30 in ADR 003, raised on 2026-10-11); parallel jobs behind one aggregate check | This document; ADR 003; ADR 012; ADR 015; F58, F61 |
 | Python packages | NumPy, SciPy, Matplotlib, PyYAML, pytest, Ruff; minimal data readers of F50 in `pbc.data` (no new dependency), extended by F51 | Toolchains table |
 | Exact mechanics lesson list | Eight lessons in the MVP; 17 slots in the reference curriculum (final curriculum) | `docs/roadmap.md`, "MVP lesson list" and "Slot mapping" |
@@ -2053,6 +2233,8 @@ Choices the requirements left to planning, and where they are settled:
 | Visual freedom on non-lesson pages (decision 41) | Classes by claim; interface artwork as SVG or a committed derived WebP from a script, an author, or an image model, registered with origin, licence, and master hash, admitted by the committed-artifact check only through its entry; committed rather than rendered at build time, with a regeneration check on demand where a script exists | ADR 021; I6; I30; F133 |
 | Governed visual agent skills (decision 38) | Audited, pinned, project-local skills at `.agents/skills/`, a project-owned scientific-visualization skill, the planner, implementer, reviewer, and verification contract, bounded pilots, no mandatory review agent | ADR 019; I32; F122, F129 |
 | Fonts of the atelier | Self-hosted with their licences, counted in the initial payload, subset or dropped when they do not fit | This document; ADR 018; F123 |
+| Part B as four method paths ending in products (decision 42; amendments of decisions 23, 25, 26, and 31) | 34 core slots with new per-path labels, extension slots for the optional depth outside the 116 core slots, the kind `product capstone`, the migration by front matter, and the products as learner-run local applications in `pbc.products` and `products/` with a pinned starter, an instrument contract, an evidence contract, and an offline route verified in CI | ADR 022; this document, "Part B: method paths that end in local scientific products"; F136 to F155 |
+| Bounded optional hardware (amendment of decision 28) | Local, optional, first two capstones only, behind `pbc.instruments` with the safety envelope outside the model; one device after the feasibility spike and the physical pilot; Part A's labs unchanged | ADR 022; I34; F140 |
 
 Unresolved questions of the requirements that stay open, with the feature
 that must settle them:
@@ -2071,6 +2253,12 @@ that must settle them:
 | 14. The validated interactive pendulum | By the owner, as its own feature (F128) after the numerical validation and the cross-language reference check exist; since decision 40 also where (the mechanics course or "How we verify the science") | Since F134 the home opening is the hero, not the pendulum figure; if decided, a widget that computes in the browser under the verified display forms, on the page the owner names. |
 | 15. A Manim pilot | Not scheduled; starts only when the owner names one explanation where a static figure is inadequate | None; a pilot's dependencies stay outside the pinned learner and CI environments and its rendering out of normal CI. |
 | 16. A contribution form without a GitHub account | By the owner, as its own decision; a yes amends "No backend or runtime server" and "no runtime secrets" through its own change and Issue | None until then: I1 holds, and F135's links to GitHub's forms are the only route. |
+| 17. Instrument and accessories | By the owner, on the desk spike of F140 (drivers, Python access, limits, bill of materials, cost; no purchase), which depends only on F138; the physical pilot of F140 follows the decision | None until then: the live adapter is not written beyond a fake driver, and no hardware support is claimed. |
+| 18. Acquisition budget | By the owner, on the desk spike of F140 and before any purchase; F140's physical pilot starts only after it and question 17 | None. |
+| 19. Optional dependency packaging | In F138, for the slice, and extended by each product feature | One optional group per product or concern in `pyproject.toml`, never installed by the build or CI. |
+| 20. Final curriculum labels and primary course homes | Proposed by ADR 022 (SA, MD, AE, RR); settled by the owner's approval of the curriculum file in F136; each new lesson's primary course in its feature's Issue | The curriculum file and the front matter of the moved lessons (F136). |
+| 21. Frontend of the local products | In F138, with evidence, within ADR 022 decision 5 | The local interface of `pbc.products`; none for the site. |
+| 22. First reproduction paper and learner workload | The paper in F155 (its reproduction track); the workload after F138 and F139 | None; the products' material states workload only after the pilots. |
 
 ## Assumptions and risks
 
@@ -2290,8 +2478,63 @@ that must settle them:
   in the HTML, the script runs before first paint, and the text block's
   height is reserved for the longest pair; F134 tests every pair through
   the `hero` parameter and measures the layout shift.
+- **The curriculum outgrows the capacity decision** (Part B products).
+  The revised curriculum reaches about 127 lessons when complete (116 core
+  slots, five published extension lessons, five Lean lessons beyond the
+  baseline with F22, and the unslotted noise lesson), past the 110 lessons
+  of the owner's decision of 2026-10-24 (Issue #278: the `build` job at 90
+  minutes, re-measured at 75 and 95 lessons). At 39 to 46 seconds per
+  lesson plus preparation, a full run of 127 lessons is projected
+  (labelled so) at about 85 to 100 minutes. The roadmap makes the owner's
+  next capacity decision (on #278, with #150) a gate before a lesson
+  feature takes the count past 110; Part B adds 17 new pages, and the 17
+  extended lessons add none.
+- **Hardware may not be feasible at an acceptable cost or reliability**
+  (Part B products). Every essential outcome is reachable through the
+  simulator and recorded data; F140 ends in a go or no-go, and a no-go
+  leaves the products complete without a live adapter.
+- **ACT may not support the intended teaching flow without changes**
+  (Part B products). The guided route uses only demonstrated commands of
+  a pinned revision; F139 records any gap as work for ACT itself, and the
+  manual route stays complete.
+- **A filled core slot may carry a lesson that does not yet meet its new
+  outcome** (Part B products). The page shows the lesson's own title and
+  outcomes, and the roadmap names the feature that extends it; the slot's
+  new outcome is claimed only after that feature. A lesson reused as it is
+  (D7 in MD3, D8 in MD4, D13 in MD7) has no extending feature, so F136
+  checks it against its slot's new outcome before the slot claims it; a
+  gap is not claimed but assigned to a named extending feature (F146 for
+  MD3, F147 for MD4 and MD7) by a planning correction.
+- **External frameworks drift or carry restrictive licences** (Part B
+  products). None is adopted by the planning; an integration is pinned,
+  licence-checked, optional, and chosen by a feature with evidence.
 
 ## Repository state compared with the requirements
+
+Checked at the change-cycle base commit `cd69524` (2026-11-01) against the
+requirements of `part-b-scientific-products-and-research` (decision 42 and
+the amendments of decisions 23, 25, 26, 28, and 31). No material conflict
+was found; the inventory of every old Part B slot and every published Part
+B lesson, the state of the related features and Issues, and the
+coordination with the open pull request #351 (F133) are in
+`docs/roadmap.md`, "State at the change cycle
+`part-b-scientific-products-and-research`". The gaps are the work of F136
+to F155:
+
+- The curriculum file still declares the 33 old Part B slots under the old
+  path titles, with no extension slot and no product capstone kind; the
+  curriculum test pins 33 and 115 (F136).
+- There is no instrument contract, no evidence contract beyond the
+  discovery protocol and replay, no product package, no `products/`
+  directory, and no starter (F137, F138, then the product features).
+- Of the 30 taught slots, 17 are filled by published lessons, 14 of them
+  only after an extension that delivers the slot's new outcome; 13 taught
+  slots and the four capstones have no lesson (the Phase 9 features).
+- No lesson or document mentions instrument control or hardware, as the
+  previous non-goal required; the bounded exception is new (F138, F140).
+
+The gaps recorded at the change-cycle base commit `c94c045` (2026-10-30),
+kept for the history of `site-navigation-and-atlas`, follow.
 
 Checked at the change-cycle base commit `c94c045` (2026-10-30) against the
 requirements of `site-navigation-and-atlas` (decisions 40 and 41). One

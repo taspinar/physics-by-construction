@@ -8,10 +8,11 @@ on 2026-10-12 with the change request
 request `docs/changes/pbc-planning-change-four-workstreams.md`, on
 2026-10-17 with the change request
 `docs/changes/scientific-atelier-atlas.md`, on 2026-10-19 with the
-change request `docs/changes/risk-proportionate-workflow.md`, and on
+change request `docs/changes/risk-proportionate-workflow.md`, on
 2026-10-30 with the change request
-`docs/changes/site-navigation-and-atlas.md`) and consistent with
-`docs/architecture.md` and ADRs 001 to 021.
+`docs/changes/site-navigation-and-atlas.md`, and on 2026-11-01 with
+the change request `docs/changes/part-b-scientific-products-and-research.md`)
+and consistent with `docs/architecture.md` and ADRs 001 to 022.
 
 Keep this high-level. GitHub Issues are the actionable backlog and the source
 of truth for a feature once its Issue exists. Each feature below has a stable
@@ -856,6 +857,188 @@ electromagnetism 7, fluids 7, quantum 6, lean 5, materials 4, agents-abm
   lesson (the note on F127); no delivered criterion of F124 or F126
   changes.
 
+## State at the change cycle `part-b-scientific-products-and-research`
+
+Checked on 2026-11-01 at the base commit `cd69524` of the planning branch
+`planning/part-b-scientific-products-and-research`, against the
+repository, `gh issue list --state all`, `gh pr list`, and `git worktree
+list`. The files are the truth, this section is their summary at that
+commit. The change request reorganises Part B into four method paths that
+end in local scientific software products (requirements decision 42, with
+amendments of decisions 23, 25, 26, 28, and 31); its decision record is
+ADR 022, and its features are F136 to F155 (the roadmap's last identifier
+before this cycle is F135). This section is the Stage A inventory of the
+change request's section 8.
+
+The status claims of the change request, refreshed against `main`:
+`site/curriculum.yaml` still declares the 33 old Part B slots; F98 (Issue
+#345) was merged by pull request #350 (`cd69524`), so D10 to D12 are
+published and its Issue closes normally as delivered; F100 (Issue #352,
+EV1) has a worktree and branch `feature/352-physics-reasoning-benchmarks-ev1`
+with no commit beyond `main` and no plan, so it has not started; pull
+request #351 (F133, head `831ab24`) is open and changes `site/atlas.yaml`
+(the four method-path sequence entries and the concepts' slot lists),
+`tests/unit/test_curriculum.py`, and `docs/architecture.md`; the capacity
+Issues #150 (F113, paused) and #278 (the owner's decision of 2026-10-24:
+the `build` job at 90 minutes for up to 110 lessons, re-measured at 75 and
+95) are open.
+
+### Published lessons
+
+Ninety-four lesson directories in eleven strands at `cd69524` (mechanics
+19, agents-llm 20, thermodynamics 9, astrophysics 8, waves 8,
+electromagnetism 7, fluids 7, quantum 6, lean 5, materials 4, agents-abm
+1). Twenty-two fill a Part B slot, and one Part B lesson has no slot
+(`equations-from-noisy-trajectories`, agents-llm 10, F67). Nothing of this
+planning changes a lesson.
+
+### Inventory: every old Part B slot and every published Part B lesson
+
+"Lesson" names the lesson `id` and its directory under `site/lessons/`;
+its address is the directory's page and never changes. The destinations
+are the change request's B-codes, with the proposed labels of ADR 022
+decision 1. The actions are those of the change request: *reuse* (the
+lesson fills the new slot as it is), *extend* (it fills the new slot, and
+the named feature adds what the new outcome needs, by new dependent work,
+never by rewriting its delivered feature), *link* (the destination's
+lesson links to it), *retain as extension* (an extension slot outside the
+core, label and meaning unchanged), *replace unimplemented scope* (the old
+slot had no lesson; the label retires and the named features carry its
+outcome).
+
+| Old slot | Lesson | Feature, Issue | State at `cd69524` | Destination | Action |
+|---|---|---|---|---|---|
+| AI0 | `agent-experiment`, agents-llm/01-an-agent-runs-an-experiment | F09, #24 | Published | B1.5 = SA5 (the projectile experiment kept as its introductory exercise); linked from B1.1 = SA1 | Extend (F143); AI0 retires |
+| AI1 | none | F45, no Issue | Not started | B1.2 = SA2; the coding-agent workflow of the products' guided route | Replace unimplemented scope (F141, F139); AI1 retires, F45 dropped |
+| AI2 | `verifying-scientific-code`, mechanics/09-verifying-scientific-code | F46, #62 | Published | B1.2 = SA2; linked from B1.7 = SA7 | Extend (F141); AI2 retires |
+| AI3 | `counterexample-hunter`, agents-llm/02-a-counterexample-hunter | F16, #87 | Published | B1.7 = SA7 | Extend (F144); AI3 retires |
+| AI4 | `scientific-review`, agents-llm/03-three-reviewers | F18, #88 | Published | B4.5 = RR5; its faulty-integrator review lab reused by B3.6 = AE6 | Extend (F153); AI4 retires |
+| AI5 | none | F55, no Issue | Not started | B1.3 to B1.6 and B1.C = SA3, SA4, SA6, SA9 | Replace unimplemented scope (F142, F143, F145); AI5 retires, F55 dropped |
+| AI6 | `multimodal-physics-reasoning`, agents-llm/16-multimodal-physics-reasoning | F96, #335 | Published | Extension slot AI6 of `reasoning` (the lesson is optional depth); its outcome is core: images, diagrams, affordances, and counterfactual interpretation are acceptance criteria of B1.4 = SA4 (F142) and B3.2 = AE2 (F149), which link the lesson as depth | Retain as extension (lesson); outcome carried by F142 and F149 |
+| AI7 | `interpretable-physics-explanations`, agents-llm/17-interpretable-physics-explanations | F96, #335 | Published | B1.8 = SA8; its physical-constraint checks linked from B1.7 = SA7 and B2.3 = MD3 | Extend (F144); AI7 retires |
+| AI8 | none | F97, no Issue | Not started | Extension slot AI8 (planned); the video exercise of B1.4 = SA4 is core | Retain as extension (F97 optional); F142 carries the core exercise |
+| D1 | `black-box-force-law`, agents-llm/05-discovering-a-force-law | F66, #189 | Published | Extension slot D1 of `law-discovery` (the lesson is optional depth); its outcome is core: a black-box force-law exercise outside electronics is an acceptance criterion of B2.1 = MD1 (F146), its functional form recovered with the transparent grammar of B2.3 = MD3; the lesson is linked from MD1 and MD3 as depth | Retain as extension (lesson); outcome carried by F146 |
+| D2 | `prior-knowledge-in-discovery`, agents-llm/06-prior-knowledge-in-discovery | F66, #189 | Published | B2.1 = MD1; its prior-knowledge comparison linked from B3.3 = AE3 | Extend (F146); D2 retires |
+| D3 | `modified-force-law`, agents-llm/07-a-modified-force-law | F66, #189 | Published | Extension slot D3 (the lesson is optional depth); its outcome is core: challenging and extending a known law, with genuinely distinguishable extensions compared, is an acceptance criterion of B2.6 = MD6 (F147), which links the lesson as depth | Retain as extension (lesson); outcome carried by F147 |
+| D4 | `discovering-gravity`, agents-llm/14-discovering-gravity | F99, #336 | Published | Extension slot D4 (gravity discovery, a deliberate extension); linked from B2.2 = MD2 and B2.3 = MD3 | Retain as extension |
+| D5 | `unknown-physical-worlds`, agents-llm/15-unknown-physical-worlds | F99, #336 | Published | Extension slot D5 (the lesson is optional depth); its outcome is core: unknown simulated worlds with withheld truth are acceptance criteria of B2.1 = MD1 (F146) and B3.2 = AE2 (F149), which link the lesson as depth | Retain as extension (lesson); outcome carried by F146 and F149 |
+| D6 | `inverse-physics`, mechanics/12-inverse-physics-parameter-discovery | F23, #120 | Published | B2.2 = MD2 (time and frequency domains); its correlations linked from B2.5 = MD5 | Extend (F146); D6 retires |
+| D7 | `symbolic-regression`, agents-llm/08-symbolic-regression | F67, #190 | Published | B2.3 = MD3 | Reuse after F136's outcome check (a gap goes to F146); D7 retires (an optional broader engine only through an integration a feature chooses) |
+| D8 | `discovering-differential-equations`, agents-llm/09-discovering-differential-equations | F67, #190 | Published | B2.4 = MD4 | Reuse after F136's outcome check (a gap goes to F147); D8 retires (weak forms or PySINDy only through a chosen integration) |
+| D9 | `experimental-design-agent`, agents-llm/04-an-experimental-design-agent | F20, #128 | Published | B2.8 = MD8 (scripted, classical adaptive, LLM, and hybrid strategies under equal budgets) | Extend (F147); D9 retires |
+| D10 | `discovery-under-noise`, agents-llm/18-discovery-under-noise | F98, #345 (merged by #350) | Published | B2.5 = MD5; its measurement-noise part linked from B1.4 = SA4 | Extend (F146); D10 retires |
+| D11 | `hidden-variables`, agents-llm/19-hidden-variables | F98, #345 | Published | B2.6 = MD6 | Extend (F147); D11 retires |
+| D12 | `generalisation-to-unseen-systems`, agents-llm/20-generalisation-to-unseen-systems | F98, #345 | Published | B2.9 = MD9 (with structurally different systems) | Extend (F147); D12 retires |
+| D13 | `discovering-conservation-laws`, agents-llm/11-discovering-conservation-laws | F82, #294 | Published | B2.7 = MD7 | Reuse after F136's outcome check (a gap goes to F147); D13 retires |
+| EV1 | none | F100, #352 | Issue open, not started (a worktree without commits) | B3.1 = AE1 and B3.2 = AE2 (conceptual reasoning and physical-tool understanding kept) | Replace unimplemented scope (F149); EV1 retires, F100 dropped, #352 updated with the successor link |
+| EV2 | `interactive-discovery-benchmarks`, agents-llm/12-interactive-discovery-benchmarks | F81, #295 | Published | B3.2 = AE2 | Extend (F149); EV2 retires |
+| EV3 | `agent-versus-non-agent-baselines`, agents-llm/13-agent-versus-non-agent-baselines | F81, #295 | Published | B3.3 = AE3 (with prior-knowledge control) | Extend (F149); EV3 retires |
+| EV4 | none | F101, no Issue | Not started | B3.1 = AE1 and B3.5 = AE5 (robustness, cost, sample efficiency) | Replace unimplemented scope (F149, F150); EV4 retires, F101 dropped |
+| EV5 | none | F101, no Issue | Not started | B3.6 = AE6 | Replace unimplemented scope (F150); EV5 retires |
+| R1 | `automated-analysis-pipelines`, mechanics/10-automated-analysis-pipelines | F47, #123 | Published | B4.4 = RR4 | Extend (F153); R1 retires |
+| R2 | none (the evidence map page of F19 is not a lesson) | F109, no Issue | Not started | B4.3 = RR3 | Replace unimplemented scope (F152); R2 retires, F109 dropped |
+| R3 | none | F109, no Issue | Not started | B4.3 = RR3 and B4.7 = RR7 | Replace unimplemented scope (F152, F154); R3 retires |
+| R4 | none | F49, no Issue | Not started | B4.5 = RR5 and the reproduction track of B4.C = RR8 | Replace unimplemented scope (F153, F155); R4 retires, F49 dropped |
+| R5 | none | F110, no Issue | Not started | Extension slot R5 (planned); the optional materials track of B4.C = RR8 | Retain as extension (F110 optional); F155 designs the track |
+| R6 | none | F111, no Issue | Not started | The original-investigation track of B4.C = RR8 | Replace unimplemented scope (F155); R6 retires, F111 dropped |
+| none | `equations-from-noisy-trajectories`, agents-llm/10-equations-from-noisy-trajectories | F67, #190 | Published, no slot | Stays without a slot (a legacy extra, shown in its course and method views); linked from B2.4 = MD4 and B2.5 = MD5 | Link |
+
+Result: 17 published lessons fill core slots (4 in `reasoning`, 9 in
+`law-discovery`, 2 in `benchmarking`, 2 in `autonomous-research`), of
+which 3 are reused as they are (D7, D8, D13), each after F136 checks it
+against its new outcome, and 14 are extended; 5 published lessons are
+extension slots, of which only D4 (gravity discovery) is a deliberate
+extension of the requirements, while the outcomes of AI6, D1, D3, and D5
+stay core and are carried by acceptance criteria of F142, F146, F147, and
+F149 (a link to the extension lesson is depth, never the coverage); 1
+published lesson stays without a slot; 13 taught slots and the 4 capstones have no lesson. Every published
+address stays. No in-flight work is duplicated: F100 is the only Part B
+feature with an Issue that is not delivered, and it has not started.
+
+### Features: state
+
+| Feature, Issue | State at `cd69524` | This cycle |
+|---|---|---|
+| F45, F55, F49 (Phase 3) | No Issue; not started | Dropped by this change request; their scope moves to F141, F139, F142, F143, F145, F153, and F155 (the notes on their blocks). |
+| F97 (AI8), F110 (R5) | No Issue; not started | Kept unchanged as optional extension features of the extension slots AI8 and R5; scheduled only when the owner asks; never a dependency of the core (the notes on their blocks). |
+| F100, #352 | Issue open, not started | Dropped by this change request; F149 succeeds it. #352 is updated with the successor link and closed as not planned by the planner right after this planning is approved (reconciliation notes). |
+| F101, F109, F111 | No Issue; not started | Dropped by this change request; their scope moves to F149, F150, F152, F154, and F155. |
+| F98, #345 | Merged by pull request #350; Issue open | Closes normally as delivered; D10 to D12 are reused by F146 and F147. |
+| F112, #151 | Issue open; not started | Kept; counts against the curriculum file of its time (116 core slots since decision 42); its Issue is brought in line as a pre-start gate (the note on its block and the reconciliation notes). |
+| F22 | No Issue | Kept; its dependency on F45's coding-agent workflow is met by F141 (the note on its block). |
+| F133, #338, pull request #351 | Open | Continues unchanged; F136 starts after it is merged and adapts its four sequence descriptions and the concepts' slot lists (reconciliation notes). |
+| F113, #150; #278 | Open (F113 paused) | Unchanged; the owner's next capacity decision is a gate of Phase 9 before the lesson count passes 110 ("Phase 9", rules). |
+
+### Architecture decisions of this change cycle
+
+- **ADR 022** records the new per-path labels (SA, MD, AE, RR), the
+  extension slots outside the 116 core slots, the kind `product capstone`,
+  the migration by front matter and data only, the products as
+  learner-run local applications in `pbc.products` and `products/` with a
+  pinned starter, the instrument contract `pbc.instruments` with its
+  safety envelope outside the model and the three execution modes, the
+  evaluator-owned evidence contract `pbc.evidence`, and the offline route
+  verified in CI. It amends ADR 013 decisions 3 and 5 and, in the one
+  rule that the curriculum file gains no field, ADR 021 decision 3 (a
+  slot gains the key `extension` and the kind `product capstone`, still
+  no description field; the statuses of ADR 013 and ADR 021 say so), and
+  extends ADR 004, 007, and 010. It adds the invariants
+  I33 and I34 and restates I24, I27, and I28 in `docs/architecture.md`.
+- No other accepted ADR conflicts with the re-approved requirements: ADR
+  013 decision 6 (front-matter migration) is the precedent F136 follows;
+  ADR 014's selection treats the product packages as ordinary inputs;
+  ADR 016's last section carries a product's run command; ADR 019 and
+  ADR 020 apply unchanged.
+
+### Reconciliation notes
+
+- **Labels** (unresolved question 20). ADR 022 decision 1 proposes the
+  labels; the owner approves them, with the rest of the curriculum file,
+  in F136. A different choice there changes the labels in this roadmap's
+  Phase 9 by a planning correction, not the features' scope.
+- **Issue edits after approval.** As in the change cycle
+  `site-navigation-and-atlas`, the planning may edit only the planning
+  documents; the planner applies these edits right after this planning is
+  approved: (a) **#352 (F100)**: a comment that F100 is dropped by
+  `part-b-scientific-products-and-research`, that F149 (AE1 to AE3)
+  succeeds it and keeps its conceptual-reasoning and physical-tool
+  outcomes, and that the worktree `feature/352-...` holds no commit;
+  then closed as not planned. (b) **#151 (F112)**: the count 115 in its
+  goal and criteria reads "the core slots of the curriculum file (116
+  since requirements decision 42)", the extension slots are listed apart
+  from the core with their state, and its dependencies gain F136 and the
+  Phase 9 lesson and product features. This edit is a **pre-start gate**
+  of F112. (c) **#345 (F98)** closes as delivered by its own workflow;
+  nothing of this planning changes it.
+- **The atlas** (pull request #351, F133). F133 continues as approved.
+  Its manifest names the old Part B labels in concepts' slot lists and
+  gives the four method paths their one-line descriptions; F136 replaces
+  the retired labels in those lists, adds one concept per product
+  capstone, and rewrites the four descriptions for the new path outcomes,
+  with the owner's approval of the text, keeping the four illustrations
+  unless the owner asks otherwise (decision 42: the site's visual design
+  is unchanged). F136 therefore starts after F133 is merged, and F136 and
+  F134 are never in flight together (both change Home's capstone choice
+  and `pbc.authoring`).
+- **Prerequisites.** The change request asks the planner to map each
+  lesson's prerequisites to published lessons and to validate the graph.
+  The front matter is that map, and the lesson source check validates it
+  as a graph (ADR 013 decision 8). Each Phase 9 lesson feature states its
+  prerequisites in its plan from the lessons published when it starts;
+  the recommended order Path 1 to 2 to 3 to 4 is never a prerequisite, a
+  planned lesson is never named as one, and a path's independent-entry
+  starter replaces an earlier product. The first exercises use mechanics
+  and numerical methods (published), the lab product the RLC circuit of
+  EM5 (published) and the waves course, and the transfer exercises a
+  thermal or other context (the published thermodynamics lessons).
+- **Capacity.** Ninety-four lessons at `cd69524`; the curriculum is about
+  127 lessons when complete (`docs/architecture.md`, "Assumptions and
+  risks"), past the 110 lessons of the owner's decision on #278. The
+  projection is the architecture's, labelled so; the gate is in "Phase 9".
+- **Requirements questions 17 to 22** are open; each is settled where
+  `docs/architecture.md`, "Requirements coverage of open choices", says,
+  and none blocks this planning.
+
 ## Overview
 
 Phases: Phase 1 is the MVP; Phase 2 is the work the requirements placed
@@ -867,7 +1050,9 @@ Phase 6 is the change cycle `scientific-atelier-atlas`, the atelier, the
 atlas, and the governed visual skills F122 to F129; Phase 7 is the change
 cycle `risk-proportionate-workflow`, the two workflow features F130 and
 F131, strictly one after the other; Phase 8 is the change cycle
-`site-navigation-and-atlas`, the quieter site F132 to F135
+`site-navigation-and-atlas`, the quieter site F132 to F135; Phase 9 is
+the change cycle `part-b-scientific-products-and-research`, the four
+method paths that end in local scientific products, F136 to F155
 (see "Execution order"). A wave is a suggested grouping, not a gate: a
 feature may start when its
 dependencies are done. The gates of Phase 4 (F61 and F62 before every
@@ -913,7 +1098,7 @@ C4) are dependencies, listed in the table and in each block.
 | F32 | Mechanics diagrams M1 to M4 | 3, R2 | F29 | Low |
 | F33 | Mechanics diagrams M5 to M8 | 3, R2 | F30 | Low |
 | F34 | Agent and Lean diagrams | 3, R2 | F31 | Low |
-| F45 | Agent-assisted simulation development | 3, R2 | F10 | High |
+| F45 | Agent-assisted simulation development | 3, R2, dropped by `part-b-scientific-products-and-research` (F141) | F10 | High |
 | F46 | Scientific code verification and debugging | 3, R2 | F10 | Medium |
 | F16 | Counterexample hunter | 3, R2 | F09, F46, F28 | Medium |
 | F17 | Further Lean mechanics proofs | 3, R2 | F08, F28 | Medium |
@@ -924,7 +1109,7 @@ C4) are dependencies, listed in the table and in each block.
 | F54 | Microwave S-parameter lab | 3, R4 | F51, a course for the lab (F72 since `final-curriculum`; see the block) | Medium |
 | F53 | Flow measurement lab with PIV fields | 3, R4 | F51, F43, a course for the lab (F73 since `final-curriculum`; see the block) | Medium |
 | F52 | Optical diffraction lab | 3, R4 | F51, F43, a course for the lab (F71 since `final-curriculum`; see the block) | Medium |
-| F55 | Agent-assisted experimental physics | 3, R4 | F45, one of F60 or F54 | Medium |
+| F55 | Agent-assisted experimental physics | 3, R4, dropped by `part-b-scientific-products-and-research` (F142, F143, F145) | F45, one of F60 or F54 | Medium |
 | F23 | Inverse physics: parameter discovery with uncertainty | 3, R4 | F51, one of F60 or F54 | Medium |
 | F47 | Automated analysis pipelines | 3, R4 | F51 | Medium |
 | F18 | Multi-agent scientific review | 3, R4 | F09, F46 | Medium |
@@ -932,8 +1117,8 @@ C4) are dependencies, listed in the table and in each block.
 | F56 | Lean proofs for the models of measured-data labs | 3, R4 | F17, F54 | Medium |
 | F20 | Autonomous experimental design | 3, R5 | F16, F23 | Medium |
 | F21 | Interactive Lean exercises | 3, R5 | F17 | Medium |
-| F22 | Agent-assisted theorem proving | 3, R5 | F21, F45 | High |
-| F49 | Research capstone: reproduce an open physics paper with a multi-agent team | 3, R5 | F18, F45, F46, F47 | High |
+| F22 | Agent-assisted theorem proving | 3, R5 | F21, F45 (since `part-b-scientific-products-and-research`, F141, which carries F45's workflow) | High |
+| F49 | Research capstone: reproduce an open physics paper with a multi-agent team | 3, R5, dropped by `part-b-scientific-products-and-research` (F153, F155) | F18, F45, F46, F47 | High |
 
 Retired candidate numbers: F24 (optional local tutor, deferred) and F48
 (paper reproduction, absorbed into F49). See "Candidate mapping".
@@ -981,11 +1166,11 @@ mapping is under "Slot mapping".
 | F94 | Materials physics: crystal lattices and phonons, electronic band structure | C3 | MAT1, MAT2 | F61, F62, F64, F113, F71, F89 | Medium |
 | F95 | Materials physics: elasticity and deformation, defects | C3 | MAT3, MAT4 | F61, F62, F64, F113, F94, F76 | Medium |
 | F96 | Multimodal physics reasoning and interpretable explanations | C3 | AI6, AI7 | F61, F62, F64, F113, F09, F46, F65 | Medium |
-| F97 | Physical reasoning from video | C3 | AI8 | F61, F62, F64, F113, F96, F06 | Medium |
+| F97 | Physical reasoning from video | C3; since `part-b-scientific-products-and-research` an optional extension, scheduled only when the owner asks | AI8 (an extension slot) | F61, F62, F64, F113, F96, F06 | Medium |
 | F98 | Discovery under noise, hidden variables, and generalisation | C3 | D10, D11, D12 | F61, F62, F64, F113, F66, F81 | Medium |
 | F99 | Discovering gravity and unknown physical worlds | C3 | D4, D5 | F61, F62, F64, F113, F66, F69, F91 | Medium |
-| F100 | Physics reasoning benchmarks | C3 | EV1 | F61, F62, F64, F113, F96, F65 | Medium |
-| F101 | Robustness, cost, and scientific failure analysis | C3 | EV4, EV5 | F61, F62, F64, F113, F81, F98 | Medium |
+| F100 | Physics reasoning benchmarks | C3, dropped by `part-b-scientific-products-and-research` (F149; #352 closed with the successor link) | EV1 | F61, F62, F64, F113, F96, F65 | Medium |
+| F101 | Robustness, cost, and scientific failure analysis | C3, dropped by `part-b-scientific-products-and-research` (F149, F150) | EV4, EV5 | F61, F62, F64, F113, F81, F98 | Medium |
 | F102 | Atomic spectroscopy lab | C3 | Q7 | F61, F62, F64, F113, F89, F51 | Medium |
 | F103 | Quantum measurement statistics lab | C3 | Q8 | F61, F62, F64, F113, F90, F51 | Medium |
 | F104 | Exoplanet light curves lab | C3 | AST8 | F61, F62, F64, F113, F93, F51 | Medium |
@@ -993,10 +1178,10 @@ mapping is under "Slot mapping".
 | F106 | X-ray diffraction data lab | C3 | MAT5 | F61, F62, F64, F113, F94, F51 | Medium |
 | F107 | Stress-strain measurements lab | C3 | MAT6 | F61, F62, F64, F113, F95, F51 | Medium |
 | F108 | Turbulence and flow measurements lab | C3 | FL8 | F61, F62, F64, F113, F79, F53, F51 | Medium |
-| F109 | Evidence maps and reproducible literature evidence | C4 | R2, R3 | F61, F62, F64, F113, F19, F39, F28 | Medium |
-| F110 | Agent-driven materials discovery | C4 | R5 | F61, F62, F64, F113, F95, F18, F20 | Medium |
-| F111 | Autonomous physics research challenge | C4 | R6 | F61, F62, F64, F113, F49, F101, F98, F65 | High |
-| F112 | Curriculum completion audit | C4 | none | every scheduled lesson feature, F64 | Low |
+| F109 | Evidence maps and reproducible literature evidence | C4, dropped by `part-b-scientific-products-and-research` (F152, F154) | R2, R3 | F61, F62, F64, F113, F19, F39, F28 | Medium |
+| F110 | Agent-driven materials discovery | C4; since `part-b-scientific-products-and-research` an optional extension, scheduled only when the owner asks | R5 (an extension slot) | F61, F62, F64, F113, F95, F18, F20 | Medium |
+| F111 | Autonomous physics research challenge | C4, dropped by `part-b-scientific-products-and-research` (F155) | R6 | F61, F62, F64, F113, F49, F101, F98, F65 | High |
+| F112 | Curriculum completion audit | C4 | none | every scheduled lesson feature, F64; since `part-b-scientific-products-and-research` also F136 and the Phase 9 features, with #151 brought in line (pre-start gate) | Low |
 
 The features of the previous phase without an Issue keep their IDs and
 blocks and fill these slots when their dependencies are met: F45 (AI1),
@@ -1005,7 +1190,10 @@ after F72); F22 stays a Lean strand feature outside the slots. Each of
 them publishes a lesson in this phase and therefore starts after F61 and
 F62, and after F113 under the full-run gate, like every lesson feature of
 the phase (the gates under "Phase 4"); their blocks are not rewritten, the
-gate is this rule. F15 is dropped.
+gate is this rule. F15 is dropped. Since the change cycle
+`part-b-scientific-products-and-research` (2026-11-01), F45, F55, and F49
+are dropped, and their slots retire (see "Slot mapping (change cycle
+`part-b-scientific-products-and-research`)").
 
 Phase 5, the change cycle `pbc-planning-change-four-workstreams`
 (2026-10-15): four independently reviewable workstreams (requirements
@@ -1069,6 +1257,40 @@ full run.
 | F134 | Home as a landing page, Set up as Run the code, and a readable How we verify the science page | #339 | F132, F133, F124, F19, F117; #339 brought in line (pre-start gate) | High (Level 3 by trigger: tests removed or replaced) |
 | F135 | The glossary in context and a Suggest an improvement link on every lesson, through pre-filled issue forms | #340 | F132, F117, F42, F12, F57; never in flight with F133 | Medium (Level 2; Level 3 if an existing assertion changes) |
 
+Phase 9, the change cycle `part-b-scientific-products-and-research`
+(2026-11-01): requirements decision 42 (ADR 022). The stages are those of
+the change request's section 8; Stage A's inventory is this planning
+("State at the change cycle `part-b-scientific-products-and-research`").
+"Slots" names the proposed labels with the change request's B-codes.
+
+| ID | Feature | Stage | Slots | Depends on | Risk |
+|---|---|---|---|---|---|
+| F136 | Part B curriculum migration: four method paths, 34 core slots with product capstones, extension slots, and the published lessons re-slotted | A | every Part B slot | F133 merged (pull request #351), F62, F64, F125; never in flight with F134 | High (Level 3 by trigger: the curriculum count assertions change) |
+| F137 | The capstone evidence contract and the final-evaluation pilot on one existing task | B | none | F65, F81, F20 | Medium (Level 2) |
+| F138 | The instrument contract and the simulator vertical slice of the Autonomous Physics Lab | B | none (part of SA9) | F137, F78, F09 | High (Level 3 by trigger: a dependency file changes) |
+| F139 | The guided ACT route piloted on one real capstone feature, with the manual route verified | B | none | F138 | Medium (Level 2) |
+| F140 | One-instrument feasibility spike and physical pilot | B (gates live hardware only) | none | F138 for the desk spike; the owner's decisions on questions 17 and 18, taken on the spike, for the physical pilot | High (Level 3 by assessment: the safety boundary of a physical device) |
+| F141 | Path 1 foundations: from research question to experiment specification; building and verifying scientific simulation tools | C | SA1 (B1.1), SA2 (B1.2, extends AI2's lesson) | F136, F46, F05, F68 | High (Level 3 by assessment: it extends the coding-agent boundary test of I24) |
+| F142 | Path 1: connecting simulators and instruments; measurement quality and multimodal observations | C | SA3 (B1.3), SA4 (B1.4) | F136, F138, F141, F96, F51 | Medium |
+| F143 | Path 1: a bounded experiment agent; adaptive and resumable measurement campaigns | C | SA5 (B1.5, extends AI0's lesson), SA6 (B1.6) | F136, F137, F138, F142 | Medium |
+| F144 | Path 1: counterexamples, physical constraints, and falsification; traceable explanations and experiment reports | C | SA7 (B1.7, extends AI3's lesson), SA8 (B1.8, extends AI7's lesson) | F136, F137, F141 | Medium |
+| F145 | Capstone: the Autonomous Physics Lab | C | SA9 (B1.C) | F138, F139, F141 to F144; F140's go for its live adapter only | High (scope) |
+| F146 | Path 2: unknown systems and competing models; system identification; noise, uncertainty, and identifiability | C | MD1 (B2.1, extends D2's lesson), MD2 (B2.2, extends D6's lesson), MD5 (B2.5, extends D10's lesson) | F136, F98, F23, F78 | Medium |
+| F147 | Path 2: hidden variables and failures of known laws; active experimental design; generalisation across systems | C | MD6 (B2.6, extends D11's lesson), MD8 (B2.8, extends D9's lesson), MD9 (B2.9, extends D12's lesson) | F136, F137, F98, F20 | Medium |
+| F148 | Capstone: the System Discovery Lab | C | MD10 (B2.C) | F145, F146, F147, F137; F140's go for its live adapter only | High (scope) |
+| F149 | Path 3: defining scientific quality; tasks and hidden test worlds; fair baselines and comparison protocols | D | AE1 (B3.1), AE2 (B3.2, extends EV2's lesson), AE3 (B3.3, extends EV3's lesson) | F136, F137, F81, F96 | Medium |
+| F150 | Path 3: independent scoring and sealed evaluation; robustness and statistical uncertainty; failure analysis, reviewer evaluation, and regressions | D | AE4 (B3.4), AE5 (B3.5), AE6 (B3.6) | F149, F137, F18 | Medium |
+| F151 | Capstone: the Scientific Agent Testbench | D | AE7 (B3.C) | F149, F150, F145 | High (scope) |
+| F152 | Path 4: generating and selecting research ideas; from a question or publication to a research plan; literature, novelty, and evidence maps | D (may start after F136, beside Stage C) | RR1 (B4.1), RR2 (B4.2), RR3 (B4.3) | F136, F19, F28 | Medium |
+| F153 | Path 4: reproducible and resumable research pipelines; multi-agent investigation and scientific review | D | RR4 (B4.4, extends R1's lesson), RR5 (B4.5, extends AI4's lesson) | F136, F137, F47, F18, F150 (the owner of `pbc.agents.review_lab`; never in flight with it) | Medium |
+| F154 | Path 4: discrepancies, ablations, and follow-up experiments; independently checkable reports and research memory | D | RR6 (B4.6), RR7 (B4.7) | F152, F153 | Medium |
+| F155 | Capstone: the Scientific Research Workspace | D | RR8 (B4.C) | F152, F153, F154, F137 | High (scope) |
+
+Every Phase 9 feature that adds a lesson also waits for the capacity gate
+(the rules of "Phase 9"); each product capstone is Level 2 by its paths
+and Level 3 when a dependency file or another trigger fires, and its scope
+is the reason for its High.
+
 Risk levels follow `.agents/policies/autonomy.md` and, since
 `risk-proportionate-workflow`, ADR 020 decision 1. Every feature that adds
 a lesson is Level 2 (Medium) under ADR 020 decision 1, with independent
@@ -1089,7 +1311,7 @@ all derived from lesson front matter; there is no second list.
 | **Physics courses** (by subject) | Mechanics. Later candidates: waves and optics (bridged by the wave-flume and optics datasets), Lagrangian and Hamiltonian mechanics, statistical physics, electromagnetism, fluid dynamics. | One course, implicit | `course` in every lesson (F37); a second course only through F15 with the human's explicit choice. F15 yields one course. A measured-data lab whose subject F15 does not choose waits for a later course feature, which takes the next unused ID when the human asks for it; the only other route is a `mechanics` framing its Issue justifies under ADR 008 decision 3. **Since `final-curriculum` (ADR 013):** the eight courses `mechanics`, `thermodynamics`, `waves`, `electromagnetism`, `fluids`, `quantum`, `astrophysics`, `materials` with fixed identifiers, each a strand with the same identifier created by its first lesson feature (F70, F71, F72, F73, F89, F91, F94); the reference curriculum in the curriculum file, filled by `slot` (F62); F15 dropped; a lab's home is its subject's course, and the `mechanics` framing of a lab of another subject is no longer a route. |
 | **Methods** (cross-cutting, not subjects) | Simulation, LLM agents in the harness, agent-based modelling, formal verification in Lean, measured data, coding agents on the learner's machine. | Four strands in one linear path | `methods` tags, one method path per method on the learning-path page, related-lesson links (F37); no method becomes a course. |
 | **Strands** (URL groups and ordering) | `mechanics`, `agents-llm`, `agents-abm`, `lean`. | Unchanged | Unchanged identifiers and addresses; display titles may be refined (for example "AI-assisted research" for `agents-llm`). A measured-data lab of the mechanics course takes the next order in the `mechanics` strand; a lesson about a method lives in that method's strand. No lesson is placed by a method tag alone (ADR 008 decision 4). **Since `final-curriculum` (ADR 013):** one strand per course in curriculum order, then the three method strands; the lessons of the four method paths live in `agents-llm`. |
-| **Method paths** (since `final-curriculum`, ADR 013) | Physics reasoning and scientific agents (AI0 to AI8), scientific law discovery (D1 to D13), physics agent benchmarking (EV1 to EV5), autonomous scientific research (R1 to R6). | Not shown; six published lessons belong to them | A facet of the slot: a secondary view of the path page over the same canonical pages (F62, F64); never a course, a strand, or a page of its own. |
+| **Method paths** (since `final-curriculum`, ADR 013) | Physics reasoning and scientific agents (AI0 to AI8), scientific law discovery (D1 to D13), physics agent benchmarking (EV1 to EV5), autonomous scientific research (R1 to R6). | Not shown; six published lessons belong to them | A facet of the slot: a secondary view of the path page over the same canonical pages (F62, F64); never a course, a strand, or a page of its own. **Since `part-b-scientific-products-and-research` (ADR 022):** under the same keys, reliable scientific agents and experiment automation (SA1 to SA9), physical model discovery through active experiments (MD1 to MD10), scientific agent evaluation and improvement (AE1 to AE7), and reproducible research with agents (RR1 to RR8), each ending in a product capstone; extension slots (AI6, AI8, D1, D3, D4, D5, R5) as optional depth outside the core (F136). |
 
 Rules that follow: a lab belongs to one primary course and links to its
 agent, measured-data, and Lean extensions instead of being duplicated; no
@@ -3296,6 +3518,14 @@ each with its precise scope stated.
 
 ### F45 — Agent-assisted simulation development
 
+**Dropped by the change cycle `part-b-scientific-products-and-research` (2026-11-01; requirements decision
+42, ADR 022).** F45 was never started and has no Issue; its slot AI1
+retires. Its lesson outcome (a physical specification turned into tested
+code, with the agent's output verified) is SA2 (B1.2), delivered by F141
+on the published lesson of AI2; its coding-agent workflow, sandbox
+profile, rubric, and the extension of the boundary test of I24 move to
+F141, which the products' guided route (F139) and F22 reuse. The ID is never reused; the block below is kept as approved, as history.
+
 **Reconciled by the change cycle `final-curriculum` (2026-10-12).** F45
 fills slot AI1 of the physics reasoning path and is unchanged; it has no
 Issue. Its default exercise, a damped driven oscillator with resonance, is
@@ -3699,6 +3929,12 @@ exists.
 
 ### F55 — Agent-assisted experimental physics
 
+**Dropped by the change cycle `part-b-scientific-products-and-research` (2026-11-01; requirements decision
+42, ADR 022).** F55 was never started and has no Issue; its slot AI5
+retires. Measured data with an agent, and optional live experimentation,
+are carried by SA3, SA4, SA6, and the Autonomous Physics Lab (F142, F143,
+F145). The ID is never reused; the block below is kept as approved, as history.
+
 **Source.** Candidate F55 (lesson only; the workflow is F45's); Section 12
 (F45 + F55).
 
@@ -3853,6 +4089,11 @@ the Lean budget; the ADR is accepted.
 
 ### F22 — Agent-assisted theorem proving
 
+**Note of the change cycle `part-b-scientific-products-and-research` (2026-11-01).** F45 is dropped; its
+coding-agent workflow and sandbox profile, which this block calls "the
+F45 profile", are delivered by F141, so the dependency on F45 reads F141.
+The block is otherwise unchanged.
+
 **Source.** Candidate F22; Section 12 (F17 + F56 + F22); ADR 010.
 
 **Goal.** A local, constrained workflow under the F45 profile: conjecture,
@@ -3871,6 +4112,12 @@ approves the profile for Lean.
 **Detailed implementation plan expected.** Yes.
 
 ### F49 — Research capstone: reproduce an open physics paper with a multi-agent team
+
+**Dropped by the change cycle `part-b-scientific-products-and-research` (2026-11-01; requirements decision
+42, ADR 022).** F49 was never started and has no Issue; its slot R4
+retires. The multi-agent investigation is RR5 (F153) and the reproduction
+of a published result is the reproduction track of the Scientific
+Research Workspace (F155). The ID is never reused; the block below is kept as approved, as history.
 
 **Source.** Candidates F48 and F49, merged (Section 12: "a single capstone
 may be preferable").
@@ -5573,6 +5820,13 @@ distinguishes the model's explanation from the verified result.
 
 ### F97 — Physical reasoning from video (AI8)
 
+**Since the change cycle `part-b-scientific-products-and-research` (2026-11-01; ADR 022 decision 2):** an
+optional extension. AI8 is an extension slot of the path `reasoning`,
+outside the core; the core video exercise, with quantitative extraction,
+validation, and limits, is part of SA4 (F142). F97 is scheduled only when
+the owner asks, after F142, and is never a dependency of the core; its
+block is otherwise unchanged.
+
 **Source.** Change request section 5 (B1: AI8, new in revision 2) and
 section 7.3 ("Video reasoning"); requirements decision 28 and non-goals.
 Slot AI8 of the physics reasoning path; lesson in `agents-llm` with
@@ -5638,6 +5892,14 @@ and the agent's predictions scored by the build.
 
 ### F100 — Physics reasoning benchmarks (EV1)
 
+**Dropped by the change cycle `part-b-scientific-products-and-research` (2026-11-01; requirements decision
+42, ADR 022).** F100's Issue #352 was opened on 2026-11-01 and the feature
+had not started (a worktree with no commit). Its outcomes (conceptual
+reasoning, physical-tool understanding separated from calling a software
+interface, counterfactual items on verified figures) move to AE1 and AE2
+(F149). The planner comments the successor on #352 and closes it as not
+planned after this planning is approved. The ID is never reused; the block below is kept as approved, as history.
+
 **Source.** Change request section 5 (B3: EV1 enhanced in revision 2).
 Slot EV1 of the agent benchmarking path; lesson in `agents-llm` with
 `course: mechanics`.
@@ -5656,6 +5918,11 @@ the score and its uncertainty over seeds shown with the failures.
 **Risk.** Medium. **Detailed implementation plan expected.** Yes, short.
 
 ### F101 — Robustness, cost, and scientific failure analysis (EV4, EV5)
+
+**Dropped by the change cycle `part-b-scientific-products-and-research` (2026-11-01; requirements decision
+42, ADR 022).** Never started, no Issue; EV4 and EV5 retire. Robustness,
+cost, and sample efficiency move to AE1 and AE5 (F149, F150), failure
+analysis to AE6 (F150). The ID is never reused; the block below is kept as approved, as history.
 
 **Source.** Change request section 5 (B3: EV4, EV5). Slots EV4 and EV5 of
 the agent benchmarking path; lessons in `agents-llm` with `course:
@@ -5796,6 +6063,11 @@ status report that declares no completion (see its block).
 
 ### F109 — Evidence maps and reproducible literature evidence (R2, R3)
 
+**Dropped by the change cycle `part-b-scientific-products-and-research` (2026-11-01; requirements decision
+42, ADR 022).** Never started, no Issue; R2 and R3 retire. Evidence maps,
+literature, and novelty move to RR3 (F152), checkable reports and research
+memory to RR7 (F154). The ID is never reused; the block below is kept as approved, as history.
+
 **Source.** Change request section 5 (B4: R2, R3). Slots R2 and R3 of the
 autonomous research path; lessons in `agents-llm` with `course:
 mechanics`. F19 delivered the evidence map page, not a lesson; R2 is the
@@ -5816,6 +6088,14 @@ sources logs them for human review and never writes a citation.
 
 ### F110 — Agent-driven materials discovery (R5)
 
+**Since the change cycle `part-b-scientific-products-and-research` (2026-11-01; ADR 022 decision 2):** an
+optional extension. R5 is an extension slot of the path
+`autonomous-research`, outside the core; materials discovery with its
+physical multi-objective constraints is also the optional materials track
+of the Scientific Research Workspace (F155, its optional acceptance
+criterion 5), which may reuse this lesson if it exists. F110 is scheduled only when the owner asks and is never a
+dependency of the core; its block is otherwise unchanged.
+
 **Source.** Change request section 5 (B4: R5 enhanced in revision 2).
 Slot R5 of the autonomous research path; lesson in `agents-llm` with
 `course: materials`.
@@ -5834,6 +6114,11 @@ one.
 **Risk.** Medium. **Detailed implementation plan expected.** Yes, short.
 
 ### F111 — Autonomous physics research challenge (R6)
+
+**Dropped by the change cycle `part-b-scientific-products-and-research` (2026-11-01; requirements decision
+42, ADR 022).** Never started, no Issue; R6 retires. The bounded original
+investigation is the original-investigation track of the Scientific
+Research Workspace (F155). The ID is never reused; the block below is kept as approved, as history.
 
 **Source.** Change request section 5 (B4: R6) and section 10 ("Part B
 research capstone"). Slot R6 of the autonomous research path; lesson in
@@ -5855,6 +6140,15 @@ the page.
 likely several Issues.
 
 ### F112 — Curriculum completion audit
+
+**Note of the change cycle `part-b-scientific-products-and-research` (2026-11-01).** Requirements decision
+23 is amended: the reference curriculum has 116 core slots (81, 34, 1),
+and ADR 022 adds extension slots outside the core. The audit counts the
+core slots of the curriculum file at its time and lists the extension
+slots apart with their state; its dependencies include F136 and the
+Phase 9 features. Its Issue #151 is brought in line by the planner after
+this planning is approved, as a pre-start gate ("State at the change cycle
+`part-b-scientific-products-and-research`", reconciliation notes); the block below is kept as approved.
 
 **Source.** Change request section 11 ("Curriculum completion") and
 section 10 (Wave 4, "quality consolidation"); requirements "Project goal"
@@ -9201,6 +9495,1153 @@ Level 3, as for any other trigger.
 
 **Detailed implementation plan expected.** No; a short plan.
 
+## Phase 9 — Part B: method paths that end in local scientific products (change cycle `part-b-scientific-products-and-research`)
+
+Every feature in this phase comes from
+`docs/changes/part-b-scientific-products-and-research.md` (2026-11-01) and
+the requirements re-approved with it on 2026-11-01 (decision 42 and the
+amendments of decisions 23, 25, 26, 28, and 31), with ADR 022 as their
+decision record. The B-codes (B1.1 to B4.C) are the change request's
+temporary references; the labels (SA, MD, AE, RR) are ADR 022's proposal,
+approved with F136. What the features inherit without repeating it: the
+invariants of `docs/architecture.md` (I24, I27, and I28 restated and I33
+and I34 added by this cycle), the lesson model and the agent rules of the
+earlier phases (the ADR 004 harness, replay, the discovery protocol, the
+hidden truth unreachable), the risk levels of ADR 020, the verification
+tiers of ADR 017 decision 7, the rendered review of ADR 018 decision 6,
+and the skills contract of ADR 019.
+
+Rules of this phase:
+
+- **Stages and order.** Stage A is this planning and F136. Stage B is F137
+  (first), then F138, then F139 and F140's desk spike (no purchase),
+  which informs the owner's decisions on questions 17 and 18; F140's
+  physical pilot starts only after those decisions; F137 and F138 are the only common
+  prerequisites of the path features. Stage C delivers Path 1 (F141 to
+  F144, then the capstone F145), then Path 2 (F146, F147, then F148).
+  Stage D delivers Path 3 (F149, F150, then F151) and Path 4 (F152, F153,
+  F154, then F155); F152 may start beside Stage C, since literature work
+  is independent. F153 starts only after F150 merged and is never in
+  flight with it: F150 is the only feature that changes
+  `pbc.agents.review_lab`, and F153 uses the extended lab as it is. Issues are created just in time in this dependency
+  order, and a slot is not a feature.
+- **The capacity gate.** No lesson feature of any phase takes the number
+  of published lessons past 110 before the owner's next capacity decision
+  on #278 (with #150), the bound of the owner's decision of 2026-10-24.
+  Phase 9 adds 17 lesson pages (13 taught lessons and the four capstone
+  pages); the 17 extended lessons add none. The projection for the
+  complete curriculum is in `docs/architecture.md`, "Assumptions and
+  risks".
+- **Lessons stay lessons.** Every new or extended lesson is substantive
+  and self-contained at its declared prerequisites: the physical argument,
+  worked examples, runnable code, interpreted figures, exercises, and
+  independent scientific review by a different model, in format 2; a
+  README, an installation guide, or an external tutorial never replaces
+  them. Each lesson declares the physics, mathematics, and code it needs
+  as prerequisites of published lessons, validated as a graph; the
+  recommended path order is never a prerequisite. A lesson in a new slot
+  lives in `agents-llm` with the primary course its Issue names (question
+  20; the defaults are in each block).
+- **Extending a published lesson** is new dependent work under the
+  extending feature: it adds sections, exercises, experiments, and tests
+  to the lesson, keeps its address, identifier, strand, order, and course,
+  and never rewrites the delivered feature's history. Changing or removing
+  a published claim is the "changed scientific claim" trigger of ADR 020
+  (Level 3). Until the extension merges, the lesson shows its own title
+  and outcomes; the slot's new outcome is claimed only after it.
+- **Agents are optional, the route without a model is complete.** Every
+  lesson and product has a deterministic scripted baseline and recorded
+  replay traces; a live provider and a local open-weights model are
+  optional behind the provider interface. Agent hypotheses stay apart from
+  measured evidence and withheld truth, and numerical claims are
+  recomputed by the build.
+- **Products** (ADR 022 decision 5 to 7). Each capstone is a usable local
+  application, not a notebook with a product name: an end-to-end workflow,
+  a thin local interface, a useful export, documented failures, a
+  reproducible installation, a product brief, scientific acceptance
+  criteria, example inputs, a local run command, a reference workflow, an
+  assessment rubric, the manual route, the guided ACT route, and a
+  version-pinned starter; its page names which lesson outcomes each
+  product feature exercises. CI verifies the offline simulator route only;
+  live hardware, models, heavy evaluations, and optional integrations are
+  evidenced separately in the completion record and never weaken a check.
+  Shared components are extracted only when two products actually use
+  them.
+- **Pilots and integrations.** Every pilot (F137, F138's slice, F139,
+  F140) has explicit compute and time limits in its plan and ends in a go
+  or no-go recommendation with its evidence, its dependency and runtime
+  cost, and the simplest viable implementation; exhausting the limit ends
+  it with an honest partial result and a decision, never automatic
+  expansion. An integration of an external repository (PySR, PySINDy,
+  PaperQA, Bluesky, Bluesky Adaptive, QCoDeS, Jobflow, Aviary, and the
+  others of the change request's section 10) is chosen only by a feature
+  with recorded evidence, pinned, licence-checked, attributed, and in an
+  optional dependency group; it gets its own comparison (pilot 2 for the
+  discovery engines, pilot 4 for literature retrieval) inside that
+  feature, and engines that solve different tasks are never put on one
+  leaderboard. The optional solver-optimisation exercise (pilot 5) has no
+  feature until the owner asks for one and blocks nothing.
+- **Hardware** (requirements decision 42, ADR 022, I34). Optional, local,
+  low-voltage, bounded to the first two capstones, and called demonstrated
+  only after F140's physical pilot; no purchase is made by any feature
+  without the owner's decision on questions 17 and 18.
+- **Verification tier.** A feature that changes the curriculum file,
+  `pbc.authoring`, or other shared inputs is a full run; a feature that
+  changes a lesson's front matter fields of the path and the headers is
+  at least a run with a base (`--base`); otherwise the targeted run
+  decides (AGENTS.md, "Definition of Done").
+
+### F136 — Part B curriculum migration: four method paths, 34 core slots with product capstones, extension slots, and the published lessons re-slotted
+
+**Source.** Change request sections 3, 6, 7, 8 (Stage A), and 9
+(planning acceptance 1, 2, and 5); requirements decision 42 and the
+amendments of decisions 23, 25, and 26; ADR 022 decisions 1 to 4;
+"State at the change cycle `part-b-scientific-products-and-research`"
+(the inventory).
+
+**Goal.** Make the declared curriculum, the generated pages, and the
+tests express the four revised paths, 30 taught slots, four product
+capstones, and the optional extensions consistently, with every published
+address intact and no unfilled slot shown as published.
+
+**User-visible outcome.** The Course Atlas, the path views, the lesson
+headers, and Home show the four method paths under their new titles in
+their new order; the published Part B lessons appear at their new
+positions, the five optional extensions after each path's core and marked
+as such, and the unfilled slots and the four product capstones as
+planned.
+
+**In scope.**
+- `site/curriculum.yaml`: the four path titles of decision 42; the 34 core
+  slots SA1 to SA9, MD1 to MD10, AE1 to AE7, RR1 to RR8 with the working
+  titles of the change request's section 3 and their positions; the
+  capstone slots SA9, MD10, AE7, RR8 of kind `product capstone`; the
+  extension slots AI6 and AI8 (`reasoning`), D1, D3, D4, D5
+  (`law-discovery`), and R5 (`autonomous-research`) with `extension:
+  true`, after the core; the 26 retired labels removed. The owner
+  approves the file (question 20).
+- `pbc.authoring`: the `extension` key and the `product capstone` kind in
+  the schema and the vocabularies; the path view, the atlas, the lesson
+  header ("an optional extension of ..."), and Home's capstone choice and
+  counts reading them; core and extension counted apart.
+- Front matter only: `lesson.slot` of the seventeen moved lessons (AI0 to
+  SA5, AI2 to SA2, AI3 to SA7, AI7 to SA8, D2 to MD1, D6 to MD2, D7 to
+  MD3, D8 to MD4, D10 to MD5, D11 to MD6, D13 to MD7, D9 to MD8, D12 to
+  MD9, EV2 to AE2, EV3 to AE3, R1 to RR4, AI4 to RR5).
+- `site/atlas.yaml`: the retired labels replaced in the concepts' slot
+  lists, one concept for each product capstone with its planned
+  description, and the four sequence descriptions rewritten for the new
+  outcomes with the owner's approval of the text; the four illustrations
+  kept unless the owner asks otherwise.
+- `tests/unit/test_curriculum.py` and the page tests: core counts 81, 34,
+  1, and 116; the number of extension slots; the kinds; a retired label
+  never present; the published-lesson and planned states. The test that
+  compares the curriculum file with this roadmap reads the Part A and
+  Lean rows of "Slot mapping (change cycle `final-curriculum`)" and the
+  Part B rows of "Slot mapping (change cycle
+  `part-b-scientific-products-and-research`)", whose rows begin with the
+  label for that purpose.
+- `docs/authoring.md`: the extension slot and the product capstone kind
+  for authors.
+
+**Out of scope.** Any lesson's text, code, results, or claims; new lesson
+pages; the products; the illustrations; Part A and Lean slots.
+
+**Dependencies.** F133 merged (pull request #351; the manifest's sequence
+entries), F62, F64, F125; never in flight with F134 (Home's capstone
+choice and `pbc.authoring`).
+
+**Visual deliverables and skills.** Page and layout (the extension marker
+and the product-capstone mark on the atlas and the path view, reusing the
+existing components). Skills: impeccable (a change of a major user-facing
+surface's states), frontend-design. No figure or diagram.
+
+**Acceptance criteria.**
+1. The curriculum file declares 116 core slots (81, 34, 1) and seven
+   extension slots; the curriculum test asserts both counts, the four
+   capstones' kind, and that none of the 26 retired labels appears.
+2. Every one of the twenty-two published Part B lessons fills the slot of
+   the inventory (seventeen core, five extension); no address,
+   identifier, strand, order, or course changes, shown by a test over the
+   built site's lesson addresses against the base commit's.
+3. The atlas, the path view, and the lesson headers show the core slots
+   in teaching order, the extension slots after them marked as optional,
+   and every unfilled slot and the four product capstones as planned,
+   never linked or counted; every published lesson stays reachable
+   without scripts.
+4. Every capstone slot of either kind is represented by exactly one
+   concept; Home chooses a capstone only among published ones.
+5. The four sequence descriptions match the new path outcomes and are
+   approved by the owner on the Issue; no page holds a hand-written copy
+   of the curriculum.
+6. Each lesson reused as it is (D7 in MD3 against B2.3: operator choices,
+   complexity, units, and withheld prediction; D8 in MD4 against B2.4:
+   state selection, derivatives, and new trajectories; D13 in MD7 against
+   B2.7) is checked against its slot's new outcome, part by part, with
+   the lesson's sections or exercises named as evidence and the result
+   recorded on the Issue. A part the lesson does not meet is not claimed:
+   it is assigned by a planning correction to a named extending feature
+   (F146 for MD3, F147 for MD4 and MD7), the inventory's action for that
+   lesson becomes *extend*, and until that feature merges the lesson shows
+   its own title and outcomes.
+7. The full `./scripts/verify.sh` passes, run last.
+
+**Risk.** High (Level 3 by trigger: the curriculum test's count
+assertions change; a shared input, so a full run).
+
+**Detailed implementation plan expected.** Yes.
+
+### F137 — The capstone evidence contract and the final-evaluation pilot on one existing task
+
+**Source.** Change request sections 4.2 and 10.1 (pilot 1, "first");
+requirements decision 42 ("Evidence", "Pilots"), "Data and persistence"
+(the evidence contract), "Security and privacy constraints" (isolation);
+ADR 022 decision 6.
+
+**Goal.** Prove on one existing simulated task that an evaluator-owned
+record can tell a genuine result from a fabricated or stale one, before
+any product depends on it, and record the minimal contract.
+
+**In scope.** `pbc.evidence` with tests: the records of ADR 022 decision
+6; the evaluator that recomputes correctness and resource use from the
+records; candidate diagnostics stored apart and labelled unverified; the
+frozen candidate by digest and a versioned final evaluation; claim links
+with an evidence status. The pilot on one existing task of
+`pbc.discovery` or `pbc.agents` (default: the agent-versus-baseline task
+of EV3, or the design task of D9), reusing replay and the existing
+judging, without changing any published lesson's output. The contract
+written as a section of `docs/discovery-protocol.md` (or its own product
+document, if the plan shows it is clearer, registered in
+`docs/project-map.md`); the go or no-go decision record.
+
+**Out of scope.** A product; a lesson page; a general provenance or
+workflow platform; an external framework.
+
+**Dependencies.** F65, F81, F20.
+
+**Visual deliverables and skills.** None (a library and a document).
+Skills: none (no visual deliverable).
+
+**Acceptance criteria.**
+1. A candidate that reports a high score it did not achieve fails the
+   evaluation, shown by a test.
+2. Changing a recorded artifact after evaluation invalidates the evidence
+   that depends on it, and the invalidation is visible, shown by a test.
+3. Invalid, missing, failed, and inconclusive outcomes stay visible in
+   the record and the summary, never dropped from an aggregate.
+4. A final evaluation is bound to the frozen candidate's digest and
+   version; a change after it is recorded as a new development and
+   evaluation cycle, shown by a test.
+5. The contract states the isolation assumptions of the pilot task and
+   that a digest establishes identity, not scientific truth.
+6. The decision record gives go or no-go, the evidence, the cost, and the
+   simplest viable implementation, within the plan's limits.
+7. The targeted verification passes, run last.
+
+**Risk.** Medium (Level 2: source, tests, a product document).
+
+**Detailed implementation plan expected.** Yes, short, with the pilot's
+compute and time limits.
+
+### F138 — The instrument contract and the simulator vertical slice of the Autonomous Physics Lab
+
+**Source.** Change request sections 3.1, 4, 5, 8 (Stage B), and 10.1
+(the minimal simulator vertical slice); requirements decision 42
+("Products", "Pilots"), "Security and privacy constraints" (local
+instrument control), "Runtime and deployment constraints" (Part B
+capstone products); ADR 022 decisions 5, 7, and 8; unresolved questions
+19 and 21.
+
+**Goal.** One simulated protocol of the Autonomous Physics Lab end to end
+through the instrument contract, the evidence contract, a scripted
+baseline, and a bounded agent route, with a report and a deterministic CI
+fixture, so that every later product feature builds on a proven slice.
+
+**In scope.** `pbc.instruments`: the contract, the safety envelope, the
+simulated adapter over the RLC circuit of `pbc.electromagnetism` (EM5),
+the recorded adapter over a declared dataset sample (the RLC data of EM8
+when its gate grants it, or a synthetic sample declared as simulated),
+and a fake live driver for tests only. `pbc.products.physics_lab`: the
+frequency-response protocol, the scripted baseline, the bounded agent in
+the ADR 004 harness with its replay traces at the product's one fixture
+location `products/physics-lab/fixtures/` (ADR 022 decision 8, under ADR
+002's replay-fixture conditions) and only allowlisted contract
+operations as tools, records through `pbc.evidence`, the export of raw
+data and a report. The thin local interface (question 21) and the
+optional dependency group (question 19) chosen with evidence and
+recorded. `products/physics-lab/` with the brief, one example input, and
+the first starter skeleton, its pin declared `pending` (ADR 022 decision
+5, bootstrap). The committed-artifact check extended to exempt
+`products/<product>/fixtures/` and nothing more (I6). The starter checks
+of ADR 022 decision 5: the current-tree check, and the at-pin check that
+installs the pinned commit from the repository's own history without an
+external fetch, skips a starter whose pin is `pending`, and names the
+skip in its output; the CI workflow change it needs (a checkout with the
+repository's history). The first pin bump, after this feature merged,
+is recorded as the follow-up change that sets the pin to the merged
+commit. The boundary test of I32 and I24 extended:
+no build step, check, or CI job imports a driver, starts a product, or
+contacts a model, an instrument, or the network.
+
+**Out of scope.** The capstone page, the other protocols, live hardware
+(F140), ACT (F139), the other products.
+
+**Dependencies.** F137, F78 (the RLC model), F09 (the harness).
+
+**Visual deliverables and skills.** Page and layout (the local interface,
+outside the site); scientific figure (the frequency response in the
+report). Skills: frontend-design (the local interface),
+pbc-scientific-visualization (the report's figure).
+
+**Acceptance criteria.**
+1. The simulated protocol runs end to end from one documented command and
+   exports raw data, a report, and an evidence record; a second run with
+   the same seed produces the same results at displayed precision.
+2. An out-of-envelope operation, a timeout, and a stop request are refused
+   or honoured by the adapter layer whatever the caller, shown by tests
+   with the fake driver that records every call (I34).
+3. The agent route reaches the instrument only through allowlisted,
+   validated operations, and replays deterministically in CI; the scripted
+   baseline reaches the same protocol without a model.
+4. Every run record names its execution mode; a recorded run is never
+   labelled a new experiment, shown by a test.
+5. The build and CI install no optional group and contact no model,
+   instrument, or network, shown by the extended boundary test.
+6. Questions 19 and 21 are settled in the decision record with the go or
+   no-go of the slice, its cost, and its limits.
+7. The replay traces of the product and the starter are committed only at
+   `products/physics-lab/fixtures/` and hold no credential or provider
+   request data; the committed-artifact check accepts them there and
+   rejects the same file elsewhere, and a changed recorded tool result
+   fails the replay, shown by tests (I6, ADR 022 decision 8).
+8. The starter passes its tests against the current tree; the at-pin
+   check exists and is wired into CI with the repository's history, a
+   test shows it installing a pinned commit from that history and failing
+   on a broken pin, and it skips this starter's `pending` pin with the
+   skip named in its output and stated in the completion record; the
+   first pin bump is recorded as the follow-up change.
+9. The full `./scripts/verify.sh` passes, run last (a dependency file and
+   shared code change).
+
+**Risk.** High (Level 3 by trigger: `pyproject.toml` and `uv.lock`
+change, and the CI workflow and the committed-artifact check change; the
+instrument safety boundary).
+
+**Detailed implementation plan expected.** Yes.
+
+### F139 — The guided ACT route piloted on one real capstone feature, with the manual route verified
+
+**Source.** Change request sections 1 and 4 (ACT and software-product
+delivery), 8 (Stage B: "Pilot ACT on a small real capstone feature");
+requirements decision 42 ("ACT and the manual route", "Pilots"),
+"External integrations" (ACT); unresolved question 22.
+
+**Goal.** Show that a learner can build one small real feature of the
+Autonomous Physics Lab from its starter with a pinned, demonstrated ACT
+revision and, separately, by the manual route, and measure what it costs,
+before any workload is promised.
+
+**In scope.** The pinned ACT revision and the commands a learner needs,
+written in `products/physics-lab/`; the guided route and the manual route
+for one feature of the starter (default: the transient-response protocol
+skeleton, or input validation of the frequency-response protocol); a run
+of each route recorded on the Issue with its time, its steps, and its
+failures; the gaps ACT would need recorded as proposed work for ACT, not
+made here; a learner-workload estimate for Path 1, labelled as an
+estimate from one pilot.
+
+**Out of scope.** Changes to ACT; a promise of workload for other paths;
+the rest of the capstone.
+
+**Dependencies.** F138.
+
+**Visual deliverables and skills.** None. Skills: none (documentation and
+a recorded pilot).
+
+**Acceptance criteria.**
+1. The guided route names a pinned ACT revision and only commands that
+   the pilot ran successfully; no repository file of the build or checks
+   depends on ACT.
+2. The manual route reaches the same feature, passing the same starter
+   tests, without ACT or a model account.
+3. The pilot's record (time, steps, failures, gaps) is on the Issue, with
+   a go or no-go for the guided route within the plan's limits.
+4. The targeted verification passes, run last.
+
+**Risk.** Medium (Level 2: documentation and starter files; a coding
+agent runs only on the maintainer's machine under ADR 010).
+
+**Detailed implementation plan expected.** Yes, short, with limits.
+
+### F140 — One-instrument feasibility spike and physical pilot
+
+**Source.** Change request sections 5 and 10.1 (pilot 3); requirements
+decision 42 ("Hardware", "Pilots"), the amendment of decision 28, the
+non-goals' bounded exception, "Security and privacy constraints" (local
+instrument control); unresolved questions 17 and 18.
+
+**Goal.** Decide with evidence whether one low-voltage instrument (for
+example Analog Discovery or Red Pitaya) can serve the first two products,
+and if so add its live adapter behind the contract.
+
+**In scope**, in this order within the one feature. *First, the desk
+spike* (after F138 only; no purchase and no device): for each candidate
+device, the supported operating systems and drivers, Python access,
+acquisition and excitation limits, calibration needs, the equipment and
+accessory bill of materials, total cost, realistic experiment duration,
+and failure handling, from documentation and the fake driver; it ends in
+a recommendation on which the owner decides questions 17 (device) and 18
+(budget). *Then, only after those decisions, the physical pilot:* the
+comparison of the minimal adapter with Bluesky and, where helpful,
+QCoDeS on the frequency-response protocol with the chosen device:
+physical operation, interruption, valid restart, state capture,
+measurement identity. On a go: the live adapter in its optional group, the
+captured traces of the pilot declared as a dataset with its card and
+feasibility decision (ADR 007), a deterministic CI fixture from them (that
+dataset sample under `data/samples/`, I6), and
+the operating limits documented.
+
+**Out of scope.** A purchase without the owner's decision; a second
+device; thermal hardware or drones; mains voltage; automatic switching.
+
+**Dependencies.** The desk spike: F138 only. The physical pilot and the
+live adapter: the owner's decisions on questions 17 (device) and 18
+(budget), taken on the desk spike's recommendation. If the owner decides
+against a device, F140 ends after the spike with a no-go.
+
+**Visual deliverables and skills.** Scientific figure (the measured
+against the simulated response). Skills: pbc-scientific-visualization.
+
+**Acceptance criteria.**
+1. The desk spike's record answers every item of the spike with
+   evidence, without a purchase, and gives a recommendation on questions
+   17 and 18 with the cost and the simplest viable implementation, within
+   the plan's limits; the physical pilot starts only after the owner's
+   decisions on both are recorded on the Issue.
+2. After the pilot, the decision record gives a go or no-go with its
+   evidence and cost. On a go: a physical pilot run is recorded with device, calibration,
+   configuration, timestamps, units, processing, and operating
+   conditions; the envelope's refusal and the stop are shown on the real
+   device and in tests with the fake driver; a security-focused review
+   approves the envelope.
+3. On a go: the captured trace passes the dataset gate before anything
+   derived from it is published; the CI fixture replays it without the
+   device.
+4. On a no-go: the products stay complete without a live adapter, and no
+   page or document claims hardware support.
+5. The targeted verification passes, run last (the full run if a
+   dependency file changes).
+
+**Risk.** High (Level 3 by assessment: a physical device's safety
+boundary; by trigger when a dependency file changes).
+
+**Detailed implementation plan expected.** Yes, with limits.
+
+### F141 — Path 1 foundations: from research question to experiment specification; building and verifying scientific simulation tools
+
+**Source.** Change request section 3.1 (B1.1, B1.2), section 6 (AI0, AI1,
+AI2); requirements decision 42; ADR 010 and ADR 022 decision 7; the
+scope of the dropped F45.
+
+**Goal.** SA1: define hypotheses, variables, observables, units, success
+criteria, permitted actions, and stopping conditions before an experiment
+runs. SA2: translate a physical model into tested numerical code, check
+convergence, reference limits, units, and invariants, and verify a coding
+agent's output.
+
+**In scope.** SA1, a new lesson (default course: mechanics), with the
+projectile experiment of AI0's lesson linked as the worked example and an
+exercise that writes a specification the scripted route then executes.
+SA2, an extension of the published lesson `verifying-scientific-code`
+(mechanics/09): the model-to-code construction on a problem the course has
+verified (default: the damped driven oscillator of M12), and the
+verification of coding-agent output with the workflow, sandbox profile,
+and review rubric F45 defined, an example transcript marked "not
+verified" with the agent and date. The coding-agent workflow document and
+the extension of the boundary test of I24, which F22 and the products'
+guided route reuse.
+
+**Out of scope.** Running a coding agent in CI or the build; instruments
+(F142); a specific vendor.
+
+**Dependencies.** F136, F46, F05, F68 (M12's damped driven oscillator, the
+default SA2 model); the capacity gate.
+
+**Visual deliverables and skills.** Scientific figures (convergence and
+reference limits); a conceptual diagram (the specification's parts).
+Skills: pbc-scientific-visualization, diagram-design.
+
+**Acceptance criteria.**
+1. Both lessons meet the lesson rule and the outcomes above, with
+   prerequisites of published lessons.
+2. The SA1 specification is executed by the scripted route in the build
+   and rejected when it lacks a stopping condition or units, shown by a
+   test.
+3. SA2's reference solution passes its tests; the published claims of
+   `verifying-scientific-code` are unchanged (or the feature is Level 3).
+4. A test shows that CI and the build contain no coding-agent invocation
+   and no credential; the security-focused review approves the sandbox
+   profile.
+5. The verification the targeted run reports passes, run last (at least
+   `--base`).
+
+**Risk.** High (Level 3 by assessment: the coding-agent boundary test of
+I24 is extended).
+
+**Detailed implementation plan expected.** Yes.
+
+### F142 — Path 1: connecting simulators and instruments; measurement quality and multimodal observations
+
+**Source.** Change request section 3.1 (B1.3, B1.4), section 6 (AI5,
+AI6, AI8, D10); requirements decision 42 and the amendment of decision 26
+(video inference as an exercise of B1.4).
+
+**Goal.** SA3: a small common interface for configuration, excitation,
+acquisition, units, validation, and instrument-state snapshots, with a
+simulator adapter and an optional hardware adapter. SA4: calibration,
+sampling, noise, clipping, and missing data; numerical measurements
+connected to plots, diagrams, and selected image or video observations
+with their uncertain interpretation made explicit.
+
+**In scope.** SA3, a new lesson (default course: electromagnetism) built
+on `pbc.instruments` as F138 delivered it, with the hardware adapter
+explained and marked optional. SA4, a new lesson (default course:
+electromagnetism or waves) on recorded and simulated measurements, with
+the core video exercise (quantitative extraction from generated clips,
+validation against the simulation, and the limits of frame and sample
+rates) and a still-image observation; AI6's outcome (images, diagrams,
+affordances, and counterfactual interpretation) carried by SA4's own
+exercise; AI6's lesson and the noise part of D10's lesson linked as depth,
+never as the coverage itself.
+
+**Out of scope.** Live hardware results on the page; the optional video
+extension F97; a new dataset without its gate.
+
+**Dependencies.** F136, F138, F141, F96, F51; the capacity gate.
+
+**Visual deliverables and skills.** Scientific figures; conceptual
+diagrams (the interface's layers); generated clips under the rules of
+F97's acceptance criteria. Skills: pbc-scientific-visualization,
+diagram-design.
+
+**Acceptance criteria.**
+1. Both lessons meet the lesson rule and the outcomes above.
+2. SA3's adapters pass the same contract tests; the page states that live
+   hardware is optional and, until F140's go, not demonstrated.
+3. SA4's video exercise is deterministic in the build, compares with the
+   ground truth by a test, and loads its clips only on demand within the
+   payload budget; uncertain interpretations are typed as such.
+4. SA4 carries AI6's outcome as its own exercise: the learner reads a
+   still image or diagram of a measurement set-up, states its physical
+   affordances and a counterfactual ("what changes if ...") with the
+   interpretation's uncertainty explicit, and checks the reading against
+   the simulated measurement; the exercise does not rely on AI6's lesson,
+   which is linked as depth.
+5. The verification the targeted run reports passes, run last.
+
+**Risk.** Medium (Level 2).
+
+**Detailed implementation plan expected.** Yes.
+
+### F143 — Path 1: a bounded experiment agent; adaptive and resumable measurement campaigns
+
+**Source.** Change request section 3.1 (B1.5, B1.6; the path boundary
+with B2.8), section 6 (AI0, AI5).
+
+**Goal.** SA5: planning, validated tool calls, result inspection,
+recovery, budgets, and stopping, compared with a scripted execution
+route. SA6: sweeps, repeats, and local refinement of a known protocol;
+suggestions linked to the measurements actually made; interruptions,
+valid checkpoints, cleanup, and incomplete runs.
+
+**In scope.** SA5, an extension of the published lesson `agent-experiment`
+(agents-llm/01), whose projectile experiment stays as the introductory
+exercise, with recovery, stopping, budgets, and the scripted comparison
+added. SA6, a new lesson (default course: electromagnetism) on the
+frequency-response protocol of F138 with a checkpoint and a valid resume
+recorded through `pbc.evidence`; a classical adaptive baseline for local
+refinement. The boundary with MD8 stated on both pages: SA6 refines a
+known protocol, MD8 chooses an experiment between competing explanations.
+
+**Out of scope.** Model discrimination (F147); live hardware.
+
+**Dependencies.** F136, F137, F138, F142; the capacity gate.
+
+**Visual deliverables and skills.** Scientific figures. Skills:
+pbc-scientific-visualization.
+
+**Acceptance criteria.**
+1. Both lessons meet the lesson and agent rules and the outcomes above.
+2. The agent's recovery and stopping are shown on a replayed trace with an
+   injected tool failure; the scripted route reaches the same protocol.
+3. An interrupted campaign resumes only from a valid checkpoint, and a
+   resume from an invalid one is refused, shown by a test.
+4. The published claims of `agent-experiment` are unchanged (or the
+   feature is Level 3).
+5. The verification the targeted run reports passes, run last.
+
+**Risk.** Medium (Level 2).
+
+**Detailed implementation plan expected.** Yes.
+
+### F144 — Path 1: counterexamples, physical constraints, and falsification; traceable explanations and experiment reports
+
+**Source.** Change request section 3.1 (B1.7, B1.8), section 6 (AI2,
+AI3, AI7).
+
+**Goal.** SA7: challenge conclusions and assumptions deliberately; use
+dimensions, symmetries, limiting cases, and conservation to reject
+plausible errors. SA8: link every quantitative claim to runs, data,
+plots, assumptions, and uncertainty, and distinguish observed, computed,
+and proposed statements.
+
+**In scope.** SA7, an extension of the published lesson
+`counterexample-hunter` (agents-llm/02) with the physical-constraint
+checks and AI2's debugging cases linked. SA8, an extension of the
+published lesson `interpretable-physics-explanations` (agents-llm/17)
+with a report whose claims link to `pbc.evidence` records and carry an
+evidence status.
+
+**Out of scope.** Multi-agent review (F153); research reports (F154).
+
+**Dependencies.** F136, F137, F141; the capacity gate does not apply (no
+new page).
+
+**Visual deliverables and skills.** Scientific figures. Skills:
+pbc-scientific-visualization.
+
+**Acceptance criteria.**
+1. Both lessons meet the lesson and agent rules and the outcomes above.
+2. Each constraint check rejects a deliberately wrong candidate in a
+   test; each report claim resolves to a record or is marked.
+3. The published claims of both lessons are unchanged (or the feature is
+   Level 3).
+4. The verification the targeted run reports passes, run last.
+
+**Risk.** Medium (Level 2).
+
+**Detailed implementation plan expected.** Yes, short.
+
+### F145 — Capstone: the Autonomous Physics Lab
+
+**Source.** Change request section 3.1 (B1.C and its capstone
+requirements), sections 4 and 5; requirements decision 42 and use case
+12; ADR 022.
+
+**Goal.** A reusable local application that runs at least three distinct
+experiment protocols on electronic circuits and signals, with independent
+numerical checks and exportable evidence, and the capstone page SA9 that
+teaches it.
+
+**In scope.** `pbc.products.physics_lab` grown from F138's slice: the
+frequency-response or resonance, the transient-response, and an
+amplitude-dependent response of a bounded nonlinear example; campaign
+planning and execution, invalid-measurement detection, sampling
+refinement, comparison of repetitions, raw-data and report export; the
+local interface for configuration, progress, results, and failures; the
+instrument adapter separate from the models and the orchestration; manual
+topology changes explicit. `products/physics-lab/` complete (brief,
+criteria, example inputs, reference workflow, rubric, manual route,
+guided route at the ACT revision of F139, starter). The capstone page in
+`agents-llm` (kind `product capstone`), executing the simulator route,
+naming the lesson outcomes each product feature exercises, and stating
+the operating limits ("an educational and experimental tool, not a
+certified laboratory instrument"). The live adapter only on F140's go.
+
+**Out of scope.** Automatic rewiring; a second device; a hosted service;
+any claim of physical operation without F140.
+
+**Dependencies.** F138, F139, F141, F142, F143, F144; F140's go for the
+live adapter only; the capacity gate.
+
+**Visual deliverables and skills.** Page and layout (the capstone page;
+the local interface); scientific figures. Skills: impeccable,
+frontend-design, pbc-scientific-visualization.
+
+**Acceptance criteria.**
+1. A learner with the stated prerequisites installs the product from the
+   documented command and completes the reference workflow on the
+   simulator without hardware or a model account, shown by a fresh-clone
+   run recorded on the Issue.
+2. The three protocols are distinct in physics, not one demonstration
+   with a parameter changed; each has an independent numerical check.
+3. Invalid measurements are detected, refinement and repetition are
+   recorded, and the export holds raw data, a report, and an evidence
+   package with execution modes.
+4. CI verifies the offline route from the replay traces at the product's
+   fixture location and regenerated simulator inputs (I6, ADR 022
+   decision 8); the starter's tests pass against the current tree, and
+   at its pin once the pin is set: a new starter's `pending` pin is
+   skipped by the at-pin check with the skip named and stated in the
+   completion record, and its first pin bump is recorded as the follow-up
+   change (ADR 022 decision 5).
+5. The page meets the lesson rule, names the outcomes each feature
+   exercises, and states the limits; live support is claimed only after
+   F140's go and its recorded pilot.
+6. The verification the targeted run reports passes, run last (the full
+   run where a dependency file or shared code changes).
+
+**Risk.** High (scope; Level 2 by its paths, Level 3 by trigger when a
+dependency file changes).
+
+**Detailed implementation plan expected.** Yes; likely several Issues
+(the product, then the page).
+
+### F146 — Path 2: unknown systems and competing models; system identification; noise, uncertainty, and identifiability
+
+**Source.** Change request section 3.2 (B2.1, B2.2, B2.5), section 6
+(D1, D2, D5, D6, D10); the enhancement of D6 delivered by F23.
+
+**Goal.** MD1: system boundaries, accessible variables, candidate
+structures, and priors, comparing knowledge-informed and restricted-prior
+conditions. MD2: known model structures fitted in time and frequency
+domains, with residuals and parameter sensitivity. MD5: uncertainty,
+parameter correlations, noise sensitivity, and observationally
+equivalent explanations.
+
+**In scope.** Extensions of the published lessons
+`prior-knowledge-in-discovery` (MD1: competing models and system
+boundaries), `inverse-physics` (MD2: frequency-domain identification on
+the RLC circuit beside the existing mechanics case), and
+`discovery-under-noise` (MD5: identifiability and observationally
+equivalent explanations, reusing `pbc.data.inverse`). MD1 carries the
+core outcomes of D1 and D5 as its own exercises: a black-box force-law
+exercise outside electronics (a mechanical force law probed through
+controlled inputs, its functional form recovered with the transparent
+grammar of MD3's lesson and tested on withheld probes) and an unknown
+simulated world whose truth is withheld from the agent. D1's and D5's
+lessons and the noisy-trajectory lesson are linked as depth, never as the
+coverage itself.
+
+**Out of scope.** New pages; external discovery engines without a chosen
+integration.
+
+**Dependencies.** F136, F98, F23, F78 (EM5's RLC model).
+
+**Visual deliverables and skills.** Scientific figures. Skills:
+pbc-scientific-visualization.
+
+**Acceptance criteria.**
+1. The three lessons meet the lesson and agent rules and the outcomes
+   above.
+2. MD2 recovers synthetic parameters in both domains within tolerance and
+   reports a non-identifiable case as such; MD5 shows two observationally
+   equivalent explanations that the data cannot separate.
+3. MD1 contains a black-box force-law exercise on a system outside
+   electronics, in which the learner or the agent probes an unknown force
+   law through controlled inputs, recovers its functional form, and
+   predicts withheld probes, with the answer recomputed by the build; and
+   an exercise on an unknown simulated world whose truth is unreachable by
+   the agent's tools, shown by a test (I27). Neither depends on D1's or
+   D5's lesson, which are linked as depth.
+4. The published claims of the three lessons are unchanged (or the
+   feature is Level 3).
+5. The verification the targeted run reports passes, run last.
+
+**Risk.** Medium (Level 2).
+
+**Detailed implementation plan expected.** Yes, short.
+
+### F147 — Path 2: hidden variables and failures of known laws; active experimental design; generalisation across systems
+
+**Source.** Change request section 3.2 (B2.6, B2.8, B2.9; the path
+boundary with B1.6), section 6 (D3, D9, D11, D12); the enhancement of D9
+delivered by F20.
+
+**Goal.** MD6: missing states, forces, or inadequate models diagnosed;
+genuinely distinguishable extensions of a known law compared; unresolved
+ambiguity stated. MD8: experiments chosen to discriminate models or
+reduce uncertainty, comparing scripted, classical adaptive, LLM, and
+hybrid strategies under equal budgets. MD9: interpolation, new
+excitation, new parameters, new regimes, and structurally different
+systems separated, with transfer failures reported.
+
+**In scope.** Extensions of the published lessons `hidden-variables`
+(MD6, carrying D3's outcome of challenging and extending a known law as
+its own exercise, with D3's lesson linked as depth), `experimental-design-agent` (MD8, the
+four strategies under one budget, scored by the evaluator of F137), and
+`generalisation-to-unseen-systems` (MD9, with a structurally different
+system and a thermal or other non-mechanical transfer case).
+
+**Out of scope.** New pages; the discovery capstone.
+
+**Dependencies.** F136, F137, F98, F20.
+
+**Visual deliverables and skills.** Scientific figures. Skills:
+pbc-scientific-visualization.
+
+**Acceptance criteria.**
+1. The three lessons meet the lesson and agent rules and the outcomes
+   above.
+2. MD8's strategies are compared under equal budgets with the scores
+   recomputed by the evaluator and their uncertainty over seeds.
+3. MD9's held-out systems are never probed by the agent, shown by the
+   trace, and at least one transfer failure is reported as a result.
+4. MD6 carries D3's outcome as its own exercise: data that a known law
+   fails to explain, at least two genuinely distinguishable extensions of
+   that law compared on the same data and on a discriminating
+   experiment, and the ambiguity that remains stated; it does not rely on
+   D3's lesson, which is linked as depth.
+5. The published claims of the three lessons are unchanged (or the
+   feature is Level 3).
+6. The verification the targeted run reports passes, run last.
+
+**Risk.** Medium (Level 2).
+
+**Detailed implementation plan expected.** Yes, short.
+
+### F148 — Capstone: the System Discovery Lab
+
+**Source.** Change request section 3.2 (B2.C and its capstone
+requirements), sections 4 and 5; requirements decision 42.
+
+**Goal.** A local application that actively characterises unknown systems
+from a bounded family and validates an identified model on withheld
+experiments, and the capstone page MD10 that teaches it.
+
+**In scope.** `pbc.products.discovery_lab`: a bounded family of several
+circuit structures, coupled resonances, and at least one nonlinear case;
+measurement selection, ranking of candidate explanations, parameter and
+uncertainty estimation, prediction tests on withheld excitation signals
+and conditions; an underdetermined case whose correct outcome is that
+the measurements do not distinguish the models; the instrument contract
+reused, with starter adapters for independent entry; a transfer exercise
+outside electronics (default: a thermal system in simulation). The
+learner material and the starter under `products/discovery-lab/`; the
+capstone page. Symbolic, equation, and invariant discovery stay assessed
+in their lessons, not forced onto the product.
+
+**Out of scope.** Unrestricted circuit reconstruction or arbitrary law
+discovery; thermal hardware before its own feasibility work.
+
+**Dependencies.** F145 (the shared contract and adapters), F146, F147,
+F137; F140's go for the live adapter only; the capacity gate.
+
+**Visual deliverables and skills.** Page and layout; scientific figures.
+Skills: impeccable, frontend-design, pbc-scientific-visualization.
+
+**Acceptance criteria.**
+1. As F145's criteria 1, 3, 4, 5, and 6, for this product.
+2. The withheld experiments are never available to the candidate, shown
+   by the trace and a test; predictions are scored by the evaluator.
+3. The underdetermined case ends with "not distinguishable" and the
+   evidence for it, never a forced choice.
+4. The transfer exercise reports where the identification succeeds and
+   fails outside electronics.
+
+**Risk.** High (scope).
+
+**Detailed implementation plan expected.** Yes; likely several Issues.
+
+### F149 — Path 3: defining scientific quality; tasks and hidden test worlds; fair baselines and comparison protocols
+
+**Source.** Change request section 3.3 (B3.1, B3.2, B3.3), section 6
+(EV1 to EV4, AI6, D2, D5); the outcomes of the dropped F100.
+
+**Goal.** AE1: separate metrics for correctness, reasoning, evidence,
+completion, cost, and measurement efficiency, including conceptual and
+physical-tool understanding. AE2: numerical, conceptual, diagram-based,
+and interactive tasks with truth and evaluation cases withheld. AE3:
+deterministic workflows, models without tools, and agents compared with
+equivalent information and budgets, prior knowledge controlled.
+
+**In scope.** AE1, a new lesson (default course: mechanics), carrying
+F100's physical-tool and counterfactual outcomes on verified figures.
+AE2, an extension of `interactive-discovery-benchmarks` with conceptual
+and diagram-based tasks, carrying the B3.2 parts of AI6's outcome (image
+and diagram tasks on affordances and counterfactual interpretation) and of
+D5's outcome (an unknown simulated world with withheld truth) as its own
+tasks, with AI6's and D5's lessons linked as depth. AE3, an extension of
+`agent-versus-non-agent-baselines` with the prior-knowledge control of
+D2's lesson.
+
+**Out of scope.** Sealed evaluation (F150); the testbench.
+
+**Dependencies.** F136, F137, F81, F96; the capacity gate.
+
+**Visual deliverables and skills.** Scientific figures; diagram-based
+task figures (verified figures, never artwork). Skills:
+pbc-scientific-visualization, diagram-design.
+
+**Acceptance criteria.**
+1. The three lessons meet the lesson and agent rules and the outcomes
+   above.
+2. Every task's answer is recomputed by the build; withheld cases are
+   unreachable by the agent's tools, shown by a test (I27).
+3. Comparisons use equal information and budgets, stated on the page,
+   with uncertainty over seeds and per-task results, never only one
+   aggregate.
+4. AE2's task set includes an image or diagram task on physical
+   affordances and a counterfactual, and a task on an unknown simulated
+   world whose truth and evaluation cases are withheld from the agent,
+   each with its answer recomputed by the build; neither relies on AI6's
+   or D5's lesson, which are linked as depth.
+5. The published claims of the extended lessons are unchanged (or the
+   feature is Level 3).
+6. The verification the targeted run reports passes, run last.
+
+**Risk.** Medium (Level 2).
+
+**Detailed implementation plan expected.** Yes.
+
+### F150 — Path 3: independent scoring and sealed evaluation; robustness and statistical uncertainty; failure analysis, reviewer evaluation, and regressions
+
+**Source.** Change request section 3.3 (B3.4, B3.5, B3.6), sections 4.1
+and 4.2, section 6 (EV4, EV5, AI4).
+
+**Goal.** AE4: scores and resource use computed by the evaluator, a
+candidate frozen before a final withheld evaluation, version-bound
+evidence. AE5: repeated trials, perturbed observations, injected tool
+failures, and quantified variation. AE6: reviewers tested on controlled
+correct and incorrect cases, missed errors and false alarms classified,
+ablations, evaluator overfitting and regressions detected.
+
+**In scope.** Three new lessons (default course: mechanics) on
+`pbc.evidence`; AE6 extends the fault coverage of the published review
+lab (`pbc.agents.review_lab`, the correct and faulty integrators) with
+repeated assessment, without changing AI4's published results. F150 is the
+only Phase 9 feature that changes `pbc.agents.review_lab`; F153 depends on
+it and is never in flight with it.
+
+**Out of scope.** The testbench product.
+
+**Dependencies.** F149, F137, F18; the capacity gate.
+
+**Visual deliverables and skills.** Scientific figures. Skills:
+pbc-scientific-visualization.
+
+**Acceptance criteria.**
+1. The three lessons meet the lesson and agent rules and the outcomes
+   above.
+2. AE4 shows a fabricated score failing and a final evaluation bound to a
+   frozen candidate, from F137's tests.
+3. AE5's variation and uncertainty come from recorded runs; costs and
+   call counts are recorded from the runs that produced the fixtures,
+   never measured in CI.
+4. AE6 reports missed errors and false alarms of the reviewers on
+   controlled cases, reproduced from frozen traces; the replay of the
+   published `scientific-review` lesson is unchanged, shown by its tests.
+5. The verification the targeted run reports passes, run last.
+
+**Risk.** Medium (Level 2).
+
+**Detailed implementation plan expected.** Yes.
+
+### F151 — Capstone: the Scientific Agent Testbench
+
+**Source.** Change request section 3.3 (B3.C and its paragraph),
+sections 4 and 4.2; requirements decision 42.
+
+**Goal.** A reusable comparison and diagnostic application with
+reproducible evaluation reports, and the capstone page AE7.
+
+**In scope.** `pbc.products.testbench`: evaluation of supplied agents and
+of earlier products (default: the Autonomous Physics Lab's agent route)
+on conceptual, diagram-interpretation, and executable experiment tasks;
+non-agent baselines; failures, cost, sample efficiency, variation, and
+per-task performance exposed; sealed final evaluation through
+`pbc.evidence`; heavy live evaluations outside CI with committed fixtures
+and replay for the deterministic checks. Learner material and starter
+under `products/testbench/`; the capstone page.
+
+**Out of scope.** A public leaderboard; a hosted service.
+
+**Dependencies.** F149, F150, F145; the capacity gate.
+
+**Visual deliverables and skills.** Page and layout; scientific figures.
+Skills: impeccable, frontend-design, pbc-scientific-visualization.
+
+**Acceptance criteria.**
+1. As F145's criteria 1, 3, 4, 5, and 6, for this product, without
+   hardware.
+2. Every report shows per-task results, baselines, uncertainty, cost, and
+   failures, never one aggregate alone; scores are evaluator-computed.
+3. A regression between two versions of a candidate is detected from the
+   records, shown by a test.
+
+**Risk.** High (scope).
+
+**Detailed implementation plan expected.** Yes; likely several Issues.
+
+### F152 — Path 4: generating and selecting research ideas; from a question or publication to a research plan; literature, novelty, and evidence maps
+
+**Source.** Change request section 3.4 (B4.1, B4.2, B4.3), section 6
+(R2, R3), section 10 (pilot 4 if an integration is chosen).
+
+**Goal.** RR1: several candidate questions compared for interest,
+feasibility, resources, falsifiability, and contribution, with an idea
+archive and no self-rating taken as evidence. RR2: a replication or
+original investigation scoped, with hypotheses, baselines, budgets,
+stopping conditions, withheld tests, and success criteria declared before
+execution. RR3: verified sources compared, supporting, contradicting, and
+insufficient evidence distinguished, claims linked to passages and
+assumptions; a limited search never certifies novelty.
+
+**In scope.** Three new lessons (default course: the course of each
+lesson's worked example); RR3 on a small rights-cleared local corpus with
+a simple retrieval baseline and passages verified, using the reference
+register and the evidence map of F19; an optional retrieval integration
+only with its own comparison (pilot 4).
+
+**Out of scope.** Live retrieval in the build; an agent that writes a
+citation.
+
+**Dependencies.** F136, F19, F28; the capacity gate.
+
+**Visual deliverables and skills.** Conceptual diagrams; scientific
+figures where results are shown. Skills: diagram-design,
+pbc-scientific-visualization.
+
+**Acceptance criteria.**
+1. The three lessons meet the lesson and agent rules and the outcomes
+   above.
+2. RR3's support, contradiction, and insufficiency labels are checked
+   against annotated passages by a test; no live retrieval; proposed
+   sources are logged for human review.
+3. RR2's plan template is executable by the scripted route and refuses a
+   plan without withheld tests or stopping conditions.
+4. The verification the targeted run reports passes, run last.
+
+**Risk.** Medium (Level 2).
+
+**Detailed implementation plan expected.** Yes.
+
+### F153 — Path 4: reproducible and resumable research pipelines; multi-agent investigation and scientific review
+
+**Source.** Change request section 3.4 (B4.4, B4.5), section 6 (R1, AI4,
+R4).
+
+**Goal.** RR4: data, code versions, configurations, run states, figures,
+and claims connected; failed and negative results kept; resume only from
+valid states; lineage of alternative branches. RR5: extraction,
+implementation, and critical-review roles with bounded interfaces,
+meaningful human steering, and independent checks rather than consensus.
+
+**In scope.** Extensions of `automated-analysis-pipelines` (RR4, on
+`pbc.evidence` records) and `scientific-review` (RR5, roles with bounded
+interfaces and a human steering step), using `pbc.agents.review_lab` as
+F150 extended it.
+
+**Out of scope.** New pages; the workspace product; any change to
+`pbc.agents.review_lab`, which F150 owns (a change it needs is raised as
+scope of F150 or a follow-up of it, never made here).
+
+**Dependencies.** F136, F137, F47, F18, F150 (merged; never in flight
+with it, since both touch what the published `scientific-review` lesson
+replays).
+
+**Visual deliverables and skills.** Scientific figures; a conceptual
+diagram of the roles. Skills: pbc-scientific-visualization,
+diagram-design.
+
+**Acceptance criteria.**
+1. Both lessons meet the lesson and agent rules and the outcomes above.
+2. A resume from an invalid state is refused and a branch's lineage is
+   recorded, shown by tests.
+3. A disagreement between reviewers is resolved by a recomputed check,
+   not by a vote, on a replayed trace.
+4. The published claims of both lessons are unchanged (or the feature is
+   Level 3).
+5. The verification the targeted run reports passes, run last.
+
+**Risk.** Medium (Level 2).
+
+**Detailed implementation plan expected.** Yes, short.
+
+### F154 — Path 4: discrepancies, ablations, and follow-up experiments; independently checkable reports and research memory
+
+**Source.** Change request section 3.4 (B4.6, B4.7), section 6 (R3, R5).
+
+**Goal.** RR6: a review finding turned into a knowledge gap, a
+discriminating experiment, new evidence, and a revised claim, with the
+reason to continue or stop a branch. RR7: evidence-linked reports and
+reproducible bundles, citations and quantitative statements validated,
+and ideas, code, data, results, limitations, and open questions stored
+for checked reuse.
+
+**In scope.** Two new lessons (default course: the course of the worked
+example).
+
+**Out of scope.** The workspace product; a preprint platform.
+
+**Dependencies.** F152, F153; the capacity gate.
+
+**Visual deliverables and skills.** Scientific figures. Skills:
+pbc-scientific-visualization.
+
+**Acceptance criteria.**
+1. Both lessons meet the lesson and agent rules and the outcomes above.
+2. Revising prose never counts as resolving a request for new evidence,
+   shown by a test of the report's evidence status.
+3. Every citation and quantitative statement of RR7's report resolves to
+   a source passage or a record, or is marked.
+4. The verification the targeted run reports passes, run last.
+
+**Risk.** Medium (Level 2).
+
+**Detailed implementation plan expected.** Yes, short.
+
+### F155 — Capstone: the Scientific Research Workspace
+
+**Source.** Change request section 3.4 (B4.C and its paragraphs),
+sections 4 and 4.2, section 6 (R4 to R6); requirements decision 42;
+unresolved question 22 (the first reproduction paper).
+
+**Goal.** A local research application supporting a reproduction track
+and an original-investigation track, and one substantive investigation
+completed with it; the capstone page RR8.
+
+**In scope.** `pbc.products.research_workspace`: question and idea
+selection, an executable plan, source evidence, experiment history,
+review findings, follow-up decisions, report export; a small run graph
+with a guided branch comparison (tree search optional, its extra cost
+justified against a sequential baseline); rejected ideas and failed
+attempts preserved with what would warrant revisiting them; the evidence
+statuses visible. The reproduction track first, on a curated feasible
+paper chosen in this feature (question 22) with its licence and data
+rights recorded, then the original track on a prepared example question.
+The optional materials track with its physical multi-objective
+constraints designed as an extension (reusing F110 if it exists;
+optional criterion 5).
+Learner material and starter under `products/research-workspace/`; the
+capstone page.
+
+**Out of scope.** Unrestricted autonomy; a public preprint platform;
+novelty guaranteed; materials discovery as a compulsory domain.
+
+**Dependencies.** F152, F153, F154, F137; the capacity gate.
+
+**Visual deliverables and skills.** Page and layout; scientific figures.
+Skills: impeccable, frontend-design, pbc-scientific-visualization.
+
+**Acceptance criteria.**
+1. As F145's criteria 1, 3, 4, 5, and 6, for this product, without
+   hardware.
+2. The reproduced figures are regenerated from documented inputs under
+   the dataset rules; discrepancies are reported, typed, and not
+   explained away; a negative or non-reproduced result passes when its
+   evidence and analysis justify it.
+3. Every claim of the investigation's report has a source or run link and
+   an evidence status; producing the report is never shown as proof of
+   success.
+4. Both tracks run end to end on the prepared examples without a model
+   account.
+5. *Optional (requirements decision 26 as amended, R5):* the design of
+   the materials track is recorded in `products/research-workspace/` as
+   an extension of RR8, not a core outcome: its example question over
+   the materials course (MAT1 to MAT4), the explicit physical
+   multi-objective constraints that every candidate is checked against
+   by recomputation, the comparison of an agent's ranking with the
+   recomputed one, and the extension lesson R5 (F110) it links to or
+   reuses. The track is never a dependency of the core criteria above,
+   is labelled optional on the capstone page, and is implemented only
+   when the owner schedules F110 or asks for it.
+
+**Risk.** High (scope).
+
+**Detailed implementation plan expected.** Yes; likely several Issues
+(the reproduction track first).
+
 ## Candidate mapping
 
 Every candidate of the change request and its outcome. "Kept" means a
@@ -9430,6 +10871,104 @@ Lean lessons beyond the baseline included and never hidden.
 | EV2 full, partial, and no prior-knowledge comparisons under one protocol | F81, on F65's protocol |
 | R5 physical multi-objective constraints | F110 |
 | Q5 Bell and CHSH inequalities, with Q8 using eligible data only if the gate approves it | F90 (Q5) and F103 (Q8) |
+
+## Slot mapping (change cycle `part-b-scientific-products-and-research`)
+
+Requirements decision 42 replaces the Part B part of the slot mapping
+above; the Part A slots, the Lean slot, and the lessons beyond the
+baseline are unchanged. The labels are ADR 022's proposal, approved with
+the curriculum file in F136 (question 20). "Published" names a lesson
+`id`; "extended by" names the feature that delivers the slot's new
+outcome on that lesson. Until F136 merges, the curriculum file still
+holds the old slots.
+
+### Part B core, 34 slots
+
+| Slot | B-code | Path | Working title | Kind | Status, feature |
+|---|---|---|---|---|---|
+| SA1 | B1.1 | `reasoning` | From research question to experiment specification | lesson | F141 |
+| SA2 | B1.2 | `reasoning` | Building and verifying scientific simulation tools | lesson | Published, `verifying-scientific-code` (was AI2); extended by F141 |
+| SA3 | B1.3 | `reasoning` | Connecting simulators and instruments | lesson | F142 |
+| SA4 | B1.4 | `reasoning` | Measurement quality and multimodal observations | lesson | F142 |
+| SA5 | B1.5 | `reasoning` | Building a bounded experiment agent | lesson | Published, `agent-experiment` (was AI0); extended by F143 |
+| SA6 | B1.6 | `reasoning` | Running adaptive and resumable measurement campaigns | lesson | F143 |
+| SA7 | B1.7 | `reasoning` | Counterexamples, physical constraints, and falsification | lesson | Published, `counterexample-hunter` (was AI3); extended by F144 |
+| SA8 | B1.8 | `reasoning` | Traceable explanations and experiment reports | lesson | Published, `interpretable-physics-explanations` (was AI7); extended by F144 |
+| SA9 | B1.C | `reasoning` | Capstone: Autonomous Physics Lab | product capstone | F145 (on F138's slice) |
+| MD1 | B2.1 | `law-discovery` | Unknown systems, priors, and competing models | lesson | Published, `prior-knowledge-in-discovery` (was D2); extended by F146 |
+| MD2 | B2.2 | `law-discovery` | Parameter discovery and system identification | lesson | Published, `inverse-physics` (was D6); extended by F146 |
+| MD3 | B2.3 | `law-discovery` | Discovering functional forms with symbolic regression | lesson | Published, `symbolic-regression` (was D7); reused |
+| MD4 | B2.4 | `law-discovery` | Discovering differential equations | lesson | Published, `discovering-differential-equations` (was D8); reused |
+| MD5 | B2.5 | `law-discovery` | Noise, uncertainty, and identifiability | lesson | Published, `discovery-under-noise` (was D10); extended by F146 |
+| MD6 | B2.6 | `law-discovery` | Hidden variables and failures of known laws | lesson | Published, `hidden-variables` (was D11); extended by F147 |
+| MD7 | B2.7 | `law-discovery` | Discovering conservation laws and invariants | lesson | Published, `discovering-conservation-laws` (was D13); reused |
+| MD8 | B2.8 | `law-discovery` | Active experimental design | lesson | Published, `experimental-design-agent` (was D9); extended by F147 |
+| MD9 | B2.9 | `law-discovery` | Generalisation across signals, regimes, and systems | lesson | Published, `generalisation-to-unseen-systems` (was D12); extended by F147 |
+| MD10 | B2.C | `law-discovery` | Capstone: System Discovery Lab | product capstone | F148 |
+| AE1 | B3.1 | `benchmarking` | Defining scientific quality | lesson | F149 |
+| AE2 | B3.2 | `benchmarking` | Building tasks and hidden test worlds | lesson | Published, `interactive-discovery-benchmarks` (was EV2); extended by F149 |
+| AE3 | B3.3 | `benchmarking` | Fair baselines and comparison protocols | lesson | Published, `agent-versus-non-agent-baselines` (was EV3); extended by F149 |
+| AE4 | B3.4 | `benchmarking` | Independent scoring, sealed evaluation, and provenance | lesson | F150 |
+| AE5 | B3.5 | `benchmarking` | Robustness and statistical uncertainty | lesson | F150 |
+| AE6 | B3.6 | `benchmarking` | Failure analysis, reviewer evaluation, and regressions | lesson | F150 |
+| AE7 | B3.C | `benchmarking` | Capstone: Scientific Agent Testbench | product capstone | F151 |
+| RR1 | B4.1 | `autonomous-research` | Generating and selecting research ideas | lesson | F152 |
+| RR2 | B4.2 | `autonomous-research` | From a question or publication to a research plan | lesson | F152 |
+| RR3 | B4.3 | `autonomous-research` | Literature, novelty assessment, and evidence maps | lesson | F152 |
+| RR4 | B4.4 | `autonomous-research` | Reproducible and resumable research pipelines | lesson | Published, `automated-analysis-pipelines` (was R1); extended by F153 |
+| RR5 | B4.5 | `autonomous-research` | Multi-agent investigation and scientific review | lesson | Published, `scientific-review` (was AI4); extended by F153 |
+| RR6 | B4.6 | `autonomous-research` | Discrepancies, ablations, and follow-up experiments | lesson | F154 |
+| RR7 | B4.7 | `autonomous-research` | Independently checkable reports and research memory | lesson | F154 |
+| RR8 | B4.C | `autonomous-research` | Capstone: Scientific Research Workspace | product capstone | F155 |
+
+Count: 9 + 10 + 7 + 8 = 34 (30 taught, 4 capstones); 17 published at
+`cd69524`, 14 of them awaiting their extension. Total: 81 + 34 + 1 = 116
+core slots.
+
+### Part B extension slots, outside the core
+
+| Slot | Path | Working title (unchanged) | Status |
+|---|---|---|---|
+| AI6 | `reasoning` | Multimodal physics reasoning | Published, `multimodal-physics-reasoning` (F96) |
+| AI8 | `reasoning` | Physical reasoning from video | Planned; F97, only when the owner asks |
+| D1 | `law-discovery` | Black-box physics: discovering force laws | Published, `black-box-force-law` (F66) |
+| D3 | `law-discovery` | Discovering modified physical laws | Published, `modified-force-law` (F66) |
+| D4 | `law-discovery` | Discovering gravity from experiments | Published, `discovering-gravity` (F99) |
+| D5 | `law-discovery` | Unknown physical worlds | Published, `unknown-physical-worlds` (F99) |
+| R5 | `autonomous-research` | Agent-driven materials discovery | Planned; F110, only when the owner asks |
+
+The lesson `equations-from-noisy-trajectories` (F67) stays without a slot
+and is counted with the lessons beyond the core.
+
+### Retired Part B labels
+
+Never reused. AI0 (now SA5), AI1 (scope in SA2), AI2 (now SA2), AI3 (now
+SA7), AI4 (now RR5), AI5 (scope in SA3, SA4, SA6, SA9), AI7 (now SA8), D2
+(now MD1), D6 (now MD2), D7 (now MD3), D8 (now MD4), D9 (now MD8), D10
+(now MD5), D11 (now MD6), D12 (now MD9), D13 (now MD7), EV1 (scope in
+AE1, AE2), EV2 (now AE2), EV3 (now AE3), EV4 (scope in AE1, AE5), EV5
+(scope in AE6), R1 (now RR4), R2 (scope in RR3), R3 (scope in RR3, RR7),
+R4 (scope in RR5, RR8), R6 (scope in RR8): 26 labels. With the seven
+extension slots, 33 old labels accounted for. "Now" means the published
+lesson moved to that slot; "scope in" means the unpublished outcome moved.
+
+The path titles of the rows above: `reasoning`, reliable scientific
+agents and experiment automation; `law-discovery`, physical model
+discovery through active experiments; `benchmarking`, scientific agent
+evaluation and improvement; `autonomous-research`, reproducible research
+with agents.
+
+### Enhancements of existing slots and deliberate extensions (decision 26 as amended)
+
+| Outcome | Where it is delivered |
+|---|---|
+| AI6 still-image affordances and counterfactuals | Published (F96, extension AI6); the core multimodal outcome in SA4 (F142) and AE2 (F149) |
+| AI8 video inference | Core exercise in SA4 (F142); full video inference the optional extension AI8 (F97) |
+| D13 invariant discovery | A dedicated core lesson, MD7 (published) |
+| D4 gravity discovery | The extension D4 (published); linked from MD2 and MD3 |
+| EV1 physical-tool understanding separated from software interfaces | AE1 (F149) |
+| EV2 prior-knowledge comparisons | AE2 and AE3 (F149) |
+| R5 physical multi-objective constraints | The optional materials track of RR8 (F155) and the extension R5 (F110) |
 
 ## Experimental data choice
 
@@ -9680,6 +11219,20 @@ phase.
 | Navigation 2 | F133 after F132, once #338 matches its block (the pre-start gate of the reconciliation notes), with the owner's approval of the twelve illustrations; F135 after F132, before F133 starts or after it is merged | The two-layer Course Atlas with its registered illustrations and the relationships on the lesson pages; the glossary on demand and the improvement links |
 | Navigation 3 | F134 after F133, once #339 matches its block (the pre-start gate); then the owner's rendered pass on F133 and F134, the new preview gate of F127 | Home as a landing page with the hero, Run the code with three routes, How we verify the science |
 
+Phase 9, the change cycle `part-b-scientific-products-and-research`
+(2026-11-01), by dependency (the rules under "Phase 9"). F136 is a full
+run that waits for F133 and is never in flight with F134; the lesson
+features of Stage C and D run in their own worktrees and rebase on what
+merged before them; every feature that adds a lesson waits for the
+capacity gate once the count would pass 110.
+
+| Wave | Order within the wave | Outcome |
+|---|---|---|
+| Part B, Stage A | This planning (the inventory), then F136 after F133 is merged | The four paths, 34 core slots, the extension slots, and the product capstones declared and shown, with every published address intact |
+| Part B, Stage B | F137; then F138; then F139 and F140's desk spike (after F138, no purchase); F140's physical pilot after the owner's decisions on questions 17 and 18, taken on the spike (gating live hardware only) | The evidence contract proven, the simulator vertical slice with the instrument contract, the guided and manual routes measured, and a go or no-go for one instrument |
+| Part B, Stage C | F141; then F142 and F144; then F143; then F145. Beside them, F146 and F147; then F148 after F145 | Path 1 with the Autonomous Physics Lab, then Path 2 with the System Discovery Lab |
+| Part B, Stage D | F152 (may start after F136); F153 after F150; F154 after both; then F155. F149, then F150, then F151 (after F145) | Path 3 with the Scientific Agent Testbench, Path 4 with the Scientific Research Workspace |
+
 Features F13 (#89) and F14 (#94) are delivered with their approved scope;
 F64 keeps their progress marks and recommendations on the redesigned path.
 F15 is dropped by `final-curriculum` (ADR 013 decision 7) and is never
@@ -9831,12 +11384,18 @@ datasets, and any claim that a proof establishes a measurement or that
 every experiment has an LLM or Lean counterpart. Since the change cycle
 `final-curriculum`, also: lessons that build sensor experiments, record
 audio, collect classroom or smartphone data, control instruments, or
-operate a physical laboratory; a mathematics curriculum, a
+operate a physical laboratory (since the change cycle
+`part-b-scientific-products-and-research`, with one bounded exception:
+the Autonomous Physics Lab and the System Discovery Lab may control a
+learner's own low-voltage instrument locally, optionally, behind the
+instrument contract of ADR 022, never in the site, the build, or CI); a
+mathematics curriculum, a
 physics-informed machine-learning track, or a generic AI or
 machine-learning curriculum; the nuclear and particle, plasma, and
 geophysics and climate expansions; a capstone presented as a calibrated
 digital twin, a fabricated or validated device, or an operational
-forecast, and any capstone beyond T11, EM9, and FL10; a heavyweight
+forecast, and any applied capstone beyond T11, EM9, and FL10 (the four
+product capstones of the method paths are added by decision 42); a heavyweight
 solver as a mandatory build or CI dependency; and stock, hand-copied, or
 externally hosted images (the exclusion of decorative images and
 animation that stood here until 2026-10-17 is superseded by the asset
@@ -9893,7 +11452,20 @@ the hero's variant; an image as the only navigation surface of the atlas
 or the hero; text, numbers, or formulas in the pixels of interface
 artwork; raster artwork in a lesson's body or presented as evidence;
 rendering the illustrations in the build or in CI; and committed masters,
-intermediates, or option boards. The exclusion of "a generated raster
+intermediates, or option boards. Since the change cycle
+`part-b-scientific-products-and-research`, also: a hosted product, cloud
+deployment, user management, billing, upload endpoint, or instrument
+connection on the site; a paid model or hardware as a requirement of any
+essential outcome; autonomous mains-voltage work, unrestricted
+actuation, or automatic rewiring without separately scoped switching
+hardware; a purchase without the owner's decision; a certified-instrument
+claim; a public preprint platform; a guaranteed novelty claim;
+microservices or a general scientific platform as a prerequisite; the
+wholesale adoption of an external framework or a copied implementation
+without a pinned version, a licence check, and recorded evidence; ACT
+internals as a prerequisite, or a PBC dependency on an unimplemented ACT
+capability; and a global reproducibility tolerance for live
+measurements. The exclusion of "a generated raster
 image as the map's navigation surface" and "browser storage for the map's
 controls" of the change cycle `scientific-atelier-atlas` is read for the
 atlas and the hero as this sentence states it. Adding any of them is a

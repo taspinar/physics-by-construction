@@ -44,6 +44,14 @@ as ADR 018 did, without changing its decision 3: the curriculum file
 gains no description field. Changes no invariant beyond I6, I30, and I31
 of `docs/architecture.md`, which this planning restates.
 
+Decision 3 amended by
+[ADR 022](022-part-b-method-paths-with-capstone-products.md)
+(2026-11-01) in one respect: a slot of the curriculum file gains the
+optional key `extension` and the kind `product capstone`. The curriculum
+file still gains no description field, and no title, outcome,
+prerequisite, publication state, or count is written in the manifest. The
+other decisions below are unchanged.
+
 Date: 2026-10-30
 
 ## Context
