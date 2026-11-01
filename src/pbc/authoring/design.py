@@ -89,6 +89,11 @@ PAGE = {
     "night-text": "#faf8f3",
     "night-muted": "#b4c2d9",
     "night-line": "#7ea6e0",
+    # The ink of Part B, the four method paths, in the course atlas (ADR 021
+    # decision 3): the same drawing style as Part A's cobalt, a copper ink,
+    # and the pale surface of its open card.
+    "copper": "#8a4b1f",
+    "copper-surface": "#f4ebe0",
 }
 
 
@@ -152,6 +157,26 @@ def colour_pairs() -> list[tuple[str, str, str, float]]:
         ("text on night", PAGE["night-text"], PAGE["night"], TEXT_CONTRAST),
         ("muted text on night", PAGE["night-muted"], PAGE["night"], TEXT_CONTRAST),
         ("line on night", PAGE["night-line"], PAGE["night"], CONTROL_CONTRAST),
+        ("copper", PAGE["copper"], page, TEXT_CONTRAST),
+        (
+            "copper on its surface",
+            PAGE["copper"],
+            PAGE["copper-surface"],
+            TEXT_CONTRAST,
+        ),
+        ("text on copper surface", PAGE["text"], PAGE["copper-surface"], TEXT_CONTRAST),
+        (
+            "muted text on copper surface",
+            PAGE["muted"],
+            PAGE["copper-surface"],
+            TEXT_CONTRAST,
+        ),
+        (
+            "focus ring on copper surface",
+            PAGE["focus"],
+            PAGE["copper-surface"],
+            CONTROL_CONTRAST,
+        ),
     ]
     for kind, labels in (("claim", CLAIM_LABELS), ("status", STATUS_LABELS)):
         for name, label in labels.items():

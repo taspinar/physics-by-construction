@@ -309,7 +309,7 @@ LICENSE, LICENSE-CONTENT MIT for code, CC BY 4.0 for lesson text and figures
 | **Map manifest** (site/atlas.yaml, scientific atelier, ADR 018; amended by ADR 021) | The one addition the course atlas needs, in the requirements' words: concept identifiers (each with its short explanation), display placement (optional since ADR 021, removed with its check when nothing reads it), concept-to-slot associations (capstone membership among them, as an association whose slot is a capstone slot), and curated conceptual connections with their rationale; since the site navigation (F133) also one entry per sequence (every course and method path of the curriculum file, no other) with its one-line description and its illustration, a path the provenance register names. The short explanation of the concept that represents a capstone slot is the planned description the atlas reveals and the home page shows. Validated by `pbc.authoring`: every course, path, slot, and concept reference resolves (the schema defines course, path, slot, and concept references only, and rejects any other field; it admits no lesson reference, so the requirements' lesson-reference rule holds vacuously); a concept names at least one slot; every capstone slot of the curriculum file is represented by exactly one concept. | Hold a title, outcome, prerequisite, publication state, or count, or a description other than a sequence's one line and a concept's explanation; hold an illustration reference outside the sequence entries, or a lesson reference; infer a concept from a lesson's title; list a prerequisite (those come from the front matter); be a second lesson catalogue. |
 | **Lean project** (`lean/`) | All formal proofs, built with `lake build` against pinned Lean 4 and Mathlib. | Contain `sorry`, `admit`, or project-declared `axiom`s. Claim anything about the Python code or about the physical accuracy of a measurement. |
 | **Widgets** (`site/widgets/`) | Optional interactive visualizations that enhance a static figure already present in the page; in the next phase a small set of science-first components (F43). | Load code or data from another origin, load data before the reader asks for it, store or transmit learner data, compute physics the page did not verify, alter claimed observed values, or be required to read a lesson. |
-| **Atlas modules** (`site/learner/`, scientific atelier, F126, ADR 018; since the site navigation, F133 and F134, ADR 021) | Until F133: small dependency-free ES modules that enhance the generated atlas (the switch between map and index, selection and the selected-concept panel, zoom, filters, the phone's region selector). From F133: one module of about twenty lines that makes the address follow the open sequence and opens the sequence an address names; from F134: the hero script, which sets one of the build-embedded headline and subtext pairs before first paint, or the pair the `hero` parameter forces. Without them every page is complete: every published lesson is reachable through native links and exclusive disclosures, and the default hero pair is in the HTML. | Make a request, set a cookie, use browser storage (`site/learner/progress.js` stays the only script that stores anything), compute physics, change which lessons exist or count as published, or be required to reach a lesson. |
+| **Atlas modules** (`site/learner/`, scientific atelier, F126, ADR 018; since the site navigation, F133 and F134, ADR 021) | Since F133: one module of about twenty lines that makes the address follow the open sequence and opens the sequence an address names; from F134: the hero script, which sets one of the build-embedded headline and subtext pairs before first paint, or the pair the `hero` parameter forces. Without them every page is complete: every published lesson is reachable through native links and exclusive disclosures, and the default hero pair is in the HTML. | Make a request, set a cookie, use browser storage (`site/learner/progress.js` stays the only script that stores anything), compute physics, change which lessons exist or count as published, or be required to reach a lesson. |
 | **Dataset registry and samples** (`data/`, next phase, ADR 007) | One card per surveyed dataset with provenance, rights, artifact types, schema, units, cadence, uncertainty, checksums, and the feasibility decision; small rights-cleared samples under the size cap, each parsed by a test. | Hold a file above the cap, a restricted or unlicensed sample, a file without a card, or anything a build could regenerate. |
 | **Reference register** (`site/references.yaml`, next phase, ADR 009) | The selection evidence of every curated external link: concept, URL, author or publisher, section, pedagogical role, statement checked, alternatives, last-checked date, licence note. Pages render links from it. | Be required by the build to be reachable; hold a paywalled or sign-in-only core reference. |
 | **Site generator** (Quarto, ADR 001) | Executes lesson pages, renders equations to MathML, highlights code at build time, emits static HTML. | Add third-party runtime resources (CDN scripts, web fonts, analytics). |
@@ -472,37 +472,24 @@ delivered: the page at the same address becomes the two-layer Course
 Atlas, which keeps the course-first order, the planned slots, the progress
 marks, and the recommendations ("The quieter site").
 
-**The course atlas (scientific atelier, ADR 018, F125, F126).** Since the
-site navigation, this paragraph describes what F125 and F126 delivered;
-ADR 021 supersedes the map, its views, and its controls, and "The quieter
-site" is the target (F133). The same
-page, at the same address, gains a physics map before the index ("the
-atlas" may be its display label; the label and the navigation wording are
-settled in the owner's review of the first preview): a breadcrumb, the
-title, and a short explanation; a switch between the map and the course
-index of F64, with search and filter integration where it adds value; a
-large illustrated concept map of the eight courses, limited to the
-approved curriculum, with the four method paths as a connected research
-layer that keeps their distinctions and with the Lean and method views
-kept as part of the map (every published lesson listed by its method tags
-from the front matter, the lessons without a slot included); a
-selected-concept panel with a short explanation and canonical
-lesson links; then the complete course, module, and lesson index of F64,
-below the map, with its metadata, progress marks, recommendations,
-filters, and search;
-capstone links or explicitly labelled planned projects; the shared footer.
-The map's data are the curriculum file, the front matter, and the map
-manifest (the component table): concepts, their placement, their slots,
-and the curated conceptual connections with a rationale come from the
-manifest; prerequisite edges from the front matter; publication from the
-lessons that exist. The three edge types (conceptual connection,
-prerequisite, capstone membership) are explicit in the drawing and in the
-words of the textual equivalent, and may be shown in separate modes. The
-generator writes semantic HTML, inline SVG with real links and text, and a
-visually hidden textual equivalent at build time; the atlas modules add
-selection, zoom, filters, the switch, and the phone's region selector,
-and store and request nothing. A planned concept or slot is labelled,
-distinguishable without colour alone, never a link, never counted.
+**The course atlas (scientific atelier, ADR 018, F125, F126; the two-layer atlas, ADR 021, F133).**
+The page at the path address is a navigation page of twelve sequences, the
+eight courses of Part A and the four method paths of Part B, as native
+exclusive disclosures: each `<summary>` is a card (illustration, title,
+published count, progress mark) and the open panel holds the larger
+illustration, a one-line description, the counts, and the lesson rows (a
+link only when published; marks for a lab, a capstone, and Lean; a planned
+row distinguishable without colour and never counted). On wide screens the
+open panel stands beside the cards; on a phone it is an accordion. The
+data are the curriculum file and the front matter (courses, paths, slots,
+publication, titles, addresses) and the map manifest (each sequence's
+description and illustration, the concepts with their slots, and the
+curated conceptual connections with a rationale); the concept map, its
+three edge types, the Lean and method views, the switch, the filters, and
+the controls of F125 and F126 are gone, and the relationships appear on the
+lesson pages. The generator writes semantic HTML and a visually hidden
+textual equivalent at build time; the address module syncs the hash and
+the open sequence and stores and requests nothing.
 
 ### Verified display forms
 
@@ -1054,10 +1041,12 @@ it, this section is a target.
 
 Since the change cycle `site-navigation-and-atlas` (ADR 021), the parts of
 this section about the home page's opening, its Part A and Part B
-introduction and capstone highlights, the atlas's map, edge types, views,
-switch, and controls, and the sources of interface artwork describe what
-F124 to F126 delivered and what F132 to F135 replace; "The quieter site"
-below is the target for them, and the rest of this section stands.
+introduction and capstone highlights describe what F124 delivered and F134
+replaces; the atlas's map, edge types, views, switch, and controls (F125,
+F126) are replaced by the two-layer atlas that F133 delivers ("The atlas at
+build time" below and "The quieter site"), and the sources of interface
+artwork are widened to registered rasters (F133); the rest of this section
+stands.
 
 **Pages.** The home page: the shared header with a small project mark,
 concise primary navigation, and a clear start link; the opening "Build a
@@ -1071,8 +1060,8 @@ into no page; a short invitation;
 the shared footer with attribution, source, licences, and secondary
 navigation; no section "From a question to a working model" and no
 renamed three-step formula in its place; no fake metrics, testimonials,
-or inferred progress (F124). The course atlas at the path address (the
-lesson model above; F125, F126). Course and module openings with one
+or inferred progress (F124). The course atlas at the path address (the lesson model above; F125, F126,
+replaced by the two-layer atlas of F133). Course and module openings with one
 relevant scientific illustration, an introduction, prerequisites, and a
 compact lesson list, reusing the existing course sections and adding a
 route only for a clear purpose named in the migration plan; lessons with
@@ -1096,7 +1085,7 @@ and is identifiable as such:
 
 | Class | Where | Source | Checked by |
 |---|---|---|---|
-| Interface artwork | The chrome, the home page, the atlas, the course, module, and capstone openings | Code in the repository at build time, or an authored SVG source under `site/assets/` with author and licence recorded in the provenance register (the third committed input a build cannot regenerate, I6) | The other-origin and raster rules of the built-site checks; the committed-artifact check, which exempts a registered `.svg` under `site/assets/` and nothing else (ADR 018 amending ADR 002); the asset-source rule (F123); review |
+| Interface artwork | The chrome, the home page, the atlas, the course, module, and capstone openings | Code in the repository at build time, or an authored SVG source under `site/assets/` with author and licence recorded in the provenance register, or, since F133 (ADR 021), a derived WebP or PNG under `site/assets/` registered there with its origin, terms, and master hash (the third committed input a build cannot regenerate, I6) | The other-origin and raster rules of the built-site checks; the committed-artifact check, which exempts a registered `.svg`, `.webp`, or `.png` under `site/assets/` and nothing else (ADR 018 amending ADR 002, ADR 021); the asset-source rule (F123); review |
 | Conceptual illustration | Inside a lesson, when it genuinely improves understanding | An executed cell drawing with `pbc.authoring.diagrams` or Matplotlib, labelled `conceptual`. The requirements also permit an authored committed SVG; ADR 018 decision 2 keeps lessons code-drawn as a planning choice, because the lesson checks act on executed cells, and leaves the authored form to a later ADR | The figure-status check (F28, F32); independent review of the science; the Diagram Design guidance of ADR 019 where approved |
 | Scientific result | Lessons, previews, the home figure | The verified display forms, unchanged; the figure-writing pattern of ADR 016 | Everything that checks a figure today; the F63 preview contract |
 | Animation (any class) | Where pedagogically justified | Generated by the build or driven by build-computed data; a static alternative in the page | Reduced motion, controls, keyboard, the static alternative, the on-demand budget (F43's rules); never a routine CI render |
@@ -1106,65 +1095,34 @@ cannot support, or as a mandatory element of every lesson; stock, copied,
 and externally hosted imagery stay prohibited; map artwork never replaces
 an F63 preview.
 
-**The atlas at build time** (ADR 018 decision 3):
+**The atlas at build time** (ADR 018 decision 3 as amended by ADR 021
+decision 3; F133). The map, its three edge types, the Lean and method
+views, the switch, and the controls of F125 and F126 are gone; "The
+Course Atlas" under "The quieter site" below is the current design, and
+this is its short form:
 
 1. `pbc.authoring` reads the curriculum file, the front matter of every
-   lesson, and the map manifest, and validates the manifest: every
-   course, path, slot, and concept reference resolves (the schema defines
-   course, path, slot, and concept references only, and rejects any
-   field it does not define: no illustration reference, no lesson
-   reference, so the requirements' lesson-reference rule holds
-   vacuously); every concept names at least one slot; every capstone
-   slot of the curriculum file is represented by exactly one concept; no
-   field that the curriculum file or the front matter holds; no
-   prerequisite written in it. A violation fails the build.
-2. It derives the state of every concept from the slots it names (a
-   concept is published to the extent that lessons fill its slots; the
-   counts come from the lessons), the prerequisite edges from the lessons'
-   prerequisites (an edge between two concepts when a lesson of one
-   requires a lesson of the other; a planned lesson has none), the
-   capstone memberships from the manifest's concept-to-slot associations
-   whose slot is a capstone slot, linked only when the capstone is
-   published, and the conceptual connections with their rationale from
-   the manifest. Every capstone slot (T11, EM9, FL10) is represented by a
-   concept, and that concept's short explanation, kept consistent with
-   the roadmap's description of the capstone, is the planned description
-   the atlas reveals and the home page's capstone highlights show; the
-   same validated reader serves `pbc.authoring.home`.
-3. It lays the map out in Python, as the prerequisite graph of F26 is
-   laid out: course areas with subtle boundaries and their small
-   illustrations (interface artwork drawn by code, one drawing per course
-   of the curriculum file, mapped by the generator and referenced nowhere
-   in the manifest), concept positions from the manifest's placement, the
-   three edge types with distinct marks, the method paths as a connected
-   layer, the Lean and method views, and the planned concepts and slots
-   labelled and distinguishable without colour. The Lean and method views
-   are part of the map: they list every published lesson by its method
-   tags from the front matter, the lessons without a slot included (the
-   Lean lessons beyond the baseline), as links in the SVG's view layer,
-   derived from the front matter with no manifest entry; a concept's
-   lessons still come only from its slots.
-4. It writes the switch, the inline SVG with real links, the
-   selected-concept panels as native disclosures reachable by links, the
-   visually hidden textual equivalent (every concept with its course, its
-   slots, their state, and its edges as sentences; every lesson of the
-   Lean and method views as a sentence), and the F64 index unchanged in
-   content, into the page the post-render steps already process (the
-   search index, the previews, the learning path export).
-5. The atlas modules enhance the page when scripts run; with scripts
-   disabled every published lesson is reachable through the map's links
-   (a lesson without a slot through the Lean and method views), the
-   panels, and the index.
-6. The checks: the manifest rules; every published lesson reachable
-   without scripts through the map and through the index; every previous
-   address, anchor, and graph node address resolving; the published counts
-   equal to the lessons; the prerequisite edges equal to the front matter;
-   every conceptual edge with its type and rationale; no planned slot
-   linked or counted; the accessibility scan, the keyboard pass, the
-   screen-reader reading order in the manual pass, the reflow at 320 CSS
-   px; the payload of the page and of the map enhancement; no request,
-   cookie, or storage from the modules; the search index unchanged in
-   meaning; byte-stable rebuilds.
+   lesson, and the manifest, and validates the manifest: every course,
+   path, slot, and concept reference resolves; there is exactly one
+   sequence entry for each course and method path of the curriculum file,
+   each with a one-line description and an illustration stem whose files
+   the provenance register names; every concept names at least one slot;
+   every capstone slot is represented by exactly one concept; no field
+   that the curriculum file or the front matter holds, no lesson
+   reference, and no prerequisite is written in it. A violation fails the
+   build.
+2. It derives the state of every sequence and concept from the lessons
+   (published counts, planned slots, capstone membership, the conceptual
+   connections with their rationale) and writes twelve native
+   `<details name="atlas">` sequences, the thirteenth entry for the Lean
+   lessons without a slot, the lesson rows, the visually hidden textual
+   equivalent, and the learning path as data, into the page the
+   post-render steps already process. The relationships leave the atlas and
+   appear on the lesson pages.
+3. With scripts disabled every published lesson is reachable through the
+   sequences; the address module only syncs the hash and the open
+   sequence. A browser without `::details-content` gets the accordion.
+4. The checks are those listed under "The Course Atlas" below.
 
 **The home figure.** A figure-writing function in `src/pbc` (the pattern
 of ADR 016 decision 2), called by an executed cell of the home page,
@@ -2128,7 +2086,7 @@ artifacts and the time log.
 | Published site | GitHub Pages artifact | Replaced by each deployment. |
 | Learner state (F13) | Learner's browser local storage | Until the learner clears it. No recovery. |
 | The map manifest of the atlas (scientific atelier, ADR 018) | Git repository, beside the curriculum file | Git history. A reviewed input: every reference in it must resolve, and every conceptual connection carries its rationale. |
-| Authored interface-artwork SVGs (scientific atelier, ADR 018 amending ADR 002) | Git repository, under `site/assets/`, each named in the provenance register with its author and licence (F123) | Git history. The third committed input a build cannot regenerate; the committed-artifact check exempts a registered SVG there. |
+| Authored interface-artwork SVGs (scientific atelier, ADR 018 amending ADR 002) | Git repository, under `site/assets/`, each named in the provenance register with its author and licence (F123) | Git history. The third committed input a build cannot regenerate; the committed-artifact check exempts a registered SVG there, and, since F133 (ADR 021), a registered derived WebP or PNG with its master hash. |
 | Derived raster interface artwork (site navigation, ADR 021 amending ADR 002) | Git repository, WebP (or PNG) under `site/assets/`, each named in the provenance register with its origin, licence or terms, and the hash of its master (F133, F134); a generating script, where one exists, outside `site/` | Git history; replaced by a commit that updates the register. Masters, intermediates, and option boards are not committed. |
 | The hero's headlines and subtexts (site navigation, ADR 021) | Git repository, one data file beside the curriculum file (F134) | Git history; the owner's copy, validated by `pbc.authoring.home`. |
 | Agent skills with their provenance records (scientific atelier, ADR 019) | Git repository, `.agents/skills/` | Git history; a pin moves only by a re-audited pull request. Development tooling, never read by the build. |
@@ -2228,7 +2186,7 @@ Choices the requirements left to planning, and where they are settled:
 | Coding-agent exercises | Learner-operated local workflows under a sandbox profile; the site verifies only the produced code and proofs | ADR 010 |
 | First measured-data lab | Decided by the feasibility gate of F50; the planner's recommendation is the gravitational-wave strain lab (F60) with the microwave S-parameter lab (F54) as the compact fallback once F15 has given it a course, because every lesson needs a primary course (ADR 008, I18) | `docs/roadmap.md`, "Experimental data choice" |
 | The scientific atelier and the course atlas (decision 36) | Scoped CSS, shared templates and includes, and self-hosted fonts on the Quarto baseline; the home page with a static verified opening figure and without the rejected section; the atlas at the path address generated from the curriculum file, the front matter, and one validated map manifest, as semantic HTML and SVG with a textual equivalent, enhanced by dependency-free modules that store nothing; one end-to-end preview (home, atlas, one lesson) before the rollout; the interactive pendulum as its own gated feature | ADR 018; F123 to F128 |
-| Visual asset classes (decision 37) | Interface artwork, conceptual illustration, scientific result, with animation allowed in any class under conditions; sources in the repository; the blanket exclusion of decorative imagery and animation superseded where ADR 018 says, the exclusion of stock, copied, and external imagery kept. Of the two sources decision 37 permits, interface artwork may be authored (a provenance-registered SVG under `site/assets/`, the one committed-artifact exemption ADR 018 adds to ADR 002), and conceptual illustrations in lessons stay code-drawn as a planning choice, the authored form left to a later ADR | ADR 018; I6; I30; the notes on F25, F44, and F64 in `docs/roadmap.md` |
+| Visual asset classes (decision 37) | Interface artwork, conceptual illustration, scientific result, with animation allowed in any class under conditions; sources in the repository; the blanket exclusion of decorative imagery and animation superseded where ADR 018 says, the exclusion of stock, copied, and external imagery kept. Of the two sources decision 37 permits, interface artwork may be authored (a provenance-registered SVG under `site/assets/`, the committed-artifact exemption ADR 018 adds to ADR 002, widened by ADR 021 to a registered derived WebP or PNG), and conceptual illustrations in lessons stay code-drawn as a planning choice, the authored form left to a later ADR | ADR 018; I6; I30; the notes on F25, F44, and F64 in `docs/roadmap.md` |
 | The quieter site (decision 40) | A four-item menu with the secondary pages in the footer; the Course Atlas as twelve sequence cards with the open sequence's lessons, in native exclusive disclosures with one address module; the map's relationships as data on the lesson pages; Home as a landing page with a randomised hero from one data file and examples chosen by code; "Run the code" with three routes; "How we verify the science"; the glossary on demand and "Suggest an improvement" through GitHub's forms; the sequences' descriptions and illustrations in the atlas manifest | ADR 021; F132 to F135; "The quieter site" |
 | Visual freedom on non-lesson pages (decision 41) | Classes by claim; interface artwork as SVG or a committed derived WebP from a script, an author, or an image model, registered with origin, licence, and master hash, admitted by the committed-artifact check only through its entry; committed rather than rendered at build time, with a regeneration check on demand where a script exists | ADR 021; I6; I30; F133 |
 | Governed visual agent skills (decision 38) | Audited, pinned, project-local skills at `.agents/skills/`, a project-owned scientific-visualization skill, the planner, implementer, reviewer, and verification contract, bounded pilots, no mandatory review agent | ADR 019; I32; F122, F129 |
@@ -2549,10 +2507,7 @@ to F135:
 - The header carries eight items, with Glossary, Evidence, Set up, and
   Contribute in the bar and Source both in the bar and in the footer
   (F132); the About page still describes one ascending path (F132).
-- The Course Atlas page is the map of F125 and F126 (the concept map with
-  three edge types, the Lean and method bands, the controls), followed by
-  the course index, the method paths, and the methods, so that a lesson
-  appears four to five times (F133).
+- The Course Atlas page was the map of F125 and F126 (the concept map with three edge types, the Lean and method bands, the controls), followed by the course index, the method paths, and the methods, so that a lesson appeared four to five times; F133 replaces it with the two-layer atlas.
 - Home carries the opening of F124 followed by the Part A, Part B, and
   capstone blocks; "Set up" opens with the installation, not with its
   three routes; no page tells in readable form how the science is checked
@@ -2628,12 +2583,7 @@ and ADRs is in `docs/roadmap.md`, "State at the change cycle
   home page of F25 with its three activities, the "One result, constructed
   and proved" section, and the generated published and planned lists
   (F123, F124, F127).
-- The Learning Path page is the course-first page of F64 (course panels,
-  disclosures, previews, the method paths and methods as views, the
-  prerequisite graph with its text alternative, filters, progress marks,
-  recommendations) with no map, no concept, no map manifest, and no
-  selected-concept panel; `site/learner/path.js` opens disclosures and
-  filters rows and stores nothing (F125, F126).
+- The Learning Path page, before F125 and F126, was the course-first page of F64 with no map and no manifest; F133 leaves its address as the two-layer atlas, and `site/learner/path.js` is removed.
 - No visual on the site belongs to the interface-artwork class; conceptual
   diagrams exist in the lessons of F32 to F34 under the `conceptual`
   status; the two widgets (the integrator explorer, the waveform

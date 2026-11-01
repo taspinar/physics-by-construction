@@ -1,6 +1,7 @@
 """The prerequisite graph shows exactly the relations of the front matter,
 lays them out without overlap, and renders the same bytes every time."""
 
+import json
 import re
 import xml.etree.ElementTree as ET
 
@@ -163,20 +164,19 @@ def test_the_svg_is_byte_stable():
     assert not re.search(r"\b0x[0-9a-f]+\b|\d{4}-\d\d-\d\d", first)
 
 
-def test_the_overview_embeds_the_graph_once_with_its_legend_and_text_list():
+def test_the_path_page_no_longer_draws_the_graph():
+    # The dependency map left the atlas with F133 (ADR 021 decision 3): the
+    # prerequisites stay on every lesson page and as the learning path's data,
+    # and the graph's drawing above stays tested for its other consumers.
     path = LearningPath.read(SITE_SOURCE)
     text = str(PathOverview(path, PATH_PAGE))
 
-    assert text == str(PathOverview(path, PATH_PAGE))
-    # The whole map once, and one scoped map per course with a lesson.
-    maps = 1 + len(path.courses)
-    assert text.count("<svg xmlns") == maps
-    assert "## Prerequisite graph {#graph}" in text
-    assert "Requires</strong>" in text and "Related</strong>" in text
-    assert text.count('<ol class="visually-hidden"') == maps
-    assert text.count("View dependency map") == 1
-    ids = re.findall(r' id="([^"]+)"', text)
-    assert len(ids) == len(set(ids))
+    assert "<svg" not in text and "{#graph}" not in text
+    assert all(
+        f'"prerequisites":{json.dumps(list(x.prerequisites), separators=(",", ":"))}'
+        in text
+        for x in path.lessons
+    )
 
 
 def test_a_long_title_is_cut_but_keeps_its_full_name_for_assistive_technology():

@@ -1,10 +1,10 @@
-"""The map manifest of the course atlas, what the build derives from it, and
-the atlas section of the path page (ADR 018 decision 3, F125)."""
+"""The manifest of the course atlas, what the build derives from it, the
+sequences of the path page, and the relationships on the lesson pages (ADR 018
+decision 3, ADR 021 decision 3; F125, F133)."""
 
-import itertools
 import re
 from dataclasses import replace
-from html import unescape
+from html import escape, unescape
 from pathlib import Path
 
 import pytest
@@ -13,17 +13,18 @@ from support.paths import SITE_SOURCE
 
 from pbc.authoring import COURSES, LearningPath
 from pbc.authoring.atlas import (
-    AREA_HEADER,
     ATLAS_FILE,
     CAPSTONE,
     CONNECTION_TYPES,
     ILLUSTRATIONS,
-    PLANNED,
+    LAB,
     Atlas,
     AtlasManifest,
-    AtlasMap,
     AtlasSection,
     atlas_problems,
+    connections,
+    illustration_files,
+    registered_assets,
 )
 from pbc.authoring.path import Curriculum
 
@@ -31,6 +32,7 @@ FILE = SITE_SOURCE / ATLAS_FILE
 PATH = LearningPath.read(SITE_SOURCE)
 CURRICULUM = PATH.curriculum
 ATLAS = Atlas.read(SITE_SOURCE)
+REGISTERED = registered_assets(SITE_SOURCE)
 
 
 def data() -> dict:
@@ -40,7 +42,7 @@ def data() -> dict:
 def broken(change) -> list[str]:
     content = data()
     change(content)
-    return atlas_problems(content, CURRICULUM)
+    return atlas_problems(content, CURRICULUM, REGISTERED)
 
 
 def concept(content: dict, concept_id: str) -> dict:
@@ -50,8 +52,12 @@ def concept(content: dict, concept_id: str) -> dict:
 # --- The rules of the manifest --------------------------------------------------
 
 
+def sequence(content: dict, sequence_id: str) -> dict:
+    return next(item for item in content["sequences"] if item["id"] == sequence_id)
+
+
 def test_the_manifest_as_committed_breaks_no_rule():
-    assert atlas_problems(data(), CURRICULUM) == []
+    assert atlas_problems(data(), CURRICULUM, REGISTERED) == []
 
 
 @pytest.mark.parametrize(
@@ -59,7 +65,65 @@ def test_the_manifest_as_committed_breaks_no_rule():
     [
         (
             lambda d: d.update(courses=[]),
-            "the file holds the lists 'concepts' and 'connections', and nothing else",
+            "the file holds the lists 'sequences', 'concepts', and 'connections',"
+            " and nothing else",
+        ),
+        (
+            lambda d: d.pop("sequences"),
+            "the file holds the lists 'sequences', 'concepts', and 'connections',"
+            " and nothing else",
+        ),
+        (
+            lambda d: d["sequences"].remove(sequence(d, "quantum")),
+            "the sequence 'quantum' has no entry in 'sequences'",
+        ),
+        (
+            lambda d: d["sequences"].remove(sequence(d, "benchmarking")),
+            "the sequence 'benchmarking' has no entry in 'sequences'",
+        ),
+        (
+            lambda d: d["sequences"].append(
+                {**sequence(d, "waves"), "id": "chemistry"}
+            ),
+            "sequence 'chemistry': 'id' is not a course or a path of the curriculum",
+        ),
+        (
+            lambda d: d["sequences"].append(sequence(d, "waves")),
+            "sequence 'waves': the id is used twice",
+        ),
+        (
+            lambda d: sequence(d, "waves").update(description=" "),
+            "sequence 'waves': 'description' must be a text",
+        ),
+        (
+            lambda d: sequence(d, "waves").pop("description"),
+            "sequence 'waves': 'description' must be a text",
+        ),
+        (
+            lambda d: sequence(d, "waves").pop("illustration"),
+            "sequence 'waves': 'illustration' must name the stem of its files",
+        ),
+        (
+            lambda d: sequence(d, "waves").update(illustration="atlas/optics"),
+            "sequence 'waves': the illustration 'atlas/optics' needs its files"
+            " registered in assets/provenance.yaml; missing:"
+            " atlas/optics-card-152.webp",
+        ),
+        (
+            lambda d: sequence(d, "waves").update(colour="blue"),
+            "sequence 'waves': 'colour' is not a field of a sequence",
+        ),
+        (
+            lambda d: sequence(d, "waves").update(title="Waves"),
+            "sequence 'waves': 'title' is held by the curriculum file",
+        ),
+        (
+            lambda d: sequence(d, "waves").update(lessons=["W1"]),
+            "sequence 'waves': 'lessons' is held by the curriculum file",
+        ),
+        (
+            lambda d: d["sequences"].append("waves"),
+            "sequence entry 'waves' must be a mapping",
         ),
         (
             lambda d: d["concepts"][0].update(colour="blue"),
@@ -111,15 +175,6 @@ def test_the_manifest_as_committed_breaks_no_rule():
             "concept 'Motion': 'id' must be a lower-case identifier",
         ),
         (
-            lambda d: d["concepts"][0].update(position=[3, 1]),
-            "concept 'motion-as-a-program': 'position' must be [column, row]",
-        ),
-        (
-            lambda d: d["concepts"][1].update(position=[1, 1]),
-            "concept 'numerical-integration': another concept of 'mechanics' has"
-            " the position [1, 1]",
-        ),
-        (
             lambda d: d["concepts"][0].update(explanation=" "),
             "concept 'motion-as-a-program': 'explanation' must be a text",
         ),
@@ -165,6 +220,7 @@ def test_a_manifest_that_breaks_a_rule_is_rejected(change, expected):
         "lesson",
         "lessons",
         "illustration",
+        "position",
     ],
 )
 def test_a_field_that_another_source_holds_is_rejected(field):
@@ -172,7 +228,7 @@ def test_a_field_that_another_source_holds_is_rejected(field):
     assert problems == [
         f"concept 'motion-as-a-program': {field!r} is held by the curriculum"
         " file or the front matter, or derived by the build, not written in the"
-        " map manifest"
+        " manifest"
     ]
 
 
@@ -201,9 +257,8 @@ def test_a_capstone_without_its_concept_is_rejected():
 def test_a_capstone_with_two_concepts_is_rejected():
     def change(d: dict) -> None:
         d["concepts"].append(
-            {**concept(d, "tsunami-reconstruction"), "id": "tsunami-again",
-             "position": [2, 4]}
-        )  # fmt: skip
+            {**concept(d, "tsunami-reconstruction"), "id": "tsunami-again"}
+        )
 
     assert any("capstone slot FL10" in m and "found 2" in m for m in broken(change))
 
@@ -226,10 +281,25 @@ def test_reading_a_broken_manifest_fails_with_every_problem(tmp_path: Path):
     assert "is not curated" in str(error.value)
 
 
-def test_a_site_without_the_manifest_fails_once_it_has_a_capstone(tmp_path: Path):
+def test_a_site_without_the_manifest_fails_once_it_has_a_curriculum(tmp_path: Path):
     assert AtlasManifest.read(tmp_path, Curriculum()) == AtlasManifest()
-    with pytest.raises(ValueError, match="capstone slot T11"):
+    with pytest.raises(ValueError) as error:
         AtlasManifest.read(tmp_path, CURRICULUM)
+    assert "the sequence 'mechanics' has no entry" in str(error.value)
+    assert "capstone slot T11" in str(error.value)
+
+
+def test_an_illustration_needs_the_register_of_the_site(tmp_path: Path):
+    (tmp_path / ATLAS_FILE).write_text(FILE.read_text(encoding="utf-8"))
+    with pytest.raises(ValueError, match="needs its files registered"):
+        AtlasManifest.read(tmp_path, CURRICULUM)
+
+
+def test_every_illustration_is_registered_and_committed():
+    for entry in ATLAS.manifest.sequences:
+        for file in illustration_files(entry.illustration):
+            assert file in REGISTERED
+            assert (SITE_SOURCE / "assets" / file).is_file(), file
 
 
 # --- The curation -----------------------------------------------------------------
@@ -285,85 +355,93 @@ def test_a_concepts_lessons_come_only_from_its_slots():
         assert {slot.label for slot in ATLAS.planned_of(item)} == own - filled
 
 
-def test_the_published_counts_equal_the_lessons():
+def test_the_sequences_are_the_courses_the_paths_and_the_lean_entry():
+    sequences = ATLAS.sequences()
+    assert [s.anchor for s in sequences] == [
+        *(f"course-{course.id}" for course in COURSES),
+        *(f"path-{path.id}" for path in CURRICULUM.paths),
+        "lean",
+    ]
+    assert [s.part for s in sequences] == ["A"] * 8 + ["B"] * 4 + [""]
+    for entry in ATLAS.manifest.sequences:
+        (found,) = [s for s in sequences if s.id == entry.id]
+        assert found.description == entry.description
+        assert found.illustration == entry.illustration
+
+
+def test_every_published_lesson_is_a_row_of_exactly_one_sequence():
+    rows = [
+        row.lesson.id
+        for sequence in ATLAS.sequences()
+        for row in sequence.rows
+        if row.lesson is not None
+    ]
+    assert sorted(rows) == sorted(lesson.id for lesson in PATH.lessons)
+
+
+def test_every_slot_is_a_row_of_its_sequence_in_curriculum_order():
+    for sequence in ATLAS.sequences():
+        if sequence.part == "A":
+            slots = [s for s in CURRICULUM.slots if s.course == sequence.id]
+        elif sequence.part == "B":
+            slots = [s for s in CURRICULUM.slots if s.path == sequence.id]
+        else:
+            slots = [s for s in CURRICULUM.slots if not (s.course or s.path)]
+        capstones = [s.label for s in slots if s.kind == CAPSTONE]
+        others = [s.label for s in slots if s.kind != CAPSTONE]
+        rows = list(sequence.rows)
+        # The capstone integrates its course: its row is the last.
+        if capstones:
+            assert [row.label for row in rows[-len(capstones) :]] == capstones
+            rows = rows[: -len(capstones)]
+        assert [row.label for row in rows if row.label] == others, sequence.id
+        # A lesson without a slot follows the slots, and is published.
+        extra = rows[len(others) :]
+        assert all(row.label == "" and row.lesson for row in extra)
+
+
+def test_the_lean_entry_holds_the_lean_lessons_without_a_course_or_path_slot():
+    lean = ATLAS.sequences()[-1]
+    expected = {
+        lesson.id
+        for lesson in PATH.lessons
+        if (not lesson.slot and "lean" in lesson.methods)
+        or (lesson.slot and not (CURRICULUM.slot(lesson.slot).course
+                                 or CURRICULUM.slot(lesson.slot).path))
+    }  # fmt: skip
+    assert {row.lesson.id for row in lean.rows if row.lesson} == expected
+    assert expected
+
+
+def test_the_counts_equal_the_rows_and_a_planned_slot_is_never_published():
     filled = {lesson.slot for lesson in PATH.lessons if lesson.slot}
-    total = sum(len(ATLAS.lessons_of(item)) for item in ATLAS.concepts)
-    assert total == len(filled - {"L1"})
-    for area in ATLAS.areas:
-        published, slots = ATLAS.area_counts(area)
-        home = [s for s in CURRICULUM.slots if (s.course or s.path) == area]
-        assert slots == len(home)
-        assert published == sum(1 for s in home if s.label in filled)
-
-
-def test_the_prerequisite_edges_equal_the_front_matter():
-    concept_of = {
-        lesson.id: item.id
-        for item in ATLAS.concepts
-        for lesson in ATLAS.lessons_of(item)
-    }
-    expected: dict[tuple[str, str], set[tuple[str, str]]] = {}
-    for lesson in PATH.lessons:
-        for required in lesson.prerequisites:
-            if lesson.id in concept_of and required in concept_of:
-                source, target = concept_of[required], concept_of[lesson.id]
-                if source != target:
-                    expected.setdefault((source, target), set()).add(
-                        (required, lesson.id)
-                    )
-    found = {
-        (edge.source, edge.target): set(edge.pairs)
-        for edge in ATLAS.prerequisite_edges()
-    }
-    assert found == expected
-    # A planned slot has no lesson, so no edge touches only planned concepts.
-    planned = {item.id for item in ATLAS.concepts if ATLAS.state(item) == PLANNED}
-    assert not any(
-        edge.source in planned or edge.target in planned
-        for edge in ATLAS.prerequisite_edges()
+    for sequence in ATLAS.sequences():
+        assert sequence.published + sequence.planned == len(sequence.rows)
+        for row in sequence.rows:
+            if row.label:
+                assert (row.lesson is not None) == (row.label in filled)
+            if row.lesson is None:
+                assert row.label not in filled
+    assert sum(s.published for s in ATLAS.sequences()) == len(PATH.lessons)
+    assert sum(s.planned for s in ATLAS.sequences()) == len(CURRICULUM.slots) - len(
+        filled
     )
 
 
-def _with_published_capstone() -> Atlas:
-    lesson = replace(PATH.lessons[0], id="tsunami", slot="FL10", page="lessons/x.qmd")
-    path = replace(PATH, lessons=(*PATH.lessons, lesson))
-    return Atlas(path, ATLAS.manifest)
+def test_the_aliases_open_the_sequence_of_every_concept_and_course_index():
+    aliases = {
+        alias: sequence.anchor
+        for sequence in ATLAS.sequences()
+        for alias in sequence.aliases
+    }
+    for item in ATLAS.concepts:
+        kind = "course" if item.area in {c.id for c in COURSES} else "path"
+        assert aliases[f"concept-{item.id}"] == f"{kind}-{item.area}"
+    for course in COURSES:
+        assert aliases[f"course-{course.id}-lessons"] == f"course-{course.id}"
 
 
-def test_a_capstone_is_linked_only_when_it_is_published():
-    section = str(AtlasSection(ATLAS))
-    for label in ("T11", "EM9", "FL10"):
-        item = re.search(
-            rf'<li class="atlas-capstone-item" data-slot="{label}">(.*?)</li>', section
-        ).group(1)
-        lesson = next((x for x in PATH.lessons if x.slot == label), None)
-        if lesson is None:
-            assert "Planned, not published." in item
-            assert "lessons/" not in item
-        else:
-            href = "../" + lesson.page.removesuffix(".qmd") + ".html"
-            assert f'href="{href}"' in item
-            assert "Published." in item
-            assert "Planned" not in item
-    published = str(AtlasSection(_with_published_capstone()))
-    item = re.search(
-        r'<li class="atlas-capstone-item" data-slot="FL10">(.*?)</li>', published
-    ).group(1)
-    assert 'href="../lessons/x.html"' in item
-    assert "Published." in item
-
-
-def test_the_capstones_planned_description_is_only_the_manifests_explanation():
-    page = str(AtlasSection(ATLAS))
-    descriptions = re.findall(r'<p class="capstone-description">(.*?)</p>', page)
-    expected = [
-        ATLAS.manifest.capstone(label).explanation for label in ("T11", "EM9", "FL10")
-    ]
-    # Once in the list of capstone projects and once in each panel.
-    assert sorted(unescape(text) for text in descriptions) == sorted(expected * 2)
-
-
-# --- The drawing and the page -----------------------------------------------------
+# --- The page --------------------------------------------------------------------
 
 
 @pytest.fixture(scope="module")
@@ -371,241 +449,206 @@ def page() -> str:
     return str(AtlasSection(ATLAS))
 
 
-def svg(page: str) -> str:
-    return re.search(r"<svg [^>]*class=\"atlas-svg\".*?</svg>", page, re.S).group(0)
+def _sequence_html(page: str, anchor: str) -> str:
+    found = re.search(rf'<details [^>]*id="{anchor}"[^>]*>(.*?)</details>', page)
+    assert found, anchor
+    return found.group(0)
 
 
-def test_the_map_shows_every_course_path_and_concept(page: str):
-    drawing = svg(page)
-    words = " ".join(unescape(re.sub(r"<[^>]+>", " ", drawing)).split())
-    for area in ATLAS.areas:
-        assert f'data-area="{area}"' in drawing
-        assert ATLAS.area_title(area) in words
-    for item in ATLAS.concepts:
-        assert f'href="#concept-{item.id}"' in drawing
-        assert f'id="concept-{item.id}"' in page
-    assert 'class="atlas-rail"' in drawing
-    assert drawing.count('class="atlas-illustration"') == len(COURSES)
-    assert 'data-concept="phased-array-beam-steering"' in drawing
+def _published(atlas: Atlas, label: str) -> Atlas:
+    lesson = replace(PATH.lessons[0], id="tsunami", slot=label, page="lessons/x.qmd")
+    path = replace(PATH, lessons=(*PATH.lessons, lesson))
+    return Atlas(path, atlas.manifest)
 
 
-def test_the_views_link_every_published_lesson_by_its_methods(page: str):
-    drawing = svg(page)
-    for method, lessons in ATLAS.views():
-        view = re.search(
-            rf'<g class="atlas-view" data-method="{method}">(.*?)</g>', drawing, re.S
-        ).group(1)
-        assert re.findall(r'data-lesson="([^"]+)"', view) == [
-            item.id for item in lessons
-        ]
-    linked = set(re.findall(r'class="atlas-lesson" data-lesson="([^"]+)"', drawing))
-    assert linked == {lesson.id for lesson in PATH.lessons}
-    assert ATLAS.views()[0][0] == "lean"
-    without_slot = {lesson.id for lesson in PATH.lessons if not lesson.slot}
-    assert without_slot and without_slot <= linked
+def test_one_exclusive_disclosure_per_sequence_and_only_the_first_open(page: str):
+    details = re.findall(r"<details [^>]*>", page)
+    assert len(details) == len(ATLAS.sequences()) == 13
+    assert all('name="atlas"' in tag for tag in details)
+    assert [" open" in tag for tag in details] == [True] + [False] * 12
+    ids = re.findall(r' id="([^"]+)"', page)
+    assert len(ids) == len(set(ids))
+    for anchor in ("atlas", "choose", "courses", "paths", "lean"):
+        assert anchor in ids
 
 
-def test_the_three_edge_types_have_their_own_marks(page: str):
-    drawing = svg(page)
-    edges = re.findall(r'<path class="atlas-edge atlas-edge-(\w+)"[^>]*>', drawing)
-    assert edges.count("prerequisite") == len(ATLAS.prerequisite_edges())
-    assert edges.count("conceptual") == len(ATLAS.manifest.connections)
-    assert edges.count("capstone") == len(ATLAS.memberships())
-    markers = {
-        kind: set(re.findall(rf'atlas-edge-{kind}"[^>]*end="url\(#([^)]+)\)"', drawing))
-        for kind in ("prerequisite", "conceptual", "capstone")
-    }
-    assert all(len(found) == 1 for found in markers.values())
-    assert len(set().union(*markers.values())) == 3
+def test_each_card_and_panel_show_the_counts_of_their_rows(page: str):
+    for sequence in ATLAS.sequences():
+        html = _sequence_html(page, sequence.anchor)
+        card = re.search(r"<summary.*?</summary>", html).group(0)
+        rows = len(sequence.rows)
+        assert f"{sequence.published} of {rows} lesson" in card
+        counts = f"{sequence.published} published"
+        if sequence.planned:
+            counts += f" · {sequence.planned} planned"
+        assert f'<p class="atlas-counts">{counts}</p>' in html
+        assert html.count('<li class="') == rows
+        assert html.count('data-state="published"') == sequence.published
+        assert html.count('data-state="planned"') == sequence.planned
+        # The progress hairline: one segment per published lesson.
+        assert card.count('<i class="path-link" data-lesson-id=') == sequence.published
 
 
-def test_a_planned_concept_or_slot_is_labelled_and_never_a_lesson_link(page: str):
-    drawing = svg(page)
-    for item in ATLAS.concepts:
-        node = re.search(
-            rf'<a href="([^"]+)" class="([^"]+)" data-concept="{item.id}"'
-            r"[^>]*>(.*?)</a>",
-            drawing,
-            re.S,
-        )
-        assert node.group(1) == f"#concept-{item.id}"
-        if ATLAS.state(item) == PLANNED:
-            assert "atlas-planned" in node.group(2)
-            assert "planned" in node.group(3)
-    panels = re.findall(r'<li data-slot-state="planned">(.*?)</li>', page)
-    planned = sum(len(ATLAS.planned_of(item)) for item in ATLAS.concepts)
-    assert len(panels) == planned
-    for item in panels:
-        assert "<a " not in item and "(planned, not published)" in item
+def test_a_published_row_links_its_lesson_and_a_planned_row_links_nothing(page: str):
+    for item in re.findall(r'<li class="[^"]*" data-state="planned">.*?</li>', page):
+        assert "<a " not in item
+        assert ">planned</span>" in item
+        assert "atlas-planned-title" in item
+    rows = re.findall(r'<li class="path-card[^"]*" data-state="published"[^>]*>', page)
+    assert len(rows) == len(PATH.lessons)
+    for lesson in PATH.lessons:
+        href = "../" + lesson.page.removesuffix(".qmd") + ".html"
+        assert page.count(f'href="{href}"') == 1, lesson.id
+        assert f'data-lesson-id="{lesson.id}">' in page
 
 
-def test_every_published_lesson_of_a_slot_is_linked_from_its_concepts_panel(page: str):
-    for item in ATLAS.concepts:
-        panel = re.search(
-            rf'<details class="concept-panel" id="concept-{item.id}".*?</details>',
-            page,
-            re.S,
-        ).group(0)
-        for lesson in ATLAS.lessons_of(item):
-            built = Path(lesson.page).with_suffix(".html").as_posix()
-            assert f'href="../{built}"' in panel
+def test_the_rows_carry_only_the_marks_lab_capstone_and_lean(page: str):
+    marks = re.findall(r'<span class="atlas-mark atlas-mark-([a-z]+)"', page)
+    assert set(marks) == {"lab", "capstone", "lean", "planned"}
+    labs = sum(1 for s in CURRICULUM.slots if s.kind == LAB)
+    assert marks.count("lab") == labs
+    assert marks.count("capstone") == sum(
+        1 for s in CURRICULUM.slots if s.kind == CAPSTONE
+    )
+    assert "level" not in page.lower().replace("levels", "")
+    assert "difficulty" not in page
 
 
-def test_every_conceptual_connection_shows_its_type_and_rationale(page: str):
-    for connection in ATLAS.manifest.connections:
-        for end in connection.concepts:
-            panel = re.search(rf'id="concept-{end}".*?</details>', page, re.S).group(0)
-            assert connection.rationale in unescape(panel)
+def test_a_capstone_is_a_link_when_published_and_else_its_planned_description(
+    page: str,
+):
+    for label in ("T11", "EM9", "FL10"):
+        item = re.search(rf'<li class="[^"]*atlas-row-capstone[^"]*"[^>]*>'
+                         rf'<span class="atlas-label">{label}</span>.*?</li>',
+                         page).group(0)  # fmt: skip
+        lesson = next((x for x in PATH.lessons if x.slot == label), None)
+        description = ATLAS.manifest.capstone(label).explanation
+        if lesson is None:
+            assert "<a " not in item
+            assert f'<p class="capstone-description">{escape(description)}</p>' in item
+        else:
+            href = "../" + lesson.page.removesuffix(".qmd") + ".html"
+            assert f'href="{href}"' in item
+            assert "capstone-description" not in item
+    published = str(AtlasSection(_published(ATLAS, "FL10")))
+    item = re.search(r'<span class="atlas-label">FL10</span>.*?</li>', published).group(
+        0
+    )
+    assert 'href="../lessons/x.html"' in item
+    assert "capstone-description" not in item
 
 
-def test_the_textual_equivalent_names_every_concept_edge_and_view_lesson():
+def test_the_planned_capstones_description_is_only_the_manifests_explanation(
+    page: str,
+):
+    descriptions = re.findall(r'<p class="capstone-description">(.*?)</p>', page)
+    planned = [
+        s.label
+        for s in CURRICULUM.slots
+        if s.kind == CAPSTONE and s.label not in PATH.filled()
+    ]
+    assert [unescape(text) for text in descriptions] == [
+        ATLAS.manifest.capstone(label).explanation for label in planned
+    ]
+    assert planned == ["FL10"]
+
+
+def test_part_b_is_told_apart_in_words_and_its_panels_say_toy_model(page: str):
+    for sequence in ATLAS.sequences():
+        html = _sequence_html(page, sequence.anchor)
+        if sequence.part == "A":
+            assert "atlas-part-a" in html
+            assert f"Part A · Course {sequence.number}" in html
+        elif sequence.part == "B":
+            assert "atlas-part-b" in html
+            assert f"Part B · Method path {sequence.number}" in html
+            assert "a toy-model example, no agent was run" in html
+        if sequence.illustration:
+            assert f'alt="Illustration of {escape(sequence.title)}' in html
+            for file in illustration_files(sequence.illustration):
+                assert f"../assets/{file}" in html
+            assert 'sizes="76px"' in html and 'sizes="200px"' in html
+    assert '<p class="atlas-part atlas-part-a" id="courses">' in page
+    assert '<p class="atlas-part atlas-part-b" id="paths">' in page
+
+
+def test_the_textual_equivalent_names_every_sequence_and_lesson_with_its_state():
     sentences = AtlasSection(ATLAS).sentences()
-    text = "\n".join(sentences)
-    for item in ATLAS.concepts:
-        assert f"Concept {item.name}, in {ATLAS.area_title(item.area)}" in text
-    prerequisites = [s for s in sentences if s.startswith("Prerequisite: ")]
-    assert len(prerequisites) == len(ATLAS.prerequisite_edges())
-    conceptual = [s for s in sentences if s.startswith("Conceptual connection, ")]
-    assert len(conceptual) == len(ATLAS.manifest.connections)
-    connections = ATLAS.manifest.connections
-    for connection, sentence in zip(connections, conceptual, strict=True):
-        assert connection.rationale in sentence
-        a, b = (ATLAS.manifest.concept(end).name for end in connection.concepts)
-        assert CONNECTION_TYPES[connection.type].format(a=a, b=b) in sentence
-    memberships = [s for s in sentences if s.startswith("Capstone membership: ")]
-    assert len(memberships) == len(ATLAS.memberships())
-    views = [s for s in sentences if s.startswith("The view ")]
-    for (_, lessons), sentence in zip(ATLAS.views(), views, strict=True):
-        assert all(lesson.title in sentence for lesson in lessons)
+    assert len(sentences) == len(ATLAS.sequences())
+    for sequence, sentence in zip(ATLAS.sequences(), sentences, strict=True):
+        assert sentence.startswith(sequence.title)
+        for row in sequence.rows:
+            name = f"{row.label} {row.title}" if row.label else row.title
+            state = "published" if row.lesson else "planned"
+            assert f"{name} ({state}" in sentence
 
 
 def test_the_textual_equivalent_is_in_the_page_without_links(page: str):
-    text = re.search(
-        r'<section class="visually-hidden" aria-labelledby="atlas-text-title">(.*?)'
-        "</section>",
-        page,
-        re.S,
-    ).group(1)
+    text = re.search(r'<section class="visually-hidden".*?</section>', page).group(0)
     assert "<a " not in text
-    assert text.count("<li>") == len(AtlasSection(ATLAS).sentences())
+    for sentence in AtlasSection(ATLAS).sentences():
+        assert escape(sentence) in text
 
 
-def test_the_switch_breadcrumb_and_index_anchors_are_links(page: str):
-    assert '<a href="#atlas-map">Map</a>' in page
-    assert '<a href="#choose">Course index</a>' in page
-    assert '<a href="../index.html">Home</a>' in page
-    assert 'id="atlas-map"' in page and 'tabindex="0"' in page
-    # The F64 index's filters act on [data-state]; the atlas has none.
-    assert "data-state=" not in page
-    assert "slot-label" not in page and "path-card" not in page
+def test_the_section_is_the_same_on_every_build(page: str):
+    assert str(AtlasSection(Atlas.read(SITE_SOURCE))) == page
 
 
-def test_the_section_is_the_same_on_every_build():
-    assert str(AtlasSection(Atlas.read(SITE_SOURCE))) == str(AtlasSection(ATLAS))
+def test_the_section_loads_only_the_address_module(page: str):
+    assert re.findall(r'<script[^>]*src="([^"]+)"', page) == ["../learner/atlas.js"]
+    assert not re.search(r'(?:src|href)="(?:https?:)?//', page)
 
 
-def test_the_map_keeps_its_nodes_inside_their_areas():
-    layout = AtlasMap.layout(ATLAS)
-    for item in ATLAS.concepts:
-        node, area = layout.nodes[item.id], layout.areas[item.area]
-        assert area.x <= node.x and node.x + node.width <= area.x + area.width
-        assert area.y <= node.y and node.y + node.height <= area.y + area.height
-    for _, band, chips in layout.views:
-        for _, chip in chips:
-            assert chip.x + chip.width <= band.x + band.width
+# --- The relationships on a lesson page -----------------------------------------
 
 
-def _inside(a, b, box, inset: float = 0.01) -> bool:
-    """Whether the straight stretch from a to b enters the box."""
-    (x0, x1), (y0, y1) = sorted((a[0], b[0])), sorted((a[1], b[1]))
-    return (
-        x1 > box.x + inset
-        and x0 < box.x + box.width - inset
-        and y1 > box.y + inset
-        and y0 < box.y + box.height - inset
-    )
-
-
-def test_every_edge_runs_in_the_gutters_from_one_node_to_the_other():
-    layout = AtlasMap.layout(ATLAS)
-    edges = ATLAS.prerequisite_edges() + ATLAS.memberships()
-    assert len(layout.routes) == len(edges) + len(ATLAS.manifest.connections)
-    for route, points in layout.routes:
-        for end, concept_id in ((points[0], route.source), (points[-1], route.target)):
-            node = layout.nodes[concept_id]
-            on_x = end[0] in (node.x, node.x + node.width)
-            on_y = end[1] in (node.y, node.y + node.height)
-            assert on_x or on_y
-        for a, b in itertools.pairwise(points):
-            assert a[0] == b[0] or a[1] == b[1]
-            for concept_id, node in layout.nodes.items():
-                assert not _inside(a, b, node), (route.source, route.target, concept_id)
-            for area, box in layout.areas.items():
-                header = replace(box, height=AREA_HEADER - 4)
-                assert not _inside(a, b, header), (route.source, route.target, area)
-
-
-def test_no_two_edges_lie_on_one_another():
-    layout = AtlasMap.layout(ATLAS)
-    stretches = [
-        (number, a, b)
-        for number, (_, points) in enumerate(layout.routes)
-        for a, b in itertools.pairwise(points)
-    ]
-    for index, (number, a, b) in enumerate(stretches):
-        for other, c, d in stretches[index + 1 :]:
-            if other == number:
-                continue
-            for axis in (0, 1):
-                if a[axis] == b[axis] == c[axis] == d[axis]:
-                    along = 1 - axis
-                    low = max(min(a[along], b[along]), min(c[along], d[along]))
-                    high = min(max(a[along], b[along]), max(c[along], d[along]))
-                    assert high - low <= 0.5, (a, b, c, d)
-
-
-# --- What the atlas modules read (F126) -----------------------------------------
-
-
-def test_each_concept_node_carries_its_area_lessons_and_planned_slots(page: str):
-    drawing = svg(page)
-    for item in ATLAS.concepts:
-        node = re.search(rf'<a [^>]*data-concept="{item.id}"[^>]*>', drawing).group(0)
-        attributes = dict(re.findall(r'([\w-]+)="([^"]*)"', node))
-        assert attributes["data-area"] == item.area
-        assert attributes["data-lessons"].split() == [
-            lesson.id for lesson in ATLAS.lessons_of(item)
+def test_a_lesson_shows_the_connections_and_memberships_of_its_concept():
+    for lesson in PATH.lessons:
+        items = connections(ATLAS, lesson, lesson.page)
+        concepts = ATLAS.concepts_of(lesson)
+        expected = []
+        for item in concepts:
+            expected += [
+                c.rationale for c in ATLAS.manifest.connections if item.id in c.concepts
+            ]
+        rationales = [text for text in expected if any(text in i for i in items)]
+        assert rationales == expected, lesson.id
+        members = [
+            m for item in concepts for m in ATLAS.memberships() if m.member == item.id
         ]
-        assert int(attributes["data-planned"]) == len(ATLAS.planned_of(item))
-
-
-def test_each_lesson_of_the_views_carries_what_the_index_rows_carry(page: str):
-    drawing = svg(page)
-    plates = re.findall(r'<a [^>]*class="atlas-lesson"[^>]*>', drawing)
-    assert len(plates) == sum(len(lessons) for _, lessons in ATLAS.views())
-    for plate in plates:
-        attributes = dict(re.findall(r'([\w-]+)="([^"]*)"', plate))
-        lesson = PATH.lesson(attributes["data-lesson"])
-        slot = CURRICULUM.slot(lesson.slot)
-        assert attributes["data-course"] == lesson.course
-        assert attributes["data-path"] == (slot.path if slot else "")
-        assert attributes["data-methods"].split() == list(lesson.methods)
-        assert attributes["data-difficulty"] == str(lesson.difficulty)
-    # A lesson of a method path says so.
-    assert any('data-path=""' not in plate for plate in plates)
-
-
-def test_the_controls_and_the_selection_are_declared_enhancements_with_a_fallback(
-    page: str,
-):
-    for name in ("atlas-controls", "atlas-selection"):
-        block = re.search(
-            rf'<div class="{name}" id="{name}" data-enhancement="">(.*?)</div>',
-            page,
-            re.S,
+        assert sum("is part of the capstone project" in i for i in items) == len(
+            members
         )
-        assert block and "<p>" in block.group(1), name
-    # The controls come before the map, the selection after it.
-    assert page.index('id="atlas-controls"') < page.index('id="atlas-map"')
-    assert page.index('id="atlas-map"') < page.index('id="atlas-selection"')
-    assert '<script type="module" src="../learner/atlas.js"></script>' in page
+        if not lesson.slot:
+            assert items == []
+
+
+def test_a_connection_names_its_type_and_links_the_other_concepts_sequence():
+    lesson = PATH.lesson("harmonic-oscillator")
+    items = connections(ATLAS, lesson, lesson.page)
+    assert items
+    for text in items:
+        assert re.search(
+            r"\(\.\./\.\./\.\./path/index\.html#(course|path)-[a-z-]+\)", text
+        )
+        assert any(
+            words in text
+            for words in (
+                "same mathematics",
+                "a limit",
+                "same method",
+                "an application",
+            )
+        )
+
+
+def test_every_connection_and_membership_reaches_a_published_lesson_or_a_planned_one():
+    shown = set()
+    for lesson in PATH.lessons:
+        for text in connections(ATLAS, lesson, lesson.page):
+            shown.add(text)
+    for connection in ATLAS.manifest.connections:
+        ends = [ATLAS.manifest.concept(end) for end in connection.concepts]
+        if any(ATLAS.lessons_of(end) for end in ends):
+            assert any(connection.rationale in text for text in shown)
+    assert CONNECTION_TYPES

@@ -72,6 +72,7 @@ for text and 3:1 for controls and lines, unchanged from F44.
 | `header`, `header-text` | paper, ink | the header (it replaces the navbar's blue bar) | 16.2 |
 | `start`, `start-text` | cobalt, paper | the start link, the one filled control | 8.0 |
 | `night`, `night-text`, `night-muted`, `night-line` | `#0f2240`, paper, `#b4c2d9`, `#7ea6e0` | the dark navy ground of a featured capstone (ADR 018 decision 5; F124's tsunami section), its text, its secondary text, and its lines and focus ring | 15.0, 8.8, 6.4 |
+| `copper`, `copper-surface` | `#8a4b1f`, `#f4ebe0` | the ink of Part B, the four method paths, in the course atlas (F133), and the ground of its open card | paper 6.4, its surface 5.7; ink on the surface 14.6, muted 5.4 |
 
 The bright vermilion of the mockups (about `#e34234`) has 3.9:1 on paper:
 enough for a line or the mark's point, not for text, so text in the accent
@@ -203,40 +204,42 @@ kept.
   file; the dashed rule of "Go deeper" stays its distinguishing mark.
 - **Path rows, path cards, the prerequisite graph** (F26, F64). Unchanged
   in structure; on paper with the rules of this file.
-- **The course atlas** (F125; F126 adds its scripts). Above the course
-  index of the path page: a breadcrumb under the title, a switch of three
-  plain links (map, course index, concepts) with the radius of a control,
-  a legend, then the map, wider than the text column on a desktop
-  (Quarto's `column-page`; the page's contents in the margin stay at the
-  top instead of following the reader over it, `body.pbc-atlas`). The map
-  is one inline SVG at its natural size in a focusable box with the cobalt
-  construction line above it; on a narrow screen it scrolls sideways in
-  that box and is never shrunk. Course areas are thin-ruled boxes on paper
-  with the course title, the published count, and a small illustration in
-  cobalt and rule strokes; the four path lanes sit on `surface`, joined by
-  one cobalt rail. A concept is a white plate with its name as a cobalt
-  link and its state in `muted`; a planned concept has a dashed rule, an
-  italic name in ink, and the word planned; a capstone's concept a double
-  outline. Edges run at right angles along the gutters between the nodes
-  and the areas, never across a node or an area's title, each on its own
-  track in a gutter and its own point on a node's side: a prerequisite
-  solid in `rule` with a filled arrowhead, a conceptual connection dashed
-  in cobalt with an open circle at each end, a capstone membership dotted
-  in ink with an open diamond. The view layer lists every lesson as a small white plate per
-  method on `surface`. Below the map: the capstone projects in dashed
-  boxes, the concept panels (native disclosures in a grid of course and
-  path groups; a targeted panel has a vermilion top rule, the current
-  position of the signature), and the textual equivalent, visually hidden.
-  **Known limitation, accepted by the owner (2026-10-21).** The static map
-  draws every connection at once; about 80 of them cross and crowd one
-  another, which makes the relationships hard to follow. The owner accepted
-  this for F125, provided that the three relationship types stay
-  distinguishable, the relationships and their directions are accurate, no
-  concept, label or link is obscured, and the textual equivalent stays
-  complete. Reading the relationships through selection and focused
-  highlighting (a chosen concept highlights its prerequisites and conceptual
-  connections, with direction and meaning, reachable by keyboard) is an
-  acceptance consideration of F126, not of F125.
+- **The course atlas** (F133, ADR 021 decision 3; the owner's mocks 3 and
+  4). The path page, under its title and a breadcrumb: one sentence with the
+  totals, then the sequences, wider than the text column on a desktop
+  (Quarto's `column-page`, no table of contents). Each of the eight courses,
+  the four method paths, and the smaller entry "Beyond the curriculum:
+  proofs in Lean" is one native `<details>` of the exclusive group
+  `name="atlas"`. The `<summary>` is the card: the illustration in the 76 px
+  slot, the title in SemiBold, "n of m lessons" in Plex Mono, and a
+  progress hairline of one segment per published lesson, which
+  `site/learner/progress.js` marks; an open card is on its part's surface
+  with a 1px rule in its ink. The content is the panel: the illustration in
+  the 200 px slot, the kicker "Part A · Course 3" or "Part B · Method path
+  2" in Plex Mono (sentence case), the title as the second heading level,
+  the manifest's one sentence in `muted`, "n published · k planned", and
+  the lesson rows between hairlines: the slot's label in Plex Mono, right
+  aligned; the title as a link in the part's ink (underlined on hover and
+  focus), or for a planned slot the working title in italics in `muted`
+  with the word planned and no link; and only the marks Lab (in the
+  accent, with a 1px accent hairline in the row's margin), Capstone, and
+  ★ Lean, all in words. The capstone is the last row, on the `night`
+  ground; a planned capstone shows its planned description from the
+  manifest. No level, difficulty, or preview in the rows. Part A is in the
+  cobalt ink, Part B in `copper`; the part's label ("Part A" before the
+  courses, "Part B" before the paths) and the kicker say it in words. From
+  56 em, in a browser that has `::details-content`, CSS grid places every
+  card in the left column (16 to 21 rem) and the open panel in the right
+  one, sticky, spanning every row, with a last flexible row that absorbs its
+  height; without that selector, and on every narrower screen, the same
+  disclosures are an accordion with the panel under its card, a 1px rule
+  in the part's ink at its left. The first course is open in the HTML; one
+  sequence is open at a time without a script. Below the sequences: "Your
+  progress" with the recommendations (F13, F14), then "About the lessons"
+  (difficulty, methods, order: what the lesson headers link to), and the
+  textual equivalent, visually hidden. The illustrations are interface
+  artwork (WebP, see "The three asset classes"), set on the paper with
+  `mix-blend-mode: multiply`.
 - **Home page** (F124; `body.pbc-home`, `page-layout: full`; the
   composition the owner approved on Issue #238 on 2026-10-21). The title
   is the opening line, "Build a world. See if it obeys physics.", at a
@@ -264,29 +267,12 @@ kept.
   smaller in the dashed boxes of the atlas; the invitation. A planned
   entry has no link and the word planned in a dashed outline, as on the
   atlas. Prose keeps the measure.
-- **The atlas's controls** (F126, `site/learner/atlas.js`). Without a
-  script the two places around the map hold one sentence each. With it, a
-  strip of native controls above the map on paper: the region selector, the
-  radio buttons "Show" (all relationships, concepts only, prerequisites,
-  conceptual connections), zoom out, the level in Plex Mono, zoom in,
-  actual size (the map is never drawn below its natural size, so zoom out
-  stops there), and the filters behind a disclosure, mirrored with the
-  index's. A chosen concept has a 3px vermilion outline, the current
-  position of the signature; the concepts at the other ends of its
-  relationships an ink outline; its edges grow to 2 units, a prerequisite
-  in ink; every other edge fades to 12 % and every other concept to a
-  surface plate with a muted name, so text keeps its contrast. Direction
-  and kind stay those of the static drawing (arrowheads, dash patterns,
-  end marks); the panel says them in words. Focus and hover preview the
-  same marks; keyboard focus keeps its cobalt ring over them. The chosen
-  concept's panel is a white plate with a vermilion top rule, docked at the
-  foot of the screen while the map is in view (at most a third of the
-  screen on a desktop, explanation beside the facts), with a close button;
-  its concept links walk the relationships. A filter fades what it leaves
-  out in the same way and never removes it. A region shows one area at its
-  natural size (on a phone the map opens on the first course), the rest
-  out of sight, and its concepts as an ordinary list under the map with a
-  link to the area in the course index. Nothing moves.
+- **The atlas's address module** (F133, `site/learner/atlas.js`). About
+  twenty lines and no dependency: the address follows the sequence a reader
+  opens (`#course-quantum` is a bookmark), an address opens its sequence,
+  an anchor of the previous atlas (`#course-<id>-lessons`, `#concept-<id>`)
+  opens the sequence that holds it now, and on a narrow screen opening
+  scrolls to the card. No request, cookie, or storage; nothing moves.
 - **Widget.** On a plate; its controls take the radius, the focus ring,
   and the cobalt of this file.
 - **Focus.** A 3px cobalt ring with a 2px offset on every focusable element,
@@ -297,18 +283,25 @@ kept.
 
 ## The three asset classes
 
-Every visual belongs to one class (ADR 018 decision 2). An example of each:
+Every visual belongs to one class, decided by what it claims (ADR 018
+decision 2, ADR 021 decision 1). An example of each:
 
 | Class | Example | Source | Rules |
 |---|---|---|---|
 | Interface artwork | the project mark in the header | an authored SVG under `site/assets/` with its entry (author, licence) in the provenance register there | no number, no caption of a result, no evidence claim; decorative or named by its link |
 | Interface artwork, generated | the wavefronts beside the featured capstone of the home page | `pbc.authoring.home_artwork`, written into the built site by `site/home-artwork.py`, its entry (`module`) in the provenance register | as above; labelled conceptual artwork for a planned capstone, no axis, scale, or measurement label |
+| Interface artwork, a derived raster | the twelve illustrations of the course atlas (F133) | WebP files under `site/assets/atlas/`, each with its entry in the provenance register (its origin: a script under `tools/illustrations/`, an author, or an image model with its prompt and date; a licence; its master and the master's SHA-256) | no text, number, or formula in the pixels; never in a lesson's body; alt text that names it; accepted by the visual check (composition, legibility at 76 and 200 px, colour, consistency with its family) |
 | Conceptual illustration | the diagrams drawn by `pbc.authoring.diagrams` in a lesson cell | an executed cell, `fig-status: conceptual` | drawn by code, labelled `conceptual`, never a result |
 | Scientific result | the phase-space figure of "Numerical integrators" | an executed cell over `pbc.mechanics.integrators` | the rules of "Scientifically faithful figures" and the F63 preview contract |
 
 An authored SVG under `site/assets/` passes the committed-artifact check
-only with its provenance entry; a raster, an unregistered SVG, and every
-other image file stay rejected (ADR 018 decision 2).
+only with its provenance entry, and a WebP or PNG there only with a complete
+raster entry; an unregistered SVG or raster, a raster with an incomplete
+entry, every other image type, and every image outside `site/assets/` stay
+rejected, and an entry without its file fails the asset-source rule (ADR 018
+decision 2, ADR 021 decision 2). The masters are not committed;
+`tools/illustrations/regenerate.py` compares a master its script renders
+with the register, on demand and never in CI.
 
 Known limit: for an entry that names a generating module, the check confirms
 that the module can be imported, not that it writes the registered file; the
@@ -320,9 +313,9 @@ follow-up, not part of this feature.
 - Below 576 CSS px the page is one column: the header wraps, the table of
   contents comes before the body, figures and tables scale or scroll inside
   their own box, and nothing scrolls the page sideways at 320 CSS px.
-- A map (F125, F126) on a phone offers a readable region selector, a
-  focused view of one region, and the ordinary list; a desktop map is never
-  shrunk until its labels are unreadable.
+- The course atlas (F133) on a phone is an accordion: each card with its
+  open panel under it, the rows on one column with their marks under the
+  title.
 
 ## Accessibility rules
 

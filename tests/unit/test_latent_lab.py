@@ -62,10 +62,33 @@ def test_no_public_attribute_tool_or_prompt_reaches_the_latent_effects():
 def test_a_record_at_one_mass_cannot_tell_the_hypotheses_apart():
     verdicts = {v.hypothesis: v for v in lab.judge_hypotheses(lab.record())}
     assert all(v.consistent for v in verdicts.values())
-    assert not verdicts["a hidden force"].identifiable
-    errors = [v.held_out_error for v in verdicts.values()]
+    # With a hidden force the record fixes only g - F/m: the fit stops at an
+    # arbitrary point of that line, so no held-out error is given for it.
+    unknown = {"a hidden force", "a hidden force and drag"}
+    for name, verdict in verdicts.items():
+        assert verdict.identifiable is (name not in unknown)
+        assert (verdict.held_out_error is None) is (name in unknown)
+    # The hypotheses the record does determine miss the held-out settings by
+    # far: their errors are 4 and 5, against a tolerance of 0.05.
+    errors = [v.held_out_error for v in verdicts.values() if v.identifiable]
     assert min(errors) > 10 * lab.TOLERANCE
     assert len(lab.rivals(lab.record())) == len(lab.FORCES) * len(lab.DRAGS)
+
+
+def test_the_line_a_record_leaves_free_holds_laws_that_predict_differently():
+    # Why no held-out error belongs to an undetermined hypothesis: two laws on
+    # the line g - F/m = const fit the record equally well and predict the
+    # held-out masses differently by a factor of fifty.
+    data, world = lab.record(), lab.environment()
+    found = []
+    for force in (0.0, 1.0):
+        held = {"hidden_force": force, "drag": 0.0}
+        fit = lab.fit_hypothesis(data, held)
+        found.append((fit.chi2, world.held_out_error(held | {"g": fit.value("g")})))
+    (chi2_none, error_none), (chi2_one, error_one) = found
+    assert chi2_one == pytest.approx(chi2_none, rel=1e-9)
+    assert error_none > 10 * lab.TOLERANCE
+    assert error_one < error_none / 10
 
 
 def test_the_disambiguating_experiment_leaves_one_hypothesis():

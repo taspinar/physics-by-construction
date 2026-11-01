@@ -1351,21 +1351,21 @@ def test_a_page_without_search_needs_no_fallback(make_site: Site, browser: Brows
     assert _fallback(make_site, browser, "") == []
 
 
-# --- The atlas modules (F126) ---------------------------------------------------
+# --- The atlas module (F126, F133) ---------------------------------------------
 
 
-def _atlas_modules(atlas: str = "", path: str = "") -> dict[str, str]:
-    return {"learner/atlas.js": atlas, "learner/path.js": path}
+def _atlas_modules(atlas: str = "") -> dict[str, str]:
+    return {"learner/atlas.js": atlas}
 
 
 def test_atlas_modules_that_keep_nothing_are_clean(make_site: Site):
-    site = make_site(files=_atlas_modules("document.title = 'a';", "let x = 1;"))
+    site = make_site(files=_atlas_modules("document.title = 'a';"))
 
     assert site_checks.check_atlas_module_sources(site) == []
 
 
 def test_a_missing_atlas_module_is_reported(make_site: Site):
-    site = make_site(files={"learner/path.js": ""})
+    site = make_site(files={"learner/progress.js": ""})
 
     violations = site_checks.check_atlas_module_sources(site)
 

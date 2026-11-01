@@ -8,23 +8,15 @@ order, validates the result, and renders the learning path page and the
 header of a lesson. The lesson source checks validate with the same code.
 """
 
-import posixpath
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
-from html import escape
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
 import yaml
 
 from pbc.authoring.context import marker
 from pbc.authoring.glossary import Glossary, before_you_begin
-from pbc.authoring.graph import (
-    RELATED_MARKER,
-    REQUIRES,
-    REQUIRES_MARKER,
-    PrerequisiteGraph,
-)
 from pbc.authoring.progress import (
     EXPLANATION_ANCHOR,
     STORAGE_KEY,
@@ -954,14 +946,25 @@ class LessonHeader:
     # With a glossary, the outside prerequisites are a "Before you begin"
     # list that links each to its entry; without, they end the Prerequisites.
     glossary: Glossary | None = None
+    # The conceptual connections and capstone memberships of the lesson's
+    # concept, from the atlas manifest (pbc.authoring.atlas.connections), as
+    # Markdown items; none for a lesson without them.
+    connections: tuple[str, ...] = ()
 
     @classmethod
     def from_payload(cls, site: Path, page: str, payload: dict) -> LessonHeader:
         """The header of the lesson ``page`` of the site project at ``site``."""
+        # The atlas reads this module; imported here, there is no cycle.
+        from pbc.authoring.atlas import Atlas, AtlasManifest, connections
+
         if payload:
             raise ValueError("a header marker holds no facts")
         path = LearningPath.read(site)
-        return cls(path, path.at_page(page), Glossary.read(site))
+        lesson = path.at_page(page)
+        atlas = Atlas(path, AtlasManifest.read(site, path.curriculum))
+        return cls(
+            path, lesson, Glossary.read(site), tuple(connections(atlas, lesson, page))
+        )
 
     def _repr_markdown_(self) -> str:
         return marker("header", self.lesson.page, {})
@@ -1000,6 +1003,7 @@ class LessonHeader:
             ),
             *self._before_you_begin(),
             ("Related", related),
+            *self._connections(),
             (
                 "Previous",
                 _link(page, previous)
@@ -1023,6 +1027,12 @@ class LessonHeader:
         # The script that keeps the learner's progress in the browser.
         return header + raw_html(progress_markup(page, lesson, path))
 
+    def _connections(self) -> list[tuple[str, str]]:
+        if not self.connections:
+            return []
+        items = "\n".join(f"    - {item}" for item in self.connections)
+        return [("Connections", "\n" + items)]
+
     def _before_you_begin(self) -> list[tuple[str, str]]:
         if self.glossary is None:
             return []
@@ -1034,18 +1044,15 @@ class LessonHeader:
 
 @dataclass(frozen=True)
 class PathOverview:
-    """The content of the learning path page: a panel for every course that
-    has a lesson, with its lessons as compact rows behind a disclosure; the
-    method paths and the methods as links to the same lessons; the difficulty
-    scale, what previous and next mean, the progress controls, and the
-    dependency map behind a disclosure.
+    """The content of the learning path page under the atlas's sequences
+    (``pbc.authoring.atlas``): what the lesson pages link to on it (the
+    difficulty scale, the methods, the three orders) and the learner's
+    progress with its explanation, its control, and the recommendations.
+    The lessons themselves are listed once, in the sequences (F133).
 
     Print it from a cell with ``output: asis``, so that the sections are
     part of the page and its table of contents; as a cell result they would
     sit inside the output of the cell.
-
-    With the website project ``site`` every lesson row shows its preview
-    (F63); without it the rows have no thumbnail.
     """
 
     path: LearningPath
@@ -1056,456 +1063,42 @@ class PathOverview:
         lines: list[str] = []
         if not self.path.lessons:
             lines += ["No lesson has been published yet.", ""]
-        lines += self._courses()
-        lines += self._paths()
-        lines += self._methods()
-        lines += self._difficulty()
-        lines += self._order()
         lines += self._progress()
-        lines += self._graph()
-        # The script that shows progress on the cards and clears it, and the
-        # one that offers the filters.
+        lines += [
+            "## About the lessons {#about-the-lessons}",
+            "",
+            "Every lesson states its level and the methods it uses, and names"
+            " the lessons it builds on.",
+            "",
+        ]
+        lines += self._difficulty()
+        lines += self._methods()
+        lines += self._order()
+        # The script that shows progress on the rows and clears it, with the
+        # learning path the recommendations are computed from.
         lines += [raw_html(progress_markup(self.page, None, self.path))]
-        if self.path.lessons:
-            lines += [raw_html(self._script())]
         return "\n".join(lines)
 
-    # --- Small pieces -------------------------------------------------------
-
-    def _href(self, to_page: str, fragment: str = "") -> str:
-        return escape(_href(self.page, to_page, fragment))
-
-    def _file(self, name: str) -> str:
-        """A relative link from the page to a file of the built site that is
-        not a page, such as a preview."""
-        parent = PurePosixPath(self.page).parent.as_posix()
-        return escape(posixpath.relpath(name, parent))
-
-    def _link(self, to_page: str, text: str, fragment: str = "", **attrs: str) -> str:
-        extra = "".join(f' {name}="{escape(value)}"' for name, value in attrs.items())
-        return f'<a href="{self._href(to_page, fragment)}"{extra}>{escape(text)}</a>'
-
-    def _lesson_link(self, item: str) -> str:
-        other = self.path.lesson(item)
-        return self._link(other.page, other.title)
-
-    def _thumbnail(self, lesson: Lesson, css: str) -> str:
-        """The F63 preview of the lesson as an image with its alt text, or
-        nothing when the page has no project to read the previews from."""
-        if self.site is None:
-            return ""
-        from pbc.authoring.previews import HEIGHT, WIDTH, preview_of
-
-        preview = preview_of(lesson, self.site)
-        return (
-            f'<img class="{css}" src="{self._file(preview.file)}"'
-            f' alt="{escape(preview.alt)}" width="{WIDTH}" height="{HEIGHT}"'
-            ' loading="lazy" decoding="async">'
-        )
-
-    def _chips(self, lesson: Lesson) -> list[str]:
-        """The features of a lesson that a reader looks for: it simulates,
-        it works with experimental data, it has AI extensions."""
-        agents = {"llm-agents", "coding-agents"}
-        chips = []
-        if "simulation" in lesson.methods:
-            chips.append("Simulation")
-        if "measured-data" in lesson.methods:
-            chips.append("Experimental data")
-        if agents & set(lesson.methods) or any(
-            agents & set(self.path.lesson(item).methods) for item in lesson.related
-        ):
-            chips.append("AI extensions")
-        return chips
-
-    def _ordered(
-        self, lessons: Sequence[Lesson], slots: Sequence[Slot]
-    ) -> list[Lesson | Slot]:
-        """The published lessons (in teaching order) and the planned slots of
-        a course or a path as one list in the order of the curriculum file: a
-        lesson stands in the place of its slot, a slot no lesson fills stands
-        for itself, and the lessons without a slot follow. Without slots (a
-        method) the lessons keep the order they come in."""
-        if not slots:
-            return list(lessons)
-        filled = {lesson.slot for lesson in lessons if lesson.slot}
-        entries: list[Lesson | Slot] = [*lessons]
-        entries += [slot for slot in slots if slot.label not in filled]
-        curriculum = self.path.curriculum
-
-        def key(entry: Lesson | Slot) -> int:
-            label = entry.slot if isinstance(entry, Lesson) else entry.label
-            index = curriculum.index(label) if label else None
-            return index if index is not None else len(curriculum.slots)
-
-        return sorted(entries, key=key)  # stable: lessons keep teaching order
-
-    def _rows(
-        self, lessons: Sequence[Lesson], slots: Sequence[Slot], heading: int
-    ) -> list[str]:
-        """The lessons and the planned slots of one course as one ordered
-        list: a row for a lesson, a distinguished row for a planned slot."""
-        rows = [
-            self._row(entry, heading)
-            if isinstance(entry, Lesson)
-            else self._planned(entry)
-            for entry in self._ordered(lessons, slots)
-        ]
-        return ['<ol class="path-rows">', *rows, "</ol>"]
-
-    def _planned(self, slot: Slot) -> str:
-        """A slot no lesson fills: a label, a working title, and the word
-        planned, with no link and no card; it is not counted."""
-        kind = "" if slot.kind == "lesson" else f", {escape(slot.kind)}"
-        home = slot.course or slot.path
-        return (
-            f'<li class="planned-slot" data-state="planned"'
-            f' data-home="{escape(home)}">'
-            f'<span class="slot-label">{escape(slot.label)}</span>'
-            f" {escape(slot.title)}{kind}"
-            ' <span class="slot-status">(planned, not published)</span></li>'
-        )
-
-    def _row(self, lesson: Lesson, heading: int) -> str:
-        """A lesson as a compact row: preview, title, the physical question,
-        level, chips, and its details behind a disclosure."""
-        difficulty = _DIFFICULTY[lesson.difficulty]
-        chips = "".join(f"<li>{escape(chip)}</li>" for chip in self._chips(lesson))
-        chip_list = (
-            f'<ul class="chips" aria-label="Features of this lesson">{chips}</ul>'
-            if chips
-            else ""
-        )
-        question = (
-            f'<p class="lesson-question">{escape(lesson.description)}</p>'
-            if lesson.description
-            else ""
-        )
-        return (
-            f'<li class="path-card" data-lesson-id="{escape(lesson.id)}"'
-            f' data-state="published" data-course="{escape(lesson.course)}"'
-            f' data-methods="{escape(" ".join(lesson.methods))}"'
-            f' data-difficulty="{difficulty.level}">'
-            f"{self._thumbnail(lesson, 'lesson-thumbnail')}"
-            '<div class="lesson-summary">'
-            f'<h{heading} class="lesson-card-title">'
-            f"{self._link(lesson.page, lesson.title)}</h{heading}>"
-            f"{question}"
-            f'<p class="lesson-meta"><span class="level-badge">{escape(_level(lesson))}'
-            f"</span></p>{chip_list}</div>"
-            f"{self._details(lesson)}</li>"
-        )
-
-    def _details(self, lesson: Lesson) -> str:
-        """What a reader opens a lesson for: outcomes, prerequisites, what
-        the reader builds, the extensions, the classification of a capstone,
-        and the way to reproduce it."""
-        path = self.path
-        course = _COURSE[lesson.course]
-        difficulty = _DIFFICULTY[lesson.difficulty]
-        methods = ", ".join(
-            self._link(PATH_PAGE, _METHOD[m].title, _method_id(_METHOD[m]))
-            for m in lesson.methods
-        )
-        # The title of the link is the definition of the level, shown on
-        # hover; the legend states it in text.
-        level = self._link(
-            PATH_PAGE, _level(lesson), "difficulty", title=difficulty.description
-        )
-        outcomes = "".join(f"<li>{escape(outcome)}</li>" for outcome in lesson.outcomes)
-        prerequisites = (
-            ", ".join(self._lesson_link(item) for item in lesson.prerequisites)
-            if lesson.prerequisites
-            else "none on this site"
-        )
-        if lesson.outside:
-            prerequisites += ". Also assumed: " + escape("; ".join(lesson.outside))
-        related = (
-            ", ".join(self._lesson_link(item) for item in lesson.related)
-            if lesson.related
-            else "none"
-        )
-        slot = path.slot_of(lesson)
-        rows = [
-            ("Course", self._link(PATH_PAGE, course.title, _course_id(course))),
-            *([("Slot", escape(f"{slot.label}, {slot.title}"))] if slot else []),
-            ("Methods", methods),
-            ("Level", level),
-            *(
-                [("What you build", escape(lesson.description))]
-                if lesson.description
-                else []
-            ),
-            ("What you\u2019ll learn", f"<ul>{outcomes}</ul>"),
-            ("Prerequisites", prerequisites + "."),
-            ("Related", related),
-        ]
-        if slot is not None and slot.kind != "lesson":
-            # A capstone is the culminating application inside its own course
-            # (final curriculum, 8.3); the prerequisites above are what it
-            # builds on.
-            rows.append(
-                (
-                    "Classification",
-                    f"{escape(slot.kind.capitalize())} of {escape(course.title)};"
-                    " the prerequisites above are what it builds on.",
-                )
-            )
-        reproduce = self._reproduce(lesson)
-        if reproduce:
-            rows.append(("On your machine", reproduce))
-        facts = "".join(f"<dt>{term}</dt><dd>{value}</dd>" for term, value in rows)
-        return (
-            '<details class="lesson-details"><summary>Details'
-            f'<span class="visually-hidden"> of {escape(lesson.title)}</span>'
-            f"</summary><dl>{facts}</dl></details>"
-        )
-
-    def _reproduce(self, lesson: Lesson) -> str:
-        """The link to the section of the lesson that says how to run its
-        experiment on your own machine, named by its heading, when the lesson
-        has the section."""
-        if self.site is None:
-            return ""
-        text = (self.site / lesson.page).read_text(encoding="utf-8")
-        found = re.search(
-            rf"^## (.+?) \{{#{REPRODUCE_ANCHOR}\}}\s*$", text, re.MULTILINE
-        )
-        if found is None:
-            return ""
-        return self._link(lesson.page, escape(found.group(1)), REPRODUCE_ANCHOR)
-
-    # --- Courses ------------------------------------------------------------
-
-    def _representative(self, course: Course) -> Lesson:
-        """The lesson whose preview stands for the course: the first one, in
-        teaching order, that names a figure of its own as its preview, and
-        else the first lesson."""
-        lessons = self.path.in_course(course)
-        return next((item for item in lessons if item.preview), lessons[0])
-
-    def _courses(self) -> list[str]:
-        path = self.path
-        if not path.courses:
-            return []
-        lines = [
-            "## Courses {#courses}",
-            "",
-            "A lesson belongs to one course. Open a course to see its lessons"
-            " in the teaching order of the reference curriculum. A planned"
-            " lesson is not published: it has no page, and it is not counted.",
-            "",
-            *self._jump(),
-            *self._planned_courses(),
-        ]
-        for course in path.courses:
-            lessons = path.in_course(course)
-            planned = path.planned_in_course(course)
-            first = lessons[0]
-            counts = (
-                f"{len(lessons)} published lesson{'s' if len(lessons) != 1 else ''}"
-            )
-            if planned:
-                counts += f", {len(planned)} planned"
-            representative = self._representative(course)
-            map_ = self._course_graph(course, lessons)
-            lines += [
-                f"### {course.title} {{#{_course_id(course)}}}",
-                "",
-                "```{=html}",
-                f'<div class="course-panel" data-course="{escape(course.id)}">',
-                self._thumbnail(representative, "course-thumbnail"),
-                '<div class="course-summary">',
-                f"<p>{escape(course.description)}</p>",
-                f'<p class="course-count">{counts}.</p>',
-                f"<p>{self._link(first.page, 'Start with ' + first.title)}</p>",
-                "</div></div>",
-                f'<details class="course-lessons" id="{_course_id(course)}-lessons">'
-                f"<summary>Lessons of {escape(course.title)}"
-                f" ({len(lessons)} published)</summary>",
-                *self._rows(lessons, path.curriculum.in_course(course), 4),
-                map_,
-                "</details>",
-                "```",
-                "",
-            ]
-        return lines
-
-    def _jump(self) -> list[str]:
-        """The links that take a reader to a course, a path, or a method; the
-        filters that a script adds stand in the same place."""
-        path = self.path
-        groups = [
-            ("Courses", [(c.title, _course_id(c)) for c in path.courses]),
-            ("Method paths", [(p.title, _path_id(p)) for p in path.paths]),
-            ("Methods", [(m.title, _method_id(m)) for m in path.methods]),
-        ]
-        items = []
-        for name, entries in groups:
-            if entries:
-                links = "".join(
-                    f'<li><a href="#{anchor}">{escape(title)}</a></li>'
-                    for title, anchor in entries
-                )
-                items.append(f"<li>{name}<ul>{links}</ul></li>")
-        return [
-            "```{=html}",
-            '<nav class="path-jump" aria-label="Jump to a course, a path, or a'
-            f' method"><ul>{"".join(items)}</ul></nav>',
-            '<div id="path-filters" class="path-filters" data-enhancement="">'
-            "<p>With scripts, this place offers filters by course, method,"
-            " difficulty, and publication state. Without them, the links above"
-            " take you to each course, path, and method.</p></div>",
-            "```",
-            "",
-        ]
-
-    def _planned_courses(self) -> list[str]:
-        """One sentence that names the courses that have no lesson yet."""
-        courses = self.path.planned_courses
-        if not courses:
-            return []
-        names = [course.title for course in courses]
-        listed = (
-            names[0]
-            if len(names) == 1
-            else ", ".join(names[:-1]) + f", and {names[-1]}"
-        )
-        count = f"{len(names)} further course"
-        count += " has" if len(names) == 1 else "s have"
-        return [
-            f"{count} no lesson yet and {'is' if len(names) == 1 else 'are'}"
-            f" planned, so {'it is' if len(names) == 1 else 'they are'} not"
-            f" shown as {'a course' if len(names) == 1 else 'courses'} here: {listed}.",
-            "",
-        ]
-
-    def _course_graph(self, course: Course, lessons: Sequence[Lesson]) -> str:
-        """The dependency map of one course behind its own disclosure: the
-        lessons of the course and the edges between them."""
-        graph = PrerequisiteGraph.layout(lessons, (course,))
-        summary = (
-            f"{len(graph.nodes)} lessons of {course.title} with"
-            f" {len(graph.edges)} links between them. Arrows point from a"
-            " prerequisite to the lesson that requires it, and from a lesson"
-            " to a related lesson it recommends. The edges are listed as"
-            " sentences after the drawing."
-        )
-        scope = f"map-{course.id}"
-        return (
-            '<details class="course-map">'
-            f"<summary>Dependency map of {escape(course.title)}</summary>"
-            + self._map(graph, summary, scope)
-            + "</details>"
-        )
-
-    def _map(self, graph: PrerequisiteGraph, summary: str, scope: str) -> str:
-        drawing = graph.svg(
-            lambda lesson: _href(self.page, lesson.page), summary, scope
-        )
-        sentences = "\n".join(f"<li>{escape(text)}.</li>" for text in graph.sentences())
-        return (
-            '<div class="prerequisite-graph" tabindex="0" role="region"'
-            ' aria-label="Prerequisite graph, scrolls sideways">'
-            f"{drawing}</div>"
-            '<ol class="visually-hidden" aria-label="The edges of the'
-            f' prerequisite graph">{sentences}</ol>'
-        )
-
-    # --- Method paths and methods ---------------------------------------------
-
-    def _links(
-        self, lessons: Sequence[Lesson], slots: Sequence[Slot] = ()
-    ) -> list[str]:
-        """The lessons of a path or a method as one link each, with the
-        course and the level; a lesson's content is on its own page and in
-        its course."""
-        items = [
-            self._path_link(entry)
-            if isinstance(entry, Lesson)
-            else self._planned(entry)
-            for entry in self._ordered(lessons, slots)
-        ]
-        return ['<ol class="path-links">', *items, "</ol>"]
-
-    def _path_link(self, lesson: Lesson) -> str:
-        course = _COURSE[lesson.course]
-        return (
-            f'<li class="path-link" data-lesson-id="{escape(lesson.id)}"'
-            f' data-state="published" data-course="{escape(lesson.course)}"'
-            f' data-methods="{escape(" ".join(lesson.methods))}"'
-            f' data-difficulty="{lesson.difficulty}">'
-            f'<a class="lesson-link" href="{self._href(lesson.page)}">'
-            f"{escape(lesson.title)}</a>"
-            f' <span class="path-link-meta">{escape(course.title)},'
-            f" {escape(_level(lesson).lower())}</span></li>"
-        )
-
-    def _paths(self) -> list[str]:
-        """The four method paths as a view over the lessons of the courses."""
-        path = self.path
-        if not path.paths:
-            return []
-        lines = [
-            "## Method paths {#paths}",
-            "",
-            "A method path is a second way through the same lessons: the"
-            " lessons that fill the slots of one path of the reference"
-            " curriculum, in the order of the path. It is not a course and"
-            " has no pages of its own; each entry links to the lesson in its"
-            " course, and a lesson belongs to at most one path.",
-            "",
-        ]
-        for method_path in path.paths:
-            lessons = path.in_path(method_path)
-            planned = path.planned_in_path(method_path)
-            counts = (
-                f"{len(lessons)} published lesson{'s' if len(lessons) != 1 else ''}"
-            )
-            if planned:
-                counts += f", {len(planned)} planned"
-            lines += [f"### {method_path.title} {{#{_path_id(method_path)}}}", ""]
-            lines += [
-                "```{=html}",
-                f'<p class="path-count">{counts}</p>',
-                *self._links(
-                    path.in_path(method_path), path.curriculum.in_path(method_path)
-                ),
-                "```",
-                "",
-            ]
-        return lines
-
     def _methods(self) -> list[str]:
-        path = self.path
-        if not path.methods:
-            return []
+        """What each method means; a lesson's header links its methods here.
+        The lessons are in the sequences above, not listed again."""
         lines = [
-            "## Methods {#methods}",
+            "### Methods {#methods}",
             "",
-            "A method is a way of working that cuts across courses. Each"
-            " list links the lessons that use the method, in the order of"
-            " the learning path.",
+            "A method is a way of working that cuts across courses.",
             "",
         ]
-        for method in path.methods:
+        for method in METHODS:
             lines += [
-                f"### {method.title} {{#{_method_id(method)}}}",
-                "",
-                method.description,
-                "",
-                "```{=html}",
-                *self._links(path.using(method)),
-                "```",
+                f"[{method.title}]{{#{_method_id(method)} .method-name}}",
+                f":   {method.description}",
                 "",
             ]
         return lines
-
-    # --- About the page -------------------------------------------------------
 
     def _difficulty(self) -> list[str]:
         lines = [
-            "## Difficulty {#difficulty}",
+            "### Difficulty {#difficulty}",
             "",
             f"Every lesson states one of {len(DIFFICULTIES)} levels.",
             "",
@@ -1551,7 +1144,7 @@ class PathOverview:
     def _order(self) -> list[str]:
         strands = ", then ".join(strand.title for strand in self.path.strands)
         return [
-            "## Order {#order}",
+            "### Order {#order}",
             "",
             "Three orders are in use, and they are not the same.",
             "",
@@ -1567,71 +1160,15 @@ class PathOverview:
             " reference curriculum: the lessons of a course or a path in the"
             " order of their slots in the curriculum file, which may differ"
             " from the order of the labels, and the lessons without a slot"
-            " after them in the linear order.",
+            " after them.",
             "",
             "The prerequisites of a lesson are the lessons it builds on, and"
             " are the only statement of what you need first. A prerequisite may"
             " live in a later strand, so previous and next may lead to a lesson"
             " before one it builds on: the header of every lesson links its"
-            " prerequisites, and the dependency map below gives the order of"
-            " ideas.",
+            " prerequisites.",
             "",
         ]
-
-    def _graph(self) -> list[str]:
-        if not self.path.lessons:
-            return []
-        graph = PrerequisiteGraph.layout(self.path.lessons, self.path.courses)
-        requires = sum(1 for edge in graph.edges if edge.kind == REQUIRES)
-        related = len(graph.edges) - requires
-        summary = (
-            f"{len(graph.nodes)} lessons in {len(graph.bands)} course"
-            f"{'s' if len(graph.bands) != 1 else ''}, with {requires}"
-            f" prerequisite and {related} related"
-            f" link{'s' if related != 1 else ''}. Arrows point from a"
-            " prerequisite to the lesson that requires it, and from a lesson"
-            " to a related lesson it recommends. The edges are listed as"
-            " sentences after the drawing."
-        )
-        return [
-            "## Prerequisite graph {#graph}",
-            "",
-            "The graph shows the same prerequisites as the lessons above, as a"
-            " picture. Each box is a lesson and links to it. A lesson stands"
-            " one column to the right of its furthest prerequisite, and the"
-            " lessons of a course share a band. It is optional: every"
-            " prerequisite is also named in the details of its lesson. On a"
-            " narrow screen the graph scrolls sideways inside its box.",
-            "",
-            "```{=html}",
-            '<details class="dependency-map" id="dependency-map">'
-            "<summary>View dependency map</summary>",
-            '<ul class="graph-legend">',
-            '<li><svg aria-hidden="true" width="56" height="14" viewBox="0 0 56 14">'
-            '<path class="edge-requires" d="M2,7 L52,7"'
-            f' marker-end="url(#{REQUIRES_MARKER})"/></svg>'
-            " <strong>Requires</strong>: a solid line with a filled arrowhead,"
-            " from a prerequisite to the lesson that needs it.</li>",
-            '<li><svg aria-hidden="true" width="56" height="14" viewBox="0 0 56 14">'
-            '<path class="edge-related" d="M2,7 L52,7"'
-            f' marker-end="url(#{RELATED_MARKER})"/></svg>'
-            " <strong>Related</strong>: a dashed line with an open arrowhead,"
-            " from a lesson to a lesson it recommends as an extension; not"
-            " required.</li>",
-            "</ul>",
-            self._map(graph, summary, ""),
-            "</details>",
-            "```",
-            "",
-        ]
-
-    def _script(self) -> str:
-        """The script that adds the filters and opens the disclosure a
-        link points into. It stores nothing."""
-        return (
-            f'<script type="module" src="{"../" * self.page.count("/")}'
-            f'{escape(PATH_SCRIPT)}"></script>'
-        )
 
 
 def _indent(text: str, width: int) -> str:
