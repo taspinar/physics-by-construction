@@ -19,11 +19,13 @@ project:
     # into the built site (assets/provenance.yaml names its module).
     - home-artwork.py
   # Files the pages do not link to in Markdown but the built site must
-  # contain: the fonts that site.css loads, and their licences, and the
-  # widgets and the learner-state script that lesson pages load as scripts.
+  # contain: the fonts that site.css loads, and their licences, the widgets
+  # and the learner-state script that lesson pages load as scripts, and the
+  # atlas's illustrations, which its cards and panels load by srcset.
   resources:
     - widgets/*.js
     - learner/*.js
+    - assets/atlas/*.webp
     - assets/fonts/STIXTwoMath-Regular.woff2
     - assets/fonts/STIXTwoText-Regular.subset.woff2
     - assets/fonts/STIXTwoText-Italic.subset.woff2

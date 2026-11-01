@@ -1106,21 +1106,189 @@ def test_svg_registered_without_author_and_licence_is_reported(
     }
 
 
-@pytest.mark.parametrize(
-    "path", ["site/assets/mark.png", "site/assets/mark.webp", "site/assets/mark.gif"]
-)
-def test_raster_under_site_assets_is_reported_even_when_registered(
+# --- Raster interface artwork (ADR 021 decision 2) ----------------------------
+
+_SHA = "a" * 64
+
+
+def raster(name: str, **change: str | None) -> str:
+    """A complete raster entry, with fields changed or (None) removed."""
+    fields = {
+        "author": "A. Author",
+        "date": "2026-10-30",
+        "licence": "CC-BY-4.0",
+        "master": "master.png",
+        "sha256": _SHA,
+    }
+    fields.update(change)
+    lines = "".join(f"    {key}: {value}\n" for key, value in fields.items() if value)
+    return f"  {name}:\n{lines}"
+
+
+@pytest.mark.parametrize("name", ["atlas/mark-card-152.webp", "mark.png"])
+def test_registered_raster_under_site_assets_is_accepted(
+    make_repository: Repository, name: str
+):
+    repository = make_repository(
+        files={f"site/assets/{name}": "raster", **register(raster(name))}
+    )
+    git(repository, "add", "--all")
+    git(repository, "commit", "--quiet", "--message", "An illustration and its entry")
+
+    assert lesson_checks.check_committed_files(repository) == []
+    assert lesson_checks.check_asset_sources(repository) == []
+
+
+def test_raster_whose_origin_is_a_script_of_the_repository_is_accepted(
+    make_repository: Repository,
+):
+    entry = raster("mark.webp", author=None, script="tools/draw.py")
+    repository = make_repository(
+        files={
+            "site/assets/mark.webp": "raster",
+            "tools/draw.py": "print()\n",
+            **register(entry),
+        }
+    )
+
+    assert lesson_checks.check_committed_files(repository) == []
+    assert lesson_checks.check_asset_sources(repository) == []
+
+
+def test_raster_made_by_an_image_model_with_its_prompt_is_accepted(
+    make_repository: Repository,
+):
+    entry = raster("mark.webp", author=None, model="a-model-1", prompt="a pendulum")
+    repository = make_repository(
+        files={"site/assets/mark.webp": "raster", **register(entry)}
+    )
+
+    assert lesson_checks.check_committed_files(repository) == []
+    assert lesson_checks.check_asset_sources(repository) == []
+
+
+@pytest.mark.parametrize("path", ["site/assets/mark.webp", "site/assets/mark.png"])
+def test_unregistered_raster_under_site_assets_is_reported(
     make_repository: Repository, path: str
 ):
-    name = path.removeprefix("site/assets/")
-    repository = make_repository(files={path: "raster", **register(authored(name))})
+    repository = make_repository(files={path: "raster"})
 
     violations = lesson_checks.check_committed_files(repository)
 
     assert [(violation.rule, violation.page) for violation in violations] == [
         ("committed-artifact", path)
     ]
-    assert "not an SVG" in details(lesson_checks.check_asset_sources(repository))
+    sources = lesson_checks.check_asset_sources(repository)
+    assert [(violation.rule, violation.page) for violation in sources] == [
+        ("asset-source", path)
+    ]
+
+
+@pytest.mark.parametrize(
+    "entry, problem",
+    [
+        (raster("mark.webp", licence=None), "licence"),
+        (raster("mark.webp", master=None), "master"),
+        (raster("mark.webp", sha256=None), "sha256"),
+        (raster("mark.webp", sha256="abc"), "sha256"),
+        (raster("mark.webp", author=None), "origin"),
+        (raster("mark.webp", author=None, model="a-model-1"), "prompt"),
+        (raster("mark.webp", author=None, script="tools/missing.py"), "script"),
+        (raster("mark.webp", colour="blue"), "'colour'"),
+        (authored("mark.webp"), "master"),
+    ],
+    ids=[
+        "no-licence",
+        "no-master",
+        "no-hash",
+        "short-hash",
+        "no-origin",
+        "model-without-prompt",
+        "missing-script",
+        "unknown-field",
+        "svg-entry",
+    ],
+)
+def test_raster_with_an_incomplete_entry_is_reported(
+    make_repository: Repository, entry: str, problem: str
+):
+    repository = make_repository(
+        files={"site/assets/mark.webp": "raster", **register(entry)}
+    )
+
+    assert rules(lesson_checks.check_committed_files(repository)) == {
+        "committed-artifact"
+    }
+    violations = lesson_checks.check_asset_sources(repository)
+    assert rules(violations) == {"asset-source"}
+    assert problem in details(violations)
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "site/assets/mark.gif",
+        "site/assets/mark.jpg",
+        "site/assets/mark.jpeg",
+        "site/assets/mark.avif",
+        "site/assets/mark.bmp",
+        "site/assets/mark.tiff",
+    ],
+)
+def test_other_image_types_under_site_assets_are_reported_even_when_registered(
+    make_repository: Repository, path: str
+):
+    name = path.removeprefix("site/assets/")
+    repository = make_repository(files={path: "raster", **register(raster(name))})
+
+    violations = lesson_checks.check_committed_files(repository)
+
+    assert [(violation.rule, violation.page) for violation in violations] == [
+        ("committed-artifact", path)
+    ]
+    assert "not an SVG, a WebP, or a PNG" in details(
+        lesson_checks.check_asset_sources(repository)
+    )
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        f"{LESSON}/mark.webp",
+        f"{LESSON}/mark.png",
+        "site/mark.webp",
+        "site/path/mark.png",
+        "src/pbc/mark.webp",
+    ],
+)
+def test_raster_outside_site_assets_is_reported_even_when_registered(
+    make_repository: Repository, path: str
+):
+    name = Path(path).name
+    repository = make_repository(
+        files={
+            f"site/assets/{name}": "raster",
+            path: "raster",
+            **register(raster(name)),
+        }
+    )
+
+    violations = lesson_checks.check_committed_files(repository)
+
+    assert [(violation.rule, violation.page) for violation in violations] == [
+        ("committed-artifact", path)
+    ]
+
+
+def test_raster_entry_without_its_file_fails_the_asset_source_rule(
+    make_repository: Repository,
+):
+    repository = make_repository(files=register(raster("atlas/mark-panel-800.webp")))
+
+    violations = lesson_checks.check_asset_sources(repository)
+
+    assert rules(violations) == {"asset-source"}
+    assert "no file" in details(violations)
 
 
 @pytest.mark.parametrize("path", ["site/mark.svg", "src/pbc/mark.svg"])
@@ -1214,13 +1382,14 @@ def test_register_that_breaks_its_format_is_reported(
     assert problem in details(violations)
 
 
-# --- The map manifest ------------------------------------------------------------
+# --- The atlas manifest ----------------------------------------------------------
 
 
 def test_a_map_manifest_that_breaks_a_rule_is_reported(make_repository: Repository):
     manifest = (
+        "sequences: []\n"
         "concepts:\n"
-        "  - {id: motion, area: mechanics, position: [1, 1], slots: [M1],\n"
+        "  - {id: motion, area: mechanics, slots: [M1],\n"
         "     explanation: Motion., title: Motion}\n"
         "connections: []\n"
     )

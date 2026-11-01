@@ -1,9 +1,10 @@
 ---
 title: "Course Atlas"
 description: >-
-  The lessons of the site by course and by method, with their difficulty and
-  prerequisites.
+  Eight physics courses and four method paths, with every lesson one click
+  away.
 body-classes: pbc-atlas
+toc: false
 ---
 
 ```{python}
@@ -13,22 +14,6 @@ from pbc.authoring.atlas import course_atlas
 
 print(course_atlas())
 ```
-
-## Choose a physics course {#choose}
-
-Every lesson belongs to one physics course. Each course teaches by three
-activities: **construct** the physics as a program you can run and check,
-**investigate** it against measurements and with experiments that an AI agent
-helps to run, and **verify** the result, by tests, by independent checks, or by
-a machine-checked proof in Lean. Open a course below to see its lessons in
-teaching order, each with one preview and its level. Each lesson names the
-lessons it builds on and says what you will be able to do after it. Read a
-course from its first lesson, follow one method across courses, or start with
-any lesson whose prerequisites you have.
-
-This page is generated from the lessons when the site is built. A course
-appears once it has a lesson, and a planned lesson is shown as planned.
-Methods and paths further down list the same lessons as links.
 
 ```{python}
 #| echo: false

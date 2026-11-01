@@ -15,7 +15,6 @@ from support.site_checks import describe
 from support.site_server import SiteServer
 
 from pbc.authoring import STRANDS, LearningPath
-from pbc.authoring.path import Lesson
 
 TEMPLATE = REPO_ROOT / "docs" / "lesson-template.qmd"
 # The new lesson takes the next position of the mechanics strand, after the
@@ -132,41 +131,18 @@ def test_lesson_made_from_the_template_builds_with_every_construct(
     assert "Replace: what the reader can do after the lesson" in header
     previous = Path(MECHANICS[-1].page).parent.name
     assert f'href="../{previous}/index.html"' in header
-    # The path page shows each lesson once as a row of its course, which links
-    # the lesson, its prerequisites, and its related lessons; the panel links
-    # the first lesson of the course, and the new lesson, which has a
-    # "Run this experiment" section, links it. The methods and the paths list a
-    # lesson as a link of another kind, and the maps are drawings.
+    # The path page shows each lesson once, as a row of one sequence of the
+    # course atlas (F133): the new lesson has no slot and is no Lean lesson,
+    # so it is a row of its course, after the course's slots.
     path_page = (built / "path/index.html").read_text()
-    new = Lesson(
-        **{
-            **PATH.lesson(MECHANICS[0].id).__dict__,
-            "strand": "mechanics",
-            "prerequisites": (),
-            "related": (),
-            "slot": "",
-        }
+    rows = re.findall(
+        r'<li class="path-card[^"]*" data-state="published" data-lesson-id="([^"]+)"',
+        path_page,
     )
-    mechanics_ids = {lesson.id for lesson in MECHANICS}
-    first = PATH.in_course(PATH.courses[0])[0]
-    links = (
-        sum(
-            (lesson.strand == "mechanics")
-            + sum(p in mechanics_ids for p in lesson.prerequisites)
-            + sum(r in mechanics_ids for r in lesson.related)
-            for lesson in (*PATH.lessons, new)
-        )
-        + 1  # the reproduce link of the new lesson
-        + (first.strand == "mechanics")  # "Start with" of the course panel
-    )
-    # The course atlas above the index links lessons through the concepts of
-    # their slots (F125, tests/unit/test_atlas.py); the count is the index's.
-    index = path_page[path_page.index('id="choose"') :]
-    drawings = re.findall(r"<svg xmlns.*?</svg>", index, re.S)
-    lists = re.sub(r"<svg xmlns.*?</svg>", "", index, flags=re.S)
-    # The whole map comes last, after the map of each course.
-    graph = drawings[-1]
-    assert lists.count('<a href="../lessons/mechanics/') == links
-    # The graph has a node for every lesson, the new one too.
-    assert graph.count("<a href=") == len(PATH.lessons) + 1
-    assert f'href="../{page}"' in graph
+    assert len(rows) == len(set(rows)) == len(PATH.lessons) + 1
+    assert {lesson.id for lesson in PATH.lessons} < set(rows)
+    assert path_page.count(f'href="../{page}"') == 1
+    mechanics = re.search(
+        r'<details [^>]*id="course-mechanics".*?</details>', path_page
+    ).group(0)
+    assert f'href="../{page}"' in mechanics

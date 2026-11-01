@@ -1,10 +1,20 @@
-# The provenance of every SVG under site/assets/ (ADR 018 decision 2;
-# docs/atelier.md, "The three asset classes"). A path, relative to this
-# directory, maps either to an authored source (author, licence, and an
-# optional source) or to the module that generates the file at build time
-# (module). The asset-source check (tests/lessons) fails on an SVG here
-# without its entry, and the committed-artifact check admits a committed SVG
-# here only with an author and a licence.
+# The provenance of every image under site/assets/ (ADR 018 decision 2, ADR
+# 021 decision 2; docs/atelier.md, "The three asset classes"). A path,
+# relative to this directory, maps to one of three entries:
+#
+# - an authored SVG: author, licence, and an optional source;
+# - an SVG generated at build time: the module that writes it;
+# - a derived raster (WebP, or PNG where a plan records why): its origin (a
+#   script of the repository, an author, or an image model with its prompt
+#   and date), a licence, the file name of its master, and the master's
+#   SHA-256; optionally a date and a source.
+#
+# The asset-source check (tests/lessons) fails on an image here without its
+# entry and on an entry without its file; the committed-artifact check admits
+# a committed SVG here only with an author and a licence, and a WebP or PNG
+# only with a complete raster entry. Masters are not committed; the scripts
+# are in tools/illustrations/, whose regenerate.py compares a master it
+# renders with the hash recorded here, on demand.
 assets:
   mark.svg:
     author: Ahmet Taspinar
@@ -14,3 +24,479 @@ assets:
       equilateral triangle, the mark in the header of every page.
   home-wavefront.svg:
     module: pbc.authoring.home_artwork
+  atlas/mechanics-card-152.webp:
+    script: tools/illustrations/double_pendulum_atlas.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_classical_mechanics_atlas_card_detail.png
+    sha256: 6392f8a25c2ebbc171627e18ae4f0ef33b1c2a344326973d32124b770e30383c
+    source: >-
+      The atlas illustration of mechanics: the tracks of two double pendulums started 2e-4 rad apart; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/mechanics-card-228.webp:
+    script: tools/illustrations/double_pendulum_atlas.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_classical_mechanics_atlas_card_detail.png
+    sha256: 6392f8a25c2ebbc171627e18ae4f0ef33b1c2a344326973d32124b770e30383c
+    source: >-
+      The atlas illustration of mechanics: the tracks of two double pendulums started 2e-4 rad apart; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/mechanics-panel-400.webp:
+    script: tools/illustrations/double_pendulum_atlas.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_classical_mechanics_double_pendulum.webp
+    sha256: 3cd0674c8027422997aa9f781a951e6b7db045db42c972bfdf8dad941678484e
+    source: >-
+      The atlas illustration of mechanics: the tracks of two double pendulums started 2e-4 rad apart; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/mechanics-panel-800.webp:
+    script: tools/illustrations/double_pendulum_atlas.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_classical_mechanics_double_pendulum.webp
+    sha256: 3cd0674c8027422997aa9f781a951e6b7db045db42c972bfdf8dad941678484e
+    source: >-
+      The atlas illustration of mechanics: the tracks of two double pendulums started 2e-4 rad apart; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/thermodynamics-card-152.webp:
+    script: tools/illustrations/render_hot_cold.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_thermodynamics_hot_cold.webp
+    sha256: 9d8d5eb349a1b5a1f369213e184d2ce571713d4628985b040dc153e824be0a29
+    source: >-
+      The atlas illustration of thermodynamics: a bar from hot to cold with the speed distributions of its gas; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/thermodynamics-card-228.webp:
+    script: tools/illustrations/render_hot_cold.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_thermodynamics_hot_cold.webp
+    sha256: 9d8d5eb349a1b5a1f369213e184d2ce571713d4628985b040dc153e824be0a29
+    source: >-
+      The atlas illustration of thermodynamics: a bar from hot to cold with the speed distributions of its gas; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/thermodynamics-panel-400.webp:
+    script: tools/illustrations/render_hot_cold.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_thermodynamics_hot_cold.webp
+    sha256: 9d8d5eb349a1b5a1f369213e184d2ce571713d4628985b040dc153e824be0a29
+    source: >-
+      The atlas illustration of thermodynamics: a bar from hot to cold with the speed distributions of its gas; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/thermodynamics-panel-800.webp:
+    script: tools/illustrations/render_hot_cold.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_thermodynamics_hot_cold.webp
+    sha256: 9d8d5eb349a1b5a1f369213e184d2ce571713d4628985b040dc153e824be0a29
+    source: >-
+      The atlas illustration of thermodynamics: a bar from hot to cold with the speed distributions of its gas; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/waves-card-152.webp:
+    script: tools/illustrations/render_waves.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_waves_optics_interference.webp
+    sha256: e4b833b5223ba1c2b0f2b5dcac298ab1ef5f0f17ec95dbf7268f19cc1689b660
+    source: >-
+      The atlas illustration of waves: the interference of two point sources; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/waves-card-228.webp:
+    script: tools/illustrations/render_waves.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_waves_optics_interference.webp
+    sha256: e4b833b5223ba1c2b0f2b5dcac298ab1ef5f0f17ec95dbf7268f19cc1689b660
+    source: >-
+      The atlas illustration of waves: the interference of two point sources; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/waves-panel-400.webp:
+    script: tools/illustrations/render_waves.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_waves_optics_interference.webp
+    sha256: e4b833b5223ba1c2b0f2b5dcac298ab1ef5f0f17ec95dbf7268f19cc1689b660
+    source: >-
+      The atlas illustration of waves: the interference of two point sources; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/waves-panel-800.webp:
+    script: tools/illustrations/render_waves.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_waves_optics_interference.webp
+    sha256: e4b833b5223ba1c2b0f2b5dcac298ab1ef5f0f17ec95dbf7268f19cc1689b660
+    source: >-
+      The atlas illustration of waves: the interference of two point sources; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/electromagnetism-card-152.webp:
+    script: tools/illustrations/render_solenoid.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_electromagnetism_solenoid.webp
+    sha256: 0ee55e4bcec3353d21b1cfcee6cac3e1bd2b41e5f7ad65eef346552caab51da6
+    source: >-
+      The atlas illustration of electromagnetism: the field lines of a finite solenoid; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/electromagnetism-card-228.webp:
+    script: tools/illustrations/render_solenoid.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_electromagnetism_solenoid.webp
+    sha256: 0ee55e4bcec3353d21b1cfcee6cac3e1bd2b41e5f7ad65eef346552caab51da6
+    source: >-
+      The atlas illustration of electromagnetism: the field lines of a finite solenoid; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/electromagnetism-panel-400.webp:
+    script: tools/illustrations/render_solenoid.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_electromagnetism_solenoid.webp
+    sha256: 0ee55e4bcec3353d21b1cfcee6cac3e1bd2b41e5f7ad65eef346552caab51da6
+    source: >-
+      The atlas illustration of electromagnetism: the field lines of a finite solenoid; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/electromagnetism-panel-800.webp:
+    script: tools/illustrations/render_solenoid.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_electromagnetism_solenoid.webp
+    sha256: 0ee55e4bcec3353d21b1cfcee6cac3e1bd2b41e5f7ad65eef346552caab51da6
+    source: >-
+      The atlas illustration of electromagnetism: the field lines of a finite solenoid; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/fluids-card-152.webp:
+    script: tools/illustrations/generate_fluid_dynamics.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_fluid_dynamics_vortex_street.webp
+    sha256: 2f5b1e9c664e9dd6eb789ce343652efacd0dfbd8f61f68b0ddff02953ef48614
+    source: >-
+      The atlas illustration of fluids: a vortex street behind a cylinder; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/fluids-card-228.webp:
+    script: tools/illustrations/generate_fluid_dynamics.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_fluid_dynamics_vortex_street.webp
+    sha256: 2f5b1e9c664e9dd6eb789ce343652efacd0dfbd8f61f68b0ddff02953ef48614
+    source: >-
+      The atlas illustration of fluids: a vortex street behind a cylinder; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/fluids-panel-400.webp:
+    script: tools/illustrations/generate_fluid_dynamics.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_fluid_dynamics_vortex_street.webp
+    sha256: 2f5b1e9c664e9dd6eb789ce343652efacd0dfbd8f61f68b0ddff02953ef48614
+    source: >-
+      The atlas illustration of fluids: a vortex street behind a cylinder; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/fluids-panel-800.webp:
+    script: tools/illustrations/generate_fluid_dynamics.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_fluid_dynamics_vortex_street.webp
+    sha256: 2f5b1e9c664e9dd6eb789ce343652efacd0dfbd8f61f68b0ddff02953ef48614
+    source: >-
+      The atlas illustration of fluids: a vortex street behind a cylinder; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/quantum-card-152.webp:
+    script: tools/illustrations/generate_wigner_cat.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_quantum_physics_wigner_cat.webp
+    sha256: b670c1df1d0a4d90ce071d521d196fad7fe2f6fcecbd5f087e020a7eab37dd15
+    source: >-
+      The atlas illustration of quantum: the Wigner function of an odd cat state; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/quantum-card-228.webp:
+    script: tools/illustrations/generate_wigner_cat.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_quantum_physics_wigner_cat.webp
+    sha256: b670c1df1d0a4d90ce071d521d196fad7fe2f6fcecbd5f087e020a7eab37dd15
+    source: >-
+      The atlas illustration of quantum: the Wigner function of an odd cat state; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/quantum-panel-400.webp:
+    script: tools/illustrations/generate_wigner_cat.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_quantum_physics_wigner_cat.webp
+    sha256: b670c1df1d0a4d90ce071d521d196fad7fe2f6fcecbd5f087e020a7eab37dd15
+    source: >-
+      The atlas illustration of quantum: the Wigner function of an odd cat state; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/quantum-panel-800.webp:
+    script: tools/illustrations/generate_wigner_cat.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_quantum_physics_wigner_cat.webp
+    sha256: b670c1df1d0a4d90ce071d521d196fad7fe2f6fcecbd5f087e020a7eab37dd15
+    source: >-
+      The atlas illustration of quantum: the Wigner function of an odd cat state; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/astrophysics-card-152.webp:
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_astrophysics_exoplanet_transit.webp
+    sha256: a26197735a80c6cdd4368f86dc1858a6667d14be6a6dc78e7b38ff2727754419
+    source: >-
+      The atlas illustration of astrophysics: an exoplanet transiting its star, with the dip of the light curve; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/astrophysics-card-228.webp:
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_astrophysics_exoplanet_transit.webp
+    sha256: a26197735a80c6cdd4368f86dc1858a6667d14be6a6dc78e7b38ff2727754419
+    source: >-
+      The atlas illustration of astrophysics: an exoplanet transiting its star, with the dip of the light curve; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/astrophysics-panel-400.webp:
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_astrophysics_exoplanet_transit.webp
+    sha256: a26197735a80c6cdd4368f86dc1858a6667d14be6a6dc78e7b38ff2727754419
+    source: >-
+      The atlas illustration of astrophysics: an exoplanet transiting its star, with the dip of the light curve; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/astrophysics-panel-800.webp:
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_astrophysics_exoplanet_transit.webp
+    sha256: a26197735a80c6cdd4368f86dc1858a6667d14be6a6dc78e7b38ff2727754419
+    source: >-
+      The atlas illustration of astrophysics: an exoplanet transiting its star, with the dip of the light curve; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/materials-card-152.webp:
+    script: tools/illustrations/render_phonons.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_condensed_matter_acoustic.webp
+    sha256: 2b37d6d70411d41c35e4f9b2cef0184c2d7851c88a03623008f452b116d69049
+    source: >-
+      The atlas illustration of materials: an acoustic phonon in a two-atom square lattice; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/materials-card-228.webp:
+    script: tools/illustrations/render_phonons.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_condensed_matter_acoustic.webp
+    sha256: 2b37d6d70411d41c35e4f9b2cef0184c2d7851c88a03623008f452b116d69049
+    source: >-
+      The atlas illustration of materials: an acoustic phonon in a two-atom square lattice; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/materials-panel-400.webp:
+    script: tools/illustrations/render_phonons.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_condensed_matter_acoustic.webp
+    sha256: 2b37d6d70411d41c35e4f9b2cef0184c2d7851c88a03623008f452b116d69049
+    source: >-
+      The atlas illustration of materials: an acoustic phonon in a two-atom square lattice; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/materials-panel-800.webp:
+    script: tools/illustrations/render_phonons.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_condensed_matter_acoustic.webp
+    sha256: 2b37d6d70411d41c35e4f9b2cef0184c2d7851c88a03623008f452b116d69049
+    source: >-
+      The atlas illustration of materials: an acoustic phonon in a two-atom square lattice; derived by
+      tools/illustrations/derive_assets.py.
+  atlas/reasoning-card-152.webp:
+    script: tools/illustrations/part_b_textfree.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_part_b_reasoning_textfree.png
+    sha256: 96464a698291425399ebf6ea2521402adff5d3ce2c4395740e42a9151bc89be0
+    source: >-
+      The atlas illustration of reasoning: three hypotheses tested against a model, one retained (text-free); derived by
+      tools/illustrations/derive_assets.py.
+  atlas/reasoning-card-228.webp:
+    script: tools/illustrations/part_b_textfree.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_part_b_reasoning_textfree.png
+    sha256: 96464a698291425399ebf6ea2521402adff5d3ce2c4395740e42a9151bc89be0
+    source: >-
+      The atlas illustration of reasoning: three hypotheses tested against a model, one retained (text-free); derived by
+      tools/illustrations/derive_assets.py.
+  atlas/reasoning-panel-400.webp:
+    script: tools/illustrations/part_b_textfree.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_part_b_reasoning_textfree.png
+    sha256: 96464a698291425399ebf6ea2521402adff5d3ce2c4395740e42a9151bc89be0
+    source: >-
+      The atlas illustration of reasoning: three hypotheses tested against a model, one retained (text-free); derived by
+      tools/illustrations/derive_assets.py.
+  atlas/reasoning-panel-800.webp:
+    script: tools/illustrations/part_b_textfree.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_part_b_reasoning_textfree.png
+    sha256: 96464a698291425399ebf6ea2521402adff5d3ce2c4395740e42a9151bc89be0
+    source: >-
+      The atlas illustration of reasoning: three hypotheses tested against a model, one retained (text-free); derived by
+      tools/illustrations/derive_assets.py.
+  atlas/law-discovery-card-152.webp:
+    script: tools/illustrations/part_b_textfree.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_part_b_law_discovery_textfree.png
+    sha256: 85b0e30192e21c5ea9f4485549dd11e1f0eb2b0af24ae4993ea1371bde3ceb84
+    source: >-
+      The atlas illustration of law-discovery: a power law recovered from noisy points (text-free); derived by
+      tools/illustrations/derive_assets.py.
+  atlas/law-discovery-card-228.webp:
+    script: tools/illustrations/part_b_textfree.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_part_b_law_discovery_textfree.png
+    sha256: 85b0e30192e21c5ea9f4485549dd11e1f0eb2b0af24ae4993ea1371bde3ceb84
+    source: >-
+      The atlas illustration of law-discovery: a power law recovered from noisy points (text-free); derived by
+      tools/illustrations/derive_assets.py.
+  atlas/law-discovery-panel-400.webp:
+    script: tools/illustrations/part_b_textfree.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_part_b_law_discovery_textfree.png
+    sha256: 85b0e30192e21c5ea9f4485549dd11e1f0eb2b0af24ae4993ea1371bde3ceb84
+    source: >-
+      The atlas illustration of law-discovery: a power law recovered from noisy points (text-free); derived by
+      tools/illustrations/derive_assets.py.
+  atlas/law-discovery-panel-800.webp:
+    script: tools/illustrations/part_b_textfree.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_part_b_law_discovery_textfree.png
+    sha256: 85b0e30192e21c5ea9f4485549dd11e1f0eb2b0af24ae4993ea1371bde3ceb84
+    source: >-
+      The atlas illustration of law-discovery: a power law recovered from noisy points (text-free); derived by
+      tools/illustrations/derive_assets.py.
+  atlas/benchmarking-card-152.webp:
+    script: tools/illustrations/part_b_textfree.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_part_b_benchmarking_textfree.png
+    sha256: eadd99a96f713e8aebdd001d208bb7ee7bcb6c2b12d892d6a2b6e5854373f3de
+    source: >-
+      The atlas illustration of benchmarking: two agents' scores with their uncertainties (text-free); derived by
+      tools/illustrations/derive_assets.py.
+  atlas/benchmarking-card-228.webp:
+    script: tools/illustrations/part_b_textfree.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_part_b_benchmarking_textfree.png
+    sha256: eadd99a96f713e8aebdd001d208bb7ee7bcb6c2b12d892d6a2b6e5854373f3de
+    source: >-
+      The atlas illustration of benchmarking: two agents' scores with their uncertainties (text-free); derived by
+      tools/illustrations/derive_assets.py.
+  atlas/benchmarking-panel-400.webp:
+    script: tools/illustrations/part_b_textfree.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_part_b_benchmarking_textfree.png
+    sha256: eadd99a96f713e8aebdd001d208bb7ee7bcb6c2b12d892d6a2b6e5854373f3de
+    source: >-
+      The atlas illustration of benchmarking: two agents' scores with their uncertainties (text-free); derived by
+      tools/illustrations/derive_assets.py.
+  atlas/benchmarking-panel-800.webp:
+    script: tools/illustrations/part_b_textfree.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_part_b_benchmarking_textfree.png
+    sha256: eadd99a96f713e8aebdd001d208bb7ee7bcb6c2b12d892d6a2b6e5854373f3de
+    source: >-
+      The atlas illustration of benchmarking: two agents' scores with their uncertainties (text-free); derived by
+      tools/illustrations/derive_assets.py.
+  atlas/autonomous-research-card-152.webp:
+    script: tools/illustrations/part_b_textfree.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_part_b_autonomous_research_textfree.png
+    sha256: bdba503200ab4c36be0473958dbe21ff9f130b7532fde968445b47da82cad11f
+    source: >-
+      The atlas illustration of autonomous-research: an agent's sequence of experiments over a model landscape (text-free); derived by
+      tools/illustrations/derive_assets.py.
+  atlas/autonomous-research-card-228.webp:
+    script: tools/illustrations/part_b_textfree.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_part_b_autonomous_research_textfree.png
+    sha256: bdba503200ab4c36be0473958dbe21ff9f130b7532fde968445b47da82cad11f
+    source: >-
+      The atlas illustration of autonomous-research: an agent's sequence of experiments over a model landscape (text-free); derived by
+      tools/illustrations/derive_assets.py.
+  atlas/autonomous-research-panel-400.webp:
+    script: tools/illustrations/part_b_textfree.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_part_b_autonomous_research_textfree.png
+    sha256: bdba503200ab4c36be0473958dbe21ff9f130b7532fde968445b47da82cad11f
+    source: >-
+      The atlas illustration of autonomous-research: an agent's sequence of experiments over a model landscape (text-free); derived by
+      tools/illustrations/derive_assets.py.
+  atlas/autonomous-research-panel-800.webp:
+    script: tools/illustrations/part_b_textfree.py
+    author: Ahmet Taspinar
+    date: 2026-10-30
+    licence: CC-BY-4.0
+    master: pbc_part_b_autonomous_research_textfree.png
+    sha256: bdba503200ab4c36be0473958dbe21ff9f130b7532fde968445b47da82cad11f
+    source: >-
+      The atlas illustration of autonomous-research: an agent's sequence of experiments over a model landscape (text-free); derived by
+      tools/illustrations/derive_assets.py.

@@ -505,141 +505,53 @@ def test_header_with_a_glossary_lists_what_to_know_before_beginning(path: Learni
     ) in shown
 
 
-def test_overview_lists_courses_with_their_lessons_then_methods_and_the_rest(
+def test_overview_explains_what_the_lesson_pages_link_to_without_listing_lessons(
     path: LearningPath,
 ):
     shown = str(PathOverview(path, PATH_PAGE))
 
-    assert "## Difficulty {#difficulty}" in shown
-    for difficulty in DIFFICULTIES:
-        assert difficulty.description in shown
     headings = [line for line in shown.splitlines() if line.startswith("#")]
     assert headings == [
-        "## Courses {#courses}",
-        "### Classical mechanics {#course-mechanics}",
-        "## Methods {#methods}",
-        "### Simulation {#method-simulation}",
-        "### Formal proofs {#method-lean}",
-        "## Difficulty {#difficulty}",
-        "## Order {#order}",
         "## Your progress {#your-progress}",
-        "## Prerequisite graph {#graph}",
+        "## About the lessons {#about-the-lessons}",
+        "### Difficulty {#difficulty}",
+        "### Methods {#methods}",
+        "### Order {#order}",
     ]
-    assert "LLM agents" not in shown and "Agent-based" not in shown
-    cards = re.findall(r'<h(\d) class="lesson-card-title"><a href="([^"]+)"', shown)
-    kinematics = "../lessons/mechanics/01-kinematics/index.html"
-    newton = "../lessons/mechanics/02-newton/index.html"
-    energy = "../lessons/mechanics/03-energy/index.html"
-    proof = "../lessons/lean/01-proof/index.html"
-    # One row per lesson, under its course, in the teaching order.
-    assert cards == [("4", kinematics), ("4", newton), ("4", energy), ("4", proof)]
-    # Under a method a lesson is a link, not a row.
-    links = re.findall(r'<a class="lesson-link" href="([^"]+)"', shown)
-    assert links == [kinematics, newton, energy, proof]  # simulation, then lean
-    # The level links to the legend with its definition as the title.
-    assert (
-        f'<a href="index.html#difficulty" title="{DIFFICULTIES[2].description}">'
-        "Advanced, level 3 of 3</a>" in shown
-    )
-    assert f'Prerequisites</dt><dd><a href="{energy}">Energy</a>.</dd>' in shown
+    for difficulty in DIFFICULTIES:
+        assert difficulty.description in shown
+    # Every method a lesson's header can link to has its anchor and meaning.
+    for method in METHODS:
+        assert f"[{method.title}]{{#method-{method.id} .method-name}}" in shown
+        assert method.description in shown
+    # The lessons are listed once, in the atlas's sequences, not here.
+    assert "lesson-link" not in shown and "path-card" not in shown
+    assert '<div id="progress-controls" data-enhancement="">' in shown
+    assert '<div id="recommendations"' in shown
 
 
-def test_a_course_is_a_panel_with_its_lessons_behind_a_closed_disclosure(
+def test_overview_carries_the_learning_path_for_the_recommendations(
     path: LearningPath,
 ):
     shown = str(PathOverview(path, PATH_PAGE))
-
-    assert '<div class="course-panel" data-course="mechanics">' in shown
-    assert "4 published lessons." in shown
-    assert "Start with Kinematics" in shown
-    # Native disclosure, closed by default: no ``open`` attribute anywhere.
-    assert '<details class="course-lessons" id="course-mechanics-lessons">' in shown
-    assert "<details open" not in shown and " open>" not in shown
-    # Each lesson has its own nested disclosure with the facts.
-    assert shown.count('<details class="lesson-details">') == 4
-    assert shown.count("<dt>") == 4 * 6
-    # The lessons of the course are the lessons of the page, none twice.
-    assert shown.count('<li class="path-card" data-lesson-id=') == 4
-
-
-def test_the_details_of_a_lesson_say_what_the_reader_builds_from_its_description():
-    item = Lesson(
-        **{**lesson("a", order=1).__dict__, "description": "Build a < b & check it."}
+    data = json.loads(
+        re.search(
+            r'<script type="application/json" id="learner-state-data">(.*?)</script>',
+            shown,
+        ).group(1)
     )
 
-    shown = str(PathOverview(LearningPath((item,)), PATH_PAGE))
-
-    assert "<dt>What you build</dt><dd>Build a &lt; b &amp; check it.</dd>" in shown
-
-
-def test_overview_escapes_what_the_front_matter_says_in_a_card():
-    item = Lesson(**{**lesson("tricky", order=9).__dict__, "title": "A < B & C"})
-    shown = str(PathOverview(LearningPath((item,)), PATH_PAGE))
-
-    assert "A &lt; B &amp; C" in shown
-    assert "A < B" not in shown
-
-
-def test_overview_puts_every_lesson_in_one_row_with_its_facts():
-    # A row is one list item: heading, the question when there is one, and
-    # the facts in its details, so a reader gets the same structure for each
-    # lesson.
-    lessons = []
-    for order in range(1, 12):
-        earlier = ("l1",) if order > 1 else ()
-        item = lesson(f"l{order}", order=order, prerequisites=earlier)
-        description = f"About lesson {order},\nin two lines." if order % 2 else ""
-        lessons.append(Lesson(**{**item.__dict__, "description": description}))
-
-    shown = str(PathOverview(LearningPath(tuple(lessons)), PATH_PAGE))
-
-    assert shown.count('<li class="path-card" data-lesson-id=') == 11
-    # Six facts each, and the seventh, what the reader builds, for the six
-    # lessons that have a description.
-    assert shown.count("<dt>") == 11 * 6 + 6
-    assert shown.count("<dt>What you build</dt>") == 6
-    assert shown.count('<p class="lesson-question">') == 6  # lessons 1, 3, ... 11
-
-
-def test_a_lesson_with_simulation_data_and_agents_gets_a_chip_for_each():
-    base = lesson("a", order=1)
-    helper = Lesson(**{**lesson("b", order=2).__dict__, "methods": ("llm-agents",)})
-    main = Lesson(
-        **{
-            **base.__dict__,
-            "methods": ("simulation", "measured-data"),
-            "related": ("b",),
-        }
-    )
-
-    shown = str(PathOverview(LearningPath((main, helper)), PATH_PAGE))
-    chips = re.findall(r'<ul class="chips"[^>]*>(.*?)</ul>', shown)
-
-    assert (
-        chips[0]
-        == "<li>Simulation</li><li>Experimental data</li><li>AI extensions</li>"
-    )
-    assert chips[1] == "<li>AI extensions</li>"
-
-
-def test_a_site_with_a_preview_shows_one_thumbnail_with_alt_text_per_row(
-    site: Path,
-):
-    shown = str(PathOverview(LearningPath.read(site), PATH_PAGE, site))
-
-    thumbnails = re.findall(r'<img class="lesson-thumbnail"[^>]*>', shown)
-    assert len(thumbnails) == 4
-    for thumbnail in thumbnails:
-        assert re.search(r'src="\.\./previews/[a-z0-9-]+\.svg"', thumbnail)
-        assert re.search(r'alt="Preview, [^"]+"', thumbnail)
-    # The panel shows the preview of its representative lesson.
-    assert shown.count('<img class="course-thumbnail"') == 1
-    assert "http" not in " ".join(re.findall(r'src="([^"]+)"', shown))
+    assert data["lesson"] is None
+    assert data["explanation"] == "index.html#your-progress"
+    assert [item["id"] for item in data["path"]] == [x.id for x in path.lessons]
+    for item, lesson_ in zip(data["path"], path.lessons, strict=True):
+        assert item["prerequisites"] == list(lesson_.prerequisites)
+        assert item["title"] == lesson_.title
+    assert '<script type="module" src="../learner/progress.js"></script>' in shown
 
 
 def test_overview_explains_what_previous_and_next_mean(path: LearningPath):
-    section = str(PathOverview(path, PATH_PAGE)).split("## Order {#order}")[1]
-    section = section.split("## Courses")[0]
+    section = str(PathOverview(path, PATH_PAGE)).split("### Order {#order}")[1]
 
     assert "Previous and next" in section
     assert "Classical mechanics, then Formal proofs" in section
@@ -651,8 +563,7 @@ def test_overview_of_a_site_without_lessons_says_so():
     shown = str(PathOverview(LearningPath(()), PATH_PAGE))
 
     assert "No lesson has been published yet." in shown
-    assert "{#courses}" not in shown and "{#methods}" not in shown
-    assert "## Difficulty {#difficulty}" in shown
+    assert "### Difficulty {#difficulty}" in shown
 
 
 def pandoc_blocks(markdown: str) -> list[dict]:
@@ -687,7 +598,7 @@ def test_helpers_find_the_page_from_the_directory_the_cell_runs_in(
     monkeypatch.chdir(site / "path")
     overview = learning_path()
     assert overview.page == PATH_PAGE
-    assert 'href="../lessons/mechanics/02-newton/index.html"' in str(overview)
+    assert '"href":"../lessons/mechanics/02-newton/index.html"' in str(overview)
 
 
 def test_header_outside_a_lesson_directory_is_an_error(

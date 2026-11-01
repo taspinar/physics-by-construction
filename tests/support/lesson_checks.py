@@ -664,10 +664,12 @@ def check_path(repository: Path) -> list[Violation]:
 
 
 def check_atlas(repository: Path) -> list[Violation]:
-    """The map manifest of the course atlas follows its rules (ADR 018
-    decision 3): every reference resolves, every capstone slot is represented
-    by one concept, and nothing that the curriculum file or the front matter
-    holds, and no prerequisite, is written in it."""
+    """The manifest of the course atlas follows its rules (ADR 018 decision
+    3, ADR 021 decision 3): one entry per course and method path with its
+    description and a registered illustration, every reference resolves,
+    every capstone slot is represented by one concept, and nothing that the
+    curriculum file or the front matter holds, and no prerequisite, is
+    written in it."""
     try:
         curriculum = learning_path.Curriculum.read(repository / SITE)
         atlas.AtlasManifest.read(repository / SITE, curriculum)
@@ -1136,11 +1138,13 @@ def check_committed_files(repository: Path) -> list[Violation]:
     The replay fixture is exempt by its location alone (ADR 002): it is the
     file ``replay.json``, or ``replay-<name>.json`` where a lesson records
     several runs, next to the page of a lesson. The one other exemption is
-    interface artwork (ADR 018 decision 2): an SVG under ``site/assets/``
-    that the provenance register names with an author and a licence.
+    interface artwork (ADR 018 decision 2, ADR 021 decision 2): an SVG under
+    ``site/assets/`` that the provenance register names with an author and a
+    licence, or a WebP or PNG there that it names with a complete raster
+    entry (its origin, a licence, and the SHA-256 of its master).
     """
     violations = []
-    artwork = _authored_artwork(repository)
+    artwork = _admitted_artwork(repository)
     for path in committed_files(repository):
         if path.parts[0] not in _SOURCE_TREES:
             continue
@@ -1174,13 +1178,31 @@ def check_committed_files(repository: Path) -> list[Violation]:
 # --- Interface artwork ----------------------------------------------------------
 #
 # The provenance register, site/assets/provenance.yaml, maps the path of every
-# SVG under site/assets/ (relative to that directory) to its source: authored,
-# with ``author``, ``licence``, and an optional ``source``, or generated at
-# build time by ``module`` (ADR 018 decision 2; docs/atelier.md, "The three
-# asset classes").
+# image under site/assets/ (relative to that directory) to its source (ADR 018
+# decision 2, ADR 021 decision 2; docs/atelier.md, "The three asset classes"):
+# an SVG is authored, with ``author``, ``licence``, and an optional ``source``,
+# or generated at build time by ``module``; a WebP or PNG is a derived raster,
+# with its origin (``script``, a file of the repository; ``author``; or
+# ``model`` with its ``prompt``), a ``licence``, the file name of its
+# ``master``, and the master's ``sha256``, and optionally a ``date`` and a
+# ``source``.
 
 _AUTHORED_FIELDS = {"author", "licence", "source"}
 _GENERATED_FIELDS = {"module"}
+_RASTER_FIELDS = {
+    "author",
+    "script",
+    "model",
+    "prompt",
+    "date",
+    "licence",
+    "master",
+    "sha256",
+    "source",
+}
+_RASTER_SUFFIXES = {".webp", ".png"}
+_IMAGE_SUFFIXES = {".svg", *_RASTER_SUFFIXES}
+_SHA256 = re.compile(r"[0-9a-f]{64}")
 
 
 def _register_entries(repository: Path) -> tuple[dict[str, Any], list[str]]:
@@ -1221,16 +1243,79 @@ def _is_authored(entry: Any) -> bool:
     )
 
 
-def _authored_artwork(repository: Path) -> set[Path]:
-    """The SVGs under site/assets that the register names with an author and
-    a licence: the files the committed-artifact check admits."""
+def _is_date(value: Any) -> bool:
+    """A date as YAML reads ``2026-10-30``, or as such a text."""
+    if isinstance(value, datetime.date):
+        return True
+    try:
+        datetime.date.fromisoformat(str(value))
+    except ValueError:
+        return False
+    return isinstance(value, str)
+
+
+def _raster_problems(name: str, entry: Any, files: set[Path]) -> list[str]:
+    """What the entry of the raster ``name`` lacks to be complete."""
+    if not isinstance(entry, dict):
+        return [f"the entry of '{name}' is not a mapping"]
+    problems = [
+        f"the entry of '{name}' has the unknown field '{field}'"
+        for field in sorted(set(entry) - _RASTER_FIELDS)
+    ]
+    for field in ("licence", "master"):
+        if not _is_text(entry.get(field)):
+            problems.append(f"the entry of '{name}' needs a '{field}'")
+    if not (
+        isinstance(entry.get("sha256"), str) and _SHA256.fullmatch(entry["sha256"])
+    ):
+        problems.append(
+            f"the entry of '{name}' needs the 'sha256' of its master, 64 hex digits"
+        )
+    for field in ("author", "model", "prompt", "source"):
+        if field in entry and not _is_text(entry[field]):
+            problems.append(f"the '{field}' of '{name}' is not a text")
+    if "date" in entry and not _is_date(entry["date"]):
+        problems.append(f"the 'date' of '{name}' is not a date such as 2026-10-30")
+    if not any(_is_text(entry.get(field)) for field in ("script", "author", "model")):
+        problems.append(
+            f"the entry of '{name}' names no origin: a 'script', an 'author',"
+            " or a 'model' with its 'prompt' and 'date'"
+        )
+    if "model" in entry and not (
+        _is_text(entry.get("prompt")) and _is_date(entry.get("date"))
+    ):
+        problems.append(
+            f"the entry of '{name}' names a model without its prompt and date"
+        )
+    if "script" in entry:
+        script = entry["script"]
+        if not _is_text(script) or Path(script) not in files:
+            problems.append(
+                f"the script of '{name}' is not a file of the repository: {script!r}"
+            )
+    return problems
+
+
+def _admitted_artwork(repository: Path) -> set[Path]:
+    """The images under site/assets that the committed-artifact check admits:
+    an SVG that the register names with an author and a licence, and a WebP or
+    PNG that it names with a complete raster entry."""
     entries, problems = _register_entries(repository)
     if problems:
         return set()
+    files = set(committed_files(repository))
     artwork = set()
     for name, entry in entries.items():
         path = _asset_path(name)
-        if path is not None and path.suffix == ".svg" and _is_authored(entry):
+        if path is None:
+            continue
+        if path.suffix == ".svg":
+            admitted = _is_authored(entry)
+        else:
+            admitted = path.suffix in _RASTER_SUFFIXES and not _raster_problems(
+                name, entry, files
+            )
+        if admitted:
             artwork.add(path)
     return artwork
 
@@ -1239,8 +1324,15 @@ def _asset_entry_problems(name: Any, entry: Any, files: set[Path]) -> list[str]:
     path = _asset_path(name)
     if path is None:
         return [f"'{name}' is not a path under {ASSETS}"]
-    if path.suffix != ".svg":
-        return [f"'{name}' is not an SVG; the register names SVGs only"]
+    if path.suffix not in _IMAGE_SUFFIXES:
+        return [
+            f"'{name}' is not an SVG, a WebP, or a PNG; the register names nothing else"
+        ]
+    if path.suffix in _RASTER_SUFFIXES:
+        problems = _raster_problems(name, entry, files)
+        if path not in files:
+            problems.append(f"'{name}' is registered, but there is no file {path}")
+        return problems
     if not isinstance(entry, dict):
         return [f"the entry of '{name}' is not a mapping"]
     problems = [
@@ -1275,8 +1367,8 @@ def _importable(module: str) -> bool:
 
 
 def check_asset_sources(repository: Path) -> list[Violation]:
-    """Every SVG under site/assets has its entry in the provenance register,
-    and every entry follows the register's format."""
+    """Every SVG, WebP, and PNG under site/assets has its entry in the
+    provenance register, and every entry follows the register's format."""
     entries, problems = _register_entries(repository)
     violations = [
         Violation("asset-source", ASSET_REGISTER, problem) for problem in problems
@@ -1291,14 +1383,14 @@ def check_asset_sources(repository: Path) -> list[Violation]:
     for path in sorted(files):
         if (
             path.parts[:2] == Path(ASSETS).parts
-            and path.suffix.lower() == ".svg"
+            and path.suffix.lower() in _IMAGE_SUFFIXES
             and path not in registered
         ):
             violations.append(
                 Violation(
                     "asset-source",
                     path.as_posix(),
-                    f"an SVG under {ASSETS} without its entry in {ASSET_REGISTER}",
+                    f"an image under {ASSETS} without its entry in {ASSET_REGISTER}",
                 )
             )
     return violations
