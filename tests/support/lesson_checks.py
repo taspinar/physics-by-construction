@@ -1147,6 +1147,18 @@ def check_committed_files(repository: Path) -> list[Violation]:
     artwork = _admitted_artwork(repository)
     for path in committed_files(repository):
         if path.parts[0] not in _SOURCE_TREES:
+            # Outside the source trees nothing is checked but the one rule
+            # that holds for the whole repository: no image anywhere else
+            # than the registered artwork under site/assets/ (I6).
+            if path.suffix.lower() in _GENERATED_SUFFIXES["figure"]:
+                violations.append(
+                    Violation(
+                        "committed-artifact",
+                        path.as_posix(),
+                        "an image outside site/assets/; the only committed images"
+                        " are the registered interface artwork there",
+                    )
+                )
             continue
         in_lessons = path.parts[:2] == Path(LESSONS).parts
         if in_lessons and _lesson_file(path):

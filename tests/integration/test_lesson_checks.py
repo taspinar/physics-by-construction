@@ -1227,6 +1227,39 @@ def test_raster_with_an_incomplete_entry_is_reported(
 @pytest.mark.parametrize(
     "path",
     [
+        "docs/figure.png",
+        "docs/changes/figure.webp",
+        "tools/illustrations/master.png",
+        "tools/mark.svg",
+        "scripts/mark.jpg",
+        "README.png",
+    ],
+)
+def test_an_image_outside_the_source_trees_is_reported(
+    make_repository: Repository, path: str
+):
+    repository = make_repository(files={path: "raster"})
+
+    violations = lesson_checks.check_committed_files(repository)
+
+    assert [(violation.rule, violation.page) for violation in violations] == [
+        ("committed-artifact", path)
+    ]
+
+
+def test_a_script_or_a_document_outside_the_source_trees_is_not_reported(
+    make_repository: Repository,
+):
+    repository = make_repository(
+        files={"tools/illustrations/render.py": "code", "docs/notes.md": "text"}
+    )
+
+    assert lesson_checks.check_committed_files(repository) == []
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
         "site/assets/mark.gif",
         "site/assets/mark.jpg",
         "site/assets/mark.jpeg",

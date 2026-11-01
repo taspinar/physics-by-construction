@@ -167,8 +167,22 @@ def test_a_phone_shows_an_accordion_with_the_open_panel_under_its_card(
     assert panel["x"] >= card["x"] and panel["x"] + panel["width"] <= NARROW["width"]
     page.locator("#path-benchmarking > summary").click()
     assert open_ids(page) == ["path-benchmarking"]
-    card = box(page, "#path-benchmarking > summary")
-    panel = box(page, "#path-benchmarking .atlas-panel")
+    # Opening scrolls the card into view after the toggle; measure once that
+    # has happened, and the card and the panel in one step, so that a slow
+    # runner cannot take the two boxes on either side of the scroll.
+    page.wait_for_function(
+        "() => document.querySelector('#path-benchmarking > summary')"
+        ".getBoundingClientRect().top <= window.innerHeight / 2"
+    )
+    card, panel = page.evaluate(
+        """() => [
+            "#path-benchmarking > summary",
+            "#path-benchmarking .atlas-panel",
+        ].map((selector) => {
+                const r = document.querySelector(selector).getBoundingClientRect();
+                return { y: r.y, height: r.height };
+            })"""
+    )
     assert panel["y"] >= card["y"] + card["height"] - 1
     # Opening scrolls the card into view.
     assert -1 <= card["y"] <= NARROW["height"] / 2
