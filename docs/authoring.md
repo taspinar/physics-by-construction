@@ -204,17 +204,24 @@ the build of a page fails on it too.
 
 ### The course atlas
 
-Since F125 the path page opens with the course atlas (ADR 018 decision 3):
-a map of the eight courses, the four method paths, and the Lean and method
-views, written by `pbc.authoring.atlas` when the page is built, above the
-course index. Its data come from three places and nowhere else: courses,
-paths, and slots from `site/curriculum.yaml`; titles, publication,
-prerequisites, and addresses from the front matter; and from the map
-manifest `site/atlas.yaml` only what neither holds:
+The path page is the course atlas (F133, ADR 021 decision 3): the eight
+courses, the four method paths, and the Lean lessons beyond the curriculum,
+each a native disclosure whose summary is a card and whose content is the
+panel with the lesson rows (docs/atelier.md, "The course atlas"), written by
+`pbc.authoring.atlas` when the page is built. Its data come from three
+places and nowhere else: courses, paths, and slots from
+`site/curriculum.yaml`; titles, publication, prerequisites, and addresses
+from the front matter; and from the manifest `site/atlas.yaml` only what
+neither holds:
 
-- `concepts`: each with an `id` (lower case and hyphens; the map shows it
-  in words, so it is the concept's name), an `area` (a course or a path),
-  a `position` `[column, row]` in the area's grid of 2 by 4, its `slots`,
+- `sequences`: one entry for every course and every method path of the
+  curriculum file, and no other, each with its `id`, a one-sentence
+  `description` (the panel's line), and its `illustration`, the stem of
+  its four files under `site/assets/` (`atlas/<id>-card-152.webp`,
+  `-card-228.webp`, `-panel-400.webp`, `-panel-800.webp`), each of which
+  the provenance register `site/assets/provenance.yaml` names;
+- `concepts`: each with an `id` (lower case and hyphens; it is the
+  concept's name in words), an `area` (a course or a path), its `slots`,
   and a one-sentence `explanation`;
 - `connections`: two `concepts`, a `type` (`same-mathematics`, `limit`,
   `same-method`, or `application`; `limit` and `application` read "the
@@ -222,38 +229,46 @@ manifest `site/atlas.yaml` only what neither holds:
 
 A concept whose only slot is a capstone slot represents that capstone: its
 explanation is the capstone's planned description, the one place that text
-lives, kept consistent with the roadmap. A concept that names a capstone
-slot beside its own slots is a member of that capstone. The build derives
-everything else: a concept's lessons from its slots (never from a title),
-its state and counts, the prerequisite edges between concepts from the
-lessons' prerequisites, and capstone membership.
+lives, kept consistent with the roadmap; the atlas shows it under a planned
+capstone's row. A concept that names a capstone slot beside its own slots is
+a member of that capstone. The build derives everything else: the rows of a
+sequence (the slots of a course or a path in the order of the curriculum
+file, filled by their lessons or planned; a course's lessons without a slot
+after them; the Lean strand's slots and the Lean lessons without a slot in
+the Lean entry), so that every published lesson is a row of exactly one
+sequence; the counts, never counting a planned slot as published; a
+concept's lessons from its slots (never from a title); and capstone
+membership.
 
 The lesson source checks reject a manifest with an unknown field, a field
-that the curriculum file or the front matter holds (a title, a description,
-an outcome, a prerequisite, a state, a count, a lesson), an illustration
-reference, a connection of type `prerequisite` or `capstone`, a reference
-that does not resolve, a concept without a slot or with a slot outside its
-area, two concepts on one position, and a capstone slot that is not
-represented by exactly one concept. A new slot in the curriculum file needs
-its concept here (a unit test checks that every course and path slot is on
-the map). Every concept-to-slot association and every connection is a
-scientific claim about the curriculum: it is reviewed independently, and
-the owner approves the file.
+that the curriculum file or the front matter holds (a title, an outcome, a
+prerequisite, a state, a count, a lesson, a position), a sequence missing,
+unknown, or named twice, a sequence without its description or with an
+illustration the register does not name, a description or an illustration
+on a concept, a connection of type `prerequisite` or `capstone`, a
+reference that does not resolve, a concept without a slot or with a slot
+outside its area, and a capstone slot that is not represented by exactly one
+concept. A new slot in the curriculum file needs its concept here (a unit
+test checks that every course and path slot belongs to one). Every
+concept-to-slot association and every connection is a scientific claim about
+the curriculum: it is reviewed independently, and the owner approves the
+file.
 
-When scripts run, `site/learner/atlas.js` (F126) adds the atlas's controls:
-selection with the selected concept's panel under the map, what the map
-shows (every relationship, the concepts alone, the prerequisites, or the
-conceptual connections), zoom from the natural size upwards, a region
-selector with the region's list, and filters in step with the course
-index's (`site/learner/path.js`). It reads only what the page holds: the
-edges' `data-kind`, `data-from`, and `data-to`; on each concept box
-`data-area`, `data-lessons`, and `data-planned`; on each lesson plate of the
-views `data-course`, `data-path`, `data-methods`, and `data-difficulty`; and
-the concept panels it copies. A change to the generator keeps those
-attributes, and the two places the page declares for the script
-(`#atlas-controls` and `#atlas-selection`, each with its sentence for a
-reader without scripts). The modules store nothing and request nothing;
-nothing on the page depends on them.
+The relationships appear on the lesson pages: the header of a published
+lesson whose slot belongs to a concept with a conceptual connection or a
+capstone membership has a row "Connections", each connection as a sentence
+of its type with the rationale and a link to the other concept's sequence,
+each capstone membership with the capstone, and for a capstone the concepts
+it integrates. A planned lesson has no page and shows none.
+
+`site/learner/atlas.js` makes the address follow the open sequence and
+opens the sequence an address names, including the anchors of the previous
+atlas (`#course-<id>-lessons` and `#concept-<id>`, listed in each
+disclosure's `data-aliases`). It stores nothing and requests nothing;
+nothing on the page depends on it. The illustrations are interface artwork:
+WebP files under `site/assets/atlas/`, registered with their origin, licence,
+and master hash; the scripts that made them are in `tools/illustrations/`
+(its README), outside the build.
 
 ## Sections
 

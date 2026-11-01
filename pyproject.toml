@@ -51,8 +51,20 @@ packages = ["src/pbc"]
 
 [tool.ruff]
 line-length = 88
-# Fetched Lean packages contain Python scripts that are not ours.
-extend-exclude = ["lean/.lake"]
+# Fetched Lean packages contain Python scripts that are not ours. The owner's
+# illustration scripts are committed as delivered (ADR 021 decision 2;
+# tools/illustrations/README.md) and are neither run nor imported by the site.
+extend-exclude = [
+  "lean/.lake",
+  "tools/illustrations/double_pendulum_atlas.py",
+  "tools/illustrations/generate_fluid_dynamics.py",
+  "tools/illustrations/generate_wigner_cat.py",
+  "tools/illustrations/render_hot_cold.py",
+  "tools/illustrations/render_part_b.py",
+  "tools/illustrations/render_phonons.py",
+  "tools/illustrations/render_solenoid.py",
+  "tools/illustrations/render_waves.py",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]

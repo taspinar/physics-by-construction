@@ -2092,13 +2092,13 @@ def check_learner_state_stays_local(
     return violations
 
 
-# --- The atlas modules (F126) ------------------------------------------------
+# --- The atlas module (F126, F133) ------------------------------------------
 
-# The scripts of the learner directory that enhance the course atlas and the
-# index of the path page. They keep nothing at all: no request, no other
-# origin, and no browser storage, local storage included;
+# The script of the learner directory that enhances the course atlas: the
+# address follows the open sequence. It keeps nothing at all: no request, no
+# other origin, and no browser storage, local storage included;
 # site/learner/progress.js stays the only script that stores anything.
-ATLAS_MODULES = ("atlas.js", "path.js")
+ATLAS_MODULES = ("atlas.js",)
 _FORBIDDEN_IN_ATLAS_MODULES = {
     "request": _REQUEST,
     "other origin": _FORBIDDEN_IN_WIDGETS["other origin"],

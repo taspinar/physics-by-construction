@@ -77,7 +77,10 @@ title: "Learning path"
 #| echo: false
 #| output: asis
 from pbc.authoring import learning_path
+from pbc.authoring.atlas import course_atlas
 
+# As site/path/index.qmd: the sequences list the lessons (F133).
+print(course_atlas())
 print(learning_path())
 ```
 """
