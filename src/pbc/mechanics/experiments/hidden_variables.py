@@ -117,7 +117,9 @@ def _verdicts(experiment: Experiment, name: str, data, caption: str) -> None:
             ("parameters determined", "", ""),
             ("held-out error of its best fit", "relative", ".2g"),
         ],
-        caption,
+        f"{caption} Where the parameters are not determined, the best fit is"
+        " one point of a line of equally good fits that predict the held-out"
+        " settings differently, and no held-out error is given.",
     )
 
 

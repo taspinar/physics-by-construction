@@ -210,9 +210,12 @@ result.table("d11-record")
 
 [Every hypothesis is consistent with the observational record, the
 parameters of the hypotheses with a hidden force are not determined by it,
-and every hypothesis's best fit fails the held-out settings by far.]{.claim
-type="numerically-verified" scope="the observational record of one mass and
-short times, the four hypotheses" evidence="d11-record"} Of the
+and the best fits of free fall and of drag alone fail the held-out settings
+by far.]{.claim type="numerically-verified" scope="the observational record
+of one mass and short times, the four hypotheses" evidence="d11-record"} A
+hypothesis with a hidden force has no single best fit: the record fixes
+$g - F/m$, and the laws along that line fit it equally well but predict the
+light and heavy bodies of the held-out settings differently. Of the
 `{python} result["candidate-laws"]` candidate laws on the grid of hidden
 forces and drags, `{python} result["rival-laws"]` are consistent with the
 record. The record is not wrong; it is silent on the question.

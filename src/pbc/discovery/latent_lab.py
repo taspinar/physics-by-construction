@@ -281,7 +281,14 @@ def fit_hypothesis(data: Dataset, held: Mapping[str, float]) -> FitResult | None
 
 @dataclass(frozen=True)
 class Verdict:
-    """A hypothesis fitted to a set of readings."""
+    """A hypothesis fitted to a set of readings.
+
+    ``held_out_error`` is ``None`` when the readings do not determine the
+    parameters: they fix only a combination of them (at one mass, ``g -
+    F/m``), every point of the line it leaves free fits equally well, and the
+    fit stops at one of them by its start and the rounding of the machine.
+    The laws on that line predict the held-out settings differently, so no
+    single held-out error belongs to the hypothesis."""
 
     hypothesis: str
     chi2: float
@@ -289,13 +296,13 @@ class Verdict:
     consistent: bool
     identifiable: bool
     claim: Mapping[str, float]
-    held_out_error: float
+    held_out_error: float | None
 
 
 def judge_hypotheses(data: Dataset) -> tuple[Verdict, ...]:
     """Each of ``HYPOTHESES`` fitted to ``data``, with the chi-square rule,
     whether the readings determine its parameters, and the judge's score of
-    its best fit."""
+    its best fit when they do."""
     world = environment()
     found = []
     for name, zero in HYPOTHESES.items():
@@ -304,15 +311,16 @@ def judge_hypotheses(data: Dataset) -> tuple[Verdict, ...]:
         if fit is None:
             continue
         claim = held | dict(zip(fit.names, map(float, fit.params), strict=True))
+        identifiable = all(fit.identifiable)
         found.append(
             Verdict(
                 name,
                 fit.chi2,
                 fit.dof,
                 consistent(fit.chi2, fit.dof),
-                all(fit.identifiable),
+                identifiable,
                 claim,
-                world.held_out_error(claim),
+                world.held_out_error(claim) if identifiable else None,
             )
         )
     return tuple(found)
