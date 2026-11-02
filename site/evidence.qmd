@@ -5,23 +5,11 @@ description: >-
   reference, dataset card, or Lean theorem that supports it.
 ---
 
-A lesson marks each statement that a reader could take for a scientific
-result as a claim and gives it a type: observational, experimentally
-supported, numerically verified, or formal theorem. The type says what kind of
-evidence stands behind the statement. This page lists every claim of the
-site, lesson by lesson, with its scope and the evidence it names. The claim
-links to its place in the lesson. The evidence is one of these:
-
-- a cell of the lesson that the build runs again;
-- a curated reference of the register, an outbound link;
-- a dataset card of the repository;
-- a theorem that Lean checks;
-- a recorded run of an agent that the build replays.
-
-A claim without evidence, or with evidence that does not exist, stops the
-build, so every row below has a target. The page is generated from the lessons
-when the site is built. Where a statement quotes a value that the lesson
-computes, the value is shown as "…"; the lesson has it.
+Every claim of the lessons, lesson by lesson, with its type, its scope, and
+the evidence it names; each claim links to its place in the lesson. Where a
+statement quotes a value that the lesson computes, the value is shown as "…".
+[How we verify the science](verify.qmd) explains the four types of claim and
+their evidence with worked examples.
 
 ```{python}
 #| echo: false

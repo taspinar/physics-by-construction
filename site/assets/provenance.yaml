@@ -22,8 +22,6 @@ assets:
     source: >-
       Authored for the project (F123): Euclid's construction of the
       equilateral triangle, the mark in the header of every page.
-  home-wavefront.svg:
-    module: pbc.authoring.home_artwork
   atlas/mechanics-card-152.webp:
     script: tools/illustrations/double_pendulum_atlas.py
     author: Ahmet Taspinar

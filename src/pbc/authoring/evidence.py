@@ -23,7 +23,7 @@ import re
 import subprocess
 from collections.abc import Iterator
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import yaml
@@ -58,6 +58,12 @@ _MARKDOWN_SPECIAL = re.compile(r"([\\`*_\[\]<>|$~^#&])")
 _SEPARATOR_BLOCK = "-" * 72
 
 
+def markdown_text(text: str) -> str:
+    """The text with every character that Markdown would read as markup
+    escaped: a claim's scope reads the same on every page that shows it."""
+    return _MARKDOWN_SPECIAL.sub(r"\\\1", text)
+
+
 @dataclass(frozen=True)
 class Claim:
     """A claim as written in a lesson."""
@@ -72,6 +78,13 @@ class Claim:
     @property
     def anchor(self) -> str:
         return CLAIM_ID.format(number=self.number)
+
+    @property
+    def row(self) -> str:
+        """The identifier of the claim's row on the evidence page: the strand,
+        the lesson's directory, and the claim's anchor."""
+        lesson = PurePosixPath(self.page).parent
+        return f"{lesson.parent.name}-{lesson.name}-{self.anchor}"
 
 
 @dataclass(frozen=True)
@@ -421,9 +434,9 @@ class EvidencePage:
             for claim in mine:
                 link = page_href(self.evidence.page, page, claim.anchor)
                 lines.append(
-                    f"| [{claim.statement}]({link})"
+                    f"| []{{#{claim.row}}}[{claim.statement}]({link})"
                     f" | {_TYPE_NAMES[claim.type]}"
-                    f" | {_MARKDOWN_SPECIAL.sub(r'\\\1', claim.scope) or 'not stated'}"
+                    f" | {markdown_text(claim.scope) or 'not stated'}"
                     f" | {self._links(claim)} |"
                 )
             lines += ["", f": {caption} {{.result-table}}", "", ":::", ""]

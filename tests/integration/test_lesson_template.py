@@ -55,6 +55,11 @@ def repository(tmp_path_factory: pytest.TempPathFactory) -> Path:
         # there; those lessons get the conceptual fallback.
         front_matter = re.sub(r"^  preview: .*\n", "", front_matter, flags=re.M)
         page.write_text(front_matter + separator)
+    # Without the bodies there are no claims, so the worked examples of "How
+    # we verify the science" would name missing targets and fail the build,
+    # as they must (tests/integration/test_verify_build.py); the page is not
+    # what this copy tests.
+    (repository / "site" / "verify.qmd").unlink()
     text = TEMPLATE.read_text()
     for placeholder, value in PLACEHOLDERS.items():
         assert placeholder in text

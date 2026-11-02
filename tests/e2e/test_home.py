@@ -1,263 +1,304 @@
-"""The built home page (F124, after F25): the opening with its verified figure
-and, in a disclosure, its provenance and the energy, the three activities with
-published examples, Part A (three featured courses and a compact row) and
-Part B ("Physics + AI") from the curriculum file and the lessons with links
-into the atlas, the capstone projects from the map manifest with the featured
-one on the dark ground beside its conceptual artwork, and the invitation.
-Read without JavaScript."""
+"""The built home page (F134, ADR 021 decision 4): the hero with the owner's
+pairs, one forced by the `hero` parameter or one at random, the default pair
+without scripts, one <h1> that does not change after load, no layout shift,
+and no request or storage by its script; the start button above the fold on
+a desktop and a phone; what the site is, the examples chosen by code, and
+the invitation, every link generated from data and reaching its target.
+The accessibility scan, the reflow at 320 CSS px, and the payload budget are
+the checks every page gets (tests/e2e/test_built_site.py)."""
 
-import subprocess
-import sys
-from pathlib import Path
+from collections import Counter
 
 import pytest
-from playwright.sync_api import Browser, BrowserContext
+import yaml
+from playwright.sync_api import Browser, BrowserContext, Page
 from support.paths import SITE_SOURCE
-from support.site_checks import DESKTOP
+from support.site_checks import _RECORD_STORAGE_WRITES, _STORAGE_ENTRIES, DESKTOP
 from support.site_server import SiteServer
 
-from pbc.authoring import COURSES, LearningPath, home_artwork
-from pbc.authoring.atlas import CAPSTONE, AtlasManifest
-from pbc.authoring.home import (
-    ARTWORK_LABEL,
-    CONSTRUCT_EXAMPLE,
-    FEATURED_CAPSTONE,
-    FEATURED_COURSES,
-    FEATURED_HEADING,
-    INVESTIGATE_EXAMPLE,
-    OPENING_SOURCE,
-    VERIFY_EXAMPLE,
-)
-from pbc.mechanics.experiments import home_opening
+from pbc.authoring import LearningPath
+from pbc.authoring.atlas import AtlasManifest
+from pbc.authoring.home import HERO_PAIRS, HeroCopy, HomeContent
 
 LESSONS = LearningPath.read(SITE_SOURCE)
-MANIFEST = AtlasManifest.read(SITE_SOURCE, LESSONS.curriculum)
-SECTIONS = ["about-the-site", "part-a", "part-b", "capstones", "begin"]
+HERO = HeroCopy.read(SITE_SOURCE)
+HOME = HomeContent(LESSONS, AtlasManifest.read(SITE_SOURCE, LESSONS.curriculum), HERO)
+PHONE_TALL = {"width": 390, "height": 844}
+SECTIONS = ["about-the-site", "examples", "begin"]
+APOSTROPHE = chr(0x2019)
+
+
+def typographic(text: str) -> str:
+    return text.replace("'", APOSTROPHE)
 
 
 @pytest.fixture
-def home(browser: Browser, server: SiteServer):
-    context: BrowserContext = browser.new_context(
-        viewport=DESKTOP, java_script_enabled=False
-    )
-    page = context.new_page()
-    page.goto(server.url + "index.html", wait_until="load")
-    yield page
+def without_scripts(browser: Browser):
+    context = browser.new_context(viewport=DESKTOP, java_script_enabled=False)
+    yield context
     context.close()
 
 
-def plain(text: str) -> str:
-    # The build turns apostrophes into typographic ones.
-    return text.replace("\u2019", "'")
+def open_home(context: BrowserContext, server: SiteServer, query: str = "") -> Page:
+    page = context.new_page()
+    page.goto(server.url + "index.html" + query, wait_until="load")
+    return page
 
 
-def built(lesson_id: str, server: SiteServer) -> str:
-    page = LESSONS.lesson(lesson_id).page.removesuffix(".qmd") + ".html"
-    return server.url + page
+def built(lesson_page: str, server: SiteServer) -> str:
+    return server.url + lesson_page.removesuffix(".qmd") + ".html"
 
 
 def hrefs(locator) -> list[str]:
     return locator.evaluate_all("links => links.map(a => a.href)")
 
 
-def test_the_page_has_the_opening_then_the_sections_in_order(home):
-    assert home.locator("main h1").all_inner_texts() == [
-        "Build a world. See if it obeys physics."
-    ]
-    ids = home.locator("main section.level2").evaluate_all(
+def shown(page: Page) -> tuple[str, str]:
+    return (
+        page.locator("main h1").inner_text(),
+        page.locator(
+            ".hero-copy > .hero-pair:not(.hero-ghost) .hero-subtext"
+        ).inner_text(),
+    )
+
+
+# --- The hero ------------------------------------------------------------------
+
+
+def test_without_scripts_the_page_has_the_default_pair_and_one_h1(
+    without_scripts: BrowserContext, server: SiteServer
+):
+    page = open_home(without_scripts, server)
+    default = HERO.pair(HERO.default)
+    assert page.locator("h1").count() == 1
+    assert shown(page) == (typographic(default.headline), typographic(default.subtext))
+    assert page.locator(".hero-ghost").count() == 0
+    assert page.title() == "Physics by Construction"
+    description = page.locator('meta[name="description"]').get_attribute("content")
+    assert description and "Physics taught by constructing it" in description
+    ids = page.locator("main section.level2").evaluate_all(
         "sections => sections.map(s => s.id)"
     )
     assert ids == SECTIONS
-    # The opening, with its figure, comes before the first section.
-    assert home.locator("main .home-opening #fig-opening").count() == 1
-    assert home.locator("main .home-opening ~ section#about-the-site").count() == 1
-    assert home.locator("footer").count() == 1
 
 
-def test_no_section_presents_a_teaching_formula(home):
-    text = home.locator("main").inner_text()
-    assert "From a question to a working model" not in text
-    assert "One result, constructed and proved" not in text
-    headings = home.locator("main h2, main h3").all_inner_texts()
-    assert not [h for h in headings if h[:1].isdigit() or h.startswith("Step")]
-    assert not [h for h in headings if h in ("Construct", "Investigate", "Verify")]
-    assert home.locator("main ol").count() == 0
-
-
-def test_the_opening_figure_is_the_verified_figure_with_its_provenance(
-    home, server: SiteServer, tmp_path: Path
+@pytest.mark.parametrize("pair_id", HERO_PAIRS)
+def test_the_hero_parameter_shows_each_pair(
+    browser: Browser, server: SiteServer, pair_id: str
 ):
-    # Byte for byte the files the module's command writes in a process of its
-    # own, as the experiment checks of the lessons compare (ADR 016 decision
-    # 4): no script computes the figures. In this test process the figures of
-    # other tests leave Matplotlib in another state.
-    subprocess.run(
-        [sys.executable, "-m", home_opening.__name__, str(tmp_path)], check=True
+    context = browser.new_context(viewport=DESKTOP)
+    page = open_home(context, server, f"?hero={pair_id}")
+    pair = HERO.pair(pair_id)
+    assert shown(page) == (typographic(pair.headline), typographic(pair.subtext))
+    assert page.locator(".hero-copy").get_attribute("data-hero") == pair_id
+    assert page.locator("h1").count() == 1
+    # Every pair stands hidden in the same cell, and none is announced.
+    ghosts = page.locator(".hero-ghost")
+    assert ghosts.count() == len(HERO_PAIRS)
+    assert ghosts.evaluate_all(
+        "gs => gs.every(g => g.getAttribute('aria-hidden') === 'true'"
+        " && getComputedStyle(g).visibility === 'hidden')"
     )
-    for label in (home_opening.LABEL, home_opening.ENERGY_LABEL):
-        figure = home.locator(f"main #{label}")
-        image = figure.locator("img")
-        assert image.count() == 1
-        assert len(image.get_attribute("alt") or "") > 100
-        assert int(image.get_attribute("width")) > 0
-        assert int(image.get_attribute("height")) > 0
-        status = figure.locator(".figure-status")
-        assert status.get_attribute("data-status") == "simulated"
-        served = home.request.get(image.evaluate("img => img.src")).body()
-        assert served == (tmp_path / f"{label}.png").read_bytes()
-    # The motion and its caption are in view; the provenance and the energy
-    # are in a native disclosure below it, closed.
-    assert home.locator("main .home-figure #fig-opening").count() == 1
-    assert home.locator("main details #fig-opening").count() == 0
-    assert home.locator("main #fig-opening figcaption").is_visible()
-    details = home.locator("main .home-figure details.home-details")
-    assert details.count() == 1
-    assert details.get_attribute("open") is None
-    assert details.locator("summary").inner_text() == "How this figure was computed"
-    assert details.locator(f"#{home_opening.ENERGY_LABEL}").count() == 1
-    note = details.locator(".home-provenance")
-    links = hrefs(note.locator("a"))
-    assert any(link.endswith("/" + OPENING_SOURCE) for link in links)
-    assert any("/commit/" in link for link in links)
-    assert built("double-pendulum-chaos", server) in links
-    assert "pbc.mechanics.chaos" in note.text_content()
-    # No control, timer, or anything else that looks interactive.
-    opening = home.locator("main .home-opening")
-    assert opening.locator("input, button, select, video, canvas").count() == 0
-
-
-def test_the_opening_offers_the_atlas_and_the_first_lesson(home, server):
-    first = LESSONS.in_course(LESSONS.courses[0])[0]
-    actions = hrefs(home.locator("main .home-actions a"))
-    assert actions == [
-        server.url + "path/index.html#atlas",
-        built(first.id, server),
-    ]
-
-
-def test_each_activity_links_one_published_example(home, server: SiteServer):
-    section = home.locator("main section#about-the-site")
-    links = hrefs(section.locator("a"))
-    for lesson_id in (CONSTRUCT_EXAMPLE, INVESTIGATE_EXAMPLE, VERIFY_EXAMPLE):
-        assert links.count(built(lesson_id, server)) == 1
-        assert home.request.get(built(lesson_id, server)).ok
-    text = section.inner_text()
-    for word in ("construct", "investigate", "verify"):
-        assert word in text
-
-
-def _check_row(row, item, anchor: str, path_page: str) -> None:
-    text = plain(row.inner_text())
-    assert plain(item.title) in text
-    published = LESSONS.in_course(item) if anchor == "course" else LESSONS.in_path(item)
-    links = hrefs(row.locator("a"))
-    if published:
-        assert links[0] == f"{path_page}#{anchor}-{item.id}"
-        count = len(published)
-        assert f"{count} lesson{'' if count == 1 else 's'} published" in text
-    else:
-        assert links == []
-        assert "planned" in text and "no lesson published" in text
-
-
-def test_part_a_features_three_courses_and_lists_the_others(home, server: SiteServer):
-    path_page = server.url + "path/index.html"
-    section = home.locator("main section#part-a")
-    featured = section.locator(".home-featured .home-course")
-    assert featured.evaluate_all("rows => rows.map(r => r.dataset.course)") == list(
-        FEATURED_COURSES
-    )
-    for row, course_id in zip(featured.all(), FEATURED_COURSES, strict=True):
-        course = next(course for course in COURSES if course.id == course_id)
-        _check_row(row, course, "course", path_page)
-        assert row.locator("svg.home-illustration[aria-hidden='true']").count() == 1
-        first = LESSONS.in_course(course)[0]
-        assert hrefs(row.locator("a"))[1:] == [built(first.id, server)]
-    rows = section.locator(".home-compact li")
-    others = [course for course in COURSES if course.id not in FEATURED_COURSES]
-    assert rows.count() == len(others) == 5
-    for row, course in zip(rows.all(), others, strict=True):
-        _check_row(row, course, "course", path_page)
-        assert row.locator("svg.home-illustration").count() == 1
-
-
-def test_part_b_is_physics_and_ai_with_the_four_method_paths(home, server: SiteServer):
-    section = home.locator("main section#part-b")
-    assert section.locator("h2").inner_text() == "Physics + AI"
-    rows = section.locator(".home-paths li")
-    assert rows.count() == len(LESSONS.paths) == 4
-    for row, item in zip(rows.all(), LESSONS.paths, strict=True):
-        assert plain(row.inner_text()).startswith(plain(item.title))
-        _check_row(row, item, "path", server.url + "path/index.html")
-
-
-def test_the_atlas_anchors_the_home_page_links_exist(home, browser, server):
-    targets = {
-        link.split("#", 1)[1]
-        for link in hrefs(home.locator("main a"))
-        if link.startswith(server.url + "path/index.html#")
-    }
-    assert "atlas" in targets
-    context = browser.new_context(java_script_enabled=False)
-    page = context.new_page()
-    page.goto(server.url + "path/index.html")
-    for target in targets:
-        assert page.locator(f"[id='{target}']").count() == 1, target
     context.close()
 
 
-def test_the_capstones_show_their_state_and_only_the_manifest_explanation(home):
-    slots = [slot for slot in LESSONS.curriculum.slots if slot.kind == CAPSTONE]
-    boxes = home.locator("main section#capstones .home-capstone")
-    assert boxes.count() == len(slots) == 3
-    order = [FEATURED_CAPSTONE] + [
-        slot.label for slot in slots if slot.label != FEATURED_CAPSTONE
+def test_without_a_valid_parameter_a_pair_is_shown_at_random(
+    browser: Browser, server: SiteServer
+):
+    context = browser.new_context(viewport=DESKTOP)
+    seen = set()
+    for _ in range(12):
+        page = open_home(context, server, "?hero=9z")
+        seen.add(page.locator(".hero-copy").get_attribute("data-hero"))
+        page.close()
+    context.close()
+    assert seen <= set(HERO_PAIRS)
+    assert len(seen) > 1
+
+
+# Where the hero's parts stand, relative to the hero, and the hero itself.
+_BOXES = """
+() => {
+  const hero = document.querySelector(".home-hero").getBoundingClientRect();
+  const at = (selector) => {
+    const box = document.querySelector(selector).getBoundingClientRect();
+    return [box.x - hero.x, box.y - hero.y, box.width, box.height];
+  };
+  return {
+    copy: at(".hero-copy"),
+    actions: at(".home-actions"),
+    image: at(".hero-image"),
+    next: at("#about-the-site"),
+  };
+}
+"""
+
+
+def test_the_script_runs_before_the_first_paint_right_after_the_copy(
+    without_scripts: BrowserContext, server: SiteServer
+):
+    page = open_home(without_scripts, server)
+    script = page.locator('script[src$="learner/hero.js"]')
+    assert script.count() == 1
+    # Parser-blocking: it runs while the page is parsed, before it is painted.
+    for attribute in ("async", "defer", "type"):
+        assert script.get_attribute(attribute) is None, attribute
+    # Nothing that is painted stands between the copy and the script.
+    assert script.evaluate(
+        "s => s.previousElementSibling.id === 'hero-pairs'"
+        " && s.previousElementSibling.previousElementSibling"
+        ".classList.contains('hero-copy')"
+    )
+
+
+@pytest.mark.parametrize("viewport", [DESKTOP, PHONE_TALL], ids=["desktop", "phone"])
+def test_the_swap_moves_nothing_and_the_h1_does_not_change_after_load(
+    browser: Browser, server: SiteServer, viewport: dict[str, int]
+):
+    # The web fonts swap in after the first paint and move the text by
+    # themselves, script or not; without them the layout depends on the
+    # pair alone.
+    context = browser.new_context(viewport=viewport)
+    context.route("**/*.woff2", lambda route: route.abort())
+    layouts = []
+    for pair_id in HERO_PAIRS:
+        page = open_home(context, server, f"?hero={pair_id}")
+        at_load = page.locator("h1").inner_text()
+        boxes = page.evaluate(_BOXES)
+        page.wait_for_timeout(300)
+        assert page.locator("h1").inner_text() == at_load
+        assert page.evaluate(_BOXES) == boxes, pair_id
+        layouts.append(boxes)
+        page.close()
+    context.close()
+    # Whichever pair is shown, the copy is as tall as the longest pair and
+    # nothing after it stands elsewhere.
+    assert all(layout == layouts[0] for layout in layouts), layouts
+
+
+def _load(browser: Browser, server: SiteServer, empty_script: bool):
+    requests: list[str] = []
+    context = browser.new_context(viewport=DESKTOP)
+    context.add_init_script(f"({_RECORD_STORAGE_WRITES})()")
+    if empty_script:
+        context.route("**/learner/hero.js", lambda route: route.fulfill(body=""))
+    page = context.new_page()
+    page.on("request", lambda request: requests.append(request.url))
+    page.goto(server.url + "index.html?hero=2a", wait_until="networkidle")
+    page.wait_for_timeout(200)
+    result = (
+        Counter(url for url in requests),
+        page.evaluate("window.__storageWrites"),
+        Counter(page.evaluate(_STORAGE_ENTRIES)),
+        context.cookies(),
+        page.locator(".hero-copy").get_attribute("data-hero"),
+    )
+    context.close()
+    return result
+
+
+def test_the_script_makes_no_request_and_uses_no_storage(
+    browser: Browser, server: SiteServer
+):
+    with_script = _load(browser, server, empty_script=False)
+    without = _load(browser, server, empty_script=True)
+    assert with_script[4] == "2a" and without[4] == HERO.default
+    # The page requests, writes, and keeps the same with the script as with
+    # an empty file in its place.
+    assert with_script[:4] == without[:4]
+
+
+@pytest.mark.parametrize("viewport", [DESKTOP, PHONE_TALL], ids=["desktop", "phone"])
+def test_the_message_and_the_start_button_are_above_the_fold(
+    browser: Browser, server: SiteServer, viewport: dict[str, int]
+):
+    context = browser.new_context(viewport=viewport)
+    for pair_id in HERO_PAIRS:
+        page = open_home(context, server, f"?hero={pair_id}")
+        for selector in (
+            "main h1",
+            ".hero-pair:not(.hero-ghost) .hero-subtext",
+            ".home-hero .home-action-primary",
+        ):
+            box = page.locator(selector).bounding_box()
+            assert box is not None and box["y"] >= 0, selector
+            assert box["y"] + box["height"] <= viewport["height"], (pair_id, selector)
+        page.close()
+    context.close()
+
+
+def test_the_hero_image_is_labelled_text_over_registered_parts(
+    without_scripts: BrowserContext, server: SiteServer
+):
+    page = open_home(without_scripts, server)
+    image = page.locator(".home-hero svg.hero-image")
+    assert image.get_attribute("role") == "img"
+    assert image.locator("title").count() == 1
+    assert image.locator("a").count() == 0
+    labels = image.locator("text.hero-label").all_text_contents()
+    assert len(labels) == 12
+    register = yaml.safe_load(
+        (SITE_SOURCE / "assets" / "provenance.yaml").read_text(encoding="utf-8")
+    )["assets"]
+    sources = image.locator("image").evaluate_all(
+        "items => items.map(i => i.getAttribute('href'))"
+    )
+    assert len(sources) == 12
+    for source in sources:
+        assert source.removeprefix("assets/") in register
+        assert page.request.get(server.url + source).ok
+
+
+# --- The rest of the page ------------------------------------------------------
+
+
+def test_the_examples_and_the_capstone_are_the_chosen_lessons(
+    without_scripts: BrowserContext, server: SiteServer
+):
+    page = open_home(without_scripts, server)
+    chosen = [*HOME.examples(), HOME.capstone()]
+    entries = page.locator("main section#examples .home-example")
+    assert entries.evaluate_all("es => es.map(e => e.dataset.lessonId)") == [
+        lesson.id for lesson in chosen
     ]
-    assert boxes.evaluate_all("boxes => boxes.map(b => b.dataset.slot)") == order
-    published = {lesson.slot: lesson for lesson in LESSONS.lessons if lesson.slot}
-    for box in boxes.all():
-        label = box.get_attribute("data-slot")
-        if label in published:
-            # The name links to the capstone's lesson, and nothing else does.
-            links = box.locator("a")
-            assert links.count() == 1
-            href = published[label].page.removesuffix(".qmd") + ".html"
-            assert links.get_attribute("href") == href
-            assert box.locator(".home-published").inner_text() == "published"
-        else:
-            assert box.locator("a").count() == 0
-            assert box.locator(".home-planned").inner_text() == "planned"
-        descriptions = box.locator(".capstone-description").all_inner_texts()
-        assert [plain(d) for d in descriptions] == [
-            plain(MANIFEST.capstone(label).explanation)
-        ]
-        # The name line and the description; the featured one adds the
-        # editorial heading and the artwork's label, nothing else.
-        paragraphs = box.locator(".home-capstone-name, .capstone-description")
-        assert paragraphs.count() == 2
-        if label == FEATURED_CAPSTONE:
-            assert box.locator("h3").all_inner_texts() == [FEATURED_HEADING]
-            assert box.locator(".home-artwork-label").inner_text() == ARTWORK_LABEL
-            assert len(box.locator("p").all_inner_texts()) == 4
-        else:
-            assert len(box.locator("p").all_inner_texts()) == 2
-    assert "hypothetical" in home.locator("[data-slot='T11']").inner_text()
+    for entry, lesson in zip(entries.all(), chosen, strict=True):
+        assert hrefs(entry.locator("a")) == [built(lesson.page, server)]
+        image = entry.locator("img.home-preview")
+        assert (image.get_attribute("alt") or "").startswith("Preview, ")
+        assert page.request.get(image.evaluate("i => i.src")).ok
+        assert "level" in entry.locator(".home-meta").inner_text()
 
 
-def test_the_featured_capstone_is_dark_with_its_generated_artwork(home):
-    feature = home.locator("main .home-capstone-feature")
-    background = feature.evaluate("box => getComputedStyle(box).backgroundColor")
-    assert background == "rgb(15, 34, 64)"
-    image = feature.locator(".home-artwork img")
-    assert image.get_attribute("alt") == home_artwork.ALT
-    assert image.get_attribute("width") == str(home_artwork.WIDTH)
-    assert image.get_attribute("height") == str(home_artwork.HEIGHT)
-    served = home.request.get(image.evaluate("img => img.src"))
-    assert served.ok
-    assert served.body().decode("utf-8") == home_artwork.wavefront()
-
-
-def test_the_home_page_links_to_the_path_and_about_pages(home, server: SiteServer):
-    links = hrefs(home.locator("main a"))
-    assert server.url + "path/index.html#atlas" in links
+def test_every_link_of_the_page_content_reaches_its_target(
+    without_scripts: BrowserContext, server: SiteServer
+):
+    page = open_home(without_scripts, server)
+    first = LESSONS.in_course(LESSONS.courses[0])[0]
+    links = hrefs(page.locator("main a"))
+    assert hrefs(page.locator("main section#begin a")) == [
+        built(first.page, server),
+        server.url + "path/index.html#atlas",
+    ]
+    assert hrefs(page.locator(".home-hero a")) == hrefs(
+        page.locator("main section#begin a")
+    )
     assert server.url + "about.html#creator-and-jidai" in links
+    assert server.url + "verify.html" in links
+    for link in links:
+        if not link.startswith(server.url):
+            continue
+        address, _, fragment = link.partition("#")
+        target = without_scripts.new_page()
+        target.goto(address)
+        if fragment:
+            assert target.locator(f"[id='{fragment}']").count() == 1, link
+        target.close()
+
+
+def test_the_page_tells_one_story(without_scripts: BrowserContext, server: SiteServer):
+    page = open_home(without_scripts, server)
+    text = page.locator("main").inner_text()
+    assert "From a question to a working model" not in text
+    assert "lessons published" not in text
+    headings = page.locator("main h2").all_inner_texts()
+    assert headings == ["What this site is", "What you can learn", "Begin"]

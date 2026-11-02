@@ -16,7 +16,6 @@ from pbc.authoring.atlas import (
     ATLAS_FILE,
     CAPSTONE,
     CONNECTION_TYPES,
-    ILLUSTRATIONS,
     LAB,
     Atlas,
     AtlasManifest,
@@ -334,14 +333,6 @@ def test_the_capstones_have_their_concepts_and_members():
         assert [m for m in ATLAS.memberships() if m.capstone == capstone.id]
     assert "hypothetical" in ATLAS.manifest.capstone("T11").explanation
     assert "not a model of any real chip" in ATLAS.manifest.capstone("T11").explanation
-
-
-def test_every_course_has_an_illustration_of_its_own():
-    assert set(ILLUSTRATIONS) == {course.id for course in COURSES}
-    drawings = [draw() for draw in ILLUSTRATIONS.values()]
-    assert len(set(drawings)) == len(drawings)
-    for drawing in drawings:
-        assert "<text" not in drawing and not re.search(r"<image|href", drawing)
 
 
 # --- What the build derives -----------------------------------------------------

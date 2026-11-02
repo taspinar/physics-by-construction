@@ -9,20 +9,25 @@ Every figure and every number of a lesson comes from code in the
 repository. Each lesson has an **experiment**: a program that computes what
 the page shows and writes its figures and numbers into a folder of your
 choice, so that you can change the code and run it again. The last section
-of every lesson gives its commands. This page says what to install for each
-of three things you may want to do:
+of every lesson gives its commands. No command on this page builds the website.
+Commands that the site's own checks run are shown plainly. Every other
+command is marked "Not verified" and names the account or key it needs.
+Choose what you want to do; each route says what to install.
 
-1. **Run an experiment** of a simulation or a measured-data lesson. This
-   needs Git and uv, and nothing else.
-2. **Replay an agent lesson.** The same setup: the replay runs every tool
-   call of a recorded run again, without a model and without a key. A live
-   run with a model is a separate, optional step with your own account.
-3. **Check a proof** of a Lean lesson, or work on its exercises. This adds the
-   Lean toolchain.
+## Run a simulation {#route-simulation .route}
 
-None of these builds the website. Commands that the site's own checks run are
-shown plainly. Every other command is marked "Not verified" and names the
-account or key it needs.
+Run the experiment of a simulation or a measured-data lesson with Git and uv,
+and nothing else: [the setup and the commands](#run-an-experiment).
+
+## Replay an AI experiment {#route-replay .route}
+
+Replay every tool call of a recorded agent run, without a model and without
+a key, with the same setup: [replay an agent lesson](#replay-an-agent-lesson).
+
+## Verify a formal proof {#route-proof .route}
+
+Check the Lean proofs of the site, or work on their exercises, with the
+Lean toolchain added: [check a proof](#optional-check-a-proof).
 
 ## Run an experiment
 
@@ -154,6 +159,11 @@ lake env lean Exercises/ConstantAcceleration.lean
 
 ## Optional: drive a coding agent
 
+```{=html}
+<details class="disclosure">
+<summary>How to let a coding agent write a simulation, safely</summary>
+```
+
 You can ask a coding agent, such as Claude Code or Codex, to write a
 simulation from a specification. You choose the agent and supply its account
 and credential; the site names none as a requirement and never runs one. The
@@ -178,7 +188,16 @@ uv sync --locked --no-dev
 ```
 :::
 
+```{=html}
+</details>
+```
+
 ## Troubleshooting
+
+```{=html}
+<details class="disclosure">
+<summary>What can go wrong, and how to fix it</summary>
+```
 
 ::: {.table-scroll tabindex="0" role="region" aria-label="What can go wrong and how to fix it"}
 
@@ -196,3 +215,7 @@ uv sync --locked --no-dev
 | `lake build` starts to compile Mathlib | The build cache was not fetched or is incomplete | Stop it and run `lake exe cache get` again |
 
 :::
+
+```{=html}
+</details>
+```

@@ -1,0 +1,63 @@
+# The hero of the home page (F134, ADR 021 decision 4): the owner's three
+# headlines and eight subtexts, supplied on Issue #339 on 2026-10-30. A pair
+# is a headline and one of its subtexts; its identifier is the headline's id
+# and the subtext's letter (1a, 1b, 1c, 2a, 2b, 2c, 3a, 3b). The page
+# carries the default pair in its HTML (what remains without scripts and
+# what search snippets and link previews see); site/learner/hero.js shows
+# one pair at random per visit, or the one the `hero` parameter names.
+# Read and validated by pbc.authoring.home: exactly these eight pairs, plain
+# text, no other field. Never write this copy on a page.
+default: "1a"
+headlines:
+  - id: "1"
+    text: >-
+      The universe has no obligation to fit the limits of human
+      intelligence.
+    subtexts:
+      - id: a
+        text: >-
+          Physics has always challenged what we believed possible. AI may
+          help us challenge the limits of what we can understand.
+      - id: b
+        text: >-
+          What if the greatest discoveries in physics are not waiting for
+          better answers, but for entirely new ways of thinking?
+      - id: c
+        text: >-
+          The boundaries of human understanding are not necessarily the
+          boundaries of what can be discovered. We explore that possibility
+          through physics, computation, and AI.
+  - id: "2"
+    text: >-
+      We are building the tools that may reveal what we cannot yet imagine.
+    subtexts:
+      - id: a
+        text: >-
+          What happens when scientific instruments become intelligent enough
+          to help design the next experiment? We explore that future through
+          physics and AI.
+      - id: b
+        text: >-
+          From a few lines of Python to AI-driven scientific discovery, we
+          explore how increasingly powerful tools can transform our
+          understanding of nature.
+      - id: c
+        text: >-
+          Science advances when new tools make the invisible observable and
+          the unimaginable testable. Artificial intelligence may be the next
+          great extension of that tradition.
+  - id: "3"
+    text: >-
+      What seems beyond understanding today may become tomorrow's first
+      experiment.
+    subtexts:
+      - id: a
+        text: >-
+          From Newton's mechanics to quantum theory, progress has repeatedly
+          transformed what we consider possible. The next transformation may
+          come from the partnership between physics and AI.
+      - id: b
+        text: >-
+          We do not know what physics will look like in a hundred years. But
+          we can begin building the models, experiments, and intelligent
+          tools that may help shape its future.

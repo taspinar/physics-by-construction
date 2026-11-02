@@ -240,33 +240,31 @@ kept.
   textual equivalent, visually hidden. The illustrations are interface
   artwork (WebP, see "The three asset classes"), set on the paper with
   `mix-blend-mode: multiply`.
-- **Home page** (F124; `body.pbc-home`, `page-layout: full`; the
-  composition the owner approved on Issue #238 on 2026-10-21). The title
-  is the opening line, "Build a world. See if it obeys physics.", at a
-  display size between the first heading and 3.25rem. Below it the
-  opening: a short lead in the large text size, the two ways in (the atlas
-  as the one filled control of the page, the shape of the start link; the
-  first lesson as a text link), and the double pendulum, the largest thing
-  on the page, on its plate under the cobalt construction line: the paths
-  of both bobs, a concise caption, and below it a native disclosure, closed,
-  "How this figure was computed", with the provenance (the module and the
-  commit), the run's numbers, and the energy figure. From 992 CSS px the
-  lead stands in a narrow column beside the figure; below that width they
-  follow one another. No control, timer, or anything that looks
-  interactive. Then the sections: what the site is (the attribution
-  sentence and the three activities as one paragraph, never as steps or
-  headings); Part A with three featured courses (the course illustration
-  of the atlas at 4.5rem, the name, the counts, the first lesson, under the
-  construction line; three columns from 768 px) and the other five in a
-  compact row of ruled entries with the illustration at 2rem; Part B under
-  the editorial heading "Physics + AI", the four method paths on the
-  surface, each under the construction line; the capstone projects, the
-  featured one across the full width of the window on the `night` ground
-  (its editorial heading, the course and the state, the manifest's
-  explanation, and the conceptual artwork with its label), the others
-  smaller in the dashed boxes of the atlas; the invitation. A planned
-  entry has no link and the word planned in a dashed outline, as on the
-  atlas. Prose keeps the measure.
+- **Home page** (F134, ADR 021 decision 4; `body.pbc-home`,
+  `page-layout: full`; generated whole by `pbc.authoring.home`). The hero:
+  the owner's headline as the page's one `<h1>` with its subtext, in a
+  column of 20 characters at a display size between 2rem and 3rem, the two
+  ways in under it (the start link as the one filled control of the page;
+  the atlas as a text link), and beside it from 992 CSS px the two
+  constellations, the eight courses linked by cobalt hairlines and the four
+  method paths by copper ones, each node the atlas's card illustration in a
+  thin frame with its name as SVG text. Below 40em, where the image is
+  drawn about 360 CSS px wide, the same SVG takes a phone layout: the nodes
+  move to two columns of a taller box, 1.25 times larger, with labels of
+  about 13 CSS px at 390 px. The copy stacks every pair in one grid cell, hidden
+  but the shown one, so the block keeps the height of the longest pair.
+  Then what the site is (three sentences and a line of links), the four
+  examples (the lesson's preview, the title, one line clamped to three
+  lines, the level and the course), each under the construction line, in
+  two columns from 768 px and four from 1200, and the invitation. No eyebrow,
+  no card box, no count of lessons: the atlas gives the overview.
+- **Run the code** (F134). The three routes as the first sections of the
+  page, side by side from 768 px under the construction line; "Optional:
+  drive a coding agent" and "Troubleshooting" keep their headings with
+  their content in a closed native disclosure.
+- **How we verify the science** (F134). The four claim labels, as in the
+  lessons, each heading its paragraph; each worked example under the
+  construction line with its statement as a quotation.
 - **The atlas's address module** (F133, `site/learner/atlas.js`). About
   twenty lines and no dependency: the address follows the sequence a reader
   opens (`#course-quantum` is a bookmark), an address opens its sequence,
@@ -289,7 +287,7 @@ decision 2, ADR 021 decision 1). An example of each:
 | Class | Example | Source | Rules |
 |---|---|---|---|
 | Interface artwork | the project mark in the header | an authored SVG under `site/assets/` with its entry (author, licence) in the provenance register there | no number, no caption of a result, no evidence claim; decorative or named by its link |
-| Interface artwork, generated | the wavefronts beside the featured capstone of the home page | `pbc.authoring.home_artwork`, written into the built site by `site/home-artwork.py`, its entry (`module`) in the provenance register | as above; labelled conceptual artwork for a planned capstone, no axis, scale, or measurement label |
+| Interface artwork, composed | the hero of the home page (F134): two constellations of the atlas's card illustrations | an inline SVG written by `pbc.authoring.home` at build time, whose every image is a registered file under `site/assets/atlas/` | as above; every label is SVG text, its lines are decorative and imply no order of study, and its title names every course and path |
 | Interface artwork, a derived raster | the twelve illustrations of the course atlas (F133) | WebP files under `site/assets/atlas/`, each with its entry in the provenance register (its origin: a script under `tools/illustrations/`, an author, or an image model with its prompt and date; a licence; its master and the master's SHA-256) | no text, number, or formula in the pixels; never in a lesson's body; alt text that names it; accepted by the visual check (composition, legibility at 76 and 200 px, colour, consistency with its family) |
 | Conceptual illustration | the diagrams drawn by `pbc.authoring.diagrams` in a lesson cell | an executed cell, `fig-status: conceptual` | drawn by code, labelled `conceptual`, never a result |
 | Scientific result | the phase-space figure of "Numerical integrators" | an executed cell over `pbc.mechanics.integrators` | the rules of "Scientifically faithful figures" and the F63 preview contract |
