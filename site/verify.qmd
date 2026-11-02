@@ -1,0 +1,54 @@
+---
+title: "How we verify the science"
+description: >-
+  How every scientific statement of the lessons is typed and tied to the
+  evidence that supports it, with three worked examples and the Evidence map.
+---
+
+A lesson of this site does not ask to be believed. Every statement that a
+reader could take for a scientific result is marked as a **claim**, and each
+claim names the evidence that supports it: a cell of the lesson that the
+build runs again, a curated reference, a dataset card, a theorem that Lean
+checks, or a recorded run of an agent that the build replays. A claim
+without evidence, or with evidence that does not exist, stops the build, so
+every claim on the site has its target. The claim's label says what kind of
+evidence stands behind it, and its scope says where it holds.
+
+## Four kinds of claim {#claim-types}
+
+[Observational]{.claim data-type="observational"} A statement of what a
+measurement or an observation shows, or a published measured value quoted
+with its source. No model is needed to state it.
+
+[Experimentally supported]{.claim data-type="experimentally-supported"} An
+inference from measured data through a stated model, with its uncertainty.
+The data and the model are both shown, and the claim is about the measured
+system.
+
+[Numerically verified]{.claim data-type="numerically-verified"} The result
+of a computation that the build runs again, about the model that was
+computed. It says what the model does, not what nature does.
+
+[Formal theorem]{.claim data-type="formal-theorem"} A theorem about a model,
+proved in Lean, with its hypotheses as its scope. It proves nothing about a
+measurement.
+
+## Three worked examples {#examples}
+
+Each example is a claim of a published lesson, shown as the lesson states
+it, with its evidence. A value that the lesson computes is shown as "…";
+the lesson has it.
+
+```{python}
+#| echo: false
+#| output: asis
+from pbc.authoring.verify import verify_page
+
+print(verify_page())
+```
+
+## Every claim of the site {#evidence-map}
+
+The [Evidence map](evidence.qmd) lists every claim of every lesson with its
+type, its scope, and links to its evidence. It is generated from the lessons
+when the site is built.

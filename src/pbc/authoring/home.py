@@ -1,407 +1,594 @@
-"""The generated parts of the home page: the examples, Part A and Part B, the
-capstone projects, the invitation, and the provenance of the opening figure.
+"""The generated parts of the home page (F134, ADR 021 decision 4): the hero,
+what the site is, three example lessons and one capstone, and the invitation.
 
-What the home page says is published comes from the lesson front matter, read
-with the same code as the learning path, so a number or a title on the home
-page cannot differ from the lessons. What is planned comes from the
-curriculum file (``site/curriculum.yaml``, ADR 013): the eight courses of
-Part A and the four method paths of Part B with their published and planned
-counts. A capstone project is described by the explanation of its concept in
-the map manifest (``site/atlas.yaml``, ADR 018 decision 3), the one place that
-text lives. A planned item is labelled planned and is never a link.
+The hero's copy is the owner's, held in the data file ``site/hero.yaml``
+beside the curriculum file and validated here: exactly the eight pairs 1a,
+1b, 1c, 2a, 2b, 2c, 3a, and 3b, each a headline and one of its subtexts. The
+page carries the default pair in its HTML, and the pairs as data for
+``site/learner/hero.js``, which shows one at random per visit, or the one
+the ``hero`` parameter names, before the first paint. No copy of the hero is
+written on the page.
 
-The composition is the owner's (Issue #238, 2026-10-21): three courses are
-featured with the course illustrations of the atlas, the other five follow in
-a compact row; Part B is a second layer under the editorial heading
-"Physics + AI"; one capstone is featured on the dark navy ground with an
-editorial heading and the conceptual artwork of ``pbc.authoring.home_artwork``,
-the other two follow smaller. The editorial headings are kept apart from the
-manifest's explanations.
+The hero image is interface artwork (ADR 021 decision 1): two constellations,
+the eight courses and the four method paths, each node the card illustration
+the atlas manifest names for its sequence (a file of the provenance
+register), its name as SVG text from the curriculum. Its lines are
+decorative and imply no prerequisite.
+
+The examples are chosen by code from the front matter, never by hand: a
+simulation, a measured-data lab, and an AI experiment, each from a different
+course and none from the first course, which the start link leads into; and
+the first published capstone of a course none of them has. A capstone's one
+line is the explanation of its concept in the atlas manifest. Every link is
+built here from the lessons and the page addresses.
 """
 
-import posixpath
-from collections.abc import Mapping
-from dataclasses import dataclass
-from pathlib import Path, PurePosixPath
+from __future__ import annotations
 
-from pbc.authoring import home_artwork
-from pbc.authoring.atlas import CAPSTONE, ILLUSTRATION, ILLUSTRATIONS, AtlasManifest
+import html
+import json
+import posixpath
+import re
+from dataclasses import dataclass
+from pathlib import Path
+
+import yaml
+
+from pbc.authoring.atlas import CAPSTONE, AtlasManifest
+from pbc.authoring.identity import ABOUT_ANCHOR, description
 from pbc.authoring.path import (
     COURSES,
-    Course,
     LearningPath,
     Lesson,
-    MethodPath,
-    Slot,
     _href,
-    _link,
+    _level,
 )
-from pbc.authoring.repository import BuildCommit, build_commit, repository_url
-from pbc.authoring.website import PAGE_FILE, project_root
+from pbc.authoring.previews import HEIGHT as PREVIEW_HEIGHT
+from pbc.authoring.previews import WIDTH as PREVIEW_WIDTH
+from pbc.authoring.previews import Preview, preview_of
+from pbc.authoring.repository import repository_url
+from pbc.authoring.website import PAGE_FILE, page_href, project_root
 
 HOME_PAGE = PAGE_FILE
 PATH_PAGE = "path/index.qmd"
+VERIFY_PAGE = "verify.qmd"
+ABOUT_PAGE = "about.qmd"
+HERO_FILE = "hero.yaml"
+HERO_SCRIPT = "learner/hero.js"
 
-# The one published lesson that each activity points to, by lesson id.
-CONSTRUCT_EXAMPLE = "numerical-integrators"
-INVESTIGATE_EXAMPLE = "agent-experiment"
-VERIFY_EXAMPLE = "proving-what-the-simulation-showed"
+# The eight pairs of the owner's copy: the headline's id and the subtext's
+# letter (Issue #339, 2026-10-30).
+HERO_PAIRS = ("1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b")
 
-# The module that draws the opening figure, and its file in the repository.
-OPENING_MODULE = "pbc.mechanics.experiments.home_opening"
-OPENING_SOURCE = "src/pbc/mechanics/experiments/home_opening.py"
-OPENING_LESSON = "double-pendulum-chaos"
+# The methods that make the three kinds of example, in the order shown.
+SIMULATION = "simulation"
+MEASURED = "measured-data"
+AGENT = "llm-agents"
 
-# The courses featured with their illustrations, and the capstone featured on
-# the dark ground with its editorial heading (the owner's decisions 2 and 3).
-FEATURED_COURSES = ("mechanics", "thermodynamics", "waves")
-FEATURED_CAPSTONE = "FL10"
-FEATURED_HEADING = "Model a wave. Understand a coastline."
-ARTWORK_LABEL = (
-    "Conceptual artwork for a planned capstone, drawn by code: it shows no"
-    " data and no simulation."
+# Markup that plain text of the hero must not hold: it is set as text, so it
+# would show as typed.
+_MARKUP = re.compile(r"[<>*_`#\[\]{}\\|$]")
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z])")
+
+
+# --- The hero's copy -------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class HeroPair:
+    id: str  # "1a"
+    headline: str
+    subtext: str
+
+
+@dataclass(frozen=True)
+class HeroCopy:
+    pairs: tuple[HeroPair, ...]
+    default: str
+
+    def pair(self, pair_id: str) -> HeroPair:
+        return next(pair for pair in self.pairs if pair.id == pair_id)
+
+    @classmethod
+    def parse(cls, data: object) -> HeroCopy:
+        found = hero_problems(data)
+        if found:
+            raise ValueError(
+                f"{HERO_FILE} breaks the rules of the hero:\n"
+                + "\n".join(f"  {message}" for message in found)
+            )
+        assert isinstance(data, dict)
+        return cls(
+            tuple(
+                HeroPair(
+                    f"{headline['id']}{subtext['id']}",
+                    _words(headline["text"]),
+                    _words(subtext["text"]),
+                )
+                for headline in data["headlines"]
+                for subtext in headline["subtexts"]
+            ),
+            data["default"],
+        )
+
+    @classmethod
+    def read(cls, site: Path) -> HeroCopy:
+        """Read ``hero.yaml`` of the website project ``site``. Raises
+        ``ValueError`` when it breaks a rule; a missing file breaks them."""
+        file = site / HERO_FILE
+        data: object = None
+        if file.is_file():
+            try:
+                data = yaml.safe_load(file.read_text(encoding="utf-8"))
+            except yaml.YAMLError as error:
+                raise ValueError(f"{HERO_FILE} is not valid YAML: {error}") from None
+        return cls.parse(data)
+
+
+def _words(text: str) -> str:
+    return " ".join(text.split())
+
+
+def _text_problems(where: str, value: object) -> list[str]:
+    if not isinstance(value, str) or not value.strip():
+        return [f"{where} has no text"]
+    if _MARKUP.search(value):
+        return [f"{where} holds markup; the copy is plain text"]
+    return []
+
+
+def _fields(where: str, item: object, fields: set[str]) -> list[str]:
+    if not isinstance(item, dict):
+        return [f"{where} is not a mapping"]
+    found = []
+    if unknown := set(item) - fields:
+        found.append(
+            f"{where} has unknown fields: {', '.join(sorted(map(str, unknown)))}"
+        )
+    if missing := fields - set(item):
+        found.append(f"{where} lacks {', '.join(sorted(missing))}")
+    return found
+
+
+def hero_problems(data: object) -> list[str]:
+    """Every rule of the hero's data file that ``data`` breaks: exactly the
+    pairs of ``HERO_PAIRS``, each once; plain, non-empty text; no field
+    beyond ``default``, ``headlines``, ``id``, ``text``, and ``subtexts``;
+    a default that names one of the pairs."""
+    if not isinstance(data, dict):
+        return [f"{HERO_FILE} is not a mapping with 'default' and 'headlines'"]
+    found = _fields(HERO_FILE, data, {"default", "headlines"})
+    headlines = data.get("headlines")
+    if not isinstance(headlines, list):
+        return [*found, "'headlines' is not a list"]
+    identifiers: list[str] = []
+    headline_ids: list[str] = []
+    for number, headline in enumerate(headlines, start=1):
+        where = f"headline {number}"
+        found += _fields(where, headline, {"id", "text", "subtexts"})
+        if not isinstance(headline, dict):
+            continue
+        headline_id = str(headline.get("id", ""))
+        headline_ids.append(headline_id)
+        found += _text_problems(
+            f"headline {headline_id or number}", headline.get("text")
+        )
+        subtexts = headline.get("subtexts")
+        if not isinstance(subtexts, list):
+            found.append(f"headline {headline_id or number} has no list of subtexts")
+            continue
+        for subtext in subtexts:
+            found += _fields(
+                f"a subtext of headline {headline_id}", subtext, {"id", "text"}
+            )
+            if not isinstance(subtext, dict):
+                continue
+            pair = f"{headline_id}{subtext.get('id', '')}"
+            identifiers.append(pair)
+            found += _text_problems(f"subtext {pair}", subtext.get("text"))
+    for headline_id in sorted({h for h in headline_ids if headline_ids.count(h) > 1}):
+        found.append(f"the headline id {headline_id!r} appears more than once")
+    for pair in sorted({p for p in identifiers if identifiers.count(p) > 1}):
+        found.append(f"the pair {pair} appears more than once")
+    if missing := [pair for pair in HERO_PAIRS if pair not in identifiers]:
+        found.append(f"the pairs {', '.join(missing)} are missing")
+    if extra := sorted(set(identifiers) - set(HERO_PAIRS)):
+        found.append(f"the pairs {', '.join(extra)} are not the owner's eight")
+    if data.get("default") not in HERO_PAIRS:
+        found.append(f"the default {data.get('default')!r} is none of the eight pairs")
+    return found
+
+
+def _typographic(text: str) -> str:
+    """The text with typographic apostrophes, as the build sets the
+    Markdown of the other pages."""
+    return text.replace("'", "\u2019")
+
+
+# --- The hero image --------------------------------------------------------
+
+# The two constellations in a box of WIDTH by HEIGHT units: the centre of
+# each node, in the order of the curriculum file. Decorative positions; the
+# lines between them say nothing about the order of study.
+WIDTH, HEIGHT = 640, 520
+NODE_WIDTH, NODE_HEIGHT = 96, 72
+COURSE_NODES = (
+    (86, 62),
+    (240, 44),
+    (392, 92),
+    (322, 236),
+    (170, 208),
+    (74, 352),
+    (226, 396),
+    (382, 418),
 )
-
-_WORDS = (
-    "no",
-    "one",
-    "two",
-    "three",
-    "four",
-    "five",
-    "six",
-    "seven",
-    "eight",
-    "nine",
-    "ten",
-    "eleven",
-    "twelve",
+PATH_NODES = ((556, 64), (532, 196), (568, 322), (534, 448))
+# Below 40em the image is drawn about 360 CSS px wide, too narrow for four
+# columns of labels that a reader can read: the nodes move to two columns,
+# PHONE_SCALE times larger, in a box of WIDTH by PHONE_HEIGHT units, and the
+# labels grow (site/assets/site.css, .hero-label).
+PHONE_HEIGHT = 1280
+PHONE_SCALE = 1.25
+PHONE_COURSE_NODES = (
+    (170, 80),
+    (470, 120),
+    (170, 280),
+    (470, 320),
+    (170, 480),
+    (470, 520),
+    (170, 680),
+    (470, 720),
 )
+PHONE_PATH_NODES = ((170, 920), (470, 960), (170, 1120), (470, 1160))
+# The card illustration of a node, the larger of the atlas's two card sizes.
+CARD = "{stem}-card-228.webp"
+_LABEL_LINE = 19  # characters on one line of a node's label
 
 
-def _word(number: int) -> str:
-    """A small number in words, as running text writes it."""
-    return _WORDS[number] if number < len(_WORDS) else str(number)
+def _wrap(title: str) -> list[str]:
+    """A node's label on at most two lines."""
+    lines: list[str] = []
+    for word in title.split():
+        if lines and len(lines[-1]) + 1 + len(word) <= _LABEL_LINE:
+            lines[-1] += f" {word}"
+        elif len(lines) < 2:
+            lines.append(word)
+        else:
+            lines[-1] += f" {word}"
+    return lines
 
 
-def _scientific(text: str) -> str:
-    """A number written as ``8e-08`` in the Markdown of 8 times ten to the
-    power minus 8, with a superscript exponent."""
-    mantissa, _, exponent = text.partition("e")
-    if not exponent:
-        return text
-    power = (
-        f"10^\u2212{int(exponent[1:])}^"
-        if exponent[0] == "-"
-        else f"10^{int(exponent)}^"
-    )
-    return f"{mantissa}\u00a0\u00d7\u00a0{power}"
+def _path_line(points: tuple[tuple[int, int], ...]) -> str:
+    return "M" + " L".join(f"{x},{y}" for x, y in points)
 
 
-def _count(number: int, noun: str) -> str:
-    return f"{number} {noun}" if number == 1 else f"{number} {noun}s"
-
-
-def _illustration(course_id: str) -> str:
-    """The course's illustration of the atlas, as inline SVG; decorative,
-    since the course's name stands beside it."""
-    return (
-        '`<svg class="atlas-illustration home-illustration"'
-        f' viewBox="0 0 {ILLUSTRATION} {ILLUSTRATION}" aria-hidden="true"'
-        f' focusable="false">{ILLUSTRATIONS[course_id]()}</svg>`{{=html}}'
-    )
-
-
-def _planned(item: str, planned: int) -> str:
-    """A list item of a course or path without a published lesson."""
-    return (
-        f"- {item} [planned]{{.home-planned}}"
-        f" [no lesson published, {planned} planned]{{.home-count}}"
-    )
+# --- The page ----------------------------------------------------------------
 
 
 @dataclass(frozen=True)
 class HomeContent:
     path: LearningPath
     manifest: AtlasManifest
-    commit: BuildCommit | None = None
-    repository: str = ""
+    hero_copy: HeroCopy
+    repository: str = ""  # the public address of the repository, or ""
     page: str = HOME_PAGE
 
-    def example(self, lesson_id: str) -> str:
-        """A link to the published lesson ``lesson_id``."""
-        return _link(self.page, self.path.lesson(lesson_id))
-
-    def _atlas(self, fragment: str) -> str:
-        return _href(self.page, PATH_PAGE, fragment)
-
-    def _counts(self, published: int, planned: int) -> str:
-        text = f"{_count(published, 'lesson')} published"
-        if planned:
-            text += f", {planned} planned"
-        return f"[{text}]{{.home-count}}"
-
-    def _course(self, course: Course) -> str:
-        lessons = self.path.in_course(course)
-        planned = len(self.path.planned_in_course(course))
-        if not lessons:
-            return _planned(f"{_illustration(course.id)} {course.title}", planned)
-        link = f"[{course.title}]({self._atlas(f'course-{course.id}')})"
-        return (
-            f"- {_illustration(course.id)} {link} {self._counts(len(lessons), planned)}"
-        )
-
-    def _featured_course(self, course: Course) -> list[str]:
-        """A featured course: its illustration, its name, its counts, and
-        its first published lesson."""
-        lessons = self.path.in_course(course)
-        planned = len(self.path.planned_in_course(course))
-        if lessons:
-            name = f"[{course.title}]({self._atlas(f'course-{course.id}')})"
-            counts = self._counts(len(lessons), planned)
-            first = f"Starts with {self.example(lessons[0].id)}."
-        else:
-            name = f"{course.title} [planned]{{.home-planned}}"
-            counts = f"[no lesson published, {planned} planned]{{.home-count}}"
-            first = ""
-        return [
-            f"::: {{.home-course data-course={course.id}}}",
-            _illustration(course.id),
-            "",
-            f"### {name} {{#home-course-{course.id} .unnumbered .unlisted}}",
-            "",
-            counts,
-            "",
-            first,
-            ":::",
-            "",
-        ]
-
-    def _method_path(self, method_path: MethodPath) -> str:
-        lessons = self.path.in_path(method_path)
-        planned = len(self.path.planned_in_path(method_path))
-        if not lessons:
-            return _planned(method_path.title, planned)
-        link = f"[{method_path.title}]({self._atlas(f'path-{method_path.id}')})"
-        return f"- {link} {self._counts(len(lessons), planned)}"
-
-    def featured_courses(self) -> tuple[Course, ...]:
-        return tuple(course for course in COURSES if course.id in FEATURED_COURSES)
-
-    def part_a(self) -> str:
-        """The eight courses with their counts: the featured three with their
-        illustrations, then the other five in a compact row. A course with a
-        published lesson links to its place in the atlas."""
-        path = self.path
-        capstones = len(self.capstone_slots())
-        ending = (
-            f"; {_word(capstones)} of them end in an applied capstone project"
-            if capstones
-            else ""
-        )
-        featured = self.featured_courses()
-        lines = [
-            f"Part A is {_word(len(COURSES))} physics courses. A course is a"
-            " sequence of lessons in the teaching order of the reference"
-            f" curriculum{ending}. The site publishes"
-            f" {_count(len(path.lessons), 'lesson')}.",
-            "",
-            "::: {.home-featured}",
-        ]
-        for course in featured:
-            lines += self._featured_course(course)
-        lines += [
-            ":::",
-            "",
-            "::: {.home-structure .home-compact}",
-            *(self._course(course) for course in COURSES if course not in featured),
-            ":::",
-        ]
-        return "\n".join(lines)
-
-    def part_b(self) -> str:
-        """The method paths with their counts, linked into the atlas the same
-        way: a second layer over the courses."""
-        return "\n".join(
-            [
-                f"Part B is {_word(len(self.path.paths))} method paths. A path is a"
-                " second way through the lessons: the lessons of one method, in"
-                " the order of the path, each published in its course.",
-                "",
-                "::: {.home-structure .home-paths}",
-                *(self._method_path(item) for item in self.path.paths),
-                ":::",
-            ]
-        )
-
-    def capstone_slots(self) -> tuple[Slot, ...]:
-        return tuple(
-            slot for slot in self.path.curriculum.slots if slot.kind == CAPSTONE
-        )
-
-    def _capstone_lesson(self, slot: Slot) -> Lesson | None:
-        return next(
-            (lesson for lesson in self.path.lessons if lesson.slot == slot.label),
-            None,
-        )
-
-    def _capstone_name(self, slot: Slot) -> str:
-        """The capstone's course and state, linked to its lesson once it is
-        published."""
-        course = next(course for course in COURSES if course.id == slot.course)
-        lesson = self._capstone_lesson(slot)
-        if lesson is None:
-            return f"{course.title}, capstone project [planned]{{.home-planned}}"
-        return (
-            f"[{course.title}, capstone project]({_href(self.page, lesson.page)})"
-            " [published]{.home-published}"
-        )
-
-    def _artwork(self) -> list[str]:
-        """The featured capstone's conceptual artwork and its label."""
-        source = posixpath.relpath(
-            f"{home_artwork.ASSETS}/{home_artwork.WAVEFRONT}",
-            PurePosixPath(self.page).parent.as_posix(),
-        )
-        return [
-            "::: {.home-artwork}",
-            f'`<img src="{source}" alt="{home_artwork.ALT}"'
-            f' width="{home_artwork.WIDTH}" height="{home_artwork.HEIGHT}">`{{=html}}',
-            "",
-            f"[{ARTWORK_LABEL}]{{.home-artwork-label}}",
-            ":::",
-        ]
-
-    def capstones(self) -> str:
-        """Each capstone project of the curriculum file: its course, its
-        state, and the explanation of its concept in the map manifest, which
-        names the project; nothing else describes it. The featured one comes
-        first, on the dark ground, under its editorial heading and beside the
-        conceptual artwork; the others follow smaller. A published capstone
-        links to its lesson."""
-        slots = self.capstone_slots()
-        if not slots:
-            return ""
-        featured = [slot for slot in slots if slot.label == FEATURED_CAPSTONE]
-        items = []
-        for slot in featured:
-            explanation = self.manifest.capstone(slot.label).explanation
-            items += [
-                f"::: {{.home-capstone .home-capstone-feature data-slot={slot.label}}}",
-                "::: {.home-capstone-text}",
-                f"### {FEATURED_HEADING} {{#capstone-{slot.label.lower()}"
-                " .unnumbered .unlisted}",
-                "",
-                f"[{self._capstone_name(slot)}]{{.home-capstone-name}}",
-                "",
-                f"[{explanation}]{{.capstone-description}}",
-                ":::",
-                "",
-                *self._artwork(),
-                ":::",
-                "",
-            ]
-        items.append("::: {.home-capstones}")
-        for slot in slots:
-            if slot in featured:
-                continue
-            explanation = self.manifest.capstone(slot.label).explanation
-            items += [
-                f"::: {{.home-capstone data-slot={slot.label}}}",
-                f"[{self._capstone_name(slot)}]{{.home-capstone-name}}",
-                "",
-                f"[{explanation}]{{.capstone-description}}",
-                ":::",
-                "",
-            ]
-        items.append(":::")
-        published = sum(self._capstone_lesson(slot) is not None for slot in slots)
-        if published == 0:
-            state = (
-                "None is published yet: each is planned, and described as the"
-                " curriculum plans it."
-            )
-        else:
-            state = (
-                f"{_word(published).capitalize()} of them"
-                f" {'is' if published == 1 else 'are'} published."
-            )
-        intro = (
-            f"{_word(len(slots)).capitalize()}"
-            f" course{'s end' if len(slots) != 1 else ' ends'} in a project that"
-            " brings their methods together on one applied problem. " + state
-        )
-        return "\n".join([intro, "", *items])
+    def _to(self, page: str, fragment: str = "") -> str:
+        return page_href(self.page, page, fragment)
 
     def first_lesson(self) -> Lesson:
-        """The first lesson of the first course in teaching order."""
+        """The first lesson of the first course in teaching order: the start
+        link of the header goes there too."""
         return self.path.in_course(self.path.courses[0])[0]
 
-    def actions(self) -> str:
-        """The two ways in, under the opening: the atlas and the first
-        lesson."""
+    def _actions(self) -> str:
         first = self.first_lesson()
+        return (
+            '<p class="home-actions">'
+            f'<a class="home-action-primary" href="{_href(self.page, first.page)}">'
+            "Start learning</a> "
+            f'<a class="home-action" href="{self._to(PATH_PAGE, "atlas")}">'
+            "Open the Course Atlas</a></p>"
+        )
+
+    # The hero.
+
+    def hero(self) -> str:
+        """The hero as one raw HTML block: the default pair, the two ways in,
+        the pairs as data, the script, and the image."""
+        default = self.hero_copy.pair(self.hero_copy.default)
+        pairs = json.dumps(
+            [
+                {
+                    "id": pair.id,
+                    "headline": _typographic(pair.headline),
+                    "subtext": _typographic(pair.subtext),
+                }
+                for pair in self.hero_copy.pairs
+            ],
+            ensure_ascii=False,
+        )
+        # Safe inside a script element: no "</script>" can close it early.
+        pairs = (
+            pairs.replace("&", "\\u0026")
+            .replace("<", "\\u003c")
+            .replace(">", "\\u003e")
+        )
+        script = posixpath_relative(self.page, HERO_SCRIPT)
         return "\n".join(
             [
-                "::: {.home-actions}",
-                f"[Open the course atlas]({self._atlas('atlas')})"
-                "{.home-action-primary}"
-                f" [Start with {first.title}]({_href(self.page, first.page)})"
-                "{.home-action}",
+                "```{=html}",
+                # An empty title block: without one, Quarto moves the first
+                # <h1> of a page without a title into a title block of its
+                # own, out of the hero.
+                '<header class="quarto-title-block"></header>',
+                '<section class="home-hero" aria-labelledby="hero-headline">',
+                '<div class="hero-text">',
+                # A declared enhancement (invariant I4): the default pair is
+                # its static content, which the script may replace.
+                '<div class="hero-copy" id="hero-copy" data-enhancement'
+                f' data-hero="{default.id}">',
+                '<div class="hero-pair">',
+                '<h1 class="hero-headline" id="hero-headline">'
+                f"{html.escape(_typographic(default.headline))}</h1>",
+                '<p class="hero-subtext">'
+                f"{html.escape(_typographic(default.subtext))}</p>",
+                "</div>",
+                "</div>",
+                f'<script type="application/json" id="hero-pairs">{pairs}</script>',
+                f'<script src="{script}"></script>',
+                self._actions(),
+                "</div>",
+                self.hero_image(),
+                "</section>",
+                "```",
+            ]
+        )
+
+    def _sequences(
+        self,
+    ) -> list[tuple[str, str, tuple[int, int], tuple[int, int], str]]:
+        """The nodes of the image: the sequence id, its title, its centre,
+        its centre on a phone, and the part it belongs to."""
+        courses = [
+            (course.id, course.title, centre, phone, "a")
+            for course, centre, phone in zip(
+                COURSES, COURSE_NODES, PHONE_COURSE_NODES, strict=True
+            )
+        ]
+        paths = [
+            (item.id, item.title, centre, phone, "b")
+            for item, centre, phone in zip(
+                self.path.paths, PATH_NODES, PHONE_PATH_NODES, strict=True
+            )
+        ]
+        return courses + paths
+
+    def hero_alt(self) -> str:
+        courses = ", ".join(course.title for course in COURSES)
+        paths = ", ".join(item.title for item in self.path.paths)
+        return (
+            "Illustration: two constellations of the atlas's illustrations,"
+            f" the {len(COURSES)} physics courses ({courses}) and the"
+            f" {len(self.path.paths)} method paths of physics and AI ({paths}),"
+            " joined by decorative lines that imply no order of study."
+        )
+
+    def hero_image(self) -> str:
+        """The two constellations as one inline SVG."""
+        nodes = self._sequences()
+        courses = tuple(centre for _, _, centre, _, part in nodes if part == "a")
+        paths = tuple(centre for _, _, centre, _, part in nodes if part == "b")
+        bridge = (courses[3], paths[1])
+        # On a phone the last course meets the second path: the bridge of the
+        # wide layout would pass behind two nodes of the right column.
+        phone_bridge = (PHONE_COURSE_NODES[-1], PHONE_PATH_NODES[1])
+        # The phone layout keeps the viewBox: its box is taller, and the
+        # drawing is aligned to the top, so the units below HEIGHT show.
+        parts = [
+            f'<svg class="hero-image" viewBox="0 0 {WIDTH} {HEIGHT}"'
+            ' preserveAspectRatio="xMidYMin meet"'
+            f' style="--hero-phone-ratio: {WIDTH} / {PHONE_HEIGHT}" role="img"'
+            ' aria-labelledby="hero-image-title" focusable="false">',
+            f'<title id="hero-image-title">{html.escape(self.hero_alt())}</title>',
+            "<defs>"
+            '<clipPath id="hero-frame" clipPathUnits="objectBoundingBox">'
+            '<rect width="1" height="1" rx="0.06" ry="0.08"/></clipPath>'
+            "</defs>",
+            f'<path class="hero-bridge hero-wide" d="{_path_line(bridge)}"/>',
+            '<path class="hero-line hero-line-a hero-wide"'
+            f' d="{_path_line(courses)}"/>',
+            f'<path class="hero-line hero-line-b hero-wide" d="{_path_line(paths)}"/>',
+            f'<path class="hero-bridge hero-phone" d="{_path_line(phone_bridge)}"/>',
+            '<path class="hero-line hero-line-a hero-phone"'
+            f' d="{_path_line(PHONE_COURSE_NODES)}"/>',
+            '<path class="hero-line hero-line-b hero-phone"'
+            f' d="{_path_line(PHONE_PATH_NODES)}"/>',
+        ]
+        for sequence_id, title, (x, y), (phone_x, phone_y), part in nodes:
+            stem = self.manifest.sequence(sequence_id).illustration
+            left, top = x - NODE_WIDTH // 2, y - NODE_HEIGHT // 2
+            source = posixpath_relative(self.page, "assets/" + CARD.format(stem=stem))
+            # In em, so that the lines keep their spacing when the labels grow.
+            label = "".join(
+                f'<tspan x="{x}" dy="{"1.15em" if index else "1.25em"}">'
+                f"{html.escape(line)}</tspan>"
+                for index, line in enumerate(_wrap(title))
+            )
+            # The node's place on a phone, which the style sheet applies below
+            # 40em: scaled about its centre and moved to its phone centre.
+            phone = (
+                f"translate({phone_x}px, {phone_y}px) scale({PHONE_SCALE})"
+                f" translate({-x}px, {-y}px)"
+            )
+            parts += [
+                f'<g class="hero-node hero-node-{part}" data-sequence="{sequence_id}"'
+                f' style="--hero-phone: {phone}">',
+                f'<rect class="hero-plate" x="{left}" y="{top}" width="{NODE_WIDTH}"'
+                f' height="{NODE_HEIGHT}" rx="6"/>',
+                f'<image href="{source}" x="{left}" y="{top}" width="{NODE_WIDTH}"'
+                f' height="{NODE_HEIGHT}" preserveAspectRatio="xMidYMid slice"'
+                ' clip-path="url(#hero-frame)"/>',
+                f'<rect class="hero-frame" x="{left}" y="{top}" width="{NODE_WIDTH}"'
+                f' height="{NODE_HEIGHT}" rx="6"/>',
+                f'<text class="hero-label" x="{x}" y="{top + NODE_HEIGHT}">'
+                f"{label}</text>",
+                "</g>",
+            ]
+        parts.append("</svg>")
+        return "".join(parts)
+
+    # What the site is.
+
+    def about(self) -> str:
+        """Three sentences, the canonical one first, and the links that
+        follow them: the one attribution link, this page's account of the
+        evidence, and the source."""
+        return "\n\n".join(
+            [
+                f"{description()} A model becomes a short program that you can"
+                " run, and each lesson tests it: against theory in"
+                " simulations, against real measurements in the labs, or with"
+                " a proof that a computer checks. A lesson whose code fails or"
+                " whose proof does not compile cannot be published.",
+                "::: {.home-more}\n"
+                f"[About the creator and JIDAI]({self._about()})"
+                f" [How we verify the science]({self._to(VERIFY_PAGE)})"
+                + (
+                    f" [The source on GitHub]({self.repository})"
+                    if self.repository
+                    else ""
+                )
+                + "\n"
                 ":::",
             ]
         )
 
-    def begin(self) -> str:
-        """The invitation: the atlas, and the first lesson."""
-        return (
-            f"Begin with the [course atlas]({self._atlas('atlas')}): the"
-            " courses and the method paths on one map, with a link to every"
-            " published lesson. Or start reading at the first lesson,"
-            f" {self.example(self.first_lesson().id)}."
+    def _about(self) -> str:
+        return self._to(ABOUT_PAGE, ABOUT_ANCHOR.partition("#")[2])
+
+    # The examples.
+
+    def examples(self) -> tuple[Lesson, ...]:
+        """A simulation, a measured-data lab, and an AI experiment, in that
+        order, each the first published lesson of its kind in path order
+        whose course is neither the first course nor the course of an
+        earlier example. A kind without such a lesson is left out."""
+        first = self.path.courses[0].id
+        kinds = (
+            lambda lesson: lesson.methods == (SIMULATION,) and lesson.difficulty == 1,
+            lambda lesson: MEASURED in lesson.methods,
+            lambda lesson: AGENT in lesson.methods,
+        )
+        chosen: list[Lesson] = []
+        for kind in kinds:
+            used = {first, *(lesson.course for lesson in chosen)}
+            found = next(
+                (
+                    lesson
+                    for lesson in self.path.lessons
+                    if lesson.course not in used and kind(lesson)
+                ),
+                None,
+            )
+            if found is not None:
+                chosen.append(found)
+        return tuple(chosen)
+
+    def capstone(self) -> Lesson | None:
+        """The first published capstone in the order of the curriculum file
+        whose course none of the examples has, else the first published one
+        that is not itself an example; None when there is no such one."""
+        published = {lesson.slot: lesson for lesson in self.path.lessons if lesson.slot}
+        capstones = [
+            published[slot.label]
+            for slot in self.path.curriculum.slots
+            if slot.kind == CAPSTONE and slot.label in published
+        ]
+        examples = self.examples()
+        used = {lesson.course for lesson in examples}
+        shown = {lesson.id for lesson in examples}
+        return next(
+            (lesson for lesson in capstones if lesson.course not in used),
+            next((lesson for lesson in capstones if lesson.id not in shown), None),
         )
 
-    def opening_note(self, result: Mapping[str, str]) -> str:
-        """What the opening figure computed, from the numbers of its run
-        (``home_opening.run()``), and where it comes from."""
+    def _course_title(self, lesson: Lesson) -> str:
+        return next(course.title for course in COURSES if course.id == lesson.course)
+
+    def _card(
+        self, lesson: Lesson, line: str, note: str, preview: Preview
+    ) -> list[str]:
+        image = posixpath_relative(self.page, preview.file)
+        return [
+            f"::: {{.home-example data-lesson-id={lesson.id}}}",
+            f'`<img class="home-preview" src="{image}"'
+            f' alt="{html.escape(preview.alt, quote=True)}"'
+            f' width="{PREVIEW_WIDTH}" height="{PREVIEW_HEIGHT}"'
+            ' loading="lazy">`{=html}',
+            "",
+            f"### [{lesson.title}]({_href(self.page, lesson.page)})"
+            f" {{#example-{lesson.id} .unnumbered .unlisted}}",
+            "",
+            line,
+            "",
+            f"[{note}]{{.home-meta}}",
+            ":::",
+            "",
+        ]
+
+    def examples_section(self, site: Path | None = None) -> str:
+        """The three examples and the capstone: each with its preview, its
+        title as a link, one line, and its level and course."""
+        site = site or project_root(Path.cwd().resolve())
+        lines = ["::: {.home-examples}", ""]
+        for lesson in self.examples():
+            line = (
+                _SENTENCE_END.split(lesson.description)[0] if lesson.description else ""
+            )
+            note = f"{_level(lesson)}, in {self._course_title(lesson)}"
+            lines += self._card(lesson, line, note, preview_of(lesson, site))
+        capstone = self.capstone()
+        if capstone is not None:
+            explanation = self.manifest.capstone(capstone.slot).explanation
+            note = (
+                f"{_level(capstone)}, the capstone project of"
+                f" {self._course_title(capstone)}"
+            )
+            lines += self._card(capstone, explanation, note, preview_of(capstone, site))
+        lines.append(":::")
+        return "\n".join(lines)
+
+    # The invitation.
+
+    def begin(self) -> str:
+        """The start link and the atlas, nothing else."""
+        first = self.first_lesson()
+        return (
+            f"[Start learning]({_href(self.page, first.page)}){{.home-action-primary}}"
+            f" [Open the Course Atlas]({self._to(PATH_PAGE, 'atlas')}){{.home-action}}"
+        )
+
+    def markdown(self, site: Path | None = None) -> str:
+        """The whole page, in the order of the plan: the hero, what the site
+        is, the examples, and the invitation."""
         return "\n\n".join(
             [
-                self.provenance(),
-                f"Both rods start at {result['angle']} rad. The motion is"
-                " computed with the classical Runge-Kutta method at a step of"
-                f" {result['step']} s for {result['duration']} s: the energy"
-                f" changes by at most {_scientific(result['energy-change'])} of"
-                " its start, and a run at half the step keeps the second bob"
-                f" within {_scientific(result['half-step-gap'])} m of this path."
-                " The model and its checks are in the lesson"
-                f" {self.example(OPENING_LESSON)}.",
+                self.hero(),
+                "## What this site is {#about-the-site}",
+                self.about(),
+                "## What you can learn {#examples}",
+                self.examples_section(site),
+                "## Begin {#begin}",
+                f"::: {{.home-begin}}\n{self.begin()}\n:::",
             ]
         )
 
-    def provenance(self) -> str:
-        """Where the opening figure comes from: the module and the commit."""
-        commit = self.commit
-        if commit is None or commit.sha is None or not self.repository:
-            source = f"`{OPENING_SOURCE}`"
-            built = (
-                "This page was not built from a Git checkout, so no commit is named."
-            )
-        else:
-            source = (
-                f"[`{OPENING_SOURCE}`]({self.repository}/blob/{commit.sha}"
-                f"/{OPENING_SOURCE})"
-            )
-            built = (
-                f"Built from commit [`{commit.sha[:12]}`]"
-                f"({self.repository}/commit/{commit.sha})"
-            )
-            built += (
-                ", with uncommitted changes in the checkout." if commit.dirty else "."
-            )
-        return (
-            f"Drawn when this page was built, by `draw_opening` in {source},"
-            " from the double pendulum of `pbc.mechanics.chaos`. " + built
-        )
+
+def posixpath_relative(from_page: str, target: str) -> str:
+    """A relative address of the file ``target`` of the built site, from the
+    built ``from_page``."""
+    return posixpath.relpath(target, posixpath.dirname(from_page) or ".")
 
 
 def home_content() -> HomeContent:
@@ -411,6 +598,6 @@ def home_content() -> HomeContent:
     return HomeContent(
         path,
         AtlasManifest.read(site, path.curriculum),
-        commit=build_commit(),
-        repository=repository_url(),
+        HeroCopy.read(site),
+        repository_url(),
     )

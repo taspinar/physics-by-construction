@@ -22,10 +22,9 @@ and capstone membership) are shown on the lesson pages (``connections``).
 The same inputs give the same page, byte for byte.
 """
 
-import math
 import posixpath
 import re
-from collections.abc import Callable, Collection, Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from functools import cached_property
 from html import escape
@@ -726,145 +725,6 @@ class Atlas:
             )
         )
         return tuple(found)
-
-
-ILLUSTRATION = 44
-
-
-def _number(value: float) -> str:
-    """A coordinate, written the same way on every build."""
-    text = f"{value:.1f}"
-    return text[:-2] if text.endswith(".0") else text
-
-
-# The course illustrations that Home draws (F124) until F134 replaces its
-# course list: interface artwork, one drawing per course of the curriculum
-# file, in a box of ILLUSTRATION units. Each shows a system the
-# course studies, with its geometry right, and carries no number and no
-# caption (ADR 018 decision 2).
-
-
-def _pendulum() -> str:
-    # A pendulum of length 30 at 25 degrees from the vertical, its bob on the
-    # arc of its swing, which is centred on the pivot.
-    return (
-        '<path class="ill-rule" d="M13,5 L31,5"/>'
-        '<path class="ill-faint" d="M9.3,32.2 A30,30 0 0 0 34.7,32.2"/>'
-        '<path class="ill-line" d="M22,5 L34.7,32.2"/>'
-        '<circle class="ill-fill" cx="34.7" cy="32.2" r="4"/>'
-    )
-
-
-def _random_walk() -> str:
-    # A walk on a lattice of step 6: every step has the same length and goes
-    # along one axis.
-    steps = "RURRULURRDRUU"
-    x, y = 6.0, 38.0
-    points = [f"{_number(x)},{_number(y)}"]
-    move = {"R": (6, 0), "L": (-6, 0), "U": (0, -6), "D": (0, 6)}
-    for step in steps:
-        x, y = x + move[step][0], y + move[step][1]
-        points.append(f"{_number(x)},{_number(y)}")
-    return (
-        f'<polyline class="ill-line" points="{" ".join(points)}"/>'
-        '<circle class="ill-fill" cx="6" cy="38" r="2.5"/>'
-        f'<circle class="ill-fill" cx="{_number(x)}" cy="{_number(y)}" r="2.5"/>'
-    )
-
-
-def _wave() -> str:
-    # A sine wave of wavelength 20 and amplitude 9 about the middle line.
-    points = " ".join(
-        f"{_number(x)},{_number(22 - 9 * math.sin(2 * math.pi * (x - 4) / 20))}"
-        for x in [4 + 0.5 * step for step in range(73)]
-    )
-    return (
-        '<path class="ill-faint" d="M3,22 L41,22"/>'
-        f'<polyline class="ill-line" points="{points}"/>'
-    )
-
-
-def _dipole() -> str:
-    # The field lines of a pair of opposite charges: symmetric about the axis
-    # and about the plane between the charges, from + to -.
-    return (
-        '<path class="ill-faint" d="M12,22 L32,22"/>'
-        '<path class="ill-faint" d="M12,22 Q22,10 32,22"/>'
-        '<path class="ill-faint" d="M12,22 Q22,34 32,22"/>'
-        '<path class="ill-faint" d="M12,22 Q22,-2 32,22"/>'
-        '<path class="ill-faint" d="M12,22 Q22,46 32,22"/>'
-        '<circle class="ill-plate" cx="12" cy="22" r="5"/>'
-        '<path class="ill-line" d="M9.5,22 L14.5,22 M12,19.5 L12,24.5"/>'
-        '<circle class="ill-plate" cx="32" cy="22" r="5"/>'
-        '<path class="ill-line" d="M29.5,22 L34.5,22"/>'
-    )
-
-
-def _streamlines() -> str:
-    # Streamlines of a steady flow past a cylinder: straight far from it, and
-    # bending around it symmetrically upstream and downstream.
-    return (
-        '<path class="ill-faint" d="M2,6 L42,6 M2,38 L42,38"/>'
-        '<path class="ill-faint"'
-        ' d="M2,14 C13,14 15,9.5 22,9.5 C29,9.5 31,14 42,14"/>'
-        '<path class="ill-faint"'
-        ' d="M2,30 C13,30 15,34.5 22,34.5 C29,34.5 31,30 42,30"/>'
-        '<path class="ill-faint" d="M2,22 L13,22 M31,22 L42,22"/>'
-        '<circle class="ill-line" cx="22" cy="22" r="7"/>'
-    )
-
-
-def _oscillator_levels() -> str:
-    # A parabolic potential (a quadratic curve whose control point puts its
-    # vertex at y = 38) and the first four levels of the quantum harmonic
-    # oscillator: equally spaced, the lowest half a spacing above the bottom,
-    # each drawn between the walls of the potential.
-    levels = []
-    for y in (34, 26, 18, 10):
-        half = (8 * (38 - y)) ** 0.5
-        levels.append(f"M{_number(22 - half)},{y} L{_number(22 + half)},{y}")
-    return (
-        '<path class="ill-line" d="M6,6 Q22,70 38,6"/>'
-        f'<path class="ill-faint" d="{" ".join(levels)}"/>'
-    )
-
-
-def _orbit() -> str:
-    # An ellipse of semi-axes 16 and 10 with the star at a focus, a distance
-    # sqrt(16^2 - 10^2) from the centre, and the planet at aphelion.
-    return (
-        '<ellipse class="ill-faint" cx="22" cy="22" rx="16" ry="10"/>'
-        '<circle class="ill-fill" cx="9.5" cy="22" r="3.5"/>'
-        '<circle class="ill-line" cx="38" cy="22" r="2.5"/>'
-    )
-
-
-def _lattice() -> str:
-    # A square lattice: atoms at the nodes, bonds to the nearest neighbours.
-    coordinates = [7 + 10 * step for step in range(4)]
-    bonds = " ".join(
-        f"M{coordinates[0]},{c} L{coordinates[-1]},{c}"
-        f" M{c},{coordinates[0]} L{c},{coordinates[-1]}"
-        for c in coordinates
-    )
-    atoms = "".join(
-        f'<circle class="ill-fill" cx="{x}" cy="{y}" r="2.5"/>'
-        for y in coordinates
-        for x in coordinates
-    )
-    return f'<path class="ill-faint" d="{bonds}"/>{atoms}'
-
-
-ILLUSTRATIONS: dict[str, Callable[[], str]] = {
-    "mechanics": _pendulum,
-    "thermodynamics": _random_walk,
-    "waves": _wave,
-    "electromagnetism": _dipole,
-    "fluids": _streamlines,
-    "quantum": _oscillator_levels,
-    "astrophysics": _orbit,
-    "materials": _lattice,
-}
 
 
 # --- The page -------------------------------------------------------------------

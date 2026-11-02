@@ -1587,38 +1587,6 @@ main details > summary {
   color: var(--pbc-muted);
 }
 
-/* The course illustrations that Home draws (F124) until F134. */
-.atlas-illustration * {
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.atlas-illustration .ill-line {
-  stroke: var(--pbc-link);
-  stroke-width: 1.5;
-}
-
-.atlas-illustration .ill-faint {
-  stroke: var(--pbc-rule);
-  stroke-width: 1;
-}
-
-.atlas-illustration .ill-rule {
-  stroke: var(--pbc-text);
-  stroke-width: 1.5;
-}
-
-.atlas-illustration .ill-fill {
-  fill: var(--pbc-link);
-}
-
-.atlas-illustration .ill-plate {
-  fill: var(--pbc-plate);
-  stroke: var(--pbc-link);
-  stroke-width: 1.5;
-}
-
 /* The course atlas (F133, docs/atelier.md, "The course atlas"): one native
    disclosure per sequence, in one exclusive group. The summary is the card,
    the content the panel. On a wide screen every card stands in the left
@@ -2150,64 +2118,62 @@ body.pbc-reading-column main.content section.level2 {
   margin-top: var(--pbc-space-5);
 }
 
-/* The home page (docs/atelier.md, "Home page"): the opening (the title, the
-   lead, the two ways in, and the double pendulum on its plate under the
-   construction line, with its provenance and the energy in a disclosure),
-   the three featured courses and the compact row of the others, the method
-   paths as a second layer, and the featured capstone on the dark navy
-   ground. The page opts in with body-classes: pbc-home. */
-body.pbc-home main h1.title {
-  font-size: clamp(var(--pbc-heading-1), 1.4rem + 2.2vw, 3.25rem);
+/* The home page (docs/atelier.md, "Home page"): the hero (the owner's
+   headline and subtext, the two ways in, and the two constellations), what
+   the site is, the examples, and the invitation. The page opts in with
+   body-classes: pbc-home. */
+.home-hero {
+  display: grid;
+  gap: var(--pbc-space-4) var(--pbc-space-5);
+  align-items: center;
+  margin: var(--pbc-space-3) 0 var(--pbc-space-5);
+}
+
+/* From 992 CSS px the text stands left and the image right. */
+@media (min-width: 992px) {
+  .home-hero {
+    grid-template-columns: minmax(0, 6fr) minmax(0, 7fr);
+    min-height: min(36rem, calc(100vh - 8rem));
+  }
+}
+
+/* Every pair, the shown one and the hidden copies the script adds, in one
+   grid cell: the block is as tall as the longest pair. */
+.hero-copy {
+  display: grid;
+}
+
+.hero-pair {
+  grid-area: 1 / 1;
+}
+
+.hero-ghost {
+  visibility: hidden;
+}
+
+body.pbc-home .hero-headline {
+  margin: 0 0 var(--pbc-space-3);
+  max-width: 20ch;
+  font-size: clamp(2rem, 1.3rem + 2vw, 3rem);
+  font-weight: 600;
   line-height: 1.08;
+  text-wrap: balance;
 }
 
-/* The prose of the page keeps the measure; the opening and the lists use
-   the width. */
-body.pbc-home main section > p {
-  max-width: var(--pbc-measure);
-}
-
-body.pbc-home .home-lead p {
-  max-width: 38ch;
+body.pbc-home .hero-subtext {
+  margin: 0;
+  max-width: 40ch;
+  color: var(--pbc-muted);
   font-size: var(--pbc-text-large);
   line-height: 1.5;
 }
 
-/* The opening: from 992 CSS px the lead and the two ways in stand in a
-   narrow column beside the figure, which is the largest thing on the page;
-   below that width they follow one another. */
-@media (min-width: 992px) {
-  .home-opening {
-    display: grid;
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    grid-template-rows: auto 1fr;
-    column-gap: var(--pbc-space-5);
-    align-items: start;
-  }
-
-  .home-opening > .home-lead {
-    grid-column: 1;
-    grid-row: 1;
-    padding-top: var(--pbc-space-4);
-  }
-
-  .home-opening > .home-actions {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
-  .home-opening > .home-figure {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-  }
-}
-
-.home-actions p {
+.home-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--pbc-space-3) var(--pbc-space-4);
-  margin: var(--pbc-space-4) 0;
+  margin: var(--pbc-space-4) 0 0;
 }
 
 /* The one filled control of the page, the start link's shape. */
@@ -2227,261 +2193,241 @@ main a.home-action-primary:hover {
   text-decoration-thickness: 1px;
 }
 
-.home-figure {
-  margin-top: var(--pbc-space-3);
+/* The two constellations: the atlas's card illustrations in thin frames,
+   joined by hairlines, cobalt for the courses and copper for the paths.
+   The labels are text, and the image's title names every node. */
+.hero-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 44rem;
+  margin: 0 auto;
+}
+
+.hero-line,
+.hero-bridge {
+  fill: none;
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+}
+
+.hero-line-a {
+  stroke: var(--pbc-link);
+}
+
+.hero-line-b {
+  stroke: var(--pbc-copper);
+}
+
+.hero-bridge {
+  stroke: var(--pbc-rule);
+  stroke-dasharray: 3 5;
+}
+
+.hero-frame {
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.hero-node-a .hero-frame {
+  stroke: var(--pbc-link);
+}
+
+.hero-node-b .hero-frame {
+  stroke: var(--pbc-copper);
+}
+
+.hero-node image {
+  mix-blend-mode: multiply;
+}
+
+.hero-plate {
+  fill: var(--pbc-plate);
+}
+
+/* The paper under each label hides the line that passes behind it. */
+.hero-label {
+  fill: var(--pbc-text);
+  paint-order: stroke;
+  stroke: var(--pbc-background);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+  font-family: var(--pbc-font-text);
+  font-size: 13px;
+  text-anchor: middle;
+}
+
+/* The lines of the phone layout (pbc.authoring.home, PHONE_HEIGHT). */
+.hero-image .hero-phone {
+  display: none;
+}
+
+/* On a phone the image is drawn about 360 CSS px wide, a little over half
+   its 640 units: the nodes move to two columns of a taller box, each node
+   1.25 times larger, and the labels grow to 20 units of the node, about
+   13 CSS px at 390 px. */
+@media (max-width: 40em) {
+  .hero-image {
+    aspect-ratio: var(--hero-phone-ratio);
+  }
+
+  .hero-image .hero-wide {
+    display: none;
+  }
+
+  .hero-image .hero-phone {
+    display: inline;
+  }
+
+  .hero-node {
+    transform: var(--hero-phone);
+  }
+
+  .hero-label {
+    font-size: 20px;
+  }
+}
+
+/* The prose of the page keeps the measure. */
+body.pbc-home main section > p {
+  max-width: var(--pbc-measure);
+}
+
+.home-more p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pbc-space-2) var(--pbc-space-4);
+}
+
+/* The examples: four entries of equal standing, each its lesson's preview,
+   its title, one line, and its level and course; two columns from 768 CSS
+   px, four from 1200. Not boxed: a rule above each, as in the atlas. */
+.home-examples {
+  display: grid;
+  gap: var(--pbc-space-5) var(--pbc-space-4);
+  margin: var(--pbc-space-4) 0;
+}
+
+@media (min-width: 768px) {
+  .home-examples {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .home-examples {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.home-example {
   padding-top: var(--pbc-space-3);
   border-top: var(--pbc-construction-width) solid var(--pbc-link);
 }
 
-.home-figure figure {
+.home-example p {
+  margin-bottom: var(--pbc-space-2);
+}
+
+/* One line of the lesson's description: at most three lines on the page;
+   the whole sentence stays in the text. */
+.home-example h3 + p {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.home-preview {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  border: var(--pbc-rule-width) solid var(--pbc-rule);
+  background-color: var(--pbc-plate);
+}
+
+body.pbc-home .home-example h3 {
+  margin: var(--pbc-space-3) 0 var(--pbc-space-2);
+  font-size: var(--pbc-heading-3);
+  line-height: var(--pbc-leading-tight);
+}
+
+.home-meta {
+  color: var(--pbc-muted);
+  font-size: var(--pbc-text-small);
+}
+
+.home-begin p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pbc-space-3) var(--pbc-space-4);
+}
+
+/* "Run the code" (F134): the three routes above the shared installation,
+   each under the cobalt construction line, and the secondary sections in
+   native disclosures, closed. */
+/* The three route sections are siblings of the others, so that they head
+   the table of contents; side by side from 768 CSS px. */
+section.route {
+  margin: var(--pbc-space-4) 0 0;
+  padding-top: var(--pbc-space-3);
+  border-top: var(--pbc-construction-width) solid var(--pbc-link);
+}
+
+@media (min-width: 768px) {
+  section.route {
+    display: inline-block;
+    /* Less the space between two inline blocks. */
+    width: calc((100% - 2 * var(--pbc-space-4)) / 3 - 0.3em);
+    margin-right: var(--pbc-space-4);
+    vertical-align: top;
+  }
+
+  section.route + section.route + section.route {
+    margin-right: 0;
+  }
+}
+
+section.route > h2 {
   margin: 0 0 var(--pbc-space-2);
+  border-bottom: none;
+  font-size: var(--pbc-heading-3);
+  line-height: var(--pbc-leading-tight);
 }
 
-.home-figure figcaption {
-  max-width: none;
+section.route > p {
+  margin: 0;
 }
 
-/* How the figure was computed: a native disclosure, closed, under the
-   caption. */
-.home-details {
-  margin-top: var(--pbc-space-2);
+details.disclosure {
+  margin: var(--pbc-space-3) 0;
   border-top: var(--pbc-rule-width) solid var(--pbc-rule);
 }
 
-.home-details > summary {
+details.disclosure > summary {
   padding: var(--pbc-space-2) 0;
   color: var(--pbc-link);
   cursor: pointer;
 }
 
-.home-details[open] > summary {
-  margin-bottom: var(--pbc-space-2);
+details.disclosure[open] > summary {
+  margin-bottom: var(--pbc-space-3);
 }
 
-.home-provenance p {
-  margin-bottom: var(--pbc-space-2);
-  color: var(--pbc-muted);
-  font-size: var(--pbc-text-small);
-}
-
-.home-provenance a {
-  overflow-wrap: anywhere;
-}
-
-/* The illustrations of the atlas, drawn larger for a featured course and at
-   the size of a line of text in the compact row. */
-.home-illustration {
-  display: block;
-  width: 4.5rem;
-  height: 4.5rem;
-}
-
-/* The featured courses: the illustration, the name, the counts, the first
-   lesson, each under the cobalt construction line; three columns from
-   768 CSS px, one below. */
-.home-featured {
-  display: grid;
-  gap: var(--pbc-space-4) var(--pbc-space-5);
-  margin: var(--pbc-space-4) 0 var(--pbc-space-3);
-}
-
-@media (min-width: 768px) {
-  .home-featured {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    column-gap: var(--pbc-space-4);
-  }
-}
-
-.home-course {
+/* "How we verify the science" (F134): each worked example under the
+   construction line, its statement set as a quotation. */
+.verify-example {
+  margin: var(--pbc-space-3) 0 var(--pbc-space-5);
   padding-top: var(--pbc-space-3);
   border-top: var(--pbc-construction-width) solid var(--pbc-link);
 }
 
-.home-course p {
-  margin-bottom: var(--pbc-space-2);
-}
-
-body.pbc-home .home-course h3 {
-  margin: var(--pbc-space-3) 0 var(--pbc-space-1);
-  font-size: var(--pbc-heading-3);
-  line-height: var(--pbc-leading-tight);
-}
-
-/* The other courses and the paths: one row each between thin rules. Not
-   cards: the rows are a list with their counts. */
-.home-structure ul {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
-  column-gap: var(--pbc-space-5);
+.verify-example blockquote {
   margin: var(--pbc-space-3) 0;
-  padding: 0;
-  list-style: none;
-}
-
-.home-structure li {
-  padding: var(--pbc-space-2) 0;
-  border-top: var(--pbc-rule-width) solid var(--pbc-rule);
-}
-
-.home-compact ul {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
-  column-gap: var(--pbc-space-4);
-}
-
-.home-compact li {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  column-gap: var(--pbc-space-2);
-  align-items: start;
-}
-
-.home-compact li > * {
-  justify-self: start;
-}
-
-.home-compact .home-illustration {
-  grid-row: 1 / span 3;
-  width: 2rem;
-  height: 2rem;
-}
-
-/* The method paths: a second layer over the courses, on the surface. */
-.home-paths {
-  margin: var(--pbc-space-3) 0;
-  padding: var(--pbc-space-2) var(--pbc-space-4);
-  background-color: var(--pbc-surface);
-}
-
-.home-paths ul {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
-  column-gap: var(--pbc-space-4);
-}
-
-.home-paths li {
-  border-top: var(--pbc-construction-width) solid var(--pbc-link);
-}
-
-.home-count {
-  display: block;
-  color: var(--pbc-muted);
-  font-size: var(--pbc-text-small);
-}
-
-/* Planned: the word, in a dashed outline as on the atlas, and never a link. */
-.home-planned,
-.home-published {
-  display: inline-block;
-  margin-left: var(--pbc-space-1);
-  padding: 0 0.375rem;
-  border: var(--pbc-rule-width) dashed var(--pbc-rule);
-  border-radius: var(--pbc-radius);
-  font-size: var(--pbc-text-small);
-  font-style: normal;
-  font-weight: 400;
-  line-height: 1.4;
-}
-
-.home-published {
-  border-style: solid;
-}
-
-/* The featured capstone: the full width of the window on the dark navy
-   ground (ADR 018 decision 5), its editorial heading, the course and the
-   state, the manifest's explanation, and the conceptual artwork with its
-   label. The ground reaches the edges by its shadow, clipped to its own
-   height, so the page never scrolls sideways. */
-.home-capstone.home-capstone-feature {
-  display: grid;
-  gap: var(--pbc-space-4) var(--pbc-space-5);
-  align-items: center;
-  margin: var(--pbc-space-4) 0;
-  padding: var(--pbc-space-5) 0;
-  border: none;
-  background-color: var(--pbc-night);
-  box-shadow: 0 0 0 100vmax var(--pbc-night);
-  clip-path: inset(0 -100vmax);
-  color: var(--pbc-night-text);
-}
-
-@media (min-width: 992px) {
-  .home-capstone.home-capstone-feature {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-  }
-}
-
-body.pbc-home .home-capstone-feature h3 {
-  margin: 0 0 var(--pbc-space-3);
-  color: var(--pbc-night-text);
-  font-size: clamp(var(--pbc-heading-2), 1.2rem + 1.6vw, 2.5rem);
-  line-height: var(--pbc-leading-title);
-}
-
-.home-capstone-feature .home-capstone-name {
-  color: var(--pbc-night-muted);
-  font-weight: 400;
-}
-
-.home-capstone-feature .home-planned,
-.home-capstone-feature .home-published {
-  border-color: var(--pbc-night-muted);
-  color: var(--pbc-night-text);
-}
-
-.home-capstone-feature .capstone-description {
   font-size: var(--pbc-text-large);
-  line-height: 1.5;
-}
-
-.home-capstone-feature a {
-  color: var(--pbc-night-text);
-}
-
-.home-capstone-feature a:focus-visible {
-  outline-color: var(--pbc-night-line);
-}
-
-.home-artwork p {
-  margin: 0 0 var(--pbc-space-2);
-}
-
-.home-artwork img {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.home-artwork-label {
-  color: var(--pbc-night-muted);
-  font-size: var(--pbc-text-small);
-}
-
-/* The other capstones, smaller, in the dashed boxes of the atlas. */
-.home-capstones {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
-  gap: var(--pbc-space-3);
-  margin: var(--pbc-space-3) 0;
-}
-
-.home-capstone {
-  padding: var(--pbc-space-3);
-  border: var(--pbc-rule-width) dashed var(--pbc-rule);
-}
-
-.home-capstone p {
-  margin-bottom: var(--pbc-space-2);
-}
-
-.home-capstone p:last-child {
-  margin-bottom: 0;
-}
-
-.home-capstone-name {
-  font-weight: 600;
-}
-
-.home-capstones .capstone-description {
-  font-size: var(--pbc-text-small);
 }
 
 /* Nothing in the chrome moves. The theme already drops its own transitions

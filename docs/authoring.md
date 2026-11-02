@@ -1781,41 +1781,36 @@ in `src/pbc/authoring/identity.py`. Rules for every page:
 - The home page has one attribution link, to the About page. The footer line,
   with its one link to `https://jidai.nl`, is not repeated in lessons or in
   any page content. Lessons do not mention JIDAI.
-- The home page states what is published from the lesson front matter and
-  what is planned from the curriculum file (`pbc.authoring.home_content()`,
-  F124): Part A and Part B list every course and method path with its
-  published and planned counts; one with a published lesson links to its
-  place on the path page (`#course-<id>`, `#path-<id>`), and one without is
-  labelled planned and is not linked. The capstone projects come from the
-  capstone slots of the curriculum file, and each is described only by the
-  explanation of its concept in `site/atlas.yaml`: no title, count, or
-  description of a lesson or a capstone is typed into the page. A sentence
-  about the site that is not generated must be true of the published site;
-  the examples of the three activities, and the lesson of the opening
-  figure, are lessons named by id in the same module.
-- The opening figure of the home page is drawn by
-  `pbc.mechanics.experiments.home_opening` from the double pendulum of
-  `pbc.mechanics.chaos`, through the figure-writing pattern of a lesson
-  (ADR 016 decision 2): the page's cell shows the bytes its `run()` encodes,
-  and `uv run --locked --no-dev python -m
-  pbc.mechanics.experiments.home_opening out` writes the same file. Its
-  status is `simulated`; the page states the module and the commit it was
-  built from. Its second figure, the change of the energy, sits with the
-  provenance and the run's numbers in a native disclosure below the caption.
-  It moves only with the validated interactive pendulum, a separate feature
-  (requirements decision 36).
-- The home page's composition is the owner's (Issue #238, 2026-10-21):
-  three courses featured with the course illustrations of the atlas
-  (`FEATURED_COURSES`), the other five in a compact row; Part B under the
-  editorial heading "Physics + AI"; one capstone (`FEATURED_CAPSTONE`) on the
-  dark navy ground under its editorial heading (`FEATURED_HEADING`), the
-  others smaller. The editorial headings never replace the manifest's
-  explanation. The artwork beside the featured capstone is conceptual
-  interface artwork drawn by `pbc.authoring.home_artwork`, written into the
-  built site by the post-render script `site/home-artwork.py` and registered
-  with its module in `site/assets/provenance.yaml`; it carries no axis,
-  scale, number, or measurement label, and its label says it shows no data
-  and no simulation.
+- The home page is generated whole by `pbc.authoring.home_content()`
+  (F134, ADR 021 decision 4); `site/index.qmd` holds one cell and no copy,
+  link, or heading of its own. The hero's headlines and subtexts are the
+  owner's, in `site/hero.yaml` beside the curriculum file: exactly the
+  eight pairs 1a, 1b, 1c, 2a, 2b, 2c, 3a, and 3b, plain text, and a
+  default. Change the copy there and nowhere else; the build fails on a
+  missing, duplicate, or extra pair, an unknown field, or markup. The page
+  carries the default pair in its HTML and the others as data for
+  `site/learner/hero.js`, which shows one at random per visit before the
+  first paint (`?hero=2b` forces one), with no request and no storage.
+- The examples are chosen by code from the front matter, never named on
+  the page: in path order, the first simulation-only lesson of level 1, the
+  first measured-data lesson, and the first lesson with an LLM agent, each
+  from a course that is neither the first course nor an earlier example's;
+  then the first published capstone of a course none of them has, else
+  the first published capstone that is not itself an example. A
+  lesson's one line is the first sentence of its `description`; a
+  capstone's is the explanation of its concept in `site/atlas.yaml`. A
+  sentence about the site that is not generated must be true of the
+  published site.
+- The hero image is composed at build time from the atlas's registered card
+  illustrations, with the names of the courses and paths as SVG text; it
+  holds no link. The double-pendulum figure of F124 left the home page; its
+  module, `pbc.mechanics.experiments.home_opening`, and its tests stay.
+- "How we verify the science" (`site/verify.qmd`) works through three
+  claims named in `pbc.authoring.verify` (`EXAMPLES`: the claim type, the
+  lesson id, and the evidence word). Each is resolved with the code of the
+  evidence map; an example whose lesson, claim, or evidence is missing, or
+  whose evidence is of another kind, fails the build. When you change one of
+  those claims, keep its type and its evidence word, or change the example.
 - JIDAI is the initiative's company, not a copyright holder, funder, or
   university partner. The copyright line, the licences (MIT for code, CC BY
   4.0 for content), the repository address, and `website.site-url` do not

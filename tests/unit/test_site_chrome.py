@@ -56,7 +56,7 @@ def test_the_footer_carries_the_secondary_pages_and_the_source():
     assert [(entry["text"], entry["href"]) for entry in FOOTER["right"]] == [
         ("Run the code", "reproduce.qmd"),
         ("Glossary", "glossary.qmd"),
-        ("Scientific evidence", "evidence.qmd"),
+        ("Scientific evidence", "verify.qmd"),
         ("For educators", "educators.qmd"),
         ("Contribute", "contribute.qmd"),
         ("Source", REPOSITORY),

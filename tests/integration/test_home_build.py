@@ -1,8 +1,8 @@
-"""The home page states the published lessons from the lesson metadata.
+"""The home page chooses its examples from the lesson metadata at build time.
 
 Each case is a minimal Quarto project in a temporary directory with the real
-home page and a few lessons; changing the lessons and building again changes
-the page (F25, acceptance criterion 2).
+home page, its data files, and a few lessons; changing the lessons and
+building again changes the examples the page shows (F25, F134).
 """
 
 import shutil
@@ -23,13 +23,14 @@ format:
 _LESSON = """\
 ---
 title: "{title}"
+description: "{title}, in one line. A second sentence."
 lesson:
   id: {id}
   strand: {strand}
   order: {order}
-  difficulty: 1
-  course: mechanics
-  methods: [simulation]
+  difficulty: {difficulty}
+  course: {course}
+  methods: [{methods}]
   outcomes:
     - Do the first thing
     - Do the second thing
@@ -47,10 +48,14 @@ def write_lesson(
     site: Path,
     id: str,
     title: str,
-    strand: str = "mechanics",
+    course: str,
+    methods: str = "simulation",
+    strand: str = "",
     order: int = 1,
-    prerequisite: str = "",
+    difficulty: int = 1,
+    prerequisite: str = "kinematics",
 ) -> None:
+    strand = strand or course
     directory = site / "lessons" / strand / f"{order:02d}-{id}"
     directory.mkdir(parents=True)
     (directory / "index.qmd").write_text(
@@ -59,7 +64,10 @@ def write_lesson(
             title=title,
             strand=strand,
             order=order,
-            prerequisite=prerequisite,
+            difficulty=difficulty,
+            course=course,
+            methods=methods,
+            prerequisite="" if id == "kinematics" else prerequisite,
         )
     )
 
@@ -69,30 +77,23 @@ def site(tmp_path: Path) -> Path:
     source = tmp_path / "site"
     source.mkdir()
     (source / "_quarto.yml").write_text(_CONFIG)
-    shutil.copy(SITE_SOURCE / "index.qmd", source / "index.qmd")
-    # The three lessons the home page names as examples, and the lesson of
-    # its opening figure.
-    write_lesson(source, "numerical-integrators", "First lesson")
+    for name in ("index.qmd", "hero.yaml", "curriculum.yaml", "atlas.yaml"):
+        shutil.copy(SITE_SOURCE / name, source / name)
+    (source / "assets").mkdir()
+    shutil.copy(SITE_SOURCE / "assets" / "provenance.yaml", source / "assets")
+    write_lesson(source, "kinematics", "First lesson", "mechanics")
+    write_lesson(source, "walk", "Walk lesson", "thermodynamics", order=1)
     write_lesson(
-        source,
-        "double-pendulum-chaos",
-        "Pendulum lesson",
-        order=2,
-        prerequisite="numerical-integrators",
+        source, "lab", "Lab lesson", "waves", "measured-data, simulation", difficulty=3
     )
     write_lesson(
         source,
-        "agent-experiment",
+        "agent",
         "Agent lesson",
+        "astrophysics",
+        "simulation, llm-agents",
         strand="agents-llm",
-        prerequisite="numerical-integrators",
-    )
-    write_lesson(
-        source,
-        "proving-what-the-simulation-showed",
-        "Proof lesson",
-        strand="lean",
-        prerequisite="numerical-integrators",
+        difficulty=3,
     )
     return source
 
@@ -103,23 +104,29 @@ def built_text(site: Path, tmp_path: Path, name: str) -> str:
     return (tmp_path / name / "index.html").read_text()
 
 
-def test_the_counts_and_names_follow_the_lessons(site: Path, tmp_path: Path):
+def test_the_examples_follow_the_lessons(site: Path, tmp_path: Path):
     before = built_text(site, tmp_path, "before")
-    assert "The site publishes 4 lessons." in before
-    assert "Second lesson" not in before
+    for title in ("Walk lesson", "Lab lesson", "Agent lesson"):
+        assert f">{title}</a>" in before
+    assert "Walk lesson, in one line." in before
+    assert "A second sentence." not in before
+    # The first course is the start link's, never an example.
+    assert ">First lesson</a>" not in before
+    assert "Introductory, level 1 of 3, in Thermodynamics" in before
 
+    # Without the waves lab, a measured-data lesson of another course becomes
+    # the example of its kind.
+    shutil.rmtree(site / "lessons" / "waves")
     write_lesson(
         site,
-        "second",
-        "Second lesson",
-        order=3,
-        prerequisite="numerical-integrators",
+        "fluid-lab",
+        "Fluid lab lesson",
+        "fluids",
+        "measured-data",
+        strand="fluids",
+        difficulty=2,
     )
     after = built_text(site, tmp_path, "after")
-
-    assert "The site publishes 5 lessons." in after
-    assert "Start with Second lesson" not in after
-    # The mechanics course holds every lesson of the fixture.
-    assert "4 lessons published" in before and "5 lessons published" in after
-    # The first lesson of the course is the start of the invitation.
-    assert "Start with First lesson" in before
+    assert ">Fluid lab lesson</a>" in after
+    assert ">Lab lesson</a>" not in after
+    assert after.count("<h1") == 1
