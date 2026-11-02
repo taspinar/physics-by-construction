@@ -1344,6 +1344,10 @@ gravity discovery, materials discovery). For AI6, D1, D3, and D5 only the
 published lesson is optional depth: their outcomes belong to core slots
 and are attached to acceptance criteria of F142, F146, F147, and F149,
 never claimed from a link to the extension lesson (ADR 022 decision 2).
+On the atlas and the path view the extension slots are set apart by
+their placement after the core rows under their own "Optional extension"
+wording, never by a fourth row mark beside the requirements' three
+(measured-data lab, capstone, Lean).
 The reference curriculum counts its core: 116 slots (81, 34, 1). Seventeen published
 lessons move to a core slot by their `slot` field; every other old Part B
 label is retired with its successor recorded in `docs/roadmap.md`, "Slot

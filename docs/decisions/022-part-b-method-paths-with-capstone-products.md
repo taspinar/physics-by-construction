@@ -140,8 +140,12 @@ evidence record contains.
 2. **Extension slots.** A slot of a method path may carry `extension:
    true`. An extension slot is optional depth of its path: it is listed
    after the path's core slots, in its own position order, and shown on
-   the path view and the atlas visibly marked as an optional extension;
-   the lesson header names it as such instead of "number n of the m
+   the path view and the atlas visibly set apart as an optional
+   extension: by its placement after the core rows, under its own
+   "Optional extension" wording or group label, and not by a fourth row
+   mark, so that a lesson row keeps only the three marks of the
+   requirements' Course atlas (measured-data lab, capstone, Lean); the
+   lesson header names it as such instead of "number n of the m
    slots". It is never part of the reference curriculum's counts (116
    core slots: 81, 34, and 1); the curriculum test pins the core counts
    and the number of extension slots separately, and a page that counts a
