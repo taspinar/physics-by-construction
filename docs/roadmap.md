@@ -1007,7 +1007,9 @@ feature with an Issue that is not delivered, and it has not started.
   goal and criteria reads "the core slots of the curriculum file (116
   since requirements decision 42)", the extension slots are listed apart
   from the core with their state, and its dependencies gain F136 and the
-  Phase 9 lesson and product features. This edit is a **pre-start gate**
+  Phase 9 lesson and product features and lose the features this cycle
+  drops (F45, F49, F55, F100, F101, F109, F111), with F97 and F110
+  dependencies only if the owner schedules them. This edit is a **pre-start gate**
   of F112. (c) **#345 (F98)** closes as delivered by its own workflow;
   nothing of this planning changes it.
 - **The atlas** (pull request #351, F133). F133 continues as approved.
@@ -1166,7 +1168,7 @@ mapping is under "Slot mapping".
 | F94 | Materials physics: crystal lattices and phonons, electronic band structure | C3 | MAT1, MAT2 | F61, F62, F64, F113, F71, F89 | Medium |
 | F95 | Materials physics: elasticity and deformation, defects | C3 | MAT3, MAT4 | F61, F62, F64, F113, F94, F76 | Medium |
 | F96 | Multimodal physics reasoning and interpretable explanations | C3 | AI6, AI7 | F61, F62, F64, F113, F09, F46, F65 | Medium |
-| F97 | Physical reasoning from video | C3; since `part-b-scientific-products-and-research` an optional extension, scheduled only when the owner asks | AI8 (an extension slot) | F61, F62, F64, F113, F96, F06 | Medium |
+| F97 | Physical reasoning from video | C3; since `part-b-scientific-products-and-research` an optional extension, scheduled only when the owner asks | AI8 (an extension slot) | F61, F62, F64, F113, F96, F06; since `part-b-scientific-products-and-research` also F142 | Medium |
 | F98 | Discovery under noise, hidden variables, and generalisation | C3 | D10, D11, D12 | F61, F62, F64, F113, F66, F81 | Medium |
 | F99 | Discovering gravity and unknown physical worlds | C3 | D4, D5 | F61, F62, F64, F113, F66, F69, F91 | Medium |
 | F100 | Physics reasoning benchmarks | C3, dropped by `part-b-scientific-products-and-research` (F149; #352 closed with the successor link) | EV1 | F61, F62, F64, F113, F96, F65 | Medium |
@@ -1181,7 +1183,7 @@ mapping is under "Slot mapping".
 | F109 | Evidence maps and reproducible literature evidence | C4, dropped by `part-b-scientific-products-and-research` (F152, F154) | R2, R3 | F61, F62, F64, F113, F19, F39, F28 | Medium |
 | F110 | Agent-driven materials discovery | C4; since `part-b-scientific-products-and-research` an optional extension, scheduled only when the owner asks | R5 (an extension slot) | F61, F62, F64, F113, F95, F18, F20 | Medium |
 | F111 | Autonomous physics research challenge | C4, dropped by `part-b-scientific-products-and-research` (F155) | R6 | F61, F62, F64, F113, F49, F101, F98, F65 | High |
-| F112 | Curriculum completion audit | C4 | none | every scheduled lesson feature, F64; since `part-b-scientific-products-and-research` also F136 and the Phase 9 features, with #151 brought in line (pre-start gate) | Low |
+| F112 | Curriculum completion audit | C4 | none | every scheduled lesson feature, F64; since `part-b-scientific-products-and-research` also F136 and the Phase 9 features, not the features that cycle drops (F45, F49, F55, F100, F101, F109, F111), and F97 and F110 only if the owner schedules them, with #151 brought in line (pre-start gate) | Low |
 
 The features of the previous phase without an Issue keep their IDs and
 blocks and fill these slots when their dependencies are met: F45 (AI1),
@@ -5824,8 +5826,9 @@ distinguishes the model's explanation from the verified result.
 optional extension. AI8 is an extension slot of the path `reasoning`,
 outside the core; the core video exercise, with quantitative extraction,
 validation, and limits, is part of SA4 (F142). F97 is scheduled only when
-the owner asks, after F142, and is never a dependency of the core; its
-block is otherwise unchanged.
+the owner asks, after F142, and is never a dependency of the core; F142
+is added to its dependencies by this change cycle, in the Dependencies
+line below and in the Phase 4 table. Its block is otherwise unchanged.
 
 **Source.** Change request section 5 (B1: AI8, new in revision 2) and
 section 7.3 ("Video reasoning"); requirements decision 28 and non-goals.
@@ -5841,8 +5844,9 @@ truth; report trajectory and prediction errors, false causal claims,
 confidence, and the limits of frame and sample rates. No webcam, upload,
 hosted processing, or build-time model call.
 
-**Dependencies.** F61, F62, F64, F113 (the gates of this phase), F96, F06; a rights record for any clip that is not
-generated.
+**Dependencies.** F61, F62, F64, F113 (the gates of this phase), F96, F06; F142 (since the change cycle
+`part-b-scientific-products-and-research`: SA4's core video exercise
+comes first); a rights record for any clip that is not generated.
 
 **Acceptance criteria.** The lesson and agent rules; generated clips
 labelled as generated and reproduced by the build; the tracking's offline
@@ -6146,9 +6150,14 @@ likely several Issues.
 and ADR 022 adds extension slots outside the core. The audit counts the
 core slots of the curriculum file at its time and lists the extension
 slots apart with their state; its dependencies include F136 and the
-Phase 9 features. Its Issue #151 is brought in line by the planner after
-this planning is approved, as a pre-start gate ("State at the change cycle
-`part-b-scientific-products-and-research`", reconciliation notes); the block below is kept as approved.
+Phase 9 features. The features this change cycle drops (F45, F49, F55,
+F100, F101, F109, and F111) are not dependencies, although the
+Dependencies line below still names them; the optional extensions F97
+and F110 are dependencies only if the owner schedules them. Its Issue
+#151 is brought in line by the planner after this planning is approved,
+as a pre-start gate that mirrors these dependencies ("State at the change
+cycle `part-b-scientific-products-and-research`", reconciliation notes);
+the block below is kept as approved.
 
 **Source.** Change request section 11 ("Curriculum completion") and
 section 10 (Wave 4, "quality consolidation"); requirements "Project goal"
@@ -9651,9 +9660,13 @@ pages; the products; the illustrations; Part A and Lean slots.
 entries), F62, F64, F125; never in flight with F134 (Home's capstone
 choice and `pbc.authoring`).
 
-**Visual deliverables and skills.** Page and layout (the extension marker
-and the product-capstone mark on the atlas and the path view, reusing the
-existing components). Skills: impeccable (a change of a major user-facing
+**Visual deliverables and skills.** Page and layout (the extension slots
+set apart on the atlas and the path view by their placement after the
+core rows under their own "Optional extension" wording or group label,
+not by a fourth row mark, so that atlas rows keep only the three marks of
+the requirements' Course atlas, measured-data lab, capstone, and Lean;
+and the product capstones under the existing capstone mark; reusing the
+existing components; ADR 022 decision 2). Skills: impeccable (a change of a major user-facing
 surface's states), frontend-design. No figure or diagram.
 
 **Acceptance criteria.**
@@ -9665,7 +9678,9 @@ surface's states), frontend-design. No figure or diagram.
    identifier, strand, order, or course changes, shown by a test over the
    built site's lesson addresses against the base commit's.
 3. The atlas, the path view, and the lesson headers show the core slots
-   in teaching order, the extension slots after them marked as optional,
+   in teaching order, the extension slots after them under their own
+   "Optional extension" wording or group label and with no fourth row
+   mark,
    and every unfilled slot and the four product capstones as planned,
    never linked or counted; every published lesson stays reachable
    without scripts.

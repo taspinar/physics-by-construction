@@ -1,11 +1,10 @@
 # Planning Approval
 
 Status: Approved
-Approved at: 2026-11-01T14:49:17Z
-Planning branch: planning/part-b-scientific-products-and-research
-Change request: docs/changes/part-b-scientific-products-and-research.md
-Final review: round 5, PASS, by claude (opus)
-Planning fingerprint: 18349c78ab55a02c5871a305a66ed8fde56542c2
+Approved at: 2026-11-02T02:38:38Z
+Planning branch: planning/part-b-reapproval
+Final review: round 2, PASS, by claude (opus)
+Planning fingerprint: d6225fadbbc2be13a3e98f8436e4762f8dd368d0
 
 Recorded by `scripts/finish-planning.sh`. The approval covers these planning
 documents. A change to the description, the requirements, a change request, or the
@@ -73,12 +72,9 @@ under its own review. This approval covers the documents including them.
 
 ## Review rounds
 
-- Round 1: CHANGES REQUIRED, 5 finding(s), by claude (opus)
-- Round 2: PASS WITH MINOR FINDINGS, 5 finding(s), by claude (opus)
-- Round 3: PASS WITH MINOR FINDINGS, 1 finding(s), by claude (opus)
-- Round 4: PASS WITH MINOR FINDINGS, 1 finding(s), by claude (opus)
-- Round 5: PASS, 0 finding(s), by claude (opus)
+- Round 1: PASS WITH MINOR FINDINGS, 4 finding(s), by claude (opus)
+- Round 2: PASS, 0 finding(s), by claude (opus)
 
 ## Findings that were not adopted
 
-None.
+- Round 1, DEFER: S1 [suggestion] Snapshot statements about F133 (pull request #351 open) are now stale on main. The finding is valid, but the statements it names are dated snapshots of the planning base (cd69524) and stay accurate as history. Taking the 'target' qualifier off 'The quieter site' for the parts F133 delivered is architecture upkeep that belongs to a delivering feature. The review itself suggests doing it when F136 starts or at the next feature's architecture update, not in this planning revision. F136's precondition 'F133 merged' is checked when F136 starts, so the stale snapshot leaves no gap in the planning now.
