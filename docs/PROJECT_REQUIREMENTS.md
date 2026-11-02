@@ -1,7 +1,7 @@
 # Project Requirements
 
 Status: Approved
-Approved at: 2026-10-30T19:50:37Z
+Approved at: 2026-11-01T07:55:51Z
 
 Project Grill owns the Draft content. `scripts/start-planning.sh` records human
 approval before project architecture and roadmap planning begins.
@@ -15,7 +15,8 @@ change requests `docs/changes/physics-next-phase.md` (human-supplied,
 2026-10-17), and `docs/changes/risk-proportionate-workflow.md`
 (human-supplied, 2026-10-18), and
 `docs/changes/site-navigation-and-atlas.md` (human-supplied, 2026-10-30),
-plus the decisions recorded in "Major product
+and `docs/changes/part-b-scientific-products-and-research.md`
+(human-supplied, 2026-11-01), plus the decisions recorded in "Major product
 decisions" below.
 
 ## Project goal
@@ -57,7 +58,8 @@ passed the dataset feasibility gate described under "Data and persistence".
 The long-term target is the reference curriculum of decision 23: eight
 physics courses with genuine published lessons, two authentic measured-data
 labs per course as a target that the dataset gate decides, four
-physics-and-AI method paths with valid lessons, and the formal-verification
+physics-and-AI method paths with valid lessons, each ending in a capstone
+that delivers a usable local software product (decision 42), and the formal-verification
 strand, navigable from a course-first learning path, with every published
 address intact. A curriculum is complete when the actual lesson inventory
 reconciles to that set with substantive lessons, not placeholder cards.
@@ -100,9 +102,11 @@ There are no administrator or signed-in learner roles.
    each gains a lesson), with AI-assisted research and formal verification
    exposed as cross-cutting methods through tags, related lessons, and
    cross-links rather than as physics subjects. A secondary view shows the
-   four physics-and-AI method paths (physics reasoning and scientific
-   agents, scientific law discovery, physics agent benchmarking, autonomous
-   scientific research) over the same lessons, never as duplicate pages.
+   four physics-and-AI method paths (since decision 42: reliable scientific
+   agents and experiment automation, physical model discovery through
+   active experiments, scientific agent evaluation and improvement, and
+   reproducible research with agents, under their existing stable keys)
+   over the same lessons, never as duplicate pages.
    Since decision 36 the same page is also the course atlas, and since
    decision 40 a two-layer navigation page: twelve sequence cards (the
    eight courses and the four method paths) and the lessons of the
@@ -159,6 +163,17 @@ There are no administrator or signed-in learner roles.
 11. **Teach with a lesson** (later phase): an educator downloads a published
     lesson's instructor pack, adapts it under the content licence, cites the
     project, and reports improvements through an Issue.
+12. **Build and run a Part B capstone product** (later phase, decision 42):
+    a learner with the path's declared prerequisites starts their own
+    project from the pinned ACT workflow or the equivalent manual route and
+    the path's version-pinned starter in this repository, builds the
+    product (Autonomous Physics Lab, System Discovery Lab, Scientific Agent
+    Testbench, or Scientific Research Workspace) on their own machine, runs
+    it against the interactive deterministic simulator, recorded measured
+    data, or, optionally, their own local instrument, and exports raw data,
+    a report, and a reproducible evidence package. No hardware, paid model
+    account, or hosted service is needed for any essential learning
+    objective.
 
 ## MVP scope
 
@@ -210,7 +225,10 @@ Later phases (in scope for the project, out of scope for the MVP):
   is a feature (decision 31).
 - The four physics-and-AI method paths of decision 25, reusing the models
   and measured datasets of the physics courses, including the video
-  reasoning and conservation-law discovery lessons of revision 2.
+  reasoning and conservation-law discovery lessons of revision 2; since
+  decision 42, 30 taught slots and four capstone products, with video
+  inference, gravity discovery, and materials discovery as deliberate
+  extensions.
 - The Learning Path page redesign of decision 29, as its own feature before
   the bulk of the new lessons.
 - Verification that scales with the curriculum (decision 30, delivered for
@@ -271,6 +289,9 @@ Later phases (in scope for the project, out of scope for the MVP):
   page, README and citation metadata, and contribution paths.
 - Research capstones: autonomous experimental design, agent-assisted theorem
   proving, reproduction of an open physics paper, an optional local tutor.
+  Since decision 42, autonomous experimental design and the reproduction
+  of a paper are delivered through the Part B capstone products; the
+  others are unchanged.
 
 ## Non-goals
 
@@ -278,7 +299,11 @@ Later phases (in scope for the project, out of scope for the MVP):
   adaptive-learning phase.
 - No backend or runtime server: the site is static. LLM agents run on the
   learner's machine with the learner's credentials; the site never calls an
-  LLM at runtime and never holds API keys.
+  LLM at runtime and never holds API keys. The Part B capstone products of
+  decision 42 are local applications the learner runs; their upload or
+  import, instrument control, and local interface belong to the learner's
+  machine, not to the hosted site, and introduce no compulsory cloud
+  deployment, user management, billing, or hosted service.
 - No analytics, tracking, cookies, or third-party telemetry.
 - No re-teaching of prerequisite physics or programming; the audience is
   advanced, and lessons may state prerequisites and link out instead. This
@@ -311,7 +336,13 @@ Later phases (in scope for the project, out of scope for the MVP):
   properly licensed, already-collected data; the acoustics lesson is
   numerical, and the video-reasoning lesson uses approved existing clips or
   reproducible generated clips, with no webcam, upload service, or
-  device-control backend.
+  device-control backend. *Bounded exception since decision 42:* the first
+  two Part B capstones (the Autonomous Physics Lab and the System Discovery
+  Lab) may control a learner's own low-voltage instrument locally, as an
+  optional extension of the learner-run product, under the hardware rules
+  of decision 42; buying hardware is never required, no autonomous mains
+  voltage work or unrestricted actuation is included, and nothing of it
+  reaches the site, the build, or CI. The rest of this non-goal stands.
 - No standalone mathematics curriculum, no physics-informed machine-learning
   track, and no generic AI-engineering or machine-learning curriculum. The
   nuclear and particle, plasma, and geophysics and climate expansions are
@@ -322,8 +353,12 @@ Later phases (in scope for the project, out of scope for the MVP):
   with hypothetical loads, the phased-array model is an array-factor model
   and not a full-wave or metasurface design, and the tsunami model is
   teaching-scale and not for warning, inundation, or hazard forecasting.
-  Capstones are limited to the three the change request selects; no other
-  course adopts a capstone requirement.
+  Part A's applied capstones are limited to the three the change request
+  selects; no other Part A course adopts a capstone requirement. Part B's
+  four method-path capstones of decision 42 are learner-run educational
+  and experimental software products with documented operating limits,
+  never certified laboratory instruments, and a capstone's hardware
+  dataset is not a seventeenth designated lab.
 - No heavyweight solver (CAD, meshing, finite-element, full-wave,
   geophysical, or high-performance computing packages) as a mandatory build
   or CI dependency; such tools are optional local comparators.
@@ -731,6 +766,31 @@ Later phases (in scope for the project, out of scope for the MVP):
   capstone, not a seventeenth designated lab; the capstone's simulation and
   benchmark core does not depend on that approval and is published as
   clearly simulated until it is granted.
+- Part B execution modes (decision 42) are kept distinct in data and in
+  claims: interactive deterministic simulation (new experiments, hidden
+  systems, active selection, and full assessment without equipment);
+  recorded measured data (real noise and reproducible analysis, never
+  represented as a new physical experiment); and optional live hardware
+  (new local measurements, varying results with declared tolerances and
+  uncertainty). A live run records device, calibration, configuration,
+  timestamps, units, processing, and operating conditions; captured data
+  pass the existing provenance, licensing, and feasibility review before
+  anything derived from them is published. Experimental outputs of local
+  products are distinct from the deterministic published lesson
+  artifacts, and no global reproducibility tolerance is introduced for
+  live measurements.
+- The capstone evidence contract (decision 42) extends the existing
+  protocols only where the products need it, after a pilot on one
+  existing task: task, hypothesis, assumptions, protocol version, dataset
+  split, seeds, budgets, code and configuration identities, and
+  environment; per-attempt status, failure diagnostics, artifact
+  references, and links to prior attempts; evaluator-computed correctness
+  and performance kept apart from candidate-reported diagnostics;
+  claim-to-run and claim-to-source links with an evidence status
+  (completed, failed, inconclusive, not evaluated, or independently
+  checked) and scope; and a frozen selected candidate with a versioned
+  final evaluation whose feedback never tunes that candidate. A digest
+  establishes identity, not scientific truth.
 
 ## Authentication and authorization
 
@@ -773,6 +833,34 @@ Later phases (in scope for the project, out of scope for the MVP):
   with their own keys. Lesson code should isolate the provider behind a thin
   interface so switching providers is cheap; the default live provider is
   OpenAI, as an optional dependency (settled in F09). Not a site dependency.
+  The required route of every Part B lesson and capstone needs no model
+  (decision 42): a deterministic scripted baseline and recorded replay
+  traces; a live provider and a local open-weights model are both optional
+  behind the same interface.
+- **Agentic Coding Template (ACT)** (`taspinar/agentic-coding-template`):
+  the guided development workflow a learner may use to build a Part B
+  capstone product, at a pinned, demonstrated version, with an equivalent
+  manual route; only the commands a learner needs are documented, no
+  unimplemented ACT capability is assumed, and ACT support work PBC would
+  need is scoped separately. A learner-side tool, not a site, build, or CI
+  dependency, and never evidence of scientific truth.
+- **Instrument drivers and measurement frameworks** (decision 42): optional
+  local dependencies of the first two capstone products, never required by
+  the site, the build, or ordinary CI; no device is selected from a product
+  description alone, and real hardware support is labelled demonstrated
+  only after a physical pilot.
+- **External scientific-agent and research repositories** (the candidates
+  of the change request's section 10, such as AI-Scientist, Agent
+  Laboratory, Robin, Aviary, PaperQA, Bluesky, Bluesky Adaptive, QCoDeS,
+  PySINDy, PySR, Jobflow, Atomate2, R&D-Agent, ShinkaEvolve): guidance for
+  the planner, not mandatory dependencies or mandatory comparisons. Any
+  actual reuse is selective: a pinned version, inspected licences and
+  dependencies, preserved citation and attribution, and no assumption
+  that a wrapper's licence grants rights to datasets, papers, model
+  services, or external scientific software; no external framework,
+  benchmark, paper asset, skill, cloud service, or copied implementation
+  is adopted by decision 42 alone, and existing PBC components are not
+  replaced merely to align with one.
 - **Lean web editor** (live.lean-lang.org or equivalent): optional outbound
   links for exploring proofs. No integration beyond links.
 - External notebook services (Colab/Binder): optional outbound links only.
@@ -921,6 +1009,14 @@ Later phases (in scope for the project, out of scope for the MVP):
   is never instructed to build the site (decision 33); the new experiment
   commands are exercised by verification that they regenerate the intended
   results and figures.
+- Part B capstone products (decision 42): the reference product and the
+  version-pinned learner starter of each path live in this repository,
+  with their extra dependencies in an optional group; CI verifies their
+  offline simulator route deterministically, within the existing
+  verification contracts, from committed fixtures and replay evidence.
+  Live hardware, paid models, and heavy live evaluations are never
+  required by site builds or ordinary CI and are evidenced separately; no
+  check is weakened to accommodate them.
 - Availability: best effort, as provided by GitHub Pages; no SLA, no on-call.
 - Domain: the GitHub Pages default URL. No custom domain for the first
   release; a custom domain is revisited only as its own decision.
@@ -962,6 +1058,22 @@ Later phases (in scope for the project, out of scope for the MVP):
   It runs in the agent harness over an explicit allowlist of simulation and
   analysis functions, and is replayed deterministically in CI like the other
   harness agents (ADR 004).
+- Local instrument control (decision 42): permitted operating ranges,
+  interlocks, timeouts, and stop behaviour are enforced outside the
+  language model; an agent can request only validated, bounded
+  operations; the instrument adapter is a layer separate from the
+  physical models and the agent orchestration; a prepared circuit is
+  never rewired automatically without separately scoped switching
+  hardware; and unreviewed generated code never gains direct instrument
+  access. A guided exercise may let an agent change experiment code only
+  in an isolated simulator workspace, validated independently before the
+  code joins a scientific workflow.
+- Hidden and final evaluations state their actual isolation assumptions:
+  a test is not private if the agent can read its inputs, labels,
+  evaluator answers, or aliases; hidden-value access in a run is kept
+  apart from possible prior knowledge of public problems; the evaluator
+  recomputes scores and resource use, and candidate logs and
+  self-reported costs are not trusted evaluation.
 - Content and research agents treat retrieved web pages and datasets as
   untrusted data, never as instructions. They may propose and log sources but
   never rewrite scientific citations or accept links without human review.
@@ -1137,6 +1249,11 @@ Decided during the change cycle `final-curriculum` (2026-10-12), from
     requires a documented human decision. The 11 optional expansion slots
     (nuclear and particle, plasma, geophysics and climate) are outside the
     core curriculum.
+    *Amended by decision 42 (2026-11-01):* Part B has 34 core slots (30
+    taught and four capstones) in place of 33, so the reference curriculum
+    has 116 slots (81 Part A, 34 Part B, one Lean); actual published
+    totals, including retained legacy pages beyond the revised slots, are
+    reported separately and honestly; Part A and Lean are unchanged.
 24. **Eight physics courses, with stable identifiers.** Decision 15 is
     extended from "later candidates such as waves and optics" to the eight
     courses of decision 23. Every published URL, lesson identifier, strand
@@ -1170,6 +1287,11 @@ Decided during the change cycle `final-curriculum` (2026-10-12), from
     dependence on hosted models; heavy benchmark runs stay outside the
     pull-request critical path. External benchmark projects are
     inspiration for original contained tasks, not embedded assets.
+    *Amended by decision 42 (2026-11-01):* the four stable path keys, the
+    single primary physics-course placement, the method-view principle,
+    and the bounded, checked, optional agents stay; the paths' names,
+    teaching order, slot counts, and outcomes are replaced by those of
+    decision 42, and each path gains a capstone product.
 26. **Revision-2 and revision-3 additions.** Seven new slots from
     revision 2 (rotational motion M17, heat engines T9, acoustics W9,
     finite-volume methods FL9, special relativity AST10, physical reasoning
@@ -1192,6 +1314,13 @@ Decided during the change cycle `final-curriculum` (2026-10-12), from
     T11, EM4 and EM6 with W2 to EM9, and FL1 to FL4 to FL9 to FL5 to FL10
     are preserved. Battery thermal runaway, Formula 1 aerodynamics, and
     JWST atmospheric retrieval are deferred inspiration, not features.
+    *Amended by decision 42 (2026-11-01):* the Part B outcomes of revision
+    2 and the Part B enhancements are preserved as mapped there; video
+    inference (AI8) becomes an exercise or extension of B1.4 rather than a
+    dedicated core slot, conservation-law discovery (D13) keeps a dedicated
+    lesson (B2.7), and the R5 physical multi-objective constraints stay in
+    the optional materials track. Part A additions and capstones are
+    unaffected.
 27. **Measured-data labs stay sixteen and gated.** Two per course as a
     target; the feasibility gate (decision 18, F50) decides every dataset,
     the shared experimental-methods foundations (F51) are reused, the
@@ -1203,6 +1332,10 @@ Decided during the change cycle `final-curriculum` (2026-10-12), from
 28. **No hardware expansion.** No sensor, recording, instrument-control, or
     physical-laboratory lessons; the labs use already-collected licensed
     data (non-goals).
+    *Amended by decision 42 (2026-11-01):* the blanket exclusion is
+    replaced by the bounded, optional, local instrument-control exception
+    for the first two Part B capstones; Part A's measured-data labs keep
+    using already-collected licensed data.
 29. **Learning Path redesign as an independent feature.** The course-first,
     accessible, no-JavaScript page of "UX expectations" is one explicit
     follow-on feature with a new ID, delivered before the bulk of the new
@@ -1236,6 +1369,10 @@ Decided during the change cycle `final-curriculum` (2026-10-12), from
     static, English, open, free of accounts, analytics, uploads, and
     runtime LLM backends; creator and JIDAI attribution and legal notices do
     not change with this cycle.
+    *Clarified by decision 42 (2026-11-01):* scientific quality, the
+    static-site boundaries, and historical feature records stay; "free of
+    uploads" applies to the hosted site, while upload or import and
+    instrument control in learner-run local products are allowed.
 
 Recommended defaults adopted in this change cycle (reversible during
 planning): the planner allocates the next free feature IDs after a live
@@ -1806,10 +1943,176 @@ these decisions, without rewriting delivered history.
     implemented before the revised planning and the ADR amendments are
     approved.
 
+Decided during the change cycle `part-b-scientific-products-and-research`
+(2026-11-01), from `docs/changes/part-b-scientific-products-and-research.md`
+(human-supplied, 2026-11-01) and the owner's answers recorded here. The
+owner adopts the curriculum, the capstone products, the hardware boundary,
+and the scientific evidence requirements of the change request; its
+section 10 is adopted as the selective-adoption rules of "External
+integrations", with the repository candidates as guidance only. Decisions
+23, 25, 26, 28, and 31 stay as history with the amendment notes above; the
+planner proposes the amendment of ADR 013, or a new ADR, and of any
+related metadata and count decisions, without inventing the next ADR
+number, and reconciles requirements, ADRs, curriculum, roadmap, and the
+generators and count assertions as one internally consistent planning
+change.
+
+42. **Part B as four method paths that end in scientific software
+    products.** The progression is experiment execution, model discovery,
+    system evaluation, reproducible research; Path 1 to 2 to 3 to 4 is
+    recommended, never required, and each path is independently accessible
+    at its declared prerequisites, with one curated independent-entry
+    starter of already-verified lower-level components.
+    - *Curriculum* (the change request's section 3): reliable scientific
+      agents and experiment automation (`reasoning`, B1.1 to B1.8 and the
+      capstone B1.C, Autonomous Physics Lab, 9 slots); physical model
+      discovery through active experiments (`law-discovery`, B2.1 to B2.9
+      and B2.C, System Discovery Lab, 10); scientific agent evaluation and
+      improvement (`benchmarking`, B3.1 to B3.6 and B3.C, Scientific Agent
+      Testbench, 7); and reproducible research with agents
+      (`autonomous-research`, B4.1 to B4.7 and B4.C, Scientific Research
+      Workspace with a reproduction track and an original-investigation
+      track, 8): 30 taught slots and four capstones, 34 in all. The
+      required outcomes and capstone requirements are those of the change
+      request's sections 3.1 to 3.4, including the path boundary between
+      B1.6 (refining a known protocol) and B2.8 (discriminating
+      explanations), the underdetermined case and withheld-prediction
+      tests of the discovery capstone, a transfer exercise outside
+      electronics, and non-agent baselines and uncertainty in evaluation.
+      The B-codes are temporary references, not lesson IDs, URLs, feature
+      IDs, or curriculum labels; final labels are allocated after the
+      inventory, old slot labels never silently change meaning, and
+      retired IDs are never reused.
+    - *Breadth.* Electronics (circuits and signals) is the first reference
+      capstone context, never the whole of Part B: mechanics and numerical
+      methods for the first agent and verification exercises, circuits and
+      waves for the lab product, and a thermal or other context for
+      transfer; equation and invariant discovery may use systems other
+      than the capstone's. Simple oscillators are exercises, not a whole
+      capstone.
+    - *Coverage of the 33 old slots* (the change request's section 6):
+      every old slot and every published Part B lesson (22 at this cycle:
+      AI0, AI2 to AI4, AI6, AI7, D1 to D13, EV2, EV3, R1) gets an explicit
+      disposition (reuse, extend, link, retain as extension, or replace
+      unimplemented scope); no published address disappears; delivered
+      lessons are reused where they meet an outcome and extended by new
+      dependent work, never by rewriting delivered feature history. Full
+      video-based inference, gravity discovery, and materials discovery are
+      deliberate optional extensions whose published pages stay
+      accessible; core objectives and optional depth are visibly
+      distinguished, and identical coverage is never claimed from a
+      cross-link alone.
+    - *Lessons stay lessons.* Published lessons remain substantial and
+      self-contained at their stated prerequisite level; a README,
+      installation guide, or external tutorial never replaces the physical
+      argument, worked examples, and interpreted results. Each capstone
+      names the lesson outcomes each product feature exercises, and
+      advanced variants never silently become core prerequisites.
+    - *Products* (owner's answer, 2026-11-01). Each capstone delivers a
+      usable local application, not a notebook with a product name: an
+      end-to-end workflow, a thin local interface, a useful export,
+      documented failures, a reproducible installation, a product brief,
+      scientific acceptance criteria, example inputs, a local run command,
+      a reference workflow, an assessment rubric, and a manual route. The
+      reference product and the version-pinned starter live in this
+      repository; the learner starts their own project from them. Shared
+      components are extracted only when actual reuse warrants it; no
+      microservices or general scientific platform are prerequisites.
+      Existing PBC components (the bounded agent loop, tool allowlists,
+      replay, experimental-design scoring, discovery protocols, hidden
+      worlds, baselines, power-law symbolic regression, and the scientific
+      review lab) are the starting point and are extended, not replaced.
+    - *ACT and the manual route.* ACT is the guided development workflow
+      of the capstones with increasing learner independence (guided
+      specification in Path 1, learner-defined features and validation in
+      Path 2, evaluation evidence against regressions in Path 3,
+      independent bounded delivery in Path 4); an equivalent manual route
+      always exists; ACT internals are never a prerequisite; ACT's
+      applicable approval rules are followed without repeated gates on
+      ordinary learner actions. A coding agent that builds a product is
+      distinguished from the scientific agent the product runs.
+    - *No paid model required* (owner's answer, 2026-11-01): every
+      essential learning objective is achievable with the interactive
+      deterministic simulator, a scripted baseline, and recorded replay
+      traces, without hardware or a model account; a live provider and a
+      local open-weights model are optional.
+    - *Hardware* (the change request's section 5): optional, local, and
+      bounded to the first two capstones, with the safety rules of
+      "Security and privacy constraints" and the execution modes of "Data
+      and persistence". No purchase is authorised by this decision; a
+      feasibility spike (supported OS and drivers, Python access,
+      acquisition and excitation limits, calibration, bill of materials,
+      total cost, realistic duration, failure handling, and a successful
+      physical pilot) precedes any device commitment, starting with one
+      device in electronics; thermal hardware and drones are alternatives
+      or extensions, not simultaneous commitments. Simulator success alone
+      is never evidence of physical operation.
+    - *Evidence.* The capstone evidence contract of "Data and persistence"
+      and the isolation rules of "Security and privacy constraints". After
+      a change based on final-test feedback, the next result belongs to a
+      new development and evaluation cycle. Producing a paper is not proof
+      that an investigation succeeded; revising prose does not resolve a
+      request for new evidence; a negative or non-reproduced result passes
+      when its evidence and analysis justify it; novelty is never
+      guaranteed and a limited search cannot certify it; no public
+      preprint platform is required.
+    - *Pilots* (owner's answer, 2026-11-01), each a bounded task with
+      explicit compute and time limits in its plan, ending in a go or
+      no-go recommendation, evidence, its cost, and the simplest viable
+      implementation; exhausting the limit produces an honest partial
+      result and a decision, never automatic expansion. Required: the
+      minimal evidence-contract and final-evaluation pilot on one existing
+      task, first, together with the minimal simulator vertical slice;
+      these two are the only common prerequisites of core Part B delivery.
+      Required before any claim of hardware support, and gating only live
+      hardware delivery: the one-instrument measurement pilot.
+      Integration-specific validation (for example a model-discovery
+      comparison with PySR or PySINDy, or a literature-evidence comparison
+      with PaperQA) is required only for an integration actually chosen.
+      The solver-optimisation exercise stays optional. ACT is piloted on
+      one small real capstone feature with the manual route verified,
+      before learner workload is promised.
+    - *Delivery* (the change request's section 8): Stage A reconciles and
+      approves the planning change (an inventory of old slot, published
+      lesson ID and URL, feature or Issue, status, destination, and
+      action); Stage B builds the evidence pilot and one vertical slice;
+      Stage C delivers Path 1, then Path 2; Stage D delivers the
+      evaluation and research products, with baselines and scientific
+      checks present from Stage B. Issues are created just in time in
+      dependency order, a slot is not a feature, superseded unimplemented
+      Issues are updated or closed with successor links, and an unfilled
+      new slot is never labelled published. The verification cost at the
+      revised lesson count is projected only after rechecking the capacity
+      work (#150, F113; #278).
+    - *Unchanged.* Part A's eight courses and sixteen designated
+      measured-data labs, Lean's lessons, the site's visual design and
+      atlas (twelve sequence cards; Part B capstones carry the existing
+      capstone mark), no-JavaScript access to lesson content, the dataset
+      gates, optional agent execution, and every verification obligation;
+      the atlas and Home generators are adapted from canonical metadata,
+      never from a second hand-written curriculum.
+    - *Acceptance of the planning change and of delivered content*: the
+      criteria of the change request's section 9 apply.
+
+Recommended defaults adopted in this change cycle (reversible during
+planning): the four existing path keys are retained; electronics is the
+first reference hardware context with one device initially; interfaces
+stay local; a pinned ACT starter with a manual equivalent. In-flight Part
+B work (owner's answer, 2026-11-01): no new Part B feature starts before
+this planning change is approved; F100 (Issue #352, EV1, opened on
+2026-11-01) is not started or is paused and is then updated with a
+successor link by the planner; F98 (Issue #345) was merged by pull request
+#350 and closes normally as delivered, so its lessons D10 to D12 are
+reused, not in flight; the atlas work of F133 (pull request #351, open at
+this cycle) continues, and curriculum metadata and sequence descriptions
+are coordinated with it without recreating the navigation. The status
+claims of the change request are refreshed against `main` by the planner.
+
 ## Unresolved questions
 
 Questions 1 to 4 and 6 are settled. They keep their numbers, because other
-documents refer to them; questions 5, 7, 8, 9 to 12, and 13 to 16 are open.
+documents refer to them; questions 5, 7, 8, 9 to 12, 13 to 16, and 17 to
+22 are open.
 
 1. **Default LLM provider for agent lessons.** Settled in F09: OpenAI is the
    default live provider, as an optional dependency behind the thin provider
@@ -1889,3 +2192,28 @@ documents refer to them; questions 5, 7, 8, 9 to 12, and 13 to 16 are open.
     and "no runtime secrets" exclude today, so a yes amends those
     requirements through its own change and Issue. Until then F135's
     links to GitHub's forms are the only route.
+
+Questions 17 to 22 come from section 11 of the change request
+`part-b-scientific-products-and-research` (decision 42). Each is settled
+with evidence, none is approved by that decision, and none blocks writing
+the curriculum mapping.
+
+17. **Instrument and accessories.** The exact device (for example Analog
+    Discovery or Red Pitaya) and its accessories, decided on the
+    feasibility spike and the physical pilot.
+18. **Acquisition budget.** The total hardware cost the owner accepts;
+    no purchase is authorised until the owner decides it.
+19. **Optional dependency packaging.** How the optional dependencies of the
+    products (drivers, measurement frameworks, discovery engines, model
+    providers) are grouped and pinned without entering the required
+    learner and CI environments.
+20. **Final curriculum labels and primary course homes.** The final labels
+    of the 34 Part B slots and the primary physics course of each new
+    lesson and capstone, allocated after the Stage A inventory.
+21. **Frontend of the local products.** The thin local interface each
+    product uses; it is never a dependency of the hosted site, whose own
+    frontend non-goals are unchanged.
+22. **First reproduction paper and learner workload.** The curated
+    feasible paper of the reproduction track, and realistic learner
+    workload per path, set after the ACT and vertical-slice pilots rather
+    than promised before them.

@@ -14,8 +14,17 @@ Extended by
 curriculum file, holding only concept identifiers, display placement,
 concept-to-slot associations, and curated conceptual connections with
 their rationale; the curriculum file stays the one declared source of the
-planned structure and gains no field, and the decisions below are
-unchanged.
+planned structure and gains no field (ADR 021 repeats this rule), and the
+decisions below are unchanged. Decisions 3 and 5 amended by
+[ADR 022](022-part-b-method-paths-with-capstone-products.md)
+(2026-11-01): a slot of a method path may be an extension slot, shown and
+counted apart from the core slots, and a method path's capstone slot has
+the kind `product capstone`; the reference curriculum's counts are those
+of its core slots. With it, the rule of ADR 018 and ADR 021 that the
+curriculum file gains no field is amended in this one respect: a slot
+gains the optional key `extension` and the kind `product capstone`, and
+the curriculum file still gains no description field and holds nothing a
+lesson's front matter holds. The other decisions below are unchanged.
 
 Date: 2026-10-12
 

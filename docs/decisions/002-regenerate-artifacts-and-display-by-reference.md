@@ -34,6 +34,18 @@ its master, is admitted as a registered SVG is; an unregistered raster,
 every other image type, and every image file outside `site/assets/` stay
 rejected. Such a file is an input the build cannot regenerate, not a
 build output; the other decisions below are unchanged.
+Amended by
+[ADR 022](022-part-b-method-paths-with-capstone-products.md)
+(2026-11-01, change cycle `part-b-scientific-products-and-research`) in
+condition 2 of the replay-fixture decision: a Part B product, which has
+no lesson directory, has one further declared fixture location,
+`products/<product>/fixtures/`, for the replay traces of its reference
+product and its starter, and the committed-artifact check exempts it as
+it exempts a lesson's. Conditions 1, 3, and 4 apply to those traces
+unchanged (no credential or provider request data; recorded tool results
+never displayed and always recomputed, a mismatch failing; recorded model
+messages shown only as recorded); the other decisions below are
+unchanged.
 
 Amended by [ADR 020](020-risk-proportionate-verification-and-review.md) (2026-10-19, change cycle
 `risk-proportionate-workflow`, requirements decision 39) in one process
