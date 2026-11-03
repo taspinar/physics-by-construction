@@ -17,6 +17,7 @@ from pathlib import Path
 import yaml
 
 from pbc.authoring.context import marker
+from pbc.authoring.improvement import suggestion
 from pbc.authoring.lean import LEAN_DIRECTORY
 from pbc.authoring.repository import (
     REPOSITORY_ROOT,
@@ -106,6 +107,9 @@ class Reproduction:
     kind: str  # "run", "replay", or "proof"
     lean_modules: tuple[str, ...] = ()  # the Lean modules the page displays
     live: str = ""  # the module of the live run of an agent lesson
+    # The public address of the built page, which the "Suggest an
+    # improvement" links pre-fill; set by the post-render step, "" before.
+    address: str = ""
 
     @property
     def heading(self) -> str:
@@ -179,9 +183,15 @@ class Reproduction:
 
     @classmethod
     def from_payload(
-        cls, page: str, payload: dict, commit: BuildCommit, repository: str
+        cls,
+        page: str,
+        payload: dict,
+        commit: BuildCommit,
+        repository: str,
+        address: str = "",
     ) -> Reproduction:
-        """The region of the lesson ``page`` (relative to the site) for ``commit``."""
+        """The region of the lesson ``page`` (relative to the site) for
+        ``commit``; ``address`` is the public address of the built page."""
         if payload["page"] != f"{SITE_DIRECTORY}/{page}":
             raise ValueError(f"the marker names the page {payload['page']!r}")
         if payload["kind"] not in HEADINGS:
@@ -196,6 +206,7 @@ class Reproduction:
             kind=str(payload["kind"]),
             lean_modules=tuple(payload["lean_modules"]),
             live=str(payload["live"]),
+            address=address,
         )
 
     def _repr_markdown_(self) -> str:
@@ -336,6 +347,10 @@ class Reproduction:
                 "</details>",
                 "",
                 *self._live(),
+                # The last line of the lesson (F135).
+                "::: {.suggest-improvement}",
+                suggestion(self.repository, self.address or self.page),
+                ":::",
                 ":::",
                 "",
             ]

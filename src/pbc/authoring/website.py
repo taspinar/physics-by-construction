@@ -3,6 +3,8 @@
 import posixpath
 from pathlib import Path, PurePosixPath
 
+import yaml
+
 # Where the website project sits in the repository, and the file that marks
 # the root of that project.
 SITE_DIRECTORY = "site"
@@ -28,3 +30,14 @@ def page_href(from_page: str, to_page: str, fragment: str = "") -> str:
     target = PurePosixPath(to_page).with_suffix(".html").as_posix()
     href = posixpath.relpath(target, PurePosixPath(from_page).parent.as_posix())
     return f"{href}#{fragment}" if fragment else href
+
+
+def page_address(site: Path, page: str) -> str:
+    """The public address of the built ``page`` (a source page relative to
+    the website project ``site``): ``website.site-url`` of its
+    ``_quarto.yml`` followed by the built page. A project without a
+    ``site-url`` gets the built page's path in the site."""
+    config = yaml.safe_load((site / PROJECT_FILE).read_text(encoding="utf-8")) or {}
+    base = str((config.get("website") or {}).get("site-url") or "")
+    built = PurePosixPath(page).with_suffix(".html").as_posix()
+    return f"{base.rstrip('/')}/{built}" if base else built

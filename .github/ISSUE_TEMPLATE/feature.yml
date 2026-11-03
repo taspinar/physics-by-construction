@@ -2,6 +2,13 @@ name: Feature
 description: Define a scoped feature for implementation
 labels: [feature]
 body:
+  - type: input
+    id: page
+    attributes:
+      label: Page
+      description: >-
+        The address or the title of the page, if the issue is about one.
+        The "Suggest an improvement" links of a lesson fill it in.
   - type: textarea
     attributes:
       label: Goal
