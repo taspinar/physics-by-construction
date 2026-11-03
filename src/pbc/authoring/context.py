@@ -30,7 +30,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from pbc.authoring.repository import BuildCommit, build_commit, repository_url
-from pbc.authoring.website import PAGE_FILE, project_root
+from pbc.authoring.website import PAGE_FILE, page_address, project_root
 
 MARKER_CLASS = "pbc-context"
 KINDS = ("header", "reproduce", "excerpt", "lean-excerpt", "lean-evidence")
@@ -130,7 +130,7 @@ def markdown(
             return LessonHeader.from_payload(site, page, payload).markdown()
         if kind == "reproduce":
             return Reproduction.from_payload(
-                page, payload, commit, repository
+                page, payload, commit, repository, page_address(site, page)
             ).markdown()
         if kind == "excerpt":
             return Excerpt.from_payload(payload, commit, repository).markdown()

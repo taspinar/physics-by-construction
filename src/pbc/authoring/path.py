@@ -16,7 +16,7 @@ from pathlib import Path
 import yaml
 
 from pbc.authoring.context import marker
-from pbc.authoring.glossary import Glossary, before_you_begin
+from pbc.authoring.glossary import Glossary, before_you_begin, definitions
 from pbc.authoring.progress import (
     EXPLANATION_ANCHOR,
     STORAGE_KEY,
@@ -1039,7 +1039,12 @@ class LessonHeader:
         if not self.lesson.outside:
             return [("Before you begin", "nothing beyond the prerequisites above.")]
         items = before_you_begin(self.lesson.page, self.glossary, self.lesson.outside)
-        return [("Before you begin", "\n" + _indent(items, 4))]
+        shown = "\n" + _indent(items, 4)
+        # The definitions on demand, after the list (F135).
+        extra = definitions(self.glossary, self.lesson.outside)
+        if extra:
+            shown += "\n\n" + _indent(extra, 4)
+        return [("Before you begin", shown)]
 
 
 @dataclass(frozen=True)

@@ -5,7 +5,19 @@ description: >-
   contribution.
 ---
 
-Corrections and suggestions are welcome.
+Corrections and suggestions are welcome. Each of these forms opens a new
+issue on GitHub; every lesson ends with the same three links, with the
+lesson's address already filled in. You need a GitHub account to open an
+issue, and issues are public: anyone can read what you write.
+
+```{python}
+#| echo: false
+#| output: asis
+from pbc.authoring.educators import forms_list
+from pbc.authoring.improvement import FORMS
+
+print(forms_list(FORMS))
+```
 
 ## Report an error
 

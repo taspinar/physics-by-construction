@@ -4,11 +4,13 @@
 assumes in ``prerequisites.outside`` as ``"Term: what exactly"``, and the text
 before the colon is the ``term`` of a glossary entry. The glossary page lists
 every entry with the lessons that assume it, and the header of a lesson links
-each of its outside prerequisites to its entry. Both are generated from the
+each of its outside prerequisites to its entry and shows the entry's
+definition on demand in a native disclosure (F135). Both are generated from the
 lesson front matter, so they cannot drift from the lessons. The lesson source
 checks validate with the same code.
 """
 
+import html
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -112,6 +114,39 @@ def before_you_begin(from_page: str, glossary: Glossary, outside: Iterable[str])
         link = f"[{term}]({page_href(from_page, GLOSSARY_PAGE, entry.anchor)})"
         items.append(f"- {link}: {detail}" if detail else f"- {link}")
     return "\n".join(items)
+
+
+DEFINITIONS_LABEL = "Definitions from the glossary:"
+
+
+def definitions(glossary: Glossary, outside: Iterable[str]) -> str:
+    """The definitions of the glossary entries that the outside prerequisites
+    ``outside`` name, for "Before you begin": one closed native disclosure per
+    entry, in the order of the list and once each, the term as its summary
+    and the entry's definition as its body. The text is the glossary's own,
+    read here, never copied into a lesson. "" when no prerequisite names an
+    entry; a prerequisite without an entry gets none.
+
+    It holds no link: the term in the list above already links to the entry
+    on the glossary page. It opens without a script."""
+    entries: list[Entry] = []
+    for text in outside:
+        entry = glossary.entry(text)
+        if entry is not None and entry not in entries:
+            entries.append(entry)
+    if not entries:
+        return ""
+    items = "".join(
+        f'<details class="glossary-definition">'
+        f"<summary>{html.escape(entry.term)}</summary>"
+        f"<p>{html.escape(entry.definition)}</p></details>"
+        for entry in entries
+    )
+    return (
+        '<div class="glossary-definitions">'
+        f'<span class="glossary-definitions-label">{DEFINITIONS_LABEL}</span>'
+        f"{items}</div>"
+    )
 
 
 @dataclass(frozen=True)

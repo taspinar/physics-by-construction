@@ -233,6 +233,31 @@ span.not-verified-label {
   }
 }
 
+/* "Before you begin": the definitions of the glossary entries the lesson
+   assumes, on demand in native disclosures after the list (F135). The
+   summaries form one wrapping row; an open one takes the full width. */
+.glossary-definitions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.875rem;
+  margin-top: 0.375rem;
+  font-size: 0.9375em;
+}
+
+.glossary-definition > summary {
+  cursor: pointer;
+}
+
+.glossary-definition[open] {
+  flex-basis: 100%;
+}
+
+.glossary-definition > p {
+  margin: 0.25rem 0 0.25rem 1rem;
+  max-width: 40rem;
+}
+
 /* Where a by-reference excerpt was read from, directly under its listing. */
 .excerpt-source {
   margin: -0.5rem 0 1rem;
@@ -346,6 +371,19 @@ pre.sourceCode {
 .reproduce-details[open] > summary,
 .lean-evidence-details[open] > summary {
   margin-bottom: 0.75rem;
+}
+
+/* The last line of a lesson: "Suggest an improvement" and the three links
+   to the issue forms (F135), discreet under the experiment. */
+.suggest-improvement {
+  margin-top: 1rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--pbc-rule);
+  font-size: 0.875em;
+}
+
+.suggest-improvement > p {
+  margin: 0;
 }
 
 .lean-evidence > :first-child {

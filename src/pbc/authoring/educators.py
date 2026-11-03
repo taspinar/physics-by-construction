@@ -12,10 +12,12 @@ The "For educators" page of the site lists the packs through :func:`packs_list`.
 import argparse
 import re
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
 import yaml
 
+from pbc.authoring.improvement import form_url
 from pbc.authoring.path import DIFFICULTIES, LearningPath, Lesson
 from pbc.authoring.repository import REPOSITORY_ROOT, repository_url
 
@@ -103,12 +105,13 @@ def packs_list(path: LearningPath) -> str:
     return "\n".join(lines) or "No pack is published yet."
 
 
-def forms_list() -> str:
-    """Markdown list of the Issue forms an educator can use."""
+def forms_list(forms: Sequence[tuple[str, str, str]] = FEEDBACK_FORMS) -> str:
+    """Markdown list of Issue forms: by default those an educator can use;
+    the Contribute page passes the forms of "Suggest an improvement"
+    (``pbc.authoring.improvement.FORMS``)."""
     base = repository_url()
     return "\n".join(
-        f"- [{title}]({base}/issues/new?template={name}.yml): {what}"
-        for name, title, what in FEEDBACK_FORMS
+        f"- [{title}]({form_url(base, name)}): {what}" for name, title, what in forms
     )
 
 
