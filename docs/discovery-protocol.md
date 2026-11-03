@@ -327,6 +327,155 @@ per cell of a benchmark grid), scored again and compared with the baselines.
 No build or test calls a model: a replay needs no credential and no network,
 and a test runs every replay with the network refused.
 
+## The evidence contract
+
+The Part B products extend this protocol with one minimal record that the
+evaluator, not the candidate, fills (ADR 022 decision 6; the requirements'
+"Data and persistence"). `pbc.evidence` implements it (F137); a product
+depends on it only after the pilot below.
+
+- **The task** (`RunRecord`): the task, the hypothesis, the assumptions, the
+  protocol version, the data split in words (what is probed, what is held
+  out, never the held-out values), the seeds, the budgets, the digests of
+  the evaluator's code and of the configuration, and the environment (the
+  interpreter, the libraries, the system).
+- **Attempts** (`Attempt`): each attempt of a candidate in a development
+  and evaluation cycle, with its status, its failure diagnostics, its raw or
+  derived artifacts (a path and its SHA-256 when recorded), and the earlier
+  attempts it follows. The status is one of *completed* (evaluated),
+  *failed* (it ran and gave nothing to evaluate, such as no claim),
+  *inconclusive* (evaluated, but the protocol cannot decide its outcome),
+  *invalid* (its artifact is not what it claims to be or does not replay),
+  and *missing* (its artifact is absent).
+- **Evaluations** (`Evaluation`): what the evaluator recomputed from the
+  artifacts: the correctness (undecided for an invalid, missing, or
+  inconclusive attempt), the metrics, and the resource use counted from the
+  artifacts, with the artifacts and digests it depended on and the
+  evaluator's identity and version.
+- **The candidate's report** (`CandidateReport`): what the candidate says
+  about its attempt (its own score, log, diagnostics, or cost), stored apart
+  from the evaluations and labelled *unverified*. It is never an evaluation;
+  the summary only says whether it agrees with one, disagrees, or is
+  *undecided* because the evaluation has no verdict to compare it with.
+- **Claims** (`Claim`): a text, a scope, links to the runs that support it
+  with the correctness the claim asserts for each, and links to its sources.
+  Its evidence status is derived, never written: *failed* when a linked
+  evaluation contradicts it or a linked artifact was invalid; *not
+  evaluated* when a run is missing, unevaluated, or its evaluation was
+  invalidated; *inconclusive* when an evaluation cannot decide or
+  evaluations disagree; *completed* when every linked run agrees;
+  *independently checked* when evaluators of different identities agree on
+  every linked run. The first of these that any linked run has is the
+  claim's.
+- **The frozen candidate and the final evaluation** (`FrozenCandidate`,
+  `FinalEvaluation`): the selected candidate of a cycle is frozen by the
+  digest of its artifacts and a version. Its final evaluation, by a
+  versioned evaluator, is bound to that digest and version, states the
+  isolation it actually had, keeps its status and diagnostics as an attempt
+  does (an invalid, failed, or inconclusive final evaluation stays in the
+  record with its reason), and runs once per cycle. The ledger refuses a
+  second final evaluation of the candidate in the cycle, a final evaluation
+  of a candidate whose artifacts changed since the freeze, and a further
+  attempt of a finally evaluated candidate in the same cycle: a change after
+  the final evaluation starts a new development and evaluation cycle, with
+  its reason recorded, a new version, and a new freeze. The earlier final
+  evaluation stays in the record.
+- **Invalidation** (`check`): every artifact an evaluation depended on is
+  digested again; a changed or removed one invalidates that evaluation, the
+  summary marks it, and a claim that rested on it becomes *not evaluated*.
+- **The summary** (`summary`): every attempt, with its status, the
+  evaluator's verdict, and whether the candidate's report agrees; the count
+  of every status, zero included; the share of correct attempts over all
+  attempts, so that an invalid, missing, failed, or inconclusive attempt
+  lowers it instead of leaving it; every claim with its status; every final
+  evaluation with its status, verdict, diagnostics, and validity; and every invalidation.
+
+**A digest establishes identity, not scientific truth.** It says that an
+artifact is the one evaluated and unchanged since, never that what it
+records is correct: two files with the same wrong claim have the same
+digest. Correctness comes from the evaluator's recomputation under the
+protocol, and only within the protocol's scope (see "Limits"). A digest of a
+configuration with a small hidden value can be inverted by trying values,
+so a sealed evaluation keeps such a digest from the candidate.
+
+### The pilot: the agent against the baseline of EV3
+
+The contract was piloted on the projectile task of EV3
+(`pbc.evidence.pilot`; protocol `f81-projectile-1` of
+`pbc.discovery.benchmark`): find the hidden gravity from at most 20 noisy
+range probes, scored on the protocol's held-out settings. The candidates are
+the committed runs `projectile-full` (the agent told the form of the law)
+and `plain-projectile` (the plain model without a `measure` tool), and the
+baseline `grid + least squares`, which the evaluator runs itself. Each
+evaluation replays the candidate's fixture with `benchmark.replay_cell`
+(every tool call executed again, a recorded result that differs fails) and
+scores it with `score_transcript`; the run's own cost record and last
+message are its report. The pilot reads the fixtures where the pages hold
+them and changes no page's output. It reproduces the outcomes of EV3: the
+agent recovers the gravity, the plain model does not, the grid baseline
+does.
+
+**Isolation assumptions of the pilot task.** They are stated in the final
+evaluation itself (`pilot.ISOLATION`):
+
+- The candidate saw the system prompt, the task, and the tool
+  specifications its fixture records, and the results of its own tool calls;
+  the hidden gravity and the held-out settings reach no prompt, tool, or
+  result (invariant I27).
+- The hidden gravity and the held-out settings are in this repository
+  (`pbc.discovery.benchmark.PROTOCOLS`): a candidate that can read the
+  repository can read them. The evaluation is therefore not private and
+  cannot show that an informed candidate never saw them. A test shows the
+  consequence: a fixture that submits the hidden value without a probe is
+  scored as recovered.
+- The final evaluation scores on the protocol's held-out settings, the same
+  as the development evaluation. It binds the result to the frozen candidate
+  and its version; it is not an unseen test. (For this task an unseen split
+  would add nothing: the relative error of a claimed gravity is the same at
+  every setting.)
+- Access to hidden values during a run and prior knowledge of the public
+  problem are separate; the recording model's prior knowledge of projectile
+  motion is not measured.
+- Every tool result is recomputed by replay, so a fixture whose recorded
+  readings were edited does not replay and is invalid.
+
+### Decision record: the pilot (F137, 2026-11-02)
+
+- **Decision: go.** The products may depend on `pbc.evidence` as it stands;
+  a product extends it only where its own task needs more (a sealed final
+  split, F150; recorded or live run records, F138).
+- **Evidence.** The tests of `tests/unit/test_evidence_pilot.py` and
+  `tests/unit/test_evidence_records.py`, on the committed fixtures of EV2
+  and EV3 (copied before any change): a candidate that reports a held-out
+  error of 0.001 and recovery fails, since the evaluator recomputes 0.39
+  from its fixture and its claim's status is *failed*; a fixture with
+  edited readings is *invalid* and its claim fails; resource counts come
+  from the replay, not from the report; a changed or removed fixture
+  invalidates the evaluations and the final evaluation that depended on it,
+  visibly, and its claim becomes *not evaluated*; a ledger with one attempt
+  of each status keeps all five in the counts, the rows, the text, and the
+  denominator, and survives a save and a load unchanged; the final
+  evaluation carries the frozen digest and version, a second one and one of
+  a changed candidate are refused, and the change is recorded as cycle 2
+  with a new version while the final evaluation of version 1 stays,
+  marked invalidated.
+- **What the pilot does not show.** It does not make an open teaching task
+  private (the isolation assumptions above), and an evaluation of a
+  candidate that read the hidden world passes. It covers simulated runs
+  only; recorded and live runs, with their modes, devices, and
+  calibrations, belong to the instrument contract (F138).
+- **Cost.** No model call, no network, no new recording. One replay per
+  evaluated attempt and one baseline fit: the whole pilot runs in under a
+  second, and its tests in about one second, within the plan's limit of
+  10 s. About 1,000 lines of code (the records and the ledger about 600,
+  the pilot about 340) and 500 lines of tests; no new dependency.
+- **Simplest viable implementation.** Frozen dataclasses in one ledger,
+  SHA-256 over files and canonical JSON, the evidence status derived by one
+  function, and JSON persistence with a format number: no database, no
+  provenance or workflow framework, no service. The evaluator is the
+  existing replay and judge; the contract adds only the records around
+  them.
+
 ## Limits
 
 Scores say how well a claim predicts outside the probed region of a simulated

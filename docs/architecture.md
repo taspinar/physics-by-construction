@@ -2486,9 +2486,11 @@ to F155:
 - The curriculum file still declares the 33 old Part B slots under the old
   path titles, with no extension slot and no product capstone kind; the
   curriculum test pins 33 and 115 (F136).
-- There is no instrument contract, no evidence contract beyond the
-  discovery protocol and replay, no product package, no `products/`
-  directory, and no starter (F137, F138, then the product features).
+- The evidence contract exists since F137 (`src/pbc/evidence/`, piloted
+  on the EV3 task with the decision go, recorded in
+  `docs/discovery-protocol.md`, "The evidence contract"). There is no
+  instrument contract, no product package, no `products/` directory, and
+  no starter (F138, then the product features).
 - Of the 30 taught slots, 17 are filled by published lessons, 14 of them
   only after an extension that delivers the slot's new outcome; 13 taught
   slots and the four capstones have no lesson (the Phase 9 features).
