@@ -10,8 +10,10 @@ request `docs/changes/pbc-planning-change-four-workstreams.md`, on
 `docs/changes/scientific-atelier-atlas.md`, on 2026-10-19 with the
 change request `docs/changes/risk-proportionate-workflow.md`, on
 2026-10-30 with the change request
-`docs/changes/site-navigation-and-atlas.md`, and on 2026-11-01 with
-the change request `docs/changes/part-b-scientific-products-and-research.md`)
+`docs/changes/site-navigation-and-atlas.md`, on 2026-11-01 with
+the change request `docs/changes/part-b-scientific-products-and-research.md`,
+and on 2026-11-04 with the change request
+`docs/changes/textbook-layer.md`)
 and consistent with `docs/architecture.md` and ADRs 001 to 022.
 
 Keep this high-level. GitHub Issues are the actionable backlog and the source
@@ -1041,6 +1043,75 @@ feature with an Issue that is not delivered, and it has not started.
   `docs/architecture.md`, "Requirements coverage of open choices", says,
   and none blocks this planning.
 
+## State at the change cycle `textbook-layer`
+
+Checked on 2026-11-04 at the base commit `fc6da35` of the planning branch
+`planning/textbook-layer`, against the repository, `gh issue list --state
+all`, `gh pr list`, and `git worktree list`. The files are the truth, this
+section is their summary at that commit. The change request adds a
+textbook layer on top of the curriculum (requirements decision 43, with
+the amendment notes on decisions 40 and 41); it takes no new ADR, and
+ADR 021 decision 4 carries a dated amendment note. Its features are F156
+to F163 (the roadmap's last identifier before this cycle is F155).
+
+- **Delivered and unchanged.** F114 (Issue #181) is closed; F132 (#337) is
+  closed; F133, F134, and F135 are merged (pull requests #351, #361, and
+  #365), and their Issues #338, #339, and #340 are still open. Nothing of what they delivered is reopened; F132
+  to F134 carry a dated note naming the textbook feature that changes
+  their pages after them. F137 (#359) is closed.
+- **Without an Issue, changed in place.** F115, F116, and F127 have no
+  Issue. F116 gains the two rubric additions; F127 loses the course
+  openings (its title, goal, outcome, scope, and criterion 2 are brought
+  in line, with a dated note). F115 is unchanged and runs on its own
+  course.
+- **F136 (Issue #370)** was created on 2026-11-04; its worktree
+  `feature/370-part-b-curriculum-migration` has no commit beyond `main`.
+  It re-slots and retitles the law-discovery path and changes
+  `site/curriculum.yaml`, `site/atlas.yaml`, and `pbc.authoring`, the
+  files F156 needs. The owner decided on 2026-11-04, in this planning,
+  that F156 starts after F136 is merged and is never in flight with it,
+  so the pilot introduction of the law-discovery path is written once,
+  against the re-slotted path under its new title.
+- **The batches of the remaining introductions.** The workflow creates one
+  Issue per identifier (`scripts/create-feature-issue.sh` accepts only
+  `F<digits>`), and a partial pull request stays a draft. The owner
+  decided on 2026-11-04, in this planning, that each batch takes its own
+  identifier now: F159, F161, and F162 for the seven other courses, F163
+  for the three other method paths; F160 keeps the book review the change
+  request gave it, and takes its identifier now (the change request's
+  open point 3).
+- **Content stability at `fc6da35`** (filled slots of the curriculum file):
+  mechanics 16 of 17, thermodynamics 10 of 12, waves 8 of 9,
+  electromagnetism 7 of 9, fluids 7 of 10, quantum 6 of 8, astrophysics 8
+  of 10, materials 4 of 6; the paths before F136: reasoning 6 of 9,
+  law-discovery 13 of 13, benchmarking 2 of 5, autonomous-research 1 of 6.
+  Ninety-four lesson directories in eleven strands, as at the previous
+  cycle.
+- **The hero's four illustrations** are in the provenance register as the
+  atlas files of mechanics (the double pendulum, script
+  `tools/illustrations/double_pendulum_atlas.py`), fluids (the vortex
+  street, `tools/illustrations/generate_fluid_dynamics.py`), thermodynamics
+  (the hot and cold gas, `tools/illustrations/render_hot_cold.py`), and
+  astrophysics (the exoplanet transit, registered by its author and date,
+  with no script). The change request calls the four "computed"; the
+  requirements (the "Home page" bullet and decision 43) call them existing
+  Part A illustrations, interface artwork of decision 41 already in the
+  provenance register, and the exoplanet transit's register entry names no
+  script, so F158 keeps each hero file's origin as its master's entry
+  records it and does not claim a script that does not exist. No hero-size file exists yet; the current
+  hero image is the two constellations of F134.
+- **The material of the change request** (the audit of the 94 lessons and
+  the proposal of 2026-11-03) is not in the repository: the folder
+  `docs/changes/textbook-layer/` does not exist at `fc6da35`. This
+  planning relies only on the change request and the requirements; the
+  audit's per-lesson suggestions are hypotheses, not defects, and its two
+  corrections are Issues #367 and #368, outside this cycle.
+- **No conflict with the requirements** was found. One wording difference
+  is resolved by source precedence: the change request lets "What you can
+  learn" show "at most one or two examples", and the requirements (owner's
+  answer, 2026-11-04) say at most one representative published lesson per
+  part, or none; F158 follows the requirements.
+
 ## Overview
 
 Phases: Phase 1 is the MVP; Phase 2 is the work the requirements placed
@@ -1054,7 +1125,9 @@ cycle `risk-proportionate-workflow`, the two workflow features F130 and
 F131, strictly one after the other; Phase 8 is the change cycle
 `site-navigation-and-atlas`, the quieter site F132 to F135; Phase 9 is
 the change cycle `part-b-scientific-products-and-research`, the four
-method paths that end in local scientific products, F136 to F155
+method paths that end in local scientific products, F136 to F155;
+Phase 10 is the change cycle `textbook-layer`, the textbook layer F156 to
+F163
 (see "Execution order"). A wave is a suggested grouping, not a gate: a
 feature may start when its
 dependencies are done. The gates of Phase 4 (F61 and F62 before every
@@ -1232,7 +1305,7 @@ F126.
 | F124 | The home page of the atelier, with a static verified opening figure | C | F123, F125 (the curated, owner-approved map manifest, which the capstone highlights read), F25, F62, F68, F117 (the merged pull request #205, not the closure of Issue #202), F57 | Medium |
 | F125 | The map manifest and the static atlas: curated concepts and connections, the generated map with its textual equivalent | A (the map data contract), D | F122, F62, F63, F64, F26, F37, F41 | Medium |
 | F126 | The atlas interaction: the switch, selection, zoom, filters, and the phone's region selector | E | F123, F125, F64, F13, F14, F41 | Medium |
-| F127 | The rollout: course openings, every lesson in the reading-column template, the capstone and supporting-page templates, and the final visual acceptance | F, G (the polish) | F123, F124, F126, the owner's review of the preview; since `site-navigation-and-atlas` also F132 to F135, with the preview gate on F133 and F134 | Medium |
+| F127 | The rollout: every lesson in the reading-column template, the capstone and supporting-page templates, and the final visual acceptance | F, G (the polish) | F123, F124, F126, the owner's review of the preview; since `site-navigation-and-atlas` also F132 to F135, with the preview gate on F133 and F134 | Medium |
 | F128 | The validated interactive pendulum on the home page (since `site-navigation-and-atlas` no longer tied to Home; its page is the owner's decision) | G | F124, F68, F07, F43, the owner's decision (question 14) | Medium |
 | F129 | The scientific-figure and conceptual-diagram skill pilots, and the owner's decision on authoring integration | H | F122, F32, F33, F05; coordinated with F114 to F116 | Medium |
 
@@ -1292,6 +1365,23 @@ Every Phase 9 feature that adds a lesson also waits for the capacity gate
 (the rules of "Phase 9"); each product capstone is Level 2 by its paths
 and Level 3 when a dependency file or another trigger fires, and its scope
 is the reason for its High.
+
+Phase 10, the change cycle `textbook-layer` (2026-11-04): requirements
+decision 43, inside ADR 018 and ADR 021 (ADR 021 decision 4 amended by a
+dated note; no new ADR). Phase 1 of the change request's phases is F114
+(delivered), F115, F116, and F156; phase 2 is F159, F161, F162, and F163
+beside the lesson features; phase 3 is F160.
+
+| ID | Feature | Depends on | Risk |
+|---|---|---|---|
+| F156 | Course introductions: the source, the generator, and the pilot on Classical mechanics and the law-discovery path | This planning; F136 merged (never in flight together); F135, F133, F64, F62, F42 | Medium (Level 2; Level 3 if an existing assertion changes) |
+| F157 | The learning journey: the Course Atlas introduction and About | F156, F132, F133, F57 | Medium (Level 2; Level 3 if an existing assertion changes) |
+| F158 | Home: orientation, the hero image from four Part A illustrations, and the first step | F157, F134, F132, F133; the owner's four masters of the hero illustrations supplied before the start; the owner's approval of the hero on the rendered page | High (Level 3 by trigger: tests removed or replaced) |
+| F159 | Introductions, batch 1: thermodynamics, waves and optics, electromagnetism | F156; each course content-stable; F116 when a lesson is revised | Medium (Level 2) |
+| F160 | The book review: the whole material read as one book | F156 to F159, F161 to F163, F115, F116, F127 | Medium (Level 2; Level 3 for a changed published claim) |
+| F161 | Introductions, batch 2: fluid dynamics, quantum physics | F156; each course content-stable; F116 when a lesson is revised | Medium (Level 2) |
+| F162 | Introductions, batch 3: astrophysics, condensed matter and materials | F156; each course content-stable; F116 when a lesson is revised | Medium (Level 2) |
+| F163 | Introductions, batch 4: the three other method paths | F156, F136; F145, F151, F155, and F148 (each path content-stable); F116 when a lesson is revised | Medium (Level 2) |
 
 Risk levels follow `.agents/policies/autonomy.md` and, since
 `risk-proportionate-workflow`, ADR 020 decision 1. Every feature that adds
@@ -6413,6 +6503,14 @@ the diff evidence, and the order relative to F117 on the same files.
 
 ### F116 — Editorial principles in the authoring guide, the lesson template, and the review rubric
 
+**Changed by the change cycle `textbook-layer` (requirements decision 43,
+2026-11-04), before any Issue exists:** the rubric gains the two additions
+of the audit of 2026-11-03, as the scope bullet and criterion 6 below
+say: conceptual synthesis in the lesson review, and the provenance of an
+AI lesson stated at once. Nothing else of the block changes; F116 still
+runs on its own course after F115, and the introductions of F156 follow
+the rules for pages that are not lessons, which F156 writes.
+
 **Source.** Change 1, proposal F3 and acceptance criteria 7 and 8;
 requirements decision 32 ("future lessons inherit the voice through the
 normal authoring workflow").
@@ -6449,6 +6547,15 @@ its author and reviewer followed the normal workflow.
 - The next lesson feature's review record is the first use; the feature
   may demonstrate the rubric on a lesson drafted from the template in a
   dry run that is not merged.
+- *Since `textbook-layer` (requirements decision 43):* two rubric items.
+  **Conceptual synthesis**: the review asks whether the lesson ties its
+  result back to the physical idea and to what came before and after it
+  in its sequence, not only whether each section is correct. **The
+  provenance of an AI lesson stated at once**: an agent lesson says near
+  its opening what kind of evidence it shows (a model transcript, a
+  written example, a recorded run, a tool replay, or an independent
+  evaluation), since these are different levels of evidence, and the
+  review checks that the stated kind matches what the page does.
 
 **Out of scope.** Editing published lessons; expanding the pilot; a
 mandatory additional agent; a narrative template that every lesson must
@@ -6471,6 +6578,11 @@ follow; changes to checks, identifiers, or verification.
    template was added.
 5. `./scripts/verify.sh` passes; no check, identifier, or verification
    guarantee changed.
+6. The rubric holds the two items of decision 43, conceptual synthesis
+   and the provenance of an AI lesson stated at once with its five kinds
+   of evidence, in the same form as its other items (a named weakness,
+   its evidence, and an action, with no score); no published lesson is
+   edited to meet them.
 
 **Risk.** Low.
 
@@ -8183,7 +8295,7 @@ no-script tests, the storage scan, and the keyboard tests guard them.
 **Detailed implementation plan expected.** Yes, short: the modules, the
 controls, the tests.
 
-### F127 — The rollout: course openings, every lesson in the reading-column template, the capstone and supporting-page templates, and the final visual acceptance
+### F127 — The rollout: every lesson in the reading-column template, the capstone and supporting-page templates, and the final visual acceptance
 
 **Changed by the change cycle `site-navigation-and-atlas` (requirements
 decisions 40 and 41, ADR 021, 2026-10-30), before any Issue exists:** the
@@ -8197,25 +8309,39 @@ opening's illustration may be the sequence's illustration of the atlas
 About and supporting pages take their content from F132 and F134 and only
 their layout from this feature. The rest of the block stands.
 
+**Changed by the change cycle `textbook-layer` (requirements decision 43,
+2026-11-04), before any Issue exists:** the course openings leave this
+feature. They become the course and method-path introductions of F156
+(the source, the generator, and the pilot on Classical mechanics and the
+law-discovery path) and of the batch features F159, F161, F162, and F163
+(the other sequences); the About text comes from F157. F127 keeps the
+reading-column rollout of every lesson, the capstone template, the
+supporting pages, and the final visual acceptance; its title, goal,
+outcome, scope, and criterion 2 below are brought in line, and its
+migration plan adds no course route (the introductions' address
+`/courses/<sequence-id>/` is F156's). An introduction page already
+published when F127 runs takes the reading column and the shared chrome
+like any other supporting page, and its text is not changed here. A
+module opening (a grouping within a course for a purpose the migration
+plan names) stays this feature's, as before; none is invented.
+
 **Source.** Change request sections 4 ("Remaining templates"), 6, 8
 (slice F, and the publication-ready polish of slice G), and 9;
 requirements decision 36 ("Shared templates"), decision 37, and the
 non-goals; ADR 018 decisions 2, 5, and 6.
 
 **Problem.** After the preview, the chrome is the atelier's but one
-lesson reads in the new column, the courses have no opening, no capstone
+lesson reads in the new column, no capstone
 template exists, and the About and supporting pages have the chrome
 without the language.
 
-**Goal.** Roll the design out across the site: course openings that reuse
-the existing course sections, every lesson in the reading-column
-template, the capstone template defined and sampled, the supporting pages
+**Goal.** Roll the design out across the site: every lesson in the
+reading-column template, the capstone template defined and sampled, the supporting pages
 in the same language with every function preserved, and the owner's final
 visual acceptance at desktop, tablet, and phone widths.
 
 **User-visible outcome.** The whole site reads as one scientific
-publication: each course opens with one relevant scientific illustration,
-an introduction, its prerequisites, and a compact lesson list; every
+publication: every
 lesson has the calm column, the table of contents, legible code and
 equations, larger figures where useful, its prerequisites, and previous
 and next; the glossary, evidence map, setup, contribution, search, and
@@ -8225,16 +8351,10 @@ licence pages look like the rest and work as before.
 
 - **The migration plan**, written first: which pages, in which order, in
   how many pull requests (each a full run), which routes are added (only
-  for a clear purpose named here; a course's opening is its section of
-  the atlas's index unless the plan justifies a page per course), and how
-  the lesson features in flight and F115 are sequenced or rebased.
-- **Course openings**: one relevant scientific illustration by asset
-  class with its source (a verified figure of the course's lessons, its
-  representative F63 preview, or interface artwork), an introduction, the
-  prerequisites, and the compact lesson list, reusing the course panels
-  of the index. A module is a grouping within a course that the migration
-  plan finds useful (a method path's lessons inside a course, for
-  example); none is invented without a purpose.
+  for a clear purpose named here; the introductions' routes are F156's,
+  not this feature's), and how
+  the lesson features in flight, F115, and the introduction features
+  (F156, F159, F161 to F163) are sequenced or rebased.
 - **Every lesson in the reading-column template**: the opt-in of F123
   becomes the default; every executed cell, number, figure, claim,
   section identifier, reference, and footer command unchanged (the diff
@@ -8271,13 +8391,10 @@ plan; a published capstone (the capstone features).
 the preview (the preview gate); coordinated with F115 and F116 and with
 the lesson features in flight, as the rules of this phase say.
 
-**Visual deliverables and skills.** Page and layout (the openings, the
-lessons, the supporting pages, the capstone template): Impeccable and
-Anthropic Frontend Design as approved; interface artwork (an opening's
-illustration where it is artwork): Diagram Design as approved; a
-scientific figure where an opening reuses one: the PBC Scientific
-Visualization skill for its composition, with the figure's data and
-values unchanged.
+**Visual deliverables and skills.** Page and layout (the lessons, the
+supporting pages, the capstone template): Impeccable and Anthropic
+Frontend Design as approved. (Since `textbook-layer` the openings and
+their illustrations are F156's and the batch features'.)
 
 **Acceptance criteria.**
 
@@ -8285,11 +8402,10 @@ values unchanged.
    cells, numbers, figures, claims, section identifiers, references, and
    footer commands unchanged, shown by the diff of the executed outputs
    and by the reproduction and experiment checks of a full run.
-2. Every course that has a lesson has an opening with one illustration
-   whose class and source are recorded, an introduction, its
-   prerequisites, and its compact lesson list; routes exist only as the
-   migration plan says; every existing address, anchor, and link
-   resolves, shown by the test over the previous addresses.
+2. Routes exist only as the migration plan says; every existing
+   address, anchor, and link (the introductions' included) resolves,
+   shown by the test over the previous addresses. (Since `textbook-layer`
+   the course openings are F156's and the batch features'.)
 3. The supporting pages keep every function: the tests of F41, F42, F19,
    F39, F57, F59, F62, F64, and F117 pass unchanged.
 4. The accessibility scan passes on every page; the keyboard pass, the
@@ -8965,6 +9081,14 @@ Rules of this phase:
 
 **Issue.** #337 (created 2026-10-29, before this planning).
 
+**Note of the change cycle `textbook-layer` (2026-11-04).** What F132
+delivered stands as recorded. F157 changes About after it (the mission and
+the educational philosophy, the Part A and Part B text from the one source
+of the learning journey, and a reference to "How we verify the science"
+instead of a repetition), and F158 gives the header's Start learning
+button and Home the same two destinations; the header keeps its four
+items.
+
 **Source.** Change request "What I want", item 1; requirements decision
 40 ("Menu"), "UX expectations" ("Site navigation"; "Shared templates": the
 supporting pages from the footer); ADR 021 decision 5.
@@ -9053,6 +9177,12 @@ replaced by the stricter test of criterion 1, which the review checks.
 ### F133 — The Course Atlas as a two-layer navigation page: twelve sequence cards and the lessons of the selected one, with generated illustrations
 
 **Issue.** #338 (created 2026-10-29, before this planning).
+
+**Note of the change cycle `textbook-layer` (2026-11-04).** What F133
+delivered stands as recorded. F156 adds to an open sequence's panel the
+link to its introduction where one exists, and F157 opens the page with
+the learning journey before the cards; neither changes the cards, the
+panels' lesson rows, the anchors, or the address module.
 
 **Source.** Change request "What I want", item 2, and "Decisions already
 taken" (artwork, atlas shape, the exoplanet transit, Part B's text-free
@@ -9268,6 +9398,13 @@ section and the recommendations, the tests replaced and added.
 ### F134 — Home as a landing page, Set up as Run the code, and a readable How we verify the science page
 
 **Issue.** #339 (created 2026-10-29, before this planning).
+
+**Note of the change cycle `textbook-layer` (2026-11-04).** What F134
+delivered stands as recorded. Requirements decision 43 replaces, on Home,
+the two-constellation hero image, the three sentences, and the three
+example lessons with one capstone chosen by code; F158 delivers the
+replacement and names F134 as its dependency. The hero copy and its
+script, "Run the code", and "How we verify the science" are unchanged.
 
 **Source.** Change request "What I want", item 3, and "Decisions already
 taken" (hero copy, hero image); requirements decision 40 ("Home"),
@@ -10657,6 +10794,596 @@ Skills: impeccable, frontend-design, pbc-scientific-visualization.
 **Detailed implementation plan expected.** Yes; likely several Issues
 (the reproduction track first).
 
+## Phase 10 — The textbook layer (change cycle `textbook-layer`)
+
+Every feature in this phase comes from `docs/changes/textbook-layer.md`
+(2026-11-03) and the requirements re-approved with it on 2026-11-04
+(decision 43, with the amendment notes on decisions 40 and 41). The change
+is content and presentation inside ADR 018 and ADR 021; it takes no new
+ADR, and ADR 021 decision 4 carries a dated amendment note for the hero
+image and the copy of Home. `docs/architecture.md`, "The textbook layer",
+describes the sources, the generator, and the pages. What the features
+inherit without repeating it: the invariants of the architecture (I35
+added by this cycle), the risk levels of ADR 020, the verification tiers
+of ADR 017 decision 7, the three-part rendered review of ADR 018 decision
+6, the asset classes and the provenance register of ADR 021, and the
+skills contract of ADR 019.
+
+Rules of this phase:
+
+- **Order.** This planning; then F156, after F136 is merged and never in
+  flight with it (the owner's decision of 2026-11-04, "State at the change
+  cycle `textbook-layer`"); then F157; then F158, with the hero last. The
+  batches F159, F161, and F162 follow F156, each when its courses are
+  content-stable, in any order; F163 follows F136 and the capstones of its
+  three paths. F160 is last. F115 and F116 run on their own course.
+- **One writer of the shared files.** F156, F157, and F158 change
+  `pbc.authoring`, the atlas page, and the shared CSS; they are never in
+  flight with each other, with F136, or with another feature that writes
+  `pbc.authoring` or `site/atlas.yaml` (F127 included); whichever starts
+  second starts after the first is merged.
+- **Nothing scientific changes.** No equation, computed value, verified
+  output, unit, reference key, or claim of a lesson changes in F156 to
+  F158; the batch features and F160 change a lesson only as their blocks
+  say, and a changed published claim is the "changed scientific claim"
+  trigger of ADR 020 (Level 3). The curriculum file, the lesson addresses,
+  identifiers, and order, the learner state, and every bookmark and anchor
+  stay as they are.
+- **Prose only in the new sources** (I35). An introduction file, the
+  journey file, and the Home copy file hold prose and references; the
+  lessons, counts, prerequisites, the capstone, and published or planned
+  state come from the curriculum file and the front matter. A reference
+  that does not resolve fails the build; a planned lesson is never a link
+  and never counted.
+- **Introductions stay true.** A later feature that adds, moves, retitles,
+  or removes a lesson of a sequence that has an introduction re-reads the
+  introduction's prose and corrects, in the same pull request, a sentence
+  that no longer holds; the lists and counts follow by themselves.
+- **No boilerplate.** Transitions between lessons are written only in a
+  new or revised lesson, never as one paragraph added to every page; no
+  feature rewrites the published lessons (the audit's per-lesson
+  suggestions are hypotheses, not defects).
+- **Content-stable.** A sequence is content-stable for its introduction
+  when no lesson feature of it is open or in flight and the owner confirms
+  on the batch's Issue that its lesson order and its capstone are settled;
+  planned slots may remain, and are shown as planned.
+- **Verification tier.** F156, F157, and F158 change shared inputs and are
+  full runs. A batch feature changes the lesson headers of its sequences
+  (they gain their link), so it runs at least `--base`, and the full run
+  when the targeted run reports it.
+
+### F156 — Course introductions: the source, the generator, and the pilot on Classical mechanics and the law-discovery path
+
+**Source.** Change request "What I want", item 1, "Decisions already
+taken" (F127 split, the phases), "The features" (F156), and "Open for the
+planning" 1 and 2; requirements decision 43, "UX expectations" ("Shared
+templates", "Course atlas"), "Data and persistence"; ADR 018 decision 3
+and ADR 021 decision 3, which it extends without changing their rules.
+
+**Problem.** The site reads as a collection of lessons: no page says why a
+course or a method path matters, why its lessons come in their order, or
+how its capstone completes it. The course openings that F127 would have
+built were a lesson list with an illustration, not that narrative.
+
+**Goal.** One validated source per sequence for the editorial text of an
+introduction, a generator that writes the introduction page from it and
+from the curriculum file and the front matter, and two introductions that
+set the standard: Classical mechanics and the law-discovery method path,
+as F136 leaves it.
+
+**User-visible outcome.** From the atlas panel of Classical mechanics and
+of the law-discovery path, and from the header of each of their lessons,
+a reader opens an introduction that reads like the first chapter of a
+textbook: why the subject matters, its central questions, what the reader
+learns, why the lessons come in this order, which method is used and why,
+the capstone as the culmination, what comes next, and the prerequisites as
+links, followed by the sequence's lessons as the atlas shows them.
+
+**In scope.**
+
+- **The address** (the change request's open point 1, decided here): the
+  flat form `/courses/<sequence-id>/`, one page per course or method path
+  that has an introduction, from the sequence identifiers of the curriculum
+  file (unique across courses and paths, which the reader checks). No
+  existing address changes and no page exists for a sequence without an
+  introduction file.
+- **The source**: one data file per sequence, site/introductions/<sequence-id>.yaml
+  beside the atlas manifest, read and validated by a new module
+  `pbc.authoring.introductions` through the validated reader the other
+  sources use. It holds the sections of decision 43 as prose (inline
+  Markdown only) and references (to a sequence, a slot, or a glossary term,
+  in a syntax the plan fixes); no lesson list, title, count, prerequisite,
+  outcome, capstone identity, or publication state; any other field is an
+  error.
+- **The generator**: the introduction page, from a thin page source per
+  introduced sequence that calls the generator, as Home does (a test keeps
+  the page sources and the data files one to one), with the sequence's
+  title, its atlas illustration (interface artwork already registered; no
+  new artwork), the editorial sections, the prerequisites from outside the
+  sequence derived from the front matter of its lessons as links, and the
+  lesson list with the published and planned counts and the capstone as
+  the atlas derives them; a planned lesson is shown with its label and
+  working title, never as a link, never counted.
+- **The links**: the atlas panel of a sequence with an introduction links
+  to it; a lesson's header links the name of its sequence to the
+  introduction when one exists (the lesson template is a shared input). No
+  card, panel row, anchor, or address module of F133 changes.
+- **The pages**: complete without scripts, readable at 320 CSS px, in the
+  site's search index (`site/search-index.py`), within the payload budget,
+  and with the shared header and footer; no new script, storage, or
+  request; `progress.js` and the recommendations unchanged.
+- **The pilot text**: the two introduction files, written to the
+  editorial rules below, with independent scientific review by a
+  different model as for a lesson feature, and the owner's approval of
+  the two as the standard the batches follow, recorded on the Issue.
+- **The editorial rules for pages that are not lessons**: a short section
+  of `docs/editorial-voice.md` (the editorial guide of F114) on the voice
+  of an introduction, the atlas's journey, About, and Home: what such a
+  page may claim, how it refers to lessons and evidence, and that it
+  never repeats a lesson list by hand.
+- **The tests**, written to fail first: an unresolved reference, an extra
+  field, a lesson list or count in a data file, a page source without its
+  data file and the reverse, a planned lesson linked or counted, a missing
+  link from the atlas panel or the lesson header, the page absent from the
+  search index, a script required to read the page; the existing tests of
+  the atlas, the lesson header, and the learner state pass unchanged or
+  are replaced by equivalent ones with the reason recorded.
+
+**Out of scope.** The introductions of the other sequences (F159, F161,
+F162, F163); the atlas's journey and About (F157); Home (F158); any change
+to a lesson's prose, numbers, figures, or claims; new artwork; a course
+route under the lesson tree; a progress mark on the introduction page;
+F127's reading column.
+
+**Dependencies.** This planning; F136 merged and never in flight with it;
+F135 (merged; the lesson template it changed); F133 (the atlas panel and
+the sequence illustrations); F64 and F62 (the curriculum reader and the
+path); F42 (the glossary terms an introduction may reference). Not F115.
+
+**Visual deliverables and skills.** Page and layout (the introduction
+page template): the expected artifact is the rendered pilot pages at
+desktop and phone widths; validation is the rendered review and the tests
+above; the accessible fallback is the page itself without scripts, and
+the illustration's alternative text from its register entry. Interface
+artwork: the sequence's registered atlas illustration, reused, no new
+image. Skills: impeccable, frontend-design.
+
+**Acceptance criteria.**
+
+1. Classical mechanics and the law-discovery path each have an
+   introduction at `/courses/<sequence-id>/` with every section of
+   decision 43, generated from its data file and from the curriculum file
+   and the front matter; no second lesson list exists, shown by the data
+   file validation.
+2. The atlas panel and the header of each lesson of the two sequences
+   link to the introduction; no sequence without an introduction shows a
+   link; every lesson address, anchor, bookmark, and the learner state are
+   unchanged, shown by the test over the previous addresses and the F13,
+   F14, and F133 tests.
+3. A reference that does not resolve, an extra field, a lesson list or
+   count in a data file, and a page source without its data file each
+   fail the build, with a failing test per case written before the
+   change; a planned lesson is shown but not linked and not counted.
+4. The pages are complete without scripts, pass the accessibility scan,
+   the keyboard pass, the reflow at 320 CSS px, and the payload check, and
+   are found by the site search.
+5. The editorial guide has its section on pages that are not lessons; the
+   pilot text has its independent scientific review with every finding
+   dispositioned, and the owner's approval of the two introductions as
+   the standard is recorded on the Issue (`owner_approval`).
+6. The rendered review has its three parts for the two pages; the full
+   verification run passes with no check weakened; the build is
+   deterministic.
+
+**Risk.** Medium (Level 2; Level 3 if an existing assertion of the atlas,
+lesson-header, or learner-state tests changes). A new shared generator
+and a change of the lesson template; nothing scientific changes.
+
+**Detailed implementation plan expected.** Yes.
+
+### F157 — The learning journey: the Course Atlas introduction and About
+
+**Source.** Change request "What I want", items 2 and 3, "The features"
+(F157), and "Open for the planning" 2; requirements decision 43, "UX
+expectations" ("Course atlas", "Site navigation": About), "Data and
+persistence"; I23 for the attribution.
+
+**Problem.** The atlas opens with twelve cards and no account of how they
+form one journey; About describes the site but not its mission and
+philosophy, and the Part A and Part B text is written separately where it
+appears.
+
+**Goal.** One source for the Part A and Part B text of the learning
+journey, used by the Course Atlas, which opens with it, and by About,
+which explains the mission and the philosophy and leaves how results are
+verified to "How we verify the science".
+
+**User-visible outcome.** The Course Atlas opens, before the cards, with
+the journey from computational physics to AI-supported scientific
+investigation: how Part A leads to Part B, the expected background, that
+a route needs only its stated prerequisites, how a capstone fits, and the
+difference between numerical evidence, empirical evidence, and formal
+proof. About states the mission and the educational philosophy, describes
+Part A and Part B in the same words, keeps the attribution, and links to
+"How we verify the science".
+
+**In scope.**
+
+- **The source** (the change request's open point 2, decided here): one
+  file site/journey.yaml beside the atlas manifest, read and validated
+  by `pbc.authoring` like it (prose and references only, any other field
+  an error, every reference resolving; no lesson list, count, or state).
+- **The atlas introduction**: the journey before the cards, from the
+  source; the cards, panels, anchors, address module, learner state, and
+  recommendations of F133 unchanged; the introduction never states that an
+  AI result is a discovery, and states which kind of evidence each part
+  produces.
+- **About**: the mission and the educational philosophy; the Part A and
+  Part B text from the source; the attribution to JIDAI and Ahmet Taspinar
+  as the canonical description of I23 (the F57 check passes); a reference
+  to "How we verify the science" in place of any repetition of how
+  results are verified; every existing anchor of About kept.
+- **The tests**: the same journey text on both pages from the one source;
+  the source's validation; the atlas's existing tests; the identity check;
+  the anchors of About.
+
+**Out of scope.** Home (F158); the introductions (F156 and the batches);
+a change of the atlas's cards or of "How we verify the science"; new
+artwork.
+
+**Dependencies.** F156 (the editorial rules for pages that are not
+lessons, and the shared generator conventions); F133 (the atlas); F132
+(About and the navigation); F57 (the identity text and its check).
+
+**Visual deliverables and skills.** Page and layout (the atlas's opening
+section and About): expected artifact the rendered pages; validation the
+rendered review and the tests; accessible fallback the pages without
+scripts. No new artwork. Skills: impeccable, frontend-design.
+
+**Acceptance criteria.**
+
+1. The Course Atlas opens with the learning journey, before the cards,
+   covering the five points of decision 43, from site/journey.yaml;
+   the cards, panels, anchors, and learner state are unchanged, shown by
+   the F133, F13, and F14 tests.
+2. About carries the mission, the philosophy, the Part A and Part B text
+   from the same source (shown by a test), the attribution unchanged
+   (the F57 check), and a link to "How we verify the science" instead of
+   its own account of verification; every existing anchor of About
+   resolves.
+3. The journey source is validated like the atlas manifest, with a
+   failing test per rule written before the change.
+4. No sentence on either page presents an AI result as a discovery, and
+   the three kinds of evidence are distinguished: checked by the review
+   and recorded in the completion evidence.
+5. The accessibility scan, the keyboard pass, the reflow at 320 CSS px,
+   and the payload hold on both pages; the rendered review has its three
+   parts; the full verification run passes; the build is deterministic.
+
+**Risk.** Medium (Level 2; Level 3 if an existing assertion changes).
+
+**Detailed implementation plan expected.** Yes, short.
+
+### F158 — Home: orientation, the hero image from four Part A illustrations, and the first step
+
+**Source.** Change request "What I want", item 4, "Decisions already
+taken" (hero, start learning), and "The features" (F158); requirements
+decision 43, "UX expectations" ("Home page", "Site navigation"), the
+amendment notes on decisions 40 and 41, and the non-goals (no measurement
+of which hero works better); ADR 021 decision 4 as amended.
+
+**Problem.** Home answers what PBC is in three sentences and shows three
+example lessons and a capstone chosen by code; a first-time visitor learns
+neither how physics is learned here nor how Part A and Part B relate, and
+the two-constellation image says little about physics.
+
+**Goal.** Home orients a first-time visitor: identity, educational
+philosophy, the curriculum (Part A and Part B), and integrity last, with
+no sentence limit; the hero image is one of four Part A illustrations
+picked at random; the first step is the same two actions on Home and in
+the header.
+
+**User-visible outcome.** A visitor sees the owner's headline and subtext
+beside one of four illustrations (the double pendulum, the vortex street,
+the hot and cold gas, the exoplanet transit), with the Course Atlas as
+the primary action and the first lesson of Part A as the secondary one;
+reads what PBC is, how physics is learned here (building models,
+predicting, measuring, interpreting), what Part A and Part B teach and how
+they relate, and, last, how the results are kept honest.
+
+**In scope.**
+
+- **The copy**: one Home copy file beside the curriculum file
+  (site/home.yaml, read and validated by `pbc.authoring.home`), in the
+  order identity, educational philosophy, curriculum, integrity, never
+  written on the page; "What you can learn" from the journey source of
+  F157 with at most one representative published lesson per part, chosen
+  by the owner and named in the copy file by slot, resolved and checked
+  against the published lessons at build time, or none. The code that
+  chooses three examples and a capstone, and its tests, are replaced.
+- **The hero image**: four derived WebP files at hero size under
+  `site/assets/hero/`, made from the masters of the atlas illustrations of
+  mechanics, fluids, thermodynamics, and astrophysics by
+  `tools/illustrations/derive_assets.py` (outside the build), each with its
+  own register entry carrying its master's origin as recorded (the
+  exoplanet transit by its author, with no script), its own alternative
+  text, and its own test; the set and its default (the double pendulum)
+  in the hero data file, whose schema this feature extends; the owner may
+  change the set when this feature starts, recorded on the Issue. The
+  masters are not in the repository (ADR 021 decision 2: only the card
+  and panel sizes are committed), so the owner supplies the four masters
+  before the feature starts, recorded on the Issue, each matched against
+  the SHA-256 of its atlas entry in `site/assets/provenance.yaml`; for
+  mechanics, fluids, and thermodynamics a master regenerated by its
+  registered script may stand in for the owner's copy when its hash
+  matches the register or, where the render is not byte-stable across
+  library versions, when the comparison of
+  `tools/illustrations/regenerate.py` passes, in which case the hero
+  entry records the hash of the master used and the Issue says why; the
+  exoplanet transit has no script and comes only from the owner's master.
+  No hero file is upscaled from an atlas file, and a hero file whose
+  master's hash matches neither its atlas entry nor a regeneration the
+  check accepted is rejected (the register's hash rule). If the owner
+  changes the set, the same conditions hold for the masters of the new
+  set. The
+  hero script picks one image per visit, independently of the headline
+  pair, before the image is requested, so that exactly one hero image is
+  loaded; its own query parameter, separate from the `hero` parameter
+  that forces a headline pair and named in this feature's plan, forces
+  one for tests; the default stays in
+  the HTML for a page without scripts and for link previews; no storage,
+  no request beyond the image, no animation, no measurement. The
+  constellation composition and its CSS leave; nothing presents an image
+  as a verified result.
+- **The first step**: two distinct actions, the Course Atlas (primary on
+  Home) and the first lesson of Part A (secondary), with the same
+  destinations as the header's Course Atlas link and Start learning
+  button; the labels are settled here; the header keeps its four items.
+- **The layout**: responsive and content-first as "Home page" states:
+  on desktop the identity message and both actions without scrolling; on
+  a phone the identity message and the primary action, the secondary
+  action allowed just below the fold on small screens; the image never
+  pushed below the fold or weakened for a pixel rule; validated at
+  1280 by 800, 390 by 844, 360 by 640, and 320 CSS px wide, and at 200 %
+  text scaling, readability and accessibility before any pixel rule.
+- **The owner's approval** of the hero on the rendered page, last,
+  recorded on the Issue.
+
+**Out of scope.** A new headline or subtext (the owner's copy of F134
+stays); animation; the interactive pendulum (F128); a measurement of
+which image works better; a new illustration; a change of the atlas or of
+About beyond F157.
+
+**Dependencies.** F157 (the journey source); F134 (Home and the hero
+script it changes); F132 (the header); F133 (the atlas illustrations and
+their register entries); through F156, F136 (Home's counts and
+capstone choice after the Part B re-slotting). Pre-start condition: the
+owner's four masters of the hero illustrations, supplied as "The hero
+image" states and recorded on the Issue; the feature does not start, and
+the hero is not derived from the committed atlas files, without them.
+
+**Visual deliverables and skills.** Page and layout (Home and its hero):
+expected artifact the rendered Home at the sizes above, with each forced
+image; validation the rendered review, the layout tests, the payload
+check, and the owner's approval; accessible fallback the default image
+and copy without scripts, and each image's alternative text. Interface
+artwork: four derived files from existing masters, accepted by the visual
+check of ADR 021 decision 1 (no text, number, or formula in the pixels).
+Skills: impeccable, frontend-design.
+
+**Acceptance criteria.**
+
+1. Home's copy follows the order identity, educational philosophy,
+   curriculum, integrity, from the copy file; "What you can learn"
+   explains Part A, Part B, and their relation from the journey source,
+   with at most one owner-chosen published lesson per part, each
+   validated at build time; no code chooses example lessons or a
+   capstone.
+2. Each of the four hero images has its derived file, its register entry,
+   its alternative text, and its own test; the default image is in the
+   HTML; with scripts exactly one hero image is requested per load, picked
+   independently of the headline pair, and the parameter forces each one;
+   the page stores nothing and makes no other request (the scan of I16).
+3. Home and the header give the same two destinations, the Course Atlas
+   primary on Home and the first lesson of Part A secondary; the header
+   keeps its four items (the F132 header test).
+4. The layout rule of "Home page" holds at the sizes and the text
+   scaling above, shown by the layout tests, with no layout shift from the
+   swap; the accessibility scan, the keyboard pass, the reflow, and the
+   payload hold.
+5. The rendered review has its three parts with each image forced, and
+   the owner's approval of the hero on the rendered page is recorded on
+   the Issue (`owner_approval`); the full verification run passes with no
+   check weakened; the build is deterministic.
+
+**Risk.** High (Level 3 by trigger: tests of the examples, the capstone
+choice, and the constellation image are removed or replaced).
+
+**Detailed implementation plan expected.** Yes.
+
+### F159 — Introductions, batch 1: thermodynamics, waves and optics, electromagnetism
+
+**Source.** Change request "The features" (F159) and "Order";
+requirements decision 43 (the introductions in batches of about three,
+each after its sequence is content-stable, with the scientific review of
+a lesson feature; phase 2); the owner's decision of 2026-11-04 on the
+batch identifiers.
+
+**Goal.** Introductions for Thermodynamics and statistical physics, Waves
+and optics, and Electromagnetism, to the standard F156 set, each written
+when its course is content-stable (the rules of this phase).
+
+**In scope.** One introduction file and its page source per course, with
+every section of decision 43; independent scientific review by a
+different model, as for a lesson feature; targeted improvements of an
+existing lesson of these courses only where the batch's editorial review
+names a weakness with its evidence and an action under F116's rubric,
+never a rewrite, with transitions only in a lesson so revised and the
+lesson's equations, values, outputs, and claims unchanged unless the
+block's Level 3 rule applies.
+
+**Out of scope.** Other sequences; new lessons or capstones; a change of
+the generator beyond a defect it reveals (a defect found is fixed with
+its test and named in the completion evidence); boilerplate transitions.
+
+**Dependencies.** F156 (the source, the generator, and the standard);
+each of the three courses content-stable, confirmed on the Issue; F116
+for the rubric when a lesson is revised.
+
+**Visual deliverables and skills.** Skills: none (text in the template of
+F156; the courses' registered atlas illustrations are reused, no new
+visual).
+
+**Acceptance criteria.**
+
+1. The three courses have their introductions with every section of
+   decision 43, linked from their atlas panels and their lesson headers;
+   the checks of F156 pass for them.
+2. The scientific review of the three texts is recorded with every
+   finding dispositioned, and the owner's confirmation that each course
+   was content-stable is on the Issue.
+3. Every lesson revised by the batch has its rubric finding as the
+   reason, no equation, value, output, or claim changed (or the Level 3
+   path of ADR 020 followed), and no transition added to an unrevised
+   lesson.
+4. The verification tier of the phase passes; the rendered review covers
+   the three pages.
+
+**Risk.** Medium (Level 2; Level 3 for a changed published claim).
+
+**Detailed implementation plan expected.** Short.
+
+### F160 — The book review: the whole material read as one book
+
+**Source.** Change request "What I want", item 5, "Decisions already
+taken" (phase 3), "The features" (F160), and "Open for the planning" 3
+(the identifier taken now); requirements decision 43 ("Phases").
+
+**Goal.** At the end, read the whole material as one book (the
+transitions, the terminology, the references, the figures, and the
+learning progression) and correct only what needs it.
+
+**In scope.** A review of every published page in reading order, with
+each finding recorded as a weakness, its evidence, and an action, and the
+corrections that the findings justify; the plan sets the reading order,
+the record, and how the corrections are split into pull requests.
+
+**Out of scope.** A rewrite; new lessons, capstones, or introductions;
+anything this block does not name. No more detail at the planning stage.
+
+**Dependencies.** F156 to F159 and F161 to F163; F115, F116, and F127;
+the lesson features of the curriculum that the owner wants inside the
+book at that time.
+
+**Visual deliverables and skills.** Skills: none (a reading review; a
+figure correction, if one is needed, selects pbc-scientific-visualization
+in the plan).
+
+**Acceptance criteria.**
+
+1. The review record covers every published page in the plan's reading
+   order, with every finding dispositioned.
+2. Every correction names its finding; a changed published claim followed
+   the Level 3 path of ADR 020.
+3. The verification tier of every correction passes.
+
+**Risk.** Medium (Level 2; Level 3 for a changed published claim).
+
+**Detailed implementation plan expected.** Yes, when it starts.
+
+### F161 — Introductions, batch 2: fluid dynamics, quantum physics
+
+**Source.** As F159 (change request "The features", F159; requirements
+decision 43; the owner's decision of 2026-11-04 on the batch identifiers).
+
+**Goal.** Introductions for Fluid dynamics and Quantum physics, to the
+standard F156 set, each written when its course is content-stable (the rules of this phase).
+
+**In scope.** One introduction file and its page source per course, with
+every section of decision 43; independent scientific review by a
+different model, as for a lesson feature; targeted improvements of an
+existing lesson of these courses only where the batch's editorial review
+names a weakness with its evidence and an action under F116's rubric,
+never a rewrite, with transitions only in a lesson so revised.
+
+**Out of scope.** As F159: other sequences, new lessons or capstones,
+boilerplate transitions.
+
+**Dependencies.** F156; each of the two courses content-stable, confirmed
+on the Issue; F116 for the rubric when a lesson is revised.
+
+**Visual deliverables and skills.** Skills: none (text in the template of
+F156; the registered atlas illustrations are reused, no new visual).
+
+**Acceptance criteria.** Criteria 1 to 4 of F159, for these two courses.
+
+**Risk.** Medium (Level 2; Level 3 for a changed published claim).
+
+**Detailed implementation plan expected.** Short.
+
+### F162 — Introductions, batch 3: astrophysics, condensed matter and materials
+
+**Source.** As F159 (change request "The features", F159; requirements
+decision 43; the owner's decision of 2026-11-04 on the batch identifiers).
+
+**Goal.** Introductions for Astrophysics, cosmology, and relativity and
+for Condensed matter and materials physics, to the standard F156 set,
+each written when its course is content-stable (the rules of this phase).
+
+**In scope.** One introduction file and its page source per course, with
+every section of decision 43; independent scientific review by a
+different model, as for a lesson feature; targeted improvements of an
+existing lesson of these courses only where the batch's editorial review
+names a weakness with its evidence and an action under F116's rubric,
+never a rewrite, with transitions only in a lesson so revised.
+
+**Out of scope.** As F159: other sequences, new lessons or capstones,
+boilerplate transitions.
+
+**Dependencies.** F156; each of the two courses content-stable, confirmed
+on the Issue; F116 for the rubric when a lesson is revised.
+
+**Visual deliverables and skills.** Skills: none (text in the template of
+F156; the registered atlas illustrations are reused, no new visual).
+
+**Acceptance criteria.** Criteria 1 to 4 of F159, for these two courses.
+
+**Risk.** Medium (Level 2; Level 3 for a changed published claim).
+
+**Detailed implementation plan expected.** Short.
+
+### F163 — Introductions, batch 4: the three other method paths
+
+**Source.** As F159; requirements decision 43 ("the Part B introductions
+follow the re-slotting of Part B") and decision 42 (the four paths).
+
+**Goal.** Introductions for the `reasoning`, `benchmarking`, and
+`autonomous-research` method paths under their titles of decision 42,
+each after its path is content-stable, and the law-discovery introduction
+of F156 re-read against the path as F146 to F148 left it.
+
+**In scope.** As F159, for the three paths; each introduction names the
+path's product capstone as the culmination and states the kind of
+evidence the path produces without presenting an AI result as a
+discovery; the law-discovery introduction corrected where it no longer
+holds.
+
+**Out of scope.** As F159; a change of a product or of its capstone page.
+
+**Dependencies.** F156; F136; the capstones of the three paths (F145,
+F151, F155) and F148, each path content-stable, confirmed on the Issue;
+F116 for the rubric when a lesson is revised.
+
+**Visual deliverables and skills.** Skills: none (as F159).
+
+**Acceptance criteria.** Criteria 1 to 4 of F159, for the three paths,
+and the law-discovery introduction re-read with its corrections, or none,
+recorded.
+
+**Risk.** Medium (Level 2; Level 3 for a changed published claim).
+
+**Detailed implementation plan expected.** Short.
+
 ## Candidate mapping
 
 Every candidate of the change request and its outcome. "Kept" means a
@@ -11248,6 +11975,19 @@ capacity gate once the count would pass 110.
 | Part B, Stage C | F141; then F142 and F144; then F143; then F145. Beside them, F146 and F147; then F148 after F145 | Path 1 with the Autonomous Physics Lab, then Path 2 with the System Discovery Lab |
 | Part B, Stage D | F152 (may start after F136); F153 after F150; F154 after both; then F155. F149, then F150, then F151 (after F145) | Path 3 with the Scientific Agent Testbench, Path 4 with the Scientific Research Workspace |
 
+Phase 10, the change cycle `textbook-layer` (2026-11-04), by dependency
+(the rules under "Phase 10"). F156 waits for F136 and is never in flight
+with it; F156, F157, and F158 run one after the other, since all three
+change `pbc.authoring` and the shared CSS; the batches follow content
+stability, not a calendar.
+
+| Wave | Order within the wave | Outcome |
+|---|---|---|
+| Textbook 1 (set the standard) | This planning; F115 and F116 on their own course; F156 after F136 is merged | The source, the generator, and the two pilot introductions approved by the owner as the standard; the rubric's two additions |
+| Textbook 2 (the journey and Home) | F157 after F156; then F158, the hero last, with the owner's approval on the rendered page | The atlas opens with the learning journey, About states the mission and philosophy, Home orients a first-time visitor |
+| Textbook 3 (during development) | F159, F161, and F162, each when its courses are content-stable, in any order; F163 after F136 and the capstones of its paths | Every course and method path opens with an introduction |
+| Textbook 4 (at the end) | F160 after the batches, F115, F116, and F127 | The whole material read and corrected as one book |
+
 Features F13 (#89) and F14 (#94) are delivered with their approved scope;
 F64 keeps their progress marks and recommendations on the redesigned path.
 F15 is dropped by `final-curriculum` (ADR 013 decision 7) and is never
@@ -11354,6 +12094,18 @@ Added by the change cycle `site-navigation-and-atlas`:
 | How we verify the science | Every worked example's target checked by the build, a missing target failing it; the Evidence map reachable from the page and the footer | F134 |
 | The improvement links | Every link names an existing form and a parameter that is an `id` of a field of that form (a unit test); one manual check on github.com recorded | F135 |
 
+Added by the change cycle `textbook-layer` (I35):
+
+| Artifact | Check | Feature |
+|---|---|---|
+| The prose sources of the layer (an introduction file per sequence, the journey file, the Home copy file) | Read through the validated reader the other sources use: prose (inline Markdown) and references only; every reference to a sequence, a slot, or a glossary term resolves or the build fails; a lesson list, title, count, prerequisite, outcome, capstone identity, or publication state in a file rejected, and any other field rejected; the page sources and the introduction files one to one (a page source without its file and the reverse fail); a failing test per rule, written before the change | F156, F157, F158 |
+| The introduction page | Every section of decision 43 present; the lesson list, the published and planned counts, the prerequisites from outside the sequence, and the capstone derived from the curriculum file and the front matter and equal to the atlas; a planned lesson shown with its label and working title, never a link, never counted; complete without scripts and holding no state; in the search index, with the index unchanged in meaning for every other page; the accessibility scan, the keyboard pass, the reflow at 320 CSS px, the payload; byte-stable rebuilds | F156; F159, F161 to F163 for their pages |
+| The links to an introduction | The atlas panel of a sequence with an introduction and the header of each of its lessons link to it; no link for a sequence without one; every lesson address, anchor, bookmark, and graph node resolving and the learner state unchanged: the test over the previous addresses and the F13, F14, and F133 tests, unchanged or replaced by equivalent ones with the reason recorded | F156; the batches |
+| The journey on the atlas and About | The same Part A and Part B text on both pages from the one source (a test); the cards, panels, anchors, address module, and learner state of F133 unchanged (its tests); the attribution unchanged (the F57 check); every existing anchor of About resolving; no sentence presenting an AI result as a discovery and the three kinds of evidence distinguished (review, recorded in the completion evidence) | F157 |
+| The hero image | Four derived WebP files under `site/assets/hero/`, each admitted by the committed-artifact check only through its register entry (origin as its master's atlas entry records it, licence or terms, master hash), with its alternative text and its own test; no text, number, or formula in the pixels (the visual check of ADR 021 decision 1); the default image in the HTML; with scripts exactly one hero image requested per load, picked independently of the headline pair, and its own query parameter, separate from the `hero` parameter of the headline pairs, forcing each one (the test asserts one image per load with the payload measured); no storage, no request beyond the image (the scan of I16 extended to the hero script); no layout shift; the layout rule of "Home page" at 1280 by 800, 390 by 844, 360 by 640, and 320 CSS px and at 200 % text scaling | F158 |
+| The copy of Home | The sections from the copy file in the order identity, educational philosophy, curriculum, integrity, validated like the hero data file; "What you can learn" from the journey source with at most one owner-chosen published lesson per part, named by slot and checked against the published lessons at build time, or none; no code chooses example lessons or a capstone (the tests of the removed code replaced, the Level 3 path); Home and the header giving the same two destinations (the F132 header test) | F158 |
+| A lesson revised by a batch | A rubric finding with its evidence and action as the reason; no equation, value, output, or claim changed (the experiment and reproduction checks of F117, the diff of the executed outputs), or the Level 3 path of ADR 020 followed; no transition added to an unrevised lesson and no lesson rewritten (review); an introduction whose sentence no longer holds corrected in the same pull request as the lesson change (review) | F159, F161 to F163; F160 |
+
 Manual gates that stay manual: independent physics and pedagogy reviews per
 lesson (through the existing review workflow); the human's approval of
 identity copy, of the sandbox profile, of any CI or ruleset change, of
@@ -11384,7 +12136,13 @@ illustrations and the hero image (F133, F134), the owner's rendered pass
 on the new atlas and Home as the preview gate of F127, the owner's
 decision on where the interactive pendulum belongs, if anywhere (question
 14, F128), and the owner's decision on a contribution form without a
-GitHub account (question 16).
+GitHub account (question 16); since `textbook-layer`, also the owner's
+approval of the two pilot introductions as the standard the batches
+follow (F156), the owner's confirmation on each batch's Issue that each
+of its sequences is content-stable before its introduction is written
+(F159, F161 to F163), and the owner's approval of the hero on the
+rendered Home, last (F158), together with the owner's supply of the four
+masters before F158 starts and any change of the hero set at that time.
 
 ## Not on the roadmap
 
@@ -11480,7 +12238,15 @@ wholesale adoption of an external framework or a copied implementation
 without a pinned version, a licence check, and recorded evidence; ACT
 internals as a prerequisite, or a PBC dependency on an unimplemented ACT
 capability; and a global reproducibility tolerance for live
-measurements. The exclusion of "a generated raster
+measurements. Since the change cycle `textbook-layer`, also: a rewrite of
+the published lessons or a boilerplate transition on every page; new
+capstones or lessons, or a change of an equation or a verified output,
+as part of the textbook layer; a CMS, a backend, or runtime AI content; a
+lesson list, count, or publication state written in an introduction, the
+journey, or the Home copy; new learner state or telemetry; a measurement
+of which hero image works better, browser storage of the hero image, or
+an animated hero; and the legacy-format migration of `agents-llm/02` to
+`/04` and `mechanics/09`, which is its own Issue after F136. The exclusion of "a generated raster
 image as the map's navigation surface" and "browser storage for the map's
 controls" of the change cycle `scientific-atelier-atlas` is read for the
 atlas and the hero as this sentence states it. Adding any of them is a

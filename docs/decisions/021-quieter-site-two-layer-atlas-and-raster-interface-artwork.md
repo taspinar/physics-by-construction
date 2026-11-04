@@ -52,6 +52,16 @@ file still gains no description field, and no title, outcome,
 prerequisite, publication state, or count is written in the manifest. The
 other decisions below are unchanged.
 
+Decision 4 amended by requirements decision 43 (change cycle
+`textbook-layer`, `docs/changes/textbook-layer.md`, human-supplied,
+2026-11-03; requirements re-approved on 2026-11-04) through the dated note
+under decision 4, without a new ADR, as the change request and the
+requirements decide: the change is content and presentation inside this
+record and ADR 018. Delivered by F158; the course introductions of F156
+and the learning journey of F157 add pages and text within decisions 1 to
+3 without changing them. The text of decision 4 stays as the record of
+what F134 delivered.
+
 Date: 2026-10-30
 
 ## Context
@@ -229,6 +239,35 @@ descriptions live.
      from the front matter and the manifest; and a short invitation (the
      start link and the atlas). Home does not repeat the atlas's overview
      of the courses.
+
+   *Amended on 2026-11-04 by requirements decision 43 (change cycle
+   `textbook-layer`; delivered by F158).* The hero copy, its data file, its
+   script, and their rules above stand. Three parts are replaced:
+   - *The hero image* is no longer the two connected constellations. It is
+     one of four existing Part A illustrations, interface artwork of
+     decision 1 already in the provenance register, each derived at hero
+     size from its master with its own register entry, alternative text,
+     and test: the double pendulum (classical mechanics, the one fixed
+     default in the HTML), the vortex street (fluid dynamics), the hot and
+     cold gas (thermodynamics), and the exoplanet transit (astrophysics);
+     the owner may change the set when F158 starts. The hero script picks
+     one per visit, independently of the headline pair and before the
+     image is requested; its own query parameter, separate from the
+     `hero` parameter that forces a headline pair, forces one for tests; no
+     storage, no other request, no animation, and no measurement of which
+     works better. None is presented as a verified result.
+   - *The copy* is no longer three sentences with three examples and a
+     capstone chosen by code. It follows the order identity, educational
+     philosophy, curriculum (Part A and Part B), and integrity, from one
+     Home copy file, with no sentence limit; "What you can learn" explains
+     Part A, Part B, and their relation from the one source of the
+     learning journey, with at most one owner-chosen published lesson per
+     part, validated at build time, or none.
+   - *The first step* is two actions with the same destinations on Home and
+     in the header: the Course Atlas (primary on Home) and the first lesson
+     of Part A (secondary). The header keeps its four items (decision 5).
+     The above-the-fold rule is the responsive, content-first rule of the
+     requirements' "Home page", approved by the owner on the rendered page.
 5. **Navigation and the supporting pages.** The header carries the
    project mark, exactly four menu items (Home, Course Atlas, About, and
    the Start learning button), and the search; the footer carries the

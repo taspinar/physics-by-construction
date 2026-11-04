@@ -1,10 +1,11 @@
 # Planning Approval
 
 Status: Approved
-Approved at: 2026-11-02T02:38:38Z
-Planning branch: planning/part-b-reapproval
-Final review: round 2, PASS, by claude (opus)
-Planning fingerprint: d6225fadbbc2be13a3e98f8436e4762f8dd368d0
+Approved at: 2026-11-04T09:24:33Z
+Planning branch: planning/textbook-layer
+Change request: docs/changes/textbook-layer.md
+Final review: round 5, PASS, by claude (opus)
+Planning fingerprint: 7e61cac9ec309d7a8e1f90f73752a8058064945a
 
 Recorded by `scripts/finish-planning.sh`. The approval covers these planning
 documents. A change to the description, the requirements, a change request, or the
@@ -69,12 +70,26 @@ under its own review. This approval covers the documents including them.
 - e084498 F82 - Discovering conservation laws and invariants (#300)
 - 3e23775 Payload budget of the learning path page with its previews: temporarily from 4 MB to 4.5 MB (#323) (Issue #318)
 - 1b9ae76 Learning path page: lighter previews, and the budget back to 4 MB (#330)
+- 8428563 F137 - The capstone evidence contract and the final-evaluation pilot on one existing task (#366) (Issue #359; review: round 4, PASS, by claude (opus); triage published on #359)
 
 ## Review rounds
 
-- Round 1: PASS WITH MINOR FINDINGS, 4 finding(s), by claude (opus)
-- Round 2: PASS, 0 finding(s), by claude (opus)
+- Round 1: PASS WITH MINOR FINDINGS, 5 finding(s), by claude (opus)
+- Round 2: PASS WITH MINOR FINDINGS, 2 finding(s), by claude (opus)
+- Round 3: PASS WITH MINOR FINDINGS, 1 finding(s), by claude (opus)
+- Round 4: PASS WITH MINOR FINDINGS, 1 finding(s), by claude (opus)
+- Round 5: PASS, 0 finding(s), by claude (opus)
+
+## Escalations confirmed as resolved
+
+- Round 1: MIN3 Approved requirements call the four hero illustrations 'computed', but one of them has no script
+- Round 1: S1 Some requirement bullet labels do not name decision 43 as an amendment
+- Round 2: MIN1 Concerns the approved requirements: the four hero illustrations are still called 'computed', but one of them has no script (escalated in round 1, still open)
+- Round 2: S1 Concerns the approved requirements: the Course atlas and Site navigation bullet labels do not name decision 43 (escalated in round 1, still open)
 
 ## Findings that were not adopted
 
-- Round 1, DEFER: S1 [suggestion] Snapshot statements about F133 (pull request #351 open) are now stale on main. The finding is valid, but the statements it names are dated snapshots of the planning base (cd69524) and stay accurate as history. Taking the 'target' qualifier off 'The quieter site' for the parts F133 delivered is architecture upkeep that belongs to a delivering feature. The review itself suggests doing it when F136 starts or at the next feature's architecture update, not in this planning revision. F136's precondition 'F133 merged' is checked when F136 starts, so the stale snapshot leaves no gap in the planning now.
+- Round 1, ESCALATE: MIN3 [minor] Approved requirements call the four hero illustrations 'computed', but one of them has no script. Confirmed. docs/PROJECT_REQUIREMENTS.md 'Home page' says 'computed interface artwork of decision 41 already in the provenance register', while site/assets/provenance.yaml registers the astrophysics atlas files by author and date with no script, and docs/roadmap.md already records this under 'State at the change cycle textbook-layer' and makes F158 keep each hero file's origin as its master's entry records it. The planning cannot change the approved requirements, and the roadmap already prevents a false provenance claim. Resolving the wording needs a requirements edit by the owner, for example 'existing Part A interface artwork already in the provenance register'. The roadmap note stays until then.
+- Round 1, ESCALATE: S1 [suggestion] Some requirement bullet labels do not name decision 43 as an amendment. Confirmed: in docs/PROJECT_REQUIREMENTS.md the bullets 'Site navigation (decision 40)' and 'Course atlas (decision 36, amended by decision 40)' carry 'Since decision 43' content while 'Home page' and 'Shared templates' were relabelled to name decision 43. The labels are in the approved requirements, which the planning may not change, so this cosmetic correction goes to the owner and can be made together with the MIN3 wording edit at the next requirements revision. No planning document depends on the labels.
+- Round 2, ESCALATE: MIN1 [minor] Concerns the approved requirements: the four hero illustrations are still called 'computed', but one of them has no script (escalated in round 1, still open). This needs a change to the approved docs/PROJECT_REQUIREMENTS.md, and the planner may not edit that file. The planning documents already avoid the false claim. F158 keeps each hero file's origin as its master's register entry records it, and the roadmap notes that the exoplanet transit has no script. The owner should correct the 'computed interface artwork' wording at the next requirements edit, for example to 'existing Part A interface artwork already in the provenance register'. The roadmap note stays until then.
+- Round 2, ESCALATE: S1 [suggestion] Concerns the approved requirements: the Course atlas and Site navigation bullet labels do not name decision 43 (escalated in round 1, still open). Relabelling the 'Course atlas' and 'Site navigation' bullets in docs/PROJECT_REQUIREMENTS.md to add 'amended by decision 43' is a change to the approved requirements, which only the owner can make. The change is cosmetic and does not block the plan. The best time is the same owner edit as the 'computed' wording in MIN1.

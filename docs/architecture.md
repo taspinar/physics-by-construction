@@ -13,8 +13,9 @@ final curriculum adds, and the boundaries every feature must respect.
   2026-10-15, with the change cycle `scientific-atelier-atlas` on
   2026-10-17, with the change cycle `risk-proportionate-workflow` on
   2026-10-19, with the change cycle `site-navigation-and-atlas` on
-  2026-10-30, and with the change cycle
-  `part-b-scientific-products-and-research` on 2026-11-01).
+  2026-10-30, with the change cycle
+  `part-b-scientific-products-and-research` on 2026-11-01, and with the
+  change cycle `textbook-layer` on 2026-11-04).
   Where this document and the requirements disagree, the requirements win
   and the disagreement is a defect in this document.
 - Decisions with a durable record: `docs/decisions/001` to `022`; ADR 017
@@ -37,7 +38,11 @@ final curriculum adds, and the boundaries every feature must respect.
   and 5 and, in its one rule that the curriculum file gains no field, ADR
   021 decision 3 (a slot gains the key `extension` and the kind `product
   capstone`, still no description field; see "Part B: method paths that
-  end in local scientific products").
+  end in local scientific products"). The change cycle `textbook-layer`
+  takes no new ADR: its decision (requirements decision 43) is content
+  and presentation inside ADR 018 and ADR 021, and ADR 021 decision 4
+  (the hero image and the copy of Home) carries a dated amendment note
+  (see "The textbook layer").
 - Planning base commits: `502ced0` for the bootstrap planning, when the
   repository held only the workflow template; `2f011ea` for the change cycle
   `physics-next-phase` (`docs/changes/physics-next-phase.md`), when F01 to
@@ -65,7 +70,10 @@ final curriculum adds, and the boundaries every feature must respect.
   (`docs/changes/part-b-scientific-products-and-research.md`), when the
   site published ninety-four lessons in eleven strands, twenty-two of them
   in Part B slots and one more Part B lesson without a slot, F98 had just
-  merged, and F133 was open as pull request #351.
+  merged, and F133 was open as pull request #351; `fc6da35` for the
+  change cycle `textbook-layer` (`docs/changes/textbook-layer.md`), when
+  the site still published ninety-four lessons in eleven strands, F132 to
+  F135 and F137 were merged, and F136 had its Issue (#370) but no commit.
   `docs/roadmap.md` orders the remaining work.
 
 Sections marked **(next phase)** describe what the change cycle
@@ -81,7 +89,9 @@ adds to the development workflow, which touches no page of the site;
 sections marked **(site navigation)** describe what the change cycle
 `site-navigation-and-atlas` changes; sections marked **(Part B
 products)** describe what the change cycle
-`part-b-scientific-products-and-research` adds. Each names the roadmap
+`part-b-scientific-products-and-research` adds; sections marked
+**(textbook layer)** describe what the change cycle `textbook-layer`
+adds. Each names the roadmap
 feature that builds it; until that feature is delivered the section is a
 target, not a description of the repository.
 
@@ -187,7 +197,16 @@ site/                    Quarto project: the website source
                          since the site navigation also each sequence's one-line description and
                          illustration (F133, ADR 021)
   hero.yaml              The hero's headlines and subtexts with the default pair (site navigation, F134,
-                         ADR 021); no page carries the copy
+                         ADR 021); no page carries the copy; since the textbook layer also the set of hero
+                         images with their alternative text and the default (F158)
+  home.yaml              The copy of Home in the order identity, philosophy, curriculum, integrity, with at
+                         most one owner-chosen published lesson per part by slot (textbook layer, F158)
+  journey.yaml           The Part A and Part B text of the learning journey, used by the atlas and About
+                         (textbook layer, F157); prose and references only
+  introductions/<id>.yaml   The editorial text of one course or method-path introduction (textbook layer,
+                         F156); prose and references only, never a lesson list, count, or state
+  courses/<id>/          One thin page source per introduced sequence, at the address /courses/<id>/, that
+                         calls the introduction generator (textbook layer, F156)
   verify.qmd             "How we verify the science": the claim types with worked examples, leading to the
                          Evidence map (site navigation, F134)
   lessons/<strand>/<nn>-<slug>/index.qmd   One directory per lesson; a strand per course
@@ -204,7 +223,8 @@ site/                    Quarto project: the website source
   assets/                Styles (the F44 tokens, extended by the atelier's tokens and components, F123),
                          self-hosted fonts with their licence texts, vendored Lean syntax definition, the
                          provenance register (provenance.yaml) of the committed interface artwork: authored
-                         SVGs (F123) and, since the site navigation, derived WebP illustrations (F133, ADR 021)
+                         SVGs (F123) and, since the site navigation, derived WebP illustrations (F133, ADR 021);
+                         since the textbook layer the four hero-size images under assets/hero/ (F158)
   (template partials)    The shared header, footer, and opening templates and includes of the atelier,
                          where Quarto's template partials live (scientific atelier, F123)
 src/pbc/                 Importable Python package with all reusable lesson code
@@ -307,9 +327,11 @@ LICENSE, LICENSE-CONTENT MIT for code, CC BY 4.0 for lesson text and figures
 | **Lesson code package** (`src/pbc/`) | All reusable simulation and analysis code: models, integrators, analysis helpers, data readers; in the final curriculum one package per course, the shared finite-element and finite-volume solvers, and the discovery environments. Unit-tested. The code learners import when they reproduce a lesson and the functions agents are allowed to call. | Depend on the site generator, on network access, or on an LLM provider SDK outside `pbc.agents`. Fetch data from a portal. Depend on an optional comparator (FEniCSx, Gmsh, REBOUND, QuTiP, GeoClaw, PySR, ...) in a required code path. |
 | **Curriculum file** (site/curriculum.yaml, final curriculum, ADR 013) | The reference curriculum as data: the eight courses, the four method paths, and every slot with its label, working title, home, position, and kind; since the Part B products (ADR 022, F136) also whether a method-path slot is an extension slot, outside the core counts, and the kind `product capstone`. Lessons fill slots through their `slot` field; the path page and the home page derive the planned structure from it and every published fact from front matter. | Hold anything front matter holds (titles of published lessons, descriptions, outcomes, prerequisites, difficulty, methods), or name a lesson that does not exist. |
 | **Map manifest** (site/atlas.yaml, scientific atelier, ADR 018; amended by ADR 021) | The one addition the course atlas needs, in the requirements' words: concept identifiers (each with its short explanation), display placement (optional since ADR 021, removed with its check when nothing reads it), concept-to-slot associations (capstone membership among them, as an association whose slot is a capstone slot), and curated conceptual connections with their rationale; since the site navigation (F133) also one entry per sequence (every course and method path of the curriculum file, no other) with its one-line description and its illustration, a path the provenance register names. The short explanation of the concept that represents a capstone slot is the planned description the atlas reveals and the home page shows. Validated by `pbc.authoring`: every course, path, slot, and concept reference resolves (the schema defines course, path, slot, and concept references only, and rejects any other field; it admits no lesson reference, so the requirements' lesson-reference rule holds vacuously); a concept names at least one slot; every capstone slot of the curriculum file is represented by exactly one concept. | Hold a title, outcome, prerequisite, publication state, or count, or a description other than a sequence's one line and a concept's explanation; hold an illustration reference outside the sequence entries, or a lesson reference; infer a concept from a lesson's title; list a prerequisite (those come from the front matter); be a second lesson catalogue. |
+| **Textbook sources** (site/introductions/, site/journey.yaml, site/home.yaml; textbook layer, F156 to F158, requirements decision 43) | The educational narrative as prose: one introduction file per course or method path (why the subject matters, its central questions, what the reader learns, why the lessons come in this order, the method and why, the capstone as the culmination, what comes next), the Part A and Part B text of the learning journey that the atlas and About share, and the copy of Home with at most one owner-chosen published lesson per part, named by slot. Each is read and validated by `pbc.authoring` (`pbc.authoring.introductions`, the journey reader, `pbc.authoring.home`): any field outside its schema is an error, and every reference (a sequence, a slot, a glossary term) resolves, or the build fails. | Hold a lesson list, title, count, prerequisite, outcome, capstone identity, or publication state (those come from the curriculum file and the front matter); link or count a planned lesson; be written on a page; describe an AI result as a discovery. |
+| **Introduction pages** (`/courses/<sequence-id>/`, textbook layer, F156) | Generated by `pbc.authoring.introductions` from a sequence's introduction file, the curriculum file, the front matter, and the atlas manifest's sequence illustration: the editorial sections, the prerequisites from outside the sequence as links, and the lesson list with the published and planned counts and the capstone as the atlas derives them; linked from the atlas panel and from the header of each lesson of the sequence; complete without scripts, readable at 320 CSS px, and in the search index. | Exist for a sequence without an introduction file; hold a script, a progress mark, or any state; change a lesson address, an anchor, or the learner state. |
 | **Lean project** (`lean/`) | All formal proofs, built with `lake build` against pinned Lean 4 and Mathlib. | Contain `sorry`, `admit`, or project-declared `axiom`s. Claim anything about the Python code or about the physical accuracy of a measurement. |
 | **Widgets** (`site/widgets/`) | Optional interactive visualizations that enhance a static figure already present in the page; in the next phase a small set of science-first components (F43). | Load code or data from another origin, load data before the reader asks for it, store or transmit learner data, compute physics the page did not verify, alter claimed observed values, or be required to read a lesson. |
-| **Atlas modules** (`site/learner/`, scientific atelier, F126, ADR 018; since the site navigation, F133 and F134, ADR 021) | Since F133: one module of about twenty lines that makes the address follow the open sequence and opens the sequence an address names; from F134: the hero script, which sets one of the build-embedded headline and subtext pairs before first paint, or the pair the `hero` parameter forces. Without them every page is complete: every published lesson is reachable through native links and exclusive disclosures, and the default hero pair is in the HTML. | Make a request, set a cookie, use browser storage (`site/learner/progress.js` stays the only script that stores anything), compute physics, change which lessons exist or count as published, or be required to reach a lesson. |
+| **Atlas modules** (`site/learner/`, scientific atelier, F126, ADR 018; since the site navigation, F133 and F134, ADR 021) | Since F133: one module of about twenty lines that makes the address follow the open sequence and opens the sequence an address names; from F134: the hero script, which sets one of the build-embedded headline and subtext pairs before first paint, or the pair the `hero` parameter forces. Since F158 (textbook layer) the hero script also picks one of the four hero images, independently of the pair and before the image is requested, or the one its own query parameter forces; that parameter is separate from the `hero` parameter of the pair, and F158's plan names it. Without them every page is complete: every published lesson is reachable through native links and exclusive disclosures, and the default hero pair is in the HTML. | Make a request, set a cookie, use browser storage (`site/learner/progress.js` stays the only script that stores anything), compute physics, change which lessons exist or count as published, or be required to reach a lesson. |
 | **Dataset registry and samples** (`data/`, next phase, ADR 007) | One card per surveyed dataset with provenance, rights, artifact types, schema, units, cadence, uncertainty, checksums, and the feasibility decision; small rights-cleared samples under the size cap, each parsed by a test. | Hold a file above the cap, a restricted or unlicensed sample, a file without a card, or anything a build could regenerate. |
 | **Reference register** (`site/references.yaml`, next phase, ADR 009) | The selection evidence of every curated external link: concept, URL, author or publisher, section, pedagogical role, statement checked, alternatives, last-checked date, licence note. Pages render links from it. | Be required by the build to be reachable; hold a paywalled or sign-in-only core reference. |
 | **Site generator** (Quarto, ADR 001) | Executes lesson pages, renders equations to MathML, highlights code at build time, emits static HTML. | Add third-party runtime resources (CDN scripts, web fonts, analytics). |
@@ -503,7 +525,7 @@ ADR 009):
 | Program output and numbers | Output of an executed cell, including values computed inline. Tabular results are rendered as semantic tables with units and a caption by a helper, not as console dumps (F36). |
 | Figures | Produced by an executed cell during the build, with alt text, explicit dimensions, labelled axes with units, a legend where there is more than one series, and a status label. A measured-versus-model figure shows residuals or uncertainties where relevant. Since ADR 016 and F117 the cell draws the figure by calling the lesson's figure-writing function, the one the experiment entry point calls, and shows the file it wrote, so that one encoder produces the page's figure and the learner's. |
 | Conceptual diagrams (next phase, F32 to F34; the conceptual-illustration class of ADR 018) | Drawn by code in an executed cell (`pbc.authoring.diagrams` or Matplotlib), labelled `conceptual`, never presented as a numerical or experimental result. Image files are never committed; a third-party diagram is cited and linked, not rehosted. Since the scientific atelier the approved Diagram Design guidance of ADR 019 informs the drawing; its science and semantics are checked independently of any skill. Requirements decision 37 also permits an authored committed SVG for this class; ADR 018 decision 2 keeps lessons code-drawn as a planning choice within that permission, because every check of a lesson's figure (the figure-status label, the figure-writing pattern with the experiment and reproduction checks, the lesson-directory layout) acts on executed cells. An authored conceptual SVG in a lesson is a later decision, in an ADR that would add this display form, a layout rule, and a wider committed-artifact exemption; until then this row governs. |
-| Interface artwork (scientific atelier, ADR 018; since the site navigation, ADR 021) | The current rule (ADR 021): visual identity, navigation, and atmosphere in the chrome and on non-lesson pages (Home and its hero, the atlas, course, module, and capstone openings, About, the informational pages); computed, authored, or made with an image model; an SVG drawn by code at build time, an authored SVG, or a derived WebP (PNG where the feature records why), the last two committed under `site/assets/` and named in the provenance register with its origin (script path, author, or image model with prompt and date), licence or terms, and the hash of its master; no formula, number, or text in its pixels; no physical-fidelity requirement; never in a lesson's body and never presented as a result, so it carries no caption of a result and no number; never stock, copied, or externally hosted; its alternative text names what it is or marks it decorative. The authored SVG and the registered raster are the committed inputs a build cannot regenerate (I6): the committed-artifact check exempts a tracked `.svg` under `site/assets/` only when the provenance register names it with an author and a licence, and, since ADR 021, a registered derived `.webp` or `.png` there; it keeps rejecting an unregistered image, every other image type, and every image outside `site/assets/` (ADR 018 amending ADR 002, widened by ADR 021; F123, F133). History: before ADR 021, ADR 018 decision 2 allowed interface artwork only as visual identity and navigation (the project mark, the course areas and small illustrations of the atlas, the openings of courses, modules, and capstones), produced by code at build time or as an authored SVG with its author and licence, and never as a raster. |
+| Interface artwork (scientific atelier, ADR 018; since the site navigation, ADR 021) | The current rule (ADR 021): visual identity, navigation, and atmosphere in the chrome and on non-lesson pages (Home and its hero, the atlas, course and method-path introductions, module and capstone openings, About, the informational pages); computed, authored, or made with an image model; an SVG drawn by code at build time, an authored SVG, or a derived WebP (PNG where the feature records why), the last two committed under `site/assets/` and named in the provenance register with its origin (script path, author, or image model with prompt and date), licence or terms, and the hash of its master; no formula, number, or text in its pixels; no physical-fidelity requirement; never in a lesson's body and never presented as a result, so it carries no caption of a result and no number; never stock, copied, or externally hosted; its alternative text names what it is or marks it decorative. The authored SVG and the registered raster are the committed inputs a build cannot regenerate (I6): the committed-artifact check exempts a tracked `.svg` under `site/assets/` only when the provenance register names it with an author and a licence, and, since ADR 021, a registered derived `.webp` or `.png` there; it keeps rejecting an unregistered image, every other image type, and every image outside `site/assets/` (ADR 018 amending ADR 002, widened by ADR 021; F123, F133). History: before ADR 021, ADR 018 decision 2 allowed interface artwork only as visual identity and navigation (the project mark, the course areas and small illustrations of the atlas, the openings of courses, modules, and capstones), produced by code at build time or as an authored SVG with its author and licence, and never as a raster. |
 | Animations (scientific atelier, ADR 018) | Allowed in any class when pedagogically justified: generated by the build or driven by data the build computed, with a meaningful static alternative in the page, starting paused or respecting the reduced-motion preference, with play, pause, and reset controls and with units and sensible parameter limits where it has parameters; mandatory in no lesson; never rendered in CI as a routine step. A widget that computes in the browser (the validated interactive pendulum, F128, if decided) is tested against reference values from `src/pbc`, as the row above says. |
 | Lean code | An excerpt included by reference from a file in `lean/` that `lake build` compiled. |
 | Agent run transcripts | Produced by the replay run during the build (ADR 004). Recorded model messages come from the committed replay fixture and are labelled as recorded; tool results are the recomputed ones, never the recorded ones. |
@@ -1285,6 +1307,10 @@ the invitation. The verified double-pendulum figure leaves Home; its
 figure-writing function, energy check, and provenance stay in `src/pbc`.
 The central message and the start button are visible without scrolling at
 1280 by 800 and 390 by 844 CSS px.
+Since the change cycle `textbook-layer` (requirements decision 43, F158),
+the hero image, the three sentences, the examples chosen by code, and this
+above-the-fold rule are replaced as "The textbook layer" describes; the
+hero copy, its script, and the data file stay.
 
 **Run the code and How we verify the science** (F134). The setup page,
 retitled "Run the code" at its address, opens with three routes (run a
@@ -1450,6 +1476,127 @@ time limits in its plan and ends in a go or no-go recommendation with its
 evidence and cost; exhausting the limit ends it with an honest partial
 result.
 
+### The textbook layer: course introductions, the learning journey, and Home as orientation (textbook layer, F156 to F163)
+
+The change cycle `textbook-layer` (requirements decision 43, with the
+amendment notes on decisions 40 and 41; `docs/changes/textbook-layer.md`)
+adds the educational narrative that makes the site read as one online
+textbook: why the curriculum is organised as it is and how a course, a
+lesson, and a capstone contribute to a learning journey. It is neither the
+curriculum nor the editorial voice of a lesson (decision 32). Nothing of
+the lesson model, the verified display forms, the curriculum file, the
+selection, the verification, or the learner-state contract changes. It
+takes no new ADR: it is content and presentation inside ADR 018 and ADR
+021, and ADR 021 decision 4 carries a dated amendment note for Home. Until
+the named features deliver it, this section is a target.
+
+**The sources** (I35). Three kinds of validated prose files, all beside
+the atlas manifest and the curriculum file, read by `pbc.authoring`
+through the same validated reader and typed errors as the manifest:
+
+- one introduction file per course or method path,
+  site/introductions/<sequence-id>.yaml (F156), whose sections are those
+  of decision 43: why the subject matters, its central questions, what the
+  reader learns, why the lessons come in this order, which method
+  (numerical experiment or AI) is used and why, the capstone as the
+  culmination, and what comes next;
+- the learning journey, site/journey.yaml (F157): the Part A and Part B
+  text and how Part A leads to Part B, the expected background, that a
+  route needs only its stated prerequisites, how a capstone fits, and the
+  difference between numerical evidence, empirical evidence, and formal
+  proof;
+- the copy of Home, site/home.yaml (F158): identity, educational
+  philosophy, curriculum, and integrity, in that order, with at most one
+  owner-chosen published lesson per part, named by slot; and, in the hero
+  data file `site/hero.yaml`, the set of hero images with their
+  alternative text and the default.
+
+They hold prose (inline Markdown) and references to a sequence, a slot,
+or a glossary term; every reference resolves or the build fails; a
+reference to a planned slot renders as text, never as a link, and is never
+counted. No file holds a lesson list, title, count, prerequisite, outcome,
+capstone identity, or publication state: those come from the curriculum
+file and the front matter, so no second lesson catalogue exists.
+
+**The introduction pages** (F156; the batches F159, F161, F162, F163).
+The flat address `/courses/<sequence-id>/` (the change request's
+recommendation; sequence identifiers are unique across the courses and
+paths of the curriculum file, which the reader checks), one page per
+sequence that has an introduction file, from a thin page source that
+calls `pbc.authoring.introductions`, as Home calls `pbc.authoring.home`; a
+test keeps page sources and introduction files one to one. The page
+carries the sequence's title and its atlas illustration (registered
+interface artwork, with its alternative text), the editorial sections,
+the prerequisites from outside the sequence derived from the front matter
+of its lessons and shown as links, and the lesson list with its counts and
+capstone as the atlas derives them. The atlas panel of the sequence and
+the header of each of its lessons link to it (the lesson template is a
+shared input). The page is complete without scripts, readable at 320 CSS
+px, indexed by `site/search-index.py`, and within the payload budget; it
+has no script and no state. No existing address, anchor, or bookmark
+changes, and a sequence without an introduction has no page and no link.
+
+**The learning journey** (F157). The Course Atlas opens, before its cards,
+with the journey from the journey file; About states the mission and the
+educational philosophy, describes Part A and Part B from the same file,
+keeps the canonical attribution of I23, and links to "How we verify the
+science" instead of repeating it. The cards, panels, anchors, address
+module, and learner state of F133 do not change.
+
+**Home** (F158; amends what F134 delivered, ADR 021 decision 4 as
+amended). The hero copy, its data, its script, and its rules stay. The
+hero image is one of four derived WebP files at hero size under
+`site/assets/hero/`, made from the masters of the atlas illustrations of
+mechanics (the double pendulum, the default), fluids (the vortex street),
+thermodynamics (the hot and cold gas), and astrophysics (the exoplanet
+transit) by `tools/illustrations/derive_assets.py`, outside the build;
+each has its own register entry with its master's origin as the register
+records it, its own alternative text, and its own test. The default is in
+the HTML (what a page without scripts and a link preview show); the hero
+script picks one image per visit, independently of the pair and before
+the image is requested, so one hero image loads; its own query
+parameter, separate from the `hero` parameter that forces a pair and
+named in F158's plan, forces one;
+no storage, no other request, no animation, no measurement. The copy
+follows the order identity, educational philosophy (building models,
+predicting, measuring, interpreting), curriculum, integrity, with no
+sentence limit; "What you can learn" explains Part A, Part B, and their
+relation from the journey file, with at most one owner-chosen published
+lesson per part, validated at build time, or none; no code chooses
+examples or a capstone. The first step is two actions with the
+destinations of the header: the Course Atlas (primary) and the first
+lesson of Part A (secondary); the header keeps its four items. The layout
+is content-first: on desktop the identity message and both actions are
+visible without scrolling; on a phone the identity message and the
+primary action are, the secondary action may fall just below the fold on
+small screens, and the image is never pushed below the fold to satisfy a
+pixel rule; validated at 1280 by 800, 390 by 844, 360 by 640, and 320 CSS
+px wide and at 200 % text scaling, and approved by the owner on the
+rendered page.
+
+**Phases and the book.** Phase 1 sets the standard: F114 in place, F115,
+F116 with its two rubric additions (conceptual synthesis; the provenance
+of an AI lesson stated at once), and the two pilot introductions of F156
+(Classical mechanics and the law-discovery path as F136 leaves it),
+approved by the owner. Phase 2 runs during development: new lessons follow
+the standard, and the batch features F159, F161, F162, and F163 add the
+other introductions when their sequences are content-stable, with
+targeted, rubric-based improvements of existing lessons and never a
+rewrite or a boilerplate transition. Phase 3 is F160, one reading of the
+whole material as a book. A later feature that adds, moves, or retitles a
+lesson of a sequence with an introduction re-reads its prose in the same
+pull request.
+
+**Order and verification cost.** F156 after F136 is merged, never in
+flight with it; then F157; then F158, the hero last; none of the three in
+flight with another writer of `pbc.authoring` or the atlas manifest. Each
+changes shared inputs (`pbc.authoring`, the lesson template or the shared
+CSS) and is verified by the full run its targeted run reports. A batch
+feature changes the headers of its sequences' lessons, so it runs at
+least `--base`. The introduction pages execute no lesson and add little
+to the build; they are not lessons and do not count toward the capacity
+gate of 110 lessons.
+
 ## Invariants and boundaries
 
 Agents and reviewers must preserve these. Each names how it is enforced; an
@@ -1492,6 +1639,7 @@ shown.
 | I32 | An agent skill is development guidance read from `.agents/skills/` at its recorded revision: never a dependency of the site, the build, the lesson and built-site checks, the deployment, or any CI job, none of which invokes, installs, fetches, or depends on a skill; the skills configuration check is the one check that reads the directory, as data to validate; a skill is never evidence that a figure, a page, or a claim is correct; a required skill that is missing fails a feature's configuration visibly (scientific atelier). | The skills configuration check and the provenance records (F122); the boundary test F122 creates (no workflow, script, check, build step, or CI job invokes, installs, or fetches a skill; the build and every other check pass with the directory absent), which F141 (formerly F45) later extends to coding agents (I24); review; ADR 019. |
 | I33 | A Part B capstone product is a learner-run local application: the site, the build, and CI never run a product live, contact an instrument or a model, or need an optional dependency; CI verifies each product's and starter's offline simulator route deterministically, from simulated inputs regenerated from their seeds, dataset samples, and replay traces committed only at the product's declared fixture location (I6, ADR 022 decision 8), and checks each starter against the current tree and at its pin; every run record names its execution mode (simulated, recorded, live), a recorded run is never presented as a new experiment, a live result never appears on the site as a lesson's result, and real hardware support is called demonstrated only after a physical pilot; the product's local interface binds to the loopback interface only and is never part of the site (Part B products). | Product and starter tests in pytest; the capstone pages' simulator route under the page budget; the boundary test of I32 and I24 extended to products and drivers (F138, F141); review; ADR 022. |
 | I34 | Instrument safety does not depend on a model: permitted ranges, interlocks, timeouts, and stop behaviour are enforced by `pbc.instruments` before an operation reaches a device; an agent requests only allowlisted, validated, bounded operations; no driver, shell, or generated code reaches an instrument directly; no automatic rewiring without separately scoped switching hardware; no mains-voltage work and no unrestricted actuation (Part B products). | Contract tests with a fake driver that records every call and refuses out-of-envelope operations (F138); the physical pilot's recorded checks and the security-focused review (F140); ADR 022. |
+| I35 | The textbook layer's prose has validated sources and no catalogue of its own: an introduction file, the journey file, and the Home copy hold prose and references only; the lessons, counts, prerequisites, capstone, and published or planned state on an introduction, the atlas, About, and Home come from the curriculum file and the front matter; every reference resolves or the build fails; a planned lesson is never a link and never counted; an introduction page needs no script and holds no state; the hero image's variant is never stored; no textbook page presents an AI result as a discovery, and no lesson address, anchor, bookmark, or learner state changes for the layer (textbook layer, requirements decision 43). | The validation of the sources and the page tests of F156 to F158; the F13, F14, and F133 tests; the scan of I16 extended to the hero script; review for the wording. |
 
 Boundaries for agents working in this repository, in addition to `AGENTS.md`:
 
@@ -1517,7 +1665,11 @@ Boundaries for agents working in this repository, in addition to `AGENTS.md`:
   the repository, interface artwork without its provenance entry or with
   text, a number, or a formula in its pixels, or anything that presents
   artwork or a mockup as a scientific result; do not store the atlas's
-  controls or the hero's variant in the browser.
+  controls or the hero's variant (its image included) in the browser.
+- Do not write a lesson list, count, prerequisite, or publication state
+  into an introduction, the journey, or the Home copy, and do not add a
+  boilerplate transition to every lesson or rewrite a published lesson
+  as part of the textbook layer (I35).
 - Do not use an agent skill that is not in `.agents/skills/` at its
   recorded revision, do not fetch one at run time, and do not present a
   skill's guidance as evidence; record the skill and its revision in the
@@ -2094,7 +2246,8 @@ artifacts and the time log.
 | Derived raster interface artwork (site navigation, ADR 021 amending ADR 002) | Git repository, WebP (or PNG) under `site/assets/`, each named in the provenance register with its origin, licence or terms, and the hash of its master (F133, F134); a generating script, where one exists, outside `site/` | Git history; replaced by a commit that updates the register. Masters, intermediates, and option boards are not committed. |
 | The hero's headlines and subtexts (site navigation, ADR 021) | Git repository, one data file beside the curriculum file (F134) | Git history; the owner's copy, validated by `pbc.authoring.home`. |
 | Agent skills with their provenance records (scientific atelier, ADR 019) | Git repository, `.agents/skills/` | Git history; a pin moves only by a re-audited pull request. Development tooling, never read by the build. |
-| The state of the atlas's controls (selection, zoom, filters, the switch between map and index; since F133 the open sequence) and the hero's variant (F134) | Nowhere: in the page while it is open, and the open sequence in the address | Lost on navigation, by design; no browser storage (ADR 018, ADR 021). |
+| The introduction files, the learning journey, and the Home copy (textbook layer, requirements decision 43) | Git repository, beside the atlas manifest and the curriculum file (F156 to F158) | Git history; reviewed prose, validated by `pbc.authoring`; never a lesson list, count, or state. |
+| The state of the atlas's controls (selection, zoom, filters, the switch between map and index; since F133 the open sequence) and the hero's variant (F134; since F158 also the hero image) | Nowhere: in the page while it is open, and the open sequence in the address | Lost on navigation, by design; no browser storage (ADR 018, ADR 021). |
 
 Nothing else is stored anywhere.
 
@@ -2193,6 +2346,7 @@ Choices the requirements left to planning, and where they are settled:
 | Visual asset classes (decision 37) | Interface artwork, conceptual illustration, scientific result, with animation allowed in any class under conditions; sources in the repository; the blanket exclusion of decorative imagery and animation superseded where ADR 018 says, the exclusion of stock, copied, and external imagery kept. Of the two sources decision 37 permits, interface artwork may be authored (a provenance-registered SVG under `site/assets/`, the committed-artifact exemption ADR 018 adds to ADR 002, widened by ADR 021 to a registered derived WebP or PNG), and conceptual illustrations in lessons stay code-drawn as a planning choice, the authored form left to a later ADR | ADR 018; I6; I30; the notes on F25, F44, and F64 in `docs/roadmap.md` |
 | The quieter site (decision 40) | A four-item menu with the secondary pages in the footer; the Course Atlas as twelve sequence cards with the open sequence's lessons, in native exclusive disclosures with one address module; the map's relationships as data on the lesson pages; Home as a landing page with a randomised hero from one data file and examples chosen by code; "Run the code" with three routes; "How we verify the science"; the glossary on demand and "Suggest an improvement" through GitHub's forms; the sequences' descriptions and illustrations in the atlas manifest | ADR 021; F132 to F135; "The quieter site" |
 | Visual freedom on non-lesson pages (decision 41) | Classes by claim; interface artwork as SVG or a committed derived WebP from a script, an author, or an image model, registered with origin, licence, and master hash, admitted by the committed-artifact check only through its entry; committed rather than rendered at build time, with a regeneration check on demand where a script exists | ADR 021; I6; I30; F133 |
+| The textbook layer (decision 43) | Introductions at the flat address `/courses/<sequence-id>/`, generated from one prose file per sequence beside the atlas manifest; the learning journey in one prose file beside the manifest, used by the atlas and About; Home's copy in one file and its hero image picked from four Part A illustrations; pilot on mechanics and the law-discovery path after F136, the other sequences in four batch features with their own identifiers, the book review F160 with its identifier now; no new ADR, ADR 021 decision 4 amended by a dated note | `docs/roadmap.md`, Phase 10; "The textbook layer" |
 | Governed visual agent skills (decision 38) | Audited, pinned, project-local skills at `.agents/skills/`, a project-owned scientific-visualization skill, the planner, implementer, reviewer, and verification contract, bounded pilots, no mandatory review agent | ADR 019; I32; F122, F129 |
 | Fonts of the atelier | Self-hosted with their licences, counted in the initial payload, subset or dropped when they do not fit | This document; ADR 018; F123 |
 | Part B as four method paths ending in products (decision 42; amendments of decisions 23, 25, 26, and 31) | 34 core slots with new per-path labels, extension slots for the optional depth outside the 116 core slots, the kind `product capstone`, the migration by front matter, and the products as learner-run local applications in `pbc.products` and `products/` with a pinned starter, an instrument contract, an evidence contract, and an offline route verified in CI | ADR 022; this document, "Part B: method paths that end in local scientific products"; F136 to F155 |
@@ -2440,6 +2594,15 @@ that must settle them:
   in the HTML, the script runs before first paint, and the text block's
   height is reserved for the longest pair; F134 tests every pair through
   the `hero` parameter and measures the layout shift.
+- **An introduction goes stale** (textbook layer). Its lists and counts
+  are generated, but its prose explains an order and a capstone that later
+  lesson features may change. The rule of Phase 10 makes such a feature
+  re-read the introduction in the same pull request, the batches wait for
+  content stability, and F160 reads the whole as a book at the end.
+- **The hero image loads twice** (textbook layer). If the default image in
+  the HTML is fetched before the script swaps it, a visitor pays for two
+  images. F158 picks the image before it is requested and its browser
+  test asserts one hero image per load, with the payload measured.
 - **The curriculum outgrows the capacity decision** (Part B products).
   The revised curriculum reaches about 127 lessons when complete (116 core
   slots, five published extension lessons, five Lean lessons beyond the
@@ -2472,6 +2635,29 @@ that must settle them:
   licence-checked, optional, and chosen by a feature with evidence.
 
 ## Repository state compared with the requirements
+
+Checked at the change-cycle base commit `fc6da35` (2026-11-04) against the
+requirements of `textbook-layer` (decision 43 and the amendment notes on
+decisions 40 and 41). No material conflict was found; the state of the
+related features and Issues is in `docs/roadmap.md`, "State at the change
+cycle `textbook-layer`". The gaps are the work of F156 to F163:
+
+- No page introduces a course or a method path; the atlas panels and the
+  lesson headers link to none (F156, then the batches).
+- The atlas opens with its cards; About has no mission or philosophy
+  section, and the Part A and Part B text has no shared source (F157).
+- Home shows the two-constellation hero image, three sentences, and three
+  example lessons with one capstone chosen by `pbc.authoring.home`; no
+  hero-size file of the four Part A illustrations exists, and the
+  exoplanet transit's register entry names no script (F158).
+- The editorial guide has no section on pages that are not lessons
+  (F156), and the review rubric lacks the two additions (F116).
+- The change request's material (the audit and the proposal of
+  2026-11-03) is not in the repository; the planning does not depend on
+  it.
+
+The gaps recorded at the change-cycle base commit `cd69524` (2026-11-01),
+kept for the history of `part-b-scientific-products-and-research`, follow.
 
 Checked at the change-cycle base commit `cd69524` (2026-11-01) against the
 requirements of `part-b-scientific-products-and-research` (decision 42 and
