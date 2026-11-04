@@ -11,7 +11,7 @@ lesson:
   order: 20
   difficulty: 3
   course: mechanics
-  slot: D12
+  slot: MD9
   experiment: pbc.mechanics.experiments.generalisation_to_unseen_systems
   methods: [simulation, llm-agents]
   outcomes:

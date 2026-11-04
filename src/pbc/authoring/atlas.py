@@ -35,6 +35,8 @@ import yaml
 from pbc.authoring.path import (
     _COURSE,
     _FRONT_MATTER_FIELDS,
+    APPLIED_CAPSTONE,
+    CAPSTONES,
     COURSES,
     PATH_PAGE,
     Curriculum,
@@ -52,7 +54,9 @@ ATLAS_FILE = "atlas.yaml"
 ASSETS = "assets"
 ASSET_REGISTER = f"{ASSETS}/provenance.yaml"
 
-CAPSTONE = "applied capstone"
+# The capstone of a course; a method path's is a product capstone, and both
+# are capstones wherever the atlas marks one (``CAPSTONES``, ADR 022).
+CAPSTONE = APPLIED_CAPSTONE
 LAB = "measured-data lab"
 
 _ID = re.compile(r"[a-z][a-z0-9]*(-[a-z0-9]+)*")
@@ -262,7 +266,7 @@ def atlas_problems(
     courses = {course.id for course in COURSES}
     paths = {path.id for path in curriculum.paths}
     slots = {slot.label: slot for slot in curriculum.slots}
-    capstones = [slot.label for slot in curriculum.slots if slot.kind == CAPSTONE]
+    capstones = [slot.label for slot in curriculum.slots if slot.is_capstone]
 
     concepts = data["concepts"]
     if not isinstance(concepts, list):
@@ -305,7 +309,7 @@ def atlas_problems(
                 found.append(
                     f"concept {name}: {label!r} is not a slot of the curriculum"
                 )
-            elif slot.kind == CAPSTONE:
+            elif slot.is_capstone:
                 continue
             else:
                 own.append(label)
@@ -326,10 +330,11 @@ def atlas_problems(
                 )
             else:
                 represented[named[0]].append(str(concept_id))
-                if slots[named[0]].course != area:
+                home = slots[named[0]].course or slots[named[0]].path
+                if home != area:
                     found.append(
                         f"concept {name} represents {named[0]}, which belongs to"
-                        f" {slots[named[0]].course!r}, not to the area {area!r}"
+                        f" {home!r}, not to the area {area!r}"
                     )
     for label, concept_ids in represented.items():
         if len(concept_ids) != 1:
@@ -498,6 +503,11 @@ class Row:
     kind: str  # the slot's kind; "lesson" without a slot
     lesson: Lesson | None  # None: planned, no page, never counted
     description: str = ""  # a planned capstone's description, from the manifest
+    extension: bool = False  # an extension slot of a method path (ADR 022)
+
+    @property
+    def is_capstone(self) -> bool:
+        return self.kind in CAPSTONES
 
 
 @dataclass(frozen=True)
@@ -505,7 +515,9 @@ class AtlasSequence:
     """A course, a method path, or the Lean lessons beyond the curriculum,
     with its rows in teaching order: the slots in the order of the
     curriculum file, a course's lessons without a slot after them, and a
-    course's capstone last."""
+    course's capstone last; a method path's capstone ends its core rows, and
+    its extension rows follow them. The counts are those of the core rows;
+    the extension rows are counted apart (ADR 022 decision 2)."""
 
     id: str
     anchor: str  # its id on the page: course-<id>, path-<id>, or lean
@@ -518,12 +530,28 @@ class AtlasSequence:
     aliases: tuple[str, ...] = ()  # anchors of the previous page it opens on
 
     @property
+    def core(self) -> tuple[Row, ...]:
+        return tuple(row for row in self.rows if not row.extension)
+
+    @property
+    def extensions(self) -> tuple[Row, ...]:
+        return tuple(row for row in self.rows if row.extension)
+
+    @property
     def published(self) -> int:
-        return sum(1 for row in self.rows if row.lesson is not None)
+        return sum(1 for row in self.core if row.lesson is not None)
 
     @property
     def planned(self) -> int:
-        return len(self.rows) - self.published
+        return len(self.core) - self.published
+
+    @property
+    def extension_published(self) -> int:
+        return sum(1 for row in self.extensions if row.lesson is not None)
+
+    @property
+    def extension_planned(self) -> int:
+        return len(self.extensions) - self.extension_published
 
 
 @dataclass(frozen=True)
@@ -565,7 +593,7 @@ class Atlas:
         if len(concept.slots) != 1:
             return None
         slot = self.path.curriculum.slot(concept.slots[0])
-        return slot if slot is not None and slot.kind == CAPSTONE else None
+        return slot if slot is not None and slot.is_capstone else None
 
     def own_slots(self, concept: Concept) -> tuple[Slot, ...]:
         """The slots whose lessons the concept teaches: all its slots for a
@@ -574,7 +602,7 @@ class Atlas:
         if self.capstone_of(concept) is not None:
             return tuple(slot for slot in slots if slot is not None)
         return tuple(
-            slot for slot in slots if slot is not None and slot.kind != CAPSTONE
+            slot for slot in slots if slot is not None and not slot.is_capstone
         )
 
     @cached_property
@@ -618,7 +646,7 @@ class Atlas:
                 continue
             for label in concept.slots:
                 slot = self.path.curriculum.slot(label)
-                if slot is not None and slot.kind == CAPSTONE:
+                if slot is not None and slot.is_capstone:
                     found.append(
                         Membership(concept.id, self.manifest.capstone(label).id)
                     )
@@ -629,7 +657,7 @@ class Atlas:
     def _row(self, slot: Slot) -> Row:
         lesson = self.lesson_of(slot)
         description = ""
-        if lesson is None and slot.kind == CAPSTONE:
+        if lesson is None and slot.is_capstone:
             description = self.manifest.capstone(slot.label).explanation
         return Row(
             slot.label,
@@ -637,6 +665,7 @@ class Atlas:
             slot.kind,
             lesson,
             description,
+            slot.extension,
         )
 
     @cached_property
@@ -660,14 +689,14 @@ class Atlas:
         found = []
         for number, course in enumerate(COURSES, start=1):
             slots = curriculum.in_course(course)
-            rows = [self._row(slot) for slot in slots if slot.kind != CAPSTONE]
+            rows = [self._row(slot) for slot in slots if not slot.is_capstone]
             rows += [
                 Row("", lesson.title, "lesson", lesson)
                 for lesson in self._beyond
                 if lesson.course == course.id and not self._is_lean(lesson)
             ]
             # The capstone integrates the course: its row comes last.
-            rows += [self._row(slot) for slot in slots if slot.kind == CAPSTONE]
+            rows += [self._row(slot) for slot in slots if slot.is_capstone]
             entry = self.manifest.sequence(course.id)
             aliases = (
                 f"course-{course.id}-lessons",
@@ -688,6 +717,14 @@ class Atlas:
             )
         for number, method_path in enumerate(curriculum.paths, start=1):
             entry = self.manifest.sequence(method_path.id)
+            core = curriculum.core_in_path(method_path)
+            # The capstone integrates the path: the last of its core rows,
+            # and the optional extensions after the core.
+            path_rows = (
+                *(self._row(slot) for slot in core if not slot.is_capstone),
+                *(self._row(slot) for slot in core if slot.is_capstone),
+                *(self._row(s) for s in curriculum.extensions_in_path(method_path)),
+            )
             found.append(
                 AtlasSequence(
                     method_path.id,
@@ -697,7 +734,7 @@ class Atlas:
                     number,
                     entry.description,
                     entry.illustration,
-                    tuple(self._row(slot) for slot in curriculum.in_path(method_path)),
+                    path_rows,
                     tuple(
                         f"concept-{concept.id}"
                         for concept in self.in_area(method_path.id)
@@ -758,7 +795,11 @@ class AtlasSection:
 
     def __str__(self) -> str:
         sequences = self.atlas.sequences()
-        published = sum(sequence.published for sequence in sequences)
+        extensions = sum(len(sequence.extensions) for sequence in sequences)
+        extension_published = sum(s.extension_published for s in sequences)
+        # Every published lesson counts, the extension lessons among them;
+        # the planned slots are those of the core (ADR 022 decision 2).
+        published = sum(s.published for s in sequences) + extension_published
         planned = sum(sequence.planned for sequence in sequences)
         courses = sum(1 for sequence in sequences if sequence.part == "A")
         paths = sum(1 for sequence in sequences if sequence.part == "B")
@@ -774,8 +815,15 @@ class AtlasSection:
             '<li><span aria-current="page">Course Atlas</span></li></ol></nav>',
             f'<p class="atlas-summary">{_plural(courses, "course")} and'
             f" {_plural(paths, 'method path')}, {published} lessons published"
-            f" and {planned} planned. Open one to see its lessons in teaching"
-            " order.</p>",
+            f" and {planned} planned"
+            + (
+                f", with {_plural(extensions, 'optional extension')} of the"
+                f" method paths ({extension_published} published) listed after"
+                " each path's core"
+                if extensions
+                else ""
+            )
+            + ". Open one to see its lessons in teaching order.</p>",
             "```",
             "",
             "::: {.column-page}",
@@ -848,9 +896,11 @@ class AtlasSection:
             if sequence.part
             else "Beyond the curriculum"
         )
+        # One segment per published lesson of the core, which the count
+        # beside it names.
         ticks = "".join(
             f'<i class="path-link" data-lesson-id="{escape(row.lesson.id)}"></i>'
-            for row in sequence.rows
+            for row in sequence.core
             if row.lesson is not None
         )
         card = (
@@ -859,7 +909,7 @@ class AtlasSection:
             + '<span class="atlas-card-text">'
             f'<span class="atlas-card-title">{escape(sequence.title)}</span>'
             f'<span class="atlas-card-count">{sequence.published} of'
-            f" {_plural(len(sequence.rows), 'lesson')}</span>"
+            f" {_plural(len(sequence.core), 'lesson')}</span>"
             f'<span class="atlas-progress" aria-hidden="true">{ticks}</span>'
             "</span></summary>"
         )
@@ -873,13 +923,34 @@ class AtlasSection:
             f'<p class="atlas-counts">{escape(counts)}</p>'
             "</div></div>"
         )
-        rows = "".join(self._row(row, sequence) for row in sequence.rows)
+        rows = "".join(self._row(row, sequence) for row in sequence.core)
         return (
             f'<details class="atlas-sequence {part}" name="atlas"'
             f' id="{sequence.anchor}"{aliases}{" open" if open_ else ""}>'
             f"{card}"
             f'<div class="atlas-panel">{head}'
-            f'<ol class="atlas-rows">{rows}</ol></div></details>'
+            f'<ol class="atlas-rows">{rows}</ol>'
+            f"{self._extensions(sequence)}</div></details>"
+        )
+
+    def _extensions(self, sequence: AtlasSequence) -> str:
+        """The optional extensions of a method path after its core rows: set
+        apart by their place and their own heading and counts, never by a
+        mark of the row (ADR 022 decision 2). Empty without any."""
+        if not sequence.extensions:
+            return ""
+        counts = f"{sequence.extension_published} published"
+        if sequence.extension_planned:
+            counts += f", {sequence.extension_planned} planned"
+        rows = "".join(self._row(row, sequence) for row in sequence.extensions)
+        heading = f"{sequence.anchor}-extensions"
+        return (
+            f'<section class="atlas-extensions" aria-labelledby="{heading}">'
+            f'<h3 class="atlas-extensions-title" id="{heading}">Optional'
+            " extensions</h3>"
+            '<p class="atlas-extensions-note">Depth beside the path, not part'
+            f" of its {_plural(len(sequence.core), 'lesson')}: {escape(counts)}.</p>"
+            f'<ol class="atlas-rows atlas-rows-extension">{rows}</ol></section>'
         )
 
     def _row(self, row: Row, sequence: AtlasSequence) -> str:
@@ -888,7 +959,7 @@ class AtlasSection:
         if row.kind == LAB:
             classes.append("atlas-row-lab")
             marks.append('<span class="atlas-mark atlas-mark-lab">Lab</span>')
-        if row.kind == CAPSTONE:
+        if row.is_capstone:
             classes.append("atlas-row-capstone")
             marks.append('<span class="atlas-mark atlas-mark-capstone">Capstone</span>')
         if row.lesson is not None and Atlas._is_lean(row.lesson):
@@ -929,6 +1000,8 @@ class AtlasSection:
             for row in sequence.rows:
                 name = f"{row.label} {row.title}" if row.label else row.title
                 kind = f", {row.kind}" if row.kind != "lesson" else ""
+                if row.extension:
+                    kind += ", optional extension"
                 state = "published" if row.lesson is not None else "planned"
                 text = f"{name} ({state}{kind})"
                 if row.description:
@@ -940,9 +1013,16 @@ class AtlasSection:
                 if sequence.part
                 else "beyond the curriculum"
             )
+            extensions = (
+                f" Optional extensions after the core:"
+                f" {sequence.extension_published} published,"
+                f" {sequence.extension_planned} planned."
+                if sequence.extensions
+                else ""
+            )
             found.append(
                 f"{sequence.title} ({where}): {sequence.published} published,"
-                f" {sequence.planned} planned. {'; '.join(rows)}."
+                f" {sequence.planned} planned.{extensions} {'; '.join(rows)}."
             )
         return found
 

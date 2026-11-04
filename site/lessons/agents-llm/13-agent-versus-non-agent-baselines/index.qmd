@@ -11,7 +11,7 @@ lesson:
   order: 13
   difficulty: 3
   course: mechanics
-  slot: EV3
+  slot: AE3
   experiment: pbc.mechanics.experiments.agent_versus_non_agent_baselines
   methods: [simulation, llm-agents]
   outcomes:

@@ -11,7 +11,7 @@ lesson:
   order: 19
   difficulty: 3
   course: mechanics
-  slot: D11
+  slot: MD6
   experiment: pbc.mechanics.experiments.hidden_variables
   methods: [simulation, llm-agents]
   outcomes:

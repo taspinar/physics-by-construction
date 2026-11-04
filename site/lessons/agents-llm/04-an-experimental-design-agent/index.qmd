@@ -11,7 +11,7 @@ lesson:
   order: 4
   difficulty: 3
   course: mechanics
-  slot: D9
+  slot: MD8
   preview: fig-design
   experiment: pbc.mechanics.experiments.experimental_design_agent
   methods: [simulation, llm-agents]

@@ -11,7 +11,7 @@ lesson:
   order: 12
   difficulty: 3
   course: mechanics
-  slot: D6
+  slot: MD2
   methods: [simulation, measured-data]
   outcomes:
     - Check a fitting procedure on synthetic data of known parameters, and say what recovery, bias, and coverage of the stated interval mean

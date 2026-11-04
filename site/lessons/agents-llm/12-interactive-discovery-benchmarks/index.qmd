@@ -11,7 +11,7 @@ lesson:
   order: 12
   difficulty: 3
   course: mechanics
-  slot: EV2
+  slot: AE2
   experiment: pbc.mechanics.experiments.interactive_discovery_benchmarks
   methods: [simulation, llm-agents]
   outcomes:

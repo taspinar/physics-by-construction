@@ -12,7 +12,7 @@ import yaml
 from support.paths import SITE_SOURCE
 
 from pbc.authoring import COURSES, LearningPath
-from pbc.authoring.atlas import CAPSTONE, AtlasManifest
+from pbc.authoring.atlas import AtlasManifest
 from pbc.authoring.home import (
     HERO_FILE,
     HERO_PAIRS,
@@ -257,10 +257,10 @@ def test_the_capstone_is_a_published_one_of_a_course_no_example_has():
     capstone = HOME.capstone()
     assert capstone is not None
     slot = next(s for s in PATH.curriculum.slots if s.label == capstone.slot)
-    assert slot.kind == CAPSTONE
+    assert slot.is_capstone
     assert capstone.course not in {lesson.course for lesson in HOME.examples()}
     # With no published capstone there is none.
-    capstones = {s.label for s in PATH.curriculum.slots if s.kind == CAPSTONE}
+    capstones = {s.label for s in PATH.curriculum.slots if s.is_capstone}
     lessons = tuple(x for x in PATH.lessons if x.slot not in capstones)
     assert replace(HOME, path=replace(PATH, lessons=lessons)).capstone() is None
 
@@ -286,6 +286,42 @@ def test_the_capstone_is_never_one_of_the_examples():
     # With EM9 the only published capstone, there is none.
     alone = tuple(x for x in lessons if x.slot != "T11")
     assert replace(HOME, path=replace(PATH, lessons=alone)).capstone() is None
+
+
+def test_a_published_product_capstone_is_chosen_like_a_course_capstone():
+    """A method path's product capstone is a capstone of the choice (ADR 022
+    decision 3): published, it is chosen when no course capstone is left,
+    with its path named; planned, it is never chosen."""
+    capstones = {s.label for s in PATH.curriculum.slots if s.is_capstone}
+    without = tuple(x for x in PATH.lessons if x.slot not in capstones)
+    # No product capstone is published yet: none is chosen.
+    assert replace(HOME, path=replace(PATH, lessons=without)).capstone() is None
+    lab = replace(next(x for x in without if x.id == "agent-experiment"), slot="SA9")
+    lessons = tuple(lab if x.id == lab.id else x for x in without)
+    home = replace(HOME, path=replace(PATH, lessons=lessons))
+    assert home.capstone() == lab
+    section = home.examples_section(SITE_SOURCE)
+    assert MANIFEST.capstone("SA9").explanation in section
+    assert (
+        "the capstone project of the path Reliable scientific agents and"
+        " experiment automation" in section
+    )
+
+
+def test_every_label_of_the_hero_stays_inside_the_image():
+    """A label has at most two lines, and every line, centred on its node,
+    stays within the WIDTH of the image: at 13 px a character of the label
+    is about 6.2 units wide (measured in Chromium), taken here as 6.5. The
+    longer path titles wrap into longer lines than the courses'."""
+    image = HOME.hero_image()
+    labels = re.findall(r'<text class="hero-label" x="(\d+)"[^>]*>(.*?)</text>', image)
+    assert len(labels) == len(COURSES) + len(PATH.paths)
+    for x, text in labels:
+        lines = re.findall(r"<tspan[^>]*>(.*?)</tspan>", text)
+        assert 1 <= len(lines) <= 2
+        for line in lines:
+            half = len(line) * 6.5 / 2
+            assert half <= int(x) <= WIDTH - half, line
 
 
 def test_on_a_phone_the_nodes_stand_in_two_columns_inside_the_taller_box():

@@ -11,7 +11,7 @@ lesson:
   order: 2
   difficulty: 3
   course: mechanics
-  slot: AI3
+  slot: SA7
   preview: fig-hunt
   experiment: pbc.mechanics.experiments.counterexample_hunter
   methods: [simulation, llm-agents]

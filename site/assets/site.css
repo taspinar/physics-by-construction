@@ -1882,6 +1882,31 @@ main .atlas-title a:focus-visible {
   font-style: italic;
 }
 
+/* The optional extensions of a method path (ADR 022 decision 2): after the
+   core rows, set apart by space and their own heading and note, not by a
+   mark of the row; the rows are those of the core. */
+.atlas-extensions {
+  margin-top: var(--pbc-space-5);
+}
+
+.atlas .atlas-extensions-title {
+  margin: 0;
+  border: 0;
+  color: var(--pbc-text);
+  font-size: var(--pbc-heading-3);
+  line-height: var(--pbc-leading-title);
+}
+
+.atlas-extensions-note {
+  margin: var(--pbc-space-1) 0 0;
+  color: var(--pbc-muted);
+  font-size: var(--pbc-text-small);
+}
+
+.atlas-rows-extension {
+  margin-top: var(--pbc-space-3);
+}
+
 /* A measured-data lab: a hairline of the accent in the margin of its row,
    beside the word Lab. */
 .atlas-row-lab::before {

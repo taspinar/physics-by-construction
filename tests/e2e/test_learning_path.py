@@ -15,6 +15,7 @@ from urllib.parse import urldefrag, urljoin
 
 import pytest
 from playwright.sync_api import Browser, BrowserContext, Page
+from support import part_b
 from support.paths import SITE_SOURCE
 from support.site_checks import DESKTOP
 from support.site_server import SiteServer
@@ -144,6 +145,43 @@ def test_every_previous_lesson_address_still_resolves_to_its_lesson(
     page = without_scripts.new_page()
     page.goto(server.url + address, wait_until="load")
     assert _plain(page.locator("main h1").first.inner_text()) == _plain(lesson.title)
+
+
+@pytest.mark.parametrize("moved", part_b.LESSONS, ids=lambda moved: moved.id)
+def test_every_part_b_lesson_keeps_the_address_of_the_base_and_shows_its_new_slot(
+    without_scripts: BrowserContext,
+    server: SiteServer,
+    site_dir: Path,
+    moved: part_b.Moved,
+):
+    """The curriculum migration (F136) changes a lesson's slot and nothing
+    else: the built page is at the address of the base commit, it is the
+    same lesson, and its header names the new slot, an extension as one."""
+    address = Path(moved.page).with_suffix(".html").as_posix()
+    assert (site_dir / address).is_file()
+    lesson = LESSON_PATH.lesson(moved.id)
+    assert built(lesson) == address
+    page = without_scripts.new_page()
+    page.goto(server.url + address, wait_until="load")
+    assert _plain(page.locator("main h1").first.inner_text()) == _plain(lesson.title)
+    header = page.locator("main .lesson-header")
+    terms = [_plain(text) for text in header.locator("dt").all_inner_texts()]
+    if not moved.slot:
+        assert "Slot" not in terms
+        return
+    slot = header.locator("dd").nth(terms.index("Slot")).inner_text()
+    method_path = LESSON_PATH.curriculum.path(
+        LESSON_PATH.curriculum.slot(moved.slot).path
+    )
+    if LESSON_PATH.curriculum.slot(moved.slot).extension:
+        assert (
+            slot
+            == f"{moved.slot}, an optional extension of the path {method_path.title}"
+        )
+    else:
+        core = len(LESSON_PATH.curriculum.core_in_path(method_path))
+        assert slot.startswith(f"{moved.slot}, number ")
+        assert f" of the {core} slots of the path {method_path.title}" in slot
 
 
 @pytest.mark.parametrize("lesson", LESSON_PATH.lessons, ids=lambda lesson: lesson.id)

@@ -247,9 +247,56 @@ def test_without_scripts_every_published_lesson_is_reached_through_the_cards(
             assert href == "../" + lesson.page.removesuffix(".qmd") + ".html"
             reached[lesson.id] = href
         planned = page.locator(f"#{sequence.anchor} .atlas-row.planned-slot")
-        assert planned.count() == sequence.planned
+        assert planned.count() == sequence.planned + sequence.extension_planned
         assert planned.locator("a").count() == 0
     assert set(reached) == {lesson.id for lesson in LESSONS}
+
+
+@pytest.mark.parametrize("viewport", [WIDE, NARROW], ids=["wide", "phone"])
+def test_a_paths_optional_extensions_follow_its_core_under_their_own_heading(
+    browser: Browser, server: SiteServer, viewport: dict[str, int]
+):
+    """The extension rows of a method path stand after its core rows, under
+    the heading "Optional extensions", visible and reachable without
+    scripts, with the row marks of the core and no other (ADR 022 decision
+    2); the core count of the card leaves them out."""
+    context = browser.new_context(viewport=viewport, java_script_enabled=False)
+    page = open_page(context, server)
+    paths = [sequence for sequence in by_part("B") if sequence.extensions]
+    assert paths
+    for sequence in paths:
+        show(page, sequence.anchor)
+        group = page.locator(f"#{sequence.anchor} .atlas-extensions")
+        heading = group.locator("h3")
+        assert heading.inner_text().strip() == "Optional extensions"
+        assert heading.is_visible()
+        core = page.locator(f"#{sequence.anchor} .atlas-rows").first
+        assert (
+            box(page, f"#{sequence.anchor} .atlas-rows")["y"]
+            < (heading.bounding_box()["y"])
+        )
+        assert core.locator(":scope > li").count() == len(sequence.core)
+        rows = group.locator(".atlas-row")
+        assert rows.count() == len(sequence.extensions)
+        for index, row in enumerate(sequence.extensions):
+            item = rows.nth(index)
+            assert item.locator(".atlas-label").inner_text() == row.label
+            if row.lesson is not None:
+                link = item.locator("a.lesson-link")
+                assert link.is_visible()
+                assert link.get_attribute("href") == (
+                    "../" + row.lesson.page.removesuffix(".qmd") + ".html"
+                )
+        card = page.locator(f"#{sequence.anchor} .atlas-card-count")
+        assert (
+            card.inner_text() == f"{sequence.published} of {len(sequence.core)} lessons"
+        )
+    # No row outside the core carries a mark the core does not have.
+    marks = page.locator(".atlas-extensions .atlas-mark").evaluate_all(
+        "marks => marks.map(m => m.className)"
+    )
+    assert set(marks) <= {"atlas-mark atlas-mark-planned"}
+    context.close()
 
 
 def test_by_keyboard_a_card_opens_and_its_panel_comes_next_in_order(

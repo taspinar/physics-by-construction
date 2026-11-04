@@ -11,7 +11,7 @@ lesson:
   order: 9
   difficulty: 3
   course: mechanics
-  slot: D8
+  slot: MD4
   experiment: pbc.mechanics.experiments.discovering_differential_equations
   methods: [simulation]
   outcomes:

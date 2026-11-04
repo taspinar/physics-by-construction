@@ -11,7 +11,7 @@ lesson:
   order: 17
   difficulty: 3
   course: mechanics
-  slot: AI7
+  slot: SA8
   experiment: pbc.mechanics.experiments.interpretable_physics_explanations
   methods: [simulation, llm-agents]
   outcomes:

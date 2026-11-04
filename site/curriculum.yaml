@@ -2,7 +2,9 @@
 #
 # One line per slot, in teaching order within its home. A slot's home is a
 # course (`course`), a method path (`path`, with its `position`), or, for the
-# one Lean slot, the strand `lean`. This file holds nothing that a lesson's
+# one Lean slot, the strand `lean`. A slot of a method path may carry
+# `extension: true`: optional depth, listed after the path's core slots and
+# never counted with them (ADR 022). This file holds nothing that a lesson's
 # front matter holds; a lesson says which slot it fills with `lesson.slot`.
 # Changing this file changes the curriculum and is a reviewed change; the
 # counts are pinned by tests/unit/test_curriculum.py and docs/roadmap.md
@@ -19,10 +21,10 @@ courses:
   - {id: materials, title: "Condensed matter and materials physics"}
 
 paths:
-  - {id: reasoning, title: "Physics reasoning and scientific agents"}
-  - {id: law-discovery, title: "Scientific law discovery"}
-  - {id: benchmarking, title: "Physics agent benchmarking"}
-  - {id: autonomous-research, title: "Autonomous scientific research"}
+  - {id: reasoning, title: "Reliable scientific agents and experiment automation"}
+  - {id: law-discovery, title: "Physical model discovery through active experiments"}
+  - {id: benchmarking, title: "Scientific agent evaluation and improvement"}
+  - {id: autonomous-research, title: "Reproducible research with agents"}
 
 slots:
   # mechanics
@@ -114,42 +116,51 @@ slots:
   - {label: MAT4, title: "Defects and material properties", course: materials, kind: lesson}
   - {label: MAT5, title: "Experimental: X-ray diffraction data", course: materials, kind: measured-data lab}
   - {label: MAT6, title: "Experimental: stress-strain measurements", course: materials, kind: measured-data lab}
-  # reasoning
-  - {label: AI0, title: "LLM agent designs a projectile experiment", path: reasoning, position: 1, kind: lesson}
-  - {label: AI1, title: "Agent-assisted physics simulation development", path: reasoning, position: 2, kind: lesson}
-  - {label: AI2, title: "Scientific code verification and debugging", path: reasoning, position: 3, kind: lesson}
-  - {label: AI3, title: "Counterexample hunting", path: reasoning, position: 4, kind: lesson}
-  - {label: AI4, title: "Multi-agent scientific review", path: reasoning, position: 5, kind: lesson}
-  - {label: AI5, title: "Agent-assisted real experimental physics", path: reasoning, position: 6, kind: lesson}
-  - {label: AI6, title: "Multimodal physics reasoning", path: reasoning, position: 7, kind: lesson}
-  - {label: AI7, title: "Interpretable physics explanations and constraints", path: reasoning, position: 8, kind: lesson}
-  - {label: AI8, title: "Physical reasoning from video", path: reasoning, position: 9, kind: lesson}
+  # reasoning: the core slots, the capstone last, then the optional
+  # extensions (ADR 022 decision 2), which the core counts never include
+  - {label: SA1, title: "From research question to experiment specification", path: reasoning, position: 1, kind: lesson}
+  - {label: SA2, title: "Building and verifying scientific simulation tools", path: reasoning, position: 2, kind: lesson}
+  - {label: SA3, title: "Connecting simulators and instruments", path: reasoning, position: 3, kind: lesson}
+  - {label: SA4, title: "Measurement quality and multimodal observations", path: reasoning, position: 4, kind: lesson}
+  - {label: SA5, title: "Building a bounded experiment agent", path: reasoning, position: 5, kind: lesson}
+  - {label: SA6, title: "Running adaptive and resumable measurement campaigns", path: reasoning, position: 6, kind: lesson}
+  - {label: SA7, title: "Counterexamples, physical constraints, and falsification", path: reasoning, position: 7, kind: lesson}
+  - {label: SA8, title: "Traceable explanations and experiment reports", path: reasoning, position: 8, kind: lesson}
+  - {label: SA9, title: "Capstone: Autonomous Physics Lab", path: reasoning, position: 9, kind: product capstone}
+  - {label: AI6, title: "Multimodal physics reasoning", path: reasoning, position: 10, kind: lesson, extension: true}
+  - {label: AI8, title: "Physical reasoning from video", path: reasoning, position: 11, kind: lesson, extension: true}
   # law-discovery
-  - {label: D1, title: "Black-box physics: discovering force laws", path: law-discovery, position: 1, kind: lesson}
-  - {label: D2, title: "Physics without prior knowledge", path: law-discovery, position: 2, kind: lesson}
-  - {label: D3, title: "Discovering modified physical laws", path: law-discovery, position: 3, kind: lesson}
-  - {label: D4, title: "Discovering gravity from experiments", path: law-discovery, position: 4, kind: lesson}
-  - {label: D5, title: "Unknown physical worlds", path: law-discovery, position: 5, kind: lesson}
-  - {label: D6, title: "Inverse physics: parameter discovery and uncertainty", path: law-discovery, position: 6, kind: lesson}
-  - {label: D7, title: "Symbolic regression for physical laws", path: law-discovery, position: 7, kind: lesson}
-  - {label: D8, title: "Discovering differential equations", path: law-discovery, position: 8, kind: lesson}
-  - {label: D9, title: "Active experimental design", path: law-discovery, position: 9, kind: lesson}
-  - {label: D10, title: "Scientific discovery under measurement noise", path: law-discovery, position: 10, kind: lesson}
-  - {label: D11, title: "Hidden forces and unobserved variables", path: law-discovery, position: 11, kind: lesson}
-  - {label: D12, title: "Generalisation to unseen physical systems", path: law-discovery, position: 12, kind: lesson}
-  - {label: D13, title: "Discovering conservation laws and physical invariants", path: law-discovery, position: 13, kind: lesson}
+  - {label: MD1, title: "Unknown systems, priors, and competing models", path: law-discovery, position: 1, kind: lesson}
+  - {label: MD2, title: "Parameter discovery and system identification", path: law-discovery, position: 2, kind: lesson}
+  - {label: MD3, title: "Discovering functional forms with symbolic regression", path: law-discovery, position: 3, kind: lesson}
+  - {label: MD4, title: "Discovering differential equations", path: law-discovery, position: 4, kind: lesson}
+  - {label: MD5, title: "Noise, uncertainty, and identifiability", path: law-discovery, position: 5, kind: lesson}
+  - {label: MD6, title: "Hidden variables and failures of known laws", path: law-discovery, position: 6, kind: lesson}
+  - {label: MD7, title: "Discovering conservation laws and invariants", path: law-discovery, position: 7, kind: lesson}
+  - {label: MD8, title: "Active experimental design", path: law-discovery, position: 8, kind: lesson}
+  - {label: MD9, title: "Generalisation across signals, regimes, and systems", path: law-discovery, position: 9, kind: lesson}
+  - {label: MD10, title: "Capstone: System Discovery Lab", path: law-discovery, position: 10, kind: product capstone}
+  - {label: D1, title: "Black-box physics: discovering force laws", path: law-discovery, position: 11, kind: lesson, extension: true}
+  - {label: D3, title: "Discovering modified physical laws", path: law-discovery, position: 12, kind: lesson, extension: true}
+  - {label: D4, title: "Discovering gravity from experiments", path: law-discovery, position: 13, kind: lesson, extension: true}
+  - {label: D5, title: "Unknown physical worlds", path: law-discovery, position: 14, kind: lesson, extension: true}
   # benchmarking
-  - {label: EV1, title: "Physics reasoning benchmarks", path: benchmarking, position: 1, kind: lesson}
-  - {label: EV2, title: "Interactive discovery benchmarks", path: benchmarking, position: 2, kind: lesson}
-  - {label: EV3, title: "Agent versus non-agent baselines", path: benchmarking, position: 3, kind: lesson}
-  - {label: EV4, title: "Robustness, cost, and sample efficiency", path: benchmarking, position: 4, kind: lesson}
-  - {label: EV5, title: "Scientific failure analysis", path: benchmarking, position: 5, kind: lesson}
+  - {label: AE1, title: "Defining scientific quality", path: benchmarking, position: 1, kind: lesson}
+  - {label: AE2, title: "Building tasks and hidden test worlds", path: benchmarking, position: 2, kind: lesson}
+  - {label: AE3, title: "Fair baselines and comparison protocols", path: benchmarking, position: 3, kind: lesson}
+  - {label: AE4, title: "Independent scoring, sealed evaluation, and provenance", path: benchmarking, position: 4, kind: lesson}
+  - {label: AE5, title: "Robustness and statistical uncertainty", path: benchmarking, position: 5, kind: lesson}
+  - {label: AE6, title: "Failure analysis, reviewer evaluation, and regressions", path: benchmarking, position: 6, kind: lesson}
+  - {label: AE7, title: "Capstone: Scientific Agent Testbench", path: benchmarking, position: 7, kind: product capstone}
   # autonomous-research
-  - {label: R1, title: "Automated physics analysis pipelines", path: autonomous-research, position: 1, kind: lesson}
-  - {label: R2, title: "Scientific evidence maps", path: autonomous-research, position: 2, kind: lesson}
-  - {label: R3, title: "Scientific literature and reproducible evidence", path: autonomous-research, position: 3, kind: lesson}
-  - {label: R4, title: "Reproducing a physics paper with multiple agents", path: autonomous-research, position: 4, kind: lesson}
-  - {label: R5, title: "Agent-driven materials discovery", path: autonomous-research, position: 5, kind: lesson}
-  - {label: R6, title: "Autonomous physics research challenge", path: autonomous-research, position: 6, kind: lesson}
+  - {label: RR1, title: "Generating and selecting research ideas", path: autonomous-research, position: 1, kind: lesson}
+  - {label: RR2, title: "From a question or publication to a research plan", path: autonomous-research, position: 2, kind: lesson}
+  - {label: RR3, title: "Literature, novelty assessment, and evidence maps", path: autonomous-research, position: 3, kind: lesson}
+  - {label: RR4, title: "Reproducible and resumable research pipelines", path: autonomous-research, position: 4, kind: lesson}
+  - {label: RR5, title: "Multi-agent investigation and scientific review", path: autonomous-research, position: 5, kind: lesson}
+  - {label: RR6, title: "Discrepancies, ablations, and follow-up experiments", path: autonomous-research, position: 6, kind: lesson}
+  - {label: RR7, title: "Independently checkable reports and research memory", path: autonomous-research, position: 7, kind: lesson}
+  - {label: RR8, title: "Capstone: Scientific Research Workspace", path: autonomous-research, position: 8, kind: product capstone}
+  - {label: R5, title: "Agent-driven materials discovery", path: autonomous-research, position: 9, kind: lesson, extension: true}
   # the Lean slot
   - {label: L1, title: "Proving what the simulation showed", strand: lean, kind: lesson}

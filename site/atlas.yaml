@@ -66,23 +66,23 @@ sequences:
   - id: reasoning
     illustration: atlas/reasoning
     description: >-
-      Scientific agents that propose hypotheses, test them against models and
-      constraints, and keep the ones that survive.
+      Agents that run several kinds of experiment within stated limits and
+      report results that someone else can check.
   - id: law-discovery
     illustration: atlas/law-discovery
     description: >-
-      Finding equations and conservation laws in data, from symbolic
-      regression to unknown physical worlds.
+      Finding the physical model behind an unknown system by choosing
+      experiments, and saying what the data leave undecided.
   - id: benchmarking
     illustration: atlas/benchmarking
     description: >-
-      Measuring what a physics agent can and cannot do, against honest
-      baselines and with stated uncertainty.
+      Evaluating scientific agents fairly: hidden test worlds, honest
+      baselines, independent scoring, and stated uncertainty.
   - id: autonomous-research
     illustration: atlas/autonomous-research
     description: >-
-      An agent that designs experiments, runs them, and revises its model, in
-      a loop a reader can audit.
+      Choosing a worthwhile question, investigating it with agents, and tying
+      every conclusion to reproducible evidence.
 
 concepts:
   # --- Classical mechanics
@@ -413,38 +413,53 @@ concepts:
       Vacancies, dislocations, and other imperfections of a crystal, and the
       properties of a material that they control.
 
-  # --- Physics reasoning and scientific agents
+  # --- Reliable scientific agents and experiment automation
   - id: agent-designed-experiments
     area: reasoning
-    slots: [AI0, AI5]
+    slots: [SA1, SA5, SA6, SA9]
     explanation: >-
-      A language-model agent that proposes experiments, runs the simulation or
-      the lab analysis, and reports what it measured.
+      A research question turned into an experiment specification, run by a
+      bounded language-model agent and by adaptive, resumable measurement
+      campaigns, with what it measured reported.
   - id: agent-assisted-development
     area: reasoning
-    slots: [AI1, AI2]
+    slots: [SA2, SA9]
     explanation: >-
       Building and debugging scientific code with an agent, and verifying the
       result against physics instead of trusting it.
+  - id: instruments-and-measurement
+    area: reasoning
+    slots: [SA3, SA4, SA9]
+    explanation: >-
+      One small interface for simulators and instruments, and the quality of
+      what they measure: calibration, sampling, noise, clipping, and missing
+      data.
   - id: scientific-review-by-agents
     area: reasoning
-    slots: [AI3, AI4]
+    slots: [SA7]
     explanation: >-
-      Agents that search for counterexamples to a claim and review a result
-      from independent points of view.
+      Agents that search for counterexamples to a claim and test it against
+      dimensions, symmetries, limiting cases, and conservation.
+  - id: interpretable-explanations
+    area: reasoning
+    slots: [SA8, SA9]
+    explanation: >-
+      Explanations and experiment reports whose every quantitative claim can
+      be checked against its runs, its data, and known constraints.
   - id: multimodal-reasoning
     area: reasoning
     slots: [AI6, AI8]
     explanation: >-
       Physical reasoning from images, plots, and video as well as from text.
-  - id: interpretable-explanations
+  - id: autonomous-physics-lab
     area: reasoning
-    slots: [AI7]
+    slots: [SA9]
     explanation: >-
-      Explanations of a model's physical reasoning that can be checked against
-      known constraints.
+      A local application that runs several experiment protocols on electronic
+      circuits, in simulation and optionally on a programmable instrument,
+      with independent numerical checks and exportable evidence.
 
-  # --- Scientific law discovery
+  # --- Physical model discovery through active experiments
   - id: force-law-discovery
     area: law-discovery
     slots: [D1, D3, D4]
@@ -453,84 +468,129 @@ concepts:
       modified law and gravity itself.
   - id: discovery-in-unknown-worlds
     area: law-discovery
-    slots: [D2, D5, D12]
+    slots: [MD1, D5, MD9, MD10]
     explanation: >-
       Discovery with little or no prior knowledge, in worlds whose physics is
       unfamiliar, and whether the result generalises to new systems.
   - id: parameter-inference
     area: law-discovery
-    slots: [D6, D10]
+    slots: [MD2, MD5, MD10]
     explanation: >-
       Estimating the parameters of a model from noisy measurements, with the
       uncertainty that the noise leaves.
   - id: equation-discovery
     area: law-discovery
-    slots: [D7, D8]
+    slots: [MD3, MD4]
     explanation: >-
       Searching for a symbolic formula or a differential equation that
       reproduces the data.
   - id: active-experimental-design
     area: law-discovery
-    slots: [D9]
+    slots: [MD8, MD10]
     explanation: >-
       Choosing the next experiment so that its result tells the most about the
       unknown law.
   - id: hidden-variables
     area: law-discovery
-    slots: [D11]
+    slots: [MD6]
     explanation: >-
       Inferring forces and variables that act on a system but are never
       observed directly.
   - id: discovered-invariants
     area: law-discovery
-    slots: [D13]
+    slots: [MD7]
     explanation: >-
       Finding from data the quantities that a motion conserves.
+  - id: system-discovery-lab
+    area: law-discovery
+    slots: [MD10]
+    explanation: >-
+      A local application that characterises unknown systems from a bounded
+      family of circuits by choosing its measurements, and validates the model
+      it identifies on withheld experiments, including a case the measurements
+      cannot decide.
 
-  # --- Physics agent benchmarking
+  # --- Scientific agent evaluation and improvement
   - id: reasoning-benchmarks
     area: benchmarking
-    slots: [EV1, EV2]
+    slots: [AE1, AE2, AE7]
     explanation: >-
-      Measuring how well agents reason about physics and discover laws, on
-      fixed questions and in interactive tasks.
+      Defining what scientific quality means and measuring it on numerical,
+      conceptual, diagram-based, and interactive tasks whose truth the agent
+      never sees.
   - id: baselines-and-efficiency
     area: benchmarking
-    slots: [EV3, EV4]
+    slots: [AE3, AE5, AE7]
     explanation: >-
-      Comparing agents with methods that use no agent, and weighing
-      robustness, cost, and the number of experiments needed.
+      Comparing agents with methods that use no agent under equal information
+      and budgets, and weighing robustness, cost, and statistical uncertainty.
+  - id: sealed-evaluation
+    area: benchmarking
+    slots: [AE4, AE7]
+    explanation: >-
+      Scores and resource measurements computed by the evaluator, not the
+      agent, on a frozen candidate, with the evidence bound to its version.
   - id: failure-analysis
     area: benchmarking
-    slots: [EV5]
+    slots: [AE6, AE7]
     explanation: >-
-      Classifying how and why agents fail at scientific tasks.
+      Classifying how and why agents and their reviewers fail at scientific
+      tasks, and catching the regressions.
+  - id: scientific-agent-testbench
+    area: benchmarking
+    slots: [AE7]
+    explanation: >-
+      A local application that compares and diagnoses scientific agents on
+      shared tasks, with scores the evaluator computes and reproducible
+      evaluation reports.
 
-  # --- Autonomous scientific research
-  - id: analysis-pipelines
+  # --- Reproducible research with agents
+  - id: research-ideas-and-plans
     area: autonomous-research
-    slots: [R1]
+    slots: [RR1, RR2, RR8]
     explanation: >-
-      Automated analysis of measurements from raw data to a result, each step
-      recorded and repeatable.
+      Choosing a worthwhile research question among several, and planning its
+      investigation, with baselines, budgets, and success criteria declared
+      before anything runs.
   - id: evidence-and-literature
     area: autonomous-research
-    slots: [R2, R3]
+    slots: [RR3, RR8]
     explanation: >-
       Mapping claims to their evidence, and working with the literature so
       that every statement can be traced.
+  - id: analysis-pipelines
+    area: autonomous-research
+    slots: [RR4, RR8]
+    explanation: >-
+      Automated analysis of measurements from raw data to a result, each step
+      recorded and repeatable.
   - id: paper-reproduction
     area: autonomous-research
-    slots: [R4]
+    slots: [RR5, RR8]
     explanation: >-
-      Reproducing the results of a published physics paper with several
-      agents that divide the work.
+      Investigating with several agents in bounded roles, reviewed
+      independently rather than by consensus, as in reproducing a published
+      physics result.
+  - id: follow-ups-and-reports
+    area: autonomous-research
+    slots: [RR6, RR7, RR8]
+    explanation: >-
+      Turning a review finding into a discriminating experiment and a revised
+      claim, and reports and research memory whose every statement can be
+      checked again.
   - id: autonomous-discovery
     area: autonomous-research
-    slots: [R5, R6]
+    slots: [R5]
     explanation: >-
-      Agents that run a research loop on their own, from a question to a
-      checked result, in materials discovery and in an open challenge.
+      An agent's research loop on materials, under physical feasibility and
+      several competing objectives: an optional extension of the path.
+  - id: scientific-research-workspace
+    area: autonomous-research
+    slots: [RR8]
+    explanation: >-
+      A local research application for one bounded investigation, reproducing
+      a published result or answering an original question, with every claim
+      linked to reproducible evidence.
 
 connections:
   - concepts: [oscillation-and-resonance, circuits-and-resonance]

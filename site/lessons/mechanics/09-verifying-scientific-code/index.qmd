@@ -11,7 +11,7 @@ lesson:
   order: 9
   difficulty: 3
   course: mechanics
-  slot: AI2
+  slot: SA2
   preview: fig-verification-convergence
   experiment: pbc.mechanics.experiments.verifying_scientific_code
   methods: [simulation]
