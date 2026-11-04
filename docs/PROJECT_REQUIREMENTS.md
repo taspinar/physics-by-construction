@@ -1,7 +1,7 @@
 # Project Requirements
 
 Status: Approved
-Approved at: 2026-11-01T07:55:51Z
+Approved at: 2026-11-04T07:27:31Z
 
 Project Grill owns the Draft content. `scripts/start-planning.sh` records human
 approval before project architecture and roadmap planning begins.
@@ -16,7 +16,8 @@ change requests `docs/changes/physics-next-phase.md` (human-supplied,
 (human-supplied, 2026-10-18), and
 `docs/changes/site-navigation-and-atlas.md` (human-supplied, 2026-10-30),
 and `docs/changes/part-b-scientific-products-and-research.md`
-(human-supplied, 2026-11-01), plus the decisions recorded in "Major product
+(human-supplied, 2026-11-01), and `docs/changes/textbook-layer.md`
+(human-supplied, 2026-11-03), plus the decisions recorded in "Major product
 decisions" below.
 
 ## Project goal
@@ -265,6 +266,13 @@ Later phases (in scope for the project, out of scope for the MVP):
   with the hero, "Run the code" with three routes, the page "How we verify
   the science", the glossary in context, and the "Suggest an improvement"
   link on every lesson.
+- The textbook layer of decision 43: introductions that open each course
+  and method path like the first chapter of a textbook, the learning
+  journey at the head of the course atlas and on About, and Home as an
+  orientation for a first-time visitor, introduced in phases (set the
+  standard on one Part A course and one Part B path; extend it per course
+  once the course is content-stable; one review of the whole material as
+  a book at the end), never as a rewrite of the published lessons.
 - The governed visual agent skills of decision 38: audited, pinned,
   project-local skills for visual and scientific-illustration work, a
   project-owned scientific-visualization skill, and the planner,
@@ -387,8 +395,8 @@ Later phases (in scope for the project, out of scope for the MVP):
   experiments that do not exist, before enough real browser experiments
   exist; no JavaScript physics simulation on the homepage that the build
   did not verify.
-- No measurement of which hero headline works better (it would need a
-  collector), and no form on the site that creates GitHub issues for a
+- No measurement of which hero headline or hero image works better (it
+  would need a collector), and no form on the site that creates GitHub issues for a
   visitor without a GitHub account (it would need a server and a stored
   credential); the latter stays an open decision of the owner (question
   16).
@@ -479,7 +487,8 @@ Later phases (in scope for the project, out of scope for the MVP):
   genuinely improve understanding.
   *C. Interface artwork* (visual identity, navigation, atmosphere) is
   allowed in the site chrome and on non-lesson pages: Home and its hero,
-  the course atlas, course, module, and capstone openings, About, and
+  the course atlas, course and method-path introductions, module and
+  capstone openings, About, and
   other informational pages. It may be computed, stylised, abstract,
   symbolic, authored, or made with an image model, as SVG or as a
   committed raster file (WebP, PNG), and needs no numerical simulation,
@@ -505,49 +514,94 @@ Later phases (in scope for the project, out of scope for the MVP):
   sensible parameter limits where it has parameters, and is never
   mandatory for a lesson. No mockup equation, plot, or illustrated
   measurement ships as verified science.
-- Site navigation (decision 40): a shared header with a small project
+- Site navigation (decision 40, amended by decision 43): a shared header with a small project
   mark, a primary menu of exactly four items (Home, Course Atlas, About,
   and the Start learning button), and the site search; a footer with
   attribution, licences, and the secondary pages (Run the code, Glossary,
   Scientific evidence, For educators, Contribute, Source), with no link
   shown twice. Every page stays reachable and every existing address
   valid. About states plainly who makes PBC, why it exists, who it is
-  for, and how its scientific reliability is secured, and describes the
-  eight courses and four method paths rather than one ascending path.
+  for, and, since decision 43, its mission and educational philosophy;
+  it keeps the attribution to JIDAI and Ahmet Taspinar, describes the
+  eight courses and four method paths rather than one ascending path,
+  with the Part A and Part B text from the one source of the learning
+  journey, and refers to "How we verify the science" for how results are
+  verified instead of repeating it.
   "Run the code" (the setup page, address unchanged) opens with three
   routes (run a simulation, replay an AI experiment, verify a formal
   proof) before the shared installation. A page "How we verify the
   science" explains the four claim types with worked examples from
   published lessons, whose targets the build checks, and leads to the
   generated Evidence map.
-- Home page (decision 36, amended by decision 40): a landing page that
-  answers what makes PBC different, what a visitor can learn, and where
-  to begin. It opens with a hero: the owner's headline and subtext
+- Home page (decision 36, amended by decisions 40 and 43): a landing page
+  that orients a first-time visitor: what PBC is, how physics is learned
+  here, what a visitor can learn, and where to begin. It opens with a
+  hero: the owner's headline and subtext
   copy, held as data in one file and never written on the page, shown at
   random per visit by a small module before first paint, with one fixed
   default pair in the HTML (what remains without scripts and what search
   snippets and link previews see), one `<h1>` that does not change after
   load, a parameter that forces a variant for tests, reserved height so
   the swap shifts nothing, and no storage or request; beside it the hero
-  image, interface artwork of decision 41 showing two connected
-  constellations (the eight Part A courses and the four Part B method
-  paths), with its labels as HTML or SVG text. The hero replaces the
+  image. Since decision 43 the hero image is one of a small set of
+  existing Part A illustrations, interface artwork of decision 41
+  already in the provenance register, each made at hero size from its
+  master: the double pendulum (classical mechanics), the vortex street
+  (fluid dynamics), the hot and cold gas (thermodynamics), and the
+  exoplanet transit (astrophysics); the owner may still change the set
+  when the Home feature starts. The double pendulum is the one fixed
+  default in the HTML; a small script picks one image at random per
+  visit, independently of the headline pair, before the image is
+  requested; a parameter forces one for tests; no storage, no request,
+  no animation, and no measurement of which works better. Every image
+  has its own alt text, its own registration, and its own test, and none
+  is presented as a verified result. The hero replaces the
   opening "Build a world. See if it obeys physics." and the verified
   double-pendulum opening figure; that figure's implementation, energy
   check, and provenance stay and may be reused in the classical mechanics
-  course or on "How we verify the science". Then three sentences on what
-  the site is, three example lessons from different courses and one
-  capstone, chosen by code from the published capstones, from the front
-  matter and the atlas manifest, and a short invitation to begin (the start link and
-  the atlas). Home does not repeat the atlas's overview of the courses.
-  The central message and the start button are visible without scrolling
-  on desktop and phone. The section "From a question to a working model"
+  course or on "How we verify the science". The copy follows the order
+  identity, educational philosophy (how physics is learned here: building
+  models, predicting, measuring, interpreting), the curriculum (Part A
+  and Part B), and integrity last, with no sentence limit. "What you can
+  learn" explains the educational content and learning outcomes, not a
+  selection of lessons: a coherent explanation of Part A (computational
+  physics) and Part B (AI for physics), how they relate, and what a
+  learner learns, from the one source of the learning journey. It may
+  show one carefully selected, representative published lesson from each
+  part, chosen by the owner for its educational and illustrative value
+  and named in the Home copy file; each reference resolves through the
+  curriculum file and the lesson metadata and is validated against the
+  published lessons at build time. Examples are omitted when they add
+  little or clutter the section; the selection mechanism never dictates
+  the narrative. Home does not repeat the atlas's per-course overview.
+  The first step is two distinct actions, the same destinations on Home
+  and in the header: the Course Atlas (primary on Home) and the first
+  lesson of Part A (secondary); their labels are settled in the Home
+  feature, and the header keeps its four items of "Site navigation" (the
+  Course Atlas menu link and the Start learning button). The hero is
+  responsive and content-first: on desktop the identity message and
+  both actions are visible without scrolling; on a phone the identity
+  message and the primary action are, and the secondary action should
+  be but may fall just below the fold on smaller screens; the hero image
+  is not pushed below the fold or weakened to satisfy a rigid
+  above-the-fold rule. The layout is validated at representative desktop
+  and phone sizes, including small phones and increased text scaling,
+  with readability, accessibility, and visual quality before any
+  pixel rule, and the owner approves the hero on the rendered page. The
+  section "From a question to a working model"
   stays absent and is not replaced by a renamed teaching formula. No fake
   metrics, testimonials, or inferred learner progress.
-- Course atlas (decision 36, amended by decision 40), at the existing path
+- Course atlas (decision 36, amended by decisions 40 and 43), at the existing path
   address with "Course Atlas" as its display label and every existing
   anchor and bookmark valid (`#<course-id>` and `#<path-id>` open their
-  sequence): a two-layer navigation page. Twelve sequence cards, the
+  sequence): a two-layer navigation page. Since decision 43 it opens,
+  before the cards, with the learning journey from computational physics
+  to AI-supported scientific investigation, from the one source of the
+  Part A and Part B text that About also uses: how Part A leads to Part
+  B, the expected background, that a route needs only its stated
+  prerequisites, how a capstone fits, and the difference between
+  numerical evidence, empirical evidence, and formal proof, without
+  implying that an AI result is a discovery. Twelve sequence cards, the
   eight Part A courses and the four Part B method paths, each with an
   illustration (interface artwork of decision 41), its title, its count
   of published lessons, and the learner's progress; beside them the panel
@@ -578,11 +632,29 @@ Later phases (in scope for the project, out of scope for the MVP):
   lesson pages, with their checks, and are never invented for a planned
   lesson. The existing progress and recommendation behaviour keeps its
   contract.
-- Shared templates (decision 36): course and module openings with one
+- Shared templates (decision 36, amended by decision 43): course and
+  method-path introductions and module openings with one
   relevant illustration (interface artwork or a scientific figure of
   decision 41), an introduction, prerequisites, and a
   compact lesson list, reusing existing course sections and adding routes
-  only for a clear purpose within the migration plan; lessons with a
+  only for a clear purpose within the migration plan. Since decision 43
+  each course and method path opens with an introduction that reads like
+  the first chapter of a textbook: why the subject matters, its central
+  questions, what the reader learns, why the lessons come in this order,
+  which method (numerical experiment or AI) is used and why, the capstone
+  as the culmination, what comes next, and the prerequisites, linked and
+  not copied. Its editorial text is held in one data file per sequence;
+  the lessons, prerequisites, counts, the capstone, and published or
+  planned state come from the curriculum file and the front matter, with
+  no second lesson list. It is linked from the atlas panel and from the
+  lesson header; a reference that does not resolve fails the build; a
+  planned lesson is not a link and is not counted; the page is complete
+  without scripts, readable at 320 CSS px, and found by the site search;
+  every lesson address, bookmark, and the learner state stay unchanged.
+  Transitions between lessons are written only in new or revised lessons,
+  never as a boilerplate paragraph on every page. The editorial guide
+  gains a short section on the editorial rules for pages that are not
+  lessons. The shared templates also cover lessons with a
   calm reading column of appropriate line length, a table of contents,
   legible code and MathML, larger figures where useful, the current
   prerequisites, and previous and next navigation, preserving section
@@ -739,7 +811,13 @@ Later phases (in scope for the project, out of scope for the MVP):
   their rationale, and, since decision 40, the one-line description and
   illustration of each sequence; the curriculum file gains no
   description field). The hero's headlines and subtexts live in one data
-  file, never on a page. Every course, path, slot, and lesson reference in it
+  file, never on a page. Since decision 43 the editorial text of each
+  course and method-path introduction lives in one data file per sequence
+  beside the atlas manifest, and the Part A and Part B text of the
+  learning journey in one source used by the atlas and About (its exact
+  location is the planner's, the recommendation being beside the atlas
+  manifest and validated like it); these hold prose only, never a lesson
+  list, count, or publication state. Every course, path, slot, and lesson reference in it
   resolves, concept membership is never inferred from lesson titles
   alone, and no second hand-written lesson catalogue exists.
 - Visual and scientific-illustration assets keep their sources: a
@@ -1911,6 +1989,10 @@ these decisions, without rewriting delivered history.
       sequence descriptions live within the rule of "Data and
       persistence"; which of the delivered illustrations are used, adapted,
       or replaced.
+    *Amended by decision 43 (2026-11-03):* on Home, the two-constellation
+    hero image, the three sentences, and the three example lessons with
+    one capstone chosen by code are replaced as that decision says; the
+    rest of this decision stands.
 41. **Visual freedom on non-lesson pages; scientific rigour where the site
     teaches or claims** (owner's decision, 2026-10-30, a permanent design
     principle, not an exception for one page). Three cases, decided by
@@ -1942,6 +2024,10 @@ these decisions, without rewriting delivered history.
     and narrowly through planning, not bypassed; the change is not
     implemented before the revised planning and the ADR amendments are
     approved.
+    *Amended by decision 43 (2026-11-03):* the hero no longer shows
+    decorative connections between Part A and Part B; its image is one of
+    four Part A illustrations. The principle of this decision and its
+    three cases are unchanged.
 
 Decided during the change cycle `part-b-scientific-products-and-research`
 (2026-11-01), from `docs/changes/part-b-scientific-products-and-research.md`
@@ -2107,6 +2193,83 @@ reused, not in flight; the atlas work of F133 (pull request #351, open at
 this cycle) continues, and curriculum metadata and sequence descriptions
 are coordinated with it without recreating the navigation. The status
 claims of the change request are refreshed against `main` by the planner.
+
+Decided during the change cycle `textbook-layer` (2026-11-04), from
+`docs/changes/textbook-layer.md` (human-supplied, 2026-11-03) and the
+owner's answers recorded here. Decisions 40 and 41 stay as history with
+the amendment notes above; the planner brings ADR 021 decision 4 in line
+in the same cycle, takes no new ADR (the change is content and
+presentation inside ADR 018 and ADR 021), and changes nothing of
+decisions 36 to 42 beyond what decision 43 says.
+
+43. **A textbook layer on top of the curriculum.** The site reads as one
+    online physics textbook rather than a collection of lessons, without
+    touching the scientific content, the curriculum, the lessons, or the
+    verification guarantees. The missing layer is the educational
+    narrative: why the curriculum is organised as it is and how a course,
+    a lesson, and a capstone contribute to a learning journey. It is
+    neither the curriculum nor the editorial voice of a lesson (decision
+    32), as "UX expectations" describes (the bullets "Shared templates",
+    "Course atlas", "Site navigation", and "Home page") and "Data and
+    persistence" records:
+    - *Course and method-path introductions*: a source, a generator, and
+      a pilot on Classical mechanics and the method path Scientific law
+      discovery (published lessons), then the remaining courses and paths
+      in batches of about three, each batch after its sequence is
+      content-stable and with the scientific review of a lesson feature;
+      the Part B introductions follow the re-slotting of Part B. The
+      "course openings" leave the earlier rollout feature, which keeps the
+      reading-column rollout, the capstone template, and the supporting
+      pages.
+    - *The learning journey*: one source for the Part A and Part B text,
+      used by the course atlas, which opens with it, and by About, which
+      explains the mission and the philosophy and refers to "How we
+      verify the science".
+    - *Home*: orientation for a first-time visitor in the order identity,
+      educational philosophy, curriculum, integrity, with no sentence
+      limit; the hero image picked at random from four Part A
+      illustrations with the double pendulum as the default in the HTML
+      (owner's confirmation, 2026-11-03); "What you can learn" explains
+      Part A, Part B, and their relation, with at most one representative
+      published lesson per part, chosen by the owner for its educational
+      value and validated at build time, or none (owner's answer,
+      2026-11-04); two first-step actions, the Course Atlas primary and
+      the first lesson of Part A secondary, with the header's four items
+      kept as they are (owner's answers, 2026-11-04); a responsive,
+      content-first hero whose above-the-fold rule is as "Home page"
+      states (owner's answer, 2026-11-04). The hero is completed last and
+      approved by the owner on the rendered page.
+    - *Phases* (the audit of 2026-11-03): phase 1, set the standard (the
+      editorial-voice work of decision 32 and the textbook structure on
+      one Part A course and one Part B path); phase 2, during development,
+      new lessons follow the standard and the introductions and existing
+      lessons are improved per course when the course is content-stable;
+      phase 3, at the end, one review of the whole material as a book
+      (transitions, terminology, references, figures, the learning
+      progression), correcting only what needs it.
+    - *The editorial review rubric* gains two additions: conceptual
+      synthesis in the lesson review, and the provenance of an AI lesson
+      stated at once, since a model transcript, a written example, a
+      recorded run, a tool replay, and an independent evaluation are
+      different levels of evidence.
+    - *Not in this change*: new capstones or lessons, a rewrite of the
+      published lessons (the audit's per-lesson suggestions are
+      hypotheses, not defects; its two real corrections are handled as
+      their own Issues), a change of an equation or a verified output, a
+      CMS, a backend, runtime AI content, new state or telemetry, the
+      validated interactive pendulum (question 14), and the legacy-format
+      migration of three lessons, which follows the Part B re-slotting as
+      its own Issue.
+    - *For the planner* (not requirement questions): the address of the
+      introductions (a flat tree per sequence or a tree under the existing
+      course path; the change request recommends the flat form, within
+      the route rules of the migration plan); where the learning-journey
+      text lives; the feature identifiers, confirmed from the next free
+      one, and whether the final book review takes its identifier now or
+      later; the material of the change request (the audit and the
+      proposal of 2026-11-03), which is to be staged in a folder
+      textbook-layer beside the change request and was not present when
+      this decision was recorded.
 
 ## Unresolved questions
 
