@@ -219,16 +219,18 @@ exceeded wall-clock budget recorded here, the 20 minutes of a pull request
 (ADR 015), the planning budget of a full run, or a complete run on `main`
 above 45 minutes, is a measurement for the owner's decision, not a failed
 gate and not a mandate to optimise. The owner decides at the re-assessment
-points of the decision of 2026-10-24 (ADR 014 status, Issue #278), which
-raises the interim full-run gate to 110 lessons, the whole reference
-curriculum, with the `build` job's timeout raised from 60 to 90 minutes:
-re-measure at 75 and at 95 lessons, and decide earlier when a complete run
-on `main` approaches 80 minutes, repeated runs show too little margin, or
+points of the decision of 2026-11-04 (ADR 014 status, Issue #373), which
+raises the `build` job's timeout from 90 to 120 minutes for the interim
+full-run gate of 110 lessons, the whole reference curriculum (the decision
+of 2026-10-24, Issue #278): decide earlier when a complete run on `main`
+approaches 100 minutes, repeated runs show too little margin, or
 verification failures point to a capacity problem, with the `build` job's
 duration and the run's total duration reported separately (the former
-points, 42 and 44 lessons or a complete run on `main` above 45 minutes, and
-55 and 60 lessons or a `build` job approaching 55 minutes under the
-decision of 2026-10-21, are superseded history), choosing from the responses of ADR 003 decision 6. A budget is never met by
+points, 42 and 44 lessons or a complete run on `main` above 45 minutes, 55
+and 60 lessons or a `build` job approaching 55 minutes under the decision
+of 2026-10-21, and 75 and 95 lessons, both reached, or a complete run
+approaching 80 minutes under the decision of 2026-10-24, are superseded
+history), choosing from the responses of ADR 003 decision 6. A budget is never met by
 changing scientific content, and the hard 30-second budget of a lesson page
 keeps failing, with its exception table `scripts/lesson-budgets.conf`. Local
 runs leave their durations in the time log of `./scripts/verify.sh`
@@ -711,10 +713,31 @@ projection, not a measurement). 110 is a planning boundary that no check
 enforces; capacity is re-measured at 75 and at 95 lessons, and the next
 decision is the owner's earlier if a complete run on `main` approaches 80
 minutes, repeated runs show too little margin, or verification failures
-point to a capacity problem. The cost the owner accepted: a run on `main`
-can last up to about 90 minutes, so the publication after a merge comes
-later; pull requests are not affected, since they pay for what they change
-(F61).
+point to a capacity problem (superseded history: the 90 minutes and these
+points are replaced by the decision of 2026-11-04 below). The cost the owner
+accepted then: a run on `main` could last up to about 90 minutes, so the
+publication after a merge comes later; pull requests are not affected, since
+they pay for what they change (F61).
+
+**Capacity at 94 lessons: the timeout raised to 120 minutes.** Measured on
+2026-11-04: the push of `683a8b3` to `main`, 94 published lessons, CI run
+41790340315. Its `build` job ran to its last check, the page reproduction,
+in 75 min 23 s, 83 % of the 90-minute timeout, about 48 s per lesson with
+the preparation included; the run failed on one lesson whose reproduction
+took 30.37 s against its 30-second budget, a matter of the lesson budget
+and not of the timeout. At the same cost, 110 lessons take about 88 minutes
+(a projection, not a measurement), so the 90 minutes left no margin at the
+boundary they were approved for, and the re-measurement points of 75 and 95
+lessons are reached. On 2026-11-04 the owner raised the `build` job's
+timeout from 90 to 120 minutes, every other job at 45 (ADR 014 status,
+Issue #373). 110 lessons stay a planning boundary that no check enforces;
+the next decision is the owner's earlier if a complete run on `main`
+approaches 100 minutes, repeated runs show too little margin, or
+verification failures point to a capacity problem. The accepted cost: a run
+on `main` can last up to about 120 minutes, so the publication after a
+merge comes later; pull requests are not affected. The choice between F113
+(lesson shards) and F121 with ADR 017 (incremental `main`), both paused,
+stays the owner's.
 
 **Learner walkthrough (criterion 7).** A fresh subagent that did not write
 the pages followed the published instructions on a clean clone of the merged
