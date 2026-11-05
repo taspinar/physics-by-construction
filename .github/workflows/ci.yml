@@ -94,18 +94,19 @@ jobs:
   # main the deploy job publishes exactly this artifact.
   build:
     runs-on: ubuntu-24.04
-    # The interim full-run gate (ADR 014, status): 90 minutes for the one job
-    # of a full run, approved for up to 110 lessons, the whole reference
-    # curriculum, by the owner's decision of 2026-10-24 (60 minutes for up to
-    # 64 lessons under the decision of 2026-10-21 until then). 110 is a
-    # planning boundary that no check enforces. Capacity is re-measured at 75
-    # and at 95 lessons, and the next decision is the owner's earlier if a
-    # complete run on main approaches 80 minutes, repeated runs show too
-    # little margin, or verification failures point to a capacity problem.
-    # The accepted cost: a run on main can last up to about 90 minutes, so a
+    # The interim full-run gate (ADR 014, status): 120 minutes for the one job
+    # of a full run, by the owner's decision of 2026-11-04 (Issue #373), in
+    # place of the 90 minutes of 2026-10-24 (60 before). Evidence: at 94
+    # lessons a complete run on main (683a8b3) took 75 minutes in this job,
+    # 83% of 90; 110 lessons are projected at about 88 minutes (a
+    # projection). 110 lessons stay a planning boundary that no check
+    # enforces, and the next decision is the owner's earlier if a complete
+    # run on main approaches 100 minutes, repeated runs show too little
+    # margin, or verification failures point to a capacity problem. The
+    # accepted cost: a run on main can last up to about 120 minutes, so a
     # merge is published later; pull requests are not affected. Every other
     # job keeps 45 minutes.
-    timeout-minutes: 90
+    timeout-minutes: 120
     # The one added scope: reading the runs and artifacts of earlier runs, to
     # find the verified base of a pull request (ADR 014 decision 2).
     permissions:

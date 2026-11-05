@@ -156,6 +156,26 @@ Change cycle `pbc-planning-change-four-workstreams` (2026-10-15):
   unchanged, and decision 11 (F113) and ADR 017 decisions 1 to 6 and 9
   stay paused.
 
+- *Amendment note (Issue #373, 2026-11-04).* The owner raised the
+  timeout of the one `build` job of a full run from 90 to **120
+  minutes**, every other timeout unchanged; the 90 minutes of the note of
+  2026-10-24 are superseded. The evidence is a complete run on `main` at
+  94 published lessons (commit `683a8b3`, CI run 41790340315), whose
+  `build` job ran to its last check in 75 minutes, 83 % of the 90-minute
+  timeout and about 48 seconds per lesson with the preparation included;
+  at the same cost, 110 lessons take about 88 minutes (a projection), so
+  90 minutes left no margin at the boundary it was approved for. The
+  re-measurement points of 75 and 95 lessons are reached. 110 lessons stay
+  a planning boundary that no check enforces, and the next decision is
+  the owner's earlier if a complete run on `main` approaches 100 minutes,
+  repeated runs show too little margin, or verification failures point to
+  a capacity problem; this replaces the 80 minutes of the note of
+  2026-10-24. The accepted cost: a run on `main` can last up to about 120
+  minutes, so the publication after a merge comes later; pull requests
+  are not affected. The 30-second budget of a lesson page and the payload
+  budgets are unchanged, and the choice between decision 11 (F113) and
+  ADR 017 (F121), both paused, stays the owner's.
+
 Date: 2026-10-12
 
 ## Context
