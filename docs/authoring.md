@@ -34,6 +34,22 @@ voice guide, `docs/editorial-voice.md`. It changes none of the rules below.
    may be filled by a lesson of any course. `docs/roadmap.md` lists the
    planned lessons and their features.
 
+   Two kinds of slot need care (ADR 022). A slot of a method path that the
+   file marks `extension: true` is an **extension slot**: optional depth of
+   the path, listed after its core slots, shown on the atlas under
+   "Optional extensions", named in the lesson header as "an optional
+   extension of the path", and never counted in the reference curriculum's
+   116 core slots (81 courses, 34 method paths, 1 Lean); a lesson fills it
+   like any other slot. Only a slot of a method path is an extension, and
+   never a capstone. The last core slot of each method path has the kind
+   `product capstone`: it is filled by one lesson page in the `agents-llm`
+   strand that teaches the path's local software product, and the atlas,
+   the path view, and Home treat it as they treat a course's
+   `applied capstone` (one capstone mark, one concept in `site/atlas.yaml`
+   that represents it, chosen by Home only once published). An old Part B
+   label that retired is never used again; `docs/roadmap.md`, "Retired
+   Part B labels", lists them.
+
 2. Create the lesson directory and copy the template into it. The directory
    name is the two-digit position in the strand, a hyphen, and a short name
    in lowercase words joined by hyphens:
@@ -110,7 +126,7 @@ lesson:
 | `lesson.order` | yes | Position in the strand, 1 to 99. Must equal the number the directory name starts with. The orders of a strand run from 1 without a gap or a duplicate. |
 | `lesson.difficulty` | yes | 1, 2, or 3 on the one difficulty scale of the site: introductory, intermediate, advanced. The scale is defined in `pbc.authoring.path` and explained on the learning path page. |
 | `lesson.course` | yes | The one primary course of the lesson, from the `COURSES` vocabulary in `pbc.authoring.path` (the eight courses of ADR 013). A course appears on the learning path page once it has a lesson. Every lesson names a course, also an agent, agent-based, or proof lesson: it is the course whose results the lesson uses. |
-| `lesson.slot` | no | The label of the slot of the reference curriculum (`site/curriculum.yaml`) that the lesson fills, such as `M1` or `AI0`. The label must exist, no two lessons claim one slot, and a slot homed in a course is filled only by a lesson whose `course` is that course. A lesson without a slot is allowed and appears in its course and method views. The slot decides the lesson's position in its method path, if the slot belongs to one; it never changes the address. |
+| `lesson.slot` | no | The label of the slot of the reference curriculum (`site/curriculum.yaml`) that the lesson fills, such as `M1` or `SA5`. The label must exist, no two lessons claim one slot, and a slot homed in a course is filled only by a lesson whose `course` is that course. A lesson without a slot is allowed and appears in its course and method views. The slot decides the lesson's position in its method path, if the slot belongs to one; it never changes the address. |
 | `lesson.methods` | yes | List of the ways of working the lesson uses, from the `METHODS` vocabulary: `simulation`, `llm-agents`, `abm`, `lean`, `measured-data`, `coding-agents`. At least one, none twice. The path page has one path per method. |
 | `lesson.outcomes` | yes | List of two to five sentences: what the reader can do after the lesson. Shown in the header as "What you'll learn". Write what the reader does, not what the lesson contains. |
 | `lesson.related` | yes | List of the `id`s of lessons the header links as extensions, such as the agent, measured-data, or Lean counterpart of a lab. May be empty. Each must exist, must not be the lesson itself, and must not already be among its prerequisites. Write the link on the lesson that is built on, towards the extension; the extension keeps that lesson as a prerequisite and does not list it back. |
@@ -204,7 +220,10 @@ prerequisite in the same strand comes earlier in it, the prerequisites form no
 cycle, and every course, slot, method, and related lesson follows the rules
 of the table above. The same check validates `site/curriculum.yaml`: an
 unknown course or path, a duplicate label, a slot without a home or with two,
-and any field that belongs to a lesson's front matter fail it. A violation fails verification, and
+an `extension` that is not `true`, on a slot outside a method path, on a
+capstone, or before a core slot of its path, an `applied capstone` outside a
+course or a `product capstone` outside a method path, and any field that
+belongs to a lesson's front matter fail it. A violation fails verification, and
 the build of a page fails on it too.
 
 ### The course atlas
@@ -239,9 +258,11 @@ capstone's row. A concept that names a capstone slot beside its own slots is
 a member of that capstone. The build derives everything else: the rows of a
 sequence (the slots of a course or a path in the order of the curriculum
 file, filled by their lessons or planned; a course's lessons without a slot
-after them; the Lean strand's slots and the Lean lessons without a slot in
+after them; a path's extension slots after its core, under their own
+heading; the Lean strand's slots and the Lean lessons without a slot in
 the Lean entry), so that every published lesson is a row of exactly one
-sequence; the counts, never counting a planned slot as published; a
+sequence; the counts, never counting a planned slot as published, and a
+path's counts those of its core, with its extensions counted apart; a
 concept's lessons from its slots (never from a title); and capstone
 membership.
 

@@ -11,7 +11,7 @@ lesson:
   order: 18
   difficulty: 3
   course: mechanics
-  slot: D10
+  slot: MD5
   experiment: pbc.mechanics.experiments.discovery_under_noise
   methods: [simulation, llm-agents]
   outcomes:

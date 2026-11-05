@@ -11,7 +11,7 @@ lesson:
   order: 8
   difficulty: 3
   course: mechanics
-  slot: D7
+  slot: MD3
   experiment: pbc.mechanics.experiments.symbolic_regression
   methods: [simulation]
   outcomes:

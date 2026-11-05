@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from support import part_b
 from support.paths import REPO_ROOT, SITE_SOURCE
 
 from pbc.authoring import COURSES, LearningPath
@@ -44,32 +45,109 @@ def data() -> dict:
 # --- The file -----------------------------------------------------------------
 
 
+# The Part B labels that requirements decision 42 retired (ADR 022 decision
+# 1; docs/roadmap.md, "Retired Part B labels"): never a slot again.
+RETIRED = [
+    "AI0", "AI1", "AI2", "AI3", "AI4", "AI5", "AI7",
+    "D2", "D6", "D7", "D8", "D9", "D10", "D11", "D12", "D13",
+    "EV1", "EV2", "EV3", "EV4", "EV5",
+    "R1", "R2", "R3", "R4", "R6",
+]  # fmt: skip
+EXTENSIONS = ["AI6", "AI8", "D1", "D3", "D4", "D5", "R5"]
+
+
 def test_the_file_holds_the_reference_curriculum_counted():
     # A change of these numbers is a reviewed change of the curriculum, and
-    # docs/roadmap.md, "Slot mapping", is updated with it.
+    # docs/roadmap.md, "Slot mapping", is updated with it. The counts are
+    # those of the core slots; the extension slots are counted apart
+    # (ADR 022 decision 2).
     curriculum = Curriculum.read(SITE_SOURCE)
-    in_course = Counter(slot.course for slot in curriculum.slots if slot.course)
+    core = curriculum.core
+    in_course = Counter(slot.course for slot in core if slot.course)
     assert [in_course[course.id] for course in COURSES] == [17, 12, 9, 9, 10, 8, 10, 6]
     assert sum(in_course.values()) == 81
-    in_path = Counter(slot.path for slot in curriculum.slots if slot.path)
-    assert [in_path[path.id] for path in curriculum.paths] == [9, 13, 5, 6]
-    assert sum(in_path.values()) == 33
-    assert [slot.label for slot in curriculum.slots if slot.strand] == ["L1"]
-    assert len(curriculum.slots) == 115
-    assert sum(slot.kind == "measured-data lab" for slot in curriculum.slots) == 16
-    assert sum(slot.kind == "applied capstone" for slot in curriculum.slots) == 3
+    in_path = Counter(slot.path for slot in core if slot.path)
+    assert [in_path[path.id] for path in curriculum.paths] == [9, 10, 7, 8]
+    assert sum(in_path.values()) == 34
+    assert [slot.label for slot in core if slot.strand] == ["L1"]
+    assert len(core) == 116
+    assert [slot.label for slot in curriculum.slots if slot.extension] == EXTENSIONS
+    assert len(curriculum.slots) == 116 + 7
+    assert sum(slot.kind == "measured-data lab" for slot in core) == 16
+    assert sum(slot.kind == "applied capstone" for slot in core) == 3
+    assert sum(slot.kind == "product capstone" for slot in core) == 4
+
+
+def test_the_method_paths_have_the_titles_of_decision_42_in_their_order():
+    paths = Curriculum.read(SITE_SOURCE).paths
+    assert [(path.id, path.title) for path in paths] == [
+        ("reasoning", "Reliable scientific agents and experiment automation"),
+        ("law-discovery", "Physical model discovery through active experiments"),
+        ("benchmarking", "Scientific agent evaluation and improvement"),
+        ("autonomous-research", "Reproducible research with agents"),
+    ]
+
+
+def test_no_retired_label_is_a_slot():
+    labels = {slot.label for slot in Curriculum.read(SITE_SOURCE).slots}
+    assert len(RETIRED) == 26
+    assert not labels & set(RETIRED)
+    # Nor does a lesson name one.
+    assert not {lesson.slot for lesson in read_lessons(SITE_SOURCE)} & set(RETIRED)
+
+
+def test_each_path_ends_its_core_with_its_product_capstone_and_then_its_extensions():
+    curriculum = Curriculum.read(SITE_SOURCE)
+    capstones = []
+    for method_path in curriculum.paths:
+        slots = curriculum.in_path(method_path)
+        core = curriculum.core_in_path(method_path)
+        assert slots[: len(core)] == core
+        assert all(slot.extension for slot in slots[len(core) :])
+        assert [slot.position for slot in slots] == list(range(1, len(slots) + 1))
+        assert core[-1].kind == "product capstone"
+        assert all(slot.kind == "lesson" for slot in core[:-1])
+        capstones.append(core[-1].label)
+    assert capstones == ["SA9", "MD10", "AE7", "RR8"]
+    prefixes = {"reasoning": "SA", "law-discovery": "MD", "benchmarking": "AE",
+                "autonomous-research": "RR"}  # fmt: skip
+    for slot in curriculum.core:
+        if slot.path:
+            assert re.fullmatch(rf"{prefixes[slot.path]}[0-9]+", slot.label)
+
+
+def roadmap_rows(heading: str, until: str) -> list[str]:
+    """The rows of the roadmap's section ``heading`` up to ``until`` that
+    begin with a slot label, as the rows that name a slot do."""
+    roadmap = (REPO_ROOT / "docs" / "roadmap.md").read_text(encoding="utf-8")
+    start = roadmap.index(heading)
+    section = roadmap[start : roadmap.index(until, start)]
+    return section.splitlines()
 
 
 def test_every_slot_of_the_file_is_in_the_slot_mapping_of_the_roadmap():
-    roadmap = (REPO_ROOT / "docs" / "roadmap.md").read_text(encoding="utf-8")
-    start = roadmap.index("## Slot mapping")
-    mapping = roadmap[
-        start : roadmap.index("### Enhancements of existing slots", start)
-    ]
-    in_roadmap = set(
-        re.findall(r"^\| (?:[a-z ]+ \| )?([A-Z]+[0-9]+) \|", mapping, re.M)
+    # Part A and the Lean slot from the slot mapping of the change cycle
+    # final-curriculum; Part B from that of part-b-scientific-products-and-
+    # research, whose core and extension rows begin with the label.
+    final = roadmap_rows(
+        "## Slot mapping (change cycle `final-curriculum`)",
+        "### Enhancements of existing slots",
     )
-    assert in_roadmap == {slot.label for slot in Curriculum.read(SITE_SOURCE).slots}
+    part_a = final[: final.index("### Part B, 33 slots")]
+    lean = final[final.index("### The Lean slot and the lessons beyond the baseline") :]
+    part_b = roadmap_rows(
+        "## Slot mapping (change cycle `part-b-scientific-products-and-research`)",
+        "### Retired Part B labels",
+    )
+    course_row = re.compile(r"^\| [a-z ]+ \| ([A-Z]+[0-9]+) \|")
+    label_row = re.compile(r"^\| ([A-Z]+[0-9]+) \|")
+    in_roadmap = [m.group(1) for line in part_a if (m := course_row.match(line))]
+    in_roadmap += [m.group(1) for line in lean if (m := label_row.match(line))]
+    in_roadmap += [m.group(1) for line in part_b if (m := label_row.match(line))]
+    assert len(in_roadmap) == len(set(in_roadmap))
+    assert set(in_roadmap) == {
+        slot.label for slot in Curriculum.read(SITE_SOURCE).slots
+    }
 
 
 def test_the_labs_and_capstones_are_where_the_roadmap_puts_them():
@@ -78,6 +156,12 @@ def test_the_labs_and_capstones_are_where_the_roadmap_puts_them():
         "T11",
         "EM9",
         "FL10",
+    }
+    assert {label for label, kind in kinds.items() if kind == "product capstone"} == {
+        "SA9",
+        "MD10",
+        "AE7",
+        "RR8",
     }
     assert {label for label, kind in kinds.items() if kind == "measured-data lab"} == {
         "M15", "M16", "T7", "T8", "W7", "W8", "EM7", "EM8",
@@ -156,7 +240,32 @@ def test_the_file_as_committed_has_no_problem():
         (
             lambda d: d["slots"][0].update(kind="seminar"),
             "slot 'M1': 'kind' must be one of lesson, measured-data lab,"
-            " applied capstone",
+            " applied capstone, product capstone",
+        ),
+        (
+            lambda d: d["slots"][0].update(extension=True),
+            "slot 'M1': only a slot of a method path is an extension",
+        ),
+        (
+            lambda d: slot_of(d, "SA1").update(extension="yes"),
+            "slot 'SA1': 'extension' is true or absent, nothing else",
+        ),
+        (
+            lambda d: slot_of(d, "SA9").update(extension=True),
+            "slot 'SA9': a capstone is never an extension",
+        ),
+        (
+            lambda d: slot_of(d, "SA8").update(extension=True),
+            "slot 'SA9': a core slot of 'reasoning' comes after its extension"
+            " slots; the extensions are listed after the core",
+        ),
+        (
+            lambda d: slot_of(d, "SA9").update(kind="applied capstone"),
+            "slot 'SA9': an applied capstone is homed in a course",
+        ),
+        (
+            lambda d: slot_of(d, "T11").update(kind="product capstone"),
+            "slot 'T11': a product capstone is homed in a method path",
         ),
         (
             lambda d: d["paths"].pop(),
@@ -182,6 +291,21 @@ def test_the_file_as_committed_has_no_problem():
 )
 def test_a_file_outside_the_schema_is_rejected(change, expected):
     assert expected in broken(change)
+
+
+def slot_of(content: dict, label: str) -> dict:
+    return next(item for item in content["slots"] if item["label"] == label)
+
+
+def test_extension_slots_are_counted_apart_and_only_core_slots_are_numbered():
+    curriculum = Curriculum.read(SITE_SOURCE)
+    reasoning = curriculum.path("reasoning")
+    assert [s.label for s in curriculum.core_in_path(reasoning)][-1] == "SA9"
+    assert [s.label for s in curriculum.extensions_in_path(reasoning)] == [
+        "AI6",
+        "AI8",
+    ]
+    assert len(curriculum.core) == len(curriculum.slots) - len(EXTENSIONS)
 
 
 def test_reading_a_file_outside_the_schema_fails_with_every_problem(tmp_path: Path):
@@ -267,14 +391,14 @@ def test_a_slot_of_another_course_is_reported():
 
 def test_a_slot_of_a_method_path_may_be_filled_by_a_lesson_of_any_course():
     mechanics = lesson(
-        "agent", strand="agents-llm", slot="AI0", methods=("llm-agents",)
+        "agent", strand="agents-llm", slot="SA5", methods=("llm-agents",)
     )
     thermodynamics = lesson(
         "thermo-agent",
         strand="agents-llm",
         order=2,
         course="thermodynamics",
-        slot="AI1",
+        slot="SA1",
         methods=("llm-agents",),
     )
     assert messages([mechanics, thermodynamics]) == []
@@ -311,6 +435,38 @@ def test_the_published_lessons_that_fill_a_slot_carry_it():
     # The gas lesson moved to its course by front matter, not by address (F70).
     gas = LearningPath.read(SITE_SOURCE).lesson("particles-in-a-box")
     assert (gas.course, gas.strand) == ("thermodynamics", "agents-abm")
+
+
+def test_the_published_part_b_lessons_fill_their_new_slots_and_nothing_else_moved():
+    # The inventory of ADR 022 decision 4: 17 lessons move to a core slot,
+    # 5 keep theirs as extensions, and the noise lesson stays without a slot;
+    # address, identifier, strand, order, and course are those of the base.
+    lessons = {item.page: item for item in read_lessons(SITE_SOURCE)}
+    curriculum = Curriculum.read(SITE_SOURCE)
+    for moved in part_b.LESSONS:
+        found = lessons[moved.page]
+        assert (found.id, found.strand, found.order, found.course, found.slot) == (
+            moved.id,
+            moved.strand,
+            moved.order,
+            moved.course,
+            moved.slot,
+        ), moved.page
+    slotted = [moved for moved in part_b.LESSONS if moved.slot]
+    assert len(slotted) == 22
+    core = [m for m in slotted if not curriculum.slot(m.slot).extension]
+    extensions = [m for m in slotted if curriculum.slot(m.slot).extension]
+    assert len(core) == 17
+    assert sorted(m.slot for m in extensions) == ["AI6", "D1", "D3", "D4", "D5"]
+    assert all(m.slot == m.base_slot for m in extensions)
+    assert all(m.base_slot in RETIRED for m in core)
+    # Every Part B slot a lesson fills is one of the inventory's.
+    filled = {
+        item.slot
+        for item in lessons.values()
+        if item.slot and curriculum.slot(item.slot).path
+    }
+    assert filled == {m.slot for m in slotted}
 
 
 # --- Prerequisites as a graph (ADR 013 decision 8) ----------------------------
@@ -471,9 +627,14 @@ def test_a_lesson_is_a_row_once(page: str):
     cards = re.findall(r'<li class="path-card[^"]*"[^>]*data-lesson-id="([^"]+)"', page)
     # The canonical place of a lesson on the page is its row, once.
     assert sorted(cards) == sorted(item.id for item in path.lessons)
-    # The cards' progress segments name each lesson once more, and link nothing.
+    # The cards' progress segments name each lesson of a core once more, and
+    # link nothing; an optional extension has its row only.
     ticks = re.findall(r'<i class="path-link" data-lesson-id="([^"]+)"></i>', page)
-    assert sorted(ticks) == sorted(cards)
+    extensions = {
+        item.id for item in path.lessons if item.slot and path.slot_of(item).extension
+    }
+    assert extensions
+    assert sorted(ticks) == sorted(set(cards) - extensions)
 
 
 def test_the_header_shows_the_slot_and_the_position_in_the_path():
@@ -482,9 +643,16 @@ def test_the_header_shows_the_slot_and_the_position_in_the_path():
     assert "Slot\n:   M1, Kinematics as a program" in course_lesson
     path_lesson = LessonHeader(path, path.lesson("agent-experiment")).markdown()
     assert (
-        "Slot\n:   AI0, number 1 of the 9 slots of the path [Physics reasoning"
-        " and scientific agents]" in path_lesson
+        "Slot\n:   SA5, number 5 of the 9 slots of the path [Reliable scientific"
+        " agents and experiment automation]" in path_lesson
     )
+    # An extension slot is named as one, with no number among the core slots.
+    extension = LessonHeader(path, path.lesson("discovering-gravity")).markdown()
+    assert (
+        "Slot\n:   D4, an optional extension of the path [Physical model"
+        " discovery through active experiments]" in extension
+    )
+    assert "number" not in extension.split("Slot\n:")[1].split("\n")[0]
     gas = LessonHeader(path, path.lesson("particles-in-a-box")).markdown()
     assert "Slot\n:   T0, Gas from simple agents" in gas
     assert "Thermodynamics and statistical physics" in gas
@@ -645,6 +813,14 @@ class Progress:
                 rows.append(("lesson", filled[label]))
         return rows
 
+    def extensions(self, key: str, home: str) -> list[str]:
+        """The labels of the extension slots of ``home``, in the YAML order."""
+        return [
+            slot["label"]
+            for slot in self.slots
+            if slot.get(key) == home and slot.get("extension")
+        ]
+
     def planned(self, key: str, home: str) -> list[str]:
         return [label for kind, label in self.rows(key, home) if kind == "planned"]
 
@@ -744,6 +920,13 @@ PAGE_ROW = re.compile(
     r'|<li class="[^"]*planned-slot[^"]*" data-state="planned">'
     r'<span class="atlas-label">([A-Z]+[0-9]+)</span>'
 )
+
+
+def extension_group(section: str) -> str:
+    """The group of the optional extensions of a path's panel; empty without
+    one."""
+    found = re.search(r'<section class="atlas-extensions".*?</section>', section)
+    return found.group(0) if found else ""
 
 
 def page_rows(section: str) -> list[tuple[str, str]]:
@@ -852,11 +1035,20 @@ def mismatches(sources: Progress, path: LearningPath, page: str) -> list[str]:
             page_rows(section),
             rows,
         )
-        planned = sum(kind == "planned" for kind, _ in rows)
+        # The counts are those of the core rows; the extension rows, after
+        # them, are counted apart in their own group (ADR 022 decision 2).
+        extensions = sources.extensions("path", method_path.id)
+        core = rows[: len(rows) - len(extensions)]
+        planned = sum(kind == "planned" for kind, _ in core)
         compare(
             f"the count of the path {method_path.id} on the page",
             shown_counts(section),
-            counts(len(rows) - planned, planned),
+            counts(len(core) - planned, planned),
+        )
+        compare(
+            f"the optional extensions of the path {method_path.id} on the page",
+            page_rows(extension_group(section)),
+            rows[len(core) :],
         )
     section = sequence_of(page, "lean")
     strand = sources.strand_rows()

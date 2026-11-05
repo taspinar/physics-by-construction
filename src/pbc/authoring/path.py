@@ -247,7 +247,13 @@ class Lesson:
 # Where the curriculum file sits in the website project (ADR 013 decision 3).
 CURRICULUM_FILE = "curriculum.yaml"
 
-KINDS = ("lesson", "measured-data lab", "applied capstone")
+KINDS = ("lesson", "measured-data lab", "applied capstone", "product capstone")
+# The capstone of a course and the capstone of a method path, which teaches a
+# local software product (ADR 022 decision 3); the atlas, Home, and the path
+# view treat the two alike wherever they mark or choose a capstone.
+APPLIED_CAPSTONE = "applied capstone"
+PRODUCT_CAPSTONE = "product capstone"
+CAPSTONES = (APPLIED_CAPSTONE, PRODUCT_CAPSTONE)
 
 # The one slot that has neither a course nor a method path as its home is the
 # Lean slot of the baseline; its home is the strand.
@@ -255,7 +261,16 @@ HOME_STRANDS = ("lean",)
 
 _LABEL = re.compile(r"[A-Z]+[0-9]+")
 _PATH_ID = re.compile(r"[a-z][a-z0-9]*(-[a-z0-9]+)*")
-_SLOT_KEYS = {"label", "title", "kind", "course", "path", "position", "strand"}
+_SLOT_KEYS = {
+    "label",
+    "title",
+    "kind",
+    "course",
+    "path",
+    "position",
+    "strand",
+    "extension",
+}
 # What a lesson's front matter holds; the curriculum file must not.
 _FRONT_MATTER_FIELDS = {
     "id",
@@ -289,7 +304,9 @@ class Slot:
     """One planned lesson of the reference curriculum: what the file declares.
 
     The home is one of ``course``, ``path`` (with its ``position``), or
-    ``strand``; the other two are empty.
+    ``strand``; the other two are empty. An extension slot (ADR 022
+    decision 2) is optional depth of its method path: listed after the
+    path's core slots and never counted with them.
     """
 
     label: str
@@ -299,6 +316,11 @@ class Slot:
     path: str = ""
     position: int = 0
     strand: str = ""
+    extension: bool = False
+
+    @property
+    def is_capstone(self) -> bool:
+        return self.kind in CAPSTONES
 
 
 @dataclass(frozen=True)
@@ -344,6 +366,7 @@ class Curriculum:
                     path=item.get("path", ""),
                     position=item.get("position", 0),
                     strand=item.get("strand", ""),
+                    extension=item.get("extension", False),
                 )
                 for item in data["slots"]
             ),
@@ -366,18 +389,34 @@ class Curriculum:
         return tuple(slot for slot in self.slots if slot.course == course.id)
 
     def in_path(self, path: MethodPath) -> tuple[Slot, ...]:
+        """Every slot of the path: its core slots, then its extensions."""
         return tuple(slot for slot in self.slots if slot.path == path.id)
+
+    def core_in_path(self, path: MethodPath) -> tuple[Slot, ...]:
+        """The core slots of the path: the ones the reference curriculum
+        counts (ADR 022 decision 2)."""
+        return tuple(slot for slot in self.in_path(path) if not slot.extension)
+
+    def extensions_in_path(self, path: MethodPath) -> tuple[Slot, ...]:
+        return tuple(slot for slot in self.in_path(path) if slot.extension)
+
+    @property
+    def core(self) -> tuple[Slot, ...]:
+        """The slots of the reference curriculum's counts: every slot but the
+        extensions."""
+        return tuple(slot for slot in self.slots if not slot.extension)
 
 
 def _is_text(value: object) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
+# The display titles of requirements decision 42; the keys are stable.
 METHOD_PATHS = (
-    ("reasoning", "Physics reasoning and scientific agents"),
-    ("law-discovery", "Scientific law discovery"),
-    ("benchmarking", "Physics agent benchmarking"),
-    ("autonomous-research", "Autonomous scientific research"),
+    ("reasoning", "Reliable scientific agents and experiment automation"),
+    ("law-discovery", "Physical model discovery through active experiments"),
+    ("benchmarking", "Scientific agent evaluation and improvement"),
+    ("autonomous-research", "Reproducible research with agents"),
 )
 
 
@@ -430,6 +469,7 @@ def curriculum_problems(data: object) -> list[str]:
         return [*found, "'slots' must be a list"]
     labels: set[str] = set()
     positions: dict[str, int] = {}
+    extended: set[str] = set()  # the paths whose extension slots have begun
     for item in slots:
         if not isinstance(item, dict):
             found.append(f"slot entry {item!r} must be a mapping")
@@ -483,6 +523,29 @@ def curriculum_problems(data: object) -> list[str]:
             )
         if homes != ["path"] and "position" in item:
             found.append(f"slot {name}: only a slot of a path has a 'position'")
+        kind = item.get("kind")
+        if kind == APPLIED_CAPSTONE and homes != ["course"]:
+            found.append(f"slot {name}: an applied capstone is homed in a course")
+        if kind == PRODUCT_CAPSTONE and homes != ["path"]:
+            found.append(f"slot {name}: a product capstone is homed in a method path")
+        if "extension" in item:
+            if item["extension"] is not True:
+                found.append(
+                    f"slot {name}: 'extension' is true or absent, nothing else"
+                )
+            elif homes != ["path"]:
+                found.append(
+                    f"slot {name}: only a slot of a method path is an extension"
+                )
+            elif kind in CAPSTONES:
+                found.append(f"slot {name}: a capstone is never an extension")
+            else:
+                extended.add(item["path"])
+        elif homes == ["path"] and item["path"] in extended:
+            found.append(
+                f"slot {name}: a core slot of {item['path']!r} comes after its"
+                " extension slots; the extensions are listed after the core"
+            )
     return found
 
 
@@ -921,11 +984,17 @@ def _slot_fact(path: LearningPath, from_page: str, lesson: Lesson) -> str | None
         return None
     if slot.path:
         method_path = path.curriculum.path(slot.path)
-        length = len(path.curriculum.in_path(method_path))
+        link = (
+            f"[{method_path.title}]"
+            f"({_href(from_page, PATH_PAGE, _path_id(method_path))})"
+        )
+        if slot.extension:
+            # Optional depth: no number among the core slots (ADR 022).
+            return f"{slot.label}, an optional extension of the path {link}"
+        length = len(path.curriculum.core_in_path(method_path))
         return (
             f"{slot.label}, number {slot.position} of the {length} slots of the"
-            f" path [{method_path.title}]"
-            f"({_href(from_page, PATH_PAGE, _path_id(method_path))})"
+            f" path {link}"
         )
     return f"{slot.label}, {slot.title}"
 

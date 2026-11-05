@@ -14,7 +14,6 @@ from support.paths import SITE_SOURCE
 from pbc.authoring import COURSES, LearningPath
 from pbc.authoring.atlas import (
     ATLAS_FILE,
-    CAPSTONE,
     CONNECTION_TYPES,
     LAB,
     Atlas,
@@ -315,7 +314,7 @@ def test_every_course_and_path_slot_is_on_the_map_once():
     for slot in CURRICULUM.slots:
         if slot.strand:
             assert slot.label not in named
-        elif slot.kind == CAPSTONE:
+        elif slot.is_capstone:
             assert ATLAS.manifest.capstone(slot.label).id in named[slot.label]
         else:
             assert len(named[slot.label]) == 1, slot.label
@@ -327,7 +326,9 @@ def test_every_course_and_path_has_concepts():
 
 
 def test_the_capstones_have_their_concepts_and_members():
-    for label in ("T11", "EM9", "FL10"):
+    # Either kind: a course's applied capstone and a path's product capstone,
+    # each represented by exactly one concept (ADR 022 decision 3).
+    for label in ("T11", "EM9", "FL10", "SA9", "MD10", "AE7", "RR8"):
         capstone = ATLAS.manifest.capstone(label)
         assert ATLAS.capstone_of(capstone).label == label
         assert [m for m in ATLAS.memberships() if m.capstone == capstone.id]
@@ -378,9 +379,14 @@ def test_every_slot_is_a_row_of_its_sequence_in_curriculum_order():
             slots = [s for s in CURRICULUM.slots if s.path == sequence.id]
         else:
             slots = [s for s in CURRICULUM.slots if not (s.course or s.path)]
-        capstones = [s.label for s in slots if s.kind == CAPSTONE]
-        others = [s.label for s in slots if s.kind != CAPSTONE]
-        rows = list(sequence.rows)
+        # A path's extension rows follow its core (ADR 022 decision 2).
+        extensions = [s.label for s in slots if s.extension]
+        assert [row.label for row in sequence.extensions] == extensions
+        slots = [s for s in slots if not s.extension]
+        capstones = [s.label for s in slots if s.is_capstone]
+        others = [s.label for s in slots if not s.is_capstone]
+        rows = list(sequence.core)
+        assert list(sequence.rows) == [*rows, *sequence.extensions]
         # The capstone integrates its course: its row is the last.
         if capstones:
             assert [row.label for row in rows[-len(capstones) :]] == capstones
@@ -407,16 +413,30 @@ def test_the_lean_entry_holds_the_lean_lessons_without_a_course_or_path_slot():
 def test_the_counts_equal_the_rows_and_a_planned_slot_is_never_published():
     filled = {lesson.slot for lesson in PATH.lessons if lesson.slot}
     for sequence in ATLAS.sequences():
-        assert sequence.published + sequence.planned == len(sequence.rows)
+        # The counts are the core's; the extensions are counted apart.
+        assert sequence.published + sequence.planned == len(sequence.core)
+        assert sequence.extension_published + sequence.extension_planned == len(
+            sequence.extensions
+        )
         for row in sequence.rows:
             if row.label:
                 assert (row.lesson is not None) == (row.label in filled)
             if row.lesson is None:
                 assert row.label not in filled
-    assert sum(s.published for s in ATLAS.sequences()) == len(PATH.lessons)
-    assert sum(s.planned for s in ATLAS.sequences()) == len(CURRICULUM.slots) - len(
-        filled
+    sequences = ATLAS.sequences()
+    published = sum(s.published + s.extension_published for s in sequences)
+    assert published == len(PATH.lessons)
+    planned = sum(s.planned for s in sequences)
+    assert planned == len(CURRICULUM.core) - len(
+        filled & {s.label for s in CURRICULUM.core}
     )
+    extensions = [s for s in CURRICULUM.slots if s.extension]
+    assert sum(s.extension_published + s.extension_planned for s in sequences) == len(
+        extensions
+    )
+    # The five published extension lessons and the two planned extensions.
+    assert sum(s.extension_published for s in sequences) == 5
+    assert sum(s.extension_planned for s in sequences) == 2
 
 
 def test_the_aliases_open_the_sequence_of_every_concept_and_course_index():
@@ -467,17 +487,59 @@ def test_each_card_and_panel_show_the_counts_of_their_rows(page: str):
     for sequence in ATLAS.sequences():
         html = _sequence_html(page, sequence.anchor)
         card = re.search(r"<summary.*?</summary>", html).group(0)
-        rows = len(sequence.rows)
-        assert f"{sequence.published} of {rows} lesson" in card
+        core = len(sequence.core)
+        assert f"{sequence.published} of {core} lesson" in card
         counts = f"{sequence.published} published"
         if sequence.planned:
             counts += f" · {sequence.planned} planned"
         assert f'<p class="atlas-counts">{counts}</p>' in html
-        assert html.count('<li class="') == rows
-        assert html.count('data-state="published"') == sequence.published
-        assert html.count('data-state="planned"') == sequence.planned
-        # The progress hairline: one segment per published lesson.
+        assert html.count('<li class="') == len(sequence.rows)
+        group = re.search(r'<section class="atlas-extensions".*?</section>', html)
+        if sequence.extensions:
+            group = group.group(0)
+            extra = f"{sequence.extension_published} published"
+            if sequence.extension_planned:
+                extra += f", {sequence.extension_planned} planned"
+            assert f"{extra}.</p>" in group
+            assert group.count('<li class="') == len(sequence.extensions)
+            core_html = html.replace(group, "")
+        else:
+            assert group is None
+            core_html = html
+        assert core_html.count('data-state="published"') == sequence.published
+        assert core_html.count('data-state="planned"') == sequence.planned
+        # The progress hairline: one segment per published lesson of the core.
         assert card.count('<i class="path-link" data-lesson-id=') == sequence.published
+
+
+def test_a_paths_extensions_follow_its_core_under_their_own_heading(page: str):
+    for sequence in ATLAS.sequences():
+        html = _sequence_html(page, sequence.anchor)
+        if not sequence.extensions:
+            assert "atlas-extensions" not in html
+            continue
+        assert sequence.part == "B"
+        group = re.search(r'<section class="atlas-extensions".*?</section>', html)
+        text = group.group(0)
+        # After the core list, under a heading of its own; the rows carry no
+        # mark of their own (ADR 022 decision 2).
+        core_end = html.index("</ol>")
+        assert core_end < group.start()
+        assert html[core_end : group.start()] == "</ol>"
+        assert (
+            f'<h3 class="atlas-extensions-title" id="{sequence.anchor}-extensions">'
+            "Optional extensions</h3>" in text
+        )
+        assert f'aria-labelledby="{sequence.anchor}-extensions"' in text
+        labels = re.findall(r'<span class="atlas-label">([A-Z]+[0-9]+)</span>', text)
+        assert labels == [row.label for row in sequence.extensions]
+        assert "atlas-mark-extension" not in text
+    paths = [s for s in ATLAS.sequences() if s.extensions]
+    assert [s.id for s in paths] == [
+        "reasoning",
+        "law-discovery",
+        "autonomous-research",
+    ]
 
 
 def test_a_published_row_links_its_lesson_and_a_planned_row_links_nothing(page: str):
@@ -498,9 +560,9 @@ def test_the_rows_carry_only_the_marks_lab_capstone_and_lean(page: str):
     assert set(marks) == {"lab", "capstone", "lean", "planned"}
     labs = sum(1 for s in CURRICULUM.slots if s.kind == LAB)
     assert marks.count("lab") == labs
-    assert marks.count("capstone") == sum(
-        1 for s in CURRICULUM.slots if s.kind == CAPSTONE
-    )
+    # Both kinds of capstone under the one capstone mark.
+    assert marks.count("capstone") == sum(1 for s in CURRICULUM.slots if s.is_capstone)
+    assert marks.count("capstone") == 7
     assert "level" not in page.lower().replace("levels", "")
     assert "difficulty" not in page
 
@@ -535,13 +597,13 @@ def test_the_planned_capstones_description_is_only_the_manifests_explanation(
     descriptions = re.findall(r'<p class="capstone-description">(.*?)</p>', page)
     planned = [
         s.label
-        for s in CURRICULUM.slots
-        if s.kind == CAPSTONE and s.label not in PATH.filled()
+        for s in (*(row for seq in ATLAS.sequences() for row in seq.rows if row.label),)
+        if s.is_capstone and s.lesson is None
     ]
     assert [unescape(text) for text in descriptions] == [
         ATLAS.manifest.capstone(label).explanation for label in planned
     ]
-    assert planned == ["FL10"]
+    assert planned == ["FL10", "SA9", "MD10", "AE7", "RR8"]
 
 
 def test_part_b_is_told_apart_in_words_and_its_panels_say_toy_model(page: str):
@@ -572,6 +634,10 @@ def test_the_textual_equivalent_names_every_sequence_and_lesson_with_its_state()
             name = f"{row.label} {row.title}" if row.label else row.title
             state = "published" if row.lesson else "planned"
             assert f"{name} ({state}" in sentence
+            if row.extension:
+                assert re.search(
+                    rf"{re.escape(name)} \({state}[^)]*, optional extension\)", sentence
+                )
 
 
 def test_the_textual_equivalent_is_in_the_page_without_links(page: str):

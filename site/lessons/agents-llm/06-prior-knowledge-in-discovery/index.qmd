@@ -11,7 +11,7 @@ lesson:
   order: 6
   difficulty: 3
   course: mechanics
-  slot: D2
+  slot: MD1
   experiment: pbc.mechanics.experiments.prior_knowledge_in_discovery
   methods: [simulation, llm-agents]
   outcomes:

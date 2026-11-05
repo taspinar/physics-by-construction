@@ -10,7 +10,7 @@ lesson:
   order: 10
   difficulty: 2
   course: mechanics
-  slot: R1
+  slot: RR4
   methods: [simulation, measured-data]
   outcomes:
     - Write an analysis as a function that a sweep, a repetition, and a report can all reuse

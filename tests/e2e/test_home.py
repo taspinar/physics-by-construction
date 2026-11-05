@@ -249,6 +249,43 @@ def test_the_hero_image_is_labelled_text_over_registered_parts(
         assert page.request.get(server.url + source).ok
 
 
+@pytest.mark.parametrize("viewport", [DESKTOP, PHONE_TALL], ids=["desktop", "phone"])
+def test_every_label_of_the_hero_stays_inside_the_image_and_clear_of_the_others(
+    browser: Browser, server: SiteServer, viewport: dict[str, int]
+):
+    """The labels, the longer path titles of decision 42 among them (F136),
+    stay inside the image and overlap no other label and no node, in the
+    wide and in the phone layout."""
+    context = browser.new_context(viewport=viewport, java_script_enabled=False)
+    page = open_home(context, server)
+    found = page.evaluate(
+        """() => {
+          const svg = document.querySelector('.home-hero svg.hero-image')
+            .getBoundingClientRect();
+          const boxes = [...document.querySelectorAll('.hero-node')].flatMap(
+            (node, i) => [
+              [`node ${i}`, node.querySelector('.hero-frame').getBoundingClientRect()],
+              [`label ${i}`, node.querySelector('.hero-label').getBoundingClientRect()],
+            ]);
+          const out = [];
+          for (const [a, r] of boxes) {
+            if (r.left < svg.left - 0.5 || r.right > svg.right + 0.5 ||
+                r.top < svg.top - 0.5 || r.bottom > svg.bottom + 0.5)
+              out.push(`${a} outside the image`);
+            for (const [b, q] of boxes) {
+              const same = a.split(' ')[1] === b.split(' ')[1];
+              if (a < b && !same && r.left < q.right && q.left < r.right &&
+                  r.top < q.bottom && q.top < r.bottom)
+                out.push(`${a} overlaps ${b}`);
+            }
+          }
+          return [boxes.length, out];
+        }"""
+    )
+    assert found == [24, []]
+    context.close()
+
+
 # --- The rest of the page ------------------------------------------------------
 
 

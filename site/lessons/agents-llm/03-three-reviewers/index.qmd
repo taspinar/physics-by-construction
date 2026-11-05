@@ -12,7 +12,7 @@ lesson:
   order: 3
   difficulty: 3
   course: mechanics
-  slot: AI4
+  slot: RR5
   preview: fig-review-evidence
   experiment: pbc.mechanics.experiments.scientific_review
   methods: [simulation, llm-agents]

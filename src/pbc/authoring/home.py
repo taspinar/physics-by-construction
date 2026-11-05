@@ -34,7 +34,7 @@ from pathlib import Path
 
 import yaml
 
-from pbc.authoring.atlas import CAPSTONE, AtlasManifest
+from pbc.authoring.atlas import AtlasManifest
 from pbc.authoring.identity import ABOUT_ANCHOR, description
 from pbc.authoring.path import (
     COURSES,
@@ -222,12 +222,12 @@ COURSE_NODES = (
     (226, 396),
     (382, 418),
 )
-PATH_NODES = ((556, 64), (532, 196), (568, 322), (534, 448))
+PATH_NODES = ((546, 64), (524, 196), (550, 322), (526, 448))
 # Below 40em the image is drawn about 360 CSS px wide, too narrow for four
 # columns of labels that a reader can read: the nodes move to two columns,
 # PHONE_SCALE times larger, in a box of WIDTH by PHONE_HEIGHT units, and the
 # labels grow (site/assets/site.css, .hero-label).
-PHONE_HEIGHT = 1280
+PHONE_HEIGHT = 1320
 PHONE_SCALE = 1.25
 PHONE_COURSE_NODES = (
     (170, 80),
@@ -239,17 +239,40 @@ PHONE_COURSE_NODES = (
     (170, 680),
     (470, 720),
 )
-PHONE_PATH_NODES = ((170, 920), (470, 960), (170, 1120), (470, 1160))
+# The two columns of the paths stand 100 units apart in height, so that the
+# two-line labels of one column pass beside the nodes of the other.
+PHONE_PATH_NODES = ((170, 900), (470, 1000), (170, 1100), (470, 1200))
 # The card illustration of a node, the larger of the atlas's two card sizes.
 CARD = "{stem}-card-228.webp"
 _LABEL_LINE = 19  # characters on one line of a node's label
+# The characters on one line of a label: the method paths' titles of
+# requirements decision 42 are longer, and take two longer lines (a third
+# would not fit below the last node); their column stands far enough from
+# the right edge that such a line stays inside the image.
+_PATH_LINE = 26
 
 
-def _wrap(title: str) -> list[str]:
-    """A node's label on at most two lines."""
+def _balanced(title: str, width: int) -> list[str]:
+    """A path's label: one line if it fits in ``width`` characters, else the
+    two lines of at most ``width`` whose longer one is the shortest, else
+    the course labels' wrapping."""
+    words = title.split()
+    if len(title) <= width:
+        return [title]
+    splits = [
+        [" ".join(words[:cut]), " ".join(words[cut:])] for cut in range(1, len(words))
+    ]
+    fitting = [lines for lines in splits if max(map(len, lines)) <= width]
+    if not fitting:
+        return _wrap(title, width)
+    return min(fitting, key=lambda lines: max(map(len, lines)))
+
+
+def _wrap(title: str, width: int = _LABEL_LINE) -> list[str]:
+    """A node's label on at most two lines of about ``width`` characters."""
     lines: list[str] = []
     for word in title.split():
-        if lines and len(lines[-1]) + 1 + len(word) <= _LABEL_LINE:
+        if lines and len(lines[-1]) + 1 + len(word) <= width:
             lines[-1] += f" {word}"
         elif len(lines) < 2:
             lines.append(word)
@@ -413,7 +436,9 @@ class HomeContent:
             label = "".join(
                 f'<tspan x="{x}" dy="{"1.15em" if index else "1.25em"}">'
                 f"{html.escape(line)}</tspan>"
-                for index, line in enumerate(_wrap(title))
+                for index, line in enumerate(
+                    _wrap(title) if part == "a" else _balanced(title, _PATH_LINE)
+                )
             )
             # The node's place on a phone, which the style sheet applies below
             # 40em: scaled about its centre and moved to its phone centre.
@@ -496,14 +521,16 @@ class HomeContent:
         return tuple(chosen)
 
     def capstone(self) -> Lesson | None:
-        """The first published capstone in the order of the curriculum file
-        whose course none of the examples has, else the first published one
-        that is not itself an example; None when there is no such one."""
+        """The first published capstone of either kind (a course's applied
+        capstone or a method path's product capstone, ADR 022 decision 3) in
+        the order of the curriculum file whose course none of the examples
+        has, else the first published one that is not itself an example;
+        None when there is no such one."""
         published = {lesson.slot: lesson for lesson in self.path.lessons if lesson.slot}
         capstones = [
             published[slot.label]
             for slot in self.path.curriculum.slots
-            if slot.kind == CAPSTONE and slot.label in published
+            if slot.is_capstone and slot.label in published
         ]
         examples = self.examples()
         used = {lesson.course for lesson in examples}
@@ -551,10 +578,13 @@ class HomeContent:
         capstone = self.capstone()
         if capstone is not None:
             explanation = self.manifest.capstone(capstone.slot).explanation
-            note = (
-                f"{_level(capstone)}, the capstone project of"
-                f" {self._course_title(capstone)}"
+            slot = self.path.slot_of(capstone)
+            home = (
+                f"the path {self.path.curriculum.path(slot.path).title}"
+                if slot is not None and slot.path
+                else self._course_title(capstone)
             )
+            note = f"{_level(capstone)}, the capstone project of {home}"
             lines += self._card(capstone, explanation, note, preview_of(capstone, site))
         lines.append(":::")
         return "\n".join(lines)

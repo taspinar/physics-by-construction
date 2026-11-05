@@ -12,7 +12,7 @@ lesson:
   order: 11
   difficulty: 3
   course: mechanics
-  slot: D13
+  slot: MD7
   experiment: pbc.mechanics.experiments.discovering_conservation_laws
   methods: [simulation, llm-agents]
   outcomes:
