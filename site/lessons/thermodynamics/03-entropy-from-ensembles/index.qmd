@@ -388,7 +388,7 @@ and that distribution spreads out.
 ::: {.feedback}
 Right. At the start every box is in the same microstate, so the distribution is
 concentrated and the entropy is zero. The shuffle makes the boxes differ, and the
-entropy of what is known about a box falls to that of equal chances at
+entropy of what is known about a box rises from zero to that of equal chances at
 equilibrium.
 :::
 :::
