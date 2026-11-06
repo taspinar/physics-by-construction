@@ -46,9 +46,9 @@ such a rule.
 
 Kinematics describes motion without asking what causes it. The acceleration
 $a(t)$ is given, and the task is to find the velocity $v(t)$ and the position
-$x(t)$. This lesson turns that task into a program: it holds a *state*,
-advances the state by a small *time step*, and repeats. The method is explicit
-Euler, the simplest one there is.
+$x(t)$. A program does that by following the rule one instant at a time: it
+holds a *state*, advances the state by a small *time step*, and repeats. The
+method is explicit Euler, the simplest one there is.
 
 Because the acceleration is known, the exact motion is known too. So we can
 measure how wrong the program is, and how the error shrinks when the time step
@@ -85,8 +85,12 @@ ball at high speed, drag is not small, and a later lesson adds it.
 
 ## From rates of change to an update rule {#explanation}
 
-Velocity is the rate of change of position, and acceleration is the rate of
-change of velocity:
+Freeze the ball at one instant. To say where it will be a moment later, you
+need to know where it is, how fast it is moving, and what the clock reads,
+since the acceleration is a function of time; nothing else about its past
+matters. Those quantities are linked by two rates of change: velocity is the
+rate of change of position, and acceleration is the rate of change of
+velocity:
 
 $$
 \frac{\mathrm{d}x}{\mathrm{d}t} = v,
@@ -94,10 +98,11 @@ $$
 \frac{\mathrm{d}v}{\mathrm{d}t} = a(t).
 $$
 
-Everything the program needs to know at one instant is the triple
+So everything the program needs to know at one instant is the triple
 $(t, x, v)$. That triple is the **state**.
 
-Over a short time $\Delta t$ the Taylor expansions of position and velocity are
+To move the state forward we need position and velocity a short time
+$\Delta t$ later. The Taylor expansions give them in powers of $\Delta t$:
 
 $$
 \begin{aligned}
@@ -140,14 +145,18 @@ may use sits in the box on its left. The sketch computes nothing.
 
 ### How large is the error?
 
-One step drops terms of size $\Delta t^{2}$, so a step adds an error of at
+Two errors need to be told apart. The *local* error is what a single step
+gets wrong: it drops terms of size $\Delta t^{2}$, so it adds an error of at
 most $C\,\Delta t^{2}$ for some constant $C$ that depends on how fast $a(t)$
-changes. Reaching a fixed time $T$ takes $T / \Delta t$ steps, and the dropped
-terms add up to at most
+changes. The *global* error is what we see at a fixed time $T$, after all the
+steps, and it is built from the local ones. A smaller step drops less in
+each step but takes more steps. Reaching $T$ takes $T / \Delta t$ steps, and
+the dropped terms add up to at most
 $(T / \Delta t)\,C\,\Delta t^{2} = C\,T\,\Delta t$: an error of size
-$\Delta t$. This bound is an argument for the order, not yet a measurement;
-the examples measure it. Explicit Euler is a **first-order** method: halve the time step
-and the error at time $T$ halves, at twice the work.
+$\Delta t$. One power of $\Delta t$ is lost in the adding. That is what makes
+explicit Euler a **first-order** method, and it is the practical rule: halve
+the time step and the error at time $T$ halves, at twice the work. The bound
+is an argument for the order, not yet a measurement; the examples measure it.
 
 For a constant acceleration $a$ we can say exactly what the method does. The
 exact motion from the initial values $x_0$ and $v_0$ at $t_0 = 0$ is
@@ -179,15 +188,15 @@ $$
 
 Each step moves the particle with the velocity it had at the *start* of the
 step, so the computed position lags behind the change in velocity. The lag
-grows in proportion to the elapsed time and to the time step. This is a
-prediction the program has to reproduce: the first worked example compares
-it with the simulation in the digits shown.
+grows in proportion to the elapsed time and to the time step.
 
 [For a constant acceleration the position error of explicit Euler is exactly
 $-\tfrac{1}{2}\,a\,t_n\,\Delta t$.]{.claim type="numerically-verified"
 scope="constant acceleration"
 evidence="fig-ball-thrown-up"} The derivation above is the proof for the
-model; the first worked example recomputes it with the program.
+model. Whether the *program* behaves like the model is a separate question,
+and the first worked example asks it: it recomputes the lag with the
+simulation, to the digits shown.
 
 ::: {.go-deeper ref="euler-local-global-error"}
 It explains why adding up the errors of single steps still gives an error
@@ -238,9 +247,13 @@ excerpt(kinematics.constant_acceleration)
 
 ### A ball thrown straight up
 
-A ball leaves a hand above the ground, moving upward, and we follow it until
-shortly before it is back at that height. The cell sets the numbers, runs the
-simulation, and evaluates the exact motion at the same instants.
+Will the program show the lag the derivation predicts? A ball thrown straight
+up has an exact motion we can write down, so any gap between the program and
+the exact curve belongs to the method. The prediction is specific: the
+velocities agree in every row, and the positions differ by
+$-\tfrac{1}{2}\,a\,t\,\Delta t$. The ball leaves a hand above the ground,
+moving upward, and we follow it until shortly before it is back at that
+height, with the exact motion evaluated at the same instants.
 
 ```{python}
 #| echo: false
@@ -262,7 +275,8 @@ The two velocity columns agree in every row, as derived above. The position
 columns drift apart. After `{python} result["end-time"]` s the simulated
 ball is `{python} result["ball-gap"]` m above the exact one.
 The predicted lag $-\tfrac{1}{2}\,a\,t\,\Delta t$ with $a = -g$ is
-`{python} result["predicted-lag"]` m.
+`{python} result["predicted-lag"]` m: the program reproduces the lag the
+derivation predicts.
 
 ```{python}
 #| echo: false
@@ -313,8 +327,9 @@ method. The cell below puts a number on it: the spacing between neighbouring
 double-precision numbers at the height of the ball is
 `{python} result["spacing"]` m, and the smallest error of the table is
 `{python} result["smallest-error"]` m, which is
-`{python} result["error-over-spacing"]` times larger. Round-off
-begins to matter only for time steps far smaller than these.
+`{python} result["error-over-spacing"]` times larger. So the spacing of the
+numbers is far below the errors of the table. Round-off begins to matter
+only for time steps far smaller than these.
 
 ### An acceleration that changes in time
 
@@ -329,7 +344,9 @@ v(t) = \frac{a_0}{\omega} \sin(\omega t),
 x(t) = x_0 + \frac{a_0}{\omega^{2}} \bigl(1 - \cos(\omega t)\bigr).
 $$
 
-The same `simulate` runs it; only the acceleration function changes.
+The same `simulate` runs it; only the acceleration function changes. This
+time the derivation gives no exact error, only the bound, so the question is
+whether the error still halves with the step.
 
 ```{python}
 #| echo: false
@@ -373,8 +390,15 @@ the error of explicit Euler is proportional to the time step in both
 examples.]{.claim type="numerically-verified"
 scope="two motions"
 evidence="fig-error-against-time-step"} The straight lines are the visible
-form of the first-order result; they say nothing about time steps far smaller
-or larger than the ones plotted.
+form of the first-order result, over the range of time steps plotted.
+
+We can now say how wrong the program is, and the measurement matches the
+prediction: the error of explicit Euler is proportional to the time step,
+exactly for the thrown ball and closely for the cart. All of it rested on an acceleration known in advance. The next lesson lets
+the acceleration depend on the state, through forces such as a spring or
+drag, and then an exact answer to compare with is the exception. What
+carries over is the habit this lesson practised: compare the program with
+something you can calculate by hand.
 
 ## Limits {#limits}
 
