@@ -12,7 +12,7 @@ import importlib
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import yaml
 
@@ -110,6 +110,20 @@ class Reproduction:
     # The public address of the built page, which the "Suggest an
     # improvement" links pre-fill; set by the post-render step, "" before.
     address: str = ""
+
+    @property
+    def page_address(self) -> str:
+        """The address the "Suggest an improvement" links pre-fill: the public
+        address of the built page once the post-render step has set it, and
+        before that the built page's path in the site (``lessons/.../index.html``,
+        as ``website.page_address`` gives it without a ``site-url``), never the
+        repository path of the source page."""
+        if self.address:
+            return self.address
+        page = PurePosixPath(self.page)
+        if page.parts[:1] == (SITE_DIRECTORY,):
+            page = page.relative_to(SITE_DIRECTORY)
+        return page.with_suffix(".html").as_posix()
 
     @property
     def heading(self) -> str:
@@ -349,7 +363,7 @@ class Reproduction:
                 *self._live(),
                 # The last line of the lesson (F135).
                 "::: {.suggest-improvement}",
-                suggestion(self.repository, self.address or self.page),
+                suggestion(self.repository, self.page_address),
                 ":::",
                 ":::",
                 "",

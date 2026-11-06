@@ -21,7 +21,8 @@ from pbc.authoring.improvement import (
     form_url,
     suggestion,
 )
-from pbc.authoring.repository import repository_url
+from pbc.authoring.repository import BuildCommit, repository_url
+from pbc.authoring.reproduce import Reproduction
 from pbc.authoring.website import page_address
 
 REPO_ROOT = Path(__file__).parents[2]
@@ -182,3 +183,31 @@ def test_the_last_section_of_a_lesson_ends_with_the_prefilled_links(tmp_path: Pa
     ]
     for url in links(last[1]):
         assert link_problems(url) == []
+
+
+def _reproduction(address: str = "") -> Reproduction:
+    return Reproduction(
+        page="site/lessons/mechanics/01-x/index.qmd",
+        code=(),
+        tests=(),
+        commit=BuildCommit(None, False),
+        repository=REPOSITORY,
+        experiment="pbc.mechanics.experiments.x",
+        kind="run",
+        address=address,
+    )
+
+
+def test_a_reproduction_without_an_address_names_the_page_in_the_site():
+    # The fallback is the built page's path in the site, as page_address gives
+    # it without a site-url, and never the repository path of the source (#364).
+    reproduction = _reproduction()
+
+    assert reproduction.page_address == "lessons/mechanics/01-x/index.html"
+    line = reproduction.markdown()
+    assert "page=lessons%2Fmechanics%2F01-x%2Findex.html" in line
+    assert "index.qmd" not in line.split("suggest-improvement")[-1]
+
+
+def test_a_reproduction_with_an_address_keeps_it():
+    assert _reproduction(ADDRESS).page_address == ADDRESS

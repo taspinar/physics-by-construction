@@ -16,7 +16,30 @@ from support.site_server import SiteServer
 from pbc.authoring.evidence import Evidence, read_all
 
 PAGE = "evidence.html"
-CLAIMS = read_all(REPO_ROOT)
+
+
+class _LazyClaims:
+    """Every claim of the lessons, read on first use. Reading them starts one
+    pandoc per claim block (seconds for the whole site), so it is not done
+    when pytest imports this module: every run that collects tests/e2e
+    imports it, also the runs that select or deselect these tests."""
+
+    def __init__(self) -> None:
+        self._claims: list | None = None
+
+    def _all(self) -> list:
+        if self._claims is None:
+            self._claims = read_all(REPO_ROOT)
+        return self._claims
+
+    def __iter__(self):
+        return iter(self._all())
+
+    def __len__(self) -> int:
+        return len(self._all())
+
+
+CLAIMS = _LazyClaims()
 
 
 @pytest.fixture
