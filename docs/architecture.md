@@ -2488,9 +2488,14 @@ to F155:
   curriculum test pins 33 and 115 (F136).
 - The evidence contract exists since F137 (`src/pbc/evidence/`, piloted
   on the EV3 task with the decision go, recorded in
-  `docs/discovery-protocol.md`, "The evidence contract"). There is no
-  instrument contract, no product package, no `products/` directory, and
-  no starter (F138, then the product features).
+  `docs/discovery-protocol.md`, "The evidence contract"). The instrument
+  contract, the simulator vertical slice of the Autonomous Physics Lab, its
+  `products/physics-lab/` material, and its starter with the starter checks
+  exist since F138 (`src/pbc/instruments/`, `src/pbc/products/`, go,
+  questions 19 and 21 settled in `docs/products.md`); the starter's pin is
+  `pending` until its first pin bump after the merge. The other protocols,
+  the capstone page, the live adapter, and the other products remain (F140,
+  F145, and the product features).
 - Of the 30 taught slots, 17 are filled by published lessons, 14 of them
   only after an extension that delivers the slot's new outcome; 13 taught
   slots and the four capstones have no lesson (the Phase 9 features).

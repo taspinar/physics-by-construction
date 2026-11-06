@@ -1020,6 +1020,84 @@ def test_recording_anywhere_else_is_reported(make_repository: Repository, path: 
     }
 
 
+# --- The replay traces of a Part B product (ADR 022 decision 8, I6) -----------
+
+_TRACE = '{"format": 1, "steps": []}'
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "products/physics-lab/fixtures/agent-frequency-response.json",
+        "products/physics-lab/fixtures/starter-agent.json",
+        "products/other-lab/fixtures/trace.json",
+    ],
+)
+def test_a_trace_at_a_products_fixture_location_is_accepted(
+    make_repository: Repository, path: str
+):
+    repository = make_repository(files={path: _TRACE})
+    git(repository, "add", "--all")
+    git(repository, "commit", "--quiet", "--message", "A product trace")
+
+    assert lesson_checks.check_committed_files(repository) == []
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "products/physics-lab/starter/fixtures/starter-agent.json",
+        "products/physics-lab/starter/tests/starter-agent.json",
+        "products/physics-lab/agent-frequency-response.json",
+        "products/physics-lab/examples/agent-frequency-response.json",
+        "products/physics-lab/fixtures/old/agent-frequency-response.json",
+        "products/fixtures/agent-frequency-response.json",
+        "src/pbc/products/physics_lab/agent-frequency-response.json",
+        "products/physics-lab/runs/raw.csv",
+        "products/physics-lab/starter/report.html",
+    ],
+)
+def test_the_same_trace_anywhere_else_is_reported(
+    make_repository: Repository, path: str
+):
+    repository = make_repository(files={path: _TRACE})
+
+    assert rules(lesson_checks.check_committed_files(repository)) & {
+        "committed-artifact",
+        "product-layout",
+    }
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "products/physics-lab/fixtures/notes.md",
+        "products/physics-lab/fixtures/raw.csv",
+        "products/physics-lab/fixtures/Trace.json",
+    ],
+)
+def test_a_products_fixture_location_holds_nothing_but_traces(
+    make_repository: Repository, path: str
+):
+    repository = make_repository(files={path: "text"})
+
+    assert rules(lesson_checks.check_committed_files(repository)) == {"product-layout"}
+
+
+def test_the_learner_material_of_a_product_is_accepted(make_repository: Repository):
+    repository = make_repository(
+        files={
+            "products/physics-lab/README.md": "# Brief\n",
+            "products/physics-lab/examples/frequency-response.toml": "[protocol]\n",
+            "products/physics-lab/starter/pyproject.toml": "[project]\n",
+            "products/physics-lab/starter/my_lab/sweep.py": "",
+            "products/physics-lab/starter/tests/test_starter.py": "",
+        }
+    )
+
+    assert lesson_checks.check_committed_files(repository) == []
+
+
 @pytest.mark.parametrize(
     "path",
     [

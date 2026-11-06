@@ -261,6 +261,27 @@ def allowed_conditions(step: dict) -> list[str]:
     return []
 
 
+def test_the_starter_check_runs_in_a_job_with_the_full_history():
+    # ADR 022 decision 5 (F138): the at-pin check installs a starter's pinned
+    # commit from the repository's own history, without a fetch, so the job
+    # that runs it checks out every commit; the checkout keeps no credential.
+    # The other jobs keep the shallow default.
+    from support import verify_conf
+
+    group = verify_conf.groups()["starters"]
+    jobs = check_jobs()
+    [job] = [name for name, job in jobs.items() if group in groups_of(job)]
+    for name, job_ in load(CI)["jobs"].items():
+        checkouts = [s for s in job_["steps"] if s.get("uses", "").startswith(CHECKOUT)]
+        for checkout in checkouts:
+            options = checkout.get("with", {})
+            assert options.get("persist-credentials") is False, name
+            if name == job:
+                assert options.get("fetch-depth") == 0, name
+            else:
+                assert "fetch-depth" not in options, name
+
+
 def test_the_jobs_have_the_agreed_timeouts():
     # 45 minutes per job since 2026-10-11, by the owner, and kept by ADR 012,
     # decision 9, in place of the 30 of ADR 003; for the one job `build` of a

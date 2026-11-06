@@ -20,7 +20,10 @@ jobs:
   # no check is declared here (ADR 012). The job 'verify' at the end is the
   # one required status check on main.
 
-  # Lint, format, and the tests that need neither Lean nor a browser.
+  # Lint, format, and the tests that need neither Lean nor a browser. The
+  # full history, because the starter check installs each starter's pinned
+  # commit from the repository's own history, without a fetch (ADR 022
+  # decision 5).
   code:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
@@ -28,6 +31,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: ./.github/actions/prepare
       - name: Verify the group code
         run: ./scripts/verify.sh --all --only code
