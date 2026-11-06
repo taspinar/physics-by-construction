@@ -18,11 +18,15 @@ with a word that names nothing of the above, is a problem.
 """
 
 import html
+import importlib.util
 import json
+import os
+import platform
 import re
 import subprocess
 from collections.abc import Iterator
 from dataclasses import dataclass
+from functools import cache
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -121,9 +125,41 @@ def _plain_fences(text: str) -> str:
     )
 
 
+# The directory of the pandoc that ships in the quarto-cli package, by machine.
+_PANDOC_DIRECTORIES = {
+    "arm64": "aarch64",
+    "aarch64": "aarch64",
+    "x86_64": "x86_64",
+    "AMD64": "x86_64",
+}
+
+
+@cache
+def _bundled_pandoc() -> str | None:
+    """The pandoc that ships in the ``quarto-cli`` package, or None.
+
+    ``quarto pandoc`` starts Quarto's JavaScript runtime (deno) before it
+    starts this program: 0.3 s a call instead of 0.03 s, and deno now and
+    then crashes with a segmentation fault. Reading the claims of every
+    lesson starts a pandoc for each block, so the program is started directly.
+    The package pins its version, as ``quarto`` does.
+    """
+    directory = _PANDOC_DIRECTORIES.get(platform.machine())
+    spec = importlib.util.find_spec("quarto_cli")
+    if directory is None or spec is None:
+        return None
+    for location in spec.submodule_search_locations or ():
+        binary = Path(location) / "bin" / "tools" / directory / "pandoc"
+        if binary.is_file() and os.access(binary, os.X_OK):
+            return str(binary)
+    return None
+
+
 def _pandoc(arguments: list[str], text: str) -> str:
+    bundled = _bundled_pandoc()
+    command = [bundled] if bundled else ["quarto", "pandoc"]
     result = subprocess.run(
-        ["quarto", "pandoc", *arguments],
+        [*command, *arguments],
         input=text,
         capture_output=True,
         text=True,
