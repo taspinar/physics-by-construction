@@ -1078,8 +1078,15 @@ _GENERATED_SUFFIXES = {
         ".log",
     },
 }
-# Where pages take their content from.
-_SOURCE_TREES = (SITE, "src")
+# Where pages take their content from, and the learner material of the Part B
+# products (ADR 022 decision 5).
+PRODUCTS = "products"
+_SOURCE_TREES = (SITE, "src", PRODUCTS)
+# The one replay-fixture location of a product (ADR 022 decision 8 amending
+# ADR 002 condition 2): products/<product>/fixtures/<name>.json, the replay
+# traces of the product's and its starter's agent route.
+PRODUCT_FIXTURES = "fixtures"
+_PRODUCT_TRACE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\.json")
 # The interface artwork of the site and its provenance register.
 ASSETS = f"{SITE}/assets"
 ASSET_REGISTER = f"{ASSETS}/provenance.yaml"
@@ -1109,6 +1116,17 @@ def _lesson_file(path: Path) -> bool:
             parts[4] in (PAGE, REPLAY_FIXTURE)
             or _REPLAY_FIXTURE_NAMED.fullmatch(parts[4]) is not None
         )
+    )
+
+
+def _product_trace(path: Path) -> bool:
+    """Whether ``path`` is a replay trace at a product's fixture location."""
+    parts = path.parts
+    return (
+        len(parts) == 4
+        and parts[0] == PRODUCTS
+        and parts[2] == PRODUCT_FIXTURES
+        and _PRODUCT_TRACE.fullmatch(parts[3]) is not None
     )
 
 
@@ -1142,6 +1160,12 @@ def check_committed_files(repository: Path) -> list[Violation]:
     ``site/assets/`` that the provenance register names with an author and a
     licence, or a WebP or PNG there that it names with a complete raster
     entry (its origin, a licence, and the SHA-256 of its master).
+
+    A Part B product has one further fixture location (ADR 022 decision 8):
+    ``products/<product>/fixtures/<name>.json``, the replay traces of the
+    product's and its starter's agent route, exempt by that location alone;
+    the directory holds nothing else, and a trace anywhere else under
+    ``products/`` is reported like any other stored output.
     """
     violations = []
     artwork = _admitted_artwork(repository)
@@ -1162,6 +1186,23 @@ def check_committed_files(repository: Path) -> list[Violation]:
             continue
         in_lessons = path.parts[:2] == Path(LESSONS).parts
         if in_lessons and _lesson_file(path):
+            continue
+        if _product_trace(path):
+            continue
+        if (
+            path.parts[0] == PRODUCTS
+            and len(path.parts) > 3
+            and path.parts[2] == PRODUCT_FIXTURES
+        ):
+            violations.append(
+                Violation(
+                    "product-layout",
+                    path.as_posix(),
+                    f"{PRODUCTS}/<product>/{PRODUCT_FIXTURES}/ holds only the"
+                    " replay traces of the product and its starter,"
+                    " <name>.json, and nothing else",
+                )
+            )
             continue
         if path in artwork:
             continue

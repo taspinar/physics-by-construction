@@ -1,0 +1,20 @@
+# The example input of the Autonomous Physics Lab slice: one frequency sweep
+# of the prepared series RLC circuit (products/physics-lab/README.md).
+#
+#   uv run --locked --extra physics-lab python -m pbc.products.physics_lab \
+#       run --input products/physics-lab/examples/frequency-response.toml \
+#       --out physics-lab-run
+
+[protocol]
+low_hz = 1000.0         # the sweep's lowest frequency, Hz
+high_hz = 25000.0       # its highest frequency, Hz
+coarse_points = 13      # log-spaced points of the coarse sweep
+refine_points = 6       # points between the two that bracket -90 degrees
+amplitude_v = 1.0       # of the source, V (the envelope permits 0.01 to 2)
+periods = 8             # whole periods per acquisition
+samples_per_period = 64
+seed = 138              # of the channel noise; the same seed, the same run
+agent_budget = 16       # measurements the agent route may make
+# You confirm that the prepared circuit is connected; the product never
+# rewires it. Without this the instrument refuses to switch its output on.
+circuit_confirmed = true

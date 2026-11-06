@@ -81,3 +81,6 @@ data/downloads/
 # The implementer's record of how far the Issue is done. The scripts go on to
 # the commit and the pull request only when it says complete.
 .agents/completion/
+
+# The output of a local run of a Part B product (docs/products.md)
+/physics-lab-run*/

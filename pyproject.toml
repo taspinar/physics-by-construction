@@ -19,6 +19,14 @@ dependencies = [
 # learner who runs an agent lesson with their own key installs it; the site
 # build and CI never do.
 openai = ["openai>=3.42.0"]
+# The Autonomous Physics Lab (docs/products.md, question 19): what the
+# product's optional routes need beyond the default environment, one group
+# per product. Its live agent route uses the provider SDK; the live adapter
+# of a device (F140) adds its driver here. Its simulated and recorded routes
+# and its local interface need nothing beyond the default environment. Only
+# a learner who runs an optional route installs it; the site build and CI
+# never do.
+physics-lab = ["openai>=3.42.0"]
 
 [project.urls]
 Homepage = "https://taspinar.github.io/physics-by-construction/"

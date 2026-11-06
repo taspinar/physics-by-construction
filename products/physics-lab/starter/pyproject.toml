@@ -1,0 +1,29 @@
+# The starter of the Autonomous Physics Lab: the project a learner copies and
+# makes their own (products/physics-lab/starter/README.md).
+#
+# The pin is the `rev` of pbc below: the full hash of a verified commit on
+# main of Physics by Construction, from which uv installs pbc by its Git
+# address (ADR 022 decision 5). It is `pending` until the first pin bump
+# after the feature that created the starter merged; until then the starter
+# runs only inside the repository, against its current tree.
+[project]
+name = "my-physics-lab"
+version = "0.1.0"
+description = "My frequency-response lab, started from the Physics by Construction starter"
+requires-python = ">=3.14"
+dependencies = ["pbc"]
+
+[project.optional-dependencies]
+# What a live recording of the agent's trace needs (the provider SDK), from
+# the extra physics-lab of pbc: `uv sync --extra live`.
+live = ["pbc[physics-lab]"]
+
+[tool.uv.sources]
+pbc = { git = "https://github.com/taspinar/physics-by-construction", rev = "pending" }
+
+[dependency-groups]
+dev = ["pytest>=9.2.0"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
