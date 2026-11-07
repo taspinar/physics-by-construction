@@ -525,6 +525,44 @@ What the audit shows, and the principles it answers:
   explains the mechanism; it less often says what the number settles
   (Principle 5).
 
+## Pages that are not lessons
+
+This section is for the introduction of a course or a method path
+(`site/introductions/`, F156), the learning journey of the atlas and About
+(F157), and the copy of Home (F158). They share the register of the guide
+(precise, scoped, written to a reader who is respected) but they do not
+teach a result, so they have rules of their own.
+
+- **What such a page may claim.** It may say why a subject matters, what a
+  sequence asks, what the lessons do, and why they come in their order. It
+  claims nothing that a lesson does not show: no number, equation, or
+  result appears on an introduction except as the lesson that shows it, and
+  a sentence that a lesson page contradicts is a defect of the introduction.
+  A claim about the method says what the lessons do, for example that a
+  worked run of a model is a written example and not a live call, and does
+  not stretch to what an agent can do in general.
+- **An AI result is never a discovery.** A page that mentions an agent says
+  that the world is a toy world and that the evidence is the lesson's, and
+  never describes a result of an agent as a discovery of physics.
+- **How it refers to lessons and evidence.** Always by reference
+  (`{slot:...}`, `{sequence:...}`, `{term:...}`), never by a hand-written
+  title or link, so that a retitled lesson or a planned lesson that is
+  published is followed by itself. A planned lesson is named as planned and
+  is never described as if it existed; a page says "planned" where it names
+  one. Evidence is pointed to (the lesson, the glossary), not restated.
+- **It never repeats a lesson list by hand.** The lesson list, the counts,
+  the prerequisites, the capstone, and the published or planned state are
+  derived from the curriculum file and the front matter. Prose does not
+  count lessons or slots, and does not enumerate them as a catalogue; it
+  uses a few of them to say something about the order.
+- **Voice.** Inline Markdown only, in short paragraphs. Open with the
+  question or the use of the subject, not with a description of the page.
+  No promise ("master", "everything you need"), no boilerplate transition
+  repeated from page to page, no sentence that would fit any course if its
+  name were changed. A sequence that has no capstone project says so.
+- **Staying true.** A later feature that adds, moves, retitles, or removes a
+  lesson of a sequence re-reads its introduction in the same pull request.
+
 ## Sources used for this guide
 
 - Lessons read: mechanics 01 to 05, thermodynamics 01, waves 01, agents-abm

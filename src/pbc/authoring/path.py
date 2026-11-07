@@ -24,7 +24,13 @@ from pbc.authoring.progress import (
     raw_html,
     recommendations_markup,
 )
-from pbc.authoring.website import PAGE_FILE, page_href, project_root
+from pbc.authoring.website import (
+    PAGE_FILE,
+    introduced,
+    introduction_page,
+    page_href,
+    project_root,
+)
 
 _href = page_href
 
@@ -1019,6 +1025,9 @@ class LessonHeader:
     # concept, from the atlas manifest (pbc.authoring.atlas.connections), as
     # Markdown items; none for a lesson without them.
     connections: tuple[str, ...] = ()
+    # The sequences that have an introduction (F156): the course and the path
+    # of the lesson link to it.
+    introductions: frozenset[str] = frozenset()
 
     @classmethod
     def from_payload(cls, site: Path, page: str, payload: dict) -> LessonHeader:
@@ -1032,7 +1041,11 @@ class LessonHeader:
         lesson = path.at_page(page)
         atlas = Atlas(path, AtlasManifest.read(site, path.curriculum))
         return cls(
-            path, lesson, Glossary.read(site), tuple(connections(atlas, lesson, page))
+            path,
+            lesson,
+            Glossary.read(site),
+            tuple(connections(atlas, lesson, page)),
+            introduced(site),
         )
 
     def _repr_markdown_(self) -> str:
@@ -1063,6 +1076,7 @@ class LessonHeader:
         rows = [
             ("Course", f"{course_link}, {position}"),
             *([("Slot", slot)] if slot else []),
+            *self._introductions(),
             ("Methods", methods),
             ("Difficulty", level),
             ("What you'll learn", "\n" + outcomes),
@@ -1095,6 +1109,23 @@ class LessonHeader:
         )
         # The script that keeps the learner's progress in the browser.
         return header + raw_html(progress_markup(page, lesson, path))
+
+    def _introductions(self) -> list[tuple[str, str]]:
+        """The introductions of the lesson's course and, when it fills a slot
+        of a method path, of that path, as links by the sequence's name; none
+        for a lesson whose sequences have no introduction (F156)."""
+        page = self.lesson.page
+        found = [(_COURSE[self.lesson.course].id, _COURSE[self.lesson.course].title)]
+        slot = self.path.slot_of(self.lesson)
+        if slot is not None and slot.path:
+            method_path = self.path.curriculum.path(slot.path)
+            found.append((method_path.id, method_path.title))
+        links = [
+            f"[{title}]({_href(page, introduction_page(sequence_id))})"
+            for sequence_id, title in found
+            if sequence_id in self.introductions
+        ]
+        return [("Introduction", ", ".join(links))] if links else []
 
     def _connections(self) -> list[tuple[str, str]]:
         if not self.connections:

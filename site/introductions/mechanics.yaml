@@ -1,0 +1,136 @@
+# The introduction of the course Classical mechanics (F156, requirements
+# decision 43). Prose and references only: the title, the lessons, their
+# order and counts, the prerequisites, and the published or planned state
+# come from the curriculum file and the front matter when the page is built.
+# A reference is {sequence:<id>}, {slot:<label>}, or {term:<glossary term>}.
+# pbc.authoring.introductions describes the rules; docs/editorial-voice.md,
+# "Pages that are not lessons", the voice.
+sequence: mechanics
+
+why:
+  - >-
+    Mechanics is where physics first becomes a calculation. A body has a
+    position and a velocity; the net force on it, with its mass, sets how
+    its velocity changes; and from that rule alone the whole motion
+    follows, one small step after another.
+    Much of what comes later on this site, from a gas of colliding particles
+    to bodies that orbit one another, is the same idea with more bodies and
+    other forces. Learning it as a program makes the idea concrete: the state, the
+    update rule, and the assumptions are all there on the page, and you can
+    run them.
+  - >-
+    It is also the best place to learn what it means to trust a simulation.
+    A program that prints a trajectory has not yet shown anything. A
+    trajectory means something when it agrees with an exact solution, with a
+    limiting case, with a quantity that must be conserved, or with a
+    measurement, and the course asks that question of every result.
+
+questions:
+  - >-
+    How does a force turn into a motion, and how do you write that as a
+    program that someone else can run and check?
+  - >-
+    When does a numerical solution deserve trust, and what does an error
+    look like when it is not obvious?
+  - >-
+    Why do energy and momentum stay constant, and what does it tell you about
+    a simulation when they do not?
+  - >-
+    What changes when the motion cannot be solved in closed form, as for a
+    pendulum swung high, many bodies pulling on each other, or two rods hung
+    from one another?
+  - >-
+    How can the same laws be written from energies instead of forces, and
+    what does that buy?
+
+learn:
+  - >-
+    Write a motion as a state and an update rule, and step Newton's second
+    law for any force that is a function of the state ({slot:M1},
+    {slot:M2}).
+  - >-
+    Validate a simulation by an exact solution, by its limiting cases, and by
+    how its error shrinks with the step ({slot:M3}, {slot:M4}).
+  - >-
+    Choose an integrator for what the result has to be trusted for, and read
+    the energy drift as a diagnostic ({slot:M5}, {slot:M6}).
+  - >-
+    Use momentum, angular momentum, and the ellipse of a planet as checks and
+    as results ({slot:M7}, {slot:M8}).
+  - >-
+    Tell regular motion from chaos by how fast two nearly identical starts
+    separate, and follow a system through a bifurcation ({slot:M9},
+    {slot:M14}).
+  - >-
+    Obtain the equations of motion from the Lagrangian and the Hamiltonian,
+    and see what a symplectic step preserves ({slot:M10}, {slot:M11}).
+  - >-
+    Read a resonance curve, simulate many bodies and rigid bodies that turn,
+    and compare a calculation with a real signal ({slot:M12}, {slot:M13},
+    {slot:M17}, {slot:M16}).
+
+order:
+  - >-
+    The lessons begin with the smallest working simulation and add one
+    difficulty at a time. {slot:M1} and {slot:M2} fix the vocabulary and the
+    one stepper that the rest of the course reuses. {slot:M3} is the first
+    motion with no exact answer to compare with, so it is where checking by
+    limiting cases and by convergence is learnt; {slot:M4} supplies the test
+    system that every integrator is held to afterwards.
+  - >-
+    Only then does the course compare the integrators ({slot:M5}) and use
+    energy and momentum as tests ({slot:M6}, {slot:M7}), because those tests
+    are what lets you say which method to believe. {slot:M8} puts the tools
+    together on the problem that gave the subject its shape. The lessons
+    that follow stretch the same tools: chaos and bifurcations ({slot:M9},
+    {slot:M14}), the same mechanics written from energies ({slot:M10},
+    {slot:M11}), driven oscillators ({slot:M12}), many bodies ({slot:M13}),
+    and rotation ({slot:M17}).
+  - >-
+    The labs on measured data come last on purpose: they ask you to compare
+    what you calculate with a signal that was recorded, which is a harder
+    question than comparing it with a formula.
+
+method:
+  - >-
+    The method is the numerical experiment. Each lesson states a model with
+    its assumptions, writes it as a short program, runs it, and compares the
+    result with something outside the program: an exact solution, a limiting
+    case, a conserved quantity, or a measurement. The comparison is part of
+    the lesson, not an afterthought, and the build runs the code, so a figure
+    on the page is the output of the program beside it.
+  - >-
+    None of the lessons of this course uses an artificial-intelligence agent.
+    A simulation is the right tool because
+    the laws are known and the question is what they imply and how far a
+    calculation of them can be trusted. The method path {sequence:law-discovery}
+    turns the question around and asks how a law could be found when it is
+    not known, with this course as its test bed.
+
+capstone:
+  - >-
+    The curriculum has no separate capstone project for this course. The
+    lesson that its own text calls the physics capstone of the course is
+    {slot:M8}: two bodies under gravity, reduced to one, with the energy and
+    angular momentum that fix the orbit, the exact ellipse to measure
+    against, and every tool of the earlier lessons put to use.
+  - >-
+    Two later lessons carry the same orbit further. {slot:M13} removes the
+    exact solution and keeps only the conserved quantities as a check, and
+    {slot:M16} sets a calculation beside the measured signal of two
+    black holes spiralling together, saying at each step what was processed
+    and what the comparison does and does not establish.
+
+next:
+  - >-
+    The tools of this course are the starting point of most of the others.
+    The harmonic oscillator returns in {slot:W1}, {slot:Q3}, and
+    {slot:MAT1}, resonance in {slot:EM5}, the integrators in {slot:T5}, the
+    many-body code and chaos in {slot:AST1}, and the gravitational-wave
+    strain in {slot:AST6}. Choose among {sequence:thermodynamics}, {sequence:waves},
+    {sequence:electromagnetism}, {sequence:quantum}, {sequence:astrophysics},
+    and {sequence:materials} by the system you want to understand.
+  - >-
+    If you would rather ask how a law can be found from data, continue with
+    {sequence:law-discovery}, which uses the oscillator, the energy, and the
+    orbit of this course as its worlds.

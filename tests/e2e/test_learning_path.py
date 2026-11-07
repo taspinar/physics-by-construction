@@ -24,10 +24,12 @@ from pbc.authoring import DIFFICULTIES, METHODS, LearningPath
 from pbc.authoring.atlas import Atlas, AtlasManifest, connections
 from pbc.authoring.glossary import Glossary
 from pbc.authoring.path import PATH_PAGE, Lesson
+from pbc.authoring.website import introduced, introduction_page
 
 PATH = Path(PATH_PAGE).with_suffix(".html").as_posix()
 LESSON_PATH = LearningPath.read(SITE_SOURCE)
 GLOSSARY = Glossary.read(SITE_SOURCE)
+INTRODUCED = introduced(SITE_SOURCE)
 ATLAS = Atlas(LESSON_PATH, AtlasManifest.read(SITE_SOURCE, LESSON_PATH.curriculum))
 CONNECTIONS = {
     lesson.id: connections(ATLAS, lesson, lesson.page) for lesson in LESSON_PATH.lessons
@@ -204,9 +206,16 @@ def test_lesson_header_shows_the_facts_of_the_path_with_links(
             strict=True,
         )
     )
+    # F156: the sequences of the lesson that have an introduction, by name.
+    home = [lesson.course]
+    slot = LESSON_PATH.slot_of(lesson)
+    if slot is not None and slot.path:
+        home.append(slot.path)
+    introduced_here = [item for item in home if item in INTRODUCED]
     assert list(rows) == [
         "Course",
         *(["Slot"] if lesson.slot else []),
+        *(["Introduction"] if introduced_here else []),
         "Methods",
         "Difficulty",
         "What you'll learn",
@@ -224,6 +233,12 @@ def test_lesson_header_shows_the_facts_of_the_path_with_links(
         f"{course.title}, lesson {in_course.index(lesson) + 1} of {len(in_course)}"
     )
     assert _hrefs(rows["Course"], "a") == [f"{server.url}{PATH}#course-{course.id}"]
+
+    if introduced_here:
+        assert _hrefs(rows["Introduction"], "a") == [
+            f"{server.url}{introduction_page(item).removesuffix('.qmd')}.html"
+            for item in introduced_here
+        ]
 
     methods = [next(m for m in METHODS if m.id == item) for item in lesson.methods]
     assert rows["Methods"].inner_text() == ", ".join(m.title for m in methods)

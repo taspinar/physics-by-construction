@@ -24,9 +24,11 @@ from support.site_server import SiteServer
 
 from pbc.authoring.atlas import Atlas, AtlasSequence
 from pbc.authoring.path import PATH_PAGE
+from pbc.authoring.website import introduced, introduction_page
 
 PATH = Path(PATH_PAGE).with_suffix(".html").as_posix()
 ATLAS = Atlas.read(SITE_SOURCE)
+INTRODUCED = introduced(SITE_SOURCE)
 SEQUENCES = ATLAS.sequences()
 LESSONS = ATLAS.path.lessons
 WIDE = {"width": 1280, "height": 800}
@@ -369,6 +371,18 @@ def test_by_keyboard_alone_every_sequence_opens_and_every_published_lesson_is_re
             style, width = page.locator(":focus").evaluate(focus_ring)
             assert style not in ("none", "hidden") and width >= 1, lesson.id
             reached.add(lesson.id)
+        if sequence.id in INTRODUCED:
+            # F156: the panel ends with the link to the introduction.
+            page.keyboard.press(tab)
+            focused = page.evaluate(
+                "({inside: !!document.activeElement.closest("
+                f"'#{sequence.anchor} .atlas-introduction'), "
+                "href: document.activeElement.getAttribute('href')})"
+            )
+            assert focused["inside"], sequence.id
+            assert focused["href"] == (
+                "../" + introduction_page(sequence.id).removesuffix(".qmd") + ".html"
+            )
         if index + 1 < len(SEQUENCES):
             # The next Tab leaves the open card for the next summary.
             page.keyboard.press(tab)
