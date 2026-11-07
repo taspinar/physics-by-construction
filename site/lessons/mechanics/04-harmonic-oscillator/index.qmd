@@ -45,13 +45,18 @@ and it is the test system of the rest of the course: its exact motion is
 known for all time, and its energy is a quantity that must stay constant,
 which a simulation can be checked against at every single step.
 
-The check fails for explicit Euler, and this time the failure can be
-computed exactly. From the update rule alone, one step multiplies the energy
-of the oscillator by $1 + \omega^2\,\Delta t^2$, whatever the state and
-however small the step. The lesson derives that factor, shows the program
-reproducing it to round-off, and measures what it costs to keep the growth
-small. The next lesson replaces the method; a later lesson in the formal
-proofs strand proves the identity.
+The particle that came back further out is the puzzle of this lesson. The
+ideal spring has no friction and no motor: nothing in the model adds energy,
+and its mass would swing between the same two turning points forever. The
+simulated mass swings further out at every turn. Where does the extra energy
+come from? Not from a force: the only force is the spring's, and it only
+trades energy between the motion and the spring. It comes from the step
+itself, and this time the amount can be computed exactly. From the update rule alone, one step multiplies the energy of the
+oscillator by $1 + \omega^2\,\Delta t^2$, whatever the state and however
+small the step. We derive that factor, see the program reproduce it to
+round-off, and measure what it costs to keep the growth small. The next
+lesson replaces the method; a later lesson in the formal proofs strand
+proves the identity.
 
 ## Assumptions
 
@@ -101,8 +106,11 @@ m\,\frac{\mathrm{d}^2 x}{\mathrm{d}t^2} = -k\,x,
 \omega = \sqrt{\frac{k}{m}}.
 $$
 
-Sine and cosine are the functions whose second derivative is minus
-themselves, scaled, so
+The equation asks for a function whose second derivative is the function
+itself times $-\omega^2$. Differentiate $\cos(\omega t)$ twice and you get
+$-\omega^2\cos(\omega t)$ back; the same holds for $\sin(\omega t)$, and so
+for any mixture of the two. The two mixing constants are what is needed to
+match a starting position and a starting velocity, so
 
 $$
 x(t) = x_0 \cos(\omega t) + \frac{v_0}{\omega}\,\sin(\omega t),
@@ -110,8 +118,8 @@ x(t) = x_0 \cos(\omega t) + \frac{v_0}{\omega}\,\sin(\omega t),
 v(t) = -x_0\,\omega\,\sin(\omega t) + v_0 \cos(\omega t)
 $$
 
-solves the equation from any initial position $x_0$ and velocity $v_0$, as
-substitution confirms. The motion repeats after the **period**
+solves the equation from any initial position $x_0$ and velocity $v_0$; at
+$t = 0$ it gives $x_0$ and $v_0$. The motion repeats after the **period**
 $T = 2\pi/\omega$. The period does not depend on the amplitude: a large
 swing and a small one take the same time, which is what makes a spring, or
 a pendulum at small angles, a clock. The angular frequency $\omega$ is the
@@ -178,6 +186,15 @@ x_{n+1} = x_n + v_n\,\Delta t,
 v_{n+1} = v_n - \omega^2\,x_n\,\Delta t.
 $$
 
+Before the algebra, look at what this rule does on the ellipse above. Both
+lines use the rates at the start of the step, so the point moves in a
+straight line, in the direction it is heading at that instant: along the
+tangent of its ellipse. The exact motion bends round with the ellipse; the
+step does not bend. A straight line that touches an ellipse lies outside it
+everywhere else, so wherever the step starts, it ends on a larger ellipse,
+at a higher energy. That is where the extra energy comes from. The algebra
+says how much.
+
 Take the energy after the step, in the form
 $E = \tfrac{1}{2} m\,(v^2 + \omega^2 x^2)$, and substitute:
 
@@ -192,7 +209,10 @@ v_{n+1}^2 + \omega^2 x_{n+1}^2
 \end{aligned}
 $$
 
-The cross terms cancel and what remains factorises. So
+The cross terms, the ones of first order in $\Delta t$, are the change of
+energy along the tangent to that order, and they cancel for the same reason
+the exact energy is conserved: the tangent is the direction of the exact
+motion. What remains is of second order, never negative, and factorises. So
 
 $$
 E_{n+1} = \bigl(1 + \omega^2\,\Delta t^2\bigr)\,E_n
@@ -205,7 +225,7 @@ taken. After $n$ steps the energy is $(1 + \omega^2 \Delta t^2)^n E_0$ and
 the amplitude has grown by the square root of that. In phase space the
 computed point spirals outward, crossing ellipse after ellipse.
 
-The same step has a geometric reading. Scale the velocity to
+The tangent picture can be made exact. Scale the velocity to
 $y = v/\omega$, so that the exact orbit is a circle, and write
 $h = \omega\,\Delta t$. The update rule then reads
 
@@ -280,9 +300,12 @@ excerpt(oscillator.euler_energy_growth)
 
 The oscillator of the examples is the one from the last exercise of the
 Newton's laws lesson: half a kilogram on a spring of [2 N/m]{.given}. It is
-pulled out to one metre and let go. The time step is a fraction of the
-period, which makes $\omega\,\Delta t$ the quantity to watch; the cell starts
-with [64 steps per period]{.given}.
+pulled out to one metre and let go. The derivation tells us what to look
+for before the cell runs: the amplitude should grow at every swing, never
+shrink, and the simulated oscillation should fall slightly behind the exact
+one. The time step is a fraction of the period, which makes
+$\omega\,\Delta t$ the quantity to watch; the cell starts with
+[64 steps per period]{.given}.
 
 ```{python}
 #| echo: false
@@ -347,8 +370,10 @@ The axes are scaled so that the exact orbit is a circle: along the vertical
 axis one unit of velocity is drawn as long as $1/\omega$ units of position.
 In these coordinates each step of explicit Euler is a turn by the angle
 $\arctan(\omega\,\Delta t)$ and a stretch by $\sqrt{1 + \omega^2 \Delta t^2}$,
-which is why the spiral looks the same from every direction. The figure
-shows the same data as the table, and the stretch is the energy factor derived
+which is why the spiral looks the same from every direction. The spiral is
+the tangent step of the derivation repeated: each step leaves the circle it
+starts on for a slightly larger one, and none comes back. The figure shows
+the same data as the table, and the stretch is the energy factor derived
 above, to be checked next.
 
 ### The energy, step by step
@@ -398,7 +423,10 @@ result.show("fig-oscillator-energy-growth")
 
 ### Halving the time step
 
-The logarithm of the growth over a fixed time is
+A finer step is the obvious remedy. Before the table, predict what it
+changes: does the growth disappear once the step is small enough, or does it
+only slow down? The factor $1 + \omega^2 \Delta t^2$ holds the answer. The
+logarithm of the growth over a fixed time is
 $\tfrac{t}{\Delta t}\ln(1 + \omega^2 \Delta t^2)$, which is proportional to
 $\Delta t$ for small steps. The cell doubles the number of steps per period
 and watches the logarithm of the energy growth after three periods halve.
@@ -417,8 +445,22 @@ The observed order tends to one, from below: the logarithm of the factor is
 $\omega^2 \Delta t^2$ minus smaller terms, so coarse steps grow the energy
 a little less than the linear rule says. At
 `{python} result["finest-steps"]` steps per period the energy still grows by
-`{python} result["finest-growth"]` per cent over three periods. The
-first exercise asks what one per cent costs.
+`{python} result["finest-growth"]` per cent over three periods. So the
+growth slows as the step shrinks, its logarithm in proportion to the step for
+small steps,
+but it does not disappear: the step size sets only how fast it shows.
+
+We began with a spring that came back further out than it started. No
+force put the energy in: the step of explicit Euler moves along the tangent
+of the orbit, so it leaves the ellipse of constant energy at every step, and
+the program reproduces the factor to round-off. Here the energy, which the
+physics conserves, could be checked at every step. Here, for explicit Euler
+on a linear spring, the drift changes with the time step, and the physics does
+not know the time step, so the drift belongs to the method. Whether the same
+check would serve for another method or another force is a possibility that
+needs further checks; this lesson does not show it. And a method that feeds energy in can hide a real loss,
+as the second exercise shows. What it costs to hold the growth to one
+per cent is the first exercise.
 
 ## Limits {#limits}
 
