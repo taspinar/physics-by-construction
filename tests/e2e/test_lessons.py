@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser, Page
 from support import lesson_checks, site_checks
-from support.budgets import budget_seconds
+from support.budgets import check_within_budget
 from support.experiments import compare_with_page, split_footer_commands
 from support.paths import REPO_ROOT, SITE_SOURCE
 from support.site_checks import DESKTOP, PHONE, describe
@@ -23,9 +23,11 @@ from support.site_server import SiteServer, configured_repository_url
 
 from pbc.authoring.reproduce import HEADINGS, LEAN_EXPERIMENT, kind_of
 
-# A lesson page may take this long to execute and render (architecture, "CI
-# pipeline and time budget"), unless scripts/lesson-budgets.conf gives the
-# lesson its own budget.
+# A lesson page may take less than its limit to execute and render, and the
+# experiment of a lesson to run: the limit and the warning threshold are in
+# scripts/lesson-budgets.conf (ADR 020 decision 6, architecture, "CI pipeline
+# and time budget"). A duration from the threshold up to the limit passes with
+# a warning in the report of the run.
 
 # Every lesson of the repository, as the path of its built page.
 LESSONS = [
@@ -467,7 +469,7 @@ def test_reproduce_commands_regenerate_the_page_within_the_time_budget(
         regenerated = clone / "site" / "_site" / figure
         assert regenerated.read_bytes() == (site_dir / figure).read_bytes(), figure
 
-    assert seconds < budget_seconds(lesson)
+    check_within_budget(lesson, seconds)
 
 
 @dataclass(frozen=True)
@@ -517,7 +519,7 @@ def test_the_experiment_regenerates_the_figures_and_numbers_of_the_page(
         seconds = _run(experiment, learner.clone, learner.env)
         results = tmp_path / "results"
         shutil.move(learner.clone / "results", results)
-        assert seconds < budget_seconds(lesson)
+        check_within_budget(lesson, seconds)
     # The proofs the page shows, with the reader's Lean commands; the cache
     # of Mathlib is shared, so 'lake exe cache get' has nothing to fetch.
     for command in lean:

@@ -20,16 +20,17 @@ set -euo pipefail
 # --locked`, so the page's package is the clone's and reads the clone's
 # files: the record of its Lean build, its data), with the Lean build first
 # in the clone when a selected lesson displays Lean modules, and `uv run
-# --locked quarto render <page>` there, within the budget of a lesson
-# page (30 seconds, or the one scripts/lesson-budgets.conf gives the lesson).
-# A failing cell, an equation that cannot become MathML, or a slow page fails
-# the check. When a file under lean/ differs from the base
+# --locked quarto render <page>` there, within the limit of a lesson page
+# (scripts/lesson-budgets.conf: 60 seconds, or the larger one the file gives the
+# lesson; a page that takes 30 seconds or more passes with a warning, ADR 020
+# decision 6). A failing cell, an equation that cannot become MathML, or a
+# page at its limit fails the check. When a file under lean/ differs from the base
 # branch, it also runs the Lean build of this checkout, so a changed proof
 # that no selected lesson displays is checked too. Then it runs the
 # experiment of each selected lesson with a reader's commands (ADR 016
 # decision 4): in one learner environment of the clone (`uv sync --locked
 # --no-dev`, apart from the environment the pages rendered with), within the
-# budget of the lesson, and compares what the experiment wrote with the page it
+# limit of the lesson, and compares what the experiment wrote with the page it
 # rendered: the figure files byte for byte, the numbers at the precision the
 # page shows. It never builds the site.
 #
@@ -40,7 +41,6 @@ set -euo pipefail
 default_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 root="${1:-$default_root}"
 project="${UV_PROJECT:-$root}"
-default_budget_seconds=30
 budgets_file="$root/scripts/lesson-budgets.conf"
 
 fail() {
@@ -54,8 +54,31 @@ git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
   fail "$root is not a Git working tree; the clone of the working tree needs one."
 selection_file="$root/.agents/verification/selection.json"
 
-# The budget of a lesson in seconds: the default of 30, or the one that
-# scripts/lesson-budgets.conf gives it with its reason.
+# A setting of scripts/lesson-budgets.conf, the one source of the numbers
+# (ADR 020 decision 6): 'warn-seconds: 30'. A setting that is missing or is no
+# number fails the check; nothing is guessed here.
+setting_of() {
+  local value warn limit
+  value="$(raw_setting "$1")" || return 1
+  warn="$(raw_setting warn-seconds)" || return 1
+  limit="$(raw_setting limit-seconds)" || return 1
+  (( value > 0 )) || fail "$budgets_file: '$1' must be positive, not $value."
+  (( warn < limit )) ||
+    fail "$budgets_file: warn-seconds ($warn) must be below limit-seconds ($limit)."
+  echo "$value"
+}
+
+raw_setting() {
+  local value
+  value="$(awk -F: -v name="$1" '
+    $1 == name { gsub(/[[:space:]]/, "", $2); print $2; exit }
+  ' "$budgets_file")"
+  [[ "$value" =~ ^[0-9]+$ ]] || fail "$budgets_file has no number for '$1'."
+  echo "$value"
+}
+
+# The limit of a lesson in seconds: the larger one that
+# scripts/lesson-budgets.conf gives it with its reason, or its limit-seconds.
 budget_of() {
   local seconds
   seconds="$(awk -F'|' -v lesson="${1#site/}" '
@@ -63,7 +86,40 @@ budget_of() {
     { key = $1; gsub(/^[[:space:]]+|[[:space:]]+$/, "", key) }
     key == lesson { gsub(/[[:space:]]/, "", $2); print $2; exit }
   ' "$budgets_file")"
-  echo "${seconds:-$default_budget_seconds}"
+  if [[ -z "$seconds" ]]; then
+    seconds="$(setting_of limit-seconds)" || return 1
+  else
+    local warn
+    warn="$(setting_of warn-seconds)" || return 1
+    [[ "$seconds" =~ ^[0-9]+$ ]] && (( seconds > warn )) ||
+      fail "$budgets_file: the limit of ${1#site/} ($seconds) must be a number above warn-seconds ($warn)."
+  fi
+  echo "$seconds"
+}
+
+# The verdict on a duration in whole seconds, the same rule as the tests
+# (tests/support/budgets.py): 'ok' below warn-seconds, 'warn' from there up to
+# the limit of the lesson, 'fail' at the limit and above.
+verdict_of() {
+  local limit warn
+  limit="$(budget_of "$1")"
+  warn="$(setting_of warn-seconds)"
+  if [[ "$2" -ge "$limit" ]]; then
+    echo fail
+  elif [[ "$2" -ge "$warn" ]]; then
+    echo warn
+  else
+    echo ok
+  fi
+}
+
+# A lesson at or above the warning threshold passes and is reported, here and
+# again at the end of the run; it never fails the check.
+time_warnings=()
+warn_slow() {
+  local message="$1 took $2 s, above the warning threshold of $(setting_of warn-seconds) s (its limit is $3 s)"
+  echo "Warning: $message" >&2
+  time_warnings+=("$message")
 }
 
 # The tier of the selection and the lessons it executes, one per line.
@@ -194,8 +250,10 @@ for lesson in "${lessons[@]}"; do
     cat "$log" >&2
     fail "an equation of $page could not be converted to MathML."
   fi
-  [[ "$seconds" -lt "$budget_seconds" ]] ||
-    fail "the page $page took $seconds s to render; the budget of a lesson page is $budget_seconds s."
+  case "$(verdict_of "$lesson" "$seconds")" in
+    fail) fail "the page $page took $seconds s to render; the budget of a lesson page is $budget_seconds s." ;;
+    warn) warn_slow "the page $page" "$seconds" "$budget_seconds" ;;
+  esac
   echo "Rendered $page in $seconds s"
 done
 
@@ -226,8 +284,10 @@ for lesson in "${lessons[@]}"; do
     fail "the experiment of $lesson failed."
   fi
   seconds=$(($(date +%s) - started))
-  [[ "$seconds" -lt "$budget_seconds" ]] ||
-    fail "the experiment of $lesson took $seconds s; the budget of a lesson is $budget_seconds s."
+  case "$(verdict_of "$lesson" "$seconds")" in
+    fail) fail "the experiment of $lesson took $seconds s; the budget of a lesson is $budget_seconds s." ;;
+    warn) warn_slow "the experiment of $lesson" "$seconds" "$budget_seconds" ;;
+  esac
   built="$clone/site/_site/${lesson#site/}/index.html"
   if ! (cd "$clone" && env -u UV_PROJECT uv run --locked python -c '
 import sys
@@ -246,3 +306,7 @@ sys.exit(1 if problems else 0)
   echo "Ran the experiment of $lesson in $seconds s; it writes what its page shows"
 done
 echo "Rendered ${#lessons[@]} selected lesson page(s) alone and ran their experiments; no site was built."
+if [[ "${#time_warnings[@]}" -gt 0 ]]; then
+  echo "Warnings (${#time_warnings[@]}), the check passed:" >&2
+  printf '  %s\n' "${time_warnings[@]}" >&2
+fi

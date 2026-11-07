@@ -476,6 +476,50 @@ GitHub API, 2026-10-19).
     stops the pilot and puts that level back at full strictness until the
     owner decides); and the baseline of the change request's section 1.
 
+### Addendum to decision 6 (Issue #383, 2026-11-05): one budget rule for every lesson
+
+On 2026-11-05 the owner replaced the hard 30-second budget of a lesson, with
+an exception for each lesson that came close, by one rule for every lesson:
+"a measurement threshold at 30 s that warns, and a hard limit of 60 s for
+every lesson". The reason is the evidence of Issues #374, #376, #261, #272
+and #267: CI runners measure about twice the developer machine, so a lesson
+at about 15 s locally sits at the edge of 30 s on CI, and three runs of
+`main` in two days (41790340315, 41832366470, 41965790194) failed on one
+lesson at 30.3 to 30.7 s alone. Decision 6 stands in everything else: the
+budget stays a hard check, an exception needs a reason and the owner's
+approval, and a budget is never met by changing the scientific content of a
+lesson. It changes the number and adds one outcome:
+
+- A render of a lesson page and the run of its experiment that take less
+  than the warning threshold (30 s) pass silently; from the threshold up to
+  the limit they pass and are reported as a warning in the report of the
+  check, which never fails a verification; at the limit or above they fail.
+  A duration exactly at a boundary belongs to the higher outcome (30 s warns,
+  the limit fails), because the existing rule was "under the budget".
+- The limit is 60 s for every lesson. A line of `scripts/lesson-budgets.conf`
+  only raises the limit of one lesson above that and needs its reason and the
+  owner's approval; a line at or below the limit is redundant and a test
+  refuses it. `lessons/agents-abm/01-particles-in-a-box` keeps its 90 s
+  (#272: its reproduction measured 67 to 69 s). The 60-second lines of
+  `mechanics/08`, `mechanics/11` and `mechanics/12` (#261) are the default
+  now and were removed; the lines proposed in #374 and #376 are not needed.
+- The threshold and the limit are in that file and nowhere else: the shell
+  check `scripts/check-lesson-pages.sh` and the reproduction tests of
+  `tests/e2e/test_lessons.py` read it, and a test shows that they judge every
+  duration the same way, at the boundaries and for the exception.
+- Raising the threshold or the limit is the escalation trigger "a budget
+  widened" and is Level 3. This addendum changes no wall-clock budget of a
+  run, no payload budget (#264, #318, #319), and the build timeout of 120
+  minutes (#373) stays what it is. It amends the lesson budget in the
+  consequences of ADR 002, decision 5 of ADR 003 and the row "one lesson page,
+  executed" of its table, in the same respect as decision 6 above.
+  The dated notes of ADR 002 and ADR 003 say so. In `docs/PROJECT_REQUIREMENTS.md`
+  one sentence is synchronised, by the owner's word of 2026-11-06 on this
+  Issue (option 1: a factual update of the one statement, no planning change):
+  decision 30's "30-second lesson page budget keep failing" now names the
+  limit of 60 seconds with the warning from 30. No other line of the
+  requirements and no line of the roadmap changes.
+
 ## Alternatives considered
 
 - **Mechanism B: an approval artifact signed with a key only the owner
