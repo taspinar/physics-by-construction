@@ -1872,7 +1872,8 @@ never in flight together.
       decide the capacity at 44 at the latest, or earlier if a complete
       `main` run exceeds 45 minutes); it starts no mandatory optimisation
       and never changes scientific content; hard checks such as the
-      30-second lesson page budget keep failing, with the documented
+      lesson page limit (a warning from 30 seconds, a failure at 60 by default,
+      ADR 020 addendum, Issue #383) keep failing, with the documented
       exception table. A small time log appended by `verify.sh`
       (timestamp, tier, tree, duration, result) serves the evaluation and
       is read by no gate; the base is not re-fetched when the latest

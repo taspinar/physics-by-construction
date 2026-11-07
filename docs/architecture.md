@@ -591,7 +591,8 @@ pinning") with a fix hint.
    outside the budget; never the environment of the checkout), writes the
    figure files of the built page byte for byte (the one encoder of
    `pbc.experiment` produced both) and its numbers at their displayed
-   precision, within the 30-second budget of a lesson; and the internal
+   precision, within the budget of a lesson (a warning from 30 seconds, a failure at
+   its limit, 60 by default); and the internal
    render of each page in a fresh clone regenerates the published page.
    These two are the tests marked `same_machine` of the check
    `site-checks-reproduction` in the group `build` (ADR 016 decision 4,
@@ -858,7 +859,7 @@ lesson model with these additions (requirements decision 26, non-goals,
    physical validation.
 4. **Required path on the pinned stack, heavy tools optional.** The
    deterministic path of every lesson runs on NumPy and SciPy within the
-   30-second page budget, with small meshes, regionally cropped grids, and
+   page budget (a warning from 30 seconds, a limit of 60), with small meshes, regionally cropped grids, and
    bounded tests. FEniCSx, Gmsh, GeoClaw, Clawpack, Dedalus, REBOUND, QuTiP,
    PySR, and the like are optional local comparators. What such a tool
    produces for a page (a reference solution on a mesh, a reference
@@ -1832,7 +1833,7 @@ Budget (required by the requirements; rationale in ADR 003):
 | Job timeout | 45 minutes per job, and for the one `build` job of a full run 120 minutes since the owner's decision of 2026-11-04 (Issue #373: a complete run on `main` at 94 lessons, `683a8b3`, took 75 minutes in the `build` job, 83 % of 90, and 110 lessons are projected at about 88 minutes, a projection; the owner's interim full-run gate, ADR 014 status, Issue #278: up to 110 lessons, the whole reference curriculum, as a planning boundary that no check enforces; the points of 75 and 95 lessons are reached, and the next decision is the owner's earlier if a complete run on `main` approaches 100 minutes, repeated runs show too little margin, or verification failures point to a capacity problem; the accepted cost is a run on `main` of up to about 120 minutes and a later publication after a merge, while pull requests are not affected); 90 minutes from 2026-10-24 (Issue #278, decided again earlier at a run approaching 80 minutes; superseded history); 60 minutes from 2026-10-15, approved for up to 45 lessons and, by the decision of 2026-10-21, for up to 64 lessons (superseded history); 30 in ADR 003; raised by the owner on 2026-10-11, kept by ADR 012, decision 9, and by ADR 014, decision 7, which bounds a full run with shards instead of raising it); unchanged by ADR 015; the timeout of the one job of an exceptional full run is reconsidered from measurements under ADR 017 and unresolved question 10 |
 | Unit tests | 2 minutes or less |
 | Lean build after the Mathlib cache is in place | 3 minutes or less |
-| One lesson page, executed | 30 seconds or less |
+| One lesson page, executed | A warning from 30 seconds; a failure at the 60-second default limit (ADR 020 decision 6, addendum 2026-11-05) |
 | One full site build | 3 minutes or less |
 
 Mathlib is never compiled from source in CI; if its cache cannot be fetched
@@ -2007,7 +2008,7 @@ Per-page and per-lesson budgets that the next phase adds:
 
 | Measure | Budget | Checked by |
 |---|---|---|
-| Executed time of a measured-data lesson page | 30 seconds, as any lesson; the sample size is chosen for it | Site build (F51) |
+| Executed time of a measured-data lesson page | As any lesson: a warning from 30 seconds, a limit of 60; the sample size is chosen for it | Site build (F51) |
 | Committed dataset sample | 2 MB per file, 8 MB per dataset, 32 MB for all of `data/samples/` | Dataset check (F50, ADR 007) |
 | Initial payload of a page (HTML, CSS, fonts, static figures, embedded widget data), measured for the page opened on its own, so shared files count for every page | 3 MB transferred | Built-site check (F44) |
 | The Learning path page together with the preview of every lesson it shows | 4 MB (the decision of 2026-10-23, Issue #264; 3 MB before that). With PNG previews the page measured 4,022,544 bytes at 75 lessons, and the budget was 4.5 MB for a time (owner's decision of 2026-10-28, Issue #318). Issue #319 measured what contributes and made the previews lossless WebP, every pixel kept in about half the bytes: at 74 lessons the page is 2,089,970 bytes (HTML about 741 KB; the shared style sheets, scripts and fonts the rest) and its previews 1,038,930 bytes (1,893,798 as PNG), 3,128,900 in all; each lesson adds about 7 KB of HTML and 14 to 16 KB of preview, about 3.9 MB at 110 lessons. The budget is a fixed number, not one that grows with the lesson count. Every other page keeps the 3 MB above | Built-site check (F63) |
@@ -2203,7 +2204,9 @@ job's duration and the run's total duration reported separately; the
 former points of 42 and 44 lessons, of 55 and 60 lessons, and of 75 and 95
 lessons or a run approaching 80 minutes, are superseded history); it starts no
 mandatory optimisation and never changes scientific content; hard checks
-keep failing, with the exception table `scripts/lesson-budgets.conf`.
+keep failing, with the table of limits `scripts/lesson-budgets.conf`: a lesson
+page that takes 30 seconds or more passes with a warning and one that takes
+its limit (60 seconds, or its own larger one) fails (addendum of 2026-11-05).
 `./scripts/verify.sh` appends one line per run (timestamp, tier, tree,
 duration, result) to a per-machine log outside the worktrees, never
 committed and read by no gate; `scripts/fetch-base.sh` does not fetch
@@ -2405,11 +2408,11 @@ that must settle them:
   The link is labelled accordingly (F08).
 - **Automated accessibility checks cover only part of WCAG 2.1 AA.** A manual
   audit is part of each release gate.
-- **Page time grows with content.** Every lesson adds up to 30 seconds of
-  execution and its share of the built-site checks; F58 ran the checks in
+- **Page time grows with content.** Every lesson may spend up to 60 seconds of
+  execution (a warning from 30 seconds, a failure at the 60-second default limit) and its share of the built-site checks; F58 ran the checks in
   parallel, and F61 (ADR 014) makes a pull request pay only for what it
   changed. A measured-data lesson must choose its sample size for the 30
-  second budget, which may mean a coarser or shorter sample than the full
+  second warning threshold, which may mean a coarser or shorter sample than the full
   dataset; a finite-element or tsunami lesson chooses its mesh and grid for
   it.
 - **Rendering without execution still costs time.** With a base, Quarto

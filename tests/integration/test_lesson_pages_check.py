@@ -238,14 +238,37 @@ def test_a_page_that_does_not_render_fails_the_check(tree, tmp_path):
 
 
 def test_a_lesson_over_its_budget_fails_the_check(tree, tmp_path):
-    # A budget of 0 s, which no render can stay under: the check compares the
+    # A budget of 2 s (above a warning threshold of 1 s, which the table
+    # requires), which no render can stay under: the check compares the
     # seconds with the budget of the lesson's own entry and fails.
-    set_budget(tree, KINEMATICS, 0, "a budget no render can meet")
+    table = tree / "scripts" / "lesson-budgets.conf"
+    table.write_text(table.read_text().replace("warn-seconds: 30", "warn-seconds: 1"))
+    set_budget(tree, KINEMATICS, 2, "a budget no render can meet")
     select(tree, [KINEMATICS], "targeted")
     result = check(tree, tmp_path)
     assert result.returncode != 0
     assert f"the page {KINEMATICS}/index.qmd took " in result.stderr
-    assert "the budget of a lesson page is 0 s" in result.stderr
+    assert "the budget of a lesson page is 2 s" in result.stderr
+
+
+def test_a_page_at_the_warning_threshold_passes_and_the_check_reports_it(
+    tree, tmp_path
+):
+    # The warning threshold of the copy's own table is 1 s, so that the render
+    # and the experiment are at it whatever they take (each takes longer than
+    # a second; ADR 020 decision 6): the check passes, says so on each, and
+    # lists them again at the end.
+    table = tree / "scripts" / "lesson-budgets.conf"
+    text = table.read_text()
+    assert "warn-seconds: 30" in text
+    table.write_text(text.replace("warn-seconds: 30", "warn-seconds: 1"))
+    select(tree, [KINEMATICS], "targeted")
+    result = check(tree, tmp_path)
+    assert result.returncode == 0, output(result)
+    assert f"Warning: the page {KINEMATICS}/index.qmd took " in result.stderr
+    assert f"Warning: the experiment of {KINEMATICS} took " in result.stderr
+    assert "above the warning threshold of 1 s" in result.stderr
+    assert "Warnings (2), the check passed:" in result.stderr
 
 
 def test_an_experiment_that_does_not_write_what_its_page_shows_fails(tree, tmp_path):

@@ -49,8 +49,9 @@ unchanged.
 
 Amended by [ADR 020](020-risk-proportionate-verification-and-review.md) (2026-10-19, change cycle
 `risk-proportionate-workflow`, requirements decision 39) in one process
-statement of the consequences below, the lesson budget: the 30 seconds per
-lesson stay a hard check that fails, with the documented exception table
+statement of the consequences below, the lesson budget: a lesson
+warns from 30 seconds and fails at its limit, 60 seconds by default (the
+addendum of ADR 020 decision 6, Issue #383, replaced the hard 30 seconds), with the documented exception table
 `scripts/lesson-budgets.conf` (a lesson listed there has its own budget,
 with a reason and the owner's approval; both checks read the table); an
 exceeded wall-clock budget of a run is a measurement for the owner's
@@ -159,7 +160,9 @@ Positive:
 
 Negative, with mitigations:
 
-- Every build pays the full execution cost. Budget: 30 seconds per lesson and
+- Every build pays the full execution cost. Budget: a warning from 30 seconds
+  and a failure at 60 seconds per lesson (the addendum of ADR 020 decision 6,
+  Issue #383; it was a hard 30 seconds) and
   3 minutes per site build (architecture, ADR 003). A lesson that needs a
   longer computation must reduce its problem size or mark a precomputed result
   "not verified".

@@ -53,7 +53,7 @@ and decided by the owner at the re-assessment points ADR 020 decision 6
 names (42 lessons measured, 44 decided, or a complete run on `main` above
 45 minutes); the order of responses of decision 6 is what the owner
 chooses from, not a standing obligation, and nothing of it ever changes
-scientific content; a hard check such as the 30-second lesson page budget
+scientific content; a hard check such as the lesson page limit (60 seconds since Issue #383, warning from 30)
 keeps failing, with the documented exception table. The "45 minutes per
 job" above is the timeout of every job but one: the one `build` job of a
 full run has had 60 minutes since the owner's interim full-run gate of
@@ -109,7 +109,7 @@ filter blocks merging.
    | Job timeout | 30 minutes |
    | Unit tests | 2 minutes or less |
    | Lean build after the Mathlib cache is in place | 3 minutes or less |
-   | One lesson page, executed | 30 seconds or less |
+   | One lesson page, executed | warning from 30 seconds, failure at 60 seconds (ADR 020 addendum to decision 6, Issue #383; was 30 seconds or less) |
    | One full site build | 3 minutes or less |
 
    The budget includes a second site build for the determinism check.
