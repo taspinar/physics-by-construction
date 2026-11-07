@@ -45,15 +45,19 @@ stretched, air drag pushes harder the faster the particle goes. The
 acceleration is a function of the *state*, and the program has to compute it
 from the state at every step.
 
-This lesson builds that program in three parts that the rest of the course
-keeps: force models as plain functions, Newton's second law as the function
-that turns their sum into an acceleration, and a stepper with a fixed
-signature, so that a later lesson can swap explicit Euler for a better method
-without touching anything else. The test problem is a particle falling
-against linear drag, one of the few problems with forces that has an exact
-solution to compare with. The comparison also shows a new way for a
-simulation to fail: not slowly, through accumulated error, but suddenly, when
-the time step is too large for the method.
+The program built here has three parts, and the rest of the course keeps
+them apart on purpose. A force is a plain function of the state. Newton's
+second law is the one function that turns the forces into an acceleration.
+The stepper only advances the state, through a fixed signature. Because the
+parts are separate, a better method later can take the place of explicit
+Euler without touching a force.
+
+The test problem is a particle falling against linear drag, one of the few
+problems with forces that has an exact solution to compare with. The
+comparison also shows a new way for a simulation to fail: not slowly, through
+accumulated error, but suddenly, when the time step is too large for the
+method. Then the simulated particle does something the real one never does,
+and the lesson is about telling the two apart.
 
 ## Assumptions
 
@@ -135,7 +139,9 @@ $$
 
 The **update rule** is explicit Euler, exactly as in the first lesson, except
 that the acceleration is evaluated at the whole state instead of at the time
-alone:
+alone. One step therefore runs the same chain every time: from the state, the
+force models give the forces; their sum over the mass gives the acceleration;
+the acceleration and the old velocity give the next state.
 
 $$
 \begin{aligned}
@@ -144,6 +150,7 @@ $$
 \end{aligned}
 $$
 
+Inside that chain the forces are the only part that depends on the situation.
 The weight does not change, but the drag follows the velocity, so the net
 force does not stay the same during a fall. The sketch shows three moments
 of one fall.
@@ -242,12 +249,16 @@ $\tfrac{1}{2}(\Delta t/\tau)^2$ per step, and over $t/\Delta t$ steps that
 accumulates into an error proportional to $\Delta t$, as for every
 first-order method.
 
-The formula also says what happens when the step is large. For
+Before reading on, predict from the factor $1 - \Delta t/\tau$ what the
+computed velocity does for a large step. On which side of the terminal
+velocity does each new value land, and for which steps does it stay on one
+side? For
 $\Delta t > \tau$ the factor is negative: the computed velocity jumps past
 the terminal velocity and back, alternating sides. For $\Delta t > 2\tau$ the
 factor is less than $-1$, and the alternation grows without bound. The exact
 solution does nothing of the kind, because $e^{-\Delta t/\tau}$ is positive
-and below one for every step. This is **instability**, and it is a property
+and below one for every step: the real velocity approaches the terminal
+velocity from one side and never crosses it. This is **instability**, and it is a property
 of the method and the step, not of the physics. [Explicit Euler on linear
 drag converges to the terminal velocity only for $\Delta t < 2\tau$, and
 alternates around it for $\Delta t > \tau$.]{.claim
@@ -259,7 +270,9 @@ purpose.
 
 The reusable code lives in two modules of the repository,
 `pbc.mechanics.dynamics` and `pbc.mechanics.drag`. The listings in this
-section are read from those files when the site is built.
+section are read from those files when the site is built. They follow the
+chain of the update rule: the state, the force models, the function that
+makes an acceleration of them, and last the stepper.
 
 The state carries vectors now. Lists and numbers are converted, so that
 `State(t=0.0, x=0.0, v=0.0)` describes a particle on a line and
@@ -273,7 +286,8 @@ excerpt(dynamics.State)
 A force model is any function that takes the time, the position, and the
 velocity and returns the force as a vector of the same shape. Newton's second
 law is the function that turns a mass and any number of force models into the
-acceleration function that a stepper needs:
+acceleration function that a stepper needs. The stepper never sees the forces,
+only the acceleration, which is why a new force model leaves it unchanged:
 
 ```{python}
 #| echo: false
@@ -538,9 +552,11 @@ constant.
 
 ::: {.exercise}
 **Too large a step.** The time constant of the falling particle is
-`{python} result["tau-whole"]` s. Predict what explicit Euler computes for the
-velocity with a time step of 3 s and with one of 5 s, then run both for ten
-steps and look at the sequence of computed velocities.
+`{python} result["tau-whole"]` s. Should the falling particle ever lie
+alternately above and below its terminal velocity? Then predict from the
+factor $1 - \Delta t/\tau$ what explicit Euler computes for the velocity with
+a time step of 3 s and with one of 5 s, and run both for ten steps and look at
+the sequence of computed velocities.
 
 ::: {.solution}
 The computed difference to the terminal velocity is multiplied by
