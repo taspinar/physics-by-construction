@@ -709,3 +709,34 @@ def test_every_connection_and_membership_reaches_a_published_lesson_or_a_planned
         if any(ATLAS.lessons_of(end) for end in ends):
             assert any(connection.rationale in text for text in shown)
     assert CONNECTION_TYPES
+
+
+# --- Malformed field types are reported, never raised (#245) --------------------
+
+
+@pytest.mark.parametrize("wrong", [["mechanics"], {"a": 1}, 3, None])
+def test_a_concept_area_of_the_wrong_type_is_a_problem(wrong):
+    found = broken(lambda d: d["concepts"][0].update(area=wrong))
+
+    assert any("'area'" in problem for problem in found)
+
+
+@pytest.mark.parametrize("wrong", [[["x"]], [{"a": 1}], "slot", {"a": 1}, [None]])
+def test_concept_slots_of_the_wrong_type_are_a_problem(wrong):
+    found = broken(lambda d: d["concepts"][0].update(slots=wrong))
+
+    assert any("'slots'" in problem or "slot" in problem for problem in found)
+
+
+@pytest.mark.parametrize("wrong", [["related"], {"a": 1}, 3, None])
+def test_a_connection_type_of_the_wrong_type_is_a_problem(wrong):
+    found = broken(lambda d: d["connections"][0].update(type=wrong))
+
+    assert any("'type' must be one of" in problem for problem in found)
+
+
+@pytest.mark.parametrize("wrong", [[["a"], "b"], [{"a": 1}, "b"], ["a", ["b"]]])
+def test_an_unhashable_connection_endpoint_is_a_problem(wrong):
+    found = broken(lambda d: d["connections"][0].update(concepts=wrong))
+
+    assert any("'concepts' must name two concepts" in problem for problem in found)

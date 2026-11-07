@@ -474,3 +474,35 @@ def test_the_site_regenerates_the_context_before_any_other_post_render_script():
     scripts = re.search(r"post-render:\n((?:\s+- .*\n)+)", config).group(1)
 
     assert scripts.split()[1] == "context.py"
+
+
+def test_an_excerpt_region_is_rebuilt_for_the_commit_of_the_run(tmp_path: Path):
+    """The excerpt of a built page names the file and lines it was read from,
+    and the link to them follows the commit of the run, not that of the cell
+    that left the marker (#230, m2)."""
+    from pbc.authoring.excerpt import excerpt
+    from pbc.mechanics import kinematics
+
+    site = site_with_a_lesson(tmp_path)
+    page = "extra/index.qmd"
+    shown = excerpt(kinematics.euler_step)
+    payload = shown.payload()
+    cell_output = f"<main>{_html_marker(marker('excerpt', page, payload))}</main>"
+
+    first = regenerate_page(cell_output, page, site, BASE_COMMIT, REPOSITORY)
+    second = regenerate_page(cell_output, page, site, RUN_COMMIT, REPOSITORY)
+
+    assert "pbc-context" not in first
+    assert "euler_step" in first
+    assert payload["path"] in first
+    link = f"{REPOSITORY}/blob/{{}}/{payload['path']}#L{payload['first_line']}-L"
+    assert link.format(BASE_COMMIT.sha) in first
+    assert link.format(RUN_COMMIT.sha) in second
+    assert BASE_COMMIT.sha not in second
+
+
+def _html_marker(text: str) -> str:
+    """The marker as pandoc writes it into the built page."""
+    attributes = re.search(r"\{\.pbc-context ([^}]*)\}", text).group(1)
+    data = re.sub(r"pbc-", "data-pbc-", attributes)
+    return f'<div class="pbc-context" {data}>\n</div>'
