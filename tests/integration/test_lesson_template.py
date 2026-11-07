@@ -70,6 +70,55 @@ def repository(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return repository
 
 
+def _copy_with_experiment(tmp_path: Path, *, module: bool, unit_test: bool) -> Path:
+    """A repository with the lesson made from the template, as the guide says:
+    its experiment module and the unit test of it renamed for the new lesson
+    id (docs/authoring.md, "The experiment of a lesson")."""
+    old = "lesson_template"
+    new = "made_from_the_template"
+    text = TEMPLATE.read_text()
+    for placeholder, value in PLACEHOLDERS.items():
+        text = text.replace(placeholder, value)
+    page = tmp_path / "site" / LESSON / "index.qmd"
+    page.parent.mkdir(parents=True)
+    page.write_text(text.replace(old, new))
+    if module:
+        source = REPO_ROOT / f"src/pbc/mechanics/experiments/{old}.py"
+        target = tmp_path / f"src/pbc/mechanics/experiments/{new}.py"
+        target.parent.mkdir(parents=True)
+        shutil.copy(source, target)
+    if unit_test:
+        target = tmp_path / f"tests/unit/test_{new}_experiment.py"
+        target.parent.mkdir(parents=True)
+        target.write_text("")
+    return tmp_path
+
+
+def test_lesson_made_from_the_template_passes_the_experiment_check(tmp_path: Path):
+    repository = _copy_with_experiment(tmp_path, module=True, unit_test=True)
+
+    violations = lesson_checks.check_experiments(repository, required=True)
+
+    assert not violations, describe(violations)
+
+
+@pytest.mark.parametrize(
+    ("module", "unit_test", "message"),
+    [
+        (False, True, "has no file src/pbc/mechanics/experiments/"),
+        (True, False, "has no unit test tests/unit/test_made_from_the_template"),
+    ],
+)
+def test_lesson_made_from_the_template_without_its_experiment_fails_the_check(
+    tmp_path: Path, module: bool, unit_test: bool, message: str
+):
+    repository = _copy_with_experiment(tmp_path, module=module, unit_test=unit_test)
+
+    problems = describe(lesson_checks.check_experiments(repository, required=True))
+
+    assert message in problems
+
+
 def test_template_as_copied_is_reported_until_its_placeholders_are_set(
     tmp_path: Path,
 ):

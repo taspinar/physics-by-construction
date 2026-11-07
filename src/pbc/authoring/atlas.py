@@ -293,13 +293,17 @@ def atlas_problems(
         if not _is_text(item.get("explanation")):
             found.append(f"concept {name}: 'explanation' must be a text")
         area = item.get("area")
-        if area not in courses and area not in paths:
+        if not (isinstance(area, str) and (area in courses or area in paths)):
             found.append(
                 f"concept {name}: 'area' {area!r} is not a course or a path of"
                 " the curriculum file"
             )
         labels = item.get("slots")
-        if not (isinstance(labels, list) and labels):
+        if not (
+            isinstance(labels, list)
+            and labels
+            and all(isinstance(label, str) for label in labels)
+        ):
             found.append(f"concept {name} must name at least one slot in 'slots'")
             continue
         own = []
@@ -354,7 +358,12 @@ def atlas_problems(
         name = repr(item.get("concepts"))
         found += _field_problems(item, name, "connection", _CONNECTION_KEYS, _NOT_HERE)
         kind = item.get("type")
-        if kind in _PREREQUISITE_TYPES:
+        if not isinstance(kind, str):
+            found.append(
+                f"connection {name}: 'type' must be one of"
+                f" {', '.join(CONNECTION_TYPES)}"
+            )
+        elif kind in _PREREQUISITE_TYPES:
             found.append(
                 f"connection {name}: {kind!r} is not curated: prerequisites come"
                 " from the front matter and capstone membership from the slots"
@@ -368,7 +377,11 @@ def atlas_problems(
         if not _is_text(item.get("rationale")):
             found.append(f"connection {name}: 'rationale' must be a text")
         ends = item.get("concepts")
-        if not (isinstance(ends, list) and len(ends) == 2):
+        if not (
+            isinstance(ends, list)
+            and len(ends) == 2
+            and all(isinstance(end, str) for end in ends)
+        ):
             found.append(f"connection {name}: 'concepts' must name two concepts")
             continue
         for end in ends:
