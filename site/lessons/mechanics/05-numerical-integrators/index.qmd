@@ -115,8 +115,9 @@ $a = -\omega^2 x$. Each rule below answers one question: where should the
 rates of change be taken, so that the step follows the true motion as closely
 as possible for the number of times the force has to be evaluated.
 
-**Explicit Euler**, as before: both rates are taken at the start of the
-step.
+**Explicit Euler** uses what is known at the start of the step: the current
+velocity moves the position, and the current acceleration changes the
+velocity. Both rates are held at their starting values for the whole step.
 
 $$
 x_{n+1} = x_n + v_n\,\Delta t,
@@ -128,9 +129,11 @@ It follows the Taylor expansion of the exact motion only through the term in
 $\Delta t$, and misses $\tfrac12 a\,\Delta t^2$ in the position, which is why
 it has order one.
 
-**Symplectic Euler** changes one thing: the velocity is updated first, and
-the *new* velocity moves the particle. This is the velocity-first ordering;
-updating the position first, with the old velocity, is explicit Euler.
+**Symplectic Euler** asks what happens if the position uses the velocity
+we have just computed. The velocity is updated first, and the *new* velocity
+moves the particle. This is the
+velocity-first ordering; updating the position first, with the old velocity,
+is explicit Euler.
 
 $$
 v_{n+1} = v_n + a(t_n, x_n, v_n)\,\Delta t,
@@ -141,10 +144,11 @@ $$
 It costs exactly as much as explicit Euler and has the same order, and it
 does something entirely different to the energy, as the examples show.
 
-**Velocity Verlet** moves the position with the Taylor expansion to second
-order, then changes the velocity by the average of the acceleration at the
-start and at the end of the step, a trapezoid in place of the rectangle that
-Euler uses.
+**Velocity Verlet** puts the acceleration into the position update too,
+keeping the second-order Taylor term that explicit Euler drops. Once the new
+position is known, the force can be evaluated there. The velocity then changes
+by the average of the acceleration at the start and at the end of the step:
+a trapezoid in place of the rectangle that Euler uses.
 
 $$
 x_{n+1} = x_n + v_n\,\Delta t + \tfrac{1}{2}\,a_n\,\Delta t^2,
@@ -160,9 +164,10 @@ the implementation below evaluates twice, with the explicit Euler prediction
 $v_n + a_n \Delta t$ in place of the dot.
 
 **Classical Runge-Kutta** (the fourth-order method with a fixed step)
-evaluates the rates four times, at the start, twice at the midpoint, and at
-the end of the step, each time at a state predicted with the rates found so
-far, and takes their weighted average. For the pair $y = (x, v)$ with the
+spends more force evaluations to sample how both rates change within the
+step. It evaluates them at the start, twice at the midpoint, and at the end,
+each time at a state predicted with the rates found so far. Their weighted
+average advances both position and velocity. For the pair $y = (x, v)$ with the
 rate $f(t, y) = (v, a(t, x, v))$,
 
 $$
@@ -623,12 +628,14 @@ $\omega^2 \Delta t^2 / 4$ = `{python} result["verlet-band"]`. Runge-Kutta loses
 `{python} result["rk4-loss-per-step-ppm"]` parts per million per step, a steady
 drain that no refinement of the digits of the step changes in sign. Over a
 thousand periods the difference between bounded and steady shows plainly.
-The cell runs the three methods that can be run that far at
-`{python} result["long-n"]` steps per period and tabulates the energy and, for the
-reader who would trust the position as well, the largest state error; explicit
+The three methods that can be run that far use
+`{python} result["long-n"]` steps per period; explicit
 Euler would multiply the energy by ten to the power
 `{python} result["euler-digits"]`
-and is left out.
+and is left out. Before reading the table, consider whether staying within an
+energy band also keeps a method in time with the exact oscillation. Compare the
+energy columns with the largest state error: they test different reasons to
+trust the simulation.
 
 ```{python}
 #| echo: false
@@ -693,15 +700,14 @@ energy is bounded.
 
 ## Interactive visualization {#interactive-visualization}
 
-The figures above fix the step. Here the step and the method are yours. The
-figure below shows the oscillator of this lesson, released at rest, for five
-periods, with all four methods at the same number of steps per period and
-the exact motion for comparison. With scripts enabled, choose the
-integrator to emphasise and to read out, and change the number of steps per
-period to see every curve respond. The interesting settings are the coarse
-ones: at four steps per period $\omega\,\Delta t$ is about
+Which method do you expect to depart visibly from the exact motion when
+you make the step coarser? The figure follows this lesson's oscillator,
+released at rest, for five periods, against the exact motion, with all four
+methods at the same number of steps per period. With scripts enabled, choose
+the integrator to emphasise and reduce the number of steps per period. At four
+steps per period $\omega\,\Delta t$ is about
 `{python} result["omega-dt-4"]`, and the stability limits of the explanation
-decide which curves survive.
+decide which curves survive: which of them do you expect to, and why?
 
 The runs behind the figure come from the cell below, which calls the tested
 integrators of this lesson for every method at nine step counts when the page
