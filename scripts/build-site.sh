@@ -47,6 +47,9 @@ if [[ -n "$selection_file" && -f "$selection_file" ]]; then
   selection_args=(--selection "$selection_file")
 fi
 uv run --locked --project "$root" \
+  python -m pbc.authoring.introductions --site "$source_dir" ||
+  fail "the introduction pages and data files are not one to one."
+uv run --locked --project "$root" \
   python -m pbc.authoring.store prepare --site "$source_dir" ${selection_args[@]+"${selection_args[@]}"} ||
   fail "the store of the build could not be prepared."
 if [[ "$source_dir" == "$root/site" ]]; then

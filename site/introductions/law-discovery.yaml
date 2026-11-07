@@ -1,0 +1,126 @@
+# The introduction of the method path Physical model discovery through
+# active experiments (F156, requirements decision 43). Prose and references
+# only; see site/introductions/mechanics.yaml for the rules.
+sequence: law-discovery
+
+why:
+  - >-
+    A law of physics is usually presented as given: the force is this,
+    the equation is that. The work of a physicist often starts where nobody
+    has written it down. A system behaves in a way you can measure, you can
+    choose what to measure next, and the question is which model explains
+    the readings, how well, and where it would fail.
+  - >-
+    This path practises that question in worlds where the answer is known
+    to the person who built them and hidden from the method that has to find
+    it. Because the true law is kept aside, a claim can be scored on
+    measurements that the method never saw. That is the difference between a
+    fit that merely agrees with the data and a law that predicts.
+
+questions:
+  - >-
+    How do you recover the parameters of a model from noisy readings, and say
+    how uncertain they are?
+  - >-
+    When can data not tell two explanations apart, and what measurement would
+    separate them?
+  - >-
+    How can a formula, a differential equation, or a conserved quantity be
+    found from a trajectory without being told its form?
+  - >-
+    What does a model that was told the law, only the names of its
+    parameters, or nothing at all, add to a search, and how is that
+    compared fairly?
+  - >-
+    How do you tell a law that holds beyond the readings it was found from
+    from one that only reproduces them?
+
+learn:
+  - >-
+    Fit a model with checks that it recovers known parameters, state the
+    uncertainty, and recognise parameters that appear only in combination
+    ({slot:MD2}).
+  - >-
+    Search a stated family of formulas, and a library of terms for a
+    differential equation, for the simplest one the data cannot reject
+    ({slot:MD3}, {slot:MD4}).
+  - >-
+    Tell the failures of a measuring instrument apart, calibrate it, and read
+    how the noise limits what can be concluded ({slot:MD5}).
+  - >-
+    Reason about forces and variables that nobody observes, and design the
+    measurement that separates the hypotheses ({slot:MD6}, {slot:MD8}).
+  - >-
+    Find conserved quantities from trajectories and tell a true invariant
+    from an artefact of the integration ({slot:MD7}).
+  - >-
+    Compare a method that is told the law with one that is not, and challenge
+    any discovered law on worlds that were never probed ({slot:MD1},
+    {slot:MD9}).
+
+order:
+  - >-
+    {slot:MD1} comes first because it sets the frame for the whole path: the
+    same task under three conditions, the form of the law told, only the
+    names of its parameters told, or nothing told, scored on the same held-out
+    settings. {slot:MD2} then makes the question exact for the simplest
+    case, a model of known form, because everything later relies on knowing
+    what a fit can and cannot say.
+  - >-
+    The lessons that follow let the form of the law go. {slot:MD3} searches
+    for a formula and {slot:MD4} for an equation of motion. {slot:MD5} adds
+    the imperfection of every real instrument, and {slot:MD6} adds
+    effects that cannot be seen at all, so that the data may be consistent
+    with several explanations. {slot:MD7} looks for quantities that stay
+    constant without assuming any equation, and {slot:MD8} turns from
+    analysing readings to choosing them. {slot:MD9} ends the sequence of
+    lessons with the test that matters most, whether a discovered law
+    survives in a world that was not probed.
+  - >-
+    The optional extensions, which sit after the path and are not part of it,
+    apply the same protocol to force laws in particular, from {slot:D1} to
+    {slot:D5}.
+
+method:
+  - >-
+    The method is the numerical experiment on a system that is simulated, so
+    that its true law is known to whoever built it and the answer can be
+    checked. A simulation, a fit, and a search over formulas are the main
+    instruments, and each lesson scores a claim on data or settings that were
+    held out.
+  - >-
+    Several lessons also let a language model act as the experimenter: it
+    chooses measurements, reads the results, and states a law. The runs
+    shown are worked examples: transcripts written in a Claude Code session
+    and stored with the lesson, not live calls to a provider, so another run
+    may differ. The build replays each transcript, recomputes what the model
+    could have measured, and scores the claim itself rather than taking the
+    model's own account of it. The worlds are toy worlds, and the claims are
+    shown beside baselines that use no model. They illustrate how an agent
+    can be evaluated; they are not evidence that an agent finds new physics,
+    and each lesson says where its evidence stops.
+
+capstone:
+  - >-
+    The path is to end in a product capstone, still planned: {slot:MD10}. It
+    will be a local application that characterises an unknown system from a
+    bounded family of circuits by choosing its own measurements, and then
+    validates the model it identifies on experiments it withheld from itself,
+    including a case that the measurements cannot decide.
+  - >-
+    The capstone is meant to gather the path into one tool: fitting and its
+    uncertainty, searching for a form, choosing the next measurement, and the
+    honest answer when the data do not decide. It is not published yet, and
+    this page shows it as planned until it is.
+
+next:
+  - >-
+    The questions this path raises lead on in two directions. To ask how
+    scientific agents should be evaluated, with hidden test worlds, honest
+    baselines, and stated uncertainty, continue with {sequence:benchmarking}.
+    To ask how an investigation can be organised so that every conclusion
+    ties back to reproducible evidence, continue with
+    {sequence:autonomous-research}.
+  - >-
+    The worlds of this path are those of {sequence:mechanics}, and the
+    other physics courses supply more of them.

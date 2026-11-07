@@ -17,6 +17,7 @@ from pbc.authoring.excerpt import Excerpt, excerpt
 from pbc.authoring.glossary import Glossary, GlossaryPage, glossary_page
 from pbc.authoring.graph import Edge, PrerequisiteGraph
 from pbc.authoring.home import HomeContent, home_content
+from pbc.authoring.introductions import IntroductionContent, introduction_content
 from pbc.authoring.lean import LeanEvidence, LeanExcerpt, lean_evidence, lean_excerpt
 from pbc.authoring.path import (
     COURSES,
@@ -50,6 +51,7 @@ __all__ = [
     "Glossary",
     "GlossaryPage",
     "HomeContent",
+    "IntroductionContent",
     "LeanEvidence",
     "LeanExcerpt",
     "LearningPath",
@@ -66,6 +68,7 @@ __all__ = [
     "excerpt",
     "glossary_page",
     "home_content",
+    "introduction_content",
     "is_numeric_console_block",
     "lean_evidence",
     "lean_excerpt",

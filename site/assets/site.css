@@ -2506,3 +2506,107 @@ details.disclosure[open] > summary {
     transition: none;
   }
 }
+
+/* The introduction of a course or a method path (F156): a textbook chapter
+   opening. One column of prose at the reading measure, the sequence's
+   registered illustration beside its one-line description, and the lessons
+   as a plain ordered list below the prose. No script, no state; at 320 CSS
+   px the head and the rows stack. */
+.intro-head {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: var(--pbc-space-4);
+  align-items: center;
+  margin: var(--pbc-space-3) 0 var(--pbc-space-5);
+}
+
+.intro-figure {
+  margin: 0;
+}
+
+.intro-figure .atlas-panel-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.intro-kicker,
+.intro-label,
+.intro-mark {
+  font-family: var(--pbc-font-code);
+  font-size: 0.75rem;
+}
+
+.intro-kicker {
+  margin: 0;
+  color: var(--pbc-muted);
+}
+
+.intro-head .intro-description {
+  margin: var(--pbc-space-1) 0 0;
+  color: var(--pbc-muted);
+}
+
+.intro-rows {
+  margin: var(--pbc-space-3) 0 0;
+  padding: 0;
+  border-top: var(--pbc-rule-width) solid var(--pbc-rule);
+  list-style: none;
+}
+
+.intro-row {
+  display: grid;
+  grid-template-columns: 3.75rem minmax(0, 1fr) auto;
+  gap: var(--pbc-space-1) var(--pbc-space-3);
+  align-items: baseline;
+  margin: 0;
+  padding: 0.375rem var(--pbc-space-2);
+  border-bottom: var(--pbc-rule-width) solid var(--pbc-rule);
+  line-height: var(--pbc-leading-tight);
+}
+
+.intro-label {
+  color: var(--pbc-muted);
+  text-align: right;
+}
+
+.intro-planned {
+  color: var(--pbc-muted);
+  font-style: italic;
+}
+
+.intro-title .intro-description {
+  display: block;
+  margin-top: var(--pbc-space-1);
+  font-size: var(--pbc-text-small);
+}
+
+.intro-marks {
+  display: flex;
+  gap: var(--pbc-space-2);
+  color: var(--pbc-muted);
+  white-space: nowrap;
+}
+
+.intro-marks:empty {
+  display: none;
+}
+
+.atlas-introduction {
+  margin: var(--pbc-space-2) 0 0;
+}
+
+@media (max-width: 40em) {
+  .intro-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .intro-row {
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+  }
+
+  .intro-marks {
+    grid-column: 2;
+    white-space: normal;
+  }
+}

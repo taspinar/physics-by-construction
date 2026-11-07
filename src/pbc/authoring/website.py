@@ -41,3 +41,30 @@ def page_address(site: Path, page: str) -> str:
     base = str((config.get("website") or {}).get("site-url") or "")
     built = PurePosixPath(page).with_suffix(".html").as_posix()
     return f"{base.rstrip('/')}/{built}" if base else built
+
+
+# The introductions of the courses and method paths (F156): one data file per
+# sequence in INTRODUCTIONS_DIRECTORY, one generated page per file under
+# COURSES_DIRECTORY at the flat address /courses/<sequence-id>/.
+INTRODUCTIONS_DIRECTORY = "introductions"
+COURSES_DIRECTORY = "courses"
+INTRODUCTION_SUFFIX = ".yaml"
+
+
+def introduction_page(sequence_id: str) -> str:
+    """The source page of the introduction of the sequence, relative to the
+    website project."""
+    return f"{COURSES_DIRECTORY}/{sequence_id}/{PAGE_FILE}"
+
+
+def introduced(site: Path) -> frozenset[str]:
+    """The sequences that have an introduction file in the website project
+    ``site``: the identifiers the pages and the links are built for."""
+    directory = site / INTRODUCTIONS_DIRECTORY
+    if not directory.is_dir():
+        return frozenset()
+    return frozenset(
+        file.stem
+        for file in directory.glob(f"*{INTRODUCTION_SUFFIX}")
+        if file.is_file()
+    )

@@ -226,6 +226,36 @@ course or a `product capstone` outside a method path, and any field that
 belongs to a lesson's front matter fail it. A violation fails verification, and
 the build of a page fails on it too.
 
+### The course introductions
+
+A course or a method path may have an introduction (F156, requirements
+decision 43): the page `/courses/<sequence-id>/`, written by
+`pbc.authoring.introductions` from the data file
+`site/introductions/<sequence-id>.yaml`, the curriculum file, the front
+matter, and the atlas manifest. The page source is
+`site/courses/<sequence-id>/index.qmd`, a few lines that call
+`introduction_content()`; the page sources and the data files are one to
+one, and a page exists only for a sequence that has a data file. The atlas
+panel of the sequence and the header of each of its lessons link to it.
+
+The data file holds prose and references only, in the seven sections of the
+decision: `why`, `questions`, `learn`, `order`, `method`, `capstone`, and
+`next`, each a list of texts (a paragraph or an item each, inline Markdown
+only), and `sequence`, the file's own sequence identifier. Any other field is
+an error, in particular a lesson list, a title, a count, a prerequisite, a
+capstone, or a publication state. A prose text states no count of lessons or
+slots. The build rejects digits and English number words from zero to
+ninety-nine, also compound forms with a space or a hyphen, followed by
+`lesson`, `lessons`, `slot` or `slots`; other phrasings are forbidden
+editorially and checked in review, not by the build (the owner's scope
+decision of 2026-11-06, Issue #372). A reference is written in braces: `{sequence:<id>}` (the title of a
+course or path, linked to its introduction when it has one), `{slot:<label>}`
+(the title of the lesson that fills the slot, linked; a slot that no
+published lesson fills is shown as planned, as text), and
+`{term:<glossary term>}` (a glossary entry, linked). A reference that does
+not resolve fails the build. The voice of the text is that of
+`docs/editorial-voice.md`, "Pages that are not lessons".
+
 ### The course atlas
 
 The path page is the course atlas (F133, ADR 021 decision 3): the eight

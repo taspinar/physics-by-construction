@@ -45,7 +45,7 @@ from pbc.authoring.path import (
     Slot,
     _page_being_built,
 )
-from pbc.authoring.website import page_href
+from pbc.authoring.website import introduced, introduction_page, page_href
 
 # Where the manifest sits in the website project, beside the curriculum file.
 ATLAS_FILE = "atlas.yaml"
@@ -792,6 +792,8 @@ class AtlasSection:
 
     atlas: Atlas
     page: str = PATH_PAGE
+    # The sequences that have an introduction (F156): their panels link to it.
+    introductions: frozenset[str] = frozenset()
 
     def __str__(self) -> str:
         sequences = self.atlas.sequences()
@@ -930,7 +932,18 @@ class AtlasSection:
             f"{card}"
             f'<div class="atlas-panel">{head}'
             f'<ol class="atlas-rows">{rows}</ol>'
-            f"{self._extensions(sequence)}</div></details>"
+            f"{self._extensions(sequence)}{self._introduction(sequence)}</div></details>"
+        )
+
+    def _introduction(self, sequence: AtlasSequence) -> str:
+        """The link from the panel to the introduction of the sequence, or
+        nothing for a sequence without one."""
+        if sequence.id not in self.introductions:
+            return ""
+        href = escape(page_href(self.page, introduction_page(sequence.id)))
+        return (
+            f'<p class="atlas-introduction"><a href="{href}">Read the'
+            f" introduction to {escape(sequence.title)}</a></p>"
         )
 
     def _extensions(self, sequence: AtlasSequence) -> str:
@@ -1038,7 +1051,7 @@ class AtlasSection:
 def course_atlas() -> AtlasSection:
     """Return the atlas section of the path page being built."""
     site, page = _page_being_built()
-    return AtlasSection(Atlas.read(site), page)
+    return AtlasSection(Atlas.read(site), page, introduced(site))
 
 
 # --- The relationships on a lesson page ----------------------------------------
