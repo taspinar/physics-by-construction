@@ -45,14 +45,15 @@ fast it is falling, and the other way round. The equations of motion cannot be
 solved in closed form. Everything the previous lessons compared their
 simulations with is gone.
 
-This lesson is about what to do then. The simulation is checked in the
+The question we want answered is still a plain one: at what angle should the
+ball be thrown to go furthest? Without drag the answer is $45^\circ$, from a
+formula. With drag there is no textbook answer, and the best angle depends
+on the ball. A simulation can give one, but it is only worth as much as our
+reason to trust the simulation. So before we use it, we check it in the
 limiting cases that do have exact answers, without drag and in a long fall,
 and by refinement: a result that keeps changing as the time step shrinks is
 not a result yet, and the rate at which it stops changing says how far it is
-from the limit. With the simulation validated, the lesson uses it for a
-question that has no textbook answer: at what angle should the ball be thrown
-to go furthest? Without drag the answer is $45^\circ$. With drag it is less,
-and by how much depends on the ball.
+from the limit.
 
 ## Assumptions
 
@@ -193,7 +194,10 @@ has no closed form.
    and so about $v_x \Delta t$ too far. A simulation
    that reproduces the parabola with exactly that error is doing what it
    should. The other limit, a long fall, must approach the terminal speed;
-   the first exercise checks it.
+   the first exercise checks it. The drag-free limit tests the parts that
+   do not involve drag: the launch, the stepping, gravity, and the search for
+   the ground. The long fall tests the drag force itself, against the
+   terminal speed it must produce.
 2. **Convergence.** Compute the range with the step $\Delta t$, then with
    $\Delta t/2$, $\Delta t/4$, and so on. For a first-order method the
    differences between successive results must halve each time, and the
@@ -209,7 +213,9 @@ has no closed form.
    $$
    This is **Richardson extrapolation**. The first formula estimates the
    limit, the second the error of the finer result, both from the simulation
-   alone.
+   alone. This check removes a different doubt from the first: not whether
+   the program has the right parts, but how far its number for the throw
+   with drag still is from the exact solution of its equations.
 3. **Physical sense.** Drag must shorten the range, slow the ball down on the
    way up, and make the descent steeper than the ascent. These checks catch
    sign errors that the first two can miss.
@@ -344,9 +350,12 @@ result.show("fig-throw-with-and-without-drag")
 
 The path with drag is not a parabola. It comes down more steeply than it went
 up, because the drag has eaten most of the horizontal velocity by then, and
-it lands at a steeper angle and a lower speed than it was thrown with. The
-figure shows the shape of the path; the table above gives the numbers, which
-come from the same simulation.
+it lands at a steeper angle and a lower speed than it was thrown with.
+
+Two different questions stand behind these numbers. Does the program solve
+the equations of the model correctly? And do those equations describe a real
+tennis ball? The next two examples test the first. No check of the program
+can answer the second; that takes a measurement, and Limits returns to it.
 
 ### The drag-free limit
 
@@ -373,9 +382,10 @@ the way it misses it.
 
 ### Convergence with drag
 
-The second check, on the throw with drag: the range at ever smaller steps,
-the difference to the previous one, the observed order, and the Richardson
-estimate of the limit from each pair of steps.
+With drag there is no exact range to compare with, so the program is compared
+with itself. The second check, on the throw with drag: the range at ever smaller
+steps, the difference to the previous one, the observed order, and the
+Richardson estimate of the limit from each pair of steps.
 
 ```{python}
 #| echo: false
@@ -414,8 +424,17 @@ result.show("fig-convergence-of-the-range")
 
 ### The range against the launch angle
 
-With the simulation validated and its error known, the question of the
-lesson. The cell computes the range for launch angles from $10^\circ$ to
+Now the question of the lesson. Before the cell, decide what you expect:
+does drag move the best angle, and if so, which way? If drag only scaled
+every range down by the same factor, the best angle would stay at
+$45^\circ$. Without drag, $45^\circ$ is the balance between time in the air
+and horizontal speed. Drag takes away speed for as long as the ball flies,
+and a steeper throw flies longer, which suggests a flatter best angle; but a
+flatter throw also climbs less and lands sooner. That is an expectation, not
+a result, and for this model the simulation decides.
+
+With the simulation checked and its error known, the cell computes the range
+for launch angles from $10^\circ$ to
 $80^\circ$, with and without drag, using a step at which the convergence table
 puts the error well below a decimetre, and then finds the angle of the longest
 throw to a tenth of a degree with a one-dimensional minimiser from SciPy.
@@ -446,10 +465,10 @@ simulation finds it to the resolution asked of the minimiser:
 `{python} result["best-with"]` degrees, lower. [With quadratic drag the
 longest throw is flatter than $45^\circ$ for this ball.]{.claim
 type="numerically-verified" scope="tennis ball at its launch speed"
-evidence="fig-range-against-angle"} The lesson does not derive why. A steeper
-throw stays in the air longer and so spends more time losing speed to drag,
-which is the direction of the effect, but a flat throw also climbs less; the
-size of the shift comes from the simulation, not from this argument.
+evidence="fig-range-against-angle"} The shift goes the way the expectation
+above suggested, but the lesson does not derive it: the argument gives at
+most a direction, and the size of the shift comes from the simulation, not
+from the argument.
 
 ```{python}
 #| echo: false
@@ -467,8 +486,17 @@ result.show("fig-range-against-angle")
 
 The curve with drag is not only lower but lopsided: it falls off more
 steeply towards high angles. How far the best angle moves below $45^\circ$
-depends on the ratio of the launch speed to the terminal speed, as the third
-exercise shows.
+depends on the ratio of the launch speed to the terminal speed: a ball thrown
+much more slowly than its terminal speed hardly notices the air, and the
+third exercise puts numbers on that.
+
+So the answer to the question we started with: for this tennis ball, thrown
+at about its terminal speed, the longest throw is flatter than $45^\circ$, at
+the angle in the table. No formula gave that answer; a simulation did, and
+we trust it because the checks showed, for the throw we refined, that the
+program solves its equations to an error we can state. They did not show that
+the equations describe a real tennis ball: the answer belongs to a model
+without spin or wind and with a constant drag coefficient.
 
 ## Limits {#limits}
 
