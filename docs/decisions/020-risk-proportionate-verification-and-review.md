@@ -2,6 +2,18 @@
 
 ## Status
 
+**Current rules: see [`docs/process.md`](../process.md) (Issue #404,
+2026-11-07); this ADR is the history of the decision.** The text below is
+kept as it was written. In force from this record: decisions 1 to 7 and 9,
+and the addendum of 2026-11-05, delivered by F130 and F131 (decision 10).
+Superseded in part: the re-assessment points of decisions 6 and 8 (42 and 44
+lessons, a run above 45 minutes) by the notes of 2026-10-21, 2026-10-24, and
+2026-11-04 in ADR 014's status; decision 8's pause of ADR 017 and F113
+stands. The owner's actions of decision 3 (the second identity, the
+code-owners file, the ruleset) are accepted but not yet implemented, so the present practice it
+names continues; `docs/process.md` says where the scripts and this record
+differ.
+
 Proposed with the planning of the change cycle
 `risk-proportionate-workflow` (requirements decision 39;
 `docs/changes/risk-proportionate-workflow.md`, human-supplied 2026-10-18,

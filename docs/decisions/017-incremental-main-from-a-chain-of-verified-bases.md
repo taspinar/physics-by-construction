@@ -2,6 +2,16 @@
 
 ## Status
 
+**Current rules: see [`docs/process.md`](../process.md) (Issue #404,
+2026-11-07); this ADR is the history of the decision.** The text below is
+kept as it was written. In force from this record: decisions 7 and 8,
+accepted on 2026-10-15 (the three verification tiers and the removal of a
+check only with coverage evidence). Decisions 1 to 6 and 9 are proposals
+that the owner has not accepted ("amend, not yet accept", 2026-10-16; paused
+by ADR 020 decision 8): nothing of them is a rule, every push to `main`
+executes every lesson, and `docs/process.md` lists them under "Proposals,
+not rules".
+
 Proposed by the planning of the change cycle
 `pbc-planning-change-four-workstreams` (requirements decision 35;
 `docs/changes/pbc-planning-change-four-workstreams.md`, change 4).

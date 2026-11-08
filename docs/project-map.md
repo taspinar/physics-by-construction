@@ -109,6 +109,7 @@ the website describes the current template.
 | `docs/PLANNING_APPROVAL.md` | Your approval of the reviewed planning, with its fingerprint | `finish-planning.sh` |
 | `docs/repository-setup.md` | GitHub settings for a new repository | You |
 | `docs/development.md` | The one-time setup, verification, and every workflow command | Template and you |
+| `docs/process.md` | The rules of the development process in force: the verification tiers, the CI jobs, the budgets, the risk levels, review, triage, and the owner's approval, each with its ADR decision and the script that carries it out (Issue #404) | You |
 | `docs/authoring.md`, `docs/lesson-template.qmd` | How to write a lesson, and the page a new lesson starts from | You |
 | `docs/atelier.md` | The design specification of the scientific atelier (F123): the direction, the tokens, the components, the asset classes, the mobile and accessibility rules, and what the agent skills changed | You |
 | `docs/content-proposals.md` | How a lesson is proposed, assessed, drafted, and merged, for contributors and the maintainer | You |

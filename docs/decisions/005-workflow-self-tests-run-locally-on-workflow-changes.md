@@ -2,6 +2,16 @@
 
 ## Status
 
+**Current rules: see [`docs/process.md`](../process.md) (Issue #404,
+2026-11-07); this ADR is the history of the decision.** The text below is
+kept as it was written. In force from this record: decisions 1 and 4 (the
+self-tests' own file and the guarded files), decision 2 as far as `--all`
+on every CI job, and decision 5 as ADR 017 decision 7 amended it.
+Superseded in part: decision 2's one job by ADR 012; decision 3's "the
+product checks always run" by ADR 017 decision 7 (a targeted run performs
+only its groups) and ADR 020 decision 5 (an intermediate Level 3 round may
+run `--only` as feedback).
+
 Accepted by the project owner with the merge of the pull request that adds
 this ADR. Amends decisions 1, 2, and 7 of
 [ADR 003](003-single-verification-entry-point-and-ci-budget.md).
