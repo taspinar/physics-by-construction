@@ -2,6 +2,18 @@
 
 ## Status
 
+**Current rules: see [`docs/process.md`](../process.md) (Issue #404,
+2026-11-07); this ADR is the history of the decision.** The text below is
+kept as it was written. In force from this record: decision 1 as ADR 017
+decision 7 and ADR 020 decision 5 amended it, decisions 2, 4, 5, 6, and 7,
+and decision 9 for every job but `build`, which has had 120 minutes since
+2026-11-04 (ADR 014's status; the 60 minutes named below are history).
+Superseded in part: decision 3's table (the `integration` job is three jobs
+since F119, `e2e` is a matrix of three parts, and a `base` job publishes the
+base of ADR 014 decision 2); decision 8's budget by ADR 015 and ADR 020
+decision 6. The amendment of decisions 2, 3, and 6 by ADR 014 decision 11
+(F113) is a proposal that stays paused.
+
 Accepted by the project owner with the merge of pull request #141 on
 2026-10-12 (F58, Issue #130). Decision 9 and the section "Measured" were
 added by the pull request that closes the feature. Supersedes decision 2 of

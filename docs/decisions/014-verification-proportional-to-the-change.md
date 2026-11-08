@@ -2,6 +2,17 @@
 
 ## Status
 
+**Current rules: see [`docs/process.md`](../process.md) (Issue #404,
+2026-11-07); this ADR is the history of the decision.** The text below is
+kept as it was written. In force from this record: decisions 1 to 10,
+accepted on 2026-10-15, with decision 7's budget and timeout as ADR 015 and
+the notes below give them (the `build` job at 120 minutes since 2026-11-04),
+and the lesson budget that decision 3 and the notes below name as 30 seconds
+read as ADR 020's addendum of 2026-11-05 decided it: a warning from 30 s, a
+limit of 60 s. Decision 11 (the lesson shards and the assembly, F113) is a
+proposal that was not accepted; `docs/process.md` lists it under "Proposals,
+not rules".
+
 Proposed with the planning of the change cycle `final-curriculum`;
 accepted when that planning is approved. Amends
 [ADR 002](002-regenerate-artifacts-and-display-by-reference.md) (an

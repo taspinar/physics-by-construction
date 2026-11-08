@@ -1768,6 +1768,10 @@ is attached to the workflow run for review before merge.
 
 ### CI pipeline and time budget
 
+The rules in force for verification, CI, the budgets, the risk levels, and
+review are summarised with their ADR decisions in `docs/process.md` (Issue
+#404); this section and the two below describe the system and its history.
+
 One workflow, triggered by `pull_request` and by `push` to `main`:
 
 - **The jobs that run checks** (always; ADR 012): `code`, `workflow`, the
@@ -2043,6 +2047,9 @@ beginning of each section, which would change the F41 criterion that a query
 finds a lesson by a term in its body) and a further increase of the budget.
 
 ### The verification matrix and the risk-proportionate workflow (risk-proportionate workflow, requirements decision 39, ADR 020)
+
+The current rules of the workflow are stated in `docs/process.md`; this
+section records how they came about and what a verification executes.
 
 This section is the standing reference of what a verification executes
 and of the rules the agent workflow follows in proportion to the risk of a

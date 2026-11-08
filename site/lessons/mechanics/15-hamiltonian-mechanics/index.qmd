@@ -52,12 +52,18 @@ algebra closes. This lesson asks what is behind the property in general.
 The answer is a geometric one. Describe the state not by the position and the
 velocity but by the position and the momentum, so that the motion is a flow of
 points in a plane. The flow of a mechanical system preserves area, and a
-symplectic step preserves area too. A map that preserves area cannot spiral
-inwards or outwards, and that is what stops the energy from running away. The
-lesson derives the flow from the Lagrangian of the previous lesson, measures the
-area that each method keeps or changes, and checks the conserved quantity of the
-earlier lessons on the oscillator and on the pendulum, where it is no longer
-exact.
+symplectic step preserves area too. Preserving area excludes one way of
+failing: such a map cannot pull the motion into a spiral that winds in to a
+point or out without end, as a step that shrinks or grows area does. It does
+not by itself keep the energy bounded. What keeps it in a band is a modified
+energy, close to the true one, that a symplectic step approximately conserves
+(to the order at which its series is truncated) when the step is small against
+the time scale of the motion and the potential is smooth. The
+lesson derives the flow from the Lagrangian of the previous lesson, measures
+the area that each method keeps or changes, and checks the modified energy on
+two examples: the oscillator, where it is the conserved quantity of the earlier
+lessons and is exact, and the pendulum, where it stays in a far narrower band
+than the energy but is no longer exact.
 
 ## Assumptions
 

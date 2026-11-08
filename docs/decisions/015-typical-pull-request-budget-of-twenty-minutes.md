@@ -2,6 +2,14 @@
 
 ## Status
 
+**Current rules: see [`docs/process.md`](../process.md) (Issue #404,
+2026-11-07); this ADR is the history of the decision.** The text below is
+kept as it was written. In force from this record: decisions 1, 2, and 5, and
+decision 4 as ADR 020 decision 6 amended it (an exceeded budget is a
+measurement for the owner), with the timeout of the `build` job at 120
+minutes since 2026-11-04 (ADR 014's status; the 60 minutes named below are
+history). Decision 3 was the acceptance criterion of F61 and is history.
+
 Accepted: the decision of the project owner of 2026-10-14 (requirements
 decision 34; `docs/changes/pbc-planning-change-four-workstreams.md`,
 change 3), recorded with the planning of that change cycle. Amends the

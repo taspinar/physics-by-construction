@@ -2,6 +2,14 @@
 
 ## Status
 
+**Current rules: see [`docs/process.md`](../process.md) (Issue #404,
+2026-11-07); this ADR is the history of the decision.** The text below is
+kept as it was written. The process part of this record, decisions 1, 3,
+and 5 (what a skill is, where it lives and the `skills-config` check, and
+the planner's, implementer's, and reviewer's duties), is summarised there;
+decisions 2, 4, and 6 (the set, the provenance, the pilots) are the content
+of the atelier and stand here. No decision is superseded.
+
 Proposed with the planning of the change cycle `scientific-atelier-atlas`;
 accepted when that planning is approved. Extends
 [ADR 006](006-content-drafting-runs-on-the-maintainers-machine.md)

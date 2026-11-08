@@ -34,6 +34,13 @@ What are the positive and negative consequences?
 ```
 Do not create ADRs for trivial implementation details.
 
+The rules of the development process that are in force (the verification
+tiers, the CI jobs, the budgets, the risk levels, review, triage, and the
+owner's approval) are stated in one place, `docs/process.md`, checked
+against the scripts that carry them out. ADR 003, 005, 012, 014, 015, 017,
+019, and 020 are the history of those decisions and point to it; proposals
+that were never accepted are listed there apart from the rules.
+
 ## Index
 
 | ADR | Decision |

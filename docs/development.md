@@ -72,6 +72,11 @@ same steps.
 
 ## Verification
 
+The rules in force (which tier a change needs, the CI jobs, the budgets,
+the risk levels, review, triage, and the owner's approval) are summarised
+with their ADR decisions in `docs/process.md`; this page says how to run
+them.
+
 Verification has three tiers (ADR 017 decision 7). Which one a change needs
 depends on what it touches, and the targeted run says so when it is not the
 right one:
@@ -965,6 +970,9 @@ have made its review stale; resume, then run `review-feature.sh` again.
 
 ### The completion gate
 
+The evidence states and the readiness points are summarised in
+`docs/process.md` ("Evidence: the completion record").
+
 A session that ends is not a feature that is complete. An implementer can
 stop after two of nine plan steps and end normally, and nothing in the exit
 status says so. The scripts therefore decide from what the implementer
@@ -1719,6 +1727,9 @@ Know what you hand over before you use it:
   and its list of changes is what the implementer wrote.
 
 ### The merge approval gate
+
+The gate's rules, the risk levels, and how the owner's approval is given are
+summarised in `docs/process.md`; this section explains them.
 
 A feature may update the architecture and add an ADR, and in an unattended
 run nobody reads a pull request before it could be merged. The gate decides
