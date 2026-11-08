@@ -311,6 +311,7 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
         bayreuth_rlc,
         gw150914,
         npl_sparameters,
+        tess_wasp18,
     )
 
     assert check_repository(ROOT) == []
@@ -319,6 +320,7 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
         (npl_sparameters, "npl-onwafer-sparameters"),
         (aalborg_flume, "aalborg-submerged-bar"),
         (bayreuth_rlc, "bayreuth-rlc-impedance"),
+        (tess_wasp18, "tess-exoplanet-light-curves"),
     ):
         figure = module.make_figure(ROOT / "data/samples" / name)
         assert figure.axes
