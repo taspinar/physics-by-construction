@@ -192,19 +192,35 @@ def test_the_rlc_fit_recovers_the_nominal_circuit_within_its_tolerance():
     f0, q = bayreuth_rlc.resonance(result)
     assert f0 == pytest.approx(1546.9, abs=0.5)
     assert q == pytest.approx(4.94, abs=0.01)
-    # The measured |Z| peaks at the sample next to the fitted resonance.
-    peak = spectrum.frequency[np.argmax(np.abs(spectrum.impedance))]
-    assert abs(np.log10(peak / f0)) < 0.025
+    # Three frequencies the caption keeps apart: the highest measured |Z| is
+    # the first sample above the fit's maximum (one step of the 40-per-decade
+    # sweep away), the fit's |Z| peaks just below 1/(2 pi sqrt(LC)), and the
+    # fitted phase crosses zero lower still.
+    highest = bayreuth_rlc.measured_peak(spectrum)
+    assert highest == pytest.approx(1584.49, abs=0.01)
+    peak = bayreuth_rlc.model_peak(result)
+    assert peak == pytest.approx(1546.3, abs=0.2)
+    assert bayreuth_rlc.model_phase_zero(result) == pytest.approx(1514.9, abs=0.2)
+    below = spectrum.frequency[spectrum.frequency < peak].max()
+    assert below == pytest.approx(1496.43, abs=0.01)
+    assert np.log10(highest / below) == pytest.approx(0.025, abs=5e-4)
+    phase = np.angle(spectrum.impedance)
+    assert (
+        phase[spectrum.frequency == below][0]
+        > 0
+        > phase[spectrum.frequency == highest][0]
+    )
     residual = bayreuth_rlc.relative_residual(spectrum, result)
     rms = np.sqrt(np.mean(np.concatenate([residual.real, residual.imag]) ** 2))
     assert rms == pytest.approx(0.0113, abs=0.0005)
     assert np.abs(residual).max() < 0.05
 
 
-def test_the_rlc_band_split_gives_the_model_error_of_the_dossier():
+def test_the_rlc_band_split_is_the_sensitivity_table_of_the_dossier():
     """Fits below and above the resonance disagree by far more than their
-    standard errors: the residuals are systematic, so the dossier states the
-    spread as the model error. The resonance frequency is the robust result."""
+    standard errors: the residuals are systematic. The dossier reports the
+    band fits as a sensitivity analysis beside the full fit, not as a bound;
+    the lower band's resonance lies 7 Hz below the full fit's."""
     spectrum = bayreuth_rlc.load(RLC)
     halves = bayreuth_rlc.band_split(spectrum)
     below, above = halves["below"], halves["above"]
@@ -217,6 +233,7 @@ def test_the_rlc_band_split_gives_the_model_error_of_the_dossier():
         assert spread[n] > 10 * full.stderr[full.names.index(n)], n
     resonances = [bayreuth_rlc.resonance(h)[0] for h in (below, above)]
     assert resonances == pytest.approx([1539.8, 1546.1], abs=0.2)
+    assert bayreuth_rlc.resonance(full)[0] - min(resonances) > 3
 
 
 def test_a_file_that_is_not_an_impedance_export_is_refused(tmp_path):

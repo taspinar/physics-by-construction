@@ -60,9 +60,10 @@ masks: 'None: no missing or non-finite value in any array; z_modulus and z_phase
 uncertainty: 'None per point in the record; the components'' factory tolerance is 10 %. Derived (dossier):
   a fit of C parallel to (R + jwL) to the relative complex residual gives R = 9.537 +- 0.021 ohm, L =
   4.849 +- 0.007 mH, C = 2.1832 +- 0.0031 uF (standard errors from the residual scatter, rms 1.1 % per
-  component). The residuals are structured (up to 4.3 % at the resonance), so these are lower bounds;
-  separate fits below and above the resonance differ by 0.93 ohm, 0.12 mH, and 0.072 uF, and resonance
-  1540 to 1546 Hz, which the dossier takes as the model error.'
+  component). The residuals are structured (up to 4.3 % near the resonance). As a sensitivity analysis
+  of the model fit, separate fits below and above the resonance differ by 0.93 ohm, 0.12 mH, and 0.072
+  uF, with resonances of 1539.8 and 1546.1 Hz beside the full fit''s 1546.9 Hz; this is no bound on
+  the calibration or instrument error of the record, which is unknown.'
 size:
   description: One JSON file of 9,119 bytes (the record holds 14 files, 164 KB in all); the sample is that
     file.
@@ -96,8 +97,9 @@ decision:
   - 'A three-parameter model of the EM5 parallel circuit describes the spectrum to 1.1 % rms: R = 9.54
     ohm, L = 4.849 mH, C = 2.183 uF, within the 10 % tolerance of the nominal 9.7 ohm, 5 mH, 2.2 uF;
     the record''s 9.7 mOhm is a unit typo for 9.7 ohm.'
-  - Uncertainty derived from the fit and from the split of the band, because the record gives none;
-    calibration is undocumented and stated as such.
+  - Standard errors derived from the fit, because the record gives no uncertainty; fits of the two
+    halves of the band reported as a sensitivity analysis; calibration and instrument error undocumented
+    and stated as unknown.
   - CC BY 4.0 on the record covers local download, subsets, figures, and modification.
   - 'Recorded by F86 (Issue #418) under the owner''s decision of 2026-11-08 on the Issue: work towards
     a go on the strength of the research, with every requirement of ADR 007 checked in the dossier.'

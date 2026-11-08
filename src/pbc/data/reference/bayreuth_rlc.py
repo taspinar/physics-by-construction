@@ -7,8 +7,13 @@ apart from the measurement, as a model, with its residuals.
 
 The record gives no uncertainty per point and no calibration. The fit takes its
 standard errors from the scatter of the residuals; ``band_split`` fits below
-and above the resonance separately, and the spread of the two is the dossier's
-estimate of the model error, which the structured residuals show to dominate.
+and above the resonance separately, a sensitivity analysis of the model fit
+(the structured residuals show the model, not the scatter, to limit it). It is
+no bound on the unknown calibration or instrument error of the record.
+
+Three frequencies are kept apart: the highest measured |Z| (a sample of the
+40-per-decade sweep), the maximum of the fitted |Z| (``model_peak``), and the
+zero crossing of the fitted phase (``model_phase_zero``).
 """
 
 import json
@@ -20,6 +25,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.optimize import brentq, minimize_scalar
 
 from pbc.data.fit import FitResult, fit_curve
 from pbc.data.plotting import COLOURS, add_credit, label_status
@@ -112,13 +118,38 @@ def resonance(result: FitResult) -> tuple[float, float]:
     return 1 / (2 * np.pi * np.sqrt(inductance * c)), np.sqrt(inductance / c) / r
 
 
+def model_peak(result: FitResult) -> float:
+    """Frequency [Hz] of the maximum of the fitted |Z|."""
+    f0, _ = resonance(result)
+    found = minimize_scalar(
+        lambda f: -abs(impedance(f, *parameters(result))),
+        bounds=(0.8 * f0, 1.2 * f0),
+        method="bounded",
+        options={"xatol": 1e-3},
+    )
+    return float(found.x)
+
+
+def model_phase_zero(result: FitResult) -> float:
+    """Frequency [Hz] where the fitted phase turns from inductive to capacitive."""
+    f0, _ = resonance(result)
+    phase = lambda f: np.angle(impedance(f, *parameters(result)))  # noqa: E731
+    return float(brentq(phase, 0.5 * f0, f0, xtol=1e-6))
+
+
+def measured_peak(spectrum: Spectrum) -> float:
+    """Frequency [Hz] of the sample with the highest measured |Z|."""
+    return float(spectrum.frequency[np.argmax(np.abs(spectrum.impedance))])
+
+
 def relative_residual(spectrum: Spectrum, result: FitResult) -> np.ndarray:
     """Complex (model - measurement) / measurement at every point."""
     return impedance(spectrum.frequency, *parameters(result)) / spectrum.impedance - 1
 
 
 def band_split(spectrum: Spectrum) -> dict[str, FitResult]:
-    """Separate fits below and above the resonance of the full fit."""
+    """Separate fits below and above the resonance of the full fit: a
+    sensitivity analysis of the model fit, not an uncertainty of the record."""
     f0, _ = resonance(fit(spectrum))
     below = spectrum.frequency < f0
     return {
@@ -131,6 +162,11 @@ def make_figure(data_dir: Path) -> plt.Figure:
     spectrum = load(data_dir)
     result = fit(spectrum)
     f0, q = resonance(result)
+    peak, zero, highest = (
+        model_peak(result),
+        model_phase_zero(result),
+        measured_peak(spectrum),
+    )
     f = spectrum.frequency
     z = spectrum.impedance
     dense = np.geomspace(f.min(), f.max(), 600)
@@ -148,18 +184,29 @@ def make_figure(data_dir: Path) -> plt.Figure:
         f, np.abs(z), label="measured (no uncertainty per point given)", **measured
     )
     ax_mag.loglog(dense, np.abs(model), label=fit_label, **fitted)
-    ax_mag.axvline(f0, color="0.5", lw=0.8, ls=":")
+    ax_mag.axvline(
+        peak, color="0.5", lw=0.8, ls=":", label=f"maximum of the fit: {peak:.0f} Hz"
+    )
     ax_mag.set_xlabel("frequency [Hz]")
     ax_mag.set_ylabel("|Z| [Ohm]")
-    ax_mag.set_title(f"Processed: |Z| peaks near f0 = {f0:.0f} Hz (Q = {q:.1f})")
+    ax_mag.set_title(
+        f"Processed: highest measured |Z| at {highest:.0f} Hz; "
+        f"fit peaks at {peak:.0f} Hz (Q = {q:.1f})",
+        fontsize=10,
+    )
     ax_mag.legend(fontsize=8, loc="lower center")
 
     ax_phase.semilogx(f, np.degrees(np.angle(z)), label="measured", **measured)
     ax_phase.semilogx(dense, np.degrees(np.angle(model)), label="fit", **fitted)
     ax_phase.axhline(0, color="0.5", lw=0.8)
+    ax_phase.axvline(
+        zero, color="0.5", lw=0.8, ls=":", label=f"zero of the fit: {zero:.0f} Hz"
+    )
     ax_phase.set_xlabel("frequency [Hz]")
     ax_phase.set_ylabel("phase of Z [deg]")
-    ax_phase.set_title("Processed: inductive below, capacitive above f0")
+    ax_phase.set_title(
+        f"Processed: fitted phase turns capacitive at {zero:.0f} Hz", fontsize=10
+    )
     ax_phase.legend(fontsize=8)
 
     ax_nyq.plot(z.real, -z.imag, label="measured", **measured)
@@ -182,7 +229,9 @@ def make_figure(data_dir: Path) -> plt.Figure:
         label="imaginary part",
     )
     ax_res.axhline(0, color="0.5", lw=0.8)
-    ax_res.axvline(f0, color="0.5", lw=0.8, ls=":")
+    ax_res.axvline(
+        f0, color="0.5", lw=0.8, ls=":", label=f"1/(2 pi sqrt(LC)) = {f0:.0f} Hz"
+    )
     ax_res.set_xlabel("frequency [Hz]")
     ax_res.set_ylabel("residual Z_fit / Z_measured - 1 [%]")
     ax_res.set_title("Residuals: structured, largest at the resonance")
