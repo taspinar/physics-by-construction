@@ -17,6 +17,10 @@ Defer and reject have no entry yet: no spiked dataset failed its gate. The surve
 
 A `go` means the data, the rights, and the figure passed. It does not mean a lesson exists, and it does not pick a course.
 
+## Dataset research for the measured-data labs
+
+The research of 2026-11-08 into open datasets for the measured-data labs is recorded in [spike-candidates-2026-11-08](spike-candidates-2026-11-08.md): the first spike recommended per lab, the options rejected, corrections to existing cards (not yet applied), the owner's decisions and the open ones, and the outcome of its third round, in which the small spike files were downloaded and inspected. Those files, the scripts, and the figures are kept outside the repository; no data file of that research is in the repository, and none of its datasets has a `go`.
+
 ## Recommendation for the first lab
 
 **First: the GW150914 strain lab**, as the planner's recommendation in `docs/architecture.md` expected. The data are a 2.5 MB committed sample under CC BY 4.0, the figure reproduces from it in 4 s with no new dependency, the signal is a real, well-known event, and a consistency check against the published chirp mass and the detector delay is part of the lab. The cost the spike found: the lab needs whitening and spectral estimation, background that the learning path does not yet build, and a leading-order template recovers the mass only to about 15 %.
