@@ -22,7 +22,11 @@ usage() {
   echo "question (ADR 020 decision 4): a minor finding is deferred with a follow-up"
   echo "Issue, a suggestion is accepted, and the triage is published once. A review"
   echo "with a critical or major finding, and every review of a Level 3 change, gets"
-  echo "the full triage per finding with your approval."
+  echo "the full triage per finding with your approval. A critical finding is always"
+  echo "FIX_NOW. A major finding is FIX_NOW too, except that a triage you approve may"
+  echo "defer it (with a follow-up Issue) or accept it when it is a further instance"
+  echo "of a class you have bounded on the Issue; with --unattended every major"
+  echo "finding is FIX_NOW."
   echo
   echo "Examples:"
   echo "  $0 .agents/reviews/feature-5-rendering-review-01.json"
@@ -231,6 +235,26 @@ fi
 command -v gh >/dev/null 2>&1 || fail "GitHub CLI 'gh' is not installed."
 gh auth status >/dev/null 2>&1 || fail "GitHub CLI is not authenticated. Run: gh auth login"
 
+# owner_comment_errors <decisions-file> <review-json> <issue>
+# A major finding that is not FIX_NOW cites a comment on the Issue; the
+# comment must exist, belong to this Issue, and be the owner's.
+owner_comment_errors() {
+  local id url comment_id info
+  while IFS=$'\t' read -r id url; do
+    [[ -n "$id" ]] || continue
+    comment_id="${url##*#issuecomment-}"
+    if ! info="$(gh api "repos/{owner}/{repo}/issues/comments/$comment_id" \
+        --jq '[.issue_url, .author_association] | @tsv' 2>/dev/null </dev/null)"; then
+      echo "major finding $id: the comment $url could not be found on GitHub"
+    elif [[ "${info%%$'\t'*}" != */issues/"$3" || "${info##*$'\t'}" != "OWNER" ]]; then
+      echo "major finding $id: the comment $url is not a comment of the owner on Issue #$3"
+    fi
+  done < <(jq -r --slurpfile review "$2" '
+    ($review[0].findings | map({key: .id, value: .severity}) | from_entries) as $sev
+    | .decisions[] | select($sev[.finding_id] == "major" and .decision != "FIX_NOW")
+    | [.finding_id, (.rationale | capture("(?<u>https://[^ \\n)]+/issues/[0-9]+#issuecomment-[0-9]+)").u)] | @tsv' "$1")
+}
+
 review_errors="$(review_artifact_errors "$review_path")"
 if [[ -n "$review_errors" ]]; then
   echo "Error: invalid review artifact:" >&2
@@ -332,10 +356,24 @@ else
     jq '{verdict, limitations, findings}' "$review_path"
   } >"$context_file"
 
+  if [[ "$AGENT_UNATTENDED" -eq 1 ]]; then
+    triage_mode="unattended"
+    triage_rule="This triage is approved without a human (--unattended): every critical
+and major finding is FIX_NOW."
+  else
+    triage_mode="attended"
+    triage_rule="This triage is approved by the owner at the prompt: a critical finding is
+FIX_NOW; a major finding is FIX_NOW unless it is a further instance of a
+class the owner has bounded on the Issue (a comment of the owner that names
+the class and what is in scope), which may be deferred with a follow-up Issue
+or accepted, with the URL of the owner's comment (https://github.com/<owner>/<repo>/issues/<number>#issuecomment-<id>) in the rationale."
+  fi
   start_prompt="Read and follow .agents/prompts/triage-reviewer.md.
 
 Source review artifact: ${review_relative}
 Source feature Issue: #${source_issue}
+
+${triage_rule}
 
 Standard input contains the Issue and the review findings as JSON. Classify
 every finding exactly once, using its 'id' as 'finding_id', and return JSON
@@ -365,7 +403,10 @@ that matches the supplied schema."
     fi
     [[ "$agent_status" -eq 0 ]] || fail "triage agent failed with status $agent_status."
 
-    decision_errors="$(triage_decision_errors "$decisions_file" "$review_path")"
+    decision_errors="$(triage_decision_errors "$decisions_file" "$review_path" "$triage_mode")"
+    if [[ -z "$decision_errors" && "$triage_mode" == "attended" ]]; then
+      decision_errors="$(owner_comment_errors "$decisions_file" "$review_path" "$source_issue")"
+    fi
     [[ -n "$decision_errors" ]] || break
 
     echo "The triage agent returned invalid decisions (attempt $attempt of 2):" >&2
@@ -499,8 +540,9 @@ jq -n \
     review_verdict: $review[0].verdict,
     triage: {agent: $agent, model: $model},
     approved_at: $approved_at,
-    decisions: $decisions[0]
-  } + (if $unattended then {unattended: true} else {} end)
+    decisions: $decisions[0],
+    unattended: $unattended
+  }
     + (if $mechanical then {mechanical: true} else {} end)' >"$pending"
 
 record_issue() {

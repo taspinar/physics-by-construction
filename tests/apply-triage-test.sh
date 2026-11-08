@@ -64,7 +64,7 @@ setup_repo() {
   jq -n --arg review "$review" '{
     schema: "triage/v1", source_review: $review, issue: 13, reviewed_tree: "cccc",
     review_verdict: "CHANGES_REQUIRED", triage: {agent: "claude", model: "model-t"},
-    approved_at: "2026-01-01T10:00:00Z",
+    approved_at: "2026-01-01T10:00:00Z", unattended: false,
     decisions: [
       {finding_id: "C1", severity: "critical", title: "Correctness regression", decision: "FIX_NOW", rationale: "Correctness blocks the feature.", followup: null},
       {finding_id: "MIN1", severity: "minor", title: "Deferred cleanup", decision: "DEFER", rationale: "Follow-up work.",

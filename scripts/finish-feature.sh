@@ -307,9 +307,21 @@ else
 
   round="$(jq -r '.round' "$latest")"
   verdict="$(jq -r '.verdict | gsub("_"; " ")' "$latest")"
-  blocking="$(jq '[.findings[] | select(.severity == "critical" or .severity == "major")] | length' "$latest")"
+  # A critical finding of the latest review blocks the commit. A major one
+  # does so too, unless a valid, approved triage of that review deferred or
+  # accepted it, which only a triage the owner approved may do (ADR 020
+  # decision 4; Issue #389): a further instance of a class the owner has
+  # bounded on the Issue.
+  latest_decisions='{}'
+  latest_triage="$(review_latest_triage "$root" "$latest")"
+  if [[ -n "$latest_triage" && -z "$(triage_artifact_errors "$latest_triage" "$latest")" ]]; then
+    latest_decisions="$(jq '.decisions | map({key: .finding_id, value: .decision}) | from_entries' "$latest_triage")"
+  fi
+  blocking="$(jq --argjson decided "$latest_decisions" '[.findings[]
+    | select(.severity == "critical" or (.severity == "major" and ($decided[.id] | IN("DEFER", "ACCEPT") | not)))] | length' "$latest")"
   [[ "$blocking" -eq 0 ]] ||
-    fail "the latest review (round $round) has $blocking critical or major finding(s). Triage, fix, and review again."
+    fail "the latest review (round $round) has $blocking critical or major finding(s) that no approved triage deferred or accepted. Triage, fix, and review again."
+  decided_majors="$(jq --argjson decided "$latest_decisions" '[.findings[] | select(.severity == "major" and ($decided[.id] | IN("DEFER", "ACCEPT")))] | length' "$latest")"
 
   # Every round with findings needs an approved triage that was published on
   # the Issue; only the latest round may not have FIX_NOW findings left, since
@@ -345,6 +357,8 @@ else
         fail "round $review_round has FIX_NOW findings. Apply them with ./scripts/apply-triage.sh $triage_relative and review again."
     fi
     triage_note="; triage published on #$issue"
+    [[ "$review" != "$latest" || "$decided_majors" -eq 0 ]] ||
+      triage_note+="; $decided_majors major finding(s) of round $review_round deferred or accepted by the triage the owner approved"
   done
   if [[ "${#dispositioned_rounds[@]}" -gt 0 ]]; then
     triage_note+="; the findings of round $(IFS=,; printf '%s' "${dispositioned_rounds[*]}" | sed 's/,/, /g') given their disposition by a later review, without a triage"

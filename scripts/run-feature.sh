@@ -3,6 +3,7 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+source "$script_dir/lib/agent.sh"
 source "$script_dir/lib/review-data.sh"
 source "$script_dir/lib/fingerprint.sh"
 source "$script_dir/lib/completion.sh"
@@ -23,6 +24,13 @@ MAX_REPAIRS="${RUN_FEATURE_REPAIRS:-3}"
 MAX_UNSTABLE=3
 repairs=0
 unstable=0
+# The command that repeats a failed verification of the current step, in the
+# tier the step ran (Issue #389): the targeted run for an ordinary change,
+# the feedback groups for a feedback round or a Level 3 fix session, the full
+# run for a complete round of a Level 3 change. A Level 3 change refuses the
+# targeted run, so a repeat with it counted every failure as unstable.
+STEP_VERIFY_DEFAULT=(./scripts/verify.sh --targeted)
+STEP_VERIFY=("${STEP_VERIFY_DEFAULT[@]}")
 
 usage() {
   echo "Usage: $0 <issue-number> [slug] [base-branch] [--implemented]"
@@ -45,8 +53,12 @@ usage() {
   echo "sessions in a run."
   echo
   echo "A Level 3 change (ADR 020 decisions 1, 4, and 5) is reviewed complete in"
-  echo "every round, in its later rounds on the feedback of a partial run"
-  echo "(review-feature.sh --feedback), and its last round on the full verification."
+  echo "every round, on the feedback of a partial run (review-feature.sh --feedback)"
+  echo "until a round leaves nothing to fix, and then once more on the full"
+  echo "verification of the final tree, which ends the run when it leaves nothing to"
+  echo "fix. A full pass that the implementer recorded for exactly the content makes"
+  echo "round 1 that round. Every step's start and end is written to"
+  echo ".agents/run/<issue>-log with its duration."
   echo
   echo "The run stops with a non-zero status when a step fails or needs you, and"
   echo "says which command continues. Status 3 means that an agent needs a decision"
@@ -120,14 +132,17 @@ stop() {
 # Adds one line to the log of the feature, .agents/run/<issue>-log, and shows
 # it. The outcome is decided here, from exit statuses and check results.
 note() {
-  local line
-
-  line="$(date -u +'%Y-%m-%dT%H:%M:%SZ') | $1 | $2 | $3 | $4"
   echo "run-feature.sh: $2 in '$1': $3. $4"
-  if [[ -n "${worktree:-}" && -d "$worktree/.agents" ]]; then
-    mkdir -p "$worktree/.agents/run"
-    printf '%s\n' "$line" >>"$worktree/.agents/run/$issue-log"
-  fi
+  [[ -z "${worktree:-}" ]] || agent_log "$worktree" "$issue" "$1" "$2" "$3" "$4"
+}
+
+# record <step> <started|ended> <reason> <action> [<time>]
+# Adds the start or the end of a step to the log of the feature without
+# showing it: '<time> | <step> | started | <command> | attempt <n>' and
+# '<time> | <step> | ended | status <n> | <seconds> s', so that the duration
+# of every step is read from the log (Issue #389).
+record() {
+  [[ -z "${worktree:-}" ]] || agent_log "$worktree" "$issue" "$1" "$2" "$3" "$4" "${5:-}"
 }
 
 # open_question
@@ -181,6 +196,7 @@ retrying() {
   local attempt=0
   local wait="$RETRY_WAIT"
   local log
+  local started
 
   shift
   while true; do
@@ -190,7 +206,10 @@ retrying() {
     log="$worktree/.agents/run/$issue-step.log"
     mkdir -p "$(dirname "$log")"
     step_status=0
+    started="$(date +%s)"
+    record "$title" "started" "$*" "attempt $((attempt + 1))"
     (cd "$worktree" && "$@" </dev/null) 2>&1 | tee "$log" || step_status=$?
+    record "$title" "ended" "status $step_status" "$(($(date +%s) - started)) s"
     case "$step_status" in
       0 | 3 | 4) return 0 ;;
       5)
@@ -247,12 +266,17 @@ repair_verification() {
   local twice
   local once
   local repeat_status=0
+  local repeat_started
 
   first="$(failing_checks "$first_log")"
   mkdir -p "$(dirname "$log")"
-  # The same tier the gate ran: the targeted run for an ordinary change, which
-  # is the full run in a project with one tier (ADR 017 decision 7).
-  (cd "$worktree" && ./scripts/verify.sh --targeted) >"$log" 2>&1 || repeat_status=$?
+  # The same tier the step ran (STEP_VERIFY): the targeted run for an
+  # ordinary change, which is the full run in a project with one tier (ADR
+  # 017 decision 7); the feedback groups or the full run at Level 3.
+  record "$title, repeated verification" "started" "${STEP_VERIFY[*]}" "attempt 1"
+  repeat_started="$(date +%s)"
+  (cd "$worktree" && "${STEP_VERIFY[@]}") >"$log" 2>&1 || repeat_status=$?
+  record "$title, repeated verification" "ended" "status $repeat_status" "$(($(date +%s) - repeat_started)) s"
   second="$(failing_checks "$log")"
   twice="$(comm -12 <(printf '%s\n' "$first") <(printf '%s\n' "$second") | grep . || true)"
   once="$(comm -3 <(printf '%s\n' "$first") <(printf '%s\n' "$second") | tr -d '\t' | grep . | tr '\n' ' ' || true)"
@@ -282,11 +306,13 @@ repair_verification() {
     echo
     echo "## Verification failed ($(date -u +'%Y-%m-%dT%H:%M:%SZ'), recorded by run-feature.sh)"
     echo
-    echo "./scripts/verify.sh --targeted fails on the content as it is. These checks"
+    echo "${STEP_VERIFY[*]} fails on the content as it is. These checks"
     echo "failed in two runs; repair them. The complete output is in"
     echo ".agents/run/$issue-verify.log. A 'targeted-run' that was refused means the"
     echo "change needs the full ./scripts/verify.sh or ./scripts/verify.sh --base, as"
-    echo "the output says: run that tier last, so that its pass is recorded."
+    echo "the output says: run that tier last, so that its pass is recorded. A"
+    echo "Level 3 change takes quick feedback from ./scripts/verify.sh --only <groups>"
+    echo "and the full run last (ADR 020 decision 5)."
     echo "Repair attempt $repairs of $MAX_REPAIRS."
     echo
     printf '%s\n' "${twice:-(no check named; read the log)}" | sed 's/^/- FAIL /'
@@ -327,13 +353,17 @@ step() {
 # a retry does not change. Sets step_status.
 step_once() {
   local title="$1"
+  local started
 
   shift
   echo
   echo "=== run-feature.sh: $title ==="
   echo
   step_status=0
+  started="$(date +%s)"
+  record "$title" "started" "$*" "attempt 1"
   (cd "$worktree" && "$@" </dev/null) || step_status=$?
+  record "$title" "ended" "status $step_status" "$(($(date +%s) - started)) s"
   [[ "$step_status" -eq 0 ]] || note "$title" "failed" "the step exited with status $step_status" "Stopping"
 }
 
@@ -348,8 +378,13 @@ if [[ -z "$worktree" ]]; then
   echo "=== run-feature.sh: implementation ==="
   echo
   step_status=0
+  started_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+  started="$(date +%s)"
   (cd "$repo_root" && ./scripts/start-feature.sh "${arguments[@]}" --unattended </dev/null) || step_status=$?
   worktree="$(find_worktree)"
+  # The worktree exists only now, so the start is recorded late, with its time.
+  record "implementation" "started" "./scripts/start-feature.sh ${arguments[*]} --unattended" "attempt 1" "$started_at"
+  record "implementation" "ended" "status $step_status" "$(($(date +%s) - started)) s"
   first_session=1
   if [[ "$step_status" -eq 3 ]]; then
     if open_question; then
@@ -585,21 +620,35 @@ if uncommitted; then
       # merge of main, the round reviews the complete feature instead.
       review_options=()
       review_title="review"
+      STEP_VERIFY=("${STEP_VERIFY_DEFAULT[@]}")
       if [[ "$complete_review" -eq 1 ]]; then
         review_title="review of the complete feature"
       elif [[ -n "$review" ]] && changes_reviewable "$review" && ! level3; then
         review_options=(--changes)
       fi
-      # An intermediate round of a Level 3 change is reviewed on the feedback
-      # of a partial run; the round of the complete feature that ends the run
-      # gets the full verification first (ADR 020 decision 5).
-      if [[ -n "$review" && "$complete_review" -eq 0 ]] && level3; then
-        review_options+=(--feedback)
-        review_title="$review_title on the feedback of a partial run"
+      # Every round of a Level 3 change but the complete round that can end
+      # the run is reviewed on the feedback of a partial run; that round gets
+      # the full verification of the final tree first (ADR 020 decision 5).
+      # A full pass the implementer recorded for exactly the content makes
+      # round 1 such a round: review-feature.sh --feedback takes it instead
+      # of the partial run (Issue #389).
+      if level3; then
+        if [[ "$complete_review" -eq 0 ]]; then
+          review_options+=(--feedback)
+          review_title="$review_title on the feedback of a partial run"
+          STEP_VERIFY=(./scripts/verify.sh --only "$(risk_feedback_groups "$worktree")")
+        else
+          STEP_VERIFY=(./scripts/verify.sh)
+        fi
       fi
       complete_review=0
+      # The approval request names the content tree of what is reviewed; the
+      # scripts refresh its line 'Tree:', which every fix changes (Issue #389).
+      refreshed="$(risk_request_refresh "$worktree" "$issue")" || refreshed=""
+      [[ -z "$refreshed" ]] || note "review" "refreshed" "$refreshed" "Going on"
       step "$review_title, round $((round + 1)) of at most $MAX_ROUNDS" \
         ./scripts/review-feature.sh "$issue" "$base" ${review_options[@]+"${review_options[@]}"}
+      STEP_VERIFY=("${STEP_VERIFY_DEFAULT[@]}")
       if [[ "$step_status" -eq 3 ]]; then
         rm -f "$state_file"
         stop 3 "the implementer, repairing the verification, needs a decision of yours; its question is in the handoff note (.agents/handoffs/$issue.md)." \
@@ -662,8 +711,13 @@ if uncommitted; then
     # An interrupted fix session is continued with its scope, not started
     # again: apply-triage.sh refuses a review whose content changed.
     STEP_REVIEW="$review"
+    STEP_VERIFY=("${STEP_VERIFY_DEFAULT[@]}")
+    # A fix session of a Level 3 change is verified by the feedback groups
+    # (apply-triage.sh); a repeat runs the same (Issue #389).
+    ! level3 || STEP_VERIFY=(./scripts/verify.sh --only "$(risk_feedback_groups "$worktree")")
     step "fixes for round $round" ./scripts/apply-triage.sh "$triage_relative" --unattended
     STEP_REVIEW=""
+    STEP_VERIFY=("${STEP_VERIFY_DEFAULT[@]}")
     if [[ "$step_status" -eq 3 ]]; then
       # The next run resumes the implementer, which reads the handoff note
       # with the answer before it continues; a review follows.

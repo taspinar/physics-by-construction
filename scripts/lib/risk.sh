@@ -360,6 +360,45 @@ approval_request_level() {
   approval_request_field "$1" "$2" | sed -nE 's/^[^0-9]*([1-3]).*$/\1/p'
 }
 
+# risk_request_refresh <root> <issue>
+# Rewrites the line 'Tree:' of the approval request of the Issue to the
+# content tree when the request exists and names another tree, and prints
+# what it did. The request is the vehicle of a level and no part of the
+# content, so the content tree changes with every fix (the handoff note is
+# part of it) while the request stays what the agent wrote; refreshing the
+# line keeps the request naming the tree under review without a round spent
+# on it (Issue #389). Everything else in the request is left as it is. Prints
+# nothing when there is no request or it names the content tree already.
+# Returns 1 when the content tree cannot be computed or the file cannot be
+# written.
+risk_request_refresh() {
+  local root="$1"
+  local issue="$2"
+  local request
+  local scratch
+  local tree
+  local named
+
+  request="$root/$(approval_request_path "$issue")"
+  [[ -f "$request" ]] || return 0
+  scratch="$(mktemp -d "${TMPDIR:-/tmp}/risk.XXXXXX")"
+  tree="$(risk_content_tree "$root" "$scratch" "$issue")" || { rm -rf "$scratch"; return 1; }
+  rm -rf "$scratch"
+  named="$(approval_request_field "$request" "Tree" | awk '{ print $1 }' | tr -d '`')"
+  [[ -n "$named" && "$named" != "$tree" ]] || return 0
+  awk -v tree="$tree" '
+    !done && match($0, /^[[:space:]]*([-*][[:space:]]+)?(\*\*)?Tree:(\*\*)?[[:space:]]*/) {
+      prefix = substr($0, 1, RLENGTH)
+      if (prefix !~ /[[:space:]]$/) prefix = prefix " "
+      print prefix tree
+      done = 1
+      next
+    }
+    { print }' "$request" >"$request.tmp" || { rm -f "$request.tmp"; return 1; }
+  mv "$request.tmp" "$request" || return 1
+  echo "The approval request $(approval_request_path "$issue") named tree $named; its line 'Tree:' is refreshed to the content tree $tree."
+}
+
 # risk_assess <root> <rules-refs> <from> <issue> [<review-json>]
 # Derives the level of the change in the working tree at <root> against
 # <from>, and sets:

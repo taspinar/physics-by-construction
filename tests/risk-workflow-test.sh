@@ -35,7 +35,13 @@ set -euo pipefail
 printf '%s\n' "$*" >>"$MOCK_GH_LOG"
 case "${1:-} ${2:-}" in
   "auth status") exit 0 ;;
-  "issue view") printf 'Title: Test feature\n\nThe marker must exist.\n' ;;
+  "issue view")
+    case "$*" in
+      *"--json number"*) echo "$3" ;;
+      *) printf 'Title: Test feature\n\nThe marker must exist.\n' ;;
+    esac
+    ;;
+  "issue comment") ;;
   "pr list") echo "" ;;
   "pr create" | "pr edit")
     args=("$@")
@@ -65,7 +71,7 @@ setup_repo() {
   rm -f "$repo/scripts/verify-workflow.conf"
   cp "$source_root/.gitignore" "$repo/.gitignore"
   cp "$source_root/.agents/policies/guardrails.conf" "$repo/.agents/policies/guardrails.conf"
-  printf 'reviewer: claude model-r\n' >"$repo/.agents/agents.conf"
+  printf 'reviewer: claude model-r\ntriage: claude model-t\ntriage-implementer: claude model-i\n' >"$repo/.agents/agents.conf"
   # Each run of the checks leaves one line in an ignored file.
   printf 'count [build]: echo run >>verify-count.log\nfeedback [code]: echo feedback >>verify-count.log\n' >"$repo/scripts/verify.conf"
   printf '[project]\nname = "x"\n' >"$repo/pyproject.toml"
@@ -383,5 +389,101 @@ expect_commit "$repo" "a Level 3 change after its final review on the full run"
 [[ "$(count_runs "$repo")" -eq 1 ]] || fail "the recorded full pass was not reused by finish-feature.sh"
 message_has "$repo" "- assessed by the independent review: level 3" \
   "- escalation trigger: named by the review: dependency selection"
+
+# --- The reviewer is told the verification state of the round (Issue #389):
+# a feedback round is a limitation, not a finding; the report says so. The
+# content changes first, so that no full pass is recorded for it, and the
+# request is written for the new content.
+printf 'print("w")\n' >>"$repo/src/code.py"
+request "$repo" 3
+context="$repo.agent.log.stdin"
+run_script "$repo" ./scripts/review-feature.sh 12 --feedback
+[[ "$status" -eq 0 ]] || { cat "$repo.out" >&2; fail "a feedback round after the commit failed"; }
+grep -Fq "## Verification of this round" "$context" || fail "the reviewer was not told the verification state of the round"
+grep -Fq "This is an intermediate round of a Level 3 change (ADR 020 decision 5)" "$context" ||
+  fail "the reviewer was not told that the round is an intermediate one"
+grep -Fq "Do not report" "$context" && grep -Fq "the missing full run" "$context" ||
+  fail "the reviewer was not told that the missing full run is no finding"
+grep -Fq "neither 'named in the completion record' nor 'named by the review') is" "$context" ||
+  fail "the reviewer was not told that a detected trigger is recorded by the scripts"
+stored="$repo/.agents/reviews/feature-12-marker-review-03.json"
+grep -Fq "Verification: an intermediate round of a Level 3 change, reviewed on the feedback of the partial run of the groups code at" "${stored%.json}.md" ||
+  { cat "${stored%.json}.md" >&2; fail "the report does not render the feedback round as such"; }
+grep -Fq "| review round 3, reviewer session | started | claude (model-r) | on the feedback of code" "$repo/.agents/run/12-log" ||
+  { cat "$repo/.agents/run/12-log" >&2; fail "the start of the reviewer session is not in the log of the feature"; }
+grep -Eq "\| review round 3, reviewer session \| ended \| status 0 \| [0-9]+ s$" "$repo/.agents/run/12-log" ||
+  fail "the end of the reviewer session is not in the log of the feature"
+
+# --- --feedback takes a full pass recorded for exactly the content (Issue
+# #389): no partial run, and the review counts as one made on the full run.
+repo="$(setup_repo review-level3-recorded)"
+printf 'dependencies = ["numpy"]\n' >>"$repo/pyproject.toml"
+record "$repo" complete 3
+request "$repo" 3
+(cd "$repo" && PATH="$tmp/bin:/usr/bin:/bin" ./scripts/verify.sh >/dev/null 2>&1) || fail "the implementer's full run failed"
+[[ "$(count_runs "$repo")" -eq 1 ]] || fail "the full run did not run"
+run_script "$repo" ./scripts/review-feature.sh 12 --feedback
+[[ "$status" -eq 0 ]] || { cat "$repo.out" >&2; fail "--feedback with a recorded full pass failed"; }
+grep -Fq "a full pass is recorded for exactly this content" "$repo.out" || fail "the reused full pass was not reported"
+stored="$repo/.agents/reviews/feature-12-marker-review-01.json"
+[[ "$(jq -r '.verification.status + " " + .verification.tier' "$stored")" == "passed full" ]] ||
+  fail "the review on a recorded full pass is not recorded as made on the full run: $(jq -c '.verification' "$stored")"
+# The full run ran the group of the feedback check once; --feedback added no run.
+[[ "$(grep -c '^feedback$' "$repo/verify-count.log" 2>/dev/null || true)" -eq 1 && "$(count_runs "$repo")" -eq 1 ]] ||
+  fail "--feedback ran although a full pass was recorded"
+grep -Fq "this round is made on the full run: it can be the" "$repo.agent.log.stdin" ||
+  fail "the reviewer was not told that the round can be the final one"
+run_script "$repo" ./scripts/finish-feature.sh 12 "Add the marker" --unattended
+expect_commit "$repo" "a Level 3 change whose feedback round reused a recorded full pass"
+[[ "$(count_runs "$repo")" -eq 1 ]] || fail "finish-feature.sh ran the full verification again"
+
+# --- A stale approval request is refused before the verification runs, and
+# apply-triage.sh refreshes its line 'Tree:' after a fix session (Issue #389).
+repo="$(setup_repo stale-request)"
+printf 'dependencies = ["numpy"]\n' >>"$repo/pyproject.toml"
+record "$repo" complete 3
+request "$repo" 3
+printf 'a later change\n' >>"$repo/src/code.py"
+run_script "$repo" ./scripts/review-feature.sh 12 --feedback
+[[ "$status" -ne 0 ]] || fail "a review with a stale approval request was started"
+grep -Fq "names tree" "$repo.out" && grep -Fq "The review was not started" "$repo.out" ||
+  { cat "$repo.out" >&2; fail "the stale request was not refused before the run"; }
+[[ ! -e "$repo/verify-count.log" ]] || fail "the verification ran for a review that a stale request refuses"
+# A fix session: the request names the tree before it, and the fixes change
+# the content; the script refreshes the line to the tree it leaves behind.
+request "$repo" 3
+MOCK_OUTPUT='{"architecture_impact": {"level": "minor", "rationale": "Within the architecture.", "checked_against": [], "risk_level": 3, "escalation_triggers": ["dependency selection"]}, "verdict": "CHANGES_REQUIRED", "limitations": "", "findings": [{"severity": "major", "title": "Wrong print", "evidence": "src/code.py:2", "impact": "Bug.", "recommendation": "Fix."}]}' \
+  run_script "$repo" ./scripts/review-feature.sh 12 --feedback
+[[ "$status" -eq 0 ]] || { cat "$repo.out" >&2; fail "the review before the fix session failed"; }
+stored="$repo/.agents/reviews/feature-12-marker-review-01.json"
+MOCK_OUTPUT='{"decisions": [{"finding_id": "M1", "decision": "FIX_NOW", "rationale": "It is wrong.", "followup": null}]}' \
+  run_script "$repo" ./scripts/triage-review.sh .agents/reviews/feature-12-marker-review-01.json --unattended
+[[ "$status" -eq 0 ]] || { cat "$repo.out" >&2; fail "the triage before the fix session failed"; }
+tree_before="$(sed -n 's/^Tree: //p' "$repo/.agents/approvals/12.md")"
+MOCK_OUTPUT="M1 is fixed." MOCK_WRITE_ACTION="printf 'print(\"z\")\n' >>'$repo/src/code.py'" \
+  run_script "$repo" ./scripts/apply-triage.sh .agents/triage/feature-12-marker-review-01-triage.json --unattended
+[[ "$status" -eq 0 ]] || { cat "$repo.out" >&2; fail "the fix session of a Level 3 change failed"; }
+grep -Fq "its line 'Tree:' is refreshed to the content tree" "$repo.out" || { cat "$repo.out" >&2; fail "the fix session did not refresh the approval request"; }
+tree_after="$(sed -n 's/^Tree: //p' "$repo/.agents/approvals/12.md")"
+[[ "$tree_after" != "$tree_before" && "$tree_after" =~ ^[0-9a-f]{40}$ ]] || fail "the line Tree: was not refreshed: $tree_after"
+grep -Fq "Approved: yes, the owner approved this in the conversation" "$repo/.agents/approvals/12.md" ||
+  fail "the refresh changed more than the line Tree:"
+grep -Fq "The risk level the scripts derive for the change is 3, by the triggers" "$repo.agent.log" ||
+  fail "the fix session was not told the level"
+grep -Fq "dependency file changed: pyproject.toml" "$repo.agent.log" || fail "the fix session was not told the detected triggers"
+grep -Fq "script refreshes its line 'Tree:'" "$repo.agent.log" || fail "the fix session was not told that the script refreshes the request"
+grep -Fq "| fixes for round 1, fix session | started | claude (model-i) | 1 FIX_NOW finding(s)" "$repo/.agents/run/12-log" ||
+  { cat "$repo/.agents/run/12-log" >&2; fail "the start of the fix session is not in the log of the feature"; }
+# The refreshed request passes the next review's check, and the reviewer is
+# given the decisions of the earlier round only for deferred or accepted
+# findings: none here.
+MOCK_OUTPUT='{"architecture_impact": {"level": "minor", "rationale": "Within the architecture.", "checked_against": [], "risk_level": 3, "escalation_triggers": ["dependency selection"]}, "verdict": "PASS", "limitations": "", "findings": [], "dispositions": [{"finding_id": "R01-M1", "status": "resolved", "evidence": "src/code.py:3"}]}' \
+  run_script "$repo" ./scripts/review-feature.sh 12 --feedback
+[[ "$status" -eq 0 ]] || { cat "$repo.out" >&2; fail "the review after the refreshed request failed"; }
+grep -Fq "checked by the script: the request names the current content tree" "$repo.agent.log.stdin" ||
+  fail "the refreshed request does not name the content tree"
+if grep -Fq "## Earlier findings that were deferred or accepted" "$repo.agent.log.stdin"; then
+  fail "the reviewer was given deferred or accepted findings although there are none"
+fi
 
 echo "risk workflow tests passed"

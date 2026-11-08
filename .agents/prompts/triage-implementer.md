@@ -37,6 +37,18 @@ Do not:
 If a finding cannot be resolved without changing scope or architecture, stop
 and report the conflict instead of implementing deferred work.
 
+## The risk level and the approval request
+
+The calling script tells you the level the scripts derive for the change
+(ADR 020 decision 1) and the escalation triggers they detected on the diff.
+The detected triggers are recorded by the scripts whatever the completion
+record says; the record states the level, never below the derived one, and
+names the triggers the change hits that no script detects. When an approval
+request `.agents/approvals/<issue-number>.md` exists, leave it as it is: the
+script refreshes its line `Tree:` to the content tree after your session,
+because every fix changes that tree. Keep the completion record and the
+handoff note current: both are part of what the next review fingerprints.
+
 ## Handoff note
 
 A session can end at any moment, and the next one starts without this

@@ -61,7 +61,13 @@ if [[ "${#AGENT_POSITIONAL[@]}" -lt 1 || "${#AGENT_POSITIONAL[@]}" -gt 2 ]]; the
   echo "instead, which runs ./scripts/verify.sh --only for the groups default, code,"
   echo "and integration-other as quick feedback and records it as such; that is never"
   echo "evidence, and finish-feature.sh takes no review made on feedback or with"
-  echo "--unverified as the final review."
+  echo "--unverified as the final review. When a full pass is recorded for exactly"
+  echo "the content, --feedback takes it instead of the partial run and the review"
+  echo "counts as one made on the full run."
+  echo
+  echo "A stale approval request (its line 'Tree:' names another content tree) is"
+  echo "refused before the verification runs; apply-triage.sh and run-feature.sh"
+  echo "refresh the line after a fix session."
   echo
   echo "Every round reviews the complete feature. --changes makes a later round"
   echo "review only what changed since the previous round, with that round's"
@@ -173,6 +179,13 @@ level3=0
 [[ "$RISK_ENFORCED" -ne 1 || "$RISK_REQUIRED" -ne 3 ]] || level3=1
 [[ "$feedback" -eq 0 || "$level3" -eq 1 ]] ||
   fail "--feedback is for the intermediate rounds of a Level 3 change, and this change is level $RISK_REQUIRED$([[ "$RISK_ENFORCED" -eq 1 ]] || echo " under the earlier contract (completion/$RISK_SCHEMA)"); it is reviewed on the tier it needs."
+# An approval request whose line 'Tree:' names another content tree is
+# refused here, before the verification runs and the reviewer is started, so
+# that no round is spent on a line the scripts refresh themselves after a fix
+# session (Issue #389). A request without the line stays with the reviewer.
+if [[ "$RISK_ENFORCED" -eq 1 && "$RISK_REQUEST_TREE" == *" names tree "* ]]; then
+  fail "$RISK_REQUEST_TREE. The review was not started: apply-triage.sh and run-feature.sh refresh the line after a fix session; by hand, write the line as stated and review again."
+fi
 # Level 3 keeps a full review in every round (ADR 020 decision 4).
 if [[ "$changes_only" -eq 1 && "$level3" -eq 1 ]]; then
   echo "The change is Level 3, which keeps a review of the complete feature in every round (ADR 020 decision 4): this round reviews the complete feature, not only the changes."
@@ -184,16 +197,25 @@ if [[ -n "$unverified_reason" ]]; then
   echo "Reviewing without verification: $unverified_reason"
   verification="$(jq -n --arg reason "$unverified_reason" '{status: "not-verified", reason: $reason}')"
 elif [[ "$feedback" -eq 1 ]]; then
-  feedback_groups="$(risk_feedback_groups "$root")"
-  echo "An intermediate round of a Level 3 change: the partial run of the groups ${feedback_groups//,/, } as feedback, never as evidence."
   verified_tree="$(fingerprint_worktree "$root" "$tmp_work")" ||
     fail "could not compute the fingerprint of the working tree."
-  (cd "$root" && ./scripts/verify.sh --only "$feedback_groups") || {
-    echo "Error: the partial run failed; the review was not started. Fix the failing check, or review anyway with --unverified \"<reason>\"." >&2
-    exit 4
-  }
-  verification="$(jq -n --arg groups "$feedback_groups" --arg at "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
-    '{status: "feedback", groups: $groups, ran_at: $at}')"
+  if [[ "$(verification_tier "$root")" == "full" && "$(verification_field "$root" tree)" == "$verified_tree" ]]; then
+    # A full pass recorded for exactly this content, for example by the
+    # implementer's own last run, makes the round one on the full run: no
+    # partial run is made, and the review can be the final one (Issue #389).
+    echo "An intermediate round of a Level 3 change, and a full pass is recorded for exactly this content (at $(verification_field "$root" verified-at)): the round is reviewed on it, without a partial run, and counts as a round made on the full run."
+    verification="$(jq -n --arg at "$(verification_field "$root" verified-at)" \
+      '{status: "passed", verified_at: (if $at == "" then (now | todate) else $at end), tier: "full"}')"
+  else
+    feedback_groups="$(risk_feedback_groups "$root")"
+    echo "An intermediate round of a Level 3 change: the partial run of the groups ${feedback_groups//,/, } as feedback, never as evidence."
+    (cd "$root" && ./scripts/verify.sh --only "$feedback_groups") || {
+      echo "Error: the partial run failed; the review was not started. Fix the failing check, or review anyway with --unverified \"<reason>\"." >&2
+      exit 4
+    }
+    verification="$(jq -n --arg groups "$feedback_groups" --arg at "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+      '{status: "feedback", groups: $groups, ran_at: $at}')"
+  fi
 elif [[ "$level3" -eq 1 ]]; then
   echo "The change is Level 3: checking that the full verification passes for the content under review..."
   verified_tree="$(fingerprint_worktree "$root" "$tmp_work")" ||
@@ -446,8 +468,13 @@ guardrails="$(printf '%s\n' "$guardrail_findings" |
   echo "can detect (a changed or removed published scientific claim, security,"
   echo "verification guarantees), and give the level you assess in"
   echo "architecture_impact.risk_level and the triggers the change hits in"
-  echo "architecture_impact.escalation_triggers. A trigger the completion record"
-  echo "does not name is a major finding. Your level can only raise the derived one."
+  echo "architecture_impact.escalation_triggers. A trigger that the completion"
+  echo "record does not name and that no script detected is a major finding. A"
+  echo "trigger the script detected (an 'escalation trigger' line above that is"
+  echo "neither 'named in the completion record' nor 'named by the review') is"
+  echo "recorded by the scripts in the review and the commit whatever the record"
+  echo "says, so its absence from the record is no finding. Your level can only"
+  echo "raise the derived one."
   echo
   echo "The script has compared the line 'Tree:' of the approval request with the"
   echo "content tree (checked by the script, above). Report a finding about that"
@@ -463,6 +490,41 @@ guardrails="$(printf '%s\n' "$guardrail_findings" |
         echo "The completion record uses completion/v1: the feature started before"
         echo "ADR 020 was delivered and finishes under the contract it started with."
       fi
+      ;;
+  esac
+} >>"$context_file"
+
+# The verification state of this round (Issue #389): what the content under
+# review passed, and what that means for the review. A reviewer that was not
+# told reported the missing full run of a feedback round as a major finding,
+# which no fix session can repair in that round.
+{
+  echo
+  echo "## Verification of this round"
+  echo
+  case "$(jq -r '.status' <<<"$verification")" in
+    feedback)
+      echo "This is an intermediate round of a Level 3 change (ADR 020 decision 5): the"
+      echo "content under review passed the partial run of the groups"
+      echo "$(jq -r '.groups' <<<"$verification") at $(jq -r '.ran_at' <<<"$verification"), as quick feedback, never as"
+      echo "evidence. The complete verification of the final tree is made by the scripts"
+      echo "before the final round, not by the implementer in this round. Do not report"
+      echo "the missing full run, or a completion record or handoff note that says the"
+      echo "full run is still to come or did not finish, as a finding: it is a limitation"
+      echo "of this round. State under limitations that the round was reviewed on the"
+      echo "feedback of a partial run."
+      ;;
+    passed)
+      echo "The content under review passed ./scripts/verify.sh, the $(jq -r '.tier // "full"' <<<"$verification") run, at $(jq -r '.verified_at' <<<"$verification")$(jq -r 'if .base then " against the base \(.base)" else "" end' <<<"$verification")."
+      if [[ "$level3" -eq 1 && "$(jq -r '.tier // "full"' <<<"$verification")" == "full" ]]; then
+        echo "The change is Level 3, and this round is made on the full run: it can be the"
+        echo "final round (ADR 020 decision 5)."
+      fi
+      ;;
+    *)
+      echo "The content under review was not verified: $(jq -r '.reason' <<<"$verification")."
+      echo "Review it as it is, and report what the failure shows; this round is never"
+      echo "the final one."
       ;;
   esac
 } >>"$context_file"
@@ -483,6 +545,38 @@ guardrails="$(printf '%s\n' "$guardrail_findings" |
     jq -r '.[] | "### \(.id) [\(.severity)] \(.title)\n\nEvidence: \(.evidence)\n"' "$tmp_work/open.json"
   fi
 } >>"$context_file"
+
+# The findings of earlier rounds that a triage deferred or accepted, for a
+# review of the complete feature (a review of changes receives the decisions
+# of the previous round above). Without them a complete re-review reported a
+# deferred class again in every round (Issue #389).
+if [[ "$changes_only" -eq 0 && -n "$previous_review" ]]; then
+  : >"$tmp_work/decided.md"
+  for earlier in "$reviews_dir/${slug}-review-"[0-9][0-9].json; do
+    [[ -f "$earlier" && "$(jq -r '.round' "$earlier")" -lt "$review_number" ]] || continue
+    earlier_triage="$(review_latest_triage "$root" "$earlier")"
+    [[ -n "$earlier_triage" && -z "$(triage_artifact_errors "$earlier_triage" "$earlier")" ]] || continue
+    jq -r --slurpfile review "$earlier" '
+      ($review[0].round | tostring | if length < 2 then "0" + . else . end) as $round
+      | .decisions[] | select(.decision == "DEFER" or .decision == "ACCEPT")
+      | "### R\($round)-\(.finding_id) [\(.severity)] \(.title)\n\nDecision: \(.decision)" +
+        (if (.followup | type) == "object" and .followup.issue_url then ", follow-up Issue \(.followup.issue_url)" else "" end) +
+        "\n\nRationale: \(.rationale)\n"' "$earlier_triage" >>"$tmp_work/decided.md"
+  done
+  if [[ -s "$tmp_work/decided.md" ]]; then
+    {
+      echo
+      echo "## Earlier findings that were deferred or accepted"
+      echo
+      echo "An approved triage decided these; they are not open. Do not report them"
+      echo "again, nor a further instance of a class that a decision or the Issue has"
+      echo "bounded, unless the changes since then made it worse; mention it under"
+      echo "limitations instead."
+      echo
+      cat "$tmp_work/decided.md"
+    } >>"$context_file"
+  fi
+fi
 
 # What the implementer says about how far the Issue is done. It is given to
 # the reviewer as a claim to check, in a review of the complete feature: the
@@ -588,8 +682,11 @@ feature_result_errors() {
     review_chain_disposition_errors "$1" "$tmp_work/open.json"
   fi
 }
+session_started="$(date +%s)"
+agent_log "$root" "$issue" "review round $review_number, reviewer session" "started" "$agent ($model)" "$(jq -r 'if .status == "passed" then "on the \(.tier // "full") run" elif .status == "feedback" then "on the feedback of \(.groups)" else "not verified" end' <<<"$verification")"
 review_run_reviewer "$agent" "$model" "$root" "$START_PROMPT" "$context_file" "$schema_file" "$report_file" "$tmp_work" \
   feature_result_errors
+agent_log "$root" "$issue" "review round $review_number, reviewer session" "ended" "status 0" "$(($(date +%s) - session_started)) s"
 
 metadata="$(jq -n \
   --argjson issue "$issue" \

@@ -64,6 +64,25 @@ agent_require_ignored() {
     agent_fail "Git does not ignore $2 in $1. Add '$(dirname "$2")/' to .gitignore, or take over the template's .gitignore with ./scripts/sync-template.sh."
 }
 
+# agent_log <root> <issue> <step> <outcome> <reason> <action> [<time>]
+# Adds one line, '<UTC time> | <step> | <outcome> | <reason> | <action>', to
+# the log of the feature, .agents/run/<issue>-log, in the worktree at <root>,
+# when Git ignores that file there; otherwise it writes nothing. The log holds
+# the interruptions that run-feature.sh records, and the start and the end of
+# every step and agent session, so that the duration of each step is read
+# from it (Issue #389). <time> replaces the current time for a start that is
+# recorded late.
+agent_log() {
+  local root="$1"
+  local issue="$2"
+  local time="${7:-}"
+
+  git -C "$root" check-ignore -q ".agents/run/$issue-log" 2>/dev/null || return 0
+  [[ -n "$time" ]] || time="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+  mkdir -p "$root/.agents/run" 2>/dev/null || return 0
+  printf '%s | %s | %s | %s | %s\n' "$time" "$3" "$4" "$5" "$6" >>"$root/.agents/run/$issue-log" 2>/dev/null || true
+}
+
 # What an unattended writing agent is told, in addition to its task.
 AGENT_UNATTENDED_PROMPT="This session is unattended: nobody reads along and nobody answers questions.
 Do not ask anything and do not wait for the human. When you cannot continue

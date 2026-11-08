@@ -135,6 +135,10 @@ grep -Fq "The marker file must exist." "$repo.log.stdin" || fail "Issue was not 
 for change in "+committed change" "+uncommitted change" "+untracked marker"; do
   grep -Fqx -- "$change" "$repo.log.stdin" || fail "diff supplied to the reviewer lacks: $change"
 done
+# The reviewer is told what the content passed (Issue #389).
+grep -Fq "## Verification of this round" "$repo.log.stdin" || fail "the context does not state the verification of the round"
+grep -Eq "^The content under review passed ./scripts/verify.sh, the (full|targeted) run, at [0-9]{4}-" "$repo.log.stdin" ||
+  fail "the context does not name the run the content passed"
 
 # A second round is numbered and points the reviewer at the previous review,
 # which is not part of the reviewed diff.
@@ -324,16 +328,33 @@ if grep -Fq "checked by the script, error" "$repo.log.stdin"; then
   fail "the context lists an error for a request that names the content tree"
 fi
 
+# A request that names another tree is refused before the verification runs
+# and before a reviewer is started, with the value to write (Issue #389):
+# the scripts refresh the line after a fix session, so no round is spent on
+# it. A request without the line stays with the reviewer, as an error in the
+# context.
 repo="$(setup_repo request-other-tree)"
 approval_request_for "$repo" 0123abcd >/dev/null
+runs_before="$(grep -c . "$repo/verify-count.log" 2>/dev/null || true)"
+expect_no_review "$repo" "the approval request names another tree" 7
+grep -Eq "the approval request .agents/approvals/7.md names tree 0123abcd, but the content tree is [0-9a-f]{40}; state it on a line 'Tree: [0-9a-f]{40}'" \
+  "$repo.out" || { cat "$repo.out" >&2; fail "the refusal does not name the tree to write"; }
+grep -Fq "refresh the line after a fix session" "$repo.out" || fail "the refusal does not say who refreshes the line"
+[[ "$(grep -c . "$repo/verify-count.log" 2>/dev/null || true)" == "$runs_before" ]] ||
+  fail "the verification ran for a review that a stale request refuses"
+[[ ! -e "$repo.log" ]] || fail "a reviewer was started although the approval request is stale"
+
+repo="$(setup_repo request-no-tree)"
+approval_request_for "$repo" "" >/dev/null
+sed -i.bak '/^Tree:/d' "$repo/.agents/approvals/7.md" && rm -f "$repo/.agents/approvals/7.md.bak"
 run_review "$repo" 7 || {
   cat "$repo.out" >&2
-  fail "review with an approval request that names another tree failed"
+  fail "review with an approval request without the line Tree: failed"
 }
-grep -Eqx -- "- checked by the script, error: the approval request .agents/approvals/7.md names tree 0123abcd, but the content tree is [0-9a-f]{40}; state it on a line 'Tree: [0-9a-f]{40}'" \
-  "$repo.log.stdin" || fail "the context does not list the error of a request that names another tree"
+grep -Fqx -- "- checked by the script, error: the approval request .agents/approvals/7.md has no line 'Tree: ...'" "$repo.log.stdin" ||
+  fail "the context does not list the error of a request without the line Tree:"
 if grep -Fq "the request names the current content tree" "$repo.log.stdin"; then
-  fail "the context states that a request naming another tree names the content tree"
+  fail "the context states that a request without the line names the content tree"
 fi
 
 # The review starts only on content that passes verification, and records
@@ -412,7 +433,7 @@ add_first_triage() {
   jq '{
     schema: "triage/v1", source_review: ".agents/reviews/feature-7-marker-review-01.json", issue,
     reviewed_tree, review_verdict: .verdict, triage: {agent: "codex", model: "model-t"},
-    approved_at: "2026-01-02T00:00:00Z",
+    approved_at: "2026-01-02T00:00:00Z", unattended: false,
     decisions: [.findings[] | {finding_id: .id, severity, title,
       decision: (if .severity == "major" then "FIX_NOW" else "ACCEPT" end),
       rationale: (if .severity == "major" then "The content must be checked." else "The name is fine." end),
@@ -460,9 +481,11 @@ MOCK_OUTPUT="$(disposed "$valid_result" resolved R01-MIN1 R01-M1)" run_review "$
 grep -Fq "The findings were not triaged; treat each one as to be fixed." "$repo.log.stdin" ||
   fail "untriaged findings were not supplied as to be fixed"
 
-# A triage that is not approved, or that belongs to other content, does not
-# get to say that a finding was accepted: every finding counts as to be fixed.
-for defect in 'del(.approved_at)' '.reviewed_tree = "0123456789012345678901234567890123456789"' '(.decisions[] | select(.severity == "major") | .decision) = "ACCEPT"'; do
+# A triage that is not approved, that belongs to other content, or that
+# accepts a major finding unattended (only a triage the owner approves may;
+# Issue #389), does not get to say that a finding was accepted: every finding
+# counts as to be fixed.
+for defect in 'del(.approved_at)' '.reviewed_tree = "0123456789012345678901234567890123456789"' '.unattended = true | (.decisions[] | select(.severity == "major") | .decision) = "ACCEPT"'; do
   repo="$(setup_repo "changes-bad-triage-$(printf '%s' "$defect" | cksum | cut -d' ' -f1)")"
   run_review "$repo" 7 || fail "the complete first round failed"
   add_first_triage "$repo"

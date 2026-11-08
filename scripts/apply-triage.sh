@@ -218,6 +218,34 @@ ${fix_scope}
 
 Do not implement any DEFER or ACCEPT finding.
 Do not commit, push, merge, deploy, or create/close Issues."
+
+# The risk level before the session (ADR 020 decision 1), so that the agent
+# knows the detected triggers and the level the record has to state, and
+# that the script refreshes the line 'Tree:' of the approval request after
+# the session (Issue #389): the record findings of earlier runs cost a round
+# each.
+review_round="$(jq -r '.round' "$source_review_path")"
+if [[ "$(jq -r '.schema' "$(completion_record "$root" "$source_issue")" 2>/dev/null)" == "completion/v2" ]] &&
+  risk_assess "$root" "$(guardrails_rules_refs "$root" "$(jq -r '.base' "$source_review_path")")" \
+    "$(jq -r '.merge_base' "$source_review_path")" "$source_issue" "$source_review_path" 2>/dev/null &&
+  [[ "$RISK_ENFORCED" -eq 1 ]]; then
+  start_prompt+="
+
+The risk level the scripts derive for the change is $RISK_REQUIRED, by the $RISK_BY (ADR 020
+decision 1). Escalation triggers the scripts detect on the diff, which they
+record in the review and the commit whatever the completion record says:
+$(if [[ -n "$RISK_TRIGGERS" ]]; then printf '%s\n' "$RISK_TRIGGERS" | sed 's/^/- /'; else echo "- none"; fi)
+The completion record (.agents/completion/$source_issue.json) states the level, never
+below $RISK_REQUIRED, and names the triggers the change hits that no script
+detects. Keep it and the handoff note current, as your contract says."
+  if [[ -n "$RISK_REQUEST" ]]; then
+    start_prompt+="
+
+The approval request $RISK_REQUEST stays as it is: after this session the
+script refreshes its line 'Tree:' to the content tree of the content you
+leave behind, so do not spend effort on that line."
+  fi
+fi
 if [[ -n "$source_issue" && -f "$root/.agents/handoffs/$source_issue.md" ]]; then
   start_prompt+="
 
@@ -274,6 +302,8 @@ echo
 
 final_message="$root/.agents/run/$source_issue-fixes.md"
 blocked=""
+session_started="$(date +%s)"
+agent_log "$root" "$source_issue" "fixes for round $review_round, fix session" "started" "$agent ($model)" "$fix_count FIX_NOW finding(s)$([[ "$continue_session" -eq 0 ]] || echo ", continued")"
 set +e
 if [[ "$AGENT_UNATTENDED" -eq 1 ]]; then
   mkdir -p "$(dirname "$final_message")"
@@ -293,6 +323,7 @@ else
   agent_status=$?
 fi
 set -e
+agent_log "$root" "$source_issue" "fixes for round $review_round, fix session" "ended" "status $agent_status" "$(($(date +%s) - session_started)) s"
 
 review_signature_after="$(file_signature "$source_review_path")"
 triage_signature_after="$(file_signature "$triage_path")"
@@ -315,12 +346,28 @@ fi
 # intermediate round (ADR 020 decision 5): the partial run of the feedback
 # groups, which is quick feedback and never evidence; the final tree gets the
 # full run before its final review.
+# The approval request names the content tree of what the session leaves
+# behind (Issue #389): the line 'Tree:' is refreshed here, since the request
+# is no part of the content, and the level is derived again for the fixed
+# content.
+if [[ "$protected_artifact_changed" -eq 0 ]]; then
+  refreshed="$(risk_request_refresh "$root" "$source_issue")" || echo "Warning: the approval request could not be refreshed; finish-feature.sh names the line 'Tree:' to write." >&2
+  [[ -z "$refreshed" ]] || echo "$refreshed"
+fi
 feedback_groups=""
 if [[ "$(jq -r '.schema' "$(completion_record "$root" "$source_issue")" 2>/dev/null)" == "completion/v2" ]] &&
   risk_assess "$root" "$(guardrails_rules_refs "$root" "$(jq -r '.base' "$source_review_path")")" \
     "$(jq -r '.merge_base' "$source_review_path")" "$source_issue" "$source_review_path" 2>/dev/null &&
-  [[ "$RISK_REQUIRED" -eq 3 ]]; then
-  feedback_groups="$(risk_feedback_groups "$root")"
+  [[ "$RISK_ENFORCED" -eq 1 ]]; then
+  [[ "$RISK_REQUIRED" -ne 3 ]] || feedback_groups="$(risk_feedback_groups "$root")"
+  if [[ -n "$RISK_TRIGGERS" ]]; then
+    echo "Escalation triggers detected on the fixed content, recorded by the scripts (the completion record names the others):"
+    printf '%s\n' "$RISK_TRIGGERS" | sed 's/^/  - /'
+  fi
+  if [[ -n "$RISK_ERRORS" ]]; then
+    echo "The risk level is not consistent; finish-feature.sh refuses the commit until it is:"
+    printf '%s\n' "$RISK_ERRORS" | sed 's/^/  - /'
+  fi
 fi
 echo
 set +e

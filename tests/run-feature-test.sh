@@ -68,6 +68,25 @@ completion() {
     "$1" "$met" "$remaining" >".agents/completion/$RUN_ISSUE.json"
 }
 
+# completion_v2 <status> <level>: a completion/v2 record (ADR 020), whose
+# Level 3 rules the run follows.
+completion_v2() {
+  mkdir -p .agents/completion
+  printf '{"schema": "completion/v2", "status": "%s", "risk": {"level": %s, "triggers": [], "rationale": "as derived"}, "criteria": [{"criterion": "The feature file exists", "gate": "implementation", "status": "met", "evidence": "feature.txt"}], "remaining": []}\n' \
+    "$1" "$2" >".agents/completion/$RUN_ISSUE.json"
+}
+
+# approval_request: the approval request of a Level 3 change, naming the
+# content tree as it is when it is written.
+approval_request() {
+  local tree
+
+  tree="$(bash -c 'source scripts/lib/fingerprint.sh; source scripts/lib/completion.sh; source scripts/lib/risk.sh
+    scratch="$(mktemp -d)"; risk_content_tree . "$scratch" "$1"; status=$?; rm -rf "$scratch"; exit "$status"' _ "$RUN_ISSUE")"
+  mkdir -p .agents/approvals
+  printf 'Issue: #%s\nLevel: 3\nDerived from: the paths\nTree: %s\n' "$RUN_ISSUE" "$tree" >".agents/approvals/$RUN_ISSUE.md"
+}
+
 count="$(($(cat "$RUN_CONTROL/$role.count" 2>/dev/null || echo 0) + 1))"
 echo "$count" >"$RUN_CONTROL/$role.count"
 printf '%s\n' "$*" >>"$RUN_CONTROL/$role.args"
@@ -839,6 +858,103 @@ run_feature "$repo" 2
 expect_published "$repo"
 expect_sessions "$repo" 1 1 0 0
 grep -Fq "You are resuming interrupted work" "$repo.control/implementer.args" || fail "the worktree was not resumed"
+
+# --- A Level 3 change (ADR 020 decisions 1, 4, and 5; Issue #389). The
+# checks: one of the feedback groups and one of the group build, each leaving
+# a line in an ignored file, so the runs can be counted.
+level3_conf="sound: test ! -e broken.txt
+count [build]: echo run >>verify-count.log
+feedback [code]: echo feedback >>verify-count.log"
+level3_implementer='printf "feature\n" >>feature.txt
+mkdir -p docs/decisions .agents/summaries
+printf "# ADR 002: Other\n\nStatus: Proposed\n" >docs/decisions/002-other.md
+printf -- "- Adds the feature file and an ADR.\n" >".agents/summaries/$RUN_ISSUE.md"
+completion_v2 complete 3'
+full_runs() { grep -c '^run$' "$1-2-thing/verify-count.log" 2>/dev/null || true; }
+feedback_runs() { grep -c '^feedback$' "$1-2-thing/verify-count.log" 2>/dev/null || true; }
+
+# Round 1 is reviewed on the feedback of a partial run; a clean round is
+# followed by one round on the full verification, which ends the run: one
+# full run per Level 3 feature whose reviews are clean.
+repo="$(VERIFY_CONF="$level3_conf" setup_repo level3-clean)"
+printf '%s\n' "$level3_implementer; reply=\"Implemented.\"" >"$repo.control/implementer.sh"
+run_feature "$repo" 2 thing
+expect_published "$repo"
+expect_sessions "$repo" 1 2 0 0
+[[ "$(full_runs "$repo")" -eq 1 ]] || fail "a Level 3 feature with clean reviews ran the full verification $(full_runs "$repo") times instead of once"
+# The feedback group ran for round 1 and within the full run.
+[[ "$(feedback_runs "$repo")" -eq 2 ]] || fail "the feedback groups ran $(feedback_runs "$repo") times instead of twice"
+grep -Fq "review on the feedback of a partial run, round 1 of at most 5" "$repo.out" || fail "round 1 was not reviewed on feedback"
+grep -Fq "review of the complete feature, round 2 of at most 5" "$repo.out" || fail "round 2 was not the complete round"
+[[ "$(jq -r '.verification.status' "$repo-2-thing/.agents/reviews/feature-2-thing-review-01.json")" == "feedback" ]] ||
+  fail "round 1 is not recorded as a feedback round"
+[[ "$(jq -r '.verification.tier' "$repo-2-thing/.agents/reviews/feature-2-thing-review-02.json")" == "full" ]] ||
+  fail "round 2 is not recorded as made on the full run"
+grep -Fq "MERGE APPROVAL REQUIRED" "$repo.out" || fail "a Level 3 feature did not need the owner's approval"
+# The log of the feature records the start, the end, and the duration of
+# every step, and of the agent sessions inside them.
+log_of "$repo" | grep -Eq "\| implementation \| started \| ./scripts/start-feature.sh 2 thing --unattended \| attempt 1$" ||
+  { log_of "$repo" >&2; fail "the start of the implementation is not in the log of the feature"; }
+log_of "$repo" | grep -Eq "\| implementation \| ended \| status 0 \| [0-9]+ s$" || fail "the end of the implementation is not in the log of the feature"
+log_of "$repo" | grep -Eq "\| review on the feedback of a partial run, round 1 of at most 5 \| started \| ./scripts/review-feature.sh 2 main --feedback \| attempt 1$" ||
+  { log_of "$repo" >&2; fail "the start of the review is not in the log of the feature"; }
+log_of "$repo" | grep -Eq "\| review of the complete feature, round 2 of at most 5 \| ended \| status 0 \| [0-9]+ s$" ||
+  fail "the end of the complete review is not in the log of the feature"
+log_of "$repo" | grep -Eq "\| review round 1, reviewer session \| started \| codex \(model-r\) \| on the feedback of default,code$" ||
+  { log_of "$repo" >&2; fail "the start of the reviewer session is not in the log of the feature"; }
+log_of "$repo" | grep -Eq "\| commit \| ended \| status 0 \| [0-9]+ s$" || fail "the end of the commit step is not in the log of the feature"
+log_of "$repo" | grep -Eq "\| pull request \| ended \| status 0 \| [0-9]+ s$" || fail "the end of the publication is not in the log of the feature"
+
+# A full pass that the implementer recorded for exactly the content makes
+# round 1 the complete round: one review, and the full run is not repeated.
+repo="$(VERIFY_CONF="$level3_conf" setup_repo level3-recorded)"
+printf '%s\n' "$level3_implementer; ./scripts/verify.sh >/dev/null 2>&1; reply=\"Implemented and verified.\"" >"$repo.control/implementer.sh"
+run_feature "$repo" 2 thing
+expect_published "$repo"
+expect_sessions "$repo" 1 1 0 0
+[[ "$(full_runs "$repo")" -eq 1 && "$(feedback_runs "$repo")" -eq 1 ]] ||
+  fail "the recorded full pass was not reused: $(full_runs "$repo") full and $(feedback_runs "$repo") feedback runs"
+[[ "$(jq -r '.verification.status + " " + .verification.tier' "$repo-2-thing/.agents/reviews/feature-2-thing-review-01.json")" == "passed full" ]] ||
+  fail "round 1 on a recorded full pass is not recorded as made on the full run"
+
+# A finding of a feedback round is fixed and confirmed on feedback; the
+# complete round on the full run comes last. The fix session changes the
+# content, so the approval request names another tree afterwards: the
+# scripts refresh its line 'Tree:', and no round is spent on it.
+repo="$(VERIFY_CONF="$level3_conf" setup_repo level3-fixed)"
+printf '%s\n' "$level3_implementer; approval_request; reply=\"Implemented.\"" >"$repo.control/implementer.sh"
+printf '%s\n' "$major_and_minor" >"$repo.control/reviewer-1.sh"
+run_feature "$repo" 2 thing
+expect_published "$repo"
+expect_sessions "$repo" 1 3 1 1
+[[ "$(full_runs "$repo")" -eq 1 ]] || fail "a Level 3 feature with one fix round ran the full verification $(full_runs "$repo") times instead of once"
+# Round 1, the fix session, round 2, and the full run of round 3.
+[[ "$(feedback_runs "$repo")" -eq 4 ]] || fail "the feedback groups ran $(feedback_runs "$repo") times instead of four"
+grep -Fq "review on the feedback of a partial run, round 2 of at most 5" "$repo.out" || fail "the round after the fixes was not reviewed on feedback"
+grep -Fq "review of the complete feature, round 3 of at most 5" "$repo.out" || fail "the run did not end on the complete round"
+if grep -Fq "Review of changes only" "$repo.control/reviewer.args"; then fail "a Level 3 round reviewed only the changes"; fi
+request_tree="$(sed -n 's/^Tree: //p' "$repo-2-thing/.agents/approvals/2.md")"
+[[ "$request_tree" =~ ^[0-9a-f]{40}$ ]] || fail "the approval request lost its line Tree:"
+grep -Fq "is refreshed to the content tree" "$repo.out" || fail "the line Tree: of the approval request was not refreshed after the fix session"
+git -C "$repo-2-thing" show --name-only --format= HEAD | grep -Fqx ".agents/approvals/2.md" || fail "the approval request was not committed"
+
+# A verification that fails in a feedback round is repeated in the tier the
+# round ran, the feedback groups, not the targeted run that a Level 3 change
+# refuses; a check that passes the repeat is unstable, and the run goes on.
+unstable_conf="$level3_conf
+unstable [code]: sh -c 'test -e .agents/run/seen || { mkdir -p .agents/run; touch .agents/run/seen; false; }'"
+repo="$(VERIFY_CONF="$unstable_conf" setup_repo level3-unstable)"
+printf '%s\n' "$level3_implementer; reply=\"Implemented.\"" >"$repo.control/implementer.sh"
+run_feature "$repo" 2 thing
+expect_published "$repo"
+expect_sessions "$repo" 1 2 0 0
+log_of "$repo" | grep -Fq "unstable checks, failed in one of two verification runs: unstable" ||
+  { log_of "$repo" >&2; fail "the unstable check of a feedback round is not in the log of the feature"; }
+log_of "$repo" | grep -Eq "\| review on the feedback of a partial run, round 1 of at most 5, repeated verification \| started \| ./scripts/verify.sh --only default,code \| attempt 1$" ||
+  { log_of "$repo" >&2; fail "the failed verification of a feedback round was not repeated with the feedback groups"; }
+if log_of "$repo" | grep -Fq "targeted-run"; then fail "the repeat of a Level 3 verification was refused as a targeted run"; fi
+if log_of "$repo" | grep -Fq "Repair attempt"; then fail "a repair was started for a check that failed once"; fi
+[[ "$(full_runs "$repo")" -eq 1 ]] || fail "the repeat of a feedback run was a full run"
 
 # Refusals, before anything starts.
 repo="$(setup_repo refused)"

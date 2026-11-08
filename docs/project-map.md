@@ -132,11 +132,11 @@ the website describes the current template.
 | `scripts/finish-planning.sh` | Checks and records your approval of the planning; `--check` tests it |
 | `scripts/create-feature-issue.sh` | Creates the Issue of one roadmap feature |
 | `scripts/start-feature.sh` | Creates the feature worktree and starts the implementer |
-| `scripts/review-feature.sh` | Independent, read-only review of the complete feature diff, or with `--changes` of what changed since the previous round; records the risk level; a Level 3 change is reviewed on the full run, or with `--feedback` in an intermediate round |
-| `scripts/triage-review.sh` | Classifies review findings, creates follow-up Issues, and publishes the reports on the Issue |
-| `scripts/apply-triage.sh` | Lets an implementer resolve only the `FIX_NOW` findings |
+| `scripts/review-feature.sh` | Independent, read-only review of the complete feature diff, or with `--changes` of what changed since the previous round; records the risk level and tells the reviewer the verification state of the round; a Level 3 change is reviewed on the full run, or with `--feedback` in an intermediate round, which takes a recorded full pass when there is one |
+| `scripts/triage-review.sh` | Classifies review findings, creates follow-up Issues, and publishes the reports on the Issue; a major finding is deferred or accepted only in a triage the owner approves |
+| `scripts/apply-triage.sh` | Lets an implementer resolve only the `FIX_NOW` findings; refreshes the line `Tree:` of the approval request after the session |
 | `scripts/finish-feature.sh` | Checks the feature, including the completion gate, the risk level, and a review of the complete feature, and creates the commit; a feature whose only unmet criteria are pending for later gates is committed as ready for a pull request; `--partial` commits other unfinished work as your choice |
-| `scripts/run-feature.sh` | Runs a feature from `start-feature.sh` to `publish-feature.sh` without questions: resumes the implementer until the completion gate passes, then at most five review rounds, the last of the complete feature; never merges and never removes a worktree |
+| `scripts/run-feature.sh` | Runs a feature from `start-feature.sh` to `publish-feature.sh` without questions: resumes the implementer until the completion gate passes, then at most five review rounds, the last of the complete feature (at Level 3 on the feedback of a partial run until one is clean, then one on the full verification); repeats a failed verification in the tier the step ran; records the start, the end, and the duration of every step; never merges and never removes a worktree |
 | `scripts/publish-feature.sh` | Pushes the feature branch and opens its pull request, which closes the Issue only for a complete feature, is ready for review but keeps the Issue open while criteria are pending for later gates, and is a draft otherwise; with `--wait` stays until CI finishes; never merges |
 | `scripts/merge-feature.sh` | The merge step: merges a feature's pull request only on GitHub's decision, and one that needs the owner only with the approving review of exactly its head by the owner's identity (ADR 020 decision 3) |
 | `scripts/check-guardrails.sh` | The merge approval gate: reports which changes of a feature need the owner's approval, by the rules of its base |
@@ -191,7 +191,7 @@ the website describes the current template.
 | `.agents/summaries/` | Per Issue, the implementer's summary of the changes; becomes the list of changes in the commit message | No |
 | `.agents/completion/` | Per Issue, the implementer's completion record: `complete`, `partial`, or `blocked`, the risk level, and per acceptance criterion its gate, status, and evidence. The gate before the commit and before a pull request that closes the Issue | No |
 | `.agents/approvals/` | Per Issue, the approval request of a Level 3 change by trigger or assessment, or of a lowering (ADR 020 decision 3): a request for the owner's review, never an approval | Yes |
-| `.agents/run/` | The final messages, and for Codex the session logs, of agents that ran with `--unattended`; the mark of `run-feature.sh` that the implementation was completed, its log of interruptions (`<issue>-log`), and the output of a failed verification | No |
+| `.agents/run/` | The final messages, and for Codex the session logs, of agents that ran with `--unattended`; the mark of `run-feature.sh` that the implementation was completed, its log of the interruptions and of the start, end, and duration of every step and agent session (`<issue>-log`), and the output of a failed verification | No |
 | `.agents/plans/` | Optional feature plans | Yes |
 | `.agents/handoffs/` | Per Issue, the implementer's continuation note for a session that resumes the work (`start-feature.sh <issue> --resume`) | No |
 | `.agents/lessons/` | Recurring agent failures and the rules learned from them | Yes |
