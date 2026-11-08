@@ -1,0 +1,407 @@
+---
+title: "Physics reasoning benchmarks"
+description: >-
+  A benchmark built from this site's own lessons: problems in words, what a
+  pictured setup and a physical instrument allow, and what a picture would
+  show if one thing changed. The build recomputes every answer, scores one
+  recorded run per seed, reports the score with its spread over the seeds,
+  and shows every failure, keeping a failure of the software interface apart
+  from a failure of reasoning.
+lesson:
+  id: physics-reasoning-benchmarks
+  strand: agents-llm
+  order: 21
+  difficulty: 3
+  course: mechanics
+  slot: EV1
+  experiment: pbc.mechanics.experiments.physics_reasoning_benchmarks
+  methods: [simulation, llm-agents]
+  outcomes:
+    - Build benchmark items whose answers the build recomputes from the code of the lessons they come from, and check each answer by a second, independent route
+    - Tell apart a problem stated in words, a visual affordance, a tool affordance, and a counterfactual prediction, and say what each asks of a model
+    - Keep a failure of the software interface (a refused call, an unanswered item) apart from a failure of physical reasoning (a wrong accepted answer)
+    - Report a benchmark score with its spread over seeds and every failure, not as one number
+  related: [interactive-discovery-benchmarks]
+  format: 2
+  preview: fig-benchmark-scores
+  prerequisites:
+    lessons: [multimodal-physics-reasoning, harmonic-oscillator, projectile-with-drag]
+    outside:
+      - "Statistics: the mean, the standard deviation, and a confidence interval of a mean"
+      - "Large language models: a program that continues a text"
+---
+
+```{python}
+#| echo: false
+from pbc.agents import reasoning_benchmark as benchmark
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.mechanics.experiments import physics_reasoning_benchmarks as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A benchmark is a set of questions with known answers and a rule that turns
+answers into a score. Its value rests on three things that are easy to get
+wrong: that the known answers are right, that the score measures what it
+claims to, and that the number is reported with how much it would change on
+another draw of the questions.
+
+This lesson builds a small physics reasoning benchmark from the lessons of
+this site, puts it to a language model, and reports what the build can
+verify. Every item comes from a lesson, and its answer is computed by that
+lesson's code, not typed. The items come in four kinds: problems stated in
+words, **visual affordances** (what a pictured setup allows), **tool
+affordances** (what a physical instrument can measure of it), and
+**counterfactual predictions** (what a picture would show if one thing were
+different). A seed draws the numbers of each item; the model answers the
+benchmark of each of `{python} result["seeds"]` seeds once, and the score is
+reported per seed, over the seeds, and item by item where it fails.
+
+## Assumptions
+
+1. **The answers are the lessons' own.** Each answer is computed by the code
+   of the lesson the item comes from: the range of a throw, the period of a
+   pendulum at a large amplitude, the oscillator, the elastic collision, and
+   the two pictures. Where a second route exists, the build computes the
+   answer again by it and the two must agree.
+2. **The pictures are the site's.** Picture A is the position of the
+   oscillator of the lesson on the harmonic oscillator, picture B the range
+   against the angle of the lesson on projectile motion with drag, both
+   drawn again by their lessons' `draw_` functions.
+3. **Two tolerances, fixed before the runs.** A computed answer is correct
+   within `{python} result["computed-tolerance"]` per cent of the truth, a
+   reading off a picture within `{python} result["reading-tolerance"]` per
+   cent; a whole number and a choice must be exact.
+4. **The model cannot reach the truth.** Its one tool records an answer and
+   says nothing about whether it is right.
+5. **A recording is a record.** It shows what one model once did with each
+   seed's task. The answers are scored; the words are not.
+
+## Four kinds of item {#explanation}
+
+The goal of a reasoning benchmark is to find out whether a model *reasons*
+about physics, not whether it can reproduce a textbook answer or operate a
+software interface. The four kinds take that apart:
+
+- a **problem** gives every number in words and asks for a computed result:
+  it tests the physics and the arithmetic, nothing else;
+- a **visual affordance** asks what the pictured setup allows: whether a
+  throw at the pictured speed can reach a distance, where the best angle
+  lies. The answer is in the picture only for a reader who knows what the
+  curve means;
+- a **tool affordance** asks what a *physical* instrument can do with the
+  pictured system: how many periods a hand stopwatch must time for a stated
+  precision, what a ruler reads when the mass hangs from the spring at rest.
+  The model has to read the system off the picture and know what the
+  instrument measures;
+- a **counterfactual** asks what the picture would show if the mass, the
+  amplitude, or the launch speed were different. It is not in the picture:
+  the picture gives the starting point and physics the change.
+
+A physical instrument is not a software tool. The model's one *software*
+tool is `answer`, and calling it correctly is a skill of its own. The score
+therefore keeps two kinds of failure apart: an **interface failure**, an
+item left without an accepted answer because a call was refused or never
+made, and a **reasoning failure**, an accepted answer that is wrong.
+
+The two pictures, as the model received them, with the captions their own
+lessons give them:
+
+```{python}
+#| label: fig-picture-a
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Picture A, from the lesson on the harmonic oscillator: the position of a mass on a spring released from rest, the exact motion against explicit Euler at 64 steps per period."
+#| fig-alt: "Line plot of position in metres against time in seconds over three periods. The exact curve is a cosine of constant amplitude starting at its top. The dashed explicit Euler curve starts on it and swings further out with every period."
+result.show("fig-picture-a")
+```
+
+```{python}
+#| label: fig-picture-b
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Picture B, from the lesson on projectile motion with drag: the range of a thrown ball against its launch angle at one launch speed, with quadratic drag and without it; the dashed vertical line marks 45 degrees."
+#| fig-alt: "Line plot of range in metres against launch angle in degrees. The curve without drag, dotted with square markers, is a symmetric arch peaking at the dashed vertical line. The curve with drag, solid with round markers, is a lower and flatter arch whose peak lies a little to the left of the line."
+result.show("fig-picture-b")
+```
+
+### What the model may and may not do
+
+```{python}
+#| echo: false
+result.display("allowlist")
+```
+
+The model may call `answer` once per item, `{python} result["items"]`
+accepted calls in all, in at most `{python} result["max-steps"]` messages of
+at most four tool calls each, and write text. A second answer to an item,
+an option number an item does not have, or a call without a value is
+refused. It may not run code, read a file, reach the network, or see the
+key; the pictures come with the task.
+
+## Code
+
+An item states its kind, the lesson it comes from, its text, and the two
+routes to its answer:
+
+```{python}
+#| echo: false
+excerpt(benchmark.Item)
+```
+
+The items of the run shown in full below (seed `{python} result["shown"]`),
+with the answer of each lesson's code and of the second route where there is
+one:
+
+```{python}
+#| label: ev1-items
+#| echo: false
+result.table("ev1-items")
+```
+
+The second routes are a simulation against each closed form (the throw
+without drag, the collision of two stiff soft spheres, the period at another
+amplitude, the speed at equilibrium) and a numerical quadrature against the
+elliptic integral of the pendulum. Over the seeds they agree with the
+lessons' code to within a relative `{python} result["largest-check"]`:
+
+```{python}
+#| label: ev1-checks
+#| echo: false
+result.table("ev1-checks")
+```
+
+The items about the pictures are chosen so that their answer does not change
+when the picture is read within `{python} result["reading-margin"]` per cent:
+the stopwatch's error and the precision asked for are drawn only from pairs
+whose answer is the same over that range, and a distance to reach lies at
+least fifteen per cent from the longest throw.
+
+The score reads the accepted calls and the refused ones of a run, never its
+text:
+
+```{python}
+#| echo: false
+excerpt(benchmark.outcome)
+```
+
+and the spread over the seeds is a Student-t interval of the mean:
+
+```{python}
+#| echo: false
+excerpt(benchmark.spread)
+```
+
+## Worked examples
+
+### One run
+
+Recorded on `{python} result["recorded"]` by a Claude model in a Claude Code
+session: a fresh sub-agent per seed, given only the system prompt, the task,
+the tool, and the two pictures as images. The harness ran every call. The
+run of seed `{python} result["shown"]`:
+
+```{python}
+#| echo: false
+result.display("run-shown")
+```
+
+### The score of every seed
+
+```{python}
+#| label: ev1-seeds
+#| echo: false
+result.table("ev1-seeds")
+```
+
+```{python}
+#| label: ev1-spread
+#| echo: false
+result.table("ev1-spread")
+```
+
+[Over the `{python} result["seeds"]` seeds the model answered
+`{python} result["mean"]` per cent of the items correctly on average, with a
+standard deviation of `{python} result["deviation"]` points from seed to
+seed and a 95 per cent interval of the mean from `{python} result["low"]` to
+`{python} result["high"]` per cent; uniform guessing is expected to score
+`{python} result["chance"]` per cent.]{.claim type="numerically-verified"
+scope="one recorded run per seed, these five seeds of twelve items, the tolerances fixed before the runs"
+evidence="ev1-seeds ev1-spread replay-seed-1 replay-seed-2 replay-seed-3 replay-seed-4 replay-seed-5"}
+The interval is wide because five seeds are few and because one seed went
+badly: the mean alone would hide both.
+
+```{python}
+#| label: fig-benchmark-scores
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "The fraction of items correct by kind, for each seed's recorded run, with the mean over the seeds and its 95 per cent Student-t interval, and the expected score of uniform guessing. Problems and visual affordances are answered correctly on every seed; the tool affordances spread the most."
+#| fig-alt: "A dot chart with five groups along the horizontal axis, the four kinds of item and all items together, and the fraction correct from zero to one on the vertical axis. In each group, five open circles show the seeds, a filled square with error bars shows the mean and its interval, and a cross shows uniform guessing. The circles of the problems and visual affordances all lie at one. Those of the tool affordances spread from zero to one and those of the counterfactuals from one half to one, with long error bars. The crosses lie well below the circles, highest for the visual affordances."
+result.show("fig-benchmark-scores")
+```
+
+### Every failure
+
+```{python}
+#| label: ev1-failures
+#| echo: false
+result.table("ev1-failures")
+```
+
+[Every one of the `{python} result["wrong"]` failures is a failure of
+reasoning: no call was refused (`{python} result["refused"]` refusals) and
+no item was left without an accepted answer
+(`{python} result["unanswered"]`).]{.claim type="numerically-verified"
+scope="one recorded run per seed, these five seeds"
+evidence="ev1-seeds ev1-failures replay-seed-1 replay-seed-2 replay-seed-3 replay-seed-4 replay-seed-5"}
+On this interface a capable model makes no interface error, so the
+separation shows nothing here; it shows something on a model or an interface
+where calls fail, and the tests of the module check it on a run whose calls
+are refused.
+
+The failures are not independent. Four of them are in one run, and its words
+say why: it read the period of picture A as two pi seconds, twice the true
+period, and then used that reading for the stopwatch, the ruler, and both
+counterfactuals about the oscillator. One misreading of a picture became
+four wrong answers. Another run took the spring constant from the same
+picture wrongly and missed the ruler's reading by a factor of four. Every
+problem in words was solved on every seed: this model's failures are in
+reading the picture the physics is applied to, not in the physics.
+
+## Limits {#limits}
+
+- **Five seeds, one run each.** The interval over the seeds is wide, and a
+  model's answers vary from run to run of the same seed as well; that
+  variation is not measured here.
+- **Correlated items.** Items that share a picture share its misreading, so
+  twelve items are fewer than twelve independent tests. A larger benchmark
+  would draw more pictures as well as more numbers.
+- **A seed draws numbers, not physics.** Every seed asks the same twelve
+  questions about the same two pictures with other numbers. It measures how
+  stable the answers are under a change of the numbers, not how well the
+  model reasons about physics it has not seen.
+- **Questions with textbook answers.** The problems are standard; a model
+  trained on physics texts knows their formulas. They test applying a
+  formula correctly, which this model did every time.
+- **Chance is a weak baseline.** Uniform guessing sets the floor. The build's
+  own solver is the ceiling by construction, and the model without the
+  pictures, the control of the lesson on reading pictures, is not run here.
+- **The recordings are not API runs.** Claude Code sessions, as in the other
+  recent agent lessons; no token count or price is reported, and the live
+  command below uses another provider's model.
+
+::: {.exercise .self-check}
+One run answered four items about picture A wrongly, all from one misread
+period. What does this mean for the interval over the seeds?
+
+::: {.choices}
+::: {.choice}
+Nothing: each item is scored on its own, so the four failures count as four
+independent pieces of evidence.
+
+::: {.feedback}
+They are scored on their own, but they come from one reading. Items that
+share a picture fail together, so they are not independent.
+:::
+:::
+
+::: {.choice correct="true"}
+The seed is the unit that varies: the interval is computed from one score
+per seed, and items that fail together make the scores of the seeds spread
+more.
+
+::: {.feedback}
+Right. That is why the interval is taken over seeds, not over items: an
+interval over the sixty items as if they were independent would be too
+narrow.
+:::
+:::
+
+::: {.choice}
+The run with four failures should be dropped as an outlier.
+
+::: {.feedback}
+A failure is a result. Dropping the worst run would report a better model
+than the one that was measured.
+:::
+:::
+:::
+
+::: {.solution}
+The score varies from seed to seed, and correlated items make it vary more.
+The interval of the mean over the seeds carries that; an interval over the
+items would treat four consequences of one mistake as four mistakes.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+The answer of an item about a picture is required not to change when the
+picture is read within five per cent. Why is that needed for the stopwatch
+item, and what would a benchmark without it measure?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(benchmark.robust_stopwatches)
+```
+
+The answer is a whole number, the ceiling of the stopwatch's error over the
+allowed error of one period. If the ratio lies close to a whole number, a
+reading of the period a little high or low moves the answer by one, and a
+careful reader is marked wrong for a precision no picture gives. Without the
+condition the benchmark would partly measure the luck of the reading, not
+the reasoning about the instrument.
+:::
+:::
+
+::: {.exercise}
+Write one more tool affordance for picture B, with an answer the build can
+compute from the lesson's code. What does a model need to know to answer it?
+
+::: {.solution}
+For example: "a tape measure laid from the launch point reads the range;
+how long must it be to measure every throw with drag of the picture?" The
+answer is the longest throw with drag, which `best_throw` computes; a model
+must read the top of the solid curve and know that a tape measures
+distance along the ground. Its key is robust when the length asked for is
+rounded up to a whole metre and the rounding lies away from the reading.
+:::
+:::
+
+### Run it yourself
+
+This needs your own key and a model that accepts images. The build does not
+run it, so the commands are marked.
+
+::: {.not-verified}
+```bash
+uv sync --locked --no-dev --extra openai
+export OPENAI_API_KEY="..."
+cd site/lessons/agents-llm/21-physics-reasoning-benchmarks
+uv run --locked --no-dev --extra openai python -m pbc.agents.reasoning_benchmark
+```
+:::
+
+Expect other words and possibly other answers: a live run is not a replay.
+Keep the key in the environment of the shell, never in a file.
+
+## Replay this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/agents/reasoning_benchmark.py",
+        "src/pbc/agents/vision.py",
+        "src/pbc/mechanics/experiments/physics_reasoning_benchmarks.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_reasoning_benchmark.py",
+        "tests/unit/test_physics_reasoning_benchmarks_experiment.py",
+    ],
+)
+```

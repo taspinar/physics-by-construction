@@ -1424,6 +1424,17 @@ its data, in a module apart from the rest, so that the figures that use no
 data are not made from a dataset (`pbc.agents.multimodal_questions` and
 `pbc.agents.multimodal_lab`, the lessons AI6 and AI7).
 
+**Benchmarks of items.** A benchmark of questions with known answers draws
+its items from the lessons of the site, computes every answer with the code
+of the lesson it comes from, and checks it by a second route where one
+exists (a simulation against a closed form, a quadrature against a special
+function); the items about a picture keep their answer when the picture is
+read a little off. It is scored per seed, with the mean and its interval over
+the seeds, every failure listed, and an item lost to the software interface
+(a refused call, no accepted answer) kept apart from a wrong answer
+(`pbc.agents.reasoning_benchmark`, the lesson EV1,
+`site/lessons/agents-llm/21-physics-reasoning-benchmarks/index.qmd`).
+
 Never put a credential in the lesson, the fixture, or a test. The harness
 removes the client's key from every model message before it is kept, printed,
 or saved, but the fixture is reviewed before it is committed. A fixture
