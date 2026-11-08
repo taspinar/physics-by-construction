@@ -15,6 +15,8 @@ The survey is Appendix A of `docs/changes/physics-next-phase.md`: a shortlist of
 
 Defer and reject have no entry yet: no spiked dataset failed its gate. The survey-only cards with a known obstacle are the optical-diffraction record (licence field CC BY 4.0 beside a copyright line, RAR archives) and the cylinder-wake PIV (one 1.1 GB MAT file of processed fields at 20 Hz, zeros are masks); both remain conditional, as the survey proposed.
 
+**Licences and readers since 2026-11-08.** The addendum of 2026-11-08 to [ADR 007](../decisions/007-real-datasets-as-declared-inputs.md) (Issue #417) counts Apache-2.0 and CC BY-SA as recorded equivalent permission for a committed sample, a ShareAlike sample and its figures carrying CC BY-SA on the page and on About; NC, ND, or unstated licences are still not committed. MAT files are read with `scipy.io.loadmat` (`h5py` only for v7.3); XLSX, FITS, and CIF files are converted once, outside the build, by a checksum-pinned script that the card and the dossier record.
+
 A `go` means the data, the rights, and the figure passed. It does not mean a lesson exists, and it does not pick a course.
 
 ## Recommendation for the first lab

@@ -1706,7 +1706,7 @@ There is no application runtime. The only executing code is:
 | Toolchain | Pin | Installed by |
 |---|---|---|
 | Python | `.python-version`, `pyproject.toml`, `uv.lock` | `uv` (frozen sync) |
-| Python packages | NumPy, SciPy, Matplotlib, PyYAML (lesson code and authoring); pytest, Ruff (quality); Jupyter kernel (execution); Playwright with an axe-core binding (built-site checks). LLM provider SDK only as an optional extra (F09). Readers for approved data formats are ordinary locked dependencies when a library is needed; F50 added none: the spike samples are read from the plain-text strain product and by a minimal in-repository Touchstone parser (`src/pbc/data/`). F51 kept that parser (Issue #66; recorded in `docs/datasets/npl-onwafer-sparameters.md`) and added no dependency. HDF5, MAT, or FITS readers are added only by a lab with a go decision that needs them. In the final curriculum a pure-Python discovery library (for example PySINDy) may be locked by F65 or F67 when its licence and weight are recorded; a reference solver that needs Julia, a compiler, or a system library (PySR, FEniCSx, Gmsh, GeoClaw, Dedalus, REBOUND, QuTiP) is never locked and never required. | `uv` |
+| Python packages | NumPy, SciPy, Matplotlib, PyYAML (lesson code and authoring); pytest, Ruff (quality); Jupyter kernel (execution); Playwright with an axe-core binding (built-site checks). LLM provider SDK only as an optional extra (F09). Readers for approved data formats are ordinary locked dependencies when a library is needed; F50 added none: the spike samples are read from the plain-text strain product and by a minimal in-repository Touchstone parser (`src/pbc/data/`). F51 kept that parser (Issue #66; recorded in `docs/datasets/npl-onwafer-sparameters.md`) and added no dependency. HDF5 or MAT readers are added only by a lab with a go decision that needs them: for MAT, `scipy.io.loadmat` (already locked) for v5, and `h5py` only for a v7.3 file; XLSX, FITS, and CIF files get no reader in the build and are converted once to CSV or NumPy by a documented, checksum-pinned script outside it (ADR 007, addendum of 2026-11-08; this sentence named FITS readers until then). In the final curriculum a pure-Python discovery library (for example PySINDy) may be locked by F65 or F67 when its licence and weight are recorded; a reference solver that needs Julia, a compiler, or a system library (PySR, FEniCSx, Gmsh, GeoClaw, Dedalus, REBOUND, QuTiP) is never locked and never required. | `uv` |
 | Quarto | `quarto-cli` version in `uv.lock`; the package fetches the matching Quarto release | `uv` |
 | Lean 4 | `lean/lean-toolchain` | `elan` |
 | Mathlib | Tagged revision in the lakefile, resolved in `lean/lake-manifest.json` | `lake`, with the Mathlib cache |
@@ -2555,10 +2555,13 @@ that must settle them:
   record the feasibility gate still verifies the terms of the actual files
   and of derived figures before anything is committed, and records
   attribution requirements such as the GWOSC acknowledgement.
-- **Data formats.** MAT and RAR archives need readers or extraction that are
-  not in the locked environment today; the feasibility gate records what a
-  format costs, and a format whose reader cannot be locked as a Python
-  dependency is a reason to defer.
+- **Data formats.** RAR archives need extraction that is not in the locked
+  environment today; the feasibility gate records what a format costs, and a
+  format whose reader cannot be locked as a Python dependency is a reason to
+  defer. Since the addendum of 2026-11-08 to ADR 007, MAT v5 files are read
+  with the locked `scipy.io.loadmat` (`h5py` only for v7.3), and XLSX, FITS,
+  and CIF files are converted once outside the build; until then this entry
+  said that MAT files needed a reader not in the locked environment.
 - **External references rot.** The register records enough to re-research a
   link; the maintenance check finds rot; nothing on the site breaks when a
   link does.
