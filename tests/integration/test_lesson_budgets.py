@@ -216,6 +216,8 @@ def test_incoherent_settings_fail_the_shell_check_and_the_tests(
         ("warn-seconds", "warn-seconds: 40"),
         ("limit-seconds", "limit-seconds: 60"),
         ("limit-seconds", "  limit-seconds : 120"),
+        ("warn-seconds", "warn-seconds:"),
+        ("limit-seconds", "limit-seconds :  "),
     ],
 )
 def test_a_setting_given_twice_fails_the_shell_check_and_the_tests(
@@ -223,7 +225,8 @@ def test_a_setting_given_twice_fails_the_shell_check_and_the_tests(
 ):
     # #397: the shell check read the first line and ignored the second, the
     # tests refused the table; both refuse it now, whether or not the two
-    # lines agree.
+    # lines agree, and also when the second line has no value (a count of
+    # the printed values lost the empty one).
     path = table(tmp_path, TABLE + again + "\n")
     for call in ('verdict_of "site/lessons/a/c" 10', 'budget_of "site/lessons/a/c"'):
         result = shell(call, path)

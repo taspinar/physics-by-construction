@@ -16,10 +16,14 @@ Level 2. The full `./scripts/verify.sh` runs last.
 `raw_setting()` of `scripts/check-lesson-pages.sh` collects every line that
 sets the key (with the key trimmed, as `tests/support/budgets.py::_read()`
 reads it) and fails with "`<file>` sets '`<key>`' N times; a setting is set
-once." when there is more than one. Tests in
+once." when there is more than one. awk counts the lines and prints the
+count and the first value from `END`: a count of the printed values lost an
+empty second value, because `$(...)` strips trailing newlines (owner's fix
+instruction on #416, 2026-11-08). Tests in
 `tests/integration/test_lesson_budgets.py` feed a table with each setting
-twice (equal and different values, with spaces around the key) to both
-parsers and expect rejection; a table with each setting once passes both.
+twice (equal and different values, with spaces around the key, and an empty
+second value) to both parsers and expect rejection; a table with each setting
+once passes both.
 
 ## 2. #203: an inline number at its place (the design choice)
 

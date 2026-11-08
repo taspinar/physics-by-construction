@@ -72,14 +72,20 @@ raw_setting() {
   local found count value
   # Every line that sets the key, as tests/support/budgets.py reads it: a
   # setting is given once, and a second line is refused, not read first-wins.
+  # The lines are counted in awk: a count of the printed values would lose
+  # an empty one, because $(...) strips the trailing newlines (#397).
   found="$(awk -F: -v name="$1" '
     { key = $1; gsub(/^[[:space:]]+|[[:space:]]+$/, "", key) }
-    key == name { value = $2; gsub(/[[:space:]]/, "", value); print value }
+    key == name {
+      count++
+      if (count == 1) { first = $2; gsub(/[[:space:]]/, "", first) }
+    }
+    END { print count + 0 " " first }
   ' "$budgets_file")"
-  count="$(grep -c '' <<<"$found")"
-  [[ -z "$found" || "$count" -eq 1 ]] ||
+  count="${found%% *}"
+  (( count <= 1 )) ||
     fail "$budgets_file sets '$1' $count times; a setting is set once."
-  value="$found"
+  value="${found#* }"
   [[ "$value" =~ ^[0-9]+$ ]] || fail "$budgets_file has no number for '$1'."
   echo "$value"
 }
