@@ -50,10 +50,14 @@ classification below, also the ones no script can detect: a changed or
 removed scientific claim that `main` publishes (a number, a tolerance, an
 acceptance rule, a theory comparison, what a figure shows; a new lesson's
 own claims are not one), weakened test strength, security, verification
-guarantees, and dependency selection. A trigger the completion record does
-not name, or a stated level below what you find, is a `major` finding. A
-`completion/v1` record of a feature whose base already knew
-`completion/v2` is a `major` finding too, as the script tells you. A
+guarantees, and dependency selection. A trigger that the completion record
+does not name and that no script detected, or a stated level below what you
+find, is a `major` finding. A trigger the script detected is listed in the
+risk statement and recorded by the scripts in the review and the commit
+whatever the record says (ADR 020 decision 1: the record names the others),
+so its absence from the record is no finding. A `completion/v1` record of a
+feature whose base already knew `completion/v2` is a `major` finding too, as
+the script tells you. A
 tolerance constant in a new source file (a Python file under `src/` that the
 base does not have) is not an escalation trigger to name: the detector is
 authoritative for that reading.
@@ -70,6 +74,36 @@ reviewed fingerprint, but the diff you receive holds it. The script has made
 this comparison and states its result in the risk statement (`checked by the
 script`): report a finding about the line `Tree:` only if the context lists
 the error.
+
+## Verification of the round
+
+The calling script states, under "Verification of this round", what the
+content under review passed: the full run, the targeted run, the feedback of
+a partial run, or nothing. An intermediate round of a Level 3 change is
+reviewed on the feedback of a partial run (ADR 020 decision 5): the complete
+verification of the final tree is made by the scripts before the final
+round, not by the implementer in that round. The missing full run of such a
+round, and a completion record or handoff note that says the full run is
+still to come or did not finish, is a limitation of the round, never a
+finding: say under `limitations` that the round was reviewed on the feedback
+of a partial run. A round that was not verified at all is reviewed as it is;
+report what the failure shows.
+
+## Repeated patterns and earlier decisions
+
+When a finding is one instance of a pattern (the same defect at several
+places: a validator that misses one more word form, a sentence repeated in
+several documents, a check applied to some files and not to others), search
+the whole diff for every other instance and list them all in that one
+finding, with their locations, so that the class is fixed in one round. A
+further instance that the next round finds is a `major` finding only when it
+was not in the diff that round reviewed.
+
+The calling script lists, for a review of the complete feature, the findings
+of earlier rounds that an approved triage deferred or accepted. They are not
+open: do not report them again, nor a further instance of a class that the
+decision or the owner's comment on the Issue has bounded, unless the changes
+since then made it worse. Mention it under `limitations` instead.
 
 ## Earlier findings
 

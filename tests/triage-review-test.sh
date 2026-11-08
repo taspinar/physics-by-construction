@@ -31,6 +31,21 @@ case "${1:-} ${2:-}" in
   "auth status")
     exit 0
     ;;
+  "api repos/{owner}/{repo}/issues/comments/4001")
+    printf 'https://api.github.com/repos/example/project/issues/5\tOWNER\n'
+    exit 0
+    ;;
+  "api repos/{owner}/{repo}/issues/comments/4002")
+    printf 'https://api.github.com/repos/example/project/issues/5\tCONTRIBUTOR\n'
+    exit 0
+    ;;
+  "api repos/{owner}/{repo}/issues/comments/4003")
+    printf 'https://api.github.com/repos/example/project/issues/9\tOWNER\n'
+    exit 0
+    ;;
+  "api "*)
+    exit 1
+    ;;
   "issue view")
     printf '%s' "${MOCK_ISSUE_CONTEXT:-Title: F02 — Test feature
 
@@ -104,6 +119,8 @@ setup_repo() {
   if [[ "$findings" == "none" ]]; then
     findings='[]'
     verdict="PASS"
+  elif [[ "$findings" != "default" ]]; then
+    verdict="CHANGES_REQUIRED"
   else
     verdict="CHANGES_REQUIRED"
     findings='[
@@ -390,17 +407,72 @@ if MOCK_OUTPUT="$downgraded_decisions" run_triage "$repo" "" "$review" --unatten
 fi
 if compgen -G "$repo/.agents/triage/*.json" >/dev/null; then fail "invalid decisions were stored unattended"; fi
 
+# A major finding is FIX_NOW, except that a triage you approve may defer or
+# accept a further instance of a class you have bounded on the Issue (Issue
+# #389); unattended, every major finding stays FIX_NOW, and a stored triage
+# that says unattended is checked by the same rule.
+major_review='[
+  {"id": "M1", "severity": "major", "title": "One more number word", "evidence": "src/count.py:9", "impact": "One more instance of the class the owner bounded.", "recommendation": "Fix."},
+  {"id": "S1", "severity": "suggestion", "title": "Rename", "evidence": "src/count.py:2", "impact": "Readability.", "recommendation": "Rename."}
+]'
+major_deferred='{"decisions": [
+  {"finding_id": "M1", "decision": "DEFER", "rationale": "A further instance of the class the owner bounded on the Issue (https://github.com/example/project/issues/5#issuecomment-4001).", "followup": {"title": "Number words of the count validator", "recommended_action": "Handle every word form.", "acceptance_criteria": ["Every number word is counted."]}},
+  {"finding_id": "S1", "decision": "ACCEPT", "rationale": "Adequate.", "followup": null}
+]}'
+repo="$(setup_repo major-deferred-attended 1 "$major_review")"
+MOCK_OUTPUT="$major_deferred" run_triage "$repo" y "$review" || {
+  cat "$repo.out" >&2
+  fail "an attended triage that defers a major finding was refused"
+}
+artifact="$repo/.agents/triage/feature-5-test-review-01-triage"
+[[ "$(jq -r '.decisions[0].decision' "$artifact.json")" == "DEFER" ]] || fail "the deferred major finding was not stored"
+[[ "$(grep -c '^TITLE:' "$repo.gh")" -eq 1 ]] || fail "the deferred major finding got no follow-up Issue"
+grep -Fq "This triage is approved by the owner at the prompt" "$repo.log" || fail "the triage agent was not told that the triage is attended"
+grep -Fq "a further instance of a" "$repo.log" || fail "the triage agent was not told the one exception for a major finding"
+
+# The exception needs a verifiable comment of the owner on this Issue: no
+# URL, a comment of someone else, of another Issue, or a missing one is refused.
+bad_n=0
+for bad in 'Bounded by the owner (comment of 2026-11-06).' \
+  'Class bounded: https://github.com/example/project/issues/5#issuecomment-4002' \
+  'Class bounded: https://github.com/example/project/issues/5#issuecomment-4003' \
+  'Class bounded: https://github.com/example/project/issues/5#issuecomment-4999'; do
+  bad_n=$((bad_n + 1))
+  repo="$(setup_repo "major-deferred-bad-comment-$bad_n" 1 "$major_review")"
+  if MOCK_OUTPUT="$(jq -c --arg r "$bad" '.decisions[0].rationale = $r' <<<"$major_deferred")" run_triage "$repo" y "$review"; then
+    fail "an attended triage deferred a major finding with the rationale: $bad"
+  fi
+  if compgen -G "$repo/.agents/triage/*.json" >/dev/null; then fail "a major deferral without an owner comment was stored"; fi
+done
+
+repo="$(setup_repo major-deferred-unattended 1 "$major_review")"
+if MOCK_OUTPUT="$major_deferred" run_triage "$repo" "" "$review" --unattended; then
+  fail "an unattended triage deferred a major finding"
+fi
+grep -Fq "major finding M1 must be FIX_NOW: only a triage that the owner approves may defer or accept a major finding, never an unattended one" "$repo.out" ||
+  { cat "$repo.out" >&2; fail "the refusal of the unattended deferral does not name the rule"; }
+grep -Fq "This triage is approved without a human (--unattended): every critical" "$repo.log" ||
+  fail "the triage agent was not told that the triage is unattended"
+if compgen -G "$repo/.agents/triage/*.json" >/dev/null; then fail "a deferred major finding was stored unattended"; fi
+# The stored artifact of an attended triage, marked unattended by hand, is
+# invalid: the rule is checked again on the artifact.
+jq '.unattended = true' "$artifact.json" >"$tmp/major-unattended.json"
+(
+  source "$source_root/scripts/lib/review-data.sh"
+  triage_artifact_errors "$tmp/major-unattended.json" "$tmp/major-deferred-attended/$review" | grep -Fq "major finding M1 must be FIX_NOW"
+) || fail "a stored unattended triage that defers a major finding was accepted"
+
 # An approval that you gave says nothing about an unattended run, and the
 # field has no other value than true.
 repo="$(setup_repo attended)"
 run_triage "$repo" y "$review" || fail "an attended triage failed"
 artifact="$repo/.agents/triage/feature-5-test-review-01-triage"
-[[ "$(jq 'has("unattended")' "$artifact.json")" == "false" ]] || fail "an attended triage was recorded as unattended"
+[[ "$(jq -r '.unattended' "$artifact.json")" == "false" ]] || fail "an attended triage was recorded as unattended"
 if grep -Fq "unattended" "$artifact.md"; then fail "the report of an attended triage mentions an unattended run"; fi
-jq '.unattended = false' "$artifact.json" >"$tmp/not-unattended.json"
+jq 'del(.unattended)' "$artifact.json" >"$tmp/no-marker.json"
 (
   source "$source_root/scripts/lib/review-data.sh"
-  triage_artifact_errors "$tmp/not-unattended.json" "$repo/$review" | grep -Fq "unattended must be true or absent"
-) || fail "a triage with 'unattended: false' was accepted"
+  triage_artifact_errors "$tmp/no-marker.json" "$repo/$review" | grep -Fq "unattended must be true or false"
+) || fail "a triage without the unattended marker was accepted"
 
 echo "triage-review tests passed"

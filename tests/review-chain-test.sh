@@ -180,7 +180,7 @@ triage() {
   file="$repo/.agents/triage/$(basename "$review" .json)-triage.json"
   jq --arg source ".agents/reviews/$(basename "$review")" '{
     schema: "triage/v1", source_review: $source, issue, reviewed_tree, review_verdict: .verdict,
-    triage: {agent: "claude", model: "model-t"}, approved_at: "2026-01-02T00:00:00Z", published_at: "2026-01-02T00:00:00Z",
+    triage: {agent: "claude", model: "model-t"}, approved_at: "2026-01-02T00:00:00Z", unattended: false, published_at: "2026-01-02T00:00:00Z",
     decisions: [.findings | to_entries[] | .value as $f | {finding_id: $f.id, severity: $f.severity, title: $f.title,
       decision: $ARGS.positional[.key], rationale: "As triaged.",
       followup: (if $ARGS.positional[.key] == "DEFER" then {title: "Later", recommended_action: "Later.",
@@ -704,7 +704,7 @@ MOCK_OUTPUT='{"decisions": [{"finding_id": "MIN1", "decision": "DEFER", "rationa
 [[ -e "$repo.agent.log" ]] || fail "a minor finding at Level 3 was triaged without the triage agent"
 # A mechanical triage that claims Level 2 for a Level 3 change, with the
 # decisions of the mapping, is refused at the finish.
-jq '.mechanical = true | del(.unattended)' "$repo/.agents/triage/feature-12-speed-review-01-triage.json" >"$tmp/m.json" &&
+jq '.mechanical = true | .unattended = false' "$repo/.agents/triage/feature-12-speed-review-01-triage.json" >"$tmp/m.json" &&
   mv "$tmp/m.json" "$repo/.agents/triage/feature-12-speed-review-01-triage.json"
 jq '.verification.tier = "full"' "$level3_review" >"$tmp/l3.json" && mv "$tmp/l3.json" "$level3_review"
 run_script "$repo" ./scripts/finish-feature.sh 12 "Explain the speed" --unattended

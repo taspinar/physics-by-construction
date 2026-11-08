@@ -85,8 +85,8 @@ add_triage() {
   jq --arg decision "$2" --arg published "${3:-yes}" '{
     schema: "triage/v1", source_review: ".agents/reviews/feature-12-marker-review-01.json", issue,
     reviewed_tree, review_verdict: .verdict, triage: {agent: "codex", model: "model-t"},
-    approved_at: "2026-01-02T00:00:00Z",
-    decisions: [.findings[] | {finding_id: .id, severity, title, decision: $decision, rationale: "Considered.",
+    approved_at: "2026-01-02T00:00:00Z", unattended: false,
+    decisions: [.findings[] | {finding_id: .id, severity, title, decision: $decision, rationale: (if .severity == "major" then "Further instance of the class bounded at https://github.com/example/project/issues/12#issuecomment-4001." else "Considered." end),
       followup: (if $decision == "DEFER" then {title: "[#12][R01][\(.id)] Later", recommended_action: "Later.",
         acceptance_criteria: ["Done."], issue_number: 99, issue_url: "https://github.com/example/project/issues/99"} else null end)}]
   } + (if $published == "yes" then {published_at: "2026-01-02T00:01:00Z"} else {} end)' "$repo/$review" >"$repo/$triage"
@@ -631,6 +631,43 @@ expect_no_commit "$repo" "the review is stale" 12 "Add the marker"
 
 repo="$(setup_repo major CHANGES_REQUIRED "$major")"
 expect_no_commit "$repo" "the review has a major finding" 12 "Add the marker"
+grep -Fq "has 1 critical or major finding(s) that no approved triage deferred or accepted" "$repo.out" ||
+  { cat "$repo.out" >&2; fail "the refusal of a major finding does not say that no triage decided it"; }
+
+# A major finding that the approved, attended triage of the latest review
+# deferred or accepted does not block the commit (Issue #389); an unattended
+# triage cannot have decided so, and a critical finding always blocks.
+repo="$(setup_repo major-accepted CHANGES_REQUIRED "$major")"
+add_triage "$repo" ACCEPT
+run_finish "$repo" 12 "Add the marker" || {
+  cat "$repo.out" >&2
+  fail "a major finding accepted by the owner's triage refused the commit"
+}
+message "$repo" | grep -Fq "1 major finding(s) of round 1 deferred or accepted by the triage the owner approved" ||
+  { message "$repo" >&2; fail "the commit message does not record the accepted major finding"; }
+
+repo="$(setup_repo major-deferred CHANGES_REQUIRED "$major")"
+add_triage "$repo" DEFER
+run_finish "$repo" 12 "Add the marker" || {
+  cat "$repo.out" >&2
+  fail "a major finding deferred by the owner's triage refused the commit"
+}
+
+repo="$(setup_repo major-accepted-unattended CHANGES_REQUIRED "$major")"
+add_triage "$repo" ACCEPT
+jq '.unattended = true' "$repo/$triage" >"$tmp/unattended-triage.json" && mv "$tmp/unattended-triage.json" "$repo/$triage"
+expect_no_commit "$repo" "a major finding accepted by an unattended triage" 12 "Add the marker"
+
+# Deleting the marker of an unattended triage does not make it attended.
+repo="$(setup_repo major-accepted-no-marker CHANGES_REQUIRED "$major")"
+add_triage "$repo" ACCEPT
+jq 'del(.unattended)' "$repo/$triage" >"$tmp/nomarker-triage.json" && mv "$tmp/nomarker-triage.json" "$repo/$triage"
+expect_no_commit "$repo" "a major finding accepted by a triage without the unattended marker" 12 "Add the marker"
+
+critical='[{"id": "C1", "severity": "critical", "title": "Broken", "evidence": "feature.txt:1", "impact": "Broken.", "recommendation": "Fix."}]'
+repo="$(setup_repo critical-accepted CHANGES_REQUIRED "$critical")"
+add_triage "$repo" ACCEPT
+expect_no_commit "$repo" "a critical finding accepted by a triage" 12 "Add the marker"
 
 repo="$(setup_repo untriaged PASS_WITH_MINOR_FINDINGS "$minor")"
 expect_no_commit "$repo" "the findings are not triaged" 12 "Add the marker"

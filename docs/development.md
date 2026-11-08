@@ -139,15 +139,19 @@ push, whatever tier ran locally.
 accepted on a complete verification of its final tree: `finish-feature.sh`
 runs `./scripts/verify.sh --reuse` and takes only a full pass, and the latest
 review must have been made on a full pass of that tree, after it. Its
-intermediate fix rounds may take quick feedback from a partial run instead,
+intermediate rounds take quick feedback from a partial run instead,
 `./scripts/verify.sh --only <groups>` for the groups the changed paths touch
 plus the unit tests of the changed modules (typically `code` and
-`integration-other`, about 13 minutes against about 68): `apply-triage.sh`
+`integration-other`, about 26 minutes against about 100 for the full run on
+this machine, measured for Issue #389): `apply-triage.sh`
 runs the groups `default`, `code`, and `integration-other` for a fix round
 of a Level 3 change, and `review-feature.sh --feedback` reviews an
 intermediate round on them. A partial run records nothing and is never
 evidence; a review made with `--feedback` or `--unverified` is never the
-final review. The targeted tier is unchanged and stays refused when the
+final review. When a full pass is recorded for exactly the content, for
+example by the implementer's own last run, `--feedback` takes it instead of
+the partial run and the review counts as one made on the full run. The
+targeted tier is unchanged and stays refused when the
 check identity differs from the base's.
 
 **The time log** (ADR 020 decision 7). Every run of `./scripts/verify.sh`
@@ -1074,8 +1078,21 @@ failure reviewed, for example when its cause is unclear, pass
 The full interface is:
 
 ```text
-./scripts/review-feature.sh <issue> [base-branch] [--agent <agent>] [--model <model>] [--changes] [--unverified "<reason>"]
+./scripts/review-feature.sh <issue> [base-branch] [--agent <agent>] [--model <model>] [--changes] [--feedback | --unverified "<reason>"]
 ```
+
+The reviewer is told, under "Verification of this round", what the content
+passed: the full run, the targeted run with its base and selection, the
+feedback of a partial run, or nothing. An intermediate round of a Level 3
+change (`--feedback`) is reviewed on the feedback of a partial run, and the
+reviewer is told that the missing full run of such a round is a limitation,
+not a finding: the scripts make the complete verification before the final
+round. The report of the review says the same. A review of the complete
+feature after an earlier round is also given the findings that an approved
+triage deferred or accepted, so it does not report them again; the reviewer
+lists every instance of a repeated pattern in one finding. An approval
+request whose line `Tree:` names another content tree is refused before the
+verification runs ("The approval request" below).
 
 It uses role `reviewer` with the `read-only` profile. The review is
 non-interactive: the reviewer cannot modify files and has no network access, so
@@ -1150,6 +1167,22 @@ triage is checked against the rule again: it is invalid when its review has
 a critical or major finding, when a minor finding is not deferred with its
 follow-up Issue, or when a suggestion is not accepted, and
 `finish-feature.sh` refuses it then and for a Level 3 change.
+
+**A major finding** is `FIX_NOW`, with one exception (Issue #389): a triage
+that you approve at the prompt may `DEFER` it with a follow-up Issue, or
+`ACCEPT` it, when it is a further instance of a class you have bounded on
+the Issue (a comment of yours that names the class and what is in scope);
+the rationale names that comment by its URL
+(`https://github.com/<owner>/<repo>/issues/<number>#issuecomment-<id>`); the
+validator refuses a deferral or acceptance without such a URL, and
+`triage-review.sh` asks GitHub that the comment exists, belongs to the
+Issue, and is by the owner. The script tells the triage agent whether
+the triage is attended. An unattended triage, and a stored triage that says
+`unattended: true` or has no explicit `unattended` marker, keeps every major
+finding `FIX_NOW` (an attended triage records `unattended: false`); a critical finding
+is always `FIX_NOW`. `finish-feature.sh` commits a feature whose latest
+review has a major finding only when the approved triage of that review
+deferred or accepted it, and says so in the commit message.
 
 The script displays the complete proposal before side effects. Only after
 interactive approval does it create one GitHub Issue per `DEFER` finding and
@@ -1514,7 +1547,7 @@ itself, so a script can run one step after the other.
 | Step | With `--unattended` |
 |---|---|
 | `start-feature.sh <issue> [--resume]` | The implementer runs with the `unattended` profile instead of in your terminal. Its final message is stored in `.agents/run/<issue>-implementer.md` in the feature worktree and shown. |
-| `triage-review.sh <review-json>` | The proposed triage is approved without a question. The proposal is validated as always: a critical or major finding cannot be deferred or accepted. |
+| `triage-review.sh <review-json>` | The proposed triage is approved without a question. The proposal is validated as always: a critical finding cannot be deferred or accepted, and unattended neither can a major finding (only a triage you approve may, for a further instance of a class you have bounded on the Issue). |
 | `apply-triage.sh <triage-json>` | The fixes start without confirmation, with the `unattended` profile. The final message is stored in `.agents/run/<issue>-fixes.md` and shown. |
 | `finish-feature.sh <issue> "<summary>"` | The commit message is used as it is, without an editor. Without a summary of the changes the commit is refused: nobody would write one. |
 
@@ -1594,9 +1627,17 @@ Under a `completion/v1` record the round that ends the run reviews the
 complete feature again, against the Issue and the completion record: a feature
 with one fix round therefore has three reviews, the complete feature, the fix,
 and the complete feature. Under a `completion/v2` record a Level 1 or 2 change
-ends on the chain of reviews that `finish-feature.sh` checks, and a Level 3
-change reviews the complete feature in every round, its last one on the full
-verification.
+ends on the chain of reviews that `finish-feature.sh` checks. A Level 3
+change reviews the complete feature in every round, on the feedback of a
+partial run (`review-feature.sh --feedback`) until a round leaves nothing to
+fix, and then once more on the full verification of the final tree; that
+complete round ends the run when it leaves nothing to fix, and a finding of
+it is fixed and followed by a feedback round and another complete round. A
+full pass that the implementer recorded for exactly the content makes round
+1 the complete round, so a Level 3 feature whose first review is clean
+costs one full verification. Before every review the run refreshes the line
+`Tree:` of the approval request to the content tree, as `apply-triage.sh`
+does after a fix session ("The approval request" below).
 When the base of the branch changed between two rounds, for example because
 you merged `main` into it while the run was stopped, the next round reviews
 the complete feature.
@@ -1614,16 +1655,24 @@ only together with what it recorded:
 |---|---|---|
 | Completed | The step exits 0 | Goes on |
 | Temporary | An agent or a connection fails: a usage limit, a timeout, the network | Tries the step again, three times, with a wait that doubles from two minutes. A fix session that had already changed the content is taken up with `apply-triage.sh <triage-json> --continue`: the same findings, contract, and protections, for the session of this triage that was left unfinished, and for nothing else |
-| Unstable check | The verification is repeated once, and no check failed in both runs | Records the checks and goes on, at most three times in a run |
-| Failed verification | A check failed in both runs | Resumes the implementer with those checks in the handoff note, at most three times (`AGENTS.md`); a review follows. A repair session is retried like any other |
+| Unstable check | The verification is repeated once, in the tier the step ran (the targeted run; at Level 3 the feedback groups of a feedback round or a fix session, the full run of a complete round), and no check failed in both runs | Records the checks and goes on, at most three times in a run |
+| Failed verification | A check failed in both runs | Resumes the implementer with those checks and the command that repeats them in the handoff note, at most three times (`AGENTS.md`); a review follows. A repair session is retried like any other |
 | Blocked | An agent ends with `BLOCKED:` and the handoff note holds a question under "Open questions", or the completion record says `blocked` | Stops with status 3. Without such a question there is nothing to answer: the line is ignored and the run goes on |
 | Not complete | The implementer ended normally, but the completion gate does not pass: no record, an invalid one, `partial`, remaining work in the handoff note, or no summary of the changes | Resumes the implementer with the reasons in the handoff note, at most four sessions in a run. Nothing is reviewed or committed before the gate passes |
 
 Every interruption is written to `.agents/run/<issue>-log` in the feature
 worktree, one line each: the time, the step, the outcome, the reason, and
-what the run did. The output of the last step is kept next to it in
-`<issue>-step.log`, and that of a repeated verification in
-`<issue>-verify.log`. Status 4 is kept for a failed verification: the scripts
+what the run did. The same log records the start and the end of every step
+and of every agent session, with the duration (Issue #389): `<time> | <step>
+| started | <command> | attempt <n>` when a step starts, `<time> | <step> |
+ended | status <n> | <seconds> s` when it ends, and the same for the
+reviewer session of `review-feature.sh`, the fix session of
+`apply-triage.sh`, and the repeated verification of a failed step. A step's
+duration is the whole step; the verification runs inside it are in the time
+log of `./scripts/verify.sh` ("The time log" under "Verification"), so the
+time of the agent itself is the difference. The output of the last step is
+kept next to it in `<issue>-step.log`, and that of a repeated verification
+in `<issue>-verify.log`. Status 4 is kept for a failed verification: the scripts
 turn an agent that happens to exit with it into an ordinary failure. `RUN_FEATURE_RETRIES`, `RUN_FEATURE_RETRY_WAIT` (seconds),
 and `RUN_FEATURE_REPAIRS` change the limits for one run.
 
@@ -1787,8 +1836,9 @@ shell test, a line that calls `fail`, exits with a failure, or calls an
 its first line is left to the review. The reading is conservative: a
 narrowed tolerance reads as changed too. The implementer names the triggers no script can detect (a
 changed or removed published scientific claim, security, verification
-guarantees), and the reviewer assesses every trigger, reporting one the
-record missed as a major finding. A new lesson's own claims are no trigger.
+guarantees), and the reviewer assesses every trigger, reporting one that the
+record misses and no script detected as a major finding; a detected trigger
+is recorded by the scripts whatever the record says. A new lesson's own claims are no trigger.
 
 An agent may raise the level; no agent lowers it. With a `completion/v2`
 record, `finish-feature.sh` refuses a stated level below the path minimum,
@@ -1815,9 +1865,13 @@ it with. The review's statement labels it apart from the worktree fingerprint
 and gives the result of the script's own comparison (`checked by the
 script`), so a reviewer reports the line `Tree:` only on the error it lists. The request is no part of the fingerprint either, so correcting it
 leaves a recorded verification and a review valid; instead `finish-feature.sh`
-refuses at once a request whose `Tree:` (its first word) is not the content
-tree, and names the value to write, and you approve the request with the diff
-at the merge. A lowering adds `Required level:`, `Requested level:`
+and `review-feature.sh` refuse at once a request whose `Tree:` (its first
+word) is not the content tree, and name the value to write, and you approve
+the request with the diff at the merge. The content tree changes with every
+fix, because the handoff note is part of it, so `apply-triage.sh` refreshes
+the line `Tree:` after a fix session and `run-feature.sh` before every
+review (Issue #389); everything else in the request stays as the agent wrote
+it, and the review's diff shows the request as it is. A lowering adds `Required level:`, `Requested level:`
 (a trigger reading or an assessed level, never the path minimum),
 `Reason:`, and `Owner's word:`, your words in the conversation that let the
 agent proceed. It is a request, never an approval: no script reads it as

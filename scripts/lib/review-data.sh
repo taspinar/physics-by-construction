@@ -137,7 +137,13 @@ _review_data_rules='
     end;
 
   # Input: {decisions}. $severity maps each finding id of the review to its severity.
-  def triage_decision_rules($severity):
+  # Input: {decisions}. $attended is true when a human approves the triage:
+  # a critical finding is always FIX_NOW; a major finding is FIX_NOW unless
+  # the triage is attended, where the owner may defer or accept a major that
+  # is a further instance of a class the owner has bounded on the Issue (ADR
+  # 020 decision 4 keeps the full triage with the approval of the owner;
+  # Issue #389). Unattended and mechanical triages never let a major pass.
+  def triage_decision_rules($severity; $attended):
     if type != "object" or (.decisions | type) != "array" then
       "the result must be an object with a decisions array"
     else
@@ -160,8 +166,14 @@ _review_data_rules='
            else "finding \($d.finding_id) has an invalid decision" end),
           (if ($d.rationale | nonempty) then empty
            else "finding \($d.finding_id) has no rationale" end),
-          (if ($severity[$d.finding_id] | IN("critical", "major")) and $d.decision != "FIX_NOW" then
-             "\($severity[$d.finding_id]) finding \($d.finding_id) must be FIX_NOW"
+          (if $severity[$d.finding_id] == "critical" and $d.decision != "FIX_NOW" then
+             "critical finding \($d.finding_id) must be FIX_NOW"
+           elif $severity[$d.finding_id] == "major" and $d.decision != "FIX_NOW" and ($attended | not) then
+             "major finding \($d.finding_id) must be FIX_NOW: only a triage that the owner approves may defer or accept a major finding, never an unattended one"
+           elif $severity[$d.finding_id] == "major" and $d.decision != "FIX_NOW"
+                and (($d.rationale | type) != "string"
+                     or ($d.rationale | test("https://[^ \\n)]+/issues/[0-9]+#issuecomment-[0-9]+") | not)) then
+             "major finding \($d.finding_id) may be deferred or accepted only as a further instance of a class the owner bounded on the Issue: the rationale must name that comment by its URL (https://github.com/<owner>/<repo>/issues/<number>#issuecomment-<id>)"
            else empty end),
           (if $d.decision == "DEFER" then
              (if ($d.followup | type) != "object" then
@@ -369,7 +381,8 @@ review_render_markdown() {
     "HEAD at review start: \(.head)\n\n" +
     "Reviewed tree: \(.reviewed_tree)\n\n" +
     (if .verification == null then ""
-     elif .verification.status == "passed" then "Verification: passed for the reviewed tree at \(.verification.verified_at)\n\n"
+     elif .verification.status == "passed" then "Verification: passed for the reviewed tree at \(.verification.verified_at)\(if .verification.tier then " (\(.verification.tier) run)" else "" end)\n\n"
+     elif .verification.status == "feedback" then "Verification: an intermediate round of a Level 3 change, reviewed on the feedback of the partial run of the groups \(.verification.groups) at \(.verification.ran_at); not evidence, and not the final round (ADR 020 decision 5)\n\n"
      else "Verification: NOT verified (\(.verification.reason))\n\n" end) +
     "Reviewer: \(.reviewer.agent) (\(.reviewer.model)), read-only\n\n" +
     (if (.dispositions | type) == "array" and (.dispositions | length) > 0 then
@@ -387,14 +400,19 @@ review_render_markdown() {
 
 # triage_decision_errors <decisions-file> <review-json>: rules for a triage
 # agent's decisions about the findings of a review.
+# triage_decision_errors <decisions-file> <review-json> [attended|unattended]
+# Rules for the triage agent's decisions. With 'attended' (the default) a
+# human approves the triage and may defer or accept a major finding; with
+# 'unattended' every major finding must be FIX_NOW.
 triage_decision_errors() {
   review_data_is_json "$1" || {
     echo "the decisions are not exactly one JSON value"
     return 0
   }
 
-  jq -r --slurpfile review "$2" "$_review_data_rules"'
-    triage_decision_rules($review[0].findings | map({key: .id, value: .severity}) | from_entries)
+  jq -r --slurpfile review "$2" --argjson attended "$([[ "${3:-attended}" == "unattended" ]] && echo false || echo true)" \
+    "$_review_data_rules"'
+    triage_decision_rules($review[0].findings | map({key: .id, value: .severity}) | from_entries; $attended)
   ' "$1"
 }
 
@@ -422,8 +440,8 @@ triage_artifact_errors() {
     else
       unexpected(["approved_at", "decisions", "issue", "mechanical", "published_at", "review_verdict", "reviewed_tree",
                   "schema", "source_review", "triage", "unattended"]; "the triage"),
-      (if .unattended == null or .unattended == true then empty
-       else "unattended must be true or absent" end),
+      (if (.unattended | type) == "boolean" then empty
+       else "unattended must be true or false: a triage states explicitly whether a human approved it, so a missing marker is never read as attended" end),
       (if .mechanical == null then empty
        elif .mechanical != true then "mechanical must be true or absent"
        elif ([$review[0].findings[] | select(.severity == "critical" or .severity == "major")] | length) > 0 then
@@ -477,7 +495,8 @@ triage_artifact_errors() {
                  else "a deferred finding has no valid follow-up Issue reference" end))
             else empty end))
        else empty end),
-      ({
+      (.unattended == false and .mechanical != true) as $attended
+      | ({
         decisions: (if (.decisions | type) == "array" then
           (.decisions | map(if type == "object" then {
             finding_id,
@@ -487,7 +506,7 @@ triage_artifact_errors() {
                        then (.followup | del(.issue_number, .issue_url)) else .followup end)
           } else . end))
         else .decisions end)
-      } | triage_decision_rules($review[0].findings | map({key: .id, value: .severity}) | from_entries))
+      } | triage_decision_rules($review[0].findings | map({key: .id, value: .severity}) | from_entries; $attended))
     end
   ' "$1"
 }

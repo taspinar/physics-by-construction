@@ -29,7 +29,17 @@ review of a Level 3 change, finding by finding, for the owner's approval.
 Classify every finding exactly once:
 
 - `FIX_NOW`: blocks the current feature or is a clear, local, valuable fix.
-  Critical and Major findings must use this decision.
+  Critical findings must use this decision. Major findings must use it too,
+  with one exception, which the calling script states when it applies: when
+  the owner approves the triage at the prompt (an attended triage), a Major
+  finding that is a further instance of a class the owner has bounded on the
+  Issue (a comment of the owner on the Issue that names the class and what
+  is in scope) may be `DEFER`red with a follow-up Issue, or `ACCEPT`ed; the
+  rationale names that comment by its URL
+  (`https://github.com/<owner>/<repo>/issues/<number>#issuecomment-<id>`);
+  without that URL, or when the comment is not the owner's on this Issue,
+  the decision is refused. An unattended triage, which no human
+  approves, classifies every Major finding as `FIX_NOW` (Issue #389).
 - `DEFER`: valid non-blocking work that deserves a separate GitHub Issue.
 - `ACCEPT`: consciously take no action because the trade-off or low value is
   acceptable.
@@ -70,4 +80,6 @@ Never:
 - modify implementation, tests, documentation, plans, or the source review
 - commit, push, merge, deploy, or close Issues
 - create follow-up Issues
-- classify a Critical or Major finding as `DEFER` or `ACCEPT`
+- classify a Critical finding as `DEFER` or `ACCEPT`
+- classify a Major finding as `DEFER` or `ACCEPT` in an unattended triage, or
+  without the owner's comment on the Issue that bounds its class
