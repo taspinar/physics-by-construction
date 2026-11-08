@@ -10,7 +10,10 @@ committed input a build cannot regenerate). Since
 authored interface-artwork SVG under `site/assets/` whose provenance
 entry records its author and licence, which the architecture's invariant
 I6 names beside replay fixtures and dataset samples. The decisions of
-this record are unchanged.
+this record are unchanged. The addendum of 2026-11-08 (Issue #417), at
+the end of the decisions, records the owner's decisions on two further
+licences and on the readers of four formats; the decisions above are
+unchanged and are read with it.
 
 Date: 2026-10-09
 
@@ -88,6 +91,77 @@ redistribution of subsets or of derived figures.
 7. **Attribution travels with the data.** The card's attribution text and
    acknowledgement requirements are rendered on the page that uses the
    sample and listed on the About page's third-party material section.
+
+### Addendum (Issue #417, 2026-11-08): two further licences, and the readers for MAT, XLSX, FITS and CIF
+
+On 2026-11-08, after the dataset research of that day (the research note
+"dataset-research-2026-11-08", its sections "Owner decision on licences" and
+"Owner decision on readers"; the note is not a file of this repository), the
+owner decided two questions that the candidate datasets of the measured-data
+labs raised. The research recommended recording them here before the first
+such sample is committed. In the owner's words:
+
+1. **Licences.** "Apache-2.0 and CC BY-SA count as equivalent recorded
+   permission under ADR 007 decision 4 (which names CC0, CC BY, 'or an
+   equivalent recorded permission'). A ShareAlike dataset is carded and
+   shown as separately licensed material: its committed sample and the
+   figures adapted from it carry CC BY-SA on the page that uses them and in
+   the third-party section of About (decision 7); the rest of the site does
+   not. A dataset under a non-commercial (NC) or no-derivatives (ND) term, or
+   with no stated licence, is still not committed (link-only, or a written
+   permission from the rights holder recorded on the card)."
+2. **Readers.** "For MAT files, a reader is added: `scipy.io.loadmat`
+   (already a dependency) for MAT v5, `h5py` only if a file proves to be MAT
+   v7.3. XLSX, FITS and CIF files are converted once to CSV or NumPy by a
+   documented, checksum-pinned script outside the build; no new build
+   dependency is added for these formats, and the conversion script, its
+   input checksum and its output checksum are recorded on the dataset's card
+   and dossier."
+
+The reasons the owner gave: Apache-2.0 and CC BY-SA grant local download,
+redistribution, modification, and publication of figures with attribution,
+and a committed sample is preferred to a link-only lab; a new locked
+dependency costs licence tracking and install weight, and MAT is the
+exception because SciPy is already locked.
+
+Consequences for the decisions above, which keep their text:
+
+- **Decision 2 (the card).** A card of an Apache-2.0 or CC BY-SA dataset
+  names that licence and still gives the four explicit rights answers; a
+  ShareAlike card says that its sample and the figures adapted from it are
+  separately licensed under CC BY-SA. The "format and reader" of a card is,
+  for a MAT file, `scipy.io.loadmat` (MAT v5) or `h5py` (MAT v7.3, the only
+  case in which `h5py` is added); for an XLSX, FITS, or CIF file it is the
+  conversion script, with the checksum of its input and of its output, and
+  the dossier of decision 3 records the same three items. The committed
+  sample of such a dataset is the converted CSV or NumPy file, and the
+  sample check compares its checksum like that of any other sample.
+- **Decision 4 (committed samples).** The recorded equivalent permission
+  now includes Apache-2.0 and CC BY-SA. Nothing else is added: a dataset
+  under an NC or ND term, or with no stated licence, is not committed unless
+  the rights holder's written permission is recorded on its card; otherwise
+  the site links to the original as for any restricted dataset. The caps
+  (2 MB per file, 8 MB per dataset, 32 MB in all) are unchanged.
+- **Decision 7 (attribution).** For a ShareAlike dataset the attribution
+  rendered on the page and listed in the About page's third-party material
+  section also names CC BY-SA as the licence of the sample and of the
+  figures adapted from it. The site's own licences (CC BY 4.0 for text and
+  figures, MIT for code) remain those of the rest of the site.
+- **The consequences of this record.** The negative consequence that
+  "readers for some formats (MAT, FITS, RAR extraction) are extra locked
+  dependencies" is read with decision 2 of this addendum: MAT needs no new
+  dependency unless a file is v7.3, and XLSX, FITS, and CIF need none in the
+  build, since their conversion runs once, outside it. RAR extraction is not
+  decided here.
+
+This addendum adds no card, dossier, sample, reader, conversion script, or
+`go` decision; each lab's spike is its own work, and a `go` stays the
+owner's. It changes no code: whether a card of such a dataset records its
+licence under the existing value `equivalent-permission` of
+`src/pbc/data/card.py` or under an identifier the dataset check is extended
+to accept is decided by the first lab that commits such a sample. The list
+of Python packages in `docs/architecture.md` states the reader rule of this
+addendum since 2026-11-08.
 
 ## Alternatives considered
 
