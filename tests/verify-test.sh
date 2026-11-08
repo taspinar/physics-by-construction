@@ -6,6 +6,11 @@ set -euo pipefail
 # test cannot depend on a local Git identity or setting.
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
 
+# Independent of the caller's VERIFY_JOBS (a full verification may run with
+# any limit): every run below uses the default of verify.sh unless the test
+# sets VERIFY_JOBS for it.
+unset VERIFY_JOBS
+
 source_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/verify-test.XXXXXX")"
 
@@ -373,7 +378,8 @@ run_with() {
 
 # ran <project>: the commands that ran, on one line.
 ran() {
-  tr '\n' ';' <"$1/tools.log" 2>/dev/null || true
+  [[ -e "$1/tools.log" ]] || return 0
+  tr '\n' ';' <"$1/tools.log"
 }
 
 project="$(setup_project groups "lint [code]: ruff check ." "tests[code]: pytest unit" \
