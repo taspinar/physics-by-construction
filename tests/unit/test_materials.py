@@ -144,11 +144,37 @@ def test_the_group_velocity_is_the_slope_of_the_dispersion():
     assert np.all(phase_velocity(k, 2.0, 3.0) > group_velocity(k, 2.0, 3.0))
 
 
+def _on_branch(frequencies, k, masses, spring):
+    """Whether each mode lies on the acoustic or the optical branch at its
+    wavenumber. The nonzero modes keep the default of np.isclose (rtol 1e-5,
+    atol 1e-8). The acoustic zero at k = 0 is the square root of an
+    eigenvalue that the solver returns with an absolute error of order
+    n eps lambda_max, so its frequency is of order omega_max sqrt(n eps):
+    about 1e-7 here, where one machine returns 2e-8 and not 0. Its tolerance
+    is that bound, far below the lowest nonzero mode."""
+    acoustic, optical = diatomic_dispersion(k, *masses, spring)
+    zero = np.max(optical) * np.sqrt(frequencies.size * np.finfo(float).eps)
+    atol = np.where(acoustic == 0.0, zero, 1e-8)
+    return np.isclose(frequencies, acoustic, atol=atol) | np.isclose(
+        frequencies, optical
+    )
+
+
 def test_the_modes_are_read_at_their_wavenumber():
     frequencies, k = ring_modes(16, [1.0, 2.0], 1.0)
-    acoustic, optical = diatomic_dispersion(k, 1.0, 2.0, 1.0)
-    on_branch = np.isclose(frequencies, acoustic) | np.isclose(frequencies, optical)
-    assert np.all(on_branch)
+    assert np.all(_on_branch(frequencies, k, [1.0, 2.0], 1.0))
+
+
+def test_the_branch_check_takes_the_rounding_of_the_zero_mode_and_no_more():
+    frequencies, k = ring_modes(16, [1.0, 2.0], 1.0)
+    zero = int(np.argmin(frequencies))
+    rounded = frequencies.copy()
+    rounded[zero] = 2.15e-8  # the zero mode as one machine's solver returns it
+    assert np.all(_on_branch(rounded, k, [1.0, 2.0], 1.0))
+    for mode, shift in [(zero, 1e-6), (zero, 1e-3), (int(np.argmax(k)), 1e-4)]:
+        moved = frequencies.copy()
+        moved[mode] += shift
+        assert not _on_branch(moved, k, [1.0, 2.0], 1.0)[mode], (mode, shift)
 
 
 def test_the_packet_moves_forward_at_the_group_velocity():

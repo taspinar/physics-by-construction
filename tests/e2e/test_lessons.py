@@ -529,8 +529,10 @@ def test_the_experiment_regenerates_the_figures_and_numbers_of_the_page(
         return  # nothing was computed, so there is no figure to compare
 
     # Its figure files are the page's, byte for byte, and its numbers are
-    # the page's at the precision the page shows them.
-    problems = compare_with_page(results, site_dir / lesson)
+    # the page's at the precision the page shows them; an inline number is
+    # shown at its place in the prose (#203).
+    source = (SITE_SOURCE / lesson).with_suffix(".qmd")
+    problems = compare_with_page(results, site_dir / lesson, source)
     assert not problems, "\n".join(problems)
 
 
