@@ -1,5 +1,5 @@
 """The plotting helpers enforce the figure conventions, and the reference
-figures of the three go datasets are made with them and keep their dossiers'
+figures of the go datasets are made with them and keep their dossiers'
 status labels.
 """
 
@@ -18,12 +18,13 @@ from pbc.data.plotting import (
     signed_image,
     signed_norm,
 )
-from pbc.data.reference import aalborg_flume, gw150914, npl_sparameters
+from pbc.data.reference import aalborg_flume, bayreuth_rlc, gw150914, npl_sparameters
 from pbc.data.series import Series
 
 AAL = SAMPLES_DIR / "aalborg-submerged-bar"
 GW = SAMPLES_DIR / "gw150914-strain"
 NPL = SAMPLES_DIR / "npl-onwafer-sparameters"
+RLC = SAMPLES_DIR / "bayreuth-rlc-impedance"
 
 
 @pytest.fixture(autouse=True)
@@ -147,6 +148,7 @@ def test_the_credit_line_is_wrapped_and_kept_inside_the_figure():
         (gw150914, GW, "processed", False),
         (npl_sparameters, NPL, "calibrated", False),
         (aalborg_flume, AAL, "processed", True),
+        (bayreuth_rlc, RLC, "processed", True),
     ],
 )
 def test_each_reference_figure_is_made_with_the_helpers_and_has_its_dossiers_status(
@@ -163,6 +165,7 @@ def test_the_dossiers_state_the_status_of_their_figure():
         ("gw150914-strain", "processed"),
         ("npl-onwafer-sparameters", "calibrated"),
         ("aalborg-submerged-bar", "processed"),
+        ("bayreuth-rlc-impedance", "processed"),
     ):
         text = (root / f"{name}.md").read_text().replace("**", "")
         assert f"Status label: {status}" in text, name

@@ -1,0 +1,104 @@
+id: bayreuth-rlc-impedance
+title: Bayreuth impedance spectrum of an analogue RLC circuit, 100 Hz to 10 kHz
+source:
+  url: https://zenodo.org/records/10794584
+  doi: 10.5281/zenodo.10794584
+  creator: Michael A. Danzer, Christian Plank, Tom Rüther (University of Bayreuth; data collectors
+    Christina Roth, Jonathan Schneider)
+  version: Zenodo record 10794584, version 1.0.0, published 2024-03-07
+  accessed: &accessed 2026-11-08
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/10794584, licence field ''Creative Commons Attribution
+      4.0 International'' (API metadata license cc-by-4.0), read 2026-11-08; the terms at https://creativecommons.org/licenses/by/4.0/legalcode
+      permit reproducing and sharing the material'
+  redistribution_of_subsets:
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/10794584, licence field CC BY 4.0, read 2026-11-08;
+      https://creativecommons.org/licenses/by/4.0/legalcode section 2(a)(1) permits sharing the material
+      in whole or in part'
+  publication_of_figures:
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/10794584, licence field CC BY 4.0, read 2026-11-08;
+      https://creativecommons.org/licenses/by/4.0/legalcode section 2(a)(1) permits producing and sharing
+      adapted material'
+  modification_and_attribution:
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/10794584, licence field CC BY 4.0, read 2026-11-08;
+      https://creativecommons.org/licenses/by/4.0/legalcode section 3(a) requires the creators, the licence,
+      a link, and an indication of changes'
+  attribution: Danzer, M. A., Plank, C., Rüther, T., 'Impedance data for various electrochemical and electrical
+    systems', version 1.0.0, Zenodo, doi 10.5281/zenodo.10794584, CC BY 4.0; file rlc_circuit.json, unmodified.
+artifacts:
+- name: rlc_circuit.json
+  type: processed-measured
+  description: Impedance spectrum of a custom circuit (2.2 uF foil capacitor parallel to a lossy 5 mH
+    inductor), measured galvanostatically with a Biologic VMP300 at 30 mA amplitude and exported by the
+    creators' MATLAB package 'Impedance' 0.0.3.dev on 2024-03-06; the step from the recorded voltage and
+    current to Z is not documented, so the file counts as processed. The fit of R, L, C that the reference
+    figure draws is computed by pbc.data.reference.bayreuth_rlc, is not part of the record, and is drawn
+    apart from the measurement as a model.
+calibration: 'None documented. The record names the instrument (Biologic VMP300), the mode (galvanostatic),
+  the amplitude (30 mA) and the frequency range, and nothing about a calibration, a cable or fixture compensation,
+  or the instrument''s accuracy. No correction is applied here; the dossier treats the instrument error
+  as unknown and covered by the model-error estimate.'
+schema: 'One JSON object: class_ ''Impedance''; meta_ (date, user, machine, software MATLAB R2020b, package
+  Impedance 0.0.3.dev); arrays f, omega, z_real, z_imag, z_modulus, z_phase (numbers) and z (strings
+  ''a-bi''), 81 entries each, in descending frequency.'
+units: 'Not stated in the file. Inferred and checked: f in Hz (omega equals 2 pi f exactly, in rad/s);
+  Z in ohm (|Z| = 9.9 ohm at 100 Hz, as a coil of about 9.7 ohm and 5 mH gives); z_phase
+  in radians (equals atan2(z_imag, z_real) to 2e-16); Z = Re Z + j Im Z, Im Z positive for an inductive
+  response.'
+cadence: One frequency sweep, 81 points log-spaced from 10002.2 Hz down to 99.97 Hz, 40 points per decade
+  (step 0.025 in log10 f).
+coordinates: Two-terminal impedance of the circuit between its terminals; a single spectrum, recorded
+  on or before 2024-03-06 22:24:55 (the export time in meta_; the measurement date is not stated).
+masks: 'None: no missing or non-finite value in any array; z_modulus and z_phase agree with z_real and
+  z_imag to rounding, the strings z to 6e-5 ohm.'
+uncertainty: 'None per point in the record; the components'' factory tolerance is 10 %. Derived (dossier):
+  a fit of C parallel to (R + jwL) to the relative complex residual gives R = 9.537 +- 0.021 ohm, L =
+  4.849 +- 0.007 mH, C = 2.1832 +- 0.0031 uF (standard errors from the residual scatter, rms 1.1 % per
+  component). The residuals are structured (up to 4.3 % at the resonance), so these are lower bounds;
+  separate fits below and above the resonance differ by 0.93 ohm, 0.12 mH, and 0.072 uF, and resonance
+  1540 to 1546 Hz, which the dossier takes as the model error.'
+size:
+  description: One JSON file of 9,119 bytes (the record holds 14 files, 164 KB in all); the sample is that
+    file.
+format: JSON (plain text)
+reader: pbc.data.reference.bayreuth_rlc.read_impedance (the json module of the standard library and NumPy);
+  no new dependency.
+downloads:
+- url: https://zenodo.org/api/records/10794584/files/rlc_circuit.json/content
+  filename: rlc_circuit.json
+  algorithm: md5
+  digest: 0d8f9939685d435c7475aed873a6ba99
+  digest_source: published by Zenodo in the record's file listing, read 2026-11-08 and confirmed against
+    the downloaded file
+samples:
+- path: rlc_circuit.json
+  sha256: 5ba93aeef5570f8eaf13bf84e0d2b3bb5221f2d208ce365c9088b62873ef5cbd
+  bytes: 9119
+  derivation: the record's rlc_circuit.json, copied byte for byte
+  test: tests/unit/test_data_samples.py::test_bayreuth_rlc_sample_parses
+estimates:
+  runtime: 'Reference figure: about 4 s with the interpreter start (1.6 s of computation).'
+  memory: About 160 MB peak resident for the figure.
+  page_payload: 9 KB committed; a figure PNG of about 200 KB.
+  ci: 'Offline: one committed file.'
+decision:
+  value: go
+  date: *accessed
+  reasons:
+  - 'Real file inspected: 81 points from 99.97 Hz to 10,002 Hz, all representations of Z consistent,
+    no missing value; md5 equals the record''s.'
+  - 'A three-parameter model of the EM5 parallel circuit describes the spectrum to 1.1 % rms: R = 9.54
+    ohm, L = 4.849 mH, C = 2.183 uF, within the 10 % tolerance of the nominal 9.7 ohm, 5 mH, 2.2 uF;
+    the record''s 9.7 mOhm is a unit typo for 9.7 ohm.'
+  - Uncertainty derived from the fit and from the split of the band, because the record gives none;
+    calibration is undocumented and stated as such.
+  - CC BY 4.0 on the record covers local download, subsets, figures, and modification.
+  - 'Recorded by F86 (Issue #418) under the owner''s decision of 2026-11-08 on the Issue: work towards
+    a go on the strength of the research, with every requirement of ADR 007 checked in the dossier.'
+dossier: docs/datasets/bayreuth-rlc-impedance.md

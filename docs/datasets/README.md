@@ -13,6 +13,12 @@ The survey is Appendix A of `docs/changes/physics-next-phase.md`: a shortlist of
 | NPL on-wafer S-parameters | complex RF measurement | **go** | [npl-onwafer-sparameters](npl-onwafer-sparameters.md) |
 | 22 others | | survey-only | the cards in `data/registry/` |
 
+Cards added after the survey, for the measured-data labs:
+
+| Dataset | Kind | Decision | Dossier |
+|---|---|---|---|
+| Bayreuth RLC impedance (EM8, Issue #418) | complex impedance measurement | **go** (2026-11-08) | [bayreuth-rlc-impedance](bayreuth-rlc-impedance.md) |
+
 Defer and reject have no entry yet: no spiked dataset failed its gate. The survey-only cards with a known obstacle are the optical-diffraction record (licence field CC BY 4.0 beside a copyright line, RAR archives) and the cylinder-wake PIV (one 1.1 GB MAT file of processed fields at 20 Hz, zeros are masks); both remain conditional, as the survey proposed.
 
 **Licences and readers since 2026-11-08.** The addendum of 2026-11-08 to [ADR 007](../decisions/007-real-datasets-as-declared-inputs.md) (Issue #417) counts Apache-2.0 and CC BY-SA as recorded equivalent permission for a committed sample, a ShareAlike sample and its figures carrying CC BY-SA on the page and on About; NC, ND, or unstated licences are still not committed. MAT files are read with `scipy.io.loadmat` (`h5py` only for v7.3); XLSX, FITS, and CIF files are converted once, outside the build, by a checksum-pinned script that the card and the dossier record.
@@ -21,7 +27,7 @@ A `go` means the data, the rights, and the figure passed. It does not mean a les
 
 ## Dataset research for the measured-data labs
 
-The research of 2026-11-08 into open datasets for the measured-data labs is recorded in [spike-candidates-2026-11-08](spike-candidates-2026-11-08.md): the first spike recommended per lab, the options rejected, corrections to existing cards (not yet applied), the owner's decisions and the open ones, and the outcome of its third round, in which the small spike files were downloaded and inspected. Those files, the scripts, and the figures are kept outside the repository; no data file of that research is in the repository, and none of its datasets has a `go`.
+The research of 2026-11-08 into open datasets for the measured-data labs is recorded in [spike-candidates-2026-11-08](spike-candidates-2026-11-08.md): the first spike recommended per lab, the options rejected, corrections to existing cards (not yet applied), the owner's decisions and the open ones, and the outcome of its third round, in which the small spike files were downloaded and inspected. Those files, the scripts, and the figures were kept outside the repository; the research committed no data file. The datasets it marked ready for a dossier receive their card, sample, and decision in their own features, judged per dossier: EM8 has a `go` (table above).
 
 ## Recommendation for the first lab
 

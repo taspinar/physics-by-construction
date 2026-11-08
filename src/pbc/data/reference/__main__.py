@@ -10,6 +10,7 @@ MODULES = {
     "gw150914-strain": "gw150914",
     "npl-onwafer-sparameters": "npl_sparameters",
     "aalborg-submerged-bar": "aalborg_flume",
+    "bayreuth-rlc-impedance": "bayreuth_rlc",
 }
 
 
