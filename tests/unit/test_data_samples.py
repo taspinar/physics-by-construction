@@ -5,6 +5,8 @@ dataset name. The figure tests check the physical consistency that the
 feasibility dossiers rely on, on the same samples.
 """
 
+import json
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
@@ -12,11 +14,12 @@ import pytest
 from pbc.data import SAMPLES_DIR
 from pbc.data.flume import read_elevation
 from pbc.data.gwosc import read_strain
-from pbc.data.reference import aalborg_flume, gw150914, npl_sparameters
+from pbc.data.reference import aalborg_flume, bayreuth_rlc, gw150914, npl_sparameters
 
 GW = SAMPLES_DIR / "gw150914-strain"
 NPL = SAMPLES_DIR / "npl-onwafer-sparameters"
 AAL = SAMPLES_DIR / "aalborg-submerged-bar"
+RLC = SAMPLES_DIR / "bayreuth-rlc-impedance"
 
 
 def test_gw150914_sample_parses():
@@ -144,6 +147,102 @@ def test_aalborg_lab_sample_parses():
         )
 
 
+def test_bayreuth_rlc_sample_parses():
+    raw = json.loads((RLC / bayreuth_rlc.FILE).read_text())
+    # Field names: the Impedance export of the creators' MATLAB package.
+    assert tuple(raw) == bayreuth_rlc.FIELDS
+    assert raw["class_"] == "Impedance"
+    spectrum = bayreuth_rlc.load(RLC)
+    # Shapes: 81 points, Z complex.
+    assert spectrum.frequency.shape == spectrum.impedance.shape == (81,)
+    assert spectrum.impedance.dtype == np.complex128
+    for key in ("omega", "z", "z_modulus", "z_phase"):
+        assert len(raw[key]) == 81, key
+    # Cadence: one sweep, descending, 40 points per decade, 99.97 Hz to 10 kHz.
+    f = spectrum.frequency
+    assert f[0] == pytest.approx(10002.226) and f[-1] == pytest.approx(99.968163)
+    np.testing.assert_allclose(np.diff(np.log10(f)), -0.025, atol=6e-4)
+    # Units: omega is 2 pi f (rad/s from Hz), the phase is in radians, and the
+    # modulus and the strings are the same Z; ohm, by the size of the coil.
+    np.testing.assert_allclose(raw["omega"], 2 * np.pi * f, rtol=1e-12)
+    np.testing.assert_allclose(raw["z_modulus"], np.abs(spectrum.impedance))
+    np.testing.assert_allclose(raw["z_phase"], np.angle(spectrum.impedance), atol=1e-12)
+    strings = np.array([complex(z.replace("i", "j")) for z in raw["z"]])
+    np.testing.assert_allclose(strings, spectrum.impedance, atol=1e-4)
+    assert 9 < np.abs(spectrum.impedance[-1]) < 11  # the coil at 100 Hz
+    # Masks: none.
+    assert np.isfinite(spectrum.impedance).all() and np.isfinite(f).all()
+
+
+def test_the_rlc_fit_recovers_the_nominal_circuit_within_its_tolerance():
+    """The EM5 parallel circuit, C parallel to (R + jwL), describes the
+    spectrum; each value is within the 10 % factory tolerance of the record's
+    nominal one (9.7 Ohm, not the record's 9.7 mOhm), and the fit identifies
+    all three."""
+    spectrum = bayreuth_rlc.load(RLC)
+    result = bayreuth_rlc.fit(spectrum)
+    assert result.ok, result.warnings
+    for name, nominal in bayreuth_rlc.NOMINAL.items():
+        assert result.value(name) == pytest.approx(nominal, rel=0.10), name
+    expected = {"R": (9.537, 0.021), "L": (4.849, 0.007), "C": (2.1832, 0.0031)}
+    for name, (value, stderr) in expected.items():
+        i = result.names.index(name)
+        assert result.params[i] == pytest.approx(value, abs=stderr / 4), name
+        assert result.stderr[i] == pytest.approx(stderr, rel=0.1), name
+    f0, q = bayreuth_rlc.resonance(result)
+    assert f0 == pytest.approx(1546.9, abs=0.5)
+    assert q == pytest.approx(4.94, abs=0.01)
+    # Three frequencies the caption keeps apart: the highest measured |Z| is
+    # the first sample above the fit's maximum (one step of the 40-per-decade
+    # sweep away), the fit's |Z| peaks just below 1/(2 pi sqrt(LC)), and the
+    # fitted phase crosses zero lower still.
+    highest = bayreuth_rlc.measured_peak(spectrum)
+    assert highest == pytest.approx(1584.49, abs=0.01)
+    peak = bayreuth_rlc.model_peak(result)
+    assert peak == pytest.approx(1546.3, abs=0.2)
+    assert bayreuth_rlc.model_phase_zero(result) == pytest.approx(1514.9, abs=0.2)
+    below = spectrum.frequency[spectrum.frequency < peak].max()
+    assert below == pytest.approx(1496.43, abs=0.01)
+    assert np.log10(highest / below) == pytest.approx(0.025, abs=5e-4)
+    phase = np.angle(spectrum.impedance)
+    assert (
+        phase[spectrum.frequency == below][0]
+        > 0
+        > phase[spectrum.frequency == highest][0]
+    )
+    residual = bayreuth_rlc.relative_residual(spectrum, result)
+    rms = np.sqrt(np.mean(np.concatenate([residual.real, residual.imag]) ** 2))
+    assert rms == pytest.approx(0.0113, abs=0.0005)
+    assert np.abs(residual).max() < 0.05
+
+
+def test_the_rlc_band_split_is_the_sensitivity_table_of_the_dossier():
+    """Fits below and above the resonance disagree by far more than their
+    standard errors: the residuals are systematic. The dossier reports the
+    band fits as a sensitivity analysis beside the full fit, not as a bound;
+    the lower band's resonance lies 7 Hz below the full fit's."""
+    spectrum = bayreuth_rlc.load(RLC)
+    halves = bayreuth_rlc.band_split(spectrum)
+    below, above = halves["below"], halves["above"]
+    spread = {n: abs(above.value(n) - below.value(n)) for n in bayreuth_rlc.NAMES}
+    assert spread["R"] == pytest.approx(0.93, abs=0.01)
+    assert spread["L"] == pytest.approx(0.120, abs=0.002)
+    assert spread["C"] == pytest.approx(0.072, abs=0.002)
+    full = bayreuth_rlc.fit(spectrum)
+    for n in bayreuth_rlc.NAMES:
+        assert spread[n] > 10 * full.stderr[full.names.index(n)], n
+    resonances = [bayreuth_rlc.resonance(h)[0] for h in (below, above)]
+    assert resonances == pytest.approx([1539.8, 1546.1], abs=0.2)
+    assert bayreuth_rlc.resonance(full)[0] - min(resonances) > 3
+
+
+def test_a_file_that_is_not_an_impedance_export_is_refused(tmp_path):
+    path = tmp_path / "other.json"
+    path.write_text('{"class_": "Other", "f": [], "z_real": [], "z_imag": []}')
+    with pytest.raises(ValueError, match="Impedance"):
+        bayreuth_rlc.read_impedance(path)
+
+
 def test_the_reader_of_a_flume_file_refuses_a_file_without_a_time_column(tmp_path):
     path = tmp_path / "bad.csv"
     path.write_text(",1\nx [s],surface elevation [m]\n0,0.1\n")
@@ -222,6 +321,7 @@ def test_every_panel_of_every_figure_is_titled_and_labelled():
         (gw150914, GW),
         (npl_sparameters, NPL),
         (aalborg_flume, AAL),
+        (bayreuth_rlc, RLC),
     ):
         figure = module.make_figure(path)
         panels = [a for a in figure.axes if a.axison and a.get_label() != "<colorbar>"]
