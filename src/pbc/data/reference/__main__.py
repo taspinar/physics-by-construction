@@ -11,6 +11,7 @@ MODULES = {
     "npl-onwafer-sparameters": "npl_sparameters",
     "aalborg-submerged-bar": "aalborg_flume",
     "bayreuth-rlc-impedance": "bayreuth_rlc",
+    "munich-bell-event-ready": "munich_bell",
 }
 
 
