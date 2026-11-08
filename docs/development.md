@@ -1096,7 +1096,7 @@ round. The report of the review says the same. A review of the complete
 feature after an earlier round is also given the findings that an approved
 triage deferred or accepted, so it does not report them again; the reviewer
 lists every instance of a repeated pattern in one finding. An approval
-request whose line `Tree:` names another content tree is refused before the
+request whose line `Tree:` names another content tree is corrected before the
 verification runs ("The approval request" below).
 
 It uses role `reviewer` with the `read-only` profile. The review is
@@ -1871,10 +1871,13 @@ unchanged and it can name the tree under review, which the reviewer compares
 it with. The review's statement labels it apart from the worktree fingerprint
 and gives the result of the script's own comparison (`checked by the
 script`), so a reviewer reports the line `Tree:` only on the error it lists. The request is no part of the fingerprint either, so correcting it
-leaves a recorded verification and a review valid; instead `finish-feature.sh`
-and `review-feature.sh` refuse at once a request whose `Tree:` (its first
-word) is not the content tree, and name the value to write, and you approve
-the request with the diff at the merge. The content tree changes with every
+leaves a recorded verification and a review valid. The line `Tree:` is a
+derived value that no agent keeps by hand: `review-feature.sh` and
+`finish-feature.sh` write the content tree on it (its first word) before they
+check it, and say so, so an edit of the completion record or the handoff note
+after a review costs no round and no manual edit (Issue #382); only a request
+the script cannot write is refused, with the value to write. You approve the
+request with the diff at the merge. The content tree changes with every
 fix, because the handoff note is part of it, so `apply-triage.sh` refreshes
 the line `Tree:` after a fix session and `run-feature.sh` before every
 review (Issue #389); everything else in the request stays as the agent wrote
