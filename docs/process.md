@@ -156,9 +156,14 @@ counts as not complete whatever the record says.
   (`scripts/check-review.sh`, `scripts/lib/fingerprint.sh`).
 - **Triage** (`scripts/triage-review.sh`): a Level 1 or 2 review whose
   findings are all minor or suggestion is triaged mechanically; any other
-  review, and every Level 3 review, gets the full triage with the owner's
-  approval, published on the Issue; `scripts/apply-triage.sh` applies the
-  `FIX_NOW` findings and verifies.
+  review gets the full triage. Every Level 3 review with findings gets full
+  triage, which is published on the Issue. In `--unattended` mode, triage runs
+  without human confirmation and every critical or major finding must be
+  marked `FIX_NOW`. In attended triage, the owner may approve deferring or
+  accepting a major finding only if it is another instance of a class the
+  owner explicitly bounded in a comment on the Issue. The rationale must cite
+  that comment. `scripts/apply-triage.sh` applies the `FIX_NOW` findings and
+  verifies.
 - **The commit** (`scripts/finish-feature.sh`) checks the completion gate,
   the level, the verification tier (at Level 3 the full run for exactly this
   content), a current review with no critical or major finding, the chain,

@@ -326,10 +326,29 @@ git -C "$project" branch -q -f main
 expect_checks_ran "$project" "nothing was recorded yet" --reuse
 if self_tests_ran "$project"; then fail "the self-tests ran although no workflow file changed"; fi
 expect_reused "$project" "the content is unchanged" --reuse
+# --reuse-only makes the same decision and runs nothing (Issue #389): status
+# 0 where --reuse would reuse, 3 where it would run, here because the record
+# was made without the self-tests that --all requires.
+reuse_only() {
+  reuse_status=0
+  rm -f "$project/tools.log"
+  PATH="$tmp/bin:/usr/bin:/bin" MOCK_TOOL_LOG="$project/tools.log" \
+    "$project/scripts/verify.sh" --reuse-only "$@" >"$project/out.log" 2>&1 || reuse_status=$?
+  [[ ! -e "$project/tools.log" ]] || fail "--reuse-only ran a check"
+}
+reuse_only
+[[ "$reuse_status" -eq 0 ]] || fail "--reuse-only did not take the pass that --reuse takes"
+reuse_only --all
+[[ "$reuse_status" -eq 3 ]] || fail "--reuse-only took a pass made without the self-tests that --all requires"
+grep -Fq "nothing was run" "$project/out.log" || fail "--reuse-only did not say that it ran nothing"
+reuse_only --targeted
+[[ "$reuse_status" -eq 1 ]] || fail "--reuse-only was accepted together with --targeted"
 expect_checks_ran "$project" "the record does not include the self-tests" --reuse --all
 self_tests_ran "$project" || fail "--all with --reuse did not run the self-tests"
 expect_reused "$project" "the self-tests were included in the record" --reuse --all
 expect_reused "$project" "a complete record covers a plain run" --reuse
+reuse_only --all
+[[ "$reuse_status" -eq 0 ]] || fail "--reuse-only did not take a record that includes the self-tests"
 
 project="$(setup_project unknown-option "lint: ruff check .")"
 if PATH="$tmp/bin:/usr/bin:/bin" "$project/scripts/verify.sh" --everything >"$project/out.log" 2>&1; then

@@ -95,9 +95,11 @@ When a finding is one instance of a pattern (the same defect at several
 places: a validator that misses one more word form, a sentence repeated in
 several documents, a check applied to some files and not to others), search
 the whole diff for every other instance and list them all in that one
-finding, with their locations, so that the class is fixed in one round. A
-further instance that the next round finds is a `major` finding only when it
-was not in the diff that round reviewed.
+finding, with their locations, so that the class is fixed in one round. An
+instance that you find and an earlier round did not report is classified
+like any other finding, by its own impact: that an earlier reviewer
+overlooked it never lowers its severity. Only a class that an approved
+triage or the owner's comment on the Issue has bounded is treated as below.
 
 The calling script lists, for a review of the complete feature, the findings
 of earlier rounds that an approved triage deferred or accepted. They are not

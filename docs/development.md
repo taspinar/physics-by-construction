@@ -150,7 +150,11 @@ intermediate round on them. A partial run records nothing and is never
 evidence; a review made with `--feedback` or `--unverified` is never the
 final review. When a full pass is recorded for exactly the content, for
 example by the implementer's own last run, `--feedback` takes it instead of
-the partial run and the review counts as one made on the full run. The
+the partial run and the review counts as one made on the full run. Whether
+the recorded pass stands is decided by `./scripts/verify.sh --reuse-only`,
+the rule of `--reuse` without a run (status 0 when it would reuse the pass,
+3 when not): the tier and the tree are not enough, a pass made without the
+workflow self-tests that the content needs does not stand on either route. The
 targeted tier is unchanged and stays refused when the
 check identity differs from the base's.
 
@@ -159,7 +163,8 @@ appends one line, `<UTC time> | <tier> | <tree> | <seconds> | <result>`, to
 `verify-time.log` in the Git directory that every worktree of the clone
 shares (`git rev-parse --git-common-dir`), or to the file
 `VERIFY_TIME_LOG` names. The tier is `full`, `base`, `targeted`, or
-`only:<groups>`; the result `passed`, `failed`, `refused`, or `reused`. The
+`only:<groups>`; the result `passed`, `failed`, `refused`, `reused`, or
+`not-reused` (`--reuse-only` found no pass to take and ran nothing). The
 log is per machine, never committed, and read by no gate: the evaluation of
 ADR 020 decision 10 reads it afterwards. A log that cannot be written
 changes nothing about the run.
@@ -1179,7 +1184,9 @@ validator refuses a deferral or acceptance without such a URL, and
 Issue, and is by the owner. The script tells the triage agent whether
 the triage is attended. An unattended triage, and a stored triage that says
 `unattended: true` or has no explicit `unattended` marker, keeps every major
-finding `FIX_NOW` (an attended triage records `unattended: false`); a critical finding
+finding `FIX_NOW` (an attended triage records `unattended: false`; a triage
+written before that marker existed stays valid when its decisions are, so a
+feature in progress is not stopped at the commit); a critical finding
 is always `FIX_NOW`. `finish-feature.sh` commits a feature whose latest
 review has a major finding only when the approved triage of that review
 deferred or accepted it, and says so in the commit message.
