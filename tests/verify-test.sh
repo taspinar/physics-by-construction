@@ -358,12 +358,16 @@ fi
 
 # Groups: a check may name one, and --only runs the checks of the named
 # groups. run_with <project> [option...] runs verify.sh with a fresh tool log.
+# It runs the groups one after the other (VERIFY_JOBS=1) unless the caller
+# sets VERIFY_JOBS, so that the tests of the selection and the tiers can
+# compare the order of the commands; the groups at the same time are tested
+# below, against this order.
 run_with() {
   local project="$1"
 
   shift
   rm -f "$project/tools.log"
-  PATH="$tmp/bin:/usr/bin:/bin" MOCK_TOOL_LOG="$project/tools.log" \
+  VERIFY_JOBS="${VERIFY_JOBS:-1}" PATH="$tmp/bin:/usr/bin:/bin" MOCK_TOOL_LOG="$project/tools.log" \
     "$project/scripts/verify.sh" "$@" >"$project/out.log" 2>&1
 }
 
@@ -601,6 +605,206 @@ printf '%s\n' "targeted [code]: code" "lint [code]: ruff check ." >"$project/scr
 expect_failure "$project" "a targeted entry with a group must fail"
 printf '%s\n' "targeted: Code" "lint [code]: ruff check ." >"$project/scripts/verify.conf"
 expect_failure "$project" "a targeted entry with a malformed group must fail"
+# The tiers with the groups at the same time: the selection first, then the
+# same checks as one after the other, and the same record.
+project="$(setup_tiered_project tiered-parallel)"
+resolved="$(cd "$project" && pwd -P)"
+selection_call="uv run --locked python -m pbc.authoring.selection --root $resolved --base $resolved/.agents/verification/base"
+for option in --targeted --base; do
+  VERIFY_JOBS=4 run_with "$project" "$option" || {
+    cat "$project/out.log" >&2
+    fail "$option with the groups at the same time failed"
+  }
+  expected_call="$selection_call"
+  expected_checks="$(printf '%s\n' "ruff check ." "ruff plain")"
+  expected_tier="base"
+  if [[ "$option" == --targeted ]]; then
+    expected_call="$selection_call --tier targeted"
+    expected_tier="targeted"
+  else
+    expected_checks="$(printf '%s\n' "pytest build" "ruff check ." "ruff plain")"
+  fi
+  [[ "$(head -n 1 "$project/tools.log")" == "$expected_call" ]] ||
+    fail "$option at the same time did not select first: $(ran "$project")"
+  [[ "$(tail -n +2 "$project/tools.log" | sort)" == "$expected_checks" ]] ||
+    fail "$option at the same time ran other checks: $(ran "$project")"
+  grep -Fq "run at the same time" "$project/out.log" || fail "$option did not run its groups at the same time"
+  [[ "$(sed -n 's/^tier: //p' "$project$record")" == "$expected_tier" ]] ||
+    fail "$option at the same time was not recorded as such: $(cat "$project$record")"
+done
 rm -f "$tmp/bin/uv"
+
+# The groups at the same time (Issue #430). run_jobs <jobs> <project>
+# [option...] runs verify.sh with VERIFY_JOBS=<jobs>.
+run_jobs() {
+  local jobs="$1"
+
+  shift
+  VERIFY_JOBS="$jobs" run_with "$@"
+}
+
+# summary <project>: the summary of the last run, from its heading on.
+summary() {
+  sed -n '/^== Verification summary ==$/,$p' "$1/out.log"
+}
+
+project="$(setup_project parallel "a1 [a]: ruff a1" "b1 [b]: pytest b1" "a2 [a]: ruff a2" \
+  "c1 [c]: ruff c1" "plain: pytest plain" "after [c]: a1")"
+logs="$project/.agents/verification/logs"
+
+# The same checks run as one after the other, and the summary is the same, in
+# the order of the file; inside a group the checks keep that order.
+run_jobs 1 "$project" || fail "the groups one after the other failed"
+sequential_runs="$(sort "$project/tools.log")"
+sequential_summary="$(summary "$project")"
+grep -Fq "one after the other (VERIFY_JOBS=1)" "$project/out.log" || fail "VERIFY_JOBS=1 did not say that the groups run one after the other"
+[[ ! -d "$logs" ]] || fail "the groups one after the other wrote group logs"
+run_jobs 4 "$project" || {
+  cat "$project/out.log" >&2
+  fail "the groups at the same time failed"
+}
+[[ "$(sort "$project/tools.log")" == "$sequential_runs" ]] ||
+  fail "the groups at the same time ran other checks: $(ran "$project")"
+[[ "$(summary "$project")" == "$sequential_summary" ]] ||
+  fail "the summary of the groups at the same time differs: $(summary "$project")"
+[[ "$(grep -E '^ruff a[12]$' "$project/tools.log" | tr '\n' ';')" == "ruff a1;ruff a2;" ]] ||
+  fail "the checks of a group did not keep the order of the file: $(ran "$project")"
+for group in a b c default; do
+  [[ -f "$logs/$group.log" ]] || fail "the group $group has no log"
+done
+grep -Fq -- "-- a2: ruff a2" "$logs/a.log" || fail "the log of the group a misses its check"
+if grep -Fq -- "-- b1" "$logs/a.log"; then fail "the log of the group a holds a check of another group"; fi
+grep -Fq "at most 4 at a time" "$project/out.log" || fail "the parallel run did not say its limit"
+grep -Fq "Verification passed." "$project/out.log" || fail "the parallel run did not report the pass"
+VERIFY_JOBS=4 run_with "$project" --groups || fail "--groups failed with an entry 'after'"
+[[ "$(tr '\n' ',' <"$project/out.log")" == "a,b,c,default," ]] ||
+  fail "an entry 'after' changed the groups: $(cat "$project/out.log")"
+
+# A failure in one group of a parallel wave fails the run; the other groups
+# still run, and every log remains.
+if MOCK_PYTEST_EXIT=1 run_jobs 4 "$project"; then fail "a failing group of a parallel wave passed the run"; fi
+grep -Eq "^FAIL +b1 \(exit 1\)$" "$project/out.log" || fail "the failing check of the wave was not named"
+grep -Eq "^PASS +c1$" "$project/out.log" || fail "a group beside the failing one did not pass"
+[[ "$(sort "$project/tools.log")" == "$sequential_runs" ]] || fail "a failure stopped other checks: $(ran "$project")"
+for group in a b c default; do
+  [[ -f "$logs/$group.log" ]] || fail "the log of the group $group did not remain after a failure"
+done
+grep -Fq "failed with status 1" "$logs/b.log" || fail "the log of the failing group does not say so"
+grep -Fq "Verification failed." "$project/out.log" || fail "the failing parallel run did not report the failure"
+
+# The groups really run at the same time: each check waits for the other to
+# have started, which one after the other never happens.
+waiter() {
+  printf '%s [%s]: touch %s.started; n=0; while [ ! -e %s.started ]; do n=$((n + 1)); [ "$n" -lt 30 ] || exit 1; sleep 0.1; done' "$1" "$1" "$1" "$2"
+}
+project="$(setup_project overlap "$(waiter x y)" "$(waiter y x)")"
+run_jobs 2 "$project" || {
+  cat "$project/out.log" >&2
+  fail "two independent groups did not run at the same time"
+}
+rm -f "$project"/*.started
+if run_jobs 1 "$project"; then fail "VERIFY_JOBS=1 ran two groups at the same time"; fi
+
+# A group that waits for a check starts only after that check finished, and
+# does not wait for the rest of the check's group: here 'later' of the group
+# b needs the group e to have run while it waits.
+project="$(setup_project depends "build [b]: sleep 1; touch built" \
+  'later [b]: sleep 0; n=0; while [ ! -e checked ]; do n=$((n + 1)); [ "$n" -lt 30 ] || exit 1; sleep 0.1; done' \
+  "e2e [e]: test -e built && touch checked" "after [e]: build")"
+run_jobs 4 "$project" || {
+  cat "$project/out.log" >&2
+  fail "a group that waits for a check did not start after it, or waited for its whole group"
+}
+# Without the entry the group starts at once, and the same check fails.
+rm -f "$project/built" "$project/checked"
+printf '%s\n' "build [b]: sleep 1; touch built" "e2e [e]: test -e built" >"$project/scripts/verify.conf"
+if run_jobs 4 "$project"; then fail "a group without an entry 'after' waited for another"; fi
+grep -Eq "^FAIL +e2e" "$project/out.log" || fail "the check that started too early did not fail"
+
+# A check of a group outside the run is not waited for (--only, where CI
+# prepares the group's input), and a dependent group of a failed check still
+# runs, as it would one after the other.
+printf '%s\n' "build [b]: false" "e2e [e]: ruff e2e" "other [o]: ruff other" "after [e]: build" >"$project/scripts/verify.conf"
+run_jobs 4 "$project" --only e,o || fail "a group waited for a check outside the run"
+[[ "$(sort "$project/tools.log" | tr '\n' ';')" == "ruff e2e;ruff other;" ]] || fail "--only e,o ran: $(ran "$project")"
+if run_jobs 4 "$project"; then fail "a failing prerequisite passed the run"; fi
+grep -Fq "ruff e2e" "$project/tools.log" || fail "the group after a failed check did not run"
+
+# VERIFY_JOBS limits the groups that run at the same time.
+counter() {
+  printf '%s [%s]: mkdir -p running && touch running/%s && ls running | wc -l >>counts && sleep 0.5 && rm running/%s' "$1" "$1" "$1" "$1"
+}
+project="$(setup_project limit "$(counter p)" "$(counter q)" "$(counter r)")"
+run_jobs 2 "$project" || {
+  cat "$project/out.log" >&2
+  fail "a run limited to two groups failed"
+}
+[[ "$(grep -c . "$project/counts")" -eq 3 ]] || fail "not every group of the limited run ran"
+[[ "$(sort -n "$project/counts" | tail -n 1 | tr -d ' ')" -le 2 ]] ||
+  fail "more groups ran at the same time than VERIFY_JOBS allows: $(tr '\n' ' ' <"$project/counts")"
+
+# A TERM to the run stops the groups still running and the processes they
+# started, and the run fails.
+sleeper() {
+  printf "%s [%s]: sh -c 'echo \$\$ >%s.pid; exec sleep 30'" "$1" "$1" "$1"
+}
+project="$(setup_project interrupt "$(sleeper s)" "$(sleeper t)")"
+VERIFY_JOBS=4 PATH="$tmp/bin:/usr/bin:/bin" MOCK_TOOL_LOG="$project/tools.log" \
+  "$project/scripts/verify.sh" >"$project/out.log" 2>&1 &
+verify_pid=$!
+n=0
+until [[ -s "$project/s.pid" && -s "$project/t.pid" ]]; do
+  n=$((n + 1))
+  [[ "$n" -lt 100 ]] || fail "the groups of the interrupted run did not start"
+  sleep 0.1
+done
+kill -TERM "$verify_pid"
+interrupt_status=0
+wait "$verify_pid" || interrupt_status=$?
+[[ "$interrupt_status" -ne 0 ]] || fail "an interrupted run passed"
+for check in s t; do
+  if kill -0 "$(cat "$project/$check.pid")" 2>/dev/null; then
+    kill "$(cat "$project/$check.pid")" 2>/dev/null || true
+    fail "the check $check kept running after the run was stopped"
+  fi
+done
+
+# VERIFY_JOBS is a whole number of at least 1.
+for jobs in 0 x -1 "2 3"; do
+  if run_jobs "$jobs" "$project"; then fail "VERIFY_JOBS='$jobs' was accepted"; fi
+  grep -Fq "VERIFY_JOBS must be" "$project/out.log" || fail "VERIFY_JOBS='$jobs' was not explained"
+done
+
+# The entries 'after' are checked: a group, checks of scripts/verify.conf in
+# other groups, and no circle.
+bad_after() {
+  local description="$1"
+
+  shift
+  printf '%s\n' "$@" >"$project/scripts/verify.conf"
+  rm -f "$project/tools.log"
+  if run_jobs 4 "$project"; then fail "an entry 'after' with $description was accepted"; fi
+  [[ ! -e "$project/tools.log" ]] || fail "checks ran despite an entry 'after' with $description"
+}
+bad_after "no group" "a1 [a]: ruff a1" "b1 [b]: ruff b1" "after: a1"
+bad_after "an unknown group" "a1 [a]: ruff a1" "after [nope]: a1"
+grep -Fq "'nope'" "$project/out.log" || fail "the unknown group of 'after' was not named"
+bad_after "an unknown check" "a1 [a]: ruff a1" "b1 [b]: ruff b1" "after [b]: nope"
+grep -Fq "'nope'" "$project/out.log" || fail "the unknown check of 'after' was not named"
+bad_after "a check of its own group" "a1 [a]: ruff a1" "a2 [a]: ruff a2" "after [a]: a1"
+bad_after "a malformed check list" "a1 [a]: ruff a1" "b1 [b]: ruff b1" "after [b]: a1 b1"
+bad_after "a circle" "a1 [a]: ruff a1" "b1 [b]: ruff b1" "after [a]: b1" "after [b]: a1"
+grep -Fq "wait for each other" "$project/out.log" || fail "the circle of 'after' was not named"
+
+# A parallel run is recorded like one after the other, and its logs, which
+# Git ignores, do not change the content it verified.
+project="$(setup_recorded_project recorded-parallel)"
+printf '%s\n' "lint [a]: ruff check ." "tests [b]: pytest" >"$project/scripts/verify.conf"
+git -C "$project" add -A
+git -C "$project" commit -qm "Two groups"
+VERIFY_JOBS=4 expect_checks_ran "$project" "nothing was recorded yet" --reuse
+[[ -f "$project/.agents/verification/logs/a.log" ]] || fail "the recorded parallel run wrote no group log"
+[[ "$(sed -n 's/^tier: //p' "$project$record")" == "full" ]] || fail "the parallel run was not recorded as a full run"
+VERIFY_JOBS=4 expect_reused "$project" "the parallel run verified this content" --reuse
 
 echo "verify tests passed"

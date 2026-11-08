@@ -13,9 +13,11 @@ _CHECK = re.compile(
     r"^([a-z0-9][a-z0-9-]*)(?:\s*\[([a-z0-9][a-z0-9-]*)\])?:\s*(.*\S)\s*$"
 )
 DEFAULT_GROUP = "default"
-# The one entry of verify.conf that declares no check: the groups of the
-# targeted run (ADR 017 decision 7), as verify.sh reserves it.
+# The entries of verify.conf that declare no check, as verify.sh reserves
+# them: the groups of the targeted run (ADR 017 decision 7), and the checks
+# a group waits for when the groups run at the same time (Issue #430).
 TARGETED_ENTRY = "targeted"
+AFTER_ENTRY = "after"
 
 
 def _entries() -> list[tuple[str, str | None, str]]:
@@ -34,7 +36,7 @@ def _lines() -> list[tuple[str, str, str]]:
     return [
         (name, group or DEFAULT_GROUP, value)
         for name, group, value in _entries()
-        if name != TARGETED_ENTRY
+        if name not in (TARGETED_ENTRY, AFTER_ENTRY)
     ]
 
 

@@ -17,6 +17,16 @@ set -euo pipefail
 # for a CI that spreads the same checks over parallel jobs. Such a partial
 # run is never a verification: it records nothing.
 #
+# Groups run at the same time (Issue #430): every group that has a check in
+# the run is started as soon as the checks it waits for have finished, at
+# most VERIFY_JOBS groups at a time (default 4), each with its own log under
+# .agents/verification/logs/. A group waits for a check of another group
+# only where scripts/verify.conf says so: 'after [<group>]: <check>[,<check>...]'. Inside a group the checks run one after
+# the other, in the order of the file. VERIFY_JOBS=1, or a run with one
+# group, runs every check one after the other in the order of the file, as
+# before. The summary, the record, the time log, and the exit status do not
+# depend on the order.
+#
 # Three tiers (ADR 017 decision 7): a run without options runs every check;
 # --base runs every check against a verified base, which selects the lessons
 # to execute; --targeted runs the checks of the groups that the reserved
@@ -88,6 +98,11 @@ usage() {
   echo "runs every check."
   echo
   echo "--groups prints the groups that have a check, one per line."
+  echo
+  echo "Groups run at the same time, at most \$VERIFY_JOBS at a time (default 4), each"
+  echo "with its own log in .agents/verification/logs/; a group waits for the checks"
+  echo "that its entry 'after [<group>]: <check>,...' of scripts/verify.conf names."
+  echo "VERIFY_JOBS=1 runs every check one after the other, in the order of the file."
   echo
   echo "Every run appends '<time> | <tier> | <tree> | <seconds> | <result>' to the"
   echo "time log, <git common dir>/verify-time.log or \$VERIFY_TIME_LOG; no gate reads it."
@@ -230,12 +245,18 @@ commands=()
 groups=()
 workflow_paths=""
 targeted_groups=""
+# The entries 'after [<group>]: <check>,...' of scripts/verify.conf: the
+# group after_waiting[i] starts only when the checks after_checks[i] have
+# finished (Issue #430).
+after_waiting=()
+after_checks=()
 
 # load_checks <file> <reserved-entry>
 # Appends the checks of <file> to names and commands. <reserved-entry> names
 # the one entry of the file that declares no check: 'paths' sets
 # workflow_paths (the workflow files), 'targeted' sets targeted_groups (the
-# groups of the targeted run), and 'none' reserves nothing.
+# groups of the targeted run) and also reserves 'after' (the entries a group
+# waits for), and 'none' reserves nothing.
 load_checks() {
   local file="$1"
   local reserved="$2"
@@ -256,6 +277,15 @@ load_checks() {
     name="${BASH_REMATCH[1]}"
     group="${BASH_REMATCH[3]}"
     value="${BASH_REMATCH[4]}"
+    if [[ "$reserved" == "targeted" && "$name" == "after" ]]; then
+      [[ -n "$group" ]] ||
+        config_fail "'after' names the group that waits as 'after [<group>]: <check>[,<check>...]' on line $line_number of $label."
+      [[ "$value" =~ $groups_pattern ]] ||
+        config_fail "'after' names checks as '<check>[,<check>...]' on line $line_number of $label: $value"
+      after_waiting+=("$group")
+      after_checks+=("$value")
+      continue
+    fi
     if [[ "$reserved" != "none" && "$name" == "$reserved" ]]; then
       [[ -z "$group" ]] || config_fail "'$reserved' takes no group on line $line_number of $label."
       case "$reserved" in
@@ -355,6 +385,93 @@ known_groups=""
 for group in "${groups[@]}"; do
   in_list "$group" "$known_groups" || known_groups="${known_groups:+$known_groups,}$group"
 done
+
+# check_index <name>
+# Prints the index of the check <name> of scripts/verify.conf; fails when
+# that file has no such check. A group waits only for checks of that file.
+check_index() {
+  local index=0
+
+  while [[ "$index" -lt "$project_count" ]]; do
+    if [[ "${names[$index]}" == "$1" ]]; then
+      printf '%s\n' "$index"
+      return 0
+    fi
+    index=$((index + 1))
+  done
+  return 1
+}
+
+# waits_for <group>
+# Prints the indices of the checks <group> waits for, comma-separated.
+waits_for() {
+  local entry=0
+  local check
+  local found=""
+
+  while [[ "$entry" -lt "${#after_waiting[@]}" ]]; do
+    if [[ "${after_waiting[$entry]}" == "$1" ]]; then
+      for check in ${after_checks[$entry]//,/ }; do
+        found="${found:+$found,}$(check_index "$check")"
+      done
+    fi
+    entry=$((entry + 1))
+  done
+  printf '%s\n' "$found"
+}
+
+# list_remove <value> <comma-separated-list>
+list_remove() {
+  local item
+  local kept=""
+
+  for item in ${2//,/ }; do
+    [[ "$item" == "$1" ]] || kept="${kept:+$kept,}$item"
+  done
+  printf '%s\n' "$kept"
+}
+
+# The entries 'after': each names a group that has a check and checks of
+# scripts/verify.conf in other groups, and no group waits for itself through
+# others, so that every run can finish.
+entry=0
+while [[ "$entry" -lt "${#after_waiting[@]}" ]]; do
+  waiting="${after_waiting[$entry]}"
+  in_list "$waiting" "$known_groups" ||
+    config_fail "an entry 'after' of scripts/verify.conf names the group '$waiting', which has no check. The groups are: ${known_groups//,/, }."
+  for check in ${after_checks[$entry]//,/ }; do
+    index="$(check_index "$check")" ||
+      config_fail "the entry 'after [$waiting]' of scripts/verify.conf names '$check', which is not a check of that file."
+    [[ "${groups[$index]}" != "$waiting" ]] ||
+      config_fail "the entry 'after [$waiting]' of scripts/verify.conf names '$check', a check of the same group; the checks of a group run in the order of the file."
+  done
+  entry=$((entry + 1))
+done
+remaining="$known_groups"
+while [[ -n "$remaining" ]]; do
+  freed=""
+  for group in ${remaining//,/ }; do
+    blocked=0
+    deps="$(waits_for "$group")"
+    for index in ${deps//,/ }; do
+      ! in_list "${groups[$index]}" "$remaining" || blocked=1
+    done
+    [[ "$blocked" -eq 1 ]] || freed="${freed:+$freed,}$group"
+  done
+  [[ -n "$freed" ]] ||
+    config_fail "the entries 'after' of scripts/verify.conf make the groups ${remaining//,/, } wait for each other, so none of them could start."
+  for group in ${freed//,/ }; do
+    remaining="$(list_remove "$group" "$remaining")"
+  done
+done
+
+# The parallelism of the run (Issue #430).
+jobs_limit="${VERIFY_JOBS:-4}"
+[[ "$jobs_limit" =~ ^[1-9][0-9]*$ ]] || {
+  echo "Error: VERIFY_JOBS must be a whole number of at least 1 (the groups that may run at the same time; 1 runs them one after the other), not '$jobs_limit'." >&2
+  exit 1
+}
+
 if [[ "$list_groups" -eq 1 ]]; then
   printf '%s\n' "${known_groups//,/$'\n'}"
   exit 0
@@ -513,44 +630,205 @@ if [[ -n "$base" ]]; then
   fi
 fi
 
+# run_checks <group> <result-directory>
+# Runs the checks of the run in the order of the file: all of them when
+# <group> is empty, else those of <group>. Appends each outcome to results
+# and sets failed; with a <result-directory>, also writes the outcome of the
+# check with index i to <result-directory>/result.<i> when it has finished,
+# which is what a group that waits for the check looks for.
+run_checks() {
+  local only_group="$1"
+  local out="$2"
+  local index
+  local name
+  local command
+  local tool
+  local status
+  local line
+
+  for index in "${!names[@]}"; do
+    if [[ "$index" -eq "$project_count" ]]; then
+      [[ -z "$workflow_skipped" ]] || break
+      if [[ -z "$only_group" ]] || in_list "$only_group" "$workflow_groups"; then
+        echo
+        echo "== Workflow self-tests: $workflow_note =="
+      fi
+    fi
+    if [[ -n "$only_group" && "${groups[$index]}" != "$only_group" ]]; then
+      continue
+    fi
+    name="${names[$index]}"
+    command="${commands[$index]}"
+    if [[ -n "$selected_groups" ]] && ! in_list "${groups[$index]}" "$selected_groups"; then
+      continue
+    fi
+    read -r tool _ <<<"$command"
+
+    echo
+    echo "-- $name: $command"
+
+    if ! (cd "$root" && command -v "$tool" >/dev/null 2>&1); then
+      echo "Error: required check '$name' cannot run; '$tool' is missing or not executable." >&2
+      line="FAIL  $name (missing tool: $tool)"
+    else
+      status=0
+      (cd "$root" && bash -eo pipefail -c "$command") || status=$?
+      if [[ "$status" -eq 0 ]]; then
+        line="PASS  $name"
+      else
+        echo "Error: required check '$name' failed with status $status." >&2
+        line="FAIL  $name (exit $status)"
+      fi
+    fi
+    results+=("$line")
+    [[ "$line" == PASS* ]] || failed=1
+    if [[ -n "$out" ]]; then
+      printf '%s\n' "$line" >"$out/result.$index.tmp" && mv "$out/result.$index.tmp" "$out/result.$index"
+    fi
+  done
+}
+
+# The groups whose checks this run performs, in the order of their first
+# check, and the groups that hold a workflow self-test.
+run_groups=""
+workflow_groups=""
+for index in "${!names[@]}"; do
+  group="${groups[$index]}"
+  if [[ "$index" -ge "$project_count" ]]; then
+    [[ -z "$workflow_skipped" ]] || break
+    in_list "$group" "$workflow_groups" || workflow_groups="${workflow_groups:+$workflow_groups,}$group"
+  fi
+  [[ -z "$selected_groups" ]] || in_list "$group" "$selected_groups" || continue
+  in_list "$group" "$run_groups" || run_groups="${run_groups:+$run_groups,}$group"
+done
+
+# group_ready <group> <result-directory>
+# Succeeds when every check that <group> waits for has finished, counting
+# only checks this run performs: a check of a group outside the run is not
+# waited for (--only, where CI prepares what the group needs).
+group_ready() {
+  local deps
+  local index
+
+  deps="$(waits_for "$1")"
+  for index in ${deps//,/ }; do
+    in_list "${groups[$index]}" "$run_groups" || continue
+    [[ -e "$2/result.$index" ]] || return 1
+  done
+  return 0
+}
+
+# stop_tree <pid>
+# Stops a process and every process it started, children first.
+stop_tree() {
+  local child
+
+  for child in $(pgrep -P "$1" 2>/dev/null); do
+    stop_tree "$child"
+  done
+  kill -TERM "$1" 2>/dev/null || true
+}
+
+# stop_groups: stops the groups still running, when the run is interrupted.
+group_dir=""
+stop_groups() {
+  local file
+
+  [[ -n "$group_dir" ]] || return 0
+  for file in "$group_dir"/pid.*; do
+    [[ -e "$file" ]] || continue
+    [[ -e "$group_dir/finished.${file##*/pid.}" ]] || stop_tree "$(cat "$file")"
+  done
+}
+
 results=()
 failed=0
-for index in "${!names[@]}"; do
-  if [[ "$index" -eq "$project_count" ]]; then
-    [[ -z "$workflow_skipped" ]] || break
+group_count=0
+for group in ${run_groups//,/ }; do group_count=$((group_count + 1)); done
+if [[ "$jobs_limit" -eq 1 || "$group_count" -le 1 ]]; then
+  # One after the other, in the order of the file: one group, or VERIFY_JOBS=1.
+  if [[ "$group_count" -gt 1 ]]; then
     echo
-    echo "== Workflow self-tests: $workflow_note =="
+    echo "The groups run one after the other (VERIFY_JOBS=1)."
   fi
-  name="${names[$index]}"
-  command="${commands[$index]}"
-  if [[ -n "$selected_groups" ]] && ! in_list "${groups[$index]}" "$selected_groups"; then
-    continue
+  run_checks "" ""
+else
+  # The groups at the same time (Issue #430). Each group runs its checks in
+  # the order of the file, in the background, with its output in its own log;
+  # a group starts when the checks it waits for have finished, passed or
+  # failed, as they would have one after the other, and when fewer than
+  # VERIFY_JOBS groups run. The log of a group is printed when it ends.
+  log_dir="$root/.agents/verification/logs"
+  if [[ "$recordable" -eq 1 ]] &&
+    ! git -C "$root" check-ignore -q ".agents/verification/logs/x.log" 2>/dev/null; then
+    # A log in the content would change what is verified: it goes outside.
+    log_dir="$(mktemp -d "${TMPDIR:-/tmp}/verify-logs.XXXXXX")"
   fi
-  read -r tool _ <<<"$command"
-
+  mkdir -p "$log_dir"
+  rm -f "$log_dir"/*.log
+  group_dir="$(mktemp -d "${TMPDIR:-/tmp}/verify-groups.XXXXXX")"
+  trap 'stop_groups; exit 130' INT
+  trap 'stop_groups; exit 143' TERM
   echo
-  echo "-- $name: $command"
+  echo "The groups ${run_groups//,/, } run at the same time, at most $jobs_limit at a time (VERIFY_JOBS; 1 runs them one after the other). One log per group in ${log_dir#"$root"/}/."
 
-  if ! (cd "$root" && command -v "$tool" >/dev/null 2>&1); then
-    echo "Error: required check '$name' cannot run; '$tool' is missing or not executable." >&2
-    results+=("FAIL  $name (missing tool: $tool)")
-    failed=1
-    continue
-  fi
+  pending="$run_groups"
+  running=""
+  while [[ -n "$pending$running" ]]; do
+    changed=0
+    for group in ${running//,/ }; do
+      [[ -e "$group_dir/finished.$group" ]] || continue
+      wait "$(cat "$group_dir/pid.$group")" 2>/dev/null || true
+      running="$(list_remove "$group" "$running")"
+      changed=1
+      echo
+      echo "== Group $group ended; its log, ${log_dir#"$root"/}/$group.log: =="
+      cat "$log_dir/$group.log"
+    done
+    for group in ${pending//,/ }; do
+      count=0
+      for active in ${running//,/ }; do count=$((count + 1)); done
+      [[ "$count" -lt "$jobs_limit" ]] || break
+      group_ready "$group" "$group_dir" || continue
+      pending="$(list_remove "$group" "$pending")"
+      running="${running:+$running,}$group"
+      changed=1
+      (
+        trap 'touch "$group_dir/finished.$group"' EXIT
+        trap - INT TERM
+        run_checks "$group" "$group_dir"
+      ) >"$log_dir/$group.log" 2>&1 &
+      printf '%s\n' "$!" >"$group_dir/pid.$group"
+      echo "== Group $group started =="
+    done
+    if [[ "$changed" -eq 0 ]]; then
+      if [[ -z "$running" ]]; then
+        # Not reachable after the checks of the entries 'after' above.
+        echo "Error: the groups ${pending//,/, } wait for checks that no group runs." >&2
+        failed=1
+        break
+      fi
+      sleep 0.2 2>/dev/null || sleep 1
+    fi
+  done
+  trap - INT TERM
 
-  set +e
-  (cd "$root" && bash -eo pipefail -c "$command")
-  status=$?
-  set -e
-
-  if [[ "$status" -eq 0 ]]; then
-    results+=("PASS  $name")
-  else
-    echo "Error: required check '$name' failed with status $status." >&2
-    results+=("FAIL  $name (exit $status)")
-    failed=1
-  fi
-done
+  # The outcomes in the order of the file, as one after the other. A check
+  # without an outcome did not end: its group was stopped.
+  for index in "${!names[@]}"; do
+    if [[ "$index" -ge "$project_count" && -n "$workflow_skipped" ]]; then break; fi
+    in_list "${groups[$index]}" "$run_groups" || continue
+    if [[ -e "$group_dir/result.$index" ]]; then
+      line="$(cat "$group_dir/result.$index")"
+    else
+      line="FAIL  ${names[$index]} (did not end: its group stopped)"
+    fi
+    results+=("$line")
+    [[ "$line" == PASS* ]] || failed=1
+  done
+  rm -rf "$group_dir"
+  group_dir=""
+fi
 
 echo
 echo "== Verification summary =="
