@@ -60,7 +60,7 @@ units: 'From the attributes file: Time in s, Estress and Tstress in MPa, Estrain
   Checked: Tstrain = ln(1 + Estrain) to 5e-16 and Tstress = Estress (1 + Estrain) to 5e-12 (equations
   5 and 6 of the report); tensile stress and strain are positive.'
 cadence: 'One row per DIC image pair: 0.25 s apart from 0 to 62.85 s, then 1 s (three gaps of 1.25 to
-  1.33 s) to 1418.0 s; the report states 4 images/s initially and 1 image/s after yield. 1,607 rows.'
+  1.33 s) to 1418.0168 s, the last row; the report states 4 images/s initially and 1 image/s after yield. 1,607 rows.'
 coordinates: 'Uniaxial: y along the tensile axis, the 0-degree (rolling) direction of the sheet; the virtual
   extensometer is centred on the reduced parallel length to within 0.5 mm. Time from the start of image
   acquisition; tested at NCAL between October 2019 and January 2020 (the date of R01 is not in the file).'
@@ -114,10 +114,12 @@ decision:
   value: go
   date: *accessed
   reasons:
-  - 'Real file inspected: 1,607 rows over 0 to 1418 s, five finite columns, units from the attributes
+  - 'Real file inspected: 1,607 rows over 0 to 1418.0168 s, five finite columns, units from the attributes
     file and checked against the true-stress and true-strain formulas; sha256 equals the record''s.'
-  - 'The test reverses the load: tension to e = 0.0579 (991 MPa), a hold, compression to -1007 MPa at
-    e = -0.0004, tension to fracture at e = 0.177; the hysteresis loop holds 75.9 MJ/m^3.'
+  - 'The test reverses the load: tension to the stress maximum, 991 MPa at e = 0.0575, a hold that ends
+    at e = 0.0579 (970 MPa), compression to -1007 MPa at e = -0.0004, tension to fracture at e = 0.177;
+    the hysteresis loop from the stress maximum back to its strain, closed by a straight segment, encloses
+    75.8 MJ/m^3 (the closed integral of S de, positive for its clockwise path).'
   - 'Elastic regime and yield from source-controlled code: E = 196.3 +- 1.1 GPa (192.5 to 198.4 GPa over
     four fit windows), 0.2 % offset yield 775 MPa; the unloading chord, 144 GPa, shows the Bauschinger
     effect.'

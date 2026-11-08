@@ -268,7 +268,7 @@ def test_nist_numisheet_sample_parses():
     ):
         assert column.shape == (1607,)
     # Cadence: the images, 0.25 s apart until 62.85 s, then 1 s (with a few
-    # gaps of 1.25-1.33 s), from 0 to 1418.0 s, strictly increasing.
+    # gaps of 1.25-1.33 s), from 0 to 1418.0168 s, strictly increasing.
     step = np.diff(test.time)
     assert test.time[0] == 0 and test.time[-1] == pytest.approx(1418.0168)
     assert (step > 0).all()
@@ -291,14 +291,40 @@ def test_nist_numisheet_sample_parses():
     )
 
 
+def _edges_cross(x, y):
+    """Whether two non-adjacent edges of the closed polygon (x, y) cross."""
+    start = np.c_[x, y]
+    edge = np.roll(start, -1, axis=0) - start
+    n = len(start)
+    i, j = np.triu_indices(n, 2)
+    keep = ~((i == 0) & (j == n - 1))
+    i, j = i[keep], j[keep]
+
+    def cross(a, b):
+        return a[:, 0] * b[:, 1] - a[:, 1] * b[:, 0]
+
+    d = cross(edge[i], edge[j])
+    ok = d != 0
+    gap = start[j] - start[i]
+    u = cross(gap, edge[j]) / np.where(ok, d, 1)
+    v = cross(gap, edge[i]) / np.where(ok, d, 1)
+    return bool((ok & (u > 0) & (u < 1) & (v > 0) & (v < 1)).any())
+
+
 def test_the_dp980_test_reverses_the_load_and_closes_a_hysteresis_loop():
     """Tension to 5.8 %, compression back to about zero strain, tension to
-    fracture: a load reversal with a loop of 75.9 MJ/m^3. The values are the
-    dossier's."""
+    fracture: a load reversal with a closed loop of 75.8 MJ/m^3. The values
+    are the dossier's."""
     test = nist_numisheet.load(DP980)
     seg = nist_numisheet.segments(test)
+    # Three points of the reversal: the stress maximum (the loop's start), at
+    # a smaller strain than the end of the hold, where the unloading begins.
     assert test.stress[seg.reversal] == pytest.approx(991.3, abs=0.1)
+    assert test.strain[seg.reversal] == pytest.approx(0.05750, abs=1e-5)
+    assert test.time[seg.reversal] == pytest.approx(301.68, abs=0.01)
     assert test.strain[seg.hold_end] == pytest.approx(0.05791, abs=1e-5)
+    assert test.stress[seg.hold_end] == pytest.approx(970.3, abs=0.1)
+    assert test.time[seg.hold_end] == pytest.approx(307.68, abs=0.01)
     # The hold: the strain stays within 0.01 % while the stress relaxes 21 MPa.
     held = test.strain[seg.reversal + 2 : seg.hold_end + 1]
     assert np.ptp(held) < 1e-4
@@ -306,9 +332,30 @@ def test_the_dp980_test_reverses_the_load_and_closes_a_hysteresis_loop():
     assert relaxed == pytest.approx(21.1, abs=0.1)
     assert test.stress[seg.compression] == pytest.approx(-1006.6, abs=0.1)
     assert abs(test.strain[seg.compression]) < 0.001
-    rows, area = nist_numisheet.loop(test)
-    assert area == pytest.approx(75.86, abs=0.01)
-    assert test.strain[rows][-1] >= test.strain[seg.reversal]
+    cycle = nist_numisheet.loop(test)
+    e, s = test.strain, test.stress
+    # The endpoints: the stress maximum, and the first reload row at its
+    # strain or beyond (the row before is below it).
+    assert cycle.start == seg.reversal
+    assert cycle.rows == slice(cycle.start, cycle.end + 1)
+    assert cycle.end > seg.compression
+    assert e[cycle.end - 1] < e[cycle.start] <= e[cycle.end]
+    assert e[cycle.end] == pytest.approx(0.05761, abs=1e-5)
+    assert s[cycle.end] == pytest.approx(964.9, abs=0.1)
+    # The closure: a straight segment 0.0001 in strain and -26.5 MPa in stress.
+    assert cycle.gap_strain == pytest.approx(e[cycle.end] - e[cycle.start])
+    assert cycle.gap_strain == pytest.approx(1.08e-4, abs=0.01e-4)
+    assert cycle.gap_stress == pytest.approx(-26.5, abs=0.1)
+    assert cycle.closing == pytest.approx(-0.105, abs=0.001)
+    # The closed integral equals the enclosed area of the polygon (shoelace),
+    # with the sign of a clockwise path: positive work done on the specimen.
+    # The polygon is simple (no two edges cross), so the area is enclosed.
+    x, y = e[cycle.rows], s[cycle.rows]
+    assert not _edges_cross(x, y / 1e4)
+    signed = 0.5 * np.sum(x * np.roll(y, -1) - np.roll(x, -1) * y)
+    assert signed < 0
+    assert cycle.work == pytest.approx(-signed, rel=1e-12)
+    assert cycle.work == pytest.approx(75.75, abs=0.01)
     neck = nist_numisheet.reload_maximum(test)
     assert test.stress[neck] == pytest.approx(981.2, abs=0.1)
     assert test.strain[neck] == pytest.approx(0.0910, abs=1e-4)

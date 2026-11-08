@@ -35,9 +35,9 @@ Reader: `pbc.data.reference.nist_numisheet.read_stress_strain` and `read_attribu
 |---|---|---|
 | Schema | header `"Time","Estrain","Estress","Tstrain","Tstress"`; the attributes file | 1,607 rows of five numbers; the attributes file has the columns Variable, Units, Type, Description, AxisLabel |
 | Units | Time s, stress MPa, strain mm/mm (attributes file) | Tstrain = ln(1 + Estrain) to 5e-16 and Tstress = Estress(1 + Estrain) to 5e-12; tension positive; peak stresses near ±1 GPa, as for a DP980 steel |
-| Cadence | 4 images/s during elastic loading, 1 image/s after yield (report) | one row per image: 0.25 s steps from 0 to 62.85 s, then 1 s steps (three of 1.25–1.33 s) to 1418.0 s |
+| Cadence | 4 images/s during elastic loading, 1 image/s after yield (report) | one row per image: 0.25 s steps from 0 to 62.85 s, then 1 s steps (three of 1.25–1.33 s) to 1418.0168 s, the last row |
 | Masks, missing values | none stated | no missing or non-finite value; the first 10 rows (0–2.35 s, \|S\| < 1 MPa) precede the force ramp and serve below as the noise sample |
-| Time coverage | tests at NCAL, October 2019 to January 2020 | one test, 1418 s from the start of image acquisition to fracture; its date is not in the file |
+| Time coverage | tests at NCAL, October 2019 to January 2020 | one test, 0 to 1418.0168 s from the start of image acquisition to fracture; its date is not in the file |
 
 The parsing test `tests/unit/test_data_samples.py::test_nist_numisheet_sample_parses` asserts the field names, the units of the attributes file, the shapes, the cadence, the true-strain and true-stress relations, and the absence of masks.
 
@@ -58,14 +58,14 @@ uv run python -m pbc.data.reference nist-numisheet-dp980 --out dp980.png
 
 The code is `src/pbc/data/reference/nist_numisheet.py`. **Status label: processed.** Panels: the whole engineering stress–strain path in its three segments with the hysteresis loop shaded; the elastic regime of the first tension with the fitted line, the line shifted by 0.2 %, and the offset yield; the stress against time, which shows the protocol and the two holds; and the residuals of the elastic fit against stress.
 
-**Caption.** *A DP980 sheet steel pulled to 5.8 % strain, pushed back to zero strain, and pulled to fracture, with stress and strain measured by load cells and image correlation. The material yields gradually: a line fitted between 100 and 400 MPa gives E = 196 GPa, and the 0.2 % offset yield is 775 MPa. On reversal the stress falls along a chord of 144 GPa, not E, and compressive flow begins long before −991 MPa is reached (the Bauschinger effect); the path encloses a loop of 75.9 MJ/m³ of plastic work. On reloading, the stress rises to 981 MPa at 9.1 % strain, where necking starts, and the specimen breaks at 17.7 %.*
+**Caption.** *A DP980 sheet steel pulled to 5.8 % strain, pushed back to zero strain, and pulled to fracture, with stress and strain measured by load cells and image correlation. The material yields gradually: a line fitted between 100 and 400 MPa gives E = 196 GPa, and the 0.2 % offset yield is 775 MPa. On reversal the stress falls along a chord of 144 GPa, not E, and compressive flow begins long before −991 MPa is reached (the Bauschinger effect); the path from the stress maximum round the compression and back to the same strain, closed by a straight segment, encloses 75.8 MJ/m³, the net work per volume done on the steel over the cycle. On reloading, the stress rises to 981 MPa at 9.1 % strain, where necking starts, and the specimen breaks at 17.7 %.*
 
 | Quantity | Value | How |
 |---|---|---|
-| First tension, highest stress | 991.3 MPa at e = 0.0575 | the measured maximum before the compression |
-| Hold at the reversal | e = 0.0579, the stress relaxes by 21.1 MPa | strain constant to 1e-4 over the hold |
+| First tension, stress maximum (the start of the loop) | 991.3 MPa at e = 0.0575, t = 301.7 s | the measured maximum before the compression; the strain still rises by 0.0004 into the hold after it |
+| End of the hold after the stress maximum | e = 0.0579 (the largest strain before the compression) at t = 307.7 s and 970.3 MPa: the stress relaxes by 21.1 MPa from the maximum | from the second row after the maximum the strain stays within 1e-4; the unloading starts at the end of the hold |
 | Most compressive stress | −1006.6 MPa at e = −0.0004 | the measured minimum |
-| Loop area, ∫ S de from the first reversal to the return to its strain | **75.9 MJ/m³** | trapezoids over the measured points; the path returns to e = 0.0575 at 965 MPa, 26 MPa below its start, and closing it with a straight line changes the area by 0.1 MJ/m³ |
+| Loop, ∮ S de over the closed path | **75.8 MJ/m³** | start: the stress maximum (e = 0.0575, 991.3 MPa); end: the first row of the reload at that strain or beyond (e = 0.0576, 964.9 MPa, t = 1065.0 s); closed by a straight segment from the end back to the start (+0.0001 in strain, −26.5 MPa), which contributes −0.1 MJ/m³. Trapezoids over the measured points plus that segment (`loop`, `Loop`). Sign: positive for a path that runs clockwise in the (e, S) plane, the reload above the unloading, as this one does; the value then equals the enclosed area (the shoelace area of the closed polygon, whose edges do not cross) and the net work per volume done on the specimen over the cycle, the plastic work dissipated or stored |
 | E, window 100–400 MPa | **196.3 ± 1.1 GPa** (standard error from the scatter), intercept 7.4 MPa | `fit_curve`, 84 points |
 | E over the windows 50–300, 100–300, 100–400, 150–450 MPa | 192.5 to 198.4 GPa | `window_sensitivity` |
 | 0.2 % offset yield | 775 MPa | crossing of the shifted line, interpolated between samples |
@@ -90,7 +90,7 @@ Derived here, from the sample:
 - **Sensitivity to the window.** Over four windows E runs from 192.5 to 198.4 GPa. This is a sensitivity of the fit to where the curve is called linear, not a bound on calibration or instrument error.
 - **Not known from this sample.** The repeatability between the three repeats R01–R03 (the other two files, about 130 KB each, are not inspected or committed); the calibration error of the load cells, of the extensometer, and of the dimensions, which no fit can reveal because it scales every point alike. A lab that reports E or the yield stress must say that their uncertainty is derived from one test and the fit, and that the calibration error is not given by the record.
 
-Asserted by `tests/unit/test_data_samples.py`: the reversal, the hold and its relaxation, the compression, the loop area, the start of necking, the fracture strain, the unloading chords, E with its standard error and its window range, the offset yield, the preload noise, the agreement of the residual rms with E times that noise, and the load-cell stress scale.
+Asserted by `tests/unit/test_data_samples.py`: the stress maximum, the end of the hold and the relaxation, the compression, the loop's endpoints, closing segment, orientation and enclosed area, the start of necking, the fracture strain, the unloading chords, E with its standard error and its window range, the offset yield, the preload noise, the agreement of the residual rms with E times that noise, and the load-cell stress scale.
 
 ## Rights
 

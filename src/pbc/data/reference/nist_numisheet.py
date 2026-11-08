@@ -10,8 +10,10 @@ the unloading are computed here and drawn apart from the measurement.
 The protocol (NIST's report, section 2.2.1): tension to about 75 % of the
 uniform strain, a 10 s hold, compression back to an engineering strain near
 zero, a 10 s hold, tension again until the specimen breaks, all in
-displacement control at a nominal 0.00025 per second. The loop between the
-first reversal and the return to the same strain is the hysteresis loop.
+displacement control at a nominal 0.00025 per second. The hysteresis loop
+runs from the stress maximum of the first tension through the compression and
+back along the reload to the same strain, closed by a straight segment
+(``Loop``).
 
 The record gives no uncertainty for these columns. It states a noise floor of
 the local DIC strain (263 um/m for this test, over a 0.86 mm virtual gauge)
@@ -165,18 +167,53 @@ def offset_yield(test: Test, result: FitResult, offset: float = OFFSET) -> float
     return float(s[k - 1] + w * (s[k] - s[k - 1]))
 
 
-def loop(test: Test) -> tuple[slice, float]:
-    """The hysteresis loop: from the first reversal through the compression
-    and back along the reload until the strain is again that of the reversal.
-    Returns the rows and the work per volume, the integral of S de over them,
-    in MJ/m^3 (MPa times strain)."""
+@dataclass(frozen=True)
+class Loop:
+    """The hysteresis loop as a closed path in the (e, S) plane.
+
+    ``start`` is the row of the highest stress of the first tension (the
+    stress maximum, ``Segments.reversal``; the strain still rises a little
+    into the hold after it). ``end`` is the first row of the reload, after the
+    most compressive stress, whose strain is at least that of ``start``. The
+    measured rows ``start`` to ``end`` are closed by a straight segment from
+    ``end`` back to ``start``; ``gap_strain`` and ``gap_stress`` are that
+    segment's extent (end minus start). ``work`` is the closed integral of
+    S de [MJ/m^3]: positive when the path runs clockwise in the (e, S) plane,
+    as a loop does whose reloading branch lies above its unloading branch,
+    and then equal to the enclosed area and to the net work per volume done on
+    the specimen over the cycle. ``closing`` is the part of ``work`` that the
+    closing segment contributes."""
+
+    rows: slice
+    start: int
+    end: int
+    work: float
+    closing: float
+    gap_strain: float
+    gap_stress: float
+
+
+def loop(test: Test) -> Loop:
+    """The hysteresis loop, closed and integrated as ``Loop`` defines it:
+    trapezoids over the measured rows plus the straight closing segment."""
     seg = segments(test)
     start = seg.reversal
-    back = seg.compression + int(
+    end = seg.compression + int(
         np.argmax(test.strain[seg.compression :] >= test.strain[start])
     )
-    rows = slice(start, back + 1)
-    return rows, float(np.trapezoid(test.stress[rows], test.strain[rows]))
+    rows = slice(start, end + 1)
+    e, s = test.strain, test.stress
+    measured = float(np.trapezoid(s[rows], e[rows]))
+    closing = float(0.5 * (s[end] + s[start]) * (e[start] - e[end]))
+    return Loop(
+        rows,
+        start,
+        end,
+        measured + closing,
+        closing,
+        float(e[end] - e[start]),
+        float(s[end] - s[start]),
+    )
 
 
 def unloading_modulus(test: Test, high: float = 950.0, low: float = 0.0) -> float:
@@ -212,7 +249,8 @@ def make_figure(data_dir: Path) -> plt.Figure:
     result = elastic_fit(test)
     modulus = result.value("E")
     yield_stress = offset_yield(test, result)
-    rows, area = loop(test)
+    cycle = loop(test)
+    rows = cycle.rows
     neck = reload_maximum(test)
     e, s, t = test.strain, test.stress, test.time
 
@@ -235,7 +273,16 @@ def make_figure(data_dir: Path) -> plt.Figure:
         s[rows],
         color=COLOURS[4],
         alpha=0.25,
-        label=f"loop: integral of S de = {area:.1f} MJ/m^3",
+        label=f"loop, closed at e = {e[cycle.start]:.4f}: "
+        f"enclosed area {cycle.work:.1f} MJ/m^3 (clockwise)",
+    )
+    ax_full.plot(
+        e[cycle.start],
+        s[cycle.start],
+        "k^",
+        ms=6,
+        label=f"stress maximum, loop start: {s[cycle.start]:.0f} MPa "
+        f"at e = {e[cycle.start]:.4f}",
     )
     ax_full.plot(
         e[neck],
@@ -301,7 +348,12 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ax_low.legend(fontsize=7, loc="lower right")
 
     ax_time.plot(t, s, color=COLOURS[0], marker=".", ms=2, lw=0.6, label="stress")
-    ax_time.axvspan(t[seg.reversal], t[seg.hold_end], color="0.85", label="hold")
+    ax_time.axvspan(
+        t[seg.reversal],
+        t[seg.hold_end],
+        color="0.85",
+        label="holds",
+    )
     ax_time.axvspan(t[seg.compression], t[seg.second_hold_end], color="0.85")
     ax_time.axhline(0, color="0.5", lw=0.8)
     ax_time.set_xlabel("time [s]")
