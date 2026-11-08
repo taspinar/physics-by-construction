@@ -209,6 +209,38 @@ def test_incoherent_settings_fail_the_shell_check_and_the_tests(
         read_settings(path)
 
 
+@pytest.mark.parametrize(
+    ("setting", "again"),
+    [
+        ("warn-seconds", "warn-seconds: 30"),
+        ("warn-seconds", "warn-seconds: 40"),
+        ("limit-seconds", "limit-seconds: 60"),
+        ("limit-seconds", "  limit-seconds : 120"),
+    ],
+)
+def test_a_setting_given_twice_fails_the_shell_check_and_the_tests(
+    tmp_path, setting: str, again: str
+):
+    # #397: the shell check read the first line and ignored the second, the
+    # tests refused the table; both refuse it now, whether or not the two
+    # lines agree.
+    path = table(tmp_path, TABLE + again + "\n")
+    for call in ('verdict_of "site/lessons/a/c" 10', 'budget_of "site/lessons/a/c"'):
+        result = shell(call, path)
+        assert result.returncode != 0, call
+        assert f"sets '{setting}' 2 times" in result.stderr, result.stderr
+    with pytest.raises(AssertionError, match=f"{setting} is set twice"):
+        read_settings(path)
+
+
+def test_the_table_with_each_setting_once_passes_the_shell_check_and_the_tests(
+    tmp_path,
+):
+    path = table(tmp_path)
+    assert shell_verdict("site/lessons/a/c", 10, path) == "ok"
+    assert read_settings(path) == (30, 60)
+
+
 def test_a_setting_that_is_no_number_fails_the_shell_check(tmp_path):
     path = table(tmp_path, TABLE.replace("limit-seconds: 60", "limit-seconds: soon"))
     result = shell('budget_of "site/lessons/a/c"', path)

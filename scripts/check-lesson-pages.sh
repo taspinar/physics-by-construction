@@ -55,8 +55,8 @@ git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
 selection_file="$root/.agents/verification/selection.json"
 
 # A setting of scripts/lesson-budgets.conf, the one source of the numbers
-# (ADR 020 decision 6): 'warn-seconds: 30'. A setting that is missing or is no
-# number fails the check; nothing is guessed here.
+# (ADR 020 decision 6): 'warn-seconds: 30'. A setting that is missing, is set
+# twice, or is no number fails the check; nothing is guessed here.
 setting_of() {
   local value warn limit
   value="$(raw_setting "$1")" || return 1
@@ -69,10 +69,17 @@ setting_of() {
 }
 
 raw_setting() {
-  local value
-  value="$(awk -F: -v name="$1" '
-    $1 == name { gsub(/[[:space:]]/, "", $2); print $2; exit }
+  local found count value
+  # Every line that sets the key, as tests/support/budgets.py reads it: a
+  # setting is given once, and a second line is refused, not read first-wins.
+  found="$(awk -F: -v name="$1" '
+    { key = $1; gsub(/^[[:space:]]+|[[:space:]]+$/, "", key) }
+    key == name { value = $2; gsub(/[[:space:]]/, "", value); print value }
   ' "$budgets_file")"
+  count="$(grep -c '' <<<"$found")"
+  [[ -z "$found" || "$count" -eq 1 ]] ||
+    fail "$budgets_file sets '$1' $count times; a setting is set once."
+  value="$found"
   [[ "$value" =~ ^[0-9]+$ ]] || fail "$budgets_file has no number for '$1'."
   echo "$value"
 }
@@ -296,10 +303,10 @@ from pathlib import Path
 sys.path.insert(0, "tests")
 from support.experiments import compare_with_page
 
-problems = compare_with_page(Path(sys.argv[1]), Path(sys.argv[2]))
+problems = compare_with_page(Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3]))
 print("\n".join(problems))
 sys.exit(1 if problems else 0)
-' "$results" "$built") >"$log" 2>&1; then
+' "$results" "$built" "$clone/$lesson/index.qmd") >"$log" 2>&1; then
     cat "$log" >&2
     fail "the experiment of $lesson does not write what its page shows."
   fi

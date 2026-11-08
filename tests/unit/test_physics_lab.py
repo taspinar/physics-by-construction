@@ -21,6 +21,7 @@ from pbc import evidence
 from pbc.agents.messages import ModelMessage, ToolCall
 from pbc.agents.replay import ReplayMismatch, load_recording
 from pbc.instruments import InterlockOpen, Refused
+from pbc.instruments.recorded import load_sample
 from pbc.products.physics_lab import agent, workflow
 from pbc.products.physics_lab.__main__ import main
 from pbc.products.physics_lab.interface import App, check_host
@@ -484,6 +485,51 @@ def test_the_interface_runs_the_recorded_mode_with_its_banner(tmp_path):
     text = get(app, "/").body.decode()
     assert "Not a new experiment." in text
     assert 'class="mode recorded"' in text
+
+
+def test_the_interface_replays_a_new_sample_for_changed_settings(tmp_path):
+    # #381: the sample was cached by its seed alone, so a changed range or
+    # amplitude with the same seed replayed a stale sample and failed with
+    # "cannot make a new measurement".
+    app = App(tmp_path, Config(), threaded=False)
+    recorded = {**FORM, "mode": "recorded"}
+    post(app, "/run", recorded)
+    assert app.state.status == "finished", app.state.error
+    first = set(tmp_path.glob("synthetic-sample-*.json"))
+    assert len(first) == 1
+    for change in ({"low_hz": "900"}, {"high_hz": "30000"}, {"amplitude_v": "0.5"}):
+        post(app, "/run", {**recorded, **change})
+        assert app.state.status == "finished", (change, app.state.error)
+        assert app.state.result.status == "completed", change
+    samples = set(tmp_path.glob("synthetic-sample-*.json"))
+    assert len(samples) == 4 and first < samples
+    # The same settings again reuse their sample; the confirmation of the
+    # circuit is no setting of the sample.
+    post(app, "/run", {**recorded, "low_hz": "900", "circuit_confirmed": "no"})
+    assert app.state.status == "finished", app.state.error
+    assert set(tmp_path.glob("synthetic-sample-*.json")) == samples
+    # Each sample holds the settings it was written for.
+    lowest = min(
+        min(capture.frequency_hz for capture in load_sample(path).captures)
+        for path in samples
+    )
+    assert lowest == pytest.approx(900.0)
+
+
+def test_the_interface_runs_the_recorded_mode_without_the_circuit_confirmed(
+    tmp_path,
+):
+    # #381: writing the sample ran the simulated bench with the interlock of
+    # the circuit, although the recorded mode is exempt from it.
+    app = App(tmp_path, Config(), threaded=False)
+    unconfirmed = {k: v for k, v in FORM.items() if k != "circuit_confirmed"}
+    post(app, "/run", {**unconfirmed, "mode": "recorded"})
+    assert app.state.status == "finished", app.state.error
+    assert app.state.result.run.mode == "recorded"
+    assert "Not a new experiment." in get(app, "/").body.decode()
+    # The simulated mode still needs the confirmation.
+    post(app, "/run", unconfirmed)
+    assert "interlock circuit-confirmed is open" in get(app, "/").body.decode()
 
 
 @pytest.mark.parametrize(

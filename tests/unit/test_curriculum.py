@@ -437,21 +437,39 @@ def test_the_published_lessons_that_fill_a_slot_carry_it():
     assert (gas.course, gas.strand) == ("thermodynamics", "agents-abm")
 
 
+def part_b_failures(site: Path) -> list[str]:
+    """How the lessons of ``site`` differ from the inventory of the Part B
+    migration (ADR 022 decision 4): an inventory lesson that moved, lost its
+    page, or fills another slot, or a lesson outside the inventory in a slot
+    the inventory fills. A new lesson in a free slot of a path is progress,
+    not a difference (#277)."""
+    lessons = {item.page: item for item in read_lessons(site)}
+    found = []
+    for moved in part_b.LESSONS:
+        item = lessons.get(moved.page)
+        if item is None:
+            found.append(f"{moved.page}: the inventory lesson has no page")
+            continue
+        have = (item.id, item.strand, item.order, item.course, item.slot)
+        want = (moved.id, moved.strand, moved.order, moved.course, moved.slot)
+        if have != want:
+            found.append(f"{moved.page}: {have}, the inventory gives {want}")
+    inventory = {m.page for m in part_b.LESSONS}
+    taken = {m.slot for m in part_b.LESSONS if m.slot}
+    for item in lessons.values():
+        if item.page not in inventory and item.slot in taken:
+            found.append(f"{item.page}: fills {item.slot}, a slot of the inventory")
+    return found
+
+
 def test_the_published_part_b_lessons_fill_their_new_slots_and_nothing_else_moved():
     # The inventory of ADR 022 decision 4: 17 lessons move to a core slot,
     # 5 keep theirs as extensions, and the noise lesson stays without a slot;
     # address, identifier, strand, order, and course are those of the base.
-    lessons = {item.page: item for item in read_lessons(SITE_SOURCE)}
+    # The inventory is the record of the migration, not the progress: a
+    # lesson written after it fills a free slot with no edit of this test.
     curriculum = Curriculum.read(SITE_SOURCE)
-    for moved in part_b.LESSONS:
-        found = lessons[moved.page]
-        assert (found.id, found.strand, found.order, found.course, found.slot) == (
-            moved.id,
-            moved.strand,
-            moved.order,
-            moved.course,
-            moved.slot,
-        ), moved.page
+    assert part_b_failures(SITE_SOURCE) == []
     slotted = [moved for moved in part_b.LESSONS if moved.slot]
     assert len(slotted) == 22
     core = [m for m in slotted if not curriculum.slot(m.slot).extension]
@@ -460,13 +478,7 @@ def test_the_published_part_b_lessons_fill_their_new_slots_and_nothing_else_move
     assert sorted(m.slot for m in extensions) == ["AI6", "D1", "D3", "D4", "D5"]
     assert all(m.slot == m.base_slot for m in extensions)
     assert all(m.base_slot in RETIRED for m in core)
-    # Every Part B slot a lesson fills is one of the inventory's.
-    filled = {
-        item.slot
-        for item in lessons.values()
-        if item.slot and curriculum.slot(item.slot).path
-    }
-    assert filled == {m.slot for m in slotted}
+    assert all(curriculum.slot(m.slot).path for m in slotted)
 
 
 # --- Prerequisites as a graph (ADR 013 decision 8) ----------------------------
@@ -1226,3 +1238,74 @@ def test_a_new_lesson_that_fills_a_slot_needs_no_edit_of_a_test(tmp_path: Path):
     assert label not in after.page_planned()
     assert len(after.page_planned()) == len(before.page_planned()) - 1
     assert view_failures(site) == []
+
+
+def free_path_slot(site: Path) -> tuple[str, str]:
+    """A planned slot of a method path, and the course of a lesson of that
+    path, by the sources."""
+    progress = Progress.read(site)
+    curriculum = Curriculum.read(site)
+    for method_path in curriculum.paths:
+        planned = progress.planned("path", method_path.id)
+        if planned:
+            return planned[0], method_path.id
+    raise LookupError("every slot of every path is filled")
+
+
+def test_a_new_lesson_in_a_free_slot_of_a_path_needs_no_edit_of_a_test(
+    tmp_path: Path,
+):
+    # #277: the Part B inventory check compared the filled path slots with
+    # the inventory, so the first lesson written into a path slot failed it.
+    site = site_copy(tmp_path)
+    label, _ = free_path_slot(site)
+    moved = part_b.LESSONS[0]
+    template, _ = front_matter(site / moved.page)
+    pages = sorted((site / "lessons" / moved.strand).glob("*/index.qmd"))
+    order = max(front_matter(page)[0]["lesson"]["order"] for page in pages) + 1
+    template["title"] = "A throwaway path lesson"
+    template["lesson"].update(
+        id="throwaway-path-lesson",
+        order=order,
+        slot=label,
+        prerequisites={"lessons": [], "outside": []},
+        related=[],
+    )
+    write_front_matter(
+        site / "lessons" / moved.strand / f"{order:02d}-throwaway" / "index.qmd",
+        template,
+    )
+
+    assert Progress.read(site).filled()[label] == "throwaway-path-lesson"
+    assert part_b_failures(site) == []
+    assert view_failures(site) == []
+
+
+def test_an_inventory_lesson_that_moves_or_a_lesson_in_its_slot_still_fails(
+    tmp_path: Path,
+):
+    site = site_copy(tmp_path)
+    label, _ = free_path_slot(site)
+    moved = next(m for m in part_b.LESSONS if m.slot)
+    page = site / moved.page
+    content, body = front_matter(page)
+    content["lesson"]["slot"] = label
+    write_front_matter(page, content, body)
+
+    assert any(
+        failure.startswith(f"{moved.page}: ") and "the inventory gives" in failure
+        for failure in part_b_failures(site)
+    )
+
+    other = next(
+        item
+        for item in read_lessons(site)
+        if item.page not in {m.page for m in part_b.LESSONS}
+    )
+    content, body = front_matter(site / other.page)
+    content["lesson"]["slot"] = moved.slot
+    write_front_matter(site / other.page, content, body)
+
+    assert f"{other.page}: fills {moved.slot}, a slot of the inventory" in (
+        part_b_failures(site)
+    )

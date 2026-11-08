@@ -31,6 +31,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs
 
+from pbc import evidence
 from pbc.instruments import RECORDED, SIMULATED, Instrument
 from pbc.products.physics_lab import workflow
 from pbc.products.physics_lab.protocol import Config, Measurement
@@ -220,9 +221,7 @@ class App:
         try:
             sample = None
             if mode == RECORDED:
-                sample = self.out_root / f"synthetic-sample-seed{config.seed}.json"
-                if not sample.exists():
-                    workflow.write_synthetic_sample(config, sample)
+                sample = self._synthetic_sample(config)
             result = self.runner(
                 config,
                 out_dir,
@@ -240,6 +239,30 @@ class App:
         self.state.status = "finished" if result.status != "failed" else "failed"
         if result.diagnostics and result.status == "failed":
             self.state.error = "; ".join(result.diagnostics)
+
+    def _synthetic_sample(self, config: Config) -> Path:
+        """The synthetic sample the recorded mode replays for ``config``,
+        written once per configuration. The file is named by the digest of
+        every setting the scripted baseline measures with (all of the
+        configuration but the confirmation of the circuit), so a changed
+        frequency range, amplitude, or point count with the same seed makes
+        a new sample, not a stale one that cannot answer the run (#381).
+
+        The sample comes from the simulated bench, which drives no circuit:
+        its interlock is closed here explicitly, so the recorded mode, which
+        the interlock does not guard (``workflow.make_instrument``), needs
+        no confirmation of a circuit either."""
+        settings = {
+            key: value
+            for key, value in config.to_dict().items()
+            if key != "circuit_confirmed"
+        }
+        digest = evidence.digest_value(settings)
+        sample = self.out_root / f"synthetic-sample-{digest[:16]}.json"
+        if not sample.exists():
+            simulated = replace(config, circuit_confirmed=True)
+            workflow.write_synthetic_sample(simulated, sample)
+        return sample
 
     def _attach(self, instrument: Instrument) -> None:
         self.state.instrument = instrument
