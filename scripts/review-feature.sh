@@ -65,9 +65,9 @@ if [[ "${#AGENT_POSITIONAL[@]}" -lt 1 || "${#AGENT_POSITIONAL[@]}" -gt 2 ]]; the
   echo "the content, --feedback takes it instead of the partial run and the review"
   echo "counts as one made on the full run."
   echo
-  echo "A stale approval request (its line 'Tree:' names another content tree) is"
-  echo "refused before the verification runs; apply-triage.sh and run-feature.sh"
-  echo "refresh the line after a fix session."
+  echo "The line 'Tree:' of an approval request is derived: the script writes the"
+  echo "content tree on it before the check, so a stale line is corrected, not"
+  echo "refused. Only a line it cannot write is refused before the verification runs."
   echo
   echo "Every round reviews the complete feature. --changes makes a later round"
   echo "review only what changed since the previous round, with that round's"
@@ -173,18 +173,25 @@ trap 'rm -rf "$tmp_work"' EXIT
 # completion/v2 record is reviewed on the full run, or, in an intermediate
 # round, on the feedback of a partial run (ADR 020 decision 5).
 guardrail_rules="$(guardrails_rules_refs "$root" "$base")"
+# The line 'Tree:' of the approval request is a derived value: the script
+# writes it before the check, so an edit of the completion record or the
+# handoff note costs no round (Issue #382). The request is no part of the
+# fingerprint, so this makes no verification or review stale.
+refreshed="$(risk_request_refresh "$root" "$issue")" ||
+  echo "Warning: the approval request could not be refreshed; its line 'Tree:' is checked as it is." >&2
+[[ -z "$refreshed" ]] || echo "$refreshed"
 risk_assess "$root" "$guardrail_rules" "$merge_base" "$issue" "$previous_review" ||
   fail "could not derive the risk level of the change."
 level3=0
 [[ "$RISK_ENFORCED" -ne 1 || "$RISK_REQUIRED" -ne 3 ]] || level3=1
 [[ "$feedback" -eq 0 || "$level3" -eq 1 ]] ||
   fail "--feedback is for the intermediate rounds of a Level 3 change, and this change is level $RISK_REQUIRED$([[ "$RISK_ENFORCED" -eq 1 ]] || echo " under the earlier contract (completion/$RISK_SCHEMA)"); it is reviewed on the tier it needs."
-# An approval request whose line 'Tree:' names another content tree is
-# refused here, before the verification runs and the reviewer is started, so
-# that no round is spent on a line the scripts refresh themselves after a fix
-# session (Issue #389). A request without the line stays with the reviewer.
+# An approval request whose line 'Tree:' still names another content tree
+# (the refresh above could not write it) is refused here, before the
+# verification runs and the reviewer is started. A request without the line
+# stays with the reviewer.
 if [[ "$RISK_ENFORCED" -eq 1 && "$RISK_REQUEST_TREE" == *" names tree "* ]]; then
-  fail "$RISK_REQUEST_TREE. The review was not started: apply-triage.sh and run-feature.sh refresh the line after a fix session; by hand, write the line as stated and review again."
+  fail "$RISK_REQUEST_TREE. The review was not started: the script could not write the line; write it as stated and review again."
 fi
 # Level 3 keeps a full review in every round (ADR 020 decision 4).
 if [[ "$changes_only" -eq 1 && "$level3" -eq 1 ]]; then

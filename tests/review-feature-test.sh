@@ -328,21 +328,40 @@ if grep -Fq "checked by the script, error" "$repo.log.stdin"; then
   fail "the context lists an error for a request that names the content tree"
 fi
 
-# A request that names another tree is refused before the verification runs
-# and before a reviewer is started, with the value to write (Issue #389):
-# the scripts refresh the line after a fix session, so no round is spent on
-# it. A request without the line stays with the reviewer, as an error in the
-# context.
+# A request that names another tree is corrected by the script before the
+# check, not refused (Issue #382): the line 'Tree:' is a derived value. The
+# rest of the request is left as written, and the review goes on. A request
+# without the line stays with the reviewer, as an error in the context.
 repo="$(setup_repo request-other-tree)"
 approval_request_for "$repo" 0123abcd >/dev/null
-runs_before="$(grep -c . "$repo/verify-count.log" 2>/dev/null || true)"
-expect_no_review "$repo" "the approval request names another tree" 7
-grep -Eq "the approval request .agents/approvals/7.md names tree 0123abcd, but the content tree is [0-9a-f]{40}; state it on a line 'Tree: [0-9a-f]{40}'" \
-  "$repo.out" || { cat "$repo.out" >&2; fail "the refusal does not name the tree to write"; }
-grep -Fq "refresh the line after a fix session" "$repo.out" || fail "the refusal does not say who refreshes the line"
-[[ "$(grep -c . "$repo/verify-count.log" 2>/dev/null || true)" == "$runs_before" ]] ||
-  fail "the verification ran for a review that a stale request refuses"
-[[ ! -e "$repo.log" ]] || fail "a reviewer was started although the approval request is stale"
+content="$(source "$repo/scripts/lib/fingerprint.sh" && source "$repo/scripts/lib/completion.sh" &&
+  source "$repo/scripts/lib/risk.sh" && risk_content_tree "$repo" "$(mktemp -d "$tmp/content.XXXXXX")" 7)"
+run_review "$repo" 7 || { cat "$repo.out" >&2; fail "review with an approval request that names another tree failed"; }
+grep -Fq "The approval request .agents/approvals/7.md named tree 0123abcd; its line 'Tree:' is refreshed to the content tree $content." \
+  "$repo.out" || { cat "$repo.out" >&2; fail "the review does not say that it corrected the line Tree:"; }
+[[ "$(sed -n 's/^Tree: //p' "$repo/.agents/approvals/7.md")" == "$content" ]] ||
+  fail "the review did not write the content tree on the line Tree:"
+grep -Fqx "Derived from: the paths" "$repo/.agents/approvals/7.md" || fail "the correction changed more than the line Tree:"
+grep -Fqx -- "- checked by the script: the request names the current content tree" "$repo.log.stdin" ||
+  fail "the reviewer was not told that the corrected request names the content tree"
+
+# An edit of the completion record after the request was written changes
+# the content tree; the next review follows it without a manual edit of the
+# request (Issue #382).
+repo="$(setup_repo request-record-edit)"
+before="$(approval_request_for "$repo" "")"
+jq '.risk.rationale = "as derived, after a later edit"' "$repo/.agents/completion/7.json" >"$repo/record.tmp" &&
+  mv "$repo/record.tmp" "$repo/.agents/completion/7.json"
+after="$(source "$repo/scripts/lib/fingerprint.sh" && source "$repo/scripts/lib/completion.sh" &&
+  source "$repo/scripts/lib/risk.sh" && risk_content_tree "$repo" "$(mktemp -d "$tmp/content.XXXXXX")" 7)"
+[[ "$after" != "$before" ]] || fail "the edit of the completion record did not change the content tree"
+run_review "$repo" 7 || { cat "$repo.out" >&2; fail "the review after an edit of the completion record failed"; }
+[[ "$(sed -n 's/^Tree: //p' "$repo/.agents/approvals/7.md")" == "$after" ]] ||
+  fail "the review did not follow the edit of the completion record"
+grep -Fqx -- "- content tree for the approval request (the only value to compare with its line 'Tree:'): $after" \
+  "$repo.log.stdin" || fail "the reviewer was not given the content tree after the edit"
+grep -Fqx -- "- checked by the script: the request names the current content tree" "$repo.log.stdin" ||
+  fail "the request does not name the content tree after the edit"
 
 repo="$(setup_repo request-no-tree)"
 approval_request_for "$repo" "" >/dev/null
