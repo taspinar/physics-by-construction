@@ -2,6 +2,19 @@
 
 ## Status
 
+**Current rules: see [`docs/process.md`](../process.md) (Issue #404,
+2026-11-07); this ADR is the history of the decision.** The text below is
+kept as it was written. In force from this record: decision 1 as ADR 005
+decision 5 restates it and ADR 017 decision 7 amends it (the targeted tier),
+decisions 3 and 4, decision 6's rule that a check is dropped only by a new
+decision record (with coverage evidence, ADR 017 decision 8), and decision 7
+as ADR 005 moved the self-tests. Superseded in part: decision 2 (one job) by
+ADR 012; the rows of decision 5 by ADR 015 (the typical pull request), ADR
+012 decision 9 and ADR 014's status (the job timeout, 120 minutes for the
+`build` job since 2026-11-04; the 60 minutes named below are history), and
+ADR 020's addendum of 2026-11-05 (the lesson page); the standing obligation
+of decision 6's order of responses by ADR 020 decision 6.
+
 Accepted with the approval of the project bootstrap planning. Decisions 1, 2,
 and 7 are amended by
 [ADR 005](005-workflow-self-tests-run-locally-on-workflow-changes.md): the
