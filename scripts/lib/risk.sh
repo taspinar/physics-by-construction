@@ -10,7 +10,8 @@
 #   protected (its builtin list and the protected list of
 #   .agents/policies/guardrails.conf, read from the base), except the
 #   approval requests themselves; 1 when every other changed path is
-#   documentation or a process file; 2 otherwise;
+#   documentation or a process file other than docs/architecture.md; 2
+#   otherwise;
 # - the escalation triggers: 3 when the diff against the base shows one the
 #   scripts can detect, or when the implementer's completion record or the
 #   independent review names one;
@@ -65,10 +66,15 @@ risk_feedback_groups() {
 
 # risk_level1_path <path>
 # Succeeds for documentation and process files: docs/, a Markdown file at the
-# top level, plans, handoff notes, and summaries. The ADRs, the planning
-# documents, and AGENTS.md are Level 3 paths; that reading wins.
+# top level, plans, handoff notes, and summaries. The ADRs, the requirements,
+# the roadmap, and AGENTS.md are Level 3 paths; that reading wins.
+# docs/architecture.md is sensitive and Level 2 by path, so that an ordinary
+# change to it gets an independent review; a trigger in its content still
+# makes it Level 3 (the addendum of 2026-11-08 to ADR 020 decision 1, Issue
+# #412).
 risk_level1_path() {
   case "$1" in
+    docs/architecture.md) return 1 ;;
     docs/* | .agents/plans/* | .agents/handoffs/* | .agents/summaries/*) return 0 ;;
     */*) return 1 ;;
     *.md) return 0 ;;

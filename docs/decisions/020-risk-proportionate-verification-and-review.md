@@ -6,6 +6,10 @@
 2026-11-07); this ADR is the history of the decision.** The text below is
 kept as it was written. In force from this record: decisions 1 to 7 and 9,
 and the addendum of 2026-11-05, delivered by F130 and F131 (decision 10).
+The addendum of 2026-11-08 to decision 1 (Issue #412), proposed with that
+Issue and accepted by its merge, takes `docs/architecture.md` and the
+prompts other than `.agents/prompts/reviewer.md` out of decision 1's Level 3
+list; decision 1 is read with it.
 Superseded in part: the re-assessment points of decisions 6 and 8 (42 and 44
 lessons, a run above 45 minutes) by the notes of 2026-10-21, 2026-10-24, and
 2026-11-04 in ADR 014's status; decision 8's pause of ADR 017 and F113
@@ -531,6 +535,55 @@ lesson. It changes the number and adds one outcome:
   decision 30's "30-second lesson page budget keep failing" now names the
   limit of 60 seconds with the warning from 30. No other line of the
   requirements and no line of the roadmap changes.
+
+### Addendum to decision 1 (Issue #412, 2026-11-08): the architecture document and the prompts are sensitive
+
+Status: Proposed with Issue #412; accepted when its pull request is merged
+with the owner's approval of the exact commit.
+
+On 2026-11-07 the owner decided points 1 and 3 of Issue #396, and on
+2026-11-08 the route and two exceptions (Issue #412, "Decisions of
+2026-11-08"). Decision 1 stands in everything else; its list of Level 3
+paths changes in three respects:
+
+- **`docs/architecture.md` leaves the Level 3 list** and is sensitive in
+  `.agents/policies/guardrails.conf`: the independent reviewer is told to
+  look at a change to it. Its path minimum is **Level 2**, not Level 1 like
+  the other documentation, so that an ordinary change to it always gets an
+  independent review and the verification tier that fits the change. When
+  its content touches an escalation trigger (an invariant of the digest,
+  the selection, the base, determinism, the build, or a gate weakened: the
+  trigger "verification guarantees"), the change is Level 3 as before, by
+  the trigger reading. The reason: the document describes how the code
+  works, and the decisions it records are in the ADRs, which stay Level 3;
+  28 of 215 commits were Level 3 only because they touched it.
+- **The prompts under `.agents/prompts/` other than the reviewer contract**
+  leave the Level 3 list and are sensitive; they are Level 2 by path. The
+  reason: they change often with the process, and the review chain and the
+  owner's reading of every pull request catch a weakening (below).
+- **Two exceptions stay protected and Level 3 by path**: the reviewer
+  contract `.agents/prompts/reviewer.md` and the schemas `.agents/schemas/`,
+  which the built-in list of `scripts/lib/guardrails.sh` protects whatever
+  the configuration says. The reviewer contract defines the review that
+  catches a weakening of every other prompt, and the schemas define what a
+  review and a completion record must hold; a change to either can weaken
+  the safeguard itself. This narrows point 3 of #396 ("prompts and
+  schemas").
+
+What a silent change of a prompt can do: weaken a review or a triage (a
+check no longer asked for, a severity rule that turns majors into minors, a
+contract that lets a finding through); no test fails on it. What catches
+it: the change is Level 2 by path, so it gets an independent review of the
+complete feature; the merge approval gate names it as sensitive in the
+reviewer's context; the reviewer, a different model, reports a weakened
+guarantee as the trigger "verification guarantees", which makes the change
+Level 3; and the owner reads every pull request before it is merged, since
+no agent merges. Requirements decision 39's "the protected paths of
+`guardrails.conf`" is the list as this addendum leaves it; the requirements
+are not edited for it. `scripts/lib/risk.sh` gives `docs/architecture.md`
+its path minimum, and `tests/risk-level-test.sh` shows both cases and the
+list. Nothing else changes: no other path, no tier, no budget, and no
+decision of ADR 017.
 
 ## Alternatives considered
 

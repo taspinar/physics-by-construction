@@ -2107,10 +2107,10 @@ process files outside the ADRs and the planning documents, such as
 `.agents/plans/`, handoffs, and summaries; Level 2: lessons, `src/`,
 tests, and scripts that are not Level 3; Level 3: the paths ADR 020
 decision 1 names directly as the one authoritative list: the ADRs; the
-planning documents `docs/PROJECT_REQUIREMENTS.md`, `docs/roadmap.md`, and
-this document, which carries the invariants; the CI workflows and
-`.github/CODEOWNERS` itself; the gate (the workflow scripts and
-`scripts/lib/`, the prompts, the schemas, the policies, `AGENTS.md`,
+planning documents `docs/PROJECT_REQUIREMENTS.md` and `docs/roadmap.md`;
+the CI workflows and `.github/CODEOWNERS` itself; the gate (the workflow
+scripts and `scripts/lib/`, the reviewer contract
+`.agents/prompts/reviewer.md`, the schemas, the policies, `AGENTS.md`,
 `.agents/agents.conf`, `scripts/verify.conf`, `scripts/verify.sh`); the
 digest and the selection (`src/pbc/authoring/digest.py`,
 `src/pbc/authoring/selection.py`); the base and its provenance
@@ -2119,7 +2119,11 @@ digest and the selection (`src/pbc/authoring/digest.py`,
 (`scripts/build-site.sh`, the deploy job); the skills `.agents/skills/`;
 and the approval requests `.agents/approvals/`, which are code-owned
 but do not count in the path minimum, so that a request never raises
-the level of the change it belongs to. On 2026-10-19
+the level of the change it belongs to. By the addendum of 2026-11-08 to
+that decision (Issue #412) this document and the other prompts are
+sensitive, not protected, and Level 2 by path: an ordinary change to them
+gets an independent review, and a trigger in their content makes the
+change Level 3. On 2026-10-19
 `.agents/policies/guardrails.conf` protects only `scripts/verify.sh`
 beyond its always protected set and lists this document as sensitive;
 F130 brings its protected list in line with the ADR's list, so that
