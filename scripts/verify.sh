@@ -45,7 +45,7 @@ groups_pattern='^[a-z0-9][a-z0-9-]*(,[a-z0-9][a-z0-9-]*)*$'
 default_group="default"
 
 usage() {
-  echo "Usage: $0 [--all] [--reuse]"
+  echo "Usage: $0 [--all] [--reuse | --reuse-only]"
   echo "       $0 [--all] --targeted [--base <directory>] [--reuse]"
   echo "       $0 [--all] --base [<directory>] [--only <group>[,<group>...]]"
   echo "       $0 [--all] --only <group>[,<group>...]"
@@ -58,6 +58,11 @@ usage() {
   echo "--reuse skips the run when verification already passed for exactly the"
   echo "current content, as recorded by an earlier run: a full run, or with"
   echo "--targeted a run of any tier."
+  echo
+  echo "--reuse-only makes the decision of --reuse for a full run and runs nothing:"
+  echo "status 0 when the recorded pass would be reused, 3 when it would not. A"
+  echo "script that may only take a recorded pass, never start a run, asks with it,"
+  echo "so the same rule holds on every route (Issue #389)."
   echo
   echo "--only runs the checks of the named groups only. A check names its group"
   echo "as '<name> [<group>]: <command>'; one without a group is in 'default'."
@@ -97,6 +102,7 @@ config_fail() {
 
 run_all=0
 reuse=0
+reuse_only=0
 list_groups=0
 only=""
 partial=0
@@ -107,6 +113,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --all) run_all=1 ;;
     --reuse) reuse=1 ;;
+    --reuse-only) reuse=1; reuse_only=1 ;;
     --groups) list_groups=1 ;;
     --targeted) targeted=1 ;;
     --base)
@@ -129,6 +136,10 @@ while [[ $# -gt 0 ]]; do
 done
 if [[ ( -n "$base" || "$fetch_base" -eq 1 ) && "$reuse" -eq 1 && "$targeted" -eq 0 ]]; then
   echo "Error: --base cannot be combined with --reuse: a run with a base is a verification against that base, not of the content alone." >&2
+  exit 1
+fi
+if [[ "$reuse_only" -eq 1 && ( "$targeted" -eq 1 || "$partial" -eq 1 || -n "$base" || "$fetch_base" -eq 1 ) ]]; then
+  echo "Error: --reuse-only asks only whether a recorded full pass stands for the current content; it takes no other option than --all." >&2
   exit 1
 fi
 if [[ "$partial" -eq 1 && "$reuse" -eq 1 ]]; then
@@ -411,6 +422,14 @@ if [[ "$recordable" -eq 1 ]]; then
       fi
     fi
   fi
+fi
+if [[ "$reuse_only" -eq 1 ]]; then
+  # No recorded pass stands for this content under the rule above: the
+  # record is missing, of another content or tier, or made without workflow
+  # self-tests that this content needs. Nothing runs.
+  echo "No recorded full pass stands for this content (--reuse-only); nothing was run."
+  log_result="not-reused"
+  exit 3
 fi
 
 # The base of the run, retrieved read-only from the latest successful run on

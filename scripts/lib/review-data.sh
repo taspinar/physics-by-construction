@@ -440,8 +440,12 @@ triage_artifact_errors() {
     else
       unexpected(["approved_at", "decisions", "issue", "mechanical", "published_at", "review_verdict", "reviewed_tree",
                   "schema", "source_review", "triage", "unattended"]; "the triage"),
-      (if (.unattended | type) == "boolean" then empty
-       else "unattended must be true or false: a triage states explicitly whether a human approved it, so a missing marker is never read as attended" end),
+      # A triage written before Issue #389 has no marker; it stays valid when
+      # its decisions are valid under the old rules, because a triage without
+      # an explicit `unattended: false` is never read as attended: a major
+      # finding can only be deferred or accepted with that explicit marker.
+      (if .unattended == null or (.unattended | type) == "boolean" then empty
+       else "unattended must be true, false, or absent: a missing marker is read as not attended" end),
       (if .mechanical == null then empty
        elif .mechanical != true then "mechanical must be true or absent"
        elif ([$review[0].findings[] | select(.severity == "critical" or .severity == "major")] | length) > 0 then

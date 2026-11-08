@@ -656,4 +656,17 @@ grep -Fqx "+licence: CC0" "$repo.log.stdin" || fail "the dataset card is not in 
 grep -Fqx "+0,1.5" "$repo.log.stdin" || fail "the small sample is not in the diff"
 grep -Fqx "+row 7999 of another large file" "$repo.log.stdin" || fail "a large file under another path is not in the diff"
 
+# The reviewer contract keeps the severity of an instance of a pattern that an
+# earlier round overlooked (owner's review of PR #415): the instances are
+# bundled in one finding, and only a class that an approved triage or the
+# owner bounded is exempt. The removed exception, which let a newly found
+# instance lose its major severity, must not return.
+prompt="$source_root/.agents/prompts/reviewer.md"
+grep -Fq "list them all in that one" "$prompt" || fail "the reviewer contract no longer bundles the instances of a pattern"
+tr '\n' ' ' <"$prompt" | grep -Fq "never lowers its severity" ||
+  fail "the reviewer contract does not keep the severity of a newly found instance"
+if tr '\n' ' ' <"$prompt" | grep -Eq "only when it was not in the diff"; then
+  fail "the reviewer contract lowers the severity of an instance that an earlier round overlooked"
+fi
+
 echo "review-feature tests passed"

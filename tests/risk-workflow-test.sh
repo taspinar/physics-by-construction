@@ -437,6 +437,31 @@ run_script "$repo" ./scripts/finish-feature.sh 12 "Add the marker" --unattended
 expect_commit "$repo" "a Level 3 change whose feedback round reused a recorded full pass"
 [[ "$(count_runs "$repo")" -eq 1 ]] || fail "finish-feature.sh ran the full verification again"
 
+# --- --feedback takes a recorded full pass by the rule of verify.sh --reuse,
+# not by the tier and the tree alone: a pass whose record says the workflow
+# self-tests were skipped stands only for a run that would skip them too,
+# which this one would not, so it is not taken, and the
+# round stays an intermediate one on the partial run (Issue #389, owner's
+# review of PR #415).
+repo="$(setup_repo review-level3-recorded-without-workflow)"
+printf 'dependencies = ["numpy"]\n' >>"$repo/pyproject.toml"
+record "$repo" complete 3
+request "$repo" 3
+(cd "$repo" && PATH="$tmp/bin:/usr/bin:/bin" ./scripts/verify.sh >/dev/null 2>&1) || fail "the implementer's full run failed"
+sed -i.bak 's/^workflow-tests: .*/workflow-tests: skipped/' "$repo/.agents/verification/passed"
+rm -f "$repo/.agents/verification/passed.bak"
+(cd "$repo" && ./scripts/verify.sh --reuse-only >/dev/null 2>&1) && fail "verify.sh --reuse-only took a pass made without the workflow self-tests"
+run_script "$repo" ./scripts/review-feature.sh 12 --feedback
+[[ "$status" -eq 0 ]] || { cat "$repo.out" >&2; fail "--feedback with a pass recorded without the workflow self-tests failed"; }
+if grep -Fq "a full pass is recorded for exactly this content" "$repo.out"; then
+  fail "--feedback took a full pass recorded without the workflow self-tests that the content needs"
+fi
+stored="$repo/.agents/reviews/feature-12-marker-review-01.json"
+[[ "$(jq -r '.verification.status' "$stored")" == "feedback" ]] ||
+  fail "the round on a pass without the workflow self-tests is not an intermediate one: $(jq -c '.verification' "$stored")"
+[[ "$(grep -c '^feedback$' "$repo/verify-count.log")" -eq 2 && "$(count_runs "$repo")" -eq 1 ]] ||
+  fail "--feedback did not make the partial run when the recorded pass does not stand"
+
 # --- A stale approval request is refused before the verification runs, and
 # apply-triage.sh refreshes its line 'Tree:' after a fix session (Issue #389).
 repo="$(setup_repo stale-request)"

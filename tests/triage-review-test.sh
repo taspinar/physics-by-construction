@@ -463,16 +463,32 @@ jq '.unattended = true' "$artifact.json" >"$tmp/major-unattended.json"
 ) || fail "a stored unattended triage that defers a major finding was accepted"
 
 # An approval that you gave says nothing about an unattended run, and the
-# field has no other value than true.
+# artifact records it as unattended: false.
 repo="$(setup_repo attended)"
 run_triage "$repo" y "$review" || fail "an attended triage failed"
 artifact="$repo/.agents/triage/feature-5-test-review-01-triage"
 [[ "$(jq -r '.unattended' "$artifact.json")" == "false" ]] || fail "an attended triage was recorded as unattended"
 if grep -Fq "unattended" "$artifact.md"; then fail "the report of an attended triage mentions an unattended run"; fi
+# A triage of the old format has no marker. It stays valid when its
+# decisions were valid under the old rules (every major FIX_NOW), so a
+# feature in progress does not stop at the commit; a missing marker is never
+# read as attended, so a deferred major without the explicit
+# `unattended: false` is refused, and a marker that is not a boolean too.
 jq 'del(.unattended)' "$artifact.json" >"$tmp/no-marker.json"
 (
   source "$source_root/scripts/lib/review-data.sh"
-  triage_artifact_errors "$tmp/no-marker.json" "$repo/$review" | grep -Fq "unattended must be true or false"
-) || fail "a triage without the unattended marker was accepted"
+  errors="$(triage_artifact_errors "$tmp/no-marker.json" "$repo/$review")"
+  [[ -z "$errors" ]] || { echo "$errors" >&2; exit 1; }
+) || fail "a triage of the old format without the unattended marker was refused"
+jq 'del(.unattended)' "$tmp/major-deferred-attended/.agents/triage/feature-5-test-review-01-triage.json" >"$tmp/major-no-marker.json"
+(
+  source "$source_root/scripts/lib/review-data.sh"
+  triage_artifact_errors "$tmp/major-no-marker.json" "$tmp/major-deferred-attended/$review" | grep -Fq "major finding M1 must be FIX_NOW"
+) || fail "a triage without the unattended marker that defers a major finding was accepted"
+jq '.unattended = "no"' "$artifact.json" >"$tmp/bad-marker.json"
+(
+  source "$source_root/scripts/lib/review-data.sh"
+  triage_artifact_errors "$tmp/bad-marker.json" "$repo/$review" | grep -Fq "unattended must be true, false, or absent"
+) || fail "a triage with a marker that is not a boolean was accepted"
 
 echo "triage-review tests passed"

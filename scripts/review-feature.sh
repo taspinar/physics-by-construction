@@ -199,7 +199,14 @@ if [[ -n "$unverified_reason" ]]; then
 elif [[ "$feedback" -eq 1 ]]; then
   verified_tree="$(fingerprint_worktree "$root" "$tmp_work")" ||
     fail "could not compute the fingerprint of the working tree."
-  if [[ "$(verification_tier "$root")" == "full" && "$(verification_field "$root" tree)" == "$verified_tree" ]]; then
+  # The one rule of ./scripts/verify.sh --reuse decides whether a recorded
+  # pass stands, also here: the tier and the tree alone do not say whether
+  # the run made the workflow self-tests this content needs.
+  reuse_status=0
+  (cd "$root" && ./scripts/verify.sh --reuse-only) || reuse_status=$?
+  [[ "$reuse_status" -eq 0 || "$reuse_status" -eq 3 ]] ||
+    fail "./scripts/verify.sh --reuse-only failed (status $reuse_status); the review was not started."
+  if [[ "$reuse_status" -eq 0 ]]; then
     # A full pass recorded for exactly this content, for example by the
     # implementer's own last run, makes the round one on the full run: no
     # partial run is made, and the review can be the final one (Issue #389).
