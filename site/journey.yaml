@@ -1,0 +1,93 @@
+# The learning journey (F157, requirements decision 43): the one source of
+# the Part A and Part B text, which the Course Atlas opens with and About
+# carries in the same words. Prose and references only: the lessons, the
+# courses and paths, their counts, the prerequisites, and the published or
+# planned state come from the curriculum file and the front matter when the
+# pages are built. A reference is {sequence:<id>}, {slot:<label>}, or
+# {term:<glossary term>}. pbc.authoring.journey describes the rules;
+# docs/editorial-voice.md, "Pages that are not lessons", the voice.
+#
+# Draft identity copy: the owner approves it on the rendered pages.
+
+part-a:
+  - >-
+    Part A is computational and experimental physics, organised as courses
+    from mechanics to materials. In each lesson you construct the physics as
+    a program you can run, investigate it with simulations and, in the labs,
+    with recorded measurements, and verify the result: by tests, by an
+    independent check, and in some lessons by a proof that a machine checks.
+  - >-
+    The evidence Part A produces is of all three kinds. Most of it is
+    numerical: what a model does when the build runs it. The labs on measured
+    data add empirical evidence, and the lessons with a Lean proof add formal
+    proof.
+
+part-b:
+  - >-
+    Part B is physics with language models and AI agents, organised as method
+    paths rather than courses. Each path asks one question about using an
+    agent in science, such as how an agent should choose experiments, how its
+    reports can be made reliable, or how it can be evaluated fairly, and its
+    lessons may draw on any of the courses.
+  - >-
+    An agent in these lessons works on a toy world: a simulated system whose
+    law is known to whoever built it, so that what the agent reports can be
+    checked. The runs shown are recorded examples that the build replays and
+    scores against held-out data and against baselines without a model. The
+    evidence Part B produces is numerical evidence about the agent and its
+    method, never a new result about nature.
+
+relation:
+  - >-
+    Part A comes first because Part B depends on it. Before you can judge an
+    agent's report you need to know what makes a simulation trustworthy: an
+    exact solution to compare with, a quantity that must be conserved, a
+    measurement, a step that is small enough. Part B uses the systems and
+    the checks of Part A as its test beds; {sequence:law-discovery}, for
+    example, sets its agent to work on the oscillators and orbits of
+    {sequence:mechanics}.
+  - >-
+    The journey therefore runs from computing a known law and checking it, to
+    asking how an agent can investigate a system and how far what it reports
+    can be trusted.
+
+background:
+  - >-
+    The lessons assume undergraduate physics (classical mechanics above all),
+    {term:Calculus}, {term:Linear algebra}, and enough {term:Python} to read
+    and change a short program. They do not teach this background again: a
+    lesson names what it assumes, and the glossary says what each term
+    covers and where to learn it.
+
+routes:
+  - >-
+    There is no single ladder from easy to hard. Every lesson states the
+    lessons it builds on, and a route needs only those. You can read a course
+    from its first lesson, follow a method path across courses, or start with
+    any lesson whose prerequisites you already have. If you are unsure where
+    to begin, {slot:M1} needs nothing but the background above.
+
+capstones:
+  - >-
+    A capstone comes at the end of a course or a method path and puts its
+    tools to work on one larger problem, such as {slot:EM9}. Like any lesson,
+    it lists the lessons it builds on, so you can see in advance what it
+    asks of you. Not every course has a capstone project, and a capstone that
+    is still planned is shown as planned.
+
+evidence:
+  numerical:
+    - >-
+      The output of a computation that the build runs again. It shows what a
+      model does under its assumptions and to the accuracy the lesson checks;
+      on its own it says nothing about nature.
+  empirical:
+    - >-
+      A comparison with recorded measurements, from a dataset whose card
+      names its source and its licence. It ties a model to a real system,
+      within the uncertainty of the data and the processing the lesson shows.
+  formal-proof:
+    - >-
+      A theorem about a model, proved in Lean and checked by the machine on
+      every build. It holds without exception under its hypotheses, and it
+      proves nothing about a measurement.

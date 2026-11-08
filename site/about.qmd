@@ -1,8 +1,9 @@
 ---
 title: "About"
 description: >-
-  Who makes Physics by Construction, why it exists, who it is for, how its
-  results are checked, and how to cite and reuse it.
+  Who makes Physics by Construction, its mission and educational philosophy,
+  who it is for, how the curriculum is organised, and how to cite and reuse
+  it.
 ---
 
 ## Creator and JIDAI {#creator-and-jidai}
@@ -21,11 +22,27 @@ the open-source community.
 
 ## Why it exists {#why-it-exists}
 
+### The mission {#mission}
+
+Physics by Construction exists so that anyone with an undergraduate
+background can learn physics by building it, in the open: writing a model as
+a program, testing it against measurements and against independent methods,
+and, where it can be done, proving it. It extends the same discipline to the
+use of language models and AI agents in science, which are taught as
+instruments whose output is checked, not as authorities.
+
+### The educational philosophy {#philosophy}
+
 Physics is best understood by building, experimenting, and verifying results
 yourself. A textbook states a result; here you construct it as a program,
 test it against measurements or against a second method, and, where it can be
 done, prove it. Doing all three on one problem shows what each kind of
 evidence can and cannot establish.
+
+A result is not finished when a program prints it. It is finished when you
+know what it was checked against and where the check stops, so every lesson
+says which kind of evidence stands behind its results. The same holds for an
+agent: what it reports is a claim to be checked, never a finding by itself.
 
 ### Why open source {#why-open-source}
 
@@ -43,52 +60,33 @@ state their prerequisites and link out instead of repeating them. Teaching
 with a lesson? The [For educators](educators.qmd) page lists the instructor
 packs.
 
-## What makes it different {#what-this-site-is}
+## How the curriculum is organised {#what-this-site-is}
 
 The lessons are organised in two parts, not as one ladder from easy to hard.
-Computational and experimental physics has eight courses:
 
 ```{python}
 #| echo: false
 #| output: asis
-from pbc.authoring.path import COURSES, METHOD_PATHS
+from pbc.authoring.journey import about_journey
 
-print("\n".join(f"- {course.title}" for course in COURSES))
-print()
-print(
-    "Physics with language models and AI agents has four method paths, each a"
-    " sequence of lessons that may draw on any of the courses:"
-)
-print()
-print("\n".join(f"- {title}" for _, title in METHOD_PATHS))
+print(about_journey())
 ```
 
-Every lesson belongs to one course and teaches by three activities:
-**construct** the physics as a program you can run, **investigate** it with
-simulations, with real measurements, and with experiments that an AI agent
-helps to run, and **verify** the result by tests, by independent checks, or
-by a proof in Lean that a machine checks. Each lesson names the lessons it
-builds on, so you can read a course from its start, follow one method across
-courses, or begin with any lesson whose prerequisites you have. The
-[Course Atlas](path/index.qmd) shows every course, path, and lesson.
+## How the site is built {#how-the-site-is-built}
 
-## How the results are checked {#how-the-site-is-built}
+How a result on this site is checked, and what each kind of claim can and
+cannot establish, is explained on
+[How we verify the science](verify.qmd), which leads to the
+[Evidence map](evidence.qmd). [Run the code](reproduce.qmd) says what to
+install to reproduce a lesson on your own computer.
 
-- Code shown in a lesson is code the build ran. Figures and numbers are the
-  output of that code, regenerated on every build.
-- Proofs are compiled by Lean on every change. A lesson whose code fails or
-  whose proof does not compile cannot be published.
-- A statement that could be read as a scientific result is marked as a claim
-  with its type and the evidence behind it; a claim without evidence stops
-  the build. The [Evidence map](evidence.qmd) lists every claim.
-- Every lesson ends with the commands that reproduce it on your own
-  computer; [Run the code](reproduce.qmd) says what to install.
 - Equations are MathML. Text, code, equations, and figures are readable with
-  JavaScript turned off. The site is static files. It has no accounts, sets
-  no cookies, runs no analytics, and loads nothing from other websites.
+  JavaScript turned off.
+- The site is static files. It has no accounts, sets no cookies, runs no
+  analytics, and loads nothing from other websites.
 
 The [rendering check](rendering-check.qmd) page shows sample equations, code,
-and a figure produced by this pipeline.
+and a figure produced by the build.
 
 ## How to contribute
 
