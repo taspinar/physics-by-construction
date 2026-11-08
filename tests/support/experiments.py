@@ -3,6 +3,7 @@
 import importlib
 import json
 import re
+from collections import Counter
 from html import unescape
 from pathlib import Path
 
@@ -113,11 +114,194 @@ def _widget(html: str, page_dir: Path, name: str) -> object | None:
     return json.loads(asset.read_text(encoding="utf-8")) if asset.is_file() else None
 
 
-def compare_with_page(results: Path, page: Path) -> list[str]:
+# --- The place of an inline number (#203) --------------------------------------
+#
+# A number the prose reads inline, `{python} result["name"]`, must be on the
+# built page at its place: between the words that surround the expression in
+# its paragraph of the source. A token found anywhere on the page is not
+# enough, because a stale inline number whose new value also appears
+# elsewhere ('24', '0.1') would pass.
+#
+# The rule. The place of an inline read is up to PLACE_WORDS words before
+# the expression and up to PLACE_WORDS after it, within its block of the
+# source (a paragraph, a heading, a table row, a caption line; a code cell,
+# a div fence, and the front matter are no prose). A word is a run of
+# letters of a token that holds no digit, so the numbers around it, which
+# the page shows as values, never count, and the Markdown and the LaTeX of
+# the source give the words the built page shows: math is shown as its
+# LaTeX (the built page keeps it as the annotation of its MathML), emphasis
+# and quotes are no letters. What rendering replaces by
+# other words ends the place: a cross-reference or a citation, a link
+# target, an attribute, the edge of a span or a link (a claim's span gets a
+# label), and any other inline expression. The other inline
+# reads of the block are written in as their recorded values. Every inline
+# read of a value at a place is counted: the page must show the value at
+# that place as often as the source reads it there.
+#
+# What the rule cannot see (false negatives): a number read only in a code
+# cell (an f-string, a caption option), which keeps the rule "the token is
+# on the page"; an inline read with no word around it in its block; and a
+# stale value that is the same text as the new one at the same place.
+# What could fail a correct page (false positives): rendering that changes
+# the words next to an expression in a way the rule does not undo; the
+# tests show the published lessons pass.
+PLACE_WORDS = 3
+_INLINE = re.compile(r"""`\{python\}\s*result\[["']([a-z0-9-]+)["']\]\s*`""")
+_OTHER_INLINE = re.compile(r"`\{python\}[^`]*`")
+_FENCE = re.compile(r"^(```|~~~)")
+_BLOCK_LINE = re.compile(r"^\s*(#{1,6}\s|:::|: |\|)")
+_BREAKS = [
+    re.compile(r"\[?-?@[A-Za-z][\w:.-]*\]?"),  # cross-references, citations
+    re.compile(r"\]\([^)]*\)"),  # a link target
+    re.compile(r"(?<=[\]`])\{[^}]*\}|\s\{[#.][^}]*\}"),  # an attribute
+    re.compile(r"\[\^[^\]]*\]"),  # a footnote mark
+    # A span: rendering may add words at its edges (a claim's label).
+    re.compile(r"[\[\]]"),
+    re.compile(r"<!--.*?-->", re.DOTALL),
+]
+_TARGET, _BREAK = "\x00", "\x01"
+
+
+_MATH = re.compile(r"<math\b.*?</math>", re.DOTALL)
+_ANNOTATION = re.compile(
+    r'<annotation encoding="application/x-tex">(.*?)</annotation>', re.DOTALL
+)
+
+
+def place_text(main: str) -> str:
+    """The text of the built ``main`` as the rule of the place reads it: each
+    formula as the LaTeX the source wrote, which the page keeps as the
+    formula's annotation, not as the symbols of its MathML."""
+
+    def latex(formula: re.Match) -> str:
+        found = _ANNOTATION.search(formula.group(0))
+        return f" {found.group(1)} " if found else " "
+
+    return _text(_MATH.sub(latex, main))
+
+
+def _words(text: str) -> list[str]:
+    """The words of ``text``: the letter runs of its tokens without a digit."""
+    return [
+        word
+        for token in text.split()
+        if not any(c.isdigit() for c in token)
+        for word in re.findall(r"[^\W\d_]+", token)
+    ]
+
+
+def _prose_blocks(source: str) -> list[str]:
+    """The blocks of prose of a page source, without its front matter and its
+    code cells."""
+    if source.startswith("---\n"):
+        end = source.find("\n---\n", 4)
+        source = source[end + 5 :] if end != -1 else source
+    blocks, current, fence = [], [], None
+    for line in source.splitlines():
+        if fence is not None:
+            if line.strip().startswith(fence):
+                fence = None
+            continue
+        opened = _FENCE.match(line.strip())
+        if opened or not line.strip() or _BLOCK_LINE.match(line):
+            if current:
+                blocks.append("\n".join(current))
+            current = []
+            if opened:
+                fence = opened.group(1)
+            elif _BLOCK_LINE.match(line):
+                blocks.append(line)
+            continue
+        current.append(line)
+    if current:
+        blocks.append("\n".join(current))
+    return blocks
+
+
+def inline_places(source: str, numbers: dict[str, str]) -> Counter:
+    """How often the prose of ``source`` reads each recorded number inline at
+    each place: (words before, value, words after) to the count."""
+    places: Counter = Counter()
+    for block in _prose_blocks(source):
+        reads = list(_INLINE.finditer(block))
+        for target in reads:
+            name = target.group(1)
+            if name not in numbers:
+                continue  # names_the_page_reads reports a name not recorded
+            parts, last = [], 0
+            for read in reads:
+                parts.append(block[last : read.start()])
+                if read is target:
+                    parts.append(f" {_TARGET} ")
+                else:
+                    parts.append(f" {numbers.get(read.group(1), _BREAK)} ")
+                last = read.end()
+            parts.append(block[last:])
+            text = _OTHER_INLINE.sub(f" {_BREAK} ", "".join(parts))
+            for pattern in _BREAKS:
+                text = pattern.sub(f" {_BREAK} ", text)
+            before, after = text.split(_TARGET)
+            before = _words(before.rsplit(_BREAK, 1)[-1])[-PLACE_WORDS:]
+            after = _words(after.split(_BREAK, 1)[0])[:PLACE_WORDS]
+            value = " ".join(numbers[name].split())
+            places[(tuple(before), value, tuple(after))] += 1
+    return places
+
+
+def _token(value: str) -> re.Pattern:
+    """A whole token of the page: 9.8 is not shown by 9.80665."""
+    return re.compile(rf"(?<![\w.]){re.escape(value)}(?!\w|\.\d)")
+
+
+def _words_before(text: str, end: int, count: int) -> list[str]:
+    """The last ``count`` words of ``text[:end]``, read from a window that
+    grows until it holds them, so a long page is not read again per token."""
+    width = 256
+    while True:
+        start = max(0, end - width)
+        window = text[start:end]
+        if start > 0:  # the first token of the window may be cut
+            window = window.partition(" ")[2]
+        words = _words(window)
+        if len(words) >= count or start == 0:
+            return words[-count:] if count else []
+        width *= 4
+
+
+def _words_after(text: str, start: int, count: int) -> list[str]:
+    """The first ``count`` words of ``text[start:]``, as _words_before."""
+    width = 256
+    while True:
+        end = min(len(text), start + width)
+        window = text[start:end]
+        if end < len(text):  # the last token of the window may be cut
+            window = window.rpartition(" ")[0]
+        words = _words(window)
+        if len(words) >= count or end == len(text):
+            return words[:count]
+        width *= 4
+
+
+def shown_at(text: str, before: tuple, value: str, after: tuple) -> int:
+    """How often the page text shows ``value`` between the words ``before``
+    and ``after``."""
+    count = 0
+    for found in _token(value).finditer(text):
+        ahead = _words_before(text, found.start(), len(before))
+        behind = _words_after(text, found.end(), len(after))
+        count += list(before) == ahead and list(after) == behind
+    return count
+
+
+def compare_with_page(
+    results: Path, page: Path, source: Path | None = None
+) -> list[str]:
     """What the experiment wrote into ``results`` that the built ``page`` does
     not show: a figure file that is not the page's byte for byte, a number,
     a table cell, a printed line, a display, or the data of a widget that
-    differs at the precision the page shows. Empty when they agree."""
+    differs at the precision the page shows. With the page's ``source``, a
+    number the prose reads inline must be shown at its place (#203; above).
+    Empty when they agree."""
     problems = []
     if not (results / RESULTS_FILE).is_file():
         return [f"the experiment wrote no {RESULTS_FILE}"]
@@ -140,10 +324,21 @@ def compare_with_page(results: Path, page: Path) -> list[str]:
         elif written.read_bytes() != shown.read_bytes():
             problems.append(f"the figure {name} is not the page's, byte for byte")
     for name, value in found["numbers"].items():
-        # A whole token of the page: 9.8 is not shown by 9.80665.
-        shown = re.escape(" ".join(value.split()))
-        if not re.search(rf"(?<![\w.]){shown}(?!\w|\.\d)", text):
+        if not _token(" ".join(value.split())).search(text):
             problems.append(f"the number {name} = {value!r} is not on the page")
+    if source is not None:
+        text = place_text(main)
+        places = inline_places(source.read_text(encoding="utf-8"), found["numbers"])
+        values = {" ".join(v.split()): n for n, v in found["numbers"].items()}
+        for (before, value, after), times in places.items():
+            if not _token(value).search(text):
+                continue  # reported above as not on the page
+            if shown_at(text, before, value, after) < times:
+                place = " ".join([*before, "…", *after])
+                problems.append(
+                    f"the number {values[value]} = {value!r} is not at its place"
+                    f" on the page ({place!r})"
+                )
     tables = _tables(main)
     for name, table in found["tables"].items():
         caption = " ".join(table["caption"].split())

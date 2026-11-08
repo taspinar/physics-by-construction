@@ -16,7 +16,7 @@ from html import escape
 from pathlib import Path
 
 import pytest
-from support.experiments import compare_with_page, run_entry_point
+from support.experiments import compare_with_page, inline_places, run_entry_point
 
 MODULE = "pbc.mechanics.experiments.lesson_template"
 
@@ -106,6 +106,158 @@ def test_a_changed_table_cell_fails(lesson):
     assert compare_with_page(results, page) == [
         "the cells of the table errors differ from the page's"
     ]
+
+
+# --- An inline number at its place (#203) -------------------------------------
+
+SOURCE = """\
+---
+title: "A lesson"
+lesson:
+  id: a-lesson
+---
+
+The ball is at `{python} result["exact-position"]` m after the fall. The
+second ball starts 3.000 m away.
+
+```{python}
+#| echo: false
+print(result["exact-position"])
+```
+"""
+PAGE = (
+    "<html><body><main><h1>A lesson</h1>"
+    "<p>The ball is at {value} m after the fall. The second ball starts 3.000 m"
+    " away.</p></main></body></html>"
+)
+
+
+@pytest.fixture
+def placed(tmp_path: Path) -> tuple[Path, Path, Path]:
+    """A page that shows the number of the lesson template at the place where
+    its source reads it, and the same digits elsewhere."""
+    results = tmp_path / "results"
+    run_entry_point(MODULE, results)
+    found = json.loads((results / "results.json").read_text())
+    found["outputs"], found["figures"] = {}, []
+    (results / "results.json").write_text(json.dumps(found))
+    page = tmp_path / "site" / "index.html"
+    page.parent.mkdir()
+    page.write_text(PAGE.format(value="2.000"))
+    source = tmp_path / "index.qmd"
+    source.write_text(SOURCE)
+    return results, page, source
+
+
+def test_an_inline_number_at_its_place_passes(placed):
+    assert compare_with_page(*placed) == []
+
+
+def test_a_changed_inline_number_whose_value_is_elsewhere_on_the_page_fails(placed):
+    # The experiment now gives 3.000; the page still shows 2.000 where the
+    # prose reads the number, and 3.000 only in another sentence.
+    results, page, source = placed
+    _change(results / "results.json", '"2.000"', '"3.000"')
+
+    # A token anywhere on the page, the rule before #203, lets it pass.
+    assert compare_with_page(results, page) == []
+    assert compare_with_page(results, page, source) == [
+        "the number exact-position = '3.000' is not at its place on the page"
+        " ('ball is at … m after the')"
+    ]
+
+
+def test_an_inline_number_shown_at_another_place_only_fails(placed):
+    results, page, source = placed
+    page.write_text(PAGE.format(value="1.000").replace("starts 3.000", "starts 2.000"))
+
+    assert compare_with_page(results, page, source) == [
+        "the number exact-position = '2.000' is not at its place on the page"
+        " ('ball is at … m after the')"
+    ]
+
+
+def test_an_absent_inline_number_is_reported_once(placed):
+    results, page, source = placed
+    _change(results / "results.json", '"2.000"', '"2.001"')
+
+    assert compare_with_page(results, page, source) == [
+        "the number exact-position = '2.001' is not on the page"
+    ]
+
+
+def test_a_number_read_twice_at_one_place_must_be_shown_twice(placed):
+    results, page, source = placed
+    twice = 'The ball is at `{python} result["exact-position"]` m after the fall.'
+    source.write_text(SOURCE.replace("away.", f"away.\n\n{twice}\n\n{twice}", 1))
+    once = "<p>The ball is at 2.000 m after the fall.</p>"
+    page.write_text(PAGE.format(value="2.000").replace("</main>", f"{once}</main>"))
+    problems = compare_with_page(results, page, source)
+    assert problems and "is not at its place" in problems[0]
+
+    page.write_text(
+        PAGE.format(value="2.000").replace("</main>", f"{once}{once}</main>")
+    )
+    assert compare_with_page(results, page, source) == []
+
+
+def test_the_rendering_of_the_prose_keeps_a_number_at_its_place(placed):
+    # What the false positives of the rule would come from: math, which the
+    # page shows as MathML with the LaTeX as its annotation; a claim, whose
+    # span gets a label; a cross-reference and a link, which rendering
+    # rewrites; emphasis and curly quotes; and the other inline numbers of
+    # the paragraph, which the page shows as their values.
+    results, page, source = placed
+    found = json.loads((results / "results.json").read_text())
+    found["numbers"]["drop"] = "below 1e-12"
+    (results / "results.json").write_text(json.dumps(found))
+    source.write_text(
+        SOURCE.replace(
+            "The ball is at",
+            "As @fig-fall shows and [the notes](https://example.org) say,"
+            " [the *ball's* height $h$ is"
+            ' `{python} result["drop"]`]{.claim type="numerically-verified"}'
+            " and the ball is at",
+        )
+    )
+    math = (
+        '<math display="inline"><semantics><mi>h</mi>'
+        '<annotation encoding="application/x-tex">h</annotation></semantics></math>'
+    )
+    page.write_text(
+        PAGE.format(value="2.000").replace(
+            "The ball is at",
+            "As Figure 1 shows and <a href='x'>the notes</a> say, Numerically"
+            f" verified (here) : the <em>ball\u2019s</em> height {math} is below"
+            " 1e-12 and the ball is at",
+        )
+    )
+    assert compare_with_page(results, page, source) == []
+    assert (("height", "h", "is"), "below 1e-12", ()) in inline_places(
+        source.read_text(), found["numbers"]
+    )
+    # And the place still binds: a stale value there fails, also when the
+    # new value is on the page elsewhere.
+    stale = page.read_text().replace("is below 1e-12", "is below 1e-11")
+    page.write_text(
+        stale.replace("</main>", "<p>Elsewhere it is below 1e-12.</p></main>")
+    )
+    assert compare_with_page(results, page, source) == [
+        "the number drop = 'below 1e-12' is not at its place on the page"
+        " ('height h is …')"
+    ]
+
+
+def test_the_places_come_from_the_prose_only():
+    numbers = {"exact-position": "2.000"}
+    places = inline_places(SOURCE, numbers)
+    # The read in the code cell has no place; it keeps the rule "the token is
+    # on the page" (a false negative of the rule, written in its comment).
+    assert places == {(("ball", "is", "at"), "2.000", ("m", "after", "the")): 1}
+    # A read with no word around it in its block has an empty place, which
+    # any occurrence of the value meets.
+    lone = inline_places('Text.\n\n`{python} result["exact-position"]`\n', numbers)
+    assert lone == {((), "2.000", ()): 1}
 
 
 def test_an_experiment_that_wrote_nothing_fails(lesson, tmp_path: Path):

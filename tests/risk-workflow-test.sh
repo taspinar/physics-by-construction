@@ -304,27 +304,26 @@ message_has "$repo" "- required: level 3, by the triggers" \
 git -C "$repo" log -1 --format=%B | grep -Fq "given only as the owner's identity's approving review of exactly the head" ||
   fail "the commit message does not say how the owner's approval is given"
 
-# --- A correction of the approval request (Issue #266). A request that
-# names another tree than the content tree is refused at once, before any
-# verification, with the value to write; correcting it leaves the recorded
-# full run and the review valid, since the request is no part of the
-# fingerprint.
+# --- A correction of the approval request (Issues #266 and #382). A request
+# that names another tree than the content tree is corrected by
+# finish-feature.sh before the check, not refused, and committed as
+# corrected; the recorded full run and the review stay valid, since the
+# request is no part of the fingerprint.
 repo="$(setup_repo request-tree)"
 printf 'dependencies = ["numpy"]\n' >>"$repo/pyproject.toml"
 record "$repo" complete 3
 request "$repo" 3
 content="$(sed -n 's/^Tree: //p' "$repo/.agents/approvals/12.md")"
 sed -i.bak 's/^Tree: .*$/Tree: 0123abcd/' "$repo/.agents/approvals/12.md" && rm "$repo/.agents/approvals/12.md.bak"
-review "$repo" "$full"
-run_script "$repo" ./scripts/finish-feature.sh 12 "Add the marker" --unattended
-expect_no_commit "$repo" "an approval request that names another tree" \
-  "names tree 0123abcd, but the content tree is $content; state it on a line 'Tree: $content'"
-[[ "$(count_runs "$repo")" -eq 0 ]] || fail "the verification ran for an approval request with a wrong tree"
 run_script "$repo" ./scripts/verify.sh
 [[ "$status" -eq 0 && "$(count_runs "$repo")" -eq 1 ]] || { cat "$repo.out" >&2; fail "the full run failed"; }
-request "$repo" 3
+review "$repo" "$full"
 run_script "$repo" ./scripts/finish-feature.sh 12 "Add the marker" --unattended
-expect_commit "$repo" "a corrected approval request after the full run and the review"
+expect_commit "$repo" "an approval request whose line Tree: names another tree"
+grep -Fq "named tree 0123abcd; its line 'Tree:' is refreshed to the content tree $content." "$repo.out" ||
+  { cat "$repo.out" >&2; fail "finish-feature.sh does not say that it corrected the line Tree:"; }
+git -C "$repo" show HEAD:.agents/approvals/12.md | grep -Fqx "Tree: $content" ||
+  fail "the committed approval request does not name the content tree"
 [[ "$(count_runs "$repo")" -eq 1 ]] || fail "correcting the approval request made the full run stale"
 
 # --- A lowering of a trigger reading: recorded with the required and the
@@ -462,18 +461,14 @@ stored="$repo/.agents/reviews/feature-12-marker-review-01.json"
 [[ "$(grep -c '^feedback$' "$repo/verify-count.log")" -eq 2 && "$(count_runs "$repo")" -eq 1 ]] ||
   fail "--feedback did not make the partial run when the recorded pass does not stand"
 
-# --- A stale approval request is refused before the verification runs, and
-# apply-triage.sh refreshes its line 'Tree:' after a fix session (Issue #389).
+# --- A stale approval request is corrected by review-feature.sh before its
+# check (Issue #382), and apply-triage.sh refreshes its line 'Tree:' after a
+# fix session (Issue #389).
 repo="$(setup_repo stale-request)"
 printf 'dependencies = ["numpy"]\n' >>"$repo/pyproject.toml"
 record "$repo" complete 3
 request "$repo" 3
 printf 'a later change\n' >>"$repo/src/code.py"
-run_script "$repo" ./scripts/review-feature.sh 12 --feedback
-[[ "$status" -ne 0 ]] || fail "a review with a stale approval request was started"
-grep -Fq "names tree" "$repo.out" && grep -Fq "The review was not started" "$repo.out" ||
-  { cat "$repo.out" >&2; fail "the stale request was not refused before the run"; }
-[[ ! -e "$repo/verify-count.log" ]] || fail "the verification ran for a review that a stale request refuses"
 # A fix session: the request names the tree before it, and the fixes change
 # the content; the script refreshes the line to the tree it leaves behind.
 request "$repo" 3

@@ -190,6 +190,14 @@ shopt -u nullglob
 latest_candidate=""
 [[ "${#reviews[@]}" -eq 0 ]] || latest_candidate="${reviews[${#reviews[@]}-1]}"
 risk_known=0
+# The line 'Tree:' of the approval request is derived (Issue #382): it is
+# written to the content tree before the check, so an edit of the completion
+# record or the handoff note after the review needs no manual edit. The
+# request is no part of the fingerprint, so the recorded verification and
+# the review stay valid; the request is committed as corrected.
+refreshed="$(risk_request_refresh "$root" "$issue")" ||
+  echo "Warning: the approval request could not be refreshed; its line 'Tree:' is checked as it is." >&2
+[[ -z "$refreshed" ]] || echo "$refreshed"
 if [[ -n "$feature_merge_base" ]] && risk_assess "$root" "$feature_base_ref" "$feature_merge_base" "$issue" "$latest_candidate"; then
   risk_known=1
 elif [[ "$(jq -r '.schema' "$completion_file" 2>/dev/null)" == "completion/v2" ]]; then

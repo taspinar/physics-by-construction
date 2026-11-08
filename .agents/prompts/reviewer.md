@@ -67,10 +67,11 @@ An approval request, `.agents/approvals/<issue>.md`, names on its line
 tree of the risk statement (`content tree for the approval request`), never
 with the fingerprint of the whole worktree: the content tree leaves out
 `.agents/approvals/`, so the request can name the tree under review, and it
-holds the completion record and the handoff note. The scripts refuse a
-request whose `Tree:` differs from the content tree, so a difference you see
-is also a refusal of `finish-feature.sh`; the request is no part of the
-reviewed fingerprint, but the diff you receive holds it. The script has made
+holds the completion record and the handoff note. The line is derived: the
+scripts write the content tree on it before they check it (`review-feature.sh`
+before your review, `finish-feature.sh` before the commit), so a stale line is
+corrected, not refused; the request is no part of the reviewed fingerprint,
+but the diff you receive holds it. The script has made
 this comparison and states its result in the risk statement (`checked by the
 script`): report a finding about the line `Tree:` only if the context lists
 the error.
