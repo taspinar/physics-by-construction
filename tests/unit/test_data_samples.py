@@ -18,6 +18,7 @@ from pbc.data.reference import (
     aalborg_flume,
     bayreuth_rlc,
     gw150914,
+    munich_bell,
     nist_numisheet,
     npl_sparameters,
 )
@@ -27,6 +28,7 @@ NPL = SAMPLES_DIR / "npl-onwafer-sparameters"
 AAL = SAMPLES_DIR / "aalborg-submerged-bar"
 RLC = SAMPLES_DIR / "bayreuth-rlc-impedance"
 DP980 = SAMPLES_DIR / "nist-numisheet-dp980"
+BELL = SAMPLES_DIR / "munich-bell-event-ready"
 
 
 def test_gw150914_sample_parses():
@@ -410,6 +412,139 @@ def test_a_file_with_other_columns_is_refused(tmp_path):
         nist_numisheet.read_attributes(attributes)
 
 
+def test_munich_bell_sample_parses():
+    run = munich_bell.load(BELL)
+    pairs, one, two = run.pairs, run.lab_1, run.lab_2
+    # Field names: the headers of the three files, each with its delimiter
+    # (tab in the pairs file, semicolon in the lab files).
+    header = (BELL / munich_bell.PAIRS).read_text().splitlines()[0]
+    assert tuple(header.split("\t")) == munich_bell.PAIRS_FIELDS
+    for name, fields in (
+        (munich_bell.LAB_1, munich_bell.LAB_1_FIELDS),
+        (munich_bell.LAB_2, munich_bell.LAB_2_FIELDS),
+    ):
+        assert tuple((BELL / name).read_text().splitlines()[0].split(";")) == fields
+    assert "time (Unix time in ms)" in (BELL / munich_bell.README).read_text()
+    # Shapes: 10,201 valid pairs; 10,218 attempts in lab 1, 10,248 in lab 2.
+    assert len(pairs) == 10201
+    assert one.time_ms.shape == (10218,) and two.time_ms.shape == (10248,)
+    assert {s: int((pairs.state == s).sum()) for s in munich_bell.STATES} == {
+        "Psi-": 5054,
+        "Psi+": 5147,
+    }
+    # Units and coverage: Unix time in ms, 2016-04-15 14:19:57.751 UTC to
+    # 2016-04-19 07:03:43.045 UTC, 3.70 days, in time order.
+    assert pairs.time_ms[0] == 1460729997751 and pairs.time_ms[-1] == 1461049423045
+    assert (np.diff(pairs.time_ms) > 0).all()
+    assert (pairs.time_ms[-1] - pairs.time_ms[0]) / 86400e3 == pytest.approx(
+        3.697, abs=1e-3
+    )
+    # Cadence: no clock, one event per heralding; median 20.5 s between
+    # events, three pauses of 1.6 to 1.8 h (the daily maintenance).
+    gaps = np.diff(pairs.time_ms) / 1e3
+    assert np.median(gaps) == pytest.approx(20.5, abs=0.1)
+    assert ((gaps > 3600) & (gaps < 2 * 3600)).sum() == 3 and gaps.max() < 2 * 3600
+    # Settings and results are bits.
+    for bits in (pairs.a, pairs.x, pairs.b, pairs.y):
+        assert set(np.unique(bits)) == {0, 1}
+    # Masks: exclusions are in the lab files only, all for maintenance; every
+    # pair points to valid rows of both labs that agree with it, within the
+    # pairing window of 100 ms. Two valid attempts of lab 2 have no partner.
+    assert int(one.excluded.sum()) == 17 and int(two.excluded.sum()) == 45
+    assert (
+        set(one.comment[one.excluded])
+        == set(two.comment[two.excluded])
+        == {"Maintenance"}
+    )
+    assert munich_bell.pairing_problems(run) == []
+    assert len(set(pairs.line_1)) == len(set(pairs.line_2)) == len(pairs)
+    assert int((~one.excluded).sum()) == 10201 and int((~two.excluded).sum()) == 10203
+
+
+def test_the_bell_selection_reproduces_the_published_correlators_and_s():
+    """The stopping rule fixed before the run, the first 5000 events of each
+    state, gives the paper's Fig. 3 correlators and its S values to the digits
+    printed: 2.240 +- 0.047 (Psi-), 2.204 +- 0.047 (Psi+), 2.221 +- 0.033
+    pooled, 5.1, 4.3, and 6.7 standard errors above 2."""
+    pairs = munich_bell.load(BELL).pairs
+    selection = munich_bell.published_selection(pairs)
+    assert int(selection.sum()) == 10000
+    figure_3 = {
+        "Psi-": (-0.511, -0.615, 0.608, -0.507),
+        "Psi+": (-0.535, -0.603, -0.603, 0.463),
+    }
+    for state, published in figure_3.items():
+        terms = munich_bell.correlators(pairs, state, selection)
+        values = [terms[k].value for k in munich_bell.SETTINGS]
+        assert values == pytest.approx(published, abs=5e-4), state
+        assert sum(terms[k].n for k in munich_bell.SETTINGS) == 5000
+    expected = {"Psi-": (2.240, 5.1), "Psi+": (2.204, 4.3)}
+    for state, (value, sigmas) in expected.items():
+        s, err = munich_bell.chsh(pairs, state, selection)
+        assert s == pytest.approx(value, abs=5e-4) and err == pytest.approx(
+            0.047, abs=5e-4
+        )
+        assert munich_bell.significance(s, err) == pytest.approx(sigmas, abs=0.05)
+    s, err = munich_bell.chsh_pooled(pairs, selection)
+    assert s == pytest.approx(2.221, abs=5e-4) and err == pytest.approx(0.033, abs=5e-4)
+    assert munich_bell.significance(s, err) == pytest.approx(6.7, abs=0.05)
+    # The pooled S is the mean of the two states' S to rounding: each state
+    # has its own sign pattern, and the pooled correlators use them.
+    halves = [munich_bell.chsh(pairs, st, selection)[0] for st in munich_bell.STATES]
+    assert s == pytest.approx(np.mean(halves), abs=2e-3)
+
+
+def test_the_whole_bell_archive_and_the_excluded_attempts_change_s_little():
+    """The archive holds 201 events beyond the stopping rule; with them S is
+    2.2210 +- 0.0329. The 13 maintenance exclusions of lab 1 that have a
+    partner in lab 2 within 100 ms, added back, give 2.2201: the exclusion
+    does not make the violation."""
+    run = munich_bell.load(BELL)
+    s, err = munich_bell.chsh_pooled(run.pairs)
+    assert s == pytest.approx(2.2210, abs=5e-5) and err == pytest.approx(
+        0.0329, abs=5e-5
+    )
+    per_state = {st: munich_bell.chsh(run.pairs, st)[0] for st in munich_bell.STATES}
+    assert per_state == pytest.approx({"Psi-": 2.2462, "Psi+": 2.1977}, abs=5e-5)
+    excluded = munich_bell.excluded_pairs(run)
+    assert len(excluded) == 13
+    assert run.lab_1.excluded[excluded.line_1].all()
+    assert run.lab_2.excluded[excluded.line_2].all()
+    s_all, _ = munich_bell.chsh_pooled(munich_bell.combine(run.pairs, excluded))
+    assert s_all == pytest.approx(2.2201, abs=5e-5)
+    assert abs(s_all - s) < 0.1 * err
+
+
+def test_the_running_bell_s_ends_at_the_whole_state_value():
+    pairs = munich_bell.load(BELL).pairs
+    for state in munich_bell.STATES:
+        s, err = munich_bell.running_chsh(pairs, state)
+        assert s.size == int((pairs.state == state).sum()) - 39
+        assert s[-1] == pytest.approx(munich_bell.chsh(pairs, state)[0])
+        assert err[-1] == pytest.approx(munich_bell.chsh(pairs, state)[1])
+        assert np.isfinite(s).all() and (np.diff(err[100:]) < 0.01).all()
+    # The caption: from the 40th event on, S of Psi- never falls below 2, S of
+    # Psi+ once (its 160th event), and the band of Psi+ clears 2 from its
+    # 295th event on.
+    s, err = munich_bell.running_chsh(pairs, "Psi-")
+    assert (s > 2).all()
+    s, err = munich_bell.running_chsh(pairs, "Psi+")
+    n = np.arange(40, 40 + s.size)
+    assert list(n[s < 2]) == [160]
+    assert n[s - err < 2].max() == 294
+
+
+def test_a_bell_file_with_another_header_or_state_is_refused(tmp_path):
+    good = (BELL / munich_bell.PAIRS).read_text().splitlines()
+    path = tmp_path / "pairs.csv"
+    path.write_text("\n".join([good[0].replace("\t", ";"), *good[1:3]]) + "\n")
+    with pytest.raises(ValueError, match="header"):
+        munich_bell.read_pairs(path)
+    path.write_text("\n".join([good[0], good[1].replace("Psi-", "Phi+")]) + "\n")
+    with pytest.raises(ValueError, match="Bell state"):
+        munich_bell.read_pairs(path)
+
+
 def test_the_reader_of_a_flume_file_refuses_a_file_without_a_time_column(tmp_path):
     path = tmp_path / "bad.csv"
     path.write_text(",1\nx [s],surface elevation [m]\n0,0.1\n")
@@ -490,6 +625,7 @@ def test_every_panel_of_every_figure_is_titled_and_labelled():
         (aalborg_flume, AAL),
         (bayreuth_rlc, RLC),
         (nist_numisheet, DP980),
+        (munich_bell, BELL),
     ):
         figure = module.make_figure(path)
         panels = [a for a in figure.axes if a.axison and a.get_label() != "<colorbar>"]
