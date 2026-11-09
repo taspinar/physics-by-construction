@@ -19,6 +19,7 @@ MODULES = {
     "xu-damped-pendulum": "xu_pendulum",
     "sdss-balmer-spectrum": "sdss_balmer",
     "dwd-potsdam-soil-temperature": "dwd_soil",
+    "nist-srm660c-lab6": "srm660c",
 }
 
 
