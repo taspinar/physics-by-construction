@@ -14,6 +14,7 @@ MODULES = {
     "nist-numisheet-dp980": "nist_numisheet",
     "tess-exoplanet-light-curves": "tess_wasp18",
     "munich-bell-event-ready": "munich_bell",
+    "trackpy-bulk-water": "trackpy_bulk_water",
     "xu-damped-pendulum": "xu_pendulum",
     "sdss-balmer-spectrum": "sdss_balmer",
     "dwd-potsdam-soil-temperature": "dwd_soil",
