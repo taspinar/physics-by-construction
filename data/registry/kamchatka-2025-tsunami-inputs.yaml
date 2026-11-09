@@ -1,0 +1,264 @@
+id: kamchatka-2025-tsunami-inputs
+title: 'Kamchatka 2025-07-29 tsunami inputs: DART records 21416 and 21415, the USGS finite fault, and
+  an ETOPO 2022 bathymetry crop'
+source:
+  url: https://www.ngdc.noaa.gov/hazard/data/DART/20250729_kamchatka/
+  doi: 10.7289/V5F18WNS
+  creator: 'NOAA National Data Buoy Center (DART stations 21416 and 21415, the annual files) and NOAA
+    National Centers for Environmental Information (the event files, tide fit and residual; ETOPO 2022,
+    doi 10.25921/fd45-gt74); USGS National Earthquake Information Center (finite fault of event us6000qw60,
+    created 2025-11-19)'
+  version: 'NCEI event directory 20250729_kamchatka, files dated 2025-08-11; NDBC historical annual files
+    21416t2025 and 21415t2025 as served on 2026-11-09; USGS product finite-fault us6000qw60_1, version
+    5, update 1763589364802; ETOPO 2022 v1, 60 arc-second bedrock-elevation file ETOPO_2022_v1_60s_N90W180_bed.nc
+    (elevation beneath ice where there is ice) on NCEI THREDDS'
+  accessed: &accessed 2026-11-09
+rights:
+  licence: equivalent-permission
+  local_download:
+    answer: permitted
+    source: 'US-government works, not subject to copyright (17 U.S.C. 105, https://www.copyright.gov/title17/92chap1.html#105,
+      read 2026-11-09). DART: NDBC''s disclaimer https://www.ndbc.noaa.gov/disclaimer.shtml redirects
+      to https://www.weather.gov/disclaimer, read 2026-11-09: "The information on National Weather Service
+      (NWS) Web pages are in the public domain, unless specifically noted otherwise"; NCEI''s collection
+      metadata https://www.ncei.noaa.gov/access/metadata/landing-page/bin/iso?id=gov.noaa.ngdc:G10068
+      (doi 10.7289/V5F18WNS): "Access to this dataset is unrestricted". USGS: https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits,
+      read 2026-11-09: "USGS-authored or produced data and information are considered to be in the U.S.
+      Public Domain". ETOPO 2022: metadata https://data.noaa.gov/metaview/page?xml=NOAA/NESDIS/NGDC/MGG/DEM//iso/xml/etopo_2022.xml&view=getDataView&header=none
+      (doi 10.25921/fd45-gt74), read 2026-11-09: "NOAA waives any potential copyright and related rights
+      in these data worldwide through the Creative Commons Zero 1.0 Universal Public Domain Dedication
+      (CC0-1.0)"'
+  redistribution_of_subsets:
+    answer: permitted
+    source: 'The same terms: public domain (17 U.S.C. 105; https://www.weather.gov/disclaimer "may be
+      used without charge for any lawful purpose"; https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits)
+      and CC0 1.0 for ETOPO 2022 (https://creativecommons.org/publicdomain/zero/1.0/legalcode). The NWS
+      conditions are kept: the material is not claimed as the project''s own, no endorsement by NOAA
+      is implied, and modified data are not presented as official government material.'
+  publication_of_figures:
+    answer: permitted
+    source: 'https://www.weather.gov/disclaimer (lawful use without charge, with the conditions above;
+      17 U.S.C. 403 asks a work consisting predominantly of NWS material to identify it and state that
+      it is not subject to copyright: the card''s attribution does so); https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits;
+      CC0 1.0 for ETOPO 2022; all read 2026-11-09'
+  modification_and_attribution:
+    answer: permitted
+    source: 'https://www.weather.gov/disclaimer: modification permitted if the result is not presented
+      as official government material; the USGS page asks for credit ("U.S. Geological Survey"); NCEI''s
+      metadata give the citations used in the attribution; CC0 asks for none. Read 2026-11-09.'
+  attribution: 'DART bottom-pressure data of the NOAA National Data Buoy Center, stations 21416 and 21415;
+    event files, tide fit and residual of NOAA National Centers for Environmental Information, Deep-Ocean
+    Assessment and Reporting of Tsunamis (DART), doi 10.7289/V5F18WNS, accessed 2026-11-09. Finite-fault
+    model of event us6000qw60, U.S. Geological Survey, National Earthquake Information Center. ETOPO 2022
+    Global Relief Model, NOAA NCEI, doi 10.25921/fd45-gt74, CC0 1.0. US-government material, not subject
+    to copyright in the United States; not endorsed by NOAA or the USGS. Changes: the NCEI heights, tides
+    and residuals divided by 0.670 (they are converted twice in the event files); the bathymetry every
+    fourth cell, rounded to the metre.'
+artifacts:
+- name: dart21416_20250727to20250803_meter.txt, dart21415_20250727to20250803_meter.txt
+  type: processed-measured
+  description: 'NCEI event files: the bottom-pressure record as a height of the water column, NCEI''s
+    tide fit, and the residual (height minus tide), at 15-minute, 1-minute and 15-second cadence. The
+    heights are NDBC''s heights multiplied a second time by 0.670 (see calibration). Committed byte for
+    byte.'
+- name: 21416t2025.txt.gz, 21415t2025.txt.gz
+  type: processed-measured
+  description: 'NDBC annual DART files for 2025: the height of the water column in metres from the bottom
+    pressure (670 mm per psia), with the record type (1: 15-minute, 2: 1-minute, 3: 15-second). Committed
+    byte for byte.'
+- name: DART_deployment_coord.txt
+  type: processed-measured
+  description: 'NCEI''s list of the 26 DART deployments of the event directory: position and depth of
+    each station. Committed byte for byte.'
+- name: complete_inversion.fsp, surface_deformation.disp
+  type: modelled-reference
+  description: 'The USGS finite-fault model (three segments, 465 subfaults; slip, rake, rupture time,
+    rise time, moment) inverted from teleseismic body and surface waves, GNSS and InSAR (its data table
+    lists no DART record), and the surface displacement it predicts on a 40 x 40 grid. Committed byte
+    for byte.'
+- name: etopo2022_60s_bed_35N60N_140E180E_stride4.npy
+  type: processed-measured
+  description: 'ETOPO 2022 bathymetry and topography (a compilation; its ocean layer is GEBCO_2022 per
+    the research of 2026-11-08), every fourth 60" cell from 35N to 60N and 140E to 180E, rounded to the metre, int16; converted
+    by tools/datasets/etopo_ascii_to_npy.py.'
+- name: corrected residuals, conversion ratios, peaks
+  type: processed-measured
+  description: 'Computed by pbc.data.reference.kamchatka_tsunami: the NCEI residual divided by 0.670;
+    NCEI height over NDBC height at matched timestamps; peak heights and times. Not part of the records.'
+- name: sqrt(gh) arrival estimates
+  type: modelled-reference
+  description: 'Long-wave travel times integrated along great circles over the ETOPO crop, from the
+    epicentre and from the nearest USGS uplift of at least 0.5, 1 or 2 m; computed by pbc.data.reference.kamchatka_tsunami.
+    A check of the time window, not the propagation model of the capstone.'
+calibration: 'DART: the bottom-pressure recorder''s pressure is converted by NDBC to a height of the water
+  column at 670 mm per psia (the NDBC height''s mean over 2025-07-27 to 07-31 equals the station depth:
+  5788.70 m against 5788 m at 21416, 4720.38 against 4720 at 21415). NCEI''s event files multiply that
+  height by 0.670 a second time: NCEI height / NDBC height is 0.670 within 3.6e-6 at all 1697 (21416) and
+  1761 (21415) timestamps, and the mean NCEI height is 0.67008 and 0.67005 times the station depth. The
+  residual is divided by 0.670 here; the NDBC heights would give the same sea level with an own tide
+  fit. No sensor calibration or uncertainty is published with either file. USGS: the finite fault is a
+  model, calibrated by its inversion (its fit is not in the sample). ETOPO: heights relative to EGM2008,
+  metres; no per-cell uncertainty in the file used.'
+schema: 'NCEI event file: whitespace-separated, 11 columns: day of year (decimal), year, month, day, hour,
+  minute, second, height, tide, residual, and a column that is 0.000 throughout; 1697 rows (21416), 1761
+  rows (21415); 13 and 18 timestamps occur twice with different values (NDBC has two records of two
+  types at each of them). NDBC annual file: gzip text, two header lines ''#YY MM DD hh mm ss T HEIGHT''
+  and units, then one row per record; 41,133 and 38,784 rows. Deployment list: UTF-8 text, one line per
+  deployment: id_deployment - place, latitude, longitude, then in parentheses degrees and minutes and
+  the depth. .fsp: SRCMOD-style text, a commented header (event, location, size, mechanism, inversion,
+  velocity model) and per segment the columns LAT LON X Y Z SLIP RAKE TRUP RISE SF_MOMENT. .disp: one
+  header line, then longitude, latitude, elevation (0), east, north and vertical displacement, 1600 rows
+  of a 40 x 40 grid, longitude fastest. ETOPO: .npy, int16, 375 x 600, row 0 southernmost.'
+units: 'DART height, tide, residual: m (NCEI''s scaled by 0.670); time: UTC. Deployment list: degrees N,
+  degrees E, depth m. .fsp: LAT, LON degrees; X, Y, Z km (Z depth); SLIP m; RAKE degrees; TRUP, RISE s;
+  SF_MOMENT N m (their sum, 2.2489e22, equals the header''s Mo 2.2490e22 N m). .disp: degrees, m. ETOPO:
+  m, positive up, EGM2008.'
+cadence: 'NCEI files: 15 minutes in normal mode, 1 minute and bursts of 15 s in event mode. 21416: 1-minute
+  records from 22:00 UTC (-84 min) to +20.6 h, 15-second records from +1.9 to +5.4 min and +17.4 h; 21415:
+  15-minute records until +36 min, then 1-minute records to +33.6 h, 15-second records from +103 to +107
+  min and at +29.9 h. Both from 2025-07-27 00:00 to 07-31 12:00 UTC, not to 08-03 as the names say. NDBC
+  files: the whole of 2025 at 15 minutes (35,040 records each) plus the event-mode records. Fault: rupture
+  time and rise time per subfault (s); grids: no time axis.'
+coordinates: 'Geographic, WGS 84 (ETOPO states EPSG:4326 and heights on EGM2008). DART 21416 at 48.1258N
+  163.3755E, 5788 m; 21415 at 50.1255N 171.8737E, 4720 m (NCEI''s list). ETOPO cell centres lat 35 + (4i
+  + 0.5)/60, lon 140 + (4j + 0.5)/60 degrees. The .disp grid is regular in each axis but its steps vary
+  slightly (0.3003 to 0.3017 degrees in longitude, 0.1842 to 0.1845 in latitude). Times relative to the
+  ComCat origin 2025-07-29 23:24:52.483 UTC (epicentre 52.4948N 160.2395E); the .fsp header gives 23:24:50
+  and 52.505N 160.184E.'
+masks: 'NDBC: 9999.000 is a missing height (7064 records at 21416, 1803 at 21415; 108 and 100 between
+  2025-07-27 and 08-04). NCEI: no missing value; the duplicated timestamps are kept. At 21416 the record
+  from +1 to +26 min is dominated by the shaking of the sea floor (excursions to 0.62 m on the corrected
+  scale, alternating between samples), not sea level; the analysis searches the tsunami peak after +26
+  min. The .disp grid does not reach zero at its edges (up to 1.13 m), so it does not contain the whole
+  deformation. ETOPO: no fill value in the crop.'
+uncertainty: 'None published per sample. Derived (dossier): the rms of the corrected residual in the
+  day before the origin is 0.020 m (21416) and 0.007 m (21415), the floor of the tide fit and the noise;
+  NDBC heights are given to 1 mm; the conversion factor is 0.670 within 3.6e-6. Peaks: 21416 0.818 m at
+  +32.1 min, 21415 0.352 m at +69.1 min, times to the sample (1 min). The finite fault''s uncertainty is
+  not given in the product; the origin time and epicentre differ from ComCat''s by 2.5 s and 4 km. The
+  ETOPO depth of the nearest 4'' cell differs from the station depth by 186 m (21416) and 115 m (21415).'
+size:
+  description: 'NCEI event files 127,275 and 132,075 bytes, deployment list 3,120; NDBC annual files 173,424
+    and 169,146 bytes (gzip); USGS .fsp 49,217 and .disp 123,312; the ETOPO ASCII crop 2,463,031 bytes,
+    converted to a 450,128-byte .npy. Committed: 1,227,697 bytes in eight files.'
+format: Whitespace-separated text (NCEI, USGS), gzip text (NDBC), OPeNDAP ASCII converted to NumPy .npy
+  (ETOPO).
+reader: 'pbc.data.reference.kamchatka_tsunami: read_ncei, read_ndbc, read_stations, read_fsp, read_disp,
+  read_etopo (NumPy, gzip). The ETOPO crop is converted once, outside the build, by tools/datasets/etopo_ascii_to_npy.py
+  (input sha256 454b00a5aaaaf4406523e1f39fc38dbd40ea3c6799d5cde209d25b75701bf198 and parsed-array sha256
+  8bd4f1e5c02b1a39c7706cf6b1c76771c4bbde2716310e55af0f743978bb719d pinned in the script; output sha256
+  27bf15f585aa7289f2eb90624628f4d30601f49a0be4f2dd6c730b9fae5ead93). No new dependency.'
+downloads:
+- url: https://www.ngdc.noaa.gov/hazard/data/DART/20250729_kamchatka/dart21416_20250727to20250803_meter.txt
+  filename: dart21416_20250727to20250803_meter.txt
+  algorithm: sha256
+  digest: 27c5b353afb8361bde9a439767c497062a2a73eff3003bb2d453d61bb647b44b
+  digest_source: computed on 2026-11-09 from the downloaded file (127,275 bytes); NCEI publishes no checksum
+- url: https://www.ngdc.noaa.gov/hazard/data/DART/20250729_kamchatka/dart21415_20250727to20250803_meter.txt
+  filename: dart21415_20250727to20250803_meter.txt
+  algorithm: sha256
+  digest: ef2edd45e649e5e42953e107019620709f9e933d3b4beab8f1c452e200c64642
+  digest_source: computed on 2026-11-09 from the downloaded file (132,075 bytes); NCEI publishes no checksum
+- url: https://www.ngdc.noaa.gov/hazard/data/DART/20250729_kamchatka/DART_deployment_coord.txt
+  filename: DART_deployment_coord.txt
+  algorithm: sha256
+  digest: 72f224e7a93d18d5ad564f11f2419b402adb0ab48c1a581fe870936d09c7918b
+  digest_source: computed on 2026-11-09 from the downloaded file (3,120 bytes); NCEI publishes no checksum
+- url: https://www.ndbc.noaa.gov/data/historical/dart/21416t2025.txt.gz
+  filename: 21416t2025.txt.gz
+  algorithm: sha256
+  digest: 40b3b6891e62f521d83ed17dd085e7c1bf4c646f5ff43a57c0af0b07d6f90989
+  digest_source: computed on 2026-11-09 from the downloaded file (173,424 bytes, the size the research
+    of 2026-11-08 recorded); NDBC publishes no checksum
+- url: https://www.ndbc.noaa.gov/data/historical/dart/21415t2025.txt.gz
+  filename: 21415t2025.txt.gz
+  algorithm: sha256
+  digest: 3298af96ed9c30da9522331e76edaf3deeeb360182cf92226f28944ac50e8070
+  digest_source: computed on 2026-11-09 from the downloaded file (169,146 bytes); NDBC publishes no checksum
+- url: https://earthquake.usgs.gov/product/finite-fault/us6000qw60_1/us/1763589364802/complete_inversion.fsp
+  filename: complete_inversion.fsp
+  algorithm: sha256
+  digest: 0f348e3b7952cdb61a0358aa6abea43f77a7da3d217134ffdf360307d43fa36d
+  digest_source: computed on 2026-11-09 from the downloaded file (49,217 bytes, the length ComCat's product
+    record gives); the USGS publishes no checksum
+- url: https://earthquake.usgs.gov/product/finite-fault/us6000qw60_1/us/1763589364802/surface_deformation.disp
+  filename: surface_deformation.disp
+  algorithm: sha256
+  digest: 3b3e2568c31d3b1c50bf190554fcd0f0ba1a38be8ff0c454b10756cba33eeddf
+  digest_source: computed on 2026-11-09 from the downloaded file (123,312 bytes, the length ComCat's product
+    record gives); the USGS publishes no checksum
+- url: https://www.ngdc.noaa.gov/thredds/dodsC/global/ETOPO2022/60s/60s_bed_elev_netcdf/ETOPO_2022_v1_60s_N90W180_bed.nc.ascii?z%5B7500:4:8999%5D%5B19200:4:21599%5D
+  filename: etopo2022_60s_bed_35N60N_140E180E_stride4.txt
+  algorithm: sha256
+  digest: 454b00a5aaaaf4406523e1f39fc38dbd40ea3c6799d5cde209d25b75701bf198
+  digest_source: computed on 2026-11-09 from two responses (2,463,031 bytes each, identical); a generated
+    response, so the conversion script also pins the parsed array
+samples:
+- path: dart21416_20250727to20250803_meter.txt
+  sha256: 27c5b353afb8361bde9a439767c497062a2a73eff3003bb2d453d61bb647b44b
+  bytes: 127275
+  derivation: the NCEI event file, byte for byte
+  test: tests/unit/test_data_kamchatka_tsunami.py::test_kamchatka_tsunami_sample_parses
+- path: dart21415_20250727to20250803_meter.txt
+  sha256: ef2edd45e649e5e42953e107019620709f9e933d3b4beab8f1c452e200c64642
+  bytes: 132075
+  derivation: the NCEI event file, byte for byte
+  test: tests/unit/test_data_kamchatka_tsunami.py::test_kamchatka_tsunami_sample_parses
+- path: DART_deployment_coord.txt
+  sha256: 72f224e7a93d18d5ad564f11f2419b402adb0ab48c1a581fe870936d09c7918b
+  bytes: 3120
+  derivation: NCEI's deployment list of the event directory, byte for byte
+  test: tests/unit/test_data_kamchatka_tsunami.py::test_kamchatka_tsunami_sample_parses
+- path: 21416t2025.txt.gz
+  sha256: 40b3b6891e62f521d83ed17dd085e7c1bf4c646f5ff43a57c0af0b07d6f90989
+  bytes: 173424
+  derivation: the NDBC annual file, byte for byte
+  test: tests/unit/test_data_kamchatka_tsunami.py::test_kamchatka_tsunami_sample_parses
+- path: 21415t2025.txt.gz
+  sha256: 3298af96ed9c30da9522331e76edaf3deeeb360182cf92226f28944ac50e8070
+  bytes: 169146
+  derivation: the NDBC annual file, byte for byte
+  test: tests/unit/test_data_kamchatka_tsunami.py::test_kamchatka_tsunami_sample_parses
+- path: complete_inversion.fsp
+  sha256: 0f348e3b7952cdb61a0358aa6abea43f77a7da3d217134ffdf360307d43fa36d
+  bytes: 49217
+  derivation: the USGS product file, byte for byte
+  test: tests/unit/test_data_kamchatka_tsunami.py::test_kamchatka_tsunami_sample_parses
+- path: surface_deformation.disp
+  sha256: 3b3e2568c31d3b1c50bf190554fcd0f0ba1a38be8ff0c454b10756cba33eeddf
+  bytes: 123312
+  derivation: the USGS product file, byte for byte
+  test: tests/unit/test_data_kamchatka_tsunami.py::test_kamchatka_tsunami_sample_parses
+- path: etopo2022_60s_bed_35N60N_140E180E_stride4.npy
+  sha256: 27bf15f585aa7289f2eb90624628f4d30601f49a0be4f2dd6c730b9fae5ead93
+  bytes: 450128
+  derivation: tools/datasets/etopo_ascii_to_npy.py on etopo2022_60s_bed_35N60N_140E180E_stride4.txt;
+    every value of the response rounded to the metre, int16, 375 x 600
+  test: tests/unit/test_data_kamchatka_tsunami.py::test_kamchatka_tsunami_sample_parses
+estimates:
+  runtime: Reference figure about 1.8 s with the interpreter start (readers 0.16 s, analysis 0.09 s).
+  memory: About 150 MB peak resident for the figure.
+  page_payload: 1.23 MB committed, read at build time and not shipped; a figure PNG of about 590 KB
+    at 150 dpi.
+  ci: 'Offline: eight committed files.'
+decision:
+  value: go
+  date: *accessed
+  reasons:
+  - 'Real files inspected: the two NCEI event files and NCEI''s deployment list, the two NDBC annual
+    files, the USGS .fsp and .disp of us6000qw60_1 v5, and the ETOPO 2022 crop (byte-identical over two
+    requests), all committed byte for byte except the ETOPO crop, converted by a pinned script.'
+  - 'The double conversion is established on the files, not assumed: NCEI height / NDBC height = 0.670
+    within 3.6e-6 at every timestamp of both stations; the residuals are divided by 0.670, which gives
+    peaks of 0.818 m at +32.1 min (21416) and 0.352 m at +69.1 min (21415).'
+  - 'The windows hold the arrivals: long-wave travel times over the ETOPO crop from the nearest USGS
+    uplift (26.6 and 60.8 min) precede the half-peak crossings (29.8 and 66.5 min); the finite fault was
+    inverted without DART data, so the records stay an independent check for phase 2.'
+  - 'Limits stated, not hidden: NCEI files end 2025-07-31 12:00, carry 13 and 18 duplicated timestamps,
+    and 21416 is dominated by seafloor shaking until +26 min; no per-sample uncertainty is published;
+    the .disp grid is coarse and does not reach zero at its edges; the bathymetry is decimated, not averaged.'
+  - 'US-government public domain (NDBC, NCEI, USGS) and CC0 1.0 (ETOPO 2022): all four rights permitted,
+    recorded as equivalent permission like the TESS card; attribution and the NWS conditions kept.'
+  - 'Recorded by F88 phase 1 (Issue #444) under the owner''s approval of 2026-11-09 on the Issue: work towards
+    a go, every requirement of ADR 007 checked in the dossier. Phase 2 starts only on the owner''s word.'
+dossier: docs/datasets/kamchatka-2025-tsunami-inputs.md
