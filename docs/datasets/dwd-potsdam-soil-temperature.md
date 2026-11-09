@@ -26,7 +26,7 @@ The archive holds the product file `produkt_eb_stunde_19510101_20251231_03987.tx
 | `eb_stunde_03987_2015_2024_6h.txt` | 14,610 at 00, 06, 12, 18 h of 2015–2024 | 1,110,441 | `d9fe4916f266c91a0f0ab1e42782682e12ae07a379fd1c98fe309afcfeb824d2` | the annual wave |
 | `eb_stunde_03987_jja_2020_2024_1h.txt` | 11,040, every hour of June to August 2020–2024 | 839,121 | `ab6be9339237a2d66b4b552bc2ca42a6f3dbe7560c86a0803c0dcb6d067115cd` | the daily wave |
 
-and copies the four small metadata files (`Geographie`, `Geraete`, `Parameter`, `Stationsname_Betreibername`; 6,120 bytes) unchanged. Two runs give the same bytes; `tools/datasets/README.md` says how to repeat it. Four readings a day, equally spaced, keep the sample small and still remove the daily cycle from the annual fit (a fit of the annual harmonic to samples equally spaced over each day is not biased by the daily harmonic); every hour is needed only for the daily wave, and only in summer, when it is largest.
+and writes the four small metadata files (`Geographie`, `Geraete`, `Parameter`, `Stationsname_Betreibername`; 6,146 bytes) re-encoded from the archive's ISO-8859-1 to UTF-8, so that every committed text file is UTF-8 (the one-time conversion outside the build of the ADR 007 addendum). The text and the line ends are unchanged: three files are ASCII and come out byte for byte; `Parameter` (4,145 bytes in the archive, 4,171 committed, sha256 `55a4fa22af5a548be7fda86e0ef953a8de60d9e8de998c93fa132d4ee1490f6e`) differs only in the bytes of its degree signs and umlauts. Two runs give the same bytes; `tools/datasets/README.md` says how to repeat it. Four readings a day, equally spaced, keep the sample small and still remove the daily cycle from the annual fit (a fit of the annual harmonic to samples equally spaced over each day is not biased by the daily harmonic); every hour is needed only for the daily wave, and only in summer, when it is largest.
 
 Reader of the sample: `pbc.data.reference.dwd_soil.read_readings` (NumPy).
 
@@ -51,7 +51,7 @@ The parsing test `tests/unit/test_data_dwd_soil.py::test_dwd_soil_sample_parses`
 |---|---|
 | `stundenwerte_EB_03987_19510101_20251231_hist.zip` (the product file) | `raw-measured` |
 | `eb_stunde_03987_2015_2024_6h.txt`, `eb_stunde_03987_jja_2020_2024_1h.txt` (the sample) | `processed-measured` |
-| the four `Metadaten_*.txt` files | `raw-measured` (record metadata, unchanged) |
+| the four `Metadaten_*.txt` files | `raw-measured` (record metadata, text unchanged, re-encoded to UTF-8) |
 
 The readings are what the thermometers recorded, after DWD's automatic control and correction (QN 3), which the record names but does not itemise per value. The sample selects rows without changing a value, and selection makes it `processed-measured`. The daily means, harmonics, diffusivities, and model lines are not artifacts of the record: `pbc.data.reference.dwd_soil` computes them, and the figure draws the model dashed and apart from the measured points, with its residuals.
 

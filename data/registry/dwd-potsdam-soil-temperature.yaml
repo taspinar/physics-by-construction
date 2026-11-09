@@ -52,7 +52,7 @@ artifacts:
     Metadaten_Stationsname_Betreibername_03987.txt
   type: raw-measured
   description: 'The station''s position, instruments with their depths, parameters with their sources
-    and units, and operators, copied from the archive unchanged (ISO-8859-1). The harmonic fits, the diffusivities,
+    and units, and operators, from the archive, re-encoded from ISO-8859-1 to UTF-8 (the same text; three are ASCII and unchanged). The harmonic fits, the diffusivities,
     and the model curves of the reference figure are computed by pbc.data.reference.dwd_soil and are not
     part of the record.'
 calibration: 'None applied here. The record documents no calibration of the PT100 sensors and no accuracy;
@@ -86,8 +86,8 @@ uncertainty: 'The record states no sensor accuracy and no tolerance of the depth
   depth spacing) and the sensors.'
 size:
   description: 'The archive is 2,773,485 bytes (11 members, 25,468,746 bytes unpacked; the product file
-    24,347,827 bytes). The sample is 1,955,682 bytes: 1,110,441 (6-hourly), 839,121 (hourly), and 6,120
-    of metadata.'
+    24,347,827 bytes). The sample is 1,955,708 bytes: 1,110,441 (6-hourly), 839,121 (hourly), and 6,146
+    of metadata (UTF-8).'
 format: Semicolon-separated text in a zip archive; the committed sample is lines of it, unchanged.
 reader: 'Zip: extracted once, outside the build, by tools/datasets/dwd_soil_extract.py (standard library;
   input sha256 6a968e6da83c783c4fa3a35196521021550bf56d1a64cde83cc9aeceb882329f pinned in the script, the
@@ -124,9 +124,9 @@ samples:
   derivation: copied unchanged from the archive by tools/datasets/dwd_soil_extract.py
   test: tests/unit/test_data_dwd_soil.py::test_dwd_soil_sample_parses
 - path: Metadaten_Parameter_eb_stunde_03987.txt
-  sha256: 378fd0e6e26809efe9c6a25ce6a09feec0a363aec7343d8c68145dd6f2a8661a
-  bytes: 4145
-  derivation: copied unchanged from the archive by tools/datasets/dwd_soil_extract.py
+  sha256: 55a4fa22af5a548be7fda86e0ef953a8de60d9e8de998c93fa132d4ee1490f6e
+  bytes: 4171
+  derivation: re-encoded from the archive's ISO-8859-1 to UTF-8 (text and line ends unchanged) by tools/datasets/dwd_soil_extract.py
   test: tests/unit/test_data_dwd_soil.py::test_dwd_soil_sample_parses
 - path: Metadaten_Stationsname_Betreibername_03987.txt
   sha256: dc311bac33395e7ae012d4735153a257284a8dcc3dad179bb180961758f62105

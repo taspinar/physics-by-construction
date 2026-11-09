@@ -22,8 +22,12 @@ their order:
 - ``DIURNAL_FILE``: every hourly row of June, July, and August of the years
   ``DIURNAL_YEARS`` (for the daily wave).
 
-It also copies ``METADATA`` unchanged: the station's position, its
-instruments, the parameters with their sources and units, and its operators.
+It also writes the four files of ``METADATA`` (the station's position, its
+instruments, the parameters with their sources and units, and its operators),
+re-encoded from the archive's ISO-8859-1 to UTF-8: the same characters and
+line ends, only the bytes of the non-ASCII ones (degree sign, umlauts)
+changed, so that every committed text file is UTF-8. The three that are ASCII
+come out byte for byte.
 """
 
 import hashlib
@@ -75,6 +79,11 @@ def select(lines: list[bytes]) -> tuple[list[bytes], list[bytes]]:
     return annual, diurnal
 
 
+def to_utf8(content: bytes) -> bytes:
+    """A metadata file of the archive, ISO-8859-1, as UTF-8."""
+    return content.decode("iso-8859-1").encode("utf-8")
+
+
 def extract(zip_path: Path, out_dir: Path, *, check_input: bool = True) -> None:
     zip_path, out_dir = Path(zip_path), Path(out_dir)
     if check_input and sha256(zip_path) != INPUT_SHA256:
@@ -91,7 +100,7 @@ def extract(zip_path: Path, out_dir: Path, *, check_input: bool = True) -> None:
     (out_dir / ANNUAL_FILE).write_bytes(b"".join(annual))
     (out_dir / DIURNAL_FILE).write_bytes(b"".join(diurnal))
     for name, content in metadata.items():
-        (out_dir / name).write_bytes(content)
+        (out_dir / name).write_bytes(to_utf8(content))
 
 
 def main(argv: list[str]) -> int:

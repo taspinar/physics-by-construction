@@ -91,12 +91,12 @@ def test_dwd_soil_sample_parses(readings):
     assert np.nanmax(hourly.temperature[:, 0]) == 40.4
     # The metadata: the depths, the sensors, and the unit of each column.
     geraete = (DWD / "Metadaten_Geraete_Erdbodentemperatur_03987.txt").read_text(
-        encoding="latin-1"
+        encoding="utf-8"
     )
     for depth in ("-.05", "-.1", "-.2", "-.5", "-1"):
         assert f";{depth};19780301;20260419;PT 100 (Erdboden);" in geraete
     parameter = (DWD / "Metadaten_Parameter_eb_stunde_03987.txt").read_text(
-        encoding="latin-1"
+        encoding="utf-8"
     )
     for column, depth in zip(
         dwd_soil.COLUMNS, ("5 cm", "10 cm", "20 cm", "50 cm", "1 m"), strict=True
@@ -104,10 +104,10 @@ def test_dwd_soil_sample_parses(readings):
         assert f";Potsdam;{column};Temperatur im Erdboden in {depth} Tiefe;°C;" in (
             parameter
         )
-    geographie = (DWD / "Metadaten_Geographie_03987.txt").read_text(encoding="latin-1")
+    geographie = (DWD / "Metadaten_Geographie_03987.txt").read_text(encoding="utf-8")
     assert "3987;   80.86; 52.3812; 13.0622;20230706;        ;Potsdam" in geographie
     operator = (DWD / "Metadaten_Stationsname_Betreibername_03987.txt").read_text(
-        encoding="latin-1"
+        encoding="utf-8"
     )
     assert "3987;DWD;19910101;" in operator
 
@@ -176,9 +176,7 @@ def test_the_extraction_keeps_the_selected_lines_unchanged(tmp_path):
     )
     assert diurnal == "".join(f"{x}\r\n" for x in (header, rows[3], rows[4])).encode()
     for name in tool.METADATA:
-        assert (tmp_path / "out" / name).read_bytes() == f"{name};\xe4\r\n".encode(
-            "latin-1"
-        )
+        assert (tmp_path / "out" / name).read_bytes() == f"{name};\xe4\r\n".encode()
     other = tmp_path / "other.zip"
     other.write_bytes(small_zip(tool, ["STATIONS_ID;MESS_DATUM;eor", rows[1]]))
     with pytest.raises(ValueError, match="header"):
@@ -199,6 +197,13 @@ def test_the_sample_is_the_output_the_card_pins():
     }
     for name, digest in expected.items():
         assert hashlib.sha256((DWD / name).read_bytes()).hexdigest() == digest
+    # Every committed text file is UTF-8 (the metadata re-encoded, ADR 007).
+    for name in tool.METADATA:
+        (DWD / name).read_bytes().decode("utf-8")
+    parameter = (DWD / "Metadaten_Parameter_eb_stunde_03987.txt").read_bytes()
+    assert hashlib.sha256(parameter).hexdigest() == (
+        "55a4fa22af5a548be7fda86e0ef953a8de60d9e8de998c93fa132d4ee1490f6e"
+    )
     assert sorted(p.name for p in DWD.iterdir()) == sorted(
         [tool.ANNUAL_FILE, tool.DIURNAL_FILE, *tool.METADATA]
     )
