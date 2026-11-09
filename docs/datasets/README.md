@@ -19,6 +19,7 @@ Cards added after the survey, for the measured-data labs:
 | Dataset | Kind | Decision | Dossier |
 |---|---|---|---|
 | Bayreuth RLC impedance (EM8, Issue #418) | complex impedance measurement | **go** (2026-11-08) | [bayreuth-rlc-impedance](bayreuth-rlc-impedance.md) |
+| NIST Numisheet DP980 tension/compression (MAT6, Issue #421) | stress–strain test with a load reversal | **go** (2026-11-08) | [nist-numisheet-dp980](nist-numisheet-dp980.md) |
 | Munich event-ready Bell test (Q8, Issue #419) | Bell-test event counts | **go** (2026-11-08) | [munich-bell-event-ready](munich-bell-event-ready.md) |
 
 Defer and reject have no entry yet: no spiked dataset failed its gate. The survey-only cards with a known obstacle are the optical-diffraction record (licence field CC BY 4.0 beside a copyright line, RAR archives) and the cylinder-wake PIV (one 1.1 GB MAT file of processed fields at 20 Hz, zeros are masks); both remain conditional, as the survey proposed.
