@@ -13,7 +13,7 @@ rights:
   local_download:
     answer: permitted
     source: 'Zenodo record https://zenodo.org/records/15846643, licence field ''Creative Commons Attribution
-      4.0 International'' (API metadata license cc-by-4.0; copyright field empty), read 2026-11-09; the
+      4.0 International'' (API metadata license cc-by-4.0; the copyright line names both creators), read 2026-11-09; the
       terms at https://creativecommons.org/licenses/by/4.0/legalcode permit reproducing and sharing the
       material'
   redistribution_of_subsets:
@@ -74,8 +74,8 @@ schema: 'Profiles: CSV with three comment lines (source and its sha256, the conv
   Latin-1 in the record and UTF-8 in the sample; an unnamed particle-number column, ImageJ''s Area, Mean, Min, Max, X, Y, (Perim., x160 only),
   Circ., Feret, FeretX, FeretY, FeretAngle, MinFeret, AR, Round, Solidity, an empty column, then r^2 (µm^2),
   r (µm), d (µm); 150 rows (x160) and 642 rows (x80).'
-units: 'Profiles: x and y in Tracker''s world unit, not stated (the agreement of the two wavelengths suggests
-  the same length unit in both); luma the camera brightness 0 to 255, dimensionless, nonlinear. Morphometry:
+units: 'Profiles: x and y in Tracker''s world unit, not stated (the ratio test assumes the same spatial scale
+  and measurement geometry in both; the record does not confirm it); luma the camera brightness 0 to 255, dimensionless, nonlinear. Morphometry:
   Area in µm^2 (not pixels^2 as the record says: r^2 = Area/3.14 to 5e-9), r and d in µm; d = 2 sqrt(Area/3.14),
   0.025 % above the value with pi; X, Y, Feret in µm; FeretX, FeretY in pixels; Mean, Min, Max grey levels
   0-255; Circ., AR, Round, Solidity dimensionless.'
@@ -92,8 +92,10 @@ masks: 'None in the record; every value is a number. Saturated samples (luma >= 
 uncertainty: 'None in the record. Derived (dossier): microscope means 29.91 +- 0.34 µm (x160, n = 72,
   sd 2.87) and 30.36 +- 0.13 µm (x80, n = 605, sd 3.22), standard errors of the mean; dark-ring radii
   16.68 +- 0.34 (632.8 nm) and 11.02 +- 0.33 (405 nm) in units of x, the uncertainty being half the range
-  over smoothing widths 0.5 to 2.0 (a sensitivity range of the analysis); ratio 0.661 +- 0.024 against
-  the wavelength ratio 0.640. At 405 nm the right side of the profile shows no dip, so that radius rests
+  over smoothing widths 0.5 to 2.0 (a sensitivity range of the analysis, not a statistical error); ratio
+  0.661 +- 0.024 (propagated from those ranges), close to the wavelength ratio 0.640 if both profiles
+  have the same spatial scale and measurement geometry; the two implied screen distances use the same
+  ring radii and give no independent confirmation of that. At 405 nm the right side of the profile shows no dip, so that radius rests
   on the left side and the fold. Which Airy minimum the dark ring is (first or second) is not settled
   by the record; the distance to the screen and the unit of x are unknown, so no absolute diameter is
   inferred from the diffraction.'
@@ -172,8 +174,9 @@ decision:
   reasons:
   - 'Real files inspected: the two XLSX profiles and two morphometry CSVs, md5s equal to Zenodo''s; the
     profiles converted to CSV by a pinned script with no value changed, the morphometry CSVs re-encoded to UTF-8 by a pinned script with no value changed.'
-  - 'Scale-free test passed: the dark ring at 405 nm over that at 632.8 nm is 0.661 +- 0.024 against
-    the wavelength ratio 0.640, as Fraunhofer diffraction by particles of one size distribution requires;
+  - 'Scale-free test passed: the dark ring at 405 nm over that at 632.8 nm is 0.661 +- 0.024 (range over
+    smoothing widths), close to the wavelength ratio 0.640 that Fraunhofer diffraction by particles of
+    one size distribution gives if both profiles have the same spatial scale and measurement geometry;
     the microscope gives that distribution (whole spores 29.91 +- 0.34 µm at x160, 30.36 +- 0.13 µm at
     x80).'
   - 'Limits stated, not hidden: the unit of x and the distance to the screen are not in the record (the
@@ -181,7 +184,7 @@ decision:
     the camera saturates the centre, so intensities are not modelled; whether the dark ring is the first
     or second Airy minimum is not settled (the ring spacing favours the second); the uncertainty of the
     ring radii is a sensitivity range of the analysis.'
-  - CC BY 4.0 on the record (copyright field empty); local download, subsets, figures, and modification
+  - CC BY 4.0 on the record, whose copyright line names both creators; local download, subsets, figures, and modification
     permitted with attribution.
   - 'Recorded by F52 (Issue #440) under the owner''s decision of 2026-11-08 on the Issue: work towards
     a go, judged per dossier, with every requirement of ADR 007 checked in the dossier.'

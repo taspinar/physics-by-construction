@@ -138,7 +138,8 @@ def test_the_dark_rings_their_ratio_and_the_model(profiles, tables):
     value, error = lyc.ratio(profiles)
     assert value == pytest.approx(0.6606, abs=1e-4)
     assert error == pytest.approx(0.0237, abs=1e-4)
-    # The scale-free test: within one standard error of the wavelength ratio.
+    # The scale-free test: the wavelength ratio lies inside the range the
+    # smoothing widths give (a sensitivity range, not a statistical error).
     assert abs(value - 0.405 / 0.6328) < error
     # The sides: at 632.8 nm they agree; at 405 nm the right side has no dip.
     left, right = lyc.side_rings(profiles[0.6328])

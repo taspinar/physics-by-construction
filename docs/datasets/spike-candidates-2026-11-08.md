@@ -131,7 +131,7 @@ What follows from the licence decision, as the research reads it:
 
 - **SPARC (AST9):** a link-only lab needs nothing. A committed sample needs the authors' written permission, because the site states no licence. Meanwhile PROBES (CC BY 4.0) is the fallback.
 - **Hannover Rb (Q7):** no permission is needed under CC BY-SA 3.0. The science caveats remain (no absolute frequency offset, no free spectral range of the cavity), so SDSS stays the first spike and Hannover is a laboratory alternative.
-- **Voronkin & Lushchin (W7):** the Zenodo API gives `license: cc-by-4.0` at record level for both 19436924 and 15846643, which covers the files; round 3 found an empty copyright field on 15846643. A letter would only be for the missing screen distance and image scale, which is science, not rights.
+- **Voronkin & Lushchin (W7):** the Zenodo API gives `license: cc-by-4.0` at record level for both 19436924 and 15846643, which covers the files; round 3 reported an empty copyright field on 15846643, which was wrong: that record names both creators in its copyright line (corrected 2026-11-09 in the W7 dossier; the rights answers rest on the licence). A letter would only be for the missing screen distance and image scale, which is science, not rights.
 
 ### Still open
 

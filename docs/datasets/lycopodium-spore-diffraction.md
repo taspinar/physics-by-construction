@@ -64,7 +64,7 @@ The chain, each step in the code:
 5. **Uncertainty.** The radius for smoothing widths 0.5, 0.75, 1.0, 1.5, 2.0; half the range is taken as the uncertainty (below).
 6. **Model.** `ensemble` with the 72 x160 diameters gives the q of each minimum and maximum; it reduces to the Airy pattern of one disk (first zero 1.2197/d, `test_the_ensemble_model_reduces_to_the_airy_pattern_of_one_disk`).
 
-**Caption.** *Diffraction halos of Lycopodium spores at 632.8 nm and 405 nm, from line profiles of two photographs. On a radius divided by the wavelength, the dark rings of the two halos fall nearly together: the ring at 405 nm is 0.661 ± 0.024 times the radius of that at 632.8 nm, against the wavelength ratio 0.640, as diffraction by one population of particles requires. The microscope measures that population at 29.9 µm (x160) and 30.4 µm (x80) mean diameter. The centre of each photograph is saturated, and the record states neither the unit of the profile nor the distance to the screen, so the figure tests the scaling with wavelength and does not infer the diameter.*
+**Caption.** *Diffraction halos of Lycopodium spores at 632.8 nm and 405 nm, from line profiles of two photographs. On a radius divided by the wavelength, the dark rings of the two halos fall nearly together: the ring at 405 nm is 0.661 ± 0.024 times the radius of that at 632.8 nm (the ± is the range over smoothing widths, not a statistical error), close to the wavelength ratio 0.640 that diffraction by one population of particles gives if both profiles have the same spatial scale and measurement geometry. The microscope measures that population at 29.9 µm (x160) and 30.4 µm (x80) mean diameter. The centre of each photograph is saturated, and the record states neither the unit of the profile nor the distance to the screen, so the figure tests the scaling with wavelength and does not infer the diameter.*
 
 | Quantity | Value |
 |---|---|
@@ -74,7 +74,7 @@ The chain, each step in the code:
 | dark ring, 632.8 nm | 16.68 ± 0.34 (units of x); widths 0.5 to 2.0 give 16.69, 16.72, 16.68, 16.50, 17.18 |
 | dark ring, 405 nm | 11.02 ± 0.33; widths give 10.71, 10.75, 11.02, 11.29, 11.37 |
 | ratio r(405)/r(632.8) | 0.661 ± 0.024 |
-| wavelength ratio | 0.640 (difference 0.9 standard errors) |
+| wavelength ratio | 0.640 (inside the smoothing range of the measured ratio) |
 | model minima, q·d̄ (72 spores) | 1.232, 2.231, 3.258 (one disk: 1.220, 2.233, 3.238) |
 | bright-to-dark radius ratio | measured 1.19 (632.8 nm), 1.11 (405 nm); model 1.31 if the dark ring is the first minimum, 1.17 if the second |
 | implied distance to the screen, units of x | 640 (632.8 nm) and 661 (405 nm) if the first minimum; 353 and 365 if the second |
@@ -85,9 +85,9 @@ The research of 2026-11-08 found r₁ = 16.76 ± 0.23 and 11.25 ± 0.56 and a ra
 
 **Microscope.** Each magnification is calibrated by its own scale bar (10 µm per division, per the record); the means at x160 and x80 differ by 1.2 combined standard errors, so the two calibrations agree. The standard errors are statistical; the record gives no uncertainty of the scale bars or of the binarisation threshold, and the equal-area diameter of a spore that is not round (circularity 0.71 on average at x160) is a convention. The spread (sd about 3 µm, 10 %) is real and enters the model.
 
-**Diffraction profiles.** The record gives no uncertainty, no unit of x, no distance to the screen, no camera settings, and not the photograph each profile comes from. The camera's tone curve is unknown and the centre saturates, so intensities are not compared with the model; only ring positions are used, and only their ratio is free of the missing calibration (it needs only that both profiles share one length unit, which the agreement of the implied screen distances, 640 and 661 or 353 and 365, supports to 3 %).
+**Diffraction profiles.** The record gives no uncertainty, no unit of x, no distance to the screen, no camera settings, and not the photograph each profile comes from. The camera's tone curve is unknown and the centre saturates, so intensities are not compared with the model; only ring positions are used, and only their ratio is free of the missing calibration. The ratio still assumes that both profiles have the same spatial scale (one length unit per pixel of the same image scale) and the same measurement geometry (one distance to the screen); the record states neither. The two implied screen distances (640 and 661, or 353 and 365) are computed from the same two ring radii as the ratio, so their agreement is the ratio restated and gives no independent confirmation of that assumption.
 
-- **Sensitivity range, not a statistical error.** The ring radius moves with the smoothing width by ±0.34 (632.8 nm) and ±0.33 (405 nm); this half-range is the uncertainty used. Speckle (a finite number of spores in the beam) makes the profile bumpy on the scale of the ring, which is why a smoothing is needed and why its width matters.
+- **Sensitivity range, not a statistical error.** The ring radius moves with the smoothing width by ±0.34 (632.8 nm) and ±0.33 (405 nm); this half-range is the uncertainty used, and the ±0.024 of the ratio is propagated from it. It describes how the analysis depends on the smoothing, not a statistical error, so no count of standard errors is given for the ratio: the measured 0.661 lies close to the wavelength ratio 0.640, as expected if both profiles have the same spatial scale and measurement geometry. Speckle (a finite number of spores in the beam) makes the profile bumpy on the scale of the ring, which is why a smoothing is needed and why its width matters.
 - **The two sides.** At 632.8 nm the left and right minima (16.65 and 16.76) agree. At 405 nm the left side has a clear dip at 10.92 and the right side none (its lowest point near the fold's radius is 13.99, the edge of the search window): the 405 nm radius rests on the left side, carried through the fold. A lab must say so.
 - **Ring order.** With one dark ring per profile, the record does not settle whether it is the first or the second minimum of the Airy pattern. The spacing to the next bright ring (1.19 and 1.11 times the dark-ring radius) is closer to the model's 1.17 for the second minimum than to 1.31 for the first, which suggests the first minimum is hidden in the saturated centre; the bright-ring positions are speckled, so this is not decisive. The scale-free ratio holds for either order.
 - **Small angles.** The ring lies at sin θ ≈ 0.026 (order 1) or 0.047 (order 2); a flat screen measures tan θ, which changes the ratio by less than 0.001.
@@ -103,12 +103,12 @@ Asserted by `tests/unit/test_data_lycopodium.py`: the diameters at both magnific
 
 | Question | Answer | Source |
 |---|---|---|
-| Local download | permitted | Zenodo record https://zenodo.org/records/15846643, licence field "Creative Commons Attribution 4.0 International" (API `license: cc-by-4.0`; the record's copyright field is empty), read 2026-11-09; https://creativecommons.org/licenses/by/4.0/legalcode |
+| Local download | permitted | Zenodo record https://zenodo.org/records/15846643, licence field "Creative Commons Attribution 4.0 International" (API `license: cc-by-4.0`; the record's copyright line names both creators), read 2026-11-09; https://creativecommons.org/licenses/by/4.0/legalcode |
 | Redistribution of subsets | permitted | the same record; legal code section 2(a)(1) |
 | Publication of figures and derivatives | permitted | the same record; legal code section 2(a)(1) |
 | Modification and attribution | permitted, with attribution and an indication of changes | legal code section 3(a); the card's `attribution` names the creators, the record, the licence, and the conversion; the figure prints it |
 
-The sister record of the same creators (Zenodo 19436924, the Fraunhofer microstructures) shows a copyright line beside its licence; this record has none, and its licence is CC BY 4.0 at record level, which covers its files.
+The record names both creators, O. Voronkin and S. Lushchin, as its copyright holders, beside the licence CC BY 4.0 at record level, which covers its files. An earlier version of this dossier said the record shows no copyright line, unlike the sister record of the same creators (Zenodo 19436924, the Fraunhofer microstructures); that was wrong, and the two records do not differ in this. The decision did not depend on it: a copyright line names who holds the rights, and the holders grant the licence, so the four answers rest on the licence field and stand as written.
 
 ## Size, runtime, payload
 
