@@ -309,6 +309,7 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
     from pbc.data.reference import (
         aalborg_flume,
         bayreuth_rlc,
+        dwd_soil,
         gw150914,
         npl_sparameters,
         tess_wasp18,
@@ -321,6 +322,7 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
         (aalborg_flume, "aalborg-submerged-bar"),
         (bayreuth_rlc, "bayreuth-rlc-impedance"),
         (tess_wasp18, "tess-exoplanet-light-curves"),
+        (dwd_soil, "dwd-potsdam-soil-temperature"),
     ):
         figure = module.make_figure(ROOT / "data/samples" / name)
         assert figure.axes

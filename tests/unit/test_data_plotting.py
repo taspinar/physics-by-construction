@@ -21,6 +21,7 @@ from pbc.data.plotting import (
 from pbc.data.reference import (
     aalborg_flume,
     bayreuth_rlc,
+    dwd_soil,
     gw150914,
     munich_bell,
     npl_sparameters,
@@ -34,6 +35,7 @@ NPL = SAMPLES_DIR / "npl-onwafer-sparameters"
 RLC = SAMPLES_DIR / "bayreuth-rlc-impedance"
 TESS = SAMPLES_DIR / "tess-exoplanet-light-curves"
 BELL = SAMPLES_DIR / "munich-bell-event-ready"
+DWD = SAMPLES_DIR / "dwd-potsdam-soil-temperature"
 
 
 @pytest.fixture(autouse=True)
@@ -160,6 +162,7 @@ def test_the_credit_line_is_wrapped_and_kept_inside_the_figure():
         (bayreuth_rlc, RLC, "processed", True),
         (tess_wasp18, TESS, "processed", True),
         (munich_bell, BELL, "processed", False),
+        (dwd_soil, DWD, "processed", True),
     ],
 )
 def test_each_reference_figure_is_made_with_the_helpers_and_has_its_dossiers_status(
@@ -179,6 +182,7 @@ def test_the_dossiers_state_the_status_of_their_figure():
         ("bayreuth-rlc-impedance", "processed"),
         ("tess-exoplanet-light-curves", "processed"),
         ("munich-bell-event-ready", "processed"),
+        ("dwd-potsdam-soil-temperature", "processed"),
     ):
         text = (root / f"{name}.md").read_text().replace("**", "")
         assert f"Status label: {status}" in text, name
