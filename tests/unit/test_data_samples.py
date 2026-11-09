@@ -5,6 +5,8 @@ dataset name. The figure tests check the physical consistency that the
 feasibility dossiers rely on, on the same samples.
 """
 
+import json
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
@@ -12,11 +14,19 @@ import pytest
 from pbc.data import SAMPLES_DIR
 from pbc.data.flume import read_elevation
 from pbc.data.gwosc import read_strain
-from pbc.data.reference import aalborg_flume, gw150914, npl_sparameters
+from pbc.data.reference import (
+    aalborg_flume,
+    bayreuth_rlc,
+    gw150914,
+    munich_bell,
+    npl_sparameters,
+)
 
 GW = SAMPLES_DIR / "gw150914-strain"
 NPL = SAMPLES_DIR / "npl-onwafer-sparameters"
 AAL = SAMPLES_DIR / "aalborg-submerged-bar"
+RLC = SAMPLES_DIR / "bayreuth-rlc-impedance"
+BELL = SAMPLES_DIR / "munich-bell-event-ready"
 
 
 def test_gw150914_sample_parses():
@@ -144,6 +154,235 @@ def test_aalborg_lab_sample_parses():
         )
 
 
+def test_bayreuth_rlc_sample_parses():
+    raw = json.loads((RLC / bayreuth_rlc.FILE).read_text())
+    # Field names: the Impedance export of the creators' MATLAB package.
+    assert tuple(raw) == bayreuth_rlc.FIELDS
+    assert raw["class_"] == "Impedance"
+    spectrum = bayreuth_rlc.load(RLC)
+    # Shapes: 81 points, Z complex.
+    assert spectrum.frequency.shape == spectrum.impedance.shape == (81,)
+    assert spectrum.impedance.dtype == np.complex128
+    for key in ("omega", "z", "z_modulus", "z_phase"):
+        assert len(raw[key]) == 81, key
+    # Cadence: one sweep, descending, 40 points per decade, 99.97 Hz to 10 kHz.
+    f = spectrum.frequency
+    assert f[0] == pytest.approx(10002.226) and f[-1] == pytest.approx(99.968163)
+    np.testing.assert_allclose(np.diff(np.log10(f)), -0.025, atol=6e-4)
+    # Units: omega is 2 pi f (rad/s from Hz), the phase is in radians, and the
+    # modulus and the strings are the same Z; ohm, by the size of the coil.
+    np.testing.assert_allclose(raw["omega"], 2 * np.pi * f, rtol=1e-12)
+    np.testing.assert_allclose(raw["z_modulus"], np.abs(spectrum.impedance))
+    np.testing.assert_allclose(raw["z_phase"], np.angle(spectrum.impedance), atol=1e-12)
+    strings = np.array([complex(z.replace("i", "j")) for z in raw["z"]])
+    np.testing.assert_allclose(strings, spectrum.impedance, atol=1e-4)
+    assert 9 < np.abs(spectrum.impedance[-1]) < 11  # the coil at 100 Hz
+    # Masks: none.
+    assert np.isfinite(spectrum.impedance).all() and np.isfinite(f).all()
+
+
+def test_the_rlc_fit_recovers_the_nominal_circuit_within_its_tolerance():
+    """The EM5 parallel circuit, C parallel to (R + jwL), describes the
+    spectrum; each value is within the 10 % factory tolerance of the record's
+    nominal one (9.7 Ohm, not the record's 9.7 mOhm), and the fit identifies
+    all three."""
+    spectrum = bayreuth_rlc.load(RLC)
+    result = bayreuth_rlc.fit(spectrum)
+    assert result.ok, result.warnings
+    for name, nominal in bayreuth_rlc.NOMINAL.items():
+        assert result.value(name) == pytest.approx(nominal, rel=0.10), name
+    expected = {"R": (9.537, 0.021), "L": (4.849, 0.007), "C": (2.1832, 0.0031)}
+    for name, (value, stderr) in expected.items():
+        i = result.names.index(name)
+        assert result.params[i] == pytest.approx(value, abs=stderr / 4), name
+        assert result.stderr[i] == pytest.approx(stderr, rel=0.1), name
+    f0, q = bayreuth_rlc.resonance(result)
+    assert f0 == pytest.approx(1546.9, abs=0.5)
+    assert q == pytest.approx(4.94, abs=0.01)
+    # Three frequencies the caption keeps apart: the highest measured |Z| is
+    # the first sample above the fit's maximum (one step of the 40-per-decade
+    # sweep away), the fit's |Z| peaks just below 1/(2 pi sqrt(LC)), and the
+    # fitted phase crosses zero lower still.
+    highest = bayreuth_rlc.measured_peak(spectrum)
+    assert highest == pytest.approx(1584.49, abs=0.01)
+    peak = bayreuth_rlc.model_peak(result)
+    assert peak == pytest.approx(1546.3, abs=0.2)
+    assert bayreuth_rlc.model_phase_zero(result) == pytest.approx(1514.9, abs=0.2)
+    below = spectrum.frequency[spectrum.frequency < peak].max()
+    assert below == pytest.approx(1496.43, abs=0.01)
+    assert np.log10(highest / below) == pytest.approx(0.025, abs=5e-4)
+    phase = np.angle(spectrum.impedance)
+    assert (
+        phase[spectrum.frequency == below][0]
+        > 0
+        > phase[spectrum.frequency == highest][0]
+    )
+    residual = bayreuth_rlc.relative_residual(spectrum, result)
+    rms = np.sqrt(np.mean(np.concatenate([residual.real, residual.imag]) ** 2))
+    assert rms == pytest.approx(0.0113, abs=0.0005)
+    assert np.abs(residual).max() < 0.05
+
+
+def test_the_rlc_band_split_is_the_sensitivity_table_of_the_dossier():
+    """Fits below and above the resonance disagree by far more than their
+    standard errors: the residuals are systematic. The dossier reports the
+    band fits as a sensitivity analysis beside the full fit, not as a bound;
+    the lower band's resonance lies 7 Hz below the full fit's."""
+    spectrum = bayreuth_rlc.load(RLC)
+    halves = bayreuth_rlc.band_split(spectrum)
+    below, above = halves["below"], halves["above"]
+    spread = {n: abs(above.value(n) - below.value(n)) for n in bayreuth_rlc.NAMES}
+    assert spread["R"] == pytest.approx(0.93, abs=0.01)
+    assert spread["L"] == pytest.approx(0.120, abs=0.002)
+    assert spread["C"] == pytest.approx(0.072, abs=0.002)
+    full = bayreuth_rlc.fit(spectrum)
+    for n in bayreuth_rlc.NAMES:
+        assert spread[n] > 10 * full.stderr[full.names.index(n)], n
+    resonances = [bayreuth_rlc.resonance(h)[0] for h in (below, above)]
+    assert resonances == pytest.approx([1539.8, 1546.1], abs=0.2)
+    assert bayreuth_rlc.resonance(full)[0] - min(resonances) > 3
+
+
+def test_a_file_that_is_not_an_impedance_export_is_refused(tmp_path):
+    path = tmp_path / "other.json"
+    path.write_text('{"class_": "Other", "f": [], "z_real": [], "z_imag": []}')
+    with pytest.raises(ValueError, match="Impedance"):
+        bayreuth_rlc.read_impedance(path)
+
+
+def test_munich_bell_sample_parses():
+    run = munich_bell.load(BELL)
+    pairs, one, two = run.pairs, run.lab_1, run.lab_2
+    # Field names: the headers of the three files, each with its delimiter
+    # (tab in the pairs file, semicolon in the lab files).
+    header = (BELL / munich_bell.PAIRS).read_text().splitlines()[0]
+    assert tuple(header.split("\t")) == munich_bell.PAIRS_FIELDS
+    for name, fields in (
+        (munich_bell.LAB_1, munich_bell.LAB_1_FIELDS),
+        (munich_bell.LAB_2, munich_bell.LAB_2_FIELDS),
+    ):
+        assert tuple((BELL / name).read_text().splitlines()[0].split(";")) == fields
+    assert "time (Unix time in ms)" in (BELL / munich_bell.README).read_text()
+    # Shapes: 10,201 valid pairs; 10,218 attempts in lab 1, 10,248 in lab 2.
+    assert len(pairs) == 10201
+    assert one.time_ms.shape == (10218,) and two.time_ms.shape == (10248,)
+    assert {s: int((pairs.state == s).sum()) for s in munich_bell.STATES} == {
+        "Psi-": 5054,
+        "Psi+": 5147,
+    }
+    # Units and coverage: Unix time in ms, 2016-04-15 14:19:57.751 UTC to
+    # 2016-04-19 07:03:43.045 UTC, 3.70 days, in time order.
+    assert pairs.time_ms[0] == 1460729997751 and pairs.time_ms[-1] == 1461049423045
+    assert (np.diff(pairs.time_ms) > 0).all()
+    assert (pairs.time_ms[-1] - pairs.time_ms[0]) / 86400e3 == pytest.approx(
+        3.697, abs=1e-3
+    )
+    # Cadence: no clock, one event per heralding; median 20.5 s between
+    # events, three pauses of 1.6 to 1.8 h (the daily maintenance).
+    gaps = np.diff(pairs.time_ms) / 1e3
+    assert np.median(gaps) == pytest.approx(20.5, abs=0.1)
+    assert ((gaps > 3600) & (gaps < 2 * 3600)).sum() == 3 and gaps.max() < 2 * 3600
+    # Settings and results are bits.
+    for bits in (pairs.a, pairs.x, pairs.b, pairs.y):
+        assert set(np.unique(bits)) == {0, 1}
+    # Masks: exclusions are in the lab files only, all for maintenance; every
+    # pair points to valid rows of both labs that agree with it, within the
+    # pairing window of 100 ms. Two valid attempts of lab 2 have no partner.
+    assert int(one.excluded.sum()) == 17 and int(two.excluded.sum()) == 45
+    assert (
+        set(one.comment[one.excluded])
+        == set(two.comment[two.excluded])
+        == {"Maintenance"}
+    )
+    assert munich_bell.pairing_problems(run) == []
+    assert len(set(pairs.line_1)) == len(set(pairs.line_2)) == len(pairs)
+    assert int((~one.excluded).sum()) == 10201 and int((~two.excluded).sum()) == 10203
+
+
+def test_the_bell_selection_reproduces_the_published_correlators_and_s():
+    """The stopping rule fixed before the run, the first 5000 events of each
+    state, gives the paper's Fig. 3 correlators and its S values to the digits
+    printed: 2.240 +- 0.047 (Psi-), 2.204 +- 0.047 (Psi+), 2.221 +- 0.033
+    pooled, 5.1, 4.3, and 6.7 standard errors above 2."""
+    pairs = munich_bell.load(BELL).pairs
+    selection = munich_bell.published_selection(pairs)
+    assert int(selection.sum()) == 10000
+    figure_3 = {
+        "Psi-": (-0.511, -0.615, 0.608, -0.507),
+        "Psi+": (-0.535, -0.603, -0.603, 0.463),
+    }
+    for state, published in figure_3.items():
+        terms = munich_bell.correlators(pairs, state, selection)
+        values = [terms[k].value for k in munich_bell.SETTINGS]
+        assert values == pytest.approx(published, abs=5e-4), state
+        assert sum(terms[k].n for k in munich_bell.SETTINGS) == 5000
+    expected = {"Psi-": (2.240, 5.1), "Psi+": (2.204, 4.3)}
+    for state, (value, sigmas) in expected.items():
+        s, err = munich_bell.chsh(pairs, state, selection)
+        assert s == pytest.approx(value, abs=5e-4) and err == pytest.approx(
+            0.047, abs=5e-4
+        )
+        assert munich_bell.significance(s, err) == pytest.approx(sigmas, abs=0.05)
+    s, err = munich_bell.chsh_pooled(pairs, selection)
+    assert s == pytest.approx(2.221, abs=5e-4) and err == pytest.approx(0.033, abs=5e-4)
+    assert munich_bell.significance(s, err) == pytest.approx(6.7, abs=0.05)
+    # The pooled S is the mean of the two states' S to rounding: each state
+    # has its own sign pattern, and the pooled correlators use them.
+    halves = [munich_bell.chsh(pairs, st, selection)[0] for st in munich_bell.STATES]
+    assert s == pytest.approx(np.mean(halves), abs=2e-3)
+
+
+def test_the_whole_bell_archive_and_the_excluded_attempts_change_s_little():
+    """The archive holds 201 events beyond the stopping rule; with them S is
+    2.2210 +- 0.0329. The 13 maintenance exclusions of lab 1 that have a
+    partner in lab 2 within 100 ms, added back, give 2.2201: the exclusion
+    does not make the violation."""
+    run = munich_bell.load(BELL)
+    s, err = munich_bell.chsh_pooled(run.pairs)
+    assert s == pytest.approx(2.2210, abs=5e-5) and err == pytest.approx(
+        0.0329, abs=5e-5
+    )
+    per_state = {st: munich_bell.chsh(run.pairs, st)[0] for st in munich_bell.STATES}
+    assert per_state == pytest.approx({"Psi-": 2.2462, "Psi+": 2.1977}, abs=5e-5)
+    excluded = munich_bell.excluded_pairs(run)
+    assert len(excluded) == 13
+    assert run.lab_1.excluded[excluded.line_1].all()
+    assert run.lab_2.excluded[excluded.line_2].all()
+    s_all, _ = munich_bell.chsh_pooled(munich_bell.combine(run.pairs, excluded))
+    assert s_all == pytest.approx(2.2201, abs=5e-5)
+    assert abs(s_all - s) < 0.1 * err
+
+
+def test_the_running_bell_s_ends_at_the_whole_state_value():
+    pairs = munich_bell.load(BELL).pairs
+    for state in munich_bell.STATES:
+        s, err = munich_bell.running_chsh(pairs, state)
+        assert s.size == int((pairs.state == state).sum()) - 39
+        assert s[-1] == pytest.approx(munich_bell.chsh(pairs, state)[0])
+        assert err[-1] == pytest.approx(munich_bell.chsh(pairs, state)[1])
+        assert np.isfinite(s).all() and (np.diff(err[100:]) < 0.01).all()
+    # The caption: from the 40th event on, S of Psi- never falls below 2, S of
+    # Psi+ once (its 160th event), and the band of Psi+ clears 2 from its
+    # 295th event on.
+    s, err = munich_bell.running_chsh(pairs, "Psi-")
+    assert (s > 2).all()
+    s, err = munich_bell.running_chsh(pairs, "Psi+")
+    n = np.arange(40, 40 + s.size)
+    assert list(n[s < 2]) == [160]
+    assert n[s - err < 2].max() == 294
+
+
+def test_a_bell_file_with_another_header_or_state_is_refused(tmp_path):
+    good = (BELL / munich_bell.PAIRS).read_text().splitlines()
+    path = tmp_path / "pairs.csv"
+    path.write_text("\n".join([good[0].replace("\t", ";"), *good[1:3]]) + "\n")
+    with pytest.raises(ValueError, match="header"):
+        munich_bell.read_pairs(path)
+    path.write_text("\n".join([good[0], good[1].replace("Psi-", "Phi+")]) + "\n")
+    with pytest.raises(ValueError, match="Bell state"):
+        munich_bell.read_pairs(path)
+
+
 def test_the_reader_of_a_flume_file_refuses_a_file_without_a_time_column(tmp_path):
     path = tmp_path / "bad.csv"
     path.write_text(",1\nx [s],surface elevation [m]\n0,0.1\n")
@@ -222,6 +461,8 @@ def test_every_panel_of_every_figure_is_titled_and_labelled():
         (gw150914, GW),
         (npl_sparameters, NPL),
         (aalborg_flume, AAL),
+        (bayreuth_rlc, RLC),
+        (munich_bell, BELL),
     ):
         figure = module.make_figure(path)
         panels = [a for a in figure.axes if a.axison and a.get_label() != "<colorbar>"]

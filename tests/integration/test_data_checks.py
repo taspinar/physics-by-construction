@@ -206,12 +206,42 @@ def test_the_repository_passes_the_dataset_check():
     assert check_repository(ROOT) == []
 
 
-def test_there_is_one_card_for_each_of_the_25_surveyed_datasets():
-    assert len(CARDS) == 25
-    decisions = {n: c["decision"]["value"] for n, c in CARDS.items()}
-    assert sorted(n for n in decisions if n in SPIKED) == sorted(SPIKED)
-    survey = [n for n, v in decisions.items() if v == "survey-only"]
-    assert len(survey) == 22 and not set(survey) & set(SPIKED)
+# The 25 datasets of the survey (Appendix A of the change request); later
+# features add cards, so the total is not fixed (Issue #418).
+SURVEYED = (
+    "aalborg-submerged-bar",
+    "alma-dsharp-disks",
+    "alma-hltau-verification",
+    "cms-2012c-25-event-display",
+    "cms-higgs-four-lepton-candidates",
+    "electron-diffraction-crystals",
+    "endgame-shocktube-schlieren",
+    "euclid-q1-cutouts",
+    "fraunhofer-microstructure-diffraction",
+    "gaia-dr3-astrometry",
+    "gw150914-strain",
+    "haidinger-interference-rings",
+    "lenslesspicam-measured-psf",
+    "nist-experimental-ir-spectra",
+    "npl-onwafer-sparameters",
+    "onchip-ir-interferograms",
+    "openpiv-sample-image-pairs",
+    "piv-cylinder-wake",
+    "rostock-piv-fluorescence",
+    "sandia-qubit-gate-set-tomography",
+    "sdo-aia-solar-uv",
+    "sdo-hmi-magnetograms",
+    "sheffield-piv-flume",
+    "tess-exoplanet-light-curves",
+    "ukaea-fair-mast-tokamak",
+)
+
+
+def test_each_of_the_25_surveyed_datasets_keeps_its_card():
+    assert len(set(SURVEYED)) == 25
+    assert set(SURVEYED) <= set(CARDS)
+    for name in SPIKED:
+        assert CARDS[name]["decision"]["value"] == "go", name
 
 
 def test_a_survey_card_does_not_claim_an_inspected_file_or_a_survey_score():
@@ -276,13 +306,21 @@ def block_network(monkeypatch):
 
 def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeypatch):
     block_network(monkeypatch)
-    from pbc.data.reference import aalborg_flume, gw150914, npl_sparameters
+    from pbc.data.reference import (
+        aalborg_flume,
+        bayreuth_rlc,
+        gw150914,
+        npl_sparameters,
+        tess_wasp18,
+    )
 
     assert check_repository(ROOT) == []
     for module, name in (
         (gw150914, "gw150914-strain"),
         (npl_sparameters, "npl-onwafer-sparameters"),
         (aalborg_flume, "aalborg-submerged-bar"),
+        (bayreuth_rlc, "bayreuth-rlc-impedance"),
+        (tess_wasp18, "tess-exoplanet-light-curves"),
     ):
         figure = module.make_figure(ROOT / "data/samples" / name)
         assert figure.axes
