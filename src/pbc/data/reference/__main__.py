@@ -19,6 +19,7 @@ MODULES = {
     "xu-damped-pendulum": "xu_pendulum",
     "sdss-balmer-spectrum": "sdss_balmer",
     "dwd-potsdam-soil-temperature": "dwd_soil",
+    "kamchatka-2025-tsunami-inputs": "kamchatka_tsunami",
 }
 
 

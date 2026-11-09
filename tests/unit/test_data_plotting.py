@@ -23,6 +23,7 @@ from pbc.data.reference import (
     bayreuth_rlc,
     dwd_soil,
     gw150914,
+    kamchatka_tsunami,
     lycopodium,
     munich_bell,
     nist_numisheet,
@@ -44,6 +45,7 @@ LYC = SAMPLES_DIR / "lycopodium-spore-diffraction"
 BW = SAMPLES_DIR / "trackpy-bulk-water"
 XU = SAMPLES_DIR / "xu-damped-pendulum"
 DWD = SAMPLES_DIR / "dwd-potsdam-soil-temperature"
+KAM = SAMPLES_DIR / "kamchatka-2025-tsunami-inputs"
 
 
 @pytest.fixture(autouse=True)
@@ -175,6 +177,7 @@ def test_the_credit_line_is_wrapped_and_kept_inside_the_figure():
         (trackpy_bulk_water, BW, "processed", True),
         (xu_pendulum, XU, "processed", True),
         (dwd_soil, DWD, "processed", True),
+        (kamchatka_tsunami, KAM, "processed", False),
     ],
 )
 def test_each_reference_figure_is_made_with_the_helpers_and_has_its_dossiers_status(
@@ -199,6 +202,7 @@ def test_the_dossiers_state_the_status_of_their_figure():
         ("trackpy-bulk-water", "processed"),
         ("xu-damped-pendulum", "processed"),
         ("dwd-potsdam-soil-temperature", "processed"),
+        ("kamchatka-2025-tsunami-inputs", "processed"),
     ):
         text = (root / f"{name}.md").read_text().replace("**", "")
         assert f"Status label: {status}" in text, name
