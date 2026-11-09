@@ -1,0 +1,264 @@
+id: nist-srm660c-lab6
+title: NIST SRM 660c lanthanum hexaboride (LaB6), the X-ray powder patterns of its certification, 20 specimens
+source:
+  url: https://data.nist.gov/od/id/mds2-2315
+  doi: 10.18434/mds2-2315
+  creator: David Black, James Cline, Marcus Mendenhall (NIST Material Measurement Laboratory, Gaithersburg, MD)
+  version: NIST record mds2-2315 (ark:/88434/mds2-2315), version 1.0.1 ('metadata update'), data of 2020-10-29;
+    supplement to Black et al., Powder Diffraction 35 (2020) 17-22, doi 10.1017/S0885715620000068; certificate
+    of SRM 660c, issue date 29 October 2015
+  accessed: &accessed 2026-11-09
+rights:
+  licence: equivalent-permission
+  local_download:
+    answer: permitted
+    source: 'The record https://data.nist.gov/od/id/mds2-2315 (metadata field license https://www.nist.gov/open/license,
+      accessLevel public), read 2026-11-09; https://www.nist.gov/open/license, section ''Fair Use of Other
+      NIST Data/Works'': NIST data are not subject to copyright in the United States (17 U.S.C. 105),
+      and abroad NIST grants ''the non-exclusive irrevocable and unconditional right to print, publish,
+      prepare derivative works and distribute the NIST data, in any medium'''
+  redistribution_of_subsets:
+    answer: permitted
+    source: 'https://www.nist.gov/open/license, section ''Fair Use of Other NIST Data/Works'', read 2026-11-09:
+      ''You may improve, modify, and create derivative works of the data or any portion of the data, and
+      you may copy and distribute such modifications or works'''
+  publication_of_figures:
+    answer: permitted
+    source: 'https://www.nist.gov/open/license, section ''Fair Use of Other NIST Data/Works'', read 2026-11-09:
+      the right to ''print, publish, prepare derivative works and distribute the NIST data, in any medium'''
+  modification_and_attribution:
+    answer: permitted
+    source: 'https://www.nist.gov/open/license, section ''Fair Use of Other NIST Data/Works'', read 2026-11-09:
+      modified works ''should carry a notice stating that you changed the data and should note the date
+      and nature of any such change''; NIST is to be acknowledged explicitly as the source'
+  attribution: 'Data: National Institute of Standards and Technology (NIST); Black, D., Cline, J., Mendenhall,
+    M., ''Diffraction Data for SRM 660c'', version 1.0.1, doi 10.18434/mds2-2315. The 20 CIFs converted
+    to CSV on 2026-11-09 (the measured pattern and NIST''s calculated intensity, tokens unchanged; the
+    weight column of the calculated pattern not carried). This data/work was created by employees of
+    NIST and is not subject to copyright protection in the United States (17 U.S.C. 105); it may be subject
+    to foreign copyright. Provided by NIST ''AS IS'', without warranty.'
+artifacts:
+- name: srm_660c_cifs_20201029_081700.zip, its 20 CIFs, blocks pd_proc_..._meas
+  type: processed-measured
+  description: 'The measured powder patterns that certified SRM 660c (per the CIF: "exactly the raw data
+    sets used for certification"): NIST divergent-beam diffractometer, Cu K-alpha, post-specimen graphite
+    analyzer, scintillation point detector, Bragg-Brentano, goniometer radius 217.5 mm. 24 scan windows
+    per specimen, one per reflection from 100 to 511. Processed by NIST: 2theta is the item _pd_proc_2theta_corrected
+    (the correction is not explained) and the counts are adaptively rebinned and given as counts over counting
+    time with Poisson weights.'
+- name: srm_660c_cifs_20201029_081700.zip, its 20 CIFs, blocks pd_proc_..._calc
+  type: modelled-reference
+  description: 'NIST''s fundamental-parameters model of each measured pattern on the same 2theta grid,
+    with re-refined instrument parameters (per the CIF: "not the fits actually used in certification ...
+    but give essentially the same results"), and its refined lattice parameter _cell_length_a. Not a measurement.'
+- name: 660c_<specimen>.csv (20 files), specimens.csv
+  type: processed-measured
+  description: 'The committed samples: per specimen every row of the measured block (two_theta, intensity,
+    weight) and the calculated intensity (calc_intensity, a modelled-reference column), converted by tools/datasets/srm660c_cif_to_csv.py
+    with every token unchanged; specimens.csv holds the per-specimen items of the CIFs. The peak fits, the
+    Nelson-Riley extrapolation, and the same analysis of NIST''s model are computed by pbc.data.reference.srm660c
+    and are not part of the record.'
+calibration: 'The lattice parameter rests on the Cu K-alpha-1 wavelength 0.15405929 nm of the certificate''s
+  Table 1 (its analysis used the Cu K-alpha spectrum of Hoelzer et al. 1997); the CIFs name the radiation (Cu K-alpha) but carry no wavelength. The
+  material is itself the calibrant: certified a = 0.4156826 nm +- 0.000008 nm (k = 2, Type B dominated)
+  at 22.5 degC, traceable to the SI metre through the Cu K-alpha emission spectrum (certificate). The CIFs
+  give the specimen temperature 20.85 degC and NIST''s re-refined a per specimen (4.156778 to 4.156802
+  angstrom, mean 4.156789); the certificate adjusts to 22.5 degC with the thermal expansion of Sirota et
+  al. (1998) but states no coefficient. The vertical specimen displacement is a refined item per CIF (-0.040
+  to -0.136 mm); it is not removed from the 2theta values (the slope of each Nelson-Riley line follows it,
+  correlation 0.9996).'
+schema: 'Per specimen CSV: three comment lines (the zip and its sha256, the CIF member and its sha256,
+  the conversion, the units), the header two_theta,intensity,weight,calc_intensity, and 5,332 rows. specimens.csv:
+  two comment lines, the header specimen,temperature_c,vertical_displacement_mm,cell_length_a_angstrom,points,
+  20 rows. Source: per CIF the data blocks diffrn_radiation, diffrn_detector, citation, cell_LaB6_660c,
+  pd_spec_<id>, pd_instr_<id>, pd_proc_<id>_meas and pd_proc_<id>_calc, the last two a loop of
+  _pd_proc_2theta_corrected, _pd_proc_intensity_total, _pd_proc_ls_weight on the same 2theta grid.'
+units: 'two_theta in degrees (CIF dictionary); intensity counts divided by the counting time, whose unit
+  the CIF does not state; weight 1/sigma^2 of intensity, sigma^2 = (N + 1)/tau^2 for N counts in a counting
+  time tau (the CIF''s citation of Mendenhall et al. 2018); the weights imply tau from 1 to 49 per point.
+  calc_intensity in the units of intensity. temperature_c in degC, vertical_displacement_mm in mm, cell_length_a_angstrom
+  in angstrom (CIF dictionary).'
+cadence: 'No time axis. Per specimen 24 scan windows between 20.3 and 150.908 degrees 2theta, each 1.5
+  to 3.5 degrees wide around one reflection, with steps of 0.008 to 0.016 degrees within a window (wider
+  at high angle) and gaps between windows; 171 to 276 points per window, 5,332 in all. The grids of the
+  specimens differ slightly (adaptive rebinning).'
+coordinates: 'Bragg-Brentano geometry, diffraction angle 2theta; the reflections indexed hkl of the cubic
+  primitive lattice Pm-3m (LaB6), in the order of the certificate''s Table 1.'
+masks: 'None in the record; every value is a number, every weight positive, no intensity negative. The
+  analysis uses all points of each window; the Nelson-Riley extrapolation uses the 18 reflections above
+  2theta = 60 degrees (the six below carry the axial-divergence asymmetry most, and are shown but not fitted).'
+uncertainty: 'Per point: the Poisson weight of the record. Certified a: U = 0.000008 nm (k = 2), Type
+  B dominated; the certificate''s Type A expanded uncertainty is 0.00000037 nm. Derived (dossier): the
+  peak positions of the simple doublet fit have standard errors of 6.5e-6 to 1.6e-5 angstrom in a; the
+  Nelson-Riley intercept is 4.156485 angstrom, SD 0.000014 over the 20 specimens, standard error of the
+  mean 0.0000030 (repeatability, Type A). The same method on NIST''s model gives 4.156480: the method''s
+  bias is -74 ppm, so the simple analysis does not reach the certified value within U (-82 ppm, 4.3 U,
+  before any temperature adjustment); measured minus model by the same method is +1.1 ppm. The method''s
+  bias is the dominant uncertainty of a simple-fit lab, and it is measured here, not estimated.'
+size:
+  description: 'Record: the zip 1,719,632 bytes (20 CIFs of 433,012 to 433,026 bytes and a __MACOSX
+    folder) and its checksum file. Committed: 21 files, 2,964,966 bytes (20 per-specimen CSVs of 148,017
+    to 148,369 bytes and specimens.csv of 1,112 bytes).'
+format: CIF (IUCr Crystallographic Information File) in a zip; the committed samples are CSV.
+reader: 'CIF: converted once, outside the build, by tools/datasets/srm660c_cif_to_csv.py (standard library
+  only; input sha256 92034d06498161db365420831fe35d91ec18bad4ed17385329a1761658da2c42 of the zip pinned
+  in the script, the sha256 of each member in the first line of its CSV; output sha256 per file under
+  samples). CSV: pbc.data.reference.srm660c.read_pattern and read_specimens (NumPy). No new dependency.'
+downloads:
+- url: https://data.nist.gov/od/ds/mds2-2315/srm_660c_cifs_20201029_081700.zip
+  filename: srm_660c_cifs_20201029_081700.zip
+  algorithm: sha256
+  digest: 92034d06498161db365420831fe35d91ec18bad4ed17385329a1761658da2c42
+  digest_source: published by NIST (the record's component list and srm_660c_cifs_20201029_081700.zip.sha256),
+    confirmed on the download of 2026-11-09 (1,719,632 bytes)
+samples:
+- path: 660c_100a.csv
+  sha256: 3e76b1fe8070b66b20a05db9512e89db58ec6870c13dc00d844ab3bb5d5b1edf
+  bytes: 148249
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_100a.cif (sha256
+    0cad5db7735655e2f816ffdcecf04a2a1a9b912a23d323e78627812c15f98561) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_100b.csv
+  sha256: 95125b9aea67b4d00023791e8962ffc5d46ff9fe0a5cee28675a4f2a1b4ac13a
+  bytes: 148158
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_100b.cif (sha256
+    683df97b7de49f96989cb4fd3de7a57d129aafd26adff8417dfe782bfb568487) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_200a.csv
+  sha256: 259ecf5c17452ee4339e682273be10992c2a0aa2be8469e39ab105785983dd80
+  bytes: 148311
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_200a.cif (sha256
+    2644f5e4e21ed6c7af01c9aaa449e3ac294224fe55fa299032c3d211798e7dfc) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_200b.csv
+  sha256: c444ade00702c4f71c212bee985e9534b0e552b8f328448b5a34ee3699b30905
+  bytes: 148106
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_200b.cif (sha256
+    3fcb8b8af09ba1c0656f26582dd950d0a23f9f9650a86da9f98356c22f29ace3) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_300a.csv
+  sha256: dd558a6cb96a09fb8818ba9014c6f5da934079f7a3d5537e6c0dfe3832e5e072
+  bytes: 148247
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_300a.cif (sha256
+    806dc5a5204b25965c9a1bc54ca4dbdbe91f005d50e634ff4e43e698b2de0097) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_300b.csv
+  sha256: 7a5f84e430cb17605b512a70d6891fe322b056f0964038f95d846f42f2972718
+  bytes: 148369
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_300b.cif (sha256
+    7b1e7cedb81772b5b0bad23198bd87c2f7013048f660b599682c7b9605793ee0) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_400a.csv
+  sha256: 335b3eeab57170c66bc749feb486252c085fedb6c8ebee19fc960329bb4860f2
+  bytes: 148228
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_400a.cif (sha256
+    5207bb24bc2891c39271fc9dadf77637391b4c0b72fb58458ec7bed27d5a7f54) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_400b.csv
+  sha256: cf3c42e925d1f95af4d91661738f5a68b9d9bc1ffc5496c83fabe6c33cf31369
+  bytes: 148217
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_400b.cif (sha256
+    8e3ffb02267470cc4186f1b9507dac2223bf9fbaeea5337153d3840ab51bdcbe) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_500a.csv
+  sha256: 13a064a4c22e1071de3ec6670fb3a07f99c28887fa75d64e82db1dcf1a3d8e15
+  bytes: 148240
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_500a.cif (sha256
+    8c11040e89782a810ad229917fe0261c8333a5415750e42a8bfdaace86ed83cb) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_500b.csv
+  sha256: a0ffb8b31ed6d81b0e16d0d0bada20ba262877aeb4e7c87d98acaee15e9c116b
+  bytes: 148248
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_500b.cif (sha256
+    1cda0c19778125dbb1149a43e028e2271fde3161e1832d71653c947d61017849) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_600a.csv
+  sha256: 5f5079ee196f3539b111c90eab99b61224c36a4b8a96a7ba9e97e1662402f540
+  bytes: 148242
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_600a.cif (sha256
+    72cae85376d329dc61fae547decfe8841c4a4bbcd0618ff685e966be70113b30) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_600b.csv
+  sha256: a069b83c64638ad31d1d06f241ed1f412125c723f7761aeda9b7cf054f167320
+  bytes: 148147
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_600b.cif (sha256
+    3875c9268beaaf28f54bc0492b802a956dc23391e03a843bef625aad6f2fe562) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_700a.csv
+  sha256: 9117a9677b995f5232d7e548388f9869dc7e5cca8cff6cfafa02130548639de6
+  bytes: 148190
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_700a.cif (sha256
+    7c52bc3fed7f23095a7642a56512579f11328f832f2e484855056c69dfe39047) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_700b.csv
+  sha256: f1584fb053ac73cfb6550b2d879b9e7f08e05a80848944cb0f478d5b1b8ebfff
+  bytes: 148115
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_700b.cif (sha256
+    00719aa0b9a7775c425fb1f90da6880be889da714aa3b73d887c6ecfa1d5f566) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_800a.csv
+  sha256: 4a58701ed814c74da3a23ff63d5916c35830e19668a7605f74b6713017cfa9c4
+  bytes: 148104
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_800a.cif (sha256
+    8e830f9daf5e2414e4321e3269068a355991ee3220350d8dc0363f93ea771c67) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_800b.csv
+  sha256: 4592f09a3d70f6ba41d5400ded5590dc5e89c2dbc4e57994d58ceb6d05814e93
+  bytes: 148184
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_800b.cif (sha256
+    e699b2cfaabd5335b8bd5716feb64156894e3b3fc0b3a28489b62ca070938997) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_900a.csv
+  sha256: b4160b065acb35a5dca898e206f62e294ca29f226650f9bd462f162b611d3302
+  bytes: 148121
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_900a.cif (sha256
+    1364fd60ab75ca0d4235ee83e28ba6a369a74b27c6342ddd79f19f3f1e10ed83) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_900b.csv
+  sha256: 57cf47a7d71bdd385e0d555f51e89cc631cff006ffb22aa7520e84a5f9f63495
+  bytes: 148155
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_900b.cif (sha256
+    e251aecbfafb891fe1fe2e4615e29a3a8c029d44879d243b8f0c9635bce70632) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_1000a.csv
+  sha256: 95d07969e856b5d33d82a11d9534d2f3ff1362697868b635d9e2f57e31e3e5ab
+  bytes: 148017
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_1000a.cif (sha256
+    991b713810cb8f004492128b152090255f1e2f0daec709f88258cc907afbeaf1) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: 660c_1000b.csv
+  sha256: eb53364d32901c0227df5bbae3758aacddc431ecea1b0aa6ca1590c64ccb6c72
+  bytes: 148206
+  derivation: tools/datasets/srm660c_cif_to_csv.py on member 660_cert_cif_mosaic_consensus_1000b.cif (sha256
+    e976f5cf1ef259d8a517964874464862b902d20ec3b5617505530893763b2dd6) of the zip; every row of the blocks _meas and _calc, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+- path: specimens.csv
+  sha256: c31f630ba79db1bdbc26fcb1eef0052d3520c4fdcb81122a7915a8c593f2702c
+  bytes: 1112
+  derivation: tools/datasets/srm660c_cif_to_csv.py on the zip; per CIF the items _pd_spec_temperature,
+    _pd_spec_vertical_displacement_mm, _cell_length_a, _pd_proc_number_of_points, tokens unchanged
+  test: tests/unit/test_data_srm660c.py::test_srm660c_sample_parses
+estimates:
+  runtime: Reference figure about 9 s with the interpreter start (40 patterns of 24 windows fitted).
+  memory: About 170 MB peak resident for the figure.
+  page_payload: 2.96 MB committed, read at build time and not shipped; a figure PNG of about 410 KB.
+  ci: 'Offline: 21 committed files.'
+decision:
+  value: go
+  date: *accessed
+  reasons:
+  - 'Real file inspected: the zip of the record, sha256 equal to NIST''s; its 20 CIFs converted to CSV by a
+    pinned script with every token unchanged, checked against a second, independent parse.'
+  - 'Bragg''s law with the certificate''s Cu K-alpha-1 wavelength indexes all 24 windows (fitted positions
+    within 0.04 degrees of the certificate''s Table 1) and gives a = 4.156485 angstrom, SD 0.000014 over
+    20 specimens, by a doublet fit and a Nelson-Riley extrapolation that a course can repeat.'
+  - 'Calibration and its limit stated and measured: the certified a (0.4156826 nm +- 0.000008 nm, k = 2,
+    22.5 degC) is the calibration; the simple method misses it by -82 ppm, and the same method applied
+    to NIST''s own model pattern misses NIST''s refined a by -74 ppm, so the gap is the method''s (a symmetric
+    profile for an asymmetric instrument profile), not the data''s: measured minus model by the same method
+    is +1.1 ppm.'
+  - NIST data under https://www.nist.gov/open/license (Fair Use of Other NIST Data/Works); local download,
+    subsets, figures, and modification permitted with acknowledgement and a notice of change.
+  - 'Recorded by F106 (Issue #443) under the owner''s approval of 2026-11-09 on the Issue: work towards a
+    go, judged per dossier, with every requirement of ADR 007 checked in the dossier.'
+dossier: docs/datasets/nist-srm660c-lab6.md

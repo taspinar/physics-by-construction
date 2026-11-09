@@ -31,6 +31,8 @@ from pbc.data.reference import (
     nist_numisheet,
     npl_sparameters,
     ost_hotwire,
+    sdss_balmer,
+    srm660c,
     tess_wasp18,
     trackpy_bulk_water,
     tudelft_boundary_layer,
@@ -51,6 +53,8 @@ XU = SAMPLES_DIR / "xu-damped-pendulum"
 DWD = SAMPLES_DIR / "dwd-potsdam-soil-temperature"
 TBL = SAMPLES_DIR / "tudelft-turbulent-boundary-layer"
 GFH = SAMPLES_DIR / "grazing-flow-hwa-benchmark"
+SDSS = SAMPLES_DIR / "sdss-balmer-spectrum"
+LAB6 = SAMPLES_DIR / "nist-srm660c-lab6"
 KAM = SAMPLES_DIR / "kamchatka-2025-tsunami-inputs"
 PIV = SAMPLES_DIR / "piv-cylinder-wake"
 OST = SAMPLES_DIR / "ost-hotwire-cylinder-wakes"
@@ -187,6 +191,8 @@ def test_the_credit_line_is_wrapped_and_kept_inside_the_figure():
         (dwd_soil, DWD, "processed", True),
         (tudelft_boundary_layer, TBL, "processed", False),
         (grazing_flow_hwa, GFH, "processed", False),
+        (sdss_balmer, SDSS, "processed", True),
+        (srm660c, LAB6, "processed", True),
         (kamchatka_tsunami, KAM, "processed", False),
         (cylinder_wake, PIV, "processed", False),
         (ost_hotwire, OST, "processed", False),
@@ -216,6 +222,8 @@ def test_the_dossiers_state_the_status_of_their_figure():
         ("dwd-potsdam-soil-temperature", "processed"),
         ("tudelft-turbulent-boundary-layer", "processed"),
         ("grazing-flow-hwa-benchmark", "processed"),
+        ("sdss-balmer-spectrum", "processed"),
+        ("nist-srm660c-lab6", "processed"),
         ("kamchatka-2025-tsunami-inputs", "processed"),
         ("piv-cylinder-wake", "processed"),
         ("ost-hotwire-cylinder-wakes", "processed"),
