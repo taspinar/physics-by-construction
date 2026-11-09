@@ -1,0 +1,133 @@
+id: nist-numisheet-dp980
+title: NIST Numisheet 2020 DP980 sheet steel, tension, compression, tension again (test R01)
+source:
+  url: https://data.nist.gov/od/id/mds2-2202
+  doi: 10.18434/M32202
+  creator: William E. Luecke, Evan Rust, Mark A. Iadicola (NIST Center for Automotive Lightweighting,
+    Gaithersburg, MD)
+  version: NIST record mds2-2202 (ark:/88434/mds2-2202), version 1.2.0 ('data update'), first issued 2020-04-14
+  accessed: &accessed 2026-11-08
+rights:
+  licence: equivalent-permission
+  local_download:
+    answer: permitted
+    source: 'The record https://data.nist.gov/od/id/mds2-2202 (metadata field license https://www.nist.gov/open/license,
+      accessLevel public), read 2026-11-08; https://www.nist.gov/open/license, section ''Fair Use of Other
+      NIST Data/Works'': NIST data are not subject to copyright in the United States (17 U.S.C. 105),
+      and abroad NIST grants ''the non-exclusive irrevocable and unconditional right to print, publish,
+      prepare derivative works and distribute the NIST data, in any medium'''
+  redistribution_of_subsets:
+    answer: permitted
+    source: 'https://www.nist.gov/open/license, section ''Fair Use of Other NIST Data/Works'', read 2026-11-08:
+      ''You may improve, modify, and create derivative works of the data or any portion of the data, and
+      you may copy and distribute such modifications or works'''
+  publication_of_figures:
+    answer: permitted
+    source: 'https://www.nist.gov/open/license, section ''Fair Use of Other NIST Data/Works'', read 2026-11-08:
+      the right to ''print, publish, prepare derivative works and distribute the NIST data, in any medium'''
+  modification_and_attribution:
+    answer: permitted
+    source: 'https://www.nist.gov/open/license, section ''Fair Use of Other NIST Data/Works'', read 2026-11-08:
+      modified works ''should carry a notice stating that you changed the data and should note the date
+      and nature of any such change''; NIST is to be acknowledged explicitly as the source'
+  attribution: 'Data: National Institute of Standards and Technology (NIST); Luecke, W. E., Rust, E., Iadicola,
+    M. A., ''Data for Numisheet 2020 uniaxial tensile and tension/compression tests'', version 1.2.0,
+    doi 10.18434/M32202; file C00FeDP980Numisheet2020R01T1.424W17.93-S-Stress-Strain.csv and its attributes
+    file, unmodified. This data/work was created by employees of NIST and is not subject to copyright protection
+    in the United States (17 U.S.C. 105); it may be subject to foreign copyright. Provided by NIST ''AS
+    IS'', without warranty.'
+artifacts:
+- name: C00FeDP980Numisheet2020R01T1.424W17.93-S-Stress-Strain.csv
+  type: processed-measured
+  description: 'Time, engineering strain and stress, true strain and stress of test R01 (DP980, 0 degrees
+    to rolling, 1.424 x 17.93 mm). Stress is the mean force of the upper and lower load cells over the
+    original area; strain is a virtual extensometer of 23.6 mm gauge length from stereo DIC on the edge
+    of the specimen (Correlated Solutions Vic-3D). The true columns are NIST''s ln(1 + e) and S (1 + e),
+    valid only while the strain is uniform. NIST: the stress-strain curves are ''provided for reference
+    only''. The elastic fit, the 0.2 % offset line, the loop area and the unloading chord are computed
+    by pbc.data.reference.nist_numisheet, are not part of the record, and are drawn apart from the measurement.'
+- name: C00FeDP980Numisheet2020R01T1.424W17.93-S-Stress-Strain-attributes.csv
+  type: processed-measured
+  description: NIST's companion file naming the five columns, their units (s, MPa, mm/mm) and descriptions.
+calibration: 'Not given as numbers. The report (2020-03-Numisheet2020-tension-compression-summary-final.pdf
+  in the record) states the machine alignment met ASTM E1012 Class 5, the protocol and the anti-buckling
+  fixture qualify for sheet compression testing under ASTM E9, the DIC stereo calibrations had a stereo
+  angle of 22.495 +- 0.005 degrees, and the image scale was 52.6 pixel/mm. It gives no load-cell calibration
+  and no extensometer verification. No correction is applied here.'
+schema: 'CSV, one header row "Time","Estrain","Estress","Tstrain","Tstress", then 1,607 rows of five numbers;
+  the attributes file has the columns Variable, Units, Type, Description, AxisLabel.'
+units: 'From the attributes file: Time in s, Estress and Tstress in MPa, Estrain and Tstrain in mm/mm.
+  Checked: Tstrain = ln(1 + Estrain) to 5e-16 and Tstress = Estress (1 + Estrain) to 5e-12 (equations
+  5 and 6 of the report); tensile stress and strain are positive.'
+cadence: 'One row per DIC image pair: 0.25 s apart from 0 to 62.85 s, then 1 s (three gaps of 1.25 to
+  1.33 s) to 1418.0168 s, the last row; the report states 4 images/s initially and 1 image/s after yield. 1,607 rows.'
+coordinates: 'Uniaxial: y along the tensile axis, the 0-degree (rolling) direction of the sheet; the virtual
+  extensometer is centred on the reduced parallel length to within 0.5 mm. Time from the start of image
+  acquisition; tested at NCAL between October 2019 and January 2020 (the date of R01 is not in the file).'
+masks: 'None: every value finite, no gap marker. The first 10 rows (0 to 2.35 s) precede the force ramp
+  (|S| < 1 MPa) and are kept.'
+uncertainty: 'None per point in the record. The record states the noise floor of the local DIC strain
+  (263 um/m for R01, over a 0.86 mm virtual gauge) and that the two load cells typically differ by less
+  than 300 N (half of it, 150 N, is 5.9 MPa over the 25.5 mm^2 section). Derived (dossier): the extensometer
+  strain scatters 25 um/m (sd) before the ramp; E = 196.3 +- 1.1 GPa (standard error from the scatter,
+  window 100-400 MPa, residual rms 4.4 MPa, the same as 25 um/m times E); over the stress windows 50-300,
+  100-300, 100-400 and 150-450 MPa, E ranges from 192.5 to 198.4 GPa, a sensitivity of the fit to the
+  window, not a bound on calibration error. Only R01 was inspected, so the repeatability between the
+  three repeats is not known here; the load-cell and dimension calibrations are not documented.'
+size:
+  description: Two files, 131,777 bytes and 265 bytes (the record holds 239 files, mostly multi-MB DIC
+    strain profiles); the sample is those two files.
+format: CSV (plain text)
+reader: pbc.data.reference.nist_numisheet.read_stress_strain and read_attributes (the csv module of the
+  standard library and NumPy); no new dependency.
+downloads:
+- url: https://data.nist.gov/od/ds/ark:/88434/mds2-2202/TensionCompression/C00FeDP980Numisheet2020R01T1.424W17.93-S-Stress-Strain.csv
+  filename: C00FeDP980Numisheet2020R01T1.424W17.93-S-Stress-Strain.csv
+  algorithm: sha256
+  digest: 76105d4bfa640ca6502f0d44e5cb3f2edd2a9e1b3f41ec6fa7071bc7a65a68a3
+  digest_source: published by NIST in the record's component list (and its .sha256 file), read 2026-11-08
+    and confirmed against the downloaded file
+- url: https://data.nist.gov/od/ds/ark:/88434/mds2-2202/TensionCompression/C00FeDP980Numisheet2020R01T1.424W17.93-S-Stress-Strain-attributes.csv
+  filename: C00FeDP980Numisheet2020R01T1.424W17.93-S-Stress-Strain-attributes.csv
+  algorithm: sha256
+  digest: dbbcffe3100df64f2dd799edcd08ccb29369255ff5ebe03cca6aec30ad77256a
+  digest_source: published by NIST in the record's component list, read 2026-11-08 and confirmed against
+    the downloaded file
+samples:
+- path: C00FeDP980Numisheet2020R01T1.424W17.93-S-Stress-Strain.csv
+  sha256: 76105d4bfa640ca6502f0d44e5cb3f2edd2a9e1b3f41ec6fa7071bc7a65a68a3
+  bytes: 131777
+  derivation: the record's file, copied byte for byte
+  test: tests/unit/test_data_samples.py::test_nist_numisheet_sample_parses
+- path: C00FeDP980Numisheet2020R01T1.424W17.93-S-Stress-Strain-attributes.csv
+  sha256: dbbcffe3100df64f2dd799edcd08ccb29369255ff5ebe03cca6aec30ad77256a
+  bytes: 265
+  derivation: the record's file, copied byte for byte
+  test: tests/unit/test_data_samples.py::test_nist_numisheet_sample_parses
+estimates:
+  runtime: 'Reference figure: about 2 s with the interpreter start on a warm machine (14 s on a cold first
+    run).'
+  memory: About 160 MB peak resident for the figure.
+  page_payload: 132 KB committed; a figure PNG of about 220 KB.
+  ci: 'Offline: two committed files.'
+decision:
+  value: go
+  date: *accessed
+  reasons:
+  - 'Real file inspected: 1,607 rows over 0 to 1418.0168 s, five finite columns, units from the attributes
+    file and checked against the true-stress and true-strain formulas; sha256 equals the record''s.'
+  - 'The test reverses the load: tension to the stress maximum, 991 MPa at e = 0.0575, a hold that ends
+    at e = 0.0579 (970 MPa), compression to -1007 MPa at e = -0.0004, tension to fracture at e = 0.177;
+    the hysteresis loop from the stress maximum back to its strain, closed by a straight segment, encloses
+    75.8 MJ/m^3 (the closed integral of S de, positive for its clockwise path).'
+  - 'Elastic regime and yield from source-controlled code: E = 196.3 +- 1.1 GPa (192.5 to 198.4 GPa over
+    four fit windows), 0.2 % offset yield 775 MPa; the unloading chord, 144 GPa, shows the Bauschinger
+    effect.'
+  - Uncertainty derived from the extensometer scatter and the fit, because the record gives none per
+    point; the stated DIC noise floor and load-cell difference are quoted; calibration documented only
+    qualitatively (ASTM E1012 Class 5, ASTM E9) and stated so.
+  - NIST data are US-government work (17 U.S.C. 105) with NIST's worldwide grant to print, publish, modify
+    and distribute, recorded as equivalent permission under ADR 007 decision 4.
+  - 'Recorded by F107 (Issue #421) under the owner''s decision of 2026-11-08 on the Issue: work towards
+    a go on the strength of the research, with every requirement of ADR 007 checked in the dossier.'
+dossier: docs/datasets/nist-numisheet-dp980.md
