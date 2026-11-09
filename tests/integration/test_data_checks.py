@@ -310,12 +310,14 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
         aalborg_flume,
         bayreuth_rlc,
         dwd_soil,
+        grazing_flow_hwa,
         gw150914,
         lycopodium,
         nist_numisheet,
         npl_sparameters,
         tess_wasp18,
         trackpy_bulk_water,
+        tudelft_boundary_layer,
         xu_pendulum,
     )
 
@@ -331,6 +333,8 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
         (trackpy_bulk_water, "trackpy-bulk-water"),
         (xu_pendulum, "xu-damped-pendulum"),
         (dwd_soil, "dwd-potsdam-soil-temperature"),
+        (tudelft_boundary_layer, "tudelft-turbulent-boundary-layer"),
+        (grazing_flow_hwa, "grazing-flow-hwa-benchmark"),
     ):
         figure = module.make_figure(ROOT / "data/samples" / name)
         assert figure.axes

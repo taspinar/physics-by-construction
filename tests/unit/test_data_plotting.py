@@ -22,6 +22,7 @@ from pbc.data.reference import (
     aalborg_flume,
     bayreuth_rlc,
     dwd_soil,
+    grazing_flow_hwa,
     gw150914,
     lycopodium,
     munich_bell,
@@ -29,6 +30,7 @@ from pbc.data.reference import (
     npl_sparameters,
     tess_wasp18,
     trackpy_bulk_water,
+    tudelft_boundary_layer,
     xu_pendulum,
 )
 from pbc.data.series import Series
@@ -44,6 +46,8 @@ LYC = SAMPLES_DIR / "lycopodium-spore-diffraction"
 BW = SAMPLES_DIR / "trackpy-bulk-water"
 XU = SAMPLES_DIR / "xu-damped-pendulum"
 DWD = SAMPLES_DIR / "dwd-potsdam-soil-temperature"
+TBL = SAMPLES_DIR / "tudelft-turbulent-boundary-layer"
+GFH = SAMPLES_DIR / "grazing-flow-hwa-benchmark"
 
 
 @pytest.fixture(autouse=True)
@@ -175,6 +179,8 @@ def test_the_credit_line_is_wrapped_and_kept_inside_the_figure():
         (trackpy_bulk_water, BW, "processed", True),
         (xu_pendulum, XU, "processed", True),
         (dwd_soil, DWD, "processed", True),
+        (tudelft_boundary_layer, TBL, "processed", False),
+        (grazing_flow_hwa, GFH, "processed", False),
     ],
 )
 def test_each_reference_figure_is_made_with_the_helpers_and_has_its_dossiers_status(
@@ -199,6 +205,8 @@ def test_the_dossiers_state_the_status_of_their_figure():
         ("trackpy-bulk-water", "processed"),
         ("xu-damped-pendulum", "processed"),
         ("dwd-potsdam-soil-temperature", "processed"),
+        ("tudelft-turbulent-boundary-layer", "processed"),
+        ("grazing-flow-hwa-benchmark", "processed"),
     ):
         text = (root / f"{name}.md").read_text().replace("**", "")
         assert f"Status label: {status}" in text, name

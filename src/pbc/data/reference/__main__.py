@@ -19,6 +19,8 @@ MODULES = {
     "xu-damped-pendulum": "xu_pendulum",
     "sdss-balmer-spectrum": "sdss_balmer",
     "dwd-potsdam-soil-temperature": "dwd_soil",
+    "tudelft-turbulent-boundary-layer": "tudelft_boundary_layer",
+    "grazing-flow-hwa-benchmark": "grazing_flow_hwa",
 }
 
 
