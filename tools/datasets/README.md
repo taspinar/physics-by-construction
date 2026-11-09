@@ -15,7 +15,7 @@ themselves.
 | `lycopodium_morphometry_to_utf8.py` | `lycopodium-spore-diffraction` | `Lycopodium_Morphometry_x160.csv` (`03648277f9fda3d561a8fbab048133e72333877feec65e103159a1baeb08d7dc`); `Lycopodium_Morphometry_x80.csv` (`eb6a0c5c922add8b3f962b00374b6f52bfca2297bf4f45d5617c0aff5ca1644d`), Latin-1 | the same names, UTF-8 (`c72892f18b6d4250c195e43aab6d9b71b831b9e24a540d7d721faeb4dedf2fcc`; `3676fe56f4d5c1e96693687f415f6b64d829717359c3eed602e524d1805dfe53`) |
 | `srm660c_cif_to_csv.py` | `nist-srm660c-lab6` | `srm_660c_cifs_20201029_081700.zip` (`92034d06498161db365420831fe35d91ec18bad4ed17385329a1761658da2c42`), its 20 CIFs | `660c_100a.csv` to `660c_1000b.csv` and `specimens.csv` (the 21 sha256 on the card) |
 | `bulk_water_tracks.py` | `trackpy-bulk-water` | `bulk_water_000.png` to `bulk_water_039.png` (the 40 sha256 in the script and on the card) | `bulk_water_tracks.csv` (`e676e8bb6ab18a48c789dfc0444bf0a716ae13b3548d75d32f03c3b74d88d586`), `bulk_water_green_000-002.npy` (`2e0c8355f5426c1fc23a23da8bc6f3a215747a8eee65faf5f16cf7d320feb6b7`) |
-| `sdss_spec_to_csv.py` | `sdss-balmer-spectrum` | `spec-1949-53433-0480.fits` (`0f9aa3f5f187dde1fb42e6b58ab9b428e48a2d45f73e7254d954f48121a6a813`) | `spec-1949-53433-0480.csv` (`90dff68b9df582a8deba83f21f0eefbd510d00866481c875abf4202ebdb1b163`), not committed: the decision is `defer` |
+| `sdss_spec_to_csv.py` | `sdss-balmer-spectrum` | `spec-1949-53433-0480.fits` (`0f9aa3f5f187dde1fb42e6b58ab9b428e48a2d45f73e7254d954f48121a6a813`) | `spec-1949-53433-0480.csv` (`90dff68b9df582a8deba83f21f0eefbd510d00866481c875abf4202ebdb1b163`) |
 | `etopo_ascii_to_npy.py` | `kamchatka-2025-tsunami-inputs` | `etopo2022_60s_bed_35N60N_140E180E_stride4.txt`, the OPeNDAP ASCII response (`454b00a5aaaaf4406523e1f39fc38dbd40ea3c6799d5cde209d25b75701bf198`; its parsed array `8bd4f1e5c02b1a39c7706cf6b1c76771c4bbde2716310e55af0f743978bb719d`) | `etopo2022_60s_bed_35N60N_140E180E_stride4.npy` (`27bf15f585aa7289f2eb90624628f4d30601f49a0be4f2dd6c730b9fae5ead93`); the seven other files of the dataset are committed byte for byte |
 | `cylinder_wake_extract.py` | `piv-cylinder-wake` | `cylinder_vel.mat` (md5 `4cc876439c48f7970afa477ea17d217a`, sha256 `328cd8d17cd2eb42faef6e4766bc8e515e0eac06868152972adab9bdf91926e7`) | `wake_u.npy`, `wake_v.npy`, `wake_mask.npy`, `wake_mean.npy`, `probes.npy`, `wake_meta.json` (the six sha256 on the card) |
 | `ost_hotwire_extract.py` | `ost-hotwire-cylinder-wakes` | the ten `Velocity_1C*.txt` (the ten sha256 in the script and on the card) | `ost_hotwire_16s.csv` (`551871f95aa42c10153568444695c19334e78a2332329aa89e0e8e5c70162754`), `runs.csv` (`573b0d40a6d59a4c56e1783603b3dde2a5ccd760ae34381bfe36bf2f3ab93b72`) |
@@ -35,14 +35,13 @@ uv run python tools/datasets/dwd_soil_extract.py \
     data/samples/dwd-potsdam-soil-temperature
 ```
 
-The SDSS spectrum is converted the same way into its download directory,
-where the reference figure reads it (`docs/datasets/sdss-balmer-spectrum.md`):
+The SDSS spectrum is converted the same way into its committed sample:
 
 ```
 ./scripts/fetch-data.sh sdss-balmer-spectrum
 uv run python tools/datasets/sdss_spec_to_csv.py \
     data/downloads/sdss-balmer-spectrum/spec-1949-53433-0480.fits \
-    data/downloads/sdss-balmer-spectrum/spec-1949-53433-0480.csv
+    data/samples/sdss-balmer-spectrum/spec-1949-53433-0480.csv
 ```
 
 `sdss_spec_to_csv.py` reads the FITS file with the header and table reader of

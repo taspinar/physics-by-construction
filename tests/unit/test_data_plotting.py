@@ -30,6 +30,7 @@ from pbc.data.reference import (
     nist_numisheet,
     npl_sparameters,
     ost_hotwire,
+    sdss_balmer,
     srm660c,
     tess_wasp18,
     trackpy_bulk_water,
@@ -48,6 +49,7 @@ LYC = SAMPLES_DIR / "lycopodium-spore-diffraction"
 BW = SAMPLES_DIR / "trackpy-bulk-water"
 XU = SAMPLES_DIR / "xu-damped-pendulum"
 DWD = SAMPLES_DIR / "dwd-potsdam-soil-temperature"
+SDSS = SAMPLES_DIR / "sdss-balmer-spectrum"
 LAB6 = SAMPLES_DIR / "nist-srm660c-lab6"
 KAM = SAMPLES_DIR / "kamchatka-2025-tsunami-inputs"
 PIV = SAMPLES_DIR / "piv-cylinder-wake"
@@ -183,6 +185,7 @@ def test_the_credit_line_is_wrapped_and_kept_inside_the_figure():
         (trackpy_bulk_water, BW, "processed", True),
         (xu_pendulum, XU, "processed", True),
         (dwd_soil, DWD, "processed", True),
+        (sdss_balmer, SDSS, "processed", True),
         (srm660c, LAB6, "processed", True),
         (kamchatka_tsunami, KAM, "processed", False),
         (cylinder_wake, PIV, "processed", False),
@@ -211,6 +214,7 @@ def test_the_dossiers_state_the_status_of_their_figure():
         ("trackpy-bulk-water", "processed"),
         ("xu-damped-pendulum", "processed"),
         ("dwd-potsdam-soil-temperature", "processed"),
+        ("sdss-balmer-spectrum", "processed"),
         ("nist-srm660c-lab6", "processed"),
         ("kamchatka-2025-tsunami-inputs", "processed"),
         ("piv-cylinder-wake", "processed"),
