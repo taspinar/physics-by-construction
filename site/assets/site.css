@@ -2440,6 +2440,14 @@ body.pbc-home main {
   overflow-wrap: break-word;
 }
 
+/* The anchor Quarto appends to a heading follows the last word with no
+   space, so the word and the anchor otherwise form one unit that cannot
+   wrap and, at a large text size on a narrow column, reaches past it. As
+   an inline block the anchor can move to the next line on its own. */
+body.pbc-home main .anchorjs-link {
+  display: inline-block;
+}
+
 /* The prose of the page keeps the measure. */
 body.pbc-home main section > p,
 .home-part > p {
@@ -2546,6 +2554,9 @@ body.pbc-home .home-example h4 {
 
 .home-meta {
   display: inline-block;
+  /* An inline block is at least as wide as its longest word; this keeps it
+     in the column, where a longer word breaks. */
+  max-width: 100%;
   color: var(--pbc-muted);
   font-size: var(--pbc-text-small);
   line-height: 1.45;
