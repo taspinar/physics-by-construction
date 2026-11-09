@@ -312,6 +312,7 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
         cylinder_wake,
         dwd_soil,
         gw150914,
+        kamchatka_tsunami,
         lycopodium,
         nist_numisheet,
         npl_sparameters,
@@ -333,6 +334,7 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
         (trackpy_bulk_water, "trackpy-bulk-water"),
         (xu_pendulum, "xu-damped-pendulum"),
         (dwd_soil, "dwd-potsdam-soil-temperature"),
+        (kamchatka_tsunami, "kamchatka-2025-tsunami-inputs"),
         (cylinder_wake, "piv-cylinder-wake"),
         (ost_hotwire, "ost-hotwire-cylinder-wakes"),
     ):
