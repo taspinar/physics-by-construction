@@ -27,6 +27,7 @@ from pbc.data.reference import (
     nist_numisheet,
     npl_sparameters,
     tess_wasp18,
+    xu_pendulum,
 )
 from pbc.data.series import Series
 
@@ -37,6 +38,7 @@ RLC = SAMPLES_DIR / "bayreuth-rlc-impedance"
 DP980 = SAMPLES_DIR / "nist-numisheet-dp980"
 TESS = SAMPLES_DIR / "tess-exoplanet-light-curves"
 BELL = SAMPLES_DIR / "munich-bell-event-ready"
+XU = SAMPLES_DIR / "xu-damped-pendulum"
 DWD = SAMPLES_DIR / "dwd-potsdam-soil-temperature"
 
 
@@ -165,6 +167,7 @@ def test_the_credit_line_is_wrapped_and_kept_inside_the_figure():
         (nist_numisheet, DP980, "processed", True),
         (tess_wasp18, TESS, "processed", True),
         (munich_bell, BELL, "processed", False),
+        (xu_pendulum, XU, "processed", True),
         (dwd_soil, DWD, "processed", True),
     ],
 )
@@ -186,6 +189,7 @@ def test_the_dossiers_state_the_status_of_their_figure():
         ("nist-numisheet-dp980", "processed"),
         ("tess-exoplanet-light-curves", "processed"),
         ("munich-bell-event-ready", "processed"),
+        ("xu-damped-pendulum", "processed"),
         ("dwd-potsdam-soil-temperature", "processed"),
     ):
         text = (root / f"{name}.md").read_text().replace("**", "")
