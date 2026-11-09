@@ -20,6 +20,7 @@ from pbc.data.reference import (
     gw150914,
     munich_bell,
     npl_sparameters,
+    xu_pendulum,
 )
 
 GW = SAMPLES_DIR / "gw150914-strain"
@@ -27,6 +28,7 @@ NPL = SAMPLES_DIR / "npl-onwafer-sparameters"
 AAL = SAMPLES_DIR / "aalborg-submerged-bar"
 RLC = SAMPLES_DIR / "bayreuth-rlc-impedance"
 BELL = SAMPLES_DIR / "munich-bell-event-ready"
+XU = SAMPLES_DIR / "xu-damped-pendulum"
 
 
 def test_gw150914_sample_parses():
@@ -463,6 +465,7 @@ def test_every_panel_of_every_figure_is_titled_and_labelled():
         (aalborg_flume, AAL),
         (bayreuth_rlc, RLC),
         (munich_bell, BELL),
+        (xu_pendulum, XU),
     ):
         figure = module.make_figure(path)
         panels = [a for a in figure.axes if a.axison and a.get_label() != "<colorbar>"]

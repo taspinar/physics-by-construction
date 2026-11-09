@@ -1,0 +1,228 @@
+id: xu-damped-pendulum
+title: Xu et al. damped pendulum, PASCO rotary-encoder records of 5 lengths x 3 damping settings x 3 trials;
+  inspected the first air-only trial of each length
+source:
+  url: https://github.com/EnzeXu/Damped_Pendulum_Dataset/tree/cbf82673641ecd65e902ad5c38a048387649a2a0
+  creator: Enze Xu, Toon Tran, Hongjue Zhao, Yuchen Wang, Mengdi Huai, Huajie Shao (William & Mary),
+    the authors of 'Identifying Invariant Physical Dynamics Across Multiple Environments', Transactions
+    on Machine Learning Research (2026), https://openreview.net/forum?id=xvQYvYEGhj; recorded in the
+    Physics Department of William & Mary
+  version: 'GitHub repository EnzeXu/Damped_Pendulum_Dataset at commit cbf82673641ecd65e902ad5c38a048387649a2a0
+    (2026-09-16, ''Update citation in README.md''); no DOI, no release, no version number, so the commit
+    is the version'
+  accessed: &accessed 2026-11-09
+rights:
+  licence: equivalent-permission
+  local_download:
+    answer: permitted
+    source: 'Apache License 2.0, the file LICENSE of the repository at the commit (https://github.com/EnzeXu/Damped_Pendulum_Dataset/blob/cbf82673641ecd65e902ad5c38a048387649a2a0/LICENSE,
+      GitHub API spdx_id Apache-2.0), named by the README''s section License ("This project is licensed
+      under the Apache License 2.0"), read 2026-11-09; https://www.apache.org/licenses/LICENSE-2.0 section
+      2 grants the right to reproduce the Work. Apache-2.0 is an equivalent recorded permission by the
+      ADR 007 addendum (Issue #417, 2026-11-08)'
+  redistribution_of_subsets:
+    answer: permitted
+    source: 'https://www.apache.org/licenses/LICENSE-2.0 section 2 (reproduce, distribute) and section
+      4 (redistribution in any medium, with or without modifications, if a copy of the licence is given,
+      modified files are marked, and notices are kept); the repository has no NOTICE file at the commit.
+      The sample carries the LICENSE file and copies each data file byte for byte. Read 2026-11-09'
+  publication_of_figures:
+    answer: permitted
+    source: 'https://www.apache.org/licenses/LICENSE-2.0 section 2 (prepare Derivative Works of, publicly
+      display, and distribute the Work and such Derivative Works); the licence of the repository at the
+      commit, read 2026-11-09'
+  modification_and_attribution:
+    answer: permitted
+    source: 'https://www.apache.org/licenses/LICENSE-2.0 section 4(b) and 4(c): a modified file carries
+      a notice that it was changed, and attribution notices are kept; the README asks users to cite the
+      TMLR paper. The sample modifies no file; the figure names the record, the commit, the licence, and
+      what its code computed'
+  attribution: Xu, E., Tran, T., Zhao, H., Wang, Y., Huai, M., Shao, H., 'Damped Pendulum Dataset', GitHub
+    EnzeXu/Damped_Pendulum_Dataset, commit cbf82673641ecd65e902ad5c38a048387649a2a0, Apache License 2.0;
+    the dataset of 'Identifying Invariant Physical Dynamics Across Multiple Environments', Transactions
+    on Machine Learning Research (2026), https://openreview.net/forum?id=xvQYvYEGhj. Files raw_data/len1..5_cond1_1.csv,
+    cleaned_data/len1_cond1_1.csv, pendulum_length.json, and LICENSE, unmodified.
+artifacts:
+- name: raw_data/len<k>_cond1_1.csv (k = 1 to 5)
+  type: raw-measured
+  description: 'PASCO software export of the Wireless Rotary Motion Sensor PS-3220 (the README) for the
+    first trial in air of each stated length: the angle of the encoder in steps of 2 pi/2000 rad every
+    0.01 s, about 67 s from before the pendulum is lifted until after its release, 6,584 to 6,896 rows.
+    The angular velocity, the angular acceleration, and the linear position, velocity, and acceleration
+    of the same file are computed by the software from the angle (processed, written beside it); the
+    angular velocity is shown to be its difference over five rows of the encoder counts.'
+- name: cleaned_data/len1_cond1_1.csv
+  type: processed-measured
+  description: 'The creators'' cleaned file, written by the record''s process.py: the raw rows 5 s <= t
+    < 65 s of len1_cond1_1 (6,000 rows), time shifted to 0, angle and angular velocity unchanged (eleven
+    zero angles written as floating-point noise in the raw file appear as 0.000), and the column is_peak
+    (115 extremes of |angle| chosen by the script).'
+- name: pendulum_length.json
+  type: processed-measured
+  description: 'The five stated lengths of the pendulum, 0.236, 0.330, 0.426, 0.518, 0.607 m, without
+    a definition of the length or an uncertainty.'
+- name: reference analysis (pbc.data.reference.xu_pendulum)
+  type: modelled-reference
+  description: 'Not part of the record: the cycle periods and amplitudes, the small-amplitude period from
+    the elliptic-integral correction, the exponential envelope, the effective length g T0^2/(4 pi^2),
+    and the line T0^2 = a L + b, computed by this repository and drawn apart from the measured angle.'
+calibration: 'None in the record beyond the sensor''s own conversion of encoder counts to radians (2000
+  counts per turn, read from the data: every angle is a whole number of steps of 2 pi/2000 rad, written
+  with 3 decimals). The zero of the angle is the encoder position when the recording started, with the
+  pendulum hanging at rest; the centre of the swing lies within 0.01 rad of it. The lengths are stated
+  without saying from where to where they are measured; the period defines an effective length (dossier).
+  No correction is applied to the data; the analysis corrects the period for amplitude.'
+schema: 'Raw files: CSV, UTF-8 with a byte-order mark, 7 quoted columns "Time (s) Run #1", "Angle (rad)
+  Run #1", "Angular Velocity (rad/s) Run #1", "Angular Acceleration (rad/s²) Run #1", "Position (m)
+  Run #1", "Velocity (m/s) Run #1", "Acceleration (m/s²) Run #1"; numbers with 3 or 4 decimals, a few
+  in scientific notation. Cleaned file: CSV with the header time,angle,angular_velocity,is_peak. pendulum_length.json:
+  the lengths as listData and dictData (keys len1 to len5). File names len<length>_cond<damping>_<trial>:
+  damping 1 air only, 2 a small paper baffle, 3 a large paper baffle (README).'
+units: 'Time in s, angle in rad, angular velocity in rad/s, angular acceleration in rad/s^2 (the header
+  names); position in m, velocity in m/s, acceleration in m/s^2 of a linear conversion by a pulley radius
+  of about 23.9 mm (a software setting, not a length of the pendulum, not used); lengths in m; is_peak
+  0 or 1. The README gives g = 9.799 m/s^2 ("about") at 37 deg 16'' 15.16" N, 76 deg 42'' 26.66" W.'
+cadence: 'Uniform, 0.01 s between rows in every file, from t = 0; 65.83 to 68.95 s per raw file; the
+  cleaned file 0.00 to 59.99 s.'
+coordinates: 'One rotation angle about the pivot, positive in the sense the encoder counts (the sense
+  in which the pendulum was lifted is not stated); the release is the largest |angle| of each file, 2.42
+  to 3.06 s after the start. Five lengths, one damping setting (air only), the first of three trials each.'
+masks: 'No missing angle or position. The angular velocity and the linear velocity are empty in the first
+  and last row, the accelerations in the first two and last three rows, as their numerical derivatives
+  are. No flag. The lifting by hand before the release and the first cycle after it are not used by the
+  analysis.'
+uncertainty: 'None in the record. Derived (dossier): the encoder step 3.1 mrad (0.18 deg), rounded to 1
+  mrad; per cycle a scatter of 0.7 to 1.4 ms in the small-amplitude period, so a standard error of 0.09
+  to 0.22 ms for a run''s mean over 39 to 62 cycles. The three trials of one length in air differ by
+  0.35 to 1.5 ms (files outside the sample), far more than these standard errors, so the trial spread
+  is the uncertainty of a period. The corrected period still varies with amplitude by -0.17 to +0.41
+  ms per degree, without a common sign. The lengths have no stated uncertainty; their
+  effective lengths exceed them by 3.9 to 9.8 mm.'
+size:
+  description: 'The record: 45 raw files of 0.31 to 0.44 MB (14.5 MB), 45 cleaned files of about 125
+    kB (5.6 MB), 45 plots, the scripts, the README, and the licence. The sample: 5 raw files, 1 cleaned
+    file, the lengths, and the licence, 1,739,510 bytes.'
+format: CSV and JSON, read from the repository's raw files at a pinned commit
+reader: pbc.data.reference.xu_pendulum.load (the csv and json modules of the standard library, NumPy);
+  no new dependency.
+downloads:
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/raw_data/len1_cond1_1.csv
+  filename: len1_cond1_1.csv
+  algorithm: sha256
+  digest: 3d407510fd2c0fcbca7f7b3a223f34f0788821f3a21b6b94ccd24a087b6a19be
+  digest_source: computed here on the downloaded file, 2026-11-09; no checksum is published, but its Git
+    blob SHA-1 d21ea5a044e8ac65abf300e51c5e073cffdb0cbc equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/raw_data/len2_cond1_1.csv
+  filename: len2_cond1_1.csv
+  algorithm: sha256
+  digest: cb6e54afef933c52b6b4e334a97314765da091a984f5d1d60b7b9070a5d982bc
+  digest_source: computed here on the downloaded file, 2026-11-09; its Git blob SHA-1 a5b7d203705413d933a8de44160963b6ce10cd7e
+    equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/raw_data/len3_cond1_1.csv
+  filename: len3_cond1_1.csv
+  algorithm: sha256
+  digest: f4bc3f50348fc4c0a8ed8a9ba484b99db35b0c9e900e4f984e549d232d13d009
+  digest_source: computed here on the downloaded file, 2026-11-09; its Git blob SHA-1 9a43d93c2ee989afd0e5b0c1bc9a3f4749032ddc
+    equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/raw_data/len4_cond1_1.csv
+  filename: len4_cond1_1.csv
+  algorithm: sha256
+  digest: 3edc1ed75d5468b63b31a92a83f63d7cff6f96ad3694d3bf6e3792ccad9f606a
+  digest_source: computed here on the downloaded file, 2026-11-09; its Git blob SHA-1 214ac01392628cfadaa66c710542b48870c06ae4
+    equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/raw_data/len5_cond1_1.csv
+  filename: len5_cond1_1.csv
+  algorithm: sha256
+  digest: a3fab37d442c132d3a0e330bc8ad2828572691299fbb4b488d55cb027a2584a9
+  digest_source: computed here on the downloaded file, 2026-11-09; its Git blob SHA-1 cf8e871eceb251e11ec71ebc12aea744c60d5404
+    equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/cleaned_data/len1_cond1_1.csv
+  filename: cleaned_len1_cond1_1.csv
+  algorithm: sha256
+  digest: febcfc04fc04da952f2ee7a1c6575590c5f1523835f0b089b8c8ad305706fa78
+  digest_source: computed here on the downloaded file, 2026-11-09; its Git blob SHA-1 0c5df15bb1f266e4002f648fed8920c75177c9a5
+    equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/pendulum_length.json
+  filename: pendulum_length.json
+  algorithm: sha256
+  digest: 77764dd5f3b2c1574fa15efcb35804aca27432d0114f68b9a1fa9ae9aa67e3f1
+  digest_source: computed here on the downloaded file, 2026-11-09; its Git blob SHA-1 611bccadfa8c3336f5eba5e4dda4ece9f44f79a6
+    equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/LICENSE
+  filename: LICENSE
+  algorithm: sha256
+  digest: c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4
+  digest_source: computed here on the downloaded file, 2026-11-09; its Git blob SHA-1 261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64
+    equals the one of the commit's tree (GitHub API)
+samples:
+- path: raw_data/len1_cond1_1.csv
+  sha256: 3d407510fd2c0fcbca7f7b3a223f34f0788821f3a21b6b94ccd24a087b6a19be
+  bytes: 329379
+  derivation: the file raw_data/len1_cond1_1.csv of the repository at commit cbf8267, copied byte for byte
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_sample_parses
+- path: raw_data/len2_cond1_1.csv
+  sha256: cb6e54afef933c52b6b4e334a97314765da091a984f5d1d60b7b9070a5d982bc
+  bytes: 312575
+  derivation: the file raw_data/len2_cond1_1.csv of the repository at commit cbf8267, copied byte for byte
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_sample_parses
+- path: raw_data/len3_cond1_1.csv
+  sha256: f4bc3f50348fc4c0a8ed8a9ba484b99db35b0c9e900e4f984e549d232d13d009
+  bytes: 320586
+  derivation: the file raw_data/len3_cond1_1.csv of the repository at commit cbf8267, copied byte for byte
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_sample_parses
+- path: raw_data/len4_cond1_1.csv
+  sha256: 3edc1ed75d5468b63b31a92a83f63d7cff6f96ad3694d3bf6e3792ccad9f606a
+  bytes: 320184
+  derivation: the file raw_data/len4_cond1_1.csv of the repository at commit cbf8267, copied byte for byte
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_sample_parses
+- path: raw_data/len5_cond1_1.csv
+  sha256: a3fab37d442c132d3a0e330bc8ad2828572691299fbb4b488d55cb027a2584a9
+  bytes: 319946
+  derivation: the file raw_data/len5_cond1_1.csv of the repository at commit cbf8267, copied byte for byte
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_sample_parses
+- path: cleaned_data/len1_cond1_1.csv
+  sha256: febcfc04fc04da952f2ee7a1c6575590c5f1523835f0b089b8c8ad305706fa78
+  bytes: 125070
+  derivation: the file cleaned_data/len1_cond1_1.csv of the repository at commit cbf8267, copied byte
+    for byte
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_sample_parses
+- path: pendulum_length.json
+  sha256: 77764dd5f3b2c1574fa15efcb35804aca27432d0114f68b9a1fa9ae9aa67e3f1
+  bytes: 413
+  derivation: the file pendulum_length.json of the repository at commit cbf8267, copied byte for byte
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_sample_parses
+- path: LICENSE
+  sha256: c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4
+  bytes: 11357
+  derivation: the file LICENSE of the repository at commit cbf8267 (Apache License 2.0), copied byte for
+    byte, as section 4(a) of the licence asks of a redistribution
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_sample_parses
+estimates:
+  runtime: 'Reference figure: about 5 s with the interpreter start on the development machine; the reader
+    parses the six CSV files in under 1 s.'
+  memory: About 160 MB peak resident for the figure.
+  page_payload: 1.74 MB committed, none of it sent to the reader's browser; a figure PNG of about 340
+    KB at 150 dpi.
+  ci: 'Offline: eight committed files.'
+decision:
+  value: go
+  date: *accessed
+  reasons:
+  - 'Real files inspected at a pinned commit: each Git blob SHA-1 equals the tree''s, the sha256 of each
+    is on this card; five raw records (one per length, air only, first trial) of 6,584 to 6,896 rows
+    at 0.01 s, the cleaned file shown to be a window of the raw one.'
+  - 'Schema, units, encoder step, cadence, and empty cells validated by the parsing test; the angular
+    velocity shown to be the software''s derivative of the angle, not a second measurement.'
+  - 'A reproducible figure from source-controlled code: the elliptic-integral correction reduces the
+    slope of the period with amplitude from 0.5 to 1.9 ms per degree to -0.17 to +0.41 ms per degree;
+    the small-amplitude period of each length is 0.9952 to 1.5688 s.'
+  - 'The length L is undefined in the record: the period defines an effective length 3.9 to 9.8 mm above
+    each stated length; a lab fits L_eff or g, not both from these lengths. Stated in the dossier.'
+  - 'Uncertainty derived from the cycles and the encoder step; the spread of the trials and the remaining
+    amplitude dependence reported as systematic. No calibration beyond the sensor''s is needed for the
+    angle.'
+  - Apache-2.0 at the commit covers download, subsets, figures, and modification; it is equivalent recorded
+    permission under the ADR 007 addendum (#417). The LICENSE travels with the sample.
+  - 'Recorded by F83 (Issue #437) under the owner''s decision of 2026-11-08 on the Issue: work towards
+    a go for this dataset, judged per dossier.'
+dossier: docs/datasets/xu-damped-pendulum.md

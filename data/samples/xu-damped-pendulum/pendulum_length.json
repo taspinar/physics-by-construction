@@ -1,0 +1,17 @@
+{
+    "description": "This JSON file contains the pendulum lengths (in meters) for settings len1, len2, ..., len5. The data is provided in both list and dictionary formats.",
+    "listData": [
+        0.236,
+        0.330,
+        0.426,
+        0.518,
+        0.607
+    ],
+    "dictData": {
+        "len1": 0.236,
+        "len2": 0.330,
+        "len3": 0.426,
+        "len4": 0.518,
+        "len5": 0.607
+    }
+}

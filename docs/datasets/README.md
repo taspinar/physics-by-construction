@@ -20,10 +20,11 @@ Cards added after the survey, for the measured-data labs:
 |---|---|---|---|
 | Bayreuth RLC impedance (EM8, Issue #418) | complex impedance measurement | **go** (2026-11-08) | [bayreuth-rlc-impedance](bayreuth-rlc-impedance.md) |
 | Munich event-ready Bell test (Q8, Issue #419) | Bell-test event counts | **go** (2026-11-08) | [munich-bell-event-ready](munich-bell-event-ready.md) |
+| Xu et al. damped pendulum (M15, Issue #437) | rotary-encoder time series | **go** (2026-11-09) | [xu-damped-pendulum](xu-damped-pendulum.md) |
 
 Defer and reject have no entry yet: no spiked dataset failed its gate. The survey-only cards with a known obstacle are the optical-diffraction record (licence field CC BY 4.0 beside a copyright line, RAR archives) and the cylinder-wake PIV (one 1.1 GB MAT file of processed fields at 20 Hz, zeros are masks); both remain conditional, as the survey proposed.
 
-**Licences and readers since 2026-11-08.** The addendum of 2026-11-08 to [ADR 007](../decisions/007-real-datasets-as-declared-inputs.md) (Issue #417) counts Apache-2.0 and CC BY-SA as recorded equivalent permission for a committed sample, a ShareAlike sample and its figures carrying CC BY-SA on the page and on About; NC, ND, or unstated licences are still not committed. MAT files are read with `scipy.io.loadmat` (`h5py` only for v7.3); XLSX, FITS, and CIF files are converted once, outside the build, by a checksum-pinned script that the card and the dossier record.
+**Licences and readers since 2026-11-08.** The addendum of 2026-11-08 to [ADR 007](../decisions/007-real-datasets-as-declared-inputs.md) (Issue #417) counts Apache-2.0 and CC BY-SA as recorded equivalent permission for a committed sample, a ShareAlike sample and its figures carrying CC BY-SA on the page and on About; NC, ND, or unstated licences are still not committed. The first sample under Apache-2.0, the Xu damped pendulum, records its licence as `equivalent-permission` and names Apache-2.0 in each rights answer. MAT files are read with `scipy.io.loadmat` (`h5py` only for v7.3); XLSX, FITS, and CIF files are converted once, outside the build, by a checksum-pinned script that the card and the dossier record.
 
 A `go` means the data, the rights, and the figure passed. It does not mean a lesson exists, and it does not pick a course.
 
