@@ -459,7 +459,7 @@ if compgen -G "$repo/.agents/triage/*.json" >/dev/null; then fail "a deferred ma
 jq '.unattended = true' "$artifact.json" >"$tmp/major-unattended.json"
 (
   source "$source_root/scripts/lib/review-data.sh"
-  triage_artifact_errors "$tmp/major-unattended.json" "$tmp/major-deferred-attended/$review" | grep -Fq "major finding M1 must be FIX_NOW"
+  triage_artifact_errors "$tmp/major-unattended.json" "$tmp/major-deferred-attended/$review" | grep -F "major finding M1 must be FIX_NOW" >/dev/null
 ) || fail "a stored unattended triage that defers a major finding was accepted"
 
 # An approval that you gave says nothing about an unattended run, and the
@@ -483,12 +483,12 @@ jq 'del(.unattended)' "$artifact.json" >"$tmp/no-marker.json"
 jq 'del(.unattended)' "$tmp/major-deferred-attended/.agents/triage/feature-5-test-review-01-triage.json" >"$tmp/major-no-marker.json"
 (
   source "$source_root/scripts/lib/review-data.sh"
-  triage_artifact_errors "$tmp/major-no-marker.json" "$tmp/major-deferred-attended/$review" | grep -Fq "major finding M1 must be FIX_NOW"
+  triage_artifact_errors "$tmp/major-no-marker.json" "$tmp/major-deferred-attended/$review" | grep -F "major finding M1 must be FIX_NOW" >/dev/null
 ) || fail "a triage without the unattended marker that defers a major finding was accepted"
 jq '.unattended = "no"' "$artifact.json" >"$tmp/bad-marker.json"
 (
   source "$source_root/scripts/lib/review-data.sh"
-  triage_artifact_errors "$tmp/bad-marker.json" "$repo/$review" | grep -Fq "unattended must be true, false, or absent"
+  triage_artifact_errors "$tmp/bad-marker.json" "$repo/$review" | grep -F "unattended must be true, false, or absent" >/dev/null
 ) || fail "a triage with a marker that is not a boolean was accepted"
 
 echo "triage-review tests passed"

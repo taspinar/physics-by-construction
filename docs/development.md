@@ -414,6 +414,12 @@ each other is an error.
   the summary, lets the other running groups finish, never starts a group
   that waits for one of its unfinished checks (nor the groups that wait for
   those), and fails.
+- Groups at the same time load the machine, so a check must not depend on
+  timing. A shell self-test does not pipe into `grep -q` under `pipefail`:
+  grep ends at its first match, a writer that still has output dies of
+  SIGPIPE, and the assertion fails although it holds. It uses
+  `grep ... >/dev/null`, which reads to the end; `tests/verify-test.sh`
+  finds such a pipe in `tests/`.
 
 ### Selection against a base
 

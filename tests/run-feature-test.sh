@@ -287,13 +287,13 @@ run_feature "$repo" 2 thing
 expect_published "$repo"
 expect_sessions "$repo" 1 1 0 0
 grep -Fq -- "--sandbox workspace-write" "$repo.control/implementer.args" || fail "the implementer did not run in the sandbox"
-git -C "$repo-2-thing" log -1 --format=%s | grep -Fqx "F02 — Feature file" || fail "the commit is not named after the Issue"
-git -C "$repo-2-thing" log -1 --format=%B | grep -Fqx -- "- Adds the feature file." ||
+git -C "$repo-2-thing" log -1 --format=%s | grep -Fx "F02 — Feature file" >/dev/null || fail "the commit is not named after the Issue"
+git -C "$repo-2-thing" log -1 --format=%B | grep -Fx -- "- Adds the feature file." >/dev/null ||
   fail "the commit message lacks the implementer's summary"
 
 # The pull request closes the Issue, because the completion gate passed: the
 # commit carries the statement of the implementer's record.
-git -C "$repo-2-thing" log -1 --format=%B | grep -Fqx "Completion: complete" ||
+git -C "$repo-2-thing" log -1 --format=%B | grep -Fx "Completion: complete" >/dev/null ||
   fail "the commit does not carry the completion statement"
 grep -Fqx "Closes #2" "$repo.control/pr-body" || fail "the pull request of a complete feature does not close the Issue"
 if grep -Fq -- "--draft" "$repo.control/gh.log"; then fail "the pull request of a complete feature is a draft"; fi
@@ -303,7 +303,7 @@ grep -Fq '"status": "complete"' "$repo.control/reviewer-1.context" || fail "the 
 grep -Fq "not evidence" "$repo.control/reviewer-1.context" || fail "the reviewer was not told that the record is a claim"
 
 if grep -Fq "MERGE APPROVAL REQUIRED" "$repo.out"; then fail "ordinary work was reported as needing the owner's approval"; fi
-git -C "$repo-2-thing" log -1 --format=%B | grep -A1 -Fx "Merge approval:" | grep -Fqx -- "- not required" ||
+git -C "$repo-2-thing" log -1 --format=%B | grep -A1 -Fx "Merge approval:" | grep -Fx -- "- not required" >/dev/null ||
   fail "the commit does not record that no approval is needed"
 
 # A finished feature is not run again: a repeated command only publishes.
@@ -333,8 +333,8 @@ expect_sessions "$repo" 2 1 0 0
 log_of() {
   cat "$1-2-thing/.agents/run/2-log" 2>/dev/null || true
 }
-log_of "$repo" | grep -Fq "| implementation | not complete | partial: " || fail "the session that stopped partway is not in the log of the feature"
-log_of "$repo" | grep -Fq "remaining: Plan steps 3 to 9" || fail "what remained is not in the log of the feature"
+log_of "$repo" | grep -F "| implementation | not complete | partial: " >/dev/null || fail "the session that stopped partway is not in the log of the feature"
+log_of "$repo" | grep -F "remaining: Plan steps 3 to 9" >/dev/null || fail "what remained is not in the log of the feature"
 grep -Fq "You are resuming interrupted work" "$repo.control/implementer.args" || fail "the implementer was not resumed after it stopped partway"
 grep -Fqx "Closes #2" "$repo.control/pr-body" || fail "the completed feature does not close the Issue"
 
@@ -357,7 +357,7 @@ printf -- "- Adds half of the feature file.\n" >".agents/summaries/$RUN_ISSUE.md
 run_feature "$repo" 2 thing
 expect_published "$repo"
 expect_sessions "$repo" 2 1 0 0
-log_of "$repo" | grep -Fq "| not complete | missing: the implementer wrote no completion record" ||
+log_of "$repo" | grep -F "| not complete | missing: the implementer wrote no completion record" >/dev/null ||
   fail "the missing completion record is not in the log of the feature"
 
 # A record that says complete is not believed against the handoff note.
@@ -369,7 +369,7 @@ printf '%s\n' 'eval "$default"; printf "Issue %s is complete.\n" "$RUN_ISSUE" >"
 run_feature "$repo" 2 thing
 expect_published "$repo"
 expect_sessions "$repo" 2 1 0 0
-log_of "$repo" | grep -Fq "the completion record says complete, but the handoff note" ||
+log_of "$repo" | grep -F "the completion record says complete, but the handoff note" >/dev/null ||
   fail "the contradiction between the record and the handoff note is not in the log of the feature"
 
 # A complete record without the summary of the changes: the commit message
@@ -379,9 +379,9 @@ printf '%s\n' 'printf "feature\n" >>feature.txt; completion complete; reply="Don
 run_feature "$repo" 2 thing
 expect_published "$repo"
 expect_sessions "$repo" 2 1 0 0
-log_of "$repo" | grep -Fq "| not complete | no summary: the implementer wrote no summary of the changes" ||
+log_of "$repo" | grep -F "| not complete | no summary: the implementer wrote no summary of the changes" >/dev/null ||
   fail "the missing summary is not in the log of the feature"
-git -C "$repo-2-thing" log -1 --format=%B | grep -Fqx -- "- Adds the feature file." ||
+git -C "$repo-2-thing" log -1 --format=%B | grep -Fx -- "- Adds the feature file." >/dev/null ||
   fail "the commit message lacks the summary that the resumed implementer wrote"
 
 # The sessions are bounded: an implementer that never completes the Issue
@@ -421,7 +421,7 @@ expect_published "$repo"
 expect_sessions "$repo" 1 3 1 1
 [[ "$(grep -c "Review of changes only" "$repo.control/reviewer.args")" -eq 1 ]] ||
   fail "the round after the fixes did not review only the changes, or the last round did"
-if sed -n 3p "$repo.control/reviewer.args" | grep -Fq "Review of changes only"; then
+if sed -n 3p "$repo.control/reviewer.args" | grep -F "Review of changes only" >/dev/null; then
   fail "the last round reviewed only the changes"
 fi
 grep -Fq "## Complete diff against" "$repo.control/reviewer-3.context" || fail "the last round was not given the complete feature"
@@ -437,7 +437,7 @@ triage="$repo-2-thing/.agents/triage/feature-2-thing-review-01-triage.json"
 [[ "$(jq -r '[.decisions[].decision] | join(",")' "$triage")" == "FIX_NOW,DEFER" ]] || fail "the triage lost its decisions"
 grep -q '^issue comment 2 ' "$repo.control/gh.log" || fail "the triage was not published on the Issue"
 grep -q '^issue create ' "$repo.control/gh.log" || fail "the deferred finding got no follow-up Issue"
-git -C "$repo-2-thing" log -1 --format=%B | grep -q "^Review: round 3, PASS" || fail "the commit does not name the review of the complete feature"
+git -C "$repo-2-thing" log -1 --format=%B | grep "^Review: round 3, PASS" >/dev/null || fail "the commit does not name the review of the complete feature"
 
 # A finding of the closing review is fixed like any other, and the run ends
 # on a review of the complete feature again.
@@ -448,8 +448,8 @@ printf '%s\n' "$fix_major" >"$repo.control/triage.sh"
 run_feature "$repo" 2 thing
 expect_published "$repo"
 expect_sessions "$repo" 1 5 2 2
-git -C "$repo-2-thing" log -1 --format=%B | grep -q "^Review: round 5, PASS" || fail "the run did not end on the fifth round"
-if sed -n 5p "$repo.control/reviewer.args" | grep -Fq "Review of changes only"; then
+git -C "$repo-2-thing" log -1 --format=%B | grep "^Review: round 5, PASS" >/dev/null || fail "the run did not end on the fifth round"
+if sed -n 5p "$repo.control/reviewer.args" | grep -F "Review of changes only" >/dev/null; then
   fail "the run ended on a review of changes only"
 fi
 
@@ -472,7 +472,7 @@ printf '%s\n' 'eval "$default"; mkdir -p docs/decisions; printf "# ADR 002: Othe
 run_feature "$repo" 2 thing
 expect_published "$repo"
 grep -Fq "MERGE APPROVAL REQUIRED" "$repo.out" || fail "the run did not say that the owner must approve the merge"
-git -C "$repo-2-thing" log -1 --format=%B | grep -Fq "docs/decisions/002-other.md: an ADR is added, changed, or removed" ||
+git -C "$repo-2-thing" log -1 --format=%B | grep -F "docs/decisions/002-other.md: an ADR is added, changed, or removed" >/dev/null ||
   fail "the commit does not record why the owner's approval is needed"
 
 # The same when the independent reviewer classifies the impact as major.
@@ -529,7 +529,7 @@ run_feature "$repo" 2 thing
 expect_stopped "$repo" 3 "the implementer needs a decision of yours"
 grep -Fq "the Issue contradicts ADR 002" "$repo.out" || fail "the question of the implementer was not shown"
 expect_sessions "$repo" 1 0 0 0
-log_of "$repo" | grep -Fq "| blocked |" || fail "the blocked session is not in the log of the feature"
+log_of "$repo" | grep -F "| blocked |" >/dev/null || fail "the blocked session is not in the log of the feature"
 printf '**Open questions:** none.\n\nAnswer: the Issue overrides it.\n' >"$repo-2-thing/.agents/handoffs/2.md"
 run_feature "$repo" 2
 expect_published "$repo"
@@ -545,7 +545,7 @@ for note in "" "**Open questions:** none blocking."; do
   run_feature "$repo" 2 thing
   expect_published "$repo"
   expect_sessions "$repo" 1 1 0 0
-  log_of "$repo" | grep -Fq "holds no open question" || fail "the ignored BLOCKED line is not in the log of the feature"
+  log_of "$repo" | grep -F "holds no open question" >/dev/null || fail "the ignored BLOCKED line is not in the log of the feature"
 done
 
 # A session that fails once, for example on a usage limit, is tried again by
@@ -555,14 +555,14 @@ printf '%s\n' 'exit 9' >"$repo.control/implementer-1.sh"
 run_feature "$repo" 2 thing
 expect_published "$repo"
 expect_sessions "$repo" 2 1 0 0
-log_of "$repo" | grep -Fq "| temporary |" || fail "the failed session is not in the log of the feature"
+log_of "$repo" | grep -F "| temporary |" >/dev/null || fail "the failed session is not in the log of the feature"
 
 repo="$(setup_repo reviewer-fails-once)"
 printf '%s\n' 'exit 9' >"$repo.control/reviewer-1.sh"
 run_feature "$repo" 2 thing
 expect_published "$repo"
 expect_sessions "$repo" 1 2 0 0
-log_of "$repo" | grep -Eq "\| temporary \| the step exited with status [0-9]+ \| Retry 1 of 3" ||
+log_of "$repo" | grep -E "\| temporary \| the step exited with status [0-9]+ \| Retry 1 of 3" >/dev/null ||
   fail "the retry of the review is not in the log of the feature"
 
 # The retries are bounded: a session that keeps failing stops the run, and
@@ -578,7 +578,7 @@ printf '%s\n' 'exit 9' >"$repo.control/reviewer.sh"
 run_feature "$repo" 2 thing
 expect_stopped "$repo" 1 "the review did not complete"
 expect_sessions "$repo" 1 4 0 0
-log_of "$repo" | grep -Fq "also after 3 retries" || fail "the exhausted retries are not in the log of the feature"
+log_of "$repo" | grep -F "also after 3 retries" >/dev/null || fail "the exhausted retries are not in the log of the feature"
 rm "$repo.control/reviewer.sh"
 run_feature "$repo" 2
 expect_published "$repo"
@@ -590,7 +590,7 @@ repo="$(VERIFY_CONF="unstable: sh -c 'test -e .agents/run/seen || { mkdir -p .ag
 run_feature "$repo" 2 thing
 expect_published "$repo"
 expect_sessions "$repo" 1 1 0 0
-log_of "$repo" | grep -Fq "unstable checks, failed in one of two verification runs: unstable" ||
+log_of "$repo" | grep -F "unstable checks, failed in one of two verification runs: unstable" >/dev/null ||
   fail "the unstable check is not named in the log of the feature"
 
 # Two checks that fail in turn, each in one run only, are unstable too: no
@@ -601,8 +601,8 @@ repo="$(VERIFY_CONF="$alternating" setup_repo alternating)"
 run_feature "$repo" 2 thing
 expect_published "$repo"
 expect_sessions "$repo" 1 1 0 0
-log_of "$repo" | grep -Fq "unstable checks" || fail "checks that failed in turn were not recorded as unstable"
-if log_of "$repo" | grep -Fq "Repair attempt"; then fail "a repair was started although no check failed twice"; fi
+log_of "$repo" | grep -F "unstable checks" >/dev/null || fail "checks that failed in turn were not recorded as unstable"
+if log_of "$repo" | grep -F "Repair attempt" >/dev/null; then fail "a repair was started although no check failed twice"; fi
 
 # A verification that fails twice is repaired by the implementer, which is
 # given the failing checks in the handoff note.
@@ -613,7 +613,7 @@ else grep -q "FAIL  *sound" ".agents/handoffs/$RUN_ISSUE.md" && rm -f broken.txt
 run_feature "$repo" 2 thing
 expect_published "$repo"
 expect_sessions "$repo" 2 1 0 0
-log_of "$repo" | grep -Fq "Repair attempt 1 of 3" || fail "the repair is not in the log of the feature"
+log_of "$repo" | grep -F "Repair attempt 1 of 3" >/dev/null || fail "the repair is not in the log of the feature"
 grep -Fq "## Verification failed" "$repo-2-thing/.agents/handoffs/2.md" || fail "the failing checks were not recorded for the implementer"
 
 # A session that repairs the verification is a session of the implementer
@@ -628,8 +628,8 @@ esac' >"$repo.control/implementer.sh"
 run_feature "$repo" 2 thing
 expect_published "$repo"
 expect_sessions "$repo" 3 1 0 0
-log_of "$repo" | grep -Fq "Repair attempt 1 of 3" || fail "the repair is not in the log of the feature"
-log_of "$repo" | grep -Fq "| not complete | partial: " || fail "the repair session that left work is not in the log of the feature"
+log_of "$repo" | grep -F "Repair attempt 1 of 3" >/dev/null || fail "the repair is not in the log of the feature"
+log_of "$repo" | grep -F "| not complete | partial: " >/dev/null || fail "the repair session that left work is not in the log of the feature"
 grep -Fqx "Closes #2" "$repo.control/pr-body" || fail "the feature completed after the repair does not close the Issue"
 
 # The same for a repair session that removes the record, or that leaves
@@ -643,7 +643,7 @@ esac' >"$repo.control/implementer.sh"
 run_feature "$repo" 2 thing
 expect_published "$repo"
 expect_sessions "$repo" 3 1 0 0
-log_of "$repo" | grep -Fq "| not complete | missing: " || fail "the repair session without a record is not in the log of the feature"
+log_of "$repo" | grep -F "| not complete | missing: " >/dev/null || fail "the repair session without a record is not in the log of the feature"
 
 repo="$(setup_repo repair-leaves-note)"
 printf '%s\n' 'case "$count" in
@@ -654,7 +654,7 @@ esac' >"$repo.control/implementer.sh"
 run_feature "$repo" 2 thing
 expect_published "$repo"
 expect_sessions "$repo" 3 1 0 0
-log_of "$repo" | grep -Fq "the completion record says complete, but the handoff note" ||
+log_of "$repo" | grep -F "the completion record says complete, but the handoff note" >/dev/null ||
   fail "the repair session that left remaining work in the note is not in the log of the feature"
 
 # A repair session that records blocked stops the run for the human, with
@@ -677,7 +677,7 @@ else rm -f broken.txt; reply="Repaired."; fi' >"$repo.control/implementer.sh"
 run_feature "$repo" 2 thing
 expect_published "$repo"
 expect_sessions "$repo" 3 1 0 0
-log_of "$repo" | grep -Eq "repair of the verification, attempt 1 of 3 \| temporary" ||
+log_of "$repo" | grep -E "repair of the verification, attempt 1 of 3 \| temporary" >/dev/null ||
   fail "the failed repair session is not in the log of the feature"
 
 # An agent that exits with the status the scripts keep for a failed
@@ -688,7 +688,7 @@ for code in 4 5; do
   run_feature "$repo" 2 thing
   expect_published "$repo"
   expect_sessions "$repo" 2 1 0 0
-  if log_of "$repo" | grep -Eq "Repair attempt|changed the review"; then
+  if log_of "$repo" | grep -E "Repair attempt|changed the review" >/dev/null; then
     fail "an agent that exited with $code was taken for a failed verification or a changed review"
   fi
 done
@@ -701,7 +701,7 @@ run_feature "$repo" 2 thing
 expect_stopped "$repo" 1 "the verification still fails"
 expect_sessions "$repo" 4 0 0 0
 grep -Eq "FAIL +sound" "$repo-2-thing/.agents/run/2-verify.log" || fail "the failing check is not in the kept output of the verification"
-log_of "$repo" | grep -Fq "fails after 3 repair attempts" || fail "the exhausted repairs are not in the log of the feature"
+log_of "$repo" | grep -F "fails after 3 repair attempts" >/dev/null || fail "the exhausted repairs are not in the log of the feature"
 
 # An implementer whose own verification did not finish reports that without
 # a BLOCKED line: the run goes on to the step that verifies, and passes when
@@ -736,7 +736,7 @@ printf '%s\n' 'printf "fixed\n" >>feature.txt; reply="Finished the fixes."' >"$r
 run_feature "$repo" 2 thing
 expect_published "$repo"
 expect_sessions "$repo" 1 3 1 2
-log_of "$repo" | grep -Fq "Continuing the interrupted session with the same scope" ||
+log_of "$repo" | grep -F "Continuing the interrupted session with the same scope" >/dev/null ||
   fail "the interrupted fix session is not in the log of the feature"
 [[ "$(grep -c "Wrong content" "$repo.control/fixes.args")" -eq 2 ]] ||
   fail "the continued session was not given the FIX_NOW finding of the triage"
@@ -758,7 +758,7 @@ run_feature "$repo" 2 thing
 expect_stopped "$repo" 1 "changed the review or the approved triage"
 expect_sessions "$repo" 1 1 1 1
 [[ ! -e "$repo-2-thing/.agents/run/2-fixes-started" ]] || fail "the mark of a rejected session was kept"
-log_of "$repo" | grep -Fq "nothing is tried again" || fail "the rejected session is not in the log of the feature"
+log_of "$repo" | grep -F "nothing is tried again" >/dev/null || fail "the rejected session is not in the log of the feature"
 
 # A fixing agent that failed before it changed anything is started again.
 for code in 4 5; do
@@ -893,17 +893,17 @@ grep -Fq "review of the complete feature, round 2 of at most 5" "$repo.out" || f
 grep -Fq "MERGE APPROVAL REQUIRED" "$repo.out" || fail "a Level 3 feature did not need the owner's approval"
 # The log of the feature records the start, the end, and the duration of
 # every step, and of the agent sessions inside them.
-log_of "$repo" | grep -Eq "\| implementation \| started \| ./scripts/start-feature.sh 2 thing --unattended \| attempt 1$" ||
+log_of "$repo" | grep -E "\| implementation \| started \| ./scripts/start-feature.sh 2 thing --unattended \| attempt 1$" >/dev/null ||
   { log_of "$repo" >&2; fail "the start of the implementation is not in the log of the feature"; }
-log_of "$repo" | grep -Eq "\| implementation \| ended \| status 0 \| [0-9]+ s$" || fail "the end of the implementation is not in the log of the feature"
-log_of "$repo" | grep -Eq "\| review on the feedback of a partial run, round 1 of at most 5 \| started \| ./scripts/review-feature.sh 2 main --feedback \| attempt 1$" ||
+log_of "$repo" | grep -E "\| implementation \| ended \| status 0 \| [0-9]+ s$" >/dev/null || fail "the end of the implementation is not in the log of the feature"
+log_of "$repo" | grep -E "\| review on the feedback of a partial run, round 1 of at most 5 \| started \| ./scripts/review-feature.sh 2 main --feedback \| attempt 1$" >/dev/null ||
   { log_of "$repo" >&2; fail "the start of the review is not in the log of the feature"; }
-log_of "$repo" | grep -Eq "\| review of the complete feature, round 2 of at most 5 \| ended \| status 0 \| [0-9]+ s$" ||
+log_of "$repo" | grep -E "\| review of the complete feature, round 2 of at most 5 \| ended \| status 0 \| [0-9]+ s$" >/dev/null ||
   fail "the end of the complete review is not in the log of the feature"
-log_of "$repo" | grep -Eq "\| review round 1, reviewer session \| started \| codex \(model-r\) \| on the feedback of default,code$" ||
+log_of "$repo" | grep -E "\| review round 1, reviewer session \| started \| codex \(model-r\) \| on the feedback of default,code$" >/dev/null ||
   { log_of "$repo" >&2; fail "the start of the reviewer session is not in the log of the feature"; }
-log_of "$repo" | grep -Eq "\| commit \| ended \| status 0 \| [0-9]+ s$" || fail "the end of the commit step is not in the log of the feature"
-log_of "$repo" | grep -Eq "\| pull request \| ended \| status 0 \| [0-9]+ s$" || fail "the end of the publication is not in the log of the feature"
+log_of "$repo" | grep -E "\| commit \| ended \| status 0 \| [0-9]+ s$" >/dev/null || fail "the end of the commit step is not in the log of the feature"
+log_of "$repo" | grep -E "\| pull request \| ended \| status 0 \| [0-9]+ s$" >/dev/null || fail "the end of the publication is not in the log of the feature"
 
 # A full pass that the implementer recorded for exactly the content makes
 # round 1 the complete round: one review, and the full run is not repeated.
@@ -936,7 +936,7 @@ if grep -Fq "Review of changes only" "$repo.control/reviewer.args"; then fail "a
 request_tree="$(sed -n 's/^Tree: //p' "$repo-2-thing/.agents/approvals/2.md")"
 [[ "$request_tree" =~ ^[0-9a-f]{40}$ ]] || fail "the approval request lost its line Tree:"
 grep -Fq "is refreshed to the content tree" "$repo.out" || fail "the line Tree: of the approval request was not refreshed after the fix session"
-git -C "$repo-2-thing" show --name-only --format= HEAD | grep -Fqx ".agents/approvals/2.md" || fail "the approval request was not committed"
+git -C "$repo-2-thing" show --name-only --format= HEAD | grep -Fx ".agents/approvals/2.md" >/dev/null || fail "the approval request was not committed"
 
 # A verification that fails in a feedback round is repeated in the tier the
 # round ran, the feedback groups, not the targeted run that a Level 3 change
@@ -948,12 +948,12 @@ printf '%s\n' "$level3_implementer; reply=\"Implemented.\"" >"$repo.control/impl
 run_feature "$repo" 2 thing
 expect_published "$repo"
 expect_sessions "$repo" 1 2 0 0
-log_of "$repo" | grep -Fq "unstable checks, failed in one of two verification runs: unstable" ||
+log_of "$repo" | grep -F "unstable checks, failed in one of two verification runs: unstable" >/dev/null ||
   { log_of "$repo" >&2; fail "the unstable check of a feedback round is not in the log of the feature"; }
-log_of "$repo" | grep -Eq "\| review on the feedback of a partial run, round 1 of at most 5, repeated verification \| started \| ./scripts/verify.sh --only default,code \| attempt 1$" ||
+log_of "$repo" | grep -E "\| review on the feedback of a partial run, round 1 of at most 5, repeated verification \| started \| ./scripts/verify.sh --only default,code \| attempt 1$" >/dev/null ||
   { log_of "$repo" >&2; fail "the failed verification of a feedback round was not repeated with the feedback groups"; }
-if log_of "$repo" | grep -Fq "targeted-run"; then fail "the repeat of a Level 3 verification was refused as a targeted run"; fi
-if log_of "$repo" | grep -Fq "Repair attempt"; then fail "a repair was started for a check that failed once"; fi
+if log_of "$repo" | grep -F "targeted-run" >/dev/null; then fail "the repeat of a Level 3 verification was refused as a targeted run"; fi
+if log_of "$repo" | grep -F "Repair attempt" >/dev/null; then fail "a repair was started for a check that failed once"; fi
 [[ "$(full_runs "$repo")" -eq 1 ]] || fail "the repeat of a feedback run was a full run"
 
 # Refusals, before anything starts.

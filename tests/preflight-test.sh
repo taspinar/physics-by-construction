@@ -84,7 +84,7 @@ expect_hint() {
   local pattern="$1"
   local hint="$2"
 
-  if ! grep -E -A1 "^FAILED +.*$pattern" "$tmp/out.log" | tail -n 1 | grep -Eq "^ +.*$hint"; then
+  if ! grep -E -A1 "^FAILED +.*$pattern" "$tmp/out.log" | tail -n 1 | grep -E "^ +.*$hint" >/dev/null; then
     cat "$tmp/out.log" >&2
     fail "expected '$pattern' with a fix hint matching '$hint'"
   fi

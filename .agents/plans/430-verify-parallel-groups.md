@@ -103,8 +103,17 @@ one after the other; a group process killed with SIGKILL (its check kills
 it, so no end marker is written) ends the run within a time limit, fails it,
 names the group and the signal, and its dependent group never starts (fix of
 2026-11-09, outside review of PR #431: the scheduler waited for the marker
-alone and hung). The existing tests of the selection and the tiers run
-with `VERIFY_JOBS=1`, where the order of the file is still asserted.
+alone and hung). The check finds the group process by walking up from
+itself to the process whose parent is `verify.sh` (fix of 2026-11-09: CI's
+bash 5 runs the check's shell in place of the subshell of `run_checks`, so
+the grandparent the first version killed was `verify.sh` itself). No
+self-test in `tests/` pipes into `grep -q` (fix of 2026-11-09, the owner's
+finding on the full run at 1edc314: under the load of groups at the same
+time the writer of such a pipe died of SIGPIPE when grep ended at its first
+match, and risk-level, risk-workflow and merge-feature failed although
+their assertions held); the guard and its own cases are in
+`tests/verify-test.sh`. The existing tests of the selection and the tiers
+run with `VERIFY_JOBS=1`, where the order of the file is still asserted.
 
 ## Steps
 
@@ -115,7 +124,14 @@ with `VERIFY_JOBS=1`, where the order of the file is still asserted.
    a failed group (its status from `wait`, the signal named), and a group
    that waits for one of its unfinished checks, directly or through another
    such group, is not started.
+   Fix of 2026-11-09 (full run at 1edc314): the killed-group test walks up
+   to the group process (bash 5 and 3.2); the 116 pipes into `grep -q` of
+   the self-tests read to the end (`grep ... >/dev/null`), with a guard.
+   The same pipe in the workflow scripts (`scripts/merge-feature.sh` and
+   others, protected) is outside this Issue: a question to the owner.
 2. After the session: the full `./scripts/verify.sh`, run last by the
    pipeline.
 3. After the merge: a full run on an idle machine, its time and what else
    ran entered under "Measurements".
+
+**Follow-up (owner, 2026-11-09):** the protected scripts with the same pipe pattern are repaired in #452, not in this Issue.

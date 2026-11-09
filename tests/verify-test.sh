@@ -88,7 +88,7 @@ MOCK_RUFF_EXIT=1 expect_failure "$project" "failure before a later command must 
 # A required check whose tool is missing fails and names the check and tool.
 project="$(setup_project missing-tool "lint: ruff check ." "types: mypy .")"
 expect_failure "$project" "missing required tool must fail"
-grep -F "types" "$project/out.log" | grep -Fq "mypy" ||
+grep -F "types" "$project/out.log" | grep -F "mypy" >/dev/null ||
   fail "missing tool message did not name the check and tool"
 
 # A required check script that is not executable fails.
@@ -780,16 +780,20 @@ done
 # that names the group and the signal; the run ends, a group that waits for
 # its check never starts, and a group beside it still runs. The run gets a
 # time limit, so that a scheduler that waits for the marker alone fails the
-# test instead of hanging it. The check's parent is the subshell of
-# run_checks; the group process is the parent of that.
+# test instead of hanging it. The group process is the check's ancestor whose
+# parent is verify.sh: how many processes lie between differs by bash (bash 5
+# replaces the subshell of run_checks with the check's shell, bash 3.2 does
+# not), so the check walks up to it from verify.sh's pid, which the test
+# writes, and never kills verify.sh itself.
 project="$(setup_project killed \
-  'doomed [k]: kill -KILL "$(ps -o ppid= -p "$PPID" | tr -d " ")"; sleep 1' \
+  'doomed [k]: until [ -s verify.pid ]; do sleep 0.1; done; v="$(cat verify.pid)"; p="$PPID"; while q="$(ps -o ppid= -p "$p" | tr -d " ")"; [ "$q" != "$v" ]; do [ "${q:-1}" -gt 1 ] || exit 3; p="$q"; done; kill -KILL "$p"; sleep 1' \
   "next [k]: ruff next" "dependent [d]: ruff dependent" "beside [o]: pytest beside" \
   "after [d]: doomed")"
-rm -f "$project/tools.log"
+rm -f "$project/tools.log" "$project/verify.pid"
 VERIFY_JOBS=4 PATH="$tmp/bin:/usr/bin:/bin" MOCK_TOOL_LOG="$project/tools.log" \
   "$project/scripts/verify.sh" >"$project/out.log" 2>&1 &
 verify_pid=$!
+printf '%s\n' "$verify_pid" >"$project/verify.pid.tmp" && mv "$project/verify.pid.tmp" "$project/verify.pid"
 n=0
 while kill -0 "$verify_pid" 2>/dev/null; do
   n=$((n + 1))
@@ -854,5 +858,23 @@ VERIFY_JOBS=4 expect_checks_ran "$project" "nothing was recorded yet" --reuse
 [[ -f "$project/.agents/verification/logs/a.log" ]] || fail "the recorded parallel run wrote no group log"
 [[ "$(sed -n 's/^tier: //p' "$project$record")" == "full" ]] || fail "the parallel run was not recorded as a full run"
 VERIFY_JOBS=4 expect_reused "$project" "the parallel run verified this content" --reuse
+
+# The self-tests give the same result beside other groups as alone. A pipe
+# into 'grep -q' does not: grep ends at its first match, and when the writer
+# still has output (bash writes printf's lines one by one), the writer dies of
+# SIGPIPE and, under pipefail, the assertion fails although it holds. Loaded by
+# groups at the same time, this failed risk-level, risk-workflow and
+# merge-feature (#430). Without -q, grep reads its input to the end.
+pipe_grep_q='(^|[^|])\|[[:space:]]*grep[[:space:]]+(-[A-Za-z-]+[[:space:]]+)*-[A-Za-z]*q'
+quiet_pipes="$(cd "$source_root" && grep -nE "$pipe_grep_q" tests/*.sh | grep -Ev '^[^:]+:[0-9]+:[[:space:]]*#' || true)"
+[[ -z "$quiet_pipes" ]] ||
+  fail "a self-test pipes into 'grep -q', which fails under load; use 'grep ... >/dev/null': $quiet_pipes"
+# The guard itself finds such a pipe, and not 'grep -q' after '||' (the q
+# is spliced in, so that these lines are no such pipe).
+q=q
+printf '%s\n' "printf x | grep -F$q a || fail" "log_of r | grep -E$q b" >"$tmp/quiet.sh"
+[[ "$(grep -cE "$pipe_grep_q" "$tmp/quiet.sh")" -eq 2 ]] || fail "the guard against 'grep -q' in a pipe finds no such pipe"
+printf '%s\n' "grep -F$q a f || grep -F$q b f" "printf x | grep -F a >/dev/null" >"$tmp/quiet.sh"
+[[ "$(grep -cE "$pipe_grep_q" "$tmp/quiet.sh" || true)" -eq 0 ]] || fail "the guard against 'grep -q' in a pipe finds a grep that reads to the end"
 
 echo "verify tests passed"
