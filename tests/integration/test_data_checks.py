@@ -315,6 +315,7 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
         nist_numisheet,
         npl_sparameters,
         tess_wasp18,
+        trackpy_bulk_water,
         xu_pendulum,
     )
 
@@ -327,6 +328,7 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
         (nist_numisheet, "nist-numisheet-dp980"),
         (tess_wasp18, "tess-exoplanet-light-curves"),
         (lycopodium, "lycopodium-spore-diffraction"),
+        (trackpy_bulk_water, "trackpy-bulk-water"),
         (xu_pendulum, "xu-damped-pendulum"),
         (dwd_soil, "dwd-potsdam-soil-temperature"),
     ):
