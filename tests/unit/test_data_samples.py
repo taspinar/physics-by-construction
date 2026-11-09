@@ -21,6 +21,7 @@ from pbc.data.reference import (
     munich_bell,
     nist_numisheet,
     npl_sparameters,
+    xu_pendulum,
 )
 
 GW = SAMPLES_DIR / "gw150914-strain"
@@ -29,6 +30,7 @@ AAL = SAMPLES_DIR / "aalborg-submerged-bar"
 RLC = SAMPLES_DIR / "bayreuth-rlc-impedance"
 DP980 = SAMPLES_DIR / "nist-numisheet-dp980"
 BELL = SAMPLES_DIR / "munich-bell-event-ready"
+XU = SAMPLES_DIR / "xu-damped-pendulum"
 
 
 def test_gw150914_sample_parses():
@@ -626,6 +628,7 @@ def test_every_panel_of_every_figure_is_titled_and_labelled():
         (bayreuth_rlc, RLC),
         (nist_numisheet, DP980),
         (munich_bell, BELL),
+        (xu_pendulum, XU),
     ):
         figure = module.make_figure(path)
         panels = [a for a in figure.axes if a.axison and a.get_label() != "<colorbar>"]
