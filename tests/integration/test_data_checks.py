@@ -312,6 +312,7 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
         gw150914,
         npl_sparameters,
         tess_wasp18,
+        trackpy_bulk_water,
     )
 
     assert check_repository(ROOT) == []
@@ -321,6 +322,7 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
         (aalborg_flume, "aalborg-submerged-bar"),
         (bayreuth_rlc, "bayreuth-rlc-impedance"),
         (tess_wasp18, "tess-exoplanet-light-curves"),
+        (trackpy_bulk_water, "trackpy-bulk-water"),
     ):
         figure = module.make_figure(ROOT / "data/samples" / name)
         assert figure.axes
