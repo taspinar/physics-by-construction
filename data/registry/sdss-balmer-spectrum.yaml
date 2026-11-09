@@ -1,0 +1,127 @@
+id: sdss-balmer-spectrum
+title: SDSS optical spectrum of a starburst galaxy with the Balmer series (plate 1949, MJD 53433, fibre
+  480), Data Release 17
+source:
+  url: https://data.sdss.org/sas/dr17/sdss/spectro/redux/26/spectra/lite/1949/spec-1949-53433-0480.fits
+  creator: Sloan Digital Sky Survey (SDSS-I/II Legacy survey, plate 1949 of chunk99, first released in
+    DR7); the 2.5 m Sloan Foundation Telescope at Apache Point Observatory and the SDSS spectrographs;
+    reduced by the SDSS pipeline (idlspec2d)
+  version: 'Data Release 17, RUN2D 26, spec-lite file; idlspec2d v5_3_12 (VERS2D, VERSCOMB), co-added
+    2008-02-18 (SPCOADD); spectrograph 2, three exposures per camera, 3000 s in all (EXPTIME), on MJD 53433 (2005-03-04)'
+  accessed: &accessed 2026-11-09
+rights:
+  licence: 'not settled: SDSS''s public-domain statement for released data, and a commercial-use clause
+    for data of the SDSS-I/II public archive (see the answers)'
+  local_download:
+    answer: permitted
+    source: 'https://www.sdss.org/collaboration/image-use-policy/, read 2026-11-09: "All SDSS data released
+      in our public data releases are considered in the public domain" (the same sentence at https://www.sdss4.org/collaboration/image-use-policy/);
+      the file is served without login by the public Science Archive Server under DR17'
+  redistribution_of_subsets:
+    answer: unclear
+    source: 'Two SDSS statements disagree. https://www.sdss.org/collaboration/image-use-policy/, read
+      2026-11-09: released data "are considered in the public domain". https://classic.sdss.org/collaboration/credits.html,
+      read 2026-11-09, which the current https://www.sdss.org/collaboration/citing-sdss/ links as the
+      SDSS-I/II acknowledgement for DR1-7 data such as this file: "Data from the SDSS public archive
+      may not be used for any commercial publication or other commercial purpose except with explicit
+      approval by the Astrophysical Research Consortium (ARC)". The second is a non-commercial term,
+      which the addendum of 2026-11-08 to ADR 007 does not accept for a committed sample without the
+      rights holder''s written permission'
+  publication_of_figures:
+    answer: unclear
+    source: 'https://www.sdss.org/collaboration/image-use-policy/ (public domain) against https://classic.sdss.org/collaboration/credits.html
+      (no commercial publication without ARC''s approval; non-commercial publications include the SDSS-I/II
+      acknowledgement), both read 2026-11-09'
+  modification_and_attribution:
+    answer: permitted
+    source: 'No SDSS statement forbids modification; https://classic.sdss.org/collaboration/credits.html
+      and https://www.sdss.org/collaboration/citing-sdss/, read 2026-11-09, ask for the SDSS-I/II acknowledgement
+      and the citation of the survey papers; the commercial-use clause above applies to every use'
+  attribution: 'Funding for the SDSS and SDSS-II has been provided by the Alfred P. Sloan Foundation, the
+    Participating Institutions, the National Science Foundation, the U.S. Department of Energy, the National
+    Aeronautics and Space Administration, the Japanese Monbukagakusho, the Max Planck Society, and the
+    Higher Education Funding Council for England. The SDSS Web Site is http://www.sdss.org/. File spec-1949-53433-0480.fits
+    of Data Release 17.'
+artifacts:
+- name: spec-1949-53433-0480.fits
+  type: calibrated-observation
+  description: 'SDSS spec-lite file of one fibre: HDU 1 COADD, the co-added, flux- and wavelength-calibrated
+    spectrum (3,843 pixels of 1e-4 in log10 wavelength, 3802.8 to 9210.9 Angstrom, vacuum, heliocentric)
+    with inverse variance, masks, line-spread width, the pipeline''s sky and its best-fit template; HDU
+    2 SPECOBJ, the pipeline''s classification (GALAXY, STARBURST) and redshift (Z 0.014990165 +- 0.0000060
+    from a template fit); HDU 3 SPZLINE, the pipeline''s Gaussian fits of 29 emission lines with one
+    common redshift.'
+- name: spec-1949-53433-0480.csv
+  type: calibrated-observation
+  description: 'The converted sample (not committed while the decision is defer): the COADD columns loglam,
+    flux, ivar, and_mask, wdisp of every pixel, written by tools/datasets/sdss_spec_to_csv.py with no
+    value changed, and the SPECOBJ values in a comment line. The line fits, the redshift calibration,
+    and the Rydberg constant are computed by pbc.data.reference.sdss_balmer, are not part of the record,
+    and are drawn apart from the measurement.'
+calibration: 'By the SDSS pipeline before release: flux calibration on standard stars, wavelength calibration
+  on arc lamps and sky lines, conversion to vacuum wavelengths (VACUUM T) and to the heliocentric frame
+  (HELIO_RV 10.566 km/s applied). No calibration is applied here; the reference analysis calibrates the
+  redshift as a straight line in wavelength on nine forbidden lines.'
+schema: 'COADD (HDU 1): 3,843 rows of flux, loglam, ivar, and_mask, or_mask, wdisp, sky, model (TFORM
+  E or J, no TUNITn); SPECOBJ (HDU 2): one row of 126 columns; SPZLINE (HDU 3): 29 rows of 19 columns.
+  The CSV: five comment lines (source and sha256, conversion, units, pipeline values) and the header
+  loglam,flux,ivar,and_mask,wdisp, one row per pixel in the order of COADD.'
+units: 'From the primary header and the SDSS documentation, since the table has no TUNITn: loglam is log10
+  of the vacuum wavelength in Angstrom (VACUUM T, WFITTYPE LOG-LINEAR, step COEFF1 1e-4); flux in 1E-17
+  erg/cm^2/s/Ang (BUNIT); ivar in its inverse square; and_mask the SPPIXMASK bits (https://www.sdss4.org/dr17/algorithms/bitmasks/);
+  wdisp the line-spread sigma in pixels of the log grid (SDSS spec data model).'
+cadence: 'Not a time series: one spectrum co-added from three exposures per camera, 3000 s in all, on MJD 53433.
+  The pixel grid is uniform in log10 wavelength, step 1e-4 (69.0 km/s), from 3802.77 to 9210.86 Angstrom.'
+coordinates: 'Fibre at RA 149.49866 deg, Dec 32.239656 deg (PLUG_RA, PLUG_DEC, J2000); wavelengths in vacuum
+  and heliocentric. The analysis works in observed wavelength; z is the redshift of the gas.'
+masks: 'No pixel has ivar 0. and_mask is nonzero for 27 pixels, all bit 23 BRIGHTSKY (sky above the flux
+  by ten errors), at the sky lines 5577-5580, 7914-7916, and 8344-8962 Angstrom, none in a line window;
+  the analysis keeps the 3,816 pixels with ivar above 0 and and_mask 0.'
+uncertainty: 'ivar per pixel (1-sigma error 1/sqrt(ivar)); median signal-to-noise 39 per pixel. Derived
+  (dossier): the Gaussian fits reach reduced chi-square 0.7 to 17 (16.7 for H alpha and [N II], 9 for [O
+  III] 5008), so each centre error is scaled by sqrt(reduced chi-square) above 1. Nine forbidden lines
+  scatter about the calibration z(lambda) with chi-square 40 for 7 degrees of freedom (a few km/s between
+  ions), and the calibration''s covariance is scaled by that ratio. The four Balmer lines then give R =
+  10,968,065 +- 41 1/m with chi-square 0.74 for 3. A velocity offset between the hydrogen and the forbidden-line
+  gas, or a constant error of the wavelength scale, moves R one for one and is not bounded by this record.'
+size:
+  description: 'The FITS file is 172,800 bytes; the CSV of every pixel is 153,300 bytes (not committed
+    while the decision is defer).'
+format: FITS (binary tables); the converted sample is CSV.
+reader: 'FITS: converted once, outside the build, by tools/datasets/sdss_spec_to_csv.py (NumPy only, with
+  the reader of tools/datasets/tess_lc_to_csv.py; input sha256 and the SAS sha1 pinned in the script;
+  output sha256 90dff68b9df582a8deba83f21f0eefbd510d00866481c875abf4202ebdb1b163). CSV: pbc.data.reference.sdss_balmer.read_spectrum
+  (NumPy). No new dependency.'
+downloads:
+- url: https://data.sdss.org/sas/dr17/sdss/spectro/redux/26/spectra/lite/1949/spec-1949-53433-0480.fits
+  filename: spec-1949-53433-0480.fits
+  algorithm: sha256
+  digest: 0f9aa3f5f187dde1fb42e6b58ab9b428e48a2d45f73e7254d954f48121a6a813
+  digest_source: 'computed on 2026-11-09 from the file downloaded from the SDSS Science Archive Server
+    (172,800 bytes); SAS publishes the sha1 e288a7d8c1fa38d11d83757fce03038ab183a012 in https://data.sdss.org/sas/dr17/sdss/spectro/redux/26/spectra/lite/1949/26_spectra_lite_1949.sha1sum,
+    and the file matches it; the file has no FITS CHECKSUM keywords'
+estimates:
+  runtime: About 2 s for the reference figure with the interpreter start (the line fits under 0.1 s).
+  memory: About 130 MB peak resident for the figure.
+  page_payload: 153 KB if committed, read at build time and not shipped; a figure PNG of about 340 KB.
+  ci: 'Offline: one committed file once the decision is go; nothing until then.'
+decision:
+  value: defer
+  date: *accessed
+  reasons:
+  - 'Real file inspected: 3,843 pixels from 3803 to 9211 Angstrom, 3,816 good; sha256 recorded, SAS sha1
+    verified; converted to CSV by a pinned script with no value changed (the CSV is not committed).'
+  - 'The science passes: nine forbidden lines calibrate z(lambda), and the four Balmer lines then give
+    R = 10,968,065 +- 41 1/m, chi-square 0.74 for 3 degrees of freedom; 2.8e-5 above CODATA R_H, of which
+    1.1e-5 is the fine structure the Bohr formula leaves out and 1.7e-5 (5.0 km/s) a velocity or calibration
+    offset that the record cannot separate from R.'
+  - 'The rights do not pass: SDSS calls its released data public domain, but its SDSS-I/II terms, linked
+    from the current citation page, forbid commercial use without ARC''s approval. Under the addendum
+    of 2026-11-08 to ADR 007 a non-commercial term is not committed without the rights holder''s written
+    permission, so no sample is committed and there is no go.'
+  - 'Recorded by F102 (Issue #442) under the owner''s decision of 2026-11-08 on the Issue: work towards
+    a go, judged per dossier, with every requirement of ADR 007 checked in the dossier.'
+  gate: 'Written permission from ARC (or a written SDSS statement that the public-domain sentence governs
+    SDSS-I/II archive data, commercial use included), recorded on this card; then commit the converted
+    sample with its sha256, assert the dossier''s numbers on it, and record the go.'
+dossier: docs/datasets/sdss-balmer-spectrum.md

@@ -15,6 +15,7 @@ MODULES = {
     "tess-exoplanet-light-curves": "tess_wasp18",
     "munich-bell-event-ready": "munich_bell",
     "lycopodium-spore-diffraction": "lycopodium",
+    "sdss-balmer-spectrum": "sdss_balmer",
     "dwd-potsdam-soil-temperature": "dwd_soil",
 }
 
