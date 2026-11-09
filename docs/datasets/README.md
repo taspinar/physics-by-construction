@@ -19,7 +19,9 @@ Cards added after the survey, for the measured-data labs:
 | Dataset | Kind | Decision | Dossier |
 |---|---|---|---|
 | Bayreuth RLC impedance (EM8, Issue #418) | complex impedance measurement | **go** (2026-11-08) | [bayreuth-rlc-impedance](bayreuth-rlc-impedance.md) |
+| NIST Numisheet DP980 tension/compression (MAT6, Issue #421) | stress–strain test with a load reversal | **go** (2026-11-08) | [nist-numisheet-dp980](nist-numisheet-dp980.md) |
 | Munich event-ready Bell test (Q8, Issue #419) | Bell-test event counts | **go** (2026-11-08) | [munich-bell-event-ready](munich-bell-event-ready.md) |
+| DWD Potsdam soil temperature (T7, Issue #438) | measured temperature profiles in the ground | **go** (2026-11-09) | [dwd-potsdam-soil-temperature](dwd-potsdam-soil-temperature.md) |
 | SDSS Balmer spectrum (Q7, Issue #442) | calibrated optical spectrum | **defer** (2026-11-09): the science passes, the rights do not (a commercial-use clause) | [sdss-balmer-spectrum](sdss-balmer-spectrum.md) |
 
 One spiked dataset has failed its gate so far: the SDSS Balmer spectrum is `defer`, because SDSS's terms for SDSS-I/II archive data forbid commercial use without written approval, a non-commercial term under the addendum to ADR 007; its file, figure, and uncertainty passed. Reject has no entry yet. The survey-only cards with a known obstacle are the optical-diffraction record (licence field CC BY 4.0 beside a copyright line, RAR archives) and the cylinder-wake PIV (one 1.1 GB MAT file of processed fields at 20 Hz, zeros are masks); both remain conditional, as the survey proposed.
@@ -30,7 +32,7 @@ A `go` means the data, the rights, and the figure passed. It does not mean a les
 
 ## Dataset research for the measured-data labs
 
-The research of 2026-11-08 into open datasets for the measured-data labs is recorded in [spike-candidates-2026-11-08](spike-candidates-2026-11-08.md): the first spike recommended per lab, the options rejected, corrections to existing cards (not yet applied), the owner's decisions and the open ones, and the outcome of its third round, in which the small spike files were downloaded and inspected. Those files, the scripts, and the figures were kept outside the repository; the research committed no data file. The datasets it marked ready for a dossier receive their card, sample, and decision in their own features, judged per dossier: a dataset has a `go` when its card says so (the tables above). AST8's FITS file is converted once by `tools/datasets/tess_lc_to_csv.py`, Q7's by `tools/datasets/sdss_spec_to_csv.py` (`tools/datasets/README.md`).
+The research of 2026-11-08 into open datasets for the measured-data labs is recorded in [spike-candidates-2026-11-08](spike-candidates-2026-11-08.md): the first spike recommended per lab, the options rejected, corrections to existing cards (not yet applied), the owner's decisions and the open ones, and the outcome of its third round, in which the small spike files were downloaded and inspected. Those files, the scripts, and the figures were kept outside the repository; the research committed no data file. The datasets it marked ready for a dossier receive their card, sample, and decision in their own features, judged per dossier: a dataset has a `go` when its card says so (the tables above). AST8's FITS file is converted once by `tools/datasets/tess_lc_to_csv.py`, T7's sample is extracted from DWD's yearly archive by `tools/datasets/dwd_soil_extract.py`, and Q7's FITS file by `tools/datasets/sdss_spec_to_csv.py` (`tools/datasets/README.md`).
 
 ## Recommendation for the first lab
 

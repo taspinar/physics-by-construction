@@ -19,6 +19,7 @@ from pbc.data.reference import (
     bayreuth_rlc,
     gw150914,
     munich_bell,
+    nist_numisheet,
     npl_sparameters,
 )
 
@@ -26,6 +27,7 @@ GW = SAMPLES_DIR / "gw150914-strain"
 NPL = SAMPLES_DIR / "npl-onwafer-sparameters"
 AAL = SAMPLES_DIR / "aalborg-submerged-bar"
 RLC = SAMPLES_DIR / "bayreuth-rlc-impedance"
+DP980 = SAMPLES_DIR / "nist-numisheet-dp980"
 BELL = SAMPLES_DIR / "munich-bell-event-ready"
 
 
@@ -250,6 +252,166 @@ def test_a_file_that_is_not_an_impedance_export_is_refused(tmp_path):
         bayreuth_rlc.read_impedance(path)
 
 
+def test_nist_numisheet_sample_parses():
+    # Field names: the header row of the stress-strain file, and the units of
+    # its companion attributes file.
+    header = (DP980 / nist_numisheet.FILE).read_text().splitlines()[0]
+    assert header == ",".join(f'"{f}"' for f in nist_numisheet.FIELDS)
+    units = nist_numisheet.read_attributes(DP980 / nist_numisheet.ATTRIBUTES)
+    assert units == nist_numisheet.UNITS
+    test = nist_numisheet.load(DP980)
+    # Shapes: 1,607 rows of five columns.
+    for column in (
+        test.time,
+        test.strain,
+        test.stress,
+        test.true_strain,
+        test.true_stress,
+    ):
+        assert column.shape == (1607,)
+    # Cadence: the images, 0.25 s apart until 62.85 s, then 1 s (with a few
+    # gaps of 1.25-1.33 s), from 0 to 1418.0168 s, strictly increasing.
+    step = np.diff(test.time)
+    assert test.time[0] == 0 and test.time[-1] == pytest.approx(1418.0168)
+    assert (step > 0).all()
+    early = test.time[1:] <= 62.85
+    assert np.allclose(step[early][1:], 0.25, atol=0.002)
+    assert np.allclose(step[~early][1:], 1.0, atol=0.34)
+    assert np.median(step[~early]) == pytest.approx(1.0, abs=0.001)
+    # Units: strain in mm/mm (|e| < 0.2, the true strain is ln(1 + e)),
+    # stress in MPa (about 1 GPa for this steel), true stress S (1 + e).
+    np.testing.assert_allclose(test.true_strain, np.log1p(test.strain), atol=1e-14)
+    np.testing.assert_allclose(
+        test.true_stress, test.stress * (1 + test.strain), atol=1e-9
+    )
+    assert np.abs(test.strain).max() < 0.2
+    assert 900 < test.stress.max() < 1100 and -1100 < test.stress.min() < -900
+    # Masks: none.
+    assert all(
+        np.isfinite(c).all()
+        for c in (test.time, test.strain, test.stress, test.true_strain)
+    )
+
+
+def _edges_cross(x, y):
+    """Whether two non-adjacent edges of the closed polygon (x, y) cross."""
+    start = np.c_[x, y]
+    edge = np.roll(start, -1, axis=0) - start
+    n = len(start)
+    i, j = np.triu_indices(n, 2)
+    keep = ~((i == 0) & (j == n - 1))
+    i, j = i[keep], j[keep]
+
+    def cross(a, b):
+        return a[:, 0] * b[:, 1] - a[:, 1] * b[:, 0]
+
+    d = cross(edge[i], edge[j])
+    ok = d != 0
+    gap = start[j] - start[i]
+    u = cross(gap, edge[j]) / np.where(ok, d, 1)
+    v = cross(gap, edge[i]) / np.where(ok, d, 1)
+    return bool((ok & (u > 0) & (u < 1) & (v > 0) & (v < 1)).any())
+
+
+def test_the_dp980_test_reverses_the_load_and_closes_a_hysteresis_loop():
+    """Tension to 5.8 %, compression back to about zero strain, tension to
+    fracture: a load reversal with a closed loop of 75.8 MJ/m^3. The values
+    are the dossier's."""
+    test = nist_numisheet.load(DP980)
+    seg = nist_numisheet.segments(test)
+    # Three points of the reversal: the stress maximum (the loop's start), at
+    # a smaller strain than the end of the hold, where the unloading begins.
+    assert test.stress[seg.reversal] == pytest.approx(991.3, abs=0.1)
+    assert test.strain[seg.reversal] == pytest.approx(0.05750, abs=1e-5)
+    assert test.time[seg.reversal] == pytest.approx(301.68, abs=0.01)
+    assert test.strain[seg.hold_end] == pytest.approx(0.05791, abs=1e-5)
+    assert test.stress[seg.hold_end] == pytest.approx(970.3, abs=0.1)
+    assert test.time[seg.hold_end] == pytest.approx(307.68, abs=0.01)
+    # The hold: the strain stays within 0.01 % while the stress relaxes 21 MPa.
+    held = test.strain[seg.reversal + 2 : seg.hold_end + 1]
+    assert np.ptp(held) < 1e-4
+    relaxed = test.stress[seg.reversal] - test.stress[seg.hold_end]
+    assert relaxed == pytest.approx(21.1, abs=0.1)
+    assert test.stress[seg.compression] == pytest.approx(-1006.6, abs=0.1)
+    assert abs(test.strain[seg.compression]) < 0.001
+    cycle = nist_numisheet.loop(test)
+    e, s = test.strain, test.stress
+    # The endpoints: the stress maximum, and the first reload row at its
+    # strain or beyond (the row before is below it).
+    assert cycle.start == seg.reversal
+    assert cycle.rows == slice(cycle.start, cycle.end + 1)
+    assert cycle.end > seg.compression
+    assert e[cycle.end - 1] < e[cycle.start] <= e[cycle.end]
+    assert e[cycle.end] == pytest.approx(0.05761, abs=1e-5)
+    assert s[cycle.end] == pytest.approx(964.9, abs=0.1)
+    # The closure: a straight segment 0.0001 in strain and -26.5 MPa in stress.
+    assert cycle.gap_strain == pytest.approx(e[cycle.end] - e[cycle.start])
+    assert cycle.gap_strain == pytest.approx(1.08e-4, abs=0.01e-4)
+    assert cycle.gap_stress == pytest.approx(-26.5, abs=0.1)
+    assert cycle.closing == pytest.approx(-0.105, abs=0.001)
+    # The closed integral equals the enclosed area of the polygon (shoelace),
+    # with the sign of a clockwise path: positive work done on the specimen.
+    # The polygon is simple (no two edges cross), so the area is enclosed.
+    x, y = e[cycle.rows], s[cycle.rows]
+    assert not _edges_cross(x, y / 1e4)
+    signed = 0.5 * np.sum(x * np.roll(y, -1) - np.roll(x, -1) * y)
+    assert signed < 0
+    assert cycle.work == pytest.approx(-signed, rel=1e-12)
+    assert cycle.work == pytest.approx(75.75, abs=0.01)
+    neck = nist_numisheet.reload_maximum(test)
+    assert test.stress[neck] == pytest.approx(981.2, abs=0.1)
+    assert test.strain[neck] == pytest.approx(0.0910, abs=1e-4)
+    assert test.strain[-1] == pytest.approx(0.1771, abs=1e-4)
+    # The unloading chord is far below E: the curve is not elastic on the way
+    # down (the Bauschinger effect of a dual-phase steel).
+    chord = nist_numisheet.unloading_modulus(test)
+    assert chord == pytest.approx(143.6, abs=0.1)
+    assert nist_numisheet.unloading_modulus(test, 500, 0) == pytest.approx(
+        130.3, abs=0.1
+    )
+    assert nist_numisheet.unloading_modulus(test, 950, 600) == pytest.approx(
+        159.5, abs=0.1
+    )
+
+
+def test_the_dp980_elastic_fit_and_its_uncertainty():
+    """E from the 100-400 MPa window, its standard error from the scatter,
+    and the spread over the windows of the sensitivity analysis; the scatter
+    of the residuals matches the extensometer noise before the ramp."""
+    test = nist_numisheet.load(DP980)
+    result = nist_numisheet.elastic_fit(test)
+    assert result.ok, result.warnings
+    assert result.value("E") == pytest.approx(196.3, abs=0.05)
+    assert result.stderr[0] == pytest.approx(1.09, abs=0.01)
+    assert result.value("S0") == pytest.approx(7.4, abs=0.05)
+    moduli = {
+        w: r.value("E") for w, r in nist_numisheet.window_sensitivity(test).items()
+    }
+    assert min(moduli.values()) == pytest.approx(192.5, abs=0.05)
+    assert max(moduli.values()) == pytest.approx(198.4, abs=0.05)
+    assert nist_numisheet.offset_yield(test, result) == pytest.approx(775.2, abs=0.1)
+    rows = nist_numisheet.preload(test)
+    assert rows.size == 10
+    noise = test.strain[rows].std(ddof=1)
+    assert noise == pytest.approx(2.5e-5, abs=0.1e-5)
+    assert noise < nist_numisheet.DIC_NOISE_FLOOR / 10
+    rms = np.sqrt(np.mean(result.residuals**2))
+    assert rms == pytest.approx(4.4, abs=0.1)
+    assert rms == pytest.approx(result.value("E") * 1e3 * noise, rel=0.15)
+    assert nist_numisheet.stress_from_load_cells(test) == pytest.approx(5.87, abs=0.01)
+
+
+def test_a_file_with_other_columns_is_refused(tmp_path):
+    path = tmp_path / "other.csv"
+    path.write_text('"Time","Load"\n0,1\n')
+    with pytest.raises(ValueError, match="columns"):
+        nist_numisheet.read_stress_strain(path)
+    attributes = tmp_path / "attributes.csv"
+    attributes.write_text('"Name","Kind"\n"Time","s"\n')
+    with pytest.raises(ValueError, match="attributes"):
+        nist_numisheet.read_attributes(attributes)
+
+
 def test_munich_bell_sample_parses():
     run = munich_bell.load(BELL)
     pairs, one, two = run.pairs, run.lab_1, run.lab_2
@@ -462,6 +624,7 @@ def test_every_panel_of_every_figure_is_titled_and_labelled():
         (npl_sparameters, NPL),
         (aalborg_flume, AAL),
         (bayreuth_rlc, RLC),
+        (nist_numisheet, DP980),
         (munich_bell, BELL),
     ):
         figure = module.make_figure(path)
