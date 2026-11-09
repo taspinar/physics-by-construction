@@ -2,10 +2,11 @@
 reference analysis recovers the Rydberg constant it is given (ADR 007;
 docs/datasets/sdss-balmer-spectrum.md).
 
-The card's decision is ``defer`` (the rights are not settled), so no sample is
-committed and the numbers of the dossier are not asserted here: every test
-runs on a spectrum this file writes, through the same chain the dossier used
-(a FITS file, the conversion, the reader, the analysis, the figure).
+Most tests run on a spectrum this file writes, through the same chain the
+dossier used (a FITS file, the conversion, the reader, the analysis, the
+figure), where the true values are known. The card's decision is ``go``
+(Issue #442, the owner's decision of 2026-11-09), so the converted spectrum
+is committed: the last tests parse it and assert the dossier's numbers on it.
 """
 
 import importlib.util
@@ -254,10 +255,12 @@ def test_the_card_pins_the_file_the_converter_pins():
     assert download["algorithm"] == "sha256"
     assert download["digest"] == tool.INPUT_SHA256
     assert tool.INPUT_SHA1 in download["digest_source"]
-    # Deferred: the rights are not settled, so nothing is committed.
-    assert card["decision"]["value"] == "defer"
-    assert not card.get("samples")
-    assert not (ROOT / "data/samples/sdss-balmer-spectrum").exists()
+    # Go: the converted spectrum is committed, as the converter writes it.
+    assert card["decision"]["value"] == "go"
+    assert card["rights"]["licence"] == "equivalent-permission"
+    (sample,) = card["samples"]
+    assert sample["path"] == sdss_balmer.FILE
+    assert sample["sha256"] in (ROOT / "tools/datasets/README.md").read_text()
 
 
 # The line model.
@@ -398,4 +401,133 @@ def test_the_dossier_states_the_status_of_its_figure_and_the_decision():
     text = (ROOT / "docs/datasets/sdss-balmer-spectrum.md").read_text()
     text = text.replace("**", "")
     assert "Status label: processed" in text
-    assert "Decision: defer" in text
+    assert "Decision: go" in text
+    assert "Decision: defer" not in text
+    # The rights rest on the current policy; the contradicting SDSS-I/II
+    # clause and the owner's decision that settles it are both named.
+    assert "https://www.sdss.org/collaboration/image-use-policy/" in text
+    assert "https://classic.sdss.org/collaboration/credits.html" in text
+    assert "issues/442" in text
+
+
+# The committed sample: the record itself, and the dossier's numbers on it.
+
+SAMPLE = ROOT / "data/samples/sdss-balmer-spectrum"
+
+
+@pytest.fixture(scope="module")
+def real():
+    return sdss_balmer.load(SAMPLE)
+
+
+@pytest.fixture(scope="module")
+def real_analysis(real):
+    return sdss_balmer.analyse(real)
+
+
+def test_the_committed_sample_parses(real):
+    # Provenance: the header names the FITS file and its pinned checksum.
+    assert real.header[0] == (
+        f"# source: {converter().INPUT_NAME} (sha256 {converter().INPUT_SHA256})"
+    )
+    # Field names and units, as the converter writes them.
+    names = (SAMPLE / sdss_balmer.FILE).read_text().splitlines()[len(real.header)]
+    assert tuple(names.split(",")) == sdss_balmer.FIELDS
+    assert real.header[2] == "# units: " + ", ".join(
+        f"{name} [{unit}]" for name, unit in sdss_balmer.UNITS.items()
+    )
+    # Shapes: every row of COADD, 3,843 pixels.
+    for column in (real.loglam, real.flux, real.ivar, real.and_mask, real.wdisp):
+        assert column.shape == (3843,)
+    assert real.and_mask.dtype.kind == "i"
+    # Cadence of the grid: uniform steps of 1e-4 in log10 wavelength (float32
+    # rounding of loglam stays below 2e-7), 3802.77 to 9210.86 Angstrom.
+    steps = np.diff(real.loglam)
+    assert np.all(np.abs(steps - sdss_balmer.DLOGLAM) < 2e-7)
+    assert real.wavelength[[0, -1]] == pytest.approx([3802.77, 9210.86], abs=0.01)
+    # Masks: no pixel without an error; 27 BRIGHTSKY pixels (bit 23) at sky
+    # lines, none in a line window; 3,816 good pixels.
+    assert np.all(real.ivar > 0)
+    flagged = real.and_mask != 0
+    assert flagged.sum() == 27
+    assert set(real.and_mask[flagged]) == {1 << 23}
+    assert sdss_balmer.good(real).sum() == 3816
+    # Units: flux in 1e-17 erg/cm^2/s/A with median 86 and signal-to-noise 39
+    # per pixel; the line-spread width under 1.1 pixels.
+    assert np.median(real.flux) == pytest.approx(85.5, abs=0.1)
+    assert np.median(real.flux * np.sqrt(real.ivar)) == pytest.approx(38.8, abs=0.1)
+    assert real.wdisp.min() > 0.6 and real.wdisp.max() < 1.1
+    # The pipeline's values, as the comment line gives them.
+    assert sdss_balmer.pipeline_value(real, "SUBCLASS") == "STARBURST"
+    assert sdss_balmer.pipeline_value(real, "Z") == "0.014990165"
+    assert sdss_balmer.pipeline_value(real, "ZWARNING") == "0"
+
+
+def test_the_dossiers_lines_and_calibration_on_the_sample(real_analysis):
+    lines = real_analysis.lines
+    for name, centre, error, width in (
+        ("H alpha", 6663.034, 0.028, 75),
+        ("H beta", 4935.476, 0.010, 72),
+        ("H gamma", 4406.627, 0.025, 74),
+        ("H delta", 4164.245, 0.042, 74),
+    ):
+        line = lines[name]
+        assert line.centre == pytest.approx(centre, abs=0.001), name
+        assert line.error == pytest.approx(error, abs=0.001), name
+        assert line.sigma / line.centre * sdss_balmer.C_KMS == pytest.approx(
+            width, abs=1
+        ), name
+    # Every parameter identified; the bright lines fit with reduced
+    # chi-square well above 1, as the dossier says, which is why each
+    # centre's error is scaled by its square root.
+    reduced = {}
+    for fit in real_analysis.fits:
+        assert all(fit.result.identifiable), fit.names
+        for name in fit.names:
+            reduced[name] = fit.result.reduced_chi2
+    for name, value in (
+        ("H alpha", 16.7),
+        ("H beta", 1.3),
+        ("H gamma", 4.6),
+        ("H delta", 5.8),
+        ("[O III] 5008", 9.4),
+    ):
+        assert reduced[name] == pytest.approx(value, abs=0.05), name
+    cal = real_analysis.rydberg.calibration
+    z0_err, _ = np.sqrt(np.diag(cal.covariance))
+    assert cal.params[0] == pytest.approx(0.0149937, abs=1e-7)
+    assert z0_err == pytest.approx(3.0e-6, abs=0.1e-6)
+    assert cal.slope_kms == pytest.approx(4.2, abs=0.05)
+    assert (round(cal.chi2, 1), cal.dof) == (40.4, 7)
+    assert cal.velocity("[Ne III] 3870") == pytest.approx(-9.3, abs=0.05)
+    assert cal.velocity("[Ar III] 7138") == pytest.approx(-4.8, abs=0.05)
+
+
+def test_the_dossiers_rydberg_constant_on_the_sample(real, real_analysis):
+    ryd = real_analysis.rydberg
+    assert ryd.levels == (3, 4, 5, 6)
+    assert ryd.r == pytest.approx(10_968_065, abs=0.5)
+    assert ryd.r_err == pytest.approx(41, abs=0.5)
+    assert ryd.chi2 == pytest.approx(0.74, abs=0.005) and ryd.dof == 3
+    for n, value in (
+        (3, 10_968_088),
+        (4, 10_968_054),
+        (5, 10_968_091),
+        (6, 10_968_100),
+    ):
+        assert ryd.per_line[n] == pytest.approx(value, abs=0.5), n
+    assert ryd.relative == pytest.approx(2.80e-5, abs=0.005e-5)
+    assert ryd.relative_lab == pytest.approx(1.67e-5, abs=0.005e-5)
+    assert sdss_balmer.bohr_lab_rydberg() == pytest.approx(10_967_881, abs=0.5)
+    # The sensitivity table: the choices move R by under 40 1/m, and one z
+    # for all lines fails the 1/n^2 law.
+    variants = sdss_balmer.sensitivity(real)
+    for name, r, chi2 in (
+        ("window 9 A", 10_968_065, 0.88),
+        ("window 16 A", 10_968_072, 0.58),
+        ("no H delta", 10_968_064, 0.64),
+        ("no [Ne III]", 10_968_101, 1.65),
+        ("one z", 10_968_138, 29.6),
+    ):
+        assert variants[name].r == pytest.approx(r, abs=0.6), name
+        assert variants[name].chi2 == pytest.approx(chi2, abs=0.05), name

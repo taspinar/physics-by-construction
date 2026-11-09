@@ -314,6 +314,7 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
         lycopodium,
         nist_numisheet,
         npl_sparameters,
+        sdss_balmer,
         tess_wasp18,
         trackpy_bulk_water,
         xu_pendulum,
@@ -331,6 +332,7 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
         (trackpy_bulk_water, "trackpy-bulk-water"),
         (xu_pendulum, "xu-damped-pendulum"),
         (dwd_soil, "dwd-potsdam-soil-temperature"),
+        (sdss_balmer, "sdss-balmer-spectrum"),
     ):
         figure = module.make_figure(ROOT / "data/samples" / name)
         assert figure.axes
