@@ -211,6 +211,15 @@ counts as not complete whatever the record says.
   owner explicitly bounded in a comment on the Issue. The rationale must cite
   that comment. `scripts/apply-triage.sh` applies the `FIX_NOW` findings and
   verifies.
+- **What blocks and what is form** (`.agents/prompts/reviewer.md`, "Blocking
+  faults and findings about form"; Issue #463, D12): a fault in the review
+  evidence, the verification, or the approval is always `major` and blocks.
+  A finding about the form of a record, the wording of a field, or the
+  staleness of a working file is at most `minor`; a stale handoff note is
+  at most a `suggestion`. When in doubt a finding keeps its severity.
+  `scripts/finish-feature.sh` writes the approval request in full from its
+  derivation; only a lowering's `Reason:` and `Owner's word:` are written by
+  hand.
 - **The commit** (`scripts/finish-feature.sh`) checks the completion gate,
   the level, the verification tier (at Level 3 the full run for exactly this
   content), a current review with no critical or major finding, the chain,

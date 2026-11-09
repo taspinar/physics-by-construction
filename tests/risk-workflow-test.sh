@@ -326,6 +326,80 @@ git -C "$repo" show HEAD:.agents/approvals/12.md | grep -Fx "Tree: $content" >/d
   fail "the committed approval request does not name the content tree"
 [[ "$(count_runs "$repo")" -eq 1 ]] || fail "correcting the approval request made the full run stale"
 
+# --- The approval request is written by finish-feature.sh in full (Issue
+# #463, D12): every field from the derivation, a hand-edited one overwritten,
+# any other text dropped; only a lowering's Reason and Owner's word are free.
+# The verification stays valid, since the request is no part of the content.
+repo="$(setup_repo request-written)"
+printf 'dependencies = ["numpy"]\n' >>"$repo/pyproject.toml"
+record "$repo" complete 3
+request "$repo" 3
+content="$(sed -n 's/^Tree: //p' "$repo/.agents/approvals/12.md")"
+sed -i.bak -e 's/^Issue: .*$/Issue: #99/' -e 's/^Level: .*$/**Level:** two/' -e 's/^Derived from: .*$/Derived from: my guess/' \
+  "$repo/.agents/approvals/12.md" && rm "$repo/.agents/approvals/12.md.bak"
+run_script "$repo" ./scripts/verify.sh
+[[ "$status" -eq 0 && "$(count_runs "$repo")" -eq 1 ]] || { cat "$repo.out" >&2; fail "the full run failed"; }
+review "$repo" "$full"
+run_script "$repo" ./scripts/finish-feature.sh 12 "Add the marker" --unattended
+expect_commit "$repo" "an approval request with hand-edited fields"
+grep -Fq "The approval request .agents/approvals/12.md is written from the derivation: level 3, by the triggers" "$repo.out" ||
+  { cat "$repo.out" >&2; fail "finish-feature.sh does not say that it wrote the approval request"; }
+written="$(git -C "$repo" show HEAD:.agents/approvals/12.md)"
+for line in "Issue: #12" "Level: 3" "Tree: $content" \
+  "Derived from: the triggers (dependency file changed: pyproject.toml (the file is a dependency manifest or lock file))"; do
+  grep -Fx -- "$line" >/dev/null <<<"$written" || fail "the written approval request lacks '$line': $written"
+done
+if grep -E "Approved:|my guess|#99|two" >/dev/null <<<"$written"; then
+  fail "the written approval request keeps hand-written text: $written"
+fi
+[[ "$(count_runs "$repo")" -eq 1 ]] || fail "writing the approval request made the full run stale"
+
+# A lowering: the derived fields are written, the Reason and the Owner's word
+# (with its continuation line) kept as they stand, and nothing else is free.
+repo="$(setup_repo request-lowering)"
+printf 'dependencies = ["numpy"]\n' >>"$repo/pyproject.toml"
+record "$repo" complete 2
+request "$repo" 2 1
+awk '/^Owner.s word: / { print "Owner'"'"'s word: \"Lower #12 to Level 2\""; print "  (2026-10-19, in the session)"; next } { print }' \
+  "$repo/.agents/approvals/12.md" >"$repo/approval.tmp" && mv "$repo/approval.tmp" "$repo/.agents/approvals/12.md"
+review "$repo" "$full"
+run_script "$repo" ./scripts/finish-feature.sh 12 "Add the marker" --unattended
+expect_commit "$repo" "a requested lowering whose levels were written by hand"
+written="$(git -C "$repo" show HEAD:.agents/approvals/12.md)"
+for line in "Level: 3" "Required level: 3" "Requested level: 2" "Reason: the dependency is a pin of the same version" \
+  "Owner's word: \"Lower #12 to Level 2\"" "  (2026-10-19, in the session)"; do
+  grep -Fx -- "$line" >/dev/null <<<"$written" || fail "the written lowering lacks '$line': $written"
+done
+fields="$(sed -nE 's/^([A-Z][A-Za-z'"'"' ]*): .*$/\1/p' <<<"$written" | sort | paste -sd ',' -)"
+[[ "$fields" == "Derived from,Issue,Level,Owner's word,Reason,Requested level,Required level,Tree" ]] ||
+  fail "the written lowering has other fields: $fields"
+(
+  source "$repo/scripts/lib/risk.sh"
+  free="$(risk_request_free_fields "$repo/.agents/approvals/12.md" | sed -nE 's/^([A-Z][A-Za-z'"'"' ]*): .*$/\1/p' | sort | paste -sd ',' -)"
+  [[ "$free" == "Owner's word,Reason" ]] || fail "the free fields of the request are not exactly the Reason and the Owner's word: $free"
+)
+
+# What stays blocking: a lowering without the owner's word, a stated level
+# below the derived one without a lowering, and a Level 3 change without its
+# request (above), are refused although the script writes the request.
+repo="$(setup_repo request-no-word)"
+printf 'dependencies = ["numpy"]\n' >>"$repo/pyproject.toml"
+record "$repo" complete 2
+request "$repo" 3 2
+sed -i.bak "/^Owner's word:/d; /^Reason:/d" "$repo/.agents/approvals/12.md" && rm "$repo/.agents/approvals/12.md.bak"
+review "$repo" "$full"
+run_script "$repo" ./scripts/finish-feature.sh 12 "Add the marker" --unattended
+expect_no_commit "$repo" "a lowering without the owner's word, in a written request" "has no line 'Reason: ...'" \
+  "has no line 'Owner's word: ...'"
+repo="$(setup_repo request-below)"
+printf 'dependencies = ["numpy"]\n' >>"$repo/pyproject.toml"
+record "$repo" complete 2
+request "$repo" 3
+review "$repo" "$full"
+run_script "$repo" ./scripts/finish-feature.sh 12 "Add the marker" --unattended
+expect_no_commit "$repo" "a stated level below the derived one, with a request that asks no lowering" \
+  "the completion record states level 2, below the level 3 that the triggers give"
+
 # --- A lowering of a trigger reading: recorded with the required and the
 # requested level and the content, and the change keeps level 3. An
 # owner_approval criterion the record says is met counts for nothing.

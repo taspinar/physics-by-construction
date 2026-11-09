@@ -1931,8 +1931,16 @@ the script cannot write is refused, with the value to write. You approve the
 request with the diff at the merge. The content tree changes with every
 fix, because the handoff note is part of it, so `apply-triage.sh` refreshes
 the line `Tree:` after a fix session and `run-feature.sh` before every
-review (Issue #389); everything else in the request stays as the agent wrote
-it, and the review's diff shows the request as it is. A lowering adds `Required level:`, `Requested level:`
+review (Issue #389), and the review's diff shows the request as it is.
+`finish-feature.sh` writes the request in full before its check (Issue #463,
+D12): `Issue:`, `Level:`, `Derived from:`, and `Tree:` from its derivation,
+and for a lowering (the record states a level below the required one and
+the request asks for it) `Required level:` and `Requested level:` (the
+level of the record); it keeps a lowering's `Reason:` and `Owner's word:`
+as written and drops any other text. A hand-edited field is overwritten,
+not refused, so it costs no round; a Level 3 change without the request,
+and a lowering without the owner's word, stay refused: the script creates
+no request and writes no owner's word. A lowering adds `Required level:`, `Requested level:`
 (a trigger reading or an assessed level, never the path minimum),
 `Reason:`, and `Owner's word:`, your words in the conversation that let the
 agent proceed. It is a request, never an approval: no script reads it as

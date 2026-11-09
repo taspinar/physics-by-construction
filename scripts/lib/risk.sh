@@ -405,6 +405,87 @@ risk_request_refresh() {
   echo "The approval request $(approval_request_path "$issue") named tree $named; its line 'Tree:' is refreshed to the content tree $tree."
 }
 
+# risk_request_free_fields <file>
+# Prints the lines of the two fields of a lowering that only the agent can
+# write, 'Reason:' and "Owner's word:", each with its continuation lines (the
+# following lines up to a blank line or the next field), as they stand.
+risk_request_free_fields() {
+  awk '
+    /^[[:space:]]*([-*][[:space:]]+)?(\*\*)?(Reason|Owner'"'"'s word):/ { keep = 1; print; next }
+    keep && (/^[[:space:]]*$/ || /^[[:space:]]*([-*][[:space:]]+)?(\*\*)?[A-Z][A-Za-z'"'"' ]*:/) { keep = 0 }
+    keep { print }' "$1"
+}
+
+# risk_request_write <root> <issue>
+# Writes the approval request of the Issue in full from the derivation that
+# risk_assess made last (Issue #463, D12): every field is the script's,
+# 'Issue:', 'Level:', 'Derived from:', 'Tree:', and for a lowering
+# 'Required level:' and 'Requested level:' (the level the completion record
+# states), except the two fields only the agent can write, the lowering's
+# 'Reason:' and "Owner's word:", which are kept as they stand. Any other text
+# of the request is dropped: an assertion of approval in it was never read
+# as one. A lowering is written when the record states a level below the
+# required one and the request already asks for one (a 'Requested level:',
+# 'Reason:', or "Owner's word:" line); without the owner's word it stays
+# refused by risk_assess. A request that does not exist is not created: a
+# Level 3 change without its request stays refused (ADR 020 decision 3), and
+# the request of a completion/v1 record is left as it is. Prints what it
+# did, or nothing when the request already reads as it would be written.
+# Returns 1 when the file cannot be written.
+risk_request_write() {
+  local root="$1"
+  local issue="$2"
+  local request
+  local free
+  local derived
+  local lowering=0
+  local reasons
+
+  request="$root/$(approval_request_path "$issue")"
+  [[ -f "$request" && "$RISK_ENFORCED" -eq 1 ]] || return 0
+  free="$(risk_request_free_fields "$request")"
+  if [[ -n "$RISK_RECORDED" && "$RISK_RECORDED" -lt "$RISK_REQUIRED" ]] &&
+    { [[ -n "$free" ]] || [[ -n "$(approval_request_field "$request" "Requested level")" ]]; }; then
+    lowering=1
+  fi
+  case "$RISK_BY" in
+    paths)
+      reasons="$(printf '%s\n' "$RISK_PATH_REASONS" | sed '/^$/d; s/: .*$//' | paste -sd ',' - | sed 's/,/, /g')"
+      derived="the paths${reasons:+ ($reasons)}"
+      ;;
+    triggers)
+      reasons="$(printf '%s\n' "$RISK_TRIGGERS" "$RISK_NAMED_TRIGGERS" | sed '/^$/d' | paste -sd ';' - | sed 's/;/; /g')"
+      derived="the triggers ($reasons)"
+      ;;
+    *)
+      derived="the assessment (stated in the completion record: level ${RISK_RECORDED:-none}; assessed by the review: ${RISK_REVIEWED:-none})"
+      ;;
+  esac
+  {
+    echo "# Approval request: Issue #$issue"
+    echo
+    echo "Written by the scripts from the derivation of the level (ADR 020 decision 1);"
+    echo "only the Reason and the Owner's word of a lowering are written by hand. A"
+    echo "request for the owner's review, never an approval."
+    echo
+    echo "Issue: #$issue"
+    echo "Level: $RISK_REQUIRED"
+    echo "Derived from: $derived"
+    echo "Tree: $RISK_CONTENT_TREE"
+    if [[ "$lowering" -eq 1 ]]; then
+      echo "Required level: $RISK_REQUIRED"
+      echo "Requested level: $RISK_RECORDED"
+    fi
+    [[ -z "$free" ]] || printf '%s\n' "$free"
+  } >"$request.tmp" || { rm -f "$request.tmp"; return 1; }
+  if cmp -s "$request.tmp" "$request"; then
+    rm -f "$request.tmp"
+    return 0
+  fi
+  mv "$request.tmp" "$request" || return 1
+  echo "The approval request $(approval_request_path "$issue") is written from the derivation: level $RISK_REQUIRED, by the $RISK_BY$([[ "$lowering" -eq 0 ]] || echo ", a lowering to level $RISK_RECORDED requested"); only its Reason and Owner's word are kept as written."
+}
+
 # risk_assess <root> <rules-refs> <from> <issue> [<review-json>]
 # Derives the level of the change in the working tree at <root> against
 # <from>, and sets:
@@ -517,7 +598,7 @@ risk_assess() {
     RISK_ERRORS+="the completion record states level $RISK_RECORDED, below the level $RISK_REQUIRED that the $RISK_BY give; record level $RISK_REQUIRED, or name the lowering the owner asked for in the approval request $(approval_request_path "$issue") (ADR 020 decision 1)"$'\n'
   fi
   if [[ "$RISK_REQUIRED" -eq 3 && "$RISK_PATH_MIN" -lt 3 && -z "$RISK_REQUEST" ]]; then
-    RISK_ERRORS+="the change is Level 3 by its $RISK_BY, so it needs the committed approval request $(approval_request_path "$issue"), which makes GitHub require the owner's review (ADR 020 decision 3)"$'\n'
+    RISK_ERRORS+="the change is Level 3 by its $RISK_BY, so it needs the committed approval request $(approval_request_path "$issue"), which makes GitHub require the owner's review (ADR 020 decision 3); create the file, and finish-feature.sh writes its fields"$'\n'
   fi
   if [[ -n "$RISK_REQUEST" ]]; then
     if git -C "$root" check-ignore -q "$RISK_REQUEST"; then

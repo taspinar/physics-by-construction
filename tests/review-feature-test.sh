@@ -688,4 +688,53 @@ if tr '\n' ' ' <"$prompt" | grep -E "only when it was not in the diff" >/dev/nul
   fail "the reviewer contract lowers the severity of an instance that an earlier round overlooked"
 fi
 
+# D12 (Issue #463): administrative findings cost no round; the review, the
+# verification, and the approval evidence stay blocking. The staleness of
+# the handoff note is at most a suggestion, in the contract and in what
+# review-feature.sh tells the reviewer about the note.
+flat="$(tr '\n' ' ' <"$prompt" | tr -s ' ')"
+contract_has() {
+  grep -F -- "$1" >/dev/null <<<"$flat" || fail "the reviewer contract no longer says: $1"
+}
+contract_has "a note that lists done work or describes an earlier state is stale, at most a \`suggestion\`"
+contract_has "The handoff note is such a working file: a note that describes an earlier state, lists done work, or names a next step already taken is at most a \`suggestion\`, never \`major\`"
+contract_has "When in doubt whether a finding is about form, it keeps its severity."
+contract_has "These faults are always reported as \`major\` (or \`critical\`) and block"
+if grep -F "remaining work in the handoff note is a \`major\` finding" >/dev/null <<<"$flat"; then
+  fail "the reviewer contract still makes a stale handoff note a major finding"
+fi
+# Each blocking fault of point 3 is named in the blocking list, one by one.
+blocking="$(sed -n '/^## Blocking faults and findings about form$/,/^Only three kinds of finding are about form/p' "$prompt" | tr '\n' ' ' | tr -s ' ')"
+[[ -n "$blocking" ]] || fail "the reviewer contract has no list of blocking faults"
+for fault in "a missing or stale review" \
+  "a review of a Level 3 change that was not made after the full verification of its final tree" \
+  "a finding of an earlier round that was not triaged" \
+  "a verification not run on the final tree" \
+  "a check that was skipped, removed, or weakened" \
+  "a pass record that does not match the tree it claims" \
+  "a failing check" \
+  "a Level 3 change by trigger or assessment without its approval request" \
+  "an approval that names another head commit than the one to be merged" \
+  "a level lowered without the owner's approving review" \
+  "a criterion pending for \`owner_approval\` that the record marks \`met\`"; do
+  grep -F -- "$fault" >/dev/null <<<"$blocking" || fail "the reviewer contract does not keep blocking: $fault"
+done
+# Only form, wording, and the staleness of a working file are downgraded.
+contract_has "Only three kinds of finding are about form, and they are at most \`minor\`: the form of a record"
+contract_has "A finding about form never hides a blocking fault"
+
+repo="$(setup_repo stale-handoff)"
+mkdir -p "$repo/.agents/completion" "$repo/.agents/handoffs"
+jq -n '{schema: "completion/v2", status: "complete",
+  risk: {level: 2, triggers: [], rationale: "as derived"},
+  criteria: [{criterion: "The marker file exists", gate: "implementation", status: "met", evidence: "marker.txt"}],
+  remaining: []}' >"$repo/.agents/completion/7.json"
+printf '# Handoff #7\n\n**Done:** the marker.\n\n**Remaining:** the marker file (already written).\n' >"$repo/.agents/handoffs/7.md"
+run_review "$repo" 7 || { cat "$repo.out" >&2; fail "review with a stale handoff note failed"; }
+grep -Fq -- "- the marker file (already written)." "$repo.log.stdin" || fail "the reviewer was not given the note's remaining work"
+tr '\n' ' ' <"$repo.log.stdin" | grep -F "a note that lists done work or describes an earlier state is stale, at most a suggestion, never a major finding" >/dev/null ||
+  fail "the reviewer was not told that a stale handoff note is at most a suggestion"
+tr '\n' ' ' <"$repo.log.stdin" | grep -F "work that is in fact missing is a major finding on its criterion" >/dev/null ||
+  fail "the reviewer was not told that work in fact missing stays a major finding"
+
 echo "review-feature tests passed"
