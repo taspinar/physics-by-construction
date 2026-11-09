@@ -342,34 +342,22 @@ def page_source_problems(site: Path) -> list[str]:
     return found
 
 
-# --- The page ----------------------------------------------------------------
+# --- The references ----------------------------------------------------------
 
 
 @dataclass(frozen=True)
-class IntroductionContent:
-    """The introduction page of one sequence: the editorial sections from
-    the data file and everything else from the curriculum file, the front
-    matter, the atlas manifest, and the glossary. It holds no script and no
-    state."""
+class References:
+    """The resolution of the references of a prose source on the page
+    ``page``: a slot is the title of its lesson, linked, or its working title
+    with "(planned)" and no link; a sequence is its title, linked to its
+    introduction when it has one, else to its panel in the atlas; a term is
+    linked to its glossary entry. The introductions and the learning journey
+    (F157) share it."""
 
     atlas: Atlas
     glossary: Glossary
-    introduction: Introduction
     available: frozenset[str]  # the sequences that have an introduction
-
-    @property
-    def sequence(self) -> AtlasSequence:
-        return next(
-            sequence
-            for sequence in self.atlas.sequences()
-            if sequence.id == self.introduction.sequence
-        )
-
-    @property
-    def page(self) -> str:
-        return introduction_page(self.sequence.id)
-
-    # --- References ----------------------------------------------------------
+    page: str
 
     def _slot(self, label: str) -> str:
         slot = self.atlas.path.curriculum.slot(label)
@@ -408,6 +396,45 @@ class IntroductionContent:
             return self._term(name)
 
         return _REFERENCE.sub(replace, text)
+
+
+# --- The page ----------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class IntroductionContent:
+    """The introduction page of one sequence: the editorial sections from
+    the data file and everything else from the curriculum file, the front
+    matter, the atlas manifest, and the glossary. It holds no script and no
+    state."""
+
+    atlas: Atlas
+    glossary: Glossary
+    introduction: Introduction
+    available: frozenset[str]  # the sequences that have an introduction
+
+    @property
+    def sequence(self) -> AtlasSequence:
+        return next(
+            sequence
+            for sequence in self.atlas.sequences()
+            if sequence.id == self.introduction.sequence
+        )
+
+    @property
+    def page(self) -> str:
+        return introduction_page(self.sequence.id)
+
+    @property
+    def references(self) -> References:
+        return References(self.atlas, self.glossary, self.available, self.page)
+
+    def _term(self, term: str) -> str:
+        return self.references._term(term)
+
+    def inline(self, text: str) -> str:
+        """The text with its references replaced by links or text."""
+        return self.references.inline(text)
 
     # --- Derived parts ---------------------------------------------------------
 

@@ -143,7 +143,7 @@ What follows from the licence decision, as the research reads it:
   - T7: whether DWD's yearly-versioned archive without a DOI is acceptable if the project pins and checksums its own extract.
   - FL7 and FL8 as pairs (a large learner download plus a small committed text set): accept the pairing pattern or not.
   - MAT5: where the Bragg model lives, since MAT1 is a chain-dispersion lesson.
-- The FL7 download (1.1 GB PIV) and the Ost hot-wire files, deferred by the owner.
+- The FL7 download (1.1 GB PIV) and the Ost hot-wire files, deferred by the owner. Approved by the owner on 2026-11-09 and made by Issue #454: the PIV file is MAT 5.0 (no `h5py`), and both datasets have a `go` with samples extracted once ([piv-cylinder-wake](piv-cylinder-wake.md), [ost-hotwire-cylinder-wakes](ost-hotwire-cylinder-wakes.md)).
 
 ## Round-3 inspection per lab
 

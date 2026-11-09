@@ -29,6 +29,7 @@ from dataclasses import dataclass
 from functools import cached_property
 from html import escape
 from pathlib import Path, PurePosixPath
+from typing import Protocol
 
 import yaml
 
@@ -796,6 +797,13 @@ _PART_NAMES = {"A": "Physics by construction", "B": "Physics and AI"}
 _PART_KINDS = {"A": "Course", "B": "Method path"}
 
 
+class Opening(Protocol):
+    """What opens the atlas before its cards: the learning journey (F157,
+    ``pbc.authoring.journey``), as Markdown with raw HTML blocks."""
+
+    def atlas_markdown(self) -> str: ...
+
+
 @dataclass(frozen=True)
 class AtlasSection:
     """The sequences of the path page: one native disclosure per course and
@@ -807,6 +815,9 @@ class AtlasSection:
     page: str = PATH_PAGE
     # The sequences that have an introduction (F156): their panels link to it.
     introductions: frozenset[str] = frozenset()
+    # The learning journey (F157), between the breadcrumb and the summary;
+    # without it the section is what it was.
+    journey: Opening | None = None
 
     def __str__(self) -> str:
         sequences = self.atlas.sequences()
@@ -828,6 +839,11 @@ class AtlasSection:
             '<nav class="pbc-breadcrumb" aria-label="Breadcrumb"><ol>'
             f'<li><a href="{escape(page_href(self.page, "index.qmd"))}">Home</a></li>'
             '<li><span aria-current="page">Course Atlas</span></li></ol></nav>',
+            *(
+                ["```", "", self.journey.atlas_markdown(), "", "```{=html}"]
+                if self.journey is not None
+                else []
+            ),
             f'<p class="atlas-summary">{_plural(courses, "course")} and'
             f" {_plural(paths, 'method path')}, {published} lessons published"
             f" and {planned} planned"
@@ -1063,8 +1079,11 @@ class AtlasSection:
 
 def course_atlas() -> AtlasSection:
     """Return the atlas section of the path page being built."""
+    from pbc.authoring.journey import atlas_journey
+
     site, page = _page_being_built()
-    return AtlasSection(Atlas.read(site), page, introduced(site))
+    atlas = Atlas.read(site)
+    return AtlasSection(atlas, page, introduced(site), atlas_journey(site, atlas, page))
 
 
 # --- The relationships on a lesson page ----------------------------------------

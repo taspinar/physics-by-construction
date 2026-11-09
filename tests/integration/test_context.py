@@ -35,6 +35,20 @@ format:
     html-math-method: mathml
 """
 REAL_SITE = Path(__file__).parents[2] / "site"
+# The path page opens with the learning journey (F157), which a site must
+# have; this one names nothing of the real curriculum.
+JOURNEY = """\
+part-a: [Part A text.]
+part-b: [Part B text.]
+relation: [Relation text.]
+background: [Background text.]
+routes: [Routes text.]
+capstones: [Capstones text.]
+evidence:
+  numerical: [Numerical text.]
+  empirical: [Empirical text.]
+  formal-proof: [Formal proof text.]
+"""
 STORE = (REAL_SITE / "_quarto-store.yml").read_text()
 
 CELLS = """\
@@ -142,6 +156,7 @@ def write_site(site: Path) -> None:
     write(site, "_quarto.yml", CONFIG)
     write(site, "_quarto-store.yml", STORE)
     write(site, "glossary.yaml", "entries: []\n")
+    write(site, "journey.yaml", JOURNEY)
     write(site, "path/index.qmd", PATH_PAGE)
     for id in LESSONS:
         put(site, id)
