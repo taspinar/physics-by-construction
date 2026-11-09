@@ -99,13 +99,22 @@ the entry; a prerequisite outside the run is not waited for, and a failed
 one still lets the dependent group run; `VERIFY_JOBS` limits the groups at
 the same time and is validated; malformed entries `after` are rejected; a
 TERM stops the running checks; a parallel run is recorded and reused like
-one after the other. The existing tests of the selection and the tiers run
+one after the other; a group process killed with SIGKILL (its check kills
+it, so no end marker is written) ends the run within a time limit, fails it,
+names the group and the signal, and its dependent group never starts (fix of
+2026-11-09, outside review of PR #431: the scheduler waited for the marker
+alone and hung). The existing tests of the selection and the tiers run
 with `VERIFY_JOBS=1`, where the order of the file is still asserted.
 
 ## Steps
 
 1. Done: the scheduler, the entries, the Python reader, the tests, the
    documentation (`docs/development.md`, "Groups at the same time").
+   Fix of 2026-11-09: the scheduler checks with `kill -0` whether a running
+   group's process still exists; one that is gone without its end marker is
+   a failed group (its status from `wait`, the signal named), and a group
+   that waits for one of its unfinished checks, directly or through another
+   such group, is not started.
 2. After the session: the full `./scripts/verify.sh`, run last by the
    pipeline.
 3. After the merge: a full run on an idle machine, its time and what else

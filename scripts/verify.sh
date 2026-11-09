@@ -718,6 +718,24 @@ group_ready() {
   return 0
 }
 
+# group_cut_off <group> <result-directory> <ended-groups>
+# Prints the first check that <group> waits for and that will never end,
+# because its group is one of <ended-groups> (ended without finishing, or
+# never started) and the check has no outcome; fails when there is none.
+group_cut_off() {
+  local deps
+  local index
+
+  deps="$(waits_for "$1")"
+  for index in ${deps//,/ }; do
+    in_list "${groups[$index]}" "$3" || continue
+    [[ -e "$2/result.$index" ]] && continue
+    printf '%s\n' "$index"
+    return 0
+  done
+  return 1
+}
+
 # stop_tree <pid>
 # Stops a process and every process it started, children first.
 stop_tree() {
@@ -774,16 +792,66 @@ else
 
   pending="$run_groups"
   running=""
+  # The groups that ended without finishing (their process disappeared
+  # without the end marker, for example killed with SIGKILL) or never started
+  # because they wait for a check of such a group; the reason of each is in
+  # <group_dir>/ended.<group>.
+  ended=""
   while [[ -n "$pending$running" ]]; do
     changed=0
     for group in ${running//,/ }; do
-      [[ -e "$group_dir/finished.$group" ]] || continue
-      wait "$(cat "$group_dir/pid.$group")" 2>/dev/null || true
+      group_pid="$(cat "$group_dir/pid.$group")"
+      if [[ ! -e "$group_dir/finished.$group" ]]; then
+        kill -0 "$group_pid" 2>/dev/null && continue
+        # Gone: the marker may have been written just before it ended.
+        if [[ ! -e "$group_dir/finished.$group" ]]; then
+          group_status=0
+          wait "$group_pid" 2>/dev/null || group_status=$?
+          if [[ "$group_status" -gt 128 ]]; then
+            signal="$(kill -l "$((group_status - 128))" 2>/dev/null || true)"
+            how="was killed by signal $((group_status - 128))${signal:+ (${signal#SIG})}"
+          else
+            how="ended with status $group_status"
+          fi
+          message="the process of the group $group $how before its checks finished"
+          printf '%s\n' "$message" >"$group_dir/ended.$group"
+          # Its process id may be reused: an interruption must not stop it.
+          rm -f "$group_dir/pid.$group"
+          printf '\nError: %s.\n' "$message" >>"$log_dir/$group.log"
+          echo "Error: $message." >&2
+          running="$(list_remove "$group" "$running")"
+          ended="${ended:+$ended,}$group"
+          changed=1
+          failed=1
+          echo
+          echo "== Group $group ended without finishing; its log, ${log_dir#"$root"/}/$group.log: =="
+          cat "$log_dir/$group.log"
+          continue
+        fi
+      fi
+      wait "$group_pid" 2>/dev/null || true
       running="$(list_remove "$group" "$running")"
       changed=1
       echo
       echo "== Group $group ended; its log, ${log_dir#"$root"/}/$group.log: =="
       cat "$log_dir/$group.log"
+    done
+    # A group that waits for a check that will never end never starts, and
+    # neither does a group that waits for one of its checks.
+    cut_off=1
+    while [[ "$cut_off" -eq 1 ]]; do
+      cut_off=0
+      for group in ${pending//,/ }; do
+        index="$(group_cut_off "$group" "$group_dir" "$ended")" || continue
+        message="not started: the group $group waits for '${names[$index]}' of the group ${groups[$index]}, which did not finish"
+        printf '%s\n' "$message" >"$group_dir/ended.$group"
+        echo "Error: $message." >&2
+        pending="$(list_remove "$group" "$pending")"
+        ended="${ended:+$ended,}$group"
+        changed=1
+        cut_off=1
+        failed=1
+      done
     done
     for group in ${pending//,/ }; do
       count=0
@@ -820,6 +888,8 @@ else
     in_list "${groups[$index]}" "$run_groups" || continue
     if [[ -e "$group_dir/result.$index" ]]; then
       line="$(cat "$group_dir/result.$index")"
+    elif [[ -e "$group_dir/ended.${groups[$index]}" ]]; then
+      line="FAIL  ${names[$index]} ($(cat "$group_dir/ended.${groups[$index]}"))"
     else
       line="FAIL  ${names[$index]} (did not end: its group stopped)"
     fi

@@ -775,6 +775,48 @@ for check in s t; do
   fi
 done
 
+# A group whose process disappears without finishing (here its check kills
+# it with SIGKILL, so it writes no end marker) fails the run with a message
+# that names the group and the signal; the run ends, a group that waits for
+# its check never starts, and a group beside it still runs. The run gets a
+# time limit, so that a scheduler that waits for the marker alone fails the
+# test instead of hanging it. The check's parent is the subshell of
+# run_checks; the group process is the parent of that.
+project="$(setup_project killed \
+  'doomed [k]: kill -KILL "$(ps -o ppid= -p "$PPID" | tr -d " ")"; sleep 1' \
+  "next [k]: ruff next" "dependent [d]: ruff dependent" "beside [o]: pytest beside" \
+  "after [d]: doomed")"
+rm -f "$project/tools.log"
+VERIFY_JOBS=4 PATH="$tmp/bin:/usr/bin:/bin" MOCK_TOOL_LOG="$project/tools.log" \
+  "$project/scripts/verify.sh" >"$project/out.log" 2>&1 &
+verify_pid=$!
+n=0
+while kill -0 "$verify_pid" 2>/dev/null; do
+  n=$((n + 1))
+  if [[ "$n" -ge 200 ]]; then
+    kill -TERM "$verify_pid" 2>/dev/null || true
+    wait "$verify_pid" 2>/dev/null || true
+    fail "the run did not end after a group process was killed: $(tail -n 5 "$project/out.log" | tr '\n' ' ')"
+  fi
+  sleep 0.1
+done
+killed_status=0
+wait "$verify_pid" || killed_status=$?
+[[ "$killed_status" -ne 0 ]] || fail "a run whose group process was killed passed"
+grep -Fq "the process of the group k was killed by signal 9 (KILL)" "$project/out.log" ||
+  fail "the killed group was not named with its signal: $(cat "$project/out.log")"
+grep -Eq "^FAIL +doomed \(the process of the group k was killed by signal 9" "$project/out.log" ||
+  fail "the summary does not fail the check of the killed group"
+grep -Eq "^FAIL +dependent \(not started: the group d waits for 'doomed' of the group k" "$project/out.log" ||
+  fail "the summary does not say that the dependent group did not start"
+grep -Eq "^PASS +beside$" "$project/out.log" || fail "the group beside the killed one did not pass"
+grep -Fq "Verification failed." "$project/out.log" || fail "the run with a killed group did not report the failure"
+grep -Fq "killed by signal 9" "$project/.agents/verification/logs/k.log" ||
+  fail "the log of the killed group does not say how it ended"
+if grep -Fq "ruff dependent" "$project/tools.log" 2>/dev/null; then fail "the dependent group of a killed group started"; fi
+if grep -Fq "ruff next" "$project/tools.log" 2>/dev/null; then fail "the killed group went on with its next check"; fi
+grep -Fq "pytest beside" "$project/tools.log" || fail "the group beside the killed one did not run"
+
 # VERIFY_JOBS is a whole number of at least 1.
 for jobs in 0 x -1 "2 3"; do
   if run_jobs "$jobs" "$project"; then fail "VERIFY_JOBS='$jobs' was accepted"; fi

@@ -408,6 +408,12 @@ each other is an error.
   the file, whichever group ended first.
 - Interrupting the run (Ctrl-C, or a TERM to the script) stops the groups
   still running and the processes they started.
+- A group whose process disappears before its checks finished (killed with
+  SIGKILL, for example by the system when memory runs out) is a failed
+  group: the run names it and how it ended (the signal), in its log and in
+  the summary, lets the other running groups finish, never starts a group
+  that waits for one of its unfinished checks (nor the groups that wait for
+  those), and fails.
 
 ### Selection against a base
 
