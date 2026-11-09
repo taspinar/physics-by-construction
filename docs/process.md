@@ -46,6 +46,36 @@ run the commands is in `docs/development.md`, the invariants in
   (ADR 003 decision 6, ADR 017 decision 8). Every run appends a line to
   `verify-time.log`; no gate reads it (ADR 020 decision 7).
 
+## The verification architecture
+
+One settled division of the work between CI and the maintainer's machine
+(Issue #396, point 5, the owner's decision of 2026-11-07; Issue #412):
+
+- **CI is the complete gate.** Every pull request and every push to `main`
+  runs every check through the required check `verify` (ADR 012 decisions 1
+  and 5); every push to `main` executes every lesson (ADR 014 decision 4,
+  ADR 020 decision 8). Nothing merges without it.
+- **Locally, the fast tier of the change.** `--targeted` for an ordinary
+  change, `--base` when a change alters what other pages display of a
+  lesson, the full run only when the targeted run reports that CI will run
+  everything (ADR 017 decision 7; `AGENTS.md`, "Definition of Done").
+- **One complete verification of the final tree of a Level 3 change.**
+  Intermediate rounds take the feedback groups and record nothing; the round
+  that can end the run gets the full run and a review of the complete
+  feature after it (ADR 020 decision 5; `scripts/run-feature.sh`, Issue
+  #389).
+
+**The next capacity step, F113 and the paused part of ADR 017: deferred**
+(the owner's decision of 2026-11-08, Issue #412), neither rejected nor done.
+The measured reason: a full run takes 94 to 140 minutes, the `build` chain is
+57 percent of it, and 22 percent of the full runs failed in the heavy period
+of 2026-11-04 to 08 (#236, #389). Issue #430 runs independent groups of
+`verify.sh` at the same time; F113 splits the heavy lesson build in CI, which
+is a different step. The capacity agreement of #278 stays. The question is
+decided again at the first of three points: 95 lessons; a full run on `main`
+that approaches 80 minutes; or repeated runs that leave too little margin.
+The decisions of ADR 017 are not changed.
+
 ## CI: the jobs and the required check
 
 `.github/workflows/ci.yml` runs on every pull request and push to `main`
@@ -97,9 +127,13 @@ Every change carries one level, the highest of three readings, derived by
 
 - **The path minimum.** Level 3 for every protected path: the builtin list of
   `scripts/lib/guardrails.sh` (the ADRs, workflows, code-owners file,
-  policies, schemas, gate scripts) and the `protected:` lines of
-  `.agents/policies/guardrails.conf`, read from the base branch. Level 1 for
-  documentation and process files; Level 2 otherwise.
+  policies, the reviewer contract, schemas, gate scripts) and the
+  `protected:` lines of `.agents/policies/guardrails.conf`, read from the
+  base branch. Level 1 for documentation and process files, except
+  `docs/architecture.md`; Level 2 otherwise. `docs/architecture.md` and the
+  prompts other than `.agents/prompts/reviewer.md` are sensitive, not
+  protected, and Level 2 by path (ADR 020, the addendum of 2026-11-08 to
+  decision 1; Issue #412); a trigger in their content makes them Level 3.
 - **The escalation triggers**, any of which gives Level 3: a changed or
   removed published scientific claim; weakened test strength; security;
   verification guarantees; dependency selection. The scripts detect on the
@@ -109,6 +143,19 @@ Every change carries one level, the highest of three readings, derived by
   reports a missed trigger as major.
 - **The assessed level**: stated in the completion record and assessed by the
   review (`architecture_impact.risk_level`), only ever higher.
+
+Why the prompts may be sensitive, and what catches a silent change (Issue
+#396, point 3; the owner's decision of 2026-11-07): a changed prompt can
+weaken a review or a triage (a check no longer asked for, a severity rule
+that turns majors into minors, a contract that lets a finding through), and
+no test fails on it. It is caught because the change is Level 2 by path and
+gets an independent review of the complete feature; the merge approval gate
+names it as sensitive in the reviewer's context; the reviewer, a different
+model, reports a weakened guarantee as the trigger "verification
+guarantees", which makes it Level 3; and the owner reads every pull request
+before it is merged, since no agent merges. The reviewer contract and the
+schemas, which define that review and what its record must hold, stay
+protected.
 
 An agent may raise a level; no agent lowers one. The scripts refuse a
 recorded level below the path minimum, and one below a trigger reading or an
@@ -201,8 +248,9 @@ feature visibly.
 
 ## Proposals, not rules
 
-The first two items were never accepted by the owner; deciding them is point
-5 of Issue #396. The third was accepted and is not yet implemented.
+The owner deferred the first two items on 2026-11-08 (Issue #412; "The
+verification architecture" above names the points that reopen them). The
+third was accepted and is not yet implemented.
 
 - **ADR 017 decisions 1 to 6 and 9**: incremental verification on `main` from
   a chain of verified bases, paused by ADR 020 decision 8; every push to
@@ -210,7 +258,8 @@ The first two items were never accepted by the owner; deciding them is point
   `src/pbc/authoring/provenance.py`, which nothing calls; evidence in
   `docs/incremental-main-evidence.md`.
 - **ADR 014 decision 11 (F113, Issue #150)**: same-machine lesson shards;
-  paused since 2026-10-15, pull request #175 closed unmerged.
+  paused since 2026-10-15, pull request #175 closed unmerged; deferred by
+  the owner on 2026-11-08.
 - **ADR 020 decision 3, the owner's actions** (second identity, code-owners
   and ruleset changes): accepted by the owner, not yet implemented. The pilot
   evaluation of decision 10 has no recorded result.
