@@ -2402,12 +2402,24 @@ body.pbc-home .hero-subtext {
 /* The one filled control of the page, the start link's shape. */
 main a.home-action-primary {
   display: inline-block;
+  /* Never wider than the column: a word longer than the column, in a wider
+     face than the page's own, breaks rather than widening the page. */
+  min-width: 0;
+  max-width: 100%;
   padding: var(--pbc-space-2) var(--pbc-space-4);
   border-radius: var(--pbc-radius);
   background-color: var(--pbc-start);
   color: var(--pbc-start-text);
   font-weight: 600;
   text-decoration: none;
+}
+
+/* With large text on a narrow column the padding would otherwise leave too
+   little room for the action's longest word. */
+@media (max-width: 30em) {
+  main a.home-action-primary {
+    padding-inline: var(--pbc-space-3);
+  }
 }
 
 main a.home-action-primary:hover {
