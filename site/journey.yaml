@@ -1,5 +1,5 @@
 # The learning journey (F157, requirements decision 43): the one source of
-# the Part A and Part B text, which the Course Atlas opens with and About
+# the Part A and Part B text, which the Course Atlas offers behind a disclosure and About
 # carries in the same words. Prose and references only: the lessons, the
 # courses and paths, their counts, the prerequisites, and the published or
 # planned state come from the curriculum file and the front matter when the
@@ -30,12 +30,15 @@ part-b:
     reports can be made reliable, or how it can be evaluated fairly, and its
     lessons may draw on any of the courses.
   - >-
-    An agent in these lessons works on a toy world: a simulated system whose
-    law is known to whoever built it, so that what the agent reports can be
-    checked. The runs shown are recorded examples that the build replays and
-    scores against held-out data and against baselines without a model. The
-    evidence Part B produces is numerical evidence about the agent and its
-    method, never a new result about nature.
+    A simulation is one way these lessons test an agent: a toy world, a
+    simulated system whose law is known to whoever built it, so that what the
+    agent reports can be checked. Where a path plans it, an agent also
+    analyses real measurements recorded earlier, with the data, the
+    processing, and the uncertainty disclosed. The runs shown are recorded
+    examples that the build replays and scores against held-out data and
+    against baselines without a model. In every case what an agent claims
+    calls for independent checking, and the evidence Part B produces is
+    evidence about the agent and its method, never a new result about nature.
 
 relation:
   - >-
