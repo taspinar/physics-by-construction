@@ -13,6 +13,7 @@ MODULES = {
     "bayreuth-rlc-impedance": "bayreuth_rlc",
     "tess-exoplanet-light-curves": "tess_wasp18",
     "munich-bell-event-ready": "munich_bell",
+    "lycopodium-spore-diffraction": "lycopodium",
 }
 
 

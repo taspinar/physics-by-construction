@@ -1,0 +1,179 @@
+id: lycopodium-spore-diffraction
+title: Lycopodium spores, diffraction halo at 632.8 nm and 405 nm with microscope morphometry
+source:
+  url: https://zenodo.org/records/15846643
+  doi: 10.5281/zenodo.15846643
+  creator: Oleksii Voronkin (Sievierodonetsk College of Culture and Arts), Sergiy Lushchin (National
+    University Zaporizhzhia Polytechnic)
+  version: Zenodo record 15846643 (concept 15846642), published 2025-07-09, no version label; supplement
+    to Voronkin and Lushchin, Eur. J. Phys. 46 (2025) 055802, doi 10.1088/1361-6404/adf7e6
+  accessed: &accessed 2026-11-09
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/15846643, licence field ''Creative Commons Attribution
+      4.0 International'' (API metadata license cc-by-4.0; copyright field empty), read 2026-11-09; the
+      terms at https://creativecommons.org/licenses/by/4.0/legalcode permit reproducing and sharing the
+      material'
+  redistribution_of_subsets:
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/15846643, licence field CC BY 4.0, read 2026-11-09;
+      https://creativecommons.org/licenses/by/4.0/legalcode section 2(a)(1) permits sharing the material
+      in whole or in part'
+  publication_of_figures:
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/15846643, licence field CC BY 4.0, read 2026-11-09;
+      https://creativecommons.org/licenses/by/4.0/legalcode section 2(a)(1) permits producing and sharing
+      adapted material'
+  modification_and_attribution:
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/15846643, licence field CC BY 4.0, read 2026-11-09;
+      https://creativecommons.org/licenses/by/4.0/legalcode section 3(a) requires the creators, the licence,
+      a link, and an indication of changes'
+  attribution: 'Voronkin, O., Lushchin, S., ''Morphometry and Optical Data of Lycopodium Spores for the
+    Study of Diffraction and Interference'', Zenodo, 2025, doi 10.5281/zenodo.15846643, CC BY 4.0. The
+    two intensity profiles converted from XLSX to CSV with values unchanged; the morphometry files unmodified.'
+artifacts:
+- name: Diffraction_Lycopodium_HeNe_0.6328um_Nokia5.jpg and the other diffraction photographs
+  type: raw-measured
+  description: 'Photographs of the diffraction halo on a screen behind spores on a glass plate, He-Ne
+    laser 632.8 nm and a semiconductor laser 405 nm, by a Nokia 5 phone (JPEG) and a Canon EOS RP (CR3
+    raw), per the record. Not committed and not inspected: the record does not say from which photograph
+    either profile was taken.'
+- name: Intensity_profile_diffraction_lambda0.6328um.xlsx, Intensity_profile_diffraction_lambda0.405um.xlsx
+  type: processed-measured
+  description: 'Line profiles of one photograph each, along a horizontal scanline through the centre,
+    exported by the Tracker software: sample index n, coordinates x and y, and luma 0 to 255 (averaged
+    across the line, so not integers). The unit of x is not stated and the centre is saturated.'
+- name: profile_633nm.csv, profile_405nm.csv
+  type: processed-measured
+  description: 'The committed samples: every row of the two XLSX sheets, converted by tools/datasets/lycopodium_xlsx_to_csv.py
+    with no value changed. The centring, folding, smoothing, and ring radii of the reference figure are
+    computed by pbc.data.reference.lycopodium and are not part of the record.'
+- name: Lycopodium_Morphometry_x160.csv, Lycopodium_Morphometry_x80.csv
+  type: processed-measured
+  description: 'ImageJ "Analyze Particles" results of binarised micrographs at x160 and x80 (MMU-5C microscope,
+    ToupTek camera, each calibrated by a 10 um scale bar per the record), with the creators'' r^2, r,
+    and d of the circle of equal area; committed unmodified (the record''s bytes, md5 as on Zenodo).'
+- name: polydisperse Airy model
+  type: modelled-reference
+  description: 'The diffraction halo of opaque disks with the measured diameters, intensities added
+    (Babinet), computed by pbc.data.reference.lycopodium.ensemble; it gives the q = sin(theta)/lambda
+    of each ring. Not part of the record.'
+calibration: 'Microscope: by a scale bar of 10 um divisions at each magnification (record); the two magnifications
+  give whole-spore means 29.91 and 30.36 um, within 1.3 combined standard errors. Diffraction profiles:
+  Tracker''s coordinate calibration is not documented (unit of x unknown, distance to the screen unknown);
+  the camera''s tone curve and exposure are unknown and the centre is saturated, so only ring positions,
+  not intensities, are used, and only their ratio between the wavelengths is calibration-free. The companion
+  article (paywalled, landing page read 2026-11-09) states neither on its abstract page.'
+schema: 'Profiles: CSV with three comment lines (source and its sha256, the conversion, the units) and
+  the header n,x,y,luma; 2,211 rows (632.8 nm) and 932 rows (405 nm). Source: sheet 1 ''profile_A''
+  of each XLSX, title row, header row n x y luma, then the rows. Morphometry: '';''-separated, cp1252,
+  CRLF; an unnamed particle-number column, ImageJ''s Area, Mean, Min, Max, X, Y, (Perim., x160 only),
+  Circ., Feret, FeretX, FeretY, FeretAngle, MinFeret, AR, Round, Solidity, an empty column, then r^2 (µm^2),
+  r (µm), d (µm); 150 rows (x160) and 642 rows (x80).'
+units: 'Profiles: x and y in Tracker''s world unit, not stated (the agreement of the two wavelengths suggests
+  the same length unit in both); luma the camera brightness 0 to 255, dimensionless, nonlinear. Morphometry:
+  Area in µm^2 (not pixels^2 as the record says: r^2 = Area/3.14 to 5e-9), r and d in µm; d = 2 sqrt(Area/3.14),
+  0.025 % above the value with pi; X, Y, Feret in µm; FeretX, FeretY in pixels; Mean, Min, Max grey levels
+  0-255; Circ., AR, Round, Solidity dimensionless.'
+cadence: 'Profiles: one sample per pixel along the scanline, x in equal steps of 0.0530345 (632.8 nm)
+  and 0.0830055 (405 nm), from -61.50 to 55.71 and from -39.15 to 38.13; y constant. Morphometry: one
+  row per particle, no time axis.'
+coordinates: 'Profiles: x along a horizontal scanline through the centre of the halo on the screen;
+  the centre of mirror symmetry is at x = 1.245 (632.8 nm) and 0.075 (405 nm). Morphometry: particle
+  centroids X, Y in the micrograph.'
+masks: 'None in the record; every value is a number. Saturated samples (luma >= 250): 37 at 632.8 nm
+  and 57 at 405 nm, all in the central spot; at 632.8 nm a plateau at luma about 80 out to radius 13 is
+  the red channel at its limit. The analysis excludes the saturated core and takes whole spores as d
+  > 15 µm (72 of 150 at x160, 605 of 642 at x80; the rest are wall fragments; at x160 no particle lies between 10 and 20 µm, at x80 seven do).'
+uncertainty: 'None in the record. Derived (dossier): microscope means 29.91 +- 0.34 µm (x160, n = 72,
+  sd 2.87) and 30.36 +- 0.13 µm (x80, n = 605, sd 3.22), standard errors of the mean; dark-ring radii
+  16.68 +- 0.34 (632.8 nm) and 11.02 +- 0.33 (405 nm) in units of x, the uncertainty being half the range
+  over smoothing widths 0.5 to 2.0 (a sensitivity range of the analysis); ratio 0.661 +- 0.024 against
+  the wavelength ratio 0.640. At 405 nm the right side of the profile shows no dip, so that radius rests
+  on the left side and the fold. Which Airy minimum the dark ring is (first or second) is not settled
+  by the record; the distance to the screen and the unit of x are unknown, so no absolute diameter is
+  inferred from the diffraction.'
+size:
+  description: 'Record: 29 files, 71.6 MB (photographs and TIFFs up to 10.4 MB). Used: the two XLSX
+    files (88,771 and 43,485 bytes) and the two morphometry CSVs (19,837 and 83,863 bytes). Committed:
+    234,325 bytes in four files.'
+format: XLSX (profiles) and semicolon-separated CSV (morphometry); the committed profile samples are CSV.
+reader: 'XLSX: converted once, outside the build, by tools/datasets/lycopodium_xlsx_to_csv.py (standard
+  library only; input sha256 2efdb178052814c982f3870746cf3173c671d1a997765b02af06335e0c496b87 and f7b6caf8daf2c90c2cb923515a3e55a2700d91e11373ca50714f193e83083e56
+  pinned in the script; output sha256 f115399d9acc7d21b3dfe4f52b8b35b140666f044fe6f9b2a265a520af9df0e8
+  and 2906362fdd402ff5968095516a50b39e686edf1635a78e4392c3d65c90262d58). CSV: pbc.data.reference.lycopodium.read_profile
+  and read_morphometry (NumPy). No new dependency.'
+downloads:
+- url: https://zenodo.org/api/records/15846643/files/Intensity_profile_diffraction_lambda0.6328um.xlsx/content
+  filename: Intensity_profile_diffraction_lambda0.6328um.xlsx
+  algorithm: sha256
+  digest: 2efdb178052814c982f3870746cf3173c671d1a997765b02af06335e0c496b87
+  digest_source: computed on 2026-11-09 from the downloaded file (88,771 bytes), whose md5 ebe9a4cce61d4ab8879d3b3436e1d3f1
+    equals the one Zenodo publishes
+- url: https://zenodo.org/api/records/15846643/files/Intensity_profile_diffraction_lambda0.405um.xlsx/content
+  filename: Intensity_profile_diffraction_lambda0.405um.xlsx
+  algorithm: sha256
+  digest: f7b6caf8daf2c90c2cb923515a3e55a2700d91e11373ca50714f193e83083e56
+  digest_source: computed on 2026-11-09 from the downloaded file (43,485 bytes), whose md5 f48dca39781ba647c352d0d3b0d26926
+    equals the one Zenodo publishes
+- url: https://zenodo.org/api/records/15846643/files/Lycopodium_Morphometry_x160.csv/content
+  filename: Lycopodium_Morphometry_x160.csv
+  algorithm: md5
+  digest: bf607a6ee0b547b614067f4be793d9cc
+  digest_source: published by Zenodo (record files API), confirmed on the download of 2026-11-09
+- url: https://zenodo.org/api/records/15846643/files/Lycopodium_Morphometry_x80.csv/content
+  filename: Lycopodium_Morphometry_x80.csv
+  algorithm: md5
+  digest: ac827547093505ab1867d17b19be8521
+  digest_source: published by Zenodo (record files API), confirmed on the download of 2026-11-09
+samples:
+- path: profile_633nm.csv
+  sha256: f115399d9acc7d21b3dfe4f52b8b35b140666f044fe6f9b2a265a520af9df0e8
+  bytes: 91646
+  derivation: tools/datasets/lycopodium_xlsx_to_csv.py on Intensity_profile_diffraction_lambda0.6328um.xlsx;
+    every row, the columns n, x, y, luma, each value the shortest decimal of the stored float64
+  test: tests/unit/test_data_lycopodium.py::test_lycopodium_sample_parses
+- path: profile_405nm.csv
+  sha256: 2906362fdd402ff5968095516a50b39e686edf1635a78e4392c3d65c90262d58
+  bytes: 38979
+  derivation: tools/datasets/lycopodium_xlsx_to_csv.py on Intensity_profile_diffraction_lambda0.405um.xlsx;
+    every row, the columns n, x, y, luma, each value the shortest decimal of the stored float64
+  test: tests/unit/test_data_lycopodium.py::test_lycopodium_sample_parses
+- path: Lycopodium_Morphometry_x160.csv
+  sha256: 03648277f9fda3d561a8fbab048133e72333877feec65e103159a1baeb08d7dc
+  bytes: 19837
+  derivation: the record's file, unmodified (md5 bf607a6ee0b547b614067f4be793d9cc)
+  test: tests/unit/test_data_lycopodium.py::test_lycopodium_sample_parses
+- path: Lycopodium_Morphometry_x80.csv
+  sha256: eb6a0c5c922add8b3f962b00374b6f52bfca2297bf4f45d5617c0aff5ca1644d
+  bytes: 83863
+  derivation: the record's file, unmodified (md5 ac827547093505ab1867d17b19be8521)
+  test: tests/unit/test_data_lycopodium.py::test_lycopodium_sample_parses
+estimates:
+  runtime: Reference figure about 3.2 s with the interpreter start.
+  memory: About 320 MB peak resident for the figure.
+  page_payload: 234 KB committed, read at build time and not shipped; a figure PNG of about 280 KB.
+  ci: 'Offline: four committed files.'
+decision:
+  value: go
+  date: *accessed
+  reasons:
+  - 'Real files inspected: the two XLSX profiles and two morphometry CSVs, md5s equal to Zenodo''s; the
+    profiles converted to CSV by a pinned script with no value changed, the CSVs committed as they are.'
+  - 'Scale-free test passed: the dark ring at 405 nm over that at 632.8 nm is 0.661 +- 0.024 against
+    the wavelength ratio 0.640, as Fraunhofer diffraction by particles of one size distribution requires;
+    the microscope gives that distribution (whole spores 29.91 +- 0.34 µm at x160, 30.36 +- 0.13 µm at
+    x80).'
+  - 'Limits stated, not hidden: the unit of x and the distance to the screen are not in the record (the
+    owner''s comment on the Issue: say so), so no absolute diameter is inferred from the diffraction;
+    the camera saturates the centre, so intensities are not modelled; whether the dark ring is the first
+    or second Airy minimum is not settled (the ring spacing favours the second); the uncertainty of the
+    ring radii is a sensitivity range of the analysis.'
+  - CC BY 4.0 on the record (copyright field empty); local download, subsets, figures, and modification
+    permitted with attribution.
+  - 'Recorded by F52 (Issue #440) under the owner''s decision of 2026-11-08 on the Issue: work towards
+    a go, judged per dossier, with every requirement of ADR 007 checked in the dossier.'
+dossier: docs/datasets/lycopodium-spore-diffraction.md
