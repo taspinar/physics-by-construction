@@ -1537,8 +1537,9 @@ px, indexed by `site/search-index.py`, and within the payload budget; it
 has no script and no state. No existing address, anchor, or bookmark
 changes, and a sequence without an introduction has no page and no link.
 
-**The learning journey** (F157). The Course Atlas opens, before its cards,
-with the journey from the journey file; About states the mission and the
+**The learning journey** (F157). The Course Atlas offers, before its cards,
+the journey from the journey file behind a disclosure that is closed at
+load, with its summary line always visible; About states the mission and the
 educational philosophy, describes Part A and Part B from the same file,
 keeps the canonical attribution of I23, and links to "How we verify the
 science" instead of repeating it. The cards, panels, anchors, address
