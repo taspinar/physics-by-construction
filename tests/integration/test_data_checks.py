@@ -313,6 +313,7 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
         dwd_soil,
         grazing_flow_hwa,
         gw150914,
+        kamchatka_tsunami,
         lycopodium,
         nist_numisheet,
         npl_sparameters,
@@ -337,6 +338,7 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
         (dwd_soil, "dwd-potsdam-soil-temperature"),
         (tudelft_boundary_layer, "tudelft-turbulent-boundary-layer"),
         (grazing_flow_hwa, "grazing-flow-hwa-benchmark"),
+        (kamchatka_tsunami, "kamchatka-2025-tsunami-inputs"),
         (cylinder_wake, "piv-cylinder-wake"),
         (ost_hotwire, "ost-hotwire-cylinder-wakes"),
     ):

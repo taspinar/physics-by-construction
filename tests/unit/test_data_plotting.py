@@ -25,6 +25,7 @@ from pbc.data.reference import (
     dwd_soil,
     grazing_flow_hwa,
     gw150914,
+    kamchatka_tsunami,
     lycopodium,
     munich_bell,
     nist_numisheet,
@@ -50,6 +51,7 @@ XU = SAMPLES_DIR / "xu-damped-pendulum"
 DWD = SAMPLES_DIR / "dwd-potsdam-soil-temperature"
 TBL = SAMPLES_DIR / "tudelft-turbulent-boundary-layer"
 GFH = SAMPLES_DIR / "grazing-flow-hwa-benchmark"
+KAM = SAMPLES_DIR / "kamchatka-2025-tsunami-inputs"
 PIV = SAMPLES_DIR / "piv-cylinder-wake"
 OST = SAMPLES_DIR / "ost-hotwire-cylinder-wakes"
 
@@ -185,6 +187,7 @@ def test_the_credit_line_is_wrapped_and_kept_inside_the_figure():
         (dwd_soil, DWD, "processed", True),
         (tudelft_boundary_layer, TBL, "processed", False),
         (grazing_flow_hwa, GFH, "processed", False),
+        (kamchatka_tsunami, KAM, "processed", False),
         (cylinder_wake, PIV, "processed", False),
         (ost_hotwire, OST, "processed", False),
     ],
@@ -213,6 +216,7 @@ def test_the_dossiers_state_the_status_of_their_figure():
         ("dwd-potsdam-soil-temperature", "processed"),
         ("tudelft-turbulent-boundary-layer", "processed"),
         ("grazing-flow-hwa-benchmark", "processed"),
+        ("kamchatka-2025-tsunami-inputs", "processed"),
         ("piv-cylinder-wake", "processed"),
         ("ost-hotwire-cylinder-wakes", "processed"),
     ):

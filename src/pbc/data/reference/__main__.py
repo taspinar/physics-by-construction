@@ -21,6 +21,7 @@ MODULES = {
     "dwd-potsdam-soil-temperature": "dwd_soil",
     "tudelft-turbulent-boundary-layer": "tudelft_boundary_layer",
     "grazing-flow-hwa-benchmark": "grazing_flow_hwa",
+    "kamchatka-2025-tsunami-inputs": "kamchatka_tsunami",
     "piv-cylinder-wake": "cylinder_wake",
     "ost-hotwire-cylinder-wakes": "ost_hotwire",
 }
