@@ -1554,11 +1554,12 @@ thermodynamics (the hot and cold gas), and astrophysics (the exoplanet
 transit) by `tools/illustrations/derive_assets.py`, outside the build;
 each has its own register entry with its master's origin as the register
 records it, its own alternative text, and its own test. The default is in
-the HTML (what a page without scripts and a link preview show); the hero
-script picks one image per visit, independently of the pair and before
-the image is requested, so one hero image loads; its own query
-parameter, separate from the `hero` parameter that forces a pair and
-named in F158's plan, forces one;
+the HTML inside `<noscript>` (what a page without scripts and a reader of
+the HTML see; with scripts neither the parser nor the preload scanner
+requests it); the hero script, right after the figure, picks one image per
+visit, independently of the pair, and creates the one image, so one hero
+image loads; its own query parameter `hero-image`, separate from the
+`hero` parameter that forces a pair, forces one;
 no storage, no other request, no animation, no measurement. The copy
 follows the order identity, educational philosophy (building models,
 predicting, measuring, interpreting), curriculum, integrity, with no

@@ -18,11 +18,13 @@ project:
   # Files the pages do not link to in Markdown but the built site must
   # contain: the fonts that site.css loads, and their licences, the widgets
   # and the learner-state script that lesson pages load as scripts, and the
-  # atlas's illustrations, which its cards and panels load by srcset.
+  # atlas's illustrations, which its cards and panels load by srcset, and
+  # the hero images of Home, which its script loads from the page's data.
   resources:
     - widgets/*.js
     - learner/*.js
     - assets/atlas/*.webp
+    - assets/hero/*.webp
     - assets/fonts/STIXTwoMath-Regular.woff2
     - assets/fonts/STIXTwoText-Regular.subset.woff2
     - assets/fonts/STIXTwoText-Italic.subset.woff2

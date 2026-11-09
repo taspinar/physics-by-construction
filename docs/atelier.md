@@ -240,24 +240,28 @@ kept.
   textual equivalent, visually hidden. The illustrations are interface
   artwork (WebP, see "The three asset classes"), set on the paper with
   `mix-blend-mode: multiply`.
-- **Home page** (F134, ADR 021 decision 4; `body.pbc-home`,
-  `page-layout: full`; generated whole by `pbc.authoring.home`). The hero:
-  the owner's headline as the page's one `<h1>` with its subtext, in a
-  column of 20 characters at a display size between 2rem and 3rem, the two
-  ways in under it (the start link as the one filled control of the page;
-  the atlas as a text link), and beside it from 992 CSS px the two
-  constellations, the eight courses linked by cobalt hairlines and the four
-  method paths by copper ones, each node the atlas's card illustration in a
-  thin frame with its name as SVG text. Below 40em, where the image is
-  drawn about 360 CSS px wide, the same SVG takes a phone layout: the nodes
-  move to two columns of a taller box, 1.25 times larger, with labels of
-  about 13 CSS px at 390 px. The copy stacks every pair in one grid cell, hidden
-  but the shown one, so the block keeps the height of the longest pair.
-  Then what the site is (three sentences and a line of links), the four
-  examples (the lesson's preview, the title, one line clamped to three
-  lines, the level and the course), each under the construction line, in
-  two columns from 768 px and four from 1200, and the invitation. No eyebrow,
-  no card box, no count of lessons: the atlas gives the overview.
+- **Home page** (F134, F158; ADR 021 decision 4 as amended;
+  `body.pbc-home`, `page-layout: full`; generated whole by
+  `pbc.authoring.home` from `site/hero.yaml`, `site/home.yaml`, and the
+  learning journey). The hero: the owner's headline as the page's one
+  `<h1>` with its subtext, in a column of 20 characters at a display size
+  between 2rem and 3rem (1.75rem below 30em, so that the message and the
+  primary action fit 360 by 640 CSS px), the two actions under it (the
+  Course Atlas as the one filled control of the page, the first lesson as a
+  text link), and beside it from 992 CSS px one of four Part A
+  illustrations at hero size, in a 4:3 box reserved before the image
+  arrives, blended with `darken` on the paper so that the masters' white
+  shows no box; below 992 px the image follows the actions. The copy stacks
+  every pair in one grid cell, hidden but the shown one, so the block keeps
+  the height of the longest pair. Then four sections from the copy file:
+  what the site is (the canonical sentence first, the one link to the
+  creator), how physics is learned here, what you can learn (the journey's
+  Part A and Part B side by side from 992 px, each under a rule in the ink
+  of its part, with the owner's example lesson as its preview, title, one
+  line, and level; the relation below them), and how the results are kept
+  honest, last, with the links to "How we verify the science" and the
+  source. No eyebrow, no card box, no count of lessons: the atlas gives the
+  overview.
 - **Run the code** (F134). The three routes as the first sections of the
   page, side by side from 768 px under the construction line; "Optional:
   drive a coding agent" and "Troubleshooting" keep their headings with
@@ -287,7 +291,7 @@ decision 2, ADR 021 decision 1). An example of each:
 | Class | Example | Source | Rules |
 |---|---|---|---|
 | Interface artwork | the project mark in the header | an authored SVG under `site/assets/` with its entry (author, licence) in the provenance register there | no number, no caption of a result, no evidence claim; decorative or named by its link |
-| Interface artwork, composed | the hero of the home page (F134): two constellations of the atlas's card illustrations | an inline SVG written by `pbc.authoring.home` at build time, whose every image is a registered file under `site/assets/atlas/` | as above; every label is SVG text, its lines are decorative and imply no order of study, and its title names every course and path |
+| Interface artwork, a derived raster at hero size | the hero image of the home page (F158): one of four Part A illustrations | WebP files under `site/assets/hero/`, derived from the masters of the atlas illustrations by `tools/illustrations/derive_assets.py --hero`, each with the register entry of its master | as below; its alternative text in `site/hero.yaml`; never presented as a result |
 | Interface artwork, a derived raster | the twelve illustrations of the course atlas (F133) | WebP files under `site/assets/atlas/`, each with its entry in the provenance register (its origin: a script under `tools/illustrations/`, an author, or an image model with its prompt and date; a licence; its master and the master's SHA-256) | no text, number, or formula in the pixels; never in a lesson's body; alt text that names it; accepted by the visual check (composition, legibility at 76 and 200 px, colour, consistency with its family) |
 | Conceptual illustration | the diagrams drawn by `pbc.authoring.diagrams` in a lesson cell | an executed cell, `fig-status: conceptual` | drawn by code, labelled `conceptual`, never a result |
 | Scientific result | the phase-space figure of "Numerical integrators" | an executed cell over `pbc.mechanics.integrators` | the rules of "Scientifically faithful figures" and the F63 preview contract |

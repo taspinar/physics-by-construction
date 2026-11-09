@@ -30,6 +30,15 @@ verification, and CI never run anything here; the masters are not committed.
 - `derive_assets.py MASTERS [OUT]` writes the card (152 and 228 px wide) and
   panel (400 and 800 px wide) sizes, 4:3, WebP, on the page's paper; run on
   the approved masters it reproduces the committed files byte for byte.
+- `derive_assets.py --hero MASTERS [OUT]` writes the hero images of the home
+  page (F158, Issue #462) to `site/assets/hero/`: the double pendulum, the
+  vortex street, the hot and cold gas, and the exoplanet transit, from the
+  same masters as their atlas panels, 1200 by 900 px, WebP, on the page's
+  paper; it refuses to upscale a master narrower than that. Each file's
+  register entry carries its master's origin and hash as the atlas panel's
+  entry records them. Run with the project's locked Pillow on the owner's
+  masters (SHA-256 matched on the Issue), it reproduces the committed
+  files byte for byte.
 - `regenerate.py [SEQUENCE ...]` is the regeneration check, on demand: it
   runs a sequence's script in a scratch directory and compares the master
   with the hash in the register; where the bytes differ (the renders are not

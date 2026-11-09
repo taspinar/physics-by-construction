@@ -2281,20 +2281,34 @@ body.pbc-reading-column main.content section.level2 {
 }
 
 /* The home page (docs/atelier.md, "Home page"): the hero (the owner's
-   headline and subtext, the two ways in, and the two constellations), what
-   the site is, the examples, and the invitation. The page opts in with
-   body-classes: pbc-home. */
+   headline and subtext, one of the Part A illustrations, and the first
+   step), then identity, how physics is learned here, what you can learn,
+   and integrity. The page opts in with body-classes: pbc-home. */
+/* On a narrow screen the copy, the two actions, and the image follow each
+   other; the figure comes before the actions in the source only so that
+   the script that fills it runs right after it. */
 .home-hero {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "copy"
+    "actions"
+    "figure";
   gap: var(--pbc-space-4) var(--pbc-space-5);
-  align-items: center;
   margin: var(--pbc-space-3) 0 var(--pbc-space-5);
 }
 
-/* From 992 CSS px the text stands left and the image right. */
+/* From 992 CSS px the copy and the actions stand left, the image right. */
 @media (min-width: 992px) {
   .home-hero {
     grid-template-columns: minmax(0, 6fr) minmax(0, 7fr);
+    grid-template-rows: 1fr auto auto 1fr;
+    grid-template-areas:
+      ". figure"
+      "copy figure"
+      "actions figure"
+      ". figure";
+    align-items: center;
     min-height: min(36rem, calc(100vh - 8rem));
   }
 }
@@ -2303,6 +2317,8 @@ body.pbc-reading-column main.content section.level2 {
    grid cell: the block is as tall as the longest pair. */
 .hero-copy {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-area: copy;
 }
 
 .hero-pair {
@@ -2320,6 +2336,7 @@ body.pbc-home .hero-headline {
   font-weight: 600;
   line-height: 1.08;
   text-wrap: balance;
+  overflow-wrap: break-word;
 }
 
 body.pbc-home .hero-subtext {
@@ -2328,6 +2345,46 @@ body.pbc-home .hero-subtext {
   color: var(--pbc-muted);
   font-size: var(--pbc-text-large);
   line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+/* The figure keeps the 4:3 box of the image before the image is there, so
+   that the image the script picks moves nothing. */
+.hero-figure {
+  grid-area: figure;
+  width: 100%;
+  max-width: 40rem;
+  aspect-ratio: 4 / 3;
+  margin: 0 auto;
+  /* The paper the image is blended with. */
+  isolation: isolate;
+  background-color: var(--pbc-background);
+}
+
+.hero-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* The masters' white is lighter than the page's paper: the lighter of
+     the two shows as paper, so no box shows around the illustration. */
+  mix-blend-mode: darken;
+}
+
+/* On a phone the copy is reserved at the height of the longest pair: a
+   slightly smaller headline and subtext keep the message and the primary
+   action in a window of 360 by 640 CSS px. */
+@media (max-width: 30em) {
+  body.pbc-home .hero-headline {
+    font-size: 1.75rem;
+  }
+
+  body.pbc-home .hero-subtext {
+    font-size: var(--pbc-text-base);
+  }
+
+  .home-hero {
+    row-gap: var(--pbc-space-3);
+  }
 }
 
 .home-actions {
@@ -2335,7 +2392,11 @@ body.pbc-home .hero-subtext {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--pbc-space-3) var(--pbc-space-4);
-  margin: var(--pbc-space-4) 0 0;
+  margin: 0;
+}
+
+.home-hero .home-actions {
+  grid-area: actions;
 }
 
 /* The one filled control of the page, the start link's shape. */
@@ -2355,104 +2416,26 @@ main a.home-action-primary:hover {
   text-decoration-thickness: 1px;
 }
 
-/* The two constellations: the atlas's card illustrations in thin frames,
-   joined by hairlines, cobalt for the courses and copper for the paths.
-   The labels are text, and the image's title names every node. */
-.hero-image {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-width: 44rem;
-  margin: 0 auto;
+/* The second action: a text link with room to tap. */
+main a.home-action {
+  display: inline-block;
+  padding: var(--pbc-space-2) 0;
 }
 
-.hero-line,
-.hero-bridge {
-  fill: none;
-  stroke-width: 1.25;
-  stroke-linejoin: round;
-}
-
-.hero-line-a {
-  stroke: var(--pbc-link);
-}
-
-.hero-line-b {
-  stroke: var(--pbc-copper);
-}
-
-.hero-bridge {
-  stroke: var(--pbc-rule);
-  stroke-dasharray: 3 5;
-}
-
-.hero-frame {
-  fill: none;
-  stroke-width: 1.5;
-}
-
-.hero-node-a .hero-frame {
-  stroke: var(--pbc-link);
-}
-
-.hero-node-b .hero-frame {
-  stroke: var(--pbc-copper);
-}
-
-.hero-node image {
-  mix-blend-mode: multiply;
-}
-
-.hero-plate {
-  fill: var(--pbc-plate);
-}
-
-/* The paper under each label hides the line that passes behind it. */
-.hero-label {
-  fill: var(--pbc-text);
-  paint-order: stroke;
-  stroke: var(--pbc-background);
-  stroke-width: 5px;
-  stroke-linejoin: round;
-  font-family: var(--pbc-font-text);
-  font-size: 13px;
-  text-anchor: middle;
-}
-
-/* The lines of the phone layout (pbc.authoring.home, PHONE_HEIGHT). */
-.hero-image .hero-phone {
-  display: none;
-}
-
-/* On a phone the image is drawn about 360 CSS px wide, a little over half
-   its 640 units: the nodes move to two columns of a taller box, each node
-   1.25 times larger, and the labels grow to 20 units of the node, about
-   13 CSS px at 390 px. */
-@media (max-width: 40em) {
-  .hero-image {
-    aspect-ratio: var(--hero-phone-ratio);
-  }
-
-  .hero-image .hero-wide {
-    display: none;
-  }
-
-  .hero-image .hero-phone {
-    display: inline;
-  }
-
-  .hero-node {
-    transform: var(--hero-phone);
-  }
-
-  .hero-label {
-    font-size: 20px;
-  }
+/* A word longer than a narrow column at a large text size breaks rather
+   than widening the page. */
+body.pbc-home main {
+  overflow-wrap: break-word;
 }
 
 /* The prose of the page keeps the measure. */
-body.pbc-home main section > p {
+body.pbc-home main section > p,
+.home-part > p {
   max-width: var(--pbc-measure);
+}
+
+body.pbc-home main section.level2 {
+  margin-top: var(--pbc-space-5);
 }
 
 .home-more p {
@@ -2461,44 +2444,77 @@ body.pbc-home main section > p {
   gap: var(--pbc-space-2) var(--pbc-space-4);
 }
 
-/* The examples: four entries of equal standing, each its lesson's preview,
-   its title, one line, and its level and course; two columns from 768 CSS
-   px, four from 1200. Not boxed: a rule above each, as in the atlas. */
-.home-examples {
+/* What you can learn: Part A and Part B, each under a rule in the ink of
+   its part in the atlas, side by side from 992 CSS px; the relation below
+   them. */
+.home-curriculum {
   display: grid;
-  gap: var(--pbc-space-5) var(--pbc-space-4);
-  margin: var(--pbc-space-4) 0;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--pbc-space-5);
+  margin: var(--pbc-space-4) 0 0;
 }
 
-@media (min-width: 768px) {
-  .home-examples {
+@media (min-width: 992px) {
+  .home-curriculum {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
 
-@media (min-width: 1200px) {
-  .home-examples {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .home-relation {
+    grid-column: 1 / -1;
   }
 }
 
+.home-part {
+  padding-top: var(--pbc-space-1);
+  border-top: var(--pbc-construction-width) solid var(--home-ink);
+  --home-ink: var(--pbc-rule);
+}
+
+.home-part-a {
+  --home-ink: var(--pbc-link);
+}
+
+.home-part-b {
+  --home-ink: var(--pbc-copper);
+}
+
+body.pbc-home .home-part h3 {
+  margin: var(--pbc-space-3) 0 var(--pbc-space-3);
+  color: var(--home-ink);
+}
+
+/* The relation belongs to neither part: a plain rule and heading. */
+body.pbc-home .home-relation h3 {
+  color: var(--pbc-text);
+}
+
+/* The owner's example of a part: the lesson's preview, its title, one
+   line, and its level and home. */
 .home-example {
-  padding-top: var(--pbc-space-3);
-  border-top: var(--pbc-construction-width) solid var(--pbc-link);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 var(--pbc-space-4);
+  margin: var(--pbc-space-4) 0 0;
+}
+
+@media (min-width: 576px) {
+  .home-example {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    align-items: start;
+  }
+
+  .home-example > :not(:first-child) {
+    grid-column: 2;
+  }
+
+  .home-example > :first-child {
+    grid-row: 1 / span 3;
+    margin: 0;
+  }
 }
 
 .home-example p {
   margin-bottom: var(--pbc-space-2);
-}
-
-/* One line of the lesson's description: at most three lines on the page;
-   the whole sentence stays in the text. */
-.home-example h3 + p {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
 }
 
 .home-preview {
@@ -2510,22 +2526,17 @@ body.pbc-home main section > p {
   background-color: var(--pbc-plate);
 }
 
-body.pbc-home .home-example h3 {
-  margin: var(--pbc-space-3) 0 var(--pbc-space-2);
+body.pbc-home .home-example h4 {
+  margin: var(--pbc-space-2) 0;
   font-size: var(--pbc-heading-3);
   line-height: var(--pbc-leading-tight);
 }
 
 .home-meta {
+  display: inline-block;
   color: var(--pbc-muted);
   font-size: var(--pbc-text-small);
-}
-
-.home-begin p {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--pbc-space-3) var(--pbc-space-4);
+  line-height: 1.45;
 }
 
 /* "Run the code" (F134): the three routes above the shared installation,
