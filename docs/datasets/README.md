@@ -4,14 +4,15 @@ Real measurements are inputs that no build can regenerate (ADR 007). This folder
 
 ## The 25 surveyed datasets
 
-The survey is Appendix A of `docs/changes/physics-next-phase.md`: a shortlist of editorial estimates, not validated labs. Each of its 25 sources has a card. Three were spiked on 2026-10-09; the other 22 are `survey-only` and the card of each names the gate it would have to pass. The survey's scores are not copied: a card records only what was read from a record or a file.
+The survey is Appendix A of `docs/changes/physics-next-phase.md`: a shortlist of editorial estimates, not validated labs. Each of its 25 sources has a card. Three were spiked on 2026-10-09; the other 22 were `survey-only`, and the card of each names the gate it would have to pass. One of them, the TESS light curves, has since passed its gate for the measured-data lab AST8 (table below). The survey's scores are not copied: a card records only what was read from a record or a file.
 
 | Dataset | Kind | Decision | Dossier |
 |---|---|---|---|
 | GW150914 strain | time series | **go** | [gw150914-strain](gw150914-strain.md) |
 | Aalborg submerged-bar wave flume | measured against modelled | **go** | [aalborg-submerged-bar](aalborg-submerged-bar.md) |
 | NPL on-wafer S-parameters | complex RF measurement | **go** | [npl-onwafer-sparameters](npl-onwafer-sparameters.md) |
-| 22 others | | survey-only | the cards in `data/registry/` |
+| TESS light curves (WASP-18, sector 29; AST8, Issue #420) | calibrated photometric time series | **go** (2026-11-08) | [tess-exoplanet-light-curves](tess-exoplanet-light-curves.md) |
+| 21 others | | survey-only | the cards in `data/registry/` |
 
 Cards added after the survey, for the measured-data labs:
 
@@ -29,7 +30,7 @@ A `go` means the data, the rights, and the figure passed. It does not mean a les
 
 ## Dataset research for the measured-data labs
 
-The research of 2026-11-08 into open datasets for the measured-data labs is recorded in [spike-candidates-2026-11-08](spike-candidates-2026-11-08.md): the first spike recommended per lab, the options rejected, corrections to existing cards (not yet applied), the owner's decisions and the open ones, and the outcome of its third round, in which the small spike files were downloaded and inspected. Those files, the scripts, and the figures were kept outside the repository; the research committed no data file. The datasets it marked ready for a dossier receive their card, sample, and decision in their own features, judged per dossier: a dataset has a `go` when its card says so (the tables above).
+The research of 2026-11-08 into open datasets for the measured-data labs is recorded in [spike-candidates-2026-11-08](spike-candidates-2026-11-08.md): the first spike recommended per lab, the options rejected, corrections to existing cards (not yet applied), the owner's decisions and the open ones, and the outcome of its third round, in which the small spike files were downloaded and inspected. Those files, the scripts, and the figures were kept outside the repository; the research committed no data file. The datasets it marked ready for a dossier receive their card, sample, and decision in their own features, judged per dossier: a dataset has a `go` when its card says so (the tables above). AST8's FITS file is converted once by `tools/datasets/tess_lc_to_csv.py` (`tools/datasets/README.md`).
 
 ## Recommendation for the first lab
 

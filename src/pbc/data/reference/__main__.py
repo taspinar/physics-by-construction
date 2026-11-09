@@ -12,6 +12,7 @@ MODULES = {
     "aalborg-submerged-bar": "aalborg_flume",
     "bayreuth-rlc-impedance": "bayreuth_rlc",
     "nist-numisheet-dp980": "nist_numisheet",
+    "tess-exoplanet-light-curves": "tess_wasp18",
     "munich-bell-event-ready": "munich_bell",
 }
 
