@@ -1,0 +1,13 @@
+Stations_ID;Stationsname;Geo. Laenge [Grad];Geo. Breite [Grad];Stationshoehe [m];Geberhoehe ueber Grund [m];Von_Datum;Bis_Datum;Geraetetyp Name;Messverfahren;eor;
+3987;Potsdam;13.06;52.38;80.86;-.02;19510101;19911031;Erdbodenthermometer;Temperaturmessung, konv.;eor;
+3987;Potsdam;13.06;52.38;80.86;-.05;19510101;19780228;Erdbodenthermometer;Temperaturmessung, konv.;eor;
+3987;Potsdam;13.06;52.38;80.86;-.05;19780301;20260419;PT 100 (Erdboden);Temperaturmessung, elektr.;eor;
+3987;Potsdam;13.06;52.38;80.86;-.1;19510101;19780228;Erdbodenthermometer;Temperaturmessung, konv.;eor;
+3987;Potsdam;13.06;52.38;80.86;-.1;19780301;20260419;PT 100 (Erdboden);Temperaturmessung, elektr.;eor;
+3987;Potsdam;13.06;52.38;80.86;-.2;19510101;19780228;Erdbodenthermometer;Temperaturmessung, konv.;eor;
+3987;Potsdam;13.06;52.38;80.86;-.2;19780301;20260419;PT 100 (Erdboden);Temperaturmessung, elektr.;eor;
+3987;Potsdam;13.06;52.38;80.86;-.5;19510101;19780228;Erdboden-Tiefenthermometer;Temperaturmessung, konv.;eor;
+3987;Potsdam;13.06;52.38;80.86;-.5;19780301;20260419;PT 100 (Erdboden);Temperaturmessung, elektr.;eor;
+3987;Potsdam;13.06;52.38;80.86;-1;19510101;19780228;Erdboden-Tiefenthermometer;Temperaturmessung, konv.;eor;
+3987;Potsdam;13.06;52.38;80.86;-1;19780301;20260419;PT 100 (Erdboden);Temperaturmessung, elektr.;eor;
+generiert: 23.04.2026 --  Deutscher Wetterdienst  --

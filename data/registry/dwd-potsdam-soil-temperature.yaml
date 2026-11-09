@@ -1,0 +1,161 @@
+id: dwd-potsdam-soil-temperature
+title: DWD hourly soil temperature at five depths, station 03987 Potsdam; inspected file the historical
+  archive of 1951-2025
+source:
+  url: https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/soil_temperature/historical/stundenwerte_EB_03987_19510101_20251231_hist.zip
+  creator: Deutscher Wetterdienst (DWD), Climate Data Center (CDC); station 03987 Potsdam, operated by
+    the DWD since 1991 (Meteorologischer Dienst der DDR 1950-1990)
+  version: 'Archive of the historical (quality-checked) part, period 1951-01-01 to 2025-12-31, members
+    written 2026-04-23, published 2026-06-10 (Last-Modified); dataset description version v24.03. DWD
+    replaces the archive every year; no DOI and no published checksum, so the project pins this archive
+    by its sha256.'
+  accessed: &accessed 2026-11-09
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: permitted
+    source: 'https://opendata.dwd.de/climate_environment/CDC/Terms_of_use.pdf, read 2026-11-09: "The Creative
+      Commons BY 4.0 - Licence \"CC BY 4.0\" apply"; the dataset description https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/soil_temperature/DESCRIPTION_obsgermany_climate_hourly_soil_temperature_en.pdf,
+      page 4 (COPYRIGHT), the same'
+  redistribution_of_subsets:
+    answer: permitted
+    source: 'CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ (share, in any medium or format),
+      as stated by https://opendata.dwd.de/climate_environment/CDC/Terms_of_use.pdf, read 2026-11-09'
+  publication_of_figures:
+    answer: permitted
+    source: 'CC BY 4.0, https://creativecommons.org/licenses/by/4.0/ (adapt: remix, transform, and build
+      upon), as stated by https://opendata.dwd.de/climate_environment/CDC/Terms_of_use.pdf, read 2026-11-09'
+  modification_and_attribution:
+    answer: permitted
+    source: 'CC BY 4.0, https://creativecommons.org/licenses/by/4.0/: credit, a link to the licence, and
+      an indication of changes; DWD''s source note at https://www.dwd.de/copyright, linked from https://opendata.dwd.de/climate_environment/CDC/Terms_of_use.pdf'
+  attribution: 'Source: Deutscher Wetterdienst (DWD), Climate Data Center, hourly soil temperature of
+    station 03987 Potsdam, archive stundenwerte_EB_03987_19510101_20251231_hist.zip, licensed under CC
+    BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Rows selected without changing a value.'
+artifacts:
+- name: stundenwerte_EB_03987_19510101_20251231_hist.zip
+  type: raw-measured
+  description: 'DWD''s archive of the station: the product file produkt_eb_stunde_19510101_20251231_03987.txt
+    (322,776 rows; soil temperature at 2, 5, 10, 20, 50, and 100 cm; hourly from April 2001, three or
+    four readings a day before) and the metadata files of the station, its instruments, parameters, operators,
+    and missing values. The readings are the thermometers'' (PT100 since 1978-03-01), after DWD''s automatic
+    control and correction (quality level QN 3 for every row used here).'
+- name: eb_stunde_03987_2015_2024_6h.txt
+  type: processed-measured
+  description: 'Sample: the header and the 14,610 rows of the product file at 00, 06, 12, and 18 h of
+    2015-2024, each line unchanged; selected for the annual wave.'
+- name: eb_stunde_03987_jja_2020_2024_1h.txt
+  type: processed-measured
+  description: 'Sample: the header and the 11,040 hourly rows of June, July, and August 2020-2024, each
+    line unchanged; selected for the daily wave.'
+- name: Metadaten_Geographie_03987.txt, Metadaten_Geraete_Erdbodentemperatur_03987.txt, Metadaten_Parameter_eb_stunde_03987.txt,
+    Metadaten_Stationsname_Betreibername_03987.txt
+  type: raw-measured
+  description: 'The station''s position, instruments with their depths, parameters with their sources
+    and units, and operators, from the archive, re-encoded from ISO-8859-1 to UTF-8 (the same text; three are ASCII and unchanged). The harmonic fits, the diffusivities,
+    and the model curves of the reference figure are computed by pbc.data.reference.dwd_soil and are not
+    part of the record.'
+calibration: 'None applied here. The record documents no calibration of the PT100 sensors and no accuracy;
+  DWD''s automatic control and correction (QN 3) is the only processing of the values, described in the
+  dataset description (QualiMet; Kaspar et al. 2013, doi:10.5194/asr-10-99-2013).'
+schema: 'Semicolon-separated text, CRLF line ends, one header line STATIONS_ID;MESS_DATUM;QN_2;V_TE002;V_TE005;V_TE010;V_TE020;V_TE050;V_TE100;eor,
+  then one row per reading time with the station id (3987), the time stamp YYYYMMDDHH, the quality level,
+  six temperatures, and the end-of-record marker "eor". Fields are padded with spaces to fixed widths.'
+units: 'Temperatures in degC with one decimal (the dataset description and Metadaten_Parameter); MESS_DATUM
+  as YYYYMMDDHH (the time zone is not stated in the files or the description, and the analysis uses only
+  periods and differences between depths); QN_2 a code without a unit. Depths 0.05, 0.10, 0.20, 0.50,
+  1.00 m below ground (Metadaten_Geraete, Geberhoehe -0.05 to -1 m).'
+cadence: 'Product file: hourly from 2001-04 (SYNOP), three or four readings a day before. Sample: four
+  readings a day (00, 06, 12, 18 h) 2015-01-01 to 2024-12-31, and hourly June to August 2020-2024 (every
+  step 1 h).'
+coordinates: 'Station 03987 Potsdam, 52.3812 N, 13.0622 E, 80.86 m above sea level,
+  unchanged since 1893 (Metadaten_Geographie); sensors at 5, 10, 20, 50, and 100 cm below the ground.'
+masks: 'Missing values are -999. V_TE002 (2 cm) is -999 in every row after 1972 (measured 1951-1972
+  only). In the sample: two rows absent from the file (2023-09-05 12 h and 18 h); one 6-hourly row (2023-09-04
+  12 h) missing 5, 10, and 20 cm; three hourly rows (2023-08-24 14-16 h) missing 5 and 10 cm. Every
+  row of the sample has QN 3. The analysis drops missing values from each fit and uses only complete days
+  for the daily wave (459 of 460).'
+uncertainty: 'The record states no sensor accuracy and no tolerance of the depths; readings are given
+  to 0.1 K. Derived (dossier): the diffusivity from the annual wave (2015-2024) is 1.015 +- 0.025 (amplitude)
+  and 1.147 +- 0.009 (phase) x 1e-6 m2/s, from the daily wave (June-August 2020-2024) 1.084 +- 0.013
+  and 1.119 +- 0.009, each a standard error of the mean over the single years or summers. The four estimates
+  differ by more than these errors (1.01 to 1.15), and adjacent pairs of depths give 0.88 to 1.53 (2.49
+  for the annual amplitude between 5 and 10 cm, a 1 % change in amplitude): the soil is not uniform, which
+  the homogeneous model does not describe. The spread of the four, about +-7 %, is the uncertainty of the
+  model, larger than the statistical one. Not bounded: the depths (kappa scales with the square of the
+  depth spacing) and the sensors.'
+size:
+  description: 'The archive is 2,773,485 bytes (11 members, 25,468,746 bytes unpacked; the product file
+    24,347,827 bytes). The sample is 1,955,708 bytes: 1,110,441 (6-hourly), 839,121 (hourly), and 6,146
+    of metadata (UTF-8).'
+format: Semicolon-separated text in a zip archive; the committed sample is lines of it, unchanged.
+reader: 'Zip: extracted once, outside the build, by tools/datasets/dwd_soil_extract.py (standard library;
+  input sha256 6a968e6da83c783c4fa3a35196521021550bf56d1a64cde83cc9aeceb882329f pinned in the script, the
+  CRC of every member checked). Text: pbc.data.reference.dwd_soil.read_readings (NumPy). No new dependency.'
+downloads:
+- url: https://opendata.dwd.de/climate_environment/CDC/observations_germany/climate/hourly/soil_temperature/historical/stundenwerte_EB_03987_19510101_20251231_hist.zip
+  filename: stundenwerte_EB_03987_19510101_20251231_hist.zip
+  algorithm: sha256
+  digest: 6a968e6da83c783c4fa3a35196521021550bf56d1a64cde83cc9aeceb882329f
+  digest_source: computed on 2026-11-09 from the archive downloaded from DWD (2,773,485 bytes, md5 7613bdc38862e060ecdf9ac07779e29b);
+    equal to the sha256 of the research of 2026-11-08; DWD publishes no digest. The URL is replaced when
+    DWD publishes the next yearly archive.
+samples:
+- path: eb_stunde_03987_2015_2024_6h.txt
+  sha256: d9fe4916f266c91a0f0ab1e42782682e12ae07a379fd1c98fe309afcfeb824d2
+  bytes: 1110441
+  derivation: tools/datasets/dwd_soil_extract.py on the archive of the download above; the header and
+    every row at 00, 06, 12, 18 h of 2015-2024, lines unchanged
+  test: tests/unit/test_data_dwd_soil.py::test_dwd_soil_sample_parses
+- path: eb_stunde_03987_jja_2020_2024_1h.txt
+  sha256: ab6be9339237a2d66b4b552bc2ca42a6f3dbe7560c86a0803c0dcb6d067115cd
+  bytes: 839121
+  derivation: tools/datasets/dwd_soil_extract.py on the archive of the download above; the header and
+    every row of June, July, and August 2020-2024, lines unchanged
+  test: tests/unit/test_data_dwd_soil.py::test_dwd_soil_sample_parses
+- path: Metadaten_Geographie_03987.txt
+  sha256: 9447df936ba5cbddca1ec616602790ee8f6ae7c66c5ed12712c30c54f4e4968f
+  bytes: 325
+  derivation: copied unchanged from the archive by tools/datasets/dwd_soil_extract.py
+  test: tests/unit/test_data_dwd_soil.py::test_dwd_soil_sample_parses
+- path: Metadaten_Geraete_Erdbodentemperatur_03987.txt
+  sha256: c30fa8f59d37d3d303a936fa7a5e5d4caf7a85d3187b0acb0ebe82faaf14d21b
+  bytes: 1364
+  derivation: copied unchanged from the archive by tools/datasets/dwd_soil_extract.py
+  test: tests/unit/test_data_dwd_soil.py::test_dwd_soil_sample_parses
+- path: Metadaten_Parameter_eb_stunde_03987.txt
+  sha256: 55a4fa22af5a548be7fda86e0ef953a8de60d9e8de998c93fa132d4ee1490f6e
+  bytes: 4171
+  derivation: re-encoded from the archive's ISO-8859-1 to UTF-8 (text and line ends unchanged) by tools/datasets/dwd_soil_extract.py
+  test: tests/unit/test_data_dwd_soil.py::test_dwd_soil_sample_parses
+- path: Metadaten_Stationsname_Betreibername_03987.txt
+  sha256: dc311bac33395e7ae012d4735153a257284a8dcc3dad179bb180961758f62105
+  bytes: 286
+  derivation: copied unchanged from the archive by tools/datasets/dwd_soil_extract.py
+  test: tests/unit/test_data_dwd_soil.py::test_dwd_soil_sample_parses
+estimates:
+  runtime: 'Reference figure: about 4.5 s with the interpreter start; the analysis alone under 2 s.'
+  memory: About 170 MB peak resident for the figure.
+  page_payload: 1.96 MB committed, read at build time and not shipped; a figure PNG of about 430 KB at
+    150 dpi.
+  ci: 'Offline: six committed files.'
+decision:
+  value: go
+  date: *accessed
+  reasons:
+  - 'Real file inspected: the DWD archive of station 03987 (2,773,485 bytes, sha256 equal to the research''s),
+    its product file and metadata read; the sample is 25,650 rows of it, lines unchanged, written by a
+    pinned script.'
+  - 'The heat equation of T6 for a periodic surface temperature describes the annual wave at five depths
+    and the daily wave at four with residuals of at most 0.015 in ln A and 0.05 rad: kappa 1.01 to 1.15
+    x 1e-6 m2/s from amplitude and phase, a damping depth of 3.2-3.4 m for the year and 0.17 m for the
+    day.'
+  - Uncertainties as the scatter between years and summers; the disagreement of the estimates and of the
+    pairs of depths reported as the limit of the homogeneous model; sensor accuracy and depth tolerance
+    stated as not given by the record.
+  - CC BY 4.0 by DWD's terms of use and the dataset description; local download, subsets, figures, and
+    modification permitted, with the source note.
+  - 'Recorded by F84 (Issue #438) under the owner''s decision of 2026-11-08 on the Issue: work towards
+    a go, judged per dossier, with every requirement of ADR 007 checked in the dossier; the archive without
+    a DOI pinned by the project''s own checksum, as the owner accepted.'
+dossier: docs/datasets/dwd-potsdam-soil-temperature.md
