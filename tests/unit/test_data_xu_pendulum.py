@@ -162,6 +162,12 @@ def test_the_release_the_centre_and_the_cycles(sample):
             [first, last], abs=0.05
         )
         assert np.all(np.diff(cycles.amplitude) < 0.01)
+        # The encoder step alone gives each period a lower bound of its
+        # uncertainty, 0.27 ms (len1, 44 deg) to 1.4 ms (len2, 11 deg): one
+        # per cycle, comparable to the cycles' scatter in the slowest runs.
+        assert cycles.period_error.shape == cycles.period.shape
+        assert cycles.period_error.min() > 0.00025
+        assert cycles.period_error.max() < 0.0015
 
 
 def test_the_periods_and_the_effective_lengths_are_the_dossiers(analysis):

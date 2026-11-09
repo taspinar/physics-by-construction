@@ -94,6 +94,11 @@ class Cycles:
     period: np.ndarray  # s, to the next upward crossing
     amplitude: np.ndarray  # rad, half the range of the angle in the cycle
     centre: float  # rad, the median angle after the release
+    # s, one standard deviation of the period from the encoder step alone: the
+    # quantisation (step / sqrt(12)) of the angle divided by the angular speed
+    # at each of the two crossings, added in quadrature. A lower bound of the
+    # period's uncertainty, at most comparable to the scatter of the cycles.
+    period_error: np.ndarray
 
     @property
     def small_amplitude_period(self) -> np.ndarray:
@@ -184,6 +189,9 @@ def cycles(run: Run) -> Cycles:
     x = theta - centre
     up = np.flatnonzero((x[:-1] < 0) & (x[1:] >= 0))
     crossings = t[up] + (-x[up]) / (x[up + 1] - x[up]) * (t[up + 1] - t[up])
+    speed = (x[up + 1] - x[up]) / (t[up + 1] - t[up])  # rad/s at each crossing
+    timing = ENCODER_STEP / np.sqrt(12) / speed  # s, one crossing
+    errors = np.hypot(timing[:-1], timing[1:])
     starts, periods, amplitudes = [], [], []
     for a, b, i, j in zip(crossings[:-1], crossings[1:], up[:-1], up[1:], strict=True):
         segment = theta[i + 1 : j + 1]
@@ -193,8 +201,13 @@ def cycles(run: Run) -> Cycles:
         starts.append(a)
         periods.append(b - a)
         amplitudes.append(amplitude)
+    used = len(periods)
     return Cycles(
-        np.array(starts[1:]), np.array(periods[1:]), np.array(amplitudes[1:]), centre
+        np.array(starts[1:]),
+        np.array(periods[1:]),
+        np.array(amplitudes[1:]),
+        centre,
+        errors[1:used],
     )
 
 
@@ -373,17 +386,40 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ax_angle.legend(fontsize=7.5, loc="lower right")
 
     degrees = np.degrees(c.amplitude)
-    ax_period.plot(
+    t0 = c.small_amplitude_period
+    ax_period.axhspan(
+        p1.t0 - p1.scatter,
+        p1.t0 + p1.scatter,
+        color=COLOURS[0],
+        alpha=0.15,
+        lw=0,
+        label=f"T0 of the run +/- 1 sd of one cycle ({1000 * p1.scatter:.1f} ms)",
+    )
+    ax_period.errorbar(
         degrees,
         c.period,
+        yerr=c.period_error,
         label="period of each cycle",
         **{**measured, "marker": "x", "color": COLOURS[2]},
     )
-    ax_period.plot(
+    ax_period.errorbar(
         degrees,
-        c.small_amplitude_period,
+        t0,
+        yerr=c.period_error * t0 / c.period,
         label="corrected to small amplitude, T pi / (2 K)",
         **measured,
+    )
+    ax_period.text(
+        0.02,
+        0.07,
+        "The record gives no uncertainty per cycle. Bars (smaller than the\n"
+        "markers): 1 sd from the encoder step alone, "
+        f"{1000 * c.period_error.min():.2f} to {1000 * c.period_error.max():.2f} ms,"
+        "\na lower bound. Band: the scatter of this run's cycles. The spread of\n"
+        "the trials (dossier) exceeds the standard error of the run's T0.",
+        transform=ax_period.transAxes,
+        fontsize=7,
+        va="bottom",
     )
     ax_period.axhline(
         simple_period(first.length),
@@ -400,7 +436,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
         f"{100 * (1 - corrected_slope / raw_slope):.0f} % of the slope with amplitude",
         fontsize=10,
     )
-    ax_period.legend(fontsize=7.5, loc="center right")
+    ax_period.legend(fontsize=7.5, loc="upper left")
 
     lengths = np.array([p.length for p in periods])
     squares = np.array([p.t0 for p in periods]) ** 2

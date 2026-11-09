@@ -20,7 +20,7 @@ Cards added after the survey, for the measured-data labs:
 |---|---|---|---|
 | Bayreuth RLC impedance (EM8, Issue #418) | complex impedance measurement | **go** (2026-11-08) | [bayreuth-rlc-impedance](bayreuth-rlc-impedance.md) |
 | Munich event-ready Bell test (Q8, Issue #419) | Bell-test event counts | **go** (2026-11-08) | [munich-bell-event-ready](munich-bell-event-ready.md) |
-| Xu et al. damped pendulum (M15, Issue #437) | rotary-encoder time series | **go** (2026-11-09) | [xu-damped-pendulum](xu-damped-pendulum.md) |
+| Xu et al. damped pendulum (M15, Issue #437) | rotary-encoder time series | **go** (2026-11-09; [owner's approval](https://github.com/taspinar/physics-by-construction/issues/437#issuecomment-6729724204)) | [xu-damped-pendulum](xu-damped-pendulum.md) |
 
 Defer and reject have no entry yet: no spiked dataset failed its gate. The survey-only cards with a known obstacle are the optical-diffraction record (licence field CC BY 4.0 beside a copyright line, RAR archives) and the cylinder-wake PIV (one 1.1 GB MAT file of processed fields at 20 Hz, zeros are masks); both remain conditional, as the survey proposed.
 

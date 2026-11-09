@@ -224,5 +224,5 @@ decision:
   - Apache-2.0 at the commit covers download, subsets, figures, and modification; it is equivalent recorded
     permission under the ADR 007 addendum (#417). The LICENSE travels with the sample.
   - 'Recorded by F83 (Issue #437) under the owner''s decision of 2026-11-08 on the Issue: work towards
-    a go for this dataset, judged per dossier.'
+    a go for this dataset, judged per dossier (https://github.com/taspinar/physics-by-construction/issues/437#issuecomment-6729724204).'
 dossier: docs/datasets/xu-damped-pendulum.md
