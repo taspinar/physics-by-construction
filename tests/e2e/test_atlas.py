@@ -615,6 +615,58 @@ def test_the_initial_payload_of_the_page_is_within_the_budget(
     assert not violations, describe(violations)
 
 
+# --- The learning journey (F157) -----------------------------------------------------
+
+
+def test_the_journey_comes_before_the_cards_and_opens_by_keyboard_without_scripts(
+    without_scripts: BrowserContext, server: SiteServer
+):
+    page = open_page(without_scripts, server)
+    journey = box(page, "#journey > summary")
+    first_card = box(page, "#course-mechanics > summary")
+    assert journey["y"] + journey["height"] <= first_card["y"]
+    assert page.locator("#journey").get_attribute("open") is None
+    page.focus("#journey > summary")
+    page.keyboard.press("Enter")
+    assert page.locator("#journey").get_attribute("open") is not None
+    for heading in ("#journey-part-a", "#journey-part-b", "#journey-evidence"):
+        assert page.locator(heading).is_visible(), heading
+    # The journey is outside the cards' group: opening it closes no sequence.
+    assert open_ids(page) == ["course-mechanics"]
+
+
+def test_an_address_inside_the_journey_opens_it(
+    with_scripts: BrowserContext, server: SiteServer
+):
+    page = open_page(with_scripts, server, "#journey-evidence")
+    assert page.locator("#journey").get_attribute("open") is not None
+    assert open_ids(page) == ["course-mechanics"]
+
+
+@pytest.mark.parametrize("viewport", [WIDE, PHONE], ids=["desktop", "320"])
+def test_the_open_journey_passes_the_scan_and_reflows(
+    browser: Browser, server: SiteServer, viewport: dict[str, int]
+):
+    context = browser.new_context(viewport=viewport)
+    page = open_page(context, server)
+    page.locator("#journey > summary").click()
+    assert page.evaluate("document.documentElement.scrollWidth") <= viewport["width"]
+    results = Axe().run(
+        page,
+        options={
+            "runOnly": {"type": "tag", "values": WCAG_TAGS},
+            "resultTypes": ["violations"],
+        },
+    )
+    violations = [
+        f"{finding['id']} at {item['target']}"
+        for finding in results.response["violations"]
+        for item in finding["nodes"]
+    ]
+    context.close()
+    assert not violations, "\n".join(violations)
+
+
 # --- The relationships on a lesson page ------------------------------------------
 
 

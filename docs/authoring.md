@@ -256,6 +256,31 @@ published lesson fills is shown as planned, as text), and
 not resolve fails the build. The voice of the text is that of
 `docs/editorial-voice.md`, "Pages that are not lessons".
 
+### The learning journey
+
+The text of the learning journey (F157, requirements decision 43) lives in
+one file, `site/journey.yaml`, beside the atlas manifest, and is read and
+validated by `pbc.authoring.journey`. The Course Atlas opens with all of it,
+before the summary and the cards, as one native disclosure that is closed at
+load (so the first panel stays in the first window at 1280 by 800 CSS px)
+and opens without scripts; an address of a heading inside it
+(`path/#journey-evidence`) opens it in the browsers that open a disclosure
+for its fragment. About prints the Part A, Part B, and relation text of the
+same file from the cell `about_journey()`, with the courses and method
+paths of the curriculum file.
+
+The file holds the sections `part-a`, `part-b`, `relation` (the text About
+shares), `background`, `routes`, and `capstones`, each a list of texts, and
+`evidence`, a mapping of exactly `numerical`, `empirical`, and
+`formal-proof`, each a list of texts. Any other field is an error. Every
+text follows the rules of an introduction's text (inline Markdown, one
+paragraph, no count of lessons or slots, no lesson named outside a
+reference, every reference resolving) and two more: no count of courses,
+paths, sequences, or capstones ("one" is no count), and no form of
+"discover" outside a reference, so that the journey cannot present a
+result, least of all an AI result, as a discovery. The rest of that rule is
+the review's.
+
 ### The course atlas
 
 The path page is the course atlas (F133, ADR 021 decision 3): the eight

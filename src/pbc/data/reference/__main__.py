@@ -20,6 +20,8 @@ MODULES = {
     "sdss-balmer-spectrum": "sdss_balmer",
     "dwd-potsdam-soil-temperature": "dwd_soil",
     "nist-srm660c-lab6": "srm660c",
+    "piv-cylinder-wake": "cylinder_wake",
+    "ost-hotwire-cylinder-wakes": "ost_hotwire",
 }
 
 

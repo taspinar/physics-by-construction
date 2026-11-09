@@ -11042,10 +11042,11 @@ scripts. No new artwork. Skills: impeccable, frontend-design.
 
 **Acceptance criteria.**
 
-1. The Course Atlas opens with the learning journey, before the cards,
-   covering the five points of decision 43, from site/journey.yaml;
-   the cards, panels, anchors, and learner state are unchanged, shown by
-   the F133, F13, and F14 tests.
+1. The Course Atlas offers the learning journey before the cards,
+   behind a native disclosure that is closed at load and whose summary
+   line is always visible; opened, it covers the five points of
+   decision 43, from site/journey.yaml; the cards, panels, anchors, and
+   learner state are unchanged, shown by the F133, F13, and F14 tests.
 2. About carries the mission, the philosophy, the Part A and Part B text
    from the same source (shown by a test), the attribution unchanged
    (the F57 check), and a link to "How we verify the science" instead of
