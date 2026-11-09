@@ -1,0 +1,187 @@
+id: ost-hotwire-cylinder-wakes
+title: Hot-wire velocity in the wakes of single cylinders, Re 8 x 10^3 to 5 x 10^4 (Ost, de Paula, Möller);
+  the first 16.4 s of each of ten runs
+source:
+  url: https://data.mendeley.com/datasets/xy8ggx9hn6/1
+  doi: 10.17632/xy8ggx9hn6.1
+  creator: Ana Paula Ost, Alexandre V. de Paula, Sergio Viçosa Möller (Universidade Federal do Rio Grande
+    do Sul)
+  version: 'Mendeley Data, "Turbulent flow past cylinders", version 1, published 2019-11-01; ten files
+    Velocity_1C*.txt; the record links no article'
+  accessed: &accessed 2026-11-09
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: permitted
+    source: 'Mendeley Data record https://data.mendeley.com/datasets/xy8ggx9hn6/1, licence "CC BY 4.0"
+      (API field data_licence, read 2026-11-09: "You can share, copy and modify this dataset so long as
+      you give appropriate credit, provide a link to the CC BY license, and indicate if changes were made");
+      https://creativecommons.org/licenses/by/4.0/legalcode section 2(a)(1)(A) permits reproducing the material'
+  redistribution_of_subsets:
+    answer: permitted
+    source: 'Mendeley Data record https://data.mendeley.com/datasets/xy8ggx9hn6/1, licence CC BY 4.0,
+      read 2026-11-09; https://creativecommons.org/licenses/by/4.0/legalcode section 2(a)(1)(A) permits
+      sharing the material in whole or in part'
+  publication_of_figures:
+    answer: permitted
+    source: 'Mendeley Data record https://data.mendeley.com/datasets/xy8ggx9hn6/1, licence CC BY 4.0,
+      read 2026-11-09; https://creativecommons.org/licenses/by/4.0/legalcode section 2(a)(1)(B) permits
+      producing and sharing adapted material'
+  modification_and_attribution:
+    answer: permitted
+    source: 'Mendeley Data record https://data.mendeley.com/datasets/xy8ggx9hn6/1, licence CC BY 4.0,
+      read 2026-11-09 (the record''s licence text adds: not in a way that suggests the rights holder''s
+      endorsement, and further permission may be needed for third-party content, of which the record
+      identifies none); https://creativecommons.org/licenses/by/4.0/legalcode section 3(a) requires the
+      creators, a notice of the licence with a link, and an indication of the changes'
+  attribution: 'Ost, A. P., de Paula, A. V., Möller, S. V., ''Turbulent flow past cylinders'', Mendeley
+    Data, v1, 2019, doi 10.17632/xy8ggx9hn6.1, CC BY 4.0, https://creativecommons.org/licenses/by/4.0/.
+    Changed by this project: the first 16,384 of 131,072 samples of each run, the velocity rounded to
+    0.001 m/s, the ten runs in one CSV, the time column replaced by the row number; the run parameters
+    copied from the record''s file descriptions. Spectra and Strouhal numbers are this project''s processing.'
+artifacts:
+- name: Velocity_1C25_5ms-1.txt to Velocity_1C50_16ms.txt (ten files)
+  type: processed-measured
+  description: 'One run each: time [s] and velocity [m/s] of a single hot wire (DANTEC StreamLine, 16-bit
+    A/D board NI 9215-A, StreamWare 3.4), 131,072 samples at 1000 Hz after a 300 Hz low-pass filter, plain
+    text, two columns in E-notation with 8 significant digits, CRLF. The velocity is the anemometer''s
+    calibrated output, so processed, not the raw bridge voltage. Not committed: 4,456,448 bytes each.'
+- name: ost_hotwire_16s.csv
+  type: processed-measured
+  description: 'The first 16,384 samples (16.384 s) of each of the ten runs, one column per run, the velocity
+    rounded to 0.001 m/s, written by tools/datasets/ost_hotwire_extract.py. No filtering or resampling.'
+- name: runs.csv
+  type: processed-measured
+  description: 'For each run, the file, its SHA-256, the cylinder diameter [mm], the reference velocity
+    [m/s] from a Pitot tube, the Reynolds number, the aspect ratio L/D, and the probe position x/D downstream
+    and w/D across, as the record''s description of each file states them (decimal commas read as points).'
+- name: Roshko's Strouhal-Reynolds correlation
+  type: modelled-reference
+  description: 'St = 0.212 - 2.7 / Re for 200 <= Re < 2000 (Roshko 1954), drawn in the reference figure
+    beside the PIV wake of piv-cylinder-wake; it does not cover these runs and is not compared with them.'
+calibration: 'Record: the reference velocity from a Pitot tube fixed before the test section; the hot
+  wire''s velocity calibration, its uncertainty, and the temperature are not given ("air, at room temperature").
+  The channel: acrylic, 0.147 m high and 0.193 m wide, turbulence intensity about 1 %. The cylinders
+  span the height (L/D = 5.82, 4.56, 2.92 give L = 146 mm), so the blockage D/W is 0.130, 0.166, and 0.259;
+  no correction for it is applied by the record or here.'
+schema: 'Record: per file, 131,072 lines "   t   u" (two space-separated E-notation numbers, CRLF). Sample:
+  ost_hotwire_16s.csv with three comment lines (the record and licence, the extraction, the time and the
+  units), a header of the ten run names, and 16,384 rows of ten values with three decimals; runs.csv with
+  the header run,file,sha256,diameter_mm,velocity_m_s,reynolds_record,aspect_ratio,x_over_d,w_over_d
+  and ten rows.'
+units: 'Velocity m/s; row k of the sample is the time k ms; diameter mm; reference velocity m/s; Re,
+  L/D, x/D, w/D dimensionless.'
+cadence: '1000 Hz, 131,072 samples, 131.072 s per run (record); the record''s time column is k / 1000
+  s printed to 8 significant digits (within 1e-5 s); the sample keeps samples 0-16,383. Shedding at 24
+  to 135 Hz is sampled 7 to 41 times per period, below the 300 Hz filter.'
+coordinates: 'The probe is downstream of the cylinder axis by x/D and across it by w/D (1.19 and 2.9 for
+  D = 25.1 mm, 1.64 and 2.65 for 32 mm, 0.9 and 1.24 for 50 mm); the record does not define the origin
+  of w or its side. The mean speed at the probe is 1.05 to 1.50 times the reference velocity: the probe
+  sees the accelerated flow beside the near wake, not the wake axis.'
+masks: 'None: no missing value, every velocity positive and finite (a single wire measures speed, so
+  reversed flow is not seen as negative). The record states Re = 5.17 x 10^4 for Velocity_1C50_5ms.txt,
+  the value of the 16 m/s run of that cylinder; U D / Re of the other nine runs gives one viscosity (1.543
+  x 10^-5 m^2/s, within 1.2 %) and that run 3.2 times less. runs.csv copies the record; the analysis uses
+  U D / nu with the median nu, 1.64 x 10^4 for that run.'
+uncertainty: 'The record gives none. Derived (dossier): the peak of each run''s spectrum, with the standard
+  error of four 4.1 s blocks of 0.02 to 0.21 Hz; across eight 16.4 s segments of the full record the peak
+  moves by 0.06 to 0.56 Hz (standard deviation), and the sample''s peak differs from that of the full
+  131 s series by at most 0.71 Hz (1.0 %). St from 0.2125 to 0.2412; the blockage raises it (every 50
+  mm run above every 25.1 mm run), and the reference velocity''s uncertainty is not stated.'
+size:
+  description: 'Ten files of 4,456,448 bytes, 44,564,480 bytes in all. The committed sample: ost_hotwire_16s.csv
+    1,087,139 bytes and runs.csv 1,364 bytes; 1,088,503 bytes in all.'
+format: Plain text (two columns, E-notation); the sample CSV.
+reader: 'Record: numpy.loadtxt in tools/datasets/ost_hotwire_extract.py, outside the build, on the ten
+  files pinned by SHA-256; output sha256 551871f95aa42c10153568444695c19334e78a2332329aa89e0e8e5c70162754
+  (ost_hotwire_16s.csv) and 573b0d40a6d59a4c56e1783603b3dde2a5ccd760ae34381bfe36bf2f3ab93b72 (runs.csv).
+  Sample: pbc.data.reference.ost_hotwire.load (csv, numpy.loadtxt). No new dependency.'
+downloads:
+- url: https://data.mendeley.com/public-files/datasets/xy8ggx9hn6/files/2f2256f0-0ebc-4680-90b0-0bff50686bcc/file_downloaded
+  filename: Velocity_1C25_5ms-1.txt
+  algorithm: sha256
+  digest: 783de993f1d1c03301381524a67e2329585f7664b002ec24adb8a401fcc1c580
+  digest_source: &digest_source "Mendeley Data API (public-api/datasets/xy8ggx9hn6/files, version 1), read 2026-11-09; each downloaded file matched"
+- url: https://data.mendeley.com/public-files/datasets/xy8ggx9hn6/files/e5544af1-9dcb-4d11-993f-be0bcd740f55/file_downloaded
+  filename: Velocity_1C25_10.5ms.txt
+  algorithm: sha256
+  digest: ab7a9b10c149e04c7e975c471c7720a3b068fd7f346d04e4f7bb95e557fe8545
+  digest_source: *digest_source
+- url: https://data.mendeley.com/public-files/datasets/xy8ggx9hn6/files/4cea116e-0b28-43e7-b8a1-36004c74da0a/file_downloaded
+  filename: Velocity_1C25_16ms.txt
+  algorithm: sha256
+  digest: 605535f205eb6b6b28275e5331df1382261e95906910abb1cdd7044719598520
+  digest_source: *digest_source
+- url: https://data.mendeley.com/public-files/datasets/xy8ggx9hn6/files/07f56703-b96d-4ccd-b619-6c2d5a4eeec5/file_downloaded
+  filename: Velocity_1C32_5ms.txt
+  algorithm: sha256
+  digest: 66c67e5ba8bb3057749c0318803da2b190823405be45885fa98508c593b26fbf
+  digest_source: *digest_source
+- url: https://data.mendeley.com/public-files/datasets/xy8ggx9hn6/files/b7428c13-ee34-48f0-8c06-a91ee04bf101/file_downloaded
+  filename: Velocity_1C32_8.3ms.txt
+  algorithm: sha256
+  digest: cf5320ecdb3301625706010668f910f96644e50e5031f079a39be9935cdabaf8
+  digest_source: *digest_source
+- url: https://data.mendeley.com/public-files/datasets/xy8ggx9hn6/files/ededaa2b-ade1-48f7-b527-51e0d5aaa318/file_downloaded
+  filename: Velocity_1C32_10.5ms.txt
+  algorithm: sha256
+  digest: 66326563d6214972d7dc34d2ac7ca6a945cc00e5efc9ab8f859a4d12e335379c
+  digest_source: *digest_source
+- url: https://data.mendeley.com/public-files/datasets/xy8ggx9hn6/files/127f8ba3-5e52-4865-a84d-de37547d3e4b/file_downloaded
+  filename: Velocity_1C32_16ms.txt
+  algorithm: sha256
+  digest: 079a3342d2259866839d3a5185c96b08b8e6078b0449edf2a8c2e561fb242669
+  digest_source: *digest_source
+- url: https://data.mendeley.com/public-files/datasets/xy8ggx9hn6/files/92fa1a82-7fd0-4840-930a-f04bf1e98a13/file_downloaded
+  filename: Velocity_1C50_5ms.txt
+  algorithm: sha256
+  digest: 76922c545c48de7166c5523ad15db1c85f449df384cf15820605a5ea189b9cd1
+  digest_source: *digest_source
+- url: https://data.mendeley.com/public-files/datasets/xy8ggx9hn6/files/5f53c644-3451-4237-aba4-71864405983d/file_downloaded
+  filename: Velocity_1C50_10.5ms.txt
+  algorithm: sha256
+  digest: 42866f6f3eb4051739f325cc3f8f6eb19b1f89df3bf6cdc490263dadef1c16dd
+  digest_source: *digest_source
+- url: https://data.mendeley.com/public-files/datasets/xy8ggx9hn6/files/fcd772ec-0171-4344-b306-7a53d273f0d4/file_downloaded
+  filename: Velocity_1C50_16ms.txt
+  algorithm: sha256
+  digest: 7cc65052666546af4024e64813d1d1f8d25f0f1574bd32c81d219d2dccd8a930
+  digest_source: *digest_source
+samples:
+- path: ost_hotwire_16s.csv
+  sha256: 551871f95aa42c10153568444695c19334e78a2332329aa89e0e8e5c70162754
+  bytes: 1087139
+  derivation: tools/datasets/ost_hotwire_extract.py on the ten downloads above; samples 0-16,383 of each
+    run, velocity to 0.001 m/s; the same bytes on each run
+  test: tests/unit/test_data_ost_hotwire.py::test_ost_hotwire_sample_parses
+- path: runs.csv
+  sha256: 573b0d40a6d59a4c56e1783603b3dde2a5ccd760ae34381bfe36bf2f3ab93b72
+  bytes: 1364
+  derivation: tools/datasets/ost_hotwire_extract.py; the record's description of each file (Mendeley Data
+    API, 2026-11-09) with the file's SHA-256
+  test: tests/unit/test_data_ost_hotwire.py::test_ost_hotwire_sample_parses
+estimates:
+  runtime: 'Reference figure: about 2.2 s with the interpreter start (it also reads the piv-cylinder-wake
+    sample for the PIV point). The one-time extraction: about 3 s, outside the build.'
+  memory: About 195 MB peak resident for the figure.
+  page_payload: 1.09 MB committed, read at build time and not shipped; a figure PNG of about 230 KB at
+    150 dpi.
+  ci: 'Offline: two committed files.'
+decision:
+  value: go
+  date: *accessed
+  reasons:
+  - 'Real files inspected: all ten, SHA-256 equal to Mendeley Data''s; plain text, 131,072 samples at
+    1000 Hz each; time and velocity as the record describes.'
+  - 'A sample of 1.09 MB, written by a checksum-pinned script: 16.4 s of each run; the shedding peak is
+    clear in every run (24 to 135 Hz) and within 1 % of that of the full series.'
+  - 'Strouhal numbers 0.2125 to 0.2412 at Re 8.3 x 10^3 to 5.2 x 10^4, grouped by the blockage of the
+    channel (0.13 to 0.26) rather than by Re; the record''s Re of one run is inconsistent with its own
+    D and U and is recomputed, said so.'
+  - 'Used beside piv-cylinder-wake, as the Issue requires: it adds the Strouhal number over a range of
+    Re and blockage; it has no velocity field, so no vorticity or streamlines.'
+  - CC BY 4.0 on the record; local download, subsets, figures, and modification permitted with attribution
+    and the changes indicated.
+  - 'Recorded by F53 (Issue #454) under the owner''s approval of 2026-11-09 on the Issue (dataset B, a
+    separate yes): a go judged per dossier, with every requirement of ADR 007 checked in the dossier.'
+dossier: docs/datasets/ost-hotwire-cylinder-wakes.md
