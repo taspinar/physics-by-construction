@@ -7,8 +7,9 @@ disclosed as such: the particles are located and linked by
 ``pbc.data.tracking`` (NumPy and SciPy, not trackpy) once, outside the build,
 by ``tools/datasets/bulk_water_tracks.py`` on the 40 frames 000-039; the
 committed CSV holds every located feature with its track number. This module
-reads that CSV, keeps the tracks of at least ``MIN_LENGTH`` frames, subtracts
-the drift of the whole sample, and fits the ensemble mean squared
+reads that CSV, estimates the drift of the whole sample from every linked
+feature, keeps the tracks of at least ``MIN_LENGTH`` frames, subtracts the
+drift from them, and fits the ensemble mean squared
 displacement (MSD) of lags 1 to 10 frames with a straight line,
 
     MSD(tau) = 4 D tau + c,
@@ -228,11 +229,15 @@ def analyse(
             SEARCH_RANGE if search_range is None else search_range,
             MINMASS if minmass is None else minmass,
         )
+    # The drift is the motion of the whole sample: estimated from every linked
+    # feature, before the tracks are selected by length for the MSD.
+    motion = tracking.drift(
+        tracks.frame, tracks.particle, tracks.xy * MICRONS_PER_PIXEL
+    )
     length = np.bincount(tracks.particle)
     keep = length[tracks.particle] >= min_length
     frame, particle = tracks.frame[keep], tracks.particle[keep]
     xy = tracks.xy[keep] * MICRONS_PER_PIXEL
-    motion = tracking.drift(frame, particle, xy)
     if subtract_drift:
         xy = xy - motion[frame]
     sums, counts, numbers = tracking.msd_sums(frame, particle, xy, lags)

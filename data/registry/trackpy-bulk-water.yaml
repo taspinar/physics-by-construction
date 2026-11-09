@@ -341,7 +341,7 @@ decision:
     tree; sha256 recorded; 640 x 424 RGBA, the green channel used.'
   - 'The project''s own tracking (NumPy, SciPy; disclosed as processing, repeated by the build on the
     green channel of the three committed frames): 582-603 features per frame, 596 tracks of at least 15 frames, a drift of
-    0.55 µm/s subtracted; D = 0.403 +- 0.010 µm^2/s (bootstrap), with a sensitivity range of about +-0.02
+    0.55 µm/s (estimated from all linked features) subtracted; D = 0.403 +- 0.010 µm^2/s (bootstrap), with a sensitivity range of about +-0.02
     from the processing choices (not a standard deviation), against Stokes-Einstein 0.429 (20 °C) and
     0.491 (25 °C); the power law of the trackpy walkthrough notebook (n = 1.08) is not a comparable fit.'
   - 'Not documented, and stated as such: the temperature, the exposure time, the sphere size tolerance,

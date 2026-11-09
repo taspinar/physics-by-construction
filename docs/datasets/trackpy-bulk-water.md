@@ -75,7 +75,7 @@ The code is `src/pbc/data/reference/trackpy_bulk_water.py`. **Status label: proc
 The analysis, each step in the code:
 
 1. **Selection.** Tracks of at least 15 frames: 596 of 1,268.
-2. **Drift.** The mean displacement of all features linked from one frame to the next, summed over the frames, is the motion of the whole sample; it is subtracted from every position. Over the 40 frames it is (0.861, 0.262) µm, a mean velocity of (0.530, 0.161) µm/s, 0.55 µm/s in all. The four halves of the field (left, right, top, bottom) drift alike within two standard errors, so a uniform drift is subtracted; the per-frame mean step scatters 1.25 to 1.5 times more than the particles' steps alone would make it, so the drift is subtracted frame by frame, not as a constant velocity.
+2. **Drift.** The mean displacement of all features linked from one frame to the next (every track in the CSV, of any length: the code estimates it before the selection of step 1), summed over the frames, is the motion of the whole sample; it is subtracted from every position of the selected tracks. Over the 40 frames it is (0.848, 0.262) µm, a mean velocity of (0.522, 0.161) µm/s, 0.55 µm/s in all. The four halves of the field (left, right, top, bottom) drift alike within two standard errors, so a uniform drift is subtracted; the per-frame mean step scatters 1.3 to 1.6 times more than the particles' steps alone would make it, so the drift is subtracted frame by frame, not as a constant velocity.
 3. **MSD.** The ensemble mean squared displacement over every pair of frames of every track, at lags 1 to 10 frames (41.7 to 416.7 ms), in µm² with the README's scale.
 4. **Fit.** The straight line MSD(τ) = 4Dτ + c by ordinary least squares on the ten points; D is the diffusion coefficient in two dimensions, c takes the localisation noise (+4σ²) and the motion blur (−4Dτₑ/3 for an exposure τₑ) together.
 5. **Uncertainty.** A bootstrap over tracks (1,000 resamples, fixed seed): the tracks are drawn with replacement, the MSD and the line recomputed. The ten MSD points share their tracks and are correlated, so the least-squares error of the fit would be too small; the drift is not resampled.
@@ -124,7 +124,7 @@ The viscosities are those of IAPWS R12-08 (2008) for water at 0.1 MPa; k is exac
 | tracks ≥ 10 frames | 0.403 |
 | tracks ≥ 25 frames | 0.403 |
 | lags 1–5 | 0.377 |
-| lags 2–10 | 0.410 |
+| lags 2–10 | 0.409 |
 | no drift subtracted | 0.438 |
 
 The processing choices move D between 0.377 and 0.411, about ±0.02 µm²/s: a **sensitivity range of the processing**, not an uncertainty interval and not a standard deviation; it has no statistical interpretation and is not combined with the bootstrap error. The track length does not matter; the link range and the lag range do. A link range of 2 px (four rms steps) cuts the largest steps and lowers D; 4 px admits more of them. Without the drift subtraction D would be 0.438, 9 % higher: the drift must be removed, and the lab has to say so. The research's own pipeline (luminance instead of the green channel, a percentile threshold) gave 0.402 ± 0.011, with other estimators between 0.372 and 0.416.
@@ -133,7 +133,7 @@ The processing choices move D between 0.377 and 0.411, about ±0.02 µm²/s: a *
 - **The particles are not all alike.** The one-frame steps are not Gaussian: their excess kurtosis is 3.2 (2.1 after each track's steps are divided by that track's own rms), so the tails hold more large steps than a Gaussian, as the figure's log scale shows; and the step variances of the long tracks spread twice as much as identical walkers would make them (relative standard deviation 0.33 against 0.16). Spheres of different sizes or at different depths (nearer a wall, where diffusion is slower), aggregates, and occasional mislocations all contribute; they are not separated here. The ensemble D is the mean over this population.
 - **Not bounded here.** The temperature, which Stokes–Einstein needs (about 2.7 % in D per kelvin near room temperature, mostly through the viscosity); the sphere size tolerance; the depth of the focal plane and the distance to the cover glass (hindered diffusion near a wall); the exposure time; and the effect of the compression on sub-pixel positions. A lab that reports these numbers must say that the tracking is this project's processing, that the drift is subtracted, that the uncertainty is a bootstrap over tracks with a processing range of about ±0.02 µm²/s beside it, that the short-lag MSD is not explained, and that the temperature is not documented, so the comparison with Stokes–Einstein is no better than about 15 %.
 
-Asserted by `tests/unit/test_data_bulk_water.py`: the counts, D and its bootstrap error, the intercept, the first and last MSD points and the lag-1 residual, the drift velocity, the step correlation, the kurtosis, the spread of the track variances, Stokes–Einstein at 20 and 25 °C, the sensitivity table, and the block pattern.
+Asserted by `tests/unit/test_data_bulk_water.py`: the counts, D and its bootstrap error, the intercept, the first and last MSD points and the lag-1 residual, the drift velocity and that the drift comes from all linked features, the step correlation, the kurtosis, the spread of the track variances, Stokes–Einstein at 20 and 25 °C, the sensitivity table, and the block pattern.
 
 ## Rights
 

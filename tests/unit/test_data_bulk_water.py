@@ -262,11 +262,32 @@ def test_the_msd_fit_gives_the_diffusion_coefficient_of_the_dossier(analysis):
 def test_the_drift_and_the_steps_are_those_of_the_dossier(analysis):
     a = analysis
     velocity = a.drift[-1] / ((bw.FRAME_COUNT - 1) / bw.FPS)
-    np.testing.assert_allclose(velocity, [0.530, 0.161], atol=5e-4)
+    np.testing.assert_allclose(velocity, [0.522, 0.161], atol=5e-4)
     assert a.step_correlation == pytest.approx(0.142, abs=5e-4)
     assert a.excess_kurtosis == pytest.approx(3.23, abs=5e-3)
     assert a.track_spread == pytest.approx(0.33, abs=5e-3)
     assert a.track_spread_expected == pytest.approx(0.16, abs=5e-3)
+
+
+def test_the_drift_is_that_of_all_linked_features_not_of_the_long_tracks(
+    tracks, analysis
+):
+    # The dossier: the drift is the motion of the whole sample, estimated from
+    # every linked feature before the tracks are selected by length.
+    every = tracking.drift(
+        tracks.frame, tracks.particle, tracks.xy * bw.MICRONS_PER_PIXEL
+    )
+    np.testing.assert_array_equal(analysis.drift, every)
+    long = np.bincount(tracks.particle)[tracks.particle] >= bw.MIN_LENGTH
+    selected = tracking.drift(
+        tracks.frame[long],
+        tracks.particle[long],
+        tracks.xy[long] * bw.MICRONS_PER_PIXEL,
+    )
+    assert abs(selected[-1, 0] - every[-1, 0]) > 0.01  # µm: the choice matters
+    # and it does not depend on the selection of tracks for the MSD
+    shorter = bw.analyse(tracks, min_length=25, bootstrap=2)
+    np.testing.assert_array_equal(shorter.drift, every)
 
 
 def test_stokes_einstein_at_20_and_25_degrees():
@@ -283,7 +304,7 @@ def test_the_processing_choices_are_the_sensitivity_table_of_the_dossier(tracks)
         "tracks >= 10 frames": 0.403,
         "tracks >= 25 frames": 0.403,
         "lags 1-5": 0.377,
-        "lags 2-10": 0.410,
+        "lags 2-10": 0.409,
         "no drift subtracted": 0.438,
     }
 
