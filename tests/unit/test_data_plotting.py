@@ -24,6 +24,7 @@ from pbc.data.reference import (
     gw150914,
     munich_bell,
     npl_sparameters,
+    tess_wasp18,
 )
 from pbc.data.series import Series
 
@@ -31,6 +32,7 @@ AAL = SAMPLES_DIR / "aalborg-submerged-bar"
 GW = SAMPLES_DIR / "gw150914-strain"
 NPL = SAMPLES_DIR / "npl-onwafer-sparameters"
 RLC = SAMPLES_DIR / "bayreuth-rlc-impedance"
+TESS = SAMPLES_DIR / "tess-exoplanet-light-curves"
 BELL = SAMPLES_DIR / "munich-bell-event-ready"
 
 
@@ -156,6 +158,7 @@ def test_the_credit_line_is_wrapped_and_kept_inside_the_figure():
         (npl_sparameters, NPL, "calibrated", False),
         (aalborg_flume, AAL, "processed", True),
         (bayreuth_rlc, RLC, "processed", True),
+        (tess_wasp18, TESS, "processed", True),
         (munich_bell, BELL, "processed", False),
     ],
 )
@@ -174,6 +177,7 @@ def test_the_dossiers_state_the_status_of_their_figure():
         ("npl-onwafer-sparameters", "calibrated"),
         ("aalborg-submerged-bar", "processed"),
         ("bayreuth-rlc-impedance", "processed"),
+        ("tess-exoplanet-light-curves", "processed"),
         ("munich-bell-event-ready", "processed"),
     ):
         text = (root / f"{name}.md").read_text().replace("**", "")
