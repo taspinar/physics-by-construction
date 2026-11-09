@@ -34,6 +34,13 @@ expand details for a fragment. The alternative, the journey open by default
 with the F133 window assertion moved, is recorded for the owner's pass on
 the rendered page; it is a Level 3 change and is not made here.
 
+Owner decision (2026-11-09, after the outside review's major that the
+disclosure is closed at load): option A. The disclosure stays closed at
+load, and acceptance criterion 1 is relaxed to say so: the Course Atlas
+offers the learning journey before the cards behind a native disclosure
+that is closed at load, with its summary line always visible; opened, it
+covers the five points of decision 43. The F133 test is unchanged.
+
 ## Steps
 
 1. `site/journey.yaml`: prose and references only, the fields `part-a`,
