@@ -1650,6 +1650,105 @@ main details > summary {
   color: var(--pbc-muted);
 }
 
+/* The learning journey (F157): the opening of the atlas, before the
+   summary and the cards. One native disclosure in the reading column,
+   closed at load so that the first panel stays in the first window (F133);
+   open, it reads as a short chapter opening. Part A and Part B open with a
+   rule in their atlas ink, and the three kinds of evidence carry the inks of
+   the claim labels that "How we verify the science" explains; the words say
+   it as well, so the colour is never the only sign. */
+.atlas-journey {
+  max-width: var(--pbc-measure);
+  margin: 0 0 var(--pbc-space-2);
+  border-top: var(--pbc-rule-width) solid var(--pbc-rule);
+  border-bottom: var(--pbc-rule-width) solid var(--pbc-rule);
+}
+
+.atlas-journey-summary {
+  padding: var(--pbc-space-2) 0;
+  cursor: pointer;
+}
+
+.atlas-journey-summary::marker {
+  color: var(--pbc-link);
+}
+
+.atlas-journey-title {
+  margin-right: var(--pbc-space-3);
+  font-size: var(--pbc-heading-3);
+  font-weight: 600;
+  line-height: var(--pbc-leading-tight);
+}
+
+.atlas-journey-hint {
+  display: inline-block;
+  color: var(--pbc-muted);
+  font-size: var(--pbc-text-small);
+}
+
+.atlas-journey-body {
+  padding: 0 0 var(--pbc-space-4);
+}
+
+/* The theme rules every h2; here the part rules carry the structure, so
+   the headings of the opening stand on their own. */
+.atlas-journey-body h2 {
+  margin: var(--pbc-space-4) 0 var(--pbc-space-2);
+  padding-bottom: 0;
+  border-bottom: 0;
+  font-size: var(--pbc-heading-3);
+  line-height: var(--pbc-leading-tight);
+}
+
+.journey-part {
+  margin-top: var(--pbc-space-4);
+  padding-top: var(--pbc-space-1);
+  border-top: var(--pbc-construction-width) solid var(--journey-ink);
+}
+
+.journey-part h2 {
+  margin-top: var(--pbc-space-2);
+  color: var(--journey-ink);
+}
+
+.journey-part-a {
+  --journey-ink: var(--pbc-link);
+}
+
+.journey-part-b {
+  --journey-ink: var(--pbc-copper);
+}
+
+.journey-evidence dl {
+  margin: 0 0 var(--pbc-space-3);
+}
+
+.journey-evidence dt {
+  font-weight: 600;
+}
+
+.journey-evidence dd {
+  margin: 0 0 var(--pbc-space-3);
+}
+
+/* In the order of EVIDENCE in pbc.authoring.journey: numerical, empirical,
+   formal proof. */
+.journey-evidence dt:nth-of-type(1) {
+  color: var(--pbc-claim-numerically-verified-fg);
+}
+
+.journey-evidence dt:nth-of-type(2) {
+  color: var(--pbc-claim-experimentally-supported-fg);
+}
+
+.journey-evidence dt:nth-of-type(3) {
+  color: var(--pbc-claim-formal-theorem-fg);
+}
+
+.journey-evidence > p:last-child {
+  margin-bottom: 0;
+}
+
 .atlas {
   --atlas-hairline: color-mix(in srgb, var(--pbc-rule) 30%, var(--pbc-background));
   margin: 0 0 var(--pbc-space-5);

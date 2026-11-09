@@ -309,11 +309,13 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
     from pbc.data.reference import (
         aalborg_flume,
         bayreuth_rlc,
+        cylinder_wake,
         dwd_soil,
         gw150914,
         lycopodium,
         nist_numisheet,
         npl_sparameters,
+        ost_hotwire,
         sdss_balmer,
         tess_wasp18,
         trackpy_bulk_water,
@@ -333,6 +335,8 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
         (xu_pendulum, "xu-damped-pendulum"),
         (dwd_soil, "dwd-potsdam-soil-temperature"),
         (sdss_balmer, "sdss-balmer-spectrum"),
+        (cylinder_wake, "piv-cylinder-wake"),
+        (ost_hotwire, "ost-hotwire-cylinder-wakes"),
     ):
         figure = module.make_figure(ROOT / "data/samples" / name)
         assert figure.axes
