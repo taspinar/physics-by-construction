@@ -21,6 +21,7 @@ from pbc.data.plotting import (
 from pbc.data.reference import (
     aalborg_flume,
     bayreuth_rlc,
+    cylinder_wake,
     dwd_soil,
     grazing_flow_hwa,
     gw150914,
@@ -28,6 +29,7 @@ from pbc.data.reference import (
     munich_bell,
     nist_numisheet,
     npl_sparameters,
+    ost_hotwire,
     tess_wasp18,
     trackpy_bulk_water,
     tudelft_boundary_layer,
@@ -48,6 +50,8 @@ XU = SAMPLES_DIR / "xu-damped-pendulum"
 DWD = SAMPLES_DIR / "dwd-potsdam-soil-temperature"
 TBL = SAMPLES_DIR / "tudelft-turbulent-boundary-layer"
 GFH = SAMPLES_DIR / "grazing-flow-hwa-benchmark"
+PIV = SAMPLES_DIR / "piv-cylinder-wake"
+OST = SAMPLES_DIR / "ost-hotwire-cylinder-wakes"
 
 
 @pytest.fixture(autouse=True)
@@ -181,6 +185,8 @@ def test_the_credit_line_is_wrapped_and_kept_inside_the_figure():
         (dwd_soil, DWD, "processed", True),
         (tudelft_boundary_layer, TBL, "processed", False),
         (grazing_flow_hwa, GFH, "processed", False),
+        (cylinder_wake, PIV, "processed", False),
+        (ost_hotwire, OST, "processed", False),
     ],
 )
 def test_each_reference_figure_is_made_with_the_helpers_and_has_its_dossiers_status(
@@ -207,6 +213,8 @@ def test_the_dossiers_state_the_status_of_their_figure():
         ("dwd-potsdam-soil-temperature", "processed"),
         ("tudelft-turbulent-boundary-layer", "processed"),
         ("grazing-flow-hwa-benchmark", "processed"),
+        ("piv-cylinder-wake", "processed"),
+        ("ost-hotwire-cylinder-wakes", "processed"),
     ):
         text = (root / f"{name}.md").read_text().replace("**", "")
         assert f"Status label: {status}" in text, name

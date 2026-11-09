@@ -1,44 +1,185 @@
 id: piv-cylinder-wake
-title: Particle image velocimetry of flow past a cylinder
+title: Particle image velocimetry of flow past a cylinder at Re = 413 (Shang and Tu); a crop of the near
+  wake, its time mean, and two probe series extracted by this project
 source:
   url: https://zenodo.org/records/20765567
-  creator: Jessica Shang, Jonathan Tu
-  version: not assessed
-  accessed: &id001 2026-10-09
   doi: 10.5281/zenodo.20765567
+  creator: Jessica Shang (University of Rochester), Jonathan Tu (Pacific Northwest National Laboratory)
+  version: 'Zenodo record 20765567, published 2026-06-19, no version label; one file cylinder_vel.mat
+    (MAT 5.0, created 2026-06-19). The experiment is described in Tu, Rowley, Kutz and Shang, Exp. Fluids
+    55, 1805 (2014), doi 10.1007/s00348-014-1805-6 (accepted text arXiv 1401.7047, Section 4.1, read
+    2026-11-09); the record also names Phys. Rev. Fluids 5, 054401.'
+  accessed: &accessed 2026-11-09
 rights:
   licence: CC-BY-4.0
   local_download:
-    answer: not-assessed
-    source: Zenodo record https://zenodo.org/records/20765567, licence field read through the Zenodo API
-      on 2026-10-09; the terms behind the four questions were not assessed
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/20765567, licence field cc-by-4.0 (Zenodo API metadata,
+      record-level licence; no rights statement beside it), read 2026-11-09; the terms at https://creativecommons.org/licenses/by/4.0/legalcode
+      section 2(a)(1)(A) permit reproducing the material'
   redistribution_of_subsets:
-    answer: not-assessed
-    source: Zenodo record https://zenodo.org/records/20765567, licence field read through the Zenodo API
-      on 2026-10-09; the terms behind the four questions were not assessed
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/20765567, licence field CC BY 4.0, read 2026-11-09;
+      https://creativecommons.org/licenses/by/4.0/legalcode section 2(a)(1)(A) permits reproducing and
+      sharing the material in whole or in part'
   publication_of_figures:
-    answer: not-assessed
-    source: Zenodo record https://zenodo.org/records/20765567, licence field read through the Zenodo API
-      on 2026-10-09; the terms behind the four questions were not assessed
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/20765567, licence field CC BY 4.0, read 2026-11-09;
+      https://creativecommons.org/licenses/by/4.0/legalcode section 2(a)(1)(B) permits producing, reproducing,
+      and sharing adapted material'
   modification_and_attribution:
-    answer: not-assessed
-    source: Zenodo record https://zenodo.org/records/20765567, licence field read through the Zenodo API
-      on 2026-10-09; the terms behind the four questions were not assessed
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/20765567, licence field CC BY 4.0, read 2026-11-09;
+      https://creativecommons.org/licenses/by/4.0/legalcode section 3(a) requires the creators, a notice
+      of the licence with a link, and an indication of the changes'
+  attribution: 'Shang, J., Tu, J., ''Particle image velocimetry (PIV) data of flow past a cylinder'', Zenodo,
+    2026, doi 10.5281/zenodo.20765567, CC BY 4.0, https://creativecommons.org/licenses/by/4.0/. Changed
+    by this project: a crop of frames 0-59 reordered and stored as float32, the mask (u = v = 0) made explicit,
+    the time mean over all frames, and u and v at two grid points for all frames; vorticity, streamlines
+    and spectra are this project''s processing.'
 artifacts:
-- name: velocity fields
+- name: cylinder_vel.mat
   type: processed-measured
-  description: Processed PIV velocity fields, not raw camera frames (as described by the source; no file
-    was inspected)
+  description: 'Velocity fields u and v [m/s] on a 135 x 80 grid x, y [m] (1.05035 mm apart) for 8000
+    frames at 20 Hz, MAT 5.0 (four double arrays u, v of 135 x 80 x 8000 and x, y of 135 x 80). Computed
+    by LaVision DaVis 8.1.2 from planar PIV image pairs by cross-correlation (four passes, final windows
+    of 32 x 32 pixels with 50 % overlap, per the paper): processed measurements, not raw images, which
+    the record does not contain. Exact zeros of u and v mark the cylinder and the shadows it casts in the
+    laser sheet (record). Not committed: 1,082,404,799 bytes.'
+- name: wake_u.npy, wake_v.npy, wake_mask.npy
+  type: processed-measured
+  description: 'Frames 0-59 (3 s) of u and v on the record''s grid points with x from -58.0 to +5.0 mm
+    and y from -51.4 to -4.1 mm (61 x 46 points), as float32 (the record''s doubles rounded, at most 6e-8
+    relative), index order [frame, y, x] with x and y increasing; and the mask, True where u and v are
+    both exactly 0. Written by tools/datasets/cylinder_wake_extract.py; no value is interpolated or filtered.'
+- name: wake_mean.npy
+  type: processed-measured
+  description: 'The mean of u and of v over the frames of all 8000 in which the point is not masked (at
+    least 7,105 frames where any is), on the crop''s grid; NaN at the 260 points masked in every frame.
+    Computed by tools/datasets/cylinder_wake_extract.py; a time average, not in the record.'
+- name: probes.npy
+  type: processed-measured
+  description: 'u and v at two grid points of the record on the wake axis (y = -27.2 mm; x = -24.4 and
+    +4.0 mm, about 2 D and 5 D behind the centre of the cylinder''s shadow) for all 8000 frames (400 s),
+    float32, index order [frame, probe, component]; never masked. For the spectrum.'
+- name: wake_meta.json
+  type: processed-measured
+  description: The grid (x and y of the crop in m, the record's values), the crop and probe indices in
+    the record, the frames, the cadence, the units, the layout, the mask's definition, and the record's
+    file with its size, MD5, and SHA-256.
+- name: Roshko's Strouhal-Reynolds correlation
+  type: modelled-reference
+  description: 'St = 0.212 - 2.7 / Re for 200 <= Re < 2000 (Roshko 1954, long cylinders in air), evaluated
+    by pbc.data.reference.cylinder_wake.roshko; a comparison, not part of the record.'
+calibration: 'Not in the record. The paper (Section 4.1) gives the experiment: a recirculating free-surface
+  water channel, an anodised aluminium cylinder of D = 9.5 mm and L = 260 mm suspended vertically with
+  a gap of 1-2 mm to the floor, free stream 4.35 cm/s, Re = 413, a Nd:YAG laser sheet at mid-span imaged
+  from below by a LaVision Imager sCMOS, 8000 image pairs 8000 µs apart at 20 Hz, hollow ceramic spheres
+  of 10 µm, DaVis 8.1.2 with passes of 128, 64, and twice 32 pixels at 50 % overlap, giving 135 x 80 vectors
+  and a cylinder of about 128 pixels. It gives no PIV uncertainty, no spatial calibration (the record''s
+  grid in m is the calibration), and no water temperature. D and U are not in the record.'
+schema: 'MAT 5.0 (header "MATLAB 5.0 MAT-file, Platform: MACI64, Created on: Fri Jun 19 14:16:37 2026"),
+  four double arrays: u, v of 135 x 80 x 8000 [grid i, grid j, frame], x, y of 135 x 80; x decreases along
+  i (from 82.8 to -58.0 mm), y increases along j (from -67.1 to 15.9 mm). Sample: NumPy .npy (format 1.0,
+  no Python objects) float32 u, v and bool mask of shape (60, 46, 61) [frame, y, x]; float32 mean (2,
+  46, 61) [u or v, y, x]; float32 probes (8000, 2, 2) [frame, probe 2D or 5D, u or v]; JSON metadata.'
+units: 'u, v: m/s; x, y: m; frame: 1/20 s; the velocity in the sample also in m/s. Vorticity (derived):
+  1/s.'
+cadence: '20 Hz, 8000 frames, 400 s (record: "The frequency of the dataset is 20 Hz"; the paper: 8000
+  image pairs at 20 Hz, 8000 µs between the two images of a pair). The record holds no time vector; frame
+  k is at k / 20 s. The shedding frequency, 0.889 Hz, is sampled 22.5 times per period.'
+coordinates: 'The record''s x and y in m, x along the flow (u > 0 is downstream; the record''s x decreases
+  along its first index, the sample is reordered so that x increases), y across it; origin not documented.
+  The cylinder''s position is not given: the column of the mask below it is centred at x = -43.3 mm (the
+  shadow cast in -y keeps the cylinder''s x extent) and the wake axis, where v fluctuates most from 2
+  D to 13 D downstream, is at y = -27.2 mm. The plane is at mid-span of a finite cylinder.'
+masks: 'Exact zeros of u and v: the cylinder and its laser shadows (record). In the whole record 3.4 %
+  of the values are zero in both components (365 to 374 of the 10,800 points per frame; 365 points in
+  every frame, 179 others in some frames, 47 of them more than two grid points from the shadows). One component alone is
+  zero in 2.9e-6 of the values: not a mask, kept as data. In the crop 260 to 263 of 2,806 points per frame
+  are masked, 260 of them in every frame. No NaN.'
+uncertainty: 'The record and the paper give no PIV uncertainty. Derived (dossier): the shedding frequency
+  of v on the wake axis is 0.8887 +- 0.0028 Hz (mean and standard error of four 100 s blocks) at 2 D
+  and 0.8881 +- 0.0027 Hz at 5 D, against the paper''s 0.889 Hz; the Welch peak of the whole series is
+  0.891 Hz. St = 0.1941 with the paper''s D and U, whose own uncertainty is not stated; the free stream
+  in the crop''s top row is 4.52 cm/s, 4 % above the paper''s 4.35 cm/s (blockage and a top row 2.2 D from
+  the axis). The vorticity is derived by central differences on a 1.05 mm grid and is noisy next to the
+  mask, where single vectors are spurious; it is not a measurement.'
 size:
-  description: One file cylinder_vel.mat of 1,082,404,799 bytes, processed fields at 20 Hz with zeros
-    in masked regions.
-format: MATLAB MAT file
-reader: none yet
+  description: 'cylinder_vel.mat: 1,082,404,799 bytes. The committed sample: wake_u.npy and wake_v.npy
+    673,568 bytes each, wake_mask.npy 168,488, wake_mean.npy 22,576, probes.npy 128,128, wake_meta.json
+    3,681; 1,669,009 bytes in all.'
+format: MATLAB MAT 5.0 (not v7.3); the sample NumPy .npy arrays and a JSON file.
+reader: 'MAT: scipy.io.loadmat (SciPy, already locked) in pbc.data.reference.cylinder_wake.read_mat, used
+  only by the one-time extraction tools/datasets/cylinder_wake_extract.py, outside the build, on the file
+  pinned by MD5 4cc876439c48f7970afa477ea17d217a and SHA-256 328cd8d17cd2eb42faef6e4766bc8e515e0eac06868152972adab9bdf91926e7
+  (about 10 s and 1.8 GB of memory); no h5py. Sample: pbc.data.reference.cylinder_wake.load (numpy.load
+  without pickle, json). No new dependency.'
+downloads:
+- url: https://zenodo.org/records/20765567/files/cylinder_vel.mat?download=1
+  filename: cylinder_vel.mat
+  algorithm: md5
+  digest: 4cc876439c48f7970afa477ea17d217a
+  digest_source: Zenodo API of record 20765567, read 2026-11-09; the downloaded file matched it, and its
+    SHA-256 (328cd8d17cd2eb42faef6e4766bc8e515e0eac06868152972adab9bdf91926e7) was computed here
+samples:
+- path: wake_u.npy
+  sha256: db06c343482c17c46782ef0b3cca682e9928c79bfb4ca17b41582dd72b93c3f1
+  bytes: 673568
+  derivation: tools/datasets/cylinder_wake_extract.py on cylinder_vel.mat; u of frames 0-59 on the crop,
+    float32, [frame, y, x]; the same bytes on each run
+  test: tests/unit/test_data_cylinder_wake.py::test_piv_cylinder_wake_sample_parses
+- path: wake_v.npy
+  sha256: ad60caa43439f9d983f2c1fb1080e16f059f3a4e3b2a95853b4daf0ba3693e0c
+  bytes: 673568
+  derivation: as wake_u.npy, for v
+  test: tests/unit/test_data_cylinder_wake.py::test_piv_cylinder_wake_sample_parses
+- path: wake_mask.npy
+  sha256: e1e4a7615122b8bf73e8908b7e085bde2e9a44182fb26e94a3e3ef94dd2a1cef
+  bytes: 168488
+  derivation: tools/datasets/cylinder_wake_extract.py; True where u and v of the record are both exactly
+    0, frames 0-59 on the crop
+  test: tests/unit/test_data_cylinder_wake.py::test_piv_cylinder_wake_sample_parses
+- path: wake_mean.npy
+  sha256: 86265759a2bcf9501382c68f837e6775b02d4dc11879ae22363fe3d29274314d
+  bytes: 22576
+  derivation: tools/datasets/cylinder_wake_extract.py; the mean of u and v over the unmasked frames of
+    all 8000 on the crop, float32
+  test: tests/unit/test_data_cylinder_wake.py::test_piv_cylinder_wake_sample_parses
+- path: probes.npy
+  sha256: 1fe529ecb82da9ee47c4a61a79f6747af47a3ab9e4b5a9576800652e260214ec
+  bytes: 128128
+  derivation: tools/datasets/cylinder_wake_extract.py; u and v at record points (102, 38) and (75, 38)
+    for all 8000 frames, float32
+  test: tests/unit/test_data_cylinder_wake.py::test_the_probes_are_the_crop_at_their_grid_points
+- path: wake_meta.json
+  sha256: 17a260e761831653855fbd535596135698eee9bd6eee08868f237cb5c80cbc99
+  bytes: 3681
+  derivation: tools/datasets/cylinder_wake_extract.py; the grid, the indices, the cadence, the units,
+    and the source
+  test: tests/unit/test_data_cylinder_wake.py::test_piv_cylinder_wake_sample_parses
+estimates:
+  runtime: 'Reference figure: about 2.4 s with the interpreter start. The one-time extraction: about 10
+    s (with the hashing of 1.1 GB), outside the build.'
+  memory: About 235 MB peak resident for the figure; about 1.8 GB for the extraction.
+  page_payload: 1.67 MB committed, read at build time and not shipped; a figure PNG of about 480 KB at
+    150 dpi.
+  ci: 'Offline: six committed files.'
 decision:
-  value: survey-only
-  date: *id001
+  value: go
+  date: *accessed
   reasons:
-  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09).
-  - A 1.1 GB single file cannot be committed; only a documented download or a small subset could be.
-  gate: Add a MAT reader, design a compact subset that keeps the masks (zeros mean masked), pass the cap,
-    and then read the record's creators' notes on the mask and the cadence.
+  - 'Real file inspected: cylinder_vel.mat, 1,082,404,799 bytes, MD5 equal to Zenodo''s, MAT 5.0 read
+    by scipy.io.loadmat (no h5py); u, v, x, y as the record describes; zeros as masks (3.4 % of the values).'
+  - 'A sample of 1.67 MB under the caps, written by a checksum-pinned script: 60 frames of the near wake
+    with an explicit mask, the time mean, and two probe series of 400 s; the same bytes on each run.'
+  - 'The record''s result reproduced: v on the wake axis sheds at 0.8887 +- 0.0028 Hz against the paper''s
+    0.889 Hz, u at twice that; St = 0.194 with the paper''s D = 9.5 mm and U = 4.35 cm/s, 5.5 % below Roshko''s
+    0.2055 for long cylinders at Re = 413 (a finite cylinder, its plane at mid-span).'
+  - 'Stated as limits: D, U, and the cylinder''s position are not in the record (D and U from the paper,
+    the position estimated from the mask); no PIV uncertainty is given; the vorticity is derived, not measured.'
+  - CC BY 4.0 on the record; local download, subsets, figures, and modification permitted with attribution
+    and the changes indicated.
+  - 'Recorded by F53 (Issue #454) under the owner''s approval of 2026-11-09 on the Issue: work towards
+    a go, judged per dossier, with every requirement of ADR 007 checked in the dossier.'
+dossier: docs/datasets/piv-cylinder-wake.md
