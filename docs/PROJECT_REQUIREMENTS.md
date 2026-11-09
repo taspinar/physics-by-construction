@@ -594,8 +594,10 @@ Later phases (in scope for the project, out of scope for the MVP):
 - Course atlas (decision 36, amended by decisions 40 and 43), at the existing path
   address with "Course Atlas" as its display label and every existing
   anchor and bookmark valid (`#<course-id>` and `#<path-id>` open their
-  sequence): a two-layer navigation page. Since decision 43 it opens,
-  before the cards, with the learning journey from computational physics
+  sequence): a two-layer navigation page. Since decision 43 it offers,
+  before the cards, the learning journey (behind a native disclosure that is
+  closed at load, with its summary line always visible; the owner's decision
+  of 2026-11-09 clarifies the earlier wording "opens with") from computational physics
   to AI-supported scientific investigation, from the one source of the
   Part A and Part B text that About also uses: how Part A leads to Part
   B, the expected background, that a route needs only its stated
@@ -2223,7 +2225,8 @@ decisions 36 to 42 beyond what decision 43 says.
       reading-column rollout, the capstone template, and the supporting
       pages.
     - *The learning journey*: one source for the Part A and Part B text,
-      used by the course atlas, which opens with it, and by About, which
+      used by the course atlas, which offers it before the cards behind a
+      disclosure closed at load, and by About, which
       explains the mission and the philosophy and refers to "How we
       verify the science".
     - *Home*: orientation for a first-time visitor in the order identity,
