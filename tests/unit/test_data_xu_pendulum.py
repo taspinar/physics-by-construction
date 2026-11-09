@@ -207,9 +207,10 @@ def test_the_line_through_the_five_lengths(analysis):
     assert g_err == pytest.approx(0.035, abs=0.001)
     assert (g - xu_pendulum.G_LOCAL) / g_err > 4
     assert 1000 * analysis["offset"] == pytest.approx(13.0, abs=0.05)
-    # The points scatter about the line by up to 6 ms^2 in T0^2, far more than
-    # the standard errors of the periods allow (2 T0 dT0 < 0.7 ms^2).
+    # The points scatter about the line by up to 5.75e-3 s^2 in T0^2, far more
+    # than the standard errors of the periods allow (2 T0 dT0 < 7e-4 s^2).
     assert np.abs(fit.residuals).max() == pytest.approx(5.75e-3, abs=1e-4)
+    assert max(2 * p.t0 * p.stderr for p in analysis["periods"]) < 7e-4
 
 
 def test_the_correction_removes_most_of_the_amplitude_dependence(sample):

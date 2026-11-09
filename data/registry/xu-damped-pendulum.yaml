@@ -65,7 +65,9 @@ artifacts:
   type: modelled-reference
   description: 'Not part of the record: the cycle periods and amplitudes, the small-amplitude period from
     the elliptic-integral correction, the exponential envelope, the effective length g T0^2/(4 pi^2),
-    and the line T0^2 = a L + b, computed by this repository and drawn apart from the measured angle.'
+    and the line T0^2 = a L + b, computed by this repository and drawn apart from the measured angle.
+    The five points deviate from that line by up to 5.75e-3 s^2, more than the uncertainty of the periods
+    (below 7e-4 s^2) explains.'
 calibration: 'None in the record beyond the sensor''s own conversion of encoder counts to radians (2000
   counts per turn, read from the data: every angle is a whole number of steps of 2 pi/2000 rad, written
   with 3 decimals). The zero of the angle is the encoder position when the recording started, with the
