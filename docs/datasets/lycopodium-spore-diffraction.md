@@ -43,7 +43,7 @@ The parsing test `tests/unit/test_data_lycopodium.py::test_lycopodium_sample_par
 | `Lycopodium_Morphometry_x160.csv`, `_x80.csv` (the sample) | `processed-measured` (ImageJ on a binarised micrograph) |
 | the polydisperse Airy model | `modelled-reference`, computed here |
 
-The record does not say from which photograph either profile was taken. The centring, folding, smoothing, ring radii, and the model are not artifacts of the record: `pbc.data.reference.lycopodium` computes them, and the figure draws the model dashed and apart from the measured points.
+The record does not say from which photograph either profile was taken. The centring, folding, smoothing, ring radii, and the model are not artifacts of the record: `pbc.data.reference.lycopodium` computes them, and the figure draws the proportional line dashed and apart from the measured points; that line is a fit through the two measured ring radii, not an independent prediction.
 
 ## Reference figure
 
@@ -51,7 +51,7 @@ The record does not say from which photograph either profile was taken. The cent
 uv run python -m pbc.data.reference lycopodium-spore-diffraction --out lycopodium.png
 ```
 
-The code is `src/pbc/data/reference/lycopodium.py`. **Status label: processed.** Panels: the two profiles about their centres with the dark ring marked; the folded, smoothed profiles against radius over wavelength; the histograms of the microscope diameters of whole spores at both magnifications; and the dark-ring radius against wavelength with the proportional model.
+The code is `src/pbc/data/reference/lycopodium.py`. **Status label: processed.** Panels: the two profiles about their centres with the dark ring marked; the folded, smoothed profiles against radius over wavelength; the histograms of the microscope diameters of whole spores at both magnifications; and the dark-ring radius against wavelength with the proportional line fitted to the two measured radii.
 
 **The physics.** A layer of spores scatters the beam into a halo. By Babinet's principle each opaque spore diffracts like a hole of the same size, and spores at random places add intensities, so the halo is the Airy pattern of one disk averaged over the diameters present: I(q) ∝ Σ d⁴ [2J₁(πdq)/(πdq)]², with q = sin θ / λ. The pattern depends on q only, so every ring's sin θ is proportional to the wavelength. That is the test this record supports without its missing calibration.
 
@@ -120,7 +120,7 @@ Sample 234 KB in four files (caps: 2 MB per file, 8 MB per dataset). The referen
 |---|---|
 | 1. An actual small file inspected, checksum, size, version | "The files inspected": sizes, md5s equal to Zenodo's, sha256 of the XLSX inputs and of every sample on the card |
 | 2. Schema, units, calibration, cadence, masks, coverage | "Schema, units, cadence, masks, coverage" (the unit of x stated as unknown, the area unit corrected); "Uncertainty and calibration"; the parsing test |
-| 3. Every artifact labelled, measurement apart from the model | "Artifact labels"; the figure draws the proportional model dashed |
+| 3. Every artifact labelled, measurement apart from the model | "Artifact labels"; the figure draws the proportional fit dashed |
 | 4. Reproducible reference figure from source-controlled code | `src/pbc/data/reference/lycopodium.py`, regenerated from the committed sample; `tests/unit/test_data_plotting.py` checks its status and conventions |
 | 5. Rights, four answers with their source | "Rights"; the card's `rights` |
 | 6. Download, build time, payload | "Size, runtime, payload" |

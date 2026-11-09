@@ -365,7 +365,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
         slope * grid,
         color=COLOURS[1],
         ls="--",
-        label="model: radius proportional to wavelength",
+        label="proportional fit to the two measured radii",
     )
     ax_r.set_xlim(0, 700)
     ax_r.set_ylim(0, None)
