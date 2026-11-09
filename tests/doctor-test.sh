@@ -105,7 +105,7 @@ expect_failure() {
     fail "expected exactly one FAILED line matching: $pattern"
   fi
   if [[ -n "$hint" ]] &&
-    ! grep -E -A1 "^FAILED +.*$pattern" "$tmp/out.log" | tail -n 1 | grep -Eq "^ +.*$hint"; then
+    ! grep -E -A1 "^FAILED +.*$pattern" "$tmp/out.log" | tail -n 1 | grep -E "^ +.*$hint" >/dev/null; then
     cat "$tmp/out.log" >&2
     fail "expected a fix hint matching: $hint"
   fi

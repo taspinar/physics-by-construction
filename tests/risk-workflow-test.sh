@@ -190,7 +190,7 @@ message_has() {
   message="$(git -C "$1" log -1 --format=%B)"
   shift
   for line in "$@"; do
-    printf '%s\n' "$message" | grep -Fqx -- "$line" || { printf '%s\n' "$message" >&2; fail "the commit message lacks the line: $line"; }
+    printf '%s\n' "$message" | grep -Fx -- "$line" >/dev/null || { printf '%s\n' "$message" >&2; fail "the commit message lacks the line: $line"; }
   done
 }
 
@@ -219,7 +219,7 @@ grep -Fq "ready for a pull request" "$repo.out" || fail "finish-feature.sh does 
 run_script "$repo" ./scripts/publish-feature.sh 12
 [[ "$status" -eq 0 ]] || { cat "$repo.out" >&2; fail "publishing a feature with pending criteria failed"; }
 grep -q '^pr create' "$repo.gh.log" || fail "no pull request was opened"
-if grep '^pr create' "$repo.gh.log" | grep -Fq -- "--draft"; then fail "a feature ready for a pull request was opened as a draft"; fi
+if grep '^pr create' "$repo.gh.log" | grep -F -- "--draft" >/dev/null; then fail "a feature ready for a pull request was opened as a draft"; fi
 body="$repo.gh.log.body"
 grep -Fq "Issue #12 stays open after a merge of this pull request: criteria are pending for later gates: pending (pr_ci): CI passes on the head; pending (post_merge): Two features ran under it." "$body" ||
   { cat "$body" >&2; fail "the pull request does not name the pending criteria and their gates"; }
@@ -296,12 +296,12 @@ expect_commit "$repo" "a Level 3 change with its request, the full run, and a fu
 grep -Fq "The change is Level 3: its final tree needs the full verification." "$repo.out" || fail "the Level 3 verification was not announced"
 # The approval request is committed, and its assertion of approval changes
 # nothing: the owner's approval is still required, as GitHub verifies it.
-git -C "$repo" show --name-only --format= HEAD | grep -Fqx ".agents/approvals/12.md" || fail "the approval request was not committed"
+git -C "$repo" show --name-only --format= HEAD | grep -Fx ".agents/approvals/12.md" >/dev/null || fail "the approval request was not committed"
 message_has "$repo" "- required: level 3, by the triggers" \
   "- escalation trigger: dependency file changed: pyproject.toml (the file is a dependency manifest or lock file)" \
   "- required from the project owner, for exactly this commit" "- the risk level is 3, by the triggers (ADR 020 decision 1)" \
   "- approval request: .agents/approvals/12.md, a request for the owner's review, never an approval"
-git -C "$repo" log -1 --format=%B | grep -Fq "given only as the owner's identity's approving review of exactly the head" ||
+git -C "$repo" log -1 --format=%B | grep -F "given only as the owner's identity's approving review of exactly the head" >/dev/null ||
   fail "the commit message does not say how the owner's approval is given"
 
 # --- A correction of the approval request (Issues #266 and #382). A request
@@ -322,7 +322,7 @@ run_script "$repo" ./scripts/finish-feature.sh 12 "Add the marker" --unattended
 expect_commit "$repo" "an approval request whose line Tree: names another tree"
 grep -Fq "named tree 0123abcd; its line 'Tree:' is refreshed to the content tree $content." "$repo.out" ||
   { cat "$repo.out" >&2; fail "finish-feature.sh does not say that it corrected the line Tree:"; }
-git -C "$repo" show HEAD:.agents/approvals/12.md | grep -Fqx "Tree: $content" ||
+git -C "$repo" show HEAD:.agents/approvals/12.md | grep -Fx "Tree: $content" >/dev/null ||
   fail "the committed approval request does not name the content tree"
 [[ "$(count_runs "$repo")" -eq 1 ]] || fail "correcting the approval request made the full run stale"
 
@@ -344,7 +344,7 @@ tree="$(git -C "$repo" log -1 --format=%B | sed -n 's/^- derived for the content
 message_has "$repo" "- required: level 3, by the triggers" "- stated in the completion record: level 2" \
   "- required from the project owner, for exactly this commit" \
   "- a lowering from level 3 to level 2 is requested in .agents/approvals/12.md; only the owner authorizes it"
-git -C "$repo" log -1 --format=%B | grep -Fq "requested: level 2, in .agents/approvals/12.md: a request only. The change keeps level 3" ||
+git -C "$repo" log -1 --format=%B | grep -F "requested: level 2, in .agents/approvals/12.md: a request only. The change keeps level 3" >/dev/null ||
   fail "the commit message does not record the lowering as a request"
 run_script "$repo" ./scripts/publish-feature.sh 12
 grep -Fq -- "- requested: level 2" "$repo.gh.log.body" || fail "the pull request does not carry the requested level"

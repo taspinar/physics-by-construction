@@ -110,7 +110,7 @@ VERIFY_TIME_LOG="$tmp/blocker/time.log" run_verify "$repo"
 # and it only appends.
 readers="$(cd "$source_root" && grep -rlE 'verify-time\.log|VERIFY_TIME_LOG|time_log' scripts .github 2>/dev/null | grep -vx 'scripts/verify.sh' || true)"
 [[ -z "$readers" ]] || fail "a script other than verify.sh names the time log: $readers"
-if grep -E 'verify-time\.log|VERIFY_TIME_LOG|\$log\b' "$source_root/scripts/verify.sh" | grep -Eq '<[[:space:]]*"?\$log|cat "\$log|read .*\$log'; then
+if grep -E 'verify-time\.log|VERIFY_TIME_LOG|\$log\b' "$source_root/scripts/verify.sh" | grep -E '<[[:space:]]*"?\$log|cat "\$log|read .*\$log' >/dev/null; then
   fail "verify.sh reads the time log"
 fi
 

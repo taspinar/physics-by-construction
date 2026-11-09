@@ -489,8 +489,11 @@ def tiered(project: Path) -> Path:
 
 
 def ran(project: Path) -> list[str]:
+    """The checks that ran, sorted: a run of several groups runs them at the
+    same time (VERIFY_JOBS), so the order of the log is not what is tested;
+    a check that ran twice is still counted twice."""
     log = project / "ran.log"
-    return log.read_text(encoding="utf-8").split() if log.exists() else []
+    return sorted(log.read_text(encoding="utf-8").split()) if log.exists() else []
 
 
 def record(project: Path) -> dict[str, str]:
@@ -523,13 +526,13 @@ def test_the_targeted_run_performs_exactly_the_groups_of_its_entry_and_builds_no
 def test_the_full_run_and_the_run_with_a_base_perform_every_check(tiered, tmp_path):
     outcome = verify(tiered, tmp_path)
     assert outcome.returncode == 0, outcome.stderr
-    assert ran(tiered) == ["lint", "plain", "site-build", "pages"]
+    assert ran(tiered) == ["lint", "pages", "plain", "site-build"]
     assert record(tiered)["tier"] == "full" and "base" not in record(tiered)
     (tiered / "ran.log").unlink()
     made = make_base(tiered, tmp_path / "base")
     outcome = verify(tiered, tmp_path, "--base", made)
     assert outcome.returncode == 0, outcome.stderr
-    assert ran(tiered) == ["lint", "plain", "site-build", "pages"]
+    assert ran(tiered) == ["lint", "pages", "plain", "site-build"]
     assert "tier" not in selecting.read(tiered)
     assert record(tiered)["tier"] == "base"
     assert record(tiered)["base"] == f"directory {made}"
@@ -592,7 +595,7 @@ def test_without_a_base_a_run_with_base_is_a_full_run(tiered, tmp_path):
     outcome = verify(tiered, tmp_path, "--base")
     assert outcome.returncode == 0, outcome.stderr
     assert "No base:" in outcome.stdout and "full run" in outcome.stdout
-    assert ran(tiered) == ["lint", "plain", "site-build", "pages"]
+    assert ran(tiered) == ["lint", "pages", "plain", "site-build"]
     assert record(tiered)["tier"] == "full"
 
 
@@ -610,7 +613,7 @@ def test_reuse_takes_a_targeted_pass_only_with_targeted(tiered, tmp_path):
     # A full verification is not what a targeted pass recorded: it runs.
     outcome = verify(tiered, tmp_path, "--reuse")
     assert outcome.returncode == 0, outcome.stderr
-    assert ran(tiered) == ["lint", "plain", "site-build", "pages"]
+    assert ran(tiered) == ["lint", "pages", "plain", "site-build"]
     assert record(tiered)["tier"] == "full"
     (tiered / "ran.log").unlink()
     # A full pass stands for a targeted one.

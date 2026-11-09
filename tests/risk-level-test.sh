@@ -134,13 +134,13 @@ expect() {
 
 expect_trigger() {
   # expect_trigger <description> <fragment>
-  printf '%s\n' "$RISK_TRIGGERS" | grep -Fq "$2" || fail "$1: no trigger '$2' in: ${RISK_TRIGGERS:-none}"
+  printf '%s\n' "$RISK_TRIGGERS" | grep -F "$2" >/dev/null || fail "$1: no trigger '$2' in: ${RISK_TRIGGERS:-none}"
   expect "$1" RISK_REQUIRED 3
   expect "$1" RISK_BY triggers
 }
 
 expect_error() {
-  printf '%s\n' "$RISK_ERRORS" | grep -Fq "$2" || fail "$1: no refusal '$2' in: ${RISK_ERRORS:-none}"
+  printf '%s\n' "$RISK_ERRORS" | grep -F "$2" >/dev/null || fail "$1: no refusal '$2' in: ${RISK_ERRORS:-none}"
 }
 
 # --- The path minimum.
@@ -160,7 +160,7 @@ repo="$(setup_repo gate)"
 printf '# more\n' >>"$repo/scripts/lib/completion.sh"
 assess "$repo"
 expect "a change to the gate's library" RISK_PATH_MIN 3
-printf '%s\n' "$RISK_PATH_REASONS" | grep -Fq "scripts/lib/completion.sh" || fail "the Level 3 path was not named"
+printf '%s\n' "$RISK_PATH_REASONS" | grep -F "scripts/lib/completion.sh" >/dev/null || fail "the Level 3 path was not named"
 
 # The approval request is no Level 3 path of the change it belongs to.
 repo="$(setup_repo request-only)"
@@ -388,7 +388,7 @@ repo="$(setup_repo added-skipif)"
 printf '\n\n@pytest.mark.skipif(True, reason="slow")\n@pytest.mark.parametrize("n", [1])\ndef test_four(n):\n    assert n\n' >>"$repo/tests/unit/test_code.py"
 assess "$repo"
 expect_trigger "an added skipif beside a parametrize" "skip or expected failure added: tests/unit/test_code.py (@pytest.mark.skipif(True, reason=\"slow\"))"
-printf '%s\n' "$RISK_TRIGGERS" | grep -Fq "parametrize" && fail "the parametrize beside a skipif was read as a trigger: $RISK_TRIGGERS"
+printf '%s\n' "$RISK_TRIGGERS" | grep -F "parametrize" >/dev/null && fail "the parametrize beside a skipif was read as a trigger: $RISK_TRIGGERS"
 
 repo="$(setup_repo parametrize-and-marker)"
 printf '\n\npytestmark = [pytest.mark.parametrize("n", [1]), pytest.mark.same_machine]\n' >>"$repo/tests/unit/test_code.py"
@@ -536,7 +536,7 @@ printf '{"architecture_impact": {"level": "minor", "rationale": "x", "checked_ag
 assess "$repo" "$tmp/review-01.json"
 expect "the review's assessment" RISK_REVIEWED 3
 expect "the review's assessment" RISK_REQUIRED 3
-printf '%s\n' "$RISK_NAMED_TRIGGERS" | grep -Fq "named by the review: a published tolerance is widened" ||
+printf '%s\n' "$RISK_NAMED_TRIGGERS" | grep -F "named by the review: a published tolerance is widened" >/dev/null ||
   fail "the trigger the review named was not kept"
 expect_error "a stated level below the review's reading" "the completion record states level 2, below the level 3"
 
@@ -566,9 +566,9 @@ expect "a requested lowering" RISK_REQUESTED 2
 statement="$(risk_statement_lines)"
 for line in "- required: level 3, by the triggers" "- stated in the completion record: level 2" \
   "- derived for the content $RISK_TREE" "- content tree for the approval request (Tree:): $RISK_CONTENT_TREE"; do
-  printf '%s\n' "$statement" | grep -Fqx -- "$line" || fail "the statement of a lowering lacks '$line': $statement"
+  printf '%s\n' "$statement" | grep -Fx -- "$line" >/dev/null || fail "the statement of a lowering lacks '$line': $statement"
 done
-printf '%s\n' "$statement" | grep -Fq "requested: level 2, in .agents/approvals/5.md: a request only. The change keeps level 3" ||
+printf '%s\n' "$statement" | grep -F "requested: level 2, in .agents/approvals/5.md: a request only. The change keeps level 3" >/dev/null ||
   fail "the statement does not record the requested level as a request: $statement"
 # The request does not decide: what it states about the levels must agree
 # with the record and the derivation, and it names the reason and the word.
@@ -608,7 +608,7 @@ assess "$repo"
 expect "an edited approval request" RISK_CONTENT_TREE "$content"
 expect "an edited approval request" RISK_TREE "$tree"
 [[ -z "$RISK_ERRORS" ]] || fail "an approval request that names the content tree was refused: $RISK_ERRORS"
-git -C "$repo" ls-tree -r --name-only "$content" | grep -Fqx ".agents/approvals/5.md" &&
+git -C "$repo" ls-tree -r --name-only "$content" | grep -Fx ".agents/approvals/5.md" >/dev/null &&
   fail "the content tree holds the approval request"
 for edit in scripts/lib/completion.sh lessons/a.qmd tests/unit/test_code.py .agents/completion/5.json .agents/handoffs/5.md; do
   cp "$repo/$edit" "$tmp/saved"
@@ -645,7 +645,7 @@ expect "a completion/v1 record" RISK_REQUIRED 3
 expect "a completion/v1 record" RISK_ENFORCED 0
 [[ -z "$RISK_ERRORS" ]] || fail "the rules of completion/v2 were applied to a completion/v1 record: $RISK_ERRORS"
 statement="$(risk_statement_lines)"
-printf '%s\n' "$statement" | grep -Fq "completion/v1, the contract of a feature started before ADR 020" ||
+printf '%s\n' "$statement" | grep -F "completion/v1, the contract of a feature started before ADR 020" >/dev/null ||
   fail "the statement does not say that the record is of the earlier contract"
 
 # --- The protected list of guardrails.conf names the Level 3 paths of ADR
@@ -672,7 +672,7 @@ expected=(docs/decisions docs/PROJECT_REQUIREMENTS.md docs/roadmap.md .github/wo
   src/pbc/authoring/provenance.py scripts/build-site.sh .agents/approvals
   ':(glob)scripts/*-feature.sh' ':(glob)scripts/*-planning.sh')
 for path in "${expected[@]}"; do
-  printf '%s\n' "$specs" | grep -Fqx -- "$path" || fail "guardrails.conf does not protect the Level 3 path $path"
+  printf '%s\n' "$specs" | grep -Fx -- "$path" >/dev/null || fail "guardrails.conf does not protect the Level 3 path $path"
 done
 [[ "$(printf '%s\n' "$specs" | grep -c .)" -eq $((${#expected[@]} + 1)) ]] ||
   fail "guardrails.conf protects $(printf '%s\n' "$specs" | grep -c .) paths, not the ${#expected[@]} named here and the directory of the agent skills"
@@ -711,8 +711,8 @@ for path in docs/development.md site/lessons/x/index.qmd src/pbc/other.py tests/
 done
 sensitive_specs="$(sed -n 's/^sensitive:[[:space:]]*//p' "$source_root/.agents/policies/guardrails.conf" | tr -s '[:space:]' '\n' | grep .)"
 for spec in docs/architecture.md .agents/prompts; do
-  printf '%s\n' "$sensitive_specs" | grep -Fqx -- "$spec" || fail "guardrails.conf does not name $spec as sensitive"
-  ! printf '%s\n' "$specs" | grep -Fqx -- "$spec" || fail "guardrails.conf still protects $spec"
+  printf '%s\n' "$sensitive_specs" | grep -Fx -- "$spec" >/dev/null || fail "guardrails.conf does not name $spec as sensitive"
+  ! printf '%s\n' "$specs" | grep -Fx -- "$spec" >/dev/null || fail "guardrails.conf still protects $spec"
 done
 # A change to the architecture document or to a prompt other than the
 # reviewer contract is reported as sensitive and not protected; a change to
@@ -754,7 +754,7 @@ printf '{"architecture_impact": {"level": "minor", "rationale": "x", "checked_ag
 assess "$repo" "$tmp/review-architecture.json"
 expect "a change to docs/architecture.md that touches a trigger" RISK_PATH_MIN 2
 expect "a change to docs/architecture.md that touches a trigger" RISK_REQUIRED 3
-printf '%s\n' "$RISK_NAMED_TRIGGERS" | grep -Fq "verification guarantees: the invariant of the digest is weakened" ||
+printf '%s\n' "$RISK_NAMED_TRIGGERS" | grep -F "verification guarantees: the invariant of the digest is weakened" >/dev/null ||
   fail "the trigger named for docs/architecture.md was not kept"
 record "$repo" 2
 jq '.risk.triggers = ["verification guarantees"]' "$repo/.agents/completion/5.json" >"$tmp/architecture-record.json"

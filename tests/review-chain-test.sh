@@ -251,30 +251,30 @@ second="$(review "$repo" 2 '{"kind": "full"}' \
 [[ -z "$(lib "$repo" review_artifact_errors "$second")" ]] || fail "a review that carries an open finding on is invalid"
 open="$(lib "$repo" review_chain_open . feature-12-speed 3 | jq -c 'map([.id, .carried])')"
 [[ "$open" == '[["R02-M1",true]]' ]] || fail "the carried finding is not open under round 2: $open"
-lib "$repo" review_render_markdown "$second" x | grep -Fq "**Continues:** R01-M1, still open" ||
+lib "$repo" review_render_markdown "$second" x | grep -F "**Continues:** R01-M1, still open" >/dev/null ||
   fail "the report does not show which finding is carried on"
-lib "$repo" review_render_markdown "$second" x | grep -Fq -- "- R01-M1: open. still unchecked" ||
+lib "$repo" review_render_markdown "$second" x | grep -F -- "- R01-M1: open. still unchecked" >/dev/null ||
   fail "the report does not show the dispositions"
 # An open disposition without a finding that carries it on, and a finding
 # that continues no open disposition, are invalid.
 jq '.findings[0].continues = null' "$second" >"$tmp/bad.json"
-lib "$repo" review_artifact_errors "$tmp/bad.json" | grep -Fq "R01-M1 is not carried on" ||
+lib "$repo" review_artifact_errors "$tmp/bad.json" | grep -F "R01-M1 is not carried on" >/dev/null ||
   fail "an open disposition without a carrying finding was accepted"
 jq '.dispositions[0].status = "resolved"' "$second" >"$tmp/bad.json"
-lib "$repo" review_artifact_errors "$tmp/bad.json" | grep -Fq "which no disposition gives as open" ||
+lib "$repo" review_artifact_errors "$tmp/bad.json" | grep -F "which no disposition gives as open" >/dev/null ||
   fail "a finding that continues a resolved finding was accepted"
 # A disposition is needed for every open earlier finding, and only for those.
 lib "$repo" review_chain_open . feature-12-speed 2 >"$tmp/open.json"
 jq '.dispositions = []' "$second" >"$tmp/bad.json"
-lib "$repo" review_chain_disposition_errors "$tmp/bad.json" "$tmp/open.json" | grep -Fq "R01-M1 is open and has no disposition" ||
+lib "$repo" review_chain_disposition_errors "$tmp/bad.json" "$tmp/open.json" | grep -F "R01-M1 is open and has no disposition" >/dev/null ||
   fail "a missing disposition was not reported"
 jq '.dispositions += [{finding_id: "R01-S1", status: "resolved", evidence: "x"}]' "$second" >"$tmp/bad.json"
-lib "$repo" review_chain_disposition_errors "$tmp/bad.json" "$tmp/open.json" | grep -Fq "R01-S1 is not an earlier finding that is open" ||
+lib "$repo" review_chain_disposition_errors "$tmp/bad.json" "$tmp/open.json" | grep -F "R01-S1 is not an earlier finding that is open" >/dev/null ||
   fail "a disposition of a closed finding was not reported"
 # A review made under the rule closes only what its dispositions close: one
 # that drops them closes nothing, and its artifact is invalid.
 jq 'del(.dispositions)' "$second" >"$tmp/dropped.json"
-lib "$repo" review_artifact_errors "$tmp/dropped.json" | grep -Fq "must give the dispositions of the earlier open findings" ||
+lib "$repo" review_artifact_errors "$tmp/dropped.json" | grep -F "must give the dispositions of the earlier open findings" >/dev/null ||
   fail "a review with compared_tree and without dispositions was accepted"
 cp "$second" "$tmp/kept.json" && mv "$tmp/dropped.json" "$second"
 open="$(lib "$repo" review_chain_open . feature-12-speed 3 | jq -c 'map(.id)')"
@@ -352,7 +352,7 @@ reset_delta
 # expect_unbounded <description> <fragment> [<open-json-file>]
 expect_unbounded() {
   reasons="$(unbounded "$repo" "${3:-$tmp/no-open.json}")"
-  printf '%s\n' "$reasons" | grep -Fq -- "$2" || fail "$1 did not require a full review (reasons: ${reasons:-none})"
+  printf '%s\n' "$reasons" | grep -F -- "$2" >/dev/null || fail "$1 did not require a full review (reasons: ${reasons:-none})"
   reset_delta
 }
 printf '# more\n' >>"$repo/scripts/lib/completion.sh"
@@ -388,7 +388,7 @@ printf 'import importlib\n\n\ndef load(name):\n    return importlib.import_modul
 loader_from="$(content_tree "$repo")"
 printf 'def speed(v):\n    # the speed of the wave, by name\n    return v\n' >"$repo/src/pbc/waves/speed.py"
 reasons="$(lib "$repo" review_delta_unbounded . "$rules" "$baseline" "$loader_from" "$(content_tree "$repo")" "$tmp/no-open.json")"
-printf '%s\n' "$reasons" | grep -Fq -- "a file that loads code by a computed name and may load src/pbc/waves/speed.py, so the importer search cannot decide its reach: src/pbc/waves/loader.py" ||
+printf '%s\n' "$reasons" | grep -F -- "a file that loads code by a computed name and may load src/pbc/waves/speed.py, so the importer search cannot decide its reach: src/pbc/waves/loader.py" >/dev/null ||
   fail "a module that a separate dynamic importer may load did not require a full review (reasons: ${reasons:-none})"
 reset_delta
 printf 'def third(v):\n    # a third\n    return v / 3\n' >"$repo/src/pbc/waves/third.py"
@@ -406,7 +406,7 @@ chain_repo chain-holds
 repo="$REPO"
 finish "$repo"
 expect_commit "$repo" "a chain from a review of the complete feature"
-git -C "$repo" log -1 --format=%B | grep -Fq "Review: round 2, PASS, by claude (model-r); reviews of changes since round 1, a review of the complete feature, with every finding given its disposition; triage published on #12" ||
+git -C "$repo" log -1 --format=%B | grep -F "Review: round 2, PASS, by claude (model-r); reviews of changes since round 1, a review of the complete feature, with every finding given its disposition; triage published on #12" >/dev/null ||
   { git -C "$repo" log -1 --format=%B >&2; fail "the commit message does not describe the chain"; }
 
 # It begins with a review of the complete feature: a chain whose first round
@@ -512,7 +512,7 @@ minor_chain_repo dispositioned '[{"finding_id": "R01-MIN1", "status": "resolved"
 repo="$REPO"
 finish "$repo"
 expect_commit "$repo" "a round whose minor finding a later review gives as resolved"
-git -C "$repo" log -1 --format=%B | grep -Fq "the findings of round 1 given their disposition by a later review, without a triage" ||
+git -C "$repo" log -1 --format=%B | grep -F "the findings of round 1 given their disposition by a later review, without a triage" >/dev/null ||
   { git -C "$repo" log -1 --format=%B >&2; fail "the commit message does not say how the findings of round 1 were closed"; }
 # A disposition of accepted closes it as well.
 minor_chain_repo dispositioned-accepted '[{"finding_id": "R01-MIN1", "status": "accepted", "evidence": "the name is the convention"}]'
@@ -553,9 +553,9 @@ record "$repo" 1
 printf 'More guidance.\n' >>"$repo/docs/guide.md"
 run_script "$repo" ./scripts/finish-feature.sh 12 "Extend the guide" --unattended
 [[ "$status" -eq 0 ]] || { cat "$repo.out" >&2; fail "a Level 1 change without a review was refused"; }
-git -C "$repo" log -1 --format=%B | grep -Fqx "Review: none required (Level 1: documentation and process files only; ADR 020 decision 4)" ||
+git -C "$repo" log -1 --format=%B | grep -Fx "Review: none required (Level 1: documentation and process files only; ADR 020 decision 4)" >/dev/null ||
   fail "the commit does not record that Level 1 needs no review"
-if git -C "$repo" log -1 --format=%B | grep -Fq "low risk:"; then fail "Level 1 was recorded as a --no-review exception"; fi
+if git -C "$repo" log -1 --format=%B | grep -F "low risk:" >/dev/null; then fail "Level 1 was recorded as a --no-review exception"; fi
 # --no-review is refused at Level 1: the level needs no exception.
 repo="$(setup_repo level1-no-review)"
 git -C "$repo" reset -q --hard main
@@ -665,7 +665,7 @@ for tamper in \
   'no-followup-issue#(.decisions[0].followup |= del(.issue_number, .issue_url))#only with its follow-up Issue; MIN1 has none'; do
   IFS='#' read -r name filter message <<<"$tamper"
   jq --argjson d "$(jq '.decisions[0]' "$tmp/mechanical.json")" "$filter" "$tmp/mechanical.json" >"$mechanical"
-  lib "$repo" triage_artifact_errors "$mechanical" "$minor_review" | grep -Fq "$message" ||
+  lib "$repo" triage_artifact_errors "$mechanical" "$minor_review" | grep -F "$message" >/dev/null ||
     fail "$name: a mechanical triage that differs from the mapping was accepted"
   finish "$repo"
   expect_no_commit "$repo" "$name" "the triage of round 1 is invalid" "$message"
@@ -689,7 +689,7 @@ MOCK_OUTPUT='{"decisions": [{"finding_id": "M1", "decision": "FIX_NOW", "rationa
 jq '.decisions = [{finding_id: "M1", severity: "major", title: "The speed is not checked", decision: "FIX_NOW", rationale: "x", followup: null},
   {finding_id: "MIN1", severity: "minor", title: "The speed is not checked", decision: "ACCEPT", rationale: "x", followup: null}]
   | .mechanical = true' "$repo/.agents/triage/feature-12-speed-review-01-triage.json" >"$tmp/m.json"
-lib "$repo" triage_artifact_errors "$tmp/m.json" "$major_review" | grep -Fq "never triaged mechanically" ||
+lib "$repo" triage_artifact_errors "$tmp/m.json" "$major_review" | grep -F "never triaged mechanically" >/dev/null ||
   fail "a mechanical triage of a major finding was accepted"
 
 # Every finding at Level 3 keeps the full triage.

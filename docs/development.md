@@ -345,7 +345,7 @@ tests-in-a-browser [e2e]: pytest tests/e2e
 - `./scripts/verify.sh` runs every check, whatever its group. Nothing changes
   for the developer and for the workflow scripts.
 - `./scripts/verify.sh --only code` runs the checks of one group, and
-  `--only code,build` those of several, in the order of the file.
+  `--only code,build` those of several, at the same time (below).
 - `./scripts/verify.sh --groups` prints the groups that have a check.
 - A check without a group is in the group `default`.
 - An unknown group is an error, so a renamed group cannot pass unnoticed.
@@ -369,6 +369,57 @@ The targeted run is not a partial run in this sense: the reserved entry
 `targeted: <group>[,<group>...]` of `scripts/verify.conf` declares the groups
 it performs, and its pass is recorded with its tier. A project without that
 entry has one tier, and `./scripts/verify.sh --targeted` runs every check.
+
+### Groups at the same time
+
+A run with more than one group runs its groups at the same time (Issue
+#430): the full run, the run with a base, the targeted run, and `--only`
+with several groups. Inside a group the checks run one after the other, in
+the order of the file. A group waits for a check of another group only where
+the reserved entry `after [<group>]: <check>[,<check>...]` of
+`scripts/verify.conf` says so, because it reads what that check writes: in
+this project the three `e2e` groups, `code`, `integration-browser`, and
+`integration-other` wait for `site-build` (and `integration-other` for
+`lean-build`), and `default` and `integration-quarto` run beside the whole
+`build` chain; the comment above the entries gives the reason for each. A
+group starts when the checks it waits for have finished, passed or failed,
+as they would have one after the other, so a failure fails the run and every
+other check still runs. A check of a group outside the run is not waited for
+(`--only`, where CI prepares the group's input). An entry that names an
+unknown group or check, a check of its own group, or groups that wait for
+each other is an error.
+
+- `VERIFY_JOBS` is the number of groups that run at the same time, 4 when it
+  is not set: the `build` chain and three other groups, which fits a machine
+  with ten cores and 32 GB, each group using one or two cores.
+- `VERIFY_JOBS=1 ./scripts/verify.sh` runs every check one after the other
+  in the order of the file, as before: for a machine with less memory or
+  fewer cores, or to read one stream of output. A run with one group, such as
+  each CI job's `--only <group>`, runs that way too and streams its output.
+- Each group writes its own log, `.agents/verification/logs/<group>.log`,
+  which Git ignores; where Git would not ignore it and the run records its
+  pass, the logs go to a temporary directory that the run names, so that
+  they do not change the verified content. A run of groups at the same time
+  removes the logs of the previous one when it starts; they remain after the
+  run, also after a failure. The run prints when a group starts and, when it
+  ends, the group's log.
+- The summary, the recorded pass, the time log, and the exit status are the
+  same as one after the other: the summary lists the checks in the order of
+  the file, whichever group ended first.
+- Interrupting the run (Ctrl-C, or a TERM to the script) stops the groups
+  still running and the processes they started.
+- A group whose process disappears before its checks finished (killed with
+  SIGKILL, for example by the system when memory runs out) is a failed
+  group: the run names it and how it ended (the signal), in its log and in
+  the summary, lets the other running groups finish, never starts a group
+  that waits for one of its unfinished checks (nor the groups that wait for
+  those), and fails.
+- Groups at the same time load the machine, so a check must not depend on
+  timing. A shell self-test does not pipe into `grep -q` under `pipefail`:
+  grep ends at its first match, a writer that still has output dies of
+  SIGPIPE, and the assertion fails although it holds. It uses
+  `grep ... >/dev/null`, which reads to the end; `tests/verify-test.sh`
+  finds such a pipe in `tests/`.
 
 ### Selection against a base
 

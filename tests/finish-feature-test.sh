@@ -130,14 +130,14 @@ run_finish "$repo" 12 "Add the marker" || {
 }
 [[ "$(git -C "$repo" rev-list --count HEAD)" -eq 2 ]] || fail "no commit was created"
 for line in "Add the marker" "Issue: #12" "Review: round 1, PASS, by claude (model-r)" "Refs #12"; do
-  message "$repo" | grep -Fqx "$line" || fail "the commit message lacks: $line"
+  message "$repo" | grep -Fx "$line" >/dev/null || fail "the commit message lacks: $line"
 done
-git -C "$repo" show --name-only --format= HEAD | grep -Fqx "feature.txt" || fail "the feature change was not committed"
-if git -C "$repo" show --name-only --format= HEAD | grep -Fq ".agents/reviews/"; then
+git -C "$repo" show --name-only --format= HEAD | grep -Fx "feature.txt" >/dev/null || fail "the feature change was not committed"
+if git -C "$repo" show --name-only --format= HEAD | grep -F ".agents/reviews/" >/dev/null; then
   fail "a review file was committed"
 fi
 grep -Fq "./scripts/publish-feature.sh 12" "$repo.out" || fail "the next steps do not name publish-feature.sh"
-message "$repo" | grep -A1 -Fx "Manual steps:" | grep -Fqx -- "- none" ||
+message "$repo" | grep -A1 -Fx "Manual steps:" | grep -Fx -- "- none" >/dev/null ||
   fail "a feature without manual steps does not say so in the commit message"
 
 # Manual steps recorded by the implementer are shown before the commit and
@@ -155,7 +155,7 @@ grep -Fq "This feature needs these manual steps from you:" "$repo.out" || fail "
 [[ "$(message "$repo" | sed -n '/^Manual steps:$/,/^$/p')" == "Manual steps:
 - Enable GitHub Pages under Settings, Pages.
 - Add the secret API_KEY." ]] || fail "the commit message does not list exactly the manual steps of the Issue"
-if git -C "$repo" show --name-only --format= HEAD | grep -Fq "manual-steps"; then
+if git -C "$repo" show --name-only --format= HEAD | grep -F "manual-steps" >/dev/null; then
   fail "the manual steps file was committed"
 fi
 
@@ -252,7 +252,7 @@ run_finish "$repo" 12 "Add the marker" || {
   cat "$repo.out" >&2
   fail "finishing on a review of the complete feature after a review of changes failed"
 }
-message "$repo" | grep -Fqx "Review: round 3, PASS, by claude (model-r)" ||
+message "$repo" | grep -Fx "Review: round 3, PASS, by claude (model-r)" >/dev/null ||
   fail "the commit message does not name the review of the complete feature"
 
 # Minor findings that were triaged without FIX_NOW and published are fine.
@@ -262,7 +262,7 @@ run_finish "$repo" 12 "Add the marker" || {
   cat "$repo.out" >&2
   fail "finishing with published, deferred minor findings failed"
 }
-message "$repo" | grep -Fq "triage published on #12" || fail "the commit message does not mention the published triage"
+message "$repo" | grep -F "triage published on #12" >/dev/null || fail "the commit message does not mention the published triage"
 
 # add_second_round <repo>: a passed, current review round 2.
 add_second_round() {
@@ -280,7 +280,7 @@ run_finish "$repo" 12 "Add the marker" || {
   cat "$repo.out" >&2
   fail "a passed second round after applied fixes was refused"
 }
-message "$repo" | grep -Fq "Review: round 2, PASS" || fail "the commit message does not name the final round"
+message "$repo" | grep -F "Review: round 2, PASS" >/dev/null || fail "the commit message does not name the final round"
 
 repo="$(setup_repo untriaged-round-1 PASS_WITH_MINOR_FINDINGS "$minor")"
 add_second_round "$repo"
@@ -306,7 +306,7 @@ run_finish "$repo" 12 "Fix a typo" --no-review "documentation typo" || {
   cat "$repo.out" >&2
   fail "finishing without a review failed"
 }
-message "$repo" | grep -Fqx "Review: no independent review (low risk: documentation typo)" ||
+message "$repo" | grep -Fx "Review: no independent review (low risk: documentation typo)" >/dev/null ||
   fail "the commit message does not record the missing review"
 
 # The list of changes comes from the implementer's summary: its list items,
@@ -327,7 +327,7 @@ run_finish "$repo" 12 "Add the marker" || {
 [[ "$(changes_of "$repo")" == "Changes:
 - Adds the marker file.
 - Explains why it matters." ]] || fail "the commit message does not list exactly the summarized changes"
-if git -C "$repo" show --name-only --format= HEAD | grep -Fq "summaries"; then
+if git -C "$repo" show --name-only --format= HEAD | grep -F "summaries" >/dev/null; then
   fail "the summary file was committed"
 fi
 
@@ -354,7 +354,7 @@ EDITOR_COMMAND=false run_finish "$repo" 12 "Add the marker" --unattended || {
 [[ "$(git -C "$repo" rev-list --count HEAD)" -eq 2 ]] || fail "finishing unattended created no commit"
 [[ "$(changes_of "$repo")" == "Changes:
 - Adds the marker." ]] || fail "an unattended commit does not carry the implementer's summary"
-message "$repo" | grep -Fqx "Review: round 1, PASS, by claude (model-r)" || fail "the unattended commit lacks its review"
+message "$repo" | grep -Fx "Review: round 1, PASS, by claude (model-r)" >/dev/null || fail "the unattended commit lacks its review"
 
 # The completion gate. A feature is committed as done only on a completion
 # record of the implementer that says complete; the commit message carries
@@ -364,7 +364,7 @@ run_finish "$repo" 12 "Add the marker" || fail "finishing a complete feature fai
 [[ "$(message "$repo" | sed -n '/^Completion: /,/^$/p')" == "Completion: complete
 - met: The marker exists (feature.txt)
 - met: The marker is documented (docs/marker.md)" ]] || fail "the commit message does not carry the completion statement"
-if git -C "$repo" show --name-only --format= HEAD | grep -Fq "completion"; then
+if git -C "$repo" show --name-only --format= HEAD | grep -F "completion" >/dev/null; then
   fail "the completion record was committed"
 fi
 
@@ -442,8 +442,8 @@ grep -Fq "remaining: steps 3 to 9." "$repo.out" || fail "what the handoff note l
 # With the record corrected, the same work is committed as partial.
 set_completion "$repo" partial
 run_finish "$repo" 12 "Add the first part of the marker" --partial || fail "partial work with a corrected record was refused"
-message "$repo" | grep -Fqx "Completion: partial" || fail "the corrected record was not committed as partial"
-if message "$repo" | grep -Fqx "Completion: complete"; then fail "work with remaining steps was committed as complete"; fi
+message "$repo" | grep -Fx "Completion: partial" >/dev/null || fail "the corrected record was not committed as partial"
+if message "$repo" | grep -Fx "Completion: complete" >/dev/null; then fail "work with remaining steps was committed as complete"; fi
 
 repo="$(setup_repo completion-partial-refused PASS "[]")"
 expect_no_commit "$repo" "--partial for a complete feature" 12 "Add the marker" --partial
@@ -558,17 +558,17 @@ set_impact() {
 repo="$(setup_repo gate-minor PASS "[]")"
 set_impact "$repo" minor
 run_finish "$repo" 12 "Add the marker" || fail "finishing a feature with a minor impact failed"
-approval_of "$repo" | grep -Fqx -- "- not required" || fail "a minor impact without a protected path needed approval"
-approval_of "$repo" | grep -Fqx -- "- decided for the reviewed content $(jq -r '.reviewed_tree' "$repo/$review")" ||
+approval_of "$repo" | grep -Fx -- "- not required" >/dev/null || fail "a minor impact without a protected path needed approval"
+approval_of "$repo" | grep -Fx -- "- decided for the reviewed content $(jq -r '.reviewed_tree' "$repo/$review")" >/dev/null ||
   fail "the decision does not name the reviewed content it was made for"
 
 for level in major breaking; do
   repo="$(setup_repo "gate-$level" PASS "[]")"
   set_impact "$repo" "$level"
   run_finish "$repo" 12 "Add the marker" || fail "finishing a feature with a $level impact failed"
-  approval_of "$repo" | grep -Fqx -- "- required from the project owner, for exactly this commit" ||
+  approval_of "$repo" | grep -Fx -- "- required from the project owner, for exactly this commit" >/dev/null ||
     fail "a $level impact did not need the owner's approval"
-  approval_of "$repo" | grep -Fq "classified the impact on the architecture as $level: Because of the marker." ||
+  approval_of "$repo" | grep -F "classified the impact on the architecture as $level: Because of the marker." >/dev/null ||
     fail "the reason of the reviewer was not recorded for a $level impact"
   grep -Fq "no script or agent may merge it" "$repo.out" || fail "the needed approval was not announced"
 done
@@ -580,27 +580,27 @@ mkdir -p "$repo/docs/decisions"
 printf '# ADR 002: Another marker\n\nStatus: Proposed\n' >"$repo/docs/decisions/002-marker.md"
 record_reviewed_tree "$repo" "$repo/$review"
 run_finish "$repo" 12 "Add the marker" || fail "finishing a feature with a new ADR failed"
-approval_of "$repo" | grep -Fqx -- "- required from the project owner, for exactly this commit" ||
+approval_of "$repo" | grep -Fx -- "- required from the project owner, for exactly this commit" >/dev/null ||
   fail "a new ADR did not need the owner's approval although the reviewer said minor"
-approval_of "$repo" | grep -Fq "docs/decisions/002-marker.md: an ADR is added, changed, or removed" ||
+approval_of "$repo" | grep -F "docs/decisions/002-marker.md: an ADR is added, changed, or removed" >/dev/null ||
   fail "the added ADR was not given as the reason"
 
 # No classification gives no permission: a review without one, an invalid
 # one, and a feature without a review.
 repo="$(setup_repo gate-unclassified PASS "[]")"
 run_finish "$repo" 12 "Add the marker" || fail "finishing a feature with an unclassified review failed"
-approval_of "$repo" | grep -Fq "no valid classification of the impact" || fail "a review without a classification gave permission"
+approval_of "$repo" | grep -F "no valid classification of the impact" >/dev/null || fail "a review without a classification gave permission"
 
 repo="$(setup_repo gate-invalid PASS "[]")"
 jq '.architecture_impact = {level: "harmless"}' "$repo/$review" >"$repo/$review.tmp" && mv "$repo/$review.tmp" "$repo/$review"
 if run_finish "$repo" 12 "Add the marker"; then
-  approval_of "$repo" | grep -Fq "no valid classification of the impact" || fail "an invalid classification gave permission"
+  approval_of "$repo" | grep -F "no valid classification of the impact" >/dev/null || fail "an invalid classification gave permission"
 fi
 
 repo="$(setup_repo gate-no-review PASS "[]")"
 rm "$repo/$review"
 run_finish "$repo" 12 "Fix a typo" --no-review "documentation typo" || fail "finishing without a review failed"
-approval_of "$repo" | grep -Fqx -- "- required from the project owner, for exactly this commit" ||
+approval_of "$repo" | grep -Fx -- "- required from the project owner, for exactly this commit" >/dev/null ||
   fail "a feature without a review did not need the owner's approval"
 
 # An emptied commit message creates no commit.
@@ -643,7 +643,7 @@ run_finish "$repo" 12 "Add the marker" || {
   cat "$repo.out" >&2
   fail "a major finding accepted by the owner's triage refused the commit"
 }
-message "$repo" | grep -Fq "1 major finding(s) of round 1 deferred or accepted by the triage the owner approved" ||
+message "$repo" | grep -F "1 major finding(s) of round 1 deferred or accepted by the triage the owner approved" >/dev/null ||
   { message "$repo" >&2; fail "the commit message does not record the accepted major finding"; }
 
 repo="$(setup_repo major-deferred CHANGES_REQUIRED "$major")"
