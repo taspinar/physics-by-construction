@@ -1,0 +1,357 @@
+id: trackpy-bulk-water
+title: trackpy-examples bulk_water, video of 1 µm latex spheres diffusing in water; frames 000-039 tracked
+  by this project
+source:
+  url: https://github.com/soft-matter/trackpy-examples/tree/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water
+  creator: trackpy-examples contributors (the soft-matter organisation on GitHub, the trackpy project);
+    the record names no individual author of the recording
+  version: 'git commit 09fb3074a173585d48b5001b5b4b7e6479999598 of soft-matter/trackpy-examples (2025-07-10);
+    frames bulk_water_000.png to bulk_water_039.png of the 300 in the directory, and its README; no DOI'
+  accessed: &accessed 2026-11-08
+rights:
+  licence: equivalent-permission
+  local_download:
+    answer: permitted
+    source: 'LICENSE of the repository at the commit, https://github.com/soft-matter/trackpy-examples/blob/09fb3074a173585d48b5001b5b4b7e6479999598/LICENSE,
+      read 2026-11-08: "The content is released under two licenses. You may at your option use one of
+      them or both": BSD 3-clause or Creative Commons BY 3.0. This project uses CC BY 3.0, https://creativecommons.org/licenses/by/3.0/legalcode,
+      section 3 (reproduce the Work)'
+  redistribution_of_subsets:
+    answer: permitted
+    source: 'https://creativecommons.org/licenses/by/3.0/legalcode section 3(a) and (c), read 2026-11-08:
+      reproduce the Work, incorporate it into Collections, and distribute it, with the URI of the licence
+      (section 4(a)); the repository''s LICENSE (URL above) offers it under CC BY 3.0'
+  publication_of_figures:
+    answer: permitted
+    source: 'https://creativecommons.org/licenses/by/3.0/legalcode section 3(b) and (d), read 2026-11-08:
+      create, reproduce, and distribute Adaptations that identify the changes made; the repository''s
+      LICENSE (URL above)'
+  modification_and_attribution:
+    answer: permitted
+    source: 'https://creativecommons.org/licenses/by/3.0/legalcode sections 3(b) and 4(b), read 2026-11-08:
+      Adaptations are permitted when they are labelled as changed; the credit keeps the copyright notice
+      ("Copyright (c) 2013-2014 trackpy-examples contributors", LICENSE at the URL above), the title,
+      the URI, and a credit identifying the use of the Work'
+  attribution: 'Video frames of 1 µm latex spheres in water: trackpy-examples, sample_data/bulk_water,
+    https://github.com/soft-matter/trackpy-examples (commit 09fb3074), Copyright (c) 2013-2014 trackpy-examples
+    contributors, licensed CC BY 3.0, https://creativecommons.org/licenses/by/3.0/. The green channel of
+    frames 000-002 with its grey levels unchanged and the README unmodified; the tracks are this project''s processing of frames 000-039 (NumPy, SciPy),
+    not the provider''s.'
+artifacts:
+- name: bulk_water_000.png to bulk_water_039.png
+  type: raw-measured
+  description: 'Video frames of 1 µm charge-stabilised latex spheres diffusing in water, recorded at 24
+    frames per second with 2.85 pixels per µm (README); PNG, 640 x 424 pixels, RGBA with 8 bits per channel
+    and alpha 255 everywhere, the spheres dark on a bright field, tinted rather than grey (in frame 000
+    the green channel spans 94-142 grey levels). Not committed: the repository holds no image file outside
+    site/assets/ (invariant I6); their green channel is (next artifact).'
+- name: bulk_water_green_000-002.npy
+  type: raw-measured
+  description: 'The green channel of frames 000-002, the grey levels of the PNGs unchanged, as a NumPy
+    array of shape (3, 424, 640) and type uint8, written by tools/datasets/bulk_water_tracks.py; one channel
+    of three is selected, no value changed. The build repeats the tracking of these frames on it.'
+- name: README
+  type: raw-measured
+  description: The provider's two-line description of the recording (the spheres, the frame rate, the
+    scale), committed unmodified.
+- name: bulk_water_tracks.csv
+  type: processed-measured
+  description: 'The project''s tracking of frames 000-039 by tools/datasets/bulk_water_tracks.py with
+    pbc.data.tracking (band-pass, maxima, centroid, mass cut, mutual-nearest-neighbour linking; not trackpy):
+    every located feature with its frame, track number, position in pixels, and mass. The drift subtraction,
+    the selection of tracks, and the MSD fit of the reference figure are computed by pbc.data.reference.trackpy_bulk_water,
+    are not part of the record, and are drawn apart from the measurement.'
+calibration: 'Scale and time from the provider''s README only: "1 micron = 2.85 pixels" and "24 frames
+  per second"; no uncertainty, no objective, exposure time, temperature, sample depth, or sphere size
+  tolerance is given. The scale enters D squared: a 1 % error of 2.85 px/µm is a 2 % error of D. The frames
+  show the edges of 8 x 8 pixel compression blocks (the step between neighbouring pixels across a block
+  edge is 1.4 to 1.7 times that inside), so the video was block-compressed before the PNGs were written;
+  the record does not say how.'
+schema: 'Frames: PNG, 640 x 424 x 4 (RGBA, 8 bits); the analysis reads the green channel, as trackpy''s
+  walkthrough notebook does. Committed frames: .npy (NumPy format 1.0), uint8, shape (3, 424, 640), index
+  order frame, row (y), column (x). Tracks: CSV with four comment lines (the source commit, the pin of the frames,
+  the processing and its parameters, the units) and the header frame,particle,x,y,mass; 23,685 rows,
+  one per located feature, in frame order and, within a frame, in the row-major order of the peaks.'
+units: 'frame: integer, 0-39, 1/24 s apart; particle: integer track number, numbered in order of appearance;
+  x, y: pixels from the centre of the top-left pixel, x to the right, y downwards (1 µm = 2.85 px); mass:
+  grey levels of the band-passed, inverted green channel summed over a disk of radius 5 px.'
+cadence: 24 frames per second (README); 40 frames, 1.625 s from the first to the last. Every frame has
+  582 to 603 features; a track occupies consecutive frames (no memory in the linking).
+coordinates: Image coordinates in pixels, origin at the centre of the top-left pixel, y downwards. The
+  field is 224.6 x 148.8 µm; the depth of the focal plane in the sample is not documented.
+masks: 'No missing values: every frame is complete and every CSV row finite. Features are kept at least
+  5 px (the disk radius) from the border, with mass >= 90 (the minimum of the mass histogram of frame 000
+  between the noise peaks and the particles). Of 1,268 tracks, the reference analysis uses the 596 of
+  at least 15 frames (21,200 features).'
+uncertainty: 'The record gives none. Derived (dossier): D = 0.403 +- 0.010 µm^2/s, the standard deviation
+  of a bootstrap over tracks (statistical); the processing choices move D between 0.377 and 0.411 (the
+  link range, the mass cut, the track length, the lag range), a sensitivity range of about +-0.02, not a standard deviation, and without the
+  drift subtraction it would be 0.438. The MSD line has the intercept -0.036 +- 0.003 µm^2, more negative
+  than motion blur over a whole frame can make it (-0.022), and successive steps are correlated (+0.14):
+  the short-lag MSD is not explained, so D is quoted from the slope with that caveat. The steps are not
+  Gaussian (excess kurtosis 3.2) and the step variances of the tracks spread twice as much as for identical
+  walkers: the particles are not all alike.'
+size:
+  description: 'Frames 000-039: 7,602,501 bytes (300 frames in the directory: 60,484,319 bytes). The committed
+    sample: the tracks CSV 667,420 bytes, the green channel of frames 000-002 814,208 bytes, README
+    119 bytes; 1,481,747 bytes in all.'
+format: PNG (RGBA, 8 bits per channel); the committed frames are a NumPy .npy array, the tracks CSV, the
+  README plain text.
+reader: 'PNG: matplotlib.image.imread (Pillow, already locked as a dependency of matplotlib), in pbc.data.reference.trackpy_bulk_water.read_frame,
+  used only by the one-time tracking: tools/datasets/bulk_water_tracks.py, outside the build, on frames
+  pinned by sha256 in the script; output sha256 e676e8bb6ab18a48c789dfc0444bf0a716ae13b3548d75d32f03c3b74d88d586
+  (CSV) and 2e0c8355f5426c1fc23a23da8bc6f3a215747a8eee65faf5f16cf7d320feb6b7 (npy). CSV: pbc.data.reference.trackpy_bulk_water.read_tracks
+  (NumPy); npy: read_frames (numpy.load without pickle). No new dependency.'
+downloads:
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/README
+  filename: README
+  algorithm: sha256
+  digest: 4b399c43071e71c2db3a941f8b6f26022a0959a90d8cff8c2765faf5d0e6e254
+  digest_source: &digest_source "computed on 2026-11-08 from the file downloaded at commit 09fb3074; GitHub publishes the git blob SHA-1 of each file, and all 41 matched"
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_000.png
+  filename: bulk_water_000.png
+  algorithm: sha256
+  digest: feae7568616c191e7cfa7a24b913c8bb6c7418baf6dd9f83122e3db996cd682b
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_001.png
+  filename: bulk_water_001.png
+  algorithm: sha256
+  digest: 70eaa055e631e531ee83ec16501a47e20521b34df2cb27281915203414e6eb85
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_002.png
+  filename: bulk_water_002.png
+  algorithm: sha256
+  digest: e07c854b4dddb3105da6b2cc6591cc1291768d7e1c6a152550c574352e4da1c5
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_003.png
+  filename: bulk_water_003.png
+  algorithm: sha256
+  digest: 995456bb46493805c0c248d110b8a7e5b09e30ad25cae0e315bd243519e63776
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_004.png
+  filename: bulk_water_004.png
+  algorithm: sha256
+  digest: d644d1bb4bc753ba6ac259843cfa61f5d2476c8c22af772bef7403356b367c93
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_005.png
+  filename: bulk_water_005.png
+  algorithm: sha256
+  digest: eac6b93629127e60b6ec633027ae7370be8a45f9ff433ccd3e21f1216fb9dcac
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_006.png
+  filename: bulk_water_006.png
+  algorithm: sha256
+  digest: 60e9a7da1a9bab4766ea3c4eceb2ff00ce05ef114264f791daed9dbca483383e
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_007.png
+  filename: bulk_water_007.png
+  algorithm: sha256
+  digest: 3559aff34b2b85701c75aeb39354d09182dc6dfea141223732e8e94247674f46
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_008.png
+  filename: bulk_water_008.png
+  algorithm: sha256
+  digest: eea86635e8b5fe13343dcb0e1f4b90cdf871b3a7d8dde95b949d91d7f82467ac
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_009.png
+  filename: bulk_water_009.png
+  algorithm: sha256
+  digest: 18433282025ecbc82627ef8f62d161615c80acf89c639c42d31d90da1f827bbd
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_010.png
+  filename: bulk_water_010.png
+  algorithm: sha256
+  digest: ccb4cb9e28466efdc613faa2293ab2ec1774b68c686a5608f0e36fc6c3b4d18c
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_011.png
+  filename: bulk_water_011.png
+  algorithm: sha256
+  digest: e6a9d83a2c91c96ce11b8a87706d658fec46f5441dc0a99d9c8f04fc786af69c
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_012.png
+  filename: bulk_water_012.png
+  algorithm: sha256
+  digest: f2864a9528322432c6052b307cb33390410a1752b7dfc3915b24b4db3b2ef7be
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_013.png
+  filename: bulk_water_013.png
+  algorithm: sha256
+  digest: 497a8bd8067863ac6ab7bbb99a218dcb0c774b6b22d3bad7b2920c1868bb63b0
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_014.png
+  filename: bulk_water_014.png
+  algorithm: sha256
+  digest: ffc945782b6084f50d5f9463a555d4ef9d70c82d7faf62ce5c2cdcb16675deb1
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_015.png
+  filename: bulk_water_015.png
+  algorithm: sha256
+  digest: 5ad91a8980349ccd660bb4dc77f17778edb78602eb9c177adafddf816b7ac13f
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_016.png
+  filename: bulk_water_016.png
+  algorithm: sha256
+  digest: 6181d2475b8d6b769e0fbc3b9c0df61cf605b6901616ebca46d39e4888caac57
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_017.png
+  filename: bulk_water_017.png
+  algorithm: sha256
+  digest: 02fb9db2d0d85cc666c631cec0f68b7c8468cbacd31481d6aaeaf83f64892858
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_018.png
+  filename: bulk_water_018.png
+  algorithm: sha256
+  digest: e4f7960e89c967093ea0e5cddf199b1c8356462b4dcc158ad554de381044f98e
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_019.png
+  filename: bulk_water_019.png
+  algorithm: sha256
+  digest: 5d542c8f8542cb874a6eabcf1dd48f3739a8358c23ac927edb7392e7d58bdd43
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_020.png
+  filename: bulk_water_020.png
+  algorithm: sha256
+  digest: f3a5add0744112329df399888ca03070183027a70852906cd35539641883c061
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_021.png
+  filename: bulk_water_021.png
+  algorithm: sha256
+  digest: afe0faa904644aef8cf58684076e1d148aabd572b1a62c93d3a1450819007a77
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_022.png
+  filename: bulk_water_022.png
+  algorithm: sha256
+  digest: 3652cd7193b257c699bca9e085a4ec81369dbb2f7f44db74f5376e8bce077386
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_023.png
+  filename: bulk_water_023.png
+  algorithm: sha256
+  digest: 147a8788666c124e2b248b28bba584a9f1e1b1c7c6c3d4d02dcbc39e73df7df2
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_024.png
+  filename: bulk_water_024.png
+  algorithm: sha256
+  digest: d30396f7b81d05b989e60b29ce24ba35592f38e8a55dadf3301bb181b414ab92
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_025.png
+  filename: bulk_water_025.png
+  algorithm: sha256
+  digest: cd2172d64386a83fde37e5a7d3723207c7011e9d0a2e9da9a3da71f1db6b59ad
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_026.png
+  filename: bulk_water_026.png
+  algorithm: sha256
+  digest: e54cd40fc2325574fa7b717846701f38202087d6628c80f4476d708a93de905e
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_027.png
+  filename: bulk_water_027.png
+  algorithm: sha256
+  digest: 84723fb684e2bddcc1c6e5c4bb5d1bb8aaa7b355c332e586ce695f69c14f55be
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_028.png
+  filename: bulk_water_028.png
+  algorithm: sha256
+  digest: 98f77422df88e5c59c04171d56d89cdf559bf7de884d5565c4ad1ad3ba7f5f0d
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_029.png
+  filename: bulk_water_029.png
+  algorithm: sha256
+  digest: 2ae3b253ee499a6a666f2b3e06a233d9e4ae7d57e251d5cd5ff9ce9c6594ddb5
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_030.png
+  filename: bulk_water_030.png
+  algorithm: sha256
+  digest: f89afef4f01881979bdcb9a87785c3f767e14613576c09d10de261f6cdf3f204
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_031.png
+  filename: bulk_water_031.png
+  algorithm: sha256
+  digest: 5c67ae1d912daa0eefe8d1961001fe6397b0cde82f6ecb481890a21cc329b383
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_032.png
+  filename: bulk_water_032.png
+  algorithm: sha256
+  digest: ba072d1c24cf4bf85c62821a6b0b7114a066b56d525d6fef320495faff80335e
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_033.png
+  filename: bulk_water_033.png
+  algorithm: sha256
+  digest: 7742b893a8156622a6202e2650b1ea289a4a0796f1e94aeda5f7c776ee93b15d
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_034.png
+  filename: bulk_water_034.png
+  algorithm: sha256
+  digest: 957560a7a4b1b38bbd08e4f53bccce47abc1c85234a592bd650c1c958a787614
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_035.png
+  filename: bulk_water_035.png
+  algorithm: sha256
+  digest: 91134b44834b35177135af2945059ee240a324052eda424d0b7f3dc1721324c3
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_036.png
+  filename: bulk_water_036.png
+  algorithm: sha256
+  digest: 4485fed31b84ac649e2516f0240d593913ff415a4dc33e2799b1d109652c3162
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_037.png
+  filename: bulk_water_037.png
+  algorithm: sha256
+  digest: 1effa1b08f866c6554bc3fc361d973d23365e0382520bed726d88a46f33dffd9
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_038.png
+  filename: bulk_water_038.png
+  algorithm: sha256
+  digest: 8e7ad590311fef5ff43b1a2036cc5865edba5bd98de412bb0e17e28b159c5478
+  digest_source: *digest_source
+- url: https://raw.githubusercontent.com/soft-matter/trackpy-examples/09fb3074a173585d48b5001b5b4b7e6479999598/sample_data/bulk_water/bulk_water_039.png
+  filename: bulk_water_039.png
+  algorithm: sha256
+  digest: 3b1d65b2ce9836aa6002574fe43abd4acf9b8ccebe00353d8e4b56b4472f83b6
+  digest_source: *digest_source
+samples:
+- path: bulk_water_tracks.csv
+  sha256: e676e8bb6ab18a48c789dfc0444bf0a716ae13b3548d75d32f03c3b74d88d586
+  bytes: 667420
+  derivation: tools/datasets/bulk_water_tracks.py on frames 000-039 of the downloads above; every located
+    feature of mass >= 90 with its track, positions to 0.001 px, mass to 0.1; the same bytes on each run
+  test: tests/unit/test_data_bulk_water.py::test_trackpy_bulk_water_sample_parses
+- path: bulk_water_green_000-002.npy
+  sha256: 2e0c8355f5426c1fc23a23da8bc6f3a215747a8eee65faf5f16cf7d320feb6b7
+  bytes: 814208
+  derivation: tools/datasets/bulk_water_tracks.py on the downloads above; the green channel of frames 000-002,
+    grey levels unchanged, uint8; the same bytes on each run
+  test: tests/unit/test_data_bulk_water.py::test_the_readme_is_the_providers_and_the_green_frames_parse
+- path: README
+  sha256: 4b399c43071e71c2db3a941f8b6f26022a0959a90d8cff8c2765faf5d0e6e254
+  bytes: 119
+  derivation: the file of the download, unmodified (git blob 6d41fcad4a3878eec2e77f3549af42e4ff6c7f92)
+  test: tests/unit/test_data_bulk_water.py::test_the_readme_is_the_providers_and_the_green_frames_parse
+estimates:
+  runtime: 'Reference figure: about 1.5 s with the interpreter start (the analysis with 1,000 bootstrap
+    resamples 0.1 s); the sensitivity analysis 0.2 s more. The one-time tracking of 40 frames: about 3
+    s, outside the build.'
+  memory: About 185 MB peak resident for the figure; about 275 MB for the tracking.
+  page_payload: 1.48 MB committed, read at build time and not shipped; a figure PNG of about 280 KB.
+  ci: 'Offline: three committed files.'
+decision:
+  value: go
+  date: *accessed
+  reasons:
+  - 'Real files inspected: frames 000-039 at commit 09fb3074, all 41 git blob SHA-1s matching GitHub''s
+    tree; sha256 recorded; 640 x 424 RGBA, the green channel used.'
+  - 'The project''s own tracking (NumPy, SciPy; disclosed as processing, repeated by the build on the
+    green channel of the three committed frames): 582-603 features per frame, 596 tracks of at least 15 frames, a drift of
+    0.55 µm/s (estimated from all linked features) subtracted; D = 0.403 +- 0.010 µm^2/s (bootstrap), with a sensitivity range of about +-0.02
+    from the processing choices (not a standard deviation), against Stokes-Einstein 0.429 (20 °C) and
+    0.491 (25 °C); the power law of the trackpy walkthrough notebook (n = 1.08) is not a comparable fit.'
+  - 'Not documented, and stated as such: the temperature, the exposure time, the sphere size tolerance,
+    the depth, and the compression of the video; the comparison with Stokes-Einstein is therefore no
+    better than about 15 %, and the negative MSD intercept and the non-Gaussian steps are reported, not
+    explained.'
+  - 'CC BY 3.0 (the user''s choice of the repository''s dual licence BSD 3-clause or CC BY 3.0); local
+    download, subsets, figures, and modification permitted, with the copyright notice, the URI of the
+    licence, and the changes indicated.'
+  - 'Recorded by F85 (Issue #439) under the owner''s decision of 2026-11-08 on the Issue: work towards
+    a go on the strength of the research, with every requirement of ADR 007 checked in the dossier; the
+    tracking is the project''s processing and is disclosed as such, and the temperature is not documented.'
+dossier: docs/datasets/trackpy-bulk-water.md

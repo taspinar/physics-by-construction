@@ -1,37 +1,126 @@
 id: tess-exoplanet-light-curves
-title: NASA TESS photometric light curves
+title: NASA TESS photometric light curves; inspected file the SPOC 2-minute light curve of WASP-18, sector 29
 source:
-  url: https://heasarc.gsfc.nasa.gov/docs/tess/tutorial_landing.html
-  creator: NASA TESS mission, distributed through MAST and HEASARC
-  version: not assessed
-  accessed: &id001 2026-10-09
+  url: https://mast.stsci.edu/api/v0.1/Download/file?uri=mast:TESS/product/tess2020238165205-s0029-0000000100100827-0193-s_lc.fits
+  doi: 10.17909/t9-nmc8-f686
+  creator: NASA TESS mission; light curve by the Science Processing Operations Center (SPOC) at NASA Ames
+    (FITS ORIGIN 'NASA/Ames'), distributed by MAST at STScI; collection 'TESS Light Curves - All Sectors',
+    TESS Team, STScI/MAST
+  version: 'SPOC pipeline spoc-5.0.13-20201001, data release 43 (DATA_REL), file version 1.0 (FILEVER),
+    written 2020-10-04; TIC 100100827, sector 29, camera 2, CCD 2'
+  accessed: &accessed 2026-11-08
 rights:
-  licence: not-assessed
+  licence: equivalent-permission
   local_download:
-    answer: not-assessed
-    source: 'not assessed: the record''s terms have not been read for this survey card'
+    answer: permitted
+    source: 'MAST data use policy https://archive.stsci.edu/publishing/data-use, read 2026-11-08: "Most
+      data hosted at MAST are in the public domain ... and therefore do not have restrictions on use";
+      TESS has no exclusive access period, https://heasarc.gsfc.nasa.gov/docs/tess/faq.html ("No, all
+      TESS data becomes immediately public when it arrives in the TESS archive MAST")'
   redistribution_of_subsets:
-    answer: not-assessed
-    source: 'not assessed: the record''s terms have not been read for this survey card'
+    answer: permitted
+    source: 'https://archive.stsci.edu/publishing/data-use, read 2026-11-08: public domain, no restrictions
+      on use; TESS light curves are in none of its restricted classes (exclusive access, CC BY licensed
+      high-level science products, the copyrighted DSS and Guide Star Catalogs)'
   publication_of_figures:
-    answer: not-assessed
-    source: 'not assessed: the record''s terms have not been read for this survey card'
+    answer: permitted
+    source: 'https://archive.stsci.edu/publishing/data-use, read 2026-11-08: no restrictions on use; the
+      expected acknowledgement is at https://archive.stsci.edu/publishing/mission-acknowledgements (section
+      TESS)'
   modification_and_attribution:
-    answer: not-assessed
-    source: 'not assessed: the record''s terms have not been read for this survey card'
+    answer: permitted
+    source: 'https://archive.stsci.edu/publishing/data-use, read 2026-11-08: no restrictions on use, with
+      the expectation to acknowledge the mission and STScI; the TESS text of https://archive.stsci.edu/publishing/mission-acknowledgements
+      and of https://heasarc.gsfc.nasa.gov/docs/tess/faq.html'
+  attribution: 'Includes data collected with the TESS mission, obtained from the MAST data archive at the
+    Space Telescope Science Institute (STScI). Funding for the TESS mission is provided by the NASA Explorer
+    Program. STScI is operated by the Association of Universities for Research in Astronomy, Inc., under
+    NASA contract NAS5-26555. File tess2020238165205-s0029-0000000100100827-0193-s_lc.fits (doi 10.17909/t9-nmc8-f686);
+    four columns converted to CSV, values unchanged.'
 artifacts:
-- name: light curve
+- name: tess2020238165205-s0029-0000000100100827-0193-s_lc.fits
   type: calibrated-observation
-  description: Calibrated photometric time series (as described by the source; no file was inspected)
+  description: 'SPOC light curve of TIC 100100827 (WASP-18): simple aperture photometry (SAP_FLUX) of
+    calibrated pixels and PDCSAP_FLUX, the same flux corrected by the pipeline for instrumental systematics
+    (PDCMETHD msMAP) and for the flux of other stars in the aperture (CROWDSAP 0.984) and outside it
+    (FLFRCSAP 0.949), with errors, background, centroids, and quality flags; 18,864 cadences of 120 s.'
+- name: wasp18_s0029_lc.csv
+  type: calibrated-observation
+  description: 'The committed sample: the columns TIME, PDCSAP_FLUX, PDCSAP_FLUX_ERR, QUALITY of every
+    row of the FITS table, converted by tools/datasets/tess_lc_to_csv.py with no value changed. The normalisation,
+    the folding, and the transit fit of the reference figure are computed by pbc.data.reference.tess_wasp18,
+    are not part of the record, and are drawn apart from the measurement.'
+calibration: 'By the SPOC pipeline before release (pixel calibration, background subtraction, aperture
+  photometry, systematics correction by co-trending basis vectors, crowding and flux-fraction corrections;
+  keywords PDCMETHD, CROWDSAP, FLFRCSAP of the FITS header). No calibration is applied here; the reference
+  analysis divides each transit by a parabola fitted to the flux outside it.'
+schema: 'CSV with four comment lines (source file and its sha256, the conversion, the units) and the header
+  time,pdcsap_flux,pdcsap_flux_err,quality; 18,864 rows, one per cadence, in the order of the FITS table.
+  Source: the BINTABLE LIGHTCURVE (HDU 1, 20 columns) of the FITS file; HDU 0 is the primary header, HDU
+  2 the 11 x 11 aperture image.'
+units: 'From the FITS header (TUNITn): time in BJD - 2457000, days (TIMESYS TDB, TIMEREF SOLARSYSTEM, barycentric);
+  pdcsap_flux and pdcsap_flux_err in e-/s; quality an integer bit mask without a unit.'
+cadence: '120 s (TIMEDEL 0.0013889 d; every finite step 120.0 s): 18,864 cadences from BJD - 2457000 =
+  2088.2377 to 2114.4366 (DATE-OBS 2020-08-26 to DATE-END 2020-09-21); time stamps missing for 681
+  cadences between 2101.378 and 2102.325.'
+coordinates: 'TIC 100100827 (WASP-18), RA 24.35431 deg, Dec -45.67788 deg (RA_OBJ, DEC_OBJ), TESS magnitude
+  8.83; times at the solar-system barycentre.'
+masks: 'Missing values are nan (time for 681 cadences, all flagged 8; PDCSAP flux and error together for
+  4,503). QUALITY is the SPOC bit mask, nonzero for 4,506 cadences (values 8, 32, 128, 160, 164, 168, 512,
+  4096, 32768); the bits are defined in the TESS Science Data Products Description, not in the file. The
+  reference analysis keeps the 14,358 cadences with quality 0 and finite values; PDCSAP is missing from
+  2098.44 to 2102.33 and after 2112.14.'
+uncertainty: 'PDCSAP_FLUX_ERR per cadence, about 540 ppm of the flux (1-sigma, from the pipeline). Derived
+  (dossier): the shape fit to 21 transits gives reduced chi-square 1.16 with these errors, so they describe
+  the scatter to within 8 %; p = 0.09795 +- 0.00039, a = 3.437 +- 0.035 stellar radii, b = 0.400 +- 0.027,
+  P = 0.9414504 +- 0.0000044 d. The 21 mid-times scatter about the ephemeris with chi-square 41.8 for 19
+  degrees of freedom, so the timing errors are about 1.5 times too small. As a sensitivity analysis of
+  the normalisation, windows of +-0.12 and +-0.20 d move p by -0.00026 and +0.00023, and a straight baseline
+  instead of the parabola makes the transit 196 ppm deeper; no bound on the pipeline''s systematics or crowding
+  corrections, which the record does not give.'
 size:
-  description: Per object and cadence; selectable.
-format: FITS
-reader: none yet
+  description: 'The FITS file is 1,915,200 bytes; the CSV sample with all 18,864 rows of four columns is
+    703,878 bytes.'
+format: FITS (binary table); the committed sample is CSV.
+reader: 'FITS: converted once, outside the build, by tools/datasets/tess_lc_to_csv.py (NumPy only; input
+  sha256 c89434e50db863e589c9321cf29c93e449ef1526f1a9db19552446b721fd0949 pinned in the script, FITS CHECKSUM
+  of all three HDUs verified; output sha256 96cc3d255288b4158386e035358c7a8f4787180931fbe9863acd5113d14ecf11).
+  CSV: pbc.data.reference.tess_wasp18.read_light_curve (NumPy). No new dependency.'
+downloads:
+- url: https://mast.stsci.edu/api/v0.1/Download/file?uri=mast:TESS/product/tess2020238165205-s0029-0000000100100827-0193-s_lc.fits
+  filename: tess2020238165205-s0029-0000000100100827-0193-s_lc.fits
+  algorithm: sha256
+  digest: c89434e50db863e589c9321cf29c93e449ef1526f1a9db19552446b721fd0949
+  digest_source: computed on 2026-11-08 from the file downloaded from MAST (1,915,200 bytes); MAST
+    publishes no digest, and the FITS CHECKSUM keywords of all three HDUs verify
+samples:
+- path: wasp18_s0029_lc.csv
+  sha256: 96cc3d255288b4158386e035358c7a8f4787180931fbe9863acd5113d14ecf11
+  bytes: 703878
+  derivation: tools/datasets/tess_lc_to_csv.py on the FITS file of the download above; every row, the
+    columns TIME, PDCSAP_FLUX, PDCSAP_FLUX_ERR, QUALITY, each value the shortest decimal that reads back
+    to the same binary number
+  test: tests/unit/test_data_tess_wasp18.py::test_tess_wasp18_sample_parses
+estimates:
+  runtime: 'Reference figure: about 6.5 s with the interpreter start (the two-pass fit about 4 s); the
+    sensitivity analysis 11 s more.'
+  memory: About 190 MB peak resident for the figure.
+  page_payload: 704 KB committed, read at build time and not shipped; a figure PNG of about 300 KB.
+  ci: 'Offline: one committed file.'
 decision:
-  value: survey-only
-  date: *id001
+  value: go
+  date: *accessed
   reasons:
-  - Listed in Appendix A of docs/changes/physics-next-phase.md (research snapshot 2026-10-09); the linked
-    page is a tutorial, so the terms of the data are unread.
-  gate: Retrieve one small light curve with its terms, add a FITS reader, and handle gaps, systematics,
-    and detrending before a transit is claimed.
+  - 'Real file inspected: 18,864 cadences of 120 s over 26.2 days, 14,358 good; sha256 recorded, FITS
+    CHECKSUM of all three HDUs verified; converted to CSV by a pinned script with no value changed.'
+  - 'The AST7 transit with quadratic limb darkening describes 21 complete transits with reduced chi-square
+    1.16 on the pipeline''s errors: depth 10,696 ppm, T14 = 2.188 h, b = 0.400, a = 3.437 stellar radii,
+    P = 0.9414504 d measured from the mid-times.'
+  - Uncertainties from PDCSAP_FLUX_ERR, tested by the reduced chi-square and the mid-time scatter (1.5
+    times the errors); the normalisation window and baseline reported as a sensitivity analysis; the
+    pipeline's corrections are stated, not re-derived.
+  - Public domain under the MAST data use policy, no exclusive access for TESS; local download, subsets,
+    figures, and modification permitted, with the TESS acknowledgement.
+  - 'Recorded by F104 (Issue #420) under the owner''s decision of 2026-11-08 on the Issue: work towards
+    a go on the strength of the research, with every requirement of ADR 007 checked in the dossier.'
+dossier: docs/datasets/tess-exoplanet-light-curves.md

@@ -662,9 +662,12 @@ specs="$(sed -n 's/^protected:[[:space:]]*//p' "$source_root/.agents/policies/gu
 # scripts and tests (ADR 019 decision 1, tests/unit/test_skills_boundary.py),
 # so it is the one further path the file must hold, and the loop below shows
 # that a change to it is reported as protected like every other.
-expected=(docs/decisions docs/PROJECT_REQUIREMENTS.md docs/roadmap.md docs/architecture.md .github/workflows
+# docs/architecture.md and the prompts other than the reviewer contract are
+# sensitive, not protected (the addendum of 2026-11-08 to ADR 020 decision 1,
+# Issue #412); the cases below the loop show it.
+expected=(docs/decisions docs/PROJECT_REQUIREMENTS.md docs/roadmap.md .github/workflows
   .github/CODEOWNERS scripts/lib scripts/check-guardrails.sh scripts/check-review.sh scripts/ci-aggregate.sh
-  .agents/prompts .agents/schemas .agents/policies AGENTS.md .agents/agents.conf scripts/verify.conf scripts/verify.sh
+  .agents/prompts/reviewer.md .agents/schemas .agents/policies AGENTS.md .agents/agents.conf scripts/verify.conf scripts/verify.sh
   src/pbc/authoring/digest.py src/pbc/authoring/selection.py scripts/fetch-base.sh scripts/collect-base.sh
   src/pbc/authoring/provenance.py scripts/build-site.sh .agents/approvals
   ':(glob)scripts/*-feature.sh' ':(glob)scripts/*-planning.sh')
@@ -706,5 +709,70 @@ for path in docs/development.md site/lessons/x/index.qmd src/pbc/other.py tests/
     fail "the Level 1 or 2 path $path is reported as protected"
   fi
 done
+sensitive_specs="$(sed -n 's/^sensitive:[[:space:]]*//p' "$source_root/.agents/policies/guardrails.conf" | tr -s '[:space:]' '\n' | grep .)"
+for spec in docs/architecture.md .agents/prompts; do
+  printf '%s\n' "$sensitive_specs" | grep -Fqx -- "$spec" || fail "guardrails.conf does not name $spec as sensitive"
+  ! printf '%s\n' "$specs" | grep -Fqx -- "$spec" || fail "guardrails.conf still protects $spec"
+done
+# A change to the architecture document or to a prompt other than the
+# reviewer contract is reported as sensitive and not protected; a change to
+# the reviewer contract or a schema stays protected.
+for path in docs/architecture.md .agents/prompts/implementer.md .agents/prompts/triage-reviewer.md; do
+  git -C "$repo" reset -q --hard
+  git -C "$repo" clean -qfd
+  mkdir -p "$repo/$(dirname "$path")"
+  printf '# changed\n' >>"$repo/$path"
+  check "$repo"
+  grep -Fqx "level: sensitive" "$repo.out" && grep -Fq "sensitive: $path (" "$repo.out" || {
+    cat "$repo.out" >&2
+    fail "a change to $path is not reported as sensitive only"
+  }
+done
+for path in .agents/prompts/reviewer.md .agents/schemas/review.schema.json; do
+  git -C "$repo" reset -q --hard
+  git -C "$repo" clean -qfd
+  mkdir -p "$repo/$(dirname "$path")"
+  printf '# changed\n' >>"$repo/$path"
+  check "$repo"
+  grep -Fq "protected: $path (" "$repo.out" || {
+    cat "$repo.out" >&2
+    fail "a change to $path is no longer reported as protected"
+  }
+done
+
+# The level of a change that touches only these paths (Issue #412): the
+# architecture document and a prompt are Level 2 by path, never Level 1, so
+# an ordinary change to them gets an independent review; a trigger in the
+# content of the architecture document keeps it at Level 3; the reviewer
+# contract stays Level 3 by path.
+repo="$(setup_repo architecture)"
+printf '\nMore on the layers.\n' >>"$repo/docs/architecture.md"
+assess "$repo"
+expect "an ordinary change to docs/architecture.md" RISK_PATH_MIN 2
+expect "an ordinary change to docs/architecture.md" RISK_REQUIRED 2
+printf '{"architecture_impact": {"level": "minor", "rationale": "x", "checked_against": [], "risk_level": 3, "escalation_triggers": ["verification guarantees: the invariant of the digest is weakened"]}}\n' >"$tmp/review-architecture.json"
+assess "$repo" "$tmp/review-architecture.json"
+expect "a change to docs/architecture.md that touches a trigger" RISK_PATH_MIN 2
+expect "a change to docs/architecture.md that touches a trigger" RISK_REQUIRED 3
+printf '%s\n' "$RISK_NAMED_TRIGGERS" | grep -Fq "verification guarantees: the invariant of the digest is weakened" ||
+  fail "the trigger named for docs/architecture.md was not kept"
+record "$repo" 2
+jq '.risk.triggers = ["verification guarantees"]' "$repo/.agents/completion/5.json" >"$tmp/architecture-record.json"
+mv "$tmp/architecture-record.json" "$repo/.agents/completion/5.json"
+assess "$repo"
+expect "a change to docs/architecture.md whose record names a trigger" RISK_REQUIRED 3
+
+repo="$(setup_repo prompt)"
+mkdir -p "$repo/.agents/prompts"
+printf '# Implementer\n' >>"$repo/.agents/prompts/implementer.md"
+assess "$repo"
+expect "a change to a prompt other than the reviewer contract" RISK_PATH_MIN 2
+expect "a change to a prompt other than the reviewer contract" RISK_REQUIRED 2
+
+repo="$(setup_repo reviewer-contract)"
+mkdir -p "$repo/.agents/prompts"
+printf '# Reviewer\n' >>"$repo/.agents/prompts/reviewer.md"
+assess "$repo"
+expect "a change to the reviewer contract" RISK_PATH_MIN 3
 
 echo "risk level tests passed"
