@@ -13,7 +13,9 @@ of 2026-11-08 on the Issue). Phase 2, the W7 lab, is a later step.
 2. Conversion (ADR 007 addendum, #417): `tools/datasets/lycopodium_xlsx_to_csv.py`,
    standard library only (zip + XML), input sha256 pinned, every row and
    column unchanged; outputs `profile_633nm.csv` and `profile_405nm.csv`.
-   The two morphometry CSVs are committed unmodified (the record's bytes).
+   The two morphometry CSVs are committed re-encoded from Latin-1 to UTF-8 by the
+   pinned `tools/datasets/lycopodium_morphometry_to_utf8.py`, nothing else changed
+   (owner's fix instruction of 2026-11-09 on #440: the review input must be UTF-8).
 3. Reader and reference figure `src/pbc/data/reference/lycopodium.py`:
    - microscope diameters of whole spores (d > 15 um) at both magnifications;
    - the dark ring of each profile: centre by mirror symmetry, the profile

@@ -19,10 +19,11 @@ from pbc.waves.diffraction import AIRY_FIRST_ZERO
 DIR = SAMPLES_DIR / "lycopodium-spore-diffraction"
 CARD = load_card(REPO_ROOT / "data/registry/lycopodium-spore-diffraction.yaml")
 SCRIPT = REPO_ROOT / "tools/datasets/lycopodium_xlsx_to_csv.py"
+RECODE = REPO_ROOT / "tools/datasets/lycopodium_morphometry_to_utf8.py"
 
 
-def converter():
-    spec = importlib.util.spec_from_file_location("lycopodium_xlsx_to_csv", SCRIPT)
+def converter(script=SCRIPT):
+    spec = importlib.util.spec_from_file_location(script.stem, script)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -77,13 +78,17 @@ def test_the_samples_are_the_record_files_and_the_conversion_outputs():
         data = (DIR / sample["path"]).read_bytes()
         assert hashlib.sha256(data).hexdigest() == sample["sha256"]
         assert len(data) == sample["bytes"]
-    # The morphometry files are the record's bytes: their md5 is Zenodo's.
-    md5 = {
-        "Lycopodium_Morphometry_x160.csv": "bf607a6ee0b547b614067f4be793d9cc",
-        "Lycopodium_Morphometry_x80.csv": "ac827547093505ab1867d17b19be8521",
-    }
-    for name, digest in md5.items():
-        assert hashlib.md5((DIR / name).read_bytes()).hexdigest() == digest
+    # The morphometry samples are the record's files re-encoded from Latin-1
+    # to UTF-8 and nothing else: encoded back, their md5 is Zenodo's, and
+    # their sha256 is the one the re-encoding script pins.
+    recode = converter(RECODE).INPUTS
+    md5 = {d["filename"]: d["digest"] for d in CARD["downloads"]}
+    for name in lyc.MORPHOMETRY.values():
+        record = (DIR / name).read_bytes().decode("utf-8").encode("latin-1")
+        assert hashlib.md5(record).hexdigest() == md5[name]
+        assert hashlib.sha256(record).hexdigest() == recode[name]
+    assert md5["Lycopodium_Morphometry_x160.csv"] == "bf607a6ee0b547b614067f4be793d9cc"
+    assert md5["Lycopodium_Morphometry_x80.csv"] == "ac827547093505ab1867d17b19be8521"
     pinned = converter().INPUTS
     for download in CARD["downloads"]:
         if download["filename"].endswith(".xlsx"):
@@ -216,3 +221,27 @@ def test_the_conversion_refuses_another_layout(tmp_path):
     _xlsx(gap, [[0, 1, 2, 3], [2, 1, 2, 3]])
     with pytest.raises(ValueError, match="expected 1"):
         tool.convert(gap, tmp_path / "b.csv", check_input=False)
+
+
+def test_the_reencoding_changes_the_micro_sign_and_nothing_else(tmp_path):
+    tool = converter(RECODE)
+    source = tmp_path / "morphometry.csv"
+    record = (
+        b" ;Area;;r^2  (\xb5m^2);r (\xb5m);d (\xb5m)\r\n"
+        b"1;511.04;;162.75;12.757;25.515\r\n"
+    )
+    source.write_bytes(record)
+    out = tmp_path / "out.csv"
+    tool.convert(source, out, check_input=False)
+    data = out.read_bytes()
+    assert data == record.replace(b"\xb5", "µ".encode())
+    assert data.decode("utf-8").encode("latin-1") == record
+    table = lyc.read_morphometry(out)
+    assert table["d (µm)"].tolist() == [25.515] and table["Area"].tolist() == [511.04]
+    # The pinned check refuses a file that is not one of the inspected ones,
+    # and another byte above 127 leaves the decoding in doubt.
+    with pytest.raises(ValueError, match="not a pinned input"):
+        tool.convert(source, out)
+    source.write_bytes(record + b"\x96\r\n")
+    with pytest.raises(ValueError, match="other than 0xB5"):
+        tool.convert(source, out, check_input=False)

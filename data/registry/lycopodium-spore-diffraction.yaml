@@ -33,7 +33,7 @@ rights:
       a link, and an indication of changes'
   attribution: 'Voronkin, O., Lushchin, S., ''Morphometry and Optical Data of Lycopodium Spores for the
     Study of Diffraction and Interference'', Zenodo, 2025, doi 10.5281/zenodo.15846643, CC BY 4.0. The
-    two intensity profiles converted from XLSX to CSV with values unchanged; the morphometry files unmodified.'
+    two intensity profiles converted from XLSX to CSV with values unchanged; the morphometry files re-encoded from Latin-1 to UTF-8, nothing else changed.'
 artifacts:
 - name: Diffraction_Lycopodium_HeNe_0.6328um_Nokia5.jpg and the other diffraction photographs
   type: raw-measured
@@ -55,7 +55,8 @@ artifacts:
   type: processed-measured
   description: 'ImageJ "Analyze Particles" results of binarised micrographs at x160 and x80 (MMU-5C microscope,
     ToupTek camera, each calibrated by a 10 um scale bar per the record), with the creators'' r^2, r,
-    and d of the circle of equal area; committed unmodified (the record''s bytes, md5 as on Zenodo).'
+    and d of the circle of equal area; committed re-encoded from Latin-1 to UTF-8 (the micro sign of three
+    headers), every number, separator and line ending as in the record''s file (md5 as on Zenodo).'
 - name: polydisperse Airy model
   type: modelled-reference
   description: 'The diffraction halo of opaque disks with the measured diameters, intensities added
@@ -69,8 +70,8 @@ calibration: 'Microscope: by a scale bar of 10 um divisions at each magnificatio
   article (paywalled, landing page read 2026-11-09) states neither on its abstract page.'
 schema: 'Profiles: CSV with three comment lines (source and its sha256, the conversion, the units) and
   the header n,x,y,luma; 2,211 rows (632.8 nm) and 932 rows (405 nm). Source: sheet 1 ''profile_A''
-  of each XLSX, title row, header row n x y luma, then the rows. Morphometry: '';''-separated, cp1252,
-  CRLF; an unnamed particle-number column, ImageJ''s Area, Mean, Min, Max, X, Y, (Perim., x160 only),
+  of each XLSX, title row, header row n x y luma, then the rows. Morphometry: '';''-separated, CRLF,
+  Latin-1 in the record and UTF-8 in the sample; an unnamed particle-number column, ImageJ''s Area, Mean, Min, Max, X, Y, (Perim., x160 only),
   Circ., Feret, FeretX, FeretY, FeretAngle, MinFeret, AR, Round, Solidity, an empty column, then r^2 (µm^2),
   r (µm), d (µm); 150 rows (x160) and 642 rows (x80).'
 units: 'Profiles: x and y in Tracker''s world unit, not stated (the agreement of the two wavelengths suggests
@@ -99,12 +100,16 @@ uncertainty: 'None in the record. Derived (dossier): microscope means 29.91 +- 0
 size:
   description: 'Record: 29 files, 71.6 MB (photographs and TIFFs up to 10.4 MB). Used: the two XLSX
     files (88,771 and 43,485 bytes) and the two morphometry CSVs (19,837 and 83,863 bytes). Committed:
-    234,325 bytes in four files.'
+    234,331 bytes in four files.'
 format: XLSX (profiles) and semicolon-separated CSV (morphometry); the committed profile samples are CSV.
 reader: 'XLSX: converted once, outside the build, by tools/datasets/lycopodium_xlsx_to_csv.py (standard
   library only; input sha256 2efdb178052814c982f3870746cf3173c671d1a997765b02af06335e0c496b87 and f7b6caf8daf2c90c2cb923515a3e55a2700d91e11373ca50714f193e83083e56
   pinned in the script; output sha256 f115399d9acc7d21b3dfe4f52b8b35b140666f044fe6f9b2a265a520af9df0e8
-  and 2906362fdd402ff5968095516a50b39e686edf1635a78e4392c3d65c90262d58). CSV: pbc.data.reference.lycopodium.read_profile
+  and 2906362fdd402ff5968095516a50b39e686edf1635a78e4392c3d65c90262d58). Morphometry CSV: re-encoded once,
+  outside the build, from Latin-1 to UTF-8 by tools/datasets/lycopodium_morphometry_to_utf8.py (input sha256
+  03648277f9fda3d561a8fbab048133e72333877feec65e103159a1baeb08d7dc and eb6a0c5c922add8b3f962b00374b6f52bfca2297bf4f45d5617c0aff5ca1644d
+  pinned in the script; output sha256 c72892f18b6d4250c195e43aab6d9b71b831b9e24a540d7d721faeb4dedf2fcc
+  and 3676fe56f4d5c1e96693687f415f6b64d829717359c3eed602e524d1805dfe53). CSV: pbc.data.reference.lycopodium.read_profile
   and read_morphometry (NumPy). No new dependency.'
 downloads:
 - url: https://zenodo.org/api/records/15846643/files/Intensity_profile_diffraction_lambda0.6328um.xlsx/content
@@ -143,14 +148,18 @@ samples:
     every row, the columns n, x, y, luma, each value the shortest decimal of the stored float64
   test: tests/unit/test_data_lycopodium.py::test_lycopodium_sample_parses
 - path: Lycopodium_Morphometry_x160.csv
-  sha256: 03648277f9fda3d561a8fbab048133e72333877feec65e103159a1baeb08d7dc
-  bytes: 19837
-  derivation: the record's file, unmodified (md5 bf607a6ee0b547b614067f4be793d9cc)
+  sha256: c72892f18b6d4250c195e43aab6d9b71b831b9e24a540d7d721faeb4dedf2fcc
+  bytes: 19840
+  derivation: tools/datasets/lycopodium_morphometry_to_utf8.py on the record's file (19,837 bytes, md5
+    bf607a6ee0b547b614067f4be793d9cc, sha256 03648277f9fda3d561a8fbab048133e72333877feec65e103159a1baeb08d7dc);
+    Latin-1 re-encoded as UTF-8, nothing else changed
   test: tests/unit/test_data_lycopodium.py::test_lycopodium_sample_parses
 - path: Lycopodium_Morphometry_x80.csv
-  sha256: eb6a0c5c922add8b3f962b00374b6f52bfca2297bf4f45d5617c0aff5ca1644d
-  bytes: 83863
-  derivation: the record's file, unmodified (md5 ac827547093505ab1867d17b19be8521)
+  sha256: 3676fe56f4d5c1e96693687f415f6b64d829717359c3eed602e524d1805dfe53
+  bytes: 83866
+  derivation: tools/datasets/lycopodium_morphometry_to_utf8.py on the record's file (83,863 bytes, md5
+    ac827547093505ab1867d17b19be8521, sha256 eb6a0c5c922add8b3f962b00374b6f52bfca2297bf4f45d5617c0aff5ca1644d);
+    Latin-1 re-encoded as UTF-8, nothing else changed
   test: tests/unit/test_data_lycopodium.py::test_lycopodium_sample_parses
 estimates:
   runtime: Reference figure about 3.2 s with the interpreter start.
@@ -162,7 +171,7 @@ decision:
   date: *accessed
   reasons:
   - 'Real files inspected: the two XLSX profiles and two morphometry CSVs, md5s equal to Zenodo''s; the
-    profiles converted to CSV by a pinned script with no value changed, the CSVs committed as they are.'
+    profiles converted to CSV by a pinned script with no value changed, the morphometry CSVs re-encoded to UTF-8 by a pinned script with no value changed.'
   - 'Scale-free test passed: the dark ring at 405 nm over that at 632.8 nm is 0.661 +- 0.024 against
     the wavelength ratio 0.640, as Fraunhofer diffraction by particles of one size distribution requires;
     the microscope gives that distribution (whole spores 29.91 +- 0.34 µm at x160, 30.36 +- 0.13 µm at

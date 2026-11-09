@@ -85,13 +85,15 @@ def load_profiles(data_dir: Path) -> dict[float, Profile]:
 
 
 def read_morphometry(path: Path) -> dict[str, np.ndarray]:
-    """Read an ImageJ morphometry CSV of the record (cp1252, ';'-separated).
+    """Read a morphometry CSV of the sample: an ImageJ result of the record,
+    ';'-separated, re-encoded from Latin-1 to UTF-8 by
+    ``tools/datasets/lycopodium_morphometry_to_utf8.py``.
 
     The first column (no name) is the particle number, and an empty column
     separates ImageJ's measurements from the creators' r^2, r and d; columns
     are returned by name, without the empty one.
     """
-    lines = Path(path).read_text(encoding="cp1252").splitlines()
+    lines = Path(path).read_text(encoding="utf-8").splitlines()
     header = [h.strip() for h in lines[0].split(";")]
     rows = [line.split(";") for line in lines[1:] if line.strip()]
     if any(len(r) != len(header) for r in rows):
@@ -388,8 +390,9 @@ def make_figure(data_dir: Path) -> plt.Figure:
         "Lycopodium Spores for the Study of Diffraction and Interference', "
         "Zenodo, doi 10.5281/zenodo.15846643, CC BY 4.0; intensity profiles "
         "converted from XLSX to CSV, values unchanged; morphometry CSVs "
-        "unmodified. Centring, folding, smoothing, ring radii, and the model: "
-        "this figure's code (pbc.data.reference.lycopodium), not part of the record.",
+        "re-encoded to UTF-8, values unchanged. Centring, folding, smoothing, "
+        "ring radii, and the model: this figure's code "
+        "(pbc.data.reference.lycopodium), not part of the record.",
     )
     label_status(fig, "processed")
     return fig
