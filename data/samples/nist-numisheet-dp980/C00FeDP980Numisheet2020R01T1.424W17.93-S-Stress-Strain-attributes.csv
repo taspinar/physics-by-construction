@@ -1,0 +1,6 @@
+"Variable","Units","Type","Description","AxisLabel"
+"Time","s","Real","Time","Time /s"
+"Estress","MPa","Real","Engineering stress",""
+"Estrain","mm/mm","Real","Engineering strain",""
+"Tstress","MPa","Real","True stress",""
+"Tstrain","mm/mm","Real","True strain",""
