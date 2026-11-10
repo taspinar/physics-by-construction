@@ -422,9 +422,10 @@ each other is an error.
   #452). It gives grep a here-string or a captured variable instead, which
   involves no writer that can die. `grep ... >/dev/null` reads to the end
   with BSD grep, not with GNU grep, which stops at its first match when its
-  output is `/dev/null`. `tests/verify-test.sh` finds a pipe into `grep -q`
-  in `tests/`, `scripts/`, and `scripts/lib/`, also one that goes on at the
-  next line.
+  output is `/dev/null`. `tests/verify-test.sh` finds a pipe into a quiet
+  grep (`q` in any group of short options, `--quiet`, or `--silent`, before
+  or after the pattern) in `tests/`, `scripts/`, and `scripts/lib/`, also
+  one that goes on at the next line.
 
 ### Selection against a base
 
