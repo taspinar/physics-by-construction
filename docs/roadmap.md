@@ -11095,6 +11095,19 @@ top on the screen"; at 360 by 640 and 320 by 568 the primary action ends at
 least 24 px above the fold. The rest of the block stands; "the headline
 pair" below reads as the fixed text.
 
+**Correction of round 2 (the owner, 2026-11-10, Issue #462).** The fixed
+subtext is the owner's second text ("Explore physics by building models,
+testing predictions against real data, and discovering what AI might make
+possible."). At 200 % text on a narrow column the headline is lowered by
+size, never by breaking a word inside: it is at most 17.5 % of its
+column's width (about 37 px at 320 and 44 px at 360 CSS px at 200 %;
+unchanged at normal text). The reflow test's floor of 28 px times the text
+scale, which blocked this, is replaced for 200 % text by assertions that no
+word of the headline or the subtext is broken inside, that the headline is
+still enlarged (at least 1.35 times its normal size, 1.2 at 320 px, where
+the column holds the longest word at 1.27 at most), with no overlap and no
+horizontal overflow; the floor stands at normal text.
+
 **Problem.** Home answers what PBC is in three sentences and shows three
 example lessons and a capstone chosen by code; a first-time visitor learns
 neither how physics is learned here nor how Part A and Part B relate, and

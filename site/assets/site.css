@@ -2539,16 +2539,29 @@ body.pbc-reading-column main.content section.level2 {
   }
 }
 
-/* The one fixed headline and subtext: the block is as tall as its text. */
+/* The one fixed headline and subtext: the block is as tall as its text.
+   The block is the container the headline's size is measured against. */
 .hero-copy {
   grid-area: copy;
   min-width: 0;
+  container-type: inline-size;
 }
 
+/* The headline is never larger than 17.5 % of its column's width: the
+   longest word of the owner's headline ("intelligence.") is 5.6 em wide
+   in the page's face, so at that size every word fits on one line of the
+   column. At normal text the cap is far above the size (a 263 px column
+   at 320 CSS px allows 46 px); it bites only when the text is enlarged
+   on a narrow column (200 % text at 320 px: 37 px instead of 56; at 360
+   px: 44 px), where the words would otherwise break inside (the owner's
+   correction of round 2, Issue 462). The size is declared twice: the
+   plain value for a browser without container units, then the capped
+   one. */
 body.pbc-home .hero-headline {
   margin: 0 0 var(--pbc-space-3);
   max-width: 20ch;
   font-size: clamp(2rem, 1.3rem + 2vw, 3rem);
+  font-size: min(clamp(2rem, 1.3rem + 2vw, 3rem), 17.5cqi);
   font-weight: 600;
   line-height: 1.08;
   text-wrap: balance;
@@ -2603,6 +2616,7 @@ body.pbc-home .hero-subtext {
   body.pbc-home .hero-headline {
     margin-bottom: var(--pbc-space-2);
     font-size: 1.75rem;
+    font-size: min(1.75rem, 17.5cqi);
     line-height: 1.05;
   }
 

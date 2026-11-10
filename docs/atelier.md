@@ -264,7 +264,11 @@ kept.
   between 2rem and 3rem (1.75rem with tighter lines below 30em, the
   subtext at the body size below 22em, so that the message and the primary
   action fit 360 by 640 and 320 by 568 CSS px under the compact header with
-  room to spare), the two actions under it, 1.5rem below the subtext (the
+  room to spare; never larger than 17.5 % of its column's width, which at
+  normal text changes nothing and at 200 % text on a phone lowers it to
+  37 px at 320 and 44 px at 360 CSS px, so that every word of it fits on
+  one line instead of breaking inside), the two actions under it, 1.5rem
+  below the subtext (the
   Course Atlas as the one filled control of the page, the first lesson as a
   text link), and beside it from 992 CSS px one of four Part A
   illustrations at hero size, in a 4:3 box reserved before the image

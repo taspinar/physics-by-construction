@@ -93,14 +93,14 @@ def _home_problems(data) -> list[str]:
 
 def test_the_data_file_holds_the_owner_s_fixed_headline_and_subtext():
     assert hero_problems(DATA) == []
-    # The owner's words (round 2 of Issue #462, 2026-11-10), kept exactly.
+    # The owner's words (round 2 of Issue #462 and its correction,
+    # 2026-11-10), kept exactly.
     assert HERO.headline == (
         "The universe has no obligation to fit the limits of human intelligence."
     )
     assert HERO.subtext == (
-        "We explore physics by building models and testing them against theory,"
-        " real measurements, and formal proofs. Then we investigate how AI agents"
-        " might push the boundaries of scientific understanding."
+        "Explore physics by building models, testing predictions against real"
+        " data, and discovering what AI might make possible."
     )
 
 

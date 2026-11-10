@@ -381,3 +381,74 @@ the automated detector of Impeccable does not run (the adapter).
   `tests/integration/test_site_checks.py` run; `./scripts/verify.sh --only
   code` and `--only default` last. The complete `./scripts/verify.sh` is
   not run in the session, per the Issue's instruction.
+
+## Correction of round 2 (the owner, 2026-11-10): the subtitle and the headline at 200 % text
+
+The owner approved round 2 and asked for two things (Issue body "Owner's
+decisions, round 2, correction"): the new subtitle, and a responsive
+reduction of the headline's size at 200 % text on narrow columns instead
+of words breaking inside, with the reflow test's hard minimum replaced by
+meaningful assertions. Nothing else changes. Skills as in round 2:
+impeccable@08d5b470 (`reference/typeset.md`, `reference/adapt.md`),
+frontend-design@dbd4588f; the automated detector does not run.
+
+### Decisions (the session's choices, stated)
+
+- **The subtitle** is exactly "Explore physics by building models, testing
+  predictions against real data, and discovering what AI might make
+  possible." in `site/hero.yaml`; the unit test quotes it; the documents
+  that describe the subtext as "the owner's words" stand, and the roadmap
+  note names the text.
+- **The cause of the broken words:** below 30em the headline is 1.75rem,
+  which at 200 % text is 56 px, while the copy's column at 200 % is 212 px
+  wide at 320 CSS px (the theme's gutters scale with the text), 252 at 360
+  and 282 at 390; the longest word, "intelligence.", is 5.6 em wide in the
+  page's face (313 px at 56 px), so `overflow-wrap: break-word` split it
+  (and "universe", "obligation" at 320). Measured before the change:
+  three words broken at 320, two at 360, one at 390 at 200 %; none at 768
+  and 1280, and none at normal text.
+- **The size follows the column**, not the text scale or the device: the
+  copy block is a size container (`container-type: inline-size` on
+  `.hero-copy`) and the headline is `min(<its size>, 17.5cqi)`, at most
+  17.5 % of the column's width, which holds the longest word (100 / 5.6 =
+  17.9 %) with a small margin. At normal text the cap is far above the
+  size (a 263 px column at 320 px allows 46 px against 29.75), so the
+  typography is unchanged at every size; at 200 % it gives 37 px at 320,
+  44 px at 360, 49 px at 390 (the owner's 40 to 44 px where the column
+  allows it; at 320 the 212 px column cannot hold "intelligence." above
+  38 px). The plain size is declared before the capped one, so a browser
+  without container units keeps today's size. `overflow-wrap: break-word`
+  stays as the last resort for an unknown face; the test asserts that it
+  is never used.
+- **The reflow test** (`test_the_hero_reflows_without_overlap_at_every_size_and_at_200_percent_text`):
+  the assertion "headline at least 28 px times the text scale" is kept at
+  normal text (at least 28 px) and replaced at 200 % by: the headline is
+  at least 1.35 times its size at normal text (1.2 at 320 px, where 1.27
+  is the ceiling; measured 1.25 at 320, 1.48 at 360, 1.66 at 390, 1.41 on
+  the desktop, where the size is CSS arithmetic in rem and vw); no word
+  of the headline or the subtext is drawn in more than one line box
+  (`Range.getClientRects()` per word), and every word lies within the
+  copy's column; the existing assertions (no horizontal scroll of the
+  page or the content, no overlap of the copy, the actions, and the
+  image, the reading order, the tab order) stay. The new assertions are
+  stronger in kind: the old floor passed with three words broken.
+- **390 px and the desktop:** unchanged at normal text (the cap is above
+  the size); at 200 % the desktop keeps 67.2 px (the cap is 85) and 390
+  gets 49 px instead of 56 with "intelligence." whole.
+- **Outside this change** (recorded in the handoff note for the owner, as
+  asked): at 200 % text About's licence table at 360 px and, at 768 px,
+  the theme's content column and the "On this page" sidebar are wider
+  than the screen on their own.
+
+### Steps of the correction
+
+1. `site/hero.yaml` (the subtext), `tests/unit/test_home.py`.
+2. `site/assets/site.css` (the container and the capped size),
+   `tests/e2e/test_home.py` (the reflow test).
+3. Render Home, measure the words at the five sizes and both scales, run
+   the affected tests, the site-wide page checks on Home and one other
+   page, `--only code` and `--only default`.
+4. The documents (the roadmap note, `docs/architecture.md`,
+   `docs/atelier.md`), the approval request, this plan; the screenshots
+   at 320 and 360 px at 100 % and 200 % text (and the set of round 2 again
+   with the new subtitle), and what they show.

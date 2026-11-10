@@ -443,6 +443,48 @@ def test_on_the_smallest_phones_the_image_follows_whole_and_unshrunk(
     context.close()
 
 
+def _font_size(page: Page, selector: str) -> float:
+    return page.locator(selector).evaluate(
+        "e => parseFloat(getComputedStyle(e).fontSize)"
+    )
+
+
+def _words(page: Page, selector: str) -> list[tuple[str, int, float, float]]:
+    """Each word of the element's text with the number of line boxes it is
+    drawn in (two when it is broken inside) and its left and right edge."""
+    return page.locator(selector).evaluate(
+        """e => {
+            const words = [];
+            const walk = node => {
+                if (node.nodeType !== Node.TEXT_NODE) {
+                    node.childNodes.forEach(walk);
+                    return;
+                }
+                for (const match of node.textContent.matchAll(/\\S+/g)) {
+                    const range = document.createRange();
+                    range.setStart(node, match.index);
+                    range.setEnd(node, match.index + match[0].length);
+                    const rects = [...range.getClientRects()].filter(r => r.width > 0);
+                    words.push([match[0], rects.length,
+                                Math.min(...rects.map(r => r.left)),
+                                Math.max(...rects.map(r => r.right))]);
+                }
+            };
+            walk(e);
+            return words;
+        }"""
+    )
+
+
+# How much larger the headline is at 200 % text than at 100 %, by the
+# screen's width: at 320 CSS px the column at 200 % is 212 px wide and
+# holds the longest word ("intelligence.", 5.6 em) at 1.27 times the phone
+# size at most; from 360 px the column allows 1.4 and more (measured 1.48
+# at 360, 1.66 at 390, 1.41 on the desktop, where the size is CSS
+# arithmetic in rem and vw).
+_ENLARGED = {320: 1.2, None: 1.35}
+
+
 @pytest.mark.parametrize(
     "viewport",
     [DESKTOP, PHONE_TALL, PHONE_SMALL, PHONE_NARROW],
@@ -454,10 +496,13 @@ def test_the_hero_reflows_without_overlap_at_every_size_and_at_200_percent_text(
 ):
     """At every size, and with the text twice as large: no horizontal scroll,
     the copy, the actions, and the image do not overlap, the reading order
-    is the copy, then the two actions, then (stacked) the image, and both
-    actions can be reached with the keyboard."""
+    is the copy, then the two actions, then (stacked) the image, the
+    headline keeps its size at normal text and is enlarged at 200 % with
+    no word of the copy broken inside, and both actions can be reached
+    with the keyboard."""
     context = browser.new_context(viewport=viewport)
     page = open_home(context, server, "?hero-image=exoplanet-transit")
+    normal = _font_size(page, "main h1")
     if scale != 1:
         page.add_style_tag(content=f"html {{ font-size: {100 * scale}% !important; }}")
         page.wait_for_timeout(100)
@@ -475,11 +520,21 @@ def test_the_hero_reflows_without_overlap_at_every_size_and_at_200_percent_text(
     assert beside or actions["y"] + actions["height"] <= figure["y"] + 0.5
     for box in (copy, actions, figure):
         assert box["x"] >= 0 and box["x"] + box["width"] <= viewport["width"] + 0.5
-    # The text does grow: the headline is at least the scaled phone size.
-    size = page.locator("main h1").evaluate(
-        "h => parseFloat(getComputedStyle(h).fontSize)"
-    )
-    assert size >= 28 * scale - 0.5
+    # At normal text the headline keeps its size, at least the phone size;
+    # at 200 % it is enlarged, by at least the ratio of its column (the
+    # owner's correction of round 2: smaller by size on a narrow column
+    # instead of broken words).
+    size = _font_size(page, "main h1")
+    if scale == 1:
+        assert size >= 28 - 0.5
+    else:
+        assert size >= _ENLARGED.get(viewport["width"], _ENLARGED[None]) * normal
+    # No word of the headline or the subtext is broken inside: each is on
+    # one line, within the copy's column.
+    for selector in ("main h1", ".hero-copy .hero-subtext"):
+        for word, pieces, left, right in _words(page, selector):
+            assert pieces == 1, (selector, word, size)
+            assert left >= copy["x"] - 0.5 and right <= copy["x"] + copy["width"] + 0.5
     # Both actions are links in the tab order, the primary first.
     order = page.evaluate(
         "() => [...document.querySelectorAll('.home-hero a')]"

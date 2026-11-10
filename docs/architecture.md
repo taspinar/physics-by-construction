@@ -1608,9 +1608,11 @@ smallest with at least 24 px above the fold, by the compact header and
 the hero's natural flow (1.5rem between the subtext and the actions, 2rem
 between the actions and the image on a phone; a smaller headline and
 subtext with tighter lines below 30em, the subtext at the body size below
-22em); validated at 1280 by 800, 768 by 1024, 390 by 844, 360 by 640, and
-320 CSS px wide and at 200 % text scaling, and approved by the owner on
-the rendered page.
+22em; the headline never larger than 17.5 % of its column's width, so
+that at 200 % text on a narrow column it is smaller by size and no word of
+it breaks inside, the owner's correction of round 2); validated at 1280 by
+800, 768 by 1024, 390 by 844, 360 by 640, and 320 CSS px wide and at 200 %
+text scaling, and approved by the owner on the rendered page.
 
 **Phases and the book.** Phase 1 sets the standard: F114 in place, F115,
 F116 with its two rubric additions (conceptual synthesis; the provenance
