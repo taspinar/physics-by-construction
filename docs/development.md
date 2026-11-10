@@ -1890,8 +1890,12 @@ failure (in a Lean proof, a new `sorry`, `admit`, or `axiom`), a removed or
 changed assertion and a removed test or test file, a changed marker such as
 `same_machine` (a `parametrize` added with a new test, which only structures
 new cases, is none; one added to a test that is already there, and a removed
-or changed one, is), and a changed dependency manifest or lock
-file. Assertions
+or changed one, is), a changed dependency manifest or lock
+file, and a changed scientific claim: a `{.claim ...}` span or div of a
+page under `site/` that the base publishes, removed or changed and not added
+back as it reads, compared as its text with the whitespace normalised (an
+added claim, a moved or rewrapped one, and the text around a claim are
+none; Issue #464). Assertions
 are read in the formats of this project's checks: a Python `assert`; in a
 shell test, a line that calls `fail`, exits with a failure, or calls an
 `expect_` or `assert_` helper; in a Lean proof, the first line of a
