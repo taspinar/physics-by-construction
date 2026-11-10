@@ -59,7 +59,7 @@ risk_feedback_groups() {
 
   known="$(cd "$1" && ./scripts/verify.sh --groups 2>/dev/null)" || known="default"
   for group in "${RISK_FEEDBACK_CANDIDATES[@]}"; do
-    printf '%s\n' "$known" | grep -Fqx "$group" && groups+="${groups:+,}$group"
+    grep -Fqx "$group" <<<"$known" && groups+="${groups:+,}$group"
   done
   printf '%s\n' "${groups:-default}"
 }
@@ -355,7 +355,7 @@ approval_request_path() {
 # Prints the value of a line '<field>: <value>' (also as a list item or in
 # bold) of an approval request, or nothing.
 approval_request_field() {
-  sed -nE "s/^[[:space:]]*([-*][[:space:]]+)?(\*\*)?$2:(\*\*)?[[:space:]]*//p" "$1" | head -n 1 |
+  sed -nE "s/^[[:space:]]*([-*][[:space:]]+)?(\*\*)?$2:(\*\*)?[[:space:]]*//p" "$1" | sed -n 1p |
     sed -E 's/^\*\*[[:space:]]*//; s/[[:space:]]+$//'
 }
 
@@ -656,7 +656,7 @@ risk_statement_lines() {
 
   echo "- required: level $RISK_REQUIRED, by the $RISK_BY"
   if [[ "$RISK_PATH_MIN" -eq 3 ]]; then
-    reasons="$(printf '%s\n' "$RISK_PATH_REASONS" | sed 's/: .*$//' | head -n 5 | paste -sd ',' - | sed 's/,/, /g')"
+    reasons="$(sed 's/: .*$//' <<<"$RISK_PATH_REASONS" | sed -n '1,5p' | paste -sd ',' - | sed 's/,/, /g')"
     [[ "$(printf '%s\n' "$RISK_PATH_REASONS" | grep -c .)" -le 5 ]] ||
       reasons+=", and $(($(printf '%s\n' "$RISK_PATH_REASONS" | grep -c .) - 5)) more"
     echo "- path minimum: level 3 ($reasons)"

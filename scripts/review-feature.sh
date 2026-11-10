@@ -496,7 +496,8 @@ guardrails="$(printf '%s\n' "$guardrail_findings" |
   case "$RISK_SCHEMA" in
     completion/v1)
       echo
-      if git -C "$root" show "$merge_base:scripts/lib/completion.sh" 2>/dev/null | grep -Fq 'completion/v2'; then
+      base_completion="$(git -C "$root" show "$merge_base:scripts/lib/completion.sh" 2>/dev/null)" || base_completion=""
+      if grep -Fq 'completion/v2' <<<"$base_completion"; then
         echo "The completion record uses completion/v1, but the base of this feature"
         echo "already knew completion/v2: the feature started under ADR 020, and a v1"
         echo "record escapes its rules. Report that as a major finding."

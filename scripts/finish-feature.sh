@@ -455,7 +455,7 @@ if [[ "$risk_known" -eq 1 && "$RISK_ENFORCED" -eq 1 ]]; then
 fi
 # A criterion pending for the owner's approval is cleared only by that
 # approval at the merge gate, at any level (ADR 020 decision 2).
-if [[ "$gate_status" == "pending" ]] && printf '%s\n' "$gate_reasons" | grep -q '^pending (owner_approval): '; then
+if [[ "$gate_status" == "pending" ]] && grep -q '^pending (owner_approval): ' <<<"$gate_reasons"; then
   [[ "$(printf '%s\n' "$approval_lines" | sed -n 1p)" == "owner" ]] || approval_lines="owner"
   approval_lines+=$'\n'"a criterion is pending for the owner's approval (ADR 020 decision 2)"
 fi

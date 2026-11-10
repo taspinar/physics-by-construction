@@ -769,7 +769,8 @@ step "pull request" ./scripts/publish-feature.sh "$issue"
 
 echo
 echo "run-feature.sh is done: the pull request of Issue #$issue is open."
-if git -C "$worktree" log -1 --format=%b | grep -Fqx -- "- required from the project owner, for exactly this commit"; then
+head_body="$(git -C "$worktree" log -1 --format=%b)" || head_body=""
+if grep -Fqx -- "- required from the project owner, for exactly this commit" <<<"$head_body"; then
   echo
   echo "MERGE APPROVAL REQUIRED. This pull request changes what only the owner may"
   echo "approve; the reasons are in its description. The approval is the owner's"

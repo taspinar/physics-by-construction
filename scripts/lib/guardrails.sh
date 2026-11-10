@@ -115,7 +115,7 @@ guardrails_classify() {
     else
       removed="$(git -C "$root" diff -U0 --no-renames "$from" -- "$list")"
     fi
-    if printf '%s\n' "$removed" | grep -Eq '^-[^-]' || { [[ -z "$to" ]] && [[ ! -e "$root/$list" ]]; }; then
+    if grep -Eq '^-[^-]' <<<"$removed" || { [[ -z "$to" ]] && [[ ! -e "$root/$list" ]]; }; then
       printf 'protected\t%s\t%s\n' "$list" "an existing check or line is changed or removed"
     else
       printf 'sensitive\t%s\t%s\n' "$list" "a check is added"

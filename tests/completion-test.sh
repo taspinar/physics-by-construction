@@ -177,8 +177,8 @@ This Refs #12 and Fixes #123, Refs owner/repo#12; see #12
 Refs https://github.com/o/r/issues/12
 Refs #12
 This encloses #12" ]] || fail "closing keywords were not turned into references as expected"
-if printf '%s\n' "Closes #12" "Fixes #12 and resolves #12" | completion_neutralize_closing 12 |
-  grep -Eiq "$(completion_closing_pattern 12)"; then
+neutralized="$(printf '%s\n' "Closes #12" "Fixes #12 and resolves #12" | completion_neutralize_closing 12)"
+if grep -Eiq "$(completion_closing_pattern 12)" <<<"$neutralized"; then
   fail "a closing keyword survived the rewriting"
 fi
 

@@ -225,6 +225,8 @@ review_delta_unbounded() {
   local grep_status
   local importer
   local found
+  local module_text
+  local interface_lines
 
   if ! git -C "$root" cat-file -e "$from^{tree}" 2>/dev/null || ! git -C "$root" cat-file -e "$to^{tree}" 2>/dev/null; then
     echo "the trees of the delta are not available, so its reach cannot be decided"
@@ -268,8 +270,9 @@ review_delta_unbounded() {
     echo "the importer search cannot decide the reach of a package's $stem: $module"
     return 0
   fi
+  module_text="$(git -C "$root" show "$to:$module" 2>/dev/null)" || module_text=""
   for name in "${REVIEW_CHAIN_DYNAMIC_NAMES[@]}"; do
-    if git -C "$root" show "$to:$module" 2>/dev/null | grep -Eq "(^|[^[:alnum:]_])$name([^[:alnum:]_]|$)"; then
+    if grep -Eq "(^|[^[:alnum:]_])$name([^[:alnum:]_]|$)" <<<"$module_text"; then
       echo "the module loads code by a computed name ($name), so the importer search cannot decide its reach: $module"
       return 0
     fi
@@ -291,9 +294,9 @@ review_delta_unbounded() {
   [[ -z "$importers" ]] || return 0
   # The exported interface: the public top-level definitions, decorators,
   # assignments, and __all__.
-  if git -C "$root" diff -U0 --no-renames --no-color "$from" "$to" -- "$module" |
-    grep -v '^\(---\|+++\) ' |
-    grep -Eq '^[-+]((async[[:space:]]+)?def[[:space:]]+[A-Za-z]|class[[:space:]]+[A-Za-z]|@|__all__|[A-Za-z][A-Za-z0-9_]*[[:space:]]*(:[^=]*)?=[^=])'; then
+  interface_lines="$(git -C "$root" diff -U0 --no-renames --no-color "$from" "$to" -- "$module" |
+    grep -v '^\(---\|+++\) ')" || interface_lines=""
+  if grep -Eq '^[-+]((async[[:space:]]+)?def[[:space:]]+[A-Za-z]|class[[:space:]]+[A-Za-z]|@|__all__|[A-Za-z][A-Za-z0-9_]*[[:space:]]*(:[^=]*)?=[^=])' <<<"$interface_lines"; then
     echo "a change to the exported interface of $module"
   fi
 
@@ -314,7 +317,7 @@ review_delta_unbounded() {
   while IFS= read -r importer; do
     importer="${importer#"$to":}"
     [[ -n "$importer" && "$importer" != "$module" ]] || continue
-    printf '%s\n' "$covered" | grep -Fqx -- "$importer" ||
+    grep -Fqx -- "$importer" <<<"$covered" ||
       echo "an importer of $module that the baseline review (round $(jq -r '.round' "$baseline")) did not cover: $importer"
   done < <(printf '%s\n' "$importers" | sort -u)
 }
