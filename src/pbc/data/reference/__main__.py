@@ -25,6 +25,7 @@ MODULES = {
     "kamchatka-2025-tsunami-inputs": "kamchatka_tsunami",
     "piv-cylinder-wake": "cylinder_wake",
     "ost-hotwire-cylinder-wakes": "ost_hotwire",
+    "sparc-rotation-curves": "sparc_rotmod",
 }
 
 

@@ -1,0 +1,170 @@
+id: sparc-rotation-curves
+title: SPARC rotation curves with mass models of the baryons (Rotmod_LTG files) of 175 disk galaxies;
+  five galaxies committed
+source:
+  url: https://astroweb.case.edu/SPARC/
+  creator: Federico Lelli, Stacy S. McGaugh, James M. Schombert (SPARC, Spitzer Photometry and Accurate
+    Rotation Curves); the reference paper is Lelli, F., McGaugh, S. S., Schombert, J. M. 2016, 'SPARC
+    Mass Models for 175 Disk Galaxies with Spitzer Photometry at 3.6 um and Accurate Rotation Curves',
+    The Astronomical Journal 152, 157
+  version: 'Rotmod_LTG.zip of the SPARC website, 110,737 bytes, Last-Modified 2016-03-25 (HTTP header),
+    members dated 2016-03-25; no DOI and no version number, so the archive''s sha256 is the version.
+    The website was at astroweb.cwru.edu when the research of 2026-11-08 read it; the archive was downloaded
+    from astroweb.case.edu on 2026-11-10. A Zenodo copy (doi 10.5281/zenodo.16284118) carries a byte-identical
+    archive (same md5) but was not deposited by the SPARC team and is not the source'
+  accessed: &accessed 2026-11-10
+rights:
+  licence: equivalent-permission
+  local_download:
+    answer: permitted
+    source: 'The SPARC website offers the archive for download and asks users to cite the SPARC paper
+      (read by the research of 2026-11-08, https://astroweb.cwru.edu/SPARC/); written permission of the
+      rights holder: F. Lelli (SPARC team) to the owner, e-mail of 2026-11-10, that the Rotmod files
+      may be included in the public repository as long as the SPARC website and the reference paper
+      are provided; the owner accepted it as the permission on 2026-11-10 (https://github.com/taspinar/physics-by-construction/issues/470).
+      The e-mail is private correspondence, kept by the owner and not committed'
+  redistribution_of_subsets:
+    answer: permitted
+    source: 'The written permission of F. Lelli of 2026-11-10 (above): Rotmod files may be included in
+      the public repository with the SPARC website and the reference paper provided. It names no licence;
+      the sample is not relabelled CC BY. Under the ADR 007 addendum (Issue #417) a written permission
+      of the rights holder recorded on the card permits a committed sample. The sample is five Rotmod
+      files copied byte for byte'
+  publication_of_figures:
+    answer: permitted
+    source: 'The reply does not mention derived figures separately; the owner decided on 2026-11-10 to
+      read the permission as covering the figures and animations derived from the files, with the attribution
+      it asks for, and requested no further confirmation (https://github.com/taspinar/physics-by-construction/issues/470)'
+  modification_and_attribution:
+    answer: permitted
+    source: 'The permission''s two conditions: provide the SPARC website (https://astroweb.case.edu/SPARC/)
+      and the reference paper (Lelli, McGaugh and Schombert 2016, AJ 152, 157), as the Zenodo page does;
+      F. Lelli, 2026-11-10, accepted by the owner the same day (https://github.com/taspinar/physics-by-construction/issues/470).
+      The sample modifies no file; the figure carries the website, the paper, and what its code computed'
+  attribution: 'SPARC: Lelli, F., McGaugh, S. S., Schombert, J. M. 2016, The Astronomical Journal 152,
+    157; SPARC website https://astroweb.case.edu/SPARC/. Files NGC3198_rotmod.dat, NGC2403_rotmod.dat,
+    NGC2841_rotmod.dat, DDO154_rotmod.dat and NGC2903_rotmod.dat of Rotmod_LTG.zip, unmodified, redistributed
+    with the authors'' permission.'
+artifacts:
+- name: <galaxy>_rotmod.dat, columns Rad, Vobs, errV
+  type: processed-measured
+  description: 'The rotation curve as SPARC compiled it from HI (and H-alpha) velocity fields of the literature:
+    radius in kpc at the adopted distance, circular speed already corrected for inclination (the file
+    carries no inclination; the research of 2026-11-08 showed the deprojection against PROBES), one-sided
+    (both sides averaged), and its uncertainty, which excludes the uncertainty of the inclination and
+    the distance.'
+- name: <galaxy>_rotmod.dat, columns SBdisk, SBbul
+  type: processed-measured
+  description: 'Surface brightness of the stellar disk and bulge at 3.6 micron (Spitzer) in L_sun/pc^2
+    at each radius, 0.00 where there is no photometry or no bulge.'
+- name: <galaxy>_rotmod.dat, columns Vgas, Vdisk, Vbul
+  type: modelled-reference
+  description: 'The SPARC team''s circular speeds of the baryons: of the gas (from the HI surface density,
+    signed, negative where the gas pulls outward) and of the stellar disk and bulge computed from the
+    3.6 micron light at a mass-to-light ratio of 1 M_sun/L_sun (the normalisation shown on the files:
+    Vdisk^2 r / G at the last radius equals the light inside it within 2 to 9 %).'
+- name: <galaxy>_rotmod.dat, line 1 (Distance)
+  type: processed-measured
+  description: 'The adopted distance in Mpc, catalogue metadata; the radii scale with it, and Vdisk,
+    Vbul and Vgas with its square root.'
+- name: reference analysis (pbc.data.reference.sparc_rotmod)
+  type: modelled-reference
+  description: 'Not part of the record: the fits of V^2 = Vgas|Vgas| + Y (Vdisk^2 + Vbul^2) + Vhalo^2
+    without a halo, with an NFW halo, and with a pseudo-isothermal halo, the maximum disk, the profile
+    of chi-square in Y, and an illustrative 5 % error floor, computed by this repository and drawn apart
+    from the measured curve.'
+calibration: 'None in the files. Vobs is the SPARC team''s inclination-corrected curve; SBdisk and SBbul
+  are the team''s 3.6 micron photometry; Vdisk and Vbul are at Y = 1 M_sun/L_sun at 3.6 micron (stated
+  by the paper and the website as read by the research, and confirmed on each committed file by the
+  ring sum of SBdisk). The mass-to-light ratio is the free calibration of the mass model and is fitted,
+  not given.'
+schema: 'Plain ASCII text, one file per galaxy. Line 1 "# Distance = <D> Mpc"; line 2 the column names
+  "# Rad Vobs errV Vgas Vdisk Vbul SBdisk SBbul" (tab-separated, two trailing tabs); line 3 the units;
+  then one tab-separated row of eight numbers with two decimals per radius, radii increasing. The
+  archive has 175 such files, flat, no readme and no licence text.'
+units: 'Rad kpc; Vobs, errV, Vgas, Vdisk, Vbul km/s; SBdisk, SBbul L_sun/pc^2 at 3.6 micron (the file
+  writes L/pc^2); distance Mpc. Vdisk and Vbul for 1 M_sun/L_sun.'
+cadence: 'Not a time series. Radii at the spacing of the source''s tilted rings: 12 to 73 points per committed
+  galaxy (NGC 3198 43, NGC 2403 73, NGC 2841 50, DDO 154 12, NGC 2903 34), from 0.16 to 63.64 kpc.'
+coordinates: 'Galactocentric radius in the plane of the disk, at the adopted distance; speeds are circular
+  speeds in the disk plane (deprojected). One-sided: the approaching and receding sides are averaged,
+  so asymmetry and non-circular motion are not visible in the file.'
+masks: 'No missing value and no flag. 0.00 means "no component": Vbul and SBbul are 0 in the four bulgeless
+  galaxies; SBdisk is 0 beyond the photometry (1 to 9 rows per file); Vgas is 0.00 inside the gas''s
+  central hole in NGC 3198 and NGC 2403. Vgas is negative in 6 rows of NGC 3198 and 9 of NGC 2841.'
+uncertainty: 'errV per point, 0.20 to 35.90 km/s in the sample (median 0.55 km/s for DDO 154 to 5.93
+  km/s for NGC 2841); it excludes the inclination and distance uncertainties, which the galaxy table
+  SPARC_Lelli2016c.mrt lists (not committed, not approved). No uncertainty for Vgas, Vdisk, Vbul or the
+  photometry. With errV alone the best halo fits give chi2/dof of 1.2 to 10.7; with an illustrative
+  floor of 5 % of Vobs in quadrature, 0.13 to 3.3 (dossier).'
+size:
+  description: 'The archive: 175 files, 175,149 bytes uncompressed, 110,737 bytes zipped, the largest
+    file 5,833 bytes. The sample: five files, 10,304 bytes.'
+format: Plain text (tab-separated), committed unchanged from the archive; no conversion
+reader: pbc.data.reference.sparc_rotmod.read_rotmod (NumPy loadtxt and the three header lines); no new
+  dependency.
+downloads:
+- url: https://astroweb.case.edu/SPARC/Rotmod_LTG.zip
+  filename: Rotmod_LTG.zip
+  algorithm: sha256
+  digest: 0a80cc90714828cc28b7dd57923576714d209f2490328c087c4a4ad607faf588
+  digest_source: 'computed on the download of 2026-11-10 by the owner''s session (110,737 bytes, md5
+    e4c8b92766026770ed35e5889064e12b) and again on the copy inspected here; SPARC publishes no digest.
+    The md5 equals the one the third-party Zenodo copy 16284118 publishes for its archive'
+samples:
+- path: NGC3198_rotmod.dat
+  sha256: 17b774ad11e7dd745a067073b76f1909d4de32fa87616df12b64da3f225cf953
+  bytes: 2075
+  derivation: the member NGC3198_rotmod.dat of Rotmod_LTG.zip (sha256 above), extracted by name, byte
+    for byte
+  test: tests/unit/test_data_sparc_rotmod.py::test_sparc_rotmod_sample_parses
+- path: NGC2403_rotmod.dat
+  sha256: 9be193eccc5c363e74d04270290d831738f41ec9225a3b2c95353fd3812170b8
+  bytes: 3384
+  derivation: the member NGC2403_rotmod.dat of Rotmod_LTG.zip, extracted by name, byte for byte
+  test: tests/unit/test_data_sparc_rotmod.py::test_sparc_rotmod_sample_parses
+- path: NGC2841_rotmod.dat
+  sha256: 3182e398c3325cb7d43dcda432e150e55a06be8d74b2e95fd92e094e291b4e5f
+  bytes: 2532
+  derivation: the member NGC2841_rotmod.dat of Rotmod_LTG.zip, extracted by name, byte for byte
+  test: tests/unit/test_data_sparc_rotmod.py::test_sparc_rotmod_sample_parses
+- path: DDO154_rotmod.dat
+  sha256: 2458c2c392ab2314abc92725b7d0ccee22d9b666a15377e13a1c69d5f5d67ac7
+  bytes: 622
+  derivation: the member DDO154_rotmod.dat of Rotmod_LTG.zip, extracted by name, byte for byte
+  test: tests/unit/test_data_sparc_rotmod.py::test_sparc_rotmod_sample_parses
+- path: NGC2903_rotmod.dat
+  sha256: 913855caab7f54bee01a53083a3745a57e6dad0d0800000e2d4933543e61afca
+  bytes: 1691
+  derivation: the member NGC2903_rotmod.dat of Rotmod_LTG.zip, extracted by name, byte for byte
+  test: tests/unit/test_data_sparc_rotmod.py::test_sparc_rotmod_sample_parses
+estimates:
+  runtime: 'Reference figure: about 4 to 6 s with the interpreter start on the development machine (the
+    30 fits and the 124 fits of the Y profile); the reader parses the five files in milliseconds.'
+  memory: About 150 MB peak resident for the figure.
+  page_payload: 10.3 kB committed, none of it sent to the reader's browser; a figure PNG of about 400
+    kB at 150 dpi.
+  ci: 'Offline: five committed files.'
+decision:
+  value: go
+  date: *accessed
+  reasons:
+  - 'The archive''s sha256 matches the one recorded on Issue #470; its 175 members were listed before
+    extraction (flat, no path, no symlink, largest 5,833 bytes); five members extracted by name and committed
+    unchanged, 10,304 bytes.'
+  - 'Schema, units, header lines, masks, the signs of Vgas, and the bulge columns validated by the parsing
+    test; the Y = 1 normalisation of Vdisk confirmed on every file by the ring sum of SBdisk (ratio 1.02
+    to 1.09).'
+  - 'A reproducible figure from source-controlled code: without a halo no Y fits (chi2/dof 175 to 1026);
+    with a halo, chi2/dof 1.2 to 1.4 for NGC 3198 and NGC 2841; the cusp fails DDO 154 (8.7 against 2.2);
+    the fitted Y of NGC 2403 is 0.29 with a cusp and 0.76 with a core; the bar region of NGC 2903 lies
+    64 to 70 km/s below both halo fits.'
+  - 'Uncertainty: errV per point, without the inclination and distance; its effect on chi-square and Y
+    shown with an illustrative floor. Calibration: Y is the fitted free calibration of the model.'
+  - 'Rights: written permission of F. Lelli (SPARC team) of 2026-11-10 to include the Rotmod files in
+    the public repository with the SPARC website and the reference paper provided, accepted by the owner
+    on 2026-11-10 for the files and the figures and animations derived from them; a recorded written
+    permission of the rights holder under the ADR 007 addendum (#417).'
+  - 'Recorded by F105 phase 1 (Issue #470) under the owner''s approval of 2026-11-10 on the Issue: work
+    towards a go for this dataset, judged per dossier (https://github.com/taspinar/physics-by-construction/issues/470).'
+dossier: docs/datasets/sparc-rotation-curves.md
