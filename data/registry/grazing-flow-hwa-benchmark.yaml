@@ -1,0 +1,256 @@
+id: grazing-flow-hwa-benchmark
+title: Grazing-flow benchmark over porous wall inserts, hot-wire boundary-layer profiles (solid and porous walls)
+source:
+  url: https://zenodo.org/records/15044105
+  doi: 10.5281/zenodo.15044105
+  creator: Olivier Moriaux, Riccardo Zamponi (Delft University of Technology)
+  version: Zenodo record 15044105, version 3 (concept 10.5281/zenodo.10955510), published 2025-03-18;
+    v3 corrected the permeability values of the accompanying manuscript only
+  accessed: &accessed 2026-11-09
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/15044105, licence field ''Creative Commons Attribution
+      4.0 International'' (API metadata license cc-by-4.0), read 2026-11-09; the terms at https://creativecommons.org/licenses/by/4.0/legalcode
+      permit reproducing and sharing the material'
+  redistribution_of_subsets:
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/15044105, licence field CC BY 4.0, read 2026-11-09;
+      https://creativecommons.org/licenses/by/4.0/legalcode section 2(a)(1) permits sharing the material
+      in whole or in part'
+  publication_of_figures:
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/15044105, licence field CC BY 4.0, read 2026-11-09;
+      https://creativecommons.org/licenses/by/4.0/legalcode section 2(a)(1) permits producing and sharing
+      adapted material'
+  modification_and_attribution:
+    answer: permitted
+    source: 'Zenodo record https://zenodo.org/records/15044105, licence field CC BY 4.0, read 2026-11-09;
+      https://creativecommons.org/licenses/by/4.0/legalcode section 3(a) requires the creators, the licence,
+      a link, and an indication of changes'
+  attribution: 'Moriaux, O., Zamponi, R., ''A benchmark dataset for the grazing flow over porous materials'',
+    Zenodo, 2025, version 3, doi 10.5281/zenodo.15044105, CC BY 4.0. The 24 CSV files of HWA_PROFILES_v2.zip
+    and BL_PARAMETERS.zip committed unchanged.'
+artifacts:
+- name: hot-wire time series
+  type: raw-measured
+  description: 'Sampled at 25.6 kHz for 10 s per point, per the README. Not in the record: only the statistics
+    derived from them are published.'
+- name: HWA_PROFILES_v2.zip (HWA_PROFILES_v2/HW_<case>.csv)
+  type: processed-measured
+  description: 'Per case (wall D00 solid, D35 and D45 porous; nominal 15, 20, 25 m/s), five profiles across
+    the insert of 43 points each, and an upstream profile of 35 points (HW_UP<speed>.csv): U/Ue, its
+    95 per cent half-width, TI in per cent with the bounds of its 95 per cent interval, and Lambda/delta,
+    against y/delta. For the solid wall the y were refined by the providers by fitting the profile in
+    plus units to canonical profiles (README).'
+- name: BL_PARAMETERS.zip (BL_PARAMETERS/BL_<case>.csv)
+  type: processed-measured
+  description: 'Per profile: x (in metres, under the header x/L), Ue, delta, delta*, theta, H, T_atm,
+    p_atm; the liner and the nominal speed on the first row.'
+- name: WPS_DATA.zip, the manuscript PDF, the geometry figures
+  type: processed-measured
+  description: 'Wall-pressure spectra (3.99 MB), the manuscript (4.16 MB, downloaded, not read), and three geometry images. Not used and not committed.'
+- name: Coles-Fernholz friction velocity, Blasius profile, log law
+  type: modelled-reference
+  description: 'u_tau from Cf(Re_theta) of Coles-Fernholz with nu of dry air from the recorded T and p,
+    the laminar Blasius layer, and the log law with kappa 0.41, B 5.0, computed by pbc.data.reference.grazing_flow_hwa;
+    not part of the record.'
+calibration: 'Hot wire: calibration not in the record; the README states a temperature correction (Kanevce
+  and Oka, after Bruun 1995) and a robotic traverse of 0.005 mm resolution (height zeroing +-0.0025 mm),
+  0.06 mm by hand upstream (+-0.03 mm). The solid-wall y were refined by fitting to canonical profiles,
+  so the near-wall position is calibrated against the law of the wall itself.'
+schema: 'CSV, comma-separated, CRLF, ASCII. Profiles: header x/L [-], y/delta [-], U/Ue [-], Unc. U/Ue
+  [-], TI [%], Unc. TI Upper [%], Unc. TI Lower [%], Lambda/delta [-]; 215 rows per insert case (five
+  stations of 43, not sorted by x), 35 rows upstream. Parameters: header x/L [-], Ue [m/s], delta [m],
+  delta_star [m], theta [m], H [-], T_atm [K], p_atm [Pa], Liner [mm], Velocity [m/s]; five rows per
+  insert case, one upstream; Liner and Velocity only on the first row (Liner -1 upstream).'
+units: 'As in the headers, except the parameter column x/L [-], which holds x in metres (-0.033333 ...
+  0.033333, that is x/L times L = 0.1 m; the profiles'' x/L is -0.33333 ... 0.33333). The upstream row
+  -0.66 is likewise x = -0.66 m, x/L = -6.6. TI in per cent of Ue; the two Unc. TI columns are the bounds
+  of the interval, not half-widths.'
+cadence: 'Profiles, no time axis. 43 points per insert profile and 35 upstream, spaced logarithmically
+  near the wall and linearly beyond (README), from y/delta 0.005 to 0.007 (y+ 5 to 13; 0.021 to 0.026 upstream) to 1.5 to 1.8 (2.5 to 2.9
+  upstream).'
+coordinates: 'Origin at the wall in the middle of the insert; x streamwise, y away from the wall; profiles
+  at x/L = -1/3, -1/6, 0, 1/6, 1/3 (L = 0.1 m) and upstream at x = -0.66 m; the trip 1.4 m upstream of
+  the origin (README).'
+masks: 'Lambda/delta is empty where the autocorrelation gave no length scale (8 to 12 points per profile,
+  near the wall and in the free stream; 14 upstream); every other value is a number. One defect: HW_UPV25.csv gives
+  rows 5 and 6 the same y/delta, 0.04139, with U/Ue 0.555 and 0.532 (the hand-driven upstream traverse;
+  the record does not say which is right); the analysis keeps both. Liner and Velocity
+  are empty after the first row of a parameter file.'
+uncertainty: 'Statistical only, from the record: U/Ue +- at most 0.00043 (95 per cent), TI within chi-square
+  bounds of at most +-0.001 percentage points. No calibration or probe uncertainty is given. Derived (dossier):
+  with u_tau from Coles-Fernholz, the solid-wall log law over 50 < y+ and y < 0.15 delta gives kappa
+  0.387 to 0.421 and B 4.48 to 5.39 on 6 to 10 points per profile; that agreement is partly imposed by
+  the providers'' fit of y. H of the record: 1.326 to 1.357 (solid), rising over the porous inserts from
+  1.33 to 1.36 at x/L = -1/3 to 1.38 to 1.41 at 1/3.'
+size:
+  description: 'Record: 8 files, 8.50 MB (WPS_DATA.zip 3.99 MB, the manuscript 4.16 MB). Used and committed:
+    the 24 CSV files of HWA_PROFILES_v2.zip (121,193 B) and BL_PARAMETERS.zip (6,755 B), 287,592 bytes.'
+format: CSV in ZIP archives; the committed samples are the CSV files.
+reader: 'pbc.data.reference.grazing_flow_hwa.read_profiles and read_parameters (NumPy, standard library);
+  no conversion and no new dependency.'
+downloads:
+- url: https://zenodo.org/api/records/15044105/files/HWA_PROFILES_v2.zip/content
+  filename: HWA_PROFILES_v2.zip
+  algorithm: md5
+  digest: b0aaf672c259c1785c0c8c1f1b46f94f
+  digest_source: published by Zenodo (record files API), confirmed on the download of 2026-11-09 (121,193
+    bytes, sha256 2d0058c8955c58373c0961f4a499addc555cfde19d9bea00187bd4e8f1cb5be8)
+- url: https://zenodo.org/api/records/15044105/files/BL_PARAMETERS.zip/content
+  filename: BL_PARAMETERS.zip
+  algorithm: md5
+  digest: fef62fb9bf16f0456e14e65bab2538b1
+  digest_source: published by Zenodo (record files API), confirmed on the download of 2026-11-09 (6,755
+    bytes, sha256 bd6ee62c50e916285fe88ef216da61cb1a519cf4fb66c9bdecb9ba97c7917f1f)
+- url: https://zenodo.org/api/records/15044105/files/README.txt/content
+  filename: README.txt
+  algorithm: md5
+  digest: e3a508bccb14d722d03d20acdc5764ea
+  digest_source: published by Zenodo (record files API), confirmed on the download of 2026-11-09 (9,359
+    bytes)
+samples:
+- path: BL_PARAMETERS/BL_D00V15.csv
+  sha256: 090ddca6b2170299e36b16ed86a3865e0c4dff291fc0f12ca8982f2b71368e52
+  bytes: 864
+  derivation: extracted unchanged from BL_PARAMETERS.zip (md5 fef62fb9bf16f0456e14e65bab2538b1), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: BL_PARAMETERS/BL_D00V20.csv
+  sha256: 8a863f9583e609a3438998a2206e84504c032616c4b2d7c145d6ce6f3db7d1a4
+  bytes: 860
+  derivation: extracted unchanged from BL_PARAMETERS.zip (md5 fef62fb9bf16f0456e14e65bab2538b1), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: BL_PARAMETERS/BL_D00V25.csv
+  sha256: d2429976d559676610128af035c54615e483a70ee497b6d1e55b084b2d2f167d
+  bytes: 860
+  derivation: extracted unchanged from BL_PARAMETERS.zip (md5 fef62fb9bf16f0456e14e65bab2538b1), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: BL_PARAMETERS/BL_D35V15.csv
+  sha256: 01ea9560251db73f4e9c0f8b1ddc71054c66235bdedb92a250140c96e435a74e
+  bytes: 861
+  derivation: extracted unchanged from BL_PARAMETERS.zip (md5 fef62fb9bf16f0456e14e65bab2538b1), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: BL_PARAMETERS/BL_D35V20.csv
+  sha256: 2916f05c4650d7fbc631c80dbbbe88c9e221fa5c7877c7d85551efd9c70d5840
+  bytes: 851
+  derivation: extracted unchanged from BL_PARAMETERS.zip (md5 fef62fb9bf16f0456e14e65bab2538b1), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: BL_PARAMETERS/BL_D35V25.csv
+  sha256: 90a8bfb896d11e4989bb29e6e8e5e0b639b46bef5c0e9155bba888bf265b7b0a
+  bytes: 861
+  derivation: extracted unchanged from BL_PARAMETERS.zip (md5 fef62fb9bf16f0456e14e65bab2538b1), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: BL_PARAMETERS/BL_D45V15.csv
+  sha256: da1d576e6f1f0f6ccbe952c0c0cb404ab85b88305f626fd80b1803ef836dde44
+  bytes: 862
+  derivation: extracted unchanged from BL_PARAMETERS.zip (md5 fef62fb9bf16f0456e14e65bab2538b1), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: BL_PARAMETERS/BL_D45V20.csv
+  sha256: bfc736339d4bf9d5c3887253399a31bfebea36a4de83d108c78680bf84e89fd7
+  bytes: 856
+  derivation: extracted unchanged from BL_PARAMETERS.zip (md5 fef62fb9bf16f0456e14e65bab2538b1), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: BL_PARAMETERS/BL_D45V25.csv
+  sha256: aba173320434d037fa7e83dfa4ebd1443ab9e79aaf5f63e76244d95a84062c47
+  bytes: 855
+  derivation: extracted unchanged from BL_PARAMETERS.zip (md5 fef62fb9bf16f0456e14e65bab2538b1), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: BL_PARAMETERS/BL_UPV15.csv
+  sha256: 75be2937ef38329d279d5cd7275240d07589ce7570e08fe6af25fd6fb915e5dd
+  bytes: 274
+  derivation: extracted unchanged from BL_PARAMETERS.zip (md5 fef62fb9bf16f0456e14e65bab2538b1), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: BL_PARAMETERS/BL_UPV20.csv
+  sha256: 29a4d278ab178948cda523428714478369cc6ff9c7c153869b24b7accd9eb0bf
+  bytes: 273
+  derivation: extracted unchanged from BL_PARAMETERS.zip (md5 fef62fb9bf16f0456e14e65bab2538b1), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: BL_PARAMETERS/BL_UPV25.csv
+  sha256: ecdd0270e110f777c09b4483a93e69781e78d3a7002efe8bd730df8da06ea29f
+  bytes: 274
+  derivation: extracted unchanged from BL_PARAMETERS.zip (md5 fef62fb9bf16f0456e14e65bab2538b1), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: HWA_PROFILES_v2/HW_D00V15.csv
+  sha256: ce9893dbed6ff240eb211fd5f82789a73d9c82f62cb50311c96d8bebdeb8caa6
+  bytes: 29365
+  derivation: extracted unchanged from HWA_PROFILES_v2.zip (md5 b0aaf672c259c1785c0c8c1f1b46f94f), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: HWA_PROFILES_v2/HW_D00V20.csv
+  sha256: 5491c6e6095bd4f61df2fc9953e77c3c87dfa272af1d636eea9fc6cab9affb5b
+  bytes: 29272
+  derivation: extracted unchanged from HWA_PROFILES_v2.zip (md5 b0aaf672c259c1785c0c8c1f1b46f94f), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: HWA_PROFILES_v2/HW_D00V25.csv
+  sha256: adf1429828c89146556f4c9c11e5d5bb6601a095631019c79e484fdf79fe56c7
+  bytes: 29298
+  derivation: extracted unchanged from HWA_PROFILES_v2.zip (md5 b0aaf672c259c1785c0c8c1f1b46f94f), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: HWA_PROFILES_v2/HW_D35V15.csv
+  sha256: 14620607f7b33008dd08b02732d054d8330d08be4fee59d2a90f433886d9a541
+  bytes: 28970
+  derivation: extracted unchanged from HWA_PROFILES_v2.zip (md5 b0aaf672c259c1785c0c8c1f1b46f94f), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: HWA_PROFILES_v2/HW_D35V20.csv
+  sha256: 8eba3d45e8ec3422cd6e14c4e886daacd87a90c73de339133a86e48c9ed7c699
+  bytes: 29276
+  derivation: extracted unchanged from HWA_PROFILES_v2.zip (md5 b0aaf672c259c1785c0c8c1f1b46f94f), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: HWA_PROFILES_v2/HW_D35V25.csv
+  sha256: e4c2c5489c7e10365c8918f0c53bbf86c4d29f14c67f65ad48bbc9aeb2dad87f
+  bytes: 29321
+  derivation: extracted unchanged from HWA_PROFILES_v2.zip (md5 b0aaf672c259c1785c0c8c1f1b46f94f), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: HWA_PROFILES_v2/HW_D45V15.csv
+  sha256: f748f645af3d2dd7edc7ab93f80b87f5bd72907a434d4f2f1e066e761cf60a62
+  bytes: 29479
+  derivation: extracted unchanged from HWA_PROFILES_v2.zip (md5 b0aaf672c259c1785c0c8c1f1b46f94f), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: HWA_PROFILES_v2/HW_D45V20.csv
+  sha256: 4e09976e908240fc55f6680279ba4ac71784aca5e2132cfd0550f7523ea6af38
+  bytes: 29247
+  derivation: extracted unchanged from HWA_PROFILES_v2.zip (md5 b0aaf672c259c1785c0c8c1f1b46f94f), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: HWA_PROFILES_v2/HW_D45V25.csv
+  sha256: 9118b5b660bc4130aa152e307e1444cad4d253c79989ff3092790f624f57fefd
+  bytes: 29294
+  derivation: extracted unchanged from HWA_PROFILES_v2.zip (md5 b0aaf672c259c1785c0c8c1f1b46f94f), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: HWA_PROFILES_v2/HW_UPV15.csv
+  sha256: e1fb6283de8c51962d8d0666119bb766a479440a720a16191fa3376ebb45bf99
+  bytes: 5170
+  derivation: extracted unchanged from HWA_PROFILES_v2.zip (md5 b0aaf672c259c1785c0c8c1f1b46f94f), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: HWA_PROFILES_v2/HW_UPV20.csv
+  sha256: eabc20c49d0370a9d47058c4e435595aa496ab5912b393c560b963d2dacaf81c
+  bytes: 5173
+  derivation: extracted unchanged from HWA_PROFILES_v2.zip (md5 b0aaf672c259c1785c0c8c1f1b46f94f), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+- path: HWA_PROFILES_v2/HW_UPV25.csv
+  sha256: 49550c57004d7dbb739784985ba115d84bd199ece8a42f0af8b52e5634b0c554
+  bytes: 5176
+  derivation: extracted unchanged from HWA_PROFILES_v2.zip (md5 b0aaf672c259c1785c0c8c1f1b46f94f), the same path inside the archive
+  test: tests/unit/test_data_grazing_flow_hwa.py::test_grazing_flow_sample_parses
+estimates:
+  runtime: Reference figure about 2.3 s with the interpreter start.
+  memory: About 180 MB peak resident for the figure.
+  page_payload: 288 KB committed, read at build time and not shipped; a figure PNG of about 300 KB.
+  ci: 'Offline: 24 committed files.'
+decision:
+  value: go
+  date: *accessed
+  reasons:
+  - 'Real files inspected: HWA_PROFILES_v2.zip, BL_PARAMETERS.zip, and README.txt, md5s equal to Zenodo''s;
+    the 24 CSV files committed unchanged.'
+  - 'The record''s traps found and stated: the parameter column x/L is x in metres; no u_tau; the solid-wall
+    y fitted to canonical profiles, so the log-law agreement is partly imposed; the Unc. TI columns are
+    bounds.'
+  - 'Scientific check passed, within those limits: with u_tau from Coles-Fernholz the solid-wall profiles
+    follow the log law (kappa 0.387 to 0.421, B 4.48 to 5.39); H 1.33 to 1.36 against 2.591 for Blasius;
+    over the porous inserts H rises by 0.05 to 0.06 along 0.067 m and the solid-wall log law no longer
+    holds with that u_tau, a limit of the wall-law model that the data show directly.'
+  - CC BY 4.0 on the record; local download, subsets, figures, and modification permitted with attribution.
+  - 'Recorded by F108 (Issue #441) under the owner''s approval of 2026-11-09 on the Issue: work towards a
+    go, judged per dossier, with every requirement of ADR 007 checked in the dossier.'
+dossier: docs/datasets/grazing-flow-hwa-benchmark.md

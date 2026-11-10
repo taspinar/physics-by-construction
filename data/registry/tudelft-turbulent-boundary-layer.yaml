@@ -1,0 +1,174 @@
+id: tudelft-turbulent-boundary-layer
+title: TU Delft zero-pressure-gradient turbulent boundary layer, PIV and PTV profiles at four speeds
+source:
+  url: https://data.4tu.nl/datasets/d0af5e8b-6bde-4c02-a165-c752b5ab435a/1
+  doi: 10.4121/d0af5e8b-6bde-4c02-a165-c752b5ab435a.v1
+  creator: Max Knoop, Abdelrahman Hassanein, Woutijn Baars (TU Delft, Faculty of Aerospace Engineering,
+    Department of Flow Physics and Technology)
+  version: 4TU.ResearchData version 1, published 2025-09-26; underlying Knoop, Hassanein, Baars, 'Development
+    and characterization of a turbulent boundary layer facility at the Delft University of Technology',
+    Aerospace Science and Technology (2025), doi 10.1016/j.ast.2025.110972
+  accessed: &accessed 2026-11-09
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: permitted
+    source: '4TU.ResearchData record https://data.4tu.nl/datasets/d0af5e8b-6bde-4c02-a165-c752b5ab435a/1,
+      licence field ''CC BY 4.0'' (API https://data.4tu.nl/v2/articles/d0af5e8b-6bde-4c02-a165-c752b5ab435a,
+      license url https://creativecommons.org/licenses/by/4.0/), read 2026-11-09; the terms at https://creativecommons.org/licenses/by/4.0/legalcode
+      permit reproducing and sharing the material'
+  redistribution_of_subsets:
+    answer: permitted
+    source: '4TU.ResearchData record https://data.4tu.nl/datasets/d0af5e8b-6bde-4c02-a165-c752b5ab435a/1,
+      licence field CC BY 4.0, read 2026-11-09; https://creativecommons.org/licenses/by/4.0/legalcode
+      section 2(a)(1) permits sharing the material in whole or in part'
+  publication_of_figures:
+    answer: permitted
+    source: '4TU.ResearchData record https://data.4tu.nl/datasets/d0af5e8b-6bde-4c02-a165-c752b5ab435a/1,
+      licence field CC BY 4.0, read 2026-11-09; https://creativecommons.org/licenses/by/4.0/legalcode
+      section 2(a)(1) permits producing and sharing adapted material'
+  modification_and_attribution:
+    answer: permitted
+    source: '4TU.ResearchData record https://data.4tu.nl/datasets/d0af5e8b-6bde-4c02-a165-c752b5ab435a/1,
+      licence field CC BY 4.0, read 2026-11-09; https://creativecommons.org/licenses/by/4.0/legalcode
+      section 3(a) requires the creators, the licence, a link, and an indication of changes'
+  attribution: 'Knoop, M., Hassanein, A., Baars, W., ''Dataset underlying the publication: Development
+    and characterisation of a turbulent boundary layer facility at the Delft University of Technology'',
+    4TU.ResearchData, 2025, doi 10.4121/d0af5e8b-6bde-4c02-a165-c752b5ab435a.v1, CC BY 4.0. The eight
+    MAT files of PIV.zip and PTV.zip committed unchanged; the PTV wall distance read in millimetres.'
+artifacts:
+- name: HWA.zip, Freestream microphone.zip, wall-pressure.zip
+  type: raw-measured
+  description: 'Hot-wire velocity and pressure time series (5.86 GB, 0.92 GB, 1.19 GB per the record''s
+    file list). Not downloaded and not committed: a lab that needs spectra needs its own download and
+    inspection.'
+- name: PIV.zip (PIV/U05 ... U20/EXPparam.mat)
+  type: processed-measured
+  description: 'Per case, the wall-normal profiles of the mean streamwise velocity and the Reynolds stresses
+    uu, uv, vv that the creators averaged from planar PIV, 493 to 497 points, with U_inf, u_tau, mu,
+    rho, delta, delta*, theta, and H. How u_tau and delta were determined is not stated in the record.'
+- name: PTV.zip (PTV/U05 ... U20/EXPparam.mat)
+  type: processed-measured
+  description: 'Per case, the near-wall mean streamwise velocity from PTV, 129 to 134 points from y =
+    0.048 mm to about 2.1 mm, with its own U_inf, u_tau, mu, rho. y is in millimetres although the readme
+    says metres.'
+- name: Blasius profile, log law, Coles-Fernholz skin friction
+  type: modelled-reference
+  description: 'The laminar Blasius layer (computed by shooting, H = 2.591), the log law with kappa 0.41,
+    B 5.0, and Cf(Re_theta) of Coles-Fernholz, computed by pbc.data.reference.tudelft_boundary_layer;
+    not part of the record.'
+calibration: 'Not in the files. The record gives u_tau per case without its method; it agrees with
+  the Coles-Fernholz skin friction at the file''s Re_theta within -1.1 to +1.1 per cent (dossier), so
+  it is consistent with an independent correlation. The PIV and PTV calibrations (magnification, time
+  between pulses) are in the article (not read), not in the files.'
+schema: 'MAT v5 (header ''MATLAB 5.0 MAT-file, Platform: PCWIN64''), top-level double variables, not
+  the struct EXPparam that the readme names. PIV: H, Uinf, Utau, delta, deltastar, mu, rho, theta (1x1)
+  and y, Ubar, uu, uv, vv (Nx1, N = 496, 496, 497, 493 for U05, U10, U15, U20). PTV: Uinf, Utau, mu, rho
+  (1x1) and y, Ubar (Nx1, N = 133, 132, 134, 129). The readme lists the PIV stresses as uu three times;
+  the variables are uu, uv, vv.'
+units: 'SI as the readme states (m, m/s, m^2/s^2, kg/(m s), kg/m^3), except PTV y, which is in millimetres:
+  with y in mm the PTV points below y+ = 5 give U+/y+ - 1 between -0.019 and +0.007, and they continue
+  the PIV profile; with y in m they would lie at y+ of 570 and more, where the log law gives U+ above 20, while every PTV U+ is below 18. H dimensionless.'
+cadence: 'Profiles, no time axis. PIV y in equal steps of 0.282 to 0.283 mm from 0.47 to 0.73 mm up to
+  140 mm (1.28 to 1.30 delta); PTV y unequally spaced from 0.048 mm to 2.08 to 2.16 mm.'
+coordinates: 'x streamwise (the profiles are at x = 6.8 m from the record''s description), y wall-normal
+  from the wall; one profile per case U05, U10, U15, U20 (nominal free-stream 5, 10, 15, 20 m/s, file U_inf
+  4.57, 9.16, 13.73, 18.28 m/s by PIV).'
+masks: 'None: no NaN, no fill value in any variable. The PIV profile begins at y+ 9 to 20 (no point in
+  the viscous sublayer), and PTV covers y+ 0.6 to 89; -u''v''+ falls to zero above y = delta.'
+uncertainty: 'None in the files. Derived (dossier): u_tau of the file within 1.1 per cent of Coles-Fernholz;
+  the log-law fit over 50 < y+ and y < 0.15 delta gives kappa 0.400 to 0.410, B 4.77 to 5.17, and over
+  15 common windows kappa 0.355 to 0.428 and B 3.0 to 5.5 (the window is the dominant uncertainty); H
+  recomputed from the profile (PTV below the first PIV point) within 1.5 per cent of the file''s; PTV
+  above PIV by 0.3 to 7 per cent on average where both measure, up to 9.9 per cent at U20 near the wall,
+  consistent with the PIV''s spatial averaging over a steep gradient; peak -u''v''+ 0.91 to 0.97.'
+size:
+  description: 'Record: 6 files, 7.96 GB (HWA.zip 5.86 GB, wall-pressure.zip 1.19 GB, Freestream microphone.zip
+    0.92 GB, PIV.zip 78,642 B, PTV.zip 10,144 B, readme.txt 4,016 B). Used and committed: the eight MAT
+    files of PIV.zip and PTV.zip, 86,772 bytes.'
+format: MAT v5 in ZIP archives; the committed samples are the MAT files.
+reader: 'scipy.io.loadmat (MAT v5; ADR 007 addendum of #417), in pbc.data.reference.tudelft_boundary_layer.read_piv
+  and read_ptv; no conversion and no new dependency.'
+downloads:
+- url: https://data.4tu.nl/file/d0af5e8b-6bde-4c02-a165-c752b5ab435a/a855154c-20cc-49e6-8664-95dfd2c2160b
+  filename: PIV.zip
+  algorithm: md5
+  digest: fa1cd9e0cd70adb33c9941813b3a7743
+  digest_source: published by 4TU.ResearchData (computed_md5 of the record's file list), confirmed on the
+    download of 2026-11-09 (78,642 bytes, sha256 0e77842ce46448cad198f700b9f3755079ca82c32c64d812abfe5d354c931088)
+- url: https://data.4tu.nl/file/d0af5e8b-6bde-4c02-a165-c752b5ab435a/57a357c6-dc42-42c5-ab45-fb43758f728a
+  filename: PTV.zip
+  algorithm: md5
+  digest: b874c3c5764daf56db31cbdd227eca2f
+  digest_source: published by 4TU.ResearchData (computed_md5 of the record's file list), confirmed on the
+    download of 2026-11-09 (10,144 bytes, sha256 13d6f8171b5c2cfd281cc048330d1f582875bb4f794bf9359183059c246e3367)
+- url: https://data.4tu.nl/file/d0af5e8b-6bde-4c02-a165-c752b5ab435a/28632825-5d64-4151-818f-2fbee8c999cc
+  filename: readme.txt
+  algorithm: md5
+  digest: 7920e7c012f640b8d496944428f779a3
+  digest_source: published by 4TU.ResearchData (computed_md5 of the record's file list), confirmed on the
+    download of 2026-11-09 (4,016 bytes)
+samples:
+- path: PIV/U05/EXPparam.mat
+  sha256: d520f43a83361a997c01c44dc73cce64657bda9fa6ae46ab444776801d895a37
+  bytes: 19497
+  derivation: extracted unchanged from PIV.zip (md5 fa1cd9e0cd70adb33c9941813b3a7743), the same path inside the archive
+  test: tests/unit/test_data_tudelft_boundary_layer.py::test_tudelft_sample_parses
+- path: PIV/U10/EXPparam.mat
+  sha256: 80f4e28b95fa314ad608434448726402642eba0699a8cf8cf1e5477d7971c97e
+  bytes: 19461
+  derivation: extracted unchanged from PIV.zip (md5 fa1cd9e0cd70adb33c9941813b3a7743), the same path inside the archive
+  test: tests/unit/test_data_tudelft_boundary_layer.py::test_tudelft_sample_parses
+- path: PIV/U15/EXPparam.mat
+  sha256: c95d9b216302a0bd1971b9a569a11a057c6324051606f998d4d8a2e12ce9f02e
+  bytes: 19516
+  derivation: extracted unchanged from PIV.zip (md5 fa1cd9e0cd70adb33c9941813b3a7743), the same path inside the archive
+  test: tests/unit/test_data_tudelft_boundary_layer.py::test_tudelft_sample_parses
+- path: PIV/U20/EXPparam.mat
+  sha256: 43c183e5ffec284a9ee28e16c7e951907149f5672d221b2d34b0b9ae701a7e79
+  bytes: 19379
+  derivation: extracted unchanged from PIV.zip (md5 fa1cd9e0cd70adb33c9941813b3a7743), the same path inside the archive
+  test: tests/unit/test_data_tudelft_boundary_layer.py::test_tudelft_sample_parses
+- path: PTV/U05/EXPparam.mat
+  sha256: 566695c01923a9a591e2f0e0bc42c8e5d9555d10a96e77737c25c49dbb9e2dc1
+  bytes: 2265
+  derivation: extracted unchanged from PTV.zip (md5 b874c3c5764daf56db31cbdd227eca2f), the same path inside the archive
+  test: tests/unit/test_data_tudelft_boundary_layer.py::test_tudelft_sample_parses
+- path: PTV/U10/EXPparam.mat
+  sha256: 824ad5f23c288a37a32928e50e095fc5cd70c4cfa60887fc5926a1973c1df121
+  bytes: 2233
+  derivation: extracted unchanged from PTV.zip (md5 b874c3c5764daf56db31cbdd227eca2f), the same path inside the archive
+  test: tests/unit/test_data_tudelft_boundary_layer.py::test_tudelft_sample_parses
+- path: PTV/U15/EXPparam.mat
+  sha256: 4c90ad2958c590d38f2218a5397f8b1773d51e5ffb2e56c142e049e2c9fc233f
+  bytes: 2243
+  derivation: extracted unchanged from PTV.zip (md5 b874c3c5764daf56db31cbdd227eca2f), the same path inside the archive
+  test: tests/unit/test_data_tudelft_boundary_layer.py::test_tudelft_sample_parses
+- path: PTV/U20/EXPparam.mat
+  sha256: 27e55265eeae7744c41967a545606f7dbfd9a767aee284a37e71422cd79e49b3
+  bytes: 2178
+  derivation: extracted unchanged from PTV.zip (md5 b874c3c5764daf56db31cbdd227eca2f), the same path inside the archive
+  test: tests/unit/test_data_tudelft_boundary_layer.py::test_tudelft_sample_parses
+estimates:
+  runtime: Reference figure about 2.3 s with the interpreter start.
+  memory: About 180 MB peak resident for the figure.
+  page_payload: 87 KB committed, read at build time and not shipped; a figure PNG of about 290 KB.
+  ci: 'Offline: eight committed files.'
+decision:
+  value: go
+  date: *accessed
+  reasons:
+  - 'Real files inspected: PIV.zip, PTV.zip, and readme.txt, md5s equal to those 4TU publishes; the eight
+    MAT v5 files read by scipy.io.loadmat and committed unchanged.'
+  - 'The readme''s errors found and stated: top-level variables, not a struct; PTV y in millimetres, not
+    metres; the PIV stresses uu, uv, vv, not uu three times; a DOI placeholder.'
+  - 'Scientific check passed: the file''s u_tau within 1.1 per cent of the Coles-Fernholz correlation;
+    the log law over 50 < y+ and y < 0.15 delta gives kappa 0.400 to 0.410 and B 4.77 to 5.17, with the
+    window sensitivity stated; H 1.33 to 1.37 against 2.591 for the laminar Blasius layer, recomputed
+    within 1.5 per cent; -u''v''+ peaks at 0.91 to 0.97, below the wall value 1.'
+  - 'Limits stated: no uncertainty in the files; u_tau''s method not in the record, so the log-law constants
+    are those of the file''s u_tau; PIV reads up to 7 per cent below PTV near the wall.'
+  - CC BY 4.0 on the record; local download, subsets, figures, and modification permitted with attribution.
+  - 'Recorded by F108 (Issue #441) under the owner''s approval of 2026-11-09 on the Issue: work towards a
+    go, judged per dossier, with every requirement of ADR 007 checked in the dossier.'
+dossier: docs/datasets/tudelft-turbulent-boundary-layer.md

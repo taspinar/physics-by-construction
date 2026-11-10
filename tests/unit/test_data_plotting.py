@@ -23,6 +23,7 @@ from pbc.data.reference import (
     bayreuth_rlc,
     cylinder_wake,
     dwd_soil,
+    grazing_flow_hwa,
     gw150914,
     kamchatka_tsunami,
     lycopodium,
@@ -34,6 +35,7 @@ from pbc.data.reference import (
     srm660c,
     tess_wasp18,
     trackpy_bulk_water,
+    tudelft_boundary_layer,
     xu_pendulum,
 )
 from pbc.data.series import Series
@@ -49,6 +51,8 @@ LYC = SAMPLES_DIR / "lycopodium-spore-diffraction"
 BW = SAMPLES_DIR / "trackpy-bulk-water"
 XU = SAMPLES_DIR / "xu-damped-pendulum"
 DWD = SAMPLES_DIR / "dwd-potsdam-soil-temperature"
+TBL = SAMPLES_DIR / "tudelft-turbulent-boundary-layer"
+GFH = SAMPLES_DIR / "grazing-flow-hwa-benchmark"
 SDSS = SAMPLES_DIR / "sdss-balmer-spectrum"
 LAB6 = SAMPLES_DIR / "nist-srm660c-lab6"
 KAM = SAMPLES_DIR / "kamchatka-2025-tsunami-inputs"
@@ -185,6 +189,8 @@ def test_the_credit_line_is_wrapped_and_kept_inside_the_figure():
         (trackpy_bulk_water, BW, "processed", True),
         (xu_pendulum, XU, "processed", True),
         (dwd_soil, DWD, "processed", True),
+        (tudelft_boundary_layer, TBL, "processed", False),
+        (grazing_flow_hwa, GFH, "processed", False),
         (sdss_balmer, SDSS, "processed", True),
         (srm660c, LAB6, "processed", True),
         (kamchatka_tsunami, KAM, "processed", False),
@@ -214,6 +220,8 @@ def test_the_dossiers_state_the_status_of_their_figure():
         ("trackpy-bulk-water", "processed"),
         ("xu-damped-pendulum", "processed"),
         ("dwd-potsdam-soil-temperature", "processed"),
+        ("tudelft-turbulent-boundary-layer", "processed"),
+        ("grazing-flow-hwa-benchmark", "processed"),
         ("sdss-balmer-spectrum", "processed"),
         ("nist-srm660c-lab6", "processed"),
         ("kamchatka-2025-tsunami-inputs", "processed"),
