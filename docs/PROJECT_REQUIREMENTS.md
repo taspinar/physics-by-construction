@@ -519,7 +519,14 @@ Later phases (in scope for the project, out of scope for the MVP):
   and the Start learning button), and the site search; a footer with
   attribution, licences, and the secondary pages (Run the code, Glossary,
   Scientific evidence, For educators, Contribute, Source), with no link
-  shown twice. Every page stays reachable and every existing address
+  shown twice. Below 640 CSS px (the owner's decision of 2026-11-10,
+  round 2 of the Home feature) the header is one compact line, the mark,
+  the site name shortened visually to "PBC" with the full name as the home
+  link's accessible name, the search control, and a menu toggle; the four
+  items are in a native menu that is usable by touch and keyboard, named,
+  with its open or closed state exposed, closed by Escape, and reachable
+  without a script (the menu then stands open). Nothing in the header
+  overlaps at 200 % text. Every page stays reachable and every existing address
   valid. About states plainly who makes PBC, why it exists, who it is
   for, and, since decision 43, its mission and educational philosophy;
   it keeps the attribution to JIDAI and Ahmet Taspinar, describes the
@@ -537,12 +544,15 @@ Later phases (in scope for the project, out of scope for the MVP):
   that orients a first-time visitor: what PBC is, how physics is learned
   here, what a visitor can learn, and where to begin. It opens with a
   hero: the owner's headline and subtext
-  copy, held as data in one file and never written on the page, shown at
-  random per visit by a small module before first paint, with one fixed
-  default pair in the HTML (what remains without scripts and what search
-  snippets and link previews see), one `<h1>` that does not change after
-  load, a parameter that forces a variant for tests, reserved height so
-  the swap shifts nothing, and no storage or request; beside it the hero
+  copy, held as data in one file and never written on the page. Since the
+  owner's decision of 2026-11-10 (round 2 of the Home feature) the text is
+  one fixed headline and one fixed subtext, the same with and without
+  scripts and after a reload, with one `<h1>` that does not change after
+  load; no text is chosen at random, and the earlier headline and subtext
+  variants stay in the data file as an unused editorial reference (before
+  that decision a pair was shown at random per visit by a small module,
+  with a fixed default pair in the HTML and a parameter that forced one).
+  Beside the text the hero
   image. Since decision 43 the hero image is one of a small set of
   existing Part A illustrations, interface artwork of decision 41
   already in the provenance register, each made at hero size from its
@@ -584,12 +594,15 @@ Later phases (in scope for the project, out of scope for the MVP):
   message and the primary action are, and the secondary action should
   be but may fall just below the fold on smaller screens; the hero image
   is not weakened (shrunk, cropped, hidden) to satisfy a rigid
-  above-the-fold rule: it is in view on desktops, tablets, and phones
-  from 390 by 844 CSS px up, and on the smallest phones (360 by 640, 320
-  by 568) it may follow the actions below the fold, whole and unshrunk
-  (the owner's decision of 2026-11-10, Issue #462); the identity message
-  and the primary action are in view down to 320 by 568, where the
-  spacing of Home and of the shared header is tighter. The layout is validated at representative desktop
+  above-the-fold rule: it is in view on desktops and tablets, and at 390
+  by 844 CSS px a substantial, recognisable part of it is above the fold
+  (at least 40 % of its height; a few pixels do not count), and on the
+  smallest phones (360 by 640, 320 by 568) it may follow the actions below
+  the fold, whole and unshrunk (the owner's decisions of 2026-11-10,
+  Issue #462); the identity message and the primary action are in view
+  down to 320 by 568, with a reasonable margin above the fold, by the
+  compact header and the natural document flow of the hero, without
+  shrinking the headline for the image's sake. The layout is validated at representative desktop
   and phone sizes, including small phones and increased text scaling,
   with readability, accessibility, and visual quality before any
   pixel rule, and the owner approves the hero on the rendered page. The
@@ -817,8 +830,9 @@ Later phases (in scope for the project, out of scope for the MVP):
   concept-to-slot associations, curated conceptual connections with
   their rationale, and, since decision 40, the one-line description and
   illustration of each sequence; the curriculum file gains no
-  description field). The hero's headlines and subtexts live in one data
-  file, never on a page. Since decision 43 the editorial text of each
+  description field). The hero's headline and subtext live in one data
+  file, never on a page (since 2026-11-10 one fixed pair, with the earlier
+  variants kept in the same file as an unused reference). Since decision 43 the editorial text of each
   course and method-path introduction lives in one data file per sequence
   beside the atlas manifest, and the Part A and Part B text of the
   learning journey in one source used by the atlas and About (its exact

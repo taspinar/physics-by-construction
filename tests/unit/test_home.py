@@ -1,5 +1,6 @@
 """The generated home page (F134, F158; ADR 021 decision 4 as amended): the
-hero's data file and its rules, the hero images and their registration, the
+hero's data file and its rules (one fixed headline and subtext, the variants
+of F134 as an unused reference), the hero images and their registration, the
 hero's markup, the Home copy file and its rules, the owner's example lessons
 validated against the published lessons, the two actions of the first step,
 and the order of the page, all generated from data."""
@@ -23,7 +24,6 @@ from pbc.authoring.home import (
     HERO_FILE,
     HERO_IMAGE_HEIGHT,
     HERO_IMAGE_WIDTH,
-    HERO_PAIRS,
     HOME_FILE,
     SECTIONS,
     HeroCopy,
@@ -88,56 +88,61 @@ def _home_problems(data) -> list[str]:
     return home_problems(data, CURRICULUM, PUBLISHED, TERMS)
 
 
-# --- The hero's data file: the pairs ----------------------------------------
+# --- The hero's data file: the fixed text --------------------------------------
 
 
-def test_the_data_file_holds_exactly_the_eight_pairs_of_the_owner():
+def test_the_data_file_holds_the_owner_s_fixed_headline_and_subtext():
     assert hero_problems(DATA) == []
-    assert [pair.id for pair in HERO.pairs] == list(HERO_PAIRS)
-    assert HERO.default in HERO_PAIRS
-    # The owner's copy, as supplied on the Issue (two of the eight).
-    assert HERO.pair("1a").headline == (
+    # The owner's words (round 2 of Issue #462, 2026-11-10), kept exactly.
+    assert HERO.headline == (
         "The universe has no obligation to fit the limits of human intelligence."
     )
-    assert HERO.pair("3b").subtext.startswith(
+    assert HERO.subtext == (
+        "We explore physics by building models and testing them against theory,"
+        " real measurements, and formal proofs. Then we investigate how AI agents"
+        " might push the boundaries of scientific understanding."
+    )
+
+
+def test_the_variants_are_the_eight_pairs_of_f134_kept_as_a_reference():
+    # Three headlines with eight subtexts, the first headline the fixed one;
+    # nothing but the validation reads them.
+    assert len(HERO.variants) == 3
+    assert sum(len(subtexts) for _, subtexts in HERO.variants) == 8
+    assert HERO.variants[0][0] == HERO.headline
+    assert HERO.variants[2][1][1].startswith(
         "We do not know what physics will look like in a hundred years."
     )
-    # Pairs of one headline share it.
-    assert HERO.pair("2a").headline == HERO.pair("2c").headline
 
 
-def test_a_missing_pair_fails():
+def test_without_variants_the_file_is_valid():
     data = _data()
-    data["headlines"][2]["subtexts"].pop()
-    assert any("3b" in p and "missing" in p for p in hero_problems(data))
+    del data["variants"]
+    assert hero_problems(data) == []
+    assert HeroCopy.parse(data).variants == ()
 
 
-def test_a_duplicate_pair_fails():
+def test_a_missing_empty_or_marked_up_headline_or_subtext_fails():
     data = _data()
-    data["headlines"][0]["subtexts"].append(dict(data["headlines"][0]["subtexts"][0]))
-    assert any("1a appears more than once" in p for p in hero_problems(data))
-
-
-def test_a_duplicate_headline_fails():
-    data = _data()
-    data["headlines"][1]["id"] = "1"
+    data["headline"] = " "
+    data["subtext"] = "Physics <b>and</b> AI."
     found = hero_problems(data)
-    assert any("headline id '1' appears more than once" in p for p in found)
-
-
-def test_an_extra_pair_fails():
+    assert any("the headline has no text" in p for p in found)
+    assert any("the subtext holds markup" in p for p in found)
     data = _data()
-    data["headlines"][2]["subtexts"].append({"id": "c", "text": "One more."})
-    assert any("3c" in p and "not the owner's eight" in p for p in hero_problems(data))
+    del data["subtext"]
+    assert any("lacks subtext" in p for p in hero_problems(data))
+    with pytest.raises(ValueError, match="rules of the hero"):
+        HeroCopy.parse(data)
 
 
 def test_an_unknown_field_fails_at_every_level():
-    for where in ("top", "headline", "subtext", "images", "image"):
+    for where in ("top", "variant headline", "variant subtext", "images", "image"):
         data = _data()
         target = {
             "top": data,
-            "headline": data["headlines"][0],
-            "subtext": data["headlines"][0]["subtexts"][0],
+            "variant headline": data["variants"][0],
+            "variant subtext": data["variants"][0]["subtexts"][0],
             "images": data["images"],
             "image": data["images"]["set"][0],
         }[where]
@@ -145,21 +150,20 @@ def test_an_unknown_field_fails_at_every_level():
         assert any("unknown fields: weight" in p for p in hero_problems(data)), where
 
 
-def test_markup_or_empty_text_fails():
+def test_a_broken_variant_fails():
     data = _data()
-    data["headlines"][0]["subtexts"][1]["text"] = "Physics <b>and</b> AI."
-    data["headlines"][1]["text"] = " "
+    data["variants"][1]["id"] = "1"
+    data["variants"][0]["subtexts"].append(dict(data["variants"][0]["subtexts"][0]))
+    data["variants"][2]["subtexts"][0]["text"] = "Physics <b>and</b> AI."
     found = hero_problems(data)
-    assert any("subtext 1b holds markup" in p for p in found)
-    assert any("headline 2 has no text" in p for p in found)
-
-
-def test_a_default_that_is_no_pair_fails():
+    assert any("variant headline id '1' appears more than once" in p for p in found)
+    assert any("variant pair 1a appears more than once" in p for p in found)
+    assert any("variant subtext 3a holds markup" in p for p in found)
     data = _data()
-    data["default"] = "4a"
-    assert any("default '4a'" in p for p in hero_problems(data))
-    with pytest.raises(ValueError, match="rules of the hero"):
-        HeroCopy.parse(data)
+    data["variants"][0]["subtexts"] = "none"
+    assert any("has no list of subtexts" in p for p in hero_problems(data))
+    data["variants"] = {"a": 1}
+    assert "'variants' is not a list" in hero_problems(data)
 
 
 def test_a_site_without_the_data_file_fails(tmp_path):
@@ -267,25 +271,24 @@ def _data_of(hero: str, element: str) -> list[dict]:
     return json.loads(found)
 
 
-def test_the_hero_carries_one_h1_with_the_default_pair_and_the_pairs_as_data():
+def test_the_hero_carries_one_h1_with_the_fixed_text_and_no_other_copy():
     hero = HOME.hero()
-    default = HERO.pair(HERO.default)
     assert hero.count("<h1") == 1
     (h1,) = re.findall(r"<h1[^>]*>(.*?)</h1>", hero)
-    assert h1 == default.headline.replace("'", APOSTROPHE)
-    assert f'data-hero="{HERO.default}"' in hero
-    assert default.subtext.replace("'", APOSTROPHE) in hero
-    pairs = _data_of(hero, "hero-pairs")
-    assert [pair["id"] for pair in pairs] == list(HERO_PAIRS)
-    for pair in pairs:
-        expected = HERO.pair(pair["id"])
-        assert pair["headline"] == expected.headline.replace("'", APOSTROPHE)
-        assert pair["subtext"] == expected.subtext.replace("'", APOSTROPHE)
-    # Every other pair is only data: no other subtext is text of the page.
-    text = re.sub(r"<script.*?</script>", "", hero, flags=re.S)
-    for pair in HERO.pairs:
-        if pair.subtext != default.subtext:
-            assert pair.subtext.replace("'", APOSTROPHE) not in text
+    assert h1 == HERO.headline.replace("'", APOSTROPHE)
+    (subtext,) = re.findall(r'<p class="hero-subtext">(.*?)</p>', hero)
+    assert subtext == HERO.subtext.replace("'", APOSTROPHE)
+    # No pairs: no data for a script to swap the text, no hidden copies, no
+    # marker of a chosen pair.
+    assert "hero-pairs" not in hero and "data-hero=" not in hero
+    assert "hero-pair" not in hero and "hero-ghost" not in hero
+    # The variants are only a reference: none of their texts is on the page
+    # (the first headline is the fixed one).
+    for headline, subtexts in HERO.variants:
+        if headline != HERO.headline:
+            assert headline.replace("'", APOSTROPHE) not in hero
+        for text in subtexts:
+            assert text.replace("'", APOSTROPHE) not in hero
 
 
 def test_the_default_image_is_in_the_html_inside_noscript_and_the_set_is_data():
@@ -318,7 +321,6 @@ def test_the_script_follows_the_figure_and_the_data():
     order = [
         hero.index('class="hero-copy"'),
         hero.index('id="hero-figure"'),
-        hero.index('id="hero-pairs"'),
         hero.index('id="hero-images"'),
         hero.index('<script src="learner/hero.js"></script>'),
         hero.index('class="home-actions"'),
@@ -328,19 +330,19 @@ def test_the_script_follows_the_figure_and_the_data():
 
 def test_the_embedded_data_cannot_close_its_script_element():
     data = _data()
-    data["headlines"][0]["subtexts"][0]["text"] = "Plain text & more."
     data["images"]["set"][0]["alt"] = "Illustration: plain & simple."
     home = replace(HOME, hero_copy=HeroCopy.parse(data))
     hero = home.hero()
     assert "\\u0026" in hero
-    assert _data_of(hero, "hero-pairs")[0]["subtext"] == "Plain text & more."
     assert _data_of(hero, "hero-images")[0]["alt"] == "Illustration: plain & simple."
 
 
 def test_the_page_source_holds_no_copy_but_the_data_files():
     source = (SITE_SOURCE / "index.qmd").read_text(encoding="utf-8")
-    for pair in HERO.pairs:
-        assert pair.headline not in source and pair.subtext not in source
+    assert HERO.headline not in source and HERO.subtext not in source
+    for headline, subtexts in HERO.variants:
+        assert headline not in source
+        assert all(text not in source for text in subtexts)
     for texts in COPY.texts.values():
         for text in texts:
             assert text[:40] not in source

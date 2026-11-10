@@ -841,10 +841,13 @@ def check_navigation_fits(
     """Every entry of the navigation bar stays on the screen at phone width,
     also with text a quarter wider than here.
 
-    The bar does not collapse into a menu. Its entries must wrap, and how many
-    fit on a line depends on the fonts of the machine: an entry that fits here
-    can lie past the right edge on another machine, where it cannot be reached
-    without a script. The wider text stands in for those fonts.
+    At phone width the entries are in the bar's menu (``details.pbc-menu``,
+    F158 round 2), which the check opens, so that every entry is measured
+    where a reader finds it; what is in the bar itself (the mark, the title,
+    the search, the toggle) is measured as well. How wide an entry is
+    depends on the fonts of the machine: one that fits here can lie past the
+    right edge on another machine, where it cannot be reached. The wider text
+    stands in for those fonts.
     """
     violations = []
     for scale in (1.0, 1.25):
@@ -852,6 +855,7 @@ def check_navigation_fits(
             for name, url in _urls(site_dir, server):
                 page = _open(context, url)
                 page.add_style_tag(content=f".navbar {{ font-size: {scale}em; }}")
+                page.evaluate(_OPEN_MENU)
                 outside = page.evaluate(
                     """(width) => [...document.querySelectorAll('.navbar a')]
                         .filter((link) => {
@@ -874,6 +878,16 @@ def check_navigation_fits(
     return violations
 
 
+# Runs in the page. Opens the menu of the navigation bar when the page has
+# one and it is closed (at phone width, with scripts).
+_OPEN_MENU = """
+() => {
+  for (const menu of document.querySelectorAll(".navbar details.pbc-menu")) {
+    menu.open = true;
+  }
+}
+"""
+
 # Runs in the page after the first Tab. Describes the focused element: what it
 # is, where it is on the screen, and how its focus ring is drawn.
 _FOCUSED = """
@@ -882,6 +896,7 @@ _FOCUSED = """
   if (!element || element === document.body) return null;
   const style = getComputedStyle(element);
   const box = element.getBoundingClientRect();
+  const menu = element.closest(".navbar details.pbc-menu");
   const colourOf = (candidate) => {
     for (let node = candidate; node; node = node.parentElement) {
       const colour = getComputedStyle(node).backgroundColor;
@@ -894,6 +909,8 @@ _FOCUSED = """
     skipLink: element.classList.contains("skip-link"),
     inNavigation: element.closest(".navbar") !== null,
     inMain: element.closest("main") !== null,
+    menuToggle: element.localName === "summary" && menu !== null,
+    menuOpen: menu !== null && menu.open,
     box: [box.left, box.top, box.right, box.bottom],
     width: [window.innerWidth, window.innerHeight],
     outlineStyle: style.outlineStyle,
@@ -930,7 +947,10 @@ def check_keyboard_navigation(
     """The keyboard pass of the accessibility audit, on every page: the first
     Tab reaches a skip link that is on the screen and has a visible focus ring,
     Enter on it moves to the content, and every entry of the navigation bar
-    shows a focus ring that passes WCAG 2.2's focus appearance contrast."""
+    shows a focus ring that passes WCAG 2.2's focus appearance contrast. At
+    phone width the entries are in the bar's menu (F158 round 2): its toggle
+    takes focus, opens on Enter, and the entries follow it in the tab order,
+    so they are checked there too."""
     violations = []
     for viewport in (DESKTOP, PHONE):
         with _context(browser, server, lambda url: None, viewport=viewport) as context:
@@ -996,6 +1016,8 @@ def check_keyboard_navigation(
 
                 page = _open(context, url)
                 entries = 0
+                has_menu = page.locator(".navbar details.pbc-menu").count() == 1
+                toggled = False
                 for _ in range(40):
                     page.keyboard.press("Tab")
                     focused = page.evaluate(_FOCUSED)
@@ -1012,6 +1034,25 @@ def check_keyboard_navigation(
                                 f"the entry {focused['text']!r} {problem} ({where})",
                             )
                         )
+                    if focused["menuToggle"] and not focused["menuOpen"]:
+                        toggled = True
+                        page.keyboard.press("Enter")
+                        if not page.evaluate(_FOCUSED)["menuOpen"]:
+                            violations.append(
+                                Violation(
+                                    "navigation-focus",
+                                    name,
+                                    f"the menu does not open on Enter ({where})",
+                                )
+                            )
+                if has_menu and viewport is PHONE and not toggled:
+                    violations.append(
+                        Violation(
+                            "navigation-focus",
+                            name,
+                            f"the menu toggle did not take focus closed ({where})",
+                        )
+                    )
                 if entries < 5:
                     violations.append(
                         Violation(

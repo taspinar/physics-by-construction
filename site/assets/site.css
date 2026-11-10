@@ -75,6 +75,10 @@
   --pbc-space-4: 1.5rem;
   --pbc-space-5: 2.5rem;
   --pbc-measure: 68ch;
+  /* The gutter of the compact header (below 40em): the content column's
+     (1.5em of the body size and the theme's 5px), capped so that the bar's
+     row has room at 200 % text. */
+  --pbc-bar-gutter: min(calc(1.5rem + 5px), 29px);
 
   /* Rules: thin separators, and the one construction line under the header. */
   --pbc-rule-width: 1px;
@@ -147,11 +151,13 @@ main img {
   height: auto;
 }
 
-/* The navigation bar does not collapse into a menu (that needs a script), so
-   its entries wrap onto further lines on a narrow screen. The theme lays the
-   bar out as rows that never wrap, which pushes the last entries past the
-   right edge of a phone screen; how many fit depends on the fonts of the
-   machine. An entry of two words stays on one line when it wraps. */
+/* The navigation bar does not use the theme's collapse (that needs a
+   script): from 40em its entries wrap onto further lines when the bar is
+   too narrow for them, and below 40em they are in a native menu
+   (navigation.py; "The header on a narrow screen" below). The theme lays
+   the bar out as rows that never wrap, which pushes the last entries past
+   the right edge of a narrow screen; how many fit depends on the fonts of
+   the machine. An entry of two words stays on one line when it wraps. */
 .navbar .navbar-container,
 .navbar .navbar-nav {
   flex-wrap: wrap;
@@ -736,10 +742,57 @@ body.nav-fixed {
   }
 }
 
-/* On a phone the header is compact: the mark and the title share a row with
-   the search control, and the entries wrap in the two rows below it, still
-   without a script. The theme orders these children itself, so each rule
-   names the child. */
+/* The menu of the header (navigation.py): a native details around the two
+   lists of entries, open in the HTML. From 40em it is only a box in the
+   bar: its toggle is hidden and its panel lays the lists out as the bar
+   did (the first list pushes the start link to the right). */
+.navbar .navbar-container > .pbc-menu {
+  display: block;
+  order: 20;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+.pbc-menu-toggle {
+  display: none;
+  list-style: none;
+}
+
+.pbc-menu-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.pbc-menu-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  width: 100%;
+}
+
+/* The title's two forms, the full name and its initials (navigation.py).
+   One is shown; the other stays rendered but clipped, so that the link's
+   accessible name is always the full name and no text is hidden. */
+.pbc-title-short,
+.pbc-title-full {
+  display: inline;
+}
+
+.pbc-title-short {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The header on a narrow screen (F158, round 2 of Issue 462), in two
+   steps. Between 40em and 48em (640 to 767 CSS px) the mark and the full
+   title share a row with the search control, and the entries wrap on the
+   rows below it, still without a script. The theme orders these children
+   itself, so each rule names the child. */
 @media (max-width: 767.98px) {
   .navbar .navbar-container {
     flex-wrap: wrap;
@@ -760,17 +813,15 @@ body.nav-fixed {
     order: 2;
   }
 
-  .navbar .navbar-container > .navbar-nav {
+  .navbar .navbar-container > .pbc-menu {
+    order: 3;
+    flex: 1 1 100%;
+  }
+
+  .pbc-menu-panel .navbar-nav {
     flex: 1 1 100%;
     flex-wrap: wrap;
-  }
-
-  .navbar .navbar-container > .navbar-nav.me-auto {
-    order: 3;
-  }
-
-  .navbar .navbar-container > .navbar-nav.ms-auto {
-    order: 4;
+    margin: 0 !important;
   }
 
   .navbar .navbar-nav .nav-link {
@@ -783,18 +834,171 @@ body.nav-fixed {
   }
 }
 
-/* On the narrowest phones (320 CSS px) the header is shorter still: less
-   padding and the two lines of the title closer together. Every item
-   stays; only the spacing changes (Issue #462). */
-@media (max-width: 22em) {
-  .navbar {
-    padding-top: var(--pbc-space-1);
-    padding-bottom: var(--pbc-space-1);
+/* Below 40em (640 CSS px) the bar is one line: the mark, the initials
+   "PBC", the search control, and the menu toggle, a 44 px square at the
+   right edge; the four entries are in the menu, which opens under the bar
+   as a column with the start link last, the filled control. Without a
+   script the menu stands open (navigation.py), and the toggle still
+   closes it. The text grows with the reader's text size; the gutters, the
+   toggle, and the mark (to 44 px at most) do not, so that at 200 % text
+   the row still holds the mark, "PBC", and the search control without
+   overlap, and the brand never shrinks below its content: the search
+   control wraps under it before anything overlaps. */
+@media (max-width: 39.99em) {
+  /* The theme pads the bar itself as well as its container. */
+  #quarto-header .navbar {
+    padding: 0;
   }
 
-  .navbar .navbar-brand,
+  .navbar .navbar-container {
+    position: relative;
+    column-gap: var(--pbc-space-2);
+    padding: 4px calc(44px + 2 * var(--pbc-bar-gutter)) 4px var(--pbc-bar-gutter);
+  }
+
+  .navbar .navbar-container > .navbar-brand-container {
+    flex: 1 1 auto;
+    min-width: min-content;
+    min-height: 44px;
+    column-gap: var(--pbc-space-2);
+  }
+
+  .navbar .navbar-brand-container > .navbar-brand {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0;
+  }
+
+  .navbar .navbar-brand-logo {
+    padding-right: 0;
+  }
+
+  .navbar .navbar-brand-logo .navbar-logo {
+    width: min(2.25rem, 44px);
+    max-width: 44px;
+    height: min(2.25rem, 44px);
+    max-height: 44px;
+    margin-right: 0;
+    padding-right: 0;
+  }
+
   .navbar .navbar-title {
-    line-height: 1.2;
+    font-size: 1.125rem;
+    white-space: nowrap;
+  }
+
+  .pbc-title-full {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .pbc-title-short {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+  }
+
+  /* The menu spans the bar to its right gutter, under the toggle, on a
+     row of its own (its basis counts the margin it takes back, so it
+     never shares the row with a wrapped search control). */
+  .navbar .navbar-container > .pbc-menu {
+    position: static;
+    order: 4;
+    flex: 0 0 calc(100% + 44px + var(--pbc-bar-gutter));
+    margin-right: calc(-44px - var(--pbc-bar-gutter));
+  }
+
+  .pbc-menu-toggle {
+    position: absolute;
+    top: 4px;
+    right: var(--pbc-bar-gutter);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--pbc-radius);
+    color: var(--pbc-header-text);
+    cursor: pointer;
+  }
+
+  /* The icon: three lines, an X when the menu is open. */
+  .pbc-menu-icon {
+    position: relative;
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: currentColor;
+  }
+
+  .pbc-menu-icon::before,
+  .pbc-menu-icon::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: currentColor;
+  }
+
+  .pbc-menu-icon::before {
+    top: -7px;
+  }
+
+  .pbc-menu-icon::after {
+    top: 7px;
+  }
+
+  .pbc-menu[open] > .pbc-menu-toggle .pbc-menu-icon {
+    background: transparent;
+  }
+
+  .pbc-menu[open] > .pbc-menu-toggle .pbc-menu-icon::before {
+    top: 0;
+    transform: rotate(45deg);
+  }
+
+  .pbc-menu[open] > .pbc-menu-toggle .pbc-menu-icon::after {
+    top: 0;
+    transform: rotate(-45deg);
+  }
+
+  .pbc-menu-panel {
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--pbc-space-2) 0;
+    border-top: var(--pbc-rule-width) solid var(--pbc-rule);
+  }
+
+  .pbc-menu-panel .navbar-nav {
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+  }
+
+  /* The entries at the gutter, as the content below them; an entry wraps
+     when the text is too large for the column. */
+  .navbar .pbc-menu-panel .nav-link,
+  .navbar .pbc-menu-panel .nav-link .pbc-start {
+    padding: var(--pbc-space-2) 0;
+    font-size: 1.0625rem;
+    white-space: normal;
+  }
+
+  .navbar .pbc-menu-panel .nav-link .pbc-start {
+    padding: var(--pbc-space-1) var(--pbc-space-3);
+  }
+
+  .navbar .pbc-menu-panel .nav-link .pbc-start {
+    margin-top: var(--pbc-space-1);
   }
 }
 
@@ -857,6 +1061,7 @@ body.nav-fixed {
 /* The focus ring of the header is the ring of the page. The theme's own is a
    pale shadow with too little contrast on paper (WCAG 2.2, 2.4.13). */
 .navbar a:focus-visible,
+.navbar summary:focus-visible,
 .navbar .aa-DetachedSearchButton:focus-visible {
   outline: var(--pbc-focus-width) solid var(--pbc-focus);
   outline-offset: 2px;
@@ -2300,7 +2505,9 @@ body.pbc-reading-column main.content section.level2 {
    step), then identity, how physics is learned here, what you can learn,
    and integrity. The page opts in with body-classes: pbc-home. */
 /* On a narrow screen the copy, the two actions, and the image follow each
-   other; the figure comes before the actions in the source only so that
+   other in the document flow, with 1.5rem between the subtext and the
+   actions and 2rem between the actions and the image (round 2 of Issue
+   462); the figure comes before the actions in the source only so that
    the script that fills it runs right after it. */
 .home-hero {
   display: grid;
@@ -2326,22 +2533,16 @@ body.pbc-reading-column main.content section.level2 {
     align-items: center;
     min-height: min(36rem, calc(100vh - 8rem));
   }
+
+  .hero-figure {
+    margin: 0 auto;
+  }
 }
 
-/* Every pair, the shown one and the hidden copies the script adds, in one
-   grid cell: the block is as tall as the longest pair. */
+/* The one fixed headline and subtext: the block is as tall as its text. */
 .hero-copy {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
   grid-area: copy;
-}
-
-.hero-pair {
-  grid-area: 1 / 1;
-}
-
-.hero-ghost {
-  visibility: hidden;
+  min-width: 0;
 }
 
 body.pbc-home .hero-headline {
@@ -2370,7 +2571,7 @@ body.pbc-home .hero-subtext {
   width: 100%;
   max-width: 40rem;
   aspect-ratio: 4 / 3;
-  margin: 0 auto;
+  margin: var(--pbc-space-2) auto 0;
   /* The paper the image is blended with. */
   isolation: isolate;
   background-color: var(--pbc-background);
@@ -2385,61 +2586,38 @@ body.pbc-home .hero-subtext {
   mix-blend-mode: darken;
 }
 
-/* On a phone the copy is reserved at the height of the longest pair: a
-   slightly smaller headline and subtext keep the message and the primary
-   action in a window of 360 by 640 CSS px. */
+/* On a phone a slightly smaller headline and subtext with tighter lines,
+   and less room above the hero, so that the message and the primary action
+   share the first screen with the compact header down to 320 by 568 CSS px
+   (the owner's decisions of 2026-11-10 on Issue 462); the image follows,
+   unshrunk. */
 @media (max-width: 30em) {
-  body.pbc-home .hero-headline {
-    font-size: 1.75rem;
-  }
-
-  body.pbc-home .hero-subtext {
-    font-size: var(--pbc-text-base);
+  body.pbc-home main {
+    margin-top: var(--pbc-space-3);
   }
 
   .home-hero {
-    row-gap: var(--pbc-space-3);
-  }
-}
-
-/* On the narrowest phones (320 by 568 CSS px) tighter lines and spacing, a
-   body-size subtext, and the compact header keep the message and the
-   primary action above the fold (the owner's decision of 2026-11-10 on
-   Issue #462); the headline keeps its phone size and the image follows,
-   unshrunk. */
-@media (max-width: 22em) {
-  /* The page's gutters are 1rem instead of the theme's 1.5em, so that the
-     lines of the copy are longer and fewer, whatever the face. */
-  body.pbc-home #quarto-content.page-columns {
-    grid-template-columns:
-      [screen-start] var(--pbc-space-3)
-      [screen-start-inset page-start page-start-inset body-start-outset body-start body-content-start]
-      minmax(0, 1fr)
-      [body-content-end body-end body-end-outset page-end-inset page-end screen-end-inset]
-      var(--pbc-space-3) [screen-end];
-  }
-
-  body.pbc-home main {
     margin-top: var(--pbc-space-2);
   }
 
   body.pbc-home .hero-headline {
     margin-bottom: var(--pbc-space-2);
-    line-height: 1;
+    font-size: 1.75rem;
+    line-height: 1.05;
   }
 
   body.pbc-home .hero-subtext {
+    font-size: var(--pbc-text-base);
+    line-height: 1.4;
+  }
+}
+
+/* On the narrowest phones (320 CSS px) the subtext is the body size of the
+   lessons' prose: seven lines instead of eight, and the primary action
+   well above the fold whatever the face. */
+@media (max-width: 22em) {
+  body.pbc-home .hero-subtext {
     font-size: 1rem;
-    line-height: 1.3;
-  }
-
-  .home-hero {
-    margin-top: 0;
-    row-gap: var(--pbc-space-2);
-  }
-
-  main a.home-action-primary {
-    line-height: 1.3;
   }
 }
 

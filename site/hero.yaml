@@ -1,23 +1,54 @@
-# The hero of the home page (F134, ADR 021 decision 4): the owner's three
-# headlines and eight subtexts, supplied on Issue #339 on 2026-10-30. A pair
-# is a headline and one of its subtexts; its identifier is the headline's id
-# and the subtext's letter (1a, 1b, 1c, 2a, 2b, 2c, 3a, 3b). The page
-# carries the default pair in its HTML (what remains without scripts and
-# what search snippets and link previews see); site/learner/hero.js shows
-# one pair at random per visit, or the one the `hero` parameter names.
+# The hero of the home page (F134, F158; ADR 021 decision 4 as amended): one
+# fixed headline and one fixed subtext, the owner's words (round 2 of Issue
+# #462, 2026-11-10), written into the HTML by the build and never changed by
+# a script: the page with and without scripts shows the same text, also
+# after a reload.
 #
 # Since F158 (Issue #462) the file also holds the hero image: four of the
 # Part A illustrations, each identified by the name of its file under
 # site/assets/hero/ (registered in site/assets/provenance.yaml), with the
 # course whose atlas master it is derived from and its alternative text. The
-# page carries the default image in its HTML; the script picks one at random
-# per visit, independently of the pair, or the one the `hero-image`
-# parameter names.
+# page carries the default image in its HTML; site/learner/hero.js picks one
+# at random per visit, or the one the `hero-image` parameter names.
 #
-# Read and validated by pbc.authoring.home: exactly these eight pairs, plain
-# text, the images below, no other field. Never write this copy on a page.
-default: "1a"
-headlines:
+# `variants` is an editorial reference: the three headlines and eight
+# subtexts of F134 (the owner's copy of Issue #339, 2026-10-30), no longer
+# shown. Nothing reads them but the validation; they are never written on a
+# page, used by a script, or moved to another page.
+#
+# Read and validated by pbc.authoring.home: plain text, the images below,
+# the variants as plain text, no other field. Never write this copy on a
+# page by hand.
+headline: >-
+  The universe has no obligation to fit the limits of human intelligence.
+subtext: >-
+  We explore physics by building models and testing them against theory,
+  real measurements, and formal proofs. Then we investigate how AI agents
+  might push the boundaries of scientific understanding.
+images:
+  default: double-pendulum
+  set:
+    - id: double-pendulum
+      sequence: mechanics
+      alt: >-
+        Illustration: the swinging paths of two double pendulums that start
+        almost together and soon move apart.
+    - id: vortex-street
+      sequence: fluids
+      alt: >-
+        Illustration: a flow past a cylinder, with a trail of alternating
+        swirls behind it.
+    - id: hot-cold-gas
+      sequence: thermodynamics
+      alt: >-
+        Illustration: a bar of gas from hot to cold, with the spread of
+        molecular speeds at three places along it.
+    - id: exoplanet-transit
+      sequence: astrophysics
+      alt: >-
+        Illustration: a planet passing in front of its star, and the dip it
+        makes in the star's light.
+variants:
   - id: "1"
     text: >-
       The universe has no obligation to fit the limits of human
@@ -70,26 +101,3 @@ headlines:
           We do not know what physics will look like in a hundred years. But
           we can begin building the models, experiments, and intelligent
           tools that may help shape its future.
-images:
-  default: double-pendulum
-  set:
-    - id: double-pendulum
-      sequence: mechanics
-      alt: >-
-        Illustration: the swinging paths of two double pendulums that start
-        almost together and soon move apart.
-    - id: vortex-street
-      sequence: fluids
-      alt: >-
-        Illustration: a flow past a cylinder, with a trail of alternating
-        swirls behind it.
-    - id: hot-cold-gas
-      sequence: thermodynamics
-      alt: >-
-        Illustration: a bar of gas from hot to cold, with the spread of
-        molecular speeds at three places along it.
-    - id: exoplanet-transit
-      sequence: astrophysics
-      alt: >-
-        Illustration: a planet passing in front of its star, and the dip it
-        makes in the star's light.

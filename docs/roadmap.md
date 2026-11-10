@@ -9087,7 +9087,9 @@ the educational philosophy, the Part A and Part B text from the one source
 of the learning journey, and a reference to "How we verify the science"
 instead of a repetition), and F158 gives the header's Start learning
 button and Home the same two destinations; the header keeps its four
-items.
+items. Round 2 of F158 (the owner's critique, 2026-11-10) puts the four
+items in a native menu below 640 CSS px, behind a toggle, with the title
+shortened to "PBC" there; from 640 CSS px the bar is as F132 delivered it.
 
 **Source.** Change request "What I want", item 1; requirements decision
 40 ("Menu"), "UX expectations" ("Site navigation"; "Shared templates": the
@@ -11073,6 +11075,26 @@ decision 43, "UX expectations" ("Home page", "Site navigation"), the
 amendment notes on decisions 40 and 41, and the non-goals (no measurement
 of which hero works better); ADR 021 decision 4 as amended.
 
+**Note of round 2 (the owner's critique of the rendered Home, 2026-11-10,
+Issue #462).** Three decisions of this block change for what the feature
+delivers, as the owner decided on the Issue: (1) the hero text is one
+fixed headline ("The universe has no obligation to fit the limits of human
+intelligence.") and one fixed subtext, the owner's words, the same with and
+without scripts and after a reload; the eight pairs of F134 and the `hero`
+parameter that forced one are gone, and the pairs stay in the hero data file
+as an unused editorial reference (ADR 021 decision 4, the round 2 note);
+(2) below 640 CSS px the shared header is one line, the mark, the initials
+"PBC" (the full name stays the home link's accessible name), the search
+control, and a menu toggle, and its four items are in a native menu that
+works without a script and is closed at load with one (ADR 021 decision 5,
+the round 2 note); the F132 header test is unchanged, and the keyboard and
+navigation checks of the built site open the menu; (3) at 390 by 844 a
+substantial, recognisable part of the hero image is above the fold, at
+least 40 % of its height (measured whole on the render), instead of "its
+top on the screen"; at 360 by 640 and 320 by 568 the primary action ends at
+least 24 px above the fold. The rest of the block stands; "the headline
+pair" below reads as the fixed text.
+
 **Problem.** Home answers what PBC is in three sentences and shows three
 example lessons and a capstone chosen by code; a first-time visitor learns
 neither how physics is learned here nor how Part A and Part B relate, and
@@ -11127,10 +11149,10 @@ they relate, and, last, how the results are kept honest.
   check accepted is rejected (the register's hash rule). If the owner
   changes the set, the same conditions hold for the masters of the new
   set. The
-  hero script picks one image per visit, independently of the headline
-  pair, before the image is requested, so that exactly one hero image is
-  loaded; its own query parameter, separate from the `hero` parameter
-  that forces a headline pair and named in this feature's plan, forces
+  hero script picks one image per visit before the image is requested,
+  so that exactly one hero image is loaded; its own query parameter
+  (`hero-image`, named in this feature's plan; since round 2 the only
+  parameter, the `hero` parameter of the pairs being gone) forces
   one for tests; the default stays in
   the HTML for a page without scripts and for link previews; no storage,
   no request beyond the image, no animation, no measurement. The
@@ -11158,8 +11180,8 @@ they relate, and, last, how the results are kept honest.
 - **The owner's approval** of the hero on the rendered page, last,
   recorded on the Issue.
 
-**Out of scope.** A new headline or subtext (the owner's copy of F134
-stays); animation; the interactive pendulum (F128); a measurement of
+**Out of scope.** Animation (a new headline or subtext was out of scope
+until round 2, which fixed the owner's new subtext and the first headline); the interactive pendulum (F128); a measurement of
 which image works better; a new illustration; a change of the atlas or of
 About beyond F157.
 
@@ -12102,7 +12124,7 @@ Added by the change cycle `site-navigation-and-atlas`:
 | The two-layer atlas | Twelve sequences and the Lean entry; one open at a time without a script; every published lesson reachable without scripts and by keyboard; the existing anchors opening their sequence; the counts equal to the lessons; no planned slot linked or counted, and planned content distinguishable without colour; the three engines and the accordion fallback with the wide rule disabled; no request, cookie, or storage from the module; the search index unchanged in meaning; byte-stable rebuilds; the progress marks, the progress explanation and controls, and the recommendations of F13 and F14 on the page, with the learning path data `recommend.js` reads (their tests unchanged or replaced by equivalent ones) | F133 |
 | The manifest's sequence entries and the relationships | One entry per course and path with a description and a registered illustration, a failing test per rule; the concept rules of F125 kept; the conceptual connections and capstone membership on a published lesson's page equal to the manifest, none on a planned lesson | F133 |
 | Raster interface artwork | Every WebP or PNG under `site/assets/` registered with origin, licence or terms, and master hash; the committed-artifact check admitting it only through its entry and rejecting an unregistered raster, an incomplete entry, every other image type, and every image outside `site/assets/` (a failing test per case); no text, number, or formula in the pixels and the visual check recorded (review); a regeneration check on demand where a script exists, never in CI | F133, F134 |
-| The hero | One default pair and one `<h1>` in the HTML; each of the eight pairs 1a, 1b, 1c, 2a, 2b, 2c, 3a, and 3b present in the data file and rendered through the `hero` parameter; no layout shift; no storage or request; the copy only in its data file, validated | F134 |
+| The hero | One default pair and one `<h1>` in the HTML; each of the eight pairs 1a, 1b, 1c, 2a, 2b, 2c, 3a, and 3b present in the data file and rendered through the `hero` parameter; no layout shift; no storage or request; the copy only in its data file, validated. Since round 2 of F158 (2026-11-10): one fixed headline and subtext in the HTML, the same with and without scripts and after a reload, the pairs kept in the data file as an unused reference, no `hero` parameter | F134, F158 |
 | How we verify the science | Every worked example's target checked by the build, a missing target failing it; the Evidence map reachable from the page and the footer | F134 |
 | The improvement links | Every link names an existing form and a parameter that is an `id` of a field of that form (a unit test); one manual check on github.com recorded | F135 |
 
@@ -12114,7 +12136,7 @@ Added by the change cycle `textbook-layer` (I35):
 | The introduction page | Every section of decision 43 present; the lesson list, the published and planned counts, the prerequisites from outside the sequence, and the capstone derived from the curriculum file and the front matter and equal to the atlas; a planned lesson shown with its label and working title, never a link, never counted; complete without scripts and holding no state; in the search index, with the index unchanged in meaning for every other page; the accessibility scan, the keyboard pass, the reflow at 320 CSS px, the payload; byte-stable rebuilds | F156; F159, F161 to F163 for their pages |
 | The links to an introduction | The atlas panel of a sequence with an introduction and the header of each of its lessons link to it; no link for a sequence without one; every lesson address, anchor, bookmark, and graph node resolving and the learner state unchanged: the test over the previous addresses and the F13, F14, and F133 tests, unchanged or replaced by equivalent ones with the reason recorded | F156; the batches |
 | The journey on the atlas and About | The same Part A and Part B text on both pages from the one source (a test); the cards, panels, anchors, address module, and learner state of F133 unchanged (its tests); the attribution unchanged (the F57 check); every existing anchor of About resolving; no sentence presenting an AI result as a discovery and the three kinds of evidence distinguished (review, recorded in the completion evidence) | F157 |
-| The hero image | Four derived WebP files under `site/assets/hero/`, each admitted by the committed-artifact check only through its register entry (origin as its master's atlas entry records it, licence or terms, master hash), with its alternative text and its own test; no text, number, or formula in the pixels (the visual check of ADR 021 decision 1); the default image in the HTML; with scripts exactly one hero image requested per load, picked independently of the headline pair, and its own query parameter, separate from the `hero` parameter of the headline pairs, forcing each one (the test asserts one image per load with the payload measured); no storage, no request beyond the image (the scan of I16 extended to the hero script); no layout shift; the layout rule of "Home page" at 1280 by 800, 390 by 844, 360 by 640, and 320 CSS px and at 200 % text scaling | F158 |
+| The hero image | Four derived WebP files under `site/assets/hero/`, each admitted by the committed-artifact check only through its register entry (origin as its master's atlas entry records it, licence or terms, master hash), with its alternative text and its own test; no text, number, or formula in the pixels (the visual check of ADR 021 decision 1); the default image in the HTML; with scripts exactly one hero image requested per load, and its own query parameter `hero-image` forcing each one (the test asserts one image per load with the payload measured); no storage, no request beyond the image (the scan of I16 extended to the hero script); no layout shift; the layout rule of "Home page" at 1280 by 800, 768 by 1024, 390 by 844 (at least 40 % of the image above the fold), 360 by 640, and 320 CSS px (the primary action at least 24 px above the fold) and at 200 % text scaling; the compact header below 640 CSS px with its native menu (the F132 header test unchanged; the keyboard and navigation checks opening the menu; the header's own tests) | F158 |
 | The copy of Home | The sections from the copy file in the order identity, educational philosophy, curriculum, integrity, validated like the hero data file; "What you can learn" from the journey source with at most one owner-chosen published lesson per part, named by slot and checked against the published lessons at build time, or none; no code chooses example lessons or a capstone (the tests of the removed code replaced, the Level 3 path); Home and the header giving the same two destinations (the F132 header test) | F158 |
 | A lesson revised by a batch | A rubric finding with its evidence and action as the reason; no equation, value, output, or claim changed (the experiment and reproduction checks of F117, the diff of the executed outputs), or the Level 3 path of ADR 020 followed; no transition added to an unrevised lesson and no lesson rewritten (review); an introduction whose sentence no longer holds corrected in the same pull request as the lesson change (review) | F159, F161 to F163; F160 |
 

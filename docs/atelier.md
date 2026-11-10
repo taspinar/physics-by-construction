@@ -163,13 +163,24 @@ kept.
   the first stop of the keyboard. The header scrolls away with the page:
   a fixed header covered a third of a phone screen and could hide the
   focused element, and the theme's reveal on scrolling is motion.
-  On a phone (below 768 CSS px) the bar is compact: the mark and the title
+  Between 640 and 768 CSS px the bar is compact: the mark and the title
   share a row with the search control, and the entries wrap onto two rows
   below it; the lesson's contents are one wrapped row of section names above
   the title, not a column, so that the title is on the first screen.
-  Below 22em (the 320 CSS px phones) the bar has less padding and the
-  title's two lines sit closer, so that Home's message and first action fit
-  the first screen under it (F158); every item stays.
+  Below 640 CSS px (F158, round 2) the bar is one line of 52 px: the mark
+  (2.25rem, growing with the text to 44 px at most), the title's initials
+  "PBC" (the full name stays rendered but clipped, as the link's name), the
+  search icon, and a menu toggle, a 44 px square at the right gutter with
+  three ink lines that become an X when the menu is open. The four
+  entries are in that menu (`site/navigation.py` wraps Quarto's lists in a
+  native `details`), a column under the bar at the content's gutter, each
+  entry a 46 px row, the start link last as the filled control; the menu is
+  open in the HTML and closed at load by `site/learner/menu.js` below the
+  break point, which also closes it on Escape. The bar's gutter is the
+  content column's (1.5em plus 5px), capped at 29px, and the toggle, the
+  mark's cap, and the gutter are in px, so that at 200 % text the row
+  still holds the mark, "PBC", and the search without overlap (the search
+  wraps under them before anything does).
 - **Footer** (every page). A thin rule, then three groups: the F57
   attribution line exactly as `pbc.authoring.identity` writes it; the
   licences (code MIT, text and figures CC BY 4.0); the secondary pages and
@@ -246,18 +257,21 @@ kept.
 - **Home page** (F134, F158; ADR 021 decision 4 as amended;
   `body.pbc-home`, `page-layout: full`; generated whole by
   `pbc.authoring.home` from `site/hero.yaml`, `site/home.yaml`, and the
-  learning journey). The hero: the owner's headline as the page's one
-  `<h1>` with its subtext, in a column of 20 characters at a display size
-  between 2rem and 3rem (1.75rem below 30em, so that the message and the
-  primary action fit 360 by 640 CSS px; below 22em gutters of 1rem and
-  tighter lines, so that they fit 320 by 568), the two actions under it (the
+  learning journey). The hero: the owner's one fixed headline as the
+  page's one `<h1>` with its one fixed subtext (round 2 of F158: nothing
+  is picked at random, so the block is as tall as its text and leaves no
+  empty space under it), in a column of 20 characters at a display size
+  between 2rem and 3rem (1.75rem with tighter lines below 30em, the
+  subtext at the body size below 22em, so that the message and the primary
+  action fit 360 by 640 and 320 by 568 CSS px under the compact header with
+  room to spare), the two actions under it, 1.5rem below the subtext (the
   Course Atlas as the one filled control of the page, the first lesson as a
   text link), and beside it from 992 CSS px one of four Part A
   illustrations at hero size, in a 4:3 box reserved before the image
   arrives, blended with `darken` on the paper so that the masters' white
-  shows no box; below 992 px the image follows the actions. The copy stacks
-  every pair in one grid cell, hidden but the shown one, so the block keeps
-  the height of the longest pair. Then four sections from the copy file:
+  shows no box; below 992 px the image follows the actions, 2rem under
+  them, and at 390 by 844 it is whole on the first screen. Then four
+  sections from the copy file:
   what the site is (the canonical sentence first, the one link to the
   creator), how physics is learned here, what you can learn (the journey's
   Part A and Part B side by side from 992 px, each under a rule in the ink
@@ -316,9 +330,11 @@ follow-up, not part of this feature.
 
 ## The mobile rule
 
-- Below 576 CSS px the page is one column: the header wraps, the table of
+- Below 576 CSS px the page is one column: the header is the compact bar
+  with its menu (below 640 CSS px), the table of
   contents comes before the body, figures and tables scale or scroll inside
-  their own box, and nothing scrolls the page sideways at 320 CSS px.
+  their own box, and nothing scrolls the page sideways at 320 CSS px, also
+  at 200 % text.
 - The course atlas (F133) on a phone is an accordion: each card with its
   open panel under it, the rows on one column with their marks under the
   title.

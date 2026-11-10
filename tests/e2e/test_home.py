@@ -1,13 +1,14 @@
 """The built home page (F134, F158; ADR 021 decision 4 as amended): the hero
-with the owner's pairs, one forced by the `hero` parameter or one at random,
-and one of the four Part A illustrations, forced by the `hero-image`
-parameter or picked at random independently of the pair, exactly one hero
-image requested per load; the default pair and image without scripts; one
-<h1> that does not change after load; no layout shift; no request beyond the
-image and no storage by its script; the layout rule of "Home page" at
-1280 by 800, 390 by 844, 360 by 640, and 320 CSS px and at 200 % text; the
-two actions with the header's destinations; the four sections of the copy
-file in order, every link generated from data and reaching its target.
+with the owner's one fixed headline and subtext (round 2 of Issue #462), the
+same with and without scripts and after a reload, and one of the four Part A
+illustrations, forced by the `hero-image` parameter or picked at random,
+exactly one hero image requested per load; the default image without
+scripts; one <h1> that does not change after load; no layout shift; no
+request beyond the image and no storage by its script; the layout rule of
+"Home page" at 1280 by 800, 768 by 1024, 390 by 844, 360 by 640, and 320
+CSS px and at 200 % text; the two actions with the header's destinations;
+the four sections of the copy file in order, every link generated from data
+and reaching its target.
 The accessibility scan, the keyboard pass, the reflow at 320 CSS px, and
 the payload budget are the checks every page gets
 (tests/e2e/test_built_site.py)."""
@@ -28,7 +29,6 @@ from pbc.authoring.home import (
     ATLAS_ACTION,
     FIRST_LESSON_ACTION,
     HERO_IMAGES,
-    HERO_PAIRS,
     HOME_FILE,
     SECTIONS,
     HeroCopy,
@@ -78,12 +78,13 @@ def hrefs(locator) -> list[str]:
     return locator.evaluate_all("links => links.map(a => a.href)")
 
 
+FIXED = (typographic(HERO.headline), typographic(HERO.subtext))
+
+
 def shown(page: Page) -> tuple[str, str]:
     return (
         page.locator("main h1").inner_text(),
-        page.locator(
-            ".hero-copy > .hero-pair:not(.hero-ghost) .hero-subtext"
-        ).inner_text(),
+        page.locator(".hero-copy .hero-subtext").inner_text(),
     )
 
 
@@ -111,14 +112,13 @@ def load_recorded(
 # --- The hero's copy -----------------------------------------------------------
 
 
-def test_without_scripts_the_page_has_the_default_pair_image_and_one_h1(
+def test_without_scripts_the_page_has_the_fixed_text_the_default_image_and_one_h1(
     without_scripts: BrowserContext, server: SiteServer
 ):
     page = open_home(without_scripts, server)
-    default = HERO.pair(HERO.default)
     assert page.locator("h1").count() == 1
-    assert shown(page) == (typographic(default.headline), typographic(default.subtext))
-    assert page.locator(".hero-ghost").count() == 0
+    assert shown(page) == FIXED
+    assert page.locator(".hero-copy .hero-subtext").count() == 1
     assert page.title() == "Physics by Construction"
     description = page.locator('meta[name="description"]').get_attribute("content")
     assert description and "Physics taught by constructing it" in description
@@ -136,38 +136,25 @@ def test_without_scripts_the_page_has_the_default_pair_image_and_one_h1(
     assert image.is_visible()
 
 
-@pytest.mark.parametrize("pair_id", HERO_PAIRS)
-def test_the_hero_parameter_shows_each_pair(
-    browser: Browser, server: SiteServer, pair_id: str
-):
-    context = browser.new_context(viewport=DESKTOP)
-    page = open_home(context, server, f"?hero={pair_id}")
-    pair = HERO.pair(pair_id)
-    assert shown(page) == (typographic(pair.headline), typographic(pair.subtext))
-    assert page.locator(".hero-copy").get_attribute("data-hero") == pair_id
-    assert page.locator("h1").count() == 1
-    # Every pair stands hidden in the same cell, and none is announced.
-    ghosts = page.locator(".hero-ghost")
-    assert ghosts.count() == len(HERO_PAIRS)
-    assert ghosts.evaluate_all(
-        "gs => gs.every(g => g.getAttribute('aria-hidden') === 'true'"
-        " && getComputedStyle(g).visibility === 'hidden')"
-    )
-    context.close()
-
-
-def test_without_a_valid_parameter_a_pair_is_shown_at_random(
+def test_the_hero_text_is_fixed_with_scripts_after_a_reload_and_whatever_is_asked(
     browser: Browser, server: SiteServer
 ):
+    """One headline and one subtext, the owner's (round 2 of Issue #462): the
+    page with scripts shows the same text as the page without, after every
+    reload, and the old `hero` parameter of the pairs changes nothing."""
     context = browser.new_context(viewport=DESKTOP)
-    seen = set()
-    for _ in range(12):
-        page = open_home(context, server, "?hero=9z")
-        seen.add(page.locator(".hero-copy").get_attribute("data-hero"))
+    page = open_home(context, server)
+    for _ in range(3):
+        assert shown(page) == FIXED
+        assert page.locator("h1").count() == 1
+        assert page.locator(".hero-copy *").count() == 2  # the h1 and the subtext
+        page.reload(wait_until="networkidle")
+    for query in ("?hero=2b", "?hero=3a&hero-image=vortex-street", "?hero=9z"):
+        page = open_home(context, server, query)
+        assert shown(page) == FIXED
+        assert page.locator(".hero-copy *").count() == 2
         page.close()
     context.close()
-    assert seen <= set(HERO_PAIRS)
-    assert len(seen) > 1
 
 
 # --- The hero image ------------------------------------------------------------
@@ -209,24 +196,6 @@ def test_without_a_valid_parameter_an_image_is_picked_at_random_one_per_load(
     assert len(seen) > 1
 
 
-def test_the_image_is_picked_independently_of_the_pair(
-    browser: Browser, server: SiteServer
-):
-    """A forced pair leaves the image to chance, and a forced image leaves
-    the pair to chance: the two are separate draws."""
-    images, pairs = set(), set()
-    context = browser.new_context(viewport=DESKTOP)
-    for _ in range(16):
-        page = open_home(context, server, "?hero=2b")
-        images.add(page.locator(".hero-figure").get_attribute("data-hero-image"))
-        page.close()
-        page = open_home(context, server, "?hero-image=vortex-street")
-        pairs.add(page.locator(".hero-copy").get_attribute("data-hero"))
-        page.close()
-    context.close()
-    assert len(images) > 1 and len(pairs) > 1
-
-
 def test_the_script_runs_before_the_first_paint_right_after_the_figure(
     without_scripts: BrowserContext, server: SiteServer
 ):
@@ -237,13 +206,12 @@ def test_the_script_runs_before_the_first_paint_right_after_the_figure(
     for attribute in ("async", "defer", "type"):
         assert script.get_attribute(attribute) is None, attribute
     # Between the copy and the script only the figure, which holds nothing
-    # but <noscript> when scripts run, and the data.
+    # but <noscript> when scripts run, and the data of the images.
     assert script.evaluate(
         "s => [s.previousElementSibling, s.previousElementSibling"
         ".previousElementSibling, s.previousElementSibling.previousElementSibling"
-        ".previousElementSibling, s.previousElementSibling.previousElementSibling"
-        ".previousElementSibling.previousElementSibling].map(e => e.id)"
-    ) == ["hero-images", "hero-pairs", "hero-figure", "hero-copy"]
+        ".previousElementSibling].map(e => e.id)"
+    ) == ["hero-images", "hero-figure", "hero-copy"]
     assert page.locator("#hero-figure > noscript").count() == 1
 
 
@@ -271,23 +239,23 @@ def test_the_swap_moves_nothing_and_the_h1_does_not_change_after_load(
 ):
     # The web fonts swap in after the first paint and move the text by
     # themselves, script or not; without them the layout depends on the
-    # pair and the image alone.
+    # image alone.
     context = browser.new_context(viewport=viewport)
     context.route("**/*.woff2", lambda route: route.abort())
     layouts = []
-    for pair_id, image_id in zip(HERO_PAIRS, IMAGES * 2, strict=True):
-        page = open_home(context, server, f"?hero={pair_id}&hero-image={image_id}")
+    for image_id in IMAGES:
+        page = open_home(context, server, f"?hero-image={image_id}")
         boxes = page.evaluate(_BOXES)
         at_load = page.locator("h1").inner_text()
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(300)
-        assert page.locator("h1").inner_text() == at_load
-        assert page.evaluate(_BOXES) == boxes, (pair_id, image_id)
+        assert page.locator("h1").inner_text() == at_load == FIXED[0]
+        assert page.evaluate(_BOXES) == boxes, image_id
         layouts.append(boxes)
         page.close()
     context.close()
-    # Whichever pair and image are shown, the copy is as tall as the longest
-    # pair, the figure keeps its box, and nothing after them moves.
+    # Whichever image is shown, the figure keeps its box and nothing after
+    # it moves.
     assert all(layout == layouts[0] for layout in layouts), layouts
 
 
@@ -300,7 +268,7 @@ def _load(browser: Browser, server: SiteServer, empty_script: bool):
     page = context.new_page()
     page.on("request", lambda request: requests.append(request.url))
     page.goto(
-        server.url + "index.html?hero=2a&hero-image=hot-cold-gas",
+        server.url + "index.html?hero-image=hot-cold-gas",
         wait_until="networkidle",
     )
     page.wait_for_timeout(200)
@@ -309,7 +277,7 @@ def _load(browser: Browser, server: SiteServer, empty_script: bool):
         page.evaluate("window.__storageWrites"),
         Counter(page.evaluate(_STORAGE_ENTRIES)),
         context.cookies(),
-        page.locator(".hero-copy").get_attribute("data-hero"),
+        shown(page),
     )
     context.close()
     return result
@@ -320,7 +288,7 @@ def test_the_script_requests_the_one_image_and_nothing_else_and_stores_nothing(
 ):
     with_script = _load(browser, server, empty_script=False)
     without = _load(browser, server, empty_script=True)
-    assert with_script[4] == "2a" and without[4] == HERO.default
+    assert with_script[4] == without[4] == FIXED
     # With an empty script in its place (scripts on, so <noscript> is not
     # shown) no hero image is requested; with the script exactly one more
     # request: the image it was asked for. Writes, storage, and cookies are
@@ -340,49 +308,62 @@ def _box(page: Page, selector: str) -> dict:
     return box
 
 
-_MESSAGE = ("main h1", ".hero-pair:not(.hero-ghost) .hero-subtext")
+_MESSAGE = ("main h1", ".hero-copy .hero-subtext")
 _PRIMARY = ".home-hero .home-action-primary"
 _SECONDARY = ".home-hero .home-action"
+# The least room between the primary action and the fold on the smallest
+# phones: a reasonable margin (the owner, round 2), far under the measured
+# one, so that no face decides it.
+_MARGIN = 24
 
 
 @pytest.mark.parametrize(
-    ("viewport", "visible"),
+    ("viewport", "visible", "margin"),
     [
-        (DESKTOP, (*_MESSAGE, _PRIMARY, _SECONDARY)),
-        (PHONE_TALL, (*_MESSAGE, _PRIMARY, _SECONDARY)),
-        (PHONE_SMALL, (*_MESSAGE, _PRIMARY)),
-        (PHONE_NARROW, (*_MESSAGE, _PRIMARY)),
+        (DESKTOP, (*_MESSAGE, _PRIMARY, _SECONDARY), 0),
+        (TABLET, (*_MESSAGE, _PRIMARY, _SECONDARY), 0),
+        (PHONE_TALL, (*_MESSAGE, _PRIMARY, _SECONDARY), 0),
+        (PHONE_SMALL, (*_MESSAGE, _PRIMARY), _MARGIN),
+        (PHONE_NARROW, (*_MESSAGE, _PRIMARY), _MARGIN),
     ],
-    ids=["1280x800", "390x844", "360x640", "320x568"],
+    ids=["1280x800", "768x1024", "390x844", "360x640", "320x568"],
 )
 def test_the_message_and_the_actions_are_above_the_fold(
-    browser: Browser, server: SiteServer, viewport: dict[str, int], visible: tuple
+    browser: Browser,
+    server: SiteServer,
+    viewport: dict[str, int],
+    visible: tuple,
+    margin: int,
 ):
-    """On a desktop the identity message and both actions; on a phone the
-    message and the primary action, at 360 by 640 and 320 by 568 (the
-    owner's decision of 2026-11-10, option a) the secondary may fall just
-    below the fold; whichever pair is shown (the copy keeps the height of the
-    longest). The image is never moved or shrunk for this: beside the copy
-    on a desktop, right after the actions on a phone, its top on the screen
-    at 1280 by 800 and 390 by 844."""
+    """On a desktop, a tablet, and a phone of 390 by 844 the identity message
+    and both actions; at 360 by 640 and 320 by 568 the message and the
+    primary action, which ends a reasonable margin above the fold, while the
+    secondary may fall just below it (the owner's decisions of 2026-11-10 and
+    round 2 of Issue #462). The image is never moved or shrunk for this:
+    beside the copy on a desktop, right after the actions on a phone."""
     context = browser.new_context(viewport=viewport)
-    for pair_id in HERO_PAIRS:
-        page = open_home(context, server, f"?hero={pair_id}")
+    for image_id in IMAGES:
+        page = open_home(context, server, f"?hero-image={image_id}")
         for selector in visible:
             box = _box(page, selector)
             assert box["y"] >= 0, selector
-            assert box["y"] + box["height"] <= viewport["height"], (pair_id, selector)
+            assert box["y"] + box["height"] + margin <= viewport["height"], selector
         figure = _box(page, ".hero-figure")
-        if viewport in (DESKTOP, PHONE_TALL):
-            assert figure["y"] < viewport["height"] - 150, pair_id
         # Not shrunk: the full width of the content on a phone, the larger
-        # column on a desktop.
-        if viewport is DESKTOP:
+        # column on a desktop, its own full width (40rem) on a tablet.
+        if viewport in (DESKTOP, TABLET):
             assert figure["width"] >= 480
         else:
             assert abs(figure["width"] - _box(page, ".home-hero")["width"]) < 1
         page.close()
     context.close()
+
+
+# The share of the image's height that is above the fold at 390 by 844: a
+# substantial, recognisable part (the owner, round 2 of Issue #462). On the
+# render the whole image is in view there; 40 % leaves room for the faces
+# of another machine, and a few pixels or an edge cannot pass.
+_RECOGNISABLE = 0.4
 
 
 @pytest.mark.parametrize(
@@ -391,18 +372,19 @@ def test_the_message_and_the_actions_are_above_the_fold(
 def test_the_image_is_in_view_from_390_by_844_up(
     browser: Browser, server: SiteServer, viewport: dict[str, int]
 ):
-    """The owner's decision of 2026-11-10 (option C): on a desktop, a tablet,
-    and a phone from 390 by 844 up the hero image is in view without
-    scrolling, whichever pair is shown: its top on the screen with at least
-    150 px of it visible, the whole image on a desktop."""
+    """On a desktop, a tablet, and a phone from 390 by 844 up the hero image
+    is in view without scrolling: its top on the screen, at least 40 % of
+    its height above the fold, the whole image on a desktop."""
     context = browser.new_context(viewport=viewport)
-    for pair_id in HERO_PAIRS:
-        page = open_home(context, server, f"?hero={pair_id}")
+    for image_id in IMAGES:
+        page = open_home(context, server, f"?hero-image={image_id}")
         figure = _box(page, ".hero-figure")
-        assert figure["y"] >= 0, pair_id
-        assert figure["y"] + 150 <= viewport["height"], pair_id
+        assert figure["y"] >= 0, image_id
+        visible = min(figure["y"] + figure["height"], viewport["height"]) - figure["y"]
+        assert visible >= _RECOGNISABLE * figure["height"], (image_id, visible)
+        assert visible >= 150
         if viewport is DESKTOP:
-            assert figure["y"] + figure["height"] <= viewport["height"], pair_id
+            assert figure["y"] + figure["height"] <= viewport["height"], image_id
         page.close()
     context.close()
 
@@ -436,27 +418,27 @@ def test_on_the_smallest_phones_the_image_follows_whole_and_unshrunk(
     whole), and unshrunk (the displayed size it has at 390 wide, scaled by
     the width: the full width of the content column, as there)."""
     context = browser.new_context(viewport=PHONE_TALL)
-    reference = open_home(context, server, "?hero=3a")
+    reference = open_home(context, server, "?hero-image=exoplanet-transit")
     tall = _image(reference)
     tall_column = _box(reference, ".home-hero")["width"]
     context.close()
     assert abs(tall["width"] - tall_column) < 1
     context = browser.new_context(viewport=viewport)
-    for pair_id in HERO_PAIRS:
-        page = open_home(context, server, f"?hero={pair_id}")
+    for image_id in IMAGES:
+        page = open_home(context, server, f"?hero-image={image_id}")
         image = _image(page)
-        assert image["loaded"] and image["shown"], pair_id
+        assert image["loaded"] and image["shown"], image_id
         # Uncropped: drawn in its natural aspect, so neither the fit nor the
         # figure cuts anything off.
-        assert image["fit"] != "none" and image["clip"] == "visible", pair_id
+        assert image["fit"] != "none" and image["clip"] == "visible", image_id
         natural_ratio = image["natural"][1] / image["natural"][0]
-        assert abs(image["height"] - image["width"] * natural_ratio) < 1, pair_id
+        assert abs(image["height"] - image["width"] * natural_ratio) < 1, image_id
         # Scaled by the width only: the same share of the column as at 390.
         column = _box(page, ".home-hero")["width"]
         assert abs(image["width"] - tall["width"] * column / tall_column) < 1
         actions = _box(page, ".home-hero .home-actions")
         figure = _box(page, ".hero-figure")
-        assert actions["y"] + actions["height"] <= figure["y"] + 0.5, pair_id
+        assert actions["y"] + actions["height"] <= figure["y"] + 0.5, image_id
         page.close()
     context.close()
 
@@ -475,18 +457,16 @@ def test_the_hero_reflows_without_overlap_at_every_size_and_at_200_percent_text(
     is the copy, then the two actions, then (stacked) the image, and both
     actions can be reached with the keyboard."""
     context = browser.new_context(viewport=viewport)
-    page = open_home(context, server, "?hero=3a&hero-image=exoplanet-transit")
+    page = open_home(context, server, "?hero-image=exoplanet-transit")
     if scale != 1:
         page.add_style_tag(content=f"html {{ font-size: {100 * scale}% !important; }}")
         page.wait_for_timeout(100)
-    # The page's content is no wider than its column. (The shared header of
-    # every page is the F132 check's; at 200 % text on 320 CSS px it is
-    # wider than the screen on every page, outside this page's layout.)
+    # The page's content is no wider than its column, and the page, with the
+    # shared header, no wider than the screen.
     main = page.locator("main").evaluate("m => [m.scrollWidth, m.clientWidth]")
     assert main[0] <= main[1], main
-    if scale == 1 or viewport["width"] > 320:
-        width = page.evaluate("document.documentElement.scrollWidth")
-        assert width <= viewport["width"]
+    width = page.evaluate("document.documentElement.scrollWidth")
+    assert width <= viewport["width"]
     copy = _box(page, ".hero-copy")
     actions = _box(page, ".home-hero .home-actions")
     figure = _box(page, ".hero-figure")

@@ -57,7 +57,10 @@ Decision 4 amended by requirements decision 43 (change cycle
 2026-11-03; requirements re-approved on 2026-11-04) through the dated note
 under decision 4, without a new ADR, as the change request and the
 requirements decide: the change is content and presentation inside this
-record and ADR 018. Delivered by F158; the course introductions of F156
+record and ADR 018. Decisions 4 and 5 amended again on 2026-11-10 by the
+owner's decisions of round 2 of F158 (Issue #462: one fixed hero text, the
+compact header with a native menu below 640 CSS px, the measurable
+above-the-fold rule), through the dated notes under them. Delivered by F158; the course introductions of F156
 and the learning journey of F157 add pages and text within decisions 1 to
 3 without changing them. The text of decision 4 stays as the record of
 what F134 delivered.
@@ -268,6 +271,21 @@ descriptions live.
      of Part A (secondary). The header keeps its four items (decision 5).
      The above-the-fold rule is the responsive, content-first rule of the
      requirements' "Home page", approved by the owner on the rendered page.
+
+   *Amended on 2026-11-10 by the owner's decisions of round 2 of F158
+   (Issue #462, the critique of the rendered Home).* Of the hero copy rule
+   above two parts change: the text is one fixed headline (the first of the
+   owner's three, kept exactly) and one fixed subtext (the owner's new
+   words), written into the HTML by the build and never changed by a
+   script, the same with and without scripts and after a reload; no pair is
+   picked at random, and the `hero` parameter is gone (the `hero-image`
+   parameter stays). The three headlines and eight subtexts of F134 stay in
+   the hero data file as an editorial reference that nothing shows. The
+   above-the-fold rule gains a measurable part: at 390 by 844 CSS px at
+   least 40 % of the image's height is above the fold; at 360 by 640 and
+   320 by 568 the primary action ends at least 24 px above it. The data
+   file, its validation, the one `<h1>`, no storage and no request, and no
+   measurement of which text works better stand.
 5. **Navigation and the supporting pages.** The header carries the
    project mark, exactly four menu items (Home, Course Atlas, About, and
    the Start learning button), and the search; the footer carries the
@@ -282,6 +300,18 @@ descriptions live.
    in "Before you begin"; every published lesson ends with a "Suggest an
    improvement" link to the matching GitHub issue forms with the lesson's
    address pre-filled.
+
+   *Amended on 2026-11-10 by the owner's decisions of round 2 of F158
+   (Issue #462).* The four menu items, the mark, and the search stay on
+   every page. Below 640 CSS px the header is one line, the mark, the site
+   name shortened visually to "PBC" (the full name stays the home link's
+   accessible name), the search control, and a menu toggle; the four items
+   are in a native `<details>` menu, open in the HTML so that a reader
+   without scripts has them under the bar, and closed at load by a small
+   script that also closes it on Escape; the toggle is named and exposes
+   its state. From 640 CSS px the items stand in the bar as before. No
+   new dependency; Quarto's own collapse, which needs its script, stays
+   off.
 6. **No backend.** A form on the site that creates GitHub issues for a
    visitor without an account is not part of this change: it needs a
    server or serverless endpoint and a stored credential, which I1 and the

@@ -1,15 +1,16 @@
-"""The hero script of the home page (F134, F158; ADR 021 decision 4 as
-amended): small, with no dependency; it requests nothing but the one hero
-image it creates from the data the build embedded, and uses no storage,
-cookie, timer, or listener, so nothing changes after it has run (the scan of
-I16 extended to the hero script, I35). The browser tests show what it does
-(tests/e2e/test_home.py); this test reads what it could do."""
+"""The hero script of the home page (F158; ADR 021 decision 4 as amended):
+small, with no dependency; it requests nothing but the one hero image it
+creates from the data the build embedded, touches no text of the page (the
+headline and the subtext are fixed since round 2 of Issue #462), and uses no
+storage, cookie, timer, or listener, so nothing changes after it has run (the
+scan of I16 extended to the hero script, I35). The browser tests show what it
+does (tests/e2e/test_home.py); this test reads what it could do."""
 
 import re
 
 from support.paths import SITE_SOURCE
 
-from pbc.authoring.home import HERO_IMAGE_PARAMETER, HERO_PARAMETER, HERO_SCRIPT
+from pbc.authoring.home import HERO_IMAGE_PARAMETER, HERO_SCRIPT
 
 SOURCE = (SITE_SOURCE / HERO_SCRIPT).read_text(encoding="utf-8")
 CODE = "\n".join(
@@ -56,15 +57,20 @@ def test_the_script_changes_nothing_after_it_has_run():
         assert word not in CODE, word
 
 
-def test_the_script_reads_only_the_embedded_data_and_its_two_parameters():
+def test_the_script_reads_only_the_embedded_images_and_its_one_parameter():
     lines = [line for line in CODE.splitlines() if line.strip()]
-    assert len(lines) <= 40
-    assert 'getElementById("hero-pairs")' in CODE
+    assert len(lines) <= 25
     assert 'getElementById("hero-images")' in CODE
-    assert re.findall(r'\.get\("([\w-]+)"\)', CODE) == [
-        HERO_PARAMETER,
-        HERO_IMAGE_PARAMETER,
-    ]
-    # The pair and the image are picked by two separate draws.
-    assert CODE.count("pick(") == 3  # the function and its two uses
+    assert re.findall(r'\.get\("([\w-]+)"\)', CODE) == [HERO_IMAGE_PARAMETER]
+    assert CODE.count("pick(") == 2  # the function and its one use
     assert len(re.findall(r"Math\.random\(\)", CODE)) == 1
+
+
+def test_the_script_touches_no_text_of_the_page():
+    # The headline and the subtext are the HTML's: the script neither finds
+    # nor writes them.
+    for word in ("hero-copy", "hero-pairs", "h1", "querySelector", "textContent ="):
+        assert word not in CODE, word
+    assert "hero" not in re.sub(
+        r"hero-image|hero-figure|hero-images|hero\.js", "", CODE
+    )

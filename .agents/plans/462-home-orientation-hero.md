@@ -3,10 +3,13 @@
 Level 3 by trigger: the tests of the examples chosen by code, of the capstone
 choice, and of the constellation image are removed or replaced (the roadmap
 risk and the Issue). The approval request is
-`.agents/approvals/462.md`. Implementer: Opus. No ADR, requirements, or
-roadmap change: ADR 021 decision 4 as amended on 2026-11-04 already decides
-the change. `docs/architecture.md` and `docs/atelier.md` are brought up to
-what is delivered.
+`.agents/approvals/462.md`. Implementer: Opus (rounds 1 and 2 of the
+review), Fable (round 2 of the owner, below). Round 1 needed no ADR,
+requirements, or roadmap change: ADR 021 decision 4 as amended on 2026-11-04
+already decided it; the owner's decisions of 2026-11-10 (options C and a)
+and round 2 clarify and amend the roadmap block, the requirements, and ADR
+021, as "Round 2" below records. `docs/architecture.md` and
+`docs/atelier.md` are brought up to what is delivered.
 
 ## Visual deliverables
 
@@ -216,3 +219,165 @@ Skills: impeccable@08d5b470, frontend-design@dbd4588f
 Per the Issue: no complete `./scripts/verify.sh` in the session (the script
 after the session runs it); the affected tests, `--only code`,
 `--only default`, and `--targeted` when it selects.
+
+## Round 2 (the owner's critique of the rendered Home at cbd49c2, 2026-11-10)
+
+The owner's text and the supervisor's notes are on the Issue ("Owner's
+decisions, round 2"). They supersede, for this feature, the eight headline
+and subtext pairs of F134, the rule that the header keeps its four items in
+a row, and "the image in view from 390 by 844" (option C). Skills:
+impeccable@08d5b470 (`reference/craft-floor.md`, `reference/adapt.md`,
+`reference/layout.md`, `reference/mode-persuade.md`), frontend-design@dbd4588f;
+the automated detector of Impeccable does not run (the adapter).
+
+### Decisions taken in this plan step (the session's choices, stated)
+
+- **One fixed hero text.** `site/hero.yaml` holds `headline` (the owner's
+  first headline, kept exactly) and `subtext` (the owner's new subtitle),
+  plain text, and the `images` of round 1. The eight pairs stay in the same
+  file under `variants` as an editorial reference (the hero copy stays in
+  one data file, requirements "Data and persistence"), validated as plain
+  text and never written on a page or used by a script. The `hero` query
+  parameter, `HERO_PAIRS`, the embedded pairs, the hidden copies (ghosts),
+  and the reserved height go; the `<h1>` and the subtext are the HTML's
+  and never change. `hero-image` stays as it is.
+- **The cause of the empty space on a phone** (critique item 4): the copy
+  block was reserved at the height of the longest pair (`.hero-ghost` in
+  one grid cell), so a shorter pair left its unused height between the
+  subtext and the actions. With one fixed text the reservation leaves and
+  the document flow sets the distances: 1.5rem between the subtext and the
+  actions, 2rem between the actions and the image on a phone; the type
+  keeps its phone size (1.75rem headline below 30em). The 22em block of
+  round 1 (narrower gutters, tighter lines) leaves: its reason (the
+  reserved copy at 320 px under a 151 px header) is gone, and the gutters
+  are consistent again.
+- **The compact header below 40em (640 CSS px)**, the owner's bar
+  `logo | PBC | search | menu`. A post-render script `site/navigation.py`
+  (the pattern of `skip-link.py` and `search-fallback.py`: idempotent, no
+  input but the built pages) rewrites Quarto's header on every page:
+  the title becomes two spans, the full name and the aria-hidden short
+  form "PBC", of which CSS shows one and keeps the other rendered but
+  clipped (the link's accessible name stays "Physics by Construction",
+  and the readable-without-scripts check sees no hidden text); the two
+  navigation lists are wrapped in `<details class="pbc-menu" open>` with a
+  `<summary>` toggle (an icon drawn in CSS, `aria-label="Menu"`, 2.75rem
+  square); `site/learner/menu.js`, parser-blocking right after the
+  details, closes the menu below 40em before the first paint, keeps it in
+  step with the viewport (`matchMedia`), and closes it on Escape with the
+  focus back on the toggle. Without scripts the menu stands open under the
+  bar (the four items in a column: the fallback is the navigation of
+  today) and the native toggle closes it; from 40em the toggle is hidden
+  and the lists are inline as before. The four items stay, in the menu
+  below 40em, Start learning last as the filled control; on the mobile
+  Home the hero's primary action is the visible first step (the owner's
+  note). Between 40em and 48em the header keeps round 1's wrapped layout
+  (the full name, the entries on the rows below); from 48em nothing
+  changes. The break point is where the four items, the full name, the
+  search, and the start link no longer share a bar: measured on the
+  render.
+- **The 390 by 844 rule made measurable:** at least 40 % of the image's
+  height is above the fold (the threshold chosen on the render, where the
+  whole image is in view with the fixed text; 40 % leaves room for the
+  fonts of another machine). At 360 by 640 and 320 by 568 the primary
+  action ends at least 24 px above the fold (a floor well under the
+  measured margin, so no font decides it), and the image follows whole and
+  unshrunk as round 1 decided.
+- **The checks that the design changes** (shown at least as strong):
+  `check_keyboard_navigation` and `check_navigation_fits` in
+  `tests/support/site_checks.py` open the menu when the bar has a toggle,
+  so that every entry is still tabbed and measured at phone width, and the
+  toggle itself is tabbed, opened by keyboard, and has a visible ring. The
+  F132 header test (`test_the_built_header_has_four_items...`) is unchanged
+  in its assertions; new header tests (`tests/e2e/test_header.py`) check the
+  one-line bar, the closed menu at load, the toggle by pointer and keyboard,
+  Escape, the accessible name and state, the fallback without scripts, the
+  bar at 200 % text on 320 and 360 px with no overlap, and the shared
+  header on About and a lesson. The hero tests of the pairs are replaced
+  by tests of the fixed text (with and without scripts, after a reload,
+  with the old parameter ignored).
+- **The default image without scripts** stays the double pendulum (ADR
+  021 decision 4): a change would be data only (`images.default`), and
+  the owner's preference for the transit is a preference for the random
+  set, which stays; no reason to move the default.
+- **Documents:** the roadmap block of F158 (a dated round 2 note: the fixed
+  text, the compact header with the menu, the 390 by 844 threshold) and a
+  line in F132's note; ADR 021 (a dated note under decision 4 and decision
+  5); requirements "Home page", "Site navigation", and "Data and
+  persistence"; `docs/architecture.md` (Home, Navigation, the post-render
+  scripts); `docs/atelier.md` (Header, the mobile rule); the approval
+  request; this plan.
+
+### Steps of round 2
+
+1. `site/hero.yaml`, `pbc.authoring.home` (`HeroCopy`: headline, subtext,
+   images, variants; the hero markup without pairs), `site/learner/hero.js`
+   (the image only); unit tests first.
+2. `site/navigation.py`, `site/learner/menu.js`, the post-render list of
+   `site/_quarto.yml`, the header CSS; unit tests of the script and the
+   scan of the menu script.
+3. The hero CSS: the distances on a phone, the 22em block removed.
+4. The site checks (keyboard, navigation fits) opened for the menu; the
+   e2e tests of the hero and the header.
+5. Render Home (the post-render scripts rewrite every built page), run the
+   tests, measure the bar and the fold at the five sizes and at 200 %
+   text with the page's font and with the fallback faces of another
+   machine; tune the break point and the distances on the render.
+6. Documents, the approval request, the screenshots (the five sizes x four
+   images; 320 and 360 at 200 % text; the opened menu; About and a lesson
+   with the header; Home without scripts; the site has no dark mode), and
+   the assessment of what they show.
+
+### Found while building round 2 (2026-11-10)
+
+- **A `details` cannot be laid out with `display: contents`** for the bar:
+  a new Chromium wraps its content in the `::details-content` box, so the
+  flex rules do not reach the lists, and an older one does not. The toggle
+  is instead absolutely positioned in the bar (a 44 px square at the
+  right gutter, the bar reserving its room), and the details is a flex
+  item on a row of its own under the bar; from 40em the details is the
+  flex item that holds the lists (its panel lays them out as the bar did).
+- **A bare `summary` has no name and no state** in Chromium's
+  accessibility tree (a details is a "group" named by its summary's text;
+  an icon-only summary with `aria-label` showed nothing). The toggle is
+  therefore `role="button"` with `aria-label="Menu"` and `aria-expanded`,
+  which `menu.js` keeps in step on the `toggle` event (`true` in the HTML,
+  where the menu is open); Enter and Space toggle it natively.
+- **The break point is 40em (640 CSS px).** Measured: at 640 to 767 px the
+  full name, the three items, the start link, and the search do not share
+  one row (about 715 px are needed), so that step keeps round 1's two-row
+  layout (the full name and the search, the entries wrapped below); from
+  768 px one row holds everything.
+- **200 % text on 320 px.** The bar's paddings, the mark's margins, and the
+  toggle scale with the text in the theme; now the gutter is capped at
+  29px, the toggle is 44 px, the mark grows to 44 px at most, and the brand
+  never shrinks below its content, so the mark, "PBC", and the search
+  share the row (the search wraps under them only when the row is too
+  narrow) and the menu's entries wrap inside the panel. Measured at 320 px
+  and 200 %: the bar 126 px tall, nothing overlapping, the page 320 px
+  wide with the menu closed and open. Outside the header, at 200 % text,
+  About's licence table at 360 px and, at 768 px, the theme's content
+  column and the "On this page" sidebar are wider than the screen on their
+  own (pre-existing; recorded for the owner, not changed).
+- **The fold with the fixed text** (the page's own STIX; header 54 px):
+  320 by 568, the primary action ends at 484 px (Times New Roman and the
+  Liberation and DejaVu fallbacks of a Linux runner 429, Georgia and Arial
+  484, Verdana 569); 360 by 640 at 473 (Verdana 531); 390 by 844 the whole
+  image is above the fold with every face (100 %), so the threshold of
+  40 % has ample room. The 24 px margin test holds with every face but
+  Verdana, the widest installed sans-serif, which the page never gets
+  (the runner loads STIX; the owner's decision A of 2026-11-10 judges on
+  the page's own font and the Times/Liberation fallback).
+- **The vortex street master** carries wide white margins inside the
+  image, so on a phone the painted part begins about 60 px below the
+  figure's box; the box itself is 2rem under the actions. Not a layout
+  matter (the owner's illustrations are kept as they are).
+- **Verification of round 2 (this session):** unit tests of Home, the hero
+  script, the menu script, and the chrome 54 passed; e2e `test_home.py`
+  and `test_header.py` 65 passed; the F132 header test and the search
+  tests passed; the site-wide page checks (requests and cookies, readable
+  without scripts, horizontal scroll, axe, navigation fits, keyboard,
+  payload) on Home, About, the atlas, and the first lesson: no violation;
+  `tests/integration/test_home_build.py` and
+  `tests/integration/test_site_checks.py` run; `./scripts/verify.sh --only
+  code` and `--only default` last. The complete `./scripts/verify.sh` is
+  not run in the session, per the Issue's instruction.

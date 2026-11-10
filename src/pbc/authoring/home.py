@@ -4,12 +4,13 @@ sections of the Home copy file in the order identity, educational
 philosophy, curriculum, and integrity.
 
 The hero's copy is the owner's, held in the data file ``site/hero.yaml``
-beside the curriculum file and validated here: exactly the eight pairs 1a,
-1b, 1c, 2a, 2b, 2c, 3a, and 3b, each a headline and one of its subtexts. The
-page carries the default pair in its HTML, and the pairs as data for
-``site/learner/hero.js``, which shows one at random per visit, or the one
-the ``hero`` parameter names, before the first paint. No copy of the hero is
-written on the page.
+beside the curriculum file and validated here: one fixed headline and one
+fixed subtext (round 2 of Issue #462, 2026-11-10), written into the HTML by
+the build and never changed by a script, so the page shows the same text
+with and without scripts and after a reload. The file keeps the three
+headlines and eight subtexts of F134 under ``variants`` as an editorial
+reference: validated as plain text, never written on a page or used by a
+script. No copy of the hero is written on the page by hand.
 
 The hero image is one of a small set of Part A illustrations (interface
 artwork of ADR 021 decision 1), held in the same data file: each a WebP file
@@ -18,9 +19,9 @@ provenance register, with the course whose atlas master it is derived from
 and its alternative text. The default image stands in the HTML inside
 ``<noscript>``, so that it is what a page without scripts shows and what a
 reader of the HTML sees, and is not requested when the script runs: the
-script creates the one image it picks, at random and independently of the
-pair, or the one the ``hero-image`` parameter names. Exactly one hero image
-is requested per load.
+script creates the one image it picks, at random, or the one the
+``hero-image`` parameter names. Exactly one hero image is requested per
+load.
 
 The sections after the hero come from ``site/home.yaml`` (prose and
 references under the rules of the learning journey) and, for "What you can
@@ -80,13 +81,10 @@ HERO_SCRIPT = "learner/hero.js"
 # size (tools/illustrations/derive_assets.py --hero), 4:3 like its master.
 HERO_IMAGES = "assets/hero"
 HERO_IMAGE_WIDTH, HERO_IMAGE_HEIGHT = 1200, 900
-# The parameters that force a pair and an image, for tests and screenshots.
-HERO_PARAMETER = "hero"
+# The parameter that forces an image, for tests and screenshots. (The `hero`
+# parameter of F134 that forced a headline pair is gone with the pairs: the
+# hero text is fixed.)
 HERO_IMAGE_PARAMETER = "hero-image"
-
-# The eight pairs of the owner's copy: the headline's id and the subtext's
-# letter (Issue #339, 2026-10-30).
-HERO_PAIRS = ("1a", "1b", "1c", "2a", "2b", "2c", "3a", "3b")
 
 # The sections of the Home copy file in the order of the page, with the
 # anchor of each (the identity keeps the anchor of F134's "What this site
@@ -118,13 +116,6 @@ _SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z])")
 
 
 @dataclass(frozen=True)
-class HeroPair:
-    id: str  # "1a"
-    headline: str
-    subtext: str
-
-
-@dataclass(frozen=True)
 class HeroImage:
     id: str  # "double-pendulum": the name of its file
     sequence: str  # the course whose atlas master it is derived from
@@ -138,13 +129,13 @@ class HeroImage:
 
 @dataclass(frozen=True)
 class HeroCopy:
-    pairs: tuple[HeroPair, ...]
-    default: str
+    headline: str
+    subtext: str
     images: tuple[HeroImage, ...] = ()
     default_image: str = ""
-
-    def pair(self, pair_id: str) -> HeroPair:
-        return next(pair for pair in self.pairs if pair.id == pair_id)
+    # The editorial reference: the headlines of F134, each with its
+    # subtexts, as (headline, (subtext, ...)); nothing shows them.
+    variants: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
     def image(self, image_id: str) -> HeroImage:
         return next(image for image in self.images if image.id == image_id)
@@ -159,21 +150,20 @@ class HeroCopy:
             )
         assert isinstance(data, dict)
         return cls(
-            tuple(
-                HeroPair(
-                    f"{headline['id']}{subtext['id']}",
-                    _words(headline["text"]),
-                    _words(subtext["text"]),
-                )
-                for headline in data["headlines"]
-                for subtext in headline["subtexts"]
-            ),
-            data["default"],
+            _words(data["headline"]),
+            _words(data["subtext"]),
             tuple(
                 HeroImage(item["id"], item["sequence"], _words(item["alt"]))
                 for item in data["images"]["set"]
             ),
             data["images"]["default"],
+            tuple(
+                (
+                    _words(headline["text"]),
+                    tuple(_words(s["text"]) for s in headline["subtexts"]),
+                )
+                for headline in data.get("variants") or []
+            ),
         )
 
     @classmethod
@@ -216,55 +206,65 @@ def _fields(where: str, item: object, fields: set[str]) -> list[str]:
 
 
 def hero_problems(data: object) -> list[str]:
-    """Every rule of the hero's data file that ``data`` breaks: exactly the
-    pairs of ``HERO_PAIRS``, each once; plain, non-empty text; no field
-    beyond ``default``, ``headlines``, ``id``, ``text``, and ``subtexts``;
-    a default that names one of the pairs; and the images
-    (``image_problems``)."""
+    """Every rule of the hero's data file that ``data`` breaks: a plain,
+    non-empty ``headline`` and ``subtext``; the images (``image_problems``);
+    no field beyond those and the optional ``variants``; and the variants,
+    the editorial reference, each a headline with ``id``, ``text``, and
+    ``subtexts`` of ``id`` and ``text``, plain text, each id once."""
     if not isinstance(data, dict):
         return [
-            f"{HERO_FILE} is not a mapping with 'default', 'headlines', and 'images'"
+            f"{HERO_FILE} is not a mapping with 'headline', 'subtext', and 'images'"
         ]
-    found = _fields(HERO_FILE, data, {"default", "headlines", "images"})
+    found = _fields(
+        HERO_FILE, data, {"headline", "subtext", "images"} | set(data) & {"variants"}
+    )
+    found += _text_problems("the headline", data.get("headline"))
+    found += _text_problems("the subtext", data.get("subtext"))
     found += image_problems(data.get("images"))
-    headlines = data.get("headlines")
+    if "variants" in data:
+        found += _variant_problems(data["variants"])
+    return found
+
+
+def _variant_problems(headlines: object) -> list[str]:
+    """Every rule of the editorial reference ``variants`` that it breaks: a
+    list of headlines, each with exactly ``id``, ``text``, and a list of
+    ``subtexts`` with exactly ``id`` and ``text``; plain, non-empty text;
+    each headline id and each pair (headline id and subtext id) once."""
     if not isinstance(headlines, list):
-        return [*found, "'headlines' is not a list"]
+        return ["'variants' is not a list"]
+    found: list[str] = []
     identifiers: list[str] = []
     headline_ids: list[str] = []
     for number, headline in enumerate(headlines, start=1):
-        where = f"headline {number}"
+        where = f"variant headline {number}"
         found += _fields(where, headline, {"id", "text", "subtexts"})
         if not isinstance(headline, dict):
             continue
         headline_id = str(headline.get("id", ""))
         headline_ids.append(headline_id)
         found += _text_problems(
-            f"headline {headline_id or number}", headline.get("text")
+            f"variant headline {headline_id or number}", headline.get("text")
         )
         subtexts = headline.get("subtexts")
         if not isinstance(subtexts, list):
-            found.append(f"headline {headline_id or number} has no list of subtexts")
+            found.append(
+                f"variant headline {headline_id or number} has no list of subtexts"
+            )
             continue
         for subtext in subtexts:
             found += _fields(
-                f"a subtext of headline {headline_id}", subtext, {"id", "text"}
+                f"a subtext of variant headline {headline_id}", subtext, {"id", "text"}
             )
             if not isinstance(subtext, dict):
                 continue
             pair = f"{headline_id}{subtext.get('id', '')}"
             identifiers.append(pair)
-            found += _text_problems(f"subtext {pair}", subtext.get("text"))
+            found += _text_problems(f"variant subtext {pair}", subtext.get("text"))
     for headline_id in sorted({h for h in headline_ids if headline_ids.count(h) > 1}):
-        found.append(f"the headline id {headline_id!r} appears more than once")
+        found.append(f"the variant headline id {headline_id!r} appears more than once")
     for pair in sorted({p for p in identifiers if identifiers.count(p) > 1}):
-        found.append(f"the pair {pair} appears more than once")
-    if missing := [pair for pair in HERO_PAIRS if pair not in identifiers]:
-        found.append(f"the pairs {', '.join(missing)} are missing")
-    if extra := sorted(set(identifiers) - set(HERO_PAIRS)):
-        found.append(f"the pairs {', '.join(extra)} are not the owner's eight")
-    if data.get("default") not in HERO_PAIRS:
-        found.append(f"the default {data.get('default')!r} is none of the eight pairs")
+        found.append(f"the variant pair {pair} appears more than once")
     return found
 
 
@@ -535,20 +535,9 @@ class HomeContent:
     # The hero.
 
     def hero(self) -> str:
-        """The hero as one raw HTML block: the default pair, the figure with
-        the default image for a page without scripts, the pairs and the
+        """The hero as one raw HTML block: the fixed headline and subtext,
+        the figure with the default image for a page without scripts, the
         images as data, the script, and the two actions."""
-        default = self.hero_copy.pair(self.hero_copy.default)
-        pairs = _script_data(
-            [
-                {
-                    "id": pair.id,
-                    "headline": _typographic(pair.headline),
-                    "subtext": _typographic(pair.subtext),
-                }
-                for pair in self.hero_copy.pairs
-            ]
-        )
         images = _script_data(
             [
                 {
@@ -570,19 +559,15 @@ class HomeContent:
                 # own, out of the hero.
                 '<header class="quarto-title-block"></header>',
                 '<section class="home-hero" aria-labelledby="hero-headline">',
-                # A declared enhancement (invariant I4): the default pair is
-                # its static content, which the script may replace.
-                '<div class="hero-copy" id="hero-copy" data-enhancement'
-                f' data-hero="{default.id}">',
-                '<div class="hero-pair">',
+                # The one fixed text of the hero: static content that no
+                # script touches.
+                '<div class="hero-copy" id="hero-copy">',
                 '<h1 class="hero-headline" id="hero-headline">'
-                f"{html.escape(_typographic(default.headline))}</h1>",
+                f"{html.escape(_typographic(self.hero_copy.headline))}</h1>",
                 '<p class="hero-subtext">'
-                f"{html.escape(_typographic(default.subtext))}</p>",
-                "</div>",
+                f"{html.escape(_typographic(self.hero_copy.subtext))}</p>",
                 "</div>",
                 self.hero_figure(),
-                f'<script type="application/json" id="hero-pairs">{pairs}</script>',
                 f'<script type="application/json" id="hero-images">{images}</script>',
                 f'<script src="{script}"></script>',
                 self.actions(),
