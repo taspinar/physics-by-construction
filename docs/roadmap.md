@@ -11144,9 +11144,17 @@ they relate, and, last, how the results are kept honest.
   on desktop the identity message and both actions without scrolling; on
   a phone the identity message and the primary action, the secondary
   action allowed just below the fold on small screens; the image never
-  pushed below the fold or weakened for a pixel rule; validated at
-  1280 by 800, 390 by 844, 360 by 640, and 320 CSS px wide, and at 200 %
-  text scaling, readability and accessibility before any pixel rule.
+  weakened (shrunk, cropped, hidden) for a pixel rule: in view at 1280
+  by 800, 768 by 1024, and 390 by 844, and on the smallest phones (360
+  by 640, 320 by 568) following the actions below the fold, whole and at
+  the size it has at 390 wide scaled by the width (the owner's decision
+  of 2026-11-10 on Issue #462, option C); the message and the primary
+  action in view at 390 by 844, 360 by 640, and 320 by 568, at 320 CSS
+  px by tighter spacing on Home and a shorter shared header, with the
+  headline at its phone size and every header item kept (the owner's
+  decision of 2026-11-10, second part, option a); validated at 1280 by 800, 390
+  by 844, 360 by 640, and 320 CSS px wide, and at 200 % text scaling,
+  readability and accessibility before any pixel rule.
 - **The owner's approval** of the hero on the rendered page, last,
   recorded on the Issue.
 
@@ -11189,9 +11197,12 @@ Skills: impeccable, frontend-design.
    primary on Home and the first lesson of Part A secondary; the header
    keeps its four items (the F132 header test).
 4. The layout rule of "Home page" holds at the sizes and the text
-   scaling above, shown by the layout tests, with no layout shift from the
-   swap; the accessibility scan, the keyboard pass, the reflow, and the
-   payload hold.
+   scaling above, as the layout bullet states it per size (the image in
+   view from 390 by 844 up, below the fold but whole and unshrunk at 360
+   by 640 and 320 by 568; the message and the primary action in view at
+   390 by 844, 360 by 640, and 320 by 568), shown by the layout tests, with no layout
+   shift from the swap; the accessibility scan, the keyboard pass, the
+   reflow, and the payload hold.
 5. The rendered review has its three parts with each image forced, and
    the owner's approval of the hero on the rendered page is recorded on
    the Issue (`owner_approval`); the full verification run passes with no

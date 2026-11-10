@@ -111,6 +111,43 @@ Skills: impeccable@08d5b470, frontend-design@dbd4588f
   shrunk or moved for it. The test at 320 checks the reflow, the order,
   and the absence of overlap; the owner's pass on the rendered page
   decides the rest.
+- **The owner's decision of 2026-11-10 (review round 1, M1, option C).**
+  The image is never weakened (shrunk, cropped, hidden) for a pixel rule;
+  it need not be above the fold on the smallest phones. Per size: the
+  image in view at 1280 by 800 (whole), 768 by 1024, and 390 by 844 (its
+  top on the screen, at least 150 px visible); the message and the
+  primary action in view at 390 by 844 and 360 by 640 (the secondary may
+  fall just below); at 360 by 640 and 320 by 568 the image follows the
+  actions below the fold, loaded, in its natural aspect, and at the size
+  it has at 390 wide scaled by the width (the full content column). No
+  layout change. Tests: `test_the_image_is_in_view_from_390_by_844_up`
+  and `test_on_the_smallest_phones_the_image_follows_whole_and_unshrunk`
+  in `tests/e2e/test_home.py`, added beside the existing assertions.
+  Open: the decision also names the message and the primary action in
+  view at 320 by 568, which the current layout does not give (measured:
+  header 176 px, the primary's bottom at 687 px, the subtext of pairs 3a
+  and 3b ends at 594 and 623 px) and which needs a layout change the
+  decision rules out; asked on the Issue through the handoff note.
+- **The owner's decision of 2026-11-10, second part (option a).** The
+  message and the primary action are in view at 320 by 568 too; the
+  layout may change at 320 px, Home first, then the shared header's
+  spacing. Home alone is not enough without a smaller headline: with the
+  headline at its phone size (1.75rem, which the reflow test's floor of
+  28 px times the text scale requires, also at 200 %), Home's spacing
+  brings the primary's bottom from 687 to 584 px. So below 22em
+  (`site/assets/site.css`): on Home, main's top margin 0.5rem, no hero top
+  margin, row gap 0.5rem, headline line height 1.05 and its bottom margin
+  0.5rem, the subtext 1rem at line height 1.4, the primary action's line
+  height 1.3 (42 px tall); in the shared header, the bar's padding 0.25rem
+  and the title's line height 1.2 (header 176 to 151 px, every item
+  kept). Measured at 320 by 568 for every pair: the primary ends at 548
+  px (the copy, reserved at the longest pair, at 498), the same with the
+  page's fonts blocked (the Times New Roman fallback, metric-equal to
+  Liberation Serif on Linux); 360 by 640 and 390 by 844 unchanged. The
+  320 by 568 row is added to `test_the_message_and_the_actions_are_above_the_fold`;
+  the F132 header test and the site-wide page checks on Home, About, the
+  Course Atlas, and the first lesson pass. At 200 % text on 320 px the
+  mark overlapping the title in the shared header predates this change.
 - **200 % text.** Home's content reflows without horizontal scroll at every
   size (single-column grids are `minmax(0, 1fr)`, long words break). The
   shared header of every page (F132) is wider than 320 CSS px at 200 %

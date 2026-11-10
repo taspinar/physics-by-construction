@@ -583,8 +583,13 @@ Later phases (in scope for the project, out of scope for the MVP):
   both actions are visible without scrolling; on a phone the identity
   message and the primary action are, and the secondary action should
   be but may fall just below the fold on smaller screens; the hero image
-  is not pushed below the fold or weakened to satisfy a rigid
-  above-the-fold rule. The layout is validated at representative desktop
+  is not weakened (shrunk, cropped, hidden) to satisfy a rigid
+  above-the-fold rule: it is in view on desktops, tablets, and phones
+  from 390 by 844 CSS px up, and on the smallest phones (360 by 640, 320
+  by 568) it may follow the actions below the fold, whole and unshrunk
+  (the owner's decision of 2026-11-10, Issue #462); the identity message
+  and the primary action are in view down to 320 by 568, where the
+  spacing of Home and of the shared header is tighter. The layout is validated at representative desktop
   and phone sizes, including small phones and increased text scaling,
   with readability, accessibility, and visual quality before any
   pixel rule, and the owner approves the hero on the rendered page. The

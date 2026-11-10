@@ -1572,8 +1572,15 @@ lesson of Part A (secondary); the header keeps its four items. The layout
 is content-first: on desktop the identity message and both actions are
 visible without scrolling; on a phone the identity message and the
 primary action are, the secondary action may fall just below the fold on
-small screens, and the image is never pushed below the fold to satisfy a
-pixel rule; validated at 1280 by 800, 390 by 844, 360 by 640, and 320 CSS
+small screens, and the image is never weakened (shrunk, cropped, hidden)
+to satisfy a pixel rule: it is in view at 1280 by 800, 768 by 1024, and
+390 by 844, and on the smallest phones (360 by 640, 320 by 568) it follows
+the actions below the fold, whole and at the size it has at 390 wide
+scaled by the width (the owner's decision of 2026-11-10, Issue #462); the
+message and the primary action are in view at 390 by 844, 360 by 640, and
+320 by 568, at 320 CSS px by tighter spacing on Home and a shorter shared
+header (less padding, the title's two lines closer; every item kept);
+validated at 1280 by 800, 390 by 844, 360 by 640, and 320 CSS
 px wide and at 200 % text scaling, and approved by the owner on the
 rendered page.
 

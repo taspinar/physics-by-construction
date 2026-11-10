@@ -38,6 +38,7 @@ LESSONS = LearningPath.read(SITE_SOURCE)
 HERO = HeroCopy.read(SITE_SOURCE)
 IMAGES = [image.id for image in HERO.images]
 PUBLISHED = {lesson.slot: lesson for lesson in LESSONS.lessons if lesson.slot}
+TABLET = {"width": 768, "height": 1024}
 PHONE_TALL = {"width": 390, "height": 844}
 PHONE_SMALL = {"width": 360, "height": 640}
 PHONE_NARROW = {"width": 320, "height": 568}
@@ -350,15 +351,17 @@ _SECONDARY = ".home-hero .home-action"
         (DESKTOP, (*_MESSAGE, _PRIMARY, _SECONDARY)),
         (PHONE_TALL, (*_MESSAGE, _PRIMARY, _SECONDARY)),
         (PHONE_SMALL, (*_MESSAGE, _PRIMARY)),
+        (PHONE_NARROW, (*_MESSAGE, _PRIMARY)),
     ],
-    ids=["1280x800", "390x844", "360x640"],
+    ids=["1280x800", "390x844", "360x640", "320x568"],
 )
 def test_the_message_and_the_actions_are_above_the_fold(
     browser: Browser, server: SiteServer, viewport: dict[str, int], visible: tuple
 ):
     """On a desktop the identity message and both actions; on a phone the
-    message and the primary action, at 360 by 640 the secondary just below
-    the fold; whichever pair is shown (the copy keeps the height of the
+    message and the primary action, at 360 by 640 and 320 by 568 (the
+    owner's decision of 2026-11-10, option a) the secondary may fall just
+    below the fold; whichever pair is shown (the copy keeps the height of the
     longest). The image is never moved or shrunk for this: beside the copy
     on a desktop, right after the actions on a phone, its top on the screen
     at 1280 by 800 and 390 by 844."""
@@ -378,6 +381,82 @@ def test_the_message_and_the_actions_are_above_the_fold(
             assert figure["width"] >= 480
         else:
             assert abs(figure["width"] - _box(page, ".home-hero")["width"]) < 1
+        page.close()
+    context.close()
+
+
+@pytest.mark.parametrize(
+    "viewport", [DESKTOP, TABLET, PHONE_TALL], ids=["1280x800", "768x1024", "390x844"]
+)
+def test_the_image_is_in_view_from_390_by_844_up(
+    browser: Browser, server: SiteServer, viewport: dict[str, int]
+):
+    """The owner's decision of 2026-11-10 (option C): on a desktop, a tablet,
+    and a phone from 390 by 844 up the hero image is in view without
+    scrolling, whichever pair is shown: its top on the screen with at least
+    150 px of it visible, the whole image on a desktop."""
+    context = browser.new_context(viewport=viewport)
+    for pair_id in HERO_PAIRS:
+        page = open_home(context, server, f"?hero={pair_id}")
+        figure = _box(page, ".hero-figure")
+        assert figure["y"] >= 0, pair_id
+        assert figure["y"] + 150 <= viewport["height"], pair_id
+        if viewport is DESKTOP:
+            assert figure["y"] + figure["height"] <= viewport["height"], pair_id
+        page.close()
+    context.close()
+
+
+def _image(page: Page) -> dict:
+    """The displayed and the natural size of the hero image, and whether it
+    is drawn whole: loaded, visible, and not cropped by fit or overflow."""
+    return page.locator(".hero-figure img").evaluate(
+        """i => {
+            const s = getComputedStyle(i), f = getComputedStyle(i.parentElement);
+            const r = i.getBoundingClientRect();
+            return {width: r.width, height: r.height,
+                    natural: [i.naturalWidth, i.naturalHeight],
+                    loaded: i.complete && i.naturalWidth > 0,
+                    shown: s.display !== "none" && s.visibility === "visible"
+                           && parseFloat(s.opacity) > 0,
+                    fit: s.objectFit, clip: f.overflow};
+        }"""
+    )
+
+
+@pytest.mark.parametrize(
+    "viewport", [PHONE_SMALL, PHONE_NARROW], ids=["360x640", "320x568"]
+)
+def test_on_the_smallest_phones_the_image_follows_whole_and_unshrunk(
+    browser: Browser, server: SiteServer, viewport: dict[str, int]
+):
+    """The owner's decision of 2026-11-10 (option C): at 360 by 640 and
+    320 by 568 the image may follow below the fold, but it is never weakened
+    for it: present, after the actions, uncropped (its natural aspect, drawn
+    whole), and unshrunk (the displayed size it has at 390 wide, scaled by
+    the width: the full width of the content column, as there)."""
+    context = browser.new_context(viewport=PHONE_TALL)
+    reference = open_home(context, server, "?hero=3a")
+    tall = _image(reference)
+    tall_column = _box(reference, ".home-hero")["width"]
+    context.close()
+    assert abs(tall["width"] - tall_column) < 1
+    context = browser.new_context(viewport=viewport)
+    for pair_id in HERO_PAIRS:
+        page = open_home(context, server, f"?hero={pair_id}")
+        image = _image(page)
+        assert image["loaded"] and image["shown"], pair_id
+        # Uncropped: drawn in its natural aspect, so neither the fit nor the
+        # figure cuts anything off.
+        assert image["fit"] != "none" and image["clip"] == "visible", pair_id
+        natural_ratio = image["natural"][1] / image["natural"][0]
+        assert abs(image["height"] - image["width"] * natural_ratio) < 1, pair_id
+        # Scaled by the width only: the same share of the column as at 390.
+        column = _box(page, ".home-hero")["width"]
+        assert abs(image["width"] - tall["width"] * column / tall_column) < 1
+        actions = _box(page, ".home-hero .home-actions")
+        figure = _box(page, ".hero-figure")
+        assert actions["y"] + actions["height"] <= figure["y"] + 0.5, pair_id
         page.close()
     context.close()
 

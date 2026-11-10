@@ -167,6 +167,9 @@ kept.
   share a row with the search control, and the entries wrap onto two rows
   below it; the lesson's contents are one wrapped row of section names above
   the title, not a column, so that the title is on the first screen.
+  Below 22em (the 320 CSS px phones) the bar has less padding and the
+  title's two lines sit closer, so that Home's message and first action fit
+  the first screen under it (F158); every item stays.
 - **Footer** (every page). A thin rule, then three groups: the F57
   attribution line exactly as `pbc.authoring.identity` writes it; the
   licences (code MIT, text and figures CC BY 4.0); the secondary pages and

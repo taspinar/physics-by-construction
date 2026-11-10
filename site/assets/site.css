@@ -783,6 +783,21 @@ body.nav-fixed {
   }
 }
 
+/* On the narrowest phones (320 CSS px) the header is shorter still: less
+   padding and the two lines of the title closer together. Every item
+   stays; only the spacing changes (Issue #462). */
+@media (max-width: 22em) {
+  .navbar {
+    padding-top: var(--pbc-space-1);
+    padding-bottom: var(--pbc-space-1);
+  }
+
+  .navbar .navbar-brand,
+  .navbar .navbar-title {
+    line-height: 1.2;
+  }
+}
+
 .navbar .navbar-brand,
 .navbar .navbar-title {
   min-width: 0;
@@ -2384,6 +2399,36 @@ body.pbc-home .hero-subtext {
 
   .home-hero {
     row-gap: var(--pbc-space-3);
+  }
+}
+
+/* On the narrowest phones (320 by 568 CSS px) tighter lines and spacing, a
+   body-size subtext, and the compact header keep the message and the
+   primary action above the fold (the owner's decision of 2026-11-10 on
+   Issue #462); the headline keeps its phone size and the image follows,
+   unshrunk. */
+@media (max-width: 22em) {
+  body.pbc-home main {
+    margin-top: var(--pbc-space-2);
+  }
+
+  body.pbc-home .hero-headline {
+    margin-bottom: var(--pbc-space-2);
+    line-height: 1.05;
+  }
+
+  body.pbc-home .hero-subtext {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+
+  .home-hero {
+    margin-top: 0;
+    row-gap: var(--pbc-space-2);
+  }
+
+  main a.home-action-primary {
+    line-height: 1.3;
   }
 }
 
