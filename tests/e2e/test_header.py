@@ -272,3 +272,66 @@ def test_at_200_percent_text_nothing_in_the_header_overlaps_and_the_page_fits(
         assert found["x"] >= -0.5, name
         assert found["x"] + found["width"] <= viewport["width"] + 0.5, (name, found)
     context.close()
+
+
+@pytest.mark.parametrize("viewport", COMPACT[:3], ids=lambda v: f"{v['width']}px")
+@pytest.mark.parametrize("name", PAGES)
+def test_at_200_percent_text_the_bar_is_still_one_line_on_a_phone(
+    browser: Browser, server: SiteServer, viewport: dict, name: str
+):
+    """The owner's correction of 2026-11-10 (round 2, third part): at 320
+    by 568 with 200 % text the search control fell onto a second line and
+    the header was 134 px tall. The bar's gaps are capped like its gutter
+    (site.css, --pbc-bar-gap), so the mark, "PBC", the search control, and
+    the toggle share the one row at 320, 360, and 390 px, with the toggle's
+    44 px target, every accessible name, the search, and the page's width
+    kept."""
+    context = browser.new_context(viewport=viewport)
+    page = open_page(context, server, name)
+    page.add_style_tag(content="html { font-size: 200% !important; }")
+    page.wait_for_timeout(100)
+    mark, title, toggle, search = (
+        box(page, selector) for selector in (*BAR, ".aa-DetachedSearchButton")
+    )
+    bar = [mark, title, toggle, search]
+    header = box(page, "#quarto-header")
+    # One row: the middles within 12 px as at 100 %, and every part's middle
+    # inside every other part's vertical extent (a second line put the
+    # search control's middle 60 px under the mark's box); left to right
+    # the mark, "PBC", the search, the toggle, none overlapping, none past
+    # an edge of the screen or the header, and the header not two rows
+    # tall (74 px, the title's line at 200 %; it was 134 px).
+    middles = [found["y"] + found["height"] / 2 for found in bar]
+    assert max(middles) - min(middles) < 12, middles
+    for found in bar:
+        for middle in middles:
+            assert found["y"] <= middle <= found["y"] + found["height"], (
+                found,
+                middles,
+            )
+    edges = [
+        mark["x"] + mark["width"],
+        title["x"],
+        title["x"] + title["width"],
+        search["x"],
+        search["x"] + search["width"],
+        toggle["x"],
+    ]
+    assert edges == sorted(edges), edges
+    assert overlapping(bar) == []
+    for found in bar:
+        assert found["x"] >= 0 and found["x"] + found["width"] <= viewport["width"]
+        assert found["y"] >= 0
+        assert found["y"] + found["height"] <= header["y"] + header["height"]
+    assert header["height"] <= 80, header
+    # Nothing traded for the line: the toggle's target, the names, the
+    # search control, and the width of Home.
+    assert toggle["width"] >= 44 and toggle["height"] >= 44
+    assert page.get_by_role("button", name="Menu", exact=True).count() == 1
+    assert page.get_by_role("button", name="Search", exact=True).is_visible()
+    assert page.get_by_role("link", name=TITLE, exact=True).count() == 2
+    if name == "index.html":
+        assert (
+            page.evaluate("document.documentElement.scrollWidth") <= viewport["width"]
+        )
+    context.close()

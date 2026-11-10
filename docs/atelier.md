@@ -177,10 +177,15 @@ kept.
   entry a 46 px row, the start link last as the filled control; the menu is
   open in the HTML and closed at load by `site/learner/menu.js` below the
   break point, which also closes it on Escape. The bar's gutter is the
-  content column's (1.5em plus 5px), capped at 29px, and the toggle, the
-  mark's cap, and the gutter are in px, so that at 200 % text the row
-  still holds the mark, "PBC", and the search without overlap (the search
-  wraps under them before anything does).
+  content column's (1.5em plus 5px), capped at 29px, the gaps between its
+  parts are the space-2 step capped at 9px, and the toggle, the mark's
+  cap, the gutter, and the gaps are in px, so that at 200 % text the row
+  still holds the mark, "PBC", and the search on one line, also at 320 px
+  (the owner's correction of 2026-11-10, round 2, third part: with the
+  gaps growing to 16 px the search fell onto a second line there and the
+  bar was 134 px tall; it is 74 px, as at 360 and 390 px); were the row
+  ever too narrow, the search would wrap under them before anything
+  overlapped.
 - **Footer** (every page). A thin rule, then three groups: the F57
   attribution line exactly as `pbc.authoring.identity` writes it; the
   licences (code MIT, text and figures CC BY 4.0); the secondary pages and

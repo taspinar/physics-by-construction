@@ -77,8 +77,12 @@
   --pbc-measure: 68ch;
   /* The gutter of the compact header (below 40em): the content column's
      (1.5em of the body size and the theme's 5px), capped so that the bar's
-     row has room at 200 % text. */
+     row has room at 200 % text; the gaps between the bar's parts likewise
+     (the space-2 step, capped at 9px: at 200 % text on a 320 px screen the
+     row of 189 px holds the mark, "PBC", and the search control only when
+     the gaps do not double with the text). */
   --pbc-bar-gutter: min(calc(1.5rem + 5px), 29px);
+  --pbc-bar-gap: min(var(--pbc-space-2), 9px);
 
   /* Rules: thin separators, and the one construction line under the header. */
   --pbc-rule-width: 1px;
@@ -840,10 +844,11 @@ body.nav-fixed {
    as a column with the start link last, the filled control. Without a
    script the menu stands open (navigation.py), and the toggle still
    closes it. The text grows with the reader's text size; the gutters, the
-   toggle, and the mark (to 44 px at most) do not, so that at 200 % text
-   the row still holds the mark, "PBC", and the search control without
-   overlap, and the brand never shrinks below its content: the search
-   control wraps under it before anything overlaps. */
+   gaps, the toggle, and the mark (to 44 px at most) do not, so that at
+   200 % text the row still holds the mark, "PBC", and the search control
+   on one line, also on a 320 px screen, and the brand never shrinks below
+   its content: were the row ever too narrow, the search control would
+   wrap under it before anything overlapped. */
 @media (max-width: 39.99em) {
   /* The theme pads the bar itself as well as its container. */
   #quarto-header .navbar {
@@ -852,7 +857,7 @@ body.nav-fixed {
 
   .navbar .navbar-container {
     position: relative;
-    column-gap: var(--pbc-space-2);
+    column-gap: var(--pbc-bar-gap);
     padding: 4px calc(44px + 2 * var(--pbc-bar-gutter)) 4px var(--pbc-bar-gutter);
   }
 
@@ -860,7 +865,7 @@ body.nav-fixed {
     flex: 1 1 auto;
     min-width: min-content;
     min-height: 44px;
-    column-gap: var(--pbc-space-2);
+    column-gap: var(--pbc-bar-gap);
   }
 
   .navbar .navbar-brand-container > .navbar-brand {

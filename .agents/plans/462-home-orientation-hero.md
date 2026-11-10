@@ -452,3 +452,59 @@ frontend-design@dbd4588f; the automated detector does not run.
    `docs/atelier.md`), the approval request, this plan; the screenshots
    at 320 and 360 px at 100 % and 200 % text (and the set of round 2 again
    with the new subtitle), and what they show.
+
+## Round 2, third part (the owner, 2026-11-10): the bar on one line at 320 x 568 and 200 % text
+
+The owner approved the hero visually (Issue #462, "Owner's decision, round
+2, third part") and asked for one small correction: at 320 x 568 with 200 %
+text the search icon fell to a second line of the header, which made the
+bar needlessly tall; the navigation is to stay on one line there too,
+without hiding the search, without a toggle target below 44 px, without
+losing an accessible name, and without horizontal overflow; if one line is
+not possible without an accessibility problem, say so with the
+measurements and stop. No other visual change.
+
+### Cause (measured on the render)
+
+At 320 px and 200 % text the bar's row is 189 px wide (320 less the 29 px
+gutter and the 102 px the toggle's square and its gutters reserve). The
+mark (44 px), "PBC" (70 px at 36 px), the search control (32 px), and the
+gaps between them need 194 px, because the gaps, `--pbc-space-2`
+(0.5rem), double with the text to 16 px, and Quarto's empty tools box
+costs a gap of its own: the search control wrapped. At 100 % the same row
+needs 133 px.
+
+### Decision (the session's choice, stated)
+
+The gaps are capped like the gutter and the toggle already are, which the
+rule's own comment states as the design (the text grows, the chrome's
+spacing does not): a token `--pbc-bar-gap: min(var(--pbc-space-2), 9px)`
+for the container's and the brand's `column-gap` below 40em. At 100 % the
+gap is 8.5 px, as before, so nothing moves at normal text (the 320 x 568
+double-pendulum screenshot retaken is byte-identical to the one of the
+correction); at 200 % the row needs 173 px of its 189 and the bar is one
+line of 74 px at 320, 360, and 390 px (it was 134 px at 320). No part of
+the bar changes size or name: the toggle stays 44 px, the search control
+its 32 by 55 px, the mark 44 px, the names "Physics by Construction"
+(twice), "Search", and "Menu". Not chosen: a smaller right reservation for
+the toggle (it would move the search control at 100 %, a visual change);
+hiding the empty tools box (it would hide a tool the site may configure
+later); a smaller title or mark at 200 % (a change of the typography the
+owner approved).
+
+### Steps
+
+1. `site/assets/site.css`: the token and the two gaps; the rule's comment.
+2. `tests/e2e/test_header.py`:
+   `test_at_200_percent_text_the_bar_is_still_one_line_on_a_phone` (320,
+   360, 390 px x Home, About, the first lesson): the four parts' middles
+   within 12 px and each inside every other's extent, left to right in
+   order, no overlap, within the screen and the header, the header at most
+   80 px; the toggle 44 px, the names, the search button visible, Home's
+   width. Shown to fail on the site without the cap (the search control's
+   middle 60 px below the mark's box; the header 134 px).
+3. `docs/atelier.md` ("Header"), the approval request, this plan; the
+   screenshots at 320 and 360 px at 200 % text retaken (closed, the full
+   page, the menu open), and 320 x 568 at 100 % compared.
+4. The affected tests, the site-wide page checks on Home and About,
+   `--only code` and `--only default`.
