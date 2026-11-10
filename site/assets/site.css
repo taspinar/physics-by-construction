@@ -2408,18 +2408,29 @@ body.pbc-home .hero-subtext {
    Issue #462); the headline keeps its phone size and the image follows,
    unshrunk. */
 @media (max-width: 22em) {
+  /* The page's gutters are 1rem instead of the theme's 1.5em, so that the
+     lines of the copy are longer and fewer, whatever the face. */
+  body.pbc-home #quarto-content.page-columns {
+    grid-template-columns:
+      [screen-start] var(--pbc-space-3)
+      [screen-start-inset page-start page-start-inset body-start-outset body-start body-content-start]
+      minmax(0, 1fr)
+      [body-content-end body-end body-end-outset page-end-inset page-end screen-end-inset]
+      var(--pbc-space-3) [screen-end];
+  }
+
   body.pbc-home main {
     margin-top: var(--pbc-space-2);
   }
 
   body.pbc-home .hero-headline {
     margin-bottom: var(--pbc-space-2);
-    line-height: 1.05;
+    line-height: 1;
   }
 
   body.pbc-home .hero-subtext {
     font-size: 1rem;
-    line-height: 1.4;
+    line-height: 1.3;
   }
 
   .home-hero {

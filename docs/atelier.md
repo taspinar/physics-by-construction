@@ -249,7 +249,8 @@ kept.
   learning journey). The hero: the owner's headline as the page's one
   `<h1>` with its subtext, in a column of 20 characters at a display size
   between 2rem and 3rem (1.75rem below 30em, so that the message and the
-  primary action fit 360 by 640 CSS px), the two actions under it (the
+  primary action fit 360 by 640 CSS px; below 22em gutters of 1rem and
+  tighter lines, so that they fit 320 by 568), the two actions under it (the
   Course Atlas as the one filled control of the page, the first lesson as a
   text link), and beside it from 992 CSS px one of four Part A
   illustrations at hero size, in a 4:3 box reserved before the image

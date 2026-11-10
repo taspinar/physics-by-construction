@@ -1578,7 +1578,8 @@ to satisfy a pixel rule: it is in view at 1280 by 800, 768 by 1024, and
 the actions below the fold, whole and at the size it has at 390 wide
 scaled by the width (the owner's decision of 2026-11-10, Issue #462); the
 message and the primary action are in view at 390 by 844, 360 by 640, and
-320 by 568, at 320 CSS px by tighter spacing on Home and a shorter shared
+320 by 568, at 320 CSS px by narrower gutters and tighter spacing on Home
+and a shorter shared
 header (less padding, the title's two lines closer; every item kept);
 validated at 1280 by 800, 390 by 844, 360 by 640, and 320 CSS
 px wide and at 200 % text scaling, and approved by the owner on the

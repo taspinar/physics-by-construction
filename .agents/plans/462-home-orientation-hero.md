@@ -148,6 +148,27 @@ Skills: impeccable@08d5b470, frontend-design@dbd4588f
   the F132 header test and the site-wide page checks on Home, About, the
   Course Atlas, and the first lesson pass. At 200 % text on 320 px the
   mark overlapping the title in the shared header predates this change.
+- **CI of PR #466 on fbae838 (owner's instruction of 2026-11-10).** On the
+  Linux runner the primary ended at 571.97 px at 320 by 568, so the 548 px
+  above depended on the font. The owner asked for the primary at 548 px or
+  less (20 px above the fold) with every runner-like face and every pair.
+  Measured with the text faces substituted (the copy is reserved at the
+  longest pair, so every pair gives the same bottom): before, STIX 548.2,
+  Times New Roman 516.9, Georgia and Liberation Sans 603.2, DejaVu Serif,
+  DejaVu Sans and Verdana 659. Below 22em on Home now: the page's gutters
+  1rem instead of the theme's 1.5em (a column of 286 instead of 263 px, so
+  fewer lines whatever the face), the headline's line height 1, the
+  subtext's 1.3. After: STIX 499.3, Times New Roman 477.2, Georgia and
+  Liberation Sans 529.0, DejaVu Serif, DejaVu Sans and Verdana 580.9 to
+  581.2. The three widest faces cannot reach 548 px within the owner's
+  limits (the headline at least 28 px, the copy reserved at the longest
+  pair, every header item kept, nothing hidden): their reserved copy alone
+  is about 372 px, so the header would have to be about 100 px or less
+  instead of 151; asked on the Issue through the handoff note. Measured
+  alternatives: without the reservation at 320 px the longest pair alone
+  still ends at 581 px with those faces; a headline of 1.5rem below 22em
+  ends every face at 526 px or less (STIX 478), but lowers the reflow
+  test's floor of 28 px at 320 px, which the instruction rules out.
 - **200 % text.** Home's content reflows without horizontal scroll at every
   size (single-column grids are `minmax(0, 1fr)`, long words break). The
   shared header of every page (F132) is wider than 320 CSS px at 200 %
