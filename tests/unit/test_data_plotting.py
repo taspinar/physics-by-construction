@@ -32,6 +32,7 @@ from pbc.data.reference import (
     npl_sparameters,
     ost_hotwire,
     sdss_balmer,
+    sparc_rotmod,
     srm660c,
     tess_wasp18,
     trackpy_bulk_water,
@@ -58,6 +59,7 @@ LAB6 = SAMPLES_DIR / "nist-srm660c-lab6"
 KAM = SAMPLES_DIR / "kamchatka-2025-tsunami-inputs"
 PIV = SAMPLES_DIR / "piv-cylinder-wake"
 OST = SAMPLES_DIR / "ost-hotwire-cylinder-wakes"
+SPARC = SAMPLES_DIR / "sparc-rotation-curves"
 
 
 @pytest.fixture(autouse=True)
@@ -196,6 +198,7 @@ def test_the_credit_line_is_wrapped_and_kept_inside_the_figure():
         (kamchatka_tsunami, KAM, "processed", False),
         (cylinder_wake, PIV, "processed", False),
         (ost_hotwire, OST, "processed", False),
+        (sparc_rotmod, SPARC, "processed", True),
     ],
 )
 def test_each_reference_figure_is_made_with_the_helpers_and_has_its_dossiers_status(
@@ -227,6 +230,7 @@ def test_the_dossiers_state_the_status_of_their_figure():
         ("kamchatka-2025-tsunami-inputs", "processed"),
         ("piv-cylinder-wake", "processed"),
         ("ost-hotwire-cylinder-wakes", "processed"),
+        ("sparc-rotation-curves", "processed"),
     ):
         text = (root / f"{name}.md").read_text().replace("**", "")
         assert f"Status label: {status}" in text, name

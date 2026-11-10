@@ -319,6 +319,7 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
         npl_sparameters,
         ost_hotwire,
         sdss_balmer,
+        sparc_rotmod,
         srm660c,
         tess_wasp18,
         trackpy_bulk_water,
@@ -345,6 +346,7 @@ def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeyp
         (kamchatka_tsunami, "kamchatka-2025-tsunami-inputs"),
         (cylinder_wake, "piv-cylinder-wake"),
         (ost_hotwire, "ost-hotwire-cylinder-wakes"),
+        (sparc_rotmod, "sparc-rotation-curves"),
     ):
         figure = module.make_figure(ROOT / "data/samples" / name)
         assert figure.axes
