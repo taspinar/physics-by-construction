@@ -853,9 +853,17 @@ pointed at the first lesson of the learning path); the footer holds the
 attribution, the licences, and the secondary pages with the source (Run the
 code, Glossary, Scientific evidence, For educators, Contribute, Source), none
 of them also in the header. `site/skip-link.py` runs after the
-render and puts a skip link before the navigation bar of every page. The
+render and puts a skip link before the navigation bar of every page.
+`site/navigation.py` runs after it and gives the header its compact form
+below 640 CSS px (F158, round 2): the title in two spans (the full name and
+"PBC", of which the style sheet shows one), and the two lists of entries
+inside a native `<details class="pbc-menu" open>` with a `<summary>`
+toggle (a button named "Menu" with `aria-expanded`), placed after the
+search; `site/learner/menu.js`, loaded right after it, closes the menu
+below 640 CSS px before the first paint and on Escape. Without scripts the
+menu stands open with the four entries under the bar. The
 header takes the page's cobalt focus ring, which the built-site check `test_skip_link_and_navigation_focus_pass_the_keyboard_pass`
-measures. Browsers other than Chromium: run `pytest tests/e2e --engine firefox`
+measures, opening the menu at phone width to reach the entries. Browsers other than Chromium: run `pytest tests/e2e --engine firefox`
 (WebKit on macOS does not Tab to links, so the keyboard checks do not apply).
 
 **Search.** `site/_quarto.yml` enables Quarto's own search with its local
@@ -1873,15 +1881,19 @@ in `src/pbc/authoring/identity.py`. Rules for every page:
   with its one link to `https://jidai.nl`, is not repeated in lessons or in
   any page content. Lessons do not mention JIDAI.
 - The home page is generated whole by `pbc.authoring.home_content()`
-  (F134, ADR 021 decision 4); `site/index.qmd` holds one cell and no copy,
-  link, or heading of its own. The hero's headlines and subtexts are the
-  owner's, in `site/hero.yaml` beside the curriculum file: exactly the
-  eight pairs 1a, 1b, 1c, 2a, 2b, 2c, 3a, and 3b, plain text, and a
-  default. Change the copy there and nowhere else; the build fails on a
-  missing, duplicate, or extra pair, an unknown field, or markup. The page
-  carries the default pair in its HTML and the others as data for
-  `site/learner/hero.js`, which shows one at random per visit before the
-  first paint (`?hero=2b` forces one), with no request and no storage.
+  (F134, ADR 021 decision 4 as amended); `site/index.qmd` holds one cell
+  and no copy, link, or heading of its own. The hero's headline and
+  subtext are the owner's, in `site/hero.yaml` beside the curriculum file:
+  one fixed `headline` and one fixed `subtext` (round 2 of F158,
+  2026-11-10), plain text, which the build writes into the HTML and no
+  script changes; the three headlines and eight subtexts of F134 stay in
+  the file under `variants` as an editorial reference that nothing shows.
+  Change the copy there and nowhere else; the build fails on an empty or
+  missing text, an unknown field, markup, or a broken variant. The hero
+  image is one of four Part A illustrations named in the same file
+  (`images`); `site/learner/hero.js` creates one at random per visit, or
+  the one `?hero-image=` names, with no request but that image and no
+  storage.
 - The examples are chosen by code from the front matter, never named on
   the page: in path order, the first simulation-only lesson of level 1, the
   first measured-data lesson, and the first lesson with an LLM agent, each

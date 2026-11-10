@@ -163,10 +163,29 @@ kept.
   the first stop of the keyboard. The header scrolls away with the page:
   a fixed header covered a third of a phone screen and could hide the
   focused element, and the theme's reveal on scrolling is motion.
-  On a phone (below 768 CSS px) the bar is compact: the mark and the title
+  Between 640 and 768 CSS px the bar is compact: the mark and the title
   share a row with the search control, and the entries wrap onto two rows
   below it; the lesson's contents are one wrapped row of section names above
   the title, not a column, so that the title is on the first screen.
+  Below 640 CSS px (F158, round 2) the bar is one line of 52 px: the mark
+  (2.25rem, growing with the text to 44 px at most), the title's initials
+  "PBC" (the full name stays rendered but clipped, as the link's name), the
+  search icon, and a menu toggle, a 44 px square at the right gutter with
+  three ink lines that become an X when the menu is open. The four
+  entries are in that menu (`site/navigation.py` wraps Quarto's lists in a
+  native `details`), a column under the bar at the content's gutter, each
+  entry a 46 px row, the start link last as the filled control; the menu is
+  open in the HTML and closed at load by `site/learner/menu.js` below the
+  break point, which also closes it on Escape. The bar's gutter is the
+  content column's (1.5em plus 5px), capped at 29px, the gaps between its
+  parts are the space-2 step capped at 9px, and the toggle, the mark's
+  cap, the gutter, and the gaps are in px, so that at 200 % text the row
+  still holds the mark, "PBC", and the search on one line, also at 320 px
+  (the owner's correction of 2026-11-10, round 2, third part: with the
+  gaps growing to 16 px the search fell onto a second line there and the
+  bar was 134 px tall; it is 74 px, as at 360 and 390 px); were the row
+  ever too narrow, the search would wrap under them before anything
+  overlapped.
 - **Footer** (every page). A thin rule, then three groups: the F57
   attribution line exactly as `pbc.authoring.identity` writes it; the
   licences (code MIT, text and figures CC BY 4.0); the secondary pages and
@@ -240,24 +259,36 @@ kept.
   textual equivalent, visually hidden. The illustrations are interface
   artwork (WebP, see "The three asset classes"), set on the paper with
   `mix-blend-mode: multiply`.
-- **Home page** (F134, ADR 021 decision 4; `body.pbc-home`,
-  `page-layout: full`; generated whole by `pbc.authoring.home`). The hero:
-  the owner's headline as the page's one `<h1>` with its subtext, in a
-  column of 20 characters at a display size between 2rem and 3rem, the two
-  ways in under it (the start link as the one filled control of the page;
-  the atlas as a text link), and beside it from 992 CSS px the two
-  constellations, the eight courses linked by cobalt hairlines and the four
-  method paths by copper ones, each node the atlas's card illustration in a
-  thin frame with its name as SVG text. Below 40em, where the image is
-  drawn about 360 CSS px wide, the same SVG takes a phone layout: the nodes
-  move to two columns of a taller box, 1.25 times larger, with labels of
-  about 13 CSS px at 390 px. The copy stacks every pair in one grid cell, hidden
-  but the shown one, so the block keeps the height of the longest pair.
-  Then what the site is (three sentences and a line of links), the four
-  examples (the lesson's preview, the title, one line clamped to three
-  lines, the level and the course), each under the construction line, in
-  two columns from 768 px and four from 1200, and the invitation. No eyebrow,
-  no card box, no count of lessons: the atlas gives the overview.
+- **Home page** (F134, F158; ADR 021 decision 4 as amended;
+  `body.pbc-home`, `page-layout: full`; generated whole by
+  `pbc.authoring.home` from `site/hero.yaml`, `site/home.yaml`, and the
+  learning journey). The hero: the owner's one fixed headline as the
+  page's one `<h1>` with its one fixed subtext (round 2 of F158: nothing
+  is picked at random, so the block is as tall as its text and leaves no
+  empty space under it), in a column of 20 characters at a display size
+  between 2rem and 3rem (1.75rem with tighter lines below 30em, the
+  subtext at the body size below 22em, so that the message and the primary
+  action fit 360 by 640 and 320 by 568 CSS px under the compact header with
+  room to spare; never larger than 17.5 % of its column's width, which at
+  normal text changes nothing and at 200 % text on a phone lowers it to
+  37 px at 320 and 44 px at 360 CSS px, so that every word of it fits on
+  one line instead of breaking inside), the two actions under it, 1.5rem
+  below the subtext (the
+  Course Atlas as the one filled control of the page, the first lesson as a
+  text link), and beside it from 992 CSS px one of four Part A
+  illustrations at hero size, in a 4:3 box reserved before the image
+  arrives, blended with `darken` on the paper so that the masters' white
+  shows no box; below 992 px the image follows the actions, 2rem under
+  them, and at 390 by 844 it is whole on the first screen. Then four
+  sections from the copy file:
+  what the site is (the canonical sentence first, the one link to the
+  creator), how physics is learned here, what you can learn (the journey's
+  Part A and Part B side by side from 992 px, each under a rule in the ink
+  of its part, with the owner's example lesson as its preview, title, one
+  line, and level; the relation below them), and how the results are kept
+  honest, last, with the links to "How we verify the science" and the
+  source. No eyebrow, no card box, no count of lessons: the atlas gives the
+  overview.
 - **Run the code** (F134). The three routes as the first sections of the
   page, side by side from 768 px under the construction line; "Optional:
   drive a coding agent" and "Troubleshooting" keep their headings with
@@ -287,7 +318,7 @@ decision 2, ADR 021 decision 1). An example of each:
 | Class | Example | Source | Rules |
 |---|---|---|---|
 | Interface artwork | the project mark in the header | an authored SVG under `site/assets/` with its entry (author, licence) in the provenance register there | no number, no caption of a result, no evidence claim; decorative or named by its link |
-| Interface artwork, composed | the hero of the home page (F134): two constellations of the atlas's card illustrations | an inline SVG written by `pbc.authoring.home` at build time, whose every image is a registered file under `site/assets/atlas/` | as above; every label is SVG text, its lines are decorative and imply no order of study, and its title names every course and path |
+| Interface artwork, a derived raster at hero size | the hero image of the home page (F158): one of four Part A illustrations | WebP files under `site/assets/hero/`, derived from the masters of the atlas illustrations by `tools/illustrations/derive_assets.py --hero`, each with the register entry of its master | as below; its alternative text in `site/hero.yaml`; never presented as a result |
 | Interface artwork, a derived raster | the twelve illustrations of the course atlas (F133) | WebP files under `site/assets/atlas/`, each with its entry in the provenance register (its origin: a script under `tools/illustrations/`, an author, or an image model with its prompt and date; a licence; its master and the master's SHA-256) | no text, number, or formula in the pixels; never in a lesson's body; alt text that names it; accepted by the visual check (composition, legibility at 76 and 200 px, colour, consistency with its family) |
 | Conceptual illustration | the diagrams drawn by `pbc.authoring.diagrams` in a lesson cell | an executed cell, `fig-status: conceptual` | drawn by code, labelled `conceptual`, never a result |
 | Scientific result | the phase-space figure of "Numerical integrators" | an executed cell over `pbc.mechanics.integrators` | the rules of "Scientifically faithful figures" and the F63 preview contract |
@@ -308,9 +339,11 @@ follow-up, not part of this feature.
 
 ## The mobile rule
 
-- Below 576 CSS px the page is one column: the header wraps, the table of
+- Below 576 CSS px the page is one column: the header is the compact bar
+  with its menu (below 640 CSS px), the table of
   contents comes before the body, figures and tables scale or scroll inside
-  their own box, and nothing scrolls the page sideways at 320 CSS px.
+  their own box, and nothing scrolls the page sideways at 320 CSS px, also
+  at 200 % text.
 - The course atlas (F133) on a phone is an accordion: each card with its
   open panel under it, the rows on one column with their marks under the
   title.

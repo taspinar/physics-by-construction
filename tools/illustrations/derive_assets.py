@@ -4,8 +4,15 @@ and 800 px wide (the 200 px slot at 2x and 4x), all 4:3, WebP, on the page's
 paper. One master per sequence; the mechanics card takes the owner's detail
 crop of the same figure, since the whole is too fine at 76 px.
 
+The hero of the home page (F158) takes four of the same masters at one hero
+size, 1200 px wide (4:3), one file per illustration, named by the image
+identifier of site/hero.yaml. Every master is wider than 1200 px, so
+nothing is upscaled.
+
 Run: python derive_assets.py MASTERS_DIRECTORY [OUTPUT_DIRECTORY]
 The output defaults to site/assets/atlas of the repository.
+Run: python derive_assets.py --hero MASTERS_DIRECTORY [OUTPUT_DIRECTORY]
+The output defaults to site/assets/hero of the repository.
 """
 
 import sys
@@ -32,6 +39,14 @@ MASTERS = {
 }
 CARD_MASTER = {"mechanics": "pbc_classical_mechanics_atlas_card_detail.png"}
 SIZES = {"card": (152, 228), "panel": (400, 800)}
+# The hero images: the image identifier and the sequence whose master it is.
+HERO = {
+    "double-pendulum": "mechanics",
+    "vortex-street": "fluids",
+    "hot-cold-gas": "thermodynamics",
+    "exoplanet-transit": "astrophysics",
+}
+HERO_WIDTH = 1200
 
 
 def load(file: Path) -> Image.Image:
@@ -43,14 +58,18 @@ def load(file: Path) -> Image.Image:
     return image
 
 
+def resize(image: Image.Image, width: int) -> Image.Image:
+    if width > image.width:
+        raise ValueError(f"a master {image.width} px wide is not upscaled to {width}")
+    return image.resize((width, round(width * 3 / 4)), Image.Resampling.LANCZOS)
+
+
 def derive(sequence: str, kind: str, master: Path, out: Path) -> list[Path]:
     image = load(master)
     written = []
     for width in SIZES[kind]:
         file = out / f"{sequence}-{kind}-{width}.webp"
-        image.resize((width, round(width * 3 / 4)), Image.Resampling.LANCZOS).save(
-            file, format="WEBP", quality=88, method=6
-        )
+        resize(image, width).save(file, format="WEBP", quality=88, method=6)
         written.append(file)
     return written
 
@@ -63,8 +82,17 @@ def main(masters: Path, out: Path) -> None:
             derive(sequence, kind, masters / master, out)
 
 
+def hero(masters: Path, out: Path) -> None:
+    out.mkdir(parents=True, exist_ok=True)
+    for image_id, sequence in HERO.items():
+        resize(load(masters / MASTERS[sequence]), HERO_WIDTH).save(
+            out / f"{image_id}.webp", format="WEBP", quality=88, method=6
+        )
+
+
 if __name__ == "__main__":
-    main(
-        Path(sys.argv[1]),
-        Path(sys.argv[2]) if len(sys.argv) > 2 else REPOSITORY / "site/assets/atlas",
-    )
+    arguments = sys.argv[1:]
+    write, kind = (hero, "hero") if arguments[:1] == ["--hero"] else (main, "atlas")
+    arguments = arguments[1:] if kind == "hero" else arguments
+    output = REPOSITORY / "site/assets" / kind
+    write(Path(arguments[0]), Path(arguments[1]) if len(arguments) > 1 else output)

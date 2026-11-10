@@ -75,6 +75,14 @@
   --pbc-space-4: 1.5rem;
   --pbc-space-5: 2.5rem;
   --pbc-measure: 68ch;
+  /* The gutter of the compact header (below 40em): the content column's
+     (1.5em of the body size and the theme's 5px), capped so that the bar's
+     row has room at 200 % text; the gaps between the bar's parts likewise
+     (the space-2 step, capped at 9px: at 200 % text on a 320 px screen the
+     row of 189 px holds the mark, "PBC", and the search control only when
+     the gaps do not double with the text). */
+  --pbc-bar-gutter: min(calc(1.5rem + 5px), 29px);
+  --pbc-bar-gap: min(var(--pbc-space-2), 9px);
 
   /* Rules: thin separators, and the one construction line under the header. */
   --pbc-rule-width: 1px;
@@ -147,11 +155,13 @@ main img {
   height: auto;
 }
 
-/* The navigation bar does not collapse into a menu (that needs a script), so
-   its entries wrap onto further lines on a narrow screen. The theme lays the
-   bar out as rows that never wrap, which pushes the last entries past the
-   right edge of a phone screen; how many fit depends on the fonts of the
-   machine. An entry of two words stays on one line when it wraps. */
+/* The navigation bar does not use the theme's collapse (that needs a
+   script): from 40em its entries wrap onto further lines when the bar is
+   too narrow for them, and below 40em they are in a native menu
+   (navigation.py; "The header on a narrow screen" below). The theme lays
+   the bar out as rows that never wrap, which pushes the last entries past
+   the right edge of a narrow screen; how many fit depends on the fonts of
+   the machine. An entry of two words stays on one line when it wraps. */
 .navbar .navbar-container,
 .navbar .navbar-nav {
   flex-wrap: wrap;
@@ -736,10 +746,57 @@ body.nav-fixed {
   }
 }
 
-/* On a phone the header is compact: the mark and the title share a row with
-   the search control, and the entries wrap in the two rows below it, still
-   without a script. The theme orders these children itself, so each rule
-   names the child. */
+/* The menu of the header (navigation.py): a native details around the two
+   lists of entries, open in the HTML. From 40em it is only a box in the
+   bar: its toggle is hidden and its panel lays the lists out as the bar
+   did (the first list pushes the start link to the right). */
+.navbar .navbar-container > .pbc-menu {
+  display: block;
+  order: 20;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+.pbc-menu-toggle {
+  display: none;
+  list-style: none;
+}
+
+.pbc-menu-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.pbc-menu-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  width: 100%;
+}
+
+/* The title's two forms, the full name and its initials (navigation.py).
+   One is shown; the other stays rendered but clipped, so that the link's
+   accessible name is always the full name and no text is hidden. */
+.pbc-title-short,
+.pbc-title-full {
+  display: inline;
+}
+
+.pbc-title-short {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The header on a narrow screen (F158, round 2 of Issue 462), in two
+   steps. Between 40em and 48em (640 to 767 CSS px) the mark and the full
+   title share a row with the search control, and the entries wrap on the
+   rows below it, still without a script. The theme orders these children
+   itself, so each rule names the child. */
 @media (max-width: 767.98px) {
   .navbar .navbar-container {
     flex-wrap: wrap;
@@ -760,17 +817,15 @@ body.nav-fixed {
     order: 2;
   }
 
-  .navbar .navbar-container > .navbar-nav {
+  .navbar .navbar-container > .pbc-menu {
+    order: 3;
+    flex: 1 1 100%;
+  }
+
+  .pbc-menu-panel .navbar-nav {
     flex: 1 1 100%;
     flex-wrap: wrap;
-  }
-
-  .navbar .navbar-container > .navbar-nav.me-auto {
-    order: 3;
-  }
-
-  .navbar .navbar-container > .navbar-nav.ms-auto {
-    order: 4;
+    margin: 0 !important;
   }
 
   .navbar .navbar-nav .nav-link {
@@ -780,6 +835,175 @@ body.nav-fixed {
 
   .navbar .navbar-title {
     font-size: 1.0625rem;
+  }
+}
+
+/* Below 40em (640 CSS px) the bar is one line: the mark, the initials
+   "PBC", the search control, and the menu toggle, a 44 px square at the
+   right edge; the four entries are in the menu, which opens under the bar
+   as a column with the start link last, the filled control. Without a
+   script the menu stands open (navigation.py), and the toggle still
+   closes it. The text grows with the reader's text size; the gutters, the
+   gaps, the toggle, and the mark (to 44 px at most) do not, so that at
+   200 % text the row still holds the mark, "PBC", and the search control
+   on one line, also on a 320 px screen, and the brand never shrinks below
+   its content: were the row ever too narrow, the search control would
+   wrap under it before anything overlapped. */
+@media (max-width: 39.99em) {
+  /* The theme pads the bar itself as well as its container. */
+  #quarto-header .navbar {
+    padding: 0;
+  }
+
+  .navbar .navbar-container {
+    position: relative;
+    column-gap: var(--pbc-bar-gap);
+    padding: 4px calc(44px + 2 * var(--pbc-bar-gutter)) 4px var(--pbc-bar-gutter);
+  }
+
+  .navbar .navbar-container > .navbar-brand-container {
+    flex: 1 1 auto;
+    min-width: min-content;
+    min-height: 44px;
+    column-gap: var(--pbc-bar-gap);
+  }
+
+  .navbar .navbar-brand-container > .navbar-brand {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0;
+  }
+
+  .navbar .navbar-brand-logo {
+    padding-right: 0;
+  }
+
+  .navbar .navbar-brand-logo .navbar-logo {
+    width: min(2.25rem, 44px);
+    max-width: 44px;
+    height: min(2.25rem, 44px);
+    max-height: 44px;
+    margin-right: 0;
+    padding-right: 0;
+  }
+
+  .navbar .navbar-title {
+    font-size: 1.125rem;
+    white-space: nowrap;
+  }
+
+  .pbc-title-full {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .pbc-title-short {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+  }
+
+  /* The menu spans the bar to its right gutter, under the toggle, on a
+     row of its own (its basis counts the margin it takes back, so it
+     never shares the row with a wrapped search control). */
+  .navbar .navbar-container > .pbc-menu {
+    position: static;
+    order: 4;
+    flex: 0 0 calc(100% + 44px + var(--pbc-bar-gutter));
+    margin-right: calc(-44px - var(--pbc-bar-gutter));
+  }
+
+  .pbc-menu-toggle {
+    position: absolute;
+    top: 4px;
+    right: var(--pbc-bar-gutter);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--pbc-radius);
+    color: var(--pbc-header-text);
+    cursor: pointer;
+  }
+
+  /* The icon: three lines, an X when the menu is open. */
+  .pbc-menu-icon {
+    position: relative;
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: currentColor;
+  }
+
+  .pbc-menu-icon::before,
+  .pbc-menu-icon::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: currentColor;
+  }
+
+  .pbc-menu-icon::before {
+    top: -7px;
+  }
+
+  .pbc-menu-icon::after {
+    top: 7px;
+  }
+
+  .pbc-menu[open] > .pbc-menu-toggle .pbc-menu-icon {
+    background: transparent;
+  }
+
+  .pbc-menu[open] > .pbc-menu-toggle .pbc-menu-icon::before {
+    top: 0;
+    transform: rotate(45deg);
+  }
+
+  .pbc-menu[open] > .pbc-menu-toggle .pbc-menu-icon::after {
+    top: 0;
+    transform: rotate(-45deg);
+  }
+
+  .pbc-menu-panel {
+    flex-direction: column;
+    align-items: stretch;
+    padding: var(--pbc-space-2) 0;
+    border-top: var(--pbc-rule-width) solid var(--pbc-rule);
+  }
+
+  .pbc-menu-panel .navbar-nav {
+    flex-direction: column;
+    align-items: stretch;
+    min-width: 0;
+  }
+
+  /* The entries at the gutter, as the content below them; an entry wraps
+     when the text is too large for the column. */
+  .navbar .pbc-menu-panel .nav-link,
+  .navbar .pbc-menu-panel .nav-link .pbc-start {
+    padding: var(--pbc-space-2) 0;
+    font-size: 1.0625rem;
+    white-space: normal;
+  }
+
+  .navbar .pbc-menu-panel .nav-link .pbc-start {
+    padding: var(--pbc-space-1) var(--pbc-space-3);
+  }
+
+  .navbar .pbc-menu-panel .nav-link .pbc-start {
+    margin-top: var(--pbc-space-1);
   }
 }
 
@@ -842,6 +1066,7 @@ body.nav-fixed {
 /* The focus ring of the header is the ring of the page. The theme's own is a
    pale shadow with too little contrast on paper (WCAG 2.2, 2.4.13). */
 .navbar a:focus-visible,
+.navbar summary:focus-visible,
 .navbar .aa-DetachedSearchButton:focus-visible {
   outline: var(--pbc-focus-width) solid var(--pbc-focus);
   outline-offset: 2px;
@@ -2281,45 +2506,71 @@ body.pbc-reading-column main.content section.level2 {
 }
 
 /* The home page (docs/atelier.md, "Home page"): the hero (the owner's
-   headline and subtext, the two ways in, and the two constellations), what
-   the site is, the examples, and the invitation. The page opts in with
-   body-classes: pbc-home. */
+   headline and subtext, one of the Part A illustrations, and the first
+   step), then identity, how physics is learned here, what you can learn,
+   and integrity. The page opts in with body-classes: pbc-home. */
+/* On a narrow screen the copy, the two actions, and the image follow each
+   other in the document flow, with 1.5rem between the subtext and the
+   actions and 2rem between the actions and the image (round 2 of Issue
+   462); the figure comes before the actions in the source only so that
+   the script that fills it runs right after it. */
 .home-hero {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "copy"
+    "actions"
+    "figure";
   gap: var(--pbc-space-4) var(--pbc-space-5);
-  align-items: center;
   margin: var(--pbc-space-3) 0 var(--pbc-space-5);
 }
 
-/* From 992 CSS px the text stands left and the image right. */
+/* From 992 CSS px the copy and the actions stand left, the image right. */
 @media (min-width: 992px) {
   .home-hero {
     grid-template-columns: minmax(0, 6fr) minmax(0, 7fr);
+    grid-template-rows: 1fr auto auto 1fr;
+    grid-template-areas:
+      ". figure"
+      "copy figure"
+      "actions figure"
+      ". figure";
+    align-items: center;
     min-height: min(36rem, calc(100vh - 8rem));
+  }
+
+  .hero-figure {
+    margin: 0 auto;
   }
 }
 
-/* Every pair, the shown one and the hidden copies the script adds, in one
-   grid cell: the block is as tall as the longest pair. */
+/* The one fixed headline and subtext: the block is as tall as its text.
+   The block is the container the headline's size is measured against. */
 .hero-copy {
-  display: grid;
+  grid-area: copy;
+  min-width: 0;
+  container-type: inline-size;
 }
 
-.hero-pair {
-  grid-area: 1 / 1;
-}
-
-.hero-ghost {
-  visibility: hidden;
-}
-
+/* The headline is never larger than 17.5 % of its column's width: the
+   longest word of the owner's headline ("intelligence.") is 5.6 em wide
+   in the page's face, so at that size every word fits on one line of the
+   column. At normal text the cap is far above the size (a 263 px column
+   at 320 CSS px allows 46 px); it bites only when the text is enlarged
+   on a narrow column (200 % text at 320 px: 37 px instead of 56; at 360
+   px: 44 px), where the words would otherwise break inside (the owner's
+   correction of round 2, Issue 462). The size is declared twice: the
+   plain value for a browser without container units, then the capped
+   one. */
 body.pbc-home .hero-headline {
   margin: 0 0 var(--pbc-space-3);
   max-width: 20ch;
   font-size: clamp(2rem, 1.3rem + 2vw, 3rem);
+  font-size: min(clamp(2rem, 1.3rem + 2vw, 3rem), 17.5cqi);
   font-weight: 600;
   line-height: 1.08;
   text-wrap: balance;
+  overflow-wrap: break-word;
 }
 
 body.pbc-home .hero-subtext {
@@ -2328,6 +2579,65 @@ body.pbc-home .hero-subtext {
   color: var(--pbc-muted);
   font-size: var(--pbc-text-large);
   line-height: 1.5;
+  overflow-wrap: break-word;
+}
+
+/* The figure keeps the 4:3 box of the image before the image is there, so
+   that the image the script picks moves nothing. */
+.hero-figure {
+  grid-area: figure;
+  width: 100%;
+  max-width: 40rem;
+  aspect-ratio: 4 / 3;
+  margin: var(--pbc-space-2) auto 0;
+  /* The paper the image is blended with. */
+  isolation: isolate;
+  background-color: var(--pbc-background);
+}
+
+.hero-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* The masters' white is lighter than the page's paper: the lighter of
+     the two shows as paper, so no box shows around the illustration. */
+  mix-blend-mode: darken;
+}
+
+/* On a phone a slightly smaller headline and subtext with tighter lines,
+   and less room above the hero, so that the message and the primary action
+   share the first screen with the compact header down to 320 by 568 CSS px
+   (the owner's decisions of 2026-11-10 on Issue 462); the image follows,
+   unshrunk. */
+@media (max-width: 30em) {
+  body.pbc-home main {
+    margin-top: var(--pbc-space-3);
+  }
+
+  .home-hero {
+    margin-top: var(--pbc-space-2);
+  }
+
+  body.pbc-home .hero-headline {
+    margin-bottom: var(--pbc-space-2);
+    font-size: 1.75rem;
+    font-size: min(1.75rem, 17.5cqi);
+    line-height: 1.05;
+  }
+
+  body.pbc-home .hero-subtext {
+    font-size: var(--pbc-text-base);
+    line-height: 1.4;
+  }
+}
+
+/* On the narrowest phones (320 CSS px) the subtext is the body size of the
+   lessons' prose: seven lines instead of eight, and the primary action
+   well above the fold whatever the face. */
+@media (max-width: 22em) {
+  body.pbc-home .hero-subtext {
+    font-size: 1rem;
+  }
 }
 
 .home-actions {
@@ -2335,12 +2645,20 @@ body.pbc-home .hero-subtext {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--pbc-space-3) var(--pbc-space-4);
-  margin: var(--pbc-space-4) 0 0;
+  margin: 0;
+}
+
+.home-hero .home-actions {
+  grid-area: actions;
 }
 
 /* The one filled control of the page, the start link's shape. */
 main a.home-action-primary {
   display: inline-block;
+  /* Never wider than the column: a word longer than the column, in a wider
+     face than the page's own, breaks rather than widening the page. */
+  min-width: 0;
+  max-width: 100%;
   padding: var(--pbc-space-2) var(--pbc-space-4);
   border-radius: var(--pbc-radius);
   background-color: var(--pbc-start);
@@ -2349,110 +2667,48 @@ main a.home-action-primary {
   text-decoration: none;
 }
 
+/* With large text on a narrow column the padding would otherwise leave too
+   little room for the action's longest word. */
+@media (max-width: 30em) {
+  main a.home-action-primary {
+    padding-inline: var(--pbc-space-3);
+  }
+}
+
 main a.home-action-primary:hover {
   color: var(--pbc-start-text);
   text-decoration: underline;
   text-decoration-thickness: 1px;
 }
 
-/* The two constellations: the atlas's card illustrations in thin frames,
-   joined by hairlines, cobalt for the courses and copper for the paths.
-   The labels are text, and the image's title names every node. */
-.hero-image {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-width: 44rem;
-  margin: 0 auto;
+/* The second action: a text link with room to tap. */
+main a.home-action {
+  display: inline-block;
+  padding: var(--pbc-space-2) 0;
 }
 
-.hero-line,
-.hero-bridge {
-  fill: none;
-  stroke-width: 1.25;
-  stroke-linejoin: round;
+/* A word longer than a narrow column at a large text size breaks rather
+   than widening the page. */
+body.pbc-home main {
+  overflow-wrap: break-word;
 }
 
-.hero-line-a {
-  stroke: var(--pbc-link);
-}
-
-.hero-line-b {
-  stroke: var(--pbc-copper);
-}
-
-.hero-bridge {
-  stroke: var(--pbc-rule);
-  stroke-dasharray: 3 5;
-}
-
-.hero-frame {
-  fill: none;
-  stroke-width: 1.5;
-}
-
-.hero-node-a .hero-frame {
-  stroke: var(--pbc-link);
-}
-
-.hero-node-b .hero-frame {
-  stroke: var(--pbc-copper);
-}
-
-.hero-node image {
-  mix-blend-mode: multiply;
-}
-
-.hero-plate {
-  fill: var(--pbc-plate);
-}
-
-/* The paper under each label hides the line that passes behind it. */
-.hero-label {
-  fill: var(--pbc-text);
-  paint-order: stroke;
-  stroke: var(--pbc-background);
-  stroke-width: 5px;
-  stroke-linejoin: round;
-  font-family: var(--pbc-font-text);
-  font-size: 13px;
-  text-anchor: middle;
-}
-
-/* The lines of the phone layout (pbc.authoring.home, PHONE_HEIGHT). */
-.hero-image .hero-phone {
-  display: none;
-}
-
-/* On a phone the image is drawn about 360 CSS px wide, a little over half
-   its 640 units: the nodes move to two columns of a taller box, each node
-   1.25 times larger, and the labels grow to 20 units of the node, about
-   13 CSS px at 390 px. */
-@media (max-width: 40em) {
-  .hero-image {
-    aspect-ratio: var(--hero-phone-ratio);
-  }
-
-  .hero-image .hero-wide {
-    display: none;
-  }
-
-  .hero-image .hero-phone {
-    display: inline;
-  }
-
-  .hero-node {
-    transform: var(--hero-phone);
-  }
-
-  .hero-label {
-    font-size: 20px;
-  }
+/* The anchor Quarto appends to a heading follows the last word with no
+   space, so the word and the anchor otherwise form one unit that cannot
+   wrap and, at a large text size on a narrow column, reaches past it. As
+   an inline block the anchor can move to the next line on its own. */
+body.pbc-home main .anchorjs-link {
+  display: inline-block;
 }
 
 /* The prose of the page keeps the measure. */
-body.pbc-home main section > p {
+body.pbc-home main section > p,
+.home-part > p {
   max-width: var(--pbc-measure);
+}
+
+body.pbc-home main section.level2 {
+  margin-top: var(--pbc-space-5);
 }
 
 .home-more p {
@@ -2461,44 +2717,77 @@ body.pbc-home main section > p {
   gap: var(--pbc-space-2) var(--pbc-space-4);
 }
 
-/* The examples: four entries of equal standing, each its lesson's preview,
-   its title, one line, and its level and course; two columns from 768 CSS
-   px, four from 1200. Not boxed: a rule above each, as in the atlas. */
-.home-examples {
+/* What you can learn: Part A and Part B, each under a rule in the ink of
+   its part in the atlas, side by side from 992 CSS px; the relation below
+   them. */
+.home-curriculum {
   display: grid;
-  gap: var(--pbc-space-5) var(--pbc-space-4);
-  margin: var(--pbc-space-4) 0;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--pbc-space-5);
+  margin: var(--pbc-space-4) 0 0;
 }
 
-@media (min-width: 768px) {
-  .home-examples {
+@media (min-width: 992px) {
+  .home-curriculum {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
 
-@media (min-width: 1200px) {
-  .home-examples {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .home-relation {
+    grid-column: 1 / -1;
   }
 }
 
+.home-part {
+  padding-top: var(--pbc-space-1);
+  border-top: var(--pbc-construction-width) solid var(--home-ink);
+  --home-ink: var(--pbc-rule);
+}
+
+.home-part-a {
+  --home-ink: var(--pbc-link);
+}
+
+.home-part-b {
+  --home-ink: var(--pbc-copper);
+}
+
+body.pbc-home .home-part h3 {
+  margin: var(--pbc-space-3) 0 var(--pbc-space-3);
+  color: var(--home-ink);
+}
+
+/* The relation belongs to neither part: a plain rule and heading. */
+body.pbc-home .home-relation h3 {
+  color: var(--pbc-text);
+}
+
+/* The owner's example of a part: the lesson's preview, its title, one
+   line, and its level and home. */
 .home-example {
-  padding-top: var(--pbc-space-3);
-  border-top: var(--pbc-construction-width) solid var(--pbc-link);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 var(--pbc-space-4);
+  margin: var(--pbc-space-4) 0 0;
+}
+
+@media (min-width: 576px) {
+  .home-example {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    align-items: start;
+  }
+
+  .home-example > :not(:first-child) {
+    grid-column: 2;
+  }
+
+  .home-example > :first-child {
+    grid-row: 1 / span 3;
+    margin: 0;
+  }
 }
 
 .home-example p {
   margin-bottom: var(--pbc-space-2);
-}
-
-/* One line of the lesson's description: at most three lines on the page;
-   the whole sentence stays in the text. */
-.home-example h3 + p {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
 }
 
 .home-preview {
@@ -2510,22 +2799,20 @@ body.pbc-home main section > p {
   background-color: var(--pbc-plate);
 }
 
-body.pbc-home .home-example h3 {
-  margin: var(--pbc-space-3) 0 var(--pbc-space-2);
+body.pbc-home .home-example h4 {
+  margin: var(--pbc-space-2) 0;
   font-size: var(--pbc-heading-3);
   line-height: var(--pbc-leading-tight);
 }
 
 .home-meta {
+  display: inline-block;
+  /* An inline block is at least as wide as its longest word; this keeps it
+     in the column, where a longer word breaks. */
+  max-width: 100%;
   color: var(--pbc-muted);
   font-size: var(--pbc-text-small);
-}
-
-.home-begin p {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--pbc-space-3) var(--pbc-space-4);
+  line-height: 1.45;
 }
 
 /* "Run the code" (F134): the three routes above the shared installation,

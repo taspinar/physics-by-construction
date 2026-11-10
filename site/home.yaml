@@ -1,0 +1,65 @@
+# The copy of the home page (F158, requirements decision 43, ADR 021
+# decision 4 as amended): the four sections after the hero, in the fixed
+# order identity, educational philosophy, curriculum, integrity. Read and
+# validated by pbc.authoring.home; never written on a page.
+#
+# - A heading is plain text. A text is one paragraph of inline Markdown under
+#   the rules of the learning journey (site/journey.yaml): references
+#   {sequence:<id>}, {slot:<label>}, or {term:<glossary term>} that resolve,
+#   no count of lessons, courses, paths, or capstones, no lesson named outside
+#   a reference, and no "discover".
+# - Identity opens with the canonical sentence of pbc.authoring.identity and
+#   ends with the one link to the creator; integrity ends with the links to
+#   "How we verify the science" and the source. The page adds them.
+# - The curriculum section takes its explanation of Part A, Part B, and their
+#   relation from the learning journey (site/journey.yaml), the one source the
+#   Course Atlas and About share. It holds only its heading and at most one
+#   representative published lesson per part, chosen by the owner and named
+#   by its slot: a slot of a course for Part A, a slot of a method path for
+#   Part B. The build fails when the slot has no published lesson. Leave a
+#   part out for no example.
+#
+# Draft copy of the session of Issue #462 (2026-11-09) from the journey
+# source: the owner approves it on the rendered page.
+
+identity:
+  heading: What this site is
+  text:
+    - >-
+      It teaches physics by having you build it. A model of a physical system
+      becomes a short program that you can read, run, and change, and each
+      lesson checks what that program does before it asks you to believe it.
+
+philosophy:
+  heading: How physics is learned here
+  text:
+    - >-
+      Each lesson follows the work of a physicist rather than the order of a
+      textbook chapter. You build a model from a few stated assumptions,
+      predict what it will do, compare the prediction with a known result or
+      with measurements, and interpret the difference: what the model
+      captures, what it leaves out, and how far its answer can be trusted.
+    - >-
+      The code is part of the explanation, not an appendix to it. Because
+      every model runs, you can change a parameter or an assumption and see
+      what follows, and a lesson states the lessons it builds on, so you can
+      start wherever your background allows.
+
+curriculum:
+  heading: What you can learn
+  examples:
+    part-a: M1
+    part-b: SA5
+
+integrity:
+  heading: How the results are kept honest
+  text:
+    - >-
+      The site is built from its lessons, and the build runs them: a lesson
+      whose code fails or whose proof does not compile is not published. A
+      claim in a lesson carries a label that says what supports it, such as
+      a computation that the build runs again, a comparison with recorded
+      measurements, or a proof that a machine checks.
+    - >-
+      The illustrations at the top of this page and in the Course Atlas are
+      artwork that sets the scene; the evidence is in the lessons.

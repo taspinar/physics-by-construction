@@ -11,6 +11,7 @@ project:
     - skip-link.py
     - mark.py
     - search-fallback.py
+    - navigation.py
     - search-index.py
     - lesson-previews.py
     - learning-path-export.py
@@ -18,11 +19,13 @@ project:
   # Files the pages do not link to in Markdown but the built site must
   # contain: the fonts that site.css loads, and their licences, the widgets
   # and the learner-state script that lesson pages load as scripts, and the
-  # atlas's illustrations, which its cards and panels load by srcset.
+  # atlas's illustrations, which its cards and panels load by srcset, and
+  # the hero images of Home, which its script loads from the page's data.
   resources:
     - widgets/*.js
     - learner/*.js
     - assets/atlas/*.webp
+    - assets/hero/*.webp
     - assets/fonts/STIXTwoMath-Regular.woff2
     - assets/fonts/STIXTwoText-Regular.subset.woff2
     - assets/fonts/STIXTwoText-Italic.subset.woff2
@@ -54,7 +57,9 @@ website:
   # one filled control, goes to the first lesson of the learning path.
   # Quarto's navbar items take no class, so the start link's comes from the
   # Markdown of its text. The secondary pages are in the footer; no link is
-  # in both. Nothing collapses: the entries wrap without a script.
+  # in both. Quarto's own collapse (a script) stays off; below 640 CSS px
+  # navigation.py puts the four items in a native menu that works without a
+  # script (F158, round 2), and above it the entries stand in the bar.
   navbar:
     collapse: false
     # A light bar, so that the theme draws the header's controls for a light

@@ -1,120 +1,169 @@
-"""The generated home page (F134, ADR 021 decision 4): the hero's data file and
-its rules, the hero's markup and image, the examples chosen by code, and the
-links, all generated from data."""
+"""The generated home page (F134, F158; ADR 021 decision 4 as amended): the
+hero's data file and its rules (one fixed headline and subtext, the variants
+of F134 as an unused reference), the hero images and their registration, the
+hero's markup, the Home copy file and its rules, the owner's example lessons
+validated against the published lessons, the two actions of the first step,
+and the order of the page, all generated from data."""
 
 import copy
+import hashlib
 import json
 import re
 from dataclasses import replace
 
 import pytest
 import yaml
+from PIL import Image
 from support.paths import SITE_SOURCE
 
-from pbc.authoring import COURSES, LearningPath
-from pbc.authoring.atlas import AtlasManifest
+from pbc.authoring.atlas import Atlas
+from pbc.authoring.glossary import Glossary
 from pbc.authoring.home import (
+    ATLAS_ACTION,
+    FIRST_LESSON_ACTION,
     HERO_FILE,
-    HERO_PAIRS,
-    NODE_HEIGHT,
-    NODE_WIDTH,
-    PHONE_COURSE_NODES,
-    PHONE_HEIGHT,
-    PHONE_PATH_NODES,
-    PHONE_SCALE,
-    WIDTH,
+    HERO_IMAGE_HEIGHT,
+    HERO_IMAGE_WIDTH,
+    HOME_FILE,
+    SECTIONS,
     HeroCopy,
     HomeContent,
+    HomeCopy,
     hero_problems,
+    home_problems,
+    image_file_problems,
 )
 from pbc.authoring.identity import description
+from pbc.authoring.journey import Journey, JourneyContent
 from pbc.authoring.previews import HEIGHT as PREVIEW_HEIGHT
 from pbc.authoring.previews import WIDTH as PREVIEW_WIDTH
+from pbc.authoring.website import introduced
 
-PATH = LearningPath.read(SITE_SOURCE)
-MANIFEST = AtlasManifest.read(SITE_SOURCE, PATH.curriculum)
+ATLAS = Atlas.read(SITE_SOURCE)
+PATH = ATLAS.path
+CURRICULUM = PATH.curriculum
+GLOSSARY = Glossary.read(SITE_SOURCE)
+TERMS = tuple(entry.term for entry in GLOSSARY.entries)
+PUBLISHED = frozenset(lesson.slot for lesson in PATH.lessons if lesson.slot)
+JOURNEY = Journey.read(SITE_SOURCE, CURRICULUM, GLOSSARY)
 DATA = yaml.safe_load((SITE_SOURCE / HERO_FILE).read_text(encoding="utf-8"))
 HERO = HeroCopy.parse(DATA)
-HOME = HomeContent(PATH, MANIFEST, HERO, "https://example.org/repo")
+COPY_DATA = yaml.safe_load((SITE_SOURCE / HOME_FILE).read_text(encoding="utf-8"))
+COPY = HomeCopy.parse(COPY_DATA, CURRICULUM, PUBLISHED, TERMS)
+REGISTER = yaml.safe_load(
+    (SITE_SOURCE / "assets" / "provenance.yaml").read_text(encoding="utf-8")
+)["assets"]
+
+
+def _content(page: str = "index.qmd") -> JourneyContent:
+    return JourneyContent(ATLAS, GLOSSARY, JOURNEY, introduced(SITE_SOURCE), page)
+
+
+HOME = HomeContent(_content(), HERO, COPY, "https://example.org/repo")
 APOSTROPHE = chr(0x2019)  # as the build sets an apostrophe
 LINK = re.compile(r"\]\(([^)]*)\)")
 HREF = re.compile(r'\bhref="([^"]*)"')
+# The owner's set and choices on Issue #462 (2026-11-09).
+OWNER_IMAGES = {
+    "double-pendulum": "mechanics",
+    "vortex-street": "fluids",
+    "hot-cold-gas": "thermodynamics",
+    "exoplanet-transit": "astrophysics",
+}
+OWNER_EXAMPLES = {
+    "part-a": "mechanics/01-kinematics-as-a-program",
+    "part-b": "agents-llm/01-an-agent-runs-an-experiment",
+}
 
 
 def _data():
     return copy.deepcopy(DATA)
 
 
-# --- The hero's data file ----------------------------------------------------
+def _copy_data():
+    return copy.deepcopy(COPY_DATA)
 
 
-def test_the_data_file_holds_exactly_the_eight_pairs_of_the_owner():
+def _home_problems(data) -> list[str]:
+    return home_problems(data, CURRICULUM, PUBLISHED, TERMS)
+
+
+# --- The hero's data file: the fixed text --------------------------------------
+
+
+def test_the_data_file_holds_the_owner_s_fixed_headline_and_subtext():
     assert hero_problems(DATA) == []
-    assert [pair.id for pair in HERO.pairs] == list(HERO_PAIRS)
-    assert HERO.default in HERO_PAIRS
-    # The owner's copy, as supplied on the Issue (two of the eight).
-    assert HERO.pair("1a").headline == (
+    # The owner's words (round 2 of Issue #462 and its correction,
+    # 2026-11-10), kept exactly.
+    assert HERO.headline == (
         "The universe has no obligation to fit the limits of human intelligence."
     )
-    assert HERO.pair("3b").subtext.startswith(
+    assert HERO.subtext == (
+        "Explore physics by building models, testing predictions against real"
+        " data, and discovering what AI might make possible."
+    )
+
+
+def test_the_variants_are_the_eight_pairs_of_f134_kept_as_a_reference():
+    # Three headlines with eight subtexts, the first headline the fixed one;
+    # nothing but the validation reads them.
+    assert len(HERO.variants) == 3
+    assert sum(len(subtexts) for _, subtexts in HERO.variants) == 8
+    assert HERO.variants[0][0] == HERO.headline
+    assert HERO.variants[2][1][1].startswith(
         "We do not know what physics will look like in a hundred years."
     )
-    # Pairs of one headline share it.
-    assert HERO.pair("2a").headline == HERO.pair("2c").headline
 
 
-def test_a_missing_pair_fails():
+def test_without_variants_the_file_is_valid():
     data = _data()
-    data["headlines"][2]["subtexts"].pop()
-    assert any("3b" in p and "missing" in p for p in hero_problems(data))
+    del data["variants"]
+    assert hero_problems(data) == []
+    assert HeroCopy.parse(data).variants == ()
 
 
-def test_a_duplicate_pair_fails():
+def test_a_missing_empty_or_marked_up_headline_or_subtext_fails():
     data = _data()
-    data["headlines"][0]["subtexts"].append(dict(data["headlines"][0]["subtexts"][0]))
-    assert any("1a appears more than once" in p for p in hero_problems(data))
-
-
-def test_a_duplicate_headline_fails():
-    data = _data()
-    data["headlines"][1]["id"] = "1"
+    data["headline"] = " "
+    data["subtext"] = "Physics <b>and</b> AI."
     found = hero_problems(data)
-    assert any("headline id '1' appears more than once" in p for p in found)
-
-
-def test_an_extra_pair_fails():
+    assert any("the headline has no text" in p for p in found)
+    assert any("the subtext holds markup" in p for p in found)
     data = _data()
-    data["headlines"][2]["subtexts"].append({"id": "c", "text": "One more."})
-    assert any("3c" in p and "not the owner's eight" in p for p in hero_problems(data))
+    del data["subtext"]
+    assert any("lacks subtext" in p for p in hero_problems(data))
+    with pytest.raises(ValueError, match="rules of the hero"):
+        HeroCopy.parse(data)
 
 
 def test_an_unknown_field_fails_at_every_level():
-    for where in ("top", "headline", "subtext"):
+    for where in ("top", "variant headline", "variant subtext", "images", "image"):
         data = _data()
         target = {
             "top": data,
-            "headline": data["headlines"][0],
-            "subtext": data["headlines"][0]["subtexts"][0],
+            "variant headline": data["variants"][0],
+            "variant subtext": data["variants"][0]["subtexts"][0],
+            "images": data["images"],
+            "image": data["images"]["set"][0],
         }[where]
         target["weight"] = 2
         assert any("unknown fields: weight" in p for p in hero_problems(data)), where
 
 
-def test_markup_or_empty_text_fails():
+def test_a_broken_variant_fails():
     data = _data()
-    data["headlines"][0]["subtexts"][1]["text"] = "Physics <b>and</b> AI."
-    data["headlines"][1]["text"] = " "
+    data["variants"][1]["id"] = "1"
+    data["variants"][0]["subtexts"].append(dict(data["variants"][0]["subtexts"][0]))
+    data["variants"][2]["subtexts"][0]["text"] = "Physics <b>and</b> AI."
     found = hero_problems(data)
-    assert any("subtext 1b holds markup" in p for p in found)
-    assert any("headline 2 has no text" in p for p in found)
-
-
-def test_a_default_that_is_no_pair_fails():
+    assert any("variant headline id '1' appears more than once" in p for p in found)
+    assert any("variant pair 1a appears more than once" in p for p in found)
+    assert any("variant subtext 3a holds markup" in p for p in found)
     data = _data()
-    data["default"] = "4a"
-    assert any("default '4a'" in p for p in hero_problems(data))
-    with pytest.raises(ValueError, match="rules of the hero"):
-        HeroCopy.parse(data)
+    data["variants"][0]["subtexts"] = "none"
+    assert any("has no list of subtexts" in p for p in hero_problems(data))
+    data["variants"] = {"a": 1}
+    assert "'variants' is not a list" in hero_problems(data)
 
 
 def test_a_site_without_the_data_file_fails(tmp_path):
@@ -122,277 +171,422 @@ def test_a_site_without_the_data_file_fails(tmp_path):
         HeroCopy.read(tmp_path)
 
 
+# --- The hero's data file: the images ----------------------------------------
+
+
+def test_the_data_file_holds_the_owner_s_four_images_with_the_pendulum_default():
+    assert {image.id: image.sequence for image in HERO.images} == OWNER_IMAGES
+    assert [image.id for image in HERO.images] == list(OWNER_IMAGES)
+    assert HERO.default_image == "double-pendulum"
+
+
+@pytest.mark.parametrize("image_id", list(OWNER_IMAGES))
+def test_each_hero_image_has_its_file_its_register_entry_and_its_alt_text(
+    image_id: str,
+):
+    """Each image's own test: a WebP file at hero size under site/assets/hero,
+    and a complete register entry whose master, hash, and origin are those of
+    the atlas panel of its course (the masters the owner supplied and the
+    Issue matched by SHA-256), so no hero file comes from an atlas file and
+    no origin is claimed that the atlas entry does not record."""
+    image = HERO.image(image_id)
+    file = SITE_SOURCE / image.file
+    with Image.open(file) as opened:
+        assert opened.format == "WEBP"
+        assert opened.size == (HERO_IMAGE_WIDTH, HERO_IMAGE_HEIGHT)
+    entry = REGISTER[image.file.removeprefix("assets/")]
+    atlas = REGISTER[f"atlas/{image.sequence}-panel-800.webp"]
+    for field in ("master", "sha256", "author", "licence", "date"):
+        assert entry[field] == atlas[field], field
+    assert entry.get("script") == atlas.get("script")
+    assert "model" not in entry
+    assert "derive_assets.py --hero" in entry["source"]
+    # Never the atlas file itself, which is smaller and would be upscaled.
+    atlas_file = SITE_SOURCE / "assets" / "atlas" / f"{image.sequence}-panel-800.webp"
+    assert hashlib.sha256(file.read_bytes()).digest() != (
+        hashlib.sha256(atlas_file.read_bytes()).digest()
+    )
+    # Its alternative text names what it is and claims no result.
+    assert image.alt.startswith("Illustration: ")
+    assert not re.search(r"\b(verified|result|measured|simulat\w*)\b", image.alt)
+
+
+def test_the_exoplanet_transit_names_its_author_and_no_script():
+    entry = REGISTER["hero/exoplanet-transit.webp"]
+    assert entry["author"] and "script" not in entry
+
+
+def test_an_image_rule_broken_fails():
+    cases = {
+        "id": ("id", "Double_Pendulum", "lower-case words joined by hyphens"),
+        "sequence": ("sequence", "law-discovery", "no course of Part A"),
+        "alt": ("alt", "An <em>image</em>", "holds markup"),
+        "empty alt": ("alt", " ", "has no text"),
+    }
+    for name, (field, value, message) in cases.items():
+        data = _data()
+        data["images"]["set"][1][field] = value
+        assert any(message in p for p in hero_problems(data)), name
+
+
+def test_a_duplicate_image_a_bad_default_or_no_images_fails():
+    data = _data()
+    data["images"]["set"].append(dict(data["images"]["set"][0]))
+    assert any(
+        "double-pendulum appears more than once" in p for p in hero_problems(data)
+    )
+    data = _data()
+    data["images"]["default"] = "ising"
+    assert any("default image 'ising'" in p for p in hero_problems(data))
+    data = _data()
+    data["images"]["set"] = []
+    assert any("no list 'set'" in p for p in hero_problems(data))
+    data = _data()
+    del data["images"]
+    assert any("lacks images" in p for p in hero_problems(data))
+
+
+def test_an_image_without_its_file_or_its_register_entry_fails(tmp_path):
+    (tmp_path / "assets" / "hero").mkdir(parents=True)
+    (tmp_path / "assets" / "provenance.yaml").write_text(
+        "assets:\n  hero/double-pendulum.webp: {}\n", encoding="utf-8"
+    )
+    (tmp_path / "assets" / "hero" / "vortex-street.webp").write_bytes(b"")
+    found = image_file_problems(HERO, tmp_path)
+    assert (
+        "the hero image double-pendulum has no file assets/hero/double-pendulum.webp"
+        in found
+    )
+    assert "the hero image vortex-street is not in the provenance register" in found
+    assert image_file_problems(HERO, SITE_SOURCE) == []
+
+
 # --- The hero's markup -------------------------------------------------------
 
 
-def _pairs(hero: str) -> list[dict]:
+def _data_of(hero: str, element: str) -> list[dict]:
     (found,) = re.findall(
-        r'<script type="application/json" id="hero-pairs">(.*?)</script>', hero
+        rf'<script type="application/json" id="{element}">(.*?)</script>', hero
     )
     return json.loads(found)
 
 
-def test_the_hero_carries_one_h1_with_the_default_pair_and_the_pairs_as_data():
+def test_the_hero_carries_one_h1_with_the_fixed_text_and_no_other_copy():
     hero = HOME.hero()
-    default = HERO.pair(HERO.default)
     assert hero.count("<h1") == 1
     (h1,) = re.findall(r"<h1[^>]*>(.*?)</h1>", hero)
-    assert h1 == default.headline.replace("'", APOSTROPHE)
-    assert f'data-hero="{HERO.default}"' in hero
-    assert default.subtext.replace("'", APOSTROPHE) in hero
-    pairs = _pairs(hero)
-    assert [pair["id"] for pair in pairs] == list(HERO_PAIRS)
-    for pair in pairs:
-        expected = HERO.pair(pair["id"])
-        assert pair["headline"] == expected.headline.replace("'", APOSTROPHE)
-        assert pair["subtext"] == expected.subtext.replace("'", APOSTROPHE)
-    # Every other pair is only data: no other subtext is text of the page.
-    text = re.sub(r"<script.*?</script>", "", hero, flags=re.S)
-    for pair in HERO.pairs:
-        if pair.subtext != default.subtext:
-            assert pair.subtext.replace("'", APOSTROPHE) not in text
-    # The script from the site's origin, right after the copy.
-    assert '<script src="learner/hero.js"></script>' in hero
-    assert hero.index('class="hero-copy"') < hero.index("learner/hero.js")
+    assert h1 == HERO.headline.replace("'", APOSTROPHE)
+    (subtext,) = re.findall(r'<p class="hero-subtext">(.*?)</p>', hero)
+    assert subtext == HERO.subtext.replace("'", APOSTROPHE)
+    # No pairs: no data for a script to swap the text, no hidden copies, no
+    # marker of a chosen pair.
+    assert "hero-pairs" not in hero and "data-hero=" not in hero
+    assert "hero-pair" not in hero and "hero-ghost" not in hero
+    # The variants are only a reference: none of their texts is on the page
+    # (the first headline is the fixed one).
+    for headline, subtexts in HERO.variants:
+        if headline != HERO.headline:
+            assert headline.replace("'", APOSTROPHE) not in hero
+        for text in subtexts:
+            assert text.replace("'", APOSTROPHE) not in hero
 
 
-def test_the_embedded_pairs_cannot_close_their_script_element():
+def test_the_default_image_is_in_the_html_inside_noscript_and_the_set_is_data():
+    hero = HOME.hero()
+    default = HERO.image(HERO.default_image)
+    # The one image of the HTML is the default, inside <noscript>: without
+    # scripts it is shown, with scripts it is not requested.
+    images = re.findall(r"<img [^>]*>", hero)
+    assert len(images) == 1
+    (inside,) = re.findall(r"<noscript>(.*?)</noscript>", hero)
+    assert inside == images[0]
+    assert 'src="assets/hero/double-pendulum.webp"' in inside
+    assert f'alt="{default.alt}"' in inside
+    assert f'width="{HERO_IMAGE_WIDTH}" height="{HERO_IMAGE_HEIGHT}"' in inside
+    assert 'data-hero-image="double-pendulum"' in hero
+    # Every image of the set as data for the script, with its alt text.
+    data = _data_of(hero, "hero-images")
+    assert [item["id"] for item in data] == list(OWNER_IMAGES)
+    for item in data:
+        image = HERO.image(item["id"])
+        assert item["src"] == f"assets/hero/{image.id}.webp"
+        assert item["alt"] == image.alt.replace("'", APOSTROPHE)
+        assert (item["width"], item["height"]) == (HERO_IMAGE_WIDTH, HERO_IMAGE_HEIGHT)
+    # No constellation, no inline SVG, no link inside the image.
+    assert "<svg" not in hero and "hero-node" not in hero
+
+
+def test_the_script_follows_the_figure_and_the_data():
+    hero = HOME.hero()
+    order = [
+        hero.index('class="hero-copy"'),
+        hero.index('id="hero-figure"'),
+        hero.index('id="hero-images"'),
+        hero.index('<script src="learner/hero.js"></script>'),
+        hero.index('class="home-actions"'),
+    ]
+    assert order == sorted(order)
+
+
+def test_the_embedded_data_cannot_close_its_script_element():
     data = _data()
-    data["headlines"][0]["subtexts"][0]["text"] = "Plain text & more."
-    home = HomeContent(PATH, MANIFEST, HeroCopy.parse(data))
+    data["images"]["set"][0]["alt"] = "Illustration: plain & simple."
+    home = replace(HOME, hero_copy=HeroCopy.parse(data))
     hero = home.hero()
     assert "\\u0026" in hero
-    assert _pairs(hero)[0]["subtext"] == "Plain text & more."
+    assert _data_of(hero, "hero-images")[0]["alt"] == "Illustration: plain & simple."
 
 
-def test_the_hero_holds_no_copy_but_the_data_file_s():
+def test_the_page_source_holds_no_copy_but_the_data_files():
     source = (SITE_SOURCE / "index.qmd").read_text(encoding="utf-8")
-    for pair in HERO.pairs:
-        assert pair.headline not in source and pair.subtext not in source
+    assert HERO.headline not in source and HERO.subtext not in source
+    for headline, subtexts in HERO.variants:
+        assert headline not in source
+        assert all(text not in source for text in subtexts)
+    for texts in COPY.texts.values():
+        for text in texts:
+            assert text[:40] not in source
     # The page writes no link and no heading of its own.
     assert not LINK.search(source)
     markdown = re.sub(r"```\{python\}.*?```", "", source, flags=re.S)
     assert not re.search(r"^#+ ", markdown, re.M)
 
 
-# --- The hero image ----------------------------------------------------------
+# --- The first step -----------------------------------------------------------
 
 
-def test_the_image_is_two_constellations_of_registered_parts_with_text_labels():
-    image = HOME.hero_image()
-    registered = yaml.safe_load(
-        (SITE_SOURCE / "assets" / "provenance.yaml").read_text(encoding="utf-8")
-    )["assets"]
-    nodes = re.findall(
-        r'<g class="hero-node hero-node-(a|b)" data-sequence="([\w-]+)"', image
+def _header_targets() -> dict[str, str]:
+    """The pages of the header's Course Atlas link and Start learning
+    button, as the built site addresses them."""
+    navbar = yaml.safe_load((SITE_SOURCE / "_quarto.yml").read_text())["website"][
+        "navbar"
+    ]
+    items = navbar["left"] + navbar["right"]
+    target = {item["text"]: item["href"] for item in items}
+    return {
+        "atlas": target["Course Atlas"].removesuffix(".qmd") + ".html",
+        "start": target["[Start learning]{.pbc-start}"].removesuffix(".qmd") + ".html",
+    }
+
+
+def test_the_two_actions_lead_where_the_header_leads_the_atlas_first():
+    actions = HOME.actions()
+    header = _header_targets()
+    assert HREF.findall(actions) == [header["atlas"], header["start"]]
+    assert re.findall(r'<a class="([^"]+)"', actions) == [
+        "home-action-primary",
+        "home-action",
+    ]
+    assert re.findall(r">([^<]+)</a>", actions) == [ATLAS_ACTION, FIRST_LESSON_ACTION]
+    # The first lesson of Part A, the start of the first course.
+    first = PATH.in_course(PATH.courses[0])[0]
+    assert header["start"] == first.page.removesuffix(".qmd") + ".html"
+    # The hero holds the actions and no other link.
+    assert HREF.findall(HOME.hero()) == [header["atlas"], header["start"]]
+
+
+# --- The Home copy file -----------------------------------------------------
+
+
+def test_the_copy_file_holds_the_four_sections_in_order():
+    assert home_problems(COPY_DATA, CURRICULUM, PUBLISHED, TERMS) == []
+    assert list(COPY_DATA) == [key for key, _ in SECTIONS]
+    assert set(COPY.headings) == {key for key, _ in SECTIONS}
+    assert COPY.headings["curriculum"] == "What you can learn"
+
+
+def test_an_unknown_or_missing_section_or_field_fails():
+    data = _copy_data()
+    data["testimonials"] = {"heading": "x", "text": ["y"]}
+    assert any("unknown fields: testimonials" in p for p in _home_problems(data))
+    data = _copy_data()
+    del data["integrity"]
+    assert any("lacks integrity" in p for p in _home_problems(data))
+    data = _copy_data()
+    data["philosophy"]["lessons"] = ["M1"]
+    assert any(
+        "philosophy has unknown fields: lessons" in p for p in _home_problems(data)
     )
-    assert [part for part, _ in nodes] == ["a"] * len(COURSES) + ["b"] * len(PATH.paths)
-    assert [sequence for _, sequence in nodes] == [
-        *(course.id for course in COURSES),
-        *(item.id for item in PATH.paths),
-    ]
-    sources = re.findall(r'<image href="([^"]+)"', image)
-    assert len(sources) == len(nodes) == 12
-    for source in sources:
-        assert source.startswith("assets/atlas/")
-        assert source.removeprefix("assets/") in registered, source
-    # Every label is SVG text from the curriculum; there is no link.
-    labels = [
-        " ".join(re.findall(r"<tspan[^>]*>(.*?)</tspan>", text))
-        for text in re.findall(r'<text class="hero-label".*?</text>', image)
-    ]
-    assert labels == [course.title for course in COURSES] + [
-        item.title for item in PATH.paths
-    ]
-    assert "<a " not in image and 'href="http' not in image
-    assert 'role="img"' in image
-    title = re.search(r"<title[^>]*>(.*?)</title>", image).group(1)
-    assert "imply no order of study" in title
-    for item in [*COURSES, *PATH.paths]:
-        assert item.title in title
+    data = _copy_data()
+    data["curriculum"]["text"] = ["A list of the courses."]
+    assert any("curriculum has unknown fields: text" in p for p in _home_problems(data))
+    data = _copy_data()
+    del data["identity"]["heading"]
+    assert any("identity lacks heading" in p for p in _home_problems(data))
+    data = _copy_data()
+    data["identity"]["text"] = []
+    assert any("identity has no non-empty list" in p for p in _home_problems(data))
+    assert _home_problems(None)
+    with pytest.raises(ValueError, match="rules of the Home copy"):
+        HomeCopy.parse(data, CURRICULUM, PUBLISHED, TERMS)
 
 
-# --- What the site is, the examples, the invitation --------------------------
+def test_the_text_rules_of_the_journey_hold_for_the_copy():
+    cases = {
+        "heading markup": ("identity", "heading", "What <b>this</b> is", "markup"),
+        "a link by hand": (
+            "integrity",
+            "text",
+            ["See [the page](verify.html)."],
+            "more than inline Markdown",
+        ),
+        "a count": (
+            "philosophy",
+            "text",
+            ["There are 94 lessons in eight courses."],
+            "count",
+        ),
+        "a discovery": (
+            "integrity",
+            "text",
+            ["Agents discover new laws here."],
+            "'discover'",
+        ),
+        "an unresolved reference": (
+            "philosophy",
+            "text",
+            ["Begin with {slot:Z99}."],
+            "not in the curriculum file",
+        ),
+        "a lesson named by hand": (
+            "identity",
+            "text",
+            ["Read M1 first."],
+            "names lessons outside a reference",
+        ),
+    }
+    for name, (section, field, value, message) in cases.items():
+        data = _copy_data()
+        data[section][field] = value
+        assert any(message in p for p in _home_problems(data)), name
 
 
-def test_what_the_site_is_is_three_sentences_with_the_canonical_one_first():
-    text, links = HOME.about().split("\n\n")
-    assert text.startswith(description())
-    assert len(re.findall(r"[.!?](?:\s|$)", text)) == 3
-    assert LINK.findall(links) == [
-        "about.html#creator-and-jidai",
-        "verify.html",
-        "https://example.org/repo",
-    ]
-
-
-def test_the_examples_are_three_kinds_from_three_courses_none_the_first():
-    examples = HOME.examples()
-    assert len(examples) == 3
-    simulation, measured, agent = examples
-    assert simulation.methods == ("simulation",) and simulation.difficulty == 1
-    assert "measured-data" in measured.methods
-    assert "llm-agents" in agent.methods
-    courses = [lesson.course for lesson in examples]
-    assert len(set(courses)) == 3
-    assert PATH.courses[0].id not in courses
-    # Each is the first of its kind in path order among the courses left.
-    order = [lesson.id for lesson in PATH.lessons]
-    for lesson in examples:
-        assert lesson.id in order
-
-
-def test_the_choice_follows_the_front_matter():
-    # Without the wave flume lab, the next measured-data lesson outside the
-    # courses already chosen is taken, or none.
-    lessons = tuple(x for x in PATH.lessons if x.id != HOME.examples()[1].id)
-    home = replace(HOME, path=replace(PATH, lessons=lessons))
-    measured = [x for x in home.examples() if "measured-data" in x.methods]
-    for lesson in measured:
-        assert lesson.id != HOME.examples()[1].id
-        assert lesson.course != PATH.courses[0].id
-
-
-def test_the_capstone_is_a_published_one_of_a_course_no_example_has():
-    capstone = HOME.capstone()
-    assert capstone is not None
-    slot = next(s for s in PATH.curriculum.slots if s.label == capstone.slot)
-    assert slot.is_capstone
-    assert capstone.course not in {lesson.course for lesson in HOME.examples()}
-    # With no published capstone there is none.
-    capstones = {s.label for s in PATH.curriculum.slots if s.is_capstone}
-    lessons = tuple(x for x in PATH.lessons if x.slot not in capstones)
-    assert replace(HOME, path=replace(PATH, lessons=lessons)).capstone() is None
-
-
-def test_the_capstone_is_never_one_of_the_examples():
-    """When every published capstone's course is used, the fallback skips a
-    capstone that is itself an example, and there is none when no other is
-    left (S1 of review 02)."""
-    em9 = next(x for x in PATH.lessons if x.slot == "EM9")
-    measured = replace(em9, methods=(*em9.methods, "measured-data"))
-    lessons = tuple(
-        measured if x is em9 else x
-        for x in PATH.lessons
-        if x.slot != "W8"  # EM9 becomes the measured-data example
-    )
-    home = replace(HOME, path=replace(PATH, lessons=lessons))
-    assert measured.id in {x.id for x in home.examples()}
-    used = {x.course for x in home.examples()}
-    published = [x for x in lessons if x.slot in {"T11", "EM9"}]
-    assert all(x.course in used for x in published)
-    # The other published capstone is chosen, never EM9 a second time.
-    assert home.capstone().slot == "T11"
-    # With EM9 the only published capstone, there is none.
-    alone = tuple(x for x in lessons if x.slot != "T11")
-    assert replace(HOME, path=replace(PATH, lessons=alone)).capstone() is None
-
-
-def test_a_published_product_capstone_is_chosen_like_a_course_capstone():
-    """A method path's product capstone is a capstone of the choice (ADR 022
-    decision 3): published, it is chosen when no course capstone is left,
-    with its path named; planned, it is never chosen."""
-    capstones = {s.label for s in PATH.curriculum.slots if s.is_capstone}
-    without = tuple(x for x in PATH.lessons if x.slot not in capstones)
-    # No product capstone is published yet: none is chosen.
-    assert replace(HOME, path=replace(PATH, lessons=without)).capstone() is None
-    lab = replace(next(x for x in without if x.id == "agent-experiment"), slot="SA9")
-    lessons = tuple(lab if x.id == lab.id else x for x in without)
-    home = replace(HOME, path=replace(PATH, lessons=lessons))
-    assert home.capstone() == lab
-    section = home.examples_section(SITE_SOURCE)
-    assert MANIFEST.capstone("SA9").explanation in section
-    assert (
-        "the capstone project of the path Reliable scientific agents and"
-        " experiment automation" in section
+def test_a_reference_in_the_copy_resolves_to_a_link():
+    data = _copy_data()
+    data["philosophy"]["text"] = ["If unsure, begin with {slot:M1}."]
+    home = replace(HOME, copy=HomeCopy.parse(data, CURRICULUM, PUBLISHED, TERMS))
+    first = PATH.in_course(PATH.courses[0])[0]
+    assert f"[{first.title}]({first.page.removesuffix('.qmd')}.html)" in (
+        home.philosophy()
     )
 
 
-def test_every_label_of_the_hero_stays_inside_the_image():
-    """A label has at most two lines, and every line, centred on its node,
-    stays within the WIDTH of the image: at 13 px a character of the label
-    is about 6.2 units wide (measured in Chromium), taken here as 6.5. The
-    longer path titles wrap into longer lines than the courses'."""
-    image = HOME.hero_image()
-    labels = re.findall(r'<text class="hero-label" x="(\d+)"[^>]*>(.*?)</text>', image)
-    assert len(labels) == len(COURSES) + len(PATH.paths)
-    for x, text in labels:
-        lines = re.findall(r"<tspan[^>]*>(.*?)</tspan>", text)
-        assert 1 <= len(lines) <= 2
-        for line in lines:
-            half = len(line) * 6.5 / 2
-            assert half <= int(x) <= WIDTH - half, line
+# --- The owner's examples -----------------------------------------------------
 
 
-def test_on_a_phone_the_nodes_stand_in_two_columns_inside_the_taller_box():
-    """Below 40em the style sheet applies each node's phone transform and the
-    phone lines; the nodes, scaled, stay inside WIDTH by PHONE_HEIGHT units,
-    and the two columns are far enough apart for labels of about 13 CSS px."""
-    image = HOME.hero_image()
-    assert f'style="--hero-phone-ratio: {WIDTH} / {PHONE_HEIGHT}"' in image
-    assert 'preserveAspectRatio="xMidYMin meet"' in image
-    transforms = re.findall(
-        r'<g class="hero-node[^"]*"[^>]*--hero-phone: ([^"]+)"', image
+def test_the_examples_are_the_owner_s_published_lessons_one_per_part():
+    for part, directory in OWNER_EXAMPLES.items():
+        lesson = HOME.example(part)
+        assert lesson is not None
+        assert lesson.page == f"lessons/{directory}/index.qmd"
+        assert lesson.slot == COPY.examples[part]
+    assert CURRICULUM.slot(COPY.examples["part-a"]).course
+    assert CURRICULUM.slot(COPY.examples["part-b"]).path
+
+
+def test_an_example_of_the_wrong_part_an_unknown_slot_or_an_unpublished_one_fails():
+    planned = next(
+        slot.label
+        for slot in CURRICULUM.slots
+        if slot.path and slot.label not in PUBLISHED
     )
-    phone = PHONE_COURSE_NODES + PHONE_PATH_NODES
-    assert len(transforms) == len(phone) == 12
-    for transform, (x, y) in zip(transforms, phone, strict=True):
-        assert transform.startswith(f"translate({x}px, {y}px) scale({PHONE_SCALE})")
-        half_width = NODE_WIDTH * PHONE_SCALE / 2
-        half_height = NODE_HEIGHT * PHONE_SCALE / 2
-        assert half_width <= x <= WIDTH - half_width
-        assert half_height <= y <= PHONE_HEIGHT - half_height
-    assert sorted({x for x, _ in phone}) == [170, 470]
-    lines = re.findall(r'<path class="([^"]*)" d="([^"]*)"/>', image)
-    assert [c for c, _ in lines if "hero-phone" in c] == [
-        "hero-bridge hero-phone",
-        "hero-line hero-line-a hero-phone",
-        "hero-line hero-line-b hero-phone",
-    ]
-    assert len([c for c, _ in lines if "hero-wide" in c]) == 3
+    cases = {
+        "a Part A slot for Part B": ("part-b", "M1", "no slot of a method path"),
+        "a Part B slot for Part A": ("part-a", "SA5", "no slot of a course"),
+        "an unknown slot": ("part-a", "Z99", "no slot of the curriculum"),
+        "a planned slot": ("part-b", planned, "has no published lesson"),
+    }
+    for name, (part, label, message) in cases.items():
+        data = _copy_data()
+        data["curriculum"]["examples"][part] = label
+        assert any(message in p for p in _home_problems(data)), name
+    data = _copy_data()
+    data["curriculum"]["examples"]["part-c"] = "M2"
+    assert any("only part-a and part-b" in p for p in _home_problems(data))
 
 
-def test_each_entry_has_its_preview_title_line_and_level():
-    section = HOME.examples_section(SITE_SOURCE)
+def test_an_example_whose_lesson_is_not_published_fails_the_build():
+    """Unpublishing the owner's lesson fails the copy file, rather than
+    another lesson being chosen in its place."""
+    published = PUBLISHED - {"SA5"}
+    found = home_problems(COPY_DATA, CURRICULUM, published, TERMS)
+    assert any("SA5, which has no published lesson" in p for p in found)
+
+
+def test_without_examples_no_lesson_is_shown_and_none_is_chosen_by_code():
+    data = _copy_data()
+    del data["curriculum"]["examples"]
+    home = replace(HOME, copy=HomeCopy.parse(data, CURRICULUM, PUBLISHED, TERMS))
+    section = home.curriculum(SITE_SOURCE)
+    assert "home-example" not in section
+    assert home.example("part-a") is None and home.example("part-b") is None
+    data = _copy_data()
+    del data["curriculum"]["examples"]["part-b"]
+    home = replace(HOME, copy=HomeCopy.parse(data, CURRICULUM, PUBLISHED, TERMS))
+    assert home.curriculum(SITE_SOURCE).count("home-example") == 1
+
+
+def test_each_example_has_its_preview_title_line_and_level():
+    section = HOME.curriculum(SITE_SOURCE)
     entries = re.findall(
         r"::: \{\.home-example data-lesson-id=([\w-]+)\}\n(.*?)\n:::", section, re.S
     )
-    chosen = [*HOME.examples(), HOME.capstone()]
+    chosen = [HOME.example("part-a"), HOME.example("part-b")]
     assert [lesson_id for lesson_id, _ in entries] == [x.id for x in chosen]
-    for (_, block), lesson in zip(entries, chosen, strict=True):
+    for (_, block), lesson, letter in zip(entries, chosen, "AB", strict=True):
         assert f'src="previews/{lesson.id}.' in block
         assert f'width="{PREVIEW_WIDTH}" height="{PREVIEW_HEIGHT}"' in block
         assert 'alt="Preview, ' in block
         href = lesson.page.removesuffix(".qmd") + ".html"
         assert LINK.findall(block) == [href]
-        assert f"### [{lesson.title}]({href})" in block
+        assert f"#### [{lesson.title}]({href})" in block
+        assert f"A lesson of Part {letter}: " in block
         assert re.search(r"level \d of 3", block)
-    capstone = HOME.capstone()
-    assert MANIFEST.capstone(capstone.slot).explanation in entries[-1][1]
-    assert "the capstone project of" in entries[-1][1]
 
 
-def test_the_invitation_is_the_start_link_and_the_atlas_and_nothing_else():
-    first = PATH.in_course(PATH.courses[0])[0]
-    assert LINK.findall(HOME.begin()) == [
-        first.page.removesuffix(".qmd") + ".html",
-        "path/index.html#atlas",
-    ]
-    hero_links = HREF.findall(HOME.hero().split("<svg")[0])
-    assert hero_links == [
-        first.page.removesuffix(".qmd") + ".html",
-        "path/index.html#atlas",
-    ]
+# --- The page -----------------------------------------------------------------
 
 
-def test_the_page_tells_one_story_without_the_rejected_section():
+def test_the_page_follows_identity_philosophy_curriculum_and_integrity_last():
     page = HOME.markdown(SITE_SOURCE)
-    headings = re.findall(r"^## (.*?) \{", page, re.M)
-    assert headings == ["What this site is", "What you can learn", "Begin"]
+    headings = re.findall(r"^## (.*?) \{#([\w-]+)\}", page, re.M)
+    assert headings == [(COPY.headings[key], anchor) for key, anchor in SECTIONS]
+    assert page.index('class="home-hero"') < page.index("## ")
+    # Integrity is last: nothing after its links but the end of the page.
+    assert page.rstrip().endswith(":::")
+    assert "## Begin" not in page
     assert "From a question to a working model" not in page
-    # The atlas's overview of the courses is not repeated: no count of
-    # lessons, and no list of the courses outside the image.
     assert "lessons published" not in page
-    outside_image = re.sub(r"<svg.*?</svg>", "", page, flags=re.S)
-    named = [c.title for c in COURSES if c.title in outside_image]
-    assert len(named) <= 4  # the examples' and the capstone's courses
+
+
+def test_identity_opens_with_the_canonical_sentence_and_its_one_link():
+    identity = HOME.identity()
+    paragraph = identity.split("\n\n")[1]
+    assert paragraph.startswith(description())
+    assert COPY.texts["identity"][0] in paragraph
+    assert LINK.findall(identity) == ["about.html#creator-and-jidai"]
+
+
+def test_integrity_links_the_account_of_the_evidence_and_the_source():
+    integrity = HOME.integrity()
+    for text in COPY.texts["integrity"]:
+        assert text in integrity
+    assert LINK.findall(integrity)[-2:] == ["verify.html", "https://example.org/repo"]
+    assert "The source on GitHub" not in replace(HOME, repository="").integrity()
+
+
+def test_what_you_can_learn_is_the_journey_s_text_as_on_the_atlas_and_about():
+    section = HOME.curriculum(SITE_SOURCE)
+    for key in ("part-a", "part-b", "relation"):
+        for text in JOURNEY.sections[key]:
+            assert _content().inline(text) in section, key
+    order = [
+        section.index("### Part A"),
+        section.index("data-lesson-id=" + HOME.example("part-a").id),
+        section.index("### Part B"),
+        section.index("data-lesson-id=" + HOME.example("part-b").id),
+        section.index("### From Part A to Part B"),
+    ]
+    assert order == sorted(order)
+    # Home does not repeat the atlas's overview: no list of the courses.
+    assert not re.search(r"^- ", section, re.M)
