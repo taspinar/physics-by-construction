@@ -19,7 +19,7 @@ from axe_playwright_python.sync_playwright import Axe
 from playwright.sync_api import Browser, BrowserContext, Page
 from support import site_checks
 from support.paths import SITE_SOURCE
-from support.site_checks import PHONE, WCAG_TAGS, describe
+from support.site_checks import _FORBIDDEN_IN_WIDGETS, PHONE, WCAG_TAGS, describe
 from support.site_server import SiteServer
 
 from pbc.authoring.atlas import Atlas, AtlasSequence
@@ -526,8 +526,22 @@ def test_progress_js_stays_the_only_script_of_the_page_that_can_store(
         "items => items.map(item => item.getAttribute('src'))"
     )
     learner = sorted(src.rsplit("/", 1)[-1] for src in scripts if "learner/" in src)
-    assert learner == ["atlas.js", "progress.js"]
+    # The address module, the menu script of the shared header (F158), and
+    # the learner-state script. The list says which scripts the page runs;
+    # the scan below says which of them could store, so that the property
+    # rests on the sources and not on a name.
+    assert learner == ["atlas.js", "menu.js", "progress.js"]
     assert not (site_dir / site_checks.LEARNER / "path.js").exists()
+    storage = _FORBIDDEN_IN_WIDGETS["browser storage"]
+    could_store = {
+        name: storage.findall(
+            (site_dir / site_checks.LEARNER / name).read_text(encoding="utf-8")
+        )
+        for name in learner
+    }
+    assert {name for name, found in could_store.items() if found} == {"progress.js"}, (
+        could_store
+    )
 
 
 # --- Accessibility, reflow, the payload ---------------------------------------------

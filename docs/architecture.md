@@ -219,7 +219,9 @@ site/                    Quarto project: the website source
   widgets/               Self-hosted JavaScript widgets (ES modules)
   learner/               The learner-state, recommendation, and path scripts (F13, F14, F64); the
                          dependency-free atlas modules (scientific atelier, F126), replaced by one address
-                         module of the two-layer atlas and the hero script (site navigation, F133, F134)
+                         module of the two-layer atlas and the hero script (site navigation, F133, F134),
+                         and the menu script of the shared header (textbook layer, F158); of them only
+                         the learner-state script may store (the built-site checks scan the others)
   assets/                Styles (the F44 tokens, extended by the atelier's tokens and components, F123),
                          self-hosted fonts with their licence texts, vendored Lean syntax definition, the
                          provenance register (provenance.yaml) of the committed interface artwork: authored

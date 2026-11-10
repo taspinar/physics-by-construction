@@ -508,3 +508,51 @@ owner approved).
    page, the menu open), and 320 x 568 at 100 % compared.
 4. The affected tests, the site-wide page checks on Home and About,
    `--only code` and `--only default`.
+
+## Round 2, fourth part (2026-11-10): the atlas script list after the full verification of c2ad80f
+
+The full verification of c2ad80f, run by the script after the session,
+failed on one test of the group `site-checks-other`:
+`tests/e2e/test_atlas.py::test_progress_js_stays_the_only_script_of_the_page_that_can_store`
+asserted that the learner scripts of the Course Atlas page are exactly
+`["atlas.js", "progress.js"]`, and since round 2 every page also loads
+`site/learner/menu.js`. The list was a proxy for the property the test
+exists for: `progress.js` is the only script of the page that can store.
+The owner's instruction (Issue #462, 2026-11-10 17:05 UTC): the list
+becomes the three scripts, and the test checks the property directly on
+the sources; nothing else changes.
+
+### Decision (the session's choice, stated)
+
+- **The changed assertion.** The list is now
+  `["atlas.js", "menu.js", "progress.js"]`, and the test reads the source of
+  every learner script of the page from the built site and finds the
+  storage APIs in it (the pattern "browser storage" of
+  `tests/support/site_checks.py`: `localStorage`, `sessionStorage`,
+  `indexedDB`, `document.cookie`, `cookieStore`, `caches`,
+  `serviceWorker`, `openDatabase`); the set of scripts in which one is
+  found must be exactly `{"progress.js"}`. The new assertion is at least
+  as strong: the old one trusted that a name list implied the property,
+  the new one shows the property on the sources and also shows that the
+  scan has teeth (`progress.js` is found). On a copy of the built site
+  whose `menu.js` sets a `sessionStorage` entry the test fails on
+  `menu.js`. The menu script stores nothing (its unit test
+  `tests/unit/test_menu_script.py` scans the source for the same words;
+  the open state is never kept).
+- **Other listings of the learner scripts, searched.** The site-wide
+  `tests/e2e/test_learner_state.py::test_only_the_learner_script_uses_local_storage`
+  (every script of the built site that mentions `localStorage` is
+  `learner/progress.js` alone) already covers the menu script and passes;
+  `check_atlas_module_sources` scans `atlas.js` and
+  `check_learner_script_sources` every learner script for a request,
+  another origin, or other storage; `tests/unit/test_atlas.py::test_the_section_loads_only_the_address_module`
+  reads the atlas section's own markup, which the post-render script does
+  not touch, so it stays; `docs/architecture.md` ("Atlas modules" row and
+  "Boundary") already says that the menu script stores nothing and that
+  `progress.js` stays the only script that stores; the directory listing
+  of `docs/architecture.md` now names the menu script. ADR 018 and ADR
+  021 say the same and are unchanged.
+- **Tests run:** the whole `tests/e2e/test_atlas.py`, `test_home.py`,
+  `test_header.py`, `test_learner_state.py`, and `test_built_site.py` (the
+  page checks), the unit tests of the menu, hero, and atlas scripts, then
+  `./scripts/verify.sh --only code` and `--only default` last.
