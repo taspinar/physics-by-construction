@@ -258,6 +258,24 @@ run_script "$repo" ./scripts/finish-feature.sh 12 "Add the marker" --unattended
 expect_no_commit "$repo" "a lowering of the path minimum" "below the path minimum 3" \
   "only a trigger reading or an assessed level may be lowered, never the path minimum"
 
+# A change whose paths are Level 3 needs no approval request, even when a
+# trigger gives Level 3 too: its protected paths are code-owned, so GitHub
+# requires the owner's review without one (ADR 020 decision 3). The request
+# is refused as missing only when the paths are below Level 3 (below).
+repo="$(setup_repo level3-paths)"
+printf '# more\n' >>"$repo/scripts/lib/completion.sh"
+printf 'dependencies = ["numpy"]\n' >>"$repo/pyproject.toml"
+record "$repo" complete 3
+review "$repo" "$full"
+run_script "$repo" ./scripts/finish-feature.sh 12 "Add the marker" --unattended
+expect_commit "$repo" "a Level 3 change by its paths and a trigger, without an approval request"
+grep -Fq "needs the committed approval request" "$repo.out" &&
+  fail "a change whose paths are Level 3 was asked for an approval request"
+message_has "$repo" "- required: level 3, by the paths" "- stated in the completion record: level 3"
+git -C "$repo" log -1 --format=%B | grep -F -- "- escalation trigger: " >/dev/null ||
+  fail "the trigger of a change whose paths are Level 3 is not recorded"
+[[ ! -e "$repo/.agents/approvals/12.md" ]] || fail "finish-feature.sh created an approval request"
+
 # A Level 3 change by trigger needs the committed approval request.
 repo="$(setup_repo level3)"
 printf 'dependencies = ["numpy"]\n' >>"$repo/pyproject.toml"

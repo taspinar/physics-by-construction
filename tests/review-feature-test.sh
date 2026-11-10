@@ -713,12 +713,16 @@ for fault in "a missing or stale review" \
   "a check that was skipped, removed, or weakened" \
   "a pass record that does not match the tree it claims" \
   "a failing check" \
-  "a Level 3 change by trigger or assessment without its approval request" \
+  "a Level 3 change by trigger or assessment without its approval request, when its paths are below Level 3" \
   "an approval that names another head commit than the one to be merged" \
   "a level lowered without the owner's approving review" \
   "a criterion pending for \`owner_approval\` that the record marks \`met\`"; do
   grep -F -- "$fault" >/dev/null <<<"$blocking" || fail "the reviewer contract does not keep blocking: $fault"
 done
+# A change whose paths are Level 3 is code-owned already, so its missing
+# request is no finding (ADR 020 decision 3; risk_assess, the case
+# 'level3-paths' of tests/risk-workflow-test.sh).
+contract_has "A change whose paths are Level 3 needs no request: its protected paths are code-owned already, so GitHub requires the owner's review of it (ADR 020 decision 3), and a missing request of such a change is no finding."
 # Only form, wording, and the staleness of a working file are downgraded.
 contract_has "Only three kinds of finding are about form, and they are at most \`minor\`: the form of a record"
 contract_has "A finding about form never hides a blocking fault"

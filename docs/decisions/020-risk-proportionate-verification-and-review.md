@@ -605,7 +605,8 @@ administration while every check stays as reliable as before:
   final tree, a finding not triaged), in the verification (a verification
   not run on the final tree, a skipped, removed, or weakened check, a pass
   record that does not match the tree, a failing check), and in the
-  approval (a missing approval request, an approval of another head commit,
+  approval (a missing approval request of a Level 3 change that no
+  protected path marks, decision 3, an approval of another head commit,
   a level lowered without the owner's review, a pending `owner_approval`
   criterion marked met) at `major` and blocking. Only a finding about the
   form of a record, the wording of a field, or the staleness of a working

@@ -85,8 +85,11 @@ the request in full from its derivation before it checks it (`Issue:`,
 `Level:`, `Derived from:`, `Tree:`, and for a lowering `Required level:`
 and `Requested level:`), so a wrong or missing derived field is no finding.
 Only a lowering's `Reason:` and `Owner's word:` are written by hand. A
-Level 3 change by trigger or assessment without the request, and a lowering
-without the owner's word, stay `major` (below).
+Level 3 change by trigger or assessment whose paths are below Level 3
+without the request, and a lowering without the owner's word, stay `major`
+(below). A change whose paths are Level 3 needs no request: its protected
+paths are code-owned already, so GitHub requires the owner's review of it
+(ADR 020 decision 3), and a missing request of such a change is no finding.
 
 ## Verification of the round
 
@@ -115,8 +118,9 @@ block, whatever the rest of this section says:
   that was skipped, removed, or weakened; a pass record that does not match
   the tree it claims; a failing check.
 - **The approval:** a Level 3 change by trigger or assessment without its
-  approval request; an approval that names another head commit than the one
-  to be merged; a level lowered without the owner's approving review (a
+  approval request, when its paths are below Level 3 (ADR 020 decision 3);
+  an approval that names another head commit than the one to be merged; a
+  level lowered without the owner's approving review (a
   lowering without the owner's word, a stated level below the derived one);
   a criterion pending for `owner_approval` that the record marks `met`.
 

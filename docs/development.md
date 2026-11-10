@@ -1902,8 +1902,9 @@ An agent may raise the level; no agent lowers it. With a `completion/v2`
 record, `finish-feature.sh` refuses a stated level below the path minimum,
 refuses a stated level below a trigger reading or an assessed level unless
 the approval request names that lowering, refuses a lowering of the path
-minimum, and refuses a Level 3 change by trigger or assessment without its
-approval request. The commit message, the review, and the pull request
+minimum, and refuses a Level 3 change by trigger or assessment whose paths
+are below Level 3 without its approval request (a change whose paths are
+Level 3 is code-owned already). The commit message, the review, and the pull request
 record the required level, what gives it, the requested level, and the
 content or head they apply to.
 
