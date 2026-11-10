@@ -415,11 +415,17 @@ each other is an error.
   that waits for one of its unfinished checks (nor the groups that wait for
   those), and fails.
 - Groups at the same time load the machine, so a check must not depend on
-  timing. A shell self-test does not pipe into `grep -q` under `pipefail`:
-  grep ends at its first match, a writer that still has output dies of
-  SIGPIPE, and the assertion fails although it holds. It uses
-  `grep ... >/dev/null`, which reads to the end; `tests/verify-test.sh`
-  finds such a pipe in `tests/`.
+  timing. A shell self-test or a workflow script does not pipe into
+  `grep -q` under `pipefail`: grep ends at its first match, a writer that
+  still has output dies of SIGPIPE, and the assertion fails although it
+  holds, or the script misses a match and takes another decision (Issue
+  #452). It gives grep a here-string or a captured variable instead, which
+  involves no writer that can die. `grep ... >/dev/null` reads to the end
+  with BSD grep, not with GNU grep, which stops at its first match when its
+  output is `/dev/null`. `tests/verify-test.sh` finds a pipe into a quiet
+  grep (`q` in any group of short options, `--quiet`, or `--silent`, before
+  or after the pattern) in `tests/`, `scripts/`, and `scripts/lib/`, also
+  one that goes on at the next line.
 
 ### Selection against a base
 

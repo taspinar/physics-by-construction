@@ -111,21 +111,21 @@ base_branch="$(jq -r '.baseRefName' <<<"$pr")"
 message="$(git -C "$root" log -1 --format=%B "$head")"
 needs_owner=()
 missing_request=""
-if ! printf '%s\n' "$message" | grep -Fqx "Risk level:"; then
+if ! grep -Fqx "Risk level:" <<<"$message"; then
   needs_owner+=("the head commit has no risk statement of finish-feature.sh, so its level is unknown")
 fi
-if printf '%s\n' "$message" | grep -Fqx -- "- required from the project owner, for exactly this commit"; then
+if grep -Fqx -- "- required from the project owner, for exactly this commit" <<<"$message"; then
   needs_owner+=("the commit says that the merge needs the owner's approval")
 fi
-if printf '%s\n' "$message" | grep -Eq '^- required: level 3([^0-9]|$)'; then
+if grep -Eq '^- required: level 3([^0-9]|$)' <<<"$message"; then
   needs_owner+=("the change is Level 3")
 fi
-if printf '%s\n' "$message" | grep -Eq '^- requested: level [1-3]'; then
+if grep -Eq '^- requested: level [1-3]' <<<"$message"; then
   needs_owner+=("a lowering of the level is requested, which only the owner authorizes")
 fi
 # A criterion pending for the owner's approval (ADR 020 decision 2) is
 # cleared only here, by the identity's approval of the head, at any level.
-if printf '%s\n' "$message" | grep -Eq '^- pending \(owner_approval\):'; then
+if grep -Eq '^- pending \(owner_approval\):' <<<"$message"; then
   needs_owner+=("a completion criterion is pending for the owner's approval")
 fi
 rules="$(guardrails_rules_refs "$root" "$base_branch")"
@@ -138,12 +138,12 @@ if [[ -z "$merge_base" ]]; then
 else
   protected="$(guardrails_classify "$root" "$rules" "$merge_base" "$head" | awk -F '\t' '$1 == "protected" { print $2 }' | sort -u)"
   [[ -z "$protected" ]] ||
-    needs_owner+=("it changes code-owned paths: $(printf '%s\n' "$protected" | head -n 5 | paste -sd ',' - | sed 's/,/, /g')")
+    needs_owner+=("it changes code-owned paths: $(sed -n '1,5p' <<<"$protected" | paste -sd ',' - | sed 's/,/, /g')")
   # The escalation triggers, derived from the diff itself: the risk lines of
   # the commit message can be written by hand and only raise the level.
   triggers="$(risk_triggers "$root" "$merge_base" "$head" | awk -F '\t' '{ printf "%s: %s\n", $1, $2 }' | sort -u)"
   [[ -z "$triggers" ]] ||
-    needs_owner+=("the diff shows escalation triggers, so the change is Level 3: $(printf '%s\n' "$triggers" | head -n 5 | paste -sd ';' - | sed 's/;/; /g')")
+    needs_owner+=("the diff shows escalation triggers, so the change is Level 3: $(sed -n '1,5p' <<<"$triggers" | paste -sd ';' - | sed 's/;/; /g')")
   # The assessment, read from the latest review of the feature for exactly
   # the head (scripts/lib/risk.sh, risk_review_reading): the risk lines of
   # the commit message can be written by hand and cannot leave it out.
@@ -152,7 +152,7 @@ else
   shopt -u nullglob
   review_level3=0
   if [[ "${#reviews[@]}" -eq 0 ]]; then
-    printf '%s\n' "$message" | grep -q '^Review: no independent review' ||
+    grep -q '^Review: no independent review' <<<"$message" ||
       needs_owner+=("no review of the feature is in this worktree, and the commit does not say that it was finished without one, so the assessed level of the head is unknown")
   else
     review="${reviews[${#reviews[@]}-1]}"
@@ -165,18 +165,18 @@ else
       fi
       if [[ -n "$(risk_review_reading "$review" triggers)" ]]; then
         review_level3=1
-        needs_owner+=("the independent review ${review#"$root"/} names escalation triggers, so the change is Level 3: $(risk_review_reading "$review" triggers | head -n 5 | paste -sd ';' - | sed 's/;/; /g')")
+        needs_owner+=("the independent review ${review#"$root"/} names escalation triggers, so the change is Level 3: $(risk_review_reading "$review" triggers | sed -n '1,5p' | paste -sd ';' - | sed 's/;/; /g')")
       fi
     fi
   fi
   # Level 3 by a trigger or an assessment that no protected path marks needs
   # the committed approval request, which makes GitHub require the review.
-  path_minimum="$(risk_path_minimum "$root" "$rules" "$merge_base" "$head" | head -n 1)"
+  path_minimum="$(risk_path_minimum "$root" "$rules" "$merge_base" "$head" | sed -n 1p)"
   request="$(approval_request_path "$issue")"
   level3_unmarked=0
   if [[ "$path_minimum" != 3 ]]; then
     [[ -z "$triggers" && "$review_level3" -eq 0 ]] || level3_unmarked=1
-    if printf '%s\n' "$message" | grep -Eq '^- (required: level 3([^0-9]|$)|requested: level [1-3])'; then
+    if grep -Eq '^- (required: level 3([^0-9]|$)|requested: level [1-3])' <<<"$message"; then
       level3_unmarked=1
     fi
   fi
@@ -219,7 +219,7 @@ if [[ "${#needs_owner[@]}" -gt 0 ]]; then
   if [[ "$(printf '%s' "$identity" | tr '[:upper:]' '[:lower:]')" == "$(printf '%s' "$agent_login" | tr '[:upper:]' '[:lower:]')" ]]; then
     refuse "the owner's identity does not exist yet: the configured identity $identity is the login this runs with, so GitHub cannot tell the owner's review from the agent's (ADR 020 decision 3)" "$until_then"
   fi
-  printf '%s\n' "$owners" | grep -qixF -- "$identity" ||
+  grep -qixF -- "$identity" <<<"$owners" ||
     refuse "the owner's identity $identity is no code owner in .github/CODEOWNERS of $base_branch, so GitHub does not require its review (ADR 020 decision 3)" "$until_then"
   # GitHub reports no decision when the ruleset requires no review (a pull
   # request without code-owned paths, such as one pending only for the
@@ -249,7 +249,7 @@ fi
 echo "Merging $url at $head..."
 gh pr merge "$url" --merge --match-head-commit "$head" || fail "GitHub refused the merge of $url."
 echo "Merged $url."
-if ! printf '%s\n' "$message" | grep -q '^Completion: complete$'; then
+if ! grep -q '^Completion: complete$' <<<"$message"; then
   echo "Issue #$issue stays open: the feature is not complete, or criteria are pending for later gates."
 fi
 echo "After the merge, from the primary checkout: ./scripts/cleanup-worktree.sh $issue"

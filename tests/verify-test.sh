@@ -864,17 +864,42 @@ VERIFY_JOBS=4 expect_reused "$project" "the parallel run verified this content" 
 # still has output (bash writes printf's lines one by one), the writer dies of
 # SIGPIPE and, under pipefail, the assertion fails although it holds. Loaded by
 # groups at the same time, this failed risk-level, risk-workflow and
-# merge-feature (#430). Without -q, grep reads its input to the end.
-pipe_grep_q='(^|[^|])\|[[:space:]]*grep[[:space:]]+(-[A-Za-z-]+[[:space:]]+)*-[A-Za-z]*q'
-quiet_pipes="$(cd "$source_root" && grep -nE "$pipe_grep_q" tests/*.sh | grep -Ev '^[^:]+:[0-9]+:[[:space:]]*#' || true)"
-[[ -z "$quiet_pipes" ]] ||
-  fail "a self-test pipes into 'grep -q', which fails under load; use 'grep ... >/dev/null': $quiet_pipes"
-# The guard itself finds such a pipe, and not 'grep -q' after '||' (the q
-# is spliced in, so that these lines are no such pipe).
-q=q
-printf '%s\n' "printf x | grep -F$q a || fail" "log_of r | grep -E$q b" >"$tmp/quiet.sh"
-[[ "$(grep -cE "$pipe_grep_q" "$tmp/quiet.sh")" -eq 2 ]] || fail "the guard against 'grep -q' in a pipe finds no such pipe"
-printf '%s\n' "grep -F$q a f || grep -F$q b f" "printf x | grep -F a >/dev/null" >"$tmp/quiet.sh"
-[[ "$(grep -cE "$pipe_grep_q" "$tmp/quiet.sh" || true)" -eq 0 ]] || fail "the guard against 'grep -q' in a pipe finds a grep that reads to the end"
+# merge-feature (#430). The workflow scripts under scripts/ take their
+# decisions the same way, and there a missed match fails open: merge-feature.sh
+# dropped a reason why the merge needs the owner's approval (#452). A pipe
+# that goes on at the next line counts too. A here-string or a captured
+# variable reads the input to the end; 'grep ... >/dev/null' does not with GNU
+# grep, which stops at the first match when its output is /dev/null.
+# A grep is quiet with q anywhere in a group of short options, or with
+# --quiet or --silent, before or after the other options and the pattern.
+pipe_grep_q='(^|[^|])\|[[:space:]]*grep([[:space:]]+[^|;&)`[:space:]]+)*[[:space:]]+(-[A-Za-z0-9]*q[A-Za-z0-9]*|--quiet|--silent)([[:space:]]|$)'
+# quiet_pipes <file>...: '<file>:<line>:<command>' for each such pipe; a line
+# that ends in a pipe is joined to the next, and comment lines are skipped.
+quiet_pipes() {
+  awk 'FNR == 1 { held = "" }
+    /^[[:space:]]*#/ { next }
+    { line = held $0 }
+    line ~ /(^|[^|])[|][[:space:]]*$/ { held = line " "; next }
+    { held = ""; print FILENAME ":" FNR ":" line }' "$@" | grep -E "$pipe_grep_q" || true
+}
+found_quiet_pipes="$(cd "$source_root" && quiet_pipes tests/*.sh scripts/*.sh scripts/lib/*.sh)"
+[[ -z "$found_quiet_pipes" ]] ||
+  fail "a self-test or a workflow script pipes into 'grep -q', which fails under load; use a here-string or a captured variable: $found_quiet_pipes"
+# The guard itself finds such a pipe, also one that goes on at the next line,
+# and with q in any place of the options or with --quiet or --silent; and not
+# 'grep -q' after '||', on a here-string, or in a comment, nor an option of
+# the command after the grep (the q is spliced in, so that these lines are no
+# such pipe).
+q=q quiet=quiet silent=silent
+printf '%s\n' "printf x | grep -F$q a || fail" "log_of r | grep -E$q b" "git log |" "  grep -v c |" "  grep -F$q d && echo" \
+  "printf x | grep -${q}F a" "printf x | grep -F${q}x a" "printf x | grep -i --$quiet a" "printf x | grep -e a --$silent" \
+  >"$tmp/quiet.sh"
+[[ "$(quiet_pipes "$tmp/quiet.sh" | grep -c .)" -eq 7 ]] || fail "the guard against 'grep -q' in a pipe finds no such pipe"
+[[ "$(quiet_pipes "$tmp/quiet.sh" | sed -n 3p)" == "$tmp/quiet.sh:5:git log |   grep -v c |   grep -F$q d && echo" ]] ||
+  fail "the guard against 'grep -q' in a pipe does not report the joined lines of a pipe at its last line"
+printf '%s\n' "grep -F$q a f || grep -F$q b f" "printf x | grep -F a >/dev/null" "grep -F$q a <<<\"\$x\"" "# x | grep -F$q a" \
+  "x |" "  # a comment" "  sort" "grep -F$q a f" "printf x | grep -F q >/dev/null" "printf x | grep --fixed-strings a >/dev/null" \
+  "grep --$quiet a f" "[[ \"\$(x | grep -c .)\" -eq 1 ]]" >"$tmp/quiet.sh"
+[[ -z "$(quiet_pipes "$tmp/quiet.sh")" ]] || fail "the guard against 'grep -q' in a pipe finds a grep that reads to the end"
 
 echo "verify tests passed"

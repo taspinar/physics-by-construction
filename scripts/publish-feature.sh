@@ -140,14 +140,15 @@ closing_allowed() {
   echo
   # The decision of the merge approval gate was made for this commit; a
   # later commit on the branch needs a new decision by finish-feature.sh.
-  if git -C "$root" log -1 --format=%b | grep -Fqx "Merge approval:"; then
+  head_body="$(git -C "$root" log -1 --format=%b)" || head_body=""
+  if grep -Fqx "Merge approval:" <<<"$head_body"; then
     echo "The merge approval above was decided for commit \`$(git -C "$root" rev-parse HEAD)\`."
     echo
   fi
   # The level was derived for this commit's content (ADR 020 decision 1); a
   # requested lowering is a request until the owner's identity approves
   # exactly this head.
-  if git -C "$root" log -1 --format=%b | grep -Fqx "Risk level:"; then
+  if grep -Fqx "Risk level:" <<<"$head_body"; then
     echo "The risk level above applies to commit \`$(git -C "$root" rev-parse HEAD)\`."
     echo
   fi
