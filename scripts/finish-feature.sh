@@ -200,6 +200,19 @@ refreshed="$(risk_request_refresh "$root" "$issue")" ||
 [[ -z "$refreshed" ]] || echo "$refreshed"
 if [[ -n "$feature_merge_base" ]] && risk_assess "$root" "$feature_base_ref" "$feature_merge_base" "$issue" "$latest_candidate"; then
   risk_known=1
+  # The approval request is written by the script in full (Issue #463, D12):
+  # every field is derived except a lowering's reason and the owner's word,
+  # so a hand-edited field costs no round. The request is no part of the
+  # content or the fingerprint, so the derivation is the same before and
+  # after; it is made again to check the request as written. A missing
+  # request is not created: a Level 3 change without one stays refused.
+  written="$(risk_request_write "$root" "$issue")" ||
+    fail "the approval request $(approval_request_path "$issue") could not be written. Nothing was committed."
+  if [[ -n "$written" ]]; then
+    echo "$written"
+    risk_assess "$root" "$feature_base_ref" "$feature_merge_base" "$issue" "$latest_candidate" ||
+      fail "the risk level of the change cannot be derived after the approval request was written. Nothing was committed."
+  fi
 elif [[ "$(jq -r '.schema' "$completion_file" 2>/dev/null)" == "completion/v2" ]]; then
   fail "the risk level of the change cannot be derived (the base of the feature could not be determined). Nothing was committed."
 fi

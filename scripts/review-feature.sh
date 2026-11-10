@@ -620,6 +620,11 @@ if [[ "$changes_only" -eq 0 ]]; then
       echo "The handoff note lists remaining work:"
       echo
       printf '%s\n' "$handoff_left" | sed 's/^/- /'
+      echo
+      echo "Check it against the diff (reviewer contract, 'Completion'): work that is in"
+      echo "fact missing is a major finding on its criterion; a note that lists done work"
+      echo "or describes an earlier state is stale, at most a suggestion, never a major"
+      echo "finding. finish-feature.sh refuses a complete record while the note lists work."
     fi
   } >>"$context_file"
 fi

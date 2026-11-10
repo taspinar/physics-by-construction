@@ -1902,8 +1902,9 @@ An agent may raise the level; no agent lowers it. With a `completion/v2`
 record, `finish-feature.sh` refuses a stated level below the path minimum,
 refuses a stated level below a trigger reading or an assessed level unless
 the approval request names that lowering, refuses a lowering of the path
-minimum, and refuses a Level 3 change by trigger or assessment without its
-approval request. The commit message, the review, and the pull request
+minimum, and refuses a Level 3 change by trigger or assessment whose paths
+are below Level 3 without its approval request (a change whose paths are
+Level 3 is code-owned already). The commit message, the review, and the pull request
 record the required level, what gives it, the requested level, and the
 content or head they apply to.
 
@@ -1931,8 +1932,16 @@ the script cannot write is refused, with the value to write. You approve the
 request with the diff at the merge. The content tree changes with every
 fix, because the handoff note is part of it, so `apply-triage.sh` refreshes
 the line `Tree:` after a fix session and `run-feature.sh` before every
-review (Issue #389); everything else in the request stays as the agent wrote
-it, and the review's diff shows the request as it is. A lowering adds `Required level:`, `Requested level:`
+review (Issue #389), and the review's diff shows the request as it is.
+`finish-feature.sh` writes the request in full before its check (Issue #463,
+D12): `Issue:`, `Level:`, `Derived from:`, and `Tree:` from its derivation,
+and for a lowering (the record states a level below the required one and
+the request asks for it) `Required level:` and `Requested level:` (the
+level of the record); it keeps a lowering's `Reason:` and `Owner's word:`
+as written and drops any other text. A hand-edited field is overwritten,
+not refused, so it costs no round; a Level 3 change without the request,
+and a lowering without the owner's word, stay refused: the script creates
+no request and writes no owner's word. A lowering adds `Required level:`, `Requested level:`
 (a trigger reading or an assessed level, never the path minimum),
 `Reason:`, and `Owner's word:`, your words in the conversation that let the
 agent proceed. It is a request, never an approval: no script reads it as

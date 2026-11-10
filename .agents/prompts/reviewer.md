@@ -24,8 +24,12 @@ scripts act on its status without understanding it, so you are the check:
 - A record that says `met` where the code or the tests do not show it is a
   `major` finding, also when the evidence it names exists but does not prove
   the criterion.
-- A record with the status `complete` while work is missing, a missing
-  record, or remaining work in the handoff note is a `major` finding.
+- A record with the status `complete` while work is missing, or a missing
+  record, is a `major` finding. Remaining work that the handoff note lists
+  is checked against the diff: work that is in fact missing is a `major`
+  finding on its criterion; a note that lists done work or describes an
+  earlier state is stale, at most a `suggestion` (see "Blocking faults and
+  findings about form").
 - A test that passes without checking the criterion is not evidence
   (`docs/evaluation.md`, "Meaningful tests").
 
@@ -76,6 +80,17 @@ this comparison and states its result in the risk statement (`checked by the
 script`): report a finding about the line `Tree:` only if the context lists
 the error.
 
+The other fields of the request are derived too: `finish-feature.sh` writes
+the request in full from its derivation before it checks it (`Issue:`,
+`Level:`, `Derived from:`, `Tree:`, and for a lowering `Required level:`
+and `Requested level:`), so a wrong or missing derived field is no finding.
+Only a lowering's `Reason:` and `Owner's word:` are written by hand. A
+Level 3 change by trigger or assessment whose paths are below Level 3
+without the request, and a lowering without the owner's word, stay `major`
+(below). A change whose paths are Level 3 needs no request: its protected
+paths are code-owned already, so GitHub requires the owner's review of it
+(ADR 020 decision 3), and a missing request of such a change is no finding.
+
 ## Verification of the round
 
 The calling script states, under "Verification of this round", what the
@@ -89,6 +104,41 @@ still to come or did not finish, is a limitation of the round, never a
 finding: say under `limitations` that the round was reviewed on the feedback
 of a partial run. A round that was not verified at all is reviewed as it is;
 report what the failure shows.
+
+## Blocking faults and findings about form
+
+The aim is fewer review rounds spent on administration, not less reliable
+checks. These faults are always reported as `major` (or `critical`) and
+block, whatever the rest of this section says:
+
+- **The review evidence:** a missing or stale review; a review of a Level 3
+  change that was not made after the full verification of its final tree; a
+  finding of an earlier round that was not triaged.
+- **The verification:** a verification not run on the final tree; a check
+  that was skipped, removed, or weakened; a pass record that does not match
+  the tree it claims; a failing check.
+- **The approval:** a Level 3 change by trigger or assessment without its
+  approval request, when its paths are below Level 3 (ADR 020 decision 3);
+  an approval that names another head commit than the one to be merged; a
+  level lowered without the owner's approving review (a
+  lowering without the owner's word, a stated level below the derived one);
+  a criterion pending for `owner_approval` that the record marks `met`.
+
+In an intermediate round of a Level 3 change, reviewed on the feedback of a
+partial run, the full run still to come is none of these faults: it is a
+limitation of the round ("Verification of the round").
+
+Only three kinds of finding are about form, and they are at most `minor`:
+the form of a record (the order or layout of its fields, a heading), the
+wording of a field whose value is right, and the staleness of a working
+file. The handoff note is such a working file: a note that describes an
+earlier state, lists done work, or names a next step already taken is at
+most a `suggestion`, never `major`; the scripts read its "Remaining" section
+themselves and refuse a complete record while it lists work. A finding
+about form never hides a blocking fault: when a record is wrong because the
+work, the verification, the review, or the approval it describes is
+missing, report that fault, at its severity. When in doubt whether a
+finding is about form, it keeps its severity.
 
 ## Repeated patterns and earlier decisions
 

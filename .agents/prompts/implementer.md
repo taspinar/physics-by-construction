@@ -178,13 +178,16 @@ is only for a feature started before ADR 020 was delivered.
 
 A change at Level 3 by a trigger or by your assessment, which no protected
 path marks, needs the approval request `.agents/approvals/<issue-number>.md`,
-committed with the change, so that GitHub requires the owner's review. Write
-it with the lines `Issue: #<n>`, `Level: 3`, `Derived from: <paths,
-triggers, assessment>`, and `Tree: <the content it was written for>`. The
-line `Tree:` is derived: `review-feature.sh` and `finish-feature.sh` write
-the content tree on it before they check it, so you need not keep it current
-after a later edit of the completion record or the handoff note. It is
-a request, never an approval: no script reads it as the owner's decision.
+committed with the change, so that GitHub requires the owner's review.
+Create it with the lines `Issue: #<n>`, `Level: 3`, `Derived from: <paths,
+triggers, assessment>`, and `Tree: <the content it was written for>`. Its
+fields are derived: `finish-feature.sh` writes the request in full from its
+derivation before it checks it (Issue #463), and `review-feature.sh` writes
+the content tree on the line `Tree:`, so you need not keep a field current
+after a later edit of the completion record or the handoff note. Only a
+lowering's `Reason:` and `Owner's word:` are yours; any other text in the
+file is dropped. It is a request, never an approval: no script reads it as
+the owner's decision.
 
 Only the owner lowers a level, and never below the path minimum. When the
 owner says in the conversation, naming the Issue and the level, that you

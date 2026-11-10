@@ -10,6 +10,9 @@ The addendum of 2026-11-08 to decision 1 (Issue #412), proposed with that
 Issue and accepted by its merge, takes `docs/architecture.md` and the
 prompts other than `.agents/prompts/reviewer.md` out of decision 1's Level 3
 list; decision 1 is read with it.
+The addendum of 2026-11-09 to decision 1 (Issue #463, D12 of #446), proposed
+with that Issue and accepted by its merge, sets which review findings are
+about form and writes the approval request by script.
 Superseded in part: the re-assessment points of decisions 6 and 8 (42 and 44
 lessons, a run above 45 minutes) by the notes of 2026-10-21, 2026-10-24, and
 2026-11-04 in ADR 014's status; decision 8's pause of ADR 017 and F113
@@ -584,6 +587,49 @@ are not edited for it. `scripts/lib/risk.sh` gives `docs/architecture.md`
 its path minimum, and `tests/risk-level-test.sh` shows both cases and the
 list. Nothing else changes: no other path, no tier, no budget, and no
 decision of ADR 017.
+
+### Addendum to decision 1 (Issue #463, 2026-11-09): administrative findings cost no round
+
+Status: Proposed with Issue #463; accepted when its pull request is merged
+with the owner's approval of the exact commit.
+
+On 2026-11-09 the owner decided D12 of the inventory of #446 (point 6 of
+#396), as the first of three pull requests. Decision 1 stands in everything
+else; two things change, so that a review round is no longer spent on
+administration while every check stays as reliable as before:
+
+- **What blocks and what is form.** The reviewer contract
+  (`.agents/prompts/reviewer.md`, "Blocking faults and findings about form")
+  keeps every fault in the review evidence (a missing or stale review, a
+  review of a Level 3 change not made after the full verification of its
+  final tree, a finding not triaged), in the verification (a verification
+  not run on the final tree, a skipped, removed, or weakened check, a pass
+  record that does not match the tree, a failing check), and in the
+  approval (a missing approval request of a Level 3 change that no
+  protected path marks, decision 3, an approval of another head commit,
+  a level lowered without the owner's review, a pending `owner_approval`
+  criterion marked met) at `major` and blocking. Only a finding about the
+  form of a record, the wording of a field, or the staleness of a working
+  file is downgraded, to at most `minor`; the staleness of the handoff note
+  is at most a suggestion. When in doubt a finding keeps its severity. The
+  scripts still read the note's "Remaining" section themselves and refuse a
+  complete record while it lists work.
+- **The approval request is written by the script in full.**
+  `scripts/finish-feature.sh` writes every field of
+  `.agents/approvals/<issue>.md` from its derivation (`Issue:`, `Level:`,
+  `Derived from:`, `Tree:`, and for a lowering `Required level:` and
+  `Requested level:`) before it checks it (`risk_request_write` in
+  `scripts/lib/risk.sh`), so a hand-edited field is overwritten, not
+  refused. Only a lowering's `Reason:` and `Owner's word:` are written by
+  hand. The script creates no request: a Level 3 change by trigger or
+  assessment without one stays refused, and a lowering without the owner's
+  word stays refused.
+
+`tests/review-feature-test.sh` pins the contract text, one case per blocking
+fault and the handoff rule, and what `review-feature.sh` tells the reviewer
+about a stale note; `tests/risk-workflow-test.sh` shows the request written
+in full, the free fields, and the refusals that stay. No check, tier, level,
+path, or trigger changes.
 
 ## Alternatives considered
 
