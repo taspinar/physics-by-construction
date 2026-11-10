@@ -13,6 +13,9 @@ list; decision 1 is read with it.
 The addendum of 2026-11-09 to decision 1 (Issue #463, D12 of #446), proposed
 with that Issue and accepted by its merge, sets which review findings are
 about form and writes the approval request by script.
+The addendum of 2026-11-10 to decision 1 (Issue #464, D10 and D11 of #446),
+proposed with that Issue and accepted by its merge, makes a changed claim
+span a detected trigger and pins the execution settings.
 Superseded in part: the re-assessment points of decisions 6 and 8 (42 and 44
 lessons, a run above 45 minutes) by the notes of 2026-10-21, 2026-10-24, and
 2026-11-04 in ADR 014's status; decision 8's pause of ADR 017 and F113
@@ -630,6 +633,46 @@ fault and the handoff rule, and what `review-feature.sh` tells the reviewer
 about a stale note; `tests/risk-workflow-test.sh` shows the request written
 in full, the free fields, and the refusals that stay. No check, tier, level,
 path, or trigger changes.
+
+### Addendum to decision 1 (Issue #464, 2026-11-10): a changed claim is detected; the execution settings are pinned
+
+Status: Proposed with Issue #464; accepted when its pull request is merged
+with the owner's approval of the exact commit.
+
+On 2026-11-09 the owner decided D10 and D11 of the inventory of #446 (point
+6 of #396), as the second of three pull requests. Decision 1 stands in
+everything else; two things are added, and no detection is weakened:
+
+- **D10: a changed scientific claim is a detected trigger.**
+  `risk_triggers` in `scripts/lib/risk.sh` reports the trigger "changed
+  scientific claim", with the claim as its detail, for every typed claim of
+  a page that the base publishes (a `.qmd` file under `site/` at the base:
+  a `[...]{.claim ...}` span or a `::: {.claim ...}` div) that is removed or
+  changed and not added back as it was (`risk_claim_triggers`). A claim is
+  compared as its text, the span with its attributes or the div's
+  attributes with its content, after every run of whitespace is made one
+  space: a claim that is rewrapped, reindented, or moved within its page or
+  to another changed page reads the same and is no reading, and so are the
+  text around a claim, a transition, a caption, and an added claim (the
+  claims of a new lesson are no trigger, as decision 1 says). A reworded
+  claim reads as changed, also when only its type, scope, or evidence
+  changes: conservative, like the other detections, and only the owner
+  lowers the reading. This narrows nothing the agent names: a claim changed
+  in prose without a span, in a figure, or in a check stays a trigger the
+  completion record names and the reviewer assesses.
+- **D11: the execution settings are pinned.**
+  `tests/unit/test_execution_settings.py` fails when `site/_quarto.yml`
+  does not state `execute.freeze: false` and `execute.cache: false` (ADR
+  002: every build executes every page and stores no result). It is a pin,
+  not a protection: the file stays sensitive in
+  `.agents/policies/guardrails.conf`, not protected.
+
+`tests/risk-level-test.sh` shows a changed, a removed, a reworded claim, a
+claim whose evidence changed, a claim of a removed page, and one of two equal
+claims removed as readings; an added claim, a claim moved within its page and
+to another page, a changed paragraph around a claim, a transition, a caption,
+and whitespace and line wrapping inside a claim as none. No check, tier,
+path, or level changes, and no test is removed.
 
 ## Alternatives considered
 

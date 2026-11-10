@@ -512,6 +512,167 @@ assess "$repo"
 [[ -z "$RISK_TRIGGERS" ]] || fail "a new test or a moved assertion was taken for a trigger: $RISK_TRIGGERS"
 expect "new and moved tests" RISK_REQUIRED 2
 
+# --- A changed scientific claim (D10 of #446, Issue #464): a claim of a page
+# that main publishes, removed or changed and not added back as it was. The
+# claim is compared as its text with the whitespace normalised; the text
+# around it, an added claim, and a claim that moves and reads the same are no
+# reading.
+lesson_page="site/lessons/fall/index.qmd"
+
+# claim_repo <label>: setup_repo with a published lesson on main that has two
+# span claims, one wrapped over three lines, and a div claim.
+claim_repo() {
+  local repo
+
+  repo="$(setup_repo "$1")"
+  git -C "$repo" switch -q main
+  mkdir -p "$repo/site/lessons/fall"
+  cat >"$repo/$lesson_page" <<'QMD'
+---
+title: "A falling ball"
+---
+
+A ball falls from rest. The model leaves out the air.
+
+[The computed height agrees with $h_0 - \tfrac12 g t^2$ to
+within 0.1 mm at every step shown.]{.claim type="numerically-verified"
+scope="constant gravity" evidence="fig-fall"}
+
+```{python}
+#| label: fig-fall
+#| fig-cap: "The height of the ball against time."
+print("plot")
+```
+
+Next we look at the energy.
+
+::: {.claim type="numerically-verified" scope="constant gravity" evidence="fig-fall"}
+The total energy stays at its initial value
+to one part in a million.
+:::
+
+[The ball reaches the ground after 1.43 s.]{.claim type="numerically-verified" evidence="fig-fall"}
+QMD
+  git -C "$repo" add site
+  git -C "$repo" commit -qm "A published lesson"
+  git -C "$repo" switch -q feature/5-thing
+  git -C "$repo" merge -q --ff-only main
+  printf '%s\n' "$repo"
+}
+
+# edit_lesson <repo> <old> <new> [page]: replaces the text old, which must be
+# on the page, by new.
+edit_lesson() {
+  python3 - "$1/${4:-$lesson_page}" "$2" "$3" <<'PY'
+import sys
+path, old, new = sys.argv[1:]
+text = open(path).read()
+assert old in text, f"not on the page: {old!r}"
+open(path, "w").write(text.replace(old, new, 1))
+PY
+}
+
+ground_claim='[The ball reaches the ground after 1.43 s.]{.claim type="numerically-verified" evidence="fig-fall"}'
+
+repo="$(claim_repo claim-changed)"
+edit_lesson "$repo" "within 0.1 mm" "within 0.2 mm"
+assess "$repo"
+expect_trigger "a changed claim" \
+  "changed scientific claim: $lesson_page ([The computed height agrees with \$h_0 - \\tfrac12 g t^2\$ to within 0.1 mm at every step shown.]"
+
+repo="$(claim_repo claim-removed)"
+edit_lesson "$repo" $'\n'"$ground_claim" ""
+assess "$repo"
+expect_trigger "a removed claim" "changed scientific claim: $lesson_page ($ground_claim)"
+
+repo="$(claim_repo claim-reworded)"
+edit_lesson "$repo" "stays at its initial value" "keeps its initial value"
+assess "$repo"
+expect_trigger "a reworded claim" \
+  "changed scientific claim: $lesson_page ({.claim type=\"numerically-verified\" scope=\"constant gravity\" evidence=\"fig-fall\"} The total energ..."
+
+repo="$(claim_repo claim-evidence)"
+edit_lesson "$repo" "$ground_claim" "${ground_claim/evidence=\"fig-fall\"/evidence=\"fig-energy\"}"
+assess "$repo"
+expect_trigger "a claim whose evidence changed" "changed scientific claim: $lesson_page ($ground_claim)"
+
+repo="$(claim_repo claim-page-removed)"
+git -C "$repo" rm -q "$lesson_page"
+assess "$repo"
+expect_trigger "a claim of a removed page" "changed scientific claim: $lesson_page ($ground_claim)"
+
+# A claim that stands twice and loses one of them reads as removed.
+repo="$(claim_repo claim-duplicate)"
+git -C "$repo" switch -q main
+printf '\n%s\n' "$ground_claim" >>"$repo/$lesson_page"
+git -C "$repo" commit -qam "The claim twice"
+git -C "$repo" switch -q feature/5-thing
+git -C "$repo" merge -q --ff-only main
+edit_lesson "$repo" $'\n\n'"$ground_claim" ""
+assess "$repo"
+expect_trigger "one of two equal claims removed" "changed scientific claim: $lesson_page ($ground_claim)"
+
+# No reading: each of these leaves every claim as it reads.
+expect_no_claim() {
+  # expect_no_claim <description> <repo>
+  assess "$2"
+  expect "$1" RISK_TRIGGERS ""
+  expect "$1" RISK_REQUIRED 2
+}
+
+repo="$(claim_repo claim-added)"
+printf '\n[The ball hits the ground at 14.0 m/s.]{.claim type="numerically-verified" evidence="fig-fall"}\n' >>"$repo/$lesson_page"
+expect_no_claim "an added claim" "$repo"
+
+repo="$(claim_repo claim-moved)"
+edit_lesson "$repo" $'\n'"$ground_claim" ""
+edit_lesson "$repo" "A ball falls from rest." "A ball falls from rest. $ground_claim"
+expect_no_claim "a claim moved within its page" "$repo"
+
+repo="$(claim_repo claim-moved-page)"
+edit_lesson "$repo" $'\n'"$ground_claim" ""
+mkdir -p "$repo/site/lessons/landing"
+printf -- '---\ntitle: "Landing"\n---\n\n%s\n' "$ground_claim" >"$repo/site/lessons/landing/index.qmd"
+expect_no_claim "a claim moved to another page" "$repo"
+
+repo="$(claim_repo claim-paragraph)"
+edit_lesson "$repo" "A ball falls from rest. The model leaves out the air." \
+  "A steel ball is dropped from rest; the model has no drag."
+expect_no_claim "a changed paragraph around a claim" "$repo"
+
+repo="$(claim_repo claim-transition)"
+edit_lesson "$repo" "Next we look at the energy." "The energy tells the same story."
+expect_no_claim "a changed transition" "$repo"
+
+repo="$(claim_repo claim-caption)"
+edit_lesson "$repo" "The height of the ball against time." "Height (m) of the ball against time (s)."
+expect_no_claim "a changed caption" "$repo"
+
+repo="$(claim_repo claim-whitespace)"
+edit_lesson "$repo" $'agrees with $h_0 - \\tfrac12 g t^2$ to\nwithin 0.1 mm' \
+  $'agrees with   $h_0 - \\tfrac12 g t^2$\n  to within 0.1 mm'
+edit_lesson "$repo" $'evidence="fig-fall"}\nThe total energy stays at its initial value\nto one part' \
+  $'evidence="fig-fall"}\n\nThe total energy stays at its initial value to one part'
+expect_no_claim "whitespace and line wrapping inside a claim" "$repo"
+
+# The span is read whole: a bracket pair, a link, and a nested span inside it
+# do not cut it short, so a change after them is still found; and a "]{" that
+# opens no attributes before it (an unclosed quote) does not end the search.
+repo="$(claim_repo claim-nested)"
+git -C "$repo" switch -q main
+printf '\nPandoc reads `]{"` as the start of attributes.\n' >>"$repo/$lesson_page"
+printf '\nSee [the data](https://example.org). [At $t \\in [0, 1]$ the [fall]{.smallcaps} is free, see [here](https://example.org).]{.claim type="observational" evidence="fig-fall"}\n' \
+  >>"$repo/$lesson_page"
+git -C "$repo" commit -qam "A claim with brackets"
+git -C "$repo" switch -q feature/5-thing
+git -C "$repo" merge -q --ff-only main
+edit_lesson "$repo" "See [the data](https://example.org)." "See [the record](https://example.org)."
+expect_no_claim "a link changed before a claim with brackets" "$repo"
+edit_lesson "$repo" "is free, see" "is nearly free, see"
+assess "$repo"
+expect_trigger "a claim with brackets changed after them" \
+  "changed scientific claim: $lesson_page ([At \$t \\in [0, 1]\$ the [fall]{.smallcaps} is free, see [here](https://example.org).]"
+
 # --- The stated and the assessed level: raise only.
 repo="$(setup_repo stated)"
 printf 'print("y")\n' >>"$repo/src/code.py"

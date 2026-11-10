@@ -139,8 +139,14 @@ Every change carries one level, the highest of three readings, derived by
   verification guarantees; dependency selection. The scripts detect on the
   diff (`risk_triggers`) a changed tolerance or budget, a new skip, `sorry`,
   or axiom, a removed or changed assertion, a removed test, a changed marker,
-  a changed dependency manifest; the agent names the others, and the reviewer
-  reports a missed trigger as major.
+  a changed dependency manifest, and a changed scientific claim: a
+  `{.claim ...}` span or div of a page under `site/` that the base publishes,
+  removed or changed and not added back as it reads (`risk_claim_triggers`;
+  the claim's text with its whitespace normalised, so the text around it, an
+  added claim, a moved claim, and a rewrapped one are no reading; ADR 020,
+  the addendum of 2026-11-10 to decision 1). The agent names the others, also
+  a claim changed in prose, a figure, or a check, and the reviewer reports a
+  missed trigger as major.
 - **The assessed level**: stated in the completion record and assessed by the
   review (`architecture_impact.risk_level`), only ever higher.
 

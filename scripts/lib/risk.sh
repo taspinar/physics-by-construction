@@ -177,6 +177,10 @@ risk_path_minimum() {
 #                                   the shell tests and the Lean proofs have
 #                                   no markers
 #   dependency file changed         a dependency manifest or lock file
+#   changed scientific claim        a claim of a page that the base publishes
+#                                   (a .qmd file under site/), removed or
+#                                   changed and not added back as it was; see
+#                                   risk_claim_triggers
 #
 # The reading is conservative: a narrowed tolerance reads as changed too, and
 # only the owner lowers a trigger reading. The formats are the ones of this
@@ -317,6 +321,124 @@ risk_triggers() {
       }
       { block++ }
       END { finish() }'
+
+  risk_claim_triggers "$root" "$from" "$tree"
+}
+
+# risk_claims
+# Prints each typed claim of the page on standard input, one per line, as the
+# text that is compared: a span from its opening bracket to the end of its
+# attributes ('[text]{.claim type=".." evidence=".."}'), a fenced div from its
+# attributes through its content ('::: {.claim ...}' to the closing ':::',
+# without the fences), each with every run of whitespace made one space and
+# the ends trimmed. The equality is that text: a line wrapped differently or
+# indented differently inside the claim reads the same; a changed word, number,
+# type, scope, or evidence reads as changed. A span whose opening bracket is not
+# found in its paragraph (an unbalanced bracket in its text) is taken from the
+# start of the paragraph, which can only read more as changed.
+risk_claims() {
+  awk '
+    function normal(text) { gsub(/[[:space:]]+/, " ", text); gsub(/^ | $/, "", text); return text }
+    function emit(text) { text = normal(text); if (text != "") print text }
+    function escaped(at) { return at > 1 && substr(page, at - 1, 1) == "\\" }
+    { page = page $0 "\n"; lines[++n] = $0 }
+    END {
+      # Fenced divs: the attributes of the opening fence and the content up to
+      # its closing fence; a div nested in it is part of its content.
+      for (i = 1; i <= n; i++) {
+        if (lines[i] !~ /^:::+[[:space:]]*([{]([^}]*[[:space:]])?\.claim([[:space:]]|[}])|claim[[:space:]]*$)/) continue
+        body = lines[i]
+        sub(/^:+/, "", body)
+        depth = 1
+        for (j = i + 1; j <= n; j++) {
+          if (lines[j] ~ /^:::+[[:space:]]*$/) { if (--depth == 0) break }
+          else if (lines[j] ~ /^:::+[[:space:]]*[^[:space:]:]/) depth++
+          body = body "\n" lines[j]
+        }
+        emit(body)
+      }
+      # Spans: every "]{" whose attributes name the class .claim, back to the
+      # bracket that opens it, within its paragraph.
+      size = length(page)
+      at = 1
+      while ((k = index(substr(page, at), "]{")) > 0) {
+        bracket = at + k - 1
+        # The attributes end at the first brace outside quotes, within the
+        # paragraph; a "]{" that opens none (in a formula, say) is skipped and
+        # the search goes on, so no later claim is missed.
+        quoted = 0
+        for (last = bracket + 1; last <= size; last++) {
+          c = substr(page, last, 1)
+          if (c == "\"") quoted = !quoted
+          else if (c == "}" && !quoted) break
+          else if (c == "\n" && substr(page, last + 1, 80) ~ /^[ \t]*\n/) { last = size + 1; break }
+        }
+        at = bracket + 2
+        if (last > size) continue
+        attributes = substr(page, bracket + 1, last - bracket)
+        if (attributes !~ /(^[{]|[[:space:]])\.claim([[:space:]]|[}]$)/) continue
+        # Back to the opening bracket; a blank line ends the paragraph, so the
+        # search stops there and the claim is read from the paragraph start.
+        depth = 0
+        first = 1
+        whole = 0
+        blank = 1
+        for (b = bracket; b >= 1; b--) {
+          c = substr(page, b, 1)
+          if (c == "\n") {
+            if (whole && blank) break
+            whole = 1
+            blank = 1
+            first = b + 1
+            continue
+          }
+          if (c !~ /[[:space:]]/) blank = 0
+          if (c == "]" && !escaped(b)) depth++
+          else if (c == "[" && !escaped(b) && --depth == 0) { first = b; break }
+        }
+        if (b < 1) first = 1
+        emit(substr(page, first, last - first + 1))
+      }
+    }'
+}
+
+# risk_claim_triggers <root> <from> <tree>
+# Prints one line 'changed scientific claim<TAB><path><TAB><claim>' for each
+# claim of a page that <from> publishes (a .qmd file under site/ that exists
+# at <from>) that is not in the pages of <tree> as it was (risk_claims gives
+# the text that is compared). The claims of <tree> are taken from every
+# changed page, so a claim that moves within a page or to another page and
+# reads the same is no reading; a claim that is added is none either (the
+# claims of a new lesson are no trigger, ADR 020 decision 1). A claim that
+# stands twice and loses one of them is a reading. Text around a claim, a
+# caption, or a transition is no part of any claim and so no reading.
+risk_claim_triggers() {
+  local root="$1"
+  local from="$2"
+  local tree="$3"
+  local status
+  local path
+
+  while IFS=$'\t' read -r status path; do
+    [[ -n "$path" ]] || continue
+    if [[ "$status" != "A" ]]; then
+      git -C "$root" show "$from:$path" | risk_claims | awk -v path="$path" '{ printf "base\t%s\t%s\n", path, $0 }'
+    fi
+    if [[ "$status" != "D" ]]; then
+      git -C "$root" show "$tree:$path" | risk_claims | awk '{ printf "change\t\t%s\n", $0 }'
+    fi
+  done < <(git -C "$root" diff --name-status --no-renames "$from" "$tree" -- 'site/*.qmd') |
+    awk -F '\t' '
+      function short(text) { return length(text) > 100 ? substr(text, 1, 97) "..." : text }
+      $1 == "change" { kept[$3]++; next }
+      { base_path[++n] = $2; base_claim[n] = $3 }
+      END {
+        for (i = 1; i <= n; i++) {
+          if (kept[base_claim[i]] > 0) { kept[base_claim[i]]--; continue }
+          line = "changed scientific claim\t" base_path[i] "\t" short(base_claim[i])
+          if (!(line in seen)) { seen[line] = 1; print line }
+        }
+      }'
 }
 
 # risk_review_reading <review-json> <field>
