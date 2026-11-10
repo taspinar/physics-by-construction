@@ -18,7 +18,7 @@ dependencies = [
 # The live client of pbc.agents for the default provider (ADR 004). Only a
 # learner who runs an agent lesson with their own key installs it; the site
 # build and CI never do.
-openai = ["openai>=3.42.0"]
+openai = ["openai>=3.46.0"]
 # The Autonomous Physics Lab (docs/products.md, question 19): what the
 # product's optional routes need beyond the default environment, one group
 # per product. Its live agent route uses the provider SDK; the live adapter
@@ -26,7 +26,7 @@ openai = ["openai>=3.42.0"]
 # and its local interface need nothing beyond the default environment. Only
 # a learner who runs an optional route installs it; the site build and CI
 # never do.
-physics-lab = ["openai>=3.42.0"]
+physics-lab = ["openai>=3.46.0"]
 
 [project.urls]
 Homepage = "https://taspinar.github.io/physics-by-construction/"
@@ -38,9 +38,9 @@ Repository = "https://github.com/taspinar/physics-by-construction"
 dev = [
     # Quality
     "pytest>=9.2.0",
-    "ruff>=0.17.3",
+    "ruff>=0.17.4",
     # Site generator (ADR 001) and the Jupyter kernel it executes pages with
-    "quarto-cli>=1.10.20",
+    "quarto-cli>=1.11.9",
     "ipykernel>=7.4",
     "nbclient>=0.11",
     "nbformat>=5.11",
