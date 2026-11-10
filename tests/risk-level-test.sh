@@ -825,12 +825,19 @@ specs="$(sed -n 's/^protected:[[:space:]]*//p' "$source_root/.agents/policies/gu
 # that a change to it is reported as protected like every other.
 # docs/architecture.md and the prompts other than the reviewer contract are
 # sensitive, not protected (the addendum of 2026-11-08 to ADR 020 decision 1,
-# Issue #412); the cases below the loop show it.
+# Issue #412); the cases below the loop show it. The triage scripts (D1 of
+# #446), the four check scripts (D2), the execution store (D5), and the Lean
+# reader (D6) are protected, and scripts/verify.conf is on no protected line,
+# so the builtin rule reads it (D4; the addendum of 2026-11-10 to ADR 020
+# decision 1, Issue #465); the cases below the loop show each.
 expected=(docs/decisions docs/PROJECT_REQUIREMENTS.md docs/roadmap.md .github/workflows
   .github/CODEOWNERS scripts/lib scripts/check-guardrails.sh scripts/check-review.sh scripts/ci-aggregate.sh
-  .agents/prompts/reviewer.md .agents/schemas .agents/policies AGENTS.md .agents/agents.conf scripts/verify.conf scripts/verify.sh
-  src/pbc/authoring/digest.py src/pbc/authoring/selection.py scripts/fetch-base.sh scripts/collect-base.sh
-  src/pbc/authoring/provenance.py scripts/build-site.sh .agents/approvals
+  .agents/prompts/reviewer.md .agents/schemas .agents/policies AGENTS.md .agents/agents.conf scripts/verify.sh
+  scripts/triage-review.sh scripts/apply-triage.sh
+  scripts/check-lean.sh scripts/check-lesson-pages.sh scripts/check-determinism.sh scripts/fetch-built-site.sh
+  src/pbc/authoring/digest.py src/pbc/authoring/selection.py src/pbc/authoring/store.py
+  scripts/fetch-base.sh scripts/collect-base.sh
+  src/pbc/authoring/provenance.py scripts/build-site.sh src/pbc/authoring/lean.py .agents/approvals
   ':(glob)scripts/*-feature.sh' ':(glob)scripts/*-planning.sh')
 for path in "${expected[@]}"; do
   printf '%s\n' "$specs" | grep -Fx -- "$path" >/dev/null || fail "guardrails.conf does not protect the Level 3 path $path"
@@ -859,7 +866,7 @@ while IFS= read -r spec; do
 done <<<"$specs"
 [[ "$count" -eq $((${#expected[@]} + 1)) ]] || fail "only $count protected paths were checked"
 # Nothing a Level 1 or 2 change touches is on the list.
-for path in docs/development.md site/lessons/x/index.qmd src/pbc/other.py tests/unit/test_x.py scripts/check-lean.sh \
+for path in docs/development.md site/lessons/x/index.qmd src/pbc/other.py tests/unit/test_x.py scripts/check-docs.sh \
   .agents/plans/5-thing.md pyproject.toml; do
   git -C "$repo" reset -q --hard
   git -C "$repo" clean -qfd
@@ -899,6 +906,79 @@ for path in .agents/prompts/reviewer.md .agents/schemas/review.schema.json; do
     cat "$repo.out" >&2
     fail "a change to $path is no longer reported as protected"
   }
+done
+
+! printf '%s\n' "$specs" | grep -Fx -- scripts/verify.conf >/dev/null ||
+  fail "guardrails.conf still names scripts/verify.conf as protected; the builtin rule is to read it"
+
+# The paths the inventory of #446 adds (Issue #465): a change to each new
+# protected path is Level 3 by path (D1, D2, D5, D6), and a change to each
+# path of D7 is reported as sensitive only and stays Level 2 by path.
+for path in scripts/triage-review.sh scripts/apply-triage.sh scripts/check-lean.sh scripts/check-lesson-pages.sh \
+  scripts/check-determinism.sh scripts/fetch-built-site.sh src/pbc/authoring/store.py src/pbc/authoring/lean.py; do
+  repo="$(setup_repo "new-protected-$(basename "$path")")"
+  mkdir -p "$repo/$(dirname "$path")"
+  printf '# changed\n' >>"$repo/$path"
+  check "$repo"
+  grep -Fqx "level: protected" "$repo.out" && grep -Fq "protected: $path (" "$repo.out" || {
+    cat "$repo.out" >&2
+    fail "a change to $path is not reported as protected"
+  }
+  assess "$repo"
+  expect "a change to $path" RISK_PATH_MIN 3
+  expect "a change to $path" RISK_REQUIRED 3
+  printf '%s\n' "$RISK_PATH_REASONS" | grep -F "$path: " >/dev/null ||
+    fail "the path minimum of a change to $path does not name it: ${RISK_PATH_REASONS:-none}"
+done
+d7=(src/pbc/authoring/evidence.py src/pbc/data/check.py src/pbc/skills.py src/pbc/verification/checks.py
+  tests/e2e/conftest.py data/registry)
+for spec in "${d7[@]}"; do
+  printf '%s\n' "$sensitive_specs" | grep -Fx -- "$spec" >/dev/null || fail "guardrails.conf does not name $spec as sensitive"
+  ! printf '%s\n' "$specs" | grep -Fx -- "$spec" >/dev/null || fail "guardrails.conf protects $spec, which D7 makes sensitive"
+done
+for path in src/pbc/authoring/evidence.py src/pbc/data/check.py src/pbc/skills.py src/pbc/verification/checks.py \
+  tests/e2e/conftest.py data/registry/x-card.yaml; do
+  repo="$(setup_repo "d7-$(basename "$path")")"
+  mkdir -p "$repo/$(dirname "$path")"
+  printf '# changed\n' >>"$repo/$path"
+  check "$repo"
+  grep -Fqx "level: sensitive" "$repo.out" && grep -Fq "sensitive: $path (" "$repo.out" || {
+    cat "$repo.out" >&2
+    fail "a change to $path is not reported as sensitive only"
+  }
+  assess "$repo"
+  expect "a change to $path" RISK_PATH_MIN 2
+done
+
+# scripts/verify.conf under the builtin rule (D4): with the real gate
+# configuration an added check is sensitive and Level 2 by path, and a
+# changed or a removed line is protected and Level 3.
+repo="$(setup_repo checks)"
+git -C "$repo" switch -q main
+printf 'lint: true\nunit: true\n' >"$repo/scripts/verify.conf"
+git -C "$repo" add scripts/verify.conf
+git -C "$repo" commit -qm "The checks"
+git -C "$repo" switch -q feature/5-thing
+git -C "$repo" reset -q --hard main
+printf 'new-check: true\n' >>"$repo/scripts/verify.conf"
+check "$repo"
+grep -Fqx "level: sensitive" "$repo.out" && grep -Fq "sensitive: scripts/verify.conf (a check is added)" "$repo.out" || {
+  cat "$repo.out" >&2
+  fail "an added check in scripts/verify.conf is not reported as sensitive only"
+}
+assess "$repo"
+expect "an added check" RISK_PATH_MIN 2
+for change in 'lint: true\nunit: echo skipped\n' 'lint: true\n'; do
+  git -C "$repo" reset -q --hard
+  printf "$change" >"$repo/scripts/verify.conf"
+  check "$repo"
+  grep -Fqx "level: protected" "$repo.out" &&
+    grep -Fq "protected: scripts/verify.conf (an existing check or line is changed or removed)" "$repo.out" || {
+    cat "$repo.out" >&2
+    fail "a changed or removed check in scripts/verify.conf is not reported as protected"
+  }
+  assess "$repo"
+  expect "a changed or removed check" RISK_PATH_MIN 3
 done
 
 # The level of a change that touches only these paths (Issue #412): the
