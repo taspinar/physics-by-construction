@@ -11120,8 +11120,9 @@ physics to artificial intelligence" (Part A, Part B, and the transition
 copy file, in place of the journey text), and "How we verify what we
 teach", the quietest. The example lesson per part of this block is
 withdrawn: Home shows none, and after Part A it names the eight course
-subjects from the curriculum, a planned course marked as planned. A Home
-text may use a form of "discover" only in a question or after a negation.
+subjects from the curriculum, a planned course marked as planned. The word
+"discover" has no rule on Home, which is not part of the curriculum (the
+owner's decision of 2026-11-11 on Issue #481).
 ADR 021 decision 4 (the amendment of 2026-11-11) and the requirements'
 "Home page" record it; the rest of this block stands.
 
