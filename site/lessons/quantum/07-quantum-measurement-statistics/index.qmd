@@ -100,7 +100,7 @@ models under stated conditions, not a proof of anything beyond them.
 
 ## Correlators, the CHSH value, and the model {#explanation}
 
-### From counts to a correlator and to $S$
+### From counts to a correlator and to the CHSH value
 
 The entanglement lesson estimates a correlator from counts of outcomes.
 With $N_{=}$ events of equal outcomes and $N_{\neq}$ of unequal ones at one
@@ -299,7 +299,7 @@ $(0, +45)$ and $(90, -45)$ are larger than the two at $(0, -45)$ and
 $(90, +45)$ by more than four standard errors. The model section below
 asks what that means.
 
-### $S$ against the bounds of the entanglement lesson {#chsh-value}
+### The CHSH value against the bounds of the entanglement lesson {#chsh-value}
 
 ```{python}
 #| echo: false
