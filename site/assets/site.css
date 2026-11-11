@@ -2879,6 +2879,119 @@ details.disclosure[open] > summary {
   font-size: var(--pbc-text-large);
 }
 
+/* The route of a change on the same page (Issue #469): one diagram, one
+   SVG, two layouts. The drawing is laid out as a column (its viewBox), the
+   layout of a phone; for a figure of at least 44rem the whole is scaled by
+   the wide scale, every box and label line is moved by its wide shift, and
+   the arrows of the wide layout (two rows of four) replace the column's.
+   The texts exist once, so no text is hidden at any width, and the figure
+   decides by its own width (a container query), so the table of contents
+   beside the column decides nothing and nothing scrolls sideways. The
+   drawing carries the scale, the shifts, and the wide aspect ratio as
+   custom properties; the sizes are user units, which scale with its width.
+   The steps where the owner decides carry the cobalt outline, the arrows
+   back are dashed, and every meaning is also in the list under the figure. */
+.route-figure {
+  container-type: inline-size;
+  margin: var(--pbc-space-3) 0;
+}
+
+/* At 200 % text on a 320 px screen the column is 212 px wide, and one bold
+   word of a step ("implementation") or a check's name in code is wider:
+   the section hyphenates, and breaks a word only where nothing else fits. */
+#route {
+  hyphens: auto;
+  overflow-wrap: anywhere;
+}
+
+.route-diagram {
+  display: block;
+  width: 100%;
+  max-width: 22rem;
+  height: auto;
+  margin: 0 auto;
+  font-family: var(--pbc-font-text);
+}
+
+.route-diagram .arrows-wide {
+  display: none;
+}
+
+@container (min-width: 44rem) {
+  .route-diagram {
+    max-width: none;
+    margin: 0;
+    aspect-ratio: var(--wide-aspect);
+  }
+
+  .route-diagram .route-all {
+    transform: var(--wide-scale);
+  }
+
+  .route-diagram .movable {
+    transform: var(--wide-shift);
+  }
+
+  .route-diagram .arrows-narrow {
+    display: none;
+  }
+
+  .route-diagram .arrows-wide {
+    display: inline;
+  }
+
+  .route-diagram .back-label {
+    text-anchor: middle;
+  }
+}
+
+.route-diagram text {
+  fill: var(--pbc-text);
+  font-size: 13px;
+}
+
+.route-diagram .title {
+  font-weight: 600;
+}
+
+.route-diagram .detail,
+.route-diagram .back-label {
+  fill: var(--pbc-muted);
+  font-size: 11.5px;
+}
+
+.route-diagram .step {
+  fill: var(--pbc-plate);
+  stroke: var(--pbc-rule);
+  stroke-width: 1;
+}
+
+.route-diagram .gate {
+  stroke: var(--pbc-link);
+  stroke-width: 2;
+}
+
+.route-diagram .flow {
+  fill: none;
+  stroke: var(--pbc-rule);
+  stroke-width: 1.5;
+}
+
+.route-diagram .back {
+  fill: none;
+  stroke: var(--pbc-muted);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+
+.route-diagram .flow-head {
+  fill: var(--pbc-rule);
+}
+
+.route-diagram .back-head {
+  fill: var(--pbc-muted);
+}
+
 /* Nothing in the chrome moves. The theme already drops its own transitions
    and its smooth scrolling for a reader who asks for less motion; the header
    and the footer add none, and a jump to an anchor stays instant. */
