@@ -286,6 +286,29 @@ descriptions live.
    320 by 568 the primary action ends at least 24 px above it. The data
    file, its validation, the one `<h1>`, no storage and no request, and no
    measurement of which text works better stand.
+
+   *Amended on 2026-11-11 by the owner's copy of Issue #481 (Home: copy and
+   structure).* The hero's one fixed subtext is replaced by the owner's new
+   words ("Explore physics by building simulations, working with
+   experimental data, and investigating how AI could help us understand the
+   physical world."); the headline and the two actions stand. The copy
+   after the hero is the owner's fixed text in the Home copy file, in the
+   same order: "What is Physics by Construction?", "Build. Experiment.
+   Understand.", "From computational physics to artificial intelligence"
+   (replacing "What you can learn"; Part A, Part B, and the transition
+   "First understand the physics. Then challenge the AI.", each with its
+   own text in the Home copy file, while the journey file's longer text
+   stays on the atlas and About), and "How we verify what we teach"
+   (replacing "How the results are kept honest"), the quietest section.
+   Home shows no example lesson: the at most one owner-chosen lesson per
+   part of the amendment of 2026-11-04 is withdrawn, since lesson discovery
+   belongs to the Course Atlas. After Part A the eight course subjects are
+   named compactly from the curriculum, plain text, a course without a
+   published lesson marked as planned. The introduction no longer opens
+   with the canonical attribution, which About and the footer keep, and
+   keeps the one link to About. A Home text may use a form of "discover"
+   only in a question or after a negation in its sentence; no page presents
+   a result as a discovery.
 5. **Navigation and the supporting pages.** The header carries the
    project mark, exactly four menu items (Home, Course Atlas, About, and
    the Start learning button), and the search; the footer carries the

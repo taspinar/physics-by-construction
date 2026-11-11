@@ -1,12 +1,13 @@
 """The project's identity text: the one source of the attribution wording.
 
-The canonical sentence says what the project is and who is behind it. The home
-page, the About page, the README, and ``CITATION.cff`` carry it verbatim; the
-footer carries the line derived from it. No surface types either text by hand:
+The canonical sentence says what the project is and who is behind it. The
+About page, the README, and ``CITATION.cff`` carry it verbatim; the footer of
+every page carries the line derived from it. The home page's introduction is
+the owner's shorter copy (Issue #481) and links to About instead of repeating
+the sentence. No surface types either text by hand:
 the pages call :func:`description` and :func:`footer_line`, and
 ``python -m pbc.authoring.identity`` writes the README and ``CITATION.cff``
-(``--check`` only compares). A test reads all five surfaces against this
-module. ``docs/authoring.md`` states the rules.
+(``--check`` only compares). A test reads every surface against this module. ``docs/authoring.md`` states the rules.
 """
 
 import argparse

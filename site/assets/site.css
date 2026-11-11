@@ -2507,8 +2507,8 @@ body.pbc-reading-column main.content section.level2 {
 
 /* The home page (docs/atelier.md, "Home page"): the hero (the owner's
    headline and subtext, one of the Part A illustrations, and the first
-   step), then identity, how physics is learned here, what you can learn,
-   and integrity. The page opts in with body-classes: pbc-home. */
+   step), then what Physics by Construction is, how physics is learned
+   here, Part A and Part B, and how we verify what we teach. The page opts in with body-classes: pbc-home. */
 /* On a narrow screen the copy, the two actions, and the image follow each
    other in the document flow, with 1.5rem between the subtext and the
    actions and 2rem between the actions and the image (round 2 of Issue
@@ -2717,9 +2717,10 @@ body.pbc-home main section.level2 {
   gap: var(--pbc-space-2) var(--pbc-space-4);
 }
 
-/* What you can learn: Part A and Part B, each under a rule in the ink of
-   its part in the atlas, side by side from 992 CSS px; the relation below
-   them. */
+/* From computational physics to artificial intelligence (Issue 481): Part
+   A and Part B, each under a rule in the ink of its part in the atlas, side
+   by side from 992 CSS px; Part A ends with the course subjects; the
+   transition below them spans both and is lighter than a part. */
 .home-curriculum {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -2730,6 +2731,7 @@ body.pbc-home main section.level2 {
 @media (min-width: 992px) {
   .home-curriculum {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--pbc-space-5);
   }
 
   .home-relation {
@@ -2754,65 +2756,62 @@ body.pbc-home main section.level2 {
 body.pbc-home .home-part h3 {
   margin: var(--pbc-space-3) 0 var(--pbc-space-3);
   color: var(--home-ink);
-}
-
-/* The relation belongs to neither part: a plain rule and heading. */
-body.pbc-home .home-relation h3 {
-  color: var(--pbc-text);
-}
-
-/* The owner's example of a part: the lesson's preview, its title, one
-   line, and its level and home. */
-.home-example {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0 var(--pbc-space-4);
-  margin: var(--pbc-space-4) 0 0;
-}
-
-@media (min-width: 576px) {
-  .home-example {
-    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-    align-items: start;
-  }
-
-  .home-example > :not(:first-child) {
-    grid-column: 2;
-  }
-
-  .home-example > :first-child {
-    grid-row: 1 / span 3;
-    margin: 0;
-  }
-}
-
-.home-example p {
-  margin-bottom: var(--pbc-space-2);
-}
-
-.home-preview {
-  display: block;
-  width: 100%;
-  max-width: 320px;
-  height: auto;
-  border: var(--pbc-rule-width) solid var(--pbc-rule);
-  background-color: var(--pbc-plate);
-}
-
-body.pbc-home .home-example h4 {
-  margin: var(--pbc-space-2) 0;
-  font-size: var(--pbc-heading-3);
   line-height: var(--pbc-leading-tight);
+  text-wrap: balance;
 }
 
-.home-meta {
-  display: inline-block;
-  /* An inline block is at least as wide as its longest word; this keeps it
-     in the column, where a longer word breaks. */
-  max-width: 100%;
+/* The course subjects of Part A: one quiet run of names that wraps, not a
+   list of cards; the separator is drawn, so a screen reader hears a list
+   of eight items and no dots. */
+body.pbc-home .home-subjects {
+  margin: var(--pbc-space-4) 0 0;
+  padding: var(--pbc-space-3) 0 0;
+  border-top: var(--pbc-rule-width) solid var(--pbc-rule);
+  list-style: none;
   color: var(--pbc-muted);
   font-size: var(--pbc-text-small);
-  line-height: 1.45;
+  line-height: var(--pbc-leading-body);
+}
+
+/* Each name wraps as a unit (inside only when it is longer than the
+   line, at a large text size on a phone); the dot ends its line. */
+body.pbc-home .home-subjects li {
+  display: inline-block;
+  max-width: 100%;
+}
+
+body.pbc-home .home-subjects li:not(:last-child)::after {
+  content: "\00b7";
+  content: "\00b7" / "";
+  margin: 0 0.5em;
+  color: var(--pbc-link);
+}
+
+/* The transition belongs to neither part: a thin neutral rule and a
+   heading at the size of large text, so that it links the parts rather
+   than reading as a third. */
+body.pbc-home .home-relation {
+  border-top-width: var(--pbc-rule-width);
+}
+
+body.pbc-home .home-relation h3 {
+  color: var(--pbc-text);
+  font-size: var(--pbc-text-large);
+}
+
+/* How we verify what we teach: the quietest section, its heading a step
+   below the others and its prose in the muted ink, with more room above
+   it. */
+body.pbc-home main section#integrity {
+  margin-top: calc(var(--pbc-space-5) * 1.5);
+}
+
+body.pbc-home main section#integrity h2 {
+  font-size: var(--pbc-heading-3);
+}
+
+body.pbc-home main section#integrity > p {
+  color: var(--pbc-muted);
 }
 
 /* "Run the code" (F134): the three routes above the shared installation,

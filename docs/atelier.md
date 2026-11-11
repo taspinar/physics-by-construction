@@ -280,15 +280,20 @@ kept.
   arrives, blended with `darken` on the paper so that the masters' white
   shows no box; below 992 px the image follows the actions, 2rem under
   them, and at 390 by 844 it is whole on the first screen. Then four
-  sections from the copy file:
-  what the site is (the canonical sentence first, the one link to the
-  creator), how physics is learned here, what you can learn (the journey's
-  Part A and Part B side by side from 992 px, each under a rule in the ink
-  of its part, with the owner's example lesson as its preview, title, one
-  line, and level; the relation below them), and how the results are kept
-  honest, last, with the links to "How we verify the science" and the
-  source. No eyebrow, no card box, no count of lessons: the atlas gives the
-  overview.
+  sections from the copy file, the owner's text of Issue #481:
+  what Physics by Construction is (the one link to the creator and JIDAI;
+  the attribution itself is on About and in the footer), "Build.
+  Experiment. Understand.", Part A and Part B (side by side from 992 px,
+  each under a rule in the ink of its part; after Part A the eight course
+  subjects as one run of names in the small muted size, separated by a
+  drawn cobalt middle dot, under a hairline; no example lesson; the
+  transition "First understand the physics. Then challenge the AI." below
+  them across both columns, under a hairline and with a heading at the
+  large text size, lighter than a part), and, last and quietest, how we
+  verify what we teach (its heading a step smaller, its prose in the muted
+  ink, more room above it), with the links to "How we verify the science"
+  and the source. No eyebrow, no card box, no badge, no count of lessons:
+  the atlas gives the overview.
 - **Run the code** (F134). The three routes as the first sections of the
   page, side by side from 768 px under the construction line; "Optional:
   drive a coding agent" and "Troubleshooting" keep their headings with

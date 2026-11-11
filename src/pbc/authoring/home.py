@@ -5,7 +5,8 @@ philosophy, curriculum, and integrity.
 
 The hero's copy is the owner's, held in the data file ``site/hero.yaml``
 beside the curriculum file and validated here: one fixed headline and one
-fixed subtext (round 2 of Issue #462, 2026-11-10), written into the HTML by
+fixed subtext (round 2 of Issue #462, 2026-11-10; the subtext of Issue
+#481, 2026-11-11), written into the HTML by
 the build and never changed by a script, so the page shows the same text
 with and without scripts and after a reload. The file keeps the three
 headlines and eight subtexts of F134 under ``variants`` as an editorial
@@ -23,12 +24,18 @@ script creates the one image it picks, at random, or the one the
 ``hero-image`` parameter names. Exactly one hero image is requested per
 load.
 
-The sections after the hero come from ``site/home.yaml`` (prose and
-references under the rules of the learning journey) and, for "What you can
-learn", from the learning journey itself (``site/journey.yaml``, the one
-source the Course Atlas and About share), with at most one representative
-published lesson per part, chosen by the owner and named in the copy file by
-its slot. No code chooses an example lesson or a capstone. Every link is
+The sections after the hero come from ``site/home.yaml``, the owner's
+fixed copy (Issue #481, 2026-11-11): prose and references under the rules
+of the learning journey, with a form of "discover" only in a question or
+after a negation. The curriculum section holds Part A, Part B, and the
+transition between them, each with its own heading and text; the longer
+text of the learning journey (``site/journey.yaml``) stays on the Course
+Atlas and About. After Part A the page names the course subjects, from the
+curriculum (``COURSES``, which the curriculum file is validated against), a
+course without a published lesson marked as planned. Home shows no example
+lesson: lesson discovery belongs to the Course Atlas. The introduction does
+not repeat the canonical attribution of ``pbc.authoring.identity``, which
+About and the footer carry; it ends with the one link to it. Every link is
 built here from the lessons and the page addresses.
 """
 
@@ -46,11 +53,8 @@ import yaml
 
 from pbc.authoring.atlas import Atlas, registered_assets
 from pbc.authoring.glossary import Glossary
-from pbc.authoring.identity import ABOUT_ANCHOR, description
+from pbc.authoring.identity import ABOUT_ANCHOR
 from pbc.authoring.introductions import sequence_ids
-from pbc.authoring.journey import (
-    SECTIONS as JOURNEY_SECTIONS,
-)
 from pbc.authoring.journey import (
     Journey,
     JourneyContent,
@@ -62,11 +66,7 @@ from pbc.authoring.path import (
     LearningPath,
     Lesson,
     _href,
-    _level,
 )
-from pbc.authoring.previews import HEIGHT as PREVIEW_HEIGHT
-from pbc.authoring.previews import WIDTH as PREVIEW_WIDTH
-from pbc.authoring.previews import preview_of
 from pbc.authoring.repository import repository_url
 from pbc.authoring.website import PAGE_FILE, introduced, page_href, project_root
 
@@ -95,9 +95,16 @@ SECTIONS = (
     ("curriculum", "what-you-can-learn"),
     ("integrity", "integrity"),
 )
-# The two parts of "What you can learn": the key of an example in the copy
-# file, and the section of the learning journey that explains the part.
-PARTS = (("part-a", "A"), ("part-b", "B"))
+# The parts of the curriculum section in the order of the page, each a
+# heading and its text in the copy file, with the anchor of its heading:
+# Part A, Part B, and the transition between them.
+PARTS = (
+    ("part-a", "part-a"),
+    ("part-b", "part-b"),
+    ("relation", "part-a-to-part-b"),
+)
+# The accessible name of the list of the course subjects after Part A.
+SUBJECTS_LABEL = "The courses of Part A"
 # The two actions of the first step (requirements decision 43): the Course
 # Atlas, primary on Home, and the first lesson of Part A, secondary; the
 # header's Course Atlas link and Start learning button lead to the same
@@ -109,7 +116,6 @@ _IMAGE_ID = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 # Markup that plain text of the hero must not hold: it is set as text, so it
 # would show as typed.
 _MARKUP = re.compile(r"[<>*_`#\[\]{}\\|$]")
-_SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z])")
 
 
 # --- The hero's copy -------------------------------------------------------
@@ -338,7 +344,6 @@ def _typographic(text: str) -> str:
 def home_problems(
     data: object,
     curriculum: Curriculum,
-    published: Collection[str] = (),
     terms: Collection[str] = (),
 ) -> list[str]:
     """Every rule of the Home copy file that ``data`` breaks: a mapping of
@@ -346,10 +351,10 @@ def home_problems(
     non-empty text) and, except the curriculum, ``text``, a non-empty list
     of paragraphs under the text rules of the learning journey (inline
     Markdown, references that resolve, no count, no lesson named outside a
-    reference, no "discover"); the curriculum's optional ``examples``, a
-    mapping of ``part-a`` or ``part-b`` to the label of a slot of a course
-    or of a method path respectively, which has a published lesson (its
-    label in ``published``)."""
+    reference), with a form of "discover" only in a question or after a
+    negation in its sentence; the curriculum's ``part-a``, ``part-b``, and
+    ``relation``, each a mapping of a ``heading`` and ``text`` under the
+    same rules."""
     where = HOME_FILE
     if not isinstance(data, dict):
         return [
@@ -362,93 +367,94 @@ def home_problems(
     except ValueError as error:
         return [*found, str(error)]
     for key, _ in SECTIONS:
-        section = data.get(key)
         if key not in data:
             continue
-        fields = {"heading", "examples"} if key == "curriculum" else {"heading", "text"}
-        if not isinstance(section, dict):
-            found.append(f"{where}: {key} is not a mapping")
-            continue
-        unknown = set(section) - fields
-        if unknown:
-            found.append(
-                f"{where}: {key} has unknown fields: "
-                + ", ".join(sorted(map(str, unknown)))
-            )
-        if "heading" not in section:
-            found.append(f"{where}: {key} lacks heading")
-        else:
-            found += _text_problems(f"the heading of {key}", section["heading"])
         if key == "curriculum":
-            found += _example_problems(
-                section.get("examples", {}), curriculum, published
+            found += _section_problems(
+                key, data[key], {"heading", *(part for part, _ in PARTS)}
             )
+            section = data[key]
+            if not isinstance(section, dict):
+                continue
+            for part, _ in PARTS:
+                if part in section:
+                    found += _section_problems(
+                        f"{key} {part}",
+                        section[part],
+                        {"heading", "text"},
+                        curriculum,
+                        sequences,
+                        terms,
+                    )
             continue
-        texts = section.get("text")
-        if not isinstance(texts, list) or not texts:
-            found.append(f"{where}: {key} has no non-empty list 'text'")
-            continue
-        for number, text in enumerate(texts, start=1):
-            found += _journey_text_problems(
-                f"{where}: {key} {number}", text, curriculum, sequences, terms
-            )
+        found += _section_problems(
+            key, data[key], {"heading", "text"}, curriculum, sequences, terms
+        )
     return found
 
 
-def _example_problems(
-    examples: object, curriculum: Curriculum, published: Collection[str]
+def _section_problems(
+    name: str,
+    section: object,
+    fields: set[str],
+    curriculum: Curriculum | None = None,
+    sequences: Collection[str] = (),
+    terms: Collection[str] = (),
 ) -> list[str]:
-    where = f"{HOME_FILE}: curriculum examples"
-    if examples is None:
-        return []
-    if not isinstance(examples, dict):
-        return [f"{where} is not a mapping of part-a and part-b to a slot"]
+    """The rules of one section of the copy file, or of one part of the
+    curriculum section: exactly ``fields``, a plain heading, and, when
+    ``fields`` holds ``text``, a non-empty list of paragraphs under the text
+    rules."""
+    where = HOME_FILE
+    if not isinstance(section, dict):
+        return [f"{where}: {name} is not a mapping"]
     found = []
-    if unknown := set(examples) - {key for key, _ in PARTS}:
+    if unknown := set(section) - fields:
         found.append(
-            f"{where} name {', '.join(sorted(map(str, unknown)))}; only part-a and"
-            " part-b, one lesson each"
+            f"{where}: {name} has unknown fields: "
+            + ", ".join(sorted(map(str, unknown)))
         )
-    for key, part in PARTS:
-        if key not in examples:
-            continue
-        label = examples[key]
-        slot = curriculum.slot(label) if isinstance(label, str) else None
-        if slot is None:
-            found.append(f"{where}: {key} names {label!r}, no slot of the curriculum")
-            continue
-        if part == "A" and not slot.course:
-            found.append(f"{where}: {key} names {label}, which is no slot of a course")
-        if part == "B" and not slot.path:
-            found.append(
-                f"{where}: {key} names {label}, which is no slot of a method path"
-            )
-        if label not in published:
-            found.append(
-                f"{where}: {key} names {label}, which has no published lesson;"
-                " an example is a published lesson or none"
-            )
+    for field in sorted(fields - set(section)):
+        found.append(f"{where}: {name} lacks {field}")
+    if "heading" in section:
+        found += _text_problems(f"the heading of {name}", section["heading"])
+    if "text" not in fields or "text" not in section:
+        return found
+    texts = section["text"]
+    if not isinstance(texts, list) or not texts:
+        return [*found, f"{where}: {name} has no non-empty list 'text'"]
+    assert curriculum is not None
+    for number, text in enumerate(texts, start=1):
+        found += _journey_text_problems(
+            f"{where}: {name} {number}",
+            text,
+            curriculum,
+            sequences,
+            terms,
+            framed_discovery=True,
+        )
     return found
 
 
 @dataclass(frozen=True)
 class HomeCopy:
     """The validated copy of Home: the heading and paragraphs of each
-    section, and the slot of each part's example."""
+    section, and of each part of the curriculum section (the curriculum
+    section's own paragraphs are empty)."""
 
     headings: dict[str, str]
     texts: dict[str, tuple[str, ...]]
-    examples: dict[str, str]  # "part-a" -> a slot label
+    # "part-a" -> (its heading, its paragraphs)
+    parts: dict[str, tuple[str, tuple[str, ...]]]
 
     @classmethod
     def parse(
         cls,
         data: object,
         curriculum: Curriculum,
-        published: Collection[str] = (),
         terms: Collection[str] = (),
     ) -> HomeCopy:
-        found = home_problems(data, curriculum, published, terms)
+        found = home_problems(data, curriculum, terms)
         if found:
             raise ValueError(
                 f"{HOME_FILE} breaks the rules of the Home copy:\n"
@@ -462,7 +468,13 @@ class HomeCopy:
                 for key, _ in SECTIONS
                 if key != "curriculum"
             },
-            dict(data["curriculum"].get("examples") or {}),
+            {
+                part: (
+                    _words(data["curriculum"][part]["heading"]),
+                    tuple(_words(text) for text in data["curriculum"][part]["text"]),
+                )
+                for part, _ in PARTS
+            },
         )
 
     @classmethod
@@ -470,7 +482,6 @@ class HomeCopy:
         cls,
         site: Path,
         curriculum: Curriculum,
-        published: Collection[str] = (),
         terms: Collection[str] = (),
     ) -> HomeCopy:
         """Read ``home.yaml`` of the website project ``site``. Raises
@@ -482,7 +493,7 @@ class HomeCopy:
                 data = yaml.safe_load(file.read_text(encoding="utf-8"))
             except yaml.YAMLError as error:
                 raise ValueError(f"{HOME_FILE} is not valid YAML: {error}") from None
-        return cls.parse(data, curriculum, published, terms)
+        return cls.parse(data, curriculum, terms)
 
 
 # --- The page ----------------------------------------------------------------
@@ -600,12 +611,13 @@ class HomeContent:
         return f"## {self.copy.headings[key]} {{#{dict(SECTIONS)[key]}}}"
 
     def identity(self) -> str:
-        """The canonical sentence, the copy's paragraphs, and the one
-        attribution link."""
+        """The copy's paragraphs and the one link to the creator and JIDAI.
+        The canonical attribution is not repeated here: About and the
+        footer carry it (Issue #481)."""
         return "\n\n".join(
             [
                 self._heading("identity"),
-                f"{description()} {self._paragraphs('identity')}",
+                self._paragraphs("identity"),
                 "::: {.home-more}\n"
                 f"[About the creator and JIDAI]({self._about()})\n"
                 ":::",
@@ -620,75 +632,44 @@ class HomeContent:
             [self._heading("philosophy"), self._paragraphs("philosophy")]
         )
 
-    def example(self, part: str) -> Lesson | None:
-        """The owner's example of ``part`` ("part-a" or "part-b"), or None."""
-        label = self.copy.examples.get(part)
-        if label is None:
-            return None
-        return next(lesson for lesson in self.path.lessons if lesson.slot == label)
-
-    def _course_title(self, lesson: Lesson) -> str:
-        return next(course.title for course in COURSES if course.id == lesson.course)
-
-    def _example_card(self, part: str, letter: str, site: Path) -> list[str]:
-        lesson = self.example(part)
-        if lesson is None:
-            return []
-        preview = preview_of(lesson, site)
-        image = posixpath_relative(self.page, preview.file)
-        line = _SENTENCE_END.split(lesson.description)[0] if lesson.description else ""
-        slot = self.path.slot_of(lesson)
-        home = (
-            f"the method path {self.path.curriculum.path(slot.path).title}"
-            if slot is not None and slot.path
-            else self._course_title(lesson)
+    def subjects(self) -> str:
+        """The course subjects of Part A as one list, in the order of the
+        curriculum; a course without a published lesson is marked as
+        planned. Plain names: the Course Atlas leads to the lessons."""
+        items = "".join(
+            f"<li>{html.escape(course.title)}"
+            + ("" if self.path.in_course(course) else " (planned)")
+            + "</li>"
+            for course in COURSES
         )
+        return (
+            "```{=html}\n"
+            f'<ul class="home-subjects" aria-label="{SUBJECTS_LABEL}">{items}</ul>\n'
+            "```"
+        )
+
+    def _part(self, part: str, anchor: str) -> list[str]:
+        heading, texts = self.copy.parts[part]
         return [
-            f"::: {{.home-example data-lesson-id={lesson.id}}}",
-            f'`<img class="home-preview" src="{image}"'
-            f' alt="{html.escape(preview.alt, quote=True)}"'
-            f' width="{PREVIEW_WIDTH}" height="{PREVIEW_HEIGHT}"'
-            ' loading="lazy">`{=html}',
+            f"::: {{.home-part .home-{part}}}",
             "",
-            f"#### [{lesson.title}]({_href(self.page, lesson.page)})"
-            f" {{#example-part-{letter.lower()} .unnumbered .unlisted}}",
+            f"### {heading} {{#{anchor}}}",
             "",
-            line,
+            "\n\n".join(self.journey.inline(text) for text in texts),
             "",
-            f"[A lesson of Part {letter}: {_level(lesson)}, in {home}]{{.home-meta}}",
+            *([self.subjects(), ""] if part == "part-a" else []),
             ":::",
             "",
         ]
 
-    def curriculum(self, site: Path | None = None) -> str:
-        """What you can learn: the learning journey's Part A, Part B, and
-        their relation, each part with the owner's example lesson."""
-        site = site or project_root(Path.cwd().resolve())
-        headings = dict(JOURNEY_SECTIONS)
+    def curriculum(self) -> str:
+        """From computational physics to artificial intelligence: Part A
+        with the course subjects, Part B, and the transition between them,
+        from the copy file; no example lesson."""
         lines = [self._heading("curriculum"), "", "::: {.home-curriculum}", ""]
-        for part, letter in PARTS:
-            lines += [
-                f"::: {{.home-part .home-{part}}}",
-                "",
-                f"### {headings[part]} {{#{part}}}",
-                "",
-                self.journey._paragraphs(part),
-                "",
-                *self._example_card(part, letter, site),
-                ":::",
-                "",
-            ]
-        lines += [
-            "::: {.home-part .home-relation}",
-            "",
-            f"### {headings['relation']} {{#part-a-to-part-b}}",
-            "",
-            self.journey._paragraphs("relation"),
-            "",
-            ":::",
-            "",
-            ":::",
-        ]
+        for part, anchor in PARTS:
+            lines += self._part(part, anchor)
+        lines.append(":::")
         return "\n".join(lines)
 
     def integrity(self) -> str:
@@ -709,7 +690,7 @@ class HomeContent:
             ]
         )
 
-    def markdown(self, site: Path | None = None) -> str:
+    def markdown(self) -> str:
         """The whole page: the hero, then identity, educational philosophy,
         curriculum, and integrity."""
         return "\n\n".join(
@@ -717,7 +698,7 @@ class HomeContent:
                 self.hero(),
                 self.identity(),
                 self.philosophy(),
-                self.curriculum(site),
+                self.curriculum(),
                 self.integrity(),
             ]
         )
@@ -744,7 +725,6 @@ def home_content() -> HomeContent:
             "the hero images break their rules:\n"
             + "\n".join(f"  {message}" for message in found)
         )
-    published = {lesson.slot for lesson in atlas.path.lessons if lesson.slot}
     journey = JourneyContent(
         atlas,
         glossary,
@@ -755,6 +735,6 @@ def home_content() -> HomeContent:
     return HomeContent(
         journey,
         hero,
-        HomeCopy.read(site, curriculum, published, terms),
+        HomeCopy.read(site, curriculum, terms),
         repository_url(),
     )

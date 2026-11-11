@@ -79,6 +79,20 @@ _SEQUENCE_COUNT = re.compile(
     re.IGNORECASE,
 )
 _DISCOVERY = re.compile(r"\bdiscover\w*", re.IGNORECASE)
+# A sentence of a text: up to its full stop, question or exclamation mark.
+_SENTENCE = re.compile(r"[^.!?]+[.!?]*")
+_NEGATION = re.compile(r"\b(not|no)\b", re.IGNORECASE)
+
+
+def _unframed_discovery(text: str) -> bool:
+    """Whether ``text`` uses a form of "discover" in a sentence that neither
+    asks a question nor negates the word ("not" or "no" before it)."""
+    for sentence in _SENTENCE.findall(text):
+        for word in _DISCOVERY.finditer(sentence):
+            asked = sentence.rstrip().endswith("?")
+            if not asked and not _NEGATION.search(sentence[: word.start()]):
+                return True
+    return False
 
 
 def _journey_text_problems(
@@ -87,7 +101,12 @@ def _journey_text_problems(
     curriculum: Curriculum,
     sequences: Collection[str],
     terms: Collection[str],
+    framed_discovery: bool = False,
 ) -> list[str]:
+    """Every text rule of the journey that ``value`` breaks. With
+    ``framed_discovery`` (the Home copy, Issue #481), a form of "discover"
+    may stand in a question or after a negation in its sentence; elsewhere
+    it never may."""
     found = _text_problems(where, value, curriculum)
     if not isinstance(value, str):
         return found
@@ -97,7 +116,7 @@ def _journey_text_problems(
             f"{where} states a count of courses, paths, or capstones; the atlas"
             " derives every count from the curriculum file"
         )
-    if _DISCOVERY.search(bare):
+    if _unframed_discovery(bare) if framed_discovery else _DISCOVERY.search(bare):
         found.append(
             f"{where} says 'discover' outside a reference; the journey never"
             " presents a result, least of all an AI result, as a discovery"

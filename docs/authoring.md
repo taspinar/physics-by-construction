@@ -279,7 +279,8 @@ reference, every reference resolving) and two more: no count of courses,
 paths, sequences, or capstones ("one" is no count), and no form of
 "discover" outside a reference, so that the journey cannot present a
 result, least of all an AI result, as a discovery. The rest of that rule is
-the review's.
+the review's. The Home copy follows the same rules, with the one exception
+its section below states.
 
 ### The course atlas
 
@@ -1894,16 +1895,19 @@ in `src/pbc/authoring/identity.py`. Rules for every page:
   (`images`); `site/learner/hero.js` creates one at random per visit, or
   the one `?hero-image=` names, with no request but that image and no
   storage.
-- The examples are chosen by code from the front matter, never named on
-  the page: in path order, the first simulation-only lesson of level 1, the
-  first measured-data lesson, and the first lesson with an LLM agent, each
-  from a course that is neither the first course nor an earlier example's;
-  then the first published capstone of a course none of them has, else
-  the first published capstone that is not itself an example. A
-  lesson's one line is the first sentence of its `description`; a
-  capstone's is the explanation of its concept in `site/atlas.yaml`. A
-  sentence about the site that is not generated must be true of the
-  published site.
+- The copy after the hero is the owner's fixed text (Issue #481,
+  2026-11-11) in `site/home.yaml`: the sections `identity` ("What is
+  Physics by Construction?"), `philosophy`, `curriculum`, and `integrity`
+  ("How we verify what we teach"), each a `heading` and `text`, and under
+  `curriculum` the parts `part-a`, `part-b`, and `relation` (the transition
+  "First understand the physics. Then challenge the AI."), each a
+  `heading` and `text`. Change it there and nowhere else. A text follows
+  the journey's rules, except that a form of "discover" may stand in a
+  question or after "not" or "no" in its sentence (any other use fails the
+  build). The introduction does not repeat the canonical sentence; it ends
+  with the one link to About. Home shows no example lesson; after Part A it
+  names the eight course subjects from the curriculum, a course without a
+  published lesson marked "(planned)", as plain text.
 - The hero image is composed at build time from the atlas's registered card
   illustrations, with the names of the courses and paths as SVG text; it
   holds no link. The double-pendulum figure of F124 left the home page; its
