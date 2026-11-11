@@ -1,13 +1,15 @@
-"""The home page takes its example lessons from the Home copy file, resolved
-and checked against the published lessons at build time (F158, replacing
-the examples chosen by code of F25 and F134).
+"""The home page builds from its data files (F158; Issue #481): the owner's
+copy from the Home copy file, the course subjects of Part A from the
+curriculum, a course without a published lesson marked as planned, and no
+example lesson.
 
 Each case is a minimal Quarto project in a temporary directory with the real
-home page, its data files, and a few lessons: changing the slot the copy
-file names changes the example the page shows, adding a lesson changes
-nothing, and naming a slot without a published lesson fails the build.
+home page, its data files, and a few lessons of one course: the subjects
+follow what is published, and a copy file that breaks its rules fails the
+build.
 """
 
+import re
 import shutil
 from pathlib import Path
 
@@ -15,6 +17,8 @@ import pytest
 import yaml
 from support.checks import output, run_check
 from support.paths import SITE_SOURCE
+
+from pbc.authoring.path import COURSES
 
 _CONFIG = """\
 project:
@@ -120,41 +124,32 @@ def built_text(site: Path, tmp_path: Path, name: str) -> str:
     return (tmp_path / name / "index.html").read_text()
 
 
-def set_example(site: Path, part: str, label: str | None) -> None:
-    file = site / "home.yaml"
-    data = yaml.safe_load(file.read_text())
-    if label is None:
-        data["curriculum"]["examples"].pop(part)
-    else:
-        data["curriculum"]["examples"][part] = label
-    file.write_text(yaml.safe_dump(data, sort_keys=False))
-
-
-def test_the_examples_follow_the_copy_file(site: Path, tmp_path: Path):
-    before = built_text(site, tmp_path, "before")
-    assert 'data-lesson-id="kinematics"' in before
-    assert 'data-lesson-id="agent"' in before
-    assert ">Agent lesson</a>" in before
-    assert "Agent lesson, in one line." in before
-    assert "A second sentence." not in before
-    assert 'data-lesson-id="second"' not in before
-    assert before.count("<h1") == 1
-
-    # The owner names another published lesson for Part A, and none for
-    # Part B: the page follows the file, and no lesson is chosen in its place.
-    set_example(site, "part-a", "M2")
-    set_example(site, "part-b", None)
-    after = built_text(site, tmp_path, "after")
-    assert 'data-lesson-id="second"' in after
-    assert 'data-lesson-id="kinematics"' not in after
-    assert 'data-lesson-id="agent"' not in after
-    assert "home-example" in after and after.count('class="home-example"') == 1
-
-
-def test_an_example_without_a_published_lesson_fails_the_build(
+def test_the_subjects_follow_the_published_lessons_and_no_example_is_shown(
     site: Path, tmp_path: Path
 ):
-    shutil.rmtree(site / "lessons" / "agents-llm")
+    page = built_text(site, tmp_path, "built")
+    assert page.count("<h1") == 1
+    (listing,) = re.findall(r'<ul class="home-subjects"[^>]*>(.*?)</ul>', page, re.S)
+    subjects = re.findall(r"<li>(.*?)</li>", listing)
+    # Only classical mechanics has a lesson here: the seven others are
+    # named as planned, in the order of the curriculum file.
+    assert subjects[0] == "Classical mechanics"
+    assert subjects[1:] == [f"{course.title} (planned)" for course in COURSES[1:]]
+    # No example lesson and no preview: the lessons are not on Home.
+    assert "home-example" not in page and "previews/" not in page
+    for title in ("First lesson", "Second lesson", "Agent lesson"):
+        assert f">{title}</a>" not in page
+    # The owner's headings, from the copy file.
+    copy = yaml.safe_load((site / "home.yaml").read_text())
+    assert copy["integrity"]["heading"] in page
+    assert "Then challenge the AI." in page
+
+
+def test_a_copy_file_that_breaks_its_rules_fails_the_build(site: Path, tmp_path: Path):
+    file = site / "home.yaml"
+    data = yaml.safe_load(file.read_text())
+    data["curriculum"]["examples"] = {"part-a": "M1"}
+    file.write_text(yaml.safe_dump(data, sort_keys=False))
     result = run_check("site-build", site, tmp_path / "failed")
     assert result.returncode != 0
-    assert "SA5, which has no published lesson" in output(result)
+    assert "curriculum has unknown fields: examples" in output(result)

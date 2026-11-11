@@ -3,63 +3,115 @@
 # order identity, educational philosophy, curriculum, integrity. Read and
 # validated by pbc.authoring.home; never written on a page.
 #
+# The text is the owner's, fixed on Issue #481 (2026-11-11): take it as
+# written, do not paraphrase it.
+#
 # - A heading is plain text. A text is one paragraph of inline Markdown under
 #   the rules of the learning journey (site/journey.yaml): references
 #   {sequence:<id>}, {slot:<label>}, or {term:<glossary term>} that resolve,
-#   no count of lessons, courses, paths, or capstones, no lesson named outside
-#   a reference, and no "discover".
-# - Identity opens with the canonical sentence of pbc.authoring.identity and
-#   ends with the one link to the creator; integrity ends with the links to
-#   "How we verify the science" and the source. The page adds them.
-# - The curriculum section takes its explanation of Part A, Part B, and their
-#   relation from the learning journey (site/journey.yaml), the one source the
-#   Course Atlas and About share. It holds only its heading and at most one
-#   representative published lesson per part, chosen by the owner and named
-#   by its slot: a slot of a course for Part A, a slot of a method path for
-#   Part B. The build fails when the slot has no published lesson. Leave a
-#   part out for no example.
-#
-# Draft copy of the session of Issue #462 (2026-11-09) from the journey
-# source: the owner approves it on the rendered page.
+#   no count of lessons, courses, paths, or capstones, and no lesson named
+#   outside a reference. The word "discover" has no rule here: the home page
+#   is not part of the curriculum (owner's decision, Issue #481).
+# - The page adds the links: identity ends with the one link to the creator
+#   and JIDAI (the attribution itself is on About and in the footer, from
+#   pbc.authoring.identity); integrity ends with the links to "How we
+#   verify the science" and the source.
+# - The curriculum section holds Part A, Part B, and the transition between
+#   them, each a heading and its text. The page adds the course subjects
+#   after Part A, from the curriculum (pbc.authoring.path), never typed here.
+#   The longer Part A and Part B text of the Course Atlas and About stays in
+#   the learning journey.
 
 identity:
-  heading: What this site is
+  heading: What is Physics by Construction?
   text:
     - >-
-      It teaches physics by having you build it. A model of a physical system
-      becomes a short program that you can read, run, and change, and each
-      lesson checks what that program does before it asks you to believe it.
+      Physics by Construction is a free, open-source online physics project
+      built around simulations, experiments, and scientific reasoning.
+    - >-
+      Many lessons begin with a physical question. How does a pendulum move?
+      How do waves propagate? What causes a fluid to form vortices? You
+      explore these questions by building models in Python, running
+      simulations, changing conditions, and comparing the results with
+      established theory or recorded experimental measurements. The goal is
+      not just to learn the equations, but to understand what they predict,
+      why they work, and where their limitations lie.
+    - >-
+      Beyond learning established physics, the project also explores how
+      artificial intelligence might support scientific research, and how we
+      can determine whether its conclusions are reliable.
 
 philosophy:
-  heading: How physics is learned here
+  heading: Build. Experiment. Understand.
   text:
     - >-
-      Each lesson follows the work of a physicist rather than the order of a
-      textbook chapter. You build a model from a few stated assumptions,
-      predict what it will do, compare the prediction with a known result or
-      with measurements, and interpret the difference: what the model
-      captures, what it leaves out, and how far its answer can be trusted.
+      Learning physics is more than memorising equations. It means
+      understanding how the physical world behaves and learning how to
+      investigate it.
     - >-
-      The code is part of the explanation, not an appendix to it. Because
-      every model runs, you can change a parameter or an assumption and see
-      what follows, and a lesson states the lessons it builds on, so you can
-      start wherever your background allows.
+      Physics by Construction follows the scientific process: ask a
+      question, develop a model, make predictions, investigate the results,
+      and examine where the model succeeds or fails. Through experimentation,
+      mathematical theory becomes something you can explore, question, and
+      understand.
 
 curriculum:
-  heading: What you can learn
-  examples:
-    part-a: M1
-    part-b: SA5
+  heading: From computational physics to artificial intelligence
+  part-a:
+    heading: Part A — Computational and experimental physics
+    text:
+      - >-
+        Learn physics by building and exploring computational models. Through
+        Python simulations and numerical experiments, you investigate how
+        physical systems behave and how mathematical theories describe them.
+      - >-
+        Some lessons also use recorded experimental measurements, allowing
+        you to compare theoretical predictions with observations. Throughout
+        the courses, you learn how to test your models, understand their
+        limitations, and evaluate the reliability of their results.
+      - >-
+        The result is a deeper understanding of physics through
+        experimentation.
+  part-b:
+    heading: Part B — Can AI help us discover new physics?
+    text:
+      - >-
+        Artificial intelligence is transforming how we analyse information,
+        write software, and solve complex problems. But could it also help
+        scientists design experiments, analyse complex data, or uncover
+        relationships in physical systems?
+      - >-
+        In Part B, you explore how AI agents can conduct computational
+        experiments, search for mathematical relationships, and reason about
+        physical systems. You examine what happens when these systems are
+        given scientific problems and investigate whether their conclusions
+        can be trusted.
+      - >-
+        The aim is not to assume that AI can make scientific discoveries, but
+        to explore what it would take for AI to become a reliable partner in
+        scientific research.
+  relation:
+    heading: First understand the physics. Then challenge the AI.
+    text:
+      - >-
+        Before asking AI to investigate a physical system, you need to
+        understand what a trustworthy result looks like. Part A provides that
+        foundation through simulations, theory, and experiments. Part B
+        builds on it by evaluating what AI can contribute to the scientific
+        process.
 
 integrity:
-  heading: How the results are kept honest
+  heading: How we verify what we teach
   text:
     - >-
-      The site is built from its lessons, and the build runs them: a lesson
-      whose code fails or whose proof does not compile is not published. A
-      claim in a lesson carries a label that says what supports it, such as
-      a computation that the build runs again, a comparison with recorded
-      measurements, or a proof that a machine checks.
+      Scientific results should be reproducible, transparent, and open to
+      scrutiny.
     - >-
-      The illustrations at the top of this page and in the Course Atlas are
-      artwork that sets the scene; the evidence is in the lessons.
+      The code used in our lessons is tested automatically, and results are
+      checked against established theory, independent calculations, or
+      experimental measurements where appropriate. Some lessons also include
+      computer-verified mathematical proofs.
+    - >-
+      We explain the assumptions and limitations behind the results so you
+      can understand not only what a model shows, but also how much
+      confidence to place in it.

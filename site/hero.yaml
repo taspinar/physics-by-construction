@@ -1,8 +1,9 @@
 # The hero of the home page (F134, F158; ADR 021 decision 4 as amended): one
-# fixed headline and one fixed subtext, the owner's words (round 2 of Issue
-# #462 and its correction, 2026-11-10), written into the HTML by the build
-# and never changed by a script: the page with and without scripts shows
-# the same text, also after a reload.
+# fixed headline and one fixed subtext, the owner's words (the headline of
+# round 2 of Issue #462, 2026-11-10; the subtext of Issue #481,
+# 2026-11-11), written into the HTML by the build and never changed by a
+# script: the page with and without scripts shows the same text, also after
+# a reload.
 #
 # Since F158 (Issue #462) the file also holds the hero image: four of the
 # Part A illustrations, each identified by the name of its file under
@@ -22,8 +23,8 @@
 headline: >-
   The universe has no obligation to fit the limits of human intelligence.
 subtext: >-
-  Explore physics by building models, testing predictions against real
-  data, and discovering what AI might make possible.
+  Explore physics by building simulations, working with experimental data,
+  and investigating how AI could help us understand the physical world.
 images:
   default: double-pendulum
   set:

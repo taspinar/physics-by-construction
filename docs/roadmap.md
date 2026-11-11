@@ -11108,6 +11108,24 @@ still enlarged (at least 1.35 times its normal size, 1.2 at 320 px, where
 the column holds the longest word at 1.27 at most), with no overlap and no
 horizontal overflow; the floor stands at normal text.
 
+**Follow-up after the merge: the owner's copy of 2026-11-11 (Issue #481,
+Home: copy and structure).** The owner fixed the text of Home: a new hero
+subtext ("Explore physics by building simulations, working with
+experimental data, and investigating how AI could help us understand the
+physical world."), and the sections "What is Physics by Construction?"
+(the introduction without the canonical attribution, which About and the
+footer keep), "Build. Experiment. Understand.", "From computational
+physics to artificial intelligence" (Part A, Part B, and the transition
+"First understand the physics. Then challenge the AI.", each from the Home
+copy file, in place of the journey text), and "How we verify what we
+teach", the quietest. The example lesson per part of this block is
+withdrawn: Home shows none, and after Part A it names the eight course
+subjects from the curriculum, a planned course marked as planned. The word
+"discover" has no rule on Home, which is not part of the curriculum (the
+owner's decision of 2026-11-11 on Issue #481).
+ADR 021 decision 4 (the amendment of 2026-11-11) and the requirements'
+"Home page" record it; the rest of this block stands.
+
 **Problem.** Home answers what PBC is in three sentences and shows three
 example lessons and a capstone chosen by code; a first-time visitor learns
 neither how physics is learned here nor how Part A and Part B relate, and

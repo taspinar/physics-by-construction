@@ -1,5 +1,5 @@
 """The built home page (F134, F158; ADR 021 decision 4 as amended): the hero
-with the owner's one fixed headline and subtext (round 2 of Issue #462), the
+with the owner's one fixed headline and subtext (Issues #462 and #481), the
 same with and without scripts and after a reload, and one of the four Part A
 illustrations, forced by the `hero-image` parameter or picked at random,
 exactly one hero image requested per load; the default image without
@@ -7,8 +7,9 @@ scripts; one <h1> that does not change after load; no layout shift; no
 request beyond the image and no storage by its script; the layout rule of
 "Home page" at 1280 by 800, 768 by 1024, 390 by 844, 360 by 640, and 320
 CSS px and at 200 % text; the two actions with the header's destinations;
-the four sections of the copy file in order, every link generated from data
-and reaching its target.
+the four sections of the owner's copy in order (Issue #481), Part A with its
+course subjects, no example lesson, every link generated from data and
+reaching its target.
 The accessibility scan, the keyboard pass, the reflow at 320 CSS px, and
 the payload budget are the checks every page gets
 (tests/e2e/test_built_site.py)."""
@@ -18,7 +19,6 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 import pytest
-import yaml
 from playwright.sync_api import Browser, BrowserContext, Page
 from support.paths import SITE_SOURCE
 from support.site_checks import _RECORD_STORAGE_WRITES, _STORAGE_ENTRIES, DESKTOP
@@ -29,15 +29,15 @@ from pbc.authoring.home import (
     ATLAS_ACTION,
     FIRST_LESSON_ACTION,
     HERO_IMAGES,
-    HOME_FILE,
     SECTIONS,
+    SUBJECTS_LABEL,
     HeroCopy,
 )
+from pbc.authoring.path import COURSES
 
 LESSONS = LearningPath.read(SITE_SOURCE)
 HERO = HeroCopy.read(SITE_SOURCE)
 IMAGES = [image.id for image in HERO.images]
-PUBLISHED = {lesson.slot: lesson for lesson in LESSONS.lessons if lesson.slot}
 TABLET = {"width": 768, "height": 1024}
 PHONE_TALL = {"width": 390, "height": 844}
 PHONE_SMALL = {"width": 360, "height": 640}
@@ -47,14 +47,6 @@ APOSTROPHE = chr(0x2019)
 
 def typographic(text: str) -> str:
     return text.replace("'", APOSTROPHE)
-
-
-def _examples() -> list:
-    data = yaml.safe_load((SITE_SOURCE / HOME_FILE).read_text(encoding="utf-8"))
-    examples = data["curriculum"].get("examples") or {}
-    return [
-        PUBLISHED[examples[part]] for part in ("part-a", "part-b") if part in examples
-    ]
 
 
 @pytest.fixture
@@ -569,21 +561,22 @@ def test_home_and_the_header_give_the_same_two_destinations(
 # --- The rest of the page ----------------------------------------------------------
 
 
-def test_the_examples_are_the_owner_s_lessons(
+def test_part_a_names_its_subjects_and_no_example_lesson_is_shown(
     without_scripts: BrowserContext, server: SiteServer
 ):
+    """The course subjects after Part A's text, as one list in the order of
+    the curriculum, plain names; no example lesson or preview on Home
+    (Issue #481): lesson discovery belongs to the Course Atlas."""
     page = open_home(without_scripts, server)
-    chosen = _examples()
-    entries = page.locator("main section#what-you-can-learn .home-example")
-    assert entries.evaluate_all("es => es.map(e => e.dataset.lessonId)") == [
-        lesson.id for lesson in chosen
-    ]
-    for entry, lesson in zip(entries.all(), chosen, strict=True):
-        assert hrefs(entry.locator("a")) == [built(lesson.page, server)]
-        image = entry.locator("img.home-preview")
-        assert (image.get_attribute("alt") or "").startswith("Preview, ")
-        assert page.request.get(image.evaluate("i => i.src")).ok
-        assert "level" in entry.locator(".home-meta").inner_text()
+    section = page.locator("main section#what-you-can-learn")
+    subjects = section.locator("ul.home-subjects")
+    assert subjects.count() == 1
+    assert subjects.get_attribute("aria-label") == SUBJECTS_LABEL
+    assert subjects.locator("li").all_inner_texts() == [c.title for c in COURSES]
+    assert subjects.locator("a").count() == 0
+    assert section.locator(".home-part-a ul.home-subjects").count() == 1
+    assert section.locator("a, img").count() == 0
+    assert page.locator("main .home-example, main img.home-preview").count() == 0
 
 
 def test_every_link_of_the_page_content_reaches_its_target(
@@ -613,15 +606,15 @@ def test_the_page_tells_one_story_in_the_order_of_the_copy_file(
     assert "lessons published" not in text
     headings = page.locator("main h2").all_inner_texts()
     assert headings == [
-        "What this site is",
-        "How physics is learned here",
-        "What you can learn",
-        "How the results are kept honest",
+        "What is Physics by Construction?",
+        "Build. Experiment. Understand.",
+        "From computational physics to artificial intelligence",
+        "How we verify what we teach",
     ]
     assert page.locator("main h3").all_inner_texts() == [
-        "Part A: Physics by construction",
-        "Part B: Physics and AI",
-        "From Part A to Part B",
+        "Part A \u2014 Computational and experimental physics",
+        "Part B \u2014 Can AI help us discover new physics?",
+        "First understand the physics. Then challenge the AI.",
     ]
     # No constellation and no inline image in the hero.
     assert page.locator(".home-hero svg").count() == 0

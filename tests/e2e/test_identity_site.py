@@ -25,13 +25,19 @@ def _content(page: Page) -> str:
     return page.locator("#quarto-document-content").inner_text()
 
 
-def test_home_and_about_carry_the_sentence_and_the_footer_carries_the_line(
+def test_about_carries_the_sentence_and_the_footer_of_both_the_line(
     page: Page, server: SiteServer
 ):
+    """About carries the canonical sentence; Home's introduction does not
+    repeat it (the owner's copy of Issue #481) and links to About; the
+    footer of both carries the line."""
     for name in ("index.html", "about.html"):
         page.goto(server.url + name)
-        assert identity.description() in _content(page), name
+        carries = identity.description() in _content(page)
+        assert carries is (name == "about.html"), name
         assert identity.footer_line() in page.locator("footer").inner_text(), name
+    page.goto(server.url + "index.html")
+    assert "by JIDAI, created by Ahmet Taspinar" not in _content(page)
 
 
 def test_home_has_one_attribution_link_and_it_leads_to_the_about_page(

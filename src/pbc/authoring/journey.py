@@ -87,7 +87,11 @@ def _journey_text_problems(
     curriculum: Curriculum,
     sequences: Collection[str],
     terms: Collection[str],
+    discovery_rule: bool = True,
 ) -> list[str]:
+    """Every text rule of the journey that ``value`` breaks. The Home copy
+    (Issue #481) is not part of the curriculum and does not carry the
+    discovery rule (``discovery_rule=False``); every other text does."""
     found = _text_problems(where, value, curriculum)
     if not isinstance(value, str):
         return found
@@ -97,7 +101,7 @@ def _journey_text_problems(
             f"{where} states a count of courses, paths, or capstones; the atlas"
             " derives every count from the curriculum file"
         )
-    if _DISCOVERY.search(bare):
+    if discovery_rule and _DISCOVERY.search(bare):
         found.append(
             f"{where} says 'discover' outside a reference; the journey never"
             " presents a result, least of all an AI result, as a discovery"

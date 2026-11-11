@@ -608,7 +608,20 @@ Later phases (in scope for the project, out of scope for the MVP):
   pixel rule, and the owner approves the hero on the rendered page. The
   section "From a question to a working model"
   stays absent and is not replaced by a renamed teaching formula. No fake
-  metrics, testimonials, or inferred learner progress.
+  metrics, testimonials, or inferred learner progress. Since the owner's
+  copy of 2026-11-11 (Issue #481) the hero's subtext and the copy after the
+  hero are the owner's fixed text, held in the data files: "What is
+  Physics by Construction?" (without the canonical attribution, which
+  About and the footer carry, and with the one link to About), "Build.
+  Experiment. Understand.", "From computational physics to artificial
+  intelligence" (in place of "What you can learn": Part A, Part B, and the
+  transition "First understand the physics. Then challenge the AI.", each
+  from the Home copy file), and "How we verify what we teach" (in place of
+  "How the results are kept honest"), the quietest section. Home shows no
+  example lesson (the representative lesson per part above is withdrawn:
+  lesson discovery belongs to the Course Atlas); after Part A the eight
+  course subjects are named compactly from the curriculum, a course without
+  a published lesson marked as planned.
 - Course atlas (decision 36, amended by decisions 40 and 43), at the existing path
   address with "Course Atlas" as its display label and every existing
   anchor and bookmark valid (`#<course-id>` and `#<path-id>` open their
@@ -2256,7 +2269,9 @@ decisions 36 to 42 beyond what decision 43 says.
       Part A, Part B, and their relation, with at most one representative
       published lesson per part, chosen by the owner for its educational
       value and validated at build time, or none (owner's answer,
-      2026-11-04); two first-step actions, the Course Atlas primary and
+      2026-11-04; withdrawn by the owner's copy of 2026-11-11, Issue #481,
+      which fixes the text of Home and shows no example lesson); two
+      first-step actions, the Course Atlas primary and
       the first lesson of Part A secondary, with the header's four items
       kept as they are (owner's answers, 2026-11-04); a responsive,
       content-first hero whose above-the-fold rule is as "Home page"

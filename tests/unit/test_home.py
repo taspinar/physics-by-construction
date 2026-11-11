@@ -1,9 +1,11 @@
 """The generated home page (F134, F158; ADR 021 decision 4 as amended): the
 hero's data file and its rules (one fixed headline and subtext, the variants
 of F134 as an unused reference), the hero images and their registration, the
-hero's markup, the Home copy file and its rules, the owner's example lessons
-validated against the published lessons, the two actions of the first step,
-and the order of the page, all generated from data."""
+hero's markup, the Home copy file and its rules (the owner's fixed copy of
+Issue #481), the course subjects of Part A from the curriculum, the two
+actions of the first step, and the order of the page, all generated from
+data. Home shows no example lesson and does not repeat the canonical
+attribution."""
 
 import copy
 import hashlib
@@ -25,7 +27,9 @@ from pbc.authoring.home import (
     HERO_IMAGE_HEIGHT,
     HERO_IMAGE_WIDTH,
     HOME_FILE,
+    PARTS,
     SECTIONS,
+    SUBJECTS_LABEL,
     HeroCopy,
     HomeContent,
     HomeCopy,
@@ -35,8 +39,7 @@ from pbc.authoring.home import (
 )
 from pbc.authoring.identity import description
 from pbc.authoring.journey import Journey, JourneyContent
-from pbc.authoring.previews import HEIGHT as PREVIEW_HEIGHT
-from pbc.authoring.previews import WIDTH as PREVIEW_WIDTH
+from pbc.authoring.path import COURSES, LearningPath
 from pbc.authoring.website import introduced
 
 ATLAS = Atlas.read(SITE_SOURCE)
@@ -44,12 +47,11 @@ PATH = ATLAS.path
 CURRICULUM = PATH.curriculum
 GLOSSARY = Glossary.read(SITE_SOURCE)
 TERMS = tuple(entry.term for entry in GLOSSARY.entries)
-PUBLISHED = frozenset(lesson.slot for lesson in PATH.lessons if lesson.slot)
 JOURNEY = Journey.read(SITE_SOURCE, CURRICULUM, GLOSSARY)
 DATA = yaml.safe_load((SITE_SOURCE / HERO_FILE).read_text(encoding="utf-8"))
 HERO = HeroCopy.parse(DATA)
 COPY_DATA = yaml.safe_load((SITE_SOURCE / HOME_FILE).read_text(encoding="utf-8"))
-COPY = HomeCopy.parse(COPY_DATA, CURRICULUM, PUBLISHED, TERMS)
+COPY = HomeCopy.parse(COPY_DATA, CURRICULUM, TERMS)
 REGISTER = yaml.safe_load(
     (SITE_SOURCE / "assets" / "provenance.yaml").read_text(encoding="utf-8")
 )["assets"]
@@ -70,10 +72,6 @@ OWNER_IMAGES = {
     "hot-cold-gas": "thermodynamics",
     "exoplanet-transit": "astrophysics",
 }
-OWNER_EXAMPLES = {
-    "part-a": "mechanics/01-kinematics-as-a-program",
-    "part-b": "agents-llm/01-an-agent-runs-an-experiment",
-}
 
 
 def _data():
@@ -85,7 +83,7 @@ def _copy_data():
 
 
 def _home_problems(data) -> list[str]:
-    return home_problems(data, CURRICULUM, PUBLISHED, TERMS)
+    return home_problems(data, CURRICULUM, TERMS)
 
 
 # --- The hero's data file: the fixed text --------------------------------------
@@ -93,14 +91,15 @@ def _home_problems(data) -> list[str]:
 
 def test_the_data_file_holds_the_owner_s_fixed_headline_and_subtext():
     assert hero_problems(DATA) == []
-    # The owner's words (round 2 of Issue #462 and its correction,
-    # 2026-11-10), kept exactly.
+    # The owner's words, kept exactly: the headline of round 2 of Issue #462
+    # (2026-11-10), the subtext of Issue #481 (2026-11-11).
     assert HERO.headline == (
         "The universe has no obligation to fit the limits of human intelligence."
     )
     assert HERO.subtext == (
-        "Explore physics by building models, testing predictions against real"
-        " data, and discovering what AI might make possible."
+        "Explore physics by building simulations, working with experimental"
+        " data, and investigating how AI could help us understand the physical"
+        " world."
     )
 
 
@@ -387,12 +386,102 @@ def test_the_two_actions_lead_where_the_header_leads_the_atlas_first():
 
 # --- The Home copy file -----------------------------------------------------
 
+# The owner's copy of Issue #481 (2026-11-11), kept exactly: each section's
+# heading and paragraphs, and each part's.
+OWNER_HEADINGS = {
+    "identity": "What is Physics by Construction?",
+    "philosophy": "Build. Experiment. Understand.",
+    "curriculum": "From computational physics to artificial intelligence",
+    "integrity": "How we verify what we teach",
+}
+OWNER_PARTS = {
+    "part-a": "Part A \u2014 Computational and experimental physics",
+    "part-b": "Part B \u2014 Can AI help us discover new physics?",
+    "relation": "First understand the physics. Then challenge the AI.",
+}
+OWNER_TEXT = {
+    "identity": (
+        "Physics by Construction is a free, open-source online physics project"
+        " built around simulations, experiments, and scientific reasoning.",
+        "Many lessons begin with a physical question. How does a pendulum move?"
+        " How do waves propagate? What causes a fluid to form vortices? You"
+        " explore these questions by building models in Python, running"
+        " simulations, changing conditions, and comparing the results with"
+        " established theory or recorded experimental measurements. The goal is"
+        " not just to learn the equations, but to understand what they predict,"
+        " why they work, and where their limitations lie.",
+        "Beyond learning established physics, the project also explores how"
+        " artificial intelligence might support scientific research, and how we"
+        " can determine whether its conclusions are reliable.",
+    ),
+    "philosophy": (
+        "Learning physics is more than memorising equations. It means"
+        " understanding how the physical world behaves and learning how to"
+        " investigate it.",
+        "Physics by Construction follows the scientific process: ask a"
+        " question, develop a model, make predictions, investigate the results,"
+        " and examine where the model succeeds or fails. Through experimentation,"
+        " mathematical theory becomes something you can explore, question, and"
+        " understand.",
+    ),
+    "part-a": (
+        "Learn physics by building and exploring computational models. Through"
+        " Python simulations and numerical experiments, you investigate how"
+        " physical systems behave and how mathematical theories describe them.",
+        "Some lessons also use recorded experimental measurements, allowing you"
+        " to compare theoretical predictions with observations. Throughout the"
+        " courses, you learn how to test your models, understand their"
+        " limitations, and evaluate the reliability of their results.",
+        "The result is a deeper understanding of physics through experimentation.",
+    ),
+    "part-b": (
+        "Artificial intelligence is transforming how we analyse information,"
+        " write software, and solve complex problems. But could it also help"
+        " scientists design experiments, analyse complex data, or uncover"
+        " relationships in physical systems?",
+        "In Part B, you explore how AI agents can conduct computational"
+        " experiments, search for mathematical relationships, and reason about"
+        " physical systems. You examine what happens when these systems are"
+        " given scientific problems and investigate whether their conclusions"
+        " can be trusted.",
+        "The aim is not to assume that AI can make scientific discoveries, but"
+        " to explore what it would take for AI to become a reliable partner in"
+        " scientific research.",
+    ),
+    "relation": (
+        "Before asking AI to investigate a physical system, you need to"
+        " understand what a trustworthy result looks like. Part A provides that"
+        " foundation through simulations, theory, and experiments. Part B"
+        " builds on it by evaluating what AI can contribute to the scientific"
+        " process.",
+    ),
+    "integrity": (
+        "Scientific results should be reproducible, transparent, and open to scrutiny.",
+        "The code used in our lessons is tested automatically, and results are"
+        " checked against established theory, independent calculations, or"
+        " experimental measurements where appropriate. Some lessons also"
+        " include computer-verified mathematical proofs.",
+        "We explain the assumptions and limitations behind the results so you"
+        " can understand not only what a model shows, but also how much"
+        " confidence to place in it.",
+    ),
+}
+
 
 def test_the_copy_file_holds_the_four_sections_in_order():
-    assert home_problems(COPY_DATA, CURRICULUM, PUBLISHED, TERMS) == []
+    assert home_problems(COPY_DATA, CURRICULUM, TERMS) == []
     assert list(COPY_DATA) == [key for key, _ in SECTIONS]
     assert set(COPY.headings) == {key for key, _ in SECTIONS}
-    assert COPY.headings["curriculum"] == "What you can learn"
+    assert list(COPY_DATA["curriculum"]) == ["heading", *(p for p, _ in PARTS)]
+
+
+def test_the_copy_is_the_owner_s_exactly():
+    assert COPY.headings == OWNER_HEADINGS
+    assert {part: heading for part, (heading, _) in COPY.parts.items()} == (OWNER_PARTS)
+    for key in ("identity", "philosophy", "integrity"):
+        assert COPY.texts[key] == OWNER_TEXT[key], key
+    for part in OWNER_PARTS:
+        assert COPY.parts[part][1] == OWNER_TEXT[part], part
 
 
 def test_an_unknown_or_missing_section_or_field_fails():
@@ -410,6 +499,29 @@ def test_an_unknown_or_missing_section_or_field_fails():
     data = _copy_data()
     data["curriculum"]["text"] = ["A list of the courses."]
     assert any("curriculum has unknown fields: text" in p for p in _home_problems(data))
+    # The examples of F158 are gone: naming one fails.
+    data = _copy_data()
+    data["curriculum"]["examples"] = {"part-a": "M1"}
+    assert any(
+        "curriculum has unknown fields: examples" in p for p in _home_problems(data)
+    )
+    data = _copy_data()
+    del data["curriculum"]["relation"]
+    assert any("curriculum lacks relation" in p for p in _home_problems(data))
+    data = _copy_data()
+    data["curriculum"]["part-b"]["lessons"] = ["SA5"]
+    assert any(
+        "curriculum part-b has unknown fields: lessons" in p
+        for p in _home_problems(data)
+    )
+    data = _copy_data()
+    del data["curriculum"]["part-a"]["heading"]
+    assert any("curriculum part-a lacks heading" in p for p in _home_problems(data))
+    data = _copy_data()
+    data["curriculum"]["part-a"]["text"] = []
+    assert any(
+        "curriculum part-a has no non-empty list" in p for p in _home_problems(data)
+    )
     data = _copy_data()
     del data["identity"]["heading"]
     assert any("identity lacks heading" in p for p in _home_problems(data))
@@ -418,7 +530,7 @@ def test_an_unknown_or_missing_section_or_field_fails():
     assert any("identity has no non-empty list" in p for p in _home_problems(data))
     assert _home_problems(None)
     with pytest.raises(ValueError, match="rules of the Home copy"):
-        HomeCopy.parse(data, CURRICULUM, PUBLISHED, TERMS)
+        HomeCopy.parse(data, CURRICULUM, TERMS)
 
 
 def test_the_text_rules_of_the_journey_hold_for_the_copy():
@@ -435,12 +547,6 @@ def test_the_text_rules_of_the_journey_hold_for_the_copy():
             "text",
             ["There are 94 lessons in eight courses."],
             "count",
-        ),
-        "a discovery": (
-            "integrity",
-            "text",
-            ["Agents discover new laws here."],
-            "'discover'",
         ),
         "an unresolved reference": (
             "philosophy",
@@ -461,94 +567,84 @@ def test_the_text_rules_of_the_journey_hold_for_the_copy():
         assert any(message in p for p in _home_problems(data)), name
 
 
+def test_home_has_no_rule_about_the_word_discover():
+    # The home page is not part of the curriculum (owner's decision, Issue #481).
+    data = _copy_data()
+    data["integrity"]["text"] = ["Agents discover new laws here."]
+    data["curriculum"]["part-b"]["text"] = ["Can AI help us discover new physics?"]
+    assert [p for p in _home_problems(data) if "'discover'" in p] == []
+
+
+def test_the_journey_itself_keeps_the_strict_rule():
+    from pbc.authoring.journey import journey_problems
+
+    data = yaml.safe_load((SITE_SOURCE / "journey.yaml").read_text(encoding="utf-8"))
+    key = next(k for k, v in data.items() if isinstance(v, list))
+    data[key] = ["Can AI help us discover new physics?"]
+    assert any("'discover'" in p for p in journey_problems(data, CURRICULUM, TERMS))
+
+
 def test_a_reference_in_the_copy_resolves_to_a_link():
     data = _copy_data()
     data["philosophy"]["text"] = ["If unsure, begin with {slot:M1}."]
-    home = replace(HOME, copy=HomeCopy.parse(data, CURRICULUM, PUBLISHED, TERMS))
+    home = replace(HOME, copy=HomeCopy.parse(data, CURRICULUM, TERMS))
     first = PATH.in_course(PATH.courses[0])[0]
     assert f"[{first.title}]({first.page.removesuffix('.qmd')}.html)" in (
         home.philosophy()
     )
 
 
-# --- The owner's examples -----------------------------------------------------
+# --- The course subjects of Part A ------------------------------------------
 
 
-def test_the_examples_are_the_owner_s_published_lessons_one_per_part():
-    for part, directory in OWNER_EXAMPLES.items():
-        lesson = HOME.example(part)
-        assert lesson is not None
-        assert lesson.page == f"lessons/{directory}/index.qmd"
-        assert lesson.slot == COPY.examples[part]
-    assert CURRICULUM.slot(COPY.examples["part-a"]).course
-    assert CURRICULUM.slot(COPY.examples["part-b"]).path
+def _subjects(section: str) -> list[str]:
+    (listing,) = re.findall(r'<ul class="home-subjects"[^>]*>(.*?)</ul>', section)
+    return re.findall(r"<li>(.*?)</li>", listing)
 
 
-def test_an_example_of_the_wrong_part_an_unknown_slot_or_an_unpublished_one_fails():
-    planned = next(
-        slot.label
-        for slot in CURRICULUM.slots
-        if slot.path and slot.label not in PUBLISHED
+def test_the_subjects_are_the_eight_courses_of_the_curriculum_file_in_order():
+    curriculum_file = yaml.safe_load(
+        (SITE_SOURCE / "curriculum.yaml").read_text(encoding="utf-8")
     )
-    cases = {
-        "a Part A slot for Part B": ("part-b", "M1", "no slot of a method path"),
-        "a Part B slot for Part A": ("part-a", "SA5", "no slot of a course"),
-        "an unknown slot": ("part-a", "Z99", "no slot of the curriculum"),
-        "a planned slot": ("part-b", planned, "has no published lesson"),
-    }
-    for name, (part, label, message) in cases.items():
-        data = _copy_data()
-        data["curriculum"]["examples"][part] = label
-        assert any(message in p for p in _home_problems(data)), name
-    data = _copy_data()
-    data["curriculum"]["examples"]["part-c"] = "M2"
-    assert any("only part-a and part-b" in p for p in _home_problems(data))
+    titles = [course["title"] for course in curriculum_file["courses"]]
+    assert len(titles) == 8
+    section = HOME.curriculum()
+    # Every course has a published lesson today: no mark.
+    assert _subjects(section) == titles
+    assert [course.title for course in COURSES] == titles
+    assert f'aria-label="{SUBJECTS_LABEL}"' in section
+    # Plain names: no link in the list.
+    (listing,) = re.findall(r'<ul class="home-subjects".*?</ul>', section)
+    assert "<a " not in listing and "](" not in listing
 
 
-def test_an_example_whose_lesson_is_not_published_fails_the_build():
-    """Unpublishing the owner's lesson fails the copy file, rather than
-    another lesson being chosen in its place."""
-    published = PUBLISHED - {"SA5"}
-    found = home_problems(COPY_DATA, CURRICULUM, published, TERMS)
-    assert any("SA5, which has no published lesson" in p for p in found)
+def test_a_course_without_a_published_lesson_is_marked_planned():
+    lessons = tuple(lesson for lesson in PATH.lessons if lesson.course != "quantum")
+    path = LearningPath(lessons, PATH.curriculum)
+    journey = replace(_content(), atlas=replace(ATLAS, path=path))
+    home = replace(HOME, journey=journey)
+    subjects = _subjects(home.curriculum())
+    assert "Quantum physics (planned)" in subjects
+    assert sum("(planned)" in subject for subject in subjects) == 1
 
 
-def test_without_examples_no_lesson_is_shown_and_none_is_chosen_by_code():
-    data = _copy_data()
-    del data["curriculum"]["examples"]
-    home = replace(HOME, copy=HomeCopy.parse(data, CURRICULUM, PUBLISHED, TERMS))
-    section = home.curriculum(SITE_SOURCE)
-    assert "home-example" not in section
-    assert home.example("part-a") is None and home.example("part-b") is None
-    data = _copy_data()
-    del data["curriculum"]["examples"]["part-b"]
-    home = replace(HOME, copy=HomeCopy.parse(data, CURRICULUM, PUBLISHED, TERMS))
-    assert home.curriculum(SITE_SOURCE).count("home-example") == 1
-
-
-def test_each_example_has_its_preview_title_line_and_level():
-    section = HOME.curriculum(SITE_SOURCE)
-    entries = re.findall(
-        r"::: \{\.home-example data-lesson-id=([\w-]+)\}\n(.*?)\n:::", section, re.S
-    )
-    chosen = [HOME.example("part-a"), HOME.example("part-b")]
-    assert [lesson_id for lesson_id, _ in entries] == [x.id for x in chosen]
-    for (_, block), lesson, letter in zip(entries, chosen, "AB", strict=True):
-        assert f'src="previews/{lesson.id}.' in block
-        assert f'width="{PREVIEW_WIDTH}" height="{PREVIEW_HEIGHT}"' in block
-        assert 'alt="Preview, ' in block
-        href = lesson.page.removesuffix(".qmd") + ".html"
-        assert LINK.findall(block) == [href]
-        assert f"#### [{lesson.title}]({href})" in block
-        assert f"A lesson of Part {letter}: " in block
-        assert re.search(r"level \d of 3", block)
+def test_the_subjects_follow_part_a_and_nothing_else_names_a_course():
+    section = HOME.curriculum()
+    order = [
+        section.index("### " + OWNER_PARTS["part-a"]),
+        section.index('class="home-subjects"'),
+        section.index("### " + OWNER_PARTS["part-b"]),
+        section.index("### " + OWNER_PARTS["relation"]),
+    ]
+    assert order == sorted(order)
+    assert section.count('class="home-subjects"') == 1
 
 
 # --- The page -----------------------------------------------------------------
 
 
 def test_the_page_follows_identity_philosophy_curriculum_and_integrity_last():
-    page = HOME.markdown(SITE_SOURCE)
+    page = HOME.markdown()
     headings = re.findall(r"^## (.*?) \{#([\w-]+)\}", page, re.M)
     assert headings == [(COPY.headings[key], anchor) for key, anchor in SECTIONS]
     assert page.index('class="home-hero"') < page.index("## ")
@@ -559,11 +655,15 @@ def test_the_page_follows_identity_philosophy_curriculum_and_integrity_last():
     assert "lessons published" not in page
 
 
-def test_identity_opens_with_the_canonical_sentence_and_its_one_link():
+def test_identity_holds_the_owner_s_text_and_its_one_link_not_the_attribution():
     identity = HOME.identity()
-    paragraph = identity.split("\n\n")[1]
-    assert paragraph.startswith(description())
-    assert COPY.texts["identity"][0] in paragraph
+    paragraphs = identity.split("\n\n")
+    assert paragraphs[1] == COPY.texts["identity"][0]
+    for text in COPY.texts["identity"]:
+        assert text in identity
+    # The canonical attribution is on About and in the footer, not here.
+    assert description() not in HOME.markdown()
+    assert "by JIDAI, created by Ahmet Taspinar" not in HOME.markdown()
     assert LINK.findall(identity) == ["about.html#creator-and-jidai"]
 
 
@@ -575,18 +675,18 @@ def test_integrity_links_the_account_of_the_evidence_and_the_source():
     assert "The source on GitHub" not in replace(HOME, repository="").integrity()
 
 
-def test_what_you_can_learn_is_the_journey_s_text_as_on_the_atlas_and_about():
-    section = HOME.curriculum(SITE_SOURCE)
+def test_the_curriculum_section_is_the_copy_file_s_parts_without_examples():
+    section = HOME.curriculum()
+    for part, anchor in PARTS:
+        heading, texts = COPY.parts[part]
+        assert f"### {heading} {{#{anchor}}}" in section
+        for text in texts:
+            assert text in section, part
+    # No example lesson, no preview, and no link at all in the section.
+    assert "home-example" not in section and "previews/" not in section
+    assert "<img" not in section and not LINK.search(section)
+    # Home does not take the parts from the journey file: the atlas's and
+    # About's longer text is not repeated here.
     for key in ("part-a", "part-b", "relation"):
         for text in JOURNEY.sections[key]:
-            assert _content().inline(text) in section, key
-    order = [
-        section.index("### Part A"),
-        section.index("data-lesson-id=" + HOME.example("part-a").id),
-        section.index("### Part B"),
-        section.index("data-lesson-id=" + HOME.example("part-b").id),
-        section.index("### From Part A to Part B"),
-    ]
-    assert order == sorted(order)
-    # Home does not repeat the atlas's overview: no list of the courses.
-    assert not re.search(r"^- ", section, re.M)
+            assert _content().inline(text) not in section, key
