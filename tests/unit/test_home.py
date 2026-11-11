@@ -548,12 +548,6 @@ def test_the_text_rules_of_the_journey_hold_for_the_copy():
             ["There are 94 lessons in eight courses."],
             "count",
         ),
-        "a discovery": (
-            "integrity",
-            "text",
-            ["Agents discover new laws here."],
-            "'discover'",
-        ),
         "an unresolved reference": (
             "philosophy",
             "text",
@@ -571,30 +565,14 @@ def test_the_text_rules_of_the_journey_hold_for_the_copy():
         data = _copy_data()
         data[section][field] = value
         assert any(message in p for p in _home_problems(data)), name
-    # The rules hold for the parts of the curriculum section too.
-    data = _copy_data()
-    data["curriculum"]["part-b"]["text"] = ["Here agents discovered a law."]
-    assert any("curriculum part-b 1 says 'discover'" in p for p in _home_problems(data))
 
 
-@pytest.mark.parametrize(
-    ("text", "allowed"),
-    [
-        ("Can AI help us discover new physics?", True),
-        ("The aim is not to assume that AI can make scientific discoveries.", True),
-        ("No agent here has discovered a law.", True),
-        ("The agent discovered a new law.", False),
-        ("The agent discovered a law, not a model.", False),
-        ("Can it help? It discovers laws.", False),
-    ],
-)
-def test_on_home_discover_stands_only_in_a_question_or_after_a_negation(
-    text: str, allowed: bool
-):
+def test_home_has_no_rule_about_the_word_discover():
+    # The home page is not part of the curriculum (owner's decision, Issue #481).
     data = _copy_data()
-    data["integrity"]["text"] = [text]
-    found = [p for p in _home_problems(data) if "'discover'" in p]
-    assert (found == []) is allowed
+    data["integrity"]["text"] = ["Agents discover new laws here."]
+    data["curriculum"]["part-b"]["text"] = ["Can AI help us discover new physics?"]
+    assert [p for p in _home_problems(data) if "'discover'" in p] == []
 
 
 def test_the_journey_itself_keeps_the_strict_rule():

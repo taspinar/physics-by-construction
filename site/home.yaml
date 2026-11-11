@@ -10,9 +10,8 @@
 #   the rules of the learning journey (site/journey.yaml): references
 #   {sequence:<id>}, {slot:<label>}, or {term:<glossary term>} that resolve,
 #   no count of lessons, courses, paths, or capstones, and no lesson named
-#   outside a reference. A form of "discover" stands only in a question or
-#   after "not" or "no" in its sentence: Home never presents a result, least
-#   of all an AI result, as a discovery.
+#   outside a reference. The word "discover" has no rule here: the home page
+#   is not part of the curriculum (owner's decision, Issue #481).
 # - The page adds the links: identity ends with the one link to the creator
 #   and JIDAI (the attribution itself is on About and in the footer, from
 #   pbc.authoring.identity); integrity ends with the links to "How we

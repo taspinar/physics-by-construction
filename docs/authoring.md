@@ -1902,9 +1902,8 @@ in `src/pbc/authoring/identity.py`. Rules for every page:
   `curriculum` the parts `part-a`, `part-b`, and `relation` (the transition
   "First understand the physics. Then challenge the AI."), each a
   `heading` and `text`. Change it there and nowhere else. A text follows
-  the journey's rules, except that a form of "discover" may stand in a
-  question or after "not" or "no" in its sentence (any other use fails the
-  build). The introduction does not repeat the canonical sentence; it ends
+  the journey's rules, except that the word "discover" has no rule on Home,
+  which is not part of the curriculum (owner's decision, Issue #481). The introduction does not repeat the canonical sentence; it ends
   with the one link to About. Home shows no example lesson; after Part A it
   names the eight course subjects from the curriculum, a course without a
   published lesson marked "(planned)", as plain text.

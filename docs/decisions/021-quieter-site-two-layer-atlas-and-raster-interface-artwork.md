@@ -306,9 +306,9 @@ descriptions live.
    named compactly from the curriculum, plain text, a course without a
    published lesson marked as planned. The introduction no longer opens
    with the canonical attribution, which About and the footer keep, and
-   keeps the one link to About. A Home text may use a form of "discover"
-   only in a question or after a negation in its sentence; no page presents
-   a result as a discovery.
+   keeps the one link to About. The word "discover" has no rule on Home,
+   which is not part of the curriculum (owner's decision, Issue #481); the
+   journey file and the lessons keep the strict rule.
 5. **Navigation and the supporting pages.** The header carries the
    project mark, exactly four menu items (Home, Course Atlas, About, and
    the Start learning button), and the search; the footer carries the

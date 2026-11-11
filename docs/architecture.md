@@ -1602,10 +1602,9 @@ file's longer Part A and Part B text stays on the atlas and About), and
 "How we verify what we teach". After Part A the page names the eight
 course subjects from the curriculum as plain text, a course without a
 published lesson marked as planned; Home shows no example lesson (lesson
-discovery belongs to the atlas). A Home text may use a form of "discover"
-only in a question or after a negation in its sentence (the owner's Part
-B heading and its last paragraph); the journey file and the introductions
-keep the strict rule. The first step is two actions with the
+discovery belongs to the atlas). The word "discover" has no rule on Home,
+which is not part of the curriculum (owner's decision, Issue #481); the
+journey file and the introductions keep the strict rule. The first step is two actions with the
 destinations of the header: the Course Atlas (primary) and the first
 lesson of Part A (secondary); the header keeps its four items. The layout
 is content-first: on desktop the identity message and both actions are

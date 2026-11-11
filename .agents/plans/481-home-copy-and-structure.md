@@ -65,12 +65,7 @@ Skills: impeccable@08d5b470, frontend-design@dbd4588f
 - **"discover".** The owner's Part B paragraph says "The aim is not to
   assume that AI can make scientific discoveries"; the heading "Can AI help
   us discover new physics?" is a heading (plain text, never under the
-  journey's word rule). For a paragraph of the Home copy the rule becomes:
-  a form of "discover" may stand only in a sentence that is a question or
-  that negates it ("not" or "no" before the word); any other use still
-  fails the build. The journey file, the introductions, and the meaning of
-  I35 (no page presents an AI result as a discovery) stand unchanged; a
-  unit test keeps the failing case.
+  journey's word rule). For the Home copy there is no rule about the word "discover": the home page is not part of the curriculum (owner's decision of 2026-11-11 on Issue #481, which replaces the narrowed exception of round 1 and its tests). The journey file, the introductions, and the lessons keep the strict rule, pinned by a unit test.
 - **The subjects.** One `<ul class="home-subjects">` after Part A's
   paragraphs, labelled "The courses of Part A" for assistive technology,
   its items the course titles in curriculum order from `COURSES` (the list

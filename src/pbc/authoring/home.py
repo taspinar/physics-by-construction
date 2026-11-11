@@ -26,9 +26,9 @@ load.
 
 The sections after the hero come from ``site/home.yaml``, the owner's
 fixed copy (Issue #481, 2026-11-11): prose and references under the rules
-of the learning journey, with a form of "discover" only in a question or
-after a negation. The curriculum section holds Part A, Part B, and the
-transition between them, each with its own heading and text; the longer
+of the learning journey, with no rule about the word "discover" (the home
+page is not part of the curriculum). The curriculum section holds Part A,
+Part B, and the transition between them, each with its own heading and text; the longer
 text of the learning journey (``site/journey.yaml``) stays on the Course
 Atlas and About. After Part A the page names the course subjects, from the
 curriculum (``COURSES``, which the curriculum file is validated against), a
@@ -351,8 +351,8 @@ def home_problems(
     non-empty text) and, except the curriculum, ``text``, a non-empty list
     of paragraphs under the text rules of the learning journey (inline
     Markdown, references that resolve, no count, no lesson named outside a
-    reference), with a form of "discover" only in a question or after a
-    negation in its sentence; the curriculum's ``part-a``, ``part-b``, and
+    reference), with no rule about the word "discover" (the home page is not
+    part of the curriculum); the curriculum's ``part-a``, ``part-b``, and
     ``relation``, each a mapping of a ``heading`` and ``text`` under the
     same rules."""
     where = HOME_FILE
@@ -431,7 +431,7 @@ def _section_problems(
             curriculum,
             sequences,
             terms,
-            framed_discovery=True,
+            discovery_rule=False,
         )
     return found
 
