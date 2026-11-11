@@ -11126,6 +11126,24 @@ owner's decision of 2026-11-11 on Issue #481).
 ADR 021 decision 4 (the amendment of 2026-11-11) and the requirements'
 "Home page" record it; the rest of this block stands.
 
+**Follow-up after the merge: the owner's decision of 2026-11-11 (Issue
+#482, Home: the hero as one large fluid-dynamics illustration).** The hero
+image of this block (four Part A illustrations, one picked at random by
+the hero script, the `hero-image` parameter) is replaced by one image, the
+vortex street of fluid dynamics, derived from the same registered master
+as a mirrored (the flow from right to left), edge-faded 2:1 band at three
+widths, in the HTML as one `<img>` with `srcset`, no script in the hero,
+exactly one hero file requested per load. From 992 CSS px the image is the
+ground of the hero at 78 % of its width and the copy stands over the faint
+end of its trail, with the text's contrast measured on the render; below
+992 px the copy, the actions, and then the image at the full width of the
+column. The hero script and its tests, the per-image tests, and the three
+other hero-size files leave (Level 3 by trigger, as this block's risk);
+the above-the-fold rule, the reflow and layout tests, the accessibility
+scan, the keyboard pass, and the payload check hold. ADR 021 decision 4
+(the second amendment of 2026-11-11) and the requirements' "Home page"
+record it; criterion 2 of this block reads as history.
+
 **Problem.** Home answers what PBC is in three sentences and shows three
 example lessons and a capstone chosen by code; a first-time visitor learns
 neither how physics is learned here nor how Part A and Part B relate, and

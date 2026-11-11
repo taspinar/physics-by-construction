@@ -60,7 +60,10 @@ requirements decide: the change is content and presentation inside this
 record and ADR 018. Decisions 4 and 5 amended again on 2026-11-10 by the
 owner's decisions of round 2 of F158 (Issue #462: one fixed hero text, the
 compact header with a native menu below 640 CSS px, the measurable
-above-the-fold rule), through the dated notes under them. Delivered by F158; the course introductions of F156
+above-the-fold rule), through the dated notes under them; decision 4
+amended on 2026-11-11 by the owner's copy of Issue #481 and by the owner's
+decision of Issue #482 (one large fluid-dynamics hero, mirrored and faded,
+in the HTML without a script), through the dated notes under it. Delivered by F158; the course introductions of F156
 and the learning journey of F157 add pages and text within decisions 1 to
 3 without changing them. The text of decision 4 stays as the record of
 what F134 delivered.
@@ -309,6 +312,39 @@ descriptions live.
    keeps the one link to About. The word "discover" has no rule on Home,
    which is not part of the curriculum (owner's decision, Issue #481); the
    journey file and the lessons keep the strict rule.
+
+   *Amended on 2026-11-11 by the owner's decision of Issue #482 (Home: the
+   hero as one large fluid-dynamics illustration).* The hero image is one
+   illustration, not one of four picked at random: the vortex street of
+   fluid dynamics, interface artwork of decision 1 derived from the master
+   of its atlas illustration (ADR 021 decision 2: registered with the
+   master's origin and hash) as the master's middle 2:1 band, mirrored so
+   that the flow runs from right to left with the cylinder toward the
+   right, and faded in the file's own alpha channel toward the left and at
+   every edge, so that no rectangular boundary shows on the paper; one file
+   per width (1200, 1800, and 2400 px), the browser requesting the one
+   sized for its viewport through `srcset`. The image stands in the HTML as
+   one `<img>`: the hero script and the `hero-image` parameter are gone,
+   the page with and without scripts is the same, nothing in the hero
+   runs, blocks, moves, or animates (a static image; no GIF, video,
+   canvas, or animation dependency), and exactly one hero file is
+   requested per load. The three other hero-size files leave the site and
+   the register; their masters stay registered through the atlas entries
+   of their courses. From 992 CSS px the hero is one composition: the
+   image is the ground of the hero at 78 % of its width (the owner's 70 to
+   80 %), aligned to the right edge of the column, and the headline, the
+   subtext, and the two actions stand in the left column over the faint
+   end of the trail, where the fade keeps the ink at a quarter at most; the
+   text's contrast is measured on the render, not assumed. Below 992 px
+   the composition is stacked, not shrunk: the copy, the actions, then the
+   image at the full width of the column. A mirror image of the flow is a
+   valid flow (the equations are invariant under reflection; the shedding
+   still alternates, and only the sign of the vorticity, which nothing on
+   the page states, is reversed); the alternative text names what is seen
+   and claims no result. The fixed text, the data file, its validation,
+   the one `<h1>`, the two actions, the measurable above-the-fold rule of
+   2026-11-10 (now with a 2:1 image), no storage, no request beyond the
+   image, and no measurement of what works better stand.
 5. **Navigation and the supporting pages.** The header carries the
    project mark, exactly four menu items (Home, Course Atlas, About, and
    the Start learning button), and the search; the footer carries the

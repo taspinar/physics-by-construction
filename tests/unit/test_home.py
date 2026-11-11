@@ -1,18 +1,19 @@
 """The generated home page (F134, F158; ADR 021 decision 4 as amended): the
 hero's data file and its rules (one fixed headline and subtext, the variants
-of F134 as an unused reference), the hero images and their registration, the
-hero's markup, the Home copy file and its rules (the owner's fixed copy of
-Issue #481), the course subjects of Part A from the curriculum, the two
+of F134 as an unused reference), the one hero image (Issue #482: the vortex
+street, mirrored and faded in its files) with its registration, its matte
+and its mirror on the committed bytes, the hero's markup (one image in the
+HTML, no script), the Home copy file and its rules (the owner's fixed copy
+of Issue #481), the course subjects of Part A from the curriculum, the two
 actions of the first step, and the order of the page, all generated from
 data. Home shows no example lesson and does not repeat the canonical
 attribution."""
 
 import copy
-import hashlib
-import json
 import re
 from dataclasses import replace
 
+import numpy as np
 import pytest
 import yaml
 from PIL import Image
@@ -24,8 +25,11 @@ from pbc.authoring.home import (
     ATLAS_ACTION,
     FIRST_LESSON_ACTION,
     HERO_FILE,
+    HERO_IMAGE_FALLBACK,
     HERO_IMAGE_HEIGHT,
+    HERO_IMAGE_SIZES,
     HERO_IMAGE_WIDTH,
+    HERO_IMAGE_WIDTHS,
     HOME_FILE,
     PARTS,
     SECTIONS,
@@ -65,13 +69,9 @@ HOME = HomeContent(_content(), HERO, COPY, "https://example.org/repo")
 APOSTROPHE = chr(0x2019)  # as the build sets an apostrophe
 LINK = re.compile(r"\]\(([^)]*)\)")
 HREF = re.compile(r'\bhref="([^"]*)"')
-# The owner's set and choices on Issue #462 (2026-11-09).
-OWNER_IMAGES = {
-    "double-pendulum": "mechanics",
-    "vortex-street": "fluids",
-    "hot-cold-gas": "thermodynamics",
-    "exoplanet-transit": "astrophysics",
-}
+# The owner's decision on Issue #482 (2026-11-11): one image, the vortex
+# street of fluid dynamics.
+OWNER_IMAGE = ("vortex-street", "fluids")
 
 
 def _data():
@@ -136,14 +136,13 @@ def test_a_missing_empty_or_marked_up_headline_or_subtext_fails():
 
 
 def test_an_unknown_field_fails_at_every_level():
-    for where in ("top", "variant headline", "variant subtext", "images", "image"):
+    for where in ("top", "variant headline", "variant subtext", "image"):
         data = _data()
         target = {
             "top": data,
             "variant headline": data["variants"][0],
             "variant subtext": data["variants"][0]["subtexts"][0],
-            "images": data["images"],
-            "image": data["images"]["set"][0],
+            "image": data["image"],
         }[where]
         target["weight"] = 2
         assert any("unknown fields: weight" in p for p in hero_problems(data)), where
@@ -170,104 +169,141 @@ def test_a_site_without_the_data_file_fails(tmp_path):
         HeroCopy.read(tmp_path)
 
 
-# --- The hero's data file: the images ----------------------------------------
+# --- The hero's data file: the image ----------------------------------------
 
 
-def test_the_data_file_holds_the_owner_s_four_images_with_the_pendulum_default():
-    assert {image.id: image.sequence for image in HERO.images} == OWNER_IMAGES
-    assert [image.id for image in HERO.images] == list(OWNER_IMAGES)
-    assert HERO.default_image == "double-pendulum"
+def test_the_data_file_holds_the_owner_s_one_fluid_dynamics_image():
+    assert (HERO.image.id, HERO.image.sequence) == OWNER_IMAGE
+    assert HERO.image.files == tuple(
+        f"assets/hero/vortex-street-{width}.webp" for width in HERO_IMAGE_WIDTHS
+    )
+    # Its alternative text names what is seen, claims no result, and names
+    # the direction the mirrored file shows (the flow from right to left).
+    assert HERO.image.alt.startswith("Illustration: ")
+    assert "from right to left" in HERO.image.alt
+    assert not re.search(r"\b(verified|result|measured|simulat\w*)\b", HERO.image.alt)
 
 
-@pytest.mark.parametrize("image_id", list(OWNER_IMAGES))
-def test_each_hero_image_has_its_file_its_register_entry_and_its_alt_text(
-    image_id: str,
-):
-    """Each image's own test: a WebP file at hero size under site/assets/hero,
-    and a complete register entry whose master, hash, and origin are those of
-    the atlas panel of its course (the masters the owner supplied and the
-    Issue matched by SHA-256), so no hero file comes from an atlas file and
-    no origin is claimed that the atlas entry does not record."""
-    image = HERO.image(image_id)
-    file = SITE_SOURCE / image.file
-    with Image.open(file) as opened:
+def _alpha(width: int) -> np.ndarray:
+    with Image.open(SITE_SOURCE / HERO.image.file(width)) as opened:
         assert opened.format == "WEBP"
-        assert opened.size == (HERO_IMAGE_WIDTH, HERO_IMAGE_HEIGHT)
-    entry = REGISTER[image.file.removeprefix("assets/")]
-    atlas = REGISTER[f"atlas/{image.sequence}-panel-800.webp"]
-    for field in ("master", "sha256", "author", "licence", "date"):
+        return np.asarray(opened.convert("RGBA"))[..., 3]
+
+
+@pytest.mark.parametrize("width", HERO_IMAGE_WIDTHS)
+def test_each_width_has_its_file_at_2_to_1_and_the_register_entry_of_its_master(
+    width: int,
+):
+    """Each width's own test: a WebP file with an alpha channel under
+    site/assets/hero, 2:1, and a complete register entry whose master, hash,
+    and origin are those of the atlas panel of fluids (the master the owner
+    supplied and the Issue matched by SHA-256), so no origin is claimed that
+    the atlas entry does not record, and the entry says how the file was
+    derived."""
+    file = HERO.image.file(width)
+    alpha = _alpha(width)
+    assert alpha.shape == (width // 2, width)
+    entry = REGISTER[file.removeprefix("assets/")]
+    atlas = REGISTER[f"atlas/{HERO.image.sequence}-panel-800.webp"]
+    for field in ("master", "sha256", "author", "licence", "date", "script"):
         assert entry[field] == atlas[field], field
-    assert entry.get("script") == atlas.get("script")
     assert "model" not in entry
     assert "derive_assets.py --hero" in entry["source"]
-    # Never the atlas file itself, which is smaller and would be upscaled.
-    atlas_file = SITE_SOURCE / "assets" / "atlas" / f"{image.sequence}-panel-800.webp"
-    assert hashlib.sha256(file.read_bytes()).digest() != (
-        hashlib.sha256(atlas_file.read_bytes()).digest()
-    )
-    # Its alternative text names what it is and claims no result.
-    assert image.alt.startswith("Illustration: ")
-    assert not re.search(r"\b(verified|result|measured|simulat\w*)\b", image.alt)
+    assert "mirrored" in entry["source"] and "faded" in entry["source"]
 
 
-def test_the_exoplanet_transit_names_its_author_and_no_script():
-    entry = REGISTER["hero/exoplanet-transit.webp"]
-    assert entry["author"] and "script" not in entry
+@pytest.mark.parametrize("width", HERO_IMAGE_WIDTHS)
+def test_the_matte_fades_every_edge_keeps_the_left_faint_and_the_right_whole(
+    width: int,
+):
+    """The owner's requirements on the committed bytes (Issue #482): no
+    rectangular boundary (every edge pixel fully transparent), the trail
+    faint where the copy stands on a wide screen (the left 31 % of the
+    image at a quarter of the ink at most), the right half whole (the
+    cylinder and the first vortices at full opacity), and the fade from the
+    left edge to the plateau gradual (monotone along the middle row)."""
+    alpha = _alpha(width)
+    height = alpha.shape[0]
+    for edge in (alpha[0], alpha[-1], alpha[:, 0], alpha[:, -1]):
+        assert edge.max() == 0
+    assert alpha[:, : round(0.31 * width)].max() <= round(0.25 * 255) + 1
+    plateau = alpha[
+        round(0.30 * height) : round(0.70 * height),
+        round(0.60 * width) : round(0.88 * width),
+    ]
+    assert plateau.min() == 255
+    middle = alpha[height // 2].astype(int)
+    assert (np.diff(middle[: round(0.60 * width)]) >= 0).all()
+    assert (np.diff(middle[round(0.90 * width) :]) <= 0).all()
+
+
+@pytest.mark.parametrize("width", HERO_IMAGE_WIDTHS)
+def test_the_file_is_mirrored_the_cylinder_toward_the_right(width: int):
+    """The flow runs from right to left: the darkest opaque pixels, the
+    cylinder, stand in the right fifth of the image at mid-height (in the
+    master they stand at 18 % from the left)."""
+    with Image.open(SITE_SOURCE / HERO.image.file(width)) as opened:
+        pixels = np.asarray(opened.convert("RGBA")).astype(float)
+    luminance = (
+        0.2126 * pixels[..., 0] + 0.7152 * pixels[..., 1] + 0.0722 * pixels[..., 2]
+    ) / 255
+    rows, columns = np.where((luminance < 0.2) & (pixels[..., 3] == 255))
+    assert 0.78 < columns.mean() / width < 0.86
+    assert 0.45 < rows.mean() / (width // 2) < 0.55
 
 
 def test_an_image_rule_broken_fails():
     cases = {
-        "id": ("id", "Double_Pendulum", "lower-case words joined by hyphens"),
+        "id": ("id", "Vortex_Street", "lower-case words joined by hyphens"),
         "sequence": ("sequence", "law-discovery", "no course of Part A"),
         "alt": ("alt", "An <em>image</em>", "holds markup"),
         "empty alt": ("alt", " ", "has no text"),
     }
     for name, (field, value, message) in cases.items():
         data = _data()
-        data["images"]["set"][1][field] = value
+        data["image"][field] = value
         assert any(message in p for p in hero_problems(data)), name
 
 
-def test_a_duplicate_image_a_bad_default_or_no_images_fails():
+def test_a_missing_or_malformed_image_fails():
     data = _data()
-    data["images"]["set"].append(dict(data["images"]["set"][0]))
-    assert any(
-        "double-pendulum appears more than once" in p for p in hero_problems(data)
-    )
+    del data["image"]["sequence"]
+    assert any("the image lacks sequence" in p for p in hero_problems(data))
     data = _data()
-    data["images"]["default"] = "ising"
-    assert any("default image 'ising'" in p for p in hero_problems(data))
+    data["image"]["default"] = "vortex-street"
+    assert any("unknown fields: default" in p for p in hero_problems(data))
     data = _data()
-    data["images"]["set"] = []
-    assert any("no list 'set'" in p for p in hero_problems(data))
+    data["image"] = ["vortex-street"]
+    assert "the image is not a mapping" in hero_problems(data)
     data = _data()
-    del data["images"]
-    assert any("lacks images" in p for p in hero_problems(data))
+    del data["image"]
+    assert any("lacks image" in p for p in hero_problems(data))
+    data = _data()
+    data["images"] = data.pop("image")
+    found = hero_problems(data)
+    assert any("unknown fields: images" in p for p in found)
+    assert any("lacks image" in p for p in found)
 
 
-def test_an_image_without_its_file_or_its_register_entry_fails(tmp_path):
+def test_an_image_without_a_file_or_a_register_entry_fails(tmp_path):
     (tmp_path / "assets" / "hero").mkdir(parents=True)
     (tmp_path / "assets" / "provenance.yaml").write_text(
-        "assets:\n  hero/double-pendulum.webp: {}\n", encoding="utf-8"
+        "assets:\n  hero/vortex-street-1200.webp: {}\n", encoding="utf-8"
     )
-    (tmp_path / "assets" / "hero" / "vortex-street.webp").write_bytes(b"")
+    (tmp_path / "assets" / "hero" / "vortex-street-1800.webp").write_bytes(b"")
     found = image_file_problems(HERO, tmp_path)
     assert (
-        "the hero image double-pendulum has no file assets/hero/double-pendulum.webp"
+        "the hero image vortex-street has no file assets/hero/vortex-street-1200.webp"
         in found
     )
-    assert "the hero image vortex-street is not in the provenance register" in found
+    assert (
+        "the hero file assets/hero/vortex-street-1800.webp is not in the provenance"
+        " register" in found
+    )
     assert image_file_problems(HERO, SITE_SOURCE) == []
 
 
 # --- The hero's markup -------------------------------------------------------
-
-
-def _data_of(hero: str, element: str) -> list[dict]:
-    (found,) = re.findall(
-        rf'<script type="application/json" id="{element}">(.*?)</script>', hero
-    )
-    return json.loads(found)
 
 
 def test_the_hero_carries_one_h1_with_the_fixed_text_and_no_other_copy():
@@ -290,50 +326,54 @@ def test_the_hero_carries_one_h1_with_the_fixed_text_and_no_other_copy():
             assert text.replace("'", APOSTROPHE) not in hero
 
 
-def test_the_default_image_is_in_the_html_inside_noscript_and_the_set_is_data():
+def test_the_one_image_is_in_the_html_with_its_widths_and_no_script():
+    """The image is the HTML's (Issue #482): one <img> with the file of
+    each width in its srcset and the sizes the CSS draws it at, the middle
+    width as the src of a browser without srcset, its intrinsic size for
+    the reserved box, the priority hint of the largest element of the
+    page, and the alternative text of the data file; no script, no
+    <noscript>, no embedded data, no parameter."""
     hero = HOME.hero()
-    default = HERO.image(HERO.default_image)
-    # The one image of the HTML is the default, inside <noscript>: without
-    # scripts it is shown, with scripts it is not requested.
-    images = re.findall(r"<img [^>]*>", hero)
-    assert len(images) == 1
-    (inside,) = re.findall(r"<noscript>(.*?)</noscript>", hero)
-    assert inside == images[0]
-    assert 'src="assets/hero/double-pendulum.webp"' in inside
-    assert f'alt="{default.alt}"' in inside
-    assert f'width="{HERO_IMAGE_WIDTH}" height="{HERO_IMAGE_HEIGHT}"' in inside
-    assert 'data-hero-image="double-pendulum"' in hero
-    # Every image of the set as data for the script, with its alt text.
-    data = _data_of(hero, "hero-images")
-    assert [item["id"] for item in data] == list(OWNER_IMAGES)
-    for item in data:
-        image = HERO.image(item["id"])
-        assert item["src"] == f"assets/hero/{image.id}.webp"
-        assert item["alt"] == image.alt.replace("'", APOSTROPHE)
-        assert (item["width"], item["height"]) == (HERO_IMAGE_WIDTH, HERO_IMAGE_HEIGHT)
+    (image,) = re.findall(r"<img [^>]*>", hero)
+    attributes = dict(re.findall(r'([\w-]+)="([^"]*)"', image))
+    assert attributes["src"] == HERO.image.file(HERO_IMAGE_FALLBACK)
+    assert attributes["srcset"] == ", ".join(
+        f"{HERO.image.file(width)} {width}w" for width in HERO_IMAGE_WIDTHS
+    )
+    assert attributes["sizes"] == HERO_IMAGE_SIZES
+    assert attributes["alt"] == HERO.image.alt.replace("'", APOSTROPHE)
+    assert (attributes["width"], attributes["height"]) == (
+        str(HERO_IMAGE_WIDTH),
+        str(HERO_IMAGE_HEIGHT),
+    )
+    assert attributes["fetchpriority"] == "high"
+    assert attributes["decoding"] == "async"
+    assert "loading" not in attributes
+    assert "<script" not in hero and "<noscript" not in hero
+    assert "hero-images" not in hero and "data-hero-image" not in hero
     # No constellation, no inline SVG, no link inside the image.
     assert "<svg" not in hero and "hero-node" not in hero
+    assert "<a " not in hero.split('class="hero-figure"')[1].split("</div>")[0]
 
 
-def test_the_script_follows_the_figure_and_the_data():
+def test_the_figure_follows_the_copy_and_the_actions():
+    """The order of the source is the reading order below the desktop
+    width: the copy, the two actions, then the image."""
     hero = HOME.hero()
     order = [
         hero.index('class="hero-copy"'),
-        hero.index('id="hero-figure"'),
-        hero.index('id="hero-images"'),
-        hero.index('<script src="learner/hero.js"></script>'),
         hero.index('class="home-actions"'),
+        hero.index('id="hero-figure"'),
     ]
     assert order == sorted(order)
 
 
-def test_the_embedded_data_cannot_close_its_script_element():
+def test_the_alt_text_is_escaped_in_the_html():
     data = _data()
-    data["images"]["set"][0]["alt"] = "Illustration: plain & simple."
+    data["image"]["alt"] = 'Illustration: plain & "simple".'
     home = replace(HOME, hero_copy=HeroCopy.parse(data))
-    hero = home.hero()
-    assert "\\u0026" in hero
-    assert _data_of(hero, "hero-images")[0]["alt"] == "Illustration: plain & simple."
+    (image,) = re.findall(r"<img [^>]*>", home.hero())
+    assert 'alt="Illustration: plain &amp; &quot;simple&quot;."' in image
 
 
 def test_the_page_source_holds_no_copy_but_the_data_files():
