@@ -87,7 +87,9 @@ paths imply.
   the change, and the independent review of the complete change, whose
   later rounds read only the changes since the round before when their reach
   is certain.
-- **Level 3**, a protected path or an escalation trigger. The protected
+- **Level 3**, a protected path, an escalation trigger, or a level that the
+  agent or the reviewer assesses higher than the other two readings give,
+  at any time. The protected
   paths are those named in the [guardrails
   file](https://github.com/taspinar/physics-by-construction/blob/main/.agents/policies/guardrails.conf)
   of the repository and described in [the process
