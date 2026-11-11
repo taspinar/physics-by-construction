@@ -7,6 +7,7 @@ import pytest
 
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import (
+    impedance_series,
     measured_elevation,
     modelled_elevation,
     strain_series,
@@ -190,6 +191,23 @@ def test_the_samples_become_series_with_the_status_of_their_card():
     assert (measured.status, model.status) == ("processed", "simulated")
     expanded = experiment.column(5, "expanded unc")
     np.testing.assert_allclose(measured.sigma * K95, expanded)
+
+
+def test_the_impedance_spectrum_becomes_processed_series_in_rising_frequency():
+    from pbc.data.reference import bayreuth_rlc
+
+    spectrum = bayreuth_rlc.load(SAMPLES_DIR / "bayreuth-rlc-impedance")
+    modulus = impedance_series(spectrum, "modulus")
+    phase = impedance_series(spectrum, "phase")
+    for series in (modulus, phase):
+        assert series.status == "processed" and series.sigma is None
+        assert series.x_unit == "Hz" and np.all(np.diff(series.x) > 0)
+    assert (modulus.y_unit, phase.y_unit) == ("ohm", "deg")
+    # The file runs from high to low frequency; the series from low to high.
+    assert modulus.y[0] == pytest.approx(abs(spectrum.impedance[-1]))
+    assert phase.y[-1] == pytest.approx(np.degrees(np.angle(spectrum.impedance[0])))
+    with pytest.raises(ValueError):
+        impedance_series(spectrum, "real")
 
 
 # --- uncertainty ------------------------------------------------------------

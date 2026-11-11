@@ -5,6 +5,8 @@ artifact, the unit, and where the uncertainty comes from. Labs start here and
 never decide a status by hand.
 """
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from pbc.data.flume import Elevation
@@ -12,6 +14,9 @@ from pbc.data.gwosc import Strain
 from pbc.data.series import Series
 from pbc.data.touchstone import Network
 from pbc.data.uncertainty import standard_from_expanded
+
+if TYPE_CHECKING:
+    from pbc.data.reference.bayreuth_rlc import Spectrum
 
 
 def strain_series(strain: Strain) -> Series:
@@ -68,4 +73,31 @@ def modelled_elevation(elevation: Elevation) -> Series:
         x_unit="s",
         y_name="surface elevation",
         y_unit="m",
+    )
+
+
+def impedance_series(spectrum: Spectrum, part: str) -> Series:
+    """|Z| in ohm (``part="modulus"``) or the phase of Z in degrees
+    (``part="phase"``) against frequency in Hz, in increasing frequency.
+
+    The potentiostat's spectrum as its creators exported it: processed, since
+    the step from the recorded voltage and current to Z is not documented.
+    The record gives no uncertainty per point, so the series carries none.
+    """
+    order = np.argsort(spectrum.frequency)
+    z = spectrum.impedance[order]
+    if part == "modulus":
+        y, name, unit = np.abs(z), "|Z|", "ohm"
+    elif part == "phase":
+        y, name, unit = np.degrees(np.angle(z)), "phase of Z", "deg"
+    else:
+        raise ValueError(f"part {part!r} is not 'modulus' or 'phase'")
+    return Series(
+        x=spectrum.frequency[order],
+        y=y,
+        artifact="processed-measured",
+        x_name="frequency",
+        x_unit="Hz",
+        y_name=name,
+        y_unit=unit,
     )

@@ -1,0 +1,525 @@
+---
+title: "RLC circuit measurements lab"
+description: >-
+  The impedance of a real coil in parallel with a real capacitor, measured
+  at eighty-one frequencies by a laboratory instrument, against the lumped
+  model of the RLC lesson: what the printed component values predict, what a
+  fit of R, L, and C gives with its uncertainty, and where the model and the
+  measurement still disagree.
+lesson:
+  id: rlc-circuit-measurements
+  strand: electromagnetism
+  order: 8
+  difficulty: 2
+  course: electromagnetism
+  slot: EM8
+  methods: [measured-data]
+  outcomes:
+    - Derive the impedance of a coil with winding resistance in parallel with a capacitor from the element impedances of the series RLC circuit, and its three characteristic frequencies
+    - Read a measured impedance spectrum for what it is, a processed measurement at discrete frequencies with no uncertainty per point
+    - Fit R, L, and C to the spectrum with their standard errors and compare them with the values printed on the parts
+    - Judge the fit by its structured residuals and by its sensitivity to the fitted band, and say what neither of them bounds
+  related: []
+  format: 2
+  preview: fig-impedance-fit
+  experiment: pbc.electromagnetism.experiments.rlc_circuit_measurements
+  prerequisites:
+    lessons: [rlc-circuits-and-resonance]
+    outside:
+      - "Complex numbers: the modulus and argument of a complex ratio, and the sum of two complex reciprocals"
+      - "Statistics: a least-squares fit, its residuals, and the standard error of a fitted parameter"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this
+from pbc.electromagnetism import circuits
+from pbc.electromagnetism.experiments import rlc_circuit_measurements as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The RLC lesson checked a circuit model against itself: a simulation in time
+against the closed forms of the phasor method, both computed from the same
+ideal resistor, coil, and capacitor. Agreement there says that the algebra
+and the program are right. It says nothing about whether a real coil and a
+real capacitor on a bench behave like the model. This lab asks that second
+question, with a measurement someone else made and published.
+
+A group at the University of Bayreuth connected a foil capacitor in parallel
+with a coil and measured the impedance between the two terminals with a
+laboratory potentiostat, from about a hundred hertz to ten kilohertz. The
+parts carry printed values: [2.2 µF]{.given} for the capacitor,
+[5 mH]{.given} and [9.7 Ω]{.given} for the coil, each good to
+[10 %]{.given}. Does the lumped model of the RLC lesson, with these three
+numbers, describe the measured spectrum? If not, which values of R, L, and C
+do, how well are they known, and what does the part of the spectrum that no
+choice of the three explains say about the model?
+
+## Assumptions
+
+1. **Three lumped elements.** The capacitor is a pure capacitance $C$. The
+   coil is an inductance $L$ in series with one constant resistance $R$, the
+   resistance of its winding. A real coil also has capacitance between its
+   turns and losses that grow with frequency; a real capacitor has a small
+   series resistance and inductance. The model leaves them out, and the lab
+   tests whether that matters.
+2. **A circuit much smaller than a wavelength.** At ten kilohertz the
+   wavelength is thirty kilometres; the circuit is lumped.
+3. **Linear behaviour.** The impedance does not depend on the amplitude of
+   the current. The instrument imposes one amplitude, so the data cannot
+   test this assumption.
+4. **The instrument reports the true impedance.** The record names the
+   instrument, its mode, and its amplitude, and states no calibration, no
+   correction for the leads, and no accuracy. The lab cannot correct for an
+   error it does not know, and treats the instrument's error as unknown.
+5. **No uncertainty per point.** The file gives none. The uncertainty of
+   the fitted values is derived from the scatter of the residuals, which is
+   only meaningful if the model describes the data, and the lab checks that
+   separately.
+
+## Explanation {#explanation}
+
+### The same elements, connected the other way
+
+The RLC lesson gave each element an impedance: $R$ for the resistor,
+$j\omega L$ for the coil, $1/(j\omega C)$ for the capacitor. In series,
+impedances add. In parallel, the voltage across the branches is the same and
+the currents add, so the reciprocals of the impedances, the admittances,
+add. The coil branch has the impedance $Z_L = R + j\omega L$ and the
+capacitor the admittance $j\omega C$, so
+
+$$
+\frac{1}{Z} = \frac{1}{R + j\omega L} + j\omega C,
+\qquad
+Z = \frac{R + j\omega L}{1 + j\omega C\,(R + j\omega L)}.
+$$
+
+At low frequency the capacitor carries almost no current and $Z \to R$, the
+coil's resistance. At high frequency the capacitor short-circuits the coil
+and $Z \to 1/(j\omega C)$. In between the two branches carry currents of
+opposite phase that nearly cancel: little current enters the circuit for a
+given voltage, and $|Z|$ is large.
+
+The circuit is driven here by a current, not by a voltage: the instrument
+imposes a sinusoidal current of [30 mA]{.given} amplitude and measures the
+voltage. The voltage is the current times $Z$, so the peak of $|Z|$ is a peak
+of the voltage. It is the mirror of the series circuit of the RLC lesson,
+driven by a voltage, whose current peaks where its $|Z|$ is smallest.
+
+### Three frequencies, not one
+
+The series circuit has one resonance, $\omega_0 = 1/\sqrt{LC}$, where its
+impedance is real and smallest at once. The parallel circuit with a lossy
+coil has three frequencies that are close but not equal. The undamped one is
+the same $\omega_0 = 1/\sqrt{LC}$, with the same quality factor
+$Q = \sqrt{L/C}/R$. The phase of $Z$ is zero where the imaginary part of
+$1/Z$ vanishes,
+
+$$
+\frac{-\omega L}{R^2 + \omega^2 L^2} + \omega C = 0
+\quad\Longrightarrow\quad
+\omega_z = \omega_0 \sqrt{1 - \frac{1}{Q^2}},
+$$
+
+and there $1/Z$ is the real part $R/(R^2 + \omega_z^2 L^2)$, which gives
+
+$$
+Z(\omega_z) = \frac{L}{RC},
+$$
+
+the dynamic resistance of the circuit. The largest $|Z|$ is a third
+frequency, between $\omega_z$ and $\omega_0$, which has no short closed form;
+a bounded search finds it. For a high $Q$ the three merge; for $Q$ near five,
+as here, the phase zero lies about two per cent below $\omega_0$.
+
+## Code {#code}
+
+The model is `pbc.electromagnetism.circuits`, the module of the RLC lesson.
+The parallel circuit:
+
+```{python}
+#| echo: false
+excerpt(circuits.CoilParallelCapacitor)
+```
+
+The search for the largest $|Z|$:
+
+```{python}
+#| echo: false
+excerpt(circuits.impedance_peak)
+```
+
+## Worked examples {#worked-examples}
+
+### The model before the measurement
+
+The circuit of the printed values, with its tolerance and the current the
+instrument imposes:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="nominal")
+```
+
+Before any data, the closed forms are checked on this circuit: the phase zero
+against a root search on the imaginary part of $Z$, the dynamic resistance
+against $|Z|$ at that root, and the largest $|Z|$ by the bounded search.
+
+```{python}
+#| echo: false
+excerpt(experiment.characteristic_frequencies)
+```
+
+```{python}
+#| label: characteristic-frequencies
+#| echo: false
+result.table("characteristic-frequencies")
+```
+
+[For the circuit of the printed values, the closed forms of the phase-zero
+frequency and of the dynamic resistance $L/(RC)$ agree with the root search
+to a relative `{python} result["closed-form-gap"]`, and the largest $|Z|$
+lies between the phase zero and $1/(2\pi\sqrt{LC})$.]{.claim
+type="numerically-verified" scope="the lumped model with the printed values"
+evidence="characteristic-frequencies"} The printed values predict the
+undamped resonance at `{python} result["nominal-f0"]` Hz with a quality
+factor of `{python} result["nominal-q"]`. That is the prediction the
+measurement can test.
+
+### The measured spectrum {#data}
+
+```{python}
+#| echo: false
+data_card("bayreuth-rlc-impedance")
+```
+
+The file holds one sweep of `{python} result["samples"]` frequencies from
+`{python} result["f-min"]` Hz to `{python} result["f-max"]` Hz, forty per
+decade, so neighbouring frequencies differ by `{python} result["step"]` per
+cent. At each it gives the complex impedance, as the instrument's software
+computed it from the voltage and the current it recorded. That step is not
+documented, so the card labels the file a processed measurement and every
+figure of this page says processed. The file states no uncertainty for any
+point. The data are published under a Creative Commons attribution licence;
+the card gives the attribution, which every figure carries.
+
+```{python}
+#| echo: false
+excerpt(experiment.load_spectrum)
+```
+
+```{python}
+#| label: measured-extremes
+#| echo: false
+excerpt(experiment.measured_extremes)
+```
+
+[The highest measured $|Z|$, `{python} result["peak-modulus"]` Ω, is at the
+sample `{python} result["peak-frequency"]` Hz, and the measured phase changes
+sign between the samples `{python} result["turn-low"]` Hz
+(`{python} result["turn-low-deg"]`°) and `{python} result["turn-high"]` Hz
+(`{python} result["turn-high-deg"]`°).]{.claim type="observational"
+scope="the 81 samples of the sweep, as exported" evidence="measured-extremes bayreuth-rlc-impedance"}
+With the current amplitude of the instrument, the voltage across the circuit
+at that sample is about `{python} result["voltage"]` V. These statements need
+no model. They locate the resonance only to within one step of the sweep: a
+sample is where the instrument happened to measure, not where the circuit
+peaks.
+
+### The printed values against the measurement
+
+The figure draws the measured samples, the model with the printed values
+(dotted), and the model with fitted values (dashed, from the next section),
+with the size of the relative residual of each model at every sample.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_impedance_fit)
+```
+
+```{python}
+#| label: fig-impedance-fit
+#| echo: false
+#| fig-cap: "The measured impedance of the coil parallel to the capacitor follows the lumped model in shape. With the printed component values the model is a few per cent off everywhere and most off at the resonance; with fitted values it comes close, and the residual that remains is largest at the resonance."
+#| fig-alt: "Three stacked panels against frequency on a logarithmic axis from a hundred hertz to ten kilohertz. Top, log-log: the measured magnitude of the impedance as dots, rising slowly, then steeply to a sharp peak, then falling; a dotted and a dashed model curve lie on the dots, the dotted one peaking slightly to the left. Middle: the measured phase rising to a broad maximum, then dropping steeply through zero at the peak to a constant negative value; both model curves follow it. Bottom, logarithmic vertical axis: the size of the residual of each model; the dotted model's residual is several times the dashed one's everywhere, and both rise to a maximum at the resonance."
+#| fig-status: processed
+#| fig-dataset: bayreuth-rlc-impedance
+result.show("fig-impedance-fit")
+```
+
+The dots are the measurement, untouched apart from the order of the samples;
+the curves are models and are drawn apart from it. The printed values give
+the right shape, a coil at low frequency, a capacitor at high frequency, and
+a sharp peak between, but they miss the measured impedance by
+`{python} result["printed-rms"]` per cent in root mean square over the
+spectrum and by `{python} result["printed-worst"]` per cent near the peak,
+where a small shift of the resonance makes a large difference. The printed
+values are only good to ten per cent, so this tells us that the parts differ
+from their labels, not yet that the model is wrong.
+
+### Fitting R, L, and C {#fitting}
+
+The fit adjusts the three values until the model's impedance is as close as
+possible to the measured one, sample by sample. The residual of a sample is
+the relative difference $Z_\text{model}/Z_\text{measured} - 1$, a complex
+number whose real and imaginary parts are two residuals, so that a sample at
+the peak, where $|Z|$ is `{python} result["peak-over-low"]` times larger than at the lowest frequency, does
+not weigh more than one at the edges. The fit helper `fit_curve` of the
+course reports the standard errors, the correlations, and whether the data
+determine every parameter.
+
+```{python}
+#| echo: false
+excerpt(experiment.fit_impedance)
+```
+
+```{python}
+#| label: fit
+#| echo: false
+result.table("fit")
+```
+
+[The lumped model fitted to the measured spectrum gives
+$R =$ `{python} result["r-fit"]` ± `{python} result["r-err"]` Ω,
+$L =$ `{python} result["l-fit"]` ± `{python} result["l-err"]` mH, and
+$C =$ `{python} result["c-fit"]` ± `{python} result["c-err"]` µF, each within
+`{python} result["largest-distance"]` per cent of its printed value. The
+standard errors are derived from the scatter of the residuals, because the
+record gives no uncertainty per point.]{.claim type="experimentally-supported"
+scope="the three-element lumped model, the whole band, the record's instrument error unknown and not included"
+evidence="fit bayreuth-rlc-impedance"}
+The helper finds every parameter determined (its warnings:
+`{python} result["fit-warnings"]`); the strongest correlation is
+`{python} result["lc-correlation"]`, between $L$ and $C$, because the
+resonance fixes their product better than either. All three values are well
+inside the factory tolerance. The record's own description of the coil says
+"[9.7 mΩ]{.given}"; a resistance of milliohms would give a quality factor of
+thousands, and the fit, with a quality factor of `{python} result["fit-q"]`,
+shows that it means ohms.
+
+### What the residuals say
+
+The bottom panel of the figure above shows the residual of the fit at every
+sample. Its root mean square is `{python} result["rms"]` per cent. If that
+were noise of the instrument, the residuals would scatter without pattern
+from one sample to the next. They do not: they form a smooth curve,
+`{python} result["residual-first"]` per cent at the lowest frequency and
+`{python} result["residual-last"]` per cent at the highest, smallest near
+`{python} result["residual-min-at"]` Hz, and
+largest, `{python} result["worst"]` per cent, at the sample
+`{python} result["worst-at"]` Hz next to the resonance. A smooth residual is
+the signature of a model that is not quite right, not of noise. The standard
+errors of the table come from the size of these residuals as if they were
+noise, so they say how well the three values of this model are pinned down
+by the data, not how close the model is to the circuit.
+
+### The resonance, three ways
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_resonance_detail)
+```
+
+```{python}
+#| label: fig-resonance-detail
+#| echo: false
+#| fig-cap: "Around the resonance the sweep has only a few samples, and the highest measured sample is not where the fitted model peaks: the fitted model's largest impedance lies between two samples, and its phase crosses zero below that."
+#| fig-alt: "Two stacked panels on a linear frequency axis around the resonance. Top: measured samples as dots and the dashed fitted curve of the impedance magnitude, a peak; three vertical lines mark, from left to right, the phase zero of the model, the largest impedance of the model, and the highest measured sample, which lies to the right of the model's peak. Bottom: the measured phase as dots and the dashed model falling through zero, with the same three vertical lines."
+#| fig-status: processed
+#| fig-dataset: bayreuth-rlc-impedance
+result.show("fig-resonance-detail")
+```
+
+[The fitted model has its undamped resonance $1/(2\pi\sqrt{LC})$ at
+`{python} result["fit-f0"]` Hz, its largest $|Z|$ at
+`{python} result["fit-peak"]` Hz, and the zero of its phase at
+`{python} result["fit-zero"]` Hz, where its impedance is
+$L/(RC) =$ `{python} result["fit-dynamic"]` Ω.]{.claim
+type="experimentally-supported"
+scope="frequencies of the fitted three-element model, not read from the samples"
+evidence="fit fig-resonance-detail bayreuth-rlc-impedance"} The three are
+frequencies of the model, and the sweep has no sample at any of them. The
+highest measured sample, `{python} result["peak-frequency"]` Hz, is
+`{python} result["peak-above-model"]` per cent above the model's peak, less
+than one step of the sweep: the measured samples on either side of the peak
+are almost equal, and the higher of the two happens to lie above. The
+measured phase changes sign between the same two samples, consistent with
+the model's zero between them. The fit places the resonance between the
+samples, which the samples alone cannot do; it does so through the model,
+and only as well as the model holds.
+
+### How much the band matters
+
+A model that does not describe the whole spectrum exactly returns values
+that depend on which part of the spectrum it is fitted to. The cell repeats
+the fit on the samples below and above the resonance separately.
+
+```{python}
+#| echo: false
+excerpt(experiment.band_sensitivity)
+```
+
+```{python}
+#| label: band-sensitivity
+#| echo: false
+result.table("band-sensitivity")
+```
+
+The three fits differ by far more than their standard errors: the resistance
+is `{python} result["band-r-below"]` Ω from the samples below the resonance
+and `{python} result["band-r-above"]` Ω from those above, and the undamped
+resonance ranges from `{python} result["band-f0-low"]` Hz to
+`{python} result["band-f0-high"]` Hz. [Fitted to different parts of the band,
+the lumped model gives values that differ by many standard errors, the
+resistance most and the resonance frequency least; the table is a
+sensitivity of the model fit to the band, not an uncertainty interval of the
+circuit's values.]{.claim type="experimentally-supported"
+scope="the three-element lumped model fitted to the whole band and to its two halves"
+evidence="band-sensitivity bayreuth-rlc-impedance"} The resistance that the
+high frequencies want is larger than the one the low frequencies want. Losses
+that grow with frequency, in the winding of the coil and in the capacitor's
+foil, would do that, and the residual's shape is consistent with them; so is
+an error of the instrument that changes with frequency, and these data cannot
+tell the two apart.
+
+### What the lab shows
+
+The lumped model of the RLC lesson, with the elements connected as the
+circuit is built, describes a real coil and capacitor to about one per cent
+over two decades of frequency once its three values are fitted, and the
+fitted values lie within the factory tolerance of the printed ones. The
+model's undamped resonance is close to `{python} result["fit-f0"]` Hz; the
+band table shows how much that number moves with the samples fitted: by
+`{python} result["band-f0-spread"]` per cent. What the model does not capture shows as
+a smooth residual of a few per cent, largest at the resonance. No number on
+this page bounds the error of the instrument itself, which the record does
+not state. An error that scales every impedance by the same factor $k$ is
+invisible to the fit: the formula of the circuit gives
+$Z(kR, kL, C/k) = k\,Z(R, L, C)$ exactly, so such an error would change
+the fitted $R$, $L$, and $C$ by the factor and leave the resonance, the
+quality factor, and the residuals as they are.
+
+## Limits {#limits}
+
+- **No instrument uncertainty.** The record gives no calibration and no
+  accuracy. The standard errors come from the residuals of the fit, and the
+  band table is a sensitivity of the model fit; neither bounds an error of
+  the instrument that is the same at every frequency or changes slowly with
+  it. A common scale error of every impedance would move
+  the three fitted values and leave the resonance frequency and the quality
+  factor unchanged.
+- **The model is too simple at the percent level.** One constant resistance
+  cannot describe losses that grow with frequency, and the model has no
+  capacitance between the turns of the coil and no resistance or inductance
+  of the capacitor. The structured residual shows the effect; the data do not
+  separate its causes.
+- **One circuit, one sweep.** There are no repeated measurements, no second
+  amplitude, and no temperature record, so the lab cannot test the
+  repeatability, the linearity, or the stability of the parts.
+- **The measured maximum is a sample.** With forty points per decade, the
+  peak of the circuit is known from the samples only to within one step,
+  about six per cent; a finer statement comes from the model.
+- **A processed spectrum.** The step from the recorded voltage and current to
+  the impedance happened in the instrument's software and is not documented.
+
+::: {.exercise .self-check}
+The fit gives the coil's resistance with a standard error of about two
+hundredths of an ohm, yet the fits of the two halves of the band differ by
+almost one ohm. Which number describes how well the coil's resistance is
+known, and why?
+
+::: {.solution}
+Neither is a full uncertainty. The standard error assumes that the model is
+right and that the residuals are noise; the residuals are smooth, so the
+model is not exactly right, and the standard error only says how well the
+data fix the parameter of this particular model over this band. The
+difference between the band fits shows that the "resistance" the model
+returns depends on the frequencies used, because the real losses depend on
+frequency: there is no single resistance to know. It is the more honest
+description of how far the number can be trusted, but it is a sensitivity of
+the fit, not an interval, and it says nothing about the error of the
+instrument.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A circuit of your own.** A coil of 10 mH with a winding resistance of
+20 Ω is connected in parallel with a 1 µF capacitor. Find its undamped
+resonance, its quality factor, the frequency where the phase of its
+impedance is zero, and the impedance there.
+
+::: {.solution}
+The closed forms give each value directly.
+
+```{python}
+#| echo: false
+excerpt(experiment.tank_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("tank-exercise"), end="")
+```
+
+The phase zero lies two per cent below the undamped resonance, as for the
+measured circuit, because the quality factor is about the same.
+:::
+:::
+
+::: {.exercise}
+**How fine is the sweep?** A sweep takes 40 frequencies per decade, equally
+spaced on a logarithmic axis. What is the ratio of two neighbouring
+frequencies, how many hertz apart are they near 1.5 kHz, and how far, in per
+cent, can the nearest sample be from the frequency of a peak?
+
+::: {.hint}
+The ratio is the fortieth root of ten. The nearest sample is at most half a
+step away on the logarithmic axis.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.sweep_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("sweep-exercise"), end="")
+```
+
+The highest measured sample of the lab lies within that distance of the
+model's peak, as it must if the model is right.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/electromagnetism/circuits.py",
+        "src/pbc/electromagnetism/experiments/rlc_circuit_measurements.py",
+        "src/pbc/experiment.py",
+        "src/pbc/data/reference/bayreuth_rlc.py",
+        "src/pbc/data/adapters.py",
+        "src/pbc/data/fit.py",
+        "src/pbc/data/plotting.py",
+    ],
+    tests=[
+        "tests/unit/test_coil_parallel_capacitor.py",
+        "tests/unit/test_data_samples.py",
+        "tests/unit/test_data_analysis.py",
+        "tests/unit/test_rlc_circuit_measurements_experiment.py",
+    ],
+)
+```
+
+The data card above gives the command that downloads a fresh copy of the
+file into `data/downloads/bayreuth-rlc-impedance`; no model and no account
+are needed to read it.
