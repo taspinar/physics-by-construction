@@ -525,21 +525,25 @@ marginal of one laboratory changes with the other laboratory's setting by
 more than `{python} result["worst-signal"]` standard errors.]{.claim
 type="observational" scope="the events of the stopping rule, binomial errors"
 evidence="settings no-signalling munich-bell-event-ready"}
-Eight comparisons of which the largest is
-`{python} result["worst-signal"]` standard errors is what independent
-chance gives. The check does not prove that the
-settings were random: it shows that they were balanced and that the
-outcomes carry no signal between the laboratories, which is what the
-quantum prediction requires and what the entanglement lesson argued no
-model of either kind can avoid.
+[Eight comparisons of which the largest is
+`{python} result["worst-signal"]` standard errors are what independent
+chance gives: at the level of these errors the settings were balanced and
+the outcomes of one laboratory carry no signal of the other laboratory's
+setting. The check does not show that the settings were random.]{.claim
+type="observational" scope="the events of the stopping rule, binomial errors; balance and marginals, not randomness"
+evidence="settings no-signalling munich-bell-event-ready"}
+Balanced settings and unmoved marginals are what the quantum prediction
+requires, and what the entanglement lesson argued no model of either kind
+can avoid.
 
 ### What the data do not close {#loopholes}
 
-A violation of $|S| \le 2$ rules out the models in which each outcome is
-fixed by the local setting and by something the pair carried from the
-source. The experiment that produced these files was designed so that the
-two classical escapes from that conclusion are shut, and the record shows
-part of it:
+The entanglement lesson derived the bound $|S| \le 2$ for every model in
+which each outcome is fixed by the local setting and by something the pair
+carried from the source; a violation is what such models cannot produce.
+The paper reports that the experiment that produced these files was
+designed so that the two classical escapes from that conclusion are shut,
+and the record shows part of it:
 
 - **The detection loophole** is closed by the event-ready scheme. A
   heralding signal from the Bell-state measurement announces each entangled
@@ -587,14 +591,19 @@ evidence="munich-bell-event-ready"}
 And the selections in these data, each one documented and each one checked
 above:
 
-- **Heralding.** Only heralded attempts exist in the record. The herald
-  precedes the choice of the settings, so the settings cannot influence it,
-  and it opens no detection loophole; but the result is a statement about
-  heralded pairs.
-- **The maintenance exclusions.** Fixed in advance as a daily routine, and
-  added back above: they move $S$ by a few hundredths of its error.
-- **The stopping rule.** Fixed before the run; the events after it, included
-  above, leave $S$ where it was.
+- **Heralding.** Only heralded attempts exist in the record. In the
+  paper's design the herald precedes the choice of the settings, so the
+  settings cannot influence it, and it opens no detection loophole; but the
+  result is a statement about heralded pairs.
+- **The maintenance exclusions.** Fixed in advance as a daily routine, the
+  paper states. [Added back, the excluded attempts move $S$ by
+  `{python} result["shift-in-errors"]` of its standard error.]{.claim
+  type="observational" scope="the excluded attempts paired by the archive's own rule"
+  evidence="chsh munich-bell-event-ready"}
+- **The stopping rule.** Fixed before the run, the paper states. [The
+  `{python} result["after-stop"]` events after it, included, move $S$ by
+  `{python} result["stop-shift-in-errors"]` of its standard error.]{.claim type="observational" scope="the whole archive against the stopping rule"
+  evidence="chsh munich-bell-event-ready"}
 - **The pairing.** [The two laboratories' clocks agree within the pairing
   window, every pair agrees with the laboratory rows it names, and only two
   attempts of the second laboratory, at the very end, have no
@@ -624,11 +633,16 @@ above:
   test asserts that no other one reproduces the published values.
 - **The timing is quoted.** Nothing on this page tests the locality
   condition; the files do not contain what would be needed.
-- **No interpretation is selected.** The violation excludes local
-  hidden-variable models under the assumptions above. It does not single
-  out an interpretation of quantum mechanics, and it allows no signal:
-  the no-signalling table shows the marginals of each laboratory unmoved
-  by the other's setting.
+- **No interpretation is selected.** [Under the assumptions above, the
+  measured $S$ excludes the local hidden-variable models of the
+  entanglement lesson by `{python} result["sigmas-pooled"]` standard errors
+  of independent events, and no marginal of one laboratory moves with the
+  other laboratory's setting by more than `{python} result["worst-signal"]`
+  standard errors.]{.claim type="experimentally-supported"
+  scope="the assumptions of 'What the data do not close'; standard errors of independent events, the selection of the stopping rule"
+  evidence="chsh no-signalling munich-bell-event-ready"} The result does
+  not single out an interpretation of quantum mechanics, and it carries no
+  signal between the laboratories.
 
 In plain words: two atoms in two buildings were measured a few thousand
 times each with settings chosen at random, and [the pattern of agreements

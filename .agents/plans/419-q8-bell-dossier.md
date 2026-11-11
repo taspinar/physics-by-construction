@@ -120,7 +120,9 @@ squares with these errors as absolute sigma: the reduced chi-square tests the
 model (one parameter: 6.4 and 7.8 on 3 degrees of freedom, rejected; two
 parameters: 0.03 and 2.17 on 2, the first with the helper's warning, which
 the page explains). Standard errors of V and eps from the fit; the predicted
-S of the fitted model against the measured S. The "6.7 standard errors" of
+S of the fitted model against the measured S, its standard error the
+gradient of 2 sqrt(2) V cos eps through the full covariance of the fit
+(review round 4, M2: V and eps come from one fit and may be correlated). The "6.7 standard errors" of
 the pooled S assume independent events; the paper's P-value bounds that do
 not are quoted as given values from the card and never recomputed.
 
@@ -181,6 +183,15 @@ page).
   assumptions left, quoted (the card). Each computed one is asserted by the
   experiment's tests. The one-parameter fit's visibility is
   experimentally-supported (`fit-one`).
+- review round 4, M1: what the setting and no-signalling checks show
+  (observational; `settings`, `no-signalling`); the shift of S by the
+  maintenance exclusions and, separately computed (`stop-shift-in-errors`),
+  by the stopping rule (observational; `chsh`); the exclusion of the local
+  hidden-variable models under the stated assumptions with the pooled
+  standard-error count and the worst marginal (experimentally-supported;
+  `chsh`, `no-signalling`). The Bell bound is attributed to the entanglement
+  lesson and the design statements (heralding before the settings, the
+  loopholes shut, the rules fixed in advance) to the paper.
 No claim wider than the data and the model: a violation is a statement
 about local hidden-variable models under the stated assumptions and
 selections; the significance under independence is not the probability

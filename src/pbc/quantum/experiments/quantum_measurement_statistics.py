@@ -618,6 +618,8 @@ def run() -> Experiment:
     experiment.number("s-with-excluded", s_ex, ".4f")
     experiment.number("excluded-pairs", n_excluded_pairs, "d")
     experiment.number("shift-in-errors", abs(s_ex - s_all) / err_all, ".2f")
+    s_stop, err_stop = found["pooled"]
+    experiment.number("stop-shift-in-errors", abs(s_all - s_stop) / err_stop, ".2f")
     experiment.number("after-stop", len(pairs) - 2 * EVENTS_PER_STATE, "d")
     experiment.figure("fig-running-s", partial(draw_running_s, run_, found))
 

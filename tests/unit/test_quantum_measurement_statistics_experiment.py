@@ -106,6 +106,7 @@ def test_the_selections_of_the_run_do_not_make_the_violation(results):
     error = float(archive[3])
     assert abs(float(added[2]) - float(archive[2])) < 0.05 * error
     assert float(numbers["shift-in-errors"]) < 0.05
+    assert float(numbers["stop-shift-in-errors"]) < 0.05
     assert all(float(r[4]) > 4 for r in rows.values())
     assert numbers["after-stop"] == "201" and numbers["excluded-pairs"] == "13"
 

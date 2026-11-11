@@ -118,16 +118,19 @@ def fit_visibility(
 
 
 def model_s_of_fit(fit: FitResult) -> tuple[float, float]:
-    """S of a fitted model and its standard error (first order in V and
-    eps, the two taken as independent)."""
+    """S of a fitted model and its standard error, to first order: the
+    gradient of S = 2 sqrt(2) V cos(eps) with respect to the fitted
+    parameters, propagated through the full covariance of the fit (V and eps
+    come from the same fit and may be correlated)."""
     v = fit.value("visibility")
     eps = fit.value("offset") if "offset" in fit.names else 0.0
-    sv = fit.stderr[fit.names.index("visibility")]
-    se = fit.stderr[fit.names.index("offset")] if "offset" in fit.names else 0.0
     s = model_chsh(v, eps)
-    ds_dv = TSIRELSON * np.cos(eps)
-    ds_de = -TSIRELSON * v * np.sin(eps)
-    return s, float(np.sqrt((ds_dv * sv) ** 2 + (ds_de * se) ** 2))
+    gradient = np.zeros(len(fit.names))
+    gradient[fit.names.index("visibility")] = TSIRELSON * np.cos(eps)
+    if "offset" in fit.names:
+        gradient[fit.names.index("offset")] = -TSIRELSON * v * np.sin(eps)
+    variance = float(gradient @ np.asarray(fit.covariance) @ gradient)
+    return s, float(np.sqrt(max(variance, 0.0)))
 
 
 def visibility_threshold(offset: float = 0.0) -> float:

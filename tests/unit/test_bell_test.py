@@ -2,6 +2,8 @@
 settings of the Munich Bell test, its fits, and the checks of a test's
 statistics."""
 
+import dataclasses
+
 import numpy as np
 import pytest
 
@@ -94,6 +96,78 @@ def test_the_fit_recovers_the_visibility_and_the_offset(state):
     assert fit_visibility(exact, state, with_offset=False).value(
         "visibility"
     ) == pytest.approx(0.79, abs=1e-8)
+
+
+def test_the_s_of_a_fit_propagates_the_full_covariance():
+    """The standard error of S = 2 sqrt(2) V cos(eps) is the gradient
+    through the fit's covariance, correlation included: a hand-made
+    covariance with a strong correlation gives the closed form, which
+    differs from the sum of the two contributions taken as independent."""
+    from pbc.data.fit import FitResult
+
+    v, eps, sv, se, rho = 0.8, -0.3, 0.02, 0.05, 0.9
+    covariance = np.array([[sv**2, rho * sv * se], [rho * sv * se, se**2]])
+    fit = FitResult(
+        names=("visibility", "offset"),
+        params=np.array([v, eps]),
+        stderr=np.array([sv, se]),
+        covariance=covariance,
+        correlation=np.array([[1.0, rho], [rho, 1.0]]),
+        residuals=np.zeros(4),
+        chi2=2.0,
+        dof=2,
+        reduced_chi2=1.0,
+        singular_ratio=0.5,
+        identifiable=(True, True),
+        warnings=(),
+        absolute_sigma=True,
+    )
+    dv = 2 * np.sqrt(2) * np.cos(eps)
+    de = -2 * np.sqrt(2) * v * np.sin(eps)
+    expected = np.sqrt(dv**2 * sv**2 + de**2 * se**2 + 2 * dv * de * rho * sv * se)
+    independent = np.sqrt(dv**2 * sv**2 + de**2 * se**2)
+    s, s_err = model_s_of_fit(fit)
+    assert s == pytest.approx(model_chsh(v, eps))
+    assert s_err == pytest.approx(expected, rel=1e-12)
+    assert abs(s_err - independent) > 0.1 * independent
+    # The sign of the correlation matters: anticorrelated, the error grows.
+    flipped = covariance * np.array([[1, -1], [-1, 1]])
+    _, s_err_flipped = model_s_of_fit(dataclasses.replace(fit, covariance=flipped))
+    assert s_err_flipped == pytest.approx(
+        np.sqrt(dv**2 * sv**2 + de**2 * se**2 - 2 * dv * de * rho * sv * se)
+    )
+
+
+@pytest.mark.parametrize("state", STATES)
+def test_the_s_error_of_a_fit_matches_monte_carlo_of_its_correlators(state):
+    """Against the data's own scatter: correlators drawn many times around a
+    known model and fitted give an S whose spread equals the propagated
+    standard error."""
+    truth = (0.79, -0.09)
+    errs = {}
+    for k in SETTINGS:
+        e = predicted_correlator(state, *k, *truth)
+        errs[k] = float(np.sqrt((1 - e**2) / 1250))
+    rng = np.random.default_rng(7)
+    samples = []
+    for _ in range(400):
+        terms = {
+            k: Correlator(
+                predicted_correlator(state, *k, *truth) + rng.normal(0, errs[k]),
+                errs[k],
+                1250,
+            )
+            for k in SETTINGS
+        }
+        samples.append(
+            model_s_of_fit(fit_visibility(terms, state, with_offset=True))[0]
+        )
+    exact = {
+        k: Correlator(predicted_correlator(state, *k, *truth), errs[k], 1250)
+        for k in SETTINGS
+    }
+    _, s_err = model_s_of_fit(fit_visibility(exact, state, with_offset=True))
+    assert np.std(samples) == pytest.approx(s_err, rel=0.12)
 
 
 def _pairs(rng: np.random.Generator, n: int, signalling: bool = False) -> Pairs:
