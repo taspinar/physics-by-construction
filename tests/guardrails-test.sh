@@ -126,6 +126,40 @@ repo="$(setup_repo checks-deleted)"
 rm "$repo/scripts/verify.conf"
 expect_level "$repo" protected "a feature deletes the verification configuration"
 
+# The same under the project's own configuration, which names
+# scripts/verify.conf on no line, so the builtin rule alone reads it (D4 of
+# #446, Issue #465): a listed path would make an added check protected too.
+# setup_project_checks <label>: the project's gate configuration on the base.
+setup_project_checks() {
+  local repo
+
+  repo="$(setup_repo "$1")"
+  git -C "$repo" switch -q main
+  cp "$source_root/.agents/policies/guardrails.conf" "$repo/.agents/policies/guardrails.conf"
+  git -C "$repo" commit -qam "The project's gate configuration"
+  git -C "$repo" switch -q feature/5-thing
+  git -C "$repo" reset -q --hard main
+  printf '%s\n' "$repo"
+}
+if sed -n 's/^protected:[[:space:]]*//p' "$source_root/.agents/policies/guardrails.conf" | tr -s '[:space:]' '\n' |
+  grep -Ex 'scripts(/verify\.conf)?' >/dev/null; then
+  fail "guardrails.conf names scripts/verify.conf on a protected line; the builtin rule is to read it"
+fi
+repo="$(setup_project_checks project-check-added)"
+printf 'new-check: true\n' >>"$repo/scripts/verify.conf"
+expect_level "$repo" sensitive "a feature adds a check under the project's configuration"
+grep -Fq "sensitive: scripts/verify.conf (a check is added)" "$repo.out" || fail "the added check was not named as sensitive"
+
+repo="$(setup_project_checks project-check-changed)"
+printf 'lint: true\nunit: echo skipped\n' >"$repo/scripts/verify.conf"
+expect_level "$repo" protected "a feature changes an existing check under the project's configuration"
+grep -Fq "protected: scripts/verify.conf (an existing check or line is changed or removed)" "$repo.out" ||
+  fail "the changed check was not named as protected"
+
+repo="$(setup_project_checks project-check-removed)"
+printf 'lint: true\n' >"$repo/scripts/verify.conf"
+expect_level "$repo" protected "a feature removes a check under the project's configuration"
+
 # A feature cannot relax the rules it is checked by: they are read from its
 # base, and the files of the gate are protected themselves.
 repo="$(setup_repo rules-relaxed)"

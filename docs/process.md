@@ -134,6 +134,26 @@ Every change carries one level, the highest of three readings, derived by
   prompts other than `.agents/prompts/reviewer.md` are sensitive, not
   protected, and Level 2 by path (ADR 020, the addendum of 2026-11-08 to
   decision 1; Issue #412); a trigger in their content makes them Level 3.
+  The protected lines name the ADRs, the planning documents, the CI
+  workflows and the code-owners file, the workflow scripts and
+  `scripts/lib/`, `scripts/check-guardrails.sh`, `scripts/check-review.sh`,
+  `scripts/ci-aggregate.sh`, the reviewer contract, the schemas, the
+  policies, `AGENTS.md`, `.agents/agents.conf`, `scripts/verify.sh`; the
+  triage (`scripts/triage-review.sh`,
+  `scripts/apply-triage.sh`); the four check scripts
+  (`scripts/check-lean.sh`, `scripts/check-lesson-pages.sh`,
+  `scripts/check-determinism.sh`, `scripts/fetch-built-site.sh`); the
+  digest, the selection, and the execution store
+  (`src/pbc/authoring/store.py`); the base and its provenance; the build
+  and the Lean reader (`src/pbc/authoring/lean.py`); the skills; and the
+  approval requests. `scripts/verify.conf` is on none of them: the builtin
+  rule reads it, so an added check is sensitive and Level 2 by path, a
+  changed or removed line protected and Level 3. Sensitive and Level 2 by
+  path (D7 of #446): `src/pbc/authoring/evidence.py`,
+  `src/pbc/data/check.py`, `src/pbc/skills.py`,
+  `src/pbc/verification/checks.py`, `tests/e2e/conftest.py`, and
+  `data/registry/` (ADR 020, the addendum of 2026-11-10 to decision 1,
+  Issue #465).
 - **The escalation triggers**, any of which gives Level 3: a changed or
   removed published scientific claim; weakened test strength; security;
   verification guarantees; dependency selection. The scripts detect on the

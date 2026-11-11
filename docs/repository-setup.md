@@ -149,10 +149,19 @@ setting, and never holds the identity's credentials:
     planning documents, `/.github/workflows/`, the workflow scripts and
     `scripts/lib/`, `/.agents/prompts/`, `/.agents/schemas/`,
     `/.agents/policies/`, `/AGENTS.md`, `/.agents/agents.conf`,
-    `scripts/verify.conf`, `scripts/verify.sh`, the digest, the selection,
-    the base and its provenance, `scripts/build-site.sh`, `/.agents/skills/`,
+    `scripts/verify.sh`, `scripts/triage-review.sh`,
+    `scripts/apply-triage.sh`, the four check scripts
+    (`scripts/check-lean.sh`, `scripts/check-lesson-pages.sh`,
+    `scripts/check-determinism.sh`, `scripts/fetch-built-site.sh`), the
+    digest, the selection, the execution store
+    (`src/pbc/authoring/store.py`), the base and its provenance,
+    `scripts/build-site.sh`, the Lean reader
+    (`src/pbc/authoring/lean.py`), `/.agents/skills/`,
     `/.agents/approvals/`, and `/.github/CODEOWNERS` itself, so that the
-    code-owners file cannot change without the identity's review. Name the
+    code-owners file cannot change without the identity's review. Name
+    `scripts/verify.conf` too: it is on no protected line, but the builtin
+    rule of `scripts/lib/guardrails.sh` protects a changed or removed line
+    of it (an added check is only sensitive). Name the
     identity also on the line `owner-identity: <login>` of
     `.agents/policies/guardrails.conf`: `./scripts/merge-feature.sh` accepts
     the approval of that one login only, never another code owner's.

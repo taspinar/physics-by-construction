@@ -16,6 +16,9 @@ about form and writes the approval request by script.
 The addendum of 2026-11-10 to decision 1 (Issue #464, D10 and D11 of #446),
 proposed with that Issue and accepted by its merge, makes a changed claim
 span a detected trigger and pins the execution settings.
+The addendum of 2026-11-10 to decision 1 (Issue #465, D1, D2, D4 to D7 of
+#446), proposed with that Issue and accepted by its merge, changes the
+protected and the sensitive lists of `.agents/policies/guardrails.conf`.
 Superseded in part: the re-assessment points of decisions 6 and 8 (42 and 44
 lessons, a run above 45 minutes) by the notes of 2026-10-21, 2026-10-24, and
 2026-11-04 in ADR 014's status; decision 8's pause of ADR 017 and F113
@@ -673,6 +676,56 @@ claims removed as readings; an added claim, a claim moved within its page and
 to another page, a changed paragraph around a claim, a transition, a caption,
 and whitespace and line wrapping inside a claim as none. No check, tier,
 path, or level changes, and no test is removed.
+
+### Addendum to decision 1 (Issue #465, 2026-11-10): the protected and the sensitive lists
+
+Status: Proposed with Issue #465; accepted when its pull request is merged
+with the owner's approval of the exact commit.
+
+On 2026-11-09 the owner decided D1 to D9 of the inventory of #446 (point 6
+of #396); this is the third of three pull requests and carries the items
+that change the lists. Decision 1's list of Level 3 paths, as the addendum
+of 2026-11-08 left it, changes in these respects, and in no other:
+
+- **D1: the triage is protected.** `scripts/triage-review.sh` and
+  `scripts/apply-triage.sh` decide how the findings of a review are
+  triaged and applied; a silent change can let a major finding through.
+- **D2: the four check scripts are protected.** `scripts/check-lean.sh`,
+  `scripts/check-lesson-pages.sh`, `scripts/check-determinism.sh`, and
+  `scripts/fetch-built-site.sh` are each the only place where their pass is
+  decided: a `sorry` or an axiom let through, a lesson page rendered
+  outside its budget or not compared with its experiment, a build that
+  depends on time, an end-to-end job run on another site.
+- **D4: `scripts/verify.conf` leaves the protected list.** The builtin rule
+  of `scripts/lib/guardrails.sh` reads it, as it reads
+  `scripts/verify-workflow.conf`: an added check is sensitive and Level 2
+  by path, a changed or removed line, and the file's removal, protected and
+  Level 3. A weakened check stays Level 3 by path; only a pure addition
+  leaves Level 3.
+- **D5: the execution store is protected** with the digest and the
+  selection: `src/pbc/authoring/store.py` decides which pages of a build
+  are executed again and which results are reused (ADR 014 decisions 3, 6,
+  and 9).
+- **D6: the Lean reader is protected** with the build:
+  `src/pbc/authoring/lean.py` decides whether a proof a page shows was
+  compiled.
+- **D7: six paths are sensitive.** `src/pbc/authoring/evidence.py`,
+  `src/pbc/data/check.py`, `src/pbc/skills.py`,
+  `src/pbc/verification/checks.py`, `tests/e2e/conftest.py`, and
+  `data/registry/`: the independent reviewer is told to look at a change to
+  them; their level stays Level 2 by path.
+
+`AGENTS.md` stays protected (D3 declined); the convenience scripts, the
+libraries, and the prose policies stay as they are (D8); the broad reading
+of the trigger "assertion removed or changed" is kept (D9). Requirements
+decision 39's "the protected paths of `guardrails.conf`" is the list as
+this addendum leaves it; the requirements are not edited for it.
+`tests/risk-level-test.sh` shows the list and its count, every new
+protected path reported as protected and Level 3, and every path of D7
+reported as sensitive only and Level 2; it and `tests/guardrails-test.sh`
+show `scripts/verify.conf` under the project's configuration read by the
+builtin rule. No check, tier, budget, or trigger changes, and no test is
+removed.
 
 ## Alternatives considered
 

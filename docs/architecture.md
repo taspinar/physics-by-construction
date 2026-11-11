@@ -2152,19 +2152,32 @@ planning documents `docs/PROJECT_REQUIREMENTS.md` and `docs/roadmap.md`;
 the CI workflows and `.github/CODEOWNERS` itself; the gate (the workflow
 scripts and `scripts/lib/`, the reviewer contract
 `.agents/prompts/reviewer.md`, the schemas, the policies, `AGENTS.md`,
-`.agents/agents.conf`, `scripts/verify.conf`, `scripts/verify.sh`); the
-digest and the selection (`src/pbc/authoring/digest.py`,
-`src/pbc/authoring/selection.py`); the base and its provenance
+`.agents/agents.conf`, `scripts/verify.sh`); the triage of a review
+(`scripts/triage-review.sh`, `scripts/apply-triage.sh`); the four check
+scripts (`scripts/check-lean.sh`, `scripts/check-lesson-pages.sh`,
+`scripts/check-determinism.sh`, `scripts/fetch-built-site.sh`); the
+digest, the selection, and the execution store
+(`src/pbc/authoring/digest.py`, `src/pbc/authoring/selection.py`,
+`src/pbc/authoring/store.py`); the base and its provenance
 (`scripts/fetch-base.sh`, `scripts/collect-base.sh`,
 `src/pbc/authoring/provenance.py`); the build and the deployment
-(`scripts/build-site.sh`, the deploy job); the skills `.agents/skills/`;
+(`scripts/build-site.sh`, `src/pbc/authoring/lean.py`, the deploy job);
+the skills `.agents/skills/`;
 and the approval requests `.agents/approvals/`, which are code-owned
 but do not count in the path minimum, so that a request never raises
 the level of the change it belongs to. By the addendum of 2026-11-08 to
 that decision (Issue #412) this document and the other prompts are
 sensitive, not protected, and Level 2 by path: an ordinary change to them
 gets an independent review, and a trigger in their content makes the
-change Level 3. On 2026-10-19
+change Level 3. By the addendum of 2026-11-10 to that decision (Issue
+#465, D1 to D7 of #446) the triage scripts, the four check scripts, the
+execution store, and the Lean reader join the list; `scripts/verify.conf`
+leaves it and is read by the builtin rule of `scripts/lib/guardrails.sh`
+(an added check sensitive and Level 2 by path, a changed or removed line
+protected and Level 3); and `src/pbc/authoring/evidence.py`,
+`src/pbc/data/check.py`, `src/pbc/skills.py`,
+`src/pbc/verification/checks.py`, `tests/e2e/conftest.py`, and
+`data/registry/` are sensitive, Level 2 by path. On 2026-10-19
 `.agents/policies/guardrails.conf` protects only `scripts/verify.sh`
 beyond its always protected set and lists this document as sensitive;
 F130 brings its protected list in line with the ADR's list, so that
