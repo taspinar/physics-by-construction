@@ -11,6 +11,7 @@ header of a lesson. The lesson source checks validate with the same code.
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass
+from html import escape
 from pathlib import Path
 
 import yaml
@@ -19,6 +20,7 @@ from pbc.authoring.context import marker
 from pbc.authoring.glossary import Glossary, before_you_begin, definitions
 from pbc.authoring.progress import (
     EXPLANATION_ANCHOR,
+    PROGRESS_SENTENCE,
     STORAGE_KEY,
     progress_markup,
     raw_html,
@@ -1170,7 +1172,7 @@ class PathOverview:
             lines += ["No lesson has been published yet.", ""]
         lines += self._progress()
         lines += [
-            "## About the lessons {#about-the-lessons}",
+            "## How the lessons work {#about-the-lessons}",
             "",
             "Every lesson states its level and the methods it uses, and names"
             " the lessons it builds on.",
@@ -1185,93 +1187,88 @@ class PathOverview:
         return "\n".join(lines)
 
     def _methods(self) -> list[str]:
-        """What each method means; a lesson's header links its methods here.
-        The lessons are in the sequences above, not listed again."""
-        lines = [
+        """What each method means, one line per method; a lesson's header
+        links its methods here. The lessons are in the sequences above, not
+        listed again."""
+        items = "".join(
+            f'<li id="{_method_id(method)}"><span class="method-name">'
+            f"{escape(method.title)}</span> {escape(method.description)}</li>"
+            for method in METHODS
+        )
+        return [
             "### Methods {#methods}",
             "",
-            "A method is a way of working that cuts across courses.",
+            "A method is a way of working that cuts across courses; a lesson's"
+            " header names the methods it uses.",
             "",
+            raw_html(f'<ul class="atlas-methods">{items}</ul>'),
         ]
-        for method in METHODS:
-            lines += [
-                f"[{method.title}]{{#{_method_id(method)} .method-name}}",
-                f":   {method.description}",
-                "",
-            ]
-        return lines
 
     def _difficulty(self) -> list[str]:
-        lines = [
+        """The scale in one sentence, its descriptions in a closed native
+        disclosure."""
+        names = [difficulty.title for difficulty in DIFFICULTIES]
+        levels = "".join(
+            f"<dt>{escape(difficulty.title)}</dt>"
+            f"<dd>{escape(difficulty.description)}</dd>"
+            for difficulty in DIFFICULTIES
+        )
+        return [
             "### Difficulty {#difficulty}",
             "",
-            f"Every lesson states one of {len(DIFFICULTIES)} levels.",
+            f"Every lesson states one of {len(DIFFICULTIES)} levels,"
+            f" {', '.join(names[:-1])}, or {names[-1]}, shown beside its title"
+            " in the lists above.",
             "",
+            raw_html(
+                '<details class="atlas-note" id="difficulty-levels">'
+                "<summary>What the levels mean</summary>"
+                f'<dl class="atlas-levels">{levels}</dl></details>'
+            ),
         ]
-        for difficulty in DIFFICULTIES:
-            lines += [
-                f"{difficulty.level}, {difficulty.title.lower()}",
-                f":   {difficulty.description}",
-                "",
-            ]
-        return lines
 
     def _progress(self) -> list[str]:
-        """The section that explains what the site stores in the browser and
-        holds the clear-data control, which a script shows."""
+        """The section with the owner's sentence (the script replaces it by
+        the count, the completed lessons, and the clear-data control), and
+        the explanation of what the site stores in the browser, in a closed
+        native disclosure."""
         return [
             f"## Your progress {{#{EXPLANATION_ANCHOR}}}",
             "",
-            "```{=html}",
-            "<p>This site can remember which lessons you have completed and how"
-            " you answered the self-checks. It keeps that in your browser and"
-            " nowhere else, in local storage under the key"
-            f" <code>{STORAGE_KEY}</code>: for each lesson, whether you marked"
-            " it completed, whether you finished its self-check, and how often"
-            " you checked an answer, and which suggestions you ignored. No"
-            " account is needed. Nothing is sent to a server, no cookie is set,"
-            " and nothing is shared with other sites or other devices. Clearing"
-            " the data of this site in your"
-            " browser removes it too, and so does the button below.</p>",
-            "<p>Without scripts nothing is stored, and the self-checks work as"
-            " exercises with a solution you can open.</p>",
-            '<div id="progress-controls" data-enhancement="">'
-            "<p>With scripts, this place shows which lessons you have completed"
-            " and a button that clears them.</p></div>",
-            "```",
-            "",
-            "```{=html}",
-            recommendations_markup(),
-            "```",
-            "",
+            raw_html(
+                '<div id="progress-controls" data-enhancement="">'
+                f"<p>{escape(PROGRESS_SENTENCE)}</p></div>"
+                '<details class="atlas-note" id="progress-details">'
+                "<summary>What is stored, and how to clear it</summary>"
+                "<p>With scripts, this site keeps in your browser and nowhere"
+                " else, in local storage under the key"
+                f" <code>{STORAGE_KEY}</code>, which lessons you marked"
+                " completed, whether you finished a self-check and how often"
+                " you checked an answer, and which suggestions you ignored. No"
+                " account is needed; nothing is sent to a server, no cookie is"
+                " set, and nothing is shared with other sites or other"
+                " devices. The button that clears it is shown with scripts, and"
+                " clearing the data of this site in your browser removes it"
+                " too.</p>"
+                "<p>Without scripts nothing is stored, and the self-checks work"
+                " as exercises with a solution you can open.</p></details>"
+            ),
+            raw_html(recommendations_markup()),
         ]
 
     def _order(self) -> list[str]:
-        strands = ", then ".join(strand.title for strand in self.path.strands)
         return [
-            "### Order {#order}",
+            "### Lesson order and prerequisites {#order}",
             "",
-            "Three orders are in use, and they are not the same.",
+            "Each course and method path has a recommended teaching order, the"
+            " order of its lessons above. Every lesson names in its header the"
+            " lessons it builds on, and those are all you need first; the"
+            " related lessons it lists offer further exploration.",
             "",
-            "Previous and next on a lesson page follow the one linear order of the"
-            " site: the courses and then the method strands one after the"
-            " other"
-            + (f" ({strands})" if strands else "")
-            + ", and within a strand the lessons by their number. Following"
-            " next from the last lesson of one strand leads to the first lesson"
-            " of the following strand, which may belong to another course.",
-            "",
-            "The course order and the path order are the teaching order of the"
-            " reference curriculum: the lessons of a course or a path in the"
-            " order of their slots in the curriculum file, which may differ"
-            " from the order of the labels, and the lessons without a slot"
-            " after them.",
-            "",
-            "The prerequisites of a lesson are the lessons it builds on, and"
-            " are the only statement of what you need first. A prerequisite may"
-            " live in a later strand, so previous and next may lead to a lesson"
-            " before one it builds on: the header of every lesson links its"
-            " prerequisites.",
+            "Previous and next at the foot of a lesson follow the site's one"
+            " linear order, which is not the order of the prerequisites: a"
+            " lesson may build on one that comes later, so the header is the"
+            " guide to what to read first.",
             "",
         ]
 

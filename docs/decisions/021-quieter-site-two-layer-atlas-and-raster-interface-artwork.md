@@ -52,6 +52,16 @@ file still gains no description field, and no title, outcome,
 prerequisite, publication state, or count is written in the manifest. The
 other decisions below are unchanged.
 
+Decision 3 amended again on 2026-11-11 by the owner's redesign decision of
+Issue #483 (the Course Atlas with inline expanding courses), through the
+dated note under it: the two-layer layout of the wide screen is reversed,
+every sequence expands inline beneath its own row on every viewport, the
+learning journey of F157 leaves the page, and the opening, the rows, the
+progress presentation, and the explanations are the owner's. The page's
+address, its anchors, the one source of truth, the manifest's rules, the
+planned-content rules, the learner state's contract, and the relationships
+on the lesson pages stand.
+
 Decision 4 amended by requirements decision 43 (change cycle
 `textbook-layer`, `docs/changes/textbook-layer.md`, human-supplied,
 2026-11-03; requirements re-approved on 2026-11-04) through the dated note
@@ -213,6 +223,35 @@ descriptions live.
      removed interaction are replaced by tests of the new interaction,
      accessibility, navigation, and data integrity, with no check of
      scientific or curriculum correctness weakened.
+
+   *Amended on 2026-11-11 by the owner's redesign decision of Issue #483
+   (the Course Atlas with inline expanding courses).* The layout of the
+   second bullet is reversed: no `::details-content` rule, no panel beside
+   the cards, no sticky element; every sequence is one native `<details>`
+   of the exclusive group whose content expands inline beneath its own row,
+   the same on desktop, tablet, and phone, none open at load. The
+   `<summary>` is the row (the card illustration, the title, "n published ·
+   k planned", the progress hairline shown once a lesson is completed, a
+   drawn chevron); the content is the title, the manifest's one line, the
+   link to the introduction where one exists (F156; before the lessons,
+   never at the bottom), the lesson rows in teaching order (label, title as
+   a link or a planned entry that is no link and takes no focus, the
+   difficulty of the front matter, and the marks Lab, Capstone, Lean,
+   planned, in words), and a path's optional extensions. The learning
+   journey of F157 leaves the page: the atlas opens with the owner's
+   subtitle, two fixed paragraphs on Part A and Part B held in
+   `pbc.authoring.atlas`, and three figures derived from the curriculum
+   file and the front matter (the courses, the method paths, the published
+   lessons); About keeps the journey's Part A and Part B text from the one
+   source. The address module keeps its contract and gains the fallback
+   that closes the other rows in a browser without exclusive disclosures
+   (none before Chromium 120, Firefox 130, Safari 17.2). "Your progress"
+   keeps its anchor, its storage, and its clear control, with the owner's
+   sentence and a compact count; "How the lessons work" replaces "About
+   the lessons" with the same anchors. The textual equivalent, the
+   anchors, the aliases, and the manifest's rules stand; the tests of the
+   two-layer layout are replaced by tests of the inline layout at three
+   viewports.
 4. **Home as a landing page with a hero.** Home answers what makes PBC
    different, what a visitor can learn, and where to begin.
    - *The hero*: the owner's headlines and subtexts, held in one data

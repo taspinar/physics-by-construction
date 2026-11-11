@@ -72,7 +72,7 @@ for text and 3:1 for controls and lines, unchanged from F44.
 | `header`, `header-text` | paper, ink | the header (it replaces the navbar's blue bar) | 16.2 |
 | `start`, `start-text` | cobalt, paper | the start link, the one filled control | 8.0 |
 | `night`, `night-text`, `night-muted`, `night-line` | `#0f2240`, paper, `#b4c2d9`, `#7ea6e0` | the dark navy ground of a featured capstone (ADR 018 decision 5; F124's tsunami section), its text, its secondary text, and its lines and focus ring | 15.0, 8.8, 6.4 |
-| `copper`, `copper-surface` | `#8a4b1f`, `#f4ebe0` | the ink of Part B, the four method paths, in the course atlas (F133), and the ground of its open card | paper 6.4, its surface 5.7; ink on the surface 14.6, muted 5.4 |
+| `copper`, `copper-surface` | `#8a4b1f`, `#f4ebe0` | the ink of Part B, the four method paths, in the course atlas (F133), and the ground of its open row | paper 6.4, its surface 5.7; ink on the surface 14.6, muted 5.4 |
 
 The bright vermilion of the mockups (about `#e34234`) has 3.9:1 on paper:
 enough for a line or the mark's point, not for text, so text in the accent
@@ -234,42 +234,50 @@ kept.
   `role="img"` with a title and a description, and the ordered list under
   the figure is the complete text version. The section hyphenates, so a
   long word fits the 212px column of 200 % text at 320 CSS px.
-- **The course atlas** (F133, ADR 021 decision 3; the owner's mocks 3 and
-  4). The path page, under its title and a breadcrumb: one sentence with the
-  totals, then the sequences, wider than the text column on a desktop
-  (Quarto's `column-page`, no table of contents). Each of the eight courses,
-  the four method paths, and the smaller entry "Beyond the curriculum:
-  proofs in Lean" is one native `<details>` of the exclusive group
-  `name="atlas"`. The `<summary>` is the card: the illustration in the 76 px
-  slot, the title in SemiBold, "n of m lessons" in Plex Mono, and a
-  progress hairline of one segment per published lesson, which
-  `site/learner/progress.js` marks; an open card is on its part's surface
-  with a 1px rule in its ink. The content is the panel: the illustration in
-  the 200 px slot, the kicker "Part A · Course 3" or "Part B · Method path
-  2" in Plex Mono (sentence case), the title as the second heading level,
-  the manifest's one sentence in `muted`, "n published · k planned", and
-  the lesson rows between hairlines: the slot's label in Plex Mono, right
-  aligned; the title as a link in the part's ink (underlined on hover and
-  focus), or for a planned slot the working title in italics in `muted`
-  with the word planned and no link; and only the marks Lab (in the
-  accent, with a 1px accent hairline in the row's margin), Capstone, and
-  ★ Lean, all in words. The capstone is the last row, on the `night`
-  ground; a planned capstone shows its planned description from the
-  manifest. No level, difficulty, or preview in the rows. Part A is in the
-  cobalt ink, Part B in `copper`; the part's label ("Part A" before the
-  courses, "Part B" before the paths) and the kicker say it in words. From
-  56 em, in a browser that has `::details-content`, CSS grid places every
-  card in the left column (16 to 21 rem) and the open panel in the right
-  one, sticky, spanning every row, with a last flexible row that absorbs its
-  height; without that selector, and on every narrower screen, the same
-  disclosures are an accordion with the panel under its card, a 1px rule
-  in the part's ink at its left. The first course is open in the HTML; one
-  sequence is open at a time without a script. Below the sequences: "Your
-  progress" with the recommendations (F13, F14), then "About the lessons"
-  (difficulty, methods, order: what the lesson headers link to), and the
-  textual equivalent, visually hidden. The illustrations are interface
-  artwork (WebP, see "The three asset classes"), set on the paper with
-  `mix-blend-mode: multiply`.
+- **The course atlas** (F133, ADR 021 decision 3 as amended on 2026-11-11;
+  Issue #483). The path page, under its title and the owner's subtitle in
+  the large text size, in the reading column (no breadcrumb, no
+  `column-page`): two paragraphs on Part A and Part B, then three figures
+  (the number at the second heading size in the text face with tabular
+  numerals, its label under it in the small muted size, no accent, no
+  card), then the sequences. Each of the eight courses, the four method
+  paths, and the smaller entry "Beyond the curriculum: proofs in Lean" is
+  one native `<details>` of the exclusive group `name="atlas"`, none open
+  at load, between hairlines. The `<summary>` is the row: the illustration
+  in the 76 px slot (56 px below 40 em), the title in SemiBold (in the
+  part's ink while open), "n published · k planned" in Plex Mono, a
+  progress hairline of one segment per published lesson that stays hidden
+  until `site/learner/progress.js` marks one, and a drawn chevron at the
+  right that turns when the row opens (150 ms, none under reduced motion);
+  a hovered or open row sits on its part's surface. The content expands
+  beneath the row at every width, indented under the title with a 1px rule
+  in the part's ink at its left: the title as the second heading level at
+  the third heading's size, the manifest's one sentence in `muted`, the
+  link "Read the course introduction" (a path: "Read the method path
+  introduction") in SemiBold where an introduction exists, and the lesson
+  rows between hairlines: the slot's label in Plex Mono, muted; the title
+  as a link in the part's ink (underlined on hover and focus), or for a
+  planned slot the working title in italics in `muted` with the word
+  planned, no link and no focus; the difficulty of the front matter in the
+  small muted size; and only the marks Lab, Capstone, and Lean, in words
+  and Plex Mono. The capstone is the last row, its title in SemiBold; a
+  planned capstone shows its planned description from the manifest. No
+  kicker, no panel illustration, no night ground, no accent hairline.
+  Below 40 em the marks stand under the title; a title breaks inside a
+  word only when the word cannot fit (200 % text at 320 CSS px). Part A is
+  in the cobalt ink, Part B in `copper`; the part's label ("Part A" before
+  the courses, "Part B" before the paths) says it in words. Below the
+  sequences: "Your progress" (the owner's sentence, or with saved progress
+  the count with a 2px hairline indicator, the completed lessons in a
+  closed disclosure, and the clear button; what is stored in a closed
+  disclosure "What is stored, and how to clear it") with the
+  recommendations (F13, F14), then "How the lessons work" (the difficulty
+  in one sentence with the levels in a closed disclosure, the methods one
+  line each between hairlines, the order and the prerequisites in two
+  short paragraphs), and the textual equivalent, visually hidden. A closed
+  disclosure of these sections (`atlas-note`) has its summary in cobalt at
+  the small size. The illustrations are interface artwork (WebP, see "The
+  three asset classes"), set on the paper with `mix-blend-mode: multiply`.
 - **Home page** (F134, F158; ADR 021 decision 4 as amended;
   `body.pbc-home`, `page-layout: full`; generated whole by
   `pbc.authoring.home` from `site/hero.yaml`, `site/home.yaml`, and the
@@ -312,12 +320,15 @@ kept.
 - **How we verify the science** (F134). The four claim labels, as in the
   lessons, each heading its paragraph; each worked example under the
   construction line with its statement as a quotation.
-- **The atlas's address module** (F133, `site/learner/atlas.js`). About
-  twenty lines and no dependency: the address follows the sequence a reader
-  opens (`#course-quantum` is a bookmark), an address opens its sequence,
-  an anchor of the previous atlas (`#course-<id>-lessons`, `#concept-<id>`)
-  opens the sequence that holds it now, and on a narrow screen opening
-  scrolls to the card. No request, cookie, or storage; nothing moves.
+- **The atlas's address module** (F133, Issue #483, `site/learner/atlas.js`).
+  About thirty lines and no dependency: the address follows the sequence a
+  reader opens (`#course-quantum` is a bookmark), an address opens its
+  sequence, an anchor of the previous atlas (`#course-<id>-lessons`,
+  `#concept-<id>`) opens the sequence that holds it now, opening scrolls
+  the row to the top of the window at every width, and in a browser
+  without exclusive disclosures (before Chromium 120, Firefox 130, Safari
+  17.2) opening one row closes the others. No request, cookie, or storage;
+  nothing moves.
 - **Widget.** On a plate; its controls take the radius, the focus ring,
   and the cobalt of this file.
 - **Focus.** A 3px cobalt ring with a 2px offset on every focusable element,
@@ -360,9 +371,9 @@ follow-up, not part of this feature.
   contents comes before the body, figures and tables scale or scroll inside
   their own box, and nothing scrolls the page sideways at 320 CSS px, also
   at 200 % text.
-- The course atlas (F133) on a phone is an accordion: each card with its
-  open panel under it, the rows on one column with their marks under the
-  title.
+- The course atlas (F133, Issue #483) is an accordion at every width: each
+  row with its content under it, the lesson rows on one column, and below
+  40 em the marks under the title.
 
 ## Accessibility rules
 

@@ -452,12 +452,18 @@ def test_no_sequence_without_an_introduction_shows_a_link():
     assert "atlas-introduction" not in previous and "courses/" not in previous
 
 
-def test_the_panel_link_comes_after_the_lessons_so_that_the_tab_order_holds():
+def test_the_atlas_link_comes_before_the_lessons_after_the_description():
+    """Issue #483: the open row offers the introduction before its lessons,
+    never at the bottom; the tab order follows."""
     html = str(AtlasSection(ATLAS, "path/index.qmd", AVAILABLE))
     panel = html[html.index('id="course-mechanics"') : html.index('id="course-thermo')]
 
-    assert panel.index('class="atlas-rows"') < panel.index("atlas-introduction")
-    assert "</a></p></div></details>" in panel
+    assert (
+        panel.index('class="atlas-description"')
+        < panel.index("atlas-introduction")
+        < panel.index('class="atlas-rows"')
+    )
+    assert "Read the course introduction</a></p></div><ol" in panel
 
 
 def test_the_atlas_without_introductions_is_what_it_was():

@@ -1,22 +1,25 @@
 """The course atlas: its manifest, what the build derives from it, and the
-two-layer navigation page (ADR 018 decision 3, ADR 021 decision 3; F125,
-F133).
+navigation page of inline expanding courses (ADR 018 decision 3, ADR 021
+decision 3 as amended on 2026-11-11; F125, F133, Issue #483).
 
 The atlas has one source of truth (docs/architecture.md, I31): courses,
 paths, and slots come from the curriculum file, publication, titles,
-prerequisites, and addresses from the front matter of the lessons, and the
-manifest (``site/atlas.yaml``) adds only what neither holds: one entry per
-sequence (each course and each method path) with its one-line description
-and its illustration, concept identifiers with a short explanation, the
-slots each concept covers, and the curated conceptual connections with their
-rationale. Everything else is derived here when the path page is built: the
-lessons of a sequence and their state, the counts, and capstone membership
-from the slots a concept names.
+difficulty, prerequisites, and addresses from the front matter of the
+lessons, and the manifest (``site/atlas.yaml``) adds only what neither
+holds: one entry per sequence (each course and each method path) with its
+one-line description and its illustration, concept identifiers with a short
+explanation, the slots each concept covers, and the curated conceptual
+connections with their rationale. Everything else is derived here when the
+path page is built: the lessons of a sequence and their state, the counts,
+the three figures of the opening, and capstone membership from the slots a
+concept names.
 
-The page is twelve native disclosures of one exclusive group, one per
-sequence, and a smaller one for the Lean lessons beyond the curriculum: the
-``<summary>`` is the card, the content the panel with the lesson rows. CSS
-places the open panel beside the cards on a wide screen; without a script
+The page opens with the owner's two paragraphs and the three figures, then
+holds twelve native disclosures of one exclusive group, one per sequence,
+and a smaller one for the Lean lessons beyond the curriculum: the
+``<summary>`` is the row (illustration, title, counts, progress), the
+content expands inline beneath it with the description, the link to the
+introduction, and the lesson rows. None is open at load; without a script
 every lesson is one click away. The relationships (conceptual connections
 and capstone membership) are shown on the lesson pages (``connections``).
 The same inputs give the same page, byte for byte.
@@ -29,12 +32,12 @@ from dataclasses import dataclass
 from functools import cached_property
 from html import escape
 from pathlib import Path, PurePosixPath
-from typing import Protocol
 
 import yaml
 
 from pbc.authoring.path import (
     _COURSE,
+    _DIFFICULTY,
     _FRONT_MATTER_FIELDS,
     APPLIED_CAPSTONE,
     CAPSTONES,
@@ -115,8 +118,9 @@ PARTLY = "partly published"
 PLANNED = "planned"
 
 # The illustration of a sequence: four WebP files under site/assets/, the
-# card (the 76 px slot at 2x and 3x) and the panel (the 200 px slot at 2x and
-# 4x), all 4:3 (ADR 021 decision 2).
+# card (the 76 px slot at 2x and 3x, shown on the atlas) and the panel (the
+# 200 px slot at 2x and 4x, shown on the introduction pages), all 4:3 (ADR
+# 021 decision 2).
 CARD_SLOT = 76
 PANEL_SLOT = 200
 ILLUSTRATION_WIDTHS = {"card": (152, 228), "panel": (400, 800)}
@@ -796,82 +800,89 @@ def _plural(count: int, word: str) -> str:
 _PART_NAMES = {"A": "Physics by construction", "B": "Physics and AI"}
 _PART_KINDS = {"A": "Course", "B": "Method path"}
 
-
-class Opening(Protocol):
-    """What opens the atlas before its cards: the learning journey (F157,
-    ``pbc.authoring.journey``), as Markdown with raw HTML blocks."""
-
-    def atlas_markdown(self) -> str: ...
+# The owner's text that opens the atlas under its subtitle (Issue #483,
+# 2026-11-11): what Part A and Part B teach, in two paragraphs. The longer
+# account of the learning journey stays on About and in the introductions.
+ATLAS_INTRODUCTION = (
+    "Part A teaches you to understand physical systems through models,"
+    " simulations, and experiments. Part B builds on that foundation to"
+    " explore how artificial intelligence can support scientific research.",
+    "Both follow the same principle: scientific conclusions must be supported"
+    " by evidence.",
+)
+# The link from an open sequence to its introduction (F156), by part.
+_INTRODUCTION_LINKS = {
+    "A": "Read the course introduction",
+    "B": "Read the method path introduction",
+}
 
 
 @dataclass(frozen=True)
 class AtlasSection:
-    """The sequences of the path page: one native disclosure per course and
-    method path and one for the Lean lessons, in one exclusive group; the
-    textual equivalent; and the address module. Print it from a cell with
+    """The atlas of the path page: the owner's two paragraphs and the three
+    figures of the curriculum, then one native disclosure per course and
+    method path and one for the Lean lessons, in one exclusive group, none
+    open at load, each expanding inline beneath its own row; the textual
+    equivalent; and the address module. Print it from a cell with
     ``output: asis``."""
 
     atlas: Atlas
     page: str = PATH_PAGE
-    # The sequences that have an introduction (F156): their panels link to it.
+    # The sequences that have an introduction (F156): their content links to it.
     introductions: frozenset[str] = frozenset()
-    # The learning journey (F157), between the breadcrumb and the summary;
-    # without it the section is what it was.
-    journey: Opening | None = None
 
     def __str__(self) -> str:
         sequences = self.atlas.sequences()
-        extensions = sum(len(sequence.extensions) for sequence in sequences)
-        extension_published = sum(s.extension_published for s in sequences)
-        # Every published lesson counts, the extension lessons among them;
-        # the planned slots are those of the core (ADR 022 decision 2).
-        published = sum(s.published for s in sequences) + extension_published
-        planned = sum(sequence.planned for sequence in sequences)
-        courses = sum(1 for sequence in sequences if sequence.part == "A")
-        paths = sum(1 for sequence in sequences if sequence.part == "B")
         items: list[str] = []
         for sequence in sequences:
             if sequence.part and sequence.number == 1:
                 items.append(self._part_label(sequence.part))
-            items.append(self._sequence(sequence, open_=sequence is sequences[0]))
+            items.append(self._sequence(sequence))
         lines = [
             "```{=html}",
-            '<nav class="pbc-breadcrumb" aria-label="Breadcrumb"><ol>'
-            f'<li><a href="{escape(page_href(self.page, "index.qmd"))}">Home</a></li>'
-            '<li><span aria-current="page">Course Atlas</span></li></ol></nav>',
-            *(
-                ["```", "", self.journey.atlas_markdown(), "", "```{=html}"]
-                if self.journey is not None
-                else []
-            ),
-            f'<p class="atlas-summary">{_plural(courses, "course")} and'
-            f" {_plural(paths, 'method path')}, {published} lessons published"
-            f" and {planned} planned"
-            + (
-                f", with {_plural(extensions, 'optional extension')} of the"
-                f" method paths ({extension_published} published) listed after"
-                " each path's core"
-                if extensions
-                else ""
-            )
-            + ". Open one to see its lessons in teaching order.</p>",
-            "```",
-            "",
-            "::: {.column-page}",
-            "```{=html}",
+            self._opening(),
             '<section class="atlas-sequences" id="atlas"'
             ' aria-label="The courses and method paths">',
-            f'<div class="atlas" id="choose" style="--atlas-rows: {len(items)}">',
+            '<div class="atlas" id="choose">',
             *items,
             "</div></section>",
             self._text(),
             f'<script type="module" src="{"../" * self.page.count("/")}'
             f'{escape(ATLAS_SCRIPT)}"></script>',
             "```",
-            ":::",
             "",
         ]
         return "\n".join(lines)
+
+    # --- The opening ----------------------------------------------------------
+
+    def figures(self) -> tuple[tuple[int, str], ...]:
+        """The three numbers of the opening, each with the singular of its
+        label: the physics courses, the AI method paths, and the published
+        lessons (every published lesson of the learning path, which is a row
+        of exactly one sequence; the extension and Lean lessons among them).
+        Derived from the curriculum file and the front matter, never
+        written."""
+        sequences = self.atlas.sequences()
+        return (
+            (sum(1 for s in sequences if s.part == "A"), "physics course"),
+            (sum(1 for s in sequences if s.part == "B"), "AI method path"),
+            (len(self.atlas.path.lessons), "published lesson"),
+        )
+
+    def _opening(self) -> str:
+        paragraphs = "".join(f"<p>{escape(text)}</p>" for text in ATLAS_INTRODUCTION)
+        figures = "".join(
+            f'<li><span class="atlas-figure-number">{count}</span> '
+            f'<span class="atlas-figure-label">{escape(word)}'
+            f"{'' if count == 1 else 's'}</span></li>"
+            for count, word in self.figures()
+        )
+        return (
+            f'<div class="atlas-opening">{paragraphs}</div>'
+            '<ul class="atlas-figures" aria-label="The curriculum in numbers">'
+            f"{figures}</ul>"
+        )
 
     # --- Pieces -------------------------------------------------------------
 
@@ -883,10 +894,13 @@ class AtlasSection:
         parent = PurePosixPath(self.page).parent.as_posix()
         return escape(posixpath.relpath(f"{ASSETS}/{file}", parent))
 
-    def _image(self, sequence: AtlasSequence, kind: str, eager: bool) -> str:
-        """The illustration of a sequence at the card or the panel size, with
-        the densities the register names. Its alternative text names it; a
-        Part B panel's says that it shows a toy model."""
+    def _image(
+        self, sequence: AtlasSequence, kind: str = "card", eager: bool = True
+    ) -> str:
+        """The illustration of a sequence at the card size (the atlas's rows)
+        or the panel size (the introduction pages), with the densities the
+        register names. Its alternative text names it; a Part B
+        illustration's says that it shows a toy model."""
         widths = ILLUSTRATION_WIDTHS[kind]
         slot = CARD_SLOT if kind == "card" else PANEL_SLOT
         files = [f"{sequence.illustration}-{kind}-{width}.webp" for width in widths]
@@ -895,7 +909,7 @@ class AtlasSection:
             for file, width in zip(files, widths, strict=True)
         )
         alt = f"Illustration of {sequence.title}"
-        if kind == "panel" and sequence.part == "B":
+        if sequence.part == "B":
             alt += ": a toy-model example, no agent was run"
         loading = "eager" if eager else "lazy"
         return (
@@ -913,22 +927,16 @@ class AtlasSection:
             f" {escape(_PART_NAMES[part])}</p>"
         )
 
-    def _sequence(self, sequence: AtlasSequence, open_: bool) -> str:
+    def _sequence(self, sequence: AtlasSequence) -> str:
         part = f"atlas-part-{sequence.part.lower()}" if sequence.part else "atlas-lean"
         aliases = (
             f' data-aliases="{" ".join(sequence.aliases)}"' if sequence.aliases else ""
         )
-        image = sequence.illustration != ""
         counts = f"{sequence.published} published"
         if sequence.planned:
             counts += f" · {sequence.planned} planned"
-        kicker = (
-            f"Part {sequence.part} · {_PART_KINDS[sequence.part]} {sequence.number}"
-            if sequence.part
-            else "Beyond the curriculum"
-        )
-        # One segment per published lesson of the core, which the count
-        # beside it names.
+        # One segment per published lesson of the core, which progress.js
+        # marks; the stylesheet shows the hairline once a segment is marked.
         ticks = "".join(
             f'<i class="path-link" data-lesson-id="{escape(row.lesson.id)}"></i>'
             for row in sequence.core
@@ -936,43 +944,40 @@ class AtlasSection:
         )
         card = (
             '<summary class="atlas-card">'
-            + (self._image(sequence, "card", eager=True) if image else "")
+            + (self._image(sequence) if sequence.illustration else "")
             + '<span class="atlas-card-text">'
             f'<span class="atlas-card-title">{escape(sequence.title)}</span>'
-            f'<span class="atlas-card-count">{sequence.published} of'
-            f" {_plural(len(sequence.core), 'lesson')}</span>"
+            f'<span class="atlas-card-count">{counts}</span>'
             f'<span class="atlas-progress" aria-hidden="true">{ticks}</span>'
-            "</span></summary>"
+            "</span>"
+            '<span class="atlas-card-mark" aria-hidden="true"></span>'
+            "</summary>"
         )
         head = (
             '<div class="atlas-panel-head">'
-            + (self._image(sequence, "panel", eager=open_) if image else "")
-            + "<div>"
-            f'<p class="atlas-kicker">{escape(kicker)}</p>'
             f'<h2 class="atlas-panel-title">{escape(sequence.title)}</h2>'
             f'<p class="atlas-description">{escape(sequence.description)}</p>'
-            f'<p class="atlas-counts">{escape(counts)}</p>'
-            "</div></div>"
+            f"{self._introduction(sequence)}</div>"
         )
-        rows = "".join(self._row(row, sequence) for row in sequence.core)
+        rows = "".join(self._row(row) for row in sequence.core)
         return (
             f'<details class="atlas-sequence {part}" name="atlas"'
-            f' id="{sequence.anchor}"{aliases}{" open" if open_ else ""}>'
+            f' id="{sequence.anchor}"{aliases}>'
             f"{card}"
             f'<div class="atlas-panel">{head}'
             f'<ol class="atlas-rows">{rows}</ol>'
-            f"{self._extensions(sequence)}{self._introduction(sequence)}</div></details>"
+            f"{self._extensions(sequence)}</div></details>"
         )
 
     def _introduction(self, sequence: AtlasSequence) -> str:
-        """The link from the panel to the introduction of the sequence, or
-        nothing for a sequence without one."""
-        if sequence.id not in self.introductions:
+        """The link from the open sequence to its introduction, before its
+        lessons; nothing for a sequence without one."""
+        if sequence.id not in self.introductions or not sequence.part:
             return ""
         href = escape(page_href(self.page, introduction_page(sequence.id)))
         return (
-            f'<p class="atlas-introduction"><a href="{href}">Read the'
-            f" introduction to {escape(sequence.title)}</a></p>"
+            f'<p class="atlas-introduction"><a href="{href}">'
+            f"{_INTRODUCTION_LINKS[sequence.part]}</a></p>"
         )
 
     def _extensions(self, sequence: AtlasSequence) -> str:
@@ -984,7 +989,7 @@ class AtlasSection:
         counts = f"{sequence.extension_published} published"
         if sequence.extension_planned:
             counts += f", {sequence.extension_planned} planned"
-        rows = "".join(self._row(row, sequence) for row in sequence.extensions)
+        rows = "".join(self._row(row) for row in sequence.extensions)
         heading = f"{sequence.anchor}-extensions"
         return (
             f'<section class="atlas-extensions" aria-labelledby="{heading}">'
@@ -995,7 +1000,10 @@ class AtlasSection:
             f'<ol class="atlas-rows atlas-rows-extension">{rows}</ol></section>'
         )
 
-    def _row(self, row: Row, sequence: AtlasSequence) -> str:
+    def _row(self, row: Row) -> str:
+        """One lesson row: the slot's label, the title (a link only when
+        published), the difficulty of the front matter, and the marks in
+        words: Lab, Capstone, Lean, planned. A planned row is no link."""
         marks = []
         classes = ["atlas-row"]
         if row.kind == LAB:
@@ -1005,10 +1013,7 @@ class AtlasSection:
             classes.append("atlas-row-capstone")
             marks.append('<span class="atlas-mark atlas-mark-capstone">Capstone</span>')
         if row.lesson is not None and Atlas._is_lean(row.lesson):
-            marks.append(
-                '<span class="atlas-mark atlas-mark-lean"'
-                ' title="A machine-checked proof in Lean">★ Lean</span>'
-            )
+            marks.append('<span class="atlas-mark atlas-mark-lean">Lean</span>')
         label = f'<span class="atlas-label">{escape(row.label)}</span>'
         if row.lesson is None:
             classes.append("planned-slot")
@@ -1025,12 +1030,16 @@ class AtlasSection:
                 f'<span class="atlas-marks">{"".join(marks)}</span></li>'
             )
         classes.insert(0, "path-card")
+        level = (
+            f'<span class="atlas-level">'
+            f"{escape(_DIFFICULTY[row.lesson.difficulty].title)}</span>"
+        )
         return (
             f'<li class="{" ".join(classes)}" data-state="published"'
             f' data-lesson-id="{escape(row.lesson.id)}">{label}'
             f'<span class="atlas-title"><a class="lesson-link"'
             f' href="{self._href(row.lesson.page)}">{escape(row.title)}</a></span>'
-            f'<span class="atlas-marks">{"".join(marks)}</span></li>'
+            f'<span class="atlas-marks">{level}{"".join(marks)}</span></li>'
         )
 
     def sentences(self) -> list[str]:
@@ -1079,11 +1088,8 @@ class AtlasSection:
 
 def course_atlas() -> AtlasSection:
     """Return the atlas section of the path page being built."""
-    from pbc.authoring.journey import atlas_journey
-
     site, page = _page_being_built()
-    atlas = Atlas.read(site)
-    return AtlasSection(atlas, page, introduced(site), atlas_journey(site, atlas, page))
+    return AtlasSection(Atlas.read(site), page, introduced(site))
 
 
 # --- The relationships on a lesson page ----------------------------------------

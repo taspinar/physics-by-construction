@@ -1,9 +1,11 @@
 """Required checks on the course atlas of the built path page (ADR 021
-decision 3, F133): twelve sequences and the Lean entry as native exclusive
-disclosures, the open panel beside the cards on a wide screen and under its
-card on a phone, every published lesson reached without JavaScript and by
-keyboard alone, the anchors of the previous atlas, and the address module,
-which requests, stores, and sets nothing.
+decision 3 as amended on 2026-11-11, F133, Issue #483): the owner's opening
+with the three derived figures, twelve sequences and the Lean entry as
+native exclusive disclosures that are closed at load and expand inline
+beneath their own row at every width, every published lesson reached
+without JavaScript and by keyboard alone, planned lessons that are no link,
+the difficulty of every row, the anchors of the previous atlas, and the
+address module, which requests, stores, and sets nothing.
 
 What the sequences hold (rows, counts, states) is computed here from
 ``Atlas``, the module that generates the page, never from the page itself;
@@ -22,8 +24,10 @@ from support.paths import SITE_SOURCE
 from support.site_checks import _FORBIDDEN_IN_WIDGETS, PHONE, WCAG_TAGS, describe
 from support.site_server import SiteServer
 
-from pbc.authoring.atlas import Atlas, AtlasSequence
-from pbc.authoring.path import PATH_PAGE
+from pbc.authoring.atlas import ATLAS_INTRODUCTION, Atlas, AtlasSection, AtlasSequence
+from pbc.authoring.glossary import Glossary
+from pbc.authoring.journey import Journey
+from pbc.authoring.path import DIFFICULTIES, PATH_PAGE
 from pbc.authoring.website import introduced, introduction_page
 
 PATH = Path(PATH_PAGE).with_suffix(".html").as_posix()
@@ -31,8 +35,13 @@ ATLAS = Atlas.read(SITE_SOURCE)
 INTRODUCED = introduced(SITE_SOURCE)
 SEQUENCES = ATLAS.sequences()
 LESSONS = ATLAS.path.lessons
+LEVELS = {difficulty.level: difficulty.title for difficulty in DIFFICULTIES}
 WIDE = {"width": 1280, "height": 800}
+TABLET = {"width": 768, "height": 1024}
 NARROW = {"width": 390, "height": 844}
+VIEWPORTS = pytest.mark.parametrize(
+    "viewport", [WIDE, TABLET, NARROW], ids=["desktop", "tablet", "phone"]
+)
 
 # The anchors of the path page at the base of F133 (6627512), from the page
 # its generators wrote (docs: the plan of #338, "Anchors of the base page").
@@ -42,6 +51,7 @@ KEPT = [
     "choose",
     "courses",
     "paths",
+    "about-the-lessons",
     "methods",
     "difficulty",
     "order",
@@ -74,8 +84,9 @@ OPENED = {
     },
 }
 # The rest belonged to the drawings and controls that left the page (the map,
-# its markers and controls, the dependency map, the filters); they reach the
-# top of the page, which is the atlas.
+# its markers and controls, the dependency map, the filters), and since Issue
+# #483 the journey's headings; they reach the top of the page, which is the
+# atlas.
 
 
 def by_part(part: str) -> list[AtlasSequence]:
@@ -109,7 +120,7 @@ def open_ids(page: Page) -> list[str]:
 
 
 def show(page: Page, anchor: str) -> None:
-    """Open the sequence ``anchor`` as a reader does, by its card."""
+    """Open the sequence ``anchor`` as a reader does, by its row."""
     if page.locator(f"#{anchor}").get_attribute("open") is None:
         page.locator(f"#{anchor} > summary").click()
 
@@ -120,116 +131,180 @@ def box(page: Page, selector: str) -> dict[str, float]:
     return found
 
 
+def boxes(page: Page, *selectors: str) -> list[dict[str, float]]:
+    """The boxes of several elements in one step, so that a scroll between
+    two measurements cannot put them on either side of it."""
+    return page.evaluate(
+        """(selectors) => selectors.map((selector) => {
+            const r = document.querySelector(selector).getBoundingClientRect();
+            return { x: r.x, y: r.y, width: r.width, height: r.height };
+        })""",
+        list(selectors),
+    )
+
+
+# --- The opening -----------------------------------------------------------------
+
+
+def test_the_opening_is_the_subtitle_the_two_paragraphs_and_the_three_figures(
+    without_scripts: BrowserContext, server: SiteServer
+):
+    page = open_page(without_scripts, server)
+    header = page.locator("#title-block-header")
+    assert header.locator("h1").inner_text() == "Course Atlas"
+    assert header.locator(".description").inner_text() == (
+        "From classical mechanics to AI-assisted scientific research, explore"
+        " the ideas, models, and experiments that shape our understanding of"
+        " the physical world."
+    )
+    assert page.locator(".pbc-breadcrumb").count() == 0
+    assert page.locator(".atlas-opening p").all_inner_texts() == list(
+        ATLAS_INTRODUCTION
+    )
+    figures = AtlasSection(ATLAS).figures()
+    shown = page.locator(".atlas-figures li").all_inner_texts()
+    assert [" ".join(text.split()) for text in shown] == [
+        f"{count} {word}{'' if count == 1 else 's'}" for count, word in figures
+    ]
+    assert [count for count, _ in figures] == [8, 4, len(LESSONS)]
+    # The opening stands before the first row; nothing of the journey is
+    # left, nor the sentence with the totals.
+    opening = box(page, ".atlas-figures")
+    first = box(page, "#course-mechanics > summary")
+    assert opening["y"] + opening["height"] <= first["y"]
+    assert page.locator("#journey").count() == 0
+    text = page.locator("main").inner_text()
+    assert "The learning journey" not in text
+    assert "lessons published and" not in text
+
+
+def test_the_atlas_holds_no_journey_and_about_still_does(
+    without_scripts: BrowserContext, server: SiteServer
+):
+    journey = Journey.read(
+        SITE_SOURCE, ATLAS.path.curriculum, Glossary.read(SITE_SOURCE)
+    )
+    opening = journey.sections["part-a"][0][:50]
+    atlas = open_page(without_scripts, server)
+    assert opening not in atlas.locator("main").inner_text()
+    about = without_scripts.new_page()
+    about.goto(server.url + "about.html", wait_until="load")
+    assert opening in about.locator("main").inner_text()
+
+
 # --- The layout ------------------------------------------------------------------
 
 
+@VIEWPORTS
 @pytest.mark.parametrize("scripts", [True, False], ids=["scripts", "no-scripts"])
-def test_a_wide_screen_shows_the_cards_and_the_first_panel_beside_them(
-    browser: Browser, server: SiteServer, scripts: bool
+def test_every_row_is_collapsed_at_load_and_opens_inline_beneath_itself(
+    browser: Browser, server: SiteServer, viewport: dict[str, int], scripts: bool
 ):
-    context = browser.new_context(viewport=WIDE, java_script_enabled=scripts)
+    context = browser.new_context(viewport=viewport, java_script_enabled=scripts)
     page = open_page(context, server)
-    cards = page.locator("details.atlas-sequence > summary")
-    assert cards.count() == len(SEQUENCES) == 13
-    assert open_ids(page) == ["course-mechanics"]
+    rows = page.locator("details.atlas-sequence > summary")
+    assert rows.count() == len(SEQUENCES) == 13
+    assert open_ids(page) == []
     assert (
         page.locator("#lean > summary")
         .inner_text()
         .startswith("Beyond the curriculum: proofs in Lean")
     )
-    first_card = box(page, "#course-mechanics > summary")
-    panel = box(page, "#course-mechanics .atlas-panel")
-    # Every card in one column at the left, the panel beside them.
-    lefts = {round(cards.nth(i).bounding_box()["x"]) for i in range(12)}
-    assert lefts == {round(first_card["x"])}
-    assert panel["x"] >= first_card["x"] + first_card["width"]
-    # The first course's panel is readable without scrolling: its title, its
-    # description, and its first rows are inside the window.
-    for selector in (
-        "#course-mechanics .atlas-panel-title",
-        "#course-mechanics .atlas-description",
-        "#course-mechanics .atlas-row >> nth=2",
+    # Every row in one column.
+    lefts = {round(rows.nth(i).bounding_box()["x"]) for i in range(13)}
+    assert len(lefts) == 1
+    for anchor, following in (
+        ("course-mechanics", "course-thermodynamics"),
+        ("path-benchmarking", "path-autonomous-research"),
     ):
-        part = box(page, selector)
-        assert part["y"] >= 0 and part["y"] + part["height"] <= WIDE["height"], selector
-        assert part["x"] + part["width"] <= WIDE["width"]
+        page.locator(f"#{anchor} > summary").click()
+        assert open_ids(page) == [anchor]
+        if scripts:
+            # Opening scrolls the row to the top of the window; measure once
+            # that has happened.
+            page.wait_for_function(
+                f"() => document.querySelector('#{anchor} > summary')"
+                ".getBoundingClientRect().top <= window.innerHeight / 2"
+            )
+        row, panel, next_row = boxes(
+            page,
+            f"#{anchor} > summary",
+            f"#{anchor} .atlas-panel",
+            f"#{following} > summary",
+        )
+        # The content beneath its row, above the next row, inside the window's
+        # width, and never beside the rows.
+        assert panel["y"] >= row["y"] + row["height"] - 1
+        assert next_row["y"] >= panel["y"] + panel["height"] - 1
+        assert panel["x"] >= row["x"]
+        assert panel["x"] < row["x"] + row["width"]
+        assert panel["x"] + panel["width"] <= viewport["width"]
+        assert page.locator(f"#{anchor} .atlas-row").first.is_visible()
     context.close()
 
 
-def test_a_phone_shows_an_accordion_with_the_open_panel_under_its_card(
-    browser: Browser, server: SiteServer
+@VIEWPORTS
+def test_nothing_of_the_atlas_is_sticky_or_fixed(
+    browser: Browser, server: SiteServer, viewport: dict[str, int]
 ):
-    context = browser.new_context(viewport=NARROW)
+    context = browser.new_context(viewport=viewport)
     page = open_page(context, server)
-    card = box(page, "#course-mechanics > summary")
-    panel = box(page, "#course-mechanics .atlas-panel")
-    following = box(page, "#course-thermodynamics > summary")
-    assert panel["y"] >= card["y"] + card["height"] - 1
-    assert following["y"] >= panel["y"] + panel["height"] - 1
-    assert panel["x"] >= card["x"] and panel["x"] + panel["width"] <= NARROW["width"]
-    page.locator("#path-benchmarking > summary").click()
-    assert open_ids(page) == ["path-benchmarking"]
-    # Opening scrolls the card into view after the toggle; measure once that
-    # has happened, and the card and the panel in one step, so that a slow
-    # runner cannot take the two boxes on either side of the scroll.
-    page.wait_for_function(
-        "() => document.querySelector('#path-benchmarking > summary')"
-        ".getBoundingClientRect().top <= window.innerHeight / 2"
+    show(page, "course-mechanics")
+    positions = page.locator("#atlas *").evaluate_all(
+        "items => [...new Set(items.map(e => getComputedStyle(e).position))]"
     )
-    card, panel = page.evaluate(
-        """() => [
-            "#path-benchmarking > summary",
-            "#path-benchmarking .atlas-panel",
-        ].map((selector) => {
-                const r = document.querySelector(selector).getBoundingClientRect();
-                return { y: r.y, height: r.height };
-            })"""
+    assert not {"sticky", "fixed"} & set(positions), positions
+    # The stylesheet carries no wide-screen layout of the two-layer atlas.
+    assert page.evaluate(
+        """() => [...document.styleSheets].every((sheet) => {
+            try { return ![...sheet.cssRules].some((rule) =>
+                rule.cssText.includes("details-content")); }
+            catch { return true; }
+        })"""
     )
-    assert panel["y"] >= card["y"] + card["height"] - 1
-    # Opening scrolls the card into view.
-    assert -1 <= card["y"] <= NARROW["height"] / 2
-    assert page.locator("#lean > summary").is_visible()
     context.close()
 
 
-def test_without_the_wide_rule_the_page_falls_back_to_the_accordion(
+def test_the_module_keeps_one_row_open_where_the_browser_lacks_exclusive_disclosures(
     with_scripts: BrowserContext, server: SiteServer
 ):
-    """A browser without ::details-content gets the accordion: the wide rule is
-    removed from the stylesheet, as such a browser would ignore it."""
+    """A browser without exclusive disclosures ignores the name attribute;
+    the module then closes the others. Simulated by removing the attribute."""
     page = open_page(with_scripts, server)
-    removed = page.evaluate(
-        """() => {
-          let removed = 0;
-          for (const sheet of document.styleSheets) {
-            let rules;
-            try { rules = sheet.cssRules; } catch { continue; }
-            for (let i = rules.length - 1; i >= 0; i--) {
-              if (rules[i] instanceof CSSSupportsRule &&
-                  rules[i].conditionText.includes("details-content")) {
-                sheet.deleteRule(i);
-                removed++;
-              }
-            }
-          }
-          return removed;
-        }"""
+    page.evaluate(
+        "document.querySelectorAll('details.atlas-sequence')"
+        ".forEach((item) => item.removeAttribute('name'))"
     )
-    assert removed == 1
-    card = box(page, "#course-mechanics > summary")
-    panel = box(page, "#course-mechanics .atlas-panel")
-    following = box(page, "#course-thermodynamics > summary")
-    assert panel["y"] >= card["y"] + card["height"] - 1
-    assert following["y"] >= panel["y"] + panel["height"] - 1
-    page.locator("#path-reasoning > summary").click()
-    assert open_ids(page) == ["path-reasoning"]
-    assert page.locator("#path-reasoning .atlas-row").first.is_visible()
+    page.locator("#course-mechanics > summary").click()
+    page.wait_for_function("document.querySelector('#course-mechanics').open")
+    page.locator("#course-quantum > summary").click()
+    # The toggle event that closes the other row is queued after the click.
+    page.wait_for_function(
+        "document.querySelectorAll('details.atlas-sequence[open]').length === 1"
+    )
+    assert open_ids(page) == ["course-quantum"]
+
+
+def test_the_chevron_turns_without_motion_when_the_reader_prefers_none(
+    browser: Browser, server: SiteServer
+):
+    for preference, duration in (("no-preference", "0.15s"), ("reduce", "0s")):
+        context = browser.new_context(viewport=WIDE, reduced_motion=preference)
+        page = open_page(context, server)
+        mark = page.locator("#course-mechanics .atlas-card-mark")
+        assert mark.get_attribute("aria-hidden") == "true"
+        assert mark.evaluate("e => getComputedStyle(e).transitionDuration") == duration
+        before = mark.evaluate("e => getComputedStyle(e).transform")
+        show(page, "course-mechanics")
+        page.wait_for_timeout(300)
+        assert mark.evaluate("e => getComputedStyle(e).transform") != before
+        context.close()
 
 
 # --- Without scripts, by keyboard ---------------------------------------------------
 
 
-def test_without_scripts_every_published_lesson_is_reached_through_the_cards(
+def test_without_scripts_every_published_lesson_is_reached_through_the_rows(
     without_scripts: BrowserContext, server: SiteServer
 ):
     page = open_page(without_scripts, server)
@@ -250,8 +325,51 @@ def test_without_scripts_every_published_lesson_is_reached_through_the_cards(
             reached[lesson.id] = href
         planned = page.locator(f"#{sequence.anchor} .atlas-row.planned-slot")
         assert planned.count() == sequence.planned + sequence.extension_planned
-        assert planned.locator("a").count() == 0
+        # A planned row is no link and nothing in it takes the focus.
+        assert planned.locator("a, button, [tabindex]").count() == 0
+        for index in range(planned.count()):
+            assert "planned" in planned.nth(index).inner_text()
     assert set(reached) == {lesson.id for lesson in LESSONS}
+
+
+def test_each_row_shows_the_difficulty_of_its_lesson_and_the_introduction_comes_first(
+    without_scripts: BrowserContext, server: SiteServer
+):
+    page = open_page(without_scripts, server)
+    checked = 0
+    for sequence in SEQUENCES:
+        show(page, sequence.anchor)
+        rows = page.locator(f"#{sequence.anchor} .atlas-row[data-state=published]")
+        for index, row in enumerate(r for r in sequence.rows if r.lesson is not None):
+            item = rows.nth(index)
+            assert (
+                item.locator(".atlas-level").inner_text()
+                == LEVELS[row.lesson.difficulty]
+            )
+            checked += 1
+        link = page.locator(f"#{sequence.anchor} .atlas-introduction a")
+        if sequence.id in INTRODUCED:
+            assert link.count() == 1
+            assert link.get_attribute("href") == (
+                "../" + introduction_page(sequence.id).removesuffix(".qmd") + ".html"
+            )
+            assert link.inner_text() == (
+                "Read the course introduction"
+                if sequence.part == "A"
+                else "Read the method path introduction"
+            )
+            # Before the lessons, after the description.
+            description, intro, first = boxes(
+                page,
+                f"#{sequence.anchor} .atlas-description",
+                f"#{sequence.anchor} .atlas-introduction",
+                f"#{sequence.anchor} .atlas-row",
+            )
+            assert description["y"] < intro["y"] < first["y"]
+        else:
+            assert link.count() == 0
+    assert checked == len(LESSONS)
+    assert INTRODUCED and any(s.id not in INTRODUCED for s in SEQUENCES if s.part)
 
 
 @pytest.mark.parametrize("viewport", [WIDE, NARROW], ids=["wide", "phone"])
@@ -261,7 +379,7 @@ def test_a_paths_optional_extensions_follow_its_core_under_their_own_heading(
     """The extension rows of a method path stand after its core rows, under
     the heading "Optional extensions", visible and reachable without
     scripts, with the row marks of the core and no other (ADR 022 decision
-    2); the core count of the card leaves them out."""
+    2); the core count of the row leaves them out."""
     context = browser.new_context(viewport=viewport, java_script_enabled=False)
     page = open_page(context, server)
     paths = [sequence for sequence in by_part("B") if sequence.extensions]
@@ -289,10 +407,11 @@ def test_a_paths_optional_extensions_follow_its_core_under_their_own_heading(
                 assert link.get_attribute("href") == (
                     "../" + row.lesson.page.removesuffix(".qmd") + ".html"
                 )
-        card = page.locator(f"#{sequence.anchor} .atlas-card-count")
-        assert (
-            card.inner_text() == f"{sequence.published} of {len(sequence.core)} lessons"
-        )
+        counts = f"{sequence.published} published"
+        if sequence.planned:
+            counts += f" · {sequence.planned} planned"
+        count = page.locator(f"#{sequence.anchor} .atlas-card-count")
+        assert count.inner_text() == counts
     # No row outside the core carries a mark the core does not have.
     marks = page.locator(".atlas-extensions .atlas-mark").evaluate_all(
         "marks => marks.map(m => m.className)"
@@ -301,7 +420,19 @@ def test_a_paths_optional_extensions_follow_its_core_under_their_own_heading(
     context.close()
 
 
-def test_by_keyboard_a_card_opens_and_its_panel_comes_next_in_order(
+def first_in_order(sequence: AtlasSequence) -> str:
+    """The text of the first focusable element of an open sequence: the
+    introduction link where one exists, else the first published lesson."""
+    if sequence.id in INTRODUCED:
+        return (
+            "Read the course introduction"
+            if sequence.part == "A"
+            else "Read the method path introduction"
+        )
+    return next(row for row in sequence.rows if row.lesson is not None).title
+
+
+def test_by_keyboard_a_row_opens_and_its_content_comes_next_in_order(
     browser: Browser, without_scripts: BrowserContext, server: SiteServer
 ):
     # Safari, and WebKit with it, moves to the next link with Option-Tab
@@ -309,12 +440,11 @@ def test_by_keyboard_a_card_opens_and_its_panel_comes_next_in_order(
     # order is the same (the manual check of #338 records it in Safari).
     tab = "Alt+Tab" if browser.browser_type.name == "webkit" else "Tab"
     page = open_page(without_scripts, server)
-    page.locator("#course-mechanics > summary").focus()
-    # The first course is open: Tab goes into its panel.
-    page.keyboard.press(tab)
-    first = ATLAS.sequences()[0].rows[0].lesson
-    assert page.evaluate("document.activeElement.textContent") == first.title
-    for key, sequence in (("Enter", SEQUENCES[5]), ("Space", by_part("B")[1])):
+    for key, sequence in (
+        ("Enter", SEQUENCES[0]),
+        ("Enter", SEQUENCES[5]),
+        ("Space", by_part("B")[1]),
+    ):
         summary = page.locator(f"#{sequence.anchor} > summary")
         summary.focus()
         style = summary.evaluate(
@@ -325,8 +455,9 @@ def test_by_keyboard_a_card_opens_and_its_panel_comes_next_in_order(
         page.keyboard.press(key)
         assert open_ids(page) == [sequence.anchor]
         page.keyboard.press(tab)
-        row = next(row for row in sequence.rows if row.lesson is not None)
-        assert page.evaluate("document.activeElement.textContent") == row.title
+        assert page.evaluate("document.activeElement.textContent") == first_in_order(
+            sequence
+        )
 
 
 def test_by_keyboard_alone_every_sequence_opens_and_every_published_lesson_is_reached(
@@ -340,7 +471,7 @@ def test_by_keyboard_alone_every_sequence_opens_and_every_published_lesson_is_re
     page = open_page(without_scripts, server)
     reached: set[str] = set()
     first = f"{SEQUENCES[0].anchor}"
-    # Tab from the top of the page until the first card takes the focus.
+    # Tab from the top of the page until the first row takes the focus.
     for _ in range(200):
         page.keyboard.press(tab)
         if page.evaluate("document.activeElement.parentElement?.id") == first:
@@ -353,11 +484,20 @@ def test_by_keyboard_alone_every_sequence_opens_and_every_published_lesson_is_re
         style, width = summary.evaluate(focus_ring)
         assert style not in ("none", "hidden") and width >= 2, sequence.id
         key = "Enter" if index % 2 == 0 else "Space"
-        if page.locator(f"#{sequence.anchor}").get_attribute("open") is not None:
-            page.keyboard.press(key)  # close the card that opens at load
-            assert page.locator(f"#{sequence.anchor}").get_attribute("open") is None
         page.keyboard.press(key)
         assert open_ids(page) == [sequence.anchor], sequence.id
+        if sequence.id in INTRODUCED:
+            # F156: the content opens with the link to the introduction.
+            page.keyboard.press(tab)
+            focused = page.evaluate(
+                "({inside: !!document.activeElement.closest("
+                f"'#{sequence.anchor} .atlas-introduction'), "
+                "href: document.activeElement.getAttribute('href')})"
+            )
+            assert focused["inside"], sequence.id
+            assert focused["href"] == (
+                "../" + introduction_page(sequence.id).removesuffix(".qmd") + ".html"
+            )
         expected = [row.lesson for row in sequence.rows if row.lesson is not None]
         for lesson in expected:
             page.keyboard.press(tab)
@@ -371,20 +511,8 @@ def test_by_keyboard_alone_every_sequence_opens_and_every_published_lesson_is_re
             style, width = page.locator(":focus").evaluate(focus_ring)
             assert style not in ("none", "hidden") and width >= 1, lesson.id
             reached.add(lesson.id)
-        if sequence.id in INTRODUCED:
-            # F156: the panel ends with the link to the introduction.
-            page.keyboard.press(tab)
-            focused = page.evaluate(
-                "({inside: !!document.activeElement.closest("
-                f"'#{sequence.anchor} .atlas-introduction'), "
-                "href: document.activeElement.getAttribute('href')})"
-            )
-            assert focused["inside"], sequence.id
-            assert focused["href"] == (
-                "../" + introduction_page(sequence.id).removesuffix(".qmd") + ".html"
-            )
         if index + 1 < len(SEQUENCES):
-            # The next Tab leaves the open card for the next summary.
+            # The next Tab leaves the open row for the next summary.
             page.keyboard.press(tab)
     assert reached == {lesson.id for lesson in LESSONS}
 
@@ -566,6 +694,17 @@ def test_the_accessibility_scan_passes_with_a_course_and_a_path_open(
             for finding in results.response["violations"]
             for item in finding["nodes"]
         ]
+    # The notes under the sequences, open (the completed-lessons note is
+    # hidden without saved progress).
+    for note in page.locator("details.atlas-note > summary").all():
+        if note.is_visible():
+            note.click()
+    results = Axe().run(page, options=options)
+    violations += [
+        f"{finding['id']} at {item['target']} (notes)"
+        for finding in results.response["violations"]
+        for item in finding["nodes"]
+    ]
     context.close()
     assert not violations, "\n".join(violations)
 
@@ -573,6 +712,7 @@ def test_the_accessibility_scan_passes_with_a_course_and_a_path_open(
 def test_the_page_reflows_at_320_pixels(browser: Browser, server: SiteServer):
     context = browser.new_context(viewport=PHONE)
     page = open_page(context, server)
+    assert page.evaluate("document.documentElement.scrollWidth") <= PHONE["width"]
     for anchor in ("course-mechanics", "path-law-discovery", "course-fluids"):
         show(page, anchor)
         assert page.evaluate("document.documentElement.scrollWidth") <= PHONE["width"]
@@ -588,17 +728,17 @@ def test_the_illustrations_load_at_the_density_of_the_screen(
 ):
     context = browser.new_context(viewport=WIDE, device_scale_factor=2)
     page = open_page(context, server)
+    show(page, "course-mechanics")
     sizes = page.locator("#course-mechanics img").evaluate_all(
         "images => images.map(i => [i.currentSrc.split('/').pop(),"
         " i.getBoundingClientRect().width, i.alt])"
     )
     context.close()
-    (card, panel) = sizes
-    # The 2x file of each slot, at the slot's width.
+    # One illustration per sequence, the 2x file of the card slot at the
+    # slot's width; the panel files are for the introduction pages.
+    (card,) = sizes
     assert card[0] == "mechanics-card-152.webp" and card[1] == 76
     assert card[2] == "Illustration of Classical mechanics"
-    assert panel[0] == "mechanics-panel-400.webp" and panel[1] == 200
-    assert panel[2] == "Illustration of Classical mechanics"
 
 
 def test_the_initial_payload_of_the_page_is_within_the_budget(
@@ -627,58 +767,6 @@ def test_the_initial_payload_of_the_page_is_within_the_budget(
         )
     violations = site_checks.check_payload({PATH: total})
     assert not violations, describe(violations)
-
-
-# --- The learning journey (F157) -----------------------------------------------------
-
-
-def test_the_journey_comes_before_the_cards_and_opens_by_keyboard_without_scripts(
-    without_scripts: BrowserContext, server: SiteServer
-):
-    page = open_page(without_scripts, server)
-    journey = box(page, "#journey > summary")
-    first_card = box(page, "#course-mechanics > summary")
-    assert journey["y"] + journey["height"] <= first_card["y"]
-    assert page.locator("#journey").get_attribute("open") is None
-    page.focus("#journey > summary")
-    page.keyboard.press("Enter")
-    assert page.locator("#journey").get_attribute("open") is not None
-    for heading in ("#journey-part-a", "#journey-part-b", "#journey-evidence"):
-        assert page.locator(heading).is_visible(), heading
-    # The journey is outside the cards' group: opening it closes no sequence.
-    assert open_ids(page) == ["course-mechanics"]
-
-
-def test_an_address_inside_the_journey_opens_it(
-    with_scripts: BrowserContext, server: SiteServer
-):
-    page = open_page(with_scripts, server, "#journey-evidence")
-    assert page.locator("#journey").get_attribute("open") is not None
-    assert open_ids(page) == ["course-mechanics"]
-
-
-@pytest.mark.parametrize("viewport", [WIDE, PHONE], ids=["desktop", "320"])
-def test_the_open_journey_passes_the_scan_and_reflows(
-    browser: Browser, server: SiteServer, viewport: dict[str, int]
-):
-    context = browser.new_context(viewport=viewport)
-    page = open_page(context, server)
-    page.locator("#journey > summary").click()
-    assert page.evaluate("document.documentElement.scrollWidth") <= viewport["width"]
-    results = Axe().run(
-        page,
-        options={
-            "runOnly": {"type": "tag", "values": WCAG_TAGS},
-            "resultTypes": ["violations"],
-        },
-    )
-    violations = [
-        f"{finding['id']} at {item['target']}"
-        for finding in results.response["violations"]
-        for item in finding["nodes"]
-    ]
-    context.close()
-    assert not violations, "\n".join(violations)
 
 
 # --- The relationships on a lesson page ------------------------------------------

@@ -2192,6 +2192,20 @@ def _load_lazy_images(page: Page) -> None:
     page.wait_for_load_state("networkidle")
 
 
+# A face the stylesheet declares is fetched when text first uses it: an
+# italic face when a control reveals the first italic word (the planned rows
+# of the course atlas, closed at load since Issue #483). Such a fetch is a
+# request of the page's own stylesheet, not of a control; loading every
+# declared face before the recording keeps the check strict for every other
+# request, as it is for lazy images.
+_LOAD_FONTS = "() => Promise.all([...document.fonts].map((face) => face.load()))"
+
+
+def _load_fonts(page: Page) -> None:
+    page.evaluate(_LOAD_FONTS)
+    page.wait_for_load_state("networkidle")
+
+
 def check_controls_keep_nothing(
     browser: Browser,
     server: SiteServer,
@@ -2200,8 +2214,8 @@ def check_controls_keep_nothing(
     viewport: dict[str, int] = DESKTOP,
 ) -> list[Violation]:
     """Opening ``page_name`` and doing what ``operate`` does with its controls
-    makes no request once the page and its images have loaded (lazy ones
-    included), sets no cookie, and writes
+    makes no request once the page, its images (lazy ones included), and the
+    faces its stylesheet declares have loaded, sets no cookie, and writes
     nothing to Web Storage, IndexedDB, the Cache API, or a service worker;
     the entries of Web Storage are what they were after the page loaded.
 
@@ -2217,6 +2231,7 @@ def check_controls_keep_nothing(
         page = context.new_page()
         page.goto(server.url + page_name, wait_until="networkidle")
         _load_lazy_images(page)
+        _load_fonts(page)
         before = len(page.evaluate("window.__storageWrites"))
         entries = Counter(page.evaluate(_STORAGE_ENTRIES))
         page.on("request", lambda request: requests.append(request.url))

@@ -188,8 +188,9 @@ site/                    Quarto project: the website source
   about.qmd              About: how the site is built, licences, identity (F57)
   path/                  Learning path page (generated from lesson metadata and the curriculum file); since the
                          scientific atelier the course atlas at the same address, generated also from the map
-                         manifest (F125, F126, ADR 018); since the site navigation the two-layer Course Atlas
-                         of twelve sequence cards and the open sequence's lessons (F133, ADR 021)
+                         manifest (F125, F126, ADR 018); since the site navigation the Course Atlas of
+                         twelve sequence rows, each expanding inline to its lessons (F133, ADR 021;
+                         inline on every viewport since Issue #483)
   curriculum.yaml        The reference curriculum: courses, method paths, slots (final curriculum, F62, ADR 013)
   atlas.yaml             The map manifest of the course atlas (scientific atelier, F125, ADR 018): concept
                          identifiers, display placement, concept-to-slot associations, curated conceptual
@@ -202,8 +203,8 @@ site/                    Quarto project: the website source
   home.yaml              The copy of Home in the order identity, philosophy, curriculum (Part A, Part B,
                          and the transition), integrity: the owner's fixed text (textbook layer, F158;
                          Issue #481); no example lesson
-  journey.yaml           The Part A and Part B text of the learning journey, used by the atlas and About
-                         (textbook layer, F157); prose and references only
+  journey.yaml           The Part A and Part B text of the learning journey, used by About (textbook
+                         layer, F157; by the atlas too until Issue #483); prose and references only
   introductions/<id>.yaml   The editorial text of one course or method-path introduction (textbook layer,
                          F156); prose and references only, never a lesson list, count, or state
   courses/<id>/          One thin page source per introduced sequence, at the address /courses/<id>/, that
@@ -330,11 +331,11 @@ LICENSE, LICENSE-CONTENT MIT for code, CC BY 4.0 for lesson text and figures
 | **Lesson code package** (`src/pbc/`) | All reusable simulation and analysis code: models, integrators, analysis helpers, data readers; in the final curriculum one package per course, the shared finite-element and finite-volume solvers, and the discovery environments. Unit-tested. The code learners import when they reproduce a lesson and the functions agents are allowed to call. | Depend on the site generator, on network access, or on an LLM provider SDK outside `pbc.agents`. Fetch data from a portal. Depend on an optional comparator (FEniCSx, Gmsh, REBOUND, QuTiP, GeoClaw, PySR, ...) in a required code path. |
 | **Curriculum file** (site/curriculum.yaml, final curriculum, ADR 013) | The reference curriculum as data: the eight courses, the four method paths, and every slot with its label, working title, home, position, and kind; since the Part B products (ADR 022, F136) also whether a method-path slot is an extension slot, outside the core counts, and the kind `product capstone`. Lessons fill slots through their `slot` field; the path page and the home page derive the planned structure from it and every published fact from front matter. | Hold anything front matter holds (titles of published lessons, descriptions, outcomes, prerequisites, difficulty, methods), or name a lesson that does not exist. |
 | **Map manifest** (site/atlas.yaml, scientific atelier, ADR 018; amended by ADR 021) | The one addition the course atlas needs, in the requirements' words: concept identifiers (each with its short explanation), display placement (optional since ADR 021, removed with its check when nothing reads it), concept-to-slot associations (capstone membership among them, as an association whose slot is a capstone slot), and curated conceptual connections with their rationale; since the site navigation (F133) also one entry per sequence (every course and method path of the curriculum file, no other) with its one-line description and its illustration, a path the provenance register names. The short explanation of the concept that represents a capstone slot is the planned description the atlas reveals and the home page shows. Validated by `pbc.authoring`: every course, path, slot, and concept reference resolves (the schema defines course, path, slot, and concept references only, and rejects any other field; it admits no lesson reference, so the requirements' lesson-reference rule holds vacuously); a concept names at least one slot; every capstone slot of the curriculum file is represented by exactly one concept. | Hold a title, outcome, prerequisite, publication state, or count, or a description other than a sequence's one line and a concept's explanation; hold an illustration reference outside the sequence entries, or a lesson reference; infer a concept from a lesson's title; list a prerequisite (those come from the front matter); be a second lesson catalogue. |
-| **Textbook sources** (site/introductions/, site/journey.yaml, site/home.yaml; textbook layer, F156 to F158, requirements decision 43) | The educational narrative as prose: one introduction file per course or method path (why the subject matters, its central questions, what the reader learns, why the lessons come in this order, the method and why, the capstone as the culmination, what comes next), the Part A and Part B text of the learning journey that the atlas and About share, and the copy of Home, the owner's fixed text with no example lesson (Issue #481). Each is read and validated by `pbc.authoring` (`pbc.authoring.introductions`, the journey reader, `pbc.authoring.home`): any field outside its schema is an error, and every reference (a sequence, a slot, a glossary term) resolves, or the build fails. | Hold a lesson list, title, count, prerequisite, outcome, capstone identity, or publication state (those come from the curriculum file and the front matter); link or count a planned lesson; be written on a page; describe an AI result as a discovery. |
+| **Textbook sources** (site/introductions/, site/journey.yaml, site/home.yaml; textbook layer, F156 to F158, requirements decision 43) | The educational narrative as prose: one introduction file per course or method path (why the subject matters, its central questions, what the reader learns, why the lessons come in this order, the method and why, the capstone as the culmination, what comes next), the Part A and Part B text of the learning journey that About carries (the atlas too until Issue #483), and the copy of Home, the owner's fixed text with no example lesson (Issue #481). Each is read and validated by `pbc.authoring` (`pbc.authoring.introductions`, the journey reader, `pbc.authoring.home`): any field outside its schema is an error, and every reference (a sequence, a slot, a glossary term) resolves, or the build fails. | Hold a lesson list, title, count, prerequisite, outcome, capstone identity, or publication state (those come from the curriculum file and the front matter); link or count a planned lesson; be written on a page; describe an AI result as a discovery. |
 | **Introduction pages** (`/courses/<sequence-id>/`, textbook layer, F156) | Generated by `pbc.authoring.introductions` from a sequence's introduction file, the curriculum file, the front matter, and the atlas manifest's sequence illustration: the editorial sections, the prerequisites from outside the sequence as links, and the lesson list with the published and planned counts and the capstone as the atlas derives them; linked from the atlas panel and from the header of each lesson of the sequence; complete without scripts, readable at 320 CSS px, and in the search index. | Exist for a sequence without an introduction file; hold a script, a progress mark, or any state; change a lesson address, an anchor, or the learner state. |
 | **Lean project** (`lean/`) | All formal proofs, built with `lake build` against pinned Lean 4 and Mathlib. | Contain `sorry`, `admit`, or project-declared `axiom`s. Claim anything about the Python code or about the physical accuracy of a measurement. |
 | **Widgets** (`site/widgets/`) | Optional interactive visualizations that enhance a static figure already present in the page; in the next phase a small set of science-first components (F43). | Load code or data from another origin, load data before the reader asks for it, store or transmit learner data, compute physics the page did not verify, alter claimed observed values, or be required to read a lesson. |
-| **Atlas modules** (`site/learner/`, scientific atelier, F126, ADR 018; since the site navigation, F133 and F134, ADR 021) | Since F133: one module of about twenty lines that makes the address follow the open sequence and opens the sequence an address names; from F134: the hero script, which set one of the build-embedded headline and subtext pairs before first paint until round 2 of F158 fixed the hero text (2026-11-10). Since F158 (textbook layer) the hero script picks one of the four hero images before the image is requested, or the one its query parameter `hero-image` forces, and nothing else. Since round 2 of F158 the menu script of the shared header (`site/learner/menu.js`), which closes the native menu below 640 CSS px before first paint, keeps its toggle's state in step, and closes it on Escape. Without them every page is complete: every published lesson is reachable through native links and exclusive disclosures, the hero text and the default image are in the HTML, and the menu stands open. | Make a request, set a cookie, use browser storage (`site/learner/progress.js` stays the only script that stores anything), compute physics, change which lessons exist or count as published, or be required to reach a lesson. |
+| **Atlas modules** (`site/learner/`, scientific atelier, F126, ADR 018; since the site navigation, F133 and F134, ADR 021) | Since F133: one module of about thirty lines that makes the address follow the open sequence, opens the sequence an address names, and, since Issue #483, closes the other rows in a browser without exclusive disclosures; from F134: the hero script, which set one of the build-embedded headline and subtext pairs before first paint until round 2 of F158 fixed the hero text (2026-11-10). Since F158 (textbook layer) the hero script picks one of the four hero images before the image is requested, or the one its query parameter `hero-image` forces, and nothing else. Since round 2 of F158 the menu script of the shared header (`site/learner/menu.js`), which closes the native menu below 640 CSS px before first paint, keeps its toggle's state in step, and closes it on Escape. Without them every page is complete: every published lesson is reachable through native links and exclusive disclosures, the hero text and the default image are in the HTML, and the menu stands open. | Make a request, set a cookie, use browser storage (`site/learner/progress.js` stays the only script that stores anything), compute physics, change which lessons exist or count as published, or be required to reach a lesson. |
 | **Dataset registry and samples** (`data/`, next phase, ADR 007) | One card per surveyed dataset with provenance, rights, artifact types, schema, units, cadence, uncertainty, checksums, and the feasibility decision; small rights-cleared samples under the size cap, each parsed by a test. | Hold a file above the cap, a restricted or unlicensed sample, a file without a card, or anything a build could regenerate. |
 | **Reference register** (`site/references.yaml`, next phase, ADR 009) | The selection evidence of every curated external link: concept, URL, author or publisher, section, pedagogical role, statement checked, alternatives, last-checked date, licence note. Pages render links from it. | Be required by the build to be reachable; hold a paywalled or sign-in-only core reference. |
 | **Site generator** (Quarto, ADR 001) | Executes lesson pages, renders equations to MathML, highlights code at build time, emits static HTML. | Add third-party runtime resources (CDN scripts, web fonts, analytics). |
@@ -500,12 +501,15 @@ marks, and the recommendations ("The quieter site").
 **The course atlas (scientific atelier, ADR 018, F125, F126; the two-layer atlas, ADR 021, F133).**
 The page at the path address is a navigation page of twelve sequences, the
 eight courses of Part A and the four method paths of Part B, as native
-exclusive disclosures: each `<summary>` is a card (illustration, title,
-published count, progress mark) and the open panel holds the larger
-illustration, a one-line description, the counts, and the lesson rows (a
-link only when published; marks for a lab, a capstone, and Lean; a planned
-row distinguishable without colour and never counted). On wide screens the
-open panel stands beside the cards; on a phone it is an accordion. The
+exclusive disclosures: each `<summary>` is the row (illustration, title,
+published and planned counts, progress hairline) and its content, which
+expands inline beneath the row on every viewport (Issue #483, ADR 021
+decision 3 as amended), holds the title, a one-line description, the link
+to the introduction where one exists, and the lesson rows (a link only when
+published; the difficulty of the front matter; marks for a lab, a capstone,
+and Lean; a planned row distinguishable without colour, never counted, and
+never a link). None is open at load, one at most. The page opens with the
+owner's two paragraphs and three figures derived from the curriculum. The
 data are the curriculum file and the front matter (courses, paths, slots,
 publication, titles, addresses) and the map manifest (each sequence's
 description and illustration, the concepts with their slots, and the
@@ -1254,12 +1258,17 @@ into the page at the path address:
    of the curriculum file and no other, each with a one-line description
    and an illustration the provenance register names.
 2. The page is twelve native `<details name="atlas">` elements and a
-   smaller entry for the Lean lessons without a slot. Each `<summary>` is a
-   card (illustration, title, published count, the progress mark that
-   `progress.js` sets as today); each panel holds the larger illustration,
-   the description, the published and planned counts, and the lesson rows
-   (label, a title that is a link only when published, the marks for a
-   measured-data lab, a capstone, and Lean). A planned row is
+   smaller entry for the Lean lessons without a slot. Each `<summary>` is
+   the row (illustration, title, the published and planned counts, the
+   progress hairline that `progress.js` sets as today, shown once a lesson
+   is completed); its content holds the title, the description, the link
+   to the introduction where one exists, and the lesson rows (label, a
+   title that is a link only when published, the difficulty of the front
+   matter, the marks for a measured-data lab, a capstone, and Lean, in
+   words). Since Issue #483 the page opens with the owner's two paragraphs
+   and three figures derived from the curriculum file and the front matter
+   (the courses, the method paths, the published lessons), no longer with
+   the learning journey. A planned row is
    distinguishable without colour and never counted as published. A
    visually hidden textual equivalent lists every sequence with its
    lessons and their state. Under the sequences the page keeps the
@@ -1270,10 +1279,12 @@ into the page at the path address:
    still carries the learning path (each lesson's id, title, address, and
    prerequisites) as data, which `recommend.js` reads ("Learner state"),
    so the prerequisite graph leaves the drawing but not the data.
-3. CSS lays the open panel beside the cards on wide screens through
-   `::details-content`, with the accordion as the fallback (tested by
-   disabling the rule, not assumed) and the phone's layout; one sequence
-   is open at a time without a script. The address module of the
+3. Since Issue #483 (ADR 021 decision 3 as amended on 2026-11-11) the
+   content expands inline beneath its row at every width, with no
+   `::details-content` rule and nothing sticky; none is open at load, and
+   one sequence is open at a time without a script in a browser with
+   exclusive disclosures, with the address module closing the others in an
+   older one (without scripts there, every row can open). The address module of the
    component table syncs the address and the open sequence. The existing
    anchors of the courses and paths (today `#course-<id>` and
    `#path-<id>`) open their sequence; every other existing anchor

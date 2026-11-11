@@ -27,6 +27,12 @@ DATA_ID = "learner-state-data"
 # Where the page that explains the stored data lives, and the anchor of its
 # section. The path page holds it, with the clear-data control.
 EXPLANATION_ANCHOR = "your-progress"
+# The owner's sentence of the section (Issue #483), shown without scripts
+# and, by site/learner/progress.js, without saved progress.
+PROGRESS_SENTENCE = (
+    "Track completed lessons and continue where you left off. Your progress"
+    " stays in this browser."
+)
 PATH_PAGE = "path/index.qmd"
 # The file of the built site with the learning path.
 EXPORT_FILE = "path.json"

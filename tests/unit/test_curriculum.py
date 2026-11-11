@@ -696,12 +696,12 @@ def test_a_course_lists_lessons_and_planned_slots_in_the_order_of_the_file(page:
         assert len([label for label in shown if label]) + len(capstones) == len(slots)
 
 
-def test_the_page_opens_only_the_first_sequence_and_loads_nothing_from_outside(
-    page: str,
-):
+def test_the_page_opens_no_sequence_and_loads_nothing_from_outside(page: str):
+    # None open at load (Issue #483): the eight courses, the four paths, and
+    # the Lean entry.
     assert [" open" in tag for tag in re.findall(r"<details [^>]*>", page)] == [
-        True
-    ] + [False] * (len(COURSES) + 4)
+        False
+    ] * (len(COURSES) + 5)
     sources = re.findall(r'(?:src|href)="(https?:[^"]+|//[^"]+)"', page)
     assert sources == []
     assert atlas_page(LearningPath.read(SITE_SOURCE)) == page
@@ -910,17 +910,14 @@ class Progress:
 
 
 def counts(lessons: int, planned: int) -> list[str]:
-    """What the card and the panel of a sequence say of its rows."""
-    total = lessons + planned
-    panel = f"{lessons} published" + (f" · {planned} planned" if planned else "")
-    return [f"{lessons} of {total} lesson{'s' if total != 1 else ''}", panel]
+    """What the row of a sequence says of its lessons (Issue #483: the one
+    count on the row, no second one in the content)."""
+    return [f"{lessons} published" + (f" · {planned} planned" if planned else "")]
 
 
 def shown_counts(section: str) -> list[str]:
-    return [
-        *re.findall(r'<span class="atlas-card-count">([^<]*)</span>', section),
-        *re.findall(r'<p class="atlas-counts">([^<]*)</p>', section),
-    ]
+    assert "atlas-counts" not in section
+    return re.findall(r'<span class="atlas-card-count">([^<]*)</span>', section)
 
 
 PLANNED_LABEL = re.compile(

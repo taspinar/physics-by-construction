@@ -336,18 +336,28 @@ function selfCheck() {
   }
 }
 
-// The learning path: the cards of completed lessons are marked, the place of
-// the page that is an enhancement shows the count, the lessons completed, and
-// the clear-data control.
+// The course atlas: the rows of completed lessons are marked, and the place
+// of the page that is an enhancement shows the count with a hairline
+// indicator, the completed lessons in a closed disclosure, and the clear-data
+// control; without saved progress it shows the sentence the page carries
+// without scripts (Issue #483).
+const EMPTY_PROGRESS =
+  "Track completed lessons and continue where you left off. Your progress stays in this browser.";
+
 function pathPage() {
   const container = document.getElementById("progress-controls");
   if (!container) {
     return;
   }
   const summary = element("p", { role: "status" });
+  const bar = element("span", { className: "progress-bar" });
+  bar.setAttribute("aria-hidden", "true");
+  const fill = element("span", { className: "progress-bar-fill" });
+  bar.append(fill);
   const list = element("ul", { className: "completed-lessons" });
+  const shown = element("details", { className: "atlas-note" }, element("summary", { textContent: "Completed lessons" }), list);
   const clearButton = element("button", { type: "button", textContent: "Clear all stored progress" });
-  container.replaceChildren(summary, list, element("p", {}, clearButton));
+  container.replaceChildren(summary, bar, shown, element("p", {}, clearButton));
   let cleared = false;
   clearButton.addEventListener("click", () => {
     clear();
@@ -374,9 +384,13 @@ function pathPage() {
         return element("li", {}, element("a", { href: link.getAttribute("href"), textContent: link.textContent }), " (completed)");
       })
     );
+    const count = completed.length;
+    fill.style.width = titles.size ? `${(100 * count) / titles.size}%` : "0%";
+    bar.hidden = count === 0;
+    shown.hidden = count === 0;
     summary.textContent =
-      (cleared && completed.length === 0 ? "All stored progress was cleared. " : "") +
-      `${completed.length} of ${titles.size} lessons completed.` +
+      (cleared && count === 0 ? "All stored progress was cleared. " : "") +
+      (count === 0 ? EMPTY_PROGRESS : `${count} of ${titles.size} lessons completed.`) +
       notice();
   });
 }

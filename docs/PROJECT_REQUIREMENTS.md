@@ -665,6 +665,20 @@ Later phases (in scope for the project, out of scope for the MVP):
   lesson pages, with their checks, and are never invented for a planned
   lesson. The existing progress and recommendation behaviour keeps its
   contract.
+
+  *Note of Issue #483 (2026-11-11, the owner's redesign decision; ADR 021
+  decision 3 as amended that day).* The two-layer layout is reversed: every
+  sequence expands inline beneath its own row on every viewport, none open
+  at load, one open at most, without a sticky panel; the learning journey
+  leaves the atlas (About keeps its Part A and Part B text), replaced by the
+  owner's subtitle, two fixed paragraphs, and three derived figures (the
+  courses, the method paths, the published lessons); the rows show the
+  difficulty of the front matter and the marks in words, a planned lesson
+  stays no link; the open sequence links its introduction before its
+  lessons; "Your progress" keeps its anchor, storage, and clear control with
+  a compact presentation, and "How the lessons work" keeps the anchors of
+  the difficulty, the methods, and the order. Everything else of this bullet
+  stands.
 - Shared templates (decision 36, amended by decision 43): course and
   method-path introductions and module openings with one
   relevant illustration (interface artwork or a scientific figure of

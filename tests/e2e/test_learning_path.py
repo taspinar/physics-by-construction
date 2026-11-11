@@ -94,8 +94,17 @@ def test_path_page_explains_the_difficulty_scale(
 
     scale = page.locator("main #difficulty").inner_text()
     for difficulty in DIFFICULTIES:
-        assert difficulty.title.lower() in scale.lower()
-        assert difficulty.description in scale
+        assert difficulty.title in scale
+    # The descriptions are in a closed native disclosure, opened without
+    # scripts (Issue #483).
+    note = page.locator("main #difficulty details#difficulty-levels")
+    assert note.get_attribute("open") is None
+    note.locator("summary").click()
+    assert note.get_attribute("open") is not None
+    levels = note.locator("dl").inner_text()
+    for difficulty in DIFFICULTIES:
+        assert difficulty.title in levels
+        assert difficulty.description in levels
 
 
 def test_path_page_explains_previous_and_next(
@@ -106,8 +115,9 @@ def test_path_page_explains_previous_and_next(
 
     order = page.locator("main section#order").inner_text()
     assert "Previous and next" in order
-    assert "course order" in order
-    assert "prerequisites" in order
+    assert "recommended teaching order" in order
+    assert "all you need first" in order
+    assert "strand" not in order
 
 
 # Every lesson address that existed before the courses (F37): the address
