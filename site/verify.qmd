@@ -88,8 +88,11 @@ paths imply.
   later rounds read only the changes since the round before when their reach
   is certain.
 - **Level 3**, a protected path or an escalation trigger. The protected
-  paths are those named in the guardrails file of the repository and
-  listed in the process document; among them are the decision records, the
+  paths are those named in the [guardrails
+  file](https://github.com/taspinar/physics-by-construction/blob/main/.agents/policies/guardrails.conf)
+  of the repository and described in [the process
+  document](https://github.com/taspinar/physics-by-construction/blob/main/docs/process.md);
+  the list that follows is only a part of them: the decision records, the
   planning documents, the CI workflows, the scripts of the workflow and of
   the checks and their configuration, the selection of what a run executes,
   the build, the prompts and schemas of the agents, and the agent skills.
