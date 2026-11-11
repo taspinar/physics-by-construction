@@ -10,6 +10,7 @@ import types
 from pathlib import Path
 
 import pytest
+import yaml
 
 from pbc.data import REGISTRY_DIR, REPO_ROOT
 from pbc.data.card import load_card, load_cards, validate_card
@@ -17,6 +18,7 @@ from pbc.data.registry import (
     DOCS_README,
     SURVEYED,
     TOOLS_README,
+    _row,
     check_readmes,
     check_reference_modules,
     conversion_table,
@@ -83,17 +85,23 @@ def test_a_module_that_does_not_import_or_has_no_make_figure_is_reported(monkeyp
 def test_the_tables_are_in_alphabetical_order_of_the_id_and_name_every_card():
     cards = GO
     all_cards = _all_cards()
-    later = [line for line in later_table(all_cards).splitlines()[2:]]
-    ids = [line.rsplit("](", 1)[1].removesuffix(".md) |") for line in later]
-    assert ids == sorted(ids) and set(ids) == set(all_cards) - SURVEYED
+    # The order is checked against the card ids, never against the dossier link:
+    # a card without a dossier has no link to read an id from.
+    later_ids = sorted(set(all_cards) - SURVEYED)
+    later = later_table(all_cards).splitlines()[2:]
+    assert later == [_row(all_cards[name]) for name in later_ids]
+    surveyed = [
+        n
+        for n in sorted(SURVEYED)
+        if all_cards[n]["decision"]["value"] != "survey-only"
+    ]
     survey = survey_table(all_cards).splitlines()[2:]
-    listed = [line.rsplit("](", 1)[1].removesuffix(".md) |") for line in survey[:-1]]
-    assert listed == sorted(listed)
+    assert survey[:-1] == [_row(all_cards[name]) for name in surveyed]
     others = len(
         [n for n in SURVEYED if all_cards[n]["decision"]["value"] == "survey-only"]
     )
     assert survey[-1].startswith(f"| {others} others |")
-    assert len(listed) + others == len(SURVEYED) == 25
+    assert len(surveyed) + others == len(SURVEYED) == 25
     rows = conversion_table(cards).splitlines()[2:]
     datasets = [row.split("|")[2].strip().strip("`") for row in rows]
     assert datasets == sorted(datasets)
@@ -160,3 +168,33 @@ def test_text_outside_the_regions_is_kept_by_write(tree):
     text = readme.read_text()
     assert text.startswith("# Prose before\n") and text.endswith("\nProse after.\n")
     assert "[zz-scratch]" in region_text(text, "later-table")
+
+
+def test_a_card_without_a_dossier_is_listed_by_its_id_and_does_not_break_the_tables():
+    all_cards = _all_cards()
+    bare = {
+        "id": "zz-survey-only",
+        "title": "A survey-only card",
+        "decision": {"value": "survey-only"},
+    }
+    cards = {**all_cards, "zz-survey-only": bare}
+    rows = later_table(cards).splitlines()[2:]
+    assert rows[-1] == _row(bare) and "data/registry/zz-survey-only.yaml" in rows[-1]
+    assert rows[:-1] == later_table(all_cards).splitlines()[2:]
+    assert survey_table(cards) == survey_table(all_cards)
+
+
+def test_the_check_returns_the_validation_messages_of_an_incomplete_conversion_card(
+    tmp_path,
+):
+    from pbc.data.check import check_repository
+
+    card = copy.deepcopy(_all_cards()["dwd-potsdam-soil-temperature"])
+    del card["conversions"][0]["input"]
+    registry = tmp_path / "data" / "registry"
+    registry.mkdir(parents=True)
+    (registry / "dwd-potsdam-soil-temperature.yaml").write_text(
+        yaml.safe_dump(card, sort_keys=False), encoding="utf-8"
+    )
+    problems = check_repository(tmp_path)  # must not raise
+    assert any("input" in p for p in problems), problems

@@ -95,14 +95,18 @@ def check_repository(root: Path = REPO_ROOT) -> list[str]:
     root = Path(root)
     out: list[str] = []
     cards: dict[str, dict] = {}
+    card_problems = 0
     for path in sorted((root / "data" / "registry").glob("*.yaml")):
         try:
             card = load_card(path)
         except ValueError as error:
             out.append(str(error))
+            card_problems += 1
             continue
         cards[path.stem] = card
-        out.extend(f"{path.name}: {p}" for p in validate_card(card, path.stem))
+        problems = validate_card(card, path.stem)
+        card_problems += len(problems)
+        out.extend(f"{path.name}: {p}" for p in problems)
         dossier = card.get("dossier")
         if dossier and not (root / dossier).is_file():
             out.append(f"{path.name}: dossier {dossier} does not exist")
@@ -126,7 +130,11 @@ def check_repository(root: Path = REPO_ROOT) -> list[str]:
         out.append(
             f"data/samples: {total} bytes exceeds the {MAX_ALL} cap for all samples"
         )
-    out.extend(check_readmes(root))
+    # The READMEs are generated from the cards: with a card that does not
+    # validate (a missing input, say) the generator cannot read it, so the
+    # validation messages are the answer and the READMEs are compared after.
+    if not card_problems:
+        out.extend(check_readmes(root))
     return out
 
 
