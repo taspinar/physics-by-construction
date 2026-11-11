@@ -7,7 +7,8 @@ the owner's shorter copy (Issue #481) and links to About instead of repeating
 the sentence. No surface types either text by hand:
 the pages call :func:`description` and :func:`footer_line`, and
 ``python -m pbc.authoring.identity`` writes the README and ``CITATION.cff``
-(``--check`` only compares). A test reads every surface against this module. ``docs/authoring.md`` states the rules.
+(``--check`` only compares). A test reads every surface against this module.
+``docs/authoring.md`` states the rules.
 """
 
 import argparse
