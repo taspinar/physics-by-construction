@@ -5,28 +5,11 @@ import importlib
 from pathlib import Path
 
 from pbc.data import SAMPLES_DIR
+from pbc.data.registry import reference_modules
 
-MODULES = {
-    "gw150914-strain": "gw150914",
-    "npl-onwafer-sparameters": "npl_sparameters",
-    "aalborg-submerged-bar": "aalborg_flume",
-    "bayreuth-rlc-impedance": "bayreuth_rlc",
-    "nist-numisheet-dp980": "nist_numisheet",
-    "tess-exoplanet-light-curves": "tess_wasp18",
-    "munich-bell-event-ready": "munich_bell",
-    "lycopodium-spore-diffraction": "lycopodium",
-    "trackpy-bulk-water": "trackpy_bulk_water",
-    "xu-damped-pendulum": "xu_pendulum",
-    "sdss-balmer-spectrum": "sdss_balmer",
-    "dwd-potsdam-soil-temperature": "dwd_soil",
-    "tudelft-turbulent-boundary-layer": "tudelft_boundary_layer",
-    "grazing-flow-hwa-benchmark": "grazing_flow_hwa",
-    "nist-srm660c-lab6": "srm660c",
-    "kamchatka-2025-tsunami-inputs": "kamchatka_tsunami",
-    "piv-cylinder-wake": "cylinder_wake",
-    "ost-hotwire-cylinder-wakes": "ost_hotwire",
-    "sparc-rotation-curves": "sparc_rotmod",
-}
+# Dataset id to module, from the cards with a go (Issue #456); a new dataset
+# adds its card with a reference_module and no line here.
+MODULES = reference_modules()
 
 
 def main() -> None:

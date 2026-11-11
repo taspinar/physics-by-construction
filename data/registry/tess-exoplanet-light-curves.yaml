@@ -124,3 +124,20 @@ decision:
   - 'Recorded by F104 (Issue #420) under the owner''s decision of 2026-11-08 on the Issue: work towards
     a go on the strength of the research, with every requirement of ADR 007 checked in the dossier.'
 dossier: docs/datasets/tess-exoplanet-light-curves.md
+reference_module: tess_wasp18
+reference_figure:
+  status: processed
+  residuals: true
+listing:
+  name: 'TESS light curves (WASP-18, sector 29; AST8, Issue #420)'
+  kind: calibrated photometric time series
+conversions:
+- script: tools/datasets/tess_lc_to_csv.py
+  input: '`tess2020238165205-s0029-0000000100100827-0193-s_lc.fits` (`c89434e50db863e589c9321cf29c93e449ef1526f1a9db19552446b721fd0949`)'
+  output: '`wasp18_s0029_lc.csv` (`96cc3d255288b4158386e035358c7a8f4787180931fbe9863acd5113d14ecf11`)'
+  command: |
+    ./scripts/fetch-data.sh tess-exoplanet-light-curves
+    uv run python tools/datasets/tess_lc_to_csv.py \
+        data/downloads/tess-exoplanet-light-curves/tess2020238165205-s0029-0000000100100827-0193-s_lc.fits \
+        data/samples/tess-exoplanet-light-curves/wasp18_s0029_lc.csv
+  note: The script refuses any other input and a file whose FITS checksums do not verify.

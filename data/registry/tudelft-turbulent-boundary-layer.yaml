@@ -172,3 +172,10 @@ decision:
   - 'Recorded by F108 (Issue #441) under the owner''s approval of 2026-11-09 on the Issue: work towards a
     go, judged per dossier, with every requirement of ADR 007 checked in the dossier.'
 dossier: docs/datasets/tudelft-turbulent-boundary-layer.md
+reference_module: tudelft_boundary_layer
+reference_figure:
+  status: processed
+  residuals: false
+listing:
+  name: 'TU Delft turbulent boundary layer (FL8, Issue #441)'
+  kind: PIV and PTV profiles of mean velocity and Reynolds stress at four speeds

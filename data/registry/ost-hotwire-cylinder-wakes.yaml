@@ -185,3 +185,22 @@ decision:
   - 'Recorded by F53 (Issue #454) under the owner''s approval of 2026-11-09 on the Issue (dataset B, a
     separate yes): a go judged per dossier, with every requirement of ADR 007 checked in the dossier.'
 dossier: docs/datasets/ost-hotwire-cylinder-wakes.md
+reference_module: ost_hotwire
+reference_figure:
+  status: processed
+  residuals: false
+listing:
+  name: 'Ost et al. hot-wire cylinder wakes (FL7, Issue #454, beside the PIV wake)'
+  kind: hot-wire velocity series, Strouhal number against Re
+conversions:
+- script: tools/datasets/ost_hotwire_extract.py
+  input: the ten `Velocity_1C*.txt` (the ten sha256 in the script and on the card)
+  output: '`ost_hotwire_16s.csv` (`551871f95aa42c10153568444695c19334e78a2332329aa89e0e8e5c70162754`),
+    `runs.csv` (`573b0d40a6d59a4c56e1783603b3dde2a5ccd760ae34381bfe36bf2f3ab93b72`)'
+  command: |
+    ./scripts/fetch-data.sh ost-hotwire-cylinder-wakes
+    uv run python tools/datasets/ost_hotwire_extract.py \
+        data/downloads/ost-hotwire-cylinder-wakes \
+        data/samples/ost-hotwire-cylinder-wakes
+  note: 'Extracts the sample of the FL7 hot-wire dataset (Issue #454): it keeps the first 16.384 s of
+    each hot-wire run, rounded to 1 mm/s, and the runs'' parameters from the record''s file descriptions.'

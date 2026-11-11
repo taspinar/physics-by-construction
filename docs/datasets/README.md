@@ -4,35 +4,39 @@ Real measurements are inputs that no build can regenerate (ADR 007). This folder
 
 ## The 25 surveyed datasets
 
-The survey is Appendix A of `docs/changes/physics-next-phase.md`: a shortlist of editorial estimates, not validated labs. Each of its 25 sources has a card. Three were spiked on 2026-10-09; the other 22 were `survey-only`, and the card of each names the gate it would have to pass. Two of them have since passed their gate: the TESS light curves for the measured-data lab AST8 and the cylinder-wake PIV for FL7 (table below). The survey's scores are not copied: a card records only what was read from a record or a file.
+The survey is Appendix A of `docs/changes/physics-next-phase.md`: a shortlist of editorial estimates, not validated labs. Each of its 25 sources has a card. Three were spiked on 2026-10-09; the other 22 were `survey-only`, and the card of each names the gate it would have to pass. The ones that have since passed their gate are the rows of the table below, which is generated from the cards ("Adding a dataset"). The survey's scores are not copied: a card records only what was read from a record or a file.
 
+<!-- generated: survey-table -->
 | Dataset | Kind | Decision | Dossier |
 |---|---|---|---|
-| GW150914 strain | time series | **go** | [gw150914-strain](gw150914-strain.md) |
-| Aalborg submerged-bar wave flume | measured against modelled | **go** | [aalborg-submerged-bar](aalborg-submerged-bar.md) |
-| NPL on-wafer S-parameters | complex RF measurement | **go** | [npl-onwafer-sparameters](npl-onwafer-sparameters.md) |
-| TESS light curves (WASP-18, sector 29; AST8, Issue #420) | calibrated photometric time series | **go** (2026-11-08) | [tess-exoplanet-light-curves](tess-exoplanet-light-curves.md) |
+| Aalborg submerged-bar wave flume | measured against modelled | **go** (2026-10-09) | [aalborg-submerged-bar](aalborg-submerged-bar.md) |
+| GW150914 strain | time series | **go** (2026-10-09) | [gw150914-strain](gw150914-strain.md) |
+| NPL on-wafer S-parameters | complex RF measurement | **go** (2026-10-09) | [npl-onwafer-sparameters](npl-onwafer-sparameters.md) |
 | Shang and Tu cylinder-wake PIV (FL7, Issue #454) | processed PIV velocity fields, a crop and probe series extracted by this project | **go** (2026-11-09) | [piv-cylinder-wake](piv-cylinder-wake.md) |
+| TESS light curves (WASP-18, sector 29; AST8, Issue #420) | calibrated photometric time series | **go** (2026-11-08) | [tess-exoplanet-light-curves](tess-exoplanet-light-curves.md) |
 | 20 others | | survey-only | the cards in `data/registry/` |
+<!-- end generated: survey-table -->
 
 Cards added after the survey, for the measured-data labs:
 
+<!-- generated: later-table -->
 | Dataset | Kind | Decision | Dossier |
 |---|---|---|---|
 | Bayreuth RLC impedance (EM8, Issue #418) | complex impedance measurement | **go** (2026-11-08) | [bayreuth-rlc-impedance](bayreuth-rlc-impedance.md) |
-| NIST Numisheet DP980 tension/compression (MAT6, Issue #421) | stress–strain test with a load reversal | **go** (2026-11-08) | [nist-numisheet-dp980](nist-numisheet-dp980.md) |
-| Munich event-ready Bell test (Q8, Issue #419) | Bell-test event counts | **go** (2026-11-08) | [munich-bell-event-ready](munich-bell-event-ready.md) |
-| Xu et al. damped pendulum (M15, Issue #437) | rotary-encoder time series | **go** (2026-11-09; [owner's approval](https://github.com/taspinar/physics-by-construction/issues/437#issuecomment-6729724204)) | [xu-damped-pendulum](xu-damped-pendulum.md) |
 | DWD Potsdam soil temperature (T7, Issue #438) | measured temperature profiles in the ground | **go** (2026-11-09) | [dwd-potsdam-soil-temperature](dwd-potsdam-soil-temperature.md) |
-| SDSS Balmer spectrum (Q7, Issue #442) | calibrated optical spectrum | **go** (2026-11-09; [owner's decision](https://github.com/taspinar/physics-by-construction/issues/442) that the current SDSS public-domain policy governs) | [sdss-balmer-spectrum](sdss-balmer-spectrum.md) |
+| Grazing-flow hot-wire benchmark (FL8, Issue #441; the research's "VKI") | hot-wire profiles over solid and porous walls; solid-wall y fitted to canonical profiles by the providers | **go** (2026-11-09) | [grazing-flow-hwa-benchmark](grazing-flow-hwa-benchmark.md) |
+| Kamchatka 2025 tsunami inputs (FL10, F88 phase 1, Issue #444) | DART bottom-pressure records, the USGS finite fault, and an ETOPO 2022 bathymetry crop | **go** (2026-11-09; the inputs only; the model and the comparison are phase 2) | [kamchatka-2025-tsunami-inputs](kamchatka-2025-tsunami-inputs.md) |
 | Lycopodium spore diffraction (W7, Issue #440) | diffraction profiles at two wavelengths with microscope morphometry | **go** (2026-11-09) | [lycopodium-spore-diffraction](lycopodium-spore-diffraction.md) |
+| Munich event-ready Bell test (Q8, Issue #419) | Bell-test event counts | **go** (2026-11-08) | [munich-bell-event-ready](munich-bell-event-ready.md) |
+| NIST Numisheet DP980 tension/compression (MAT6, Issue #421) | stress–strain test with a load reversal | **go** (2026-11-08) | [nist-numisheet-dp980](nist-numisheet-dp980.md) |
 | NIST SRM 660c LaB6 (MAT5, Issue #443) | X-ray powder patterns of a certified lattice-parameter standard, 20 specimens, with NIST's model | **go** (2026-11-09) | [nist-srm660c-lab6](nist-srm660c-lab6.md) |
 | Ost et al. hot-wire cylinder wakes (FL7, Issue #454, beside the PIV wake) | hot-wire velocity series, Strouhal number against Re | **go** (2026-11-09) | [ost-hotwire-cylinder-wakes](ost-hotwire-cylinder-wakes.md) |
+| SDSS Balmer spectrum (Q7, Issue #442) | calibrated optical spectrum | **go** (2026-11-09; [owner's decision](https://github.com/taspinar/physics-by-construction/issues/442) that the current SDSS public-domain policy governs) | [sdss-balmer-spectrum](sdss-balmer-spectrum.md) |
+| SPARC rotation curves (AST9, F105 phase 1, Issue #470) | rotation curves of five disk galaxies with the SPARC team's models of their gas and stars, committed with the authors' written permission | **go** (2026-11-10) | [sparc-rotation-curves](sparc-rotation-curves.md) |
 | trackpy-examples `bulk_water` (T8, Issue #439) | video frames of diffusing spheres, with tracks computed by this project | **go** (2026-11-08) | [trackpy-bulk-water](trackpy-bulk-water.md) |
 | TU Delft turbulent boundary layer (FL8, Issue #441) | PIV and PTV profiles of mean velocity and Reynolds stress at four speeds | **go** (2026-11-09) | [tudelft-turbulent-boundary-layer](tudelft-turbulent-boundary-layer.md) |
-| Grazing-flow hot-wire benchmark (FL8, Issue #441; the research's "VKI") | hot-wire profiles over solid and porous walls; solid-wall y fitted to canonical profiles by the providers | **go** (2026-11-09) | [grazing-flow-hwa-benchmark](grazing-flow-hwa-benchmark.md) |
-| Kamchatka 2025 tsunami inputs (FL10, F88 phase 1, Issue #444) | DART bottom-pressure records, the USGS finite fault, and an ETOPO 2022 bathymetry crop | **go** (2026-11-09), the inputs only; the model and the comparison are phase 2 | [kamchatka-2025-tsunami-inputs](kamchatka-2025-tsunami-inputs.md) |
-| SPARC rotation curves (AST9, F105 phase 1, Issue #470) | rotation curves of five disk galaxies with the SPARC team's models of their gas and stars, committed with the authors' written permission | **go** (2026-11-10) | [sparc-rotation-curves](sparc-rotation-curves.md) |
+| Xu et al. damped pendulum (M15, Issue #437) | rotary-encoder time series | **go** (2026-11-09; [owner's approval](https://github.com/taspinar/physics-by-construction/issues/437#issuecomment-6729724204)) | [xu-damped-pendulum](xu-damped-pendulum.md) |
+<!-- end generated: later-table -->
 
 No spiked dataset has failed its gate so far. The SDSS Balmer spectrum was first recorded `defer`, because the SDSS-I/II page of SDSS Classic states a non-commercial approval clause that contradicts the current SDSS policy; the owner decided on 2026-11-09 that the current policy, which calls all publicly released SDSS data public domain, governs, and the card records `go`. Defer and reject have no entry. The survey-only cards with a known obstacle are the optical-diffraction record (licence field CC BY 4.0 beside a copyright line, RAR archives) and the cylinder-wake PIV (one 1.1 GB MAT file of processed fields at 20 Hz, zeros are masks); both remain conditional, as the survey proposed.
 
@@ -42,7 +46,75 @@ A `go` means the data, the rights, and the figure passed. It does not mean a les
 
 ## Dataset research for the measured-data labs
 
-The research of 2026-11-08 into open datasets for the measured-data labs is recorded in [spike-candidates-2026-11-08](spike-candidates-2026-11-08.md): the first spike recommended per lab, the options rejected, corrections to existing cards (not yet applied), the owner's decisions and the open ones, and the outcome of its third round, in which the small spike files were downloaded and inspected. Those files, the scripts, and the figures were kept outside the repository; the research committed no data file. The datasets it marked ready for a dossier receive their card, sample, and decision in their own features, judged per dossier: a dataset has a `go` when its card says so (the tables above). AST8's FITS file is converted once by `tools/datasets/tess_lc_to_csv.py`, T7's sample is extracted from DWD's yearly archive by `tools/datasets/dwd_soil_extract.py`, Q7's FITS file by `tools/datasets/sdss_spec_to_csv.py`, T8's 40 frames are tracked once by `tools/datasets/bulk_water_tracks.py`, the project's own processing, disclosed as such; the build repeats it on the green channel of the three frames it commits (as a NumPy array: no image file is committed outside `site/assets/`), W7's two XLSX profiles and two morphometry files by `tools/datasets/lycopodium_xlsx_to_csv.py` and `tools/datasets/lycopodium_morphometry_to_utf8.py`, FL7's samples are extracted from the 1.1 GB PIV file and the ten hot-wire runs by `tools/datasets/cylinder_wake_extract.py` and `tools/datasets/ost_hotwire_extract.py`, FL10's ETOPO crop by `tools/datasets/etopo_ascii_to_npy.py`, and MAT5's 20 CIFs by `tools/datasets/srm660c_cif_to_csv.py` (`tools/datasets/README.md`). FL8's two records need no conversion: the TU Delft MAT v5 files are read in the build by `scipy.io.loadmat` and the grazing-flow CSVs as they are, each committed unchanged from its archive.
+The research of 2026-11-08 into open datasets for the measured-data labs is recorded in [spike-candidates-2026-11-08](spike-candidates-2026-11-08.md): the first spike recommended per lab, the options rejected, corrections to existing cards (not yet applied), the owner's decisions and the open ones, and the outcome of its third round, in which the small spike files were downloaded and inspected. Those files, the scripts, and the figures were kept outside the repository; the research committed no data file. The datasets it marked ready for a dossier receive their card, sample, and decision in their own features, judged per dossier: a dataset has a `go` when its card says so (the tables above). Which datasets a one-time conversion script produced, and which commit their files unchanged, is listed below from the cards, one line per `go` dataset; the scripts, the checksums of their inputs and outputs, and the commands are in `tools/datasets/README.md`.
+
+<!-- generated: conversions -->
+- Aalborg submerged-bar wave flume: no conversion; ZIP of CSV files (plus input archives and a PDF readme)
+- Bayreuth RLC impedance (EM8, Issue #418): no conversion; JSON (plain text)
+- DWD Potsdam soil temperature (T7, Issue #438): converted once by `tools/datasets/dwd_soil_extract.py`
+- Grazing-flow hot-wire benchmark (FL8, Issue #441; the research's "VKI"): no conversion; CSV in ZIP archives; the committed samples are the CSV files.
+- GW150914 strain: no conversion; gzip-compressed plain text, one number per line
+- Kamchatka 2025 tsunami inputs (FL10, F88 phase 1, Issue #444): converted once by `tools/datasets/etopo_ascii_to_npy.py`
+- Lycopodium spore diffraction (W7, Issue #440): converted once by `tools/datasets/lycopodium_morphometry_to_utf8.py`, `tools/datasets/lycopodium_xlsx_to_csv.py`
+- Munich event-ready Bell test (Q8, Issue #419): no conversion; CSV (tab-separated pairs file, semicolon-separated lab files) and plain text, packed in a ZIP
+- NIST Numisheet DP980 tension/compression (MAT6, Issue #421): no conversion; CSV (plain text)
+- NIST SRM 660c LaB6 (MAT5, Issue #443): converted once by `tools/datasets/srm660c_cif_to_csv.py`
+- NPL on-wafer S-parameters: no conversion; Touchstone S2P (plain text) in a zip archive
+- Ost et al. hot-wire cylinder wakes (FL7, Issue #454, beside the PIV wake): converted once by `tools/datasets/ost_hotwire_extract.py`
+- Shang and Tu cylinder-wake PIV (FL7, Issue #454): converted once by `tools/datasets/cylinder_wake_extract.py`
+- SDSS Balmer spectrum (Q7, Issue #442): converted once by `tools/datasets/sdss_spec_to_csv.py`
+- SPARC rotation curves (AST9, F105 phase 1, Issue #470): no conversion; Plain text (tab-separated), committed unchanged from the archive; no conversion
+- TESS light curves (WASP-18, sector 29; AST8, Issue #420): converted once by `tools/datasets/tess_lc_to_csv.py`
+- trackpy-examples `bulk_water` (T8, Issue #439): converted once by `tools/datasets/bulk_water_tracks.py`
+- TU Delft turbulent boundary layer (FL8, Issue #441): no conversion; MAT v5 in ZIP archives; the committed samples are the MAT files.
+- Xu et al. damped pendulum (M15, Issue #437): no conversion; CSV and JSON, read from the repository's raw files at a pinned commit
+<!-- end generated: conversions -->
+
+## Adding a dataset
+
+A dataset is added with new files only; no shared list is edited by hand
+(Issue #456). The tables and the list above, the dictionary of
+`python -m pbc.data.reference`, and the cases of the tests that cover every
+`go` dataset are derived from the cards, so that two dataset branches never
+touch the same line.
+
+1. **The card** `data/registry/<dataset>.yaml`, by the schema of
+   `src/pbc/data/card.py` (copy the card of a spiked dataset; read the record
+   and the files; do not copy the rights answers of another card). Besides
+   the fields of ADR 007 it names what the lists used to carry:
+   `listing` (`name` and `kind`, the README row, and an optional `note` that
+   is appended to the decision), for every inspected card;
+   `reference_module` (the module of `pbc.data.reference` that makes the
+   figure) and `reference_figure` (`status`, the label the figure carries and
+   the dossier states, and `residuals`, whether it has a residual panel), for
+   a `go`; and `conversions` (`script`, `input`, `output`, `command`, and an
+   optional `note`), one per one-time conversion script.
+2. **The sample** `data/samples/<dataset>/`, declared on the card with its
+   checksum and its parsing test, which lives in the dataset's own test file
+   `tests/unit/test_data_<name>.py`.
+3. **The dossier** `docs/datasets/<dataset>.md`, with the line
+   `**Status label: <status>**` that states the status of the figure.
+4. **The reference module** `src/pbc/data/reference/<name>.py` with
+   `make_figure(data_dir)`, and the conversion script under
+   `tools/datasets/`, when one is needed.
+5. **The READMEs**: run `uv run python -m pbc.data.registry readme --write`,
+   which rewrites the generated regions (between `<!-- generated: ... -->`
+   markers) of this file and of `tools/datasets/README.md` from the cards,
+   in alphabetical order of the id. Commit the result.
+
+The dataset check (`uv run python -m pbc.data.check`) fails a `go` card that
+names no module, a module that does not import or has no `make_figure`, a
+conversion script that does not exist, and a README whose generated regions
+differ from the cards; `python -m pbc.data.registry readme` shows the
+difference. The tests of `tests/unit/test_data_plotting.py`,
+`tests/unit/test_data_samples.py`, and `tests/integration/test_data_checks.py`
+take their cases from the cards: a new `go` dataset is covered by them
+without an edit (its figure's status and residual panel, its dossier's
+status line, every panel titled and labelled, the figure with the network
+blocked). When two branches add datasets whose ids are neighbours in the
+alphabetical order, Git reports a conflict inside a generated region; resolve
+it by running the generator again and committing, as
+`tests/integration/test_data_lists.py` shows.
 
 ## Recommendation for the first lab
 

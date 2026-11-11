@@ -112,3 +112,10 @@ decision:
   - 'Caveat: the calibration standards and uncertainty are in the ARFTG paper, which was not read; a lesson
     must read it before it states uncertainties.'
 dossier: docs/datasets/npl-onwafer-sparameters.md
+reference_module: npl_sparameters
+reference_figure:
+  status: calibrated
+  residuals: false
+listing:
+  name: NPL on-wafer S-parameters
+  kind: complex RF measurement

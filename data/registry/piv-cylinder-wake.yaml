@@ -183,3 +183,23 @@ decision:
   - 'Recorded by F53 (Issue #454) under the owner''s approval of 2026-11-09 on the Issue: work towards
     a go, judged per dossier, with every requirement of ADR 007 checked in the dossier.'
 dossier: docs/datasets/piv-cylinder-wake.md
+reference_module: cylinder_wake
+reference_figure:
+  status: processed
+  residuals: false
+listing:
+  name: 'Shang and Tu cylinder-wake PIV (FL7, Issue #454)'
+  kind: processed PIV velocity fields, a crop and probe series extracted by this project
+conversions:
+- script: tools/datasets/cylinder_wake_extract.py
+  input: '`cylinder_vel.mat` (md5 `4cc876439c48f7970afa477ea17d217a`, sha256 `328cd8d17cd2eb42faef6e4766bc8e515e0eac06868152972adab9bdf91926e7`)'
+  output: '`wake_u.npy`, `wake_v.npy`, `wake_mask.npy`, `wake_mean.npy`, `probes.npy`, `wake_meta.json`
+    (the six sha256 on the card)'
+  command: |
+    ./scripts/fetch-data.sh piv-cylinder-wake
+    uv run python tools/datasets/cylinder_wake_extract.py \
+        data/downloads/piv-cylinder-wake/cylinder_vel.mat \
+        data/samples/piv-cylinder-wake
+  note: 'Extracts the sample of the FL7 PIV dataset (Issue #454): it reads the 1.1 GB MAT 5.0 file of
+    the PIV record with `scipy.io.loadmat` (about 1.8 GB of memory) and writes 60 frames of the near wake
+    with their mask, the time mean, and two probe series as NumPy arrays.'

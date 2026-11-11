@@ -1808,6 +1808,12 @@ reasons).
 
 To add a dataset, copy the card of a spiked one, read the record and the
 files, and write the dossier; do not copy the rights answers of another card.
+A dataset adds new files only: the tables of `docs/datasets/README.md` and
+`tools/datasets/README.md`, the dictionary of `python -m pbc.data.reference`,
+and the cases of the tests that cover every `go` dataset are derived from the
+cards (`reference_module`, `reference_figure`, `listing`, `conversions`), and
+`uv run python -m pbc.data.registry readme --write` regenerates the READMEs
+("Adding a dataset" in `docs/datasets/README.md`, Issue #456).
 
 ## Analysis pipelines
 
