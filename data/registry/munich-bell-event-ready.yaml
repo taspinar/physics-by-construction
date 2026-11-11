@@ -146,3 +146,10 @@ decision:
   - 'Recorded by F103 (Issue #419) under the owner''s decision of 2026-11-08 on the Issue: Q8 may become
     go if the inspection supplies all evidence ADR 007 requires, judged per dossier.'
 dossier: docs/datasets/munich-bell-event-ready.md
+reference_module: munich_bell
+reference_figure:
+  status: processed
+  residuals: false
+listing:
+  name: 'Munich event-ready Bell test (Q8, Issue #419)'
+  kind: Bell-test event counts

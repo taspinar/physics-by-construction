@@ -262,3 +262,24 @@ decision:
   - 'Recorded by F88 phase 1 (Issue #444) under the owner''s approval of 2026-11-09 on the Issue: work towards
     a go, every requirement of ADR 007 checked in the dossier. Phase 2 starts only on the owner''s word.'
 dossier: docs/datasets/kamchatka-2025-tsunami-inputs.md
+reference_module: kamchatka_tsunami
+reference_figure:
+  status: processed
+  residuals: false
+listing:
+  name: 'Kamchatka 2025 tsunami inputs (FL10, F88 phase 1, Issue #444)'
+  kind: DART bottom-pressure records, the USGS finite fault, and an ETOPO 2022 bathymetry crop
+  note: the inputs only; the model and the comparison are phase 2
+conversions:
+- script: tools/datasets/etopo_ascii_to_npy.py
+  input: '`etopo2022_60s_bed_35N60N_140E180E_stride4.txt`, the OPeNDAP ASCII response (`454b00a5aaaaf4406523e1f39fc38dbd40ea3c6799d5cde209d25b75701bf198`;
+    its parsed array `8bd4f1e5c02b1a39c7706cf6b1c76771c4bbde2716310e55af0f743978bb719d`)'
+  output: '`etopo2022_60s_bed_35N60N_140E180E_stride4.npy` (`27bf15f585aa7289f2eb90624628f4d30601f49a0be4f2dd6c730b9fae5ead93`);
+    the seven other files of the dataset are committed byte for byte'
+  command: |
+    ./scripts/fetch-data.sh kamchatka-2025-tsunami-inputs
+    uv run python tools/datasets/etopo_ascii_to_npy.py \
+        data/downloads/kamchatka-2025-tsunami-inputs/etopo2022_60s_bed_35N60N_140E180E_stride4.txt \
+        data/samples/kamchatka-2025-tsunami-inputs/etopo2022_60s_bed_35N60N_140E180E_stride4.npy
+  note: 'The ETOPO 2022 crop is a generated OPeNDAP response: the script refuses a response with another
+    sha256 unless `--allow-other-input` is given and its parsed array equals the pinned one.'

@@ -1,6 +1,7 @@
 """The plotting helpers enforce the figure conventions, and the reference
-figures of the go datasets are made with them and keep their dossiers'
-status labels.
+figure of every go dataset is made with them and carries the status label its
+card declares and its dossier states (the cases come from the cards, Issue
+#456).
 """
 
 import matplotlib.pyplot as plt
@@ -18,48 +19,10 @@ from pbc.data.plotting import (
     signed_image,
     signed_norm,
 )
-from pbc.data.reference import (
-    aalborg_flume,
-    bayreuth_rlc,
-    cylinder_wake,
-    dwd_soil,
-    grazing_flow_hwa,
-    gw150914,
-    kamchatka_tsunami,
-    lycopodium,
-    munich_bell,
-    nist_numisheet,
-    npl_sparameters,
-    ost_hotwire,
-    sdss_balmer,
-    sparc_rotmod,
-    srm660c,
-    tess_wasp18,
-    trackpy_bulk_water,
-    tudelft_boundary_layer,
-    xu_pendulum,
-)
+from pbc.data.registry import go_cards, import_reference_module
 from pbc.data.series import Series
 
-AAL = SAMPLES_DIR / "aalborg-submerged-bar"
-GW = SAMPLES_DIR / "gw150914-strain"
-NPL = SAMPLES_DIR / "npl-onwafer-sparameters"
-RLC = SAMPLES_DIR / "bayreuth-rlc-impedance"
-DP980 = SAMPLES_DIR / "nist-numisheet-dp980"
-TESS = SAMPLES_DIR / "tess-exoplanet-light-curves"
-BELL = SAMPLES_DIR / "munich-bell-event-ready"
-LYC = SAMPLES_DIR / "lycopodium-spore-diffraction"
-BW = SAMPLES_DIR / "trackpy-bulk-water"
-XU = SAMPLES_DIR / "xu-damped-pendulum"
-DWD = SAMPLES_DIR / "dwd-potsdam-soil-temperature"
-TBL = SAMPLES_DIR / "tudelft-turbulent-boundary-layer"
-GFH = SAMPLES_DIR / "grazing-flow-hwa-benchmark"
-SDSS = SAMPLES_DIR / "sdss-balmer-spectrum"
-LAB6 = SAMPLES_DIR / "nist-srm660c-lab6"
-KAM = SAMPLES_DIR / "kamchatka-2025-tsunami-inputs"
-PIV = SAMPLES_DIR / "piv-cylinder-wake"
-OST = SAMPLES_DIR / "ost-hotwire-cylinder-wakes"
-SPARC = SAMPLES_DIR / "sparc-rotation-curves"
+GO = go_cards()
 
 
 @pytest.fixture(autouse=True)
@@ -177,29 +140,23 @@ def test_the_credit_line_is_wrapped_and_kept_inside_the_figure():
     assert box.y0 >= 0 and ax.get_position().y0 > box.y1 - 1e-9
 
 
+# One case per go card: its module, its sample, and the status and residual
+# panel its card declares (the lists were kept by hand before Issue #456).
+CASES = [
+    pytest.param(
+        import_reference_module(card),
+        SAMPLES_DIR / name,
+        card["reference_figure"]["status"],
+        card["reference_figure"]["residuals"],
+        id=name,
+    )
+    for name, card in GO.items()
+]
+
+
 @pytest.mark.parametrize(
     ("module", "path", "status", "residuals"),
-    [
-        (gw150914, GW, "processed", False),
-        (npl_sparameters, NPL, "calibrated", False),
-        (aalborg_flume, AAL, "processed", True),
-        (bayreuth_rlc, RLC, "processed", True),
-        (nist_numisheet, DP980, "processed", True),
-        (tess_wasp18, TESS, "processed", True),
-        (munich_bell, BELL, "processed", False),
-        (lycopodium, LYC, "processed", False),
-        (trackpy_bulk_water, BW, "processed", True),
-        (xu_pendulum, XU, "processed", True),
-        (dwd_soil, DWD, "processed", True),
-        (tudelft_boundary_layer, TBL, "processed", False),
-        (grazing_flow_hwa, GFH, "processed", False),
-        (sdss_balmer, SDSS, "processed", True),
-        (srm660c, LAB6, "processed", True),
-        (kamchatka_tsunami, KAM, "processed", False),
-        (cylinder_wake, PIV, "processed", False),
-        (ost_hotwire, OST, "processed", False),
-        (sparc_rotmod, SPARC, "processed", True),
-    ],
+    CASES,
 )
 def test_each_reference_figure_is_made_with_the_helpers_and_has_its_dossiers_status(
     module, path, status, residuals
@@ -211,26 +168,6 @@ def test_each_reference_figure_is_made_with_the_helpers_and_has_its_dossiers_sta
 
 def test_the_dossiers_state_the_status_of_their_figure():
     root = SAMPLES_DIR.parents[1] / "docs/datasets"
-    for name, status in (
-        ("gw150914-strain", "processed"),
-        ("npl-onwafer-sparameters", "calibrated"),
-        ("aalborg-submerged-bar", "processed"),
-        ("bayreuth-rlc-impedance", "processed"),
-        ("nist-numisheet-dp980", "processed"),
-        ("tess-exoplanet-light-curves", "processed"),
-        ("munich-bell-event-ready", "processed"),
-        ("lycopodium-spore-diffraction", "processed"),
-        ("trackpy-bulk-water", "processed"),
-        ("xu-damped-pendulum", "processed"),
-        ("dwd-potsdam-soil-temperature", "processed"),
-        ("tudelft-turbulent-boundary-layer", "processed"),
-        ("grazing-flow-hwa-benchmark", "processed"),
-        ("sdss-balmer-spectrum", "processed"),
-        ("nist-srm660c-lab6", "processed"),
-        ("kamchatka-2025-tsunami-inputs", "processed"),
-        ("piv-cylinder-wake", "processed"),
-        ("ost-hotwire-cylinder-wakes", "processed"),
-        ("sparc-rotation-curves", "processed"),
-    ):
+    for name, status in ((n, c["reference_figure"]["status"]) for n, c in GO.items()):
         text = (root / f"{name}.md").read_text().replace("**", "")
         assert f"Status label: {status}" in text, name

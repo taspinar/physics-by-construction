@@ -264,3 +264,10 @@ decision:
     the series outside the window show start-up transients and end-of-run artefacts, which a lesson must
     disclose.'
 dossier: docs/datasets/aalborg-submerged-bar.md
+reference_module: aalborg_flume
+reference_figure:
+  status: processed
+  residuals: true
+listing:
+  name: Aalborg submerged-bar wave flume
+  kind: measured against modelled

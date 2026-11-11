@@ -136,3 +136,23 @@ decision:
     record go for the SDSS Balmer spectrum, with the remaining requirements of ADR 007 rechecked on the
     committed sample. The first round of the same day had recorded defer for the rights alone.'
 dossier: docs/datasets/sdss-balmer-spectrum.md
+reference_module: sdss_balmer
+reference_figure:
+  status: processed
+  residuals: true
+listing:
+  name: 'SDSS Balmer spectrum (Q7, Issue #442)'
+  kind: calibrated optical spectrum
+  note: '[owner''s decision](https://github.com/taspinar/physics-by-construction/issues/442) that the
+    current SDSS public-domain policy governs'
+conversions:
+- script: tools/datasets/sdss_spec_to_csv.py
+  input: '`spec-1949-53433-0480.fits` (`0f9aa3f5f187dde1fb42e6b58ab9b428e48a2d45f73e7254d954f48121a6a813`)'
+  output: '`spec-1949-53433-0480.csv` (`90dff68b9df582a8deba83f21f0eefbd510d00866481c875abf4202ebdb1b163`)'
+  command: |
+    ./scripts/fetch-data.sh sdss-balmer-spectrum
+    uv run python tools/datasets/sdss_spec_to_csv.py \
+        data/downloads/sdss-balmer-spectrum/spec-1949-53433-0480.fits \
+        data/samples/sdss-balmer-spectrum/spec-1949-53433-0480.csv
+  note: The script reads the FITS file with the header and table reader of `tess_lc_to_csv.py`, which
+    it loads from beside itself; the spectrum is converted the same way into its committed sample.

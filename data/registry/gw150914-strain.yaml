@@ -122,3 +122,10 @@ decision:
   - 'Caveat: a lesson needs signal-processing background (whitening, spectral estimation); that is a course-fit
     question for F51, not a data question.'
 dossier: docs/datasets/gw150914-strain.md
+reference_module: gw150914
+reference_figure:
+  status: processed
+  residuals: false
+listing:
+  name: GW150914 strain
+  kind: time series

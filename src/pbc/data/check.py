@@ -1,7 +1,11 @@
-"""The dataset check: cards, committed samples, caps, rights, checksums, tests.
+"""The dataset check: cards, committed samples, caps, rights, checksums, tests,
+reference modules, and the generated lists of the READMEs.
 
 ``uv run python -m pbc.data.check`` is a required verification check. It reads
-only the repository; it never contacts a portal (invariant I20).
+only the repository; it never contacts a portal (invariant I20). Since Issue
+#456 it also imports the reference module of every ``go`` card and compares the
+generated regions of ``docs/datasets/README.md`` and
+``tools/datasets/README.md`` with what the cards give (``pbc.data.registry``).
 """
 
 import hashlib
@@ -10,6 +14,7 @@ from pathlib import Path
 
 from pbc.data import REPO_ROOT
 from pbc.data.card import COMMITTABLE_LICENCES, load_card, validate_card
+from pbc.data.registry import check_readmes, check_reference_modules
 
 MAX_FILE = 2 * 1024 * 1024
 MAX_DATASET = 8 * 1024 * 1024
@@ -90,17 +95,26 @@ def check_repository(root: Path = REPO_ROOT) -> list[str]:
     root = Path(root)
     out: list[str] = []
     cards: dict[str, dict] = {}
+    card_problems = 0
     for path in sorted((root / "data" / "registry").glob("*.yaml")):
         try:
             card = load_card(path)
         except ValueError as error:
             out.append(str(error))
+            card_problems += 1
             continue
         cards[path.stem] = card
-        out.extend(f"{path.name}: {p}" for p in validate_card(card, path.stem))
+        problems = validate_card(card, path.stem)
+        card_problems += len(problems)
+        out.extend(f"{path.name}: {p}" for p in problems)
         dossier = card.get("dossier")
         if dossier and not (root / dossier).is_file():
             out.append(f"{path.name}: dossier {dossier} does not exist")
+        for conversion in card.get("conversions") or []:
+            script = conversion.get("script") if isinstance(conversion, dict) else None
+            if script and not (root / script).is_file():
+                out.append(f"{path.name}: conversion script {script} does not exist")
+    out.extend(check_reference_modules(cards))
     total = 0
     samples = root / "data" / "samples"
     directories = (
@@ -116,6 +130,11 @@ def check_repository(root: Path = REPO_ROOT) -> list[str]:
         out.append(
             f"data/samples: {total} bytes exceeds the {MAX_ALL} cap for all samples"
         )
+    # The READMEs are generated from the cards: with a card that does not
+    # validate (a missing input, say) the generator cannot read it, so the
+    # validation messages are the answer and the READMEs are compared after.
+    if not card_problems:
+        out.extend(check_readmes(root))
     return out
 
 

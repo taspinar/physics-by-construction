@@ -228,3 +228,11 @@ decision:
   - 'Recorded by F83 (Issue #437) under the owner''s decision of 2026-11-08 on the Issue: work towards
     a go for this dataset, judged per dossier (https://github.com/taspinar/physics-by-construction/issues/437#issuecomment-6729724204).'
 dossier: docs/datasets/xu-damped-pendulum.md
+reference_module: xu_pendulum
+reference_figure:
+  status: processed
+  residuals: true
+listing:
+  name: 'Xu et al. damped pendulum (M15, Issue #437)'
+  kind: rotary-encoder time series
+  note: '[owner''s approval](https://github.com/taspinar/physics-by-construction/issues/437#issuecomment-6729724204)'

@@ -168,3 +168,11 @@ decision:
   - 'Recorded by F105 phase 1 (Issue #470) under the owner''s approval of 2026-11-10 on the Issue: work
     towards a go for this dataset, judged per dossier (https://github.com/taspinar/physics-by-construction/issues/470).'
 dossier: docs/datasets/sparc-rotation-curves.md
+reference_module: sparc_rotmod
+reference_figure:
+  status: processed
+  residuals: true
+listing:
+  name: 'SPARC rotation curves (AST9, F105 phase 1, Issue #470)'
+  kind: rotation curves of five disk galaxies with the SPARC team's models of their gas and stars, committed
+    with the authors' written permission

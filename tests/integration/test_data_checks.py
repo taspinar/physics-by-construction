@@ -15,18 +15,27 @@ import sys
 from datetime import date
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import pytest
 import yaml
 
 from pbc.data import check
 from pbc.data.card import ARTIFACT_TYPES, load_cards, validate_card
 from pbc.data.check import check_repository
+from pbc.data.registry import (
+    SURVEYED,
+    go_cards,
+    import_reference_module,
+    write_readmes,
+)
 
 ROOT = Path(__file__).parents[2]
 SAMPLE = (
     ROOT / "data/samples/npl-onwafer-sparameters/coaxial_3dB_attenuator_0601_CORR.s2p"
 )
 CARDS = load_cards(ROOT / "data/registry")
+GO = go_cards(ROOT / "data/registry")
+# The three datasets spiked on 2026-10-09: a closed historical set, like SURVEYED.
 SPIKED = ("gw150914-strain", "aalborg-submerged-bar", "npl-onwafer-sparameters")
 
 
@@ -35,7 +44,11 @@ def sha(path: Path) -> str:
 
 
 class Repo:
-    """A minimal repository with one valid dataset 'demo' and its parsing test."""
+    """A minimal repository with one valid dataset 'demo' and its parsing test.
+
+    Its two READMEs are generated from its cards (``write_readmes``), as the
+    check requires since Issue #456.
+    """
 
     def __init__(self, root: Path):
         self.root = root
@@ -71,6 +84,7 @@ class Repo:
     def write(self):
         text = yaml.safe_dump(self.card, sort_keys=False)
         (self.root / "data/registry/demo.yaml").write_text(text)
+        write_readmes(self.root)
 
     def problems(self) -> list[str]:
         return check_repository(self.root)
@@ -206,35 +220,9 @@ def test_the_repository_passes_the_dataset_check():
     assert check_repository(ROOT) == []
 
 
-# The 25 datasets of the survey (Appendix A of the change request); later
-# features add cards, so the total is not fixed (Issue #418).
-SURVEYED = (
-    "aalborg-submerged-bar",
-    "alma-dsharp-disks",
-    "alma-hltau-verification",
-    "cms-2012c-25-event-display",
-    "cms-higgs-four-lepton-candidates",
-    "electron-diffraction-crystals",
-    "endgame-shocktube-schlieren",
-    "euclid-q1-cutouts",
-    "fraunhofer-microstructure-diffraction",
-    "gaia-dr3-astrometry",
-    "gw150914-strain",
-    "haidinger-interference-rings",
-    "lenslesspicam-measured-psf",
-    "nist-experimental-ir-spectra",
-    "npl-onwafer-sparameters",
-    "onchip-ir-interferograms",
-    "openpiv-sample-image-pairs",
-    "piv-cylinder-wake",
-    "rostock-piv-fluorescence",
-    "sandia-qubit-gate-set-tomography",
-    "sdo-aia-solar-uv",
-    "sdo-hmi-magnetograms",
-    "sheffield-piv-flume",
-    "tess-exoplanet-light-curves",
-    "ukaea-fair-mast-tokamak",
-)
+# The 25 datasets of the survey (Appendix A of the change request) are the
+# closed set SURVEYED of pbc.data.registry; later features add cards, so the
+# total is not fixed (Issue #418).
 
 
 def test_each_of_the_25_surveyed_datasets_keeps_its_card():
@@ -306,50 +294,12 @@ def block_network(monkeypatch):
 
 def test_the_dataset_check_and_the_readers_work_with_the_network_blocked(monkeypatch):
     block_network(monkeypatch)
-    from pbc.data.reference import (
-        aalborg_flume,
-        bayreuth_rlc,
-        cylinder_wake,
-        dwd_soil,
-        grazing_flow_hwa,
-        gw150914,
-        kamchatka_tsunami,
-        lycopodium,
-        nist_numisheet,
-        npl_sparameters,
-        ost_hotwire,
-        sdss_balmer,
-        sparc_rotmod,
-        srm660c,
-        tess_wasp18,
-        trackpy_bulk_water,
-        tudelft_boundary_layer,
-        xu_pendulum,
-    )
-
     assert check_repository(ROOT) == []
-    for module, name in (
-        (gw150914, "gw150914-strain"),
-        (npl_sparameters, "npl-onwafer-sparameters"),
-        (aalborg_flume, "aalborg-submerged-bar"),
-        (bayreuth_rlc, "bayreuth-rlc-impedance"),
-        (nist_numisheet, "nist-numisheet-dp980"),
-        (tess_wasp18, "tess-exoplanet-light-curves"),
-        (lycopodium, "lycopodium-spore-diffraction"),
-        (trackpy_bulk_water, "trackpy-bulk-water"),
-        (xu_pendulum, "xu-damped-pendulum"),
-        (dwd_soil, "dwd-potsdam-soil-temperature"),
-        (tudelft_boundary_layer, "tudelft-turbulent-boundary-layer"),
-        (grazing_flow_hwa, "grazing-flow-hwa-benchmark"),
-        (sdss_balmer, "sdss-balmer-spectrum"),
-        (srm660c, "nist-srm660c-lab6"),
-        (kamchatka_tsunami, "kamchatka-2025-tsunami-inputs"),
-        (cylinder_wake, "piv-cylinder-wake"),
-        (ost_hotwire, "ost-hotwire-cylinder-wakes"),
-        (sparc_rotmod, "sparc-rotation-curves"),
-    ):
+    for name, card in GO.items():
+        module = import_reference_module(card)
         figure = module.make_figure(ROOT / "data/samples" / name)
         assert figure.axes
+        plt.close(figure)
 
 
 def test_the_data_package_imports_no_network_module():

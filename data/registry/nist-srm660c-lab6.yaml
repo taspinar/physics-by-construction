@@ -262,3 +262,22 @@ decision:
   - 'Recorded by F106 (Issue #443) under the owner''s approval of 2026-11-09 on the Issue: work towards a
     go, judged per dossier, with every requirement of ADR 007 checked in the dossier.'
 dossier: docs/datasets/nist-srm660c-lab6.md
+reference_module: srm660c
+reference_figure:
+  status: processed
+  residuals: true
+listing:
+  name: 'NIST SRM 660c LaB6 (MAT5, Issue #443)'
+  kind: X-ray powder patterns of a certified lattice-parameter standard, 20 specimens, with NIST's model
+conversions:
+- script: tools/datasets/srm660c_cif_to_csv.py
+  input: '`srm_660c_cifs_20201029_081700.zip` (`92034d06498161db365420831fe35d91ec18bad4ed17385329a1761658da2c42`),
+    its 20 CIFs'
+  output: '`660c_100a.csv` to `660c_1000b.csv` and `specimens.csv` (the 21 sha256 on the card)'
+  command: |
+    ./scripts/fetch-data.sh nist-srm660c-lab6
+    uv run python tools/datasets/srm660c_cif_to_csv.py \
+        data/downloads/nist-srm660c-lab6/srm_660c_cifs_20201029_081700.zip \
+        data/samples/nist-srm660c-lab6
+  note: The script refuses any other zip, a missing or extra CIF, a pattern block of another layout, and
+    measured and calculated blocks on different 2θ grids.

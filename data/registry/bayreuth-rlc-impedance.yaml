@@ -104,3 +104,10 @@ decision:
   - 'Recorded by F86 (Issue #418) under the owner''s decision of 2026-11-08 on the Issue: work towards
     a go on the strength of the research, with every requirement of ADR 007 checked in the dossier.'
 dossier: docs/datasets/bayreuth-rlc-impedance.md
+reference_module: bayreuth_rlc
+reference_figure:
+  status: processed
+  residuals: true
+listing:
+  name: 'Bayreuth RLC impedance (EM8, Issue #418)'
+  kind: complex impedance measurement

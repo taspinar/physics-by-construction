@@ -254,3 +254,11 @@ decision:
   - 'Recorded by F108 (Issue #441) under the owner''s approval of 2026-11-09 on the Issue: work towards a
     go, judged per dossier, with every requirement of ADR 007 checked in the dossier.'
 dossier: docs/datasets/grazing-flow-hwa-benchmark.md
+reference_module: grazing_flow_hwa
+reference_figure:
+  status: processed
+  residuals: false
+listing:
+  name: 'Grazing-flow hot-wire benchmark (FL8, Issue #441; the research''s "VKI")'
+  kind: hot-wire profiles over solid and porous walls; solid-wall y fitted to canonical profiles by the
+    providers

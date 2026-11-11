@@ -19,6 +19,7 @@ from typing import Any
 import yaml
 
 from pbc.data import REGISTRY_DIR
+from pbc.data.status import FIGURE_STATUSES
 
 ARTIFACT_TYPES = (
     "raw-measured",
@@ -52,6 +53,8 @@ INSPECTED_FIELDS = (
     "dossier",
 )
 _ID = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+# The name of a module of ``pbc.data.reference`` (Issue #456).
+_MODULE = re.compile(r"^[a-z][a-z0-9_]*$")
 _TEST = re.compile(r"^(?P<file>tests/[\w/.-]+\.py)::(?P<name>\w+)$")
 
 
@@ -147,7 +150,62 @@ def validate_card(card: dict, name: str | None = None) -> list[str]:
             if not card.get(key):
                 out.append(f"{key}: required once the dataset was inspected")
         out.extend(_validate_checksums(card))
+        out.extend(_validate_listing(card))
+        if value == "go":
+            out.extend(_validate_reference(card))
     out.extend(_validate_samples(card))
+    out.extend(_validate_conversions(card))
+    return out
+
+
+def _validate_listing(card: dict) -> list[str]:
+    """The README row of an inspected card (Issue #456): a name and a kind."""
+    out: list[str] = []
+    listing = card.get("listing")
+    if not isinstance(listing, dict):
+        return ["listing: the README row (name, kind, and an optional note)"]
+    for key in ("name", "kind"):
+        if not _text(listing.get(key)):
+            out.append(f"listing.{key}: missing or empty")
+    if "note" in listing and not _text(listing.get("note")):
+        out.append("listing.note: empty; leave it out instead")
+    return out
+
+
+def _validate_reference(card: dict) -> list[str]:
+    """A ``go`` card names its reference module and the facts of its figure."""
+    out: list[str] = []
+    module = card.get("reference_module")
+    if not (isinstance(module, str) and _MODULE.match(module)):
+        out.append("reference_module: the pbc.data.reference module of the figure")
+    figure = card.get("reference_figure")
+    if not isinstance(figure, dict):
+        return [*out, "reference_figure: the status label and residuals of the figure"]
+    if figure.get("status") not in FIGURE_STATUSES:
+        out.append(f"reference_figure.status: one of {', '.join(FIGURE_STATUSES)}")
+    if not isinstance(figure.get("residuals"), bool):
+        out.append("reference_figure.residuals: true or false (a residual panel)")
+    return out
+
+
+def _validate_conversions(card: dict) -> list[str]:
+    """The one-time conversions of the dataset, each a row of the tools table."""
+    out: list[str] = []
+    conversions = card.get("conversions")
+    if conversions is None:
+        return out
+    if not isinstance(conversions, list):
+        return ["conversions: a list"]
+    for k, conversion in enumerate(conversions):
+        where = f"conversions[{k}]"
+        if not isinstance(conversion, dict):
+            out.append(f"{where}: a mapping")
+            continue
+        for key in ("script", "input", "output", "command"):
+            if not _text(conversion.get(key)):
+                out.append(f"{where}.{key}: missing or empty")
+        if "note" in conversion and not _text(conversion.get("note")):
+            out.append(f"{where}.note: empty; leave it out instead")
     return out
 
 

@@ -21,8 +21,8 @@ from pbc.data.reference import (
     munich_bell,
     nist_numisheet,
     npl_sparameters,
-    xu_pendulum,
 )
+from pbc.data.registry import go_cards, import_reference_module
 
 GW = SAMPLES_DIR / "gw150914-strain"
 NPL = SAMPLES_DIR / "npl-onwafer-sparameters"
@@ -30,7 +30,7 @@ AAL = SAMPLES_DIR / "aalborg-submerged-bar"
 RLC = SAMPLES_DIR / "bayreuth-rlc-impedance"
 DP980 = SAMPLES_DIR / "nist-numisheet-dp980"
 BELL = SAMPLES_DIR / "munich-bell-event-ready"
-XU = SAMPLES_DIR / "xu-damped-pendulum"
+GO = go_cards()
 
 
 def test_gw150914_sample_parses():
@@ -621,16 +621,9 @@ def test_the_models_follow_the_measurement_inside_the_window():
 
 
 def test_every_panel_of_every_figure_is_titled_and_labelled():
-    for module, path in (
-        (gw150914, GW),
-        (npl_sparameters, NPL),
-        (aalborg_flume, AAL),
-        (bayreuth_rlc, RLC),
-        (nist_numisheet, DP980),
-        (munich_bell, BELL),
-        (xu_pendulum, XU),
-    ):
-        figure = module.make_figure(path)
+    for name, card in GO.items():
+        module = import_reference_module(card)
+        figure = module.make_figure(SAMPLES_DIR / name)
         panels = [a for a in figure.axes if a.axison and a.get_label() != "<colorbar>"]
         assert len(panels) >= 2
         for axis in panels:
