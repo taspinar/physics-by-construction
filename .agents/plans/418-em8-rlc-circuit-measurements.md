@@ -7,11 +7,18 @@
 - Written by the implementer: no plan existed when phase 2 started.
 - Roadmap row checked (owner's rule of 2026-11-07): F86 is Not started and
   not retired.
-- Risk: Level 2 by its paths: one new lesson, an addition to
+- Risk: Level 3 by a detected escalation trigger (review round 1, M1): the
+  new peak search `impedance_peak` in `src/pbc/electromagnetism/circuits.py`
+  sets a numerical tolerance, `options={"xatol": 1e-9 * omega0}`, and the
+  derivation of `scripts/lib/risk.sh` reads a line naming a tolerance as a
+  trigger. The tolerance is new (no existing tolerance is widened); the paths
+  alone are Level 2: one new lesson, an addition to
   `src/pbc/electromagnetism/circuits.py` (a new class, nothing of EM5
   changed), one adapter added to `src/pbc/data/adapters.py`, a new
-  experiment module, new tests. No existing assertion, tolerance, budget, or
-  published claim changes. The lesson fills the planned curriculum slot EM8
+  experiment module, new tests. No existing assertion, budget, or
+  published claim changes. Level 3 asks for the full verification of the
+  final tree, the review made after it, and the owner's approval of the
+  exact commit (`.agents/approvals/418.md`, derived by the scripts). The lesson fills the planned curriculum slot EM8
   with `lesson.slot`; `site/curriculum.yaml` is not edited, but the learning
   path and the course headers change (a new lesson): the tier is `--base`.
 - Discovered while rendering: the card's `calibration` field, which the
@@ -119,6 +126,26 @@ Scientific validation: every number drawn is asserted by
 `tests/unit/test_rlc_circuit_measurements_experiment.py` or by the sample
 tests; `check_figure` on both. Accessible fallback: alt text without
 computed values, the fit table, the frequency table, the sensitivity table.
+
+## Runtime and payload estimate
+
+Budgets: a lesson page warns at 30 s and fails at 60 s of single-page render
+(`scripts/lesson-budgets.conf`, no exception asked); the initial payload of a
+page is at most 3 MB (`PAYLOAD_BUDGET` in `tests/support/site_checks.py`).
+
+- Render time: about 20 s for the page alone, under the 30 s warning. Basis:
+  the experiment is one least-squares fit of three parameters to the 9 KB
+  sample (81 frequencies), the band fits, and one bounded scalar
+  search per model, then two Matplotlib figures: about 3 s; the rest is
+  Quarto's fixed cost of a page. Measured: 19.8 s with `quarto render` of
+  the page alone (2026-11-11); a cold first render in a fresh clone can take longer (about
+  33 s is the known cold start of any page), still under the 60 s limit.
+- Payload: about 0.5 MB, a sixth of the 3 MB budget. Basis: two PNG figures
+  of about 0.15 to 0.2 MB each (kept under 0.75 MB together by
+  `test_the_figures_leave_room_in_the_payload_budget_of_the_page`), the HTML
+  of the page with its tables and claims about 0.2 MB, plus the shared site
+  assets that every page loads. Measured in the built site: `index.html`
+  178 KB, `fig-impedance-fit` 190 KB, `fig-resonance-detail` 147 KB.
 
 ## Verification
 
