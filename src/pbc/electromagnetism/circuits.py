@@ -14,6 +14,12 @@ sinusoidal source through the complex impedance Z = R + j (omega L -
 1 / (omega C)). ``steady_phasor`` reads the amplitude and phase of a
 simulated signal by projecting it on a cosine and a sine over whole periods.
 
+``CoilParallelCapacitor`` combines the same element impedances the other
+way: a coil, an inductance L with the resistance R of its winding, in
+parallel with a capacitor C. Its impedance is
+Z = (R + j omega L) / (1 + j omega C (R + j omega L)), the circuit of the
+measured-data lab of the course.
+
 Quantities are in SI units: R in ohm, L in H, C in F, charges in C, currents
 in A, voltages in V, times in s, angular frequencies in rad/s.
 """
@@ -24,11 +30,14 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 from scipy.integrate import solve_ivp
+from scipy.optimize import minimize_scalar
 
 Array = NDArray[np.float64]
 
 __all__ = [
+    "CoilParallelCapacitor",
     "SeriesRLC",
+    "impedance_peak",
     "simulate",
     "steady_phasor",
     "step_response",
@@ -101,6 +110,68 @@ class SeriesRLC:
         I / (j omega C)."""
         omega = np.asarray(omega, dtype=float)
         return self.current_phasor(voltage, omega) / (1j * omega * self.capacitance)
+
+
+@dataclass(frozen=True)
+class CoilParallelCapacitor:
+    """A coil, an inductance L in series with the resistance R of its
+    winding, in parallel with a capacitor C."""
+
+    resistance: float  # ohm
+    inductance: float  # H
+    capacitance: float  # F
+
+    def __post_init__(self) -> None:
+        if self.resistance < 0 or self.inductance <= 0 or self.capacitance <= 0:
+            raise ValueError("need R >= 0 and positive L and C")
+
+    @property
+    def natural_frequency(self) -> float:
+        """omega_0 = 1 / sqrt(L C), rad/s: the undamped resonance."""
+        return 1.0 / np.sqrt(self.inductance * self.capacitance)
+
+    @property
+    def quality_factor(self) -> float:
+        """Q = omega_0 L / R = sqrt(L / C) / R, as for the series circuit."""
+        return np.sqrt(self.inductance / self.capacitance) / self.resistance
+
+    def impedance(self, omega: ArrayLike) -> NDArray[np.complex128]:
+        """Z = Z_coil / (1 + j omega C Z_coil) with Z_coil = R + j omega L,
+        ohm: the admittances 1 / Z_coil and j omega C add."""
+        omega = np.asarray(omega, dtype=float)
+        coil = self.resistance + 1j * omega * self.inductance
+        return coil / (1.0 + 1j * omega * self.capacitance * coil)
+
+    @property
+    def phase_zero_frequency(self) -> float:
+        """omega_0 sqrt(1 - 1 / Q^2), rad/s: where Im Z = 0 and Z is real.
+        A circuit with Q <= 1 has no such frequency above zero."""
+        q = self.quality_factor
+        if q <= 1.0:
+            raise ValueError("Q <= 1: the phase of Z does not cross zero")
+        return self.natural_frequency * np.sqrt(1.0 - 1.0 / q**2)
+
+    @property
+    def dynamic_resistance(self) -> float:
+        """L / (R C), ohm: the impedance at the phase-zero frequency."""
+        return self.inductance / (self.resistance * self.capacitance)
+
+
+def impedance_peak(circuit: CoilParallelCapacitor) -> float:
+    """The angular frequency, rad/s, of the largest |Z|, by a bounded search
+    between half and one and a half times omega_0 (the peak lies there for
+    Q >= 2; the search fails at the edge of the bracket otherwise)."""
+    omega0 = circuit.natural_frequency
+    low, high = 0.5 * omega0, 1.5 * omega0
+    found = minimize_scalar(
+        lambda omega: -abs(complex(circuit.impedance(omega))),
+        bounds=(low, high),
+        method="bounded",
+        options={"xatol": 1e-9 * omega0},
+    )
+    if not found.success or min(found.x - low, high - found.x) < 1e-6 * omega0:
+        raise RuntimeError("no maximum of |Z| inside the bracket")
+    return float(found.x)
 
 
 def simulate(

@@ -42,8 +42,8 @@ artifacts:
     apart from the measurement as a model.
 calibration: 'None documented. The record names the instrument (Biologic VMP300), the mode (galvanostatic),
   the amplitude (30 mA) and the frequency range, and nothing about a calibration, a cable or fixture compensation,
-  or the instrument''s accuracy. No correction is applied here; the dossier treats the instrument error
-  as unknown and covered by the model-error estimate.'
+  or the instrument''s accuracy. No correction is applied here; the instrument error is unknown, and
+  neither the standard errors of the fit nor the band fits of the dossier bound it.'
 schema: 'One JSON object: class_ ''Impedance''; meta_ (date, user, machine, software MATLAB R2020b, package
   Impedance 0.0.3.dev); arrays f, omega, z_real, z_imag, z_modulus, z_phase (numbers) and z (strings
   ''a-bi''), 81 entries each, in descending frequency.'
