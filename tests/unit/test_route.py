@@ -205,6 +205,7 @@ _FILES = (
     route.CI_WORKFLOW,
     route.AGENTS_CONF,
     route.RUN_FEATURE,
+    route.GUARDRAILS_CONF,
 )
 
 
@@ -232,6 +233,36 @@ def _edit(root: Path, file: str, old: str, new: str) -> None:
 def test_the_copy_reads_as_the_repository_does(root: Path):
     facts = read_facts(root)
     assert facts.numbers == {**read_facts().numbers, "cards": 1}
+    assert facts.owner_identity == read_facts().owner_identity
+
+
+def test_the_approval_paragraph_says_whether_the_owners_identity_is_set_up(
+    root: Path,
+):
+    """Before the owner's setup the guardrails name no identity and the page
+    says that the code-owner rule is not set up yet and that the owner
+    merges by hand; once the line names the login, the page says that the
+    identity's review of the exact commit is what the merge script needs
+    (ADR 020 decision 3). A line that names no single login fails the build,
+    as scripts/merge-feature.sh refuses it."""
+    page = RoutePage(read_facts(root), "https://example.org/repo")
+    assert page.facts.owner_identity is None
+    before = page.approval()
+    assert "not set up yet" in before and "by hand" in before
+    assert "names no such identity" in before
+    assert "Level 3" in before and before in str(page)
+    guardrails = root / route.GUARDRAILS_CONF
+    line = "\nowner-identity: @Owner-Review # the second identity\n"
+    guardrails.write_text(guardrails.read_text() + line)
+    page = RoutePage(read_facts(root), "https://example.org/repo")
+    assert page.facts.owner_identity == "Owner-Review"
+    after = page.approval()
+    assert "names that identity" in after and "exactly its last commit" in after
+    assert "not set up yet" not in after and "by hand" not in after
+    for bad in ("owner-identity: one two\n", "owner-identity:\n"):
+        guardrails.write_text(guardrails.read_text() + bad)
+        with pytest.raises(RouteError, match=r"owner's identity|exactly one"):
+            route.read_owner_identity(root)
 
 
 def test_a_reviewer_of_the_implementers_provider_fails(root: Path):

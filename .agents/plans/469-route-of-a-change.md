@@ -24,8 +24,14 @@ are not changed.
    their matrix, the summary job that needs them, the deploy job); the
    providers of the implementer and the reviewer in `.agents/agents.conf`
    (they must differ, or the build fails, since the page says so); the
-   review-round limit `MAX_ROUNDS` of `scripts/run-feature.sh`; and the
-   dataset cards of `data/registry/`. A fact that cannot be read raises,
+   review-round limit `MAX_ROUNDS` of `scripts/run-feature.sh`; the
+   dataset cards of `data/registry/`; and whether the line
+   `owner-identity:` of `.agents/policies/guardrails.conf` names the
+   owner's reviewing identity yet (read as `scripts/merge-feature.sh`
+   reads it; review round 1, M2), so that the paragraph on the owner's
+   approval says that the code-owner rule is not set up yet while the line
+   is absent, and that the identity's approval of the exact commit is what
+   the merge script needs once it is. A fact that cannot be read raises,
    which fails the build, as a missing worked example does.
 2. **The four groups of checks.** The module maps every check of
    `verify.conf` to one of four groups (science and lessons; the published
@@ -46,14 +52,21 @@ are not changed.
 4. **The prose.** Who does what, the risk levels and triggers, what Level 3
    adds, and what is not automatically proven are Markdown in the page
    (no count in them) in the page's register; the parts with a number or a
-   configured fact come from the module.
+   configured fact come from the module, the paragraph on the owner's
+   approval among them. The independent review is stated for Level 2 and
+   3, which every change that reaches the site is; a Level 1 change
+   (documentation and process files alone, `risk_level1_path` of
+   `scripts/lib/risk.sh`) has none (review round 1, M1).
 5. **Tests.** `tests/unit/test_route.py` (the mapping, every reader against
    its file and against a tampered copy, every number on the page is a
    generated one, the two SVGs and the list show the same steps);
    `tests/e2e/test_verify_route.py` (the section on the built page without
-   scripts, one visible diagram per width with its title, the text version,
-   the counts equal to the configuration, no sideways scroll at 320 CSS px
-   and at 200 % text).
+   scripts, the text version, the counts equal to the configuration, and
+   the rendered review of criterion 5 as a check: at each of its five
+   widths, in the light and the dark scheme of the browser, at 100 % and
+   200 % text, one drawing in the layout of its width with every label
+   inside its box at the contrast of text, and nothing of the section
+   outside the screen; review round 1, M3).
 
 ## Visual deliverables
 
@@ -72,8 +85,9 @@ Skills: diagram-design@550fd66e, frontend-design@dbd4588f, impeccable@08d5b470
 (which reports that CI runs everything, because `src/pbc/authoring` and
 `site/assets/site.css` are shared inputs); the full run after the session.
 Rendered review at 1280 x 800, 768 x 1024, 390 x 844, 360 x 640 and
-320 x 568, at 100 % and 200 % text; the owner's approval on the Issue
-(`owner_approval`, pending).
+320 x 568, in both schemes, at 100 % and 200 % text, recorded in the
+completion evidence and checked by the e2e tests of the section; the
+owner's approval on the Issue (`owner_approval`, pending).
 
 The dark scheme: the site defines one colour scheme (`site/assets/site.css`
 has no dark theme), so the dark renders of the review equal the light ones.

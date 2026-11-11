@@ -6,9 +6,11 @@ is typed into the page: the checks of ``scripts/verify.conf`` and their
 groups, the self-tests of ``scripts/verify-workflow.conf``, the jobs of the
 CI workflow, the providers of the implementer and the reviewer in
 ``.agents/agents.conf``, the review-round limit of
-``scripts/run-feature.sh``, and the dataset cards of ``data/registry``. A
-fact that cannot be read raises, which fails the build, as a worked example
-whose target is missing does (``pbc.authoring.verify``).
+``scripts/run-feature.sh``, the dataset cards of ``data/registry``, and
+whether ``.agents/policies/guardrails.conf`` names the owner's reviewing
+identity yet (ADR 020 decision 3). A fact that cannot be read raises, which
+fails the build, as a worked example whose target is missing does
+(``pbc.authoring.verify``).
 
 The diagram of the route is drawn here as inline SVG, in two layouts from
 one list of steps (a wide one for a desktop, a column for a phone; the style
@@ -38,6 +40,7 @@ CI_WORKFLOW = ".github/workflows/ci.yml"
 AGENTS_CONF = ".agents/agents.conf"
 RUN_FEATURE = "scripts/run-feature.sh"
 REGISTRY = "data/registry"
+GUARDRAILS_CONF = ".agents/policies/guardrails.conf"
 PROCESS_DOCUMENT = "docs/process.md"
 
 # '<name>: <command>' or '<name> [<group>]: <command>', as verify.sh reads it.
@@ -49,6 +52,9 @@ _RESERVED = {"targeted", "after", "paths"}
 _DEFAULT_GROUP = "default"
 _ROLE_LINE = re.compile(r"^([a-z][a-z-]*):\s*([a-z]+)\s+(\S+)\s*$")
 _ROUNDS_LINE = re.compile(r"^MAX_ROUNDS=(\d+)\s*$", re.MULTILINE)
+# 'owner-identity: [@]<login>', as scripts/merge-feature.sh reads it.
+_IDENTITY_LINE = re.compile(r"^owner-identity:\s*(.*?)\s*$")
+_LOGIN = re.compile(r"^@?([A-Za-z0-9-]+)$")
 # How the page names a provider of .agents/agents.conf.
 _PROVIDERS = {"claude": "Claude", "codex": "Codex"}
 _RUN_CHECKS = "./scripts/verify.sh --all --only"
@@ -94,6 +100,7 @@ class Facts:
     roles: Roles
     round_limit: int
     cards: tuple[str, ...]
+    owner_identity: str | None  # the owner's reviewing identity, once set up
 
     @property
     def numbers(self) -> dict[str, int]:
@@ -255,6 +262,32 @@ def read_cards(root: Path = REPOSITORY_ROOT) -> tuple[str, ...]:
     return cards
 
 
+def read_owner_identity(root: Path = REPOSITORY_ROOT) -> str | None:
+    """The owner's reviewing identity, the login of the line
+    ``owner-identity:`` of ``.agents/policies/guardrails.conf``, read as
+    ``scripts/merge-feature.sh`` reads it; ``None`` while the line is absent,
+    the state before the owner's setup (ADR 020 decision 3). A line that
+    names no single login raises."""
+    path = root / GUARDRAILS_CONF
+    if not path.is_file():
+        raise RouteError(f"{path} is missing")
+    found = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        match = _IDENTITY_LINE.match(line.split("#", 1)[0].rstrip())
+        if match is not None:
+            found.append(match.group(1))
+    if not found:
+        return None
+    if len(found) > 1:
+        raise RouteError(f"{path} names the owner's identity {len(found)} times")
+    login = _LOGIN.match(found[0])
+    if login is None:
+        raise RouteError(
+            f"{path}: the line 'owner-identity:' must name exactly one GitHub login"
+        )
+    return login.group(1)
+
+
 def read_facts(root: Path = REPOSITORY_ROOT) -> Facts:
     return Facts(
         read_checks(root),
@@ -263,6 +296,7 @@ def read_facts(root: Path = REPOSITORY_ROOT) -> Facts:
         read_roles(root),
         read_round_limit(root),
         read_cards(root),
+        read_owner_identity(root),
     )
 
 
@@ -337,14 +371,17 @@ STEPS = (
     Step(
         5,
         "Independent review",
-        ("a second model, then", "the triage per finding"),
-        "**The independent review.** A reviewer of a different provider, a"
-        " {reviewer} model with read access only, reads the complete change"
-        " against the Issue, its content included, and reports its findings."
-        " Each finding is triaged: fixed now, deferred with a linked Issue, or"
-        " accepted with a rationale. A fix goes back to step 2, and the"
-        " reviewer reads the result again. At most {rounds} rounds are used;"
-        " then the owner decides.",
+        ("a second model reads", "Level 2 and 3 changes"),
+        "**The independent review.** A change at Level 2 or 3, which every"
+        " change that reaches the site is, gets an independent review: a"
+        " reviewer of a different provider, a {reviewer} model with read"
+        " access only, reads the complete change against the Issue, its"
+        " content included, and reports its findings. Each finding is"
+        " triaged: fixed now, deferred with a linked Issue, or accepted with a"
+        " rationale. A fix goes back to step 2, and the reviewer reads the"
+        " result again. At most {rounds} rounds are used; then the owner"
+        " decides. A Level 1 change, documentation and process files alone,"
+        " skips this step; the levels are set out after the route.",
     ),
     Step(
         6,
@@ -724,11 +761,11 @@ GROUPS = (
             ),
         ),
         more=(
-            "The {self_tests} self-tests of the workflow scripts, one per"
-            " script (the start of a feature, the review, the triage, the"
-            " commit, the pull request, the merge, the risk level, the"
-            " guardrails), run on every CI run and, on the agent's machine,"
-            " whenever a workflow file changed.",
+            "The {self_tests} self-tests of the workflow scripts (the start"
+            " of a feature, the review, the triage, the commit, the pull"
+            " request, the merge, the risk level, the guardrails) run on every"
+            " CI run and, on the agent's machine, whenever a workflow file"
+            " changed.",
         ),
     ),
 )
@@ -787,7 +824,10 @@ class RoutePage:
             f" **implementer agent**, a {values['implementer']} model, makes the"
             " change. An **independent reviewer**, a"
             f" {values['reviewer']} model from a different provider with read"
-            " access only, reads it. The **checks**, one list that one script"
+            " access only, reads every change at Level 2 or 3, which is every"
+            " change that reaches the site; a change of documentation and"
+            " process files alone, Level 1, has no independent review. The"
+            " **checks**, one list that one script"
             " runs, decide mechanically what passes; they are the same on the"
             " agent's machine and on GitHub. The rules themselves are public:"
             f" [the process as it stands]({self._link(PROCESS_DOCUMENT)}), the"
@@ -837,6 +877,32 @@ class RoutePage:
             ]
         )
 
+    def approval(self) -> str:
+        """How the owner's approval of a Level 3 change is given, and whether
+        the code-owner rule that is to require it is set up: it is when the
+        guardrails name the owner's reviewing identity (ADR 020 decision 3;
+        ``scripts/merge-feature.sh`` merges nothing that needs the owner
+        without it)."""
+        given = (
+            "The owner's approval of a Level 3 change is given on the pull"
+            " request, for the exact commit: an approving review by a second"
+            " GitHub identity that only the owner holds."
+        )
+        if self.facts.owner_identity is None:
+            return (
+                given + " The decision record on risk intends GitHub's code-owner rule"
+                " to require that review at the merge. That rule is not set up"
+                " yet, and the repository names no such identity: until it"
+                " does, the owner merges a pull request that needs the owner by"
+                " hand, and the scripts merge nothing that needs the owner."
+            )
+        return (
+            given + " The repository names that identity, and the merge script"
+            " merges a pull request that needs the owner only when that"
+            " identity approves exactly its last commit; an approval of an"
+            " earlier commit does not carry over."
+        )
+
     def checks(self) -> str:
         """The four groups, with the number of checks of each and what they
         cover, from the configuration."""
@@ -872,7 +938,7 @@ class RoutePage:
         return "\n\n".join(parts)
 
     def __str__(self) -> str:
-        return self.route() + "\n\n" + self.checks()
+        return "\n\n".join([self.route(), self.approval(), self.checks()])
 
 
 def route_page(root: Path = REPOSITORY_ROOT) -> RoutePage:

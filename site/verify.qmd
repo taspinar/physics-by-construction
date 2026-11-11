@@ -107,11 +107,11 @@ published page that is changed or removed. The implementer names the others
 in its record, and the reviewer reports a trigger the record missed as a
 major finding.
 
-The owner's approval of a Level 3 change is given on the pull request, for
-the exact commit. The decision record on risk assigns it to a reviewing
-identity that only the owner holds, enforced by GitHub's code-owner rule;
-until the owner has set that up, the owner merges such a pull request by
-hand, and the scripts merge nothing that needs the owner.
+```{python}
+#| echo: false
+#| output: asis
+print(route.approval())
+```
 
 ### What the checks cover {#route-checks}
 
@@ -129,8 +129,11 @@ The checks are mechanical, and this is what they do and do not establish.
   its evidence exists, that a computation runs again and gives the same
   result, and that a proof compiles. They do not show that a model is the
   right model of nature, and no check reads physics. A second, independent
-  AI model from a different provider reads every change, its content
-  included, and the owner judges the result.
+  AI model from a different provider reads every change at Level 2 or
+  Level 3, which is every change that reaches the site, its content
+  included, and the owner judges the result. A Level 1 change, documentation
+  and process files alone, has no independent review; the owner reads it,
+  as the owner reads every pull request.
 - **Illustrations and texts.** An image is checked for its entry in the
   provenance register, and a page for its size; whether an illustration is
   a good one, and whether a text is right, is the owner's judgment.

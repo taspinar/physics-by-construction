@@ -1,27 +1,80 @@
 """The route of a change on the built page "How we verify the science"
-(Issue #469): the section and its parts read without scripts, one drawing
-of the diagram is shown at a time with its title and the same steps as the
-list under it, the counts on the page are those of the configuration, and
-the section fits the screen at 320 CSS px, also at 200 % text."""
+(Issue #469): the section and its parts read without scripts, the counts
+on the page are those of the configuration, and the rendered review of the
+Issue as a check: at each of its five widths, in the light and the dark
+scheme of the browser, at 100 % and 200 % text, the drawing is one image
+with its title in the layout of its width and the same steps as the list
+under it, every label stands inside its box with the contrast of text, and
+the section fits the screen."""
 
 import re
 
 import pytest
 from playwright.sync_api import Browser
-from support.site_checks import DESKTOP, PHONE
+from support.site_checks import DESKTOP, PHONE, TABLET
 from support.site_server import SiteServer
 
 from pbc.authoring.route import DIAGRAM_TITLE, GROUPS, STEPS, route_page
 
 PAGE = "verify.html"
 ROUTE = route_page()
+# The widths of the rendered review of criterion 5 of the Issue.
+VIEWPORTS = {
+    "1280x800": DESKTOP,
+    "768x1024": TABLET,
+    "390x844": {"width": 390, "height": 844},
+    "360x640": {"width": 360, "height": 640},
+    "320x568": PHONE,
+}
+SCHEMES = ("light", "dark")
+SCALES = (1, 2)
+# The least contrast of text against its background (WCAG 2, 1.4.3).
+TEXT_CONTRAST = 4.5
 
 
-def _open(browser: Browser, server: SiteServer, viewport: dict, scripts: bool):
-    context = browser.new_context(viewport=viewport, java_script_enabled=scripts)
+def _open(
+    browser: Browser,
+    server: SiteServer,
+    viewport: dict,
+    scripts: bool,
+    scheme: str = "light",
+):
+    context = browser.new_context(
+        viewport=viewport, java_script_enabled=scripts, color_scheme=scheme
+    )
     page = context.new_page()
     page.goto(server.url + PAGE)
     return context, page
+
+
+def _enlarge_text(page, scale: int) -> None:
+    """The browser's text size, as a reader sets it: the style tag that
+    enlarges the text needs scripts, so that case runs with them."""
+    if scale != 1:
+        page.add_style_tag(content=f"html {{ font-size: {100 * scale}% !important; }}")
+    page.wait_for_timeout(100)
+
+
+def _luminance(rgb: str) -> float:
+    channels = [int(n) / 255 for n in re.findall(r"\d+", rgb)[:3]]
+    linear = [
+        c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels
+    ]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def _contrast(one: str, other: str) -> float:
+    a, b = sorted((_luminance(one), _luminance(other)), reverse=True)
+    return (a + 0.05) / (b + 0.05)
+
+
+def _within(inner: dict, outer: dict, slack: float = 0.5) -> bool:
+    return (
+        inner["x"] >= outer["x"] - slack
+        and inner["x"] + inner["width"] <= outer["x"] + outer["width"] + slack
+        and inner["y"] >= outer["y"] - slack
+        and inner["y"] + inner["height"] <= outer["y"] + outer["height"] + slack
+    )
 
 
 def test_the_section_and_its_text_version_read_without_scripts(
@@ -42,18 +95,21 @@ def test_the_section_and_its_text_version_read_without_scripts(
     context.close()
 
 
-@pytest.mark.parametrize(
-    ("viewport", "layout"),
-    [(DESKTOP, "wide"), (PHONE, "narrow")],
-    ids=["1280x800", "320x568"],
-)
+@pytest.mark.parametrize("scale", SCALES, ids=["100%", "200% text"])
+@pytest.mark.parametrize("scheme", SCHEMES)
+@pytest.mark.parametrize("viewport", VIEWPORTS.values(), ids=VIEWPORTS.keys())
 def test_the_drawing_is_shown_in_the_layout_of_the_width_with_every_step(
-    browser: Browser, server: SiteServer, viewport: dict, layout: str
+    browser: Browser, server: SiteServer, viewport: dict, scheme: str, scale: int
 ):
-    """One drawing, an image with its title: two rows of four on a desktop
-    (wider than tall), one column on a phone (taller than wide); every step
-    and every label is rendered, and the drawing fits the screen."""
-    context, page = _open(browser, server, viewport, scripts=False)
+    """One drawing, an image with its title, in the layout of its width: two
+    rows of four (wider than tall) where the figure is at least 44rem wide,
+    the desktop at 100 % text, and one column (taller than wide) at every
+    other width and at 200 % text, where 44rem is wider than the desktop's
+    column. Every step and every label is rendered inside the drawing; a
+    step's label stands inside its box; a label has the contrast of text
+    against its box in the light and the dark scheme of the browser."""
+    context, page = _open(browser, server, viewport, scripts=scale == 2, scheme=scheme)
+    _enlarge_text(page, scale)
     drawings = page.locator("section#route-steps svg.route-diagram")
     assert drawings.count() == 1
     drawing = drawings.first
@@ -62,7 +118,8 @@ def test_the_drawing_is_shown_in_the_layout_of_the_width_with_every_step(
     assert drawing.locator(f"title[id='{title_id}']").text_content() == DIAGRAM_TITLE
     assert drawing.locator(f"desc[id='{description_id}']").count() == 1
     box = drawing.bounding_box()
-    assert (box["width"] > box["height"]) == (layout == "wide")
+    wide = viewport is DESKTOP and scale == 1
+    assert (box["width"] > box["height"]) == wide, box
     assert box["x"] >= 0 and box["x"] + box["width"] <= viewport["width"] + 0.5
     texts = drawing.locator("text")
     # SVG text has no innerText; its content is read as textContent.
@@ -73,11 +130,24 @@ def test_the_drawing_is_shown_in_the_layout_of_the_width_with_every_step(
     # out of it by the layout.
     for text in texts.all():
         assert text.is_visible()
-        inside = text.bounding_box()
-        assert inside["x"] >= box["x"] - 0.5, inside
-        assert inside["x"] + inside["width"] <= box["x"] + box["width"] + 0.5, inside
-        assert inside["y"] >= box["y"] - 0.5, inside
-        assert inside["y"] + inside["height"] <= box["y"] + box["height"] + 0.5
+        assert _within(text.bounding_box(), box), text.text_content()
+    # Each step's title and two lines stand inside its box, with the
+    # contrast of text against the box's fill.
+    boxes = drawing.locator("g.movable")
+    assert boxes.count() == len(STEPS)
+    for group in boxes.all():
+        frame = group.locator("rect").bounding_box()
+        fill = group.locator("rect").evaluate("r => getComputedStyle(r).fill")
+        lines = group.locator("text")
+        assert lines.count() == 3
+        for line in lines.all():
+            assert _within(line.bounding_box(), frame), line.text_content()
+            ink = line.evaluate("t => getComputedStyle(t).fill")
+            assert _contrast(ink, fill) >= TEXT_CONTRAST, (
+                line.text_content(),
+                ink,
+                fill,
+            )
     context.close()
 
 
@@ -101,16 +171,16 @@ def test_the_counts_on_the_page_are_those_of_the_configuration(
     context.close()
 
 
-@pytest.mark.parametrize("scale", [1, 2], ids=["100%", "200% text"])
-def test_the_section_fits_a_320_px_screen(
-    browser: Browser, server: SiteServer, scale: int
+@pytest.mark.parametrize("scale", SCALES, ids=["100%", "200% text"])
+@pytest.mark.parametrize("scheme", SCHEMES)
+@pytest.mark.parametrize("viewport", VIEWPORTS.values(), ids=VIEWPORTS.keys())
+def test_the_section_fits_the_screen(
+    browser: Browser, server: SiteServer, viewport: dict, scheme: str, scale: int
 ):
-    """Every element of the section stays within the screen; the style tag
-    that enlarges the text needs scripts, so that case runs with them."""
-    context, page = _open(browser, server, PHONE, scripts=scale == 2)
-    if scale == 2:
-        page.add_style_tag(content=f"html {{ font-size: {100 * scale}% !important; }}")
-    page.wait_for_timeout(100)
+    """Every element of the section stays within the screen at each width
+    of the rendered review, in both schemes, at 100 % and 200 % text."""
+    context, page = _open(browser, server, viewport, scripts=scale == 2, scheme=scheme)
+    _enlarge_text(page, scale)
     outside = page.evaluate(
         """() => {
           const width = document.documentElement.clientWidth;
