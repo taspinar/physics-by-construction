@@ -593,8 +593,11 @@ above:
 
 - **Heralding.** Only heralded attempts exist in the record. In the
   paper's design the herald precedes the choice of the settings, so the
-  settings cannot influence it, and it opens no detection loophole; but the
-  result is a statement about heralded pairs.
+  settings cannot influence it, and it opens no detection loophole; but
+  [the result is a statement about heralded pairs]{.claim
+  type="observational"
+  scope="the selection of the record: only heralded attempts exist in it"
+  evidence="munich-bell-event-ready"}.
 - **The maintenance exclusions.** Fixed in advance as a daily routine, the
   paper states. [Added back, the excluded attempts move $S$ by
   `{python} result["shift-in-errors"]` of its standard error.]{.claim
