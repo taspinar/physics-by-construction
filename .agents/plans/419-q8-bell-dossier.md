@@ -170,6 +170,17 @@ page).
   `no-signalling`, `chsh`.
 - observational (quoted): the loopholes closed by the design and the
   assumptions left, from the paper via the card; evidence the card.
+- observational (review round 1, M1): the meaning of the bits is the only
+  one of eight readings that reproduces the published correlators
+  (`counts`, the card); the two heralded states split evenly within the
+  binomial error and every excluded attempt of either lab falls in a pause
+  (`the-run`, `fig-run`); the correlator sizes as a fraction of the ideal
+  and the excess of the two larger over the two smaller together, more than
+  four standard errors (`counts`); the running S of Psi+ below 2 once and
+  its band clear of 2 from event 295 (`fig-running-s`); the pairing; the
+  assumptions left, quoted (the card). Each computed one is asserted by the
+  experiment's tests. The one-parameter fit's visibility is
+  experimentally-supported (`fit-one`).
 No claim wider than the data and the model: a violation is a statement
 about local hidden-variable models under the stated assumptions and
 selections; the significance under independence is not the probability

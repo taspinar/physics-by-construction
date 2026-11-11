@@ -1,5 +1,6 @@
 """The experiment of "Quantum measurement statistics lab" (quantum 07)."""
 
+import itertools
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -8,6 +9,7 @@ import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
 
 from pbc.data.plotting import check_figure
+from pbc.data.reference import munich_bell
 from pbc.quantum.experiments import quantum_measurement_statistics as experiment
 
 MODULE = "pbc.quantum.experiments.quantum_measurement_statistics"
@@ -44,6 +46,54 @@ def test_the_published_values_are_reproduced_with_the_stopping_rule(results):
         n, equal, unequal = int(r[2]), int(r[3]), int(r[4])
         assert equal + unequal == n
         assert (equal - unequal) / n == pytest.approx(float(r[5]), abs=5e-4)
+
+
+def test_only_the_stated_meaning_of_the_bits_reproduces_the_paper():
+    """Of the eight readings of the bits (either setting bit of either lab
+    swapped, the product of the outcomes inverted), only the stated one gives
+    the paper's eight correlators; inverting both outcomes changes no product."""
+    pairs = experiment.load_run().pairs
+    keep = munich_bell.published_selection(pairs)
+    product = munich_bell.products(pairs)
+    figure_3 = [-0.511, -0.615, 0.608, -0.507, -0.535, -0.603, -0.603, 0.463]
+    matches = []
+    for swap_a, swap_b, flip in itertools.product((0, 1), (0, 1), (1, -1)):
+        found = []
+        for state in experiment.STATES:
+            for a, b in munich_bell.SETTINGS:
+                k = (
+                    keep
+                    & (pairs.state == state)
+                    & ((pairs.a ^ swap_a) == a)
+                    & ((pairs.b ^ swap_b) == b)
+                )
+                found.append(flip * float(product[k].mean()))
+        if np.allclose(found, figure_3, atol=5e-4):
+            matches.append((swap_a, swap_b, flip))
+    assert matches == [(0, 0, 1)]
+
+
+def test_the_run_and_the_correlators_say_what_the_page_says(results):
+    """The heralded states split evenly within the binomial error, every
+    excluded attempt of either lab falls in a pause of the pairs file, and the
+    two larger correlators of each state exceed the two smaller ones together
+    by more than four standard errors."""
+    _, found = results
+    numbers = found["numbers"]
+    assert float(numbers["split-sigmas"]) < 2
+    assert int(numbers["excluded-in-pauses"]) == int(numbers["excluded-1"]) + int(
+        numbers["excluded-2"]
+    )
+    rows = found["tables"]["counts"]["rows"]
+    sizes = [abs(float(r[5])) / experiment.IDEAL for r in rows]
+    assert float(numbers["size-ratio-low"]) == pytest.approx(min(sizes), abs=0.006)
+    assert float(numbers["size-ratio-high"]) == pytest.approx(max(sizes), abs=0.006)
+    assert float(numbers["size-gap-low"]) > 4
+    # No single pair differs by four standard errors: the page says "together".
+    for state in ("Psi-", "Psi+"):
+        e = {r[1]: (abs(float(r[5])), float(r[6])) for r in rows if r[0] == state}
+        small, large = e["(0, -45)"], e["(90, -45)"]
+        assert (large[0] - small[0]) / np.hypot(large[1], small[1]) < 4
 
 
 def test_the_selections_of_the_run_do_not_make_the_violation(results):
@@ -110,6 +160,9 @@ def test_the_exercises_follow_from_the_numbers(results):
     assert int(numbers["events-for-five"]) == pytest.approx(pooled, rel=0.03)
     assert int(numbers["events-for-five-per-state"]) > 5000
     assert numbers["plus-below"] == "160" and numbers["plus-band-clears"] == "295"
+    # The singlet's running S stays above 2 from its 40th event on.
+    s_minus, _ = munich_bell.running_chsh(experiment.load_run().pairs, "Psi-")
+    assert (s_minus >= experiment.LHV_BOUND).all()
 
 
 def test_every_figure_follows_the_conventions():

@@ -116,6 +116,23 @@ def the_run(experiment: Experiment, run: Run):
     return published, days, float(days[-1]), gaps, pauses, stop_day
 
 
+def split_and_exclusions(run: Run, pauses_at):
+    """How far the two heralded states are from an even split, in binomial
+    standard errors, and how many excluded attempts of either lab fall
+    inside one of the long pauses of the pairs file."""
+    pairs = run.pairs
+    n_minus = int((pairs.state == "Psi-").sum())
+    n_plus = len(pairs) - n_minus
+    split = abs(n_minus - n_plus) / np.sqrt(len(pairs))
+    inside = 0
+    for lab in (run.lab_1, run.lab_2):
+        for t in lab.time_ms[lab.excluded]:
+            inside += any(
+                pairs.time_ms[i] < t < pairs.time_ms[i + 1] for i in pauses_at
+            )
+    return split, inside
+
+
 def draw_run(run: Run, days, published, stop_day) -> Figure:
     """The events of each state accumulated over the run."""
     pairs = run.pairs
@@ -198,6 +215,21 @@ def counts_and_correlators(experiment: Experiment, run: Run, published):
         "binomial standard error.",
     )
     return terms
+
+
+def correlator_sizes(terms):
+    """The sizes of the correlators as a fraction of the ideal 1/sqrt(2), and,
+    per state, how far the two at (0, +45) and (90, -45) exceed the two at
+    (0, -45) and (90, +45) together, in standard errors of that difference."""
+    ratios, excess = [], {}
+    for state, found in terms.items():
+        size = {ab: abs(c.value) for ab, c in found.items()}
+        ratios += [v / IDEAL for v in size.values()]
+        larger = size[(0, 1)] + size[(1, 0)]
+        smaller = size[(0, 0)] + size[(1, 1)]
+        error = np.sqrt(sum(c.stderr**2 for c in found.values()))
+        excess[state] = (larger - smaller) / error
+    return min(ratios), max(ratios), excess
 
 
 def chsh_values(experiment: Experiment, run: Run, published):
@@ -543,6 +575,9 @@ def run() -> Experiment:
     run_ = load_run()
     pairs = run_.pairs
     published, days, span_days, gaps, pauses, stop_day = the_run(experiment, run_)
+    split, excluded_inside = split_and_exclusions(run_, np.flatnonzero(gaps > 3600))
+    experiment.number("split-sigmas", split, ".1f")
+    experiment.number("excluded-in-pauses", excluded_inside, "d")
     experiment.number("events", len(pairs), "d")
     experiment.number("attempts-1", run_.lab_1.time_ms.size, "d")
     experiment.number("attempts-2", run_.lab_2.time_ms.size, "d")
@@ -560,6 +595,11 @@ def run() -> Experiment:
 
     terms = counts_and_correlators(experiment, run_, published)
     experiment.number("ideal", IDEAL, ".3f")
+    ratio_low, ratio_high, size_gaps = correlator_sizes(terms)
+    experiment.number("size-ratio-low", ratio_low, ".2f")
+    experiment.number("size-ratio-high", ratio_high, ".2f")
+    experiment.number("size-gap-low", min(size_gaps.values()), ".1f")
+    experiment.number("size-gap-high", max(size_gaps.values()), ".1f")
     experiment.number("tsirelson", TSIRELSON, ".3f")
     found, n_excluded_pairs = chsh_values(experiment, run_, published)
     for key, name in (("Psi-", "minus"), ("Psi+", "plus"), ("pooled", "pooled")):

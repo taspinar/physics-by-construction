@@ -81,9 +81,12 @@ models under stated conditions, not a proof of anything beyond them.
    bit and an outcome bit per laboratory. Setting $0$ and $1$ of the first
    laboratory are the analysis angles $\alpha = 0°$ and $\alpha' = 90°$, of
    the second $\beta = -45°$ and $\beta' = +45°$, and equal outcome bits
-   count as the product $+1$. The archive does not say so; this mapping is
-   the one that reproduces the paper's published correlators, and it is the
-   only one of the possible assignments that does.
+   count as the product $+1$. The archive does not say so. [Of the eight
+   readings of the bits, either setting bit of either laboratory swapped
+   and the product of the outcomes inverted or not, this one alone
+   reproduces the paper's eight published correlators.]{.claim
+   type="observational" scope="the first 5000 events of each heralded state; inverting both outcome bits changes no product"
+   evidence="counts munich-bell-event-ready"}
 3. **The stopping rule.** The paper fixed before the run that the result is
    the first `{python} result["per-state"]` events of each heralded state.
    The archive holds a few more; the lesson evaluates them as well and says
@@ -249,8 +252,7 @@ pauses of `{python} result["pause-hours-low"]` to
 scope="the committed sample of the archive, checked against itself"
 evidence="the-run munich-bell-event-ready"}
 There is no clock in these data: an event happens when a heralding signal
-announces an entangled pair, about once every twenty seconds, and the three
-pauses are the daily maintenance that the paper fixed in advance.
+announces an entangled pair.
 
 ```{python}
 #| echo: false
@@ -267,11 +269,19 @@ excerpt(experiment.draw_run)
 result.show("fig-run")
 ```
 
-The two states accumulate at the same rate, because the Bell-state
-measurement that heralds the pair projects it onto $\Psi^-$ or $\Psi^+$ with
-equal probability. The excluded attempts sit at the maintenance pauses, as
-their flag says. The figure is made from the pairs file, so it is a
-processed record; the ticks come from the raw file of the first laboratory.
+[The two heralded states accumulate at the same rate: their numbers of
+valid events differ from an even split by `{python} result["split-sigmas"]`
+binomial standard errors. All `{python} result["excluded-in-pauses"]`
+excluded attempts of the two laboratories fall inside the three long pauses
+of the pairs file, as their flag "Maintenance" says.]{.claim
+type="observational" scope="the committed sample of the archive"
+evidence="the-run fig-run munich-bell-event-ready"}
+An even split is what a heralding that announces $\Psi^-$ and $\Psi^+$ with
+equal probability gives; the count is consistent with that and tests
+nothing more. That the pauses are the daily maintenance fixed before the
+run is the paper's statement, which the card quotes. The figure is made
+from the pairs file, so it is a processed record; the ticks come from the
+raw file of the first laboratory.
 
 ### The counts and the correlators {#counts-and-correlators}
 
@@ -293,11 +303,23 @@ for this run, to the three digits printed, and the ideal value of each is
 $\pm1/\sqrt2$, about `{python} result["ideal"]` in size.]{.claim
 type="observational" scope="the first 5000 events of each heralded state"
 evidence="counts munich-bell-event-ready"}
-The correlators are smaller than the ideal by a fifth to a quarter, and
-they are not all the same size: in both states the two at the settings
-$(0, +45)$ and $(90, -45)$ are larger than the two at $(0, -45)$ and
-$(90, +45)$ by more than four standard errors. The model section below
-asks what that means.
+```{python}
+#| echo: false
+excerpt(experiment.correlator_sizes)
+```
+
+[The correlators are smaller than the ideal, between
+`{python} result["size-ratio-low"]` and `{python} result["size-ratio-high"]`
+of it in size, and they are not all the same size: in both states the two
+at the settings $(0, +45)$ and $(90, -45)$ together exceed the two at
+$(0, -45)$ and $(90, +45)$ by `{python} result["size-gap-low"]` to
+`{python} result["size-gap-high"]` standard errors of that
+difference.]{.claim type="observational"
+scope="the first 5000 events of each heralded state, binomial standard errors"
+evidence="counts munich-bell-event-ready"}
+A single pair of them differs by less, about three standard errors; it is
+the pattern of all four that the errors do not allow. The model section
+below asks what that means.
 
 ### The CHSH value against the bounds of the entanglement lesson {#chsh-value}
 
@@ -362,10 +384,12 @@ result.show("fig-running-s")
 The figure is the lesson's picture of the statistics: the first hundred
 events of a state could have said anything, and the value settles only as
 the standard error, which falls as one over the square root of the number
-of events, closes in. Over the first few hundred events the running $S$ of
+of events, closes in. [Over the first few hundred events the running $S$ of
 $\Psi^+$ dips once below $2$, at its event `{python} result["plus-below"]`,
 and its band clears $2$ for good from its event
-`{python} result["plus-band-clears"]` on. This is why the stopping rule has
+`{python} result["plus-band-clears"]` on.]{.claim type="observational"
+scope="the running value from the 40th event of a state, binomial standard errors"
+evidence="fig-running-s munich-bell-event-ready"} This is why the stopping rule has
 to be fixed before the run: a rule that stopped when the result looked
 good would select a fluctuation.
 
@@ -382,9 +406,12 @@ excerpt(experiment.fit_the_model)
 result.table("fit-one")
 ```
 
-The one-parameter model gives a visibility near `{python} result["v-minus"]`
+[The one-parameter model gives a visibility near `{python} result["v-minus"]`
 for either state, above the threshold `{python} result["threshold"]` where
-the bound stops being broken, and its $S$ is close to the measured one.
+the bound stops being broken, and its $S$ is close to the measured
+one.]{.claim type="experimentally-supported"
+scope="binomial standard errors of independent events as absolute weights"
+evidence="fit-one munich-bell-event-ready"}
 But its reduced chi-square is `{python} result["chi2-one-low"]` to
 `{python} result["chi2-one-high"]` on three degrees of freedom, and the fit
 helper warns about it: a state that is the Bell state mixed with white noise, read
@@ -495,8 +522,9 @@ marginal of one laboratory changes with the other laboratory's setting by
 more than `{python} result["worst-signal"]` standard errors.]{.claim
 type="observational" scope="the events of the stopping rule, binomial errors"
 evidence="settings no-signalling munich-bell-event-ready"}
-Eight comparisons of which the largest is a little above one standard error
-is what independent chance gives. The check does not prove that the
+Eight comparisons of which the largest is
+`{python} result["worst-signal"]` standard errors is what independent
+chance gives. The check does not prove that the
 settings were random: it shows that they were balanced and that the
 outcomes carry no signal between the laboratories, which is what the
 quantum prediction requires and what the entanglement lesson argued no
@@ -546,6 +574,13 @@ What the data cannot close, because no record of outcomes can:
   archive holds the bits, not their generators, so the lesson cannot test
   this and does not.
 
+[The paper names the independence of the settings from the atoms and the
+weak dependence of the random bits on their backward light cone as the
+assumptions its result rests on; the record of outcomes cannot test
+either.]{.claim type="observational"
+scope="quoted from the paper through the dataset card; not tested by these files"
+evidence="munich-bell-event-ready"}
+
 And the selections in these data, each one documented and each one checked
 above:
 
@@ -557,9 +592,11 @@ above:
   added back above: they move $S$ by a few hundredths of its error.
 - **The stopping rule.** Fixed before the run; the events after it, included
   above, leave $S$ where it was.
-- **The pairing.** The two laboratories' clocks agree within the pairing
+- **The pairing.** [The two laboratories' clocks agree within the pairing
   window, every pair agrees with the laboratory rows it names, and only two
-  attempts of the second laboratory, at the very end, have no partner.
+  attempts of the second laboratory, at the very end, have no
+  partner.]{.claim type="observational" scope="the committed sample of the archive"
+  evidence="the-run munich-bell-event-ready"}
 
 ## Limits {#limits}
 
@@ -569,17 +606,19 @@ above:
   and it does not reproduce the paper's bounds that avoid that assumption.
 - **The error model.** The binomial standard error is the paper's and the
   lesson's. A drift of the apparatus over the three and a half days, or a
-  correlation between successive events, would make it too small; the
-  running $S$ shows no drift at the scale of its band, which is a weak test.
+  correlation between successive events, would make it too small. [The
+  running $S$ shows no drift at the scale of its band]{.claim
+  type="observational" scope="read from the figure; a weak test"
+  evidence="fig-running-s munich-bell-event-ready"}, which is a weak test.
 - **The model is phenomenological.** A visibility and a basis offset
   describe the four correlators of each state. They are two numbers fitted
   to four, not a characterisation of the state or of the readout, and the
   record does not allow the two to be told apart.
 - **The angles are inferred.** The meaning of the setting bits is the
   assignment that reproduces the published correlators; the archive does
-  not state it. A different assignment would change the signs, not the
-  sizes, and the lesson's test asserts that the published values are
-  reproduced.
+  not state it. A different assignment would move the correlators between
+  the settings and change their signs, not their sizes, and the lesson's
+  test asserts that no other one reproduces the published values.
 - **The timing is quoted.** Nothing on this page tests the locality
   condition; the files do not contain what would be needed.
 - **No interpretation is selected.** The violation excludes local
