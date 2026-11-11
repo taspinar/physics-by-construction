@@ -223,6 +223,17 @@ kept.
   file; the dashed rule of "Go deeper" stays its distinguishing mark.
 - **Path rows, path cards, the prerequisite graph** (F26, F64). Unchanged
   in structure; on paper with the rules of this file.
+- **The route of a change** (Issue #469), on "How we verify the science".
+  One conceptual diagram drawn by `pbc.authoring.route` as inline SVG in
+  two layouts from one list of steps: two rows of four for a column of at
+  least 44rem and one column below that, chosen by a container query on
+  the figure's own width, so that it never scrolls sideways. Boxes on the
+  plate with the 1px rule; the steps where the owner decides carry a 2px
+  cobalt outline; forward arrows in `rule`, arrows back dashed in `muted`,
+  labels in the body face in user units of the drawing. Each SVG is
+  `role="img"` with a title and a description, and the ordered list under
+  the figure is the complete text version. The section hyphenates, so a
+  long word fits the 212px column of 200 % text at 320 CSS px.
 - **The course atlas** (F133, ADR 021 decision 3; the owner's mocks 3 and
   4). The path page, under its title and a breadcrumb: one sentence with the
   totals, then the sequences, wider than the text column on a desktop

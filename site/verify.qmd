@@ -2,7 +2,9 @@
 title: "How we verify the science"
 description: >-
   How every scientific statement of the lessons is typed and tied to the
-  evidence that supports it, with three worked examples and the Evidence map.
+  evidence that supports it, with three worked examples and the Evidence map,
+  and how a change reaches the site: the route, the risk levels, the checks,
+  and what they do not prove.
 ---
 
 A lesson of this site does not ask to be believed. Every statement that a
@@ -52,3 +54,104 @@ print(verify_page())
 The [Evidence map](evidence.qmd) lists every claim of every lesson with its
 type, its scope, and links to its evidence. It is generated from the lessons
 when the site is built.
+
+## How a change reaches the site {#route}
+
+The claims above say what a lesson states and what stands behind it. This
+section says how a change to the site gets there: who does what, the steps
+every change takes, the risk levels that set how much checking a change
+gets, what the checks cover, and what they do not prove. Every count and
+every configured fact here is read from the repository when the page is
+built, as the examples above are.
+
+```{python}
+#| echo: false
+#| output: asis
+from pbc.authoring.route import route_page
+
+route = route_page()
+print(route.route())
+```
+
+### The risk levels {#route-levels}
+
+Every change carries one risk level, the highest of three readings: the
+minimum its paths imply, any escalation trigger it hits, and the level the
+agent or the reviewer assesses. An agent may raise a level at any time and
+never lowers one; only the owner lowers a level, and never below what the
+paths imply.
+
+- **Level 1**, documentation and process files only: the verification tier
+  of the change; no independent review.
+- **Level 2**, lessons, source code, tests, and other scripts: the tier of
+  the change, and the independent review of the complete change, whose
+  later rounds read only the changes since the round before when their reach
+  is certain.
+- **Level 3**, a protected path, an escalation trigger, or a level that the
+  agent or the reviewer assesses higher than the other two readings give,
+  at any time. The protected
+  paths are those named in the [guardrails
+  file](https://github.com/taspinar/physics-by-construction/blob/main/.agents/policies/guardrails.conf)
+  of the repository and described in [the process
+  document](https://github.com/taspinar/physics-by-construction/blob/main/docs/process.md);
+  the list that follows is only a part of them: the decision records, the
+  planning documents, the CI workflows, the scripts of the workflow and of
+  the checks and their configuration, the selection of what a run executes,
+  the build, the prompts and schemas of the agents, and the agent skills.
+  The consequence of Level 3 is a full verification of the final tree, a
+  full review made after it, the full triage of every finding, and the
+  owner's approving review of the exact commit.
+
+An escalation trigger raises a change to Level 3 wherever its files are: a
+changed or removed claim that the site already publishes; weakened test
+strength (an assertion changed or removed, a tolerance or a budget widened,
+a new skip, a removed test, a changed test marker); `sorry` or a new axiom
+in a proof; a changed dependency manifest; anything that touches security or
+the guarantees of the verification itself. The scripts detect on the diff
+what can be detected mechanically: a changed tolerance or budget, a new
+skip, `sorry` or an axiom, a changed or removed assertion, a removed test, a
+changed marker, a changed dependency manifest, and a labelled claim of a
+published page that is changed or removed. The implementer names the others
+in its record, and the reviewer reports a trigger the record missed as a
+major finding.
+
+```{python}
+#| echo: false
+#| output: asis
+print(route.approval())
+```
+
+### What the checks cover {#route-checks}
+
+```{python}
+#| echo: false
+#| output: asis
+print(route.checks())
+```
+
+### What is not automatically proven {#route-limits}
+
+The checks are mechanical, and this is what they do and do not establish.
+
+- **The physics itself.** The checks show that a claim is labelled, that
+  its evidence exists, that a computation runs again and gives the same
+  result, and that a proof compiles. They do not show that a model is the
+  right model of nature, and no check reads physics. A second, independent
+  AI model from a different provider reads every change at Level 2 or
+  Level 3, which is every change that reaches the site, its content
+  included, and the owner judges the result. A Level 1 change, documentation
+  and process files alone, has no independent review; the owner reads it,
+  as the owner reads every pull request.
+- **Illustrations and texts.** An image is checked for its entry in the
+  provenance register, and a page for its size; whether an illustration is
+  a good one, and whether a text is right, is the owner's judgment.
+- **A change to a claim.** A labelled claim that the site already publishes
+  and that is changed or removed is detected on the diff and raises the
+  level; a claim changed in prose, in a figure, or in a check is named by
+  the implementer and read by the independent review.
+- **Measurements.** A dataset's licence and checksum, and the
+  reproducibility of what a lesson makes of it, are checked; the measured
+  value is as good as its source.
+
+No check here is a check of nature. A check shows that the site says what
+its evidence supports, and marks where human judgment remains.
