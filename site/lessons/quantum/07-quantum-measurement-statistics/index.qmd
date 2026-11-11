@@ -412,13 +412,16 @@ the bound stops being broken, and its $S$ is close to the measured
 one.]{.claim type="experimentally-supported"
 scope="binomial standard errors of independent events as absolute weights"
 evidence="fit-one munich-bell-event-ready"}
-But its reduced chi-square is `{python} result["chi2-one-low"]` to
+[But its reduced chi-square is `{python} result["chi2-one-low"]` to
 `{python} result["chi2-one-high"]` on three degrees of freedom, and the fit
 helper warns about it: a state that is the Bell state mixed with white noise, read
 out at the nominal angles, does not give four correlators of unequal size,
 and the sizes differ by more than the errors allow. The model is rejected
-at the level of these errors. That is a result, not a failure: it says the
-pair or its readout is not isotropic.
+at the level of these errors.]{.claim type="experimentally-supported"
+scope="binomial standard errors of independent events as absolute weights; the correlator sizes as in the table of the counts"
+evidence="fit-one counts munich-bell-event-ready"}
+That is a result, not a failure: it says the pair or its readout is not
+isotropic.
 
 ```{python}
 #| label: fit-two
@@ -628,11 +631,15 @@ above:
   by the other's setting.
 
 In plain words: two atoms in two buildings were measured a few thousand
-times each with settings chosen at random, and the pattern of agreements
+times each with settings chosen at random, and [the pattern of agreements
 and disagreements is stronger than any explanation by shared instructions
-allows, by several times its statistical uncertainty, with the escapes of
-undetected pairs and of a signal between the buildings shut by the design.
-What remains assumed is that the random choices were free of the atoms.
+allows, by `{python} result["sigmas-pooled"]` standard errors of
+independent events for both states together]{.claim type="observational"
+scope="standard errors of independent events, the selection of the stopping rule"
+evidence="chsh munich-bell-event-ready"}. The escapes of undetected pairs
+and of a signal between the buildings are shut by the design, as the paper
+reports and as [What the data do not close](#loopholes) quotes. What
+remains assumed is that the random choices were free of the atoms.
 
 ::: {.exercise .self-check}
 The experimenters excluded a few dozen heralded attempts during maintenance.
