@@ -87,11 +87,14 @@ paths imply.
   the change, and the independent review of the complete change, whose
   later rounds read only the changes since the round before when their reach
   is certain.
-- **Level 3**, a protected path (the decision records, the planning
-  documents, the CI workflows, the scripts of the workflow and of the
-  checks, the selection of what a run executes, the build, the agent
-  skills) or an escalation trigger: a full verification of the final tree,
-  a full review made after it, the full triage of every finding, and the
+- **Level 3**, a protected path or an escalation trigger. The protected
+  paths are those named in the guardrails file of the repository and
+  listed in the process document; among them are the decision records, the
+  planning documents, the CI workflows, the scripts of the workflow and of
+  the checks and their configuration, the selection of what a run executes,
+  the build, the prompts and schemas of the agents, and the agent skills.
+  The consequence of Level 3 is a full verification of the final tree, a
+  full review made after it, the full triage of every finding, and the
   owner's approving review of the exact commit.
 
 An escalation trigger raises a change to Level 3 wherever its files are: a
