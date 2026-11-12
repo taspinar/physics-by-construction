@@ -30,15 +30,22 @@ verification, and CI never run anything here; the masters are not committed.
 - `derive_assets.py MASTERS [OUT]` writes the card (152 and 228 px wide) and
   panel (400 and 800 px wide) sizes, 4:3, WebP, on the page's paper; run on
   the approved masters it reproduces the committed files byte for byte.
-- `derive_assets.py --hero MASTERS [OUT]` writes the hero images of the home
-  page (F158, Issue #462) to `site/assets/hero/`: the double pendulum, the
-  vortex street, the hot and cold gas, and the exoplanet transit, from the
-  same masters as their atlas panels, 1200 by 900 px, WebP, on the page's
-  paper; it refuses to upscale a master narrower than that. Each file's
-  register entry carries its master's origin and hash as the atlas panel's
-  entry records them. Run with the project's locked Pillow on the owner's
-  masters (SHA-256 matched on the Issue), it reproduces the committed
-  files byte for byte.
+- `derive_assets.py --hero MASTERS [OUT]` writes the hero image of the home
+  page (F158, Issue #462; since Issue #482 one image) to
+  `site/assets/hero/`: the vortex street, from the same master as its atlas
+  panel (`pbc_fluid_dynamics_vortex_street.webp`, 2400 by 1800 px), as the
+  master's middle 2:1 band (rows 300 to 1500), mirrored so that the flow
+  runs from right to left with the cylinder toward the right, with an alpha
+  matte that is zero on every edge, a quarter at most over the left 31 %
+  (where the headline and the subtext stand on a wide screen), and one over
+  the right half, at 1200, 1800, and 2400 px wide, WebP with lossy colour
+  and lossless alpha; it refuses to upscale. Each file's register entry
+  carries the master's origin and hash as the atlas panel's entry records
+  them. Run with the project's locked Pillow and NumPy on the owner's
+  master (SHA-256 matched on Issue #462), it reproduces the committed
+  files byte for byte. The mirror image of the flow is a valid flow; it
+  reverses the sign of the vorticity, which no colour bar or label on the
+  page states.
 - `regenerate.py [SEQUENCE ...]` is the regeneration check, on demand: it
   runs a sequence's script in a scratch directory and compares the master
   with the hash in the register; where the bytes differ (the renders are not

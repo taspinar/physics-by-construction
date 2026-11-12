@@ -5,19 +5,22 @@
 # script: the page with and without scripts shows the same text, also after
 # a reload.
 #
-# Since F158 (Issue #462) the file also holds the hero image: four of the
-# Part A illustrations, each identified by the name of its file under
-# site/assets/hero/ (registered in site/assets/provenance.yaml), with the
-# course whose atlas master it is derived from and its alternative text. The
-# page carries the default image in its HTML; site/learner/hero.js picks one
-# at random per visit, or the one the `hero-image` parameter names.
+# Since F158 (Issue #462) the file also holds the hero image; since Issue
+# #482 (the owner's decision of 2026-11-11) it is one Part A illustration,
+# the vortex street of fluid dynamics, identified by the name of its files
+# under site/assets/hero/ (one per width, registered in
+# site/assets/provenance.yaml), with the course whose atlas master it is
+# derived from and its alternative text. The page carries the image in its
+# HTML; no script picks or changes it. The files are the master's middle
+# band, mirrored so that the flow runs from right to left, and faded at the
+# edges; the alternative text says what is seen and claims no result.
 #
 # `variants` is an editorial reference: the three headlines and eight
 # subtexts of F134 (the owner's copy of Issue #339, 2026-10-30), no longer
 # shown. Nothing reads them but the validation; they are never written on a
 # page, used by a script, or moved to another page.
 #
-# Read and validated by pbc.authoring.home: plain text, the images below,
+# Read and validated by pbc.authoring.home: plain text, the image below,
 # the variants as plain text, no other field. Never write this copy on a
 # page by hand.
 headline: >-
@@ -25,29 +28,12 @@ headline: >-
 subtext: >-
   Explore physics by building simulations, working with experimental data,
   and investigating how AI could help us understand the physical world.
-images:
-  default: double-pendulum
-  set:
-    - id: double-pendulum
-      sequence: mechanics
-      alt: >-
-        Illustration: the swinging paths of two double pendulums that start
-        almost together and soon move apart.
-    - id: vortex-street
-      sequence: fluids
-      alt: >-
-        Illustration: a flow past a cylinder, with a trail of alternating
-        swirls behind it.
-    - id: hot-cold-gas
-      sequence: thermodynamics
-      alt: >-
-        Illustration: a bar of gas from hot to cold, with the spread of
-        molecular speeds at three places along it.
-    - id: exoplanet-transit
-      sequence: astrophysics
-      alt: >-
-        Illustration: a planet passing in front of its star, and the dip it
-        makes in the star's light.
+image:
+  id: vortex-street
+  sequence: fluids
+  alt: >-
+    Illustration: a fluid flowing from right to left past a cylinder,
+    leaving a trail of alternating swirls that fades away to the left.
 variants:
   - id: "1"
     text: >-

@@ -1,7 +1,7 @@
-"""The home page builds from its data files (F158; Issue #481): the owner's
-copy from the Home copy file, the course subjects of Part A from the
-curriculum, a course without a published lesson marked as planned, and no
-example lesson.
+"""The home page builds from its data files (F158; Issues #481 and #482):
+the owner's copy from the Home copy file, the course subjects of Part A from
+the curriculum, a course without a published lesson marked as planned, no
+example lesson, and the one hero image in the HTML with no script.
 
 Each case is a minimal Quarto project in a temporary directory with the real
 home page, its data files, and a few lessons of one course: the subjects
