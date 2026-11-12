@@ -88,7 +88,7 @@ Skills: impeccable@08d5b470, frontend-design@dbd4588f, pbc-scientific-visualizat
   fades away to the left"). The pull request says so.
 - **D3. One image, three widths, WebP only.** `srcset` with 1200w, 1800w,
   and 2400w (the master is 2400 px wide, so nothing is upscaled) and
-  `sizes="(min-width: 992px) 78vw, 100vw"`, which matches the CSS (below);
+  `sizes="(min-width: 1280px) 885px, (min-width: 992px) 74vw, 94vw"`, measured on the built page (review round 1, MIN1);
   `width="2400" height="1200"` with the figure's `aspect-ratio: 2 / 1` so
   that the box is reserved before the bytes arrive; `fetchpriority="high"`
   and `decoding="async"` on the image, which is the largest element of the

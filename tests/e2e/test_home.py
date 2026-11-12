@@ -198,7 +198,7 @@ def load_recorded(
     ("viewport", "scale", "width"),
     [
         (DESKTOP, 1, 1200),
-        (DESKTOP, 2, 2400),
+        (DESKTOP, 2, 1800),
         (TABLET, 2, 1800),
         (PHONE_TALL, 3, 1200),
     ],

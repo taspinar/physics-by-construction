@@ -90,9 +90,11 @@ HERO_IMAGE_WIDTHS = (1200, 1800, 2400)
 HERO_IMAGE_WIDTH, HERO_IMAGE_HEIGHT = 2400, 1200
 HERO_IMAGE_FALLBACK = 1800
 # What the browser is told the image is drawn at, so that it picks the file
-# for its viewport and pixel density: 78 % of the hero's width from 992 CSS
-# px (site.css), the whole column below.
-HERO_IMAGE_SIZES = "(min-width: 992px) 78vw, 100vw"
+# for its viewport and pixel density. Measured on the built page (review
+# round 1, MIN1): 885 CSS px from 1280 px (the content column stops at 1135
+# px and the figure is 78 % of it), about 74 % of the viewport from 992 to
+# 1279 px, and the whole column (about 94 % of the viewport) below 992 px.
+HERO_IMAGE_SIZES = "(min-width: 1280px) 885px, (min-width: 992px) 74vw, 94vw"
 
 # The sections of the Home copy file in the order of the page, with the
 # anchor of each (the identity keeps the anchor of F134's "What this site
