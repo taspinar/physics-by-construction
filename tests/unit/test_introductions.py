@@ -402,8 +402,8 @@ def test_a_slot_that_becomes_published_is_linked_and_counted():
 def test_a_reference_to_a_planned_slot_in_prose_is_text():
     content = _content("mechanics")
 
-    assert content.inline("{slot:M15}") == (
-        "Experimental: real pendulum or accelerometer data (planned)"
+    assert content.inline("{slot:FL10}") == (
+        "Applied capstone: reconstructing the 2025 Kamchatka tsunami (planned)"
     )
     assert content.inline("{slot:M1}").startswith("[Kinematics as a program](")
 

@@ -1,0 +1,669 @@
+---
+title: "Pendulum measurements lab"
+description: >-
+  A pendulum recorded by a rotary encoder at five lengths, in air and with a
+  paper baffle, against the pendulum of the harmonic-oscillator,
+  energy-conservation and resonance lessons: the period against amplitude
+  with the exact correction, the period against length with the spread of
+  repeated trials as its uncertainty, and the damping law tested on trials
+  it was not fitted to.
+lesson:
+  id: pendulum-measurements
+  strand: mechanics
+  order: 20
+  difficulty: 2
+  course: mechanics
+  slot: M15
+  methods: [measured-data, simulation]
+  outcomes:
+    - Read a rotary-encoder record for what it is, an angle in steps of the encoder with everything else derived from it, and no definition of the length or uncertainty given by the record
+    - Measure the period cycle by cycle, correct it to small amplitude with the exact period of the energy-conservation lesson, and judge the correction by the amplitude dependence that remains
+    - Test the small-angle period across five lengths with the spread of repeated trials as the uncertainty, and say what an effective length can and cannot tell about the pendulum
+    - Fit linear and linear-plus-quadratic damping to the decay of the amplitude, and test both on trials they were not fitted to
+  related: []
+  format: 2
+  preview: fig-period-amplitude
+  experiment: pbc.mechanics.experiments.pendulum_measurements
+  prerequisites:
+    lessons: [harmonic-oscillator, energy-conservation, resonance]
+    outside:
+      - "Statistics: a least-squares fit, its residuals, the standard error of a mean, and the chi-square of residuals"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this
+from pbc.mechanics import damped_pendulum
+from pbc.mechanics.experiments import pendulum_measurements as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+Three lessons of this course described the pendulum. The harmonic-oscillator
+lesson treated it at small angles, where it swings with the period
+$2\pi\sqrt{L/g}$ whatever its amplitude. The energy-conservation lesson
+found its exact period, which grows with the amplitude. The resonance lesson
+added a drag proportional to the velocity, under which the amplitude decays
+exponentially at a fixed rate. Each model was checked against its own
+simulations, and none against a pendulum.
+
+This lab does that, with records someone else made and published. In a
+physics laboratory, a pendulum on a rotary encoder was lifted by hand,
+released, and left to swing for a minute, at five lengths, in air and with
+paper baffles that add drag, three times each. Does each cycle's period
+grow with its amplitude as the exact period says? Does the period follow
+$2\pi\sqrt{L/g}$ across the lengths? And how does the swing die away:
+exponentially, as the resonance lesson's drag says, or faster at large
+amplitude?
+
+## Assumptions
+
+1. **A rigid pendulum in a plane.** It turns about a fixed axis, and one
+   angle $\theta$ describes it. Its equation of motion then has the form of
+   the point mass's, for any shape of the body (see the explanation).
+2. **The encoder measures the angle.** It counts steps of a fixed size as
+   the axis turns; the record's software converts them into radians and
+   computes every other column from them. The record gives no uncertainty
+   and no calibration beyond that conversion.
+3. **The length and g are stated, not measured here.** The record gives
+   five lengths without saying from where to where they run, and the local
+   gravitational acceleration as "about"
+   [9.799 m/s²]{.given}. The lab uses both as given and asks what the
+   periods say about them.
+4. **Weak damping.** The amplitude changes little within one cycle, so that
+   each cycle has one period and one amplitude, and the damping laws can be
+   averaged over a cycle.
+5. **Repeated trials.** The three trials of one length and setting are taken
+   as repetitions of the same experiment; what changed between them, the
+   record does not say.
+
+## Explanation {#explanation}
+
+### What the encoder records
+
+A rotary encoder on the pendulum's axis counts fixed steps of rotation; the
+record's angle is a whole number of those steps,
+`{python} result["encoder-step-deg"]`° each, written every hundredth of a
+second. Its software also writes an angular velocity and an angular
+acceleration, but those are numerical derivatives of the angle, not further
+measurements. The lab uses the angle alone. It reads a period from where
+the angle crosses the centre of the swing going up, interpolated between the
+two samples on either side, to the next such crossing: one cycle. The
+cycle's **amplitude** is half the range of the angle within it.
+
+### The period at small and at large amplitude
+
+At small angles, $\sin\theta \approx \theta$ and the pendulum is the
+harmonic oscillator,
+
+$$
+\ddot\theta = -\omega_0^2\,\theta, \qquad
+T_0 = \frac{2\pi}{\omega_0} = 2\pi\sqrt{\frac{L}{g}} .
+$$
+
+At the amplitude $A$ the energy-conservation lesson found the exact period
+
+$$
+T(A) = 4\sqrt{\frac{L}{g}}\;K\!\left(\sin^2\frac{A}{2}\right)
+     = T_0\,\frac{2}{\pi}\,K\!\left(\sin^2\frac{A}{2}\right),
+$$
+
+with $K$ the complete elliptic integral of the first kind. Turned around,
+each measured cycle gives a **small-amplitude period**
+$T_0 = T\,\pi/\bigl(2K(\sin^2 A/2)\bigr)$: if the exact period is right, every
+cycle gives the same $T_0$, whatever its amplitude.
+
+### A real pendulum and its effective length
+
+A real pendulum is a body, not a point on a massless rod. For a body of
+mass $m$ whose centre of mass lies a distance $d$ below the axis, with
+moment of inertia $I$ about the axis, the torque of its weight gives
+$I\ddot\theta = -m g d \sin\theta$. That is the point mass's equation with
+
+$$
+L_\text{eff} = \frac{I}{m\,d},
+$$
+
+the **effective length**: the length of the simple pendulum with the same
+period. Everything above holds for the body with $L_\text{eff}$ in place of
+$L$, including the exact period. For a point mass $L_\text{eff} = d$; a bob
+of finite size, a rod with mass, and parts of the encoder that turn with the
+axis all make $I$ larger and $L_\text{eff}$ longer. For a small body of
+moment of inertia $I_c$ about its own centre, at the distance $L$,
+$L_\text{eff} = L + I_c/(mL)$: longer by an amount that shrinks with $L$.
+From the period alone, with $g$ known, one measures $L_\text{eff} =
+gT_0^2/4\pi^2$, never $L$ itself.
+
+### Damping, linear and quadratic
+
+The resonance lesson's drag is proportional to the velocity. For the
+pendulum, with a drag that also has a part quadratic in the speed, as air
+gives a body moving fast enough through it,
+
+$$
+\ddot\theta = -\omega_0^2\sin\theta - 2\gamma\,\dot\theta
+              - \beta\,|\dot\theta|\,\dot\theta .
+$$
+
+When the damping is weak, the loss over one cycle can be averaged with
+$\theta \approx A\cos\omega_0 t$, and the amplitude obeys
+
+$$
+\dot A = -\gamma A - \kappa A^2, \qquad \kappa = \frac{4\beta\omega_0}{3\pi},
+$$
+
+whose solution from $A(0) = A_1$ is
+
+$$
+A(t) = \frac{A_1 e^{-\gamma t}}
+            {1 + \dfrac{\kappa A_1}{\gamma}\left(1 - e^{-\gamma t}\right)} .
+$$
+
+With $\kappa = 0$ it is the exponential decay of the resonance lesson, at a
+rate that does not depend on the amplitude, and the quality factor is
+$Q = \omega_0/2\gamma$. A quadratic drag makes a large swing die away
+faster than a small one. That is what a test across trials can catch:
+trials released at different amplitudes decay at different rates if
+$\kappa$ is not zero.
+
+## Code {#code}
+
+The model of the lab is in `pbc.mechanics.damped_pendulum`. The correction
+to small amplitude:
+
+```{python}
+#| echo: false
+excerpt(damped_pendulum.small_amplitude_period)
+```
+
+The equation of motion, as an acceleration for the course's steppers:
+
+```{python}
+#| echo: false
+excerpt(damped_pendulum.damped_pendulum)
+```
+
+The averaged decay of the amplitude:
+
+```{python}
+#| echo: false
+excerpt(damped_pendulum.amplitude_envelope)
+```
+
+The choices the lab makes before it looks at the data: the stated $g$, the
+runs, the trial the damping laws are fitted to, and the simulated record of
+the check below.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="choices")
+```
+
+## Worked examples {#worked-examples}
+
+### The analysis, checked on a simulated record
+
+Before any data, the analysis runs on a record whose answer is known: the
+equation of motion above, integrated with the fourth-order Runge-Kutta
+stepper of the integrators lesson from a release at
+`{python} result["sim-release"]`°, sampled and rounded to encoder steps as
+the measured record is.
+
+```{python}
+#| echo: false
+excerpt(experiment.simulated_record)
+```
+
+```{python}
+#| label: simulation-check
+#| echo: false
+result.table("simulation-check")
+```
+
+[On the simulated record, the mean of the corrected cycle periods is
+`{python} result["sim-t0-error"]` µs from the period the simulation was
+given, and the corrected period of a single cycle scatters by
+`{python} result["sim-scatter"]` ms from the encoder steps alone. The
+linear-plus-quadratic envelope recovers $\gamma$ to within
+`{python} result["sim-gamma-off"]` % and $\kappa$ to within
+`{python} result["sim-kappa-off"]` % of the values the simulation was
+given.]{.claim type="numerically-verified"
+scope="one simulated record like the shortest pendulum, released at the angle of the table, with the record's sampling and encoder step"
+evidence="simulation-check"} The period is recovered far better than any
+measured run will need. The rates are not exact because the envelope
+averages each cycle as if it were a cosine, which a swing of this size is
+not: a bias of several per cent, which the lab carries as a limit of its
+damping rates. A pure exponential, fitted to the same simulated decay,
+leaves residuals of `{python} result["sim-rms-linear"]` mrad against
+`{python} result["sim-rms-both"]` mrad for the law that made it: the
+residuals can tell the two laws apart at this size of damping.
+
+### The measurement {#data}
+
+```{python}
+#| echo: false
+data_card("xu-damped-pendulum")
+```
+
+The lab uses `{python} result["runs"]` runs: the three air-only trials of
+each of the five lengths, and the three trials of the shortest length with
+the large paper baffle. The first trial of each length is read from its
+raw file, the others from the creators' cleaned files; every run is
+analysed over the same window of the recording, the rows that the creators'
+cleaning keeps, which starts after the release. The card labels the angle a
+raw measurement and the cleaned files processed measurements; every figure
+here selects part of the angle or derives from it, so every figure says
+processed. The record's licence, [Apache-2.0]{.given}, permits redistribution and
+derived figures; the card gives the attribution, which every figure
+carries, and the files are unchanged.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_record)
+```
+
+```{python}
+#| label: fig-record
+#| echo: false
+#| fig-cap: "The start of the record of the shortest pendulum in air: at rest, lifted slowly by hand, held, released, and swinging. The analysed window starts about two cycles after the release."
+#| fig-alt: "Angle against time over the first twenty seconds of a recording. The line is flat at zero, rises in a smooth ramp to a plateau, then, after a dotted vertical line marking the release, oscillates between positive and negative values of nearly the same size, the swings shrinking very slowly. A grey band covers the oscillation from shortly after the release to the right edge."
+#| fig-status: processed
+#| fig-dataset: xu-damped-pendulum
+#| fig-artifact: raw-measured
+result.show("fig-record")
+```
+
+[The first record of the shortest pendulum holds
+`{python} result["rows"]` rows over `{python} result["record-seconds"]` s;
+the pendulum is released at `{python} result["release-time"]` s from
+`{python} result["release-angle"]`°, and the analysed window holds
+`{python} result["window-cycles"]` cycles whose amplitude falls from
+`{python} result["first-amplitude"]`° to
+`{python} result["last-amplitude"]`°.]{.claim type="observational"
+scope="the raw file len1_cond1_1 of the record, as published"
+evidence="fig-record xu-damped-pendulum"} The first cycle after the
+largest swing of each window is left out, in case the hand still touched
+the pendulum.
+
+### Period against amplitude
+
+Each cycle of the three air trials of the shortest pendulum gives a period
+and an amplitude, and the correction turns the period into $T_0$:
+
+```{python}
+#| echo: false
+excerpt(experiment.amplitude_slope)
+```
+
+```{python}
+#| label: amplitude-correction
+#| echo: false
+result.table("amplitude-correction")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_period_amplitude)
+```
+
+```{python}
+#| label: fig-period-amplitude
+#| echo: false
+#| fig-cap: "Each cycle's period falls as its swing dies away, along the exact period of the energy-conservation lesson; corrected to small amplitude, the cycles of all three trials lie on one level, well above the small-angle period of the stated length. The residuals show what the correction leaves: a slight rise with amplitude."
+#| fig-alt: "Two panels sharing an amplitude axis in degrees. Top, period against amplitude: open markers of three shapes rise along a dashed curve from the lowest to the highest amplitude; filled markers of the same shapes lie on a nearly flat line below them; a dotted horizontal line lies further below. Bottom, the period minus the dashed curve in milliseconds against amplitude: points scattered about zero, mostly below it at small amplitude and above it at large amplitude."
+#| fig-status: processed
+#| fig-dataset: xu-damped-pendulum
+#| fig-artifact: raw-measured
+result.show("fig-period-amplitude")
+```
+
+[Over the three air trials of the shortest pendulum, the period of a cycle
+rises with its amplitude by `{python} result["slope-before-low"]` to
+`{python} result["slope-before-high"]` ms per degree; corrected with the
+exact period, by `{python} result["slope-after-low"]` to
+`{python} result["slope-after-high"]` ms per degree. The corrected period
+of one cycle scatters by `{python} result["short-scatter"]` ms in the first
+trial.]{.claim type="experimentally-supported"
+scope="the three air-only trials of the shortest length, amplitudes from about 25 to 55 degrees, the exact period of a rigid pendulum without damping"
+evidence="amplitude-correction fig-period-amplitude xu-damped-pendulum"}
+The exact period accounts for nearly all of the amplitude dependence: what
+it leaves is a few per cent of the slope, the slight rise in the residual
+panel, a few milliseconds across the range of amplitudes. It is far larger
+than the
+bias the simulated check found, so it belongs to the pendulum or the
+record, not to the analysis, which left
+`{python} result["sim-slope"]` ms per degree on the simulated record; the
+record does not say which. The scatter of
+one cycle is about three times what the encoder steps alone give on the
+simulated record: the measured cycles vary from one to the next by more
+than the encoder can explain.
+
+### Repeated trials and the period against length
+
+Averaged over its cycles, the first run of the shortest pendulum gives
+$T_0$ with a standard error of `{python} result["short-stderr"]` ms.
+Whether that is the uncertainty of the pendulum's period, the repeated
+trials show:
+
+```{python}
+#| echo: false
+excerpt(experiment.length_points)
+```
+
+```{python}
+#| label: trials
+#| echo: false
+result.table("trials")
+```
+
+[The three trials of one length differ with a standard deviation of
+`{python} result["trial-sd-low"]` to `{python} result["trial-sd-high"]` ms,
+while the standard error of a single run's $T_0$ is
+`{python} result["run-stderr-low"]` to `{python} result["run-stderr-high"]`
+ms. Measured with the standard errors of their own runs, the spreads of
+the five lengths add up to a chi-square of `{python} result["trial-chi2"]`
+for `{python} result["trial-dof"]` degrees of freedom: the trials disagree
+by far more than each run's own scatter allows.]{.claim type="experimentally-supported"
+scope="the fifteen air-only runs, five lengths of three trials, each analysed over the creators' window"
+evidence="trials xu-damped-pendulum"} So the uncertainty of a period is the
+spread of the trials, not the standard error of one run, and the lab uses
+the standard error of the mean of three trials. With three trials that
+spread is itself only roughly known.
+
+Now the period against the length. The simple pendulum of the stated length
+and $g$ is one model; a straight line in $T_0^2$ with free slope and
+offset is the analysis a lab would usually make; and a physical pendulum
+with a body of fixed size, $L_\text{eff} = L + c/L$ with $g$ known, is a
+third. Each is judged by its reduced chi-square with the standard errors of
+the trials:
+
+```{python}
+#| echo: false
+excerpt(experiment.length_models)
+```
+
+```{python}
+#| label: length-models
+#| echo: false
+result.table("length-models")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_length)
+```
+
+```{python}
+#| label: fig-length
+#| echo: false
+#| fig-cap: "Every pendulum swings like a simple pendulum longer than its stated length, by more at the short lengths than at the long ones. Neither a straight line nor the physical pendulum runs through the means within their error bars; both miss them by about a millimetre or less."
+#| fig-alt: "One panel: the effective length minus the stated length, in millimetres, against the stated length. Three markers per length lie close together and fall from about ten at the shortest length to about four at the longest, not quite smoothly; black diamonds with small error bars sit beside them. A dashed straight line falls across the panel, a dash-dot curve falls steeply and then levels off, and a dotted line lies along zero, far below all the points."
+#| fig-status: processed
+#| fig-dataset: xu-damped-pendulum
+#| fig-artifact: processed-measured
+result.show("fig-length")
+```
+
+[With the stated lengths and $g$, every pendulum swings like a simple
+pendulum `{python} result["excess-low"]` to `{python} result["excess-high"]`
+mm longer than stated; at the shortest length $T_0$ is
+`{python} result["short-above"]` % above $2\pi\sqrt{L/g}$. Judged with the
+spread of the trials, the simple pendulum has a reduced chi-square of
+`{python} result["simple-chi2"]`, the straight line
+`{python} result["line-chi2"]` and the physical pendulum
+`{python} result["physical-chi2"]`: none describes the five lengths within
+the precision of the periods. Their largest residuals, as a length, are
+`{python} result["line-residual-mm"]` mm for the line and
+`{python} result["physical-residual-mm"]` mm for the physical pendulum,
+where the error bars are at most `{python} result["sigma-mm-high"]`
+mm.]{.claim type="experimentally-supported"
+scope="the means of the three air-only trials at the five stated lengths, the stated g taken as exact, the definition of the stated length unknown"
+evidence="trials length-models fig-length xu-damped-pendulum"}
+
+The slope of the straight line would mean $g =$ `{python} result["g-line"]`
+± `{python} result["g-err"]` $\mathrm{m/s^2}$, with the error scaled for the misfit,
+and its offset adds `{python} result["line-offset"]` mm to every length.
+That is not a measurement of $g$: the record says neither where the
+lengths are measured from nor how well, and an error in the lengths that
+grows or shrinks with $L$ goes straight into the slope. The record writes
+its lengths to the millimetre. The residuals of the two fitted models are
+of that size, a few times larger than what the periods resolve: these
+periods measure the pendulum more precisely than its lengths are known, so
+the lengths, not the periods, limit the test. The physical pendulum, with
+one parameter instead of two, comes about as close as the line, and its
+$c =$ `{python} result["c-value"]` ± `{python} result["c-err"]` $\mathrm{cm^2}$ is the
+size of $I_c/m$ the record's pendulum would need. What part the bob, the
+rod and the encoder each play, the record does not say.
+
+### Damping, and the trials held out
+
+The shortest pendulum is followed through two settings: in air, and with
+the large baffle. For each, the two laws are fitted to the cycle amplitudes
+of the first trial; then the rates of that fit, unchanged, are tested on the
+second and third trials, of which only the starting amplitude is fitted.
+Those trials were released higher than the first in both settings, so they
+test whether the rates depend on the amplitude.
+
+```{python}
+#| echo: false
+excerpt(experiment.damping_fits)
+```
+
+```{python}
+#| label: damping-holdout
+#| echo: false
+result.table("damping-holdout")
+```
+
+```{python}
+#| label: damping-rates
+#| echo: false
+result.table("damping-rates")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_damping)
+```
+
+```{python}
+#| label: fig-damping
+#| echo: false
+#| fig-cap: "In both settings the trials released higher die away faster than the exponential fitted to the first trial predicts; the law with a quadratic part follows them more closely. In air it still drifts away from them slowly; with the baffle both laws fall short in the first seconds, where the swing dies away fastest."
+#| fig-alt: "Four panels. Top row, amplitude in degrees against time for air on the left and the baffle on the right: three sets of markers fall steadily, the lowest set starting lower than the other two; in air they fall nearly straight, with the baffle steeply at first and then levelling off; thin solid curves run through the markers. Bottom row, residuals against time: dashed lines start high for the two upper sets and dip below zero later; markers stay closer to zero, drifting slowly in air on the left, and on the right they also start high for those two sets in the first few seconds."
+#| fig-status: processed
+#| fig-dataset: xu-damped-pendulum
+#| fig-artifact: processed-measured
+result.show("fig-damping")
+```
+
+[In air, fitted to the first trial, the exponential leaves residuals of
+`{python} result["air-fit-linear"]` mrad root mean square and the
+linear-plus-quadratic law `{python} result["air-fit-both"]` mrad; on the
+two held-out trials the exponential with the first trial's rate misses by
+`{python} result["air-held-linear-low"]` to
+`{python} result["air-held-linear-high"]` mrad, the law with both parts by
+`{python} result["air-held-both-low"]` to
+`{python} result["air-held-both-high"]` mrad. With the large baffle the
+same numbers are `{python} result["baffle-fit-linear"]` and
+`{python} result["baffle-fit-both"]` mrad on the first trial, and
+`{python} result["baffle-held-linear-low"]` to
+`{python} result["baffle-held-linear-high"]` against
+`{python} result["baffle-held-both-low"]` to
+`{python} result["baffle-held-both-high"]` mrad on the held-out
+ones.]{.claim type="experimentally-supported"
+scope="the shortest length, three air-only and three large-baffle trials, the rates fitted to the first trial of each setting, amplitudes per cycle from the creators' window"
+evidence="damping-holdout fig-damping xu-damped-pendulum"} The data ask
+for the quadratic part: on trials it never saw, it cuts the misfit of the
+exponential by a third to a half in both settings. The exponential alone fits the
+first trial in air with a quality factor of `{python} result["air-quality"]`,
+as the resonance lesson defines it, but that number does not carry over to
+a swing released higher.
+
+Neither law, though, predicts the held-out trials to within the scatter of
+the first: their residuals are two to five times larger than on the first
+trial. In air they drift slowly from one sign to the other over the run;
+with the baffle they are largest in the first seconds, at the highest
+amplitudes, where the swing dies away faster than either law says. The
+rates themselves show why
+no uncertainty from a single fit can be trusted here:
+
+[Fitted to each trial on its own, $\kappa$ is
+`{python} result["air-kappa-mean"]` ± `{python} result["air-kappa-sd"]` per
+radian per thousand seconds in air and `{python} result["baffle-kappa-mean"]`
+± `{python} result["baffle-kappa-sd"]` with the baffle (mean and standard
+deviation of the three trials), while the standard error of a single fit is
+at most `{python} result["air-kappa-err"]` and
+`{python} result["baffle-kappa-err"]`. The residuals of neighbouring cycles
+of the first trial are correlated, with an autocorrelation of
+`{python} result["air-rho-both"]` in air and
+`{python} result["baffle-rho-both"]` with the baffle for the law with both
+parts.]{.claim type="experimentally-supported"
+scope="the shortest length, three trials per setting, each fitted on its own; the residuals of the first trial's fit"
+evidence="damping-rates fig-damping xu-damped-pendulum"} A standard error
+from a fit assumes residuals that are independent, and these are not: they
+follow a slow misfit from one cycle to the next, so the fit's standard
+error is too small. The trials differ by several of those standard errors.
+The honest uncertainty of a rate is the spread of the trials, and with
+three trials that is a rough one. The baffle's rates are also not the air's
+pendulum with more drag: the baffle adds mass and moves air with it, and
+its trials swing with a small-amplitude period
+`{python} result["baffle-t0-longer"]` ms longer than the air
+trials'.
+
+### What the lab shows
+
+The pendulum of the three earlier lessons survives the test where its
+assumptions hold and shows its limits where they do not. The exact period
+removes nearly all of the amplitude dependence of the measured period, as
+the energy-conservation lesson says it should, and leaves a slight rise
+with amplitude, a few per cent of the slope, that the record cannot
+explain. The small-angle period
+does not follow $2\pi\sqrt{L/g}$ of the stated lengths: every pendulum
+behaves as a simple pendulum some millimetres longer, as a body that is not
+a point mass would if the stated length ran to its centre of mass, and the periods are precise enough to show that the
+lengths, not the timing, limit any finer test. The resonance lesson's
+exponential decay fits one trial, but the trials released higher die away
+faster than it predicts, and a drag quadratic in the speed accounts for
+a third to a half of that; what is left, and the spread of the rates from trial to
+trial, are beyond this model and these records.
+
+## Limits {#limits}
+
+- **The length is not defined.** The record states five lengths without
+  saying where they are measured from, and gives no uncertainty for them or
+  for $g$. The effective lengths are measured; how they relate to the
+  pendulum's dimensions is not.
+- **The trials are few.** Three trials per length and setting give the
+  spread of a period or a rate only roughly; the record does not say what
+  changed between them, such as how the pendulum was released.
+- **The damping is followed at one length.** The shortest pendulum, in air
+  and with the large baffle; the other lengths and the small baffle are in
+  the record but not in the lab. The baffle changes the pendulum as well as
+  its drag.
+- **The envelope is an average.** The decay law averages each cycle as a
+  cosine; on the simulated record its rates are off by several per cent at
+  the amplitudes of these trials, which the lab does not correct.
+- **Other losses are not modelled.** Friction in the encoder's bearing, for
+  instance, would add a loss that does not scale with the speed; a law with
+  constant rates leaves part of the measured decay unexplained, and the lab
+  does not say what that part is.
+- **One window.** Every run is analysed over the creators' window of the
+  recording; a different window changes the cycles used, and so the
+  numbers, slightly.
+
+::: {.exercise .self-check}
+One run of the shortest pendulum gives its small-amplitude period with a
+standard error of about a tenth of a millisecond. A colleague concludes that
+the period of this pendulum is known to a tenth of a millisecond. What is
+wrong with that?
+
+::: {.solution}
+The standard error says how well the scatter of one run's cycles pins down
+that run's mean. The three trials of the same length differ by more than
+that: something that changes between releases, and that no single run can
+show, moves the period too. The spread of the trials is the uncertainty of
+the period, and with three trials even that is known only roughly. The
+same holds for the damping rates, whose fit errors are smaller still than
+the differences between trials.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**How much longer at a large swing?** The shortest pendulum was released at
+about 44°. By what factor is its period at that amplitude longer than at
+small amplitude, exactly and from the first correction term
+$1 + A^2/16$? How many milliseconds is that for $T_0 = 0.995$ s?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.amplitude_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("amplitude-exercise"), end="")
+```
+
+Tens of milliseconds: far more than the scatter of a cycle, which is why the
+correction has to be the exact one, not its first term.
+:::
+:::
+
+::: {.exercise}
+**How big a bob?** The physical pendulum of the lab has
+$L_\text{eff} = L + c/L$. For a solid sphere of radius $r$ on a light rod,
+$I_c/m = 2r^2/5$. What radius would a sphere need for its own size alone to
+give the fitted $c$?
+
+::: {.hint}
+Set $2r^2/5 = c$ and solve for $r$.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.bob_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("bob-exercise"), end="")
+```
+
+A sphere that large would be a very unusual bob for a pendulum of this
+length, so the bob's size alone is an unlikely explanation; the rod and the
+parts of the encoder that turn with the axis also add to $I$. The record
+gives none of these dimensions, so the lab cannot tell them apart.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/mechanics/damped_pendulum.py",
+        "src/pbc/mechanics/experiments/pendulum_measurements.py",
+        "src/pbc/experiment.py",
+        "src/pbc/data/reference/xu_pendulum.py",
+        "src/pbc/data/adapters.py",
+        "src/pbc/data/fit.py",
+        "src/pbc/data/plotting.py",
+    ],
+    tests=[
+        "tests/unit/test_damped_pendulum.py",
+        "tests/unit/test_data_xu_pendulum.py",
+        "tests/unit/test_pendulum_measurements_experiment.py",
+    ],
+)
+```
+
+The data card above gives the command that downloads a fresh copy of the
+files into `data/downloads/xu-damped-pendulum`; no model and no account are
+needed to read them.

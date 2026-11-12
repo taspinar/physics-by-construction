@@ -117,6 +117,51 @@ def test_xu_pendulum_sample_parses(sample):
     assert licence.split()[:4] == ["Apache", "License", "Version", "2.0,"]
 
 
+ADDED = (
+    *(f"len{k}_cond1_{t}" for k in range(1, 6) for t in (2, 3)),
+    *(f"len1_cond3_{t}" for t in (1, 2, 3)),
+)
+
+
+def test_xu_pendulum_added_trials_parse():
+    # The cleaned files added for the M15 lab (Issue #437, phase 2): the
+    # other two air-only trials of every length and the three large-baffle
+    # trials of the shortest one, each the creators' window of its raw run.
+    assert len(ADDED) == 13
+    for name in ADDED:
+        path = XU / "cleaned_data" / f"{name}.csv"
+        assert path.read_text().splitlines()[0] == ",".join(xu_pendulum.CLEANED_FIELDS)
+        cleaned = xu_pendulum.read_cleaned(path)
+        # Shapes and cadence: 6000 rows at 0.01 s from 0, 60 s of swinging.
+        for column in (cleaned.time, cleaned.angle, cleaned.angular_velocity):
+            assert column.shape == (6000,)
+        assert cleaned.time[0] == 0
+        np.testing.assert_allclose(np.diff(cleaned.time), xu_pendulum.STEP, atol=1e-9)
+        # Masks: nothing is missing in the window.
+        assert np.isfinite(cleaned.angle).all()
+        assert np.isfinite(cleaned.angular_velocity).all()
+        # Units: the angle in radians is a whole number of encoder steps,
+        # written with 3 decimals; the pendulum swings by more than 0.1 rad.
+        counts = np.round(cleaned.angle / xu_pendulum.ENCODER_STEP)
+        np.testing.assert_allclose(
+            np.round(counts * xu_pendulum.ENCODER_STEP, 3), cleaned.angle, atol=1e-12
+        )
+        assert 0.1 < np.abs(cleaned.angle).max() < 1.2
+        # The angular velocity in rad/s is the software's derivative of the
+        # angle inside the window, as in the raw files.
+        computed = xu_pendulum.software_velocity(cleaned.angle)
+        np.testing.assert_allclose(
+            computed[2:-2], cleaned.angular_velocity[2:-2], atol=1e-9
+        )
+        # is_peak marks extremes of |angle| only.
+        peaks = np.flatnonzero(cleaned.is_peak)
+        assert peaks.size > 40
+        inner = peaks[(peaks > 0) & (peaks < 5999)]
+        magnitude = np.abs(cleaned.angle)
+        assert (magnitude[inner] >= magnitude[inner - 1]).all()
+        assert (magnitude[inner] >= magnitude[inner + 1]).all()
+
+
 def test_a_file_with_another_header_is_refused(tmp_path):
     path = tmp_path / "other.csv"
     path.write_text("time,angle\n0.0,0.1\n", encoding="utf-8")
