@@ -247,8 +247,9 @@ def test_no_printed_output_is_a_block_of_numbers(experiment):
 
 def test_the_figures_leave_room_in_the_payload_budget_of_the_page(results):
     # The page budget is 3 MB; the labs keep their figures under 0.75 MB.
-    # Locally these are about 0.59 MB, leaving room for a larger Linux build
-    # in CI (AST8 came out about 8 % larger there).
+    # Locally these are about 0.55 MB. The Linux build in CI is larger: on
+    # a3263c1 it measured 669,684 bytes against 580,399 locally, about
+    # 15 % more, so the local total is kept below 0.56 MB.
     directory, _ = results
     total = sum(p.stat().st_size for p in directory.glob("fig-*.png"))
     assert total < 650_000, total

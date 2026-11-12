@@ -458,7 +458,7 @@ def independence_table(experiment: Experiment, annual: Readings, wave: Wave) -> 
 
 def draw_soil_record(hourly: Readings) -> Figure:
     """One summer week of hourly readings at the five depths."""
-    fig, bottom = plt.subplots(figsize=(6.0, 3.4), constrained_layout=True)
+    fig, bottom = plt.subplots(figsize=(6.0, 3.2), constrained_layout=True)
     start = np.datetime64(WEEK_START, "h")
     inside = (hourly.time >= start) & (
         hourly.time < start + np.timedelta64(7 * 24, "h")
@@ -494,7 +494,7 @@ def draw_harmonic_fits(
     fig, axes = plt.subplots(
         2,
         2,
-        figsize=(6.8, 5.8),
+        figsize=(6.8, 5.4),
         constrained_layout=True,
         gridspec_kw={"height_ratios": [1.4, 1.0]},
     )
@@ -510,7 +510,8 @@ def draw_harmonic_fits(
             ls="none" if k == 0 else "-",
             lw=0.8,
             marker="." if k == 0 else "",
-            ms=1.2,
+            ms=2.0,
+            mew=0,  # an outline adds bytes to the page, not detail
             color=COLOURS[k],
             label=f"{label} [{status}]",
         )
@@ -532,7 +533,8 @@ def draw_harmonic_fits(
             ls="none" if k == 0 else "-",
             lw=0.8,
             marker="." if k == 0 else "",
-            ms=1.0,
+            ms=1.7,
+            mew=0,  # an outline adds bytes to the page, not detail
             color=COLOURS[k],
             label=label,
         )
