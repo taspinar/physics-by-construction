@@ -31,6 +31,7 @@ from pbc.authoring import (
     atlas,
     evidence,
     glossary,
+    home,
     is_numeric_console_block,
     previews,
 )
@@ -1159,8 +1160,9 @@ def check_committed_files(repository: Path) -> list[Violation]:
     interface artwork (ADR 018 decision 2, ADR 021 decision 2): an SVG under
     ``site/assets/`` that the provenance register names with an author and a
     licence, or a WebP or PNG there that it names with a complete raster
-    entry (its origin, a licence, and the SHA-256 of its master; the hero of
-    the home page, under ``hero/``, needs no licence).
+    entry (its origin, a licence, and the SHA-256 of its master; the files
+    of the home page's hero, the ones ``site/hero.yaml`` declares, need no
+    licence).
 
     A Part B product has one further fixture location (ADR 022 decision 8):
     ``products/<product>/fixtures/<name>.json``, the replay traces of the
@@ -1239,10 +1241,12 @@ def check_committed_files(repository: Path) -> list[Violation]:
 # with its origin (``script``, a file of the repository; ``author``; or
 # ``model`` with its ``prompt``), a ``licence``, the file name of its
 # ``master``, and the master's ``sha256``, and optionally a ``date`` and a
-# ``source``. The hero of the home page, under ``hero/``, is the one raster
-# that needs no licence (ADR 021 decision 2 as amended on 2026-11-12 by the
-# owner's decision on Issue #487): the strict provenance conditions of lesson
-# content do not apply to it.
+# ``source``. The hero of the home page is the one raster that needs no
+# licence (ADR 021 decision 2 as amended on 2026-11-12 by the owner's
+# decision on Issue #487): the strict provenance conditions of lesson content
+# do not apply to it. The exemption reaches exactly the files the hero's data
+# file ``site/hero.yaml`` declares (``_home_hero_rasters``), not a directory:
+# any other raster, also one under ``hero/``, keeps the requirement.
 
 _AUTHORED_FIELDS = {"author", "licence", "source"}
 _GENERATED_FIELDS = {"module"}
@@ -1259,9 +1263,19 @@ _RASTER_FIELDS = {
 }
 _RASTER_SUFFIXES = {".webp", ".png"}
 _IMAGE_SUFFIXES = {".svg", *_RASTER_SUFFIXES}
-# The one directory whose rasters need no licence: the hero of the home page.
-_UNLICENSED_RASTER_DIRECTORY = "hero"
 _SHA256 = re.compile(r"[0-9a-f]{64}")
+
+
+def _home_hero_rasters(repository: Path) -> frozenset[str]:
+    """The register keys of the files of the home page's hero, the rasters
+    that need no licence: the files ``site/hero.yaml`` declares (one per
+    width, ``pbc.authoring.home``). Nothing is exempt when the data file is
+    missing or breaks a rule; the build of Home reports that itself."""
+    try:
+        hero = home.HeroCopy.read(repository / SITE)
+    except ValueError:
+        return frozenset()
+    return frozenset(file.removeprefix("assets/") for file in hero.image.files)
 
 
 def _register_entries(repository: Path) -> tuple[dict[str, Any], list[str]]:
@@ -1313,19 +1327,22 @@ def _is_date(value: Any) -> bool:
     return isinstance(value, str)
 
 
-def _raster_problems(name: str, entry: Any, files: set[Path]) -> list[str]:
-    """What the entry of the raster ``name`` lacks to be complete."""
+def _raster_problems(
+    name: str, entry: Any, files: set[Path], unlicensed: frozenset[str] = frozenset()
+) -> list[str]:
+    """What the entry of the raster ``name`` lacks to be complete;
+    ``unlicensed`` names the register keys that need no licence (the files
+    of the home page's hero)."""
     if not isinstance(entry, dict):
         return [f"the entry of '{name}' is not a mapping"]
     problems = [
         f"the entry of '{name}' has the unknown field '{field}'"
         for field in sorted(set(entry) - _RASTER_FIELDS)
     ]
-    # The hero of the home page may leave the licence out; a licence that is
-    # given, there or anywhere else, is a text.
-    unlicensed = Path(name).parts[:1] == (_UNLICENSED_RASTER_DIRECTORY,)
+    # A file of the home page's hero may leave the licence out; a licence
+    # that is given, there or anywhere else, is a text.
     for field in ("licence", "master"):
-        if field == "licence" and unlicensed and field not in entry:
+        if field == "licence" and name in unlicensed and field not in entry:
             continue
         if not _is_text(entry.get(field)):
             problems.append(f"the entry of '{name}' needs a '{field}'")
@@ -1368,6 +1385,7 @@ def _admitted_artwork(repository: Path) -> set[Path]:
     if problems:
         return set()
     files = set(committed_files(repository))
+    unlicensed = _home_hero_rasters(repository)
     artwork = set()
     for name, entry in entries.items():
         path = _asset_path(name)
@@ -1377,14 +1395,16 @@ def _admitted_artwork(repository: Path) -> set[Path]:
             admitted = _is_authored(entry)
         else:
             admitted = path.suffix in _RASTER_SUFFIXES and not _raster_problems(
-                name, entry, files
+                name, entry, files, unlicensed
             )
         if admitted:
             artwork.add(path)
     return artwork
 
 
-def _asset_entry_problems(name: Any, entry: Any, files: set[Path]) -> list[str]:
+def _asset_entry_problems(
+    name: Any, entry: Any, files: set[Path], unlicensed: frozenset[str]
+) -> list[str]:
     path = _asset_path(name)
     if path is None:
         return [f"'{name}' is not a path under {ASSETS}"]
@@ -1393,7 +1413,7 @@ def _asset_entry_problems(name: Any, entry: Any, files: set[Path]) -> list[str]:
             f"'{name}' is not an SVG, a WebP, or a PNG; the register names nothing else"
         ]
     if path.suffix in _RASTER_SUFFIXES:
-        problems = _raster_problems(name, entry, files)
+        problems = _raster_problems(name, entry, files, unlicensed)
         if path not in files:
             problems.append(f"'{name}' is registered, but there is no file {path}")
         return problems
@@ -1438,10 +1458,11 @@ def check_asset_sources(repository: Path) -> list[Violation]:
         Violation("asset-source", ASSET_REGISTER, problem) for problem in problems
     ]
     files = set(committed_files(repository))
+    unlicensed = _home_hero_rasters(repository)
     for name, entry in entries.items():
         violations += [
             Violation("asset-source", ASSET_REGISTER, problem)
-            for problem in _asset_entry_problems(name, entry, files)
+            for problem in _asset_entry_problems(name, entry, files, unlicensed)
         ]
     registered = {_asset_path(name) for name in entries}
     for path in sorted(files):

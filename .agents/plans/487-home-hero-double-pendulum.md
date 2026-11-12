@@ -146,9 +146,12 @@ Skills: impeccable@08d5b470, frontend-design@dbd4588f, pbc-scientific-visualizat
   owner's decision of 2026-11-12 after review round 1, finding M1: the
   hero carries no licence in the register at all; ADR 021 decision 2 is
   amended by a dated note, and the register check of
-  `tests/support/lesson_checks.py` requires no licence of a raster under
-  `hero/` while every other raster entry keeps it, with a test per case
-  in `tests/integration/test_lesson_checks.py`), the `master`
+  `tests/support/lesson_checks.py` requires no licence of exactly the
+  files `site/hero.yaml` declares, read through `pbc.authoring.home`,
+  while every other raster entry keeps it, any other file under `hero/`
+  included, with a test per case in
+  `tests/integration/test_lesson_checks.py`; review round 2 narrowed the
+  exemption from the directory to the declared files), the `master`
   `pbc_hero_assets/pbc-double-pendulum-hero-original.png`, its `sha256`
   (`ac9062c7…`), and a `source` that says what the image shows and how
   the files were derived; no `script` (the master is not computed by a
@@ -191,6 +194,16 @@ gutter, and the document still has no horizontal scroll). The contrast
 test, the edge test, the one-request test, the layout-stability test,
 the above-the-fold, in-view, unshrunk, and no-script tests keep their
 assertions. `tests/integration/test_home_build.py` keeps its cases.
+Added in `tests/integration/test_lesson_checks.py` (the owner's
+correction after review round 1, narrowed after review round 2): the
+exemption of the register check is exactly the files `site/hero.yaml`
+declares (nothing without the data file or with one that breaks a rule);
+each declared file without a licence is accepted; every other raster
+without one is still reported (an atlas file, a root PNG, `hero.webp`,
+`heroes/mark.webp`, `atlas/hero/mark.webp`, `hero/mark.png`,
+`hero/mark.webp`, the hero's name at an undeclared width, the old
+vortex-street name); a declared file without the data file, and a hero
+licence that is not a text, are reported.
 
 ## Documents
 

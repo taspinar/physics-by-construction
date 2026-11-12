@@ -1317,7 +1317,11 @@ committed under `site/assets/` at the sizes the pages show, never rendered
 by the build. The provenance register `site/assets/provenance.yaml` names
 each with its origin (a script with its path, an author, or an image model
 with the model, the prompt, and the date), a licence or terms that permit
-publication, and the SHA-256 hash of its master. A script, where one
+publication, and the SHA-256 hash of its master. The one exception is the
+hero of the home page: the files `site/hero.yaml` declares carry no licence
+or terms in the register, by the owner's decision of 2026-11-12 (ADR 021
+decision 2 as amended that day, Issue #487), while every other raster, also
+any other file under `site/assets/hero/`, keeps them. A script, where one
 exists, lives outside `site/` and outside the build and CI; a regeneration
 check on demand, outside `scripts/verify.conf`, compares a regenerated
 master's hash with the register. The committed-artifact check admits a

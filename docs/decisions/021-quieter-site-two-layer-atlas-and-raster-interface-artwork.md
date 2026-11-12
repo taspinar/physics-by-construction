@@ -184,16 +184,19 @@ descriptions live.
 
    *Amended on 2026-11-12 by the owner's decision on Issue #487 (Home: the
    hero image replaced by the double-pendulum illustration).* The hero of
-   the home page carries no licence in the register: the entries of the
-   rasters under `site/assets/hero/` name their origin (the owner as the
+   the home page carries no licence in the register: the entries of its
+   files under `site/assets/hero/` name their origin (the owner as the
    author, with the date), their master, and its hash, and no licence or
    terms, since the owner publishes the owner's own illustration and
    states no licence for it ("Ik wil helemaal geen licentie op de hero
    pagina", 2026-11-12). The strict provenance conditions of lesson
    content do not apply to the hero. The committed-artifact check and the
-   asset-source rule admit a raster under `hero/` without a licence and
-   keep requiring one of every other raster entry, with a test per case.
-   Everything else in this decision stands.
+   asset-source rule admit without a licence exactly the files the hero's
+   data file `site/hero.yaml` declares (one per width, named by the hero's
+   identifier), and keep requiring one of every other raster entry, also
+   any other file under `site/assets/hero/`, with a test per case (review
+   round 2 of Issue #487 narrowed the exemption from the directory to the
+   declared files). Everything else in this decision stands.
 3. **The Course Atlas as a two-layer navigation page.** At the path
    address, with "Course Atlas" as its display label, the page is built at
    build time from the curriculum file, the front matter, and the atlas

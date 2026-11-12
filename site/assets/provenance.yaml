@@ -8,7 +8,8 @@
 #   script of the repository, an author, or an image model with its prompt
 #   and date), a licence, the file name of its master, and the master's
 #   SHA-256; optionally a date and a source. The hero of the home page
-#   (hero/) carries no licence: the owner's decision of 2026-11-12 on Issue
+#   carries no licence (the files site/hero.yaml declares, and no other
+#   raster, hero/ included): the owner's decision of 2026-11-12 on Issue
 #   #487 (ADR 021 decision 2 as amended that day).
 #
 # The asset-source check (tests/lessons) fails on an image here without its
