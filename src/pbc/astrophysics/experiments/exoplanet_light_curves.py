@@ -163,7 +163,7 @@ def cleaning(experiment: Experiment, lc: LightCurve) -> dict:
             ("without a time stamp", counts["no-time"]),
             ("without a PDCSAP flux and error", counts["no-flux"]),
             ("with a nonzero quality flag", counts["flagged"]),
-            ("  of these with a PDCSAP flux", counts["flagged-with-flux"]),
+            ("of these, with a PDCSAP flux", counts["flagged-with-flux"]),
             ("without a flux but not flagged", counts["unflagged-without-flux"]),
             ("kept: quality 0 and every value finite", counts["good"]),
         ],
