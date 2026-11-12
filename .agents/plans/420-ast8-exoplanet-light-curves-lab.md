@@ -162,6 +162,13 @@ Budgets: a lesson page warns at 30 s and fails at 60 s of single-page render
   0.2 MB: about 1 MB, a third of the budget. The 704 KB sample is read at
   build time and not shipped. Measured in the single-page render:
   `index.html` 176 KB, the figures 197, 202, 210, and 88 KB (697 KB).
+  CI on Linux measured 810 KB for the same figures (PNG compression and
+  fonts differ by platform), over the bound. The bound stays at 0.75 MB;
+  the figures were made smaller instead: the light curve 6.4 x 4.8 in, the
+  detrending 6.4 x 7.0 in, the transit fit 6.4 x 5.8 in, and every cadence
+  of the dense layers drawn as a small square without an edge. Measured
+  locally after the change: 154, 183, 168, and 88 KB (592 KB), which leaves
+  a margin on Linux at the same ratio (about 690 KB).
 
 ## Verification
 

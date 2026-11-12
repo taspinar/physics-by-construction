@@ -435,13 +435,16 @@ def draw_light_curve(lc: LightCurve, analysis: Analysis) -> Figure:
     two days, with the pipeline's errors."""
     series = light_curve_series(lc)
     flagged = (lc.quality != 0) & np.isfinite(lc.flux)
-    fig, (top, bottom) = plt.subplots(2, 1, figsize=(7.0, 5.6), constrained_layout=True)
+    # Every cadence is drawn as a small square without an edge: thousands of
+    # round, outlined dots cost the page tens of kilobytes more as PNG.
+    fig, (top, bottom) = plt.subplots(2, 1, figsize=(6.4, 4.8), constrained_layout=True)
     top.plot(
         series.x[~flagged],
         series.y[~flagged],
         ls="none",
-        marker=".",
-        ms=1.2,
+        marker="s",
+        ms=1.0,
+        mew=0,
         color=COLOURS[0],
         label=f"PDCSAP flux, quality 0 [{series.status}]",
     )
@@ -490,7 +493,7 @@ def draw_detrending(curve: dict, window: dict, epoch: int) -> Figure:
     hours = window["offset"] * 24
     dense = np.linspace(-reference.HALF_WINDOW, reference.HALF_WINDOW, 300)
     base = window["base"]
-    fig = plt.figure(figsize=(6.4, 8.2), constrained_layout=True)
+    fig = plt.figure(figsize=(6.4, 7.0), constrained_layout=True)
     grid = fig.add_gridspec(3, 1, height_ratios=(1.0, 1.0, 1.0))
     phase = fig.add_subplot(grid[0])
     top = fig.add_subplot(grid[1])
@@ -516,8 +519,11 @@ def draw_detrending(curve: dict, window: dict, epoch: int) -> Figure:
     phase.axhline(0.0, color="0.5", lw=0.8)
     phase.set_ylim(-700, 800)
     phase.set_xlabel("orbital phase from mid-transit [1]")
-    phase.set_ylabel("flux over the orbit's median [ppm]")
-    phase.set_title(f"{curve['orbits']} orbits folded: the baseline is not flat")
+    phase.set_ylabel("relative flux [ppm]")
+    phase.set_title(
+        f"{curve['orbits']} orbits folded, flux over the median: "
+        "the baseline is not flat"
+    )
     phase.legend(fontsize=7, loc="upper center")
     for ax in (top, bottom):
         ax.axvspan(
@@ -554,7 +560,7 @@ def draw_detrending(curve: dict, window: dict, epoch: int) -> Figure:
         lw=1.4,
         label="baseline model: parabola, fitted [simulated]",
     )
-    top.set_ylim(46850, 48100)
+    top.set_ylim(46500, 48100)
     top.set_ylabel("PDCSAP flux [e-/s]")
     top.set_title(f"Transit number {epoch}: the flux and its baseline")
     top.legend(fontsize=7, loc="lower center")
@@ -610,7 +616,7 @@ def draw_transit_fit(analysis: Analysis, uniform: FitResult) -> Figure:
     fig, (top, bottom) = plt.subplots(
         2,
         1,
-        figsize=(6.4, 6.6),
+        figsize=(6.4, 5.8),
         sharex=True,
         constrained_layout=True,
         gridspec_kw={"height_ratios": [2.0, 1.0]},
@@ -619,8 +625,9 @@ def draw_transit_fit(analysis: Analysis, uniform: FitResult) -> Figure:
         hours,
         folded.flux,
         ls="none",
-        marker=".",
-        ms=1.2,
+        marker="s",
+        ms=1.0,
+        mew=0,
         color="0.75",
         label="measured, normalised cadences [processed]",
     )
@@ -654,10 +661,10 @@ def draw_transit_fit(analysis: Analysis, uniform: FitResult) -> Figure:
     top.set_title(f"{len(folded.epochs)} transits folded on the measured period")
     top.legend(fontsize=7, loc="lower center")
     bottom.axhline(0.0, color="0.4", lw=0.8)
-    bottom.set_ylabel("residual, 6-minute bins [ppm]")
+    bottom.set_ylabel("residual [ppm]")
     bottom.set_xlabel("time from mid-transit [h]")
     bottom.set_ylim(-1400, 1000)
-    bottom.set_title("Residuals of the two models")
+    bottom.set_title("Residuals of the two models, 6-minute bins")
     bottom.legend(fontsize=7, loc="lower center", ncols=2)
     add_credit(fig, CREDIT)
     label_status(fig, "processed")
