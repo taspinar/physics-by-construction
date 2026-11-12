@@ -383,9 +383,11 @@ type="experimentally-supported"
 scope="station 03987, the five depths 5 to 100 cm (four for the daily wave) taken as exact, the model of a uniform half-space, the sensors' accuracy unknown and not included"
 evidence="diffusivity fig-depth-profiles dwd-potsdam-soil-temperature"}
 All four lie within ±`{python} result["four-half-range"]` per cent of
-their mean: the heat equation, with a single number for the soil,
-describes how both waves enter the ground. The
-year reaches metres deep, the day only centimetres.
+their mean, yet they disagree by more than their errors allow: the heat
+equation with a single number for the soil is an approximation, and the
+data are precise enough to show where it falls short (see "Where the
+uniform soil fails" below). The year reaches metres deep, the day only
+centimetres.
 
 [The annual damping depth is `{python} result["depth-ratio-amp"]` times the
 daily one from the decay and `{python} result["depth-ratio-phase"]` times
@@ -513,7 +515,7 @@ is easy to see and easy to underestimate. Both waves decay exponentially and
 lag linearly with depth, with residuals of a few hundredths; the damping
 depths of the year and the day scale with the period as the model says; a
 single diffusivity of about `{python} result["four-mean"]`
-$\times 10^{-6}\,\mathrm{m^2/s}$ describes all of it. But the record is
+$\times 10^{-6}\,\mathrm{m^2/s}$ describes all of it approximately. But the record is
 precise enough to see the model fail: the estimates from decay and lag, and
 from different depths, disagree by several of their standard errors. The
 honest result is a diffusivity known to within about
