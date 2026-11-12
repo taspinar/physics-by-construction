@@ -17,6 +17,7 @@ from pbc.data.uncertainty import standard_from_expanded
 
 if TYPE_CHECKING:
     from pbc.data.reference.bayreuth_rlc import Spectrum
+    from pbc.data.reference.dwd_soil import Readings
     from pbc.data.reference.nist_numisheet import Test
     from pbc.data.reference.tess_wasp18 import LightCurve
 
@@ -145,4 +146,27 @@ def light_curve_series(lc: LightCurve) -> Series:
         x_unit="BJD - 2457000, d",
         y_name="PDCSAP flux",
         y_unit="e-/s",
+    )
+
+
+def soil_temperature_series(readings: Readings, column: int) -> Series:
+    """The soil temperature in degC at one depth of a DWD station (``column``
+    0 to 4: 5, 10, 20, 50, 100 cm) against the time in days since
+    1970-01-01 00 h of the record's time stamp (MESS_DATUM, whose time zone
+    the files do not state), every row of the sample.
+
+    Processed, as the card labels the sample: the thermometer readings after
+    DWD's automatic quality control, rows selected without changing a value.
+    The record gives no sensor accuracy, so the series has no uncertainty;
+    missing readings (-999 in the file) stay NaN.
+    """
+    hours = readings.time.astype("datetime64[h]").astype(np.int64)
+    return Series(
+        x=hours / 24.0,
+        y=readings.temperature[:, column],
+        artifact="processed-measured",
+        x_name="time since 1970-01-01 00 h (MESS_DATUM)",
+        x_unit="d",
+        y_name="soil temperature",
+        y_unit="degC",
     )
