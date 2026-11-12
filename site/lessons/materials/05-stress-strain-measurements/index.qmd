@@ -324,6 +324,44 @@ square, without a trend. The strain noise before the ramp times $E$ is
 noise of the strain, not of the stress, and the line describes the window
 as well as the data can tell.
 
+A standard error from the scatter assumes that the residuals are
+independent. Successive points come from successive pairs of camera
+images, a quarter of a second apart, and an error that lasts longer than
+that would be shared by neighbouring points and make the ordinary standard
+error too small. The residuals can be checked for it by their
+autocorrelation at successive lags, and by a standard error that allows
+for correlation:
+
+```{python}
+#| echo: false
+excerpt(experiment.newey_west_slope_error)
+```
+
+```{python}
+#| label: residual-dependence
+#| echo: false
+result.table("residual-dependence")
+```
+
+[The autocorrelation of neighbouring residuals in the window is
+`{python} result["rho1"]`, `{python} result["rho1-z"]` standard deviations
+of independent noise from zero. Up to `{python} result["correlation-lags"]`
+rows (`{python} result["correlation-seconds"]` s) no autocorrelation is
+positive by more than `{python} result["rho-max-positive"]`, inside the
+band of ±`{python} result["rho-band"]` (two standard deviations) of
+independent residuals; the largest in size, `{python} result["rho-max-abs"]`,
+is negative. A standard error that allows for correlation over those lags
+(Newey-West) is `{python} result["e-err-correlated"]` GPa against the
+ordinary `{python} result["e-err"]` GPa; with this few points that
+estimate runs about a tenth low even for independent residuals, so the
+two agree, and neither shows a larger error. The data show no correlation
+that makes the ordinary standard error too small, and the page keeps
+it.]{.claim type="experimentally-supported"
+scope="test R01, the residuals of the fit in the window 100 to 400 MPa, lags up to 8 rows; correlation over longer times, and errors common to all points, not tested"
+evidence="residual-dependence nist-numisheet-dp980"}
+With `{python} result["fit-points"]` points the check cannot exclude a
+weak correlation, or one over longer times than the lags it tests.
+
 The intercept is not zero. A line through the origin would need the
 strain to be `{python} result["s0-strain"]` µm/m larger than measured
 everywhere along it: a zero offset of the extensometer, or a slight
@@ -339,7 +377,7 @@ the origin leaves residuals of `{python} result["model-rms"]` MPa root mean
 square in the window, against `{python} result["rms"]` MPa for the fitted
 line.]{.claim type="experimentally-supported"
 scope="test R01, the fit window of the first tension, the model of the elasticity lesson with its chosen modulus and no intercept"
-evidence="fig-elastic-regime modulus-sensitivity nist-numisheet-dp980"}
+evidence="fig-elastic-regime residual-dependence modulus-sensitivity nist-numisheet-dp980"}
 In standard errors the difference looks large. But the standard error
 measures only how well the scatter pins down the slope of a line in this
 window. How much the slope depends on the choices of the analysis shows
@@ -526,7 +564,8 @@ lesson.
 
 - **No calibration and no uncertainty per point.** The record gives no
   calibration of the load cells, of the extensometer, or of the specimen's
-  dimensions. The standard errors come from the scatter, the sensitivity
+  dimensions. The standard errors come from the scatter, with residuals
+  that show no correlation up to two seconds; the sensitivity
   table is a sensitivity of the analysis, and neither bounds an error that
   scales every point alike; such an error scales $E$, the yield stresses,
   and the loop.

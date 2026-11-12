@@ -23,6 +23,7 @@ from matplotlib.figure import Figure
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import stress_strain_series
 from pbc.data.fit import FitResult, fit_curve
+from pbc.data.inverse import residual_autocorrelation
 from pbc.data.plotting import COLOURS, add_credit, label_status
 from pbc.data.reference.nist_numisheet import (
     THICKNESS_MM,
@@ -52,6 +53,7 @@ WINDOW = (100.0, 400.0)  # MPa, the stress window of the elastic fit
 WINDOWS = ((50.0, 300.0), (100.0, 300.0), (100.0, 400.0), (150.0, 450.0))
 OFFSETS = (0.0002, 0.0005, 0.001, 0.002)  # strain offsets of the yield lines
 REVERSE_OFFSET = 0.002  # offset of the reverse yield from the unloading line
+CORRELATION_LAGS = 8  # rows, 2 s at four rows per second, of the dependence check
 # endregion: choices
 CREDIT = (
     "Data: NIST; Luecke, Rust, Iadicola, 'Data for Numisheet 2020 uniaxial tensile "
@@ -145,6 +147,78 @@ def fit_modulus(
         [200.0],
         names=("E",),
     )
+
+
+def autocorrelations(residuals: np.ndarray, lags: int) -> np.ndarray:
+    """Autocorrelation of the residuals at the lags 1 to ``lags`` (in rows),
+    each sum over the pairs at that lag divided by the sum of squares."""
+    centred = residuals - residuals.mean()
+    total = float(np.sum(centred**2))
+    return np.array(
+        [np.sum(centred[k:] * centred[:-k]) / total for k in range(1, lags + 1)]
+    )
+
+
+def newey_west_slope_error(x: np.ndarray, y: np.ndarray, lags: int) -> float:
+    """Standard error of the slope of the least-squares line y = a x + b that
+    allows the residuals to be correlated over up to ``lags`` points: the
+    Newey-West estimate of the slope's variance, with Bartlett weights
+    1 - k/(lags + 1) and the degrees-of-freedom factor n/(n - 2). With
+    ``lags=0`` it is White's estimate, which allows unequal scatter but no
+    correlation."""
+    design = np.column_stack([x, np.ones(x.size)])
+    coef, *_ = np.linalg.lstsq(design, y, rcond=None)
+    scores = design * (y - design @ coef)[:, None]
+    meat = scores.T @ scores
+    for k in range(1, lags + 1):
+        cross = scores[k:].T @ scores[:-k]
+        meat += (1 - k / (lags + 1)) * (cross + cross.T)
+    bread = np.linalg.inv(design.T @ design)
+    n = x.size
+    return float(np.sqrt((bread @ meat @ bread)[0, 0] * n / (n - 2)))
+
+
+def correlated_slope_error(test: Test, lags: int = CORRELATION_LAGS) -> float:
+    """Standard error [GPa] of E from the main window that allows the
+    residuals to be correlated over up to ``lags`` rows."""
+    e, s = first_loading(test)
+    keep = (s > WINDOW[0]) & (s < WINDOW[1])
+    return newey_west_slope_error(e[keep], s[keep], lags) / 1e3  # MPa to GPa
+
+
+def residual_dependence(experiment: Experiment, test: Test, result: FitResult) -> dict:
+    """Whether the residuals of the main fit are independent, as its
+    standard errors assume: their autocorrelation at the lags 1 to
+    ``CORRELATION_LAGS`` against the band 2/sqrt(n) of independent noise,
+    recorded as a table, and the standard error that allows for correlation
+    over those lags."""
+    n = result.residuals.size
+    rho = autocorrelations(result.residuals, CORRELATION_LAGS)
+    rho1, z1 = residual_autocorrelation(result.residuals)
+    test_time = test.time[: segments(test).reversal]
+    step = float(np.median(np.diff(test_time)))
+    experiment.table(
+        "residual-dependence",
+        [(k, k * step, r) for k, r in enumerate(rho, start=1)],
+        columns=[
+            ("lag", "rows", "d"),
+            ("lag", "s", ".2f"),
+            ("autocorrelation of the residuals", "", "+.2f"),
+        ],
+        caption="The autocorrelation of the residuals of the main fit at successive "
+        f"lags. For independent residuals it scatters about zero by about "
+        f"1/sqrt(n) = {1 / np.sqrt(n):.2f}; correlation that is positive at short "
+        "lags would make the ordinary standard error too small.",
+    )
+    return {
+        "rho1": rho1,
+        "z1": z1,
+        "band": 2 / np.sqrt(n),
+        "max-positive": float(max(rho.max(), 0.0)),
+        "max-abs": float(np.abs(rho).max()),
+        "correlated-err": correlated_slope_error(test),
+        "lag-seconds": CORRELATION_LAGS * step,
+    }
 
 
 def window_rms(test: Test, modulus: float, intercept: float) -> float:
@@ -512,7 +586,10 @@ def draw_unloading(test: Test, modulus: float, found: dict) -> Figure:
         lw=0.6,
         label=f"measured unloading [{series.status}], no uncertainty per point given",
     )
-    grid = np.linspace(e0 - (s0 + 1000) / (modulus * 1e3), e0, 100)
+    # A straight line, drawn from its two ends: Agg rasterises a long run of
+    # collinear segments differently from one call to the next, and the
+    # page's figure has to be the same bytes on every run.
+    grid = np.array([e0 - (s0 + 1000) / (modulus * 1e3), e0])
     top.plot(
         grid,
         elastic_unloading(grid, e0, s0, modulus),
@@ -621,6 +698,16 @@ def run() -> Experiment:
         "model-sigmas", (MODEL_MODULUS - modulus) / result.stderr[0], ".1f"
     )
     experiment.number("model-rms", window_rms(test, MODEL_MODULUS, 0.0), ".1f")
+
+    dependence = residual_dependence(experiment, test, result)
+    experiment.number("rho1", dependence["rho1"], "+.2f")
+    experiment.number("rho1-z", abs(dependence["z1"]), ".1f")
+    experiment.number("rho-band", dependence["band"], ".2f")
+    experiment.number("rho-max-positive", dependence["max-positive"], ".2f")
+    experiment.number("rho-max-abs", dependence["max-abs"], ".2f")
+    experiment.number("correlation-lags", CORRELATION_LAGS)
+    experiment.number("correlation-seconds", dependence["lag-seconds"], ".0f")
+    experiment.number("e-err-correlated", dependence["correlated-err"], ".1f")
 
     spread = sensitivity(experiment, test)
     experiment.number("window-low", spread["low"], ".1f")

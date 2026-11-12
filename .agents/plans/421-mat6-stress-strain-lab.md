@@ -107,6 +107,19 @@ discrepancy, the offset yields, the unloading recovery and chord, and the
 loop work, each scoped to this one test (R01) with the calibration unknown;
 numerically-verified for `closed_loop_work` against the exact area of an
 ellipse; the sensitivity table stated as a sensitivity, never as a bound.
+The independence of the fit's residuals, which the ordinary standard error
+assumes, is checked on the page (review round 1, M1): their autocorrelation
+at lags 1 to 8 rows (2 s) against 2/sqrt(n), and a Newey-West standard
+error over those lags (`newey_west_slope_error`, tested against the Monte
+Carlo scatter of the slope with independent and AR(1) noise); an
+experimentally-supported claim that no correlation makes the ordinary error
+too small (r1 = -0.11; Newey-West 1.0 against 1.1 GPa, the estimate running
+about a tenth low for independent residuals at n = 84).
+The elastic unloading line of fig-unloading is drawn from its two ends: a
+hundred collinear points made Agg rasterise it in one of two ways, about
+one draw in five, so the page's figure failed to regenerate byte for byte
+(found in review round 1's verification); a unit test draws each figure
+twelve times and requires one set of bytes.
 
 ## Visual deliverables
 
