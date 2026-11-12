@@ -1,0 +1,655 @@
+---
+title: "Soil temperature measurements lab"
+description: >-
+  Ten years of thermometer readings at five depths below a German weather
+  station, against the heat equation of the heat-conduction lesson: the
+  annual and the daily temperature wave decay and lag with depth, the thermal
+  diffusivity of the soil follows from each, with an uncertainty whose
+  assumptions are checked, and the estimates disagree by more than their
+  errors where the soil is not uniform.
+lesson:
+  id: soil-temperature-measurements
+  strand: thermodynamics
+  order: 10
+  difficulty: 2
+  course: thermodynamics
+  slot: T7
+  methods: [measured-data]
+  outcomes:
+    - Read a soil-temperature record for what it is, thermometer readings at fixed depths after the provider's quality control, rows selected, with no sensor accuracy given
+    - Derive the periodic solution of the heat equation for a surface temperature that varies as a cosine, check it against the explicit scheme of the heat-conduction lesson, and state its two predictions for a uniform soil
+    - Extract the annual and the daily harmonic at each depth by least squares, and infer the thermal diffusivity from the decay and from the lag, with the scatter between years as the uncertainty and its assumptions checked on the data
+    - Judge where the model of a uniform half-space fails from the disagreement of its estimates and of pairs of depths, and say what the record cannot bound
+  related: []
+  format: 2
+  preview: fig-depth-profiles
+  experiment: pbc.thermodynamics.experiments.soil_temperature_measurements
+  prerequisites:
+    lessons: [heat-conduction-and-diffusion]
+    outside:
+      - "Statistics: a least-squares fit, its residuals, and the standard error of a mean"
+      - "Complex numbers: a sinusoid written as the real part of an exponential, its amplitude and its phase"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this
+from pbc.data.reference import dwd_soil
+from pbc.thermodynamics import periodic_conduction
+from pbc.thermodynamics.experiments import soil_temperature_measurements as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The heat-conduction lesson solved the heat equation for a steel part, a
+slab, and a plate, with a diffusivity $\alpha = k/(\rho c)$ that it chose for
+a material. It never asked whether the equation describes a real body, or
+how one would measure $\alpha$ without cutting a sample out of it.
+
+The ground under a weather station answers both questions. The sun warms
+its surface every day and every summer; the warmth creeps down and the cold
+follows. At the station of the German weather service (DWD) in Potsdam,
+thermometers buried at several depths have recorded this for decades. Does
+the heat equation describe how the daily and the yearly wave of temperature
+travel into the soil? What diffusivity does the soil have, and how well do
+the measurements know it? And where does a model of a uniform ground stop
+being good enough?
+
+## Assumptions
+
+1. **Heat flows downwards only.** The ground is the same in every
+   horizontal direction over the plot of the station, so the temperature
+   depends on the depth $z$ and the time $t$ alone.
+2. **A uniform half-space.** The soil has one diffusivity $\alpha$ at every
+   depth and in every season. Heat moves by conduction only: no water
+   carries it, and no freezing or evaporation takes or gives latent heat.
+3. **The weather is many frequencies.** The surface temperature is the sum
+   of a mean, a daily and an annual harmonic, and everything else. The heat
+   equation is linear, so each harmonic travels down on its own, and a fit
+   of one harmonic at each depth isolates its wave.
+4. **The record's processing is taken as given.** The readings are those
+   of `PT100` resistance thermometers after DWD's automatic quality
+   control. The record gives no accuracy of the sensors and no tolerance of
+   their depths, and the lab takes the nominal depths as exact.
+5. **One station and a few years.** Four readings a day over ten years for
+   the annual wave, every hour of five summers for the daily one. Nothing
+   here says how another soil, or other years, would behave.
+
+## Explanation {#explanation}
+
+### The heat equation with a periodic surface
+
+In one dimension the heat equation of the heat-conduction lesson reads
+
+$$
+\frac{\partial T}{\partial t} = \alpha \frac{\partial^2 T}{\partial z^2},
+\qquad z \ge 0 .
+$$
+
+Let the surface follow $T(0, t) = \bar T + A_0 \cos(\omega t - \varphi_0)$
+for so long that the ground has forgotten how it started. Then every depth
+oscillates with the same angular frequency $\omega$. Write the oscillating
+part as the real part of $f(z)\,e^{i\omega t}$; the heat equation becomes
+$i\omega f = \alpha f''$, whose solutions are $e^{\pm(1+i)z/d}$ with
+
+$$
+d = \sqrt{\frac{2\alpha}{\omega}} .
+$$
+
+Only the root with the minus sign stays bounded deep down, and it gives the
+**damped wave**
+
+$$
+T(z, t) = \bar T + A_0\, e^{-z/d} \cos\!\left(\omega t - \frac{z}{d} - \varphi_0\right).
+$$
+
+Over one **damping depth** $d$ the amplitude falls by a factor $e$ and the
+phase falls behind by one radian. The wave never reaches below a few $d$:
+the deep ground keeps the mean temperature.
+
+### Two predictions of a uniform soil
+
+Take logarithms of the amplitude $A(z)$ and write $\varphi(z)$ for the lag
+of the wave at depth $z$ behind the surface:
+
+$$
+\ln A(z) = \ln A_0 - \frac{z}{d}, \qquad \varphi(z) = \varphi_0 + \frac{z}{d} .
+$$
+
+Both are straight lines in $z$, and their slopes are $\mp 1/d$, **the same
+length**. So $\alpha = \omega d^2/2$ follows twice, from the decay and from
+the lag. A second prediction connects the waves: $d$ grows with the square
+root of the period, so a soil with one $\alpha$ gives the annual wave a
+damping depth $\sqrt{T_\text{year}/T_\text{day}}$ times that of the daily
+one. A soil that is not uniform has no reason to give the same $\alpha$
+from decay and lag, from the year and the day, or from the upper and the
+lower sensors.
+
+### The harmonic of a record
+
+To find the amplitude and the lag at one depth, fit
+
+$$
+T(t) \approx m + a \cos\omega t + b \sin\omega t
+$$
+
+by least squares: $A = \sqrt{a^2 + b^2}$, and the phase follows from $a$ and
+$b$. The lag between two depths is the difference of their phases. Four
+readings a day, six hours apart, average a daily cosine to exactly zero, so
+the annual fit to them is not disturbed by the daily wave. For the daily
+wave each day is fitted on its own, with a straight line added for the
+warming or cooling of the day, and the complex amplitudes $a - ib$ of a
+summer's days are averaged.
+
+## Code {#code}
+
+The model is in `pbc.thermodynamics.periodic_conduction`: the damping
+depth, the damped wave, and the diffusivity from the slope of either line.
+
+```{python}
+#| echo: false
+excerpt(periodic_conduction.damping_depth)
+```
+
+```{python}
+#| echo: false
+excerpt(periodic_conduction.periodic_temperature)
+```
+
+```{python}
+#| echo: false
+excerpt(periodic_conduction.diffusivity_from_slope)
+```
+
+The check of the formula drives the explicit scheme of the heat-conduction
+lesson, `ftcs_step`, with a cosine at the surface, and contains no formula
+of the damped wave:
+
+```{python}
+#| echo: false
+excerpt(periodic_conduction.periodic_ftcs)
+```
+
+The choices of the lab, made before it looks at the data:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="choices")
+```
+
+## Worked examples {#worked-examples}
+
+### The damped wave against the explicit scheme
+
+Before any data, the formula is checked against the scheme the
+heat-conduction lesson verified: a ground column with its surface held at a
+daily cosine, stepped until it has settled, and its last day fitted by the
+harmonic at the depths of the daily wave.
+
+```{python}
+#| label: scheme-check-run
+#| echo: false
+excerpt(experiment.scheme_check)
+```
+
+```{python}
+#| label: scheme-check
+#| echo: false
+result.table("scheme-check")
+```
+
+[With a damping depth of `{python} result["check-depth"]` cm, the explicit
+scheme settles into the damped wave: its amplitudes agree with $e^{-z/d}$
+to within `{python} result["check-amplitude-error"]` per cent and its lags
+with $z/d$ to within `{python} result["check-lag-error"]` rad at every depth
+of the table.]{.claim type="numerically-verified"
+scope="the explicit scheme of the heat-conduction lesson with a cosine surface temperature, a grid of 1 cm, r at most 0.25, a column of 1.2 m, eight periods"
+evidence="scheme-check-run scheme-check"} The formula and the numerical
+model of the heat-conduction lesson are the same model; what follows tests
+that model against the ground.
+
+### The measurement {#data}
+
+```{python}
+#| echo: false
+data_card("dwd-potsdam-soil-temperature")
+```
+
+The sample holds `{python} result["annual-rows"]` rows of readings at four
+times a day and `{python} result["hourly-rows"]` hourly rows of the summers,
+each line of DWD's file unchanged. The card labels them a processed
+measurement, because rows were selected, so every figure of this page says
+processed. The data are DWD's under the licence the card names; every
+figure carries the attribution. Of the values at the five depths,
+`{python} result["missing-annual"]` are missing in the four-a-day rows and
+`{python} result["missing-hourly"]` in the hourly ones, and the fits leave
+them out; of the `{python} result["summer-days"]` summer days,
+`{python} result["complete-days"]` have every hourly reading at the depths of
+the daily wave and enter its fit.
+
+```{python}
+#| label: record
+#| echo: false
+result.table("record")
+```
+
+[At the shallowest sensor the readings of the four-a-day rows run from
+`{python} result["shallow-min"]` to `{python} result["shallow-max"]` °C, at the deepest from
+`{python} result["deep-min"]` to `{python} result["deep-max"]` °C, about the
+same mean at every depth.]{.claim type="observational"
+scope="station 03987 Potsdam, the readings at 00, 06, 12, 18 h of 2015 to 2024 as published"
+evidence="record dwd-potsdam-soil-temperature"} The deep ground swings far
+less than the surface, around the same mean. One summer week, hour by hour,
+shows the daily wave:
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_soil_record)
+```
+
+```{python}
+#| label: fig-soil-record
+#| echo: false
+#| fig-cap: "Each warm day sends a wave of temperature into the ground: it is largest near the surface, smaller and later at each greater depth, and has all but vanished at the deepest sensor, which drifts slowly with the season."
+#| fig-alt: "Line plot of soil temperature against time over seven days, five lines for five depths in different colours and line styles. The shallowest line swings up and down once a day, strongly on the last three days; the next lines swing less and their peaks come later; the two deepest lines are almost flat, one slowly falling and rising, the other nearly constant."
+#| fig-status: processed
+#| fig-dataset: dwd-potsdam-soil-temperature
+result.show("fig-soil-record")
+```
+
+The readings are what the thermometers recorded; nothing is fitted in this
+figure. The heat equation predicts its pattern in words: smaller, later,
+deeper. The rest of the lab measures it.
+
+### The harmonics of one year and of one day
+
+The annual harmonic of each year at each depth, and the daily harmonic of
+each complete summer day, come from the reference module of the dataset,
+`pbc.data.reference.dwd_soil`:
+
+```{python}
+#| echo: false
+excerpt(dwd_soil.annual_wave)
+```
+
+```{python}
+#| echo: false
+excerpt(dwd_soil.diurnal_wave)
+```
+
+The figure shows what one such fit sees: one year at the shallowest and the
+deepest sensor, and one summer day at the four depths that carry the daily
+wave. The day is chosen by a rule, not by eye: the complete day of the
+summer whose range at the shallowest sensor is closest to that summer's
+median.
+
+```{python}
+#| echo: false
+excerpt(experiment.year_fit)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.typical_day)
+```
+
+```{python}
+#| label: fig-harmonic-fits
+#| echo: false
+#| fig-cap: "A harmonic is one component of the record, not the record: over a year the readings scatter around the fitted annual cosine by many kelvin as the weather comes and goes, and over a summer day the readings follow the fitted daily cosine with a shape it does not have."
+#| fig-alt: "Four panels. Top left, temperature against day of one year: a cloud of dots for the shallow sensor rising to a summer maximum and falling again, with a dashed cosine through its middle, and a smooth line for the deep sensor with a flatter dashed cosine on it. Bottom left, residuals of both against day: the shallow dots scatter widely around zero, in runs that last several days; the deep line stays close to zero. Top right, temperature against hour of one summer day: four series of markers, the shallowest swinging most, each deeper one less and later, each with a fitted curve through it. Bottom right, their residuals against hour: the shallowest scatters most, in a pattern, the deepest stays on zero."
+#| fig-status: processed
+#| fig-dataset: dwd-potsdam-soil-temperature
+result.show("fig-harmonic-fits")
+```
+
+The residuals are not noise. Over the year they are the weather: warm and
+cold spells that last days, which the annual harmonic cannot follow. Over
+the day the shallow readings leave the fitted curve in runs of several
+hours: the warming of a day is not a pure cosine. The heat equation is
+linear, so these other frequencies travel down beside the harmonic and do
+not disturb its wave; they only make it harder to measure. Averaged over the
+ten years and the five summers:
+
+```{python}
+#| label: wave
+#| echo: false
+result.table("wave")
+```
+
+[The annual wave falls from an amplitude of `{python} result["annual-a5"]` K
+at the shallowest sensor to `{python} result["annual-a100"]` K at the
+deepest and arrives there `{python} result["annual-lag100"]` days later; the
+daily wave falls from `{python} result["daily-a5"]` K to
+`{python} result["daily-a50"]` K over less than half a metre and arrives
+`{python} result["daily-lag50"]` hours later.]{.claim
+type="experimentally-supported"
+scope="station 03987, the annual harmonic of 2015 to 2024 and the daily harmonic of June to August 2020 to 2024, the errors as the scatter between years or summers"
+evidence="wave fig-harmonic-fits dwd-potsdam-soil-temperature"} At the
+deepest sensor the daily harmonic of the summers is
+`{python} result["daily-a100"]` K, below the tenth of a kelvin to which the
+readings are given, and the lab leaves it out there.
+
+### Amplitude and lag against depth
+
+The model's two predictions are straight lines through $-\ln A$ and the lag
+against depth. The fit uses `fit_curve`, the fit helper of the course; the
+diffusivity follows from each slope:
+
+```{python}
+#| echo: false
+excerpt(experiment.depth_line)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.diffusivity)
+```
+
+```{python}
+#| label: fig-depth-profiles
+#| echo: false
+#| fig-cap: "Both waves decay exponentially with depth and lag in proportion to it, as the heat equation predicts for a uniform soil: on a log scale the amplitudes lie on straight lines, and so do the lags. The residuals of the lines are a few hundredths, small but, for the daily lag, larger than the scatter between summers."
+#| fig-alt: "Four panels. Top left, amplitude against depth on a log scale: one row of circles falling gently and one of squares falling steeply, each on a dashed straight line. Top right, phase lag against depth: circles rising slowly and squares rising steeply, each on a dashed straight line. Bottom, the residuals of the four lines against depth: points with error bars scattered within a few hundredths of zero; the squares of the lag residuals swing up and down by more than their error bars."
+#| fig-status: processed
+#| fig-dataset: dwd-potsdam-soil-temperature
+result.show("fig-depth-profiles")
+```
+
+The points are the measured harmonics with one standard error of their
+mean over the years or summers; the dashed lines are the model with the
+fitted slope and intercept. The errors of the amplitudes include the change
+of the surface forcing from year to year, which moves every depth alike, so
+they overstate the uncertainty of the slope. The diffusivity, four ways:
+
+```{python}
+#| label: diffusivity
+#| echo: false
+result.table("diffusivity")
+```
+
+[From the annual wave the diffusivity is
+`{python} result["year-amp"]` ± `{python} result["year-amp-err"]` from its
+decay and `{python} result["year-phase"]` ±
+`{python} result["year-phase-err"]` from its lag; from the daily wave
+`{python} result["day-amp"]` ± `{python} result["day-amp-err"]` and
+`{python} result["day-phase"]` ± `{python} result["day-phase-err"]`, all in
+$10^{-6}\,\mathrm{m^2/s}$, each error the standard error of the mean over
+the single years or summers. The damping depth is about
+`{python} result["year-depth"]` m for the year and
+`{python} result["day-depth"]` cm for the day.]{.claim
+type="experimentally-supported"
+scope="station 03987, the five depths 5 to 100 cm (four for the daily wave) taken as exact, the model of a uniform half-space, the sensors' accuracy unknown and not included"
+evidence="diffusivity fig-depth-profiles dwd-potsdam-soil-temperature"}
+All four lie within ±`{python} result["four-half-range"]` per cent of
+their mean: the heat equation, with a single number for the soil,
+describes how both waves enter the ground. The
+year reaches metres deep, the day only centimetres.
+
+[The annual damping depth is `{python} result["depth-ratio-amp"]` times the
+daily one from the decay and `{python} result["depth-ratio-phase"]` times
+from the lag; a uniform soil gives
+$\sqrt{T_\text{year}/T_\text{day}} =$
+`{python} result["depth-ratio-model"]`.]{.claim
+type="experimentally-supported"
+scope="station 03987, the damping depths of the table, two periods a factor of about 365 apart"
+evidence="diffusivity dwd-potsdam-soil-temperature"} The model's scaling
+with the period holds to a few per cent over a factor of several hundred in
+frequency.
+
+### Are the errors honest?
+
+Every uncertainty rests on assumptions. Two are easy to get wrong here.
+
+**Why not the error of each fit?** A least-squares fit of one year's
+harmonic gives a standard error for its amplitude, but that error assumes
+that the readings scatter independently about the cosine. The left half of
+the second figure says they do not:
+
+```{python}
+#| echo: false
+excerpt(experiment.independence_table)
+```
+
+```{python}
+#| label: independence
+#| echo: false
+result.table("independence")
+```
+
+[At the shallowest sensor the residuals of the annual harmonic are
+correlated by `{python} result["rho-day"]` from one day to the next and
+still by `{python} result["rho-ten-days"]` over ten days, and the error of
+one year's amplitude that assumes independent readings,
+`{python} result["ols-error"]` K, is about
+`{python} result["scatter-ratio"]` times smaller than the amount by which
+the amplitude actually changes from year to year,
+`{python} result["year-scatter"]` K.]{.claim type="experimentally-supported"
+scope="station 03987, the annual harmonic of each year 2015 to 2024 at 5 and 100 cm, means over the ten years"
+evidence="independence fig-harmonic-fits dwd-potsdam-soil-temperature"} A
+thousand readings a year are worth far fewer independent ones. So the lab
+does not use the fit's error. It repeats the whole estimate for each year
+and each summer alone, and takes the standard error of the mean of those
+estimates, which includes the weather of each year, whatever its
+correlation within the year.
+
+**Are the years independent?** That error in turn assumes that the years
+scatter independently about one value. [The correlation of the estimates of
+successive years is `{python} result["year-amp-rho1"]` from the decay and
+`{python} result["year-phase-rho1"]` from the lag, inside the band of
+±`{python} result["band-years"]` that independent values would fill with ten
+years; for the summers it is `{python} result["day-amp-rho1"]` and
+`{python} result["day-phase-rho1"]`, inside a band of
+±`{python} result["band-summers"]`.]{.claim type="experimentally-supported"
+scope="the single-year and single-summer estimates of the diffusivity table, at a lag of one year; a slow trend over the decade, and correlation beyond one year, not tested"
+evidence="diffusivity dwd-potsdam-soil-temperature"} No correlation shows
+that would make the errors too small; with ten years, and only five
+summers, the check could not find a weak one.
+
+**What the errors do not contain.** The table has a third column of
+errors: the standard error of the straight line from the scatter of the
+depths about it, as `fit_curve` gives it. It treats the departures of the
+depths from the line as if they were random. If they changed from year to
+year like the weather, averaging ten years would shrink them, and the line
+through the mean wave would have about the error of the mean. It has more,
+in all four rows: the departures persist from year to year, and belong to
+the ground. The third column measures how far the depths depart from a
+uniform soil, and the next section takes that up directly.
+
+### Where the uniform soil fails
+
+The four estimates do not agree within their errors.
+
+```{python}
+#| echo: false
+excerpt(experiment.pairs)
+```
+
+```{python}
+#| label: pairs
+#| echo: false
+result.table("pairs")
+```
+
+[From the annual wave, the diffusivities from decay and from lag differ by
+`{python} result["year-gap"]` of their combined standard errors, from the
+daily wave by `{python} result["day-gap"]`. Between adjacent pairs of depths
+the diffusivity runs from `{python} result["pairs-low"]` to
+`{python} result["pairs-rest-high"]` $\times 10^{-6}\,\mathrm{m^2/s}$,
+leaving out the uppermost pair of the annual decay, which gives
+`{python} result["pair-shallow-amp"]` from a fall in amplitude of only
+`{python} result["pair-shallow-drop"]` per cent.]{.claim
+type="experimentally-supported"
+scope="station 03987, the mean waves of the table, adjacent depths taken as exact"
+evidence="pairs diffusivity dwd-potsdam-soil-temperature"} A uniform
+half-space would fill every cell of the table with one number. The
+uppermost annual pair is ill-conditioned: over five centimetres the year's
+amplitude hardly changes, and a small error in either amplitude moves the
+estimate a long way. The other pairs are not, and they still spread over more
+than half of their mean value.
+
+The model leaves out what a real soil has. [Its water content changes with
+depth and with the season, and wet soil conducts and stores heat
+differently from dry soil; the upper layer may be looser than the deeper
+ones; and in a frost, freezing water releases latent heat that the heat
+equation without a source does not contain.]{.not-verified} The record
+says nothing about the soil, so the lab cannot say which of these causes
+the spread. [The four estimates span `{python} result["four-low"]` to
+`{python} result["four-high"]` $\times 10^{-6}\,\mathrm{m^2/s}$, about
+±`{python} result["four-half-range"]` per cent around their mean of
+`{python} result["four-mean"]`: this spread, larger than any of the
+standard errors, is the uncertainty of the model, and it is the
+uncertainty to quote for "the" diffusivity of this soil.]{.claim
+type="experimentally-supported"
+scope="station 03987, the four estimates of the diffusivity table; the sensors' accuracy and depths not included"
+evidence="diffusivity pairs dwd-potsdam-soil-temperature"}
+
+### What the lab shows
+
+The heat equation of the heat-conduction lesson, applied to a uniform half
+space, describes the measured soil temperatures at Potsdam to a level that
+is easy to see and easy to underestimate. Both waves decay exponentially and
+lag linearly with depth, with residuals of a few hundredths; the damping
+depths of the year and the day scale with the period as the model says; a
+single diffusivity of about `{python} result["four-mean"]`
+$\times 10^{-6}\,\mathrm{m^2/s}$ describes all of it. But the record is
+precise enough to see the model fail: the estimates from decay and lag, and
+from different depths, disagree by several of their standard errors. The
+honest result is a diffusivity known to within about
+±`{python} result["four-half-range"]` per cent, limited by the soil not
+being uniform, not by the number of readings.
+
+## Limits {#limits}
+
+- **No sensor accuracy, no depth tolerance.** The record states neither.
+  A sensor's offset changes only its mean, which the fits do not use; a gain
+  error of a few per cent would change one amplitude by as much. The
+  diffusivity scales with the square of the depth spacing, so a relative
+  error $\varepsilon$ of the spacings changes it by $2\varepsilon$, and
+  nothing here bounds $\varepsilon$.
+- **A uniform soil is the model, not the result.** The spread of the four
+  estimates and of the pairs of depths is the model's limit; a layered soil
+  or one whose water content varies needs a model with $\alpha(z)$, which
+  this lab does not fit.
+- **No surface measurement.** The sensor that was closest to the surface has
+  no readings after [1972]{.given}; the lab's shallowest depth is a few
+  centimetres down. The amplitude "at the surface" of the fitted lines,
+  `{python} result["year-surface"]` K for the year and
+  `{python} result["day-surface"]` K for the day, is an extrapolation of the
+  model, not a reading, and not the temperature of the air.
+- **A time stamp without a time zone.** The files do not state it; the lab
+  uses only periods and differences between depths, which do not depend on
+  it.
+- **One station, a few years.** Ten years for the annual wave, five
+  summers for the daily one, at one plot of ground. Winter, when the soil
+  may freeze, enters the annual wave but has no daily estimate of its own.
+- **A versioned source.** DWD replaces its archive every year; the
+  committed sample is the project's pinned extract, and the download
+  command works until the next archive appears.
+
+::: {.exercise .self-check}
+The diffusivity from the decay of the annual wave and the one from its lag
+differ by about five of their combined standard errors. A colleague
+concludes that the analysis has a mistake, because two estimates of one
+number cannot disagree by that much. What else could the disagreement
+mean, and how does the lab tell?
+
+::: {.solution}
+The standard errors measure only how much each estimate changes from year
+to year. They say nothing about whether the model is right. Decay and lag
+give the same diffusivity only in a uniform half-space; in a soil whose
+properties change with depth they need not agree, however many years are
+averaged. Two checks separate the cases. The formula is checked against
+the explicit scheme of the heat-conduction lesson, and the tests of the
+estimate recover one diffusivity from decay and lag of a computed damped
+wave, so the method gives agreement where the model holds. On the data,
+the pairs of depths scatter far more than the standard errors: the soil
+does not have one diffusivity. The disagreement measures the model's
+limit, and the spread of the four estimates is the uncertainty to quote.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A cellar.** In a soil with a diffusivity of
+$1.1 \times 10^{-6}\,\mathrm{m^2/s}$, how deep must a cellar be for the
+annual temperature wave to fall to a tenth of its surface amplitude? How
+many days after the warmest day at the surface is it warmest there?
+
+::: {.hint}
+The amplitude falls as $e^{-z/d}$ and the lag grows as $z/d$; a lag of
+$2\pi$ is a whole year.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.cellar_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("cellar-exercise"), end="")
+```
+
+At that depth the cellar is warmest in late autumn and coolest in spring,
+and swings by a tenth of what the surface does: the reason old cellars were
+dug deep.
+:::
+:::
+
+::: {.exercise}
+**From diffusivity to conductivity.** The diffusivity is $\alpha = k/(\rho
+c)$. Assume that this soil stores $\rho c = 2.0\ \mathrm{MJ/(m^3\,K)}$, a
+typical value for a moist sandy soil that the record does not give. What
+thermal conductivity do the lowest and the highest of the four estimates,
+$1.01$ and $1.15 \times 10^{-6}\,\mathrm{m^2/s}$, imply? What does the
+answer depend on that the lab did not measure?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.conductivity_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("conductivity-exercise"), end="")
+```
+
+The conductivity is proportional to the assumed heat capacity, which
+depends on the water content of the soil and is not in the record: the
+temperature waves measure only the ratio $k/(\rho c)$. A conductivity needs
+a second measurement, of the heat capacity or of a heat flux.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/thermodynamics/periodic_conduction.py",
+        "src/pbc/thermodynamics/conduction.py",
+        "src/pbc/thermodynamics/experiments/soil_temperature_measurements.py",
+        "src/pbc/experiment.py",
+        "src/pbc/data/reference/dwd_soil.py",
+        "src/pbc/data/adapters.py",
+        "src/pbc/data/fit.py",
+        "src/pbc/data/plotting.py",
+    ],
+    tests=[
+        "tests/unit/test_periodic_conduction.py",
+        "tests/unit/test_data_dwd_soil.py",
+        "tests/unit/test_soil_temperature_measurements_experiment.py",
+    ],
+)
+```
+
+The data card above gives the command that downloads DWD's archive into
+`data/downloads/dwd-potsdam-soil-temperature`, and the extraction script
+that repeats the committed sample from it; no model and no account are
+needed to read it.
