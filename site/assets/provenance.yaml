@@ -498,46 +498,49 @@ assets:
     source: >-
       The atlas illustration of autonomous-research: an agent's sequence of experiments over a model landscape (text-free); derived by
       tools/illustrations/derive_assets.py.
-  # The hero of the home page (F158; since Issue #482 one image): the vortex
-  # street of fluids at three widths, derived from the same master as its
-  # atlas panel (the owner's copy, matched with this hash on Issue #462 on
-  # 2026-11-09); the origin as the master's atlas entry records it.
-  hero/vortex-street-1200.webp:
-    script: tools/illustrations/generate_fluid_dynamics.py
+  # The hero of the home page (F158; since Issue #482 one image; since Issue
+  # #487 the owner's double-pendulum illustration, supplied on 2026-11-12 and
+  # matched with this hash): the owner's own illustration, registered by its
+  # author and date, at three widths.
+  hero/double-pendulum-1200.webp:
     author: Ahmet Taspinar
-    date: 2026-10-30
+    date: 2026-11-12
     licence: CC-BY-4.0
-    master: pbc_fluid_dynamics_vortex_street.webp
-    sha256: 2f5b1e9c664e9dd6eb789ce343652efacd0dfbd8f61f68b0ddff02953ef48614
+    master: pbc_hero_assets/pbc-double-pendulum-hero-original.png
+    sha256: ac9062c74fe15d4ef302170e6ced4311c1467fee73def9bde1be6758b98bfaaf
     source: >-
-      The hero illustration of the home page, 1200 px wide, from the master
-      of the atlas illustration of fluids: a vortex street behind a
-      cylinder, its middle 2:1 band mirrored so that the flow runs from right
-      to left and faded at the edges in its alpha channel (Issue #482);
-      derived by tools/illustrations/derive_assets.py --hero.
-  hero/vortex-street-1800.webp:
-    script: tools/illustrations/generate_fluid_dynamics.py
+      The hero illustration of the home page, 1200 px wide, from the owner's
+      illustration of a double pendulum, a dotted trace with a dashed curve,
+      and a ball in a glowing well (Issue #487; an illustration, not a result
+      of the project): the illustration's ground keyed to the paper, the part
+      under the copy of a wide screen lifted toward the paper so that the text
+      keeps its contrast, and every edge faded in its alpha channel; derived
+      by tools/illustrations/derive_assets.py --hero.
+  hero/double-pendulum-1480.webp:
     author: Ahmet Taspinar
-    date: 2026-10-30
+    date: 2026-11-12
     licence: CC-BY-4.0
-    master: pbc_fluid_dynamics_vortex_street.webp
-    sha256: 2f5b1e9c664e9dd6eb789ce343652efacd0dfbd8f61f68b0ddff02953ef48614
+    master: pbc_hero_assets/pbc-double-pendulum-hero-original.png
+    sha256: ac9062c74fe15d4ef302170e6ced4311c1467fee73def9bde1be6758b98bfaaf
     source: >-
-      The hero illustration of the home page, 1800 px wide, from the master
-      of the atlas illustration of fluids: a vortex street behind a
-      cylinder, its middle 2:1 band mirrored so that the flow runs from right
-      to left and faded at the edges in its alpha channel (Issue #482);
-      derived by tools/illustrations/derive_assets.py --hero.
-  hero/vortex-street-2400.webp:
-    script: tools/illustrations/generate_fluid_dynamics.py
+      The hero illustration of the home page, 1480 px wide, from the owner's
+      illustration of a double pendulum, a dotted trace with a dashed curve,
+      and a ball in a glowing well (Issue #487; an illustration, not a result
+      of the project): the illustration's ground keyed to the paper, the part
+      under the copy of a wide screen lifted toward the paper so that the text
+      keeps its contrast, and every edge faded in its alpha channel; derived
+      by tools/illustrations/derive_assets.py --hero.
+  hero/double-pendulum-1774.webp:
     author: Ahmet Taspinar
-    date: 2026-10-30
+    date: 2026-11-12
     licence: CC-BY-4.0
-    master: pbc_fluid_dynamics_vortex_street.webp
-    sha256: 2f5b1e9c664e9dd6eb789ce343652efacd0dfbd8f61f68b0ddff02953ef48614
+    master: pbc_hero_assets/pbc-double-pendulum-hero-original.png
+    sha256: ac9062c74fe15d4ef302170e6ced4311c1467fee73def9bde1be6758b98bfaaf
     source: >-
-      The hero illustration of the home page, 2400 px wide, from the master
-      of the atlas illustration of fluids: a vortex street behind a
-      cylinder, its middle 2:1 band mirrored so that the flow runs from right
-      to left and faded at the edges in its alpha channel (Issue #482);
-      derived by tools/illustrations/derive_assets.py --hero.
+      The hero illustration of the home page, 1774 px wide, from the owner's
+      illustration of a double pendulum, a dotted trace with a dashed curve,
+      and a ball in a glowing well (Issue #487; an illustration, not a result
+      of the project): the illustration's ground keyed to the paper, the part
+      under the copy of a wide screen lifted toward the paper so that the text
+      keeps its contrast, and every edge faded in its alpha channel; derived
+      by tools/illustrations/derive_assets.py --hero.

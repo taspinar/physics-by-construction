@@ -200,7 +200,7 @@ site/                    Quarto project: the website source
   hero.yaml              The hero's headlines and subtexts with the default pair (site navigation, F134,
                          ADR 021); no page carries the copy; since the textbook layer also the hero image
                          with its alternative text (F158: a set of four with a default; since Issue #482
-                         the one fluid-dynamics image)
+                         one image; since Issue #487 the owner's double-pendulum illustration)
   home.yaml              The copy of Home in the order identity, philosophy, curriculum (Part A, Part B,
                          and the transition), integrity: the owner's fixed text (textbook layer, F158;
                          Issue #481); no example lesson
@@ -231,7 +231,8 @@ site/                    Quarto project: the website source
                          provenance register (provenance.yaml) of the committed interface artwork: authored
                          SVGs (F123) and, since the site navigation, derived WebP illustrations (F133, ADR 021);
                          since the textbook layer the hero images under assets/hero/ (F158: four; since
-                         Issue #482 the one fluid-dynamics image at three widths)
+                         Issue #482 one image at three widths; since Issue #487 the owner's
+                         double-pendulum illustration, registered by its author and date)
   (template partials)    The shared header, footer, and opening templates and includes of the atelier,
                          where Quarto's template partials live (scientific atelier, F123)
 src/pbc/                 Importable Python package with all reusable lesson code
@@ -1605,7 +1606,20 @@ the right) and faded toward the left and at every edge in the file's
 alpha channel, so that the copy stands over the faint end of the trail
 and no boundary shows on the paper; each file has its register entry with
 the master's origin and hash as the atlas entry records them, and the
-unit tests check the matte and the mirror on the committed bytes. The
+unit tests check the matte and the mirror on the committed bytes. Since
+the owner's request of 2026-11-12 (Issue #487) the one illustration is the
+owner's double pendulum (a double pendulum at the left, a dotted trace
+with a dashed curve through the middle, a ball in a glowing well at the
+right), from the owner's master registered by its author, date, and hash
+with no statement of how it was made: three WebP files (1200, 1480, and
+1774 px wide, 2:1, the master's frame) made by the same tool outside the
+build, the illustration's ground keyed to the paper, the part under the
+copy of a wide screen lifted pixel by pixel toward the paper by what the
+text's contrast needs (the pendulum stays a pale drawing), every edge
+faded in the alpha channel; the unit tests check the floor under the
+copy, the plateau, the edges, and the composition on the committed bytes,
+and the image is an illustration, not a result (its alternative text
+claims no measurement). The
 image is in the HTML as one `<img>` with its `srcset` and `sizes`, its
 intrinsic size, and the priority hint; there is no hero script, no
 `<noscript>`, and no parameter, the page with and without scripts is the
@@ -1642,11 +1656,15 @@ smallest phones (360 by 640, 320 by 568) it follows the actions below the
 fold, whole and at the size it has at 390 wide scaled by the width (the
 owner's decisions of 2026-11-10, Issue #462). Since Issue #482 the hero is
 one composition from 992 CSS px: the image is the ground of the hero's
-grid at 78 % of its width, aligned to the right edge of the column, and
-the copy and the actions stand in the left 46 % above it, over the left
-third of the image at most, where the file's matte keeps the ink at a
-quarter; below 992 px the copy, the actions, and then the image at the
-full width of the column. The browser tests measure, with the text made
+grid, since Issue #487 from the left edge of the content column to the
+right edge of the viewport (the column plus its gutter, by a container
+unit of Quarto's page grid and never `100vw`, which a classic scrollbar
+widens; before that 78 % of the column at its right edge), and the copy
+and the actions stand in the left 46 % of the column above it, over the
+lifted left 47 % of the image at most, where the file keeps every pixel
+above the floor the text's contrast needs (before #487 the left third,
+where the matte kept the ink at a quarter); below 992 px the copy, the
+actions, and then the image at the full width of the column. The browser tests measure, with the text made
 transparent, the darkest pixel behind the headline, the subtext, and each
 action at the five sizes and at 200 % text and require the WCAG contrast
 of the text's colour against it, and sample the four edges of the image's

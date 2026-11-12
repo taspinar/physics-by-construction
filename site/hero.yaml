@@ -6,14 +6,16 @@
 # a reload.
 #
 # Since F158 (Issue #462) the file also holds the hero image; since Issue
-# #482 (the owner's decision of 2026-11-11) it is one Part A illustration,
-# the vortex street of fluid dynamics, identified by the name of its files
-# under site/assets/hero/ (one per width, registered in
-# site/assets/provenance.yaml), with the course whose atlas master it is
-# derived from and its alternative text. The page carries the image in its
-# HTML; no script picks or changes it. The files are the master's middle
-# band, mirrored so that the flow runs from right to left, and faded at the
-# edges; the alternative text says what is seen and claims no result.
+# #482 (the owner's decision of 2026-11-11) it is one illustration, and since
+# Issue #487 (the owner's request of 2026-11-12) the owner's own illustration
+# of a double pendulum, a dotted trace with a dashed curve, and a ball in a
+# glowing well, identified by the name of its files under site/assets/hero/
+# (one per width, registered in site/assets/provenance.yaml), with the
+# course of Part A it is named with and its alternative text. The page
+# carries the image in its HTML; no script picks or changes it. The files
+# are the master blended over the paper, lifted under the copy and faded at
+# the edges; the alternative text says what is seen and claims no result:
+# the image is an illustration, not a measurement or a result of the project.
 #
 # `variants` is an editorial reference: the three headlines and eight
 # subtexts of F134 (the owner's copy of Issue #339, 2026-10-30), no longer
@@ -29,11 +31,12 @@ subtext: >-
   Explore physics by building simulations, working with experimental data,
   and investigating how AI could help us understand the physical world.
 image:
-  id: vortex-street
-  sequence: fluids
+  id: double-pendulum
+  sequence: mechanics
   alt: >-
-    Illustration: a fluid flowing from right to left past a cylinder,
-    leaving a trail of alternating swirls that fades away to the left.
+    Illustration: a double pendulum swinging at the left, a dotted trace
+    with a dashed curve following it through the middle, and a small ball
+    resting in a glowing well at the right.
 variants:
   - id: "1"
     text: >-

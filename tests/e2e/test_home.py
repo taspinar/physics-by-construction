@@ -1,11 +1,13 @@
 """The built home page (F134, F158; ADR 021 decision 4 as amended): the hero
 with the owner's one fixed headline and subtext (Issues #462 and #481), the
 same with and without scripts and after a reload, over one large
-fluid-dynamics illustration (Issue #482): one image in the HTML, no script
-in the hero, exactly one hero file requested per load, the one sized for
-the viewport; no layout shift from the image; no storage; no rectangular
-boundary on the render and the text's contrast over the fading image,
-measured; the layout rule of "Home page" at 1280 by 800, 768 by 1024, 390 by
+illustration (Issue #482; since Issue #487 the owner's double pendulum,
+from the column's left edge to the screen's right edge on a wide screen):
+one image in the HTML, no script in the hero, exactly one hero file
+requested per load, the one sized for the viewport; no layout shift from
+the image; no storage; no rectangular boundary on the render and the
+text's contrast over the lifted part of the image, measured; the layout
+rule of "Home page" at 1280 by 800, 768 by 1024, 390 by
 844, 360 by 640, and 320 CSS px and at 200 % text; the two actions with the
 header's destinations; the four sections of the owner's copy in order
 (Issue #481), Part A with its course subjects, no example lesson, every
@@ -45,12 +47,11 @@ PHONE_TALL = {"width": 390, "height": 844}
 PHONE_SMALL = {"width": 360, "height": 640}
 PHONE_NARROW = {"width": 320, "height": 568}
 APOSTROPHE = chr(0x2019)
-# The share of the hero's width the image takes from 992 CSS px (the
-# owner's 70 to 80 %; site.css draws it at 78 %), and the share of the image
-# the copy's column may lie over (the left 31 %, where the file's matte
-# keeps the ink at a quarter at most).
-_IMAGE_SHARE = (0.70, 0.80)
-_UNDER_THE_COPY = 0.32
+# The share of the image the copy's column may lie over from 992 CSS px
+# (the left 47 %, where the file's own lift keeps every pixel light enough
+# for the text's contrast; the copy ends at 45 % of the image at most, since
+# the image is the column plus its gutter, Issue #487).
+_UNDER_THE_COPY = 0.47
 _WIDE = 992
 
 
@@ -197,9 +198,9 @@ def load_recorded(
 @pytest.mark.parametrize(
     ("viewport", "scale", "width"),
     [
-        (DESKTOP, 1, 1200),
-        (DESKTOP, 2, 1800),
-        (TABLET, 2, 1800),
+        (DESKTOP, 1, 1480),
+        (DESKTOP, 2, 1774),
+        (TABLET, 2, 1480),
         (PHONE_TALL, 3, 1200),
     ],
     ids=["1280x800@1x", "1280x800@2x", "768x1024@2x", "390x844@3x"],
@@ -213,9 +214,10 @@ def test_the_page_requests_the_one_file_sized_for_the_viewport(
     width: int,
 ):
     """Exactly one hero file per load, the smallest of the srcset that
-    covers the image's drawn width at the screen's pixel density (78 % of
-    the hero from 992 CSS px, the whole width below), within the per-file
-    budget. (That the page stores nothing and sets no cookie is the check
+    covers the image's drawn width at the screen's pixel density (the
+    column plus its gutter from 992 CSS px, the whole column below; the
+    largest file is the master's width, so a 2x desktop takes it), within
+    the per-file budget. (That the page stores nothing and sets no cookie is the check
     every page gets, tests/e2e/test_built_site.py; the hero adds no
     script.)"""
     page, context, requests = load_recorded(browser, server, viewport, scale)
@@ -321,8 +323,9 @@ def test_the_message_and_the_actions_are_above_the_fold(
     primary action, which ends a reasonable margin above the fold, while the
     secondary may fall just below it (the owner's decisions of 2026-11-10 and
     round 2 of Issue #462). The image is never moved or shrunk for this: the
-    ground of the hero at 70 to 80 % of its width on a desktop (Issue #482),
-    the whole column right after the actions below 992 CSS px."""
+    ground of the hero on a desktop, from the left edge of the column to
+    the right edge of the screen and not past it (Issue #487), the whole
+    column right after the actions below 992 CSS px."""
     context = browser.new_context(viewport=viewport)
     page = open_home(context, server)
     for selector in visible:
@@ -332,9 +335,10 @@ def test_the_message_and_the_actions_are_above_the_fold(
     figure = _box(page, ".hero-figure")
     hero = _box(page, ".home-hero")
     if viewport["width"] >= _WIDE:
-        share = figure["width"] / hero["width"]
-        assert _IMAGE_SHARE[0] <= share <= _IMAGE_SHARE[1], share
-        assert abs(figure["x"] + figure["width"] - hero["x"] - hero["width"]) < 1
+        screen = page.evaluate("document.documentElement.clientWidth")
+        assert abs(figure["x"] - hero["x"]) < 1
+        assert abs(figure["x"] + figure["width"] - screen) < 1, (figure, screen)
+        assert figure["width"] > hero["width"]
     else:
         assert abs(figure["width"] - hero["width"]) < 1
     context.close()
@@ -479,8 +483,8 @@ def test_the_hero_reflows_without_overlap_at_every_size_and_at_200_percent_text(
 ):
     """At every size, and with the text twice as large: no horizontal scroll,
     the copy and the actions do not overlap, and on a wide screen they lie
-    over the faint end of the image's trail only (its left third; Issue
-    #482) while below 992 CSS px the image follows the actions; the reading
+    over the lifted part of the image only (its left 47 %; Issues #482 and
+    #487) while below 992 CSS px the image follows the actions; the reading
     order is the copy, then the two actions, then the image; the headline
     keeps its size at normal text and is enlarged at 200 % with no word of
     the copy broken inside; both actions can be reached with the keyboard."""
@@ -488,19 +492,23 @@ def test_the_hero_reflows_without_overlap_at_every_size_and_at_200_percent_text(
     page = open_home(context, server)
     normal = _font_size(page, "main h1")
     _enlarge(page, scale)
-    # The page's content is no wider than its column, and the page, with the
-    # shared header, no wider than the screen.
-    main = page.locator("main").evaluate("m => [m.scrollWidth, m.clientWidth]")
-    assert main[0] <= main[1], main
+    # The page, with the shared header, is no wider than the screen, and the
+    # page's content no wider than its column, except the hero image on a
+    # wide screen, which runs past the column to the edge of the screen
+    # (Issue #487) and is the column's only overflow.
     width = page.evaluate("document.documentElement.scrollWidth")
     assert width <= viewport["width"]
+    main = page.locator("main").evaluate("m => [m.scrollWidth, m.clientWidth]")
     copy = _box(page, ".hero-copy")
     actions = _box(page, ".home-hero .home-actions")
     figure = _box(page, ".hero-figure")
+    hero = _box(page, ".home-hero")
+    bleed = figure["width"] - hero["width"] if viewport["width"] >= _WIDE else 0
+    assert main[0] <= main[1] + bleed + 0.5, (main, bleed)
     assert copy["y"] + copy["height"] <= actions["y"] + 0.5
     if viewport["width"] >= _WIDE:
-        # Over the faint end of the trail only: the copy and the actions end
-        # within the left third of the image, whatever the text size.
+        # Over the lifted part of the image only: the copy and the actions
+        # end within its left 47 %, whatever the text size.
         for box in (copy, actions):
             under = (box["x"] + box["width"] - figure["x"]) / figure["width"]
             assert under <= _UNDER_THE_COPY, under
@@ -586,8 +594,8 @@ def test_the_image_has_no_rectangular_boundary_on_the_render(
 ):
     """Every pixel along the four edges of the image's box is the paper, at
     every size (the fade is in the file; on a wide screen the copy over the
-    box is made transparent first), while the image is there: the
-    cylinder, the darkest part, is drawn inside the box."""
+    box is made transparent first), while the image is there: the ball in
+    the well, the darkest part, is drawn inside the box."""
     context = browser.new_context(viewport=viewport)
     page = open_home(context, server)
     page.wait_for_load_state("networkidle")
@@ -623,10 +631,13 @@ _CONTRAST = {
 def test_the_text_keeps_its_contrast_over_the_fading_image(
     browser: Browser, server: SiteServer, viewport: dict[str, int], scale: int
 ):
-    """Measured where the text meets the image, not assumed (Issue #482):
-    with the text made transparent, the darkest pixel behind the box of
-    the headline, the subtext, and each action still gives the text's
-    colour the contrast WCAG asks for, at every size and at 200 % text."""
+    """Measured where the text meets the image, not assumed (Issues #482
+    and #487): with the text made transparent, the darkest pixel behind the
+    box of the headline, the subtext, and each action still gives the
+    text's colour the contrast WCAG asks for, at every size and at 200 %
+    text (on a wide screen the boxes lie over the lifted part of the
+    image, where the file keeps every pixel above the floor the contrast
+    needs)."""
     context = browser.new_context(viewport=viewport)
     page = open_home(context, server)
     page.wait_for_load_state("networkidle")

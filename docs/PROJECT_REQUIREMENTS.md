@@ -633,7 +633,16 @@ Later phases (in scope for the project, out of scope for the MVP):
   the copy, the actions, and then the image at the full width of the
   column. Static only, no new dependency; no visible rectangular boundary;
   one hero file requested per load, sized for the viewport; the
-  above-the-fold rule above stands.
+  above-the-fold rule above stands. Since the owner's request of 2026-11-12
+  on Issue #487 the hero image is the owner's own illustration of a double
+  pendulum, a dotted trace with a dashed curve, and a ball in a glowing
+  well, in place of the vortex street (an illustration, not a result;
+  registered as a derived raster from the owner's master by its author and
+  date, with no statement of how it was made); from 992 CSS px it runs
+  from the left edge of the content column to the right edge of the
+  viewport, wider than before, and under the copy it is lifted toward the
+  paper by what the text's contrast needs, measured on the render as
+  before; the rest stands.
 - Course atlas (decision 36, amended by decisions 40 and 43), at the existing path
   address with "Course Atlas" as its display label and every existing
   anchor and bookmark valid (`#<course-id>` and `#<path-id>` open their
