@@ -127,11 +127,15 @@ $$
 
 the **effective length**: the length of the simple pendulum with the same
 period. Everything above holds for the body with $L_\text{eff}$ in place of
-$L$, including the exact period. For a point mass $L_\text{eff} = d$; a bob
-of finite size, a rod with mass, and parts of the encoder that turn with the
-axis all make $I$ larger and $L_\text{eff}$ longer. For a small body of
-moment of inertia $I_c$ about its own centre, at the distance $L$,
-$L_\text{eff} = L + I_c/(mL)$: longer by an amount that shrinks with $L$.
+$L$, including the exact period. For a point mass $L_\text{eff} = d$. For a
+body of moment of inertia $I_c$ about its own centre of mass, the
+parallel-axis theorem gives $I = I_c + m d^2$, so
+$L_\text{eff} = d + I_c/(m d)$: always longer than $d$, by an amount that
+shrinks with $d$. Compared with a stated length to the bob, other parts can
+act either way: parts that turn on the axis itself add to $I$ but not to
+$m d$ and lengthen $L_\text{eff}$, while a rod with mass raises the centre
+of mass and can shorten it. Which length the record states, and which
+parts move with the pendulum, the record does not say (see the limits).
 From the period alone, with $g$ known, one measures $L_\text{eff} =
 gT_0^2/4\pi^2$, never $L$ itself.
 
@@ -637,8 +641,9 @@ print(result.output("bob-exercise"), end="")
 
 A sphere that large would be a very unusual bob for a pendulum of this
 length, so the bob's size alone is an unlikely explanation; the rod and the
-parts of the encoder that turn with the axis also add to $I$. The record
-gives none of these dimensions, so the lab cannot tell them apart.
+parts of the encoder that turn with the axis also change $I$ and the centre
+of mass, in directions that depend on their masses and where they sit. The
+record gives none of these dimensions, so the lab cannot tell them apart.
 :::
 :::
 
