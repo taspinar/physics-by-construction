@@ -17,6 +17,7 @@ from pbc.data.uncertainty import standard_from_expanded
 
 if TYPE_CHECKING:
     from pbc.data.reference.bayreuth_rlc import Spectrum
+    from pbc.data.reference.nist_numisheet import Test
     from pbc.data.reference.tess_wasp18 import LightCurve
 
 
@@ -101,6 +102,25 @@ def impedance_series(spectrum: Spectrum, part: str) -> Series:
         x_unit="Hz",
         y_name=name,
         y_unit=unit,
+    )
+
+
+def stress_strain_series(test: Test) -> Series:
+    """Engineering stress in MPa against engineering strain of a NIST
+    Numisheet test, in the order of the rows (the strain goes up and down).
+
+    Processed, as the card labels the file: the stress is the mean of two
+    load cells over the original area, the strain a virtual extensometer of
+    image correlation. The record gives no uncertainty per point.
+    """
+    return Series(
+        x=test.strain,
+        y=test.stress,
+        artifact="processed-measured",
+        x_name="engineering strain e",
+        x_unit="mm/mm",
+        y_name="engineering stress S",
+        y_unit="MPa",
     )
 
 

@@ -37,8 +37,8 @@ from pbc.data.fit import FitResult, fit_curve
 from pbc.data.plotting import COLOURS, add_credit, label_status
 
 STEM = "C00FeDP980Numisheet2020R01T1.424W17.93-S-Stress-Strain"
-FILE = f"{STEM}.csv"
-ATTRIBUTES = f"{STEM}-attributes.csv"
+FILE = STEM + ".csv"
+ATTRIBUTES = STEM + "-attributes.csv"
 FIELDS = ("Time", "Estrain", "Estress", "Tstrain", "Tstress")
 UNITS = {
     "Time": "s",
