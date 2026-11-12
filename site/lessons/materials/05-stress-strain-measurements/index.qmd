@@ -1,0 +1,643 @@
+---
+title: "Stress-strain measurements lab"
+description: >-
+  A dual-phase sheet steel pulled, pushed back, and pulled to fracture in a
+  NIST laboratory, against the linear elastic model of the elasticity
+  lesson: Young's modulus with its uncertainty, where the measured curve
+  leaves the straight line, what happens when the load reverses, and the
+  work per volume of the hysteresis loop.
+lesson:
+  id: stress-strain-measurements
+  strand: materials
+  order: 5
+  difficulty: 2
+  course: materials
+  slot: MAT6
+  methods: [measured-data]
+  outcomes:
+    - Read a measured stress-strain test for what it is, a stress from a force over the original area and a strain from an image-correlation extensometer, both processed, with no uncertainty per point
+    - Fit Young's modulus to the elastic regime with its standard error, compare it with the elasticity lesson's model, and judge the fit by its residuals and its sensitivity to the window and the intercept
+    - Locate the departure from the straight line with offset lines, and explain why a steel that yields gradually has no single elastic limit
+    - Test the elastic model's prediction for an unloading against a measured load reversal, and compute the work per volume of the hysteresis loop with its sign convention
+  related: []
+  format: 2
+  preview: fig-stress-strain
+  experiment: pbc.materials.experiments.stress_strain_measurements
+  prerequisites:
+    lessons: [elasticity-and-deformation]
+    outside:
+      - "Statistics: a least-squares straight-line fit, its residuals, and the standard error of its slope"
+      - "Calculus: the integral of a function along a path, and the area enclosed by a closed curve"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this
+from pbc.materials import stress_strain
+from pbc.materials.experiments import stress_strain_measurements as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The elasticity lesson modelled a solid as linear elastic: stress
+proportional to strain, $\sigma = E\varepsilon$, with Young's modulus $E$.
+It chose $E = 200\ \mathrm{GPa}$ for a steel, said that the value was
+chosen and not measured, and said that beyond the yield stress a metal
+deforms permanently, which the model cannot describe. It never tested
+either statement against a metal.
+
+This lab does, with a measurement someone else made and published. At the
+National Institute of Standards and Technology (NIST), a strip of a
+dual-phase sheet steel, `DP980`, was pulled to a few per cent of strain,
+pushed back to its original length, and pulled again until it broke, while
+load cells measured the force and cameras followed a speckle pattern on its
+edge. How stiff is this steel, and how well does the measurement know it?
+Up to which stress does the straight line of the model hold? And when the
+load reverses, does the steel spring back along the line, as the elastic
+model says it must?
+
+## Assumptions
+
+1. **One axis, a uniform bar.** The strip carries its force along its
+   length, and over the length the strain is measured on it the stress and
+   the strain are the same everywhere. That holds until the strip starts to
+   neck, and the lab stops using it there.
+2. **Engineering stress and strain.** The stress is the force over the
+   original cross-section, the strain the change of a length over its
+   original value. Both are the quantities NIST computed; neither follows
+   the shrinking cross-section.
+3. **The model is the elasticity lesson's.** Linear, isotropic, small
+   strains: $S = E e$ along the axis. The fit adds an intercept $S_0$ for
+   the zero of the instruments, and the lab shows what it changes.
+4. **The record's processing is taken as given.** The force is the mean
+   of two load cells; the strain is a virtual extensometer of digital image
+   correlation. The record gives no calibration value for either, and no
+   uncertainty per point. The uncertainty of the fitted modulus is derived
+   from the scatter of the data around the line, which is meaningful only
+   where the line describes them, and the lab checks that separately.
+5. **One test.** The record holds three repeats of this test; the lab
+   uses the first, `R01`, so it says nothing about the scatter from one
+   specimen to the next.
+
+## Explanation {#explanation}
+
+### What the two columns measure
+
+The **stress** of the file is the engineering stress $S = P/A_0$: the
+force $P$, the mean of an upper and a lower load cell, over the original
+cross-section $A_0$, the thickness times the width of the strip. Between
+the two load cells the strip runs through a fixture pressed against its
+faces, which keeps the thin sheet from buckling when it is pushed.
+Friction in the fixture can make the force above it differ from the force
+below it, so the force is measured on both sides and averaged.
+
+The **strain** is the engineering strain $e = (L - L_0)/L_0$ of a
+**virtual extensometer**: two points of the measured displacement field,
+a nominal gauge length apart along the strip, and the change of their
+distance over the original one. The cameras measure a field; the file
+keeps the average strain over that gauge length. Once the strip necks, the
+deformation concentrates in a short region and the gauge averages it with
+material that has stopped stretching.
+
+The file also holds a **true strain** $\ln(1 + e)$ and a **true stress**
+$S(1 + e)$, computed by NIST from the engineering columns for a bar that
+stretches uniformly at constant volume. They are not further measurements,
+and they do not hold beyond the start of necking.
+
+### What the linear elastic model predicts
+
+Along one axis the model of the elasticity lesson is a straight line,
+
+$$
+S = E\,e .
+$$
+
+It makes two predictions that the measurement can test. **On loading**,
+the stress rises along a straight line of slope $E$ through the origin, at
+every stress. **On unloading**, because the model has no memory, the stress
+falls back along the same line: from a point $(e_1, S_1)$ every elastic
+unloading follows
+
+$$
+S = S_1 + E\,(e - e_1),
+$$
+
+and recovers the strain $S_1/E$ when the stress reaches zero. A real metal
+follows the line only at small stresses. Beyond them it deforms
+permanently, and what remains at zero stress is a **plastic strain**.
+
+### Offset lines and the yield stress
+
+Where does the curve leave the line? A curve that bends gradually has no
+point where it suddenly stops being straight; the answer depends on how far
+from the line one calls "left". The **offset method** makes that choice
+explicit: shift the elastic line to the right by a strain $e_\text{off}$,
+$S = E(e - e_\text{off}) + S_0$, and take the stress where the measured
+curve crosses it. With $e_\text{off} = 0.2\,\%$ the crossing is the
+conventional **yield stress**; smaller offsets locate the start of the
+bend, as long as the offset is well above the noise of the strain.
+
+### The work of a closed loop
+
+The work per volume done on a bar while its strain changes by
+$\mathrm de$ is $S\,\mathrm de$. Over a path that returns to its start,
+
+$$
+W = \oint S\,\mathrm de
+$$
+
+is the work per volume the material absorbed over the cycle. For a purely
+elastic material the path goes and returns along one line and $W = 0$. For
+a path that runs clockwise in the plane of $e$ and $S$, with its returning
+branch above the outgoing one, $W$ is positive and equal to the enclosed
+area; it is energy that the steel dissipated as heat or stored in its
+structure. A stress in MPa times a strain is $\mathrm{MJ/m^3}$.
+
+## Code {#code}
+
+The model and the constructions of the lab are in
+`pbc.materials.stress_strain`. Hooke's law with an intercept:
+
+```{python}
+#| echo: false
+excerpt(stress_strain.hooke_stress)
+```
+
+The offset crossing, interpolated between the two samples on either side:
+
+```{python}
+#| echo: false
+excerpt(stress_strain.offset_crossing)
+```
+
+The elastic unloading from a point, and the closed integral of $S$ over
+$e$ by trapezoids, closed by a straight segment:
+
+```{python}
+#| echo: false
+excerpt(stress_strain.elastic_unloading)
+```
+
+```{python}
+#| echo: false
+excerpt(stress_strain.closed_loop_work)
+```
+
+The choices the lab makes before it looks at the data: the elasticity
+lesson's modulus, the fit window, and the offsets.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="choices")
+```
+
+## Worked examples {#worked-examples}
+
+### The integral of a loop, checked on an ellipse
+
+Before any data, `closed_loop_work` is checked on a loop whose area is
+known: an ellipse of semi-axes $a$ in strain and $b$ in stress, traversed
+clockwise, encloses $\pi a b$.
+
+```{python}
+#| label: ellipse-run
+#| echo: false
+excerpt(experiment.ellipse_check)
+```
+
+```{python}
+#| label: ellipse
+#| echo: false
+result.table("ellipse")
+```
+
+[Round an ellipse traversed clockwise, the closed trapezoid integral is
+positive and converges to the exact area $\pi a b$ at second order: each
+doubling of the number of points divides the error by
+`{python} result["ellipse-ratio"]`.]{.claim type="numerically-verified"
+scope="an ellipse sampled at equally spaced angles, from 25 to 400 points"
+evidence="ellipse-run ellipse"} The polygon through the points cuts
+inside the curve, so the integral is slightly below the area. The measured
+loop below is a polygon of hundreds of points with no curve between them:
+its integral is the area of that polygon.
+
+### The measurement {#data}
+
+```{python}
+#| echo: false
+data_card("nist-numisheet-dp980")
+```
+
+The file holds `{python} result["rows"]` rows over
+`{python} result["duration"]` s, one per pair of camera images: time,
+engineering strain and stress, and NIST's true strain and stress. The card
+labels it a processed measurement, so every figure of this page says
+processed. NIST data are not subject to copyright in the United States and
+NIST grants the right to publish and modify them elsewhere; the card gives
+the attribution, which every figure carries. The sample is the record's
+file, unchanged.
+
+```{python}
+#| echo: false
+excerpt(experiment.landmarks)
+```
+
+```{python}
+#| label: landmarks
+#| echo: false
+result.table("landmarks")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_stress_strain)
+```
+
+```{python}
+#| label: fig-stress-strain
+#| echo: false
+#| fig-cap: "The measured path of the strip: a steep rise that bends over into a slow climb, a reversal that falls far less steeply than it rose and flows in compression, and a second tension that rises to a broad maximum and drops as the strip necks and breaks. The shaded area is the hysteresis loop."
+#| fig-alt: "Stress against strain. A first branch rises almost vertically from the origin, bends sharply and flattens near the top of the plot. From its end a second branch falls steeply, crosses zero stress at a strain somewhat smaller, and continues down into negative stress while curving back towards zero strain, ending at the bottom left. A third branch rises from there, first steeply, then curving, to meet the first branch's height near its end, and continues flat to the right before falling at the far right. The area between the second and the third branch is shaded. Three black markers mark the top of the first branch, the bottom of the second, and the top of the third."
+#| fig-status: processed
+#| fig-dataset: nist-numisheet-dp980
+result.show("fig-stress-strain")
+```
+
+[The first tension reaches its highest stress, `{python} result["peak-stress"]`
+MPa, at a strain of `{python} result["peak-strain"]` per cent; after the
+hold the unloading starts from `{python} result["hold-stress"]` MPa; the
+compression reaches `{python} result["min-stress"]` MPa near zero strain;
+the last tension peaks at `{python} result["neck-stress"]` MPa at
+`{python} result["neck-strain"]` per cent, and the strip breaks at
+`{python} result["fracture-strain"]` per cent.]{.claim type="observational"
+scope="test R01 of the record, the engineering columns as published"
+evidence="landmarks nist-numisheet-dp980"} The first
+`{python} result["quiet-rows"]` rows come before the force ramp: there the
+strain scatters by `{python} result["strain-noise"]` µm/m and the stress
+by `{python} result["stress-noise"]` MPa (one standard deviation). That is
+the noise of the two columns, the only uncertainty the data give directly.
+
+Before any fit, the figure already answers the question of the unloading.
+If the steel unloaded elastically, the second branch would fall as steeply
+as the first one rose. It does not: it leans over.
+
+### Young's modulus from the elastic regime {#fitting}
+
+The fit takes the rows of the first tension whose stress lies between the
+two limits of the window and fits a straight line to them with
+`fit_curve`, the fit helper of the course:
+
+```{python}
+#| echo: false
+excerpt(experiment.fit_modulus)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_elastic_regime)
+```
+
+```{python}
+#| label: fig-elastic-regime
+#| echo: false
+#| fig-cap: "At small strain the measured points lie on a straight line, and the line of the elasticity lesson's modulus is hard to tell from the fitted one. Above the fit window the points fall below both lines, gradually, and cross the offset line well below the highest stress of the test."
+#| fig-alt: "Two panels. Top, stress against strain at small strain: measured points rise in a straight line from the origin, then bend over and continue nearly flat. A dashed fitted line and a dotted model line lie almost on top of each other along the straight part and continue straight above the bend; a dash-dot line parallel to them starts further right and meets the points where they have flattened; a horizontal line marks that height. A grey band marks the fit window in stress. Bottom, the residuals of the two lines against stress: points scattered around zero up to the end of the window, then curving smoothly and increasingly downwards."
+#| fig-status: processed
+#| fig-dataset: nist-numisheet-dp980
+result.show("fig-elastic-regime")
+```
+
+[The line fitted to the `{python} result["fit-points"]` points of the
+first tension between the window's limits gives
+$E =$ `{python} result["e-fit"]` ± `{python} result["e-err"]` GPa and an
+intercept $S_0 =$ `{python} result["s0"]` ± `{python} result["s0-err"]`
+MPa. The standard errors are derived from the scatter of the residuals,
+because the record gives no uncertainty per point.]{.claim
+type="experimentally-supported"
+scope="test R01, the stress window 100 to 400 MPa of the first tension, Hooke's law with an intercept, the calibration of the load cells, the extensometer and the dimensions unknown and not included"
+evidence="fig-elastic-regime nist-numisheet-dp980"}
+The helper's list of warnings is `{python} result["fit-warnings"]`. In the
+window the residuals scatter by `{python} result["rms"]` MPa root mean
+square, without a trend. The strain noise before the ramp times $E$ is
+`{python} result["noise-times-e"]` MPa: the scatter about the line is the
+noise of the strain, not of the stress, and the line describes the window
+as well as the data can tell.
+
+The intercept is not zero. A line through the origin would need the
+strain to be `{python} result["s0-strain"]` µm/m larger than measured
+everywhere along it: a zero offset of the extensometer, or a slight
+non-linearity at the start of the ramp as the strip settles in its grips
+and its fixture. The data cannot tell the two apart.
+
+### The model against the measurement
+
+[The elasticity lesson's modulus, `{python} result["model-e"]` GPa, is
+`{python} result["model-above"]` per cent above the fitted one,
+`{python} result["model-sigmas"]` of its standard errors; its line through
+the origin leaves residuals of `{python} result["model-rms"]` MPa root mean
+square in the window, against `{python} result["rms"]` MPa for the fitted
+line.]{.claim type="experimentally-supported"
+scope="test R01, the fit window of the first tension, the model of the elasticity lesson with its chosen modulus and no intercept"
+evidence="fig-elastic-regime modulus-sensitivity nist-numisheet-dp980"}
+In standard errors the difference looks large. But the standard error
+measures only how well the scatter pins down the slope of a line in this
+window. How much the slope depends on the choices of the analysis shows
+when the fit is repeated with other windows, and without the intercept:
+
+```{python}
+#| echo: false
+excerpt(experiment.sensitivity)
+```
+
+```{python}
+#| label: modulus-sensitivity
+#| echo: false
+result.table("modulus-sensitivity")
+```
+
+[Over four stress windows with an intercept the fitted modulus runs from
+`{python} result["window-low"]` to `{python} result["window-high"]` GPa,
+and through the origin, as the model has it, it is
+`{python} result["origin-e"]` ± `{python} result["origin-err"]` GPa; the
+spread is several times the standard error of any one fit. The table is a
+sensitivity of the fit to the analysis, not an interval for the steel's
+modulus.]{.claim type="experimentally-supported"
+scope="test R01, the first tension, the windows and the intercept of the table"
+evidence="modulus-sensitivity nist-numisheet-dp980"} The windows that
+reach higher give lower moduli, because the curve already bends there; the
+fit through the origin gives a higher one, because the measured line does
+not pass through the origin. The elasticity lesson's value lies inside the
+range of these choices and outside the window fits alone.
+
+What none of these numbers bounds is the error of the instruments. A
+calibration error of the load cells, of the extensometer's gauge length,
+or of the measured width and thickness scales every stress or every strain
+by the same factor, and so scales the fitted modulus by that factor and
+leaves the shape of the residuals as it is: no fit can detect it. The record states the alignment of
+the machine and the calibration of the cameras' geometry, and gives no
+calibration of the force or of the dimensions. So the lab cannot say
+whether this steel is a little softer than the illustrative steel of the
+elasticity lesson or whether the difference is calibration. It can say
+that a straight line with a modulus close to $200\ \mathrm{GPa}$
+describes the start of the curve to within the noise of the strain.
+
+### Where the line stops
+
+The lower panel of the figure shows where the model stops: above the fit
+window the residuals leave zero and bend smoothly downwards, with no step.
+The offset method measures that departure at four offsets:
+
+```{python}
+#| echo: false
+excerpt(experiment.offset_yields)
+```
+
+```{python}
+#| label: offsets
+#| echo: false
+result.table("offsets")
+```
+
+[The first tension crosses the fitted line shifted by $0.02\,\%$ of strain
+at `{python} result["yield-small"]` MPa, and the line shifted by
+$0.2\,\%$, the conventional yield stress, at `{python} result["yield"]`
+MPa, `{python} result["yield-over-peak"]` per cent of the highest stress
+of the test.]{.claim type="experimentally-supported"
+scope="test R01, the first tension, offsets from the line fitted between 100 and 400 MPa"
+evidence="offsets nist-numisheet-dp980"} The crossing rises steadily with
+the offset: there is no stress below which the steel is elastic and above
+which it is plastic, only a curve that bends more and more. [Gradual
+yielding is typical of a dual-phase steel, whose soft and hard grains start
+to yield at different stresses.]{.not-verified} The smallest offset is still several times the noise of
+the strain, as the table shows, so its crossing is a departure of the curve
+and not a fluctuation. The linear model of the elasticity lesson holds,
+for this steel, to within the noise of the strain at least up to the top of
+the fit window, [400 MPa]{.given}, about half its yield stress; above that
+the measured stress falls below the line by tens and then hundreds of MPa.
+
+### The reversal: does the steel spring back along the line?
+
+At the end of the hold the load reverses. The elastic model says that the
+stress falls along a line of slope $E$ and that the strip recovers
+$S_1/E$ of its strain when the stress reaches zero.
+
+```{python}
+#| echo: false
+excerpt(experiment.unloading)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_unloading)
+```
+
+```{python}
+#| label: fig-unloading
+#| echo: false
+#| fig-cap: "The measured unloading follows the elastic line only at its very start and then falls ever less steeply. It reaches the offset line in strain just after the stress has passed zero: the steel flows backwards long before it is pushed as hard as it was pulled."
+#| fig-alt: "Two panels. Top, stress against strain near the end of the first tension: measured points start at the top right and fall to the left along a curve that bends more and more; a dashed straight line from the same start falls much more steeply and reaches zero stress further right than the points do. A horizontal dash-dot line lies just below zero stress. Bottom, against stress falling from left to right: the strain by which the measurement lies behind the dashed line, starting at zero, rising slowly, and crossing a horizontal dash-dot line just after zero stress, then rising faster."
+#| fig-status: processed
+#| fig-dataset: nist-numisheet-dp980
+result.show("fig-unloading")
+```
+
+[Unloaded from `{python} result["hold-stress"]` MPa to zero stress, the
+strip recovers `{python} result["recovered"]` thousandths of strain where
+an elastic unloading with the fitted modulus would recover
+`{python} result["predicted"]`, `{python} result["recovered-ratio"]` times
+as much; the chord of the unloading has a slope of
+`{python} result["chord"]` GPa. The measured branch lies $0.2\,\%$ of
+strain behind the elastic line at `{python} result["reverse-yield"]` MPa,
+`{python} result["reverse-drop"]` MPa below the stress the unloading
+started from.]{.claim type="experimentally-supported"
+scope="test R01, the unloading after the first hold, the elastic line of the fitted modulus through the end of the hold"
+evidence="fig-unloading nist-numisheet-dp980"} The prediction of the
+elastic model fails here, by much more than the uncertainty of the fitted
+modulus or the spread of the sensitivity table. Forwards, the same
+offset was reached at a tensile stress of `{python} result["yield"]` MPa;
+backwards it is reached barely past zero stress, long before the strip is
+pushed as hard in compression as it was pulled in tension: the
+**Bauschinger effect**. [Plastic flow in one direction lowers the
+stress at which a metal yields in the other,]{.not-verified} and a model
+with no memory of its history cannot have such an effect.
+
+### The hysteresis loop
+
+The loop runs from the stress maximum of the first tension, down through
+the compression, and back up along the reload to the first row at the
+same strain. Its two ends do not quite meet, so a straight segment closes
+it.
+
+```{python}
+#| label: loop-run
+#| echo: false
+excerpt(experiment.loop)
+```
+
+[The closed loop of `{python} result["loop-rows"]` measured rows encloses
+`{python} result["loop-work"]` $\mathrm{MJ/m^3}$: the work per volume absorbed by the
+steel over this cycle. The closing segment spans
+`{python} result["loop-gap-strain"]` µm/m and
+`{python} result["loop-gap-stress"]` MPa and contributes
+`{python} result["loop-closing"]` $\mathrm{MJ/m^3}$.]{.claim
+type="experimentally-supported"
+scope="test R01, this one cycle from the stress maximum back to its strain, closed by a straight segment"
+evidence="loop-run fig-stress-strain nist-numisheet-dp980"} The path runs
+clockwise, the reload above the unloading, so the integral is positive and
+equals the shaded area of the first figure. It is not a property of the
+steel: a larger or smaller strain amplitude gives a different loop.
+
+### Necking and the true stress
+
+On the last tension the stress rises to a maximum and then falls, while
+the strain keeps growing. At the maximum the strip starts to neck, and the
+virtual extensometer averages from then on a local strain with the
+material beside it. For a uniform bar at constant volume, the true stress
+at the maximum is $S(1 + e)$:
+
+```{python}
+#| echo: false
+excerpt(stress_strain.true_stress_strain)
+```
+
+At the maximum this gives a true strain of
+`{python} result["neck-true-strain"]` and a true stress of
+`{python} result["neck-true-stress"]` MPa. Beyond it the formula does not
+hold, and the lab does not use the true columns there.
+
+### What the lab shows
+
+The linear elastic model of the elasticity lesson describes this steel's
+first loading up to about half the yield stress, to within the noise of
+the strain. The fitted modulus, `{python} result["e-fit"]` GPa, is close to
+the lesson's illustrative value; how close depends on the window and on
+the intercept more than on the scatter, and no number here bounds the
+calibration of the instruments. Above that, the steel yields gradually,
+with a conventional yield stress of `{python} result["yield"]` MPa and no
+sharp limit. On reversal the model's one prediction about unloading fails
+plainly: the steel does not spring back along its elastic line, it yields
+in reverse almost at once, and over the cycle it absorbs
+`{python} result["loop-work"]` $\mathrm{MJ/m^3}$. To describe that, a model needs
+plasticity with a memory of the loading, which is beyond the elasticity
+lesson.
+
+## Limits {#limits}
+
+- **No calibration and no uncertainty per point.** The record gives no
+  calibration of the load cells, of the extensometer, or of the specimen's
+  dimensions. The standard errors come from the scatter, the sensitivity
+  table is a sensitivity of the analysis, and neither bounds an error that
+  scales every point alike; such an error scales $E$, the yield stresses,
+  and the loop.
+- **One specimen.** Only the first of three repeats is used; the
+  scatter between specimens of the same sheet is not known here.
+- **Engineering quantities.** The stress is over the original
+  cross-section and the strain an average over the gauge length; after the
+  start of necking the strain is no longer that of a uniform bar.
+- **The fixture.** Throughout the test the strip is held between plates
+  against buckling, and friction there can shift the mean force by a few
+  MPa, on the scale of the second exercise; the two load cells are averaged
+  for that reason, and no correction is applied.
+- **A rate and a temperature.** The test ran at one slow rate at room
+  temperature, so the lab says nothing about rate effects or heating.
+- **Offset values are conventions.** The yield stresses depend on the offset
+  and on the line it is offset from, which the page states for each.
+
+::: {.exercise .self-check}
+The fit gives Young's modulus with a standard error of about one GPa, and
+fits over other windows or through the origin differ by several GPa. A
+colleague concludes that the steel's modulus is known to about one GPa.
+What is wrong with that?
+
+::: {.solution}
+The standard error says how well the scatter of the points pins down the
+slope of a straight line in one window. The windows give different slopes
+because the curve already bends at the higher stresses, and the
+intercept changes the slope because the measured line does not pass
+through the origin, so the slope depends on choices the scatter knows
+nothing about. Neither number includes the calibration of the force, of
+the extensometer, or of the dimensions, which scales the modulus without
+changing any residual and which the record does not state. The modulus of
+this specimen is known to within the spread of the analysis choices at
+best, and its absolute error is unknown.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Spring-back.** A steel with $E = 200\ \mathrm{GPa}$ is pulled to a stress
+of 600 MPa and unloaded. How much strain does it recover if the unloading
+is elastic? A measurement shows a recovery 1.4 times as large; what is
+the slope of the chord from the start of the unloading to zero stress?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.recovery_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("recovery-exercise"), end="")
+```
+
+A chord well below $E$ is what the lab measured on its reversal: the
+recovery includes reverse plastic flow, not only elastic spring-back.
+:::
+:::
+
+::: {.exercise}
+**A force difference as a stress.** The two load cells of the test
+typically differ by up to 300 N. The strip is 1.424 mm thick and 17.93 mm
+wide. What stress is half that difference, and how large is it against a
+stress of 300 MPa in the middle of the fit window?
+
+::: {.hint}
+The engineering stress is a force over the original cross-section.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.load_cell_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("load-cell-exercise"), end="")
+```
+
+A few MPa, which is on the scale of the residuals of the fit. If such an
+offset were the same at every point it would move the intercept and not
+the slope; if it grew with the force it would change the slope, and the
+data could not show it.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/materials/stress_strain.py",
+        "src/pbc/materials/experiments/stress_strain_measurements.py",
+        "src/pbc/experiment.py",
+        "src/pbc/data/reference/nist_numisheet.py",
+        "src/pbc/data/adapters.py",
+        "src/pbc/data/fit.py",
+        "src/pbc/data/plotting.py",
+    ],
+    tests=[
+        "tests/unit/test_stress_strain.py",
+        "tests/unit/test_data_samples.py",
+        "tests/unit/test_stress_strain_measurements_experiment.py",
+    ],
+)
+```
+
+The data card above gives the command that downloads a fresh copy of the
+file into `data/downloads/nist-numisheet-dp980`; no model and no account
+are needed to read it.
