@@ -18,6 +18,7 @@ from pbc.data.uncertainty import standard_from_expanded
 if TYPE_CHECKING:
     from pbc.data.reference.bayreuth_rlc import Spectrum
     from pbc.data.reference.nist_numisheet import Test
+    from pbc.data.reference.tess_wasp18 import LightCurve
 
 
 def strain_series(strain: Strain) -> Series:
@@ -120,4 +121,28 @@ def stress_strain_series(test: Test) -> Series:
         x_unit="mm/mm",
         y_name="engineering stress S",
         y_unit="MPa",
+    )
+
+
+def light_curve_series(lc: LightCurve) -> Series:
+    """The PDCSAP flux of a TESS light curve in e-/s against the barycentric
+    time in days (BJD - 2457000), every cadence of the file as released.
+
+    A calibrated observation: the SPOC pipeline calibrated the pixels,
+    subtracted the background, and corrected the aperture photometry for
+    systematics and crowding before the release. The uncertainty is the
+    pipeline's PDCSAP_FLUX_ERR, one standard deviation per cadence. Missing
+    values stay NaN and the quality flags are not applied: a figure of this
+    series shows the file, and a selection of good cadences is a step the
+    page states.
+    """
+    return Series(
+        x=lc.time,
+        y=lc.flux,
+        sigma=lc.flux_err,
+        artifact="calibrated-observation",
+        x_name="time",
+        x_unit="BJD - 2457000, d",
+        y_name="PDCSAP flux",
+        y_unit="e-/s",
     )
