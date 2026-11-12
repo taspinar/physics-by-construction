@@ -1699,13 +1699,19 @@ does not build its own environment, baselines, or scoring. The rules are in
 
 Real measurements are inputs that no build can regenerate (ADR 007). A lesson
 may use one only after the dataset has passed the feasibility gate and holds a
-`go` on its card. Three lessons use measured data: the analysis pipelines lesson
+`go` on its card. Four lessons use measured data: the analysis pipelines lesson
 (`site/lessons/mechanics/10-automated-analysis-pipelines`), with the wave
 gauges of the flume, the gravitational-wave lab
 (`site/lessons/mechanics/11-gravitational-wave-strain`), the first lab built
-around one dataset, and the wave flume lab
+around one dataset, the wave flume lab
 (`site/lessons/waves/08-wave-flume-lab`), which keeps the measurement, its own
-predictions, and the CFD solvers of the card apart. `site/rendering-check.qmd` shows the pattern in the
+predictions, and the CFD solvers of the card apart, and the quantum
+measurement statistics lab
+(`site/lessons/quantum/07-quantum-measurement-statistics`), whose data are
+event counts rather than a time series: the correlators, the CHSH value and
+their errors are computed on the page, the model of the entanglement lesson
+is fitted to them, and the page states which loophole or selection the data
+do not close. `site/rendering-check.qmd` shows the pattern in the
 smallest form.
 Evidence and decisions are in `docs/datasets/`.
 
@@ -1904,10 +1910,15 @@ in `src/pbc/authoring/identity.py`. Rules for every page:
   the file under `variants` as an editorial reference that nothing shows.
   Change the copy there and nowhere else; the build fails on an empty or
   missing text, an unknown field, markup, or a broken variant. The hero
-  image is one of four Part A illustrations named in the same file
-  (`images`); `site/learner/hero.js` creates one at random per visit, or
-  the one `?hero-image=` names, with no request but that image and no
-  storage.
+  image is the one Part A illustration named in the same file (`image`:
+  its id, the course whose atlas master it is derived from, and its
+  alternative text), the vortex street of fluid dynamics since Issue #482,
+  in the HTML as one image with the file of each width under
+  `site/assets/hero/` in its `srcset`; no script runs in the hero. The
+  files are derived from the registered master by
+  `tools/illustrations/derive_assets.py --hero` (mirrored, faded in the
+  alpha channel), never by the build; change the illustration there, in
+  the register, and in the data file, and nowhere else.
 - The copy after the hero is the owner's fixed text (Issue #481,
   2026-11-11) in `site/home.yaml`: the sections `identity` ("What is
   Physics by Construction?"), `philosophy`, `curriculum`, and `integrity`
@@ -1920,10 +1931,10 @@ in `src/pbc/authoring/identity.py`. Rules for every page:
   with the one link to About. Home shows no example lesson; after Part A it
   names the eight course subjects from the curriculum, a course without a
   published lesson marked "(planned)", as plain text.
-- The hero image is composed at build time from the atlas's registered card
-  illustrations, with the names of the courses and paths as SVG text; it
-  holds no link. The double-pendulum figure of F124 left the home page; its
-  module, `pbc.mechanics.experiments.home_opening`, and its tests stay.
+- The hero image holds no link and is not presented as a result (its
+  alternative text names what is seen). The double-pendulum figure of F124
+  left the home page; its module, `pbc.mechanics.experiments.home_opening`,
+  and its tests stay.
 - "How we verify the science" (`site/verify.qmd`) works through three
   claims named in `pbc.authoring.verify` (`EXAMPLES`: the claim type, the
   lesson id, and the evidence word). Each is resolved with the code of the

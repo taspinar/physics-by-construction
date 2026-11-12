@@ -498,22 +498,11 @@ assets:
     source: >-
       The atlas illustration of autonomous-research: an agent's sequence of experiments over a model landscape (text-free); derived by
       tools/illustrations/derive_assets.py.
-  # The hero of the home page (F158): four of the atlas illustrations at hero
-  # size, 1200 px wide, derived from the same masters as their atlas panels
-  # (the owner's copies, matched with these hashes on Issue #462 on
-  # 2026-11-09); each origin as its master's atlas entry records it.
-  hero/double-pendulum.webp:
-    script: tools/illustrations/double_pendulum_atlas.py
-    author: Ahmet Taspinar
-    date: 2026-10-30
-    licence: CC-BY-4.0
-    master: pbc_classical_mechanics_double_pendulum.webp
-    sha256: 3cd0674c8027422997aa9f781a951e6b7db045db42c972bfdf8dad941678484e
-    source: >-
-      The hero illustration of mechanics, from the master of its atlas
-      illustration: the tracks of two double pendulums started 2e-4 rad
-      apart; derived by tools/illustrations/derive_assets.py --hero.
-  hero/vortex-street.webp:
+  # The hero of the home page (F158; since Issue #482 one image): the vortex
+  # street of fluids at three widths, derived from the same master as its
+  # atlas panel (the owner's copy, matched with this hash on Issue #462 on
+  # 2026-11-09); the origin as the master's atlas entry records it.
+  hero/vortex-street-1200.webp:
     script: tools/illustrations/generate_fluid_dynamics.py
     author: Ahmet Taspinar
     date: 2026-10-30
@@ -521,28 +510,34 @@ assets:
     master: pbc_fluid_dynamics_vortex_street.webp
     sha256: 2f5b1e9c664e9dd6eb789ce343652efacd0dfbd8f61f68b0ddff02953ef48614
     source: >-
-      The hero illustration of fluids, from the master of its atlas
-      illustration: a vortex street behind a cylinder; derived by
-      tools/illustrations/derive_assets.py --hero.
-  hero/hot-cold-gas.webp:
-    script: tools/illustrations/render_hot_cold.py
+      The hero illustration of the home page, 1200 px wide, from the master
+      of the atlas illustration of fluids: a vortex street behind a
+      cylinder, its middle 2:1 band mirrored so that the flow runs from right
+      to left and faded at the edges in its alpha channel (Issue #482);
+      derived by tools/illustrations/derive_assets.py --hero.
+  hero/vortex-street-1800.webp:
+    script: tools/illustrations/generate_fluid_dynamics.py
     author: Ahmet Taspinar
     date: 2026-10-30
     licence: CC-BY-4.0
-    master: pbc_thermodynamics_hot_cold.webp
-    sha256: 9d8d5eb349a1b5a1f369213e184d2ce571713d4628985b040dc153e824be0a29
+    master: pbc_fluid_dynamics_vortex_street.webp
+    sha256: 2f5b1e9c664e9dd6eb789ce343652efacd0dfbd8f61f68b0ddff02953ef48614
     source: >-
-      The hero illustration of thermodynamics, from the master of its atlas
-      illustration: a bar from hot to cold with the speed distributions of
-      its gas; derived by tools/illustrations/derive_assets.py --hero.
-  hero/exoplanet-transit.webp:
+      The hero illustration of the home page, 1800 px wide, from the master
+      of the atlas illustration of fluids: a vortex street behind a
+      cylinder, its middle 2:1 band mirrored so that the flow runs from right
+      to left and faded at the edges in its alpha channel (Issue #482);
+      derived by tools/illustrations/derive_assets.py --hero.
+  hero/vortex-street-2400.webp:
+    script: tools/illustrations/generate_fluid_dynamics.py
     author: Ahmet Taspinar
     date: 2026-10-30
     licence: CC-BY-4.0
-    master: pbc_astrophysics_exoplanet_transit.webp
-    sha256: a26197735a80c6cdd4368f86dc1858a6667d14be6a6dc78e7b38ff2727754419
+    master: pbc_fluid_dynamics_vortex_street.webp
+    sha256: 2f5b1e9c664e9dd6eb789ce343652efacd0dfbd8f61f68b0ddff02953ef48614
     source: >-
-      The hero illustration of astrophysics, from the master of its atlas
-      illustration (registered by its author, with no script): an exoplanet
-      transiting its star, with the dip of the light curve; derived by
-      tools/illustrations/derive_assets.py --hero.
+      The hero illustration of the home page, 2400 px wide, from the master
+      of the atlas illustration of fluids: a vortex street behind a
+      cylinder, its middle 2:1 band mirrored so that the flow runs from right
+      to left and faded at the edges in its alpha channel (Issue #482);
+      derived by tools/illustrations/derive_assets.py --hero.

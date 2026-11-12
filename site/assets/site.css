@@ -2479,14 +2479,15 @@ body.pbc-reading-column main.content section.level2 {
 }
 
 /* The home page (docs/atelier.md, "Home page"): the hero (the owner's
-   headline and subtext, one of the Part A illustrations, and the first
-   step), then what Physics by Construction is, how physics is learned
-   here, Part A and Part B, and how we verify what we teach. The page opts in with body-classes: pbc-home. */
-/* On a narrow screen the copy, the two actions, and the image follow each
-   other in the document flow, with 1.5rem between the subtext and the
-   actions and 2rem between the actions and the image (round 2 of Issue
-   462); the figure comes before the actions in the source only so that
-   the script that fills it runs right after it. */
+   headline and subtext over one large fluid-dynamics illustration, and the
+   first step), then what Physics by Construction is, how physics is learned
+   here, Part A and Part B, and how we verify what we teach. The page opts in
+   with body-classes: pbc-home. */
+/* Below 992 CSS px the copy, the two actions, and the image follow each
+   other in the document flow, the order of the source: 1.5rem between the
+   subtext and the actions and 2rem between the actions and the image
+   (round 2 of Issue 462); the image, a 2:1 band whose edges fade into the
+   paper (the fade is in the file), takes the whole column (Issue 482). */
 .home-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -2494,27 +2495,8 @@ body.pbc-reading-column main.content section.level2 {
     "copy"
     "actions"
     "figure";
-  gap: var(--pbc-space-4) var(--pbc-space-5);
+  gap: var(--pbc-space-4) 0;
   margin: var(--pbc-space-3) 0 var(--pbc-space-5);
-}
-
-/* From 992 CSS px the copy and the actions stand left, the image right. */
-@media (min-width: 992px) {
-  .home-hero {
-    grid-template-columns: minmax(0, 6fr) minmax(0, 7fr);
-    grid-template-rows: 1fr auto auto 1fr;
-    grid-template-areas:
-      ". figure"
-      "copy figure"
-      "actions figure"
-      ". figure";
-    align-items: center;
-    min-height: min(36rem, calc(100vh - 8rem));
-  }
-
-  .hero-figure {
-    margin: 0 auto;
-  }
 }
 
 /* The one fixed headline and subtext: the block is as tall as its text.
@@ -2555,26 +2537,55 @@ body.pbc-home .hero-subtext {
   overflow-wrap: break-word;
 }
 
-/* The figure keeps the 4:3 box of the image before the image is there, so
-   that the image the script picks moves nothing. */
+/* The figure keeps the 2:1 box of the image before its bytes arrive, so
+   that the image moves nothing when it is drawn. The image carries its own
+   fade (an alpha channel that is zero on every edge), so it needs no blend
+   with the paper and shows no box. */
 .hero-figure {
   grid-area: figure;
   width: 100%;
-  max-width: 40rem;
-  aspect-ratio: 4 / 3;
-  margin: var(--pbc-space-2) auto 0;
-  /* The paper the image is blended with. */
-  isolation: isolate;
-  background-color: var(--pbc-background);
+  aspect-ratio: 2 / 1;
+  margin: 0;
 }
 
 .hero-image {
   display: block;
   width: 100%;
   height: auto;
-  /* The masters' white is lighter than the page's paper: the lighter of
-     the two shows as paper, so no box shows around the illustration. */
-  mix-blend-mode: darken;
+}
+
+/* From 992 CSS px one composition (the owner's decision of 2026-11-11,
+   Issue 482): the illustration is the ground of the hero, 78 % of its width
+   at the right edge of the column, and the copy and the actions stand in
+   the left 46 % over the faint end of its trail (the left 31 % of the
+   image, where the file's own fade keeps the ink at a quarter at most, so
+   that the text keeps its contrast; measured by the Home tests). The
+   hero is as tall as the image, the copy centred on it. */
+@media (min-width: 992px) {
+  .home-hero {
+    grid-template-columns: minmax(0, 46fr) minmax(0, 54fr);
+    grid-template-rows: 1fr auto auto 1fr;
+    grid-template-areas:
+      ". ."
+      "copy ."
+      "actions ."
+      ". .";
+    align-items: center;
+  }
+
+  .hero-figure {
+    grid-area: 1 / 1 / -1 / -1;
+    align-self: center;
+    justify-self: end;
+    width: 78%;
+    margin: 0;
+  }
+
+  .hero-copy,
+  .home-hero .home-actions {
+    position: relative;
+    z-index: 1;
+  }
 }
 
 /* On a phone a slightly smaller headline and subtext with tighter lines,

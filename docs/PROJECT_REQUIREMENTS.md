@@ -621,7 +621,19 @@ Later phases (in scope for the project, out of scope for the MVP):
   example lesson (the representative lesson per part above is withdrawn:
   lesson discovery belongs to the Course Atlas); after Part A the eight
   course subjects are named compactly from the curriculum, a course without
-  a published lesson marked as planned.
+  a published lesson marked as planned. Since the owner's decision of
+  2026-11-11 on Issue #482 the hero image is one illustration, the vortex
+  street of fluid dynamics, derived from its registered master as a
+  mirrored (the flow from right to left, the cylinder toward the right),
+  edge-faded 2:1 band at three widths, in the HTML as one image with no
+  script and no parameter (the random choice among four images is
+  withdrawn): from 992 CSS px it is the ground of the hero at 78 % of its
+  width with the headline, the subtext, and the actions over the faint end
+  of its trail, the text's contrast measured on the render; below that
+  the copy, the actions, and then the image at the full width of the
+  column. Static only, no new dependency; no visible rectangular boundary;
+  one hero file requested per load, sized for the viewport; the
+  above-the-fold rule above stands.
 - Course atlas (decision 36, amended by decisions 40 and 43), at the existing path
   address with "Course Atlas" as its display label and every existing
   anchor and bookmark valid (`#<course-id>` and `#<path-id>` open their

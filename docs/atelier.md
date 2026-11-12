@@ -294,11 +294,16 @@ kept.
   one line instead of breaking inside), the two actions under it, 1.5rem
   below the subtext (the
   Course Atlas as the one filled control of the page, the first lesson as a
-  text link), and beside it from 992 CSS px one of four Part A
-  illustrations at hero size, in a 4:3 box reserved before the image
-  arrives, blended with `darken` on the paper so that the masters' white
-  shows no box; below 992 px the image follows the actions, 2rem under
-  them, and at 390 by 844 it is whole on the first screen. Then four
+  text link), and, since Issue #482, over one large illustration from 992
+  CSS px: the vortex street of fluid dynamics as the ground of the hero,
+  78 % of its width at the right edge of the column, mirrored so that the
+  flow runs from right to left with the cylinder toward the right, its
+  trail fading away under the copy and every edge fading into the paper
+  (the fade is in the file's alpha channel, so no box shows and no blend
+  is needed), in a 2:1 box reserved before the image arrives; below 992
+  px the image follows the actions, 2rem under them, at the full width of
+  the column, and at 390 by 844 it is whole on the first screen. Nothing
+  in the hero moves. Then four
   sections from the copy file, the owner's text of Issue #481:
   what Physics by Construction is (the one link to the creator and JIDAI;
   the attribution itself is on About and in the footer), "Build.
@@ -345,7 +350,7 @@ decision 2, ADR 021 decision 1). An example of each:
 | Class | Example | Source | Rules |
 |---|---|---|---|
 | Interface artwork | the project mark in the header | an authored SVG under `site/assets/` with its entry (author, licence) in the provenance register there | no number, no caption of a result, no evidence claim; decorative or named by its link |
-| Interface artwork, a derived raster at hero size | the hero image of the home page (F158): one of four Part A illustrations | WebP files under `site/assets/hero/`, derived from the masters of the atlas illustrations by `tools/illustrations/derive_assets.py --hero`, each with the register entry of its master | as below; its alternative text in `site/hero.yaml`; never presented as a result |
+| Interface artwork, a derived raster at hero size | the hero image of the home page (F158; since Issue #482 one image): the vortex street of fluid dynamics, mirrored and edge-faded | WebP files with an alpha channel under `site/assets/hero/`, one per width, derived from the master of the atlas illustration of fluids by `tools/illustrations/derive_assets.py --hero`, each with the register entry of its master | as below; its alternative text in `site/hero.yaml` names what is seen (the flow from right to left); never presented as a result; the mirror reverses the sign of the vorticity, which nothing on the page states |
 | Interface artwork, a derived raster | the twelve illustrations of the course atlas (F133) | WebP files under `site/assets/atlas/`, each with its entry in the provenance register (its origin: a script under `tools/illustrations/`, an author, or an image model with its prompt and date; a licence; its master and the master's SHA-256) | no text, number, or formula in the pixels; never in a lesson's body; alt text that names it; accepted by the visual check (composition, legibility at 76 and 200 px, colour, consistency with its family) |
 | Conceptual illustration | the diagrams drawn by `pbc.authoring.diagrams` in a lesson cell | an executed cell, `fig-status: conceptual` | drawn by code, labelled `conceptual`, never a result |
 | Scientific result | the phase-space figure of "Numerical integrators" | an executed cell over `pbc.mechanics.integrators` | the rules of "Scientifically faithful figures" and the F63 preview contract |

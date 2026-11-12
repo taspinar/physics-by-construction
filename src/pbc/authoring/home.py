@@ -13,16 +13,20 @@ headlines and eight subtexts of F134 under ``variants`` as an editorial
 reference: validated as plain text, never written on a page or used by a
 script. No copy of the hero is written on the page by hand.
 
-The hero image is one of a small set of Part A illustrations (interface
-artwork of ADR 021 decision 1), held in the same data file: each a WebP file
-under ``site/assets/hero/`` named by its identifier and registered in the
-provenance register, with the course whose atlas master it is derived from
-and its alternative text. The default image stands in the HTML inside
-``<noscript>``, so that it is what a page without scripts shows and what a
-reader of the HTML sees, and is not requested when the script runs: the
-script creates the one image it picks, at random, or the one the
-``hero-image`` parameter names. Exactly one hero image is requested per
-load.
+The hero image is one Part A illustration (interface artwork of ADR 021
+decision 1; the owner's decision of 2026-11-11, Issue #482): the vortex
+street of fluid dynamics, derived from the master of its atlas illustration
+as a mirrored, edge-faded 2:1 band at three widths, WebP files under
+``site/assets/hero/`` named by its identifier and the width and registered
+in the provenance register, named in the same data file with the course
+whose atlas master it is derived from and its alternative text. The image
+stands in the HTML as one ``<img>`` with its ``srcset``, so that the page is
+the same with and without scripts, a reader of the HTML sees it, the
+browser requests the one file sized for its viewport, and no script runs in
+the hero (the random choice among four images and the ``hero-image``
+parameter of F158 are gone). The fade is in the file (its alpha channel),
+so that the copy stands over the faint end of the trail on a wide screen
+and no edge of the image shows on the paper.
 
 The sections after the hero come from ``site/home.yaml``, the owner's
 fixed copy (Issue #481, 2026-11-11): prose and references under the rules
@@ -42,7 +46,6 @@ built here from the lessons and the page addresses.
 from __future__ import annotations
 
 import html
-import json
 import posixpath
 import re
 from collections.abc import Collection
@@ -76,15 +79,22 @@ VERIFY_PAGE = "verify.qmd"
 ABOUT_PAGE = "about.qmd"
 HERO_FILE = "hero.yaml"
 HOME_FILE = "home.yaml"
-HERO_SCRIPT = "learner/hero.js"
-# The hero images: one WebP file per image, named by its identifier, at one
-# size (tools/illustrations/derive_assets.py --hero), 4:3 like its master.
+# The hero image: one WebP file per width, named by its identifier and the
+# width (tools/illustrations/derive_assets.py --hero), 2:1 (the middle band
+# of its 4:3 master), with the fade in its alpha channel. The HTML gives the
+# largest as the image's intrinsic size, so that the box is reserved in that
+# aspect before the bytes arrive, and the middle one as the `src` of a
+# browser without `srcset`.
 HERO_IMAGES = "assets/hero"
-HERO_IMAGE_WIDTH, HERO_IMAGE_HEIGHT = 1200, 900
-# The parameter that forces an image, for tests and screenshots. (The `hero`
-# parameter of F134 that forced a headline pair is gone with the pairs: the
-# hero text is fixed.)
-HERO_IMAGE_PARAMETER = "hero-image"
+HERO_IMAGE_WIDTHS = (1200, 1800, 2400)
+HERO_IMAGE_WIDTH, HERO_IMAGE_HEIGHT = 2400, 1200
+HERO_IMAGE_FALLBACK = 1800
+# What the browser is told the image is drawn at, so that it picks the file
+# for its viewport and pixel density. Measured on the built page (review
+# round 1, MIN1): 885 CSS px from 1280 px (the content column stops at 1135
+# px and the figure is 78 % of it), about 74 % of the viewport from 992 to
+# 1279 px, and the whole column (about 94 % of the viewport) below 992 px.
+HERO_IMAGE_SIZES = "(min-width: 1280px) 885px, (min-width: 992px) 74vw, 94vw"
 
 # The sections of the Home copy file in the order of the page, with the
 # anchor of each (the identity keeps the anchor of F134's "What this site
@@ -123,28 +133,27 @@ _MARKUP = re.compile(r"[<>*_`#\[\]{}\\|$]")
 
 @dataclass(frozen=True)
 class HeroImage:
-    id: str  # "double-pendulum": the name of its file
+    id: str  # "vortex-street": the name of its files, before the width
     sequence: str  # the course whose atlas master it is derived from
     alt: str
 
+    def file(self, width: int) -> str:
+        """The file at ``width`` of the built site, relative to its root."""
+        return f"{HERO_IMAGES}/{self.id}-{width}.webp"
+
     @property
-    def file(self) -> str:
-        """The file of the built site, relative to its root."""
-        return f"{HERO_IMAGES}/{self.id}.webp"
+    def files(self) -> tuple[str, ...]:
+        return tuple(self.file(width) for width in HERO_IMAGE_WIDTHS)
 
 
 @dataclass(frozen=True)
 class HeroCopy:
     headline: str
     subtext: str
-    images: tuple[HeroImage, ...] = ()
-    default_image: str = ""
+    image: HeroImage
     # The editorial reference: the headlines of F134, each with its
     # subtexts, as (headline, (subtext, ...)); nothing shows them.
     variants: tuple[tuple[str, tuple[str, ...]], ...] = ()
-
-    def image(self, image_id: str) -> HeroImage:
-        return next(image for image in self.images if image.id == image_id)
 
     @classmethod
     def parse(cls, data: object) -> HeroCopy:
@@ -158,11 +167,11 @@ class HeroCopy:
         return cls(
             _words(data["headline"]),
             _words(data["subtext"]),
-            tuple(
-                HeroImage(item["id"], item["sequence"], _words(item["alt"]))
-                for item in data["images"]["set"]
+            HeroImage(
+                data["image"]["id"],
+                data["image"]["sequence"],
+                _words(data["image"]["alt"]),
             ),
-            data["images"]["default"],
             tuple(
                 (
                     _words(headline["text"]),
@@ -213,20 +222,18 @@ def _fields(where: str, item: object, fields: set[str]) -> list[str]:
 
 def hero_problems(data: object) -> list[str]:
     """Every rule of the hero's data file that ``data`` breaks: a plain,
-    non-empty ``headline`` and ``subtext``; the images (``image_problems``);
+    non-empty ``headline`` and ``subtext``; the image (``image_problems``);
     no field beyond those and the optional ``variants``; and the variants,
     the editorial reference, each a headline with ``id``, ``text``, and
     ``subtexts`` of ``id`` and ``text``, plain text, each id once."""
     if not isinstance(data, dict):
-        return [
-            f"{HERO_FILE} is not a mapping with 'headline', 'subtext', and 'images'"
-        ]
+        return [f"{HERO_FILE} is not a mapping with 'headline', 'subtext', and 'image'"]
     found = _fields(
-        HERO_FILE, data, {"headline", "subtext", "images"} | set(data) & {"variants"}
+        HERO_FILE, data, {"headline", "subtext", "image"} | set(data) & {"variants"}
     )
     found += _text_problems("the headline", data.get("headline"))
     found += _text_problems("the subtext", data.get("subtext"))
-    found += image_problems(data.get("images"))
+    found += image_problems(data.get("image"))
     if "variants" in data:
         found += _variant_problems(data["variants"])
     return found
@@ -274,61 +281,40 @@ def _variant_problems(headlines: object) -> list[str]:
     return found
 
 
-def image_problems(images: object) -> list[str]:
-    """Every rule of the hero images that ``images`` breaks: a mapping of
-    ``default`` and ``set``; the set a non-empty list of images, each with
+def image_problems(image: object) -> list[str]:
+    """Every rule of the hero image that ``image`` breaks: a mapping of
     exactly ``id`` (lower-case words joined by hyphens, the name of its
-    file, unique), ``sequence`` (a course of Part A, whose atlas master the
-    file is derived from), and ``alt`` (plain, non-empty text); a default
-    that names one of them."""
-    where = "'images'"
-    found = _fields(where, images, {"default", "set"})
-    if not isinstance(images, dict):
+    files), ``sequence`` (a course of Part A, whose atlas master the files
+    are derived from), and ``alt`` (plain, non-empty text)."""
+    found = _fields("the image", image, {"id", "sequence", "alt"})
+    if not isinstance(image, dict):
         return found
-    items = images.get("set")
-    if not isinstance(items, list) or not items:
-        return [*found, "'images' has no list 'set' of images"]
-    identifiers: list[str] = []
-    courses = {course.id for course in COURSES}
-    for number, item in enumerate(items, start=1):
-        found += _fields(f"image {number}", item, {"id", "sequence", "alt"})
-        if not isinstance(item, dict):
-            continue
-        image_id = item.get("id")
-        if not isinstance(image_id, str) or not _IMAGE_ID.fullmatch(image_id):
-            found.append(
-                f"image {number} has the id {image_id!r}; an id is lower-case"
-                " words joined by hyphens, the name of its file"
-            )
-        else:
-            identifiers.append(image_id)
-        name = image_id if isinstance(image_id, str) else number
-        if item.get("sequence") not in courses:
-            found.append(
-                f"image {name} names the sequence {item.get('sequence')!r}, which"
-                " is no course of Part A"
-            )
-        found += _text_problems(f"the alt text of image {name}", item.get("alt"))
-    for image_id in sorted({i for i in identifiers if identifiers.count(i) > 1}):
-        found.append(f"the image {image_id} appears more than once")
-    if images.get("default") not in identifiers:
+    image_id = image.get("id")
+    if not isinstance(image_id, str) or not _IMAGE_ID.fullmatch(image_id):
         found.append(
-            f"the default image {images.get('default')!r} is none of the images"
+            f"the image has the id {image_id!r}; an id is lower-case words"
+            " joined by hyphens, the name of its files"
         )
+    if image.get("sequence") not in {course.id for course in COURSES}:
+        found.append(
+            f"the image names the sequence {image.get('sequence')!r}, which is"
+            " no course of Part A"
+        )
+    found += _text_problems("the alt text of the image", image.get("alt"))
     return found
 
 
 def image_file_problems(hero: HeroCopy, site: Path) -> list[str]:
-    """What the website project ``site`` lacks for the hero images: each
-    file under ``site/assets/hero/`` and its entry in the provenance
-    register."""
+    """What the website project ``site`` lacks for the hero image: its file
+    at each width under ``site/assets/hero/`` and the entry of each in the
+    provenance register."""
     registered = registered_assets(site)
     found = []
-    for image in hero.images:
-        if not (site / image.file).is_file():
-            found.append(f"the hero image {image.id} has no file {image.file}")
-        if image.file.removeprefix("assets/") not in registered:
-            found.append(f"the hero image {image.id} is not in the provenance register")
+    for file in hero.image.files:
+        if not (site / file).is_file():
+            found.append(f"the hero image {hero.image.id} has no file {file}")
+        if file.removeprefix("assets/") not in registered:
+            found.append(f"the hero file {file} is not in the provenance register")
     return found
 
 
@@ -499,17 +485,6 @@ class HomeCopy:
 # --- The page ----------------------------------------------------------------
 
 
-def _script_data(value: object) -> str:
-    """JSON that is safe inside a script element: no "</script>" can close
-    it early."""
-    return (
-        json.dumps(value, ensure_ascii=False)
-        .replace("&", "\\u0026")
-        .replace("<", "\\u003c")
-        .replace(">", "\\u003e")
-    )
-
-
 @dataclass(frozen=True)
 class HomeContent:
     journey: JourneyContent  # the atlas, the glossary, and the journey
@@ -547,21 +522,7 @@ class HomeContent:
 
     def hero(self) -> str:
         """The hero as one raw HTML block: the fixed headline and subtext,
-        the figure with the default image for a page without scripts, the
-        images as data, the script, and the two actions."""
-        images = _script_data(
-            [
-                {
-                    "id": image.id,
-                    "src": posixpath_relative(self.page, image.file),
-                    "alt": _typographic(image.alt),
-                    "width": HERO_IMAGE_WIDTH,
-                    "height": HERO_IMAGE_HEIGHT,
-                }
-                for image in self.hero_copy.images
-            ]
-        )
-        script = posixpath_relative(self.page, HERO_SCRIPT)
+        the figure with the one image, and the two actions; no script."""
         return "\n".join(
             [
                 "```{=html}",
@@ -578,28 +539,34 @@ class HomeContent:
                 '<p class="hero-subtext">'
                 f"{html.escape(_typographic(self.hero_copy.subtext))}</p>",
                 "</div>",
-                self.hero_figure(),
-                f'<script type="application/json" id="hero-images">{images}</script>',
-                f'<script src="{script}"></script>',
                 self.actions(),
+                self.hero_figure(),
                 "</section>",
                 "```",
             ]
         )
 
     def hero_figure(self) -> str:
-        """The figure of the hero image: the default inside ``<noscript>``
-        (what a page without scripts shows; with scripts it is not
-        requested), and the box the script's image fills."""
-        image = self.hero_copy.image(self.hero_copy.default_image)
-        source = posixpath_relative(self.page, image.file)
+        """The figure of the hero image: one ``<img>`` in the HTML with the
+        file of each width in its ``srcset`` and what it is drawn at in its
+        ``sizes``, so that the browser requests the one file for its
+        viewport; its intrinsic size, so that the box is reserved before
+        the bytes arrive; the priority hint of the largest element of the
+        page; the alternative text of the data file."""
+        image = self.hero_copy.image
+        srcset = ", ".join(
+            f"{posixpath_relative(self.page, image.file(width))} {width}w"
+            for width in HERO_IMAGE_WIDTHS
+        )
         return (
-            '<div class="hero-figure" id="hero-figure" data-enhancement'
-            f' data-hero-image="{image.id}"><noscript>'
-            f'<img class="hero-image" src="{source}"'
+            '<div class="hero-figure" id="hero-figure">'
+            '<img class="hero-image"'
+            f' src="{posixpath_relative(self.page, image.file(HERO_IMAGE_FALLBACK))}"'
+            f' srcset="{srcset}" sizes="{HERO_IMAGE_SIZES}"'
             f' alt="{html.escape(_typographic(image.alt), quote=True)}"'
-            f' width="{HERO_IMAGE_WIDTH}" height="{HERO_IMAGE_HEIGHT}">'
-            "</noscript></div>"
+            f' width="{HERO_IMAGE_WIDTH}" height="{HERO_IMAGE_HEIGHT}"'
+            ' fetchpriority="high" decoding="async">'
+            "</div>"
         )
 
     # The sections of the copy file.
