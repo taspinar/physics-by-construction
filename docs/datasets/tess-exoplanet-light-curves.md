@@ -129,6 +129,6 @@ Sample 704 KB (caps: 2 MB per file, 8 MB per dataset). The reference figure take
 
 ## Open items
 
-- Phase 2, the AST8 lab, starts only when the owner says so (Issue #420).
+- Phase 2, the AST8 lab, is the lesson `site/lessons/astrophysics/09-exoplanet-light-curves/index.qmd` (Issue #420, started on the owner's word of 2026-11-12). It reuses the analysis of `pbc.data.reference.tess_wasp18`, adds the uniform-star comparison, the phase curve outside the transits, and the standard errors of the depth and durations propagated through the covariance of the fit, and makes no comparison with published values.
 - The card keeps the id of the survey's general TESS card and now describes this one file; another TESS file would need its own inspection and conversion.
 - The runner-up, Pi Mensae in sector 1 (a transit about 30 times shallower), is not inspected.

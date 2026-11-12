@@ -8,6 +8,7 @@ import pytest
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import (
     impedance_series,
+    light_curve_series,
     measured_elevation,
     modelled_elevation,
     strain_series,
@@ -419,3 +420,19 @@ def test_the_fit_of_the_measured_wave_finds_its_period():
     low, high = fit.interval("omega")
     assert high - low < 0.1 * fit.value("omega"), "the frequency is well determined"
     assert fit.identifiable == (True,) * 4
+
+
+def test_the_light_curve_series_is_the_calibrated_pdcsap_flux_with_its_errors():
+    from pbc.data.reference import tess_wasp18
+
+    lc = tess_wasp18.load(SAMPLES_DIR / "tess-exoplanet-light-curves")
+    series = light_curve_series(lc)
+    # The pipeline's calibrated product, untouched: no step, every cadence.
+    assert series.status == "calibrated" and series.is_raw
+    assert series.y.shape == (18864,)
+    np.testing.assert_array_equal(series.sigma, lc.flux_err)
+    assert (series.x_unit, series.y_unit) == ("BJD - 2457000, d", "e-/s")
+    # Dropping the cadences without a PDCSAP value is a step: processed.
+    kept = series.drop_masked()
+    assert kept.status == "processed"
+    assert kept.disclosure() == "removed 4503 masked samples"

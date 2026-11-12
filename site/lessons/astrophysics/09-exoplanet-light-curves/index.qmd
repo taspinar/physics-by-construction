@@ -1,0 +1,625 @@
+---
+title: "Exoplanet light curves lab"
+description: >-
+  The light of a real star dimming as its planet crosses it, recorded by the
+  TESS satellite every two minutes for almost four weeks, against the transit
+  model of the exoplanet transit lesson: what the cleaning removes, why each
+  transit is divided by a curved baseline, the radius ratio, impact
+  parameter, depth, and duration with their uncertainties, and where the
+  data and the model still disagree.
+lesson:
+  id: exoplanet-light-curves
+  strand: astrophysics
+  order: 9
+  difficulty: 2
+  course: astrophysics
+  slot: AST8
+  methods: [measured-data]
+  outcomes:
+    - Clean a calibrated photometric time series with its quality flags and missing values, and keep the measured flux apart from the detrended signal and the model
+    - Normalise each transit by a baseline fitted outside it, and explain why the baseline of this star is curved
+    - Fit the limb-darkened transit model to the folded transits and report the radius ratio, impact parameter, depth, and duration with standard errors propagated through the correlations of the fit
+    - Judge the fit by its reduced chi-square, the scatter of the mid-times, a simpler model, the sensitivity to the normalisation, and an independent value, and say what none of them bounds
+  related: []
+  format: 2
+  preview: fig-transit-fit
+  experiment: pbc.astrophysics.experiments.exoplanet_light_curves
+  prerequisites:
+    lessons: [exoplanet-transit]
+    outside:
+      - "Statistics: a weighted least-squares fit, its covariance matrix, and the chi-square of its residuals"
+      - "Calculus: the first-order propagation of an uncertainty through a function of several variables"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this
+from pbc.astrophysics.experiments import exoplanet_light_curves as experiment
+from pbc.data.reference import tess_wasp18
+
+result = experiment.run()
+lesson_header()
+```
+
+The exoplanet transit lesson simulated a planet crossing its star and
+checked the simulation against the geometry: the depth of the dip, the
+total and full durations, and the rounder bottom that a star darker towards
+its limb gives. Agreement there says that the model and the program agree
+with each other. It says nothing about whether a real star and a real
+planet look like the model, or how well a real light curve determines the
+model's numbers. This lab asks that second question of a measurement made
+by a space telescope.
+
+The Transiting Exoplanet Survey Satellite, TESS, recorded the brightness of
+the star [WASP-18]{.given} every [two minutes]{.given} for almost four weeks
+in its sector [29]{.given}, in late [2020]{.given}. A giant planet circles
+the star in less than a day, and each time it passes in front, the star
+dims by about one per cent for about two hours. Does the transit model of
+the lesson, a dark disk crossing a limb-darkened star on a circular orbit,
+describe these dips? Which radius ratio, impact parameter, depth, and
+duration does it give, how well are they known, and what in the data does
+the model not explain?
+
+## Assumptions
+
+1. **A dark disk on a circular orbit.** The planet is an opaque disk of
+   radius $p$ in stellar radii, on a circular orbit of radius $a$ in
+   stellar radii, crossing the star at the impact parameter $b$. The model
+   has no light from the planet, no atmosphere, and no eccentricity.
+2. **A star darkened towards its limb by the quadratic law**, with two
+   coefficients $u_1$ and $u_2$ fitted to the data, and otherwise
+   unchanging during a transit: no spots, flares, or oscillations.
+3. **The pipeline's flux is the star's flux.** The TESS pipeline
+   calibrated the pixels, subtracted the sky background, corrected the
+   photometry for instrumental trends, and removed the light of other stars
+   in the aperture. The lab takes these corrections as released; the data
+   cannot test them.
+4. **The pipeline's errors are independent from one cadence to the next.**
+   The file gives a standard error for every cadence. The fit uses them as
+   they are, and the lab tests how well they describe the scatter.
+5. **A smooth baseline over a few hours.** Around each transit the star's
+   own brightness changes slowly enough to be described by a parabola in
+   time, fitted to the flux just outside the transit.
+
+## Explanation {#explanation}
+
+### A light curve, cleaned
+
+The record is a table with one row per cadence of two minutes: the time at
+the solar-system barycentre, the flux in electrons per second collected in
+an aperture of pixels around the star, its standard error, and a quality
+flag. The flux is the pipeline's PDCSAP flux, a calibrated observation. Two
+things make a cadence unusable: a missing value (the spacecraft paused, or
+the pipeline had no flux to give) and a nonzero quality flag (the pipeline
+saw something wrong, such as scattered light or a momentum dump of the
+reaction wheels). Cleaning keeps the cadences with neither. It changes no
+value, but it is a selection, so every figure after it is labelled
+processed.
+
+### A baseline for each transit
+
+A transit is a dip relative to the flux the star would have without the
+planet. That reference, the baseline, is not measured during the transit;
+it is fitted to the flux on both sides of it. For each transit the lab
+takes a window around the mid-time, fits a polynomial in time to the
+cadences of the window outside the transit, and divides the whole window by
+it. The result, the normalised flux, is one outside the transit and dips
+inside it. If the baseline were flat, a straight line would do; it is not,
+as the data show below, so a parabola is used.
+
+### The model fitted
+
+At the time $t$ the planet is at the projected distance
+
+$$
+d(t) = a\sqrt{\sin^2\phi + \cos^2 i\,\cos^2\phi},
+\qquad
+\phi = \frac{2\pi (t - t_0)}{P},
+\qquad
+\cos i = \frac{b}{a},
+$$
+
+from the star's centre, in stellar radii, with $t_0$ a mid-transit time and
+$P$ the period. The flux lost is the starlight that the planet's disk
+hides, divided by the starlight of the whole disk. For the quadratic law the
+lab cuts the star into thin rings: the planet hides of each ring the
+difference of two overlap areas of disks, the closed form of the transit
+lesson, and the ring shines with the intensity at its radius. The model
+averages the flux over the two minutes of each exposure, because the
+ingress lasts only a few exposures.
+
+The fit adjusts the five shape parameters $p$, $a$, $b$, $u_1$, $u_2$ until
+the model matches the normalised cadences of all transits at once, each
+weighted by the pipeline's error. The period and $t_0$ are fitted apart,
+from the mid-times of the single transits; their correlation with the shape
+is negligible (the dossier of the card computes it).
+
+### Uncertainties through correlations
+
+The fit returns a covariance matrix $C$ of the five parameters. A quantity
+$g$ derived from them, such as the depth or the total duration, has the
+standard error
+
+$$
+\sigma_g = \sqrt{J\,C\,J^\mathsf{T}},
+\qquad
+J_k = \frac{\partial g}{\partial \theta_k},
+$$
+
+with the derivatives $J_k$ by central differences. Leaving out the
+off-diagonal terms of $C$, as if the parameters were independent, is only
+right when they are; a transit is not such a case, because a smaller orbit
+and a larger impact parameter give nearly the same dip.
+
+## Code {#code}
+
+The model of the fit, the star summed over rings, each ring's hidden part
+from the closed-form overlap of the transit lesson:
+
+```{python}
+#| echo: false
+excerpt(tess_wasp18.limb_flux)
+```
+
+The propagation of the fit's covariance to a derived quantity:
+
+```{python}
+#| echo: false
+excerpt(experiment.propagate_correlated)
+```
+
+## Worked examples {#worked-examples}
+
+### The model before the data
+
+Before any data, the ring model is checked against the transit lesson's
+closed forms and grid, for a planet and a limb of about the size the data
+will give.
+
+```{python}
+#| label: model-check
+#| echo: false
+result.table("model-check")
+```
+
+[The ring model agrees with the closed-form flux of a uniform star to
+`{python} result["ast7-uniform-gap"]`, with the closed-form depth of a
+central transit of a limb-darkened star to a relative
+`{python} result["ast7-depth-gap"]`, and with the grid count over the
+planet's disk to `{python} result["ast7-grid-gap"]` in flux.]{.claim
+type="numerically-verified"
+scope="the dark-disk model of the transit lesson, a planet of radius 0.1 and quadratic limb darkening"
+evidence="model-check"} At a dip depth of about one per cent and errors of
+several hundred parts per million, these differences are far below what
+the data can see.
+
+### The light curve {#data}
+
+```{python}
+#| echo: false
+data_card("tess-exoplanet-light-curves")
+```
+
+The committed sample holds every row of the file's light-curve table, four
+of its columns, converted from the original format with no value changed;
+the card names the script and the checksums. The record is public domain,
+and every figure carries the acknowledgement the archive asks for.
+
+```{python}
+#| echo: false
+excerpt(experiment.cleaning)
+```
+
+```{python}
+#| label: cleaning
+#| echo: false
+result.table("cleaning")
+```
+
+[Of the `{python} result["cadences"]` cadences of the file,
+`{python} result["no-time"]` have no time stamp and
+`{python} result["no-flux"]` have no PDCSAP flux; `{python} result["flagged"]`
+carry a quality flag, and all but `{python} result["flagged-with-flux"]` of
+those have no flux either. The cleaning keeps `{python} result["good"]`
+cadences, `{python} result["good-percent"]` per cent, from
+`{python} result["first-good"]` to `{python} result["last-good"]` in the
+file's time (days after a barycentric Julian date).]{.claim
+type="observational" scope="the file as released, read by the committed sample"
+evidence="cleaning tess-exoplanet-light-curves"} The median flux of the kept
+cadences is `{python} result["median-flux"]` electrons per second, and the
+median error the pipeline gives is `{python} result["median-error"]` parts
+per million of it.
+
+```{python}
+#| label: fig-light-curve
+#| echo: false
+#| fig-cap: "The light curve as the file gives it: the star's flux every two minutes, flat apart from a dip once every orbit, with a gap in the middle of the sector and at its end where the file has no value. The cadences the pipeline flagged but gave a value are marked apart."
+#| fig-alt: "Two panels of flux in electrons per second against time in days. Top: almost four weeks of dense points along a flat band, with short dips to about one per cent below it at regular intervals, a gap of about four days in the middle and none after the last week; three crosses above the band mark flagged cadences. Bottom: two days of the same data with small error bars, the band interrupted by two U-shaped dips about a day apart."
+#| fig-status: calibrated
+#| fig-dataset: tess-exoplanet-light-curves
+result.show("fig-light-curve")
+```
+
+The points are the PDCSAP flux of the file, untouched: no value is
+changed, and the dips are visible without any model. [The flux dips
+`{python} result["dips"]` times in the kept cadences, about once every
+`{python} result["period"]` days.]{.claim type="observational"
+scope="runs of at least ten kept cadences more than half a per cent below the running median of half a day"
+evidence="fig-light-curve tess-exoplanet-light-curves"} The period here is
+the one measured below from the mid-times; the dips themselves are found
+without any assumed ephemeris.
+
+### Detrending
+
+```{python}
+#| echo: false
+excerpt(experiment.phase_curve)
+```
+
+```{python}
+#| label: fig-detrending
+#| echo: false
+#| fig-cap: "Outside the transits the star's flux is not constant: folded over many orbits it is lower towards the transit and half an orbit later than in between, so the baseline under a transit is curved. Each transit is divided by a parabola fitted to the flux around it."
+#| fig-alt: "Three panels. Top: binned flux in parts per million against orbital phase, the transit region shaded and left out; the points rise from negative values next to the transit to a broad maximum near a quarter of the orbit, fall into a narrower dip around half an orbit, and rise again. Middle: one transit in electrons per second against hours from mid-transit, filled points outside a shaded region used for the baseline, open points inside it forming a U-shaped dip, and a dashed parabola through the filled points. Bottom: the same transit divided by the parabola, flat at one outside the dip."
+#| fig-status: processed
+#| fig-dataset: tess-exoplanet-light-curves
+result.show("fig-detrending")
+```
+
+[With each of `{python} result["phase-orbits"]` complete orbits divided by
+its own median, the flux outside the transits is
+`{python} result["phase-quarter"]` ± `{python} result["phase-quarter-err"]`
+ppm near a quarter of the orbit from the transit,
+`{python} result["phase-transit"]` ± `{python} result["phase-transit-err"]`
+ppm just outside the transit, and `{python} result["phase-half"]` ±
+`{python} result["phase-half-err"]` ppm around half an orbit from
+it.]{.claim type="observational"
+scope="the kept cadences outside the transits, binned in orbital phase on the measured ephemeris"
+evidence="fig-detrending tess-exoplanet-light-curves"} A brightness that
+changes twice per orbit is what a star stretched by the planet's tides
+would show, presenting its smallest face to us at transit and half an orbit
+later; the narrower dip at half an orbit is where the planet passes behind
+the star, and light from the planet would be missing then. The lab tests
+neither explanation and fits neither effect. It needs only the consequence:
+the baseline under a transit curves downward towards the mid-time, so a
+straight line through both sides sits above it. For the transit shown, the
+straight line lies `{python} result["baseline-bow"]` ppm above the parabola
+at mid-transit, about a hundredth of the depth.
+
+```{python}
+#| echo: false
+excerpt(experiment.one_transit)
+```
+
+The analysis of the card's dossier (`pbc.data.reference.tess_wasp18`) does
+this for every transit that has enough kept cadences on both sides and no
+gap inside: `{python} result["transits"]` of them, with
+`{python} result["fitted-cadences"]` cadences in their windows. The
+normalised flux in the bottom panel is a processed signal, not a
+measurement: it depends on the window and on the baseline chosen, and the
+sensitivity table below shows how much.
+
+### The fit {#fitting}
+
+```{python}
+#| echo: false
+excerpt(tess_wasp18.fit_shape)
+```
+
+```{python}
+#| label: fit
+#| echo: false
+result.table("fit")
+```
+
+The reduced chi-square of the fit is `{python} result["reduced-chi2"]` for
+`{python} result["dof"]` degrees of freedom: the residuals scatter by
+`{python} result["residual-rms"]` ppm in root mean square, against a median
+pipeline error of `{python} result["pipeline-error"]` ppm. The pipeline's
+errors are thus a little too small, and the usual allowance multiplies every
+standard error by the square root of the reduced chi-square,
+`{python} result["error-scale"]`. The fit helper finds every parameter
+determined (its warnings: `{python} result["fit-warnings"]`), but they are
+strongly correlated: $a$ with $b$ `{python} result["corr-a-b"]`, $u_1$ with
+$u_2$ `{python} result["corr-u1-u2"]`, and $p$ with $b$
+`{python} result["corr-p-b"]`.
+
+```{python}
+#| label: fig-transit-fit
+#| echo: false
+#| fig-cap: "The transits folded on the measured period follow the limb-darkened model within the scatter of the bins; a uniform star with its best values misses the rounded bottom and the ingress and egress in a systematic pattern."
+#| fig-alt: "Two stacked panels against hours from mid-transit. Top: grey points of the normalised flux, flat at one outside the transit and dipping to a rounded bottom inside it; blue binned points with error bars on them; a dashed curve of the limb-darkened model through the binned points and a dotted curve of the uniform-star model with a flatter bottom and sharper corners. Bottom: binned residuals of both models; the limb-darkened residuals scatter around zero, the uniform-star residuals swing positive near ingress and egress and negative at the bottom of the transit."
+#| fig-status: processed
+#| fig-dataset: tess-exoplanet-light-curves
+result.show("fig-transit-fit")
+```
+
+The grey points are measured flux, normalised; the binned points their
+means; the curves are models, drawn apart and labelled. The residual panel
+shows each model's misfit at the same times.
+
+```{python}
+#| echo: false
+excerpt(experiment.fit_uniform_star)
+```
+
+[A uniform star, fitted to the same cadences with the same errors, has a
+chi-square of `{python} result["uniform-chi2"]` against
+`{python} result["ld-chi2"]` for the limb-darkened star (reduced,
+`{python} result["uniform-reduced-chi2"]` against
+`{python} result["reduced-chi2"]`), a difference of
+`{python} result["chi2-difference"]` for two fewer parameters, and its
+residuals swing in a pattern around the ingress, the egress, and the
+bottom of the transit: the data need a star darker towards its
+limb.]{.claim type="experimentally-supported"
+scope="the dark-disk circular-orbit model with and without quadratic limb darkening, the pipeline's errors"
+evidence="fig-transit-fit fit tess-exoplanet-light-curves"} The uniform
+star compensates with a larger planet, $p =$ `{python} result["uniform-p"]`,
+crossing farther from the centre, $b =$ `{python} result["uniform-b"]`:
+fitting the wrong model still returns numbers, with small standard errors,
+and only the residuals show that they mean little.
+
+### The geometry and its uncertainties
+
+```{python}
+#| echo: false
+excerpt(experiment.geometry_table)
+```
+
+```{python}
+#| label: geometry
+#| echo: false
+result.table("geometry")
+```
+
+[The limb-darkened model fitted to `{python} result["transits"]` transits
+gives a radius ratio $p =$ `{python} result["p"]` ±
+`{python} result["p-err"]`, an impact parameter $b =$
+`{python} result["b"]` ± `{python} result["b-err"]`, a depth at mid-transit
+of `{python} result["depth"]` ± `{python} result["depth-err"]` ppm, and a
+total duration $T_{14} =$ `{python} result["t14"]` ±
+`{python} result["t14-err"]` h, with standard errors from the pipeline's
+errors propagated through the covariance of the fit.]{.claim
+type="experimentally-supported"
+scope="the dark-disk circular-orbit model with quadratic limb darkening; the pipeline's errors, its systematics and crowding corrections taken as released; the normalisation of the page"
+evidence="geometry fit tess-exoplanet-light-curves"} The depth is larger
+than $p^2 =$ `{python} result["p-squared"]` ppm because the planet crosses
+the brighter centre of a limb-darkened star. The full duration is
+`{python} result["t23"]` ± `{python} result["t23-err"]` h, the ingress
+`{python} result["ingress"]` ± `{python} result["ingress-err"]` min, the
+orbit's radius $a =$ `{python} result["a"]` ± `{python} result["a-err"]`
+stellar radii, and its inclination `{python} result["inclination"]` ±
+`{python} result["inclination-err"]` degrees.
+
+The correlations matter. As if the parameters were independent, the
+propagation would give the depth an error of
+`{python} result["depth-err-independent"]` ppm instead of
+`{python} result["depth-err"]`, and the total duration
+`{python} result["t14-err-independent"]` h instead of
+`{python} result["t14-err"]`. The data fix the depth and the duration
+tightly; they fix $a$ and $b$ only together, because a smaller orbit and a
+more central crossing make nearly the same dip.
+
+### The mid-times
+
+```{python}
+#| label: fig-mid-times
+#| echo: false
+#| fig-cap: "The mid-time of each transit, with the shape fixed, against a constant period: the points scatter about the line by more than their error bars."
+#| fig-alt: "Points with vertical error bars against the transit number, scattered about a horizontal dashed line at zero, with a gap of several transit numbers in the middle; several points lie more than one error bar from the line, one of them far above."
+#| fig-status: processed
+#| fig-dataset: tess-exoplanet-light-curves
+result.show("fig-mid-times")
+```
+
+[A straight line through the mid-times gives the period
+`{python} result["period"]` days with a standard error of
+`{python} result["period-err"]` s, but the mid-times scatter about it with a
+chi-square of `{python} result["timing-chi2"]` for
+`{python} result["timing-dof"]` degrees of freedom: about
+`{python} result["timing-scale"]` times more than their errors, a median of
+`{python} result["timing-error"]` min, allow.]{.claim
+type="experimentally-supported"
+scope="a constant period, the mid-times of single transits with the fitted shape, errors from the pipeline's"
+evidence="fig-mid-times tess-exoplanet-light-curves"} The largest offset is
+`{python} result["largest-oc"]` min. Either the transits really come at
+irregular times, or, more plausibly for a period this stable, the noise is
+correlated over minutes, from the star or from systematics the pipeline
+left, so the per-cadence errors understate the error of a mid-time. These
+data cannot tell the two apart. Scaled by the excess, the period's error
+becomes `{python} result["period-err-scaled"]` s. The same correlated noise
+would make the standard errors of the shape too small as well, by an amount
+this lab does not measure.
+
+### How much the normalisation matters
+
+```{python}
+#| echo: false
+excerpt(experiment.sensitivity_table)
+```
+
+```{python}
+#| label: sensitivity
+#| echo: false
+result.table("sensitivity")
+```
+
+[Narrowing or widening the window of the parabola moves $p$ over a range of
+`{python} result["window-p-range"]`, about one standard error; a straight
+baseline instead of the parabola makes the transit
+`{python} result["line-deeper"]` ppm deeper and moves $b$ to
+`{python} result["line-b"]`; the table is a sensitivity of the result to the
+analysis, not an uncertainty interval.]{.claim
+type="experimentally-supported"
+scope="the parabola with half windows of 0.12, 0.16, and 0.20 days and a straight line, the ephemeris held fixed"
+evidence="sensitivity tess-exoplanet-light-curves"} The straight line is the
+wrong baseline for this star, as the phase curve shows; it is in the table
+to show why the choice matters, not as an alternative answer.
+
+### An independent check: the star's density
+
+On a circular orbit, Kepler's third law turns $a/R_\star$ and the period
+into the star's mean density, $\rho_\star = 3\pi a^3/(G P^2)$ with the
+planet's mass neglected: `{python} result["density"]` ±
+`{python} result["density-err"]` kg per cubic metre from the transit. The
+header of the file also holds catalogue values for the star, given without
+an uncertainty:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="tic")
+```
+
+[The catalogue's surface gravity and radius imply a mean density of
+`{python} result["tic-density"]` kg per cubic metre,
+`{python} result["density-difference"]` per cent below the transit's, a
+difference of about `{python} result["density-sigmas"]` standard errors of
+the transit's value alone.]{.claim type="experimentally-supported"
+scope="the transit's density from a circular orbit and the fitted a; the catalogue values of the header, whose uncertainty the file does not give"
+evidence="geometry tess-exoplanet-light-curves"} The lab does not resolve
+the difference. The catalogue values are estimates with an uncertainty the
+file does not state, and the transit's $a$ trades off against $b$: a change
+of one per cent in $a$ changes the density by three per cent. An eccentric
+orbit, which the model excludes, would also change the relation. The lab
+makes no comparison with published values for this planet.
+
+### What the lab shows
+
+The transit model of the exoplanet transit lesson, with a limb-darkened
+star, describes `{python} result["transits"]` transits of a real planet,
+seen by TESS, to within about the scatter the pipeline's errors predict,
+once each transit is divided by a curved baseline; a uniform star does
+not. The fit gives the radius ratio to `{python} result["p-err"]` and the
+depth to `{python} result["depth-err"]` ppm. Three things say that these
+standard errors are not the whole uncertainty: the reduced chi-square is
+above one, the mid-times scatter more than their errors, and the
+normalisation moves the radius ratio by about one standard error. The
+model and the catalogue disagree on the star's density, and this lab does
+not decide which is wrong. No number on this page bounds an error of the
+pipeline's corrections.
+
+## Limits {#limits}
+
+- **The pipeline's corrections are taken as released.** The record states
+  the fraction of the aperture's flux the pipeline removed as coming from
+  other stars, but not its uncertainty. An error there scales the depth of
+  every transit alike, and no fit of these data can reveal it; the same
+  holds for the systematics correction.
+- **The errors are too small.** The reduced chi-square and the scatter of
+  the mid-times both show it. The standard errors of the tables come from
+  the pipeline's errors; the scaled column allows for the excess of the
+  residuals, not for correlated noise, which the lab does not model.
+- **The normalisation is a choice.** The window and the baseline change the
+  result by about one standard error; the sensitivity table shows it and is
+  not an uncertainty interval. The star's variation over the orbit is
+  followed only by the parabola of each window.
+- **A simple model.** A dark disk on a circular orbit, a quadratic limb,
+  and no light from the planet. The data are consistent with it at the
+  level of the scatter, which does not prove the assumptions; the density
+  difference may point to one of them, or to the catalogue.
+- **One star, one sector.** Four weeks of one camera. Other sectors,
+  instruments, or a fainter star would give other uncertainties; the lab
+  makes no comparison with published values.
+
+::: {.exercise .self-check}
+The fit gives the impact parameter with a standard error of a few
+hundredths, yet a straight baseline instead of the parabola moves it by
+about one of these standard errors, and the uniform star by much more.
+Which of the three numbers describes how well $b$ is known, and why?
+
+::: {.solution}
+None alone. The standard error assumes that the model is right, that the
+normalisation is right, and that the pipeline's errors are independent and
+correct; the reduced chi-square and the mid-times say that the errors are
+somewhat too small. The straight baseline is a wrong model of this star's
+baseline, so its shift shows how sensitive $b$ is to that choice, not an
+interval in which $b$ lies. The uniform star is a wrong model of the star,
+rejected by its residuals; its $b$ only shows how far a wrong model can move
+the answer. An honest statement gives the standard error, says that it is a
+lower bound on the uncertainty, and names the choices that move $b$ by
+comparable amounts.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**The planet's size.** The fit gives the radius ratio $p$. The header of
+the file gives the star's radius as 1.34658 solar radii, without an
+uncertainty. What is the planet's radius in kilometres and in radii of
+Jupiter (equatorial radius 71,492 km)?
+
+::: {.solution}
+The radius is $p$ times the star's radius.
+
+```{python}
+#| echo: false
+excerpt(experiment.radius_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("radius-exercise"), end="")
+```
+
+The planet is somewhat larger than Jupiter. The answer is only as good as
+the catalogue radius, whose uncertainty the file does not give and which
+the density check above calls into question.
+:::
+:::
+
+::: {.exercise}
+**Why the period is so precise.** A straight line through mid-times of
+equal error $\sigma$ at the transit numbers $n_k$ has a slope with the
+standard error $\sigma/\sqrt{\sum_k (n_k - \bar n)^2}$. With the transit
+numbers of the lab and the median error of a mid-time, what standard error
+of the period does this give, in seconds?
+
+::: {.hint}
+Each mid-time is known to a fraction of a minute, but the line spans more
+than twenty orbits; the sum grows with the square of that span.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.period_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("period-exercise"), end="")
+```
+
+It matches the weighted fit's error, because the mid-times have nearly
+equal errors. Scaled by the excess scatter of the mid-times it grows by
+about half.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/astrophysics/transit.py",
+        "src/pbc/astrophysics/experiments/exoplanet_light_curves.py",
+        "src/pbc/experiment.py",
+        "src/pbc/data/reference/tess_wasp18.py",
+        "src/pbc/data/adapters.py",
+        "src/pbc/data/fit.py",
+        "src/pbc/data/plotting.py",
+    ],
+    tests=[
+        "tests/unit/test_data_tess_wasp18.py",
+        "tests/unit/test_data_analysis.py",
+        "tests/unit/test_exoplanet_light_curves_experiment.py",
+    ],
+)
+```
+
+The data card above gives the command that downloads the original file
+into `data/downloads/tess-exoplanet-light-curves` and the script that
+converts it to the committed sample byte for byte; no model and no account
+are needed to read it.
