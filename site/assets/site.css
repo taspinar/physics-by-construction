@@ -1850,14 +1850,26 @@ main details > summary {
   color: var(--pbc-muted);
 }
 
-/* The course atlas (F133, docs/atelier.md, "The course atlas"): one native
-   disclosure per sequence, in one exclusive group. The summary is the card,
-   the content the panel. On a wide screen every card stands in the left
-   column and the open panel beside them; a browser without
-   ::details-content, and every narrow screen, shows the same disclosures as
-   an accordion with the panel under its card. Part A is in the cobalt ink,
-   Part B in copper; the part's name and the panel's kicker say it in words,
-   so the ink is never the only sign. */
+/* The course atlas (F133, Issue #483; docs/atelier.md, "The course atlas"):
+   the owner's two paragraphs and the three figures of the curriculum, then
+   one native disclosure per sequence, in one exclusive group, none open at
+   load. The summary is the row: the illustration, the title, the counts, a
+   progress hairline that appears once a lesson is completed, and a drawn
+   chevron that turns when the row is open. The content expands inline
+   beneath its row at every width, under a 1px rule in the part's ink. Part
+   A is in the cobalt ink, Part B in copper; the part's label says it in
+   words, so the ink is never the only sign. */
+.pbc-atlas {
+  --atlas-hairline: color-mix(in srgb, var(--pbc-rule) 30%, var(--pbc-background));
+}
+
+/* The owner's subtitle: Quarto's description of the page, under the title. */
+.pbc-atlas #title-block-header .description {
+  max-width: var(--pbc-measure);
+  font-size: var(--pbc-text-large);
+  line-height: var(--pbc-leading-body);
+}
+
 .atlas-part-a,
 .atlas-lean {
   --atlas-ink: var(--pbc-link);
@@ -1869,109 +1881,38 @@ main details > summary {
   --atlas-surface: var(--pbc-copper-surface);
 }
 
-.atlas-summary {
+.atlas-opening {
   max-width: var(--pbc-measure);
+}
+
+.atlas-opening p {
   margin: 0 0 var(--pbc-space-3);
-  color: var(--pbc-muted);
 }
 
-/* The learning journey (F157): the opening of the atlas, before the
-   summary and the cards. One native disclosure in the reading column,
-   closed at load so that the first panel stays in the first window (F133);
-   open, it reads as a short chapter opening. Part A and Part B open with a
-   rule in their atlas ink, and the three kinds of evidence carry the inks of
-   the claim labels that "How we verify the science" explains; the words say
-   it as well, so the colour is never the only sign. */
-.atlas-journey {
-  max-width: var(--pbc-measure);
-  margin: 0 0 var(--pbc-space-2);
-  border-top: var(--pbc-rule-width) solid var(--pbc-rule);
-  border-bottom: var(--pbc-rule-width) solid var(--pbc-rule);
+/* The three figures: the number in the text face, its label under it. */
+.atlas-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pbc-space-2) var(--pbc-space-5);
+  margin: var(--pbc-space-4) 0 var(--pbc-space-5);
+  padding: 0;
+  list-style: none;
 }
 
-.atlas-journey-summary {
-  padding: var(--pbc-space-2) 0;
-  cursor: pointer;
+.atlas-figures li {
+  display: grid;
+  gap: var(--pbc-space-1);
 }
 
-.atlas-journey-summary::marker {
-  color: var(--pbc-link);
+.atlas-figure-number {
+  font-size: var(--pbc-heading-2);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
-.atlas-journey-title {
-  margin-right: var(--pbc-space-3);
-  font-size: var(--pbc-heading-3);
-  font-weight: 600;
-  line-height: var(--pbc-leading-tight);
-}
-
-.atlas-journey-hint {
-  display: inline-block;
+.atlas-figure-label {
   color: var(--pbc-muted);
   font-size: var(--pbc-text-small);
-}
-
-.atlas-journey-body {
-  padding: 0 0 var(--pbc-space-4);
-}
-
-/* The theme rules every h2; here the part rules carry the structure, so
-   the headings of the opening stand on their own. */
-.atlas-journey-body h2 {
-  margin: var(--pbc-space-4) 0 var(--pbc-space-2);
-  padding-bottom: 0;
-  border-bottom: 0;
-  font-size: var(--pbc-heading-3);
-  line-height: var(--pbc-leading-tight);
-}
-
-.journey-part {
-  margin-top: var(--pbc-space-4);
-  padding-top: var(--pbc-space-1);
-  border-top: var(--pbc-construction-width) solid var(--journey-ink);
-}
-
-.journey-part h2 {
-  margin-top: var(--pbc-space-2);
-  color: var(--journey-ink);
-}
-
-.journey-part-a {
-  --journey-ink: var(--pbc-link);
-}
-
-.journey-part-b {
-  --journey-ink: var(--pbc-copper);
-}
-
-.journey-evidence dl {
-  margin: 0 0 var(--pbc-space-3);
-}
-
-.journey-evidence dt {
-  font-weight: 600;
-}
-
-.journey-evidence dd {
-  margin: 0 0 var(--pbc-space-3);
-}
-
-/* In the order of EVIDENCE in pbc.authoring.journey: numerical, empirical,
-   formal proof. */
-.journey-evidence dt:nth-of-type(1) {
-  color: var(--pbc-claim-numerically-verified-fg);
-}
-
-.journey-evidence dt:nth-of-type(2) {
-  color: var(--pbc-claim-experimentally-supported-fg);
-}
-
-.journey-evidence dt:nth-of-type(3) {
-  color: var(--pbc-claim-formal-theorem-fg);
-}
-
-.journey-evidence > p:last-child {
-  margin-bottom: 0;
 }
 
 .atlas {
@@ -1983,7 +1924,7 @@ main details > summary {
   display: flex;
   gap: var(--pbc-space-2);
   align-items: baseline;
-  margin: var(--pbc-space-4) 0 var(--pbc-space-2);
+  margin: var(--pbc-space-5) 0 var(--pbc-space-2);
   font-size: var(--pbc-text-small);
 }
 
@@ -1997,14 +1938,21 @@ main details > summary {
   margin-top: 0;
 }
 
+.atlas-sequence {
+  border-bottom: var(--pbc-rule-width) solid var(--atlas-hairline);
+}
+
+.atlas-part + .atlas-sequence {
+  border-top: var(--pbc-rule-width) solid var(--atlas-hairline);
+}
+
 .atlas-card {
   display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
+  grid-template-columns: 76px minmax(0, 1fr) auto;
   gap: var(--pbc-space-3);
   align-items: center;
-  margin: 0 0 var(--pbc-space-1);
-  padding: var(--pbc-space-2) var(--pbc-space-3) var(--pbc-space-2) var(--pbc-space-2);
-  border: var(--pbc-rule-width) solid transparent;
+  margin: 0;
+  padding: var(--pbc-space-2);
   border-radius: var(--pbc-radius);
   cursor: pointer;
   list-style: none;
@@ -2018,12 +1966,8 @@ main details > summary {
   content: "";
 }
 
-.atlas-card:hover {
-  background: var(--atlas-surface);
-}
-
+.atlas-card:hover,
 .atlas-sequence[open] > .atlas-card {
-  border-color: var(--atlas-ink);
   background: var(--atlas-surface);
 }
 
@@ -2042,10 +1986,22 @@ main details > summary {
   width: 76px;
 }
 
+/* The panel size of an illustration is shown on the introduction pages. */
+.atlas-panel-image {
+  width: 200px;
+}
+
+/* A title breaks inside a word only when the word cannot fit the column
+   (200 % text at 320 CSS px), so that no row widens the page. */
+.atlas-card-text,
+.atlas-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .atlas-card-text {
   display: grid;
   gap: 0.125rem;
-  min-width: 0;
 }
 
 .atlas-card-title {
@@ -2053,9 +2009,11 @@ main details > summary {
   line-height: var(--pbc-leading-tight);
 }
 
+.atlas-sequence[open] .atlas-card-title {
+  color: var(--atlas-ink);
+}
+
 .atlas-card-count,
-.atlas-counts,
-.atlas-kicker,
 .atlas-label,
 .atlas-mark {
   font-family: var(--pbc-font-code);
@@ -2066,13 +2024,43 @@ main details > summary {
   color: var(--pbc-muted);
 }
 
-/* The learner's progress: one segment per published lesson, which
-   learner/progress.js marks completed; the rows say it in words. */
+/* The chevron: a drawn mark that turns when the row is open. The
+   disclosure's own state is what assistive technology reads. */
+.atlas-card-mark {
+  width: 0.625rem;
+  height: 0.625rem;
+  margin: 0 var(--pbc-space-2) 0.25rem 0;
+  border-right: 1.5px solid var(--pbc-muted);
+  border-bottom: 1.5px solid var(--pbc-muted);
+  transform: rotate(45deg);
+}
+
+.atlas-sequence[open] > .atlas-card > .atlas-card-mark {
+  margin-bottom: 0;
+  margin-top: 0.25rem;
+  border-color: var(--atlas-ink);
+  transform: rotate(-135deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .atlas-card-mark {
+    transition: transform 150ms ease-out;
+  }
+}
+
+/* The learner's progress: one segment per published lesson of the core,
+   which learner/progress.js marks completed; the rows say it in words. The
+   hairline keeps its place and shows once a segment is marked, so a first
+   visit sees none. */
 .atlas-progress {
   display: flex;
   gap: 1px;
   height: 2px;
   margin-top: var(--pbc-space-1);
+}
+
+.atlas-progress:not(:has(> [data-completed="true"])) {
+  visibility: hidden;
 }
 
 .atlas-progress > .path-link {
@@ -2085,42 +2073,40 @@ main details > summary {
   background: var(--atlas-ink);
 }
 
+.atlas-lean {
+  margin-top: var(--pbc-space-4);
+  border-top: var(--pbc-rule-width) solid var(--atlas-hairline);
+}
+
 .atlas-lean > .atlas-card {
-  grid-template-columns: minmax(0, 1fr);
-  margin-top: var(--pbc-space-3);
-  padding-left: var(--pbc-space-3);
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .atlas-lean .atlas-card-title {
-  color: var(--pbc-link);
   font-weight: 400;
 }
 
+/* The expanded content, beneath its row: the title, the description, the
+   link to the introduction, and the lesson rows, aligned under the title. */
+.atlas-panel {
+  margin: 0 var(--pbc-space-2) var(--pbc-space-5) calc(76px + var(--pbc-space-2) + var(--pbc-space-3));
+  padding: var(--pbc-space-2) 0 0 var(--pbc-space-3);
+  border-left: var(--pbc-rule-width) solid var(--atlas-ink);
+}
+
+.atlas-lean .atlas-panel {
+  margin-left: var(--pbc-space-2);
+}
+
 .atlas-panel-head {
-  display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
-  gap: var(--pbc-space-4);
-  align-items: center;
-}
-
-.atlas-lean .atlas-panel-head {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.atlas-panel-image {
-  width: 200px;
-}
-
-.atlas-kicker {
-  margin: 0;
-  color: var(--atlas-ink);
-  font-weight: 600;
+  max-width: var(--pbc-measure);
 }
 
 .atlas .atlas-panel-title {
-  margin: var(--pbc-space-1) 0 var(--pbc-space-2);
+  margin: 0 0 var(--pbc-space-1);
+  padding: 0;
   border: 0;
-  font-size: var(--pbc-heading-2);
+  font-size: var(--pbc-heading-3);
   line-height: var(--pbc-leading-title);
 }
 
@@ -2129,26 +2115,28 @@ main details > summary {
   color: var(--pbc-muted);
 }
 
-.atlas-counts {
+.atlas-introduction {
   margin: var(--pbc-space-2) 0 0;
-  color: var(--pbc-muted);
+}
+
+main .atlas-introduction a {
+  font-weight: 600;
 }
 
 .atlas-rows {
-  margin: var(--pbc-space-4) 0 0;
+  margin: var(--pbc-space-3) 0 0;
   padding: 0;
   border-top: var(--pbc-rule-width) solid var(--atlas-hairline);
   list-style: none;
 }
 
 .atlas .atlas-row {
-  position: relative;
   display: grid;
-  grid-template-columns: 3.75rem minmax(0, 1fr) auto;
+  grid-template-columns: 3.25rem minmax(0, 1fr) auto;
   gap: var(--pbc-space-1) var(--pbc-space-3);
   align-items: baseline;
   margin: 0;
-  padding: 0.375rem var(--pbc-space-2);
+  padding: 0.375rem var(--pbc-space-2) 0.375rem 0;
   line-height: var(--pbc-leading-tight);
   border: 0;
   border-bottom: var(--pbc-rule-width) solid var(--atlas-hairline);
@@ -2158,7 +2146,6 @@ main details > summary {
 
 .atlas-label {
   color: var(--pbc-muted);
-  text-align: right;
 }
 
 main .atlas-title a {
@@ -2178,12 +2165,16 @@ main .atlas-title a:focus-visible {
 
 .atlas-title .capstone-description {
   margin: var(--pbc-space-1) 0 0;
+  color: var(--pbc-muted);
   font-size: var(--pbc-text-small);
 }
 
+/* The difficulty and the marks, in words, at the end of the row. */
 .atlas-marks {
   display: flex;
   gap: var(--pbc-space-2);
+  align-items: baseline;
+  color: var(--pbc-muted);
   white-space: nowrap;
 }
 
@@ -2191,13 +2182,8 @@ main .atlas-title a:focus-visible {
   display: none;
 }
 
-.atlas-mark {
-  color: var(--pbc-muted);
-}
-
-.atlas-mark-lab,
-.atlas-mark-lean {
-  color: var(--pbc-accent);
+.atlas-level {
+  font-size: var(--pbc-text-small);
 }
 
 .atlas-mark-planned {
@@ -2206,18 +2192,24 @@ main .atlas-title a:focus-visible {
   font-style: italic;
 }
 
+/* The capstone ends its sequence: its title in SemiBold, nothing else. */
+.atlas-row-capstone .atlas-title a {
+  font-weight: 600;
+}
+
 /* The optional extensions of a method path (ADR 022 decision 2): after the
    core rows, set apart by space and their own heading and note, not by a
    mark of the row; the rows are those of the core. */
 .atlas-extensions {
-  margin-top: var(--pbc-space-5);
+  margin-top: var(--pbc-space-4);
 }
 
 .atlas .atlas-extensions-title {
   margin: 0;
+  padding: 0;
   border: 0;
   color: var(--pbc-text);
-  font-size: var(--pbc-heading-3);
+  font-size: var(--pbc-text-base);
   line-height: var(--pbc-leading-title);
 }
 
@@ -2228,43 +2220,7 @@ main .atlas-title a:focus-visible {
 }
 
 .atlas-rows-extension {
-  margin-top: var(--pbc-space-3);
-}
-
-/* A measured-data lab: a hairline of the accent in the margin of its row,
-   beside the word Lab. */
-.atlas-row-lab::before {
-  content: "";
-  position: absolute;
-  top: var(--pbc-space-2);
-  bottom: var(--pbc-space-2);
-  left: calc(-1 * var(--pbc-space-2));
-  border-left: var(--pbc-rule-width) solid var(--pbc-accent);
-}
-
-/* A capstone: the last row, on the night ground. */
-.atlas .atlas-row-capstone {
   margin-top: var(--pbc-space-2);
-  padding: var(--pbc-space-3);
-  border: 0;
-  border-radius: var(--pbc-radius);
-  background: var(--pbc-night);
-  color: var(--pbc-night-text);
-}
-
-.atlas-row-capstone .atlas-label,
-.atlas-row-capstone .atlas-mark,
-.atlas-row-capstone .atlas-planned-title,
-.atlas-row-capstone .capstone-description {
-  color: var(--pbc-night-muted);
-}
-
-main .atlas-row-capstone .atlas-title a {
-  color: var(--pbc-night-text);
-}
-
-.atlas-row-capstone a:focus-visible {
-  outline-color: var(--pbc-night-line);
 }
 
 .atlas-row[data-completed="true"] .lesson-link::after {
@@ -2274,86 +2230,103 @@ main .atlas-row-capstone .atlas-title a {
   font-weight: 600;
 }
 
-.atlas-row-capstone[data-completed="true"] .lesson-link::after {
-  color: var(--pbc-night-text);
-}
-
-/* A narrow screen, and a browser without ::details-content: an accordion,
-   the panel under its card. */
-.atlas-panel {
-  margin: var(--pbc-space-2) 0 var(--pbc-space-4) var(--pbc-space-2);
-  padding-left: var(--pbc-space-3);
-  border-left: var(--pbc-rule-width) solid var(--atlas-ink);
-}
-
-@media (max-width: 55.99em) {
+/* A narrow screen: a smaller illustration, the marks under the title, the
+   content indented less. */
+@media (max-width: 40em) {
   .atlas-card {
-    grid-template-columns: 60px minmax(0, 1fr);
-  }
-
-  .atlas-card-image {
-    width: 60px;
-  }
-
-  .atlas-panel-head {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: 56px minmax(0, 1fr) auto;
     gap: var(--pbc-space-2);
   }
 
-  .atlas-panel-image {
-    width: 160px;
+  .atlas-card-image {
+    width: 56px;
+  }
+
+  .atlas-panel {
+    margin-left: var(--pbc-space-2);
   }
 
   .atlas .atlas-row {
-    grid-template-columns: 3rem minmax(0, 1fr);
+    grid-template-columns: 2.75rem minmax(0, 1fr);
   }
 
   .atlas-marks {
     grid-column: 2;
     flex-wrap: wrap;
+    min-width: 0;
+    white-space: normal;
+  }
+
+  /* A mark breaks inside its word only when it cannot fit (200 % text). */
+  .atlas-marks > span {
+    overflow-wrap: anywhere;
   }
 }
 
-/* A wide screen: the cards in the left column, the open panel in the right,
-   sticky, spanning every row; a last flexible row takes whatever height the
-   panel still needs, so the cards keep their own spacing. */
-@supports selector(::details-content) {
-  @media (min-width: 56em) {
-    .atlas {
-      display: grid;
-      grid-template-columns: minmax(16rem, 21rem) minmax(0, 1fr);
-      grid-template-rows: repeat(var(--atlas-rows), max-content) 1fr;
-      column-gap: var(--pbc-space-5);
-      align-items: start;
-    }
+/* The sections under the sequences: "Your progress" and "How the lessons
+   work". A note is a closed native disclosure with the detail a reader may
+   want; the methods are one line each; the method names are what a lesson's
+   header links to. */
+.atlas-note {
+  max-width: var(--pbc-measure);
+  margin: var(--pbc-space-2) 0 var(--pbc-space-3);
+}
 
-    .atlas-part,
-    .atlas-card {
-      grid-column: 1;
-    }
+.atlas-note > summary {
+  width: fit-content;
+  color: var(--pbc-link);
+  font-size: var(--pbc-text-small);
+  cursor: pointer;
+}
 
-    .atlas-sequence {
-      display: contents;
-    }
+.atlas-note > summary:hover {
+  text-decoration: underline;
+}
 
-    .atlas-sequence[open]::details-content {
-      display: contents;
-    }
+.atlas-note > :not(summary) {
+  margin-top: var(--pbc-space-2);
+  font-size: var(--pbc-text-small);
+}
 
-    .atlas-sequence:not([open])::details-content {
-      display: none;
-    }
+.atlas-levels dt {
+  margin-top: var(--pbc-space-2);
+  font-weight: 600;
+}
 
-    .atlas-panel {
-      position: sticky;
-      top: var(--pbc-space-3);
-      grid-row: 1 / -1;
-      grid-column: 2;
-      margin: 0;
-      padding: 0;
-      border: 0;
-    }
-  }
+.atlas-levels dd {
+  margin: 0;
+}
+
+.atlas-methods {
+  max-width: var(--pbc-measure);
+  margin: var(--pbc-space-2) 0 var(--pbc-space-3);
+  padding: 0;
+  list-style: none;
+}
+
+.atlas-methods li {
+  padding: var(--pbc-space-1) 0;
+  border-top: var(--pbc-rule-width) solid var(--atlas-hairline);
+}
+
+.atlas-methods li:last-child {
+  border-bottom: var(--pbc-rule-width) solid var(--atlas-hairline);
+}
+
+/* The progress indicator of the section, which learner/progress.js shows
+   with the count; the count says it in words. */
+.progress-bar {
+  display: block;
+  max-width: 20rem;
+  height: 2px;
+  margin: var(--pbc-space-1) 0 var(--pbc-space-2);
+  background: var(--atlas-hairline);
+}
+
+.progress-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--pbc-link);
 }
 
 /* The sections under the sequences: the method names a lesson's header
@@ -3099,10 +3072,6 @@ details.disclosure[open] > summary {
 
 .intro-marks:empty {
   display: none;
-}
-
-.atlas-introduction {
-  margin: var(--pbc-space-2) 0 0;
 }
 
 @media (max-width: 40em) {

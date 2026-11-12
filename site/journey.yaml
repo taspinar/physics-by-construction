@@ -1,6 +1,7 @@
 # The learning journey (F157, requirements decision 43): the one source of
-# the Part A and Part B text, which the Course Atlas offers behind a disclosure and About
-# carries in the same words. Prose and references only: the lessons, the
+# the Part A and Part B text, which About carries (the Course Atlas offered
+# the whole file behind a disclosure until Issue #483; its other sections are
+# validated and shown on no page). Prose and references only: the lessons, the
 # courses and paths, their counts, the prerequisites, and the published or
 # planned state come from the curriculum file and the front matter when the
 # pages are built. A reference is {sequence:<id>}, {slot:<label>}, or

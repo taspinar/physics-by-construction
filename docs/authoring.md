@@ -260,14 +260,14 @@ not resolve fails the build. The voice of the text is that of
 
 The text of the learning journey (F157, requirements decision 43) lives in
 one file, `site/journey.yaml`, beside the atlas manifest, and is read and
-validated by `pbc.authoring.journey`. The Course Atlas opens with all of it,
-before the summary and the cards, as one native disclosure that is closed at
-load (so the first panel stays in the first window at 1280 by 800 CSS px)
-and opens without scripts; an address of a heading inside it
-(`path/#journey-evidence`) opens it in the browsers that open a disclosure
-for its fragment. About prints the Part A, Part B, and relation text of the
-same file from the cell `about_journey()`, with the courses and method
-paths of the curriculum file.
+validated by `pbc.authoring.journey`. About prints the Part A, Part B, and
+relation text of the file from the cell `about_journey()`, with the courses
+and method paths of the curriculum file. Until Issue #483 (2026-11-11) the
+Course Atlas opened with the whole file behind a disclosure; since then the
+atlas opens with the owner's two paragraphs held in `pbc.authoring.atlas`
+(`ATLAS_INTRODUCTION`), and the file's other sections (background, routes,
+capstones, the three kinds of evidence) are validated as before and shown
+on no page.
 
 The file holds the sections `part-a`, `part-b`, `relation` (the text About
 shares), `background`, `routes`, and `capstones`, each a list of texts, and
@@ -284,22 +284,27 @@ its section below states.
 
 ### The course atlas
 
-The path page is the course atlas (F133, ADR 021 decision 3): the eight
-courses, the four method paths, and the Lean lessons beyond the curriculum,
-each a native disclosure whose summary is a card and whose content is the
-panel with the lesson rows (docs/atelier.md, "The course atlas"), written by
-`pbc.authoring.atlas` when the page is built. Its data come from three
-places and nowhere else: courses, paths, and slots from
-`site/curriculum.yaml`; titles, publication, prerequisites, and addresses
-from the front matter; and from the manifest `site/atlas.yaml` only what
-neither holds:
+The path page is the course atlas (F133, ADR 021 decision 3 as amended on
+2026-11-11, Issue #483): the owner's subtitle, two paragraphs, and three
+derived figures (the courses, the method paths, the published lessons),
+then the eight courses, the four method paths, and the Lean lessons beyond
+the curriculum, each a native disclosure whose summary is the row and whose
+content expands inline beneath it with the description, the link to the
+introduction, and the lesson rows (docs/atelier.md, "The course atlas"),
+written by `pbc.authoring.atlas` when the page is built. Its data come from
+three places and nowhere else: courses, paths, and slots from
+`site/curriculum.yaml`; titles, publication, difficulty, prerequisites, and
+addresses from the front matter; and from the manifest `site/atlas.yaml`
+only what neither holds:
 
 - `sequences`: one entry for every course and every method path of the
   curriculum file, and no other, each with its `id`, a one-sentence
-  `description` (the panel's line), and its `illustration`, the stem of
-  its four files under `site/assets/` (`atlas/<id>-card-152.webp`,
-  `-card-228.webp`, `-panel-400.webp`, `-panel-800.webp`), each of which
-  the provenance register `site/assets/provenance.yaml` names;
+  `description` (the line under the title of the open row), and its
+  `illustration`, the stem of its four files under `site/assets/`
+  (`atlas/<id>-card-152.webp` and `-card-228.webp`, shown on the atlas;
+  `-panel-400.webp` and `-panel-800.webp`, shown on the introduction
+  pages), each of which the provenance register
+  `site/assets/provenance.yaml` names;
 - `concepts`: each with an `id` (lower case and hyphens; it is the
   concept's name in words), an `area` (a course or a path), its `slots`,
   and a one-sentence `explanation`;
@@ -346,8 +351,10 @@ it integrates. A planned lesson has no page and shows none.
 `site/learner/atlas.js` makes the address follow the open sequence and
 opens the sequence an address names, including the anchors of the previous
 atlas (`#course-<id>-lessons` and `#concept-<id>`, listed in each
-disclosure's `data-aliases`). It stores nothing and requests nothing;
-nothing on the page depends on it. The illustrations are interface artwork:
+disclosure's `data-aliases`), and closes the other rows in a browser
+without exclusive disclosures. It stores nothing and requests nothing;
+nothing on the page depends on it: the rows open without it, one at a time
+where the browser has exclusive disclosures. The illustrations are interface artwork:
 WebP files under `site/assets/atlas/`, registered with their origin, licence,
 and master hash; the scripts that made them are in `tools/illustrations/`
 (its README), outside the build.

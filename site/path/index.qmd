@@ -1,8 +1,9 @@
 ---
 title: "Course Atlas"
 description: >-
-  Eight physics courses and four method paths, with every lesson one click
-  away.
+  From classical mechanics to AI-assisted scientific research, explore the
+  ideas, models, and experiments that shape our understanding of the
+  physical world.
 body-classes: pbc-atlas
 toc: false
 ---

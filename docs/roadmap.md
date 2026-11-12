@@ -8194,7 +8194,8 @@ decision 40, ADR 021 decision 3, 2026-10-30):** delivered by pull request
 stays. F133 replaces the switch, selection, modes, zoom, filters, and the
 region selector by native exclusive disclosures and one address module,
 and their tests by tests of the new interaction. This block is the record
-of what F126 delivered and is not rewritten.
+of what F126 delivered and is not rewritten. Issue #483 (2026-11-11)
+replaces F133's two-layer layout by inline expanding rows; see F133.
 
 **Source.** Change request sections 4 ("Course atlas", items 2 and 4, the
 mobile rule), 5 ("Accessible interactions"), and 8 (slice E);
@@ -9185,6 +9186,16 @@ delivered stands as recorded. F156 adds to an open sequence's panel the
 link to its introduction where one exists, and F157 opens the page with
 the learning journey before the cards; neither changes the cards, the
 panels' lesson rows, the anchors, or the address module.
+
+**Note of Issue #483 (2026-11-11).** The owner's redesign decision reverses
+the two-layer layout of this block (ADR 021 decision 3 as amended that
+day): every sequence expands inline beneath its own row on every viewport,
+none open at load; the panel illustration, the kicker, the summary
+sentence, and the breadcrumb leave; the rows gain the difficulty; the
+learning journey of F157 leaves the atlas. The tests of the wide-screen
+layout and of the journey on the atlas are replaced (the plan of #483
+lists them). The address, the anchors, the manifest, the illustrations,
+the learner state, and the relationships on the lesson pages stand.
 
 **Source.** Change request "What I want", item 2, and "Decisions already
 taken" (artwork, atlas shape, the exoplanet transit, Part B's text-free
@@ -10984,6 +10995,15 @@ and a change of the lesson template; nothing scientific changes.
 **Detailed implementation plan expected.** Yes.
 
 ### F157 — The learning journey: the Course Atlas introduction and About
+
+**Note of Issue #483 (2026-11-11).** The owner's redesign of the Course
+Atlas removes the journey's disclosure from the atlas: the atlas opens
+with the owner's own two paragraphs (`pbc.authoring.atlas`), About keeps
+the Part A and Part B text from `site/journey.yaml`, and the file's other
+sections (background, routes, capstones, the three kinds of evidence) are
+validated as before and shown on no page; "How we verify the science"
+explains the kinds of evidence. The source, its rules, and About stand as
+delivered.
 
 **Source.** Change request "What I want", items 2 and 3, "The features"
 (F157), and "Open for the planning" 2; requirements decision 43, "UX

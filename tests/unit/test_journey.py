@@ -1,6 +1,7 @@
 """The learning journey (F157, requirements decision 43): the one source of
-the Part A and Part B text, its rules, the opening of the Course Atlas, and
-About, which carries the same text from the same file."""
+the Part A and Part B text, its rules, and About, which carries the text
+from the file; since Issue #483 the Course Atlas opens with the owner's own
+paragraphs and shows no part of the journey."""
 
 import re
 
@@ -250,86 +251,27 @@ def test_the_committed_file_is_read_from_the_site():
     assert Journey.read(SITE_SOURCE, CURRICULUM, GLOSSARY) == _journey()
 
 
-# --- The opening of the Course Atlas ------------------------------------------------
+# --- The Course Atlas (Issue #483) -------------------------------------------------
 
 
-def _atlas(journey: bool = True) -> str:
-    content = _content("path/index.qmd") if journey else None
-    return str(AtlasSection(ATLAS, "path/index.qmd", AVAILABLE, content))
-
-
-def test_the_atlas_opens_with_the_journey_after_the_breadcrumb_and_before_the_cards():
-    page = _atlas()
-
-    assert (
-        page.index('class="pbc-breadcrumb"')
-        < page.index('id="journey"')
-        < page.index('class="atlas-summary"')
-        < page.index('<details class="atlas-sequence')
-    )
-
-
-def test_the_atlas_without_the_journey_is_what_it_was():
-    journey = _content("path/index.qmd").atlas_markdown()
-    inserted = "```\n\n" + journey + "\n\n```{=html}\n"
-
-    assert _atlas().count(inserted) == 1
-    assert _atlas().replace(inserted, "", 1) == _atlas(False)
-    assert _atlas(False) == str(AtlasSection(ATLAS, "path/index.qmd", AVAILABLE))
-
-
-def test_the_journey_shows_every_text_of_the_source():
-    words = _words(_content("path/index.qmd").atlas_markdown())
-    journey = _journey()
+def test_the_atlas_holds_no_journey_and_about_does():
+    """The atlas opens with the owner's two paragraphs (pbc.authoring.atlas);
+    the journey's text is on About only, its shared sections, and the
+    generator offers no atlas form of it."""
+    atlas = _words(str(AtlasSection(ATLAS, "path/index.qmd", AVAILABLE)))
+    about = _words(_content("about.qmd").about_markdown())
 
     for key, _ in SECTIONS:
-        for text in journey.sections[key]:
-            assert _words(_content("path/index.qmd").inline(text)) in words, key
-    for key, _ in EVIDENCE:
-        for text in journey.evidence[key]:
-            assert _words(_content("path/index.qmd").inline(text)) in words, key
-
-
-def test_the_journey_names_the_three_kinds_of_evidence_apart():
-    markdown = _content("path/index.qmd").atlas_markdown()
-
-    for _, term in EVIDENCE:
-        assert re.search(rf"^{re.escape(term)}$", markdown, re.MULTILINE), term
-    assert len(EVIDENCE) == 3 and len({term for _, term in EVIDENCE}) == 3
-
-
-def test_the_journey_is_a_disclosure_outside_the_group_of_the_cards():
-    page = _atlas()
-    opening = re.search(r'<details class="atlas-journey"[^>]*>', page).group(0)
-
-    assert 'name="' not in opening and " open" not in opening
-    assert "<summary" in page[page.index(opening) :][:400]
-
-
-def test_the_journey_needs_no_script_and_holds_no_state():
-    markdown = _content("path/index.qmd").atlas_markdown()
-
-    for forbidden in ("<script", "localStorage", "data-lesson-id", "data-enhancement"):
-        assert forbidden not in markdown
-
-
-def test_the_anchors_of_the_journey_are_not_those_of_a_sequence():
-    ids = set(re.findall(r'id="([^"]+)"', _content("path/index.qmd").atlas_markdown()))
-    ids |= set(re.findall(r"\{#([a-z-]+)", _content("path/index.qmd").atlas_markdown()))
-    taken = {sequence.anchor for sequence in ATLAS.sequences()}
-    taken |= {alias for sequence in ATLAS.sequences() for alias in sequence.aliases}
-    taken |= {"atlas", "choose", "courses", "paths", "lean", "atlas-text-title"}
-
-    assert ids and all(item.startswith("journey") for item in ids)
-    assert not ids & taken
-
-
-def test_the_journey_is_byte_stable():
-    assert _atlas() == _atlas()
+        for text in _journey().sections[key]:
+            shown = _words(_content("path/index.qmd").inline(text))
+            assert shown not in atlas, key
+            assert (shown in about) == (key in SHARED), key
+    assert "journey" not in atlas.lower()
+    assert not hasattr(JourneyContent, "atlas_markdown")
 
 
 def test_a_reference_to_a_planned_slot_is_text_and_a_published_one_a_link():
-    content = _content("path/index.qmd")
+    content = _content("about.qmd")
     planned = next(
         slot
         for slot in CURRICULUM.slots
@@ -346,14 +288,12 @@ def test_a_reference_to_a_planned_slot_is_text_and_a_published_one_a_link():
 # --- About ----------------------------------------------------------------------------
 
 
-def test_about_carries_the_part_a_and_part_b_text_of_the_atlas():
+def test_about_carries_the_part_a_and_part_b_text_of_the_source():
     about = _words(_content("about.qmd").about_markdown())
-    atlas = _words(_content("path/index.qmd").atlas_markdown())
 
     for key in SHARED:
         for text in _journey().sections[key]:
-            shown = _words(_content("about.qmd").inline(text))
-            assert shown in about and shown in atlas, key
+            assert _words(_content("about.qmd").inline(text)) in about, key
 
 
 def test_about_lists_the_courses_and_paths_from_the_curriculum():

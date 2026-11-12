@@ -1,6 +1,7 @@
 """The manifest of the course atlas, what the build derives from it, the
-sequences of the path page, and the relationships on the lesson pages (ADR 018
-decision 3, ADR 021 decision 3; F125, F133)."""
+opening and the sequences of the path page, and the relationships on the
+lesson pages (ADR 018 decision 3, ADR 021 decision 3 as amended on
+2026-11-11; F125, F133, Issue #483)."""
 
 import re
 from dataclasses import replace
@@ -14,6 +15,7 @@ from support.paths import SITE_SOURCE
 from pbc.authoring import COURSES, LearningPath
 from pbc.authoring.atlas import (
     ATLAS_FILE,
+    ATLAS_INTRODUCTION,
     CONNECTION_TYPES,
     LAB,
     Atlas,
@@ -24,13 +26,15 @@ from pbc.authoring.atlas import (
     illustration_files,
     registered_assets,
 )
-from pbc.authoring.path import Curriculum
+from pbc.authoring.path import DIFFICULTIES, Curriculum
+from pbc.authoring.website import introduced, introduction_page
 
 FILE = SITE_SOURCE / ATLAS_FILE
 PATH = LearningPath.read(SITE_SOURCE)
 CURRICULUM = PATH.curriculum
 ATLAS = Atlas.read(SITE_SOURCE)
 REGISTERED = registered_assets(SITE_SOURCE)
+INTRODUCED = introduced(SITE_SOURCE)
 
 
 def data() -> dict:
@@ -472,27 +476,77 @@ def _published(atlas: Atlas, label: str) -> Atlas:
     return Atlas(path, atlas.manifest)
 
 
-def test_one_exclusive_disclosure_per_sequence_and_only_the_first_open(page: str):
+def test_one_exclusive_disclosure_per_sequence_and_none_open(page: str):
     details = re.findall(r"<details [^>]*>", page)
     assert len(details) == len(ATLAS.sequences()) == 13
     assert all('name="atlas"' in tag for tag in details)
-    assert [" open" in tag for tag in details] == [True] + [False] * 12
+    assert not any(" open" in tag for tag in details)
     ids = re.findall(r' id="([^"]+)"', page)
     assert len(ids) == len(set(ids))
     for anchor in ("atlas", "choose", "courses", "paths", "lean"):
         assert anchor in ids
 
 
+def test_the_opening_is_the_owners_paragraphs_and_the_derived_figures(page: str):
+    """The two paragraphs are the owner's words (Issue #483); the three
+    figures are derived: the courses and paths of the curriculum file and
+    every published lesson of the front matter. No breadcrumb, no journey,
+    no count written by hand."""
+    section = AtlasSection(ATLAS)
+    opening = page[: page.index('<section class="atlas-sequences"')]
+    for text in ATLAS_INTRODUCTION:
+        assert f"<p>{escape(text)}</p>" in opening
+    assert section.figures() == (
+        (len(COURSES), "physics course"),
+        (len(CURRICULUM.paths), "AI method path"),
+        (len(PATH.lessons), "published lesson"),
+    )
+    assert section.figures()[2][0] == sum(s.published for s in ATLAS.sequences()) + sum(
+        s.extension_published for s in ATLAS.sequences()
+    )
+    items = re.findall(r"<li>(.*?)</li>", opening)
+    assert items == [
+        f'<span class="atlas-figure-number">{len(COURSES)}</span> '
+        '<span class="atlas-figure-label">physics courses</span>',
+        f'<span class="atlas-figure-number">{len(CURRICULUM.paths)}</span> '
+        '<span class="atlas-figure-label">AI method paths</span>',
+        f'<span class="atlas-figure-number">{len(PATH.lessons)}</span> '
+        '<span class="atlas-figure-label">published lessons</span>',
+    ]
+    for absent in ("pbc-breadcrumb", "journey", "atlas-summary", "lessons published"):
+        assert absent not in page
+    # The opening stands before the first row.
+    assert page.index('class="atlas-figures"') < page.index('class="atlas-sequence')
+
+
+def test_the_introduction_link_stands_before_the_rows_where_one_exists():
+    page = str(AtlasSection(ATLAS, introductions=INTRODUCED))
+    for sequence in ATLAS.sequences():
+        html = _sequence_html(page, sequence.anchor)
+        if sequence.id in INTRODUCED and sequence.part:
+            href = "../" + introduction_page(sequence.id).removesuffix(".qmd") + ".html"
+            words = "course" if sequence.part == "A" else "method path"
+            link = (
+                f'<p class="atlas-introduction"><a href="{href}">Read the {words}'
+                " introduction</a></p>"
+            )
+            assert link in html, sequence.id
+            assert html.index(link) < html.index('<ol class="atlas-rows">')
+            assert html.index('class="atlas-description"') < html.index(link)
+        else:
+            assert "atlas-introduction" not in html, sequence.id
+    assert any(s.id in INTRODUCED for s in ATLAS.sequences())
+
+
 def test_each_card_and_panel_show_the_counts_of_their_rows(page: str):
     for sequence in ATLAS.sequences():
         html = _sequence_html(page, sequence.anchor)
         card = re.search(r"<summary.*?</summary>", html).group(0)
-        core = len(sequence.core)
-        assert f"{sequence.published} of {core} lesson" in card
         counts = f"{sequence.published} published"
         if sequence.planned:
             counts += f" · {sequence.planned} planned"
-        assert f'<p class="atlas-counts">{counts}</p>' in html
+        assert f'<span class="atlas-card-count">{counts}</span>' in card
+        assert "atlas-counts" not in html and "atlas-kicker" not in html
         assert html.count('<li class="') == len(sequence.rows)
         group = re.search(r'<section class="atlas-extensions".*?</section>', html)
         if sequence.extensions:
@@ -544,9 +598,10 @@ def test_a_paths_extensions_follow_its_core_under_their_own_heading(page: str):
 
 def test_a_published_row_links_its_lesson_and_a_planned_row_links_nothing(page: str):
     for item in re.findall(r'<li class="[^"]*" data-state="planned">.*?</li>', page):
-        assert "<a " not in item
+        assert "<a " not in item and "tabindex" not in item and "<button" not in item
         assert ">planned</span>" in item
         assert "atlas-planned-title" in item
+        assert "atlas-level" not in item
     rows = re.findall(r'<li class="path-card[^"]*" data-state="published"[^>]*>', page)
     assert len(rows) == len(PATH.lessons)
     for lesson in PATH.lessons:
@@ -563,8 +618,19 @@ def test_the_rows_carry_only_the_marks_lab_capstone_and_lean(page: str):
     # Both kinds of capstone under the one capstone mark.
     assert marks.count("capstone") == sum(1 for s in CURRICULUM.slots if s.is_capstone)
     assert marks.count("capstone") == 7
-    assert "level" not in page.lower().replace("levels", "")
-    assert "difficulty" not in page
+    assert "★" not in page
+
+
+def test_a_published_row_shows_the_difficulty_of_its_front_matter(page: str):
+    titles = {difficulty.level: difficulty.title for difficulty in DIFFICULTIES}
+    rows = re.findall(
+        r'<li class="path-card[^"]*" data-state="published"'
+        r' data-lesson-id="([^"]+)">.*?<span class="atlas-level">([^<]+)</span>',
+        page,
+    )
+    assert len(rows) == len(PATH.lessons)
+    for lesson_id, shown in rows:
+        assert shown == titles[PATH.lesson(lesson_id).difficulty], lesson_id
 
 
 def test_a_capstone_is_a_link_when_published_and_else_its_planned_description(
@@ -606,23 +672,31 @@ def test_the_planned_capstones_description_is_only_the_manifests_explanation(
     assert planned == ["FL10", "SA9", "MD10", "AE7", "RR8"]
 
 
-def test_part_b_is_told_apart_in_words_and_its_panels_say_toy_model(page: str):
+def test_part_b_is_told_apart_in_words_and_its_illustrations_say_toy_model(page: str):
     for sequence in ATLAS.sequences():
         html = _sequence_html(page, sequence.anchor)
         if sequence.part == "A":
             assert "atlas-part-a" in html
-            assert f"Part A · Course {sequence.number}" in html
+            assert "toy-model" not in html
         elif sequence.part == "B":
             assert "atlas-part-b" in html
-            assert f"Part B · Method path {sequence.number}" in html
             assert "a toy-model example, no agent was run" in html
         if sequence.illustration:
             assert f'alt="Illustration of {escape(sequence.title)}' in html
+            # The card files only; the panel files are for the introductions.
             for file in illustration_files(sequence.illustration):
-                assert f"../assets/{file}" in html
-            assert 'sizes="76px"' in html and 'sizes="200px"' in html
-    assert '<p class="atlas-part atlas-part-a" id="courses">' in page
-    assert '<p class="atlas-part atlas-part-b" id="paths">' in page
+                assert (f"../assets/{file}" in html) == ("-card-" in file), file
+            assert 'sizes="76px"' in html and "200" not in html.split("<div")[0]
+            assert html.count("<img ") == 1
+    # The part's label stands before its sequences, in words.
+    assert page.index('<p class="atlas-part atlas-part-a" id="courses">') < page.index(
+        'id="course-mechanics"'
+    )
+    assert (
+        page.index('id="course-materials"')
+        < page.index('<p class="atlas-part atlas-part-b" id="paths">')
+        < page.index('id="path-reasoning"')
+    )
 
 
 def test_the_textual_equivalent_names_every_sequence_and_lesson_with_its_state():

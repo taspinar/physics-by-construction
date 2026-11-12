@@ -4,6 +4,7 @@ rendered with links that work from the page it is shown on."""
 import json
 import re
 import subprocess
+from html import escape
 from pathlib import Path
 
 import pytest
@@ -513,20 +514,41 @@ def test_overview_explains_what_the_lesson_pages_link_to_without_listing_lessons
     headings = [line for line in shown.splitlines() if line.startswith("#")]
     assert headings == [
         "## Your progress {#your-progress}",
-        "## About the lessons {#about-the-lessons}",
+        "## How the lessons work {#about-the-lessons}",
         "### Difficulty {#difficulty}",
         "### Methods {#methods}",
-        "### Order {#order}",
+        "### Lesson order and prerequisites {#order}",
     ]
+    # The scale in one sentence, its descriptions in a closed disclosure.
+    assert "Introductory, Intermediate, or Advanced, shown beside its title" in shown
+    levels = re.search(
+        r'<details class="atlas-note" id="difficulty-levels">(.*?)</details>', shown
+    ).group(1)
+    assert levels.startswith("<summary>")
     for difficulty in DIFFICULTIES:
-        assert difficulty.description in shown
-    # Every method a lesson's header can link to has its anchor and meaning.
+        assert f"<dt>{difficulty.title}</dt><dd>{difficulty.description}</dd>" in levels
+    # Every method a lesson's header can link to has its anchor and meaning,
+    # one line each.
     for method in METHODS:
-        assert f"[{method.title}]{{#method-{method.id} .method-name}}" in shown
-        assert method.description in shown
+        assert (
+            f'<li id="method-{method.id}"><span class="method-name">{method.title}'
+            f"</span> {escape(method.description)}</li>" in shown
+        )
     # The lessons are listed once, in the atlas's sequences, not here.
     assert "lesson-link" not in shown and "path-card" not in shown
-    assert '<div id="progress-controls" data-enhancement="">' in shown
+    # The progress: the owner's sentence without scripts, the explanation of
+    # what is stored in a closed disclosure, the anchor the lesson pages link.
+    assert (
+        '<div id="progress-controls" data-enhancement=""><p>Track completed'
+        " lessons and continue where you left off. Your progress stays in this"
+        " browser.</p></div>" in shown
+    )
+    stored = re.search(
+        r'<details class="atlas-note" id="progress-details">(.*?)</details>', shown
+    ).group(1)
+    assert stored.startswith("<summary>What is stored, and how to clear it</summary>")
+    assert "<code>physics-by-construction:learner-state</code>" in stored
+    assert "localStorage" not in shown
     assert '<div id="recommendations"' in shown
 
 
@@ -550,13 +572,22 @@ def test_overview_carries_the_learning_path_for_the_recommendations(
     assert '<script type="module" src="../learner/progress.js"></script>' in shown
 
 
-def test_overview_explains_what_previous_and_next_mean(path: LearningPath):
-    section = str(PathOverview(path, PATH_PAGE)).split("### Order {#order}")[1]
+def test_overview_explains_the_order_and_the_prerequisites_without_the_mechanics(
+    path: LearningPath,
+):
+    shown = str(PathOverview(path, PATH_PAGE))
+    section = shown.split("### Lesson order and prerequisites {#order}")[1]
+    section = section.split("```")[0]
 
+    assert "recommended teaching order" in section
+    assert "lessons it builds on, and those are all you need first" in section
+    assert "further exploration" in section
+    # Previous and next keep their behaviour; the explanation says only what
+    # a reader needs: the linear order is not the order of the prerequisites.
     assert "Previous and next" in section
-    assert "Classical mechanics, then Formal proofs" in section
-    assert "course order" in section
-    assert "prerequisites" in section
+    assert "not the order of the prerequisites" in section
+    for internal in ("strand", "curriculum file", "slot", "sorted"):
+        assert internal not in section
 
 
 def test_overview_of_a_site_without_lessons_says_so():

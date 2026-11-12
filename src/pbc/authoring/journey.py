@@ -4,11 +4,12 @@
 One source, ``site/journey.yaml`` beside the atlas manifest, holds the text
 of the learning journey from computational physics to AI-supported
 scientific investigation: Part A, Part B, and how the first leads to the
-second (the three texts About shares with the atlas), the expected
-background, that a route needs only its stated prerequisites, how a capstone
-fits, and the three kinds of evidence (numerical, empirical, formal proof).
-The Course Atlas opens with all of it, before its cards; About carries the
-Part A and Part B text from the same file.
+second (the three texts About carries), the expected background, that a
+route needs only its stated prerequisites, how a capstone fits, and the
+three kinds of evidence (numerical, empirical, formal proof). About carries
+the Part A and Part B text; since Issue #483 (2026-11-11) the Course Atlas
+opens with the owner's two paragraphs of ``pbc.authoring.atlas`` instead of
+the journey, and the other sections of the file are shown on no page.
 
 The file holds prose (inline Markdown, one string per paragraph) and
 references, nothing else: no lesson list, title, count, or publication
@@ -48,9 +49,8 @@ JOURNEY_FILE = "journey.yaml"
 VERIFY_PAGE = "verify.qmd"
 ABOUT_PAGE = "about.qmd"
 
-# The sections of prose, in the order of the atlas: the key of the file and
-# the heading. The first three are the Part A and Part B text that About
-# shares with the atlas.
+# The sections of prose, in the order of the file: the key and the heading.
+# The first three are the Part A and Part B text of About.
 SECTIONS = (
     ("part-a", f"Part A: {_PART_NAMES['A']}"),
     ("part-b", f"Part B: {_PART_NAMES['B']}"),
@@ -227,8 +227,8 @@ class Journey:
 
 @dataclass(frozen=True)
 class JourneyContent:
-    """The journey on one page: the whole of it at the opening of the atlas,
-    the Part A and Part B text on About. No script, no state."""
+    """The journey on one page: the Part A and Part B text on About. No
+    script, no state."""
 
     atlas: Atlas
     glossary: Glossary
@@ -244,64 +244,6 @@ class JourneyContent:
 
     def _paragraphs(self, key: str) -> str:
         return "\n\n".join(self.inline(text) for text in self.journey.sections[key])
-
-    def atlas_markdown(self) -> str:
-        """The opening of the atlas: one native disclosure, outside the
-        exclusive group of the cards, that holds the whole journey. It opens
-        with a click, Enter, or Space and needs no script."""
-        heading = dict(SECTIONS)
-        verify = page_href(self.page, VERIFY_PAGE)
-        lines = [
-            "```{=html}",
-            '<details class="atlas-journey" id="journey">'
-            '<summary class="atlas-journey-summary">'
-            '<span class="atlas-journey-title">The learning journey</span>'
-            '<span class="visually-hidden">: </span>'
-            '<span class="atlas-journey-hint">how Part A leads to Part B, and'
-            " what counts as evidence</span></summary>",
-            "```",
-            "",
-            "::: {.atlas-journey-body}",
-            "",
-        ]
-        for key, _ in SECTIONS:
-            # The two parts open with a rule in the ink of their part in the
-            # atlas, which their headings also name in words.
-            part = ""
-            if key in ("part-a", "part-b"):
-                part = f" .journey-part .journey-{key}"
-            lines += [
-                f"::: {{.journey-section{part}}}",
-                "",
-                f"## {heading[key]} {{#journey-{key}}}",
-                "",
-                self._paragraphs(key),
-                "",
-                ":::",
-                "",
-            ]
-        lines += [
-            "::: {.journey-section .journey-evidence}",
-            "",
-            f"## {EVIDENCE_HEADING} {{#journey-evidence}}",
-            "",
-        ]
-        for key, term in EVIDENCE:
-            texts = [self.inline(text) for text in self.journey.evidence[key]]
-            lines += [term, ":   " + "\n\n    ".join(texts), ""]
-        lines += [
-            f"[How we verify the science]({verify}) shows each kind on a claim of"
-            " a published lesson.",
-            "",
-            ":::",
-            "",
-            ":::",
-            "",
-            "```{=html}",
-            "</details>",
-            "```",
-        ]
-        return "\n".join(lines)
 
     def about_markdown(self) -> str:
         """The Part A and Part B text of About, with the courses and the
@@ -337,11 +279,6 @@ def _content(site: Path, atlas: Atlas, page: str) -> JourneyContent:
     glossary = Glossary.read(site)
     journey = Journey.read(site, atlas.path.curriculum, glossary)
     return JourneyContent(atlas, glossary, journey, introduced(site), page)
-
-
-def atlas_journey(site: Path, atlas: Atlas, page: str = PATH_PAGE) -> JourneyContent:
-    """The journey on the atlas page being built (``course_atlas``)."""
-    return _content(site, atlas, page)
 
 
 def about_journey() -> str:

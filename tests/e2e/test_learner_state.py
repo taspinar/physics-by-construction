@@ -19,7 +19,7 @@ from support.site_checks import DESKTOP, PHONE, WCAG_TAGS, describe
 from support.site_server import SiteServer
 
 from pbc.authoring import LearningPath
-from pbc.authoring.progress import STORAGE_KEY, path_export
+from pbc.authoring.progress import PROGRESS_SENTENCE, STORAGE_KEY, path_export
 
 # The self-check of this lesson has choices; that of OPEN_LESSON has none.
 CHOICE_LESSON = "lessons/mechanics/01-kinematics-as-a-program/index.html"
@@ -108,10 +108,20 @@ def test_the_learning_path_shows_completed_lessons_and_the_clear_control_removes
     total = len(LearningPath.read(SITE_SOURCE).lessons)
     summary = page.locator("#progress-controls [role=status]")
     assert summary.inner_text().startswith(f"1 of {total} lessons completed.")
+    # The indicator (the sentence says it) and the hairline of the row of
+    # the course, which is hidden until a lesson is completed (Issue #483).
+    bar = page.locator("#progress-controls .progress-bar")
+    assert bar.is_visible() and bar.get_attribute("aria-hidden") == "true"
+    hairline = page.locator("#course-mechanics .atlas-progress")
+    assert hairline.evaluate("e => getComputedStyle(e).visibility") == "visible"
     marked = page.locator(".path-card[data-completed='true']")
     assert marked.count() >= 1
     for index in range(marked.count()):
         assert marked.nth(index).get_attribute("data-lesson-id") == CHOICE_ID
+    # The completed lessons, in a closed disclosure.
+    shown = page.locator("#progress-controls details")
+    assert shown.is_visible() and shown.get_attribute("open") is None
+    shown.locator("summary").click()
     completed = page.locator(".completed-lessons li")
     assert [completed.nth(i).inner_text() for i in range(completed.count())] == [
         "Kinematics as a program (completed)"
@@ -123,9 +133,14 @@ def test_the_learning_path_shows_completed_lessons_and_the_clear_control_removes
     assert stored(page) is None
     assert page.locator(".path-card[data-completed='true']").count() == 0
     assert page.locator(".completed-lessons li").count() == 0
-    assert "cleared" in summary.inner_text()
+    assert summary.inner_text().startswith(
+        f"All stored progress was cleared. {PROGRESS_SENTENCE}"
+    )
+    assert bar.is_hidden() and shown.is_hidden()
+    assert hairline.evaluate("e => getComputedStyle(e).visibility") == "hidden"
     page.reload(wait_until="networkidle")
-    assert summary.inner_text().startswith(f"0 of {total} lessons completed.")
+    assert summary.inner_text().startswith(PROGRESS_SENTENCE)
+    assert "completed." not in summary.inner_text()
     assert stored(page) is None
 
 
