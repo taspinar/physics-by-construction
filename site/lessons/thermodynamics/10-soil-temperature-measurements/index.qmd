@@ -603,8 +603,8 @@ dug deep.
 :::
 
 ::: {.exercise}
-**From diffusivity to conductivity.** The diffusivity is $\alpha = k/(\rho
-c)$. Assume that this soil stores $\rho c = 2.0\ \mathrm{MJ/(m^3\,K)}$, a
+**From diffusivity to conductivity.** The diffusivity is
+$\alpha = k/(\rho c)$. Assume that this soil stores $\rho c = 2.0\ \mathrm{MJ/(m^3\,K)}$, a
 typical value for a moist sandy soil that the record does not give. What
 thermal conductivity do the lowest and the highest of the four estimates,
 $1.01$ and $1.15 \times 10^{-6}\,\mathrm{m^2/s}$, imply? What does the
