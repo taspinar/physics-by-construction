@@ -1262,6 +1262,67 @@ def test_unregistered_raster_under_site_assets_is_reported(
     ]
 
 
+@pytest.mark.parametrize("name", ["hero/double-pendulum-1200.webp", "hero/mark.png"])
+def test_a_hero_raster_without_a_licence_is_accepted(
+    make_repository: Repository, name: str
+):
+    """The hero of the home page carries no licence in the register (ADR 021
+    decision 2 as amended on 2026-11-12, the owner's decision on Issue #487):
+    an entry under hero/ without the field is complete."""
+    entry = raster(name, licence=None)
+    repository = make_repository(
+        files={f"site/assets/{name}": "raster", **register(entry)}
+    )
+    git(repository, "add", "--all")
+    git(repository, "commit", "--quiet", "--message", "The hero and its entry")
+
+    assert lesson_checks.check_committed_files(repository) == []
+    assert lesson_checks.check_asset_sources(repository) == []
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "atlas/mechanics-card-152.webp",
+        "mark.png",
+        "hero.webp",
+        "heroes/mark.webp",
+        "atlas/hero/mark.webp",
+    ],
+)
+def test_every_other_raster_without_a_licence_is_still_reported(
+    make_repository: Repository, name: str
+):
+    """Only the directory hero/ is exempt: a raster anywhere else under
+    site/assets, also one whose name begins with 'hero' or that lies under a
+    deeper hero/ directory, still needs its licence."""
+    entry = raster(name, licence=None)
+    repository = make_repository(
+        files={f"site/assets/{name}": "raster", **register(entry)}
+    )
+
+    assert rules(lesson_checks.check_committed_files(repository)) == {
+        "committed-artifact"
+    }
+    violations = lesson_checks.check_asset_sources(repository)
+    assert rules(violations) == {"asset-source"}
+    assert "licence" in details(violations)
+
+
+def test_a_hero_raster_whose_licence_is_not_a_text_is_reported(
+    make_repository: Repository,
+):
+    """A hero entry may carry a licence; when it does, it is a text."""
+    entry = raster("hero/mark.webp", licence="[]")
+    repository = make_repository(
+        files={"site/assets/hero/mark.webp": "raster", **register(entry)}
+    )
+
+    violations = lesson_checks.check_asset_sources(repository)
+    assert rules(violations) == {"asset-source"}
+    assert "licence" in details(violations)
+
+
 @pytest.mark.parametrize(
     "entry, problem",
     [

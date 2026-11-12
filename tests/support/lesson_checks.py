@@ -1159,7 +1159,8 @@ def check_committed_files(repository: Path) -> list[Violation]:
     interface artwork (ADR 018 decision 2, ADR 021 decision 2): an SVG under
     ``site/assets/`` that the provenance register names with an author and a
     licence, or a WebP or PNG there that it names with a complete raster
-    entry (its origin, a licence, and the SHA-256 of its master).
+    entry (its origin, a licence, and the SHA-256 of its master; the hero of
+    the home page, under ``hero/``, needs no licence).
 
     A Part B product has one further fixture location (ADR 022 decision 8):
     ``products/<product>/fixtures/<name>.json``, the replay traces of the
@@ -1238,7 +1239,10 @@ def check_committed_files(repository: Path) -> list[Violation]:
 # with its origin (``script``, a file of the repository; ``author``; or
 # ``model`` with its ``prompt``), a ``licence``, the file name of its
 # ``master``, and the master's ``sha256``, and optionally a ``date`` and a
-# ``source``.
+# ``source``. The hero of the home page, under ``hero/``, is the one raster
+# that needs no licence (ADR 021 decision 2 as amended on 2026-11-12 by the
+# owner's decision on Issue #487): the strict provenance conditions of lesson
+# content do not apply to it.
 
 _AUTHORED_FIELDS = {"author", "licence", "source"}
 _GENERATED_FIELDS = {"module"}
@@ -1255,6 +1259,8 @@ _RASTER_FIELDS = {
 }
 _RASTER_SUFFIXES = {".webp", ".png"}
 _IMAGE_SUFFIXES = {".svg", *_RASTER_SUFFIXES}
+# The one directory whose rasters need no licence: the hero of the home page.
+_UNLICENSED_RASTER_DIRECTORY = "hero"
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 
 
@@ -1315,7 +1321,12 @@ def _raster_problems(name: str, entry: Any, files: set[Path]) -> list[str]:
         f"the entry of '{name}' has the unknown field '{field}'"
         for field in sorted(set(entry) - _RASTER_FIELDS)
     ]
+    # The hero of the home page may leave the licence out; a licence that is
+    # given, there or anywhere else, is a text.
+    unlicensed = Path(name).parts[:1] == (_UNLICENSED_RASTER_DIRECTORY,)
     for field in ("licence", "master"):
+        if field == "licence" and unlicensed and field not in entry:
+            continue
         if not _is_text(entry.get(field)):
             problems.append(f"the entry of '{name}' needs a '{field}'")
     if not (

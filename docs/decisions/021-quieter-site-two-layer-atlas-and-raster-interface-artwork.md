@@ -73,10 +73,11 @@ compact header with a native menu below 640 CSS px, the measurable
 above-the-fold rule), through the dated notes under them; decision 4
 amended on 2026-11-11 by the owner's copy of Issue #481 and by the owner's
 decision of Issue #482 (one large fluid-dynamics hero, mirrored and faded,
-in the HTML without a script), through the dated notes under it; decision 4
-amended on 2026-11-12 by the owner's request of Issue #487 (the owner's
-double-pendulum illustration as the hero, wider, lifted under the copy),
-through the dated note under it. Delivered by F158; the course introductions of F156
+in the HTML without a script), through the dated notes under it; decisions 2 and
+4 amended on 2026-11-12 by the owner's request of Issue #487 (the owner's
+double-pendulum illustration as the hero, wider, lifted under the copy,
+and carrying no licence in the register), through the dated notes under
+them. Delivered by F158; the course introductions of F156
 and the learning journey of F157 add pages and text within decisions 1 to
 3 without changing them. The text of decision 4 stays as the record of
 what F134 delivered.
@@ -180,6 +181,19 @@ descriptions live.
    with a failing test per case written before the change. An entry
    without its file fails the asset-source rule; the exemption and the
    entry stay one mechanism.
+
+   *Amended on 2026-11-12 by the owner's decision on Issue #487 (Home: the
+   hero image replaced by the double-pendulum illustration).* The hero of
+   the home page carries no licence in the register: the entries of the
+   rasters under `site/assets/hero/` name their origin (the owner as the
+   author, with the date), their master, and its hash, and no licence or
+   terms, since the owner publishes the owner's own illustration and
+   states no licence for it ("Ik wil helemaal geen licentie op de hero
+   pagina", 2026-11-12). The strict provenance conditions of lesson
+   content do not apply to the hero. The committed-artifact check and the
+   asset-source rule admit a raster under `hero/` without a licence and
+   keep requiring one of every other raster entry, with a test per case.
+   Everything else in this decision stands.
 3. **The Course Atlas as a two-layer navigation page.** At the path
    address, with "Course Atlas" as its display label, the page is built at
    build time from the curriculum file, the front matter, and the atlas
@@ -396,8 +410,10 @@ descriptions live.
    vortex street: interface artwork of decision 1, registered (decision 2)
    as a derived raster from the owner's master
    `pbc_hero_assets/pbc-double-pendulum-hero-original.png` with its hash,
-   by its author and date, with no statement of how it was made (the
-   owner's decision of 2026-11-12); the vortex street stays registered
+   by its author and date, with no statement of how it was made and no
+   licence (decision 2 as amended on 2026-11-12: the hero carries none in
+   the register; the owner's decision of 2026-11-12); the vortex street
+   stays registered
    through the atlas entries of fluids. The files are the master's frame
    (2:1; 1774 px wide at most, the master's width, so nothing is upscaled)
    blended over the paper: the illustration's ground keyed to the paper,

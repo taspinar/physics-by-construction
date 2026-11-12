@@ -142,8 +142,13 @@ Skills: impeccable@08d5b470, frontend-design@dbd4588f, pbc-scientific-visualizat
   building"; the per-file limit of the end-to-end test is raised to what
   the files need, with the page far under the 3,000,000-byte budget.
 - **D6. The register.** Three new entries `hero/double-pendulum-<w>.webp`
-  with `author`, `date` (2026-11-12, the files' date), `licence`
-  (CC-BY-4.0, as every asset the owner authored), the `master`
+  with `author`, `date` (2026-11-12, the files' date), no `licence` (the
+  owner's decision of 2026-11-12 after review round 1, finding M1: the
+  hero carries no licence in the register at all; ADR 021 decision 2 is
+  amended by a dated note, and the register check of
+  `tests/support/lesson_checks.py` requires no licence of a raster under
+  `hero/` while every other raster entry keeps it, with a test per case
+  in `tests/integration/test_lesson_checks.py`), the `master`
   `pbc_hero_assets/pbc-double-pendulum-hero-original.png`, its `sha256`
   (`ac9062c7…`), and a `source` that says what the image shows and how
   the files were derived; no `script` (the master is not computed by a

@@ -230,17 +230,20 @@ def test_each_width_has_its_file_at_2_to_1_and_the_register_entry_of_its_master(
 ):
     """Each width's own test: a WebP file with an alpha channel under
     site/assets/hero, 2:1, and a complete register entry naming the owner's
-    master and its hash, the owner as the author with the date and the
-    licence, and how the file was derived; no script (the master is not
-    computed by one) and no model (the owner's decision on Issue #487: a
-    neutral origin), so the entry claims nothing about how it was made."""
+    master and its hash, the owner as the author with the date, and how the
+    file was derived; no licence (the owner's decision of 2026-11-12 on
+    Issue #487: the hero carries none in the register; ADR 021 decision 2 as
+    amended that day), no script (the master is not computed by one), and no
+    model (a neutral origin), so the entry claims nothing about how it was
+    made or about its rights."""
     file = HERO.image.file(width)
     rgba = _rgba(width)
     assert rgba.shape == (width // 2, width, 4)
     entry = REGISTER[file.removeprefix("assets/")]
     assert (entry["master"], entry["sha256"]) == OWNER_MASTER
     assert entry["author"] == "Ahmet Taspinar"
-    assert entry["licence"] and entry["date"]
+    assert entry["date"]
+    assert "licence" not in entry
     assert "script" not in entry and "model" not in entry
     assert "derive_assets.py --hero" in entry["source"]
     assert "illustration" in entry["source"] and "not a result" in entry["source"]
