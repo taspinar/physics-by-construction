@@ -134,8 +134,10 @@ Skills: impeccable@08d5b470, frontend-design@dbd4588f
 - **Layout.** No `column-page`: the whole page in the reading column. No
   grid, no `::details-content`, no sticky panel, no `--atlas-rows`. The
   open row's content is indented under the illustration with a 1 px rule in
-  the part's ink at its left, as the accordion already did. No transition
-  or animation, so reduced motion changes nothing. The wide-screen rule,
+  the part's ink at its left, as the accordion already did. The one motion
+  is a 150 ms turn of the chevron that answers the reader's click (see
+  "The chevron's transition" below); `prefers-reduced-motion: reduce`
+  removes it, and there is no other transition or animation. The wide-screen rule,
   the journey rules, the panel head, the kicker, the night capstone, and
   the lab hairline leave the stylesheet; Home's rules are untouched.
 - **Anchors and deep links.** `#course-<id>`, `#path-<id>`, `#lean`, the
