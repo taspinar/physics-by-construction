@@ -120,8 +120,11 @@ Sample 1.2 MB in four files, the largest 450 KB (caps: 2 MB per file, 8 MB per d
 | 7. Uncertainty and calibration | "Uncertainty and calibration": the binomial standard errors of the paper, reproduced; the P-value bounds cited, not recomputed; no calibration applies |
 | 8. This dossier with the decision | this file, including the loopholes closed and the assumptions and selections that remain |
 
+## The lab (phase 2)
+
+The lesson `site/lessons/quantum/07-quantum-measurement-statistics/` (Q8, started on the owner's word of 2026-11-10) reads the committed sample through `pbc.data.reference.munich_bell`, reproduces the published correlators and S with the stopping rule, evaluates the whole archive and the excluded attempts, fits the model of the entanglement lesson (`pbc.quantum.bell_test`: the visibility, then the visibility with an offset of lab 2's analysis basis), checks the balance of the settings and the no-signalling marginals, and states the loopholes and selections of the section above. Its figures are `processed` (the pairs file). The one-parameter model is rejected (reduced chi-square 6.4 and 7.8 on 3 degrees of freedom); the two-parameter model describes both states with a visibility of about 0.79 and an offset of about −5°, the same for both states, and reproduces the measured S. The offset is a parameter of the model: the record gives nothing that identifies its cause, and the page says so.
+
 ## Open items
 
-- Phase 2, the Q8 lab, starts only when the owner says so (Issue #419).
 - The public run of 14 June 2016 (`Bell_2016-06-14.zip`, S = 2.134 ± 0.048 and 2.057 ± 0.048 in the paper) is in the same record and is not inspected; it would show a weaker violation from a run with a lower trapping rate.
 - The runner-up, NIST's CH-Eberhard tables (`Diagnostic Statistics/19-45.xlsx`), is not inspected.

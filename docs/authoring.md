@@ -1692,13 +1692,19 @@ does not build its own environment, baselines, or scoring. The rules are in
 
 Real measurements are inputs that no build can regenerate (ADR 007). A lesson
 may use one only after the dataset has passed the feasibility gate and holds a
-`go` on its card. Three lessons use measured data: the analysis pipelines lesson
+`go` on its card. Four lessons use measured data: the analysis pipelines lesson
 (`site/lessons/mechanics/10-automated-analysis-pipelines`), with the wave
 gauges of the flume, the gravitational-wave lab
 (`site/lessons/mechanics/11-gravitational-wave-strain`), the first lab built
-around one dataset, and the wave flume lab
+around one dataset, the wave flume lab
 (`site/lessons/waves/08-wave-flume-lab`), which keeps the measurement, its own
-predictions, and the CFD solvers of the card apart. `site/rendering-check.qmd` shows the pattern in the
+predictions, and the CFD solvers of the card apart, and the quantum
+measurement statistics lab
+(`site/lessons/quantum/07-quantum-measurement-statistics`), whose data are
+event counts rather than a time series: the correlators, the CHSH value and
+their errors are computed on the page, the model of the entanglement lesson
+is fitted to them, and the page states which loophole or selection the data
+do not close. `site/rendering-check.qmd` shows the pattern in the
 smallest form.
 Evidence and decisions are in `docs/datasets/`.
 

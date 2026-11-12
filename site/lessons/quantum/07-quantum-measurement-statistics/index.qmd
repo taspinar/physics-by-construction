@@ -1,0 +1,774 @@
+---
+title: "Quantum measurement statistics lab"
+description: >-
+  The recorded event counts of a Bell test between two atoms in separate
+  laboratories, read with the correlators and the CHSH value of the
+  entanglement lesson, with their uncertainties, against the local bound and
+  the quantum model, and a statement of what one run does and does not
+  establish.
+lesson:
+  id: quantum-measurement-statistics
+  strand: quantum
+  order: 7
+  difficulty: 3
+  course: quantum
+  slot: Q8
+  methods: [measured-data, simulation]
+  outcomes:
+    - Estimate the four correlators of a Bell test and its CHSH value from recorded event counts, each with its binomial standard error, and reproduce a published value
+    - Test the model of the entanglement lesson against measured correlators with a weighted least-squares fit and its reduced chi-square, and extend the model only as far as the data require
+    - Check the statistics of a real Bell test, the balance of the random settings, the no-signalling marginals, and the selections of the run, and report their effect on the result
+    - State what a violation of the CHSH bound establishes, which loopholes the experiment closes by its design, and which assumptions and selections the data cannot remove
+  related: []
+  format: 2
+  preview: fig-running-s
+  experiment: pbc.quantum.experiments.quantum_measurement_statistics
+  prerequisites:
+    lessons: [quantum-entanglement]
+    outside:
+      - "Probability: the binomial count of independent trials, its mean and its standard deviation"
+      - "Statistics: least squares and the chi-square of residuals"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.data.reference import munich_bell
+from pbc.quantum import bell_test
+from pbc.quantum.experiments import quantum_measurement_statistics as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The entanglement lesson derived a bound and simulated an experiment that
+breaks it. The program that drew the outcomes knew both settings of every
+pair, so that lesson could only show that the code computes the quantum
+prediction correctly. Whether nature breaks the bound is a question for a
+measurement, and this lesson reads one: the record of a Bell test made with
+two rubidium atoms in two laboratories [398 m]{.given} apart, each atom
+measured after a heralding signal announced that the pair was entangled.
+The archive holds every event of one run of three and a half days: the
+heralded Bell state, the random setting chosen in each laboratory, and the
+outcome each laboratory recorded. Nothing else. No correlator, no $S$, no
+uncertainty: those are computed here, from the counts, with the formulas of
+the entanglement lesson.
+
+The lesson does four things with the record. It computes the eight
+correlators and the CHSH value $S$ of each heralded state with their
+standard errors, and reproduces the published numbers to the digits
+printed. It fits the model of the entanglement lesson, the state mixed with
+noise at a visibility $V$, to the correlators, finds that the simplest
+version does not describe them, and extends it by one parameter. It checks
+the statistics that a Bell test rests on: whether the random settings were
+balanced, whether one laboratory's outcomes depend on the other's setting,
+and whether the selections of the run, the heralding, the exclusions, the
+stopping rule, changed the result. And it says, from the paper and from the
+files, which loopholes the design of the experiment closed and which
+assumptions remain: a violation of the bound is a statement about a class of
+models under stated conditions, not a proof of anything beyond them.
+
+## Assumptions
+
+1. **Independent, identically distributed events.** Each heralded event
+   gives one product of two outcomes, $\pm1$, so a correlator over $n$
+   events has the binomial standard error $\sqrt{(1 - E^2)/n}$, and the
+   standard errors of $S$ and of the fits below follow from it. This is the
+   paper's own error. A model with memory, in which one event depends on
+   the previous ones, breaks it; the paper's significance bounds do not use
+   this assumption, and the lesson quotes them rather than recomputing them.
+2. **The bits mean the angles the paper gives.** The files hold a setting
+   bit and an outcome bit per laboratory. Setting $0$ and $1$ of the first
+   laboratory are the analysis angles $\alpha = 0°$ and $\alpha' = 90°$, of
+   the second $\beta = -45°$ and $\beta' = +45°$, and equal outcome bits
+   count as the product $+1$. The archive does not say so. [Of the eight
+   readings of the bits, either setting bit of either laboratory swapped
+   and the product of the outcomes inverted or not, this one alone
+   reproduces the paper's eight published correlators.]{.claim
+   type="observational" scope="the first 5000 events of each heralded state; inverting both outcome bits changes no product"
+   evidence="counts munich-bell-event-ready"}
+3. **The stopping rule.** The paper fixed before the run that the result is
+   the first `{python} result["per-state"]` events of each heralded state.
+   The archive holds a few more; the lesson evaluates them as well and says
+   what they change.
+4. **The outcomes are not corrected.** The readout of each atom is
+   imperfect and the entangled state is not pure, which is why the
+   correlators are smaller than the ideal $1/\sqrt2$. A Bell test is
+   evaluated on the raw outcomes: correcting them for detector
+   inefficiency would reintroduce the fair-sampling assumption that the
+   event-ready scheme exists to avoid.
+5. **The settings as recorded.** The random bits are taken as the choices
+   that were made. That they were independent of the atoms is an assumption
+   of every Bell test, and the last section returns to it.
+
+## Correlators, the CHSH value, and the model {#explanation}
+
+### From counts to a correlator and to the CHSH value
+
+The entanglement lesson estimates a correlator from counts of outcomes.
+With $N_{=}$ events of equal outcomes and $N_{\neq}$ of unequal ones at one
+pair of settings,
+
+$$
+\hat E = \frac{N_{=} - N_{\neq}}{N_{=} + N_{\neq}},
+\qquad
+\sigma_E = \sqrt{\frac{1 - \hat E^2}{N_{=} + N_{\neq}}} .
+$$
+
+Each heralded state has its own sign pattern. For the singlet $\Psi^-$ the
+correlator of the entanglement lesson is $E = -\cos(\alpha - \beta)$, and at
+these settings three correlators are $-1/\sqrt2$ and the one at
+$(\alpha', \beta)$ is $+1/\sqrt2$; for $\Psi^+$, whose two amplitudes have
+the same sign, the correlator is $-\cos(\alpha + \beta)$ in this plane, and
+the positive one sits at $(\alpha', \beta')$. The CHSH value of each state
+is the signed sum
+
+$$
+S = \sum_{a, b} g(a, b)\, E(a, b),
+$$
+
+with $g = -1$ everywhere except at the one positive pair, where $g = +1$,
+so that an ideal state gives $S = 4/\sqrt2 = 2\sqrt2$. The bound of every
+local hidden-variable model, $|S| \le 2$, is the one the entanglement
+lesson derived; the sign pattern does not change the argument. The
+standard error of $S$ is the quadrature sum of the four. Both states
+together are evaluated by multiplying each event's product by the $g$ of
+its own state and settings and forming the four correlators over the events
+of both states.
+
+### The model of the entanglement lesson
+
+The first exercise of the entanglement lesson mixed the singlet with white
+noise at a visibility $V$: every correlator is multiplied by $V$, and
+$S = 2\sqrt2\,V$, which breaks the bound only for $V > 1/\sqrt2 \approx
+0.71$. That is the model this lesson tests first. It has one parameter, and
+it predicts that all four correlators of a state have the same size.
+
+If they do not, the model has to say why before it is extended. The one
+extension used here is an offset $\varepsilon$ of the analysis basis of the
+second laboratory: the correlator becomes $-V\cos(\alpha \mp (\beta +
+\varepsilon))$, with the sign of the state, so that the two correlators at
+$\beta$ and at $\beta'$ differ in size, and the CHSH value of the model is
+
+$$
+S = 2\sqrt2\,V\cos\varepsilon .
+$$
+
+Both models are fitted to the four correlators of a state by weighted
+least squares, with the binomial standard errors as the weights, and the
+reduced chi-square of the fit says whether the model describes the data at
+the level of those errors. The offset is a parameter of the model: the
+record contains nothing that says what it is physically, and the lesson
+does not claim to measure the apparatus.
+
+### What a standard error says, and what it does not
+
+The distance of $S$ above $2$ in standard errors is the usual way to report
+a Bell test, and the lesson computes it. Read it as what it is: under the
+assumption of independent events, how improbable the observed $S$ would be
+if the true value were exactly $2$. It is not the probability that local
+realism holds. A local model with memory could in principle do better than
+independent chance, which is why the paper's significance is a bound of a
+different kind, computed without the independence assumption and with a
+bound on the predictability of the random settings. The card quotes it; the
+lesson does not recompute it, because the quantity it needs, the
+predictability of the random number generators, is not in the archive.
+
+## The program {#code}
+
+The reader of the archive, the selection of the stopping rule, the
+correlators and $S$ are the code of the dataset's reference figure. The
+lesson adds the model at these settings and its fit.
+
+```{python}
+#| echo: false
+excerpt(munich_bell.correlators)
+```
+
+```{python}
+#| echo: false
+excerpt(munich_bell.chsh)
+```
+
+```{python}
+#| echo: false
+excerpt(bell_test.predicted_correlator)
+```
+
+```{python}
+#| echo: false
+excerpt(bell_test.fit_visibility)
+```
+
+## Worked examples {#worked-examples}
+
+### The record of the run {#data}
+
+```{python}
+#| echo: false
+from pbc.authoring import data_card
+
+data_card("munich-bell-event-ready")
+```
+
+The archive holds three text files and a readme. The two laboratory files
+are the raw record of every heralded attempt in each laboratory: the time,
+the random setting bit, the outcome bit, and a flag for the attempts the
+experimenters excluded, all of them during the daily maintenance. The
+pairs file is derived from them by the experimenters, who matched the
+attempts of the two laboratories in time and dropped the excluded ones; it
+is processed, and so is every figure of this page that is made from it.
+The data are released under a Creative Commons attribution licence, and the
+card gives the record and the paper to cite.
+
+```{python}
+#| echo: false
+excerpt(experiment.load_run)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.the_run)
+```
+
+```{python}
+#| label: the-run
+#| echo: false
+result.table("the-run")
+```
+
+[The run has `{python} result["events"]` valid atom-atom events over
+`{python} result["span-days"]` days, from `{python} result["attempts-1"]`
+heralded attempts of the first laboratory and
+`{python} result["attempts-2"]` of the second, of which
+`{python} result["excluded-1"]` and `{python} result["excluded-2"]` were
+excluded for maintenance; every pair agrees with the two laboratory rows it
+names, within the pairing window of `{python} result["pairing-window"]`
+milliseconds. The median time between events is
+`{python} result["median-gap"]` seconds, with `{python} result["pauses"]`
+pauses of `{python} result["pause-hours-low"]` to
+`{python} result["pause-hours-high"]` hours. The stopping rule is met after
+`{python} result["stop-day"]` days.]{.claim type="observational"
+scope="the committed sample of the archive, checked against itself"
+evidence="the-run munich-bell-event-ready"}
+There is no clock in these data: an event happens when a heralding signal
+announces an entangled pair.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_run)
+```
+
+```{python}
+#| label: fig-run
+#| echo: false
+#| fig-cap: "The valid events of each heralded state accumulated over the run. The three flat stretches are the maintenance pauses, the ticks at the bottom mark the attempts of the first laboratory that were excluded, and the dotted line marks the moment the stopping rule was met."
+#| fig-alt: "Line plot of the accumulated number of events against time in days. Two lines, one solid and one dashed, rise together almost linearly from zero to about five thousand, with three short flat steps at about one, two, and three days. A horizontal dash-dotted line marks the stopping rule near the top, a dotted vertical line marks where the lines cross it near the end, and a few short vertical ticks sit along the bottom near the flat steps."
+#| fig-status: processed
+#| fig-dataset: munich-bell-event-ready
+result.show("fig-run")
+```
+
+[The two heralded states accumulate at the same rate: their numbers of
+valid events differ from an even split by `{python} result["split-sigmas"]`
+binomial standard errors. All `{python} result["excluded-in-pauses"]`
+excluded attempts of the two laboratories fall inside the three long pauses
+of the pairs file, as their flag "Maintenance" says.]{.claim
+type="observational" scope="the committed sample of the archive"
+evidence="the-run fig-run munich-bell-event-ready"}
+An even split is what a heralding that announces $\Psi^-$ and $\Psi^+$ with
+equal probability gives; the count is consistent with that and tests
+nothing more. That the pauses are the daily maintenance fixed before the
+run is the paper's statement, which the card quotes. The figure is made
+from the pairs file, so it is a processed record; the ticks come from the
+raw file of the first laboratory.
+
+### The counts and the correlators {#counts-and-correlators}
+
+```{python}
+#| echo: false
+excerpt(experiment.counts_and_correlators)
+```
+
+```{python}
+#| label: counts
+#| echo: false
+result.table("counts")
+```
+
+Every number in the table comes from the counts of the first
+`{python} result["per-state"]` events of each state in time order. [The
+eight correlators of the stopping rule equal the values the paper prints
+for this run, to the three digits printed, and the ideal value of each is
+$\pm1/\sqrt2$, about `{python} result["ideal"]` in size.]{.claim
+type="observational" scope="the first 5000 events of each heralded state"
+evidence="counts munich-bell-event-ready"}
+```{python}
+#| echo: false
+excerpt(experiment.correlator_sizes)
+```
+
+[The correlators are smaller than the ideal, between
+`{python} result["size-ratio-low"]` and `{python} result["size-ratio-high"]`
+of it in size, and they are not all the same size: in both states the two
+at the settings $(0, +45)$ and $(90, -45)$ together exceed the two at
+$(0, -45)$ and $(90, +45)$ by `{python} result["size-gap-low"]` to
+`{python} result["size-gap-high"]` standard errors of that
+difference.]{.claim type="observational"
+scope="the first 5000 events of each heralded state, binomial standard errors"
+evidence="counts munich-bell-event-ready"}
+A single pair of them differs by less, about three standard errors; it is
+the pattern of all four that the errors do not allow. The model section
+below asks what that means.
+
+### The CHSH value against the bounds of the entanglement lesson {#chsh-value}
+
+```{python}
+#| echo: false
+excerpt(experiment.chsh_values)
+```
+
+```{python}
+#| label: chsh
+#| echo: false
+result.table("chsh")
+```
+
+[With the stopping rule, the singlet gives $S$ = `{python} result["s-minus"]`
+$\pm$ `{python} result["e-minus"]`, the state $\Psi^+$ gives
+`{python} result["s-plus"]` $\pm$ `{python} result["e-plus"]`, and both
+states together `{python} result["s-pooled"]` $\pm$
+`{python} result["e-pooled"]`: `{python} result["sigmas-minus"]`,
+`{python} result["sigmas-plus"]`, and `{python} result["sigmas-pooled"]`
+standard errors above the local bound and below Tsirelson's bound
+`{python} result["tsirelson"]`. The paper prints
+`{python} result["published-minus"]` $\pm$
+`{python} result["published-e-minus"]`, `{python} result["published-plus"]`
+$\pm$ `{python} result["published-e-plus"]`, and
+`{python} result["published-pooled"]` $\pm$
+`{python} result["published-e-pooled"]` for the same selection.]{.claim
+type="observational"
+scope="standard errors of independent events; the published values quoted from the paper through the card"
+evidence="chsh munich-bell-event-ready"}
+The agreement to the last digit is not a coincidence of this lesson: the
+same counts, the same formulas, and the same selection give the same
+numbers, and the test of the lesson asserts it. The last two rows of the
+table are the lesson's own additions: the whole archive, with the
+`{python} result["after-stop"]` events after the stopping rule, and the
+archive with the `{python} result["excluded-pairs"]` excluded attempts of
+the first laboratory that have a partner in the second within the pairing
+window added back. [The whole archive gives $S$ =
+`{python} result["s-archive"]` $\pm$ `{python} result["e-archive"]`, and
+with the excluded attempts `{python} result["s-with-excluded"]`: neither
+selection moves $S$ by more than `{python} result["shift-in-errors"]` of
+its standard error, so the stopping rule and the maintenance exclusions do
+not make the violation.]{.claim type="observational"
+scope="the whole archive against the stopping rule; the excluded attempts paired by the archive's own rule"
+evidence="chsh munich-bell-event-ready"}
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_running_s)
+```
+
+```{python}
+#| label: fig-running-s
+#| echo: false
+#| fig-cap: "The CHSH value of each heralded state after each of its events, with one standard error as a band, against the local bound and Tsirelson's bound. Both values scatter widely over the first few hundred events, settle above the local bound, and stay there to the stopping rule and beyond."
+#| fig-alt: "Line plot of S against the number of events of a state, from forty to a little over five thousand. Two curves with shaded bands, one solid and one dashed, start high with wide bands, swing down and up over the first few hundred events, then narrow and run almost flat a little above a solid horizontal line at two. A dotted horizontal line near the top marks the quantum bound; a dash-dotted vertical line near the right edge marks the stopping rule."
+#| fig-status: processed
+#| fig-dataset: munich-bell-event-ready
+result.show("fig-running-s")
+```
+
+The figure is the lesson's picture of the statistics: the first hundred
+events of a state could have said anything, and the value settles only as
+the standard error, which falls as one over the square root of the number
+of events, closes in. [Over the first few hundred events the running $S$ of
+$\Psi^+$ dips once below $2$, at its event `{python} result["plus-below"]`,
+and its band clears $2$ for good from its event
+`{python} result["plus-band-clears"]` on.]{.claim type="observational"
+scope="the running value from the 40th event of a state, binomial standard errors"
+evidence="fig-running-s munich-bell-event-ready"} This is why the stopping rule has
+to be fixed before the run: a rule that stopped when the result looked
+good would select a fluctuation.
+
+### Fitting the model of the entanglement lesson {#fit}
+
+```{python}
+#| echo: false
+excerpt(experiment.fit_the_model)
+```
+
+```{python}
+#| label: fit-one
+#| echo: false
+result.table("fit-one")
+```
+
+[The one-parameter model gives a visibility near `{python} result["v-minus"]`
+for either state, above the threshold `{python} result["threshold"]` where
+the bound stops being broken, and its $S$ is close to the measured
+one.]{.claim type="experimentally-supported"
+scope="binomial standard errors of independent events as absolute weights"
+evidence="fit-one munich-bell-event-ready"}
+[But its reduced chi-square is `{python} result["chi2-one-low"]` to
+`{python} result["chi2-one-high"]` on three degrees of freedom, and the fit
+helper warns about it: a state that is the Bell state mixed with white noise, read
+out at the nominal angles, does not give four correlators of unequal size,
+and the sizes differ by more than the errors allow. The model is rejected
+at the level of these errors.]{.claim type="experimentally-supported"
+scope="binomial standard errors of independent events as absolute weights; the correlator sizes as in the table of the counts"
+evidence="fit-one counts munich-bell-event-ready"}
+That is a result, not a failure: it says the pair or its readout is not
+isotropic.
+
+```{python}
+#| label: fit-two
+#| echo: false
+result.table("fit-two")
+```
+
+::: {.claim type="experimentally-supported" scope="binomial standard errors of independent events as absolute weights; the offset is a parameter of the model, not a measurement of the apparatus" evidence="fit-one fit-two munich-bell-event-ready"}
+The one-parameter model of the entanglement lesson, the heralded state
+mixed with white noise, is rejected by the four correlators of each state
+with a reduced chi-square of `{python} result["chi2-one-low"]` to
+`{python} result["chi2-one-high"]`. With one more parameter, an offset of
+the analysis basis of the second laboratory, the model describes both
+states: a visibility of `{python} result["v-minus"]` $\pm$
+`{python} result["v-e-minus"]` with an offset of
+`{python} result["offset-minus"]` $\pm$ `{python} result["offset-e-minus"]`
+degrees for the singlet, and `{python} result["v-plus"]` $\pm$
+`{python} result["v-e-plus"]` with `{python} result["offset-plus"]` $\pm$
+`{python} result["offset-e-plus"]` degrees for $\Psi^+$, with reduced
+chi-squares of `{python} result["chi2-two-minus"]` and
+`{python} result["chi2-two-plus"]` on two degrees of freedom. The two
+offsets differ by `{python} result["offset-difference"]` degrees, against a
+combined error of `{python} result["offset-difference-e"]`. The CHSH value
+of the fitted model, $2\sqrt2\,V\cos\varepsilon$, is
+`{python} result["s-model-minus"]` $\pm$ `{python} result["s-model-e-minus"]`
+for the singlet and `{python} result["s-model-plus"]` $\pm$
+`{python} result["s-model-e-plus"]` for $\Psi^+$, each within its error of
+the measured value.
+:::
+
+Two remarks on the fit. The chi-square of the singlet's two-parameter fit
+is far below one, and the helper warns about it: with two degrees of
+freedom a value this small happens by chance a few times in a hundred, and
+it means that two parameters reproduce four numbers almost exactly, not
+that the model is proved. And the offset is the same for both heralded
+states, which is what a rotation of one laboratory's readout basis would
+give, while a property of the entangled state need not be the same for
+$\Psi^-$ and $\Psi^+$. The lesson stops there. The record does not contain
+the calibration of the readout, so the fit can say that the pattern of the
+correlators is consistent with a common offset of about five degrees, and
+cannot say that this is its cause.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_correlators)
+```
+
+```{python}
+#| label: fig-correlators
+#| echo: false
+#| fig-cap: "The eight measured correlators with one standard error, the ideal values of a pure Bell state as dotted lines, and the two-parameter model fitted to each state as open markers, drawn apart. The model reproduces the unequal sizes; the one-parameter model, not drawn, would put all four of a state at the same distance from zero."
+#| fig-alt: "Point plot of the correlator against four pairs of settings on the horizontal axis. Filled circles and filled squares with small error bars sit near minus one half to minus two thirds for three of the settings and near plus one half to plus two thirds for one setting each, a different one for the circles and the squares. Open markers of the same shapes sit on or next to each filled one. Two dotted horizontal lines at plus and minus about seven tenths lie further from zero than every point."
+#| fig-status: processed
+#| fig-dataset: munich-bell-event-ready
+result.show("fig-correlators")
+```
+
+The filled markers are the measurement, with its binomial error; the open
+markers are the model, a fit and not a measurement, drawn apart; the
+dotted lines are the ideal correlators of a pure Bell state, a reference
+and not data. The measured points lie inside the dotted lines by the
+visibility, and the open markers follow the unequal sizes because of the
+offset.
+
+### The statistics of a Bell test, checked {#statistics}
+
+A Bell test needs its settings to be random and balanced, and it needs each
+laboratory's own statistics to be independent of what the other chose: the
+no-signalling condition of the entanglement lesson's self-check, which
+every local model and every quantum state obeys. Both can be checked on the
+counts.
+
+```{python}
+#| echo: false
+excerpt(experiment.settings_checks)
+```
+
+```{python}
+#| label: settings
+#| echo: false
+result.table("settings")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.no_signalling_checks)
+```
+
+```{python}
+#| label: no-signalling
+#| echo: false
+result.table("no-signalling")
+```
+
+[No setting of either laboratory departs from a fair coin by more than
+`{python} result["worst-balance"]` standard errors, the four setting pairs
+of each state are populated with a chi-square of
+`{python} result["chi2-settings-low"]` to
+`{python} result["chi2-settings-high"]` on three degrees of freedom, and no
+marginal of one laboratory changes with the other laboratory's setting by
+more than `{python} result["worst-signal"]` standard errors.]{.claim
+type="observational" scope="the events of the stopping rule, binomial errors"
+evidence="settings no-signalling munich-bell-event-ready"}
+[Eight comparisons of which the largest is
+`{python} result["worst-signal"]` standard errors are what independent
+chance gives: at the level of these errors the settings were balanced and
+the outcomes of one laboratory carry no signal of the other laboratory's
+setting. The check does not show that the settings were random.]{.claim
+type="observational" scope="the events of the stopping rule, binomial errors; balance and marginals, not randomness"
+evidence="settings no-signalling munich-bell-event-ready"}
+Balanced settings and unmoved marginals are what the quantum prediction
+requires, and what the entanglement lesson argued no model of either kind
+can avoid.
+
+### What the data do not close {#loopholes}
+
+The entanglement lesson derived the bound $|S| \le 2$ for every model in
+which each outcome is fixed by the local setting and by something the pair
+carried from the source; a violation is what such models cannot produce.
+The paper reports that the experiment that produced these files was
+designed so that the two classical escapes from that conclusion are shut,
+and the record shows part of it:
+
+- **The detection loophole** is closed by the event-ready scheme. A
+  heralding signal from the Bell-state measurement announces each entangled
+  pair before the settings are chosen, and every heralded event produces an
+  outcome in both laboratories, so no fair-sampling assumption is needed.
+  The files show the second half: every valid heralded attempt of the first
+  laboratory has an outcome and a partner in the second, which the table of
+  the run and the pairing check assert.
+- **The locality loophole** is closed by the distance and the timing: the
+  laboratories are [398 m]{.given} apart, light takes
+  [1328 ns]{.given} between them, and each measurement, from the random bit
+  to the recorded result, is complete in less time, with margins of a few
+  hundred nanoseconds. This is the paper's evidence. The files carry no
+  timing at that resolution, so this page can only quote it.
+
+[The paper reports the detection and the locality loopholes closed by the
+design of the experiment, with the timing margins stated in its
+supplement; of this, the files show only that every heralded event has an
+outcome in both laboratories.]{.claim type="observational"
+scope="quoted from the paper through the dataset card; not tested by these files"
+evidence="munich-bell-event-ready"}
+
+What the data cannot close, because no record of outcomes can:
+
+- **Freedom of choice.** The random settings were generated after the
+  heralding signal, inside its future light cone, so their independence of
+  whatever the atoms carry is assumed, not enforced. A model in which the
+  hidden variables and the random number generators share a cause is not
+  excluded by $S$.
+- **The independence of the random number generators from their past.**
+  The significance of the paper allows the bits of each event to depend
+  weakly on the backward light cone, including earlier settings and
+  outcomes, through a bound on their predictability; removing the
+  assumption would need sources of randomness outside that cone. The
+  archive holds the bits, not their generators, so the lesson cannot test
+  this and does not.
+
+[The paper names the independence of the settings from the atoms and the
+weak dependence of the random bits on their backward light cone as the
+assumptions its result rests on; the record of outcomes cannot test
+either.]{.claim type="observational"
+scope="quoted from the paper through the dataset card; not tested by these files"
+evidence="munich-bell-event-ready"}
+
+And the selections in these data, each one documented and each one checked
+above:
+
+- **Heralding.** Only heralded attempts exist in the record. In the
+  paper's design the herald precedes the choice of the settings, so the
+  settings cannot influence it, and it opens no detection loophole; but
+  [the result is a statement about heralded pairs]{.claim
+  type="observational"
+  scope="the selection of the record: only heralded attempts exist in it"
+  evidence="munich-bell-event-ready"}.
+- **The maintenance exclusions.** Fixed in advance as a daily routine, the
+  paper states. [Added back, the excluded attempts move $S$ by
+  `{python} result["shift-in-errors"]` of its standard error.]{.claim
+  type="observational" scope="the excluded attempts paired by the archive's own rule"
+  evidence="chsh munich-bell-event-ready"}
+- **The stopping rule.** Fixed before the run, the paper states. [The
+  `{python} result["after-stop"]` events after it, included, move $S$ by
+  `{python} result["stop-shift-in-errors"]` of its standard error.]{.claim type="observational" scope="the whole archive against the stopping rule"
+  evidence="chsh munich-bell-event-ready"}
+- **The pairing.** [The two laboratories' clocks agree within the pairing
+  window, every pair agrees with the laboratory rows it names, and only two
+  attempts of the second laboratory, at the very end, have no
+  partner.]{.claim type="observational" scope="the committed sample of the archive"
+  evidence="the-run munich-bell-event-ready"}
+
+## Limits {#limits}
+
+- **One run, one experiment.** The lesson reproduces one published result
+  and checks it in several ways. It does not establish the significance of
+  the violation beyond the standard-error count under independent events,
+  and it does not reproduce the paper's bounds that avoid that assumption.
+- **The error model.** The binomial standard error is the paper's and the
+  lesson's. A drift of the apparatus over the three and a half days, or a
+  correlation between successive events, would make it too small. [The
+  running $S$ shows no drift at the scale of its band]{.claim
+  type="observational" scope="read from the figure; a weak test"
+  evidence="fig-running-s munich-bell-event-ready"}, which is a weak test.
+- **The model is phenomenological.** A visibility and a basis offset
+  describe the four correlators of each state. They are two numbers fitted
+  to four, not a characterisation of the state or of the readout, and the
+  record does not allow the two to be told apart.
+- **The angles are inferred.** The meaning of the setting bits is the
+  assignment that reproduces the published correlators; the archive does
+  not state it. A different assignment would move the correlators between
+  the settings and change their signs, not their sizes, and the lesson's
+  test asserts that no other one reproduces the published values.
+- **The timing is quoted.** Nothing on this page tests the locality
+  condition; the files do not contain what would be needed.
+- **No interpretation is selected.** [Under the assumptions above, the
+  measured $S$ excludes the local hidden-variable models of the
+  entanglement lesson by `{python} result["sigmas-pooled"]` standard errors
+  of independent events, and no marginal of one laboratory moves with the
+  other laboratory's setting by more than `{python} result["worst-signal"]`
+  standard errors.]{.claim type="experimentally-supported"
+  scope="the assumptions of 'What the data do not close'; standard errors of independent events, the selection of the stopping rule"
+  evidence="chsh no-signalling munich-bell-event-ready"} The result does
+  not single out an interpretation of quantum mechanics, and it carries no
+  signal between the laboratories.
+
+In plain words: two atoms in two buildings were measured a few thousand
+times each with settings chosen at random, and [the pattern of agreements
+and disagreements is stronger than any explanation by shared instructions
+allows, by `{python} result["sigmas-pooled"]` standard errors of
+independent events for both states together]{.claim type="observational"
+scope="standard errors of independent events, the selection of the stopping rule"
+evidence="chsh munich-bell-event-ready"}. The escapes of undetected pairs
+and of a signal between the buildings are shut by the design, as the paper
+reports and as [What the data do not close](#loopholes) quotes. What
+remains assumed is that the random choices were free of the atoms.
+
+::: {.exercise .self-check}
+The experimenters excluded a few dozen heralded attempts during maintenance.
+Why can this exclusion not have produced the violation, and which of the
+two arguments for that is the stronger one?
+
+::: {.solution}
+The first argument is that the exclusion was decided by a rule fixed before
+the run, maintenance every day, and not by looking at the outcomes, so it
+could not select events that favour a violation. The second is the check on
+this page: adding the excluded attempts that have a partner back into the
+archive changes $S$ by a few hundredths of its standard error. The first
+argument is the stronger one, because it holds whatever the excluded events
+contain; the second shows only that these particular events happen to be
+unremarkable, which a rule chosen after the fact could also have arranged.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**The threshold in this experiment.** The entanglement lesson found that the
+noisy singlet breaks the bound only for a visibility above $1/\sqrt2$. With
+the fitted offset of the second laboratory's basis, below which visibility
+would the model's $S$ fall to $2$, and how many standard errors is the
+fitted visibility above it?
+
+::: {.hint}
+Solve $2\sqrt2\,V\cos\varepsilon = 2$ for $V$.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(bell_test.visibility_threshold)
+```
+
+With the offset of the fit the threshold is `{python} result["v-min-minus"]`
+for the singlet and `{python} result["v-min-plus"]` for $\Psi^+$, a little
+above $1/\sqrt2$ because the offset costs a factor $\cos\varepsilon$. The
+singlet's fitted visibility lies `{python} result["v-margin-minus"]` of its
+standard errors above its threshold.
+:::
+:::
+
+::: {.exercise}
+**How many events for five standard errors.** The pooled $S$ of the
+stopping rule is `{python} result["sigmas-pooled"]` standard errors above
+$2$ from ten thousand events. If $S$ stayed at its value and the error
+kept falling as one over the square root of the number of events, how many
+events would a result at `{python} result["sigmas-wanted"]` standard errors
+have needed, pooled, and how many for $\Psi^+$ alone?
+
+::: {.hint}
+The number of standard errors grows as the square root of the number of
+events, so the events needed scale as the square of the ratio.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(bell_test.events_for_sigmas)
+```
+
+Pooled, `{python} result["events-for-five"]` events; for $\Psi^+$ alone,
+whose $S$ is closer to the bound, `{python} result["events-for-five-per-state"]`.
+The run collected more than the first and fewer than the second, which is
+why the paper reports both states together.
+:::
+:::
+
+::: {.exercise}
+**Where the running value returns.** From the running $S$ of $\Psi^+$, find
+the events at which it lies below $2$ and the event from which its
+one-standard-error band stays above $2$.
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.psi_plus_returns)
+```
+
+The running $S$ of $\Psi^+$ is below $2$ only at its event
+`{python} result["plus-below"]`, and its band clears $2$ for good from its
+event `{python} result["plus-band-clears"]`; that of the singlet never
+returns below $2$ after its fortieth event. Neither fact is evidence of
+anything by itself: a running value is the same data read many times.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/quantum/bell_test.py",
+        "src/pbc/quantum/bell.py",
+        "src/pbc/quantum/experiments/quantum_measurement_statistics.py",
+        "src/pbc/experiment.py",
+        "src/pbc/data/reference/munich_bell.py",
+        "src/pbc/data/fit.py",
+    ],
+    tests=[
+        "tests/unit/test_bell_test.py",
+        "tests/unit/test_quantum_measurement_statistics_experiment.py",
+        "tests/unit/test_data_samples.py",
+        "tests/unit/test_quantum_spin.py",
+    ],
+)
+```
+
+The data card above gives the command that downloads a fresh copy of the
+archive into `data/downloads/munich-bell-event-ready`; the committed sample
+is the same files, and no model and no account are needed to read either.
