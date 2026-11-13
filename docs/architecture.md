@@ -14,11 +14,12 @@ final curriculum adds, and the boundaries every feature must respect.
   2026-10-17, with the change cycle `risk-proportionate-workflow` on
   2026-10-19, with the change cycle `site-navigation-and-atlas` on
   2026-10-30, with the change cycle
-  `part-b-scientific-products-and-research` on 2026-11-01, and with the
-  change cycle `textbook-layer` on 2026-11-04).
+  `part-b-scientific-products-and-research` on 2026-11-01, with the
+  change cycle `textbook-layer` on 2026-11-04, and with the change cycle
+  `teaching-by-construction` on 2026-11-13).
   Where this document and the requirements disagree, the requirements win
   and the disagreement is a defect in this document.
-- Decisions with a durable record: `docs/decisions/001` to `022`; ADR 017
+- Decisions with a durable record: `docs/decisions/001` to `023`; ADR 017
   is proposed, not accepted, and paused (see "Verification simplification
   under review"); ADR 018 (the atelier, the asset classes, and the atlas)
   and ADR 019 (the agent skills) were accepted with the planning of the
@@ -42,7 +43,13 @@ final curriculum adds, and the boundaries every feature must respect.
   takes no new ADR: its decision (requirements decision 43) is content
   and presentation inside ADR 018 and ADR 021, and ADR 021 decision 4
   (the hero image and the copy of Home) carries a dated amendment note
-  (see "The textbook layer").
+  (see "The textbook layer"). ADR 023 (the project-owned Physics Teaching
+  skill in the governed set, and the exact selections, generated
+  signature, and executed teaching code among the display forms) is
+  proposed with the change cycle `teaching-by-construction`, accepted
+  when its planning is approved, and amends ADR 002 (item 1 of the
+  display forms) and ADR 019 decisions 2 and 5 (see "Teaching by
+  construction").
 - Planning base commits: `502ced0` for the bootstrap planning, when the
   repository held only the workflow template; `2f011ea` for the change cycle
   `physics-next-phase` (`docs/changes/physics-next-phase.md`), when F01 to
@@ -73,7 +80,13 @@ final curriculum adds, and the boundaries every feature must respect.
   merged, and F133 was open as pull request #351; `fc6da35` for the
   change cycle `textbook-layer` (`docs/changes/textbook-layer.md`), when
   the site still published ninety-four lessons in eleven strands, F132 to
-  F135 and F137 were merged, and F136 had its Issue (#370) but no commit.
+  F135 and F137 were merged, and F136 had its Issue (#370) but no commit;
+  `2c411ac` for the change cycle `teaching-by-construction`
+  (`docs/changes/teaching-by-construction.md`), when the site published
+  one hundred and nine lessons in eleven strands, every Part A slot was
+  filled (81 of 81) and 17 of the 34 Part B core slots, F136 to F138,
+  F156 to F158, and the measured-data labs were merged, and the planning
+  had just been re-approved (#511).
   `docs/roadmap.md` orders the remaining work.
 
 Sections marked **(next phase)** describe what the change cycle
@@ -91,7 +104,8 @@ sections marked **(site navigation)** describe what the change cycle
 products)** describe what the change cycle
 `part-b-scientific-products-and-research` adds; sections marked
 **(textbook layer)** describe what the change cycle `textbook-layer`
-adds. Each names the roadmap
+adds; sections marked **(teaching by construction)** describe what the
+change cycle `teaching-by-construction` adds. Each names the roadmap
 feature that builds it; until that feature is delivered the section is a
 target, not a description of the repository.
 
@@ -532,7 +546,7 @@ ADR 009):
 
 | Shown on the page | Allowed source |
 |---|---|
-| Python code | (a) An executable cell that the build runs, or (b) an excerpt included by reference from `src/pbc/` at build time, optionally a named region with line annotations (F35). |
+| Python code | (a) An executable cell that the build runs, or (b) an excerpt included by reference from `src/pbc/` at build time, optionally a named region with line annotations (F35). Since ADR 023 (teaching by construction, F175): an excerpt may be an exact selection of several ranges of one object with visible omission markers and source line numbers, and may omit a docstring the prose states (marked); a signature may be generated from the source at build time and labelled so; simplified teaching code is allowed only as code the build executes exactly as shown, labelled, with its checks and a Source link. Reviewer-checked code that nothing executes falls under "Anything else". |
 | Program output and numbers | Output of an executed cell, including values computed inline. Tabular results are rendered as semantic tables with units and a caption by a helper, not as console dumps (F36). |
 | Figures | Produced by an executed cell during the build, with alt text, explicit dimensions, labelled axes with units, a legend where there is more than one series, and a status label. A measured-versus-model figure shows residuals or uncertainties where relevant. Since ADR 016 and F117 the cell draws the figure by calling the lesson's figure-writing function, the one the experiment entry point calls, and shows the file it wrote, so that one encoder produces the page's figure and the learner's. |
 | Conceptual diagrams (next phase, F32 to F34; the conceptual-illustration class of ADR 018) | Drawn by code in an executed cell (`pbc.authoring.diagrams` or Matplotlib), labelled `conceptual`, never presented as a numerical or experimental result. Image files are never committed; a third-party diagram is cited and linked, not rehosted. Since the scientific atelier the approved Diagram Design guidance of ADR 019 informs the drawing; its science and semantics are checked independently of any skill. Requirements decision 37 also permits an authored committed SVG for this class; ADR 018 decision 2 keeps lessons code-drawn as a planning choice within that permission, because every check of a lesson's figure (the figure-status label, the figure-writing pattern with the experiment and reproduction checks, the lesson-directory layout) acts on executed cells. An authored conceptual SVG in a lesson is a later decision, in an ADR that would add this display form, a layout rule, and a wider committed-artifact exemption; until then this row governs. |
@@ -1728,6 +1742,209 @@ least `--base`. The introduction pages execute no lesson and add little
 to the build; they are not lessons and do not count toward the capacity
 gate of 110 lessons.
 
+### Teaching by construction: the teaching skill, the code a lesson shows, figure provenance, and the reading experience (teaching by construction, ADR 023, F164 to F178)
+
+From `docs/changes/teaching-by-construction.md` (human-supplied,
+2026-11-13, revised draft v3, with its Appendix A of owner additions and
+its Appendix B, the cross-curriculum teaching and figure audit) and
+requirements decision 44. The change improves how the site teaches and
+presents physics; it replaces no curriculum, scientific claim,
+verification guarantee, or site technology, and it adds no mandatory
+agent, model invocation, review round, frontend framework, backend,
+external CDN, or runtime AI service. Lessons are named by slot label and
+path (decision 44, "Lesson names"): the change request's "MAT05" is MAT6
+(`materials/05-stress-strain-measurements`), "AST09" is AST8
+(`astrophysics/09-exoplanet-light-curves`), "Waves 09" is W7
+(`waves/09-lycopodium-diffraction-lab`), "FL05" is FL2
+(`fluids/05-navier-stokes-fundamentals`), "Agents 01" is SA5
+(`agents-llm/01-an-agent-runs-an-experiment`), and "AG16" is AI6
+(`agents-llm/16-multimodal-physics-reasoning`); the full mapping is the
+change request's Appendix A4. The audit of Appendix B (104 lesson sources
+and 255 figure declarations on 2026-11-13, before MAT5, AST9, and FL7
+merged) is a dated snapshot in the committed change request and is not
+recounted.
+
+**The teaching skill** (T1, F164; ADR 023 decisions 1 and 2).
+.agents/skills/pbc-physics-teaching/SKILL.md with its provenance record
+and its entry in `.agents/skills/README.md`, project-owned and pinned like
+the scientific-visualization skill, validated by the skills
+configuration check (I32). It owns the pedagogical reasoning layer and
+points to the voice guide, the authoring guide, and the
+scientific-visualization skill for theirs. Its content: the target
+learner and the prerequisites assumed; the central physical question and
+the counterintuitive point; one or two deliberate prediction,
+experiment, or interpretation moments; the distinction between a
+prediction, a derived property, a simulation output, a measurement, and
+an inference about reality; essential versus optional derivations (an
+optional one moves to a labelled, linkable depth section, never deleted);
+the archetype of the lesson and its learner journey (model or
+simulation; measured-data investigation, with the lineage recorded,
+calibrated, processed, modelled, compared, residuals and uncertainty,
+conclusion; engineering design or capstone, with the brief and success
+criteria before the method; AI agent or evaluation, with the evidence
+kind stated at once; agent-based model; formal proof, with assumptions,
+theorem, proof, and numeric example kept apart); and, for every displayed
+code block, why a learner reads it at that point, with the four display
+choices below. It distils the teaching practice of named sources
+(Feynman, Chabay and Sherwood, Taylor, OpenStax, McDermott and Shaffer,
+MIT OpenCourseWare and PhET) with chapter-level references and original
+examples, copies no diagram or long extract, and holds PBC before-and-
+after examples, one of them a case where no restructuring is right. The
+plan of a feature that writes or revises a lesson's teaching selects it
+or records why not (ADR 023 decision 2); the selection rule is written
+into `AGENTS.md` and `docs/process.md` by F164.
+
+**The code a lesson shows** (U1e to U1i, F175 and F176; ADR 023
+decisions 3 to 7). Every displayed code block has a stated teaching
+purpose (a new physical relationship, a numerical update, scientific
+processing or validation, an engineering trade-off, agent control, a
+formal proof), recorded in the plan or the review, not on the page.
+Four display choices, none a global default:
+
+| Choice | What the page shows | Where it applies by default |
+|---|---|---|
+| Exact full source | The whole object by reference, as today | Short or central code whose control flow matters (a stepper, a solver stage, a fit, an allowlist, a proof) |
+| Exact selection | One range, a named region, or several ranges of one object joined by a visible omission marker, with source line numbers; optionally without the docstring, marked; labelled as a selection, never offered as a runnable whole | The relevant body of a long function; the scientific transformation inside a plotting function (a residual, smoothing, calibration, or offset) |
+| Generated signature or executed teaching code | A signature generated from the source at build time; or simplified code the build executes as shown, labelled, with what it leaves out, what was checked, and a Source link | Only where it demonstrably clarifies and, for teaching code, where a check exists; built only for the pilot lessons |
+| Source link only | The figure or result, its interpretation, and a compact "Source" or "Figure source" link to the commit-pinned object | Pure plot formatting, decoration, orchestration, and file handling that the lesson does not teach |
+
+The excerpt helper `pbc.authoring.excerpt` carries the selections, the
+docstring omission, the generated signature, the labels, and a compact
+Source link: the full path, line range, and commit stay in the link and
+in the page's machine-readable metadata (the excerpt marker the source
+digest already reads), not as a sentence after every block. The source
+module itself never changes to shorten a lesson: docstrings, type
+annotations, defaults, and guards stay, and `excerpt(...,
+interface=True)` keeps reading them. Annotated excerpts get the same
+build-time, deterministic syntax highlighting as plain ones: the
+annotated branch today emits escaped HTML without token colours; the
+feature tokenises it at build time with the highlighter Quarto's Pandoc
+already uses or with a Python highlighter already pinned in `uv.lock`
+(Pygments is a transitive dependency today; making it a direct one is a
+pinned dependency change of that feature), keeps the line numbers, note
+anchors, and marked-line backgrounds distinguishable without colour, and
+loads no runtime script. Line numbers and annotation glyphs are outside
+the copied text. Lean excerpts keep their syntax and hypotheses and are
+never simplified; an irrelevant diagram-drawing function of a Lean
+lesson may become a Source link like any other.
+
+**Figure provenance off the chart area** (V2, F172 and F173). Today
+`pbc.data.plotting.label_status()` paints a status box into a measured
+figure and `add_credit()` paints a wrapped source paragraph below its
+axes, while `site/_filters/lesson.lua` renders the cell's `fig-status`
+with the caption, so a measured figure states its status twice; and
+`check_figure()` and `tests/unit/test_data_plotting.py` require the
+painted status and credit. The target, decided on examples by the pilot
+F172 and rolled out by F173: the page shows one visible status per figure
+at its caption (stating when a figure combines processed measurement and
+simulated or fitted models) and, for a figure that declares a dataset
+(`fig-dataset`, `fig-model-of`, or a dataset-backed `fig-artifact`), a
+short data credit under it, with the full citation, processing, and licence in a native `<details>` or the
+dataset dossier, all rendered from the dataset card and the cell's
+declarations, never a second hand-written credit string; the chart area
+holds marks, axes, uncertainty, annotation, and the legend the marks
+need. The saved or shared PNG carries its status, figure identity,
+dataset, and required attribution portably: deterministic metadata
+written by the one encoder `pbc.experiment.encode()` from the same
+declarations (the page and the experiment output stay the same bytes,
+ADR 016), only for a figure that opts in: in the pilot F172 the three
+sample figures, while every other figure's PNG stays byte-identical
+until F173 rolls the contract out, plus a short visible credit where a dataset card's terms
+require visible attribution or the owner chooses one. A validated
+sidecar manifest is the pilot's alternative if embedded metadata fails
+the determinism or reuse test; it is bound to the figure's digest. Rights
+are evaluated per dataset card. An optional small visualization credit
+("Visualization: Physics by Construction · Data: …") on portable figures
+is the owner's choice on examples; a watermark, a mark over data, a
+mandatory brand, or wording that claims ownership of external
+measurements is never allowed. `check_figure()` and its tests are
+migrated to equally strong or stronger assertions (status present in the
+declaration and the PNG metadata, title and legend semantics, credit
+consistent with the card), never dropped. The figures of AI6 that are
+model inputs, and its replay evidence, do not change without a separate
+review: F172 and F173 leave AI6's input fixtures byte-identical or stop
+for that review. If the metadata cannot be kept opt-in, F172 changes
+every figure's bytes and is reviewed as a figure change across the whole
+site.
+
+**Figure language** (V1, F170 and F171). An audit of six figure classes
+(trajectory, multi-series numerical comparison, phase space, convergence
+on log–log axes, heatmap or field, measured versus model with residuals)
+at desktop and phone widths, then a bounded style pilot that extends
+`FIGURE_SETTINGS` in `pbc.experiment` and the tokens of
+`pbc.authoring.design` (or one helper module beside them) rather than
+adding a palette: typography reconciled with the site's fonts available
+to the pinned runner, axis and label hierarchy, light grids where
+useful, line widths, sequential and diverging colormaps chosen by data
+semantics, direct labels where they help. The two palettes stay, under
+one documented usage rule: `FIGURE_COLOURS` for lesson figures and the
+Okabe–Ito `pbc.data.plotting.COLOURS` for measured data, neither
+recoloured for branding. A global change of the shared settings changes
+every figure: it is the owner's decision after the pilot (F171) and a
+full run with the artifact and reproduction comparisons; the pilot itself
+changes only its sample figures.
+
+**The reading experience** (U1a to U1d, F174). The lesson header keeps
+visible the title, the position in its course, difficulty and method, a
+short learner-oriented purpose, and the key outcomes; the full
+connections, prerequisites, glossary links, and related lessons move into
+a native closed `<details>` on the same page, previous and next stay easy
+to find (and at the end of the lesson). The reproduction section keeps its
+heading, anchor (ADR 016), commit-pinned commands, files, and tests; it
+opens with one reader-oriented sentence, and the complete steps and files
+sit in a native closed disclosure, with no command shown twice. All of it
+is semantic HTML that works without scripts (I4) and is generated by the
+existing helpers: the header and the excerpt's location line are context
+regions (`pbc.authoring.context`, ADR 014 decision 9) that the post-render
+step `site/context.py` fills, and the last section comes from
+`pbc.authoring.reproduce`; so one change reaches every lesson: a shared
+input and a full run. Figure
+status presentation is V2's; F174 may change only the surrounding CSS.
+
+**Teaching pilots and calibration** (T2, T3, F165 to F169). M1, M3, and
+M5 are redesigned in sequence, not only wording, one feature and pull
+request per lesson, each with a before-and-after reading map, the
+independent scientific and editorial review, and the owner's decision on
+the rendered pages at desktop and phone widths; M2 and M4 are comparison
+cases, and the whole M1 to M5 sequence is reviewed after the three. The
+canonical addresses, slots, outcomes, scientific content, section
+identifiers (or compatible anchors where a section moves), and the
+reproduction contract stay. Then a source-only diagnostic of the skill on
+four archetypes (a measured-data lab, AST8 or MAT6; an engineering
+capstone, EM9 or T11; an AI-evidence lesson; a Lean lesson,
+`lean/04-lean-exercises-on-your-machine`), and at most one further
+redesign with the owner's approval of its scope. F116 integrates what the
+pilots and the calibration established into the authoring guide, the
+lesson template, and the review rubric. No other lesson is rewritten as a
+consequence (I35's rule against boilerplate rewrites holds).
+
+**Selective interactions** (I1, F177 and F178). At most two new lesson
+interactions, chosen after the pilots and the calibration by a
+misconception or prediction a static figure cannot address, on the F07
+convention (a static figure and text first, a dependency-free module,
+data precomputed by Python and embedded by an executed cell, native
+accessible controls, no request, storage, or layout shift, reduced
+motion respected). The integrator explorer of M5 is moved and explained
+in F167, not rebuilt. F128 is neither started nor changed; no ECharts,
+Plotly, framework, bundler, or browser physics engine.
+
+**Order and verification cost.** F164 first (it gates the lesson pilots).
+F174 and F175 change shared inputs (`pbc.authoring`, the lesson
+template or filters, the shared CSS) and are full runs; they are never in
+flight with each other or with another writer of `pbc.authoring` or the
+shared CSS (F127 included). F165 and F167 follow F175, so that M1 and M5
+are revised once with the new excerpt forms; F166 needs only F164. F170
+and F172 are pilots that change the bytes of their sample figures only:
+a pilot that touches only its sample lessons runs their targeted runs (or
+`--base` when their headers change), but a pilot that changes
+`pbc.experiment` (`FIGURE_SETTINGS`, `encode()`) or `pbc.data.plotting`
+changes a module every lesson imports, so its targeted run selects every
+lesson and it is a full run (ADR 014 decision 4); F171 and F173
+change shared figure code and are full runs. The pilot lessons'
+features are lesson changes (`--base` when their headers change,
+otherwise the targeted run). None adds a lesson, so none counts toward the
+capacity gate.
+
 ## Invariants and boundaries
 
 Agents and reviewers must preserve these. Each names how it is enforced; an
@@ -1740,7 +1957,7 @@ shown.
 | I2 | The site never calls an LLM, never holds API keys, and CI holds no LLM credentials. | No secrets referenced in workflows (F01, ADR 006); replay client in builds (F09). |
 | I3 | No analytics, tracking, cookies, or third-party runtime resources. All scripts, styles, fonts, and images are served from the site's own origin. Outbound links are the only contact with other sites. | Built-site check (F01). |
 | I4 | All text, code, equations, diagrams, proof explanations, and static figures are readable with JavaScript disabled. Interactives enhance a static fallback. | Built-site check with scripting disabled (F01, F07). |
-| I5 | Code, outputs, figures, proofs, data, and claims on the site come only through the verified display forms. Unverified material is visibly marked. | Lesson source check (F02, F28); ADR 002, 007, 009, 010. |
+| I5 | Code, outputs, figures, proofs, data, and claims on the site come only through the verified display forms. Unverified material is visibly marked. | Lesson source check (F02, F28); ADR 002, 007, 009, 010, 023. |
 | I6 | Generated artifacts are never committed. Figures, outputs, and rendered pages are regenerated by every build. The only committed inputs a build cannot regenerate are the replay fixture of an agent lesson, the replay traces of a Part B product and its starter at the product's one declared fixture location `products/<product>/fixtures/` under the same replay-fixture conditions (ADR 022 decision 8 amending ADR 002 condition 2), the dataset samples under `data/samples/`, including the reference artifacts of optional tools declared as `modelled-reference` (final curriculum), and the interface artwork under `site/assets/` that the provenance register names: authored SVGs with an author and a licence (scientific atelier), and, since the site navigation, derived WebP or PNG files with their origin, licence or terms (none in the register for the files of the Home hero that `site/hero.yaml` declares, ADR 021 decision 2 as amended on 2026-11-12; the published hero image is under the site's content licence, CC BY 4.0, the owner's decision of 2026-11-13 on Issue #487), and master hash (ADR 021), each at its declared location, free of credentials and restricted material, and checked on every build (recorded tool results against recomputed ones; sample checksums against their cards; every registered file present and every tracked image under `site/assets/` registered). No other raster, no unregistered image, and no image outside `site/assets/` is committed anywhere. An execution cache restored from a verified artifact of `main` is a build input of a pull request run, never a committed file (ADR 014). | Lesson source check and `.gitignore` (F02); replay (F09); dataset checks (F50); the committed-artifact check narrowed to the registered-SVG exemption, with the asset-source rule (F123), widened to registered rasters under `site/assets/` (F133); the pin of `execute.freeze: false` and `execute.cache: false` in `site/_quarto.yml` (`tests/unit/test_execution_settings.py`, Issue #464); ADR 002, 004, 007, 014, 018, 021, 022. |
 | I7 | A lesson whose code fails, whose proof does not compile, whose sample does not parse, or whose page does not build cannot be merged. | Required status check on `main` (F01, F58). |
 | I8 | CI and local verification run the same product checks through `./scripts/verify.sh`. CI also runs the workflow self-tests on every run; a local run includes them when a workflow file changed. A local run is one of three tiers (ADR 017 decision 7, F119): the full run runs every product check; the targeted run and the run with a base run the checks of their tier against the selection and are recorded with their tier, and CI runs every check on every pull request and push. Parallel CI jobs run groups of the same `verify.conf` checks behind one aggregate required check; every group runs in exactly one job, or, for the group that executes the lessons, in one lesson-shard matrix whose lesson shards the script derives (ADR 014 decision 11, paused with F113 since 2026-10-15: one job today). | Workflow calls only that script, and a test compares the declared groups with the groups the jobs run (F01, F58); ADR 003, ADR 005, ADR 012. |
@@ -1771,6 +1988,8 @@ shown.
 | I33 | A Part B capstone product is a learner-run local application: the site, the build, and CI never run a product live, contact an instrument or a model, or need an optional dependency; CI verifies each product's and starter's offline simulator route deterministically, from simulated inputs regenerated from their seeds, dataset samples, and replay traces committed only at the product's declared fixture location (I6, ADR 022 decision 8), and checks each starter against the current tree and at its pin; every run record names its execution mode (simulated, recorded, live), a recorded run is never presented as a new experiment, a live result never appears on the site as a lesson's result, and real hardware support is called demonstrated only after a physical pilot; the product's local interface binds to the loopback interface only and is never part of the site (Part B products). | Product and starter tests in pytest; the capstone pages' simulator route under the page budget; the boundary test of I32 and I24 extended to products and drivers (F138, F141); review; ADR 022. |
 | I34 | Instrument safety does not depend on a model: permitted ranges, interlocks, timeouts, and stop behaviour are enforced by `pbc.instruments` before an operation reaches a device; an agent requests only allowlisted, validated, bounded operations; no driver, shell, or generated code reaches an instrument directly; no automatic rewiring without separately scoped switching hardware; no mains-voltage work and no unrestricted actuation (Part B products). | Contract tests with a fake driver that records every call and refuses out-of-envelope operations (F138); the physical pilot's recorded checks and the security-focused review (F140); ADR 022. |
 | I35 | The textbook layer's prose has validated sources and no catalogue of its own: an introduction file, the journey file, and the Home copy hold prose and references only; the lessons, counts, prerequisites, capstone, and published or planned state on an introduction, the atlas, About, and Home come from the curriculum file and the front matter; every reference resolves or the build fails; a planned lesson is never a link and never counted; an introduction page needs no script and holds no state; the hero holds no script and stores nothing (before Issue #482: the hero image's variant is never stored); no textbook page presents an AI result as a discovery, and no lesson address, anchor, bookmark, or learner state changes for the layer (textbook layer, requirements decision 43). | The validation of the sources and the page tests of F156 to F158; the F13, F14, and F133 tests; the Home tests that the hero has no script, that exactly one hero file (the one its `srcset` selects) is requested per load, and that the page is the same with and without scripts; review for the wording (until Issue #482: the scan of I16 extended to the hero script, which no longer exists). |
+| I36 | Code displayed on a lesson page tells the truth about its source (teaching by construction): an excerpt shown as source is the pinned source, byte for byte or under one documented whitespace rule; an exact selection shows its omission markers and source line numbers and is never offered as a runnable whole; an omitted docstring is marked; a generated signature is generated by the build, never typed; simplified teaching code is executed as shown, labelled as simplified, states what it leaves out and what was checked, and links the full implementation; copying a block copies code only; the Python source is never changed to shorten a display, and Lean code is never simplified. | The excerpt tests and the lesson source check extended by F175; review of the pilots (F165 to F167, F176); ADR 023. |
+| I37 | Every figure keeps one clearly visible source status on the page, and every figure that declares a dataset (`fig-dataset`, `fig-model-of`, or a dataset-backed `fig-artifact`) also keeps its dataset-specific credit there (a simulated or conceptual figure has no dataset card and needs no credit), both rendered from the cell's declarations and the dataset card, never from a second hand-written credit string; a saved PNG carries its status, figure identity, and required attribution portably and deterministically, the page's figure and the experiment's output staying the same bytes; rights are evaluated per dataset card; no wording claims ownership of external measurements and no watermark or mark covers data; the figure checks are migrated to equally strong or stronger assertions, never dropped; a figure used as a model input (AI6) changes only after its own review (teaching by construction). | `check_figure()` and `tests/unit/test_data_plotting.py` as migrated by F172 and F173; the figure-status filter; the determinism check (I11); the experiment check; the AI6 replay check; ADR 016. |
 
 Boundaries for agents working in this repository, in addition to `AGENTS.md`:
 
@@ -1803,6 +2022,12 @@ Boundaries for agents working in this repository, in addition to `AGENTS.md`:
   into an introduction, the journey, or the Home copy, and do not add a
   boilerplate transition to every lesson or rewrite a published lesson
   as part of the textbook layer (I35).
+- Do not shorten a displayed lesson by editing the Python source (its
+  docstrings, annotations, defaults, or guards), show code a reviewer
+  checked but nothing executes as if it were verified, hide a scientific
+  transformation behind a Source link because of a function's name, or
+  simplify Lean code (I36, ADR 023); do not remove a figure's painted
+  status or credit except through the migrated checks of V2 (I37).
 - Do not use an agent skill that is not in `.agents/skills/` at its
   recorded revision, do not fetch one at run time, and do not present a
   skill's guidance as evidence; record the skill and its revision in the
@@ -2510,6 +2735,7 @@ Choices the requirements left to planning, and where they are settled:
 | The quieter site (decision 40) | A four-item menu with the secondary pages in the footer; the Course Atlas as twelve sequence cards with the open sequence's lessons, in native exclusive disclosures with one address module; the map's relationships as data on the lesson pages; Home as a landing page with a randomised hero from one data file and examples chosen by code; "Run the code" with three routes; "How we verify the science"; the glossary on demand and "Suggest an improvement" through GitHub's forms; the sequences' descriptions and illustrations in the atlas manifest | ADR 021; F132 to F135; "The quieter site" |
 | Visual freedom on non-lesson pages (decision 41) | Classes by claim; interface artwork as SVG or a committed derived WebP from a script, an author, or an image model, registered with origin, licence (none in the register for the files of the Home hero that `site/hero.yaml` declares, ADR 021 decision 2 as amended on 2026-11-12; the published hero image is under the site's content licence, CC BY 4.0, the owner's decision of 2026-11-13 on Issue #487), and master hash, admitted by the committed-artifact check only through its entry; committed rather than rendered at build time, with a regeneration check on demand where a script exists | ADR 021; I6; I30; F133 |
 | The textbook layer (decision 43) | Introductions at the flat address `/courses/<sequence-id>/`, generated from one prose file per sequence beside the atlas manifest; the learning journey in one prose file beside the manifest, used by About (by the atlas too until Issue #483); Home's copy in one file and its hero image, picked from four Part A illustrations until Issue #482, since then one illustration at three widths with `srcset` and no script, since Issue #487 the owner's double pendulum; pilot on mechanics and the law-discovery path after F136, the other sequences in four batch features with their own identifiers, the book review F160 with its identifier now; no new ADR, ADR 021 decision 4 amended by a dated note | `docs/roadmap.md`, Phase 10; "The textbook layer" |
+| Teaching by construction (decision 44; amendments of decisions 32, 38, and 43 and of the UX expectation on displayed code) | The project-owned `pbc-physics-teaching` skill in the governed set, selected by a lesson feature's plan or its non-use recorded; didactic pilots on M1, M3, M5 and a source-only calibration on four archetypes before F116; exact source by default with exact selections, a generated signature, and executed teaching code as the only derived forms; one visible figure status and credit on the page with portable PNG provenance from the dataset card; a figure-style pilot on six classes; a compact header and reproduction disclosure; at most two F07 interactions; feature identifiers F164 to F179; U1's header before F127, and the figure pilot absorbing F129's scientific-figure pilot | ADR 023; I36, I37; "Teaching by construction"; `docs/roadmap.md`, "Phase 11" |
 | Governed visual agent skills (decision 38) | Audited, pinned, project-local skills at `.agents/skills/`, a project-owned scientific-visualization skill, the planner, implementer, reviewer, and verification contract, bounded pilots, no mandatory review agent | ADR 019; I32; F122, F129 |
 | Fonts of the atelier | Self-hosted with their licences, counted in the initial payload, subset or dropped when they do not fit | This document; ADR 018; F123 |
 | Part B as four method paths ending in products (decision 42; amendments of decisions 23, 25, 26, and 31) | 34 core slots with new per-path labels, extension slots for the optional depth outside the 116 core slots, the kind `product capstone`, the migration by front matter, and the products as learner-run local applications in `pbc.products` and `products/` with a pinned starter, an instrument contract, an evidence contract, and an offline route verified in CI | ADR 022; this document, "Part B: method paths that end in local scientific products"; F136 to F155 |
@@ -2538,6 +2764,8 @@ that must settle them:
 | 20. Final curriculum labels and primary course homes | Proposed by ADR 022 (SA, MD, AE, RR); settled by the owner's approval of the curriculum file in F136; each new lesson's primary course in its feature's Issue | The curriculum file and the front matter of the moved lessons (F136). |
 | 21. Frontend of the local products | In F138, with evidence, within ADR 022 decision 5 | The local interface of `pbc.products`; none for the site. |
 | 22. First reproduction paper and learner workload | The paper in F155 (its reproduction track); the workload after F138 and F139 | None; the products' material states workload only after the pilots. |
+| 23. Capacity beyond 110 lessons | By the owner at the review of this planning, on the measurements and costed options of `docs/roadmap.md`, "State at the change cycle `teaching-by-construction`" (shards, F113; incremental `main`, ADR 017 and F121; a further timeout; or keeping the cap); before Part B stages C and D | Shards change the `build` job into a matrix and an assembly (ADR 014 decision 11); incremental `main` changes the run on `main` and the deploy (ADR 017, which would then be accepted); a further timeout changes one line of the workflow; keeping the cap changes nothing and holds the lessons at 110. Settles how questions 9, 10, and 12 proceed. |
+| 24. Reuse of a passed verification group (#385) | By the owner with question 23; if planned, F179 defines the inputs of a group, where passes are stored, and when reuse is forbidden | None until then; if planned, a passed group's result is reused only on unchanged inputs and the same checks, and a Level 3 final verification always runs in full (ADR 020). |
 
 ## Assumptions and risks
 
@@ -2800,7 +3028,35 @@ that must settle them:
   (labelled so) at about 85 to 100 minutes. The roadmap makes the owner's
   next capacity decision (on #278, with #150) a gate before a lesson
   feature takes the count past 110; Part B adds 17 new pages, and the 17
-  extended lessons add none.
+  extended lessons add none. Measured at the change cycle
+  `teaching-by-construction` (2026-11-13): 109 lessons on `main`; every
+  push run on `main` is a full run, and the `build` job of the 18
+  successful push runs from 2026-11-11 to 2026-11-13 (95 to 107 lessons)
+  took 52 to 84 minutes, median 61, the spread being the runner and the
+  caches rather than the lesson count; pull request runs that selected a
+  few lessons took 15 to 23 minutes in `build`, and those that selected
+  every lesson 53 to 87. A linear projection of the slowest run to about
+  126 lessons (labelled so) is about 100 minutes against the 120-minute
+  timeout, at the owner's re-decision point of 100. Both deferral triggers
+  of #412 (95 lessons; a run on `main` near 80 minutes) are met. The
+  decision is requirements question 23; its options and costs are in
+  `docs/roadmap.md`, "State at the change cycle
+  `teaching-by-construction`".
+- **A teaching pilot may change science by accident** (teaching by
+  construction). Moving a derivation, a figure, or an experiment can
+  change what a sentence claims or which guard a displayed fragment
+  shows. The pilots keep every executed value, figure, and claim
+  (the experiment and reproduction checks, the changed-claim trigger of
+  ADR 020), the reviewer checks that no conclusion rests on omitted
+  lines (ADR 023 decision 7), and a changed claim is Level 3 in its own
+  reviewed change.
+- **Moving the figure credit off the image may lose attribution or break
+  byte identity** (teaching by construction). The pilot F172 tests the
+  portable metadata for determinism, for the page and experiment bytes,
+  and for each dataset card's terms on its sample figures before F173
+  rolls anything out; the metadata is written only for figures that opt
+  in, so every other figure, AI6's model-input figures included, stays
+  byte-identical.
 - **Hardware may not be feasible at an acceptable cost or reliability**
   (Part B products). Every essential outcome is reachable through the
   simulator and recorded data; F140 ends in a go or no-go, and a no-go
@@ -2822,6 +3078,37 @@ that must settle them:
   licence-checked, optional, and chosen by a feature with evidence.
 
 ## Repository state compared with the requirements
+
+Checked at the change-cycle base commit `2c411ac` (2026-11-13) against the
+requirements of `teaching-by-construction` (decision 44 and its
+amendments of decisions 32, 38, and 43). No material conflict was found;
+the state of the related features and Issues is in `docs/roadmap.md`,
+"State at the change cycle `teaching-by-construction`". The gaps are the
+work of F164 to F178 and F116:
+
+- `.agents/skills/` holds no teaching skill, and ADR 019's contract
+  selects skills for visual deliverables only (F164, ADR 023).
+- `pbc.authoring.excerpt` shows a whole object, one line range, or one
+  named region, and writes the repository path and "read from the
+  repository when this page was built" after every block; its annotated
+  branch emits escaped HTML without token colours (F175).
+- Many lessons show whole plotting functions; some of those compute
+  residuals, smoothing, or calibrations (the audit's sample: MAT6, W7, Q7)
+  (F176 for the pilot set; F165 and F167 for M1 and M5).
+- A measured figure states its status twice (the painted box and the
+  caption) and paints its credit into the PNG; `check_figure()` and its
+  tests require both; `pbc.experiment.encode()` writes no metadata
+  (F172, F173).
+- `FIGURE_SETTINGS` sets size and resolution only; lesson figures choose
+  their own type sizes, grids, and line weights (F170, F171).
+- The lesson header shows every connection, prerequisite, and related
+  lesson at once; the reproduction section shows its full steps in the
+  reading flow (F174).
+- The teaching sequence of M1, M3, and M5 is that of F115's prose-only
+  pass; F116 has no Issue (F165 to F167, then F168 and F116).
+
+The gaps recorded at the change-cycle base commit `fc6da35` (2026-11-04),
+kept for the history of `textbook-layer`, follow.
 
 Checked at the change-cycle base commit `fc6da35` (2026-11-04) against the
 requirements of `textbook-layer` (decision 43 and the amendment notes on

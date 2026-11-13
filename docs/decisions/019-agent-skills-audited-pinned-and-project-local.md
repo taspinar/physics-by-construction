@@ -10,6 +10,15 @@ the planner's, implementer's, and reviewer's duties), is summarised there;
 decisions 2, 4, and 6 (the set, the provenance, the pilots) are the content
 of the atelier and stand here. No decision is superseded.
 
+Amended by [ADR 023](023-teaching-skill-and-derived-code-display-forms.md)
+(2026-11-13, change cycle `teaching-by-construction`, requirements
+decision 44 amending decision 38) in decisions 2 and 5: the governed set
+gains the project-owned `pbc-physics-teaching` skill, which is not a
+visual skill, and the plan of a feature that writes or revises a lesson's
+teaching selects it or records why it is not useful, under the same
+implementer and reviewer contract and with no new review role. Decisions
+1, 3, 4, and 6 apply to it unchanged.
+
 Proposed with the planning of the change cycle `scientific-atelier-atlas`;
 accepted when that planning is approved. Extends
 [ADR 006](006-content-drafting-runs-on-the-maintainers-machine.md)

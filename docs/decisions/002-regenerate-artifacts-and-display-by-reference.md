@@ -58,6 +58,17 @@ exceeded wall-clock budget of a run is a measurement for the owner's
 decision at the chosen re-assessment points, never a mandate to change
 scientific content. The decisions below are unchanged.
 
+Amended by [ADR 023](023-teaching-skill-and-derived-code-display-forms.md)
+(2026-11-13, change cycle `teaching-by-construction`, requirements
+decision 44) in item 1 of the decision "Displayed material reaches a page
+only through verified display forms": an excerpt by reference may be an
+exact selection of several ranges of one object with visible omission
+markers and source line numbers, and may omit a docstring the prose
+states, marked; and two derived forms are added, a signature generated
+from the source at build time and simplified teaching code that the build
+executes exactly as shown against stated checks. Items 2 to 5, the "not
+verified" marker included, and the other decisions below are unchanged.
+
 Date: 2026-10-06
 
 ## Context
