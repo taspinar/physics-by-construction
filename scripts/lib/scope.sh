@@ -3,10 +3,15 @@
 # Filesystem scope enforcement for write-capable agent sessions.
 # Source this file; do not execute it.
 #
-# A snapshot records every path in a worktree, including untracked and ignored
-# files but not .git, with its type, mode, and content hash. Paths that the
-# session may change are left out by a caller-supplied function. Comparing a
-# snapshot taken before and after the session shows every out-of-scope change.
+# A snapshot records the files of a worktree that Git tracks or would track
+# (tracked files, and untracked files that no ignore rule excludes), with their
+# type, mode, and content hash, together with the ignored files that lie
+# outside an ignored directory, such as a .env or the review artifacts under
+# .agents/reviews/. An ignored directory, such as the .venv of a planning
+# worktree or a .pytest_cache, is neither walked nor recorded: a change in it
+# is no change of the repository (Issue #353). Paths that the session may
+# change are left out by a caller-supplied function. Comparing a snapshot
+# taken before and after the session shows every out-of-scope change.
 
 scope_file_mode() {
   if [[ "$(uname -s)" == "Darwin" ]]; then
@@ -43,9 +48,19 @@ scope_snapshot() {
 
   (
     cd "$worktree"
-    find . -mindepth 1 ! -path './.git' -print0 |
-      while IFS= read -r -d '' relative; do
-        path="${relative#./}"
+    # Paths are relative to the worktree root. With --directory, Git lists an
+    # ignored directory as one entry ending in a slash, without walking it,
+    # and the entry is skipped. A tracked file deleted from the worktree is
+    # left out, so its deletion shows as a missing line; a path listed twice
+    # (an unmerged index entry) is removed by the sort.
+    {
+      git ls-files -z --cached --others --exclude-standard
+      git ls-files -z --others --ignored --exclude-standard --directory
+    } |
+      while IFS= read -r -d '' path; do
+        if [[ "$path" == */ || (! -e "$path" && ! -L "$path") ]]; then
+          continue
+        fi
         if "$allowed" "$path"; then
           continue
         fi
@@ -63,7 +78,7 @@ scope_snapshot() {
         path_key="$(printf '%s' "$path" | git hash-object --stdin)"
         printf '%s\t%q\t%s\n' "$path_key" "$path" "$signature"
       done
-  ) | LC_ALL=C sort >"$target"
+  ) | LC_ALL=C sort -u >"$target"
 }
 
 # scope_unchanged <baseline-file> <current-file>
