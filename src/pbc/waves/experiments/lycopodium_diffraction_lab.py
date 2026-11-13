@@ -57,7 +57,7 @@ CREDIT = (
     "Data: O. Voronkin, S. Lushchin, 'Morphometry and Optical Data of "
     "Lycopodium Spores for the Study of Diffraction and Interference', Zenodo, "
     "doi 10.5281/zenodo.15846643, CC BY 4.0; converted to UTF-8 CSV, values "
-    "unchanged. Centre, fold, smoothing, rings, halo model: this lesson's code."
+    "unchanged. Analysis: this lesson's code."
 )
 STYLES = {RED: (COLOURS[1], "-", "o"), VIOLET: (COLOURS[0], "--", "s")}
 
@@ -300,7 +300,7 @@ def distance_table(
 def draw_profiles(profiles: dict[float, Profile], radii: dict[float, float]) -> Figure:
     """The two measured line profiles about their centres, the saturation
     level, and the dark ring of the fold on both sides."""
-    fig, ax = plt.subplots(figsize=(6.0, 3.1), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(5.6, 3.0), constrained_layout=True)
     for w, p in profiles.items():
         colour, ls, _ = STYLES[w]
         series = luma_profile_series(p)
@@ -310,6 +310,9 @@ def draw_profiles(profiles: dict[float, Profile], radii: dict[float, float]) -> 
             color=colour,
             ls=ls,
             lw=0.7,
+            # The trace is speckle from sample to sample: without antialiasing
+            # its PNG is a third smaller and looks the same at screen size.
+            antialiased=False,
             label=f"{nm(w)}, measured [{series.status}]",
         )
         for sign in (-1, 1):
@@ -332,7 +335,7 @@ def draw_profiles(profiles: dict[float, Profile], radii: dict[float, float]) -> 
 
 def draw_diameters(tables: dict) -> Figure:
     """Histograms of the diameters of whole spores at both magnifications."""
-    fig, ax = plt.subplots(figsize=(6.0, 2.8), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(5.4, 2.8), constrained_layout=True)
     bins = np.arange(15.0, 52.0, 1.5)
     for (name, table), colour, ls in zip(
         tables.items(), (COLOURS[2], COLOURS[3]), ("-", "--"), strict=True
@@ -365,7 +368,7 @@ def draw_halo_model(diameters: np.ndarray, minima) -> Figure:
     u = np.linspace(0.0, 4.0, 801)
     one = halo.halo(u / mean, [mean])
     many = halo.halo(u / mean, diameters)
-    fig, ax = plt.subplots(figsize=(6.0, 3.0), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(5.4, 3.0), constrained_layout=True)
     ax.plot(
         u,
         one,
@@ -392,7 +395,8 @@ def draw_halo_model(diameters: np.ndarray, minima) -> Figure:
         label="its dark rings",
     )
     ax.set_yscale("log")
-    ax.set_ylim(1e-5, 1.5)
+    # Room above the curves for the legend.
+    ax.set_ylim(1e-5, 10)
     ax.set_xlim(0, 4)
     ax.set_xlabel("q times the mean diameter, d sin(theta) / lambda [1]")
     ax.set_ylabel("intensity / centre [1]")
@@ -409,7 +413,7 @@ def draw_scaling(
     """The folded profiles on radius over wavelength with their dark rings;
     the ratio of the radii at each width against the prediction set by the
     two wavelengths alone, and its residual."""
-    fig = plt.figure(figsize=(6.6, 4.0), constrained_layout=True)
+    fig = plt.figure(figsize=(6.0, 3.6), constrained_layout=True)
     grid = fig.add_gridspec(2, 2, width_ratios=[1.35, 1.0], height_ratios=[1.3, 1.0])
     ax_fold = fig.add_subplot(grid[:, 0])
     ax_ratio = fig.add_subplot(grid[0, 1])
@@ -469,8 +473,8 @@ def draw_scaling(
     )
     ax_ratio.set_xlim(*ends)
     ax_ratio.set_ylim(0.58, 0.72)
-    ax_ratio.set_ylabel("r(405) / r(632.8) [1]")
-    ax_ratio.set_title("Ratio of the dark rings", fontsize=10)
+    ax_ratio.set_ylabel("ratio [1]")
+    ax_ratio.set_title("Ratio r(405) / r(632.8)", fontsize=10)
     ax_ratio.legend(fontsize=6.5, loc="lower right")
     ax_ratio.tick_params(labelbottom=False)
     ax_res.axhline(0, color="0.4", lw=0.8)

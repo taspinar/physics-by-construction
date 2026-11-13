@@ -187,7 +187,7 @@ text, the tables re-encoded. Both are a processed measurement, so every
 figure of data on this page says processed. The data are the authors' under
 the licence the card names, and every figure carries the attribution.
 
-### The diameters under the microscope {#diameters}
+### The diameters under the microscope {#microscope}
 
 The tables give, for every particle, the diameter of the circle of the same
 area. Particles below `{python} result["whole-spore"]` µm are fragments of
