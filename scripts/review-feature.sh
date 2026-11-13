@@ -703,10 +703,20 @@ feature_result_errors() {
   fi
 }
 session_started="$(date +%s)"
+# review_session_ended <status>
+# Records the end of the reviewer session with its status and duration.
+review_session_ended() {
+  agent_log "$root" "$issue" "review round $review_number, reviewer session" "ended" "status $1" "$(($(date +%s) - session_started)) s"
+}
 agent_log "$root" "$issue" "review round $review_number, reviewer session" "started" "$agent ($model)" "$(jq -r 'if .status == "passed" then "on the \(.tier // "full") run" elif .status == "feedback" then "on the feedback of \(.groups)" else "not verified" end' <<<"$verification")"
+# review_run_reviewer exits the script when the reviewer fails or returns an
+# invalid result twice; the trap then records the end of the session with
+# that exit status, which the script keeps (Issue #423).
+trap 'session_status=$?; review_session_ended "$session_status"; rm -rf "$tmp_work"' EXIT
 review_run_reviewer "$agent" "$model" "$root" "$START_PROMPT" "$context_file" "$schema_file" "$report_file" "$tmp_work" \
   feature_result_errors
-agent_log "$root" "$issue" "review round $review_number, reviewer session" "ended" "status 0" "$(($(date +%s) - session_started)) s"
+trap 'rm -rf "$tmp_work"' EXIT
+review_session_ended 0
 
 metadata="$(jq -n \
   --argjson issue "$issue" \

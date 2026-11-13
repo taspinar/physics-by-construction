@@ -205,6 +205,39 @@ fi
 repo="$(setup_repo agent-fails)"
 MOCK_AGENT_EXIT=43 expect_no_review "$repo" "the reviewer failed" 7
 
+# A reviewer session that fails, or returns an invalid result twice, still
+# gets an end entry in the log of the feature, with the real status and the
+# duration, and the script keeps its exit status (Issue #423).
+# expect_session_logged <repo> <status>
+expect_session_logged() {
+  local log="$1/.agents/run/7-log"
+
+  [[ "$(grep -c '| review round 1, reviewer session | started |' "$log")" -eq 1 ]] ||
+    { cat "$log" >&2; fail "the reviewer session has not exactly one start entry"; }
+  [[ "$(grep -c '| review round 1, reviewer session | ended |' "$log")" -eq 1 ]] ||
+    { cat "$log" >&2; fail "the reviewer session has not exactly one end entry"; }
+  grep -Eq "\| review round 1, reviewer session \| ended \| status $2 \| [0-9]+ s$" "$log" ||
+    { cat "$log" >&2; fail "the end of the reviewer session lacks the status $2 or the duration"; }
+}
+for case in agent-fails-logged invalid-twice-logged passes-logged; do
+  repo="$(setup_repo "$case")"
+  printf '.agents/run/\n' >>"$repo/.gitignore"
+  status=0
+  case "$case" in
+    agent-fails-logged) MOCK_AGENT_EXIT=43 run_review "$repo" 7 || status=$? ;;
+    invalid-twice-logged) MOCK_OUTPUT="$inconsistent_result" run_review "$repo" 7 || status=$? ;;
+    passes-logged) run_review "$repo" 7 || status=$? ;;
+  esac
+  if [[ "$case" == passes-logged ]]; then
+    [[ "$status" -eq 0 ]] || { cat "$repo.out" >&2; fail "a passing review failed"; }
+    expect_session_logged "$repo" 0
+  else
+    [[ "$status" -eq 1 ]] || { cat "$repo.out" >&2; fail "$case: review-feature.sh exited with $status, not 1"; }
+    [[ ! -e "$repo/.agents/reviews/feature-7-marker-review-01.json" ]] || fail "$case: a review was stored"
+    expect_session_logged "$repo" 1
+  fi
+done
+
 # An invalid result is retried once: it is accepted when the retry is valid
 # and rejected when it is not.
 repo="$(setup_repo retry)"

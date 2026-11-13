@@ -234,4 +234,92 @@ if run_revise "$repo" y --review "$review"; then
 fi
 [[ ! -e "$repo.log" ]] || fail "an agent started despite failed preconditions"
 
+# The scope snapshot covers the files Git tracks or would track, and ignored
+# files outside an ignored directory (here a review artifact), but does not
+# walk an ignored directory such as the .venv of a planning worktree (Issue
+# #353). Its cost is measured by the number of file-hash calls, not by the
+# wall clock.
+scope_repo="$tmp/scope-snapshot"
+mkdir -p "$scope_repo/docs" "$scope_repo/.agents/reviews"
+printf '.venv/\n.pytest_cache/\n.agents/reviews/*\n' >"$scope_repo/.gitignore"
+printf '# Architecture\n' >"$scope_repo/docs/architecture.md"
+printf 'Readme.\n' >"$scope_repo/README.md"
+printf 'Removed later.\n' >"$scope_repo/removed.txt"
+git -C "$scope_repo" init -q -b planning/project-bootstrap
+git -C "$scope_repo" add .
+git -C "$scope_repo" -c user.name=Test -c user.email=test@example.com commit -qm "Seed"
+printf 'Untracked, not ignored.\n' >"$scope_repo/draft.txt"
+printf '{}\n' >"$scope_repo/.agents/reviews/review-01.json"
+mkdir -p "$scope_repo/.venv/lib"
+for index in $(seq 1 200); do
+  printf '%s\n' "$index" >"$scope_repo/.venv/lib/module-$index.py"
+done
+
+# scope_snapshot_counted <target>
+# Takes a snapshot and prints the number of file-hash calls it made.
+scope_snapshot_counted() {
+  (
+    source "$source_root/scripts/lib/scope.sh" || exit 1
+    counter="$tmp/scope-hash-calls"
+    : >"$counter"
+    git() {
+      if [[ "${1:-}" == "hash-object" && "${2:-}" != "--stdin" ]]; then
+        echo x >>"$counter"
+      fi
+      command git "$@"
+    }
+    scope_snapshot "$scope_repo" scope_planner_allowed "$1"
+    grep -c . "$counter" || true
+  )
+}
+
+# scope_check <description> <expected: same|changed>
+# Compares a fresh snapshot with the baseline.
+scope_check() {
+  scope_snapshot_counted "$tmp/scope-after.tsv" >/dev/null
+  if (source "$source_root/scripts/lib/scope.sh" &&
+    scope_unchanged "$tmp/scope-before.tsv" "$tmp/scope-after.tsv" 2>/dev/null); then
+    [[ "$2" == same ]] || fail "the scope check accepted $1"
+  else
+    [[ "$2" == changed ]] || fail "the scope check reported $1"
+  fi
+}
+
+hash_calls="$(scope_snapshot_counted "$tmp/scope-before.tsv")"
+# .gitignore, README.md, removed.txt, draft.txt, and the review artifact; the
+# architecture is an allowed path.
+[[ "$hash_calls" -eq 5 ]] ||
+  fail "the scope snapshot hashed $hash_calls files instead of 5; it walks ignored files"
+if grep -Fq ".venv" "$tmp/scope-before.tsv"; then
+  fail "the scope snapshot lists the files of an ignored directory"
+fi
+snapshot_paths="$(cut -f2 "$tmp/scope-before.tsv")"
+for path in README.md draft.txt .agents/reviews/review-01.json; do
+  grep -Fqx "$path" <<<"$snapshot_paths" || fail "the scope snapshot does not list $path"
+done
+
+printf 'Changed by the planner.\n' >>"$scope_repo/docs/architecture.md"
+scope_check "a change of an allowed document" same
+mkdir -p "$scope_repo/.pytest_cache/v/cache"
+printf '[]\n' >"$scope_repo/.pytest_cache/v/cache/lastfailed"
+printf 'changed\n' >>"$scope_repo/.venv/lib/module-1.py"
+scope_check "a new or changed ignored file (.pytest_cache, .venv)" same
+
+cp "$scope_repo/README.md" "$tmp/README.md"
+printf 'Changed by the planner.\n' >>"$scope_repo/README.md"
+scope_check "a changed tracked file outside the allowed paths" changed
+cp "$tmp/README.md" "$scope_repo/README.md"
+scope_check "a restored tracked file" same
+
+printf 'New.\n' >"$scope_repo/notes.txt"
+scope_check "a new untracked, not ignored file outside the allowed paths" changed
+rm "$scope_repo/notes.txt"
+
+rm "$scope_repo/removed.txt"
+scope_check "a deleted tracked file" changed
+git -C "$scope_repo" checkout -q -- removed.txt
+
+printf ' ' >>"$scope_repo/.agents/reviews/review-01.json"
+scope_check "a changed review artifact, although it is ignored" changed
+
 echo "revise-planning tests passed"
