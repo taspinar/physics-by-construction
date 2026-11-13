@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from pbc.data.reference.dwd_soil import Readings
     from pbc.data.reference.lycopodium import Profile
     from pbc.data.reference.nist_numisheet import Test
+    from pbc.data.reference.sdss_balmer import Spectrum as SdssSpectrum
     from pbc.data.reference.tess_wasp18 import LightCurve
     from pbc.data.reference.trackpy_bulk_water import Tracks
     from pbc.data.reference.xu_pendulum import Run
@@ -125,6 +126,33 @@ def stress_strain_series(test: Test) -> Series:
         x_unit="mm/mm",
         y_name="engineering stress S",
         y_unit="MPa",
+    )
+
+
+def sdss_flux_series(spectrum: SdssSpectrum) -> Series:
+    """The flux density of an SDSS spectrum in 1e-17 erg/cm^2/s/Angstrom
+    against the vacuum, heliocentric wavelength in Angstrom, every pixel of
+    the co-added spectrum as released.
+
+    A calibrated observation: the SDSS pipeline calibrated the flux on
+    standard stars and the wavelengths on arc lamps and sky lines, and
+    converted them to vacuum and the heliocentric frame. The uncertainty is
+    one standard deviation per pixel from the pipeline's inverse variance;
+    the AND mask is not applied, so a selection of good pixels is a step the
+    page states.
+    """
+    sigma = np.full(spectrum.ivar.shape, np.inf)
+    positive = spectrum.ivar > 0
+    sigma[positive] = 1.0 / np.sqrt(spectrum.ivar[positive])
+    return Series(
+        x=spectrum.wavelength,
+        y=spectrum.flux,
+        sigma=sigma,
+        artifact="calibrated-observation",
+        x_name="vacuum wavelength, heliocentric",
+        x_unit="Angstrom",
+        y_name="flux density",
+        y_unit="1e-17 erg/cm^2/s/Angstrom",
     )
 
 

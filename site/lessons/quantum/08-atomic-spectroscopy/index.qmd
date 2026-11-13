@@ -1,0 +1,686 @@
+---
+title: "Atomic spectroscopy lab"
+description: >-
+  A calibrated spectrum of a distant galaxy holds four lines of hydrogen's
+  Balmer series. With the redshift calibrated on the lines of other
+  elements, they test the level model of hydrogen with the reduced mass,
+  checked first on the grid of the quantum course, and give the Rydberg
+  constant with an uncertainty whose assumptions are checked, and a
+  remaining offset that the spectrum cannot explain.
+lesson:
+  id: atomic-spectroscopy
+  strand: quantum
+  order: 8
+  difficulty: 2
+  course: quantum
+  slot: Q7
+  methods: [measured-data, simulation]
+  outcomes:
+    - Read a calibrated astronomical spectrum for what it is, the pipeline's flux- and wavelength-calibrated pixels with their inverse variances, the light of a galaxy's gas and not of a laboratory lamp
+    - State the level model of hydrogen with the reduced mass and its Balmer series, and check its energies with the grid solver of the quantum course on the radial equation
+    - Fit emission lines, calibrate the redshift on the forbidden lines of other elements, and infer the Rydberg constant of hydrogen with an uncertainty whose assumptions are checked on the data
+    - Judge the result against the laboratory value, saying what the spectrum resolves, what it cannot separate, and what the level model leaves out
+  related: []
+  format: 2
+  preview: fig-rydberg-law
+  experiment: pbc.quantum.experiments.atomic_spectroscopy
+  prerequisites:
+    lessons: [quantum-harmonic-oscillator]
+    outside:
+      - "Statistics: a weighted least-squares fit, its reduced chi-square, and the standard error of a weighted mean"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this
+from pbc.data.reference import sdss_balmer
+from pbc.quantum import hydrogen
+from pbc.quantum.experiments import atomic_spectroscopy as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The quantum course has solved the Schrödinger equation for a free packet, a
+barrier, and an oscillator. It has not yet met an atom, and it has not yet
+asked whether a computed energy level is one that nature uses. Hydrogen is
+the place to ask. Its levels decide the colours it emits, and those colours
+are among the most precisely measured numbers in physics.
+
+This lab measures them in an unusual light source: the gas of a galaxy far
+beyond our own, in a spectrum of the Sloan Digital
+Sky Survey (SDSS). Young, hot stars in the galaxy ionise the hydrogen around
+them; when electrons fall back, the gas glows in hydrogen's lines and in the
+lines of oxygen, nitrogen, sulphur, neon, and argon. Does one constant
+describe the four hydrogen lines in the spectrum, as the level model
+says? How well does the spectrum know that constant? And when the galaxy
+moves away from us and shifts every line, how can one tell the motion from
+the atom?
+
+## Assumptions
+
+1. **The level model.** Hydrogen is a point electron and a point proton
+   bound by the Coulomb force, with no spin and no relativity. The model
+   is stated in this lab, not derived by an earlier lesson, and its source
+   is given below.
+2. **One velocity for the gas.** Every line is shifted by the same factor
+   $1 + z$, up to a slow change with wavelength that the calibration
+   allows. The hydrogen lines and the lines of the other elements come
+   from gas that moves together.
+3. **The pipeline's calibration is taken as given.** The SDSS pipeline
+   calibrated the wavelengths on arc lamps and sky lines and converted them
+   to vacuum and to the frame of the Sun. The lab does not redo it.
+4. **A line is a Gaussian on a straight continuum.** Within a few tens of
+   ångström of a line, the starlight under it is a straight line and the
+   line itself a Gaussian, averaged over each pixel.
+5. **Independent pixels.** The pipeline's inverse variance gives the error
+   of each pixel, and the errors of neighbouring pixels are independent.
+   The lab checks this on the residuals of its fits.
+
+## Explanation {#explanation}
+
+### The levels of hydrogen
+
+An electron of mass $m_e$ and a proton of mass $m_p$ attract each other with
+the potential energy $-e^2/4\pi\varepsilon_0 r$. Their motion separates
+into the motion of the centre of mass and the motion of one particle of
+the **reduced mass**
+
+$$
+\mu = \frac{m_e m_p}{m_e + m_p} = \frac{m_e}{1 + m_e/m_p}
+$$
+
+about a fixed centre. The proton is not infinitely heavy: it recoils a
+little, and that is what $\mu$ accounts for. The potential depends only on
+$r$, so with $\psi = R(r)\,Y_{lm}(\theta,\varphi)$ and $u = rR$ the
+Schrödinger equation becomes a one-dimensional equation on $r > 0$. In
+atomic units ($\hbar = m_e = e^2/4\pi\varepsilon_0 = 1$, lengths in Bohr
+radii $a_0$, energies in hartree)
+
+$$
+-\frac{1}{2\mu}\frac{d^2u}{dr^2} + \left(\frac{l(l+1)}{2\mu r^2} - \frac{1}{r}\right) u = E\,u,
+\qquad u(0) = 0 .
+$$
+
+Its bound states have the energies
+
+$$
+E_n = -\frac{\mu}{m_e}\,\frac{1}{2n^2}, \qquad n = l + 1,\ l + 2,\ \dots
+$$
+
+which do not depend on $l$. This is the analytic result of a power-series
+solution of the radial equation; the lab does not repeat that derivation
+but checks the energies on a grid below.
+
+::: {.go-deeper ref="fitzpatrick-hydrogen-atom"}
+The power-series solution of the radial equation, why the series must
+end, and how that gives the levels and the Rydberg formula.
+:::
+
+### The Balmer series
+
+When the electron falls from level $n$ to level $2$, the atom emits a
+photon of energy $E_n - E_2$, at the vacuum wavelength
+
+$$
+\frac{1}{\lambda_n} = R_\mathrm{H}\left(\frac14 - \frac1{n^2}\right),
+\qquad
+R_\mathrm{H} = \frac{R_\infty}{1 + m_e/m_p},
+$$
+
+with $R_\infty$ the Rydberg constant of an infinitely heavy nucleus. The
+four lines with $n = 3, 4, 5, 6$ are called H α, H β, H γ, and H δ. The
+model predicts two things: the four wavenumbers lie on one straight line
+through the origin when plotted against $1/4 - 1/n^2$, and its slope is
+$R_\mathrm{H}$, smaller than $R_\infty$ by the factor $\mu/m_e$.
+
+The model leaves out the spin of the electron and relativity. In real
+hydrogen each Balmer line is a group of close lines, the **fine
+structure**, a few parts in $10^5$ apart; at the resolution of this
+spectrum each group is one line.
+
+### Redshift, and why it hides the Rydberg constant
+
+The galaxy recedes from us, and every wavelength arrives stretched by the
+same factor: $\lambda_\mathrm{obs} = (1 + z)\,\lambda_\mathrm{rest}$, with
+$cz$ close to the speed of recession when $z$ is small. For the hydrogen
+lines that gives
+
+$$
+\frac{1}{\lambda_{\mathrm{obs},n}} = \frac{R_\mathrm{H}}{1 + z}\left(\frac14 - \frac1{n^2}\right):
+$$
+
+the hydrogen lines alone measure only the ratio $R_\mathrm{H}/(1 + z)$.
+Any speed of the gas can be traded for a different Rydberg constant. So the
+redshift must come from elsewhere: from **forbidden lines** of other
+elements in the same gas, whose rest wavelengths are known from the
+laboratory. They play the part that the lines of a calibration lamp play in
+a laboratory spectrometer.
+
+### What a line's width says
+
+A line is not infinitely narrow. The spectrograph blurs it, by an amount the
+pipeline gives for each pixel, and the gas spreads it: atoms moving towards
+us and away shift their light by a Doppler shift each. If $\sigma_\mathrm{obs}$
+is the width of a line and $\sigma_\mathrm{inst}$ that of the instrument,
+both in velocity, the gas contributes
+
+$$
+\sigma_\mathrm{gas} = \sqrt{\sigma_\mathrm{obs}^2 - \sigma_\mathrm{inst}^2}.
+$$
+
+Heat alone gives each atom a velocity spread of $\sqrt{kT/m}$ along the line
+of sight, larger for light hydrogen than for heavy oxygen. Motion of the gas
+as a whole (turbulence, expanding shells, rotation) moves all atoms alike.
+
+## Code {#code}
+
+The model is in `pbc.quantum.hydrogen`: the levels with the reduced mass,
+the Rydberg constant of hydrogen, and the Balmer wavenumbers.
+
+```{python}
+#| echo: false
+excerpt(hydrogen.level)
+```
+
+```{python}
+#| echo: false
+excerpt(hydrogen.rydberg_hydrogen)
+```
+
+The check of the levels solves the radial equation on the grid of the
+quantum course: the Hamiltonian of the Schrödinger-equation lesson,
+diagonalised for its lowest states as in the harmonic-oscillator lesson. It
+contains no formula of the levels:
+
+```{python}
+#| echo: false
+excerpt(hydrogen.radial_levels)
+```
+
+The line fits, the calibration, and the Rydberg constant come from the
+reference module of the dataset, `pbc.data.reference.sdss_balmer`:
+
+```{python}
+#| echo: false
+excerpt(sdss_balmer.calibrate)
+```
+
+```{python}
+#| echo: false
+excerpt(sdss_balmer.rydberg)
+```
+
+The choices of the lab, made before it looks at the data:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="choices")
+```
+
+## Worked examples {#worked-examples}
+
+### The levels on the grid
+
+Before any data, the level formula is checked against the grid. The radial
+equation with the reduced mass is a particle on a line between two walls, the
+problem the quantum course already solves: the wall at $r = 0$ is the
+condition $u(0) = 0$, and the wall far out lies where the bound states have
+died away.
+
+```{python}
+#| label: level-check-run
+#| echo: false
+excerpt(experiment.level_check)
+```
+
+```{python}
+#| label: level-check
+#| echo: false
+result.table("level-check")
+```
+
+[On the grid of step $h = 0.025\,a_0$ the lowest levels of the radial
+equation with the reduced mass agree with $E_n = -(\mu/m_e)/2n^2$ to within
+`{python} result["level-worst"]` of their value; halving the step divides
+every error by `{python} result["level-ratio-low"]` to
+`{python} result["level-ratio-high"]`, the factor of a second-order method,
+and the extrapolation of the two steps agrees with the formula, for
+$l = 0$ and $l = 1$, to better than `{python} result["level-bound"]`.]{.claim
+type="numerically-verified"
+scope="the radial equation of hydrogen in atomic units with the reduced mass, the three-point grid between walls at zero and 250 Bohr radii, the levels n = 1 to 6"
+evidence="level-check-run level-check"} The energy depends on $n$
+alone: a state with $l = 1$ has the energy of the state with $l = 0$ of the
+same $n$. The level model and the grid are the same model; what follows
+tests it against light from hydrogen. Since $\mu/m_e =$
+`{python} result["mass-ratio"]`, the recoil of the proton lowers every
+level, and every Balmer wavenumber, by about five parts in ten thousand.
+
+### The measurement {#data}
+
+```{python}
+#| echo: false
+data_card("sdss-balmer-spectrum")
+```
+
+The sample holds the `{python} result["pixels"]` pixels of the spectrum,
+each line of the SDSS file unchanged. The card labels it a calibrated
+observation: the pipeline calibrated the flux on standard stars and the
+wavelengths on arc lamps and sky lines. The spectrum is public domain under
+the current SDSS data policy, by the owner's decision recorded on the card
+that this policy governs over an older non-commercial clause of SDSS
+Classic. As SDSS asks: *Funding for the SDSS and SDSS-II has been provided
+by the Alfred P. Sloan Foundation, the Participating Institutions, the
+National Science Foundation, the U.S. Department of Energy, the National
+Aeronautics and Space Administration, the Japanese Monbukagakusho, the Max
+Planck Society, and the Higher Education Funding Council for England.*
+
+[The spectrum runs from `{python} result["lowest"]` to
+`{python} result["highest"]` Å in vacuum, in pixels of
+`{python} result["pixel-kms"]` km/s each, with a median signal-to-noise of
+`{python} result["snr"]` per pixel; the pipeline masks
+`{python} result["masked"]` pixels for bright sky and none inside a line
+that the lab fits.]{.claim type="observational"
+scope="the co-added SDSS spectrum of plate 1949, fibre 480, as released in Data Release 17"
+evidence="sdss-balmer-spectrum fig-spectrum"} The fits use the
+`{python} result["good"]` pixels without a mask.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_spectrum)
+```
+
+```{python}
+#| label: fig-spectrum
+#| echo: false
+#| fig-cap: "The light of a starburst galaxy is a sloping continuum of starlight with narrow bright lines on it: the four Balmer lines of hydrogen and the forbidden lines of other elements, all shifted to the red by the galaxy's motion."
+#| fig-alt: "Line plot of flux density on a log scale against wavelength. A continuum falls gently from the blue end to the red end; many narrow spikes rise above it, the tallest near the middle and a group of them in the red half. Labels name four hydrogen lines and three lines of other elements. A few crosses mark masked pixels near the red end."
+#| fig-status: calibrated
+#| fig-dataset: sdss-balmer-spectrum
+result.show("fig-spectrum")
+```
+
+Every pixel is drawn as the pipeline released it; nothing is fitted in this
+figure. The strongest lines are H α and the brightest of the oxygen lines.
+Under H γ and H δ the continuum dips: the young stars absorb at the same
+wavelengths that the gas emits.
+
+### Fitting the lines
+
+Each line is fitted as a Gaussian on a straight continuum, weighted by the
+pipeline's inverse variance, in a window set by its brightest pixel:
+
+```{python}
+#| echo: false
+excerpt(sdss_balmer.fit_group)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_balmer_fits)
+```
+
+```{python}
+#| label: fig-balmer-fits
+#| echo: false
+#| fig-cap: "Each Balmer line is resolved by only a few pixels, and the Gaussian follows them closely; but the brightest lines leave residuals of many standard deviations, and under the two bluest lines the residuals wander in runs."
+#| fig-alt: "Eight panels in two rows. Top row: four narrow peaks of measured pixels with small error bars against velocity, each with a dashed fitted curve through them; the first panel also shows two smaller peaks either side. Bottom row: the residuals of each fit in units of the pixel error; the first scatters widely near the peak, the second stays within a few units, the third and fourth wander above and below zero in groups."
+#| fig-status: processed
+#| fig-dataset: sdss-balmer-spectrum
+result.show("fig-balmer-fits")
+```
+
+The points are the measured pixels with one standard deviation from the
+inverse variance; the dashed curves are the fitted model; the residuals are
+divided by the pixel error. Every fitted line of the spectrum:
+
+```{python}
+#| label: lines
+#| echo: false
+result.table("lines")
+```
+
+[The bright lines do not fit within the pixel errors: H α with the two
+nitrogen lines beside it reaches a reduced chi-square of
+`{python} result["ha-chi2"]`, so its centre error is scaled from
+`{python} result["ha-raw-error"]` to `{python} result["ha-error"]` Å, the
+square root of the reduced chi-square times the error from the inverse
+variance; the faint lines fit with a reduced chi-square near one.]{.claim
+type="experimentally-supported"
+scope="the thirteen lines of this spectrum, each a Gaussian on a straight continuum in its window"
+evidence="lines fig-balmer-fits sdss-balmer-spectrum"} At a signal-to-noise
+of many hundreds at its peak a line is not exactly a Gaussian, and the
+scaling makes its error honest in size, not in shape.
+
+### What the widths say
+
+[After the spectrograph's own width is removed, the lines are
+`{python} result["gas-low"]` to `{python} result["gas-high"]` km/s wide,
+the Balmer lines `{python} result["gas-balmer-low"]` to
+`{python} result["gas-balmer-high"]` km/s, about the same for hydrogen as
+for oxygen, nitrogen, sulphur, neon, and argon.]{.claim
+type="experimentally-supported"
+scope="the widths of the table, the instrument's sigma from the pipeline's wdisp at each line, removed in quadrature"
+evidence="lines sdss-balmer-spectrum"} [Gas at the
+$10^4$ K of a typical ionised nebula would spread hydrogen by only
+about `{python} result["thermal-h"]` km/s and oxygen by about
+`{python} result["thermal-o"]` km/s.]{.not-verified} The widths are not
+heat: they are motions of the gas as a whole, the same for every element,
+inside a galaxy where stars are forming fast. A laboratory lamp would give
+lines a hundred times narrower.
+
+### Calibrating the redshift
+
+Each forbidden line gives its own $z = \lambda_\mathrm{obs}/\lambda_\mathrm{rest} - 1$
+with its laboratory rest wavelength. A weighted straight line in observed
+wavelength, $z(\lambda) = z_0 + z_1 (\lambda - 5500\,\text{Å})/1000\,\text{Å}$,
+calibrates the gas's velocity and the spectrograph's wavelength scale
+together. The hydrogen rest wavelengths are never used.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_calibration)
+```
+
+```{python}
+#| label: fig-calibration
+#| echo: false
+#| fig-cap: "The forbidden lines of six ions share one velocity to within a few kilometres per second, with a slope across the spectrum; the line of neon, at the blue end, lies furthest from the calibration."
+#| fig-alt: "Two panels against observed wavelength. Top: nine points with error bars, labelled by ion, a dashed straight line rising gently from left to right through most of them, and a dotted horizontal line; the leftmost point lies well below both lines. Bottom: the offsets of the points from the dashed line, scattered around zero within about ten units, the leftmost lowest."
+#| fig-status: processed
+#| fig-dataset: sdss-balmer-spectrum
+result.show("fig-calibration")
+```
+
+```{python}
+#| label: calibration
+#| echo: false
+result.table("calibration")
+```
+
+[The forbidden lines give $z_0 =$ `{python} result["z0"]` ±
+`{python} result["z0-err"]` at [5500 Å]{.given}, a recession of about
+`{python} result["cz"]` km/s, with a slope of `{python} result["slope"]` ±
+`{python} result["slope-err"]` km/s per [1000 Å]{.given}. They scatter about the
+calibration with a chi-square of `{python} result["cal-chi2"]` for
+`{python} result["cal-dof"]` degrees of freedom, so the calibration's
+errors are multiplied by `{python} result["cal-birge"]`, the square root of
+their ratio.]{.claim type="experimentally-supported"
+scope="the nine forbidden lines of the table with the laboratory vacuum wavelengths of the SDSS line list, a straight line in wavelength, the scaled line errors"
+evidence="calibration fig-calibration sdss-balmer-spectrum"} The ions do
+not move exactly alike: they glow in different zones of the gas, and the
+spectrum resolves velocities of a few km/s. The calibration takes that
+extra spread into its error rather than pretending it is not there. The
+pipeline's own redshift, from a fit of templates, lies
+`{python} result["pipeline-offset"]` km/s from $z_0$; it is a different
+method and is not used.
+
+### The Rydberg constant
+
+Each Balmer line's rest wavelength is its observed wavelength divided by
+$1 + z(\lambda)$, and the Balmer formula then gives one value of $R$ per
+line:
+
+```{python}
+#| label: rydberg
+#| echo: false
+result.table("rydberg")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_rydberg_law)
+```
+
+```{python}
+#| label: fig-rydberg-law
+#| echo: false
+#| fig-cap: "With the redshift calibrated on other elements, the four Balmer lines follow the Rydberg formula with one constant: each lies a few kilometres per second from the formula with the laboratory constant, and all by the same amount. A single redshift leaves a trend from one line to the next."
+#| fig-alt: "Two panels. Left: four points of rest wavenumber against one quarter minus one over n squared, lying on a dashed straight line through the origin. Right: the offset of each line from the formula with the laboratory constant against its upper level; four filled points with error bars lie together on a dashed horizontal line below zero, a dash-dotted line lies between them and zero, and four open squares fall further below zero from left to right."
+#| fig-status: processed
+#| fig-dataset: sdss-balmer-spectrum
+result.show("fig-rydberg-law")
+```
+
+[The four Balmer lines give the weighted mean
+$R =$ `{python} result["r"]` ± `{python} result["r-err"]` $\mathrm{m^{-1}}$, and they
+agree with one constant: their chi-square about it is
+`{python} result["r-chi2"]` for `{python} result["r-dof"]` degrees of
+freedom. With a single redshift for all lines instead, the same lines
+disagree, with a chi-square of `{python} result["flat-chi2"]`, and give
+$R =$ `{python} result["flat-r"]` ± `{python} result["flat-r-err"]`
+$\mathrm{m^{-1}}$; that single redshift fits the forbidden lines with a
+chi-square of `{python} result["flat-cal-chi2"]` for
+`{python} result["flat-cal-dof"]` degrees of freedom.]{.claim
+type="experimentally-supported"
+scope="the four Balmer lines n = 3 to 6, their rest wavelengths from the calibration z(lambda) of the forbidden lines, errors from the inverse variance scaled by the fits and by the calibration's scatter"
+evidence="rydberg fig-rydberg-law calibration sdss-balmer-spectrum"} The
+calibration was fitted only to the forbidden lines, so the agreement of the
+hydrogen lines is a test it passes, not a fit. The $1/n^2$ law holds across
+the four lines to within their errors.
+
+[The measured $R$ lies `{python} result["rel-inf"]` $\times 10^{-4}$ below
+$R_\infty =$ `{python} result["r-inf"]` $\mathrm{m^{-1}}$, the constant of an infinitely
+heavy nucleus, `{python} result["rel-inf-sigma"]` standard errors away; the
+reduced mass predicts `{python} result["recoil"]` $\times 10^{-4}$. The measured $R$
+lies `{python} result["rel-h"]` $\times 10^{-5}$ above
+$R_\mathrm{H} =$ `{python} result["r-h"]` $\mathrm{m^{-1}}$, `{python} result["rel-h-sigma"]`
+standard errors away.]{.claim type="experimentally-supported"
+scope="R of this spectrum against the CODATA 2018 values of R_inf and m_e/m_p, the Bohr formula"
+evidence="rydberg sdss-balmer-spectrum"} The spectrum sees the recoil of the
+proton plainly. It does not agree with $R_\mathrm{H}$ within its error, and
+the next sections ask whether the error is honest and what else moves
+$R$.
+
+### Are the errors honest?
+
+Every error above assumes that the pixel errors are independent. If
+neighbouring pixels moved together, a fit would see fewer independent
+values than it counts, and its errors would be too small. The residuals of
+each fit test it:
+
+```{python}
+#| echo: false
+excerpt(experiment.independence_table)
+```
+
+```{python}
+#| label: independence
+#| echo: false
+result.table("independence")
+```
+
+[In `{python} result["near-one-inside"]` of the
+`{python} result["near-one"]` fits with a reduced chi-square below one and
+a half, the correlation of neighbouring residuals lies inside the band that
+independent residuals fill; it lies outside for H δ
+(`{python} result["hd-rho"]`) and for the oxygen line at [6302 Å]{.given}
+(`{python} result["oi-rho"]`), two fits whose residuals also exceed their
+errors.]{.claim type="experimentally-supported"
+scope="the ten fit windows of the table, the correlation at a distance of one pixel, a band of two over the square root of the pixels"
+evidence="independence fig-balmer-fits sdss-balmer-spectrum"} Where the
+model fits, the pixel noise looks independent. Where it does not, the
+residuals come in runs, the stellar absorption under H δ, and scaling by the
+reduced chi-square corrects the size of the error but not the runs: the
+error of H δ may still be too small. It carries the least weight of the four
+lines, and leaving it out moves $R$ by little:
+
+```{python}
+#| label: sensitivity
+#| echo: false
+result.table("sensitivity")
+```
+
+[Narrower or wider windows and leaving out H δ move $R$ by at most
+`{python} result["window-shift"]` $\mathrm{m^{-1}}$; leaving out the bluest forbidden
+line, the neon line that sets most of the calibration's slope, moves it by
+`{python} result["neiii-shift"]` $\mathrm{m^{-1}}$, within one standard error.]{.claim
+type="experimentally-supported"
+scope="the choices of the table, each changed alone; a range of the choices, not an uncertainty interval"
+evidence="sensitivity sdss-balmer-spectrum"} The choices of the analysis do
+not explain an offset of several standard errors.
+
+### What the spectrum cannot tell apart
+
+Two things move $R$ that no fit of this spectrum can see.
+
+**The model.** Real hydrogen has fine structure, which the Bohr formula
+leaves out. [Applied to the laboratory wavelengths of the four lines (the
+centres of their fine-structure groups), the same formula gives a constant
+`{python} result["rel-fine"]` $\times 10^{-5}$ above $R_\mathrm{H}$.]{.claim
+type="observational"
+scope="the laboratory vacuum wavelengths of the Balmer lines of the SDSS line list, put through the Bohr formula"
+evidence="rydberg sdss-balmer-spectrum"} That part of the difference is the
+level model's, not the measurement's.
+
+**The velocity.** [What remains, `{python} result["rel-lab"]` $\times 10^{-5}$ or
+`{python} result["rel-lab-kms"]` km/s, is `{python} result["rel-lab-sigma"]`
+standard errors.]{.claim type="experimentally-supported"
+scope="R of this spectrum against the Bohr formula on laboratory hydrogen"
+evidence="rydberg sdss-balmer-spectrum"} It is the size of the spread
+between the ions in the calibration. If the hydrogen glows from gas that
+moves a few km/s differently from the forbidden-line gas, or if the
+wavelength scale has an offset of that size, $R$ moves by the same
+fraction, and nothing in the spectrum separates the two. The stated error
+does not include it, and the spectrum gives no bound on it.
+
+### What the lab shows
+
+The level model of hydrogen with the reduced mass, checked on the grid of
+the quantum course, describes the four Balmer lines of a galaxy's gas to
+the precision of the spectrum: one constant fits all four lines, the
+$1/n^2$ law holds, and the recoil of the proton is resolved more than a
+hundred times over. The honest result is
+$R =$ `{python} result["r"]` ± `{python} result["r-err"]` $\mathrm{m^{-1}}$ with an
+offset from the laboratory value of a few parts in $10^5$: about two fifths
+of it the fine structure that the model leaves out, the rest a velocity of
+a few km/s that this spectrum cannot tell from the atom.
+
+## Limits {#limits}
+
+- **A galaxy, not a lamp.** The redshift and the Rydberg constant enter the
+  hydrogen lines only as their ratio. The calibration on other elements
+  assumes that all the gas moves alike; the spread between the ions shows
+  that it does so only to a few km/s, and that is the floor of this
+  measurement.
+- **The Bohr formula.** The level model has no spin, no relativity, and no
+  Lamb shift. A measurement better than about $10^{-5}$ needs the fine
+  structure, which is outside this lab.
+- **The pipeline's wavelengths.** The wavelength calibration is taken as
+  released. A constant error of the wavelength scale moves $R$ one for one,
+  and the record does not state its size.
+- **Scaled errors.** Where a fit is worse than its pixel errors, the error
+  of its centre is scaled up; where its residuals come in runs, that is not
+  enough, and the H δ error may be too small.
+- **Stellar absorption.** The continuum under H γ and H δ is not straight;
+  a model of the stellar light would remove it, and this lab does not fit
+  one.
+
+::: {.exercise .self-check}
+The four Balmer lines agree with one constant to within their errors, yet
+that constant differs from the laboratory value by several of its standard
+errors. A colleague concludes that the errors must be too small. What else
+could the disagreement mean, and how does the lab tell?
+
+::: {.solution}
+The errors measure how well the line centres and the calibration are known
+from this spectrum; they say nothing about effects that move every line by
+the same fraction. Two such effects exist. The level model leaves out fine
+structure, which shifts the laboratory lines by about one part in $10^5$
+from the Bohr formula; the lab measures that part by putting laboratory
+wavelengths through the same formula. And a common velocity of the hydrogen
+gas relative to the forbidden-line gas, or an offset of the wavelength
+scale, changes all four lines alike: they still agree with each other, and
+their constant moves. The lab checks the errors themselves on the residuals
+of the fits and by the sensitivity to its choices, neither of which explains
+the offset. What remains is a few km/s, the size of the spread between the
+ions, and the spectrum cannot separate it from $R$.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Weighing the proton.** With $R_\infty = 10\,973\,731.568$ $\mathrm{m^{-1}}$ known, the
+measured $R = 10\,968\,065 \pm 41$ $\mathrm{m^{-1}}$ gives the mass ratio from
+$R = R_\infty/(1 + m_e/m_p)$. What proton mass, in electron masses, does it
+imply, and how does that compare with the known 1836? Which uncertainty
+dominates?
+
+::: {.hint}
+Solve for $m_e/m_p = R_\infty/R - 1$; then ask what a velocity of a few
+km/s, which changes $R$ by the same small fraction, does to that small
+difference.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.proton_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("proton-exercise"), end="")
+```
+
+The statistical error alone would give the proton mass to under one per
+cent, but the answer is several per cent too large. The mass ratio comes
+from a difference of $5 \times 10^{-4}$, and the offset of a few parts in
+$10^5$ (fine structure and velocity) is a twentieth of it. The spectrum
+resolves the recoil; it does not weigh the proton.
+:::
+:::
+
+::: {.exercise}
+**Deuterium.** Deuterium's nucleus is about 1.999 times as heavy as the
+proton. By how much does its H α line lie to the blue of hydrogen's, in
+ångström and in km/s? Could this spectrum separate the two?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.deuterium_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("deuterium-exercise"), end="")
+```
+
+The shift is about the width of the line from the motion of the gas, and
+deuterium is a few parts in $10^5$ of hydrogen in such gas: its line would
+be lost in the wing of H α. In a cold laboratory lamp, with lines a hundred
+times narrower, the two are cleanly apart, which is how deuterium was
+discovered.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/quantum/hydrogen.py",
+        "src/pbc/quantum/eigenstates.py",
+        "src/pbc/quantum/schrodinger.py",
+        "src/pbc/quantum/experiments/atomic_spectroscopy.py",
+        "src/pbc/experiment.py",
+        "src/pbc/data/reference/sdss_balmer.py",
+        "src/pbc/data/adapters.py",
+        "src/pbc/data/fit.py",
+        "src/pbc/data/plotting.py",
+    ],
+    tests=[
+        "tests/unit/test_hydrogen.py",
+        "tests/unit/test_data_sdss_balmer.py",
+        "tests/unit/test_atomic_spectroscopy_experiment.py",
+    ],
+)
+```
+
+The data card above gives the command that downloads the SDSS file into
+`data/downloads/sdss-balmer-spectrum`, and the conversion script that
+repeats the committed sample from it; no model and no account are needed to
+read it.
