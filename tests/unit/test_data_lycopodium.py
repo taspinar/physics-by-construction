@@ -246,3 +246,24 @@ def test_the_reencoding_changes_the_micro_sign_and_nothing_else(tmp_path):
     source.write_bytes(record + b"\x96\r\n")
     with pytest.raises(ValueError, match="other than 0xB5"):
         tool.convert(source, out, check_input=False)
+
+
+def test_the_line_through_the_two_rings_is_called_a_fit_not_a_model():
+    # Issue #453: the dashed line of the last panel takes its slope from the
+    # same two ring radii it is drawn against, so it is a fit; no legend of
+    # the reference figure may present it, or anything else, as a model.
+    import matplotlib.pyplot as plt
+
+    figure = lyc.make_figure(DIR)
+    try:
+        texts = [
+            t.get_text()
+            for ax in figure.axes
+            if ax.get_legend() is not None
+            for t in ax.get_legend().get_texts()
+        ]
+        line = [t for t in texts if "proportional" in t]
+        assert line == ["proportional fit to the two measured radii"]
+        assert not any("model" in t for t in texts), texts
+    finally:
+        plt.close(figure)
