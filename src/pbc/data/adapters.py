@@ -17,9 +17,11 @@ from pbc.data.uncertainty import standard_from_expanded
 
 if TYPE_CHECKING:
     from pbc.data.reference.bayreuth_rlc import Spectrum
+    from pbc.data.reference.cylinder_wake import Wake
     from pbc.data.reference.dwd_soil import Readings
     from pbc.data.reference.lycopodium import Profile
     from pbc.data.reference.nist_numisheet import Test
+    from pbc.data.reference.ost_hotwire import HotWire
     from pbc.data.reference.sdss_balmer import Spectrum as SdssSpectrum
     from pbc.data.reference.tess_wasp18 import LightCurve
     from pbc.data.reference.trackpy_bulk_water import Tracks
@@ -126,6 +128,51 @@ def stress_strain_series(test: Test) -> Series:
         x_unit="mm/mm",
         y_name="engineering stress S",
         y_unit="MPa",
+    )
+
+
+def piv_probe_series(wake: Wake, probe: int, component: int) -> Series:
+    """One velocity component (``component`` 0 for u, 1 for v) in m/s at
+    one probe of the Shang and Tu PIV record (``probe`` 0 for 2 D, 1 for
+    5 D behind the cylinder) against the time in s, frame k at k / 20 s,
+    every frame of the 400 s record.
+
+    Processed, as the card labels the record: DaVis computed the vectors
+    from image pairs by cross-correlation; the record holds no image. The
+    record gives no PIV uncertainty, so the series has none. The probes are
+    never masked.
+    """
+    frames = wake.probes.shape[0]
+    return Series(
+        x=np.arange(frames) / float(wake.meta["fps"]),
+        y=wake.probes[:, probe, component],
+        artifact="processed-measured",
+        x_name="time (20 frames per second)",
+        x_unit="s",
+        y_name="uv"[component],
+        y_unit="m/s",
+    )
+
+
+def hot_wire_series(data: HotWire, run: int) -> Series:
+    """The speed in m/s of one run of the Ost, de Paula and Möller hot-wire
+    record against the time in s (sample k at k ms), the first 16.384 s of
+    the run as the sample holds them.
+
+    Processed, as the card labels the record: the anemometer's calibrated
+    output, not the bridge voltage, low-pass filtered at 300 Hz by the
+    creators and rounded to 1 mm/s by this project. The record gives no
+    uncertainty, so the series has none.
+    """
+    samples = data.u.shape[0]
+    return Series(
+        x=np.arange(samples) / 1000.0,
+        y=data.u[:, run],
+        artifact="processed-measured",
+        x_name="time (1000 samples per second)",
+        x_unit="s",
+        y_name="speed",
+        y_unit="m/s",
     )
 
 
