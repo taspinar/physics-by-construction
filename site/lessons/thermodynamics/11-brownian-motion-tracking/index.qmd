@@ -1,0 +1,668 @@
+---
+title: "Brownian motion tracking lab"
+description: >-
+  A published video of latex spheres in water, tracked by this project,
+  against the random walk of the diffusion lesson: the mean squared
+  displacement grows in proportion to the time, the diffusion coefficient
+  follows from its slope with an uncertainty whose assumptions are checked,
+  it falls a few per cent short of Stokes–Einstein at a temperature the
+  record does not give, and the shortest lags bend in a way that a camera's
+  blur and noise do not explain.
+lesson:
+  id: brownian-motion-tracking
+  strand: thermodynamics
+  order: 11
+  difficulty: 2
+  course: thermodynamics
+  slot: T8
+  methods: [measured-data]
+  outcomes:
+    - Tell the measurement from the processing in a tracking experiment, the video frames as recorded, the positions and tracks as this project's processing, and the drift, the mean squared displacement and the fit as analysis
+    - Extend the random walk of the diffusion lesson to what a camera records, an exposure and a localisation error, check the formula on simulated walks, and state its prediction of a straight mean squared displacement with an intercept
+    - Infer the diffusion coefficient from the drift-corrected mean squared displacement with a bootstrap over tracks, check the assumptions of that error on the data, and set the sensitivity to the processing beside it
+    - Compare the result with Stokes–Einstein, say what the record leaves open, and say where the data depart from the model
+  related: []
+  format: 2
+  preview: fig-msd
+  experiment: pbc.thermodynamics.experiments.brownian_motion_tracking
+  prerequisites:
+    lessons: [random-walks-and-diffusion]
+    outside:
+      - "Statistics: a least-squares line, its residuals, and the bootstrap"
+      - "Probability: independent random variables, the variance and the covariance, and the tails of a distribution"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this
+from pbc.data.reference import trackpy_bulk_water
+from pbc.thermodynamics import brownian
+from pbc.thermodynamics.experiments import brownian_motion_tracking as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The random-walks lesson built a walker from one rule, a step in a random
+direction, and found that the mean squared displacement of many walkers
+grows in proportion to the time, $\langle r^2 \rangle = 4Dt$ in the plane.
+The walkers were simulated; the lesson said so. Does anything real walk
+like that?
+
+In [1827]{.given} Robert Brown watched tiny particles from pollen grains
+jiggle in water under a microscope, and in [1905]{.given} Einstein explained
+the motion: a small particle in a liquid is knocked by the molecules around
+it, and it walks. This lab watches such a walk in a
+published video of latex spheres in water, a micrometre across. It locates
+the spheres in each frame, links them into tracks, and asks three questions.
+Does the mean squared displacement grow in proportion to the time, as the
+walk predicts? What diffusion coefficient does it give, and how well is it
+known? And does it agree with the one that Einstein's theory predicts from
+the temperature, the viscosity of water, and the size of the spheres?
+
+## Assumptions
+
+1. **Free Brownian motion in three dimensions, seen in two.** Each sphere
+   walks independently in $x$, $y$ and $z$; the camera sees $x$ and $y$, so
+   the mean squared displacement in the plane is $4Dt$. Nothing pulls the
+   spheres back, and they do not touch each other or a wall.
+2. **One kind of sphere.** All spheres have the nominal diameter of the
+   record, [1 µm]{.given}, and one diffusion coefficient. The record gives no
+   tolerance of the size.
+3. **The calibration of the record is exact.** The provider's README says
+   [24 frames per second]{.given} and [2.85 pixels per micrometre]{.given},
+   with no uncertainty. The lab takes both as exact.
+4. **A uniform drift.** The whole sample may move (a flow of the water, the
+   stage); the lab estimates that motion from the mean step of all spheres
+   and subtracts it, the same for every sphere in the field.
+5. **The tracking is processing.** The frames are the measurement. The
+   positions and the tracks are this project's processing of the frames,
+   with choices the lab states and varies.
+6. **The temperature is not known.** The record does not state it. The
+   comparison with Stokes–Einstein is made at two assumed temperatures.
+
+## Explanation {#explanation}
+
+### From a random walk to a sphere in water
+
+The walker of the random-walks lesson took a step of length $\ell$ every
+time $\tau$, and its mean squared displacement in the plane was
+$\langle r^2\rangle = (\ell^2/\tau)\,t = 4Dt$. Nothing in that derivation
+needs equal steps: it needs steps that are independent and have a finite
+mean square. A sphere in water is kicked by an enormous number of
+molecules every second; over any time a camera can resolve, its displacement
+is the sum of a great many independent small ones. Its mean squared
+displacement therefore grows as $4Dt$ in the plane, with a $D$ that is
+not the walker's rule but a property of the sphere and the water.
+
+### The Stokes–Einstein relation
+
+Einstein found that $D$. A sphere of radius $r$ moving at speed $v$
+through a liquid of viscosity $\eta$ feels the Stokes drag $6\pi\eta r v$.
+In equilibrium at temperature $T$ the kicks that drive the walk and the
+drag that resists it are two sides of one process, and
+
+$$
+D = \frac{k_B T}{6\pi\eta r} .
+$$
+
+For a sphere of the record's size in water near room temperature this is a
+few tenths of $\mu\mathrm{m^2/s}$. The prediction needs three numbers, the
+temperature, the viscosity at that temperature, and the radius, and the
+record gives only the radius, nominally.
+
+### What a camera records
+
+A camera does not see where a sphere is at an instant. Over its exposure
+$\tau_e$ the sphere moves, and the frame shows the mean of its positions over
+that time: the motion blurs. The tracking then locates the blurred image
+with some error $\sigma$ in each coordinate. For a sphere in free Brownian
+motion, the mean squared displacement of the recorded positions at a lag
+$\tau \ge \tau_e$ is
+
+$$
+\mathrm{MSD}(\tau) = 4D\left(\tau - \frac{\tau_e}{3}\right) + 4\sigma^2 .
+$$
+
+The line keeps the slope $4D$; the blur lowers its intercept by
+$4D\tau_e/3$ and the localisation error raises it by $4\sigma^2$. The blur
+also makes successive steps of a track share some motion: per coordinate
+their covariance is $D\tau_e/3 - \sigma^2$, so blur over a whole frame
+without error gives a correlation of one quarter, and an error alone a
+negative one. A line through the origin, as the random-walks lesson fitted
+it, assumes no intercept, and gives the wrong slope when there is one.
+
+### The tracking, as processing
+
+The frames are the measurement. The positions are not in the record; this
+project computes them, with NumPy and SciPy, following Crocker and Grier,
+the method behind the trackpy package:
+
+1. **Band-pass.** The green channel of each frame is inverted (the spheres
+   are dark), smoothed, and its local background subtracted.
+2. **Locate.** Each local maximum is refined to the centroid of the
+   brightness around it; faint maxima are dropped by a cut on their summed
+   brightness, the mass.
+3. **Link.** A sphere in one frame continues a track when it and a sphere in
+   the next frame are each other's nearest neighbours within a link range.
+4. **Drift.** The mean step of all linked spheres from one frame to the next
+   is the motion of the whole sample; it is summed and subtracted.
+
+Every one of these steps involves a choice. The lab varies the choices and
+reports how much the result moves.
+
+## Code {#code}
+
+The model is in `pbc.thermodynamics.brownian`: Stokes–Einstein, the
+mean squared displacement a camera records, and the correlation of its
+steps.
+
+```{python}
+#| echo: false
+excerpt(brownian.stokes_einstein)
+```
+
+```{python}
+#| echo: false
+excerpt(brownian.camera_msd)
+```
+
+```{python}
+#| echo: false
+excerpt(brownian.camera_step_correlation)
+```
+
+The check of the formula drives the walker of the random-walks lesson,
+`random_walks`, with many short steps per frame, and records what a camera
+would; it contains no formula of the blurred walk:
+
+```{python}
+#| echo: false
+excerpt(brownian.camera_walks)
+```
+
+The choices of the lab, made before it looks at the data:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="choices")
+```
+
+## Worked examples {#worked-examples}
+
+### The camera model against simulated walks
+
+Before any data, the formula is checked on walkers whose $D$ is known: an
+ideal camera, one that exposes over a whole frame, and one that also
+locates with an error. Each is analysed as the lab analyses the data.
+
+```{python}
+#| label: camera-check-run
+#| echo: false
+excerpt(experiment.camera_check)
+```
+
+```{python}
+#| label: camera-check
+#| echo: false
+result.table("camera-check")
+```
+
+[For walkers with $D =$ `{python} result["check-true-d"]`
+$\mu\mathrm{m^2/s}$, the recorded mean squared displacement agrees with the
+camera formula at every lag to within `{python} result["check-z"]` standard
+errors of the simulation; the line with an intercept recovers $D$ to within
+`{python} result["check-d"]` per cent for every camera, and the step
+correlation matches the formula to within `{python} result["check-rho"]`.
+With blur over a whole frame, the line through the origin gives
+`{python} result["check-origin"]` instead.]{.claim type="numerically-verified"
+scope="the walker of the random-walks lesson with twenty steps per frame, four thousand walkers of forty frames per camera, lags of one to ten frames, one seed"
+evidence="camera-check-run camera-check"} The formula is right for the walk,
+and it says what to fit: a line with an intercept, whose slope does not
+depend on the blur or the error.
+
+### The measurement {#data}
+
+```{python}
+#| echo: false
+data_card("trackpy-bulk-water")
+```
+
+The record is a video of charge-stabilised latex spheres diffusing in water,
+published with the trackpy examples. Its README gives the frame rate and the
+scale and nothing else: no temperature, no exposure time, no objective, no
+tolerance of the sphere size. The lab uses the first forty frames, a little
+over one and a half seconds. The repository commits no image outside the
+site's assets, so the green channel of the first three frames is committed
+as an array of its grey levels, unchanged. Here is a corner of the first
+frame as recorded:
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_frame)
+```
+
+```{python}
+#| label: fig-frame
+#| echo: false
+#| fig-cap: "The measurement is a picture: dark blurred spots, a few pixels across, on a bright and uneven field. Nothing on it is a position until a program decides where each spot is."
+#| fig-alt: "A square grey-scale image of a corner of one video frame, with axes in pixels and a grey-level colour bar. About two dozen small dark spots are scattered over a lighter background whose brightness varies in patches; the image is coarse and slightly blocky."
+#| fig-status: measured
+#| fig-dataset: trackpy-bulk-water
+result.show("fig-frame")
+```
+
+The grey levels are the record's, shown in grey. The frames also carry the
+traces of a compression of the video before it was published, which the
+record does not mention: the dossier finds the edges of square blocks of
+eight pixels in them. What the tracking makes
+of the forty frames:
+
+```{python}
+#| label: record
+#| echo: false
+result.table("record")
+```
+
+[Every frame has between `{python} result["features-low"]` and
+`{python} result["features-high"]` located spheres; the linking makes
+`{python} result["tracks"]` tracks of them, of which
+`{python} result["long-tracks"]`, with `{python} result["long-features"]`
+positions, are long enough for the analysis.]{.claim type="observational"
+scope="frames 000 to 039 of the video, as located and linked by this project with the choices of the dataset's card"
+evidence="record trackpy-bulk-water"} Shorter tracks are spheres that drift
+out of focus, out of the field, or past a neighbour; the lab keeps the
+tracks of at least fifteen frames, and shows below that the choice does not
+matter.
+
+### The tracks and the drift
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_tracks)
+```
+
+```{python}
+#| label: fig-tracks
+#| echo: false
+#| fig-cap: "Each sphere wanders around where it started, and the whole sample also moves slowly in one direction: the drift, which the analysis has to remove before it can measure the wandering."
+#| fig-alt: "Two panels. Left, the same corner of the frame with circles where spheres were found in the first frame and short wiggly lines for their tracks over forty frames, each staying within a few pixels of its circle. Right, the displacement of the whole sample against time, two lines for the two directions, both rising steadily, the one for x about three times as steeply as the one for y."
+#| fig-status: processed
+#| fig-dataset: trackpy-bulk-water
+result.show("fig-tracks")
+```
+
+The tracks are this project's processing of the frames, drift included as
+measured. [Over `{python} result["duration"]` s the whole sample moves by
+`{python} result["drift-x"]` µm in $x$ and `{python} result["drift-y"]` µm in
+$y$, a drift of `{python} result["drift-speed"]` µm/s, estimated from the
+mean step of every linked sphere.]{.claim type="experimentally-supported"
+scope="frames 000 to 039, the drift taken as uniform over the field (the dossier finds the four halves of the field alike within two standard errors)"
+evidence="fig-tracks trackpy-bulk-water"} A sphere wanders by about a
+fifth of a micrometre per frame; the drift adds a few hundredths per
+frame, always in the same direction, and over many frames that adds up.
+
+### The mean squared displacement and D
+
+The reference module of the dataset does the analysis: it subtracts the
+drift, keeps the long tracks, averages the squared displacement over every
+pair of frames of every track at lags of one to ten frames, fits the line
+$4D\tau + c$, and repeats the fit on a thousand sets of tracks drawn with
+replacement, the bootstrap.
+
+```{python}
+#| echo: false
+excerpt(trackpy_bulk_water.analyse)
+```
+
+```{python}
+#| label: fig-msd
+#| echo: false
+#| fig-cap: "The mean squared displacement grows in proportion to the lag, as the random walk predicts, and gives D from its slope; but the residuals bend, and D from each frame's increase climbs over the first few lags before it levels off a little below the Stokes–Einstein value for the cooler of the two assumed temperatures."
+#| fig-alt: "Three panels. Top left, mean squared displacement against lag time: ten points with small error bars rising along a straight dashed line that crosses zero slightly below the origin; a dash-dot line through the origin is a little shallower, and two dotted lines, one for each assumed temperature, are steeper. Bottom left, the residuals of the dashed line: positive at the first lag, negative in the middle, rising again at the end, a smooth bend. Right, the diffusion coefficient from each increase against lag: squares with error bars rising from well below the dashed line of the fit to just above it, and staying there, below the lower dotted line of the cooler temperature; the dotted line of the warmer temperature lies far above all of them."
+#| fig-status: processed
+#| fig-dataset: trackpy-bulk-water
+result.show("fig-msd")
+```
+
+```{python}
+#| label: msd
+#| echo: false
+result.table("msd")
+```
+
+[After the drift is subtracted, the mean squared displacement of lags one to
+ten frames lies on the line $4D\tau + c$ with
+$D =$ `{python} result["d"]` ± `{python} result["d-err"]`
+$\mu\mathrm{m^2/s}$, the error one standard deviation of the bootstrap over
+tracks (`{python} result["d-rel"]` per cent), and an intercept of
+`{python} result["intercept"]` ± `{python} result["intercept-err"]`
+$\mu\mathrm{m^2}$.]{.claim type="experimentally-supported"
+scope="the tracks of at least fifteen frames in frames 000 to 039, the README's scale and frame rate taken as exact, the drift subtracted as uniform"
+evidence="fig-msd msd trackpy-bulk-water"} The intercept is negative: the
+line meets the time axis after zero, so the line through the origin of the
+random-walks lesson would be the wrong model. [Fitted through the origin,
+as the random-walks lesson fitted its walkers, the same points give
+`{python} result["d-origin"]` $\mu\mathrm{m^2/s}$.]{.claim
+type="experimentally-supported"
+scope="the same mean squared displacement, the estimator of the random-walks lesson"
+evidence="fig-msd msd"} The simulated camera showed why: blur bends the
+line through the origin away from the slope.
+
+The line is not the whole story. Its residuals are not scattered: they run
+positive, negative, positive, a smooth bend. [Measured from the increase
+over one frame, $D$ is `{python} result["local-first"]` ±
+`{python} result["local-first-err"]` $\mu\mathrm{m^2/s}$ between the first
+and the second lag, and about `{python} result["local-late"]` from the
+sixth lag on.]{.claim type="experimentally-supported"
+scope="the increases of the mean squared displacement between lags one and ten frames, bootstrap errors over tracks"
+evidence="fig-msd msd"} A walk, blurred or not, has one slope. The data
+have a slope that grows over the first few lags; the section "What the
+camera does not explain" comes back to it.
+
+### Against Stokes–Einstein
+
+```{python}
+#| label: stokes
+#| echo: false
+result.table("stokes")
+```
+
+[Stokes–Einstein for a sphere of the nominal size in water gives
+`{python} result["se-20"]` $\mu\mathrm{m^2/s}$ at [20 °C]{.given} and
+`{python} result["se-25"]` at [25 °C]{.given}; the measured $D$ is
+`{python} result["below-20"]` per cent below the first and
+`{python} result["below-25"]` per cent below the second. To agree, the
+spheres would need a radius of `{python} result["radius-20"]` µm at the lower
+temperature and `{python} result["radius-25"]` µm at the higher one, instead
+of the nominal half micrometre.]{.claim type="experimentally-supported"
+scope="the nominal radius, water's viscosity of IAPWS R12-08 at two assumed temperatures, the record giving neither the temperature nor the size tolerance"
+evidence="stokes fig-msd trackpy-bulk-water"} The measurement and Einstein's
+theory agree in size: a few tenths of $\mu\mathrm{m^2/s}$, from nothing but
+the temperature, the viscosity and the radius. How well they agree beyond
+that the record cannot say. Between the two rows the viscosity of water
+falls by about `{python} result["eta-per-kelvin"]` per cent for each kelvin,
+so the difference between them is the five kelvin the record does not
+decide. A difference of six per cent could be a cooler room, spheres a few
+per cent larger than nominal, or slower diffusion near the glass; the lab
+cannot tell these apart.
+
+### The processing choices
+
+Each step of the tracking and the analysis has a parameter. The analysis is
+repeated with one changed at a time:
+
+```{python}
+#| label: sensitivity
+#| echo: false
+result.table("sensitivity")
+```
+
+[The choices of the link range, the mass cut, the track length and the lag
+range move $D$ between `{python} result["variants-low"]` and
+`{python} result["variants-high"]` $\mu\mathrm{m^2/s}$; without the drift
+subtracted it would be `{python} result["no-drift"]`,
+`{python} result["no-drift-rel"]` per cent higher.]{.claim
+type="experimentally-supported"
+scope="frames 000 to 039, one choice changed at a time from the lab's, no bootstrap"
+evidence="sensitivity trackpy-bulk-water"} This range is not an uncertainty
+interval and has no standard deviation: it says how much the answer depends
+on choices the data do not make for the analyst. Its half-width is
+`{python} result["range-ratio"]` times the bootstrap error, and it belongs
+beside the result. The track length does not
+matter. The link range does: a range of two pixels cuts off the largest
+steps, four admits more of them. The lag range does too, because the curve
+bends: lags one to five give a lower $D$, as the increases above said.
+
+### Are the errors honest?
+
+The bootstrap error rests on assumptions. Three are worth checking.
+
+**Why not the error of the fitted line?** A least-squares fit gives an
+error for the slope, but it assumes that the ten points scatter
+independently about the line. They do not: they share their tracks, and a
+track that happens to move far adds to every lag at once.
+
+```{python}
+#| echo: false
+excerpt(experiment.errors_table)
+```
+
+```{python}
+#| label: errors
+#| echo: false
+result.table("errors")
+```
+
+[The least-squares error of $D$, which treats the ten points as independent,
+is `{python} result["ols"]` $\mu\mathrm{m^2/s}$, about
+`{python} result["boot-ratio"]` times smaller than the bootstrap error over
+tracks.]{.claim type="experimentally-supported"
+scope="the line through lags one to ten frames, the tracks of at least fifteen frames"
+evidence="errors msd"} The bootstrap resamples whole tracks, so it keeps
+whatever the points of one track share. It is the error the lab quotes.
+
+**Are the tracks independent?** The bootstrap treats each track as one
+independent draw. A sphere whose track breaks for a frame and starts again
+counts twice. [Of the `{python} result["long-tracks"]` long tracks,
+`{python} result["continuations"]` begin within reach of where another long
+track ended one or two frames before.]{.claim type="experimentally-supported"
+scope="a track counted when it begins within the link range times the square root of the frames between of where another ended, two or three frames earlier"
+evidence="errors trackpy-bulk-water"} Even if each of them were the same
+sphere, it would hardly change the number of independent tracks.
+
+**Is D the same everywhere?** The bootstrap mixes tracks from all over the
+field. If $D$ changed across the field, the error of the mean would be
+right for this field but say nothing about the spread.
+
+```{python}
+#| label: regions
+#| echo: false
+result.table("regions")
+```
+
+[In the four quarters of the field $D$ runs from
+`{python} result["quarters-low"]` to `{python} result["quarters-high"]`
+$\mu\mathrm{m^2/s}$; the sum of their squared deviations from their mean,
+each divided by its bootstrap variance, is `{python} result["chi2"]`, where
+three is expected for one $D$ everywhere. The top half of the field gives
+`{python} result["top-bottom"]` $\mu\mathrm{m^2/s}$ more than the bottom
+half, `{python} result["top-bottom-sigmas"]` of their combined
+errors.]{.claim type="experimentally-supported"
+scope="the tracks placed by their mean position, a bootstrap over the tracks of each part, frames 000 to 039"
+evidence="regions errors"} With four parts the test is weak: for one $D$
+everywhere, a sum of that size or larger has a probability of
+`{python} result["chi2-p"]`. The data do not
+show that $D$ changes across the field, nor rule it out. A sample that is
+slightly tilted, so that the spheres at the top are farther from the glass
+than those at the bottom, would do this; the record does not say. The
+bootstrap error is the statistical error of $D$ for this field of view; the
+processing range is larger, and it is the one that limits the result.
+
+### What the camera does not explain
+
+The camera formula predicts a straight line, and the measured curve bends.
+Could the bend come from the blur and the error anyway? The formula ties
+the intercept to the correlation of successive steps: both come from
+$D\tau_e/3 - \sigma^2$. The data give both.
+
+[The intercept, `{python} result["intercept"]` $\mu\mathrm{m^2}$, is below
+the `{python} result["blur-floor"]` that blur over a whole frame could cause
+with no localisation error at all. Read through the camera formula, that
+intercept predicts a correlation of successive steps of
+`{python} result["rho-predicted"]`; the measured correlation is
+`{python} result["rho-measured"]`.]{.claim type="experimentally-supported"
+scope="the line through lags one to ten frames, the one-frame steps of the long tracks after the drift, both coordinates; the exposure and the error of the record unknown"
+evidence="fig-msd msd trackpy-bulk-water"} No exposure and no localisation
+error makes the camera formula fit both numbers; the exercise below shows
+the exposure that blur alone would need. Something else bends the curve at
+short lags. The record does not say how the video was made: a compression
+that smooths motion between frames, or blended frames, would correlate the
+steps without being blur, and the dossier finds traces of a block
+compression. The lab reports the bend and does not explain it.
+
+```{python}
+#| label: fig-steps
+#| echo: false
+#| fig-cap: "The steps of one frame are not quite Gaussian: most follow the Gaussian of their spread, but too many are large, by a factor that grows towards the tails."
+#| fig-alt: "A histogram of one-frame displacements on a logarithmic vertical axis, peaked at zero, with a dashed Gaussian curve of the same spread drawn over it. Near the centre the bars follow the curve; farther out the bars lie above the curve, and the gap widens towards the ends of the histogram."
+#| fig-status: processed
+#| fig-dataset: trackpy-bulk-water
+result.show("fig-steps")
+```
+
+[The one-frame steps have an excess kurtosis of
+`{python} result["kurtosis"]`, where a Gaussian has none; and among the
+tracks of at least thirty steps, the variance of the steps spreads by
+`{python} result["spread"]` of its mean from track to track, where identical
+walkers would spread by `{python} result["spread-expected"]`.]{.claim
+type="experimentally-supported"
+scope="the one-frame steps of the long tracks after the drift, both coordinates pooled"
+evidence="fig-steps trackpy-bulk-water"} The spheres are not all alike.
+[Spheres of different sizes, spheres at different distances from the glass,
+where diffusion is slower, pairs of spheres stuck together, and occasional
+mislocated positions would each widen the tails.]{.not-verified} The lab
+does not separate them; its $D$ is the mean over the population it tracked.
+
+### What the lab shows
+
+The random walk of the diffusion lesson describes the latex spheres of this
+video: after the drift of the sample is removed, their mean squared
+displacement grows in proportion to the time, and its slope gives
+$D = $ `{python} result["d"]` ± `{python} result["d-err"]`
+$\mu\mathrm{m^2/s}$ with a statistical error of a few per cent and a
+dependence on the processing that is larger. Stokes–Einstein, from the
+temperature, the viscosity and the radius alone, predicts a number of the
+same size; whether it predicts this number more closely than its own values
+at two room temperatures differ, the record cannot decide, because it does
+not give the temperature. The
+data also show what the model leaves out: the line does not pass through
+the origin, it bends at short lags in a way that blur and noise do not
+explain, and the spheres do not all walk alike.
+
+## Limits {#limits}
+
+- **The tracking is this project's.** The positions and the tracks are
+  computed here; other software or other choices give other numbers, by as
+  much as the processing table shows.
+- **No temperature, no exposure, no size tolerance.** The record states none
+  of them. The comparison with Stokes–Einstein is made at two assumed
+  temperatures and the nominal radius, and cannot be sharper than the
+  difference between them.
+- **The calibration has no error.** The scale enters $D$ squared: a one per
+  cent error in the pixels per micrometre is a two per cent error in $D$.
+  Nothing in the record bounds it.
+- **A short record.** Forty frames, a little over one and a half seconds.
+  Longer lags, which would test the line where the short-lag bend no longer
+  matters, need more of the video; the full directory holds several times
+  as many frames.
+- **Two dimensions of three.** The camera sees the plane; motion along the
+  optical axis takes spheres out of focus and ends their tracks, so the long
+  tracks could favour spheres that happen to move less in depth.
+- **The short-lag bend is not explained.** The intercept and the step
+  correlation are not those of a blurred, noisy walk; the record does not
+  document how the video was made, and the lab cannot say what does it.
+
+::: {.exercise .self-check}
+A colleague fits the same ten points with a line through the origin, as the
+random-walks lesson did, and gets a smaller diffusion coefficient. Another
+fits a line with an intercept and gets a larger one. Which is right, and
+how does the lab tell?
+
+::: {.solution}
+The line through the origin assumes that the recorded positions are the
+true positions at an instant. A camera averages over its exposure and
+locates with an error, and both move the intercept, not the slope: the
+recorded mean squared displacement is $4D(\tau - \tau_e/3) + 4\sigma^2$.
+The simulated camera shows it directly: with blur over a whole frame, the
+line with an intercept recovers the true $D$, the line through the origin
+falls short. On the data the intercept is clearly negative, so the line
+with an intercept is the model to fit. It is still a model: the measured
+curve bends at short lags, and the lag range changes the answer, which is
+why the lab states the range of its processing choices beside the
+statistical error.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**How far a sphere gets.** With $D = 0.403\ \mu\mathrm{m^2/s}$, how long
+does a sphere take to move by its own diameter of 1 µm, in the root mean
+square sense, in the plane of the camera? How far does it get in an hour?
+
+::: {.hint}
+Use the mean squared displacement in the plane from the random-walks
+lesson: solve it for the time, then take its square root for the
+distance.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.spreading_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("spreading-exercise"), end="")
+```
+
+A sphere moves its own size in well under a second, but in an hour it gets
+fewer than a hundred diameters away: diffusion is fast over short distances
+and slow over long ones, because the distance grows as the square root of
+the time.
+:::
+:::
+
+::: {.exercise}
+**Blur alone.** The camera formula lowers the intercept by $4D\tau_e/3$.
+With $D = 0.403\ \mu\mathrm{m^2/s}$ and no localisation error, what
+exposure $\tau_e$ would give the measured intercept of
+$-0.0355\ \mu\mathrm{m^2}$? Compare it with the time between two frames.
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.exposure_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("exposure-exercise"), end="")
+```
+
+The exposure would have to be longer than a frame, which a camera taking
+separate frames cannot do; a localisation error would only make the needed
+exposure longer. Blur and noise cannot produce this intercept, which is the
+lab's evidence that something else, not recorded, shapes the shortest lags.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/thermodynamics/brownian.py",
+        "src/pbc/thermodynamics/diffusion.py",
+        "src/pbc/thermodynamics/experiments/brownian_motion_tracking.py",
+        "src/pbc/experiment.py",
+        "src/pbc/data/reference/trackpy_bulk_water.py",
+        "src/pbc/data/tracking.py",
+        "src/pbc/data/adapters.py",
+        "src/pbc/data/plotting.py",
+    ],
+    tests=[
+        "tests/unit/test_brownian.py",
+        "tests/unit/test_data_bulk_water.py",
+        "tests/unit/test_brownian_motion_tracking_experiment.py",
+    ],
+)
+```
+
+The data card above gives the command that downloads the forty frames into
+`data/downloads/trackpy-bulk-water`, and the tracking script that repeats
+the committed tracks from them; no model and no account are needed to read
+it.
