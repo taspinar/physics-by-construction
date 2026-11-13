@@ -1,6 +1,7 @@
 id: xu-damped-pendulum
 title: Xu et al. damped pendulum, PASCO rotary-encoder records of 5 lengths x 3 damping settings x 3 trials;
-  inspected the first air-only trial of each length
+  inspected the first air-only trial of each length; the M15 lab adds the cleaned files of the other
+  air-only trials and of the large-baffle trials of the shortest length
 source:
   url: https://github.com/EnzeXu/Damped_Pendulum_Dataset/tree/cbf82673641ecd65e902ad5c38a048387649a2a0
   creator: Enze Xu, Toon Tran, Hongjue Zhao, Yuchen Wang, Mengdi Huai, Huajie Shao (William & Mary),
@@ -41,7 +42,8 @@ rights:
     EnzeXu/Damped_Pendulum_Dataset, commit cbf82673641ecd65e902ad5c38a048387649a2a0, Apache License 2.0;
     the dataset of 'Identifying Invariant Physical Dynamics Across Multiple Environments', Transactions
     on Machine Learning Research (2026), https://openreview.net/forum?id=xvQYvYEGhj. Files raw_data/len1..5_cond1_1.csv,
-    cleaned_data/len1_cond1_1.csv, pendulum_length.json, and LICENSE, unmodified.
+    cleaned_data/len1_cond1_1.csv, cleaned_data/len1..5_cond1_2..3.csv, cleaned_data/len1_cond3_1..3.csv,
+    pendulum_length.json, and LICENSE, unmodified.
 artifacts:
 - name: raw_data/len<k>_cond1_1.csv (k = 1 to 5)
   type: raw-measured
@@ -57,6 +59,16 @@ artifacts:
     < 65 s of len1_cond1_1 (6,000 rows), time shifted to 0, angle and angular velocity unchanged (eleven
     zero angles written as floating-point noise in the raw file appear as 0.000), and the column is_peak
     (115 extremes of |angle| chosen by the script).'
+- name: cleaned_data/len<k>_cond1_<t>.csv (k = 1 to 5, t = 2, 3) and cleaned_data/len1_cond3_<t>.csv (t
+    = 1 to 3)
+  type: processed-measured
+  description: 'Added for the M15 lab (Issue #437, phase 2): the creators'' cleaned files of the second
+    and third air-only trials of every length, and of the three trials of the shortest length with
+    the large paper baffle (damping setting 3). Each is the raw rows 5 s <= t < 65 s of its run (6,000
+    rows), time shifted to 0, angle and angular velocity unchanged, checked against the raw file of
+    the record for every one of them at inspection (2026-11-12, raw files not committed); the angle
+    is a whole number of encoder steps. The baffle adds mass and moment of inertia, so those trials
+    are not the same pendulum as the air-only ones (dossier).'
 - name: pendulum_length.json
   type: processed-measured
   description: 'The five stated lengths of the pendulum, 0.236, 0.330, 0.426, 0.518, 0.607 m, without
@@ -102,8 +114,8 @@ uncertainty: 'None in the record. Derived (dossier): the encoder step 3.1 mrad (
   effective lengths exceed them by 3.9 to 9.8 mm.'
 size:
   description: 'The record: 45 raw files of 0.31 to 0.44 MB (14.5 MB), 45 cleaned files of about 125
-    kB (5.6 MB), 45 plots, the scripts, the README, and the licence. The sample: 5 raw files, 1 cleaned
-    file, the lengths, and the licence, 1,739,510 bytes.'
+    kB (5.6 MB), 45 plots, the scripts, the README, and the licence. The sample: 5 raw files, 14 cleaned
+    files (one of phase 1, thirteen added for the M15 lab), the lengths, and the licence, 3,364,277 bytes.'
 format: CSV and JSON, read from the repository's raw files at a pinned commit
 reader: pbc.data.reference.xu_pendulum.load (the csv and json modules of the standard library, NumPy);
   no new dependency.
@@ -156,6 +168,84 @@ downloads:
   digest: c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4
   digest_source: computed here on the downloaded file, 2026-11-09; its Git blob SHA-1 261eeb9e9f8b2b4b0d119366dda99c6fd7d35c64
     equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/cleaned_data/len1_cond1_2.csv
+  filename: cleaned_len1_cond1_2.csv
+  algorithm: sha256
+  digest: 031ddeb5e802c476635d6545d0fb403b57c8f5225e61924a4c970150218782de
+  digest_source: computed here on the downloaded file, 2026-11-12; its Git blob SHA-1 fcf73761afc87d744fcd5ffb72f72b85d409fb15
+    equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/cleaned_data/len1_cond1_3.csv
+  filename: cleaned_len1_cond1_3.csv
+  algorithm: sha256
+  digest: 58c76d3942e3d9b1bb02f81881536eaf51213e1552d514a32d6b57c4bad08d8e
+  digest_source: computed here on the downloaded file, 2026-11-12; its Git blob SHA-1 8d588ff89a3807484e85d4ce29005bfbdeb8e4c2
+    equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/cleaned_data/len2_cond1_2.csv
+  filename: cleaned_len2_cond1_2.csv
+  algorithm: sha256
+  digest: 071796f8199af562755cf187c2e035090583dd76dbd8536612e6df87fbcfd9aa
+  digest_source: computed here on the downloaded file, 2026-11-12; its Git blob SHA-1 8d576eb1d5155d7070d3b15f9b664cc7e6b6fba0
+    equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/cleaned_data/len2_cond1_3.csv
+  filename: cleaned_len2_cond1_3.csv
+  algorithm: sha256
+  digest: 784aec41403da97a5159bbd55c80e42df650503f9886cde1796b8270299c98be
+  digest_source: computed here on the downloaded file, 2026-11-12; its Git blob SHA-1 d88968c9bea18205b1dfeac59087a0a188f0791f
+    equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/cleaned_data/len3_cond1_2.csv
+  filename: cleaned_len3_cond1_2.csv
+  algorithm: sha256
+  digest: bcfadff3341ab5adadd92c5564c0f961fafc9c9647354ce6712ce88238cb60c2
+  digest_source: computed here on the downloaded file, 2026-11-12; its Git blob SHA-1 0fa8009b6089025066e99b55a89ca16064a15afd
+    equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/cleaned_data/len3_cond1_3.csv
+  filename: cleaned_len3_cond1_3.csv
+  algorithm: sha256
+  digest: dae1ae98b432c5c44bd4433a19acff6ec3b2ca14c5a5467629358f1f6eb6fe3e
+  digest_source: computed here on the downloaded file, 2026-11-12; its Git blob SHA-1 06e22b2d90276f76e1763a4c0be216c66f472aba
+    equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/cleaned_data/len4_cond1_2.csv
+  filename: cleaned_len4_cond1_2.csv
+  algorithm: sha256
+  digest: 0f9ca04080826bd3da174a6a56e338b51818ed00b3d107d89a1da8ea9597a11d
+  digest_source: computed here on the downloaded file, 2026-11-12; its Git blob SHA-1 a411dd743750919b1bbfeeb1e8234ab066b6b8b2
+    equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/cleaned_data/len4_cond1_3.csv
+  filename: cleaned_len4_cond1_3.csv
+  algorithm: sha256
+  digest: 00777dba3b3af2be5a6732b9998476ce4c216c8cd72674794541fd5e61e0e1ea
+  digest_source: computed here on the downloaded file, 2026-11-12; its Git blob SHA-1 3dda76f97ea6774e719db414d0290af688f26395
+    equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/cleaned_data/len5_cond1_2.csv
+  filename: cleaned_len5_cond1_2.csv
+  algorithm: sha256
+  digest: 8963b5324129690c95704219429cfdbf85a82d56e8cab6694a10a262ee94da52
+  digest_source: computed here on the downloaded file, 2026-11-12; its Git blob SHA-1 71f0bbc9cad72d874aa4868a72204833522fe460
+    equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/cleaned_data/len5_cond1_3.csv
+  filename: cleaned_len5_cond1_3.csv
+  algorithm: sha256
+  digest: 94a4e1c78c07e821f0f67c7798ce6f364c2cf53618b60a8537314bc42a64ea57
+  digest_source: computed here on the downloaded file, 2026-11-12; its Git blob SHA-1 c872d685d2d6e4c564bac03718547585bda0a043
+    equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/cleaned_data/len1_cond3_1.csv
+  filename: cleaned_len1_cond3_1.csv
+  algorithm: sha256
+  digest: a8b9ac5cdc9020087e0f4736017204cb6aba558691ff894de9b68308ea451d2d
+  digest_source: computed here on the downloaded file, 2026-11-12; its Git blob SHA-1 2701cc536ce6021e7859efd25adeaf8cb37d0912
+    equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/cleaned_data/len1_cond3_2.csv
+  filename: cleaned_len1_cond3_2.csv
+  algorithm: sha256
+  digest: 68345d4e7cb63eb3e4b9c63553631e975163e7b7f46b220c9eeb8b4867734173
+  digest_source: computed here on the downloaded file, 2026-11-12; its Git blob SHA-1 174d268f93f39ff2ee8062082737d1f8c69b237a
+    equals the one of the commit's tree (GitHub API)
+- url: https://raw.githubusercontent.com/EnzeXu/Damped_Pendulum_Dataset/cbf82673641ecd65e902ad5c38a048387649a2a0/cleaned_data/len1_cond3_3.csv
+  filename: cleaned_len1_cond3_3.csv
+  algorithm: sha256
+  digest: 820807028cbd18ba4675aafa940621fc927b4fe9603c242a0e48787374f2f141
+  digest_source: computed here on the downloaded file, 2026-11-12; its Git blob SHA-1 849fb69d755a6bb6370541ae19798b8a0337d9a6
+    equals the one of the commit's tree (GitHub API)
 samples:
 - path: raw_data/len1_cond1_1.csv
   sha256: 3d407510fd2c0fcbca7f7b3a223f34f0788821f3a21b6b94ccd24a087b6a19be
@@ -199,13 +289,92 @@ samples:
   derivation: the file LICENSE of the repository at commit cbf8267 (Apache License 2.0), copied byte for
     byte, as section 4(a) of the licence asks of a redistribution
   test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_sample_parses
+- path: cleaned_data/len1_cond1_2.csv
+  sha256: 031ddeb5e802c476635d6545d0fb403b57c8f5225e61924a4c970150218782de
+  bytes: 125013
+  derivation: the file cleaned_data/len1_cond1_2.csv of the repository at commit cbf8267, copied byte
+    for byte; added for the M15 lab (Issue #437, phase 2)
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_added_trials_parse
+- path: cleaned_data/len1_cond1_3.csv
+  sha256: 58c76d3942e3d9b1bb02f81881536eaf51213e1552d514a32d6b57c4bad08d8e
+  bytes: 125009
+  derivation: the file cleaned_data/len1_cond1_3.csv of the repository at commit cbf8267, copied byte
+    for byte; added for the M15 lab (Issue #437, phase 2)
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_added_trials_parse
+- path: cleaned_data/len2_cond1_2.csv
+  sha256: 071796f8199af562755cf187c2e035090583dd76dbd8536612e6df87fbcfd9aa
+  bytes: 124950
+  derivation: the file cleaned_data/len2_cond1_2.csv of the repository at commit cbf8267, copied byte
+    for byte; added for the M15 lab (Issue #437, phase 2)
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_added_trials_parse
+- path: cleaned_data/len2_cond1_3.csv
+  sha256: 784aec41403da97a5159bbd55c80e42df650503f9886cde1796b8270299c98be
+  bytes: 124953
+  derivation: the file cleaned_data/len2_cond1_3.csv of the repository at commit cbf8267, copied byte
+    for byte; added for the M15 lab (Issue #437, phase 2)
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_added_trials_parse
+- path: cleaned_data/len3_cond1_2.csv
+  sha256: bcfadff3341ab5adadd92c5564c0f961fafc9c9647354ce6712ce88238cb60c2
+  bytes: 125006
+  derivation: the file cleaned_data/len3_cond1_2.csv of the repository at commit cbf8267, copied byte
+    for byte; added for the M15 lab (Issue #437, phase 2)
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_added_trials_parse
+- path: cleaned_data/len3_cond1_3.csv
+  sha256: dae1ae98b432c5c44bd4433a19acff6ec3b2ca14c5a5467629358f1f6eb6fe3e
+  bytes: 124972
+  derivation: the file cleaned_data/len3_cond1_3.csv of the repository at commit cbf8267, copied byte
+    for byte; added for the M15 lab (Issue #437, phase 2)
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_added_trials_parse
+- path: cleaned_data/len4_cond1_2.csv
+  sha256: 0f9ca04080826bd3da174a6a56e338b51818ed00b3d107d89a1da8ea9597a11d
+  bytes: 125026
+  derivation: the file cleaned_data/len4_cond1_2.csv of the repository at commit cbf8267, copied byte
+    for byte; added for the M15 lab (Issue #437, phase 2)
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_added_trials_parse
+- path: cleaned_data/len4_cond1_3.csv
+  sha256: 00777dba3b3af2be5a6732b9998476ce4c216c8cd72674794541fd5e61e0e1ea
+  bytes: 124970
+  derivation: the file cleaned_data/len4_cond1_3.csv of the repository at commit cbf8267, copied byte
+    for byte; added for the M15 lab (Issue #437, phase 2)
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_added_trials_parse
+- path: cleaned_data/len5_cond1_2.csv
+  sha256: 8963b5324129690c95704219429cfdbf85a82d56e8cab6694a10a262ee94da52
+  bytes: 124976
+  derivation: the file cleaned_data/len5_cond1_2.csv of the repository at commit cbf8267, copied byte
+    for byte; added for the M15 lab (Issue #437, phase 2)
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_added_trials_parse
+- path: cleaned_data/len5_cond1_3.csv
+  sha256: 94a4e1c78c07e821f0f67c7798ce6f364c2cf53618b60a8537314bc42a64ea57
+  bytes: 124986
+  derivation: the file cleaned_data/len5_cond1_3.csv of the repository at commit cbf8267, copied byte
+    for byte; added for the M15 lab (Issue #437, phase 2)
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_added_trials_parse
+- path: cleaned_data/len1_cond3_1.csv
+  sha256: a8b9ac5cdc9020087e0f4736017204cb6aba558691ff894de9b68308ea451d2d
+  bytes: 124977
+  derivation: the file cleaned_data/len1_cond3_1.csv of the repository at commit cbf8267, copied byte
+    for byte; added for the M15 lab (Issue #437, phase 2)
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_added_trials_parse
+- path: cleaned_data/len1_cond3_2.csv
+  sha256: 68345d4e7cb63eb3e4b9c63553631e975163e7b7f46b220c9eeb8b4867734173
+  bytes: 124988
+  derivation: the file cleaned_data/len1_cond3_2.csv of the repository at commit cbf8267, copied byte
+    for byte; added for the M15 lab (Issue #437, phase 2)
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_added_trials_parse
+- path: cleaned_data/len1_cond3_3.csv
+  sha256: 820807028cbd18ba4675aafa940621fc927b4fe9603c242a0e48787374f2f141
+  bytes: 124941
+  derivation: the file cleaned_data/len1_cond3_3.csv of the repository at commit cbf8267, copied byte
+    for byte; added for the M15 lab (Issue #437, phase 2)
+  test: tests/unit/test_data_xu_pendulum.py::test_xu_pendulum_added_trials_parse
 estimates:
   runtime: 'Reference figure: about 5 s with the interpreter start on the development machine; the reader
     parses the six CSV files in under 1 s.'
   memory: About 160 MB peak resident for the figure.
-  page_payload: 1.74 MB committed, none of it sent to the reader's browser; a figure PNG of about 340
+  page_payload: 3.36 MB committed, none of it sent to the reader's browser; a figure PNG of about 340
     KB at 150 dpi.
-  ci: 'Offline: eight committed files.'
+  ci: 'Offline: twenty-one committed files (eight of phase 1, thirteen cleaned files added for the M15
+    lab).'
 decision:
   value: go
   date: *accessed
