@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from pbc.data.reference.cylinder_wake import Wake
     from pbc.data.reference.dwd_soil import Readings
     from pbc.data.reference.grazing_flow_hwa import Station
+    from pbc.data.reference.kamchatka_tsunami import NceiRecord
     from pbc.data.reference.lycopodium import Profile
     from pbc.data.reference.nist_numisheet import Test
     from pbc.data.reference.ost_hotwire import HotWire
@@ -177,6 +178,31 @@ def hot_wire_profile_series(station: Station) -> Series:
         x_unit="1",
         y_name="U/Ue",
         y_unit="1",
+    )
+
+
+def dart_residual_series(record: NceiRecord) -> Series:
+    """Sea level minus tide (m) at a DART station against the minutes after
+    the earthquake's origin, every row of NCEI's event file in the order of
+    time (rows at a duplicated time keep the file's order).
+
+    Processed, as the card labels the event files: the bottom pressure
+    converted to a height by NDBC, the tide fitted and removed by NCEI. The
+    residual is divided by 0.670, because the event files carry NDBC's
+    pressure-to-height factor twice (``NceiRecord.corrected``). No
+    uncertainty per sample is published, so the series carries none; the
+    dossier's floor is the rms of the day before the origin.
+    """
+    minutes = record.minutes()
+    order = np.argsort(minutes, kind="stable")
+    return Series(
+        x=minutes[order],
+        y=record.corrected()[order],
+        artifact="processed-measured",
+        x_name="time after the origin",
+        x_unit="min",
+        y_name="sea level minus tide",
+        y_unit="m",
     )
 
 
