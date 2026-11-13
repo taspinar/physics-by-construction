@@ -1,0 +1,669 @@
+---
+title: "Microwave S-parameter lab"
+description: >-
+  Three on-wafer attenuators measured by a national metrology laboratory
+  with a calibrated network analyser from 2.5 to 50 GHz, and one of them to
+  220 GHz: transmission and reflection as complex amplitudes, power against
+  amplitude, the energy balance of a passive two-port, a lumped model of
+  resistors and inductors between matched lines fitted to each pad, the
+  Smith chart, and the frequency where the lumped model stops describing
+  the measurement.
+lesson:
+  id: microwave-sparameter-lab
+  strand: electromagnetism
+  order: 9
+  difficulty: 2
+  course: electromagnetism
+  slot: EM7
+  methods: [measured-data]
+  outcomes:
+    - Read a calibrated Touchstone file as complex reflection and transmission amplitudes at a reference impedance, and tell an amplitude in decibels from a power fraction
+    - Check the energy balance and the passivity of a measured two-port, and its reciprocity and symmetry, on every frequency of the record
+    - Build a lumped two-port from element impedances and a matched line, fit it to the measured S-parameters, and read the result on the Smith chart
+    - Say what the record bounds, two instruments on one pad, what it does not, the calibration, and where the lumped model fails
+  related: []
+  format: 2
+  preview: fig-smith-chart
+  experiment: pbc.electromagnetism.experiments.microwave_sparameter_lab
+  prerequisites:
+    lessons: [rlc-circuits-and-resonance, waveguides-and-antenna-basics]
+    outside:
+      - "Complex numbers: the modulus and argument of a complex ratio, and multiplication by a unit complex number as a rotation"
+      - "Logarithms: decibels as ten times the base-ten logarithm of a power ratio"
+      - "Linear algebra: a 2 by 2 matrix acting on a vector, and its largest singular value as its largest gain"
+      - "Statistics: a least-squares fit, its residuals, and the standard error of a fitted parameter"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this
+from pbc.electromagnetism import two_port
+from pbc.electromagnetism.experiments import microwave_sparameter_lab as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The RLC lesson gave a resistor, a coil, and a capacitor their impedances;
+the waveguide lesson showed a wave that travels along a guide and only
+changes its phase. At tens of gigahertz an electrical part is measured with
+both ideas at once: a vector network analyser sends a wave into one port of
+the part and records the complex amplitudes of the waves that come back and
+that come out of the other port. Their ratios are the scattering parameters,
+or S-parameters, of the part.
+
+The National Physical Laboratory measured three small attenuators on a
+wafer, labelled [3 dB]{.given}, [6 dB]{.given}, and
+[10 dB]{.given} pads, with two different analysers, and published the
+calibrated files. How much of the power that enters each pad comes out,
+how much is reflected, and how much stays in it? Does a model of a few
+resistors and inductors, with a short line on either side, describe the
+measured amplitudes, and up to which frequency? And how well does the record
+itself say these numbers are known?
+
+## Assumptions
+
+1. **The calibration is the creators'.** The files are corrected by a
+   multiline TRL calibration (thru, reflect, line), applied by the creators,
+   which sets the reference planes at which the S-parameters are stated;
+   the files do not say where they lie. The calibration standards and the
+   uncertainty of the calibration are
+   described in the conference paper the record supports, not in the files;
+   this lab does not use that paper and states no calibration uncertainty.
+2. **A reference impedance.** Every S-parameter is a ratio of waves on lines of
+   the reference impedance the files state, [50 Ω]{.given}.
+3. **Linear and time-invariant.** The analyser measures one frequency at a
+   time with a small signal; the pads are assumed to respond in proportion
+   and not to change between sweeps. The data cannot test linearity.
+4. **The fitted band.** Every model of this page is fitted between `{python} result["f-min"]` and
+   `{python} result["coax-max"]` GHz, the band of the coaxial system; above it the model is a
+   prediction tested against the single sweep.
+5. **No uncertainty per point.** The files give none. The fitted values
+   carry standard errors from the scatter of the residuals, which assume
+   independent residuals; the lab checks that assumption and finds it
+   false.
+
+## Explanation {#explanation}
+
+### Waves in, waves out
+
+On a line of impedance $Z_0$, a voltage and a current at one place are the
+sum of a wave going in and a wave coming out. At port $j$ of a two-port the
+analyser calls the incoming wave $a_j$ and the outgoing wave $b_j$, scaled
+so that $|a_j|^2$ is the power the wave carries. A linear two-port relates
+them by a matrix of complex numbers,
+
+$$
+\begin{pmatrix} b_1 \\ b_2 \end{pmatrix}
+=
+\begin{pmatrix} S_{11} & S_{12} \\ S_{21} & S_{22} \end{pmatrix}
+\begin{pmatrix} a_1 \\ a_2 \end{pmatrix}.
+$$
+
+With nothing sent into port $2$ and port $2$ terminated in $Z_0$, $S_{11}$ is
+the reflection at port $1$ and $S_{21}$ the transmission from port $1$ to
+port $2$. Each is an amplitude ratio with a modulus and a phase.
+
+### Amplitude, power, and decibels
+
+The power of a wave goes with the square of its amplitude, so the fraction
+of the incident power that leaves port $2$ is $|S_{21}|^2$ and the fraction
+reflected is $|S_{11}|^2$. A decibel is a power ratio,
+
+$$
+L = -10 \log_{10} |S_{21}|^2 = -20 \log_{10} |S_{21}|,
+$$
+
+the same number written either way. A pad of exactly [3 dB]{.given} passes half the
+power and $1/\sqrt{2}$ of the amplitude. The common slip is to take ten
+times the logarithm of the amplitude, which halves every loss.
+
+### Energy and passivity
+
+The power that enters port $1$ either comes back, goes out of port $2$, or stays
+in the part as heat:
+
+$$
+1 - |S_{11}|^2 - |S_{21}|^2 \ \ge\ 0
+$$
+
+for a part with no source of energy inside, and zero for a lossless one.
+The same holds for port $2$ and for any combination of waves sent in at both
+ports at once, which is the statement that the largest singular value of
+the matrix $S$ is at most one. A reciprocal part, of resistors, coils, and
+capacitors, has $S_{21} = S_{12}$; a symmetric one also has
+$S_{11} = S_{22}$.
+
+### A pad of lumped elements between two lines
+
+A resistive T pad is three resistors: one in series on each side and one
+across the middle to ground. With the element impedances of the RLC lesson,
+an arm is $Z_\text{arm} = R_\text{series} + j\omega L$ (a resistor with an
+inductance in series) and the middle is $R_\text{shunt}$. The
+impedance parameters of the symmetric T are $Z_{11} = Z_\text{arm} +
+R_\text{shunt}$ and $Z_{21} = R_\text{shunt}$, and the S-parameters follow
+from them:
+
+$$
+S_{11} = \frac{(Z_{11} - Z_0)(Z_{11} + Z_0) - Z_{21}^2}{(Z_{11} + Z_0)^2 - Z_{21}^2},
+\qquad
+S_{21} = \frac{2 Z_{21} Z_0}{(Z_{11} + Z_0)^2 - Z_{21}^2}.
+$$
+
+The pad is matched, $S_{11} = 0$, when $R_\text{series} = Z_0 (k-1)/(k+1)$
+and $R_\text{shunt} = 2 Z_0 k/(k^2 - 1)$ with $k = 10^{L/20}$. The
+reference planes of the calibration need not be at the resistors: there
+may be a length of line between each plane and the pad. The waveguide lesson
+gave a guided wave the factor $e^{-j\beta z}$; a line with no cut-off
+carries a wave at a fixed speed $v$, so $\beta = \omega / v$ and a matched
+line of length $\ell$ only delays the wave by $\tau = \ell / v$. The two
+lines together multiply $S_{11}$ and $S_{21}$ by $e^{-j\omega\tau}$. The
+model has four values: $R_\text{series}$, $R_\text{shunt}$, $L$, and
+$\tau$. It is an equivalent circuit, not a drawing of the layout: a pi
+network of three other values gives the same S-parameters.
+
+### The Smith chart
+
+A reflection coefficient $\Gamma = S_{11}$ and the impedance $Z$ that the
+port presents are two descriptions of the same thing,
+
+$$
+z = \frac{Z}{Z_0} = \frac{1 + \Gamma}{1 - \Gamma},
+\qquad
+\Gamma = \frac{z - 1}{z + 1}.
+$$
+
+The Smith chart draws $\Gamma$ in its complex plane, inside the unit circle
+for a passive port, with the lines of constant resistance $r = \mathrm{Re}\,z$
+(circles) and constant reactance $x = \mathrm{Im}\,z$ (arcs) mapped onto it.
+The centre is a perfect match; a point above the real axis is inductive, a
+point below capacitive; a delay turns a point clockwise about the centre.
+
+## Code {#code}
+
+The model is `pbc.electromagnetism.two_port`. The S-parameters of a
+symmetric two-port from its impedance parameters, the matched pad, and the
+T network between its lines:
+
+```{python}
+#| echo: false
+excerpt(two_port.symmetric_s)
+```
+
+```{python}
+#| echo: false
+excerpt(two_port.matched_tee)
+```
+
+```{python}
+#| echo: false
+excerpt(two_port.TeeAttenuator)
+```
+
+The energy balance and passivity:
+
+```{python}
+#| echo: false
+excerpt(two_port.absorbed_fraction)
+```
+
+## Worked examples {#worked-examples}
+
+### The model before the measurement
+
+Before any data, the matched pads of the three labels are computed as
+networks, from the element impedances, and their reflection and loss read
+off.
+
+```{python}
+#| echo: false
+excerpt(experiment.matched_pad_check)
+```
+
+```{python}
+#| label: matched-pads
+#| echo: false
+result.table("matched-pads")
+```
+
+[The T pads from the closed form, computed as networks, reflect nothing and
+pass exactly their designed loss: the largest error of $|S_{11}|$ or of the
+loss in dB is `{python} result["matched-error"]`.]{.claim
+type="numerically-verified" scope="the resistive T pad of the closed form, at 50 ohm"
+evidence="matched-pads"}
+
+### The record {#record}
+
+```{python}
+#| echo: false
+data_card("npl-onwafer-sparameters")
+```
+
+The sample holds four of the record's files. Three are sweeps of the
+coaxial system, one for each pad, with `{python} result["coax-points"]`
+frequencies from `{python} result["f-min"]` to `{python} result["coax-max"]`
+GHz; the fourth is the [3 dB]{.given} pad again, measured by a second, single-sweep
+analyser to `{python} result["single-max"]` GHz at
+`{python} result["single-points"]` frequencies. All four step by
+`{python} result["step"]` MHz and use a reference of
+`{python} result["reference"]` Ω. Each row of a file gives the frequency
+and the real and imaginary parts of $S_{11}$, $S_{21}$, $S_{12}$, and
+$S_{22}$. The files are calibrated by the creators; the card labels them
+calibrated observations, and every figure of this page says calibrated.
+
+```{python}
+#| echo: false
+excerpt(experiment.load_networks)
+```
+
+```{python}
+#| label: consistency
+#| echo: false
+excerpt(experiment.record_summary)
+```
+
+[In the coaxial files $|S_{21} - S_{12}|$ is at most
+`{python} result["reciprocity-coax"]` and $|S_{11} - S_{22}|$ at most
+`{python} result["symmetry-coax"]`; in the single sweep to `{python} result["single-max"]` GHz they
+reach `{python} result["reciprocity-single"]` and
+`{python} result["symmetry-single"]`.]{.claim type="observational"
+scope="the four committed files, every frequency"
+evidence="consistency npl-onwafer-sparameters"} The pads behave as
+reciprocal and nearly symmetric parts, which the T model assumes, closest
+in the coaxial band.
+
+### Amplitude and power
+
+```{python}
+#| echo: false
+excerpt(experiment.power_table)
+```
+
+```{python}
+#| label: power-balance
+#| echo: false
+result.table("power-balance")
+```
+
+[Over `{python} result["f-min"]` to `{python} result["coax-max"]` GHz the pads labelled [3]{.given}, [6]{.given}, and [10 dB]{.given} lose
+`{python} result["loss-3"]`, `{python} result["loss-6"]`, and
+`{python} result["loss-10"]` dB on average. The [3 dB]{.given} pad transmits an
+amplitude of `{python} result["amplitude-3"]`, which is
+`{python} result["transmitted-3"]` of the incident power; it reflects
+`{python} result["reflected-3"]` of the power and absorbs
+`{python} result["absorbed-3"]`.]{.claim type="observational"
+scope="the three coaxial files, averaged over frequency"
+evidence="power-balance npl-onwafer-sparameters"} The losses are in the
+order of the labels and each is larger than its label: a "[3 dB]{.given}" pad passes
+less than the half of the power its name promises. The labels are nominal
+values of real parts. Taking ten times the logarithm of the amplitude
+would give the [3 dB]{.given} pad a loss of `{python} result["wrong-loss-3"]` dB,
+half the measured one, and make the pad look better than its label.
+
+Most of the power that is not transmitted is absorbed, not reflected: the
+reflected fraction averages below one per cent for every pad. An attenuator is
+meant to turn power into heat while staying matched to the line; these pads
+do the first and come close to the second.
+
+### Energy and passivity on every frequency
+
+```{python}
+#| label: passivity-check
+#| echo: false
+excerpt(experiment.passivity)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_wideband)
+```
+
+```{python}
+#| label: fig-wideband
+#| echo: false
+#| fig-cap: "Every pad absorbs a large fraction of the power at every measured frequency, and none gives out more than it receives at any of them. Beyond the coaxial band the lumped model fitted inside it drifts away from the single sweep, to many times the difference between the two instruments."
+#| fig-alt: "Two stacked panels against frequency. Top: the absorbed fraction of four files as flat lines in different line styles; the three coaxial pads stop at the end of the coaxial band at three levels, well above a black line at zero, and the single sweep of the smallest pad continues across the whole axis and sinks slowly. Bottom, logarithmic vertical axis: the misfit of the fitted model against the single sweep, noisy and small inside a shaded band at the left, then rising steadily by more than a decade over the rest of the axis; a grey noisy line, the difference between the two instruments, lies inside the shaded band a little below the misfit there."
+#| fig-status: calibrated
+#| fig-dataset: npl-onwafer-sparameters
+result.show("fig-wideband")
+```
+
+[The fraction of the power absorbed is at least
+`{python} result["absorbed-min"]` at either port, at every frequency of the
+four files, and the largest singular value of $S$ is at most
+`{python} result["singular-max"]`: the measured pads are passive for every
+combination of incident waves, with a wide margin.]{.claim
+type="observational" scope="the four committed files, both ports, every frequency to 220 GHz"
+evidence="passivity-check fig-wideband npl-onwafer-sparameters"} The margin matters
+because a calibration error can make a measured part appear to create
+energy; nothing here comes close. The top panel of the figure shows the
+absorbed fraction at port $1$; the bottom panel belongs to the fit and is
+read in the section after it.
+
+### Two instruments on one pad
+
+The record gives no uncertainty, but it measured the [3 dB]{.given} pad twice, with
+two analysers that each had their own calibration. Over the band they share,
+on the same `{python} result["step"]` MHz grid, the two files can be compared frequency by
+frequency.
+
+```{python}
+#| label: two-instruments
+#| echo: false
+excerpt(experiment.instruments)
+```
+
+[Between `{python} result["f-min"]` and `{python} result["coax-max"]` GHz the two instruments' $|S_{21}|$ of the [3 dB]{.given} pad
+differ by at most `{python} result["instrument-db"]` dB, and their complex
+$S_{21}$ and $S_{11}$ by at most `{python} result["instrument-s21"]` and
+`{python} result["instrument-s11"]`.]{.claim type="observational"
+scope="the coaxial and the single-sweep file of the 3 dB pad, 2.5-50 GHz"
+evidence="two-instruments npl-onwafer-sparameters"} This difference is the
+record's own measure of how well a number is reproduced, and its
+assumptions are worth saying. It assumes that the pad did not change between
+the two measurements. It bounds the part of the error that differs between
+the two systems, not an error both calibrations share, such as the
+definition of the calibration standards: that is in the paper's
+uncertainty budget, which this lab does not use. It is a largest
+difference, not a standard uncertainty.
+
+### Fitting the T network {#fitting}
+
+The fit adjusts the four values of the model until its complex $S_{11}$
+and $S_{21}$ are as close as possible to the measured ones, the real and
+imaginary parts of the differences counting equally, at the
+`{python} result["coax-points"]` frequencies of each coaxial file.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="fit-settings")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.fit_pad)
+```
+
+```{python}
+#| label: fit
+#| echo: false
+result.table("fit")
+```
+
+```{python}
+#| label: fit-residuals
+#| echo: false
+result.table("fit-residuals")
+```
+
+[The T network with a series inductance, between matched lines, fitted to
+each coaxial file between `{python} result["f-min"]` and `{python} result["coax-max"]` GHz, leaves an rms residual of
+`{python} result["rms-low"]` to `{python} result["rms-high"]` in the real
+and imaginary parts of $S$, and a largest misfit
+$|S_\text{model} - S_\text{measured}|$ of `{python} result["misfit-max"]`.
+For the [3 dB]{.given} pad it gives $R_\text{series} =$
+`{python} result["fit-r-series"]` Ω, $R_\text{shunt} =$
+`{python} result["fit-r-shunt"]` Ω, $L =$ `{python} result["fit-l"]` pH,
+and $\tau =$ `{python} result["fit-tau"]` ps.]{.claim
+type="experimentally-supported"
+scope="the four-value lumped model, the coaxial files, 2.5-50 GHz; calibration error not included"
+evidence="fit fit-residuals npl-onwafer-sparameters"} The fit helper finds every value
+determined (its warnings: `{python} result["fit-warnings"]`). Without the
+inductance, three values only, the rms residual of the [3 dB]{.given} pad is
+`{python} result["rms-without-l"]`, about `{python} result["rms-ratio-l"]`
+times larger: the rise of $|S_{11}|$ with frequency needs a reactance in
+the arms.
+
+A matched T with the measured loss of the [3 dB]{.given} pad would have
+`{python} result["matched-series"]` Ω arms and a
+`{python} result["matched-shunt"]` Ω middle. The fitted values are
+different: the fitted network is not matched, and at the lowest frequency
+it presents `{python} result["model-input"]` Ω to the line, not `{python} result["reference"]` Ω. That
+mismatch is the reflection that the measurement shows from the lowest
+frequency on.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_transmission)
+```
+
+```{python}
+#| label: fig-transmission
+#| echo: false
+#| fig-cap: "The fitted T networks follow the measured transmission and reflection of all three pads; the misfit that remains is a smooth curve, largest at the lowest frequencies, not noise."
+#| fig-alt: "Three stacked panels against frequency over the coaxial band. Top: the transmission in decibels of three pads as three flat lines at three levels, with dashed model lines on them. Middle: the reflection in decibels of the three pads rising slowly with frequency, with ripples, and dashed model lines rising smoothly through them. Bottom: the misfit of each fit, highest at the left end, falling over the first quarter of the band, then small and ragged to the end; the three pads follow the same shape."
+#| fig-status: calibrated
+#| fig-dataset: npl-onwafer-sparameters
+result.show("fig-transmission")
+```
+
+The solid lines are the calibrated files, unchanged; the dashed lines are
+the model and are drawn apart from them. The misfit in the bottom panel is
+not scattered noise: it falls smoothly from its largest value at
+`{python} result["f-min"]` GHz over the first ten or fifteen gigahertz, and the three pads show
+the same shape. The model has no element that changes that fast at the low
+end of the band, and these data do not say whether the cause is in the pads
+or in the calibration.
+
+### What the standard errors assume
+
+The standard errors of the fit table assume that the residuals at different
+frequencies are independent. The last column of the residuals table checks it: the residuals at
+neighbouring frequencies correlate at `{python} result["correlation-low"]`
+to `{python} result["correlation-high"]`, far from zero. A residual that
+moves smoothly with frequency counts as `{python} result["coax-points"]`
+independent samples in the standard error when the data hold far fewer
+independent pieces of information, so the standard errors are too small, and the lab does not use them as
+uncertainties.
+
+```{python}
+#| echo: false
+excerpt(experiment.sensitivity_table)
+```
+
+```{python}
+#| label: sensitivity
+#| echo: false
+result.table("sensitivity")
+```
+
+[The same fit on the other instrument's file of the [3 dB]{.given} pad moves
+$R_\text{series}$ by `{python} result["instrument-r"]` Ω, about
+`{python} result["instrument-r-errors"]` of its standard errors; fitted to
+either half of the band, the values move by up to
+`{python} result["sensitivity-r"]` Ω in $R_\text{series}$,
+`{python} result["sensitivity-shunt"]` Ω in $R_\text{shunt}$,
+`{python} result["sensitivity-l"]` pH in $L$, and
+`{python} result["sensitivity-tau"]` ps in $\tau$, up to
+`{python} result["sensitivity-errors"]` standard errors.]{.claim
+type="experimentally-supported"
+scope="the four-value model fitted to the 3 dB pad, two instruments and two halves of the band"
+evidence="sensitivity npl-onwafer-sparameters"} These shifts describe how
+much the fitted values depend on the instrument and on the band, which is
+the more honest statement of how well the record and this model fix them.
+They are a sensitivity of the fit, not an interval: they do not include the
+calibration, and the inductance in particular depends on which part of the
+band is fitted.
+
+### The Smith chart
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_smith_chart)
+```
+
+```{python}
+#| label: fig-smith-chart
+#| echo: false
+#| fig-cap: "On the Smith chart the three pads sit close to the centre, a near match, slightly to the resistive side and moving into the inductive upper half with frequency; the single sweep of the 3 dB pad continues the same path to the top of its band, where it bends away."
+#| fig-alt: "A detail of the Smith chart around its centre, with grey circles of constant resistance and arcs of constant reactance, two of each labelled. Three short curves with markers start just right of the centre, on or just above the horizontal axis, marked by crosses, and climb up and to the right; dashed model curves lie on them. A thinner curve, the wide sweep of one pad, starts on top of one of them, continues up and to the right in a ragged arc, levels off, and ends turning down further to the right."
+#| fig-status: calibrated
+#| fig-dataset: npl-onwafer-sparameters
+result.show("fig-smith-chart")
+```
+
+At the lowest frequency each pad lies a little to the right of the centre,
+on or just above the real axis: a resistance slightly above `{python} result["reference"]` Ω, the mismatch of the
+fit. With frequency the points rise into the upper half, the inductive
+side, as the series inductance of the model makes them. The delay turns the
+points clockwise about the centre, against that rise; the fit balances the
+two. The single sweep of the [3 dB]{.given} pad lies on the coaxial file of the same
+pad up to `{python} result["coax-max"]` GHz and then continues further out, which is the next section.
+
+### Beyond the fitted band
+
+The [3 dB]{.given} fit was made between `{python} result["f-min"]` and `{python} result["coax-max"]` GHz. The single sweep measured the
+same pad to `{python} result["single-max"]` GHz, so the model can be tested where it was not fitted.
+
+```{python}
+#| label: beyond-the-band
+#| echo: false
+excerpt(experiment.beyond_the_band)
+```
+
+[Against the single sweep, the [3 dB]{.given} fit's misfit is at most
+`{python} result["beyond-inside"]` up to `{python} result["coax-max"]` GHz, and reaches
+`{python} result["beyond-100"]` at [100 GHz]{.given},
+`{python} result["beyond-150"]` at [150 GHz]{.given}, and
+`{python} result["beyond-220"]` at `{python} result["single-max"]` GHz, about
+`{python} result["beyond-ratio"]` times the largest difference between the
+two instruments in $S_{21}$ below `{python} result["coax-max"]` GHz.]{.claim type="experimentally-supported"
+scope="the four-value model fitted to the coaxial 3 dB file, tested on the single sweep of the same pad"
+evidence="beyond-the-band fig-wideband npl-onwafer-sparameters"} The bottom
+panel of the wideband figure shows it: inside the shaded band the misfit is
+within a few times the instruments' difference; above it the misfit grows
+steadily. The lumped model describes this pad to `{python} result["coax-max"]` GHz and not to
+`{python} result["single-max"]` GHz. At `{python} result["single-max"]` GHz the fitted delay alone is a phase of
+`{python} result["delay-phase"]` rad, not small against a full cycle of
+$2\pi$; a lumped model assumes a part much smaller than a wavelength, and
+the growing misfit is consistent with that assumption failing, though these
+data do not show which part of the structure is responsible. The comparison with the instruments' difference is made
+below `{python} result["coax-max"]` GHz only, because the record has no second instrument above it.
+
+### What the lab shows
+
+The three pads are passive at every measured frequency, absorb most of the
+power that is not transmitted, and lose more than their labels say. A model
+of four values, resistors and an inductance from the RLC lesson between
+matched lines from the waveguide lesson, describes their complex
+S-parameters between `{python} result["f-min"]` and `{python} result["coax-max"]` GHz with an rms residual of a few
+thousandths and a largest misfit of `{python} result["misfit-max"]`, at the
+lowest frequency; the same model fitted to one pad drifts away from the
+measurement of that pad above `{python} result["coax-max"]` GHz. The record's two instruments agree on one pad to
+`{python} result["instrument-db"]` dB in $|S_{21}|$, which bounds the
+difference between the systems; no number on this page bounds the error of
+the calibration itself.
+
+## Limits {#limits}
+
+- **No calibration uncertainty.** The files carry none; the paper the record
+  supports describes the calibration and its uncertainty, and this lab does
+  not use it. The instruments' difference bounds only what differs between
+  the two systems.
+- **One pad measured twice.** Only the [3 dB]{.given} pad has a second measurement, so
+  the [6 dB]{.given} and [10 dB]{.given} pads have no cross-check, and nothing is known about
+  repeated measurements with the same instrument.
+- **An equivalent circuit.** The T network is one of many circuits with the
+  same S-parameters; its values are not the resistors on the wafer, and the
+  delay $\tau$ is not a measured line length.
+- **Correlated residuals.** The standard errors of the fit assume
+  independent residuals, which the data refute; the instrument and band
+  fits are a sensitivity, not an interval.
+- **A lumped model.** It holds to `{python} result["coax-max"]` GHz on this record and not to `{python} result["single-max"]` GHz;
+  its structured misfit at the lowest frequencies is not explained.
+- **The labels.** The pads are named by their nominal loss; the record does
+  not state their tolerance.
+
+::: {.exercise .self-check}
+The fit gives $R_\text{series}$ of the [3 dB]{.given} pad with a standard error of
+about a hundredth of an ohm, and the fit on the other instrument's file
+differs by almost five hundredths. Which number says more about how well
+the record fixes $R_\text{series}$, and why is neither a full uncertainty?
+
+::: {.solution}
+The difference between the instruments says more. The standard error
+assumes independent residuals, and the residuals of neighbouring
+frequencies are strongly correlated, so it counts far too many independent
+samples and comes out too small. The fit on the other instrument shows how
+much the value moves when the measurement system changes. Neither is a full
+uncertainty: both rest on the same model, and neither includes an error the
+two calibrations share.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Amplitude or power.** A part transmits an amplitude $|S_{21}| = 0.5$.
+What fraction of the power does it transmit, what is its loss in dB, what
+loss would ten times the logarithm of the amplitude give, and what
+amplitude does a pad of exactly [3 dB]{.given} pass?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.decibel_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("decibel-exercise"), end="")
+```
+
+A quarter of the power, a loss of six decibels. The wrong formula gives half of it.
+:::
+:::
+
+::: {.exercise}
+**A matched 20 dB pad.** Design the resistive T pad that is matched to
+`{python} result["reference"]` Ω and loses 20 dB. Check with the network that it reflects nothing, find
+the impedance it presents to the line, and say how much of the power it
+absorbs.
+
+::: {.hint}
+Use the closed form with $k$, the amplitude ratio of the loss, then
+compute the S-parameters of the network.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.design_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("design-exercise"), end="")
+```
+
+The pad presents exactly the reference impedance, transmits one per cent of the power, and
+absorbs the rest.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/electromagnetism/two_port.py",
+        "src/pbc/electromagnetism/experiments/microwave_sparameter_lab.py",
+        "src/pbc/experiment.py",
+        "src/pbc/data/touchstone.py",
+        "src/pbc/data/reference/npl_sparameters.py",
+        "src/pbc/data/adapters.py",
+        "src/pbc/data/fit.py",
+        "src/pbc/data/plotting.py",
+    ],
+    tests=[
+        "tests/unit/test_two_port.py",
+        "tests/unit/test_data_samples.py",
+        "tests/unit/test_microwave_sparameter_lab_experiment.py",
+    ],
+)
+```
+
+The data card above gives the command that downloads a fresh copy of the
+record into `data/downloads/npl-onwafer-sparameters`; no model and no
+account are needed to read it.

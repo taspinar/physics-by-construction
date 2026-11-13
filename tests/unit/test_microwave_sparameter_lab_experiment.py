@@ -1,0 +1,261 @@
+"""The experiment of "Microwave S-parameter lab" (electromagnetism 9): what the
+page claims is what the committed files give, the stated uncertainties'
+assumptions are checked on the data, and the figures follow the conventions of
+a measured-data lab."""
+
+import re
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pytest
+from support.experiments import (
+    assert_the_page_and_the_results_agree,
+    page_of,
+    run_entry_point,
+)
+
+from pbc.authoring.tables import is_numeric_console_block
+from pbc.data.adapters import reflection_series, transmission_series
+from pbc.data.plotting import check_figure, figure_status
+from pbc.electromagnetism.experiments import microwave_sparameter_lab as lab
+from pbc.electromagnetism.two_port import (
+    TeeAttenuator,
+    absorbed_fraction,
+    largest_singular_value,
+)
+from pbc.experiment import encode
+
+MODULE = "pbc.electromagnetism.experiments.microwave_sparameter_lab"
+PAGE = "electromagnetism/09-microwave-sparameter-lab"
+LABELS = sorted(lab.run().figures)
+
+
+@pytest.fixture(scope="module")
+def results(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, dict]:
+    directory = tmp_path_factory.mktemp("microwave_sparameter_lab")
+    return directory, run_entry_point(MODULE, directory)
+
+
+@pytest.fixture(scope="module")
+def experiment():
+    return lab.run()
+
+
+@pytest.fixture(scope="module")
+def networks():
+    return lab.load_networks()
+
+
+def _number(found: dict, name: str) -> float:
+    return float(found["numbers"][name].replace(",", ""))
+
+
+def _rows(found: dict, table: str) -> list[list[str]]:
+    return found["tables"][table]["rows"]
+
+
+def test_the_command_writes_what_the_page_shows(results):
+    assert_the_page_and_the_results_agree(PAGE, *results)
+
+
+def test_no_section_id_equals_a_cell_label():
+    # Both become id="..." on the page (pitfall 9 of the labs).
+    page = page_of(PAGE)
+    sections = set(re.findall(r"\{#([a-z0-9-]+)\}", page))
+    labels = set(re.findall(r"^#\|\s*label:\s*([a-z0-9-]+)\s*$", page, re.MULTILINE))
+    assert labels and sections
+    assert not sections & labels
+
+
+def test_the_series_carry_the_status_of_the_card(networks):
+    network = networks[lab.coaxial("3")]
+    for series in (transmission_series(network), reflection_series(network)):
+        assert series.artifact == "calibrated-observation"
+        assert series.status == "calibrated"
+        assert series.sigma is None  # the files state no uncertainty
+        assert (series.x_unit, series.y_unit) == ("GHz", "dB")
+        assert series.x.size == 191
+    assert reflection_series(network).y == pytest.approx(
+        20 * np.log10(np.abs(network.s[:, 0, 0]))
+    )
+
+
+def test_the_record_is_what_the_observational_claims_say(results):
+    _, found = results
+    numbers = found["numbers"]
+    assert (numbers["coax-points"], numbers["single-points"]) == ("191", "871")
+    assert (numbers["f-min"], numbers["coax-max"], numbers["single-max"]) == (
+        "2.5",
+        "50",
+        "220",
+    )
+    assert (numbers["step"], numbers["reference"]) == ("250", "50")
+    # The dossier's consistency numbers.
+    assert numbers["reciprocity-coax"] == "1.3e-03"
+    assert numbers["reciprocity-single"] == "0.025"
+    assert _number(found, "symmetry-coax") < _number(found, "symmetry-single")
+
+
+def test_the_matched_pads_are_checked_as_networks(results):
+    _, found = results
+    assert found["numbers"]["matched-error"] == "below 1e-12"
+    rows = _rows(found, "matched-pads")
+    assert [r[0] for r in rows] == ["3", "6", "10"]
+    assert [r[4] for r in rows] == ["3.000", "6.000", "10.000"]
+    assert {r[3] for r in rows} == {"below 1e-12"}
+    assert (rows[0][1], rows[0][2]) == ("8.55", "141.9")
+
+
+def test_amplitude_power_and_the_energy_balance(results):
+    _, found = results
+    numbers = found["numbers"]
+    # The dossier's losses, in the order of the labels and each above it.
+    assert [numbers[f"loss-{p}"] for p in lab.PADS] == ["3.89", "6.83", "10.53"]
+    for pad in lab.PADS:
+        assert _number(found, f"loss-{pad}") > float(pad)
+    for row in _rows(found, "power-balance"):
+        transmitted, reflected, absorbed = map(float, row[2:5])
+        assert transmitted + reflected + absorbed == pytest.approx(1, abs=2e-3)
+        assert reflected < 0.01  # "averages below one per cent"
+        assert absorbed > transmitted + reflected  # "most ... is absorbed"
+        assert float(row[1]) < float(row[6])  # passes less than the label
+    assert _number(found, "wrong-loss-3") == pytest.approx(
+        _number(found, "loss-3") / 2, abs=0.01
+    )
+    assert numbers["absorbed-3"] == "0.584"
+
+
+def test_the_pads_are_passive_on_every_frequency(results, networks):
+    _, found = results
+    assert found["numbers"]["absorbed-min"] == "0.50"
+    assert found["numbers"]["singular-max"] == "0.78"
+    for network in networks.values():
+        assert absorbed_fraction(network.s).min() >= 0.50
+        assert largest_singular_value(network.s).max() <= 0.78
+
+
+def test_the_two_instruments_agree_as_the_dossier_says(results):
+    _, found = results
+    assert found["numbers"]["instrument-db"] == "0.042"
+    assert _number(found, "instrument-s21") < 0.01
+    assert _number(found, "instrument-s11") < 0.01
+
+
+def test_the_fit_and_its_residuals(results):
+    _, found = results
+    numbers = found["numbers"]
+    assert numbers["fit-warnings"] == "none"
+    assert (numbers["fit-r-series"], numbers["fit-r-shunt"]) == ("14.08", "145.5")
+    assert (numbers["fit-l"], numbers["fit-tau"]) == ("15.9", "0.866")
+    assert (numbers["rms-low"], numbers["rms-high"]) == ("0.0022", "0.0032")
+    assert numbers["misfit-max"] == "0.019"
+    # "about nine times larger" without the inductance
+    assert numbers["rms-ratio-l"] == "9"
+    # The fitted pad is not matched: a resistance above 50 ohm at 2.5 GHz.
+    assert _number(found, "model-input") > 55
+    assert _number(found, "matched-series") < _number(found, "fit-r-series")
+
+
+def test_the_largest_misfit_is_at_the_lowest_frequency(networks, experiment):
+    for pad in lab.PADS:
+        network = networks[lab.coaxial(pad)]
+        tee = lab.model_of(lab.fit_pad(network))
+        error = lab.misfit(network, tee)
+        assert int(np.argmax(error)) == 0
+        # Smooth: it falls over the first part of the band.
+        assert error[:8].mean() > 2 * error[60:].mean()
+
+
+def test_the_standard_errors_rest_on_an_assumption_the_data_refute(results):
+    _, found = results
+    assert _number(found, "correlation-low") > 0.8
+    for row in _rows(found, "fit-residuals"):
+        assert float(row[3]) > 0.8
+    assert [r[0] for r in _rows(found, "fit")] == ["3", "6", "10"]
+    # The other instrument moves R_series by several of its standard errors.
+    assert _number(found, "instrument-r-errors") >= 3
+    assert _number(found, "sensitivity-errors") > 10
+
+
+def test_the_sensitivity_table(results):
+    _, found = results
+    rows = _rows(found, "sensitivity")
+    assert [r[0] for r in rows] == [
+        "coaxial, 2.5-50 GHz",
+        "single sweep, 2.5-50 GHz",
+        "coaxial, lower half",
+        "coaxial, upper half",
+    ]
+    r_series = [float(r[1]) for r in rows]
+    assert max(abs(r - r_series[0]) for r in r_series[1:]) == pytest.approx(
+        _number(found, "sensitivity-r"), abs=0.006
+    )
+
+
+def test_the_model_fails_beyond_its_band(results):
+    _, found = results
+    inside = _number(found, "beyond-inside")
+    at = [_number(found, f"beyond-{f}") for f in (100, 150, 220)]
+    assert inside < 0.02
+    assert at == sorted(at)  # "grows steadily"
+    assert at[-1] > 5 * inside
+    assert _number(found, "beyond-ratio") > 10
+    assert found["numbers"]["delay-phase"] == "1.2"
+
+
+def test_the_model_is_reciprocal_symmetric_and_passive(results):
+    tee = TeeAttenuator(14.08, 145.5, 15.9e-12, 0.866e-12)
+    s = tee.s(np.linspace(2.5e9, 220e9, 50))
+    assert largest_singular_value(s).max() < 1
+
+
+def test_the_exercises(experiment):
+    decibel = experiment.output("decibel-exercise")
+    assert "power transmitted: 0.25" in decibel
+    assert "loss: 6.02 dB" in decibel
+    assert "a wrong loss: 3.01 dB" in decibel
+    assert "amplitude of a pad of exactly three decibels: 0.708" in decibel
+    design = experiment.output("design-exercise")
+    assert "R_series: 40.91 ohm, R_shunt: 10.10 ohm" in design
+    assert "normalised input impedance: 1.000" in design
+    assert "power absorbed: 0.990" in design
+
+
+@pytest.mark.parametrize("label", LABELS)
+def test_every_figure_is_the_same_bytes_on_every_draw(experiment, label):
+    # The page's figure must be regenerated byte for byte.
+    drawings = {encode(experiment.figures[label]) for _ in range(12)}
+    assert len(drawings) == 1
+
+
+@pytest.mark.parametrize("label", LABELS)
+def test_every_figure_follows_the_conventions(experiment, label):
+    figure = experiment.figures[label]()
+    try:
+        assert figure_status(figure) == "calibrated"
+        assert check_figure(figure) == []
+        for ax in figure.axes:
+            legend = ax.get_legend()
+            for t in [] if legend is None else legend.get_texts():
+                text = t.get_text()
+                if "pad" in text and "fit" not in text:
+                    assert "[calibrated]" in text, (label, text)
+                if "T network" in text:
+                    assert "[simulated]" in text, (label, text)
+    finally:
+        plt.close(figure)
+
+
+def test_no_printed_output_is_a_block_of_numbers(experiment):
+    for name, text in experiment.outputs.items():
+        assert not is_numeric_console_block(text), name
+
+
+def test_the_figures_leave_room_in_the_payload_budget_of_the_page(results):
+    # The labs keep their figures under 0.75 MB; the Linux build in CI came
+    # out up to 16.6 % larger than the local one (W7), so the local total is
+    # kept at most 70 % of that bound. Locally these are about 0.42 MB.
+    directory, _ = results
+    total = sum(p.stat().st_size for p in directory.glob("fig-*.png"))
+    assert total < 525_000, total
