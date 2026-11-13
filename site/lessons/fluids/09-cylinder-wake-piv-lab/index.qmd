@@ -1,0 +1,674 @@
+---
+title: "Cylinder wake PIV lab"
+description: >-
+  Particle image velocimetry of the wake of a cylinder in a water channel at
+  a Reynolds number of 413, and hot-wire records of wakes in a wind channel,
+  test the vortex street of the vortex lesson: the vorticity derived with two
+  stencils whose noise is stated, the street's half-period symmetry, the
+  shedding frequency with an uncertainty whose assumptions are checked, and
+  the Strouhal number against the Reynolds number and the blockage.
+lesson:
+  id: cylinder-wake-piv-lab
+  strand: fluids
+  order: 9
+  difficulty: 2
+  course: fluids
+  slot: FL7
+  methods: [measured-data, simulation]
+  outcomes:
+    - Tell what a PIV record is, velocity vectors computed from image pairs on a grid at a fixed cadence with a mask where there is no light, and what this lab derives from it
+    - Compute the vorticity from a measured grid with a stated finite-difference stencil, and say what the stencil does to noise and to resolution, checked first on an analytic vortex
+    - Measure the shedding frequency and the Strouhal number with an uncertainty whose assumptions are checked on the data, and test the vortex-street picture on the measured field
+    - Compare Strouhal numbers across two experiments, Reynolds numbers, and blockages with the expectations of the vortex lesson, saying what the data support and what they do not
+  related: []
+  format: 2
+  preview: fig-wake-keyframes
+  experiment: pbc.fluids.experiments.cylinder_wake_piv_lab
+  prerequisites:
+    lessons: [vortex-formation-and-flow-around-obstacles]
+    outside:
+      - "Statistics: the standard error of a mean, a correlation coefficient, and a straight-line fit"
+      - "Numerical methods: finite differences and their truncation error"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this
+from pbc.data.reference import cylinder_wake, ost_hotwire
+from pbc.fluids import piv, vortices
+from pbc.fluids.experiments import cylinder_wake_piv_lab as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The vortex lesson computed the wake of a cylinder in two dimensions: two
+shear layers leave the body, roll up in turn, and send a street of vortices
+of alternating sign downstream at a frequency fixed by the Strouhal number
+$\mathrm{St} = fD/U$. It compared that number with a fit to wind-tunnel
+measurements, and it named the biases of its own model: blockage raises the
+frequency, and above Roshko's stable range a two-dimensional computation no
+longer describes a real wake.
+
+This lab looks at real wakes. The main record is a film of the flow behind
+a cylinder in a water channel, measured by particle image velocimetry (PIV):
+tiny particles in the water are lit by a laser sheet, photographed in pairs,
+and the displacement of small patches of particles between the two images
+of a pair gives the velocity on a grid. A second record holds hot-wire
+measurements behind three larger cylinders in a wind channel. Does the
+measured wake shed a street of alternating vortices? At what frequency, and
+how well is it known? And what do the Strouhal numbers of two experiments
+say about the expectations of the vortex lesson?
+
+## Assumptions
+
+1. **The vectors are taken as computed.** The PIV vectors were computed by
+   the experimenters' software from image pairs; the record holds no image,
+   and the lab does not redo that step. The record states no uncertainty of
+   the vectors.
+2. **One plane of a three-dimensional flow.** The cylinder is finite, hangs
+   in the channel with a small gap above the floor, and the laser sheet lies
+   at mid-span. The lab treats the plane as one slice of the wake, not as a
+   two-dimensional flow.
+3. **The paper's diameter and speed.** The record holds neither. The
+   Strouhal number uses the cylinder diameter and the free-stream speed of
+   the paper that describes the experiment; their uncertainty is not stated.
+4. **Steady conditions.** Over the whole film and over each
+   hot-wire run the flow and its statistics do not change; the lab checks
+   how much the shedding frequency wanders.
+5. **Blocks and runs as independent samples.** The stated uncertainty of the
+   frequency treats blocks of the record as independent, and the line through
+   the hot-wire Strouhal numbers treats the runs as independent. Both are
+   checked or qualified below.
+
+## Explanation {#explanation}
+
+### What PIV measures
+
+A PIV camera records image pairs of seeded fluid a short time apart. The
+software divides each image into small interrogation windows, finds the
+shift of each window between the two images by cross-correlation, and
+divides it by the time between them. The result is one velocity vector per
+window, on a regular grid, once per image pair. Each vector is an average
+over its window; neighbouring windows overlap by half, so neighbouring
+vectors share particles and their errors are not independent. Where the
+laser does not reach, behind the cylinder and in its shadows, there is no
+vector: this record marks those points with velocities of exactly zero, a
+mask and not data.
+
+Everything after the vectors is processing. The vorticity, the streamlines,
+the spectra, and the Strouhal number on this page are computed by this lab
+from the vectors.
+
+### Vorticity from a grid
+
+The vorticity in a plane is $\omega = \partial v/\partial x - \partial u/\partial y$.
+On a grid of spacing $h$ a derivative must be approximated. The central
+difference of the vortex lesson,
+
+$$
+f'(x) \approx \frac{f(x+h) - f(x-h)}{2h} = f'(x) + \frac{h^2}{6} f'''(x) + \dots,
+$$
+
+is second order. A second stencil fits a straight line through five points
+by least squares; its slope is
+
+$$
+f'(x) \approx \frac{2 f(x+2h) + f(x+h) - f(x-h) - 2 f(x-2h)}{10h} = f'(x) + \frac{17 h^2}{30} f'''(x) + \dots,
+$$
+
+also second order, with a truncation error larger by the ratio of the two
+coefficients. In exchange it is less sensitive to noise. If each velocity
+has an independent error of standard deviation $s$, a stencil with weights
+$c_k$ over the denominator $d$ gives the derivative an error of
+$s\sqrt{\sum c_k^2}/d$, so the vorticity, the difference of two such
+derivatives, has
+
+$$
+\sigma_\omega = \frac{s}{h} \quad \text{(central)}, \qquad
+\sigma_\omega = \sqrt{\tfrac15}\,\frac{s}{h} \quad \text{(least squares)}.
+$$
+
+A finer grid resolves thinner layers and amplifies noise more; a wider
+stencil smooths noise and thin layers alike. Neither stencil measures
+vorticity: both derive it, and where a stencil touches a masked point the
+lab leaves the value out.
+
+### The street and its frequency
+
+In a street of alternating vortices, the vortices of one sign pass on one
+side of the wake axis and those of the other sign half a period later on
+the other side. Two predictions follow for a probe on the axis. The
+cross-stream velocity $v$ swings one way for a vortex of one sign and the
+other way for the next, so it oscillates at the shedding frequency $f$. The
+streamwise velocity $u$ is slowed by each passing vortex whatever its sign,
+so it oscillates at $2f$. And the whole field half a period later, reflected
+about the axis and with the sign of its vorticity flipped, is the field
+now.
+
+The vortex lesson measured $f$ by counting upward crossings of the probe
+signal. On noise-free computed data that works; on a measured signal, noise
+adds crossings that are not periods, so this lab filters the signal first
+(a zero-phase band-pass around the shedding) and also takes $f$ from the
+peak of the power spectrum.
+
+### Strouhal number, Reynolds number, blockage
+
+With $\mathrm{Re} = UD/\nu$ and $\mathrm{St} = fD/U$, Roshko's measurements
+gave the stable-range fit that the vortex lesson used, valid from fifty to
+one hundred and fifty. Above about three hundred, in what his report calls
+the irregular range, the wake is turbulent, and the card of the PIV record
+carries his fit there, $\mathrm{St} = 0.212 - 2.7/\mathrm{Re}$, as a
+modelled reference. The vortex lesson also showed why a channel matters:
+the walls squeeze the stream past the cylinder, which then sheds faster than
+the free-stream speed $U$ alone would say. The ratio of diameter to channel
+width $D/W$, the blockage, measures that squeeze. A simple continuity model
+says the speed past the cylinder is $U/(1 - D/W)$; if the shedding followed
+that speed, $\mathrm{St}\,(1 - D/W)$ would not depend on the blockage.
+
+## Code {#code}
+
+The stencils are in `pbc.fluids.piv`:
+
+```{python}
+#| echo: false
+excerpt(piv, region="stencils")
+```
+
+```{python}
+#| echo: false
+excerpt(piv.vorticity)
+```
+
+The frequency of the vortex lesson, from upward crossings, is reused as it
+is:
+
+```{python}
+#| echo: false
+excerpt(vortices.shedding_frequency)
+```
+
+The spectral peak and its four blocks come from the reference module of the
+PIV dataset, `pbc.data.reference.cylinder_wake`:
+
+```{python}
+#| echo: false
+excerpt(cylinder_wake.block_peaks)
+```
+
+The choices of the lab, made before it looks at the data:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="choices")
+```
+
+## Worked examples {#worked-examples}
+
+### The stencils on an analytic vortex
+
+Before any data, both stencils are applied to the exact velocity of a
+Lamb–Oseen vortex, whose vorticity is a Gaussian of core radius $c$, on grids
+of four steps:
+
+```{python}
+#| label: stencil-run
+#| echo: false
+excerpt(experiment.stencil_check)
+```
+
+```{python}
+#| label: stencil-check
+#| echo: false
+result.table("stencil-check")
+```
+
+[Halving the step divides the largest error of each stencil by
+`{python} result["order-low"]` to `{python} result["order-high"]`, the factor
+of a second-order method; at the finest step the least-squares stencil's
+error is `{python} result["stencil-ratio"]` times the central one, against
+the `{python} result["stated-ratio"]` of the two truncation coefficients. On
+seeded independent noise the vorticity's standard deviation is
+`{python} result["gain-central"]` and `{python} result["gain-squares"]` in
+units of $s/h$, against the stated $1$ and
+`{python} result["stated-gain"]`.]{.claim type="numerically-verified"
+scope="the two stencils on the exact velocity of a Lamb-Oseen vortex at steps from 0.05 to 0.4 core radii, and on independent Gaussian noise on a 300 by 300 grid"
+evidence="stencil-run stencil-check"} The trade is stated, not chosen
+here: the least-squares stencil more than halves the noise and more than
+triples the truncation error.
+
+### The measurement {#data}
+
+```{python}
+#| echo: false
+data_card("piv-cylinder-wake")
+```
+
+```{python}
+#| echo: false
+data_card("ost-hotwire-cylinder-wakes")
+```
+
+Both records are released under [CC BY 4.0]{.given}, which permits the download, the
+subsets committed here, the figures, and their changes with credit; the
+credits are on every figure. Each card says what this project changed: a
+crop of the PIV film, its time mean, and two probe series; the first
+sixteen seconds of each hot-wire run.
+
+[The PIV sample holds `{python} result["frames"]` frames of $u$ and $v$ on
+`{python} result["nx"]` by `{python} result["ny"]` grid points
+(`{python} result["points"]` points) spaced `{python} result["h-mm"]` mm
+apart; `{python} result["masked-low"]` to `{python} result["masked-high"]`
+of them are masked in each frame, `{python} result["masked-always"]` in
+every frame, `{python} result["masked-share"]` per cent of the crop; the two probe series run for `{python} result["record-s"]` s at
+twenty frames per second. The hot-wire sample holds
+`{python} result["runs"]` runs.]{.claim type="observational"
+scope="the committed samples of the two cards, as extracted from the records"
+evidence="piv-cylinder-wake ost-hotwire-cylinder-wakes"} The vectors are
+processed measurements, the output of the experimenters' cross-correlation;
+the images they came from are not in the record. The hot-wire speeds are
+the anemometer's calibrated output, filtered by the creators below
+[300 Hz]{.given}. Neither record states an uncertainty.
+
+### The vorticity of the wake
+
+The grid spacing is `{python} result["h-over-d"]` of the cylinder diameter,
+and the shear layers that leave the cylinder are about as thin as the grid.
+The same frame with both stencils:
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_vorticity_stencils)
+```
+
+```{python}
+#| label: fig-vorticity-stencils
+#| echo: false
+#| fig-cap: "The same measured frame gives a sharper but noisier vorticity with the central stencil and a smoother, weaker one with the least-squares stencil: the stencil is part of what the picture shows."
+#| fig-alt: "Two panels of vorticity in false colour over the near wake, a grey L-shaped region at the left marking the cylinder and its shadows. Two thin bands of opposite sign leave the grey region to the right and curl up a little downstream. In the left panel the bands are thin and speckled; in the right panel the same bands are wider, paler, and smoother, and the grey border is wider."
+#| fig-status: processed
+#| fig-dataset: piv-cylinder-wake
+#| fig-artifact: processed-measured
+result.show("fig-vorticity-stencils")
+```
+
+[Over the `{python} result["frames"]` frames, the ninety-ninth percentile of the
+magnitude of the vorticity is `{python} result["p99-central"]` $\mathrm{s^{-1}}$ with the
+central stencil and `{python} result["p99-squares"]` $\mathrm{s^{-1}}$ with the
+least-squares stencil, and its largest value `{python} result["max-central"]`
+and `{python} result["max-squares"]` $\mathrm{s^{-1}}$. In the free stream,
+`{python} result["free-bottom"]` to `{python} result["free-top"]` diameters
+from the axis, the vorticity's standard deviation is
+`{python} result["noise-central"]` and `{python} result["noise-squares"]` $\mathrm{s^{-1}}$,
+a ratio of `{python} result["noise-ratio"]` where independent errors would
+give `{python} result["stated-gain"]`; there, neighbouring fluctuations of
+$u$ correlate at `{python} result["neighbours"]`.]{.claim
+type="experimentally-supported"
+scope="the 60 frames of the PIV sample, the two stencils, the six top rows of the crop for the free stream"
+evidence="fig-vorticity-stencils piv-cylinder-wake"} The vectors' errors are
+not independent, as the half-overlapping windows lead one to expect, so the
+noise formulas above are not the noise of this record; the free-stream
+vorticity, a few per cent of the peaks, bounds it from above. The largest
+values sit next to the mask, where single vectors are spurious. The peaks of
+the shear layers are not resolved by this grid: they depend on the stencil.
+The rest of the lab uses the central stencil, that of the vortex lesson.
+
+### The street in time and on average
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_wake_keyframes)
+```
+
+```{python}
+#| label: fig-wake-keyframes
+#| echo: false
+#| fig-cap: "Half a shedding period of the measured wake: the shear layer of each sign rolls up in turn, and the frame half a period on is close to the first reflected about the axis with the colours swapped. On average the flow recirculates behind the cylinder and closes about two diameters downstream."
+#| fig-alt: "Four panels over the near wake, each with a grey L-shaped region at the left for the cylinder and its shadows. Three panels show vorticity in false colour at three times: a band of one colour above the axis and one of the other colour below it leave the grey region; at the first time the lower band curls up near a probe marker, at the last time the upper band does, and the middle time lies between. The fourth panel shows the mean streamwise velocity with streamlines that pass around a pale region of slow and reversed flow behind the grey region, and a dashed vertical line where that region ends."
+#| fig-status: processed
+#| fig-dataset: piv-cylinder-wake
+#| fig-artifact: processed-measured
+result.show("fig-wake-keyframes")
+```
+
+The three frames lie a quarter period apart, from the first committed frame
+to half a period later; the grey points are the mask and the points whose stencil
+touches it. The fourth panel is the time mean over all the frames of the record, with the
+streamlines of the mean field; no single frame looks like it.
+
+```{python}
+#| echo: false
+excerpt(piv, region="reflect")
+```
+
+```{python}
+#| label: symmetry-run
+#| echo: false
+excerpt(experiment.street_symmetry)
+```
+
+[Behind the cylinder, the vorticity half a period later, reflected about
+the wake axis and with its sign flipped, correlates with the vorticity now at
+`{python} result["sym-half"]` on average over the frames, as closely as the
+vorticity a whole period later does (`{python} result["sym-full"]`); half a
+period later without the reflection it correlates at
+`{python} result["sym-plain"]`, and reflected at the same time at
+`{python} result["sym-none"]`.]{.claim type="experimentally-supported"
+scope="the central-stencil vorticity of the 60 committed frames, from one diameter behind the shadow's centre, a band symmetric about the probes' row, a shift of 11 frames for half a period"
+evidence="symmetry-run fig-wake-keyframes piv-cylinder-wake"} The measured
+wake has the symmetry of a street of alternating vortices. That the
+correlation is not closer to one is noise, the frame shift of a whole number
+of frames, and an axis known only to about half a grid row.
+
+[The mean streamwise velocity on the axis turns positive
+`{python} result["recirculation"]` diameters behind the centre of the
+cylinder's shadow.]{.claim type="experimentally-supported"
+scope="the time mean of u over 8000 frames on the probes' row, linear interpolation between grid points"
+evidence="fig-wake-keyframes piv-cylinder-wake"} The mean wake is a closed
+recirculation, the steady pair of vortices of the vortex lesson's low
+Reynolds numbers; at this Reynolds number it is only an average over a
+street.
+
+### The shedding frequency
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_shedding)
+```
+
+```{python}
+#| label: fig-shedding
+#| echo: false
+#| fig-cap: "On the wake axis two diameters behind the cylinder, the cross-stream velocity oscillates at the published shedding frequency and the streamwise velocity at twice it, as a street of alternating vortices predicts."
+#| fig-alt: "Two panels. Left: the cross-stream velocity against time over a few seconds, a noisy grey trace and a smooth blue band-passed curve through it, oscillating regularly about zero. Right: power spectral density on a log scale against frequency, a solid curve with a tall narrow peak at a dotted vertical line, and a dashed curve with a smaller peak at a dash-dotted line at twice that frequency and a rise at the lowest frequencies."
+#| fig-status: processed
+#| fig-dataset: piv-cylinder-wake
+#| fig-artifact: processed-measured
+result.show("fig-shedding")
+```
+
+The grey trace is the record's $v$ at the probe; the blue curve is the same
+signal after the band-pass of the lab's choices, which the crossings use.
+The spectra are of the whole unfiltered series.
+
+```{python}
+#| label: frequencies
+#| echo: false
+result.table("frequencies")
+```
+
+[The spectral peak of $v$ gives $f =$ `{python} result["f-2d"]` ±
+`{python} result["f-2d-err"]` Hz at two diameters and
+`{python} result["f-5d"]` Hz at five, where the record's paper reports
+`{python} result["f-published"]` Hz; the peak of the whole series' Welch
+spectrum lies at `{python} result["f-welch"]` Hz. The spectrum of $u$ peaks
+at `{python} result["harmonic"]` Hz, `{python} result["harmonic-ratio"]`
+times $f$.]{.claim type="experimentally-supported"
+scope="the two probe series of 400 s, four blocks of 100 s, Hann windows, the largest peak above 0.3 Hz"
+evidence="frequencies fig-shedding piv-cylinder-wake"}
+
+[The crossings of the vortex lesson give `{python} result["f-raw-crossings"]`
+Hz on the raw signal, where noise adds crossings, and
+`{python} result["f-crossings"]` ± `{python} result["f-crossings-err"]` Hz
+over `{python} result["periods"]` periods after the band-pass.]{.claim
+type="experimentally-supported"
+scope="v at the 2 D probe, 400 s, the band-pass of the lab's choices, upward crossings of the mean"
+evidence="frequencies fig-shedding piv-cylinder-wake"} The two methods
+answer slightly different questions: the spectral peak is the most common
+frequency, the crossings the mean rate of whole periods.
+
+### Are the blocks independent?
+
+The errors above are the scatter of four blocks over $\sqrt4$, which
+assumes the blocks are independent samples of one frequency. The lengths of
+the periods between crossings test it:
+
+```{python}
+#| label: crossings-run
+#| echo: false
+excerpt(experiment.crossing_frequency)
+```
+
+[The `{python} result["periods"]` periods vary by
+`{python} result["period-spread"]` per cent; successive periods correlate
+at `{python} result["rho-1"]`, and `{python} result["rho-outside"]` of the
+first `{python} result["max-lag"]` lags lie outside the band of
+±`{python} result["rho-band"]` that independent periods would fill. Counting
+these correlations, the periods are worth about
+`{python} result["effective"]` independent ones, and the standard error of
+the mean frequency is `{python} result["correlated-err"]` Hz, against
+`{python} result["naive-err"]` Hz if every period were
+independent.]{.claim type="experimentally-supported"
+scope="the periods of the band-passed v at 2 D, autocorrelation to 30 periods, the effective number N / (1 + 2 sum of the correlations)"
+evidence="crossings-run frequencies piv-cylinder-wake"} The shedding
+frequency wanders over tens of periods, as a finite cylinder in a channel
+with a free surface may well do. A block of a hundred seconds holds about
+`{python} result["periods-per-block"]` periods, more than that memory, so
+the blocks are close to independent, but four blocks give a rough estimate
+of their own scatter. For the crossing frequency the lab carries the
+larger, correlated error of `{python} result["correlated-err"]` Hz, and the
+crossing frequency lies `{python} result["crossing-gap"]` of those standard
+errors from the published one. The spectral frequency keeps the error of its
+own four blocks, and lies `{python} result["spectral-gap"]` Hz from the
+published one.
+
+### The Strouhal number
+
+[With the paper's diameter and free-stream speed, the spectral frequency
+gives $\mathrm{St} =$ `{python} result["st"]` ±
+`{python} result["st-err"]` from the frequency alone, the error being the
+scatter of the spectral peak's four blocks; the crossings give
+`{python} result["st-crossings"]`, and their correlated frequency error
+alone would give ± `{python} result["st-err-correlated"]`. The mean $u$ in
+the crop's top row is
+`{python} result["u-top"]` cm/s, not the paper's
+`{python} result["u-paper"]` cm/s; with it, St would be
+`{python} result["st-top"]`. Roshko's irregular-range fit gives
+`{python} result["roshko-413"]` at this Reynolds number, and the measured St
+lies `{python} result["roshko-gap"]` per cent below it.]{.claim
+type="experimentally-supported"
+scope="the PIV record at Re = 413 with the paper's D and U, whose uncertainty is not stated; Roshko's fit as the card carries it, for long cylinders in air"
+evidence="frequencies piv-cylinder-wake"} The uncertainty of the diameter
+and the speed, which the paper does not state, enters St one for one, and
+the choice of speed alone moves it by more than the frequency error. A
+finite cylinder with a gap at its end, in water, is not Roshko's long
+cylinder in air. The measured St lies above the top of the stable-range fit
+of the vortex lesson, `{python} result["fl3-high"]` at its upper end, and
+below the irregular-range fit; the data do not decide between the
+explanations.
+
+### St over Reynolds numbers and blockages
+
+```{python}
+#| label: hot-wire
+#| echo: false
+result.table("hot-wire")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_strouhal)
+```
+
+```{python}
+#| label: fig-strouhal
+#| echo: false
+#| fig-cap: "The hot-wire Strouhal numbers sort by cylinder, not by Reynolds number: the wider the cylinder in the same channel, the higher St, as blockage predicts in kind; the continuity correction overshoots and reverses the order."
+#| fig-alt: "Two panels. Left: Strouhal number against Reynolds number on a log axis; a solid curve rises at low Reynolds numbers, a dashed curve continues it higher and flattens, one diamond lies below the dashed curve, and ten markers of three shapes lie further right and higher, scattered without a trend. Right: Strouhal number against blockage; filled markers at three blockages rise with a dotted straight line, and open markers at the same blockages lie lower and fall from left to right."
+#| fig-status: processed
+#| fig-dataset: ost-hotwire-cylinder-wakes
+#| fig-artifact: processed-measured
+result.show("fig-strouhal")
+```
+
+The error bars are ±`{python} result["hw-error"]` per cent per run, the
+spread the dataset's dossier found between sixteen-second segments of the
+full records, larger than the scatter of four blocks within the sample (at
+most `{python} result["hw-block-high"]` Hz). The PIV point carries the
+error of its spectral frequency alone, the scatter of its four blocks.
+
+[The ten hot-wire runs, at Reynolds numbers from
+`{python} result["re-hw-low"]` to `{python} result["re-hw-high"]`, give St
+from `{python} result["st-hw-low"]` to `{python} result["st-hw-high"]`;
+every run of the [50 mm]{.given} cylinder (at least `{python} result["st-50-low"]`)
+lies above every run of the [25.1 mm]{.given} cylinder (at most
+`{python} result["st-25-high"]`), and within one cylinder St does not rise
+or fall steadily with Re. A straight line through the ten runs has the
+slope `{python} result["slope"]` ± `{python} result["slope-err"]` in the
+blockage, `{python} result["slope-sigma"]` standard errors from zero, and
+the value `{python} result["intercept"]` ± `{python} result["intercept-err"]`
+at zero blockage.]{.claim type="experimentally-supported"
+scope="the first 16.4 s of the ten runs, St with the record's D and Pitot reference velocity, no blockage correction; the line's errors from its residual scatter with the runs as independent"
+evidence="hot-wire fig-strouhal ost-hotwire-cylinder-wakes"} The vortex
+lesson's expectation that blockage raises the shedding frequency holds in
+kind. The runs of one cylinder share a channel, a diameter, and a probe
+position, so they are not fully independent, and the line's errors are only
+as good as that assumption; the value at zero blockage is an extrapolation
+of a straight line over three blockages, not a measurement.
+
+[The continuity correction $\mathrm{St}\,(1 - D/W)$ reverses the order: on
+average `{python} result["gap-25"]` for the [25.1 mm]{.given} cylinder and
+`{python} result["gap-50"]` for the [50 mm]{.given} one.]{.claim
+type="experimentally-supported"
+scope="the ten runs and the speed U / (1 - D/W) past the cylinder, the channel width 0.193 m"
+evidence="hot-wire fig-strouhal ost-hotwire-cylinder-wakes"} The flow past
+the cylinder does not speed up as much as continuity in the narrowest
+section says, or the shedding does not follow that speed alone: the simple
+model over-corrects. The hot-wire probes also sit beside the wake, not on
+its axis, which a spectral peak does not mind but the record's position
+does not let the lab check.
+
+### What the lab shows
+
+The measured wake behind the cylinder at a Reynolds number of [413]{.given} is a
+street of alternating vortices, as the vortex lesson describes one: its
+vorticity has the half-period reflection symmetry, $v$ on the axis
+oscillates at $f$ and $u$ at $2f$, and the frequency agrees with the
+published one. Its Strouhal number, `{python} result["st"]` with the paper's diameter and
+speed, lies between the vortex lesson's stable-range fit and Roshko's
+irregular-range fit, with a systematic uncertainty from the speed larger
+than its statistical one. The hot-wire wakes show the effect of blockage
+that the vortex lesson named, in kind, and show that a simple continuity
+correction does not remove it. The vorticity is a derived field whose peaks
+depend on the stencil, and the stated uncertainties hold only as far as
+their checked assumptions do.
+
+## Limits {#limits}
+
+- **A finite cylinder, one plane.** The plane at mid-span of a cylinder with
+  a gap at one end and a free surface at the other is not the
+  two-dimensional flow of the vortex lesson; end effects are not measured.
+- **No PIV uncertainty.** The record states none; the free-stream vorticity
+  gives an upper bound on the noise, and the vectors' errors are correlated
+  between neighbours.
+- **Unresolved shear layers.** The layers that leave the cylinder are about
+  as thin as the grid; their peak vorticity depends on the stencil and is
+  not a property of the flow.
+- **The diameter and the speed.** Neither is in the record, and their
+  uncertainty is not stated; the free stream in the field is faster than
+  the paper's value.
+- **Blockage uncorrected.** The hot-wire St include the blockage of the
+  channel; the one simple correction tried over-corrects, and no other is
+  applied.
+- **Short hot-wire samples.** The lab reads sixteen seconds of each run; the
+  uncertainty per run is taken from the dossier's look at the full records.
+
+::: {.exercise .self-check}
+The crossings of the raw $v$ signal give a frequency well above the spectral
+peak, and after a band-pass the two agree to within their errors. Is the
+band-pass changing the physics?
+
+::: {.solution}
+No. Noise in the measured signal makes it cross its mean several times near
+some zero crossings of the real oscillation, and each extra upward crossing
+counts as a period, so the raw count runs high. The band-pass removes
+fluctuations far from the shedding frequency and leaves the oscillation; its
+pass band is wide enough that the frequency is not forced, as the spectral
+peak of the unfiltered signal, computed without any filter, confirms. The
+filter is a processing step and the page says so.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Another cylinder.** In the same channel at the same speed, a cylinder of
+25 mm replaces the 9.5 mm one. If the Strouhal number stays at the measured
+value, what is the shedding frequency, and what is the Reynolds number? Why
+might St not stay the same?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.scaling_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("scaling-exercise"), end="")
+```
+
+The frequency falls in proportion to the diameter. The Reynolds number rises
+to about a thousand, still in the irregular range, where St changes only
+slowly; but the wider cylinder blocks more of the channel, which the
+hot-wire records show raises St, and its aspect ratio changes the end
+effects.
+:::
+:::
+
+::: {.exercise}
+**A slower camera.** Keep only every thirteenth frame of the probe series,
+as a camera at about one and a half frames per second would record it. Where
+does the spectral peak of $v$ lie now, and why?
+
+::: {.hint}
+Compare the shedding frequency with half the new frame rate.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.aliasing_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("aliasing-exercise"), end="")
+```
+
+The shedding frequency lies above half the frame rate, the Nyquist
+frequency, so the slower camera cannot represent it: it appears folded to
+the frame rate minus the shedding frequency. The record's twenty frames per
+second sample a period more than twenty times, which is why its spectrum
+shows the true peak.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/fluids/piv.py",
+        "src/pbc/fluids/vortices.py",
+        "src/pbc/fluids/experiments/cylinder_wake_piv_lab.py",
+        "src/pbc/experiment.py",
+        "src/pbc/data/reference/cylinder_wake.py",
+        "src/pbc/data/reference/ost_hotwire.py",
+        "src/pbc/data/adapters.py",
+        "src/pbc/data/plotting.py",
+    ],
+    tests=[
+        "tests/unit/test_piv.py",
+        "tests/unit/test_data_cylinder_wake.py",
+        "tests/unit/test_data_ost_hotwire.py",
+        "tests/unit/test_cylinder_wake_piv_lab_experiment.py",
+    ],
+)
+```
+
+The data cards above give the commands that download the PIV file and the
+hot-wire files into `data/downloads/`, and the conversion scripts that
+repeat the committed samples from them; no model and no account are needed
+to read them.
