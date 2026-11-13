@@ -118,7 +118,7 @@ the website describes the current template.
 | `docs/evaluation.md` | Review criteria, finding severities, and the testing principle | Template |
 | `docs/deployment.md`, `docs/operations.md` | Deployment and operations of the project | You |
 | `docs/release-readiness.md` | The record of the MVP release checks that CI cannot make | You |
-| `docs/products.md` | The Part B products: the instrument contract, the Autonomous Physics Lab slice, the starter and its pin, and the decision record of F138 (questions 19 and 21) | You |
+| `docs/products.md` | The Part B products: the instrument contract, the Autonomous Physics Lab slice, the starter and its pin, the decision record of F138 (questions 19 and 21), and the record of F140's desk spike (a recommendation on questions 17 and 18) | You |
 | `docs/verification-audit.md` | The audit of what verification executes and compares, the check identity, `integration`, and local build obligations, with the proposal for the full-run timeout | You |
 | `docs/incremental-main-evidence.md` | The staged evidence for incremental `main` (F120, ADR 017): the same-commit comparison, the fail-closed cases by test, the chain's provenance format, the environment identity with the byte comparison across runners, and the costs | You |
 
