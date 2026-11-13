@@ -29,6 +29,7 @@ from pbc.experiment import Experiment, encode
 MODULE = "pbc.electromagnetism.experiments.microwave_sparameter_lab"
 PAGE = "electromagnetism/09-microwave-sparameter-lab"
 LABELS = sorted(lab.run().figures)
+RESIDUAL_FIGURES = ("fig-transmission", "fig-wideband")
 
 
 @pytest.fixture(scope="module")
@@ -232,6 +233,45 @@ def test_no_shown_number_sits_at_a_rounding_edge(monkeypatch, networks):
                     assert lab.with_error(value * a, stderr * b) == shown, (pad, name)
 
 
+def test_the_reduced_chi_square_against_the_point_to_point_noise(results, networks):
+    # The fit's own reduced chi-square is 1 by construction (no uncertainty
+    # in the files); against the noise from neighbouring differences it is
+    # far above 1, and the weighted fit moves no fitted value.
+    _, found = results
+    numbers = found["numbers"]
+    assert (numbers["noise-low"], numbers["noise-high"]) == ("0.0005", "0.0006")
+    assert (numbers["chi2-low"], numbers["chi2-high"]) == ("18", "33")
+    for row in _rows(found, "fit-residuals"):
+        assert float(row[5]) > 10
+        # chi-square near (rms / noise)^2: the table is self-consistent
+        assert float(row[5]) == pytest.approx(
+            (float(row[1]) / float(row[4])) ** 2, rel=0.5
+        )
+    for pad in lab.PADS:
+        network = networks[lab.coaxial(pad)]
+        result = lab.fit_pad(network)
+        assert result.reduced_chi2 == 1.0 and not result.absolute_sigma
+        weighted = lab.chi_square_test(network, result)
+        assert weighted.absolute_sigma
+        assert np.allclose(weighted.params, result.params, rtol=1e-6, atol=0)
+        assert any("reduced chi-square" in w for w in weighted.warnings)
+
+
+def test_the_point_noise_of_white_residuals_is_their_standard_deviation():
+    rng = np.random.default_rng(1)
+    residuals = rng.normal(0, 0.01, 4 * 2000)
+
+    class Fake:
+        pass
+
+    fake = Fake()
+    fake.residuals = residuals
+    assert lab.point_noise(fake) == pytest.approx(0.01, rel=0.05)
+    # A smooth misfit on top barely changes it.
+    fake.residuals = residuals + np.tile(np.linspace(0, 0.05, 2000), 4)
+    assert lab.point_noise(fake) == pytest.approx(0.01, rel=0.05)
+
+
 def test_the_largest_misfit_is_at_the_lowest_frequency(networks, experiment):
     for pad in lab.PADS:
         network = networks[lab.coaxial(pad)]
@@ -309,7 +349,8 @@ def test_every_figure_follows_the_conventions(experiment, label):
     figure = experiment.figures[label]()
     try:
         assert figure_status(figure) == "calibrated"
-        assert check_figure(figure) == []
+        # Panels with a residual (misfit) axis are checked as such.
+        assert check_figure(figure, residuals=label in RESIDUAL_FIGURES) == []
         for ax in figure.axes:
             legend = ax.get_legend()
             for t in [] if legend is None else legend.get_texts():

@@ -81,7 +81,8 @@ itself say these numbers are known?
 5. **No uncertainty per point.** The files give none. The fitted values
    carry standard errors from the scatter of the residuals, which assume
    independent residuals; the lab checks that assumption and finds it
-   false.
+   false. The reduced chi-square uses a noise estimated from the data
+   themselves, the differences of residuals at neighbouring frequencies.
 
 ## Explanation {#explanation}
 
@@ -455,6 +456,25 @@ moves smoothly with frequency counts as `{python} result["coax-points"]`
 independent samples in the standard error when the data hold far fewer
 independent pieces of information, so the standard errors are too small, and the lab does not use them as
 uncertainties.
+
+The reduced chi-square says the same in another way. The fits weight every
+sample alike, because the files carry no uncertainty, so their own reduced
+chi-square is one by construction and tests nothing. A noise model is needed:
+the lab takes the noise of one sample from the differences of the residuals
+at neighbouring frequencies, $\sigma^2 = \langle (r_{i+1} - r_i)^2 \rangle / 2$,
+which assumes noise independent from one frequency to the next and a misfit
+that changes little over one `{python} result["step"]` MHz step. That noise
+is `{python} result["noise-low"]` to `{python} result["noise-high"]`. The same
+fit weighted by it, started at the fitted values, moves none of them, and
+its reduced chi-square, the last column of the residuals table, is
+[`{python} result["chi2-low"]` to `{python} result["chi2-high"]`, far above
+one: the residuals are not noise from one frequency to the next but a
+misfit of the model, and the fit helper warns of it.]{.claim
+type="experimentally-supported"
+scope="the four-value model fitted to the coaxial files, against a noise estimated from neighbouring residuals; no calibration uncertainty"
+evidence="fit-residuals npl-onwafer-sparameters"} A value near one would have
+said that the model leaves only noise; it would not have said that the
+calibration is right, which this noise does not include.
 
 ```{python}
 #| echo: false

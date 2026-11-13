@@ -211,10 +211,18 @@ def model_of(result: FitResult) -> TeeAttenuator:
     return TeeAttenuator(r, shunt, inductance, delay)
 
 
-def fit_pad(network: Network, keep: np.ndarray | None = None) -> FitResult:
+def fit_pad(
+    network: Network,
+    keep: np.ndarray | None = None,
+    *,
+    sigma: float | None = None,
+    start: np.ndarray | None = None,
+) -> FitResult:
     """Fit R_series, R_shunt, L [pH], and tau [ps] to the real and imaginary
     parts of the complex S11 and S21 at the kept frequencies (all frequencies
-    up to 50 GHz when none are given), every sample with the same weight."""
+    up to 50 GHz when none are given), every sample with the same weight.
+    With ``sigma``, the standard uncertainty of every sample, the fit's
+    ``reduced_chi2`` tests the model against that noise."""
     if keep is None:
         keep = network.frequency <= BAND_TOP
     frequency = network.frequency[keep]
@@ -227,10 +235,13 @@ def fit_pad(network: Network, keep: np.ndarray | None = None) -> FitResult:
         difference = np.concatenate([s[:, 0, 0], s[:, 1, 0]]) - measured
         return np.concatenate([difference.real, difference.imag])
 
-    loss = float(-amplitude_db(network.s[keep, 1, 0]).mean())
-    start = [*matched_tee(loss), 10.0, 1.0]
+    if start is None:
+        loss = float(-amplitude_db(network.s[keep, 1, 0]).mean())
+        start = [*matched_tee(loss), 10.0, 1.0]
     target = np.zeros(4 * frequency.size)
-    return fit_curve(model, np.arange(target.size), target, start, names=NAMES)
+    return fit_curve(
+        model, np.arange(target.size), target, start, sigma=sigma, names=NAMES
+    )
 
 
 def misfit(network: Network, tee: TeeAttenuator) -> np.ndarray:
@@ -248,6 +259,23 @@ def neighbour_correlation(result: FitResult) -> float:
     zero if the residuals were independent, as the standard errors assume."""
     parts = np.asarray(result.residuals).reshape(4, -1)
     return float(np.mean([np.corrcoef(p[:-1], p[1:])[0, 1] for p in parts]))
+
+
+def point_noise(result: FitResult) -> float:
+    """The noise of one sample, from the differences of the residuals at
+    neighbouring frequencies: sqrt(mean(difference^2) / 2) over the four
+    residual sequences. It assumes noise independent from sample to sample
+    and a misfit that changes little over one frequency step, which the
+    differences then remove."""
+    parts = np.asarray(result.residuals).reshape(4, -1)
+    return float(np.sqrt(np.mean(np.diff(parts, axis=1) ** 2) / 2))
+
+
+def chi_square_test(network: Network, result: FitResult) -> FitResult:
+    """The same fit with every sample weighted by its point-to-point noise,
+    started at the fitted values: its ``reduced_chi2`` compares the
+    residuals with that noise (near 1 if the model left only noise)."""
+    return fit_pad(network, sigma=point_noise(result), start=result.params)
 
 
 def error_decimals(stderr: float) -> int:
@@ -292,6 +320,8 @@ def fit_table(
                 float(np.sqrt(np.mean(np.asarray(result.residuals) ** 2))),
                 float(misfit(network, model_of(result)).max()),
                 neighbour_correlation(result),
+                point_noise(result),
+                chi_square_test(network, result).reduced_chi2,
             )
         )
     experiment.table(
@@ -316,11 +346,15 @@ def fit_table(
             ("rms residual", "", ".4f"),
             ("largest misfit", "", ".4f"),
             ("neighbour correlation", "", ".2f"),
+            ("point-to-point noise", "", ".4f"),
+            ("reduced chi-square", "", ".0f"),
         ],
         caption="The residuals of the fits: the rms of the real and imaginary "
-        "parts, the largest misfit |S_model - S_measured|, and the correlation "
-        "of the residuals at neighbouring frequencies, zero if they were "
-        "independent.",
+        "parts, the largest misfit |S_model - S_measured|, the correlation "
+        "of the residuals at neighbouring frequencies (zero if they were "
+        "independent), the noise of one sample estimated from the differences "
+        "of neighbouring residuals, and the reduced chi-square of the fit "
+        "against that noise (near 1 if the model left only noise).",
     )
     return fits
 
@@ -430,7 +464,7 @@ def draw_transmission(networks: dict[str, Network], fits: dict) -> Figure:
     top.set_ylim(-17.5, -2.0)
     middle.set_ylabel("|S11| [dB]")
     middle.set_title("Reflection at port 1 (same symbols)")
-    bottom.set_ylabel("misfit [1]")
+    bottom.set_ylabel("residual misfit [1]")
     bottom.set_xlabel("frequency [GHz]")
     bottom.set_title("Residual: larger of |S11| and |S21| model - measured")
     add_credit(fig, CREDIT)
@@ -544,7 +578,7 @@ def draw_wideband(
     )
     bottom.axvspan(ghz[0], BAND_TOP / 1e9, color="0.9", zorder=0, label="fitted band")
     bottom.set_yscale("log")
-    bottom.set_ylabel("misfit [1]")
+    bottom.set_ylabel("residual misfit [1]")
     bottom.set_xlabel("frequency [GHz]")
     bottom.set_title("Misfit of the 3 dB fit, and two instruments on one pad")
     bottom.legend(fontsize=6.5, loc="lower right")
@@ -637,6 +671,12 @@ def run() -> Experiment:
     correlations = [neighbour_correlation(f) for f in fits.values()]
     experiment.number("correlation-low", min(correlations), ".2f")
     experiment.number("correlation-high", max(correlations), ".2f")
+    noises = [point_noise(f) for f in fits.values()]
+    experiment.number("noise-low", min(noises), ".4f")
+    experiment.number("noise-high", max(noises), ".4f")
+    chi2 = [chi_square_test(networks[coaxial(p)], fits[p]).reduced_chi2 for p in PADS]
+    experiment.number("chi2-low", min(chi2), ".0f")
+    experiment.number("chi2-high", max(chi2), ".0f")
     experiment.number(
         "fit-warnings",
         "; ".join(w for f in fits.values() for w in f.warnings) or "none",
