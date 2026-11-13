@@ -24,7 +24,7 @@ from pbc.fluids import piv
 from pbc.fluids.experiments import cylinder_wake_piv_lab as lab
 
 MODULE = "pbc.fluids.experiments.cylinder_wake_piv_lab"
-PAGE = "fluids/08-cylinder-wake-piv-lab"
+PAGE = "fluids/09-cylinder-wake-piv-lab"
 LABELS = sorted(lab.run().figures)
 
 

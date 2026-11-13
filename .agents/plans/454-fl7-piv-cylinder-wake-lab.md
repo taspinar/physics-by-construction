@@ -20,7 +20,7 @@
   `--base`.
 - Order: orders within a strand run from 1 without gaps
   (`pbc.authoring.path`), so the lab is `fluids` order 8, directory
-  `site/lessons/fluids/08-cylinder-wake-piv-lab`. FL8 (#441, open branch)
+  `site/lessons/fluids/09-cylinder-wake-piv-lab`. FL8 (#441, open branch)
   also takes order 8: whichever merges second renumbers to 9 and renames
   its directory (recorded in the handoff note).
 - Governing documents: `docs/architecture.md` ("Measured-data lab"),

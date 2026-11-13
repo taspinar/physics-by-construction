@@ -10,7 +10,7 @@ description: >-
 lesson:
   id: cylinder-wake-piv-lab
   strand: fluids
-  order: 8
+  order: 9
   difficulty: 2
   course: fluids
   slot: FL7
