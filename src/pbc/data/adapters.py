@@ -151,6 +151,27 @@ def light_curve_series(lc: LightCurve) -> Series:
     )
 
 
+def luma_profile_series(profile: Profile) -> Series:
+    """The luma (camera brightness, 0 to 255) along the scanline of one
+    Lycopodium diffraction photograph against Tracker's coordinate x, whose
+    unit the record does not state, every row of the sample.
+
+    Processed, as the card labels the profile: extracted from a photograph
+    by the creators with Tracker and averaged across the line. The record
+    gives no uncertainty and no tone curve of the camera, so the series has
+    no uncertainty, and the saturated centre stays in it.
+    """
+    return Series(
+        x=profile.x,
+        y=profile.luma,
+        artifact="processed-measured",
+        x_name="x along the scanline",
+        x_unit="unit of the record, not stated",
+        y_name="luma",
+        y_unit="0-255, camera brightness",
+    )
+
+
 def pendulum_angle_series(run: Run) -> Series:
     """The angle in rad of a rotary-encoder record of the Xu damped
     pendulum against the time in s, every row of the raw file.
@@ -191,25 +212,4 @@ def soil_temperature_series(readings: Readings, column: int) -> Series:
         x_unit="d",
         y_name="soil temperature",
         y_unit="degC",
-    )
-
-
-def luma_profile_series(profile: Profile) -> Series:
-    """The luma (camera brightness, 0 to 255) along the scanline of one
-    Lycopodium diffraction photograph against Tracker's coordinate x, whose
-    unit the record does not state, every row of the sample.
-
-    Processed, as the card labels the profile: extracted from a photograph
-    by the creators with Tracker and averaged across the line. The record
-    gives no uncertainty and no tone curve of the camera, so the series has
-    no uncertainty, and the saturated centre stays in it.
-    """
-    return Series(
-        x=profile.x,
-        y=profile.luma,
-        artifact="processed-measured",
-        x_name="x along the scanline",
-        x_unit="unit of the record, not stated",
-        y_name="luma",
-        y_unit="0-255, camera brightness",
     )
