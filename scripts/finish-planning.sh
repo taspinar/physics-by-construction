@@ -18,8 +18,15 @@ usage() {
   echo
   echo "--amend is for a change to an approved planning that touches only"
   echo "docs/architecture.md and the ADRs in docs/decisions/, such as amending one"
-  echo "decision. It shows the change, asks for your approval, and adds the amendment"
-  echo "to the existing approval. Anything else needs a change cycle:"
+  echo "decision, or that only adds dated notes of decisions you already took to"
+  echo "docs/PROJECT_REQUIREMENTS.md or docs/roadmap.md. A note is a new paragraph"
+  echo "that begins with"
+  echo "  *Note of the owner's decision of YYYY-MM-DD (<URL of your comment>).*"
+  echo "and changes no existing line. It runs in a planning worktree or in a feature"
+  echo "worktree, so the feature's pull request carries the amendment. It shows the"
+  echo "change, asks for your approval, and adds the amendment to the existing"
+  echo "approval. Anything else, also a new or changed requirement, needs a change"
+  echo "cycle:"
   echo "  ./scripts/start-planning.sh <name> --change <file>"
   exit 2
 }
@@ -69,9 +76,25 @@ case "$#:${1:-}" in
 esac
 
 branch="$(git branch --show-current)"
-[[ "$branch" == planning/* ]] ||
-  fail "finish-planning.sh must run in a planning worktree (branch planning/<name>). Current branch: $branch"
+if [[ -n "$amend_reason" ]]; then
+  # A feature amends the planning it changes in its own pull request.
+  [[ "$branch" == planning/* || "$branch" == feature/* ]] ||
+    fail "finish-planning.sh --amend must run in a planning or a feature worktree (branch planning/<name> or feature/<issue>-<name>). Current branch: $branch"
+else
+  [[ "$branch" == planning/* ]] ||
+    fail "finish-planning.sh must run in a planning worktree (branch planning/<name>). Current branch: $branch"
+fi
 name="${branch#planning/}"
+name="${name#feature/}"
+
+# planning_base_ref: the base branch the planning is compared with.
+planning_base_ref() {
+  if git -C "$root" rev-parse --verify --quiet "origin/main^{commit}" >/dev/null; then
+    echo "origin/main"
+  elif git -C "$root" rev-parse --verify --quiet "main^{commit}" >/dev/null; then
+    echo "main"
+  fi
+}
 
 # An amendment: a change to an approved planning that touches only the
 # architecture and the ADRs, approved by the human without a review round.
@@ -92,14 +115,12 @@ amend() {
   local approved_commit
   local feature_updates=""
   local entry
+  local notes=""
+  local note_errors
+  local document
 
-  if git -C "$root" rev-parse --verify --quiet "origin/main^{commit}" >/dev/null; then
-    base_ref="origin/main"
-  elif git -C "$root" rev-parse --verify --quiet "main^{commit}" >/dev/null; then
-    base_ref="main"
-  else
-    fail "neither origin/main nor main exists."
-  fi
+  base_ref="$(planning_base_ref)"
+  [[ -n "$base_ref" ]] || fail "neither origin/main nor main exists."
   # The amendment is judged against the base branch as it is now, so fetch it
   # when there is a remote; a failed fetch leaves the local state in use.
   [[ "$base_ref" != "origin/main" ]] || git -C "$root" fetch -q origin main 2>/dev/null || true
@@ -144,6 +165,16 @@ amend() {
   while IFS=$'\t' read -r status path; do
     case "$path" in
       docs/architecture.md) ;;
+      docs/PROJECT_REQUIREMENTS.md | docs/roadmap.md)
+        # Only dated notes of decisions the owner already took (Issue #512).
+        document="$tmp_work/base-$(basename "$path")"
+        git -C "$root" show "$base:$path" >"$document" 2>/dev/null || rm -f "$document"
+        note_errors="$(planning_note_errors "$document" "$root/$path")"
+        if [[ "$status" != "M" || -n "$note_errors" ]]; then
+          outside+="  $status $path"$'\n'
+          [[ -z "$note_errors" ]] || outside+="$(printf '%s\n' "$note_errors" | sed 's/^/      /')"$'\n'
+        fi
+        ;;
       docs/decisions/*.md)
         [[ "${path#docs/decisions/}" != */* && "$status" != "D" ]] || outside+="  $status $path"$'\n'
         ;;
@@ -152,7 +183,9 @@ amend() {
     files+="${files:+, }$path"
   done <<<"$changed"
   if [[ -n "$outside" ]]; then
-    echo "Error: an amendment may change only docs/architecture.md and add or edit ADRs in docs/decisions/." >&2
+    echo "Error: an amendment may change only docs/architecture.md, add or edit ADRs in docs/decisions/," >&2
+    echo "and add dated notes of owner decisions to the requirements or the roadmap" >&2
+    echo "(a new paragraph beginning with \"*Note of the owner's decision of YYYY-MM-DD (<URL of the comment>).*\")." >&2
     echo "These changes need a review:" >&2
     printf '%s' "$outside" >&2
     echo "Start a change cycle instead: ./scripts/start-planning.sh <name> --change <file>" >&2
@@ -164,6 +197,12 @@ amend() {
   echo
   echo "Reason: $amend_reason"
   echo "Changed: $files"
+  notes="$(planning_added_notes "$root" "$base" docs/PROJECT_REQUIREMENTS.md docs/roadmap.md)"
+  if [[ -n "$notes" ]]; then
+    echo
+    echo "Notes of owner decisions that this amendment adds; check each against the comment it cites:"
+    printf '%s\n' "$notes" | sed 's/^/  /'
+  fi
   echo
   echo "No agent reviews an amendment; your approval is the only check."
   printf "Approve this amendment? [y/N] "
@@ -187,7 +226,8 @@ amend() {
       echo "## Amendments after the approval"
       echo
       echo "The review rounds above cover the planning as it was first approved. Each"
-      echo "amendment below changed only the architecture or the ADRs."
+      echo "amendment below changed only the architecture or the ADRs, or added dated"
+      echo "notes of decisions the owner had already taken."
       echo
     fi
     if [[ -n "$feature_updates" ]]; then
@@ -197,12 +237,19 @@ amend() {
       printf '%s\n' "$feature_updates" | sed 's/^/  - /'
     fi
     printf '%s\n' "$entry"
+    [[ -z "$notes" ]] || printf '%s\n' "$notes" | sed 's/^/  - Note: /'
   } >"$tmp_work/approval"
   cp "$tmp_work/approval" "$approval"
 
   echo
   echo "Recorded the amendment in $PLANNING_APPROVAL_FILE."
   echo
+  if [[ "$branch" == feature/* ]]; then
+    echo "Next: the amendment is part of this feature. finish-feature.sh commits it with"
+    echo "the feature, and the feature's pull request carries it. A later change to a"
+    echo "planning document of the amendment makes it stale; run --amend again then."
+    return 0
+  fi
   echo "Next steps:"
   echo "  ./scripts/verify.sh"
   echo "  git add ${files//, / } $PLANNING_APPROVAL_FILE"
@@ -274,19 +321,47 @@ if [[ "$(jq 'length' "$decisions_file")" -gt 0 ]]; then
 fi
 
 # 3. The latest round is resolved: no critical or major finding, every finding
-#    decided, nothing adopted but not yet applied, and nothing escalated.
+#    decided, nothing adopted but not yet applied, and nothing escalated. A
+#    suggestion needs no revision round (Issue #512): it is listed in the
+#    approval for the next cycle, decided or not, adopted or not.
 blocking="$(jq '[.findings[] | select(.severity == "critical" or .severity == "major")] | length' "$latest")"
 [[ "$blocking" -eq 0 ]] ||
   fail "the latest planning review (round $round) has $blocking critical or major finding(s). Revise with ./scripts/revise-planning.sh and review again."
 
 revision="${latest%.json}-revision.json"
-if [[ "$(jq '.findings | length' "$latest")" -gt 0 ]]; then
+if [[ "$(jq '[.findings[] | select(.severity != "suggestion")] | length' "$latest")" -gt 0 ]]; then
   [[ -f "$revision" ]] ||
     fail "the findings of round $round have no revision decisions. Run ./scripts/revise-planning.sh --review $latest_relative."
   revision_errors="$(revision_artifact_errors "$revision" "$latest")"
   [[ -z "$revision_errors" ]] || fail "the revision of round $round is invalid: ${revision_errors//$'\n'/; }"
-  [[ "$(jq '[.decisions[] | select(.decision == "ADOPT")] | length' "$revision")" -eq 0 ]] ||
+  [[ "$(jq '[.decisions[] | select(.decision == "ADOPT" and .severity != "suggestion")] | length' "$revision")" -eq 0 ]] ||
     fail "round $round has adopted findings that are not applied yet. Run ./scripts/revise-planning.sh --review $latest_relative and review again."
+elif [[ -f "$revision" ]]; then
+  revision_errors="$(revision_artifact_errors "$revision" "$latest")"
+  [[ -z "$revision_errors" ]] || fail "the revision of round $round is invalid: ${revision_errors//$'\n'/; }"
+fi
+
+# The suggestions of the latest round, for the approval and the next cycle.
+suggestions="$(jq -r '.findings[] | select(.severity == "suggestion") | "- \(.id) \(.title). \(.recommendation)"' "$latest")"
+if [[ -n "$suggestions" ]]; then
+  echo "Suggestions of round $round, which need no revision round; the approval lists them"
+  echo "for the next cycle:"
+  printf '%s\n' "$suggestions"
+  echo
+fi
+
+# The notes of owner decisions that this planning adds to the requirements and
+# the roadmap (Issue #512): the reviser may add them instead of escalating.
+# Check each against the comment it cites before you approve.
+notes=""
+notes_base_ref="$(planning_base_ref)"
+if [[ -n "$notes_base_ref" ]] && notes_base="$(git -C "$root" merge-base HEAD "$notes_base_ref" 2>/dev/null)"; then
+  notes="$(planning_added_notes "$root" "$notes_base" docs/PROJECT_REQUIREMENTS.md docs/roadmap.md)"
+fi
+if [[ -n "$notes" ]]; then
+  echo "Notes of owner decisions that this planning adds; check each against the comment it cites:"
+  printf '%s\n' "$notes" | sed 's/^/  /'
+  echo
 fi
 
 escalated_now="$(jq --argjson round "$round" '[.[] | select(.round == $round and .decision == "ESCALATE")] | length' "$decisions_file")"
@@ -387,6 +462,23 @@ fi
     echo "## Escalations confirmed as resolved"
     echo
     printf '%s\n' "$earlier_escalations"
+    echo
+  fi
+  if [[ -n "$notes" ]]; then
+    echo "## Notes of owner decisions"
+    echo
+    echo "Added in this cycle; each records a decision the owner had already taken, with"
+    echo "the URL of the comment, and changes no requirement."
+    echo
+    printf '%s\n' "$notes" | sed 's/^/- /'
+    echo
+  fi
+  if [[ -n "$suggestions" ]]; then
+    echo "## Suggestions for the next cycle"
+    echo
+    echo "Suggestions of the final review round; they needed no revision round."
+    echo
+    printf '%s\n' "$suggestions"
     echo
   fi
   echo "## Findings that were not adopted"

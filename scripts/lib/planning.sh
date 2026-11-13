@@ -142,3 +142,106 @@ planning_approval_status() {
   echo "a planning document changed after the planning was approved."
   return 1
 }
+
+# Notes of owner decisions (Issue #512). A decision the owner already took,
+# for example in a comment on an Issue, may be recorded in the requirements
+# or the roadmap without a change cycle, as a dated note that cites the
+# comment. Such a note never adds or changes a requirement: it is a pure
+# insertion, and each of its paragraphs begins with the line
+#
+#   *Note of the owner's decision of YYYY-MM-DD (<URL of the comment>).* ...
+#
+# where the URL is that of a comment, a review, or a review comment on
+# GitHub. The planning reviser may add such notes to the requirements
+# (revise-planning.sh), and `finish-planning.sh --amend` approves notes in
+# the requirements and the roadmap without a review round.
+PLANNING_NOTE_PATTERN='^[[:space:]]*\*Note of the owner'"'"'s decision of [0-9]{4}-[0-9]{2}-[0-9]{2} \(https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/(issues|pull)/[0-9]+#(issuecomment|discussion_r|pullrequestreview)-[0-9]+\)\.\*'
+
+# planning_note_errors <old-file> <new-file>
+# Prints one line per reason why <new-file> differs from <old-file> by more
+# than added notes of owner decisions; prints nothing when it differs by such
+# notes only, or not at all. A missing file counts as more than a note.
+planning_note_errors() {
+  local old="$1"
+  local new="$2"
+  local line
+  local text
+  local number=0
+  local bad=0
+  local open=0
+  local hunk_pattern='^@@ -[0-9]+(,([0-9]+))? \+([0-9]+)(,[0-9]+)? @@'
+  local heading_pattern='^[[:space:]]?[[:space:]]?[[:space:]]?#'
+  local blank_pattern='^[[:space:]]*$'
+  local in_hunk=0
+
+  if [[ ! -f "$old" || ! -f "$new" ]]; then
+    echo "the document was added or removed; only notes may be added to an existing document."
+    return 0
+  fi
+  while IFS= read -r line; do
+    if [[ "$line" =~ $hunk_pattern ]]; then
+      in_hunk=1
+      number="${BASH_REMATCH[3]}"
+      open=0
+      bad=0
+      # An insertion has an empty old range: '-a,0'.
+      if [[ "${BASH_REMATCH[2]}" != "0" ]]; then
+        echo "line $number: existing text is changed or removed; a note may only be added."
+        bad=1
+      fi
+      continue
+    fi
+    [[ "$in_hunk" -eq 1 ]] || continue
+    case "$line" in
+      +*)
+        text="${line#+}"
+        number=$((number + 1))
+        [[ "$bad" -eq 0 ]] || continue
+        if [[ "$text" =~ $blank_pattern ]]; then
+          open=0
+        elif [[ "$open" -eq 0 ]]; then
+          open=1
+          if [[ ! "$text" =~ $PLANNING_NOTE_PATTERN ]]; then
+            echo "line $((number - 1)): added text that is not a dated note of an owner decision with the URL of the comment: ${text:0:120}"
+            bad=1
+          fi
+        elif [[ "$text" =~ $heading_pattern ]]; then
+          echo "line $((number - 1)): a note may not add a heading: ${text:0:120}"
+          bad=1
+        fi
+        ;;
+    esac
+  done < <(git diff --no-index --no-color --no-ext-diff -U0 -- "$old" "$new" 2>/dev/null)
+  return 0
+}
+
+# planning_added_notes <root> <base> <path...>
+# Prints the first line of every note of an owner decision that the working
+# tree at <root> adds to the given documents since <base>, one per line as
+# '<path>:<line>: <first line>'.
+planning_added_notes() {
+  local root="$1"
+  local base="$2"
+  local line
+  local text
+  local path=""
+  local number=0
+  local hunk_pattern='^@@ -[0-9]+(,[0-9]+)? \+([0-9]+)(,[0-9]+)? @@'
+
+  shift 2
+  while IFS= read -r line; do
+    case "$line" in
+      "+++ "*) path="${line#+++ b/}" ;;
+      "@@ "*) [[ ! "$line" =~ $hunk_pattern ]] || number="${BASH_REMATCH[2]}" ;;
+      +*)
+        text="${line#+}"
+        if [[ "$text" =~ $PLANNING_NOTE_PATTERN ]]; then
+          text="${text#"${text%%[![:space:]]*}"}"
+          echo "$path:$number: $text"
+        fi
+        number=$((number + 1))
+        ;;
+    esac
+  done < <(git -C "$root" diff --no-color --no-ext-diff -U0 "$base" -- "$@" 2>/dev/null)
+  return 0
+}

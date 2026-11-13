@@ -79,8 +79,14 @@ run_revise() {
   ) >"$repo.out" 2>&1
 }
 
+# An interactive write session runs in the 'auto' permission mode and without
+# --print (Issue #512; before, it ran in 'acceptEdits').
 write_sessions() {
-  grep -c -- "--permission-mode acceptEdits" "$1.log" 2>/dev/null || true
+  grep -- "--permission-mode auto" "$1.log" 2>/dev/null | grep -vc -- "--print" || true
+}
+
+unattended_sessions() {
+  grep -- "--permission-mode auto" "$1.log" 2>/dev/null | grep -c -- "--print" || true
 }
 
 add_offline_feature="printf '\\n## F02 — Offline use\\n\\n- Goal: work offline.\\n' >>docs/roadmap.md"
@@ -114,11 +120,90 @@ if run_revise "$repo" y --review "$review"; then
 fi
 grep -Fq "review-planning.sh" "$repo.out" || fail "the next review round was not suggested"
 
-# A revision is decided by you, so it cannot run unattended.
+# --unattended (Issue #512): the planner decides and revises without a
+# terminal; the record says that no human approved the decisions. Nothing is
+# read from standard input.
+no_escalation="$(jq '.decisions[2].decision = "REJECT"' <<<"$valid_decisions")"
+run_unattended() {
+  local repo="$1"
+  shift
+  (
+    cd "$repo"
+    PATH="$tmp/bin:/usr/bin:/bin" MOCK_AGENT_LOG="$repo.log" ./scripts/revise-planning.sh "$@" </dev/null
+  ) >"$repo.out" 2>&1
+}
 repo="$(setup_repo unattended)"
-if run_revise "$repo" y --review "$review" --unattended; then fail "a revision ran unattended"; fi
-grep -Fq "cannot run with --unattended" "$repo.out" || fail "the refusal of an unattended revision gave no reason"
-[[ ! -e "$repo.log" ]] || fail "an agent started for an unattended revision"
+MOCK_OUTPUT_FIRST="$no_escalation" MOCK_OUTPUT="Revised M1." MOCK_WRITE_ACTION="$add_offline_feature" \
+  run_unattended "$repo" --review "$review" --unattended || {
+  cat "$repo.out" >&2
+  fail "an unattended revision failed"
+}
+[[ "$(jq -r '.unattended' "$repo/$revision.json")" == "true" ]] || fail "the unattended revision does not say so"
+grep -Fq "by an unattended run; no human approved these decisions" "$repo/$revision.md" ||
+  fail "the report of the unattended revision does not say that no human approved it"
+[[ "$(unattended_sessions "$repo")" -eq 1 && "$(write_sessions "$repo")" -eq 0 ]] ||
+  fail "the adopted findings were not revised in exactly one unattended session"
+grep -Fq "This session is unattended" "$repo.log" || fail "the planner was not told that the session is unattended"
+grep -Fq "F02 — Offline use" "$repo/docs/roadmap.md" || fail "the unattended revision did not reach the roadmap"
+grep -Fq "review-planning.sh" "$repo.out" || fail "the next review round was not named"
+
+# It stops with a clear message, before any revision, when a finding is
+# escalated; the decisions are recorded for the owner.
+repo="$(setup_repo unattended-escalated)"
+status=0
+MOCK_OUTPUT_FIRST="$valid_decisions" MOCK_OUTPUT="Revised." MOCK_WRITE_ACTION="$add_offline_feature" \
+  run_unattended "$repo" --review "$review" --unattended || status=$?
+[[ "$status" -eq 3 ]] || { cat "$repo.out" >&2; fail "an unattended revision with an escalated finding did not stop (status $status)"; }
+grep -Fq "Stopped: an unattended revision does not go on while a finding is escalated" "$repo.out" ||
+  fail "the stop on an escalation gave no clear message"
+grep -Fq -- "- S1 Consider sharing" "$repo.out" || fail "the escalated finding was not named"
+[[ "$(unattended_sessions "$repo")" -eq 0 && "$(write_sessions "$repo")" -eq 0 ]] || fail "a write session started despite the escalation"
+[[ -f "$repo/$revision.json" ]] || fail "the decisions were not recorded for the owner"
+if grep -Fq "F02" "$repo/docs/roadmap.md"; then fail "the planning was revised despite the escalation"; fi
+
+# A planner that reports that it is blocked stops the run.
+repo="$(setup_repo unattended-blocked)"
+status=0
+MOCK_OUTPUT_FIRST="$no_escalation" MOCK_OUTPUT=$'Could not.\nBLOCKED: the owner has to choose the storage.' \
+  MOCK_WRITE_ACTION="$add_offline_feature" run_unattended "$repo" --review "$review" --unattended || status=$?
+[[ "$status" -eq 3 ]] || fail "a blocked unattended planner did not stop the run (status $status)"
+grep -Fq "the unattended planner stopped: the owner has to choose the storage." "$repo.out" || fail "the blocked reason was not reported"
+
+# The interactive mode stays the default: without the flag the decisions are
+# asked for.
+repo="$(setup_repo interactive-default)"
+run_revise "$repo" n --review "$review" || fail "declining the decisions failed"
+grep -Fq "Record these decisions and revise the planning" "$repo.out" || fail "the interactive mode did not ask"
+[[ ! -e "$repo/$revision.json" ]] || fail "the interactive mode recorded decisions without approval"
+
+# The reviser may add a dated note of an owner decision to the requirements
+# (Issue #512), and nothing else there.
+note_line="*Note of the owner's decision of 2026-11-13 (https://github.com/owner/repo/issues/511#issuecomment-42).* Offline only."
+repo="$(setup_repo note)"
+MOCK_WRITE_ACTION="$add_offline_feature; printf '\\n%s\\n' \"$note_line\" >>docs/PROJECT_REQUIREMENTS.md" \
+  run_revise "$repo" y --review "$review" || {
+  cat "$repo.out" >&2
+  fail "a note of an owner decision in the requirements was refused"
+}
+grep -Fq "$note_line" "$repo/docs/PROJECT_REQUIREMENTS.md" || fail "the note did not reach the requirements"
+grep -Fq "added notes of owner decisions" "$repo.out" || fail "the added note was not reported"
+
+repo="$(setup_repo note-and-requirement)"
+if MOCK_WRITE_ACTION="$add_offline_feature; sed -i.bak 's/^Offline recipes.\$/Online recipes./' docs/PROJECT_REQUIREMENTS.md; rm docs/PROJECT_REQUIREMENTS.md.bak" \
+  run_revise "$repo" y --review "$review"; then
+  fail "a changed requirement was accepted from the reviser"
+fi
+grep -Fq "existing text is changed or removed" "$repo.out" || fail "the changed requirement was not named"
+grep -Fq "only Project Grill changes a requirement" "$repo.out" || fail "the refusal did not name the route"
+
+# A review with only suggestions needs no revision round.
+repo="$(setup_repo only-suggestions)"
+jq '.verdict = "PASS_WITH_MINOR_FINDINGS" | .findings = [.findings[2]]' "$repo/$review" >"$repo/$review.tmp"
+mv "$repo/$review.tmp" "$repo/$review"
+record_reviewed_tree "$repo" "$repo/$review"
+run_revise "$repo" y --review "$review" || fail "a review with only suggestions was not accepted"
+grep -Fq "only suggestions; they need no revision round" "$repo.out" || fail "the suggestions-only review gave no reason"
+[[ ! -e "$repo.log" ]] || fail "an agent started for a review with only suggestions"
 
 # Declining records nothing and changes nothing.
 repo="$(setup_repo decline)"

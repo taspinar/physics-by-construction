@@ -167,12 +167,28 @@ if feature_base_lines="$(feature_base "$root" "${feature_base_branch:-main}")"; 
       git -C "$root" ls-files --others --exclude-standard -- "${PLANNING_PRODUCT_SCOPE[@]}" "$PLANNING_APPROVAL_FILE"
     )"
     if [[ -n "$planning_changes" ]]; then
-      echo "Error: this feature changes planning documents that only a planning cycle may change:" >&2
-      printf '%s\n' "$planning_changes" | sort -u | sed 's/^/  /' >&2
-      echo "Take these changes out of the feature, and make them through a change cycle:" >&2
-      echo "  ./scripts/start-planning.sh <name> --change <file>" >&2
-      echo "The architecture and the ADRs may be updated in a feature. Nothing was committed." >&2
-      exit 1
+      # The one route for such a change in a feature (Issue #512): dated notes
+      # of owner decisions, amended into the approval with
+      # finish-planning.sh --amend, so the approval stays current. Anything
+      # else would make the approval stale without anyone noticing.
+      planning_scratch="$(mktemp -d "${TMPDIR:-/tmp}/finish-feature-planning.XXXXXX")"
+      planning_status=0
+      planning_reason="$(planning_approval_status "$root" "$planning_scratch")" || planning_status=$?
+      rm -rf "$planning_scratch"
+      if [[ "$planning_status" -ne 0 ]] || ! git -C "$root" cat-file -e "$feature_merge_base:$PLANNING_APPROVAL_FILE" 2>/dev/null; then
+        echo "Error: this feature changes planning documents that only a planning cycle may change:" >&2
+        printf '%s\n' "$planning_changes" | sort -u | sed 's/^/  /' >&2
+        echo "The planning approval would be stale${planning_reason:+: $planning_reason}" >&2
+        echo "A note of a decision you already took, in the requirements or the roadmap, is" >&2
+        echo "amended into the approval in this worktree, without a review round:" >&2
+        echo "  ./scripts/finish-planning.sh --amend \"<reason>\"" >&2
+        echo "Anything else: take it out of the feature, and make it through a change cycle:" >&2
+        echo "  ./scripts/start-planning.sh <name> --change <file>" >&2
+        echo "The architecture and the ADRs may be updated in a feature. Nothing was committed." >&2
+        exit 1
+      fi
+      echo "This feature amends the approved planning; the approval is current:"
+      printf '%s\n' "$planning_changes" | sort -u | sed 's/^/  /'
     fi
   fi
 elif [[ -f "$root/$PLANNING_APPROVAL_FILE" ]] || git -C "$root" cat-file -e "HEAD:$PLANNING_APPROVAL_FILE" 2>/dev/null; then

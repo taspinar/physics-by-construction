@@ -252,6 +252,20 @@ if (agent_run read-only claude model-b "$workdir" "the prompt") 2>/dev/null; the
 fi
 [[ ! -s "$MOCK_AGENT_LOG" ]] || fail "an agent was started with an unsupported profile"
 
+# An interactive Claude write session runs in the 'auto' permission mode,
+# whose own check decides each action, not in 'acceptEdits', which asked
+# before every shell command (Issue #512).
+: >"$MOCK_AGENT_LOG"
+agent_run write claude model-b "$workdir" "the prompt" >/dev/null || fail "an interactive Claude write session failed"
+grep -Fq -- "--permission-mode auto --model model-b" "$MOCK_AGENT_LOG" ||
+  fail "the interactive Claude write session did not run in the auto permission mode"
+if grep -Fq -- "--permission-mode acceptEdits" "$MOCK_AGENT_LOG"; then
+  fail "the interactive Claude write session still runs in acceptEdits"
+fi
+if grep -Fq -- "--print" "$MOCK_AGENT_LOG"; then
+  fail "the interactive Claude write session was started non-interactively"
+fi
+
 # The agent's exit status reaches the caller.
 status=0
 MOCK_AGENT_EXIT=7 agent_run write claude model-b "$workdir" "the prompt" >/dev/null || status=$?

@@ -78,6 +78,19 @@ trap 'rm -rf "$tmp_work"' EXIT
 
 tree="$(fingerprint_files "$root" "$tmp_work" "${scope[@]}")" ||
   fail "could not compute the fingerprint of the planning documents."
+
+# A re-approval without a change request (Issue #512): the planning was
+# approved before and merged work changed it since. The review is told the
+# commit of the last approval and gets the diff since then, so it reviews
+# what changed and its consistency with the rest instead of the whole
+# planning as new. A change cycle and a first planning keep the full review.
+approval_commit=""
+if [[ -z "$change_request" && -f "$root/$PLANNING_APPROVAL_FILE" ]]; then
+  approved_fingerprint="$(sed -n 's/^Planning fingerprint: \([0-9a-f]\{40,64\}\)$/\1/p' "$root/$PLANNING_APPROVAL_FILE" | head -n 1)"
+  [[ -z "$approved_fingerprint" ]] ||
+    approval_commit="$(planning_approval_commit "$root" "$tmp_work" "$approved_fingerprint")"
+  [[ "$approved_fingerprint" != "$tree" ]] || approval_commit=""
+fi
 head_before="$(git -C "$root" rev-parse HEAD)"
 
 context_file="$tmp_work/context.md"
@@ -96,6 +109,12 @@ result_file="$tmp_work/result.json"
   echo "## Diff of the planning documents against $base_ref, including uncommitted changes and deletions"
   echo
   GIT_INDEX_FILE="$tmp_work/fingerprint-files.index" git -C "$root" diff --cached --no-color "$merge_base" -- "${scope[@]}"
+  if [[ -n "$approval_commit" ]]; then
+    echo
+    echo "## Diff of the planning documents since the last approval ($approval_commit), including uncommitted changes"
+    echo
+    GIT_INDEX_FILE="$tmp_work/fingerprint-files.index" git -C "$root" diff --cached --no-color "$approval_commit" -- "${scope[@]}"
+  fi
 } >"$context_file"
 
 review_number=1
@@ -123,6 +142,9 @@ echo "  Output:   $review_relative.json"
 if [[ -n "$previous_review" ]]; then
   echo "  Previous: .agents/reviews/$(basename "$previous_review")"
 fi
+if [[ -n "$approval_commit" ]]; then
+  echo "  Scope:    re-approval, the changes since the approval of $(git -C "$root" log -1 --format='%h %ad' --date=short "$approval_commit")"
+fi
 echo
 
 prompt="Read and follow .agents/prompts/planning-reviewer.md.
@@ -139,13 +161,25 @@ the context of the complete planning, and apply the \"Change cycle\" checks
 of your contract."
 fi
 
+if [[ -n "$approval_commit" ]]; then
+  prompt+="
+
+This is a re-approval without a change request. The planning was last
+approved in commit $approval_commit; merged work has changed it since. The
+last section of standard input is the diff of the planning documents since
+that commit. Review what changed since the approval and its consistency with
+the rest of the planning, and apply the \"Re-approval\" section of your
+contract; do not review the unchanged planning as new."
+fi
+
 if [[ -n "$previous_review" ]]; then
   prompt+="
 
 This is a re-review. Read the previous review (JSON):
 .agents/reviews/$(basename "$previous_review")
 and any revision decisions next to it (*-revision.json). Check whether its
-findings have been resolved, but review the complete current planning."
+findings have been resolved, but review the complete current planning$(
+  [[ -z "$approval_commit" ]] || printf '%s' ' within the scope of the re-approval')."
 fi
 
 prompt+="
@@ -189,7 +223,7 @@ review_store "$result_file" "$out" "$metadata"
 echo "  $review_relative.json  (source of truth)"
 echo "  $review_relative.md    (generated report)"
 echo
-if [[ "$(jq '.findings | length' "$out.json")" -gt 0 ]]; then
+if [[ "$(jq '[.findings[] | select(.severity != "suggestion")] | length' "$out.json")" -gt 0 ]]; then
   echo "Next: ./scripts/revise-planning.sh --review $review_relative.json"
 else
   echo "Next: ./scripts/finish-planning.sh"

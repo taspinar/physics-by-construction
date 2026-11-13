@@ -521,4 +521,95 @@ git -C "$repo" stash -q -u
 git -C "$repo" switch -q main
 if run_amend "$repo" y --amend "A reason."; then fail "an amendment on main was accepted"; fi
 
+# --- Issue #512 ---------------------------------------------------------------
+
+# Suggestions need no revision round: a latest round with only suggestions is
+# finished without a revision, and the approval lists them for the next cycle.
+repo="$(setup_repo only-suggestions)"
+add_review "$repo" 1 PASS_WITH_MINOR_FINDINGS "[$(finding S1 suggestion "Consider sharing"), $(finding S2 suggestion "Name the cache")]"
+run_finish "$repo" y || {
+  cat "$repo.out" >&2
+  fail "a planning whose latest review has only suggestions was not finished"
+}
+approval="$repo/docs/PLANNING_APPROVAL.md"
+grep -Fqx "Status: Approved" "$approval" || fail "the approval with only suggestions was not recorded"
+grep -Fqx "## Suggestions for the next cycle" "$approval" || fail "the approval does not list the suggestions"
+grep -Fq -- "- S1 Consider sharing. Change it." "$approval" || fail "the approval lacks a suggestion"
+grep -Fq "S2 Name the cache" "$repo.out" || fail "the suggestions were not shown before the approval"
+
+# An adopted suggestion that was not applied does not block either, while an
+# open minor or major finding still does.
+repo="$(setup_repo suggestion-adopted)"
+add_review "$repo" 1 PASS_WITH_MINOR_FINDINGS "[$(finding MIN1 minor "Vague name"), $(finding S1 suggestion "Consider sharing")]"
+add_revision "$repo" 1 ADOPT
+jq '.decisions[0].decision = "REJECT"' "$repo/$reviews/planning-project-bootstrap-review-01-revision.json" >"$tmp/revision.tmp"
+mv "$tmp/revision.tmp" "$repo/$reviews/planning-project-bootstrap-review-01-revision.json"
+run_finish "$repo" y || {
+  cat "$repo.out" >&2
+  fail "an adopted suggestion blocked the approval"
+}
+
+repo="$(setup_repo suggestion-and-minor)"
+add_review "$repo" 1 PASS_WITH_MINOR_FINDINGS "[$(finding MIN1 minor "Vague name"), $(finding S1 suggestion "Consider sharing")]"
+expect_refused "$repo" "a minor finding beside a suggestion has no revision decision"
+grep -Fq "have no revision decisions" "$repo.out" || fail "the open minor finding was not named as the reason"
+
+repo="$(setup_repo suggestion-and-major)"
+add_review "$repo" 1 CHANGES_REQUIRED "[$(finding M1 major "Offline use is unplanned"), $(finding S1 suggestion "Consider sharing")]"
+expect_refused "$repo" "a major finding beside a suggestion is open"
+
+# Notes of owner decisions that the planning adds are listed before the
+# approval and in it.
+note_line="*Note of the owner's decision of 2026-11-13 (https://github.com/owner/repo/issues/511#issuecomment-123456).* The hero stays."
+repo="$(setup_repo notes-listed)"
+printf '\n%s\n' "$note_line" >>"$repo/docs/PROJECT_REQUIREMENTS.md"
+add_review "$repo" 1 PASS "[]"
+run_finish "$repo" y || {
+  cat "$repo.out" >&2
+  fail "a planning with a note of an owner decision was not finished"
+}
+grep -Fq "Notes of owner decisions that this planning adds" "$repo.out" || fail "the notes were not listed before the approval"
+grep -Fq "docs/PROJECT_REQUIREMENTS.md:6: $note_line" "$repo.out" || fail "the note was not shown with its place"
+grep -Fqx "## Notes of owner decisions" "$repo/docs/PLANNING_APPROVAL.md" || fail "the approval does not list the notes"
+
+# --amend accepts dated notes of owner decisions in the requirements and the
+# roadmap, also on a feature branch, so the feature's pull request carries
+# the amendment and the approval stays current.
+repo="$(setup_approved amend-notes)"
+printf '\n%s\n' "$note_line" >>"$repo/docs/PROJECT_REQUIREMENTS.md"
+sed -i.bak "s|^- Goal: list recipes.\$|- Goal: list recipes.\\
+\\
+  $note_line|" "$repo/docs/roadmap.md" && rm "$repo/docs/roadmap.md.bak"
+[[ "$(check_status "$repo")" -eq 1 ]] || fail "a note made the approval stale before it was amended"
+run_amend "$repo" y --amend "Record the owner's decision on the hero." || {
+  cat "$repo.out" >&2
+  fail "an amendment of notes of owner decisions was refused"
+}
+[[ "$(check_status "$repo")" -eq 0 ]] || fail "the approval is not current after amending notes"
+grep -Fq "Notes of owner decisions that this amendment adds" "$repo.out" || fail "the notes were not shown before the amendment"
+grep -Fq "  - Note: docs/roadmap.md:7: $note_line" "$repo/docs/PLANNING_APPROVAL.md" || fail "the approval does not record the note of the roadmap"
+grep -Fq "  - Note: docs/PROJECT_REQUIREMENTS.md:" "$repo/docs/PLANNING_APPROVAL.md" || fail "the approval does not record the note of the requirements"
+
+repo="$(setup_approved amend-feature)"
+git -C "$repo" switch -q -c feature/7-hero main
+git -C "$repo" branch -q -D planning/amend-feature
+printf '\n%s\n' "$note_line" >>"$repo/docs/PROJECT_REQUIREMENTS.md"
+run_amend "$repo" y --amend "Record the owner's decision on the hero." || {
+  cat "$repo.out" >&2
+  fail "an amendment of a note on a feature branch was refused"
+}
+[[ "$(check_status "$repo")" -eq 0 ]] || fail "the approval is not current after an amendment on a feature branch"
+grep -Fq "finish-feature.sh commits it with" "$repo.out" || fail "the feature's next step was not printed"
+
+# Anything that is not such a note is refused: a changed requirement, a note
+# without the URL of a comment, a note that adds a heading.
+expect_amend_refused requirement-changed 'sed -i.bak "s/^Status: Approved\$/Status: Approved/; s/^# Project Requirements\$/# Project Requirements (changed)/" docs/PROJECT_REQUIREMENTS.md; rm docs/PROJECT_REQUIREMENTS.md.bak' \
+  "existing text is changed or removed"
+expect_amend_refused requirement-added-with-note "printf '\\n%s\\n\\nA new requirement.\\n' \"$note_line\" >>docs/PROJECT_REQUIREMENTS.md" \
+  "added text that is not a dated note"
+expect_amend_refused note-without-comment "printf '\\n*Note of the owner'\"'\"'s decision of 2026-11-13 (https://example.com/x).* No.\\n' >>docs/roadmap.md" \
+  "added text that is not a dated note"
+expect_amend_refused note-with-heading "printf '\\n%s\\n## F09 — New\\n' \"$note_line\" >>docs/roadmap.md" \
+  "a note may not add a heading"
+
 echo "finish-planning tests passed"

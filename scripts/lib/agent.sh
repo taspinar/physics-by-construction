@@ -210,8 +210,9 @@ agent_session_notice() {
   echo "An interactive $1 session starts now. This script waits for it."
   case "$1" in
     claude)
-      echo "- Claude may ask your permission before it runs a shell command. That is"
-      echo "  normal; file edits in the worktree are accepted automatically."
+      echo "- Claude runs in its 'auto' permission mode: its own permission check allows"
+      echo "  harmless reads, edits, and the usual commands without asking, and asks you"
+      echo "  only for an action it does not allow by itself."
       echo "- When the agent says it is done, type /exit. This script then continues."
       ;;
     codex)
@@ -229,7 +230,9 @@ agent_session_notice() {
 # Profiles:
 #   write      Interactive session that may modify the work directory and
 #              use the network. What goes beyond that needs the user's
-#              permission: Claude asks before it runs a shell command, Codex
+#              permission: Claude runs in its 'auto' permission mode, whose
+#              own check allows or denies each action and asks the user only
+#              for what it does not allow by itself (Issue #512); Codex asks
 #              before a command leaves its work-directory sandbox.
 #   unattended Non-interactive session with the reach of 'write': it may
 #              modify the work directory and use the network, needs no
@@ -329,8 +332,10 @@ agent_run() {
     claude:write)
       (
         cd "$workdir"
+        # 'auto': Claude's own permission check decides each action, so
+        # harmless reads and the usual commands no longer prompt (#512).
         claude \
-          --permission-mode acceptEdits \
+          --permission-mode auto \
           --model "$model" \
           "$prompt"
       )
