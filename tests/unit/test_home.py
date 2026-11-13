@@ -1,8 +1,9 @@
 """The generated home page (F134, F158; ADR 021 decision 4 as amended): the
 hero's data file and its rules (one fixed headline and subtext, the variants
-of F134 as an unused reference), the one hero image (Issue #482: the vortex
-street, mirrored and faded in its files) with its registration, its matte
-and its mirror on the committed bytes, the hero's markup (one image in the
+of F134 as an unused reference), the one hero image (Issue #482 one image;
+Issue #487 the owner's double-pendulum illustration, keyed, lifted under
+the copy, and faded in its files) with its registration, its lift and its
+edges on the committed bytes, the hero's markup (one image in the
 HTML, no script), the Home copy file and its rules (the owner's fixed copy
 of Issue #481), the course subjects of Part A from the curriculum, the two
 actions of the first step, and the order of the page, all generated from
@@ -69,9 +70,22 @@ HOME = HomeContent(_content(), HERO, COPY, "https://example.org/repo")
 APOSTROPHE = chr(0x2019)  # as the build sets an apostrophe
 LINK = re.compile(r"\]\(([^)]*)\)")
 HREF = re.compile(r'\bhref="([^"]*)"')
-# The owner's decision on Issue #482 (2026-11-11): one image, the vortex
-# street of fluid dynamics.
-OWNER_IMAGE = ("vortex-street", "fluids")
+# The owner's request on Issue #487 (2026-11-12): one image, the owner's
+# illustration of a double pendulum, named with classical mechanics.
+OWNER_IMAGE = ("double-pendulum", "mechanics")
+# The master the owner supplied, matched by SHA-256 on 2026-11-12.
+OWNER_MASTER = (
+    "pbc_hero_assets/pbc-double-pendulum-hero-original.png",
+    "ac9062c74fe15d4ef302170e6ced4311c1467fee73def9bde1be6758b98bfaaf",
+)
+PAPER = np.array([250, 248, 243], dtype=float)
+# The part of the image under the copy of a wide screen (the left 47 %),
+# the plateau that is whole (60 to 86 % across), and the floor the lift
+# gives the luma of every composited pixel under the copy, less the few
+# levels the lossy colour dips (tools/illustrations/derive_assets.py).
+_LIFTED = 0.47
+_PLATEAU = (0.60, 0.86)
+_FLOOR = 220
 
 
 def _data():
@@ -172,22 +186,42 @@ def test_a_site_without_the_data_file_fails(tmp_path):
 # --- The hero's data file: the image ----------------------------------------
 
 
-def test_the_data_file_holds_the_owner_s_one_fluid_dynamics_image():
+def test_the_data_file_holds_the_owner_s_one_double_pendulum_image():
     assert (HERO.image.id, HERO.image.sequence) == OWNER_IMAGE
     assert HERO.image.files == tuple(
-        f"assets/hero/vortex-street-{width}.webp" for width in HERO_IMAGE_WIDTHS
+        f"assets/hero/double-pendulum-{width}.webp" for width in HERO_IMAGE_WIDTHS
     )
-    # Its alternative text names what is seen, claims no result, and names
-    # the direction the mirrored file shows (the flow from right to left).
+    # Its alternative text names what is seen (the pendulum, the trace with
+    # its curve, the ball in the well) and claims no measurement or result:
+    # the image is an illustration, not a result of the project.
     assert HERO.image.alt.startswith("Illustration: ")
-    assert "from right to left" in HERO.image.alt
-    assert not re.search(r"\b(verified|result|measured|simulat\w*)\b", HERO.image.alt)
+    for seen in ("double pendulum", "trace", "curve", "well"):
+        assert seen in HERO.image.alt
+    assert not re.search(
+        r"\b(verified|result|measured|measurement|simulat\w*|data)\b", HERO.image.alt
+    )
 
 
-def _alpha(width: int) -> np.ndarray:
+def _rgba(width: int) -> np.ndarray:
     with Image.open(SITE_SOURCE / HERO.image.file(width)) as opened:
         assert opened.format == "WEBP"
-        return np.asarray(opened.convert("RGBA"))[..., 3]
+        return np.asarray(opened.convert("RGBA")).astype(float)
+
+
+def _composite(rgba: np.ndarray) -> np.ndarray:
+    """The pixels as the browser draws them over the paper."""
+    return np.round(PAPER + rgba[..., 3:] / 255 * (rgba[..., :3] - PAPER))
+
+
+def _luma(pixels: np.ndarray) -> np.ndarray:
+    return 0.2126 * pixels[..., 0] + 0.7152 * pixels[..., 1] + 0.0722 * pixels[..., 2]
+
+
+def _luminance(pixels: np.ndarray) -> np.ndarray:
+    """The relative luminance (WCAG 2.1) of each pixel."""
+    value = pixels / 255
+    linear = np.where(value <= 0.03928, value / 12.92, ((value + 0.055) / 1.055) ** 2.4)
+    return 0.2126 * linear[..., 0] + 0.7152 * linear[..., 1] + 0.0722 * linear[..., 2]
 
 
 @pytest.mark.parametrize("width", HERO_IMAGE_WIDTHS)
@@ -195,66 +229,112 @@ def test_each_width_has_its_file_at_2_to_1_and_the_register_entry_of_its_master(
     width: int,
 ):
     """Each width's own test: a WebP file with an alpha channel under
-    site/assets/hero, 2:1, and a complete register entry whose master, hash,
-    and origin are those of the atlas panel of fluids (the master the owner
-    supplied and the Issue matched by SHA-256), so no origin is claimed that
-    the atlas entry does not record, and the entry says how the file was
-    derived."""
+    site/assets/hero, 2:1, and a complete register entry naming the owner's
+    master and its hash, the owner as the author with the date, and how the
+    file was derived; no licence (the owner's decision of 2026-11-12 on
+    Issue #487: the hero carries none in the register; ADR 021 decision 2 as
+    amended that day), no script (the master is not computed by one), and no
+    model (a neutral origin), so the entry claims nothing about how it was
+    made or about its rights."""
     file = HERO.image.file(width)
-    alpha = _alpha(width)
-    assert alpha.shape == (width // 2, width)
+    rgba = _rgba(width)
+    assert rgba.shape == (width // 2, width, 4)
     entry = REGISTER[file.removeprefix("assets/")]
-    atlas = REGISTER[f"atlas/{HERO.image.sequence}-panel-800.webp"]
-    for field in ("master", "sha256", "author", "licence", "date", "script"):
-        assert entry[field] == atlas[field], field
-    assert "model" not in entry
+    assert (entry["master"], entry["sha256"]) == OWNER_MASTER
+    assert entry["author"] == "Ahmet Taspinar"
+    assert entry["date"]
+    assert "licence" not in entry
+    assert "script" not in entry and "model" not in entry
     assert "derive_assets.py --hero" in entry["source"]
-    assert "mirrored" in entry["source"] and "faded" in entry["source"]
+    assert "illustration" in entry["source"] and "not a result" in entry["source"]
 
 
 @pytest.mark.parametrize("width", HERO_IMAGE_WIDTHS)
-def test_the_matte_fades_every_edge_keeps_the_left_faint_and_the_right_whole(
-    width: int,
-):
-    """The owner's requirements on the committed bytes (Issue #482): no
-    rectangular boundary (every edge pixel fully transparent), the trail
-    faint where the copy stands on a wide screen (the left 31 % of the
-    image at a quarter of the ink at most), the right half whole (the
-    cylinder and the first vortices at full opacity), and the fade from the
-    left edge to the plateau gradual (monotone along the middle row)."""
-    alpha = _alpha(width)
+def test_every_edge_is_transparent_and_the_right_part_is_whole(width: int):
+    """No rectangular boundary (every edge pixel fully transparent) and the
+    right part whole: on the plateau every inked pixel is opaque and the
+    ink is the master's (the ball in the well is near black)."""
+    rgba = _rgba(width)
+    alpha = rgba[..., 3]
     height = alpha.shape[0]
     for edge in (alpha[0], alpha[-1], alpha[:, 0], alpha[:, -1]):
         assert edge.max() == 0
-    assert alpha[:, : round(0.31 * width)].max() <= round(0.25 * 255) + 1
-    plateau = alpha[
-        round(0.30 * height) : round(0.70 * height),
-        round(0.60 * width) : round(0.88 * width),
+    plateau = rgba[
+        round(0.20 * height) : round(0.80 * height),
+        round(_PLATEAU[0] * width) : round(_PLATEAU[1] * width),
     ]
-    assert plateau.min() == 255
-    middle = alpha[height // 2].astype(int)
-    assert (np.diff(middle[: round(0.60 * width)]) >= 0).all()
-    assert (np.diff(middle[round(0.90 * width) :]) <= 0).all()
+    inked = _luma(plateau[..., :3]) < 200
+    assert inked.any()
+    assert plateau[..., 3][inked].min() == 255
+    assert _luminance(_composite(plateau)).min() < 0.05
 
 
 @pytest.mark.parametrize("width", HERO_IMAGE_WIDTHS)
-def test_the_file_is_mirrored_the_cylinder_toward_the_right(width: int):
-    """The flow runs from right to left: the darkest opaque pixels, the
-    cylinder, stand in the right fifth of the image at mid-height (in the
-    master they stand at 18 % from the left)."""
-    with Image.open(SITE_SOURCE / HERO.image.file(width)) as opened:
-        pixels = np.asarray(opened.convert("RGBA")).astype(float)
-    luminance = (
-        0.2126 * pixels[..., 0] + 0.7152 * pixels[..., 1] + 0.0722 * pixels[..., 2]
-    ) / 255
-    rows, columns = np.where((luminance < 0.2) & (pixels[..., 3] == 255))
-    assert 0.78 < columns.mean() / width < 0.86
-    assert 0.45 < rows.mean() / (width // 2) < 0.55
+def test_under_the_copy_every_pixel_is_lifted_to_the_floor_but_not_wiped(
+    width: int,
+):
+    """The owner's requirements on the committed bytes (Issue #487): under
+    the copy of a wide screen (the left 47 % of the image) every pixel,
+    composited on the paper, keeps the luma floor that gives the muted
+    subtext and the link colour a WCAG contrast above 4.5 (the headline
+    above 3), while the pendulum stays a recognisable pale drawing: its
+    darkest ink is well below the paper, and its pale haze keeps most of
+    its ink (a light pixel is lifted far less than a dark one)."""
+    rgba = _rgba(width)
+    height = rgba.shape[0]
+    left = _composite(rgba[:, : round(_LIFTED * width)])
+    luma = _luma(left)
+    assert luma.min() >= _FLOOR
+    for colour, least in (("#57606a", 4.5), ("#0047ab", 4.5)):
+        text = _luminance(np.array([int(colour[i : i + 2], 16) for i in (1, 3, 5)]))
+        assert (_luminance(left).min() + 0.05) / (text + 0.05) >= least, colour
+    # The pendulum (ink at 11 to 35 % across, 25 to 65 % down in the master)
+    # is still drawn: its darkest hundredth is at least 16 levels below the
+    # paper's luma, and at least a fifth of its area is visibly inked.
+    pendulum = luma[
+        round(0.25 * height) : round(0.65 * height),
+        round(0.11 * width) : round(0.35 * width),
+    ]
+    paper = float(_luma(PAPER))
+    assert np.percentile(pendulum, 1) <= paper - 16
+    assert (pendulum < paper - 6).mean() >= 0.2
+
+
+@pytest.mark.parametrize("width", HERO_IMAGE_WIDTHS)
+def test_the_lift_is_gradual_and_the_pendulum_stands_left_the_well_right(
+    width: int,
+):
+    """The fade from the lifted part to the plateau is gradual: along the
+    transition (47 to 60 % across) the darkest ink of each 2 % column band
+    deepens from the floor to the master's ink in steps of a fraction of
+    the way, never in one step and never back up by more than the few
+    levels the content and the lossy colour move; no wipe and no step. And
+    the composition is the master's: the darkest
+    ink under the copy stands in the left third (the pendulum), the darkest
+    ink of all in the right third (the ball in the well)."""
+    composite = _composite(_rgba(width))
+    luma = _luma(composite)
+    height = luma.shape[0]
+    band = luma[round(0.20 * height) : round(0.80 * height)]
+    darkest = [
+        band[:, round(start * width) : round((start + 0.02) * width)].min()
+        for start in np.arange(_LIFTED, _PLATEAU[0], 0.02)
+    ]
+    steps = np.diff(darkest)
+    assert (steps <= 16).all() and (steps >= -60).all(), darkest
+    assert darkest[0] >= 200 and darkest[-1] < 100, darkest
+    luminance = _luminance(composite)
+    rows, columns = np.where(luminance < 0.80)
+    left = columns < round(_LIFTED * width)
+    assert 0.15 < columns[left].mean() / width < 0.35
+    rows, columns = np.where(luminance < 0.05)
+    assert 0.70 < columns.mean() / width < 0.90
+    assert 0.45 < rows.mean() / height < 0.70
 
 
 def test_an_image_rule_broken_fails():
     cases = {
-        "id": ("id", "Vortex_Street", "lower-case words joined by hyphens"),
+        "id": ("id", "Double_Pendulum", "lower-case words joined by hyphens"),
         "sequence": ("sequence", "law-discovery", "no course of Part A"),
         "alt": ("alt", "An <em>image</em>", "holds markup"),
         "empty alt": ("alt", " ", "has no text"),
@@ -270,10 +350,10 @@ def test_a_missing_or_malformed_image_fails():
     del data["image"]["sequence"]
     assert any("the image lacks sequence" in p for p in hero_problems(data))
     data = _data()
-    data["image"]["default"] = "vortex-street"
+    data["image"]["default"] = "double-pendulum"
     assert any("unknown fields: default" in p for p in hero_problems(data))
     data = _data()
-    data["image"] = ["vortex-street"]
+    data["image"] = ["double-pendulum"]
     assert "the image is not a mapping" in hero_problems(data)
     data = _data()
     del data["image"]
@@ -288,17 +368,17 @@ def test_a_missing_or_malformed_image_fails():
 def test_an_image_without_a_file_or_a_register_entry_fails(tmp_path):
     (tmp_path / "assets" / "hero").mkdir(parents=True)
     (tmp_path / "assets" / "provenance.yaml").write_text(
-        "assets:\n  hero/vortex-street-1200.webp: {}\n", encoding="utf-8"
+        "assets:\n  hero/double-pendulum-1200.webp: {}\n", encoding="utf-8"
     )
-    (tmp_path / "assets" / "hero" / "vortex-street-1800.webp").write_bytes(b"")
+    (tmp_path / "assets" / "hero" / "double-pendulum-1480.webp").write_bytes(b"")
     found = image_file_problems(HERO, tmp_path)
     assert (
-        "the hero image vortex-street has no file assets/hero/vortex-street-1200.webp"
-        in found
+        "the hero image double-pendulum has no file"
+        " assets/hero/double-pendulum-1200.webp" in found
     )
     assert (
-        "the hero file assets/hero/vortex-street-1800.webp is not in the provenance"
-        " register" in found
+        "the hero file assets/hero/double-pendulum-1480.webp is not in the"
+        " provenance register" in found
     )
     assert image_file_problems(HERO, SITE_SOURCE) == []
 

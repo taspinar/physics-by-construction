@@ -295,12 +295,16 @@ kept.
   below the subtext (the
   Course Atlas as the one filled control of the page, the first lesson as a
   text link), and, since Issue #482, over one large illustration from 992
-  CSS px: the vortex street of fluid dynamics as the ground of the hero,
-  78 % of its width at the right edge of the column, mirrored so that the
-  flow runs from right to left with the cylinder toward the right, its
-  trail fading away under the copy and every edge fading into the paper
-  (the fade is in the file's alpha channel, so no box shows and no blend
-  is needed), in a 2:1 box reserved before the image arrives; below 992
+  CSS px: since Issue #487 the owner's double pendulum (a double pendulum
+  at the left, a dotted trace with a dashed curve through the middle, a
+  ball in a glowing well at the right) as the ground of the hero, from the
+  left edge of the content column to the right edge of the screen, its
+  left part lifted toward the paper under the copy and every edge fading
+  into the paper (the ground is keyed to the paper and the lift is in the
+  file's pixels, the edge fade in its alpha channel, so no box shows and
+  no blend is needed), in a 2:1 box reserved before the image arrives;
+  before #487 the vortex street of fluid dynamics at 78 % of the column,
+  mirrored and faded toward the left; below 992
   px the image follows the actions, 2rem under them, at the full width of
   the column, and at 390 by 844 it is whole on the first screen. Nothing
   in the hero moves. Then four
@@ -350,7 +354,7 @@ decision 2, ADR 021 decision 1). An example of each:
 | Class | Example | Source | Rules |
 |---|---|---|---|
 | Interface artwork | the project mark in the header | an authored SVG under `site/assets/` with its entry (author, licence) in the provenance register there | no number, no caption of a result, no evidence claim; decorative or named by its link |
-| Interface artwork, a derived raster at hero size | the hero image of the home page (F158; since Issue #482 one image): the vortex street of fluid dynamics, mirrored and edge-faded | WebP files with an alpha channel under `site/assets/hero/`, one per width, derived from the master of the atlas illustration of fluids by `tools/illustrations/derive_assets.py --hero`, each with the register entry of its master | as below; its alternative text in `site/hero.yaml` names what is seen (the flow from right to left); never presented as a result; the mirror reverses the sign of the vorticity, which nothing on the page states |
+| Interface artwork, a derived raster at hero size | the hero image of the home page (F158; since Issue #482 one image; since Issue #487 the owner's double-pendulum illustration): a double pendulum, a dotted trace with a dashed curve, a ball in a glowing well, lifted under the copy and edge-faded | WebP files with an alpha channel under `site/assets/hero/`, one per width, derived from the owner's master by `tools/illustrations/derive_assets.py --hero`, each registered by its author and date with the master's hash (no statement of how the master was made) | as below; its alternative text in `site/hero.yaml` names what is seen; an illustration, never presented as a result (the trace and the curve are nobody's data) |
 | Interface artwork, a derived raster | the twelve illustrations of the course atlas (F133) | WebP files under `site/assets/atlas/`, each with its entry in the provenance register (its origin: a script under `tools/illustrations/`, an author, or an image model with its prompt and date; a licence; its master and the master's SHA-256) | no text, number, or formula in the pixels; never in a lesson's body; alt text that names it; accepted by the visual check (composition, legibility at 76 and 200 px, colour, consistency with its family) |
 | Conceptual illustration | the diagrams drawn by `pbc.authoring.diagrams` in a lesson cell | an executed cell, `fig-status: conceptual` | drawn by code, labelled `conceptual`, never a result |
 | Scientific result | the phase-space figure of "Numerical integrators" | an executed cell over `pbc.mechanics.integrators` | the rules of "Scientifically faithful figures" and the F63 preview contract |

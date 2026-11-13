@@ -1262,6 +1262,128 @@ def test_unregistered_raster_under_site_assets_is_reported(
     ]
 
 
+# The hero data file of the home page (pbc.authoring.home): the one place
+# that declares the files of the hero, `hero/<id>-<width>.webp`, and so the
+# rasters that need no licence.
+_HERO_FILE = {
+    "site/hero.yaml": (
+        "headline: A headline.\n"
+        "subtext: A subtext.\n"
+        "image:\n"
+        "  id: double-pendulum\n"
+        "  sequence: mechanics\n"
+        "  alt: A double pendulum.\n"
+    )
+}
+_HERO_RASTERS = tuple(
+    f"hero/double-pendulum-{width}.webp" for width in (1200, 1480, 1774)
+)
+
+
+def test_the_files_the_hero_declares_are_the_rasters_without_a_licence(
+    make_repository: Repository,
+):
+    """The exemption follows the data file: exactly the files it declares,
+    and nothing when it is missing or breaks a rule."""
+    repository = make_repository(files=_HERO_FILE)
+    assert lesson_checks._home_hero_rasters(repository) == frozenset(_HERO_RASTERS)
+
+    data_file = repository / "site/hero.yaml"
+    data_file.write_text("headline: only\n")
+    assert lesson_checks._home_hero_rasters(repository) == frozenset()
+    data_file.unlink()
+    assert lesson_checks._home_hero_rasters(repository) == frozenset()
+
+
+@pytest.mark.parametrize("name", _HERO_RASTERS)
+def test_a_file_of_the_hero_without_a_licence_is_accepted(
+    make_repository: Repository, name: str
+):
+    """The hero of the home page carries no licence in the register (ADR 021
+    decision 2 as amended on 2026-11-12, the owner's decision on Issue #487):
+    the entry of a file the hero data file declares is complete without the
+    field."""
+    entry = raster(name, licence=None)
+    repository = make_repository(
+        files={f"site/assets/{name}": "raster", **register(entry), **_HERO_FILE}
+    )
+    git(repository, "add", "--all")
+    git(repository, "commit", "--quiet", "--message", "The hero and its entry")
+
+    assert lesson_checks.check_committed_files(repository) == []
+    assert lesson_checks.check_asset_sources(repository) == []
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "atlas/mechanics-card-152.webp",
+        "mark.png",
+        "hero.webp",
+        "heroes/mark.webp",
+        "atlas/hero/mark.webp",
+        "hero/mark.png",
+        "hero/mark.webp",
+        "hero/double-pendulum-1600.webp",
+        "hero/vortex-street-1200.webp",
+    ],
+)
+def test_every_other_raster_without_a_licence_is_still_reported(
+    make_repository: Repository, name: str
+):
+    """Only the files the hero declares are exempt: a raster anywhere else
+    under site/assets, also one whose name begins with 'hero', one under a
+    deeper hero/ directory, and another file under hero/ itself (a different
+    name, the hero's name at a width it does not declare), still needs its
+    licence."""
+    entry = raster(name, licence=None)
+    repository = make_repository(
+        files={f"site/assets/{name}": "raster", **register(entry), **_HERO_FILE}
+    )
+
+    assert rules(lesson_checks.check_committed_files(repository)) == {
+        "committed-artifact"
+    }
+    violations = lesson_checks.check_asset_sources(repository)
+    assert rules(violations) == {"asset-source"}
+    assert "licence" in details(violations)
+
+
+def test_a_file_of_the_hero_without_the_data_file_still_needs_its_licence(
+    make_repository: Repository,
+):
+    """Without the hero data file nothing declares the hero's files, so the
+    hero's own name is no exemption: the entry needs its licence like any
+    other raster."""
+    name = _HERO_RASTERS[0]
+    entry = raster(name, licence=None)
+    repository = make_repository(
+        files={f"site/assets/{name}": "raster", **register(entry)}
+    )
+
+    assert rules(lesson_checks.check_committed_files(repository)) == {
+        "committed-artifact"
+    }
+    violations = lesson_checks.check_asset_sources(repository)
+    assert rules(violations) == {"asset-source"}
+    assert "licence" in details(violations)
+
+
+def test_a_file_of_the_hero_whose_licence_is_not_a_text_is_reported(
+    make_repository: Repository,
+):
+    """A hero entry may carry a licence; when it does, it is a text."""
+    name = _HERO_RASTERS[0]
+    entry = raster(name, licence="[]")
+    repository = make_repository(
+        files={f"site/assets/{name}": "raster", **register(entry), **_HERO_FILE}
+    )
+
+    violations = lesson_checks.check_asset_sources(repository)
+    assert rules(violations) == {"asset-source"}
+    assert "licence" in details(violations)
+
+
 @pytest.mark.parametrize(
     "entry, problem",
     [
