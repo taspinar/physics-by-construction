@@ -1,11 +1,11 @@
 # Planning Approval
 
 Status: Approved
-Approved at: 2026-11-13T22:36:12Z
+Approved at: 2026-11-13T22:51:20Z
 Planning branch: planning/teaching-by-construction
 Change request: docs/changes/teaching-by-construction.md
-Final review: round 4, PASS WITH MINOR FINDINGS, by claude (opus)
-Planning fingerprint: c5a5552df83a093a596206d057b4779d0ad7865f
+Final review: round 5, PASS, by claude (opus)
+Planning fingerprint: c2388c9576b48243d72765ec958727c89ee841c5
 
 Recorded by `scripts/finish-planning.sh`. The approval covers these planning
 documents. A change to the description, the requirements, a change request, or the
@@ -93,6 +93,7 @@ under its own review. This approval covers the documents including them.
 - Round 2: PASS WITH MINOR FINDINGS, 1 finding(s), by claude (opus)
 - Round 3: PASS WITH MINOR FINDINGS, 1 finding(s), by claude (opus)
 - Round 4: PASS WITH MINOR FINDINGS, 1 finding(s), by claude (opus)
+- Round 5: PASS, 0 finding(s), by claude (opus)
 
 ## Findings that were not adopted
 
