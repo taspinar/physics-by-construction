@@ -186,7 +186,12 @@ def test_the_block_errors_rest_on_assumptions_that_were_checked(results, wake):
 
 def test_the_strouhal_number_and_its_comparisons(results):
     _, found = results
-    assert (_number(found, "st"), _number(found, "st-err")) == (0.194, 0.001)
+    # The spectral St carries the spectral blocks' error (0.0028 Hz in the
+    # dossier, St +- 0.0006), not the crossings' correlated error.
+    assert (_number(found, "st"), _number(found, "st-err")) == (0.194, 0.0006)
+    assert _number(found, "f-2d-err") == 0.0028
+    assert _number(found, "st-err-correlated") == 0.0013
+    assert _number(found, "st-err-correlated") > _number(found, "st-err")
     assert _number(found, "st-crossings") == 0.193
     assert (_number(found, "u-top"), _number(found, "u-paper")) == (4.52, 4.35)
     assert _number(found, "st-top") == 0.187

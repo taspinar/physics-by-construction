@@ -445,18 +445,22 @@ frequency wanders over tens of periods, as a finite cylinder in a channel
 with a free surface may well do. A block of a hundred seconds holds about
 `{python} result["periods-per-block"]` periods, more than that memory, so
 the blocks are close to independent, but four blocks give a rough estimate
-of their own scatter. The lab carries the larger, correlated error of
-`{python} result["correlated-err"]` Hz: the spectral frequency then lies
-`{python} result["spectral-gap"]` Hz from the published one, and the
-crossing frequency `{python} result["crossing-gap"]` standard errors from
-it.
+of their own scatter. For the crossing frequency the lab carries the
+larger, correlated error of `{python} result["correlated-err"]` Hz, and the
+crossing frequency lies `{python} result["crossing-gap"]` of those standard
+errors from the published one. The spectral frequency keeps the error of its
+own four blocks, and lies `{python} result["spectral-gap"]` Hz from the
+published one.
 
 ### The Strouhal number
 
 [With the paper's diameter and free-stream speed, the spectral frequency
 gives $\mathrm{St} =$ `{python} result["st"]` ±
-`{python} result["st-err"]` from the frequency alone, and the crossings
-`{python} result["st-crossings"]`. The mean $u$ in the crop's top row is
+`{python} result["st-err"]` from the frequency alone, the error being the
+scatter of the spectral peak's four blocks; the crossings give
+`{python} result["st-crossings"]`, and their correlated frequency error
+alone would give ± `{python} result["st-err-correlated"]`. The mean $u$ in
+the crop's top row is
 `{python} result["u-top"]` cm/s, not the paper's
 `{python} result["u-paper"]` cm/s; with it, St would be
 `{python} result["st-top"]`. Roshko's irregular-range fit gives
@@ -500,8 +504,8 @@ result.show("fig-strouhal")
 The error bars are ±`{python} result["hw-error"]` per cent per run, the
 spread the dataset's dossier found between sixteen-second segments of the
 full records, larger than the scatter of four blocks within the sample (at
-most `{python} result["hw-block-high"]` Hz). The PIV point carries its
-frequency error alone.
+most `{python} result["hw-block-high"]` Hz). The PIV point carries the
+error of its spectral frequency alone, the scatter of its four blocks.
 
 [The ten hot-wire runs, at Reynolds numbers from
 `{python} result["re-hw-low"]` to `{python} result["re-hw-high"]`, give St

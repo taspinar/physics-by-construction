@@ -784,9 +784,13 @@ def run() -> Experiment:
         ".1f",
     )
 
-    st_err = cylinder_wake.strouhal(error)
+    # The spectral St carries the spectral estimator's own error, the scatter
+    # of its four blocks; the crossings' correlated error is reported beside
+    # it, labelled as that of the other estimator.
+    st_err = cylinder_wake.strouhal(analysis.frequency_err["2D"])
     experiment.number("st", analysis.strouhal, ".3f")
-    experiment.number("st-err", st_err, ".3f")
+    experiment.number("st-err", st_err, ".4f")
+    experiment.number("st-err-correlated", cylinder_wake.strouhal(error), ".4f")
     experiment.number(
         "st-crossings", cylinder_wake.strouhal(crossing["frequency"]), ".3f"
     )
