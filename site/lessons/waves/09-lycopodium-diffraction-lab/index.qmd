@@ -290,8 +290,8 @@ excerpt(experiment.draw_profiles)
 ```{python}
 #| label: fig-profiles
 #| echo: false
-#| fig-cap: "Both halos have a saturated centre and a faint dark ring, smaller for the violet laser than for the red one; the profiles are grainy with speckle on the scale of the ring itself."
-#| fig-alt: "Line plot of camera brightness against position across the halo, two profiles. The red profile is a narrow saturated spike in the middle, a flat shoulder on each side, and then a dip on each side marked by dotted vertical lines, with bumpy small rings beyond. The violet profile is a broad saturated hump that falls steeply to a smaller dip on each side, also marked by dotted lines, and then a slow decline. A horizontal line near the top marks saturation."
+#| fig-cap: "Both halos have a saturated centre and a faint dark ring, smaller for the violet laser than for the red one; the profiles are grainy with speckle on the scale of the ring itself. The narrow shaded band about each dotted marker is the range of the ring over the smoothing widths of the ring table below: a sensitivity of the analysis, not a statistical error."
+#| fig-alt: "Line plot of camera brightness against position across the halo, two profiles. The red profile is a narrow saturated spike in the middle, a flat shoulder on each side, and then a dip on each side marked by dotted vertical lines, with bumpy small rings beyond. The violet profile is a broad saturated hump that falls steeply to a smaller dip on each side, also marked by dotted lines, and then a slow decline. Each dotted line sits in a narrow shaded band, the range of the ring over the smoothing widths. A horizontal line near the top marks saturation."
 #| fig-status: processed
 #| fig-dataset: lycopodium-spore-diffraction
 #| fig-artifact: processed-measured

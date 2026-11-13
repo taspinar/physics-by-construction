@@ -125,6 +125,35 @@ def test_the_rings_and_their_ranges_are_the_dossiers(results, record):
         assert _column(found, "ring-radii", column) == radii
 
 
+def test_the_profiles_show_the_sensitivity_range_of_each_ring(results, experiment):
+    # fig-profiles: about each dotted ring marker a band spans the ring's
+    # radius from the smallest to the largest of the ring-radii table, on
+    # both sides of the centre (Issue #496).
+    _, found = results
+    figure = experiment.figures["fig-profiles"]()
+    try:
+        ax = figure.axes[0]
+        bands = sorted(
+            tuple(sorted((p.get_x(), p.get_x() + p.get_width()))) for p in ax.patches
+        )
+        markers = {
+            round(float(line.get_xdata()[0]), 6)
+            for line in ax.lines
+            if line.get_linestyle() == ":"
+        }
+    finally:
+        plt.close(figure)
+    expected = []
+    for column in (1, 2):
+        radii = [float(v) for v in _column(found, "ring-radii", column)]
+        expected += [(min(radii), max(radii)), (-max(radii), -min(radii))]
+    assert len(bands) == 4
+    for (low, high), (want_low, want_high) in zip(bands, sorted(expected), strict=True):
+        assert low == pytest.approx(want_low, abs=5e-3)
+        assert high == pytest.approx(want_high, abs=5e-3)
+        assert any(low <= marker <= high for marker in markers)
+
+
 def test_the_ratio_claim_against_a_prediction_that_is_not_fitted(results):
     _, found = results
     predicted = _number(found, "predicted")
