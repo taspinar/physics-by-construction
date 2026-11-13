@@ -15,6 +15,7 @@ Card: `data/registry/xu-damped-pendulum.yaml`. Inspected 2026-11-09 for F83 (Iss
 | Checksums | none published; the Git blob SHA-1 of every downloaded file equals the one in the commit's tree (GitHub API), and the card records the sha256 computed here |
 | Accessed | 2026-11-09 |
 | Also inspected, not committed | the other 40 raw and 40 cleaned files of the record, with the same reader, for the spread of the trials and the effect of the damping setting (below) |
+| Added for the M15 lab (2026-11-12) | the cleaned files of the second and third air-only trials of every length and of the three large-baffle trials of the shortest length, `cleaned_data/len<k>_cond1_<2,3>.csv` and `cleaned_data/len1_cond3_<1..3>.csv`: thirteen files of 124,941 to 125,026 B, 1,624,767 B together; each Git blob SHA-1 equals the commit's tree, each file equals the window 5 ≤ t < 65 s of its raw file (checked on the raw files, which are not committed); the sample is now 3,364,277 B |
 
 The README is not committed: the card and this dossier record what it says (the design, the lengths, g, the location, the sensor). The record's `process.py` is read, not run: it writes each cleaned file from its raw file (below).
 
@@ -109,7 +110,7 @@ Apache-2.0 is an equivalent recorded permission under the ADR 007 addendum of 20
 
 ## Size, runtime, payload
 
-Sample 1.74 MB in eight files, the largest 329 KB (caps: 2 MB per file, 8 MB per dataset). The full record is 45 raw files (14.5 MB), 45 cleaned files (5.6 MB), and plots; `./scripts/fetch-data.sh xu-damped-pendulum` downloads the eight files of the sample by the card's URLs and checksums (the cleaned file as `cleaned_len1_cond1_1.csv`). Figure: about 5 s including the interpreter start, about 160 MB peak memory; PNG about 340 KB at 150 dpi. A lesson page that reads the sample and draws this figure stays far inside the 30 s warning, the 60 s limit, and the 3 MB payload: the data are read at build time and only the figure reaches the browser. CI reads only the committed files.
+Sample 3.36 MB in twenty-one files (eight of phase 1, thirteen added for the M15 lab), the largest 329 KB (caps: 2 MB per file, 8 MB per dataset). The full record is 45 raw files (14.5 MB), 45 cleaned files (5.6 MB), and plots; `./scripts/fetch-data.sh xu-damped-pendulum` downloads the twenty-one files of the sample by the card's URLs and checksums (the cleaned file as `cleaned_len1_cond1_1.csv`). Figure: about 5 s including the interpreter start, about 160 MB peak memory; PNG about 340 KB at 150 dpi. A lesson page that reads the sample and draws this figure stays far inside the 30 s warning, the 60 s limit, and the 3 MB payload: the data are read at build time and only the figure reaches the browser. CI reads only the committed files.
 
 ## The requirements of ADR 007 and where they are met
 
@@ -126,6 +127,6 @@ Sample 1.74 MB in eight files, the largest 329 KB (caps: 2 MB per file, 8 MB per
 
 ## Open items
 
-- Phase 2, the M15 lab, starts only when the owner says so (Issue #437). It decides which further files of the record to commit; the research proposed the 15 first trials or all 45 cleaned files (5.6 MB, within the cap), which a holdout of trials and the damping settings would need.
+- Phase 2, the M15 lab (Issue #437, `site/lessons/mechanics/20-pendulum-measurements`), committed the cleaned files of the other two air-only trials of every length and the three large-baffle trials of the shortest length (the row "Added for the M15 lab" above): the trial spread of every length and a holdout of trials for the damping, at 1.6 MB rather than the 4.2 MB of the raw files. The other damping settings and lengths stay outside the sample.
 - The cause of the effective length (bob, rod, sensor) is not in the record; a question to the creators (the README gives a contact) could settle it.
 - The runner-up, Echiburu and Fernández's pendulum video tracks (Zenodo 22760051, CC BY 4.0), is not inspected.
