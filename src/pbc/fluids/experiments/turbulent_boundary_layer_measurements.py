@@ -27,12 +27,17 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import NullFormatter
 
 from pbc.data import SAMPLES_DIR
-from pbc.data.adapters import boundary_layer_profile_series, hot_wire_profile_series
+from pbc.data.adapters import (
+    boundary_layer_profile_series,
+    hot_wire_intensity_series,
+    hot_wire_profile_series,
+)
 from pbc.data.fit import FitResult, fit_curve
 from pbc.data.plotting import COLOURS, add_credit, label_status
 from pbc.data.reference import grazing_flow_hwa, tudelft_boundary_layer
 from pbc.data.reference.grazing_flow_hwa import Station
 from pbc.data.reference.tudelft_boundary_layer import Profile
+from pbc.data.uncertainty import K95
 from pbc.experiment import Experiment, main
 from pbc.fluids.boundary_layer import (
     Blasius,
@@ -420,8 +425,11 @@ def tudelft_intensity(piv: Profile) -> np.ndarray:
 
 def intensity_table(experiment: Experiment, tudelft: dict, hot_wire: dict) -> dict:
     """The streamwise turbulence intensity u'_rms / U_inf at three heights in
-    the outer layer, and the largest u'+ of each profile with its y+."""
+    the outer layer, and the largest u'+ of each profile with its y+. The
+    hot-wire TI comes with the record's 95 % bounds (statistical only); their
+    largest half-width, in percentage points, is returned under "hw-bound"."""
     rows, outer = [], {"tudelft": [], "hot-wire": []}
+    bound = 0.0
     for case, (piv, _) in tudelft.items():
         ti = np.interp(OUTER, piv.y / tudelft_delta99(piv), tudelft_intensity(piv))
         uplus = np.sqrt(piv.uu) / piv.Utau
@@ -429,10 +437,12 @@ def intensity_table(experiment: Experiment, tudelft: dict, hot_wire: dict) -> di
         outer["tudelft"].append(ti)
         rows.append((f"TU Delft {case}, PIV", *ti, uplus[k], piv.yplus[k]))
     for case, s in hot_wire.items():
-        ti = np.interp(OUTER, s.y_over_delta * s.delta / hot_wire_delta99(s), s.TI)
+        series = hot_wire_intensity_series(s)
+        ti = np.interp(OUTER, series.x * s.delta / hot_wire_delta99(s), series.y)
         uplus = s.TI / 100.0 * s.Ue / s.utau
         k = int(np.argmax(uplus))
         outer["hot-wire"].append(ti)
+        bound = max(bound, float(np.max(K95 * series.sigma)))
         rows.append((f"hot wire, solid, {speed_name(case)}", *ti, uplus[k], s.yplus[k]))
     experiment.table(
         "intensity",
@@ -449,7 +459,7 @@ def intensity_table(experiment: Experiment, tudelft: dict, hot_wire: dict) -> di
         "three heights in units of delta_99, and the largest u'_rms / u_tau of each "
         "profile with its wall distance (hot wire: u_tau from Coles-Fernholz).",
     )
-    return {k: np.array(v) for k, v in outer.items()}
+    return {k: np.array(v) for k, v in outer.items()} | {"hw-bound": bound}
 
 
 # The figures.
@@ -859,6 +869,7 @@ def run() -> Experiment:
     experiment.number("hw-points-high", hw["points"][1])
 
     outer = intensity_table(experiment, tudelft, hot_wire)
+    experiment.number("hw-ti-bound", outer.pop("hw-bound"), ".4f")
     gaps = outer["tudelft"].mean(0) - outer["hot-wire"].mean(0)
     experiment.number("ti-gap-low", gaps.min(), ".1f")
     experiment.number("ti-gap-high", gaps.max(), ".1f")

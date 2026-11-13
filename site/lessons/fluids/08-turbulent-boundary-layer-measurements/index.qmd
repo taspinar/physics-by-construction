@@ -53,8 +53,10 @@ slow fluid on the cylinder's surface.
 Air flowing along a wall forms exactly such a layer. At the wall the air is
 at rest; a short distance away it has the speed of the stream. Near the
 leading edge of a smooth plate the layer is laminar, and the equations of
-the course predict it in closed form. A few metres downstream, in every wind
-tunnel and on every aircraft, it is turbulent. How far from the laminar
+the course predict it in closed form. Further downstream it can turn
+turbulent; where it does depends on the speed, the disturbances of the
+stream, and the surface. In the two layers this lab measures, metres from
+the leading edge of a wind-tunnel wall, it is turbulent. How far from the laminar
 prediction is a real turbulent layer? What replaces the laminar profile?
 And how well do two measurements, in two wind tunnels with two different
 instruments, agree on the law that replaces it?
@@ -548,8 +550,19 @@ profiles exceeds that of the hot wire by `{python} result["ti-gap-low"]` to
 `{python} result["ti-gap-high"]` percentage points at each height, at
 most `{python} result["ti-gap-relative"]` per cent of the hot wire's
 value.]{.claim type="experimentally-supported"
-scope="the four TU Delft PIV profiles and the three solid-wall hot-wire profiles at x = 0, interpolated at the three heights in units of the delta_99 read from each profile; no uncertainty of either instrument's intensity is stated"
+scope="the four TU Delft PIV profiles and the three solid-wall hot-wire profiles at x = 0, interpolated at the three heights in units of the delta_99 read from each profile; the TU Delft record states no uncertainty of its intensity, the hot-wire record a statistical one only"
 evidence="intensity fig-turbulence-intensity tudelft-turbulent-boundary-layer grazing-flow-hwa-benchmark"}
+[The hot-wire record bounds each intensity by a [95]{.given} per cent
+interval whose ends lie at most `{python} result["hw-ti-bound"]` percentage
+points from it, far below the gap between the two
+instruments.]{.claim type="observational"
+scope="the Unc. TI Upper and Lower columns of the three solid-wall hot-wire profiles at x = 0, as published"
+evidence="intensity grazing-flow-hwa-benchmark"} These bounds are statistical
+only: they say how well the time average converged, not how well the wire
+was calibrated. The calibration uncertainty of the hot wire, and every
+uncertainty of the PIV intensity, are not in the records and not included,
+so the bounds do not decide whether the gap is a difference of the flows or
+of the instruments.
 Two facilities, two instruments, and Reynolds numbers that only partly
 overlap agree on the turbulence of the outer layer to a few per cent, with
 the PIV higher on average at every height. [Measurement noise of a PIV adds to the measured
@@ -605,7 +618,9 @@ model of the Reynolds stress.]{.not-verified}
   hot-wire record gives a statistical one, at most
   `{python} result["hw-u-uncertainty"]` of $U/U_e$ at [95]{.given} per cent, which
   leaves out the calibration of the wire and the error of its orientation,
-  the larger errors and unknown.
+  the larger errors and unknown. The same holds for its turbulence
+  intensity, whose statistical [95]{.given} per cent bounds lie within
+  `{python} result["hw-ti-bound"]` percentage points.
 - **The friction velocity.** The TU Delft $u_\tau$ is the file's, checked
   against a correlation to about a per cent; the hot-wire $u_\tau$ is the
   correlation itself. Neither is a direct measurement of the wall stress.

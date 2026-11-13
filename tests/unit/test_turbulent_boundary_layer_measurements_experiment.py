@@ -12,7 +12,11 @@ import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
 
 from pbc.authoring.tables import is_numeric_console_block
-from pbc.data.adapters import boundary_layer_profile_series, hot_wire_profile_series
+from pbc.data.adapters import (
+    boundary_layer_profile_series,
+    hot_wire_intensity_series,
+    hot_wire_profile_series,
+)
 from pbc.data.plotting import check_figure, figure_status
 from pbc.data.reference import grazing_flow_hwa, tudelft_boundary_layer
 from pbc.experiment import encode
@@ -73,6 +77,13 @@ def test_the_series_carry_the_status_of_the_cards(records):
     # The record's 95 % half-width becomes a standard uncertainty.
     np.testing.assert_allclose(series.sigma * 1.959964, s.U_uncertainty, rtol=1e-6)
     assert np.all(np.diff(series.x) > 0)
+    # The TI bounds: the larger distance to either bound, as a standard one.
+    intensity = hot_wire_intensity_series(s)
+    assert intensity.status == "processed" and intensity.y_unit == "%"
+    np.testing.assert_array_equal(intensity.y, s.TI)
+    half = np.maximum(s.TI_upper - s.TI, s.TI - s.TI_lower)
+    np.testing.assert_allclose(intensity.sigma * 1.959964, half, rtol=1e-6)
+    assert np.all(s.TI_lower <= s.TI) and np.all(s.TI_upper >= s.TI)
 
 
 def test_the_hot_wire_profiles_are_the_middle_station(records, stations):
@@ -255,6 +266,11 @@ def test_the_turbulence_intensities(results, records):
     # The PIV higher on average at every height, by a few tenths.
     assert np.all(gaps > 0.2) and np.all(gaps < 0.45)
     assert _number(found, "ti-gap-relative") <= 6
+    # The hot wire's statistical 95 % TI bounds, as the dossier says at most
+    # 0.001 percentage points from TI, far below the smallest gap.
+    bound = _number(found, "hw-ti-bound")
+    assert 0 < bound <= 0.001
+    assert bound < gaps.min() / 100
     assert (_number(found, "ti-low"), _number(found, "ti-high")) == (5.4, 7.9)
     # The hot wire's inner peak, the PIV's rise at its first points.
     assert (_number(found, "hw-peak-low"), _number(found, "hw-peak-high")) == (2.6, 2.7)

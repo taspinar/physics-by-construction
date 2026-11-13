@@ -113,6 +113,32 @@ def impedance_series(spectrum: Spectrum, part: str) -> Series:
     )
 
 
+def hot_wire_intensity_series(station: Station) -> Series:
+    """The streamwise turbulence intensity TI in % of a hot-wire profile of
+    the grazing-flow benchmark against the wall distance y/delta, in
+    increasing y.
+
+    Processed, as for :func:`hot_wire_profile_series`. The record gives the
+    lower and upper bounds of a 95 % interval of TI, statistical only; the
+    series carries, as a standard uncertainty, the larger distance from TI to
+    either bound, so an asymmetric interval is not narrowed. The hot wire's
+    calibration uncertainty is not in the record and not included.
+    """
+    half_width = np.maximum(
+        station.TI_upper - station.TI, station.TI - station.TI_lower
+    )
+    return Series(
+        x=station.y_over_delta,
+        y=station.TI,
+        sigma=standard_from_expanded(half_width),
+        artifact="processed-measured",
+        x_name="y/delta",
+        x_unit="1",
+        y_name="TI",
+        y_unit="%",
+    )
+
+
 def hot_wire_profile_series(station: Station) -> Series:
     """The mean velocity U/Ue of a hot-wire profile of the grazing-flow
     benchmark against the wall distance y/delta, in increasing y.
