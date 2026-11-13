@@ -1,0 +1,713 @@
+---
+title: "X-ray diffraction lab"
+description: >-
+  The powder patterns that certified NIST's lanthanum hexaboride standard,
+  against the lattice of the crystal lattices lesson: Bragg's law indexes
+  every measured peak with one lattice parameter, the errors of a displaced
+  specimen are extrapolated away, and a simple analysis is compared with
+  the certified value, with its statistical errors, its systematics, and
+  the certificate's uncertainty kept apart.
+lesson:
+  id: xray-diffraction-lab
+  strand: materials
+  order: 6
+  difficulty: 2
+  course: materials
+  slot: MAT5
+  methods: [measured-data]
+  outcomes:
+    - Derive Bragg's law for the planes of a cubic lattice and index a measured powder pattern with one lattice parameter
+    - Fit a K-alpha doublet to a measured reflection, judge the fit by its residuals, and turn its position into a plane spacing and a lattice parameter
+    - Explain how a displaced specimen shifts the peaks, and extrapolate the lattice parameters of single reflections to a scattering angle of 180 degrees
+    - Keep the statistical error, the spread between specimens, the systematic errors of the method and of the extrapolation, and the certificate's uncertainty apart, and say which one dominates a comparison with a certified value
+  related: []
+  format: 2
+  preview: fig-pattern
+  experiment: pbc.materials.experiments.xray_diffraction_lab
+  prerequisites:
+    lessons: [crystal-lattices-and-phonons]
+    outside:
+      - "Statistics: a least-squares straight-line fit, its residuals, and the standard error of its slope"
+      - "Trigonometry: the sine and cosine of an angle, and the angle from its sine"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this
+from pbc.data.reference import srm660c
+from pbc.materials import diffraction
+from pbc.materials.experiments import xray_diffraction_lab as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The crystal lattices lesson modelled a crystal as atoms on a lattice that
+repeats with one spacing $a$, the **lattice parameter**, and computed what
+that periodicity does to the vibrations of the atoms. It never measured
+$a$, and it never asked whether one spacing really describes a crystal.
+
+X-ray diffraction measures it. X-rays have wavelengths of the size of the
+spacing between atoms, and a crystal scatters them strongly only in the
+directions where the waves from its repeating planes of atoms add in phase.
+At the National Institute of Standards and Technology (NIST), a powder of
+lanthanum hexaboride, $\mathrm{LaB_6}$, was scanned this way in
+`{python} result["specimens"]` specimens to certify it as a standard: other
+laboratories calibrate their instruments with it. Does one lattice
+parameter place every measured peak? How well does a simple analysis that a
+course can repeat measure it? And does it agree with the certified value,
+within the certificate's uncertainty?
+
+## Assumptions
+
+1. **A cubic lattice with one parameter.** $\mathrm{LaB_6}$ is cubic: its lattice
+   repeats with the same spacing $a$ along three perpendicular axes. The
+   crystal lattices lesson's chain is the same idea along one axis.
+2. **Bragg's law.** Each peak is the reflection of X-rays by one family of
+   parallel lattice planes, at the angle where waves from neighbouring
+   planes add in phase. The intensities of the peaks are not used, only
+   their positions.
+3. **The wavelength is the certificate's.** The record names the radiation,
+   copper Kα, but gives no wavelength. The lab takes the $\mathrm{K}\alpha_1$ wavelength
+   $\lambda =$ `{python} result["wavelength"]` Å from the table of
+   reflections in the certificate of the standard.
+4. **A symmetric peak shape.** Each peak is fitted with a symmetric profile.
+   The instrument's real profile is not symmetric, which the lab measures
+   rather than assumes away.
+5. **Angle errors that vanish at the top.** The errors of the instrument
+   that the lab removes, a displaced specimen above all, vanish as the
+   scattering angle approaches $180°$. Errors of another form are not
+   removed.
+6. **The record's processing is taken as given.** NIST rebinned the counts,
+   divided them by the counting time, and calls the angle "corrected"
+   without saying for what. The specimens were at
+   `{python} result["temperature"]` °C; the certified value is for
+   `{python} result["certified-temperature"]` °C.
+
+## Explanation {#explanation}
+
+### Lattice planes and Bragg's law
+
+The atoms of a cubic lattice lie on many families of parallel planes. A
+family is named by three whole numbers $(hkl)$, its **Miller indices**: the
+planes cut the three axes of the cube at $a/h$, $a/k$ and $a/l$. Their
+spacing is
+
+$$
+d_{hkl} = \frac{a}{\sqrt{h^2 + k^2 + l^2}} .
+$$
+
+X-rays of wavelength $\lambda$ that meet the planes at a glancing angle
+$\theta$ are scattered by every plane. The waves from two neighbouring
+planes travel paths that differ by $2d\sin\theta$, and they add in phase
+when that difference is a whole number of wavelengths. For the first
+order,
+
+$$
+\lambda = 2 d \sin\theta .
+$$
+
+This is **Bragg's law**. The detector sees the scattered beam at the angle
+$2\theta$ from the incident one, so a measured peak at $2\theta$ gives $d$,
+and with the indices of the planes the lattice parameter
+$a = d\sqrt{h^2 + k^2 + l^2}$. Every peak of the pattern is a separate
+measurement of the same $a$, if the model is right.
+
+A powder holds crystals in every orientation, so every family of planes
+finds some crystals at its Bragg angle, and one scan in $2\theta$ records
+all the reflections. $\mathrm{LaB_6}$ has a primitive cubic lattice, in which every
+combination of indices reflects.
+
+### Two wavelengths
+
+A copper tube emits two close lines, $\mathrm{K}\alpha_1$ and $\mathrm{K}\alpha_2$, the second about a
+quarter of a per cent longer and about half as intense. Each reflection is
+therefore a **doublet**. At low angles its two peaks overlap; at high
+angles they separate, because the same relative change of wavelength moves
+the angle more where $\sin\theta$ changes slowly. The fit uses two
+profiles of the same shape, the second at the angle Bragg's law gives for
+the longer wavelength.
+
+### The displaced specimen and the extrapolation
+
+A diffractometer of this kind places the surface of the powder on the axis
+of a circle of radius $R$, on which the detector moves. If the surface lies
+a distance $s$ off that axis, every peak moves by
+
+$$
+\Delta(2\theta) = -\frac{2 s \cos\theta}{R}
+$$
+
+in radians, and the lattice parameter of each reflection is wrong by the
+fraction
+
+$$
+\frac{\Delta a}{a} = \frac{s}{R}\,\frac{\cos^2\theta}{\sin\theta}
+$$
+
+to first order: large at low angles, and zero at $\theta = 90°$, where the
+beam is scattered straight back. Plotted against a function of $\theta$
+that vanishes there, the lattice parameters of the single reflections lie
+on a line, and the line's intercept is $a$ without that error. The
+**Nelson–Riley function**
+$\cos^2\theta/\sin\theta + \cos^2\theta/\theta$ is the classic choice: its
+first term is the displacement's. [Its second term was added empirically,
+to follow other errors that vanish at the same angle, such as the
+penetration of the beam into the powder.]{.not-verified}
+
+## Code {#code}
+
+The model of the lab is in `pbc.materials.diffraction`. The spacing of the
+planes, Bragg's law both ways, and the lattice parameter of one peak:
+
+```{python}
+#| echo: false
+excerpt(diffraction.plane_spacing)
+```
+
+```{python}
+#| echo: false
+excerpt(diffraction.bragg_two_theta)
+```
+
+```{python}
+#| echo: false
+excerpt(diffraction.lattice_parameter)
+```
+
+The displacement's shift of a peak, and the Nelson–Riley function:
+
+```{python}
+#| echo: false
+excerpt(diffraction.displacement_shift)
+```
+
+```{python}
+#| echo: false
+excerpt(diffraction.nelson_riley)
+```
+
+The peak fits are those of the dataset's reference module: per scan window
+a straight background and a doublet of pseudo-Voigt profiles (a mix of a
+Lorentzian and a Gaussian of one width), weighted by the record's counting
+errors.
+
+```{python}
+#| echo: false
+excerpt(srm660c.fit_peak)
+```
+
+The extrapolation fits a straight line with `fit_curve`, the fit helper of
+the course:
+
+```{python}
+#| echo: false
+excerpt(experiment.extrapolate)
+```
+
+The choices the lab makes before it looks at the data:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="choices")
+```
+
+## Worked examples {#worked-examples}
+
+### The method, checked on patterns whose answer is known
+
+Before any data, the analysis is run on synthetic patterns: doublets of the
+fit's own symmetric shape, with the widths and heights fitted to one
+measured specimen, placed where Bragg's law puts them for the certified
+$a$, with noise of the measured counting errors added, once on the axis and
+once with a displaced specimen.
+
+```{python}
+#| label: method-check-run
+#| echo: false
+excerpt(experiment.method_check)
+```
+
+```{python}
+#| label: method-check
+#| echo: false
+result.table("method-check")
+```
+
+[With a symmetric profile and the specimen on the axis, the analysis
+returns the true $a$ to within `{python} result["synthetic-plain"]` ppm,
+the effect of the counting noise. With the specimen displaced by
+`{python} result["synthetic-s"]` mm, the Nelson–Riley line misses by
+`{python} result["synthetic-nr"]` ppm, while a line against
+$\cos^2\theta/\sin\theta$ returns $a$ to within
+`{python} result["synthetic-disp"]` ppm with the slope $a s/R$ of the
+first-order formula.]{.claim type="numerically-verified"
+scope="synthetic patterns on one specimen's grid, symmetric doublets, one noise realisation of the measured counting errors, a pure specimen displacement"
+evidence="method-check-run method-check"} So the method is unbiased when
+its peak shape is right, and the Nelson–Riley function does not remove a
+pure displacement exactly. Both points return below.
+
+### The measurement {#data}
+
+```{python}
+#| echo: false
+data_card("nist-srm660c-lab6")
+```
+
+Each of the `{python} result["specimens"]` files holds one specimen's
+pattern, `{python} result["points"]` points in scan windows around the
+reflections, with the counting error of each point, and NIST's model of the
+same pattern on the same angles. The card labels the measurement a
+processed one, and every figure of this page says so; NIST's model is a
+modelled reference and is drawn apart from it. NIST data are not subject to
+copyright in the United States and NIST grants the right to publish and
+modify them elsewhere; the card gives the attribution, and every figure
+carries it. The samples are the record's values, converted from its
+crystallographic files to CSV without change.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_pattern)
+```
+
+```{python}
+#| label: fig-pattern
+#| echo: false
+#| fig-cap: "One specimen of the standard, scanned in windows around its reflections: every measured peak sits under a line that Bragg's law draws for one lattice parameter, the certified one. The peaks at high angle are split into the doublet of the two copper lines."
+#| fig-alt: "Intensity on a logarithmic axis against the scattering angle from about twenty to one hundred and fifty degrees. Twenty-four separate narrow scan segments, each a sharp peak on a flat background; the peaks become lower towards high angles, and from about ninety degrees on each segment shows two peaks side by side, the second about half as high. Above the data, a row of short vertical tick marks, one above each segment, labelled with three-digit indices at every third mark."
+#| fig-status: processed
+#| fig-dataset: nist-srm660c-lab6
+#| fig-artifact: processed-measured
+result.show("fig-pattern")
+```
+
+The table gives the fitted $\mathrm{K}\alpha_1$ position of every reflection of the same
+specimen, the spacing Bragg's law gives for it, and the lattice parameter
+of that reflection alone:
+
+```{python}
+#| label: reflections
+#| echo: false
+result.table("reflections")
+```
+
+[Over all `{python} result["specimens"]` specimens every fitted $\mathrm{K}\alpha_1$
+position lies within `{python} result["max-offset"]`° of the certificate's
+position for its reflection; on average the offset grows from
+`{python} result["low-offset"]`° at the lowest reflection to
+`{python} result["high-offset"]`° at the highest.]{.claim
+type="observational"
+scope="the 20 measured patterns as released, the doublet fits of this lab, the positions of the certificate's Table 1 as information values"
+evidence="reflections fig-pattern nist-srm660c-lab6"} One lattice parameter
+indexes the whole pattern. The offsets are small, but they grow with the
+angle, and a few hundredths of a degree are a lot at the level of the
+certificate, as the next sections show.
+
+### One reflection, fitted
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_peaks)
+```
+
+```{python}
+#| label: fig-peaks
+#| echo: false
+#| fig-cap: "A low-angle and a high-angle reflection with the fitted doublet and NIST's model. The symmetric fit misses the low-angle peak's asymmetric shape by many counting errors; at high angle the doublet is resolved and the fit is close, but NIST's model is closer still."
+#| fig-alt: "Two columns. Left, a single sharp peak with a shoulder on its high-angle side; measured points, a dashed fitted curve and a dotted model curve. Below it, residuals in units of the counting error: the dots of the fit swing well above and below zero across the peak, the crosses of the model stay near zero. Right, two separated peaks, the second about half as high, with the same three series lying almost on top of each other; below, both sets of residuals scatter around zero within a few units, the dots somewhat more."
+#| fig-status: processed
+#| fig-dataset: nist-srm660c-lab6
+#| fig-artifact: processed-measured
+result.show("fig-peaks")
+```
+
+[The reduced $\chi^2$ of the doublet fits of the shown specimen, the mean square
+of the residuals in counting errors, is `{python} result["chi2-lowest"]` at
+the lowest reflection and at most `{python} result["chi2-high-max"]` above
+$2\theta =$ `{python} result["lowest"]`°; the fitted wavelength ratio of the
+two lines is `{python} result["ratio"]` and their height ratio
+`{python} result["share"]`.]{.claim type="experimentally-supported"
+scope="specimen 100a, a symmetric pseudo-Voigt doublet on a straight background per window, the record's Poisson weights"
+evidence="reflections fig-peaks nist-srm660c-lab6"} A reduced $\chi^2$ near one
+means a fit that describes the data to within their counting errors. These
+are larger everywhere: the symmetric profile does not have the shape of the
+instrument's peaks. [At low angle the divergence of the beam along the
+axis of the goniometer makes the peaks lean towards low angles, and NIST's
+model describes that geometry of the instrument from first
+principles.]{.not-verified} NIST's model follows the peaks much more
+closely, as the residuals show. The standard errors of the positions in the table
+are scaled by the fit's residuals for this reason, and the extrapolation
+below uses only the reflections above
+$2\theta =$ `{python} result["lowest"]`°, where the misfit is smallest.
+
+### One lattice parameter per reflection
+
+If the instrument were perfect, every row of the table would give the same
+$a$. They do not: the lowest reflection gives
+`{python} result["a-first"]` Å, the highest `{python} result["a-last"]` Å,
+`{python} result["a-drift-ppm"]` ppm apart, far more than the standard
+errors of the positions allow. The drift with the angle is the signature of
+errors that vanish at $\theta = 90°$, and the extrapolation removes them:
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_extrapolation)
+```
+
+```{python}
+#| label: fig-extrapolation
+#| echo: false
+#| fig-cap: "The lattice parameter of each reflection above sixty degrees of one specimen falls on a straight line against the Nelson–Riley function, and NIST's model analysed the same way falls on the same line. Both lines meet the axis well below NIST's own value and the certified value."
+#| fig-alt: "The lattice parameter against the Nelson–Riley function, which is zero at the left edge. Filled circles of the measurement and open squares of the model fall together along a straight line that descends from the left edge to the right; a dashed and a dotted line through them almost coincide. Near the top of the panel two horizontal lines, close together, mark NIST's refined value and the certified value, both clearly above where the sloping lines meet the left edge."
+#| fig-status: processed
+#| fig-dataset: nist-srm660c-lab6
+#| fig-artifact: processed-measured
+result.show("fig-extrapolation")
+```
+
+[The `{python} result["used"]` reflections of the shown specimen above
+$2\theta =$ `{python} result["lowest"]`° give an intercept of
+`{python} result["shown-a0"]` Å, with a standard error of
+`{python} result["shown-a0-err"]` Å from their scatter about the line; the
+fit helper's list of warnings is `{python} result["shown-warnings"]`.]{.claim
+type="experimentally-supported"
+scope="specimen 100a, an ordinary least-squares line against the Nelson-Riley function above 2θ = 60°, the certificate's wavelength"
+evidence="fig-extrapolation reflections nist-srm660c-lab6"} That standard
+error assumes that the points scatter about the line independently, like
+counting noise. Whether they do is the next question.
+
+### Twenty specimens, and what the scatter is made of
+
+The same analysis on every specimen gives
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_specimens)
+```
+
+```{python}
+#| label: fig-specimens
+#| echo: false
+#| fig-cap: "Left, the extrapolated lattice parameter of every specimen: the measurement and NIST's model analysed the same way agree specimen by specimen, and both lie well below NIST's own refinement and the certified band. Right, the slope of each specimen's line follows the specimen displacement NIST refined for it, steeper than the first-order formula."
+#| fig-alt: "Two panels. Left, the lattice parameter of twenty specimens along the horizontal axis: filled circles and open squares lie close together in a low row; crosses lie in a higher row inside a grey horizontal band near the top. Right, the slope of each specimen's line against its displacement: the circles lie on a straight dashed line rising to the right; a dotted line through the origin rises less steeply below it."
+#| fig-status: processed
+#| fig-dataset: nist-srm660c-lab6
+#| fig-artifact: processed-measured
+result.show("fig-specimens")
+```
+
+[Over the `{python} result["specimens"]` specimens the extrapolated $a$ is
+`{python} result["a-mean"]` Å, with a standard deviation of
+`{python} result["a-sd"]` Å (`{python} result["a-sd-ppm"]` ppm) and a
+range from `{python} result["a-min"]` to `{python} result["a-max"]` Å; the
+standard error of the mean is `{python} result["a-sem-ppm"]` ppm.]{.claim
+type="experimentally-supported"
+scope="the 20 specimens of the record, the lab's peak fits and Nelson-Riley line above 2θ = 60°, the certificate's wavelength"
+evidence="fig-specimens nist-srm660c-lab6"}
+
+The standard error of one intercept and the standard error of the mean
+both assume independent scatter. The residuals of each line can be checked
+for that by the autocorrelation of neighbours in the order of the angle,
+and NIST's model gives a control that has no counting noise at all:
+
+```{python}
+#| label: error-check
+#| echo: false
+result.table("error-check")
+```
+
+[The residuals about each specimen's line are not independent: the
+autocorrelation of neighbours averages `{python} result["rho-measured"]`
+for the measurement, and `{python} result["above-measured"]` of the
+`{python} result["specimens"]` specimens lie above the band of
+±`{python} result["rho-band"]` of independent residuals. NIST's model,
+which has no counting noise, scatters about its own line in the same way
+(`{python} result["rho-model"]`, `{python} result["above-model"]` specimens
+above the band), with a standard error of one intercept of
+`{python} result["stderr-model"]` ppm against
+`{python} result["stderr-measured"]` ppm for the measurement.]{.claim
+type="experimentally-supported"
+scope="the 20 specimens, the residuals of the Nelson-Riley lines above 2θ = 60° in the order of the angle, NIST's model analysed with the measured weights"
+evidence="error-check nist-srm660c-lab6"} Most of the scatter about the
+line is therefore not counting noise: it is the misfit of the symmetric
+profile, which changes smoothly with the angle and which the measurement
+shares with the model. The standard error of one intercept is not a
+statistical error, and the lab does not use it as one.
+
+What is statistical shows in two other numbers. The difference between the
+measurement and NIST's model, both analysed the same way, cancels the
+misfit they share; [its spread over the specimens is
+`{python} result["count-sd"]` ppm, but its residuals are still correlated
+(`{python} result["rho-difference"]`).]{.claim
+type="experimentally-supported"
+scope="the 20 specimens, measured minus NIST's model by the same analysis"
+evidence="error-check nist-srm660c-lab6"} The spread is of the size of the
+effect of counting noise in the synthetic check; the correlation says that
+NIST's model does not follow the measurement perfectly either, so even
+this difference is not counting noise alone, and its standard error over
+the specimens is the honest measure of it. The spread of the
+extrapolated $a$ over the specimens, `{python} result["a-sd-ppm"]` ppm, is
+larger, and the model spreads as much: it is a property of the specimens,
+not of the counting. The right panel shows where it comes from.
+[The slope of each specimen's line against $\cos^2\theta/\sin\theta$
+follows the displacement NIST refined for that specimen with a correlation
+of `{python} result["slope-correlation"]`, at
+`{python} result["slope-coefficient"]` Å per mm against the
+first-order $a/R =$ `{python} result["slope-predicted"]` Å per mm for
+the goniometer radius $R =$ `{python} result["radius"]` mm,
+`{python} result["slope-ratio"]` times as steep; the extrapolated $a$ itself
+correlates with the displacement at
+`{python} result["nr-correlation"]`.]{.claim type="experimentally-supported"
+scope="the 20 specimens, the displacements as NIST's refinement gives them in the CIFs, the goniometer radius of the certificate, lines above 2θ = 60°"
+evidence="fig-specimens nist-srm660c-lab6"} The displacement is the main
+error the extrapolation removes, as the model says, and its sign and size
+are right to within a quarter; the remainder has the same angular form and
+is not separated here. Because the Nelson–Riley function does not remove a
+pure displacement exactly, as the synthetic check showed, part of the
+displacement survives in each specimen's intercept and spreads them.
+
+### The method's bias, measured on NIST's model
+
+NIST's model of each pattern comes with the lattice parameter it was
+computed for. The same analysis applied to the model therefore measures
+what the analysis does to a pattern whose $a$ is known.
+
+[NIST's model patterns, analysed exactly as the measurements, give a mean
+$a$ of `{python} result["model-mean"]` Å, where NIST's refined value for
+them is `{python} result["nist"]` Å: the bias of the method is
+`{python} result["bias"]` ppm. The measurement minus the model by the same
+method is `{python} result["difference"]` ppm, about
+`{python} result["difference-sigmas"]` times its standard error of
+`{python} result["difference-sem"]` ppm.]{.claim
+type="experimentally-supported"
+scope="the 20 specimens, the lab's peak fits and extrapolation applied to NIST's model with the measured weights, NIST's refined a as stated in the CIFs"
+evidence="fig-specimens fig-extrapolation nist-srm660c-lab6"}
+The bias is large and it is the method's: the symmetric profile puts the
+centre of an asymmetric peak in the wrong place, by an amount that changes
+with the angle and survives the extrapolation. The measurement agrees with
+NIST's model to about one ppm by the same method. That small difference is
+several times its standard error, so it is real; it is a difference between
+NIST's re-refined model and the data, and it is two orders of magnitude
+below the bias.
+
+### How much the extrapolation matters
+
+The extrapolation involves choices: which reflections, which function,
+whether to weight. Repeating it with other choices:
+
+```{python}
+#| echo: false
+excerpt(experiment.sensitivity)
+```
+
+```{python}
+#| label: extrapolations
+#| echo: false
+result.table("extrapolations")
+```
+
+[Over the six extrapolations of the table the measured mean lies between
+`{python} result["gap-low"]` and `{python} result["gap-high"]` ppm from the
+certified value, and the method's bias on NIST's model between
+`{python} result["bias-low"]` and `{python} result["bias-high"]` ppm; the
+measured minus the model stays within `{python} result["difference-max"]`
+ppm. The table is a sensitivity of the result to the analysis, not an
+interval for $a$.]{.claim type="experimentally-supported"
+scope="the 20 specimens, the six extrapolations of the table, the same peak fits"
+evidence="extrapolations nist-srm660c-lab6"} Taking in the lower
+reflections moves the result most, because they carry the profile's
+misfit most;
+the choice moves the answer by about
+`{python} result["gap-spread"]` ppm, several times the spread between
+specimens, but never near the certified value.
+
+### The comparison with the certified value
+
+The certificate gives $a =$ `{python} result["certified"]` Å with an
+expanded uncertainty of `{python} result["certified-u"]` Å
+(`{python} result["certified-u-ppm"]` ppm, coverage factor two, dominated by
+Type B, the uncertainty not evaluated from repeated measurement), at
+`{python} result["certified-temperature"]` °C. The parts of the comparison:
+
+```{python}
+#| echo: false
+excerpt(experiment.budget)
+```
+
+```{python}
+#| label: budget
+#| echo: false
+result.table("budget")
+```
+
+[The measured mean lies `{python} result["gap"]` ppm from the certified
+value, `{python} result["gap-u"]` times its expanded uncertainty and about
+`{python} result["gap-sem"]` times the standard error of the mean of the
+`{python} result["specimens"]` specimens: the simple analysis does not
+agree with the certified value.]{.claim type="experimentally-supported"
+scope="the mean of the 20 specimens, the lab's peak fits and Nelson-Riley line above 2θ = 60°, the certificate's wavelength and certified value, no temperature adjustment"
+evidence="budget extrapolations nist-srm660c-lab6"} The statistical
+errors are a few ppm at most; the extrapolation's choices move the result
+by `{python} result["gap-spread"]` ppm; the method's bias,
+`{python} result["bias"]` ppm, dominates everything, and it accounts for
+most of the gap. The rest, `{python} result["nist-gap"]` ppm, is the
+difference between NIST's refined values in the files, at
+`{python} result["temperature"]` °C, and the certified value at
+`{python} result["certified-temperature"]` °C. [That is about what a
+crystal that expands by a few ppm per kelvin would show over the
+temperature difference; the certificate adjusts to its reference
+temperature with a published thermal expansion of $\mathrm{LaB_6}$, but states no
+coefficient, so the lab does not adjust.]{.not-verified}
+
+[Corrected for the method's bias as measured on NIST's model, the
+measurement gives `{python} result["corrected"]` Å at
+`{python} result["temperature"]` °C, `{python} result["corrected-gap"]` ppm
+from the certified value, inside its expanded uncertainty.]{.claim
+type="experimentally-supported"
+scope="the mean of the 20 specimens, the bias as the same analysis finds it on NIST's model, NIST's refined a in the CIFs; the correction rests on NIST's model of the instrument, not on an independent calibration"
+evidence="budget nist-srm660c-lab6"} That agreement is not independent of
+NIST: it borrows NIST's model of the instrument to measure the bias. What
+the lab shows on its own is that the measurement and NIST's model agree to
+about a ppm when they are analysed alike, and that the simple analysis
+misses by about
+`{python} result["gap-u"]` times the certificate's uncertainty.
+
+### What the lab shows
+
+The lattice model of the crystal lattices lesson, extended to three
+dimensions and to the reflection of X-rays by its planes, places every
+measured peak of lanthanum hexaboride with one lattice parameter. The
+spread of that parameter over the reflections is not a failure of the
+lattice: it follows the displaced specimen, as the geometry of the
+instrument predicts, and the extrapolation removes most of it. What the
+extrapolation cannot remove is the error of the method itself, a symmetric
+peak shape for an instrument whose peaks are not symmetric, and that error,
+`{python} result["bias"]` ppm, is about four times the certificate's
+uncertainty and more than ten times all the statistical errors together. A
+precise number is not an accurate one; the lab knows how far off it is only
+because the record includes a model whose answer is known.
+
+## Limits {#limits}
+
+- **A simple profile.** The peak shape is symmetric; the instrument's is
+  not. The bias it causes is measured with NIST's model, which is the only
+  reference the lab has for it; a lab without such a model would not know
+  its bias.
+- **The wavelength is borrowed.** The record gives no wavelength; every
+  lattice parameter scales with the certificate's value, and an error in
+  it would scale them all alike.
+- **The record's corrections.** The angle is "corrected" by NIST in a way
+  the record does not explain; the specimen displacement is still in it.
+- **Temperature.** The specimens were at `{python} result["temperature"]`
+  °C, the certified value is at `{python} result["certified-temperature"]`
+  °C, and no thermal expansion is applied; the difference between NIST's
+  values and the certified one is reported, not explained. The crystal
+  lattices lesson's harmonic springs could not explain it either: a
+  harmonic lattice does not expand when it is heated, and its limits name
+  the anharmonic bond as the cause of thermal expansion.
+- **Errors of other forms.** The extrapolation removes errors that vanish
+  at $\theta = 90°$. Any error of another angular form stays in the
+  intercept and shows only as a change with the extrapolation's choices.
+- **One material.** A standard is made to give sharp, well-separated
+  peaks; a real sample with broad or overlapping peaks would need more than
+  this analysis.
+
+::: {.exercise .self-check}
+The mean lattice parameter of twenty specimens has a standard error below
+one ppm. A colleague concludes that this analysis measures $\mathrm{LaB_6}$'s lattice
+parameter to about one ppm. What is wrong with that?
+
+::: {.solution}
+The standard error of the mean says how well the twenty specimens pin down
+the mean of this analysis. It says nothing about how far the analysis is
+from the true lattice parameter. The same analysis applied to NIST's model,
+whose lattice parameter is known, misses by about seventy ppm, because a
+symmetric peak shape does not fit the instrument's asymmetric peaks; the
+extrapolation's choices move the result by more than ten ppm; and the
+comparison with the certified value also involves the borrowed wavelength
+and the temperature. The analysis is precise to about a ppm and accurate
+only to about a hundred, and the second number is the one that matters for
+a lattice parameter.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Where the peaks are.** For $a = 4.1568$ Å and the copper $\mathrm{K}\alpha_1$ wavelength
+$\lambda = 1.5406$ Å, at which angle $2\theta$ do the planes (100) and
+(510) reflect? How far above each lies the $\mathrm{K}\alpha_2$ peak, for a wavelength
+1.00248 times as long?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.bragg_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("bragg-exercise"), end="")
+```
+
+The same relative change of the wavelength moves the high-angle peak about
+fifteen times as far: that is why the doublet is resolved there and not at
+low angle.
+:::
+:::
+
+::: {.exercise}
+**A displaced specimen.** The surface of a powder lies 0.1 mm below the
+axis ($s = -0.1$ mm) of a goniometer of radius 217.5 mm. By how much does
+it shift the peaks at $2\theta = 21.36°$ and $141.78°$, and what error
+does that give the lattice parameter of each?
+
+::: {.hint}
+Use the first-order formulas of the explanation; the angle $\theta$ is
+half of $2\theta$.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.displacement_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("displacement-exercise"), end="")
+```
+
+A tenth of a millimetre makes the lowest reflection wrong by thousands of
+ppm and the highest by tens: single reflections at low angle are useless
+for a precise lattice parameter, and the extrapolation exists for that
+reason.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/materials/diffraction.py",
+        "src/pbc/materials/experiments/xray_diffraction_lab.py",
+        "src/pbc/experiment.py",
+        "src/pbc/data/reference/srm660c.py",
+        "src/pbc/data/adapters.py",
+        "src/pbc/data/fit.py",
+        "src/pbc/data/plotting.py",
+    ],
+    tests=[
+        "tests/unit/test_diffraction.py",
+        "tests/unit/test_data_srm660c.py",
+        "tests/unit/test_xray_diffraction_lab_experiment.py",
+    ],
+)
+```
+
+The data card above gives the command that downloads a fresh copy of the
+record into `data/downloads/nist-srm660c-lab6`, and the command that
+converts it to the committed CSV files; no model and no account are needed
+to read it.

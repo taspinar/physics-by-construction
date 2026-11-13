@@ -486,7 +486,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
         a_meas * pm,
         "o",
         color=COLOURS[0],
-        label=f"measured: {m_mean:.6f} Å, SD {m_sd:.6f}",
+        label=f"measured: {m_mean * pm:.4f} pm, SD {m_sd * pm:.4f}",
     )
     ax.plot(
         index,
@@ -494,14 +494,14 @@ def make_figure(data_dir: Path) -> plt.Figure:
         "s",
         mfc="none",
         color=COLOURS[2],
-        label=f"NIST's model, same method: {c_mean:.6f} Å",
+        label=f"NIST's model, same method: {c_mean * pm:.4f} pm",
     )
     ax.plot(
         index,
         nist * pm,
         "x",
         color=COLOURS[3],
-        label=f"NIST's refined a (CIF): {nist.mean():.6f} Å",
+        label=f"NIST's refined a (CIF): {nist.mean() * pm:.4f} pm",
     )
     ax.axhspan(
         (CERTIFIED_A - CERTIFIED_U) * pm,
