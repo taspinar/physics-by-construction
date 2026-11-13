@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 import yaml
 from support.paths import SITE_SOURCE
+from support.slots import unfilled_slots
 
 from pbc.authoring import COURSES, LearningPath
 from pbc.authoring.atlas import (
@@ -669,7 +670,12 @@ def test_the_planned_capstones_description_is_only_the_manifests_explanation(
     assert [unescape(text) for text in descriptions] == [
         ATLAS.manifest.capstone(label).explanation for label in planned
     ]
-    assert planned == ["FL10", "SA9", "MD10", "AE7", "RR8"]
+    # The expectation comes from the files, not from the Atlas under test: the
+    # capstone slots of the curriculum that no lesson's front matter fills.
+    expected = [s["label"] for s in unfilled_slots() if "capstone" in s["kind"]]
+    assert expected, "no planned capstone is left to test the description on"
+    assert "T11" not in expected
+    assert planned == expected
 
 
 def test_part_b_is_told_apart_in_words_and_its_illustrations_say_toy_model(page: str):
