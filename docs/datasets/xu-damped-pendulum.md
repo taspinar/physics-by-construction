@@ -110,7 +110,7 @@ Apache-2.0 is an equivalent recorded permission under the ADR 007 addendum of 20
 
 ## Size, runtime, payload
 
-Sample 1.74 MB in eight files, the largest 329 KB (caps: 2 MB per file, 8 MB per dataset). The full record is 45 raw files (14.5 MB), 45 cleaned files (5.6 MB), and plots; `./scripts/fetch-data.sh xu-damped-pendulum` downloads the eight files of the sample by the card's URLs and checksums (the cleaned file as `cleaned_len1_cond1_1.csv`). Figure: about 5 s including the interpreter start, about 160 MB peak memory; PNG about 340 KB at 150 dpi. A lesson page that reads the sample and draws this figure stays far inside the 30 s warning, the 60 s limit, and the 3 MB payload: the data are read at build time and only the figure reaches the browser. CI reads only the committed files.
+Sample 3.36 MB in twenty-one files (eight of phase 1, thirteen added for the M15 lab), the largest 329 KB (caps: 2 MB per file, 8 MB per dataset). The full record is 45 raw files (14.5 MB), 45 cleaned files (5.6 MB), and plots; `./scripts/fetch-data.sh xu-damped-pendulum` downloads the twenty-one files of the sample by the card's URLs and checksums (the cleaned file as `cleaned_len1_cond1_1.csv`). Figure: about 5 s including the interpreter start, about 160 MB peak memory; PNG about 340 KB at 150 dpi. A lesson page that reads the sample and draws this figure stays far inside the 30 s warning, the 60 s limit, and the 3 MB payload: the data are read at build time and only the figure reaches the browser. CI reads only the committed files.
 
 ## The requirements of ADR 007 and where they are met
 

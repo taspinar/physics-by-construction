@@ -371,7 +371,7 @@ estimates:
   runtime: 'Reference figure: about 5 s with the interpreter start on the development machine; the reader
     parses the six CSV files in under 1 s.'
   memory: About 160 MB peak resident for the figure.
-  page_payload: 1.74 MB committed, none of it sent to the reader's browser; a figure PNG of about 340
+  page_payload: 3.36 MB committed, none of it sent to the reader's browser; a figure PNG of about 340
     KB at 150 dpi.
   ci: 'Offline: twenty-one committed files (eight of phase 1, thirteen cleaned files added for the M15
     lab).'
