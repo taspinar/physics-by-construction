@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from pbc.data.reference.dwd_soil import Readings
     from pbc.data.reference.nist_numisheet import Test
     from pbc.data.reference.tess_wasp18 import LightCurve
+    from pbc.data.reference.trackpy_bulk_water import Tracks
 
 
 def strain_series(strain: Strain) -> Series:
@@ -169,4 +170,28 @@ def soil_temperature_series(readings: Readings, column: int) -> Series:
         x_unit="d",
         y_name="soil temperature",
         y_unit="degC",
+    )
+
+
+def track_series(tracks: Tracks, particle: int, axis: int) -> Series:
+    """One coordinate (``axis`` 0 for x, 1 for y) of one track of the
+    trackpy ``bulk_water`` video in pixels of the frame against the frame
+    number, as the committed CSV holds them (no drift subtracted).
+
+    Processed, as the card labels the tracks: the positions are this
+    project's location of the spheres in the recorded frames (band-pass,
+    local maxima, centroid, mass cut) and its linking of them, not the
+    provider's. The record gives no localisation error, so the series has no
+    uncertainty.
+    """
+    rows = tracks.particle == particle
+    order = np.argsort(tracks.frame[rows], kind="stable")
+    return Series(
+        x=tracks.frame[rows][order].astype(float),
+        y=tracks.xy[rows][order, axis],
+        artifact="processed-measured",
+        x_name="frame (24 per second)",
+        x_unit="frame",
+        y_name="xy"[axis],
+        y_unit="px",
     )
