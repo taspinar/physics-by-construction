@@ -2,6 +2,10 @@
 
 Status: Approved
 Approved at: 2026-11-04T07:27:31Z
+Owner decisions recorded in the text since that approval (dated notes):
+Issues #462 (2026-11-10), #481, #482 and #483 (2026-11-11), and #487
+(2026-11-12 and 2026-11-13); re-approved by the planning re-approval of
+2026-11-13 (`planning/reapproval-2026-11-13`).
 
 Project Grill owns the Draft content. `scripts/start-planning.sh` records human
 approval before project architecture and roadmap planning begins.
@@ -268,7 +272,8 @@ Later phases (in scope for the project, out of scope for the MVP):
   link on every lesson.
 - The textbook layer of decision 43: introductions that open each course
   and method path like the first chapter of a textbook, the learning
-  journey at the head of the course atlas and on About, and Home as an
+  journey at the head of the course atlas and on About (since Issue #483
+  on About only), and Home as an
   orientation for a first-time visitor, introduced in phases (set the
   standard on one Part A course and one Part B path; extend it per course
   once the course is content-stable; one review of the whole material as
@@ -501,8 +506,12 @@ Later phases (in scope for the project, out of scope for the MVP):
   prerequisites or scientific relationships the curriculum does not
   hold. It keeps its provenance (origin: a script, an author, or an image
   model with its prompt and date; a licence or terms that permit
-  publication; the hash of its master) in the repository's provenance
-  register, alt text or an empty alternative where it is purely
+  publication, except for the Home hero files that `site/hero.yaml`
+  declares, which carry no licence or terms entry (owner's decision of
+  2026-11-12 on Issue #487, ADR 021 decision 2 as amended), the published
+  hero image being under the site's content licence, CC BY 4.0 (owner's
+  decision of 2026-11-13, https://github.com/taspinar/physics-by-construction/issues/487#issuecomment-6860915639); the hash of
+  its master) in the repository's provenance register, alt text or an empty alternative where it is purely
   decorative, and the payload budgets; stock, hand-copied, and externally
   hosted images stay excluded. Interface artwork may be adapted, cropped,
   restyled, or replaced for visual quality without a new requirement
@@ -565,7 +574,12 @@ Later phases (in scope for the project, out of scope for the MVP):
   requested; a parameter forces one for tests; no storage, no request,
   no animation, and no measurement of which works better. Every image
   has its own alt text, its own registration, and its own test, and none
-  is presented as a verified result. The hero replaces the
+  is presented as a verified result. (Since Issues #482 and #487, 2026-11-11 and
+  2026-11-12: the hero image is one illustration, the owner's double
+  pendulum, as derived WebP files at three widths with `srcset`; no
+  script, no parameter, and no default to swap; its register entry
+  carries no licence field, and it is under the site's content licence,
+  CC BY 4.0, the owner's decision of 2026-11-13.) The hero replaces the
   opening "Build a world. See if it obeys physics." and the verified
   double-pendulum opening figure; that figure's implementation, energy
   check, and provenance stay and may be reused in the classical mechanics
@@ -883,7 +897,8 @@ Later phases (in scope for the project, out of scope for the MVP):
   variants kept in the same file as an unused reference). Since decision 43 the editorial text of each
   course and method-path introduction lives in one data file per sequence
   beside the atlas manifest, and the Part A and Part B text of the
-  learning journey in one source used by the atlas and About (its exact
+  learning journey in one source used by About (since Issue #483 the
+  atlas no longer shows it; its exact
   location is the planner's, the recommendation being beside the atlas
   manifest and validated like it); these hold prose only, never a lesson
   list, count, or publication state. Every course, path, slot, and lesson reference in it
@@ -898,7 +913,10 @@ Later phases (in scope for the project, out of scope for the MVP):
   that source. Interface artwork (decision 41) may instead be a committed
   derived raster file (WebP preferred), registered in the provenance
   register with its origin (script, author, or image model with prompt
-  and date), licence, and the hash of its master; its generating script
+  and date), licence (none for the Home hero files that `site/hero.yaml`
+  declares, which are under the site's content licence, CC BY 4.0: the
+  owner's decisions of 2026-11-12 and 2026-11-13 on Issue #487), and the
+  hash of its master; its generating script
   is committed where one exists and is not required. The
   committed-artifact check admits such a file only through its register
   entry, as it admits a registered SVG; large masters, intermediates, and
@@ -2079,7 +2097,11 @@ these decisions, without rewriting delivered history.
     presented as verified science or used to fabricate measurements,
     equations, or evidence. Accessibility, provenance, licensing,
     performance budgets, and asset-source controls (no stock, hand-copied,
-    or externally hosted images; registered committed files) stay. The
+    or externally hosted images; registered committed files) stay. (Since
+    2026-11-12, Issue #487: the Home hero files that `site/hero.yaml`
+    declares carry no licence entry in the provenance register; the
+    published hero image is under the site's content licence, CC BY 4.0,
+    the owner's decision of 2026-11-13.) The
     twelve delivered illustrations are valuable and reused where suitable,
     but are not mandatory or immutable: they may be cropped, simplified,
     stylised, replaced, or arranged more artistically on the hero than on
@@ -2096,7 +2118,9 @@ these decisions, without rewriting delivered history.
     approved.
     *Amended by decision 43 (2026-11-03):* the hero no longer shows
     decorative connections between Part A and Part B; its image is one of
-    four Part A illustrations. The principle of this decision and its
+    four Part A illustrations (since Issues #482 and #487, 2026-11-11 and
+    2026-11-12, one illustration, the owner's double pendulum, without a
+    script). The principle of this decision and its
     three cases are unchanged.
 
 Decided during the change cycle `part-b-scientific-products-and-research`
@@ -2295,12 +2319,17 @@ decisions 36 to 42 beyond what decision 43 says.
       used by the course atlas, which offers it before the cards behind a
       disclosure closed at load, and by About, which
       explains the mission and the philosophy and refers to "How we
-      verify the science".
+      verify the science". (Since Issue #483, 2026-11-11, the atlas
+      no longer shows the journey; About alone uses it.)
     - *Home*: orientation for a first-time visitor in the order identity,
       educational philosophy, curriculum, integrity, with no sentence
       limit; the hero image picked at random from four Part A
       illustrations with the double pendulum as the default in the HTML
-      (owner's confirmation, 2026-11-03); "What you can learn" explains
+      (owner's confirmation, 2026-11-03); (since Issues #482 and #487, 2026-11-11
+      and 2026-11-12, one illustration, the owner's double pendulum,
+      without a script; it carries no licence entry in the provenance
+      register and is under the site's content licence, CC BY 4.0, the
+      owner's decision of 2026-11-13); "What you can learn" explains
       Part A, Part B, and their relation, with at most one representative
       published lesson per part, chosen by the owner for its educational
       value and validated at build time, or none (owner's answer,

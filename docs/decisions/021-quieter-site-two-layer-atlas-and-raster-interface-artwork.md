@@ -77,7 +77,9 @@ in the HTML without a script), through the dated notes under it; decisions 2 and
 4 amended on 2026-11-12 by the owner's request of Issue #487 (the owner's
 double-pendulum illustration as the hero, wider, lifted under the copy,
 and carrying no licence in the register), through the dated notes under
-them. Delivered by F158; the course introductions of F156
+them; a note of 2026-11-13 under decision 2 records the owner's decision
+that the published hero image is under the site's content licence, CC BY
+4.0. Delivered by F158; the course introductions of F156
 and the learning journey of F157 add pages and text within decisions 1 to
 3 without changing them. The text of decision 4 stays as the record of
 what F134 delivered.
@@ -197,6 +199,14 @@ descriptions live.
    any other file under `site/assets/hero/`, with a test per case (review
    round 2 of Issue #487 narrowed the exemption from the directory to the
    declared files). Everything else in this decision stands.
+
+   *Note of 2026-11-13 (the owner's decision on Issue #487,
+   https://github.com/taspinar/physics-by-construction/issues/487#issuecomment-6860915639).*
+   The register exemption and the published licence are two different
+   things. The hero's files still carry no licence entry in the register,
+   as amended above; the published hero image is under the site's content
+   licence, CC BY 4.0, like the rest of the site's content. The exemption
+   and the checks of this decision are unchanged.
 3. **The Course Atlas as a two-layer navigation page.** At the path
    address, with "Course Atlas" as its display label, the page is built at
    build time from the curriculum file, the front matter, and the atlas
@@ -360,7 +370,8 @@ descriptions live.
    (replacing "What you can learn"; Part A, Part B, and the transition
    "First understand the physics. Then challenge the AI.", each with its
    own text in the Home copy file, while the journey file's longer text
-   stays on the atlas and About), and "How we verify what we teach"
+   stays on the atlas and About; since Issue #483 (2026-11-11; recorded
+   2026-11-13), on About only), and "How we verify what we teach"
    (replacing "How the results are kept honest"), the quietest section.
    Home shows no example lesson: the at most one owner-chosen lesson per
    part of the amendment of 2026-11-04 is withdrawn, since lesson discovery
@@ -415,7 +426,9 @@ descriptions live.
    `pbc_hero_assets/pbc-double-pendulum-hero-original.png` with its hash,
    by its author and date, with no statement of how it was made and no
    licence (decision 2 as amended on 2026-11-12: the hero carries none in
-   the register; the owner's decision of 2026-11-12); the vortex street
+   the register; the owner's decision of 2026-11-12; by the owner's
+   decision of 2026-11-13, the note under decision 2, the published hero
+   image is under the site's content licence, CC BY 4.0); the vortex street
    stays registered
    through the atlas entries of fluids. The files are the master's frame
    (2:1; 1774 px wide at most, the master's width, so nothing is upscaled)

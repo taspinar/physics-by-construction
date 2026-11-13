@@ -1,11 +1,10 @@
 # Planning Approval
 
 Status: Approved
-Approved at: 2026-11-04T09:24:33Z
-Planning branch: planning/textbook-layer
-Change request: docs/changes/textbook-layer.md
-Final review: round 5, PASS, by claude (opus)
-Planning fingerprint: 7e61cac9ec309d7a8e1f90f73752a8058064945a
+Approved at: 2026-11-13T20:44:04Z
+Planning branch: planning/reapproval-2026-11-13
+Final review: round 8, PASS, by claude (opus)
+Planning fingerprint: 3fabd4f8ece19eab5a617a54d2f3a968e6f10be3
 
 Recorded by `scripts/finish-planning.sh`. The approval covers these planning
 documents. A change to the description, the requirements, a change request, or the
@@ -71,25 +70,43 @@ under its own review. This approval covers the documents including them.
 - 3e23775 Payload budget of the learning path page with its previews: temporarily from 4 MB to 4.5 MB (#323) (Issue #318)
 - 1b9ae76 Learning path page: lighter previews, and the budget back to 4 MB (#330)
 - 8428563 F137 - The capstone evidence contract and the final-evaluation pilot on one existing task (#366) (Issue #359; review: round 4, PASS, by claude (opus); triage published on #359)
+- 0b345d9 Capacity: raise the timeout of the build job from 90 to 120 minutes (#386) (Issue #373; review: round 4, PASS, by claude (opus); triage published on #373)
+- 255bb0e F138 - The instrument contract and the simulator vertical slice of the Autonomous Physics Lab (#387)
+- db9ef96 Lesson time budgets as one rule: a warning from 30 s, a limit of 60 s, one exception (#383) (#398)
+- 6ab0550 Process document: one current-state text for the verification, risk and review rules (#404, part of #396) (#413)
+- 73c89b7 ADR 007 addendum: Apache-2.0 and CC BY-SA as equivalent permission, and the readers for MAT, XLSX, FITS and CIF (#417) (#427)
+- d64bc1d Protected list and verification architecture: architecture.md at Level 2 by path, the prompts other than reviewer.md sensitive, F113 deferred (#412, points 1, 3 and 5 of #396) (#432)
+- 76d9675 F157: the learning journey as one source for the Course Atlas and About (#436) (#445)
+- 1a170aa Gates, PR 1 of 3 (D12): administrative findings stop costing review rounds; review and verification evidence stay blocking (#468)
+- f8acb8e F158: Home orients a first-time visitor with one of four Part A hero images and the first step (#466)
+- ad7f658 Gates PR 2 of 3 (D10, D11): a removed or changed scientific claim is a detected escalation trigger; a unit test pins execute freeze and cache (#464) (#474)
+- 769a2bb Gates PR 3 of 3: the triage and check scripts, store.py and lean.py are protected, verify.conf is read by the builtin rule, and the paths a check rests on are sensitive; the lists and the tests agree (#465) (#476)
+- ff9c3c3 Home: copy and structure (#481) (#484)
+- d1be840 Home: the hero as one large fluid-dynamics illustration (#482) (#485)
+- 3b6b5ab Course Atlas: inline expanding courses, simpler introduction, lesson rows and progress (#483) (#486)
+- b2e5079 Home: the hero is the double-pendulum illustration, wider, with the left side faded into the page (#487) (#490)
 
 ## Review rounds
 
-- Round 1: PASS WITH MINOR FINDINGS, 5 finding(s), by claude (opus)
-- Round 2: PASS WITH MINOR FINDINGS, 2 finding(s), by claude (opus)
+- Round 1: CHANGES REQUIRED, 5 finding(s), by claude (opus)
+- Round 2: PASS WITH MINOR FINDINGS, 3 finding(s), by claude (opus)
 - Round 3: PASS WITH MINOR FINDINGS, 1 finding(s), by claude (opus)
 - Round 4: PASS WITH MINOR FINDINGS, 1 finding(s), by claude (opus)
-- Round 5: PASS, 0 finding(s), by claude (opus)
+- Round 5: PASS WITH MINOR FINDINGS, 2 finding(s), by claude (opus)
+- Round 6: PASS WITH MINOR FINDINGS, 1 finding(s), by claude (opus)
+- Round 7: PASS WITH MINOR FINDINGS, 1 finding(s), by claude (opus)
+- Round 8: PASS, 0 finding(s), by claude (opus)
 
 ## Escalations confirmed as resolved
 
-- Round 1: MIN3 Approved requirements call the four hero illustrations 'computed', but one of them has no script
-- Round 1: S1 Some requirement bullet labels do not name decision 43 as an amendment
-- Round 2: MIN1 Concerns the approved requirements: the four hero illustrations are still called 'computed', but one of them has no script (escalated in round 1, still open)
-- Round 2: S1 Concerns the approved requirements: the Course atlas and Site navigation bullet labels do not name decision 43 (escalated in round 1, still open)
+- Round 1: M1 Concerns the approved requirements: the Home hero files are registered without a licence, but the requirements require a licence for all interface artwork
+- Round 1: MIN3 Concerns the approved requirements: 'Data and persistence' still has the learning journey used by the atlas
+- Round 1: S1 Requirements were edited after approval while 'Approved at' still shows 2026-11-04
+- Round 2: MIN2 Concerns the approved requirements: decision 43 and the textbook 'Later phases' bullet still describe the journey on the atlas and a hero picked from four images, without the #482/#483/#487 notes
 
 ## Findings that were not adopted
 
-- Round 1, ESCALATE: MIN3 [minor] Approved requirements call the four hero illustrations 'computed', but one of them has no script. Confirmed. docs/PROJECT_REQUIREMENTS.md 'Home page' says 'computed interface artwork of decision 41 already in the provenance register', while site/assets/provenance.yaml registers the astrophysics atlas files by author and date with no script, and docs/roadmap.md already records this under 'State at the change cycle textbook-layer' and makes F158 keep each hero file's origin as its master's entry records it. The planning cannot change the approved requirements, and the roadmap already prevents a false provenance claim. Resolving the wording needs a requirements edit by the owner, for example 'existing Part A interface artwork already in the provenance register'. The roadmap note stays until then.
-- Round 1, ESCALATE: S1 [suggestion] Some requirement bullet labels do not name decision 43 as an amendment. Confirmed: in docs/PROJECT_REQUIREMENTS.md the bullets 'Site navigation (decision 40)' and 'Course atlas (decision 36, amended by decision 40)' carry 'Since decision 43' content while 'Home page' and 'Shared templates' were relabelled to name decision 43. The labels are in the approved requirements, which the planning may not change, so this cosmetic correction goes to the owner and can be made together with the MIN3 wording edit at the next requirements revision. No planning document depends on the labels.
-- Round 2, ESCALATE: MIN1 [minor] Concerns the approved requirements: the four hero illustrations are still called 'computed', but one of them has no script (escalated in round 1, still open). This needs a change to the approved docs/PROJECT_REQUIREMENTS.md, and the planner may not edit that file. The planning documents already avoid the false claim. F158 keeps each hero file's origin as its master's register entry records it, and the roadmap notes that the exoplanet transit has no script. The owner should correct the 'computed interface artwork' wording at the next requirements edit, for example to 'existing Part A interface artwork already in the provenance register'. The roadmap note stays until then.
-- Round 2, ESCALATE: S1 [suggestion] Concerns the approved requirements: the Course atlas and Site navigation bullet labels do not name decision 43 (escalated in round 1, still open). Relabelling the 'Course atlas' and 'Site navigation' bullets in docs/PROJECT_REQUIREMENTS.md to add 'amended by decision 43' is a change to the approved requirements, which only the owner can make. The change is cosmetic and does not block the plan. The best time is the same owner edit as the 'computed' wording in MIN1.
+- Round 1, ESCALATE: M1 [major] Concerns the approved requirements: the Home hero files are registered without a licence, but the requirements require a licence for all interface artwork. The approved requirements ('Visual asset classes' C, 'Data and persistence', decision 41) require a licence for every interface raster. Since Issue #487, ADR 021 and the architecture register the hero without one. To resolve this, the owner must either amend the requirements to state the hero exception and which licence the hero image is under (or that it is excluded from CC BY 4.0), or decide to register the hero under the content licence. The planner cannot change the requirements, and must not silently depart from them, so this needs a human product decision.
+- Round 1, ESCALATE: MIN3 [minor] Concerns the approved requirements: 'Data and persistence' still has the learning journey used by the atlas. The contradiction is in docs/PROJECT_REQUIREMENTS.md itself: the 'Data and persistence' atlas bullet still says the journey is used by the atlas. Only the owner may edit the approved requirements, so the note 'since Issue #483, used by About only' needs the owner's requirements edit. The planning documents already follow #483.
+- Round 1, ESCALATE: S1 [suggestion] Requirements were edited after approval while 'Approved at' still shows 2026-11-04. The 'Approved at' header and status block of docs/PROJECT_REQUIREMENTS.md are part of the owner's approval record, which the planner may not change. Whether this reapproval updates the timestamp or adds a line listing the dated owner decisions since 2026-11-04 (Issues #462, #481, #482, #483, #487) is the owner's call.
+- Round 2, ESCALATE: MIN2 [minor] Concerns the approved requirements: decision 43 and the textbook 'Later phases' bullet still describe the journey on the atlas and a hero picked from four images, without the #482/#483/#487 notes. The finding is valid, but all the stale text is in docs/PROJECT_REQUIREMENTS.md: decision 43's 'The learning journey' and 'Home' bullets, and the textbook bullet in 'Later phases'. Under the revision contract the planner may not change the approved requirements, so only the owner can make this edit. The reviewer also places it at the owner's next requirements edit. Meanwhile the planning documents follow the newer dated notes in the requirements (#482, #483, #487).
