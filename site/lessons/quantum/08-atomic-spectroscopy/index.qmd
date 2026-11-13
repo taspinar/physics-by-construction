@@ -435,8 +435,8 @@ excerpt(experiment.draw_rydberg_law)
 ```{python}
 #| label: fig-rydberg-law
 #| echo: false
-#| fig-cap: "With the redshift calibrated on other elements, the four Balmer lines follow the Rydberg formula with one constant: each lies a few kilometres per second from the formula with the laboratory constant, and all by the same amount. A single redshift leaves a trend from one line to the next."
-#| fig-alt: "Two panels. Left: four points of rest wavenumber against one quarter minus one over n squared, lying on a dashed straight line through the origin. Right: the offset of each line from the formula with the laboratory constant against its upper level; four filled points with error bars lie together on a dashed horizontal line below zero, a dash-dotted line lies between them and zero, and four open squares fall further below zero from left to right."
+#| fig-cap: "With the redshift calibrated on other elements, the four Balmer lines follow the Rydberg formula with one constant: each lies a few kilometres per second from the formula with the laboratory constant, and all by the same amount. A single redshift leaves a trend from one line to the next. The errors of the points on the left, the error column of the table above, are far smaller than their markers and are not drawn there; the right panel draws the same errors as bars."
+#| fig-alt: "Two panels. Left: four points of rest wavenumber against one quarter minus one over n squared, lying on a dashed straight line through the origin, their errors too small to draw. Right: the offset of each line from the formula with the laboratory constant against its upper level; four filled points with error bars lie together on a dashed horizontal line below zero, a dash-dotted line lies between them and zero, and four open squares fall further below zero from left to right."
 #| fig-status: processed
 #| fig-dataset: sdss-balmer-spectrum
 result.show("fig-rydberg-law")

@@ -297,10 +297,16 @@ def distance_table(
 # The figures.
 
 
-def draw_profiles(profiles: dict[float, Profile], radii: dict[float, float]) -> Figure:
+def draw_profiles(
+    profiles: dict[float, Profile],
+    radii: dict[float, float],
+    ranges: dict[float, tuple[float, float]],
+) -> Figure:
     """The two measured line profiles about their centres, the saturation
-    level, and the dark ring of the fold on both sides."""
-    fig, ax = plt.subplots(figsize=(5.6, 3.0), constrained_layout=True)
+    level, and the dark ring of the fold on both sides: its radius at the
+    nominal smoothing width, and the range of its radius over the widths of
+    the sensitivity range (an analysis sensitivity, not a statistical error)."""
+    fig, ax = plt.subplots(figsize=(5.6, 3.2), constrained_layout=True)
     for w, p in profiles.items():
         colour, ls, _ = STYLES[w]
         series = luma_profile_series(p)
@@ -315,8 +321,16 @@ def draw_profiles(profiles: dict[float, Profile], radii: dict[float, float]) -> 
             antialiased=False,
             label=f"{nm(w)}, measured [{series.status}]",
         )
+        low, high = ranges[w]
         for sign in (-1, 1):
             ax.axvline(sign * radii[w], color=colour, ls=":", lw=1.0)
+            ax.axvspan(
+                sign * low,
+                sign * high,
+                color=colour,
+                alpha=0.2,
+                lw=0,
+            )
     ax.axhline(
         SATURATED, color="0.35", lw=0.8, label=f"saturated: luma {SATURATED:.0f} and up"
     )
@@ -325,7 +339,9 @@ def draw_profiles(profiles: dict[float, Profile], radii: dict[float, float]) -> 
     ax.set_xlabel("x minus the centre [unit of the record, not stated]")
     ax.set_ylabel("luma [0-255, camera brightness]")
     ax.set_title(
-        "The two line profiles; dotted: the dark ring of the fold", fontsize=10
+        "The two line profiles; dotted: the dark ring of the fold;\n"
+        "band: its range over the smoothing widths, a sensitivity, not an error",
+        fontsize=9,
     )
     ax.legend(fontsize=7, loc="upper right")
     add_credit(fig, CREDIT)
@@ -611,7 +627,11 @@ def run() -> Experiment:
     experiment.number("sin-1", minima[0] * RED, ".3f")
     experiment.number("sin-2", minima[1] * RED, ".3f")
 
-    experiment.figure("fig-profiles", partial(draw_profiles, profiles, radius))
+    spans = {
+        w: (float(rings["radii"][w].min()), float(rings["radii"][w].max()))
+        for w in (RED, VIOLET)
+    }
+    experiment.figure("fig-profiles", partial(draw_profiles, profiles, radius, spans))
     experiment.figure("fig-diameters", partial(draw_diameters, tables))
     experiment.figure("fig-halo-model", partial(draw_halo_model, diameters, minima))
     experiment.figure(
