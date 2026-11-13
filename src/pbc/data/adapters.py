@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from pbc.data.reference.lycopodium import Profile
     from pbc.data.reference.nist_numisheet import Test
     from pbc.data.reference.sdss_balmer import Spectrum as SdssSpectrum
+    from pbc.data.reference.sparc_rotmod import Galaxy
     from pbc.data.reference.tess_wasp18 import LightCurve
     from pbc.data.reference.trackpy_bulk_water import Tracks
     from pbc.data.reference.xu_pendulum import Run
@@ -153,6 +154,30 @@ def sdss_flux_series(spectrum: SdssSpectrum) -> Series:
         x_unit="Angstrom",
         y_name="flux density",
         y_unit="1e-17 erg/cm^2/s/Angstrom",
+    )
+
+
+def rotation_curve_series(galaxy: Galaxy) -> Series:
+    """The rotation curve of a SPARC ``Rotmod`` file: the circular speed
+    ``Vobs`` in km/s against the radius in kpc at the file's distance, every
+    row of the file, with ``errV`` as its uncertainty.
+
+    Processed, as the card labels the columns: the SPARC team derived the
+    curve from HI and H-alpha velocity fields (tilted rings, both sides
+    averaged, corrected for inclination). ``errV`` is one standard
+    deviation per point and excludes the uncertainty of the inclination
+    and the distance; the team's speeds of the gas and the stars are
+    models, not part of this series.
+    """
+    return Series(
+        x=galaxy.radius,
+        y=galaxy.v_obs,
+        sigma=galaxy.v_err,
+        artifact="processed-measured",
+        x_name="radius",
+        x_unit="kpc",
+        y_name="circular speed",
+        y_unit="km/s",
     )
 
 

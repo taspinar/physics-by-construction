@@ -1,0 +1,665 @@
+---
+title: "Galaxy rotation curves lab"
+description: >-
+  Measured rotation curves of five disk galaxies against the Newtonian
+  circular speed of their gas and stars, with and without a dark halo of two
+  shapes: which fits the data reject under every assumption tried, which
+  depend on the errors, the inclination, and the distance that the files do
+  not carry, and why the mass of the stars is not fixed by a rotation curve
+  alone.
+lesson:
+  id: galaxy-rotation-curves
+  strand: astrophysics
+  order: 10
+  difficulty: 2
+  course: astrophysics
+  slot: AST9
+  methods: [measured-data, simulation]
+  outcomes:
+    - State the Newtonian model of a disk galaxy's circular speed, the speed of the mass inside the orbit with the components added in squares, and check it by summing the pull of thin shells
+    - Read a SPARC rotation curve for what it is, a processed measurement corrected for inclination and averaged over both sides, with errors that leave out the inclination and the distance, beside the team's modelled speeds of the gas and the stars
+    - Fit mass models with and without a dark halo of two shapes, with the mass-to-light ratio of the stars, and judge them by their residuals
+    - Say which conclusions survive the inclination, the distance, and the error floor that the files do not carry, why a chi-square of correlated residuals is not a probability, and why the mass of the stars stays undetermined
+  related: []
+  format: 2
+  preview: fig-mass-models
+  experiment: pbc.astrophysics.experiments.galaxy_rotation_curves
+  prerequisites:
+    lessons: [kepler-orbit]
+    outside:
+      - "Statistics: a weighted least-squares fit, its reduced chi-square, and the correlation between parameters"
+      - "Calculus: an integral over a sphere in spherical coordinates"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this
+from pbc.astrophysics import rotation_curves
+from pbc.astrophysics.experiments import galaxy_rotation_curves as experiment
+from pbc.data.reference import sparc_rotmod
+
+result = experiment.run()
+lesson_header()
+```
+
+The Kepler-orbit lesson put a planet on a circular orbit about the Sun and
+found its speed, $\sqrt{GM/a}$: the farther out, the slower. A disk galaxy
+is a flat, turning system of stars and gas, and the same law should hold
+for it. Most of its light comes from near the centre, so far out, where
+little light is left, the speed of the gas should fall off like a planet's.
+
+Radio telescopes measure that speed from the Doppler shift of the hydrogen
+gas, out to many times the radius where most of the light is. This lab
+takes five such rotation curves, compiled by the SPARC team with the speeds
+that their gas and stars would give, and asks: can the gas and stars
+alone produce the measured speeds, for any mass of the stars? If not, how
+much more mass does a fit need, where, and how sure is that once the
+uncertainties that the files leave out are taken in?
+
+## Assumptions
+
+1. **Newtonian gravity and circular orbits.** The gas moves on circles in
+   the plane of the disk, and the pull that holds it is Newton's. The lab
+   compares models under this assumption; it does not test the force law.
+2. **Spherical halo, components that add.** A dark halo, where the model
+   has one, is a sphere. The pulls of the gas, the stars, and the halo add,
+   so their speeds add in squares.
+3. **The team's processing is taken as given.** SPARC corrected each curve
+   for the inclination of the disk, averaged its two sides, and computed the
+   speeds of the gas and the stars from their measured distribution, at
+   distances the team adopted. The lab does not redo any of it.
+4. **One mass-to-light ratio.** The mass of the stars is their light at
+   [3.6 µm]{.given} times one number, $\Upsilon$, the same for disk and
+   bulge, everywhere in the galaxy. It is fitted, not measured.
+5. **Independent points.** A fit weighs each point by its error, `errV`, as
+   if the points scattered independently. The lab checks this on the
+   residuals, and it does not hold.
+
+## Explanation {#explanation}
+
+### The speed of a circular orbit
+
+A star or a gas cloud on a circle of radius $r$ at speed $v$ needs the
+inward acceleration $v^2/r$. For mass arranged in spherical shells, a shell
+outside the orbit pulls equally in all directions and adds nothing, and a
+shell inside it pulls as if its mass sat at the centre. Then only the mass
+inside the orbit counts:
+
+$$
+v^2(r) = \frac{G\,M(<r)}{r}, \qquad M(<r) = \int_0^r 4\pi s^2 \rho(s)\,ds .
+$$
+
+This is the point-mass speed of the Kepler-orbit lesson with $M$ replaced
+by $M(<r)$. Beyond all the mass, $M(<r)$ is constant and $v$ falls as
+$r^{-1/2}$; a speed that stays constant needs $M(<r)$ to grow in
+proportion to $r$.
+
+### Components add in squares
+
+The accelerations of several components add, and each is $v_i^2/r$, so
+the squared speeds add. With the speeds that SPARC computed from the gas
+and the light,
+
+$$
+V^2(r) = V_\mathrm{gas}|V_\mathrm{gas}| + \Upsilon\left(V_\mathrm{disk}^2 + V_\mathrm{bul}^2\right) + V_\mathrm{halo}^2(r).
+$$
+
+$V_\mathrm{disk}$ and $V_\mathrm{bul}$ are given for $\Upsilon = 1$ solar
+mass per solar luminosity; the stars' mass scales with $\Upsilon$, their
+squared speed too. The gas term keeps its sign: where the gas has a central
+hole, the ring of gas outside pulls a star at its inner edge outward, and
+$V_\mathrm{gas}$ is negative. The stars and gas lie in a thin disk, not a
+sphere, and SPARC computed their speeds for a disk; only the halo uses the
+sphere formula above.
+
+### Two halos
+
+The lab tries two shapes of a dark halo, a sphere of mass that gives no
+light. The **NFW profile**, found in simulations of cold dark matter,
+rises without limit towards the centre, a **cusp**:
+
+$$
+\rho_\mathrm{NFW}(r) = \frac{\rho_s}{(r/r_s)(1 + r/r_s)^2}.
+$$
+
+The **pseudo-isothermal sphere** has a constant density near the centre,
+a **core**:
+
+$$
+\rho_\mathrm{iso}(r) = \frac{\rho_0}{1 + (r/r_c)^2}.
+$$
+
+Both are the lab's models, put into the circular-speed formula above. Each
+has two parameters, a radius and a density; with $\Upsilon$ a fit has three.
+
+::: {.go-deeper ref="deblok-things-mass-models"}
+The same mass model and the same two halos fitted to the rotation curves of
+the THINGS galaxies, with what the authors conclude about cusps, cores, and
+the maximum disk.
+:::
+
+### The maximum disk
+
+The stars can be heavier only up to a point: at large $\Upsilon$ the stars
+and gas alone would turn faster than the measured curve. The **maximum
+disk** is the largest $\Upsilon$ for which they exceed no point's
+$V_\mathrm{obs} + \mathrm{errV}$. Any $\Upsilon$ below it leaves room for a
+halo.
+
+## Code {#code}
+
+The model is in `pbc.astrophysics.rotation_curves`: the halo densities, the
+enclosed mass, and the circular speed.
+
+```{python}
+#| echo: false
+excerpt(rotation_curves.enclosed_mass)
+```
+
+```{python}
+#| echo: false
+excerpt(rotation_curves.circular_speed_squared)
+```
+
+The check below does not use the shell argument: it adds the pull of every
+part of every shell.
+
+```{python}
+#| echo: false
+excerpt(rotation_curves.shell_pull)
+```
+
+```{python}
+#| echo: false
+excerpt(rotation_curves.shell_sum_speed_squared)
+```
+
+The fits come from the reference module of the dataset,
+`pbc.data.reference.sparc_rotmod`: least squares in the speed, weighted by
+`errV`, started from the best point of a coarse grid because the
+chi-square has more than one valley.
+
+```{python}
+#| echo: false
+excerpt(sparc_rotmod.fit_mass_model)
+```
+
+The choices of the lab, made before it looks at the fits: the error floors,
+the scales of the speed and the distance that stand for the unknown
+inclination and distance, and the radius inside which the bar of one galaxy
+is left out.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="choices")
+```
+
+## Worked examples {#worked-examples}
+
+### The model on shells
+
+Before any data, the circular-speed formula is checked on the two halos
+with given parameters. The closed forms that the fits use are compared
+with $G M(<r)/r$, the mass integrated numerically from the density, and
+with the pull of every thin shell from the centre out to
+`{python} result["check-outer"]` kpc, each shell's pull integrated
+numerically over its surface:
+
+```{python}
+#| label: model-check-run
+#| echo: false
+excerpt(experiment.model_check)
+```
+
+```{python}
+#| label: model-check
+#| echo: false
+result.table("model-check")
+```
+
+[For both halos and every radius of the table, the summed pull of all
+shells gives the closed-form circular speed squared to within a relative
+`{python} result["check-bound"]`, and the shells outside the radius add less
+than `{python} result["check-bound"]` of it.]{.claim
+type="numerically-verified"
+scope="an NFW and a pseudo-isothermal halo with the parameters of the table, at the four radii, shells summed by adaptive quadrature out to the stated outer radius"
+evidence="model-check-run model-check"} The halos of the fits are the
+model of the explanation, and the outer shells pull nothing, as the
+shell argument says.
+
+### The measurement {#data}
+
+```{python}
+#| echo: false
+data_card("sparc-rotation-curves")
+```
+
+The sample holds five `Rotmod` files of the SPARC archive, unmodified,
+redistributed with the authors' written permission; the card above links
+the SPARC website and gives the reference paper, Lelli, McGaugh and
+Schombert, *The Astronomical Journal* [152, 157 (2016)]{.given}, as the
+permission asks. Each file holds the measured curve, `Vobs` with its error
+`errV`, the team's speeds of the gas and the stars, and the surface
+brightness of the stars. The card labels `Vobs` and `errV` a processed
+measurement: the team derived them from published velocity fields of
+hydrogen gas, corrected them for the tilt of each disk, and averaged the
+two sides. The gas and star speeds are the team's models.
+
+```{python}
+#| label: record
+#| echo: false
+result.table("record")
+```
+
+[The five files hold `{python} result["points"]` points between
+`{python} result["radius-low"]` and `{python} result["radius-high"]` kpc
+from the centres, with errors `errV` from `{python} result["errv-low"]` to
+`{python} result["errv-high"]` km/s; only one galaxy has a bulge.]{.claim
+type="observational"
+scope="the five committed Rotmod files of SPARC as released"
+evidence="record sparc-rotation-curves"} The files carry no inclination
+and no error of the distance; `errV` leaves both out.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_curves)
+```
+
+```{python}
+#| label: fig-curves
+#| echo: false
+#| fig-cap: "In all five galaxies the measured speed rises and then stays roughly level, while the speed that the team computed for the stars at a mass-to-light ratio of one falls off beyond a few kiloparsecs and that of the gas stays low."
+#| fig-alt: "Five small panels of circular speed against radius, one per galaxy, and a key in the sixth cell. In each, black points with error bars rise steeply near the centre and then run roughly level to the last radius. A dash-dotted curve for the stars rises with them, peaks, and falls away; a dotted curve for the gas stays low and roughly level. In the barred galaxy the stars' curve peaks far above the innermost measured points; in the dwarf the gas lies above the stars."
+#| fig-status: processed
+#| fig-dataset: sparc-rotation-curves
+#| fig-artifact: processed-measured
+result.show("fig-curves")
+```
+
+The points are the files' `Vobs` with one `errV`; the dotted and
+dash-dotted curves are the team's models, drawn apart from them. Nothing
+is fitted here. The stars at $\Upsilon = 1$ do not set the scale of the
+stars: $\Upsilon$ is what the fits look for.
+
+### The baryons alone
+
+The first model has no halo: only the gas and the stars, with $\Upsilon$
+free. If any mass of the stars could explain a curve, this fit would find
+it.
+
+```{python}
+#| label: fits
+#| echo: false
+result.table("fits")
+```
+
+[With the gas and stars alone, no $\Upsilon$ fits any of the five
+galaxies: the reduced chi-square is `{python} result["none-low"]` to
+`{python} result["none-high"]`, and at the last point of each curve the
+best fit lies `{python} result["short-low"]` to
+`{python} result["short-high"]` % below `Vobs`.]{.claim
+type="experimentally-supported"
+scope="the five galaxies, the stars and gas of the SPARC files with one free mass-to-light ratio, errV as the error"
+evidence="fits fig-mass-models sparc-rotation-curves"} [In
+[NGC 3198]{.given} the best fit, at $\Upsilon =$
+`{python} result["n3198-y"]`, lies `{python} result["n3198-over-low"]` to
+`{python} result["n3198-over-high"]` km/s above the curve between
+[4 and 7 kpc]{.given}, at least `{python} result["n3198-over-sigma"]` times `errV`, and
+`{python} result["n3198-short"]` km/s below it at the last point.]{.claim
+type="experimentally-supported"
+scope="NGC 3198, the fit without a halo"
+evidence="fits fig-mass-models sparc-rotation-curves"} The fit has to
+choose: heavy enough stars to reach the flat outer curve overshoot the
+inside, and light enough stars for the inside fall short outside. In the
+dwarf [DDO 154]{.given} the fit pushes $\Upsilon$ to
+`{python} result["ddo-none-y"]`, [many times what stellar light at
+3.6 µm is thought to weigh]{.not-verified}, and still misses.
+
+### A halo
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_mass_models)
+```
+
+```{python}
+#| label: fig-mass-models
+#| echo: false
+#| fig-cap: "With the gas and stars alone the model falls away where the measured curves stay flat; with a halo of either shape it follows the spiral within its errors over most of the radius. In the gas-rich dwarf the cusp lies above the innermost points, the core does not."
+#| fig-alt: "Two columns, each a panel of circular speed against radius above a residual panel. Left, a spiral: black points rise and level off; a dash-dotted fit of the stars and gas alone rises above the points near the centre, then falls well below them; a dashed and a solid fit with a halo follow the points; dotted curves for the gas and the stars lie lower. Its residuals: diamonds swing from negative near the centre to large positive values far out, squares and triangles stay near zero. Right, a dwarf: the same kinds of curve, the dash-dotted fit falling from a peak while the points rise; the dashed fit lies slightly above the two innermost points and the solid one on them."
+#| fig-status: processed
+#| fig-dataset: sparc-rotation-curves
+#| fig-artifact: processed-measured
+result.show("fig-mass-models")
+```
+
+[With a halo of either shape, [NGC 3198]{.given} and
+[NGC 2841]{.given} fit with a reduced chi-square of
+`{python} result["good-low"]` to `{python} result["good-high"]`; the
+other three galaxies, whose errors are smaller or whose centres are
+disturbed, reach `{python} result["halo-high"]` at most.]{.claim
+type="experimentally-supported"
+scope="the five galaxies, the stars and gas of the SPARC files with a free mass-to-light ratio and an NFW or a pseudo-isothermal halo, errV as the error"
+evidence="fits fig-mass-models sparc-rotation-curves"} The halo supplies
+the mass that grows with radius where the light has stopped. In the four
+spirals the fitted $\Upsilon$ and the halo's density are strongly
+anticorrelated, with correlation coefficients between
+`{python} result["y-rho-low"]` and `{python} result["y-rho-high"]`: more mass
+in the stars, less in the halo, nearly the same curve. That is the first
+sign of the degeneracy below.
+
+### Are the errors honest?
+
+Every reduced chi-square above, and every standard error in the table,
+assumes that the points scatter independently about the model. A smooth
+model that describes a curve to within its errors would leave residuals
+that change sign from one point to the next, uncorrelated. The last column
+of the fit table tests it: the correlation of each normalised residual
+with the next point's.
+
+[In all fifteen fits the correlation of neighbouring residuals is
+`{python} result["rho-low"]` to `{python} result["rho-high"]`, while
+independent residuals would scatter within about
+± `{python} result["band-low"]` to ± `{python} result["band-high"]`
+of zero for these numbers of points.]{.claim
+type="experimentally-supported"
+scope="the fifteen fits of the table, the correlation at a distance of one point, a band of two over the square root of the number of points"
+evidence="fits sparc-rotation-curves"} The residuals come in runs. Two
+causes can give that, and the files cannot tell them apart: [neighbouring
+points of a rotation curve come from rings of gas that overlap in the
+telescope's beam, so their errors are shared; and the gas does not move on
+perfect circles (spiral arms, bars, warps), which no smooth model
+follows.]{.not-verified} Either way, the chi-square of these fits is not the chi-square of
+independent errors: a value near one is no confirmation of a model, a
+value of ten no refutation of it, and the fits' standard errors are lower
+bounds. The lab therefore judges the models by the size and the pattern of
+their misfit, and by whether a conclusion survives the uncertainties that
+the files leave out.
+
+### What survives the systematics
+
+`errV` leaves out three things. The **inclination**: the measured speed is
+divided by the sine of the disk's tilt, so an error in the tilt scales the
+whole curve and its errors by one factor. The **distance**: the radii grow
+with it, and the light and the gas mass with its square, so the speeds of
+the baryons grow with its square root while `Vobs` stays. And a floor of
+**non-circular motion** and other per-point errors, which the lab adds in
+quadrature as a fraction of `Vobs`. Each is varied in turn and every fit
+redone:
+
+```{python}
+#| echo: false
+excerpt(experiment.variants)
+```
+
+```{python}
+#| label: robustness
+#| echo: false
+result.table("robustness")
+```
+
+[Under a common scale of the speeds and under a different distance, the
+fits without a halo stay at a reduced chi-square of at least
+`{python} result["robust-none-systematic"]`; an error floor of ten per
+cent brings the lowest down to `{python} result["robust-none"]`, and in
+every variant the fit without a halo is worse than the better halo fit of
+the same galaxy by a factor of at least
+`{python} result["robust-ratio"]`.]{.claim type="experimentally-supported"
+scope="the five galaxies, the variants of the table, each changed alone; a range of assumptions, not an uncertainty interval"
+evidence="robustness fits sparc-rotation-curves"} No change of the tilt
+can help: it scales the inside and the outside alike, and the misfit is a
+change of shape, a curve that stays flat where the baryons' falls by a
+third or more. A different distance stretches the radius and the baryons'
+speeds, but they still fall. Under the assumptions of the lab, the gas and
+stars of these files cannot produce the measured curves; something must
+add mass that grows with radius, or the assumptions are wrong.
+
+### Cusp or core
+
+[DDO 154]{.given} is a dwarf in which the gas outweighs the stars: at
+its last point the gas alone gives `{python} result["ddo-gas-share"]` % of
+$V_\mathrm{obs}^2$, the stars of the core fit almost nothing. Its curve is
+almost all halo, the best place to see the halo's shape.
+
+[The NFW halo, even with the stars switched off ($\Upsilon$ at its lower
+bound of zero), lies above the two innermost points by
+`{python} result["ddo-miss-1"]` and `{python} result["ddo-miss-2"]` km/s,
+`{python} result["ddo-miss-1-sigma"]` and
+`{python} result["ddo-miss-2-sigma"]` times their `errV`; its reduced
+chi-square is `{python} result["ddo-cusp"]` against
+`{python} result["ddo-core"]` for the core.]{.claim
+type="experimentally-supported"
+scope="DDO 154, its twelve points, errV as the error"
+evidence="fits fig-mass-models sparc-rotation-curves"} [The ratio of the
+two stays at least `{python} result["cusp-core-low"]` in every variant of
+the robustness table, but with a ten per cent floor both fall below one,
+`{python} result["floor10-cusp"]` for the cusp and
+`{python} result["floor10-core"]` for the core.]{.claim
+type="experimentally-supported"
+scope="DDO 154 under the variants of the robustness table"
+evidence="robustness sparc-rotation-curves"} With the record's errors and
+under a different tilt or distance, the core describes this dwarf better
+than the cusp. If the gas near the centre has non-circular motions of a
+few km/s, about the size of the miss, the data no longer choose. Twelve
+correlated points of one galaxy are not a measurement of the dark matter's
+profile.
+
+### The bar of NGC 2903
+
+[NGC 2903]{.given} has a bar, an elongated structure of stars at its
+centre, in which gas does not move on circles.
+
+[With every point, both halo fits lie `{python} result["bar-low"]` to
+`{python} result["bar-high"]` km/s above the two innermost points, and
+reach reduced chi-squares of `{python} result["bar-cusp-all"]` (cusp) and
+`{python} result["bar-core-all"]` (core); the maximum disk, set by those
+points, is $\Upsilon =$ `{python} result["bar-max-disk"]`. Without the
+`{python} result["bar-left-out"]` points inside [1 kpc]{.given} the cusp reaches
+`{python} result["bar-cusp"]` and the core `{python} result["bar-core"]`,
+and the maximum disk rises to
+`{python} result["bar-max-disk-trimmed"]`.]{.claim
+type="experimentally-supported"
+scope="NGC 2903, its points with and without those inside one kiloparsec, errV as the error"
+evidence="fits sparc-rotation-curves"} A circular-orbit model does not
+describe a bar, so its inner points are left out of this comparison, and
+the page says so. Without them this galaxy fits the cusp better than the
+core, the opposite of the dwarf: the shapes do not give one answer across
+galaxies.
+
+### How heavy are the stars?
+
+Every halo fit trades the stars' mass against the halo's.
+[NGC 2403]{.given}, with `errV` as small as a fifth of a km/s, shows it
+most clearly.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_degeneracy)
+```
+
+```{python}
+#| label: fig-degeneracy
+#| echo: false
+#| fig-cap: "One spiral is fitted almost equally well by light stars in a heavy halo and by stars near the maximum disk in a lighter one; the chi-square of the best halo at each mass-to-light ratio has broad, shallow valleys whose positions depend on the halo's shape and on the error floor."
+#| fig-alt: "Three columns. The first two: circular speed against radius, black points rising steeply then levelling off, a dashed fitted total through them, a dash-dotted halo curve and a dotted stars curve; in the first the stars curve stays low and the halo carries almost all, in the second the stars curve rises to a peak near the centre and the halo grows slowly. Below each, residuals that wander in runs between about minus ten and plus seven. Third column: reduced chi-square on a log scale against the mass-to-light ratio held fixed, two thick curves for the record's errors and two thin ones for a floor, each with a marker at its minimum; a dotted vertical line marks the maximum disk; the thick solid curve has two shallow minima."
+#| fig-status: processed
+#| fig-dataset: sparc-rotation-curves
+#| fig-artifact: processed-measured
+result.show("fig-degeneracy")
+```
+
+[The best fit with the cusp puts $\Upsilon$ at
+`{python} result["n2403-y-cusp"]`, with the core at
+`{python} result["n2403-y-core"]`, below the maximum disk of
+`{python} result["n2403-max-disk"]`; the core's chi-square has a second,
+shallower valley at $\Upsilon =$ `{python} result["n2403-y-low"]`, a
+halo-dominated disk with a reduced chi-square of
+`{python} result["n2403-low-chi2"]` against
+`{python} result["n2403-high-chi2"]`. With a five per cent floor the best
+values become `{python} result["n2403-y-cusp-floor"]` and
+`{python} result["n2403-y-core-floor"]`, and under the tilts and distances
+of the robustness table they range over `{python} result["y-cusp-low"]` to
+`{python} result["y-cusp-high"]` with the cusp and
+`{python} result["y-core-low"]` to `{python} result["y-core-high"]` with
+the core.]{.claim type="experimentally-supported"
+scope="NGC 2403, Y held fixed on a grid with the halo refitted at each value, and the free fits of the robustness table"
+evidence="fig-degeneracy robustness sparc-rotation-curves"} The two
+decompositions of the figure differ nearly tenfold in the mass of the stars
+and leave nearly the same residuals. Which disk is real a rotation curve
+alone does not decide; it needs a mass-to-light ratio measured another way,
+from the colours of the stellar populations or from how fast the stars of
+the disk move up and down.
+
+[In [NGC 2841]{.given} the core fit puts $\Upsilon$ at
+`{python} result["n2841-y"]`, at the galaxy's maximum disk of
+`{python} result["n2841-max-disk"]`.]{.claim
+type="experimentally-supported"
+scope="NGC 2841 at the adopted distance, the core fit"
+evidence="fits sparc-rotation-curves"} [That is heavy for stars at
+3.6 µm]{.not-verified}; the first exercise asks what a larger distance does to
+it.
+
+### What the lab shows
+
+Under Newtonian gravity, circular orbits, and the team's tilts and
+distances, the gas and stars of these five galaxies cannot produce their
+rotation curves with any single mass of the stars: they fall off where the
+curves stay flat, and no change of tilt, distance, or error floor that the
+lab tried removes that. A spherical halo of either shape added to them
+describes the curves closely. Beyond that the data say less than the
+chi-squares suggest: the residuals are correlated, so the chi-square is no
+probability; the shape of the halo comes out differently in different
+galaxies and depends on the error floor; and the mass of the stars trades
+against the halo's. The lab compares mass models. It does not show what
+the extra mass is, and it does not test a modified force law, which
+would have to be fitted under its own assumptions.
+
+## Limits {#limits}
+
+- **Inclination and distance.** The files carry neither their values'
+  errors nor the inclinations themselves; the lab varies them by assumed
+  amounts, not by the measured ones.
+- **Correlated errors.** The residuals of every fit come in runs. The
+  reduced chi-squares and the standard errors of the fits assume
+  independent points and are not probabilities or honest error bars; the
+  conclusions rest on the size of the misfits and the variants instead.
+- **Circular orbits.** Bars, spiral arms, and warps move gas off circles.
+  One bar is visible and left out; smaller non-circular motions are in
+  every curve, and the lab does not model them.
+- **The team's models.** The speeds of the gas and the stars come from the
+  team's maps and their assumed disk thickness and helium correction, with
+  no uncertainty given. One mass-to-light ratio for disk and bulge is a
+  simplification.
+- **Five galaxies.** The sample was chosen to show the methods, not to
+  represent disk galaxies. Nothing here is a statement about galaxies in
+  general.
+- **Other explanations.** The fits assume Newtonian gravity. A different
+  force law could also produce flat curves; the lab does not test one.
+
+::: {.exercise .self-check}
+The NFW fit of a galaxy reaches a reduced chi-square of one and a half,
+and the pseudo-isothermal fit of the same galaxy two. A classmate concludes
+that the galaxy has a cusp. What does the lab say about that conclusion?
+
+::: {.solution}
+The reduced chi-square of these fits assumes that the points scatter
+independently, and the residuals show that they do not: neighbouring
+residuals are strongly correlated, so a difference of a half in the
+reduced chi-square is no probability statement. The errors also leave out
+the inclination, the distance, and non-circular motion; a floor of a few
+per cent changes both values a great deal and can reverse or remove the
+difference, as it does for the dwarf. And one galaxy decides nothing about
+another: the barred spiral prefers the cusp once its bar is left out, the
+dwarf prefers the core. A claim about the halo's shape needs the misfit to
+be large compared with every error the record leaves out, in the pattern a
+cusp predicts (too much speed near the centre), and it holds only for that
+galaxy under those assumptions.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A larger distance.** SPARC places [NGC 2841]{.given} at 14.1 Mpc.
+Suppose it is a quarter farther. How do the radii and the speeds of the
+gas and stars in its file change, how does the fitted mass-to-light ratio
+of the core fit respond, and why?
+
+::: {.hint}
+The radii grow with the distance, the light and the gas mass with its
+square. Write the circular speed of the stars from their mass and the
+radius, as in the Kepler-orbit lesson, and see how it changes.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.distance_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("distance-exercise"), end="")
+```
+
+At a distance larger by a factor $k$, the radii grow by $k$ and the stars'
+mass at fixed $\Upsilon$ by $k^2$, so their speed $\sqrt{GM/r}$ grows by
+$\sqrt{k}$, while the measured speeds stay. The stars need less mass per
+unit of light to fill the same speeds, and $\Upsilon$ falls by about $1/k$,
+both in the fit and at the maximum disk. The heavy $\Upsilon$ of this
+galaxy may be a sign that its adopted distance is too small; the fit cannot
+tell.
+:::
+:::
+
+::: {.exercise}
+**The missing mass.** The last point of [NGC 3198]{.given} lies at 44 kpc
+with a speed of 149 km/s. Using $v^2 = GM(<r)/r$ as if the galaxy were
+spherical, how much mass lies inside that radius? What share of it do the
+stars and gas of the core fit supply?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.mass_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("mass-exercise"), end="")
+```
+
+Most of the mass that the speed requires gives no light at
+[3.6 µm]{.given} and is not in the hydrogen gas. The spherical formula
+overestimates a disk's mass a little at a given speed, a few per cent at
+these radii, so the share hardly changes. How heavy the stars are is open,
+as the degeneracy showed; even at the maximum disk the baryons fall far
+short at this radius.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/astrophysics/rotation_curves.py",
+        "src/pbc/astrophysics/experiments/galaxy_rotation_curves.py",
+        "src/pbc/experiment.py",
+        "src/pbc/data/reference/sparc_rotmod.py",
+        "src/pbc/data/adapters.py",
+        "src/pbc/data/fit.py",
+        "src/pbc/data/plotting.py",
+    ],
+    tests=[
+        "tests/unit/test_rotation_curves.py",
+        "tests/unit/test_data_sparc_rotmod.py",
+        "tests/unit/test_galaxy_rotation_curves_experiment.py",
+    ],
+)
+```
+
+The data card above gives the command that downloads the SPARC archive into
+`data/downloads/sparc-rotation-curves`, with the other galaxies of SPARC;
+no model and no account are needed to read it.
