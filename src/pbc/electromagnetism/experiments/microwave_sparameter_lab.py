@@ -250,6 +250,23 @@ def neighbour_correlation(result: FitResult) -> float:
     return float(np.mean([np.corrcoef(p[:-1], p[1:])[0, 1] for p in parts]))
 
 
+def error_decimals(stderr: float) -> int:
+    """The decimal places of a standard error rounded to one significant
+    figure (0.0096 rounds to 0.01, two places), never fewer than none."""
+    places = -int(np.floor(np.log10(stderr)))
+    if round(stderr, places) >= 10.0 ** (1 - places):
+        places -= 1
+    return max(places, 0)
+
+
+def with_error(value: float, stderr: float) -> str:
+    """``value ± stderr``, the standard error at one significant figure and
+    the value rounded to the same decimal place, with plain spaces: the page
+    collapses any other white space into one."""
+    places = error_decimals(stderr)
+    return f"{value:.{places}f} ± {stderr:.{places}f}"
+
+
 def fit_table(
     experiment: Experiment, networks: dict[str, Network]
 ) -> dict[str, FitResult]:
@@ -264,7 +281,7 @@ def fit_table(
             (
                 pad,
                 *(
-                    f"{result.value(n):.4g}\u00a0±\u00a0{result.stderr[k]:.1g}"
+                    with_error(result.value(n), float(result.stderr[k]))
                     for k, n in enumerate(NAMES)
                 ),
             )

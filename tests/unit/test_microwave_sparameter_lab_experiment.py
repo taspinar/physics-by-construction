@@ -24,7 +24,7 @@ from pbc.electromagnetism.two_port import (
     absorbed_fraction,
     largest_singular_value,
 )
-from pbc.experiment import encode
+from pbc.experiment import Experiment, encode
 
 MODULE = "pbc.electromagnetism.experiments.microwave_sparameter_lab"
 PAGE = "electromagnetism/09-microwave-sparameter-lab"
@@ -155,6 +155,81 @@ def test_the_fit_and_its_residuals(results):
     # The fitted pad is not matched: a resistance above 50 ohm at 2.5 GHz.
     assert _number(found, "model-input") > 55
     assert _number(found, "matched-series") < _number(found, "fit-r-series")
+
+
+def test_a_fitted_value_is_rounded_to_its_standard_error():
+    # One significant figure of the error, the value to the same place.
+    assert lab.with_error(21.765208, 0.117187) == "21.8 ± 0.1"
+    assert lab.with_error(14.075762, 0.009353) == "14.076 ± 0.009"
+    assert lab.with_error(1.23456, 0.0096) == "1.23 ± 0.01"  # 0.0096 -> 0.01
+    assert lab.with_error(123.4, 3.2) == "123 ± 3"
+
+
+def test_the_fit_cells_survive_the_white_space_of_the_page(results):
+    # The page's table is read with its white space collapsed into single
+    # spaces (a no-break space included): a cell must already be so.
+    _, found = results
+    for row in _rows(found, "fit"):
+        for cell in row:
+            assert cell == " ".join(cell.split()), cell
+
+
+def test_another_start_of_the_fits_gives_the_same_page(results, monkeypatch):
+    # The fits stop within the optimiser's tolerance of the minimum; from
+    # other start points every table and number must still read the same.
+    _, found = results
+    fit_curve = lab.fit_curve
+    for factor in ([0.7, 1.3, 1.4, 0.8], [1.25, 0.75, 0.6, 1.5]):
+        monkeypatch.setattr(
+            lab,
+            "fit_curve",
+            lambda model, x, y, p0, f=factor, **kw: fit_curve(
+                model, x, y, np.asarray(p0) * f[: len(p0)], **kw
+            ),
+        )
+        moved = lab.run().results()
+        assert moved["tables"] == found["tables"]
+        assert moved["numbers"] == found["numbers"]
+
+
+def _formatted_values(monkeypatch) -> list[tuple[str, float, str]]:
+    """Every float the experiment formats with a spec: (name, value, spec)."""
+    recorded = []
+    number = Experiment.number
+
+    def record(self, name, value, spec=""):
+        recorded.append((name, value, spec))
+        return number(self, name, value, spec)
+
+    monkeypatch.setattr(Experiment, "number", record)
+    experiment = lab.run()
+    for name, table in experiment.tables.items():
+        for row in table.rows:
+            for value, (column, _, spec) in zip(row, table.columns, strict=True):
+                recorded.append((f"{name}: {column}", value, spec))
+    return [
+        (name, float(value), spec)
+        for name, value, spec in recorded
+        if spec and isinstance(value, float | np.floating)
+    ]
+
+
+def test_no_shown_number_sits_at_a_rounding_edge(monkeypatch, networks):
+    # A relative change of 1e-6, far more than the fits move from another
+    # start point (below 3e-7), changes no number the page shows.
+    margin = 1e-6
+    for name, value, spec in _formatted_values(monkeypatch):
+        shown = format(value, spec)
+        for moved in (value * (1 - margin), value * (1 + margin)):
+            assert format(moved, spec) == shown, (name, value, spec)
+    for pad in lab.PADS:
+        result = lab.fit_pad(networks[lab.coaxial(pad)])
+        for k, name in enumerate(lab.NAMES):
+            value, stderr = result.value(name), float(result.stderr[k])
+            shown = lab.with_error(value, stderr)
+            for a in (1 - margin, 1 + margin):
+                for b in (1 - margin, 1 + margin):
+                    assert lab.with_error(value * a, stderr * b) == shown, (pad, name)
 
 
 def test_the_largest_misfit_is_at_the_lowest_frequency(networks, experiment):

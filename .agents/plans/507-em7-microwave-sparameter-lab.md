@@ -150,6 +150,14 @@ locally (pitfall 4).
   results agree; numbers of every claim; figure conventions; byte-identical
   figures; no numeric console block; payload; the adapters' status; no
   section id equal to a cell label.
+- The fit table (repair after the first `--base` run, which found its cells
+  differing from the page's): a cell is `value ± stderr` with plain spaces,
+  because the page's table is read with its white space collapsed and a
+  no-break space became a plain one. The standard error has one
+  significant figure and the value is rounded to the same place. Tests: the
+  cells survive the collapse; other start points of every fit give the same
+  tables and numbers (the fits move by at most 3e-7 relative); no float the
+  page shows lies within 1e-6 relative of a rounding edge.
 - `uv run python -m pbc.data.check`, `./scripts/verify.sh --only code`,
   `--only default`, the page checks of the new lesson; render at 1280 x 800
   and 390 x 844. The full and `--base` verification is left to the script
