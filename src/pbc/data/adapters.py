@@ -18,8 +18,10 @@ from pbc.data.uncertainty import standard_from_expanded
 if TYPE_CHECKING:
     from pbc.data.reference.bayreuth_rlc import Spectrum
     from pbc.data.reference.dwd_soil import Readings
+    from pbc.data.reference.grazing_flow_hwa import Station
     from pbc.data.reference.nist_numisheet import Test
     from pbc.data.reference.tess_wasp18 import LightCurve
+    from pbc.data.reference.tudelft_boundary_layer import Profile
     from pbc.data.reference.xu_pendulum import Run
 
 
@@ -107,6 +109,29 @@ def impedance_series(spectrum: Spectrum, part: str) -> Series:
     )
 
 
+def hot_wire_profile_series(station: Station) -> Series:
+    """The mean velocity U/Ue of a hot-wire profile of the grazing-flow
+    benchmark against the wall distance y/delta, in increasing y.
+
+    Processed, as the card labels the file: statistics of the hot-wire time
+    series, normalised by the creators, with the y of the solid-wall
+    profiles refined by a fit to canonical profiles. The record's
+    uncertainty is a 95 % half-width of the mean, statistical only; the
+    series carries the standard one. The hot wire's calibration uncertainty
+    is not in the record and not included.
+    """
+    return Series(
+        x=station.y_over_delta,
+        y=station.U_over_Ue,
+        sigma=standard_from_expanded(station.U_uncertainty),
+        artifact="processed-measured",
+        x_name="y/delta",
+        x_unit="1",
+        y_name="U/Ue",
+        y_unit="1",
+    )
+
+
 def stress_strain_series(test: Test) -> Series:
     """Engineering stress in MPa against engineering strain of a NIST
     Numisheet test, in the order of the rows (the strain goes up and down).
@@ -147,6 +172,26 @@ def light_curve_series(lc: LightCurve) -> Series:
         x_unit="BJD - 2457000, d",
         y_name="PDCSAP flux",
         y_unit="e-/s",
+    )
+
+
+def boundary_layer_profile_series(profile: Profile) -> Series:
+    """The mean streamwise velocity in m/s of a TU Delft boundary-layer
+    profile (PIV or PTV) against the wall distance in m, every point of the
+    file, PTV y converted from millimetres.
+
+    Processed, as the card labels the files: profiles averaged by the
+    creators from PIV or PTV fields. The record gives no uncertainty, so the
+    series carries none.
+    """
+    return Series(
+        x=profile.y,
+        y=profile.U,
+        artifact="processed-measured",
+        x_name=f"wall distance y ({profile.technique})",
+        x_unit="m",
+        y_name="mean velocity U",
+        y_unit="m/s",
     )
 
 

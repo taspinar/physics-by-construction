@@ -1,0 +1,732 @@
+---
+title: "Turbulent boundary layer measurements lab"
+description: >-
+  Two measured turbulent boundary layers, from particle image velocimetry
+  in one wind tunnel and a hot wire in another, against the laminar layer
+  that the Navier-Stokes equations of this course give on a flat plate: the
+  shape factor, the thickness, and the wall friction leave the laminar
+  model by factors, the mean velocity follows the law of the wall instead,
+  and the log-law constants come with the fit window as their dominant
+  uncertainty.
+lesson:
+  id: turbulent-boundary-layer-measurements
+  strand: fluids
+  order: 8
+  difficulty: 3
+  course: fluids
+  slot: FL8
+  methods: [measured-data]
+  outcomes:
+    - Read two boundary-layer records for what they are, mean profiles and second moments that their creators averaged from particle image velocimetry, particle tracking, and a hot wire, with no uncertainty or a statistical one only, and with the caveats their dossiers found
+    - Derive the laminar flat-plate layer from the boundary-layer form of the Navier-Stokes equations, solve the Blasius equation and check the solution, and predict the thickness, the shape factor, and the skin friction of a laminar layer
+    - Put the measured layers in wall units, fit the log law, and state the constants with the fit window as their dominant uncertainty after checking the assumption of independent residuals on the data
+    - Compare two independent facilities on the same law and on the turbulence intensity, say where an agreement is partly imposed by the processing, and state where the laminar two-dimensional models of the course stop applying
+  related: []
+  format: 2
+  preview: fig-wall-units
+  experiment: pbc.fluids.experiments.turbulent_boundary_layer_measurements
+  prerequisites:
+    lessons: [navier-stokes-fundamentals, vortex-formation-and-flow-around-obstacles]
+    outside:
+      - "Calculus: an ordinary differential equation written as a first-order system, and the trapezoid rule"
+      - "Statistics: a least-squares fit, its residuals, and the correlation of neighbouring values"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this
+from pbc.fluids import boundary_layer
+from pbc.fluids.experiments import turbulent_boundary_layer_measurements as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The Navier-Stokes lesson built a solver for an incompressible flow in two
+dimensions, and the vortex lesson put a cylinder into it and watched a wake
+form. Both flows were laminar: smooth, and the same from one run to the
+next. The vortex lesson also said what its solver cannot show. In two
+dimensions a vortex cannot be stretched, and the stretching of vortices is
+what drives turbulence; and its grid was too coarse for the thin layer of
+slow fluid on the cylinder's surface.
+
+Air flowing along a wall forms exactly such a layer. At the wall the air is
+at rest; a short distance away it has the speed of the stream. Near the
+leading edge of a smooth plate the layer is laminar, and the equations of
+the course predict it in closed form. A few metres downstream, in every wind
+tunnel and on every aircraft, it is turbulent. How far from the laminar
+prediction is a real turbulent layer? What replaces the laminar profile?
+And how well do two measurements, in two wind tunnels with two different
+instruments, agree on the law that replaces it?
+
+## Assumptions
+
+1. **A zero-pressure-gradient layer on a smooth flat wall.** The stream
+   outside the layer has one speed $U_\infty$ along the wall, the wall is
+   flat and smooth, and the layer grows slowly. The porous walls of the
+   grazing-flow benchmark are left out.
+2. **Mean flow and second moments only.** The records hold time averages:
+   the mean velocity $U$, and the variance $\overline{u'^2}$ and covariance
+   $\overline{u'v'}$ of the fluctuations, averaged by their creators. Neither
+   record holds time series here, so no spectrum enters the lab.
+3. **The records' processing is taken as given.** The TU Delft profiles come
+   with a friction velocity $u_\tau$ that the record does not explain; the
+   lab checks it against an independent correlation. The hot-wire record
+   gives no $u_\tau$; the lab takes it from that correlation, and the
+   providers fitted the wall position of the solid-wall profiles to
+   canonical profiles.
+4. **The laminar model at the measuring station.** The laminar layer is
+   computed for the same plate length, speed, and air as the measurement, as
+   if the layer had stayed laminar from the leading edge. It is a model of
+   what the measured layer would be without turbulence, not a measurement.
+5. **Incompressible air of constant properties.** At these speeds, below
+   thirty metres per second, the air's density and viscosity do not change
+   across the layer.
+
+## Explanation {#explanation}
+
+### The boundary layer of the Navier-Stokes equations
+
+Take the steady incompressible Navier-Stokes equations of the Navier-Stokes
+lesson in two dimensions, $x$ along the wall and $y$ away from it, for a
+layer of thickness $\delta$ much smaller than its length. Across a thin
+layer the velocity changes much faster than along it, so the viscous term
+$\nu\,\partial^2 u/\partial x^2$ is small next to $\nu\,\partial^2
+u/\partial y^2$, and the momentum balance across the layer says that the
+pressure does not change with $y$. With no pressure gradient outside,
+Prandtl's boundary-layer equations remain:
+
+$$
+\frac{\partial u}{\partial x} + \frac{\partial v}{\partial y} = 0, \qquad
+u\frac{\partial u}{\partial x} + v\frac{\partial u}{\partial y} = \nu\frac{\partial^2 u}{\partial y^2},
+$$
+
+with $u = v = 0$ at the wall and $u \to U_\infty$ far from it.
+
+### The Blasius layer
+
+A flat plate has no length of its own, so the profile can depend on $y$
+and $x$ only through the combination $\eta = y\sqrt{U_\infty/(\nu x)}$. With
+the stream function $\psi = \sqrt{\nu x U_\infty}\, f(\eta)$, so that
+$u/U_\infty = f'(\eta)$, the boundary-layer equations become the **Blasius
+equation**
+
+$$
+f''' + \tfrac{1}{2} f f'' = 0, \qquad f(0) = f'(0) = 0, \quad f'(\infty) = 1 .
+$$
+
+It is solved by shooting: march from the wall with a guess of the wall
+curvature $f''(0)$, and adjust it until $f'$ reaches one far away. The
+equation has a scaling that removes the search: if $g$ solves it with
+$g''(0) = 1$ and $g'(\infty) = \lambda$, then $f(\eta) = c\,g(c\eta)$ with
+$c = \lambda^{-1/2}$ solves it with $f'(\infty) = 1$, and so
+$f''(0) = \lambda^{-3/2}$. One march gives the curvature, a second one the
+profile.
+
+### Thicknesses, shape factor, and friction
+
+Three lengths describe a profile. The **thickness** $\delta_{99}$ is where
+$u$ reaches $0.99\,U_\infty$. The **displacement thickness** $\delta^*$ and
+the **momentum thickness** $\theta$ measure the flow that the layer lacks
+and the momentum it has lost:
+
+$$
+\delta^* = \int_0^\infty \left(1 - \frac{u}{U_\infty}\right) dy, \qquad
+\theta = \int_0^\infty \frac{u}{U_\infty}\left(1 - \frac{u}{U_\infty}\right) dy,
+\qquad H = \frac{\delta^*}{\theta} .
+$$
+
+The **shape factor** $H$ does not depend on the speed or the station for a
+Blasius layer: it is a number of the profile's shape. The wall shear stress
+$\tau_w = \mu\,\partial u/\partial y$ at the wall gives the **skin friction
+coefficient** $C_f = \tau_w/(\tfrac{1}{2}\rho U_\infty^2)$; for the Blasius
+layer $C_f = 2f''(0)/\sqrt{\mathrm{Re}_x}$ with $\mathrm{Re}_x = U_\infty
+x/\nu$.
+
+### A turbulent layer and the law of the wall
+
+In a turbulent layer the velocity fluctuates. Writing $u = U + u'$ and
+averaging the momentum equation leaves an extra stress,
+$-\rho\overline{u'v'}$, the **Reynolds shear stress**: eddies carry fast
+fluid towards the wall and slow fluid away from it. The averaged equations
+are not closed, and no similarity solution like Blasius's exists. What
+replaces it is a statement about scales. Near the wall the only velocity
+is the **friction velocity** $u_\tau = \sqrt{\tau_w/\rho}$ and the only
+length is the **viscous length** $\nu/u_\tau$; in these **wall units**,
+$U^+ = U/u_\tau$ and $y^+ = y u_\tau/\nu$. Right at the wall the viscous
+stress carries the wall stress alone and
+
+$$
+U^+ = y^+ \qquad \text{(the viscous sublayer)} .
+$$
+
+Further out, where neither the viscous length nor the layer thickness can
+matter, the velocity gradient can only scale as $u_\tau/y$, and integrating
+gives the **log law**
+
+$$
+U^+ = \frac{1}{\kappa}\ln y^+ + B ,
+$$
+
+with the von Kármán constant $\kappa$ and an intercept $B$ that no theory
+fixes: they come from measurements. The total shear stress, viscous plus
+Reynolds, is $\rho u_\tau^2$ at the wall and changes only slowly across the
+inner layer, so $-\overline{u'v'}/u_\tau^2$ approaches one from below there.
+
+### Skin friction from an independent correlation
+
+A friction velocity can be measured directly (a force balance, an oil film)
+or inferred from the profile itself. The TU Delft record gives $u_\tau$ but
+not how it was found. An independent check is the correlation of the skin
+friction of zero-pressure-gradient layers with the Reynolds number of the
+momentum thickness, $\mathrm{Re}_\theta = U_\infty\theta/\nu$, by Coles
+and Fernholz in the form of Nagib, Chauhan, and Monkewitz:
+
+$$
+C_f = 2\left[\frac{\ln \mathrm{Re}_\theta}{0.384} + 4.127\right]^{-2},
+\qquad u_\tau = U_\infty\sqrt{C_f/2} .
+$$
+
+## Code {#code}
+
+The model is in `pbc.fluids.boundary_layer`: the Blasius solution, the
+laminar layer at a station, the thicknesses of a profile, the law of the
+wall, and the correlation.
+
+```{python}
+#| echo: false
+excerpt(boundary_layer.blasius)
+```
+
+```{python}
+#| echo: false
+excerpt(boundary_layer.laminar_layer)
+```
+
+```{python}
+#| echo: false
+excerpt(boundary_layer.integral_thicknesses)
+```
+
+```{python}
+#| echo: false
+excerpt(boundary_layer.thickness_99)
+```
+
+```{python}
+#| echo: false
+excerpt(boundary_layer.log_law)
+```
+
+```{python}
+#| echo: false
+excerpt(boundary_layer.coles_fernholz_friction)
+```
+
+The choices of the lab, made before it looks at the data:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="choices")
+```
+
+## Worked examples {#worked-examples}
+
+### The Blasius layer, solved twice
+
+Before any data, the laminar model is checked. The lesson's solver marches
+with a fixed-step Runge-Kutta scheme and finds the wall curvature by the
+scaling; the dataset's reference module solves the same equation with
+SciPy's adaptive integrator and a root search.
+
+```{python}
+#| label: blasius-run
+#| echo: false
+excerpt(experiment.blasius_check)
+```
+
+```{python}
+#| label: blasius
+#| echo: false
+result.table("blasius")
+```
+
+[The two solutions agree to `{python} result["blasius-worst"]` parts per
+million in every quantity: the wall curvature is
+$f''(0) =$ `{python} result["blasius-curvature"]`, the thickness
+$\eta_{99} =$ `{python} result["blasius-eta99"]`, and the shape factor
+$H =$ `{python} result["blasius-h"]`.]{.claim type="numerically-verified"
+scope="the Blasius equation on 0 to 10 in eta, a fixed-step fourth-order Runge-Kutta march of 2000 steps against SciPy's solve_ivp at a relative tolerance of 1e-11"
+evidence="blasius-run blasius"} These are the classical values of the
+laminar flat-plate layer. A laminar layer of any speed and length has this
+shape factor; the measurements can be put next to it directly.
+
+### The measurements {#data}
+
+Two records, from two wind tunnels and two instruments.
+
+```{python}
+#| echo: false
+data_card("tudelft-turbulent-boundary-layer")
+```
+
+```{python}
+#| echo: false
+data_card("grazing-flow-hwa-benchmark")
+```
+
+The **TU Delft** record holds one profile per speed, at a station
+that the record's description places at $x =$ [6.8]{.given} m, measured by particle
+image velocimetry (PIV) across the whole layer and by particle tracking
+velocimetry (PTV) close to the wall. Its readme is wrong twice: the
+variables are not in the structure it names, and the PTV wall distance is
+in millimetres, not metres; the dossier shows why, and the lab reads it in
+millimetres. The **grazing-flow benchmark** holds hot-wire profiles of
+`{python} result["hw-points"]` points each across a solid and two porous
+wall inserts; the lab uses the solid wall, at the middle station of the
+insert. Both cards label the files a processed measurement, so every figure
+of this page says processed; the attributions are on every figure.
+
+```{python}
+#| label: records
+#| echo: false
+result.table("records")
+```
+
+[The TU Delft layers reach $\mathrm{Re}_\tau = \delta u_\tau/\nu$ from
+`{python} result["re-tau-low"]` to `{python} result["re-tau-high"]` and
+$\mathrm{Re}_\theta$ from `{python} result["re-theta-low"]` to
+`{python} result["re-theta-high"]`, and the file's friction velocity agrees
+with the Coles-Fernholz correlation within
+`{python} result["utau-deviation"]` per cent at every speed. The record's
+$\delta$ is `{python} result["delta-record-low"]` to
+`{python} result["delta-record-high"]` times the $\delta_{99}$ of its own
+profile; the hot-wire record's $\delta$ is its $\delta_{99}$ within
+`{python} result["hw-delta-gap"]` per cent.]{.claim type="observational"
+scope="the four TU Delft profiles and the three solid-wall hot-wire profiles at x = 0, as published; delta_99 read from each profile by linear interpolation"
+evidence="records tudelft-turbulent-boundary-layer grazing-flow-hwa-benchmark"}
+The TU Delft record does not say how its $\delta$ was defined. The lab
+therefore scales both records by a $\delta_{99}$ it reads from each profile
+in the same way, and keeps the record's $\delta$ only where the dossier's
+numbers use it (the Reynolds number $\mathrm{Re}_\tau$ and the end of the
+log window). With the correlation's $u_\tau$, the hot-wire profiles reach
+$\mathrm{Re}_\tau$ `{python} result["hw-re-tau-low"]` to
+`{python} result["hw-re-tau-high"]`, and their $\mathrm{Re}_\theta$ lies
+between those of the two lowest TU Delft speeds.
+
+### The laminar model against the measured layers
+
+```{python}
+#| label: laminar-run
+#| echo: false
+excerpt(experiment.laminar_comparison)
+```
+
+```{python}
+#| label: laminar
+#| echo: false
+result.table("laminar")
+```
+
+[At the TU Delft station, where $\mathrm{Re}_x$ is
+`{python} result["re-x-low"]` to `{python} result["re-x-high"]` million,
+the measured layer is `{python} result["delta-ratio-low"]` to
+`{python} result["delta-ratio-high"]` times as thick as a laminar layer of
+the same plate, speed, and air, its momentum thickness
+`{python} result["theta-ratio-low"]` to `{python} result["theta-ratio-high"]`
+times the laminar one, and its skin friction
+`{python} result["cf-ratio-low"]` to `{python} result["cf-ratio-high"]`
+times the laminar prediction; the ratios grow with the speed.]{.claim
+type="experimentally-supported"
+scope="the four TU Delft profiles; the laminar layer computed from the leading edge at the station's nominal distance, as if the layer had not become turbulent; C_f from the file's u_tau"
+evidence="laminar records tudelft-turbulent-boundary-layer"} The
+equations of the Navier-Stokes lesson are not wrong here; their laminar
+solution is. [A laminar layer on a smooth flat plate becomes unstable to
+small waves at a Reynolds number $\mathrm{Re}_x$ of a few hundred thousand,
+and in a wind tunnel it usually becomes turbulent before $\mathrm{Re}_x$
+reaches a few million, sooner when it is tripped.]{.not-verified} The
+turbulent eddies carry momentum towards the wall far faster than viscosity
+can: the layer grows thicker, and the wall is rubbed harder.
+
+The profile shows the same thing in its shape.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_outer_profiles)
+```
+
+```{python}
+#| label: fig-outer-profiles
+#| echo: false
+#| fig-cap: "A turbulent boundary layer is much fuller than a laminar one: in units of its own thickness, the measured velocity rises steeply next to the wall and is close to the stream's speed over most of the layer, while the laminar layer rises gently all the way across; its shape factor is about half the laminar value in both records and at every Reynolds number."
+#| fig-alt: "Two panels. Left, velocity divided by the stream speed against wall distance divided by the layer thickness: seven measured curves, four lines and three rows of markers, climb steeply from zero and lie close together, bending over near a quarter of the thickness; a grey dash-dotted laminar curve rises almost linearly and joins them only near the edge of the layer. Right, shape factor against a Reynolds number on a log scale: filled and open circles and a row of squares lie close together near the bottom of the panel, far below a grey dash-dotted horizontal line for the laminar layer."
+#| fig-status: processed
+#| fig-dataset: tudelft-turbulent-boundary-layer
+#| fig-artifact: processed-measured
+result.show("fig-outer-profiles")
+```
+
+The lines and markers are the records' mean velocities, the TU Delft PTV
+points below the first PIV point, then PIV; the dash-dotted curve is the
+Blasius profile of this lesson. [The shape factors of the records lie
+between `{python} result["h-low"]` and `{python} result["h-high"]`, from
+`{python} result["h-tudelft-low"]` to `{python} result["h-tudelft-high"]`
+for TU Delft and `{python} result["h-hw-low"]` to
+`{python} result["h-hw-high"]` over the fifteen solid-wall hot-wire
+stations, against the laminar `{python} result["blasius-h"]`;
+recomputed from the TU Delft profiles by the trapezoid rule, with PTV next
+to the wall, they agree with the records' within
+`{python} result["h-recomputed-gap"]` per cent.]{.claim
+type="experimentally-supported"
+scope="the four TU Delft profiles and the fifteen solid-wall hot-wire profiles across the insert, H as the records give it; the recomputation to the record's delta"
+evidence="fig-outer-profiles records tudelft-turbulent-boundary-layer grazing-flow-hwa-benchmark"}
+Two facilities, two instruments, and a range of Reynolds numbers give the
+same shape within a few hundredths, and none comes near the laminar one.
+
+### The layers in wall units
+
+```{python}
+#| echo: false
+excerpt(experiment.tudelft_log_law)
+```
+
+```{python}
+#| label: fig-wall-units
+#| echo: false
+#| fig-cap: "In wall units the measured profiles collapse: next to the wall they follow the viscous sublayer, further out a straight line on the logarithmic axis, the log law, until each leaves it at the edge of its layer. The residuals of each profile from its own fit stay within two tenths, and they run in smooth arcs rather than scattering."
+#| fig-alt: "Two panels sharing a logarithmic horizontal axis of wall distance in wall units. Top, velocity in wall units: circles of near-wall measurements rise along a dotted curve, then all profiles bend onto a dashed straight line and follow it over two decades, each turning flatter at its far end. Bottom, residuals from each profile's own straight-line fit over the middle of that range: four smooth lines that dip and rise in shallow arcs, and three rows of markers scattered about zero."
+#| fig-status: processed
+#| fig-dataset: tudelft-turbulent-boundary-layer
+#| fig-artifact: processed-measured
+result.show("fig-wall-units")
+```
+
+The near-wall PTV points follow $U^+ = y^+$, the PIV profiles and the hot
+wire a straight line in $\ln y^+$ over a range that widens with
+$\mathrm{Re}_\tau$, more than a decade at the highest; the dashed line is the
+law with commonly quoted constants, drawn for reference and not fitted.
+Each profile leaves it in its outer part, the wake of the layer, at a $y^+$
+that grows with $\mathrm{Re}_\tau$. The constants come from a straight-line
+fit of $U^+$ against $\ln y^+$ in a window chosen before looking: from
+$y^+ = 50$, beyond the buffer layer, to $y = 0.15\,\delta$, before the
+wake.
+
+```{python}
+#| label: log-law
+#| echo: false
+result.table("log-law")
+```
+
+[With the file's friction velocity and the window
+$50 < y^+$, $y < 0.15\,\delta$, the four TU Delft profiles give
+$\kappa$ `{python} result["kappa-low"]` to `{python} result["kappa-high"]`
+and $B$ `{python} result["b-low"]` to `{python} result["b-high"]`, on
+`{python} result["points-low"]` to `{python} result["points-high"]` points;
+over fifteen windows that are all in use in the literature, $\kappa$ ranges
+from `{python} result["kappa-window-low"]` to
+`{python} result["kappa-window-high"]` and $B$ from
+`{python} result["b-window-low"]` to `{python} result["b-window-high"]`.]{.claim
+type="experimentally-supported"
+scope="the four TU Delft PIV profiles with the file's u_tau, which agrees with the Coles-Fernholz correlation to about one per cent; windows with lower bounds y+ 30, 50, 80, 100 or 3 sqrt(Re_tau) and upper bounds 0.1, 0.15 or 0.2 delta"
+evidence="log-law fig-wall-units tudelft-turbulent-boundary-layer"} The
+spread over the windows is several times the spread between the speeds. A
+von Kármán constant from these data is about `{python} result["kappa-round"]`
+with an uncertainty of a few hundredths, set by the choice of the window;
+quoting it to three figures would claim what the data do not give.
+
+### Are the errors honest?
+
+A least-squares fit reports a standard error for $\kappa$. The table gives
+it: at most `{python} result["kappa-error-high"]`, an order of magnitude
+below the half-range over the windows. That error assumes that the residuals scatter
+independently about the line, and the lower panel of the figure says they
+do not: they run in smooth arcs.
+
+```{python}
+#| echo: false
+excerpt(experiment.neighbour_correlation)
+```
+
+[The residuals of neighbouring PIV points in the nominal window are
+correlated by `{python} result["rho-low"]` or more in every profile, so the
+`{python} result["points-low"]` to `{python} result["points-high"]` points
+of a fit are worth at most `{python} result["effective-high"]` independent
+ones; with that many, the standard error of $\kappa$ grows to at most
+`{python} result["kappa-error-inflated"]`, still smaller than the half-range
+over the windows, `{python} result["kappa-window-half"]`.]{.claim
+type="experimentally-supported"
+scope="the four TU Delft PIV profiles in the nominal window; the number of independent points from the neighbour correlation as for a first-order autoregressive series, an approximation"
+evidence="log-law fig-wall-units tudelft-turbulent-boundary-layer"} Two
+things can make neighbouring points alike. [The PIV averages the velocity
+over an interrogation window that the record does not state, and points
+spaced more closely than such a window share part of it;]{.not-verified}
+and a real profile is not exactly a straight line in $\ln y^+$, so a
+systematic curvature shows as runs of residuals of one sign. Either way the fit's own error is not
+the uncertainty of $\kappa$. The window is, and the lab quotes the range
+over the windows.
+
+The friction velocity adds to it. [The file's $u_\tau$ agrees with the
+Coles-Fernholz correlation within `{python} result["utau-deviation"]` per
+cent;]{.claim type="experimentally-supported"
+scope="the four TU Delft profiles, the correlation at the file's Re_theta"
+evidence="records tudelft-turbulent-boundary-layer"} [An error of one per
+cent in $u_\tau$ moves every $U^+$ by about one per cent; fitted again,
+$\kappa$ moves by at most `{python} result["utau-kappa-shift"]` and $B$ by
+at most `{python} result["utau-b-shift"]`, far less than the window
+moves them.]{.claim type="numerically-verified"
+scope="the four TU Delft profiles, u_tau raised by one per cent and the nominal window fitted again"
+evidence="log-law tudelft-turbulent-boundary-layer"} Since the record does not say how its $u_\tau$ was found, it
+may itself come from a fit to a log law; the correlation, which does not
+use the profile, is what ties it to something else.
+
+### Two facilities, one law
+
+```{python}
+#| echo: false
+excerpt(experiment.hot_wire_log_law)
+```
+
+```{python}
+#| label: hot-wire-log-law
+#| echo: false
+result.table("hot-wire-log-law")
+```
+
+[Over the same window, with $u_\tau$ from the Coles-Fernholz correlation,
+the fifteen solid-wall hot-wire profiles give $\kappa$
+`{python} result["hw-kappa-low"]` to `{python} result["hw-kappa-high"]` and
+$B$ `{python} result["hw-b-low"]` to `{python} result["hw-b-high"]`, on
+`{python} result["hw-points-low"]` to `{python} result["hw-points-high"]`
+points each, inside the range of the TU Delft windows.]{.claim
+type="experimentally-supported"
+scope="the solid-wall hot-wire profiles at the five stations and three speeds; u_tau from a correlation, not measured; the wall position fitted by the providers"
+evidence="hot-wire-log-law fig-wall-units grazing-flow-hwa-benchmark"} This
+agreement is **partly imposed**, and the lab does not count it as a second
+test of the law. The record gives no friction velocity, so the lab takes it
+from the same correlation that checked the TU Delft one; and its providers
+refined the wall position of every solid-wall profile by fitting the
+profile in wall units to canonical profiles, which pulls it towards a
+canonical law of the wall by construction. With `{python} result["hw-points-low"]` to
+`{python} result["hw-points-high"]` points in the window, the fit is also
+much less constrained than the TU Delft one. The hot-wire profiles agree
+with the law because they were made to, in part; the TU Delft profiles,
+with their friction velocity checked against an independent correlation,
+are the test.
+
+### Turbulence intensity
+
+The second moments are compared without a friction velocity: the
+streamwise turbulence intensity $u'_\text{rms}/U_\infty$ needs only the
+records' own velocities.
+
+```{python}
+#| echo: false
+excerpt(experiment.intensity_table)
+```
+
+```{python}
+#| label: intensity
+#| echo: false
+result.table("intensity")
+```
+
+```{python}
+#| label: fig-turbulence-intensity
+#| echo: false
+#| fig-cap: "Away from the wall the two instruments measure nearly the same turbulence intensity, falling from the inner layer to the free stream; close to the wall they part: the hot wire shows the inner peak about a dozen viscous lengths from the wall, the PIV a rise far above it. The PIV's Reynolds shear stress climbs towards the wall value of the total stress and stays below it."
+#| fig-alt: "Two panels with a logarithmic horizontal axis of wall distance divided by the layer thickness. Left, turbulence intensity in per cent: four lines and three rows of markers lie on one falling curve over most of the layer and drop to near zero beyond its edge; at the left the markers rise to a gentle peak and fall again, while the lines climb steeply to two or three times that height. Right, Reynolds shear stress in wall units: four lines rise from the left, level off just below a dashed horizontal line at one, and fall to zero at the edge of the layer."
+#| fig-status: processed
+#| fig-dataset: tudelft-turbulent-boundary-layer
+#| fig-artifact: processed-measured
+result.show("fig-turbulence-intensity")
+```
+
+[At a tenth, three tenths, and half of $\delta_{99}$ the intensities of
+the two records lie between `{python} result["ti-low"]` and
+`{python} result["ti-high"]` per cent, and the mean of the TU Delft PIV
+profiles exceeds that of the hot wire by `{python} result["ti-gap-low"]` to
+`{python} result["ti-gap-high"]` percentage points at each height, at
+most `{python} result["ti-gap-relative"]` per cent of the hot wire's
+value.]{.claim type="experimentally-supported"
+scope="the four TU Delft PIV profiles and the three solid-wall hot-wire profiles at x = 0, interpolated at the three heights in units of the delta_99 read from each profile; no uncertainty of either instrument's intensity is stated"
+evidence="intensity fig-turbulence-intensity tudelft-turbulent-boundary-layer grazing-flow-hwa-benchmark"}
+Two facilities, two instruments, and Reynolds numbers that only partly
+overlap agree on the turbulence of the outer layer to a few per cent, with
+the PIV higher on average at every height. [Measurement noise of a PIV adds to the measured
+variance, and the two tunnels differ in their free-stream turbulence and
+their trips;]{.not-verified} the records do not let the lab say which
+causes the difference.
+
+Near the wall they disagree completely. [The largest $u'_\text{rms}/u_\tau$
+of the hot-wire profiles is `{python} result["hw-peak-low"]` to
+`{python} result["hw-peak-high"]`, at $y^+$ `{python} result["hw-peak-yplus"]`; the PIV
+profiles reach `{python} result["piv-peak-low"]` to
+`{python} result["piv-peak-high"]` at their first points, about twice as
+much.]{.claim type="experimentally-supported"
+scope="the largest u'+ of each profile, hot wire with u_tau from the correlation, PIV with the file's u_tau"
+evidence="intensity fig-turbulence-intensity"} The hot wire shows the
+inner peak of the streamwise fluctuations close to the wall. [At its first
+points a PIV averages over interrogation windows across which the velocity
+changes steeply, and its measurement noise adds to the variance; such
+effects of the measurement, not of the flow, are the likely cause of the
+rise.]{.not-verified} The records do not state the PIV's windows or its
+noise, so the lab draws no conclusion from the PIV's intensity next to the
+wall.
+[The Reynolds shear stress $-\overline{u'v'}/u_\tau^2$ of the PIV peaks at
+`{python} result["stress-low"]` to `{python} result["stress-high"]`, below
+the wall value of the total stress, one, as it must be where part of the
+stress is viscous.]{.claim type="experimentally-supported"
+scope="the four TU Delft PIV profiles with the file's u_tau"
+evidence="fig-turbulence-intensity tudelft-turbulent-boundary-layer"}
+
+### What the lab shows
+
+The laminar solution of the course's equations describes neither measured
+layer. Against the Blasius layer of the same plate, the TU Delft layer is
+several times thicker, rubs the wall `{python} result["cf-ratio-low"]` to
+`{python} result["cf-ratio-high"]` times harder, and has about half the
+shape factor; the hot-wire layer, in another tunnel, has the same
+shape factor. What describes the measurements instead is a law of scales:
+in wall units the profiles collapse onto the viscous sublayer and the log
+law. The log-law constants are measured with an uncertainty set by the
+fit window, not by the number of points, whose residuals are far from
+independent: about
+`{python} result["kappa-window-low"]` to `{python} result["kappa-window-high"]`
+for $\kappa$. The second record agrees, partly because its processing
+makes it agree, and its turbulence intensity agrees with the first in the
+outer layer to a few per cent. The two-dimensional laminar solvers of this
+course stop at the onset of turbulence. [A computation of a turbulent wall
+layer needs three dimensions and a grid down to the viscous length, or a
+model of the Reynolds stress.]{.not-verified}
+
+## Limits {#limits}
+
+- **No uncertainty of the profiles.** The TU Delft record gives none. The
+  hot-wire record gives a statistical one, at most
+  `{python} result["hw-u-uncertainty"]` of $U/U_e$ at [95]{.given} per cent, which
+  leaves out the calibration of the wire and the error of its orientation,
+  the larger errors and unknown.
+- **The friction velocity.** The TU Delft $u_\tau$ is the file's, checked
+  against a correlation to about a per cent; the hot-wire $u_\tau$ is the
+  correlation itself. Neither is a direct measurement of the wall stress.
+- **The thickness.** The TU Delft record does not define its $\delta$, which
+  is `{python} result["delta-record-low"]` to
+  `{python} result["delta-record-high"]` times its $\delta_{99}$. The lab scales by its own
+  $\delta_{99}$, but the end of the log window and $\mathrm{Re}_\tau$ use the
+  record's $\delta$, as the dossier does; the window sensitivity covers a
+  change of that end by a third either way.
+- **PIV and PTV differ.** Where both measure, the PTV velocities exceed the
+  PIV ones by `{python} result["ptv-piv-low"]` to
+  `{python} result["ptv-piv-high"]` per cent on average, more at higher
+  speeds, consistent with the PIV averaging over a steep gradient; the
+  record does not state the interrogation window.
+- **One station, a turbulent layer only.** Each record has one station per
+  speed (five, closely spaced, for the hot wire), so the growth of the layer
+  along the wall is not measured, and neither record holds a laminar or
+  transitional layer: the laminar layer of this page is a model.
+- **No spectra.** The time series that would give spectra and higher
+  moments are in archives the lab does not use.
+
+::: {.exercise .self-check}
+The hot-wire profiles follow the log law as closely as the TU Delft
+profiles, and with a fit on fewer points their $\kappa$ even lies closer to
+the commonly quoted value. A colleague proposes to average the two records
+to get a better von Kármán constant. Why does the lab not do that?
+
+::: {.solution}
+The hot-wire profiles are not an independent test of the log law. Their
+record gives no friction velocity, so $u_\tau$ comes from the
+Coles-Fernholz correlation, and their providers refined the wall position
+of every solid-wall profile by fitting the profile in wall units to
+canonical profiles. Both steps pull the profiles towards the law. Averaging
+them with the TU Delft profiles would mix a measurement with a result that
+partly assumes what it would be used to measure. The honest statement is
+that the TU Delft profiles, with a friction velocity checked against an
+independent correlation, give $\kappa$ near `{python} result["kappa-round"]` with an uncertainty of a
+few hundredths from the fit window, and that the hot-wire profiles are
+consistent with it.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**How small is a wall unit?** At the highest TU Delft speed the friction
+velocity is 0.64 m/s and the kinematic viscosity of the air
+$1.5 \times 10^{-5}\,\mathrm{m^2/s}$. How long is the viscous length? How
+far from the wall does the log window begin, at $y^+ = 50$? How many wall
+units apart are PIV points spaced 0.28 mm apart?
+
+::: {.hint}
+The viscous length is $\nu/u_\tau$; a distance $y$ is $y u_\tau/\nu$ wall
+units.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.viscous_length_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("viscous-length-exercise"), end="")
+```
+
+The whole viscous sublayer, up to $y^+$ of about five, is thinner than one
+PIV spacing: that is why the record adds particle tracking next to the
+wall, and why the first PIV points are not to be trusted for the
+fluctuations.
+:::
+:::
+
+::: {.exercise}
+**How long a plate?** At the lowest TU Delft speed, 4.574 m/s, the measured
+momentum thickness is 10.04 mm. How long would a plate have to be for a
+laminar layer to grow the same momentum thickness?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.laminar_plate_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("laminar-plate-exercise"), end="")
+```
+
+A laminar layer grows as the square root of the distance, so it would need
+about ten times the length. The turbulent layer gets there in a tenth of
+the distance because eddies, not viscosity alone, carry the momentum
+deficit away from the wall.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/fluids/boundary_layer.py",
+        "src/pbc/fluids/experiments/turbulent_boundary_layer_measurements.py",
+        "src/pbc/experiment.py",
+        "src/pbc/data/reference/tudelft_boundary_layer.py",
+        "src/pbc/data/reference/grazing_flow_hwa.py",
+        "src/pbc/data/adapters.py",
+        "src/pbc/data/fit.py",
+        "src/pbc/data/plotting.py",
+    ],
+    tests=[
+        "tests/unit/test_boundary_layer.py",
+        "tests/unit/test_data_tudelft_boundary_layer.py",
+        "tests/unit/test_data_grazing_flow_hwa.py",
+        "tests/unit/test_turbulent_boundary_layer_measurements_experiment.py",
+    ],
+)
+```
+
+The data cards above give the commands that download both records into
+`data/downloads/`; unzipping the archives gives the committed samples byte
+for byte, and no model and no account are needed to read them.
