@@ -462,3 +462,37 @@ references:
     lessons: [atomic-spectroscopy]
     last-checked: 2026-11-13
     licence: No licence stated on the pages; linked, not copied or rehosted.
+  - key: deblok-things-mass-models
+    concept: >-
+      Mass models of disk galaxies: the observed rotation curve as the sum in
+      squares of the speeds of the gas, the stars scaled by a mass-to-light
+      ratio, and a dark halo, with the NFW and the pseudo-isothermal halo
+    url: https://arxiv.org/abs/0810.2100
+    title: High-Resolution Rotation Curves and Galaxy Mass Models from THINGS
+    author: W. J. G. de Blok, F. Walter, E. Brinks, C. Trachternach, S.-H. Oh, R. C. Kennicutt, Jr. (The Astronomical Journal 136, 2648, 2008; arXiv 0810.2100)
+    section: Section 5, "Mass models" (Eq. 3), and section 5.3, "Dark matter halos" (Eqs. 6 to 10)
+    role: paper
+    statement: >-
+      The lesson's mass model V^2 = Vgas^2 + Y V*^2 + Vhalo^2 is the paper's
+      Eq. 3, with Y the stellar mass-to-light ratio; the NFW density
+      rho_i / ((R/R_s)(1 + R/R_s)^2) is Eq. 6 and the pseudo-isothermal
+      density rho_0 / (1 + (R/R_C)^2) with its circular speed
+      sqrt(4 pi G rho_0 R_C^2 (1 - (R_C/R) arctan(R/R_C))) are Eqs. 8 and 9;
+      the paper calls the first a central cusp and the second a constant-
+      density core, and discusses maximum-disk fits. The lesson writes the
+      NFW speed through the enclosed mass, where the paper uses the virial
+      parameters V200 and c (Eq. 7), and keeps the sign of the gas term of
+      the SPARC files. Opened and read on 2026-11-13 in the arXiv HTML
+      version (ar5iv).
+    alternatives: >-
+      Wikipedia, "Navarro-Frenk-White profile": the NFW density and enclosed
+      mass, but not the pseudo-isothermal sphere or the mass model of a
+      disk galaxy. Lelli, McGaugh and Schombert 2016 (the SPARC paper) gives
+      the mass models of the lab's data but was not read for this lesson
+      (the dossier of the card says so), so it is cited as the data's source
+      on the card, not as the derivation. De Blok et al. state both halos and
+      the sum in one free, sign-in-free paper and show them fitted to
+      rotation curves like the lab's.
+    lessons: [galaxy-rotation-curves]
+    last-checked: 2026-11-13
+    licence: arXiv non-exclusive distribution licence; linked, not copied or rehosted.

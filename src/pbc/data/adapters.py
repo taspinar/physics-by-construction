@@ -17,12 +17,15 @@ from pbc.data.uncertainty import standard_from_expanded
 
 if TYPE_CHECKING:
     from pbc.data.reference.bayreuth_rlc import Spectrum
+    from pbc.data.reference.cylinder_wake import Wake
     from pbc.data.reference.dwd_soil import Readings
     from pbc.data.reference.grazing_flow_hwa import Station
     from pbc.data.reference.kamchatka_tsunami import NceiRecord
     from pbc.data.reference.lycopodium import Profile
     from pbc.data.reference.nist_numisheet import Test
+    from pbc.data.reference.ost_hotwire import HotWire
     from pbc.data.reference.sdss_balmer import Spectrum as SdssSpectrum
+    from pbc.data.reference.sparc_rotmod import Galaxy
     from pbc.data.reference.srm660c import Pattern
     from pbc.data.reference.tess_wasp18 import LightCurve
     from pbc.data.reference.trackpy_bulk_water import Tracks
@@ -209,6 +212,51 @@ def stress_strain_series(test: Test) -> Series:
     )
 
 
+def piv_probe_series(wake: Wake, probe: int, component: int) -> Series:
+    """One velocity component (``component`` 0 for u, 1 for v) in m/s at
+    one probe of the Shang and Tu PIV record (``probe`` 0 for 2 D, 1 for
+    5 D behind the cylinder) against the time in s, frame k at k / 20 s,
+    every frame of the 400 s record.
+
+    Processed, as the card labels the record: DaVis computed the vectors
+    from image pairs by cross-correlation; the record holds no image. The
+    record gives no PIV uncertainty, so the series has none. The probes are
+    never masked.
+    """
+    frames = wake.probes.shape[0]
+    return Series(
+        x=np.arange(frames) / float(wake.meta["fps"]),
+        y=wake.probes[:, probe, component],
+        artifact="processed-measured",
+        x_name="time (20 frames per second)",
+        x_unit="s",
+        y_name="uv"[component],
+        y_unit="m/s",
+    )
+
+
+def hot_wire_series(data: HotWire, run: int) -> Series:
+    """The speed in m/s of one run of the Ost, de Paula and Möller hot-wire
+    record against the time in s (sample k at k ms), the first 16.384 s of
+    the run as the sample holds them.
+
+    Processed, as the card labels the record: the anemometer's calibrated
+    output, not the bridge voltage, low-pass filtered at 300 Hz by the
+    creators and rounded to 1 mm/s by this project. The record gives no
+    uncertainty, so the series has none.
+    """
+    samples = data.u.shape[0]
+    return Series(
+        x=np.arange(samples) / 1000.0,
+        y=data.u[:, run],
+        artifact="processed-measured",
+        x_name="time (1000 samples per second)",
+        x_unit="s",
+        y_name="speed",
+        y_unit="m/s",
+    )
+
+
 def diffraction_pattern_series(pattern: Pattern) -> Series:
     """The measured X-ray powder pattern of one NIST SRM 660c specimen:
     intensity in counts per counting time against 2theta in degrees, with
@@ -255,6 +303,30 @@ def sdss_flux_series(spectrum: SdssSpectrum) -> Series:
         x_unit="Angstrom",
         y_name="flux density",
         y_unit="1e-17 erg/cm^2/s/Angstrom",
+    )
+
+
+def rotation_curve_series(galaxy: Galaxy) -> Series:
+    """The rotation curve of a SPARC ``Rotmod`` file: the circular speed
+    ``Vobs`` in km/s against the radius in kpc at the file's distance, every
+    row of the file, with ``errV`` as its uncertainty.
+
+    Processed, as the card labels the columns: the SPARC team derived the
+    curve from HI and H-alpha velocity fields (tilted rings, both sides
+    averaged, corrected for inclination). ``errV`` is one standard
+    deviation per point and excludes the uncertainty of the inclination
+    and the distance; the team's speeds of the gas and the stars are
+    models, not part of this series.
+    """
+    return Series(
+        x=galaxy.radius,
+        y=galaxy.v_obs,
+        sigma=galaxy.v_err,
+        artifact="processed-measured",
+        x_name="radius",
+        x_unit="kpc",
+        y_name="circular speed",
+        y_unit="km/s",
     )
 
 
