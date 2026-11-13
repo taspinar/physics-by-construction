@@ -1,0 +1,601 @@
+---
+title: "Lycopodium diffraction lab"
+description: >-
+  The halo of a laser beam behind a layer of Lycopodium spores, photographed
+  at two wavelengths, against the Airy pattern of the diffraction lesson
+  carried over to many small disks: the dark ring of each measured profile,
+  its uncertainty as the sensitivity of the analysis, the one test the record
+  allows without its missing calibration, and what it does not allow.
+lesson:
+  id: lycopodium-diffraction-lab
+  strand: waves
+  order: 9
+  difficulty: 2
+  course: waves
+  slot: W7
+  methods: [measured-data, simulation]
+  outcomes:
+    - Explain with Babinet's principle and the addition of intensities why a layer of spores shows the Airy pattern of one disk averaged over their diameters, and why its rings depend on the angle only through sin(theta) over the wavelength
+    - Build the halo of a measured distribution of diameters from the wavelet integral of a round aperture, and check it against the closed form
+    - Find the dark ring of a measured line profile by centring, folding, and smoothing it, and state its uncertainty as the sensitivity of the analysis, with its assumptions checked on the data
+    - Test the scaling of the rings with the wavelength without the missing calibration, and say what the record does not allow, an absolute diameter, the intensities, the order of the ring
+  related: []
+  format: 2
+  preview: fig-scaling
+  experiment: pbc.waves.experiments.lycopodium_diffraction_lab
+  prerequisites:
+    lessons: [diffraction-and-imaging]
+    outside:
+      - "Trigonometry: the sine and the tangent of a small angle, and the angle from a distance on a screen"
+      - "Statistics: a mean, its standard error, and a histogram"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this
+from pbc.data.reference import lycopodium
+from pbc.waves import halo
+from pbc.waves.experiments import lycopodium_diffraction_lab as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+Dust a glass plate with the fine yellow powder of a club moss, Lycopodium,
+and shine a laser through it. On a screen behind the plate the spot is
+surrounded by a halo of rings, red for a red laser and violet for a violet
+one, and smaller for the violet. The same rings appear around the Moon on a
+misty night, when the light passes through droplets of one size: a corona.
+The spores are small round obstacles, and the halo is their diffraction.
+
+The lesson "Diffraction and imaging" computed the pattern of a round
+aperture by adding the wavelets of its pieces: the Airy pattern, whose first
+dark ring lies at $\sin\theta \approx 1.22\,\lambda/D$. This lab takes that
+model to a measurement. Two authors published the photographs of
+such a halo at two wavelengths, the line profiles they read from them, and
+the diameters of the same spores measured under a microscope. The lab asks
+what these data can test, and finds that the record lacks two numbers: the
+distance from the spores to the screen, and the unit of length of the
+profiles. The answer it can give is narrower than "the diameter of a spore",
+and the page says why.
+
+## Assumptions
+
+1. **Babinet's principle.** Away from the direction of the beam, an opaque
+   disk diffracts as a round hole of the same diameter does. The spores are
+   taken as opaque disks with the diameter of the circle of their area; real
+   spores are rounded tetrahedra with a ridged surface, and the microscope
+   sees their outline.
+2. **Intensities add.** The spores lie at random places, so the fields they
+   send have random relative phases, and on average their intensities add.
+   What remains of the interference is speckle: a grainy pattern on the
+   halo, which the profiles show.
+3. **The far field.** The screen is far enough for the Fraunhofer pattern of
+   one spore. With spores of about `{python} result["x160-mean"]` µm
+   diameter in red light the far field begins within a few millimetres, so
+   any tabletop setup is far; the record does not give the distance.
+4. **One geometry for both photographs.** The ratio test below assumes that
+   the two profiles share the same spatial scale and the same distance to
+   the screen. The record does not say so, and does not say from which
+   photograph each profile comes.
+5. **Ring positions, not intensities.** The camera saturates the centre of
+   the halo and its tone curve is unknown, so the lab compares where the
+   rings are, never how bright.
+
+## The halo of many disks {#explanation}
+
+### From one hole to many spores
+
+The far field of a round aperture of diameter $d$ at the angle $\theta$
+from the axis, normalised to one on the axis, is
+
+$$
+A(u) = \frac{2 J_1(\pi u)}{\pi u}, \qquad u = \frac{d\,\sin\theta}{\lambda},
+$$
+
+the radial integral of the wavelets of the aperture that the diffraction
+lesson computed. Its square is the Airy pattern, dark where $J_1(\pi u) =
+0$: at $u =$ `{python} result["airy-first"]` for the first dark ring.
+
+By Babinet's principle the field of an opaque disk and that of a hole of the
+same shape add up to the undisturbed beam, which is zero away from its own
+direction; off the axis the two fields are equal and opposite, and their
+intensities equal. A disk of diameter $d$ sends a field proportional to its
+area, so its intensity on the axis grows as $d^4$. For many disks at random
+places the intensities add:
+
+$$
+I(q) \propto \sum_{\text{spores}} d^4\, A(q d)^2, \qquad q = \frac{\sin\theta}{\lambda} .
+$$
+
+This is the halo. A spread of diameters puts the zeros of each disk at
+slightly different angles, so the dark rings of the halo are no longer
+black, only dim.
+
+### What scales with the wavelength
+
+The halo depends on the angle and the wavelength only through
+$q = \sin\theta/\lambda$. A ring of the halo has one value of $q$ whatever
+the light, so its $\sin\theta$ is proportional to the wavelength. On a flat
+screen at distance $L$ the ring has the radius $r = L\tan\theta$, and the
+radii of the same ring at two wavelengths stand in the ratio
+
+$$
+\frac{r(\lambda_1)}{r(\lambda_2)} = \frac{\tan\theta_1}{\tan\theta_2}
+\approx \frac{\lambda_1}{\lambda_2}
+$$
+
+for small angles. Neither $L$ nor the unit of $r$ appears in the ratio, and
+neither does the diameter of the spores. This is the test the record allows.
+
+### What the record lacks
+
+To turn a ring radius into a diameter needs $\theta$, and so $L$ and the
+radius in a known unit: $d = u_k / q$ with $\sin\theta = \sin(\arctan(r/L))$
+and $u_k$ the value of $q d$ at the ring of order $k$. The record states
+neither $L$ nor the unit of its profiles. The microscope measures the
+diameters independently, so the model can predict the rings in $q$, but not
+where they fall on this screen.
+
+## The program {#code}
+
+The amplitude of one disk is the wavelet integral of the round aperture of
+the diffraction lesson, with the diameter and the wavelength set to one, so
+that its argument is $u$:
+
+```{python}
+#| echo: false
+excerpt(halo.disk_amplitude)
+```
+
+The halo of many disks tabulates that amplitude once and averages its
+square over the diameters, each weighted by $d^4$:
+
+```{python}
+#| echo: false
+excerpt(halo.halo)
+```
+
+A ring on a flat screen, and the distance at which a ring has a given
+radius:
+
+```{python}
+#| echo: false
+excerpt(halo.ring_radius)
+```
+
+```{python}
+#| echo: false
+excerpt(halo.screen_distance)
+```
+
+## Worked examples {#worked-examples}
+
+### The measurement {#data}
+
+```{python}
+#| echo: false
+data_card("lycopodium-spore-diffraction")
+```
+
+The record holds the photographs, the line profiles the authors read from
+two of them with the video-analysis program Tracker, and the tables of the
+particles that the image program ImageJ found in micrographs at two
+magnifications. The sample of this page is the two profiles and the two
+tables, values unchanged: the profiles converted from spreadsheet files to
+text, the tables re-encoded. Both are a processed measurement, so every
+figure of data on this page says processed. The data are the authors' under
+the licence the card names, and every figure carries the attribution.
+
+### The diameters under the microscope {#microscope}
+
+The tables give, for every particle, the diameter of the circle of the same
+area. Particles below `{python} result["whole-spore"]` µm are fragments of
+spore walls; the rest are whole spores.
+
+```{python}
+#| label: diameters
+#| echo: false
+result.table("diameters")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_diameters)
+```
+
+```{python}
+#| label: fig-diameters
+#| echo: false
+#| fig-cap: "The spores have one size with a spread of about a tenth: the two magnifications, each calibrated by its own scale bar, give the same distribution."
+#| fig-alt: "Two step histograms of spore diameter, one solid and one dashed, both peaked near the middle of the axis and falling off on both sides, with a few isolated large particles at the right."
+#| fig-status: processed
+#| fig-dataset: lycopodium-spore-diffraction
+#| fig-artifact: processed-measured
+result.show("fig-diameters")
+```
+
+[The whole spores measure `{python} result["x160-mean"]` ±
+`{python} result["x160-sem"]` µm at the higher magnification and
+`{python} result["x80-mean"]` ± `{python} result["x80-sem"]` µm at the lower,
+standard errors of the mean, with a spread of
+`{python} result["spread"]` per cent; the two means differ by
+`{python} result["mean-gap-sigma"]` combined standard
+errors.]{.claim type="observational"
+scope="the record's ImageJ tables, diameter of the circle of equal area, particles above 15 um, standard errors assuming independent particles"
+evidence="diameters lycopodium-spore-diffraction"} The two magnifications
+are calibrated independently and agree, so the scale bars are consistent.
+The standard errors count every spore as an independent draw; they do not
+include an error of the scale bars or of the threshold that separates a
+spore from the background, which the record does not give.
+
+### The halo of these diameters {#model}
+
+The model of the halo uses the `{python} result["x160-count"]` whole spores
+of the higher magnification. Built from the wavelet integral, it should
+agree with the closed form $2J_1(x)/x$ of the amplitude, and one disk should
+go dark at the zeros of $J_1$:
+
+```{python}
+#| label: rings
+#| echo: false
+result.table("rings")
+```
+
+[The halo built from the wavelet integral of the diffraction lesson differs
+from the halo of the closed form by at most
+`{python} result["model-millionths"]` millionths of its central intensity,
+and the dark rings of one disk fall on the zeros of $J_1(\pi u)$ to the four
+decimals of the table.]{.claim type="numerically-verified"
+scope="4000 rings per disk, the amplitude tabulated every 0.002 in u, q d up to 6"
+evidence="rings"} With the measured spread of diameters the first dark ring
+moves out to $q\bar d =$ `{python} result["model-first"]` and the second
+lies at `{python} result["model-second"]`; at the first, the halo keeps
+`{python} result["fill"]` per cent of its central intensity, where one disk
+is black.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_halo_model)
+```
+
+```{python}
+#| label: fig-halo-model
+#| echo: false
+#| fig-cap: "The spread of the spore sizes fills the dark rings of the Airy pattern but leaves them where they were: a halo of these spores still has dim rings at nearly the zeros of one disk of their mean size."
+#| fig-alt: "Line plot on a logarithmic intensity axis against q times the mean diameter. A dotted curve for one disk falls from one and plunges to deep, sharp zeros between bright rings that grow fainter. A dashed curve for the measured diameters follows it but has shallow, rounded minima instead of zeros, marked by triangles, at nearly the same places."
+#| fig-status: simulated
+#| fig-model-of: lycopodium-spore-diffraction
+result.show("fig-halo-model")
+```
+
+The figure is the model alone: it shows where the halo of these spores puts
+its rings in $q$. Where they land on the screen of the experiment depends on
+the distance and the unit the record lacks.
+
+### The two line profiles {#profiles}
+
+Each profile is the brightness along one horizontal line through the centre
+of the halo, one sample per pixel of the photograph, with the position $x$
+in a unit the record does not state. The red profile has
+`{python} result["red-rows"]` samples, `{python} result["red-step"]` apart
+in $x$; the violet one `{python} result["violet-rows"]`,
+`{python} result["violet-step"]` apart.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_profiles)
+```
+
+```{python}
+#| label: fig-profiles
+#| echo: false
+#| fig-cap: "Both halos have a saturated centre and a faint dark ring, smaller for the violet laser than for the red one; the profiles are grainy with speckle on the scale of the ring itself."
+#| fig-alt: "Line plot of camera brightness against position across the halo, two profiles. The red profile is a narrow saturated spike in the middle, a flat shoulder on each side, and then a dip on each side marked by dotted vertical lines, with bumpy small rings beyond. The violet profile is a broad saturated hump that falls steeply to a smaller dip on each side, also marked by dotted lines, and then a slow decline. A horizontal line near the top marks saturation."
+#| fig-status: processed
+#| fig-dataset: lycopodium-spore-diffraction
+#| fig-artifact: processed-measured
+result.show("fig-profiles")
+```
+
+[The camera saturates the centre of both halos:
+`{python} result["red-saturated"]` samples of the red profile and
+`{python} result["violet-saturated"]` of the violet one reach a brightness
+of `{python} result["saturated"]` or more, out to a radius of
+`{python} result["red-core"]` and `{python} result["violet-core"]` in the
+unit of $x$.]{.claim type="observational"
+scope="the two line profiles of the record as published"
+evidence="fig-profiles lycopodium-spore-diffraction"} The brightness is
+what the camera made of the light, through a tone curve the record does not
+give. Out of the centre the red profile is flat for a while: its red channel
+is at its own limit. The lab therefore uses the positions of the rings only.
+
+### The dark ring and how far to trust it {#ring}
+
+The analysis comes from the reference module of the dataset. It finds the
+centre of each profile as the point about which it is most nearly a mirror
+image, folds the two sides onto one radius and averages them, smooths the
+fold with a moving average, and takes the most prominent minimum outside the
+saturated core, refined by a parabola through three samples:
+
+```{python}
+#| echo: false
+excerpt(lycopodium.centre)
+```
+
+```{python}
+#| echo: false
+excerpt(lycopodium.dark_ring)
+```
+
+The centres are at $x =$ `{python} result["red-centre"]` (red) and
+`{python} result["violet-centre"]` (violet). The speckle makes the profile
+bumpy on the scale of the ring, so a smoothing is needed, and its width is a
+choice. The record gives no uncertainty for the profiles. The lab therefore
+repeats the analysis for five widths, from `{python} result["width-low"]` to
+`{python} result["width-high"]` in $x$, and takes half the range of the
+radius as its uncertainty: a measure of how much the answer depends on the
+choice, not a statistical error.
+
+```{python}
+#| label: ring-radii
+#| echo: false
+result.table("ring-radii")
+```
+
+[At the nominal width the dark ring lies at a radius of
+`{python} result["red-ring"]` ± `{python} result["red-ring-range"]` in the
+red profile and `{python} result["violet-ring"]` ±
+`{python} result["violet-ring-range"]` in the violet one, in the unit of
+$x$, the ± being half the range over the smoothing
+widths.]{.claim type="experimentally-supported"
+scope="the two line profiles of the record, centre by mirror symmetry, the fold smoothed by moving averages of 0.5 to 2 in x; a sensitivity range, not a statistical error"
+evidence="ring-radii fig-profiles lycopodium-spore-diffraction"}
+
+Is that uncertainty honest? Two of its assumptions can be checked on the
+data. First, a range is only a fair summary if the radius scatters with the
+width; in the violet profile it does not scatter but rises steadily from
+the narrowest width to the widest, so the smoothing pulls the ring outwards
+and the range measures that bias. Second, the fold assumes that both sides
+show the same ring. The lowest point of each side near the ring of the fold:
+
+```{python}
+#| label: sides
+#| echo: false
+result.table("sides")
+```
+
+In the red profile the two sides agree, at `{python} result["red-left"]` and
+`{python} result["red-right"]`. In the violet profile the left side has a
+clear dip at `{python} result["violet-left"]`, and the right side has none:
+its lowest point near the ring, `{python} result["violet-right"]`, is the
+edge of the search window. The violet radius rests on one side of the
+profile, carried through the fold.
+
+### The test without a calibration {#scaling}
+
+The ratio of the two radii is free of the distance and the unit. The radii
+of one width share the same choice of smoothing, so the honest comparison is
+the ratio at each width, the last column of the table above, rather than a
+ratio of two radii with independent errors.
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_scaling)
+```
+
+```{python}
+#| label: fig-scaling
+#| echo: false
+#| fig-cap: "On a radius divided by the wavelength the dark rings of the two halos nearly coincide, as diffraction by one population of spores predicts; the measured ratio of their radii lies at or a few per cent above the ratio of the wavelengths for every smoothing width, so the data support the scaling to that level and no further."
+#| fig-alt: "Three panels. Left, brightness against radius divided by wavelength for the two folded and smoothed profiles, solid and dashed, each with a dotted vertical line at its dark ring; the two dotted lines stand close together. Top right, the ratio of the two radii as dots against smoothing width, with a dashed horizontal line for the prediction; the dots lie on or above the line, the two narrowest widths almost on it. Bottom right, the dots minus the prediction, all at or above zero."
+#| fig-status: processed
+#| fig-dataset: lycopodium-spore-diffraction
+#| fig-artifact: processed-measured
+result.show("fig-scaling")
+```
+
+The dashed line is a prediction, not a fit: it is set by the two wavelengths
+alone, `{python} result["violet-nm"]` over `{python} result["red-nm"]` nm,
+corrected for the tangent of a flat screen to
+`{python} result["predicted"]`. That correction is tiny at these angles
+(below `{python} result["flat-screen-shift"]` between the two possible
+orders of the ring), and no line on this page is fitted to the radii it is
+compared with.
+
+[The dark ring of the violet halo lies at `{python} result["ratio"]` times
+the radius of the red one at the nominal width, and between
+`{python} result["ratio-low"]` and `{python} result["ratio-high"]` times
+over the five smoothing widths, against `{python} result["predicted"]`
+from the wavelengths alone: every width gives a ratio at or above the
+prediction, by `{python} result["excess-low"]` to
+`{python} result["excess-high"]` per cent.]{.claim type="experimentally-supported"
+scope="the two line profiles of the record, assuming both share one spatial scale and one distance to the screen; the range is a sensitivity of the analysis, not a statistical error"
+evidence="ring-radii fig-scaling lycopodium-spore-diffraction"} The rings
+scale with the wavelength to within a few per cent, which is what diffraction
+by one population of particles predicts; at the two narrowest widths the
+agreement is close. The data do not test the scaling more finely than the
+spread of the analysis, and the excess at the wider widths is systematic,
+not scatter: it comes from the violet ring, which moves outwards as the
+smoothing widens. The page does not claim more agreement than that. The
+range of the ratio over the widths, ± `{python} result["ratio-half-range"]`,
+is close to the ± `{python} result["ratio-range"]` that treats the two
+radii's ranges as independent errors.
+
+### Which dark ring is it? {#order}
+
+The dark ring outside the saturated centre could be the first minimum of the
+halo, or the second, with the first hidden in the glare. Within one profile
+the ratio of the next bright ring's radius to the dark ring's is also free of
+the distance and the unit, and the model predicts it for either order:
+
+```{python}
+#| label: ring-order
+#| echo: false
+result.table("ring-order")
+```
+
+[The bright ring lies at `{python} result["spacing-red"]` (red) and
+`{python} result["spacing-violet"]` (violet) times the radius of the dark
+ring at the nominal width, and between `{python} result["spacing-low"]` and
+`{python} result["spacing-high"]` times over the smoothing widths, below the
+`{python} result["spacing-order-1"]` of the halo for a first dark ring and
+around the `{python} result["spacing-order-2"]` for a
+second.]{.claim type="experimentally-supported"
+scope="the two line profiles of the record and the halo of the 72 whole spores at the higher magnification; the bright rings are speckled, so the comparison is not decisive"
+evidence="ring-order rings lycopodium-spore-diffraction"} The spacing
+favours the second minimum, but a bright ring of a speckled profile is a
+weak landmark, and the record cannot settle the question. The ratio test
+above holds for either order.
+
+### What the diffraction cannot give {#absolute}
+
+With the microscope's diameters the model gives the $q$ of each ring, and
+the measured radius then fixes the distance to the screen, in the unit of
+$x$:
+
+```{python}
+#| label: screen-distance
+#| echo: false
+result.table("screen-distance")
+```
+
+The two wavelengths give nearly the same distance for each order, but this
+is the ratio test again, computed from the same two radii; it confirms
+nothing new. If the unit were the millimetre, the screen would stand
+`{python} result["distance-1"]` or `{python} result["distance-2"]` mm from the
+spores, both plausible on a table. The ring lies at $\sin\theta \approx$
+`{python} result["sin-1"]` or `{python} result["sin-2"]`, small angles
+either way. Turned around, the diffraction measures the diameter only once
+the distance and the unit are known; the record does not give them, so this
+page infers no diameter from the halo and does not check the microscope
+against it.
+
+## Limits {#limits}
+
+What the comparison does and does not show:
+
+- **No absolute size.** Without the distance to the screen and the unit of
+  the profiles, the halo gives no diameter. The microscope's diameters enter
+  only the conversion from $q$ to a radius, which the record cannot check.
+- **Two profiles, one line each.** Each wavelength is one horizontal line
+  through one photograph, and the record does not say which photograph.
+  Speckle makes a single line noisy; a ring averaged around the whole halo
+  would be steadier, but would need the photographs, which this lab does not
+  use.
+- **One geometry assumed.** The ratio test assumes that both photographs
+  share the distance and the scale. If they did not, the ratio would measure
+  that difference as well.
+- **A sensitivity, not an error.** The uncertainty of a ring is the
+  dependence on one choice of the analysis, the smoothing width. Other
+  choices (the threshold of saturation, the prominence of a dip) are fixed,
+  and the record gives no noise level, so no count of standard errors is
+  given for the ratio.
+- **No intensities.** The camera saturates and its response is unknown, so
+  the brightness of the rings, and the filling of the dark ring by the
+  spread of sizes, are not tested.
+- **Spores taken as disks.** The model treats each spore as an opaque disk
+  of its equal-area diameter. How much its ridged, not quite round outline
+  moves the rings is not tested here.
+
+In plain words: the rings of a Lycopodium halo shrink with the wavelength
+as diffraction by one population of round particles predicts, to within the
+few per cent this record allows; the record gives no way to turn the rings
+into a size, and the microscope, not the laser, measures the spores here.
+
+::: {.exercise .self-check}
+Why does the ratio of the dark-ring radii at two wavelengths not depend on
+the distance to the screen, the unit of the profiles, or the diameter of the
+spores, while each radius alone depends on all three?
+
+::: {.solution}
+The halo depends on the angle and the wavelength only through
+$q = \sin\theta/\lambda$, so a ring has one $q$ at every wavelength, fixed by
+the diameters. Its radius on the screen is $L\tan\theta$, and with small
+angles that is $L q \lambda$: the distance, the unit in which $L$ and $r$ are
+measured, and the diameters (through $q$) multiply both radii alike. In the
+ratio they cancel, and only the ratio of the wavelengths is left.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A calibrated screen.** Suppose the unit of $x$ were the millimetre and the
+screen stood 0.5 m from the spores. What diameter would the red dark ring
+give if it were the first minimum of the halo, and what if it were the
+second? Compare both with the microscope.
+
+::: {.hint}
+Find $\sin\theta$ from the radius and the distance, divide by the wavelength
+to get $q$, and divide the $q\bar d$ of each ring in the table of the rings
+by it.
+:::
+
+::: {.solution}
+The diameter from each order:
+
+```{python}
+#| echo: false
+excerpt(experiment.tabletop_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("tabletop-exercise"), end="")
+```
+
+Neither is the microscope's diameter, so with this distance neither order
+would fit; the distance and the unit the record lacks decide which number
+is right, and that is why the lab infers no diameter.
+:::
+:::
+
+::: {.exercise}
+**A green laser.** The same plate and the same screen are lit by a green
+laser of 532 nm. Where does its dark ring lie, in the unit of $x$?
+
+::: {.solution}
+The ring keeps its $q$, so its radius scales with the wavelength, with the
+small correction of a flat screen:
+
+```{python}
+#| echo: false
+excerpt(experiment.green_exercise)
+```
+
+```{python}
+#| echo: false
+print(result.output("green-exercise"), end="")
+```
+
+The ring lies between the violet and the red one, at a radius close to the
+red one times the ratio of the wavelengths.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/waves/diffraction.py",
+        "src/pbc/waves/halo.py",
+        "src/pbc/waves/experiments/lycopodium_diffraction_lab.py",
+        "src/pbc/experiment.py",
+        "src/pbc/data/reference/lycopodium.py",
+        "src/pbc/data/adapters.py",
+    ],
+    tests=[
+        "tests/unit/test_halo.py",
+        "tests/unit/test_data_lycopodium.py",
+        "tests/unit/test_lycopodium_diffraction_lab_experiment.py",
+    ],
+)
+```
+
+The data card above gives the command that downloads the four files of the
+record into `data/downloads/lycopodium-spore-diffraction`; the committed
+sample is enough for this page, and no model and no account are needed to
+read either.
