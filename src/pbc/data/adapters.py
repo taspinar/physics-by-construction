@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from pbc.data.reference.nist_numisheet import Test
     from pbc.data.reference.ost_hotwire import HotWire
     from pbc.data.reference.sdss_balmer import Spectrum as SdssSpectrum
+    from pbc.data.reference.srm660c import Pattern
     from pbc.data.reference.tess_wasp18 import LightCurve
     from pbc.data.reference.trackpy_bulk_water import Tracks
     from pbc.data.reference.tudelft_boundary_layer import (
@@ -226,6 +227,28 @@ def hot_wire_series(data: HotWire, run: int) -> Series:
         x_unit="s",
         y_name="speed",
         y_unit="m/s",
+    )
+
+
+def diffraction_pattern_series(pattern: Pattern) -> Series:
+    """The measured X-ray powder pattern of one NIST SRM 660c specimen:
+    intensity in counts per counting time against 2theta in degrees, with
+    the Poisson standard uncertainty of the record's weights.
+
+    Processed, as the card labels the record: NIST rebinned the counts,
+    divided them by the counting time, and "corrected" the angle. NIST's
+    model pattern of the same file is a modelled reference and is not part
+    of this series.
+    """
+    return Series(
+        x=pattern.two_theta,
+        y=pattern.intensity,
+        artifact="processed-measured",
+        sigma=pattern.sigma,
+        x_name="2theta",
+        x_unit="degrees",
+        y_name="intensity",
+        y_unit="counts per counting time",
     )
 
 
