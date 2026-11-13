@@ -427,3 +427,38 @@ references:
     licence: >-
       A NACA report, a work of the United States government; linked, not
       copied or rehosted.
+  - key: fitzpatrick-hydrogen-atom
+    concept: >-
+      The bound states of hydrogen from the Schrödinger equation with the
+      reduced mass: the radial equation, the levels proportional to 1/n^2,
+      and the Rydberg formula of the spectral series
+    url: https://farside.ph.utexas.edu/teaching/qmech/Quantum/node82.html
+    title: Hydrogen Atom
+    author: Richard Fitzpatrick, Quantum Mechanics, University of Texas at Austin
+    section: Central Potentials, "Hydrogen Atom", and the next page, "Rydberg Formula"
+    role: derivation
+    statement: >-
+      The two-body problem of the electron and the proton becomes one
+      particle of the reduced mass mu = m_e m_p / (m_e + m_p) in the Coulomb
+      potential (Eqs. 661 to 663); the radial equation (665) is solved by a
+      power series that must terminate, which gives E = E_0 / n^2 with n > l
+      (Eqs. 675 to 679), so the energy does not depend on l. The next page
+      gives 1/lambda = R (1/n_f^2 - 1/n_i^2) (Eq. 700), the Balmer series as
+      the transitions to n_f = 2, and R = -E_0 / h c. The page then writes
+      m_e for mu, neglecting the difference; the lesson keeps mu, which turns
+      R_inf into R_H = R_inf / (1 + m_e / m_p), as the page's own Eq. 662
+      requires. Opened and read on 2026-11-13 (the two pages, their
+      equations from the alternative text of the formula images).
+    alternatives: >-
+      OpenStax University Physics III, "The Hydrogen Atom" (LibreTexts, CC BY
+      4.0): it does not separate the equation in spherical coordinates, treats
+      the proton as fixed (no reduced mass), and states E_0 with a sign that
+      contradicts its own example, so it was not chosen. HyperPhysics,
+      "Hydrogen Schrödinger Equation" (Georgia State University): it gives the
+      separation, but its formulas are images without text and it does not
+      mention the reduced mass. Fitzpatrick's pages are free to read without
+      a sign-in and add what the lesson does not contain: the analytic
+      solution of the radial equation that the lesson checks on a grid.
+    lessons: [atomic-spectroscopy]
+    last-checked: 2026-11-13
+    licence: No licence stated on the pages; linked, not copied or rehosted.
