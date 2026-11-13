@@ -18,9 +18,11 @@ from pbc.data.uncertainty import standard_from_expanded
 if TYPE_CHECKING:
     from pbc.data.reference.bayreuth_rlc import Spectrum
     from pbc.data.reference.dwd_soil import Readings
+    from pbc.data.reference.lycopodium import Profile
     from pbc.data.reference.nist_numisheet import Test
     from pbc.data.reference.srm660c import Pattern
     from pbc.data.reference.tess_wasp18 import LightCurve
+    from pbc.data.reference.trackpy_bulk_water import Tracks
     from pbc.data.reference.xu_pendulum import Run
 
 
@@ -173,6 +175,27 @@ def light_curve_series(lc: LightCurve) -> Series:
     )
 
 
+def luma_profile_series(profile: Profile) -> Series:
+    """The luma (camera brightness, 0 to 255) along the scanline of one
+    Lycopodium diffraction photograph against Tracker's coordinate x, whose
+    unit the record does not state, every row of the sample.
+
+    Processed, as the card labels the profile: extracted from a photograph
+    by the creators with Tracker and averaged across the line. The record
+    gives no uncertainty and no tone curve of the camera, so the series has
+    no uncertainty, and the saturated centre stays in it.
+    """
+    return Series(
+        x=profile.x,
+        y=profile.luma,
+        artifact="processed-measured",
+        x_name="x along the scanline",
+        x_unit="unit of the record, not stated",
+        y_name="luma",
+        y_unit="0-255, camera brightness",
+    )
+
+
 def pendulum_angle_series(run: Run) -> Series:
     """The angle in rad of a rotary-encoder record of the Xu damped
     pendulum against the time in s, every row of the raw file.
@@ -213,4 +236,28 @@ def soil_temperature_series(readings: Readings, column: int) -> Series:
         x_unit="d",
         y_name="soil temperature",
         y_unit="degC",
+    )
+
+
+def track_series(tracks: Tracks, particle: int, axis: int) -> Series:
+    """One coordinate (``axis`` 0 for x, 1 for y) of one track of the
+    trackpy ``bulk_water`` video in pixels of the frame against the frame
+    number, as the committed CSV holds them (no drift subtracted).
+
+    Processed, as the card labels the tracks: the positions are this
+    project's location of the spheres in the recorded frames (band-pass,
+    local maxima, centroid, mass cut) and its linking of them, not the
+    provider's. The record gives no localisation error, so the series has no
+    uncertainty.
+    """
+    rows = tracks.particle == particle
+    order = np.argsort(tracks.frame[rows], kind="stable")
+    return Series(
+        x=tracks.frame[rows][order].astype(float),
+        y=tracks.xy[rows][order, axis],
+        artifact="processed-measured",
+        x_name="frame (24 per second)",
+        x_unit="frame",
+        y_name="xy"[axis],
+        y_unit="px",
     )
