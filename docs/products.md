@@ -214,8 +214,14 @@ software downloaded or installed. It ends in a recommendation on the
 unresolved questions 17 (the device) and 18 (the budget); the physical
 pilot, the live adapter, and the comparison with Bluesky and QCoDeS start
 only after the owner's decisions are recorded on the Issue. Every source
-below was accessed on 2026-11-13. Prices are indicative and dated: a shop
-price is not a quote, VAT and shipping vary, and they change.
+below was accessed on 2026-11-13; the euro prices [AD10, AD11] are the
+owner's own price check of that day. Prices are indicative and dated: a
+shop price is not a quote, VAT and shipping vary, and they change. The
+record was updated the same day with the owner's conditions of use, that
+price check, a corrected description of the AD3's power, the first
+experimental phase, and the possible extensions (the subsections from
+"Conditions of use" on). This exploration changes neither the
+curriculum, nor the risk rules, nor the implementation scope of F140.
 
 **What the protocol asks of a device.** The bench envelope
 (`pbc.products.physics_lab.protocol.bench_envelope`): excitation 0.01 to
@@ -238,7 +244,7 @@ third (below) and not taken further.
 
 | Item | Analog Discovery 3 | Red Pitaya STEMlab 125-14 Gen 2 |
 |---|---|---|
-| Link to the computer | USB-C; the specifications list no other power input [AD1] | 1 Gbit Ethernet (a Linux computer on the board), USB-C for power and console [RP2] |
+| Link to the computer | USB-C, with a connector for an optional external 5 V supply [AD9] (the specifications [AD1] do not list it) | 1 Gbit Ethernet (a Linux computer on the board), USB-C for power and console [RP2] |
 | Host OS and driver | Windows, macOS, Linux [AD2]; the vendor's WaveForms runtime must be installed on the host [AD3] | no driver on the host: SCPI over TCP; the vendor gives Windows and Linux instructions, macOS is not mentioned [RP3] |
 | Python access | the WaveForms SDK, a C library (`dwf`) called from Python through `ctypes` [AD3, AD4]; community wrappers `pydwf` 1.1.19 (MIT, 2023-10-18) and `dwfpy` 1.2.0 (MIT, 2025-01-10) [AD5] | a socket client: the vendor's `redpitaya_scpi.py` opens a plain TCP socket to port 5000 [RP4]; Python 3.10+ [RP3]; on-board C++ and Python API [RP5] |
 | Licence and maintenance | wrappers MIT; the licence of the WaveForms runtime could not be read (digilent.com refuses automated access) | the repository's `COPYING` is BSD for the directories it lists, which do not name `tools/scpi`; the client file carries only a copyright line [RP4]; last release `Release_2026.1` (2026-07-07), last push 2026-10-31 [RP4] |
@@ -247,9 +253,9 @@ third (below) and not taken further.
 | Against the protocol | every range covered; the capacitor channel needs the ±25 V range (3.36 mV resolution instead of 0.336 mV) [AD1] | every range covered with the HV jumpers; on LV the resonant capacitor voltage (3.2 V at 1 V) exceeds the absolute maximum above 1 kHz, so the jumper setting is a hazard the software cannot read (the gain command only "refers to jumper settings" [RP6]); the 50 Ω source adds to the circuit's R |
 | Sample rate | 125 MHz system clock, adjustable 50 to 125 MHz [AD1] | 125 MS/s divided by an integer decimation, 1 to 65,536 [RP6] |
 | Calibration | factory calibrated; specifications after 30 min warm-up at 25 °C [AD1]; a user calibration in WaveForms is not documented in what could be read | factory calibrated; calibration app, `calib` utility, or API; Gen 2 needs no 50 Ω terminators [RP2] |
-| Bill of materials | AD3 with its USB-C cable and 2×15 flywire cable [AD6]; breadboard; R 100 Ω, L 10 mH, C 100 nF | starter kit: board, SD card with the OS, 5 V 5 A supply, Ethernet cable, 2 probes, 2 SMA-BNC adapters [RP7]; BNC-to-clip leads for the two outputs (not in the kit); breadboard; R, L, C |
-| Cost, device | $379.00 (DigiKey, 410-415; Pro bundle with BNC adapter and probes $409.00) [AD6]; $249 academic (Digilent blog, via a search result, not read) [AD7] | £580.00 (Sundance, PRO Gen 2 starter kit) [RP7]; €649 at its 2025 pre-order (CNX Software, 2025-06-24) [RP8] |
-| Failure: disconnect | with no other power input [AD1], unplugging should remove the power and the output; the documentation read does not say so, the pilot confirms it | the board keeps running on its own supply; what the generator does when the client goes away is not documented in what was read [RP3] |
+| Bill of materials | AD3 with its USB-C cable and 2×15 flywire cable [AD6]; the Pro Bundle adds a BNC adapter, two oscilloscope probes, and grabber clips [AD6, AD12]; breadboard; R 100 Ω, L 10 mH, C 100 nF | starter kit: board, SD card with the OS, 5 V 5 A supply, Ethernet cable, 2 probes, 2 SMA-BNC adapters [RP7]; BNC-to-clip leads for the two outputs (not in the kit); breadboard; R, L, C |
+| Cost, device | €407.09 base kit (410-415) and €439.31 Pro Bundle (471-060), including 21 % VAT, excluding shipping (DigiKey Netherlands, the owner's check) [AD10, AD11]; $379.00 and $409.00 (DigiKey US, excluding VAT) [AD6]; $249 academic (Digilent blog, via a search result, not read) [AD7] | £580.00 (Sundance, PRO Gen 2 starter kit) [RP7]; €649 at its 2025 pre-order (CNX Software, 2025-06-24) [RP8] |
+| Failure: disconnect | the AD3 can run on an optional external 5 V supply [AD9], so unplugging the USB cable is not shown to remove all power or the outputs; the behaviour on a lost link and how the outputs are switched off must be checked with the power configuration actually chosen | the board keeps running on its own supply; what the generator does when the client goes away is not documented in what was read [RP3] |
 | Failure: host program ends | `DwfParamOnClose`: 0 continue, 1 stop, 2 shutdown, set by the SDK [AD8]; the default could not be read | not documented in what was read; a malformed command can leave the client's read waiting indefinitely [RP3] |
 | Security of local control | USB to one computer; nothing on a network | a network instrument: SCPI on port 5000 with no authentication described [RP3, RP4], a web interface, and SSH with the default user and password `root` [RP9] |
 
@@ -291,11 +297,15 @@ not change the recommendation.
   (an LCR meter, or the device itself against a known resistor) and the
   run record states them. The documentation read says nothing on how
   often either device needs recalibration for this use.
-- **Bill of materials and cost.** AD3: $379.00 plus the circuit; the base
-  kit's flywires reach a breadboard directly, so the Pro bundle is not
-  needed. Red Pitaya: £580.00 plus leads and the circuit. The circuit
-  (breadboard, three components, wires) is an estimate of under €25 from
-  general experience, not from a source; the pilot plan prices it.
+- **Bill of materials and cost.** AD3: €407.09 (base kit) or €439.31
+  (Pro Bundle) including VAT [AD10, AD11], plus the circuit; the base
+  kit's flywires reach a breadboard directly, so the Pro Bundle's
+  accessories are a convenience, not a need, for the first circuit (see
+  "Purchase options"). Red Pitaya: £580.00 plus leads and the circuit.
+  The circuit's material (breadboard, jumper wires, resistors,
+  capacitors, inductors, and a few further parts) is budgeted at €45 to
+  €80 including VAT: a budget estimate of the owner, not a checked,
+  complete bill of materials.
 - **Realistic duration.** The physics is fast: the transient's time
   constant 2L/R is 0.2 ms, so ten time constants settle in 2 ms, and the
   reference sweep's 19 acquisitions of 8 periods take about 0.1 s of
@@ -312,9 +322,13 @@ not change the recommendation.
   `test_a_stop_request_from_another_thread_is_honoured_at_once`,
   `test_a_timed_out_excitation_that_returns_late_leaves_the_output_off`).
   What it cannot do is act when the host process dies or the link drops.
-  AD3: a pulled cable should unpower the device (to be confirmed); a live driver sets
-  `DwfParamOnClose` to stop instead of relying on the default; a killed
-  process is the case the pilot tests. Red Pitaya: the generator is on
+  AD3: it has a connector for an optional external 5 V supply [AD9], so
+  a pulled USB cable is not a guaranteed emergency stop: what the device
+  and its outputs do on a lost link, and how the outputs are switched
+  off, must be checked with the power configuration actually chosen
+  before anything relies on it. A live driver sets `DwfParamOnClose` to
+  stop instead of relying on the default; a killed process and a pulled
+  cable are the cases the pilot tests. Red Pitaya: the generator is on
   a computer of its own, so a lost client or a crashed host may leave the
   output on; the documentation read describes no watchdog, so a live
   driver would need one on the board, which is more code and a second
@@ -335,24 +349,32 @@ not change the recommendation.
 
 ### Recommendation
 
-**Question 17: the Analog Discovery 3, the base kit (DigiKey 410-415), with
-a series RLC circuit on a breadboard** (100 Ω, 10 mH, 100 nF, as the
+**Question 17: the Analog Discovery 3, the Pro Bundle (DigiKey 471-060),
+with a series RLC circuit on a breadboard** (100 Ω, 10 mH, 100 nF, as the
 bench). Reasons: it covers the envelope with margin; its input range is
 chosen in software and protected to ±50 V, where the Red Pitaya's is a
 jumper the software cannot read with an absolute maximum of ±1 V on LV
 above 1 kHz; its output drives the circuit directly (0 Ω, 30 mA, against
 20 mA at the envelope's maximum on the bench circuit); it is one USB
-device on the learner's computer, with no network exposure; with no
-other power input, losing its cable should switch it off; and it costs
-less. Against it: the proprietary
+device on the learner's computer, with no network exposure; it fits
+the conditions of use below; and it costs less. The Pro Bundle rather
+than the base kit, for €32.22 more, subject to the final basket price:
+see "Purchase options". Against it: the proprietary
 WaveForms runtime is a manual installation outside the lock, whose
 licence the pilot must read; the envelope must add a lower limit on the
 circuit's R (or a lower amplitude) so that the current stays within
 30 mA.
 
-**Question 18: a budget of €500, including VAT and shipping**, for the AD3
-($379.00 list, excluding VAT [AD6]) and the circuit's parts (estimated
-under €25), with no second device; an LCR meter is not included (the AD3
+**Question 18: the proposed budget of €500, including VAT and
+shipping, and the open question of raising it to €550.** The estimated
+starting cost is about €484 to €519 for the Pro Bundle with the RLC
+material, and about €452 to €487 for the base kit with it, both before
+shipping and any missing tools ("Purchase options"). The base kit fits
+€500 with a margin of €13 to €48 for shipping and tools; the Pro Bundle
+fits only at the lower end of the material's estimate. This record
+therefore proposes €550 for the Pro Bundle with the RLC material,
+shipping, and small tools: a proposal for the owner's decision, not a
+decision taken. No second device; an LCR meter is not included (the AD3
 measures the parts against a known resistor). If the owner decides
 against a device, F140 ends here with a no-go, and no page or document
 claims hardware support.
@@ -373,9 +395,139 @@ manual, WaveForms download, SDK manual, forum, shop) and Red Pitaya's
 shop refused automated access: the AD3 figures come from Digilent's
 specification document as served by a distributor [AD1], and some facts
 come from distributors or search results, marked so above. Per-call
-latency, the behaviour after a killed host process or a pulled cable, the WaveForms
-licence, and the circuit's cost are not documented in what was read and
-are the pilot's to establish.
+latency, the behaviour after a killed host process or a pulled cable
+(with the power configuration chosen), the WaveForms licence, and a
+checked bill of materials of the circuit are not documented in what
+was read and are the pilot's to establish.
+
+### Conditions of use (the owner, 2026-11-13)
+
+The owner has no workbench, experiment table, or permanent lab room. The
+set-up must fit on an ordinary dining or writing table, be easy to put
+away and set up again, be built without soldering in the first phase,
+work with low-voltage circuits, and need as little mechanical mounting as
+possible. This makes an RC or RLC circuit on a breadboard the most
+suitable first physical set-up: the AD3 and a breadboard fit in a box,
+the parts plug in, the voltages stay within the AD3's ±5 V outputs
+[AD1], and nothing has to be mounted.
+
+### Purchase options (the owner's price check, 2026-11-13)
+
+| Option | DigiKey part | Price, including 21 % VAT, excluding shipping | Contents |
+|---|---|---|---|
+| Analog Discovery 3, base kit | 410-415 | €407.09 [AD10] | the AD3, its USB-C cable, the flywire cable [AD6] |
+| Analog Discovery 3 Pro Bundle | 471-060 | €439.31 [AD11] | as the base kit, plus a BNC adapter, two oscilloscope probes, and grabber clips [AD12] |
+
+At a difference of €32.22 the Pro Bundle is the recommended variant,
+subject to the final basket price. Its BNC adapter is not needed for the
+first RLC set-up, which is wired with the flywires. The adapter connects
+the oscilloscope single-ended, referenced to ground: it does not keep
+the differential connection of the AD3's ordinary inputs, so through it
+only voltages against ground can be measured.
+
+The RLC material (breadboard, jumper wires, resistors, capacitors,
+inductors, and a few further parts) is estimated at €45 to €80
+including VAT: a budget estimate, not a checked, complete bill of
+materials. The expected totals, before shipping and any missing tools:
+
+| | Device | RLC material | Total |
+|---|---|---|---|
+| Base kit | €407.09 | €45 to €80 | about €452 to €487 |
+| Pro Bundle | €439.31 | €45 to €80 | about €484 to €519 |
+
+Against the proposed budget of €500 including VAT and shipping
+(question 18): the base kit fits with €13 to €48 left for shipping and
+tools; the Pro Bundle fits only at the lower end of the material's
+estimate, and not once shipping or a tool is added. A budget of €550 is
+proposed for the Pro Bundle, the material, shipping, and small tools;
+it is a proposal for the owner's decision, not an approved budget.
+
+### The first experimental phase
+
+The first set-up is an RC or RLC circuit on a breadboard. Its aims: to
+measure the frequency response, the phase shift, the resonance, and the
+damping; to compare the model's predictions with one's own
+measurements; to take the parts' tolerances, the inductor's winding
+resistance, and the measurement uncertainty into account; and to use
+the same set-up later for adaptive measurements and model selection by
+an agent. In the first phase the parts are exchanged by hand; switching
+them automatically with relays is not a requirement (automatic
+switching is out of F140's scope in the roadmap).
+
+The closest connection in the curriculum is the lesson EM5 ("RLC
+circuits and resonance",
+`site/lessons/electromagnetism/05-rlc-circuits-and-resonance/index.qmd`)
+and the measured-data lab EM8 ("RLC circuit measurements lab",
+`site/lessons/electromagnetism/08-rlc-circuit-measurements/index.qmd`).
+In Part B the same set-up can serve instrument control, measurement
+quality, adaptive campaigns, and system identification, starting from
+the frequency-response protocol of the Autonomous Physics Lab
+(`products/physics-lab/README.md`). This connection does not mean that
+the existing lessons or software can already take one's own AD3
+measurements: EM8 analyses its declared dataset, and the product's
+*live* mode has no adapter. Three pieces of follow-up work, none of
+them done or decided here:
+
+- **the adapter**: the live driver of "The simplest viable
+  implementation", in F140's physical pilot on a go;
+- **the data export**: the captured traces written with device,
+  calibration, configuration, timestamps, units, and operating
+  conditions, and declared as a dataset with its card and decision
+  (ADR 007) before anything derived from them is published;
+- **the lesson integration**: whether and how EM5, EM8, or a Part B
+  page take a learner's own measurement, a curriculum change for a
+  later Issue.
+
+### Possible extensions (options, in this order)
+
+Indicative self-build budgets of the owner, 2026-11-13. None is part of
+F140, whose roadmap entry excludes a second device and thermal hardware;
+each would need its own decision.
+
+| Possible extension | Connection | Estimated extra material | Status |
+|---|---|---|---|
+| Sound: a speaker, an amplifier, a microphone, and possibly a resonance tube | mainly W2, W9 | €50 to €100 | the logical next extension |
+| A simple cooling measurement | T7 | to be budgeted separately | first without active heating |
+| Polarisation with an LED, filters, and a light sensor | W4 | €40 to €90 | a compact optical extension |
+| A pendulum or a mass-spring system | M15 and the mechanics lessons | €60 to €120 | later; needs a stable mount |
+| An actively heated thermal set-up | T7, and possibly Part B | €70 to €140 for the whole extension kit | later; needs a supply and a control loop |
+| An elastic material test with strain gauges | MAT3, MAT6 | €90 to €180 | later; the mounting and the calibration decide |
+
+The simple cooling set-up and the later full thermal extension are not
+simply added together: parts can be reused. The limits of these
+connections:
+
+- sound and polarisation connect to the ordinary wave lessons, not
+  directly to the existing measured-data labs W7 (optical diffraction
+  images) and W8 (wave flume);
+- T7's slot is "heat transfer measurements"; its published lab analyses
+  soil temperature data, so a cooling measurement connects to the
+  slot's subject, not to that lab's dataset;
+- an elastic bending test is not a full tensile test to fracture, and it
+  may need an analysis other than MAT6's;
+- this equipment replaces no microwave set-up for EM7 (a slot without a
+  published lesson yet), no wave flume for W8, and no X-ray
+  diffractometer for MAT5;
+- the existing measured-data labs remain usable without buying any
+  equipment.
+
+The slots named in this record and their lessons:
+
+| Slot | Lesson |
+|---|---|
+| EM5 | `site/lessons/electromagnetism/05-rlc-circuits-and-resonance/index.qmd` |
+| EM7 | none yet (F54; its dataset has a go decision) |
+| EM8 | `site/lessons/electromagnetism/08-rlc-circuit-measurements/index.qmd` |
+| W2 | `site/lessons/waves/02-interference-and-resonance/index.qmd` |
+| W4 | `site/lessons/waves/05-polarisation-and-maluss-law/index.qmd` |
+| W7 | `site/lessons/waves/09-lycopodium-diffraction-lab/index.qmd` |
+| W8 | `site/lessons/waves/08-wave-flume-lab/index.qmd` |
+| W9 | `site/lessons/waves/03-sound-and-the-doppler-effect/index.qmd` |
+| T7 | `site/lessons/thermodynamics/10-soil-temperature-measurements/index.qmd` |
+| M15 | `site/lessons/mechanics/20-pendulum-measurements/index.qmd` |
+| MAT3 | `site/lessons/materials/03-elasticity-and-deformation/index.qmd` |
+| MAT5 | `site/lessons/materials/06-xray-diffraction-lab/index.qmd` |
+| MAT6 | `site/lessons/materials/05-stress-strain-measurements/index.qmd` |
 
 ### Sources (accessed 2026-11-13)
 
@@ -399,3 +551,7 @@ are the pilot's to establish.
 - [M1] Analog Devices, ADALM2000 reference manual, <https://analogdevicesinc.github.io/system-level/tools/m2k/users/reference_manual/>
 - [M2] Analog Devices, GitHub repository analogdevicesinc/libm2k (licence, release v0.9.1), <https://github.com/analogdevicesinc/libm2k>
 - [M3] Farnell UK and DigiKey Belgium listings (search result text only), <https://uk.farnell.com/analog-devices/adalm2000/module-data-acquisition-system/dp/4032975>
+- [AD9] Digilent, WaveForms reference manual 3.24.3, the device's power (given by the owner; not fetched in this session), <https://files.digilent.com/manuals/WaveForms/3.24.3/start10.html>
+- [AD10] DigiKey Netherlands, Digilent 410-415, €407.09 including 21 % VAT (the owner's price check), <https://www.digikey.nl/en/products/detail/digilent-inc/410-415/19235661>
+- [AD11] DigiKey Netherlands, Digilent 471-060, €439.31 including 21 % VAT (the owner's price check), <https://www.digikey.nl/en/products/detail/digilent-inc/471-060/19235252>
+- [AD12] Digilent shop, Analog Discovery 3 Pro Bundle, its contents (given by the owner; not fetched in this session), <https://digilent.com/shop/analog-discovery-3-pro-bundle/>

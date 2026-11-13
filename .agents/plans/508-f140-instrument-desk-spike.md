@@ -45,7 +45,15 @@ record: the instrument desk spike (F140, 2026-11-13)", not a new file.
 3. Write the record: comparison table, evidence per item, recommendation
    on questions 17 and 18 with the cost, the limits of the spike.
 4. Post a short summary on the Issue for the owner.
-5. `./scripts/verify.sh --targeted`, last.
+5. The owner's additions of 2026-11-13 (supervisor session, for PR
+   #509): the conditions of use, the owner's euro price check and the Pro
+   Bundle as the recommended variant, the corrected description of the
+   AD3's power (an optional external 5 V supply, so a pulled USB cable is
+   no guaranteed stop), the first experimental phase (RC/RLC on a
+   breadboard, EM5 and EM8, follow-up work), and the possible extensions
+   as options; in the same section of `docs/products.md`. Documentation
+   only; the curriculum, the risk rules, and the scope stay as they are.
+6. `./scripts/verify.sh --targeted`, last.
 
 ## Limits
 
