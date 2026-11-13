@@ -260,3 +260,28 @@ def test_the_conversion_refuses_another_layout(tmp_path):
     _zip(tmp_path / "c.zip", cifs)
     with pytest.raises(ValueError, match="declared 3"):
         tool.convert(tmp_path / "c.zip", tmp_path / "c", check_input=False)
+
+
+def test_the_legend_of_the_specimen_panel_gives_its_values_in_the_axis_unit():
+    # Issue #467: the per-specimen panel gave its legend values in angstrom
+    # beside an axis in pm; the legend uses the axis unit.
+    import matplotlib.pyplot as plt
+
+    fig = lab6.make_figure(DIR)
+    try:
+        (panel,) = [
+            ax
+            for ax in fig.axes
+            if ax.get_title().startswith("Processed: a per specimen")
+        ]
+        assert panel.get_ylabel() == "lattice parameter a [pm]"
+        texts = [t.get_text() for t in panel.get_legend().get_texts()]
+        valued = [t for t in texts if t.startswith(("measured:", "NIST's"))]
+        assert len(valued) == 3
+        for text in valued:
+            assert text.endswith("pm") or " pm, SD " in text, text
+            assert "Å" not in text, text
+        # The values are those of the dossier, in pm: 4.156485 angstrom.
+        assert valued[0].startswith("measured: 415.6485 pm, SD 0.0014")
+    finally:
+        plt.close(fig)
