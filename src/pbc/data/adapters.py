@@ -60,6 +60,19 @@ def transmission_series(network: Network) -> Series:
     )
 
 
+def reflection_series(network: Network) -> Series:
+    """|S11| in dB against frequency in GHz of a calibrated two-port."""
+    return Series(
+        x=network.frequency / 1e9,
+        y=20 * np.log10(np.abs(network.s[:, 0, 0])),
+        artifact="calibrated-observation",
+        x_name="frequency",
+        x_unit="GHz",
+        y_name="|S11|",
+        y_unit="dB",
+    )
+
+
 def measured_elevation(elevation: Elevation, gauge: int) -> Series:
     """Mean of the repetitions at ``gauge`` with the standard uncertainty.
 
