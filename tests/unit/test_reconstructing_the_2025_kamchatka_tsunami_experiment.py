@@ -1,5 +1,5 @@
 """The experiment of "Applied capstone: reconstructing the 2025 Kamchatka
-tsunami" (fluids 9): the benchmarks hold, every run keeps its volume budget
+tsunami" (fluids 10): the benchmarks hold, every run keeps its volume budget
 and a positive depth, the metric of the records is the reference module's,
 what the page says of the comparison is what the runs give, and the figures
 follow the conventions of a measured-data figure and of a simulated one."""
@@ -116,6 +116,55 @@ def test_every_run_keeps_its_budget_and_a_positive_depth(experiment):
     assert number(experiment, "run-count") == len(capstone.RUNS)
 
 
+def test_the_volume_that_leaves_is_what_the_source_displaced(experiment):
+    # The two-hour base runs: more than the net uplift of the sea (the trough
+    # behind the wave is still inside), within half of it, and changing by
+    # less with each refinement.
+    left = {r[0]: float(r[3]) for r in rows(experiment, "budget")}
+    base = [left[f"{name}, base"] for name in ("32'", "16'", "8'")]
+    net = number(experiment, "net-uplift")
+    assert all(net < v < 1.5 * net for v in base)
+    assert abs(base[2] - base[1]) < abs(base[1] - base[0])
+    assert number(experiment, "left-low") == round(min(base))
+    assert number(experiment, "left-high") == round(max(base))
+
+
+def test_a_copied_boundary_drains_through_the_kuril_islands(experiment):
+    # The failure mode the page states: tens of times the radiating run's
+    # outflow, the surface a hundred metres down at the west edge in the
+    # Kuril Islands; in proportion to the source; absent with walls.
+    d = capstone.domain(capstone.BASE)
+    found = capstone.copied(capstone.Experiment(), d)
+    radiating = capstone.kamchatka_run(capstone.BASE).outflow[-1] / 1e9
+    assert found["outflow"] > 10 * radiating
+    assert found["outflow"] == pytest.approx(number(experiment, "copy-outflow"), abs=1)
+    assert found["lowest"] < -100.0 and found["column"] == 0
+    assert 46.0 < found["lat"] < 50.0  # the Kuril arc at 153 degrees E
+    options = {"threshold": capstone.THRESHOLD, "limiter": capstone.LIMITER}
+    small = capstone.tsunami.simulate(
+        d.grid,
+        capstone.at_rest(d.grid),
+        capstone.DURATION,
+        capstone.COURANT,
+        uplift=0.01 * d.uplift,
+        onset=d.onset,
+        **options,
+    )
+    assert small.outflow[-1] / 1e9 == pytest.approx(0.01 * found["outflow"], rel=0.2)
+    walls = capstone.tsunami.simulate(
+        d.grid,
+        capstone.at_rest(d.grid),
+        capstone.DURATION,
+        capstone.COURANT,
+        uplift=d.uplift,
+        onset=d.onset,
+        open_ends=False,
+        **options,
+    )
+    lifted = capstone.replace(d.grid, bed=d.grid.bed + d.uplift)
+    assert np.nanmin(capstone.tsunami.surface(lifted, walls.q)) > -10.0
+
+
 def test_the_grid_study(experiment):
     study = rows(experiment, "grid-study")
     arrivals = [float(r[2]) for r in study if r[0] == "DART 21416"]
@@ -138,6 +187,16 @@ def test_the_sensitivities(experiment):
     assert number(experiment, "rotation-shift") < 10  # seconds: "small"
     assert number(experiment, "kinematic-shift-21416") > 1.0
     assert number(experiment, "kinematic-shift-21415") > 1.0
+    # The edge of the source: cut off instead of tapered, a small effect,
+    # and part of the uncertainty table at both stations.
+    assert number(experiment, "taper-arrival") < 30  # seconds
+    assert number(experiment, "taper-crest") < 10  # per cent
+    budget = rows(experiment, "uncertainty")
+    for station in capstone.STATIONS:
+        assert [f"DART {station}", "source edge (no taper)"] in [r[:2] for r in budget]
+    no_taper = capstone.domain(capstone.COARSE, tapered=False).uplift
+    tapered = capstone.domain(capstone.COARSE).uplift
+    assert np.max(np.abs(no_taper - tapered)) > 0.1  # m: the variant differs
 
 
 def test_what_the_page_says_of_the_comparison(experiment):
@@ -178,6 +237,23 @@ def test_both_waves_are_a_crest_followed_by_a_trough():
             k_crest = np.argmax(np.where(inside, y, -np.inf))
             k_trough = np.argmin(np.where(inside, y, np.inf))
             assert x[k_crest] < x[k_trough], station
+
+
+@pytest.mark.parametrize("minutes", (*capstone.PERIODS, 60.0, 0.5))
+@pytest.mark.parametrize("depth", (4720.0, 5788.0, 50.0))
+def test_the_wavenumber_solves_the_dispersion_relation(minutes, depth):
+    # Independently: Newton's method on k tanh(kh) = omega^2 / g from the
+    # deep-water root, in exact steps; and the limits of shallow and deep water.
+    g, omega = capstone.GRAVITY, 2 * np.pi / (60.0 * minutes)
+    k = max(omega**2 / g, omega / np.sqrt(g * depth))
+    for _ in range(100):
+        t = np.tanh(k * depth)
+        k -= (k * t - omega**2 / g) / (t + k * depth * (1 - t * t))
+    assert capstone.wavenumber(omega, depth) == pytest.approx(k, rel=1e-12)
+    if k * depth < 0.05:
+        assert k == pytest.approx(omega / np.sqrt(g * depth), rel=1e-3)
+    if k * depth > 5:
+        assert k == pytest.approx(omega**2 / g, rel=1e-3)
 
 
 def test_dispersion_and_rotation(experiment):

@@ -75,7 +75,15 @@ plane-wave benchmark, not on the records: monotonized central, error 3.2
 times smaller than minmod's on the finest grid; the north and south faces of a sphere's cell differ in length and
 the source carries the pressure difference, so water at rest stays at rest.
 Coriolis as a source; curvature terms of order u²/R left out. Open
-boundaries by copying (transmissive), walls by reflection. Volume and
+boundaries by copying (transmissive, the FL5 equivalence and the plane
+benchmark), or radiating against the sea at rest (`sea_level`: outgoing
+Riemann invariant of the cell, incoming of water at rest), which every
+Kamchatka run uses; walls by reflection. Discovery of 2026-11-13: with
+copied ghost cells the 8′ base run drained about 1,700 km³ through the
+west edge where it crosses the Kuril arc (a linear instability of the
+boundary: in proportion to the source, independent of the Courant number,
+the limiter and the order, absent with walls); the page states it as a
+failure mode (budget section) and a test pins it. Volume and
 outflow recorded each step (budget), the largest surface and the first
 arrival above 1 cm per cell, gauges by bilinear interpolation. A source in
 time: the bed and the surface of a cell rise by the uplift at its onset.

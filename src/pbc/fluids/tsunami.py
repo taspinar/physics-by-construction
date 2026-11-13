@@ -197,7 +197,29 @@ def monotonized_central(a: Array, b: Array) -> Array:
 LIMITERS = {"minmod": minmod, "monotonized central": monotonized_central}
 
 
-def _sweep(h, eta, un, ut, open_ends: bool, limiter):
+def _radiating(ghost: Array, outward: float, sea_level: float) -> None:
+    """Make the copied ghost cells ``ghost`` (4, rows, 1) of one end radiate,
+    in place: the Riemann invariant that leaves the domain, u_n + 2 c (u_n
+    the velocity along the outward normal, of sign ``outward``, c = sqrt(g
+    h)), is the cell's; the one that enters, u_n - 2 c, is that of water at
+    rest at ``sea_level`` outside. A wave leaves, and the sea outside holds
+    the level, so no water drains through a boundary that a copied cell
+    would leave without a restoring pressure. Dry cells, and cells whose flow
+    leaves faster than c (both invariants leave), keep the copy."""
+    h, eta, un = ghost[0].copy(), ghost[1].copy(), outward * ghost[2]
+    bed = eta - h
+    c = np.sqrt(GRAVITY * h)
+    c_rest = np.sqrt(GRAVITY * np.maximum(sea_level - bed, 0.0))
+    leaving = un + 2.0 * c
+    c_ghost = 0.25 * leaving + 0.5 * c_rest
+    h_ghost = c_ghost * c_ghost / GRAVITY
+    use = (h > WET) & (np.abs(un) < c)
+    ghost[0] = np.where(use, h_ghost, h)
+    ghost[1] = np.where(use, h_ghost + bed, eta)
+    ghost[2] = np.where(use, outward * (0.5 * leaving - c_rest), ghost[2])
+
+
+def _sweep(h, eta, un, ut, open_ends: bool, limiter, sea_level=None):
     """The faces along the last axis (n + 1 per row, the first at the start
     of the row): the fluxes (mass, normal momentum, transverse momentum),
     and of every cell the rebuilt depths h* of its own side at its two faces,
@@ -207,12 +229,17 @@ def _sweep(h, eta, un, ut, open_ends: bool, limiter):
     velocities are reconstructed linearly in each cell with limited slopes
     (zero where the cell or a neighbour is dry), and the bed at a face is
     eta - h there, so a surface at rest stays flat. The ghost cells copy
-    their neighbours (open) or mirror them with the normal velocity reversed
-    (wall), and are not reconstructed."""
+    their neighbours (open), radiate against the sea at rest at
+    ``sea_level`` outside if it is given (``_radiating``), or mirror their
+    neighbours with the normal velocity reversed (wall); they are not
+    reconstructed."""
     cells = np.stack([h, eta, un, ut])  # (4, rows, n)
     first, last = cells[..., :1].copy(), cells[..., -1:].copy()
     if not open_ends:
         first[2], last[2] = -first[2], -last[2]
+    elif sea_level is not None:
+        _radiating(first, -1.0, sea_level)
+        _radiating(last, 1.0, sea_level)
     if limiter is not None:
         padded = np.concatenate([first, cells, last], axis=-1)
         jumps = np.diff(padded, axis=-1)
@@ -261,6 +288,7 @@ def fluxes_and_source(
     open_ends: bool = True,
     second_order: bool = True,
     limiter: str = "monotonized central",
+    sea_level: float | None = None,
 ) -> tuple[Array, Array, Array]:
     """The rate of change dq/dt of every cell, and the mass fluxes through the
     faces (m^2/s: east-west faces (ny, nx + 1), north-south faces (ny + 1,
@@ -274,10 +302,12 @@ def fluxes_and_source(
     h_s^2) (L_n - L_s). For water at rest they cancel the fluxes exactly.
 
     ``open_ends``: each ghost cell copies its neighbour, so a wave leaves
-    without a jump at the face (transmissive); otherwise the boundary is a
-    wall that reverses the normal velocity. ``second_order``: reconstruct
-    with the slope ``limiter`` of ``LIMITERS``; else piecewise constant, the
-    scheme of FL5."""
+    without a jump at the face (transmissive), or, with a ``sea_level``,
+    radiates against the sea at rest at that level outside (the incoming
+    Riemann invariant of the sea at rest, the outgoing one of the cell);
+    otherwise the boundary is a wall that reverses the normal velocity.
+    ``second_order``: reconstruct with the slope ``limiter`` of ``LIMITERS``;
+    else piecewise constant, the scheme of FL5."""
     h = q[..., 0]
     eta = h + grid.bed
     limit = LIMITERS[limiter] if second_order else None
@@ -286,7 +316,7 @@ def fluxes_and_source(
     area = grid.area[:, None]
     # East-west faces.
     mx, px, tx, own_e, own_w, h_e, h_w, b_e, b_w = _sweep(
-        h, eta, u, v, open_ends, limit
+        h, eta, u, v, open_ends, limit, sea_level
     )
     ex = grid.east[:, None]
     source_x = ex * (
@@ -295,7 +325,7 @@ def fluxes_and_source(
     )
     # North-south faces: the same sweep on the transposed grid.
     my, py, ty, own_n, own_s, h_n, h_s, b_n, b_s = (
-        a.T for a in _sweep(h.T, eta.T, v.T, u.T, open_ends, limit)
+        a.T for a in _sweep(h.T, eta.T, v.T, u.T, open_ends, limit, sea_level)
     )
     ln, ls = grid.north[1:, None], grid.north[:-1, None]
     source_y = (
@@ -325,8 +355,10 @@ def _dry(q: Array) -> None:
     q[..., 2][dry] = 0.0
 
 
-def _euler(grid, q, dt, open_ends, second_order, limiter):
-    rate, mx, my = fluxes_and_source(grid, q, open_ends, second_order, limiter)
+def _euler(grid, q, dt, open_ends, second_order, limiter, sea_level=None):
+    rate, mx, my = fluxes_and_source(
+        grid, q, open_ends, second_order, limiter, sea_level
+    )
     q_next = q + dt * rate
     _dry(q_next)
     return q_next, mx, my
@@ -395,6 +427,7 @@ def simulate(
     limiter: str = "monotonized central",
     uplift: Array | None = None,
     onset: Array | None = None,
+    sea_level: float | None = None,
 ) -> Run:
     """Advance ``q0`` on ``grid`` from 0 to ``t_end`` (s) in steps of the CFL
     condition (``time_step``), the last shortened to end at ``t_end`` and a
@@ -409,7 +442,9 @@ def simulate(
 
     ``uplift`` and ``onset`` (m and s, the shape of the grid), if given, are
     a source in time: at the end of the first step that reaches ``onset`` a
-    cell's bed and its surface rise by ``uplift``, its depth unchanged."""
+    cell's bed and its surface rise by ``uplift``, its depth unchanged.
+    ``sea_level``: the open boundary radiates against the sea at rest at this
+    level outside (``fluxes_and_source``) instead of copying its cells."""
     q = np.array(q0, dtype=float)
     lifted = np.zeros(grid.shape, dtype=bool)
     t = 0.0
@@ -442,9 +477,10 @@ def simulate(
         dt = min(time_step(grid, q, courant), t_end - t)
         if pending:
             dt = min(dt, pending[0] - t)
-        q_next, mx, my = _euler(grid, q, dt, open_ends, second_order, limiter)
+        step = (open_ends, second_order, limiter, sea_level)
+        q_next, mx, my = _euler(grid, q, dt, *step)
         if second_order:
-            q_two, mx2, my2 = _euler(grid, q_next, dt, open_ends, second_order, limiter)
+            q_two, mx2, my2 = _euler(grid, q_next, dt, *step)
             q_next = 0.5 * (q + q_two)
             _dry(q_next)
             mx, my = 0.5 * (mx + mx2), 0.5 * (my + my2)

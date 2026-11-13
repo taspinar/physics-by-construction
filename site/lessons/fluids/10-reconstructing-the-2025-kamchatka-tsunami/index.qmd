@@ -158,11 +158,15 @@ flow. Its assumptions:
    time of the nearest subfault of the model, up to
    `{python} result["onset-max"]` min after the origin. The USGS grid does not
    reach zero at its edge (up to `{python} result["edge-lift"]` m), so its edge
-   is tapered to zero. The horizontal motion of sloping sea floor, and the
+   is tapered to zero; cutting it off there instead is one of the variants
+   below. The horizontal motion of sloping sea floor, and the
    smoothing of short features by the water column above them, are not
    included. The USGS publishes no uncertainty for its model; the variants
    below are sensitivities, not that uncertainty.
-6. **Open boundaries.** A wave leaves the domain as if the ocean went on.
+6. **Open boundaries.** A wave leaves the domain as if the ocean went on,
+   into a sea at rest at its level: at each edge the ghost cell keeps the
+   Riemann invariant that leaves the cell and takes the one that enters from
+   water at rest.
 7. **The record as sea level.** The bottom pressure above its mean is read as
    the height of the sea surface, which is hydrostatic for long waves.
 
@@ -373,9 +377,27 @@ m.]{.claim type="numerically-verified" scope="the runs of this page, grids of
 32 to 4 arc-minutes, two hours or 45 minutes" evidence="budget"} The budget
 holds by construction, as it did in the finite-volume lesson, and proves
 nothing about accuracy; it would catch an error in the bookkeeping of the
-faces or the boundary. The volume that leaves is large because the uplift
-and the subsidence are lasting changes of the sea floor: the water above
-them runs off.
+faces or the boundary. The volume that leaves, `{python} result["left-low"]`
+to `{python} result["left-high"]` cubic kilometres in the two-hour base runs, is about
+what the sea floor displaced: the uplift and the subsidence are lasting
+changes, and on the [8′]{.given} grid they lift `{python} result["net-uplift"]` cubic kilometres of
+sea in all. That water runs off, and the trough that follows the wave is
+still inside the domain after two hours.
+
+The boundary is a choice that can fail. The simplest open boundary copies
+each edge cell into its ghost cell, so the face carries the cell's own flux
+and no pressure from outside holds the level. [With that boundary the base
+run on the [8′]{.given} grid drains `{python} result["copy-outflow"]` cubic kilometres through its
+west edge, which crosses the Kuril Islands, and the surface there falls
+`{python} result["copy-lowest"]` m below sea level near
+`{python} result["copy-lat"]`° N, `{python} result["copy-lon"]`° E by the
+end.]{.claim type="numerically-verified" scope="the 8-arc-minute base run
+with copied ghost cells, two hours" evidence="budget"} The drain grows in
+proportion to the source, so it is no effect of the wave's height: it is a
+flaw of the boundary, and with walls instead of open edges the level holds.
+The budget still closes, because the water does leave through the boundary.
+The radiating boundary of the runs above holds the level outside, and the
+volume that leaves changes less with each refinement of the grid.
 
 ### The tsunami
 
@@ -441,13 +463,16 @@ result.table("sensitivity")
 `{python} result["boundary-gap-21416"]` mm at `21416` and
 `{python} result["boundary-gap-21415"]` mm at `21415` in their windows, the
 smaller domain of the finest run by at most `{python} result["near-gap"]` mm,
-and the rotation moves the arrival by about `{python} result["rotation-shift"]`
-s; lifting the sea floor all at once instead of in the order of the rupture
+the rotation moves the arrival by about `{python} result["rotation-shift"]`
+s, and cutting the USGS uplift off at the edge of its grid instead of
+tapering it moves the arrival by at most `{python} result["taper-arrival"]` s
+and the crest by at most `{python} result["taper-crest"]` per cent; lifting the sea floor all at once instead of in the order of the rupture
 brings the wave `{python} result["kinematic-shift-21416"]` min earlier to
 `21416` and `{python} result["kinematic-shift-21415"]` min earlier to
 `21415`.]{.claim type="numerically-verified" scope="the 16-arc-minute grid,
 and the 8-arc-minute grid for the smaller domain" evidence="sensitivity"}
-The boundaries and the rotation are small effects here. The timing of the
+The boundaries, the rotation, and the taper of the source's edge are small
+effects here. The timing of the
 source is not: in the USGS model the rupture took up to
 `{python} result["onset-max"]` min to spread along the trench, and lifting
 the sea floor in its order delays the waves at both stations.
@@ -619,11 +644,17 @@ at the depth of each station, how much later than at $\sqrt{gh}$ would such a
 wave arrive over the station's observed travel time?
 
 ::: {.hint}
-Solve the dispersion relation for $k$ by a fixed-point iteration; the group
+Solve the dispersion relation for $k$ by a root finder in a bracket: the
+root lies above both $\omega^2/g$ and $\omega/\sqrt{gh}$. The group
 speed follows by differentiating the relation with respect to $k$.
 :::
 
 ::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.wavenumber)
+```
+
 ```{python}
 #| echo: false
 excerpt(experiment.dispersion)

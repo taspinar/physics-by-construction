@@ -22,7 +22,7 @@ A heavier rerun on the whole domain at 4 arc-minutes, which the page and the
 checks do not run (about a minute), is ``fine_check()``.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import cache
 
 import matplotlib.pyplot as plt
@@ -31,6 +31,7 @@ from matplotlib.colors import BoundaryNorm
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from scipy.interpolate import RegularGridInterpolator
+from scipy.optimize import brentq
 from scipy.spatial import cKDTree
 
 from pbc.data import SAMPLES_DIR
@@ -70,6 +71,7 @@ COURANT = 0.8  # dt (a_x / dx + a_y / dy) of the CFL condition
 DURATION = 7200.0  # s, two hours after the origin
 NEAR_DURATION = 2700.0  # s, the 4' run: past the crest at DART 21416
 THRESHOLD = 0.01  # m, the surface height that counts as arrival on the map
+SEA_LEVEL = 0.0  # m: the open boundary radiates against the sea at rest
 TAPER = 3  # steps of the USGS grid over which its edge is tapered to zero
 STATIONS = ("21416", "21415")
 WINDOWS = {"21416": (26.0, 70.0), "21415": (50.0, 118.0)}  # min, compared
@@ -158,12 +160,16 @@ def onset_at(lat: np.ndarray, lon: np.ndarray) -> np.ndarray:
 
 @cache
 def domain(
-    factor: int, large: bool = False, rotating: bool = True, near: bool = False
+    factor: int,
+    large: bool = False,
+    rotating: bool = True,
+    near: bool = False,
+    tapered: bool = True,
 ) -> Domain:
     """The domain on blocks of ``factor`` x ``factor`` cells of the 4' crop:
-    the mean bed, the mean uplift, the onset at each block's centre. The
-    larger domain, or the smaller one around DART 21416 (``near``), instead
-    of the base domain."""
+    the mean bed, the mean uplift (its edge tapered if ``tapered``), the
+    onset at each block's centre. The larger domain, or the smaller one
+    around DART 21416 (``near``), instead of the base domain."""
     south, west, rows, columns = (
         LARGE if large else NEAR if near else (SOUTH, WEST, ROWS, COLUMNS)
     )
@@ -174,7 +180,7 @@ def domain(
     z = b.z[i0 : i0 + rows, j0 : j0 + columns].astype(float)
     lat, lon = b.lat[i0 : i0 + rows], b.lon[j0 : j0 + columns]
     fine_lat, fine_lon = np.meshgrid(lat, lon, indexing="ij")
-    lift = tsunami.coarsen(uplift_at(fine_lat, fine_lon), factor)
+    lift = tsunami.coarsen(uplift_at(fine_lat, fine_lon, tapered), factor)
     lat_c, lon_c = centres(lat, factor), centres(lon, factor)
     grid = tsunami.sphere_grid(tsunami.coarsen(z, factor), lat_c, lon_c, rotating)
     block_lat, block_lon = np.meshgrid(lat_c, lon_c, indexing="ij")
@@ -202,13 +208,22 @@ def kamchatka_run(
     large: bool = False,
     rotating: bool = True,
     near: bool = False,
+    tapered: bool = True,
+    radiating: bool = True,
 ) -> Run:
     """The tsunami on the domain of ``factor`` for two hours (45 minutes on
     the domain ``near`` DART 21416): the sea floor and the surface rise at
-    each cell's onset (``kinematic``) or all at once."""
-    d = domain(factor, large, rotating, near)
+    each cell's onset (``kinematic``) or all at once, by the USGS uplift with
+    its edge tapered (``tapered``) or cut off where its grid ends; the open
+    boundary radiates against the sea at rest (``radiating``) or copies its
+    cells into the ghost cells."""
+    d = domain(factor, large, rotating, near, tapered)
     duration = NEAR_DURATION if near else DURATION
-    options = {"threshold": THRESHOLD, "limiter": LIMITER}
+    options = {
+        "threshold": THRESHOLD,
+        "limiter": LIMITER,
+        "sea_level": SEA_LEVEL if radiating else None,
+    }
     if kinematic:
         return tsunami.simulate(
             d.grid,
@@ -229,6 +244,7 @@ VARIANTS = {
     "instantaneous": {"kinematic": False},
     "no rotation": {"rotating": False},
     "larger domain": {"large": True},
+    "no taper": {"tapered": False},
 }
 
 
@@ -302,7 +318,9 @@ def still_water(experiment: Experiment) -> None:
     """Water at rest over the 16' bathymetry on the rotating sphere, open
     boundaries, one hour."""
     d = domain(COARSE)
-    run = tsunami.simulate(d.grid, at_rest(d.grid), 3600.0, COURANT, limiter=LIMITER)
+    run = tsunami.simulate(
+        d.grid, at_rest(d.grid), 3600.0, COURANT, limiter=LIMITER, sea_level=SEA_LEVEL
+    )
     wet = run.q[..., 0] > tsunami.WET
     surface = float(np.max(np.abs(run.q[..., 0] + d.grid.bed)[wet]))
     speed = float(
@@ -474,7 +492,11 @@ def budgets(experiment: Experiment) -> None:
     for (factor, options), name in RUNS.items():
         o = dict(options)
         d = domain(
-            factor, o.get("large", False), o.get("rotating", True), o.get("near", False)
+            factor,
+            o.get("large", False),
+            o.get("rotating", True),
+            o.get("near", False),
+            o.get("tapered", True),
         )
         rows.append(_budget_row(name, kamchatka_run(factor, **o), d))
     worst = max(row[2] for row in rows)
@@ -501,6 +523,34 @@ def budgets(experiment: Experiment) -> None:
     experiment.number("budget-bound", f"{bound:.0e}")
     experiment.number("run-count", len(rows))
     experiment.number("smallest-depth", min(row[4] for row in rows), ".1f")
+    d = domain(BASE)
+    sea = d.grid.bed < 0
+    net = float(np.sum(d.uplift * d.grid.area[:, None] * sea))
+    experiment.number("net-uplift", net / 1e9, ".0f")
+    left = [row[3] for row in rows if row[0].endswith("base")]
+    experiment.number("left-low", min(left), ".0f")
+    experiment.number("left-high", max(left), ".0f")
+    copied(experiment, d)
+
+
+def copied(experiment: Experiment, d: Domain) -> dict:
+    """The failure of the copied boundary: the base run on the 8' grid with
+    each ghost cell a copy of its neighbour drains through the west edge."""
+    run = kamchatka_run(BASE, radiating=False)
+    lifted = tsunami.surface(replace(d.grid, bed=d.grid.bed + d.uplift), run.q)
+    i, j = np.unravel_index(np.nanargmin(lifted), lifted.shape)
+    found = {
+        "outflow": run.outflow[-1] / 1e9,
+        "lowest": float(lifted[i, j]),
+        "column": int(j),
+        "lat": float(d.grid.lat[i]),
+        "lon": float(d.grid.lon[j]),
+    }
+    experiment.number("copy-outflow", found["outflow"], ".0f")
+    experiment.number("copy-lowest", -found["lowest"], ".0f")
+    experiment.number("copy-lat", found["lat"], ".1f")
+    experiment.number("copy-lon", found["lon"], ".1f")
+    return found
 
 
 def _budget_row(name: str, run: Run, d: Domain):
@@ -548,7 +598,11 @@ def inputs_table(experiment: Experiment) -> None:
             "rupture time plus half the rise time of the nearest subfault, 0 to "
             f"{d.onset.max():.0f} s",
         ),
-        ("boundaries", "open (each ghost cell copies its neighbour); land is dry"),
+        (
+            "boundaries",
+            "open, radiating: each ghost cell keeps its neighbour's outgoing "
+            "Riemann invariant and the incoming one of the sea at rest; land is dry",
+        ),
         (
             "scheme",
             f"HLL, hydrostatic reconstruction, {LIMITER} slopes, Heun's method, "
@@ -680,7 +734,8 @@ def sensitivity(experiment: Experiment) -> dict:
         "Against the base run on the same grid (16', and 8' for the smaller "
         "domain, compared up to its end): the uplift all at once instead of in "
         "the order of the rupture, the Earth's rotation left out, a domain twice "
-        "as large in each direction, and the smaller domain of the 4' run.",
+        "as large in each direction, the USGS uplift cut off at the edge of its "
+        "grid instead of tapered, and the smaller domain of the 4' run.",
     )
     for station in STATIONS:
         experiment.number(
@@ -689,6 +744,9 @@ def sensitivity(experiment: Experiment) -> dict:
         experiment.number(
             f"boundary-gap-{station}", found[(station, "larger domain")][2] * 1e3, ".0f"
         )
+    taper = [found[(station, "no taper")] for station in STATIONS]
+    experiment.number("taper-arrival", max(abs(v[0]) for v in taper) * 60.0, ".0f")
+    experiment.number("taper-crest", max(abs(v[1]) for v in taper) * 100, ".0f")
     experiment.number(
         "near-gap", found[(STATIONS[0], "smaller domain (8')")][2] * 1e3, ".0f"
     )
@@ -755,6 +813,9 @@ def comparison(experiment: Experiment, grid: dict, sens: dict) -> dict:
                 abs(v) for v in sens[(station, "larger domain")][:2]
             ),
             "no rotation": tuple(abs(v) for v in sens[(station, "no rotation")][:2]),
+            "source edge (no taper)": tuple(
+                abs(v) for v in sens[(station, "no taper")][:2]
+            ),
         }
         spread_a = float(np.sqrt(sum(a * a for a, _ in parts.values()) + SAMPLING**2))
         spread_h = float(np.sqrt(sum(h * h for _, h in parts.values())))
@@ -810,9 +871,9 @@ def comparison(experiment: Experiment, grid: dict, sens: dict) -> dict:
             ("crest", "%", ".1f"),
         ],
         "What moves the model's arrival and crest at its finest grid: the "
-        "change of the last refinement, the variants of the source, the domain "
-        "and the rotation, and the sampling of the records, combined as if "
-        "independent.",
+        "change of the last refinement, the variants of the source (its timing "
+        "and its edge), the domain and the rotation, and the sampling of the "
+        "records, combined as if independent.",
     )
     return found
 
@@ -820,6 +881,23 @@ def comparison(experiment: Experiment, grid: dict, sens: dict) -> dict:
 # Exercises.
 
 PERIODS = (4.0, 10.0, 20.0)  # min
+
+
+def wavenumber(omega: float, depth: float) -> float:
+    """The root k of omega^2 = g k tanh(k h), solved in a bracket and with
+    its residual checked. Since tanh(kh) < 1 and tanh(kh) < kh, the root lies
+    above the deep-water root omega^2 / g and the shallow-water root
+    omega / sqrt(g h); since tanh(x) >= x tanh(1) for x <= 1 and
+    tanh(x) >= tanh(1) beyond, it lies below twice the larger of them."""
+
+    def excess(k: float) -> float:
+        return GRAVITY * k * np.tanh(k * depth) / omega**2 - 1.0
+
+    low = max(omega**2 / GRAVITY, omega / np.sqrt(GRAVITY * depth))
+    k = brentq(excess, low, 2.0 * low, xtol=1e-16, rtol=1e-14)
+    if abs(excess(k)) > 1e-12:
+        raise ArithmeticError(f"the dispersion relation is not solved: {excess(k)}")
+    return float(k)
 
 
 def dispersion(experiment: Experiment, comp: dict) -> None:
@@ -832,9 +910,7 @@ def dispersion(experiment: Experiment, comp: dict) -> None:
         c0 = np.sqrt(GRAVITY * depth)
         for minutes in PERIODS:
             omega = 2 * np.pi / (60.0 * minutes)
-            k = omega / c0
-            for _ in range(200):  # omega^2 = g k tanh(k h), by fixed point
-                k = omega**2 / (GRAVITY * np.tanh(k * depth))
+            k = wavenumber(omega, depth)
             c = omega / k
             group = 0.5 * c * (1 + 2 * k * depth / np.sinh(2 * k * depth))
             rows.append(

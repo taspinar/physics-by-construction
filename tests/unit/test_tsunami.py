@@ -150,6 +150,58 @@ def test_the_open_budget_closes_and_the_depth_stays_positive():
     assert np.any(run.q[:, 42:, 0] > ts.WET)  # the wave ran onto the dry bed
 
 
+@pytest.mark.parametrize("second_order", [False, True])
+def test_a_radiating_boundary_keeps_water_at_rest_at_rest(second_order):
+    """At rest at the sea level over a rough bed with an island, the
+    radiating ghost cells are the copied ones to round-off, so nothing
+    moves."""
+    grid = rough_sphere(rotating=True)
+    q = np.zeros((*grid.shape, 3))
+    q[..., 0] = np.maximum(0.0, -grid.bed)
+    rate, mx, my = ts.fluxes_and_source(
+        grid, q, second_order=second_order, sea_level=0.0
+    )
+    copied, _, _ = ts.fluxes_and_source(grid, q, second_order=second_order)
+    assert np.max(np.abs(rate[..., 0])) < 1e-12
+    assert np.max(np.abs(mx)) < 1e-9 and np.max(np.abs(my)) < 1e-9  # m^2/s
+    assert np.allclose(rate, copied, rtol=0.0, atol=1e-9)
+
+
+def test_a_radiating_boundary_holds_the_sea_level_outside():
+    """A channel whose water stands 1 m above the sea level outside: copied
+    ghost cells give no pressure from outside, so nothing restores the level,
+    and it stays; radiating ghost cells bring it down to the sea level, the
+    excess leaving through the two ends, after the waves from the ends have
+    crossed the channel and left (about twice its length over sqrt(g h))."""
+    n, depth = 100, 1000.0
+    grid = ts.plane_grid(np.full((2, n), -depth), 1000.0, 1e9)
+    q = np.zeros((2, n, 3))
+    q[..., 0] = depth + 1.0
+    t = 2.0 * n * 1000.0 / np.sqrt(G * depth)
+    copied = ts.simulate(grid, q, t, 0.45)
+    radiating = ts.simulate(grid, q, t, 0.45, sea_level=0.0)
+    assert np.allclose(copied.q[..., 0], depth + 1.0, atol=1e-9)
+    assert np.max(np.abs(radiating.q[..., 0] - depth)) < 1e-3
+    excess = 1.0 * grid.area[0] * 2 * n  # m^3: 1 m over the two rows
+    assert radiating.outflow[-1] == pytest.approx(excess, rel=1e-3)
+
+
+def test_a_wave_leaves_through_a_radiating_boundary():
+    """A small right-going wave on a flat bed (u = eta sqrt(g / h)) leaves
+    through the east edge: what it leaves behind is below a hundredth of
+    its height."""
+    n, dx, depth, a = 300, 2000.0, 4000.0, 0.1
+    x = (np.arange(n) + 0.5) * dx
+    eta = a * np.exp(-(((x - 450e3) / 30e3) ** 2))
+    grid = ts.plane_grid(np.full((2, n), -depth), dx, 1e9)
+    q = np.zeros((2, n, 3))
+    q[..., 0] = depth + eta
+    q[..., 1] = q[..., 0] * eta * np.sqrt(G / depth)
+    t = (n * dx - 450e3 + 150e3) / np.sqrt(G * depth)  # past the east edge
+    run = ts.simulate(grid, q, t, 0.45, sea_level=0.0)
+    assert np.max(np.abs(run.q[0, :, 0] - depth)) < 0.01 * a
+
+
 def test_a_long_wave_travels_at_sqrt_gh():
     """A small hump on a flat bed 4000 m deep splits into two waves that each
     move at sqrt(g h): the crest of the right-going wave is where d'Alembert
