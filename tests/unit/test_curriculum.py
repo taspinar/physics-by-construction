@@ -1212,6 +1212,14 @@ def test_a_page_that_shows_a_filled_slot_as_planned_or_drops_one_fails(page: str
 def test_a_new_lesson_that_fills_a_slot_needs_no_edit_of_a_test(tmp_path: Path):
     site = site_copy(tmp_path)
     before = Progress.read(site)
+    if not any(before.planned("course", c) for c in before.shown_courses()):
+        # Every course slot is filled (since FL10 and EM7): free the slot of
+        # the newest lesson of the last course in the copy, so the test still
+        # writes a new lesson into a planned course slot.
+        course = before.shown_courses()[-1]
+        newest = max((site / "lessons" / course).glob("*/index.qmd"))
+        shutil.rmtree(newest.parent)
+        before = Progress.read(site)
     course = next(c for c in before.shown_courses() if before.planned("course", c))
     label = before.planned("course", course)[0]
     pages = sorted((site / "lessons" / course).glob("*/index.qmd"))
