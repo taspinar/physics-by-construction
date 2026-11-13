@@ -13,20 +13,22 @@ headlines and eight subtexts of F134 under ``variants`` as an editorial
 reference: validated as plain text, never written on a page or used by a
 script. No copy of the hero is written on the page by hand.
 
-The hero image is one Part A illustration (interface artwork of ADR 021
-decision 1; the owner's decision of 2026-11-11, Issue #482): the vortex
-street of fluid dynamics, derived from the master of its atlas illustration
-as a mirrored, edge-faded 2:1 band at three widths, WebP files under
-``site/assets/hero/`` named by its identifier and the width and registered
-in the provenance register, named in the same data file with the course
-whose atlas master it is derived from and its alternative text. The image
+The hero image is one illustration (interface artwork of ADR 021 decision
+1; the owner's decision of 2026-11-11, Issue #482, and the owner's request
+of 2026-11-12, Issue #487): the owner's own illustration of a double
+pendulum, a dotted trace with a dashed curve, and a ball in a glowing well,
+derived from its registered master as a 2:1 image at three widths, WebP
+files under ``site/assets/hero/`` named by its identifier and the width and
+registered in the provenance register, named in the same data file with
+the course of Part A it is named with and its alternative text. The image
 stands in the HTML as one ``<img>`` with its ``srcset``, so that the page is
 the same with and without scripts, a reader of the HTML sees it, the
 browser requests the one file sized for its viewport, and no script runs in
 the hero (the random choice among four images and the ``hero-image``
-parameter of F158 are gone). The fade is in the file (its alpha channel),
-so that the copy stands over the faint end of the trail on a wide screen
-and no edge of the image shows on the paper.
+parameter of F158 are gone). The fade is in the file: the part under the
+copy of a wide screen is lifted toward the paper so that the text keeps its
+contrast, and every edge fades in the alpha channel, so that no edge of the
+image shows on the paper.
 
 The sections after the hero come from ``site/home.yaml``, the owner's
 fixed copy (Issue #481, 2026-11-11): prose and references under the rules
@@ -80,21 +82,27 @@ ABOUT_PAGE = "about.qmd"
 HERO_FILE = "hero.yaml"
 HOME_FILE = "home.yaml"
 # The hero image: one WebP file per width, named by its identifier and the
-# width (tools/illustrations/derive_assets.py --hero), 2:1 (the middle band
-# of its 4:3 master), with the fade in its alpha channel. The HTML gives the
-# largest as the image's intrinsic size, so that the box is reserved in that
-# aspect before the bytes arrive, and the middle one as the `src` of a
-# browser without `srcset`.
+# width (tools/illustrations/derive_assets.py --hero), 2:1 (the frame of its
+# master), lifted under the copy and faded at the edges. The HTML gives the
+# largest (the master's size) as the image's intrinsic size, so that the box
+# is reserved in that aspect before the bytes arrive, and the middle one as
+# the `src` of a browser without `srcset`.
 HERO_IMAGES = "assets/hero"
-HERO_IMAGE_WIDTHS = (1200, 1800, 2400)
-HERO_IMAGE_WIDTH, HERO_IMAGE_HEIGHT = 2400, 1200
-HERO_IMAGE_FALLBACK = 1800
+HERO_IMAGE_WIDTHS = (1200, 1480, 1774)
+HERO_IMAGE_WIDTH, HERO_IMAGE_HEIGHT = 1774, 887
+HERO_IMAGE_FALLBACK = 1480
 # What the browser is told the image is drawn at, so that it picks the file
-# for its viewport and pixel density. Measured on the built page (review
-# round 1, MIN1): 885 CSS px from 1280 px (the content column stops at 1135
-# px and the figure is 78 % of it), about 74 % of the viewport from 992 to
-# 1279 px, and the whole column (about 94 % of the viewport) below 992 px.
-HERO_IMAGE_SIZES = "(min-width: 1280px) 885px, (min-width: 992px) 74vw, 94vw"
+# for its viewport and pixel density. Measured on the built page (Issue
+# #487): from 992 CSS px the figure runs from the left edge of the content
+# column to the right edge of the viewport, the column plus its gutter:
+# half the viewport plus half the column from 1280 px, where the column is
+# 1135 px (1207.5 px at 1280), and the viewport less one gutter of 29 px
+# from 992 to 1279 px; below 992 px the whole column (about 94 % of the
+# viewport).
+HERO_IMAGE_SIZES = (
+    "(min-width: 1280px) calc(50vw + 568px),"
+    " (min-width: 992px) calc(100vw - 29px), 94vw"
+)
 
 # The sections of the Home copy file in the order of the page, with the
 # anchor of each (the identity keeps the anchor of F134's "What this site
@@ -133,8 +141,8 @@ _MARKUP = re.compile(r"[<>*_`#\[\]{}\\|$]")
 
 @dataclass(frozen=True)
 class HeroImage:
-    id: str  # "vortex-street": the name of its files, before the width
-    sequence: str  # the course whose atlas master it is derived from
+    id: str  # "double-pendulum": the name of its files, before the width
+    sequence: str  # the course of Part A the image is named with
     alt: str
 
     def file(self, width: int) -> str:
@@ -284,8 +292,8 @@ def _variant_problems(headlines: object) -> list[str]:
 def image_problems(image: object) -> list[str]:
     """Every rule of the hero image that ``image`` breaks: a mapping of
     exactly ``id`` (lower-case words joined by hyphens, the name of its
-    files), ``sequence`` (a course of Part A, whose atlas master the files
-    are derived from), and ``alt`` (plain, non-empty text)."""
+    files), ``sequence`` (a course of Part A the image is named with), and
+    ``alt`` (plain, non-empty text)."""
     found = _fields("the image", image, {"id", "sequence", "alt"})
     if not isinstance(image, dict):
         return found

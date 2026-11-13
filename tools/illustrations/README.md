@@ -31,21 +31,25 @@ verification, and CI never run anything here; the masters are not committed.
   panel (400 and 800 px wide) sizes, 4:3, WebP, on the page's paper; run on
   the approved masters it reproduces the committed files byte for byte.
 - `derive_assets.py --hero MASTERS [OUT]` writes the hero image of the home
-  page (F158, Issue #462; since Issue #482 one image) to
-  `site/assets/hero/`: the vortex street, from the same master as its atlas
-  panel (`pbc_fluid_dynamics_vortex_street.webp`, 2400 by 1800 px), as the
-  master's middle 2:1 band (rows 300 to 1500), mirrored so that the flow
-  runs from right to left with the cylinder toward the right, with an alpha
-  matte that is zero on every edge, a quarter at most over the left 31 %
-  (where the headline and the subtext stand on a wide screen), and one over
-  the right half, at 1200, 1800, and 2400 px wide, WebP with lossy colour
-  and lossless alpha; it refuses to upscale. Each file's register entry
-  carries the master's origin and hash as the atlas panel's entry records
-  them. Run with the project's locked Pillow and NumPy on the owner's
-  master (SHA-256 matched on Issue #462), it reproduces the committed
-  files byte for byte. The mirror image of the flow is a valid flow; it
-  reverses the sign of the vorticity, which no colour bar or label on the
-  page states.
+  page (F158, Issue #462; since Issue #482 one image; since Issue #487 the
+  owner's double-pendulum illustration) to `site/assets/hero/`: from the
+  owner's master `pbc_hero_assets/pbc-double-pendulum-hero-original.png`
+  (1774 by 887 px, 2:1; the sized variants and the phone crops beside it
+  are not masters), its full frame blended over the page's paper: the
+  illustration's warm ground keyed to the paper, and under the copy of a
+  wide screen (the left 47 % of the image) each pixel lifted toward the
+  paper by what the text's contrast needs (the composited luma at least
+  228, the ink compressed by a power law so that black keeps a ninth and
+  the pale haze most of it; the lift eases out to nothing by 60 %), with
+  an alpha channel that is zero on every edge and one inside the fades, at
+  1200, 1480, and 1774 px wide, WebP with lossy colour and lossless alpha;
+  it refuses to upscale. Each file's register entry names the owner as the
+  author with the date, the master, and its hash, and no script or model
+  (the owner's decision of 2026-11-12: a neutral origin). Run with the
+  project's locked Pillow and NumPy on the owner's master (SHA-256 matched
+  on Issue #487), it reproduces the committed files byte for byte. The
+  image is an illustration, not a result: the trace and the curve in it
+  are nobody's data.
 - `regenerate.py [SEQUENCE ...]` is the regeneration check, on demand: it
   runs a sequence's script in a scratch directory and compares the master
   with the hash in the register; where the bytes differ (the renders are not

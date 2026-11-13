@@ -1910,15 +1910,17 @@ in `src/pbc/authoring/identity.py`. Rules for every page:
   the file under `variants` as an editorial reference that nothing shows.
   Change the copy there and nowhere else; the build fails on an empty or
   missing text, an unknown field, markup, or a broken variant. The hero
-  image is the one Part A illustration named in the same file (`image`:
-  its id, the course whose atlas master it is derived from, and its
-  alternative text), the vortex street of fluid dynamics since Issue #482,
-  in the HTML as one image with the file of each width under
-  `site/assets/hero/` in its `srcset`; no script runs in the hero. The
-  files are derived from the registered master by
-  `tools/illustrations/derive_assets.py --hero` (mirrored, faded in the
-  alpha channel), never by the build; change the illustration there, in
-  the register, and in the data file, and nowhere else.
+  image is the one illustration named in the same file (`image`: its id,
+  the course of Part A it is named with, and its alternative text), the
+  owner's double pendulum since Issue #487 (the vortex street of fluid
+  dynamics from Issue #482 until then), in the HTML as one image with the
+  file of each width under `site/assets/hero/` in its `srcset`; no script
+  runs in the hero. The files are derived from the registered master by
+  `tools/illustrations/derive_assets.py --hero` (the ground keyed to the
+  paper, lifted under the copy, faded at the edges), never by the build;
+  change the illustration there, in the register, and in the data file,
+  and nowhere else. The alternative text names what is seen and claims no
+  measurement or result: the hero is an illustration.
 - The copy after the hero is the owner's fixed text (Issue #481,
   2026-11-11) in `site/home.yaml`: the sections `identity` ("What is
   Physics by Construction?"), `philosophy`, `curriculum`, and `integrity`

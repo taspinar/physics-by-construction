@@ -11164,6 +11164,23 @@ scan, the keyboard pass, and the payload check hold. ADR 021 decision 4
 (the second amendment of 2026-11-11) and the requirements' "Home page"
 record it; criterion 2 of this block reads as history.
 
+**Follow-up after the merge: the owner's request of 2026-11-12 (Issue
+#487, Home: the hero image replaced by the double-pendulum illustration,
+wider, with a fade on the left).** The vortex street is replaced by the
+owner's own illustration (a double pendulum, a dotted trace with a dashed
+curve, a ball in a glowing well), registered as a derived raster from the
+owner's master by its author and date, with no statement of how it was
+made; from 992 CSS px the image runs from the left edge of the content
+column to the right edge of the viewport (the column plus its gutter,
+1207 px at 1280 against 885 px before), and under the copy it is lifted
+toward the paper by what the text's contrast needs, pixel by pixel, so
+that the pendulum stays a pale drawing; the edges fade as before. The
+tests of the matte, the mirror, the register, the share, and the
+requested widths of #482 are replaced (Level 3 by trigger, as before);
+the contrast, edge, one-request, stability, above-the-fold, reflow, and
+no-script tests hold. ADR 021 decision 4 (the amendment of 2026-11-12)
+and the requirements' "Home page" record it.
+
 **Problem.** Home answers what PBC is in three sentences and shows three
 example lessons and a capstone chosen by code; a first-time visitor learns
 neither how physics is learned here nor how Part A and Part B relate, and

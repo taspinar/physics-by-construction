@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from pbc.data.reference.nist_numisheet import Test
     from pbc.data.reference.tess_wasp18 import LightCurve
     from pbc.data.reference.trackpy_bulk_water import Tracks
+    from pbc.data.reference.xu_pendulum import Run
 
 
 def strain_series(strain: Strain) -> Series:
@@ -147,6 +148,26 @@ def light_curve_series(lc: LightCurve) -> Series:
         x_unit="BJD - 2457000, d",
         y_name="PDCSAP flux",
         y_unit="e-/s",
+    )
+
+
+def pendulum_angle_series(run: Run) -> Series:
+    """The angle in rad of a rotary-encoder record of the Xu damped
+    pendulum against the time in s, every row of the raw file.
+
+    Raw measured, as the card labels the angle: the encoder's counts in
+    steps of 2 pi / 2000 rad, written by the PASCO software with 3
+    decimals. The record gives no uncertainty; the encoder step is the
+    resolution. A window of the record is a selection the page states.
+    """
+    return Series(
+        x=run.time,
+        y=run.angle,
+        artifact="raw-measured",
+        x_name="time",
+        x_unit="s",
+        y_name="angle",
+        y_unit="rad",
     )
 
 

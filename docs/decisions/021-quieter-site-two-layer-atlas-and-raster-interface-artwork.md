@@ -73,7 +73,11 @@ compact header with a native menu below 640 CSS px, the measurable
 above-the-fold rule), through the dated notes under them; decision 4
 amended on 2026-11-11 by the owner's copy of Issue #481 and by the owner's
 decision of Issue #482 (one large fluid-dynamics hero, mirrored and faded,
-in the HTML without a script), through the dated notes under it. Delivered by F158; the course introductions of F156
+in the HTML without a script), through the dated notes under it; decisions 2 and
+4 amended on 2026-11-12 by the owner's request of Issue #487 (the owner's
+double-pendulum illustration as the hero, wider, lifted under the copy,
+and carrying no licence in the register), through the dated notes under
+them. Delivered by F158; the course introductions of F156
 and the learning journey of F157 add pages and text within decisions 1 to
 3 without changing them. The text of decision 4 stays as the record of
 what F134 delivered.
@@ -177,6 +181,22 @@ descriptions live.
    with a failing test per case written before the change. An entry
    without its file fails the asset-source rule; the exemption and the
    entry stay one mechanism.
+
+   *Amended on 2026-11-12 by the owner's decision on Issue #487 (Home: the
+   hero image replaced by the double-pendulum illustration).* The hero of
+   the home page carries no licence in the register: the entries of its
+   files under `site/assets/hero/` name their origin (the owner as the
+   author, with the date), their master, and its hash, and no licence or
+   terms, since the owner publishes the owner's own illustration and
+   states no licence for it ("Ik wil helemaal geen licentie op de hero
+   pagina", 2026-11-12). The strict provenance conditions of lesson
+   content do not apply to the hero. The committed-artifact check and the
+   asset-source rule admit without a licence exactly the files the hero's
+   data file `site/hero.yaml` declares (one per width, named by the hero's
+   identifier), and keep requiring one of every other raster entry, also
+   any other file under `site/assets/hero/`, with a test per case (review
+   round 2 of Issue #487 narrowed the exemption from the directory to the
+   declared files). Everything else in this decision stands.
 3. **The Course Atlas as a two-layer navigation page.** At the path
    address, with "Course Atlas" as its display label, the page is built at
    build time from the curriculum file, the front matter, and the atlas
@@ -384,6 +404,38 @@ descriptions live.
    the one `<h1>`, the two actions, the measurable above-the-fold rule of
    2026-11-10 (now with a 2:1 image), no storage, no request beyond the
    image, and no measurement of what works better stand.
+
+   *Amended on 2026-11-12 by the owner's request of Issue #487 (Home: the
+   hero image replaced by the double-pendulum illustration, wider, with a
+   fade on the left).* The hero image is the owner's own illustration of a
+   double pendulum at the left, a dotted trace with a dashed curve through
+   the middle, and a ball in a glowing well at the right, in place of the
+   vortex street: interface artwork of decision 1, registered (decision 2)
+   as a derived raster from the owner's master
+   `pbc_hero_assets/pbc-double-pendulum-hero-original.png` with its hash,
+   by its author and date, with no statement of how it was made and no
+   licence (decision 2 as amended on 2026-11-12: the hero carries none in
+   the register; the owner's decision of 2026-11-12); the vortex street
+   stays registered
+   through the atlas entries of fluids. The files are the master's frame
+   (2:1; 1774 px wide at most, the master's width, so nothing is upscaled)
+   blended over the paper: the illustration's ground keyed to the paper,
+   the part under the copy of a wide screen (the left 47 %) lifted pixel
+   by pixel toward the paper by what the text's contrast needs, so that
+   the pendulum stays a pale drawing rather than vanishing, and every edge
+   faded in the alpha channel; no mirror and no crop. From 992 CSS px the
+   image is wider than before: it starts at the left edge of the content
+   column and runs past the column to the right edge of the viewport (the
+   column plus its gutter, 1207 px at 1280 against 885 px before, by a
+   container unit of the page grid and never `100vw`), with the copy and
+   the actions in the left 46 % of the column over the lifted part; the
+   text's contrast is measured on the render, as before. The image is an
+   illustration, not a result of the project: the trace and the curve it
+   shows are nobody's data, and its alternative text names what is seen
+   and claims no measurement. One file per width (1200, 1480, and 1774
+   px), one request per load, no script, nothing moves; the stacked
+   composition below 992 px, the fixed text, the data file, the measurable
+   above-the-fold rule, and the rest of the amendment of 2026-11-11 stand.
 5. **Navigation and the supporting pages.** The header carries the
    project mark, exactly four menu items (Home, Course Atlas, About, and
    the Start learning button), and the search; the footer carries the

@@ -2479,15 +2479,16 @@ body.pbc-reading-column main.content section.level2 {
 }
 
 /* The home page (docs/atelier.md, "Home page"): the hero (the owner's
-   headline and subtext over one large fluid-dynamics illustration, and the
-   first step), then what Physics by Construction is, how physics is learned
-   here, Part A and Part B, and how we verify what we teach. The page opts in
-   with body-classes: pbc-home. */
+   headline and subtext over one large illustration, and the first step),
+   then what Physics by Construction is, how physics is learned here, Part A
+   and Part B, and how we verify what we teach. The page opts in with
+   body-classes: pbc-home. */
 /* Below 992 CSS px the copy, the two actions, and the image follow each
    other in the document flow, the order of the source: 1.5rem between the
    subtext and the actions and 2rem between the actions and the image
-   (round 2 of Issue 462); the image, a 2:1 band whose edges fade into the
-   paper (the fade is in the file), takes the whole column (Issue 482). */
+   (round 2 of Issue 462); the image, a 2:1 illustration whose edges fade
+   into the paper (the fade is in the file), takes the whole column (Issue
+   482). */
 .home-hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -2539,8 +2540,9 @@ body.pbc-home .hero-subtext {
 
 /* The figure keeps the 2:1 box of the image before its bytes arrive, so
    that the image moves nothing when it is drawn. The image carries its own
-   fade (an alpha channel that is zero on every edge), so it needs no blend
-   with the paper and shows no box. */
+   fade (an alpha channel that is zero on every edge, its ground keyed to
+   the paper in the file), so it needs no blend with the paper and shows no
+   box. */
 .hero-figure {
   grid-area: figure;
   width: 100%;
@@ -2555,13 +2557,21 @@ body.pbc-home .hero-subtext {
 }
 
 /* From 992 CSS px one composition (the owner's decision of 2026-11-11,
-   Issue 482): the illustration is the ground of the hero, 78 % of its width
-   at the right edge of the column, and the copy and the actions stand in
-   the left 46 % over the faint end of its trail (the left 31 % of the
-   image, where the file's own fade keeps the ink at a quarter at most, so
-   that the text keeps its contrast; measured by the Home tests). The
-   hero is as tall as the image, the copy centred on it. */
+   Issue 482; wider since Issue 487): the illustration is the ground of the
+   hero. It starts at the left edge of the content column and runs past the
+   column's right edge to the right edge of the viewport: the column plus
+   its gutter, half the hero plus half the page (the width of Quarto's page
+   grid, the container below), which no classic scrollbar widens as 100vw
+   would. A browser without container units draws it at the column's width.
+   The copy and the actions stand in the left 46 % of the column above it,
+   over the left 45 % of the image at most, where the file's own lift keeps
+   every pixel light enough for the text's contrast (measured by the Home
+   tests). The hero is as tall as the image, the copy centred on it. */
 @media (min-width: 992px) {
+  body.pbc-home #quarto-content {
+    container-type: inline-size;
+  }
+
   .home-hero {
     grid-template-columns: minmax(0, 46fr) minmax(0, 54fr);
     grid-template-rows: 1fr auto auto 1fr;
@@ -2576,8 +2586,9 @@ body.pbc-home .hero-subtext {
   .hero-figure {
     grid-area: 1 / 1 / -1 / -1;
     align-self: center;
-    justify-self: end;
-    width: 78%;
+    justify-self: start;
+    width: 100%;
+    width: calc(50% + 50cqw);
     margin: 0;
   }
 
