@@ -162,6 +162,50 @@ def test_the_scatter_about_the_line_is_not_counting_noise(results):
     assert rows[2][3] == ""
 
 
+def test_the_two_specimens_of_a_bottle_are_checked_for_a_common_error(results):
+    _, found = results
+    rows = found["tables"]["bottle-check"]["rows"]
+    assert [row[0] for row in rows] == ["extrapolated a", "measured minus model"]
+    # The dossier's specimens pair up by bottle: 100a, 100b, ..., 1000b.
+    assert srm660c.SPECIMENS[:4] == ("100a", "100b", "200a", "200b")
+    # No common error shows within a bottle: F near 1, no significance, a
+    # weak correlation of the a and b specimens.
+    for name in ("a", "difference"):
+        assert _number(found, f"bottle-p-{name}") > 0.05
+        assert abs(_number(found, f"bottle-correlation-{name}")) < 0.5
+    # The bottle means give a standard error close to the 20 specimens'.
+    assert _number(found, "sem-bottles-a") == pytest.approx(
+        _number(found, "a-sem-ppm"), rel=0.2
+    )
+    # The comparisons use the larger of the two.
+    assert _number(found, "sem-used") >= _number(found, "a-sem-ppm") - 0.05
+    assert _number(found, "sem-used") >= _number(found, "sem-bottles-a") - 0.05
+    assert (
+        _number(found, "difference-sem")
+        >= _number(found, "sem-bottles-difference") - 0.005
+    )
+
+
+def test_the_bottle_check_finds_a_common_error_when_there_is_one():
+    from pbc.experiment import Experiment
+
+    rng = np.random.default_rng(0)
+    shared = np.repeat(rng.normal(size=10) * 5, 2)
+    independent = rng.normal(size=20)
+    found = lab.bottle_check(
+        Experiment(),
+        {
+            "shared": ("shared", shared + 0.1 * independent),
+            "independent": ("independent", independent),
+        },
+    )
+    assert found["shared"]["p"] < 0.001
+    assert found["shared"]["correlation"] > 0.9
+    # With a shared error the bottle means give the honest, larger error.
+    assert found["shared"]["sem-bottles"] > 1.3 * found["shared"]["sem"]
+    assert found["independent"]["p"] > 0.01
+
+
 def test_the_slope_follows_the_displacement(results):
     _, found = results
     assert _number(found, "slope-correlation") > 0.999

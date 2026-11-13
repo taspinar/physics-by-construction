@@ -21,6 +21,7 @@ from functools import partial
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
+from scipy import stats
 
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import diffraction_pattern_series
@@ -380,6 +381,61 @@ def error_check(experiment: Experiment, measured: dict, model: dict) -> dict:
     return out
 
 
+def bottle_check(experiment: Experiment, series: dict[str, np.ndarray]) -> dict:
+    """Whether the two specimens of one bottle are independent, as the
+    standard error of the mean of 20 assumes. The specimens come in pairs,
+    a and b, from 10 bottles (``SPECIMENS`` in bottle order). For each
+    series of 20 values [ppm]: the correlation of the a and b specimens over
+    the bottles, the one-way analysis of variance of the 10 bottles (the F
+    ratio of the scatter between the bottle means to that within them, on 9
+    and 10 degrees of freedom, and its p-value), the standard error of the
+    mean of 20 independent specimens, and that of the mean of the 10 bottle
+    means, which assumes nothing about the two specimens of a bottle."""
+    out, rows = {}, []
+    for name, (label, values) in series.items():
+        pairs = np.asarray(values, float).reshape(-1, 2)
+        bottles = pairs.mean(axis=1)
+        within = float(np.var(pairs, axis=1, ddof=1).mean())
+        between = pairs.shape[1] * float(np.var(bottles, ddof=1))
+        ratio = between / within
+        dof = (bottles.size - 1, bottles.size * (pairs.shape[1] - 1))
+        out[name] = {
+            "correlation": float(np.corrcoef(pairs[:, 0], pairs[:, 1])[0, 1]),
+            "f": ratio,
+            "p": float(stats.f.sf(ratio, *dof)),
+            "sem": float(np.std(pairs, ddof=1)) / np.sqrt(pairs.size),
+            "sem-bottles": float(np.std(bottles, ddof=1)) / np.sqrt(bottles.size),
+        }
+        found = out[name]
+        rows.append(
+            (
+                label,
+                found["correlation"],
+                found["f"],
+                found["p"],
+                found["sem"],
+                found["sem-bottles"],
+            )
+        )
+    experiment.table(
+        "bottle-check",
+        rows,
+        columns=[
+            ("series", "", "s"),
+            ("correlation of the a and b specimens over 10 bottles", "", "+.2f"),
+            ("F, between bottles over within (9 and 10 dof)", "", ".2f"),
+            ("p-value of F", "", ".2f"),
+            ("standard error of the mean, 20 specimens", "ppm", ".2f"),
+            ("standard error of the mean, 10 bottle means", "ppm", ".2f"),
+        ],
+        caption="The two specimens of each of the 10 bottles: whether they scatter "
+        "together. F near 1 and a correlation near zero are what independent "
+        "specimens give; the standard error of the 10 bottle means holds whether "
+        "they are independent or not.",
+    )
+    return out
+
+
 def displacement_slopes(measured: dict, specimens: dict) -> dict:
     """The slope of each specimen's line against the displacement function
     cos^2(theta)/sin(theta), against the displacement NIST refined for it:
@@ -471,6 +527,11 @@ def budget(experiment: Experiment, found: dict) -> None:
         ),
         ("repeatability over 20 specimens (SD)", "statistical", found["sd"]),
         ("standard error of the mean of 20 specimens", "statistical", found["sem"]),
+        (
+            "standard error of the mean of the 10 bottle means",
+            "statistical",
+            found["sem-bottles"],
+        ),
         (
             "measured minus NIST's model, same method (mean of 20)",
             "measured",
@@ -911,7 +972,29 @@ def run() -> Experiment:
     experiment.number("stderr-measured", errors["measured"]["stderr"], ".1f")
     experiment.number("stderr-model", errors["model"]["stderr"], ".1f")
     experiment.number("count-sd", errors["difference"]["sd"], ".1f")
-    experiment.number("difference-sem", errors["difference"]["sem"], ".2f")
+
+    pairing = bottle_check(
+        experiment,
+        {
+            "a": ("extrapolated a", ppm(measured_a, CERTIFIED_A)),
+            "difference": ("measured minus model", ppm(measured_a, model_a)),
+        },
+    )
+    for name in ("a", "difference"):
+        found = pairing[name]
+        experiment.number(f"bottle-correlation-{name}", found["correlation"], "+.2f")
+        experiment.number(f"bottle-f-{name}", found["f"], ".2f")
+        experiment.number(f"bottle-p-{name}", found["p"], ".2f")
+        experiment.number(f"sem-bottles-{name}", found["sem-bottles"], ".2f")
+    # The comparisons use the larger of the two standard errors of the mean,
+    # so that they hold whether the specimens of a bottle are independent
+    # or not.
+    sem_used = max(sem / CERTIFIED_A * 1e6, pairing["a"]["sem-bottles"])
+    difference_sem = max(
+        errors["difference"]["sem"], pairing["difference"]["sem-bottles"]
+    )
+    experiment.number("sem-used", sem_used, ".1f")
+    experiment.number("difference-sem", difference_sem, ".2f")
     experiment.number("above-measured", errors["measured"]["above"])
     experiment.number("above-model", errors["model"]["above"])
 
@@ -928,12 +1011,10 @@ def run() -> Experiment:
     nist_gap = ppm(nist, CERTIFIED_A)
     experiment.number("bias", bias, "+.1f")
     experiment.number("difference", difference, "+.1f")
-    experiment.number(
-        "difference-sigmas", difference / errors["difference"]["sem"], ".0f"
-    )
+    experiment.number("difference-sigmas", difference / difference_sem, ".0f")
     experiment.number("gap", gap, "+.1f")
     experiment.number("gap-u", abs(gap) / (CERTIFIED_U / CERTIFIED_A * 1e6), ".1f")
-    experiment.number("gap-sem", abs(gap) / (sem / CERTIFIED_A * 1e6), ".0f")
+    experiment.number("gap-sem", abs(gap) / sem_used, ".0f")
     experiment.number("nist-gap", nist_gap, "+.1f")
     corrected = mean - (model_mean - nist)
     experiment.number("corrected", corrected, ".6f")
@@ -952,6 +1033,7 @@ def run() -> Experiment:
             "count-sd": errors["difference"]["sd"],
             "sd": sd / CERTIFIED_A * 1e6,
             "sem": sem / CERTIFIED_A * 1e6,
+            "sem-bottles": pairing["a"]["sem-bottles"],
             "difference": difference,
             "gap-spread": spread["gap-high"] - spread["gap-low"],
             "bias": bias,

@@ -405,8 +405,36 @@ type="experimentally-supported"
 scope="the 20 specimens of the record, the lab's peak fits and Nelson-Riley line above 2θ = 60°, the certificate's wavelength"
 evidence="fig-specimens nist-srm660c-lab6"}
 
-The standard error of one intercept and the standard error of the mean
-both assume independent scatter. The residuals of each line can be checked
+That standard error of the mean assumes that the twenty specimens scatter
+independently. They come in pairs, a and b, from ten bottles of the
+standard, and the two specimens of one bottle could share an error. The
+pairs can be compared with each other:
+
+```{python}
+#| label: bottle-check
+#| echo: false
+result.table("bottle-check")
+```
+
+[The two specimens of a bottle show no sign of a common error: over the ten bottles
+the extrapolated $a$ of the a and b specimens correlates at
+`{python} result["bottle-correlation-a"]`, and the scatter between the
+bottle means is that within them (F = `{python} result["bottle-f-a"]`,
+p = `{python} result["bottle-p-a"]`); for the measurement minus NIST's
+model the numbers are `{python} result["bottle-correlation-difference"]`,
+`{python} result["bottle-f-difference"]` and
+`{python} result["bottle-p-difference"]`. The standard error of the ten
+bottle means, `{python} result["sem-bottles-a"]` ppm for $a$ and
+`{python} result["sem-bottles-difference"]` ppm for the difference, is
+close to the one of twenty specimens.]{.claim type="experimentally-supported"
+scope="the 10 bottles of the record, two specimens each, the extrapolated a and the measurement minus NIST's model; ten bottles reveal only a strong correlation within a bottle"
+evidence="bottle-check nist-srm660c-lab6"} Ten bottles cannot rule out a
+weak correlation within a bottle. The standard error of the bottle means
+does not depend on it, because it treats each bottle as one value; the
+comparisons below therefore use the larger of the two standard errors.
+
+The standard error of one intercept assumes independent scatter too, of
+the points about the line. The residuals of each line can be checked
 for that by the autocorrelation of neighbours in the order of the angle,
 and NIST's model gives a control that has no counting noise at all:
 
@@ -481,7 +509,7 @@ method is `{python} result["difference"]` ppm, about
 `{python} result["difference-sem"]` ppm.]{.claim
 type="experimentally-supported"
 scope="the 20 specimens, the lab's peak fits and extrapolation applied to NIST's model with the measured weights, NIST's refined a as stated in the CIFs"
-evidence="fig-specimens fig-extrapolation nist-srm660c-lab6"}
+evidence="fig-specimens fig-extrapolation bottle-check nist-srm660c-lab6"}
 The bias is large and it is the method's: the symmetric profile puts the
 centre of an asymmetric peak in the wrong place, by an amount that changes
 with the angle and survives the extrapolation. The measurement agrees with
@@ -542,11 +570,11 @@ result.table("budget")
 
 [The measured mean lies `{python} result["gap"]` ppm from the certified
 value, `{python} result["gap-u"]` times its expanded uncertainty and about
-`{python} result["gap-sem"]` times the standard error of the mean of the
-`{python} result["specimens"]` specimens: the simple analysis does not
-agree with the certified value.]{.claim type="experimentally-supported"
+`{python} result["gap-sem"]` times the standard error of the mean
+(`{python} result["sem-used"]` ppm, the larger of the two): the simple
+analysis does not agree with the certified value.]{.claim type="experimentally-supported"
 scope="the mean of the 20 specimens, the lab's peak fits and Nelson-Riley line above 2θ = 60°, the certificate's wavelength and certified value, no temperature adjustment"
-evidence="budget extrapolations nist-srm660c-lab6"} The statistical
+evidence="budget extrapolations bottle-check nist-srm660c-lab6"} The statistical
 errors are a few ppm at most; the extrapolation's choices move the result
 by `{python} result["gap-spread"]` ppm; the method's bias,
 `{python} result["bias"]` ppm, dominates everything, and it accounts for
