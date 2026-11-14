@@ -8,12 +8,14 @@ what the figure is and whose data it shows:
 - the PNG: ``pbc.experiment.encode`` writes the text chunks of ``metadata``
   (status, figure identity, dataset, licence, attribution, processing),
   deterministically and without a date, a software version, an author, or
-  a copyright field, and paints one short line of credit under the axes
-  only where the card's ``rights.figure_credit.visible`` is ``required``;
+  a copyright field, and paints one short line under the axes: the
+  visualization credit, combined with the card's short credit where
+  ``rights.figure_credit.visible`` is ``required``;
 - the page: the post-render step ``site/figure-credits.py`` reads that
   metadata from the page's PNG, requires the caption's status and dataset to
-  equal it, and adds the combined statuses, the short credit, and the full
-  provenance in a closed ``<details>`` (``caption_html``), from the card.
+  equal it, the painted line to be the one the card gives, and adds the
+  combined statuses, the short credit, and the full provenance in a closed
+  ``<details>`` (``caption_html``), from the card.
 
 The status is no longer painted into a declared figure (``label_status``),
 nor the long credit (``add_credit``): ``pbc.data.plotting.check_figure``
@@ -22,10 +24,14 @@ status words of the legend entries by a role on each drawn artist, and
 ``check_png`` compares the PNG's metadata with the declaration and the card.
 A figure that declares nothing is drawn and encoded exactly as before.
 
-The optional visualization credit ("Visualization: Physics by Construction
-· Data: ...") is the owner's choice on the examples of the pilot
-(``VISUALIZATION_CREDIT`` stays off until then). No wording may claim
-ownership of external data (``ownership_problems``).
+The visualization credit is the owner's choice of 2026-11-14 on Issue #524,
+"with subtle branding": every declared figure shows the small line
+"Visualization: Physics by Construction" under the figure, outside the plot
+area, so that a downloaded or shared image still shows where the
+visualization comes from; where the card's terms require a visible dataset
+credit the two form one line ("Visualization: Physics by Construction ·
+Data: ..."). No box, no logo; the type size and grey of the figure credits.
+No wording may claim ownership of external data (``ownership_problems``).
 
 Run as a program it writes the pilot's examples into a directory::
 
@@ -55,8 +61,8 @@ if TYPE_CHECKING:
     from matplotlib.figure import Figure
 
 SCHEMA = "pbc-figure-provenance/1"
-# The owner's choice on the examples of Issue #524: off until it is made.
-VISUALIZATION_CREDIT = False
+# The owner's choice on Issue #524 (2026-11-14): with subtle branding.
+VISUALIZATION_CREDIT = True
 VISUALIZATION_PREFIX = "Visualization: Physics by Construction"
 CREDIT_PREFIX = "Data: "
 SHORT_CREDIT_LIMIT = 100
@@ -221,17 +227,24 @@ def declaration_problems(provenance: FigureProvenance, card: dict) -> list[str]:
     return out
 
 
-def visible_credit(card: dict, *, visualization: bool = False) -> str | None:
+def visible_credit(
+    card: dict, *, visualization: bool = VISUALIZATION_CREDIT
+) -> str | None:
     """The one line painted under a portable figure, or None.
 
-    The card's short credit where its terms require it visible; with the
-    visualization credit, "Visualization: Physics by Construction · " and
-    the short credit, whatever the card requires.
+    With the visualization credit (the default, the owner's choice), the
+    line "Visualization: Physics by Construction", followed by " · " and
+    the card's short credit where its terms require that credit visible.
+    Without it, the card's short credit where its terms require it, or
+    nothing.
     """
     credit = card["rights"]["figure_credit"]
+    data = credit["short"] if credit["visible"] == "required" else None
     if visualization:
-        return f"{VISUALIZATION_PREFIX} · {credit['short']}"
-    return credit["short"] if credit["visible"] == "required" else None
+        return (
+            VISUALIZATION_PREFIX if data is None else f"{VISUALIZATION_PREFIX} · {data}"
+        )
+    return data
 
 
 def source_link(card: dict) -> str:
@@ -246,7 +259,7 @@ def metadata(
     card: dict,
     identity: str,
     *,
-    visualization: bool = False,
+    visualization: bool = VISUALIZATION_CREDIT,
 ) -> dict[str, str]:
     """The text chunks of the PNG of a declared figure, in a fixed order.
 
@@ -333,7 +346,7 @@ def check_png(
     card: dict,
     identity: str,
     *,
-    visualization: bool = False,
+    visualization: bool = VISUALIZATION_CREDIT,
 ) -> list[str]:
     """Problems of the metadata of a declared figure's PNG; empty if none.
 
@@ -463,6 +476,9 @@ def caption_html(meta: dict[str, str], card: dict) -> tuple[str, str]:
             " metadata.",
         ),
     ]
+    painted = meta.get("pbc:visible-credit", "")
+    if painted:
+        items.insert(4, ("On the image", escape(painted)))
     rows = "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in items)
     short = escape(rights["figure_credit"]["short"])
     end = (
@@ -475,8 +491,9 @@ def caption_html(meta: dict[str, str], card: dict) -> tuple[str, str]:
 
 def examples(directory: Path, experiments=None) -> list[Path]:
     """Write every declared figure of ``experiments`` (the three of the
-    pilot when None) without and with the visualization credit into
-    ``directory`` for the owner's choice; return the files."""
+    pilot when None) as the page shows it, with the visualization credit,
+    and without it into ``directory``, the evidence of the owner's choice;
+    return the files."""
     from pbc.experiment import encode
 
     directory.mkdir(parents=True, exist_ok=True)
@@ -486,7 +503,7 @@ def examples(directory: Path, experiments=None) -> list[Path]:
             card = card_of(provenance.dataset)
             draw = experiment.figures[label]
             identity = experiment.identity(label)
-            for visualization in (False, True):
+            for visualization in (True, False):
                 png = encode(
                     draw,
                     metadata=metadata(
@@ -494,7 +511,7 @@ def examples(directory: Path, experiments=None) -> list[Path]:
                     ),
                     credit=visible_credit(card, visualization=visualization),
                 )
-                suffix = "-visualization-credit" if visualization else ""
+                suffix = "" if visualization else "-without-visualization-credit"
                 path = directory / f"{label}{suffix}.png"
                 path.write_bytes(png)
                 written.append(path)

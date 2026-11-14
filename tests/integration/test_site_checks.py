@@ -1538,6 +1538,7 @@ def test_a_declared_figure_with_its_completed_caption_passes(make_site: Site):
         ("details", "full provenance"),
         ("combines", "combined"),
         ("status", "status is not the PNG's"),
+        ("painted", "does not name the painted line"),
     ],
 )
 def test_a_declared_figure_whose_caption_misses_a_part_is_reported(
@@ -1550,6 +1551,10 @@ def test_a_declared_figure_whose_caption_misses_a_part_is_reported(
         end = end[: end.index("<details")]
     if part == "combines":
         after = ""
+    if part == "painted":
+        end = end.replace("<dt>On the image</dt>", "").replace(
+            f"<dd>{figure_provenance.VISUALIZATION_PREFIX}</dd>", ""
+        )
     site = make_site(
         body=declared_figure(
             end, after, "calibrated" if part == "status" else "processed"
@@ -1561,6 +1566,37 @@ def test_a_declared_figure_whose_caption_misses_a_part_is_reported(
 
     assert rules(violations) == {"figure-credit"}
     assert text in site_checks.describe(violations)
+
+
+def test_a_png_without_the_cards_painted_line_is_reported(make_site: Site):
+    def draw():
+        fig, ax = plt.subplots(figsize=(1, 1))
+        ax.plot([0, 1], [0, 1])
+        return fig
+
+    provenance = figure_provenance.FigureProvenance(
+        status="processed",
+        dataset="tess-exoplanet-light-curves",
+        combines=("simulated",),
+        processing="Folded and fitted by this lesson's code.",
+    )
+    card = figure_provenance.card_of(provenance.dataset)
+    png = encode(
+        draw,
+        metadata=figure_provenance.metadata(
+            provenance, card, "m:fig-x", visualization=False
+        ),
+    )
+    after, end = figure_provenance.caption_html(
+        figure_provenance.read_metadata(png), card
+    )
+    site = make_site(body=declared_figure(end, after))
+    (site / "fig.png").write_bytes(png)
+
+    violations = site_checks.check_figure_credits(site)
+
+    assert rules(violations) == {"figure-credit"}
+    assert "painted line is not the card's" in site_checks.describe(violations)
 
 
 def test_a_credit_without_a_record_in_the_png_is_reported(make_site: Site):

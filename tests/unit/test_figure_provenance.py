@@ -117,8 +117,11 @@ def test_the_declared_png_carries_the_record_of_the_declaration_and_the_card():
     assert "processed measurement with simulated models" in found["Description"]
     assert fp.check_png(png, MIXED, card, identity) == []
     # Deterministic: no date, no software, no author or copyright field.
+    assert found["pbc:visible-credit"] == fp.VISUALIZATION_PREFIX
     assert png == encode(
-        _measured_and_model, metadata=fp.metadata(MIXED, card, identity)
+        _measured_and_model,
+        metadata=fp.metadata(MIXED, card, identity),
+        credit=fp.VISUALIZATION_PREFIX,
     )
     assert not set(found) & set(fp.FORBIDDEN_KEYS)
     assert b"tIME" not in _chunk_types(png)
@@ -176,7 +179,10 @@ def test_a_card_that_requires_a_visible_credit_gets_one_line_under_the_axes():
 
     card = fp.card_of(NIST)
     line = fp.visible_credit(card)
-    assert line == card["rights"]["figure_credit"]["short"]
+    assert line == (
+        "Visualization: Physics by Construction · "
+        + card["rights"]["figure_credit"]["short"]
+    )
     with_line = encode(draw, credit=line)
     texts = [t for t in drawn[-1].texts if t.get_gid() == fp.CREDIT_GID]
     assert [t.get_text() for t in texts] == [line]
@@ -185,23 +191,40 @@ def test_a_card_that_requires_a_visible_credit_gets_one_line_under_the_axes():
     assert all(ax.get_position().y0 > 0 for ax in drawn[-1].axes)
     without = encode(draw)
     assert with_line != without
-    assert fp.visible_credit(fp.card_of(TESS)) is None
-    assert fp.visible_credit(fp.card_of(BAYREUTH)) is not None
+    # The type size and grey of the figure credits; no box.
+    assert texts[0].get_fontsize() == 7 and texts[0].get_bbox_patch() is None
+    assert texts[0].get_color() == "0.25"
+    assert fp.visible_credit(fp.card_of(BAYREUTH)).endswith(
+        fp.card_of(BAYREUTH)["rights"]["figure_credit"]["short"]
+    )
+    # Without the visualization credit, only the credit the card requires.
+    assert (
+        fp.visible_credit(card, visualization=False)
+        == (card["rights"]["figure_credit"]["short"])
+    )
+    assert fp.visible_credit(fp.card_of(TESS), visualization=False) is None
 
 
 def test_the_visualization_credit_names_the_project_only_as_the_visualization():
+    # The owner's choice on Issue #524 (2026-11-14): with subtle branding.
+    assert fp.VISUALIZATION_CREDIT is True
+    # A card whose terms ask for no visible credit (TESS, public domain):
+    # the branding alone.
     card = fp.card_of(TESS)
-    line = fp.visible_credit(card, visualization=True)
-    assert line == (
-        "Visualization: Physics by Construction · "
-        + card["rights"]["figure_credit"]["short"]
-    )
+    assert card["rights"]["figure_credit"]["visible"] == "not-required"
+    line = fp.visible_credit(card)
+    assert line == "Visualization: Physics by Construction"
     assert fp.ownership_problems(line) == []
-    assert (
-        fp.metadata(MIXED, card, "m:f", visualization=True)["pbc:visible-credit"]
-        == line
-    )
-    assert fp.VISUALIZATION_CREDIT is False, "the owner's choice (Issue #524)"
+    assert fp.metadata(MIXED, card, "m:f")["pbc:visible-credit"] == line
+    # Cards whose terms ask for one: one line, the branding and the data.
+    for dataset in (NIST, BAYREUTH):
+        other = fp.card_of(dataset)
+        assert other["rights"]["figure_credit"]["visible"] == "required"
+        combined = fp.visible_credit(other)
+        assert combined == (
+            f"{fp.VISUALIZATION_PREFIX} · {other['rights']['figure_credit']['short']}"
+        )
+        assert "\n" not in combined and fp.ownership_problems(combined) == []
 
 
 @pytest.mark.parametrize(
@@ -346,11 +369,12 @@ def test_the_caption_gets_the_combined_statuses_the_short_credit_and_the_details
     assert "Includes data collected with the TESS mission" in end
     assert f'href="https://doi.org/{card["source"]["doi"]}"' in end
     assert "<code>m:fig-x</code>" in end
+    assert "<dt>On the image</dt><dd>Visualization: Physics by Construction</dd>" in end
     after, _ = fp.caption_html(fp.metadata(ALONE, fp.card_of(NIST), "m:f"), card)
     assert after == ""
 
 
-def test_the_examples_are_the_page_figure_and_the_one_with_the_visualization_credit(
+def test_the_examples_are_the_page_figure_and_the_one_without_the_visualization_credit(
     tmp_path,
 ):
     experiment = Experiment()
@@ -361,8 +385,10 @@ def test_the_examples_are_the_page_figure_and_the_one_with_the_visualization_cre
 
     assert [p.name for p in written] == [
         "fig-declared.png",
-        "fig-declared-visualization-credit.png",
+        "fig-declared-without-visualization-credit.png",
     ]
     assert written[0].read_bytes() == experiment.png("fig-declared")
-    branded = fp.read_metadata(written[1].read_bytes())
-    assert branded["pbc:visible-credit"].startswith(fp.VISUALIZATION_PREFIX)
+    branded = fp.read_metadata(written[0].read_bytes())
+    assert branded["pbc:visible-credit"] == fp.VISUALIZATION_PREFIX
+    plain = fp.read_metadata(written[1].read_bytes())
+    assert plain["pbc:visible-credit"] == ""

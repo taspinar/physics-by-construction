@@ -1878,8 +1878,8 @@ check: a CC BY card requires it and names the licence, and the card
 permits figures and modification). `encode(draw, metadata=..., credit=...)`
 writes the record as PNG text chunks in a fixed order (`Title`,
 `Description`, `Source`, and the `pbc:` keys of the declaration and the
-card; no date, software, author, or copyright field) and paints the one
-required line below the figure; called without them it is the encoder of
+card; no date, software, author, or copyright field) and paints one line
+below the figure; called without them it is the encoder of
 every other figure, byte for byte. The page's caption is completed after
 the render by `site/figure-credits.py` (`pbc.authoring.figure_credits`)
 from the PNG's record and the card, and the build fails when the caption's
@@ -1894,9 +1894,18 @@ and the built-site check `check_figure_credits`. ADR 016 decision 2 names
 "no metadata" for the deterministic output of ADR 002; the record is
 deterministic and written by the one encoder, and only for the declared
 figures. The evidence and the branding examples are summarised in the
-feature's plan (images are not committed outside `site/assets/`); the
-visualization credit stays off
-(`VISUALIZATION_CREDIT`) until the owner's choice on the Issue.
+feature's plan (images are not committed outside `site/assets/`). The
+owner chose the visualization credit on the Issue on 2026-11-14, "with
+subtle branding" (`VISUALIZATION_CREDIT`): the painted line is
+"Visualization: Physics by Construction", outside the plot area, so that a
+downloaded or shared image still shows where the visualization comes from;
+where the card requires a visible dataset credit (MAT6, the RLC lab) it is
+one line, "Visualization: Physics by Construction · Data: …", and for the
+public-domain TESS figure the branding alone. It keeps the type size and
+grey of the figure credits, with no box or logo, never covers data, and
+names the project only as the visualization; the record's
+`pbc:visible-credit`, the caption's full provenance ("On the image"), and
+`check_figure_credits` agree with it.
 
 **Figure language** (V1, F170 and F171). An audit of six figure classes
 (trajectory, multi-series numerical comparison, phase space, convergence

@@ -90,6 +90,21 @@ def test_a_caption_that_disagrees_with_the_png_fails_the_build(
         annotate(html, page_dir)
 
 
+def test_a_png_whose_painted_line_is_not_the_cards_fails_the_build(tmp_path):
+    images = tmp_path / "index_files" / "figure-html"
+    images.mkdir(parents=True)
+    card = fp.card_of(DATASET)
+    # Drawn without the visualization credit the owner chose (Issue #524).
+    (images / "declared.png").write_bytes(
+        encode(
+            _draw, metadata=fp.metadata(DECLARED, card, IDENTITY, visualization=False)
+        )
+    )
+    html = _figure("index_files/figure-html/declared.png")
+    with pytest.raises(InvalidFigure, match="pbc:visible-credit"):
+        annotate(html, tmp_path)
+
+
 def test_a_card_that_no_longer_gives_the_record_fails_the_build(page_dir, tmp_path):
     registry = tmp_path / "registry"
     registry.mkdir()

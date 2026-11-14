@@ -10,8 +10,8 @@ def assert_declared(experiment, label: str, figure, status: str, residuals: bool
     """The declared figure ``label`` of ``experiment`` (``figure`` is one
     drawing of it) states ``status`` once, keeps every figure convention,
     gives each legend entry a declared role, and its PNG carries exactly the
-    record of the declaration and the card, with the visible credit the card
-    requires, deterministically."""
+    record of the declaration and the card, with the visualization credit
+    and the data credit the card requires, deterministically."""
     provenance = experiment.provenance[label]
     assert provenance.status == status
     assert check_figure(figure, residuals=residuals, declared=status) == []
@@ -27,6 +27,9 @@ def assert_declared(experiment, label: str, figure, status: str, residuals: bool
         metadata=portable.metadata(provenance, card, identity),
         credit=portable.visible_credit(card),
     )
+    # The owner's choice (2026-11-14): the visualization credit, with the
+    # data credit where the card requires it visible, in one line.
     credit = card["rights"]["figure_credit"]
     painted = portable.read_metadata(png)["pbc:visible-credit"]
-    assert painted == (credit["short"] if credit["visible"] == "required" else "")
+    data = f" · {credit['short']}" if credit["visible"] == "required" else ""
+    assert painted == portable.VISUALIZATION_PREFIX + data

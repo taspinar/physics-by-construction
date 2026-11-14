@@ -66,9 +66,10 @@ All three are the `lesson.preview` of their lesson.
    `pbc:attribution`, `pbc:processing`, `pbc:schema`. No `Author`,
    `Copyright`, date, or software version. A card with `visible: required`
    gets a one-line credit painted under the axes by `encode()`, from the
-   card (never by the draw function); the optional visualization credit
-   ("Visualization: Physics by Construction · Data: ...") is a flag of
-   `encode()`, off until the owner chooses (`VISUALIZATION_CREDIT`).
+   card (never by the draw function); the visualization credit
+   ("Visualization: Physics by Construction · Data: ...") is
+   `VISUALIZATION_CREDIT`, on since the owner's choice of 2026-11-14 (see
+   "Owner's decision" below).
    ADR 016 decision 2 says "no metadata" for the deterministic figure
    output of ADR 002; the metadata here is deterministic and written by
    the one encoder, as the architecture's contract and requirements
@@ -173,26 +174,28 @@ Images, in the ignored `.agents/handoffs/524-evidence/` of the worktree
 (regenerate the exports with `uv run python -m pbc.data.figure_provenance
 examples <directory>`; the "before" exports are the published site's PNGs
 from `main` at `e7ca8ad`): per sample, the before and after export, the
-example with the visualization credit, and the figure with its caption in
+export without the visualization credit, and the figure with its caption in
 the published page at 1280 and 390 CSS px, before and after (after: the
 branch's PNG, the caption completed by `annotate`, the branch's CSS; not a
 Quarto build, which is not installed here).
 
-| Figure | Before export | After export | With visualization credit |
+| Figure | Before export | After export (with the visualization credit) | Without visualization credit |
 |---|---|---|---|
-| `fig-transit-fit` | 1253 x 1140 px, 193,422 B | 1251 x 1135 px, 138,134 B | 1259 x 1162 px, 147,525 B |
-| `fig-stress-strain` | 1367 x 950 px, 154,047 B | 1374 x 970 px, 110,326 B | 1374 x 970 px, 112,806 B |
-| `fig-impedance-fit` | 1253 x 1368 px, 211,477 B | 1259 x 1393 px, 177,092 B | 1259 x 1393 px, 179,126 B |
+| `fig-transit-fit` | 1253 x 1140 px, 193,422 B | 1259 x 1162 px, 141,781 B | 1251 x 1135 px, 138,134 B |
+| `fig-stress-strain` | 1367 x 950 px, 154,047 B | 1374 x 970 px, 112,806 B | 1374 x 970 px, 110,326 B |
+| `fig-impedance-fit` | 1253 x 1368 px, 211,477 B | 1259 x 1393 px, 179,126 B | 1259 x 1393 px, 177,092 B |
 
 - Chart area: no status box, no credit paragraph; shorter legend entries
   (status words moved to the caption and to roles on the artists); titles,
   axes, units, uncertainty, residual panels, and every record unchanged; no
-  display thinning. MAT6 and the RLC figure carry one line of credit under
-  the axes (their cards require it); AST8 none (public domain).
+  display thinning. One small line under the axes: "Visualization:
+  Physics by Construction · Data: ..." on MAT6 and the RLC figure (their
+  cards require the data credit), "Visualization: Physics by Construction"
+  alone on AST8 (public domain).
 - Caption: one status label, "with simulated models" for AST8 and RLC, the
   short credit, a closed "Full provenance" disclosure (attribution,
-  licence, DOI link, processing, figure identity).
-- Size: 16 to 29 per cent smaller. Determinism: two encodes equal; the
+  licence, DOI link, processing, the line on the image, figure identity).
+- Size: 15 to 27 per cent smaller. Determinism: two encodes equal; the
   experiment's file equals the page's (`assert_declared`).
 - Other figures: every figure of AST8, MAT6, the RLC lab, AI6 (four
   model-input pictures and the readings figure) and M1, drawn from `main`
@@ -201,9 +204,25 @@ Quarto build, which is not installed here).
 - Phone (390 px): the caption wraps and stays readable; legends and tick
   labels of all three figures are small before and after (F170's scope).
 
+## Owner's decision (2026-11-14)
+
+The owner chose the credit in the comment on Issue #524: **with subtle
+branding.** Every declared figure carries the small line "Visualization:
+Physics by Construction" under the figure, outside the plot area, so that
+a downloaded or shared image still shows where the visualization comes
+from. Where the card requires a visible dataset credit (MAT6, the RLC lab)
+the two are one line, "Visualization: Physics by Construction · Data: …";
+the public-domain TESS figure shows the branding alone. Implemented as
+`VISUALIZATION_CREDIT = True` and `visible_credit()`: the type size (7 pt)
+and grey (0.25) of the figure credits, no box or logo. The PNG record's
+`pbc:visible-credit` is the painted line; the caption's "Full provenance"
+names it ("On the image"); the post-render step and the built-site check
+`check_figure_credits` fail when the record's line is not the one the card
+gives. The decision on the rollout (F173) is still the owner's.
+
 ## Open questions
 
-- The owner's branding choice (AC 5), on the examples of step 9.
+- The decision on the rollout (F173), part of AC 5.
 - ADR 016 decision 2, "no metadata": read as the deterministic output of
   ADR 002; an addendum is the owner's choice.
 

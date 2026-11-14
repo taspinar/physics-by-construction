@@ -1812,8 +1812,10 @@ An agent may help a learner explore, but its conclusions are never data.
    the draw function calls neither `label_status` nor `add_credit` and
    marks each legend entry with `role(artist, status)`, and the card holds
    `rights.figure_credit` (`short`, `visible`, `source`). The encoder writes
-   the record into the PNG, paints the short credit under the axes where the
-   card makes it `required`, and the post-render step
+   the record into the PNG, paints one small line under the axes, the
+   visualization credit "Visualization: Physics by Construction" (the
+   owner's choice on Issue #524), joined by " · " to the short credit where
+   the card makes it `required`, and the post-render step
    `site/figure-credits.py` adds the combined statuses, the short credit,
    and a closed "Full provenance" disclosure to the caption. The cell keeps
    `fig-status` and `fig-dataset`, which the source check holds equal to

@@ -236,6 +236,11 @@ def _figure_credit_problems(
         out.append(f"{label}: the PNG's credit is not the card's")
     if record.get("pbc:attribution") != " ".join(str(rights["attribution"]).split()):
         out.append(f"{label}: the PNG's attribution is not the card's")
+    painted = figure_provenance.visible_credit(card) or ""
+    if record.get("pbc:visible-credit", "") != painted:
+        out.append(f"{label}: the PNG's painted line is not the card's")
+    if painted and f"<dd>{html_escape(painted)}</dd>" not in figure:
+        out.append(f"{label}: the full provenance does not name the painted line")
     shown = f'<span class="figure-credit">{html_escape(short)}</span>'
     if credits != 1 or figure.count(shown) != 1:
         out.append(f"{label}: the caption does not show the card's short credit once")
@@ -262,8 +267,10 @@ def check_figure_credits(
 ) -> list[Violation]:
     """A figure whose PNG carries a provenance record (Issue #524) states at
     its caption the PNG's status and combined statuses, its card's short
-    credit once, and the card's full attribution in a ``<details>``; the
-    record agrees with the card; and no caption carries a credit for a PNG
+    credit once, and the card's full attribution and the painted line in a
+    ``<details>``; the record agrees with the card, its painted line
+    (the visualization credit, with the data credit the card requires)
+    too; and no caption carries a credit for a PNG
     without a record."""
     violations = []
     for page in html_pages(site_dir):

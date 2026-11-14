@@ -5,11 +5,13 @@ built page. A figure whose PNG carries the record of
 ``pbc.data.figure_provenance`` gets, from that record and its dataset card:
 after the caption's status label, the statuses it combines ("with simulated
 models"); at the end of the caption, the card's short credit and the full
-provenance in a closed ``<details>``. The caption's status and dataset,
-which the lesson filter renders from the cell's ``fig-status`` and
-``fig-dataset``, must equal the record, and the record must equal the card:
-anything else fails the build. A figure whose PNG carries no record, and a
-page without one, are not changed.
+provenance in a closed ``<details>``, with the line painted on the image.
+The painted line the record names must be the one the card gives (the
+visualization credit, with the data credit the card requires). The
+caption's status and dataset, which the lesson filter renders from the
+cell's ``fig-status`` and ``fig-dataset``, must equal the record, and the
+record must equal the card: anything else fails the build. A figure whose
+PNG carries no record, and a page without one, are not changed.
 """
 
 from __future__ import annotations
@@ -23,6 +25,7 @@ from pbc.data.figure_provenance import (
     caption_html,
     card_of,
     read_metadata,
+    visible_credit,
 )
 
 FIGURE = re.compile(r"<figure\b[^>]*>.*?</figure>", re.DOTALL)
@@ -81,6 +84,8 @@ def disagreements(figure: str, record: dict[str, str], card: dict) -> list[str]:
     ):
         if record.get(key) != value:
             out.append(f"{label}: the PNG's {key} is not the card's")
+    if record.get("pbc:visible-credit", "") != (visible_credit(card) or ""):
+        out.append(f"{label}: the PNG's pbc:visible-credit is not the card's line")
     if figure.count(CAPTION_END) != 1:
         out.append(f"{label}: the figure has no single caption")
     return out
