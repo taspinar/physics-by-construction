@@ -27,6 +27,7 @@ Issue).
 ## Visual deliverables
 
 Skills: impeccable@08d5b470, frontend-design@dbd4588f
+Skills: none (teaching: the lessons' sequence, explanations, exercises, and displayed code are unchanged; step 6 moves a pointer paragraph on the data download, word for word, into the run instructions)
 
 - **Page and layout** (the lesson header and the last section of every
   lesson). Impeccable in its Read mode (`reference/mode-read.md`,
@@ -57,9 +58,10 @@ Skills: impeccable@08d5b470, frontend-design@dbd4588f
   ADR 014 decision 9) inserts before the end of `main` of every lesson page
   that has a last section a `<nav class="lesson-pager" aria-label="Previous
   and next lesson">` with the header's two rows; it is the only other place
-  they appear. Not inside the reproduce region: sixteen measured-data labs
-  have a paragraph after the last section's cell, and the pager must follow
-  it. The last line of the `.reproduce` block stays "Suggest an
+  they appear. Not inside the reproduce region: the pager follows anything
+  a page renders after the last section's cell (step 6 moved the sixteen
+  measured-data labs' paragraphs into the section, but the placement does
+  not depend on it). The last line of the `.reproduce` block stays "Suggest an
   improvement".
 - **The last section** (the owner's decision of 2026-11-14 on the Issue,
   which replaces the earlier sentence with the commit): heading and anchor
@@ -71,8 +73,9 @@ Skills: impeccable@08d5b470, frontend-design@dbd4588f
   "Setup and commands"; no commit and no command outside it. Inside: the
   install line with the setup page; the clone (the latest version on
   `main`, the default route) with "The latest version may produce different
-  results."; "Use the version behind this page", the one extra step, `git
-  checkout` of the build commit, linked descriptively ("the commit this page
+  results."; "Optional: use the version behind this page" with "Skip this
+  step to use the latest version." (the owner's review of 2026-11-14), the
+  one optional extra step, `git checkout` of the build commit, linked descriptively ("the commit this page
   was built from"); then, "in either version", the shared steps once; what
   the run writes (the promise that numbers and figures match only for an
   exact build commit); the files and tests at the build commit; and, for an
@@ -125,3 +128,13 @@ Skills: impeccable@08d5b470, frontend-design@dbd4588f
    tests and docs, and the complete before-and-after set of M1, M5, and
    MAT6 at 1280, 390, and 320 px without scripts, the header and the last
    section each closed and open, in `.agents/handoffs/518-screenshots/`.
+6. The owner's review of 2026-11-14 (Issue comment "Owner's review of the
+   reworked 'Run this experiment'"): the checkout is labelled "Optional:
+   use the version behind this page" with "Skip this step to use the
+   latest version." before its command; the paragraph on the data card's
+   download that sixteen measured-data labs (MAT6 among them) wrote after
+   the last section's cell moves, word for word, into the new `data`
+   argument of `reproduce_this`, shown inside "Setup and commands" after
+   what the run writes (a small extension of scope the owner accepted; no
+   claim, number, or figure changes). Unit and e2e tests, the authoring
+   guide, and the after screenshots of M1, M5, and MAT6 updated.

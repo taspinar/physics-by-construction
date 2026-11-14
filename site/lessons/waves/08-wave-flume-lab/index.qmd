@@ -622,9 +622,10 @@ reproduce_this(
         "tests/unit/test_data_samples.py",
         "tests/unit/test_wave_flume_lab_experiment.py",
     ],
+    data="""
+        The data card above gives the command that downloads the whole archive into
+        `data/downloads/aalborg-submerged-bar`; the committed sample is enough for this
+        page, and no model and no account are needed to read either.
+    """,
 )
 ```
-
-The data card above gives the command that downloads the whole archive into
-`data/downloads/aalborg-submerged-bar`; the committed sample is enough for this
-page, and no model and no account are needed to read either.

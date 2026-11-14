@@ -8,7 +8,12 @@ import pytest
 from pbc.authoring import BuildCommit, Excerpt, build_commit, excerpt, reproduce_this
 from pbc.authoring.excerpt import select
 from pbc.authoring.repository import REPOSITORY_ROOT, repository_url
-from pbc.authoring.reproduce import LOCAL_PREVIEW, MAIN_MAY_DIFFER, PAGE_VERSION
+from pbc.authoring.reproduce import (
+    LOCAL_PREVIEW,
+    MAIN_MAY_DIFFER,
+    PAGE_VERSION,
+    SKIP_PAGE_VERSION,
+)
 from pbc.mechanics import dynamics, kinematics
 from pbc.mechanics.kinematics import State, euler_step
 
@@ -425,6 +430,11 @@ def test_main_is_the_default_route_and_the_page_version_is_the_extra_checkout(
     # hash; the shared steps follow once.
     assert clone < details.index(MAIN_MAY_DIFFER) < checkout < run
     assert clone < details.index(PAGE_VERSION) < checkout
+    # The checkout is labelled optional, and a reader who runs every block in
+    # order is told before it that skipping it keeps the latest version (the
+    # owner's review of 2026-11-14).
+    assert PAGE_VERSION.startswith("Optional: ")
+    assert details.index(PAGE_VERSION) < details.index(SKIP_PAGE_VERSION) < checkout
     assert f"[the commit this page was built from]({page.repository}/tree/abc123)" in (
         details
     )
@@ -442,6 +452,7 @@ def test_a_page_of_an_unknown_commit_offers_main_only(lesson_directory: Path):
     text = unknown.markdown()
 
     assert "git checkout" not in text and PAGE_VERSION not in text
+    assert SKIP_PAGE_VERSION not in text
     assert "the commit of its sources is unknown" in text
     assert MAIN_MAY_DIFFER in text and "in either version" not in text
     assert "match this page to the digits shown" not in text
@@ -523,6 +534,42 @@ def test_the_marker_gives_back_the_same_section(lesson_directory: Path):
     )
 
     assert again == reproduction
+
+
+def test_a_data_note_is_inside_the_disclosure_after_the_run(lesson_directory: Path):
+    note = """
+        The data card above gives the command that downloads a fresh copy of
+        the file into `data/downloads/sample`; no model and no account are
+        needed to read it.
+    """
+    reproduction = replace(
+        reproduce_this(code=[CODE], tests=[TESTS], data=note),
+        commit=BuildCommit(sha="abc123", dirty=False),
+    )
+    page = "lessons/mechanics/02-sample/index.qmd"
+    visible, details = reproduction.markdown().split(
+        '<details class="reproduce-details">'
+    )
+    paragraph = " ".join(note.split())
+
+    # A measured-data lab's note on its download is part of the run
+    # instructions, not of the first view, which stays one sentence (the
+    # owner's review of 2026-11-14 on F174); it is one paragraph, after what
+    # the run writes and before the files, and it survives the marker.
+    assert visible == "::: {.reproduce}\nRun this experiment on your own computer.\n\n"
+    assert f"\n\n{paragraph}\n\n" in details
+    assert (
+        details.index("results/results.json")
+        < details.index(paragraph)
+        < details.index("The files behind this page")
+        < details.index("</details>")
+    )
+    again = type(reproduction).from_payload(
+        page, reproduction.payload(), reproduction.commit, reproduction.repository
+    )
+    assert again == reproduction
+    # Without a note, nothing is added.
+    assert "data card" not in reproduce_this(code=[CODE]).markdown()
 
 
 def test_uncommitted_changes_are_stated_on_the_page(lesson_directory: Path):

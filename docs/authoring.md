@@ -1479,17 +1479,23 @@ reproduce_this(
 ````
 
 `code` names the modules the page imports and `tests` the tests of those
-modules, relative to the repository root. The section shows one sentence,
+modules, relative to the repository root. A measured-data lab adds `data`,
+its own paragraph on the data card's download (where it goes, and that no
+model and no account are needed to read it); the section shows it inside the
+disclosure, after what the run writes, and no prose follows the cell of the
+last section (the owner's review of 2026-11-14). The section shows one sentence,
 in the words of the kind of the lesson ("Run this experiment on your own
 computer.", "Replay this recorded agent run on your own computer.", "Check
 this proof on your own computer."), and one closed native disclosure,
 "Setup and commands"; no commit and no command is visible before a reader
 opens it (F174, the owner's decision of 2026-11-14). Inside, the clone gives
 the latest version on `main`, the default route, with the note "The latest
-version may produce different results."; "Use the version behind this page"
-adds one step, the checkout of the commit the page was built from, linked by
-a description rather than by its hash, for a reader who wants the published
-results; the shared steps follow once: install the project's packages
+version may produce different results."; "Optional: use the version behind
+this page", with the line "Skip this step to use the latest version." before
+its command, adds one step, the checkout of the commit the page was built
+from, linked by a description rather than by its hash, for a reader who wants
+the published results, so that a reader who runs every block in order sees
+that the step can be skipped; the shared steps follow once: install the project's packages
 (`uv sync --locked --no-dev`) and run the experiment the front matter
 declares. Then come what the run writes and the links to the files and the
 tests at the build commit. A Lean lesson adds `lake build` of the modules it
@@ -1833,6 +1839,9 @@ An agent may help a learner explore, but its conclusions are never data.
 6. runs `check_figure(fig, residuals=True)` in a test of the lab: it returns
    the missing status label, unit in `[...]`, title, legend, residual panel,
    or "false colour" note.
+
+Its note on the download of the data card is the `data` argument of
+`reproduce_this` ("The last section"), not a paragraph after that cell.
 
 The helpers cover the formats of the three `go` datasets: GWOSC plain text,
 Touchstone two-port, and the flume CSV. A lab whose `go` dataset needs HDF5,

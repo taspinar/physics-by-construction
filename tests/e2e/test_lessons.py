@@ -27,6 +27,7 @@ from pbc.authoring.reproduce import (
     LEAN_EXPERIMENT,
     MAIN_MAY_DIFFER,
     PAGE_VERSION,
+    SKIP_PAGE_VERSION,
     kind_of,
 )
 
@@ -447,7 +448,10 @@ def test_the_last_section_shows_one_sentence_and_opens_by_keyboard(
     opened = details.inner_text()
     # main first, with its note, then the version behind the page.
     assert opened.index(MAIN_MAY_DIFFER) < opened.index(PAGE_VERSION)
-    assert opened.index(PAGE_VERSION) < opened.index(f"git checkout {_head_commit()}")
+    # The checkout is optional, and the reader is told to skip it for main
+    # before they reach it (the owner's review of 2026-11-14).
+    checkout = opened.index(f"git checkout {_head_commit()}")
+    assert opened.index(PAGE_VERSION) < opened.index(SKIP_PAGE_VERSION) < checkout
 
 
 def _clone_of_the_working_tree(target: Path) -> Path:

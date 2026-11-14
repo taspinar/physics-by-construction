@@ -657,9 +657,10 @@ reproduce_this(
         "tests/unit/test_data_sparc_rotmod.py",
         "tests/unit/test_galaxy_rotation_curves_experiment.py",
     ],
+    data="""
+        The data card above gives the command that downloads the SPARC archive into
+        `data/downloads/sparc-rotation-curves`, with the other galaxies of SPARC;
+        no model and no account are needed to read it.
+    """,
 )
 ```
-
-The data card above gives the command that downloads the SPARC archive into
-`data/downloads/sparc-rotation-curves`, with the other galaxies of SPARC;
-no model and no account are needed to read it.

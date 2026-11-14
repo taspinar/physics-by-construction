@@ -677,10 +677,11 @@ reproduce_this(
         "tests/unit/test_data_sdss_balmer.py",
         "tests/unit/test_atomic_spectroscopy_experiment.py",
     ],
+    data="""
+        The data card above gives the command that downloads the SDSS file into
+        `data/downloads/sdss-balmer-spectrum`, and the conversion script that
+        repeats the committed sample from it; no model and no account are needed to
+        read it.
+    """,
 )
 ```
-
-The data card above gives the command that downloads the SDSS file into
-`data/downloads/sdss-balmer-spectrum`, and the conversion script that
-repeats the committed sample from it; no model and no account are needed to
-read it.

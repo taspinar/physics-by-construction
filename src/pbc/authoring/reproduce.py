@@ -38,11 +38,13 @@ RESULTS = "results"
 # The proof check of a lesson whose methods are Lean only (ADR 016 decision 2).
 LEAN_EXPERIMENT = "./scripts/check-lean.sh"
 # The words of the section (F174, the owner's decision of 2026-11-14): the
-# summary of its closed disclosure, the route to the version a page was built
-# from, the note on the default route, and the visible notice of a local build
-# with uncommitted changes.
+# summary of its closed disclosure, the optional route to the version a page
+# was built from and the line that says it can be skipped (the owner's review
+# of 2026-11-14), the note on the default route, and the visible notice of a
+# local build with uncommitted changes.
 DETAILS_SUMMARY = "Setup and commands"
-PAGE_VERSION = "Use the version behind this page"
+PAGE_VERSION = "Optional: use the version behind this page"
+SKIP_PAGE_VERSION = "Skip this step to use the latest version."
 MAIN_MAY_DIFFER = "The latest version may produce different results."
 LOCAL_PREVIEW = "Local preview: results may differ from the linked source."
 # The setup page, relative to the website project.
@@ -115,6 +117,10 @@ class Reproduction:
     kind: str  # "run", "replay", or "proof"
     lean_modules: tuple[str, ...] = ()  # the Lean modules the page displays
     live: str = ""  # the module of the live run of an agent lesson
+    # The lesson's own note on its data (a measured-data lab: where the data
+    # card's download goes, and what reading it needs), shown inside "Setup
+    # and commands" (the owner's review of 2026-11-14 on F174); "" for none.
+    data: str = ""
     # The public address of the built page, which the "Suggest an
     # improvement" links pre-fill; set by the post-render step, "" before.
     address: str = ""
@@ -221,6 +227,7 @@ class Reproduction:
             "kind": self.kind,
             "lean_modules": list(self.lean_modules),
             "live": self.live,
+            "data": self.data,
         }
 
     @classmethod
@@ -248,6 +255,7 @@ class Reproduction:
             kind=str(payload["kind"]),
             lean_modules=tuple(payload["lean_modules"]),
             live=str(payload["live"]),
+            data=str(payload.get("data", "")),
             address=address,
         )
 
@@ -295,8 +303,9 @@ class Reproduction:
 
     def _versions(self) -> list[str]:
         """Which version to use: ``main`` by default, or the version behind
-        this page, whose checkout is the one extra step (no step is listed
-        twice)."""
+        this page, whose checkout is the one optional extra step, labelled
+        as one a reader who runs every block in order skips (no step is
+        listed twice)."""
         sha = self.commit.sha
         latest = (
             "This gives the latest version, on the branch `main`, to explore"
@@ -314,9 +323,9 @@ class Reproduction:
         lines = [
             latest,
             "",
-            f"**{PAGE_VERSION}:** to reproduce the published results, check"
-            f" out [the commit this page was built from]({self.repository}/tree/{sha})"
-            " after cloning:",
+            f"**{PAGE_VERSION}.** {SKIP_PAGE_VERSION} To reproduce the"
+            " published results instead, check out [the commit this page was"
+            f" built from]({self.repository}/tree/{sha}) after cloning:",
             "",
             "```{.bash .reproduce-commands}",
             self.checkout_command,
@@ -456,6 +465,7 @@ class Reproduction:
                 "```",
                 "",
                 *self._regenerates(),
+                *([self.data, ""] if self.data else []),
                 files_at,
                 "",
                 *files,
@@ -473,12 +483,18 @@ class Reproduction:
         )
 
 
-def reproduce_this(*, code: Sequence[str], tests: Sequence[str] = ()) -> Reproduction:
+def reproduce_this(
+    *, code: Sequence[str], tests: Sequence[str] = (), data: str = ""
+) -> Reproduction:
     """Return the last section of the lesson page being built.
 
     ``code`` and ``tests`` name the files behind the page, relative to the
     repository root: the modules its cells import and the tests of those
-    modules. The experiment, the kind of the lesson, and the Lean modules
+    modules. ``data`` is the lesson's own note on its data, a Markdown
+    paragraph that a measured-data lab gives (where the data card's download
+    goes, and what reading it needs); it is shown inside "Setup and
+    commands", after what the run writes, so the first view of the section
+    stays one sentence. The experiment, the kind of the lesson, and the Lean modules
     come from the front matter (``lesson.experiment``, ``lesson.methods``,
     ``lesson.lean-modules``); the live run of an agent lesson is the module
     its experiment names as ``LIVE``. Call it from a cell of the lesson's
@@ -500,4 +516,5 @@ def reproduce_this(*, code: Sequence[str], tests: Sequence[str] = ()) -> Reprodu
         kind=kind,
         lean_modules=lean_modules,
         live=live,
+        data=" ".join(data.split()),
     )

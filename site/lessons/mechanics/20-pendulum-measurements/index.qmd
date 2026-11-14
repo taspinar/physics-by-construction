@@ -666,9 +666,10 @@ reproduce_this(
         "tests/unit/test_data_xu_pendulum.py",
         "tests/unit/test_pendulum_measurements_experiment.py",
     ],
+    data="""
+        The data card above gives the command that downloads a fresh copy of the
+        files into `data/downloads/xu-damped-pendulum`; no model and no account are
+        needed to read them.
+    """,
 )
 ```
-
-The data card above gives the command that downloads a fresh copy of the
-files into `data/downloads/xu-damped-pendulum`; no model and no account are
-needed to read them.
