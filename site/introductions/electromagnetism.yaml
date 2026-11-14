@@ -1,0 +1,128 @@
+# The introduction of the course Electromagnetism (F159, requirements
+# decision 43). Prose and references only; see
+# site/introductions/mechanics.yaml for the rules.
+sequence: electromagnetism
+
+why:
+  - >-
+    Electric and magnetic fields hold atoms together, run every circuit,
+    and carry every radio signal and every ray of light. A handful of laws
+    describe them; the difficulty is not writing the laws down but seeing
+    what they imply for a particular arrangement of charges, currents, and
+    conductors.
+  - >-
+    That is where computation earns its place. A field is a quantity at
+    every point of space, and the course computes fields directly: as a sum
+    over charges, as the motion of a particle pushed by them, as a voltage
+    around a loop, as a pulse stepped through a grid. Each computation is
+    checked against a law or a closed form, so that when the course reaches
+    a circuit, a waveguide, or an antenna array, it can say how far the
+    calculation can be trusted.
+
+questions:
+  - >-
+    How does the field of many charges follow from the field of one, and
+    how are the field and the potential related?
+  - >-
+    How does a charged particle move in electric and magnetic fields, and
+    why does a careless integrator give it energy it should not have?
+  - >-
+    Why does a changing magnetic flux induce a voltage around a loop, even
+    where the magnetic field on the wire is almost zero?
+  - >-
+    How do Maxwell's equations produce light, and how can they be stepped
+    in time on a computer without inventing errors of their own?
+  - >-
+    Why do circuits, waveguides, and antennas favour some frequencies and
+    directions over others?
+  - >-
+    How well does a simple model of a component describe what a laboratory
+    instrument measures?
+
+learn:
+  - >-
+    Compute the field of point charges by superposition, obtain it from the
+    potential, and check it against the dipole and Gauss's law ({slot:EM1}).
+  - >-
+    Integrate the Lorentz force with the Boris pusher, measure the
+    cyclotron frequency and the drift in crossed fields, and see why
+    explicit Euler fails ({slot:EM2}).
+  - >-
+    Compute the magnetic flux and the electromotive force separately and
+    check Faraday's law for moving and resting loops ({slot:EM3}).
+  - >-
+    Derive the wave equation of light from Maxwell's curl equations, step
+    the fields on Yee's grid, and measure its speed, its reflections, and
+    its stability ({slot:EM4}).
+  - >-
+    Solve a series circuit in time and with complex impedance, and measure
+    its resonance and quality factor ({slot:EM5}).
+  - >-
+    Find the cut-off frequencies of a waveguide as an eigenvalue problem,
+    and build the radiation pattern of a wire and of an array from its
+    elements ({slot:EM6}).
+  - >-
+    Compare a lumped model with measured impedances and S-parameters, and
+    find the frequency where the model stops describing the measurement
+    ({slot:EM8}, {slot:EM7}).
+
+order:
+  - >-
+    The course builds from fields and forces to induction, waves, and
+    devices. {slot:EM1} starts with charges at rest,
+    and {slot:EM2} lets a charge move through the fields, which is also
+    where the integrators of {sequence:mechanics} meet a force that depends
+    on the velocity. {slot:EM3} adds the law that ties a changing magnetic
+    field to a voltage, and {slot:EM4} completes the set: with Maxwell's
+    curl equations the fields carry themselves through space as light,
+    which links the course to {sequence:waves}.
+  - >-
+    The second half applies the complete theory to devices. {slot:EM5}
+    reduces a circuit to three lumped elements, and {slot:EM6} keeps the
+    full fields for a guide and an antenna, where the size of the device is
+    comparable with the wavelength. The labs on measured data and the
+    capstone close the course. The labs test the lumped models against
+    real components, which is harder than comparing them with a formula,
+    and {slot:EM9} combines the antenna, the fields, and interference in a
+    design problem.
+
+method:
+  - >-
+    The method is the numerical experiment, with the laws of the subject as
+    its checks. A computed field is held to Gauss's law or to the gradient
+    of its potential, an orbit to the cyclotron frequency, an induced
+    voltage to the rate of change of the flux, a pulse on a grid to the
+    speed of light and to the dispersion relation of the grid, a waveguide
+    to its closed-form cut-off. Where the computation and the check differ,
+    the lesson explains the difference, by the order of a scheme or by an
+    assumption of the model, rather than passing over it.
+  - >-
+    The applied capstone and the labs add the question of where a model
+    stops being credible: an array-factor model is not a full-wave antenna
+    design, and a lumped circuit is not a measured component at every
+    frequency. None of the lessons of this course uses an
+    artificial-intelligence agent.
+
+capstone:
+  - >-
+    The capstone of the course is an applied one, {slot:EM9}. The field of a
+    finite linear array is computed as a sum of complex element
+    contributions and checked against the closed-form array factor, its
+    nulls, its symmetries, and the onset of grating lobes.
+  - >-
+    The capstone then works a design from requirements to a qualified
+    decision: the spacing and the taper, a null toward an interferer,
+    phase shifters that take only certain values, errors in the channels,
+    the band and the element pattern, and a receiver tracked as it passes.
+    It says what the array-factor model leaves out, so that the decision
+    is stated with the limits of the model that supports it.
+
+next:
+  - >-
+    The electric field returns inside matter in {slot:MAT2}, where whether
+    the bands of a crystal are filled decides if a small field can move its
+    electrons, and the series circuit of {slot:EM5} is the damped, driven
+    oscillator of {slot:M12} in another form. Continue with
+    {sequence:materials} to follow the field into solids, or choose
+    {sequence:fluids}, {sequence:quantum}, or {sequence:astrophysics} by the
+    system you want to understand.

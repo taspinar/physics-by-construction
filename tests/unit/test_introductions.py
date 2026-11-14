@@ -33,7 +33,10 @@ CURRICULUM = ATLAS.path.curriculum
 GLOSSARY = Glossary.read(SITE_SOURCE)
 TERMS = tuple(entry.term for entry in GLOSSARY.entries)
 PILOT = ("mechanics", "law-discovery")
-AVAILABLE = frozenset(PILOT)
+# The first batch of introductions (F159, Issue #519).
+BATCH_1 = ("thermodynamics", "waves", "electromagnetism")
+INTRODUCED = PILOT + BATCH_1
+AVAILABLE = frozenset(INTRODUCED)
 
 
 def _data(sequence_id: str = "mechanics") -> dict:
@@ -55,8 +58,8 @@ def _content(sequence_id: str, available=AVAILABLE) -> IntroductionContent:
 # --- The data file and its rules ---------------------------------------------
 
 
-@pytest.mark.parametrize("sequence_id", PILOT)
-def test_the_two_pilot_files_hold_every_section_of_the_decision_and_no_problem(
+@pytest.mark.parametrize("sequence_id", INTRODUCED)
+def test_every_introduction_file_holds_every_section_of_the_decision_and_no_problem(
     sequence_id,
 ):
     data = _data(sequence_id)
@@ -307,7 +310,7 @@ def test_a_data_file_of_an_unknown_sequence_is_reported(tmp_path):
 # --- The generated page --------------------------------------------------------
 
 
-@pytest.mark.parametrize("sequence_id", PILOT)
+@pytest.mark.parametrize("sequence_id", INTRODUCED)
 def test_the_page_has_every_section_in_order_with_its_title_first(sequence_id):
     page = _content(sequence_id).markdown()
     sequence = next(s for s in ATLAS.sequences() if s.id == sequence_id)
@@ -328,7 +331,7 @@ def test_the_page_has_every_section_in_order_with_its_title_first(sequence_id):
     assert "alt=" in page and sequence.illustration in page
 
 
-@pytest.mark.parametrize("sequence_id", PILOT)
+@pytest.mark.parametrize("sequence_id", INTRODUCED)
 def test_the_page_needs_no_script_and_holds_no_state(sequence_id):
     page = _content(sequence_id).markdown()
 
@@ -336,12 +339,12 @@ def test_the_page_needs_no_script_and_holds_no_state(sequence_id):
         assert forbidden not in page
 
 
-@pytest.mark.parametrize("sequence_id", PILOT)
+@pytest.mark.parametrize("sequence_id", INTRODUCED)
 def test_the_page_is_byte_stable(sequence_id):
     assert _content(sequence_id).markdown() == _content(sequence_id).markdown()
 
 
-@pytest.mark.parametrize("sequence_id", PILOT)
+@pytest.mark.parametrize("sequence_id", INTRODUCED)
 def test_the_lesson_list_and_counts_are_those_of_the_atlas(sequence_id):
     content = _content(sequence_id)
     sequence = content.sequence
@@ -417,8 +420,9 @@ def test_a_sequence_reference_links_to_its_introduction_when_it_has_one():
     assert content.inline("{sequence:law-discovery}").endswith(
         "(../law-discovery/index.html)"
     )
-    assert content.inline("{sequence:waves}").endswith(
-        "(../../path/index.html#course-waves)"
+    assert content.inline("{sequence:waves}").endswith("(../waves/index.html)")
+    assert content.inline("{sequence:quantum}").endswith(
+        "(../../path/index.html#course-quantum)"
     )
 
 
@@ -441,9 +445,9 @@ def test_the_prerequisites_come_from_the_front_matter_of_the_lessons():
 def test_the_atlas_panel_of_a_sequence_with_an_introduction_links_to_it():
     html = str(AtlasSection(ATLAS, "path/index.qmd", AVAILABLE))
 
-    for sequence_id in PILOT:
+    for sequence_id in INTRODUCED:
         assert f'href="../{introduction_page(sequence_id)[:-4]}.html"' in html
-    assert html.count('class="atlas-introduction"') == len(PILOT)
+    assert html.count('class="atlas-introduction"') == len(INTRODUCED)
 
 
 def test_no_sequence_without_an_introduction_shows_a_link():
@@ -516,15 +520,51 @@ def test_the_introduction_row_follows_the_course_and_slot_rows():
 def test_a_lesson_of_a_sequence_without_an_introduction_has_no_link():
     path = ATLAS.path
     header = LessonHeader(
-        path, path.lesson("particles-in-a-box"), None, (), AVAILABLE
+        path, path.lesson("advection-and-diffusion"), None, (), AVAILABLE
     ).markdown()
 
     assert "Introduction" not in header
 
 
+@pytest.mark.parametrize(
+    ("lesson_id", "sequence_id", "title"),
+    [
+        (
+            "particles-in-a-box",
+            "thermodynamics",
+            "Thermodynamics and statistical physics",
+        ),
+        (
+            "random-walks-and-diffusion",
+            "thermodynamics",
+            "Thermodynamics and statistical physics",
+        ),
+        ("wave-equation", "waves", "Waves and optics"),
+        ("electric-fields-and-potential", "electromagnetism", "Electromagnetism"),
+    ],
+)
+def test_the_header_of_a_batch_1_lesson_links_to_its_course_introduction(
+    lesson_id, sequence_id, title
+):
+    """F159: a lesson of a course of the first batch links the course's name
+    to its introduction; a lesson of another strand that fills a slot of the
+    course (particles-in-a-box) links to it too."""
+    path = ATLAS.path
+    header = LessonHeader(path, path.lesson(lesson_id), None, (), AVAILABLE).markdown()
+    without = LessonHeader(
+        path, path.lesson(lesson_id), None, (), frozenset(PILOT)
+    ).markdown()
+
+    assert (
+        f"Introduction\n:   [{title}](../../../courses/{sequence_id}/index.html)\n"
+        in header
+    )
+    assert "Introduction" not in without
+
+
 def test_the_header_without_introductions_is_what_it_was():
     path = ATLAS.path
-    for lesson_id in ("kinematics", "symbolic-regression"):
+    for lesson_id in ("kinematics", "symbolic-regression", "wave-equation"):
         lesson = path.lesson(lesson_id)
         plain = LessonHeader(path, lesson).markdown()
         linked = LessonHeader(path, lesson, None, (), AVAILABLE).markdown()
@@ -557,7 +597,7 @@ def _search_index_module():
 def test_the_introduction_pages_are_not_left_out_of_the_search_index():
     module = _search_index_module()
 
-    for sequence_id in PILOT:
+    for sequence_id in INTRODUCED:
         assert f"courses/{sequence_id}/index.html" not in module.NOT_INDEXED
 
 
