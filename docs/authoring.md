@@ -806,6 +806,87 @@ Lesson cells also draw axes and annotations in the page's muted grey
 (`PAGE["muted"]`), so that colour keeps its value when the page palette
 changes: a change to it would change figures and displayed code.
 
+**Figure language (pilot).** One style for a lesson figure, proven on six
+sample figures (F170) and applied to them only; every other figure keeps
+Matplotlib's defaults under `FIGURE_SETTINGS` until the owner decides on a
+rollout (F171). The style is `pbc.figure_language`, beside
+`FIGURE_SETTINGS`, built from the tokens of `pbc.authoring.design`; a figure
+opts in inside its `draw_` function and changes none of its values:
+
+```python
+from pbc.figure_language import LINE, figsize, figure_style, finish
+
+
+def draw_energy() -> Figure:
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        ax.plot(t, e, color=FIGURE_COLOURS[0], label="energy")
+        ...
+    return finish(fig)  # finish(fig, grid=True) where values are read off
+```
+
+No decorator: `excerpt` must find the function and its lines in the
+lesson's own module.
+
+- **Dimensions.** One width, `WIDTH` (5.6 in, 538 CSS px on a desktop);
+  heights from `ASPECTS` by the kind of figure (`figsize("line")`,
+  `"pair"`, `"square"`, `"stacked"`, `"measured"`). On a phone (375 CSS px)
+  the page scales a figure to about 306 px, so a narrower figure keeps its
+  type legible there.
+- **Typography.** DejaVu Sans, the face Matplotlib ships: the site's STIX
+  Two Text exists only as web-font subsets, and Matplotlib's own STIXGeneral
+  shares its name with system copies, so the face and the bytes would
+  depend on the machine. Sizes from `TEXT` (ticks and legends 10 pt, axis
+  labels and titles 11 pt, notes 9.5 pt); nothing below `MIN_TEXT` (9.5 pt:
+  12.7 CSS px on a desktop, 7.2 on a phone).
+- **Plate and hierarchy.** The white plate of the page; labels and titles
+  in ink, tick labels in the muted grey, axes and ticks in the rule's grey;
+  no top or right spine on a line plot, a full frame on a field. Line
+  widths from `LINE`: data 1.8 pt, models 1.4, a run drawn over several
+  revolutions and reference lines 1.0, the light grid 0.6 at low opacity,
+  and the grid only where values are read off the plot (convergence, a
+  series over time, measured data), never on a field or in phase space.
+- **The two palettes, one rule.** A lesson figure takes its series from
+  `FIGURE_COLOURS`. A figure of measured data, drawn with
+  `pbc.data.plotting`, keeps the Okabe-Ito `COLOURS` for its measurement
+  and the models it is compared with, so that a lab's figures agree with
+  each other; neither palette is recoloured for branding and no figure
+  mixes them. A line takes only a colour with 3:1 against the plate
+  (`line_colours`): Okabe-Ito's orange and sky blue never draw a line.
+  Colour never tells series apart alone.
+- **Colour maps by data semantics.** `SEQUENTIAL` (viridis) for a magnitude
+  that does not change sign (a temperature, a density, an intensity);
+  `DIVERGING` (PuOr), centred on zero, for a signed quantity
+  (`pbc.data.plotting.signed_norm`); a grey map only for a detector image
+  shown as recorded. The colour bar names the quantity, the unit, and
+  "false colour". An isoline drawn on a field takes, level by level, the
+  white of the plate or the ink, whichever has the more contrast with the
+  map's colour at its level (`isoline_colours`); the audit
+  (`pbc.figure_audit`) measures it against the rendered field beneath it.
+- **Labels.** A series is named beside its curve (`direct_label`) where the
+  curves lie apart; a legend stays where labels would collide or sit on the
+  data, and then it is one legend of at most three entries, placed where
+  the curves leave room. A legend entry or a direct label is never dropped
+  to save space where it carries the uncertainty, the model's identity,
+  the unit, or the status. Panel titles say what differs between panels; a
+  figure of one panel has none, its caption is its title.
+- **By class.** Convergence: log-log, the error against the step, the
+  reference slope drawn below the data and named "slope N" on the plot
+  (`reference_slope`), a comparison and never a fit. Phase space: the
+  closed curves themselves, each named beside it, no grid. A trajectory or
+  an orbit: equal axes, the exact motion dotted, the run solid, the names
+  once in the panel where the curves lie apart. Multi-panel measured data:
+  the measurement as markers, the models dashed and dotted and drawn apart,
+  the residual panel below on the same axis, one legend, the residuals
+  named on the plot. A conceptual diagram keeps `pbc.authoring.diagrams`
+  ("Conceptual diagrams" above); the language changes none of it.
+
+`python -m pbc.figure_audit` prints the audit of the six samples (bytes,
+width, the smallest type at desktop and phone width, legend entries, line
+widths, markers, colour maps, the least contrast of a line), the same
+measurement before and after; `tests/unit/test_figure_language.py` holds
+the rules on the samples.
+
 **The reading column.** A lesson reads in the calm column of the specification
 when its front matter has the line `body-classes: pbc-reading-column` (a
 top-level key; the lesson source checks admit that key with exactly that

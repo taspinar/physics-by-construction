@@ -21,6 +21,16 @@ from scipy.optimize import brentq
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import (
+    LINE,
+    SEQUENTIAL,
+    TEXT,
+    figsize,
+    figure_style,
+    finish,
+    isoline_colours,
+    reference_slope,
+)
 from pbc.thermodynamics.conduction import (
     Convective,
     Fixed,
@@ -377,58 +387,72 @@ def draw_stability() -> Figure:
 
 
 def draw_convergence(grid, time) -> Figure:
-    """Log-log errors against dx and against dt, with reference slopes."""
-    fig, (left, right) = plt.subplots(1, 2, figsize=(7.2, 3.4))
-    for ax, (steps, errs), slope, label, unit in (
-        (left, grid, 2, "dx (mm)", 1e3),
-        (right, time, 1, "dt (s)", 1.0),
-    ):
-        h = np.array(steps) * unit
-        e = np.array(errs)
-        ax.loglog(h, e, color=FIGURE_COLOURS[0], marker="o", label="measured")
-        ax.loglog(
-            h,
-            0.5 * e[0] * (h / h[0]) ** slope,
-            color=FIGURE_COLOURS[2],
-            linestyle=":",
-            label=f"reference, slope {'two' if slope == 2 else 'one'}",
-        )
-        ax.set_xticks(h, labels=[f"{value:.3g}" for value in h])
-        ax.minorticks_off()
-        ax.set_xlabel(label)
-        ax.legend(frameon=False, loc="upper left")
-    left.set_ylabel("largest error (degrees C)")
-    right.set_ylabel("largest error (dimensionless)")
-    fig.tight_layout()
-    return fig
+    """Log-log errors against dx and against dt, with reference slopes below
+    the data, named on the plot."""
+    with figure_style():
+        fig, (left, right) = plt.subplots(1, 2, figsize=figsize("pair"))
+        for ax, (steps, errs), slope, label, unit in (
+            (left, grid, 2, "dx (mm)", 1e3),
+            (right, time, 1, "dt (s)", 1.0),
+        ):
+            h = np.array(steps) * unit
+            e = np.array(errs)
+            ax.loglog(h, e, color=FIGURE_COLOURS[0], marker="o", label="largest error")
+            reference_slope(ax, h, e[0], slope)
+            ax.set_xticks(h, labels=[f"{value:.3g}" for value in h])
+            ax.minorticks_off()
+            ax.set_xlabel(label)
+        # The tick labels of the time steps are long: every other one is shown.
+        for tick in right.get_xticklabels()[1::2]:
+            tick.set_visible(False)
+        left.set_ylabel("largest error (degrees C)")
+        right.set_ylabel("largest error (dimensionless)")
+    return finish(fig, grid=True)
 
 
 def draw_plate(snapshot, steady) -> Figure:
     """The plate's temperature at SNAPSHOT and in the steady state, false
-    colour on one scale."""
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.4), sharey=True)
-    extent = (0.0, 100 * SIDE, 0.0, 100 * SIDE)
-    for ax, field, title in (
-        (axes[0], snapshot, f"after {SNAPSHOT:.0f} s"),
-        (axes[1], steady, "steady state"),
-    ):
-        image = ax.imshow(
-            field, origin="lower", extent=extent, cmap="viridis", vmin=COLD, vmax=HOT
-        )
-        lines = ax.contour(
-            field,
-            levels=[30, 40, 60, 80],
-            origin="lower",
-            extent=extent,
-            colors="white",
-            linewidths=0.7,
-        )
-        ax.clabel(lines, fmt="%d °C", fontsize="x-small")
-        ax.set_title(title, fontsize="medium")
-        ax.set_xlabel("x (cm)")
-    axes[0].set_ylabel("y (cm)")
-    fig.colorbar(image, ax=axes, label="temperature (°C) (false colour)")
-    return fig
+    colour on one sequential scale."""
+    with figure_style():
+        fig, axes = plt.subplots(1, 2, figsize=figsize("pair"), sharey=True)
+        extent = (0.0, 100 * SIDE, 0.0, 100 * SIDE)
+        for ax, field, title in (
+            (axes[0], snapshot, f"after {SNAPSHOT:.0f} s"),
+            (axes[1], steady, "steady state"),
+        ):
+            image = ax.imshow(
+                field,
+                origin="lower",
+                extent=extent,
+                cmap=SEQUENTIAL,
+                vmin=COLD,
+                vmax=HOT,
+            )
+            levels = [30, 40, 60, 80]
+            lines = ax.contour(
+                field,
+                levels=levels,
+                origin="lower",
+                extent=extent,
+                colors=isoline_colours(levels, COLD, HOT),
+                linewidths=LINE["guide"],
+            )
+            # Each isotherm labelled at the top of its arch, on the middle line of
+            # the plate, where the labels are level and clear of the edges.
+            middle = field[:, field.shape[1] // 2]
+            heights = np.linspace(extent[2], extent[3], field.shape[0])
+            places = [
+                (extent[1] / 2, float(np.interp(level, middle[::-1], heights[::-1])))
+                for level in levels
+            ]
+            ax.clabel(lines, fmt="%d °C", fontsize=TEXT["note"], manual=places)
+            ax.set_title(title)
+            ax.set_xlabel("x (cm)")
+            ax.set_xticks([0, 5, 10])
+            ax.set_yticks([0, 5, 10])
+        axes[0].set_ylabel("y (cm)")
+        fig.colorbar(image, ax=axes, label="temperature (°C), false colour")
+    return finish(fig)
 
 
 def largest_step(experiment: Experiment) -> None:
