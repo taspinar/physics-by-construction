@@ -519,8 +519,9 @@ block, a block in another language, shell commands, pasted output, a cell
 with `eval: false`. Each needs the "not verified" marker below, or the check
 fails. `include` and `embed` shortcodes are not allowed: a lesson is one
 page. A lesson never writes the markup of the forms above by hand (a class
-such as `excerpt`, `excerpt-selection`, or `source-link`, or a `source=`
-attribute): the lesson source check reports it as `forged-excerpt`, also
+such as `excerpt`, `excerpt-selection`, or `source-link`, or a `source`,
+`signature`, or `source-name` attribute, plain or with `data-`, in Markdown
+or raw HTML): the lesson source check reports it as `forged-excerpt`, also
 inside a "not verified" block, because it would present unverified code as
 verified.
 

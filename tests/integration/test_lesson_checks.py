@@ -855,6 +855,11 @@ def test_marker_on_another_block_does_not_cover_the_code(
         "::: {.excerpt-source}\n[Source](https://example.org)\n:::\n",
         '<div class="excerpt-omission">Lines 3 to 4 are not shown.</div>\n',
         '<pre data-source="pbc.mechanics.kinematics:euler_step">x = 1</pre>\n',
+        '<pre source="pbc.mechanics.kinematics:euler_step">x = 1</pre>\n',
+        '<pre signature="pbc.mechanics.kinematics:euler_step">x = 1</pre>\n',
+        '<span source-name="euler_step">x = 1</span>\n',
+        '<pre data-signature="pbc.mechanics.kinematics:euler_step">x = 1</pre>\n',
+        "<pre\n  data-source-name = 'euler_step'>x = 1</pre>\n",
         # Marked as not verified, it still may not claim a verified form.
         "::: {.not-verified}\n```{.python .excerpt-listing}\nx = 1\n```\n:::\n",
     ],
@@ -865,6 +870,11 @@ def test_marker_on_another_block_does_not_cover_the_code(
         "source-link",
         "raw-omission",
         "raw-data-source",
+        "raw-source",
+        "raw-signature",
+        "raw-source-name",
+        "raw-data-signature",
+        "raw-data-source-name-spaced",
         "not-verified-listing",
     ],
 )
@@ -874,6 +884,24 @@ def test_markup_of_a_verified_display_form_written_by_hand_is_reported(
     repository = make_repository({_CELL: _CELL + "\n" + block})
 
     assert "forged-excerpt" in rules(lesson_checks.check_displayed_code(repository))
+
+
+@pytest.mark.parametrize(
+    "block",
+    [
+        '<img src="figure.png" alt="the source = a sketch">\n',
+        '<video><source src="clip.mp4" type="video/mp4"></video>\n',
+        '<span resource="x" x-source="y">Text.</span>\n',
+        "::: {.not-verified}\n<pre>f(a, source=1, signature=2)</pre>\n:::\n",
+    ],
+    ids=["img-src-and-alt", "source-element", "other-attributes", "code-text"],
+)
+def test_raw_html_that_only_resembles_a_form_attribute_is_accepted(
+    make_repository: Repository, block: str
+):
+    repository = make_repository({_CELL: _CELL + "\n" + block})
+
+    assert lesson_checks.check_displayed_code(repository) == []
 
 
 @pytest.mark.parametrize(

@@ -710,10 +710,16 @@ _FORM_CLASSES = {
     "figure-source",
 }
 _FORM_ATTRIBUTES = {"source", "signature", "source-name"}
+# In raw HTML: a form class, or one of the form attributes, plain or with the
+# 'data-' prefix Pandoc gives it, as an attribute name of a tag (not in the
+# text, where 'f(source=1)' is code, nor in another attribute's value) and as
+# a whole name ('src', 'resource', and 'x-source' do not match).
 _FORM_HTML = re.compile(
-    r"""class=["'][^"']*\b(?:"""
+    r"""class=["'][^"']*\b(?P<class>"""
     + "|".join(sorted(map(re.escape, _FORM_CLASSES), key=len, reverse=True))
-    + r""")\b(?!-)|\bdata-(?:source|signature|source-name)=""",
+    + r""")\b(?!-)"""
+    + r"""|<[\w-]+(?:\s+[\w:.-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?)*?"""
+    + r"""\s+(?P<attribute>(?:data-)?(?:source-name|signature|source))\s*=""",
     re.IGNORECASE,
 )
 
@@ -728,7 +734,7 @@ def _forged_form(node: Node) -> str | None:
         return found[0] if found else None
     if node["t"] in ("RawBlock", "RawInline"):
         match = _FORM_HTML.search(node["c"][1])
-        return match.group(0) if match else None
+        return (match.group("class") or match.group("attribute")) if match else None
     return None
 
 
