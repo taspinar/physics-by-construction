@@ -172,9 +172,11 @@ stresses as arrays of floats. The construction is the part shown: `gap` is
 the measured stress minus the shifted line at every sample. The guard
 counts only samples whose strain is past the offset, so the start of the
 curve, left of the foot of the shifted line, is never taken for a
-crossing, and it stops with an error when the curve never crosses or has no
-sample above the line before the crossing. The last two lines interpolate
-linearly between the last sample above the line and the first one below it.
+crossing. It stops with an error when no sample past the offset falls
+below the line, or when the first one that does is the curve's first
+sample, which leaves no sample before it. The last two lines interpolate
+linearly between the sample just before that first one below the line and
+the first one itself.
 
 ```{python}
 #| echo: false
