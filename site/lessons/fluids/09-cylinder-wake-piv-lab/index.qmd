@@ -665,10 +665,11 @@ reproduce_this(
         "tests/unit/test_data_ost_hotwire.py",
         "tests/unit/test_cylinder_wake_piv_lab_experiment.py",
     ],
+    data="""
+        The data cards above give the commands that download the PIV file and the
+        hot-wire files into `data/downloads/`, and the conversion scripts that
+        repeat the committed samples from them; no model and no account are needed
+        to read them.
+    """,
 )
 ```
-
-The data cards above give the commands that download the PIV file and the
-hot-wire files into `data/downloads/`, and the conversion scripts that
-repeat the committed samples from them; no model and no account are needed
-to read them.

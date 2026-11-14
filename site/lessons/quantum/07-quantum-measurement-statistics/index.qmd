@@ -766,9 +766,10 @@ reproduce_this(
         "tests/unit/test_data_samples.py",
         "tests/unit/test_quantum_spin.py",
     ],
+    data="""
+        The data card above gives the command that downloads a fresh copy of the
+        archive into `data/downloads/munich-bell-event-ready`; the committed sample
+        is the same files, and no model and no account are needed to read either.
+    """,
 )
 ```
-
-The data card above gives the command that downloads a fresh copy of the
-archive into `data/downloads/munich-bell-event-ready`; the committed sample
-is the same files, and no model and no account are needed to read either.

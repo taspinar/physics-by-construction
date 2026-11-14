@@ -788,8 +788,10 @@ The published instructions follow this flow since F117; the earlier one
 (the supported-machine setup and a render of the page) was removed from
 every guide and relocated nowhere:
 
-1. Clone or download the repository at the commit the lesson's footer
-   names, and install the project's pinned Python dependencies with
+1. Clone or download the repository, by default the latest version on
+   `main`, which may produce different results, or, for the published
+   results, at the commit the lesson's last section links as the version
+   behind the page (F174), and install the project's pinned Python dependencies with
    `uv sync --locked --no-dev`: the locked NumPy, SciPy, Matplotlib, and
    what `src/pbc` imports, and nothing of the `dev` group that holds
    Quarto, the Jupyter kernel, the browser, the accessibility scan, and
@@ -1898,7 +1900,10 @@ existing helpers: the header and the excerpt's location line are context
 regions (`pbc.authoring.context`, ADR 014 decision 9) that the post-render
 step `site/context.py` fills, and the last section comes from
 `pbc.authoring.reproduce`; so one change reaches every lesson: a shared
-input and a full run. Figure
+input and a full run. The previous and next lesson at the end are a
+labelled `<nav>` that the same post-render step inserts before the end of
+`main` on every lesson page that has a last section, after anything a
+lesson writes after that section's cell. Figure
 status presentation is V2's; F174 may change only the surrounding CSS.
 
 **Teaching pilots and calibration** (T2, T3, F165 to F169). M1, M3, and

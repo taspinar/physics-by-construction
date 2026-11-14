@@ -21,7 +21,15 @@ from support.paths import REPO_ROOT, SITE_SOURCE
 from support.site_checks import DESKTOP, PHONE, describe
 from support.site_server import SiteServer, configured_repository_url
 
-from pbc.authoring.reproduce import HEADINGS, LEAN_EXPERIMENT, kind_of
+from pbc.authoring.reproduce import (
+    DETAILS_SUMMARY,
+    HEADINGS,
+    LEAN_EXPERIMENT,
+    MAIN_MAY_DIFFER,
+    PAGE_VERSION,
+    SKIP_PAGE_VERSION,
+    kind_of,
+)
 
 # A lesson page may take less than its limit to execute and render, and the
 # experiment of a lesson to run: the limit and the warning threshold are in
@@ -361,9 +369,16 @@ def test_links_to_files_fit_a_phone_screen(
 
 
 def _reproduce_commands(page: Page, server: SiteServer, lesson: str) -> list[str]:
+    """Every command of the last section, in the order of the page: the
+    clone, the checkout of the version behind the page, and the shared steps,
+    each in its own block (F174)."""
     page.goto(server.url + lesson, wait_until="load")
     listing = page.locator("#reproduce-this pre.reproduce-commands code")
-    return listing.text_content().strip().splitlines()
+    return [
+        line
+        for block in listing.all_text_contents()
+        for line in block.strip().splitlines()
+    ]
 
 
 def _declared(lesson: str) -> dict:
@@ -400,6 +415,43 @@ def test_the_last_section_names_the_activity_and_the_built_commit(
     for command in commands:
         assert "quarto" not in command and "build-site" not in command
         assert "verify.sh" not in command
+
+
+@pytest.mark.parametrize("lesson", LESSONS)
+def test_the_last_section_shows_one_sentence_and_opens_by_keyboard(
+    page_without_scripts: Page, server: SiteServer, lesson: str
+):
+    """The first view of the last section is its heading, one sentence, and
+    the closed "Setup and commands"; no commit and no command shows until the
+    reader opens it, which the keyboard does without scripts (F174, the
+    owner's decision of 2026-11-14)."""
+    page = page_without_scripts
+    page.goto(server.url + lesson, wait_until="load")
+    section = page.locator("#reproduce-this")
+    details = section.locator("details.reproduce-details")
+    summary = details.locator("> summary")
+
+    assert details.count() == 1
+    assert not details.evaluate("e => e.open")
+    assert summary.inner_text().strip() == DETAILS_SUMMARY
+    sentence = section.locator(".reproduce > p").first.inner_text().strip()
+    assert sentence.endswith("on your own computer.")
+    visible = section.inner_text()
+    assert _head_commit() not in visible and _head_commit()[:7] not in visible
+    assert "git clone" not in visible and "uv run" not in visible
+    assert not section.locator("pre.reproduce-commands").first.is_visible()
+
+    summary.focus()
+    page.keyboard.press("Enter")
+    assert details.evaluate("e => e.open")
+    assert section.locator("pre.reproduce-commands").first.is_visible()
+    opened = details.inner_text()
+    # main first, with its note, then the version behind the page.
+    assert opened.index(MAIN_MAY_DIFFER) < opened.index(PAGE_VERSION)
+    # The checkout is optional, and the reader is told to skip it for main
+    # before they reach it (the owner's review of 2026-11-14).
+    checkout = opened.index(f"git checkout {_head_commit()}")
+    assert opened.index(PAGE_VERSION) < opened.index(SKIP_PAGE_VERSION) < checkout
 
 
 def _clone_of_the_working_tree(target: Path) -> Path:

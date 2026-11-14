@@ -681,9 +681,10 @@ reproduce_this(
         "tests/unit/test_data_samples.py",
         "tests/unit/test_microwave_sparameter_lab_experiment.py",
     ],
+    data="""
+        The data card above gives the command that downloads a fresh copy of the
+        record into `data/downloads/npl-onwafer-sparameters`; no model and no
+        account are needed to read it.
+    """,
 )
 ```
-
-The data card above gives the command that downloads a fresh copy of the
-record into `data/downloads/npl-onwafer-sparameters`; no model and no
-account are needed to read it.

@@ -82,6 +82,16 @@ def _plain(text: str) -> str:
     return text.replace("\u2019", "'")
 
 
+def _open_header_details(header) -> None:
+    """Open the header's closed disclosure the way a reader does, by its
+    summary, without scripts (F174)."""
+    details = header.locator("details.lesson-header-details")
+    assert details.count() == 1
+    assert details.evaluate("d => d.open") is False
+    details.locator(":scope > summary").click()
+    assert details.evaluate("d => d.open") is True
+
+
 def _hrefs(page: Page, selector: str) -> list[str]:
     return page.locator(selector).evaluate_all("links => links.map(a => a.href)")
 
@@ -177,6 +187,7 @@ def test_every_part_b_lesson_keeps_the_address_of_the_base_and_shows_its_new_slo
     page.goto(server.url + address, wait_until="load")
     assert _plain(page.locator("main h1").first.inner_text()) == _plain(lesson.title)
     header = page.locator("main .lesson-header")
+    _open_header_details(header)
     terms = [_plain(text) for text in header.locator("dt").all_inner_texts()]
     if not moved.slot:
         assert "Slot" not in terms
@@ -208,6 +219,8 @@ def test_lesson_header_shows_the_facts_of_the_path_with_links(
     assert page.locator("main > :not(header) .lesson-header").count() == 1
     first = page.locator("main > :not(header)").first
     assert first.locator(".lesson-header").count() == 1
+    # The orientation is visible; the rest opens by its summary (F174).
+    _open_header_details(header)
 
     rows = dict(
         zip(
@@ -222,19 +235,30 @@ def test_lesson_header_shows_the_facts_of_the_path_with_links(
     if slot is not None and slot.path:
         home.append(slot.path)
     introduced_here = [item for item in home if item in INTRODUCED]
-    assert list(rows) == [
+    # The visible rows, then those of the disclosure: every row the header
+    # had, none lost (F174).
+    visible = header.locator(":scope > dl > dt")
+    assert [_plain(text) for text in visible.all_inner_texts()] == [
         "Course",
-        *(["Slot"] if lesson.slot else []),
-        *(["Introduction"] if introduced_here else []),
         "Methods",
         "Difficulty",
         "What you'll learn",
+        "Previous",
+        "Next",
+    ]
+    assert list(rows) == [
+        "Course",
+        "Methods",
+        "Difficulty",
+        "What you'll learn",
+        "Previous",
+        "Next",
+        *(["Slot"] if lesson.slot else []),
+        *(["Introduction"] if introduced_here else []),
         "Prerequisites",
         "Before you begin",
         "Related",
         *(["Connections"] if CONNECTIONS[lesson.id] else []),
-        "Previous",
-        "Next",
     ]
 
     course = next(c for c in LESSON_PATH.courses if c.id == lesson.course)
@@ -313,6 +337,46 @@ def test_lesson_header_shows_the_facts_of_the_path_with_links(
         else:
             assert rows[name].inner_text() == neighbour.title
             assert _hrefs(rows[name], "a") == [server.url + built(neighbour)]
+
+    # The same previous and next lesson end the page: the last element of
+    # main, after the last section and whatever follows its cell (F174).
+    pager = page.locator("main nav.lesson-pager")
+    assert pager.count() == 1
+    assert pager.get_attribute("aria-label") == "Previous and next lesson"
+    assert pager.evaluate(
+        "nav => nav.parentElement.tagName === 'MAIN'"
+        " && nav.nextElementSibling === null"
+        " && Boolean(document.querySelector('#reproduce-this')"
+        ".compareDocumentPosition(nav) & Node.DOCUMENT_POSITION_FOLLOWING)"
+    )
+    assert [_plain(text) for text in pager.locator("dt").all_inner_texts()] == [
+        "Previous",
+        "Next",
+    ]
+    assert _hrefs(pager, "a") == _hrefs(rows["Previous"], "a") + _hrefs(
+        rows["Next"], "a"
+    )
+
+
+def test_the_header_disclosure_opens_by_keyboard_after_previous_and_next(
+    without_scripts: BrowserContext, server: SiteServer
+):
+    """The keyboard reaches the header's disclosure right after the visible
+    links, opens it with Enter, and goes on into it (F174)."""
+    lesson = LESSON_PATH.lessons[0]
+    page = without_scripts.new_page()
+    page.goto(server.url + built(lesson), wait_until="load")
+    page.focus(".lesson-header > dl a >> nth=-1")
+    page.keyboard.press("Tab")
+    assert page.evaluate("document.activeElement.parentElement.className") == (
+        "lesson-header-details"
+    )
+    page.keyboard.press("Enter")
+    assert page.evaluate("document.querySelector('.lesson-header-details').open")
+    page.keyboard.press("Tab")
+    assert page.evaluate(
+        "document.activeElement.closest('.lesson-header-details') !== null"
+    )
 
 
 def test_glossary_page_defines_every_entry_and_links_the_lessons_without_javascript(

@@ -592,10 +592,11 @@ reproduce_this(
         "tests/unit/test_data_lycopodium.py",
         "tests/unit/test_lycopodium_diffraction_lab_experiment.py",
     ],
+    data="""
+        The data card above gives the command that downloads the four files of the
+        record into `data/downloads/lycopodium-spore-diffraction`; the committed
+        sample is enough for this page, and no model and no account are needed to
+        read either.
+    """,
 )
 ```
-
-The data card above gives the command that downloads the four files of the
-record into `data/downloads/lycopodium-spore-diffraction`; the committed
-sample is enough for this page, and no model and no account are needed to
-read either.

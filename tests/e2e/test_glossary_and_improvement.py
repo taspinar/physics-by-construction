@@ -75,6 +75,8 @@ def test_before_you_begin_opens_each_definition_without_scripts(
     page = without_scripts.new_page()
     for lesson in lessons[:3]:
         page.goto(server.url + _built(lesson.page), wait_until="load")
+        # "Before you begin" is in the header's closed disclosure (F174).
+        page.locator(".lesson-header-details > summary").click()
         disclosures = page.locator(".lesson-header .glossary-definition")
         entries = []
         for text in lesson.outside:

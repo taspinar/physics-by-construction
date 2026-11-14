@@ -1,0 +1,129 @@
+# The introduction of the course Waves and optics (F159, requirements
+# decision 43). Prose and references only; see
+# site/introductions/mechanics.yaml for the rules.
+sequence: waves
+
+why:
+  - >-
+    A plucked string, the note of an organ pipe, the siren that drops in
+    pitch as it passes, the bright and dark fringes of light behind a narrow slit, and
+    the swell that runs up a beach look like different subjects. They are
+    one: a disturbance that travels, adds to other disturbances, and carries
+    energy without carrying the medium with it. Learn how a wave behaves in
+    one setting and much of it holds in the others.
+  - >-
+    Waves are also where a computation can be wrong in a way that looks
+    right. A grid that is too coarse makes a pulse travel at the wrong
+    speed, and a time step that is too long makes it grow without bound.
+    The course treats the grid as part of the physics to be checked, and
+    then asks the reverse question that every optical instrument raises:
+    what can a measured pattern tell you about what made it?
+
+questions:
+  - >-
+    How does a wave travel, and what does a numerical scheme have to
+    respect to follow it faithfully?
+  - >-
+    Why do waves that meet make patterns of loud and quiet, bright and
+    dark, and why do strings and pipes sound only at certain frequencies?
+  - >-
+    What happens to light at the boundary between two media, and to the
+    direction in which its field oscillates?
+  - >-
+    Why does every instrument have a limit to the detail it can resolve?
+  - >-
+    What can be inferred about an aperture from its diffraction pattern,
+    and what can never be?
+  - >-
+    How well does a simple wave model describe waves that were measured in
+    a laboratory?
+
+learn:
+  - >-
+    Derive a finite-difference scheme for the wave equation, measure its
+    convergence, and show the stability limit set by the Courant number
+    ({slot:W1}).
+  - >-
+    Build modes and standing waves by superposition, show a resonance, and
+    measure the dispersion that a grid adds ({slot:W2}, {slot:W9}).
+  - >-
+    Compute the shift in pitch of a moving source and of a moving listener
+    and check both Doppler formulas ({slot:W9}).
+  - >-
+    Find the path of a ray as the path of least time, and the reflected and
+    transmitted light from the boundary conditions ({slot:W3}).
+  - >-
+    Describe polarisation by Jones vectors and Stokes parameters, and check
+    Malus's law, also for an imperfect polariser ({slot:W4}).
+  - >-
+    Compute diffraction patterns as sums of wavelets and use them to
+    explain the resolving limit of an instrument ({slot:W5}).
+  - >-
+    Estimate the geometry of an aperture from noisy photon counts, with
+    standard errors checked over many data sets, and show what the
+    intensity cannot determine ({slot:W6}).
+  - >-
+    Test the dispersion of water waves and the diffraction of light against
+    measured records, and say what each record does and does not allow
+    ({slot:W8}, {slot:W7}).
+
+order:
+  - >-
+    The course begins with a single equation and a single grid. {slot:W1}
+    sets up the scheme and its limits on a string, and {slot:W2} uses the
+    fact that waves add to build modes, a resonance, and the pattern of two
+    sources, and to measure the dispersion that the grid introduces.
+    {slot:W9} carries the same equation into air, where pipes resonate and
+    a moving source shifts its pitch; it needs only the string lessons.
+  - >-
+    The course then turns to light. {slot:W3} and {slot:W4} follow it across
+    a boundary and through polarisers, where the boundary conditions and
+    the direction of the field matter. {slot:W5} returns to superposition on
+    a larger scale: an aperture is many sources, and adding their wavelets
+    gives the patterns and the resolving limits of optical instruments.
+  - >-
+    {slot:W6} comes after diffraction because it reverses it: with the
+    forward model understood, the question becomes what a measured pattern
+    lets you infer. The labs on measured data close the course, a wave flume for
+    water and a layer of spores in a laser beam for light, because
+    comparing a model with a recorded signal is harder than comparing it
+    with a formula.
+
+method:
+  - >-
+    The lessons use two kinds of calculation. Where a wave has to be
+    followed in time, it is stepped on a grid, and the grid is tested
+    against an exact solution, a measured order of convergence, and the
+    stability limit. Where a steady pattern is wanted, it is computed as a
+    sum of contributions, wavelets or the components of a field. Either way
+    the result is checked against something outside the program, such as
+    the analytic mode frequencies, Snell's law, Malus's law, or the zeros
+    of a diffraction pattern.
+  - >-
+    In {slot:W6} and in the labs the method extends to inference. A fit
+    is first tested on synthetic data whose true values are known, so that
+    its stated errors can be trusted before it meets a real record, and a
+    lesson says plainly what the data cannot decide. None of the lessons of
+    this course uses an artificial-intelligence agent.
+
+capstone:
+  - >-
+    The curriculum has no capstone project for this course. The lesson that
+    draws most of it together is {slot:W6}: it relies on the diffraction of
+    {slot:W5} and turns the forward calculations of the course into a
+    question of evidence, with errors that are checked over many data sets
+    and limits on what can be known.
+  - >-
+    The labs carry that question to recorded data. {slot:W8} tests the
+    linear dispersion of water waves along a flume and finds where linear
+    theory stops, and {slot:W7} tests the scaling of diffraction rings with
+    the wavelength on a record whose calibration is missing.
+
+next:
+  - >-
+    The wave equation returns as the equation of light in {slot:EM4},
+    derived from Maxwell's equations, and its centred second difference
+    returns in {slot:Q1}; the modes and interference return in the antennas and arrays
+    of {slot:EM6} and {slot:EM9}, and in the vibrations of a crystal in
+    {slot:MAT1}. {sequence:electromagnetism} is the natural next course,
+    because it explains what the light of this course is.

@@ -42,6 +42,12 @@ PATH_PAGE = "path/index.qmd"
 PATH_SCRIPT = "learner/path.js"
 # The heading of a lesson page that says how to reproduce it.
 REPRODUCE_ANCHOR = "reproduce-this"
+# The closed disclosure of a lesson header and its summary (F174).
+HEADER_DETAILS_CLASS = "lesson-header-details"
+HEADER_DETAILS_SUMMARY = "Prerequisites, related lessons, and where this lesson fits"
+# The previous and next lesson at the end of a lesson page (F174).
+PAGER_CLASS = "lesson-pager"
+PAGER_LABEL = "Previous and next lesson"
 
 
 @dataclass(frozen=True)
@@ -957,6 +963,44 @@ def _link(from_page: str, lesson: Lesson) -> str:
     return f"[{lesson.title}]({_href(from_page, lesson.page)})"
 
 
+def _terms(rows: Sequence[tuple[str, str]]) -> str:
+    """A Markdown definition list of ``(term, definition)`` rows."""
+    return "\n".join(f"{term}\n:   {definition}\n" for term, definition in rows)
+
+
+def previous_and_next(path: LearningPath, lesson: Lesson) -> list[tuple[str, str]]:
+    """The rows "Previous" and "Next" of a lesson, as Markdown from its page."""
+    page = lesson.page
+    previous = path.previous(lesson)
+    following = path.next(lesson)
+    order = _href(page, PATH_PAGE, "order")
+    return [
+        (
+            "Previous",
+            _link(page, previous)
+            if previous
+            else f"none; this is the first lesson of the [learning path]({order})",
+        ),
+        (
+            "Next",
+            _link(page, following)
+            if following
+            else "none yet; this is the last lesson of the"
+            f" [learning path]({order}) so far",
+        ),
+    ]
+
+
+def lesson_pager(path: LearningPath, lesson: Lesson) -> str:
+    """The previous and the next lesson at the end of a lesson page: the same
+    two rows as the header's, in a labelled navigation region (F174)."""
+    return (
+        f'<nav class="{PAGER_CLASS}" aria-label="{PAGER_LABEL}">\n\n'
+        + _terms(previous_and_next(path, lesson))
+        + "\n</nav>\n"
+    )
+
+
 def _level(lesson: Lesson) -> str:
     difficulty = _DIFFICULTY[lesson.difficulty]
     return f"{difficulty.title}, level {difficulty.level} of {len(DIFFICULTIES)}"
@@ -1015,7 +1059,9 @@ class LessonHeader:
 
     As the result of a code cell it leaves a marker; the page the reader gets
     shows a list of those facts, with links, built after the render from the
-    front matter of every lesson (``pbc.authoring.context``).
+    front matter of every lesson (``pbc.authoring.context``): the course and
+    position, methods, difficulty, outcomes, and the previous and next lesson
+    visible, and the rest in a closed native disclosure (F174).
     """
 
     path: LearningPath
@@ -1072,16 +1118,22 @@ class LessonHeader:
             if lesson.related
             else "none"
         )
-        previous = path.previous(lesson)
-        following = path.next(lesson)
         slot = _slot_fact(path, page, lesson)
-        rows = [
+        # What a reader needs to begin (F174): the place, the level and the
+        # methods, the outcomes, and the way on. The title and the purpose
+        # are the title block's (``title``, ``description``).
+        shown = [
             ("Course", f"{course_link}, {position}"),
-            *([("Slot", slot)] if slot else []),
-            *self._introductions(),
             ("Methods", methods),
             ("Difficulty", level),
             ("What you'll learn", "\n" + outcomes),
+            *previous_and_next(path, lesson),
+        ]
+        # The rest, one click away in a closed native disclosure, in the
+        # order the header had.
+        more = [
+            *([("Slot", slot)] if slot else []),
+            *self._introductions(),
             (
                 "Prerequisites",
                 _prerequisites(path, page, lesson, outside=self.glossary is None),
@@ -1089,24 +1141,15 @@ class LessonHeader:
             *self._before_you_begin(),
             ("Related", related),
             *self._connections(),
-            (
-                "Previous",
-                _link(page, previous)
-                if previous
-                else "none; this is the first lesson of the"
-                f" [learning path]({_href(page, PATH_PAGE, 'order')})",
-            ),
-            (
-                "Next",
-                _link(page, following)
-                if following
-                else "none yet; this is the last lesson of the"
-                f" [learning path]({_href(page, PATH_PAGE, 'order')}) so far",
-            ),
         ]
         header = (
             "::: {.lesson-header}\n"
-            + "\n".join(f"{term}\n:   {definition}\n" for term, definition in rows)
+            + _terms(shown)
+            + "\n"
+            + f'<details class="{HEADER_DETAILS_CLASS}">\n'
+            + f"<summary>{HEADER_DETAILS_SUMMARY}</summary>\n\n"
+            + _terms(more)
+            + "\n</details>\n"
             + ":::\n"
         )
         # The script that keeps the learner's progress in the browser.

@@ -789,6 +789,8 @@ def test_a_lesson_page_shows_its_concepts_connections_with_their_rationale(
     page = without_scripts.new_page()
     page.goto(server.url + lesson.page.removesuffix(".qmd") + ".html")
     header = page.locator(".lesson-header")
+    # The connections are in the header's closed disclosure (F174).
+    header.locator(".lesson-header-details > summary").click()
     terms = header.locator("dt").all_inner_texts()
     assert "Connections" in terms
     text = header.inner_text().replace("\u2019", "'")

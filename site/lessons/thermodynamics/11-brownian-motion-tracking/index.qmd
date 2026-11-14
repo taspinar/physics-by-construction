@@ -659,10 +659,11 @@ reproduce_this(
         "tests/unit/test_data_bulk_water.py",
         "tests/unit/test_brownian_motion_tracking_experiment.py",
     ],
+    data="""
+        The data card above gives the command that downloads the forty frames into
+        `data/downloads/trackpy-bulk-water`, and the tracking script that repeats
+        the committed tracks from them; no model and no account are needed to read
+        it.
+    """,
 )
 ```
-
-The data card above gives the command that downloads the forty frames into
-`data/downloads/trackpy-bulk-water`, and the tracking script that repeats
-the committed tracks from them; no model and no account are needed to read
-it.
