@@ -10,7 +10,9 @@ credit left out: they are F172's), the legend entries, the line
 widths, the markers drawn, the colour maps, and the least contrast of a
 stroke: a data line against the white plate, and a stroke of a collection
 (an isoline, a line collection) against what lies beneath it, the rendered
-field where an image is drawn under it and the plate elsewhere. Run it as
+field where an image is drawn under it and the plate elsewhere; a stroke
+with a casing (a ``Stroke`` path effect beneath it) counts the better of its
+colour and its casing's at each sample. Run it as
 a program to print the audit of the pilot's samples:
 
     uv run --locked python -m pbc.figure_audit
@@ -34,6 +36,7 @@ from matplotlib.contour import ContourSet
 from matplotlib.figure import Figure
 from matplotlib.image import AxesImage
 from matplotlib.lines import Line2D
+from matplotlib.patheffects import Stroke
 from matplotlib.text import Text
 
 from pbc.authoring.design import PAGE, contrast_ratio
@@ -152,10 +155,23 @@ def _beneath(ax, points: np.ndarray, plate: str) -> list[str]:
 SAMPLES_PER_SEGMENT = 5
 
 
+def _casings(collection: Collection) -> list[str]:
+    """The colours of the casings of ``collection``: its ``Stroke`` path
+    effects that set a colour of their own (Matplotlib keeps their graphics
+    settings in ``_gc``)."""
+    return [
+        to_hex(effect._gc["foreground"])
+        for effect in collection.get_path_effects() or []
+        if isinstance(effect, Stroke) and "foreground" in effect._gc
+    ]
+
+
 def _stroke_contrasts(ax, collection: Collection, plate: str) -> list[float]:
     """The contrast of the strokes of ``collection`` (an isoline, a line
     collection) against what lies under them, sampled along every segment,
-    the ends included. Filled
+    the ends included; a cased stroke takes, at each sample, the better of
+    its colour and its casing's (the casing gives it its edge where the
+    field matches its colour). Filled
     areas (a colour mesh, a filled contour, a band) are not strokes."""
     if not collection.get_visible() or isinstance(
         collection, QuadMesh | PolyCollection
@@ -168,6 +184,7 @@ def _stroke_contrasts(ax, collection: Collection, plate: str) -> list[float]:
     if len(edges) == 0 or not np.any(widths > 0):
         return []
     to_data = collection.get_transform() - ax.transData
+    casings = _casings(collection)
     steps = np.linspace(0.0, 1.0, SAMPLES_PER_SEGMENT)[:, None, None]
     contrasts = []
     for k, path in enumerate(collection.get_paths()):
@@ -181,7 +198,8 @@ def _stroke_contrasts(ax, collection: Collection, plate: str) -> list[float]:
                     -1, 2
                 )
             contrasts += [
-                contrast_ratio(stroke, under) for under in _beneath(ax, points, plate)
+                max(contrast_ratio(colour, under) for colour in (stroke, *casings))
+                for under in _beneath(ax, points, plate)
             ]
     return contrasts
 

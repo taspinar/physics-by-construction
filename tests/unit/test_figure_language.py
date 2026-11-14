@@ -24,15 +24,20 @@ from pbc.figure_language import (
     SEQUENTIAL,
     TEXT,
     WIDTH,
+    cased,
     figure_style,
     finish,
     isoline_colours,
     line_colours,
 )
 
-# The least size of type on a phone, in CSS px: MIN_TEXT at WIDTH, scaled to
-# the phone's width of a figure.
-PHONE_TEXT = 7.0
+# The tight crop of a saved figure (bbox_inches="tight") widens it by up to
+# this much beyond WIDTH: 548 px for 538.
+CROP = 1.02
+# The least size of type on a phone, in CSS px: MIN_TEXT at the widest
+# cropped figure, scaled to the phone's width of a figure (PHONE_WIDTH,
+# 306 CSS px, measured on a built page): 7.07, docs/authoring.md.
+PHONE_TEXT = MIN_TEXT * PIXELS_PER_POINT * PHONE_WIDTH / (CROP * WIDTH * 96)
 
 
 @pytest.fixture(scope="module")
@@ -63,6 +68,11 @@ def test_every_sample_has_the_one_width(audits):
     # bbox_inches="tight" crops a few pixels; the width is the language's.
     for label, audit in audits.items():
         assert abs(audit.natural_width - WIDTH * 96) <= 0.05 * WIDTH * 96, label
+        assert audit.natural_width <= CROP * WIDTH * 96, label
+
+
+def test_the_phone_minimum_is_the_documented_one():
+    assert round(PHONE_TEXT, 2) == 7.07
 
 
 def test_no_text_of_a_sample_is_smaller_than_the_least_size(audits):
@@ -87,22 +97,67 @@ def test_the_isolines_of_the_field_are_audited_against_the_field(audits):
 
 
 def test_every_sample_of_the_isotherms_counts_their_ends_included(samples):
-    # The isotherms end near the bottom corners, where the hot edge (100
+    # The isotherms run to the bottom corners, where the hot edge (100
     # degrees C) meets the cold ones (20): no stroke colour has 3:1 against
-    # both. They are drawn through the inner nodes, so their ends lie inside
-    # the boundary ring and every sample, the ends too, has 3:1.
+    # both. Each carries a casing of the other colour, and every sample, the
+    # ends too, has 3:1 with the line or its casing.
     from pbc.figure_audit import _stroke_contrasts
 
     _, draw = samples["fig-plate-temperature"]
     fig = draw()
     try:
         fig.canvas.draw()
+        counted = 0
         for ax in fig.axes:
             for collection in ax.collections:
                 for contrast in _stroke_contrasts(ax, collection, PAGE["plate"]):
                     assert contrast >= CONTROL_CONTRAST
+                    counted += 1
+        assert counted > 0
     finally:
         plt.close(fig)
+
+
+def test_the_isotherms_are_the_contours_of_the_whole_displayed_field(samples):
+    # The contour source is the image's whole array, its boundary rows and
+    # columns included: each drawn isotherm ends where the contour of the
+    # displayed field at its level ends (the label's gap lies at its top).
+    import numpy as np
+
+    _, draw = samples["fig-plate-temperature"]
+    fig = draw()
+    scratch = plt.figure()
+    try:
+        for ax in fig.axes:
+            if not ax.images:
+                continue
+            image = ax.images[0]
+            field = np.asarray(image.get_array())
+            extent = image.get_extent()
+            cell = (extent[1] - extent[0]) / field.shape[1]
+            sets = [c for c in ax.collections if hasattr(c, "levels")]
+            assert [float(c.levels[0]) for c in sets] == [30.0, 40.0, 60.0, 80.0]
+            for drawn in sets:
+                expected = scratch.add_subplot().contour(
+                    field, levels=drawn.levels, origin="lower", extent=extent
+                )
+                ends = [
+                    np.vstack([p.vertices for p in c.get_paths()])
+                    for c in (drawn, expected)
+                ]
+                # left, right, and bottom: the ends of the arch; its top holds
+                # the label's gap
+                lows = [e.min(axis=0) for e in ends]
+                highs = [e.max(axis=0) for e in ends]
+                assert lows[0] == pytest.approx(lows[1], abs=1e-9)
+                assert highs[0][0] == pytest.approx(highs[1][0], abs=1e-9)
+                # the ends lie between the boundary nodes and the next ones
+                assert ends[0][:, 0].min() < extent[0] + 1.5 * cell
+                assert ends[0][:, 0].max() > extent[1] - 1.5 * cell
+                assert ends[0][:, 1].min() < extent[2] + 1.5 * cell
+    finally:
+        plt.close(fig)
+        plt.close(scratch)
 
 
 def _field_with_isolines(colour):
@@ -127,6 +182,20 @@ def test_the_audit_measures_an_isoline_against_the_field_beneath():
     ink = measure(_field_with_isolines(INK))
     assert white.least_line_contrast < CONTROL_CONTRAST
     assert ink.least_line_contrast >= CONTROL_CONTRAST
+
+
+def test_a_cased_isoline_is_measured_by_its_line_or_its_casing():
+    # White on bright yellow-green is below 3:1; with an ink casing the
+    # stroke has its edge, and the audit counts the casing.
+    def draw():
+        fig = _field_with_isolines("white")()
+        ax = fig.axes[0]
+        for collection in ax.collections:
+            collection.set_path_effects(cased(PAGE["plate"]))
+        return fig
+
+    assert measure(draw).least_line_contrast >= CONTROL_CONTRAST
+    assert cased(INK)[0]._gc["foreground"] == PAGE["plate"]
 
 
 def test_an_isoline_takes_the_colour_with_more_contrast_on_its_level():

@@ -37,7 +37,9 @@ each part applies.
   does not change sign (a temperature, a density, an intensity),
   ``DIVERGING`` centred on zero for a signed quantity
   (``pbc.data.plotting.signed_norm``); the colour bar says "false colour".
-  An isoline on a field is white or ink by its level (``isoline_colours``).
+  An isoline on a field is white or ink by its level (``isoline_colours``)
+  and carries a thin casing of the other (``cased``), so that it keeps
+  3:1 where it meets a boundary of another colour than its level's.
 """
 
 from __future__ import annotations
@@ -48,7 +50,7 @@ from typing import TYPE_CHECKING
 
 import matplotlib
 import numpy as np
-from matplotlib import cycler
+from matplotlib import cycler, patheffects
 
 from pbc.authoring.design import CONTROL_CONTRAST, FIGURE_COLOURS, PAGE, contrast_ratio
 
@@ -70,11 +72,15 @@ ASPECTS = {
     "measured": 1.15,  # three stacked panels of measured data and residuals
 }
 # Type sizes in points. At WIDTH, a point is 1.33 CSS px on a desktop and
-# 0.76 CSS px on a phone, so MIN_TEXT is 12.7 and 7.2 CSS px.
+# 0.76 CSS px on a phone (306 CSS px, PHONE_WIDTH of pbc.figure_audit), so
+# MIN_TEXT is 12.7 and 7.2 CSS px; the tight crop of a saved figure widens
+# it by up to 2 %, so a phone shows at least 7.07 CSS px (the tests' bound).
 TEXT = {"tick": 10.0, "label": 11.0, "title": 11.0, "legend": 10.0, "note": 9.5}
 MIN_TEXT = 9.5
 # Line widths in points: the hierarchy of a figure.
 LINE = {"data": 1.8, "model": 1.4, "guide": 1.0, "axis": 0.8, "grid": 0.6}
+# The casing of an isoline, in points on each side of its stroke.
+CASING = 0.6
 MARKER = 4.5
 
 INK = PAGE["text"]
@@ -150,6 +156,18 @@ def isoline_colours(
             max((PLATE, INK), key=lambda colour: contrast_ratio(colour, under))
         )
     return colours
+
+
+def cased(colour: str, width: float = LINE["guide"]) -> list:
+    """The path effects of an isoline of ``colour`` (white or ink) and
+    ``width``: a casing of the other colour beneath it, ``CASING`` points on
+    each side. Where the field under the line is close to the line's own
+    colour (a boundary of another temperature than the level's), the casing
+    gives it its edge; the line stays where the field puts it."""
+    other = (
+        INK if contrast_ratio(colour, PLATE) < contrast_ratio(colour, INK) else PLATE
+    )
+    return [patheffects.withStroke(linewidth=width + 2 * CASING, foreground=other)]
 
 
 @contextmanager

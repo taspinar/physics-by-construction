@@ -842,7 +842,9 @@ lesson's own module.
   shares its name with system copies, so the face and the bytes would
   depend on the machine. Sizes from `TEXT` (ticks and legends 10 pt, axis
   labels and titles 11 pt, notes 9.5 pt); nothing below `MIN_TEXT` (9.5 pt:
-  12.7 CSS px on a desktop, 7.2 on a phone).
+  12.7 CSS px on a desktop, 7.2 on a phone at the nominal width; the
+  tight crop of a saved figure widens it by up to 2 %, so the least text a
+  phone shows is 7.07 CSS px, the minimum the tests enforce).
 - **Plate and hierarchy.** The white plate of the page; labels and titles
   in ink, tick labels in the muted grey, axes and ticks in the rule's grey;
   no top or right spine on a line plot, a full frame on a field. Line
@@ -867,10 +869,12 @@ lesson's own module.
   white of the plate or the ink, whichever has the more contrast with the
   map's colour at its level (`isoline_colours`); the audit
   (`pbc.figure_audit`) measures it against the rendered field beneath it,
-  every sample of the stroke, its ends included, at 3:1 or more. Where the
-  prescribed edges of a field meet at values no stroke colour contrasts
-  with both (a hot edge meeting a cold one), the isolines are drawn
-  through the field's inner nodes, so that they end inside its edges.
+  every sample of the stroke, its ends included, at 3:1 or more. The
+  isolines are drawn from the whole field, its prescribed edges included,
+  and each carries a thin casing of the other colour (`cased`), so that it
+  stays visible where edges meet at values no single stroke colour
+  contrasts with (a hot edge meeting a cold one); the audit counts the
+  better of the line's colour and its casing's at each sample.
 - **Labels.** A series is named beside its curve (`direct_label`) where the
   curves lie apart; a legend stays where labels would collide or sit on the
   data, and then it is one legend of at most three entries, placed where

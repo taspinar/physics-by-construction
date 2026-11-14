@@ -25,6 +25,7 @@ from pbc.figure_language import (
     LINE,
     SEQUENTIAL,
     TEXT,
+    cased,
     figsize,
     figure_style,
     finish,
@@ -429,27 +430,30 @@ def draw_plate(snapshot, steady) -> Figure:
                 vmax=HOT,
             )
             levels = [30, 40, 60, 80]
-            # The isotherms are drawn through the inner nodes: the edges hold
-            # the boundary values, and at the bottom corners 100 meets 20 degrees.
-            cell = extent[1] / field.shape[1]
-            inner = (cell, extent[1] - cell, cell, extent[3] - cell)
-            lines = ax.contour(
-                field[1:-1, 1:-1],
-                levels=levels,
-                origin="lower",
-                extent=inner,
-                colors=isoline_colours(levels, COLD, HOT),
-                linewidths=LINE["guide"],
-            )
             # Each isotherm labelled at the top of its arch, on the middle line of
             # the plate, where the labels are level and clear of the edges.
             middle = field[:, field.shape[1] // 2]
             heights = np.linspace(extent[2], extent[3], field.shape[0])
-            places = [
-                (extent[1] / 2, float(np.interp(level, middle[::-1], heights[::-1])))
-                for level in levels
-            ]
-            ax.clabel(lines, fmt="%d °C", fontsize=TEXT["note"], manual=places)
+            colours = isoline_colours(levels, COLD, HOT)
+            # The whole field, its edges too: an isotherm ends where the boundary
+            # values put it. Its casing keeps it visible where 100 meets 20 degrees.
+            for level, colour in zip(levels, colours, strict=True):
+                lines = ax.contour(
+                    field,
+                    levels=[level],
+                    origin="lower",
+                    extent=extent,
+                    colors=[colour],
+                    linewidths=LINE["guide"],
+                )
+                lines.set_path_effects(cased(colour))
+                top = float(np.interp(level, middle[::-1], heights[::-1]))
+                ax.clabel(
+                    lines,
+                    fmt="%d °C",
+                    fontsize=TEXT["note"],
+                    manual=[(extent[1] / 2, top)],
+                )
             ax.set_title(title)
             ax.set_xlabel("x (cm)")
             ax.set_xticks([0, 5, 10])
