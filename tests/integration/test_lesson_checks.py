@@ -849,6 +849,36 @@ def test_marker_on_another_block_does_not_cover_the_code(
 @pytest.mark.parametrize(
     "block",
     [
+        '```{.python source="pbc.mechanics.kinematics:euler_step"}\nx = 1\n```\n',
+        "::: {.excerpt-selection}\n```python\nx = 1\n```\n:::\n",
+        "```{.python .excerpt-signature}\ndef f(a, b=1): ...\n```\n",
+        "::: {.excerpt-source}\n[Source](https://example.org)\n:::\n",
+        '<div class="excerpt-omission">Lines 3 to 4 are not shown.</div>\n',
+        '<pre data-source="pbc.mechanics.kinematics:euler_step">x = 1</pre>\n',
+        # Marked as not verified, it still may not claim a verified form.
+        "::: {.not-verified}\n```{.python .excerpt-listing}\nx = 1\n```\n:::\n",
+    ],
+    ids=[
+        "source-attribute",
+        "selection-div",
+        "signature-block",
+        "source-link",
+        "raw-omission",
+        "raw-data-source",
+        "not-verified-listing",
+    ],
+)
+def test_markup_of_a_verified_display_form_written_by_hand_is_reported(
+    make_repository: Repository, block: str
+):
+    repository = make_repository({_CELL: _CELL + "\n" + block})
+
+    assert "forged-excerpt" in rules(lesson_checks.check_displayed_code(repository))
+
+
+@pytest.mark.parametrize(
+    "block",
+    [
         "```{r}\nposition <- 3\n```\n",
         "```{python echo=FALSE}\nposition = 3.0\n```\n",
         # A cell belongs at the top level of the page, in a div, or in a list.

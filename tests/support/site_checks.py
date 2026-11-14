@@ -1501,20 +1501,56 @@ _UNEXECUTED = """
 """
 
 # Runs in the page. Returns the declared source and the text of every
-# by-reference excerpt.
+# by-reference excerpt: of each part of a selection, with the source line
+# numbers its lines show; the omission markers between the parts; the
+# generated signature beside it; and whether it ends with a Source link.
 _EXCERPTS = """
-() => [...document.querySelectorAll("[data-source]")].map((element) => ({
-  source: element.getAttribute("data-source"),
-  region: element.getAttribute("data-region"),
-  lines: element.getAttribute("data-lines"),
-  text: (element.querySelector("code") ?? element).textContent,
-  // The lines the listing marks, and the line each note is anchored to.
-  marked: [...element.querySelectorAll(".marked")].map((l) => l.textContent.trim()),
-  anchors: [
-    ...(element.closest(".excerpt") ?? element).querySelectorAll("[data-anchor]"),
-  ].map((note) => note.getAttribute("data-anchor")),
+() => [...document.querySelectorAll("[data-source]")].map((element) => {
+  const excerpt = element.closest(".excerpt") ?? element;
+  const codes = [...element.querySelectorAll("pre code")];
+  const signature = excerpt.querySelector("[data-signature]");
+  return {
+    source: element.getAttribute("data-source"),
+    region: element.getAttribute("data-region"),
+    lines: element.getAttribute("data-lines"),
+    text: (element.querySelector("code") ?? element).textContent,
+    parts: codes.map((code) => code.textContent),
+    numbers: codes.map((code) =>
+      [...code.querySelectorAll(".line[data-line]")].map((l) =>
+        Number(l.getAttribute("data-line")))),
+    omissions: [...element.querySelectorAll(".excerpt-omission")].map((o) => ({
+      omitted: o.getAttribute("data-omitted"),
+      what: o.getAttribute("data-what"),
+      text: o.textContent.trim(),
+    })),
+    signature: signature && {
+      name: signature.getAttribute("data-signature"),
+      replaces: signature.getAttribute("data-replaces"),
+      text: signature.querySelector("code").textContent,
+    },
+    linked: excerpt.querySelector(".excerpt-source") !== null,
+    // The lines the listing marks, and the line each note is anchored to.
+    marked: [...element.querySelectorAll(".marked")].map((l) => l.textContent.trim()),
+    anchors: [...excerpt.querySelectorAll("[data-anchor]")].map((note) =>
+      note.getAttribute("data-anchor")),
+  };
+})
+"""
+
+# Runs in the page. Returns every Source link: where it points and what its
+# data attributes say it opens.
+_SOURCE_LINKS = """
+() => [...document.querySelectorAll("a.source-link")].map((link) => ({
+  href: link.getAttribute("href"),
+  name: link.getAttribute("data-source-name"),
+  path: link.getAttribute("data-path"),
+  lines: link.getAttribute("data-lines"),
+  commit: link.getAttribute("data-commit"),
+  text: link.textContent,
 }))
 """
+
+_UNIT = re.compile(r"``(\w+)``\s*\(([^()]*)\)")
 
 
 def _lean_region(repository: Path, name: str) -> str | None:
@@ -1541,21 +1577,23 @@ def _lean_region(repository: Path, name: str) -> str | None:
     return "\n".join(lines[start[0] + 1 : end[0]])
 
 
-def _shown_part(text: str, region: str | None, lines: str | None) -> str | None:
-    """Return the part of the source of one object that an excerpt declares
-    to show (``region``, or ``lines`` as "first-last"), or None when the
-    object has no such part."""
-    if not region and not lines:
-        return text
-    object_lines = text.splitlines()
-    if lines:
-        match = re.fullmatch(r"(\d+)-(\d+)", lines)
-        if not match:
-            return None
-        first, last = int(match[1]), int(match[2])
-        if not 1 <= first <= last <= len(object_lines):
-            return None
-        return "\n".join(object_lines[first - 1 : last])
+def _lean_span(repository: Path, name: str) -> tuple[int, int] | None:
+    """The first and last file line of the anchored region ``<module>:<anchor>``
+    of a Lean file, or None."""
+    module, _, anchor = name.partition(":")
+    file = repository / "lean" / Path(*module.split(".")).with_suffix(".lean")
+    if not file.is_file():
+        return None
+    lines = file.read_text(encoding="utf-8").splitlines()
+    start = [i for i, t in enumerate(lines) if t.strip() == f"-- ANCHOR: {anchor}"]
+    end = [i for i, t in enumerate(lines) if t.strip() == f"-- ANCHOR_END: {anchor}"]
+    if len(start) != 1 or len(end) != 1 or start[0] >= end[0]:
+        return None
+    return start[0] + 2, end[0]
+
+
+def _region_range(object_lines: list[str], region: str) -> tuple[int, int] | None:
+    """The lines between ``# region: <region>`` and its end, counted from 1."""
     starts = [
         i for i, t in enumerate(object_lines) if t.strip() == f"# region: {region}"
     ]
@@ -1564,7 +1602,67 @@ def _shown_part(text: str, region: str | None, lines: str | None) -> str | None:
     ]
     if len(starts) != 1 or len(ends) != 1 or starts[0] >= ends[0]:
         return None
-    return "\n".join(object_lines[starts[0] + 1 : ends[0]])
+    return starts[0] + 2, ends[0]
+
+
+def _ranges(
+    object_lines: list[str], region: str | None, lines: str | None
+) -> list[tuple[int, int]] | None:
+    """The ranges of the object an excerpt declares to show, counted from 1:
+    ``lines`` as "a-b" or "a-b,c-d" (in order, not touching), else
+    ``region``, else the whole object; None when it has no such part. When
+    both are declared, the region is exactly the one range of ``lines``."""
+    ranges = None
+    if lines:
+        ranges = []
+        for item in lines.split(","):
+            match = re.fullmatch(r"(\d+)-(\d+)", item)
+            if not match:
+                return None
+            ranges.append((int(match[1]), int(match[2])))
+        for first, last in ranges:
+            if not 1 <= first <= last <= len(object_lines):
+                return None
+        if any(b + 1 >= c for (_, b), (c, _) in itertools.pairwise(ranges)):
+            return None
+    if region:
+        found = _region_range(object_lines, region)
+        if found is None or (ranges is not None and ranges != [found]):
+            return None
+        ranges = [found]
+    return ranges if ranges is not None else [(1, len(object_lines))]
+
+
+def _shown_part(text: str, region: str | None, lines: str | None) -> str | None:
+    """Return the part of the source of one object that an excerpt declares
+    to show (``region``, or ``lines`` as "first-last"), or None when the
+    object has no such part. The parts of several ranges follow each other."""
+    object_lines = text.splitlines()
+    ranges = _ranges(object_lines, region, lines)
+    if ranges is None:
+        return None
+    return "\n".join("\n".join(object_lines[a - 1 : b]) for a, b in ranges)
+
+
+def _python_object(repository: Path, name: str) -> tuple[str, int] | None:
+    """The source text of ``<module>:<object>`` of ``src/pbc`` and the file
+    line it starts on (its first decorator), or of the whole module for
+    ``<module>:``; None when there is no such thing."""
+    module, _, target = name.partition(":")
+    file = repository / "src" / Path(*module.split(".")).with_suffix(".py")
+    if module.split(".")[0] != "pbc" or not file.is_file():
+        return None
+    text = file.read_text(encoding="utf-8")
+    if not target:
+        return text, 1
+    for node in ast.parse(text).body:
+        if (
+            isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef)
+            and node.name == target
+        ):
+            first = min([node.lineno, *(d.lineno for d in node.decorator_list)])
+            return "\n".join(text.splitlines()[first - 1 : node.end_lineno]), first
+    return None
 
 
 def _source_of(
@@ -1582,23 +1680,169 @@ def _source_of(
     module, _, target = name.partition(":")
     if module.split(".")[0] in ("PhysicsByConstruction", "Exercises"):
         return None if region or lines else _lean_region(repository, name)
-    file = repository / "src" / Path(*module.split(".")).with_suffix(".py")
-    if module.split(".")[0] != "pbc" or not file.is_file():
-        return None
-    text = file.read_text(encoding="utf-8")
-    if not target:
+    found = _python_object(repository, name)
+    if found is None or (not target and not region and not lines):
         # A part of the module itself, never the whole of it.
-        return _shown_part(text, region, lines) if region or lines else None
-    for node in ast.parse(text).body:
+        return None
+    return _shown_part(found[0], region, lines)
+
+
+def _definition(text: str) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
+    try:
+        node = ast.parse(text).body[0]
+    except SyntaxError, IndexError:
+        return None
+    return node if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) else None
+
+
+def _parameters(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[tuple]:
+    """Each parameter of a ``def``: its kind, its name, and its default as a
+    syntax tree, without annotations."""
+    arguments = node.args
+    positional = [*arguments.posonlyargs, *arguments.args]
+    defaults = [None] * (len(positional) - len(arguments.defaults)) + list(
+        arguments.defaults
+    )
+    found = [
+        (
+            "positional-only" if i < len(arguments.posonlyargs) else "positional",
+            a.arg,
+            None if d is None else ast.dump(d),
+        )
+        for i, (a, d) in enumerate(zip(positional, defaults, strict=True))
+    ]
+    if arguments.vararg is not None:
+        found.append(("*", arguments.vararg.arg, None))
+    found += [
+        ("keyword-only", a.arg, None if d is None else ast.dump(d))
+        for a, d in zip(arguments.kwonlyargs, arguments.kw_defaults, strict=True)
+    ]
+    if arguments.kwarg is not None:
+        found.append(("**", arguments.kwarg.arg, None))
+    return found
+
+
+def _signature_problems(signature: dict, source: str, parts: list) -> list[str]:
+    """A generated signature names the parameters of the function in its
+    source, with the defaults the source writes and the units its docstring
+    gives, and stands for the function's header as written, which no part
+    shows (ADR 023 decision 4). Read here from the file, not from ``pbc``."""
+    shown = _definition(signature["text"])
+    function = _definition(source)
+    if shown is None or function is None:
+        return ["the generated signature is not the signature of a function"]
+    problems = []
+    if _parameters(shown) != _parameters(function) or shown.name != function.name:
+        problems.append(
+            "the generated signature names other parameters or defaults than"
+            " the function"
+        )
+    units = dict(_UNIT.findall(ast.get_docstring(function) or ""))
+    for line in signature["text"].splitlines()[1:-1]:
+        entry, _, comment = line.partition("#")
+        name = entry.strip().rstrip(",").split("=")[0].lstrip("*")
+        if comment.strip() != units.get(name, ""):
+            problems.append(f"the generated unit of {name} is not its docstring's")
+    match = re.fullmatch(r"1-(\d+)", signature["replaces"] or "")
+    object_lines = source.splitlines()
+    if match is None:
+        return [*problems, "the generated signature does not say what it replaces"]
+    header = int(match[1])
+    try:
+        ast.parse("\n".join(object_lines[:header]) + " ...")
+    except SyntaxError:
+        problems.append("the lines the generated signature replaces are no header")
+    if header >= function.body[0].lineno or (parts and parts[0][0] <= header):
+        problems.append("the generated signature does not stand for the header")
+    return problems
+
+
+def _selection_problems(excerpt: dict, source: str, first_line: int) -> list[str]:
+    """The parts of an excerpt are exact ranges of the object, each line shows
+    its line number in the file, and a marker names exactly the lines left out
+    between two parts (or between a generated signature and the first part),
+    as the docstring only when they are the docstring (ADR 023 decision 7)."""
+    object_lines = source.splitlines()
+    ranges = _ranges(object_lines, excerpt["region"], excerpt["lines"]) or []
+    problems = []
+    texts = [part.rstrip("\n") for part in excerpt["parts"]]
+    expected = ["\n".join(object_lines[a - 1 : b]) for a, b in ranges]
+    if texts != expected:
+        problems.append("its parts are not the declared lines of its source")
+    for numbers, (a, b) in zip(excerpt["numbers"], ranges, strict=False):
+        if numbers and numbers != list(range(first_line + a - 1, first_line + b)):
+            problems.append("its line numbers are not those of the file")
+    gaps = [(b + 1, c - 1) for (_, b), (c, _) in itertools.pairwise(ranges)]
+    signature = excerpt["signature"]
+    if signature and signature["name"] == excerpt["source"]:
+        match = re.fullmatch(r"1-(\d+)", signature["replaces"] or "")
+        if match and ranges and ranges[0][0] > int(match[1]) + 1:
+            gaps.insert(0, (int(match[1]) + 1, ranges[0][0] - 1))
+        problems += _signature_problems(signature, source, ranges)
+    docstring = None
+    if excerpt["source"].partition(":")[2]:
+        node = ast.parse(source).body[0]
+        first = node.body[0] if hasattr(node, "body") else None
+        if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant):
+            docstring = (first.lineno, first.end_lineno)
+    omitted = []
+    for omission in excerpt["omissions"]:
+        match = re.fullmatch(r"(\d+)-(\d+)", omission["omitted"] or "")
+        if match is None:
+            problems.append("an omission marker does not say which lines")
+            continue
+        gap = (int(match[1]), int(match[2]))
+        omitted.append(gap)
+        first, last = first_line + gap[0] - 1, first_line + gap[1] - 1
+        where = f"line {first}" if first == last else f"lines {first} to {last}"
+        if where not in omission["text"].lower():
+            problems.append(f"an omission marker does not name {where}")
+        if (omission["what"] == "docstring") != (gap == docstring):
+            problems.append("an omission marker misnames the docstring")
+    if omitted != gaps:
+        problems.append("its omission markers are not the lines left out")
+    return problems
+
+
+def _source_link_problems(repository: Path, links: list[dict]) -> list[str]:
+    """Every Source link opens, at one commit, the lines of the file that hold
+    the object it names: a function or class of ``src/pbc`` from its first
+    decorator to its end, a region of a Lean file, or lines within a module."""
+    problems = []
+    commits = {link["commit"] for link in links}
+    if len(commits) > 1:
+        problems.append("the Source links of the page name different commits")
+    for link in links:
+        name, path, lines = link["name"] or "", link["path"] or "", link["lines"]
+        match = re.fullmatch(r"(\d+)-(\d+)", lines or "")
         if (
-            isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef)
-            and node.name == target
-        ):
-            first = min([node.lineno, *(d.lineno for d in node.decorator_list)])
-            return _shown_part(
-                "\n".join(text.splitlines()[first - 1 : node.end_lineno]), region, lines
+            match is None
+            or not re.fullmatch(r"[0-9a-f]{40}", link["commit"] or "")
+            or not (link["href"] or "").endswith(
+                f"/blob/{link['commit']}/{path}#L{match[1]}-L{match[2]}"
             )
-    return None
+            or not (link["text"] or "").startswith(("Source", "Figure source"))
+        ):
+            problems.append(f"the Source link of {name} is not a link to its lines")
+            continue
+        first, last = int(match[1]), int(match[2])
+        module, _, target = name.partition(":")
+        if module.split(".")[0] in ("PhysicsByConstruction", "Exercises"):
+            span = _lean_span(repository, name)
+            expected = f"lean/{module.replace('.', '/')}.lean"
+        else:
+            found = _python_object(repository, name)
+            expected = f"src/{module.replace('.', '/')}.py"
+            span = None
+            if found is not None:
+                text, start = found
+                total = len(text.splitlines())
+                span = (start, start + total - 1) if target else None
+                if not target and 1 <= first <= last <= total:
+                    span = (first, last)
+        if path != expected or span != (first, last):
+            problems.append(f"the Source link of {name} does not open its lines")
+    return problems
 
 
 def _note_violations(page: str, excerpt: dict, source: str) -> list[Violation]:
@@ -1633,7 +1877,14 @@ def check_displayed_code(
 ) -> list[Violation]:
     """Every by-reference excerpt is textually identical to its source in
     ``src/pbc`` or ``lean/`` of ``repository``, and no page shows a cell or an inline
-    expression that the build did not execute."""
+    expression that the build did not execute.
+
+    The display forms of ADR 023 are checked as decision 7 says: each part
+    of a selection is its declared lines byte for byte, with the line
+    numbers of the file, and the omission markers name exactly the lines
+    left out; a generated signature is the function's, read here from the
+    file; every excerpt ends with a Source link, and every Source link opens
+    the lines of its object at one commit."""
     violations = []
     with _context(browser, server, lambda url: None, viewport=DESKTOP) as context:
         for name, url in _urls(site_dir, server):
@@ -1642,7 +1893,26 @@ def check_displayed_code(
                 Violation("unexecuted-cell", name, f"shown but not executed: {text}")
                 for text in page.evaluate(_UNEXECUTED)
             ]
+            violations += [
+                Violation("excerpt", name, problem)
+                for problem in _source_link_problems(
+                    repository, page.evaluate(_SOURCE_LINKS)
+                )
+            ]
             for excerpt in page.evaluate(_EXCERPTS):
+                shown = (
+                    "\n".join(part.rstrip("\n") for part in excerpt["parts"])
+                    if excerpt["parts"]
+                    else excerpt["text"]
+                )
+                if not excerpt["linked"]:
+                    violations.append(
+                        Violation(
+                            "excerpt",
+                            name,
+                            f"the excerpt of {excerpt['source']} has no Source link",
+                        )
+                    )
                 source = _source_of(
                     repository, excerpt["source"], excerpt["region"], excerpt["lines"]
                 )
@@ -1657,7 +1927,7 @@ def check_displayed_code(
                             " or has no such region or lines",
                         )
                     )
-                elif excerpt["text"].rstrip("\n") != source.rstrip("\n"):
+                elif shown.rstrip("\n") != source.rstrip("\n"):
                     violations.append(
                         Violation(
                             "excerpt",
@@ -1668,6 +1938,12 @@ def check_displayed_code(
                     )
                 else:
                     violations += _note_violations(name, excerpt, source)
+                    found = _python_object(repository, excerpt["source"])
+                    if found is not None:
+                        violations += [
+                            Violation("excerpt", name, f"{excerpt['source']}: {p}")
+                            for p in _selection_problems(excerpt, *found)
+                        ]
             page.close()
     return violations
 

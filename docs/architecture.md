@@ -1810,23 +1810,28 @@ Four display choices, none a global default:
 | Generated signature or executed teaching code | A signature generated from the source at build time; or simplified code the build executes as shown, labelled, with what it leaves out, what was checked, and a Source link | Only where it demonstrably clarifies and, for teaching code, where a check exists; built only for the pilot lessons |
 | Source link only | The figure or result, its interpretation, and a compact "Source" or "Figure source" link to the commit-pinned object | Pure plot formatting, decoration, orchestration, and file handling that the lesson does not teach |
 
-The excerpt helper `pbc.authoring.excerpt` carries the selections, the
-docstring omission, the generated signature, the labels, and a compact
-Source link: the full path, line range, and commit stay in the link and
-in the page's machine-readable metadata (the excerpt marker the source
-digest already reads), not as a sentence after every block. The source
-module itself never changes to shorten a lesson: docstrings, type
-annotations, defaults, and guards stay, and `excerpt(...,
-interface=True)` keeps reading them. Annotated excerpts get the same
-build-time, deterministic syntax highlighting as plain ones: the
-annotated branch today emits escaped HTML without token colours; the
-feature tokenises it at build time with the highlighter Quarto's Pandoc
-already uses or with a Python highlighter already pinned in `uv.lock`
-(Pygments is a transitive dependency today; making it a direct one is a
-pinned dependency change of that feature), keeps the line numbers, note
-anchors, and marked-line backgrounds distinguishable without colour, and
-loads no runtime script. Line numbers and annotation glyphs are outside
-the copied text. Lean excerpts keep their syntax and hypotheses and are
+The excerpt helper `pbc.authoring.excerpt` carries the selections
+(`lines=` with one or several ranges, `region=`), the docstring omission
+(`docstring=False`), the generated signature (`signature=True`), the
+labels, and a compact Source link (F175); `source_link(obj, figure=True)`
+is the Source-link-only form. The full path, line range, and commit stay
+in the link's address, `title`, and data attributes (`data-path`,
+`data-lines`, `data-commit`) and in the excerpt marker, not as a sentence
+after every block; the link opens the whole object at the built commit.
+The source module itself never changes to shorten a lesson: docstrings,
+type annotations, defaults, and guards stay, and `excerpt(...,
+interface=True)` keeps reading them. Annotated excerpts and the parts of
+a selection get the same build-time, deterministic syntax highlighting as
+plain ones: they are Pandoc code blocks converted by the same `quarto
+pandoc` run of the context step (no Pygments, no new dependency), after
+which `number_lines` gives each line its source line number and each
+noted line its mark as data attributes; line numbers and "note n" are
+generated content of the style sheet, so they are outside the copied
+text, and no runtime script is loaded. A part of a selection and a
+generated signature carry no copy button. Simplified teaching code
+(decision 5) is not built: no pilot has needed it. The built-site excerpt
+check reads each form as ADR 023 decision 7 says, and the lesson source
+check reports the markup of a form written by hand (`forged-excerpt`). Lean excerpts keep their syntax and hypotheses and are
 never simplified; an irrelevant diagram-drawing function of a Lean
 lesson may become a Source link like any other.
 

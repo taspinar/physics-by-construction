@@ -94,7 +94,24 @@ PAGE = {
     # and the pale surface of its open card.
     "copper": "#8a4b1f",
     "copper-surface": "#f4ebe0",
+    # The tint of a marked line of an annotated excerpt (F175): every token
+    # colour of the highlight style keeps 4.5:1 on it.
+    "marked-line": "#f2f6fa",
 }
+
+# The token colours of Quarto's a11y highlight style (site/_quarto.yml,
+# highlight-style), which colours every Python listing at build time, the
+# default text included; the marked line of an excerpt is checked with each.
+HIGHLIGHT_COLOURS = (
+    "#545454",
+    "#d91e18",
+    "#a55a00",
+    "#008000",
+    "#696969",
+    "#06287e",
+    "#00769e",
+    "#7928a1",
+)
 
 
 def custom_properties() -> dict[str, str]:
@@ -178,6 +195,23 @@ def colour_pairs() -> list[tuple[str, str, str, float]]:
             CONTROL_CONTRAST,
         ),
     ]
+    pairs.append(
+        (
+            "line number on marked line",
+            PAGE["muted"],
+            PAGE["marked-line"],
+            TEXT_CONTRAST,
+        )
+    )
+    for colour in HIGHLIGHT_COLOURS:
+        pairs.append(
+            (
+                f"code {colour} on marked line",
+                colour,
+                PAGE["marked-line"],
+                TEXT_CONTRAST,
+            )
+        )
     for kind, labels in (("claim", CLAIM_LABELS), ("status", STATUS_LABELS)):
         for name, label in labels.items():
             pairs.append(

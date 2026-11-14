@@ -207,11 +207,22 @@ _CODE = re.compile(
 
 
 def _quarto_code(region: str) -> str:
-    """Give a code block the copy button the render gives every code block."""
+    """Give a code block the copy button the render gives every code block,
+    after numbering the lines of an excerpt's listing.
+
+    A part of a selection and a generated signature get no copy button: they
+    are not a whole that runs (ADR 023 decision 3).
+    """
+    from pbc.authoring.excerpt import NO_COPY_CLASSES, number_lines
 
     def wrap(found: re.Match[str]) -> str:
         # The render writes the quotation marks of code as they are.
         code = found.group(3).replace("&quot;", '"').replace("&#39;", "'")
+        if set(found.group(2).split()) & set(NO_COPY_CLASSES):
+            return (
+                f'{found.group(1)}<pre class="sourceCode {found.group(2)}"'
+                f"{code}</pre></div>"
+            )
         return (
             '<div class="code-copy-outer-scaffold">'
             f'{found.group(1)}<pre class="sourceCode {found.group(2)} code-with-copy"'
@@ -220,7 +231,7 @@ def _quarto_code(region: str) -> str:
             '<i class="bi"></i></button></div>'
         )
 
-    return _CODE.sub(wrap, region)
+    return _CODE.sub(wrap, number_lines(region))
 
 
 def regenerate_page(

@@ -693,10 +693,57 @@ def _first_line(code: str) -> str:
     return (lines[0].strip() if lines else "")[:60]
 
 
+# The markup of the verified display forms of code (ADR 002, ADR 023): only
+# the excerpt helpers write it, at build time. A lesson that wrote it by hand
+# would show unverified code as a verified excerpt, selection, or signature.
+_FORM_CLASSES = {
+    "excerpt",
+    "excerpt-source",
+    "excerpt-label",
+    "excerpt-omission",
+    "excerpt-selection",
+    "excerpt-listing",
+    "excerpt-part",
+    "excerpt-signature",
+    "lean-excerpt",
+    "source-link",
+    "figure-source",
+}
+_FORM_ATTRIBUTES = {"source", "signature", "source-name"}
+_FORM_HTML = re.compile(
+    r"""class=["'][^"']*\b(?:"""
+    + "|".join(sorted(map(re.escape, _FORM_CLASSES), key=len, reverse=True))
+    + r""")\b(?!-)|\bdata-(?:source|signature|source-name)=""",
+    re.IGNORECASE,
+)
+
+
+def _forged_form(node: Node) -> str | None:
+    """The class or attribute of a verified display form that ``node``, written
+    in a lesson's source, carries; None when it carries none."""
+    if node["t"] in ("Div", "Span", "CodeBlock", "Code", "Link"):
+        _, classes, pairs = node["c"][0]
+        found = sorted(set(classes) & _FORM_CLASSES)
+        found += sorted({key for key, _ in pairs} & _FORM_ATTRIBUTES)
+        return found[0] if found else None
+    if node["t"] in ("RawBlock", "RawInline"):
+        match = _FORM_HTML.search(node["c"][1])
+        return match.group(0) if match else None
+    return None
+
+
 def _code_problems(lesson: Lesson) -> Iterator[tuple[str, str]]:
     for path in _walk(lesson.blocks):
         node = path[-1]
         marked = _marked_not_verified(path)
+        forged = _forged_form(node)
+        if forged is not None:
+            yield (
+                "forged-excerpt",
+                f"the lesson writes '{forged}', the markup of a verified display"
+                " form of code, by hand; show code with excerpt(), source_link(),"
+                " or lean_excerpt(), or as not verified",
+            )
         cell = lesson.cell(node)
         if cell is not None:
             where = f"cell '{_first_line(cell.code)}'"

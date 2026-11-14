@@ -24,6 +24,7 @@
   --pbc-night-line: #7ea6e0;
   --pbc-copper: #8a4b1f;
   --pbc-copper-surface: #f4ebe0;
+  --pbc-marked-line: #f2f6fa;
   --pbc-claim-observational-fg: #0b4f6c;
   --pbc-claim-observational-bg: #e3f1f7;
   --pbc-claim-experimentally-supported-fg: #5b2a86;
@@ -325,10 +326,39 @@ span.not-verified-label {
   max-width: 40rem;
 }
 
-/* Where a by-reference excerpt was read from, directly under its listing. */
+/* The compact Source link of a by-reference excerpt, directly under its
+   listing (U1b): one word, with the file, lines, and commit in its address,
+   its title, and its data attributes. */
 .excerpt-source {
   margin: -0.5rem 0 1rem;
   font-size: 0.875em;
+}
+
+.excerpt-source p {
+  margin: 0;
+}
+
+/* What a listing is (ADR 023): a selection or a generated signature says so
+   in words above it; a marker names the lines a selection leaves out. */
+.excerpt-label,
+.excerpt-omission {
+  color: var(--pbc-muted);
+  font-size: var(--pbc-text-small);
+}
+
+.excerpt-label p {
+  margin: var(--pbc-space-2) 0 0.25rem;
+}
+
+.excerpt-omission p {
+  margin: 0.25rem 0;
+  padding-left: 0.75rem;
+  border-left: var(--pbc-rule-width) dashed var(--pbc-rule);
+  font-style: italic;
+}
+
+.excerpt-selection div.sourceCode {
+  margin: 0.25rem 0;
 }
 
 .exercise {
@@ -635,7 +665,6 @@ main textarea {
 main .display-math,
 main .table-scroll,
 main div.sourceCode,
-main .excerpt-listing,
 main .prerequisite-graph {
   scrollbar-color: var(--pbc-rule) transparent;
 }
@@ -668,8 +697,7 @@ samp,
 }
 
 pre,
-pre code,
-.excerpt-listing {
+pre code {
   font-size: var(--pbc-text-code);
 }
 
@@ -681,8 +709,7 @@ main :not(pre) > code:not(.sourceCode) {
   overflow-wrap: anywhere;
 }
 
-main div.sourceCode,
-main .excerpt-listing {
+main div.sourceCode {
   border: var(--pbc-rule-width) solid var(--pbc-rule);
   border-radius: 0;
   background-color: var(--pbc-plate);
@@ -1367,35 +1394,32 @@ main figcaption {
   color: var(--pbc-status-conceptual-fg);
 }
 
-/* An annotated excerpt: line numbers and the marks are generated content, so
-   the listing's text stays the source. A marked line is bold, has a heavy
-   rule on its left and says which note explains it, so it does not depend
-   on colour. */
-.excerpt-listing {
-  overflow-x: auto;
-  padding: 0.5rem 0;
-}
-
-.excerpt-listing .line {
-  display: block;
-  padding-left: 0.5rem;
+/* An annotated excerpt or a selection: highlighted by the build like every
+   listing; its line numbers and the marks are generated content, so the
+   listing's text, and what a reader copies, stays the source. A marked line
+   is bold, has a heavy rule on its left and says which note explains it, so
+   it does not depend on colour; its tint keeps every token colour of the
+   a11y style at 4.5:1 or more (4.66:1 for the lightest, #696969). */
+pre.excerpt-listing > code.sourceCode > .line {
+  min-width: 100%;
+  padding-left: 0.25rem;
   border-left: 0.25rem solid transparent;
-  white-space: pre;
 }
 
 .excerpt-listing .line::before {
   content: attr(data-line);
   display: inline-block;
-  width: 3ch;
+  width: 4ch;
   margin-right: 1ch;
+  color: var(--pbc-muted);
   text-align: right;
-  opacity: 0.7;
+  user-select: none;
 }
 
-.excerpt-listing .line.marked {
+pre.excerpt-listing > code.sourceCode > .line.marked {
   font-weight: 700;
   border-left-color: currentColor;
-  background: rgba(0, 66, 157, 0.12);
+  background: var(--pbc-marked-line);
 }
 
 .excerpt-listing .line.marked::after {
