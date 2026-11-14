@@ -2,7 +2,8 @@
 
 A lesson page shows things that do not follow from the lesson's own inputs: the
 header (previous and next lesson, prerequisites, related lessons, course, slot)
-reads the front matter of every lesson, and the last section (the experiment) and
+and the previous and next lesson at the end of the page read the front matter
+of every lesson, and the last section (the experiment) and
 the code and Lean excerpts name the commit the page was built from. A page
 taken from the store of an earlier run would show the navigation and the commit
 of that run.
@@ -15,8 +16,9 @@ store holds markers and scientific results only. After the render, the
 post-render step ``site/context.py`` replaces every marker in every built page
 by the region it stands for, built from the current front matter, the current
 curriculum, and the commit of the run, and fails when a marker is not valid or
-a page lacks a region it must have. Only a marker is ever modified: the rest
-of a page is left as the render wrote it.
+a page lacks a region it must have. Only a marker is ever modified, and on a
+lesson page the previous and next lesson are inserted before the end of
+``main`` (F174): the rest of a page is left as the render wrote it.
 """
 
 import base64
@@ -40,6 +42,8 @@ LESSONS_DIRECTORY = "lessons"
 SPLIT = "<!--pbc-context-split-->"
 ID_PREFIX = "ctx-"
 HIGHLIGHT_STYLE_DIRECTORY = "site"
+# The end of a page's content: the previous and next lesson go before it.
+MAIN_END = "</main>"
 
 
 class InvalidContext(Exception):
@@ -143,6 +147,20 @@ def markdown(
         ) from error
 
 
+def pager_markdown(site: Path, page: str) -> str:
+    """The previous and the next lesson of the lesson ``page``, which end the
+    page after all its content (F174), from the current front matter."""
+    from pbc.authoring.path import LearningPath, lesson_pager
+
+    try:
+        path = LearningPath.read(site)
+        return lesson_pager(path, path.at_page(page))
+    except (KeyError, TypeError, ValueError, LookupError, OSError) as error:
+        raise InvalidContext(
+            f"{page}: the previous and next lesson cannot be built: {error}"
+        ) from error
+
+
 def _pandoc(chunks: list[str], site: Path) -> list[str]:
     """Convert Markdown regions to HTML the way the render does.
 
@@ -231,7 +249,13 @@ def regenerate_page(
     ]
     if not found:
         return text
+    # A lesson page ends with the previous and the next lesson, after all its
+    # content, whatever follows the last section's cell (F174).
+    pager = page.startswith(f"{LESSONS_DIRECTORY}/") and "reproduce" in kinds
+    if pager:
+        chunks.append(pager_markdown(site, page))
     regions = (convert or (lambda c: _pandoc(c, site)))(chunks)
+    end = regions.pop() if pager else ""
     pieces = []
     last = 0
     for match, region in zip(found, regions, strict=True):
@@ -243,6 +267,14 @@ def regenerate_page(
         # A marker the pattern did not match: the page would keep stale or empty
         # context.
         raise InvalidContext(f"{page}: a marker remains after regeneration")
+    if pager:
+        close = result.rfind(MAIN_END)
+        if close < 0:
+            raise InvalidContext(
+                f"{page}: the page has no {MAIN_END} before which the previous"
+                " and next lesson go"
+            )
+        result = f"{result[:close]}{end}\n{result[close:]}"
     return result
 
 

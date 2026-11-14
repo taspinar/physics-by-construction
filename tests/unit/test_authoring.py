@@ -1,5 +1,6 @@
 import json
 import subprocess
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -7,6 +8,12 @@ import pytest
 from pbc.authoring import BuildCommit, Excerpt, build_commit, excerpt, reproduce_this
 from pbc.authoring.excerpt import select
 from pbc.authoring.repository import REPOSITORY_ROOT, repository_url
+from pbc.authoring.reproduce import (
+    LOCAL_PREVIEW,
+    MAIN_MAY_DIFFER,
+    PAGE_VERSION,
+    SKIP_PAGE_VERSION,
+)
 from pbc.mechanics import dynamics, kinematics
 from pbc.mechanics.kinematics import State, euler_step
 
@@ -371,31 +378,85 @@ def test_no_footer_renders_or_previews_the_website(
     )
     _write_lesson(lesson_directory, methods, experiment, extra)
 
-    text = reproduce_this(code=[CODE], tests=[TESTS]).markdown()
+    reproduction = reproduce_this(code=[CODE], tests=[TESTS])
 
-    for word in SITE_BUILD:
-        assert word not in text
-    assert "Reproduce this" not in text
+    # Clean and with uncommitted changes; the owner's notice of a local build
+    # ("Local preview: ...") names the reader's page, not a command.
+    for dirty in (False, True):
+        commit = BuildCommit(sha="abc123", dirty=dirty)
+        text = replace(reproduction, commit=commit).markdown()
+        text = text.replace(LOCAL_PREVIEW, "")
+        for word in SITE_BUILD:
+            assert word not in text
+        assert "Reproduce this" not in text
 
 
-def test_the_summary_is_short_and_the_full_listing_is_in_a_closed_details(
+def test_the_summary_is_one_sentence_and_the_full_listing_is_in_a_closed_details(
     lesson_directory: Path,
 ):
     reproduction = reproduce_this(code=[CODE], tests=[TESTS])
-    text = reproduction.markdown()
+    clean = replace(reproduction, commit=BuildCommit(sha="abc123", dirty=False))
+    text = clean.markdown()
     summary, details = text.split('<details class="reproduce-details">')
 
     assert "<details open" not in text
-    # First view: the commit and one command; the files and the other
-    # commands are only in the listing.
-    assert build_commit().sha in summary
-    assert reproduction.experiment_command in summary
-    assert "git clone" not in summary and CODE not in summary
-    for command in reproduction.commands:
+    # First view: one sentence, no commit, no command (the owner's decision
+    # of 2026-11-14 on F174); every command, the files, and the tests are
+    # only in the closed "Setup and commands", and no command is shown twice.
+    assert summary == "::: {.reproduce}\nRun this experiment on your own computer.\n\n"
+    assert "<summary>Setup and commands</summary>" in details
+    for command in clean.commands:
         assert command in details
+        assert text.count(command) == 1
     assert CODE in details and TESTS in details
     assert "results/results.json" in details
     assert "[the setup page](../../../reproduce.html)" in details
+
+
+def test_main_is_the_default_route_and_the_page_version_is_the_extra_checkout(
+    lesson_directory: Path,
+):
+    reproduction = reproduce_this(code=[CODE], tests=[TESTS])
+    page = replace(reproduction, commit=BuildCommit(sha="abc123", dirty=False))
+    details = page.markdown().split("<summary>")[1]
+    clone, checkout, run = (
+        details.index("git clone "),
+        details.index("git checkout abc123"),
+        details.index("uv sync --locked --no-dev"),
+    )
+
+    # The clone gives main, with its note; the version behind this page adds
+    # one checkout, of the build commit, linked by a description, not by its
+    # hash; the shared steps follow once.
+    assert clone < details.index(MAIN_MAY_DIFFER) < checkout < run
+    assert clone < details.index(PAGE_VERSION) < checkout
+    # The checkout is labelled optional, and a reader who runs every block in
+    # order is told before it that skipping it keeps the latest version (the
+    # owner's review of 2026-11-14).
+    assert PAGE_VERSION.startswith("Optional: ")
+    assert details.index(PAGE_VERSION) < details.index(SKIP_PAGE_VERSION) < checkout
+    assert f"[the commit this page was built from]({page.repository}/tree/abc123)" in (
+        details
+    )
+    assert "[`abc123`]" not in details
+    assert "in either version" in details
+    # The links to the files point to the build commit.
+    assert f"{page.repository}/blob/abc123/{CODE}" in details
+    # An exact reproduction is promised for the version behind this page.
+    assert "match this page to the digits shown" in details
+
+
+def test_a_page_of_an_unknown_commit_offers_main_only(lesson_directory: Path):
+    reproduction = reproduce_this(code=[CODE], tests=[TESTS])
+    unknown = replace(reproduction, commit=BuildCommit(sha=None, dirty=False))
+    text = unknown.markdown()
+
+    assert "git checkout" not in text and PAGE_VERSION not in text
+    assert SKIP_PAGE_VERSION not in text
+    assert "the commit of its sources is unknown" in text
+    assert MAIN_MAY_DIFFER in text and "in either version" not in text
+    assert "match this page to the digits shown" not in text
+    assert "/blob/" not in text
 
 
 def test_a_proof_lesson_checks_its_modules_with_lake_and_needs_no_python_tools(
@@ -418,7 +479,11 @@ def test_a_proof_lesson_checks_its_modules_with_lake_and_needs_no_python_tools(
     )
     # The figures of the page come from its experiment, before the proofs.
     assert reproduction.experiment_command in reproduction.commands
-    assert "lake build PhysicsByConstruction.Mechanics.Kinematics" in summary
+    # The sentence says what can be checked; the command is in the listing,
+    # once (F174).
+    assert "Check this proof and run its experiment on your own computer." in summary
+    assert "lake build" not in summary
+    assert text.count("lake build PhysicsByConstruction.Mechanics.Kinematics") == 1
     assert "check-lean.sh" not in text and "jq" not in text
     assert "elan" in text
 
@@ -446,6 +511,10 @@ def test_an_agent_lesson_replays_and_names_the_live_run_apart(lesson_directory: 
 
     assert reproduction.heading == "Replay this experiment"
     assert reproduction.live == "pbc.agents.projectile_lab"
+    # The sentence names the recorded run; the live run, with its commands,
+    # is inside the closed disclosure, after the replay (F174).
+    assert "Replay this recorded agent run on your own computer." in main
+    assert "<details" in main and "</details>" in live
     # The replay needs no model, no key, and no extra.
     assert "OPENAI_API_KEY" not in main and "--extra" not in main
     assert "no model" in main
@@ -467,15 +536,56 @@ def test_the_marker_gives_back_the_same_section(lesson_directory: Path):
     assert again == reproduction
 
 
+def test_a_data_note_is_inside_the_disclosure_after_the_run(lesson_directory: Path):
+    note = """
+        The data card above gives the command that downloads a fresh copy of
+        the file into `data/downloads/sample`; no model and no account are
+        needed to read it.
+    """
+    reproduction = replace(
+        reproduce_this(code=[CODE], tests=[TESTS], data=note),
+        commit=BuildCommit(sha="abc123", dirty=False),
+    )
+    page = "lessons/mechanics/02-sample/index.qmd"
+    visible, details = reproduction.markdown().split(
+        '<details class="reproduce-details">'
+    )
+    paragraph = " ".join(note.split())
+
+    # A measured-data lab's note on its download is part of the run
+    # instructions, not of the first view, which stays one sentence (the
+    # owner's review of 2026-11-14 on F174); it is one paragraph, after what
+    # the run writes and before the files, and it survives the marker.
+    assert visible == "::: {.reproduce}\nRun this experiment on your own computer.\n\n"
+    assert f"\n\n{paragraph}\n\n" in details
+    assert (
+        details.index("results/results.json")
+        < details.index(paragraph)
+        < details.index("The files behind this page")
+        < details.index("</details>")
+    )
+    again = type(reproduction).from_payload(
+        page, reproduction.payload(), reproduction.commit, reproduction.repository
+    )
+    assert again == reproduction
+    # Without a note, nothing is added.
+    assert "data card" not in reproduce_this(code=[CODE]).markdown()
+
+
 def test_uncommitted_changes_are_stated_on_the_page(lesson_directory: Path):
-    from dataclasses import replace
-
     reproduction = reproduce_this(code=[CODE])
-    clean = BuildCommit(sha="abc123", dirty=False)
-    dirty = BuildCommit(sha="abc123", dirty=True)
+    clean = replace(reproduction, commit=BuildCommit(sha="abc123", dirty=False))
+    dirty = replace(reproduction, commit=BuildCommit(sha="abc123", dirty=True))
+    visible, details = dirty.markdown().split('<details class="reproduce-details">')
 
-    assert "uncommitted changes" in replace(reproduction, commit=dirty).markdown()
-    assert "uncommitted changes" not in replace(reproduction, commit=clean).markdown()
+    # A short notice is visible; the explanation is in the disclosure, and
+    # no exact reproduction is promised.
+    assert LOCAL_PREVIEW in visible
+    assert "uncommitted changes" in details
+    assert "does not contain those changes" in details
+    assert "match this page to the digits shown" not in dirty.markdown()
+    assert LOCAL_PREVIEW not in clean.markdown()
+    assert "uncommitted changes" not in clean.markdown()
 
 
 def test_a_lesson_without_an_experiment_has_no_section(lesson_directory: Path):

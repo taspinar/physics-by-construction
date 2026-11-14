@@ -669,9 +669,10 @@ reproduce_this(
         "tests/unit/test_data_samples.py",
         "tests/unit/test_gravitational_wave_strain_experiment.py",
     ],
+    data="""
+        The data card above gives the command that downloads a fresh copy of the
+        files into `data/downloads/gw150914-strain`; no model and no account are
+        needed to read it.
+    """,
 )
 ```
-
-The data card above gives the command that downloads a fresh copy of the
-files into `data/downloads/gw150914-strain`; no model and no account are
-needed to read it.

@@ -512,9 +512,14 @@ def test_the_introduction_row_follows_the_course_and_slot_rows():
     header = LessonHeader(
         path, path.lesson("symbolic-regression"), None, (), AVAILABLE
     ).markdown()
-    terms = re.findall(r"^([A-Z][^\n:]*)\n:   ", header, re.MULTILINE)
+    shown, more = header.split("<details", 1)
+    terms = re.findall(r"^([A-Z][^\n:]*)\n:   ", shown, re.MULTILINE)
+    inside = re.findall(r"^([A-Z][^\n:]*)\n:   ", more, re.MULTILINE)
 
-    assert terms[:4] == ["Course", "Slot", "Introduction", "Methods"]
+    # Course and methods are visible; slot and introduction lead the closed
+    # disclosure (F174).
+    assert terms[:2] == ["Course", "Methods"]
+    assert inside[:2] == ["Slot", "Introduction"]
 
 
 def test_a_lesson_of_a_sequence_without_an_introduction_has_no_link():

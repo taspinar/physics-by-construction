@@ -616,10 +616,11 @@ reproduce_this(
         "tests/unit/test_data_analysis.py",
         "tests/unit/test_exoplanet_light_curves_experiment.py",
     ],
+    data="""
+        The data card above gives the command that downloads the original file
+        into `data/downloads/tess-exoplanet-light-curves` and the script that
+        converts it to the committed sample byte for byte; no model and no account
+        are needed to read it.
+    """,
 )
 ```
-
-The data card above gives the command that downloads the original file
-into `data/downloads/tess-exoplanet-light-curves` and the script that
-converts it to the committed sample byte for byte; no model and no account
-are needed to read it.
