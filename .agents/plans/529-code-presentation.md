@@ -120,3 +120,10 @@ Skills: frontend-design@dbd4588f, pbc-physics-teaching
    single-page renders of M2 (`mechanics/02-newtons-laws`) and the
    rendering-check page; screenshots at 1280 and 320 px in the handoff
    folder `529-screenshots`.
+9. Repair after the first full run (2026-11-14): a region ends at its
+   last non-blank line in the helper and in the built-site check alike
+   (a listing shows no blank line at its end, so a region that declared
+   one numbered lines the page did not show), and a range that ends on a
+   blank line fails the build; the Lean exercise stubs (`lean_stub`) leave
+   a `lean-stub` context marker so that they get the Source link at the
+   built commit, writing their "not verified" label themselves.

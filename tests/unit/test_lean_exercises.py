@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from pbc.authoring.exercises import (
+    LeanStub,
     check,
     lean_stub,
     stub_names,
@@ -14,8 +15,10 @@ from pbc.authoring.exercises import (
     uses_sorry,
 )
 from pbc.authoring.lean import BUILD_RECORD
-from pbc.authoring.repository import REPOSITORY_ROOT
+from pbc.authoring.repository import REPOSITORY_ROOT, BuildCommit
 
+COMMIT = BuildCommit(sha="a" * 40, dirty=False)
+REPOSITORY = "https://github.com/example/physics-by-construction"
 STUB = """\
 import Init
 
@@ -148,11 +151,44 @@ def test_a_stub_is_shown_as_not_verified(project: Path):
 
     shown = lean_stub("Double", "double", project)
 
-    markdown = shown._repr_markdown_()
-    assert markdown.startswith("::: {.not-verified .lean-stub}")
+    markdown = shown.markdown(COMMIT, REPOSITORY)
+    assert markdown.startswith("::: {.not-verified .lean-stub role=note}")
+    # Built after the render's filter: the region writes its label itself.
+    assert "::: {.not-verified-label}\n**Not verified.**" in markdown
     assert "theorem double" in markdown and "sorry" in markdown
     assert "ANCHOR" not in markdown
     assert shown.path == "lean/Exercises/Double.lean"
+
+
+def test_a_stub_links_to_its_lines_at_the_built_commit(project: Path):
+    record(project)
+
+    shown = lean_stub("Double", "double", project)
+
+    # The region of the stub is lines 5 to 7 of the file, between its anchors.
+    assert (shown.first_line, shown.last_line) == (5, 7)
+    markdown = shown.markdown(COMMIT, REPOSITORY)
+    link = f"{REPOSITORY}/blob/{COMMIT.sha}/lean/Exercises/Double.lean#L5-L7"
+    assert f"]({link})" in markdown
+    assert 'lines="5-7"' in markdown
+    # The link sits with the listing, inside the "not verified" box.
+    assert markdown.index(".excerpt-source") < markdown.index("contains `sorry`")
+    assert LeanStub.from_payload(shown.payload()) == shown
+
+
+def test_a_stub_leaves_a_marker_that_holds_no_commit(
+    project: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    record(project)
+    directory = tmp_path / "site" / "lessons" / "lean" / "04-sample"
+    directory.mkdir(parents=True)
+    (tmp_path / "site" / "_quarto.yml").write_text("project:\n  type: website\n")
+    monkeypatch.chdir(directory)
+
+    shown = lean_stub("Double", "double", project)._repr_markdown_()
+
+    assert 'pbc-kind="lean-stub"' in shown
+    assert "theorem" not in shown and COMMIT.sha not in shown
 
 
 def test_a_stub_changed_after_the_check_is_refused(project: Path):

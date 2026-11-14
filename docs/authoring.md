@@ -490,8 +490,11 @@ excerpt(
 - `lines=(first, last)` shows only those lines of the object, counted from 1
   at its first line; `lines=[(a, b), (c, d)]` shows several ranges, in order
   and with at least one line between them. `region="name"` shows the lines
-  between `# region: name` and `# endregion: name` in the source. Give
-  `lines` or `region`, not both. A part that does not exist fails the build.
+  between `# region: name` and `# endregion: name` in the source, up to the
+  last line that is not blank: a listing shows no blank line at its end, so
+  neither a region nor a range declares one, and a range that ends on a
+  blank line fails the build. Give `lines` or `region`, not both. A part
+  that does not exist fails the build.
 - `notes` maps a line of what is shown, written without its indentation, to
   a note. The listing is highlighted like any other and its lines show their
   numbers in the file; the noted line is marked (bold, a rule at its left,
@@ -620,7 +623,8 @@ fails on a stub without a solution, on a differing statement, on a stub
 without `sorry`, and on a stub that does not compile.
 
 On a page, show the stub with `lean_stub(name, anchor)` from
-`pbc.authoring.exercises`, which marks it "not verified", and the solution with
+`pbc.authoring.exercises`, which marks it "not verified" and links its lines
+in `lean/Exercises/` with a Source link like any excerpt, and the solution with
 `lean_excerpt`. Put the hints in `.hint` divs as for any exercise, and list the
 solution modules in `lesson.lean-modules`.
 

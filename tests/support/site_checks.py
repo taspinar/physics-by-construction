@@ -1593,7 +1593,9 @@ def _lean_span(repository: Path, name: str) -> tuple[int, int] | None:
 
 
 def _region_range(object_lines: list[str], region: str) -> tuple[int, int] | None:
-    """The lines between ``# region: <region>`` and its end, counted from 1."""
+    """The lines between ``# region: <region>`` and its end, counted from 1,
+    up to the last line that is not blank: a listing shows no blank lines at
+    its end, so a region declares none."""
     starts = [
         i for i, t in enumerate(object_lines) if t.strip() == f"# region: {region}"
     ]
@@ -1602,7 +1604,10 @@ def _region_range(object_lines: list[str], region: str) -> tuple[int, int] | Non
     ]
     if len(starts) != 1 or len(ends) != 1 or starts[0] >= ends[0]:
         return None
-    return starts[0] + 2, ends[0]
+    last = ends[0]
+    while last > starts[0] + 1 and not object_lines[last - 1].strip():
+        last -= 1
+    return (starts[0] + 2, last) if last > starts[0] + 1 else None
 
 
 def _ranges(

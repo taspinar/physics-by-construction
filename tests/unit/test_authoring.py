@@ -187,6 +187,32 @@ def test_region_shows_the_text_between_its_markers():
     assert select(object_lines, None, "update") == [(3, 3)]
 
 
+def test_a_region_ends_at_its_last_line_that_is_not_blank():
+    # A listing shows no blank line at its end, so the region declares none:
+    # the lines it declares are the lines the page shows and numbers.
+    object_lines = [
+        "def f():\n",
+        "    # region: update\n",
+        "    a = 1\n",
+        "\n",
+        "    b = 2\n",
+        "\n",
+        "    \n",
+        "    # endregion: update\n",
+        "    return a\n",
+    ]
+
+    assert select(object_lines, None, "update") == [(3, 5)]
+
+
+def test_a_range_that_ends_on_a_blank_line_fails_the_build():
+    object_lines = ["def f():\n", "    a = 1\n", "\n", "    return a\n"]
+
+    with pytest.raises(ValueError, match="blank line"):
+        select(object_lines, (1, 3), None)
+    assert select(object_lines, (1, 2), None) == [(1, 2)]
+
+
 @pytest.mark.parametrize(
     "lines, region",
     [((1, 99), None), ((3, 2), None), (None, "missing"), ((1, 2), "update")],

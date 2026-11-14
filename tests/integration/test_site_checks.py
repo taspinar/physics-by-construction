@@ -613,6 +613,14 @@ def update(x, v, dt):
     v = v + dt
     # endregion: move
     return x, v
+
+
+def settle(x):
+    # region: damp
+    x = 0.5 * x
+
+    # endregion: damp
+    return x
 """
 
 
@@ -721,6 +729,31 @@ def test_selection_whose_markers_or_numbers_are_not_accurate_is_reported(
     make_site: Site, browser: Browser, repository: Path, body: str
 ):
     assert rules(_violations(make_site, browser, repository, body)) == {"excerpt"}
+
+
+def _region_selection(lines: str) -> str:
+    """The region "damp" of ``settle`` (file line 14), which ends in a blank
+    line, as a selection that declares ``lines``."""
+    return (
+        '<div class="excerpt"><div class="excerpt-selection"'
+        f' data-source="pbc.example:settle" data-region="damp" data-lines="{lines}">'
+        f"{_part(['    x = 0.5 * x'], 16)}</div>{_SOURCE_TEXT}</div>"
+    )
+
+
+def test_region_that_ends_in_a_blank_line_declares_the_lines_it_shows(
+    make_site: Site, browser: Browser, repository: Path
+):
+    # A listing shows no blank line at its end: the region is lines 3 to 3.
+    assert _violations(make_site, browser, repository, _region_selection("3-3")) == []
+
+
+def test_region_that_declares_its_trailing_blank_line_is_reported(
+    make_site: Site, browser: Browser, repository: Path
+):
+    # Declaring the blank line too claims a line that the page does not show.
+    reported = _violations(make_site, browser, repository, _region_selection("3-4"))
+    assert rules(reported) == {"excerpt"}
 
 
 _SIGNATURE = "def update(\n    x,\n    v,\n    dt,\n): ..."

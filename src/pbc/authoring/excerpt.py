@@ -457,7 +457,10 @@ def select(
     out of the lines of one object. The whole object when neither is given.
 
     Several ranges are in order and do not touch, so that an omission
-    marker stands between any two of them."""
+    marker stands between any two of them. A listing cannot show blank lines
+    at its end, so a range ends on a line that is not blank, and a region
+    ends at its last line that is not blank: the lines a part declares are
+    exactly the lines it shows."""
     if lines is not None and region is not None:
         raise ValueError("give lines or region, not both")
     ranges = _normalized(lines)
@@ -467,6 +470,12 @@ def select(
                 raise ValueError(
                     f"lines {first} to {last} are not within the"
                     f" {len(object_lines)} lines of the object"
+                )
+        for first, last in ranges:
+            if not object_lines[last - 1].strip():
+                raise ValueError(
+                    f"lines {first} to {last} end on a blank line, which the"
+                    " listing would not show; end the range on the line before"
                 )
         for (_, last), (first, _) in itertools.pairwise(ranges):
             if first <= last + 1:
@@ -490,7 +499,12 @@ def select(
                 f" '# region: {region}' line followed by one"
                 f" '# endregion: {region}' line"
             )
-        return [(starts[0] + 2, ends[0])]
+        last = ends[0]
+        while last > starts[0] + 1 and not object_lines[last - 1].strip():
+            last -= 1
+        if last == starts[0] + 1:
+            raise ValueError(f"the region {region!r} of the object is blank")
+        return [(starts[0] + 2, last)]
     return [(1, len(object_lines))]
 
 

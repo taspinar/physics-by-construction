@@ -35,7 +35,14 @@ from pbc.authoring.repository import BuildCommit, build_commit, repository_url
 from pbc.authoring.website import PAGE_FILE, page_address, project_root
 
 MARKER_CLASS = "pbc-context"
-KINDS = ("header", "reproduce", "excerpt", "lean-excerpt", "lean-evidence")
+KINDS = (
+    "header",
+    "reproduce",
+    "excerpt",
+    "lean-excerpt",
+    "lean-stub",
+    "lean-evidence",
+)
 # A lesson page that has markers has a header and a last section.
 REQUIRED = ("header", "reproduce")
 LESSONS_DIRECTORY = "lessons"
@@ -125,6 +132,7 @@ def markdown(
     """The Markdown of the region a marker stands for, from the current state."""
     # Imported here: the helpers import this module to make their markers.
     from pbc.authoring.excerpt import Excerpt
+    from pbc.authoring.exercises import LeanStub
     from pbc.authoring.lean import LeanEvidence, LeanExcerpt
     from pbc.authoring.path import LessonHeader
     from pbc.authoring.reproduce import Reproduction
@@ -140,6 +148,8 @@ def markdown(
             return Excerpt.from_payload(payload, commit, repository).markdown()
         if kind == "lean-excerpt":
             return LeanExcerpt.from_payload(payload, commit, repository).markdown()
+        if kind == "lean-stub":
+            return LeanStub.from_payload(payload).markdown(commit, repository)
         return LeanEvidence.from_payload(payload, commit, repository).markdown()
     except (KeyError, TypeError, ValueError, LookupError, OSError) as error:
         raise InvalidContext(
