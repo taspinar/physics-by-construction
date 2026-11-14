@@ -86,16 +86,23 @@ def test_the_isolines_of_the_field_are_audited_against_the_field(audits):
     assert audit.least_line_contrast >= CONTROL_CONTRAST
 
 
-def test_only_the_corners_of_the_plate_hold_isoline_samples_below_three_to_one(
-    audits,
-):
-    # Every isotherm ends in a bottom corner, where the hot edge (100 degrees
-    # C) meets the cold ones (20): no stroke colour has 3:1 against both. The
-    # samples there are counted, few, and on the boundary pixels only.
-    for label, audit in audits.items():
-        if label != "fig-plate-temperature":
-            assert audit.border_samples_below == 0, label
-    assert audits["fig-plate-temperature"].border_samples_below <= 12
+def test_every_sample_of_the_isotherms_counts_their_ends_included(samples):
+    # The isotherms end near the bottom corners, where the hot edge (100
+    # degrees C) meets the cold ones (20): no stroke colour has 3:1 against
+    # both. They are drawn through the inner nodes, so their ends lie inside
+    # the boundary ring and every sample, the ends too, has 3:1.
+    from pbc.figure_audit import _stroke_contrasts
+
+    _, draw = samples["fig-plate-temperature"]
+    fig = draw()
+    try:
+        fig.canvas.draw()
+        for ax in fig.axes:
+            for collection in ax.collections:
+                for contrast in _stroke_contrasts(ax, collection, PAGE["plate"]):
+                    assert contrast >= CONTROL_CONTRAST
+    finally:
+        plt.close(fig)
 
 
 def _field_with_isolines(colour):

@@ -866,7 +866,11 @@ lesson's own module.
   "false colour". An isoline drawn on a field takes, level by level, the
   white of the plate or the ink, whichever has the more contrast with the
   map's colour at its level (`isoline_colours`); the audit
-  (`pbc.figure_audit`) measures it against the rendered field beneath it.
+  (`pbc.figure_audit`) measures it against the rendered field beneath it,
+  every sample of the stroke, its ends included, at 3:1 or more. Where the
+  prescribed edges of a field meet at values no stroke colour contrasts
+  with both (a hot edge meeting a cold one), the isolines are drawn
+  through the field's inner nodes, so that they end inside its edges.
 - **Labels.** A series is named beside its curve (`direct_label`) where the
   curves lie apart; a legend stays where labels would collide or sit on the
   data, and then it is one legend of at most three entries, placed where

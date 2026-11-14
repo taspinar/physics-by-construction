@@ -429,11 +429,15 @@ def draw_plate(snapshot, steady) -> Figure:
                 vmax=HOT,
             )
             levels = [30, 40, 60, 80]
+            # The isotherms are drawn through the inner nodes: the edges hold
+            # the boundary values, and at the bottom corners 100 meets 20 degrees.
+            cell = extent[1] / field.shape[1]
+            inner = (cell, extent[1] - cell, cell, extent[3] - cell)
             lines = ax.contour(
-                field,
+                field[1:-1, 1:-1],
                 levels=levels,
                 origin="lower",
-                extent=extent,
+                extent=inner,
                 colors=isoline_colours(levels, COLD, HOT),
                 linewidths=LINE["guide"],
             )

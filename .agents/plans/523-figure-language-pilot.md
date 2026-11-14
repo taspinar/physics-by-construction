@@ -86,7 +86,7 @@ against the white plate.
 | multi-series numerical comparison | `fig-orbit-thousand` | 104321 | 606 | 10 to 10 | 13.3 / 6.7 | 2 | 0 | 1.5 | 0 | none | 9.12 |
 | phase space | `fig-phase-blob` | 45270 | 532 | 10 to 10 | 13.3 / 7.7 | 3 | 0 | 1.5 | 0 | none | 7.46 |
 | convergence, log-log | `fig-heat-convergence` | 89223 | 681 | 10 to 10 | 13.3 / 6.0 | 4 | 0 | 1.5 | 10 | none | 7.46 |
-| field | `fig-plate-temperature` | 111385 | 586 | 6.94 to 10 | 9.3 / 4.8 | 0 | 2 |  | 0 | viridis | 1.74 |
+| field | `fig-plate-temperature` | 111385 | 586 | 6.94 to 10 | 9.3 / 4.8 | 0 | 2 |  | 0 | viridis | 1.26 |
 | measured against model, residuals | `fig-impedance-fit` | 189510 | 626 | 7.5 to 12 | 10.0 / 4.9 | 8 | 3 | 0.8, 1.2, 1.4 | 243 | none | 3.42 |
 
 Total 638,150 bytes.
@@ -137,10 +137,10 @@ Findings, by the criteria of the Issue:
 | multi-series numerical comparison | `fig-orbit-thousand` | 107506 | 548 | 10 to 11 | 13.3 / 7.4 | 2 | 0 | 1.8 | 0 | none | 9.12 |
 | phase space | `fig-phase-blob` | 47472 | 547 | 9.5 to 11 | 12.7 / 7.1 | 0 | 0 | 1.8 | 0 | none | 7.46 |
 | convergence, log-log | `fig-heat-convergence` | 74339 | 548 | 9.5 to 11 | 12.7 / 7.1 | 0 | 0 | 1, 1.8 | 10 | none | 6.39 |
-| field | `fig-plate-temperature` | 111163 | 547 | 9.5 to 11 | 12.7 / 7.1 | 0 | 2 |  | 0 | viridis | 3.86 |
+| field | `fig-plate-temperature` | 107727 | 547 | 9.5 to 11 | 12.7 / 7.1 | 0 | 2 |  | 0 | viridis | 3.91 |
 | measured against model, residuals | `fig-impedance-fit` | 150131 | 548 | 9.5 to 11 | 12.7 / 7.1 | 3 | 3 | 0.8, 1.4 | 243 | none | 3.42 |
 
-Total 591,822 bytes (−3.7 % against the merged base's 614,452; −7.3 % against the base before F172).
+Total 588,386 bytes (−4.2 % against the merged base's 614,452; −7.8 % against the base before F172).
 
 What changed, per figure, with every value kept:
 
@@ -160,8 +160,12 @@ What changed, per figure, with every value kept:
   Matplotlib along the steep sides); ticks at 0, 5, 10 cm. Each isotherm
   white or ink, whichever has the more contrast with the map's colour at
   its level (`isoline_colours`: 30 and 40 °C white, 60 and 80 °C ink;
-  before: all white, 1.74:1 on the bright side of the map). Review round 1,
-  M1.
+  before: all white, 1.26:1 on the bright side of the map). Review round 1,
+  M1. The isotherms are drawn through the plate's inner nodes, the field
+  shown is the whole plate: the edge nodes hold the prescribed boundary
+  values, and at the bottom corners 100 °C meets 20 °C, where no stroke
+  colour has 3:1 against both; each isotherm now ends inside the boundary
+  ring (review round 2, M1).
 - `fig-impedance-fit`: one legend of three entries in the empty upper left
   of the magnitude panel (the upper limit raised to five times the peak to
   make room: the scale stays log-log, every sample shown); the residuals named on their curves; the
@@ -174,10 +178,12 @@ What changed, per figure, with every value kept:
 **Series identity.** For each figure, the fingerprints of every line's
 data, every image array, every contour level set, and both axis scales
 are the same sets before and after (the comparison script read the six
-figures from `HEAD` and from the working tree).
+figures from `HEAD` and from the working tree). Review round 2, M1: the
+isotherms are contoured from the inner nodes of the same field (the same
+interior points, the same levels); the image array is unchanged.
 
-**Payload and build cost (criterion 4).** −22.6 KB over the six figures
-against the merged base (614,452 → 591,822 bytes; before the merge of
+**Payload and build cost (criterion 4).** −26.1 KB over the six figures
+against the merged base (614,452 → 588,386 bytes; before the merge of
 F172: −12.0 KB, 638,150 → 626,162);
 each lesson's page stays far inside the 3 MB budget, and EM8's figures
 inside the 750 KB of its lab test. Drawing time of the six (three
@@ -191,13 +197,17 @@ collection (the field's isotherms, drawn by `contour`) against what lies
 beneath it, sampled five times along each segment, the rendered pixel of
 the field's image under the sample (the audit of review round 1, M1; the
 before table's field row was measured again with it on the base's
-figure). Inside the plate the least isotherm contrast is 3.86:1 (before:
-1.74:1), and each isotherm label takes its line's colour at 4.5:1 or more
-against its level. The samples on the image's border ring, the plate's
-boundary values, are counted apart, not hidden: 10 below 3:1, all where
-the isotherms end in the two bottom corners, where the hot edge (100 °C)
-meets the cold ones (20 °C) and no stroke colour has 3:1 against both
-(before: 24).
+figure). Every sample counts, the ends of each stroke included; no
+sample is set apart (review round 2, M1). The least isotherm contrast is
+3.91:1 (before: 1.26:1), and each isotherm label takes its line's colour
+at 4.5:1 or more against its level. In round 1 the isotherms ran onto the
+image's border ring, the plate's prescribed boundary values, and ended in
+the two bottom corners, where the hot edge (100 °C) meets the cold ones
+(20 °C) and no stroke colour has 3:1 against both: 10 samples there were
+below 3:1 (1.13:1, white on the hot edge) and the audit had counted them
+apart. The isotherms are now contoured from the inner nodes, so each ends
+inside the ring, and the field's every sample is at 3:1 or more
+(`tests/unit/test_figure_language.py`).
 
 **Screenshots.** Each figure on the plate of `site.css` at 1280 and 375
 CSS px, before and after, were taken from a scratch harness for the visual
