@@ -281,6 +281,18 @@ dependency of the build or CI and never evidence (ADR 019 decisions 1, 3, and
 (`src/pbc/skills.py`) validates them; a missing selected skill fails the
 feature visibly.
 
+The teaching skill `pbc-physics-teaching` is the one skill of the set that
+is not visual (ADR 023 decisions 1 and 2). The plan of a feature that
+writes or revises a lesson's teaching (its sequence, explanations,
+exercises, or displayed code) selects it on its `Skills:` line, or records
+why it is not useful on a line `Skills: none (<reason>)`, a second one where
+the plan selects other skills; a plan that changes no lesson's teaching (a
+check, a figure style, the chrome) records it there as not applicable. The
+implementer records where it changed the learning experience, not that it
+was read; the reviewer reports named pedagogical weaknesses with evidence
+and an action, never a score. The selection adds no review role, agent,
+model call, or review round.
+
 ## Proposals, not rules
 
 The owner deferred the first two items on 2026-11-08 (Issue #412; "The

@@ -131,6 +131,15 @@ evidence, and never a dependency of the build or CI.
 - **Reviewer:** read the same files by path; assess the rendered page or the
   generated figure and its source, not the self-report; check that the
   guidance was followed or an exception approved.
+- **Teaching (ADR 023 decision 2):** the plan of a feature that writes or
+  revises a lesson's teaching (its sequence, explanations, exercises, or
+  displayed code) selects `pbc-physics-teaching` on its `Skills:` line, or
+  records why it is not useful on a line `Skills: none (<reason>)` (a
+  second line where the plan selects other skills); a plan that changes no
+  lesson's teaching records it there as not applicable. The implementer records
+  where the skill changed the learning experience, not that it was read;
+  the reviewer reports named weaknesses with evidence and an action, never
+  a score. No review role, agent, model call, or review round is added.
 - Use no skill that is not in `.agents/skills/`, run none of a skill's
   scripts, and install or fetch none. A missing selected skill stops the
   feature (`skills-config` in `scripts/verify.conf`); it is never omitted

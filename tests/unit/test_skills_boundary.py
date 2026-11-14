@@ -26,7 +26,7 @@ MANIFESTS = {"pyproject.toml", "uv.lock", ".gitignore"}
 INSTALLERS = re.compile(
     r"skills?[ -](?:install|add)\b|skill-installer|plugin\s+(?:install|marketplace)"
     r"|npx\s+skills|\bimpeccable\b|\.impeccable|diagram-design|frontend-design"
-    r"|pbc-scientific-visualization",
+    r"|pbc-scientific-visualization|pbc-physics-teaching",
     re.IGNORECASE,
 )
 # The checks of the group default that need only the files: the structural
