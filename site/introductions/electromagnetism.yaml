@@ -68,8 +68,8 @@ learn:
 
 order:
   - >-
-    The course builds the laws up one at a time, and each lesson needs the
-    one before. {slot:EM1} starts with charges at rest,
+    The course builds from fields and forces to induction, waves, and
+    devices. {slot:EM1} starts with charges at rest,
     and {slot:EM2} lets a charge move through the fields, which is also
     where the integrators of {sequence:mechanics} meet a force that depends
     on the velocity. {slot:EM3} adds the law that ties a changing magnetic
