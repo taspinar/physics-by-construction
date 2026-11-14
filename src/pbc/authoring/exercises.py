@@ -14,7 +14,7 @@ This module does two jobs:
   the same theorems with the same statements, the stub still contains
   ``sorry``, and the solution contains none.
 * ``lean_stub`` shows a stub on a page, marked "not verified", read from the
-  file that the check compiled.
+  file that the check compiled, with a Source link to its lines.
 """
 
 import hashlib
@@ -23,12 +23,15 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from pbc.authoring.context import current_page, marker
+from pbc.authoring.excerpt import source_link_markdown
 from pbc.authoring.lean import (
     LEAN_DIRECTORY,
     LEAN_PROJECT,
     anchored_lines,
     compiled_record,
 )
+from pbc.authoring.repository import BuildCommit
 
 STUB_DIRECTORY = "Exercises"
 SOLUTION_DIRECTORY = "PhysicsByConstruction/Exercises"
@@ -154,24 +157,69 @@ def solution_module(name: str) -> str:
 class LeanStub:
     """A theorem statement of an exercise stub, as shown on a page.
 
-    As the result of a code cell it renders as a listing in a "not verified"
-    box: the proof is ``sorry`` and nothing here has been proved.
+    As the result of a code cell it leaves a marker; the page the reader gets
+    shows a listing in a "not verified" box, followed by the compact Source
+    link to the lines of the stub at the commit of the run
+    (``pbc.authoring.context``): the proof is ``sorry`` and nothing here has
+    been proved.
     """
 
     name: str  # "<stub>:<anchor>"
     source: str
     path: str
+    first_line: int
+    last_line: int
+
+    def payload(self) -> dict:
+        """What the region is built from, apart from the commit."""
+        return {
+            "name": self.name,
+            "source": self.source,
+            "path": self.path,
+            "first_line": self.first_line,
+            "last_line": self.last_line,
+        }
+
+    @classmethod
+    def from_payload(cls, payload: dict) -> LeanStub:
+        return cls(
+            name=payload["name"],
+            source=payload["source"],
+            path=payload["path"],
+            first_line=payload["first_line"],
+            last_line=payload["last_line"],
+        )
 
     def _repr_markdown_(self) -> str:
+        return marker("lean-stub", current_page(), self.payload())
+
+    def markdown(self, commit: BuildCommit, repository: str) -> str:
+        """The content of the region, for the commit this was built with."""
         longest_run = max(
             (len(run) for run in re.findall(r"`+", self.source)), default=0
         )
         fence = "`" * max(3, longest_run + 1)
+        link = source_link_markdown(
+            self.name,
+            self.path,
+            (self.first_line, self.last_line),
+            commit,
+            repository,
+        )
         return (
-            "::: {.not-verified .lean-stub}\n"
+            # The region is built after the render, so it writes the label
+            # that the page filter gives every "not verified" box.
+            "::: {.not-verified .lean-stub role=note}\n"
+            "::: {.not-verified-label}\n"
+            "**Not verified.** The build of this site did not run or check the"
+            " material in this box.\n"
+            ":::\n\n"
+            "::: {.excerpt}\n"
             f'{fence}{{.lean source="{self.name}"}}\n'
             f"{self.source.rstrip()}\n"
             f"{fence}\n\n"
+            f"::: {{.excerpt-source}}\n{link}\n:::\n"
+            ":::\n\n"
             f"The stub `{self.path}` contains `sorry`: it states the exercise and"
             " proves nothing. You complete it on your machine; the site does not"
             " run Lean for you.\n"
@@ -194,11 +242,15 @@ def lean_stub(name: str, anchor: str, project: Path = LEAN_PROJECT) -> LeanStub:
             f"{STUB_DIRECTORY}/{name}.lean changed after it was checked; run"
             " ./scripts/check-lean.sh again before building a page that shows it"
         )
-    region, _ = anchored_lines(file.read_text(encoding="utf-8"), anchor)
+    region, first_line = anchored_lines(file.read_text(encoding="utf-8"), anchor)
+    if not region:
+        raise ValueError(f"the region {anchor!r} of the stub {name} is empty")
     return LeanStub(
         name=f"{stub_module(name)}:{anchor}",
         source="\n".join(region),
         path=stub_path(name),
+        first_line=first_line,
+        last_line=first_line + len(region) - 1,
     )
 
 

@@ -5,6 +5,7 @@ alt text and dimensions of figures, readability without JavaScript, the
 accessibility scan. The checks here are about what only a lesson promises.
 """
 
+import ast
 import os
 import shutil
 import subprocess
@@ -156,7 +157,7 @@ def test_the_stepper_lesson_annotates_its_excerpt_without_javascript(
     page_without_scripts.goto(server.url + NEWTONS_LAWS, wait_until="load")
 
     listing = page_without_scripts.locator(
-        "pre[data-source='pbc.mechanics.dynamics:euler_step']"
+        ".excerpt-selection[data-source='pbc.mechanics.dynamics:euler_step']"
     )
     assert listing.locator(".line.marked").count() == 3
     # The notes are text of the page, not of a script or of a style.
@@ -176,6 +177,79 @@ def test_the_stepper_lesson_annotates_its_excerpt_without_javascript(
     assert "m/s²" in rows["acceleration"]
     assert "m/s" in rows["state"] and "m/s" in rows["return"]
     assert "not stated" not in table.inner_text()
+
+
+def _object_lines(path: str, name: str) -> tuple[int, int]:
+    """The file lines of a top-level function, from its first decorator to its
+    end, read with ``ast`` and not through ``pbc``."""
+    tree = ast.parse((REPO_ROOT / path).read_text())
+    (node,) = [n for n in tree.body if getattr(n, "name", None) == name]
+    first = min([node.lineno, *(d.lineno for d in node.decorator_list)])
+    return first, node.end_lineno
+
+
+def test_annotated_and_plain_excerpts_share_highlighting_and_copy_code_only(
+    page_without_scripts: Page, server: SiteServer
+):
+    """U1g: the annotated listing is highlighted by the same build-time
+    highlighter as a plain one, and its text, which a reader copies, is the
+    source lines without line numbers or note marks."""
+    page = page_without_scripts
+    page.goto(server.url + NEWTONS_LAWS, wait_until="load")
+    selection = page.locator(
+        ".excerpt-selection[data-source='pbc.mechanics.dynamics:euler_step']"
+    )
+    plain = page.locator("div.sourceCode[data-source='pbc.mechanics.dynamics:newton']")
+
+    def colour(locator, token: str) -> str:
+        return locator.locator(f"code span.{token}").first.evaluate(
+            "e => getComputedStyle(e).color"
+        )
+
+    for token in ("op", "cf"):
+        assert selection.locator(f"code span.{token}").count() > 0, token
+    assert colour(selection, "op") == colour(plain, "op")
+    # The text of the listing is the source; numbers and marks are not text.
+    file = (REPO_ROOT / "src/pbc/mechanics/dynamics.py").read_text().splitlines()
+    numbers = selection.locator(".line").evaluate_all(
+        "lines => lines.map(l => Number(l.dataset.line))"
+    )
+    copied = selection.locator("pre code").inner_text()
+    assert copied.rstrip("\n") == "\n".join(file[numbers[0] - 1 : numbers[-1]])
+    assert "note" not in copied and "\u2190" not in copied
+    # A selection is labelled, and offers no copy of itself as a whole.
+    label = selection.locator("xpath=..").locator(".excerpt-label")
+    assert "Selected lines of euler_step" in label.inner_text()
+    assert selection.locator(".code-copy-button").count() == 0
+    assert plain.locator("xpath=..").locator(".code-copy-button").count() == 1
+
+
+def test_every_source_link_opens_its_object_at_the_built_commit(
+    page_without_scripts: Page, server: SiteServer
+):
+    """U1b: no sentence after an excerpt; its compact Source link opens the
+    whole object, at the commit the page was built from."""
+    page = page_without_scripts
+    page.goto(server.url + NEWTONS_LAWS, wait_until="load")
+    repository = configured_repository_url(SITE_SOURCE)
+    excerpts = page.locator("main .excerpt")
+    assert excerpts.count() >= 8
+    assert "read from the repository" not in page.locator("main").inner_text()
+    for index in range(excerpts.count()):
+        excerpt = excerpts.nth(index)
+        link = excerpt.locator(".excerpt-source a.source-link")
+        assert link.count() == 1
+        assert link.text_content().startswith("Source")
+        name = link.get_attribute("data-source-name")
+        module, _, target = name.partition(":")
+        path = f"src/{module.replace('.', '/')}.py"
+        if target:
+            first, last = _object_lines(path, target)
+        else:
+            first, last = map(int, link.get_attribute("data-lines").split("-"))
+        assert link.get_attribute("href") == (
+            f"{repository}/blob/{_head_commit()}/{path}#L{first}-L{last}"
+        )
 
 
 def test_the_first_lesson_shows_mathml_results_and_figures(

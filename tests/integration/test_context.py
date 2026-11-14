@@ -510,7 +510,7 @@ def test_an_excerpt_region_is_rebuilt_for_the_commit_of_the_run(tmp_path: Path):
     assert "pbc-context" not in first
     assert "euler_step" in first
     assert payload["path"] in first
-    link = f"{REPOSITORY}/blob/{{}}/{payload['path']}#L{payload['first_line']}-L"
+    link = f"{REPOSITORY}/blob/{{}}/{payload['path']}#L{payload['span'][0]}-L"
     assert link.format(BASE_COMMIT.sha) in first
     assert link.format(RUN_COMMIT.sha) in second
     assert BASE_COMMIT.sha not in second
