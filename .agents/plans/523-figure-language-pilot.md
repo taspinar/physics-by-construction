@@ -91,6 +91,12 @@ against the white plate.
 
 Total 638,150 bytes.
 
+After the merge of F172 (#526) into the branch, the base's
+`fig-impedance-fit` (F172's declared provenance: the status at the caption
+and by role, no status words in the legends) measures 165812 bytes, 625 px
+wide, the rest of its row unchanged; the base total is 614,452 bytes. The
+other five rows are unchanged by F172.
+
 Findings, by the criteria of the Issue:
 
 - **Legibility.** Widths from 532 to 681 CSS px: on a phone the scale falls
@@ -132,9 +138,9 @@ Findings, by the criteria of the Issue:
 | phase space | `fig-phase-blob` | 47472 | 547 | 9.5 to 11 | 12.7 / 7.1 | 0 | 0 | 1.8 | 0 | none | 7.46 |
 | convergence, log-log | `fig-heat-convergence` | 74339 | 548 | 9.5 to 11 | 12.7 / 7.1 | 0 | 0 | 1, 1.8 | 10 | none | 6.39 |
 | field | `fig-plate-temperature` | 111163 | 547 | 9.5 to 11 | 12.7 / 7.1 | 0 | 2 |  | 0 | viridis | 3.86 |
-| measured against model, residuals | `fig-impedance-fit` | 184471 | 550 | 9.5 to 11 | 12.7 / 7.0 | 3 | 3 | 0.8, 1.4 | 243 | none | 3.42 |
+| measured against model, residuals | `fig-impedance-fit` | 150131 | 548 | 9.5 to 11 | 12.7 / 7.1 | 3 | 3 | 0.8, 1.4 | 243 | none | 3.42 |
 
-Total 626,162 bytes (−1.9 %).
+Total 591,822 bytes (−3.7 % against the merged base's 614,452; −7.3 % against the base before F172).
 
 What changed, per figure, with every value kept:
 
@@ -159,15 +165,20 @@ What changed, per figure, with every value kept:
 - `fig-impedance-fit`: one legend of three entries in the empty upper left
   of the magnitude panel (the upper limit raised to five times the peak to
   make room: the scale stays log-log, every sample shown); the residuals named on their curves; the
-  status words, the "no uncertainty per point given", the model names, and
-  the credit kept.
+  "no uncertainty per point given" and the model names kept; after the
+  merge of F172, every line carries its role (measured, model, residual)
+  and the status and credit are F172's declared provenance (the status at
+  the caption, the credit at the caption, in the PNG's metadata, and on
+  its portable credit line), with no status words in the legend.
 
 **Series identity.** For each figure, the fingerprints of every line's
 data, every image array, every contour level set, and both axis scales
 are the same sets before and after (the comparison script read the six
 figures from `HEAD` and from the working tree).
 
-**Payload and build cost (criterion 4).** −12.0 KB over the six figures;
+**Payload and build cost (criterion 4).** −22.6 KB over the six figures
+against the merged base (614,452 → 591,822 bytes; before the merge of
+F172: −12.0 KB, 638,150 → 626,162);
 each lesson's page stays far inside the 3 MB budget, and EM8's figures
 inside the 750 KB of its lab test. Drawing time of the six (three
 encodings each, after a warm-up): 1.090 s before, 1.108 s after.

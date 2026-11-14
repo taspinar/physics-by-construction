@@ -872,7 +872,9 @@ lesson's own module.
   data, and then it is one legend of at most three entries, placed where
   the curves leave room. A legend entry or a direct label is never dropped
   to save space where it carries the uncertainty, the model's identity,
-  the unit, or the status. Panel titles say what differs between panels; a
+  the unit, or the status. A figure that declares its provenance
+  (`FigureProvenance`) carries its status at the caption and by the role
+  of each line, not in a legend entry. Panel titles say what differs between panels; a
   figure of one panel has none, its caption is its title.
 - **By class.** Convergence: log-log, the error against the step, the
   reference slope drawn below the data and named "slope N" on the plot
