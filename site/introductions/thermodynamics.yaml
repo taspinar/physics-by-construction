@@ -1,0 +1,142 @@
+# The introduction of the course Thermodynamics and statistical physics
+# (F159, requirements decision 43). Prose and references only; see
+# site/introductions/mechanics.yaml for the rules.
+sequence: thermodynamics
+
+why:
+  - >-
+    A litre of air holds far more molecules than a computer could follow one
+    by one, and yet its pressure and its temperature are steady numbers
+    that a gauge reads without effort. Statistical physics explains how:
+    the quantities of everyday thermodynamics are averages over enormous
+    numbers of particles, and the averages behave far more simply than the
+    particles do.
+  - >-
+    The same idea reaches from a gas in a box to a magnet losing its order,
+    a spreading drop of ink, an engine, and a chip that must not overheat.
+    Built as programs, the averages stop being abstractions: you set the
+    particles moving, collect what they do, and watch a pressure, a
+    distribution of speeds, an entropy, or a temperature field come out of
+    the collection, with the statistical error that a finite collection
+    always carries.
+
+questions:
+  - >-
+    How do steady macroscopic quantities such as pressure and temperature
+    arise from particles that move at random?
+  - >-
+    What is entropy when you can count the states of a system, and why
+    does it grow?
+  - >-
+    How do many small interactions produce a sudden collective change, a
+    phase transition, and why does a finite system blur it?
+  - >-
+    What limits the work that an engine can extract from heat?
+  - >-
+    How does heat spread through a solid, and when is a calculation of it
+    good enough to design with?
+  - >-
+    How well does the theory describe a real record, and where does it
+    stop?
+
+learn:
+  - >-
+    Build a gas and a random walk from one simple rule each, and measure
+    the pressure, the distribution of speeds, and the diffusion coefficient
+    that emerge ({slot:T0}, {slot:T1}).
+  - >-
+    Define the temperature from the motion of the particles, and check a
+    simulated gas against the Maxwell distribution within a stated
+    tolerance ({slot:T2}).
+  - >-
+    Write the entropy as the logarithm of a count of microstates, and say
+    what an estimate from a finite ensemble can and cannot show
+    ({slot:T3}).
+  - >-
+    Sample a lattice of spins with the Metropolis algorithm, check the
+    sampler against an exact case, and estimate a critical temperature
+    with the shift that the size of the lattice causes ({slot:T4}).
+  - >-
+    Move interacting particles by Newton's laws, and test the conservation
+    of energy, equipartition, and the pressure from the motion
+    ({slot:T5}).
+  - >-
+    Integrate heat and work around the cycles of idealised engines and
+    show why none exceeds the Carnot bound ({slot:T9}).
+  - >-
+    Solve the heat equation by finite differences and by finite elements,
+    measure the stability and the convergence of each scheme, and close
+    the energy balance of a model ({slot:T6}, {slot:T10}).
+  - >-
+    Compare the heat equation and the random walk with measured records,
+    and say where the data depart from the model ({slot:T7}, {slot:T8}).
+
+order:
+  - >-
+    The course starts at the bottom, with particles. {slot:T0} builds a gas
+    from colliding discs and {slot:T1} follows a single walker that steps
+    at random; between them they show the two faces of the subject, an
+    average that settles and a spread that grows. {slot:T2} then explains
+    the speeds of that gas and gives the temperature its meaning, and
+    {slot:T3} turns the counting of arrangements into the entropy.
+  - >-
+    With the statistics in place, the course adds what makes matter
+    interesting. {slot:T4} lets neighbouring spins interact and finds a
+    phase transition, and {slot:T5} brings back Newton's laws for many
+    particles that pull and push on each other, so that temperature and
+    pressure are measured from a motion rather than assumed.
+  - >-
+    The rest of the course works at the scale of the laboratory and the
+    machine. {slot:T6} writes the heat equation on a grid, the random walk
+    of the beginning seen from far away, and {slot:T10} solves it on meshes
+    that can follow a real shape. {slot:T9} treats engines, where the first
+    law is checked leg by leg and the entropy of the reservoirs bounds what
+    any cycle can do. The labs on measured data and the capstone close the
+    course: the labs compare the heat equation and the random walk with
+    recorded signals, which is harder than comparing them with a formula,
+    and {slot:T11} needs both solvers of the heat equation.
+
+method:
+  - >-
+    The method is the numerical experiment, as in {sequence:mechanics}, with
+    one difference that runs through the whole course: most results here are
+    estimates from a finite number of particles, walkers, spins, or samples.
+    A lesson therefore checks a measured value against its exact
+    counterpart within a stated statistical tolerance, and treats a result
+    without its error as unfinished. Where a closed form exists, such as the
+    Maxwell distribution or the exact solution of a small lattice, it is
+    the reference; where none exists, convergence and conservation are.
+  - >-
+    The solvers of the later lessons are checked in the same spirit: the
+    stability limit and the order of a scheme are measured rather than
+    quoted, and an energy balance that does not close is treated as a
+    defect. The labs then set these models beside records that were
+    measured by others, and keep the measurement, the processing, and the
+    analysis apart. None of the lessons of this course uses an
+    artificial-intelligence agent; the gas of {slot:T0} is built from
+    simple agents in the sense of an agent-based model, particles that
+    each follow one rule.
+
+capstone:
+  - >-
+    The capstone of the course is an applied one, {slot:T11}. A hypothetical
+    accelerator package of compute dies and memory stacks on a heat
+    spreader and a cold plate is modelled with finite elements, in steady
+    state and in time, and the model is verified against an exact
+    solution, the finite-difference baseline, a model that resolves more,
+    and refinement.
+  - >-
+    The capstone then turns the verified model into a design question:
+    cooling, material, and layout are compared, the hottest junction is
+    minimised under limits on mass, size, and heat removal, the
+    sensitivity to uncertain inputs is measured, and the recommendation is
+    qualified by what the model leaves out.
+
+next:
+  - >-
+    The random walk returns in {slot:FL1}, where diffusion meets a flow,
+    and together with the entropy in {slot:MAT4}, where a vacancy hops
+    through a crystal; the finite elements return in {slot:MAT3}. Continue with
+    {sequence:fluids} or {sequence:materials} to follow those threads, or
+    choose another course of the atlas by the system you want to
+    understand.
