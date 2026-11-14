@@ -28,6 +28,7 @@ from pbc.data.plotting import COLOURS, add_credit, label_status
 from pbc.data.reference.bayreuth_rlc import Spectrum, load
 from pbc.electromagnetism.circuits import CoilParallelCapacitor, impedance_peak
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, MUTED, direct_label, figsize, figure_style, finish
 
 DATASET = "bayreuth-rlc-impedance"
 # region: nominal
@@ -302,74 +303,86 @@ def _mark(ax, x: float, style: str, label: str) -> None:
 
 def draw_impedance_fit(spectrum: Spectrum, result: FitResult) -> Figure:
     """The measured |Z| and phase against the circuit of the printed values
-    and the fitted circuit, with the residuals of both."""
-    modulus = impedance_series(spectrum, "modulus")
-    phase = impedance_series(spectrum, "phase")
-    dense = np.geomspace(spectrum.frequency[0], spectrum.frequency[-1], 400)
-    models = {
-        "model, printed values": (NOMINAL, ":", COLOURS[2]),
-        "model, fitted values": (circuit_of(result), "--", COLOURS[1]),
-    }
-    fig, (top, middle, bottom) = plt.subplots(
-        3,
-        1,
-        figsize=(6.4, 7.0),
-        sharex=True,
-        constrained_layout=True,
-        gridspec_kw={"height_ratios": [1.3, 1.0, 1.0]},
-    )
-    measured = {"color": COLOURS[0], "marker": "o", "ms": 3.2, "ls": "none"}
-    top.loglog(
-        modulus.x,
-        modulus.y,
-        label=f"measured [{modulus.status}], no uncertainty per point given",
-        **measured,
-    )
-    middle.semilogx(phase.x, phase.y, label=f"measured [{phase.status}]", **measured)
-    for name, (tank, style, colour) in models.items():
-        z = tank.impedance(2 * np.pi * dense)
-        top.plot(
-            dense,
-            np.abs(z),
-            ls=style,
-            color=colour,
-            lw=1.4,
-            label=f"{name} [simulated]",
+    and the fitted circuit, with the residuals of both: the measurement in
+    the first Okabe-Ito colour as dots, the models apart in two more, dotted
+    and dashed; one legend for the three, the residuals named on the plot."""
+    with figure_style():
+        modulus = impedance_series(spectrum, "modulus")
+        phase = impedance_series(spectrum, "phase")
+        dense = np.geomspace(spectrum.frequency[0], spectrum.frequency[-1], 400)
+        models = {
+            "model, printed values": (NOMINAL, ":", COLOURS[2]),
+            "model, fitted values": (circuit_of(result), "--", COLOURS[1]),
+        }
+        fig, (top, middle, bottom) = plt.subplots(
+            3,
+            1,
+            figsize=figsize("measured"),
+            sharex=True,
+            gridspec_kw={"height_ratios": [1.6, 1.0, 1.0]},
         )
-        middle.plot(
-            dense,
-            np.degrees(np.angle(z)),
-            ls=style,
-            color=colour,
-            lw=1.4,
-            label=f"{name} [simulated]",
+        measured = {"color": COLOURS[0], "marker": "o", "ms": 3.2, "ls": "none"}
+        # One legend for the three series, in the empty upper left of the
+        # magnitude panel; each entry on two lines, so that it stays narrow
+        # there at the phone's size of type.
+        top.loglog(
+            modulus.x,
+            modulus.y,
+            label=f"measured [{modulus.status}],\nno uncertainty\nper point given",
+            **measured,
         )
-        r = 100 * relative_residual(spectrum, tank)
-        bottom.semilogx(
-            spectrum.frequency,
-            np.abs(r),
-            ls=style,
-            color=colour,
-            lw=1.2,
-            marker="." if style == "--" else None,
-            ms=4,
-            label=name,
-        )
-    middle.axhline(0, color="0.5", lw=0.8)
-    top.set_ylabel("|Z| [ohm]")
-    top.set_title("Impedance of a coil parallel to a capacitor: magnitude")
-    top.legend(fontsize=7.5, loc="lower center")
-    middle.set_ylabel("phase of Z [deg]")
-    middle.set_title("Phase: inductive below the resonance, capacitive above")
-    middle.legend(fontsize=7.5, loc="lower left")
-    bottom.set_yscale("log")
-    bottom.set_ylabel("residual [%]")
-    bottom.set_xlabel("frequency [Hz]")
-    bottom.set_title("Residual |Z_model / Z_measured - 1| of the two models")
-    bottom.legend(fontsize=7.5, loc="upper left")
-    add_credit(fig, CREDIT)
-    label_status(fig, modulus.status)
-    return fig
+        middle.semilogx(phase.x, phase.y, **measured)
+        for name, (tank, style, colour) in models.items():
+            z = tank.impedance(2 * np.pi * dense)
+            top.plot(
+                dense,
+                np.abs(z),
+                ls=style,
+                color=colour,
+                lw=LINE["model"],
+                label=f"{name}\n[simulated]",
+            )
+            middle.plot(
+                dense,
+                np.degrees(np.angle(z)),
+                ls=style,
+                color=colour,
+                lw=LINE["model"],
+            )
+            r = 100 * relative_residual(spectrum, tank)
+            bottom.semilogx(
+                spectrum.frequency,
+                np.abs(r),
+                ls=style,
+                color=colour,
+                lw=LINE["model"],
+                marker="." if style == "--" else None,
+                ms=4,
+            )
+            direct_label(
+                bottom,
+                spectrum.frequency[0],
+                np.abs(r[0]),
+                name.removeprefix("model, "),
+                colour,
+                offset=(2.0, 3.0),
+                va="bottom",
+            )
+        middle.axhline(0, color=MUTED, lw=LINE["axis"])
+        top.set_ylabel("|Z| [ohm]")
+        top.set_title("Magnitude of the impedance, coil parallel to a capacitor")
+        # Room above the peak, so that the legend clears the rising curve.
+        top.set_ylim(top=5 * float(np.max(modulus.y)))
+        top.legend(loc="upper left", labelspacing=0.3)
+        middle.set_ylabel("phase of Z [deg]")
+        middle.set_title("Phase: inductive below the resonance, capacitive above")
+        bottom.set_yscale("log")
+        bottom.set_ylabel("residual [%]")
+        bottom.set_xlabel("frequency [Hz]")
+        bottom.set_title("Residual |Z_model / Z_measured - 1|")
+        add_credit(fig, CREDIT)
+        label_status(fig, modulus.status)
+    return finish(fig, grid=True)
 
 
 def draw_resonance_detail(
