@@ -50,8 +50,9 @@ All three are the `lesson.preview` of their lesson.
    experiment declares it: `experiment.figure(label, draw,
    provenance=...)`; only a declared figure opts in.
 2. **The card's figure credit** (`rights.figure_credit` of the card):
-   `short` (one line, "Data: ..."), `visible` (`required` or
-   `not-required`) and `source` (why, from the rights). The per-card
+   `short` (one line, "Data: ..."), `visible` (`required` by the terms,
+   `chosen` by the project for clear attribution, or `not-required`) and
+   `source` (why, from the rights). The per-card
    rights check (`validate_card` and `figure_provenance.check_card`): the
    short credit starts with "Data: ", is at most 100 characters, names no
    ownership; a CC BY licence needs `visible: required`; the publication
@@ -64,16 +65,19 @@ All three are the `lesson.preview` of their lesson.
    machine-readable `pbc:figure`, `pbc:status`, `pbc:combines`,
    `pbc:dataset`, `pbc:artifact`, `pbc:licence`, `pbc:credit`,
    `pbc:attribution`, `pbc:processing`, `pbc:schema`. No `Author`,
-   `Copyright`, date, or software version. A card with `visible: required`
-   gets a one-line credit painted under the axes by `encode()`, from the
+   `Copyright`, date, or software version. A card with `visible:
+   required` or `chosen` gets a one-line credit painted under the axes by `encode()`, from the
    card (never by the draw function); the visualization credit
    ("Visualization: Physics by Construction · Data: ...") is
    `VISUALIZATION_CREDIT`, on since the owner's choice of 2026-11-14 (see
    "Owner's decision" below).
    ADR 016 decision 2 says "no metadata" for the deterministic figure
-   output of ADR 002; the metadata here is deterministic and written by
-   the one encoder, as the architecture's contract and requirements
-   decision 44 require. Surfaced for the owner, not changed.
+   output of ADR 002; at the owner's request (design review of
+   2026-11-14) an addendum to that decision allows the one exception: a
+   fixed, deterministic provenance record for declared figures, with no
+   timestamps and no machine-dependent fields, every other figure
+   unchanged. `docs/architecture.md` and `docs/authoring.md` say the
+   same.
 4. **The page**: the cell keeps `fig-status` and `fig-dataset`; a new
    post-render step `site/figure-credits.py` reads the PNG of every
    figure, and for a PNG that carries `pbc:` metadata it requires that the
@@ -181,7 +185,7 @@ Quarto build, which is not installed here).
 
 | Figure | Before export | After export (with the visualization credit) | Without visualization credit |
 |---|---|---|---|
-| `fig-transit-fit` | 1253 x 1140 px, 193,422 B | 1259 x 1162 px, 141,781 B | 1251 x 1135 px, 138,134 B |
+| `fig-transit-fit` | 1253 x 1140 px, 193,422 B | 1259 x 1162 px, 143,868 B | 1259 x 1162 px, 141,251 B |
 | `fig-stress-strain` | 1367 x 950 px, 154,047 B | 1374 x 970 px, 112,806 B | 1374 x 970 px, 110,326 B |
 | `fig-impedance-fit` | 1253 x 1368 px, 211,477 B | 1259 x 1393 px, 179,126 B | 1259 x 1393 px, 177,092 B |
 
@@ -190,8 +194,9 @@ Quarto build, which is not installed here).
   axes, units, uncertainty, residual panels, and every record unchanged; no
   display thinning. One small line under the axes: "Visualization:
   Physics by Construction · Data: ..." on MAT6 and the RLC figure (their
-  cards require the data credit), "Visualization: Physics by Construction"
-  alone on AST8 (public domain).
+  cards require the data credit) and "Visualization: Physics by
+  Construction · Data: NASA TESS / MAST" on AST8 (public domain; the
+  owner's choice of the design review, `visible: chosen`).
 - Caption: one status label, "with simulated models" for AST8 and RLC, the
   short credit, a closed "Full provenance" disclosure (attribution,
   licence, DOI link, processing, the line on the image, figure identity).
@@ -212,7 +217,8 @@ Physics by Construction" under the figure, outside the plot area, so that
 a downloaded or shared image still shows where the visualization comes
 from. Where the card requires a visible dataset credit (MAT6, the RLC lab)
 the two are one line, "Visualization: Physics by Construction · Data: …";
-the public-domain TESS figure shows the branding alone. Implemented as
+the public-domain TESS figure showed the branding alone until the design
+review below added its data source. Implemented as
 `VISUALIZATION_CREDIT = True` and `visible_credit()`: the type size (7 pt)
 and grey (0.25) of the figure credits, no box or logo. The PNG record's
 `pbc:visible-credit` is the painted line; the caption's "Full provenance"
@@ -220,11 +226,46 @@ names it ("On the image"); the post-render step and the built-site check
 `check_figure_credits` fail when the record's line is not the one the card
 gives. The decision on the rollout (F173) is still the owner's.
 
+## Owner's design review (2026-11-14)
+
+The owner's design review of #526 at 640e4c2 (comment on Issue #524)
+keeps the design and asks for three refinements, made on this branch:
+
+1. **AST8 names its data source visibly.** The TESS card's short credit is
+   "Data: NASA TESS / MAST" with `visible: chosen` (a new value: the
+   terms do not require it, the project shows it for clear scientific
+   attribution when a screenshot or re-export loses the metadata); the
+   line is "Visualization: Physics by Construction · Data: NASA TESS /
+   MAST", and the PNG record, the caption, and the tests follow.
+2. **ADR 016 addendum** to decision 2 (dated, naming #524): the fixed,
+   deterministic provenance record of declared figures is the one
+   exception to "no metadata"; no timestamps or machine-dependent fields;
+   every other figure unchanged. `docs/architecture.md` and
+   `docs/authoring.md` agree.
+3. **The branding, precisely.** `VISUALIZATION_CREDIT = True` is a
+   constant, not a per-figure choice: it applies to every declared
+   figure, which in this pilot are its three (AST8, MAT6, the RLC lab);
+   an undeclared figure has no line; any further rollout goes through
+   F173. No settings mechanism. The architecture's sentence on a
+   "mandatory brand" now forbids a brand on a figure the owner's decision
+   does not cover.
+
+The chart size is unchanged; a barely readable line on a phone is
+acceptable while the caption's credit stays readable; the RLC legends are
+F170's.
+
+## Owner's approval of the digest change (2026-11-14)
+
+`tests/integration/test_lesson_digest.py::test_the_tools_of_the_data_package_are_those_of_the_data_use_analysis`
+requires the digest's `_DATA_TOOLS` to equal `TOOLS` of
+`tests/support/data_use.py`, which lists `pbc.data.figure_provenance` (a
+module that reads no data). The owner approved on Issue #524 ("Ja dat
+mag", 2026-11-14) adding `figure_provenance` to `_DATA_TOOLS` in the
+protected `src/pbc/authoring/digest.py`; the change is that one line.
+
 ## Open questions
 
 - The decision on the rollout (F173), part of AC 5.
-- ADR 016 decision 2, "no metadata": read as the deterministic output of
-  ADR 002; an addendum is the owner's choice.
 
 ## Next action
 

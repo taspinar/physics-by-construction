@@ -737,7 +737,9 @@ already follows, and its test is the Lean build with the exercise pairing
 check of ADR 011; a Lean lesson that also computes a figure declares the
 figure-writing function under `src/pbc` like every other kind (ADR 016
 decision 2). Each figure has one figure-writing function in that
-module, with fixed settings and no metadata, that the entry point and the
+module, with fixed settings and no metadata (the one exception, the fixed
+provenance record of a declared figure, is the addendum to ADR 016
+decision 2 of 2026-11-14), that the entry point and the
 page's cell both call, the cell showing the written file as its output,
 so one encoder produces the figure file of the built page and of the
 learner's directory (ADR 016 decision 2; today the inline backend
@@ -1850,14 +1852,20 @@ declarations (the page and the experiment output stay the same bytes,
 ADR 016), only for a figure that opts in: in the pilot F172 the three
 sample figures, while every other figure's PNG stays byte-identical
 until F173 rolls the contract out, plus a short visible credit where a dataset card's terms
-require visible attribution or the owner chooses one. A validated
+require visible attribution or the owner chooses one. The record is the
+exception to ADR 016 decision 2's "no metadata" that the addendum to
+that decision (Issue #524, 2026-11-14) allows: fixed and deterministic,
+with no timestamps and no machine-dependent fields, for declared figures
+only, every other figure encoded unchanged. A validated
 sidecar manifest is the pilot's alternative if embedded metadata fails
 the determinism or reuse test; it is bound to the figure's digest. Rights
-are evaluated per dataset card. An optional small visualization credit
-("Visualization: Physics by Construction · Data: …") on portable figures
-is the owner's choice on examples; a watermark, a mark over data, a
-mandatory brand, or wording that claims ownership of external
-measurements is never allowed. `check_figure()` and its tests are
+are evaluated per dataset card. The small visualization credit
+("Visualization: Physics by Construction · Data: …") is the owner's
+choice of 2026-11-14: it goes with a figure's declaration, so in the
+pilot it is on the three declared figures and on no other figure, and
+any further rollout goes through F173. A watermark, a mark over data, a
+brand on a figure the owner's decision does not cover, or wording that
+claims ownership of external measurements is never allowed. `check_figure()` and its tests are
 migrated to equally strong or stronger assertions (status present in the
 declaration and the PNG metadata, title and legend semantics, credit
 consistent with the card), never dropped. The figures of AI6 that are
@@ -1872,8 +1880,10 @@ Delivered by the pilot F172 (Issue #524) on `fig-transit-fit` (AST8),
 electromagnetism course). The declaration is
 `pbc.data.figure_provenance.FigureProvenance`, passed by the experiment as
 `Experiment.figure(..., provenance=...)`, which is the opt-in; the card's
-`rights.figure_credit` holds the short credit, whether the card's terms
-require it visible on a portable figure, and why (the per-card rights
+`rights.figure_credit` holds the short credit, whether it is painted on a
+portable figure (`visible`: `required` by the card's terms, `chosen` by
+the project for clear attribution where the terms do not ask for it, or
+`not-required`), and why (the per-card rights
 check: a CC BY card requires it and names the licence, and the card
 permits figures and modification). `encode(draw, metadata=..., credit=...)`
 writes the record as PNG text chunks in a fixed order (`Title`,
@@ -1891,17 +1901,26 @@ solid, a measurement beside a model never dashed), `check_png` (the record
 equals the declaration and the card, no ownership wording), the lesson
 source check (the cell names the declared status, dataset, and artifact),
 and the built-site check `check_figure_credits`. ADR 016 decision 2 names
-"no metadata" for the deterministic output of ADR 002; the record is
-deterministic and written by the one encoder, and only for the declared
-figures. The evidence and the branding examples are summarised in the
+"no metadata" for the deterministic output of ADR 002; its addendum of
+2026-11-14 (Issue #524) allows this record as the one exception: fixed,
+deterministic, without timestamps or machine-dependent fields, written by
+the one encoder for the declared figures only, every other figure
+encoded unchanged. The evidence and the branding examples are summarised in the
 feature's plan (images are not committed outside `site/assets/`). The
 owner chose the visualization credit on the Issue on 2026-11-14, "with
 subtle branding" (`VISUALIZATION_CREDIT`): the painted line is
 "Visualization: Physics by Construction", outside the plot area, so that a
-downloaded or shared image still shows where the visualization comes from;
-where the card requires a visible dataset credit (MAT6, the RLC lab) it is
-one line, "Visualization: Physics by Construction · Data: …", and for the
-public-domain TESS figure the branding alone. It keeps the type size and
+downloaded or shared image still shows where the visualization comes from.
+It is not a per-figure setting: `VISUALIZATION_CREDIT` is a constant that
+applies to every declared figure, which in the pilot are its three
+figures, and an undeclared figure shows no line; any further rollout goes
+through F173, and there is no settings mechanism. The line names the
+data source too, as "Visualization: Physics by Construction · Data: …":
+for MAT6 and the RLC lab because their cards' terms require it
+(`visible: required`), and for the public-domain TESS figure of AST8
+because the owner chose it in the design review of 2026-11-14 for clear
+scientific attribution when a screenshot or a re-export loses the
+metadata (`visible: chosen`, "Data: NASA TESS / MAST"). It keeps the type size and
 grey of the figure credits, with no box or logo, never covers data, and
 names the project only as the visualization; the record's
 `pbc:visible-credit`, the caption's full provenance ("On the image"), and
@@ -2936,7 +2955,9 @@ that must settle them:
   into `index_files/figure-html`, and its bounding box, dpi, and metadata
   settings need not match those of a `savefig` in an entry point. ADR 016
   decision 2 assumes one figure-writing function per figure, with fixed
-  settings and no metadata, that both the entry point and the page's cell
+  settings and no metadata (its addendum of 2026-11-14 allows the fixed
+  provenance record of a declared figure), that both the entry point and
+  the page's cell
   call, the cell showing the written file, so that one encoder produces
   both; F117 verifies the assumption per figure kind on the first lesson
   it migrates of each kind, and a figure kind that cannot reach byte
@@ -3138,7 +3159,10 @@ work of F164 to F178 and F116:
 - A measured figure states its status twice (the painted box and the
   caption) and paints its credit into the PNG; `check_figure()` and its
   tests require both; `pbc.experiment.encode()` writes no metadata
-  (F172, F173).
+  (F172, F173). Since F172 the three declared figures of its pilot carry
+  the fixed provenance record that the addendum to ADR 016 decision 2
+  allows, and their status and credit are off the chart area; every other
+  figure is unchanged until F173.
 - `FIGURE_SETTINGS` sets size and resolution only; lesson figures choose
   their own type sizes, grids, and line weights (F170, F171).
 - The lesson header shows every connection, prerequisite, and related

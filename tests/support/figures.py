@@ -28,8 +28,9 @@ def assert_declared(experiment, label: str, figure, status: str, residuals: bool
         credit=portable.visible_credit(card),
     )
     # The owner's choice (2026-11-14): the visualization credit, with the
-    # data credit where the card requires it visible, in one line.
+    # data credit where the card shows it, in one line.
     credit = card["rights"]["figure_credit"]
     painted = portable.read_metadata(png)["pbc:visible-credit"]
-    data = f" · {credit['short']}" if credit["visible"] == "required" else ""
+    shown = credit["visible"] in ("required", "chosen")
+    data = f" · {credit['short']}" if shown else ""
     assert painted == portable.VISUALIZATION_PREFIX + data

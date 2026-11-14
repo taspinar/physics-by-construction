@@ -10,7 +10,8 @@ what the figure is and whose data it shows:
   deterministically and without a date, a software version, an author, or
   a copyright field, and paints one short line under the axes: the
   visualization credit, combined with the card's short credit where
-  ``rights.figure_credit.visible`` is ``required``;
+  ``rights.figure_credit.visible`` is ``required`` (the terms ask for it)
+  or ``chosen`` (the project shows it for clear attribution);
 - the page: the post-render step ``site/figure-credits.py`` reads that
   metadata from the page's PNG, requires the caption's status and dataset to
   equal it, the painted line to be the one the card gives, and adds the
@@ -25,13 +26,17 @@ status words of the legend entries by a role on each drawn artist, and
 A figure that declares nothing is drawn and encoded exactly as before.
 
 The visualization credit is the owner's choice of 2026-11-14 on Issue #524,
-"with subtle branding": every declared figure shows the small line
+"with subtle branding", for the three figures of the pilot (AST8, MAT6, the
+RLC lab), which are the only declared figures: each shows the small line
 "Visualization: Physics by Construction" under the figure, outside the plot
 area, so that a downloaded or shared image still shows where the
-visualization comes from; where the card's terms require a visible dataset
-credit the two form one line ("Visualization: Physics by Construction ·
-Data: ..."). No box, no logo; the type size and grey of the figure credits.
-No wording may claim ownership of external data (``ownership_problems``).
+visualization comes from. It is not a per-figure choice: it goes with the
+declaration, and a figure that declares nothing shows no line. Any further
+rollout of declarations, and so of the line, goes through F173. Where the
+card shows a dataset credit (``visible`` ``required`` or ``chosen``) the two
+form one line ("Visualization: Physics by Construction · Data: ..."). No
+box, no logo; the type size and grey of the figure credits. No wording may
+claim ownership of external data (``ownership_problems``).
 
 Run as a program it writes the pilot's examples into a directory::
 
@@ -61,12 +66,19 @@ if TYPE_CHECKING:
     from matplotlib.figure import Figure
 
 SCHEMA = "pbc-figure-provenance/1"
-# The owner's choice on Issue #524 (2026-11-14): with subtle branding.
+# The owner's choice on Issue #524 (2026-11-14): with subtle branding. It
+# applies to the declared figures only, which in the pilot are its three
+# (AST8, MAT6, the RLC lab); an undeclared figure is encoded without it. A
+# further rollout goes through F173; this is a constant, not a setting.
 VISUALIZATION_CREDIT = True
 VISUALIZATION_PREFIX = "Visualization: Physics by Construction"
 CREDIT_PREFIX = "Data: "
 SHORT_CREDIT_LIMIT = 100
-VISIBILITY = ("required", "not-required")
+# required: the card's terms ask for the credit on the figure; chosen: the
+# terms do not, and the project shows it for clear attribution (the owner's
+# review of 2026-11-14 on Issue #524, for TESS); not-required: not painted.
+VISIBILITY = ("required", "chosen", "not-required")
+PAINTED = ("required", "chosen")
 CREDIT_GID = "pbc-portable-credit"
 # A role of a drawn artist besides the figure statuses: a residual combines
 # the measurement and a model.
@@ -157,8 +169,10 @@ def credit_problems(card: dict) -> list[str]:
     """The per-card rights check of the figure credit, ``rights.figure_credit``.
 
     The short credit is one line that starts with "Data: ", within the
-    limit, and claims no ownership; ``visible`` says whether the card's terms
-    require it painted on a portable figure, and ``source`` why. A CC BY
+    limit, and claims no ownership; ``visible`` says whether it is painted
+    on a portable figure because the card's terms require it (``required``),
+    by the project's choice for clear attribution (``chosen``), or not at
+    all (``not-required``), and ``source`` why. A CC BY
     licence requires the credit visible, and names the licence in it; the
     card must permit the publication of figures and modification with
     attribution.
@@ -234,12 +248,11 @@ def visible_credit(
 
     With the visualization credit (the default, the owner's choice), the
     line "Visualization: Physics by Construction", followed by " · " and
-    the card's short credit where its terms require that credit visible.
-    Without it, the card's short credit where its terms require it, or
-    nothing.
+    the card's short credit where the card shows it (``visible``
+    ``required`` or ``chosen``). Without it, that short credit, or nothing.
     """
     credit = card["rights"]["figure_credit"]
-    data = credit["short"] if credit["visible"] == "required" else None
+    data = credit["short"] if credit["visible"] in PAINTED else None
     if visualization:
         return (
             VISUALIZATION_PREFIX if data is None else f"{VISUALIZATION_PREFIX} · {data}"

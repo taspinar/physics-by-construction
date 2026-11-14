@@ -117,11 +117,14 @@ def test_the_declared_png_carries_the_record_of_the_declaration_and_the_card():
     assert "processed measurement with simulated models" in found["Description"]
     assert fp.check_png(png, MIXED, card, identity) == []
     # Deterministic: no date, no software, no author or copyright field.
-    assert found["pbc:visible-credit"] == fp.VISUALIZATION_PREFIX
+    assert (
+        found["pbc:visible-credit"]
+        == "Visualization: Physics by Construction · Data: NASA TESS / MAST"
+    )
     assert png == encode(
         _measured_and_model,
         metadata=fp.metadata(MIXED, card, identity),
-        credit=fp.VISUALIZATION_PREFIX,
+        credit=found["pbc:visible-credit"],
     )
     assert not set(found) & set(fp.FORBIDDEN_KEYS)
     assert b"tIME" not in _chunk_types(png)
@@ -202,18 +205,24 @@ def test_a_card_that_requires_a_visible_credit_gets_one_line_under_the_axes():
         fp.visible_credit(card, visualization=False)
         == (card["rights"]["figure_credit"]["short"])
     )
-    assert fp.visible_credit(fp.card_of(TESS), visualization=False) is None
+    assert fp.visible_credit(fp.card_of(TESS), visualization=False) == (
+        "Data: NASA TESS / MAST"
+    )
+    hidden = _with_credit(TESS, visible="not-required")
+    assert fp.visible_credit(hidden, visualization=False) is None
+    assert fp.visible_credit(hidden) == fp.VISUALIZATION_PREFIX
 
 
 def test_the_visualization_credit_names_the_project_only_as_the_visualization():
     # The owner's choice on Issue #524 (2026-11-14): with subtle branding.
     assert fp.VISUALIZATION_CREDIT is True
-    # A card whose terms ask for no visible credit (TESS, public domain):
-    # the branding alone.
+    # A card whose terms ask for no visible credit, which the project shows
+    # by choice (TESS, public domain; the owner's review of 2026-11-14):
+    # the branding and the data source in one line.
     card = fp.card_of(TESS)
-    assert card["rights"]["figure_credit"]["visible"] == "not-required"
+    assert card["rights"]["figure_credit"]["visible"] == "chosen"
     line = fp.visible_credit(card)
-    assert line == "Visualization: Physics by Construction"
+    assert line == "Visualization: Physics by Construction · Data: NASA TESS / MAST"
     assert fp.ownership_problems(line) == []
     assert fp.metadata(MIXED, card, "m:f")["pbc:visible-credit"] == line
     # Cards whose terms ask for one: one line, the branding and the data.
@@ -369,7 +378,10 @@ def test_the_caption_gets_the_combined_statuses_the_short_credit_and_the_details
     assert "Includes data collected with the TESS mission" in end
     assert f'href="https://doi.org/{card["source"]["doi"]}"' in end
     assert "<code>m:fig-x</code>" in end
-    assert "<dt>On the image</dt><dd>Visualization: Physics by Construction</dd>" in end
+    assert (
+        "<dt>On the image</dt><dd>Visualization: Physics by Construction"
+        " · Data: NASA TESS / MAST</dd>"
+    ) in end
     after, _ = fp.caption_html(fp.metadata(ALONE, fp.card_of(NIST), "m:f"), card)
     assert after == ""
 
@@ -389,6 +401,6 @@ def test_the_examples_are_the_page_figure_and_the_one_without_the_visualization_
     ]
     assert written[0].read_bytes() == experiment.png("fig-declared")
     branded = fp.read_metadata(written[0].read_bytes())
-    assert branded["pbc:visible-credit"] == fp.VISUALIZATION_PREFIX
+    assert branded["pbc:visible-credit"] == fp.visible_credit(fp.card_of(TESS))
     plain = fp.read_metadata(written[1].read_bytes())
-    assert plain["pbc:visible-credit"] == ""
+    assert plain["pbc:visible-credit"] == "Data: NASA TESS / MAST"

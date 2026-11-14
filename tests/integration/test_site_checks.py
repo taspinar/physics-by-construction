@@ -1552,9 +1552,11 @@ def test_a_declared_figure_whose_caption_misses_a_part_is_reported(
     if part == "combines":
         after = ""
     if part == "painted":
-        end = end.replace("<dt>On the image</dt>", "").replace(
-            f"<dd>{figure_provenance.VISUALIZATION_PREFIX}</dd>", ""
-        )
+        painted = figure_provenance.read_metadata(_declared_png())["pbc:visible-credit"]
+        assert painted.startswith(figure_provenance.VISUALIZATION_PREFIX)
+        dd = f"<dd>{painted}</dd>"
+        assert dd in end
+        end = end.replace("<dt>On the image</dt>", "").replace(dd, "")
     site = make_site(
         body=declared_figure(
             end, after, "calibrated" if part == "status" else "processed"
