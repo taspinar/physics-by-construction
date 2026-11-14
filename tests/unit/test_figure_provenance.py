@@ -5,6 +5,8 @@ figure that declares nothing keeps its bytes."""
 
 import copy
 import struct
+import subprocess
+import sys
 import zlib
 from io import BytesIO
 
@@ -128,6 +130,24 @@ def test_the_declared_png_carries_the_record_of_the_declaration_and_the_card():
     )
     assert not set(found) & set(fp.FORBIDDEN_KEYS)
     assert b"tIME" not in _chunk_types(png)
+
+
+def test_the_program_writes_the_pages_declared_png_byte_for_byte(tmp_path):
+    # Run as a program (python -m), Python names the experiment's module
+    # '__main__'; the record names it as it is imported, so the learner's
+    # file and the page's are the same bytes (the e2e reproduction check).
+    module = "pbc.electromagnetism.experiments.rlc_circuit_measurements"
+    subprocess.run(
+        [sys.executable, "-m", module, str(tmp_path)],
+        check=True,
+        capture_output=True,
+    )
+    from pbc.electromagnetism.experiments import rlc_circuit_measurements
+
+    page = rlc_circuit_measurements.run().png("fig-impedance-fit")
+    written = (tmp_path / "fig-impedance-fit.png").read_bytes()
+    assert fp.read_metadata(written)["pbc:figure"] == f"{module}:fig-impedance-fit"
+    assert written == page
 
 
 def test_a_record_that_differs_from_the_card_or_claims_ownership_is_reported():

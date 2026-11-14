@@ -234,9 +234,16 @@ class Experiment:
         self.figures[label] = draw
 
     def identity(self, label: str) -> str:
-        """The figure ``label`` as ``<module of its draw function>:<label>``."""
-        draw = self.figures[label]
-        return f"{getattr(draw, 'func', draw).__module__}:{label}"
+        """The figure ``label`` as ``<module of its draw function>:<label>``.
+
+        The module is named as it is imported, also when the experiment
+        runs as a program (``python -m <module>``), where Python names it
+        ``__main__``: the page and the learner's run write the same record.
+        """
+        draw = getattr(self.figures[label], "func", self.figures[label])
+        spec = getattr(draw, "__globals__", {}).get("__spec__")
+        module = spec.name if spec is not None else draw.__module__
+        return f"{module}:{label}"
 
     def widget(self, name: str, data: object = None) -> object:
         """With ``data``, record the JSON data of the widget ``name``; return

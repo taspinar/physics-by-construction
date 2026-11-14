@@ -263,6 +263,19 @@ module that reads no data). The owner approved on Issue #524 ("Ja dat
 mag", 2026-11-14) adding `figure_provenance` to `_DATA_TOOLS` in the
 protected `src/pbc/authoring/digest.py`; the change is that one line.
 
+## Reproduction fix (2026-11-14)
+
+The full run of 03fc080 failed the e2e reproduction check for the three
+declared figures: run as `python -m <module> results`, Python names the
+experiment's module `__main__`, so the record's `pbc:figure` read
+`__main__:<label>` and the learner's PNG differed from the page's.
+`Experiment.identity` now names the module by its import name (the
+`__spec__` of the draw function's module), and
+`tests/unit/test_figure_provenance.py::test_the_program_writes_the_pages_declared_png_byte_for_byte`
+runs the RLC experiment as a program and compares its PNG with the page's
+byte for byte. It fails without the fix. Running AST8 and MAT6 the same way gives the page's
+bytes.
+
 ## Open questions
 
 - The decision on the rollout (F173), part of AC 5.
