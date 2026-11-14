@@ -496,10 +496,13 @@ _LABELLED = (
 )
 
 
+_SOURCE_TEXT = '<div class="excerpt-source"><p>Source: the file.</p></div>'
+
+
 def _listing(source: str, text: str) -> str:
     return (
-        f'<div class="sourceCode" data-source="{source}">'
-        f"<pre><code>{html.escape(text)}</code></pre></div>"
+        f'<div class="excerpt"><div class="sourceCode" data-source="{source}">'
+        f"<pre><code>{html.escape(text)}</code></pre></div>{_SOURCE_TEXT}</div>"
     )
 
 
@@ -625,7 +628,7 @@ def _annotated(source: str, text: str, anchors: list[str], **attributes: str) ->
     return (
         '<div class="excerpt">'
         f'<pre data-source="{source}"{declared}><code>{lines}</code></pre>'
-        f'<ol class="excerpt-notes">{notes}</ol></div>'
+        f'<ol class="excerpt-notes">{notes}</ol>{_SOURCE_TEXT}</div>'
     )
 
 
@@ -656,6 +659,156 @@ def test_annotated_excerpt_of_a_region_and_of_lines_passes(
     body += _annotated("pbc.example:", "dt = 0.1", [], region="start")
 
     assert _violations(make_site, browser, repository, body) == []
+
+
+# The lines of ``update`` in _REGION_MODULE, which starts on line 6 of the
+# file: 1 the def, 2 to 5 the region "move", 6 the return.
+_UPDATE_FIRST_LINE = 6
+
+
+def _part(lines: list[str], first: int) -> str:
+    spans = "\n".join(
+        f'<span class="line" data-line="{first + i}">{html.escape(line)}</span>'
+        for i, line in enumerate(lines)
+    )
+    return f'<div class="sourceCode"><pre><code>{spans}</code></pre></div>'
+
+
+def _selection(omission: str, numbers: tuple[int, int] = (6, 11)) -> str:
+    """The selection lines 1 and 6 of ``update``, as the build writes it."""
+    return (
+        '<div class="excerpt"><div class="excerpt-selection"'
+        ' data-source="pbc.example:update" data-lines="1-1,6-6">'
+        f"{_part(['def update(x, v, dt):'], numbers[0])}"
+        f"{omission}"
+        f"{_part(['    return x, v'], numbers[1])}"
+        f"</div>{_SOURCE_TEXT}</div>"
+    )
+
+
+_OMISSION = (
+    '<div class="excerpt-omission" data-omitted="2-5" data-what="lines">'
+    "<p>Lines 7 to 10 are not shown.</p></div>"
+)
+
+
+def test_selection_with_accurate_markers_and_line_numbers_passes(
+    make_site: Site, browser: Browser, repository: Path
+):
+    assert _violations(make_site, browser, repository, _selection(_OMISSION)) == []
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        _selection(_OMISSION.replace("2-5", "2-4")),
+        _selection(_OMISSION.replace("Lines 7 to 10", "Lines 7 to 9")),
+        _selection(_OMISSION.replace('"lines"', '"docstring"')),
+        _selection(""),
+        _selection(_OMISSION, numbers=(6, 12)),
+        _selection(_OMISSION).replace("1-1,6-6", "1-1,2-6"),
+    ],
+    ids=[
+        "marker-names-other-lines",
+        "marker-text-names-other-lines",
+        "lines-called-the-docstring",
+        "no-marker",
+        "wrong-line-number",
+        "touching-ranges",
+    ],
+)
+def test_selection_whose_markers_or_numbers_are_not_accurate_is_reported(
+    make_site: Site, browser: Browser, repository: Path, body: str
+):
+    assert rules(_violations(make_site, browser, repository, body)) == {"excerpt"}
+
+
+_SIGNATURE = "def update(\n    x,\n    v,\n    dt,\n): ..."
+
+
+def test_generated_signature_read_from_the_function_passes(
+    make_site: Site, browser: Browser, repository: Path
+):
+    body = _signature_body(_SIGNATURE)
+
+    assert _violations(make_site, browser, repository, body) == []
+
+
+@pytest.mark.parametrize(
+    "text, replaces",
+    [
+        (_SIGNATURE.replace("dt,", "dt=0.1,"), "1-1"),
+        (_SIGNATURE.replace("    v,\n", ""), "1-1"),
+        (_SIGNATURE.replace("dt,", "dt,  # s"), "1-1"),
+        (_SIGNATURE, "1-2"),
+    ],
+    ids=["typed-default", "missing-parameter", "invented-unit", "not-the-header"],
+)
+def test_generated_signature_that_is_not_the_functions_is_reported(
+    make_site: Site, browser: Browser, repository: Path, text: str, replaces: str
+):
+    body = _signature_body(text, replaces)
+
+    assert rules(_violations(make_site, browser, repository, body)) == {"excerpt"}
+
+
+def _signature_body(text: str, replaces: str = "1-1") -> str:
+    """A generated signature of ``update``, then its return line: lines 2 to
+    5 between them are marked as left out."""
+    return (
+        '<div class="excerpt">'
+        f'<div class="sourceCode" data-signature="pbc.example:update"'
+        f' data-replaces="{replaces}"><pre><code>{html.escape(text)}</code></pre>'
+        "</div>"
+        '<div class="excerpt-selection" data-source="pbc.example:update"'
+        ' data-lines="6-6">'
+        f"{_OMISSION}{_part(['    return x, v'], _UPDATE_FIRST_LINE + 5)}"
+        f"</div>{_SOURCE_TEXT}</div>"
+    )
+
+
+def test_excerpt_without_a_source_link_is_reported(
+    make_site: Site, browser: Browser, repository: Path
+):
+    body = _selection(_OMISSION).replace(_SOURCE_TEXT, "")
+
+    assert rules(_violations(make_site, browser, repository, body)) == {"excerpt"}
+
+
+_COMMIT = "a" * 40
+
+
+def _source_link(lines: str, path: str = "src/pbc/example.py", commit=_COMMIT) -> str:
+    first, last = lines.split("-")
+    return (
+        f'<p><a class="source-link" href="https://example.org/r/blob/{commit}/'
+        f'{path}#L{first}-L{last}" data-source-name="pbc.example:update"'
+        f' data-path="{path}" data-lines="{lines}" data-commit="{commit}">'
+        "Source</a></p>"
+    )
+
+
+def test_source_link_to_the_lines_of_its_object_passes(
+    make_site: Site, browser: Browser, repository: Path
+):
+    assert _violations(make_site, browser, repository, _source_link("6-11")) == []
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        _source_link("6-10"),
+        _source_link("6-11", path="src/pbc/other.py"),
+        _source_link("6-11").replace("#L6-L11", "#L1-L11"),
+        _source_link("6-11", commit="main"),
+        _source_link("6-11") + _source_link("6-11", commit="b" * 40),
+    ],
+    ids=["other-lines", "other-file", "address-differs", "no-commit", "two-commits"],
+)
+def test_source_link_that_does_not_open_its_lines_is_reported(
+    make_site: Site, browser: Browser, repository: Path, body: str
+):
+    assert rules(_violations(make_site, browser, repository, body)) == {"excerpt"}
 
 
 @pytest.mark.parametrize(

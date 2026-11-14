@@ -135,7 +135,12 @@ def test_excerpt_renders_a_lean_listing_that_names_its_source(project: Path):
 
     assert f'```{{.lean source="{MODULE}:first"}}' in text
     assert "theorem first : (1 : Nat) = 1 := rfl" in text
-    assert "lines 4 to 4" in text
+    # The compact Source link names the file and the line in its metadata.
+    source = text.split("::: {.excerpt-source}\n", 1)[1]
+    assert source.startswith("[Source [of `first`, line 4]{.visually-hidden}](")
+    assert 'path="lean/PhysicsByConstruction/Mechanics/Sample.lean"' in source
+    assert 'lines="4-4"' in source
+    assert "read from the repository" not in text
 
 
 def test_excerpt_of_a_file_changed_after_compiling_is_refused(project: Path):

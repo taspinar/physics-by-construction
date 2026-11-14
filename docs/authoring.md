@@ -424,8 +424,11 @@ print(f"position after {trajectory.t[-1]:.1f} s: {trajectory.x[-1]:.3f} m")
 
 **An excerpt by reference.** Code that is reused, tested, or imported by
 learners lives in `src/pbc`. Show it with `excerpt`, which reads the source
-file when the page is built and adds the file, the lines, and a link to them
-at the built commit:
+file when the page is built and ends the listing with a compact **Source**
+link: it opens the whole object at the built commit, and its address, its
+`title`, and its data attributes (`data-path`, `data-lines`, `data-commit`)
+hold the file, the lines, and the commit, so no sentence about them follows
+every block:
 
 ````markdown
 ```{python}
@@ -438,7 +441,36 @@ excerpt(kinematics.euler_step)
 ````
 
 `excerpt` takes a function or class defined at the top level of a module of
-`pbc`. A check compares every excerpt on the built site with the source file.
+`pbc`. A check compares every excerpt on the built site with the source file,
+and checks that every Source link opens the lines of its object at one
+commit.
+
+Decide for each block why the learner reads it at that point (the
+`pbc-physics-teaching` skill, "Code the learner reads"), then choose its form
+(ADR 023):
+
+| Form | Call | What the page shows |
+|---|---|---|
+| Exact full source | `excerpt(f)` | The whole object, with a copy button |
+| Exact selection | `excerpt(f, lines=(a, b))`, `lines=[(a, b), (c, d)]`, or `region="name"` | The lines, each with its line number in the file; between two ranges a marker "Lines m to n are not shown."; the label "Selected lines of `f`, not the whole function"; no copy button, since a fragment is not a runnable whole |
+| Without the docstring | `excerpt(f, docstring=False)`, alone or with `lines` | The marker "The docstring, lines m to n, is not shown." where it was; the source keeps it, and the Source link opens it |
+| Generated signature | `excerpt(f, signature=True)`, alone or with `lines` | Instead of the header as written, `def f(...): ...` generated when the page is built: the parameters and their defaults as the source writes them, no annotations, and the units of the interface table as comments, labelled "Generated signature of `f`, not the source text" |
+| Source link only | `source_link(f)`, or `source_link(f, figure=True)` for the function that draws a figure on the page | The link alone, "Source" or "Figure source" |
+
+- Leave out a docstring only where the prose next to the listing says what
+  it says; keep it where it gives an assumption, a unit, or a caveat the
+  text does not.
+- A selection must not leave out a guard or an assumption the displayed
+  conclusion depends on; the build cannot see this, so the review asks it.
+- Never change the source to shorten a listing: docstrings, annotations,
+  defaults, and guards stay, and `interface=True` keeps reading them.
+- A generated signature is the only signature that is not the source text;
+  a signature typed by hand is code the build did not run and needs the
+  "not verified" marker.
+- Simplified teaching code (ADR 023 decision 5) is not available yet: no
+  pilot lesson has needed it. Use an exact selection, the prose, and the
+  Source link, or an executed cell for code that belongs to this lesson
+  alone.
 
 **An annotated excerpt.** When a lesson shows several excerpts under one
 sentence, or the point is one line, say which lines matter:
@@ -456,15 +488,18 @@ excerpt(
 ````
 
 - `lines=(first, last)` shows only those lines of the object, counted from 1
-  at its first line. `region="name"` shows the lines between
-  `# region: name` and `# endregion: name` in the source. Give one of them,
-  not both. A part that does not exist fails the build.
+  at its first line; `lines=[(a, b), (c, d)]` shows several ranges, in order
+  and with at least one line between them. `region="name"` shows the lines
+  between `# region: name` and `# endregion: name` in the source. Give
+  `lines` or `region`, not both. A part that does not exist fails the build.
 - `notes` maps a line of what is shown, written without its indentation, to
-  a note. The line is marked (bold, a rule at its left, and "note 1" after
-  it, so it does not depend on colour) and the note is listed under the
-  listing as text of the page, with its line number. A note whose line is not
-  shown exactly once fails the build, and the site check fails when the
-  source changed after the page was built.
+  a note. The listing is highlighted like any other and its lines show their
+  numbers in the file; the noted line is marked (bold, a rule at its left,
+  and "note 1" after it, so it does not depend on colour) and the note is
+  listed under the listing as text of the page, with its line number. The
+  numbers and the marks are not part of the text a reader copies. A note
+  whose line is not shown exactly once fails the build, and the site check
+  fails when the source changed after the page was built.
 - A note holds no digits. Write a number the build computed as `{name}`, with
   `values={"name": value}`, so a note cannot state a number that nothing
   computed.
@@ -480,7 +515,11 @@ Any other code block is not run by the build: a plain <code>```python</code>
 block, a block in another language, shell commands, pasted output, a cell
 with `eval: false`. Each needs the "not verified" marker below, or the check
 fails. `include` and `embed` shortcodes are not allowed: a lesson is one
-page.
+page. A lesson never writes the markup of the forms above by hand (a class
+such as `excerpt`, `excerpt-selection`, or `source-link`, or a `source=`
+attribute): the lesson source check reports it as `forged-excerpt`, also
+inside a "not verified" block, because it would present unverified code as
+verified.
 
 ## Lean lessons
 
@@ -2054,9 +2093,9 @@ check. It lives outside `site/` and `src/`.
 
 | Check | Reports |
 |---|---|
-| `lesson-checks` (`tests/lessons`) | Front matter outside the schema; a Lean module that the page shows and `lean-modules` does not list, or that it lists without showing or without a file; a missing or empty required section; a lesson without the `lesson_header()` cell before its first heading; an exercise without a solution; a last section without `reproduce_this()` or with another heading than the one of the kind of the lesson; a lesson without `lesson.experiment`, or with an experiment that is not at its place, not imported by the page, or without its unit test; an outside prerequisite that names no glossary entry, an entry that no lesson assumes or whose definition is not one to three sentences, a missing or unknown course, a lesson without a method, a number of outcomes outside two to five, a related lesson that does not exist or is a prerequisite, a duplicate id, a gap or duplicate in the orders of a strand, a slot that does not exist, is claimed twice, or is homed in another course, a prerequisite that does not exist, comes later in its own strand, or forms a cycle, a curriculum file outside its schema; code that is neither an executed `{python}` cell nor marked "not verified"; a figure cell without `fig-alt`; an image file in a page; for a format 2 lesson, a missing or empty `limits` section, a number of self-checks other than one (or one without a solution), choices that break the rules of "Self-checks and progress", a claim of an unknown type, a claim without `evidence` or whose evidence names no executed cell, register or card key, Lean theorem, or recorded run, a figure without a valid `fig-status`, a `go-deeper` key that the register lacks, a URL typed in the source, and a hand-typed number in prose or alt text; a register entry with a missing or malformed field, a duplicate key, or no lesson using it that is not reserved; a generated artifact or a stray file under `site/` or `src/`. |
+| `lesson-checks` (`tests/lessons`) | Front matter outside the schema; a Lean module that the page shows and `lean-modules` does not list, or that it lists without showing or without a file; a missing or empty required section; a lesson without the `lesson_header()` cell before its first heading; an exercise without a solution; a last section without `reproduce_this()` or with another heading than the one of the kind of the lesson; a lesson without `lesson.experiment`, or with an experiment that is not at its place, not imported by the page, or without its unit test; an outside prerequisite that names no glossary entry, an entry that no lesson assumes or whose definition is not one to three sentences, a missing or unknown course, a lesson without a method, a number of outcomes outside two to five, a related lesson that does not exist or is a prerequisite, a duplicate id, a gap or duplicate in the orders of a strand, a slot that does not exist, is claimed twice, or is homed in another course, a prerequisite that does not exist, comes later in its own strand, or forms a cycle, a curriculum file outside its schema; code that is neither an executed `{python}` cell nor marked "not verified"; the markup of a verified display form of code written by hand (`forged-excerpt`); a figure cell without `fig-alt`; an image file in a page; for a format 2 lesson, a missing or empty `limits` section, a number of self-checks other than one (or one without a solution), choices that break the rules of "Self-checks and progress", a claim of an unknown type, a claim without `evidence` or whose evidence names no executed cell, register or card key, Lean theorem, or recorded run, a figure without a valid `fig-status`, a `go-deeper` key that the register lacks, a URL typed in the source, and a hand-typed number in prose or alt text; a register entry with a missing or malformed field, a duplicate key, or no lesson using it that is not reserved; a generated artifact or a stray file under `site/` or `src/`. |
 | `site-build` | A cell that raises, including the header cell of a lesson whose path is inconsistent; an equation that cannot become MathML. |
-| `site-checks` (`tests/e2e`) | A learner-state script with a request, another origin, or storage other than local storage; a request, cookie, or write that carries or keeps learner state outside local storage; a self-check that is not usable with scripts disabled; stored data of another version that is not discarded; progress controls without keyboard operation or that fail the accessibility scan (`tests/e2e/test_learner_state.py`); A lesson without a built page or a required section; a lesson the home page does not lead to without JavaScript; a format 2 page whose cell printed a block of numbers; a header whose course, methods, outcomes, prerequisites, "Before you begin" list, related lessons, or previous and next links differ from the front matter; a glossary page that lacks an entry or does not link the lessons that assume it; an evidence map that lacks a claim, lists it more than once, or links an element the lesson page does not have once; a path page that does not list every lesson under its course and each of its methods; a lesson address that existed before the courses and no longer resolves; an excerpt that differs from its source, a Python object or a region of a Lean file; a cell or inline expression that was not executed; "not verified" material without a visible label; a last section whose heading or commands are not those of the kind of the lesson, or that names a render; an experiment that fails, takes 60 seconds or longer (its lesson limit; a warning from 30), or writes a figure file or a number that is not the published page's; the internal render of a page in a clone that does not regenerate the published page; a widget script that makes a request, names another origin, or uses browser storage, or a widget that writes to cookies or storage when operated; a widget that does not respond to its controls, cannot be operated by keyboard, shows values that differ from `pbc`, or moves the page when it loads; a lesson whose last line lacks the three "Suggest an improvement" links with its address, a "Before you begin" definition that does not open without scripts, or a Contribute page without the three forms (`tests/e2e/test_glossary_and_improvement.py`); and the checks every page gets (images, links, JavaScript, widths, accessibility). |
+| `site-checks` (`tests/e2e`) | A learner-state script with a request, another origin, or storage other than local storage; a request, cookie, or write that carries or keeps learner state outside local storage; a self-check that is not usable with scripts disabled; stored data of another version that is not discarded; progress controls without keyboard operation or that fail the accessibility scan (`tests/e2e/test_learner_state.py`); A lesson without a built page or a required section; a lesson the home page does not lead to without JavaScript; a format 2 page whose cell printed a block of numbers; a header whose course, methods, outcomes, prerequisites, "Before you begin" list, related lessons, or previous and next links differ from the front matter; a glossary page that lacks an entry or does not link the lessons that assume it; an evidence map that lacks a claim, lists it more than once, or links an element the lesson page does not have once; a path page that does not list every lesson under its course and each of its methods; a lesson address that existed before the courses and no longer resolves; an excerpt that differs from its source, a Python object or a region of a Lean file, a selection whose omission markers or line numbers are not those of the file, a generated signature that is not the function's, or an excerpt without a Source link to its object's lines at one commit; a cell or inline expression that was not executed; "not verified" material without a visible label; a last section whose heading or commands are not those of the kind of the lesson, or that names a render; an experiment that fails, takes 60 seconds or longer (its lesson limit; a warning from 30), or writes a figure file or a number that is not the published page's; the internal render of a page in a clone that does not regenerate the published page; a widget script that makes a request, names another origin, or uses browser storage, or a widget that writes to cookies or storage when operated; a widget that does not respond to its controls, cannot be operated by keyboard, shows values that differ from `pbc`, or moves the page when it loads; a lesson whose last line lacks the three "Suggest an improvement" links with its address, a "Before you begin" definition that does not open without scripts, or a Contribute page without the three forms (`tests/e2e/test_glossary_and_improvement.py`); and the checks every page gets (images, links, JavaScript, widths, accessibility). |
 | `determinism` | A page that differs between two builds. |
 
 Fix the lesson when a check fails. Do not weaken a check to make a lesson

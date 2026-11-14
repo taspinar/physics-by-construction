@@ -1,4 +1,6 @@
+import ast
 import json
+import re
 import subprocess
 from dataclasses import replace
 from pathlib import Path
@@ -6,7 +8,17 @@ from pathlib import Path
 import pytest
 
 from pbc.authoring import BuildCommit, Excerpt, build_commit, excerpt, reproduce_this
-from pbc.authoring.excerpt import select
+from pbc.authoring.context import _quarto_code
+from pbc.authoring.excerpt import (
+    Part,
+    _check_signature,
+    docstring_lines,
+    generated_signature,
+    header_lines,
+    number_lines,
+    select,
+    source_link,
+)
 from pbc.authoring.repository import REPOSITORY_ROOT, repository_url
 from pbc.authoring.reproduce import (
     LOCAL_PREVIEW,
@@ -14,6 +26,7 @@ from pbc.authoring.reproduce import (
     PAGE_VERSION,
     SKIP_PAGE_VERSION,
 )
+from pbc.materials import stress_strain
 from pbc.mechanics import dynamics, kinematics
 from pbc.mechanics.kinematics import State, euler_step
 
@@ -89,10 +102,9 @@ def test_excerpt_rejects_what_is_not_a_function_or_class(value: object):
 def _excerpt_of(source: str, commit: BuildCommit) -> Excerpt:
     return Excerpt(
         name="pbc.example:function",
-        source=source,
         path="src/pbc/example.py",
-        first_line=3,
-        last_line=5,
+        parts=(Part((1, source.count("\n")), 3, source),),
+        span=(3, 5),
         commit=commit,
         repository="https://example.org/repository",
     )
@@ -121,6 +133,25 @@ def test_excerpt_links_to_its_lines_at_the_built_commit():
         "https://example.org/repository/blob/abc123/src/pbc/example.py#L3-L5"
         in markdown
     )
+
+
+def test_excerpt_ends_with_a_compact_source_link_that_holds_its_metadata():
+    markdown = _excerpt_of("x = 1\n", BuildCommit("abc123", False)).markdown()
+
+    source = markdown.split("::: {.excerpt-source}\n", 1)[1]
+    # The link reads "Source"; a screen reader also hears the object and lines.
+    assert source.startswith(
+        "[Source [of `function`, lines 3 to 5]{.visually-hidden}]("
+    )
+    for attribute in (
+        'path="src/pbc/example.py"',
+        'lines="3-5"',
+        'commit="abc123"',
+        'source-name="pbc.example:function"',
+    ):
+        assert attribute in source
+    # No sentence after every block (U1b).
+    assert "read from the repository" not in markdown
 
 
 def test_excerpt_without_a_known_commit_has_no_link():
@@ -153,7 +184,7 @@ def test_region_shows_the_text_between_its_markers():
         "    return a\n",
     ]
 
-    assert select(object_lines, None, "update") == (2, ["    a = 1\n"])
+    assert select(object_lines, None, "update") == [(3, 3)]
 
 
 @pytest.mark.parametrize(
@@ -197,9 +228,10 @@ def test_a_note_marks_its_line_and_is_plain_text_in_the_page():
     markdown = shown.markdown()
     assert [note.line for note in shown.notes] == [shown.first_line + 2]
     marked = shown.first_line + 2
-    assert f'class="line marked" data-line="{marked}"' in markdown
+    assert f'marked="{marked}:1"' in markdown
     assert f"Line {marked}" in markdown
-    assert "The old velocity moves the particle." in markdown.split("</pre>")[1]
+    listing_end = markdown.index(shown.source.rstrip("\n")) + len(shown.source)
+    assert markdown.index("The old velocity moves the particle.") > listing_end
 
 
 def test_a_note_on_a_line_that_is_not_shown_fails_the_build():
@@ -252,6 +284,225 @@ def test_interface_lists_inputs_output_and_the_units_of_the_docstring():
     assert rows["state"].type == "State"
     assert rows["return"].kind == "output"
     assert "| `dt` | input |" in shown.markdown()
+
+
+# --- exact selections, the docstring, the generated signature (ADR 023) -------
+
+
+def _file_lines(shown: Excerpt) -> list[str]:
+    return (REPOSITORY_ROOT / shown.path).read_text().splitlines(keepends=True)
+
+
+def test_ranges_show_exact_parts_with_their_file_lines_and_a_marker_between():
+    shown = excerpt(stress_strain.offset_crossing, lines=[(13, 15), (18, 21)])
+
+    file = _file_lines(shown)
+    assert [part.lines for part in shown.parts] == [(13, 15), (18, 21)]
+    for part in shown.parts:
+        assert part.source == "".join(file[part.first_line - 1 : part.last_line])
+    assert shown.parts[0].source.lstrip().startswith("e = np.asarray(strain")
+    assert shown.parts[1].source.lstrip().startswith("raise ValueError(")
+    (omission,) = shown.omissions()
+    assert (omission.first_line, omission.last_line) == (
+        shown.parts[0].last_line + 1,
+        shown.parts[1].first_line - 1,
+    )
+    markdown = shown.markdown()
+    assert 'lines="13-15,18-21"' in markdown
+    assert (
+        f"Lines {omission.first_line} to {omission.last_line} are not shown."
+        in markdown
+    )
+    for part in shown.parts:
+        assert f'first-line="{part.first_line}"' in markdown
+
+
+@pytest.mark.parametrize(
+    "lines",
+    [[(5, 8), (8, 10)], [(5, 8), (9, 10)], [(9, 10), (5, 6)], [(1, 2), (4, 99)]],
+    ids=["overlapping", "touching", "out-of-order", "past-the-end"],
+)
+def test_ranges_that_could_hide_an_omission_fail_the_build(lines):
+    with pytest.raises(ValueError):
+        excerpt(stress_strain.offset_crossing, lines=lines)
+
+
+def test_a_selection_is_labelled_and_the_whole_object_is_not():
+    selected = excerpt(dynamics.euler_step, lines=(13, 17)).markdown()
+    whole = excerpt(dynamics.euler_step).markdown()
+
+    assert "Selected lines of `euler_step`, not the whole function" in selected
+    assert ".excerpt-part" in selected
+    assert "excerpt-label" not in whole
+    assert "excerpt-part" not in whole
+
+
+def test_the_source_link_of_a_selection_opens_the_whole_object():
+    shown = excerpt(dynamics.euler_step, lines=(13, 17))
+
+    file = _file_lines(shown)
+    first, last = shown.span
+    assert file[first - 1].startswith("def euler_step(")
+    assert "".join(file[first - 1 : last]) == excerpt(dynamics.euler_step).source
+    assert f'lines="{first}-{last}"' in shown.markdown()
+
+
+def test_docstring_is_left_out_of_the_display_only_and_marked():
+    shown = excerpt(stress_strain.offset_crossing, docstring=False)
+
+    file = _file_lines(shown)
+    whole = excerpt(stress_strain.offset_crossing)
+    docstring = docstring_lines(whole.source)
+    assert docstring is not None and shown.docstring == docstring
+    first, last = (whole.first_line + n - 1 for n in docstring)
+    assert file[first - 1].strip().startswith('"""')
+    assert file[last - 1].rstrip().endswith('"""')
+    assert '"""' not in shown.source
+    assert len(shown.source.splitlines()) + last - first + 1 == len(
+        whole.source.splitlines()
+    )
+    (omission,) = shown.omissions()
+    assert omission.docstring and (omission.first_line, omission.last_line) == (
+        first,
+        last,
+    )
+    assert f"The docstring, lines {first} to {last}, is not shown." in (
+        shown.markdown()
+    )
+
+
+def test_leaving_out_a_docstring_that_is_not_shown_fails_the_build():
+    with pytest.raises(ValueError, match="no docstring"):
+        excerpt(stress_strain.offset_crossing, lines=(13, 21), docstring=False)
+
+
+def test_generated_signature_is_what_the_build_reads_from_the_function():
+    import inspect
+
+    shown = excerpt(stress_strain.offset_crossing, signature=True, lines=(13, 21))
+
+    assert shown.signature == (
+        "def offset_crossing(\n"
+        "    strain,\n"
+        "    stress,\n"
+        "    modulus,\n"
+        "    offset,\n"
+        "    intercept=0.0,\n"
+        "): ...\n"
+    )
+    stub = ast.parse(shown.signature).body[0]
+    names = [a.arg for a in stub.args.args]
+    parameters = inspect.signature(stress_strain.offset_crossing).parameters
+    assert names == list(parameters)
+    assert ast.literal_eval(stub.args.defaults[0]) == parameters["intercept"].default
+    # It stands for the header as written, which the parts do not repeat.
+    assert shown.signature_lines == header_lines(
+        excerpt(stress_strain.offset_crossing).source
+    )
+    assert "def offset_crossing" not in shown.source
+    markdown = shown.markdown()
+    assert "Generated signature of `offset_crossing`, not the source text" in markdown
+    assert 'replaces="1-7"' in markdown
+    # The docstring between the header and line 13 is marked as left out.
+    leading = shown.leading_omission()
+    assert leading is not None and leading.docstring
+
+
+def test_generated_signature_keeps_the_units_of_the_interface_table():
+    shown = excerpt(dynamics.euler_step, signature=True, interface=True)
+
+    units = {row.name: row.unit for row in shown.interface}
+    assert "    dt,  # s\n" in (shown.signature or "")
+    assert units["dt"] == "s"
+
+
+def test_generated_signature_keeps_every_kind_of_parameter_and_default():
+    text = "def f(a, /, b=1e-3, *args, c, d=(1, 2), **rest) -> int:\n    return 1\n"
+
+    shown = generated_signature(text, {"b": "m"})
+
+    assert shown == (
+        "def f(\n    a,\n    /,\n    b=1e-3,  # m\n    *args,\n    c,\n"
+        "    d=(1, 2),\n    **rest,\n): ...\n"
+    )
+    ast.parse(shown)
+
+
+def test_a_signature_whose_default_differs_from_the_function_fails_the_build():
+    def f(a, b=2):
+        return a + b
+
+    with pytest.raises(ValueError, match="default"):
+        _check_signature(f, "def f(a, b=3):\n    return a + b\n", "f")
+    with pytest.raises(ValueError, match="parameters"):
+        _check_signature(f, "def f(a, c=2):\n    return a + c\n", "f")
+
+
+def test_a_class_has_no_generated_signature():
+    with pytest.raises(ValueError, match="function"):
+        excerpt(State, signature=True)
+
+
+def test_an_excerpt_round_trips_through_its_marker_payload():
+    shown = excerpt(
+        stress_strain.offset_crossing,
+        lines=[(13, 15), (18, 21)],
+        signature=True,
+        notes={"k = int(below[0])": "The first sample below the line."},
+    )
+
+    again = Excerpt.from_payload(shown.payload(), shown.commit, shown.repository)
+
+    assert again == shown
+
+
+def test_figure_source_is_a_link_alone():
+    shown = source_link(stress_strain.offset_crossing, figure=True)
+
+    markdown = shown.markdown()
+    assert markdown.startswith("::: {.excerpt-source .figure-source}\n")
+    assert "Figure source [of `offset_crossing`" in markdown
+    assert "```" not in markdown
+    file = _file_lines(shown)
+    assert file[shown.span[0] - 1].startswith("def offset_crossing(")
+
+
+# Pandoc's HTML of a highlighted block, as `quarto pandoc` writes it.
+_CONVERTED = (
+    '<div class="sourceCode" id="ctx-cb1" data-marked="11:1" data-first-line="10"'
+    ' tabindex="0"><pre class="sourceCode python excerpt-listing excerpt-part">'
+    '<code class="sourceCode python"><span id="ctx-cb1-1"><a href="#ctx-cb1-1"'
+    ' aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span>'
+    ' <span class="dv">1</span></span>\n<span id="ctx-cb1-2"><a href="#ctx-cb1-2"'
+    ' aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> x</span>'
+    "</code></pre></div>"
+)
+
+
+def test_lines_are_numbered_and_marked_after_the_highlighting():
+    numbered = number_lines(_CONVERTED)
+
+    assert '<span class="line" data-line="10">x <span class="op">=</span>' in (numbered)
+    assert (
+        '<span class="line marked" data-line="11" data-note="1">'
+        '<span class="cf">return</span>'
+    ) in numbered
+    # The tokens keep their highlighting, and the text stays the source.
+    assert re.sub(r"<[^>]+>", "", numbered) == "x = 1\nreturn x"
+
+
+def test_a_block_that_is_not_an_excerpt_listing_is_left_as_converted():
+    plain = _CONVERTED.replace(" excerpt-listing excerpt-part", "")
+
+    assert number_lines(plain) == plain
+
+
+def test_a_part_of_a_selection_gets_no_copy_button_and_a_whole_listing_does():
+    whole = _CONVERTED.replace(" excerpt-part", "")
+
+    assert "code-copy-button" not in _quarto_code(_CONVERTED)
+    assert "code-copy-button" in _quarto_code(whole)
+    assert 'data-line="10"' in _quarto_code(whole)
 
 
 # --- build commit -------------------------------------------------------------
