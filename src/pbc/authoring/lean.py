@@ -19,6 +19,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from pbc.authoring.context import current_page, marker
+from pbc.authoring.excerpt import source_link_markdown
 from pbc.authoring.repository import (
     REPOSITORY_ROOT,
     BuildCommit,
@@ -120,8 +121,9 @@ class LeanExcerpt:
     """The text of one anchored region of a Lean file, with where it was read.
 
     As the result of a code cell it leaves a marker; the page the reader gets
-    shows a highlighted listing followed by the file and lines it came from,
-    with the commit of the run (``pbc.authoring.context``).
+    shows a highlighted listing followed by a compact Source link to the
+    file and lines it came from, at the commit of the run
+    (``pbc.authoring.context``).
     """
 
     name: str  # "<module>:<anchor>"
@@ -166,20 +168,19 @@ class LeanExcerpt:
             (len(run) for run in re.findall(r"`+", self.source)), default=0
         )
         fence = "`" * max(3, longest_run + 1)
-        location = f"`{self.path}`, lines {self.first_line} to {self.last_line}"
-        if self.commit.sha is not None:
-            location = (
-                f"[{location}]({self.repository}/blob/{self.commit.sha}/{self.path}"
-                f"#L{self.first_line}-L{self.last_line})"
-            )
+        link = source_link_markdown(
+            self.name,
+            self.path,
+            (self.first_line, self.last_line),
+            self.commit,
+            self.repository,
+        )
         return (
             "::: {.excerpt .lean-excerpt}\n"
             f'{fence}{{.lean source="{self.name}"}}\n'
             f"{self.source.rstrip()}\n"
             f"{fence}\n\n"
-            "::: {.excerpt-source}\n"
-            f"{location}, read from the repository when this page was built.\n"
-            ":::\n"
+            f"::: {{.excerpt-source}}\n{link}\n:::\n"
             ":::\n"
         )
 

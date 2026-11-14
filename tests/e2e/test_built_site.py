@@ -195,6 +195,36 @@ def hrefs(locator) -> list[str]:
     return locator.evaluate_all("links => links.map(a => a.href.split('#')[0])")
 
 
+def test_rendering_check_page_shows_each_display_form_of_code_labelled(
+    page: Page, server: SiteServer
+):
+    """ADR 023 decisions 3 and 4: the generated signature, the omitted
+    docstring, the selection's marker, and the Source link alone are each
+    named in words, and a part of a selection offers no copy of itself."""
+    page.goto(server.url + "rendering-check.html", wait_until="load")
+    main = page.locator("main")
+
+    signature = main.locator("[data-signature]")
+    assert signature.count() == 1
+    assert "def offset_crossing(" in signature.inner_text()
+    labels = main.locator(".excerpt-label").all_inner_texts()
+    assert any(t.startswith("Generated signature of offset_crossing") for t in labels)
+    assert any(t.startswith("Selected lines of offset_crossing") for t in labels)
+    omissions = main.locator(".excerpt-omission")
+    texts = omissions.all_inner_texts()
+    assert any(
+        re.fullmatch(r"The docstring, lines \d+ to \d+, is not shown\.", t)
+        for t in texts
+    )
+    assert any(re.fullmatch(r"Lines \d+ to \d+ are not shown\.", t) for t in texts)
+    # The highlighting of a selection is the build's, like a plain listing's.
+    assert main.locator(".excerpt-part code span.op").count() > 0
+    assert main.locator(".excerpt-selection .code-copy-button").count() == 0
+    assert signature.locator("xpath=..").locator(".code-copy-button").count() == 0
+    figure_source = main.locator(".figure-source a.source-link")
+    assert figure_source.inner_text().startswith("Figure source")
+
+
 def test_rendering_check_page_shows_code_output_figure_and_equations(
     page: Page, server: SiteServer
 ):

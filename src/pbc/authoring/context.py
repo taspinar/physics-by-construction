@@ -35,7 +35,14 @@ from pbc.authoring.repository import BuildCommit, build_commit, repository_url
 from pbc.authoring.website import PAGE_FILE, page_address, project_root
 
 MARKER_CLASS = "pbc-context"
-KINDS = ("header", "reproduce", "excerpt", "lean-excerpt", "lean-evidence")
+KINDS = (
+    "header",
+    "reproduce",
+    "excerpt",
+    "lean-excerpt",
+    "lean-stub",
+    "lean-evidence",
+)
 # A lesson page that has markers has a header and a last section.
 REQUIRED = ("header", "reproduce")
 LESSONS_DIRECTORY = "lessons"
@@ -125,6 +132,7 @@ def markdown(
     """The Markdown of the region a marker stands for, from the current state."""
     # Imported here: the helpers import this module to make their markers.
     from pbc.authoring.excerpt import Excerpt
+    from pbc.authoring.exercises import LeanStub
     from pbc.authoring.lean import LeanEvidence, LeanExcerpt
     from pbc.authoring.path import LessonHeader
     from pbc.authoring.reproduce import Reproduction
@@ -140,6 +148,8 @@ def markdown(
             return Excerpt.from_payload(payload, commit, repository).markdown()
         if kind == "lean-excerpt":
             return LeanExcerpt.from_payload(payload, commit, repository).markdown()
+        if kind == "lean-stub":
+            return LeanStub.from_payload(payload).markdown(commit, repository)
         return LeanEvidence.from_payload(payload, commit, repository).markdown()
     except (KeyError, TypeError, ValueError, LookupError, OSError) as error:
         raise InvalidContext(
@@ -207,11 +217,22 @@ _CODE = re.compile(
 
 
 def _quarto_code(region: str) -> str:
-    """Give a code block the copy button the render gives every code block."""
+    """Give a code block the copy button the render gives every code block,
+    after numbering the lines of an excerpt's listing.
+
+    A part of a selection and a generated signature get no copy button: they
+    are not a whole that runs (ADR 023 decision 3).
+    """
+    from pbc.authoring.excerpt import NO_COPY_CLASSES, number_lines
 
     def wrap(found: re.Match[str]) -> str:
         # The render writes the quotation marks of code as they are.
         code = found.group(3).replace("&quot;", '"').replace("&#39;", "'")
+        if set(found.group(2).split()) & set(NO_COPY_CLASSES):
+            return (
+                f'{found.group(1)}<pre class="sourceCode {found.group(2)}"'
+                f"{code}</pre></div>"
+            )
         return (
             '<div class="code-copy-outer-scaffold">'
             f'{found.group(1)}<pre class="sourceCode {found.group(2)} code-with-copy"'
@@ -220,7 +241,7 @@ def _quarto_code(region: str) -> str:
             '<i class="bi"></i></button></div>'
         )
 
-    return _CODE.sub(wrap, region)
+    return _CODE.sub(wrap, number_lines(region))
 
 
 def regenerate_page(

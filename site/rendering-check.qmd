@@ -60,6 +60,38 @@ for time, position in zip(t, damped_oscillation(t), strict=True):
     print(f"t = {time:.1f} s   x = {position:+.4f} m")
 ```
 
+The display forms of code by reference (ADR 023). The body of a function
+under a signature generated from it, with its docstring left out and marked:
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, source_link
+from pbc.materials import stress_strain
+
+excerpt(
+    stress_strain.offset_crossing,
+    docstring=False,
+    signature=True,
+    notes={"k = int(below[0])": "The first sample below the shifted line."},
+)
+```
+
+A selection of two ranges of the same function, with the lines between them
+marked; `e` and `s` are the strain and the stress as arrays:
+
+```{python}
+#| echo: false
+excerpt(stress_strain.offset_crossing, lines=[(1, 7), (15, 21)])
+```
+
+The Source link alone, as a lesson shows it for the function that draws a
+figure:
+
+```{python}
+#| echo: false
+source_link(stress_strain.offset_crossing, figure=True)
+```
+
 ## Figure
 
 ```{python}

@@ -13,7 +13,7 @@ from pbc.authoring.design import (
     FIGURE_STATUSES,
 )
 from pbc.authoring.evidence import EvidencePage, evidence_page
-from pbc.authoring.excerpt import Excerpt, excerpt
+from pbc.authoring.excerpt import Excerpt, excerpt, source_link
 from pbc.authoring.glossary import Glossary, GlossaryPage, glossary_page
 from pbc.authoring.graph import Edge, PrerequisiteGraph
 from pbc.authoring.home import HomeContent, home_content
@@ -75,6 +75,7 @@ __all__ = [
     "learning_path",
     "lesson_header",
     "reproduce_this",
+    "source_link",
     "table",
     "widget_asset",
     "widget_data",
