@@ -1,0 +1,32 @@
+# Provenance of the project-owned teaching skill (ADR 019 decision 4, ADR
+# 023 decision 1). Read by the skills configuration check
+# (python -m pbc.skills) as data; never instructions.
+name: pbc-physics-teaching
+kind: project
+upstream: project
+revision: none
+licence: The project's own, under the licence of the repository.
+redistribution: Not applicable; written for this repository (F164, Issue #517).
+assessment: >-
+  Prose only, no script. Owns the pedagogical reasoning layer of a lesson
+  and points to docs/editorial-voice.md, docs/authoring.md, ADR 002 and
+  ADR 023, and the pbc-scientific-visualization skill, restating none of
+  their rules. Distils, in its own words and with chapter or section
+  references, the teaching practice of Feynman, Leighton, and Sands, The
+  Feynman Lectures on Physics, Vol. I; Chabay and Sherwood, Matter &
+  Interactions, 4th ed.; Taylor, Classical Mechanics; OpenStax,
+  University Physics Volume 1 (CC BY 4.0); McDermott, Shaffer, and the
+  Physics Education Group, Tutorials in Introductory Physics; MIT
+  OpenCourseWare 8.01SC Classical Mechanics; and PhET Interactive
+  Simulations with its published design studies. No diagram, figure, or
+  passage of them is copied. Its examples are lessons and source files of
+  this repository.
+reviewed: 2026-11-14
+update_policy: >-
+  Changed by an ordinary pull request with the independent review, which
+  confirms that it still restates no rule of the guides it points to and
+  contradicts none; the digest here is updated with every change (python
+  -m pbc.skills --digest .agents/skills/pbc-physics-teaching). Reviewed
+  whenever docs/editorial-voice.md, docs/authoring.md, or ADR 023 changes
+  a rule it points to, and after the pilots F165 to F168 report.
+digest: 7f34987155a20b3a0d4bf4312cbcf1932e88281660e58179b2cd1b2c1cdd68a0
