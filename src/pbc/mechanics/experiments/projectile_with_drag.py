@@ -81,9 +81,12 @@ def draw_drag_against_speed() -> Figure:
     ax.plot(
         [origin + width / 2], [origin + height / 4], marker="o", color=FIGURE_COLOURS[2]
     )
-    text(ax, (6.6, 1.2), r"linear: $b\,|v|$", colour=0, ha="left")
-    text(ax, (3.2, 3.9), r"quadratic: $c\,|v|^{2}$", colour=1, ha="right")
-    text(ax, (4.7, 3.4), "the curves cross", colour=2, ha="right")
+    # Each label sits beside its own curve: the linear one below the line
+    # near its end, the quadratic one left of the steep part of the curve,
+    # and the crossing's just below and right of the marker.
+    text(ax, (7.2, 1.95), r"linear: $b\,|v|$", colour=0, ha="left")
+    text(ax, (7.7, 4.2), r"quadratic: $c\,|v|^{2}$", colour=1, ha="right")
+    text(ax, (5.15, 1.45), "the curves cross", colour=2, ha="left")
     return fig
 
 
@@ -260,7 +263,7 @@ def longest_throws(experiment: Experiment):
         caption="Longest range and the launch angle that gives it, found by a "
         "one-dimensional minimiser.",
     )
-    return ranges_with_drag, ranges_without, best_with, best_without
+    return ranges_with_drag, ranges_without, best_with, furthest_with, best_without
 
 
 def draw_range_against_angle(ranges_with_drag, ranges_without) -> Figure:
@@ -283,7 +286,13 @@ def draw_range_against_angle(ranges_with_drag, ranges_without) -> Figure:
         markersize=3,
         label="with drag",
     )
-    ax.axvline(45.0, color="#00429d", linestyle="--", linewidth=0.8)
+    ax.axvline(
+        45.0,
+        color="#00429d",
+        linestyle="--",
+        linewidth=0.8,
+        label="45 degrees",
+    )
     ax.set_xlabel("launch angle (degrees)")
     ax.set_ylabel("range (m)")
     ax.legend()
@@ -426,11 +435,16 @@ def run() -> Experiment:
         partial(draw_convergence_of_the_range, steps, ranges, best_estimate, v_x),
     )
 
-    ranges_with_drag, ranges_without, best_with, best_without = longest_throws(
-        experiment
+    ranges_with_drag, ranges_without, best_with, furthest_with, best_without = (
+        longest_throws(experiment)
     )
     experiment.number("best-without", best_without, ".1f")
     experiment.number("best-with", best_with, ".1f")
+    # The throw of the convergence table at the step of the scan: its error
+    # against the extrapolated limit, and how much the best angle gains on it.
+    at_45_degrees = projectile_range(speed, angle, mass, c, scan_dt)
+    experiment.number("scan-error-cm", 100 * abs(at_45_degrees - best_estimate), ".0f")
+    experiment.number("angle-gain", 100 * (furthest_with / at_45_degrees - 1), ".0f")
     experiment.figure(
         "fig-range-against-angle",
         partial(draw_range_against_angle, ranges_with_drag, ranges_without),
