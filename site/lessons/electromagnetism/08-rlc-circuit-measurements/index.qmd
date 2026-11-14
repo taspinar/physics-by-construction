@@ -517,9 +517,10 @@ reproduce_this(
         "tests/unit/test_data_analysis.py",
         "tests/unit/test_rlc_circuit_measurements_experiment.py",
     ],
+    data="""
+        The data card above gives the command that downloads a fresh copy of the
+        file into `data/downloads/bayreuth-rlc-impedance`; no model and no account
+        are needed to read it.
+    """,
 )
 ```
-
-The data card above gives the command that downloads a fresh copy of the
-file into `data/downloads/bayreuth-rlc-impedance`; no model and no account
-are needed to read it.

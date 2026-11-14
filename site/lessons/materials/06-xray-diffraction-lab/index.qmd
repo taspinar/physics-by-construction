@@ -732,10 +732,11 @@ reproduce_this(
         "tests/unit/test_data_srm660c.py",
         "tests/unit/test_xray_diffraction_lab_experiment.py",
     ],
+    data="""
+        The data card above gives the command that downloads a fresh copy of the
+        record into `data/downloads/nist-srm660c-lab6`, and the command that
+        converts it to the committed CSV files; no model and no account are needed
+        to read it.
+    """,
 )
 ```
-
-The data card above gives the command that downloads a fresh copy of the
-record into `data/downloads/nist-srm660c-lab6`, and the command that
-converts it to the committed CSV files; no model and no account are needed
-to read it.

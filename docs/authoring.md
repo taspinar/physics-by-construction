@@ -193,11 +193,16 @@ matter when the site is built, so there is no list to maintain:
   the curriculum as a view over the same lessons, names the courses that have
   no lesson yet in one sentence, and explains the difficulty scale and what
   previous and next mean.
-- The first cell of every lesson writes the header of the lesson: its course
-  and position in the course, its slot and, for a method-path lesson, its
-  position in the path, its methods, its difficulty, what you will
-  learn, its prerequisites and related lessons with links, and links to the
-  previous and next lesson of the path. The template has the cell; keep it
+- The first cell of every lesson writes the header of the lesson. It shows
+  the course and position in the course, the methods, the difficulty, what
+  you will learn, and links to the previous and next lesson of the path;
+  under them a closed native disclosure ("Prerequisites, related lessons,
+  and where this lesson fits") holds the slot and, for a method-path lesson,
+  its position in the path, the introductions, the prerequisites and
+  "Before you begin", the related lessons, and the connections, all with
+  links (F174). The title and the `description` above it are the lesson's
+  purpose. The previous and next lesson are repeated once, at the end of
+  the page, after the last section. The template has the cell; keep it
   before the introduction:
 
   ````markdown
@@ -1474,22 +1479,43 @@ reproduce_this(
 ````
 
 `code` names the modules the page imports and `tests` the tests of those
-modules, relative to the repository root. The cell writes the commit the page
-was built from, links to the files at that commit, and the commands from a
-clone to the experiment: check out the commit, install the project's
-packages (`uv sync --locked --no-dev`), and run the experiment the front
-matter declares. A Lean lesson adds `lake build` of the modules it shows; an
-agent lesson adds the live run as a separate block marked "not verified",
-which names its key and the optional dependency `openai`, and its experiment
-module names that run as `LIVE`. No command of the section renders or
-previews the website. A build from a checkout with uncommitted changes says
-so on the page. The lesson source checks require the heading of the kind of
+modules, relative to the repository root. A measured-data lab adds `data`,
+its own paragraph on the data card's download (where it goes, and that no
+model and no account are needed to read it); the section shows it inside the
+disclosure, after what the run writes, and no prose follows the cell of the
+last section (the owner's review of 2026-11-14). The section shows one sentence,
+in the words of the kind of the lesson ("Run this experiment on your own
+computer.", "Replay this recorded agent run on your own computer.", "Check
+this proof on your own computer."), and one closed native disclosure,
+"Setup and commands"; no commit and no command is visible before a reader
+opens it (F174, the owner's decision of 2026-11-14). Inside, the clone gives
+the latest version on `main`, the default route, with the note "The latest
+version may produce different results."; "Optional: use the version behind
+this page", with the line "Skip this step to use the latest version." before
+its command, adds one step, the checkout of the commit the page was built
+from, linked by a description rather than by its hash, for a reader who wants
+the published results, so that a reader who runs every block in order sees
+that the step can be skipped; the shared steps follow once: install the project's packages
+(`uv sync --locked --no-dev`) and run the experiment the front matter
+declares. Then come what the run writes and the links to the files and the
+tests at the build commit. A Lean lesson adds `lake build` of the modules it
+shows; an agent lesson adds, inside the disclosure and after the replay, the
+live run as a separate block marked "not verified", which names its key and
+the optional dependency `openai`, and its experiment module names that run as
+`LIVE`. No command of the section renders or previews the website. A build
+from a checkout with uncommitted changes shows the short notice "Local
+preview: results may differ from the linked source." under the sentence and
+explains in the disclosure that the linked commit does not contain those
+changes, without promising an exact reproduction; a build outside a Git
+checkout says in the disclosure that the commit is unknown and offers `main`
+only. The lesson source checks require the heading of the kind of
 the lesson, and a check of the built site runs the experiment of every lesson
 with these commands and compares its figure files, byte for byte, and its
 numbers, at the precision the page shows them, with the published page.
 
-The section, and so the lesson, ends with one line, "Suggest an improvement",
-written by the build (`pbc.authoring.improvement`, F135): three links to the
+The section ends with one line, "Suggest an improvement" (after it the
+lesson has only the previous and next lesson), written by the build
+(`pbc.authoring.improvement`, F135): three links to the
 issue forms of `.github/ISSUE_TEMPLATE/` (scientific correction, report a
 problem, propose a change), each with the lesson's public address, from
 `website.site-url`, filled in. GitHub fills a field of an issue form from the
@@ -1813,6 +1839,9 @@ An agent may help a learner explore, but its conclusions are never data.
 6. runs `check_figure(fig, residuals=True)` in a test of the lab: it returns
    the missing status label, unit in `[...]`, title, legend, residual panel,
    or "false colour" note.
+
+Its note on the download of the data card is the `data` argument of
+`reproduce_this` ("The last section"), not a paragraph after that cell.
 
 The helpers cover the formats of the three `go` datasets: GWOSC plain text,
 Touchstone two-port, and the flume CSV. A lab whose `go` dataset needs HDF5,

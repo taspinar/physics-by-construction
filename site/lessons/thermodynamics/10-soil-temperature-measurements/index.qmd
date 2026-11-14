@@ -648,10 +648,11 @@ reproduce_this(
         "tests/unit/test_data_dwd_soil.py",
         "tests/unit/test_soil_temperature_measurements_experiment.py",
     ],
+    data="""
+        The data card above gives the command that downloads DWD's archive into
+        `data/downloads/dwd-potsdam-soil-temperature`, and the extraction script
+        that repeats the committed sample from it; no model and no account are
+        needed to read it.
+    """,
 )
 ```
-
-The data card above gives the command that downloads DWD's archive into
-`data/downloads/dwd-potsdam-soil-temperature`, and the extraction script
-that repeats the committed sample from it; no model and no account are
-needed to read it.

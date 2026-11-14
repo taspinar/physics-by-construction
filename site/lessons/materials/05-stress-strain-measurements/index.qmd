@@ -674,9 +674,10 @@ reproduce_this(
         "tests/unit/test_data_samples.py",
         "tests/unit/test_stress_strain_measurements_experiment.py",
     ],
+    data="""
+        The data card above gives the command that downloads a fresh copy of the
+        file into `data/downloads/nist-numisheet-dp980`; no model and no account
+        are needed to read it.
+    """,
 )
 ```
-
-The data card above gives the command that downloads a fresh copy of the
-file into `data/downloads/nist-numisheet-dp980`; no model and no account
-are needed to read it.

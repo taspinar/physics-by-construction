@@ -739,9 +739,10 @@ reproduce_this(
         "tests/unit/test_data_grazing_flow_hwa.py",
         "tests/unit/test_turbulent_boundary_layer_measurements_experiment.py",
     ],
+    data="""
+        The data cards above give the commands that download both records into
+        `data/downloads/`; unzipping the archives gives the committed samples byte
+        for byte, and no model and no account are needed to read them.
+    """,
 )
 ```
-
-The data cards above give the commands that download both records into
-`data/downloads/`; unzipping the archives gives the committed samples byte
-for byte, and no model and no account are needed to read them.
