@@ -235,16 +235,37 @@ def _lines_with_label(ax) -> int:
     )
 
 
-def check_figure(fig: Figure, *, residuals: bool = False) -> list[str]:
+def check_figure(
+    fig: Figure, *, residuals: bool = False, declared: str | None = None
+) -> list[str]:
     """Violations of the figure conventions; an empty list means none.
 
     Checks the status label, a unit in square brackets on every axis label, a
     title on every panel, a legend where a panel draws more than one named
     series, and, when ``residuals`` is true, a residual panel.
+
+    ``declared`` is the status of a figure that declares its provenance
+    (``pbc.data.figure_provenance``, Issue #524): it carries one status, at
+    the caption and in its PNG's metadata, so a painted status label or a
+    painted credit paragraph is a violation, and the declared status must
+    be one of the five.
     """
     out: list[str] = []
     status = figure_status(fig)
-    if status is None:
+    if declared is not None:
+        if declared not in FIGURE_STATUSES:
+            out.append(f"unknown declared status {declared!r}")
+        if status is not None:
+            out.append(
+                "a status label is painted on a figure that declares its"
+                " status: one status, at the caption"
+            )
+        if any(t.get_gid() == CREDIT_GID for t in fig.texts):
+            out.append(
+                "a credit is painted on a figure that declares its dataset:"
+                " the caption and the metadata carry it"
+            )
+    elif status is None:
         out.append("no status label (use label_status)")
     elif status not in FIGURE_STATUSES:
         out.append(f"unknown status {status!r}")

@@ -2511,3 +2511,66 @@ def test_a_claim_in_a_div_is_checked_too(make_format_2: Repository):
     )
 
     assert "has no 'evidence'" in details(lesson_checks.check_evidence(repository))
+
+
+# A figure that declares its provenance in the experiment (Issue #524).
+_DECLARED_PROVENANCE = _EXPERIMENT_OF_DATA.replace(
+    'experiment.figure("fig-line", partial(draw_line, strain.strain))',
+    'experiment.figure("fig-line", partial(draw_line, strain.strain), provenance=LINE)',
+).replace(
+    "def run():",
+    "DATASET = 'gw150914-strain'\n"
+    "LINE = FigureProvenance(status='processed', dataset=DATASET,"
+    " processing='Whitened by this code.')\n\n\ndef run():",
+)
+
+
+def _declares(options: str, experiment: str = _DECLARED_PROVENANCE):
+    changes = {**_shows("fig-line"), "#| fig-status: simulated\n": options}
+    files = {
+        **_experiment_files(),
+        "src/pbc/mechanics/experiments/sample.py": experiment,
+    }
+    return changes, files
+
+
+def test_a_cell_that_names_the_declared_provenance_passes(make_format_2: Repository):
+    changes, files = _declares(
+        "#| fig-status: processed\n#| fig-dataset: gw150914-strain\n"
+    )
+    violations = format_2_checks(make_format_2(changes, files=files))
+
+    assert "figure-dataset" not in rules(violations), details(violations)
+
+
+@pytest.mark.parametrize(
+    ("options", "text"),
+    [
+        (
+            "#| fig-status: calibrated\n#| fig-dataset: gw150914-strain\n",
+            "has fig-status 'calibrated'; its experiment declares 'processed'",
+        ),
+        (
+            "#| fig-status: processed\n#| fig-dataset: gw150914-strain\n"
+            "#| fig-artifact: processed-measured\n",
+            "has fig-artifact 'processed-measured'; its experiment declares None",
+        ),
+    ],
+)
+def test_a_cell_that_differs_from_the_declared_provenance_is_reported(
+    make_format_2: Repository, options: str, text: str
+):
+    changes, files = _declares(options)
+    violations = format_2_checks(make_format_2(changes, files=files))
+
+    assert text in details(violations)
+
+
+def test_a_declaration_that_is_not_literal_is_reported(make_format_2: Repository):
+    changes, files = _declares(
+        "#| fig-status: processed\n#| fig-dataset: gw150914-strain\n",
+        _DECLARED_PROVENANCE.replace("provenance=LINE", "provenance=make()"),
+    )
+    violations = format_2_checks(make_format_2(changes, files=files))
+
+    assert "not a FigureProvenance of literal values" in details(violations)

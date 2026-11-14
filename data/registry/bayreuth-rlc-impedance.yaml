@@ -31,6 +31,12 @@ rights:
       a link, and an indication of changes'
   attribution: Danzer, M. A., Plank, C., Rüther, T., 'Impedance data for various electrochemical and electrical
     systems', version 1.0.0, Zenodo, doi 10.5281/zenodo.10794584, CC BY 4.0; file rlc_circuit.json, unmodified.
+  figure_credit:
+    short: 'Data: Danzer, Plank, Rüther (Univ. Bayreuth), doi 10.5281/zenodo.10794584, CC BY 4.0'
+    visible: required
+    source: 'https://creativecommons.org/licenses/by/4.0/legalcode section 3(a): the creators, the licence,
+      and a link go with the shared material, so a figure saved without its page carries them on its face;
+      the link and the changes are in its metadata and at the caption (Issue #524)'
 artifacts:
 - name: rlc_circuit.json
   type: processed-measured

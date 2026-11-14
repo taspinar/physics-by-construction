@@ -119,6 +119,11 @@ def validate_card(card: dict, name: str | None = None) -> list[str]:
                 out.append(f"rights.{question}.answer: one of {', '.join(ANSWERS)}")
             if not _text(answer.get("source")):
                 out.append(f"rights.{question}.source: where the answer was read")
+        if "figure_credit" in rights:
+            # The credit of a portable figure (Issue #524), checked per card.
+            from pbc.data.figure_provenance import credit_problems
+
+            out.extend(credit_problems(card))
 
     artifacts = card.get("artifacts")
     if not isinstance(artifacts, list) or not artifacts:
