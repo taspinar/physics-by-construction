@@ -1,0 +1,722 @@
+---
+title: "Applied capstone: reconstructing the 2025 Kamchatka tsunami"
+description: >-
+  A teaching-scale model of the tsunami of 29 July 2025: the shallow-water
+  equations of this course in two dimensions on a sphere, over a cropped
+  ETOPO bathymetry, started from the USGS fault model's uplift; verified by
+  still water, exact linear waves, the volume budget, positivity, the step
+  limit, the boundaries and grid refinement, then compared with two
+  deep-ocean DART records by a metric fixed beforehand, with what the
+  comparison does and does not support. Not for warning, inundation, or
+  hazard forecasting.
+lesson:
+  id: reconstructing-the-2025-kamchatka-tsunami
+  strand: fluids
+  order: 10
+  difficulty: 3
+  course: fluids
+  slot: FL10
+  methods: [simulation, measured-data]
+  outcomes:
+    - Turn a question about a historical tsunami into a model with stated inputs, assumptions, a comparison metric fixed before the comparison, and a credibility boundary
+    - Extend the one-dimensional finite volumes and hydrostatic reconstruction of this course to two dimensions on a sphere, balanced for water at rest and second order by limited slopes
+    - Verify the model by still water, linear waves against exact solutions, the volume budget, positivity, the step limit, the boundaries, and grid refinement
+    - Compare computed waves with deep-ocean records through arrival time, crest, and residuals with their uncertainties, and state what the comparison supports and what it does not
+  related: []
+  format: 2
+  preview: fig-tsunami-map
+  experiment: pbc.fluids.experiments.reconstructing_the_2025_kamchatka_tsunami
+  prerequisites:
+    lessons: [finite-volume-methods-and-conservation-laws, shallow-water-equations]
+    outside:
+      - "Calculus: the divergence of a flux in two dimensions, and the area of a band of latitude on a sphere"
+      - "Statistics: a root-mean-square difference, and adding independent uncertainties"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this
+from pbc.fluids import tsunami
+from pbc.fluids.experiments import reconstructing_the_2025_kamchatka_tsunami as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+On [29 July 2025]{.given} an earthquake of moment magnitude
+`{python} result["mw"]` broke the plate boundary off the east coast of
+Kamchatka. The sea floor above the rupture rose by up to
+`{python} result["uplift-max"]` m in the model of the U.S. Geological Survey
+and sank by up to `{python} result["subsidence-max"]` m nearer the coast, and
+the sea surface above it moved with it. The water then ran off as a
+tsunami. Two deep-ocean stations of the DART network, `21416` south-east of
+the rupture and `21415` further east, recorded it as a change of the pressure
+on the sea floor.
+
+The shallow-water lesson computed such waves in one dimension, over a bump
+and a dam break. Can the same equations, on a map of the real ocean floor and
+started from a published model of the earthquake, say when the wave reached
+the two stations and how high it was? And how would we know whether the
+answer is right?
+
+This capstone works through that question, from the inputs to a qualified
+answer. It extends the finite volumes of the finite-volume lesson and the
+hydrostatic reconstruction of the shallow-water lesson to two dimensions on a
+sphere. Before the model meets a measurement it is checked against water at
+rest, against exact solutions of linear waves, against its own volume budget
+and step limit, against larger domains, and against finer grids. Only then
+are its waves compared with the records, by a measure of agreement chosen
+before the comparison.
+
+::: {.claim type="numerically-verified" scope="the model of this page: the two-dimensional shallow-water equations without dispersion or friction on grids of 32 to 4 arc-minutes, the USGS finite-fault uplift as the source, open boundaries, two hours" evidence="still-water linear-wave budget grid-study kamchatka-2025-tsunami-inputs"}
+**A teaching-scale model, not for warning, inundation, or hazard
+forecasting.** Every computed wave on this page comes from a deliberately
+simple model on a coarse, cropped grid, with an assumed source taken from a
+fault model and no dispersion, friction, or flooding of land. Its checks
+verify the computation, not the ocean. The comparison with the two records
+is a validation exercise for learning, and it shows where the model fails.
+No number on this page is a forecast, a hazard estimate, or a statement about
+any coast.
+:::
+
+## Assumptions
+
+### Requirements
+
+The question is about two stations and a fixed window of time each, and the
+measure of agreement is fixed before any model is run:
+
+- **The records.** NCEI's event files of the stations, the sea level minus
+  the tide that NCEI fitted, divided by [0.670]{.given}: the files carry NDBC's
+  conversion from pressure to height twice, and NDBC's own files confirm it
+  (the dataset's dossier). At `21416` the first minutes after the origin are
+  the shaking of the sea floor, not the sea, so its window is
+  `{python} result["window-21416"]` min; at `21415` the window is
+  `{python} result["window-21415"]` min.
+- **The arrival** is the time the series last rises through half its crest
+  before the crest, interpolated between samples; **the crest** is the
+  largest value in the window. Both are computed in the same way for a record
+  and for the model.
+- **The residual** is the model minus the record at the record's times,
+  summarised by its root mean square over the window, and once more after
+  shifting the model by the difference of the arrivals.
+- **The noise floor** of each record is the root mean square of its residual
+  over the day before the earthquake: `{python} result["floor-21416"]` m at
+  `21416` and `{python} result["floor-21415"]` m at `21415`. A difference
+  smaller than it cannot be told from noise.
+
+```{python}
+#| echo: false
+data_card("kamchatka-2025-tsunami-inputs")
+```
+
+```{python}
+#| label: inputs
+#| echo: false
+result.table("inputs")
+```
+
+### The model and its assumptions
+
+The water has depth $h$ and depth-averaged velocity $(u, v)$, east and
+north, over a bed of height $b$; the surface is $\eta = h + b$. On a sphere
+of radius $R$, at longitude $\lambda$ and latitude $\phi$, mass and momentum
+balance as
+
+$$
+\frac{\partial h}{\partial t}
++ \frac{1}{R\cos\phi}\left[\frac{\partial (hu)}{\partial \lambda}
++ \frac{\partial (hv\cos\phi)}{\partial \phi}\right] = 0,
+$$
+
+$$
+\frac{\partial (hu)}{\partial t} + \dots = -\frac{g h}{R\cos\phi}\frac{\partial \eta}{\partial \lambda} + f\,hv,
+\qquad
+\frac{\partial (hv)}{\partial t} + \dots = -\frac{g h}{R}\frac{\partial \eta}{\partial \phi} - f\,hu,
+$$
+
+with $f = 2\Omega\sin\phi$ and the dots the transport of momentum by the
+flow. Its assumptions:
+
+1. **Long waves.** The pressure is hydrostatic and the velocity the same over
+   the depth, so every wave travels at $\sqrt{gh}$ whatever its length. Real
+   waves shorter than a few depths travel more slowly: there is no
+   dispersion. The first exercise measures what that leaves out.
+2. **No friction, no tide.** The sea is at rest before the earthquake; the
+   records have their tide removed.
+3. **A sphere, a few terms left out.** The grid is one of latitude and
+   longitude on a sphere; the Coriolis force is included; the transport terms
+   of order $u^2/R$ that the curvature adds are left out, since the velocities
+   in the deep sea are a few centimetres per second.
+4. **A coarse ocean floor.** The bathymetry is [ETOPO 2022]{.given}, every fourth cell of
+   its [60″]{.given} grid, averaged over blocks of cells. Cells above sea
+   level are dry; water reaching them is kept positive, but flooding of land
+   is not modelled at these cell sizes.
+5. **An assumed source.** The sea floor rises by the USGS model's vertical
+   displacement and the water column keeps its depth, so the surface rises by
+   the same amount. Each cell rises at the rupture time plus half the rise
+   time of the nearest subfault of the model, up to
+   `{python} result["onset-max"]` min after the origin. The USGS grid does not
+   reach zero at its edge (up to `{python} result["edge-lift"]` m), so its edge
+   is tapered to zero; cutting it off there instead is one of the variants
+   below. The horizontal motion of sloping sea floor, and the
+   smoothing of short features by the water column above them, are not
+   included. The USGS publishes no uncertainty for its model; the variants
+   below are sensitivities, not that uncertainty.
+6. **Open boundaries.** A wave leaves the domain as if the ocean went on,
+   into a sea at rest at its level: at each edge the ghost cell keeps the
+   Riemann invariant that leaves the cell and takes the one that enters from
+   water at rest.
+7. **The record as sea level.** The bottom pressure above its mean is read as
+   the height of the sea surface, which is hydrostatic for long waves.
+
+## Explanation
+
+### Finite volumes on a sphere
+
+A cell of the grid spans $\Delta\lambda$ in longitude and $\Delta\phi$ in
+latitude. Its area is $R^2\Delta\lambda\,(\sin\phi_n - \sin\phi_s)$, its
+east and west faces have the length $R\,\Delta\phi$, and its north and south
+faces $R\cos\phi\,\Delta\lambda$, longer on the side nearer the equator. As
+in the finite-volume lesson, a cell changes only by what crosses its faces,
+each flux times the length of its face:
+
+$$
+q_{ij} \leftarrow q_{ij} - \frac{\Delta t}{A_{ij}}\left(F_e L_e - F_w L_w + G_n L_n - G_s L_s\right) + \Delta t\, S_{ij}.
+$$
+
+Each face is the one-dimensional Riemann problem of the shallow-water
+lesson: its HLL flux gives the mass and the momentum across the face, and the
+momentum along the face is carried by the mass flux with the velocity of the
+upstream side. What leaves one cell enters its neighbour, so the volume of
+the whole domain changes only by what crosses its boundary, on any grid.
+
+### Water at rest on unequal faces
+
+The shallow-water lesson kept a lake at rest over a bump by hydrostatic
+reconstruction: at each face the depths on both sides are rebuilt over the
+higher bed, and a source puts back the pressure of the difference. On a
+sphere a second imbalance appears. Even over a flat bed the pressure
+$g h^2/2$ pushes on the north and south faces of a cell with different
+lengths, so their fluxes differ while the water is at rest. The source of
+each cell therefore also carries the pressure on the difference of its face
+lengths, $\tfrac{g}{4}(h_n^2 + h_s^2)(L_n - L_s)$, evaluated with the same
+depths as the fluxes. Then water at rest stays at rest to round-off, on any
+grid.
+
+### Second order
+
+With one value per cell, as in the earlier lessons, the scheme smears a wave
+by about a cell for every cell it travels. Here each cell holds a straight
+line instead: the depth, the surface, and the two velocities get slopes from
+their neighbours, limited so that no new crest or trough appears. The
+minmod limiter takes the smaller one-sided slope, and so flattens every crest
+to its cell; the monotonized central limiter takes the central slope where it
+does not exceed twice either side, and flattens less. Near a dry cell the
+slope is zero. The surface, not the bed, is reconstructed, and the bed at a
+face is the surface minus the depth there, so water at rest stays flat. In
+time, Heun's method averages a forward Euler step with a second one taken
+from its result, and is second order as well.
+
+### The step
+
+A wave may cross only part of a cell in one step. In two dimensions the
+condition adds the two directions,
+
+$$
+\Delta t\left(\frac{|u| + \sqrt{gh}}{\Delta x} + \frac{|v| + \sqrt{gh}}{\Delta y}\right) \le C,
+$$
+
+and the largest Courant number $C$ that stays stable is measured below.
+
+## Code
+
+The grid on a sphere, with the lengths of the faces and the areas of the
+cells:
+
+```{python}
+#| echo: false
+excerpt(tsunami.sphere_grid)
+```
+
+The rate of change of every cell: the faces along each axis by the same
+sweep, and the sources of the reconstruction, the unequal faces, and the
+rotation:
+
+```{python}
+#| echo: false
+excerpt(tsunami.fluxes_and_source)
+```
+
+The limiter chosen on the benchmark below:
+
+```{python}
+#| echo: false
+excerpt(tsunami.monotonized_central)
+```
+
+The source in time, from the subfaults of the USGS model:
+
+```{python}
+#| echo: false
+excerpt(experiment.onset_at)
+```
+
+## Worked examples
+
+### Still water on a rotating sphere
+
+Water at rest over the real bathymetry of the coarse grid, with land, open
+boundaries and rotation, for an hour:
+
+```{python}
+#| label: still-water
+#| echo: false
+result.table("still-water")
+```
+
+[After `{python} result["still-steps"]` steps the surface and the velocity
+stay below `{python} result["still-bound"]` m and m/s: the fluxes, the
+reconstruction source, and the source of the unequal faces cancel for water
+at rest.]{.claim type="numerically-verified" scope="the bathymetry of the
+16-arc-minute grid on the rotating sphere, one hour, open boundaries"
+evidence="still-water"} Without the source of the unequal faces the same
+water would start to flow; a unit test of the model shows its size.
+
+### Linear waves against exact solutions
+
+A small hump on a flat bed [4000 m]{.given} deep splits into two waves that
+travel at $\sqrt{gh}$ unchanged in shape (d'Alembert's solution). Three
+schemes on four grids, against it:
+
+```{python}
+#| label: linear-wave
+#| echo: false
+result.table("linear-wave")
+```
+
+```{python}
+#| label: fig-tsunami-benchmarks
+#| echo: false
+#| fig-cap: "Against the exact plane wave the scheme of the shallow-water lesson converges at first order; the reconstructions converge faster, the monotonized central slopes with the smallest error."
+#| fig-alt: "Log-log plot of the root-mean-square error relative to the amplitude against the cell size in kilometres. Three lines with markers fall from left to right as the cells shrink: first order with circles, solid, parallel to a dotted reference of slope one; minmod with squares, dashed, steeper; monotonized central with triangles, dotted, lowest and parallel to a dash-dotted reference of slope two."
+#| fig-status: simulated
+result.show("fig-tsunami-benchmarks")
+```
+
+[Between the two finest grids the first-order scheme converges at the order
+`{python} result["order-first"]`, the minmod reconstruction at
+`{python} result["order-minmod"]`, and the monotonized central
+reconstruction at `{python} result["order-mc"]`, with an error
+`{python} result["error-ratio"]` times smaller than minmod's on the finest
+grid.]{.claim type="numerically-verified" scope="a plane Gaussian hump of 1
+cm on a flat bed 4000 m deep, 1000 s, cells of 16 to 2 km"
+evidence="linear-wave fig-tsunami-benchmarks"} The limiters stay below
+second order because they flatten the crest, where the two one-sided slopes
+disagree; the monotonized central limiter flattens less. It is the limiter of
+every run below, chosen here and not on the records. The reference lines are
+drawn for comparison, not fitted.
+
+A plane wave tests one direction at a time. A hump in the open sea spreads in
+rings, and its exact linear solution is a Hankel transform,
+
+$$
+\eta(r, t) = A\sigma^2\int_0^\infty k\,e^{-k^2\sigma^2/2}\,J_0(kr)\cos\left(\sqrt{gh}\,kt\right)dk .
+$$
+
+On cells of [5 km]{.given}, along a grid axis and along the diagonal:
+
+```{python}
+#| label: radial
+#| echo: false
+result.table("radial")
+```
+
+[Along the axis and the diagonal the computed crest lies in the cell where
+the exact solution puts it, and the root-mean-square error is at most `{python} result["radial-error"]` of the
+amplitude: the grid carries the wave alike in every direction.]{.claim
+type="numerically-verified" scope="a Gaussian hump of 1 cm and 30 km on a
+flat bed 4000 m deep, 1200 s, cells of 5 km" evidence="radial"} The crest
+runs `{python} result["radial-lead"]` km ahead of $\sqrt{gh}\,t$ in both: a
+ring of finite width has its crest ahead of its centre's travel distance,
+and the exact solution shows the same.
+
+### The step and its limit
+
+The radial hump on cells of [10 km]{.given}, at growing Courant numbers:
+
+```{python}
+#| label: cfl
+#| echo: false
+result.table("cfl")
+```
+
+[The scheme is stable up to a Courant number of `{python} result["cfl-stable"]`
+and blows up at `{python} result["cfl-unstable"]`; every run of the tsunami
+uses `{python} result["courant"]`.]{.claim type="numerically-verified"
+scope="the radial hump on 10 km cells, 1200 s, the scheme of this page"
+evidence="cfl"} The limit is measured, not proved; the positivity of the
+depth, which theory guarantees only for smaller steps, is checked on every run
+below.
+
+### The volume budget and positivity
+
+Every run of the tsunami on this page, its volume against what left through
+the boundary, and its smallest depth:
+
+```{python}
+#| label: budget
+#| echo: false
+result.table("budget")
+```
+
+[In all `{python} result["run-count"]` runs the volume changes by what leaves
+through the boundary to below `{python} result["budget-bound"]` of the
+volume, and no depth falls below `{python} result["smallest-depth"]`
+m.]{.claim type="numerically-verified" scope="the runs of this page, grids of
+32 to 4 arc-minutes, two hours or 45 minutes" evidence="budget"} The budget
+holds by construction, as it did in the finite-volume lesson, and proves
+nothing about accuracy; it would catch an error in the bookkeeping of the
+faces or the boundary. The volume that leaves, `{python} result["left-low"]`
+to `{python} result["left-high"]` cubic kilometres in the two-hour base runs, is about
+what the sea floor displaced: the uplift and the subsidence are lasting
+changes, and on the [8′]{.given} grid they lift `{python} result["net-uplift"]` cubic kilometres of
+sea in all. That water runs off, and the trough that follows the wave is
+still inside the domain after two hours.
+
+The boundary is a choice that can fail. The simplest open boundary copies
+each edge cell into its ghost cell, so the face carries the cell's own flux
+and no pressure from outside holds the level. [With that boundary the base
+run on the [8′]{.given} grid drains `{python} result["copy-outflow"]` cubic kilometres through its
+west edge, which crosses the Kuril Islands, and the surface there falls
+`{python} result["copy-lowest"]` m below sea level near
+`{python} result["copy-lat"]`° N, `{python} result["copy-lon"]`° E by the
+end.]{.claim type="numerically-verified" scope="the 8-arc-minute base run
+with copied ghost cells, two hours" evidence="budget"} The drain grows in
+proportion to the source, so it is no effect of the wave's height: it is a
+flaw of the boundary, and with walls instead of open edges the level holds.
+The budget still closes, because the water does leave through the boundary.
+The radiating boundary of the runs above holds the level outside, and the
+volume that leaves changes less with each refinement of the grid.
+
+### The tsunami
+
+The base run on the [8′]{.given} grid: the largest height the surface reaches
+in each cell, and when it first rises by [1 cm]{.given}:
+
+```{python}
+#| label: fig-tsunami-map
+#| echo: false
+#| fig-cap: "In the model the highest waves run south-east from the rupture, across the nearer station; the arrival contours bend where the water is shallower and the waves slow down. A computed field, not a map of observed heights."
+#| fig-alt: "Map of the north-west Pacific with longitude on the horizontal and latitude on the vertical axis. Land is grey. A banded false-colour field shows the largest computed surface height, brightest in a broad lobe south-east of a narrow band of black uplift contours along the Kamchatka trench and fading with distance. White contour lines of arrival time, labelled in minutes, spread outward from the source in rings. A star marks the epicentre and white triangles the two DART stations, the nearer to the south-east inside the bright lobe and the farther to the east."
+#| fig-status: simulated
+#| fig-dataset: kamchatka-2025-tsunami-inputs
+#| fig-artifact: modelled-reference
+result.show("fig-tsunami-map")
+```
+
+The uplift is a narrow band along the trench, a few tens of kilometres wide,
+with the subsidence nearer the coast; the deep water south-east of it
+carries the largest waves away from the coast, towards `21416`. The model's
+depth at the stations, `{python} result["model-depth-21416"]` m and
+`{python} result["model-depth-21415"]` m, is close to the stations' own
+`{python} result["depth-21416"]` m and `{python} result["depth-21415"]` m.
+
+### Grid refinement
+
+The base run on grids of [32′]{.given}, [16′]{.given} and [8′]{.given} over
+the whole domain, and at [4′]{.given} on a smaller domain around `21416` for
+its first [45 minutes]{.given} (the whole domain at that resolution would
+take about a minute):
+
+```{python}
+#| label: grid-study
+#| echo: false
+result.table("grid-study")
+```
+
+[With each refinement the arrival moves later by less: by
+`{python} result["grid-arrival-21416"]` min at `21416` between the two finest
+grids. The crest does not settle: it grows by
+`{python} result["grid-crest-21416"]` per cent at `21416` and by
+`{python} result["grid-crest-21415"]` per cent at `21415` in the last
+refinement, to `{python} result["fine-crest"]` m at `21416` on the finest
+grid.]{.claim type="numerically-verified" scope="the base run, grids of 32,
+16 and 8 arc-minutes over the domain and 4 arc-minutes near DART 21416"
+evidence="grid-study"} The arrival converges slowly; the crest has not
+converged on any grid of this page. The narrow band of uplift is only a few
+cells wide on the coarser grids, and the scheme smooths the short waves it
+starts. On finer grids those short waves survive, and without dispersion
+nothing in the model spreads them out again.
+
+### Boundaries, rotation, and the timing of the source
+
+Each variant against the base run on the same grid:
+
+```{python}
+#| label: sensitivity
+#| echo: false
+result.table("sensitivity")
+```
+
+[A domain twice as large changes the surface at the stations by at most
+`{python} result["boundary-gap-21416"]` mm at `21416` and
+`{python} result["boundary-gap-21415"]` mm at `21415` in their windows, the
+smaller domain of the finest run by at most `{python} result["near-gap"]` mm,
+the rotation moves the arrival by about `{python} result["rotation-shift"]`
+s, and cutting the USGS uplift off at the edge of its grid instead of
+tapering it moves the arrival by at most `{python} result["taper-arrival"]` s
+and the crest by at most `{python} result["taper-crest"]` per cent; lifting the sea floor all at once instead of in the order of the rupture
+brings the wave `{python} result["kinematic-shift-21416"]` min earlier to
+`21416` and `{python} result["kinematic-shift-21415"]` min earlier to
+`21415`.]{.claim type="numerically-verified" scope="the 16-arc-minute grid,
+and the 8-arc-minute grid for the smaller domain" evidence="sensitivity"}
+The boundaries, the rotation, and the taper of the source's edge are small
+effects here. The timing of the
+source is not: in the USGS model the rupture took up to
+`{python} result["onset-max"]` min to spread along the trench, and lifting
+the sea floor in its order delays the waves at both stations.
+
+### Against the records
+
+The metric of the requirements, for the records and for the model on its
+grids:
+
+```{python}
+#| label: comparison
+#| echo: false
+result.table("comparison")
+```
+
+```{python}
+#| label: fig-tsunami-comparison
+#| echo: false
+#| fig-cap: "At both stations the model's wave arrives before the recorded one; at the nearer station its crest on the finest grid stands far above the record, and the residuals in the shaded windows exceed the records' noise many times over."
+#| fig-alt: "Four panels in two columns, one column per DART station, time after the origin in minutes on the horizontal axes. Upper panels: the record as a solid line and the model as dashed lines, the window of comparison shaded grey. In the left column a dash-dotted line of the finest grid, ending earlier, rises to a sharp crest well above the record's crest, followed by a deep trough. In the right column the dashed model crest comes a few minutes before the record's crest at a similar height. Lower panels: the residuals, model minus record, with a horizontal zero line; they swing by up to about the size of the crests inside the shaded windows."
+#| fig-status: processed
+#| fig-dataset: kamchatka-2025-tsunami-inputs
+#| fig-artifact: processed-measured
+result.show("fig-tsunami-comparison")
+```
+
+[The records rise through half their crests `{python} result["obs-arrival-21416"]`
+min after the origin at `21416` and `{python} result["obs-arrival-21415"]` min
+at `21415`, to crests of `{python} result["obs-crest-21416"]` m and
+`{python} result["obs-crest-21415"]` m at `{python} result["obs-crest-at-21416"]`
+and `{python} result["obs-crest-at-21415"]` min.]{.claim type="observational"
+scope="the NCEI residuals divided by 0.670, one-minute samples, the windows of
+the requirements" evidence="comparison kamchatka-2025-tsunami-inputs"}
+
+[On the [8′]{.given} grid the model arrives `{python} result["early-21416"]` min
+early at `21416` and `{python} result["early-21415"]` min early at `21415`; on
+the finest grid at `21416` it is `{python} result["best-early-21416"]` min
+early. Its crest is `{python} result["ratio-21416"]` per cent of the record's at
+`21416` on the [8′]{.given} grid and `{python} result["best-ratio-21416"]` per
+cent on the [4′]{.given} grid, and `{python} result["ratio-21415"]` per cent at
+`21415`. The root-mean-square residual in the windows is
+`{python} result["rms-21416"]` m and `{python} result["rms-21415"]` m, still
+`{python} result["rms-shift-21416"]` m and `{python} result["rms-shift-21415"]` m
+after the time shift, many times the noise floors of
+`{python} result["floor-21416"]` m and `{python} result["floor-21415"]`
+m.]{.claim type="experimentally-supported" scope="the base model of this page
+against the two records in the windows of the requirements; the records
+without a published uncertainty per sample" evidence="comparison
+fig-tsunami-comparison grid-study kamchatka-2025-tsunami-inputs"}
+
+How far could the model move? Every change tried on this page moves the
+arrival and the crest by some amount; the last grid refinement stands in for
+the error of the finest grid, though the crest's refinement has not slowed:
+
+```{python}
+#| label: uncertainty
+#| echo: false
+result.table("uncertainty")
+```
+
+The spreads are added as if they were independent, which they need not be,
+and the grid's share is a lower bound for the crest, whose changes do not
+shrink. The table is an estimate of how far the model moves under the
+changes tried, not a confidence interval of the model.
+
+::: {.claim type="experimentally-supported" scope="the model of this page against DART 21416 and 21415, July 2025; the spreads of the uncertainty table as the model's uncertainty" evidence="comparison uncertainty grid-study sensitivity fig-tsunami-comparison"}
+**What the comparison supports.** The arrival at `21416` agrees with the
+record within the spread of the model, `{python} result["spread-a-21416"]`
+min; at `21415` the model is early by more than its spread of
+`{python} result["spread-a-21415"]` min, but its arrival there still moved by
+about two minutes in the last refinement, so the gap is not established. The
+crests do not agree: at `21416` the computed crest grows with every
+refinement and stands well above the record on the finest grid. The
+apparent agreement of the crest at `21415` on the [8′]{.given} grid is a
+property of that grid, not of the model, since the crest grew by
+`{python} result["grid-crest-21415"]` per cent in the last refinement. The
+residuals are many times the noise of the records at both stations. The
+model reproduces the order of the waves at the two stations, a crest
+followed by a trough, and their arrival to within minutes; it does not
+reproduce the recorded waveform.
+:::
+
+The comparison points at the model's missing physics more than at its
+numbers. The crest grows as the grid resolves the narrow uplift, and the
+first exercise shows that real waves of a few minutes' period would fall
+minutes behind on the way to the stations, spreading the crest out, while
+the model moves them all at $\sqrt{gh}$. The source matters as much: it is
+one inversion of the fault, used without the smoothing of the water column,
+and its timing alone moves the arrival by minutes.
+
+## Limits {#limits}
+
+- **Not a forecast and not a hazard model.** The model is teaching-scale and
+  non-operational; it says nothing about the waves at a coast, about
+  flooding, or about any future event.
+- **No dispersion.** The shallow-water equations move every wave at
+  $\sqrt{gh}$. The waves that a narrow source starts are short enough to
+  disperse, so the crest of the resolved model is too high and the
+  comparison of crests is no test of the source.
+- **Not converged.** The arrival converges slowly with the grid, the crest
+  not at all on the grids of this page. A run of the whole domain at
+  [4′]{.given} takes about a minute and is not part of the page or its
+  checks; finer grids would need the full-resolution bathymetry, which the
+  committed sample does not hold.
+- **An assumed source.** The USGS finite fault is one model of the
+  earthquake, without a published uncertainty, inverted without the DART
+  records. Its uplift is applied in steps at the times of its subfaults,
+  without the horizontal motion of the sea floor or the filtering of the
+  water column. Another fault model would give other waves.
+- **A coarse ocean.** The bathymetry is decimated and averaged; coasts are
+  walls of dry cells; there is no friction, no tide, and neither the
+  compressibility of the water nor the elasticity of the Earth.
+- **Two stations.** Two records cannot separate an error of the source from
+  an error of the propagation.
+
+::: {.not-verified}
+```python
+# The whole domain at 4 arc-minutes (about a minute; not run by the page):
+from pbc.fluids.experiments import reconstructing_the_2025_kamchatka_tsunami as e
+print(e.fine_check())
+```
+:::
+
+::: {.exercise .self-check}
+The crest at the nearer station matches the record within a fifth on the
+[8′]{.given} grid, and the model's volume budget closes to round-off. Does that
+validate the model's crest?
+
+::: {.choices}
+::: {.choice}
+Yes: the budget shows the computation is right, and the crest matches.
+
+::: {.feedback}
+No. The budget holds on any grid by construction; it says nothing about
+whether the crest has converged or whether the model's physics is right.
+:::
+:::
+
+::: {.choice correct="true"}
+No: the crest still changes by tens of per cent with each refinement, so the
+match belongs to the grid, not to the model.
+
+::: {.feedback}
+Right. Before a computed number is compared with a measurement, it has to be
+a property of the model rather than of its discretisation.
+:::
+:::
+:::
+
+::: {.solution}
+Verification asks whether the equations are solved correctly, validation
+whether they are the right equations. The budget and the benchmarks verify
+the solver; the grid study shows that the crest is not yet a property of the
+model, since it grows with every refinement. Only a converged number can be
+validated, and the converged crest of this model, without dispersion, lies
+above the record. A match on a coarse grid is two errors cancelling: the
+numerical smoothing of the scheme standing in for the physical spreading
+the equations leave out.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**How much does dispersion matter?** Linear water waves of angular frequency
+$\omega$ on water of depth $h$ obey $\omega^2 = gk\tanh(kh)$, and their energy
+travels at the group speed $d\omega/dk$. For periods of 4, 10 and 20 minutes,
+at the depth of each station, how much later than at $\sqrt{gh}$ would such a
+wave arrive over the station's observed travel time?
+
+::: {.hint}
+Solve the dispersion relation for $k$ by a root finder in a bracket: the
+root lies above both $\omega^2/g$ and $\omega/\sqrt{gh}$. The group
+speed follows by differentiating the relation with respect to $k$.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.wavenumber)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.dispersion)
+```
+
+```{python}
+#| echo: false
+result.table("dispersion")
+```
+
+Waves of the long periods of the recorded crests lose at most
+`{python} result["dispersion-long"]` min, less than the model's other
+uncertainties. Waves of a few minutes' period, which a narrow source starts
+and the finest grid resolves, fall `{python} result["dispersion-short"]` min
+or more behind: they leave the leading crest, which a dispersive model would
+therefore compute lower and broader than this one.
+:::
+:::
+
+::: {.exercise}
+**Does the Earth's rotation matter?** The Coriolis parameter is
+$f = 2\Omega\sin\phi$ with $\Omega = 7.29\times10^{-5}$ rad/s. Compare the
+inertial period $2\pi/f$ at 50° N with the travel times to the stations.
+
+::: {.hint}
+Rotation turns a flow noticeably only over a sizeable part of its inertial
+period.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.rotation)
+```
+
+The inertial period at that latitude is `{python} result["inertial-period"]` h,
+many times the hour or two the wave needs to reach the stations. In that time
+rotation turns the flow by only a small angle, and the sensitivity table
+confirms it: without rotation the arrival moves by about
+`{python} result["rotation-shift"]` s. For a tsunami crossing an ocean, over
+many hours, rotation would matter more.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/fluids/finite_volume.py",
+        "src/pbc/fluids/shallow_water.py",
+        "src/pbc/fluids/tsunami.py",
+        "src/pbc/fluids/tsunami_benchmarks.py",
+        "src/pbc/data/reference/kamchatka_tsunami.py",
+        "src/pbc/data/adapters.py",
+        "src/pbc/fluids/experiments/reconstructing_the_2025_kamchatka_tsunami.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_tsunami.py",
+        "tests/unit/test_reconstructing_the_2025_kamchatka_tsunami_experiment.py",
+    ],
+)
+```

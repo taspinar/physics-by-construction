@@ -23,6 +23,7 @@ from support import site_checks
 from support.paths import SITE_SOURCE
 from support.site_checks import _FORBIDDEN_IN_WIDGETS, PHONE, WCAG_TAGS, describe
 from support.site_server import SiteServer
+from support.slots import unfilled_slots
 
 from pbc.authoring.atlas import ATLAS_INTRODUCTION, Atlas, AtlasSection, AtlasSequence
 from pbc.authoring.glossary import Glossary
@@ -539,8 +540,12 @@ def test_published_and_planned_rows_differ_in_words_and_form(
     without_scripts: BrowserContext, server: SiteServer
 ):
     page = open_page(without_scripts, server)
-    show(page, "course-fluids")
-    planned = page.locator("#course-fluids .atlas-row.planned-slot").first
+    # A sequence with a planned capstone, read from the files rather than the
+    # Atlas under test, so that publishing a slot does not change the test.
+    slot = next(s for s in unfilled_slots() if "capstone" in s["kind"])
+    anchor = f"course-{slot['course']}" if "course" in slot else f"path-{slot['path']}"
+    show(page, anchor)
+    planned = page.locator(f"#{anchor} .atlas-row.planned-slot").first
     assert "planned" in planned.inner_text()
     assert (
         planned.locator(".atlas-planned-title").evaluate(
@@ -548,9 +553,9 @@ def test_published_and_planned_rows_differ_in_words_and_form(
         )
         == "italic"
     )
-    capstone = page.locator("#course-fluids .atlas-row-capstone")
+    capstone = page.locator(f"#{anchor} .atlas-row-capstone")
     assert "Capstone" in capstone.inner_text()
-    description = ATLAS.manifest.capstone("FL10").explanation
+    description = ATLAS.manifest.capstone(slot["label"]).explanation
     assert capstone.locator(".capstone-description").inner_text() == description
     show(page, "course-thermodynamics")
     t11 = page.locator("#course-thermodynamics .atlas-row-capstone a.lesson-link")
