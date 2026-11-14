@@ -175,7 +175,7 @@ MOCK_AGENT_ACTION="pwd -P >'$repo.cwd'" run_start "$repo" 10 --resume --agent cl
   fail "resuming a feature failed"
 }
 [[ "$(cat "$repo.cwd")" == "$worktree" ]] || fail "the resumed session did not run in the existing worktree"
-grep -Fq -- "--permission-mode acceptEdits --model model-c" "$repo.log" ||
+grep -Fq -- "--permission-mode auto --model model-c" "$repo.log" ||
   fail "the resumed session did not use the overridden agent and model"
 grep -Fq "You are resuming interrupted work on GitHub Issue #10" "$repo.log" || fail "the session was not told that it resumes"
 grep -Fq "left no handoff note" "$repo.log" || fail "the session was not told that there is no handoff note"

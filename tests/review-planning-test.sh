@@ -203,4 +203,45 @@ repo="$(setup_repo no-change-cycle)"
 run_review "$repo" || fail "a first planning review failed"
 if grep -Fq "This is a change cycle" "$repo.log"; then fail "a first planning was reviewed as a change cycle"; fi
 
+if grep -Fq "re-approval" "$repo.log"; then fail "a first planning was reviewed as a re-approval"; fi
+
+# A re-approval without a change request (Issue #512): the review is told the
+# commit of the last approval and gets the diff since then, so it reviews what
+# changed instead of the whole planning as new.
+approve_planning() {
+  local repo="$1"
+  local fingerprint
+
+  fingerprint="$(bash -c 'source "$1/scripts/lib/fingerprint.sh"; source "$1/scripts/lib/planning.sh"
+    scratch="$(mktemp -d)"; fingerprint_files "$1" "$scratch" "${PLANNING_SCOPE[@]}"; rm -rf "$scratch"' _ "$repo")"
+  printf '# Planning Approval\n\nStatus: Approved\nPlanning fingerprint: %s\n' "$fingerprint" >"$repo/docs/PLANNING_APPROVAL.md"
+  git -C "$repo" add -A
+  git -C "$repo" commit -qm "Approved planning"
+}
+repo="$(setup_repo reapproval)"
+approve_planning "$repo"
+approval_commit="$(git -C "$repo" rev-parse HEAD)"
+printf '\nChanged by merged work.\n' >>"$repo/docs/roadmap.md"
+git -C "$repo" commit -qam "A feature changed the roadmap"
+git -C "$repo" push -q origin HEAD:main
+git -C "$repo" fetch -q origin
+run_review "$repo" || {
+  cat "$repo.out" >&2
+  fail "the review of a re-approval failed"
+}
+grep -Fq "This is a re-approval without a change request" "$repo.log" || fail "the reviewer was not told that this is a re-approval"
+grep -Fq "approved in commit $approval_commit" "$repo.log" || fail "the reviewer was not told the commit of the last approval"
+grep -Fq "## Diff of the planning documents since the last approval ($approval_commit)" "$repo.log.stdin" ||
+  fail "the diff since the last approval was not supplied"
+grep -Fq "+Changed by merged work." "$repo.log.stdin" || fail "the change since the approval is not in the diff"
+grep -Fq "Scope:    re-approval" "$repo.out" || fail "the scope of the re-approval was not shown"
+
+# A change cycle keeps its full review, also after an approval.
+repo="$(setup_repo reapproval-change-cycle)"
+approve_planning "$repo"
+mkdir -p "$repo/docs/changes"
+printf 'Add a shopping list.\n' >"$repo/docs/changes/project-bootstrap.md"
+run_review "$repo" || fail "the review of a change cycle after an approval failed"
+if grep -Fq "re-approval" "$repo.log"; then fail "a change cycle was reviewed as a re-approval"; fi
+
 echo "review-planning tests passed"

@@ -1,7 +1,8 @@
 # Agent skills of the development workflow
 
 The audited, pinned skills that the planner, implementer, reviewer, and
-triage roles may use for visual work (ADR 019). A skill is guidance for an
+triage roles may use for visual work (ADR 019) and, with the teaching
+skill, for a lesson's teaching (ADR 023 decisions 1 and 2). A skill is guidance for an
 agent: never a dependency of the site, the build, a check, the deployment,
 or a CI job, and never evidence that a figure, a page, or a physics claim is
 correct. Only the skills configuration check (`skills-config` in
@@ -16,6 +17,7 @@ to validate.
 | [impeccable](impeccable/SKILL.md) | project adapter in front of the unmodified `reference/` files | `pbakaus/impeccable@08d5b470` | Required when a feature changes a major user-facing visual surface (the home, the atlas, a lesson page's frame) |
 | [diagram-design](diagram-design/SKILL.md) | project adapter, principles in project words | `cathrynlavery/diagram-design@550fd66e` | Required when a conceptual diagram is produced or substantially changed; science and semantics checked independently |
 | [pbc-scientific-visualization](pbc-scientific-visualization/SKILL.md) | project-owned | the digest of its record | Required for a new or substantially revised scientific figure; an exception is justified in the plan |
+| [pbc-physics-teaching](pbc-physics-teaching/SKILL.md) | project-owned | the digest of its record | Not a visual skill (ADR 023 decisions 1 and 2): selected by the plan of a feature that writes or revises a lesson's teaching (its sequence, explanations, exercises, or displayed code), or its non-use recorded with the reason on a line `Skills: none (<reason>)`; not applicable to a plan that changes no lesson's teaching |
 
 Manim is not part of the set (not scheduled); FreeCAD and OpenSCAD are not
 candidates. The audit of each third-party candidate and the owner's
@@ -35,7 +37,8 @@ installed globally or fetched at run time.
 ## Plan, completion, review
 
 - **The plan** classifies each new visual deliverable (page or layout,
-  conceptual diagram, scientific figure, animation, or none), names the
+  conceptual diagram, scientific figure, animation, or none) and, for a
+  lesson whose teaching it writes or revises, the teaching; it names the
   skills it selects on a line `Skills: <name>[@<revision>], ...` per
   deliverable, or `Skills: none (<reason>)`, and states the expected
   artifact, the scientific validation, and the accessible fallback. A
@@ -68,8 +71,8 @@ installed globally or fetched at run time.
 4. Open a pull request; the owner approves it. The check fails until the
    record and the files agree.
 
-The project-owned skill changes by an ordinary reviewed pull request; its
-digest is updated with every change.
+The project-owned skills change by an ordinary reviewed pull request; the
+digest of each is updated with every change.
 
 ## Discovery (F122 criterion 2)
 

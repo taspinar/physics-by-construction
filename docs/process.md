@@ -254,6 +254,32 @@ counts as not complete whatever the record says.
   copies them into the pull request, which closes the Issue only on
   `complete`.
 
+## The planning approval
+
+- **Planning reviews** (`scripts/review-planning.sh`,
+  `scripts/revise-planning.sh`, `scripts/finish-planning.sh`; Issue #512):
+  the planning reviewer reports a stale or inconsistent statement once for
+  its whole class, with every location, and the reviser fixes the whole class
+  (`.agents/prompts/planning-reviewer.md`, `.agents/prompts/planning-reviser.md`).
+  A re-approval without a change request is reviewed for what changed since
+  the commit of the last approval. A `suggestion` needs no revision round:
+  the approval lists it for the next cycle; critical, major, and minor
+  findings keep their rules. `revise-planning.sh --unattended` records the
+  decisions without the owner and stops on an escalation; only
+  `finish-planning.sh` records the owner's approval.
+- **Notes of owner decisions** (`scripts/lib/planning.sh`,
+  `planning_note_errors`): a decision the owner already took is recorded in
+  the requirements or the roadmap as a dated note that cites the owner's
+  comment and changes no existing line. The reviser may add one instead of
+  escalating; `finish-planning.sh --amend` approves notes without a review
+  round, also in a feature worktree; anything else, a new or changed
+  requirement, needs a change cycle with Project Grill.
+- **No silent drift**: a branch that changes the description, the
+  requirements, a change request, or the roadmap without a current planning
+  approval is refused by `scripts/finish-feature.sh` and fails the check
+  `planning-drift` (`scripts/check-guardrails.sh --planning`, group `code`)
+  locally and in CI.
+
 ## The owner's approval and the merge
 
 - **The merge approval gate** (`scripts/check-guardrails.sh`,
@@ -280,6 +306,18 @@ dependency of the build or CI and never evidence (ADR 019 decisions 1, 3, and
 5; `AGENTS.md`, "Visual deliverables and skills"). The check `skills-config`
 (`src/pbc/skills.py`) validates them; a missing selected skill fails the
 feature visibly.
+
+The teaching skill `pbc-physics-teaching` is the one skill of the set that
+is not visual (ADR 023 decisions 1 and 2). The plan of a feature that
+writes or revises a lesson's teaching (its sequence, explanations,
+exercises, or displayed code) selects it on its `Skills:` line, or records
+why it is not useful on a line `Skills: none (<reason>)`, a second one where
+the plan selects other skills; a plan that changes no lesson's teaching (a
+check, a figure style, the chrome) records it there as not applicable. The
+implementer records where it changed the learning experience, not that it
+was read; the reviewer reports named pedagogical weaknesses with evidence
+and an action, never a score. The selection adds no review role, agent,
+model call, or review round.
 
 ## Proposals, not rules
 

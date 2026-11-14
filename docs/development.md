@@ -214,6 +214,7 @@ in `scripts/verify-workflow.conf`. They run in this order:
 | `lint`, `format` | Ruff on the Python sources. |
 | `unit-tests` | pytest on `tests/unit`: the behaviour of `src/pbc`. |
 | `starters` | `python -m pbc.products.starters`: the tests of every starter under `products/*/starter/` against the current tree, and at its pin, the commit taken from the repository's own history without a fetch (the CI job of the group `code` checks out the full history); a `pending` pin is skipped and the skip named (ADR 022 decision 5; `docs/products.md`). |
+| `planning-drift` | `scripts/check-guardrails.sh --planning`: a branch that changes the description, the requirements, a change request, the roadmap, or the planning approval against where it left `main` fails unless the recorded planning approval is current for that change, after a planning cycle or `finish-planning.sh --amend` (dated notes of owner decisions; Issue #512). In the group `code`, whose CI job has the full history. |
 | `skills-config` | `python -m pbc.skills`: every agent skill under `.agents/skills/` has its `SKILL.md` and a provenance record with the required fields whose digest matches its files, the README of the directory lists exactly those skills, and every skill a feature plan names on a `Skills:` line exists at the revision it gives (ADR 019). The one check that reads the directory, as data. |
 | `lean-build` | `scripts/check-lean.sh`: takes Mathlib from its build cache and never compiles it from source, builds every module under `lean/PhysicsByConstruction/`, then audits every declaration. A declared `axiom`, a `sorry`, or any axiom besides Lean's three standard ones fails the check. A passed check writes `lean/.lake/pbc-build-record.json` (the versions and a checksum of every module), which the pages of the `lean` strand read; a failed check removes it. |
 | `check-tests-quarto`, `check-tests-browser`, `check-tests-other` | Three checks that together are pytest on `tests/integration`: every check fails on an input that violates it, a lesson made from the template passes, and the CI workflow keeps its permission boundaries. The first names the files that build fixture sites with Quarto, the second the files that need the browser, and the third runs every other file, so a new file runs without a change; CI runs them in three jobs that prepare only what each part needs (`docs/verification-audit.md`, "Division into independent parts"). `tests/integration/test_site_check_division.py` proves by collection that every test runs exactly once. |
@@ -584,8 +585,8 @@ per line:
 
 | Role | Used by |
 |---|---|
-| `project-grill`, `project-planner` | `start-planning.sh` |
-| `planning-reviewer` | reserved for planning review |
+| `project-grill`, `project-planner` | `start-planning.sh`; `project-planner` also `revise-planning.sh` |
+| `planning-reviewer` | `review-planning.sh` |
 | `implementer` | `start-feature.sh` |
 | `reviewer` | `review-feature.sh` |
 | `triage` | `triage-review.sh` |
@@ -593,7 +594,10 @@ per line:
 
 Supported providers are `codex` and `claude`. Set each model to one your
 account supports, and use a different provider for a reviewing role than for
-the role whose work it reviews.
+the role whose work it reviews. This project's exception: the planning roles
+all run on `claude opus` (the owner's rule of 2026-11-13, Issue #512),
+because the planning exceeds Codex's input limit; the planning reviewer stays
+a separate, read-only session.
 
 Every workflow script accepts `--agent <agent>` and `--model <model>` to
 override the configuration for one run. Overriding the provider requires a
@@ -610,8 +614,10 @@ reviewing role is always read-only; a writing role gets `write`, or
 
 - `write`: an interactive session that may modify its worktree and use the
   network, for example to install dependencies and run builds. Anything beyond
-  that needs your permission. Claude accepts edits automatically and asks you
-  before it runs a shell command. Codex works without asking inside a
+  that needs your permission. Claude runs in its `auto` permission mode: its
+  own check allows harmless reads, edits, and the usual commands without
+  asking, and asks you only for an action it does not allow by itself (Issue
+  #512; before, it asked before every shell command). Codex works without asking inside a
   workspace-write sandbox with network access and asks you when a command
   needs to leave that sandbox, for example to write outside the worktree;
   Codex has no setting that asks per command without a sandbox. Used for
@@ -718,11 +724,17 @@ planning worktree:
 ```
 
 It uses role `planning-reviewer` with the `read-only` profile; configure a
-different provider than for `project-planner`. The reviewed file set is the
+different provider than for `project-planner` where its limits allow (see the
+exception above). The reviewed file set is the
 planning documents: `docs/PROJECT_DESCRIPTION.md` when present,
 `docs/PROJECT_REQUIREMENTS.md`, `docs/architecture.md`, `docs/roadmap.md`, and
 the ADRs in `docs/decisions/`. The script supplies their contents and their
-diff against `origin/main`. The requirements must be approved first.
+diff against `origin/main`. The requirements must be approved first. The
+reviewer reports a stale or inconsistent statement once for its whole class,
+with every location. A re-approval without a change request, after merged
+work changed an approved planning, also gets the commit of the last approval
+and the diff since then, and is reviewed for what changed and its consistency
+with the rest (Issue #512); a change cycle keeps its full review.
 
 Each round is stored as `.agents/reviews/planning-<name>-review-NN.json` with
 a generated report, in the same format as feature reviews but without an Issue.
@@ -749,11 +761,23 @@ It uses role `project-planner` in two phases:
    escalated. The decisions are validated like review results, shown to you,
    and recorded only after your approval, as
    `.agents/reviews/<review>-revision.json` with a generated report.
-2. **Revise.** A write session resolves exactly the adopted findings. It may
-   change only `docs/architecture.md`, `docs/roadmap.md`, and direct Markdown
-   ADRs. Any other change, including to the requirements, the description, or
-   a review artifact, and any commit fails the run and keeps the worktree for
+2. **Revise.** A write session resolves exactly the adopted findings, each
+   for the whole class it names. It may change only `docs/architecture.md`,
+   `docs/roadmap.md`, and direct Markdown ADRs, and add dated notes of
+   decisions you already took to the requirements: a new paragraph beginning
+   with `*Note of the owner's decision of YYYY-MM-DD (<URL of your
+   comment>).*` that changes no existing line, instead of escalating. Any
+   other change, including a changed requirement, the description, or a
+   review artifact, and any commit fails the run and keeps the worktree for
    inspection.
+
+With `--unattended` (`--agent` and `--model` as usual) no terminal is needed:
+the decisions are recorded without asking, and the revision says that no
+human approved them; the adopted findings are revised in an unattended
+session. The run stops with status 3, before any revision, when a finding is
+escalated, and when the planner ends with a `BLOCKED:` line. Nothing is
+approved; your approval stays in `finish-planning.sh`. A review with only
+suggestions needs no revision round.
 
 Escalated findings are listed with the next step: change the requirements
 through Project Grill and approve them again, or decide that the finding does
@@ -774,9 +798,12 @@ When the latest review round is resolved, approve the planning:
 
 The script refuses when a required document is missing, the requirements are
 not approved, there is no planning review, the latest review is stale, the
-latest round has a critical or major finding, a finding of the latest round
-has no revision decision, an adopted finding is not applied yet, or a finding
-of the latest round is escalated. It shows every rejected, deferred, and
+latest round has a critical or major finding, a minor finding of the latest
+round has no revision decision, an adopted minor finding is not applied yet,
+or a finding of the latest round is escalated. Suggestions do not stop it:
+they are shown and listed in the approval for the next cycle (Issue #512).
+The notes of your decisions that the planning adds to the requirements and
+the roadmap are listed before you approve, and in the approval. It shows every rejected, deferred, and
 escalated finding of all rounds, also before a refusal. A finding escalated in
 an earlier round is not resolved by a newer review alone: you confirm that it
 was resolved, and the approval records that. The approval covers exactly the
@@ -841,6 +868,7 @@ Which route a change needs:
 | New or changed requirement | Sharing between households when one household was agreed | Requirements, and usually architecture, roadmap, and ADRs | `--change --grill` |
 | Technical change only | From local storage to a server database | Architecture and an ADR that supersedes the old one | `--change` |
 | Small technical amendment | One ADR gets an addition | Architecture and ADRs only | `finish-planning.sh --amend`, without a review |
+| A decision you already took | A requirement sentence is stale since your comment on an Issue | A dated note of the decision, with the URL of your comment, in the requirements or the roadmap | `finish-planning.sh --amend`, without a review, also in a feature worktree |
 
 Write the change down in a short file, in your own words, and start the cycle
 from a clean primary checkout:
@@ -915,11 +943,30 @@ fingerprint, so the approval is current again. The earlier review rounds stay
 in the record, and the entry says that no independent review took place.
 Commit, push, and merge as the script prints.
 
+The same route records a decision you already took (Issue #512): a dated
+note in `docs/PROJECT_REQUIREMENTS.md` or `docs/roadmap.md`, a new paragraph,
+with a blank line before it, that begins with
+
+```markdown
+*Note of the owner's decision of 2026-11-13 (https://github.com/<owner>/<repo>/issues/<n>#issuecomment-<id>).* The decision.
+```
+
+and changes no existing line. The URL is that of your comment, review, or
+review comment on GitHub. The script lists each note it adds, and the
+approval records them. It runs on a `planning/<name>` branch and on a
+`feature/<issue>-<name>` branch, so a feature that brings a planning document
+in line with your decision carries the amendment in its own pull request and
+the approval stays current: `finish-feature.sh` then commits it, and the
+check `planning-drift` passes. A later change to a planning document makes
+the amendment stale; run `--amend` again.
+
 Your approval is the only check here, so the route is narrow. The script
 refuses, and points to the change cycle, when:
 
-- the requirements, the roadmap, the project description, or a change request
-  changed;
+- the requirements or the roadmap changed by anything but such notes (a
+  changed or removed line, text that is not a note, a note without the URL of
+  a comment, a note that adds a heading), or the project description or a
+  change request changed;
 - an ADR was deleted, since a decision is superseded, not removed;
 - the planning on `main` has no current approval. An amendment does not repair
   a missing or stale approval;

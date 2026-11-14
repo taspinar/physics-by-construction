@@ -541,7 +541,8 @@ revision_artifact_errors() {
       "the file is not a revision/v1 artifact"
     else
       unexpected(["approved_at", "branch", "decisions", "planner", "review_round", "reviewed_tree",
-                  "schema", "source_review"]; "the revision"),
+                  "schema", "source_review", "unattended"]; "the revision"),
+      (if has("unattended") and .unattended != true then "the revision field unattended must be true when present" else empty end),
       (if (.approved_at | type) == "string"
           and (.approved_at | test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")) then empty
        else "the revision has no valid UTC approval timestamp" end),
@@ -577,7 +578,7 @@ revision_render_markdown() {
     "# Planning Revision — \(.branch), review round \(.review_round)\n\n" +
     "Source review: `\(.source_review)`\n\n" +
     "Planner: \(.planner.agent) (\(.planner.model))\n\n" +
-    "Approved at: \(.approved_at)\n\n" +
+    "Approved at: \(.approved_at)\(if .unattended == true then ", by an unattended run; no human approved these decisions" else "" end)\n\n" +
     group("ADOPT"; "Adopted") + "\n" +
     group("REJECT"; "Rejected") + "\n" +
     group("DEFER"; "Deferred") + "\n" +
