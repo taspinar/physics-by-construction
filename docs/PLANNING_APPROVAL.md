@@ -1,11 +1,11 @@
 # Planning Approval
 
 Status: Approved
-Approved at: 2026-11-13T22:51:20Z
+Approved at: 2026-11-14T03:20:00Z
 Planning branch: planning/teaching-by-construction
 Change request: docs/changes/teaching-by-construction.md
-Final review: round 5, PASS, by claude (opus)
-Planning fingerprint: c2388c9576b48243d72765ec958727c89ee841c5
+Final review: round 6, PASS, by claude (opus)
+Planning fingerprint: bef895344718b58beaf8abf71229952691500fcf
 
 Recorded by `scripts/finish-planning.sh`. The approval covers these planning
 documents. A change to the description, the requirements, a change request, or the
@@ -86,6 +86,7 @@ under its own review. This approval covers the documents including them.
 - d1be840 Home: the hero as one large fluid-dynamics illustration (#482) (#485)
 - 3b6b5ab Course Atlas: inline expanding courses, simpler introduction, lesson rows and progress (#483) (#486)
 - b2e5079 Home: the hero is the double-pendulum illustration, wider, with the left side faded into the page (#487) (#490)
+- d1ac6a8 Planning teaching-by-construction: name the skills README as the README of .agents/skills/, so the structural checks pass without the skills (CI on 5d35ecf, test_skills_boundary)
 
 ## Review rounds
 
@@ -94,6 +95,7 @@ under its own review. This approval covers the documents including them.
 - Round 3: PASS WITH MINOR FINDINGS, 1 finding(s), by claude (opus)
 - Round 4: PASS WITH MINOR FINDINGS, 1 finding(s), by claude (opus)
 - Round 5: PASS, 0 finding(s), by claude (opus)
+- Round 6: PASS, 0 finding(s), by claude (opus)
 
 ## Findings that were not adopted
 
