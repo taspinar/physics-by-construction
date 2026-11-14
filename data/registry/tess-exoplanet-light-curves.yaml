@@ -37,6 +37,12 @@ rights:
     Program. STScI is operated by the Association of Universities for Research in Astronomy, Inc., under
     NASA contract NAS5-26555. File tess2020238165205-s0029-0000000100100827-0193-s_lc.fits (doi 10.17909/t9-nmc8-f686);
     four columns converted to CSV, values unchanged.'
+  figure_credit:
+    short: 'Data: NASA TESS mission (SPOC light curve), via MAST at STScI; public domain'
+    visible: not-required
+    source: 'https://archive.stsci.edu/publishing/data-use, read 2026-11-08: public domain, no restrictions
+      on use; the acknowledgement is expected, not a condition, and a portable figure carries it in full
+      in its metadata and at the caption of its page (Issue #524)'
 artifacts:
 - name: tess2020238165205-s0029-0000000100100827-0193-s_lc.fits
   type: calibrated-observation

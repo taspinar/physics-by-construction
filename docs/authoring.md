@@ -1802,7 +1802,23 @@ An agent may help a learner explore, but its conclusions are never data.
    and sample directories to the figure cell, also through earlier cells,
    and fails a figure that is made from a dataset and names none. What that
    analysis cannot see is listed in `docs/architecture.md` ("Measured-data
-   lab"); a reviewer checks those cases by reading;
+   lab"); a reviewer checks those cases by reading. A figure of the pilot
+   of portable provenance (Issue #524: `fig-transit-fit` of AST8,
+   `fig-stress-strain` of MAT6, `fig-impedance-fit` of the RLC lab)
+   declares it instead of painting it: the experiment records the figure
+   with `experiment.figure(label, draw, provenance=FigureProvenance(...))`
+   (`pbc.data.figure_provenance`: the status, the dataset, the statuses it
+   combines such as `("simulated",)` for fitted models, the processing),
+   the draw function calls neither `label_status` nor `add_credit` and
+   marks each legend entry with `role(artist, status)`, and the card holds
+   `rights.figure_credit` (`short`, `visible`, `source`). The encoder writes
+   the record into the PNG, paints the short credit under the axes where the
+   card makes it `required`, and the post-render step
+   `site/figure-credits.py` adds the combined statuses, the short credit,
+   and a closed "Full provenance" disclosure to the caption. The cell keeps
+   `fig-status` and `fig-dataset`, which the source check holds equal to
+   the declaration. Every other figure keeps the painted status and credit
+   until the rollout (F173);
 5. fits with `pbc.data.fit.fit_curve` and reports `FitResult.stderr`,
    `reduced_chi2`, and `warnings`. A parameter the data cannot tell apart is
    reported as not identified, with an infinite standard error, and the page

@@ -36,6 +36,12 @@ rights:
     file, unmodified. This data/work was created by employees of NIST and is not subject to copyright protection
     in the United States (17 U.S.C. 105); it may be subject to foreign copyright. Provided by NIST ''AS
     IS'', without warranty.'
+  figure_credit:
+    short: 'Data: NIST; Luecke, Rust, Iadicola, Numisheet 2020, doi 10.18434/M32202'
+    visible: required
+    source: 'https://www.nist.gov/open/license, section ''Fair Use of Other NIST Data/Works'', read 2026-11-08:
+      NIST is to be acknowledged explicitly as the source, so a figure saved without its page names NIST
+      on its face (Issue #524)'
 artifacts:
 - name: C00FeDP980Numisheet2020R01T1.424W17.93-S-Stress-Strain.csv
   type: processed-measured

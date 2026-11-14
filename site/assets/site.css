@@ -1295,6 +1295,36 @@ main figcaption {
   color: var(--pbc-status-conceptual-fg);
 }
 
+/* A figure that declares its provenance (Issue #524): what it combines
+   follows its status, and its short credit and the full provenance close
+   the caption, as text the page holds without a script. */
+.figure-combines {
+  margin-right: var(--pbc-space-2);
+  font-weight: 600;
+}
+
+.figure-credit {
+  display: block;
+  margin-top: var(--pbc-space-1);
+}
+
+.figure-provenance > summary {
+  cursor: pointer;
+}
+
+.figure-provenance dl {
+  margin: var(--pbc-space-1) 0 0;
+}
+
+.figure-provenance dt {
+  font-weight: 600;
+}
+
+.figure-provenance dd {
+  margin: 0 0 var(--pbc-space-1);
+  overflow-wrap: anywhere;
+}
+
 /* An annotated excerpt: line numbers and the marks are generated content, so
    the listing's text stays the source. A marked line is bold, has a heavy
    rule on its left and says which note explains it, so it does not depend

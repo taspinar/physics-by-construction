@@ -8,6 +8,7 @@ project:
   # after it read the finished pages.
   post-render:
     - context.py
+    - figure-credits.py
     - skip-link.py
     - mark.py
     - search-fallback.py

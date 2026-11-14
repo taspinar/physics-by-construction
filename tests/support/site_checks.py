@@ -16,6 +16,7 @@ from collections import Counter
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
+from html import escape as html_escape
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
@@ -29,7 +30,7 @@ from pbc.authoring import selection as selecting
 from pbc.authoring.design import CONTROL_CONTRAST, contrast_ratio
 from pbc.authoring.path import LearningPath
 from pbc.authoring.progress import EXPORT_FILE, STORAGE_KEY
-from pbc.data import REGISTRY_DIR
+from pbc.data import REGISTRY_DIR, figure_provenance
 from pbc.data.card import load_card
 from pbc.data.status import allowed_statuses, artifact_types, needs_artifact
 from support.paths import BUILT_SITE, REPO_ROOT
@@ -199,6 +200,81 @@ def check_figure_datasets(
                         attributes.get("data-artifact"),
                     )
                 )
+    return violations
+
+
+_FIGURE = re.compile(r"<figure\b[^>]*>.*?</figure>", re.DOTALL)
+_FIGURE_IMAGE = re.compile(r'<img\b[^>]*?\bsrc="([^"]+)"')
+_FIGURE_STATUS = re.compile(r'<span class="figure-status"([^>]*)>')
+
+
+def _figure_credit_problems(
+    figure: str, page_dir: Path, registry_dir: Path
+) -> list[str]:
+    image = _FIGURE_IMAGE.search(figure)
+    png = None if image is None else page_dir / unquote(image.group(1))
+    record = (
+        figure_provenance.read_metadata(png.read_bytes())
+        if png is not None and png.suffix == ".png" and png.is_file()
+        else {}
+    )
+    credits = figure.count('<span class="figure-credit">')
+    details = figure.count('<details class="figure-provenance">')
+    if "pbc:schema" not in record:
+        if credits or details or "figure-combines" in figure:
+            return ["a caption carries a figure credit, but its PNG no record"]
+        return []
+    label = record.get("pbc:figure", "?")
+    dataset = record.get("pbc:dataset", "")
+    if not (registry_dir / f"{dataset}.yaml").is_file():
+        return [f"{label}: no card for {dataset!r}"]
+    card = load_card(registry_dir / f"{dataset}.yaml")
+    rights = card["rights"]
+    out = []
+    short = rights["figure_credit"]["short"]
+    if record.get("pbc:credit") != short:
+        out.append(f"{label}: the PNG's credit is not the card's")
+    if record.get("pbc:attribution") != " ".join(str(rights["attribution"]).split()):
+        out.append(f"{label}: the PNG's attribution is not the card's")
+    shown = f'<span class="figure-credit">{html_escape(short)}</span>'
+    if credits != 1 or figure.count(shown) != 1:
+        out.append(f"{label}: the caption does not show the card's short credit once")
+    attribution = html_escape(" ".join(str(rights["attribution"]).split()))
+    if details != 1 or attribution not in figure:
+        out.append(f"{label}: the caption has no full provenance with the attribution")
+    status = _FIGURE_STATUS.search(figure)
+    attributes = (
+        {}
+        if status is None
+        else dict(re.findall(r'([\w-]+)="([^"]*)"', status.group(1)))
+    )
+    if attributes.get("data-status") != record.get("pbc:status"):
+        out.append(f"{label}: the caption's status is not the PNG's")
+    combines = record.get("pbc:combines", "")
+    found = re.search(r'class="figure-combines" data-combines="([^"]*)"', figure)
+    if (found.group(1) if found else "") != combines:
+        out.append(f"{label}: the caption does not state the combined {combines!r}")
+    return out
+
+
+def check_figure_credits(
+    site_dir: Path, registry_dir: Path = REGISTRY_DIR
+) -> list[Violation]:
+    """A figure whose PNG carries a provenance record (Issue #524) states at
+    its caption the PNG's status and combined statuses, its card's short
+    credit once, and the card's full attribution in a ``<details>``; the
+    record agrees with the card; and no caption carries a credit for a PNG
+    without a record."""
+    violations = []
+    for page in html_pages(site_dir):
+        text = page.read_text(encoding="utf-8")
+        for figure in _FIGURE.findall(text):
+            violations.extend(
+                Violation("figure-credit", _name(site_dir, page), problem)
+                for problem in _figure_credit_problems(
+                    figure, page.parent, registry_dir
+                )
+            )
     return violations
 
 

@@ -1867,6 +1867,37 @@ for that review. If the metadata cannot be kept opt-in, F172 changes
 every figure's bytes and is reviewed as a figure change across the whole
 site.
 
+Delivered by the pilot F172 (Issue #524) on `fig-transit-fit` (AST8),
+`fig-stress-strain` (MAT6), and `fig-impedance-fit` (the RLC lab of the
+electromagnetism course). The declaration is
+`pbc.data.figure_provenance.FigureProvenance`, passed by the experiment as
+`Experiment.figure(..., provenance=...)`, which is the opt-in; the card's
+`rights.figure_credit` holds the short credit, whether the card's terms
+require it visible on a portable figure, and why (the per-card rights
+check: a CC BY card requires it and names the licence, and the card
+permits figures and modification). `encode(draw, metadata=..., credit=...)`
+writes the record as PNG text chunks in a fixed order (`Title`,
+`Description`, `Source`, and the `pbc:` keys of the declaration and the
+card; no date, software, author, or copyright field) and paints the one
+required line below the figure; called without them it is the encoder of
+every other figure, byte for byte. The page's caption is completed after
+the render by `site/figure-credits.py` (`pbc.authoring.figure_credits`)
+from the PNG's record and the card, and the build fails when the caption's
+`fig-status` or `fig-dataset` or the card disagrees with the record; the
+lesson filter is unchanged. The checks: `check_figure(...,
+declared=status)` (no painted status or credit, every other convention),
+`check_roles` (each legend entry has a declared role, a model is never
+solid, a measurement beside a model never dashed), `check_png` (the record
+equals the declaration and the card, no ownership wording), the lesson
+source check (the cell names the declared status, dataset, and artifact),
+and the built-site check `check_figure_credits`. ADR 016 decision 2 names
+"no metadata" for the deterministic output of ADR 002; the record is
+deterministic and written by the one encoder, and only for the declared
+figures. The evidence and the branding examples are summarised in the
+feature's plan (images are not committed outside `site/assets/`); the
+visualization credit stays off
+(`VISUALIZATION_CREDIT`) until the owner's choice on the Issue.
+
 **Figure language** (V1, F170 and F171). An audit of six figure classes
 (trajectory, multi-series numerical comparison, phase space, convergence
 on log–log axes, heatmap or field, measured versus model with residuals)
