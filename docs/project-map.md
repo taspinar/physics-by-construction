@@ -130,7 +130,7 @@ the website describes the current template.
 | `scripts/start-planning.sh` | Project Grill, requirements approval, and project planning in a planning worktree |
 | `scripts/review-planning.sh` | Independent, read-only review of the planning documents |
 | `scripts/revise-planning.sh` | The planner's decision per planning finding, then the revision |
-| `scripts/finish-planning.sh` | Checks and records your approval of the planning; `--check` tests it |
+| `scripts/finish-planning.sh` | Checks and records your approval of the planning; `--check` tests it; `--amend` approves an architecture or ADR change, or dated notes of your decisions, without a review |
 | `scripts/create-feature-issue.sh` | Creates the Issue of one roadmap feature |
 | `scripts/start-feature.sh` | Creates the feature worktree and starts the implementer |
 | `scripts/review-feature.sh` | Independent, read-only review of the complete feature diff, or with `--changes` of what changed since the previous round; records the risk level and tells the reviewer the verification state of the round; a Level 3 change is reviewed on the full run, or with `--feedback` in an intermediate round, which takes a recorded full pass when there is one |
@@ -140,7 +140,7 @@ the website describes the current template.
 | `scripts/run-feature.sh` | Runs a feature from `start-feature.sh` to `publish-feature.sh` without questions: resumes the implementer until the completion gate passes, then at most five review rounds, the last of the complete feature (at Level 3 on the feedback of a partial run until one is clean, then one on the full verification); repeats a failed verification in the tier the step ran; records the start, the end, and the duration of every step; never merges and never removes a worktree |
 | `scripts/publish-feature.sh` | Pushes the feature branch and opens its pull request, which closes the Issue only for a complete feature, is ready for review but keeps the Issue open while criteria are pending for later gates, and is a draft otherwise; with `--wait` stays until CI finishes; never merges |
 | `scripts/merge-feature.sh` | The merge step: merges a feature's pull request only on GitHub's decision, and one that needs the owner only with the approving review of exactly its head by the owner's identity (ADR 020 decision 3) |
-| `scripts/check-guardrails.sh` | The merge approval gate: reports which changes of a feature need the owner's approval, by the rules of its base |
+| `scripts/check-guardrails.sh` | The merge approval gate: reports which changes of a feature need the owner's approval, by the rules of its base; `--planning` is the check `planning-drift` |
 | `scripts/check-review.sh` | Reports whether a review still matches what it covers |
 | `scripts/update-issue-with-plan.sh` | Links an optional feature plan to its Issue |
 | `scripts/cleanup-worktree.sh` | Removes a merged worktree and its branch and updates `main` |

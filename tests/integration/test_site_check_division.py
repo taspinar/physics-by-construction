@@ -45,9 +45,10 @@ ORIGINAL = [
     "documentation",
 ]
 # The checks added since, outside the divisions: the per-lesson check of the
-# targeted run (F119), the skills configuration check (F122), and the starter
-# checks of the Part B products (F138).
-ADDED = ["lesson-pages", "skills-config", "starters"]
+# targeted run (F119), the skills configuration check (F122), the starter
+# checks of the Part B products (F138), and the check that the approved
+# planning does not drift (Issue #512).
+ADDED = ["lesson-pages", "skills-config", "starters", "planning-drift"]
 
 
 def _collected(result: subprocess.CompletedProcess[str]) -> list[str]:

@@ -235,7 +235,7 @@ repo="$(setup_repo edits-triage)"
 if MOCK_AGENT_ACTION="chmod 600 '$repo/$triage'" run_apply "$repo" y "$triage" --agent claude --model model-c; then
   fail "a changed triage artifact returned success"
 fi
-grep -Fq -- "--permission-mode acceptEdits --model model-c" "$repo.log" ||
+grep -Fq -- "--permission-mode auto --model model-c" "$repo.log" ||
   fail "overridden Claude agent was not started write-capable with its model"
 
 repo="$(setup_repo deletes-review)"

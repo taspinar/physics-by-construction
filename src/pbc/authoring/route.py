@@ -759,6 +759,12 @@ GROUPS = (
                 " each, and must see each check fail",
                 ("check-tests-quarto", "check-tests-browser", "check-tests-other"),
             ),
+            Coverage(
+                "No branch changes the approved planning (the description, the"
+                " requirements, a change request, or the roadmap) unless the"
+                " owner's planning approval is current for that change",
+                ("planning-drift",),
+            ),
         ),
         more=(
             "The {self_tests} self-tests of the workflow scripts (the start"

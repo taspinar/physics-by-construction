@@ -64,7 +64,29 @@ flowchart TD
 ```
 
 - A revision that adopts findings changes the planning documents, so the
-  review becomes stale and the next step is a new review round.
+  review becomes stale and the next step is a new review round. The reviewer
+  reports a stale or inconsistent statement once for its whole class, with
+  every location, and the reviser fixes the whole class, so a round does not
+  find the next instance of the same class (Issue #512).
+- A finding of severity `suggestion` needs no revision round:
+  `finish-planning.sh` finishes a planning whose latest round has only
+  suggestions, or whose only open findings are suggestions, and lists them in
+  the approval for the next cycle.
+- `revise-planning.sh --unattended` decides and revises without a terminal:
+  the decisions are recorded without your approval (the revision says so), and
+  the run stops before any revision when a finding is escalated or the planner
+  reports `BLOCKED:`. Nothing is approved; your approval stays in
+  `finish-planning.sh`.
+- When a requirement is stale because you already decided otherwise, in a
+  comment the reviser can cite, the reviser adds a dated note of that decision
+  to the requirements instead of escalating: a new paragraph beginning with
+  `*Note of the owner's decision of YYYY-MM-DD (<URL of the comment>).*` that
+  changes no existing line. `revise-planning.sh` refuses any other change of
+  the requirements, and `finish-planning.sh` lists every note before you
+  approve.
+- A re-approval without a change request, after merged work changed the
+  planning, is reviewed for what changed since the commit of the last approval
+  and its consistency with the rest; a change cycle keeps its full review.
 - When the planner rejects or defers every finding, nothing changes and you
   can finish directly.
 - A finding that the planner escalates needs your decision: either it does not
@@ -109,6 +131,7 @@ flowchart TD
 | New or changed requirement | Requirements, and usually architecture, roadmap, and ADRs | Yes: `--grill`, about the change only |
 | Technical change only | Architecture and an ADR that supersedes the old one | No |
 | Small technical amendment | Architecture and ADRs only | No change cycle: `finish-planning.sh --amend`, your approval without a review |
+| A decision you already took | A dated note of it, with the URL of your comment, in the requirements or the roadmap | No change cycle: `finish-planning.sh --amend`, also in the feature worktree, so the feature's pull request carries it |
 
 - The change request is kept as `docs/changes/<name>.md`; the original
   description is not touched.
@@ -117,6 +140,11 @@ flowchart TD
   removed feature ID and a deleted ADR; the reviewer checks the rest.
 - Between the change and its merged approval no new feature Issue can be
   created. Features in progress continue.
+- A feature that changes the description, the requirements, a change request,
+  or the roadmap without a current approval is refused by
+  `finish-feature.sh`, and fails the check `planning-drift`
+  (`check-guardrails.sh --planning`) locally and in CI, so the approval never
+  becomes stale unnoticed.
 
 ### Feature phase
 
@@ -277,7 +305,7 @@ exits with status 3.
 | `start-planning.sh` | `project-grill` (write), then `project-planner` (write) | Approve the requirements | Description, requirements, architecture, roadmap, ADRs | Yes, with the planning PR | No |
 | `start-planning.sh <name> --change <file>` | `project-planner` (write); with `--grill` first `project-grill` (write) | Approve changed requirements, with `--grill` | The change request; the roadmap, architecture, or ADRs; with `--grill` the requirements | Yes, with the planning PR | No |
 | `review-planning.sh` | `planning-reviewer` (read-only) | None | Planning review JSON and report | No | No |
-| `revise-planning.sh` | `project-planner` (read-only, then write) | Approve the decisions | Revision JSON and report; architecture, roadmap, ADRs | Documents yes, revision no | No |
+| `revise-planning.sh` | `project-planner` (read-only, then write; with `--unattended`, unattended) | Approve the decisions; none with `--unattended` | Revision JSON and report; architecture, roadmap, ADRs, notes of your decisions in the requirements | Documents yes, revision no | No |
 | `finish-planning.sh` | None | Confirm earlier escalations; approve the planning | `docs/PLANNING_APPROVAL.md` | Yes | No |
 | `create-feature-issue.sh` | None | Create the Issue | Feature Issue on GitHub | Not applicable | No |
 | `start-feature.sh` | `implementer` (write) | None | Code and tests; the handoff note, manual steps, summary of the changes, and completion record as working files | Code and tests, by `finish-feature.sh` | By the agent, after its last change |
@@ -295,20 +323,21 @@ exits with status 3.
 | `start-planning.sh` | The checkout is dirty (except an uncommitted description or change request), the planning branch or worktree exists, or an agent leaves its file scope or commits |
 | `start-planning.sh --change` | Also: `origin/main` has no approved planning, the change request name is taken, the planner changed nothing, removed or renumbered a feature ID, or deleted an ADR |
 | `review-planning.sh` | Not on a planning branch, a planning document is missing, or the requirements are not approved |
-| `revise-planning.sh` | The planning review is stale, or the planner leaves its file scope, commits, or changes nothing for adopted findings |
-| `finish-planning.sh` | No current review, a critical or major finding in the latest round, an undecided or unapplied finding, or an unresolved escalation |
-| `finish-planning.sh --amend` | Anything but the architecture and the ADRs changed, an ADR was deleted, the planning on `main` has no current approval, the branch lacks the latest `main`, or a required planning document is missing |
+| `revise-planning.sh` | The planning review is stale, or the planner leaves its file scope, changes the requirements beyond notes of your decisions, commits, or changes nothing for adopted findings. With `--unattended` it also stops (status 3) on an escalated finding or a `BLOCKED:` line |
+| `finish-planning.sh` | No current review, a critical or major finding in the latest round, an undecided or unapplied minor finding, or an unresolved escalation; suggestions do not stop it |
+| `finish-planning.sh --amend` | Anything but the architecture, the ADRs, and dated notes of your decisions in the requirements or the roadmap changed, an ADR was deleted, the planning on `main` has no current approval, the branch lacks the latest `main`, or a required planning document is missing |
 | `create-feature-issue.sh` | The planning approval is missing or stale, the feature ID is unknown, duplicated, or empty, or the feature already has an Issue |
 | `start-feature.sh` | Tracked files in the checkout are modified, or the feature branch or worktree exists. With `--resume`: no worktree, or more than one, is on a branch of the Issue |
 | `review-feature.sh` | Not on `feature/<issue>-*`, nothing to review, or verification fails (unless `--unverified "<reason>"` is given); a Level 3 change needs the full run, or `--feedback` in an intermediate round, which is refused below Level 3 |
 | `review-feature.sh --changes` | Also: there is no previous round, nothing changed since it, the base of the branch changed, or the content of the previous round is no longer known. A change whose reach is not certain, or a Level 3 change, gets a review of the complete feature instead |
 | `triage-review.sh` | The review is stale or invalid, or it is a planning review |
 | `apply-triage.sh` | The triage is unapproved, invalid, or does not match its review, or the review is stale |
-| `finish-feature.sh` | Verification fails, the latest review is stale or has a critical or major finding, a round with findings has no published triage, `FIX_NOW` findings are left, or a latest review of changes only does not end a chain that holds (it begins with a review of the complete feature, builds every round on the one before, keeps every round of changes bounded, and leaves no finding open or without its disposition), or the feature changes the roadmap, the requirements, the description, or a change request, which only a planning cycle may change. With a `completion/v2` record also: a stated level below the derived one without a lowering request, a lowering of the path minimum, a Level 3 change by trigger or assessment whose paths are below Level 3 without its approval request, for Level 1 `--no-review`, and for Level 3 `--no-review`, a pass that is not the full run, a latest review not made on one, or a round of changes anywhere in its reviews |
+| `finish-feature.sh` | Verification fails, the latest review is stale or has a critical or major finding, a round with findings has no published triage, `FIX_NOW` findings are left, or a latest review of changes only does not end a chain that holds (it begins with a review of the complete feature, builds every round on the one before, keeps every round of changes bounded, and leaves no finding open or without its disposition), or the feature changes the roadmap, the requirements, the description, or a change request, which only a planning cycle may change, unless `finish-planning.sh --amend` made the approval current for dated notes of your decisions. With a `completion/v2` record also: a stated level below the derived one without a lowering request, a lowering of the path minimum, a Level 3 change by trigger or assessment whose paths are below Level 3 without its approval request, for Level 1 `--no-review`, and for Level 3 `--no-review`, a pass that is not the full run, a latest review not made on one, or a round of changes anywhere in its reviews |
 | `publish-feature.sh` | There are uncommitted changes or the branch belongs to another Issue. With `--wait` it exits non-zero when a check fails |
 | `merge-feature.sh` | Any option; a draft; another head than the finished one; GitHub does not report the pull request mergeable; or it needs the owner (Level 3, a lowering, a criterion pending for `owner_approval`, a protected path, an escalation trigger its diff shows, a Level 3 assessment or named trigger of the latest review, a latest review that is not of exactly the head, no risk statement) and the change, when it is Level 3 by a trigger or an assessment without a protected path, does not commit its approval request, or the owner's identity (the `owner-identity` login of `guardrails.conf` of the base, a code owner other than the agent's login) does not approve exactly its head |
 | `run-feature.sh` | A step fails or is refused as described above, an agent needs your decision (status 3), five review rounds are used while a finding must still be fixed, or the fixes changed nothing |
 | `check-guardrails.sh` | Nothing stops: it reports `protected` when the feature changes an ADR, a file of the workflow, a changed or removed check, or a path the project protects. `finish-feature.sh` then records that only you may merge |
+| `check-guardrails.sh --planning` | The branch changes the description, the requirements, a change request, the roadmap, or the planning approval, and the approval is not current for it (the check `planning-drift`, also in CI) |
 
 ### Helper scripts
 
@@ -319,7 +348,7 @@ exits with status 3.
 | `verify.sh` | Any time; runs the checks in `scripts/verify.conf`, and is run by `review-feature.sh`, `apply-triage.sh`, `finish-feature.sh`, and CI. A pass is recorded for the content it verified, with its tier, and `verify.sh --reuse` skips a second run on identical content. `verify.sh --targeted` is the targeted run (ADR 017 decision 7): the selection CI will make, from the base of the latest successful run on `main`, then the checks that need no site build; the review, the triage, and the finish gate on `verify.sh --reuse --targeted`, and a change the selection cannot bound to lessons needs the full run, which the targeted run names. The workflow self-tests run only when a workflow file changed; `verify.sh --all`, which CI uses, always runs them |
 | `check-review.sh <review-json>` | To see whether a review still matches the content it covers |
 | `finish-planning.sh --check` | To see whether the planning approval still matches the planning documents |
-| `finish-planning.sh --amend "<reason>"` | To approve a change to the architecture and the ADRs only, on a `planning/<name>` branch, without a review round. Refuses any other planning change and a planning without a current approval |
+| `finish-planning.sh --amend "<reason>"` | To approve a change to the architecture and the ADRs, or dated notes of decisions you already took in the requirements or the roadmap (each with the URL of your comment), on a `planning/<name>` or `feature/<issue>-<name>` branch, without a review round. Refuses any other planning change, a new or changed requirement, and a planning without a current approval |
 | `triage-review.sh --publish <triage-json>` | To repeat a failed publication of the review and triage reports |
 | `start-feature.sh <issue> --resume` | To continue a feature whose session ended early: a new implementer session in the existing worktree, which reads the handoff note and the state of the worktree |
 | `sync-template.sh` | To take over changes of the workflow template: replaces unchanged files, merges changed ones, reports conflicts, and records the template version |

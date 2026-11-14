@@ -281,4 +281,79 @@ check "$repo" --commits main no-such-commit
 check "$repo" no-such-base
 [[ "$status" -eq 2 ]] || fail "an unknown base branch was accepted"
 
+# --planning (Issue #512): no silent drift of the approved planning. A branch
+# that changes a planning-only document is reported, and fails unless the
+# approval is current for the change.
+setup_planned() {
+  local repo
+  local fingerprint
+
+  repo="$(setup_repo "$1")"
+  git -C "$repo" switch -q main
+  printf '# Requirements\n\nStatus: Approved\n' >"$repo/docs/PROJECT_REQUIREMENTS.md"
+  printf '# Roadmap\n\n## F01 — Thing\n' >"$repo/docs/roadmap.md"
+  fingerprint="$(bash -c 'source "$1/scripts/lib/fingerprint.sh"; source "$1/scripts/lib/planning.sh"
+    scratch="$(mktemp -d)"; fingerprint_files "$1" "$scratch" "${PLANNING_SCOPE[@]}"; rm -rf "$scratch"' _ "$repo")"
+  printf '# Planning Approval\n\nStatus: Approved\nPlanning fingerprint: %s\n' "$fingerprint" >"$repo/docs/PLANNING_APPROVAL.md"
+  git -C "$repo" add -A
+  git -C "$repo" commit -qm "Approved planning"
+  git -C "$repo" switch -q feature/5-thing
+  git -C "$repo" rebase -q main
+  printf '%s\n' "$repo"
+}
+
+repo="$(setup_planned planning-untouched)"
+printf '\nThe thing is a file.\n' >>"$repo/docs/architecture.md"
+check "$repo" --planning
+[[ "$status" -eq 0 ]] || { cat "$repo.out" >&2; fail "a feature that leaves the planning-only documents alone was reported"; }
+grep -Fq "no planning-only document changed" "$repo.out" || fail "the unchanged planning was not reported as such"
+
+repo="$(setup_planned planning-roadmap)"
+printf '\n## F02 — Another thing\n' >>"$repo/docs/roadmap.md"
+check "$repo" --planning
+[[ "$status" -eq 1 ]] || { cat "$repo.out" >&2; fail "a feature branch that changes the roadmap was not reported ($status)"; }
+grep -Fq "  docs/roadmap.md" "$repo.out" || fail "the changed roadmap was not named"
+grep -Fq "finish-planning.sh --amend" "$repo.out" || fail "the amendment route was not named"
+# Committed on the branch, the same.
+git -C "$repo" commit -qam "Change the roadmap"
+check "$repo" --planning
+[[ "$status" -eq 1 ]] || fail "a committed roadmap change on the branch was not reported"
+
+for document in docs/PROJECT_REQUIREMENTS.md docs/PROJECT_DESCRIPTION.md docs/changes/later.md; do
+  repo="$(setup_planned "planning-$(basename "$document" .md)")"
+  mkdir -p "$repo/docs/changes"
+  printf '\nChanged by a feature.\n' >>"$repo/$document"
+  check "$repo" --planning
+  [[ "$status" -eq 1 ]] || fail "a feature branch that changes $document was not reported"
+  grep -Fq "$document" "$repo.out" || fail "the changed $document was not named"
+done
+
+# Removing the approval, or replacing its fingerprint by hand, is drift too.
+repo="$(setup_planned planning-approval-removed)"
+git -C "$repo" rm -q docs/PLANNING_APPROVAL.md
+check "$repo" --planning
+[[ "$status" -eq 1 ]] || fail "a feature branch that removes the approval was not reported"
+repo="$(setup_planned planning-approval-edited)"
+sed -i.bak 's/^Planning fingerprint: .*/Planning fingerprint: 0000000000000000000000000000000000000000/' "$repo/docs/PLANNING_APPROVAL.md"
+rm "$repo/docs/PLANNING_APPROVAL.md.bak"
+check "$repo" --planning
+[[ "$status" -eq 1 ]] || fail "a feature branch that breaks the approval's fingerprint was not reported"
+
+# An amended approval, current for the change, passes.
+repo="$(setup_planned planning-amended)"
+printf '\n*Note of the owner'"'"'s decision of 2026-11-13 (https://github.com/o/r/issues/5#issuecomment-1).* Kept.\n' >>"$repo/docs/roadmap.md"
+(cd "$repo" && printf 'y\n' | PATH="/usr/bin:/bin:$(dirname "$(command -v jq)")" ./scripts/finish-planning.sh --amend "Record the decision.") >"$repo.amend" 2>&1 || {
+  cat "$repo.amend" >&2
+  fail "the amendment in the guardrails test failed"
+}
+check "$repo" --planning
+[[ "$status" -eq 0 ]] || { cat "$repo.out" >&2; fail "an amended planning change was reported as drift"; }
+grep -Fq "The planning approval is current for them" "$repo.out" || fail "the current approval was not reported"
+
+# A project without an approved planning has nothing to drift from.
+repo="$(setup_repo planning-none)"
+printf '# Roadmap\n' >"$repo/docs/roadmap.md"
+check "$repo" --planning
+[[ "$status" -eq 0 ]] || fail "a project without a planning approval was reported"
+
 echo "guardrails tests passed"

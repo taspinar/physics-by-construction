@@ -537,6 +537,51 @@ printf '\nA note by a feature.\n' >>"$repo/docs/PLANNING_APPROVAL.md"
 record_reviewed_tree "$repo" "$repo/$review"
 if run_finish "$repo" 12 "Add the marker"; then fail "a feature that edits the approval was committed"; fi
 
+# The one route for a planning document in a feature (Issue #512): a dated
+# note of an owner decision, amended into the approval with
+# finish-planning.sh --amend in the feature worktree. The feature is then
+# committed with the amendment; without it, it is refused with the route.
+setup_amendable() {
+  local repo
+  local fingerprint
+
+  repo="$(setup_planned "$1")"
+  git -C "$repo" stash -q --include-untracked
+  git -C "$repo" switch -q main
+  printf '# Requirements\n\nStatus: Approved\n' >"$repo/docs/PROJECT_REQUIREMENTS.md"
+  fingerprint="$(bash -c 'source "$1/scripts/lib/fingerprint.sh"; source "$1/scripts/lib/planning.sh"
+    scratch="$(mktemp -d)"; fingerprint_files "$1" "$scratch" "${PLANNING_SCOPE[@]}"; rm -rf "$scratch"' _ "$repo")"
+  printf '# Planning Approval\n\nStatus: Approved\nPlanning fingerprint: %s\n' "$fingerprint" >"$repo/docs/PLANNING_APPROVAL.md"
+  git -C "$repo" commit -qam "Approved planning with its fingerprint"
+  git -C "$repo" switch -q feature/12-marker
+  git -C "$repo" rebase -q main
+  git -C "$repo" stash pop -q >/dev/null
+  printf '%s\n' "$repo"
+}
+owner_note="*Note of the owner's decision of 2026-11-13 (https://github.com/owner/repo/issues/12#issuecomment-99).* The marker stays."
+
+repo="$(setup_amendable roadmap-note-unamended)"
+printf '\n%s\n' "$owner_note" >>"$repo/docs/roadmap.md"
+record_reviewed_tree "$repo" "$repo/$review"
+if run_finish "$repo" 12 "Add the marker"; then fail "a feature with an unamended roadmap note was committed"; fi
+grep -Fq "docs/roadmap.md" "$repo.out" || fail "the unamended roadmap change was not reported"
+grep -Fq "finish-planning.sh --amend" "$repo.out" || fail "the refusal did not name the amendment route"
+
+repo="$(setup_amendable roadmap-note-amended)"
+printf '\n%s\n' "$owner_note" >>"$repo/docs/roadmap.md"
+(cd "$repo" && printf 'y\n' | PATH="$tmp/bin:/usr/bin:/bin" ./scripts/finish-planning.sh --amend "Record the owner's decision.") >"$repo.amend.out" 2>&1 || {
+  cat "$repo.amend.out" >&2
+  fail "the amendment of a roadmap note on the feature branch failed"
+}
+record_reviewed_tree "$repo" "$repo/$review"
+run_finish "$repo" 12 "Add the marker" || {
+  cat "$repo.out" >&2
+  fail "a feature that carries an amended roadmap note was refused"
+}
+grep -Fq "This feature amends the approved planning" "$repo.out" || fail "the amendment was not reported"
+git -C "$repo" show --name-only --format= HEAD | grep -Fx "docs/PLANNING_APPROVAL.md" >/dev/null ||
+  fail "the amended approval was not committed with the feature"
+
 # Without a base to compare with, a planned project is not committed blind.
 repo="$(setup_planned no-base)"
 git -C "$repo" branch -q -m main trunk

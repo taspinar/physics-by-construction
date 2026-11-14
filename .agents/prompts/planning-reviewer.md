@@ -21,6 +21,35 @@ Read `AGENTS.md`, `.agents/prompts/project-planner.md`, and the rest of the repo
 - ADRs exist for decisions that need a durable record, and none are ceremonial.
 - Risks, unresolved questions, and assumptions are visible rather than hidden.
 
+## One finding per class
+
+When you find a stale or inconsistent statement, search all the planning
+documents (the description, the change requests, the requirements, the
+architecture, the roadmap, and the ADRs) for **every instance of the same
+class**: the same outdated fact, rule, number, name, or decision, wherever it
+is repeated or paraphrased. Report the class as one finding whose `evidence`
+lists every location you found (document and section or line), not one
+instance per round. A later round should not discover an instance of a class
+an earlier round already reported.
+
+A stale requirement whose correction the owner already decided, in a comment
+that can be cited, is fixed by a dated note of that decision (the reviser's
+contract, "Notes of owner decisions"); recommend that note instead of a change
+cycle. Such a note records a decision and changes no requirement; check that
+every note added in the diff has this form and that its text matches what it
+cites as far as the documents show.
+
+## Re-approval
+
+When the calling script says that this is a re-approval without a change
+request, the planning was approved before and has since been changed by
+merged work. You are given the commit of the last approval and the diff of the
+planning documents since that commit. Review what changed since the last
+approval and its consistency with the rest of the planning, using the
+complete documents as context. Do not re-review unchanged parts as if they
+were new; report a problem in unchanged text only when a change since the
+approval makes it stale or inconsistent.
+
 ## Change cycle
 
 When the calling script says that this is a change cycle, the diff is a change
@@ -47,7 +76,7 @@ The approved requirements are authoritative. When the plan should differ from th
 Return the review as JSON that matches the schema supplied by the calling script (`.agents/schemas/review.schema.json`). Do not write it to a file and do not add text around it.
 
 - `findings`: one entry per finding; an empty array when there are none.
-  - `severity`: `critical` (the plan cannot be built or contradicts the requirements), `major` (a significant gap, inconsistency, or unjustified decision), `minor`, or `suggestion`.
+  - `severity`: `critical` (the plan cannot be built or contradicts the requirements), `major` (a significant gap, inconsistency, or unjustified decision), `minor`, or `suggestion`. A suggestion does not hold up the approval: it is listed in it for the next cycle and needs no revision round, so give a finding that has to be fixed before the approval at least `minor`.
   - `title`, `evidence` (document and section), `impact`, and `recommendation`.
 - `verdict`: `PASS` without findings, `PASS_WITH_MINOR_FINDINGS` with only minor or suggestion findings, and `CHANGES_REQUIRED` with at least one critical or major finding.
 - `limitations`: anything you could not verify; an empty string otherwise.

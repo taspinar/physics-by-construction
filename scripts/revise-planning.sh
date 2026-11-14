@@ -8,13 +8,23 @@ source "$script_dir/lib/review-data.sh"
 source "$script_dir/lib/fingerprint.sh"
 source "$script_dir/lib/review-run.sh"
 source "$script_dir/lib/scope.sh"
+source "$script_dir/lib/planning.sh"
 
 usage() {
-  echo "Usage: $0 --review <planning-review-json> [--agent <agent>] [--model <model>]"
+  echo "Usage: $0 --review <planning-review-json> [--unattended] [--agent <agent>] [--model <model>]"
   echo
   echo "Run in the planning worktree. The project planner (role 'project-planner')"
   echo "first decides per finding, then, after your approval, revises the planning"
   echo "documents for the adopted findings."
+  echo
+  echo "With --unattended no terminal is needed: the decisions are recorded without"
+  echo "asking (the revision says that no human approved them) and the adopted"
+  echo "findings are revised in an unattended session. It stops, before any"
+  echo "revision, when a finding is escalated, and when the planner reports that it"
+  echo "is blocked. Nothing is approved: the approval stays in finish-planning.sh."
+  echo
+  echo "A finding of severity 'suggestion' needs no revision round: when a review"
+  echo "has only suggestions, finish-planning.sh lists them in the approval."
   exit 1
 }
 
@@ -24,7 +34,7 @@ fail() {
 }
 
 agent_parse_args "$@"
-agent_reject_unattended
+unattended="$AGENT_UNATTENDED"
 review_input=""
 set -- ${AGENT_POSITIONAL[@]+"${AGENT_POSITIONAL[@]}"}
 while [[ $# -gt 0 ]]; do
@@ -101,6 +111,14 @@ if [[ "$(jq '.findings | length' "$review_path")" -eq 0 ]]; then
   echo "The planning review has no findings; there is nothing to revise."
   exit 0
 fi
+# Suggestions need no revision round (Issue #512): finish-planning.sh lists
+# them in the approval, and they may be applied in the next cycle.
+if [[ "$(jq '[.findings[] | select(.severity != "suggestion")] | length' "$review_path")" -eq 0 ]]; then
+  echo "The planning review has only suggestions; they need no revision round."
+  echo "finish-planning.sh lists them in the approval for the next cycle."
+  echo "Next: ./scripts/finish-planning.sh"
+  exit 0
+fi
 
 render_decisions() {
   jq -r '
@@ -165,16 +183,21 @@ schema. You have read-only access; do not modify any file."
   echo "Proposed revision decisions:"
   echo
   render_decisions "$tmp_work/proposal.json"
-  printf "Record these decisions and revise the planning for the adopted findings? [y/N] "
-  approval=""
-  read -r approval || true
-  case "$approval" in
-    y | Y | yes | YES) ;;
-    *)
-      echo "Declined; no decisions were recorded and no document was changed."
-      exit 0
-      ;;
-  esac
+  if [[ "$unattended" -eq 1 ]]; then
+    # Nobody answers; the record says that no human approved the decisions.
+    echo "Unattended: the decisions are recorded without your approval."
+  else
+    printf "Record these decisions and revise the planning for the adopted findings? [y/N] "
+    approval=""
+    read -r approval || true
+    case "$approval" in
+      y | Y | yes | YES) ;;
+      *)
+        echo "Declined; no decisions were recorded and no document was changed."
+        exit 0
+        ;;
+    esac
+  fi
 
   jq -n \
     --slurpfile review "$review_path" \
@@ -182,7 +205,8 @@ schema. You have read-only access; do not modify any file."
     --arg source_review "$review_relative" \
     --arg agent "$agent" \
     --arg model "$model" \
-    --arg approved_at "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" '
+    --arg approved_at "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+    --argjson unattended "$unattended" '
     {
       schema: "revision/v1",
       source_review: $source_review,
@@ -192,7 +216,7 @@ schema. You have read-only access; do not modify any file."
       planner: {agent: $agent, model: $model},
       approved_at: $approved_at,
       decisions: $decisions[0]
-    }' >"$tmp_work/revision.json"
+    } + (if $unattended == 1 then {unattended: true} else {} end)' >"$tmp_work/revision.json"
 
   revision_errors="$(revision_artifact_errors "$tmp_work/revision.json" "$review_path")"
   if [[ -n "$revision_errors" ]]; then
@@ -216,6 +240,13 @@ if [[ -n "$escalated" ]]; then
   echo "Resolve each by changing the requirements through Project Grill and approving"
   echo "them again, or by deciding that the finding does not apply. The planning"
   echo "cannot be finished while an escalated finding is unresolved."
+  if [[ "$unattended" -eq 1 ]]; then
+    echo
+    echo "Stopped: an unattended revision does not go on while a finding is escalated."
+    echo "No planning document was changed. After your decision, apply the adopted"
+    echo "findings with: ./scripts/revise-planning.sh --review $review_relative"
+    exit 3
+  fi
 fi
 
 adopted="$(jq -r --slurpfile review "$review_path" '
@@ -231,10 +262,15 @@ if [[ -z "$adopted" ]]; then
 fi
 
 # Phase 2: the planner may change only the architecture, the roadmap, and
-# direct Markdown ADRs. Everything else, including the requirements, the
-# description, and all review artifacts, must stay unchanged.
+# direct Markdown ADRs, and may add dated notes of owner decisions to the
+# requirements (Issue #512). Everything else, including the description and
+# all review artifacts, must stay unchanged.
+scope_reviser_allowed() {
+  [[ "$1" == "docs/PROJECT_REQUIREMENTS.md" ]] || scope_planner_allowed "$1"
+}
 baseline="$tmp_work/scope-before.tsv"
-scope_snapshot "$root" scope_planner_allowed "$baseline"
+scope_snapshot "$root" scope_reviser_allowed "$baseline"
+cp -p "$root/docs/PROJECT_REQUIREMENTS.md" "$tmp_work/requirements-before.md"
 head_before="$(git -C "$root" rev-parse HEAD)"
 
 revise_prompt="Read and follow .agents/prompts/planning-reviser.md, phase 2 (revise).
@@ -244,14 +280,32 @@ these adopted findings of ${review_relative}:
 
 ${adopted}
 Change only docs/architecture.md, docs/roadmap.md, and direct Markdown ADRs
-under docs/decisions/. Do not commit, push, open or merge a pull request,
-create GitHub Issues, or deploy."
+under docs/decisions/. In docs/PROJECT_REQUIREMENTS.md you may only add dated
+notes of decisions the owner already took, in the form your contract gives.
+Do not commit, push, open or merge a pull request, create GitHub Issues, or
+deploy."
+
+if [[ "$unattended" -eq 1 ]]; then
+  revise_prompt="$(printf '%s' "$revise_prompt" | sed 's/^The human approved your decisions/Your decisions, recorded without a human approval (unattended),/')"
+  revise_prompt+="
+
+This session is unattended: nobody reads along and nobody answers questions.
+Do not ask anything and do not wait for the human. When an adopted finding
+cannot be resolved without a decision of the human, stop and end your final
+message with one line that starts with 'BLOCKED: ' and gives the reason.
+Otherwise resolve every adopted finding and end with a short summary."
+fi
 
 echo
 echo "Starting $agent planner ($model) to revise the adopted findings..."
 echo
 agent_status=0
-agent_run write "$agent" "$model" "$root" "$revise_prompt" || agent_status=$?
+if [[ "$unattended" -eq 1 ]]; then
+  final_message="$tmp_work/revise-final.md"
+  agent_run unattended "$agent" "$model" "$root" "$revise_prompt" "$final_message" || agent_status=$?
+else
+  agent_run write "$agent" "$model" "$root" "$revise_prompt" || agent_status=$?
+fi
 
 preserved() {
   echo "Error: $1" >&2
@@ -261,10 +315,24 @@ preserved() {
 
 [[ "$(git -C "$root" rev-parse HEAD)" == "$head_before" ]] ||
   preserved "the planner created a commit; planning agents must leave HEAD unchanged."
-scope_snapshot "$root" scope_planner_allowed "$tmp_work/scope-after.tsv"
+scope_snapshot "$root" scope_reviser_allowed "$tmp_work/scope-after.tsv"
 scope_unchanged "$baseline" "$tmp_work/scope-after.tsv" ||
-  preserved "the planner changed files outside the architecture, the roadmap, and the ADRs."
+  preserved "the planner changed files outside the architecture, the roadmap, the ADRs, and the notes of the requirements."
+[[ -f "$root/docs/PROJECT_REQUIREMENTS.md" && ! -L "$root/docs/PROJECT_REQUIREMENTS.md" ]] ||
+  preserved "docs/PROJECT_REQUIREMENTS.md must remain a regular file."
+[[ "$(scope_file_mode "$root/docs/PROJECT_REQUIREMENTS.md")" == "$(scope_file_mode "$tmp_work/requirements-before.md")" ]] ||
+  preserved "the planner changed the mode of docs/PROJECT_REQUIREMENTS.md."
+note_errors="$(planning_note_errors "$tmp_work/requirements-before.md" "$root/docs/PROJECT_REQUIREMENTS.md")"
+if [[ -n "$note_errors" ]]; then
+  echo "The planner changed the requirements beyond dated notes of owner decisions:" >&2
+  printf '%s\n' "$note_errors" | sed 's/^/  - /' >&2
+  preserved "only Project Grill changes a requirement; restore docs/PROJECT_REQUIREMENTS.md (the planner may only add notes)."
+fi
 [[ "$agent_status" -eq 0 ]] || preserved "the planner failed with status $agent_status." "$agent_status"
+if [[ "$unattended" -eq 1 ]]; then
+  blocked="$(agent_blocked_reason "$final_message")"
+  [[ -z "$blocked" ]] || preserved "the unattended planner stopped: $blocked" 3
+fi
 
 for document in docs/architecture.md docs/roadmap.md; do
   [[ -f "$root/$document" && ! -L "$root/$document" && -s "$root/$document" ]] ||
@@ -287,6 +355,14 @@ after_revision="$(fingerprint_review "$root" "$tmp_work" "$review_path")" ||
   preserved "could not compute the fingerprint of the planning documents."
 [[ "$after_revision" != "$(jq -r '.reviewed_tree' "$review_path")" ]] ||
   preserved "the planner changed no planning document for the adopted findings. The approved decisions are kept; run this script again to apply them."
+
+added_notes="$(diff -U0 "$tmp_work/requirements-before.md" "$root/docs/PROJECT_REQUIREMENTS.md" | sed '1,2d' | grep '^+' | sed 's/^+//' | grep -E "$PLANNING_NOTE_PATTERN" || true)"
+if [[ -n "$added_notes" ]]; then
+  echo
+  echo "The planner added notes of owner decisions to the requirements; finish-planning.sh"
+  echo "lists them before you approve:"
+  printf '%s\n' "$added_notes" | sed 's/^[[:space:]]*/  /'
+fi
 
 echo
 echo "The adopted findings were revised. The planning review is now stale by design."
