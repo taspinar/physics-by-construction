@@ -441,6 +441,20 @@ pre.sourceCode {
   margin-bottom: 0.75rem;
 }
 
+/* The visible notice of a local build with uncommitted changes (F174): one
+   short line under the sentence, set apart by a rule in the warning colour;
+   its explanation is in the disclosure. */
+.reproduce-notice {
+  margin: 0.5rem 0 0;
+  padding-left: 0.75rem;
+  border-left: 0.25rem solid var(--pbc-warning);
+  color: var(--pbc-warning);
+}
+
+.reproduce-notice p {
+  margin: 0;
+}
+
 /* The last line of a lesson: "Suggest an improvement" and the three links
    to the issue forms (F135), discreet under the experiment. */
 .suggest-improvement {

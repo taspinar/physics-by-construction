@@ -788,8 +788,10 @@ The published instructions follow this flow since F117; the earlier one
 (the supported-machine setup and a render of the page) was removed from
 every guide and relocated nowhere:
 
-1. Clone or download the repository at the commit the lesson's footer
-   names, and install the project's pinned Python dependencies with
+1. Clone or download the repository, by default the latest version on
+   `main`, which may produce different results, or, for the published
+   results, at the commit the lesson's last section links as the version
+   behind the page (F174), and install the project's pinned Python dependencies with
    `uv sync --locked --no-dev`: the locked NumPy, SciPy, Matplotlib, and
    what `src/pbc` imports, and nothing of the `dev` group that holds
    Quarto, the Jupyter kernel, the browser, the accessibility scan, and

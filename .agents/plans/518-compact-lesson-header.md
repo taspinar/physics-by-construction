@@ -5,17 +5,24 @@ Change request section 11 (U1a, U1c, U1d); requirements decision 44;
 every lesson page: no lesson prose, number, figure, figure status, or claim
 changes; every fact stays on the page.
 
-**Level 2.** Paths: `src/pbc/authoring/path.py`, `src/pbc/authoring/reproduce.py`,
-`src/pbc/authoring/context.py`, `site/assets/site.css`, tests. No protected
-path. Assertions of existing tests change where they pin the order or the
-visibility of the header's rows and the reproduction summary's command (see
-"Tests"); none is removed or weakened: the tests that read rows in the
-closed disclosure open it first, natively, without scripts, and the summary
-test is strengthened to "no command in the summary". The shared inputs
-change, so CI runs everything; the session runs the targeted tier and the
-unit and integration tests of the changed modules, and `review-feature.sh`
-runs the full verification of the final tree (the owner's rule of
-2026-11-08, on the Issue).
+**Level 3**, by trigger (ADR 020 decision 1; review round 1, M1): the
+diff changes assertions of existing tests, which the scripts detect
+(`tests/unit/test_authoring.py`, the reproduction section;
+`tests/unit/test_introductions.py`, the order of the header terms). The
+paths alone give Level 2 (`src/pbc/authoring/path.py`,
+`src/pbc/authoring/reproduce.py`, `src/pbc/authoring/context.py`,
+`site/assets/site.css`, docs, tests; no protected path). No changed
+assertion is removed or weakened: the tests that read rows in the closed
+disclosure open it first, natively, without scripts; the summary test is
+strengthened to "one sentence, no commit, no command"; the test that no
+section names a render now runs for a clean and a dirty build and exempts
+only the owner's exact notice "Local preview: ...". The approval request
+`.agents/approvals/518.md` asks for the owner's approving review of the
+exact head. The shared inputs change, so CI runs everything; the session
+runs the unit and integration tests of the changed modules and the e2e
+tests on rendered M1, M5, and MAT6, and the supervisor runs the full
+verification of the final tree (the owner's rule of 2026-11-08, on the
+Issue).
 
 ## Visual deliverables
 
@@ -54,18 +61,41 @@ Skills: impeccable@08d5b470, frontend-design@dbd4588f
   have a paragraph after the last section's cell, and the pager must follow
   it. The last line of the `.reproduce` block stays "Suggest an
   improvement".
-- **The last section**: heading and anchor unchanged; one sentence names the
-  commit and says what the experiment (or the proof check) regenerates; the
-  closed `<details class="reproduce-details">` holds every command, then the
-  files and tests, then what the run writes. The summary shows no command,
-  so no command appears twice. The live run of an agent lesson keeps its
-  labelled not-verified box after the disclosure.
+- **The last section** (the owner's decision of 2026-11-14 on the Issue,
+  which replaces the earlier sentence with the commit): heading and anchor
+  unchanged; visible only one sentence in the words of the kind of the
+  lesson ("Run this experiment on your own computer.", "Replay this
+  recorded agent run on your own computer.", "Check this proof on your own
+  computer.", with "and check its proofs" or "and run its experiment" when a
+  lesson has both) and the closed `<details class="reproduce-details">`
+  "Setup and commands"; no commit and no command outside it. Inside: the
+  install line with the setup page; the clone (the latest version on
+  `main`, the default route) with "The latest version may produce different
+  results."; "Use the version behind this page", the one extra step, `git
+  checkout` of the build commit, linked descriptively ("the commit this page
+  was built from"); then, "in either version", the shared steps once; what
+  the run writes (the promise that numbers and figures match only for an
+  exact build commit); the files and tests at the build commit; and, for an
+  agent lesson, the live run's labelled not-verified box, apart from the
+  replay. Each command block keeps the class `reproduce-commands`; together,
+  in page order, they are the same command list as before, so the
+  experiment check runs them unchanged. A dirty build shows the visible
+  notice "Local preview: results may differ from the linked source." under
+  the sentence and explains inside that the linked commit lacks the local
+  changes, with no promise of exact reproduction; an unknown commit offers
+  `main` only and says why. The last line of the `.reproduce` block stays
+  "Suggest an improvement".
 - **Figure status**: its CSS is left as it is (V2 owns it); nothing to change.
 
 ## Tests
 
-- `tests/unit/test_authoring.py`: the summary holds the commit and no
-  command; every command is in the details exactly once.
+- `tests/unit/test_authoring.py`: the visible part is the one sentence (no
+  commit, no command); every command is in "Setup and commands" exactly
+  once; `main` first with its note, then the page version's checkout of the
+  build commit, linked descriptively, then the shared steps; an unknown
+  commit offers `main` only; a dirty build shows the notice and promises no
+  exact reproduction; the live run of an agent lesson is inside the
+  disclosure.
 - `tests/unit/test_introductions.py`: the term order reads Course first and
   Slot, Introduction first inside the disclosure.
 - New unit tests (`tests/unit/test_lesson_header.py`): the visible rows and
@@ -77,8 +107,12 @@ Skills: impeccable@08d5b470, frontend-design@dbd4588f
   summary (no script) before reading its rows; the term list gains no row
   and loses none; the disclosure is closed on load, and the pager is the
   last element of `main` with the header's previous and next links. New
-  e2e test: the keyboard reaches the summary after the visible links and
-  opens it with Enter.
+  e2e tests: the keyboard reaches the summary after the visible links and
+  opens it with Enter; the last section of every lesson shows one sentence
+  and the closed "Setup and commands" without scripts, no commit and no
+  command before it is opened, opens by keyboard, and lists `main` before
+  the version behind the page. `tests/e2e/test_lessons.py` reads every
+  `reproduce-commands` block in page order.
 
 ## Steps
 
@@ -87,3 +121,7 @@ Skills: impeccable@08d5b470, frontend-design@dbd4588f
 2. The sentence and disclosure in `pbc.authoring.reproduce`.
 3. CSS in `site/assets/site.css`.
 4. Tests; render M1, M5, MAT6; screenshots; targeted verification.
+5. The owner's decision of 2026-11-14: the last section as above, its
+   tests and docs, and the complete before-and-after set of M1, M5, and
+   MAT6 at 1280, 390, and 320 px without scripts, the header and the last
+   section each closed and open, in `.agents/handoffs/518-screenshots/`.

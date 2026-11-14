@@ -1479,19 +1479,30 @@ reproduce_this(
 ````
 
 `code` names the modules the page imports and `tests` the tests of those
-modules, relative to the repository root. The section opens with one
-sentence that names the commit the page was built from and what a reader can
-run from a clone; a closed native disclosure ("The commands, the files, and
-the tests") holds every command once, the links to the files at that commit,
-and what the run writes (F174). The commands go from a
-clone to the experiment: check out the commit, install the project's
-packages (`uv sync --locked --no-dev`), and run the experiment the front
-matter declares. A Lean lesson adds `lake build` of the modules it shows; an
-agent lesson adds the live run as a separate block marked "not verified",
-which names its key and the optional dependency `openai`, and its experiment
-module names that run as `LIVE`. No command of the section renders or
-previews the website. A build from a checkout with uncommitted changes says
-so on the page. The lesson source checks require the heading of the kind of
+modules, relative to the repository root. The section shows one sentence,
+in the words of the kind of the lesson ("Run this experiment on your own
+computer.", "Replay this recorded agent run on your own computer.", "Check
+this proof on your own computer."), and one closed native disclosure,
+"Setup and commands"; no commit and no command is visible before a reader
+opens it (F174, the owner's decision of 2026-11-14). Inside, the clone gives
+the latest version on `main`, the default route, with the note "The latest
+version may produce different results."; "Use the version behind this page"
+adds one step, the checkout of the commit the page was built from, linked by
+a description rather than by its hash, for a reader who wants the published
+results; the shared steps follow once: install the project's packages
+(`uv sync --locked --no-dev`) and run the experiment the front matter
+declares. Then come what the run writes and the links to the files and the
+tests at the build commit. A Lean lesson adds `lake build` of the modules it
+shows; an agent lesson adds, inside the disclosure and after the replay, the
+live run as a separate block marked "not verified", which names its key and
+the optional dependency `openai`, and its experiment module names that run as
+`LIVE`. No command of the section renders or previews the website. A build
+from a checkout with uncommitted changes shows the short notice "Local
+preview: results may differ from the linked source." under the sentence and
+explains in the disclosure that the linked commit does not contain those
+changes, without promising an exact reproduction; a build outside a Git
+checkout says in the disclosure that the commit is unknown and offers `main`
+only. The lesson source checks require the heading of the kind of
 the lesson, and a check of the built site runs the experiment of every lesson
 with these commands and compares its figure files, byte for byte, and its
 numbers, at the precision the page shows them, with the published page.

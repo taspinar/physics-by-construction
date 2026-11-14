@@ -37,8 +37,14 @@ HEADINGS = {
 RESULTS = "results"
 # The proof check of a lesson whose methods are Lean only (ADR 016 decision 2).
 LEAN_EXPERIMENT = "./scripts/check-lean.sh"
-# The summary of the closed disclosure of the section (F174).
-DETAILS_SUMMARY = "The commands, the files, and the tests"
+# The words of the section (F174, the owner's decision of 2026-11-14): the
+# summary of its closed disclosure, the route to the version a page was built
+# from, the note on the default route, and the visible notice of a local build
+# with uncommitted changes.
+DETAILS_SUMMARY = "Setup and commands"
+PAGE_VERSION = "Use the version behind this page"
+MAIN_MAY_DIFFER = "The latest version may produce different results."
+LOCAL_PREVIEW = "Local preview: results may differ from the linked source."
 # The setup page, relative to the website project.
 SETUP_PAGE = "reproduce.html"
 # How the live run of an agent lesson is installed and what it needs.
@@ -155,15 +161,35 @@ class Reproduction:
         )
 
     @property
-    def commands(self) -> tuple[str, ...]:
-        """The commands, from cloning to the experiment of this page."""
+    def clone_commands(self) -> tuple[str, ...]:
+        """The commands that clone the repository: the latest version, on
+        ``main``."""
         directory = self.repository.rsplit("/", 1)[-1]
-        commands = [f"git clone {self.repository}.git", f"cd {directory}"]
-        if self.commit.sha is not None:
-            commands.append(f"git checkout {self.commit.sha}")
+        return (f"git clone {self.repository}.git", f"cd {directory}")
+
+    @property
+    def checkout_command(self) -> str:
+        """The command that checks out the commit this page was built from,
+        or "" when that commit is unknown."""
+        sha = self.commit.sha
+        return "" if sha is None else f"git checkout {sha}"
+
+    @property
+    def run_commands(self) -> tuple[str, ...]:
+        """The commands that run the experiment and check the proofs, the
+        same in either version."""
+        commands = []
         if self.module:
             commands += ["uv sync --locked --no-dev", self.experiment_command]
         return (*commands, *self.proof_commands)
+
+    @property
+    def commands(self) -> tuple[str, ...]:
+        """Every command, in order, from cloning through the checkout of the
+        version behind this page to the experiment; the page shows each
+        once."""
+        checkout = (self.checkout_command,) if self.checkout_command else ()
+        return (*self.clone_commands, *checkout, *self.run_commands)
 
     @property
     def live_commands(self) -> tuple[str, ...]:
@@ -232,58 +258,113 @@ class Reproduction:
             self.payload(),
         )
 
-    def _what_it_regenerates(self) -> str:
-        """What a reader can run, in the words of the sentence."""
-        if self.kind == "proof" and not self.module:
-            return "check its proofs on your own machine"
-        if self.kind == "proof" or self.proof_commands:
-            return "check its proofs and run its experiment on your own machine"
-        if self.kind == "replay":
+    def _activity(self) -> str:
+        """What a reader does with the lesson, in the words of the sentence:
+        run an experiment, replay a recorded agent run, or check a proof."""
+        if self.kind == "proof":
             return (
-                "replay its recorded agent run on your own machine to regenerate"
-                " every figure and number it shows"
+                "check this proof and run its experiment"
+                if self.module
+                else "check this proof"
             )
-        return (
-            "run its experiment on your own machine to regenerate every figure"
-            " and number it shows"
-        )
+        if self.kind == "replay":
+            activity = "replay this recorded agent run"
+        else:
+            activity = "run this experiment"
+        if self.proof_commands:
+            activity += " and check its proofs"
+        return activity
 
     def _sentence(self) -> str:
-        """The one sentence the section opens with: the commit and what a
-        reader can run from it (F174). It shows no command; the commands are
-        in the disclosure, each once."""
+        """The one visible sentence of the section (F174, the owner's decision
+        of 2026-11-14): what a reader can do on their own computer. It shows
+        no commit and no command; both are in the disclosure."""
+        activity = self._activity()
+        return f"{activity[0].upper()}{activity[1:]} on your own computer."
+
+    def _notice(self) -> list[str]:
+        """The visible notice of a local build with uncommitted changes."""
+        if not self.commit.dirty:
+            return []
+        return [
+            "::: {.reproduce-notice role=note}",
+            f"**{LOCAL_PREVIEW}**",
+            ":::",
+            "",
+        ]
+
+    def _versions(self) -> list[str]:
+        """Which version to use: ``main`` by default, or the version behind
+        this page, whose checkout is the one extra step (no step is listed
+        twice)."""
         sha = self.commit.sha
-        if sha is None:
-            return (
-                "This page was not built from a Git checkout, so the commit of"
-                " its sources is unknown; from a clone you can"
-                f" {self._what_it_regenerates()}."
-            )
-        sentence = (
-            f"This page was built from commit [`{sha}`]"
-            f"({self.repository}/tree/{sha}) of the"
-            f" [repository]({self.repository}), and from a clone at that commit"
-            f" you can {self._what_it_regenerates()}."
+        latest = (
+            "This gives the latest version, on the branch `main`, to explore"
+            f" and change. {MAIN_MAY_DIFFER}"
         )
+        if sha is None:
+            return [
+                latest,
+                "",
+                "This page was not built from a Git checkout, so the commit of"
+                " its sources is unknown and there is no version behind this"
+                " page to check out: `main` is the only route.",
+                "",
+            ]
+        lines = [
+            latest,
+            "",
+            f"**{PAGE_VERSION}:** to reproduce the published results, check"
+            f" out [the commit this page was built from]({self.repository}/tree/{sha})"
+            " after cloning:",
+            "",
+            "```{.bash .reproduce-commands}",
+            self.checkout_command,
+            "```",
+            "",
+        ]
         if self.commit.dirty:
-            sentence += (
-                " **The checkout had uncommitted changes, so that commit"
-                " does not hold exactly the files this page was built"
-                " from.**"
+            lines += [
+                "This page was built locally, from a checkout with"
+                " uncommitted changes. The linked commit does not contain"
+                " those changes, so neither version is sure to reproduce this"
+                " page exactly.",
+                "",
+            ]
+        return lines
+
+    def _then(self) -> str:
+        """The line before the shared commands."""
+        steps = []
+        if self.module:
+            steps.append(
+                "replay the recorded agent run"
+                if self.kind == "replay"
+                else "run the experiment"
             )
-        return sentence
+        if self.proof_commands:
+            steps.append("check the proofs")
+        either = ", in either version," if self.commit.sha is not None else ""
+        return f"Then{either} {' and '.join(steps)}:"
 
     def _regenerates(self) -> list[str]:
         lines = []
         if self.module:
+            # The promise of an exact reproduction holds only for a page
+            # built from exactly one commit.
+            match = (
+                " In the version behind this page its numbers match this page"
+                " to the digits shown, and its figure files are the ones the"
+                " page shows; digits beyond those can differ between machines,"
+                " because floating-point libraries differ."
+                if self.commit.exact
+                else ""
+            )
             lines.append(
                 f"The experiment writes every figure of this page into"
                 f" `{RESULTS}/`, as `<label>.png`, and every number and table of"
                 f" the page, as the page shows it, into `{RESULTS}/results.json`."
-                " Its numbers match this page to the digits shown, and its"
-                " figure files are the ones the page shows; digits beyond those"
-                " can differ between machines, because floating-point libraries"
-                " differ. Change the code of the experiment and run it again"
+                f"{match} Change the code of the experiment and run it again"
                 " to see what changes."
             )
         if self.kind == "replay":
@@ -296,8 +377,7 @@ class Reproduction:
             lines.append(
                 "`lake build` compiles the proofs of this page with the Lean"
                 " toolchain that elan installs; the first run fetches the"
-                " Mathlib build cache, which is large. The setup page says how"
-                " to install elan."
+                " Mathlib build cache, which is large."
             )
         return [line for text in lines for line in (text, "")]
 
@@ -336,34 +416,53 @@ class Reproduction:
             )
             files.append(f"- {self._link(path)}: {purpose}.")
         files += [f"- {self._link(path)}: tests of that code." for path in self.tests]
-        tools = "Git and uv" if self.module else "Git"
+        tools = ["Git", *(["uv"] if self.module else [])]
         if self.proof_commands:
-            tools += ", and elan for the proofs,"
-        # The sentence is what the first view shows; the commands, the files,
-        # and the tests are complete but closed, and no command is shown
-        # twice. Both are text in the page, so neither needs JavaScript.
+            tools.append("elan")
+        installed = (
+            " and ".join(tools)
+            if len(tools) < 3
+            else f"{', '.join(tools[:-1])}, and {tools[-1]}"
+        )
+        files_at = (
+            "The files behind this page, at the commit it was built from:"
+            if self.commit.sha is not None
+            else "The files behind this page:"
+        )
+        # The first view is one sentence and, for a local build with
+        # uncommitted changes, its notice; the routes, every command once,
+        # the files, the tests, and the live run of an agent lesson are in
+        # one closed native disclosure, so neither needs JavaScript.
         return "\n".join(
             [
                 "::: {.reproduce}",
                 self._sentence(),
                 "",
+                *self._notice(),
                 '<details class="reproduce-details">',
                 f"<summary>{DETAILS_SUMMARY}</summary>",
                 "",
-                f"With {tools} installed (see {self._setup_link()}), run:",
+                f"Install {installed} (see {self._setup_link()}), then get the code:",
                 "",
                 "```{.bash .reproduce-commands}",
-                *self.commands,
+                *self.clone_commands,
                 "```",
                 "",
-                "The files behind it:",
+                *self._versions(),
+                self._then(),
+                "",
+                "```{.bash .reproduce-commands}",
+                *self.run_commands,
+                "```",
+                "",
+                *self._regenerates(),
+                files_at,
                 "",
                 *files,
                 "",
-                *self._regenerates(),
+                *self._live(),
                 "</details>",
                 "",
-                *self._live(),
                 # The last line of the lesson (F135).
                 "::: {.suggest-improvement}",
                 suggestion(self.repository, self.page_address),
