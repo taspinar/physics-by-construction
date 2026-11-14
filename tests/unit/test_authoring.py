@@ -386,13 +386,19 @@ def test_the_summary_is_short_and_the_full_listing_is_in_a_closed_details(
     summary, details = text.split('<details class="reproduce-details">')
 
     assert "<details open" not in text
-    # First view: the commit and one command; the files and the other
-    # commands are only in the listing.
+    # First view: one sentence with the commit and no command (F174); every
+    # command, the files, and the tests are only in the listing, and no
+    # command is shown twice.
     assert build_commit().sha in summary
-    assert reproduction.experiment_command in summary
+    assert "```" not in summary
+    sentence = summary.removeprefix("::: {.reproduce}\n").strip()
+    assert "\n" not in sentence and sentence.count(". ") <= 1
+    assert "run its experiment on your own machine" in sentence
+    assert reproduction.experiment_command not in summary
     assert "git clone" not in summary and CODE not in summary
     for command in reproduction.commands:
         assert command in details
+        assert text.count(command) == 1
     assert CODE in details and TESTS in details
     assert "results/results.json" in details
     assert "[the setup page](../../../reproduce.html)" in details
@@ -418,7 +424,11 @@ def test_a_proof_lesson_checks_its_modules_with_lake_and_needs_no_python_tools(
     )
     # The figures of the page come from its experiment, before the proofs.
     assert reproduction.experiment_command in reproduction.commands
-    assert "lake build PhysicsByConstruction.Mechanics.Kinematics" in summary
+    # The summary says what can be checked; the command is in the listing,
+    # once (F174).
+    assert "check its proofs" in summary
+    assert "lake build" not in summary
+    assert text.count("lake build PhysicsByConstruction.Mechanics.Kinematics") == 1
     assert "check-lean.sh" not in text and "jq" not in text
     assert "elan" in text
 

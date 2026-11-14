@@ -1898,7 +1898,10 @@ existing helpers: the header and the excerpt's location line are context
 regions (`pbc.authoring.context`, ADR 014 decision 9) that the post-render
 step `site/context.py` fills, and the last section comes from
 `pbc.authoring.reproduce`; so one change reaches every lesson: a shared
-input and a full run. Figure
+input and a full run. The previous and next lesson at the end are a
+labelled `<nav>` that the same post-render step inserts before the end of
+`main` on every lesson page that has a last section, after anything a
+lesson writes after that section's cell. Figure
 status presentation is V2's; F174 may change only the surrounding CSS.
 
 **Teaching pilots and calibration** (T2, T3, F165 to F169). M1, M3, and

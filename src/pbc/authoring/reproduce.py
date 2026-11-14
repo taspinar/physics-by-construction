@@ -37,6 +37,8 @@ HEADINGS = {
 RESULTS = "results"
 # The proof check of a lesson whose methods are Lean only (ADR 016 decision 2).
 LEAN_EXPERIMENT = "./scripts/check-lean.sh"
+# The summary of the closed disclosure of the section (F174).
+DETAILS_SUMMARY = "The commands, the files, and the tests"
 # The setup page, relative to the website project.
 SETUP_PAGE = "reproduce.html"
 # How the live run of an agent lesson is installed and what it needs.
@@ -230,44 +232,46 @@ class Reproduction:
             self.payload(),
         )
 
-    def _built_from(self) -> str:
+    def _what_it_regenerates(self) -> str:
+        """What a reader can run, in the words of the sentence."""
+        if self.kind == "proof" and not self.module:
+            return "check its proofs on your own machine"
+        if self.kind == "proof" or self.proof_commands:
+            return "check its proofs and run its experiment on your own machine"
+        if self.kind == "replay":
+            return (
+                "replay its recorded agent run on your own machine to regenerate"
+                " every figure and number it shows"
+            )
+        return (
+            "run its experiment on your own machine to regenerate every figure"
+            " and number it shows"
+        )
+
+    def _sentence(self) -> str:
+        """The one sentence the section opens with: the commit and what a
+        reader can run from it (F174). It shows no command; the commands are
+        in the disclosure, each once."""
         sha = self.commit.sha
         if sha is None:
             return (
                 "This page was not built from a Git checkout, so the commit of"
-                " its sources is unknown."
+                " its sources is unknown; from a clone you can"
+                f" {self._what_it_regenerates()}."
             )
-        built_from = (
+        sentence = (
             f"This page was built from commit [`{sha}`]"
             f"({self.repository}/tree/{sha}) of the"
-            f" [repository]({self.repository})."
+            f" [repository]({self.repository}), and from a clone at that commit"
+            f" you can {self._what_it_regenerates()}."
         )
         if self.commit.dirty:
-            built_from += (
+            sentence += (
                 " **The checkout had uncommitted changes, so that commit"
                 " does not hold exactly the files this page was built"
                 " from.**"
             )
-        return built_from
-
-    def _summary(self) -> list[str]:
-        if self.module and self.kind != "proof":
-            return [
-                "In a clone at that commit, with the project's Python packages"
-                " installed, this command runs the experiment of this page:",
-                "",
-                "```{.bash .reproduce-summary-command}",
-                self.experiment_command,
-                "```",
-            ]
-        return [
-            "In a clone at that commit, with the pinned Lean toolchain, this"
-            f" command in `{LEAN_DIRECTORY}/` checks the proofs of this page:",
-            "",
-            "```{.bash .reproduce-summary-command}",
-            self.proof_commands[-1],
-            "```",
-        ]
+        return sentence
 
     def _regenerates(self) -> list[str]:
         lines = []
@@ -335,27 +339,26 @@ class Reproduction:
         tools = "Git and uv" if self.module else "Git"
         if self.proof_commands:
             tools += ", and elan for the proofs,"
-        # The summary is what the first view shows; the listing is complete
-        # but closed. Both are text in the page, so neither needs JavaScript.
+        # The sentence is what the first view shows; the commands, the files,
+        # and the tests are complete but closed, and no command is shown
+        # twice. Both are text in the page, so neither needs JavaScript.
         return "\n".join(
             [
                 "::: {.reproduce}",
-                self._built_from(),
-                "",
-                *self._summary(),
+                self._sentence(),
                 "",
                 '<details class="reproduce-details">',
-                "<summary>Files, tests, and every command</summary>",
-                "",
-                "The files behind it:",
-                "",
-                *files,
+                f"<summary>{DETAILS_SUMMARY}</summary>",
                 "",
                 f"With {tools} installed (see {self._setup_link()}), run:",
                 "",
                 "```{.bash .reproduce-commands}",
                 *self.commands,
                 "```",
+                "",
+                "The files behind it:",
+                "",
+                *files,
                 "",
                 *self._regenerates(),
                 "</details>",

@@ -193,11 +193,16 @@ matter when the site is built, so there is no list to maintain:
   the curriculum as a view over the same lessons, names the courses that have
   no lesson yet in one sentence, and explains the difficulty scale and what
   previous and next mean.
-- The first cell of every lesson writes the header of the lesson: its course
-  and position in the course, its slot and, for a method-path lesson, its
-  position in the path, its methods, its difficulty, what you will
-  learn, its prerequisites and related lessons with links, and links to the
-  previous and next lesson of the path. The template has the cell; keep it
+- The first cell of every lesson writes the header of the lesson. It shows
+  the course and position in the course, the methods, the difficulty, what
+  you will learn, and links to the previous and next lesson of the path;
+  under them a closed native disclosure ("Prerequisites, related lessons,
+  and where this lesson fits") holds the slot and, for a method-path lesson,
+  its position in the path, the introductions, the prerequisites and
+  "Before you begin", the related lessons, and the connections, all with
+  links (F174). The title and the `description` above it are the lesson's
+  purpose. The previous and next lesson are repeated once, at the end of
+  the page, after the last section. The template has the cell; keep it
   before the introduction:
 
   ````markdown
@@ -1474,8 +1479,11 @@ reproduce_this(
 ````
 
 `code` names the modules the page imports and `tests` the tests of those
-modules, relative to the repository root. The cell writes the commit the page
-was built from, links to the files at that commit, and the commands from a
+modules, relative to the repository root. The section opens with one
+sentence that names the commit the page was built from and what a reader can
+run from a clone; a closed native disclosure ("The commands, the files, and
+the tests") holds every command once, the links to the files at that commit,
+and what the run writes (F174). The commands go from a
 clone to the experiment: check out the commit, install the project's
 packages (`uv sync --locked --no-dev`), and run the experiment the front
 matter declares. A Lean lesson adds `lake build` of the modules it shows; an
@@ -1488,8 +1496,9 @@ the lesson, and a check of the built site runs the experiment of every lesson
 with these commands and compares its figure files, byte for byte, and its
 numbers, at the precision the page shows them, with the published page.
 
-The section, and so the lesson, ends with one line, "Suggest an improvement",
-written by the build (`pbc.authoring.improvement`, F135): three links to the
+The section ends with one line, "Suggest an improvement" (after it the
+lesson has only the previous and next lesson), written by the build
+(`pbc.authoring.improvement`, F135): three links to the
 issue forms of `.github/ISSUE_TEMPLATE/` (scientific correction, report a
 problem, propose a change), each with the lesson's public address, from
 `website.site-url`, filled in. GitHub fills a field of an issue form from the
