@@ -37,6 +37,7 @@ each part applies.
   does not change sign (a temperature, a density, an intensity),
   ``DIVERGING`` centred on zero for a signed quantity
   (``pbc.data.plotting.signed_norm``); the colour bar says "false colour".
+  An isoline on a field is white or ink by its level (``isoline_colours``).
 """
 
 from __future__ import annotations
@@ -130,6 +131,25 @@ def line_colours(palette: Sequence[str]) -> tuple[str, ...]:
     """The colours of ``palette`` that a line may take: at least 3:1 against
     the plate."""
     return tuple(c for c in palette if contrast_ratio(c, PLATE) >= CONTROL_CONTRAST)
+
+
+def isoline_colours(
+    levels: Sequence[float], vmin: float, vmax: float, cmap: str = SEQUENTIAL
+) -> list[str]:
+    """The colour of each isoline of ``levels`` on a field drawn with ``cmap``
+    from ``vmin`` to ``vmax``: the plate's white or the ink, whichever has the
+    more contrast with the map's colour at the level, the colour the field
+    has under the line."""
+    from matplotlib.colors import to_hex
+
+    colour_map = matplotlib.colormaps[cmap]
+    colours = []
+    for level in levels:
+        under = to_hex(colour_map((level - vmin) / (vmax - vmin)))
+        colours.append(
+            max((PLATE, INK), key=lambda colour: contrast_ratio(colour, under))
+        )
+    return colours
 
 
 @contextmanager

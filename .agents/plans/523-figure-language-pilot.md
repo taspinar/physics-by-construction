@@ -86,7 +86,7 @@ against the white plate.
 | multi-series numerical comparison | `fig-orbit-thousand` | 104321 | 606 | 10 to 10 | 13.3 / 6.7 | 2 | 0 | 1.5 | 0 | none | 9.12 |
 | phase space | `fig-phase-blob` | 45270 | 532 | 10 to 10 | 13.3 / 7.7 | 3 | 0 | 1.5 | 0 | none | 7.46 |
 | convergence, log-log | `fig-heat-convergence` | 89223 | 681 | 10 to 10 | 13.3 / 6.0 | 4 | 0 | 1.5 | 10 | none | 7.46 |
-| field | `fig-plate-temperature` | 111385 | 586 | 6.94 to 10 | 9.3 / 4.8 | 0 | 2 |  | 0 | viridis | no line |
+| field | `fig-plate-temperature` | 111385 | 586 | 6.94 to 10 | 9.3 / 4.8 | 0 | 2 |  | 0 | viridis | 1.74 |
 | measured against model, residuals | `fig-impedance-fit` | 189510 | 626 | 7.5 to 12 | 10.0 / 4.9 | 8 | 3 | 0.8, 1.2, 1.4 | 243 | none | 3.42 |
 
 Total 638,150 bytes.
@@ -131,10 +131,10 @@ Findings, by the criteria of the Issue:
 | multi-series numerical comparison | `fig-orbit-thousand` | 107506 | 548 | 10 to 11 | 13.3 / 7.4 | 2 | 0 | 1.8 | 0 | none | 9.12 |
 | phase space | `fig-phase-blob` | 47472 | 547 | 9.5 to 11 | 12.7 / 7.1 | 0 | 0 | 1.8 | 0 | none | 7.46 |
 | convergence, log-log | `fig-heat-convergence` | 74339 | 548 | 9.5 to 11 | 12.7 / 7.1 | 0 | 0 | 1, 1.8 | 10 | none | 6.39 |
-| field | `fig-plate-temperature` | 112219 | 547 | 9.5 to 11 | 12.7 / 7.1 | 0 | 2 |  | 0 | viridis | no line |
+| field | `fig-plate-temperature` | 111163 | 547 | 9.5 to 11 | 12.7 / 7.1 | 0 | 2 |  | 0 | viridis | 3.86 |
 | measured against model, residuals | `fig-impedance-fit` | 184471 | 550 | 9.5 to 11 | 12.7 / 7.0 | 3 | 3 | 0.8, 1.4 | 243 | none | 3.42 |
 
-Total 627,218 bytes (−1.7 %).
+Total 626,162 bytes (−1.9 %).
 
 What changed, per figure, with every value kept:
 
@@ -151,7 +151,11 @@ What changed, per figure, with every value kept:
   other dt tick labelled (the five ticks stay).
 - `fig-plate-temperature`: the isotherm labels at the top of each arch on
   the plate's middle line, level and 9.5 pt (before: 6.9 pt, placed by
-  Matplotlib along the steep sides); ticks at 0, 5, 10 cm.
+  Matplotlib along the steep sides); ticks at 0, 5, 10 cm. Each isotherm
+  white or ink, whichever has the more contrast with the map's colour at
+  its level (`isoline_colours`: 30 and 40 °C white, 60 and 80 °C ink;
+  before: all white, 1.74:1 on the bright side of the map). Review round 1,
+  M1.
 - `fig-impedance-fit`: one legend of three entries in the empty upper left
   of the magnitude panel (the upper limit raised to five times the peak to
   make room: the scale stays log-log, every sample shown); the residuals named on their curves; the
@@ -163,14 +167,26 @@ data, every image array, every contour level set, and both axis scales
 are the same sets before and after (the comparison script read the six
 figures from `HEAD` and from the working tree).
 
-**Payload and build cost (criterion 4).** −10.9 KB over the six figures;
+**Payload and build cost (criterion 4).** −12.0 KB over the six figures;
 each lesson's page stays far inside the 3 MB budget, and EM8's figures
 inside the 750 KB of its lab test. Drawing time of the six (three
 encodings each, after a warm-up): 1.090 s before, 1.108 s after.
 
 **Contrast.** Ink and muted grey at 17.2:1 and 6.4:1 on the plate, the
 rule's grey at 4.0:1; every data line at 3:1 or more
-(`tests/unit/test_figure_language.py`).
+(`tests/unit/test_figure_language.py`). The column "Least line contrast"
+covers every stroke: a `Line2D` against the plate, and a stroke of a
+collection (the field's isotherms, drawn by `contour`) against what lies
+beneath it, sampled five times along each segment, the rendered pixel of
+the field's image under the sample (the audit of review round 1, M1; the
+before table's field row was measured again with it on the base's
+figure). Inside the plate the least isotherm contrast is 3.86:1 (before:
+1.74:1), and each isotherm label takes its line's colour at 4.5:1 or more
+against its level. The samples on the image's border ring, the plate's
+boundary values, are counted apart, not hidden: 10 below 3:1, all where
+the isotherms end in the two bottom corners, where the hot edge (100 °C)
+meets the cold ones (20 °C) and no stroke colour has 3:1 against both
+(before: 24).
 
 **Screenshots.** Each figure on the plate of `site.css` at 1280 and 375
 CSS px, before and after, were taken from a scratch harness for the visual

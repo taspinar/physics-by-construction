@@ -854,7 +854,10 @@ lesson's own module.
   `DIVERGING` (PuOr), centred on zero, for a signed quantity
   (`pbc.data.plotting.signed_norm`); a grey map only for a detector image
   shown as recorded. The colour bar names the quantity, the unit, and
-  "false colour".
+  "false colour". An isoline drawn on a field takes, level by level, the
+  white of the plate or the ink, whichever has the more contrast with the
+  map's colour at its level (`isoline_colours`); the audit
+  (`pbc.figure_audit`) measures it against the rendered field beneath it.
 - **Labels.** A series is named beside its curve (`direct_label`) where the
   curves lie apart; a legend stays where labels would collide or sit on the
   data, and then it is one legend of at most three entries, placed where

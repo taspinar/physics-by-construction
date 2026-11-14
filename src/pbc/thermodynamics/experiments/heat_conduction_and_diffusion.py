@@ -28,6 +28,7 @@ from pbc.figure_language import (
     figsize,
     figure_style,
     finish,
+    isoline_colours,
     reference_slope,
 )
 from pbc.thermodynamics.conduction import (
@@ -433,7 +434,7 @@ def draw_plate(snapshot, steady) -> Figure:
                 levels=levels,
                 origin="lower",
                 extent=extent,
-                colors="white",
+                colors=isoline_colours(levels, COLD, HOT),
                 linewidths=LINE["guide"],
             )
             # Each isotherm labelled at the top of its arch, on the middle line of

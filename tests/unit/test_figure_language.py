@@ -26,6 +26,7 @@ from pbc.figure_language import (
     WIDTH,
     figure_style,
     finish,
+    isoline_colours,
     line_colours,
 )
 
@@ -75,6 +76,60 @@ def test_every_line_of_a_sample_has_three_to_one_against_the_plate(audits):
     for label, audit in audits.items():
         if audit.least_line_contrast is not None:
             assert audit.least_line_contrast >= CONTROL_CONTRAST, label
+
+
+def test_the_isolines_of_the_field_are_audited_against_the_field(audits):
+    # The field draws its isotherms with contour(), a collection and not a
+    # Line2D: the audit measures them against the rendered field beneath.
+    audit = audits["fig-plate-temperature"]
+    assert audit.least_line_contrast is not None
+    assert audit.least_line_contrast >= CONTROL_CONTRAST
+
+
+def test_only_the_corners_of_the_plate_hold_isoline_samples_below_three_to_one(
+    audits,
+):
+    # Every isotherm ends in a bottom corner, where the hot edge (100 degrees
+    # C) meets the cold ones (20): no stroke colour has 3:1 against both. The
+    # samples there are counted, few, and on the boundary pixels only.
+    for label, audit in audits.items():
+        if label != "fig-plate-temperature":
+            assert audit.border_samples_below == 0, label
+    assert audits["fig-plate-temperature"].border_samples_below <= 12
+
+
+def _field_with_isolines(colour):
+    import numpy as np
+
+    def draw():
+        fig, ax = plt.subplots(figsize=(WIDTH, 3.0))
+        _, x = np.mgrid[0:1:41j, 0:1:41j]
+        field = 20.0 + 80.0 * x
+        extent = (0.0, 1.0, 0.0, 1.0)
+        ax.imshow(field, origin="lower", extent=extent, cmap=SEQUENTIAL)
+        ax.contour(field, levels=[85.0], origin="lower", extent=extent, colors=colour)
+        return fig
+
+    return draw
+
+
+def test_the_audit_measures_an_isoline_against_the_field_beneath():
+    # At 85 degrees on a map from 20 to 100 the field is bright yellow-green:
+    # white on it is below 3:1, ink is far above.
+    white = measure(_field_with_isolines("white"))
+    ink = measure(_field_with_isolines(INK))
+    assert white.least_line_contrast < CONTROL_CONTRAST
+    assert ink.least_line_contrast >= CONTROL_CONTRAST
+
+
+def test_an_isoline_takes_the_colour_with_more_contrast_on_its_level():
+    colours = isoline_colours([30, 40, 60, 80], 20.0, 100.0)
+    assert colours == [PAGE["plate"], PAGE["plate"], INK, INK]
+    cmap = matplotlib.colormaps[SEQUENTIAL]
+    for level, colour in zip([30, 40, 60, 80], colours, strict=True):
+        under = matplotlib.colors.to_hex(cmap((level - 20.0) / 80.0))
+        # the labels take the same colour: text contrast, not only 3:1
+        assert contrast_ratio(colour, under) >= TEXT_CONTRAST
 
 
 def test_the_text_colours_have_the_contrast_of_text_on_the_plate():

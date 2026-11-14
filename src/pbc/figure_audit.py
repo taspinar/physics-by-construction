@@ -7,9 +7,11 @@ impression. ``measure(draw)`` draws a figure as the page does
 file, the width the page shows it at on a desktop and on a phone, the
 smallest text at both widths in CSS pixels (the status label and the
 credit left out: they are F172's), the legend entries, the line
-widths, the markers drawn, the colour maps, and the least contrast of a data
-line against the white plate. Run it as a program to print the audit of the
-pilot's samples:
+widths, the markers drawn, the colour maps, and the least contrast of a
+stroke: a data line against the white plate, and a stroke of a collection
+(an isoline, a line collection) against what lies beneath it, the rendered
+field where an image is drawn under it and the plate elsewhere. Run it as
+a program to print the audit of the pilot's samples:
 
     uv run --locked python -m pbc.figure_audit
 
@@ -25,13 +27,16 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import matplotlib
-from matplotlib.collections import QuadMesh
+import numpy as np
+from matplotlib.collections import Collection, PolyCollection, QuadMesh
 from matplotlib.colors import to_hex
+from matplotlib.contour import ContourSet
 from matplotlib.figure import Figure
 from matplotlib.image import AxesImage
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
 
+from pbc.authoring.design import CONTROL_CONTRAST as CONTROL
 from pbc.authoring.design import PAGE, contrast_ratio
 from pbc.data.plotting import CREDIT_GID, STATUS_GID
 from pbc.experiment import FIGURE_SETTINGS, PIXEL_RATIO, encode, png_size
@@ -94,7 +99,12 @@ class Audit:
     line_widths: tuple[float, ...]
     markers: int
     colour_maps: tuple[str, ...]
-    least_line_contrast: float | None  # None: the figure draws no line
+    # The least contrast of a stroke inside the plot (None: no stroke).
+    least_line_contrast: float | None
+    # The samples of a stroke below 3:1 on the border pixels of a field's
+    # image, where the field holds its boundary values and isolines end
+    # (counted, never hidden: not part of least_line_contrast).
+    border_samples_below: int
 
     def text_px(self, points: float, scale: float) -> float:
         return points * PIXELS_PER_POINT * scale
@@ -118,6 +128,71 @@ def _texts(fig: Figure) -> list[Text]:
         # The status label and the credit are F172's, not the language's.
         and t.get_gid() not in (STATUS_GID, CREDIT_GID)
     ]
+
+
+def _beneath(ax, points: np.ndarray, plate: str) -> list[tuple[str, bool]]:
+    """The colour drawn under each of ``points`` (data coordinates), and
+    whether it lies on the border of an image: the pixel of the topmost image
+    of ``ax`` that holds the point, rendered through its colour map, or the
+    plate. The border ring of a field's image holds its boundary values."""
+    found = [(plate, False)] * len(points)
+    for image in ax.images:
+        data = np.asarray(image.get_array())
+        rows, columns = data.shape[:2]
+        left, right, bottom, top = image.get_extent()
+        if image.origin == "upper":
+            bottom, top = top, bottom
+        for k, (x, y) in enumerate(points):
+            u = (x - left) / (right - left)
+            v = (y - bottom) / (top - bottom)
+            if not (0.0 <= u <= 1.0 and 0.0 <= v <= 1.0):
+                continue
+            column = min(int(u * columns), columns - 1)
+            row = min(int(v * rows), rows - 1)
+            border = row in (0, rows - 1) or column in (0, columns - 1)
+            found[k] = (to_hex(image.to_rgba(data[row, column])), border)
+    return found
+
+
+# Samples per segment of a stroke: its two ends and three points between.
+SAMPLES_PER_SEGMENT = 5
+
+
+def _stroke_contrasts(
+    ax, collection: Collection, plate: str
+) -> list[tuple[float, bool]]:
+    """The contrast of the strokes of ``collection`` (an isoline, a line
+    collection) against what lies under them, sampled along every segment,
+    each with whether the sample lies on the border of an image. Filled
+    areas (a colour mesh, a filled contour, a band) are not strokes."""
+    if not collection.get_visible() or isinstance(
+        collection, QuadMesh | PolyCollection
+    ):
+        return []
+    if isinstance(collection, ContourSet) and collection.filled:
+        return []
+    widths = np.atleast_1d(collection.get_linewidth())
+    edges = collection.get_edgecolor()
+    if len(edges) == 0 or not np.any(widths > 0):
+        return []
+    to_data = collection.get_transform() - ax.transData
+    steps = np.linspace(0.0, 1.0, SAMPLES_PER_SEGMENT)[:, None, None]
+    contrasts = []
+    for k, path in enumerate(collection.get_paths()):
+        if len(path.vertices) == 0 or widths[k % len(widths)] <= 0:
+            continue
+        stroke = to_hex(edges[k % len(edges)])
+        for piece in path.to_polygons(closed_only=False):
+            points = to_data.transform(piece)
+            if len(points) > 1:
+                points = (points[:-1] + steps * (points[1:] - points[:-1])).reshape(
+                    -1, 2
+                )
+            contrasts += [
+                (contrast_ratio(stroke, under), border)
+                for under, border in _beneath(ax, points, plate)
+            ]
+    return contrasts
 
 
 def _inspect(fig: Figure) -> dict:
@@ -157,6 +232,13 @@ def _inspect(fig: Figure) -> dict:
         for line in lines
         if isinstance(line, Line2D)
     ]
+    strokes = [
+        sample
+        for ax in fig.axes
+        for collection in ax.collections
+        for sample in _stroke_contrasts(ax, collection, plate)
+    ]
+    contrasts += [contrast for contrast, border in strokes if not border]
     return {
         "smallest_text": min(sizes),
         "largest_text": max(sizes),
@@ -166,6 +248,9 @@ def _inspect(fig: Figure) -> dict:
         "markers": markers,
         "colour_maps": tuple(maps),
         "least_line_contrast": min(contrasts) if contrasts else None,
+        "border_samples_below": sum(
+            1 for contrast, border in strokes if border and contrast < CONTROL
+        ),
     }
 
 
