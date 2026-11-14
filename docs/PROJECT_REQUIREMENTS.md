@@ -1,7 +1,7 @@
 # Project Requirements
 
 Status: Approved
-Approved at: 2026-11-04T07:27:31Z
+Approved at: 2026-11-13T21:44:25Z
 Owner decisions recorded in the text since that approval (dated notes):
 Issues #462 (2026-11-10), #481, #482 and #483 (2026-11-11), and #487
 (2026-11-12 and 2026-11-13); re-approved by the planning re-approval of
@@ -21,8 +21,10 @@ change requests `docs/changes/physics-next-phase.md` (human-supplied,
 `docs/changes/site-navigation-and-atlas.md` (human-supplied, 2026-10-30),
 and `docs/changes/part-b-scientific-products-and-research.md`
 (human-supplied, 2026-11-01), and `docs/changes/textbook-layer.md`
-(human-supplied, 2026-11-03), plus the decisions recorded in "Major product
-decisions" below.
+(human-supplied, 2026-11-03), and
+`docs/changes/teaching-by-construction.md` (human-supplied, 2026-11-13,
+revised draft v3 with the owner's Appendix A), plus the decisions recorded
+in "Major product decisions" below.
 
 ## Project goal
 
@@ -282,7 +284,9 @@ Later phases (in scope for the project, out of scope for the MVP):
   project-local skills for visual and scientific-illustration work, a
   project-owned scientific-visualization skill, and the planner,
   implementer, reviewer, and verification contract that makes their use
-  traceable, piloted on bounded features before any wider adoption.
+  traceable, piloted on bounded features before any wider adoption; since
+  decision 44 also the project-owned Physics Teaching skill under the same
+  contract.
 - The risk-proportionate verification and review workflow of decision 39:
   three risk levels, an evidence lifecycle with per-criterion gates, a
   traceable chain of delta reviews for medium-risk changes, and owner
@@ -840,6 +844,10 @@ Later phases (in scope for the project, out of scope for the MVP):
   and is not repeated in every lesson.
 - Code shown on the site is the code that CI ran (no hand-copied snippets that
   can drift), and figures on the site are the figures that code produced.
+  *Amended by decision 44 (2026-11-13):* exact source fragments stay the
+  default; a derived signature generated from the source, or simplified
+  teaching code that CI executes exactly as shown and checks, is allowed
+  where it demonstrably clarifies, as that decision states.
 - Lean proofs are displayed with syntax highlighting and link to the Lean web
   editor or the repository file for exploration.
 - Exercises provide self-check answers or solutions on the page.
@@ -1071,6 +1079,8 @@ Later phases (in scope for the project, out of scope for the MVP):
   Its suggestions are adapted to the Quarto, `.qmd`, CSS, SVG, native
   MathML, Python, and GitHub Pages stack. Manim, if ever piloted, is a
   local pilot dependency outside the pinned learner and CI environments.
+  The project-owned PBC Physics Teaching skill (decision 44) is governed
+  the same way, though it is not a visual skill.
 - No analytics, comment, search-as-a-service, or auth providers; search, if
   offered, is a self-hosted index built at build time.
 
@@ -1571,6 +1581,9 @@ necessary.
     silently for style. The objective is better teaching, not optimisation
     against AI-content detectors. The labels F1 to F3 of the proposal are
     local labels, not repository feature identifiers.
+    *Amended by decision 44 (2026-11-13):* a didactic pilot on M1, M3, and
+    M5 may change the teaching sequence beyond prose, and the integration
+    follows that pilot and its calibration; the rest stands.
 33. **Learner instructions without a website build** (change 2). Every
     instruction to rebuild or preview the website locally is removed from
     maintained documentation (the public setup page, lesson footers,
@@ -1827,6 +1840,10 @@ one oversized styling feature.
     pilot that is Quarto, semantic HTML, and SVG with the published and
     planned safeguards, no unapproved dependency, and reviewable slices
     with a fallback when a candidate fails review) apply.
+    *Amended by decision 44 (2026-11-13):* the governed set also holds the
+    project-owned PBC Physics Teaching skill, which is not a visual skill;
+    a lesson feature's plan selects it or records why it is not useful,
+    under the same workflow contract; the rest stands.
 
 Recommended defaults adopted in this change cycle (reversible during
 planning): the planner allocates the feature identifiers of the delivery
@@ -2361,7 +2378,9 @@ decisions 36 to 42 beyond what decision 43 says.
       CMS, a backend, runtime AI content, new state or telemetry, the
       validated interactive pendulum (question 14), and the legacy-format
       migration of three lessons, which follows the Part B re-slotting as
-      its own Issue.
+      its own Issue. (*Amended by decision 44, 2026-11-13:* the didactic
+      pilots on M1, M3, and M5, and at most one approved calibration
+      lesson, revise their sequence without changing their science.)
     - *For the planner* (not requirement questions): the address of the
       introductions (a flat tree per sequence or a tree under the existing
       course path; the change request recommends the flat form, within
@@ -2373,11 +2392,187 @@ decisions 36 to 42 beyond what decision 43 says.
       textbook-layer beside the change request and was not present when
       this decision was recorded.
 
+Decided during the change cycle `teaching-by-construction` (2026-11-13),
+from `docs/changes/teaching-by-construction.md` (human-supplied,
+2026-11-13, revised draft v3, with its Appendix A of owner additions and
+its Appendix B, the cross-curriculum teaching and figure audit, inlined)
+and the owner's answers recorded here. The change improves how the site
+teaches and presents physics; it replaces no curriculum, scientific claim,
+verification guarantee, or site technology. Decisions 17, 32, 36 to 38,
+and 40 to 43 stay with the amendments this decision states; nothing else
+of them changes.
+
+44. **Teaching by construction.** Seven workstreams, approved at the
+    planning level and delivered in independently reviewable slices, with
+    any broad rollout conditional on the owner's review of the pilots. The
+    product character stays: physics is taught by constructing models,
+    running code and experiments, comparing with theory and measurement,
+    and stating what the evidence warrants; progressive disclosure never
+    deletes mathematics (an essential derivation stays in the main text, an
+    optional one moves to a labelled, linkable depth section); no
+    compulsory narrative recipe is imposed on any lesson; and the change
+    adds no mandatory agent, model invocation, review round, frontend
+    framework, backend, external CDN, or runtime AI service.
+    - *Physics Teaching skill (T1)*: a project-owned skill,
+      `pbc-physics-teaching`, under the governance of decision 38 and
+      ADR 019 (provenance record, pinned and versioned, project-local,
+      guidance and never evidence, never a build or site dependency). It
+      owns only the pedagogical reasoning layer, beside the editorial
+      voice guide (sentences and register), the authoring guide (scientific
+      and lesson-format rules), and the scientific-visualization skill
+      (figures): the target learner, the central physical question,
+      prerequisite gaps, one or two deliberate prediction or interpretation
+      moments, the distinction between prediction, derived property,
+      simulation output, measurement, and inference, essential versus
+      optional derivations, the purpose of every displayed code block, and
+      the lesson archetype (model or simulation, measured-data
+      investigation, engineering design or capstone, AI agent or
+      evaluation, agent-based model, formal proof). It distils the
+      teaching practice of named sources (Feynman, Chabay and Sherwood,
+      Taylor, OpenStax, McDermott and Shaffer, MIT OpenCourseWare and PhET)
+      with specific references and original examples, copying no diagram
+      or long extract, and includes PBC before-and-after examples, one of
+      them a case where no restructuring is right. *Amends decision 38:*
+      the governed skills are no longer only visual; the plan of a lesson
+      feature selects the teaching skill or records why it is not useful,
+      under the same plan, implementer, and reviewer contract, with no new
+      mandatory review role. The slice changes no published lesson.
+    - *Mechanics didactic pilot (T2)*: the teaching sequence, not only the
+      wording, of M1, M3, and M5 (`mechanics/01-…`, `03-…`, `05-…`) is
+      redesigned, one pull request per lesson with independent scientific
+      and editorial review and a before-and-after reading map; the owner
+      accepts or rejects the approach on the rendered pages at desktop and
+      phone widths. M2 and M4 are comparison cases; after the three pilots
+      the whole M1 to M5 sequence is reviewed before any wider rollout.
+      Canonical addresses, curriculum slots, outcomes, scientific content,
+      and the reproduction contract stay; moved sections keep their
+      documented anchors or provide compatible links. No comprehension
+      statistics are claimed; observations are concrete. *Amends
+      decision 32:* the pilot may move sections, figures, experiments, and
+      derivations, beyond the prose-only changes of F115; section
+      identifiers are preserved as stated here.
+    - *Cross-course calibration (T3)*: before the integration, the skill is
+      evaluated as a source-only diagnostic on at least four archetypes (a
+      measured-data lab, an engineering capstone, an AI-evidence agent
+      lesson, and a Lean lesson), recording good existing practice as well
+      as gaps; at most one further lesson redesign follows, as its own
+      Issue, only with an identified learner-facing problem and the
+      owner's approval of its scope. No mass migration of lessons.
+    - *Figure language (V1)*: an audit of six figure classes, then a
+      bounded style pilot that extends the existing design tokens and
+      figure settings rather than adding a palette; the two palettes (the
+      site's figure colours and the measurement palette, Okabe–Ito) are
+      coordinated under one documented usage rule, neither deleted for
+      branding. Rollout to all figures, or a selective migration, is the
+      owner's decision after the pilot, under the full verification a
+      shared-input change requires.
+    - *Figure status, credits, and portable provenance (V2)*: status and
+      third-party credit need not be painted inside the chart area, but
+      every figure keeps one clearly visible source status on the page,
+      and every figure that declares a dataset also keeps its
+      dataset-specific credit there (short credit at the caption, full
+      provenance on demand; a simulated or conceptual figure has no
+      dataset card and needs no credit; this narrowing of the credit
+      clause to figures that declare a dataset was made after the grill's
+      approval and confirmed by the owner on 2026-11-13, "Ja, bevestigd",
+      in the supervisor session), and an exported or saved PNG carries its
+      status, identity, and required attribution portably and
+      deterministically, consistent with the dataset card and with the
+      same image bytes on the page and in the experiment output. The
+      validation of the figure checks is migrated to equally strong or
+      stronger assertions, never dropped; rights are evaluated per dataset
+      card; figures used as model inputs (AI6,
+      `agents-llm/16-multimodal-physics-reasoning`) and their replay
+      evidence do not change without separate review. A small optional
+      visualization credit (for example "Visualization: Physics by
+      Construction · Data: TESS/MAST") on portable figures is the owner's
+      choice on examples; a watermark, a mark over data, a mandatory
+      brand, and any wording that claims ownership of external
+      measurements are not allowed. The pilot covers AST8 and MAT6 and one
+      mixed measured-and-model figure of another course.
+    - *Selective interactions (I1)*: at most two new lesson interactions,
+      chosen after T2 and T3 by a misconception or prediction a static
+      figure cannot address, on the existing widget convention of F07
+      (static first, dependency-free module, Python-precomputed data,
+      accessible controls, no network, storage, or layout shift); the
+      integrator explorer of M5 is repositioned, not rebuilt. F128
+      (question 14) is neither started nor changed; no ECharts or Plotly.
+    - *Reading experience and code presentation (U1)*: a compact lesson
+      header (title, position, difficulty and method, purpose, key
+      outcomes visible; full connections, prerequisites, and related
+      lessons in a native closed disclosure, still on the lesson page,
+      with previous and next easy to find); a terse Source link beside an
+      excerpt with the full path, line range, and commit in the link and
+      metadata; a short reproduction summary with the full commands and
+      files in a closed native disclosure, the section, its anchor, and
+      the reproduction contract kept; figure status presentation belongs
+      to V2. Every displayed code block has a stated teaching purpose:
+      core physical and numerical code is visible by default, pure plot
+      formatting is a Source link by default, and a scientific
+      transformation inside plotting code (a residual, smoothing,
+      calibration, or offset) is never hidden behind a link because of a
+      function's name. Docstrings, type annotations, and guards in the
+      Python source are never changed to shorten a lesson; the display may
+      omit a docstring the prose already states. Plain and annotated
+      Python excerpts get the same deterministic build-time syntax
+      highlighting, with no runtime CDN, and copied code is never polluted
+      by line numbers or annotation glyphs. Lean code is never simplified.
+    - *Derived code on the page* (owner's answer, 2026-11-13; amends the
+      UX expectation "Code shown on the site is the code that CI ran"):
+      exact fragments taken automatically from the source are the
+      default (the full function, or selected lines with visible omission
+      markers and source line numbers). A derived presentation is allowed
+      only where it demonstrably clarifies the explanation, and only in
+      two forms. A *derived interface or signature* is generated
+      automatically from the source, with no hand-copied parameter or
+      default value. *Simplified runnable teaching code* is executed
+      exactly as shown by CI, which checks the stated properties within
+      explicitly stated assumptions, against an analytical solution or an
+      independent reference where possible. Simplified code states what
+      was left out, what was checked, and where the full implementation
+      is, and claims no full equivalence on the strength of a few tests.
+      Only the minimal support the concrete pilot lessons need is built,
+      with no general framework for simplifying arbitrary code; where no
+      suitable check exists yet, the lesson uses exact source fragments,
+      plain-prose explanation, and a Source link. Reviewer-checked but
+      unexecuted simplified code is not part of this route.
+    - *Integration (F116)*: F116 stays the integration point for the
+      authoring guide, the lesson template, and the review rubric, keeps
+      its scope and the two rubric additions of decision 43, and follows
+      T1, T2, and T3 and the owner's decision on them, incorporating the
+      approved teaching principles and code-selection rules (with archetype
+      examples rather than one template, and named weakness, evidence,
+      and action in review rather than a score). Interactions are optional
+      and purpose-driven. Lessons outside the pilots are not rewritten as
+      a consequence; the principles apply to new lessons and to separately
+      scoped course reviews. *Amends decision 43* only in that the three
+      pilot lessons, and at most one approved calibration lesson, are
+      revised in sequence; their scientific content is unchanged.
+    - *Unchanged*: the asset classes of decisions 37 and 41 and ADR 021 (no
+      new raster permission, no AVIF), every scientific, reproducibility,
+      attribution, accessibility, performance, determinism, and
+      no-external-request guarantee, the risk levels and owner gates of
+      decision 39 (no level is pre-assigned), and the out-of-scope list of
+      the change request's section 16.
+    - *Lesson names*: approved documents and Issues name a lesson by its
+      slot label and its path, never by its directory number alone (the
+      mapping of the change request's Appendix A4).
+    - *For the planner* (not requirement questions): the feature
+      identifiers of the slices; whether U1 replaces, absorbs, or precedes
+      F127, and how the figure pilot V1 relates to F129; the roadmap
+      corrections of Appendix A1 (the outcome check of F136, #370, the
+      stale F136 sentence, the 120-minute `build` timeout of #373); the
+      reconciliation of Appendix A2 with the work delivered since
+      2026-11-04; committing Appendix B as the dated audit snapshot
+      (104 lessons, 255 figure declarations) without recounting it; the
+      fresh measurements and costed options of questions 23 and 24.
+    - *Acceptance*: the criteria of the change request's section 15 apply.
+
 ## Unresolved questions
 
 Questions 1 to 4 and 6 are settled. They keep their numbers, because other
 documents refer to them; questions 5, 7, 8, 9 to 12, 13 to 16, and 17 to
-22 are open.
+24 are open.
 
 1. **Default LLM provider for agent lessons.** Settled in F09: OpenAI is the
    default live provider, as an optional dependency behind the thin provider
@@ -2482,3 +2677,25 @@ the curriculum mapping.
     feasible paper of the reproduction track, and realistic learner
     workload per path, set after the ACT and vertical-slice pilots rather
     than promised before them.
+
+Questions 23 and 24 come from Appendix A of the change request
+`teaching-by-construction` (decision 44). The owner decides both together
+at the review of the planning, on the planner's fresh measurements
+(owner's answers, 2026-11-13).
+
+23. **Capacity beyond 110 lessons.** The capacity gate keeps any lesson
+    feature from taking the published lessons past 110 before the owner's
+    next capacity decision (#278 with #150). On 2026-11-13 there are 107
+    lessons on `main`, 109 after FL10 (#444) and EM7 (#507), and about 126
+    after Part B stages C and D; the `build` timeout is 120 minutes
+    (#373), and the deferral triggers of F113 (#150, lesson shards,
+    ADR 014 decision 11) and the paused part of ADR 017 (incremental
+    `main`, question 9) set by #412 are both met. The planner measures the
+    current `build` durations (selective and full runs apart) and costs
+    the options: shards, incremental `main`, a further timeout, or keeping
+    the cap. The decision is needed before Part B stages C and D, and it
+    also settles how questions 9, 10, and 12 proceed.
+24. **Reuse of a passed verification group (#385).** Whether the parked
+    proposal is planned: what counts as a group's inputs, where passes are
+    stored, and when reuse is forbidden, with a Level 3 final verification
+    always running in full. The planner presents it with question 23.

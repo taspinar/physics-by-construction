@@ -12,9 +12,10 @@ change request `docs/changes/risk-proportionate-workflow.md`, on
 2026-10-30 with the change request
 `docs/changes/site-navigation-and-atlas.md`, on 2026-11-01 with
 the change request `docs/changes/part-b-scientific-products-and-research.md`,
-and on 2026-11-04 with the change request
-`docs/changes/textbook-layer.md`)
-and consistent with `docs/architecture.md` and ADRs 001 to 022.
+on 2026-11-04 with the change request
+`docs/changes/textbook-layer.md`, and on 2026-11-13 with the change
+request `docs/changes/teaching-by-construction.md`)
+and consistent with `docs/architecture.md` and ADRs 001 to 023.
 
 Keep this high-level. GitHub Issues are the actionable backlog and the source
 of truth for a feature once its Issue exists. Each feature below has a stable
@@ -925,13 +926,13 @@ outcome).
 | D4 | `discovering-gravity`, agents-llm/14-discovering-gravity | F99, #336 | Published | Extension slot D4 (gravity discovery, a deliberate extension); linked from B2.2 = MD2 and B2.3 = MD3 | Retain as extension |
 | D5 | `unknown-physical-worlds`, agents-llm/15-unknown-physical-worlds | F99, #336 | Published | Extension slot D5 (the lesson is optional depth); its outcome is core: unknown simulated worlds with withheld truth are acceptance criteria of B2.1 = MD1 (F146) and B3.2 = AE2 (F149), which link the lesson as depth | Retain as extension (lesson); outcome carried by F146 and F149 |
 | D6 | `inverse-physics`, mechanics/12-inverse-physics-parameter-discovery | F23, #120 | Published | B2.2 = MD2 (time and frequency domains); its correlations linked from B2.5 = MD5 | Extend (F146); D6 retires |
-| D7 | `symbolic-regression`, agents-llm/08-symbolic-regression | F67, #190 | Published | B2.3 = MD3 | Reuse after F136's outcome check (a gap goes to F146); D7 retires (an optional broader engine only through an integration a feature chooses) |
-| D8 | `discovering-differential-equations`, agents-llm/09-discovering-differential-equations | F67, #190 | Published | B2.4 = MD4 | Reuse after F136's outcome check (a gap goes to F147); D8 retires (weak forms or PySINDy only through a chosen integration) |
+| D7 | `symbolic-regression`, agents-llm/08-symbolic-regression | F67, #190 | Published | B2.3 = MD3 | Extend (F146), by F136's outcome check: complexity, units, and withheld prediction met, operator choices not; D7 retires (an optional broader engine only through an integration a feature chooses) |
+| D8 | `discovering-differential-equations`, agents-llm/09-discovering-differential-equations | F67, #190 | Published | B2.4 = MD4 | Extend (F147), by F136's outcome check: derivatives and new trajectories met, state selection not; D8 retires (weak forms or PySINDy only through a chosen integration) |
 | D9 | `experimental-design-agent`, agents-llm/04-an-experimental-design-agent | F20, #128 | Published | B2.8 = MD8 (scripted, classical adaptive, LLM, and hybrid strategies under equal budgets) | Extend (F147); D9 retires |
 | D10 | `discovery-under-noise`, agents-llm/18-discovery-under-noise | F98, #345 (merged by #350) | Published | B2.5 = MD5; its measurement-noise part linked from B1.4 = SA4 | Extend (F146); D10 retires |
 | D11 | `hidden-variables`, agents-llm/19-hidden-variables | F98, #345 | Published | B2.6 = MD6 | Extend (F147); D11 retires |
 | D12 | `generalisation-to-unseen-systems`, agents-llm/20-generalisation-to-unseen-systems | F98, #345 | Published | B2.9 = MD9 (with structurally different systems) | Extend (F147); D12 retires |
-| D13 | `discovering-conservation-laws`, agents-llm/11-discovering-conservation-laws | F82, #294 | Published | B2.7 = MD7 | Reuse after F136's outcome check (a gap goes to F147); D13 retires |
+| D13 | `discovering-conservation-laws`, agents-llm/11-discovering-conservation-laws | F82, #294 | Published | B2.7 = MD7 | Reuse, by F136's outcome check (every part met); D13 retires |
 | EV1 | none | F100, #352 | Issue open, not started (a worktree without commits) | B3.1 = AE1 and B3.2 = AE2 (conceptual reasoning and physical-tool understanding kept) | Replace unimplemented scope (F149); EV1 retires, F100 dropped, #352 updated with the successor link |
 | EV2 | `interactive-discovery-benchmarks`, agents-llm/12-interactive-discovery-benchmarks | F81, #295 | Published | B3.2 = AE2 | Extend (F149); EV2 retires |
 | EV3 | `agent-versus-non-agent-baselines`, agents-llm/13-agent-versus-non-agent-baselines | F81, #295 | Published | B3.3 = AE3 (with prior-knowledge control) | Extend (F149); EV3 retires |
@@ -947,8 +948,10 @@ outcome).
 
 Result: 17 published lessons fill core slots (4 in `reasoning`, 9 in
 `law-discovery`, 2 in `benchmarking`, 2 in `autonomous-research`), of
-which 3 are reused as they are (D7, D8, D13), each after F136 checks it
-against its new outcome, and 14 are extended; 5 published lessons are
+which 3 were to be reused as they are (D7, D8, D13), each after F136
+checks it against its new outcome, and 14 are extended. F136's check (the
+plan of #370, "The outcome check of criterion 6") reuses D13 and moves D7
+and D8 to *extend* (F146 and F147), so 1 is reused and 16 are extended; 5 published lessons are
 extension slots, of which only D4 (gravity discovery) is a deliberate
 extension of the requirements, while the outcomes of AI6, D1, D3, and D5
 stay core and are carried by acceptance criteria of F142, F146, F147, and
@@ -1112,6 +1115,185 @@ to F163 (the roadmap's last identifier before this cycle is F155).
   answer, 2026-11-04) say at most one representative published lesson per
   part, or none; F158 follows the requirements.
 
+## State at the change cycle `teaching-by-construction`
+
+Checked on 2026-11-13 at the base commit `2c411ac` of the planning branch
+`planning/teaching-by-construction` (the planning re-approval of #511),
+against the repository, `gh issue list --state all`, `gh pr list`, the
+runs of the CI workflow, and `git worktree list`. The files are the
+truth, this section is their summary at that commit. The change request
+improves how the site teaches and presents physics (requirements decision
+44, with its amendments of decisions 32, 38, and 43 and of the UX
+expectation on displayed code); it takes one ADR, ADR 023, which amends
+ADR 002 (item 1 of the display forms) and ADR 019 decisions 2 and 5. Its
+features are F164 to F179 (the roadmap's last identifier before this
+cycle is F163). The earlier "State at" sections are dated snapshots and
+stay as written; where they and this section differ, this section is the
+current state.
+
+**Lesson names.** This roadmap names a lesson by its slot label and its
+path (decision 44; the change request's Appendix A4). The change
+request's directory numbers map as follows: M1, M3, M5, M8 are
+`mechanics/01-kinematics-as-a-program`, `03-projectile-motion-with-drag`,
+`05-numerical-integrators`, `08-kepler-orbit`; M9, M10, M15 are
+`mechanics/13-double-pendulum-chaos`, `14-lagrangian-mechanics`,
+`20-pendulum-measurements`; MAT6 is `materials/05-stress-strain-measurements`
+(slot MAT5 is `materials/06-xray-diffraction-lab`); AST10, AST4, AST7,
+AST8 are `astrophysics/04-special-relativity`, `05-relativistic-orbits`,
+`08-exoplanet-transit`, `09-exoplanet-light-curves` (slot AST9 is
+`astrophysics/10-galaxy-rotation-curves`); EM9 is
+`electromagnetism/07-adaptive-phased-array-beam-steering`; Q1, Q4, Q8, Q7
+are `quantum/01-the-schrodinger-equation`, `04-spin-and-stern-gerlach`,
+`07-quantum-measurement-statistics`, `08-atomic-spectroscopy`; T4, T6,
+T11, T7, T8 are `thermodynamics/04-ising-model-and-phase-transitions`,
+`07-heat-conduction-and-diffusion`, `09-thermal-engineering-of-an-ai-accelerator`,
+`10-soil-temperature-measurements`, `11-brownian-motion-tracking`; W8, W7
+are `waves/08-wave-flume-lab`, `09-lycopodium-diffraction-lab`; FL5, FL2,
+FL6, FL8 are `fluids/04-shallow-water-equations`,
+`05-navier-stokes-fundamentals`, `07-particle-based-fluid-simulation`,
+`08-turbulent-boundary-layer-measurements`; AI6 and SA5 are
+`agents-llm/16-multimodal-physics-reasoning` and
+`01-an-agent-runs-an-experiment`.
+
+**The audit.** The cross-curriculum teaching and figure audit is
+Appendix B of the change request, committed with it: a dated snapshot of
+2026-11-13 (104 lesson sources, 255 figure declarations, before MAT5,
+AST9, and FL7 merged), source- and sample-based, not a rendered review of
+every figure. It is not recounted; its findings are hypotheses for the
+pilots, not defects.
+
+**Delivered since the planning approval of 2026-11-04** (Appendix A2;
+the approval became stale when merged features changed the roadmap and
+the requirements, `create-feature-issue.sh` refused, and #454, #470, #507,
+and #508 were created by hand on the owner's word; the planning was
+re-approved by #511):
+
+- **The Part B migration and the textbook layer.** F136 (#370, closed
+  2026-11-08), F156 (#372), F157 (#436, pull request #445), F158 (#462,
+  pull request #466); F137 (#359) and F138 (#360) before them.
+- **The editorial pilot.** F115 (#375, with #392 to #395 per lesson,
+  closed 2026-11-07); F116 has no Issue and is changed in place below.
+- **Home and the Course Atlas.** #481 to #483 and #487 (pull requests
+  #484, #485, #486, #490): the owner's copy, the single double-pendulum
+  hero, the inline-expanding atlas.
+- **The gate chain.** #463, #464, #465 after the inventory #446 (pull
+  requests #468, #474, #476).
+- **Verification.** #430 and #431 (parallel groups of `verify.sh`), #412
+  and #432 (the protected list and the settled verification
+  architecture), #404 and #413 (`docs/process.md`), #389 (the Level 3
+  pipeline); the lesson time budgets as one rule (#383, pull request #398);
+  the build timeout of 120 minutes (#373).
+- **The measured-data labs.** EM8 (F86, #418, pull request #478), Q8
+  (F103, #419, #480), AST8 (F104, #420, #489), MAT6 (F107, #421, #488),
+  T7 (F84, #438, #491), M15 (F83, #437, #492), T8 (F85, #439, #493), W7
+  (F52, #440, #495), Q7 (F102, #442, #497), FL8 (F108, #441, #498), MAT5
+  (F106, #443, #499), AST9 (F105, #470, #502), FL7 (F53, #454, #503), and
+  the figure follow-ups of #496, #500, and #501 (pull request #505).
+- **In flight when the change request was written, merged since.** FL10
+  (F88, #444, pull request #506), EM7 (F54, #507, pull request #510), the
+  desk spike of F140 (#508, pull request #509; the Issue stays open for
+  the owner's decision on questions 17 and 18 and the physical pilot),
+  and #353, #423, #494 (pull request #504).
+
+So the status rows of F52, F53, and F54 in the earlier snapshots ("no
+Issue; not started") and their slot rows ("gated") are history: all
+three are delivered. **Slots at `2c411ac`** (filled from the front
+matter against `site/curriculum.yaml`): Part A 81 of 81 (mechanics 17,
+thermodynamics 12, waves 9, electromagnetism 9, fluids 10, quantum 8,
+astrophysics 10, materials 6, every slot filled); Part B core 17 of 34
+(`reasoning` 4 of 9, `law-discovery` 9 of 10, `benchmarking` 2 of 7,
+`autonomous-research` 2 of 8), the 17 to fill being the work of F141 to
+F155; the Lean slot 1 of 1; so 99 of the 116 core slots, 17 to fill;
+extension slots 5 of 7. One hundred and nine lesson directories in eleven
+strands. Open Issues: #150 (F113, paused), #151 (F112), #230 (F61
+follow-up), #385 (the proposal of question 24), #508 (F140), and #512 (a
+planning-process change with its own worktree, outside this cycle).
+
+**Roadmap corrections of Appendix A1, applied in this planning.**
+F136's outcome check (Issue #370; the plan
+`.agents/plans/370-part-b-curriculum-migration.md`, "Roadmap updates left
+for the next planning change") moves D7 and D8 from *reuse* to *extend*:
+the Part B inventory rows of D7, D8, and D13 and its count (1 reused, 16
+extended), the slot mapping of MD3 (extended by F146, operator choices)
+and MD4 (extended by F147, state selection), the scope and new criteria
+of F146 (6) and F147 (7), and the slot-mapping sentence on the curriculum
+file, which has held the new slots since F136. The capacity gate under
+"Phase 9" now names the 120-minute `build` timeout of #373 (2026-11-04)
+in place of the 90 minutes of 2026-10-24; the earlier snapshots keep their
+dated figures.
+
+**Overlaps resolved (Appendix A3).**
+
+- **U1 and F127.** F127 (the reading-column rollout of every lesson, the
+  capstone template, the supporting pages, the final visual acceptance;
+  no Issue) is not replaced and absorbs nothing: the reading experience
+  of U1 is split by component, and its two shared-template parts precede
+  F127. F174 (the compact header and the reproduction disclosure) and
+  F175 (the excerpt forms, the Source link, and the highlighting) change
+  the generated header, the last section, and the excerpt helper, which
+  every lesson already uses whichever column it renders in; F127 then
+  rolls the reading column out over them and does not rework them. F127
+  gains F174 and F175 as dependencies, by a dated note in its block.
+- **V1a and F129.** F129 (no Issue) held two pilots: a conceptual diagram
+  and one scientific figure under the visualization skill. The figure
+  pilot moves into F170, whose six-class audit and style pilot include a
+  numerical-integration figure; F129 keeps the conceptual-diagram pilot
+  and the owner's decision on how the skills reach the templates, by a
+  dated note in its block. The two are never in flight on the same
+  lesson.
+- **I1 and F128, and the sequencing of F116**, are settled by the change
+  request (sections 10 and 12) and by F177, F178, and F116 below.
+
+**Capacity: requirements question 23** (Appendix A5; the owner decides
+it with question 24 at the review of this planning). Measured on
+2026-11-13:
+
+- **Lessons.** 109 on `main` (107 before FL10 and EM7); Part B stages C
+  and D add 17 lesson pages (13 lessons and four capstones), about 126.
+  This change cycle adds none. The capacity gate (110) stops the second
+  new lesson after today.
+- **Full runs.** Every push run on `main` executes every lesson (I26; the
+  comment of the `build` job). The `build` job of the 18 successful push
+  runs from 2026-11-11 to 2026-11-13 (95 to 107 lessons) took 52 to 84
+  minutes, median 61 (runs 43109939679 to 43501467860); the spread
+  follows the runner and its caches more than the lesson count (52
+  minutes at 103 lessons, 84 at 105, the same morning). A linear projection of the
+  slowest run to 126 lessons, labelled so, is about 100 minutes, the
+  owner's re-decision point of #373, against the timeout of 120.
+- **Selective runs.** Pull request runs whose selection was a few lessons
+  took 15 to 23 minutes in `build`; those that selected every lesson (a
+  shared input) took 53 to 87, the same as `main`.
+- **The triggers of #412** (95 lessons; a run on `main` near 80 minutes)
+  are both met.
+
+The options, with their cost:
+
+| Option | What changes | Cost | Risk |
+|---|---|---|---|
+| Keep the cap at 110 | Nothing | None in engineering; Part B stages C and D stop after one more lesson | No capacity risk; the curriculum cannot be completed |
+| A further timeout (for example 150 minutes) | One line of `.github/workflows/ci.yml` (protected, Level 3) and the architecture's record | Minutes of the owner's review; runs on `main` of up to about 100 minutes at 126 lessons, and later publication after a merge; pull requests unaffected | The margin shrinks as lessons grow; nothing gets faster |
+| Lesson shards (F113, #150; ADR 014 decision 11) | The `build` job of a full run becomes a matrix of same-machine shards and one assembly | F113's block as written (a feature of several pull requests, Level 3: the workflow, `scripts/verify.sh`, the selection); more parallel runner minutes per run; every comparison of bytes kept on one machine | The assembly and the determinism comparisons are new failure points; wall clock per run falls to about one shard |
+| Incremental `main` (ADR 017, F121; question 9) | A run on `main` executes only the lessons whose inputs changed, against a verified base, with an exceptional full run | F121's block (the largest change, Level 3); ADR 017 accepted by the owner; F120's evidence exists | The weaker guarantee ADR 017 states for the owner's decision; a run on `main` falls to the size of its change |
+
+Whichever is chosen also settles how questions 9 (incremental `main`), 10
+(the exceptional full run's timeout), and 12 (closing F113) proceed. The
+planner's view, for the owner's decision and not a choice: the further
+timeout is the cheapest way to finish Part B now, and shards or
+incremental `main` are the way to keep the run on `main` short; they are
+not exclusive.
+
+**Reuse of a passed verification group: requirements question 24**
+(Appendix A6, the owner's parked proposal #385). Planned here only as a
+conditional block, F179, which starts if the owner answers yes: what
+counts as a group's inputs, where passes are stored, and when reuse is
+forbidden, with a Level 3 final verification always run in full. Kept
+parked otherwise, with #385 open.
+
+**No conflict with the requirements** was found. The change request's
+lesson names are replaced by slot labels and paths as decision 44 says;
+its slice table (section 13) is followed with the identifiers above, its
+"U1a–d" split by component as the overlap with F127 requires.
+
 ## Overview
 
 Phases: Phase 1 is the MVP; Phase 2 is the work the requirements placed
@@ -1127,7 +1309,10 @@ F131, strictly one after the other; Phase 8 is the change cycle
 the change cycle `part-b-scientific-products-and-research`, the four
 method paths that end in local scientific products, F136 to F155;
 Phase 10 is the change cycle `textbook-layer`, the textbook layer F156 to
-F163
+F163; Phase 11 is the change cycle `teaching-by-construction`, the
+teaching skill, the didactic pilots, the figure work, the reading
+experience, and the selective interactions F164 to F178, with the
+conditional verification feature F179
 (see "Execution order"). A wave is a suggested grouping, not a gate: a
 feature may start when its
 dependencies are done. The gates of Phase 4 (F61 and F62 before every
@@ -1279,7 +1464,7 @@ the editorial pilot in one feature.
 |---|---|---|---|---|
 | F114 | Editorial voice: the style guide with before-and-after examples | Editorial (change 1) | F28, F29, F30, F31 | Low |
 | F115 | Editorial pilot on mechanics lessons 01 to 05, with the human approval gate | Editorial (change 1) | F114, F29, F30, F32 | Medium |
-| F116 | Editorial principles in the authoring guide, the lesson template, and the review rubric | Editorial (change 1) | F115 (the pilot approved) | Low |
+| F116 | Editorial principles in the authoring guide, the lesson template, and the review rubric | Editorial (change 1) | F115 (the pilot approved); since `teaching-by-construction` also F164, F165 to F167 and the owner's decision on the pilots, F168 and its decision, F175 | Low |
 | F117 | "Run this experiment": learner instructions without a website build | Learner instructions (change 2) | F39, F40, F61 (the switch: F118's record under question 10, or F119) | Medium |
 | F118 | Verification audit and the record of the full run | Verification (change 4) | F61 | Low |
 | F119 | Remove redundant verification and blanket local build obligations | Verification (change 4) | F118, the owner's acceptance of ADR 017 decisions 7 and 8 | High |
@@ -1305,9 +1490,9 @@ F126.
 | F124 | The home page of the atelier, with a static verified opening figure | C | F123, F125 (the curated, owner-approved map manifest, which the capstone highlights read), F25, F62, F68, F117 (the merged pull request #205, not the closure of Issue #202), F57 | Medium |
 | F125 | The map manifest and the static atlas: curated concepts and connections, the generated map with its textual equivalent | A (the map data contract), D | F122, F62, F63, F64, F26, F37, F41 | Medium |
 | F126 | The atlas interaction: the switch, selection, zoom, filters, and the phone's region selector | E | F123, F125, F64, F13, F14, F41 | Medium |
-| F127 | The rollout: every lesson in the reading-column template, the capstone and supporting-page templates, and the final visual acceptance | F, G (the polish) | F123, F124, F126, the owner's review of the preview; since `site-navigation-and-atlas` also F132 to F135, with the preview gate on F133 and F134 | Medium |
+| F127 | The rollout: every lesson in the reading-column template, the capstone and supporting-page templates, and the final visual acceptance | F, G (the polish) | F123, F124, F126, the owner's review of the preview; since `site-navigation-and-atlas` also F132 to F135, with the preview gate on F133 and F134; since `teaching-by-construction` also F174 and F175 | Medium |
 | F128 | The validated interactive pendulum on the home page (since `site-navigation-and-atlas` no longer tied to Home; its page is the owner's decision) | G | F124, F68, F07, F43, the owner's decision (question 14) | Medium |
-| F129 | The scientific-figure and conceptual-diagram skill pilots, and the owner's decision on authoring integration | H | F122, F32, F33, F05; coordinated with F114 to F116 | Medium |
+| F129 | The scientific-figure and conceptual-diagram skill pilots, and the owner's decision on authoring integration (since `teaching-by-construction` the conceptual-diagram pilot only; the figure pilot is F170's) | H | F122, F32, F33, F05; coordinated with F114 to F116 and F170 | Medium |
 
 Phase 7, the change cycle `risk-proportionate-workflow` (2026-10-19): the
 two deliverables of `docs/changes/risk-proportionate-workflow.md`
@@ -1350,8 +1535,8 @@ the change request's section 8; Stage A's inventory is this planning
 | F143 | Path 1: a bounded experiment agent; adaptive and resumable measurement campaigns | C | SA5 (B1.5, extends AI0's lesson), SA6 (B1.6) | F136, F137, F138, F142 | Medium |
 | F144 | Path 1: counterexamples, physical constraints, and falsification; traceable explanations and experiment reports | C | SA7 (B1.7, extends AI3's lesson), SA8 (B1.8, extends AI7's lesson) | F136, F137, F141 | Medium |
 | F145 | Capstone: the Autonomous Physics Lab | C | SA9 (B1.C) | F138, F139, F141 to F144; F140's go for its live adapter only | High (scope) |
-| F146 | Path 2: unknown systems and competing models; system identification; noise, uncertainty, and identifiability | C | MD1 (B2.1, extends D2's lesson), MD2 (B2.2, extends D6's lesson), MD5 (B2.5, extends D10's lesson) | F136, F98, F23, F78 | Medium |
-| F147 | Path 2: hidden variables and failures of known laws; active experimental design; generalisation across systems | C | MD6 (B2.6, extends D11's lesson), MD8 (B2.8, extends D9's lesson), MD9 (B2.9, extends D12's lesson) | F136, F137, F98, F20 | Medium |
+| F146 | Path 2: unknown systems and competing models; system identification; noise, uncertainty, and identifiability | C | MD1 (B2.1, extends D2's lesson), MD2 (B2.2, extends D6's lesson), MD3 (B2.3, extends D7's lesson; correction of #370), MD5 (B2.5, extends D10's lesson) | F136, F98, F23, F78 | Medium |
+| F147 | Path 2: hidden variables and failures of known laws; active experimental design; generalisation across systems | C | MD4 (B2.4, extends D8's lesson; correction of #370), MD6 (B2.6, extends D11's lesson), MD8 (B2.8, extends D9's lesson), MD9 (B2.9, extends D12's lesson) | F136, F137, F98, F20 | Medium |
 | F148 | Capstone: the System Discovery Lab | C | MD10 (B2.C) | F145, F146, F147, F137; F140's go for its live adapter only | High (scope) |
 | F149 | Path 3: defining scientific quality; tasks and hidden test worlds; fair baselines and comparison protocols | D | AE1 (B3.1), AE2 (B3.2, extends EV2's lesson), AE3 (B3.3, extends EV3's lesson) | F136, F137, F81, F96 | Medium |
 | F150 | Path 3: independent scoring and sealed evaluation; robustness and statistical uncertainty; failure analysis, reviewer evaluation, and regressions | D | AE4 (B3.4), AE5 (B3.5), AE6 (B3.6) | F149, F137, F18 | Medium |
@@ -1382,6 +1567,41 @@ beside the lesson features; phase 3 is F160.
 | F161 | Introductions, batch 2: fluid dynamics, quantum physics | F156; each course content-stable; F116 when a lesson is revised | Medium (Level 2) |
 | F162 | Introductions, batch 3: astrophysics, condensed matter and materials | F156; each course content-stable; F116 when a lesson is revised | Medium (Level 2) |
 | F163 | Introductions, batch 4: the three other method paths | F156, F136; F145, F151, F155, and F148 (each path content-stable); F116 when a lesson is revised | Medium (Level 2) |
+
+Phase 11, the change cycle `teaching-by-construction` (2026-11-13):
+requirements decision 44, with ADR 023 (amending ADR 002 and ADR 019).
+Lessons are named by slot label and path ("State at the change cycle
+`teaching-by-construction`"). Conditional features start only on the
+owner's recorded decision named in their block. The Risk column gives
+the planning risk, not the ADR 020 level: the level is computed from each
+feature's paths and triggers when it runs (ADR 020 decision 1), and none
+is pre-assigned here. One rule applies to every row: a feature expected
+to touch a protected path of `.agents/policies/guardrails.conf` (F164,
+F179) is labelled High, as other phases label protected-path features,
+because the path minimum is then Level 3; a feature whose change reaches
+every figure or the shared figure checks (F171, F173) is labelled High
+for its breadth, its ADR 020 level still computed when it runs; every
+other label is the planning effort alone. The risk line of each block
+reads the same way.
+
+| ID | Feature | Depends on | Risk |
+|---|---|---|---|
+| F164 | The PBC Physics Teaching skill and its selection rule | This planning | High (`.agents/skills` and `AGENTS.md` are protected paths: Level 3 by path) |
+| F165 | Didactic pilot on M1, `mechanics/01-kinematics-as-a-program` | F164, F175 | Medium |
+| F166 | Didactic pilot on M3, `mechanics/03-projectile-motion-with-drag` | F164 | Medium |
+| F167 | Didactic pilot on M5, `mechanics/05-numerical-integrators`, and the review of the M1 to M5 sequence | F164, F175, F165, F166 | Medium |
+| F168 | Cross-course teaching calibration on four lesson archetypes | F164, F167 and the owner's decision on the pilots | Low |
+| F169 | One cross-course teaching redesign (conditional) | F168 and the owner's approval of its scope | Medium |
+| F170 | Figure language: the six-class audit and the bounded style pilot | This planning; F122 | Medium |
+| F171 | Figure language rollout (conditional) | F170 and the owner's decision | High (planning risk: every figure; a full run; the ADR 020 level computed when it runs) |
+| F172 | Figure status, credits, and portable provenance: the pilot on AST8, MAT6, and one mixed figure of another course | This planning; F50 | Medium |
+| F173 | Figure status and credit rollout (conditional) | F172 and the owner's decision | High (planning risk: shared figure checks; a full run; the ADR 020 level computed when it runs) |
+| F174 | Reading experience: the compact lesson header and the reproduction disclosure | This planning | Medium (every lesson page; a full run) |
+| F175 | Code presentation: exact selections, the generated signature, executed teaching code, the Source link, and annotated highlighting | This planning; F164 (the skill it selects); F35; never in flight with F174 | Medium (shared authoring; a full run) |
+| F176 | Code-selection pilot on MAT6, W7, FL2, SA5, and one Lean lesson | F175, F164 | Medium |
+| F177 | First selected lesson interaction (conditional) | F167, F168, the owner's choice; F07 | Medium |
+| F178 | Second selected lesson interaction (conditional) | F177, the owner's choice; F07 | Medium |
+| F179 | Reuse of a passed verification group (conditional, question 24, #385) | The owner's yes to question 24 | High (`scripts/verify.sh` and the workflow scripts are protected paths: Level 3 by path) |
 
 Risk levels follow `.agents/policies/autonomy.md` and, since
 `risk-proportionate-workflow`, ADR 020 decision 1. Every feature that adds
@@ -6511,6 +6731,25 @@ AI lesson stated at once. Nothing else of the block changes; F116 still
 runs on its own course after F115, and the introductions of F156 follow
 the rules for pages that are not lessons, which F156 writes.
 
+**Changed by the change cycle `teaching-by-construction` (requirements
+decision 44, amending decision 43, 2026-11-13), before any Issue
+exists:** F116 stays the integration point and keeps its scope and the
+two rubric additions above, and now follows the teaching pilots: it
+starts after F164 (the teaching skill), F165 to F167 and the owner's
+decision on the pilot approach, F168 (the calibration) and the owner's
+decision on it, and F175 (the code display forms). It additionally
+records the approved teaching principles and code-selection rules in the
+authoring guide and the review guidance, linking the skill rather than
+restating it; the template demonstrates a source-exact, scientifically
+important excerpt and a figure whose drawing code is reached only by its
+Figure source link, distinguishes exact source, exact selections, and
+derived forms (ADR 023), and asks for a reason for each displayed block;
+archetype examples (simulation, measured data, capstone, scientific
+agent, Lean) replace one generic structure; interaction is stated as
+optional and purpose-driven. The scope bullet, dependency, and criterion
+7 below carry these; nothing else of the block changes, and no lesson
+outside the pilots is rewritten as a consequence.
+
 **Source.** Change 1, proposal F3 and acceptance criteria 7 and 8;
 requirements decision 32 ("future lessons inherit the voice through the
 normal authoring workflow").
@@ -6556,12 +6795,20 @@ its author and reviewer followed the normal workflow.
   written example, a recorded run, a tool replay, or an independent
   evaluation), since these are different levels of evidence, and the
   review checks that the stated kind matches what the page does.
+- *Since `teaching-by-construction` (requirements decision 44):* the
+  approved teaching principles and code-selection rules of F164 to F168,
+  with links to the `pbc-physics-teaching` skill; the template's two code
+  demonstrations (a source-exact excerpt that matters, a figure reached
+  by its Figure source link) and the labels of ADR 023's forms; the
+  archetype examples; interaction optional and purpose-driven.
 
 **Out of scope.** Editing published lessons; expanding the pilot; a
 mandatory additional agent; a narrative template that every lesson must
 follow; changes to checks, identifiers, or verification.
 
-**Dependencies.** F115 (the pilot approved by the human).
+**Dependencies.** F115 (the pilot approved by the human); since
+`teaching-by-construction`, F164, F165 to F167 with the owner's decision
+on the pilots, F168 with the owner's decision on it, and F175.
 
 **Acceptance criteria.**
 
@@ -6583,6 +6830,13 @@ follow; changes to checks, identifiers, or verification.
    of evidence, in the same form as its other items (a named weakness,
    its evidence, and an action, with no score); no published lesson is
    edited to meet them.
+7. (*Since `teaching-by-construction`.*) The authoring guide and the
+   review guidance carry the approved teaching principles and
+   code-selection rules with a link to the skill; the template shows a
+   source-exact excerpt and a figure reached by its Figure source link,
+   labels exact and derived code as ADR 023 requires, and gives archetype
+   examples rather than one mandated sequence; no lesson outside the
+   pilots is edited.
 
 **Risk.** Low.
 
@@ -8326,6 +8580,17 @@ like any other supporting page, and its text is not changed here. A
 module opening (a grouping within a course for a purpose the migration
 plan names) stays this feature's, as before; none is invented.
 
+**Changed by the change cycle `teaching-by-construction` (requirements
+decision 44, 2026-11-13; the overlap of the change request's Appendix
+A3), before any Issue exists:** the compact lesson header and the
+reproduction disclosure are F174's, and the excerpt presentation (the
+Source link, the display forms, the highlighting) is F175's. Both precede
+F127, which rolls the reading column out over them and does not rework
+the header, the last section, or the excerpts; its migration plan
+sequences the teaching pilots F165 to F167 and F176 as it sequences the
+other lesson features in flight. F127 gains F174 and F175 as
+dependencies; the rest of the block stands.
+
 **Source.** Change request sections 4 ("Remaining templates"), 6, 8
 (slice F, and the publication-ready polish of slice G), and 9;
 requirements decision 36 ("Shared templates"), decision 37, and the
@@ -8390,7 +8655,8 @@ plan; a published capstone (the capstone features).
 
 **Dependencies.** F123, F124, F126, and the owner's recorded review of
 the preview (the preview gate); coordinated with F115 and F116 and with
-the lesson features in flight, as the rules of this phase say.
+the lesson features in flight, as the rules of this phase say; since
+`teaching-by-construction`, F174 and F175.
 
 **Visual deliverables and skills.** Page and layout (the lessons, the
 supporting pages, the capstone template): Impeccable and Anthropic
@@ -8515,6 +8781,18 @@ test and the independent review are the guard.
 **Detailed implementation plan expected.** Yes, short.
 
 ### F129 — The scientific-figure and conceptual-diagram skill pilots, and the owner's decision on authoring integration
+
+**Changed by the change cycle `teaching-by-construction` (requirements
+decision 44, 2026-11-13; the overlap of the change request's Appendix
+A3), before any Issue exists:** the scientific-figure pilot leaves this
+feature for F170, whose six-class audit and style pilot include a
+numerical-integration figure under the same skill, with the same
+preserved values, commands, and claims. F129 keeps the conceptual-diagram
+pilot and the owner's decision on how the skills reach the lesson
+templates, coordinated with F116 and with F170's design language; read
+"both pilots" below as the diagram pilot, and the scientific-figure
+parts of the scope and criteria as F170's. The two are never in flight on
+the same lesson. The title stays, for its identifier's history.
 
 **Source.** Change request section 7 ("Bounded pilots and approval": the
 conceptual-diagram pilot and the scientific-figure pilot) and section 8
@@ -9686,7 +9964,12 @@ Rules of this phase:
   order, and a slot is not a feature.
 - **The capacity gate.** No lesson feature of any phase takes the number
   of published lessons past 110 before the owner's next capacity decision
-  on #278 (with #150), the bound of the owner's decision of 2026-10-24.
+  on #278 (with #150), the bound of the owner's decision of 2026-10-24,
+  kept by the decision of 2026-11-04 (#373) that raised the `build`
+  timeout from 90 to 120 minutes for up to 110 lessons (corrected by the
+  change cycle `teaching-by-construction`, Appendix A1; that decision is
+  now requirements question 23, "State at the change cycle
+  `teaching-by-construction`").
   Phase 9 adds 17 lesson pages (13 taught lessons and the four capstone
   pages); the 17 extended lessons add none. The projection for the
   complete curriculum is in `docs/architecture.md`, "Assumptions and
@@ -10354,8 +10637,16 @@ dependency file changes).
 
 ### F146 — Path 2: unknown systems and competing models; system identification; noise, uncertainty, and identifiability
 
-**Source.** Change request section 3.2 (B2.1, B2.2, B2.5), section 6
-(D1, D2, D5, D6, D10); the enhancement of D6 delivered by F23.
+**Source.** Change request section 3.2 (B2.1, B2.2, B2.3, B2.5), section 6
+(D1, D2, D5, D6, D7, D10); the enhancement of D6 delivered by F23; F136's
+outcome check (Issue #370) for B2.3.
+
+**Note of the change cycle `teaching-by-construction` (2026-11-13).** The
+roadmap correction of #370 (Appendix A1) extended this feature's scope by
+MD3 (B2.3, extending D7's lesson `symbolic-regression`: operator choices,
+criterion 6). The title names the original three outcomes and is kept so
+that the feature ID and any Issue title stay stable; MD3 is part of the
+feature all the same.
 
 **Goal.** MD1: system boundaries, accessible variables, candidate
 structures, and priors, comparing knowledge-informed and restricted-prior
@@ -10369,7 +10660,10 @@ equivalent explanations.
 boundaries), `inverse-physics` (MD2: frequency-domain identification on
 the RLC circuit beside the existing mechanics case), and
 `discovery-under-noise` (MD5: identifiability and observationally
-equivalent explanations, reusing `pbc.data.inverse`). MD1 carries the
+equivalent explanations, reusing `pbc.data.inverse`), and
+`symbolic-regression` (MD3: operator choices, the part of B2.3 that F136's
+outcome check found unmet; the grammar of its power laws varied and the
+effect on what the search finds shown). MD1 carries the
 core outcomes of D1 and D5 as its own exercises: a black-box force-law
 exercise outside electronics (a mechanical force law probed through
 controlled inputs, its functional form recovered with the transparent
@@ -10387,7 +10681,7 @@ integration.
 pbc-scientific-visualization.
 
 **Acceptance criteria.**
-1. The three lessons meet the lesson and agent rules and the outcomes
+1. The four lessons meet the lesson and agent rules and the outcomes
    above.
 2. MD2 recovers synthetic parameters in both domains within tolerance and
    reports a non-identifiable case as such; MD5 shows two observationally
@@ -10399,9 +10693,13 @@ pbc-scientific-visualization.
    an exercise on an unknown simulated world whose truth is unreachable by
    the agent's tools, shown by a test (I27). Neither depends on D1's or
    D5's lesson, which are linked as depth.
-4. The published claims of the three lessons are unchanged (or the
+4. The published claims of the four lessons are unchanged (or the
    feature is Level 3).
 5. The verification the targeted run reports passes, run last.
+6. MD3's lesson investigates operator choices: at least two grammars of
+   the transparent search compared on the same data, with what each finds
+   and why (F136's outcome check, planning correction of #370); its other
+   parts, complexity, units, and withheld prediction, stay as published.
 
 **Risk.** Medium (Level 2).
 
@@ -10409,9 +10707,16 @@ pbc-scientific-visualization.
 
 ### F147 — Path 2: hidden variables and failures of known laws; active experimental design; generalisation across systems
 
-**Source.** Change request section 3.2 (B2.6, B2.8, B2.9; the path
-boundary with B1.6), section 6 (D3, D9, D11, D12); the enhancement of D9
-delivered by F20.
+**Source.** Change request section 3.2 (B2.4, B2.6, B2.8, B2.9; the path
+boundary with B1.6), section 6 (D3, D8, D9, D11, D12); the enhancement of
+D9 delivered by F20; F136's outcome check (Issue #370) for B2.4.
+
+**Note of the change cycle `teaching-by-construction` (2026-11-13).** The
+roadmap correction of #370 (Appendix A1) extended this feature's scope by
+MD4 (B2.4, extending D8's lesson `discovering-differential-equations`:
+state selection, criterion 7). The title names the original three
+outcomes and is kept so that the feature ID and any Issue title stay
+stable; MD4 is part of the feature all the same.
 
 **Goal.** MD6: missing states, forces, or inadequate models diagnosed;
 genuinely distinguishable extensions of a known law compared; unresolved
@@ -10426,7 +10731,10 @@ systems separated, with transfer failures reported.
 its own exercise, with D3's lesson linked as depth), `experimental-design-agent` (MD8, the
 four strategies under one budget, scored by the evaluator of F137), and
 `generalisation-to-unseen-systems` (MD9, with a structurally different
-system and a thermal or other non-mechanical transfer case).
+system and a thermal or other non-mechanical transfer case), and
+`discovering-differential-equations` (MD4: state selection, the part of
+B2.4 that F136's outcome check found unmet; a choice of state variables,
+and a missing one detected).
 
 **Out of scope.** New pages; the discovery capstone.
 
@@ -10436,7 +10744,7 @@ system and a thermal or other non-mechanical transfer case).
 pbc-scientific-visualization.
 
 **Acceptance criteria.**
-1. The three lessons meet the lesson and agent rules and the outcomes
+1. The four lessons meet the lesson and agent rules and the outcomes
    above.
 2. MD8's strategies are compared under equal budgets with the scores
    recomputed by the evaluator and their uncertainty over seeds.
@@ -10447,9 +10755,14 @@ pbc-scientific-visualization.
    that law compared on the same data and on a discriminating
    experiment, and the ambiguity that remains stated; it does not rely on
    D3's lesson, which is linked as depth.
-5. The published claims of the three lessons are unchanged (or the
+5. The published claims of the four lessons are unchanged (or the
    feature is Level 3).
 6. The verification the targeted run reports passes, run last.
+7. MD4's lesson tests state selection: the equation search run on a state
+   that lacks a variable the dynamics need, the failure detected, and the
+   state that removes it named (F136's outcome check, planning correction
+   of #370); its derivatives and new trajectories stay as published. MD7's
+   lesson met every part of B2.7 in F136's check and needs no extension.
 
 **Risk.** Medium (Level 2).
 
@@ -11504,6 +11817,958 @@ recorded.
 
 **Detailed implementation plan expected.** Short.
 
+## Phase 11 — Teaching by construction (change cycle `teaching-by-construction`)
+
+Every feature in this phase comes from
+`docs/changes/teaching-by-construction.md` (human-supplied, 2026-11-13,
+revised draft v3, with its Appendix A of owner additions and its
+Appendix B, the cross-curriculum audit) and the requirements re-approved
+with it on 2026-11-13 (decision 44, with its amendments of decisions 32,
+38, and 43 and of the UX expectation on displayed code), and from ADR 023.
+`docs/architecture.md`, "Teaching by construction", describes the skill,
+the display forms of code, figure provenance, and the reading experience.
+What the features inherit without repeating it: the invariants of the
+architecture (I36 and I37 added by this cycle), the risk levels of ADR
+020 (no level is pre-assigned; each feature's is computed from its paths
+and triggers when it runs), the verification tiers of ADR 017 decision 7,
+the three-part rendered review of ADR 018 decision 6, the asset classes
+and the provenance register of ADR 021 (no new raster permission, no
+AVIF), the skills contract of ADR 019 as amended by ADR 023, and the
+out-of-scope list of the change request's section 16.
+
+Rules of this phase:
+
+- **Lesson names.** Every block, plan, and Issue names a lesson by its
+  slot label and its path, never by its directory number alone (decision
+  44; the mapping is in "State at the change cycle
+  `teaching-by-construction`").
+- **Nothing scientific changes for presentation.** No equation, computed
+  value, verified output, unit, figure series, regression, uncertainty
+  semantics, reference key, or claim of a lesson changes in a
+  presentation or teaching-sequence pull request; a changed published
+  claim is the "changed scientific claim" trigger of ADR 020 (Level 3) in
+  its own reviewed change. The experiment check, the reproduction check,
+  and the diff of the executed outputs show it.
+- **Progressive disclosure never deletes.** A derivation essential to
+  the main idea stays in the main text; an optional one moves to a
+  labelled, linkable depth section, unweakened; every documented anchor
+  stays or gets a compatible link.
+- **No recipe, no mass migration.** No compulsory narrative sequence is
+  imposed; only the named pilot lessons, and at most one approved
+  calibration lesson (F169), are revised in sequence. Lessons outside
+  them change only through their own separately scoped features.
+- **Pilots before rollouts.** F171, F173, F169, F177, and F178 start only
+  on the owner's recorded decision on the pilot they follow, recorded on
+  the pilot's Issue; a declined or parked rollout is recorded there and
+  the feature stays in this roadmap as not started.
+- **One writer of the shared files.** F174, F175, F171, and F173 change
+  shared inputs (`pbc.authoring`, the lesson filters or template, the
+  shared CSS, `pbc.experiment`, `pbc.data.plotting`); none is in flight
+  with another of them, with F127, or with another writer of the same
+  module; whichever starts second starts after the first is merged. A
+  lesson pilot that touches a lesson another open feature touches is
+  sequenced or rebased, never merged as one diff.
+- **No new mandatory machinery.** No new review role, agent, model
+  invocation, review round, frontend framework, backend, external CDN,
+  runtime AI service, ECharts, or Plotly.
+- **Verification tier.** A feature that changes a shared input is a full
+  run; a lesson pilot runs `--base` when its header or front matter
+  changes, otherwise the targeted run, and the full run when the targeted
+  run reports it. None adds a lesson.
+- **When the change is complete.** The criteria of the change request's
+  section 15 apply (decision 44, "Acceptance"): the change cycle is
+  complete when F164 to F168, F170, F172, F174 to F176, and F116 are
+  delivered and each conditional feature (F169, F171, F173, F177, F178)
+  is delivered with its evidence or declined or parked by the owner on
+  the pilot's Issue. F179 belongs to question 24, not to this criterion.
+
+### F164 — The PBC Physics Teaching skill and its selection rule
+
+**Source.** Change request section 5 (T1) and section 17; requirements
+decision 44 ("Physics Teaching skill (T1)"), amending decision 38; ADR
+023 decisions 1 and 2.
+
+**Problem.** The voice guide governs sentences and the authoring guide
+the scientific and format rules, but nothing helps an author or reviewer
+decide how a learner comes to understand the physics: what to ask first,
+which step is missing, when a prediction helps, which derivation is
+essential, why a code block is shown. The governed skills of ADR 019
+cover visual work only.
+
+**Goal.** A concise, versioned, project-owned skill,
+.agents/skills/pbc-physics-teaching/SKILL.md, that owns the
+pedagogical reasoning layer, with its provenance record, its README entry,
+and the selection rule of ADR 023 decision 2 in the workflow documents.
+
+**User-visible outcome.** None directly; the lesson pilots and later
+lesson features are planned and reviewed with it.
+
+**In scope.**
+
+- The skill, as `docs/architecture.md`, "Teaching by construction",
+  lists its content: the target learner and assumed prerequisites; the
+  central question and the counterintuitive point; prerequisite gaps;
+  one or two deliberate prediction, experiment, or interpretation
+  moments; prediction, derived property, simulation output, measurement,
+  and inference kept apart; essential versus optional derivations; the
+  archetype of the lesson and its learner journey (the six archetypes,
+  with the measured-data lineage, the engineering brief first, the AI
+  evidence kind at once, and the proof's assumptions, theorem, proof, and
+  numeric example); the teaching purpose of every displayed code block
+  and the four display choices of ADR 023; when a long plotting function
+  embeds a scientific transformation, showing that transformation;
+  types kept where they are the concept; just-in-time placement of
+  essential assumptions without dropping any.
+- Distilled teaching practice of the named sources (Feynman; Chabay and
+  Sherwood; Taylor; OpenStax; McDermott and Shaffer; MIT OpenCourseWare
+  and PhET), each with the chapter or section and what its practice
+  contributes; original examples; no copied diagram, long extract, or
+  unlicensed figure.
+- Short PBC before-and-after examples, one of them a case where no
+  restructuring is right, each stating why the change improves
+  comprehension rather than uniformity.
+- Explicit ownership boundaries with `docs/editorial-voice.md`,
+  `docs/authoring.md`, and the scientific-visualization skill: the skill
+  points to their rules and repeats none.
+- The provenance record and the entry in the README of `.agents/skills/`; the
+  skills configuration check passes with it.
+- The selection rule (ADR 023 decision 2) in `AGENTS.md`, "Visual
+  deliverables and skills", and in `docs/process.md`, "Agent skills"; the
+  template-owned change to `AGENTS.md` recorded so a template sync keeps
+  it.
+- A dry run, not merged as lesson changes: the skill applied to two
+  lessons of different archetypes (for example M1 and AST8), recorded on
+  the Issue as the decisions it produced.
+
+**Out of scope.** Changing any published lesson; the authoring guide,
+template, and rubric (F116); a new review role, agent, or score; an
+AI-text-detector criterion.
+
+**Dependencies.** This planning (ADR 023); F122 (the skills contract and
+the check).
+
+**Visual deliverables and skills.** None (a skill file); the skill is
+written under the skill-creation conventions of the README of `.agents/skills/`.
+`Skills: none (no visual deliverable; the feature writes the teaching
+skill itself)`.
+
+**Acceptance criteria.**
+
+1. .agents/skills/pbc-physics-teaching/SKILL.md exists, concise and
+   readable, with its provenance record and README entry; the skills
+   configuration check passes.
+2. The skill covers the content of the in-scope list, with specific
+   references for each named source and no copied diagram or long
+   extract.
+3. The ownership boundaries with the voice guide, the authoring guide,
+   and the visualization skill are stated in the skill, and none of their
+   rules is restated.
+4. `AGENTS.md` and `docs/process.md` state the selection rule of ADR 023
+   decision 2; no review role, agent, model call, or round is added.
+5. The dry run on two lessons of different archetypes is recorded with
+   the concrete decisions the skill produced, including at least one
+   "leave as it is".
+6. No published lesson changed; the verification tier the change needs
+   passes, run last.
+
+**Risk.** High. `.agents/skills` and `AGENTS.md` are protected paths,
+so the detector's minimum is Level 3: the full verification, the full
+review, and the owner's approval of the exact commit.
+
+**Detailed implementation plan expected.** Yes, short.
+
+### F165 — Didactic pilot on M1, `mechanics/01-kinematics-as-a-program`
+
+**Source.** Change request section 6 (T2, the row of lesson 01, and
+acceptance 1 to 9); requirements decision 44 ("Mechanics didactic pilot
+(T2)"), amending decision 32.
+
+**Problem.** F115 improved M1's sentences but could not move a
+visualization, an experiment, or a derivation. The lesson relates a
+state-update rule to an exact trajectory and first-order convergence;
+whether a learner meets a concrete prediction and a small Euler step
+before the local and global error analysis is a sequencing question.
+
+**Goal.** M1's teaching sequence redesigned with the skill, with the
+code-reading journey made clear by the forms of F175, scientifically
+unchanged, and judged by the owner on the rendered page.
+
+**User-visible outcome.** M1 leads with the question, a prediction, and
+a small step, then the discrepancy and its meaning, then the asymptotic
+analysis; the learner finds the state update without reading plot layout
+or repeated docstrings.
+
+**In scope.** The record of the learner, the target misconceptions, and
+why the sequence suits this subject; the before-and-after reading map
+(where the main question, first intuition, first calculation, first
+experiment, interpretation, key derivation, and conclusion appear, and
+what stayed and why); the revised sequence; the code display of M1 under
+ADR 023 (exact full or exact selections; a derived form only where F175
+built it and it clarifies); a Δt interaction as a candidate for F177,
+recorded, not built; the independent scientific and editorial review;
+rendered screenshots at desktop and phone widths; concrete observations
+of comprehension (for example, an unfamiliar reviewer explains the
+experiment's purpose and answers the self-check), never statistics.
+
+**Out of scope.** M2 and M4 (comparison cases); a changed claim; a new
+widget; other lessons; the header and reproduction presentation (F174).
+
+**Dependencies.** F164; F175 (the excerpt forms, so that M1 is revised
+once); F115 (delivered).
+
+**Visual deliverables and skills.** A lesson's teaching sequence;
+scientific figures only if one moves or is redrawn. `Skills:
+pbc-physics-teaching, pbc-scientific-visualization` (the second only if
+a figure changes).
+
+**Acceptance criteria.**
+
+1. The learner, the misconceptions, and the reason for the sequence are
+   recorded on the Issue.
+2. The before-and-after reading map is recorded, with what stayed
+   unchanged and why.
+3. A reader reaches the central experiment and its purpose without first
+   parsing implementation or build provenance.
+4. Every equation, scope, claim, computed value, figure, exercise
+   solution, and excerpt is unchanged in substance (the experiment and
+   reproduction checks and the diff of the executed outputs); any change
+   to a published claim was split out and escalated.
+5. Moved material stays accessible and linkable; documented anchors stay
+   or have compatible links (the anchor test).
+6. The state update is locatable without plot layout or redundant
+   docstrings; every displayed block names its teaching purpose in the
+   plan or review; exact and derived forms are labelled (I36).
+7. The independent review is recorded; the owner accepted or rejected
+   the approach on the rendered page at desktop and phone widths,
+   recorded on the Issue.
+8. Concrete comprehension observations are recorded; no invented
+   statistics.
+9. The verification tier the change needs passes, run last.
+
+**Risk.** Medium. One published lesson's sequence changes; the checks
+and the independent review guard its science.
+
+**Detailed implementation plan expected.** Yes, short.
+
+### F166 — Didactic pilot on M3, `mechanics/03-projectile-motion-with-drag`
+
+**Source.** Change request section 6 (T2, the row of lesson 03);
+requirements decision 44.
+
+**Problem.** M3 separates numerical validation from whether the model
+describes a real ball, but the best-launch-angle question can fall out of
+view behind the validation.
+
+**Goal.** M3's sequence redesigned: the launch-angle question stays
+visible, drag and no-drag trajectories are compared early, and the
+convergence and limiting-case checks answer whether the simulation is
+trustworthy.
+
+**User-visible outcome.** The learner sees the question and the
+drag/no-drag comparison early, then why the simulation can be trusted,
+then what it does not say about a real tennis ball.
+
+**In scope.** As F165's in-scope list, for M3, with the code display
+under the existing exact forms (F175's forms if merged first); a
+launch-angle interaction recorded as a candidate for F177, not built; a
+precomputed angle grid never presented as continuous optimisation.
+
+**Out of scope.** As F165's.
+
+**Dependencies.** F164; F115 (delivered). F175 is not required.
+
+**Visual deliverables and skills.** As F165. `Skills:
+pbc-physics-teaching, pbc-scientific-visualization` (the second only if
+a figure changes).
+
+**Acceptance criteria.** Criteria 1 to 5 and 7 to 9 of F165, for M3;
+and: 6. the launch-angle question is visible from the opening to the
+conclusion, and the model's limits (the real ball) stay stated.
+
+**Risk.** Medium.
+
+**Detailed implementation plan expected.** Yes, short.
+
+### F167 — Didactic pilot on M5, `mechanics/05-numerical-integrators`, and the review of the M1 to M5 sequence
+
+**Source.** Change request section 6 (T2, the row of lesson 05, the
+control cases, and the sequence review) and section 10 (the integrator
+explorer); requirements decision 44.
+
+**Problem.** M5 compares error, force-evaluation cost, and long-run
+energy well, and has an interactive explorer, but carries about 5,300
+words and 28 excerpt calls at difficulty 2; the essential choice of
+update rule sits among complex-number, eigenvalue, and modified-energy
+derivations that may be optional at that level.
+
+**Goal.** M5's sequence redesigned: the comparison or the explorer
+closer to the central question, the essential choice of update rule in
+the main text, the advanced derivations in labelled, linkable depth
+sections unweakened, and the integrator order findable in the code
+without plot layout; then the M1 to M5 sequence reviewed and the owner's
+decision on the pilot approach recorded.
+
+**User-visible outcome.** M5 asks which update rule to trust and shows
+the answer early; the derivations remain one link away; the explorer
+sits where it teaches.
+
+**In scope.** As F165's in-scope list, for M5, with the existing
+explorer moved and explained, not rebuilt (no new data, controls, or
+dependency); the annotated integrator excerpts under F175's forms and
+highlighting; then the review of the whole M1 to M5 sequence for
+progression and missing bridges (M2 and M4 as comparison cases, with any
+needed scientific correction recorded as separate work); and the owner's
+decision on the pilot approach (accept, revise, or reject), recorded on
+the Issue as the gate of F168 and F116.
+
+**Out of scope.** As F165's; rebuilding the explorer; changing M2 or M4.
+
+**Dependencies.** F164; F175; F165 and F166 (the sequence review needs
+all three).
+
+**Visual deliverables and skills.** As F165; the explorer's placement is
+a page change. `Skills: pbc-physics-teaching,
+pbc-scientific-visualization` (the second only if a figure changes).
+
+**Acceptance criteria.** Criteria 1 to 9 of F165, for M5; and:
+10. The explorer is moved and explained without a change to its data,
+    controls, or tests (the F07 checks pass unchanged).
+11. The sequence review of M1 to M5 is recorded with the bridges added or
+    proposed, and the owner's decision on the pilot approach is recorded
+    on the Issue.
+
+**Risk.** Medium.
+
+**Detailed implementation plan expected.** Yes, short.
+
+### F168 — Cross-course teaching calibration on four lesson archetypes
+
+**Source.** Change request section 7 (T3) and Appendix B; requirements
+decision 44 ("Cross-course calibration (T3)").
+
+**Problem.** M1, M3, and M5 are simulation lessons; a method learned on
+them may fit a measured-data lab, an engineering capstone, an agent
+lesson, or a proof badly. F116 must not generalise from one archetype.
+
+**Goal.** A source-only diagnostic of the skill and of the code-display
+policy on four archetypes, recording good practice and gaps, and a
+decision on at most one further redesign.
+
+**User-visible outcome.** None directly.
+
+**In scope.** One teaching map per archetype (the physical question, the
+prerequisite bridge, the first observable, the main derivation, the role
+of the code, the evidence and its limits, the exercises): a measured-data
+lab (AST8 `astrophysics/09-exoplanet-light-curves` and/or MAT6
+`materials/05-stress-strain-measurements`, with the data lineage, fit
+assumptions, and uncertainty); an engineering capstone (EM9
+`electromagnetism/07-adaptive-phased-array-beam-steering` and/or T11
+`thermodynamics/09-thermal-engineering-of-an-ai-accelerator`, comparing
+where each states its requirements); an AI-evidence lesson with a
+recorded replay or held-out evaluation (for example AE3
+`agents-llm/13-agent-versus-non-agent-baselines`); a Lean lesson
+(`lean/04-lean-exercises-on-your-machine`, a lesson beyond the baseline
+without a slot). Examples of good existing
+practice and of gaps; the skill corrected where the calibration shows it
+wrong (a skill change, re-pinned); the decision on one further redesign
+(F169) or none, proposed with its learner-facing problem for the owner.
+
+**Out of scope.** Editing any of these lessons; more than one redesign
+proposal; a mass migration.
+
+**Dependencies.** F164; F167 and the owner's decision on the pilot
+approach.
+
+**Visual deliverables and skills.** None. `Skills: pbc-physics-teaching`.
+
+**Acceptance criteria.**
+
+1. The four teaching maps are recorded (on the Issue or in a document
+   registered in `docs/project-map.md`), each with good practice and
+   gaps.
+2. Each archetype's distinct journey is stated, and where the pilots'
+   method does not transfer is said.
+3. Any correction of the skill is made, re-pinned, and passes the skills
+   configuration check.
+4. The proposal for at most one further redesign, or none, is recorded
+   with its learner-facing problem, and the owner's decision on it.
+5. No lesson changed; the verification tier the change needs passes.
+
+**Risk.** Low (documentation and, if corrected, the skill; a skill change
+is a protected path and raises the level).
+
+**Detailed implementation plan expected.** No.
+
+### F169 — One cross-course teaching redesign (conditional)
+
+**Source.** Change request section 7 ("at most one additional
+cross-module teaching redesign"); requirements decision 44.
+
+**Gate.** Starts only if the owner approves, on F168's Issue, the
+lesson and the scope F168 proposes; otherwise it stays not started.
+
+**Goal.** One lesson outside mechanics revised in sequence, as F165 does
+for M1, with its learner-facing problem solved and its science
+unchanged.
+
+**In scope, out of scope, and acceptance criteria.** Those of F165 for
+the approved lesson (its name by slot label and path in the Issue), and
+the archetype's journey of F168.
+
+**Dependencies.** F168 and the owner's approval; F175 if its code display
+changes.
+
+**Visual deliverables and skills.** `Skills: pbc-physics-teaching`, and
+the visualization skill if a figure changes.
+
+**Risk.** Medium.
+
+**Detailed implementation plan expected.** Yes, short.
+
+### F170 — Figure language: the six-class audit and the bounded style pilot
+
+**Source.** Change request section 8 (V1, phases 1 and 2) and Appendix
+B; requirements decision 44 ("Figure language (V1)"); the scientific
+figure pilot of F129, moved here by this planning.
+
+**Problem.** The page's typography and palette are designed and
+centralised, but Matplotlib figures start from the defaults except their
+size and resolution, and lessons choose their own type sizes, grids,
+line weights, legends, and colormaps; the site reads as figures from
+unrelated papers.
+
+**Goal.** A documented figure design language, proven on samples of six
+classes before anything is rolled out.
+
+**User-visible outcome.** The sample figures read as one system and stay
+legible at phone width; nothing else changes.
+
+**In scope.** Phase 1, the audit: representative figures of six classes
+(a trajectory, a multi-series numerical comparison, a phase-space plot, a
+convergence plot on log–log axes, a heatmap or field, a measured-versus-
+model figure with residuals), one of them a numerical-integration figure
+outside M1 to M5 or sequenced with F167 (F129's former figure pilot),
+baselined at desktop and phone widths with legibility, typography against
+the page, legend placement, line and marker hierarchy, colour-scale
+semantics, and file sizes. Phase 2, the pilot: the style as an extension
+of `FIGURE_SETTINGS` and the tokens of `pbc.authoring.design` (or one
+helper beside them) with fonts available to the pinned runner and
+deterministic rendering, a restrained plate, axis and label hierarchy,
+light grids where useful, line widths, stable dimensions; the one
+documented rule for `FIGURE_COLOURS` and the Okabe–Ito `COLOURS`;
+sequential and diverging colormaps by data semantics; direct labels where
+they help, legends kept where labels collide; repeated status words,
+duplicate titles, crowded legends, and excess markers audited without
+deleting uncertainty, model identity, units, or needed labels;
+specialised styles for phase space, convergence, multi-panel measured
+data, and conceptual diagrams. Applied to the sample figures only; their
+values, series, and claims unchanged; before-and-after samples; contrast
+checks; payload measured; the independent science review; the owner's
+decision on rollout (all figures, a selective migration, or none)
+recorded.
+
+**Out of scope.** A global change of `FIGURE_SETTINGS` (F171); the
+figure status and credit (F172); a new palette; any figure outside the
+samples; the conceptual-diagram pilot (F129).
+
+**Dependencies.** This planning; F122 (the visualization skill).
+
+**Visual deliverables and skills.** Scientific figures. `Skills:
+pbc-scientific-visualization`.
+
+**Acceptance criteria.**
+
+1. The six-class audit is recorded with baselines at desktop and phone
+   widths.
+2. The design language is documented (in the visualization skill or the
+   authoring guide's figure section), with the usage rule of the two
+   palettes and colormaps by semantics.
+3. The sample figures follow it with values, series, units, uncertainty,
+   and claims unchanged (the experiment and reproduction checks), bytes
+   reproducible, and contrast checks passing.
+4. Payload and build cost are measured and within the accepted budgets.
+5. The independent science review confirms that no sample misrepresents
+   values, uncertainty, residuals, or scales.
+6. The owner's decision on rollout is recorded on the Issue.
+7. The verification tier the change needs passes, run last.
+
+**Risk.** Medium.
+
+**Detailed implementation plan expected.** Yes, short.
+
+### F171 — Figure language rollout (conditional)
+
+**Source.** Change request section 8 (phase 3); requirements decision 44.
+
+**Gate.** Starts only on the owner's decision on F170's Issue, and with
+the scope it names (all figures or a selective migration).
+
+**Goal.** The approved defaults centralised and applied with the
+plot-specific helpers the decision needs.
+
+**In scope.** The shared settings or helper; the figures in the approved
+scope; the full run with the artifact and reproduction comparisons and
+visual spot checks; payload and visual differences measured; AI6's
+model-input figures excluded unless separately reviewed (I37).
+
+**Out of scope.** Figures outside the approved scope; figure status and
+credit (F173).
+
+**Dependencies.** F170 and the owner's decision.
+
+**Visual deliverables and skills.** `Skills: pbc-scientific-visualization`.
+
+**Acceptance criteria.**
+
+1. The approved scope is applied and nothing beyond it.
+2. Every figure's values, series, and claims are unchanged (the full run
+   with the experiment and reproduction checks); the build is
+   deterministic.
+3. Visual spot checks per figure class at desktop and phone widths are
+   recorded; payload and build time stay within budget.
+4. AI6's input fixtures are byte-identical, or their separate review is
+   recorded.
+
+**Risk.** High (planning risk: every figure; a shared input). The ADR 020
+level is computed from the paths and triggers when the feature runs.
+
+**Detailed implementation plan expected.** Yes.
+
+### F172 — Figure status, credits, and portable provenance: the pilot on AST8, MAT6, and one mixed figure of another course
+
+**Source.** Change request section 9 (V2a to V2c) and Appendix B,
+sections 3 to 5; requirements decision 44 ("Figure status, credits, and
+portable provenance (V2)").
+
+**Problem.** A measured figure states its status twice (the box
+`label_status()` paints and the caption's `fig-status`) and paints a long
+credit into its PNG with `add_credit()`, crowding the chart; but
+`check_figure()` and its tests require both, and the PNG is the same
+bytes on the page and in the experiment output, so the credit travels
+with a saved image today. Removing the labels alone would weaken checks
+and sometimes break attribution.
+
+**Goal.** One validated metadata and credit contract across the page and
+the exported PNG, proven on AST8 (`draw_transit_fit`), MAT6
+(`draw_stress_strain`), and one mixed measured-and-model figure of
+another course, with the owner's choice on branding.
+
+**User-visible outcome.** On the sample figures the chart area holds the
+data; one status and a short credit sit at the caption, with the full
+provenance on demand; a saved PNG still says what it is and whose data it
+shows.
+
+**In scope.** The contract of `docs/architecture.md`, "Figure provenance
+off the chart area": the caption's one status (stating mixed processed
+and simulated roles) and short credit rendered from the cell's
+declarations and the dataset card, the full provenance in a native
+`<details>` or the dossier; the portable PNG metadata written by
+`pbc.experiment.encode()` from the same declarations (or the sidecar
+manifest bound to the figure digest, if embedded metadata fails), for
+figures that opt in only, which in this pilot are the three samples, and a
+short visible credit where a card's terms require it; the per-card rights
+check; shorter labels, a shared legend or direct labels on the samples
+with equivalent machine-checked title and legend semantics; disclosed
+display thinning, if any, with computation on all records; the migrated
+assertions of `check_figure()` and `tests/unit/test_data_plotting.py`
+for the samples, equally strong or stronger; examples with and without a
+small visualization credit for the owner's choice; every figure that
+does not opt in keeps byte-identical PNGs, AI6 called out: its
+model-input figures stay byte-identical; desktop and phone legibility,
+file size, determinism, page-to-experiment byte identity, and the
+downloaded image's identity; the independent rights and science review.
+
+**Out of scope.** Figures beyond the three samples (F173); the figure
+style (F170); a watermark, a mark over data, a mandatory brand, any
+ownership wording for external data; removing a status or credit without
+the migrated checks.
+
+**Dependencies.** This planning; F50 (the dataset cards); F104 and F107
+(the sample lessons, delivered).
+
+**Visual deliverables and skills.** Scientific figures and their caption
+presentation. `Skills: pbc-scientific-visualization`.
+
+**Acceptance criteria.**
+
+1. Before-and-after evidence for the three samples at desktop and phone
+   widths and as exported PNGs is recorded.
+2. One authoritative strategy for status and credit across the page and
+   the export is documented and validated: the PNG's metadata (or bound
+   manifest) holds status, figure identity, dataset, and attribution
+   consistent with the card, deterministically, with page and experiment
+   bytes identical.
+3. The status, rights, and figure checks for the samples are equal or
+   stronger; no third-party attribution is lost; no ownership wording
+   appears.
+4. The metadata is written only for the three samples, which opt in:
+   every other figure's PNG is byte-identical before and after (the
+   experiment and reproduction comparisons of the full run), and AI6's
+   model-input figures and replay evidence are unchanged (its replay
+   check). If the metadata cannot be kept opt-in, the change is reviewed
+   as a figure change across the whole site before it proceeds.
+5. The owner's branding choice is recorded on the Issue, with the
+   decision on rollout (F173).
+6. The verification tier the change needs passes, run last.
+
+**Risk.** Medium (sample figures and their checks; a change to
+`pbc.experiment.encode()` or `pbc.data.plotting` is a shared input that
+every lesson imports and raises the tier to a full run; the opt-in keeps
+every other figure's bytes unchanged, and without it the change is a
+figure change across the whole site).
+
+**Detailed implementation plan expected.** Yes.
+
+### F173 — Figure status and credit rollout (conditional)
+
+**Source.** Change request section 9 (V2b in the slice table) and
+section 14; requirements decision 44.
+
+**Gate.** Starts only on the owner's decision on F172's Issue.
+
+**Goal.** The validated single-source provenance applied to every
+figure that paints a status or a credit, with the tests migrated.
+
+**In scope.** `label_status()`, `add_credit()`, and `check_figure()` as
+the contract requires; every dataset's credit rendered from its card;
+every measured figure's caption and PNG metadata; the reference-figure
+and lesson tests migrated; per-card rights; AI6 excluded unless
+separately reviewed; the full run.
+
+**Out of scope.** Figure styling (F171); new datasets.
+
+**Dependencies.** F172 and the owner's decision.
+
+**Visual deliverables and skills.** `Skills: pbc-scientific-visualization`.
+
+**Acceptance criteria.**
+
+1. Every figure has one visible status on the page, every figure that
+   declares a dataset (`fig-dataset`, `fig-model-of`, or a dataset-backed
+   `fig-artifact`) also its card's credit (I37), and its PNG carries the
+   portable provenance; no figure loses an attribution its card requires.
+2. The migrated checks are equal or stronger, shown by their tests,
+   including the reference-figure tests; no check is dropped.
+3. The full run passes; the build is deterministic and page and
+   experiment bytes are identical.
+4. AI6's fixtures are byte-identical or separately reviewed.
+
+**Risk.** High (planning risk: shared figure code and checks). The ADR
+020 level is computed from the paths and triggers when the feature runs.
+
+**Detailed implementation plan expected.** Yes.
+
+### F174 — Reading experience: the compact lesson header and the reproduction disclosure
+
+**Source.** Change request section 11 (U1a, U1c, U1d) and Appendix A3;
+requirements decision 44 ("Reading experience and code presentation
+(U1)").
+
+**Problem.** The lesson header gives connections, prerequisites, related
+lessons, and catalogue metadata the same prominence as the lesson's
+purpose; the reproduction section repeats infrastructure detail in the
+reading flow.
+
+**Goal.** A shorter above-the-fold orientation and a quieter last
+section, with every fact still on the page.
+
+**User-visible outcome.** A lesson opens with its title, place, level and
+method, purpose, and key outcomes; the details are one click away in a
+native disclosure; previous and next are easy to find, also at the end;
+the reproduction section reads as one sentence with the full commands in
+a disclosure.
+
+**In scope.** The header's visible part and the closed native
+`<details>` for the full connections, prerequisites, glossary, and
+related lessons, generated by the context regions of
+`pbc.authoring.context` and `site/context.py`; previous and next at the
+end of the lesson without repeating identical navigation; the
+reproduction section's sentence and closed disclosure from
+`pbc.authoring.reproduce`, with its heading, anchor, commands, files, and
+tests kept and no command shown twice; the surrounding CSS of figure
+status only (V2 owns the status); no-script operation, keyboard and
+screen-reader order, 320 CSS px reflow, and every anchor and link;
+before-and-after rendered screenshots on M1, M5, and MAT6.
+
+**Out of scope.** The excerpt presentation (F175); the reading-column
+rollout (F127); figure status (F172); any lesson's prose.
+
+**Dependencies.** This planning; never in flight with F175 or F127.
+
+**Visual deliverables and skills.** Page and layout. `Skills: impeccable,
+frontend-design` (as approved under ADR 019).
+
+**Acceptance criteria.**
+
+1. The header shows the stated visible items; the rest is in a closed
+   native disclosure on the same page; no metadata, link, or anchor is
+   lost (the page tests and the anchor test).
+2. Previous and next are reachable at the top and at the end of a lesson.
+3. The reproduction section keeps its anchor, commands, files, and tests,
+   with the reproduction and experiment checks passing; no command is
+   shown twice.
+4. Everything works without scripts; the accessibility scan, keyboard
+   pass, and 320 CSS px reflow pass.
+5. Before-and-after screenshots of M1, M5, and MAT6 are recorded; the
+   owner's acceptance is recorded on the Issue.
+6. The full verification run passes, run last.
+
+**Risk.** Medium (every lesson page; nothing scientific changes).
+
+**Detailed implementation plan expected.** Yes, short.
+
+### F175 — Code presentation: exact selections, the generated signature, executed teaching code, the Source link, and annotated highlighting
+
+**Source.** Change request section 11 (U1b, U1f, U1g, U1i) and section
+14; requirements decision 44 ("Reading experience and code presentation
+(U1)", "Derived code on the page"); ADR 023 decisions 3 to 7.
+
+**Problem.** An excerpt today is a whole object, a line range, or one
+region, followed by its repository path and "read from the repository
+when this page was built"; a docstring that repeats the prose cannot be
+left out of the display; a learner who needs the body of a long function
+gets all of it; annotated excerpts emit escaped HTML without token
+colours.
+
+**Goal.** The display forms of ADR 023 in `pbc.authoring.excerpt`, with
+their checks, a compact Source link, and the same build-time highlighting
+for plain and annotated excerpts; only the support the pilot lessons need.
+
+**User-visible outcome.** Excerpts carry a short Source link in place of
+the path sentence; long functions can be shown as labelled exact
+selections; annotated excerpts are coloured like the others; copying
+code copies code only.
+
+**In scope.** Multi-range exact selections with visible omission markers
+and source line numbers; the marked display-only docstring omission; the
+generated signature (from the function, with defaults and the units of
+the interface table, labelled); executed teaching code as ADR 023
+decision 5 says, only if a pilot lesson (F165, F167, F176) needs it, with
+its checks; the labels of each form; the compact Source link and the
+Figure source link, with path, line range, and commit in the link and the
+marker's metadata; build-time deterministic highlighting of annotated
+excerpts (a highlighter already pinned; a pinned dependency change if
+Pygments becomes direct), with line numbers, note anchors, and marked
+lines distinguishable without colour; copy behaviour; the checks of ADR
+023 decision 7 in the excerpt tests and the lesson source check; the
+authoring guide's excerpt section updated; keyboard scrolling,
+screen-reader order, contrast of the marked-line background, 320 CSS px
+overflow, and consistency with Lean formatting.
+
+**Out of scope.** Deciding which code each lesson shows (F165, F167,
+F176); a general code-simplification facility; changing any Python
+source to shorten a display; a runtime highlighter or CDN; Lean
+simplification.
+
+**Dependencies.** This planning (ADR 023); F164 (merged first: the
+skills check of ADR 019 decision 3 fails on a plan that names
+`pbc-physics-teaching` before it exists); F35 (the annotated excerpts);
+never in flight with F174 or F127.
+
+**Visual deliverables and skills.** Page presentation of code. `Skills:
+frontend-design` (as approved), `pbc-physics-teaching` for the labels'
+wording.
+
+**Acceptance criteria.**
+
+1. Each form of ADR 023 decisions 3 to 5 is available, labelled, and
+   covered by tests: an exact selection matches the pinned lines (or the
+   one documented whitespace rule) with accurate markers and line
+   numbers; a generated signature equals what the build reads from the
+   function, defaults included; executed teaching code, if built, runs
+   with its checks.
+2. Unmarked non-executed code still fails the build; no check is weakened.
+3. Every excerpt shows the compact Source link; the path, range, and
+   commit are in the link and metadata, and the link opens the right
+   lines at the right commit (a built-site test).
+4. Plain and annotated Python excerpts render with the same accessible,
+   deterministic token highlighting; notes work; copied text holds no
+   line number or glyph.
+5. Accessibility, 320 CSS px overflow, and the determinism check pass.
+6. The full verification run passes, run last.
+
+**Risk.** Medium (shared authoring; every page with an excerpt).
+
+**Detailed implementation plan expected.** Yes.
+
+### F176 — Code-selection pilot on MAT6, W7, FL2, SA5, and one Lean lesson
+
+**Source.** Change request sections 4 ("Focused cross-module
+code-presentation review"), 11 (U1e, U1h, U1i, the pilot review set), and
+17; requirements decision 44.
+
+**Problem.** In the audit's sample 13 of 17 lessons show at least one
+complete `draw_*` function; some of those compute the science
+(MAT6 `draw_elastic_regime`, W7 `draw_scaling`), others only lay out a
+plot, and some lessons already separate the two well (T11, AST8).
+
+**Goal.** The code display of five pilot lessons decided block by block
+under the skill and ADR 023, with each lesson's science unchanged.
+
+**User-visible outcome.** In the pilot lessons the physics-bearing code
+is visible, plot layout is one Source link away, and the scientific
+transformations inside plotting functions are shown as exact selections.
+
+**In scope.** MAT6 (`materials/05-stress-strain-measurements`: the
+offset crossing from `gap = ...` through the interpolation, return, and
+guard as an exact selection, `e` and `s` explained, the generated
+signature or a prose interface summary, the full `draw_*` listings
+replaced by figures, interpretation, and Figure source links unless a
+transformation must stay visible; the owner reviews the elastic-regime
+figure and its source navigation); W7
+(`waves/09-lycopodium-diffraction-lab`: smoothing and the `r/λ` scaling
+test shown or extracted, with their processed status); FL2
+(`fluids/05-navier-stokes-fundamentals`: the projection stages shown,
+`draw_projection` linked, the false-colour status and diverging scale
+kept); SA5 (`agents-llm/01-an-agent-runs-an-experiment`: allowlist
+validation and the trust boundary shown, the diagram's drawing linked);
+one Lean lesson (L1 `lean/01-proving-what-the-simulation-showed`, or
+`lean/04-lean-exercises-on-your-machine`, a lesson beyond the baseline
+without a slot: proofs unchanged, irrelevant diagram code linked). For each displayed block the teaching purpose in
+the plan; for each hidden block the dependency check that it holds no
+scientific transformation; a moved computation only through a separately
+reviewed, risk-classified scientific refactor, never in this feature; T11
+and AST8 cited as positive examples, unchanged.
+
+**Out of scope.** M1 and M5 (F165, F167); other lessons (display-only
+prototypes or source checks only); a changed computation, plot, or claim;
+the excerpt helper (F175).
+
+**Dependencies.** F175; F164.
+
+**Visual deliverables and skills.** Lesson code display. `Skills:
+pbc-physics-teaching`.
+
+**Acceptance criteria.**
+
+1. Each pilot lesson's displayed blocks have a recorded teaching purpose,
+   and each hidden block a recorded dependency check.
+2. No scientific transformation is hidden behind a link because of a
+   function's name; the MAT6 guard and W7's smoothing and scaling are
+   visible.
+3. Every lesson's values, figures, and claims are unchanged (the
+   experiment and reproduction checks); exact and derived forms are
+   labelled (I36); the Lean proofs are unchanged.
+4. A reviewer can name the operation each retained excerpt teaches and
+   reach the complete plotting code in one action; recorded with
+   before-and-after rendered screenshots.
+5. The independent science review of every changed visible algorithm is
+   recorded; the owner reviewed MAT6's elastic-regime figure and its
+   source navigation.
+6. The verification tier the change needs passes, run last.
+
+**Risk.** Medium (five published lessons' display).
+
+**Detailed implementation plan expected.** Yes, short.
+
+### F177 — First selected lesson interaction (conditional)
+
+**Source.** Change request section 10 (I1); requirements decision 44
+("Selective interactions (I1)").
+
+**Gate.** Starts only when the owner chooses, on F167's or F168's Issue,
+a lesson and an interaction from the candidates the pilots recorded (M1
+Δt, M3 launch angle, EM9 steering and phase resolution, AST7 impact
+parameter and limb darkening, Q4 analyser angle, T4 temperature, FL5
+dam-break depth), with the misconception or prediction a static figure
+cannot address; otherwise it stays not started.
+
+**Goal.** One purposeful interaction on the F07 convention.
+
+**In scope.** The chosen widget: a static figure and text first, a
+dependency-free module, data precomputed by Python and embedded by an
+executed cell (no browser physics unless separately approved), native
+accessible controls, no request, storage, or layout shift, reduced
+motion; the interactive and static views telling the same story; the
+pedagogical need recorded; the scientific review of what the interaction
+establishes (a coarse grid never presented as continuous optimisation).
+
+**Out of scope.** F128; ECharts, Plotly, a framework, or a bundler; a
+second widget (F178).
+
+**Dependencies.** F167, F168, the owner's choice; F07, F43.
+
+**Visual deliverables and skills.** An interactive figure. `Skills:
+pbc-scientific-visualization, frontend-design` (as approved).
+
+**Acceptance criteria.**
+
+1. The pedagogical need is recorded against the pilot record.
+2. The widget's values equal the `pbc` data (the F07 observed-value test).
+3. Keyboard and screen-reader operation, reduced motion, and the static
+   fallback pass the F07 checks; no new network destination, storage,
+   dependency, or layout shift; payload within budget.
+4. The scientific reviewer approves the scope of what it establishes.
+5. The verification tier the change needs passes, run last.
+
+**Risk.** Medium.
+
+**Detailed implementation plan expected.** Yes, short.
+
+### F178 — Second selected lesson interaction (conditional)
+
+**Source and gate.** As F177; starts only if the owner chooses a second
+interaction after F177 is merged; at most two in this change.
+
+**Goal, scope, and acceptance criteria.** Those of F177 for the second
+chosen lesson.
+
+**Dependencies.** F177 and the owner's choice; F07, F43.
+
+**Visual deliverables and skills.** As F177.
+
+**Risk.** Medium.
+
+**Detailed implementation plan expected.** Yes, short.
+
+### F179 — Reuse of a passed verification group (conditional, requirements question 24)
+
+**Source.** The change request's Appendix A6; the owner's proposal #385;
+requirements unresolved question 24.
+
+**Gate.** Starts only if the owner answers question 24 with yes at the
+review of this planning (or later, recorded on #385); otherwise #385
+stays parked and this block not started.
+
+**Problem.** A pull request that changes one group's inputs reruns every
+group, although a passed group's result for unchanged inputs and checks
+is already known.
+
+**Goal.** A verification group's passed result reused when its inputs
+and checks are unchanged, failing closed otherwise, with a Level 3 final
+verification always run in full.
+
+**In scope.** The definition of a group's inputs (the files and the
+check versions it reads, derived, not listed by hand); where a pass is
+stored (a verified run's record, never a committed file); when reuse is
+forbidden (a changed input or check, a changed environment identity, a
+missing or unverifiable record, a Level 3 final verification, a run on
+`main` unless question 23 chose incremental `main`); the record of a
+reused group in the run's evidence; tests per case.
+
+**Out of scope.** Reuse inside a group's lessons (ADR 014 already
+selects lessons); incremental `main` (F121).
+
+**Dependencies.** The owner's yes; F130 (the risk levels), F61 (the
+selection).
+
+**Visual deliverables and skills.** None. `Skills: none (verification
+tooling)`.
+
+**Acceptance criteria.**
+
+1. A group is reused only when its derived inputs, checks, and
+   environment identity equal those of a stored verified pass, shown by
+   a test per forbidding case.
+2. A Level 3 final verification runs every group, shown by a test.
+3. The run's evidence names each reused group and its origin.
+4. The full verification run passes, run last.
+
+**Risk.** High (`scripts/verify.sh` and the workflow are protected paths,
+so the detector's minimum is Level 3).
+
+**Detailed implementation plan expected.** Yes.
+
 ## Candidate mapping
 
 Every candidate of the change request and its outcome. "Kept" means a
@@ -11741,8 +13006,8 @@ above; the Part A slots, the Lean slot, and the lessons beyond the
 baseline are unchanged. The labels are ADR 022's proposal, approved with
 the curriculum file in F136 (question 20). "Published" names a lesson
 `id`; "extended by" names the feature that delivers the slot's new
-outcome on that lesson. Until F136 merges, the curriculum file still
-holds the old slots.
+outcome on that lesson. The curriculum file holds these slots since
+F136 (#370).
 
 ### Part B core, 34 slots
 
@@ -11759,8 +13024,8 @@ holds the old slots.
 | SA9 | B1.C | `reasoning` | Capstone: Autonomous Physics Lab | product capstone | F145 (on F138's slice) |
 | MD1 | B2.1 | `law-discovery` | Unknown systems, priors, and competing models | lesson | Published, `prior-knowledge-in-discovery` (was D2); extended by F146 |
 | MD2 | B2.2 | `law-discovery` | Parameter discovery and system identification | lesson | Published, `inverse-physics` (was D6); extended by F146 |
-| MD3 | B2.3 | `law-discovery` | Discovering functional forms with symbolic regression | lesson | Published, `symbolic-regression` (was D7); reused |
-| MD4 | B2.4 | `law-discovery` | Discovering differential equations | lesson | Published, `discovering-differential-equations` (was D8); reused |
+| MD3 | B2.3 | `law-discovery` | Discovering functional forms with symbolic regression | lesson | Published, `symbolic-regression` (was D7); extended by F146 (operator choices) |
+| MD4 | B2.4 | `law-discovery` | Discovering differential equations | lesson | Published, `discovering-differential-equations` (was D8); extended by F147 (state selection) |
 | MD5 | B2.5 | `law-discovery` | Noise, uncertainty, and identifiability | lesson | Published, `discovery-under-noise` (was D10); extended by F146 |
 | MD6 | B2.6 | `law-discovery` | Hidden variables and failures of known laws | lesson | Published, `hidden-variables` (was D11); extended by F147 |
 | MD7 | B2.7 | `law-discovery` | Discovering conservation laws and invariants | lesson | Published, `discovering-conservation-laws` (was D13); reused |
@@ -11784,7 +13049,8 @@ holds the old slots.
 | RR8 | B4.C | `autonomous-research` | Capstone: Scientific Research Workspace | product capstone | F155 |
 
 Count: 9 + 10 + 7 + 8 = 34 (30 taught, 4 capstones); 17 published at
-`cd69524`, 14 of them awaiting their extension. Total: 81 + 34 + 1 = 116
+`cd69524`, 16 of them awaiting their extension (14, and MD3 and MD4 by F136's
+outcome check). Total: 81 + 34 + 1 = 116
 core slots.
 
 ### Part B extension slots, outside the core
@@ -12107,6 +13373,21 @@ stability, not a calendar.
 | Textbook 2 (the journey and Home) | F157 after F156; then F158, the hero last, with the owner's approval on the rendered page | The atlas opens with the learning journey, About states the mission and philosophy, Home orients a first-time visitor |
 | Textbook 3 (during development) | F159, F161, and F162, each when its courses are content-stable, in any order; F163 after F136 and the capstones of its paths | Every course and method path opens with an introduction |
 | Textbook 4 (at the end) | F160 after the batches, F115, F116, and F127 | The whole material read and corrected as one book |
+
+Phase 11, the change cycle `teaching-by-construction` (2026-11-13), by
+dependency (the rules under "Phase 11"). F174 and F175 change shared
+inputs and are never in flight with each other or with F127; the figure
+rollouts F171 and F173 likewise. The pilots run beside the lesson
+features of Part B, which they do not block. Conditional features start
+on the owner's recorded decision.
+
+| Wave | Order within the wave | Outcome |
+|---|---|---|
+| Teaching 1 (guidance and shared presentation) | This planning; F164 (before F175, which selects its skill); F174 and F175 one after the other, in either order; F170 and F172 in parallel, on different lessons | The teaching skill and its selection rule; the compact header and reproduction disclosure; the display forms, Source link, and highlighting of ADR 023; the figure-language and provenance pilots with the owner's decisions |
+| Teaching 2 (pilots) | F166 after F164; F165 after F164 and F175; F167 after F165 and F166, with the M1 to M5 sequence review and the owner's decision on the approach; F176 after F175 | The didactic pilots on M1, M3, and M5; the code-selection pilot on MAT6, W7, FL2, SA5, and a Lean lesson |
+| Teaching 3 (calibration and integration) | F168 after F167's decision; F169 if the owner approves; F116 after F168's decision; then F127 (after F174 and F175, as its block says) | Four archetype maps; at most one further redesign; the authoring guide, template, and rubric carry the approved principles |
+| Teaching 4 (conditional rollouts) | F171 after F170's decision; F173 after F172's decision; F177 and then F178 after the owner's choices on F167 or F168 | Figure language and provenance across the site, as decided; at most two purposeful interactions |
+| Capacity (questions 23 and 24) | The owner's decision at the review of this planning; then F113, F121, or the workflow's timeout as chosen; F179 only on a yes to question 24 | A full run that fits before Part B stages C and D pass 110 lessons |
 
 Features F13 (#89) and F14 (#94) are delivered with their approved scope;
 F64 keeps their progress marks and recommendations on the redesigned path.

@@ -1,10 +1,11 @@
 # Planning Approval
 
 Status: Approved
-Approved at: 2026-11-13T20:44:04Z
-Planning branch: planning/reapproval-2026-11-13
-Final review: round 8, PASS, by claude (opus)
-Planning fingerprint: 3fabd4f8ece19eab5a617a54d2f3a968e6f10be3
+Approved at: 2026-11-13T22:51:20Z
+Planning branch: planning/teaching-by-construction
+Change request: docs/changes/teaching-by-construction.md
+Final review: round 5, PASS, by claude (opus)
+Planning fingerprint: c2388c9576b48243d72765ec958727c89ee841c5
 
 Recorded by `scripts/finish-planning.sh`. The approval covers these planning
 documents. A change to the description, the requirements, a change request, or the
@@ -88,25 +89,12 @@ under its own review. This approval covers the documents including them.
 
 ## Review rounds
 
-- Round 1: CHANGES REQUIRED, 5 finding(s), by claude (opus)
-- Round 2: PASS WITH MINOR FINDINGS, 3 finding(s), by claude (opus)
+- Round 1: PASS WITH MINOR FINDINGS, 4 finding(s), by claude (opus)
+- Round 2: PASS WITH MINOR FINDINGS, 1 finding(s), by claude (opus)
 - Round 3: PASS WITH MINOR FINDINGS, 1 finding(s), by claude (opus)
 - Round 4: PASS WITH MINOR FINDINGS, 1 finding(s), by claude (opus)
-- Round 5: PASS WITH MINOR FINDINGS, 2 finding(s), by claude (opus)
-- Round 6: PASS WITH MINOR FINDINGS, 1 finding(s), by claude (opus)
-- Round 7: PASS WITH MINOR FINDINGS, 1 finding(s), by claude (opus)
-- Round 8: PASS, 0 finding(s), by claude (opus)
-
-## Escalations confirmed as resolved
-
-- Round 1: M1 Concerns the approved requirements: the Home hero files are registered without a licence, but the requirements require a licence for all interface artwork
-- Round 1: MIN3 Concerns the approved requirements: 'Data and persistence' still has the learning journey used by the atlas
-- Round 1: S1 Requirements were edited after approval while 'Approved at' still shows 2026-11-04
-- Round 2: MIN2 Concerns the approved requirements: decision 43 and the textbook 'Later phases' bullet still describe the journey on the atlas and a hero picked from four images, without the #482/#483/#487 notes
+- Round 5: PASS, 0 finding(s), by claude (opus)
 
 ## Findings that were not adopted
 
-- Round 1, ESCALATE: M1 [major] Concerns the approved requirements: the Home hero files are registered without a licence, but the requirements require a licence for all interface artwork. The approved requirements ('Visual asset classes' C, 'Data and persistence', decision 41) require a licence for every interface raster. Since Issue #487, ADR 021 and the architecture register the hero without one. To resolve this, the owner must either amend the requirements to state the hero exception and which licence the hero image is under (or that it is excluded from CC BY 4.0), or decide to register the hero under the content licence. The planner cannot change the requirements, and must not silently depart from them, so this needs a human product decision.
-- Round 1, ESCALATE: MIN3 [minor] Concerns the approved requirements: 'Data and persistence' still has the learning journey used by the atlas. The contradiction is in docs/PROJECT_REQUIREMENTS.md itself: the 'Data and persistence' atlas bullet still says the journey is used by the atlas. Only the owner may edit the approved requirements, so the note 'since Issue #483, used by About only' needs the owner's requirements edit. The planning documents already follow #483.
-- Round 1, ESCALATE: S1 [suggestion] Requirements were edited after approval while 'Approved at' still shows 2026-11-04. The 'Approved at' header and status block of docs/PROJECT_REQUIREMENTS.md are part of the owner's approval record, which the planner may not change. Whether this reapproval updates the timestamp or adds a line listing the dated owner decisions since 2026-11-04 (Issues #462, #481, #482, #483, #487) is the owner's call.
-- Round 2, ESCALATE: MIN2 [minor] Concerns the approved requirements: decision 43 and the textbook 'Later phases' bullet still describe the journey on the atlas and a hero picked from four images, without the #482/#483/#487 notes. The finding is valid, but all the stale text is in docs/PROJECT_REQUIREMENTS.md: decision 43's 'The learning journey' and 'Home' bullets, and the textbook bullet in 'Later phases'. Under the revision contract the planner may not change the approved requirements, so only the owner can make this edit. The reviewer also places it at the owner's next requirements edit. Meanwhile the planning documents follow the newer dated notes in the requirements (#482, #483, #487).
+- Round 4, REJECT: S1 [suggestion] Concerns the approved requirements: the header list of post-approval owner decisions does not mention the owner's 2026-11-13 confirmation of the narrowed V2 credit clause. The finding concerns the header of docs/PROJECT_REQUIREMENTS.md. Under the revision contract the planner may not change the approved requirements, so this cannot be adopted as a planning change. It also needs no product decision, so escalation is not warranted. The planning itself is already correct. Decision 44's V2 bullet records the owner's 2026-11-13 confirmation inline ('Ja, bevestigd', supervisor session), and I37, the architecture's V2 section and F173 criterion 1 all agree with it. As the review notes, the header's approval timestamp and its list of post-approval owner decisions are refreshed when the owner re-approves this planning. That re-approval brings the header up to date without anyone editing the requirements outside the approval flow. This is the review's second recommended option.
