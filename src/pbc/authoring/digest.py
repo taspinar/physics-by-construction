@@ -136,6 +136,7 @@ _DATA_TOOLS = frozenset(
         "calibration",
         "card",
         "check",
+        "figure_provenance",
         "fit",
         "inverse",
         "pipeline",

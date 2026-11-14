@@ -15,7 +15,10 @@ the page shows into ``out/results.json``.
 One encoder, ``encode``, produces the figure file of both: the page shows
 the bytes it returns and the program writes them, so the figure of the
 published page and the learner's file are the same file. It draws under
-fixed Matplotlib settings, never the caller's, and writes no metadata.
+fixed Matplotlib settings, never the caller's, and writes no metadata,
+except for a figure that declares its provenance (``Experiment.figure``
+with ``provenance``): its deterministic record, from the declaration and
+the dataset card.
 """
 
 from __future__ import annotations
@@ -36,6 +39,7 @@ if TYPE_CHECKING:
     from matplotlib.figure import Figure
 
     from pbc.authoring.tables import Column, ResultTable
+    from pbc.data.figure_provenance import FigureProvenance
 
 # The settings a figure is drawn with: Matplotlib's defaults, and the size
 # and resolution Quarto's kernel gives a figure of an HTML page, so that a
@@ -47,13 +51,25 @@ PIXEL_RATIO = 2
 RESULTS_FILE = "results.json"
 
 
-def encode(draw: Callable[[], Figure]) -> bytes:
+def encode(
+    draw: Callable[[], Figure],
+    *,
+    metadata: dict[str, str] | None = None,
+    credit: str | None = None,
+) -> bytes:
     """The PNG of the figure ``draw`` returns, drawn under ``FIGURE_SETTINGS``.
 
     The figure is cropped to what it draws, written at ``PIXEL_RATIO``
     times the resolution of the settings with its own face and edge colours
     and without metadata, and closed. The same figure gives the same bytes on every
     call, whatever settings the caller has.
+
+    A figure that declares its provenance (``Experiment.figure`` with
+    ``provenance``, Issue #524) passes the text chunks of ``metadata``,
+    written in their order and nothing else, and the one line ``credit``
+    its card requires visible, painted under the figure
+    (``pbc.data.figure_provenance``). Without them the bytes are those of
+    every other figure.
     """
     import matplotlib.pyplot as plt
 
@@ -62,6 +78,10 @@ def encode(draw: Callable[[], Figure]) -> bytes:
         matplotlib.rcParams.update(FIGURE_SETTINGS)
         figure = draw()
         try:
+            if credit is not None:
+                from pbc.data.figure_provenance import paint_credit
+
+                paint_credit(figure, credit)
             output = BytesIO()
             figure.savefig(
                 output,
@@ -72,7 +92,7 @@ def encode(draw: Callable[[], Figure]) -> bytes:
                 bbox_inches="tight",
                 facecolor=figure.get_facecolor(),
                 edgecolor=figure.get_edgecolor(),
-                metadata={"Software": None},
+                metadata={"Software": None, **(metadata or {})},
             )
         finally:
             plt.close(figure)
@@ -153,6 +173,7 @@ class Experiment:
     widgets: dict[str, object] = field(default_factory=dict)
     outputs: dict[str, str] = field(default_factory=dict)
     displays: dict[str, str] = field(default_factory=dict)
+    provenance: dict[str, FigureProvenance] = field(default_factory=dict)
     _encoded: dict[str, bytes] = field(default_factory=dict, repr=False)
 
     def _new(self, kind: str, name: str, names: Iterable[str]) -> None:
@@ -187,13 +208,42 @@ class Experiment:
         recorded = self.tables[name]
         return table(recorded.rows, recorded.columns, recorded.caption)
 
-    def figure(self, label: str, draw: Callable[[], Figure]) -> None:
+    def figure(
+        self,
+        label: str,
+        draw: Callable[[], Figure],
+        provenance: FigureProvenance | None = None,
+    ) -> None:
         """Record the figure that ``draw`` returns under the label of the
-        page's cell, such as ``fig-ball-thrown-up``."""
+        page's cell, such as ``fig-ball-thrown-up``.
+
+        With ``provenance`` the figure opts in to portable provenance
+        (Issue #524): its PNG carries the declaration and its card's credit
+        as metadata, and the line of credit the card requires visible.
+        """
         if not label.startswith("fig-"):
             raise ValueError(f"a figure label starts with 'fig-': {label!r}")
         self._new("figure", label, self.figures)
+        if provenance is not None:
+            from pbc.data.figure_provenance import card_of, declaration_problems
+
+            problems = declaration_problems(provenance, card_of(provenance.dataset))
+            if problems:
+                raise ValueError(f"{label}: " + "; ".join(problems))
+            self.provenance[label] = provenance
         self.figures[label] = draw
+
+    def identity(self, label: str) -> str:
+        """The figure ``label`` as ``<module of its draw function>:<label>``.
+
+        The module is named as it is imported, also when the experiment
+        runs as a program (``python -m <module>``), where Python names it
+        ``__main__``: the page and the learner's run write the same record.
+        """
+        draw = getattr(self.figures[label], "func", self.figures[label])
+        spec = getattr(draw, "__globals__", {}).get("__spec__")
+        module = spec.name if spec is not None else draw.__module__
+        return f"{module}:{label}"
 
     def widget(self, name: str, data: object = None) -> object:
         """With ``data``, record the JSON data of the widget ``name``; return
@@ -232,7 +282,24 @@ class Experiment:
     def png(self, label: str) -> bytes:
         """The PNG of the figure ``label``, encoded once."""
         if label not in self._encoded:
-            self._encoded[label] = encode(self.figures[label])
+            provenance = self.provenance.get(label)
+            if provenance is None:
+                self._encoded[label] = encode(self.figures[label])
+            else:
+                from pbc.data import figure_provenance as portable
+
+                card = portable.card_of(provenance.dataset)
+                visualization = portable.VISUALIZATION_CREDIT
+                self._encoded[label] = encode(
+                    self.figures[label],
+                    metadata=portable.metadata(
+                        provenance,
+                        card,
+                        self.identity(label),
+                        visualization=visualization,
+                    ),
+                    credit=portable.visible_credit(card, visualization=visualization),
+                )
         return self._encoded[label]
 
     def show(self, label: str) -> FigureImage:

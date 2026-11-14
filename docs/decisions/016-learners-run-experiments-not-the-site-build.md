@@ -317,3 +317,27 @@ account and costs money.
   F115 edits mechanics lessons 01 to 05 at about the same time. The two
   features are sequenced or rebased by their plans; neither changes a
   scientific claim.
+
+### Addendum to decision 2 (Issue #524, 2026-11-14): the provenance record of a declared figure
+
+Decision 2 gives the figure-writing function fixed Matplotlib settings and
+"no metadata". On 2026-11-14 the owner decided, in the design review of the
+figure-provenance pilot (F172, Issue #524), that one exception is allowed
+and asked for it to be stated here so that it is not reopened:
+
+- **A declared figure carries a fixed, deterministic provenance record.**
+  A figure whose cell declares its status, dataset, and processing
+  (`Experiment.figure(provenance=)`) is written by the same one encoder
+  with text chunks of the PNG that are a function of the declaration and
+  the dataset's card alone: the figure's identity, status, dataset,
+  artifact, licence, credit, the line painted on the image, attribution,
+  and processing.
+- **No timestamps and no machine-dependent fields.** The record holds no
+  date, software version, author, copyright, host, or path; two encodes of
+  the same figure are byte-identical, and the page's file equals the
+  experiment's.
+- **Every other figure is unchanged.** A figure without a declaration is
+  encoded as before, with no metadata, byte for byte.
+
+The pilot declares three figures (AST8, MAT6, the RLC lab); a wider rollout
+is F173's. The other decisions keep their text.

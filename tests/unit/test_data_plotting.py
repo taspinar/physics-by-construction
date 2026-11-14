@@ -140,6 +140,39 @@ def test_the_credit_line_is_wrapped_and_kept_inside_the_figure():
     assert box.y0 >= 0 and ax.get_position().y0 > box.y1 - 1e-9
 
 
+def test_a_declared_figure_carries_no_painted_status_or_credit_and_keeps_the_rest():
+    # Issue #524: a figure that declares its provenance states its status
+    # once, at the caption and in its PNG; every other convention still holds.
+    fig, ax = series_with_band(series("processed-measured"), "gauge")
+    ax.set_title("Elevation at the gauge")
+    assert check_figure(fig, declared="processed") == [
+        "a status label is painted on a figure that declares its status: one"
+        " status, at the caption"
+    ]
+    for text in [t for t in fig.texts if t.get_gid() == "pbc-status"]:
+        text.remove()
+    assert check_figure(fig) == ["no status label (use label_status)"]
+    assert check_figure(fig, declared="processed") == []
+    add_credit(fig, "Data: someone.")
+    assert any(
+        "a credit is painted" in p for p in check_figure(fig, declared="processed")
+    )
+    assert any(
+        "unknown declared status" in p for p in check_figure(fig, declared="raw")
+    )
+
+
+def test_a_declared_figure_is_held_to_the_units_titles_legend_and_residuals():
+    fig, ax = plt.subplots()
+    ax.plot([0, 1], [0, 1], label="a")
+    ax.plot([0, 1], [1, 0], label="b")
+    ax.set_xlabel("time")
+    problems = check_figure(fig, residuals=True, declared="processed")
+    assert not any("status" in p for p in problems)
+    for expected in ("no title", "has no unit", "no legend", "no residual panel"):
+        assert any(expected in p for p in problems), expected
+
+
 # One case per go card: its module, its sample, and the status and residual
 # panel its card declares (the lists were kept by hand before Issue #456).
 CASES = [
