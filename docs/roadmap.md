@@ -11930,7 +11930,7 @@ lesson features are planned and reviewed with it.
 - Explicit ownership boundaries with `docs/editorial-voice.md`,
   `docs/authoring.md`, and the scientific-visualization skill: the skill
   points to their rules and repeats none.
-- The provenance record and the entry in `.agents/skills/README.md`; the
+- The provenance record and the entry in the README of `.agents/skills/`; the
   skills configuration check passes with it.
 - The selection rule (ADR 023 decision 2) in `AGENTS.md`, "Visual
   deliverables and skills", and in `docs/process.md`, "Agent skills"; the
@@ -11948,7 +11948,7 @@ AI-text-detector criterion.
 the check).
 
 **Visual deliverables and skills.** None (a skill file); the skill is
-written under the skill-creation conventions of `.agents/skills/README.md`.
+written under the skill-creation conventions of the README of `.agents/skills/`.
 `Skills: none (no visual deliverable; the feature writes the teaching
 skill itself)`.
 

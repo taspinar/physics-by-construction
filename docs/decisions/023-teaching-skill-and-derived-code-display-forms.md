@@ -69,7 +69,7 @@ forbidding both forms, or read the forms as licence to paraphrase code.
 1. **The set.** `.agents/skills/pbc-physics-teaching/` is a project-owned
    skill of the governed set, with its provenance record (project-owned,
    its revision, the sources it distils, its review and update policy)
-   and its entry in `.agents/skills/README.md`. It owns the pedagogical
+   and its entry in the README of `.agents/skills/`. It owns the pedagogical
    reasoning layer only: the target learner, the central physical
    question, prerequisite gaps, one or two deliberate prediction or
    interpretation moments, the distinction between prediction, derived

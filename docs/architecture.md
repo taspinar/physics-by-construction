@@ -1766,7 +1766,7 @@ recounted.
 
 **The teaching skill** (T1, F164; ADR 023 decisions 1 and 2).
 .agents/skills/pbc-physics-teaching/SKILL.md with its provenance record
-and its entry in `.agents/skills/README.md`, project-owned and pinned like
+and its entry in the README of `.agents/skills/`, project-owned and pinned like
 the scientific-visualization skill, validated by the skills
 configuration check (I32). It owns the pedagogical reasoning layer and
 points to the voice guide, the authoring guide, and the

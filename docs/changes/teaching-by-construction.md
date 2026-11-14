@@ -103,7 +103,7 @@ Other sampled lessons included Mechanics 13, Thermodynamics 10, Fluids 08, Agent
 ## 5. Workstream T1 — Project-owned Physics Teaching Skill
 ### Purpose
 
-Create the skill in `.agents/skills/pbc-physics-teaching/` (its `SKILL.md`) with a repository-local provenance record and entry in `.agents/skills/README.md`, following ADR 019 and the current process rules. This is **agent guidance, not evidence**, and never a build or site dependency. It supplements:
+Create the skill in `.agents/skills/pbc-physics-teaching/` (its `SKILL.md`) with a repository-local provenance record and entry in the README of `.agents/skills/`, following ADR 019 and the current process rules. This is **agent guidance, not evidence**, and never a build or site dependency. It supplements:
 
 - `docs/editorial-voice.md` — sentence-level clarity, register, transitions, and prose.
 - `docs/authoring.md` — authoritative scientific, lesson-format and evidence constraints.
