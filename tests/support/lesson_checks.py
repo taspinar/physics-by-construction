@@ -1584,6 +1584,9 @@ def _records(tree: ast.AST) -> set[str]:
     return names
 
 
+_UNREADABLE = object()
+
+
 class ExperimentFigures:
     """Which figures of a lesson's experiment module are made from a dataset.
 
@@ -1611,6 +1614,84 @@ class ExperimentFigures:
             ):
                 return self._use.uses(ast.unparse(node.args[1]))
         return None
+
+    def _constant(self, node: ast.AST) -> object:
+        """The literal value of ``node``, following a module-level name."""
+        if isinstance(node, ast.Constant):
+            return node.value
+        if isinstance(node, ast.Name):
+            for statement in self._tree.body:
+                if isinstance(statement, ast.Assign) and any(
+                    isinstance(t, ast.Name) and t.id == node.id
+                    for t in statement.targets
+                ):
+                    return self._constant(statement.value)
+            return _UNREADABLE
+        if isinstance(node, ast.Tuple):
+            items = tuple(self._constant(item) for item in node.elts)
+            return _UNREADABLE if _UNREADABLE in items else items
+        if isinstance(node, ast.Call):
+            return node
+        return _UNREADABLE
+
+    def declaration(self, label: str) -> dict[str, object] | None:
+        """The provenance the figure ``label`` declares (Issue #524),
+        ``provenance=FigureProvenance(...)`` directly or through a module
+        constant, as its keyword values; None when it declares none, and
+        ``{"unreadable": True}`` when it cannot be read as literals."""
+        for node in ast.walk(self._tree):
+            if not (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "figure"
+                and node.args
+                and isinstance(node.args[0], ast.Constant)
+                and node.args[0].value == label
+            ):
+                continue
+            given = [k.value for k in node.keywords if k.arg == "provenance"]
+            given += node.args[2:3]
+            if not given:
+                return None
+            call = self._constant(given[0])
+            if not (
+                isinstance(call, ast.Call)
+                and isinstance(call.func, ast.Name)
+                and call.func.id == "FigureProvenance"
+                and not call.args
+            ):
+                return {"unreadable": True}
+            values = {k.arg: self._constant(k.value) for k in call.keywords}
+            if _UNREADABLE in values.values():
+                return {"unreadable": True}
+            return values
+        return None
+
+
+def _declaration_problems(
+    name: str, options: dict[str, Any], declared: dict[str, object]
+) -> Iterator[tuple[str, str]]:
+    """The cell of a figure that declares its provenance in the experiment
+    (Issue #524) names the same status, dataset, and artifact: the caption
+    and the PNG state one provenance."""
+    if declared.get("unreadable"):
+        yield (
+            "figure-dataset",
+            f"figure cell '{name}': the experiment's provenance of the figure is"
+            " not a FigureProvenance of literal values",
+        )
+        return
+    for option, key in (
+        ("fig-status", "status"),
+        ("fig-dataset", "dataset"),
+        ("fig-artifact", "artifact"),
+    ):
+        if options.get(option) != declared.get(key):
+            yield (
+                "figure-dataset",
+                f"figure cell '{name}' has {option} {options.get(option)!r}; its"
+                f" experiment declares {declared.get(key)!r}",
+            )
 
 
 def _experiment_figures(repository: Path, lesson: Lesson) -> ExperimentFigures | None:
@@ -1763,6 +1844,13 @@ def _format_2_problems(
                 )
         else:
             made_from_data = data_use.uses(cell.code)
+        declared = (
+            experiment.declaration(shown.group(1))
+            if experiment is not None and shown is not None
+            else None
+        )
+        if declared is not None:
+            yield from _declaration_problems(name, options, declared)
         if dataset is None and model_of is None and made_from_data:
             yield (
                 "figure-dataset",

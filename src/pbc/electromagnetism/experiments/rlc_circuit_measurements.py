@@ -23,6 +23,7 @@ from scipy.optimize import brentq
 
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import impedance_series
+from pbc.data.figure_provenance import RESIDUAL, FigureProvenance, role
 from pbc.data.fit import FitResult, fit_curve
 from pbc.data.plotting import COLOURS, add_credit, label_status
 from pbc.data.reference.bayreuth_rlc import Spectrum, load
@@ -45,6 +46,15 @@ CREDIT = (
     "electrochemical and electrical systems', Zenodo 10.5281/zenodo.10794584, "
     "v1.0.0, CC BY 4.0; file rlc_circuit.json, unmodified. Models and residuals: "
     "this lesson's code, not part of the record."
+)
+# The provenance the impedance figure declares (Issue #524).
+IMPEDANCE_FIT = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    combines=("simulated",),
+    processing="The record's impedance spectrum, unmodified; the circuit with the"
+    " printed component values, the fitted circuit, and the residuals of both:"
+    " this lesson's code, not part of the record.",
 )
 
 
@@ -302,7 +312,13 @@ def _mark(ax, x: float, style: str, label: str) -> None:
 
 def draw_impedance_fit(spectrum: Spectrum, result: FitResult) -> Figure:
     """The measured |Z| and phase against the circuit of the printed values
-    and the fitted circuit, with the residuals of both."""
+    and the fitted circuit, with the residuals of both.
+
+    The figure declares its provenance (``IMPEDANCE_FIT``, Issue #524): its
+    status, the models it combines with the measurement, and its credit are
+    at the caption and in the PNG's metadata, and every legend entry carries
+    the role of what it draws.
+    """
     modulus = impedance_series(spectrum, "modulus")
     phase = impedance_series(spectrum, "phase")
     dense = np.geomspace(spectrum.frequency[0], spectrum.frequency[-1], 400)
@@ -319,33 +335,30 @@ def draw_impedance_fit(spectrum: Spectrum, result: FitResult) -> Figure:
         gridspec_kw={"height_ratios": [1.3, 1.0, 1.0]},
     )
     measured = {"color": COLOURS[0], "marker": "o", "ms": 3.2, "ls": "none"}
-    top.loglog(
+    (points,) = top.loglog(
         modulus.x,
         modulus.y,
-        label=f"measured [{modulus.status}], no uncertainty per point given",
+        label="measured, no uncertainty per point given",
         **measured,
     )
-    middle.semilogx(phase.x, phase.y, label=f"measured [{phase.status}]", **measured)
+    role(points, modulus.status)
+    (points,) = middle.semilogx(phase.x, phase.y, label="measured", **measured)
+    role(points, phase.status)
     for name, (tank, style, colour) in models.items():
         z = tank.impedance(2 * np.pi * dense)
-        top.plot(
-            dense,
-            np.abs(z),
-            ls=style,
-            color=colour,
-            lw=1.4,
-            label=f"{name} [simulated]",
-        )
-        middle.plot(
+        (line,) = top.plot(dense, np.abs(z), ls=style, color=colour, lw=1.4, label=name)
+        role(line, "simulated")
+        (line,) = middle.plot(
             dense,
             np.degrees(np.angle(z)),
             ls=style,
             color=colour,
             lw=1.4,
-            label=f"{name} [simulated]",
+            label=name,
         )
+        role(line, "simulated")
         r = 100 * relative_residual(spectrum, tank)
-        bottom.semilogx(
+        (line,) = bottom.semilogx(
             spectrum.frequency,
             np.abs(r),
             ls=style,
@@ -353,8 +366,9 @@ def draw_impedance_fit(spectrum: Spectrum, result: FitResult) -> Figure:
             lw=1.2,
             marker="." if style == "--" else None,
             ms=4,
-            label=name,
+            label=name.removeprefix("model, "),
         )
+        role(line, RESIDUAL)
     middle.axhline(0, color="0.5", lw=0.8)
     top.set_ylabel("|Z| [ohm]")
     top.set_title("Impedance of a coil parallel to a capacitor: magnitude")
@@ -367,8 +381,6 @@ def draw_impedance_fit(spectrum: Spectrum, result: FitResult) -> Figure:
     bottom.set_xlabel("frequency [Hz]")
     bottom.set_title("Residual |Z_model / Z_measured - 1| of the two models")
     bottom.legend(fontsize=7.5, loc="upper left")
-    add_credit(fig, CREDIT)
-    label_status(fig, modulus.status)
     return fig
 
 
@@ -518,7 +530,9 @@ def run() -> Experiment:
     experiment.number("band-r-above", spread["r-above"], ".2f")
 
     experiment.figure(
-        "fig-impedance-fit", partial(draw_impedance_fit, spectrum, result)
+        "fig-impedance-fit",
+        partial(draw_impedance_fit, spectrum, result),
+        provenance=IMPEDANCE_FIT,
     )
     experiment.figure(
         "fig-resonance-detail",

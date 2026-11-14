@@ -34,6 +34,7 @@ from pbc.astrophysics.transit import (
 )
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import light_curve_series
+from pbc.data.figure_provenance import RESIDUAL, FigureProvenance, role
 from pbc.data.fit import FitResult, fit_curve
 from pbc.data.plotting import COLOURS, add_credit, label_status
 from pbc.data.reference import tess_wasp18 as reference
@@ -58,6 +59,16 @@ CREDIT = (
     "Explorer Program; public domain (MAST data use policy). Columns converted to "
     "CSV unchanged. Cleaning, normalisation, folding, fits and residuals: this "
     "lesson's code, not part of the record."
+)
+# The provenance the transit-fit figure declares (Issue #524).
+TRANSIT_FIT = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    combines=("simulated",),
+    processing="PDCSAP flux of the cadences with quality 0, each transit divided by"
+    " a parabola fitted outside it, folded on the measured period and binned in"
+    " 6-minute bins; the limb-darkened and uniform-star fits and their residuals:"
+    " this lesson's code, not part of the record.",
 )
 GEOMETRY = (
     # name, unit, scale from the value of ``derived`` to the unit shown
@@ -587,7 +598,14 @@ def draw_detrending(curve: dict, window: dict, epoch: int) -> Figure:
 
 def draw_transit_fit(analysis: Analysis, uniform: FitResult) -> Figure:
     """The folded transits, binned, against the limb-darkened fit and the
-    uniform-star fit, with the binned residuals of both."""
+    uniform-star fit, with the binned residuals of both.
+
+    The figure declares its provenance (``TRANSIT_FIT``, Issue #524): its
+    status, the models it combines with the measurement, and its credit are
+    at the caption and in the PNG's metadata, and every legend entry carries
+    the role of what it draws. Every cadence is drawn; the bins are a
+    second layer, not a thinning.
+    """
     folded = analysis.folded
     eph = analysis.ephemeris
     params = analysis.params()
@@ -598,13 +616,13 @@ def draw_transit_fit(analysis: Analysis, uniform: FitResult) -> Figure:
     dense_h = np.linspace(edges[0], edges[-1], 800)
     dense_t = eph.t0 + dense_h / 24
     models = {
-        "model: limb-darkened star, fitted [simulated]": (
+        "limb-darkened star": (
             reference.model_flux(dense_t, *params),
             reference.model_flux(folded.time, *params),
             "--",
             COLOURS[1],
         ),
-        "model: uniform star, fitted [simulated]": (
+        "uniform star": (
             reference.model_flux(dense_t, eph.t0, eph.period, *uniform.params, 0, 0),
             reference.model_flux(
                 folded.time, eph.t0, eph.period, *uniform.params, 0, 0
@@ -621,7 +639,7 @@ def draw_transit_fit(analysis: Analysis, uniform: FitResult) -> Figure:
         constrained_layout=True,
         gridspec_kw={"height_ratios": [2.0, 1.0]},
     )
-    top.plot(
+    (cadences,) = top.plot(
         hours,
         folded.flux,
         ls="none",
@@ -629,10 +647,11 @@ def draw_transit_fit(analysis: Analysis, uniform: FitResult) -> Figure:
         ms=1.0,
         mew=0,
         color="0.75",
-        label="measured, normalised cadences [processed]",
+        label="cadences, normalised",
     )
+    role(cadences, TRANSIT_FIT.status)
     x, mean, sem = _binned(hours, folded.flux, edges)
-    top.errorbar(
+    binned = top.errorbar(
         x,
         mean,
         yerr=sem,
@@ -640,12 +659,16 @@ def draw_transit_fit(analysis: Analysis, uniform: FitResult) -> Figure:
         marker="o",
         ms=3,
         color=COLOURS[0],
-        label="measured, 6-minute bins, standard error of the mean [processed]",
+        label="6-minute bins, standard error",
     )
+    role(binned, TRANSIT_FIT.status)
     for k, (name, (curve, at_data, style, colour)) in enumerate(models.items()):
-        top.plot(dense_h, curve, ls=style, color=colour, lw=1.5, label=name)
+        (model,) = top.plot(
+            dense_h, curve, ls=style, color=colour, lw=1.5, label=f"{name}, fitted"
+        )
+        role(model, "simulated")
         rx, rmean, rsem = _binned(hours, (folded.flux - at_data) * 1e6, edges)
-        bottom.errorbar(
+        rest = bottom.errorbar(
             rx,
             rmean,
             yerr=rsem,
@@ -654,20 +677,19 @@ def draw_transit_fit(analysis: Analysis, uniform: FitResult) -> Figure:
             marker="os"[k],
             ms=3,
             color=colour,
-            label=name.split(",")[0].removeprefix("model: ") + ": measured minus model",
+            label=name,
         )
+        role(rest, RESIDUAL)
     top.set_ylim(0.9805, 1.002)
     top.set_ylabel("normalised flux [1]")
     top.set_title(f"{len(folded.epochs)} transits folded on the measured period")
-    top.legend(fontsize=7, loc="lower center")
+    top.legend(fontsize=7, loc="lower center", ncols=2)
     bottom.axhline(0.0, color="0.4", lw=0.8)
     bottom.set_ylabel("residual [ppm]")
     bottom.set_xlabel("time from mid-transit [h]")
     bottom.set_ylim(-1400, 1000)
-    bottom.set_title("Residuals of the two models, 6-minute bins")
+    bottom.set_title("Measured minus model, 6-minute bins")
     bottom.legend(fontsize=7, loc="lower center", ncols=2)
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
     return fig
 
 
@@ -843,7 +865,11 @@ def run() -> Experiment:
 
     experiment.figure("fig-light-curve", partial(draw_light_curve, lc, analysis))
     experiment.figure("fig-detrending", partial(draw_detrending, curve, window, epoch))
-    experiment.figure("fig-transit-fit", partial(draw_transit_fit, analysis, uniform))
+    experiment.figure(
+        "fig-transit-fit",
+        partial(draw_transit_fit, analysis, uniform),
+        provenance=TRANSIT_FIT,
+    )
     experiment.figure("fig-mid-times", partial(draw_mid_times, analysis))
 
     with experiment.capture("radius-exercise"):

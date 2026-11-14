@@ -22,6 +22,7 @@ from matplotlib.figure import Figure
 
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import stress_strain_series
+from pbc.data.figure_provenance import FigureProvenance, role
 from pbc.data.fit import FitResult, fit_curve
 from pbc.data.inverse import residual_autocorrelation
 from pbc.data.plotting import COLOURS, add_credit, label_status
@@ -61,6 +62,14 @@ CREDIT = (
     "C00FeDP980Numisheet2020R01T1.424W17.93-S-Stress-Strain.csv, unmodified (NIST "
     "data, 17 U.S.C. 105). Fitted, offset and model lines and the loop: this "
     "lesson's code, not part of the record."
+)
+# The provenance the stress-strain figure declares (Issue #524).
+STRESS_STRAIN = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    processing="The record's engineering stress and strain of test R01, unmodified;"
+    " the split into three parts, the shaded loop, and the marked landmarks: this"
+    " lesson's code, not part of the record.",
 )
 
 
@@ -416,14 +425,19 @@ def _segment_parts(seg: Segments):
 
 def draw_stress_strain(test: Test, cycle: dict) -> Figure:
     """The whole measured path in its three parts, the loop shaded, and the
-    landmarks marked."""
+    landmarks marked.
+
+    The figure declares its provenance (``STRESS_STRAIN``, Issue #524): its
+    status and credit are at the caption and in the PNG's metadata, and
+    every legend entry carries the role of what it draws.
+    """
     series = stress_strain_series(test)
     seg = segments(test)
     neck = reload_maximum(test)
     e, s = series.x, series.y
     fig, ax = plt.subplots(figsize=(7.0, 4.8), constrained_layout=True)
     for k, (part, name, marker, style) in enumerate(_segment_parts(seg)):
-        ax.plot(
+        (line,) = ax.plot(
             e[part],
             s[part],
             color=COLOURS[k],
@@ -432,24 +446,25 @@ def draw_stress_strain(test: Test, cycle: dict) -> Figure:
             lw=0.7,
             ls=style,
             markevery=4,
-            label=f"measured [{series.status}]: {name}",
+            label=name,
         )
+        role(line, series.status)
     rows = slice(cycle["start"], cycle["end"] + 1)
-    ax.fill(e[rows], s[rows], color="0.85", zorder=0, label="the hysteresis loop")
+    (loop,) = ax.fill(e[rows], s[rows], color="0.85", zorder=0, label="hysteresis loop")
+    role(loop, series.status)
     marks = [
         (seg.reversal, "kD", "stress maximum, first tension"),
         (seg.compression, "kv", "most compressive stress"),
-        (neck, "k^", "highest stress of the last tension"),
+        (neck, "k^", "highest stress, last tension"),
     ]
     for k, style, label in marks:
-        ax.plot(e[k], s[k], style, ms=6, ls="none", label=label)
+        (mark,) = ax.plot(e[k], s[k], style, ms=6, ls="none", label=label)
+        role(mark, series.status)
     ax.axhline(0, color="0.5", lw=0.8)
     ax.set_xlabel("engineering strain e [mm/mm]")
     ax.set_ylabel("engineering stress S [MPa]")
     ax.set_title("DP980 steel: tension, compression, tension to fracture")
     ax.legend(fontsize=7.5, loc="lower right")
-    add_credit(fig, CREDIT)
-    label_status(fig, series.status)
     return fig
 
 
@@ -745,7 +760,11 @@ def run() -> Experiment:
     experiment.number("neck-true-stress", true_s, ".0f")
     experiment.number("neck-true-strain", true_e, ".3f")
 
-    experiment.figure("fig-stress-strain", partial(draw_stress_strain, test, cycle))
+    experiment.figure(
+        "fig-stress-strain",
+        partial(draw_stress_strain, test, cycle),
+        provenance=STRESS_STRAIN,
+    )
     experiment.figure(
         "fig-elastic-regime", partial(draw_elastic_regime, test, result, yields[-1])
     )

@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
+from support.figures import assert_declared
 
 from pbc.authoring.tables import is_numeric_console_block
 from pbc.data import SAMPLES_DIR
@@ -242,14 +243,26 @@ def test_every_figure_is_the_same_bytes_on_every_draw(experiment, label):
     assert len(drawings) == 1
 
 
+def test_only_the_pilot_figure_declares_its_provenance(experiment):
+    # Issue #524: the stress-strain path opts in, a measurement alone.
+    assert experiment.provenance == {"fig-stress-strain": lab.STRESS_STRAIN}
+    assert lab.STRESS_STRAIN.combines == ()
+
+
 @pytest.mark.parametrize("label", sorted(lab.run().figures))
 def test_every_figure_is_processed_measurement_and_follows_the_conventions(
     experiment, label
 ):
     figure = experiment.figures[label]()
     try:
+        residuals = label == "fig-elastic-regime"
+        if label in experiment.provenance:
+            # Issue #524: the declared figure states its status at the caption
+            # and in its PNG; its legend entries carry roles, not status words.
+            assert_declared(experiment, label, figure, "processed", residuals)
+            return
         assert figure_status(figure) == "processed"
-        assert check_figure(figure, residuals=label == "fig-elastic-regime") == []
+        assert check_figure(figure, residuals=residuals) == []
         for ax in figure.axes:
             legend = ax.get_legend()
             for t in [] if legend is None else legend.get_texts():

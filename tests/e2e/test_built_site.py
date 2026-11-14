@@ -336,6 +336,21 @@ def test_a_figure_made_from_a_dataset_carries_a_status_its_card_allows(
     assert not violations, describe(violations)
 
 
+def test_a_declared_figure_states_its_status_and_credit_at_the_caption(
+    site_dir: Path,
+):
+    """The three figures of the pilot of Issue #524 carry their provenance
+    record, and their captions state it from the card."""
+    violations = site_checks.check_figure_credits(site_dir)
+    assert not violations, describe(violations)
+    declared = [
+        page
+        for page in site_checks.html_pages(site_dir)
+        if 'class="figure-credit"' in page.read_text(encoding="utf-8")
+    ]
+    assert len(declared) == 3, declared
+
+
 def test_the_measured_data_pattern_shows_the_card_the_labels_and_the_no_llm_path(
     page: Page, server: SiteServer
 ):

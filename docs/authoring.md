@@ -760,7 +760,11 @@ an example starts from are top-level names of the module between
 encoded once by `pbc.experiment.encode`, with fixed Matplotlib settings
 (the defaults, with the figure size and resolution of the page) and no
 metadata: the figure file of the built page and the reader's file are the
-same bytes. Do not call `plt.show()`, and do not set Matplotlib settings in
+same bytes. The one exception is a figure that declares its provenance
+(`provenance=`, see "Measured data"): its PNG carries a fixed,
+deterministic provenance record, with no timestamps and no
+machine-dependent fields (the addendum to ADR 016 decision 2); every
+other figure is encoded without metadata, unchanged. Do not call `plt.show()`, and do not set Matplotlib settings in
 the page; set them on the figure in its `draw_` function.
 
 The experiment has a unit test, `tests/unit/test_<name>_experiment.py`: it
@@ -1828,7 +1832,31 @@ An agent may help a learner explore, but its conclusions are never data.
    and sample directories to the figure cell, also through earlier cells,
    and fails a figure that is made from a dataset and names none. What that
    analysis cannot see is listed in `docs/architecture.md` ("Measured-data
-   lab"); a reviewer checks those cases by reading;
+   lab"); a reviewer checks those cases by reading. A figure of the pilot
+   of portable provenance (Issue #524: `fig-transit-fit` of AST8,
+   `fig-stress-strain` of MAT6, `fig-impedance-fit` of the RLC lab)
+   declares it instead of painting it: the experiment records the figure
+   with `experiment.figure(label, draw, provenance=FigureProvenance(...))`
+   (`pbc.data.figure_provenance`: the status, the dataset, the statuses it
+   combines such as `("simulated",)` for fitted models, the processing),
+   the draw function calls neither `label_status` nor `add_credit` and
+   marks each legend entry with `role(artist, status)`, and the card holds
+   `rights.figure_credit` (`short`, `visible`, `source`; `visible` is
+   `required` where the card's terms ask for the credit on the figure,
+   `chosen` where they do not and the project shows it for clear
+   attribution, otherwise `not-required`). The encoder writes the fixed,
+   deterministic record into the PNG (the addendum to ADR 016 decision 2),
+   paints one small line under the axes, the visualization credit
+   "Visualization: Physics by Construction" (the owner's choice on Issue
+   #524, which goes with the declaration: the three figures of the pilot
+   carry it, and a further rollout goes through F173), joined by " · " to
+   the short credit where the card makes it `required` or `chosen`, and
+   the post-render step
+   `site/figure-credits.py` adds the combined statuses, the short credit,
+   and a closed "Full provenance" disclosure to the caption. The cell keeps
+   `fig-status` and `fig-dataset`, which the source check holds equal to
+   the declaration. Every other figure keeps the painted status and credit
+   until the rollout (F173);
 5. fits with `pbc.data.fit.fit_curve` and reports `FitResult.stderr`,
    `reduced_chi2`, and `warnings`. A parameter the data cannot tell apart is
    reported as not identified, with an infinite standard error, and the page

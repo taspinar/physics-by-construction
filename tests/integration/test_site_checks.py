@@ -11,6 +11,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import pytest
 from playwright.sync_api import Browser
 from support import site_checks
@@ -19,6 +20,8 @@ from support.site_checks import Violation
 from support.site_server import SiteServer
 
 from pbc.authoring.progress import STORAGE_KEY
+from pbc.data import figure_provenance
+from pbc.experiment import encode
 from pbc.sample import damped_oscillation
 
 BASE_PATH = "/sub-path/"
@@ -1482,3 +1485,124 @@ def test_a_check_that_operated_no_control_is_reported(
             browser, server, "index.html", lambda page: 0
         )
     assert rules(violations) == {"controls"}
+
+
+# --- The caption of a declared figure (Issue #524) ----------------------------
+
+
+def _declared_png() -> bytes:
+    def draw():
+        fig, ax = plt.subplots(figsize=(1, 1))
+        ax.plot([0, 1], [0, 1])
+        return fig
+
+    provenance = figure_provenance.FigureProvenance(
+        status="processed",
+        dataset="tess-exoplanet-light-curves",
+        combines=("simulated",),
+        processing="Folded and fitted by this lesson's code.",
+    )
+    card = figure_provenance.card_of(provenance.dataset)
+    return encode(
+        draw, metadata=figure_provenance.metadata(provenance, card, "m:fig-x")
+    )
+
+
+def declared_figure(caption_end: str, combines: str = "", status="processed") -> str:
+    return (
+        '<figure><img src="fig.png" alt="A figure" width="1" height="1">'
+        f'<figcaption><span class="figure-status" data-status="{status}"'
+        f' data-dataset="tess-exoplanet-light-curves">{status}</span>{combines}'
+        f" A figure.{caption_end}</figcaption></figure>"
+    )
+
+
+def _completed_caption() -> tuple[str, str]:
+    card = figure_provenance.card_of("tess-exoplanet-light-curves")
+    record = figure_provenance.read_metadata(_declared_png())
+    return figure_provenance.caption_html(record, card)
+
+
+def test_a_declared_figure_with_its_completed_caption_passes(make_site: Site):
+    after, end = _completed_caption()
+    site = make_site(body=declared_figure(end, after))
+    (site / "fig.png").write_bytes(_declared_png())
+
+    assert site_checks.check_figure_credits(site) == []
+
+
+@pytest.mark.parametrize(
+    ("part", "text"),
+    [
+        ("credit", "short credit once"),
+        ("details", "full provenance"),
+        ("combines", "combined"),
+        ("status", "status is not the PNG's"),
+        ("painted", "does not name the painted line"),
+    ],
+)
+def test_a_declared_figure_whose_caption_misses_a_part_is_reported(
+    make_site: Site, part: str, text: str
+):
+    after, end = _completed_caption()
+    if part == "credit":
+        end = end.replace('class="figure-credit"', 'class="other"')
+    if part == "details":
+        end = end[: end.index("<details")]
+    if part == "combines":
+        after = ""
+    if part == "painted":
+        painted = figure_provenance.read_metadata(_declared_png())["pbc:visible-credit"]
+        assert painted.startswith(figure_provenance.VISUALIZATION_PREFIX)
+        dd = f"<dd>{painted}</dd>"
+        assert dd in end
+        end = end.replace("<dt>On the image</dt>", "").replace(dd, "")
+    site = make_site(
+        body=declared_figure(
+            end, after, "calibrated" if part == "status" else "processed"
+        )
+    )
+    (site / "fig.png").write_bytes(_declared_png())
+
+    violations = site_checks.check_figure_credits(site)
+
+    assert rules(violations) == {"figure-credit"}
+    assert text in site_checks.describe(violations)
+
+
+def test_a_png_without_the_cards_painted_line_is_reported(make_site: Site):
+    def draw():
+        fig, ax = plt.subplots(figsize=(1, 1))
+        ax.plot([0, 1], [0, 1])
+        return fig
+
+    provenance = figure_provenance.FigureProvenance(
+        status="processed",
+        dataset="tess-exoplanet-light-curves",
+        combines=("simulated",),
+        processing="Folded and fitted by this lesson's code.",
+    )
+    card = figure_provenance.card_of(provenance.dataset)
+    png = encode(
+        draw,
+        metadata=figure_provenance.metadata(
+            provenance, card, "m:fig-x", visualization=False
+        ),
+    )
+    after, end = figure_provenance.caption_html(
+        figure_provenance.read_metadata(png), card
+    )
+    site = make_site(body=declared_figure(end, after))
+    (site / "fig.png").write_bytes(png)
+
+    violations = site_checks.check_figure_credits(site)
+
+    assert rules(violations) == {"figure-credit"}
+    assert "painted line is not the card's" in site_checks.describe(violations)
+
+
+def test_a_credit_without_a_record_in_the_png_is_reported(make_site: Site):
+    _, end = _completed_caption()
+    site = make_site(body=declared_figure(end).replace("fig.png", "pixel.png"))
+
+    assert rules(site_checks.check_figure_credits(site)) == {"figure-credit"}
