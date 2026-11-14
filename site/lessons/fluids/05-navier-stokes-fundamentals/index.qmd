@@ -32,7 +32,7 @@ lesson:
 
 ```{python}
 #| echo: false
-from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
 from pbc.fluids import navier_stokes
 from pbc.fluids.experiments import navier_stokes_fundamentals as experiment
 
@@ -312,11 +312,6 @@ The projected field differs from the vortex by less than
 added: the two parts are orthogonal, so their energies add.
 
 ```{python}
-#| echo: false
-excerpt(experiment.draw_projection)
-```
-
-```{python}
 #| label: fig-projection
 #| echo: false
 #| fig-cap: "The projection removes the compression and keeps the vortex: before it, the field has a divergence that alternates in stripes; after it, the divergence is zero everywhere and the arrows circle four cells."
@@ -325,8 +320,18 @@ excerpt(experiment.draw_projection)
 result.show("fig-projection")
 ```
 
+```{python}
+#| echo: false
+source_link(experiment.draw_projection, figure=True)
+```
+
 The field is computed on the grid of the example; the arrows show every
-second cell. The figure shows a single projection, not a flow in time.
+second cell. The figure shows a single projection, not a flow in time. Its
+colour is false colour: the discrete divergence of each field, computed by
+`divergence` above, on a diverging scale centred on zero and bounded on both
+sides by the largest divergence before the projection, so both panels share
+one scale and zero is the neutral middle. The arrows are the velocities of
+the faces averaged to the cell centres; the drawing computes nothing else.
 
 ### Two solutions to converge to
 
@@ -450,9 +455,14 @@ up to `{python} result["budget-dissipated"]`; they differ by a relative
 `{python} result["budget-mismatch"]`, which is the error of the time
 stepping and of the trapezoidal sum of the dissipation rate.
 
+The figure compares the energy with its budget: the energy at the start
+minus the energy dissipated so far, and, below, their difference divided by
+the energy at the start. These are the lines of the drawing that compute
+it; the rest sets out the plot and is behind the Source link.
+
 ```{python}
 #| echo: false
-excerpt(experiment.draw_energy_budget)
+excerpt(experiment.draw_energy_budget, lines=[(8, 9), (26, 28)])
 ```
 
 ```{python}

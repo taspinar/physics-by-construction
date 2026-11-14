@@ -32,7 +32,7 @@ lesson:
 
 ```{python}
 #| echo: false
-from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this
+from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this, source_link
 from pbc.materials import stress_strain
 from pbc.materials.experiments import stress_strain_measurements as experiment
 
@@ -164,11 +164,21 @@ The model and the constructions of the lab are in
 excerpt(stress_strain.hooke_stress)
 ```
 
-The offset crossing, interpolated between the two samples on either side:
+The offset crossing takes a measured curve, its strains and stresses as
+arrays, the modulus $E$ in GPa, and the offset in strain, and returns the
+stress in MPa at which the curve first falls below the elastic line shifted
+to the right by the offset. Inside, `e` and `s` are the strains and the
+stresses as arrays of floats. The construction is the part shown: `gap` is
+the measured stress minus the shifted line at every sample. The guard
+counts only samples whose strain is past the offset, so the start of the
+curve, left of the foot of the shifted line, is never taken for a
+crossing, and it stops with an error when the curve never crosses or has no
+sample above the line before the crossing. The last two lines interpolate
+linearly between the last sample above the line and the first one below it.
 
 ```{python}
 #| echo: false
-excerpt(stress_strain.offset_crossing)
+excerpt(stress_strain.offset_crossing, signature=True, lines=(15, 21))
 ```
 
 The elastic unloading from a point, and the closed integral of $S$ over
@@ -250,11 +260,6 @@ result.table("landmarks")
 ```
 
 ```{python}
-#| echo: false
-excerpt(experiment.draw_stress_strain)
-```
-
-```{python}
 #| label: fig-stress-strain
 #| echo: false
 #| fig-cap: "The measured path of the strip: a steep rise that bends over into a slow climb, a reversal that falls far less steeply than it rose and flows in compression, and a second tension that rises to a broad maximum and drops as the strip necks and breaks. The shaded area is the hysteresis loop."
@@ -262,6 +267,11 @@ excerpt(experiment.draw_stress_strain)
 #| fig-status: processed
 #| fig-dataset: nist-numisheet-dp980
 result.show("fig-stress-strain")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_stress_strain, figure=True)
 ```
 
 [The first tension reaches its highest stress, `{python} result["peak-stress"]`
@@ -293,9 +303,17 @@ two limits of the window and fits a straight line to them with
 excerpt(experiment.fit_modulus)
 ```
 
+The figure draws three lines over the measured points of the first tension
+and, in the lower panel, the residuals: the measured stress minus each line,
+$S - (E e + S_0)$ for the fitted line and $S - E e$ with the elasticity
+lesson's modulus, at every stress $S < 700\ \mathrm{MPa}$. The offset line is the
+fitted line moved to the right by the largest offset, $0.2\,\%$ of strain.
+These are the lines of the drawing that compute what is plotted; the rest of
+it sets out the plot and is behind the Source link:
+
 ```{python}
 #| echo: false
-excerpt(experiment.draw_elastic_regime)
+excerpt(experiment.draw_elastic_regime, lines=[(5, 8), (47, 47), (65, 69), (76, 78)])
 ```
 
 ```{python}
@@ -465,9 +483,13 @@ $S_1/E$ of its strain when the stress reaches zero.
 excerpt(experiment.unloading)
 ```
 
+The lower panel of the next figure plots how far the measured branch lies
+behind the elastic unloading, in strain, at each stress: the strain of the
+elastic line at that stress minus the measured strain.
+
 ```{python}
 #| echo: false
-excerpt(experiment.draw_unloading)
+excerpt(experiment.behind_elastic)
 ```
 
 ```{python}
@@ -478,6 +500,11 @@ excerpt(experiment.draw_unloading)
 #| fig-status: processed
 #| fig-dataset: nist-numisheet-dp980
 result.show("fig-unloading")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_unloading, figure=True)
 ```
 
 [Unloaded from `{python} result["hold-stress"]` MPa to zero stress, the
