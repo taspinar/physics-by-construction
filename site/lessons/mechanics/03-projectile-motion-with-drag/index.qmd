@@ -59,9 +59,9 @@ refinement: a result that keeps changing as the time step shrinks is not a
 result yet, and the rate at which it stops changing says how far it is from
 the limit. Only then does it ask the simulation for the best angle. The ball
 of the model has no spin, flies through still air, and has a drag
-coefficient that does not change; Assumptions lists each assumption with
-what goes wrong when it does not hold, and Limits says what the answer does
-not tell us about a real tennis ball.
+coefficient that does not change; Assumptions (below) lists each assumption
+with what goes wrong when it does not hold, and Limits (below) says what the
+answer does not tell us about a real tennis ball.
 
 ## Drag that grows with the square of the speed {#explanation}
 
@@ -128,7 +128,8 @@ Before asking why the simulation can be trusted, look at what it says.
 The ball is a tennis ball. Its mass and diameter are set in the cell; the
 density and viscosity of air at room temperature and the drag coefficient of
 a sphere in this range of speeds, [about 0.5]{.not-verified}, are inputs of
-the model, not results of it.
+the model, not results of it. The viscosity enters only the Reynolds number,
+which says which drag law applies; the motion itself never uses it.
 
 ```{python}
 #| echo: false
@@ -143,14 +144,18 @@ launch is `{python} result["reynolds"]`, in the Newtonian drag regime, where
 a constant drag coefficient is a reasonable model, and the
 largest stable time step at the launch speed is
 `{python} result["stable-step"]` s, far above the time step
-`{python} result["dt"]` s used here.
+`{python} result["dt"]` s used here. That bound is $m/(c\,v)$, derived under
+Assumptions (below, item five): a small change of the speed meets a drag that,
+to first order in the change, grows linearly with it, so the stability limit
+of linear drag from the previous lesson applies.
 
 The next cell simulates the throw with and without drag and tabulates what a
 thrower would want to know. The two simulated balls differ in one thing
 only, the list of forces: `ball_in_vacuum` feels its weight, `ball_in_air`
 its weight and the drag. `launch` turns the speed and the angle into a
-starting state, and `fly` steps until the ball is below the ground; the
-program shows both.
+starting state, `fly` steps until the ball is below the ground, and
+`landing` reads the range and the time of flight off the last step; the
+program shows all three.
 
 ```{python}
 #| echo: false
@@ -167,15 +172,18 @@ per cent of the range. The exact drag-free range is
 `{python} result["exact-range"]` m, and the drag-free
 simulation is within
 `{python} result["range-excess-cm"]` cm
-of it; the first worked example looks at that remaining difference.
+of it. That is the size of $v_x\,\Delta t$, the horizontal velocity
+$v_0\cos\theta$ times the step: the first check below explains why the
+drag-free simulation lands that much too far, and the first worked example
+measures it.
 The paths show where the range goes:
 
 ```{python}
 #| label: fig-throw-with-and-without-drag
 #| echo: false
-#| fig-cap: "Drag removes the symmetry of the path: the ball with drag rises less, peaks early, and comes down steeply, because the drag has taken most of the horizontal velocity by then."
+#| fig-cap: "Drag removes the symmetry of the path: the ball with drag rises less, peaks at a shorter distance than the drag-free throw, but past the middle of its own path, and comes down steeply, because the drag has taken most of the horizontal velocity by then."
 #| fig-status: simulated
-#| fig-alt: "Plot of height against horizontal distance in metres. The drag-free path is a symmetric parabola. The path with drag rises less high, peaks well before the midpoint of its flight, and comes down steeply to land little more than half as far."
+#| fig-alt: "Plot of height against horizontal distance in metres. The drag-free path is a symmetric parabola. The path with drag rises less high, peaks at a shorter distance than the parabola but past the middle of its own path, and comes down steeply to land little more than half as far."
 result.show("fig-throw-with-and-without-drag")
 ```
 
@@ -234,9 +242,10 @@ has no closed form.
 1. **Limiting cases.** Set $c = 0$ and the motion must become the parabola
    of the first lesson, with the range $R_0 = v_0^2 \sin(2\theta) / g$ for a
    launch from the ground at speed $v_0$ and angle $\theta$. The first lesson
-   even predicts how far explicit Euler misses it: the computed height lags
-   the exact one by $\tfrac{1}{2} g\,t\,\Delta t$. At the landing time
-   $T = 2 v_0 \sin\theta / g$ that lag is $v_0 \sin\theta\,\Delta t$, and
+   even predicts how far explicit Euler misses it: the computed ball is higher
+   than the exact one by $\tfrac{1}{2} g\,t\,\Delta t$. At the landing time
+   $T = 2 v_0 \sin\theta / g$ that excess height is
+   $v_0 \sin\theta\,\Delta t$, and
    the ball is falling there with the vertical speed $v_0 \sin\theta$, so it
    needs a time $\Delta t$ more to reach the ground: it lands $\Delta t$ late
    and so about $v_x \Delta t$ too far. A simulation
@@ -248,10 +257,14 @@ has no closed form.
    terminal speed it must produce.
 2. **Convergence.** Compute the range with the step $\Delta t$, then with
    $\Delta t/2$, $\Delta t/4$, and so on. For a first-order method the
-   differences between successive results must halve each time, and the
-   observed order, $\log_2$ of the ratio of successive differences, must
-   tend to one. When it does, the result behaves like
-   $R(\Delta t) = R^* + C\,\Delta t$, and two steps determine both unknowns.
+   error is proportional to the step at small steps, so the result behaves
+   like $R(\Delta t) = R^* + C\,\Delta t$, with $R^*$ the exact solution
+   of the model's equations and $C$ an unknown constant. Then the difference
+   between two successive results is $R(\Delta t) - R(\Delta t/2) =
+   C\,\Delta t/2$, and it must halve each time the step does. For an error
+   proportional to $\Delta t^p$ the ratio of successive differences is
+   $2^p$, so its $\log_2$, the **observed order**, must tend to one. When
+   it does, two steps determine both unknowns.
    Subtracting $R(\Delta t/2) = R^* + C\,\Delta t/2$ from $R(\Delta t)$ gives
    $C\,\Delta t/2 = R(\Delta t) - R(\Delta t/2)$, and inserting it back gives
    $$
@@ -278,10 +291,16 @@ fraction $y_1 / (y_1 - y_2)$ of the way through the step, and the range is
 the horizontal position at that fraction. Within one step the path is nearly
 straight. Linear interpolation of a function $y(t)$ between two points
 $\Delta t$ apart has the error $\tfrac{1}{2}\,\ddot{y}(\xi)\,(t - t_1)(t - t_2)$ for some $\xi$
-in the step, and $|(t - t_1)(t - t_2)|$ is largest at the middle of the step,
+in the step; this is the standard remainder of interpolation by a straight
+line, proved like the remainder of a Taylor series. The factor $|(t - t_1)(t - t_2)|$
+is largest at the middle of the step,
 where it is $\Delta t^2/4$. So the interpolation is off by at most
-$\tfrac{1}{8}\,|\ddot{y}|\,\Delta t^2$ in height, far below the first-order
-error of the method itself.
+$\tfrac{1}{8}\,|\ddot{y}|\,\Delta t^2$ in height. A height error
+$\delta y$ moves the crossing by a time of about $\delta y/|v_y|$, and so
+the range by about $v_x\,\delta y/|v_y|$; the horizontal position
+interpolated at that time adds an error of the same kind,
+$\tfrac{1}{8}\,|\ddot{x}|\,\Delta t^2$ at most. Both are of order
+$\Delta t^2$, far below the first-order error of the method itself.
 
 ## Assumptions
 
@@ -296,14 +315,14 @@ goes wrong when it does not hold.
    $-\tfrac{1}{2}\rho C_d A\,|\mathbf{v}|\,\mathbf{v}$ with a fixed $C_d$.
    This holds in the Newtonian drag regime, where the drag coefficient of a
    sphere is approximately constant, so that the force scales with the speed
-   squared, and the ball leaves a turbulent wake; [the range is of the order of a thousand to a few hundred
-   thousand]{.not-verified}, and the first look at one throw computes where
+   squared, and the ball leaves a turbulent wake; [Reynolds numbers from about a thousand to a few hundred
+   thousand]{.not-verified} lie in it, and the first look at one throw computes where
    the tennis ball lies in it. At much lower speeds the law becomes linear, as
    in the previous lesson. At higher speeds a smooth sphere reaches the drag crisis,
    where $C_d$ [drops abruptly, by more than half]{.not-verified}; a rough or
    seamed ball reaches it earlier. For a ball thrown that fast the constant
    $C_d$ overestimates the drag. The lesson does not model either end of the
-   range.
+   regime.
 3. **Still, uniform air.** No wind, and a constant air density. In a wind
    the drag acts on the velocity relative to the air. Density changes with
    altitude by a few per cent per hundred metres, which matters for a shell,
@@ -318,7 +337,11 @@ goes wrong when it does not hold.
    The landing point is interpolated linearly within the last step, which
    adds an error proportional to the square of the step, below the method's
    own. As in the previous lesson, a step that is too large makes the method
-   unstable. Near a speed $v$ a small change $\delta v$ of the speed obeys
+   unstable. Stability is about whether a small error grows from step to
+   step, so only the drag's response to a small change $\delta v$ of the
+   speed matters, and to first order in $\delta v$ that response is linear:
+   $c\,(v + \delta v)^2 \approx c\,v^2 + 2c\,v\,\delta v$. Near a speed
+   $v$ the change therefore obeys
    $\mathrm{d}\,\delta v/\mathrm{d}t \approx -(2c\,v/m)\,\delta v$, which
    is linear drag with the time constant $\tau = m/(2c\,v)$, so the result of
    the previous lesson says the step must stay below $2\tau = m/(c\,v)$. The
@@ -432,7 +455,9 @@ The differences halve and the observed order is
 first-order method should on this problem too, and the Richardson estimates
 settle on a limit long before the direct results do. The range with drag is
 `{python} result["best-estimate"]` m, and the finest direct result is
-still `{python} result["error-estimate-mm"]` mm from the previous one. The
+still `{python} result["error-estimate-mm"]` mm from the previous one. By
+the second Richardson formula, each entry of the difference column is the
+estimated error of the finer of the two results it compares. The
 Richardson estimate assumes that the error is proportional to the time step;
 the observed orders are the check of that assumption, not a proof. On
 logarithmic axes the error of the direct results against the extrapolated
@@ -446,7 +471,7 @@ excerpt(experiment.draw_convergence_of_the_range)
 ```{python}
 #| label: fig-convergence-of-the-range
 #| echo: false
-#| fig-cap: "The error of the range with drag falls in proportion to the time step, parallel to the reference line, so the extrapolated limit is a trustworthy reference."
+#| fig-cap: "The error of the range with drag falls in proportion to the time step, parallel to the reference line: the results behave as first order, which is what the Richardson estimate assumes. Only the slope of the reference line counts, not its height."
 #| fig-status: simulated
 #| fig-alt: "Log-log plot of the error of the computed range in metres against the time step in seconds. The points lie on a straight line parallel to a dotted reference line of slope one: the error falls in proportion to the time step, over a wide span of both."
 result.show("fig-convergence-of-the-range")
@@ -468,6 +493,14 @@ for launch angles from $10^\circ$ to
 $80^\circ$, with and without drag, using a step at which the convergence table
 puts the error well below a decimetre, and then finds the angle of the longest
 throw to a tenth of a degree with a one-dimensional minimiser from SciPy.
+The step `scan_dt` lies between two rows of the convergence table, and the
+error is proportional to the step, so the error of the throw of that table
+at this step lies between the differences of those two rows: it is about
+`{python} result["scan-error-cm"]` cm. The minimiser, `minimize_scalar`,
+looks for the smallest value of a function of one variable; `best_angle`
+gives it the range with the opposite sign, so its minimum is the longest
+throw, `bounds` keeps the search between $20^\circ$ and $60^\circ$, and
+`xatol` is how closely it must locate the angle, $0.05^\circ$.
 The grid draws the curves of the figure below, at a spacing far too coarse
 to place the peak to a tenth of a degree; the best angle in the table comes
 from the minimiser, which evaluates the range at whatever angles it needs,
@@ -502,7 +535,11 @@ type="numerically-verified" scope="tennis ball at its launch speed"
 evidence="fig-range-against-angle"} The shift goes the way the expectation
 above suggested, but the lesson does not derive it: the argument gives at
 most a direction, and the size of the shift comes from the simulation, not
-from the argument.
+from the argument. The gain is small: at the best angle the ball flies about
+`{python} result["angle-gain"]` per cent further than at $45^\circ$, while
+the drag coefficient behind both ranges is an unverified input of about the
+right size. That gain belongs to the model; whether a real ball gains it is
+a question for a measurement, as Limits says.
 
 ```{python}
 #| label: fig-range-against-angle
@@ -630,7 +667,8 @@ speed; [95 per cent]{.given} of it is reached after
 **A step for a millimetre.** From the convergence table, which time steps
 give a computed range with drag that is within 1 cm of the limit, without
 extrapolation? How small must the step be for 1 mm? Read the first answer
-from the Richardson error estimates in the table, and find the second by
+from the difference column of the table, which is the Richardson error
+estimate of the result in its row, and find the second by
 continuing the halving until the estimate drops below 1 mm.
 
 ::: {.solution}

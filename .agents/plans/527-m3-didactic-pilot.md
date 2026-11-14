@@ -15,20 +15,39 @@ figure, exercise, or excerpt changed: the sequence and the connecting
 prose change, every `excerpt(...)` call, cell, claim, and inline value
 stays as it is. The targeted run selects M3 alone.
 
+**Revision after the agent reading (owner's decision, 2026-11-14).** The
+owner decided to fix the stumbling points of the agent reading of
+criterion 8 in this feature ("Criterion 8: an agent's reading of M3" on the
+Issue, and the decision that follows it). That adds the experiment module
+`src/pbc/mechanics/experiments/projectile_with_drag.py` to the change, still
+Level 2: Figure 1's labels sit beside their curves, Figure 4's 45° line has a
+legend entry, and two computed numbers are new (`scan-error-cm`, the error of
+the convergence table's throw at the scan step; `angle-gain`, how much
+further the best angle throws than 45°). No existing number, table, result,
+claim, or test assertion changes. See step 7.
+
 ## Visual deliverables
 
-A lesson's teaching sequence; no figure moves to another cell or is
-redrawn, so the visualization skill is not needed.
+A lesson's teaching sequence, and two revised scientific figures
+(step 7): the conceptual sketch `fig-drag-against-speed` (labels moved
+beside their curves) and the simulated plot `fig-range-against-angle` (a
+legend entry for the 45° line). The data of both are unchanged.
 
 Skills: pbc-physics-teaching@7f34987
+Skills: pbc-scientific-visualization@a70b501
 
 - **Artifact:** the revised page of M3.
 - **Scientific validation:** the experiment is untouched, so every number,
   table, and figure is the same; the claim and its evidence are unchanged;
   the lesson-source checks, the single-page render, and the independent
   review.
-- **Accessible fallback:** unchanged captions and alt text; the page stays
-  complete without scripts.
+- **Accessible fallback:** captions and alt text unchanged except Figure 2
+  (its caption and alt text now say the peak is at a shorter distance than
+  the drag-free throw but past the middle of its own path, as the computed
+  paths show: 19.7 m against a half range of 17.7 m) and Figure 3 (its
+  caption); the page stays complete without scripts. The two redrawn
+  figures are compared with the previous ones by the reproduction of the
+  experiment (the single-page render and the experiment's entry point).
 
 ## The learner and the subject (criterion 1)
 
@@ -143,3 +162,17 @@ yet). Per block, its teaching purpose and the decision:
 6. Criteria 1 and 2 and the F177 candidate recorded on the Issue as a
    comment. Criteria 7 and 8 (the review, the owner's view at desktop
    and phone widths, comprehension observations) follow the session.
+7. The stumbling points of the agent reading (owner's decision,
+   2026-11-14), each kept true to the computed values: the first look
+   points to Assumptions for the stable step and says why the drag may be
+   linearised there (item five says it too); "the computed ball is higher
+   by" in place of "lags"; $R(\Delta t) = R^* + C\,\Delta t$ before the
+   observed order; the source of the interpolation remainder and how a
+   height error becomes a range error; "Reynolds numbers from about a
+   thousand to" in Assumptions; the difference column named as the error
+   estimate (the convergence text and Exercise 2); the captions of Figures 2
+   and 3; "(below)" in the opening; the viscosity's role; `landing`; the
+   2 cm traced to $v_x\,\Delta t$; `minimize_scalar`, its bounds and
+   `xatol`; the error at `scan_dt` (computed); Figure 1's labels; Figure 4's
+   legend; the size of the gain at the best angle (computed) against the
+   unverified drag coefficient.
