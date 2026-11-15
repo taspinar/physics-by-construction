@@ -335,12 +335,49 @@ def test_ranges_show_exact_parts_with_their_file_lines_and_a_marker_between():
     )
     markdown = shown.markdown()
     assert 'lines="13-15,18-21"' in markdown
+    # The gap is a compact (...) line; the lines it stands for are in its
+    # data attribute and in a sentence that only a screen reader hears.
     assert (
-        f"Lines {omission.first_line} to {omission.last_line} are not shown."
-        in markdown
-    )
+        f'::: {{.excerpt-omission omitted="16-17" what="lines"}}\n'
+        '[(\\.\\.\\.)]{.omission-mark aria-hidden="true"}'
+        f" [Lines {omission.first_line} to {omission.last_line} are not shown.]"
+        "{.visually-hidden}\n:::\n"
+    ) in markdown
     for part in shown.parts:
         assert f'first-line="{part.first_line}"' in markdown
+
+
+def test_lines_left_out_at_the_start_and_the_end_are_marked_too():
+    shown = excerpt(stress_strain.offset_crossing, lines=(15, 19))
+
+    whole = excerpt(stress_strain.offset_crossing)
+    header = header_lines(whole.source)
+    leading, trailing = shown.leading_omission(), shown.trailing_omission()
+    # After the generated header, up to the part; after the part, to the end.
+    assert leading is not None and leading.lines == (header[1] + 1, 14)
+    assert trailing is not None and trailing.lines == (20, whole.total)
+    assert trailing.last_line == whole.span[1]
+    markdown = shown.markdown()
+    assert markdown.index('omitted="8-14"') < markdown.index("first-line=")
+    assert markdown.index(f'omitted="20-{whole.total}"') > markdown.index("first-line=")
+    # The whole object leaves nothing out.
+    assert whole.leading_omission() is None and whole.trailing_omission() is None
+
+
+def test_a_region_of_a_module_is_marked_as_lines_of_the_file_left_out():
+    from pbc.mechanics.experiments import kinematics as experiment
+
+    shown = excerpt(experiment, region="setup")
+
+    file = _file_lines(shown)
+    leading, trailing = shown.leading_omission(), shown.trailing_omission()
+    assert leading is not None and (leading.first_line, leading.lines[0]) == (1, 1)
+    assert leading.last_line == shown.first_line - 1
+    assert trailing is not None and trailing.first_line == shown.last_line + 1
+    assert trailing.last_line == len(file)
+    # A region of a module has no header and keeps the Source link.
+    assert shown.signature is None
+    assert "[Source [of `pbc.mechanics.experiments.kinematics`" in shown.markdown()
 
 
 @pytest.mark.parametrize(
@@ -353,14 +390,64 @@ def test_ranges_that_could_hide_an_omission_fail_the_build(lines):
         excerpt(stress_strain.offset_crossing, lines=lines)
 
 
-def test_a_selection_is_labelled_and_the_whole_object_is_not():
+def test_a_selection_is_labelled_for_a_screen_reader_and_the_whole_object_is_not():
     selected = excerpt(dynamics.euler_step, lines=(13, 17)).markdown()
     whole = excerpt(dynamics.euler_step).markdown()
 
-    assert "Selected lines of `euler_step`, not the whole function" in selected
+    # No paragraph above the fragment (Issue #536): the label is visually
+    # hidden; the header, the numbers, (...), and the link say it on screen.
+    assert (
+        "[Selected lines of `euler_step`, not the whole function; the numbers"
+        " are its line numbers in the file.]{.visually-hidden}"
+    ) in selected
     assert ".excerpt-part" in selected
-    assert "excerpt-label" not in whole
+    assert "Selected lines" not in whole
     assert "excerpt-part" not in whole
+
+
+def test_a_selection_is_one_frame_with_its_header_at_the_top_and_the_link_under():
+    shown = excerpt(
+        stress_strain.offset_crossing, signature=True, lines=[(13, 15), (18, 19)]
+    )
+    whole = excerpt(stress_strain.offset_crossing).markdown()
+    markdown = shown.markdown()
+
+    # One frame (Issue #536): the generated header at its top, then the one
+    # scroll area of the parts and the (...) lines, then the link outside it.
+    frame = markdown.index("::: {.excerpt-frame}\n")
+    header = markdown.index("::: {.excerpt-header}\n")
+    area = markdown.index("::: {.excerpt-selection ")
+    parts = [m.start() for m in re.finditer(r"\.excerpt-part", markdown)]
+    marks = [m.start() for m in re.finditer(r"\{\.excerpt-omission ", markdown)]
+    link = markdown.index("::: {.excerpt-source}\n")
+    assert frame < header < area < min(marks) < max(parts) < link
+    assert len(parts) == 2 and len(marks) == 3  # docstring, between, after
+    assert markdown.count("excerpt-frame") == 1
+    assert markdown.count("Full function on GitHub") == 1
+    # The last (...), the scroll area, and the frame close before the link.
+    assert markdown[:link].endswith(":::\n\n:::\n\n:::\n\n")
+    # The scroll area is reached by keyboard.
+    assert 'lines="13-15,18-19" tabindex="0"}' in markdown
+    assert "excerpt-frame" not in whole
+
+
+def test_a_part_scrolls_with_its_frame_and_is_no_stop_of_the_keyboard():
+    whole = _CONVERTED.replace(" excerpt-part", "")
+
+    assert 'tabindex="0"' not in number_lines(_CONVERTED).split("<pre")[0]
+    assert 'tabindex="0"' in number_lines(whole).split("<pre")[0]
+
+
+def test_the_link_under_a_selection_opens_the_full_function_on_github():
+    selected = excerpt(dynamics.euler_step, lines=(13, 17))
+    whole = excerpt(dynamics.euler_step)
+
+    assert selected.link_text() == "Full function on GitHub"
+    assert "{.excerpt-source}\n[Full function on GitHub [of `euler_step`" in (
+        selected.markdown()
+    )
+    assert whole.link_text() == "Source"
+    assert excerpt(State, lines=(1, 3)).link_text() == "Full class on GitHub"
 
 
 def test_the_source_link_of_a_selection_opens_the_whole_object():
@@ -384,15 +471,18 @@ def test_docstring_is_left_out_of_the_display_only_and_marked():
     assert file[first - 1].strip().startswith('"""')
     assert file[last - 1].rstrip().endswith('"""')
     assert '"""' not in shown.source
-    assert len(shown.source.splitlines()) + last - first + 1 == len(
+    # The header of offset_crossing is written over lines 1 to 7, so the
+    # selection shows it generated on one line in their place (M1).
+    assert shown.signature_lines == (1, 7)
+    assert shown.signature is not None and shown.signature.count("\n") == 1
+    assert len(shown.source.splitlines()) + 7 + last - first + 1 == len(
         whole.source.splitlines()
     )
-    (omission,) = shown.omissions()
-    assert omission.docstring and (omission.first_line, omission.last_line) == (
-        first,
-        last,
-    )
-    assert f"The docstring, lines {first} to {last}, is not shown." in (
+    assert shown.omissions() == ()
+    omission = shown.leading_omission()
+    assert omission is not None and omission.docstring
+    assert (omission.first_line, omission.last_line) == (first, last)
+    assert f"[The docstring, lines {first} to {last}, is not shown.]" in (
         shown.markdown()
     )
 
@@ -407,16 +497,11 @@ def test_generated_signature_is_what_the_build_reads_from_the_function():
 
     shown = excerpt(stress_strain.offset_crossing, signature=True, lines=(13, 21))
 
+    # One line, as the owner asked on Issue #536.
     assert shown.signature == (
-        "def offset_crossing(\n"
-        "    strain,\n"
-        "    stress,\n"
-        "    modulus,\n"
-        "    offset,\n"
-        "    intercept=0.0,\n"
-        "): ...\n"
+        "def offset_crossing(strain, stress, modulus, offset, intercept=0.0):\n"
     )
-    stub = ast.parse(shown.signature).body[0]
+    stub = ast.parse(shown.signature + "    ...\n").body[0]
     names = [a.arg for a in stub.args.args]
     parameters = inspect.signature(stress_strain.offset_crossing).parameters
     assert names == list(parameters)
@@ -427,7 +512,11 @@ def test_generated_signature_is_what_the_build_reads_from_the_function():
     )
     assert "def offset_crossing" not in shown.source
     markdown = shown.markdown()
-    assert "Generated signature of `offset_crossing`, not the source text" in markdown
+    # The short label beside it; what it is, for a screen reader and a title.
+    assert "::: {.excerpt-header}\n" in markdown
+    assert "Shortened function[: the header of offset_crossing generated" in markdown
+    assert "not the source text; it stands for lines 24 to 30.]" in markdown
+    assert "Generated signature of" not in markdown
     assert 'replaces="1-7"' in markdown
     # The docstring between the header and line 13 is marked as left out.
     leading = shown.leading_omission()
@@ -435,11 +524,17 @@ def test_generated_signature_is_what_the_build_reads_from_the_function():
 
 
 def test_generated_signature_keeps_the_units_of_the_interface_table():
-    shown = excerpt(dynamics.euler_step, signature=True, interface=True)
+    shown = excerpt(dynamics.euler_step, signature=True)
+    beside = excerpt(dynamics.euler_step, signature=True, interface=True)
 
-    units = {row.name: row.unit for row in shown.interface}
-    assert "    dt,  # s\n" in (shown.signature or "")
+    units = {row.name: row.unit for row in beside.interface}
+    assert shown.signature is not None
+    header, _, comment = shown.signature.partition("  # ")
+    assert header == "def euler_step(state, acceleration, dt):"
+    assert "dt (s)" in comment.split(", ")
     assert units["dt"] == "s"
+    # With the table above it, the units are there and the header is short.
+    assert beside.signature == "def euler_step(state, acceleration, dt):\n"
 
 
 def test_generated_signature_keeps_every_kind_of_parameter_and_default():
@@ -447,11 +542,9 @@ def test_generated_signature_keeps_every_kind_of_parameter_and_default():
 
     shown = generated_signature(text, {"b": "m"})
 
-    assert shown == (
-        "def f(\n    a,\n    /,\n    b=1e-3,  # m\n    *args,\n    c,\n"
-        "    d=(1, 2),\n    **rest,\n): ...\n"
-    )
-    ast.parse(shown)
+    assert shown == "def f(a, /, b=1e-3, *args, c, d=(1, 2), **rest):  # b (m)\n"
+    ast.parse(shown + "    ...\n")
+    assert generated_signature(text, {"return": "s"}).endswith(":  # return (s)\n")
 
 
 def test_a_signature_whose_default_differs_from_the_function_fails_the_build():
@@ -462,6 +555,44 @@ def test_a_signature_whose_default_differs_from_the_function_fails_the_build():
         _check_signature(f, "def f(a, b=3):\n    return a + b\n", "f")
     with pytest.raises(ValueError, match="parameters"):
         _check_signature(f, "def f(a, c=2):\n    return a + c\n", "f")
+
+
+def test_a_selection_without_the_header_gets_a_generated_one_and_one_with_it_not():
+    without = excerpt(stress_strain.offset_crossing, lines=(15, 21))
+    # hooke_stress writes its header on one line: shown as written, once.
+    with_header = excerpt(stress_strain.hooke_stress, lines=[(1, 1), (3, 3)])
+
+    assert without.signature is not None and without.signature_lines == (1, 7)
+    assert with_header.signature is None
+    assert with_header.parts[0].source.startswith("def hooke_stress(strain")
+    assert with_header.markdown().count("def hooke_stress(") == 1
+
+
+def test_a_header_written_over_several_lines_is_shown_on_one_line():
+    # offset_crossing writes one parameter per line (its lines 1 to 7); a
+    # selection that holds them shows the generated one-line header instead,
+    # once, and the other lines with their own text and numbers (M1).
+    shown = excerpt(stress_strain.offset_crossing, lines=[(1, 7), (15, 21)])
+
+    assert shown.signature_lines == (1, 7)
+    assert shown.signature is not None
+    assert shown.signature.count("\n") == 1
+    assert shown.signature.startswith(
+        "def offset_crossing(strain, stress, modulus, offset, intercept=0.0):"
+    )
+    assert [part.lines for part in shown.parts] == [(15, 21)]
+    file = _file_lines(shown)
+    part = shown.parts[0]
+    assert part.source == "".join(file[part.first_line - 1 : part.last_line])
+    markdown = shown.markdown()
+    assert markdown.count("def offset_crossing(") == 1
+    assert "    strain: ArrayLike,\n" not in markdown
+    assert shown.leading_omission() is not None
+
+
+def test_a_selection_of_a_part_of_the_header_fails_the_build():
+    with pytest.raises(ValueError, match="part of its header"):
+        excerpt(stress_strain.offset_crossing, lines=(3, 9))
 
 
 def test_a_class_has_no_generated_signature():
@@ -515,6 +646,24 @@ def test_lines_are_numbered_and_marked_after_the_highlighting():
     ) in numbered
     # The tokens keep their highlighting, and the text stays the source.
     assert re.sub(r"<[^>]+>", "", numbered) == "x = 1\nreturn x"
+
+
+def test_the_name_of_a_generated_header_is_kept_together_and_its_text_kept():
+    converted = (
+        '<div class="sourceCode" id="ctx-cb2" data-signature="pbc.example:f">'
+        '<pre class="sourceCode python excerpt-signature"><code class="sourceCode'
+        ' python"><span id="ctx-cb2-1"><a href="#ctx-cb2-1" aria-hidden="true"'
+        ' tabindex="-1"></a><span class="kw">def</span> offset_crossing(strain,'
+        " stress):</span></code></pre></div>"
+    )
+
+    kept = number_lines(converted)
+
+    assert (
+        '<span class="excerpt-name"><span class="kw">def</span> offset_crossing('
+        "</span><wbr>strain, stress):"
+    ) in kept
+    assert re.sub(r"<[^>]+>", "", kept) == re.sub(r"<[^>]+>", "", converted)
 
 
 def test_a_block_that_is_not_an_excerpt_listing_is_left_as_converted():
