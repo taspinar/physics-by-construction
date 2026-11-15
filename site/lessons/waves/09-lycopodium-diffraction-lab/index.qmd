@@ -32,7 +32,7 @@ lesson:
 
 ```{python}
 #| echo: false
-from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this
+from pbc.authoring import data_card, excerpt, lesson_header, reproduce_this, source_link
 from pbc.data.reference import lycopodium
 from pbc.waves import halo
 from pbc.waves.experiments import lycopodium_diffraction_lab as experiment
@@ -199,10 +199,9 @@ spore walls; the rest are whole spores.
 result.table("diameters")
 ```
 
-```{python}
-#| echo: false
-excerpt(experiment.draw_diameters)
-```
+The figure shows the whole spores of each table as a histogram scaled to
+unit area, so that the two magnifications, with different numbers of
+spores, can be compared.
 
 ```{python}
 #| label: fig-diameters
@@ -213,6 +212,11 @@ excerpt(experiment.draw_diameters)
 #| fig-dataset: lycopodium-spore-diffraction
 #| fig-artifact: processed-measured
 result.show("fig-diameters")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_diameters, figure=True)
 ```
 
 [The whole spores measure `{python} result["x160-mean"]` ±
@@ -255,11 +259,6 @@ lies at `{python} result["model-second"]`; at the first, the halo keeps
 is black.
 
 ```{python}
-#| echo: false
-excerpt(experiment.draw_halo_model)
-```
-
-```{python}
 #| label: fig-halo-model
 #| echo: false
 #| fig-cap: "The spread of the spore sizes fills the dark rings of the Airy pattern but leaves them where they were: a halo of these spores still has dim rings at nearly the zeros of one disk of their mean size."
@@ -267,6 +266,11 @@ excerpt(experiment.draw_halo_model)
 #| fig-status: simulated
 #| fig-model-of: lycopodium-spore-diffraction
 result.show("fig-halo-model")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_halo_model, figure=True)
 ```
 
 The figure is the model alone: it shows where the halo of these spores puts
@@ -283,11 +287,6 @@ in $x$; the violet one `{python} result["violet-rows"]`,
 `{python} result["violet-step"]` apart.
 
 ```{python}
-#| echo: false
-excerpt(experiment.draw_profiles)
-```
-
-```{python}
 #| label: fig-profiles
 #| echo: false
 #| fig-cap: "Both halos have a saturated centre and a faint dark ring, smaller for the violet laser than for the red one; the profiles are grainy with speckle on the scale of the ring itself. The narrow shaded band about each dotted marker is the range of the ring over the smoothing widths of the ring table below: a sensitivity of the analysis, not a statistical error."
@@ -296,6 +295,11 @@ excerpt(experiment.draw_profiles)
 #| fig-dataset: lycopodium-spore-diffraction
 #| fig-artifact: processed-measured
 result.show("fig-profiles")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_profiles, figure=True)
 ```
 
 [The camera saturates the centre of both halos:
@@ -379,9 +383,19 @@ of one width share the same choice of smoothing, so the honest comparison is
 the ratio at each width, the last column of the table above, rather than a
 ratio of two radii with independent errors.
 
+The figure that makes the test plots the fold of each profile against its
+radius divided by the wavelength, and the ratio at each width with its
+residual. These lines of its drawing compute what it shows: the fold about
+the centre, a processed series that records its step; a moving average over
+it of the analysis's nominal width, rounded to an odd count of samples and
+at least three, the count the ring analysis uses; the radius divided by the wavelength, for the
+profile and for its dark ring; the ratio of the two radii at each width; and
+that ratio minus the prediction. The rest sets out the panels and is behind
+the Source link.
+
 ```{python}
 #| echo: false
-excerpt(experiment.draw_scaling)
+excerpt(experiment.draw_scaling, lines=[(12, 31), (37, 37), (45, 46), (72, 74)])
 ```
 
 ```{python}

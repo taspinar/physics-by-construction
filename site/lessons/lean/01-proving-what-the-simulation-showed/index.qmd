@@ -34,7 +34,7 @@ lesson:
 
 ```{python}
 #| echo: false
-from pbc.authoring import excerpt, lesson_header
+from pbc.authoring import excerpt, lesson_header, source_link
 from pbc.mechanics.experiments import proving_what_the_simulation_showed as experiment
 
 result = experiment.run()
@@ -258,17 +258,17 @@ Between a statement on paper and a theorem on this page there are five steps,
 and the lesson depends on each:
 
 ```{python}
-#| echo: false
-excerpt(experiment.draw_theorem_pipeline)
-```
-
-```{python}
 #| label: fig-theorem-pipeline
 #| echo: false
 #| fig-cap: "From a statement to a page. The hypotheses are part of the statement and are written out, not assumed. Lean accepts the file only if the proof builds, CI records the commit and the versions that built it, and the page reads its listings from that file. The machine checks the proof and the build record; the page is generated from that file and checked by the site build. Whether the statement is the right one to prove is a judgement of the author and the reader."
 #| fig-status: conceptual
 #| fig-alt: "A row of five boxes joined by arrows: statement, hypotheses, Lean, CI record, page. A bracket under the statement and hypotheses boxes is labelled judged by a person. A bracket under the Lean and CI record boxes is labelled checked by a machine."
 result.show("fig-theorem-pipeline")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_theorem_pipeline, figure=True)
 ```
 
 The diagram is a sketch of the process, and nothing in it is computed. It
@@ -462,9 +462,15 @@ largest relative difference is `{python} result["relative"]`.
 every step.]{.claim type="numerically-verified" scope="one oscillator, one step
 size, doubles" evidence="energy-factor"}
 
+The figure repeats the comparison for three time steps. For each it
+runs the simulation over three periods and computes the theorem's energy,
+the factor per step raised to the number of steps, times the energy at the
+start; these are the lines of its drawing that compute, and the rest sets
+out the plot behind the Source link.
+
 ```{python}
 #| echo: false
-excerpt(experiment.draw_proved_energy_growth)
+excerpt(experiment.draw_proved_energy_growth, lines=(4, 9))
 ```
 
 ```{python}
