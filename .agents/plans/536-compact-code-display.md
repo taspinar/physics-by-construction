@@ -63,3 +63,14 @@ Skills: frontend-design@dbd4588f, pbc-physics-teaching@7f34987
 7. **Screenshots** (criterion 7) of MAT6's two sections after #535 merges
    into the branch; until then of `site/rendering-check.qmd` and the
    current MAT6.
+8. **One frame** (the owner's review of PR #541's MAT6 screenshots,
+   2026-11-15). A selection is one frame (`.excerpt-frame`): the generated
+   header at its top in the code column, without a line number, the label
+   beside it; then the parts and the `(...)` lines inside the frame, in one
+   scroll area (`.excerpt-selection`, `tabindex="0"`; the parts no longer
+   scroll or take focus on their own); "Full function on GitHub" once,
+   under the frame. MAT6's `draw_elastic_regime` selection adds its real
+   `return fig` line (object line 92, file line 562); other lessons'
+   selections are unchanged. The built-site check reports a selection
+   outside a frame, a generated header outside its frame, and the link
+   inside it; the lesson check lists `excerpt-frame` as forged markup.

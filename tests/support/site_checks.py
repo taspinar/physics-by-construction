@@ -1586,7 +1586,8 @@ _UNEXECUTED = """
 # Runs in the page. Returns the declared source and the text of every
 # by-reference excerpt: of each part of a selection, with the source line
 # numbers its lines show; the omission markers, with the mark a reader sees;
-# the generated header above it; and the link it ends with.
+# the generated header above it; the frame of a selection; and the link it
+# ends with.
 _EXCERPTS = """
 () => [...document.querySelectorAll("[data-source]")].map((element) => {
   const excerpt = element.closest(".excerpt") ?? element;
@@ -1612,6 +1613,15 @@ _EXCERPTS = """
       replaces: signature.getAttribute("data-replaces"),
       text: signature.querySelector("code").textContent,
     },
+    // The one frame of a selection: around it, around its generated
+    // header, and not around the link under it.
+    frame: element.classList.contains("excerpt-selection")
+      ? ((frame) => ({
+          framed: frame !== null,
+          header: signature ? frame !== null && frame.contains(signature) : null,
+          link: frame !== null && frame.querySelector(".excerpt-source") !== null,
+        }))(element.closest(".excerpt-frame"))
+      : null,
     linked: excerpt.querySelector(".excerpt-source") !== null,
     interface: excerpt.querySelector("table") !== null,
     link: excerpt.querySelector(".excerpt-source a.source-link")?.textContent ?? null,
@@ -1861,6 +1871,19 @@ def _signature_problems(signature: dict, source: str, parts: list) -> list[str]:
     return problems
 
 
+def _header_spans_lines(function: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    """The source writes the ``def`` of ``function`` over more than one line:
+    a parameter, a default, or the return annotation ends below it."""
+    parts = [function.args, *([function.returns] if function.returns else [])]
+    ends = [
+        node.end_lineno
+        for part in parts
+        for node in ast.walk(part)
+        if getattr(node, "end_lineno", None) is not None
+    ]
+    return max(ends, default=function.lineno) > function.lineno
+
+
 def _selection_problems(excerpt: dict, source: str, first_line: int) -> list[str]:
     """The parts of an excerpt are exact ranges of the object, each line shows
     its line number in the file, and a marker names exactly the lines left out
@@ -1868,7 +1891,8 @@ def _selection_problems(excerpt: dict, source: str, first_line: int) -> list[str
     the last, as the docstring only when they are the docstring (ADR 023
     decision 7); each marker shows "(...)" (Issue #536). A selection of a
     function shows its header once: as written, or generated above it; it
-    ends with the link to the full function."""
+    ends with the link to the full function. A selection is one frame, its
+    generated header at the top inside it and the link under it."""
     object_lines = source.splitlines()
     ranges = _ranges(object_lines, excerpt["region"], excerpt["lines"]) or []
     problems = []
@@ -1876,11 +1900,24 @@ def _selection_problems(excerpt: dict, source: str, first_line: int) -> list[str
     expected = ["\n".join(object_lines[a - 1 : b]) for a, b in ranges]
     if texts != expected:
         problems.append("its parts are not the declared lines of its source")
-    for numbers, (a, b) in zip(excerpt["numbers"], ranges, strict=False):
-        if numbers and numbers != list(range(first_line + a - 1, first_line + b)):
-            problems.append("its line numbers are not those of the file")
-    gaps = [(b + 1, c - 1) for (_, b), (c, _) in itertools.pairwise(ranges)]
     whole = ranges == [(1, len(object_lines))]
+    # Every part of a selection shows exactly the line numbers of its lines
+    # in the file, none missing (Issue #536, criterion 6); the whole object
+    # without notes is a plain listing, and its numbers are checked when
+    # it shows them.
+    numbered = excerpt["numbers"]
+    expected_numbers = [
+        list(range(first_line + a - 1, first_line + b)) for a, b in ranges
+    ]
+    if ranges and not whole:
+        if numbered != expected_numbers:
+            problems.append("its line numbers are not those of the file")
+    elif any(
+        numbers and numbers != wanted
+        for numbers, wanted in zip(numbered, expected_numbers, strict=False)
+    ):
+        problems.append("its line numbers are not those of the file")
+    gaps = [(b + 1, c - 1) for (_, b), (c, _) in itertools.pairwise(ranges)]
     signature = excerpt["signature"]
     if signature and signature["name"] != excerpt["source"]:
         signature = None
@@ -1901,10 +1938,20 @@ def _selection_problems(excerpt: dict, source: str, first_line: int) -> list[str
     if function is not None and ranges and not whole:
         if not signature and ranges[0][0] != 1:
             problems.append("the selection of a function shows no header")
+        if not signature and ranges[0][0] == 1 and _header_spans_lines(function):
+            problems.append("the header of the selection is not on one line")
         if excerpt["link"] is not None and not excerpt["link"].startswith(
             "Full function on GitHub"
         ):
             problems.append("the selection does not end with the full function link")
+    frame = excerpt.get("frame")
+    if frame is not None and ranges and not whole:
+        if not frame["framed"]:
+            problems.append("the selection is not shown in one frame")
+        elif frame["header"] is False:
+            problems.append("the generated header is outside the frame")
+        elif frame["link"]:
+            problems.append("the link under the selection is inside its frame")
     docstring = None
     if excerpt["source"].partition(":")[2]:
         node = ast.parse(source).body[0]

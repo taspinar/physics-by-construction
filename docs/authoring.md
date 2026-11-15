@@ -452,7 +452,7 @@ Decide for each block why the learner reads it at that point (the
 | Form | Call | What the page shows |
 |---|---|---|
 | Exact full source | `excerpt(f)` | The whole object, with a copy button |
-| Exact selection | `excerpt(f, lines=(a, b))`, `lines=[(a, b), (c, d)]`, or `region="name"` | The function's header on one line above it (generated, unless the selection shows the header as written, which is then shown once); the lines, each with its line number in the file; `(...)` on a line of its own wherever lines are left out, also before the first and after the last range; the link "Full function on GitHub" under it; no copy button, since a fragment is not a runnable whole |
+| Exact selection | `excerpt(f, lines=(a, b))`, `lines=[(a, b), (c, d)]`, or `region="name"` | One frame: the function's header on one line at its top (generated, unless the selection shows the header as written and the source writes it on one line, which is then shown once); the lines, each with its line number in the file; `(...)` on a line of its own inside the frame wherever lines are left out, also before the first and after the last range; one scroll area for the lines and the `(...)` lines; the link "Full function on GitHub" once, under the frame; no copy button, since a fragment is not a runnable whole |
 | Without the docstring | `excerpt(f, docstring=False)`, alone or with `lines` | `(...)` where the docstring was; the source keeps it, and the link opens it |
 | Generated signature | `excerpt(f, signature=True)`, alone or with `lines` | Instead of the header as written, the generated one, also when the selection shows the header |
 | Source link only | `source_link(f)`, or `source_link(f, figure=True)` for the function that draws a figure on the page | The link alone, "Source" or "Figure source" |
@@ -468,10 +468,17 @@ Decide for each block why the learner reads it at that point (the
   `def f(a, b, c=0.0):`, the parameters and their defaults as the source
   writes them, no annotations, and the units of the docstring as one
   trailing comment (`# dt (s), return (m)`), left out when `interface=True`
-  puts them in the table above. It has no line number and the short label
-  "Shortened function" beside it; a long header wraps at the spaces after
-  its commas on a narrow screen. A selection that holds a part of the
-  header as written fails the build: show all of it or none.
+  puts them in the table above. It stands at the top of the selection's
+  frame, in the code column, without a line number, and with the short
+  label "Shortened function" beside it; a long header wraps after
+  `def f(` and at the spaces after its commas on a narrow screen. A
+  selection that holds a part of the header as written fails the build:
+  show all of it or none. A header the source writes over several lines,
+  one parameter per line, is generated on one line in its place also when
+  the selection holds all of it; the lines after it keep their numbers.
+- Include the function's `return` line in a selection when it helps to
+  read the fragment, as in MAT6's `draw_elastic_regime`; a selection
+  does not need one.
 - Each `(...)` names the lines it stands for, "Lines m to n are not shown."
   or "The docstring, lines m to n, is not shown.", for a screen reader and
   in its `data-omitted` attribute; a selection carries the visually hidden

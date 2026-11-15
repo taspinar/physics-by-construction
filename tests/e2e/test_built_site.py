@@ -207,15 +207,18 @@ def test_rendering_check_page_shows_each_display_form_of_code_labelled(
     page.goto(server.url + "rendering-check.html", wait_until="load")
     main = page.locator("main")
 
-    signature = main.locator("[data-signature]")
-    assert signature.count() == 1
-    header = signature.locator("code").text_content()
-    assert header.startswith("def offset_crossing(strain, stress,")
-    assert len(header.strip().splitlines()) == 1
-    # The only visible label is the short one beside the generated header.
-    labels = main.locator(".excerpt-label")
-    assert labels.count() == 1
-    assert labels.inner_text().startswith("Shortened function")
+    # Both selections of offset_crossing, whose source writes its header
+    # one parameter per line, show it generated on one line (review M1).
+    headers = main.locator("[data-signature] code").all_text_contents()
+    assert len(headers) == 2
+    for header in headers:
+        assert header.startswith("def offset_crossing(strain, stress,")
+        assert len(header.strip().splitlines()) == 1
+    assert "    strain: ArrayLike," not in main.inner_text()
+    # The only visible labels are the short ones beside the generated headers.
+    labels = main.locator(".excerpt-label").all_inner_texts()
+    assert len(labels) == 2
+    assert all(label.startswith("Shortened function") for label in labels)
     assert "Generated signature of" not in main.inner_text()
     hidden = main.locator(".excerpt-selection > p > .visually-hidden")
     assert any(
@@ -233,10 +236,18 @@ def test_rendering_check_page_shows_each_display_form_of_code_labelled(
     for selection in main.locator(".excerpt:has(.excerpt-selection)").all():
         link = selection.locator(".excerpt-source a.source-link")
         assert link.inner_text().startswith("Full function on GitHub")
+    # One frame per selection: the generated header at its top, one scroll
+    # area that the keyboard reaches, and the link under the frame.
+    assert main.locator(".excerpt-frame [data-signature]").count() == 2
+    for frame in main.locator(".excerpt-frame").all():
+        assert frame.locator(".excerpt-selection[tabindex='0']").count() == 1
+        inside = ".excerpt-selection [tabindex='0'], .excerpt-source"
+        assert frame.locator(inside).count() == 0
     # The highlighting of a selection is the build's, like a plain listing's.
     assert main.locator(".excerpt-part code span.op").count() > 0
     assert main.locator(".excerpt-selection .code-copy-button").count() == 0
-    assert signature.locator("xpath=..").locator(".code-copy-button").count() == 0
+    for signature in main.locator("[data-signature]").all():
+        assert signature.locator("xpath=..").locator(".code-copy-button").count() == 0
     figure_source = main.locator(".figure-source a.source-link")
     assert figure_source.inner_text().startswith("Figure source")
 

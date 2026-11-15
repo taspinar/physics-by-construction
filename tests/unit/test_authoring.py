@@ -405,6 +405,39 @@ def test_a_selection_is_labelled_for_a_screen_reader_and_the_whole_object_is_not
     assert "excerpt-part" not in whole
 
 
+def test_a_selection_is_one_frame_with_its_header_at_the_top_and_the_link_under():
+    shown = excerpt(
+        stress_strain.offset_crossing, signature=True, lines=[(13, 15), (18, 19)]
+    )
+    whole = excerpt(stress_strain.offset_crossing).markdown()
+    markdown = shown.markdown()
+
+    # One frame (Issue #536): the generated header at its top, then the one
+    # scroll area of the parts and the (...) lines, then the link outside it.
+    frame = markdown.index("::: {.excerpt-frame}\n")
+    header = markdown.index("::: {.excerpt-header}\n")
+    area = markdown.index("::: {.excerpt-selection ")
+    parts = [m.start() for m in re.finditer(r"\.excerpt-part", markdown)]
+    marks = [m.start() for m in re.finditer(r"\{\.excerpt-omission ", markdown)]
+    link = markdown.index("::: {.excerpt-source}\n")
+    assert frame < header < area < min(marks) < max(parts) < link
+    assert len(parts) == 2 and len(marks) == 3  # docstring, between, after
+    assert markdown.count("excerpt-frame") == 1
+    assert markdown.count("Full function on GitHub") == 1
+    # The last (...), the scroll area, and the frame close before the link.
+    assert markdown[:link].endswith(":::\n\n:::\n\n:::\n\n")
+    # The scroll area is reached by keyboard.
+    assert 'lines="13-15,18-19" tabindex="0"}' in markdown
+    assert "excerpt-frame" not in whole
+
+
+def test_a_part_scrolls_with_its_frame_and_is_no_stop_of_the_keyboard():
+    whole = _CONVERTED.replace(" excerpt-part", "")
+
+    assert 'tabindex="0"' not in number_lines(_CONVERTED).split("<pre")[0]
+    assert 'tabindex="0"' in number_lines(whole).split("<pre")[0]
+
+
 def test_the_link_under_a_selection_opens_the_full_function_on_github():
     selected = excerpt(dynamics.euler_step, lines=(13, 17))
     whole = excerpt(dynamics.euler_step)
@@ -438,20 +471,20 @@ def test_docstring_is_left_out_of_the_display_only_and_marked():
     assert file[first - 1].strip().startswith('"""')
     assert file[last - 1].rstrip().endswith('"""')
     assert '"""' not in shown.source
-    assert len(shown.source.splitlines()) + last - first + 1 == len(
+    # The header of offset_crossing is written over lines 1 to 7, so the
+    # selection shows it generated on one line in their place (M1).
+    assert shown.signature_lines == (1, 7)
+    assert shown.signature is not None and shown.signature.count("\n") == 1
+    assert len(shown.source.splitlines()) + 7 + last - first + 1 == len(
         whole.source.splitlines()
     )
-    (omission,) = shown.omissions()
-    assert omission.docstring and (omission.first_line, omission.last_line) == (
-        first,
-        last,
-    )
+    assert shown.omissions() == ()
+    omission = shown.leading_omission()
+    assert omission is not None and omission.docstring
+    assert (omission.first_line, omission.last_line) == (first, last)
     assert f"[The docstring, lines {first} to {last}, is not shown.]" in (
         shown.markdown()
     )
-    # The header as written is shown, so no header is generated for it.
-    assert shown.signature is None
-    assert shown.parts[0].source.startswith("def offset_crossing(")
 
 
 def test_leaving_out_a_docstring_that_is_not_shown_fails_the_build():
@@ -526,11 +559,35 @@ def test_a_signature_whose_default_differs_from_the_function_fails_the_build():
 
 def test_a_selection_without_the_header_gets_a_generated_one_and_one_with_it_not():
     without = excerpt(stress_strain.offset_crossing, lines=(15, 21))
-    with_header = excerpt(stress_strain.offset_crossing, lines=[(1, 7), (15, 21)])
+    # hooke_stress writes its header on one line: shown as written, once.
+    with_header = excerpt(stress_strain.hooke_stress, lines=[(1, 1), (3, 3)])
 
     assert without.signature is not None and without.signature_lines == (1, 7)
     assert with_header.signature is None
-    assert with_header.markdown().count("def offset_crossing(") == 1
+    assert with_header.parts[0].source.startswith("def hooke_stress(strain")
+    assert with_header.markdown().count("def hooke_stress(") == 1
+
+
+def test_a_header_written_over_several_lines_is_shown_on_one_line():
+    # offset_crossing writes one parameter per line (its lines 1 to 7); a
+    # selection that holds them shows the generated one-line header instead,
+    # once, and the other lines with their own text and numbers (M1).
+    shown = excerpt(stress_strain.offset_crossing, lines=[(1, 7), (15, 21)])
+
+    assert shown.signature_lines == (1, 7)
+    assert shown.signature is not None
+    assert shown.signature.count("\n") == 1
+    assert shown.signature.startswith(
+        "def offset_crossing(strain, stress, modulus, offset, intercept=0.0):"
+    )
+    assert [part.lines for part in shown.parts] == [(15, 21)]
+    file = _file_lines(shown)
+    part = shown.parts[0]
+    assert part.source == "".join(file[part.first_line - 1 : part.last_line])
+    markdown = shown.markdown()
+    assert markdown.count("def offset_crossing(") == 1
+    assert "    strain: ArrayLike,\n" not in markdown
+    assert shown.leading_omission() is not None
 
 
 def test_a_selection_of_a_part_of_the_header_fails_the_build():
@@ -604,7 +661,7 @@ def test_the_name_of_a_generated_header_is_kept_together_and_its_text_kept():
 
     assert (
         '<span class="excerpt-name"><span class="kw">def</span> offset_crossing('
-        "</span>strain, stress):"
+        "</span><wbr>strain, stress):"
     ) in kept
     assert re.sub(r"<[^>]+>", "", kept) == re.sub(r"<[^>]+>", "", converted)
 

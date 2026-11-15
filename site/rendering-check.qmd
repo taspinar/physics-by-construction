@@ -77,7 +77,8 @@ excerpt(
 ```
 
 A selection of two ranges of the same function, with the lines between them
-marked; `e` and `s` are the strain and the stress as arrays:
+marked; its header, written one parameter per line, is shown generated on
+one line; `e` and `s` are the strain and the stress as arrays:
 
 ```{python}
 #| echo: false

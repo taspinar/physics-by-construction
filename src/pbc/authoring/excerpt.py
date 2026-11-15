@@ -285,8 +285,11 @@ class Excerpt:
         trailing = self.trailing_omission()
         if trailing is not None:
             blocks.append(trailing.markdown())
+        # The parts and the (...) lines scroll sideways together, in one
+        # box that the keyboard reaches; the parts do not scroll on their
+        # own (``number_lines``).
         return (
-            f'::: {{.excerpt-selection {shown} lines="{ranges}"}}\n'
+            f'::: {{.excerpt-selection {shown} lines="{ranges}" tabindex="0"}}\n'
             f"{''.join(blocks)}:::\n\n"
         )
 
@@ -381,11 +384,15 @@ class Excerpt:
                 ".excerpt-source .figure-source" if self.figure else ".excerpt-source"
             )
             return f"::: {{{classes}}}\n{link}\n:::\n"
+        listing = f"{self._signature()}{self._listing()}"
+        if self.selection:
+            # One frame for a selection (Issue #536): the generated header
+            # at its top, then the parts and the (...) lines between them.
+            listing = f"::: {{.excerpt-frame}}\n{listing}:::\n\n"
         return (
             "::: {.excerpt}\n"
             f"{self._interface_table()}"
-            f"{self._signature()}"
-            f"{self._listing()}"
+            f"{listing}"
             f"{self._notes()}"
             f"::: {{.excerpt-source}}\n{link}\n:::\n"
             ":::\n"
@@ -441,16 +448,17 @@ _DATA = re.compile(r'data-(first-line|marked)="([^"]*)"')
 # its parenthesis, which a narrow screen should not break apart.
 _HEADER_START = re.compile(r'(<span class="kw">def</span> [A-Za-z_]\w*\()')
 SIGNATURE_CLASS = "excerpt-signature"
+PART_CLASS = "excerpt-part"
 
 
 def _keep_name_together(found: re.Match[str]) -> str:
     """Wrap ``def name(`` of a generated header in a span that does not
-    break, so that a long header wraps only at the spaces after its commas;
-    the text of the header is unchanged."""
+    break, so that a long header wraps only after its parenthesis and at the
+    spaces after its commas; the text of the header is unchanged."""
     if SIGNATURE_CLASS not in found.group(2).split():
         return found.group(0)
     return _HEADER_START.sub(
-        r'<span class="excerpt-name">\1</span>', found.group(0), count=1
+        r'<span class="excerpt-name">\1</span><wbr>', found.group(0), count=1
     )
 
 
@@ -483,8 +491,13 @@ def number_lines(region: str) -> str:
             return f'<span class="line marked" data-line="{number}" data-note="{note}">'
 
         body = _LINE_SPAN.sub(line, found.group(3))
+        attributes = found.group(1)
+        if PART_CLASS in found.group(2).split():
+            # A part of a selection scrolls with the frame's scroll area,
+            # not on its own, so it is no stop of the keyboard.
+            attributes = attributes.replace(' tabindex="0"', "")
         return (
-            f'<div class="sourceCode"{found.group(1)}>'
+            f'<div class="sourceCode"{attributes}>'
             f'<pre class="sourceCode {found.group(2)}"{body}</pre></div>'
         )
 
@@ -830,7 +843,8 @@ def excerpt(
     exist, or the build fails. A selection shows its source line numbers, a
     ``(...)`` line wherever it leaves lines out, and, for a function, its
     header on one line above it: as written when the selection shows all of
-    it, else generated (a part of it fails the build); it ends with the link
+    it and the source writes it on one line, else generated (a part of it
+    fails the build); it ends with the link
     "Full function on GitHub".
 
     ``docstring=False`` leaves the docstring of a function or class out of
@@ -879,8 +893,9 @@ def excerpt(
     selection = not whole or not docstring or signature
     if kind == "function" and selection:
         # Above every selection of a function, its header on one line: as
-        # written when the selection shows it whole, generated otherwise
-        # (Issue #536), so that it is shown once.
+        # written when the selection shows it whole and the source writes
+        # its ``def`` on one line, generated otherwise (Issue #536), so that
+        # it is shown once and never one argument per line.
         lines_of_header = header_lines(text)
         shown_whole = any(a == 1 and b >= lines_of_header[1] for a, b in ranges)
         if not shown_whole and any(a <= lines_of_header[1] for a, _ in ranges):
@@ -888,7 +903,8 @@ def excerpt(
                 f"the lines shown of {full_name} hold a part of its header;"
                 f" show lines 1 to {lines_of_header[1]} or none of them"
             )
-        if signature or not shown_whole:
+        one_line = _definition(text).lineno == lines_of_header[1]
+        if signature or not shown_whole or not one_line:
             header = lines_of_header
             _check_signature(obj, text, full_name)
             # With the interface table above it, the units are in the table,

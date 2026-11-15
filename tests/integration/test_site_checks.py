@@ -668,16 +668,24 @@ def _annotated(
     left out before, the marked lines, the lines left out after, and then
     the notes."""
     declared = "".join(f' data-{k}="{v}"' for k, v in attributes.items())
+    # Each line shows its line number in _REGION_MODULE, as the build
+    # numbers it; a text the module does not hold has none.
+    shown, module = text.splitlines(), _REGION_MODULE.splitlines()
+    start = next(
+        (i + 1 for i in range(len(module)) if module[i : i + len(shown)] == shown),
+        None,
+    )
     lines = "".join(
-        f'<span class="line{" marked" if line.strip() in anchors else ""}">'
+        f'<span class="line{" marked" if line.strip() in anchors else ""}"'
+        f"{'' if start is None else f' data-line="{start + i}"'}>"
         f"{html.escape(line)}</span>\n"
-        for line in text.splitlines()
+        for i, line in enumerate(shown)
     )
     notes = "".join(f'<li data-anchor="{a}">A note.</li>' for a in anchors)
     return (
-        f'<div class="excerpt">{header}'
+        f'<div class="excerpt"><div class="excerpt-frame">{header}'
         f'<div class="excerpt-selection" data-source="{source}"{declared}>{before}'
-        f"<pre><code>{lines}</code></pre>{after}</div>"
+        f"<pre><code>{lines}</code></pre>{after}</div></div>"
         f'<ol class="excerpt-notes">{notes}</ol>{_SOURCE_TEXT}</div>'
     )
 
@@ -748,12 +756,12 @@ def _part(lines: list[str], first: int) -> str:
 def _selection(omission: str, numbers: tuple[int, int] = (6, 11)) -> str:
     """The selection lines 1 and 6 of ``update``, as the build writes it."""
     return (
-        '<div class="excerpt"><div class="excerpt-selection"'
+        '<div class="excerpt"><div class="excerpt-frame"><div class="excerpt-selection"'
         ' data-source="pbc.example:update" data-lines="1-1,6-6">'
         f"{_part(['def update(x, v, dt):'], numbers[0])}"
         f"{omission}"
         f"{_part(['    return x, v'], numbers[1])}"
-        f"</div>{_SOURCE_TEXT}</div>"
+        f"</div></div>{_SOURCE_TEXT}</div>"
     )
 
 
@@ -796,15 +804,125 @@ def test_selection_whose_markers_or_numbers_are_not_accurate_is_reported(
     assert rules(_violations(make_site, browser, repository, body)) == {"excerpt"}
 
 
+def _numbered_part(lines: list[str], numbers: list[int | None]) -> str:
+    """A part whose lines show ``numbers``, None for a line without one."""
+    spans = "\n".join(
+        f'<span class="line"{"" if n is None else f' data-line="{n}"'}>'
+        f"{html.escape(line)}</span>"
+        for line, n in zip(lines, numbers, strict=True)
+    )
+    return f'<div class="sourceCode"><pre><code>{spans}</code></pre></div>'
+
+
+_MOVE_LINES = ["    x = x + v * dt", "    v = v + dt"]
+
+
+def _move_selection(first: list[int | None], move: list[int | None]) -> str:
+    """The selection lines 1 and 3 to 4 of ``update`` (file lines 6, 8, 9),
+    its lines numbered as ``first`` and ``move`` say."""
+    return (
+        '<div class="excerpt"><div class="excerpt-frame"><div class="excerpt-selection"'
+        ' data-source="pbc.example:update" data-lines="1-1,3-4">'
+        f"{_numbered_part(['def update(x, v, dt):'], first)}{_mark(2, 2, 7)}"
+        f"{_numbered_part(_MOVE_LINES, move)}{_mark(5, 6, 10)}"
+        f"</div></div>{_SOURCE_TEXT}</div>"
+    )
+
+
+def test_selection_whose_every_line_shows_its_number_passes(
+    make_site: Site, browser: Browser, repository: Path
+):
+    body = _move_selection([6], [8, 9])
+
+    assert _violations(make_site, browser, repository, body) == []
+
+
+@pytest.mark.parametrize(
+    "first, move",
+    [([None], [None, None]), ([6], [None, None]), ([6], [8, None])],
+    ids=["no-line-numbers", "a-part-without-numbers", "a-line-without-its-number"],
+)
+def test_selection_whose_line_numbers_are_missing_is_reported(
+    make_site: Site,
+    browser: Browser,
+    repository: Path,
+    first: list[int | None],
+    move: list[int | None],
+):
+    # Review M2 of #536: a part without line-number markup is not a pass.
+    violations = _violations(
+        make_site, browser, repository, _move_selection(first, move)
+    )
+
+    assert rules(violations) == {"excerpt"}
+    assert any("line numbers are not those" in v.detail for v in violations)
+
+
+_WRAPPED_MODULE = """\
+def shift(
+    x,
+    by=1.0,
+):
+    y = x + by
+    return y
+"""
+
+
+def _wrapped_selection(header: str) -> str:
+    """A selection of ``shift``, whose source writes its header over lines
+    1 to 4, ending with its return line (6)."""
+    return (
+        '<div class="excerpt"><div class="excerpt-frame">'
+        f"{header}"
+        '<div class="excerpt-selection" data-source="pbc.wrapped:shift"'
+        f' data-lines="{"1-4,6-6" if not header else "6-6"}">'
+        + (
+            ""
+            if header
+            else _numbered_part(_WRAPPED_MODULE.splitlines()[:4], [1, 2, 3, 4])
+        )
+        + _mark(5, 5, 5)
+        + _numbered_part(["    return y"], [6])
+        + f"</div></div>{_SOURCE_TEXT}</div>"
+    )
+
+
+def test_selection_with_a_wrapped_header_generated_on_one_line_passes(
+    make_site: Site, browser: Browser, repository: Path
+):
+    (repository / "src" / "pbc" / "wrapped.py").write_text(_WRAPPED_MODULE)
+    generated = _header(
+        "def shift(x, by=1.0):", replaces="1-4", name="pbc.wrapped:shift"
+    )
+
+    body = _wrapped_selection(generated)
+    assert _violations(make_site, browser, repository, body) == []
+
+
+def test_selection_that_shows_a_header_over_several_lines_is_reported(
+    make_site: Site, browser: Browser, repository: Path
+):
+    # Review M1 of #536: a header written one parameter per line is shown
+    # generated on one line, not as the source writes it.
+    (repository / "src" / "pbc" / "wrapped.py").write_text(_WRAPPED_MODULE)
+
+    violations = _violations(make_site, browser, repository, _wrapped_selection(""))
+    assert rules(violations) == {"excerpt"}
+    assert any(
+        "header of the selection is not on one line" in v.detail for v in violations
+    )
+
+
 def _region_selection(lines: str) -> str:
     """The region "damp" of ``settle`` (file line 14), which ends in a blank
     line, as a selection that declares ``lines``."""
     return (
-        f'<div class="excerpt">{_header("def settle(x):", name="pbc.example:settle")}'
+        '<div class="excerpt"><div class="excerpt-frame">'
+        f"{_header('def settle(x):', name='pbc.example:settle')}"
         '<div class="excerpt-selection"'
         f' data-source="pbc.example:settle" data-region="damp" data-lines="{lines}">'
         f"{_mark(2, 2, 15)}{_part(['    x = 0.5 * x'], 16)}{_mark(4, 6, 17)}"
-        f"</div>{_SOURCE_TEXT}</div>"
+        f"</div></div>{_SOURCE_TEXT}</div>"
     )
 
 
@@ -841,10 +959,10 @@ def _units_body(text: str) -> str:
     """The return line of ``update`` once a docstring with units moved it to
     line 7 (file line 12), under the generated header ``text``."""
     return (
-        f'<div class="excerpt">{_header(text)}'
+        f'<div class="excerpt"><div class="excerpt-frame">{_header(text)}'
         '<div class="excerpt-selection" data-source="pbc.example:update"'
         f' data-lines="7-7">{_mark(2, 6, 7)}'
-        f"{_part(['    return x, v'], 12)}</div>{_SOURCE_TEXT}</div>"
+        f"{_part(['    return x, v'], 12)}</div></div>{_SOURCE_TEXT}</div>"
     )
 
 
@@ -903,11 +1021,11 @@ def _signature_body(text: str, replaces: str = "1-1") -> str:
     """A generated signature of ``update``, then its return line: lines 2 to
     5 between them are marked as left out."""
     return (
-        f'<div class="excerpt">{_header(text, replaces)}'
+        f'<div class="excerpt"><div class="excerpt-frame">{_header(text, replaces)}'
         '<div class="excerpt-selection" data-source="pbc.example:update"'
         ' data-lines="6-6">'
         f"{_OMISSION}{_part(['    return x, v'], _UPDATE_FIRST_LINE + 5)}"
-        f"</div>{_SOURCE_TEXT}</div>"
+        f"</div></div>{_SOURCE_TEXT}</div>"
     )
 
 
@@ -958,6 +1076,46 @@ def test_selection_that_is_not_displayed_compactly_is_reported(
     make_site: Site, browser: Browser, repository: Path, body: str
 ):
     assert rules(_violations(make_site, browser, repository, body)) == {"excerpt"}
+
+
+_LINK = _full_function_link("Full function on GitHub")
+_FRAME = '<div class="excerpt-frame">'
+
+
+@pytest.mark.parametrize(
+    "body, problem",
+    [
+        # The parts and the (...) lines without the frame around them.
+        (
+            _selection(_OMISSION)
+            .replace(_FRAME, "")
+            .replace(f"</div></div>{_SOURCE_TEXT}", f"</div>{_LINK}"),
+            "the selection is not shown in one frame",
+        ),
+        # The generated header above the frame instead of at its top.
+        (
+            _signature_body(_SIGNATURE)
+            .replace(_FRAME + _header(_SIGNATURE), _header(_SIGNATURE) + _FRAME)
+            .replace(_SOURCE_TEXT, _LINK),
+            "the generated header is outside the frame",
+        ),
+        # The link to the full function inside the frame, not under it.
+        (
+            _selection(_OMISSION).replace(
+                f"</div></div>{_SOURCE_TEXT}", f"</div>{_LINK}</div>"
+            ),
+            "the link under the selection is inside its frame",
+        ),
+    ],
+    ids=["no-frame", "header-outside", "link-inside"],
+)
+def test_selection_that_is_not_one_frame_is_reported(
+    make_site: Site, browser: Browser, repository: Path, body: str, problem: str
+):
+    violations = _violations(make_site, browser, repository, body)
+
+    assert rules(violations) == {"excerpt"}
+    assert any(problem in violation.detail for violation in violations)
 
 
 def test_excerpt_without_a_source_link_is_reported(
