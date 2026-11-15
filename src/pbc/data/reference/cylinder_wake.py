@@ -43,7 +43,9 @@ import numpy as np
 import scipy.io
 from scipy import ndimage, signal
 
-from pbc.data.plotting import COLOURS, add_credit, label_status, signed_image
+from pbc.data.figure_provenance import REFERENCE as REFERENCE_ROLE
+from pbc.data.figure_provenance import FigureProvenance, role
+from pbc.data.plotting import COLOURS, signed_image
 
 U_FILE = "wake_u.npy"
 V_FILE = "wake_v.npy"
@@ -316,6 +318,17 @@ def analyse(wake: Wake) -> Analysis:
 
 # The figure.
 
+# The provenance of the reference figure (Issue #531): its status and credit
+# at no place on the chart, in its PNG's record, from the card.
+REFERENCE = FigureProvenance(
+    status="processed",
+    dataset="piv-cylinder-wake",
+    artifact="processed-measured",
+    processing="A crop of 60 frames, the time mean, and two probe series extracted"
+    " from the record's PIV velocity fields; the vorticity, streamlines and spectra:"
+    " the reference figure's code, not part of the record.",
+)
+
 
 def make_figure(data_dir: Path):
     wake = load(data_dir)
@@ -337,7 +350,7 @@ def make_figure(data_dir: Path):
 
     # Frame 0: the derived vorticity, the masked region grey.
     omega = vorticity(wake.u[0], wake.v[0], wake.mask[0], wake.x, wake.y)
-    signed_image(
+    image = signed_image(
         snap,
         omega,
         label="vorticity ω (derived from u, v)",
@@ -345,7 +358,8 @@ def make_figure(data_dir: Path):
         extent=extent,
         interpolation="nearest",
     )
-    snap.plot(
+    role(image, "processed")
+    (probes,) = snap.plot(
         *zip(*probe_xy, strict=True),
         "o",
         mfc="none",
@@ -353,7 +367,11 @@ def make_figure(data_dir: Path):
         ms=8,
         label="probes 2D and 5D",
     )
-    snap.plot([], [], "s", color="0.85", label="masked: cylinder and shadows")
+    role(probes, "processed")
+    (masked,) = snap.plot(
+        [], [], "s", color="0.85", label="masked: cylinder and shadows"
+    )
+    role(masked, "processed")
     snap.set_xlabel("x [mm] (flow to +x)")
     snap.set_ylabel("y [mm]")
     snap.set_title("Frame 0: vorticity by central differences")
@@ -379,13 +397,17 @@ def make_figure(data_dir: Path):
         density=1.2,
         arrowsize=0.7,
     )
-    mean.axvline(
+    end = mean.axvline(
         result.recirculation * mm,
         color=COLOURS[1],
         ls="--",
         label=f"end of mean recirculation, x = {result.recirculation * mm:.1f} mm",
     )
-    mean.plot([], [], "-", color="k", lw=0.6, label="streamlines of the mean field")
+    role(end, "processed")
+    (streamlines,) = mean.plot(
+        [], [], "-", color="k", lw=0.6, label="streamlines of the mean field"
+    )
+    role(streamlines, "processed")
     mean.set_xlim(extent[:2])
     mean.set_ylim(extent[2:])
     mean.set_xlabel("x [mm] (flow to +x)")
@@ -396,26 +418,29 @@ def make_figure(data_dir: Path):
     # v at the 2D probe: the first 30 s, the 60 committed frames shaded.
     t = np.arange(wake.probes.shape[0]) / FPS
     first = t < 30
-    series.plot(
+    (line,) = series.plot(
         t[first],
         wake.probes[first, 0, 1] * mm,
         "-",
         color=COLOURS[0],
         lw=0.9,
-        label="v at probe 2D [processed]",
+        label="v at probe 2D",
     )
-    series.plot(
+    role(line, "processed")
+    (line,) = series.plot(
         t[first],
         wake.probes[first, 0, 0] * mm,
         "-",
         color=COLOURS[2],
         lw=0.9,
         alpha=0.8,
-        label="u at probe 2D [processed]",
+        label="u at probe 2D",
     )
-    series.axvspan(
+    role(line, "processed")
+    span = series.axvspan(
         0, FRAMES / FPS, color="0.5", alpha=0.15, label="frames 0-59 (the field sample)"
     )
+    role(span, "processed")
     series.set_ylim(-45, 60)
     series.set_xlabel("time [s] (20 frames per second)")
     series.set_ylabel("velocity [mm/s]")
@@ -427,7 +452,7 @@ def make_figure(data_dir: Path):
         (("u", COLOURS[2], "-"), ("v", COLOURS[0], "-"))
     ):
         f, p = spectrum(wake.probes[:, 0, k])
-        power.semilogy(
+        (line,) = power.semilogy(
             f[1:],
             p[1:],
             style,
@@ -435,15 +460,18 @@ def make_figure(data_dir: Path):
             lw=1.0,
             label=f"{component} at probe 2D (Welch, 102.4 s windows)",
         )
-    power.axvline(
+        role(line, "processed")
+    published = power.axvline(
         F_PUBLISHED,
         color=COLOURS[1],
         ls=":",
         label=f"published shedding frequency {F_PUBLISHED} Hz",
     )
-    power.axvline(
+    role(published, REFERENCE_ROLE)  # a published value (Issue #531)
+    twice = power.axvline(
         2 * F_PUBLISHED, color=COLOURS[1], ls="-.", lw=0.8, label="twice that"
     )
+    role(twice, REFERENCE_ROLE)
     power.set_xlim(0, 4)
     power.set_xlabel("frequency [Hz]")
     power.set_ylabel("power spectral density [(m/s)²/Hz]")
@@ -453,13 +481,4 @@ def make_figure(data_dir: Path):
     )
     power.legend(fontsize=7, loc="upper right")
 
-    label_status(fig, "processed")
-    add_credit(
-        fig,
-        "Data: J. Shang, J. Tu, 'Particle image velocimetry (PIV) data of flow "
-        "past a cylinder', Zenodo, 2026, doi 10.5281/zenodo.20765567, CC BY 4.0 "
-        "https://creativecommons.org/licenses/by/4.0/. A crop of 60 frames, the "
-        "time mean, and two probe series extracted by this project; vorticity, "
-        "streamlines and spectra are this project's processing.",
-    )
     return fig

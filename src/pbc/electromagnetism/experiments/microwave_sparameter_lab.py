@@ -22,8 +22,9 @@ from matplotlib.figure import Figure
 
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import reflection_series, transmission_series
+from pbc.data.figure_provenance import REFERENCE, RESIDUAL, FigureProvenance, role
 from pbc.data.fit import FitResult, fit_curve
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.plotting import COLOURS
 from pbc.data.reference.npl_sparameters import FILES
 from pbc.data.touchstone import Network, read_touchstone
 from pbc.electromagnetism.two_port import (
@@ -48,9 +49,35 @@ SCALE = {"R_series": 1.0, "R_shunt": 1.0, "L": 1e-12, "tau": 1e-12}
 BAND_TOP = 50e9  # Hz, the top of the coaxial sweeps and of every fit
 # endregion: fit-settings
 CHECK_FREQUENCIES = (50e9, 100e9, 150e9, 220e9)
-CREDIT = (
-    "Data: Ausden, Ridler, Rumiantsev, Martens, Shang (NPL), Zenodo "
-    "10.5281/zenodo.22658069, CC BY 4.0; _CORR files, unmodified."
+# The provenance each figure of the record declares (Issue #531): its status
+# and credit at the caption and in its PNG, from the card.
+TRANSMISSION = FigureProvenance(
+    status="calibrated",
+    dataset=DATASET,
+    combines=("simulated",),
+    processing="The record's calibrated S-parameters of the three coaxial pads"
+    " (_CORR files), unmodified; the fitted T networks and their misfit: this"
+    " lesson's code, not part of the record.",
+)
+SMITH_CHART = FigureProvenance(
+    status="calibrated",
+    dataset=DATASET,
+    combines=("simulated",),
+    processing="The record's calibrated S11 of the three coaxial pads and of the"
+    " single sweep (_CORR files), unmodified; the fitted T networks: this"
+    " lesson's code, not part of the record.",
+)
+# Every curve of this figure is computed by the lesson from the record's
+# calibrated S-parameters (the absorbed fraction, the misfit, the difference of
+# two files), so the figure is processed, as the difference alone was before
+# (the owner's review of 2026-11-15 on PR #540).
+WIDEBAND = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    processing="The absorbed fraction 1 - |S11|^2 - |S21|^2, the misfit of the"
+    " 3 dB fit against the single sweep and the difference between the two"
+    " instruments on one pad, computed from the record's calibrated"
+    " S-parameters (_CORR files): this lesson's code, not part of the record.",
 )
 MEASURED_STYLE = {"lw": 1.6, "ls": "-"}
 MODEL_STYLE = {"lw": 1.2, "ls": "--", "color": "0.15"}
@@ -446,18 +473,24 @@ def draw_transmission(networks: dict[str, Network], fits: dict) -> Figure:
         tee = model_of(fits[pad])
         s = tee.s(network.frequency)
         style = {"color": colour, "marker": marker, "markevery": 19, "ms": 4}
-        top.plot(
+        (line,) = top.plot(
             transmission.x,
             transmission.y,
-            label=f"{pad} dB pad [{transmission.status}]",
+            label=f"{pad} dB pad",
             **style,
             **MEASURED_STYLE,
         )
-        middle.plot(reflected.x, reflected.y, **style, **MEASURED_STYLE)
-        top.plot(transmission.x, amplitude_db(s[:, 1, 0]), **MODEL_STYLE)
-        middle.plot(reflected.x, amplitude_db(s[:, 0, 0]), **MODEL_STYLE)
-        bottom.plot(transmission.x, misfit(network, tee), lw=1.0, **style)
-    top.plot([], [], label="fitted T network [simulated]", **MODEL_STYLE)
+        role(line, transmission.status)
+        (line,) = middle.plot(reflected.x, reflected.y, **style, **MEASURED_STYLE)
+        role(line, reflected.status)
+        (line,) = top.plot(transmission.x, amplitude_db(s[:, 1, 0]), **MODEL_STYLE)
+        role(line, "simulated")
+        (line,) = middle.plot(reflected.x, amplitude_db(s[:, 0, 0]), **MODEL_STYLE)
+        role(line, "simulated")
+        (line,) = bottom.plot(transmission.x, misfit(network, tee), lw=1.0, **style)
+        role(line, RESIDUAL)
+    (line,) = top.plot([], [], label="fitted T network", **MODEL_STYLE)
+    role(line, "simulated")
     top.set_ylabel("|S21| [dB]")
     top.set_title("Transmission, coaxial system")
     top.legend(fontsize=7, loc="lower center", ncol=2)
@@ -467,8 +500,6 @@ def draw_transmission(networks: dict[str, Network], fits: dict) -> Figure:
     bottom.set_ylabel("residual misfit [1]")
     bottom.set_xlabel("frequency [GHz]")
     bottom.set_title("Residual: larger of |S11| and |S21| model - measured")
-    add_credit(fig, CREDIT)
-    label_status(fig, "calibrated")
     return fig
 
 
@@ -500,29 +531,36 @@ def draw_smith_chart(networks: dict[str, Network], fits: dict) -> Figure:
     for pad, colour, marker in zip(PADS, COLOURS, MARKERS, strict=False):
         network = networks[coaxial(pad)]
         gamma = network.s[:, 0, 0]
-        ax.plot(
+        (line,) = ax.plot(
             gamma.real,
             gamma.imag,
             color=colour,
             marker=marker,
             markevery=38,
             ms=3.5,
-            label=f"{pad} dB pad, coaxial [calibrated]",
+            label=f"{pad} dB pad, coaxial",
             **MEASURED_STYLE,
         )
+        role(line, "calibrated")
         model = model_of(fits[pad]).s(network.frequency)[:, 0, 0]
-        ax.plot(model.real, model.imag, **MODEL_STYLE)
+        (line,) = ax.plot(model.real, model.imag, **MODEL_STYLE)
+        role(line, "simulated")
     gamma = networks[SINGLE].s[:, 0, 0]
-    ax.plot(
+    (line,) = ax.plot(
         gamma.real,
         gamma.imag,
         color=COLOURS[3],
         lw=0.9,
-        label="3 dB pad, single sweep to 220 GHz [calibrated]",
+        label="3 dB pad, single sweep to 220 GHz",
     )
+    role(line, "calibrated")
     starts = np.array([networks[coaxial(p)].s[0, 0, 0] for p in PADS])
-    ax.plot(starts.real, starts.imag, "kx", ms=6, label="2.5 GHz, start of each sweep")
-    ax.plot([], [], label="fitted T networks [simulated]", **MODEL_STYLE)
+    (line,) = ax.plot(
+        starts.real, starts.imag, "kx", ms=6, label="2.5 GHz, start of each sweep"
+    )
+    role(line, "calibrated")
+    (line,) = ax.plot([], [], label="fitted T networks", **MODEL_STYLE)
+    role(line, "simulated")
     ax.set_aspect("equal")
     ax.set_xlim(-0.06, 0.38)
     ax.set_ylim(-0.17, 0.13)
@@ -530,8 +568,6 @@ def draw_smith_chart(networks: dict[str, Network], fits: dict) -> Figure:
     ax.set_ylabel("Im S11 [1]")
     ax.set_title("Centre of the Smith chart (grey: constant r and x)")
     ax.legend(fontsize=6.8, loc="lower right")
-    add_credit(fig, CREDIT)
-    label_status(fig, "calibrated")
     return fig
 
 
@@ -547,43 +583,51 @@ def draw_wideband(
     names = [coaxial(p) for p in PADS] + [SINGLE]
     for name, colour, line in zip(names, COLOURS, ("-", "--", "-.", ":"), strict=False):
         network = networks[name]
-        top.plot(
+        (curve,) = top.plot(
             network.frequency / 1e9,
             absorbed_fraction(network.s)[:, 0],
             color=colour,
             ls=line,
             lw=1.4,
-            label=f"{name} [calibrated]",
+            label=name,
         )
-    top.axhline(0, color="k", lw=0.8, label="lossless")
+        # Computed from S11 and S21 of the record: processed (PR #540).
+        role(curve, "processed")
+    # A limit, drawn for comparison: a reference (Issue #531).
+    role(top.axhline(0, color="k", lw=0.8, label="lossless"), REFERENCE)
     top.set_ylim(-0.05, 1.0)
     top.set_ylabel("1 - |S11|^2 - |S21|^2 [1]")
     top.set_title("Fraction of the power entering port 1 that is absorbed")
     top.legend(fontsize=6.5, loc="lower left", ncol=2)
     ghz = single.frequency / 1e9
-    bottom.plot(
+    (curve,) = bottom.plot(
         ghz,
         misfit(single, model_of(full)),
         color=COLOURS[3],
         lw=1.2,
         label="3 dB fit (2.5-50 GHz) against the single sweep",
     )
+    role(curve, RESIDUAL)
     coax = networks[coaxial("3")]
-    bottom.plot(
+    (curve,) = bottom.plot(
         coax.frequency / 1e9,
         compared["difference"],
         color="0.35",
         lw=0.9,
-        label="single sweep minus coaxial, same pad [calibrated]",
+        label="single sweep minus coaxial, same pad",
     )
-    bottom.axvspan(ghz[0], BAND_TOP / 1e9, color="0.9", zorder=0, label="fitted band")
+    role(curve, "processed")
+    role(
+        bottom.axvspan(
+            ghz[0], BAND_TOP / 1e9, color="0.9", zorder=0, label="fitted band"
+        ),
+        RESIDUAL,
+    )
     bottom.set_yscale("log")
     bottom.set_ylabel("residual misfit [1]")
     bottom.set_xlabel("frequency [GHz]")
     bottom.set_title("Misfit of the 3 dB fit, and two instruments on one pad")
     bottom.legend(fontsize=6.5, loc="lower right")
-    add_credit(fig, CREDIT)
-    label_status(fig, "calibrated")
     return fig
 
 
@@ -706,9 +750,21 @@ def run() -> Experiment:
     phase = 2 * np.pi * 220e9 * full.value("tau") * 1e-12
     experiment.number("delay-phase", phase, ".1f")
 
-    experiment.figure("fig-transmission", partial(draw_transmission, networks, fits))
-    experiment.figure("fig-smith-chart", partial(draw_smith_chart, networks, fits))
-    experiment.figure("fig-wideband", partial(draw_wideband, networks, full, compared))
+    experiment.figure(
+        "fig-transmission",
+        partial(draw_transmission, networks, fits),
+        provenance=TRANSMISSION,
+    )
+    experiment.figure(
+        "fig-smith-chart",
+        partial(draw_smith_chart, networks, fits),
+        provenance=SMITH_CHART,
+    )
+    experiment.figure(
+        "fig-wideband",
+        partial(draw_wideband, networks, full, compared),
+        provenance=WIDEBAND,
+    )
 
     with experiment.capture("decibel-exercise"):
         decibel_exercise()

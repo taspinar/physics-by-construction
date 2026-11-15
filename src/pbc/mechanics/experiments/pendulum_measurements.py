@@ -25,9 +25,10 @@ from matplotlib.figure import Figure
 
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import pendulum_angle_series
+from pbc.data.figure_provenance import RESIDUAL, FigureProvenance, role
 from pbc.data.fit import FitResult, fit_curve
 from pbc.data.inverse import residual_autocorrelation
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.plotting import COLOURS
 from pbc.data.reference.xu_pendulum import (
     CLEAN_WINDOW,
     ENCODER_STEP,
@@ -73,10 +74,43 @@ SIMULATED_STEP = 0.005  # s, the RK4 time step, half the record's 0.01 s
 # endregion: choices
 SECONDS = CLEAN_WINDOW[1] - CLEAN_WINDOW[0]  # s of every analysed run
 RECORD_SHOWN = 20.0  # s of the raw record drawn in fig-record
-CREDIT = (
-    "Data: E. Xu, T. Tran, H. Zhao, Y. Wang, M. Huai, H. Shao, Damped Pendulum "
-    "Dataset, github.com/EnzeXu/Damped_Pendulum_Dataset, commit cbf8267, "
-    "Apache-2.0, unmodified. Fits and models: this lesson's code."
+# The provenance each figure of the record declares (Issue #531): its status
+# and credit at the caption and in its PNG, from the card.
+RECORD = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact="raw-measured",
+    processing="The record's angle of the shortest pendulum's first air trial,"
+    " unmodified, its first 20 s; the release and the analysed window: this"
+    " lesson's code, not part of the record.",
+)
+PERIOD_AMPLITUDE = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact="raw-measured",
+    combines=("simulated",),
+    processing="The period and amplitude of each cycle of three air trials, from"
+    " the record's angle, and the period corrected to small amplitude; the exact"
+    " period, the small-angle period and the residuals: this lesson's code, not"
+    " part of the record.",
+)
+LENGTH = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact="processed-measured",
+    combines=("simulated",),
+    processing="The small-amplitude period of every air trial as an effective"
+    " length minus the stated one, the mean of the trials, and the fitted"
+    " models: this lesson's code, not part of the record.",
+)
+DAMPING = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact="processed-measured",
+    combines=("simulated",),
+    processing="The amplitude of each cycle of three trials in air and with the"
+    " baffle, from the record's angle; the damping laws fitted to trial 1 and"
+    " their residuals: this lesson's code, not part of the record.",
 )
 
 
@@ -696,16 +730,25 @@ def draw_record(sample: Sample) -> Figure:
     series = pendulum_angle_series(raw).select(0.0, RECORD_SHOWN)
     fig, ax = plt.subplots(figsize=(6.2, 3.3), constrained_layout=True)
     start, end = CLEAN_WINDOW
-    ax.axvspan(start, end, color="0.92", label="start of the analysed window of 60 s")
-    ax.plot(
+    role(
+        ax.axvspan(
+            start, end, color="0.92", label="start of the analysed window of 60 s"
+        ),
+        series.status,
+    )
+    (line,) = ax.plot(
         series.x,
         series.y,
         color=COLOURS[0],
         lw=0.8,
-        label=f"recorded angle, every 0.01 s [{series.status}]",
+        label="recorded angle, every 0.01 s",
     )
-    ax.axvline(
-        raw.time[release(raw)], color="0.3", ls=":", lw=1.2, label="release by hand"
+    role(line, series.status)
+    role(
+        ax.axvline(
+            raw.time[release(raw)], color="0.3", ls=":", lw=1.2, label="release by hand"
+        ),
+        series.status,
     )
     ax.set_xlabel("time since the recording started [s]")
     ax.set_ylabel("angle [rad]")
@@ -716,8 +759,6 @@ def draw_record(sample: Sample) -> Figure:
         "lifted by hand, released, swinging"
     )
     ax.legend(fontsize=7, loc="upper center", ncol=2)
-    add_credit(fig, CREDIT)
-    label_status(fig, series.status)
     return fig
 
 
@@ -747,7 +788,7 @@ def draw_period_amplitude(traces: dict[str, Trace]) -> Figure:
         c = cycles_of(trace)
         degrees = np.degrees(c.amplitude)
         lowest, highest = min(lowest, degrees.min()), max(highest, degrees.max())
-        top.plot(
+        (cycle,) = top.plot(
             degrees,
             c.period,
             color=COLOURS[k],
@@ -755,21 +796,23 @@ def draw_period_amplitude(traces: dict[str, Trace]) -> Figure:
             ms=3,
             ls="none",
             mfc="none",
-            label=f"T of each cycle, trial {k + 1} [processed]",
+            label=f"T of each cycle, trial {k + 1}",
         )
-        top.plot(
+        role(cycle, "processed")
+        (corrected,) = top.plot(
             degrees,
             small_amplitude_period(c.period, c.amplitude),
             color=COLOURS[k],
             marker=markers[k],
             ms=3,
             ls="none",
-            label=f"T0, corrected, trial {k + 1} [processed]",
+            label=f"T0, corrected, trial {k + 1}",
         )
+        role(corrected, "processed")
         model = np.array(
             [pendulum_period(effective_length(common, G), a, G) for a in c.amplitude]
         )
-        bottom.plot(
+        (rest,) = bottom.plot(
             degrees,
             1000 * (c.period - model),
             color=COLOURS[k],
@@ -778,25 +821,28 @@ def draw_period_amplitude(traces: dict[str, Trace]) -> Figure:
             ls="none",
             label=f"residual, trial {k + 1}",
         )
+        role(rest, RESIDUAL)
     grid = np.radians(np.linspace(lowest - 1, highest + 1, 40))
     exact = [pendulum_period(effective_length(common, G), a, G) for a in grid]
-    top.plot(
+    (exact_line,) = top.plot(
         np.degrees(grid),
         exact,
         "--",
         color="0.2",
         lw=1.3,
-        label="exact period, mean T0 [simulated]",
+        label="exact period, mean T0",
     )
+    role(exact_line, "simulated")
     small = 2 * np.pi * np.sqrt(length / G)
-    top.plot(
+    (small_line,) = top.plot(
         [np.degrees(grid[0]), np.degrees(grid[-1])],
         [small, small],
         ":",
         color="0.35",
         lw=1.3,
-        label=f"2 pi sqrt(L/g), L = {length:.3f} m [simulated]",
+        label=f"2 pi sqrt(L/g), L = {length:.3f} m",
     )
+    role(small_line, "simulated")
     top.set_ylim(0.968, 1.095)
     top.set_ylabel("period [s]")
     top.set_title("Period of each cycle against its amplitude, shortest pendulum, air")
@@ -806,8 +852,6 @@ def draw_period_amplitude(traces: dict[str, Trace]) -> Figure:
     bottom.set_ylabel("residual, T minus exact [ms]")
     bottom.set_title("Residuals against the exact period")
     bottom.legend(fontsize=7, loc="upper left", ncol=3)
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
     return fig
 
 
@@ -827,7 +871,7 @@ def draw_length(points: list[LengthPoint], models: dict) -> Figure:
         excess = 1000 * (
             effective_length(np.array([p.t0[trial] for p in points]), G) - lengths
         )
-        ax.plot(
+        (each,) = ax.plot(
             lengths,
             excess,
             color=COLOURS[0],
@@ -835,10 +879,11 @@ def draw_length(points: list[LengthPoint], models: dict) -> Figure:
             ms=3.5,
             ls="none",
             mfc="none" if trial else COLOURS[0],
-            label=f"trial {trial + 1} [processed]",
+            label=f"trial {trial + 1}",
         )
+        role(each, "processed")
     means = 1000 * (effective_length(np.array([p.mean for p in points]), G) - lengths)
-    ax.errorbar(
+    bars = ax.errorbar(
         lengths + 0.008,
         means,
         yerr=models["sigma-mm"],
@@ -847,35 +892,37 @@ def draw_length(points: list[LengthPoint], models: dict) -> Figure:
         ms=3.5,
         ls="none",
         capsize=2,
-        label="mean of the trials, bar 1 standard error [processed]",
+        label="mean of the trials, bar 1 standard error",
     )
-    ax.plot(
+    role(bars, "processed")
+    (simple,) = ax.plot(
         ends, [0, 0], ":", color="0.35", lw=1.3, label="simple pendulum, 2 pi sqrt(L/g)"
     )
-    ax.plot(
+    role(simple, "simulated")
+    (straight,) = ax.plot(
         ends,
         1000 * (G * (line.value("a") * ends + line.value("b")) / (4 * np.pi**2) - ends),
         "--",
         color=COLOURS[1],
         lw=1.2,
-        label="fitted straight line, a L + b [simulated]",
+        label="fitted straight line, a L + b",
     )
-    ax.plot(
+    role(straight, "simulated")
+    (physical,) = ax.plot(
         smooth,
         1000 * c / smooth,
         "-.",
         color=COLOURS[2],
         lw=1.2,
-        label="fitted physical pendulum, L + c/L [simulated]",
+        label="fitted physical pendulum, L + c/L",
     )
+    role(physical, "simulated")
     ax.set_xlim(0.2, 0.65)
     ax.set_ylim(-1, 15)
     ax.set_xlabel("stated length L [m]")
     ax.set_ylabel("residual of the simple pendulum, L_eff - L [mm]")
     ax.set_title("How much longer than stated each pendulum swings")
     ax.legend(fontsize=6.6, loc="upper right", ncol=2)
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
     return fig
 
 
@@ -897,29 +944,31 @@ def draw_damping(fits: dict[str, list[DampingFit]]) -> Figure:
         top, bottom = axes[0, column], axes[1, column]
         first = fits[setting][0]
         for k, f in enumerate(fits[setting]):
-            role = "fitted" if f.trial == FIT_TRIAL else "held out"
-            top.plot(
+            use = "fitted" if f.trial == FIT_TRIAL else "held out"
+            (amplitudes,) = top.plot(
                 f.t,
                 np.degrees(f.amplitude),
                 color=COLOURS[k],
                 marker=markers[k],
                 ms=2.2,
                 ls="none",
-                label=f"trial {f.trial} ({role}) [processed]",
+                label=f"trial {f.trial} ({use})",
             )
+            role(amplitudes, "processed")
             gamma_l = first.linear.value("gamma")
             gamma_b, kappa_b = first.both.value("gamma"), first.both.value("kappa")
             lin = _with_rates(f.t, f.amplitude, gamma_l, 0.0)
             both = _with_rates(f.t, f.amplitude, gamma_b, kappa_b)
-            top.plot(
+            (law,) = top.plot(
                 f.t,
                 np.degrees(amplitude_envelope(f.t, both.value("A1"), gamma_b, kappa_b)),
-                "-",
+                "--",
                 color="0.15",
                 lw=0.7,
-                label="linear plus quadratic law [simulated]" if k == 0 else None,
+                label="linear plus quadratic law" if k == 0 else None,
             )
-            bottom.plot(
+            role(law, "simulated")
+            (lin_rest,) = bottom.plot(
                 f.t,
                 1000 * lin.residuals,
                 color=COLOURS[k],
@@ -927,7 +976,8 @@ def draw_damping(fits: dict[str, list[DampingFit]]) -> Figure:
                 lw=0.9,
                 label="linear law (colour: trial)" if k == 0 else None,
             )
-            bottom.plot(
+            role(lin_rest, RESIDUAL)
+            (both_rest,) = bottom.plot(
                 f.t,
                 1000 * both.residuals,
                 color=COLOURS[k],
@@ -936,6 +986,7 @@ def draw_damping(fits: dict[str, list[DampingFit]]) -> Figure:
                 ls="none",
                 label="linear plus quadratic" if k == 0 else None,
             )
+            role(both_rest, RESIDUAL)
         top.set_ylabel("amplitude [deg]")
         top.set_title(f"{label.capitalize()}: the law fitted to trial 1")
         if setting == AIR:
@@ -946,8 +997,6 @@ def draw_damping(fits: dict[str, list[DampingFit]]) -> Figure:
         bottom.set_ylabel("residual [mrad]")
         bottom.set_title(f"Residuals, {label}")
         bottom.legend(fontsize=6.6, loc="upper right")
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
     return fig
 
 
@@ -1081,10 +1130,16 @@ def run() -> Experiment:
     )
     experiment.number("baffle-t0-longer", 1000 * (baffle_t0 - points[0].mean), ".1f")
 
-    experiment.figure("fig-record", partial(draw_record, sample))
-    experiment.figure("fig-period-amplitude", partial(draw_period_amplitude, traces))
-    experiment.figure("fig-length", partial(draw_length, points, models))
-    experiment.figure("fig-damping", partial(draw_damping, fits))
+    experiment.figure("fig-record", partial(draw_record, sample), provenance=RECORD)
+    experiment.figure(
+        "fig-period-amplitude",
+        partial(draw_period_amplitude, traces),
+        provenance=PERIOD_AMPLITUDE,
+    )
+    experiment.figure(
+        "fig-length", partial(draw_length, points, models), provenance=LENGTH
+    )
+    experiment.figure("fig-damping", partial(draw_damping, fits), provenance=DAMPING)
 
     with experiment.capture("amplitude-exercise"):
         amplitude_exercise()

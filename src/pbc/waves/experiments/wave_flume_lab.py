@@ -25,6 +25,7 @@ from matplotlib.figure import Figure
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import measured_elevation, modelled_elevation
 from pbc.data.comparison import named_comparison
+from pbc.data.figure_provenance import REFERENCE, RESIDUAL, FigureProvenance, role
 from pbc.data.fit import fit_curve
 from pbc.data.flume import (
     BED,
@@ -35,7 +36,7 @@ from pbc.data.flume import (
     depth_at,
     harmonics,
 )
-from pbc.data.plotting import COLOURS, add_credit, label_status, measured_vs_model
+from pbc.data.plotting import COLOURS, measured_vs_model
 from pbc.data.reference.aalborg_flume import LAB_END, load_lab
 from pbc.data.series import Series
 from pbc.experiment import Experiment, main
@@ -53,12 +54,47 @@ from pbc.waves.water import (
 DATA_DIR = SAMPLES_DIR / "aalborg-submerged-bar"
 GAUGES = tuple(GAUGE_X)
 REPETITIONS = tuple(f"rep {k}" for k in range(1, 6))
-CREDIT = (
-    "Data: Andersen, Eldrup, Ferri, Verao Fernandez, Aalborg University, Zenodo "
-    "10.5281/zenodo.15049542, CC BY 4.0. Subset of the published files; the "
-    "harmonic fits, the windows, and the linear predictions are ours."
-)
 SOLVER_LABEL = "modelled-reference"  # the artifact type of the card
+DATASET = "aalborg-submerged-bar"
+ARTIFACT = "processed-measured"
+# The provenance each figure of the flume declares (Issue #531): its status
+# and credit at the caption and in its PNG, from the card.
+RECORDS = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact=ARTIFACT,
+    processing="The record's surface elevation at three gauges, averaged over the"
+    " five repetitions with the standard uncertainty of the mean; the arrival of"
+    " the front and the window of the analysis: this lesson's code, not part of"
+    " the record.",
+)
+ARRIVAL = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact=ARTIFACT,
+    combines=("simulated",),
+    processing="The arrival of the front at every gauge from the record's mean"
+    " elevation; the travel times of linear theory, each with its best offset,"
+    " and the residuals: this lesson's code, not part of the record.",
+)
+PHASE = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact=ARTIFACT,
+    combines=("simulated",),
+    processing="The phase of the fundamental fitted at every gauge to the record,"
+    " minus two predictions of linear theory, and the solvers' phases of the"
+    " archive minus it: this lesson's code, not part of the record.",
+)
+WAVEFORM = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact=ARTIFACT,
+    combines=("simulated",),
+    processing="The record's mean elevation at gauge 5; the record of gauge 1"
+    " carried there by linear theory with and without dispersion, and the"
+    " residuals: this lesson's code, not part of the record.",
+)
 
 # region: wave
 FREQUENCY = 1 / WAVE_PERIOD  # Hz, the wavemakers' period
@@ -456,29 +492,29 @@ def draw_records(experiment_data, rows) -> Figure:
         def label(text, first=row == 0):  # the legend of the first panel
             return text if first else "_nolegend_"
 
-        ax.fill_between(
+        band = ax.fill_between(
             series.x[keep], mm * (series.y - series.sigma)[keep],
             mm * (series.y + series.sigma)[keep], color=COLOURS[0], alpha=0.3, lw=0,
             label=label("1 standard uncertainty of the mean"),
         )  # fmt: skip
-        ax.plot(
+        (line,) = ax.plot(
             series.x[keep], mm * series.y[keep], color=COLOURS[0], lw=0.9,
-            label=label("measured mean [processed]"),
+            label=label("measured mean"),
         )  # fmt: skip
-        ax.axvspan(
+        window = ax.axvspan(
             *rows[gauge]["window"], color="0.5", alpha=0.18, lw=0,
             label=label("window"),
         )  # fmt: skip
-        ax.axvline(
+        arrival = ax.axvline(
             rows[gauge]["arrival"], color=COLOURS[1], ls=":", lw=1.4,
             label=label("arrival"),
         )  # fmt: skip
+        for artist in (band, line, window, arrival):
+            role(artist, "processed")
         ax.set_ylabel("η [mm]")
         ax.set_title(f"gauge {gauge}, x = {GAUGE_X[gauge]:.2f} m", fontsize=9)
     axes[0].legend(fontsize=7, ncols=2, loc="lower center", bbox_to_anchor=(0.5, 1.35))
     axes[-1].set_xlabel("time [s]")
-    label_status(fig, "processed")
-    add_credit(fig, CREDIT)
     return fig
 
 
@@ -489,20 +525,23 @@ def draw_arrival(x, arrival, fits) -> Figure:
         2, 1, figsize=(5.4, 4.2), sharex=True, constrained_layout=True,
         gridspec_kw={"height_ratios": [2, 1]},
     )  # fmt: skip
-    top.plot(x, arrival, "o", color=COLOURS[0], label="measured arrival [processed]")
+    (line,) = top.plot(x, arrival, "o", color=COLOURS[0], label="measured arrival")
+    role(line, "processed")
     styles = ("--", "-.", ":")
     s = np.linspace(0, x.max(), 400)
     for k, (name, fit) in enumerate(fits.items()):
         colour = COLOURS[k + 1]
         tau = np.interp(s, x, fit["tau"])  # for the line only, between gauges
-        top.plot(
+        (line,) = top.plot(
             s[s >= x[0]], (tau + fit["offset"])[s >= x[0]], styles[k], color=colour,
-            label=f"travel at the {name}, linear theory [simulated]",
+            label=f"travel at the {name}, linear theory",
         )  # fmt: skip
-        bottom.plot(
+        role(line, "simulated")
+        (line,) = bottom.plot(
             x, arrival - fit["tau"] - fit["offset"], styles[k], marker="s",
             color=colour, ms=4, label=f"{name}: RMS {fit['rms']:.2f} s",
         )  # fmt: skip
+        role(line, RESIDUAL)
     bottom.axhline(0, color="0.5", lw=0.8)
     top.set_ylabel("time [s]")
     top.set_ylim(top=19)  # room for the legend above the arrivals
@@ -513,8 +552,6 @@ def draw_arrival(x, arrival, fits) -> Figure:
     bottom.set_title("Residual: measured minus travel time and its best offset")
     bottom.set_ylim(-1.6, 3.2)
     bottom.legend(fontsize=6.5, loc="upper left", ncols=2)
-    label_status(fig, "processed")
-    add_credit(fig, CREDIT)
     return fig
 
 
@@ -528,14 +565,16 @@ def draw_phase(rows, residual_linear, residual_long, solvers) -> Figure:
         3, 1, figsize=(6.4, 6), sharex=True, constrained_layout=True,
         gridspec_kw={"height_ratios": [2, 1.4, 1]},
     )  # fmt: skip
-    top.errorbar(
+    bars = top.errorbar(
         x, residual_linear, yerr=sigma, fmt="o", color=COLOURS[0], capsize=2,
-        label="measured minus linear dispersion [processed]",
+        label="measured minus linear dispersion",
     )  # fmt: skip
-    top.errorbar(
+    role(bars, "processed")
+    bars = top.errorbar(
         x, residual_long, yerr=sigma, fmt="s", mfc="none", color=COLOURS[1], capsize=2,
-        label="measured minus long-wave limit, no dispersion [processed]",
+        label="measured minus long-wave limit, no dispersion",
     )  # fmt: skip
+    role(bars, "processed")
     top.axhline(0, color="0.5", lw=0.8)
     top.set_ylim(-np.pi, np.pi)
     top.set_ylabel("phase difference [rad]")
@@ -547,11 +586,12 @@ def draw_phase(rows, residual_linear, residual_long, solvers) -> Figure:
     markers = ("^", "v", "D")
     for k, (name, phases) in enumerate(solvers.items()):
         shown = np.array([phases[g] for g in GAUGES])
-        middle.plot(
+        (line,) = middle.plot(
             x, wrap(shown - measured), markers[k], ls="--", lw=0.8,
             color=COLOURS[k + 2],
-            label=f"{name}, {SOLVER_LABEL} [simulated], minus measured",
+            label=f"{name}, {SOLVER_LABEL}, minus measured",
         )  # fmt: skip
+        role(line, "simulated")
     middle.axhline(0, color="0.5", lw=0.8)
     middle.set_ylabel("phase difference [rad]")
     middle.set_title("Solvers: their phase from their gauge 1 minus the measured one")
@@ -559,17 +599,22 @@ def draw_phase(rows, residual_linear, residual_long, solvers) -> Figure:
     middle.legend(fontsize=6.5, loc="lower left")
     s = np.linspace(0, 15.5, 600)
     for k, name in enumerate(BED):
-        bed.plot(
+        # The bed the solvers were given: an input of the modelled reference.
+        (line,) = bed.plot(
             s, -100 * depth_at(s, name), ("-", "--")[k], color=("0.2", "0.55")[k],
             label=f"bed of the {name} input files",
         )  # fmt: skip
-    bed.plot(x, np.zeros_like(x), "|", color=COLOURS[0], ms=10, label="gauges")
+        role(line, "simulated")
+    (line,) = bed.plot(
+        x, np.zeros_like(x), "|", color=COLOURS[0], ms=10, label="gauges"
+    )
+    # Where the gauges stand, a fixed value drawn for comparison: a reference
+    # (Issue #531), so the panel holds no measurement beside the bed.
+    role(line, REFERENCE)
     bed.set_ylabel("height [cm]")
     bed.set_xlabel("position along the flume [m]")
     bed.set_title("The bed below still water", fontsize=9)
     bed.legend(fontsize=7, ncols=3, loc="lower right")
-    label_status(fig, "processed")
-    add_credit(fig, CREDIT)
     return fig
 
 
@@ -577,7 +622,7 @@ def draw_waveform(measured, predictions) -> Figure:
     """Gauge 5, measured, against the two predictions from gauge 1, with the
     residuals. The solvers are in the comparator and its table."""
     fig, (top, bottom) = measured_vs_model(
-        measured, predictions, window=STEADY, figsize=(5.8, 4.8)
+        measured, predictions, window=STEADY, figsize=(5.8, 4.8), declared=True
     )
     top.set_title(
         f"Gauge {TO_GAUGE}: measured mean (solid), predictions from gauge "
@@ -585,7 +630,6 @@ def draw_waveform(measured, predictions) -> Figure:
     )
     top.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.1))
     bottom.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.48))
-    add_credit(fig, CREDIT)
     return fig
 
 
@@ -698,12 +742,18 @@ def run() -> Experiment:
     experiment.number("long-excess", (flat[6] / flat[4] - 1) * 100, ".0f")
 
     rows = gauge_phases(experiment_data)
-    experiment.figure("fig-records", partial(draw_records, experiment_data, rows))
+    experiment.figure(
+        "fig-records", partial(draw_records, experiment_data, rows), provenance=RECORDS
+    )
     experiment.number("last-window-end", rows[GAUGES[-1]]["window"][1], ".1f")
     experiment.number("lab-end", LAB_END, ".0f")
 
     x, arrival, arrival_fits = arrival_run(rows)
-    experiment.figure("fig-arrival", partial(draw_arrival, x, arrival, arrival_fits))
+    experiment.figure(
+        "fig-arrival",
+        partial(draw_arrival, x, arrival, arrival_fits),
+        provenance=ARRIVAL,
+    )
     for name, key in (
         ("group speed", "group"), ("phase speed", "phase"), ("long-wave speed", "long"),
     ):  # fmt: skip
@@ -716,6 +766,7 @@ def run() -> Experiment:
     experiment.figure(
         "fig-phase",
         partial(draw_phase, rows, residual_linear, residual_long, solvers),
+        provenance=PHASE,
     )
     experiment.number("total-phase", linear[-1], ".1f")
     experiment.number("worst-linear", np.max(np.abs(residual_linear)), ".2f")
@@ -755,7 +806,11 @@ def run() -> Experiment:
     experiment.number("spread-bars", bars, ".3f")
 
     measured, predictions, solver_series = propagation_run(experiment_data, models)
-    experiment.figure("fig-waveform", partial(draw_waveform, measured, predictions))
+    experiment.figure(
+        "fig-waveform",
+        partial(draw_waveform, measured, predictions),
+        provenance=WAVEFORM,
+    )
     comparison = experiment.widget(
         "gauge-five", comparison_data(measured, predictions, solver_series)
     )

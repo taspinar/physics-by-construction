@@ -32,7 +32,6 @@ from pbc.data.gwstrain import (
     noise_sigma,
 )
 from pbc.data.inverse import profile, recover, residual_autocorrelation, verdict
-from pbc.data.plotting import label_status
 from pbc.experiment import Experiment, main
 from pbc.mechanics import chirp
 
@@ -162,7 +161,6 @@ def draw_profiles(profile_w, profile_k) -> Figure:
     right.set_title("Not determined")
     for ax in (left, right):
         ax.axhline(1.0, color="0.4", linestyle=":")
-    label_status(fig, "simulated")
     return fig
 
 
@@ -189,7 +187,6 @@ def draw_residuals(wrong, right_fit) -> Figure:
     ax.set_xlabel("time (s)")
     ax.set_ylabel("residual (noise units)")
     ax.legend()
-    label_status(fig, "simulated")
     return fig
 
 

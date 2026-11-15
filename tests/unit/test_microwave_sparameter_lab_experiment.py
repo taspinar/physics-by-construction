@@ -14,10 +14,11 @@ from support.experiments import (
     page_of,
     run_entry_point,
 )
+from support.figures import assert_cell_declared, dataset_figures
 
 from pbc.authoring.tables import is_numeric_console_block
 from pbc.data.adapters import reflection_series, transmission_series
-from pbc.data.plotting import check_figure, figure_status
+from pbc.data.figure_provenance import role_of
 from pbc.electromagnetism.experiments import microwave_sparameter_lab as lab
 from pbc.electromagnetism.two_port import (
     TeeAttenuator,
@@ -344,21 +345,32 @@ def test_every_figure_is_the_same_bytes_on_every_draw(experiment, label):
     assert len(drawings) == 1
 
 
-@pytest.mark.parametrize("label", LABELS)
+def test_every_dataset_figure_declares_its_provenance(experiment):
+    # Issue #531: every figure of the record states its status and credit at
+    # its caption and in its PNG, from the card.
+    assert set(experiment.provenance) == set(dataset_figures(PAGE))
+    assert set(LABELS) == set(dataset_figures(PAGE))
+
+
+@pytest.mark.parametrize("label", sorted(dataset_figures(PAGE)))
 def test_every_figure_follows_the_conventions(experiment, label):
+    # The wideband figure shows quantities the lesson computes from the
+    # record (PR #540); the other two show the record's S-parameters.
+    status = "processed" if label == "fig-wideband" else "calibrated"
+    assert dataset_figures(PAGE)[label]["fig-status"] == status
+    # Panels with a residual (misfit) axis are checked as such.
+    assert_cell_declared(experiment, PAGE, label, residuals=label in RESIDUAL_FIGURES)
     figure = experiment.figures[label]()
     try:
-        assert figure_status(figure) == "calibrated"
-        # Panels with a residual (misfit) axis are checked as such.
-        assert check_figure(figure, residuals=label in RESIDUAL_FIGURES) == []
         for ax in figure.axes:
-            legend = ax.get_legend()
-            for t in [] if legend is None else legend.get_texts():
-                text = t.get_text()
+            for handle, text in zip(*ax.get_legend_handles_labels(), strict=True):
                 if "pad" in text and "fit" not in text:
-                    assert "[calibrated]" in text, (label, text)
+                    # The absorbed fraction and the difference of the two
+                    # instruments are computed here.
+                    expected = status
+                    assert role_of(handle) == expected, (label, text)
                 if "T network" in text:
-                    assert "[simulated]" in text, (label, text)
+                    assert role_of(handle) == "simulated", (label, text)
     finally:
         plt.close(figure)
 

@@ -25,9 +25,10 @@ from scipy import stats
 
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import diffraction_pattern_series
+from pbc.data.figure_provenance import REFERENCE, RESIDUAL, FigureProvenance, role
 from pbc.data.fit import fit_curve
 from pbc.data.inverse import residual_autocorrelation
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.plotting import COLOURS
 from pbc.data.reference.srm660c import (
     CERTIFIED_A,
     CERTIFIED_T,
@@ -82,10 +83,46 @@ EXTRAPOLATIONS = (
     ("displacement", 60.0, False),
 )
 # endregion: choices
-CREDIT = (
-    "Data: NIST; Black, Cline, Mendenhall, 'Diffraction Data for SRM 660c', "
-    "doi 10.18434/mds2-2315 (17 U.S.C. 105); CIFs converted to CSV 2026-11-09, "
-    "values unchanged. Fits, lines: this lesson's code."
+# The provenance each figure of the patterns declares (Issue #531): its
+# status and credit at the caption and in its PNG, from the card.
+ARTIFACT = "processed-measured"
+PATTERN = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact=ARTIFACT,
+    combines=("simulated",),
+    processing="The measured pattern of specimen 100a from NIST's CIF, converted"
+    " to CSV with its values unchanged; the K-alpha-1 positions Bragg's law gives"
+    " for the certified a: this lesson's code, not part of the record.",
+)
+PEAKS = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact=ARTIFACT,
+    combines=("simulated",),
+    processing="Two reflections of specimen 100a from NIST's CIF with their"
+    " counting errors and NIST's model of the CIF; the doublet fitted to each and"
+    " the residuals of both: this lesson's code, not part of the record.",
+)
+EXTRAPOLATION = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact=ARTIFACT,
+    combines=("simulated",),
+    processing="The lattice parameter of each reflection of specimen 100a from the"
+    " fitted peak positions, of the measurement and of NIST's model by the same"
+    " method, and their lines in the Nelson-Riley function: this lesson's code,"
+    " not part of the record; NIST's refined and the certified a for comparison.",
+)
+SPECIMENS_FIGURE = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact=ARTIFACT,
+    combines=("simulated",),
+    processing="The extrapolated lattice parameter of each of the 20 specimens,"
+    " measured and of NIST's model, and the slope of each specimen's line against"
+    " NIST's refined displacement with the fitted and first-order lines: this"
+    " lesson's code, not part of the record; NIST's refined a from the CIFs.",
 )
 FUNCTIONS = {"Nelson-Riley": nelson_riley, "displacement": displacement_function}
 
@@ -581,7 +618,7 @@ def draw_pattern(patterns: dict, measured: dict) -> Figure:
     series = diffraction_pattern_series(shown)
     fig, ax = plt.subplots(figsize=(6.0, 3.1), constrained_layout=True)
     for k, ix in enumerate(windows(series.x)):
-        ax.semilogy(
+        (trace,) = ax.semilogy(
             series.x[ix],
             series.y[ix],
             color=COLOURS[0],
@@ -589,18 +626,20 @@ def draw_pattern(patterns: dict, measured: dict) -> Figure:
             # A dense trace drawn at twice the screen's resolution: without
             # antialiasing it looks the same and costs a fifth fewer bytes.
             antialiased=False,
-            label=f"measured, specimen {SHOWN} [{series.status}]" if k == 0 else None,
+            label=f"measured, specimen {SHOWN}" if k == 0 else None,
         )
+        role(trace, series.status)
     predicted = bragg_positions(CERTIFIED_A)
     top = float(series.y.max()) * 3
-    ax.vlines(
+    ticks = ax.vlines(
         predicted,
         top,
         top * 2.2,
         color=COLOURS[1],
         lw=1.0,
-        label="Bragg's law, K$\\alpha_1$, certified a [simulated]",
+        label="Bragg's law, K$\\alpha_1$, certified a",
     )
+    role(ticks, "simulated")
     for peak, x in zip(measured[SHOWN].peaks[::3], predicted[::3], strict=True):
         ax.annotate(
             "".join(map(str, peak.hkl)), (x, top * 2.6), ha="center", fontsize=7
@@ -611,8 +650,6 @@ def draw_pattern(patterns: dict, measured: dict) -> Figure:
     ax.set_title(f"LaB6, specimen {SHOWN}: 24 scan windows, every third hkl named")
     ax.legend(fontsize=7.5, loc="lower left")
     _compact(fig)
-    add_credit(fig, CREDIT)
-    label_status(fig, series.status)
     return fig
 
 
@@ -643,7 +680,7 @@ def draw_peaks(patterns: dict, measured: dict) -> Figure:
         top, bottom = axes[0, column], axes[1, column]
         # One legend, on the right panel, names the series of both.
         named = column == len(SHOWN_PEAKS) - 1
-        top.errorbar(
+        bars = top.errorbar(
             x,
             series.y[ix],
             yerr=series.sigma[ix],
@@ -651,28 +688,27 @@ def draw_peaks(patterns: dict, measured: dict) -> Figure:
             ms=1.8,
             color=COLOURS[0],
             elinewidth=0.5,
-            label=f"measured [{series.status}], bars 1$\\sigma$ counting error"
-            if named
-            else None,
+            label="measured, bars 1$\\sigma$ counting error" if named else None,
         )
-        top.plot(
+        role(bars, series.status)
+        (line,) = top.plot(
             x,
             fitted,
             "--",
             color=COLOURS[1],
             lw=1.2,
-            label="K$\\alpha_1$ + K$\\alpha_2$ doublet fit [simulated]"
-            if named
-            else None,
+            label="K$\\alpha_1$ + K$\\alpha_2$ doublet fit" if named else None,
         )
-        top.plot(
+        role(line, "simulated")
+        (line,) = top.plot(
             x,
             shown.calc[ix],
             ":",
             color=COLOURS[2],
             lw=1.4,
-            label="NIST's model (CIF) [simulated]" if named else None,
+            label="NIST's model (CIF)" if named else None,
         )
+        role(line, "simulated")
         top.set_ylabel("intensity [counts/time]")
         top.set_title(
             f"reflection {''.join(map(str, hkl))}, reduced χ² {peak.reduced_chi2:.1f}",
@@ -680,27 +716,27 @@ def draw_peaks(patterns: dict, measured: dict) -> Figure:
         )
         if named:
             top.legend(fontsize=6, loc="upper right")
-        bottom.plot(
+        (rest,) = bottom.plot(
             x,
             (series.y[ix] - fitted) / series.sigma[ix],
             "o",
             ms=1.8,
             color=COLOURS[1],
         )
-        bottom.plot(
+        role(rest, RESIDUAL)
+        (rest,) = bottom.plot(
             x,
             (series.y[ix] - shown.calc[ix]) / series.sigma[ix],
             "x",
             ms=2.2,
             color=COLOURS[2],
         )
+        role(rest, RESIDUAL)
         bottom.axhline(0, color="0.5", lw=0.8)
         bottom.set_xlabel("2θ [degrees]")
         bottom.set_ylabel("residual [$\\sigma$]")
         bottom.set_title("minus the fit (dots), the model (crosses)", fontsize=8)
     _compact(fig)
-    add_credit(fig, CREDIT)
-    label_status(fig, series.status)
     return fig
 
 
@@ -713,27 +749,29 @@ def draw_extrapolation(
     series = diffraction_pattern_series(patterns[SHOWN])
     fig, ax = plt.subplots(figsize=(6.0, 4.0), constrained_layout=True)
     ends = np.array([0.0, 2.9])
-    for analysis, colour, marker, style, name in (
+    for analysis, colour, marker, style, name, status in (
         (
             measured[SHOWN],
             COLOURS[0],
             "o",
             "--",
-            f"measured, {SHOWN} [{series.status}]",
+            f"measured, {SHOWN}",
+            series.status,
         ),
         (
             model[SHOWN],
             COLOURS[2],
             "s",
             ":",
-            "NIST's model, same method [simulated]",
+            "NIST's model, same method",
+            "simulated",
         ),
     ):
         x = nelson_riley([p.theta for p in analysis.peaks])
         a = np.array([peak_lattice_parameter(p) for p in analysis.peaks])
         err = np.array([p.a_error for p in analysis.peaks])
         used = np.array([p.two_theta > LOWEST for p in analysis.peaks])
-        ax.errorbar(
+        bars = ax.errorbar(
             x[used],
             a[used],
             yerr=err[used],
@@ -744,25 +782,31 @@ def draw_extrapolation(
             capsize=2,
             label=name,
         )
+        role(bars, status)
         line = extrapolate(analysis.peaks)
-        ax.plot(
+        (drawn,) = ax.plot(
             ends,
             line.at(ends),
             style,
             color=colour,
             lw=1.2,
-            label=f"line, {name.split(' [')[0]} [simulated]",
+            label=f"line, {name}",
         )
-    ax.axhline(
+        role(drawn, "simulated")
+    refined = ax.axhline(
         nist, color=COLOURS[3], lw=1.0, label="NIST's refined a (mean, 20.85 °C)"
     )
-    ax.axhline(
+    # NIST's refined and the certified a, drawn for comparison: references
+    # (Issue #531).
+    role(refined, REFERENCE)
+    certified = ax.axhline(
         CERTIFIED_A,
         color="0.3",
         lw=1.0,
         ls="-.",
         label=f"certified a ({CERTIFIED_T} °C)",
     )
+    role(certified, REFERENCE)
     ax.set_xlim(*ends)
     ax.set_ylim(4.15520, 4.15690)
     ax.ticklabel_format(axis="y", useOffset=False)
@@ -774,8 +818,6 @@ def draw_extrapolation(
     )
     ax.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.16), ncol=2)
     _compact(fig)
-    add_credit(fig, CREDIT)
-    label_status(fig, series.status)
     return fig
 
 
@@ -792,30 +834,33 @@ def draw_specimens(patterns: dict, measured_a, model_a, nist_a, slopes: dict) ->
         gridspec_kw={"width_ratios": [1.5, 1.0]},
     )
     index = np.arange(len(SPECIMENS))
-    left.axhspan(
+    band = left.axhspan(
         CERTIFIED_A - CERTIFIED_U,
         CERTIFIED_A + CERTIFIED_U,
         color="0.88",
         label=f"certified a ± U (k = 2), {CERTIFIED_T} °C",
     )
-    left.plot(
+    role(band, REFERENCE)
+    (points,) = left.plot(
         index,
         measured_a,
         "o",
         ms=4,
         color=COLOURS[0],
-        label=f"measured [{series.status}]",
+        label="measured",
     )
-    left.plot(
+    role(points, series.status)
+    (points,) = left.plot(
         index,
         model_a,
         "s",
         ms=4,
         mfc="none",
         color=COLOURS[2],
-        label="NIST's model, same method [simulated]",
+        label="NIST's model, same method",
     )
-    left.plot(
+    role(points, "simulated")
+    (points,) = left.plot(
         index,
         nist_a,
         "x",
@@ -823,6 +868,7 @@ def draw_specimens(patterns: dict, measured_a, model_a, nist_a, slopes: dict) ->
         color=COLOURS[3],
         label="NIST's refined a (CIF), 20.85 °C",
     )
+    role(points, REFERENCE)
     left.set_xticks(index, SPECIMENS, rotation=90, fontsize=6.5)
     left.set_ylim(4.15640, 4.15695)
     left.ticklabel_format(axis="y", useOffset=False)
@@ -833,38 +879,39 @@ def draw_specimens(patterns: dict, measured_a, model_a, nist_a, slopes: dict) ->
     left.legend(fontsize=6.5, loc="center right", bbox_to_anchor=(1.0, 0.42))
 
     disp = slopes["displacement"]
-    right.plot(
+    (points,) = right.plot(
         disp,
         slopes["slopes"],
         "o",
         ms=4,
         color=COLOURS[0],
-        label=f"measured [{series.status}]",
+        label="measured",
     )
+    role(points, series.status)
     ends = np.array([-0.15, -0.03])
-    right.plot(
+    (line,) = right.plot(
         ends,
         slopes["coefficient"] * ends + slopes["offset"],
         "--",
         color=COLOURS[1],
         lw=1.2,
-        label="fitted line [simulated]",
+        label="fitted line",
     )
-    right.plot(
+    role(line, "simulated")
+    (line,) = right.plot(
         ends,
         slopes["predicted"] * ends,
         ":",
         color=COLOURS[2],
         lw=1.4,
-        label="first order a s/R [simulated]",
+        label="first order a s/R",
     )
+    role(line, "simulated")
     right.set_xlabel("displacement s refined by NIST [mm]")
     right.set_ylabel("slope against cos²θ/sin θ [Å]")
     right.set_title("the slope follows the displacement", fontsize=10)
     right.legend(fontsize=6.5, loc="upper center", bbox_to_anchor=(0.5, -0.3))
     _compact(fig)
-    add_credit(fig, CREDIT)
-    label_status(fig, series.status)
     return fig
 
 
@@ -1042,15 +1089,21 @@ def run() -> Experiment:
         },
     )
 
-    experiment.figure("fig-pattern", partial(draw_pattern, patterns, measured))
-    experiment.figure("fig-peaks", partial(draw_peaks, patterns, measured))
+    experiment.figure(
+        "fig-pattern", partial(draw_pattern, patterns, measured), provenance=PATTERN
+    )
+    experiment.figure(
+        "fig-peaks", partial(draw_peaks, patterns, measured), provenance=PEAKS
+    )
     experiment.figure(
         "fig-extrapolation",
         partial(draw_extrapolation, patterns, measured, model, nist),
+        provenance=EXTRAPOLATION,
     )
     experiment.figure(
         "fig-specimens",
         partial(draw_specimens, patterns, measured_a, model_a, nist_a, slopes),
+        provenance=SPECIMENS_FIGURE,
     )
 
     with experiment.capture("bragg-exercise"):

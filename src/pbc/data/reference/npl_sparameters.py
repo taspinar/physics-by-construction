@@ -11,7 +11,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-from pbc.data.plotting import add_credit, label_status
+from pbc.data.figure_provenance import REFERENCE as REFERENCE_ROLE
+from pbc.data.figure_provenance import FigureProvenance, role
 from pbc.data.touchstone import Network, read_touchstone
 
 FILES = {
@@ -21,6 +22,17 @@ FILES = {
     "single sweep, 3 dB pad": "broadband_3dB_attenuator_0601_CORR.s2p",
 }
 COLORS = ["#0072B2", "#009E73", "#CC79A7", "#D55E00"]
+# The provenance of the reference figure (Issue #531): its status and credit
+# at no place on the chart, in its PNG's record, from the card.
+REFERENCE = FigureProvenance(
+    status="calibrated",
+    dataset="npl-onwafer-sparameters",
+    combines=("processed",),
+    processing="The record's calibrated (_CORR, multiline TRL) S2P files of the"
+    " four sweeps, unmodified; the largest singular value of S and the difference"
+    " of the two instruments on the 3 dB pad: the reference figure's code, not"
+    " part of the record.",
+)
 
 
 def load(data_dir: Path) -> dict[str, Network]:
@@ -57,10 +69,13 @@ def make_figure(data_dir: Path) -> plt.Figure:
     (ax_s21, ax_gamma), (ax_sv, ax_diff) = axes
     for (name, net), color in zip(networks.items(), COLORS, strict=True):
         ghz = net.frequency / 1e9
-        ax_s21.plot(ghz, db(net.s[:, 1, 0]), label=name, color=color)
+        (line,) = ax_s21.plot(ghz, db(net.s[:, 1, 0]), label=name, color=color)
+        role(line, "calibrated")
         gamma = net.s[:, 0, 0]
-        ax_gamma.plot(gamma.real, gamma.imag, label=name, color=color, lw=1)
-        ax_sv.plot(ghz, largest_singular_value(net), label=name, color=color)
+        (line,) = ax_gamma.plot(gamma.real, gamma.imag, label=name, color=color, lw=1)
+        role(line, "calibrated")
+        (line,) = ax_sv.plot(ghz, largest_singular_value(net), label=name, color=color)
+        role(line, "processed")
     angle = np.linspace(0, 2 * np.pi, 200)
     ax_gamma.plot(np.cos(angle), np.sin(angle), color="0.5", lw=0.8)
     ax_gamma.set_aspect("equal")
@@ -76,7 +91,11 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ax_s21.set_ylabel("|S21| [dB]")
     ax_s21.set_title("Calibrated: transmission of three attenuators")
     ax_s21.legend(fontsize=8)
-    ax_sv.axhline(1, color="k", linestyle="--", label="passivity limit")
+    # A limit drawn for comparison: a reference, in any style (Issue #531).
+    role(
+        ax_sv.axhline(1, color="k", linestyle="--", label="passivity limit"),
+        REFERENCE_ROLE,
+    )
     ax_sv.set_xlabel("frequency [GHz]")
     ax_sv.set_ylabel("largest singular value of S [1]")
     ax_sv.set_title("Consistency check: passive means <= 1 (50 ohm reference)")
@@ -85,16 +104,10 @@ def make_figure(data_dir: Path) -> plt.Figure:
     single = networks["single sweep, 3 dB pad"]
     coaxial = networks["coaxial, 3 dB pad"]
     freq, diff = cross_check_db(single, coaxial)
-    ax_diff.plot(freq / 1e9, diff, color=COLORS[3])
+    (line,) = ax_diff.plot(freq / 1e9, diff, color=COLORS[3])
+    role(line, "processed")
     ax_diff.axhline(0, color="0.5", lw=0.8)
     ax_diff.set_xlabel("frequency [GHz]")
     ax_diff.set_ylabel("single sweep minus coaxial, |S21| [dB]")
     ax_diff.set_title("Two instruments, same 3 dB pad (2.5-50 GHz)")
-    add_credit(
-        fig,
-        "Data: Ausden, Ridler, Rumiantsev, Martens, Shang, NPL, Zenodo "
-        "10.5281/zenodo.22658069, CC BY 4.0. Files are the calibrated (_CORR, "
-        "multiline TRL) S2P files, unmodified.",
-    )
-    label_status(fig, "calibrated")
     return fig

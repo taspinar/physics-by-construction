@@ -54,6 +54,14 @@ rights:
     to copyright in the United States; not endorsed by NOAA or the USGS. Changes: the NCEI heights, tides
     and residuals divided by 0.670 (they are converted twice in the event files); the bathymetry every
     fourth cell, rounded to the metre.'
+  figure_credit:
+    short: 'Data: NOAA NDBC and NCEI (DART), USGS finite-fault model, NOAA ETOPO 2022'
+    visible: chosen
+    source: 'https://www.weather.gov/disclaimer and 17 U.S.C. 403: US-government material, not subject to
+      copyright in the United States, to be identified as such; the terms do not require the credit on the
+      figure; the project shows it for clear scientific attribution when the metadata is lost in a screenshot
+      or a re-export, the owner''s reason of 2026-11-14 for TESS (Issue #524), applied by the rollout (Issue
+      #531); the full attribution is in the metadata and at the caption of its page'
 artifacts:
 - name: dart21416_20250727to20250803_meter.txt, dart21415_20250727to20250803_meter.txt
   type: processed-measured

@@ -38,7 +38,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.figure_provenance import FigureProvenance, role
+from pbc.data.plotting import COLOURS
 from pbc.data.reference.tudelft_boundary_layer import (
     B_REF,
     KAPPA_REF,
@@ -46,6 +47,20 @@ from pbc.data.reference.tudelft_boundary_layer import (
     LOG_UPPER,
     blasius,
     coles_fernholz_utau,
+)
+
+# The provenance the reference figure declares (Issue #531): its status and
+# credit at the caption and in its PNG, from the card.
+REFERENCE = FigureProvenance(
+    status="processed",
+    dataset="grazing-flow-hwa-benchmark",
+    artifact="processed-measured",
+    combines=("simulated",),
+    processing="The record's averaged and normalised hot-wire profiles and"
+    " parameters, files unchanged; u_tau (Coles-Fernholz), nu (Sutherland, ideal"
+    " gas), inner scaling, fits, and the Blasius and log-law references: this"
+    " module's code (pbc.data.reference.grazing_flow_hwa), not part of the"
+    " record.",
 )
 
 PROFILE_HEADER = (
@@ -218,21 +233,26 @@ def make_figure(data_dir: Path) -> plt.Figure:
     for (speed, ls), colour in zip(styles.items(), COLOURS, strict=False):
         s = data["D00" + speed][centre]
         k, b, _ = log_fit(s)
-        ax_in.plot(
+        # Solid in the panel of the log law (Issue #531): beside a model, a
+        # measurement is never dashed or dotted; the colours tell the speeds
+        # apart.
+        (line,) = ax_in.plot(
             s.yplus,
             s.Uplus,
             "o",
-            ls=ls,
+            ls="-",
             color=colour,
             ms=3,
             lw=1.0,
             label=f"solid, {speed[1:]} m/s, x = 0, Re_tau {s.re_tau:.0f} "
             f"(fit kappa {k:.3f}, B {b:.2f})",
         )
-        ax_ti.fill_between(
+        role(line, "processed")
+        band = ax_ti.fill_between(
             s.y_over_delta, s.TI_lower, s.TI_upper, color=colour, alpha=0.3, lw=0
         )  # the record's 95 % interval: narrower than the line
-        ax_ti.plot(
+        role(band, "processed")
+        (line,) = ax_ti.plot(
             s.y_over_delta,
             s.TI,
             ls=ls,
@@ -240,17 +260,20 @@ def make_figure(data_dir: Path) -> plt.Figure:
             lw=1.2,
             label=f"solid, {speed[1:]} m/s",
         )
+        role(line, "processed")
     grid = np.logspace(0, np.log10(3000), 200)
-    ax_in.plot(
+    (line,) = ax_in.plot(
         grid[grid < 15], grid[grid < 15], color="0.3", ls=":", label="U+ = y+ (model)"
     )
-    ax_in.plot(
+    role(line, "simulated")
+    (line,) = ax_in.plot(
         grid[grid > 20],
         np.log(grid[grid > 20]) / KAPPA_REF + B_REF,
         color="0.3",
         ls="--",
         label=f"log law, kappa {KAPPA_REF}, B {B_REF} (reference, not fitted)",
     )
+    role(line, "simulated")
     ax_in.set_xscale("log")
     ax_in.set_xlabel("y+ [-] (u_tau from Coles-Fernholz, not in the record)")
     ax_in.set_ylabel("U+ [-]")
@@ -262,7 +285,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
 
     for wall, colour, mk in (("D00", COLOURS[0], "o"), ("D45", COLOURS[1], "s")):
         s = data[wall + "V25"][-1]
-        ax_out.plot(
+        (line,) = ax_out.plot(
             s.y_over_delta,
             s.U_over_Ue,
             mk,
@@ -273,17 +296,19 @@ def make_figure(data_dir: Path) -> plt.Figure:
             label=f"{'solid' if wall == 'D00' else 'porous 4.5 mm'}, 25 m/s, "
             f"x/L = 1/3, H {s.H:.3f}",
         )
+        role(line, "processed")
     up = data["UPV25"][0]
-    ax_out.plot(
+    (line,) = ax_out.plot(
         up.y_over_delta,
         up.U_over_Ue,
         "^",
-        ls=":",
+        ls="-",
         color=COLOURS[2],
         ms=3,
         label=f"upstream, x/L = -6.6, H {up.H:.3f}",
     )
-    ax_out.plot(
+    role(line, "processed")
+    (line,) = ax_out.plot(
         lam.eta / lam.eta99,
         lam.u,
         color="0.2",
@@ -291,6 +316,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
         lw=1.6,
         label=f"Blasius laminar layer, H {lam.H:.3f} (model)",
     )
+    role(line, "simulated")
     ax_out.set_xlim(0, 1.3)
     ax_out.set_xlabel("y / delta [-] (laminar: y / delta_99)")
     ax_out.set_ylabel("U / Ue [-]")
@@ -315,7 +341,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ):
         for speed, ls in styles.items():
             stations = data[wall + speed]
-            ax_h.plot(
+            (line,) = ax_h.plot(
                 [s.x_over_L for s in stations],
                 [s.H for s in stations],
                 mk,
@@ -325,6 +351,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
                 mfc=colour if speed == "V25" else "none",
                 label=f"{name}, {speed[1:]} m/s",
             )
+            role(line, "processed")
     ax_h.set_xlabel("x / L across the insert [-] (L = 0.1 m)")
     ax_h.set_ylabel("shape factor H [-] (record)")
     ax_h.set_title(
@@ -333,14 +360,4 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ax_h.legend(fontsize=6.5, loc="upper left", ncol=3)
     ax_h.set_ylim(1.30, 1.47)
 
-    add_credit(
-        fig,
-        "Data: O. Moriaux, R. Zamponi, 'A benchmark dataset for the grazing flow "
-        "over porous materials', Zenodo, v3, doi 10.5281/zenodo.15044105, "
-        "CC BY 4.0; files unchanged. u_tau (Coles-Fernholz), nu (Sutherland, "
-        "ideal gas), inner scaling, fits, and the Blasius and log-law "
-        "references: this figure's code (pbc.data.reference.grazing_flow_hwa), "
-        "not part of the record.",
-    )
-    label_status(fig, "processed")
     return fig

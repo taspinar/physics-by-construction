@@ -15,8 +15,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from pbc.data.adapters import measured_elevation, modelled_elevation
+from pbc.data.figure_provenance import FigureProvenance
 from pbc.data.flume import Elevation, read_elevation
-from pbc.data.plotting import add_credit, measured_vs_model
+from pbc.data.plotting import measured_vs_model
 
 WAVE_CONDITION = 1
 GAUGE = 5
@@ -29,6 +30,21 @@ MODELS = {  # label: (folder in the archive, file)
     "M-sigma (MIKE 3)": ("Msigma", f"Msigma_WC{WAVE_CONDITION}_surfaceElevation_A.csv"),
     "D-SPH (DualSPHysics)": ("DSPH", f"DSPH_WC{WAVE_CONDITION}_surfaceElevation_A.csv"),
 }
+
+
+# The provenance the reference figure declares (Issue #531): its status and
+# credit at the caption and in its PNG, from the card.
+REFERENCE = FigureProvenance(
+    status="processed",
+    dataset="aalborg-submerged-bar",
+    artifact="processed-measured",
+    combines=("simulated",),
+    processing="The record's measured surface elevation at the gauge (aligned"
+    " repetitions, sample mean) and three published numerical runs, a subset of"
+    " the files; the band is one standard uncertainty of the mean (the file gives"
+    " the 95 % expanded one), and the interpolation for the residual is this"
+    " module's code, not part of the record.",
+)
 
 
 def sample_name(source: str) -> str:
@@ -177,6 +193,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
         {name: modelled_elevation(model) for name, model in models.items()},
         window=WINDOW,
         figsize=(9, 7),
+        declared=True,
     )
     top.set_title(
         f"Gauge {GAUGE}, wave condition {WAVE_CONDITION}: measurement (solid), "
@@ -187,11 +204,4 @@ def make_figure(data_dir: Path) -> plt.Figure:
         "window"
     )
     top.set_xlim(0, SAMPLE_END)
-    add_credit(
-        fig,
-        "Data: Andersen, Eldrup, Ferri, Verao Fernandez, Aalborg University, Zenodo "
-        "10.5281/zenodo.15049542, CC BY 4.0. Subset of the published files; "
-        "interpolation for the residual is ours. Band: one standard uncertainty "
-        "of the mean (the file gives the 95 % expanded one).",
-    )
     return fig

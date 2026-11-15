@@ -250,7 +250,9 @@ analyser to `{python} result["single-max"]` GHz at
 `{python} result["reference"]` Ω. Each row of a file gives the frequency
 and the real and imaginary parts of $S_{11}$, $S_{21}$, $S_{12}$, and
 $S_{22}$. The files are calibrated by the creators; the card labels them
-calibrated observations, and every figure of this page says calibrated.
+calibrated observations. A figure that draws the files' S-parameters says
+calibrated; the figure of quantities this lesson computes from them (the
+absorbed fraction, the misfit, the difference of two files) says processed.
 
 ```{python}
 #| echo: false
@@ -324,7 +326,7 @@ excerpt(experiment.draw_wideband)
 #| echo: false
 #| fig-cap: "Every pad absorbs a large fraction of the power at every measured frequency, and none gives out more than it receives at any of them. Beyond the coaxial band the lumped model fitted inside it drifts away from the single sweep, to many times the difference between the two instruments."
 #| fig-alt: "Two stacked panels against frequency. Top: the absorbed fraction of four files as flat lines in different line styles; the three coaxial pads stop at the end of the coaxial band at three levels, well above a black line at zero, and the single sweep of the smallest pad continues across the whole axis and sinks slowly. Bottom, logarithmic vertical axis: the misfit of the fitted model against the single sweep, noisy and small inside a shaded band at the left, then rising steadily by more than a decade over the rest of the axis; a grey noisy line, the difference between the two instruments, lies inside the shaded band a little below the misfit there."
-#| fig-status: calibrated
+#| fig-status: processed
 #| fig-dataset: npl-onwafer-sparameters
 result.show("fig-wideband")
 ```

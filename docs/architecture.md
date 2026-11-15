@@ -1845,12 +1845,12 @@ check reports the markup of a form written by hand (`forged-excerpt`). Lean exce
 never simplified; an irrelevant diagram-drawing function of a Lean
 lesson may become a Source link like any other.
 
-**Figure provenance off the chart area** (V2, F172 and F173). Today
-`pbc.data.plotting.label_status()` paints a status box into a measured
-figure and `add_credit()` paints a wrapped source paragraph below its
+**Figure provenance off the chart area** (V2, F172 and F173). Before
+F172 `pbc.data.plotting.label_status()` painted a status box into a measured
+figure and `add_credit()` a wrapped source paragraph below its
 axes, while `site/_filters/lesson.lua` renders the cell's `fig-status`
-with the caption, so a measured figure states its status twice; and
-`check_figure()` and `tests/unit/test_data_plotting.py` require the
+with the caption, so a measured figure stated its status twice; and
+`check_figure()` and `tests/unit/test_data_plotting.py` required the
 painted status and credit. The target, decided on examples by the pilot
 F172 and rolled out by F173: the page shows one visible status per figure
 at its caption (stating when a figure combines processed measurement and
@@ -1864,9 +1864,10 @@ need. The saved or shared PNG carries its status, figure identity,
 dataset, and required attribution portably: deterministic metadata
 written by the one encoder `pbc.experiment.encode()` from the same
 declarations (the page and the experiment output stay the same bytes,
-ADR 016), only for a figure that opts in: in the pilot F172 the three
-sample figures, while every other figure's PNG stays byte-identical
-until F173 rolls the contract out, plus a short visible credit where a dataset card's terms
+ADR 016), only for a figure that declares it: in the pilot F172 the
+three sample figures, and since F173 every figure that names a dataset
+and every reference figure, except AI6's model-input picture, while every
+other figure's PNG stays byte-identical, plus a short visible credit where a dataset card's terms
 require visible attribution or the owner chooses one. The record is the
 exception to ADR 016 decision 2's "no metadata" that the addendum to
 that decision (Issue #524, 2026-11-14) allows: fixed and deterministic,
@@ -1876,9 +1877,10 @@ sidecar manifest is the pilot's alternative if embedded metadata fails
 the determinism or reuse test; it is bound to the figure's digest. Rights
 are evaluated per dataset card. The small visualization credit
 ("Visualization: Physics by Construction · Data: …") is the owner's
-choice of 2026-11-14: it goes with a figure's declaration, so in the
-pilot it is on the three declared figures and on no other figure, and
-any further rollout goes through F173. A watermark, a mark over data, a
+choice of 2026-11-14: it goes with a figure's declaration, so it is on
+every declared figure (the pilot's three, and since the owner's rollout
+decision of 2026-11-14 on Issue #524 every figure F173 declares) and on
+no other figure. A watermark, a mark over data, a
 brand on a figure the owner's decision does not cover, or wording that
 claims ownership of external measurements is never allowed. `check_figure()` and its tests are
 migrated to equally strong or stronger assertions (status present in the
@@ -1940,6 +1942,49 @@ grey of the figure credits, with no box or logo, never covers data, and
 names the project only as the visualization; the record's
 `pbc:visible-credit`, the caption's full provenance ("On the image"), and
 `check_figure_credits` agree with it.
+
+Rolled out by F173 (Issue #531) after the owner's decision of 2026-11-14
+on Issue #524 ("Ja, naar alle figuren uitrollen"). Every figure cell that
+names a dataset (`fig-dataset` or `fig-model-of`) of a lesson with an
+experiment declares its provenance, and the lesson source check fails a
+cell whose experiment declares none. The declaration also covers a
+simulated figure of a dataset: of its modelled artifact
+(`fig-artifact: modelled-reference`, FL10's tsunami map) or a model of it
+(`model_of=True` for `fig-model-of`, W9's halo model), whose record names
+the card as `pbc:model-of` and an empty `pbc:dataset`; the records of
+figures of the data itself keep the pilot's keys. A figure may combine a
+further stage of its data (`combines=("processed",)`, "with processed
+data": M11's noise spectrum beside the calibrated strain). `check_roles`
+reads a panel without a legend (an image, a single series) by the roles
+of its drawn artists, holds its style rules within a panel ("a model is
+never solid" beside a measurement, "a measurement is never dashed"
+beside a model), and accepts the role `REFERENCE` for a fixed or
+published value drawn for comparison (a bound, a limit, a certified
+value, the line of a rule) in any style. A figure that draws data of
+further cards names them (`also=`, FL8 and FL9's Strouhal figure): their
+short credits are painted on a second line under the first, and the
+record (`pbc:also`, `pbc:also-credit`, `pbc:also-licence`,
+`pbc:also-attribution`) and the caption carry each with its full
+attribution. A provider's own copyright notice in its card's attribution
+(trackpy's CC BY 3.0 sample) is not ownership wording; a copyright mark
+anywhere else in the record still is. Every card with a go holds
+`rights.figure_credit` (`validate_card` requires it): `required` for the
+CC BY cards, trackpy's CC BY 3.0 sample, NIST's fair-use acknowledgement,
+SPARC's permission, and the Apache-2.0 pendulum dataset; `chosen` for the
+public-domain SDSS spectrum and the NOAA and USGS tsunami inputs, the
+owner's reason for TESS. The reference figure of each card
+(`make_figure` of its reference module) paints nothing: the module
+declares `REFERENCE` with the status of the card's `reference_figure`
+(`check_reference_modules` requires it), and
+`pbc.data.reference.reference_png` writes it through the encoder with
+the record. The simulated figures that painted a status without a
+dataset (M12) paint none; their caption states it. AI6's picture D is the
+one figure of a dataset that declares nothing: it is a model input, so
+`pbc.agents.multimodal_lab.draw_strain` paints the status and credit the
+recorded runs saw on the strain lesson's now undeclared drawing, byte for
+byte, until its own review; the lesson checks list it as
+`UNDECLARED_MODEL_INPUTS`. `label_status` and `add_credit` remain for
+that picture only.
 
 **Figure language** (V1, F170 and F171). An audit of six figure classes
 (trajectory, multi-series numerical comparison, phase space, convergence
@@ -3133,9 +3178,10 @@ that must settle them:
   byte identity** (teaching by construction). The pilot F172 tests the
   portable metadata for determinism, for the page and experiment bytes,
   and for each dataset card's terms on its sample figures before F173
-  rolls anything out; the metadata is written only for figures that opt
-  in, so every other figure, AI6's model-input figures included, stays
-  byte-identical.
+  rolls anything out; the metadata is written only for figures that
+  declare it, so every other figure, AI6's model-input figures included,
+  stays byte-identical. F173 rolled it out to every figure of a dataset
+  except AI6's picture D, which keeps its bytes.
 - **Hardware may not be feasible at an acceptable cost or reliability**
   (Part B products). Every essential outcome is reachable through the
   simulator and recorded data; F140 ends in a go or no-go, and a no-go
@@ -3177,10 +3223,12 @@ work of F164 to F178 and F116:
 - A measured figure states its status twice (the painted box and the
   caption) and paints its credit into the PNG; `check_figure()` and its
   tests require both; `pbc.experiment.encode()` writes no metadata
-  (F172, F173). Since F172 the three declared figures of its pilot carry
+  (F172, F173). Since F172 and its rollout F173 every figure of a dataset
+  (except AI6's model-input picture) and every reference figure carries
   the fixed provenance record that the addendum to ADR 016 decision 2
-  allows, and their status and credit are off the chart area; every other
-  figure is unchanged until F173.
+  allows, and its status and credit are off the chart area; a figure
+  without a dataset paints no status (M12's two stopped painting one) and
+  every other one keeps its bytes.
 - `FIGURE_SETTINGS` sets size and resolution only; lesson figures choose
   their own type sizes, grids, and line weights (F170, F171).
 - The lesson header shows every connection, prerequisite, and related

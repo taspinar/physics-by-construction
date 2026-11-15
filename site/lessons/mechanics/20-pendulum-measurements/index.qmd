@@ -475,7 +475,7 @@ excerpt(experiment.draw_damping)
 #| label: fig-damping
 #| echo: false
 #| fig-cap: "In both settings the trials released higher die away faster than the exponential fitted to the first trial predicts; the law with a quadratic part follows them more closely. In air it still drifts away from them slowly; with the baffle both laws fall short in the first seconds, where the swing dies away fastest."
-#| fig-alt: "Four panels. Top row, amplitude in degrees against time for air on the left and the baffle on the right: three sets of markers fall steadily, the lowest set starting lower than the other two; in air they fall nearly straight, with the baffle steeply at first and then levelling off; thin solid curves run through the markers. Bottom row, residuals against time: dashed lines start high for the two upper sets and dip below zero later; markers stay closer to zero, drifting slowly in air on the left, and on the right they also start high for those two sets in the first few seconds."
+#| fig-alt: "Four panels. Top row, amplitude in degrees against time for air on the left and the baffle on the right: three sets of markers fall steadily, the lowest set starting lower than the other two; in air they fall nearly straight, with the baffle steeply at first and then levelling off; thin dashed curves run through the markers. Bottom row, residuals against time: dashed lines start high for the two upper sets and dip below zero later; markers stay closer to zero, drifting slowly in air on the left, and on the right they also start high for those two sets in the first few seconds."
 #| fig-status: processed
 #| fig-dataset: xu-damped-pendulum
 #| fig-artifact: processed-measured

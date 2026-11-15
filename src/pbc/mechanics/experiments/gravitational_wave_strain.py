@@ -22,6 +22,7 @@ from scipy.optimize import brentq
 from pbc.authoring import FIGURE_COLOURS
 from pbc.data import SAMPLES_DIR
 from pbc.data.comparison import waveform_comparison
+from pbc.data.figure_provenance import REFERENCE, FigureProvenance, role
 from pbc.data.fit import SLOPPY_RATIO
 from pbc.data.gwosc import (
     FILES,
@@ -39,9 +40,7 @@ from pbc.data.gwstrain import (
     noise_sigma,
 )
 from pbc.data.plotting import (
-    add_credit,
     check_figure,
-    label_status,
     measured_vs_model,
     sequential_image,
 )
@@ -50,6 +49,39 @@ from pbc.experiment import Experiment, main
 from pbc.mechanics import chirp
 from pbc.mechanics.dynamics import State
 from pbc.mechanics.orbit import orbital_elements
+
+DATASET = "gw150914-strain"
+# The provenance each figure of the strain declares (Issue #531): its status
+# and credit at the caption and in its PNG, from the card.
+CALIBRATED_STRAIN = FigureProvenance(
+    status="calibrated",
+    dataset=DATASET,
+    combines=("processed",),
+    processing="Four seconds of the record's calibrated strain of both detectors,"
+    " unmodified; the noise spectrum is this lesson's Welch estimate over the whole"
+    " file, not part of the record.",
+)
+SPECTROGRAM = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    processing="The record's strain of both detectors whitened, band-passed and"
+    " combined, in windows of 62.5 ms: this lesson's code, not part of the record.",
+)
+MEASURED_VS_MODEL = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    combines=("simulated",),
+    processing="The Hanford strain whitened and band-passed; the Newtonian chirp"
+    " fitted to both detectors, whitened the same way, and its residuals: this"
+    " lesson's code, not part of the record.",
+)
+PROFILE = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    processing="The chi-square of the Newtonian chirp fitted to the processed strain,"
+    " profiled over the chirp mass: this lesson's code, not part of the record; the"
+    " published chirp mass for comparison.",
+)
 
 # region: example
 m1, m2, f_start = 36.0, 29.0, 35.0  # solar masses, Hz: given values of the example
@@ -121,11 +153,15 @@ def draw_calibrated_strain(strains) -> Figure:
     segments = {name: cut_segment(s) for name, s in strains.items()}
     fig, (top, bottom) = plt.subplots(2, 1, figsize=(7.2, 6.2), constrained_layout=True)
     for k, (name, seg) in enumerate(segments.items()):
-        top.plot(
+        (line,) = top.plot(
             seg.time, seg.strain * 1e19, lw=0.6, color=FIGURE_COLOURS[k], label=name
         )
+        role(line, "calibrated")
         freqs, asd = amplitude_spectrum(strains[name])
-        bottom.loglog(freqs[1:], asd[1:], lw=0.9, color=FIGURE_COLOURS[k], label=name)
+        (line,) = bottom.loglog(
+            freqs[1:], asd[1:], lw=0.9, color=FIGURE_COLOURS[k], label=name
+        )
+        role(line, "processed")
     top.set_xlabel("time since the event [s]")
     top.set_ylabel("strain, calibrated [1e-19]")
     top.set_title("Calibrated strain of the two detectors, four seconds")
@@ -135,10 +171,6 @@ def draw_calibrated_strain(strains) -> Figure:
     bottom.set_ylabel("amplitude spectral density [1/sqrt(Hz)]")
     bottom.set_title("Noise spectrum: Welch estimate over the whole file (processed)")
     bottom.legend(loc="upper right")
-    label_status(fig, "calibrated")
-    add_credit(
-        fig, "Data: GWOSC, GW150914 v3, CC BY 4.0. Spectrum: processed from the strain."
-    )
     return fig
 
 
@@ -210,7 +242,7 @@ def draw_spectrogram(f_grid, t_grid, shown_t, shown_f, excess) -> Figure:
         f_grid[shown_f][0],
         f_grid[shown_f][-1],
     )
-    sequential_image(
+    image = sequential_image(
         ax,
         excess,
         label="excess power",
@@ -223,12 +255,7 @@ def draw_spectrogram(f_grid, t_grid, shown_t, shown_f, excess) -> Figure:
     ax.set_xlabel("time since the event [s]")
     ax.set_ylabel("frequency [Hz]")
     ax.set_title("Spectrogram of the two detectors combined (processed)")
-    label_status(fig, "processed")
-    add_credit(
-        fig,
-        "Data: GWOSC, GW150914 v3, CC BY 4.0. Processing: whitened, band-passed,"
-        " combined, 62.5 ms windows.",
-    )
+    role(image, "processed")
     return fig
 
 
@@ -309,13 +336,9 @@ def draw_measured_vs_model(measured, model) -> Figure:
         {"Newtonian chirp (fitted)": model},
         window=PRIMARY_WINDOW,
         figsize=(8.6, 6.0),
+        declared=True,
     )
-    add_credit(
-        fig,
-        "Data: GWOSC, GW150914 v3, CC BY 4.0. Hanford detector, whitened and"
-        " band-passed; model whitened the same way.",
-    )
-    check_figure(fig, residuals=True)
+    check_figure(fig, residuals=True, declared=MEASURED_VS_MODEL.status)
     return fig
 
 
@@ -443,27 +466,30 @@ def draw_profile(primary, published_detector) -> Figure:
     """The profile of the chi-square over the chirp mass."""
     fig, ax = plt.subplots(figsize=(6.8, 3.8), constrained_layout=True)
     delta = primary.profile_chi2 - primary.profile_chi2.min()
-    ax.semilogy(
+    (line,) = ax.semilogy(
         primary.profile_mc,
         np.maximum(delta, 1e-2),
         color=FIGURE_COLOURS[0],
         label="profile of the fit",
     )
-    ax.axhline(1.0, color="0.4", linestyle=":", label="minimum plus one")
-    ax.axvline(
-        published_detector,
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        label="published value, detector frame",
+    role(line, "processed")
+    role(
+        ax.axhline(1.0, color="0.4", linestyle=":", label="minimum plus one"),
+        REFERENCE,  # a threshold and a published value, drawn for comparison
+    )
+    role(
+        ax.axvline(
+            published_detector,
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            label="published value, detector frame",
+        ),
+        REFERENCE,
     )
     ax.set_xlabel("chirp mass, detector frame [solar masses]")
     ax.set_ylabel("chi-square above its minimum [1]")
     ax.set_title("Fit of the Newtonian chirp: profile over the chirp mass")
     ax.legend()
-    label_status(fig, "processed")
-    add_credit(
-        fig, "Data: GWOSC, GW150914 v3, CC BY 4.0. A model fitted to processed strain."
-    )
     return fig
 
 
@@ -500,7 +526,11 @@ def run() -> Experiment:
     strains, raw_rms = load_strain()
     published_detector = PUBLISHED_CHIRP_MASS_SOURCE * (1 + PUBLISHED_REDSHIFT)
     rate = strains["H1"].sample_rate
-    experiment.figure("fig-calibrated-strain", partial(draw_calibrated_strain, strains))
+    experiment.figure(
+        "fig-calibrated-strain",
+        partial(draw_calibrated_strain, strains),
+        provenance=CALIBRATED_STRAIN,
+    )
     experiment.number("raw-rms", raw_rms["H1"] * 1e19, ".1f")
 
     big, white_big, time_big, sigma_big, steps, steps_long = whitened(strains)
@@ -525,6 +555,7 @@ def run() -> Experiment:
     experiment.figure(
         "fig-spectrogram",
         partial(draw_spectrogram, f_grid, t_grid, shown_t, shown_f, excess),
+        provenance=SPECTROGRAM,
     )
     experiment.number("window-length-ms", 1e3 * window_length, ".1f")
     experiment.number("frequency-width", frequency_width, ".0f")
@@ -541,7 +572,9 @@ def run() -> Experiment:
     ) = primary_fit(strains, corr)
     measured, model = measured_and_model(seg, primary, data_fit, sigma_fit, steps)
     experiment.figure(
-        "fig-measured-vs-model", partial(draw_measured_vs_model, measured, model)
+        "fig-measured-vs-model",
+        partial(draw_measured_vs_model, measured, model),
+        provenance=MEASURED_VS_MODEL,
     )
     experiment.number("disclosure", measured.disclosure())
     experiment.number("reduced-chi2", primary.reduced_chi2, ".2f")
@@ -568,7 +601,11 @@ def run() -> Experiment:
     spread = sensitivity(experiment, strains, seg, corr, primary)
     experiment.number("spread-low", spread[0], ".0f")
     experiment.number("spread-high", spread[1], ".0f")
-    experiment.figure("fig-profile", partial(draw_profile, primary, published_detector))
+    experiment.figure(
+        "fig-profile",
+        partial(draw_profile, primary, published_detector),
+        provenance=PROFILE,
+    )
     experiment.number("published-source", PUBLISHED_CHIRP_MASS_SOURCE)
     experiment.number("published-redshift", PUBLISHED_REDSHIFT)
     experiment.number("published-detector", published_detector, ".1f")

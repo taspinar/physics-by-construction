@@ -41,7 +41,22 @@ from scipy.ndimage import uniform_filter1d
 from scipy.signal import find_peaks
 from scipy.special import j1
 
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.figure_provenance import REFERENCE as REFERENCE_ROLE
+from pbc.data.figure_provenance import FigureProvenance, role
+from pbc.data.plotting import COLOURS
+
+# The provenance the reference figure declares (Issue #531): its status and
+# credit at the caption and in its PNG, from the card.
+REFERENCE = FigureProvenance(
+    status="processed",
+    dataset="lycopodium-spore-diffraction",
+    artifact="processed-measured",
+    combines=("simulated",),
+    processing="The record's intensity profiles (converted from XLSX to CSV) and"
+    " morphometry (re-encoded to UTF-8), values unchanged; centring, folding,"
+    " smoothing, the ring radii, and the proportional fit: this module's code"
+    " (pbc.data.reference.lycopodium), not part of the record.",
+)
 
 PROFILES = {0.6328: "profile_633nm.csv", 0.405: "profile_405nm.csv"}  # um -> file
 MORPHOMETRY = {
@@ -289,13 +304,20 @@ def make_figure(data_dir: Path) -> plt.Figure:
     for w, p in profiles.items():
         colour, ls = styles[w]
         c = centre(p)
-        ax_raw.plot(
+        (line,) = ax_raw.plot(
             p.x - c, p.luma, color=colour, ls=ls, lw=0.7, label=f"{w * 1000:.1f} nm"
         )
+        role(line, "processed")
         for sign in (-1, 1):
             ax_raw.axvline(sign * rings[w].radius, color=colour, ls=":", lw=0.9)
-    ax_raw.axhline(
-        SATURATED, color="0.4", lw=0.8, label=f"saturated (luma >= {SATURATED:.0f})"
+    role(
+        ax_raw.axhline(
+            SATURATED,
+            color="0.4",
+            lw=0.8,
+            label=f"saturated (luma >= {SATURATED:.0f})",
+        ),
+        REFERENCE_ROLE,  # the camera's threshold, drawn for comparison
     )
     ax_raw.set_xlabel("x - centre [unit of the record, not stated]")
     ax_raw.set_ylabel("luma [0-255, camera brightness]")
@@ -306,7 +328,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
         colour, ls = styles[w]
         r, luma = folded(p, centre(p))
         m = _smooth(luma, WIDTH, r[1] - r[0])
-        ax_fold.plot(
+        (line,) = ax_fold.plot(
             r / w,
             m,
             color=colour,
@@ -314,6 +336,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
             lw=1.2,
             label=f"{w * 1000:.1f} nm, folded, moving average {WIDTH} x",
         )
+        role(line, "processed")
         ax_fold.axvline(rings[w].radius / w, color=colour, ls=":", lw=0.9)
     ax_fold.set_xlim(0, 60)
     ax_fold.set_xlabel("radius / wavelength [unit of x per um]")
@@ -330,7 +353,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ):
         spores = whole_spores(table)
         n, mean, sd, sem = summary(spores)
-        ax_d.hist(
+        _, _, patches = ax_d.hist(
             spores,
             bins=bins,
             density=True,
@@ -340,6 +363,8 @@ def make_figure(data_dir: Path) -> plt.Figure:
             lw=1.4,
             label=f"{name}: n = {n}, mean {mean:.2f} +- {sem:.2f} um, sd {sd:.2f}",
         )
+        for patch in patches:
+            role(patch, "processed")
     ax_d.set_xlabel("spore diameter d [um] (ImageJ, from the area)")
     ax_d.set_ylabel("fraction per um [1/um]")
     ax_d.set_title("Processed: microscope diameters, whole spores (d > 15 um)")
@@ -350,7 +375,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
     radius = np.array([rings[w].radius for w in lam])
     sigma = np.array([rings[w].uncertainty for w in lam])
     slope = float(np.sum(radius * lam / sigma**2) / np.sum(lam**2 / sigma**2))
-    ax_r.errorbar(
+    bars = ax_r.errorbar(
         lam * 1000,
         radius,
         yerr=sigma,
@@ -359,14 +384,16 @@ def make_figure(data_dir: Path) -> plt.Figure:
         capsize=4,
         label="dark ring (bars: half-range over smoothing widths)",
     )
+    role(bars, "processed")
     grid = np.linspace(0, 0.7, 50)
-    ax_r.plot(
+    (line,) = ax_r.plot(
         grid * 1000,
         slope * grid,
         color=COLOURS[1],
         ls="--",
         label="proportional fit to the two measured radii",
     )
+    role(line, "simulated")
     ax_r.set_xlim(0, 700)
     ax_r.set_ylim(0, None)
     ax_r.set_xlabel("wavelength [nm]")
@@ -384,15 +411,4 @@ def make_figure(data_dir: Path) -> plt.Figure:
             (290, (0.12 if order == 1 else 0.05) * ax_r.get_ylim()[1]),
             fontsize=8,
         )
-    add_credit(
-        fig,
-        "Data: O. Voronkin, S. Lushchin, 'Morphometry and Optical Data of "
-        "Lycopodium Spores for the Study of Diffraction and Interference', "
-        "Zenodo, doi 10.5281/zenodo.15846643, CC BY 4.0; intensity profiles "
-        "converted from XLSX to CSV, values unchanged; morphometry CSVs "
-        "re-encoded to UTF-8, values unchanged. Centring, folding, smoothing, "
-        "ring radii, and the model: this figure's code "
-        "(pbc.data.reference.lycopodium), not part of the record.",
-    )
-    label_status(fig, "processed")
     return fig

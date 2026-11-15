@@ -4,15 +4,13 @@ dossier's, and the figures follow the conventions of a measured-data lab."""
 
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
-from support.figures import assert_declared
+from support.figures import assert_cell_declared, dataset_figures
 
 from pbc.authoring.tables import is_numeric_console_block
 from pbc.data import SAMPLES_DIR
-from pbc.data.plotting import check_figure, figure_status
 from pbc.data.reference import bayreuth_rlc
 from pbc.electromagnetism.experiments import rlc_circuit_measurements as lab
 
@@ -123,37 +121,31 @@ def test_the_band_fits_differ_by_many_standard_errors(results):
     assert spread(2) < min(spread(3), spread(4), spread(5))
 
 
-def test_only_the_pilot_figure_declares_its_provenance(experiment):
+def test_every_dataset_figure_declares_its_provenance(experiment):
     # Issue #524: the impedance fit opts in, processed measurement with
-    # simulated models, under a CC BY card that requires a visible credit.
-    assert experiment.provenance == {"fig-impedance-fit": lab.IMPEDANCE_FIT}
+    # simulated models, under a CC BY card that requires a visible credit;
+    # Issue #531: so does the detail around the resonance, and every figure
+    # of the lab is a figure of the dataset.
+    assert set(experiment.provenance) == set(dataset_figures(PAGE))
+    assert set(experiment.figures) == set(dataset_figures(PAGE))
+    assert experiment.provenance == {
+        "fig-impedance-fit": lab.IMPEDANCE_FIT,
+        "fig-resonance-detail": lab.RESONANCE_DETAIL,
+    }
     assert lab.IMPEDANCE_FIT.combines == ("simulated",)
+    assert lab.RESONANCE_DETAIL.combines == ("simulated",)
 
 
-@pytest.mark.parametrize("label", sorted(lab.run().figures))
+@pytest.mark.parametrize("label", sorted(dataset_figures(PAGE)))
 def test_every_figure_is_processed_measurement_and_follows_the_conventions(
     experiment, label
 ):
-    figure = experiment.figures[label]()
-    try:
-        residuals = label == "fig-impedance-fit"
-        if label in experiment.provenance:
-            # Issue #524: the declared figure states its status at the caption
-            # and in its PNG; its legend entries carry roles, not status words.
-            assert_declared(experiment, label, figure, "processed", residuals)
-            return
-        assert figure_status(figure) == "processed"
-        assert check_figure(figure, residuals=residuals) == []
-        for ax in figure.axes:
-            legend = ax.get_legend()
-            for t in [] if legend is None else legend.get_texts():
-                text = t.get_text()
-                if text.startswith("measured"):
-                    assert "[processed]" in text, (label, text)
-                if text.startswith("model") and "[" in text:
-                    assert "[simulated]" in text, (label, text)
-    finally:
-        plt.close(figure)
+    # The declared figure states its status at the caption and in its PNG;
+    # its legend entries carry roles, not status words.
+    assert dataset_figures(PAGE)[label]["fig-status"] == "processed"
+    assert_cell_declared(
+        experiment, PAGE, label, residuals=label == "fig-impedance-fit"
+    )
 
 
 def test_no_printed_output_is_a_block_of_numbers(experiment):

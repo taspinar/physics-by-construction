@@ -26,7 +26,8 @@ from scipy.stats import chi2 as chi2_distribution
 
 from pbc.data import SAMPLES_DIR, tracking
 from pbc.data.adapters import track_series
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.figure_provenance import RESIDUAL, FigureProvenance, role
+from pbc.data.plotting import COLOURS
 from pbc.data.reference.trackpy_bulk_water import (
     FPS,
     FRAMES,
@@ -62,14 +63,35 @@ REGION_BOOTSTRAP = 400  # resamples for the D of a part of the field
 REGION_SEED = 20261114
 CORNER = 120  # px: the top-left corner of frame 000 that the page shows
 # endregion: choices
-CREDIT = (
-    "Frames: trackpy-examples, sample_data/bulk_water (commit 09fb307), "
-    "Copyright (c) 2013-2014 trackpy-examples contributors, CC BY 3.0 "
-    "https://creativecommons.org/licenses/by/3.0/."
+# The provenance each figure of the frames declares (Issue #531): its status
+# and credit at the caption and in its PNG, from the card.
+FRAME = FigureProvenance(
+    status="measured",
+    dataset=DATASET,
+    processing="A corner of the record's frame 000, its green channel, shown as"
+    " recorded: the cut is this lesson's code, not part of the record.",
 )
-PROCESSING = (
-    " Tracking, drift subtraction, MSD and fits: this project's processing "
-    "(NumPy, SciPy), not the provider's."
+TRACKS = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    processing="The spheres located in the record's frames, linked into tracks,"
+    " and the drift of the whole sample: this lesson's code (NumPy, SciPy), not"
+    " part of the record.",
+)
+MSD = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    combines=("simulated",),
+    processing="The drift-corrected mean squared displacement of the tracks with"
+    " its bootstrap error, the fitted lines, their residuals, D from each"
+    " increase, and Stokes-Einstein: this lesson's code, not part of the record.",
+)
+STEPS = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    combines=("simulated",),
+    processing="The one-frame steps of the tracks after the drift, and the"
+    " Gaussian of their spread: this lesson's code, not part of the record.",
 )
 FRAME_TIME = 1.0 / FPS  # s
 WIDTH, HEIGHT = 640, 424  # px
@@ -445,13 +467,12 @@ def draw_frame(green: np.ndarray) -> Figure:
         extent=(-0.5, CORNER - 0.5, CORNER - 0.5, -0.5),
         interpolation="nearest",
     )
+    role(image, "measured")
     ax.set_xlabel("x [px]")
     ax.set_ylabel("y [px]")
     ax.set_title("Frame 000, top-left corner", fontsize=10)
     bar = fig.colorbar(image, ax=ax, shrink=0.85)
     bar.set_label("green channel [grey level] (false colour)", fontsize=7)
-    add_credit(fig, CREDIT + " Shown as recorded.")
-    label_status(fig, "measured")
     return fig
 
 
@@ -471,25 +492,27 @@ def draw_tracks(tracks: Tracks, motion: np.ndarray) -> Figure:
         x, y = track_series(tracks, number, 0), track_series(tracks, number, 1)
         if x.y.max() < CORNER and y.y.max() < CORNER:
             status = x.status
-            ax.plot(
+            (track,) = ax.plot(
                 x.y,
                 y.y,
                 color=COLOURS[0],
                 lw=1.0,
-                label=f"tracks over 40 frames [{status}]" if first else None,
+                label="tracks over 40 frames" if first else None,
             )
+            role(track, status)
             first = False
     start = tracks.frame == 0
     inside = start & np.all(tracks.xy < CORNER, axis=1)
-    ax.plot(
+    (features,) = ax.plot(
         *tracks.xy[inside].T,
         "o",
         mfc="none",
         mec=COLOURS[1],
         ms=7,
         mew=0.8,
-        label=f"features of frame 000 [{status}]",
+        label="features of frame 000",
     )
+    role(features, status)
     ax.set_xlim(-0.5, CORNER - 0.5)
     # Room below the corner for the legend: nothing is drawn there.
     ax.set_ylim(CORNER + 40, -0.5)
@@ -502,28 +525,28 @@ def draw_tracks(tracks: Tracks, motion: np.ndarray) -> Figure:
     ax.legend(fontsize=6.5, loc="lower right")
     time = np.arange(motion.shape[0]) * FRAME_TIME
     for k, (name, style) in enumerate((("x", "-"), ("y", "--"))):
-        drift_ax.plot(
+        (drift,) = drift_ax.plot(
             time,
             motion[:, k],
             ls=style,
             color=COLOURS[k + 2],
-            label=f"drift in {name}, all linked features [{status}]",
+            label=f"drift in {name}, all linked features",
         )
+        role(drift, status)
     drift_ax.set_xlabel("time from frame 000 [s]")
     drift_ax.set_ylabel("sample displacement [µm]")
     drift_ax.set_title("Drift, subtracted before the MSD", fontsize=10)
     drift_ax.legend(fontsize=6.5, loc="upper left")
-    add_credit(fig, CREDIT + PROCESSING)
-    label_status(fig, status)
     return fig
 
 
-def _straight(ax, x_end: float, value, **kwargs) -> None:
+def _straight(ax, x_end: float, value, **kwargs):
     """A straight line from x = 0 to ``x_end``, drawn from its two ends: Agg
     rasterises a long run of collinear segments differently from one call to
     the next, and the page's figure has to be the same bytes."""
     ends = np.array([0.0, x_end])
-    ax.plot(ends, value(ends), **kwargs)
+    (line,) = ax.plot(ends, value(ends), **kwargs)
+    return line
 
 
 def draw_msd(result: Analysis, local: tuple, models: dict, origin: float) -> Figure:
@@ -537,7 +560,7 @@ def draw_msd(result: Analysis, local: tuple, models: dict, origin: float) -> Fig
     right = fig.add_subplot(grid[:, 1])
     tau_ms = 1e3 * result.tau
     end = 1e3 * (result.tau[-1] + FRAME_TIME / 2)
-    top.errorbar(
+    bars = top.errorbar(
         tau_ms,
         result.msd,
         yerr=result.msd_err,
@@ -546,10 +569,11 @@ def draw_msd(result: Analysis, local: tuple, models: dict, origin: float) -> Fig
         ms=4,
         capsize=2,
         color=COLOURS[0],
-        label=f"MSD, {result.tracks} tracks [processed], 1 sd bootstrap",
+        label=f"MSD, {result.tracks} tracks, 1 sd bootstrap",
     )
+    role(bars, "processed")
     d, c = result.diffusion, result.intercept
-    _straight(
+    line = _straight(
         top,
         end,
         lambda t: 4e-3 * d * t + c,
@@ -557,7 +581,8 @@ def draw_msd(result: Analysis, local: tuple, models: dict, origin: float) -> Fig
         color=COLOURS[1],
         label=f"line 4Dτ + c: D = {d:.3f} µm²/s",
     )
-    _straight(
+    role(line, "simulated")
+    line = _straight(
         top,
         end,
         lambda t: 4e-3 * origin * t,
@@ -565,35 +590,40 @@ def draw_msd(result: Analysis, local: tuple, models: dict, origin: float) -> Fig
         color=COLOURS[3],
         label=f"line through 0 (random-walks lesson): D = {origin:.3f} µm²/s",
     )
+    role(line, "simulated")
     for (celsius, found), style in zip(models.items(), (":", (0, (1, 3))), strict=True):
-        _straight(
+        line = _straight(
             top,
             end,
             lambda t, m=found["model"]: 4e-3 * m * t + c,
             ls=style,
             color=COLOURS[2],
-            label=f"Stokes-Einstein {celsius:.0f} °C, same c [simulated]",
+            label=f"Stokes-Einstein {celsius:.0f} °C, same c",
         )
+        role(line, "simulated")
     top.set_ylabel("MSD [µm²]")
     top.set_title("Drift-corrected MSD", fontsize=10)
     top.set_ylim(-0.08, 1.3)  # room for the legend above the data
     top.legend(fontsize=6, loc="upper left")
     bottom.axhline(0, color="0.4", lw=0.8)
-    bottom.errorbar(
-        tau_ms,
-        result.msd - (4 * d * result.tau + c),
-        yerr=result.msd_err,
-        ls="none",
-        marker="o",
-        ms=4,
-        capsize=2,
-        color=COLOURS[0],
+    role(
+        bottom.errorbar(
+            tau_ms,
+            result.msd - (4 * d * result.tau + c),
+            yerr=result.msd_err,
+            ls="none",
+            marker="o",
+            ms=4,
+            capsize=2,
+            color=COLOURS[0],
+        ),
+        RESIDUAL,
     )
     bottom.set_xlim(0, end)
     bottom.set_xlabel("lag time τ [ms]")
     bottom.set_ylabel("residual [µm²]")
     bottom.set_title("Residual: measured minus line", fontsize=10)
-    right.errorbar(
+    bars = right.errorbar(
         tau_ms[1:],
         local[0],
         yerr=local[1],
@@ -602,23 +632,25 @@ def draw_msd(result: Analysis, local: tuple, models: dict, origin: float) -> Fig
         ms=4,
         capsize=2,
         color=COLOURS[0],
-        label="from each increase [processed], 1 sd bootstrap",
+        label="from each increase, 1 sd bootstrap",
     )
-    right.axhline(d, ls="--", color=COLOURS[1], label="line 4Dτ + c")
+    role(bars, "processed")
+    role(right.axhline(d, ls="--", color=COLOURS[1], label="line 4Dτ + c"), "simulated")
     for (celsius, found), style in zip(models.items(), (":", (0, (1, 3))), strict=True):
-        right.axhline(
-            found["model"],
-            ls=style,
-            color=COLOURS[2],
-            label=f"Stokes-Einstein {celsius:.0f} °C [simulated]",
+        role(
+            right.axhline(
+                found["model"],
+                ls=style,
+                color=COLOURS[2],
+                label=f"Stokes-Einstein {celsius:.0f} °C",
+            ),
+            "simulated",
         )
     right.set_ylim(0.3, 0.52)
     right.set_xlabel("lag time τ [ms]")
     right.set_ylabel("D [µm²/s]")
     right.set_title("D from each increase", fontsize=10)
     right.legend(fontsize=6, loc="lower right")
-    add_credit(fig, CREDIT + PROCESSING)
-    label_status(fig, "processed")
     return fig
 
 
@@ -630,30 +662,31 @@ def draw_steps(result: Analysis) -> Figure:
     sigma = float(np.sqrt(np.mean(values**2)))
     reach = 1.1 * SEARCH_RANGE * MICRONS_PER_PIXEL
     edges = np.linspace(-reach, reach, 67)
-    ax.hist(
+    *_, bars = ax.hist(
         values,
         bins=edges,
         density=True,
         color=COLOURS[0],
         alpha=0.6,
-        label=f"x and y steps, {values.size:,} [processed]",
+        label=f"x and y steps, {values.size:,}",
     )
+    for bar in bars:
+        role(bar, "processed")
     grid = np.linspace(-reach, reach, 201)
-    ax.plot(
+    (gaussian,) = ax.plot(
         grid,
         np.exp(-0.5 * (grid / sigma) ** 2) / (sigma * np.sqrt(2 * np.pi)),
         "--",
         color=COLOURS[1],
         label=f"Gaussian of the same rms, {sigma:.3f} µm",
     )
+    role(gaussian, "simulated")
     ax.set_yscale("log")
     ax.set_ylim(1e-3, 10)
     ax.set_xlabel("displacement in one frame [µm]")
     ax.set_ylabel("probability density [1/µm]")
     ax.set_title("One-frame steps after the drift (log scale)", fontsize=10)
     ax.legend(fontsize=6.5, loc="upper left")
-    add_credit(fig, CREDIT + PROCESSING)
-    label_status(fig, "processed")
     return fig
 
 
@@ -772,12 +805,16 @@ def run() -> Experiment:
     experiment.number("spread", result.track_spread, ".2f")
     experiment.number("spread-expected", result.track_spread_expected, ".2f")
 
-    experiment.figure("fig-frame", partial(draw_frame, load_frame()))
-    experiment.figure("fig-tracks", partial(draw_tracks, tracks, result.drift))
+    experiment.figure("fig-frame", partial(draw_frame, load_frame()), provenance=FRAME)
     experiment.figure(
-        "fig-msd", partial(draw_msd, result, (local, local_err), models, origin)
+        "fig-tracks", partial(draw_tracks, tracks, result.drift), provenance=TRACKS
     )
-    experiment.figure("fig-steps", partial(draw_steps, result))
+    experiment.figure(
+        "fig-msd",
+        partial(draw_msd, result, (local, local_err), models, origin),
+        provenance=MSD,
+    )
+    experiment.figure("fig-steps", partial(draw_steps, result), provenance=STEPS)
 
     with experiment.capture("spreading-exercise"):
         spreading_exercise()

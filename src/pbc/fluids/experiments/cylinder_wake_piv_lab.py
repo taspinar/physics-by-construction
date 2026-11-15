@@ -25,7 +25,8 @@ from matplotlib.lines import Line2D
 
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import hot_wire_series, piv_probe_series
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.figure_provenance import REFERENCE, FigureProvenance, role
+from pbc.data.plotting import COLOURS
 from pbc.data.reference import cylinder_wake, ost_hotwire
 from pbc.experiment import Experiment, main
 from pbc.fluids import piv
@@ -45,15 +46,43 @@ DECIMATE = 13  # every 13th frame: 1.54 frames per second, for the exercise
 # endregion: choices
 STENCIL_STEPS = (0.4, 0.2, 0.1, 0.05)  # h / c on the Lamb-Oseen vortex
 NOISE_SEED = 20261113
-PIV_CREDIT = (
-    "Data: J. Shang, J. Tu, PIV of flow past a cylinder, Zenodo, doi "
-    "10.5281/zenodo.20765567, CC BY 4.0; extract by this project. Vorticity, "
-    "filter, spectra: this lesson's."
+# The provenance each figure of a record declares (Issue #531): its status
+# and credit at the caption and in its PNG, from the card.
+VORTICITY_STENCILS = FigureProvenance(
+    status="processed",
+    dataset=PIV_DATASET,
+    artifact="processed-measured",
+    processing="The velocity vectors of the record's first frame; the vorticity"
+    " from them with the central and the least-squares stencils: this lesson's"
+    " code, not part of the record.",
 )
-HOT_WIRE_CREDIT = (
-    "Data: A. P. Ost, A. V. de Paula, S. V. Möller, Mendeley Data, doi "
-    "10.17632/xy8ggx9hn6.1, CC BY 4.0, 16.4 s per run; PIV: J. Shang, J. Tu, "
-    "Zenodo, doi 10.5281/zenodo.20765567, CC BY 4.0. St: this lesson's."
+WAKE_KEYFRAMES = FigureProvenance(
+    status="processed",
+    dataset=PIV_DATASET,
+    artifact="processed-measured",
+    processing="The vorticity of three frames from the record's velocity vectors"
+    " (central stencil), the mean streamwise velocity and its streamlines over"
+    " the 8000 frames, and the end of the recirculation: this lesson's code, not"
+    " part of the record.",
+)
+SHEDDING = FigureProvenance(
+    status="processed",
+    dataset=PIV_DATASET,
+    artifact="processed-measured",
+    processing="The record's velocity at the probe 2 D behind the cylinder; the"
+    " band-pass and the Welch spectra of 400 s: this lesson's code, not part of"
+    " the record.",
+)
+STROUHAL = FigureProvenance(
+    status="processed",
+    dataset=HOT_WIRE_DATASET,
+    artifact="processed-measured",
+    combines=("simulated",),
+    also=(PIV_DATASET,),
+    processing="The Strouhal number of each of the ten hot-wire runs from its"
+    " spectral peak, its blockage correction, and the straight line through"
+    " them, and the Strouhal number of the PIV record: this lesson's code, not"
+    " part of the records; the Roshko curves are the published fits.",
 )
 MARKERS = {25.1: ("o", COLOURS[0]), 32.0: ("s", COLOURS[2]), 50.0: ("^", COLOURS[1])}
 
@@ -375,6 +404,7 @@ def _vorticity_panels(
             extent=_extent(wake),
             interpolation="nearest",
         )
+        role(image, "processed")
         ax.set_title(title, fontsize=8)
         ax.set_xlabel("x [mm]", fontsize=7)
         ax.set_ylabel("y [mm]", fontsize=7)
@@ -382,6 +412,15 @@ def _vorticity_panels(
     bar = fig.colorbar(image, ax=axes if bar_axes is None else bar_axes, shrink=0.8)
     bar.set_label("ω [1/s] (false colour)", fontsize=7)
     bar.ax.tick_params(labelsize=6)
+
+
+def _keys(ax, *keys: Line2D) -> list[Line2D]:
+    """The legend keys of a panel, added to it without data (they draw
+    nothing), so that its legend entries are the panel's and carry the role
+    of the record they describe (Issue #531)."""
+    for key in keys:
+        ax.add_line(role(key, "processed"))
+    return list(keys)
 
 
 def draw_wake_keyframes(
@@ -411,12 +450,13 @@ def draw_wake_keyframes(
             ms=5,
         )
     panels[2].legend(
-        handles=[
+        handles=_keys(
+            panels[2],
             Line2D(
                 [], [], ls="none", marker="o", mfc="none", mec="k", label="probe 2 D"
             ),
             Line2D([], [], ls="none", marker="s", color="0.85", label="no data"),
-        ],
+        ),
         loc="upper center",
         bbox_to_anchor=(0.5, -0.3),
         ncols=2,
@@ -464,17 +504,16 @@ def draw_wake_keyframes(
     ax.tick_params(labelsize=6)
     ax.set_title("mean u, 8000 frames", fontsize=8)
     ax.legend(
-        handles=[
+        handles=_keys(
+            ax,
             Line2D([], [], color="k", lw=0.5, label="mean streamlines"),
             Line2D([], [], color=COLOURS[1], ls="--", label="end of recirculation"),
-        ],
+        ),
         loc="upper center",
         bbox_to_anchor=(0.5, -0.3),
         ncols=2,
         fontsize=6,
     )
-    label_status(fig, "processed")
-    add_credit(fig, PIV_CREDIT)
     return fig
 
 
@@ -488,8 +527,6 @@ def draw_vorticity_stencils(wake: cylinder_wake.Wake, field: dict) -> Figure:
         wake,
         20.0,
     )
-    label_status(fig, "processed")
-    add_credit(fig, PIV_CREDIT)
     return fig
 
 
@@ -499,16 +536,17 @@ def draw_shedding(wake: cylinder_wake.Wake, crossing: dict) -> Figure:
     )
     t = np.arange(wake.probes.shape[0]) / cylinder_wake.FPS
     first = t < 6
-    series.plot(
+    (line,) = series.plot(
         t[first],
         wake.probes[first, 0, 1] * 1e3,
         "-",
         color="0.6",
         lw=0.7,
         antialiased=False,
-        label="v at 2 D [processed]",
+        label="v at 2 D",
     )
-    series.plot(
+    role(line, "processed")
+    (line,) = series.plot(
         t[first],
         crossing["filtered"][first] * 1e3,
         "-",
@@ -516,6 +554,7 @@ def draw_shedding(wake: cylinder_wake.Wake, crossing: dict) -> Figure:
         lw=1.1,
         label=f"v band-passed {BAND[0]}-{BAND[1]} Hz",
     )
+    role(line, "processed")
     series.set_xlabel("time [s]", fontsize=8)
     series.set_ylabel("v [mm/s]", fontsize=8)
     series.set_ylim(-60, 75)
@@ -526,18 +565,19 @@ def draw_shedding(wake: cylinder_wake.Wake, crossing: dict) -> Figure:
     ):
         f, p = cylinder_wake.spectrum(wake.probes[:, 0, k])
         keep = (f > 0) & (f <= 3)
-        power.semilogy(
+        (line,) = power.semilogy(
             f[keep],
             p[keep],
             style,
             color=colour,
             lw=0.8,
             antialiased=False,
-            label=f"{name} at 2 D [processed]",
+            label=f"{name} at 2 D",
         )
+        role(line, "processed")
     for multiple, style in ((1, ":"), (2, "-.")):
         frequency = multiple * cylinder_wake.F_PUBLISHED
-        power.plot(
+        (line,) = power.plot(
             [frequency, frequency],
             [1e-9, 1e-2],
             style,
@@ -545,6 +585,7 @@ def draw_shedding(wake: cylinder_wake.Wake, crossing: dict) -> Figure:
             lw=0.9,
             label="published f" if multiple == 1 else "twice that",
         )
+        role(line, REFERENCE)  # a published value, drawn for comparison
     power.set_ylim(1e-8, 5e-3)
     power.set_xlabel("frequency [Hz]", fontsize=8)
     power.set_ylabel("power density [(m/s)²/Hz]", fontsize=8)
@@ -552,8 +593,6 @@ def draw_shedding(wake: cylinder_wake.Wake, crossing: dict) -> Figure:
     power.legend(fontsize=6, loc="upper right")
     for ax in (series, power):
         ax.tick_params(labelsize=7)
-    label_status(fig, "processed")
-    add_credit(fig, PIV_CREDIT)
     return fig
 
 
@@ -571,7 +610,7 @@ def draw_strouhal(
     for diameter, (marker, colour) in MARKERS.items():
         pick = diameters == diameter
         error = HOT_WIRE_ERROR * result.strouhal[pick]
-        st_re.errorbar(
+        bars = st_re.errorbar(
             result.reynolds[pick],
             result.strouhal[pick],
             yerr=error,
@@ -579,9 +618,10 @@ def draw_strouhal(
             color=colour,
             ms=4,
             capsize=0,
-            label=f"hot wire, D = {diameter:g} mm [processed]",
+            label=f"hot wire, D = {diameter:g} mm",
         )
-        st_block.errorbar(
+        role(bars, "processed")
+        bars = st_block.errorbar(
             result.blockage[pick],
             result.strouhal[pick],
             yerr=error,
@@ -589,8 +629,9 @@ def draw_strouhal(
             color=colour,
             ms=4,
             capsize=0,
-            label=f"D = {diameter:g} mm, St [processed]",
+            label=f"D = {diameter:g} mm, St",
         )
+        role(bars, "processed")
         st_block.plot(
             result.blockage[pick],
             result.strouhal[pick] * (1 - result.blockage[pick]),
@@ -599,8 +640,9 @@ def draw_strouhal(
             color=colour,
             ms=4,
         )
-    st_block.plot([], [], "o", mfc="none", color="0.3", label="St (1 - D/W)")
-    st_re.errorbar(
+    (curve,) = st_block.plot([], [], "o", mfc="none", color="0.3", label="St (1 - D/W)")
+    role(curve, "processed")
+    bars = st_re.errorbar(
         [cylinder_wake.REYNOLDS],
         [analysis.strouhal],
         yerr=[piv_err],
@@ -608,19 +650,22 @@ def draw_strouhal(
         color=COLOURS[3],
         ms=4,
         capsize=0,
-        label="PIV, Re = 413 [processed]",
+        label="PIV, Re = 413",
     )
+    role(bars, "processed")
     stable = np.geomspace(ROSHKO_FIT[0] + 1, ROSHKO_FIT[1] - 1, 30)
-    st_re.plot(
+    # A model beside the measurements is never a solid line (Issue #531).
+    (curve,) = st_re.plot(
         stable,
         [roshko_strouhal(r) for r in stable],
-        "-",
+        "-.",
         color="0.2",
         lw=1.0,
         label="Roshko, stable range (FL3)",
     )
+    role(curve, "simulated")
     irregular = np.geomspace(300, 2000, 30)
-    st_re.plot(
+    (curve,) = st_re.plot(
         irregular,
         cylinder_wake.roshko(irregular),
         "--",
@@ -628,6 +673,7 @@ def draw_strouhal(
         lw=1.0,
         label="Roshko, irregular range",
     )
+    role(curve, "simulated")
     st_re.set_xscale("log")
     st_re.set_ylim(0.14, 0.26)
     st_re.set_xlabel("Re = U D / ν [dimensionless]", fontsize=8)  # noqa: RUF001
@@ -635,7 +681,7 @@ def draw_strouhal(
     st_re.set_title("Strouhal against Reynolds number", fontsize=9)
     st_re.legend(fontsize=5.5, loc="upper center", bbox_to_anchor=(0.5, -0.25))
     ends = np.array([0.0, 0.3])
-    st_block.plot(
+    (curve,) = st_block.plot(
         ends,
         line["intercept"] + line["slope"] * ends,
         ":",
@@ -643,6 +689,7 @@ def draw_strouhal(
         lw=1.0,
         label="straight line through St",
     )
+    role(curve, "simulated")
     st_block.set_xlim(0, 0.3)
     st_block.set_ylim(0.16, 0.25)
     st_block.set_xlabel("blockage D / W [dimensionless]", fontsize=8)
@@ -651,8 +698,6 @@ def draw_strouhal(
     st_block.legend(fontsize=5.5, loc="upper center", bbox_to_anchor=(0.5, -0.25))
     for ax in (st_re, st_block):
         ax.tick_params(labelsize=7)
-    label_status(fig, "processed")
-    add_credit(fig, HOT_WIRE_CREDIT)
     return fig
 
 
@@ -829,15 +874,22 @@ def run() -> Experiment:
     experiment.number("intercept-err", line["intercept-err"], ".3f")
 
     experiment.figure(
-        "fig-wake-keyframes", partial(draw_wake_keyframes, wake, field, analysis)
+        "fig-wake-keyframes",
+        partial(draw_wake_keyframes, wake, field, analysis),
+        provenance=WAKE_KEYFRAMES,
     )
     experiment.figure(
-        "fig-vorticity-stencils", partial(draw_vorticity_stencils, wake, field)
+        "fig-vorticity-stencils",
+        partial(draw_vorticity_stencils, wake, field),
+        provenance=VORTICITY_STENCILS,
     )
-    experiment.figure("fig-shedding", partial(draw_shedding, wake, crossing))
+    experiment.figure(
+        "fig-shedding", partial(draw_shedding, wake, crossing), provenance=SHEDDING
+    )
     experiment.figure(
         "fig-strouhal",
         partial(draw_strouhal, data, result, analysis, st_err, line),
+        provenance=STROUHAL,
     )
 
     with experiment.capture("scaling-exercise"):

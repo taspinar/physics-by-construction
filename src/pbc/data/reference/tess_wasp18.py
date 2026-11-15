@@ -33,8 +33,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from pbc.astrophysics.transit import durations, overlap_area
+from pbc.data.figure_provenance import RESIDUAL, FigureProvenance, role
 from pbc.data.fit import FitResult, fit_curve
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.plotting import COLOURS
 
 FILE = "wasp18_s0029_lc.csv"
 FIELDS = ("time", "pdcsap_flux", "pdcsap_flux_err", "quality")
@@ -397,6 +398,19 @@ def residuals(analysis: Analysis) -> np.ndarray:
     return folded.flux - model_flux(folded.time, *analysis.params())
 
 
+# The provenance of the reference figure (Issue #531): its status and credit
+# at no place on the chart, in its PNG's record, from the card.
+REFERENCE = FigureProvenance(
+    status="processed",
+    dataset="tess-exoplanet-light-curves",
+    combines=("simulated",),
+    processing="The SPOC 2-minute light curve of TIC 100100827 (WASP-18), sector"
+    " 29, columns TIME, PDCSAP_FLUX, PDCSAP_FLUX_ERR, QUALITY converted to CSV"
+    " unchanged; the normalisation, folding, fit and residuals: the reference"
+    " figure's code (pbc.data.reference.tess_wasp18), not part of the record.",
+)
+
+
 def make_figure(data_dir: Path) -> plt.Figure:
     lc = load(data_dir)
     analysis = analyse(lc)
@@ -414,7 +428,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ax_oc = fig.add_subplot(grid[1:, 1])
 
     median = np.median(lc.flux[ok])
-    ax_all.plot(
+    (points,) = ax_all.plot(
         lc.time[ok],
         lc.flux[ok] / median,
         ls="none",
@@ -423,8 +437,9 @@ def make_figure(data_dir: Path) -> plt.Figure:
         color=COLOURS[0],
         label="PDCSAP flux, quality 0, over its median",
     )
+    role(points, "processed")
     marks = t0 + np.array(folded.epochs) * period
-    ax_all.plot(
+    (used,) = ax_all.plot(
         marks,
         np.full(marks.size, 1.006),
         ls="none",
@@ -433,6 +448,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
         color=COLOURS[1],
         label=f"{len(folded.epochs)} complete transits used",
     )
+    role(used, "processed")
     ax_all.set_xlabel("time [BJD - 2457000, d]")
     ax_all.set_ylabel("relative flux [1]")
     ax_all.set_title(
@@ -455,7 +471,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
             centres.append(phase_h[inside].mean())
             means.append(folded.flux[inside].mean())
             sems.append(folded.flux[inside].std(ddof=1) / np.sqrt(inside.sum()))
-    ax_fold.plot(
+    (points,) = ax_fold.plot(
         phase_h[order],
         folded.flux[order],
         ls="none",
@@ -467,7 +483,8 @@ def make_figure(data_dir: Path) -> plt.Figure:
             f"{np.median(folded.error) * 1e6:.0f} ppm each, not drawn)"
         ),
     )
-    ax_fold.errorbar(
+    role(points, "processed")
+    bars = ax_fold.errorbar(
         centres,
         means,
         yerr=sems,
@@ -477,7 +494,8 @@ def make_figure(data_dir: Path) -> plt.Figure:
         color=COLOURS[0],
         label="measured, 6-minute bins (standard error of the mean)",
     )
-    ax_fold.plot(
+    role(bars, "processed")
+    (model,) = ax_fold.plot(
         dense_h,
         curve,
         color=COLOURS[1],
@@ -488,13 +506,15 @@ def make_figure(data_dir: Path) -> plt.Figure:
             f"b = {result.value('b'):.3f}"
         ),
     )
-    ax_fold.axvspan(
+    role(model, "simulated")
+    excluded = ax_fold.axvspan(
         -HALF_MASK * 24,
         HALF_MASK * 24,
         color="0.92",
         zorder=0,
         label="excluded from the baseline parabola",
     )
+    role(excluded, "processed")
     ax_fold.set_ylim(0.979, 1.003)
     ax_fold.set_ylabel("normalised flux [1]")
     ax_fold.set_title(
@@ -506,12 +526,13 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ax_fold.tick_params(labelbottom=False)
 
     res = residuals(analysis) * 1e6
-    ax_res.plot(phase_h, res, ls="none", marker=".", ms=1.5, color="0.65")
+    (points,) = ax_res.plot(phase_h, res, ls="none", marker=".", ms=1.5, color="0.65")
+    role(points, RESIDUAL)
     rms = []
     for k in range(1, bins.size):
         inside = index == k
         rms.append(res[inside].mean() if inside.sum() > 5 else np.nan)
-    ax_res.plot(
+    (binned,) = ax_res.plot(
         0.5 * (bins[1:] + bins[:-1]),
         rms,
         color=COLOURS[2],
@@ -519,6 +540,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
         ms=3,
         label="6-minute bins",
     )
+    role(binned, RESIDUAL)
     ax_res.axhline(0, color="0.3", lw=0.8)
     ax_res.set_ylim(-3000, 3000)
     ax_res.set_xlabel("time from mid-transit [h]")
@@ -529,7 +551,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ax_res.legend(fontsize=7, loc="lower left")
 
     epochs, errors = analysis.epochs, analysis.errors
-    ax_oc.errorbar(
+    bars = ax_oc.errorbar(
         epochs,
         o_minus_c(analysis),
         yerr=errors * 1440,
@@ -539,7 +561,13 @@ def make_figure(data_dir: Path) -> plt.Figure:
         color=COLOURS[0],
         label="each transit, shape fixed (one standard error)",
     )
-    ax_oc.axhline(0, color=COLOURS[1], ls="--", lw=1.2, label="the fitted ephemeris")
+    role(bars, "processed")
+    role(
+        ax_oc.axhline(
+            0, color=COLOURS[1], ls="--", lw=1.2, label="the fitted ephemeris"
+        ),
+        "simulated",
+    )
     ax_oc.set_xlabel("transit number from t0 [1]")
     ax_oc.set_ylabel("observed minus computed mid-time [min]")
     eph = analysis.ephemeris
@@ -549,15 +577,4 @@ def make_figure(data_dir: Path) -> plt.Figure:
     )
     ax_oc.legend(fontsize=8, loc="upper left")
 
-    add_credit(
-        fig,
-        "Data: TESS mission, SPOC 2-minute light curve of TIC 100100827 (WASP-18), "
-        "sector 29, file tess2020238165205-s0029-0000000100100827-0193-s_lc.fits, "
-        "obtained from MAST at STScI; public domain (MAST data use policy). "
-        "Columns TIME, PDCSAP_FLUX, PDCSAP_FLUX_ERR, QUALITY converted to CSV "
-        "unchanged. "
-        "Normalisation, folding, fit and residuals: this figure's code "
-        "(pbc.data.reference.tess_wasp18), not part of the record.",
-    )
-    label_status(fig, "processed")
     return fig

@@ -39,8 +39,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.special import erf
 
+from pbc.data.figure_provenance import REFERENCE as REFERENCE_ROLE
+from pbc.data.figure_provenance import RESIDUAL, FigureProvenance, role
 from pbc.data.fit import FitResult, fit_curve
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.plotting import COLOURS
 
 FILE = "spec-1949-53433-0480.csv"
 FIELDS = ("loglam", "flux", "ivar", "and_mask", "wdisp")
@@ -514,6 +516,20 @@ def sensitivity(spectrum: Spectrum) -> dict[str, Rydberg]:
     }
 
 
+# The provenance of the reference figure (Issue #531): its status and credit
+# at no place on the chart, in its PNG's record, from the card.
+REFERENCE = FigureProvenance(
+    status="processed",
+    dataset="sdss-balmer-spectrum",
+    combines=("simulated",),
+    processing="The record's columns loglam, flux, ivar, and_mask, wdisp of"
+    " spectrum spec-1949-53433-0480 (plate 1949, MJD 53433, fibre 480), Data"
+    " Release 17, converted to CSV unchanged; the line fits, the redshift"
+    " calibration and the Balmer formula: the reference figure's code"
+    " (pbc.data.reference.sdss_balmer), not part of the record.",
+)
+
+
 def make_figure(data_dir: Path) -> plt.Figure:
     spectrum = load(data_dir)
     analysis = analyse(spectrum)
@@ -531,13 +547,14 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ax_cal = fig.add_subplot(grid[3, :2])
     ax_law = fig.add_subplot(grid[3, 2:])
 
-    ax_all.plot(
+    (line,) = ax_all.plot(
         wave[ok],
         spectrum.flux[ok],
         color=COLOURS[0],
         lw=0.6,
         label="measured flux density (good pixels)",
     )
+    role(line, "processed")
     for k, name in enumerate(BALMER.values()):
         centre = analysis.lines[name].centre
         ax_all.axvline(centre, color=COLOURS[1], lw=0.6, ls=":")
@@ -563,9 +580,12 @@ def make_figure(data_dir: Path) -> plt.Figure:
 
     by_name = {name: fit for fit in analysis.fits for name in fit.names}
     for ax, ax_r, name in zip(ax_lines, ax_res, BALMER.values(), strict=True):
+        # The legend is the first panel's; the others name no entry
+        # (check_roles: every entry of a panel is in its legend, Issue #531).
+        first = ax is ax_lines[0]
         fit = by_name[name]
         line = analysis.lines[name]
-        ax.errorbar(
+        bars = ax.errorbar(
             fit.wavelength,
             fit.flux,
             yerr=fit.error,
@@ -573,17 +593,19 @@ def make_figure(data_dir: Path) -> plt.Figure:
             marker="o",
             ms=2.5,
             color=COLOURS[0],
-            label="measured pixels (1 sigma)",
+            label="measured pixels (1 sigma)" if first else None,
         )
+        role(bars, "processed")
         dense = np.linspace(np.log10(fit.lo), np.log10(fit.hi), 600)
-        ax.plot(
+        (model,) = ax.plot(
             10**dense,
             fit.model(dense),
             color=COLOURS[1],
             ls="--",
             lw=1.2,
-            label="model fit: Gaussian on a line",
+            label="model fit: Gaussian on a line" if first else None,
         )
+        role(model, "simulated")
         ax.set_title(
             f"Processed: {name}, {line.centre:.3f} A\n"
             f"reduced chi-square {line.reduced_chi2:.1f}",
@@ -592,7 +614,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
         ax.set_ylabel("flux density [1e-17 cgs/A]", fontsize=7)
         ax.tick_params(labelsize=7, labelbottom=False)
         normalised = fit.result.residuals / fit.error
-        ax_r.plot(
+        (points,) = ax_r.plot(
             fit.wavelength,
             normalised,
             ls="none",
@@ -600,6 +622,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
             ms=2.5,
             color=COLOURS[2],
         )
+        role(points, RESIDUAL)
         ax_r.axhline(0, color="0.3", lw=0.8)
         ax_r.set_title("Residuals over the pixel error", fontsize=7)
         ax_r.set_xlabel("wavelength [A]", fontsize=8)
@@ -613,7 +636,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
     zerr = np.array([analysis.lines[n].error / FORBIDDEN[n] for n in names])
     z_ref = float(cal.params[0])
     to_kms = C_KMS / (1 + z_ref)
-    ax_cal.errorbar(
+    bars = ax_cal.errorbar(
         observed,
         (z - z_ref) * to_kms,
         yerr=zerr * to_kms,
@@ -623,24 +646,27 @@ def make_figure(data_dir: Path) -> plt.Figure:
         color=COLOURS[0],
         label="forbidden lines, measured (scaled 1 sigma)",
     )
+    role(bars, "processed")
     for name, x, y in zip(names, observed, (z - z_ref) * to_kms, strict=True):
         ax_cal.annotate(
             name, (x, y), xytext=(3, 3), textcoords="offset points", fontsize=6
         )
     span = np.linspace(3800, 7400, 50)
-    ax_cal.plot(
+    (model,) = ax_cal.plot(
         span,
         (cal.at(span) - z_ref) * to_kms,
         color=COLOURS[1],
         ls="--",
         label=f"model fit: z(lambda), slope {cal.slope_kms:.1f} km/s per 1000 A",
     )
-    ax_cal.axhline(
+    role(model, "simulated")
+    one_z = ax_cal.axhline(
         (flat.calibration.params[0] - z_ref) * to_kms,
         color="0.5",
         ls=":",
         label="model fit: one z for all",
     )
+    role(one_z, "simulated")
     ax_cal.set_xlabel("observed wavelength [A]")
     ax_cal.set_ylabel(f"velocity from z = {z_ref:.7f} [km/s]")
     ax_cal.set_title(
@@ -651,7 +677,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ax_cal.legend(fontsize=7, loc="lower right")
 
     levels = list(ryd.levels)
-    ax_law.errorbar(
+    bars = ax_law.errorbar(
         levels,
         [(ryd.per_line[n] / R_H - 1) * 1e6 for n in levels],
         yerr=[ryd.per_line_err[n] / R_H * 1e6 for n in levels],
@@ -661,7 +687,8 @@ def make_figure(data_dir: Path) -> plt.Figure:
         color=COLOURS[0],
         label="each line, calibrated z(lambda) (scaled 1 sigma of the line)",
     )
-    ax_law.plot(
+    role(bars, "processed")
+    (one_z,) = ax_law.plot(
         np.array(levels) + 0.12,
         [(flat.per_line[n] / R_H - 1) * 1e6 for n in levels],
         ls="none",
@@ -671,7 +698,8 @@ def make_figure(data_dir: Path) -> plt.Figure:
         color="0.45",
         label=f"each line, one z (chi-square {flat.chi2:.0f})",
     )
-    ax_law.axhline(
+    role(one_z, "processed")
+    fitted = ax_law.axhline(
         ryd.relative * 1e6,
         color=COLOURS[1],
         ls="--",
@@ -680,13 +708,18 @@ def make_figure(data_dir: Path) -> plt.Figure:
             f" (chi-square {ryd.chi2:.1f} for {ryd.dof})"
         ),
     )
-    ax_law.axhline(
+    role(fitted, "simulated")
+    laboratory = ax_law.axhline(
         (bohr_lab_rydberg() / R_H - 1) * 1e6,
         color=COLOURS[2],
         ls="-.",
         label="laboratory hydrogen, same formula",
     )
-    ax_law.axhline(0, color="0.3", lw=0.8, label="R_H, CODATA 2018")
+    role(laboratory, "simulated")
+    role(
+        ax_law.axhline(0, color="0.3", lw=0.8, label="R_H, CODATA 2018"),
+        REFERENCE_ROLE,  # a published value, drawn for comparison (Issue #531)
+    )
     ax_law.set_xticks(levels, [f"n = {n}" for n in levels])
     ax_law.set_xlabel("upper level n of the transition to level 2 [1]")
     ax_law.set_ylabel("(R - R_H) / R_H [1e-6]")
@@ -696,14 +729,4 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ax_law.set_ylim(-5, 95)
     ax_law.legend(fontsize=6.5, loc="upper left")
 
-    add_credit(
-        fig,
-        "Data: Sloan Digital Sky Survey, spectrum spec-1949-53433-0480.fits"
-        " (plate 1949, MJD 53433, fibre 480), Data Release 17, from the SDSS"
-        " Science Archive Server; columns loglam, flux, ivar, and_mask, wdisp"
-        " converted to CSV unchanged. Line fits, redshift calibration and"
-        " Balmer formula: this figure's code (pbc.data.reference.sdss_balmer),"
-        " not part of the record.",
-    )
-    label_status(fig, "processed")
     return fig

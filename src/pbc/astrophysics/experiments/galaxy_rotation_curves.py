@@ -32,7 +32,8 @@ from pbc.astrophysics.rotation_curves import (
 )
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import rotation_curve_series
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.figure_provenance import REFERENCE, RESIDUAL, FigureProvenance, role
+from pbc.data.plotting import COLOURS
 from pbc.data.reference.sparc_rotmod import (
     GALAXIES,
     HALOS,
@@ -64,16 +65,46 @@ CHECK_HALOS = (
 CHECK_RADII = (0.5, 2.0, 10.0, 40.0)
 OUTER = 100.0  # kpc
 CHECK_BOUND = 1e-9
-CREDIT = (
-    "Data: SPARC, https://astroweb.case.edu/SPARC/; Lelli, McGaugh, Schombert 2016, "
-    "AJ 152, 157. Rotmod files unmodified, with the authors' permission. Vgas, "
-    "Vdisk, Vbul: the SPARC team's models; fits: this lesson's code."
+# The provenance each figure of the rotation curves declares (Issue #531):
+# its status and credit at the caption and in its PNG, from the card.
+ARTIFACT = "processed-measured"
+CURVES = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact=ARTIFACT,
+    combines=("simulated",),
+    processing="The Rotmod files' Vobs and errV of five galaxies, unmodified; Vgas"
+    " and Vdisk and Vbul at Y = 1 are the SPARC team's models in the files. The"
+    " selection of the five and the stars' speed at Y = 1: this lesson's code, not"
+    " part of the record.",
+)
+MASS_MODELS = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact=ARTIFACT,
+    combines=("simulated",),
+    processing="The Rotmod files' Vobs and errV of NGC 3198 and DDO 154 with the"
+    " SPARC team's speeds of the gas and stars; the three mass models fitted to"
+    " them and their residuals: this lesson's code, not part of the record.",
+)
+DEGENERACY = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact=ARTIFACT,
+    combines=("simulated",),
+    processing="The Rotmod file's Vobs and errV of NGC 2403 with the SPARC team's"
+    " speeds of the gas and stars; two core fits at a fixed Y, their residuals, the"
+    " reduced chi-square of the best halo at each fixed Y, and the maximum disk:"
+    " this lesson's code, not part of the record.",
 )
 STYLES = {
     "none": {"color": "0.35", "ls": "-.", "marker": "D"},
     "nfw": {"color": COLOURS[0], "ls": "--", "marker": "s"},
     "iso": {"color": COLOURS[1], "ls": "-", "marker": "^"},
 }
+# A fitted model is never drawn solid beside the measurement (Issue #531):
+# the core's fit is dash-dot-dotted where it is drawn with the points.
+FIT_LS = {"iso": (0, (4, 1.5, 1, 1.5, 1, 1.5))}
 MARK = {"none": "\u25c6", "nfw": "\u25a0", "iso": "\u25b2"}  # residual markers
 FIT_LABEL = {
     "none": "fit: baryons only",
@@ -378,7 +409,7 @@ def robustness_table(experiment: Experiment, sample: dict) -> dict:
 
 
 def _curve(ax, galaxy: Galaxy, label: bool) -> None:
-    ax.errorbar(
+    measured = ax.errorbar(
         galaxy.radius,
         galaxy.v_obs,
         yerr=galaxy.v_err,
@@ -387,8 +418,9 @@ def _curve(ax, galaxy: Galaxy, label: bool) -> None:
         ms=2.2,
         ls="none",
         elinewidth=0.6,
-        label="Vobs, measured [processed]" if label else None,
+        label="Vobs, measured" if label else None,
     )
+    role(measured, "processed")
 
 
 def draw_curves(sample: dict[str, Galaxy]) -> Figure:
@@ -408,33 +440,50 @@ def draw_curves(sample: dict[str, Galaxy]) -> Figure:
             ls="none",
             elinewidth=0.6,
         )
+        role(measured, "processed")
         (gas,) = ax.plot(g.radius, g.v_gas, color=COLOURS[2], ls=":", lw=1.2)
+        role(gas, "simulated")
         (stars,) = ax.plot(
             g.radius, np.sqrt(g.stars_squared(1.0)), color=COLOURS[3], ls="-.", lw=1.0
         )
+        role(stars, "simulated")
         ax.axhline(0, color="0.6", lw=0.5)
         ax.set_xlim(0, g.radius.max() * 1.04)
         ax.set_title(f"{pretty(name)}, D = {g.distance:g} Mpc", fontsize=8)
         ax.set_xlabel("radius [kpc]", fontsize=7)
         ax.set_ylabel("circular speed [km/s]", fontsize=7)
         ax.tick_params(labelsize=6.5)
-    # One legend for the five panels, in the empty sixth cell.
+    # One legend for the five panels, in the empty sixth cell. Its entries
+    # are drawn there without data, in the panels' styles, each with the
+    # role of what it stands for (errorbar keeps them in this order).
     key = axes.flat[-1]
     key.axis("off")
-    key.legend(
-        [measured, gas, stars],
-        [
-            "Vobs +/- errV, measured [processed]",
-            "gas, Vgas (SPARC model)",
-            "stars, Vdisk and Vbul at Y = 1\n(SPARC model)",
-        ],
-        fontsize=6.5,
-        loc="center",
-        title="every panel",
-        title_fontsize=7,
+    entry = key.errorbar(
+        [],
+        [],
+        yerr=[],
+        color="black",
+        marker="o",
+        ms=2.2,
+        ls="none",
+        elinewidth=0.6,
+        label="Vobs +/- errV, measured",
     )
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
+    role(entry, "processed")
+    entry = key.errorbar(
+        [], [], color=COLOURS[2], ls=":", lw=1.2, label="gas, Vgas (SPARC model)"
+    )
+    role(entry, "simulated")
+    entry = key.errorbar(
+        [],
+        [],
+        color=COLOURS[3],
+        ls="-.",
+        lw=1.0,
+        label="stars, Vdisk and Vbul at Y = 1\n(SPARC model)",
+    )
+    role(entry, "simulated")
+    key.legend(fontsize=6.5, loc="center", title="every panel", title_fontsize=7)
     return fig
 
 
@@ -442,7 +491,7 @@ def _models_panel(ax, res, galaxy: Galaxy, fits: dict, label: bool) -> None:
     _curve(ax, galaxy, label)
     r = galaxy.radius
     iso = fits["iso"]
-    ax.plot(
+    (gas,) = ax.plot(
         r,
         galaxy.v_gas,
         color=COLOURS[2],
@@ -450,7 +499,8 @@ def _models_panel(ax, res, galaxy: Galaxy, fits: dict, label: bool) -> None:
         lw=1.2,
         label="gas (SPARC model)" if label else None,
     )
-    ax.plot(
+    role(gas, "simulated")
+    (stars,) = ax.plot(
         r,
         np.sqrt(galaxy.stars_squared(iso.stellar)),
         color=COLOURS[3],
@@ -458,18 +508,20 @@ def _models_panel(ax, res, galaxy: Galaxy, fits: dict, label: bool) -> None:
         lw=1.4,
         label="stars, core fit's Y" if label else None,
     )
+    role(stars, "simulated")
     for halo in HALOS:
         m = fits[halo]
         style = STYLES[halo]
-        ax.plot(
+        (fit,) = ax.plot(
             r,
             m.total(galaxy),
             color=style["color"],
-            ls=style["ls"],
+            ls=FIT_LS.get(halo, style["ls"]),
             lw=1.3,
             label=f"{FIT_LABEL[halo]} ({MARK[halo]})" if label else None,
         )
-        res.plot(
+        role(fit, "simulated")
+        (rest,) = res.plot(
             r,
             galaxy.v_obs - m.total(galaxy),
             ls="none",
@@ -477,6 +529,7 @@ def _models_panel(ax, res, galaxy: Galaxy, fits: dict, label: bool) -> None:
             marker=style["marker"],
             color=style["color"],
         )
+        role(rest, RESIDUAL)
     res.errorbar(
         r, np.zeros_like(r), yerr=galaxy.v_err, color="black", ls="none", elinewidth=0.6
     )
@@ -515,8 +568,6 @@ def draw_mass_models(sample: dict[str, Galaxy], fits: dict) -> Figure:
         )
         if col == 0:
             ax.legend(fontsize=5.5, loc="upper center", ncols=2, columnspacing=0.8)
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
     return fig
 
 
@@ -539,7 +590,7 @@ def draw_degeneracy(
         ax = fig.add_subplot(grid[0, col])
         res = fig.add_subplot(grid[1, col], sharex=ax)
         _curve(ax, galaxy, col == 0)
-        ax.plot(
+        (stars,) = ax.plot(
             r,
             np.sqrt(galaxy.stars_squared(model.stellar)),
             color=COLOURS[3],
@@ -547,7 +598,8 @@ def draw_degeneracy(
             lw=1.4,
             label="stars" if col == 0 else None,
         )
-        ax.plot(
+        role(stars, "simulated")
+        (halo,) = ax.plot(
             r,
             np.sqrt(model.halo_squared(r)),
             color=COLOURS[1],
@@ -555,7 +607,8 @@ def draw_degeneracy(
             lw=1.0,
             label="halo (core)" if col == 0 else None,
         )
-        ax.plot(
+        role(halo, "simulated")
+        (total,) = ax.plot(
             r,
             model.total(galaxy),
             color=COLOURS[0],
@@ -563,7 +616,8 @@ def draw_degeneracy(
             lw=1.3,
             label="fit, total" if col == 0 else None,
         )
-        res.plot(
+        role(total, "simulated")
+        (rest,) = res.plot(
             r,
             galaxy.v_obs - model.total(galaxy),
             ls="none",
@@ -571,6 +625,7 @@ def draw_degeneracy(
             ms=2.2,
             color=COLOURS[0],
         )
+        role(rest, RESIDUAL)
         res.axhline(0, color="0.5", lw=0.6)
         ax.set_ylim(0, 1.8 * float(galaxy.v_obs.max()))
         ax.set_xlim(0, r.max() * 1.04)
@@ -590,7 +645,9 @@ def draw_degeneracy(
         style = STYLES[halo]
         faint = floor > 0
         which = "errV" if not faint else f"{100 * floor:.0f} % floor"
-        ax.plot(
+        # The chi-square profile is processed from the measurement; the
+        # panel draws no model beside it (Issue #531).
+        (profile,) = ax.plot(
             PROFILE_VALUES,
             chi2,
             color=style["color"],
@@ -599,6 +656,7 @@ def draw_degeneracy(
             alpha=0.6 if faint else 1.0,
             label=f"{SHORT[halo]}, {which}",
         )
+        role(profile, "processed")
         m = best[(halo, floor)]
         ax.plot(
             m.stellar,
@@ -609,7 +667,10 @@ def draw_degeneracy(
             color=style["color"],
             alpha=0.6 if faint else 1.0,
         )
-    ax.axvline(y_max, color="0.3", ls=":", lw=1.0, label="maximum disk")
+    # The maximum disk, a limit drawn for comparison: a reference (Issue #531).
+    role(
+        ax.axvline(y_max, color="0.3", ls=":", lw=1.0, label="maximum disk"), REFERENCE
+    )
     ax.set_yscale("log")
     ax.set_ylim(0.2, 3000)
     ax.set_xlabel("Y held fixed [M_sun/L_sun]", fontsize=7)
@@ -617,8 +678,6 @@ def draw_degeneracy(
     ax.set_title("NGC 2403: chi2/dof against Y", fontsize=8)
     ax.tick_params(labelsize=6.5)
     ax.legend(fontsize=5.3, loc="upper left")
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
     return fig
 
 
@@ -793,11 +852,16 @@ def run() -> Experiment:
     experiment.number("n2841-y", fits["NGC2841"]["iso"].stellar, ".2f")
     experiment.number("n2841-max-disk", maximum_disk(sample["NGC2841"]), ".2f")
 
-    experiment.figure("fig-curves", partial(draw_curves, sample))
-    experiment.figure("fig-mass-models", partial(draw_mass_models, sample, fits))
+    experiment.figure("fig-curves", partial(draw_curves, sample), provenance=CURVES)
+    experiment.figure(
+        "fig-mass-models",
+        partial(draw_mass_models, sample, fits),
+        provenance=MASS_MODELS,
+    )
     experiment.figure(
         "fig-degeneracy",
         partial(draw_degeneracy, n2403, low, high, profiles, best, y_max),
+        provenance=DEGENERACY,
     )
 
     with experiment.capture("distance-exercise"):

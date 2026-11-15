@@ -51,6 +51,7 @@ from pbc.agents.replay import save_recording
 from pbc.agents.secrets import Secret, redact
 from pbc.agents.vision import Source, answer_sheet
 from pbc.data.gwstrain import amplitude_spectrum
+from pbc.data.plotting import add_credit, label_status
 from pbc.mechanics.experiments import gravitational_wave_strain as strain
 
 
@@ -60,9 +61,23 @@ def strains():
     return strain.load_strain()[0]
 
 
+# The status and the credit picture D carried when its replay fixtures were
+# recorded. Since F173 (Issue #531) the strain lesson's figure states them at
+# its caption and in its PNG instead; this model input keeps them painted on
+# the picture, byte for byte, until its own review (I37).
+PICTURE_STATUS = "calibrated"
+PICTURE_CREDIT = (
+    "Data: GWOSC, GW150914 v3, CC BY 4.0. Spectrum: processed from the strain."
+)
+
+
 def draw_strain():
-    """Picture D, drawn by the lesson on gravitational-wave strain."""
-    return strain.draw_calibrated_strain(strains())
+    """Picture D, drawn by the lesson on gravitational-wave strain, with the
+    status and the credit painted as the recorded runs saw it."""
+    figure = strain.draw_calibrated_strain(strains())
+    label_status(figure, PICTURE_STATUS)
+    add_credit(figure, PICTURE_CREDIT)
+    return figure
 
 
 MEASURED = Source(

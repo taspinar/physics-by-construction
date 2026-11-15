@@ -9,7 +9,8 @@ provenance in a closed ``<details>``, with the line painted on the image.
 The painted line the record names must be the one the card gives (the
 visualization credit, with the data credit the card requires). The
 caption's status and dataset, which the lesson filter renders from the
-cell's ``fig-status`` and ``fig-dataset``, must equal the record, and the
+cell's ``fig-status``, ``fig-dataset`` and ``fig-model-of``, must equal
+the record, and the
 record must equal the card: anything else fails the build. A figure whose
 PNG carries no record, and a page without one, are not changed.
 """
@@ -22,8 +23,10 @@ from urllib.parse import unquote
 
 from pbc.data import REGISTRY_DIR
 from pbc.data.figure_provenance import (
+    also_cards,
     caption_html,
     card_of,
+    dataset_of,
     read_metadata,
     visible_credit,
 )
@@ -68,6 +71,7 @@ def disagreements(figure: str, record: dict[str, str], card: dict) -> list[str]:
     for attribute, key in (
         ("data-status", "pbc:status"),
         ("data-dataset", "pbc:dataset"),
+        ("data-model-of", "pbc:model-of"),
         ("data-artifact", "pbc:artifact"),
     ):
         if attributes.get(attribute, "") != record.get(key, ""):
@@ -84,8 +88,15 @@ def disagreements(figure: str, record: dict[str, str], card: dict) -> list[str]:
     ):
         if record.get(key) != value:
             out.append(f"{label}: the PNG's {key} is not the card's")
-    if record.get("pbc:visible-credit", "") != (visible_credit(card) or ""):
+    further = also_cards(record)
+    if record.get("pbc:visible-credit", "") != (
+        visible_credit(card, also=further) or ""
+    ):
         out.append(f"{label}: the PNG's pbc:visible-credit is not the card's line")
+    if record.get("pbc:also-credit", "") != " | ".join(
+        c["rights"]["figure_credit"]["short"] for c in further
+    ):
+        out.append(f"{label}: the PNG's pbc:also-credit is not the further cards'")
     if figure.count(CAPTION_END) != 1:
         out.append(f"{label}: the figure has no single caption")
     return out
@@ -104,7 +115,7 @@ def annotate(
         record = record_of(figure, page_dir)
         if record is None or DONE in figure:
             return figure
-        dataset = record.get("pbc:dataset", "")
+        dataset = dataset_of(record)
         if not (registry / f"{dataset}.yaml").is_file():
             raise InvalidFigure(f"{record.get('pbc:figure')}: no card {dataset!r}")
         card = card_of(dataset, registry)

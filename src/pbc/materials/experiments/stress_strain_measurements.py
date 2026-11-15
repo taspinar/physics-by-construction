@@ -22,10 +22,10 @@ from matplotlib.figure import Figure
 
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import stress_strain_series
-from pbc.data.figure_provenance import FigureProvenance, role
+from pbc.data.figure_provenance import REFERENCE, RESIDUAL, FigureProvenance, role
 from pbc.data.fit import FitResult, fit_curve
 from pbc.data.inverse import residual_autocorrelation
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.plotting import COLOURS
 from pbc.data.reference.nist_numisheet import (
     THICKNESS_MM,
     WIDTH_MM,
@@ -56,19 +56,31 @@ OFFSETS = (0.0002, 0.0005, 0.001, 0.002)  # strain offsets of the yield lines
 REVERSE_OFFSET = 0.002  # offset of the reverse yield from the unloading line
 CORRELATION_LAGS = 8  # rows, 2 s at four rows per second, of the dependence check
 # endregion: choices
-CREDIT = (
-    "Data: NIST; Luecke, Rust, Iadicola, 'Data for Numisheet 2020 uniaxial tensile "
-    "and tension/compression tests', doi 10.18434/M32202, v1.2.0; file "
-    "C00FeDP980Numisheet2020R01T1.424W17.93-S-Stress-Strain.csv, unmodified (NIST "
-    "data, 17 U.S.C. 105). Fitted, offset and model lines and the loop: this "
-    "lesson's code, not part of the record."
-)
-# The provenance the stress-strain figure declares (Issue #524).
+# The provenance each figure of the test declares (Issues #524, #531): its
+# status and credit at the caption and in its PNG, from the card.
 STRESS_STRAIN = FigureProvenance(
     status="processed",
     dataset=DATASET,
     processing="The record's engineering stress and strain of test R01, unmodified;"
     " the split into three parts, the shaded loop, and the marked landmarks: this"
+    " lesson's code, not part of the record.",
+)
+ELASTIC_REGIME = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    combines=("simulated",),
+    processing="The record's engineering stress and strain of the first tension of"
+    " test R01, unmodified; Hooke's law fitted in the stress window, the MAT3 line,"
+    " the 0.2 % offset line and yield, and the residuals of both lines: this"
+    " lesson's code, not part of the record.",
+)
+UNLOADING = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    combines=("simulated",),
+    processing="The record's engineering stress and strain of the first unloading"
+    " of test R01, unmodified; the elastic unloading line of the fitted E, the"
+    " strain by which the record lies behind it, and the reverse yield: this"
     " lesson's code, not part of the record.",
 )
 
@@ -483,48 +495,56 @@ def draw_elastic_regime(test: Test, result: FitResult, yield_stress: float) -> F
         constrained_layout=True,
         gridspec_kw={"height_ratios": [1.4, 1.0]},
     )
-    top.axhspan(*WINDOW, color="0.92", label="fit window")
-    top.plot(
+    role(top.axhspan(*WINDOW, color="0.92", label="fit window"), series.status)
+    (points,) = top.plot(
         e[small],
         s[small],
         color=COLOURS[0],
         marker="o",
         ms=2.5,
         ls="none",
-        label=f"measured first tension [{series.status}], "
-        "no uncertainty per point given",
+        label="measured first tension, no uncertainty per point given",
     )
+    role(points, series.status)
     fitted = hooke_stress(grid, modulus, s0)
     shown = fitted < 1000
-    top.plot(
+    (line,) = top.plot(
         grid[shown],
         fitted[shown],
         "--",
         color=COLOURS[1],
         lw=1.3,
-        label="Hooke's law, fitted E and intercept [simulated]",
+        label="Hooke's law, fitted E and intercept",
     )
+    role(line, "simulated")
     model = hooke_stress(grid, MODEL_MODULUS)
     shown = model < 1000
-    top.plot(
+    (line,) = top.plot(
         grid[shown],
         model[shown],
         ":",
         color=COLOURS[2],
         lw=1.6,
-        label="Hooke's law, E of the MAT3 lesson [simulated]",
+        label="Hooke's law, E of the MAT3 lesson",
     )
+    role(line, "simulated")
     shifted = hooke_stress(grid - OFFSETS[-1], modulus, s0)
     keep = (shifted > 0) & (shifted < 1000)
-    top.plot(
+    (line,) = top.plot(
         grid[keep],
         shifted[keep],
         "-.",
         color=COLOURS[3],
         lw=1.2,
-        label="fitted line shifted by 0.2 % [simulated]",
+        label="fitted line shifted by 0.2 %",
     )
-    top.axhline(yield_stress, color="0.4", lw=0.8, label="0.2 % offset yield")
+    role(line, "simulated")
+    # The yield is where the measurement meets the shifted model line: the
+    # line of a rule, drawn for comparison (a reference, Issue #531).
+    role(
+        top.axhline(yield_stress, color="0.4", lw=0.8, label="0.2 % offset yield"),
+        REFERENCE,
+    )
     top.set_xlim(0, 0.012)
     top.set_ylim(0, 1050)
     top.set_xlabel("engineering strain e [mm/mm]")
@@ -533,8 +553,8 @@ def draw_elastic_regime(test: Test, result: FitResult, yield_stress: float) -> F
     top.legend(fontsize=7, loc="lower right")
 
     upto = s < 700
-    bottom.axvspan(*WINDOW, color="0.92", label="fit window")
-    bottom.plot(
+    role(bottom.axvspan(*WINDOW, color="0.92", label="fit window"), series.status)
+    (rest,) = bottom.plot(
         s[upto],
         (s - hooke_stress(e, modulus, s0))[upto],
         color=COLOURS[1],
@@ -543,7 +563,8 @@ def draw_elastic_regime(test: Test, result: FitResult, yield_stress: float) -> F
         ls="none",
         label="measured minus fitted line",
     )
-    bottom.plot(
+    role(rest, RESIDUAL)
+    (rest,) = bottom.plot(
         s[upto],
         (s - hooke_stress(e, MODEL_MODULUS))[upto],
         color=COLOURS[2],
@@ -552,13 +573,12 @@ def draw_elastic_regime(test: Test, result: FitResult, yield_stress: float) -> F
         ls="none",
         label="measured minus MAT3 line",
     )
+    role(rest, RESIDUAL)
     bottom.axhline(0, color="0.5", lw=0.8)
     bottom.set_xlabel("engineering stress S [MPa]")
     bottom.set_ylabel("residual [MPa]")
     bottom.set_title("Residuals against stress: scatter in the window, then a bend")
     bottom.legend(fontsize=7, loc="lower left")
-    add_credit(fig, CREDIT)
-    label_status(fig, series.status)
     return fig
 
 
@@ -592,35 +612,40 @@ def draw_unloading(test: Test, modulus: float, found: dict) -> Figure:
         constrained_layout=True,
         gridspec_kw={"height_ratios": [1.3, 1.0]},
     )
-    top.plot(
+    (measured,) = top.plot(
         e[near],
         s[near],
         color=COLOURS[1],
         marker="s",
         ms=2.5,
         lw=0.6,
-        label=f"measured unloading [{series.status}], no uncertainty per point given",
+        label="measured unloading, no uncertainty per point given",
     )
+    role(measured, series.status)
     # A straight line, drawn from its two ends: Agg rasterises a long run of
     # collinear segments differently from one call to the next, and the
     # page's figure has to be the same bytes on every run.
     grid = np.array([e0 - (s0 + 1000) / (modulus * 1e3), e0])
-    top.plot(
+    (line,) = top.plot(
         grid,
         elastic_unloading(grid, e0, s0, modulus),
         "--",
         color=COLOURS[0],
         lw=1.3,
-        label="elastic unloading, slope of the fitted E [simulated]",
+        label="elastic unloading, slope of the fitted E",
     )
+    role(line, "simulated")
     top.axhline(0, color="0.5", lw=0.8)
-    top.axhline(
+    # The reverse yield and the offset are the lines of a rule, drawn for
+    # comparison: references (Issue #531); the lag is a residual.
+    reverse = top.axhline(
         found["reverse-yield"],
         color="0.4",
         lw=0.8,
         ls="-.",
         label="reverse yield: 0.2 % behind the elastic unloading",
     )
+    role(reverse, REFERENCE)
     top.set_xlim(e0 - 0.012, e0 + 0.0005)
     top.set_ylim(-1050, 1050)
     top.set_xlabel("engineering strain e [mm/mm]")
@@ -629,7 +654,7 @@ def draw_unloading(test: Test, modulus: float, found: dict) -> Figure:
     top.legend(fontsize=7, loc="lower right")
 
     stress, lag = behind_elastic(test, modulus, found)
-    bottom.plot(
+    (behind,) = bottom.plot(
         stress,
         lag,
         color=COLOURS[1],
@@ -638,7 +663,11 @@ def draw_unloading(test: Test, modulus: float, found: dict) -> Figure:
         ls="none",
         label="measured, behind the elastic unloading",
     )
-    bottom.axhline(REVERSE_OFFSET, color="0.4", lw=0.8, ls="-.", label="0.2 % offset")
+    role(behind, RESIDUAL)
+    offset = bottom.axhline(
+        REVERSE_OFFSET, color="0.4", lw=0.8, ls="-.", label="0.2 % offset"
+    )
+    role(offset, REFERENCE)
     bottom.axhline(0, color="0.5", lw=0.8)
     bottom.set_xlim(1050, -1050)
     # The lag grows to several per cent in the compression (the first
@@ -649,8 +678,6 @@ def draw_unloading(test: Test, modulus: float, found: dict) -> Figure:
     bottom.set_ylabel("strain behind the line [mm/mm]")
     bottom.set_title("Inelastic strain of the reversal: its first 0.6 %")
     bottom.legend(fontsize=7, loc="upper left")
-    add_credit(fig, CREDIT)
-    label_status(fig, series.status)
     return fig
 
 
@@ -766,9 +793,15 @@ def run() -> Experiment:
         provenance=STRESS_STRAIN,
     )
     experiment.figure(
-        "fig-elastic-regime", partial(draw_elastic_regime, test, result, yields[-1])
+        "fig-elastic-regime",
+        partial(draw_elastic_regime, test, result, yields[-1]),
+        provenance=ELASTIC_REGIME,
     )
-    experiment.figure("fig-unloading", partial(draw_unloading, test, modulus, reversal))
+    experiment.figure(
+        "fig-unloading",
+        partial(draw_unloading, test, modulus, reversal),
+        provenance=UNLOADING,
+    )
 
     with experiment.capture("recovery-exercise"):
         recovery_exercise()

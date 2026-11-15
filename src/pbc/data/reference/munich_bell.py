@@ -34,9 +34,24 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.figure_provenance import REFERENCE as REFERENCE_ROLE
+from pbc.data.figure_provenance import FigureProvenance, role
+from pbc.data.plotting import COLOURS
 
 PAIRS = "Bell_2016-04-15_9_pairs.csv"
+# The provenance the reference figure declares (Issue #531): its status and
+# credit at the caption and in its PNG, from the card.
+REFERENCE = FigureProvenance(
+    status="processed",
+    dataset="munich-bell-event-ready",
+    combines=("simulated",),
+    processing="The record's file Bell_2016-04-15_9_pairs.csv, unmodified; the"
+    " selection, the correlators, their one binomial standard error (bands and"
+    " bars), and S: this module's code (pbc.data.reference.munich_bell), not part"
+    " of the record. Per the paper, the experiment closes the detection and"
+    " locality loopholes; the independence of the settings from the hidden"
+    " variables is assumed, not tested.",
+)
 LAB_1 = "Bell_2016-04-15_9_lab_1.csv"
 LAB_2 = "Bell_2016-04-15_9_lab_2.csv"
 README = "Readme.txt"
@@ -338,7 +353,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
         values = [terms[s].value for s in SETTINGS]
         errors = [terms[s].stderr for s in SETTINGS]
         s, err = chsh(pairs, state, published)
-        ax_corr.errorbar(
+        bars = ax_corr.errorbar(
             positions + (k - 0.5) * 0.18,
             values,
             yerr=errors,
@@ -348,14 +363,18 @@ def make_figure(data_dir: Path) -> plt.Figure:
             capsize=3,
             label=f"{state}: S = {s:.3f} +- {err:.3f} (5000 events)",
         )
+        role(bars, "processed")
     ideal = 1 / np.sqrt(2)
     for v in (ideal, -ideal):
-        ax_corr.axhline(
-            v,
-            color="0.5",
-            lw=0.9,
-            ls=":",
-            label="ideal state: +-1/sqrt(2)" if v > 0 else None,
+        role(
+            ax_corr.axhline(
+                v,
+                color="0.5",
+                lw=0.9,
+                ls=":",
+                label="ideal state: +-1/sqrt(2)" if v > 0 else None,
+            ),
+            "simulated",
         )
     ax_corr.axhline(0, color="0.7", lw=0.6)
     ax_corr.set_xticks(positions, [f"({a}, {b:+d})" for a, b in ANGLES.values()])
@@ -370,18 +389,37 @@ def make_figure(data_dir: Path) -> plt.Figure:
     for k, state in enumerate(STATES):
         s, err = running_chsh(pairs, state)
         n = np.arange(40, 40 + s.size)
-        ax_run.plot(n, s, color=COLOURS[k], ls=line[state], lw=1.2, label=f"{state}: S")
-        ax_run.fill_between(n, s - err, s + err, color=COLOURS[k], alpha=0.2, lw=0)
-    ax_run.axhline(LHV_BOUND, color="0.2", lw=1.0, label="local-realist bound S = 2")
-    ax_run.axhline(
-        TSIRELSON, color="0.5", lw=0.9, ls=":", label="quantum maximum 2 sqrt(2)"
+        (curve,) = ax_run.plot(
+            n, s, color=COLOURS[k], ls=line[state], lw=1.2, label=f"{state}: S"
+        )
+        role(curve, "processed")
+        role(
+            ax_run.fill_between(n, s - err, s + err, color=COLOURS[k], alpha=0.2, lw=0),
+            "processed",
+        )
+    # The two bounds and the stopping rule, drawn for comparison: references,
+    # in any style (Issue #531).
+    role(
+        ax_run.axhline(
+            LHV_BOUND, color="0.2", lw=1.0, label="local-realist bound S = 2"
+        ),
+        REFERENCE_ROLE,
     )
-    ax_run.axvline(
-        EVENTS_PER_STATE,
-        color="0.4",
-        lw=0.8,
-        ls="-.",
-        label="stopping rule: 5000 events per state",
+    role(
+        ax_run.axhline(
+            TSIRELSON, color="0.5", lw=0.9, ls=":", label="quantum maximum 2 sqrt(2)"
+        ),
+        REFERENCE_ROLE,
+    )
+    role(
+        ax_run.axvline(
+            EVENTS_PER_STATE,
+            color="0.4",
+            lw=0.8,
+            ls="-.",
+            label="stopping rule: 5000 events per state",
+        ),
+        REFERENCE_ROLE,
     )
     pooled, pooled_err = chsh_pooled(pairs, published)
     ax_run.set_ylim(1.0, 3.3)
@@ -393,18 +431,4 @@ def make_figure(data_dir: Path) -> plt.Figure:
         fontsize=10,
     )
     ax_run.legend(fontsize=8, loc="lower right", ncol=2)
-    add_credit(
-        fig,
-        "Data: Rosenfeld, Burchardt, Garthoff, Redeker, Ortegel, Rau, Weinfurter "
-        "(LMU Munich), 'Experimental data and archived website material for "
-        "Event-Ready Bell Test Using Entangled Atoms Simultaneously Closing Detection "
-        "and Locality Loopholes', Zenodo 10.5281/zenodo.22936124, CC BY 4.0; file "
-        "Bell_2016-04-15_9_pairs.csv of Bell_2016-04-15.zip, unmodified. Selection, "
-        "correlators, errors and S: this figure's code "
-        "(pbc.data.reference.munich_bell). Bands and bars: one binomial standard "
-        "error. Per the paper, the experiment closes the detection and locality "
-        "loopholes; the independence of the settings from the hidden variables is "
-        "assumed, not tested.",
-    )
-    label_status(fig, "processed")
     return fig
