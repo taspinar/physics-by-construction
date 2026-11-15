@@ -59,8 +59,8 @@ learn:
     of a support fades with distance ({slot:MAT3}).
   - >-
     Derive the equilibrium fraction of vacancies from the free energy,
-    simulate a vacancy that hops at the Arrhenius rate, and measure why the
-    atoms it moves diffuse more slowly than a random walker
+    simulate a vacancy that hops at the Arrhenius rate, and measure how much
+    more slowly the atoms it moves diffuse than a random walker
     ({slot:MAT4}).
   - >-
     Index a measured powder pattern with one lattice parameter, and keep
@@ -137,5 +137,5 @@ next:
     The continuum of {slot:MAT3} is a solid that holds its shape;
     {sequence:fluids} carries the idea of a continuum to matter that flows.
     The quantum mechanics behind the bands of {slot:MAT2} is the subject of
-    {sequence:quantum}, and {sequence:autonomous-research} is to add an
-    optional lesson on materials, {slot:R5}, which is still planned.
+    {sequence:quantum}, and {sequence:autonomous-research} plans an
+    optional lesson on materials, {slot:R5}.

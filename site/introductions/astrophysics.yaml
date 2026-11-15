@@ -84,7 +84,7 @@ learn:
 
 order:
   - >-
-    The course begins where {sequence:mechanics} ends, with gravity between
+    The course takes up gravity where {sequence:mechanics} leaves it, with
     more than two bodies. {slot:AST1} shows that three bodies already defeat
     a closed form: a rotating triangle is an exact solution whose stability
     depends on the masses, and in a close encounter nearby starts part
@@ -93,7 +93,7 @@ order:
     measurement of the force, and {slot:AST3} follows light instead of a
     planet past a mass, where the path bends.
   - >-
-    {slot:AST10} sets up the spacetime that the rest of the course needs:
+    {slot:AST10} sets up the spacetime that {slot:AST4} and {slot:AST5} need:
     events and momenta seen by observers in relative motion, with Newton's
     mechanics as the slow limit. With it, {slot:AST4} returns to the orbit
     about a mass, now in general relativity, where the turn of the
