@@ -1,0 +1,132 @@
+# The introduction of the course Quantum physics (F161, requirements
+# decision 43). Prose and references only; see
+# site/introductions/mechanics.yaml for the rules.
+sequence: quantum
+
+why:
+  - >-
+    At the scale of atoms, a particle is described by a wave function
+    rather than by a position and a velocity, and the wave function gives
+    only the probabilities of what a measurement will find. That one change
+    explains why an electron passes a barrier it could not climb, why an
+    atom emits light at sharp colours, and why two particles can stay
+    correlated in a way no local rule reproduces. The same rules are the
+    working ground of semiconductors, lasers, and quantum computers.
+  - >-
+    The quantum world is not visible, and intuition built on everyday
+    objects often misleads in it, which makes a program an unusually honest
+    guide. The equation is stepped on a grid and checked against an exact
+    solution, a probability is compared with frequencies counted from
+    samples, and the lessons say at each step what a calculation or a
+    single experiment can establish and what it cannot.
+
+questions:
+  - >-
+    How does a wave function move and spread, and why must a scheme that
+    steps it keep the total probability at one?
+  - >-
+    How can a particle pass a barrier higher than its energy, and how fast
+    does the chance fall with the barrier's width?
+  - >-
+    Why does a bound particle take only certain energies, and how does a
+    grid turn that into a problem of a matrix?
+  - >-
+    What does a measurement do to a spin, and how do counted outcomes test
+    the probabilities the theory predicts?
+  - >-
+    What makes two particles entangled, and what can a test of Bell's
+    inequality show, in a simulation and in a real laboratory?
+  - >-
+    How does a system lose its quantum behaviour to its surroundings, and
+    how is that loss computed without breaking the rules of a state?
+
+learn:
+  - >-
+    Step the Schrödinger equation on a grid with a scheme that keeps the
+    norm, and check a free wave packet against the exact one
+    ({slot:Q1}).
+  - >-
+    Compute the transmission through a barrier, check it against the closed
+    form, and connect it with a wave packet that splits ({slot:Q2}).
+  - >-
+    Turn the time-independent equation into an eigenvalue problem, check
+    the levels of the oscillator against the exact spectrum, and predict
+    the error of each level from the difference formula ({slot:Q3}).
+  - >-
+    Compute the probabilities of measuring a spin along any direction with
+    the Born rule, model a Stern-Gerlach magnet, and compare sampled frequencies with predicted
+    probabilities ({slot:Q4}).
+  - >-
+    Compute the correlations of two entangled spins, derive the bound that
+    every local hidden-variable model obeys, and see the singlet exceed it
+    ({slot:Q5}).
+  - >-
+    Describe a qubit that loses energy and phase with a density matrix and
+    the Lindblad equation, and judge integrators by whether they keep a
+    valid state ({slot:Q6}).
+  - >-
+    Analyse the recorded counts of a Bell test and a measured spectrum of
+    hydrogen, with uncertainties whose assumptions are checked, and say
+    what each record establishes and what it does not ({slot:Q8},
+    {slot:Q7}).
+
+order:
+  - >-
+    The course starts with motion, and with the grid that
+    {sequence:waves} introduced for the wave equation. {slot:Q1} steps a free
+    packet with the centred difference of {slot:W1} and learns which
+    schemes keep the probability; {slot:Q2} lets the packet meet a barrier;
+    and {slot:Q3} asks for the stationary states of the oscillator, whose
+    probability densities stay constant in time, the oscillator whose
+    classical motion {slot:M4} solved.
+  - >-
+    The middle of the course leaves the grid for the smallest quantum
+    systems, where measurement itself is the subject. {slot:Q4} measures a
+    single spin, {slot:Q5} puts two of them together and finds correlations
+    that no local model reaches, and {slot:Q6} opens the system to its
+    surroundings and follows the coherence that it loses there.
+  - >-
+    The labs on measured data come last. {slot:Q8} reads the counts of a
+    real Bell test with the tools of {slot:Q5}, and {slot:Q7} tests the
+    level model of hydrogen on light from a distant galaxy, with the grid
+    solver of {slot:Q3} as the first check. A recorded signal is a harder
+    test than a formula, and each lab says what one record cannot show.
+
+method:
+  - >-
+    The method is the numerical experiment, as in {sequence:mechanics}, with
+    two kinds of check that run through the course. A computed wave
+    function or level is held to an exact solution, a conserved norm, and
+    the order of convergence of its scheme. A predicted probability is held
+    to frequencies counted from samples, each with its standard error, so
+    that a disagreement is read against the noise that a finite count
+    always carries.
+  - >-
+    The course keeps three things apart that are easy to blur: the
+    prediction of the theory, what a simulation of it shows, and what an
+    experiment establishes. A simulation cannot prove a result about
+    nature, and one run of an experiment rests on assumptions that its data
+    cannot remove; the lessons and labs state them. None of the lessons of
+    this course uses an artificial-intelligence agent.
+
+capstone:
+  - >-
+    The curriculum has no capstone project for this course. The lessons
+    that draw most of it together are its labs. {slot:Q8} carries the
+    correlations and the bound of {slot:Q5} to recorded counts, and states
+    which loopholes the design of the experiment closes and which
+    assumptions remain.
+  - >-
+    {slot:Q7} joins the levels computed on a grid in {slot:Q3} with a
+    measured spectrum, and infers a constant of hydrogen with its
+    uncertainty, together with an offset that the spectrum cannot explain.
+
+next:
+  - >-
+    The energies of {slot:Q3}, found as the eigenvalues of a matrix, return
+    in {slot:MAT2}, where a chain of atoms spreads one atomic level into a
+    band. The redshift that {slot:Q7} calibrates before it fits the lines of
+    hydrogen is the subject of {slot:AST5}. Continue with
+    {sequence:materials} to follow the quantum states into solids, or with
+    {sequence:astrophysics} to follow the light of galaxies, or choose
+    another course of the atlas by the system you want to understand.

@@ -1,0 +1,148 @@
+# The introduction of the course Fluid dynamics (F161, requirements decision
+# 43). Prose and references only; see site/introductions/mechanics.yaml for
+# the rules.
+sequence: fluids
+
+why:
+  - >-
+    Air over a wing, smoke from a chimney, the wake behind a bridge pier,
+    and a tsunami crossing an ocean obey the same few balances: mass is
+    neither made nor lost, and the momentum of a parcel of fluid changes by
+    the forces of pressure, of viscosity, and of gravity on it. The
+    balances are short to write down, and yet a flow can carry, spread,
+    steepen into a shock, roll up into vortices, or turn turbulent.
+  - >-
+    Most flows have no solution in closed form, so the subject is learnt
+    here as computation. That brings its own question, which the course
+    asks of every result: when the program moves a quantity across a grid,
+    how much of what you see is the fluid and how much is the grid? A
+    scheme can add a diffusion the fluid does not have, put a shock in the
+    wrong place, or lose the water it was meant to keep, and each lesson
+    measures that before it trusts a flow.
+
+questions:
+  - >-
+    How is a quantity carried by a flow while it spreads, and how do you
+    tell the diffusion of the fluid from the diffusion the grid adds?
+  - >-
+    Why does a wave whose speed depends on its own height break into a
+    shock, and what decides how fast the shock moves?
+  - >-
+    Why must a scheme be written as what flows through the faces of its
+    cells, and what goes wrong when it is not?
+  - >-
+    What is the pressure of an incompressible fluid when it has no equation
+    of its own, and where do the vortices behind an obstacle come from?
+  - >-
+    When is a fluid better described by particles that carry its mass than
+    by values on a grid?
+  - >-
+    How close do the models of the course come to measured flows, and to a
+    real tsunami, and where do they stop?
+
+learn:
+  - >-
+    Write difference schemes for a quantity carried by a flow, predict
+    their stability from the Courant number, and measure the diffusion a
+    scheme adds against its modified equation ({slot:FL1}).
+  - >-
+    Follow a wave that steepens until it breaks, and check the speed of a
+    computed shock against the condition that conservation sets
+    ({slot:FL4}).
+  - >-
+    Build a finite-volume scheme with one interface for any system of
+    conservation laws, close its budgets to round-off, and show why a
+    non-conservative scheme places a shock wrong ({slot:FL9}).
+  - >-
+    Solve the shallow-water equations, keep a lake at rest still over an
+    uneven bed, and check a dam break against its exact solution
+    ({slot:FL5}).
+  - >-
+    Build an incompressible solver by projection, check its order against
+    exact and manufactured solutions, and close its energy budget
+    ({slot:FL2}).
+  - >-
+    Compute the wake of a cylinder, tell steady flow from vortex shedding,
+    and compare a Strouhal number with published measurements
+    ({slot:FL3}).
+  - >-
+    Describe a fluid as particles with a smoothing kernel, and measure
+    which conserved quantities a particle method keeps and where it does
+    worse than a grid ({slot:FL6}).
+  - >-
+    Set measured boundary layers and a measured wake beside the models of
+    the course, with the uncertainty of each comparison and the point where
+    the models stop applying ({slot:FL8}, {slot:FL7}).
+
+order:
+  - >-
+    The course starts with the simplest flow equation, a quantity carried
+    by a steady flow while it spreads. {slot:FL1} is where the random walk
+    of {slot:T1} meets a flow, and where the stability limit and the
+    diffusion that a grid adds are first measured; every later scheme is
+    held to those two checks.
+  - >-
+    The next lessons let the flow carry itself. {slot:FL4} shows a wave
+    that breaks, and that a shock is found from conservation rather than
+    from the equation in its differential form. {slot:FL9} turns that
+    lesson into a method, the finite volume with one shared interface, and
+    {slot:FL5} is its first physical system: water that is shallow
+    compared with its waves, the equations that the capstone later uses on
+    an ocean.
+  - >-
+    Only then does the course take on the incompressible Navier-Stokes
+    equations. {slot:FL2} builds and checks the solver that {slot:FL3} uses
+    for vortices and the wake of a cylinder, and {slot:FL6} describes a
+    fluid a second way, with particles instead of a grid, so that the two
+    can be compared. The labs on measured data and the capstone close the
+    course: the labs set the laminar models and the computed wake beside
+    records that were measured in wind tunnels and a water channel, which
+    is harder than comparing them with a formula.
+
+method:
+  - >-
+    The method is the numerical experiment, as in {sequence:mechanics}, but
+    the unknown is now a field on a grid or on particles rather than a few
+    numbers, so the discretisation is checked before a computed flow is used.
+    The checks recur through the course, and each problem takes the ones
+    that fit it: measuring the stability limit or the order of a scheme
+    instead of quoting them, closing the budget of the quantity the problem
+    conserves, and comparing a computed flow with an exact or manufactured
+    solution where one exists.
+  - >-
+    The labs and the capstone keep the measurement, the processing, and the
+    analysis apart, and state the uncertainty of a comparison with the
+    assumptions it rests on checked on the data. The models are one
+    or two dimensional, laminar, or depth averaged, and each lesson says which of
+    these limits a comparison with a real flow reaches. None of the lessons
+    of this course uses an artificial-intelligence agent.
+
+capstone:
+  - >-
+    The capstone of the course is an applied one, {slot:FL10}. The
+    shallow-water equations and the finite volumes of the course are
+    extended to two dimensions on a sphere, over a measured ocean floor and
+    from a published model of the earthquake's uplift, and the model is
+    verified by still water, exact linear waves, its volume budget, the
+    positivity of the depth, the step limit, its boundaries, and grid
+    refinement.
+  - >-
+    Only after that is the computed wave compared with records from
+    deep-ocean pressure sensors, by a metric fixed before the comparison.
+    The capstone states what the comparison supports and what it does not,
+    and that a model of this size is a teaching model, not one for warning
+    or for forecasting a hazard.
+
+next:
+  - >-
+    No lesson of another course builds on this one; the course draws on
+    others instead. The diffusion of {slot:FL1} starts from the random walk
+    of {slot:T1}, and {slot:FL6} weighs the integrators of {slot:M5} against
+    what a fluid of particles has to conserve, so {sequence:thermodynamics}
+    and {sequence:mechanics} fill in what this course assumes.
+  - >-
+    To carry the questions of stability and dispersion on a grid further,
+    continue with {sequence:quantum}, where a wave function is stepped on a
+    grid and the grid bends the dispersion of a free particle; otherwise
+    choose another course of the atlas by the system you want to
+    understand.
