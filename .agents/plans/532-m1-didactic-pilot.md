@@ -169,3 +169,16 @@ short and its annotations are the concept (a `State`, a callable of time).
 8. Criteria 1 and 2 and the F177 candidate recorded on the Issue as a
    comment. Criteria 7 and 8 (the review, the owner's view at desktop and
    phone widths, comprehension observations) follow the session.
+9. The owner's request after the phone screenshots (2026-11-15): in
+   `#the-lag` the exact position and velocity stand on two aligned lines,
+   and the position sum is an aligned block, one step per line: the sum of
+   the velocities $v_k\,\Delta t$, the sum split into $v_0\,t_n$ and
+   $a\,\Delta t^2 \sum k$, the closed sum $n(n-1)/2$, and the step to
+   $\tfrac12\,a\,t_n\,(t_n - \Delta t)$ on a line of its own. Every display
+   of the section fits at 390 and 320 px without scrolling (measured in the
+   single-page render: the scroll width equals the box width). The width
+   at 320 px leaves no room for the explicit summand
+   $(v_0 + a\,k\,\Delta t)$ in the first line, so the first line names it
+   $v_k$, given just before as $v_n = v_0 + a\,t_n$, and the trailing
+   comma is dropped. The equations, claims, values, captions, and anchors
+   are otherwise unchanged.
