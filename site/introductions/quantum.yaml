@@ -76,9 +76,9 @@ order:
     {sequence:waves} introduced for the wave equation. {slot:Q1} steps a free
     packet with the centred difference of {slot:W1} and learns which
     schemes keep the probability; {slot:Q2} lets the packet meet a barrier;
-    and {slot:Q3} asks for the states that do not change in time, the
-    stationary levels of the oscillator whose classical motion {slot:M4}
-    solved.
+    and {slot:Q3} asks for the stationary states of the oscillator, whose
+    probability densities stay constant in time, the oscillator whose
+    classical motion {slot:M4} solved.
   - >-
     The middle of the course leaves the grid for the smallest quantum
     systems, where measurement itself is the subject. {slot:Q4} measures a

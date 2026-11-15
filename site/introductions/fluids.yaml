@@ -103,11 +103,12 @@ method:
   - >-
     The method is the numerical experiment, as in {sequence:mechanics}, but
     the unknown is now a field on a grid or on particles rather than a few
-    numbers, and the first check is always the discretisation itself. A
-    lesson measures the stability limit and the order of a scheme instead of
-    quoting them, closes the budgets of mass, momentum, and energy, and
-    compares a computed flow with an exact or manufactured solution before
-    it uses the flow for anything else.
+    numbers, so the discretisation is checked before a computed flow is used.
+    The checks recur through the course, and each problem takes the ones
+    that fit it: measuring the stability limit or the order of a scheme
+    instead of quoting them, closing the budget of the quantity the problem
+    conserves, and comparing a computed flow with an exact or manufactured
+    solution where one exists.
   - >-
     The labs and the capstone keep the measurement, the processing, and the
     analysis apart, and state the uncertainty of a comparison with the
