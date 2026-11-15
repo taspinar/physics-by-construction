@@ -35,7 +35,9 @@ TERMS = tuple(entry.term for entry in GLOSSARY.entries)
 PILOT = ("mechanics", "law-discovery")
 # The first batch of introductions (F159, Issue #519).
 BATCH_1 = ("thermodynamics", "waves", "electromagnetism")
-INTRODUCED = PILOT + BATCH_1
+# The second batch (F161, Issue #537).
+BATCH_2 = ("fluids", "quantum")
+INTRODUCED = PILOT + BATCH_1 + BATCH_2
 AVAILABLE = frozenset(INTRODUCED)
 
 
@@ -421,8 +423,9 @@ def test_a_sequence_reference_links_to_its_introduction_when_it_has_one():
         "(../law-discovery/index.html)"
     )
     assert content.inline("{sequence:waves}").endswith("(../waves/index.html)")
-    assert content.inline("{sequence:quantum}").endswith(
-        "(../../path/index.html#course-quantum)"
+    assert content.inline("{sequence:quantum}").endswith("(../quantum/index.html)")
+    assert content.inline("{sequence:reasoning}").endswith(
+        "(../../path/index.html#path-reasoning)"
     )
 
 
@@ -523,9 +526,11 @@ def test_the_introduction_row_follows_the_course_and_slot_rows():
 
 
 def test_a_lesson_of_a_sequence_without_an_introduction_has_no_link():
+    """The set of introductions is given here, without astrophysics, so the
+    case holds whichever batch of introductions is merged."""
     path = ATLAS.path
     header = LessonHeader(
-        path, path.lesson("advection-and-diffusion"), None, (), AVAILABLE
+        path, path.lesson("cosmic-expansion"), None, (), AVAILABLE - {"astrophysics"}
     ).markdown()
 
     assert "Introduction" not in header
@@ -546,14 +551,19 @@ def test_a_lesson_of_a_sequence_without_an_introduction_has_no_link():
         ),
         ("wave-equation", "waves", "Waves and optics"),
         ("electric-fields-and-potential", "electromagnetism", "Electromagnetism"),
+        ("advection-and-diffusion", "fluids", "Fluid dynamics"),
+        ("reconstructing-the-2025-kamchatka-tsunami", "fluids", "Fluid dynamics"),
+        ("schrodinger-equation", "quantum", "Quantum physics"),
+        ("atomic-spectroscopy", "quantum", "Quantum physics"),
     ],
 )
-def test_the_header_of_a_batch_1_lesson_links_to_its_course_introduction(
+def test_the_header_of_a_batch_lesson_links_to_its_course_introduction(
     lesson_id, sequence_id, title
 ):
-    """F159: a lesson of a course of the first batch links the course's name
+    """F159, F161: a lesson of a course of a batch links the course's name
     to its introduction; a lesson of another strand that fills a slot of the
-    course (particles-in-a-box) links to it too."""
+    course (particles-in-a-box) links to it too; a capstone and a lab link
+    like a lesson."""
     path = ATLAS.path
     header = LessonHeader(path, path.lesson(lesson_id), None, (), AVAILABLE).markdown()
     without = LessonHeader(
