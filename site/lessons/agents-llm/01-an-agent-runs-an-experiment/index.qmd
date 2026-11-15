@@ -30,7 +30,7 @@ lesson:
 
 ```{python}
 #| echo: false
-from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
 from pbc.mechanics.experiments import agent_experiment as experiment
 
 result = experiment.run()
@@ -107,17 +107,17 @@ The parts are easier to hold in mind as a flow of messages, with the line
 drawn between what is trusted and what is not:
 
 ```{python}
-#| echo: false
-excerpt(experiment.draw_tool_flow)
-```
-
-```{python}
 #| label: fig-tool-flow
 #| echo: false
 #| fig-cap: "One turn of the loop. The model only produces text and tool calls; the harness checks each call against the allowlist, and only a call that passes reaches the simulation. The result goes back to the model as text. The model is untrusted, and the allowlist is the boundary."
 #| fig-status: conceptual
 #| fig-alt: "A diagram of four boxes in a row: model, harness, allowlist, simulation. A solid arrow runs from the model to the harness, labelled tool call. An arrow runs from the harness to the allowlist, labelled check name and bounds, and on to the simulation, labelled only if it passes. A dashed arrow runs back from the simulation along the bottom to the model, labelled result as text. A second dashed arrow from the allowlist back to the harness is labelled rejected with a reason. A dashed vertical line between the model and the harness marks the edge of what is trusted."
 result.show("fig-tool-flow")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_tool_flow, figure=True)
 ```
 
 The diagram is a sketch, not a measurement. It answers the question the
@@ -352,17 +352,17 @@ different messages.
 Two things enter the replay and one comes out of it:
 
 ```{python}
-#| echo: false
-excerpt(experiment.draw_replay_check)
-```
-
-```{python}
 #| label: fig-replay-check
 #| echo: false
 #| fig-cap: "What the replay keeps and what it recomputes. The recorded messages are reused as they are; every recorded tool result is thrown away and computed again by the simulation. The two results are compared, and a difference beyond the tolerance fails the build. The model's words are never compared."
 #| fig-status: conceptual
 #| fig-alt: "A diagram with a recording on the left holding two items: the model's messages and the recorded tool results. The messages feed a replay client that sends the same tool calls through the allowlist to the simulation, which produces new results. A comparison box in the middle receives the recorded results and the new results. An arrow from the comparison leads to the page if they agree within the tolerance and to a failed build if they do not. The messages are not sent to the comparison."
 result.show("fig-replay-check")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_replay_check, figure=True)
 ```
 
 The diagram is a sketch and computes nothing. It answers the question the
@@ -396,9 +396,14 @@ The figure plots what the agent saw: the ranges the replay recomputed at the
 smallest time step the agent used, against the angle, and the curve a scan of
 the same simulation gives.
 
+The lines below are the part of its drawing that decides what is plotted:
+the scan, and the agent's calls that count, those that passed the allowlist,
+asked for the range, and used a step no larger than the scan's. The rest
+sets out the plot and is behind the Source link.
+
 ```{python}
 #| echo: false
-excerpt(experiment.draw_agent_evidence)
+excerpt(experiment.draw_agent_evidence, lines=(1, 15), docstring=False)
 ```
 
 ```{python}
