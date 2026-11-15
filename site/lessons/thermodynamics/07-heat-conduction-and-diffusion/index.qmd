@@ -401,7 +401,7 @@ excerpt(conduction.steady_plate)
 #| label: fig-plate-temperature
 #| echo: false
 #| fig-cap: "Heat creeps into the plate from its hot edge: after a minute only the lowest few centimetres have warmed, and the transient settles on the steady field computed by one sparse solve."
-#| fig-alt: "Two square false-colour maps of the plate temperature on one colour scale, with white labelled isotherms. Left, after a minute: a warm band along the bottom edge, the rest still cold. Right, the steady state: the isotherms bulge further up into the plate, highest in the middle and pinned to the cold side edges."
+#| fig-alt: "Two square false-colour maps of the plate temperature on one colour scale, with four labelled isotherms, white with a dark outline over the cooler colours and dark with a white outline over the warmer ones. Left, after a minute: a warm band along the bottom edge, the rest still cold. Right, the steady state: the isotherms bulge further up into the plate, highest in the middle, and every one runs down to the bottom corners, where the cold side edges meet the hot bottom edge."
 #| fig-status: simulated
 result.show("fig-plate-temperature")
 ```

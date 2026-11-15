@@ -18,6 +18,7 @@ from scipy.constants import g
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import direct_label, figsize, figure_style, finish
 from pbc.mechanics.dynamics import State, euler_step, newton, simulate
 from pbc.mechanics.energy import mechanical_energy
 from pbc.mechanics.hamiltonian import (
@@ -154,30 +155,36 @@ def closed_loop(x, v):
 
 
 def draw_phase_blob(x_start, v_start, images) -> Figure:
-    """The starting circle and its images after two periods."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    ax.plot(
-        *closed_loop(x_start, v_start),
-        color=FIGURE_COLOURS[0],
-        linestyle="-",
-        label="start",
-    )
-    ax.plot(
-        *closed_loop(*images["symplectic Euler"]),
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        label="symplectic Euler",
-    )
-    ax.plot(
-        *closed_loop(*images["explicit Euler"]),
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label="explicit Euler",
-    )
-    ax.set_xlabel("angle (rad)")
-    ax.set_ylabel("angular velocity (rad/s)")
-    ax.legend(loc="upper right")
-    return fig
+    """The starting circle and its images after two periods, each named
+    beside its curve."""
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        curves = (
+            ("start", (x_start, v_start), FIGURE_COLOURS[0], "-"),
+            ("symplectic Euler", images["symplectic Euler"], FIGURE_COLOURS[1], "--"),
+            ("explicit Euler", images["explicit Euler"], FIGURE_COLOURS[2], ":"),
+        )
+        for name, (x, v), colour, style in curves:
+            ax.plot(*closed_loop(x, v), color=colour, linestyle=style, label=name)
+            if name == "start":
+                # Above the small circle, where there is room.
+                top = int(np.argmax(v))
+                direct_label(
+                    ax,
+                    x[top],
+                    v[top],
+                    name,
+                    colour,
+                    offset=(0.0, 4.0),
+                    ha="center",
+                    va="bottom",
+                )
+            else:
+                right = int(np.argmax(x))
+                direct_label(ax, x[right], v[right], name, colour, offset=(6.0, 0.0))
+        ax.set_xlabel("angle (rad)")
+        ax.set_ylabel("angular velocity (rad/s)")
+    return finish(fig)
 
 
 def potential(x):
