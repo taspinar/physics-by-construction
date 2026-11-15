@@ -16,8 +16,9 @@ import numpy as np
 from matplotlib.figure import Figure
 from scipy.constants import Julian_year, au
 
-from pbc.authoring import diagrams
+from pbc.authoring import FIGURE_COLOURS, diagrams
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, direct_label, figsize, figure_style, finish
 from pbc.mechanics.dynamics import State, newton, simulate
 from pbc.mechanics.energy import energy_drift, mechanical_energy
 from pbc.mechanics.integrators import INTEGRATORS
@@ -172,30 +173,72 @@ def four_methods_two_orbits(experiment: Experiment) -> None:
 
 def draw_orbit_four_methods() -> Figure:
     """Two orbits of each method against the exact ellipse."""
-    exact_orbit = kepler_motion(start, gm, np.linspace(0.0, ellipse.period, 400))
+    with figure_style():
+        exact_orbit = kepler_motion(start, gm, np.linspace(0.0, ellipse.period, 400))
+        exact_colour, run_colour, star_colour = FIGURE_COLOURS[:3]
 
-    fig, axes = plt.subplots(2, 2, figsize=(6.4, 5.6), sharex=True, sharey=True)
-    for ax, integrator in zip(axes.flat, INTEGRATORS, strict=True):
-        trajectory = run_orbits(integrator, 100, 2)
-        ax.plot(
-            exact_orbit.x[:, 0],
-            exact_orbit.x[:, 1],
-            color="#00429d",
-            linestyle=":",
-            label="exact",
+        fig, axes = plt.subplots(
+            2, 2, figsize=figsize("square"), sharex=True, sharey=True
         )
-        ax.plot(trajectory.x[:, 0], trajectory.x[:, 1], color="#93003a", linewidth=0.8)
-        ax.plot(0, 0, color="#555555", marker="*", linestyle="none")
-        ax.set_title(integrator.name, fontsize=10)
-        ax.set_xlim(-2.2, 1.2)
-        ax.set_ylim(-1.6, 1.6)
-        ax.set_aspect("equal")
-    for ax in axes[1]:
-        ax.set_xlabel("x (AU)")
-    for ax in axes[:, 0]:
-        ax.set_ylabel("y (AU)")
-    fig.tight_layout()
-    return fig
+        for ax, integrator in zip(axes.flat, INTEGRATORS, strict=True):
+            trajectory = run_orbits(integrator, 100, 2)
+            ax.plot(
+                exact_orbit.x[:, 0],
+                exact_orbit.x[:, 1],
+                color=exact_colour,
+                linestyle=":",
+                linewidth=LINE["model"],
+                label="exact",
+            )
+            ax.plot(
+                trajectory.x[:, 0],
+                trajectory.x[:, 1],
+                color=run_colour,
+                linewidth=LINE["guide"],
+                label="two orbits",
+            )
+            ax.plot(0, 0, color=star_colour, marker="*", linestyle="none")
+            ax.set_title(integrator.name)
+            ax.set_xlim(-2.2, 1.2)
+            ax.set_ylim(-1.6, 1.6)
+            ax.set_aspect("equal")
+        # Named once, in the first panel, where the curves lie apart.
+        first = axes.flat[0]
+        direct_label(
+            first,
+            -1.0,
+            -0.87,
+            "exact",
+            exact_colour,
+            offset=(0.0, -4.0),
+            ha="center",
+            va="top",
+        )
+        direct_label(
+            first,
+            -1.5,
+            1.25,
+            "two orbits",
+            run_colour,
+            offset=(0.0, 4.0),
+            ha="center",
+            va="bottom",
+        )
+        direct_label(
+            first,
+            0.0,
+            0.0,
+            "star",
+            star_colour,
+            offset=(-5.0, -3.0),
+            ha="right",
+            va="top",
+        )
+        for ax in axes[1]:
+            ax.set_xlabel("x (AU)")
+        for ax in axes[:, 0]:
+            ax.set_ylabel("y (AU)")
+    return finish(fig)
 
 
 def observed_orders(experiment: Experiment) -> dict:
@@ -310,30 +353,31 @@ def thousand_orbits(experiment: Experiment):
 def draw_orbit_thousand(long_runs: dict) -> Figure:
     """The semi-major axis and the perihelion direction over a thousand
     orbits."""
-    fig, (top, bottom) = plt.subplots(2, 1, figsize=(6.4, 5.6), sharex=True)
-    for integrator, style in ((verlet, "-"), (rk4, "--")):
-        states = once_per_orbit(long_runs[integrator.name])
-        orbit_number = np.arange(len(states))
-        top.plot(
-            orbit_number,
-            [orbital_elements(state, gm).semi_major_axis for state in states],
-            color="#93003a" if integrator is verlet else "#00429d",
-            linestyle=style,
-            label=integrator.name,
-        )
-        bottom.plot(
-            orbit_number,
-            perihelion_direction(states),
-            color="#93003a" if integrator is verlet else "#00429d",
-            linestyle=style,
-            label=integrator.name,
-        )
-    top.set_ylabel("semi-major axis (AU)")
-    top.legend(loc="lower left")
-    bottom.set_xlabel("orbit")
-    bottom.set_ylabel("perihelion direction (degrees)")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=figsize("stacked"), sharex=True)
+        for integrator, style in ((verlet, "-"), (rk4, "--")):
+            colour = FIGURE_COLOURS[1] if integrator is verlet else FIGURE_COLOURS[0]
+            states = once_per_orbit(long_runs[integrator.name])
+            orbit_number = np.arange(len(states))
+            axis = [orbital_elements(state, gm).semi_major_axis for state in states]
+            direction = perihelion_direction(states)
+            top.plot(
+                orbit_number, axis, color=colour, linestyle=style, label=integrator.name
+            )
+            bottom.plot(
+                orbit_number,
+                direction,
+                color=colour,
+                linestyle=style,
+                label=integrator.name,
+            )
+        top.set_ylabel("semi-major axis (AU)")
+        # Labels at the ends of the curves would sit on the spikes of the top
+        # panel: one legend, where the curves leave room.
+        top.legend(loc="lower left")
+        bottom.set_xlabel("orbit")
+        bottom.set_ylabel("perihelion direction (degrees)")
+    return finish(fig, grid=True)
 
 
 def precession_against_step(experiment: Experiment) -> None:
