@@ -54,7 +54,7 @@ Skills: pbc-physics-teaching@7f34987
 | `elastic_unloading`, `closed_loop_work`, region `choices` | Model and integral; the lab's choices | Exact, unchanged |
 | `ellipse_check`, `landmarks`, `fit_modulus`, `newey_west_slope_error`, `sensitivity`, `offset_yields`, `unloading`, `loop`, `true_stress_strain`, exercises | Validation and analysis | Exact, unchanged |
 | `draw_stress_strain` | None. Dependency check: plots the three segments of `segments(test)`, shades the rows of the loop (`loop`, shown), marks three landmarks (`landmarks`, shown); no computation | Figure source link |
-| `draw_elastic_regime` | The residuals against both lines and the 0.2 % offset line, from which the end of the elastic regime is read | Exact selection: lines 5 to 8 (the data, grid, fitted values), 47 (the shifted line), 65 to 69 and 76 to 78 (the two residuals); layout omitted; Source link to the whole |
+| `draw_elastic_regime` | The residuals against both lines and the 0.2 % offset line, from which the end of the elastic regime is read | Exact selection: lines 5 to 8 (the data, grid, fitted values), 27 to 28 and 37 to 38 (the fitted and the model line with their display limits; owner's correction of 2026-11-15), 47 to 48 (the shifted line and its display limits), 65 to 69 and 76 to 78 (the two residuals); layout omitted; Source link to the whole |
 | `draw_unloading` | None. Dependency check: the elastic line is `elastic_unloading` (shown); the lower panel is `behind_elastic` | Figure source link; `behind_elastic` (the inelastic strain the panel plots, an analysis function) shown exact full in its place |
 
 ## W7, `waves/09-lycopodium-diffraction-lab`

@@ -310,12 +310,18 @@ and, in the lower panel, the residuals: the measured stress minus each line,
 $S - (E e + S_0)$ for the fitted line and $S - E e$ with the elasticity
 lesson's modulus, at every stress $S < 700\ \mathrm{MPa}$. The offset line is the
 fitted line moved to the right by the largest offset, $0.2\,\%$ of strain.
-These are the lines of the drawing that compute what is plotted; the rest of
-it sets out the plot and is behind the Source link:
+In the upper panel each line is drawn only below $1000\ \mathrm{MPa}$, just
+under the top of the plot, and the offset line only above zero stress; this
+limits what is shown, not what is computed. These are the lines of the
+drawing that compute what is plotted and limit what is drawn; the rest of it
+sets out the plot and is behind the Source link:
 
 ```{python}
 #| echo: false
-excerpt(experiment.draw_elastic_regime, lines=[(5, 8), (47, 47), (65, 69), (76, 78)])
+excerpt(
+    experiment.draw_elastic_regime,
+    lines=[(5, 8), (27, 28), (37, 38), (47, 48), (65, 69), (76, 78)],
+)
 ```
 
 ```{python}
