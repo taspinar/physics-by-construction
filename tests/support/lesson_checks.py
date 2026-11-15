@@ -700,6 +700,8 @@ _FORM_CLASSES = {
     "excerpt",
     "excerpt-source",
     "excerpt-label",
+    "excerpt-header",
+    "omission-mark",
     "excerpt-omission",
     "excerpt-selection",
     "excerpt-listing",

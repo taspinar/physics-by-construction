@@ -452,9 +452,9 @@ Decide for each block why the learner reads it at that point (the
 | Form | Call | What the page shows |
 |---|---|---|
 | Exact full source | `excerpt(f)` | The whole object, with a copy button |
-| Exact selection | `excerpt(f, lines=(a, b))`, `lines=[(a, b), (c, d)]`, or `region="name"` | The lines, each with its line number in the file; between two ranges a marker "Lines m to n are not shown."; the label "Selected lines of `f`, not the whole function"; no copy button, since a fragment is not a runnable whole |
-| Without the docstring | `excerpt(f, docstring=False)`, alone or with `lines` | The marker "The docstring, lines m to n, is not shown." where it was; the source keeps it, and the Source link opens it |
-| Generated signature | `excerpt(f, signature=True)`, alone or with `lines` | Instead of the header as written, `def f(...): ...` generated when the page is built: the parameters and their defaults as the source writes them, no annotations, and the units of the interface table as comments, labelled "Generated signature of `f`, not the source text" |
+| Exact selection | `excerpt(f, lines=(a, b))`, `lines=[(a, b), (c, d)]`, or `region="name"` | The function's header on one line above it (generated, unless the selection shows the header as written, which is then shown once); the lines, each with its line number in the file; `(...)` on a line of its own wherever lines are left out, also before the first and after the last range; the link "Full function on GitHub" under it; no copy button, since a fragment is not a runnable whole |
+| Without the docstring | `excerpt(f, docstring=False)`, alone or with `lines` | `(...)` where the docstring was; the source keeps it, and the link opens it |
+| Generated signature | `excerpt(f, signature=True)`, alone or with `lines` | Instead of the header as written, the generated one, also when the selection shows the header |
 | Source link only | `source_link(f)`, or `source_link(f, figure=True)` for the function that draws a figure on the page | The link alone, "Source" or "Figure source" |
 
 - Leave out a docstring only where the prose next to the listing says what
@@ -464,6 +464,20 @@ Decide for each block why the learner reads it at that point (the
   conclusion depends on; the build cannot see this, so the review asks it.
 - Never change the source to shorten a listing: docstrings, annotations,
   defaults, and guards stay, and `interface=True` keeps reading them.
+- The generated header is built when the page is built, on one line:
+  `def f(a, b, c=0.0):`, the parameters and their defaults as the source
+  writes them, no annotations, and the units of the docstring as one
+  trailing comment (`# dt (s), return (m)`), left out when `interface=True`
+  puts them in the table above. It has no line number and the short label
+  "Shortened function" beside it; a long header wraps at the spaces after
+  its commas on a narrow screen. A selection that holds a part of the
+  header as written fails the build: show all of it or none.
+- Each `(...)` names the lines it stands for, "Lines m to n are not shown."
+  or "The docstring, lines m to n, is not shown.", for a screen reader and
+  in its `data-omitted` attribute; a selection carries the visually hidden
+  label "Selected lines of `f`, not the whole function". A region of a
+  module ends with "Source" and marks the lines of the file before and
+  after it.
 - A generated signature is the only signature that is not the source text;
   a signature typed by hand is code the build did not run and needs the
   "not verified" marker.

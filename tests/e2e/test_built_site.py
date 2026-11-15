@@ -198,25 +198,41 @@ def hrefs(locator) -> list[str]:
 def test_rendering_check_page_shows_each_display_form_of_code_labelled(
     page: Page, server: SiteServer
 ):
-    """ADR 023 decisions 3 and 4: the generated signature, the omitted
-    docstring, the selection's marker, and the Source link alone are each
-    named in words, and a part of a selection offers no copy of itself."""
+    """ADR 023 decisions 3 and 4 in the compact display of Issue #536: the
+    generated header is one line with the short label "Shortened function";
+    an omission is "(...)" on the screen and the lines in words for a screen
+    reader; a selection is labelled for a screen reader and ends with the
+    link to the full function; a part of a selection offers no copy of
+    itself."""
     page.goto(server.url + "rendering-check.html", wait_until="load")
     main = page.locator("main")
 
     signature = main.locator("[data-signature]")
     assert signature.count() == 1
-    assert "def offset_crossing(" in signature.inner_text()
-    labels = main.locator(".excerpt-label").all_inner_texts()
-    assert any(t.startswith("Generated signature of offset_crossing") for t in labels)
-    assert any(t.startswith("Selected lines of offset_crossing") for t in labels)
-    omissions = main.locator(".excerpt-omission")
-    texts = omissions.all_inner_texts()
+    header = signature.locator("code").text_content()
+    assert header.startswith("def offset_crossing(strain, stress,")
+    assert len(header.strip().splitlines()) == 1
+    # The only visible label is the short one beside the generated header.
+    labels = main.locator(".excerpt-label")
+    assert labels.count() == 1
+    assert labels.inner_text().startswith("Shortened function")
+    assert "Generated signature of" not in main.inner_text()
+    hidden = main.locator(".excerpt-selection > p > .visually-hidden")
+    assert any(
+        t.startswith("Selected lines of offset_crossing")
+        for t in hidden.all_text_contents()
+    )
+    marks = main.locator(".excerpt-omission .omission-mark").all_text_contents()
+    assert marks and all(mark == "(...)" for mark in marks)
+    texts = main.locator(".excerpt-omission .visually-hidden").all_text_contents()
     assert any(
         re.fullmatch(r"The docstring, lines \d+ to \d+, is not shown\.", t)
         for t in texts
     )
     assert any(re.fullmatch(r"Lines \d+ to \d+ are not shown\.", t) for t in texts)
+    for selection in main.locator(".excerpt:has(.excerpt-selection)").all():
+        link = selection.locator(".excerpt-source a.source-link")
+        assert link.inner_text().startswith("Full function on GitHub")
     # The highlighting of a selection is the build's, like a plain listing's.
     assert main.locator(".excerpt-part code span.op").count() > 0
     assert main.locator(".excerpt-selection .code-copy-button").count() == 0

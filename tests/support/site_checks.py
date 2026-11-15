@@ -1585,8 +1585,8 @@ _UNEXECUTED = """
 
 # Runs in the page. Returns the declared source and the text of every
 # by-reference excerpt: of each part of a selection, with the source line
-# numbers its lines show; the omission markers between the parts; the
-# generated signature beside it; and whether it ends with a Source link.
+# numbers its lines show; the omission markers, with the mark a reader sees;
+# the generated header above it; and the link it ends with.
 _EXCERPTS = """
 () => [...document.querySelectorAll("[data-source]")].map((element) => {
   const excerpt = element.closest(".excerpt") ?? element;
@@ -1605,6 +1605,7 @@ _EXCERPTS = """
       omitted: o.getAttribute("data-omitted"),
       what: o.getAttribute("data-what"),
       text: o.textContent.trim(),
+      mark: o.querySelector(".omission-mark")?.textContent.trim() ?? null,
     })),
     signature: signature && {
       name: signature.getAttribute("data-signature"),
@@ -1612,6 +1613,8 @@ _EXCERPTS = """
       text: signature.querySelector("code").textContent,
     },
     linked: excerpt.querySelector(".excerpt-source") !== null,
+    interface: excerpt.querySelector("table") !== null,
+    link: excerpt.querySelector(".excerpt-source a.source-link")?.textContent ?? null,
     // The lines the listing marks, and the line each note is anchored to.
     marked: [...element.querySelectorAll(".marked")].map((l) => l.textContent.trim()),
     anchors: [...excerpt.querySelectorAll("[data-anchor]")].map((note) =>
@@ -1810,12 +1813,22 @@ def _parameters(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[tuple]:
     return found
 
 
+# A generated header: one line, ending in the colon of the ``def``, and the
+# units as one trailing comment, "name (unit), ..." (Issue #536).
+_HEADER = re.compile(r"(?P<header>(?:async )?def .*\):)(?:  # (?P<units>.*))?")
+
+
 def _signature_problems(signature: dict, source: str, parts: list) -> list[str]:
-    """A generated signature names the parameters of the function in its
-    source, with the defaults the source writes and the units its docstring
-    gives, and stands for the function's header as written, which no part
-    shows (ADR 023 decision 4). Read here from the file, not from ``pbc``."""
-    shown = _definition(signature["text"])
+    """A generated header is one line that names the parameters of the
+    function in its source, with the defaults the source writes and the
+    units its docstring gives, and stands for the function's header as
+    written, which no part shows (ADR 023 decision 4). Read here from the
+    file, not from ``pbc``."""
+    text = signature["text"].strip("\n")
+    found = _HEADER.fullmatch(text)
+    if found is None:
+        return ["the generated header is not one line that ends a def"]
+    shown = _definition(found["header"] + "\n    ...")
     function = _definition(source)
     if shown is None or function is None:
         return ["the generated signature is not the signature of a function"]
@@ -1825,12 +1838,15 @@ def _signature_problems(signature: dict, source: str, parts: list) -> list[str]:
             "the generated signature names other parameters or defaults than"
             " the function"
         )
+    # The units of the docstring, unless the interface table above the
+    # excerpt gives them.
     units = dict(_UNIT.findall(ast.get_docstring(function) or ""))
-    for line in signature["text"].splitlines()[1:-1]:
-        entry, _, comment = line.partition("#")
-        name = entry.strip().rstrip(",").split("=")[0].lstrip("*")
-        if comment.strip() != units.get(name, ""):
-            problems.append(f"the generated unit of {name} is not its docstring's")
+    if signature.get("interface"):
+        units = {}
+    named = [name for _, name, _ in _parameters(function)] + ["return"]
+    expected = [(name, units[name]) for name in named if units.get(name)]
+    if (found["units"] or "") != ", ".join(f"{n} ({u})" for n, u in expected):
+        problems.append("the generated units are not the docstring's")
     match = re.fullmatch(r"1-(\d+)", signature["replaces"] or "")
     object_lines = source.splitlines()
     if match is None:
@@ -1848,8 +1864,11 @@ def _signature_problems(signature: dict, source: str, parts: list) -> list[str]:
 def _selection_problems(excerpt: dict, source: str, first_line: int) -> list[str]:
     """The parts of an excerpt are exact ranges of the object, each line shows
     its line number in the file, and a marker names exactly the lines left out
-    between two parts (or between a generated signature and the first part),
-    as the docstring only when they are the docstring (ADR 023 decision 7)."""
+    between two parts, before the first (after a generated header), and after
+    the last, as the docstring only when they are the docstring (ADR 023
+    decision 7); each marker shows "(...)" (Issue #536). A selection of a
+    function shows its header once: as written, or generated above it; it
+    ends with the link to the full function."""
     object_lines = source.splitlines()
     ranges = _ranges(object_lines, excerpt["region"], excerpt["lines"]) or []
     problems = []
@@ -1861,12 +1880,31 @@ def _selection_problems(excerpt: dict, source: str, first_line: int) -> list[str
         if numbers and numbers != list(range(first_line + a - 1, first_line + b)):
             problems.append("its line numbers are not those of the file")
     gaps = [(b + 1, c - 1) for (_, b), (c, _) in itertools.pairwise(ranges)]
+    whole = ranges == [(1, len(object_lines))]
     signature = excerpt["signature"]
-    if signature and signature["name"] == excerpt["source"]:
+    if signature and signature["name"] != excerpt["source"]:
+        signature = None
+    start = 1
+    if signature:
         match = re.fullmatch(r"1-(\d+)", signature["replaces"] or "")
-        if match and ranges and ranges[0][0] > int(match[1]) + 1:
-            gaps.insert(0, (int(match[1]) + 1, ranges[0][0] - 1))
-        problems += _signature_problems(signature, source, ranges)
+        if match:
+            start = int(match[1]) + 1
+        problems += _signature_problems(
+            {**signature, "interface": excerpt.get("interface")}, source, ranges
+        )
+    if ranges and not whole:
+        if ranges[0][0] > start:
+            gaps.insert(0, (start, ranges[0][0] - 1))
+        if ranges[-1][1] < len(object_lines):
+            gaps.append((ranges[-1][1] + 1, len(object_lines)))
+    function = _definition(source) if excerpt["source"].partition(":")[2] else None
+    if function is not None and ranges and not whole:
+        if not signature and ranges[0][0] != 1:
+            problems.append("the selection of a function shows no header")
+        if excerpt["link"] is not None and not excerpt["link"].startswith(
+            "Full function on GitHub"
+        ):
+            problems.append("the selection does not end with the full function link")
     docstring = None
     if excerpt["source"].partition(":")[2]:
         node = ast.parse(source).body[0]
@@ -1887,6 +1925,8 @@ def _selection_problems(excerpt: dict, source: str, first_line: int) -> list[str
             problems.append(f"an omission marker does not name {where}")
         if (omission["what"] == "docstring") != (gap == docstring):
             problems.append("an omission marker misnames the docstring")
+        if omission["mark"] != "(...)":
+            problems.append("an omission marker does not show (...)")
     if omitted != gaps:
         problems.append("its omission markers are not the lines left out")
     return problems
@@ -1909,7 +1949,14 @@ def _source_link_problems(repository: Path, links: list[dict]) -> list[str]:
             or not (link["href"] or "").endswith(
                 f"/blob/{link['commit']}/{path}#L{match[1]}-L{match[2]}"
             )
-            or not (link["text"] or "").startswith(("Source", "Figure source"))
+            or not (link["text"] or "").startswith(
+                (
+                    "Source",
+                    "Figure source",
+                    "Full function on GitHub",
+                    "Full class on GitHub",
+                )
+            )
         ):
             problems.append(f"the Source link of {name} is not a link to its lines")
             continue

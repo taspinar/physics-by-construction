@@ -327,8 +327,9 @@ span.not-verified-label {
 }
 
 /* The compact Source link of a by-reference excerpt, directly under its
-   listing (U1b): one word, with the file, lines, and commit in its address,
-   its title, and its data attributes. */
+   listing (U1b): "Source", or "Full function on GitHub" under a selection,
+   with the file, lines, and commit in its address, its title, and its data
+   attributes. */
 .excerpt-source {
   margin: -0.5rem 0 1rem;
   font-size: 0.875em;
@@ -338,27 +339,85 @@ span.not-verified-label {
   margin: 0;
 }
 
-/* What a listing is (ADR 023): a selection or a generated signature says so
-   in words above it; a marker names the lines a selection leaves out. */
-.excerpt-label,
-.excerpt-omission {
+/* The compact display of a selection (Issue #536). A header generated from
+   the function stands above it on one line, in a dashed frame on the page
+   ground instead of the code plate, without a line number, with the short
+   label "Shortened function" beside it; a long header wraps at the spaces
+   after its commas, each continuation indented. */
+.excerpt-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--pbc-space-2);
+  margin: 0.25rem 0;
+}
+
+/* The header takes the width it needs on one line; the label goes beside
+   it when there is room and under it when not. */
+main .excerpt-header div.sourceCode {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  border-style: dashed;
+  background-color: transparent;
+}
+
+.excerpt-header pre.sourceCode,
+.excerpt-header pre.sourceCode > code.sourceCode,
+.excerpt-header pre.sourceCode > code.sourceCode > span {
+  white-space: pre-wrap;
+}
+
+.excerpt-header pre.sourceCode > code.sourceCode > span {
+  padding-left: 4ch;
+  text-indent: -4ch;
+}
+
+.excerpt-header .excerpt-name {
+  white-space: nowrap;
+}
+
+/* On a phone the header steps down one size, so that "def name(" and its
+   first parameter usually share the first line. */
+@media (max-width: 30rem) {
+  .excerpt-header pre.sourceCode > code.sourceCode {
+    font-size: 0.875em;
+  }
+}
+
+.excerpt-label {
+  flex: none;
   color: var(--pbc-muted);
   font-size: var(--pbc-text-small);
 }
 
 .excerpt-label p {
-  margin: var(--pbc-space-2) 0 0.25rem;
+  margin: 0;
+}
+
+/* Lines a selection leaves out: "(...)" on a line of its own between the
+   code plates, in the code face and muted, under the code column; which
+   lines it stands for is in its data attribute and in visually hidden
+   text. */
+.excerpt-omission {
+  color: var(--pbc-muted);
+  font-family: var(--pbc-font-code);
+  font-size: var(--pbc-text-code);
+  line-height: 1.25;
 }
 
 .excerpt-omission p {
-  margin: 0.25rem 0;
-  padding-left: 0.75rem;
-  border-left: var(--pbc-rule-width) dashed var(--pbc-rule);
-  font-style: italic;
+  margin: 0;
+  padding: 0.125rem 0 0.125rem calc(0.5rem + 5ch + 0.75rem);
 }
 
 .excerpt-selection div.sourceCode {
   margin: 0.25rem 0;
+}
+
+/* The link under a selection that ends in "(...)" keeps clear of it. */
+.excerpt-selection > .excerpt-omission:last-child p {
+  padding-bottom: 0.75rem;
 }
 
 .exercise {

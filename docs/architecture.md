@@ -1816,7 +1816,13 @@ The excerpt helper `pbc.authoring.excerpt` carries the selections
 (`lines=` with one or several ranges, `region=`), the docstring omission
 (`docstring=False`), the generated signature (`signature=True`), the
 labels, and a compact Source link (F175); `source_link(obj, figure=True)`
-is the Source-link-only form. The full path, line range, and commit stay
+is the Source-link-only form. Since #536 the display of a selection is
+compact: above a selection of a function, its header on one line (generated
+at build time, labelled "Shortened function" and without a line number,
+unless the selection shows the header as written); every gap, at the
+start and end too, a `(...)` line whose range is in `data-omitted` and in
+visually hidden text; the label of a selection visually hidden; and the
+link under it "Full function on GitHub" (or class). The full path, line range, and commit stay
 in the link's address, `title`, and data attributes (`data-path`,
 `data-lines`, `data-commit`) and in the excerpt marker, not as a sentence
 after every block; the link opens the whole object at the built commit.
