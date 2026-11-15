@@ -67,14 +67,17 @@ SMITH_CHART = FigureProvenance(
     " single sweep (_CORR files), unmodified; the fitted T networks: this"
     " lesson's code, not part of the record.",
 )
+# Every curve of this figure is computed by the lesson from the record's
+# calibrated S-parameters (the absorbed fraction, the misfit, the difference of
+# two files), so the figure is processed, as the difference alone was before
+# (the owner's review of 2026-11-15 on PR #540).
 WIDEBAND = FigureProvenance(
-    status="calibrated",
+    status="processed",
     dataset=DATASET,
-    combines=("processed",),
-    processing="The absorbed fraction of the record's calibrated S-parameters"
-    " (_CORR files); the misfit of the 3 dB fit against the single sweep and the"
-    " difference between the two instruments on one pad: this lesson's code, not"
-    " part of the record.",
+    processing="The absorbed fraction 1 - |S11|^2 - |S21|^2, the misfit of the"
+    " 3 dB fit against the single sweep and the difference between the two"
+    " instruments on one pad, computed from the record's calibrated"
+    " S-parameters (_CORR files): this lesson's code, not part of the record.",
 )
 MEASURED_STYLE = {"lw": 1.6, "ls": "-"}
 MODEL_STYLE = {"lw": 1.2, "ls": "--", "color": "0.15"}
@@ -588,7 +591,8 @@ def draw_wideband(
             lw=1.4,
             label=name,
         )
-        role(curve, "calibrated")
+        # Computed from S11 and S21 of the record: processed (PR #540).
+        role(curve, "processed")
     # A limit, drawn for comparison: a reference (Issue #531).
     role(top.axhline(0, color="k", lw=0.8, label="lossless"), REFERENCE)
     top.set_ylim(-0.05, 1.0)

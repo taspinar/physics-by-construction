@@ -998,8 +998,10 @@ def draw_map() -> Figure:
         linewidths=0.6,
     )
     ax.clabel(arrival, fmt="%d min", fontsize=6)
-    ax.contour(lon, lat, d.uplift, levels=[1.0, 3.0, 5.0], colors="k", linewidths=0.7)
-    ax.contour(
+    uplift = ax.contour(
+        lon, lat, d.uplift, levels=[1.0, 3.0, 5.0], colors="k", linewidths=0.7
+    )
+    subsidence = ax.contour(
         lon,
         lat,
         d.uplift,
@@ -1008,6 +1010,10 @@ def draw_map() -> Figure:
         linewidths=0.7,
         linestyles="--",
     )
+    # The contours have no legend entry: each carries the role of the model
+    # it draws, which check_roles requires (review 02 M1).
+    for contours in (arrival, uplift, subsidence):
+        role(contours, "simulated")
     epicentre = kamchatka_tsunami.EPICENTRE
     ax.plot(epicentre[1], epicentre[0], "*", ms=9, mfc="w", mec="k")
     for name in STATIONS:

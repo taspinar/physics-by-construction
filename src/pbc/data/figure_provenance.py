@@ -66,6 +66,7 @@ from pbc.data.status import (
 )
 
 if TYPE_CHECKING:
+    from matplotlib.contour import ContourSet
     from matplotlib.figure import Figure
 
 SCHEMA = "pbc-figure-provenance/1"
@@ -523,6 +524,19 @@ def _linestyle(handle: Any) -> str | None:
     return style if isinstance(style, str) else None
 
 
+def _contour_style(
+    k: int, contours: ContourSet, kind: str, measured: bool, modelled: bool
+) -> list[str]:
+    """The style rules of ``check_roles`` for the lines of a contour set."""
+    styles = contours.get_linestyle()
+    solid = [dashes is None or not any(dashes) for _, dashes in styles]
+    if measured and kind == "simulated" and any(solid):
+        return [f"panel {k + 1}: a model contour set has solid lines"]
+    if modelled and kind in MEASURED_STATUSES and not all(solid):
+        return [f"panel {k + 1}: a measured contour set is drawn as a model"]
+    return []
+
+
 def _drawn(ax: Any) -> list[Any]:
     """The artists a panel draws that can carry a role."""
     return [
@@ -538,20 +552,30 @@ def check_roles(fig: Figure, provenance: FigureProvenance) -> list[str]:
     """The legend semantics of a declared figure; an empty list means none.
 
     Every legend entry is an artist with a role, every role is one the
-    declaration names (a residual only where a measurement meets a model),
+    declaration names (a residual only in a figure of a measurement),
     every declared role is drawn (by a legend entry or, in a panel without
     one, such as an image, by a drawn artist with the role, Issue #531),
     every entry of a panel is in its legend; in a panel that holds a
     measurement a model is never a solid line, and in a panel that holds a
     model a measurement is never a dashed or dotted one. A ``REFERENCE``
     (a bound, a limit, a published value) may be drawn in any figure and
-    style.
+    style. A contour set, which has no legend entry, always carries a role,
+    and its lines follow the same style rules (review 02 M1).
     """
+    from matplotlib.contour import ContourSet
+
     out: list[str] = []
     seen: set[str] = set()
+    # A residual compares a measurement with a model: allowed beside the
+    # model, or in a figure of the measurement that draws only the misfit
+    # (EM9's wideband figure, PR #540).
     allowed = (
         provenance.roles()
-        | ({RESIDUAL} if provenance.combines else set())
+        | (
+            {RESIDUAL}
+            if provenance.combines or provenance.status in MEASURED_STATUSES
+            else set()
+        )
         | {REFERENCE}
     )
     for k, ax in enumerate(fig.axes):
@@ -564,7 +588,15 @@ def check_roles(fig: Figure, provenance: FigureProvenance) -> list[str]:
         for artist in _drawn(ax):
             kind = role_of(artist)
             if kind is None:
+                # A contour set draws data (a field, a model's levels), never
+                # decoration: it carries a role (review 02 M1, Issue #531).
+                if isinstance(artist, ContourSet):
+                    out.append(f"panel {k + 1}: a contour set has no role")
                 continue
+            if isinstance(artist, ContourSet) and not artist.filled:
+                # Contour lines have no legend entry: the style rules hold
+                # for the lines drawn (review 02 M1).
+                out.extend(_contour_style(k, artist, kind, measured, modelled))
             if kind not in allowed:
                 out.append(
                     f"panel {k + 1}: an artist is {kind!r}; the figure declares"

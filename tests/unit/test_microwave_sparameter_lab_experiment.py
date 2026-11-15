@@ -354,7 +354,10 @@ def test_every_dataset_figure_declares_its_provenance(experiment):
 
 @pytest.mark.parametrize("label", sorted(dataset_figures(PAGE)))
 def test_every_figure_follows_the_conventions(experiment, label):
-    assert dataset_figures(PAGE)[label]["fig-status"] == "calibrated"
+    # The wideband figure shows quantities the lesson computes from the
+    # record (PR #540); the other two show the record's S-parameters.
+    status = "processed" if label == "fig-wideband" else "calibrated"
+    assert dataset_figures(PAGE)[label]["fig-status"] == status
     # Panels with a residual (misfit) axis are checked as such.
     assert_cell_declared(experiment, PAGE, label, residuals=label in RESIDUAL_FIGURES)
     figure = experiment.figures[label]()
@@ -362,8 +365,9 @@ def test_every_figure_follows_the_conventions(experiment, label):
         for ax in figure.axes:
             for handle, text in zip(*ax.get_legend_handles_labels(), strict=True):
                 if "pad" in text and "fit" not in text:
-                    # The difference of the two instruments is computed here.
-                    expected = "processed" if "minus" in text else "calibrated"
+                    # The absorbed fraction and the difference of the two
+                    # instruments are computed here.
+                    expected = status
                     assert role_of(handle) == expected, (label, text)
                 if "T network" in text:
                     assert role_of(handle) == "simulated", (label, text)

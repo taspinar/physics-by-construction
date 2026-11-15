@@ -367,6 +367,24 @@ def test_the_roles_report_what_the_status_words_of_a_legend_used_to_show():
     assert any("no legend entry" in p for p in fp.check_roles(fig, MIXED))
 
 
+def test_a_residual_needs_a_measurement_in_the_figure():
+    """A figure of a measurement may draw the misfit of a fit without the
+    model (EM9's wideband figure, PR #540); a model alone may not."""
+    fig, ax = plt.subplots()
+    role(ax.plot([0, 1], [0, 1], label="m")[0], "processed")
+    role(ax.plot([0, 1], [1, 0], label="misfit")[0], RESIDUAL)
+    ax.legend()
+    assert fp.check_roles(fig, ALONE) == []
+    model = FigureProvenance(
+        status="simulated", dataset=ALONE.dataset, model_of=True, processing="fit"
+    )
+    fig, ax = plt.subplots()
+    role(ax.plot([0, 1], [0, 1], label="fit", ls="--")[0], "simulated")
+    role(ax.plot([0, 1], [1, 0], label="misfit")[0], RESIDUAL)
+    ax.legend()
+    assert any("declares" in p for p in fp.check_roles(fig, model))
+
+
 def test_a_legend_that_drops_an_entry_is_reported():
     fig, ax = plt.subplots()
     for k in range(2):
@@ -619,3 +637,32 @@ def test_a_figure_of_further_datasets_credits_each_on_the_image_and_caption():
     assert "pbc:also" not in fp.metadata(ALONE, fp.card_of(NIST), "m:f")
     with pytest.raises(ValueError):
         FigureProvenance(status="processed", dataset=piv, also=(piv,), processing="p")
+
+
+def _image_and_contours(linestyles):
+    # A measured field with a model's contour lines over it, as the
+    # Kamchatka map draws (review 02 M1, Issue #531).
+    fig, ax = plt.subplots()
+    role(ax.imshow([[0, 1], [1, 0]]), "processed")
+    z = [[0.0, 1.0, 2.0], [1.0, 2.0, 3.0], [2.0, 3.0, 4.0]]
+    contours = ax.contour(z, levels=[1.0, 2.0], colors="k", linestyles=linestyles)
+    return fig, contours
+
+
+def test_a_contour_set_carries_a_role_and_follows_the_style_rules():
+    fig, contours = _image_and_contours("-.")
+    assert any("contour set has no role" in p for p in fp.check_roles(fig, MIXED))
+    role(contours, "simulated")
+    assert fp.check_roles(fig, MIXED) == []
+    role(contours, "conceptual")
+    assert any("'conceptual'" in p for p in fp.check_roles(fig, MIXED))
+    # Beside a measurement, a model's contour lines are never solid.
+    fig, contours = _image_and_contours(["--", "-"])
+    role(contours, "simulated")
+    assert any("solid lines" in p for p in fp.check_roles(fig, MIXED))
+    # Beside a model, a measurement's contour lines are never dashed.
+    fig, ax = plt.subplots()
+    role(ax.imshow([[0, 1], [1, 0]]), "simulated")
+    contours = ax.contour([[0.0, 1.0], [1.0, 2.0]], levels=[1.0], linestyles="--")
+    role(contours, "processed")
+    assert any("drawn as a model" in p for p in fp.check_roles(fig, MIXED))

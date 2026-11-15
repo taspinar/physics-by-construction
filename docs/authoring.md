@@ -1949,7 +1949,11 @@ An agent may help a learner explore, but its conclusions are never data.
    neighbouring samples as independent; where they share an error, such as
    a common calibration offset, say on the page that the interpolated
    uncertainty is a lower bound; the status becomes
-   `processed` after the first one, so smoothed data cannot be shown as raw;
+   `processed` after the first one, so smoothed data cannot be shown as raw.
+   A quantity the lesson computes from several recorded values (a power
+   balance such as $1 - |S_{11}|^2 - |S_{21}|^2$, a difference of two files,
+   a misfit) is `processed` too; a recorded value only re-expressed in
+   another unit, such as $|S_{21}|$ in dB, keeps the status of its record;
 4. draws with `pbc.data.plotting`: `measured_vs_model` (the measurement with
    its band, the models dashed and apart, the residuals), `series_with_band`,
    `signed_image` (colours centred on zero; masks grey; "false colour" in the
@@ -1981,7 +1985,9 @@ An agent may help a learner explore, but its conclusions are never data.
    legend entry (in a panel without a legend, a drawn artist such as the
    image) with `role(artist, status)` (`REFERENCE` for a bound, a limit,
    or a published value drawn for comparison); the helpers do so with
-   `declared=True`. A figure that also draws data of a further card names
+   `declared=True`. Every contour set, which has no legend entry, carries
+   a role too, and `check_roles` holds its lines to the same style rules
+   as a legend entry's. A figure that also draws data of a further card names
    it with `also=(...)`: its credit is painted and shown at the caption
    too. The card of every dataset with a go holds
    `rights.figure_credit` (`short`, `visible`, `source`; `visible` is
