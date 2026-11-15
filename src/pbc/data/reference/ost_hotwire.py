@@ -31,7 +31,9 @@ import numpy as np
 from scipy import signal
 
 from pbc.data import SAMPLES_DIR
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.figure_provenance import REFERENCE as REFERENCE_ROLE
+from pbc.data.figure_provenance import FigureProvenance, role
+from pbc.data.plotting import COLOURS
 from pbc.data.reference import cylinder_wake
 
 SERIES = "ost_hotwire_16s.csv"
@@ -174,6 +176,19 @@ def analyse(data: HotWire) -> Analysis:
 # The figure.
 
 MARKERS = {25.1: ("o", COLOURS[0]), 32.0: ("s", COLOURS[2]), 50.0: ("^", COLOURS[1])}
+# The provenance of the reference figure (Issue #531): its status and credit
+# at no place on the chart, in its PNG's record, from the card.
+REFERENCE = FigureProvenance(
+    status="processed",
+    dataset="ost-hotwire-cylinder-wakes",
+    combines=("simulated",),
+    artifact="processed-measured",
+    processing="The first 16.384 s of each run of the record, rounded to 1 mm/s;"
+    " the spectra, shedding frequencies and Strouhal numbers, and Roshko's"
+    " correlation beside them: the reference figure's code, not part of the"
+    " record. The PIV point is from J. Shang, J. Tu, Zenodo, doi"
+    " 10.5281/zenodo.20765567, CC BY 4.0 (piv-cylinder-wake).",
+)
 
 
 def make_figure(data_dir: Path, piv_dir: Path = SAMPLES_DIR / "piv-cylinder-wake"):
@@ -190,17 +205,22 @@ def make_figure(data_dir: Path, piv_dir: Path = SAMPLES_DIR / "piv-cylinder-wake
             continue
         marker, colour = MARKERS[round(run.diameter * 1e3, 1)]
         f, p = spectrum(data.u[:, k])
-        power.semilogy(
+        (line,) = power.semilogy(
             f[1:],
             p[1:],
             color=colour,
             lw=0.9,
             label=(
                 f"D = {run.diameter * 1e3:g} mm, U = 10.5 m/s: peak "
-                f"{result.frequency[k]:.1f} Hz [processed]"
+                f"{result.frequency[k]:.1f} Hz"
             ),
         )
-    power.axvline(300, color="0.4", ls=":", label="low-pass filter, 300 Hz")
+        role(line, "processed")
+    # The filter's cut-off, drawn for comparison: a reference (Issue #531).
+    role(
+        power.axvline(300, color="0.4", ls=":", label="low-pass filter, 300 Hz"),
+        REFERENCE_ROLE,
+    )
     power.set_xlim(0, 400)
     power.set_xlabel("frequency [Hz]")
     power.set_ylabel("power spectral density [(m/s)²/Hz]")
@@ -210,7 +230,7 @@ def make_figure(data_dir: Path, piv_dir: Path = SAMPLES_DIR / "piv-cylinder-wake
     # St against Re, with the PIV wake and Roshko's correlation.
     for diameter, (marker, colour) in MARKERS.items():
         pick = np.array([round(r.diameter * 1e3, 1) == diameter for r in data.runs])
-        st_re.errorbar(
+        bars = st_re.errorbar(
             result.reynolds[pick],
             result.strouhal[pick],
             yerr=result.strouhal_err[pick],
@@ -219,7 +239,8 @@ def make_figure(data_dir: Path, piv_dir: Path = SAMPLES_DIR / "piv-cylinder-wake
             capsize=2,
             label=f"hot wire, D = {diameter:g} mm, D/W = {diameter / 193:.2f}",
         )
-        st_block.errorbar(
+        role(bars, "processed")
+        bars = st_block.errorbar(
             result.blockage[pick],
             result.strouhal[pick],
             yerr=result.strouhal_err[pick],
@@ -228,7 +249,8 @@ def make_figure(data_dir: Path, piv_dir: Path = SAMPLES_DIR / "piv-cylinder-wake
             capsize=2,
             label=f"D = {diameter:g} mm",
         )
-    st_re.errorbar(
+        role(bars, "processed")
+    bars = st_re.errorbar(
         [cylinder_wake.REYNOLDS],
         [piv.strouhal],
         yerr=[piv.strouhal_err],
@@ -237,14 +259,16 @@ def make_figure(data_dir: Path, piv_dir: Path = SAMPLES_DIR / "piv-cylinder-wake
         capsize=2,
         label="PIV wake, Re = 413 (piv-cylinder-wake)",
     )
+    role(bars, "processed")
     re_range = np.geomspace(200, 2000, 50)
-    st_re.plot(
+    (line,) = st_re.plot(
         re_range,
         cylinder_wake.roshko(re_range),
         "--",
         color="0.3",
         label="Roshko (1954), St = 0.212 - 2.7/Re [model]",
     )
+    role(line, "simulated")
     st_re.set_xscale("log")
     st_re.set_ylim(0.17, 0.26)
     st_re.set_xlabel("Reynolds number U D / ν [dimensionless]")  # noqa: RUF001
@@ -258,14 +282,4 @@ def make_figure(data_dir: Path, piv_dir: Path = SAMPLES_DIR / "piv-cylinder-wake
     st_block.set_title("Strouhal number against the blockage")
     st_block.legend(fontsize=7, loc="upper left")
 
-    label_status(fig, "processed")
-    add_credit(
-        fig,
-        "Data: A. P. Ost, A. V. de Paula, S. V. Möller, 'Turbulent flow past "
-        "cylinders', Mendeley Data, v1, 2019, doi 10.17632/xy8ggx9hn6.1, CC BY "
-        "4.0 https://creativecommons.org/licenses/by/4.0/; the first 16.384 s of "
-        "each run, rounded to 1 mm/s. PIV point: J. Shang, J. Tu, Zenodo, doi "
-        "10.5281/zenodo.20765567, CC BY 4.0. Spectra and Strouhal numbers are "
-        "this project's processing.",
-    )
     return fig

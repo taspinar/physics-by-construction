@@ -36,7 +36,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.figure_provenance import RESIDUAL, FigureProvenance, role
+from pbc.data.plotting import COLOURS
 
 ANNUAL_FILE = "eb_stunde_03987_2015_2024_6h.txt"
 DIURNAL_FILE = "eb_stunde_03987_jja_2020_2024_1h.txt"
@@ -58,6 +59,18 @@ MISSING = -999.0
 COLUMNS = ("V_TE005", "V_TE010", "V_TE020", "V_TE050", "V_TE100")
 DEPTHS = np.array([0.05, 0.10, 0.20, 0.50, 1.00])  # m
 UNITS = {"MESS_DATUM": "YYYYMMDDHH", "QN_2": "none", "V_TE*": "degC"}
+# The provenance the reference figure declares (Issue #531): its status and
+# credit at the caption and in its PNG, from the card.
+REFERENCE = FigureProvenance(
+    status="processed",
+    dataset="dwd-potsdam-soil-temperature",
+    combines=("simulated",),
+    processing="Rows of DWD's hourly soil temperature of station 03987 Potsdam,"
+    " selected unchanged (00, 06, 12, 18 h of 2015-2024; every hour of June to"
+    " August 2020-2024); the harmonic fits, the heat-equation model, and the"
+    " residuals: this module's code (pbc.data.reference.dwd_soil), not part of"
+    " the record.",
+)
 YEAR = 365.2425 * 86400.0  # s, the mean Gregorian year
 DAY = 86400.0  # s
 OMEGA_YEAR = 2 * np.pi / YEAR  # rad/s
@@ -344,7 +357,7 @@ def _depth_panels(ax_a, ax_l, ax_ra, ax_rl, result: Estimate, colour, marker, na
     k_a, k_l = result.kappa
     se_a, se_l = result.standard_error
     span = f"{wave.periods[0]}-{wave.periods[-1]}"
-    ax_a.errorbar(
+    bars = ax_a.errorbar(
         z,
         a_mean,
         yerr=a_sem,
@@ -354,7 +367,8 @@ def _depth_panels(ax_a, ax_l, ax_ra, ax_rl, result: Estimate, colour, marker, na
         color=colour,
         label=f"{name} wave, measured ({span}, mean of {n})",
     )
-    ax_a.plot(
+    role(bars, "processed")
+    (line,) = ax_a.plot(
         dense,
         np.exp(fit.intercept_amplitude - fit.slope_amplitude * dense),
         color=colour,
@@ -362,7 +376,8 @@ def _depth_panels(ax_a, ax_l, ax_ra, ax_rl, result: Estimate, colour, marker, na
         lw=1.2,
         label=f"model, κ = {k_a * 1e6:.2f} ± {se_a * 1e6:.2f} $\\times$ 10⁻⁶ m²/s",
     )
-    ax_l.errorbar(
+    role(line, "simulated")
+    bars_l = ax_l.errorbar(
         z,
         l_mean,
         yerr=l_sem,
@@ -372,7 +387,8 @@ def _depth_panels(ax_a, ax_l, ax_ra, ax_rl, result: Estimate, colour, marker, na
         color=colour,
         label=f"{name} wave, measured ({span}, mean of {n})",
     )
-    ax_l.plot(
+    role(bars_l, "processed")
+    (line_l,) = ax_l.plot(
         dense,
         fit.intercept_lag + fit.slope_lag * dense,
         color=colour,
@@ -380,8 +396,9 @@ def _depth_panels(ax_a, ax_l, ax_ra, ax_rl, result: Estimate, colour, marker, na
         lw=1.2,
         label=f"model, κ = {k_l * 1e6:.2f} ± {se_l * 1e6:.2f} $\\times$ 10⁻⁶ m²/s",
     )
+    role(line_l, "simulated")
     ra, rl = depth_residuals(result)
-    ax_ra.errorbar(
+    bars = ax_ra.errorbar(
         z,
         ra,
         yerr=a_sem / a_mean,
@@ -392,7 +409,8 @@ def _depth_panels(ax_a, ax_l, ax_ra, ax_rl, result: Estimate, colour, marker, na
         color=colour,
         label=f"{name} wave",
     )
-    ax_rl.errorbar(
+    role(bars, RESIDUAL)
+    bars = ax_rl.errorbar(
         z,
         rl,
         yerr=l_sem,
@@ -403,6 +421,7 @@ def _depth_panels(ax_a, ax_l, ax_ra, ax_rl, result: Estimate, colour, marker, na
         color=colour,
         label=f"{name} wave",
     )
+    role(bars, RESIDUAL)
 
 
 def make_figure(data_dir: Path) -> plt.Figure:
@@ -423,7 +442,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
     day, means = daily_means(annual_readings)
     years = day.astype("datetime64[s]").astype(float) / YEAR + 1970
     for k, z in enumerate(DEPTHS):
-        ax_year.plot(
+        (line,) = ax_year.plot(
             years,
             means[:, k],
             lw=0.7,
@@ -431,6 +450,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
             color=COLOURS[k],
             label=f"{z * 100:.0f} cm",
         )
+        role(line, "processed")
     ax_year.set_xlabel("year [calendar year]")
     ax_year.set_ylabel("daily mean soil temperature [degC]")
     ax_year.set_title(
@@ -443,7 +463,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
     inside = (hourly.time >= start) & (hourly.time < end)
     days = seconds(hourly.time[inside], start) / DAY
     for k, z in enumerate(DEPTHS):
-        ax_week.plot(
+        (line,) = ax_week.plot(
             days,
             hourly.temperature[inside, k],
             lw=1.0,
@@ -451,6 +471,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
             color=COLOURS[k],
             label=f"{z * 100:.0f} cm",
         )
+        role(line, "processed")
     ax_week.set_xlabel(f"days from {WEEK[0]} 00 h (MESS_DATUM) [d]")
     ax_week.set_ylabel("soil temperature [degC]")
     ax_week.set_title("Processed: hourly readings, one summer week", fontsize=10)
@@ -482,14 +503,4 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ax_rl.set_ylabel("residual of the lag [rad]")
     ax_rl.set_title("Residuals of the straight line in the lag", fontsize=10)
 
-    add_credit(
-        fig,
-        "Data: Deutscher Wetterdienst (DWD), Climate Data Center, hourly soil "
-        "temperature of station 03987 Potsdam, archive "
-        "stundenwerte_EB_03987_19510101_20251231_hist.zip, CC BY 4.0. Rows "
-        "selected unchanged (00, 06, 12, 18 h of 2015-2024; every hour of June to "
-        "August 2020-2024). Harmonic fits, the heat-equation model, and residuals: "
-        "this figure's code (pbc.data.reference.dwd_soil), not part of the record.",
-    )
-    label_status(fig, "processed")
     return fig

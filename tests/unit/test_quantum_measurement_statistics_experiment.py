@@ -3,12 +3,12 @@
 import itertools
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
+from support.figures import assert_cell_declared, dataset_figures
 
-from pbc.data.plotting import check_figure
+from pbc.data.figure_provenance import read_metadata
 from pbc.data.reference import munich_bell
 from pbc.quantum.experiments import quantum_measurement_statistics as experiment
 
@@ -166,19 +166,25 @@ def test_the_exercises_follow_from_the_numbers(results):
     assert (s_minus >= experiment.LHV_BOUND).all()
 
 
-def test_every_figure_follows_the_conventions():
-    run = experiment.run()
-    try:
-        assert set(run.figures) == {"fig-run", "fig-correlators", "fig-running-s"}
-        for label, draw in run.figures.items():
-            fig = draw()
-            assert check_figure(fig) == [], label
-            assert any("zenodo" in t.get_text().lower() for t in fig.texts), (
-                f"{label} carries no attribution"
-            )
-            plt.close(fig)
-    finally:
-        plt.close("all")
+@pytest.fixture(scope="module")
+def lab():
+    return experiment.run()
+
+
+def test_every_dataset_figure_declares_its_provenance(lab):
+    # Issue #531: every figure of the run states its status and credit at its
+    # caption and in its PNG, from the card.
+    assert set(lab.figures) == {"fig-run", "fig-correlators", "fig-running-s"}
+    assert set(lab.provenance) == set(dataset_figures(PAGE))
+
+
+@pytest.mark.parametrize("label", sorted(dataset_figures(PAGE)))
+def test_every_figure_follows_the_conventions(lab, label):
+    # The attribution is the card's, at the caption and in the PNG's record,
+    # with the credit line the card requires painted under the figure.
+    assert_cell_declared(lab, PAGE, label)
+    record = read_metadata(lab.png(label))
+    assert "zenodo" in record["Source"].lower(), f"{label} carries no attribution"
 
 
 def test_the_run_takes_the_time_the_page_budget_allows():

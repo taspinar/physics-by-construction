@@ -42,7 +42,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from pbc.data import tracking
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.figure_provenance import RESIDUAL, FigureProvenance, role
+from pbc.data.plotting import COLOURS
 
 TRACKS = "bulk_water_tracks.csv"
 # The green channel of frames 000-002 (the PNGs are not committed: I6).
@@ -305,6 +306,18 @@ def sensitivity(tracks: Tracks) -> dict[str, float]:
 
 # The figure.
 
+# The provenance of the reference figure (Issue #531): its status and credit
+# at no place on the chart, in its PNG's record, from the card.
+REFERENCE = FigureProvenance(
+    status="processed",
+    dataset="trackpy-bulk-water",
+    combines=("simulated",),
+    processing="A corner of frame 000 of sample_data/bulk_water (commit 09fb307),"
+    " green channel; the tracking, drift subtraction, mean squared displacement,"
+    " fit and step distribution, with NumPy and SciPy: the reference figure's"
+    " code, not the provider's and not part of the record.",
+)
+
 
 def make_figure(data_dir: Path):
     data_dir = Path(data_dir)
@@ -320,12 +333,13 @@ def make_figure(data_dir: Path):
 
     # A corner of frame 000 with the tracks, as measured (drift included).
     x0, x1, y0, y1 = 0, 200, 0, 200
-    image.imshow(
+    frame = image.imshow(
         green[y0:y1, x0:x1],
         cmap="gray",
         extent=(x0 - 0.5, x1 - 0.5, y1 - 0.5, y0 - 0.5),
         interpolation="nearest",
     )
+    role(frame, "processed")
     length = np.bincount(tracks.particle)
     first = True
     for number in np.unique(tracks.particle[length[tracks.particle] >= MIN_LENGTH]):
@@ -333,16 +347,17 @@ def make_figure(data_dir: Path):
         order = np.argsort(tracks.frame[rows])
         x, y = tracks.xy[rows][order].T
         if x.min() >= x0 and x.max() < x1 and y.min() >= y0 and y.max() < y1:
-            image.plot(
+            (line,) = image.plot(
                 x,
                 y,
                 color=COLOURS[4],
                 lw=1.0,
-                label="tracks over 40 frames [processed]" if first else None,
+                label="tracks over 40 frames" if first else None,
             )
+            role(line, "processed")
             first = False
     start = tracks.frame == 0
-    image.plot(
+    (located,) = image.plot(
         *tracks.xy[start].T,
         "o",
         mfc="none",
@@ -351,6 +366,7 @@ def make_figure(data_dir: Path):
         mew=0.8,
         label="features located in frame 000",
     )
+    role(located, "processed")
     image.set_xlim(x0 - 0.5, x1 - 0.5)
     image.set_ylim(y1 - 0.5, y0 - 0.5)
     image.set_xlabel("x [px]")
@@ -360,7 +376,7 @@ def make_figure(data_dir: Path):
 
     # The MSD, the line fitted to it, and Stokes-Einstein.
     tau_ms = result.tau * 1e3
-    top.errorbar(
+    bars = top.errorbar(
         tau_ms,
         result.msd,
         yerr=result.msd_err,
@@ -368,10 +384,11 @@ def make_figure(data_dir: Path):
         color=COLOURS[0],
         ms=4,
         capsize=2,
-        label=f"MSD, {result.tracks} tracks [processed]: 1 sigma (bootstrap)",
+        label=f"MSD, {result.tracks} tracks: 1 sigma (bootstrap)",
     )
+    role(bars, "processed")
     fine = np.linspace(0, result.tau[-1], 50)
-    top.plot(
+    (fit,) = top.plot(
         fine * 1e3,
         4 * result.diffusion * fine + result.intercept,
         "--",
@@ -381,8 +398,9 @@ def make_figure(data_dir: Path):
             f"{result.diffusion_err:.3f} µm²/s"
         ),
     )
+    role(fit, "simulated")
     for celsius, style in ((20.0, ":"), (25.0, "-.")):
-        top.plot(
+        (line,) = top.plot(
             fine * 1e3,
             4 * stokes_einstein(celsius) * fine + result.intercept,
             style,
@@ -392,12 +410,13 @@ def make_figure(data_dir: Path):
                 f"{stokes_einstein(celsius):.3f} µm²/s (same c)"
             ),
         )
+        role(line, "simulated")
     top.set_ylabel("MSD [µm²]")
     top.set_title("Drift-corrected MSD, lags 1-10 frames")
     top.legend(fontsize=7, loc="upper left")
     bottom.axhline(0, color="0.5", lw=0.8)
     residual = result.msd - (4 * result.diffusion * result.tau + result.intercept)
-    bottom.errorbar(
+    bars = bottom.errorbar(
         tau_ms,
         residual,
         yerr=result.msd_err,
@@ -406,6 +425,7 @@ def make_figure(data_dir: Path):
         ms=4,
         capsize=2,
     )
+    role(bars, RESIDUAL)
     bottom.set_xlabel("lag time τ [ms]")
     bottom.set_ylabel("residual [µm²]")
     bottom.set_title("Residual: measurement minus fit")
@@ -417,25 +437,28 @@ def make_figure(data_dir: Path):
     # (and the drift of a frame, about 0.02 µm, is added).
     reach = SEARCH_RANGE * MICRONS_PER_PIXEL
     edges = np.linspace(-1.1 * reach, 1.1 * reach, 89)
-    steps.hist(
+    *_, bars = steps.hist(
         values,
         bins=edges,
         density=True,
         color=COLOURS[0],
         alpha=0.6,
         label=(
-            f"x and y steps [processed]\nn = {values.size}, "
+            f"x and y steps\nn = {values.size}, "
             f"excess kurtosis {result.excess_kurtosis:.1f}"
         ),
     )
+    # The legend entry of a histogram is its first bar.
+    role(bars[0], "processed")
     grid_x = np.linspace(edges[0], edges[-1], 300)
-    steps.plot(
+    (gaussian,) = steps.plot(
         grid_x,
         np.exp(-0.5 * (grid_x / sigma) ** 2) / (sigma * np.sqrt(2 * np.pi)),
         "--",
         color=COLOURS[1],
         label=f"Gaussian, rms {sigma:.3f} µm",
     )
+    role(gaussian, "simulated")
     steps.set_yscale("log")
     steps.set_ylim(1e-3, None)
     steps.set_xlabel("displacement in one frame [µm]")
@@ -443,13 +466,4 @@ def make_figure(data_dir: Path):
     steps.set_title("Steps after the drift, log scale")
     steps.legend(fontsize=7, loc="upper left")
 
-    label_status(fig, "processed")
-    add_credit(
-        fig,
-        "Frames: trackpy-examples, sample_data/bulk_water (commit 09fb307), "
-        "Copyright (c) 2013-2014 trackpy-examples contributors, CC BY 3.0 "
-        "https://creativecommons.org/licenses/by/3.0/. Tracking, drift "
-        "subtraction and fit are this project's processing (NumPy, SciPy), "
-        "not the provider's.",
-    )
     return fig

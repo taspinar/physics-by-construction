@@ -14,6 +14,7 @@ import yaml
 
 from pbc.data import REGISTRY_DIR, REPO_ROOT
 from pbc.data.card import load_card, load_cards, validate_card
+from pbc.data.figure_provenance import FigureProvenance
 from pbc.data.registry import (
     DOCS_README,
     SURVEYED,
@@ -79,6 +80,21 @@ def test_a_module_that_does_not_import_or_has_no_make_figure_is_reported(monkeyp
     problems = check_reference_modules(bare)
     assert len(problems) == 1 and "make_figure" in problems[0]
     stub.make_figure = lambda data_dir: None
+    # Since Issue #531 the module declares its figure's provenance, of the
+    # card and with the status the card gives its reference figure.
+    problems = check_reference_modules(bare)
+    assert len(problems) == 1 and "declares no REFERENCE" in problems[0]
+    stub.REFERENCE = FigureProvenance(
+        status="processed", dataset="y", processing="The record."
+    )
+    problems = check_reference_modules(bare)
+    assert any("'y'" in p for p in problems)
+    assert any("status 'processed'" in p for p in problems)
+    stub.REFERENCE = FigureProvenance(
+        status=bare["x"]["reference_figure"]["status"],
+        dataset="x",
+        processing="The record.",
+    )
     assert check_reference_modules(bare) == []
 
 

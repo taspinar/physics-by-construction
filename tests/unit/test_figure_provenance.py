@@ -367,6 +367,24 @@ def test_the_roles_report_what_the_status_words_of_a_legend_used_to_show():
     assert any("no legend entry" in p for p in fp.check_roles(fig, MIXED))
 
 
+def test_a_residual_needs_a_measurement_in_the_figure():
+    """A figure of a measurement may draw the misfit of a fit without the
+    model (EM9's wideband figure, PR #540); a model alone may not."""
+    fig, ax = plt.subplots()
+    role(ax.plot([0, 1], [0, 1], label="m")[0], "processed")
+    role(ax.plot([0, 1], [1, 0], label="misfit")[0], RESIDUAL)
+    ax.legend()
+    assert fp.check_roles(fig, ALONE) == []
+    model = FigureProvenance(
+        status="simulated", dataset=ALONE.dataset, model_of=True, processing="fit"
+    )
+    fig, ax = plt.subplots()
+    role(ax.plot([0, 1], [0, 1], label="fit", ls="--")[0], "simulated")
+    role(ax.plot([0, 1], [1, 0], label="misfit")[0], RESIDUAL)
+    ax.legend()
+    assert any("declares" in p for p in fp.check_roles(fig, model))
+
+
 def test_a_legend_that_drops_an_entry_is_reported():
     fig, ax = plt.subplots()
     for k in range(2):
@@ -424,3 +442,227 @@ def test_the_examples_are_the_page_figure_and_the_one_without_the_visualization_
     assert branded["pbc:visible-credit"] == fp.visible_credit(fp.card_of(TESS))
     plain = fp.read_metadata(written[1].read_bytes())
     assert plain["pbc:visible-credit"] == "Data: NASA TESS / MAST"
+
+
+# --- The rollout (F173, Issue #531) -----------------------------------------
+
+LYCOPODIUM = "lycopodium-spore-diffraction"
+KAMCHATKA = "kamchatka-2025-tsunami-inputs"
+HALO = FigureProvenance(
+    status="simulated",
+    dataset=LYCOPODIUM,
+    model_of=True,
+    processing="The halo of the lesson's model at the measured diameters.",
+)
+
+
+def test_every_card_with_a_go_passes_the_rights_check_of_its_figure_credit():
+    from pbc.data import REGISTRY_DIR
+    from pbc.data.card import load_card, validate_card
+
+    go = [
+        card
+        for path in sorted(REGISTRY_DIR.glob("*.yaml"))
+        if ((card := load_card(path)).get("decision") or {}).get("value") == "go"
+    ]
+    assert len(go) >= 19
+    for card in go:
+        assert fp.credit_problems(card) == [], card["id"]
+        # A CC BY card and a card whose terms ask for the credit paint it.
+        visible = card["rights"]["figure_credit"]["visible"]
+        assert visible in fp.PAINTED, card["id"]
+    card = copy.deepcopy(go[0])
+    del card["rights"]["figure_credit"]
+    assert "rights.figure_credit: missing" in validate_card(card)
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        {"status": "processed", "model_of": True},
+        {"status": "simulated", "model_of": True, "artifact": "modelled-reference"},
+        {"status": "simulated"},
+    ],
+)
+def test_a_simulated_declaration_shows_a_modelled_artifact_or_models_the_dataset(
+    arguments,
+):
+    with pytest.raises(ValueError):
+        FigureProvenance(dataset=LYCOPODIUM, processing="p", **arguments)
+
+
+def test_a_model_of_the_dataset_names_it_as_such_in_its_record():
+    card = fp.card_of(LYCOPODIUM)
+    assert fp.declaration_problems(HALO, card) == []
+    meta = fp.metadata(HALO, card, "m:fig-halo")
+    assert meta["pbc:dataset"] == "" and meta["pbc:model-of"] == LYCOPODIUM
+    assert list(meta).index("pbc:model-of") == list(meta).index("pbc:dataset") + 1
+    assert fp.dataset_of(meta) == LYCOPODIUM
+    assert meta["Description"].startswith("Status: simulation modelled on the dataset.")
+    # A figure of the dataset itself has no such key: the pilot's records.
+    assert "pbc:model-of" not in fp.metadata(MIXED, fp.card_of(TESS), "m:f")
+    assert fp.dataset_of(fp.metadata(MIXED, fp.card_of(TESS), "m:f")) == TESS
+
+
+def test_a_simulated_figure_of_a_modelled_artifact_is_allowed_where_the_card_says():
+    card = fp.card_of(KAMCHATKA)
+    modelled = FigureProvenance(
+        status="simulated",
+        dataset=KAMCHATKA,
+        artifact="modelled-reference",
+        processing="The model's field.",
+    )
+    assert fp.declaration_problems(modelled, card) == []
+    measured_artifact = FigureProvenance(
+        status="simulated",
+        dataset=KAMCHATKA,
+        artifact="processed-measured",
+        processing="The model's field.",
+    )
+    assert any(
+        "status 'simulated'" in p
+        for p in fp.declaration_problems(measured_artifact, card)
+    )
+
+
+def test_a_panel_without_a_legend_shows_its_roles_by_its_drawn_artists():
+    fig, ax = plt.subplots()
+    image = ax.imshow([[0, 1], [1, 0]])
+    assert any("no legend entry" in p for p in fp.check_roles(fig, ALONE))
+    role(image, "processed")
+    assert fp.check_roles(fig, ALONE) == []
+    role(image, "simulated")
+    assert any("'simulated'" in p for p in fp.check_roles(fig, ALONE))
+    # In a panel with a legend the entries count, not an unnamed artist.
+    fig, ax = plt.subplots()
+    role(ax.plot([0, 1], [0, 1])[0], "simulated")
+    role(ax.plot([0, 1], [1, 0], label="m")[0], "processed")
+    ax.legend()
+    assert any("no legend entry" in p for p in fp.check_roles(fig, MIXED))
+
+
+def test_a_simulation_alone_may_be_solid_and_a_model_beside_a_measurement_not():
+    fig, ax = plt.subplots()
+    role(ax.plot([0, 1], [0, 1], ls="-", label="halo")[0], "simulated")
+    ax.legend()
+    assert fp.check_roles(fig, HALO) == []
+    assert any(
+        "solid" in p
+        for p in fp.check_roles(_measured_and_model(model_style="-"), MIXED)
+    )
+
+
+def test_a_further_stage_of_the_data_is_named_as_data_not_as_a_model():
+    spectrum = FigureProvenance(
+        status="calibrated",
+        dataset="gw150914-strain",
+        combines=("processed",),
+        processing="The strain and its spectrum.",
+    )
+    assert spectrum.statement() == "calibrated measurement with processed data"
+    card = fp.card_of("gw150914-strain")
+    after, _ = fp.caption_html(fp.metadata(spectrum, card, "m:f"), card)
+    assert "with processed data</span>" in after
+
+
+def test_a_reference_value_takes_any_style_and_counts_for_no_declared_role():
+    fig, ax = plt.subplots()
+    role(ax.plot([0, 1], [1, 0], ls="none", marker="o", label="m")[0], "processed")
+    role(ax.plot([0, 1], [0, 1], ls="--", label="fit")[0], "simulated")
+    role(ax.axhline(0.5, ls="-", label="bound"), fp.REFERENCE)
+    ax.legend()
+    assert fp.check_roles(fig, MIXED) == []
+    fig, ax = plt.subplots()
+    role(ax.axhline(0.5, label="bound"), fp.REFERENCE)
+    ax.legend()
+    assert any("no legend entry" in p for p in fp.check_roles(fig, ALONE))
+
+
+def test_the_style_rules_hold_within_a_panel():
+    # A dashed measurement in a panel without a model, beside a panel that
+    # draws one: the measurement of that panel is not mistaken for a model.
+    fig, (top, bottom) = plt.subplots(2, 1)
+    role(top.plot([0, 1], [0, 1], ls="--", label="2 cm")[0], "processed")
+    role(top.plot([0, 1], [1, 0], ls=":", label="5 cm")[0], "processed")
+    top.legend()
+    role(bottom.plot([0, 1], [0, 1], ls="-", label="m")[0], "processed")
+    role(bottom.plot([0, 1], [1, 1], ls="--", label="fit")[0], "simulated")
+    bottom.legend()
+    assert fp.check_roles(fig, MIXED) == []
+    role(bottom.plot([0, 1], [0, 0], ls=":", label="m2")[0], "processed")
+    bottom.legend()
+    assert any("drawn as a model" in p for p in fp.check_roles(fig, MIXED))
+
+
+def test_a_providers_copyright_notice_in_its_attribution_is_not_ownership():
+    card = fp.card_of("trackpy-bulk-water")
+    assert "Copyright (c)" in card["rights"]["attribution"]
+    alone = FigureProvenance(
+        status="processed", dataset="trackpy-bulk-water", processing="Tracked."
+    )
+    png = encode(_draw_one, metadata=fp.metadata(alone, card, "m:f"))
+    assert fp.check_png(png, alone, card, "m:f") == []
+    # Elsewhere, and as the project's claim, the mark is still refused.
+    assert fp.ownership_problems("Data (c) 2024 NASA")
+    assert fp.ownership_problems("Copyright (c) Physics by Construction", notice=True)
+
+
+def _draw_one():
+    fig, ax = plt.subplots()
+    ax.plot([0, 1], [0, 1])
+    return fig
+
+
+def test_a_figure_of_further_datasets_credits_each_on_the_image_and_caption():
+    hot_wire, piv = "ost-hotwire-cylinder-wakes", "piv-cylinder-wake"
+    both = FigureProvenance(
+        status="processed",
+        dataset=hot_wire,
+        artifact="processed-measured",
+        also=(piv,),
+        processing="Strouhal numbers of both records.",
+    )
+    card, other = fp.card_of(hot_wire), fp.card_of(piv)
+    assert fp.declaration_problems(both, card) == []
+    meta = fp.metadata(both, card, "m:f")
+    short = other["rights"]["figure_credit"]["short"]
+    assert meta["pbc:also"] == piv and meta["pbc:also-credit"] == short
+    first, second = meta["pbc:visible-credit"].split("\n")
+    assert first.endswith(card["rights"]["figure_credit"]["short"])
+    assert second == short
+    _, end = fp.caption_html(meta, card)
+    assert f'<span class="figure-credit-also">{short}</span>' in end
+    assert "<dt>Also from</dt>" in end
+    # A record of one dataset has none of these keys.
+    assert "pbc:also" not in fp.metadata(ALONE, fp.card_of(NIST), "m:f")
+    with pytest.raises(ValueError):
+        FigureProvenance(status="processed", dataset=piv, also=(piv,), processing="p")
+
+
+def _image_and_contours(linestyles):
+    # A measured field with a model's contour lines over it, as the
+    # Kamchatka map draws (review 02 M1, Issue #531).
+    fig, ax = plt.subplots()
+    role(ax.imshow([[0, 1], [1, 0]]), "processed")
+    z = [[0.0, 1.0, 2.0], [1.0, 2.0, 3.0], [2.0, 3.0, 4.0]]
+    contours = ax.contour(z, levels=[1.0, 2.0], colors="k", linestyles=linestyles)
+    return fig, contours
+
+
+def test_a_contour_set_carries_a_role_and_follows_the_style_rules():
+    fig, contours = _image_and_contours("-.")
+    assert any("contour set has no role" in p for p in fp.check_roles(fig, MIXED))
+    role(contours, "simulated")
+    assert fp.check_roles(fig, MIXED) == []
+    role(contours, "conceptual")
+    assert any("'conceptual'" in p for p in fp.check_roles(fig, MIXED))
+    # Beside a measurement, a model's contour lines are never solid.
+    fig, contours = _image_and_contours(["--", "-"])
+    role(contours, "simulated")
+    assert any("solid lines" in p for p in fp.check_roles(fig, MIXED))
+    # Beside a model, a measurement's contour lines are never dashed.
+    fig, ax = plt.subplots()
+    role(ax.imshow([[0, 1], [1, 0]]), "simulated")
+    contours = ax.contour([[0.0, 1.0], [1.0, 2.0]], levels=[1.0], linestyles="--")
+    role(contours, "processed")
+    assert any("drawn as a model" in p for p in fp.check_roles(fig, MIXED))

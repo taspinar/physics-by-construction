@@ -44,6 +44,13 @@ rights:
     on Machine Learning Research (2026), https://openreview.net/forum?id=xvQYvYEGhj. Files raw_data/len1..5_cond1_1.csv,
     cleaned_data/len1_cond1_1.csv, cleaned_data/len1..5_cond1_2..3.csv, cleaned_data/len1_cond3_1..3.csv,
     pendulum_length.json, and LICENSE, unmodified.
+  figure_credit:
+    short: 'Data: Xu et al., Damped Pendulum Dataset (GitHub EnzeXu), Apache-2.0'
+    visible: required
+    source: 'https://www.apache.org/licenses/LICENSE-2.0 section 4, read 2026-11-09: a Derivative Work
+      carries the attribution notices of the Work and the licence, so a figure saved without its page names
+      the dataset and the licence on its face; the full notice is in the metadata and at the caption (Issue
+      #531)'
 artifacts:
 - name: raw_data/len<k>_cond1_1.csv (k = 1 to 5)
   type: raw-measured

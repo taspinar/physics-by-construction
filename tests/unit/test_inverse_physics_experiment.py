@@ -45,3 +45,26 @@ def test_only_the_wrong_model_is_rejected(results):
         .endswith("right model, reasons against: none")
     )
     assert float(found["numbers"]["wrong-chi2"]) > float(found["numbers"]["right-chi2"])
+
+
+def test_the_figures_state_their_status_once_at_the_caption():
+    # Issue #531: a simulated figure's status is the caption's (fig-status);
+    # nothing is painted on the chart area.
+    import importlib
+
+    import matplotlib.pyplot as plt
+    from support.figures import figure_cells
+
+    from pbc.data.plotting import STATUS_GID
+
+    experiment = importlib.import_module(MODULE).run()
+    cells = figure_cells(PAGE)
+    assert set(experiment.figures) == set(cells)
+    for label, draw in experiment.figures.items():
+        assert cells[label]["fig-status"] == "simulated"
+        figure = draw()
+        try:
+            assert not [t for t in figure.texts if t.get_gid() == STATUS_GID]
+        finally:
+            plt.close(figure)
+    assert experiment.provenance == {}

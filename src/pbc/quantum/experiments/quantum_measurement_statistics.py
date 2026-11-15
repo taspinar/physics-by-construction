@@ -21,7 +21,8 @@ import numpy as np
 from matplotlib.figure import Figure
 
 from pbc.data import SAMPLES_DIR
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.figure_provenance import REFERENCE, FigureProvenance, role
+from pbc.data.plotting import COLOURS
 from pbc.data.reference.munich_bell import (
     ANGLES,
     EVENTS_PER_STATE,
@@ -62,10 +63,29 @@ DATASET = "munich-bell-event-ready"
 # values the paper prints for it (Fig. 3 and the text).
 PUBLISHED_S = {"Psi-": (2.240, 0.047), "Psi+": (2.204, 0.047), "pooled": (2.221, 0.033)}
 # endregion: published
-CREDIT = (
-    "Data: Rosenfeld, Burchardt, Garthoff, Redeker, Ortegel, Rau, Weinfurter "
-    "(LMU Munich), Zenodo 10.5281/zenodo.22936124, CC BY 4.0; "
-    "Bell_2016-04-15.zip, unmodified. Selection, errors and S: this lesson's code."
+# The provenance each figure of the run declares (Issue #531): its status
+# and credit at the caption and in its PNG, from the card.
+RUN = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    processing="The record's event-ready trials of 15 April 2016"
+    " (Bell_2016-04-15.zip), unmodified; the selection of the valid events and"
+    " the stopping rule: this lesson's code, not part of the record.",
+)
+RUNNING_S = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    processing="The record's event-ready trials of 15 April 2016"
+    " (Bell_2016-04-15.zip), unmodified; the selection, S after each event and"
+    " its standard error: this lesson's code, not part of the record.",
+)
+CORRELATORS = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    combines=("simulated",),
+    processing="The record's event-ready trials of 15 April 2016"
+    " (Bell_2016-04-15.zip), unmodified; the selection, the correlators and their"
+    " errors, and the fitted model: this lesson's code, not part of the record.",
 )
 MARKER = {"Psi-": "o", "Psi+": "s"}
 LINE = {"Psi-": "-", "Psi+": "--"}
@@ -139,7 +159,7 @@ def draw_run(run: Run, days, published, stop_day) -> Figure:
     fig, ax = plt.subplots(figsize=(7.2, 4.0), constrained_layout=True)
     for k, state in enumerate(STATES):
         sel = pairs.state == state
-        ax.step(
+        (line,) = ax.step(
             days[sel],
             np.arange(1, sel.sum() + 1),
             where="post",
@@ -148,9 +168,10 @@ def draw_run(run: Run, days, published, stop_day) -> Figure:
             lw=1.3,
             label=f"{state}: valid events, accumulated",
         )
+        role(line, "processed")
     start = pairs.time_ms[0]
     excluded_days = (run.lab_1.time_ms[run.lab_1.excluded] - start) / 86400e3
-    ax.plot(
+    (marks,) = ax.plot(
         excluded_days,
         np.full(excluded_days.size, -120.0),
         marker="|",
@@ -159,22 +180,27 @@ def draw_run(run: Run, days, published, stop_day) -> Figure:
         color=COLOURS[2],
         label="attempt of lab 1 excluded (maintenance)",
     )
-    ax.axhline(
-        EVENTS_PER_STATE,
-        color="0.4",
-        lw=0.8,
-        ls="-.",
-        label="stopping rule: 5000 per state",
+    role(marks, "processed")
+    role(
+        ax.axhline(
+            EVENTS_PER_STATE,
+            color="0.4",
+            lw=0.8,
+            ls="-.",
+            label="stopping rule: 5000 per state",
+        ),
+        REFERENCE,  # the rule and its moment, drawn for comparison (Issue #531)
     )
-    ax.axvline(
-        stop_day, color="0.4", lw=0.8, ls=":", label="the moment the rule is met"
+    role(
+        ax.axvline(
+            stop_day, color="0.4", lw=0.8, ls=":", label="the moment the rule is met"
+        ),
+        REFERENCE,
     )
     ax.set_xlabel("time since the first event [day]")
     ax.set_ylabel("events of the state [count]")
     ax.set_title("Processed: the valid events of the run, by heralded state")
     ax.legend(fontsize=8, loc="upper left")
-    label_status(fig, "processed")
-    add_credit(fig, CREDIT)
     return fig
 
 
@@ -303,7 +329,7 @@ def draw_correlators(terms, fits) -> Figure:
     positions = np.arange(4)
     for k, state in enumerate(STATES):
         shift = (k - 0.5) * 0.22
-        ax.errorbar(
+        bars = ax.errorbar(
             positions + shift,
             [terms[state][s].value for s in SETTINGS],
             yerr=[terms[state][s].stderr for s in SETTINGS],
@@ -313,9 +339,10 @@ def draw_correlators(terms, fits) -> Figure:
             capsize=3,
             label=f"{state}: measured correlator, one standard error",
         )
+        role(bars, "processed")
         fit = fits[state]
         v, eps = fit.value("visibility"), fit.value("offset")
-        ax.plot(
+        (points,) = ax.plot(
             positions + shift,
             [predicted_correlator(state, *s, v, eps) for s in SETTINGS],
             color=COLOURS[k],
@@ -325,13 +352,17 @@ def draw_correlators(terms, fits) -> Figure:
             ls="none",
             label=f"{state}: fitted model (visibility and offset)",
         )
+        role(points, "simulated")
     for v in (IDEAL, -IDEAL):
-        ax.axhline(
-            v,
-            color="0.5",
-            lw=0.9,
-            ls=":",
-            label="ideal state: +-1/sqrt(2)" if v > 0 else None,
+        role(
+            ax.axhline(
+                v,
+                color="0.5",
+                lw=0.9,
+                ls=":",
+                label="ideal state: +-1/sqrt(2)" if v > 0 else None,
+            ),
+            "simulated",
         )
     ax.axhline(0, color="0.7", lw=0.6)
     ax.set_xticks(positions, [f"({a}, {b:+d})" for a, b in ANGLES.values()])
@@ -342,8 +373,6 @@ def draw_correlators(terms, fits) -> Figure:
         "Processed: correlators of the stopping rule, with the fitted model apart"
     )
     ax.legend(fontsize=7.5, loc="center", ncol=2)
-    label_status(fig, "processed")
-    add_credit(fig, CREDIT)
     return fig
 
 
@@ -354,7 +383,7 @@ def draw_running_s(run: Run, found) -> Figure:
     for k, state in enumerate(STATES):
         s, err = running_chsh(pairs, state)
         n = np.arange(40, 40 + s.size)
-        ax.plot(
+        (line,) = ax.plot(
             n,
             s,
             color=COLOURS[k],
@@ -362,7 +391,8 @@ def draw_running_s(run: Run, found) -> Figure:
             lw=1.2,
             label=f"{state}: S after n events",
         )
-        ax.fill_between(
+        role(line, "processed")
+        band = ax.fill_between(
             n,
             s - err,
             s + err,
@@ -371,16 +401,28 @@ def draw_running_s(run: Run, found) -> Figure:
             lw=0,
             label=f"{state}: one standard error",
         )
-    ax.axhline(LHV_BOUND, color="0.2", lw=1.0, label="local bound S = 2")
-    ax.axhline(
-        TSIRELSON, color="0.5", lw=0.9, ls=":", label="Tsirelson's bound 2 sqrt(2)"
+        role(band, "processed")
+    # The bounds and the stopping rule are drawn for comparison, not models of
+    # S: references (Issue #531).
+    role(
+        ax.axhline(LHV_BOUND, color="0.2", lw=1.0, label="local bound S = 2"),
+        REFERENCE,
     )
-    ax.axvline(
-        EVENTS_PER_STATE,
-        color="0.4",
-        lw=0.8,
-        ls="-.",
-        label="stopping rule: 5000 events per state",
+    role(
+        ax.axhline(
+            TSIRELSON, color="0.5", lw=0.9, ls=":", label="Tsirelson's bound 2 sqrt(2)"
+        ),
+        REFERENCE,
+    )
+    role(
+        ax.axvline(
+            EVENTS_PER_STATE,
+            color="0.4",
+            lw=0.8,
+            ls="-.",
+            label="stopping rule: 5000 events per state",
+        ),
+        REFERENCE,
     )
     ax.set_ylim(1.0, 3.3)
     ax.set_xlabel("events of the state, in time order [count]")
@@ -391,8 +433,6 @@ def draw_running_s(run: Run, found) -> Figure:
         f" +- {pooled_err:.3f}"
     )
     ax.legend(fontsize=8, loc="lower right", ncol=2)
-    label_status(fig, "processed")
-    add_credit(fig, CREDIT)
     return fig
 
 
@@ -591,7 +631,11 @@ def run() -> Experiment:
     experiment.number("stop-day", stop_day, ".2f")
     experiment.number("pairing-window", PAIRING_WINDOW_MS, "d")
     experiment.number("per-state", EVENTS_PER_STATE, "d")
-    experiment.figure("fig-run", partial(draw_run, run_, days, published, stop_day))
+    experiment.figure(
+        "fig-run",
+        partial(draw_run, run_, days, published, stop_day),
+        provenance=RUN,
+    )
 
     terms = counts_and_correlators(experiment, run_, published)
     experiment.number("ideal", IDEAL, ".3f")
@@ -621,7 +665,9 @@ def run() -> Experiment:
     s_stop, err_stop = found["pooled"]
     experiment.number("stop-shift-in-errors", abs(s_all - s_stop) / err_stop, ".2f")
     experiment.number("after-stop", len(pairs) - 2 * EVENTS_PER_STATE, "d")
-    experiment.figure("fig-running-s", partial(draw_running_s, run_, found))
+    experiment.figure(
+        "fig-running-s", partial(draw_running_s, run_, found), provenance=RUNNING_S
+    )
 
     fits = fit_the_model(experiment, terms)
     experiment.number("threshold", visibility_threshold(), ".3f")
@@ -647,7 +693,11 @@ def run() -> Experiment:
         np.sqrt(offset_errors["Psi-"] ** 2 + offset_errors["Psi+"] ** 2),
         ".1f",
     )
-    experiment.figure("fig-correlators", partial(draw_correlators, terms, fits))
+    experiment.figure(
+        "fig-correlators",
+        partial(draw_correlators, terms, fits),
+        provenance=CORRELATORS,
+    )
 
     worst_balance, chi2_settings = settings_checks(experiment, run_, published)
     experiment.number("worst-balance", worst_balance, ".1f")

@@ -2,22 +2,26 @@
 page claims is what the committed sample gives, the periods are the
 dossier's, and the figures follow the conventions of a measured-data lab."""
 
+import re
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
+from support.figures import assert_cell_declared, dataset_figures
 
 from pbc.authoring.tables import is_numeric_console_block
 from pbc.data.adapters import pendulum_angle_series
-from pbc.data.plotting import check_figure, figure_status
+from pbc.data.figure_provenance import RESIDUAL, role_of
+from pbc.data.plotting import check_figure
 from pbc.data.reference import xu_pendulum
 from pbc.experiment import encode
 from pbc.mechanics.experiments import pendulum_measurements as lab
 
 MODULE = "pbc.mechanics.experiments.pendulum_measurements"
 PAGE = "mechanics/20-pendulum-measurements"
+STATUS_WORD = re.compile(r"\[(measured|calibrated|processed|simulated|conceptual)\]")
 
 
 @pytest.fixture(scope="module")
@@ -238,19 +242,35 @@ def test_every_figure_is_processed_measurement_and_follows_the_conventions(
 ):
     figure = experiment.figures[label]()
     try:
-        assert figure_status(figure) == "processed"
-        assert check_figure(figure, residuals=label != "fig-record") == []
+        # Issue #531: the status is declared (caption and PNG), not painted;
+        # the legend entries carry roles instead of status words.
+        assert experiment.provenance[label].status == "processed"
+        residuals = label != "fig-record"
+        assert check_figure(figure, residuals=residuals, declared="processed") == []
         for ax in figure.axes:
-            legend = ax.get_legend()
-            for t in [] if legend is None else legend.get_texts():
-                text = t.get_text()
+            for handle, text in zip(*ax.get_legend_handles_labels(), strict=True):
+                assert not STATUS_WORD.search(text), (label, text)
+                kind = role_of(handle)
                 model = ("law", "fitted straight", "fitted physical", "exact period")
-                if any(m in text for m in model) and "[" in text:
-                    assert "[simulated]" in text, (label, text)
+                if any(m in text for m in model) and kind != RESIDUAL:
+                    assert kind == "simulated", (label, text)
                 if text.startswith(("trial", "T of", "T0,", "recorded", "mean of")):
-                    assert "[processed]" in text, (label, text)
+                    assert kind == "processed", (label, text)
     finally:
         plt.close(figure)
+
+
+def test_every_dataset_figure_declares_its_provenance(experiment):
+    # Issue #531: every figure of the record states its status and credit at
+    # its caption and in its PNG, from the card.
+    assert set(experiment.provenance) == set(dataset_figures(PAGE))
+
+
+@pytest.mark.parametrize("label", sorted(dataset_figures(PAGE)))
+def test_each_dataset_figure_states_one_status_and_carries_its_provenance(
+    experiment, label
+):
+    assert_cell_declared(experiment, PAGE, label, residuals=label != "fig-record")
 
 
 def test_no_printed_output_is_a_block_of_numbers(experiment):

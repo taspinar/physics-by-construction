@@ -452,9 +452,9 @@ Decide for each block why the learner reads it at that point (the
 | Form | Call | What the page shows |
 |---|---|---|
 | Exact full source | `excerpt(f)` | The whole object, with a copy button |
-| Exact selection | `excerpt(f, lines=(a, b))`, `lines=[(a, b), (c, d)]`, or `region="name"` | The lines, each with its line number in the file; between two ranges a marker "Lines m to n are not shown."; the label "Selected lines of `f`, not the whole function"; no copy button, since a fragment is not a runnable whole |
-| Without the docstring | `excerpt(f, docstring=False)`, alone or with `lines` | The marker "The docstring, lines m to n, is not shown." where it was; the source keeps it, and the Source link opens it |
-| Generated signature | `excerpt(f, signature=True)`, alone or with `lines` | Instead of the header as written, `def f(...): ...` generated when the page is built: the parameters and their defaults as the source writes them, no annotations, and the units of the interface table as comments, labelled "Generated signature of `f`, not the source text" |
+| Exact selection | `excerpt(f, lines=(a, b))`, `lines=[(a, b), (c, d)]`, or `region="name"` | One frame: the function's header on one line at its top (generated, unless the selection shows the header as written and the source writes it on one line, which is then shown once); the lines, each with its line number in the file; `(...)` on a line of its own inside the frame wherever lines are left out, also before the first and after the last range; one scroll area for the lines and the `(...)` lines; the link "Full function on GitHub" once, under the frame; no copy button, since a fragment is not a runnable whole |
+| Without the docstring | `excerpt(f, docstring=False)`, alone or with `lines` | `(...)` where the docstring was; the source keeps it, and the link opens it |
+| Generated signature | `excerpt(f, signature=True)`, alone or with `lines` | Instead of the header as written, the generated one, also when the selection shows the header |
 | Source link only | `source_link(f)`, or `source_link(f, figure=True)` for the function that draws a figure on the page | The link alone, "Source" or "Figure source" |
 
 - Leave out a docstring only where the prose next to the listing says what
@@ -464,6 +464,27 @@ Decide for each block why the learner reads it at that point (the
   conclusion depends on; the build cannot see this, so the review asks it.
 - Never change the source to shorten a listing: docstrings, annotations,
   defaults, and guards stay, and `interface=True` keeps reading them.
+- The generated header is built when the page is built, on one line:
+  `def f(a, b, c=0.0):`, the parameters and their defaults as the source
+  writes them, no annotations, and the units of the docstring as one
+  trailing comment (`# dt (s), return (m)`), left out when `interface=True`
+  puts them in the table above. It stands at the top of the selection's
+  frame, in the code column, without a line number, and with the short
+  label "Shortened function" beside it; a long header wraps after
+  `def f(` and at the spaces after its commas on a narrow screen. A
+  selection that holds a part of the header as written fails the build:
+  show all of it or none. A header the source writes over several lines,
+  one parameter per line, is generated on one line in its place also when
+  the selection holds all of it; the lines after it keep their numbers.
+- Include the function's `return` line in a selection when it helps to
+  read the fragment, as in MAT6's `draw_elastic_regime`; a selection
+  does not need one.
+- Each `(...)` names the lines it stands for, "Lines m to n are not shown."
+  or "The docstring, lines m to n, is not shown.", for a screen reader and
+  in its `data-omitted` attribute; a selection carries the visually hidden
+  label "Selected lines of `f`, not the whole function". A region of a
+  module ends with "Source" and marks the lines of the file before and
+  after it.
 - A generated signature is the only signature that is not the source text;
   a signature typed by hand is code the build did not run and needs the
   "not verified" marker.
@@ -1949,11 +1970,15 @@ An agent may help a learner explore, but its conclusions are never data.
    neighbouring samples as independent; where they share an error, such as
    a common calibration offset, say on the page that the interpolated
    uncertainty is a lower bound; the status becomes
-   `processed` after the first one, so smoothed data cannot be shown as raw;
+   `processed` after the first one, so smoothed data cannot be shown as raw.
+   A quantity the lesson computes from several recorded values (a power
+   balance such as $1 - |S_{11}|^2 - |S_{21}|^2$, a difference of two files,
+   a misfit) is `processed` too; a recorded value only re-expressed in
+   another unit, such as $|S_{21}|$ in dB, keeps the status of its record;
 4. draws with `pbc.data.plotting`: `measured_vs_model` (the measurement with
    its band, the models dashed and apart, the residuals), `series_with_band`,
    `signed_image` (colours centred on zero; masks grey; "false colour" in the
-   colour bar), `label_status`, `add_credit`. The figure cell names the card
+   colour bar). The figure cell names the card
    with `#| fig-dataset: <dataset>` next to `#| fig-status:`; the source check
    rejects a status the card's artifact types do not allow (a measured
    dataset's figure is never `simulated`), and the built-site check does the
@@ -1967,15 +1992,25 @@ An agent may help a learner explore, but its conclusions are never data.
    and sample directories to the figure cell, also through earlier cells,
    and fails a figure that is made from a dataset and names none. What that
    analysis cannot see is listed in `docs/architecture.md` ("Measured-data
-   lab"); a reviewer checks those cases by reading. A figure of the pilot
-   of portable provenance (Issue #524: `fig-transit-fit` of AST8,
-   `fig-stress-strain` of MAT6, `fig-impedance-fit` of the RLC lab)
-   declares it instead of painting it: the experiment records the figure
-   with `experiment.figure(label, draw, provenance=FigureProvenance(...))`
-   (`pbc.data.figure_provenance`: the status, the dataset, the statuses it
-   combines such as `("simulated",)` for fitted models, the processing),
-   the draw function calls neither `label_status` nor `add_credit` and
-   marks each legend entry with `role(artist, status)`, and the card holds
+   lab"); a reviewer checks those cases by reading. Every figure that
+   names a dataset (`fig-dataset` or `fig-model-of`) declares its
+   provenance instead of painting it (the pilot F172, Issue #524, rolled
+   out by F173, Issue #531): the experiment records the figure with
+   `experiment.figure(label, draw, provenance=FigureProvenance(...))`
+   (`pbc.data.figure_provenance`: the status, the dataset, the artifact
+   where the cell names one, `model_of=True` for a `fig-model-of` figure,
+   the statuses it combines such as `("simulated",)` for fitted models or
+   `("processed",)` for a spectrum beside its calibrated record, the
+   processing), the draw function calls neither `label_status` nor
+   `add_credit`, writes no status word into a legend entry, and marks each
+   legend entry (in a panel without a legend, a drawn artist such as the
+   image) with `role(artist, status)` (`REFERENCE` for a bound, a limit,
+   or a published value drawn for comparison); the helpers do so with
+   `declared=True`. Every contour set, which has no legend entry, carries
+   a role too, and `check_roles` holds its lines to the same style rules
+   as a legend entry's. A figure that also draws data of a further card names
+   it with `also=(...)`: its credit is painted and shown at the caption
+   too. The card of every dataset with a go holds
    `rights.figure_credit` (`short`, `visible`, `source`; `visible` is
    `required` where the card's terms ask for the credit on the figure,
    `chosen` where they do not and the project shows it for clear
@@ -1983,15 +2018,22 @@ An agent may help a learner explore, but its conclusions are never data.
    deterministic record into the PNG (the addendum to ADR 016 decision 2),
    paints one small line under the axes, the visualization credit
    "Visualization: Physics by Construction" (the owner's choice on Issue
-   #524, which goes with the declaration: the three figures of the pilot
-   carry it, and a further rollout goes through F173), joined by " · " to
-   the short credit where the card makes it `required` or `chosen`, and
-   the post-render step
+   #524, which goes with the declaration, so every declared figure carries
+   it), joined by " · " to the short credit where the card makes it
+   `required` or `chosen`, and the post-render step
    `site/figure-credits.py` adds the combined statuses, the short credit,
    and a closed "Full provenance" disclosure to the caption. The cell keeps
-   `fig-status` and `fig-dataset`, which the source check holds equal to
-   the declaration. Every other figure keeps the painted status and credit
-   until the rollout (F173);
+   `fig-status`, `fig-dataset` (or `fig-model-of`), and `fig-artifact`,
+   which the source check holds equal to the declaration; a cell that
+   names a dataset whose experiment declares nothing fails it. The one
+   exception is AI6's picture D, a model input that keeps its painted
+   status and credit until its own review
+   (`UNDECLARED_MODEL_INPUTS` of the lesson checks). A simulated figure
+   with no dataset paints no status either: its caption states it. The
+   reference figure of a card (`make_figure` of its `reference_module`)
+   follows the same contract: the module declares `REFERENCE`, with the
+   status of the card's `reference_figure`, and `python -m
+   pbc.data.reference` writes it through the encoder with the record;
 5. fits with `pbc.data.fit.fit_curve` and reports `FitResult.stderr`,
    `reduced_chi2`, and `warnings`. A parameter the data cannot tell apart is
    reported as not identified, with an infinite standard error, and the page
@@ -1999,9 +2041,13 @@ An agent may help a learner explore, but its conclusions are never data.
    go through `pbc.data.uncertainty` (`propagate`, `standard_error`,
    `standard_from_expanded`, `robust_sigma`) and masks through
    `pbc.data.calibration` (`mask_to_nan`, `valid_fraction`);
-6. runs `check_figure(fig, residuals=True)` in a test of the lab: it returns
-   the missing status label, unit in `[...]`, title, legend, residual panel,
-   or "false colour" note.
+6. runs `check_figure(fig, residuals=True, declared=<status>)`,
+   `check_roles`, and `check_png` in a test of the lab
+   (`tests/support/figures.py`, `assert_cell_declared`): they return a
+   painted status or credit, a missing unit in `[...]`, title, legend,
+   residual panel, or "false colour" note, a legend entry without a
+   declared role, and a PNG record that is not the declaration's and the
+   card's.
 
 Its note on the download of the data card is the `data` argument of
 `reproduce_this` ("The last section"), not a paragraph after that cell.

@@ -32,8 +32,9 @@ from pbc.data.adapters import (
     hot_wire_intensity_series,
     hot_wire_profile_series,
 )
+from pbc.data.figure_provenance import REFERENCE, RESIDUAL, FigureProvenance, role
 from pbc.data.fit import FitResult, fit_curve
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.plotting import COLOURS
 from pbc.data.reference import grazing_flow_hwa, tudelft_boundary_layer
 from pbc.data.reference.grazing_flow_hwa import Station
 from pbc.data.reference.tudelft_boundary_layer import Profile
@@ -62,12 +63,42 @@ CENTRE = 2  # the station x/L = 0 of the five across the insert
 OUTER = (0.1, 0.3, 0.5)  # y/delta where the intensities are compared
 KAPPA_REF, B_REF = 0.41, 5.0  # the reference law drawn, not fitted
 # endregion: choices
-CREDIT = (
-    "Data: M. Knoop, A. Hassanein, W. Baars, TU Delft turbulent boundary layer, "
-    "4TU.ResearchData, doi 10.4121/d0af5e8b-6bde-4c02-a165-c752b5ab435a.v1; "
-    "O. Moriaux, R. Zamponi, grazing-flow benchmark, Zenodo, doi "
-    "10.5281/zenodo.15044105; both CC BY 4.0, files unchanged. Scaling, fits, "
-    "hot-wire u_tau and models: this lesson's code."
+ARTIFACT = "processed-measured"
+# The provenance each figure of the records declares (Issue #531): its status
+# and credit at the caption and in its PNG, from the card of the TU Delft
+# record. The hot-wire profiles are the grazing-flow benchmark's: the
+# contract names one dataset, so its attribution is in the processing note.
+OUTER_PROFILES = FigureProvenance(
+    status="processed",
+    dataset=TUDELFT,
+    artifact=ARTIFACT,
+    also=(GRAZING,),
+    combines=("simulated",),
+    processing="The records' mean velocity profiles in outer scaling and their"
+    " shape factors, with the Blasius laminar layer: this lesson's code, not part"
+    " of the records; the hot-wire profiles of the grazing-flow benchmark, its"
+    " files unchanged.",
+)
+WALL_UNITS = FigureProvenance(
+    status="processed",
+    dataset=TUDELFT,
+    artifact=ARTIFACT,
+    also=(GRAZING,),
+    combines=("simulated",),
+    processing="The records' mean velocity profiles in wall units, the hot wire's"
+    " u_tau, the viscous sublayer and the reference log law, and the residuals of"
+    " each profile's own log-law fit: this lesson's code, not part of the record."
+    " The hot-wire profiles of the grazing-flow benchmark, its files unchanged.",
+)
+TURBULENCE_INTENSITY = FigureProvenance(
+    status="processed",
+    dataset=TUDELFT,
+    artifact=ARTIFACT,
+    also=(GRAZING,),
+    processing="The records' turbulence intensities and the PIV's Reynolds shear"
+    " stress, scaled by the layer thickness and u_tau: this lesson's code, not"
+    " part of the record. The hot-wire profiles of the grazing-flow benchmark, its"
+    " files unchanged.",
 )
 STYLES = ("-", "--", "-.", ":")
 MARKERS = ("o", "s", "^", "D")
@@ -465,12 +496,13 @@ def intensity_table(experiment: Experiment, tudelft: dict, hot_wire: dict) -> di
 # The figures.
 
 
-def _straight(ax, x_ends, value, **kwargs) -> None:
+def _straight(ax, x_ends, value, **kwargs):
     """A model line drawn from its two ends (on a log axis, a straight line
     in ln x): a long run of collinear points rasterises differently from one
     call to the next, and the page's figure has to be the same bytes."""
     ends = np.array(x_ends, dtype=float)
-    ax.plot(ends, value(ends), **kwargs)
+    (line,) = ax.plot(ends, value(ends), **kwargs)
+    return line
 
 
 def draw_outer_profiles(
@@ -488,17 +520,20 @@ def draw_outer_profiles(
     for k, (case, (piv, ptv)) in enumerate(tudelft.items()):
         y, u = tudelft_boundary_layer.spliced(piv, ptv)
         status = boundary_layer_profile_series(piv).status
-        prof.plot(
+        # Beside the laminar model a measurement is solid (Issue #531): the
+        # colour tells the cases apart.
+        (line,) = prof.plot(
             y / tudelft_delta99(piv),
             u,
-            ls=STYLES[k],
+            ls="-",
             lw=1.0,
             color=COLOURS[k],
-            label=f"TU Delft {case}, PTV + PIV [{status}]",
+            label=f"TU Delft {case}, PTV + PIV",
         )
+        role(line, status)
     for k, (case, s) in enumerate(hot_wire.items()):
         series = hot_wire_profile_series(s)
-        prof.plot(
+        (line,) = prof.plot(
             series.x * s.delta / hot_wire_delta99(s),
             series.y,
             ls="none",
@@ -506,16 +541,18 @@ def draw_outer_profiles(
             ms=3.0,
             mew=0,
             color=HOT_WIRE,
-            label=f"hot wire, {speed_name(case)} [{series.status}]",
+            label=f"hot wire, {speed_name(case)}",
         )
-    prof.plot(
+        role(line, series.status)
+    (line,) = prof.plot(
         lam.eta[::20] / lam.eta99,
         lam.u[::20],
         ls=(0, (5, 2, 1, 2)),
         lw=1.6,
         color=LAMINAR,
-        label="Blasius laminar layer [simulated]",
+        label="Blasius laminar layer",
     )
+    role(line, "simulated")
     prof.set_xlim(0, 1.3)
     prof.set_ylim(0, 1.08)
     prof.set_xlabel("y / delta_99 [1]")
@@ -524,16 +561,17 @@ def draw_outer_profiles(
     prof.legend(fontsize=5.5, loc="lower right", labelspacing=0.2, borderpad=0.3)
 
     re_theta = [tudelft_boundary_layer.re_theta(piv) for piv, _ in tudelft.values()]
-    shape.plot(
+    (line,) = shape.plot(
         re_theta,
         factors["tudelft"],
         ls="none",
         marker="o",
         ms=5,
         color=COLOURS[0],
-        label="TU Delft, H of the record [processed]",
+        label="TU Delft, H of the record",
     )
-    shape.plot(
+    role(line, "processed")
+    (line,) = shape.plot(
         re_theta,
         factors["recomputed"],
         ls="none",
@@ -543,7 +581,8 @@ def draw_outer_profiles(
         color=COLOURS[0],
         label="TU Delft, H recomputed from the profile",
     )
-    shape.plot(
+    role(line, "processed")
+    (line,) = shape.plot(
         factors["hot-wire-re-theta"],
         factors["hot-wire"],
         ls="none",
@@ -551,17 +590,19 @@ def draw_outer_profiles(
         ms=4,
         mew=0,
         color=HOT_WIRE,
-        label="hot wire, solid, 15 stations [processed]",
+        label="hot wire, solid, 15 stations",
     )
-    _straight(
+    role(line, "processed")
+    line = _straight(
         shape,
         (2.0e3, 1.5e4),
         lambda x: np.full_like(x, lam.shape_factor),
         ls=(0, (5, 2, 1, 2)),
         lw=1.4,
         color=LAMINAR,
-        label="Blasius laminar layer [simulated]",
+        label="Blasius laminar layer",
     )
+    role(line, "simulated")
     shape.set_xscale("log")
     shape.set_xticks([3000, 5000, 10000], labels=["3000", "5000", "10000"])
     shape.xaxis.set_minor_formatter(NullFormatter())
@@ -570,8 +611,6 @@ def draw_outer_profiles(
     shape.set_ylabel("H = delta* / theta [1]")
     shape.set_title("Shape factor, turbulent and laminar", fontsize=10)
     shape.legend(fontsize=5.5, loc="center right")
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
     return fig
 
 
@@ -589,16 +628,19 @@ def draw_wall_units(tudelft: dict, hot_wire: dict, fits: dict) -> Figure:
     )
     for k, (case, (piv, ptv)) in enumerate(tudelft.items()):
         status = boundary_layer_profile_series(piv).status
-        top.plot(
+        # Beside the models a measurement is solid (Issue #531): the colour
+        # tells the cases apart.
+        (line,) = top.plot(
             piv.yplus,
             piv.Uplus,
-            ls=STYLES[k],
+            ls="-",
             lw=1.0,
             color=COLOURS[k],
-            label=f"TU Delft {case}, PIV [{status}]",
+            label=f"TU Delft {case}, PIV",
             zorder=3,
         )
-        top.plot(
+        role(line, status)
+        (line,) = top.plot(
             ptv.yplus,
             ptv.Uplus,
             ls="none",
@@ -607,10 +649,11 @@ def draw_wall_units(tudelft: dict, hot_wire: dict, fits: dict) -> Figure:
             mfc="none",
             mew=0.6,
             color=COLOURS[k],
-            label=f"TU Delft {case}, PTV [{status}]",
+            label=f"TU Delft {case}, PTV",
         )
+        role(line, status)
         inside = window(piv.yplus, piv.y / piv.delta, LOG_LOWER, LOG_UPPER)
-        res.plot(
+        (line,) = res.plot(
             piv.yplus[inside],
             fits[case]["fit"].residuals,
             ls=STYLES[k],
@@ -618,9 +661,10 @@ def draw_wall_units(tudelft: dict, hot_wire: dict, fits: dict) -> Figure:
             color=COLOURS[k],
             label=f"TU Delft {case}",
         )
+        role(line, RESIDUAL)
     for k, (case, s) in enumerate(hot_wire.items()):
         status = hot_wire_profile_series(s).status
-        top.plot(
+        (line,) = top.plot(
             s.yplus,
             s.Uplus,
             ls="none",
@@ -628,10 +672,11 @@ def draw_wall_units(tudelft: dict, hot_wire: dict, fits: dict) -> Figure:
             ms=3.2,
             mew=0,
             color=HOT_WIRE,
-            label=f"hot wire, {speed_name(case)} [{status}]",
+            label=f"hot wire, {speed_name(case)}",
         )
+        role(line, status)
         sel = window(s.yplus, s.y_over_delta, LOG_LOWER, LOG_UPPER)
-        res.plot(
+        (line,) = res.plot(
             s.yplus[sel],
             log_fit(s.yplus[sel], s.Uplus[sel]).residuals,
             ls="none",
@@ -641,26 +686,29 @@ def draw_wall_units(tudelft: dict, hot_wire: dict, fits: dict) -> Figure:
             color=HOT_WIRE,
             label=f"hot wire, {speed_name(case)}",
         )
+        role(line, RESIDUAL)
     # U+ = y+ is curved on a log axis: drawn through points spaced in ln y+.
     grid = np.exp(np.linspace(np.log(0.5), np.log(15.0), 24))
-    top.plot(
+    (line,) = top.plot(
         grid,
         sublayer(grid),
         ls=":",
         lw=1.2,
         color=LAMINAR,
-        label="viscous sublayer U+ = y+ [simulated]",
+        label="viscous sublayer U+ = y+",
     )
+    role(line, "simulated")
     # The log law is straight on a log axis: drawn from its two ends.
-    _straight(
+    line = _straight(
         top,
         (20.0, 6000.0),
         lambda x: log_law(x, KAPPA_REF, B_REF),
         ls="--",
         lw=1.2,
         color=LAMINAR,
-        label="log law, kappa 0.41, B 5.0, not fitted [simulated]",
+        label="log law, kappa 0.41, B 5.0, not fitted",
     )
+    role(line, "simulated")
     top.set_xscale("log")
     top.set_xlim(0.5, 6000)
     top.set_ylim(0, 40)
@@ -676,8 +724,6 @@ def draw_wall_units(tudelft: dict, hot_wire: dict, fits: dict) -> Figure:
         fontsize=9,
     )
     res.legend(fontsize=5.5, loc="lower left", ncols=4)
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
     return fig
 
 
@@ -689,24 +735,26 @@ def draw_turbulence_intensity(tudelft: dict, hot_wire: dict) -> Figure:
     )
     for k, (case, (piv, _)) in enumerate(tudelft.items()):
         y = piv.y / tudelft_delta99(piv)
-        ti_ax.plot(
+        (line,) = ti_ax.plot(
             y,
             tudelft_intensity(piv),
             ls=STYLES[k],
             lw=1.0,
             color=COLOURS[k],
-            label=f"TU Delft {case}, PIV [processed]",
+            label=f"TU Delft {case}, PIV",
         )
-        uv_ax.plot(
+        role(line, "processed")
+        (line,) = uv_ax.plot(
             y,
             -piv.uv / piv.Utau**2,
             ls=STYLES[k],
             lw=1.0,
             color=COLOURS[k],
-            label=f"TU Delft {case}, PIV [processed]",
+            label=f"TU Delft {case}, PIV",
         )
+        role(line, "processed")
     for k, (case, s) in enumerate(hot_wire.items()):
-        ti_ax.plot(
+        (line,) = ti_ax.plot(
             s.y_over_delta * s.delta / hot_wire_delta99(s),
             s.TI,
             ls="none",
@@ -714,8 +762,9 @@ def draw_turbulence_intensity(tudelft: dict, hot_wire: dict) -> Figure:
             ms=3.2,
             mew=0,
             color=HOT_WIRE,
-            label=f"hot wire, {speed_name(case)} [processed]",
+            label=f"hot wire, {speed_name(case)}",
         )
+        role(line, "processed")
     ti_ax.set_xscale("log")
     ti_ax.set_xlim(2e-3, 2.0)
     ti_ax.set_ylim(0, 24)
@@ -723,8 +772,13 @@ def draw_turbulence_intensity(tudelft: dict, hot_wire: dict) -> Figure:
     ti_ax.set_ylabel("u'_rms / U_inf [%]")
     ti_ax.set_title("Streamwise turbulence intensity", fontsize=10)
     ti_ax.legend(fontsize=5.5, loc="upper right")
-    uv_ax.axhline(
-        1.0, color=LAMINAR, ls="--", lw=1.0, label="total stress at the wall, 1"
+    # The wall value of the total stress in the records' own u_tau: a fixed
+    # value, drawn for comparison (Issue #531).
+    role(
+        uv_ax.axhline(
+            1.0, color=LAMINAR, ls="--", lw=1.0, label="total stress at the wall, 1"
+        ),
+        REFERENCE,
     )
     uv_ax.set_xscale("log")
     uv_ax.set_xlim(2e-3, 2.0)
@@ -733,8 +787,6 @@ def draw_turbulence_intensity(tudelft: dict, hot_wire: dict) -> Figure:
     uv_ax.set_ylabel("-u'v' / u_tau^2 [1]")
     uv_ax.set_title("Reynolds shear stress, PIV", fontsize=10)
     uv_ax.legend(fontsize=5.5, loc="lower center")
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
     return fig
 
 
@@ -898,13 +950,17 @@ def run() -> Experiment:
     experiment.figure(
         "fig-outer-profiles",
         partial(draw_outer_profiles, tudelft, hot_wire, lam, factors),
+        provenance=OUTER_PROFILES,
     )
     experiment.figure(
-        "fig-wall-units", partial(draw_wall_units, tudelft, hot_wire, fits)
+        "fig-wall-units",
+        partial(draw_wall_units, tudelft, hot_wire, fits),
+        provenance=WALL_UNITS,
     )
     experiment.figure(
         "fig-turbulence-intensity",
         partial(draw_turbulence_intensity, tudelft, hot_wire),
+        provenance=TURBULENCE_INTENSITY,
     )
 
     with experiment.capture("viscous-length-exercise"):

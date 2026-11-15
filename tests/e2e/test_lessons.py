@@ -217,9 +217,12 @@ def test_annotated_and_plain_excerpts_share_highlighting_and_copy_code_only(
     copied = selection.locator("pre code").inner_text()
     assert copied.rstrip("\n") == "\n".join(file[numbers[0] - 1 : numbers[-1]])
     assert "note" not in copied and "\u2190" not in copied
-    # A selection is labelled, and offers no copy of itself as a whole.
-    label = selection.locator("xpath=..").locator(".excerpt-label")
-    assert "Selected lines of euler_step" in label.inner_text()
+    # A selection is labelled for a screen reader, shows the generated
+    # header on one line above it, and offers no copy of itself as a whole.
+    label = selection.locator("> p > .visually-hidden").first
+    assert "Selected lines of euler_step" in label.text_content()
+    header = selection.locator("xpath=..").locator("[data-signature] code")
+    assert header.text_content().strip() == "def euler_step(state, acceleration, dt):"
     assert selection.locator(".code-copy-button").count() == 0
     assert plain.locator("xpath=..").locator(".code-copy-button").count() == 1
 
@@ -239,9 +242,15 @@ def test_every_source_link_opens_its_object_at_the_built_commit(
         excerpt = excerpts.nth(index)
         link = excerpt.locator(".excerpt-source a.source-link")
         assert link.count() == 1
-        assert link.text_content().startswith("Source")
         name = link.get_attribute("data-source-name")
         module, _, target = name.partition(":")
+        # A selection of a function ends with the link to all of it.
+        selected = target and excerpt.locator(".excerpt-selection").count() == 1
+        assert link.text_content().startswith(
+            ("Full function on GitHub", "Full class on GitHub")
+            if selected
+            else "Source"
+        )
         path = f"src/{module.replace('.', '/')}.py"
         if target:
             first, last = _object_lines(path, target)

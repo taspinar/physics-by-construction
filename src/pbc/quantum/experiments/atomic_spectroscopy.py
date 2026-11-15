@@ -22,7 +22,8 @@ from matplotlib.figure import Figure
 
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import sdss_flux_series
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.figure_provenance import REFERENCE, RESIDUAL, FigureProvenance, role
+from pbc.data.plotting import COLOURS
 from pbc.data.reference.sdss_balmer import (
     BALMER,
     C_KMS,
@@ -57,12 +58,39 @@ GAS_TEMPERATURE = 1.0e4  # K, assumed for the thermal width, not measured
 # endregion: choices
 BOLTZMANN = 1.380649e-23  # J/K
 HYDROGEN_MASS = 1.6735575e-27  # kg, the hydrogen atom
-CREDIT = (
-    "Data: Sloan Digital Sky Survey, spectrum spec-1949-53433-0480.fits (plate "
-    "1949, MJD 53433, fibre 480), Data Release 17, public domain under the "
-    "current SDSS data policy; the SDSS acknowledgement is on the page. Line "
-    "fits, calibration and Rydberg formula: this lesson's code, not part of the "
-    "record."
+# The provenance each figure of the spectrum declares (Issue #531): its
+# status and credit at the caption and in its PNG, from the card.
+SPECTRUM = FigureProvenance(
+    status="calibrated",
+    dataset=DATASET,
+    processing="The record's calibrated flux density and pixel mask of"
+    " spec-1949-53433-0480.fits, unmodified; the names of the fitted lines: this"
+    " lesson's code, not part of the record.",
+)
+BALMER_FITS = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    combines=("simulated",),
+    processing="The record's pixels around each Balmer line with their errors;"
+    " the Gaussian on a straight continuum fitted to each and the residuals: this"
+    " lesson's code, not part of the record.",
+)
+CALIBRATION = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    combines=("simulated",),
+    processing="The fitted centres of the forbidden lines in the record's"
+    " spectrum, the calibration z(lambda) fitted to them, one z for all lines,"
+    " and the offsets: this lesson's code, not part of the record.",
+)
+RYDBERG_LAW = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    combines=("simulated",),
+    processing="The rest wavenumbers of the Balmer lines fitted in the record's"
+    " spectrum and calibrated, the Rydberg formula fitted to them, and their"
+    " offsets from the formula with R_H: this lesson's code, not part of the"
+    " record.",
 )
 MARKERS = ("o", "s", "^", "D")
 # The labels of fig-calibration: one per ion, placed above its lines.
@@ -363,14 +391,15 @@ def draw_spectrum(spectrum: Spectrum, analysis: Analysis) -> Figure:
     series = sdss_flux_series(spectrum)
     masked = spectrum.and_mask != 0
     fig, ax = plt.subplots(figsize=(6.8, 3.5), constrained_layout=True)
-    ax.plot(
+    (line,) = ax.plot(
         series.x,
         series.y,
         color=COLOURS[0],
         lw=0.5,
-        label="measured flux density, every pixel [calibrated]",
+        label="measured flux density, every pixel",
     )
-    ax.plot(
+    role(line, series.status)
+    (marks,) = ax.plot(
         series.x[masked],
         series.y[masked],
         ls="none",
@@ -379,6 +408,7 @@ def draw_spectrum(spectrum: Spectrum, analysis: Analysis) -> Figure:
         color="0.35",
         label="pixels the pipeline masks (bright sky)",
     )
+    role(marks, series.status)
     for k, name in enumerate(BALMER.values()):
         centre = analysis.lines[name].centre
         ax.annotate(
@@ -410,8 +440,6 @@ def draw_spectrum(spectrum: Spectrum, analysis: Analysis) -> Figure:
         fontsize=10,
     )
     ax.legend(fontsize=7, loc="lower center", ncols=2)
-    add_credit(fig, CREDIT)
-    label_status(fig, "calibrated")
     return fig
 
 
@@ -427,7 +455,7 @@ def draw_balmer_fits(analysis: Analysis) -> Figure:
         fit = by_name[name]
         line = analysis.lines[name]
         x = (fit.wavelength - line.centre) / line.centre * C_KMS
-        ax.errorbar(
+        bars = ax.errorbar(
             x,
             fit.flux,
             yerr=fit.error,
@@ -436,23 +464,27 @@ def draw_balmer_fits(analysis: Analysis) -> Figure:
             ms=2,
             elinewidth=0.6,
             color=COLOURS[0],
-            label="measured pixels [processed]",
+            # Only the first panel shows the legend (check_roles: every
+            # labelled entry of a panel is in its legend).
+            label="measured pixels" if k == 0 else None,
         )
+        role(bars, "processed")
         dense = np.linspace(np.log10(fit.lo), np.log10(fit.hi), 240)
-        ax.plot(
+        (curve,) = ax.plot(
             (10**dense - line.centre) / line.centre * C_KMS,
             fit.model(dense),
             color=COLOURS[1],
             ls="--",
             lw=1.0,
-            label="fit: Gaussian on a line",
+            label="fit: Gaussian on a line" if k == 0 else None,
         )
+        role(curve, "simulated")
         ax.set_ylim(top=1.4 * float(np.max(fit.flux)))
         ax.set_title(name, fontsize=9)
         ax.tick_params(labelsize=7, labelbottom=False)
         unit = "[1e-17 cgs/A]"
         ax.set_ylabel("flux density " + unit if k == 0 else unit, fontsize=7)
-        res.plot(
+        (points,) = res.plot(
             x,
             fit.result.residuals / fit.error,
             ls="none",
@@ -460,6 +492,7 @@ def draw_balmer_fits(analysis: Analysis) -> Figure:
             ms=2.5,
             color=COLOURS[2],
         )
+        role(points, RESIDUAL)
         res.axhline(0, color="0.4", lw=0.8)
         res.set_title("residual", fontsize=8)
         res.set_xlabel("velocity [km/s]", fontsize=7)
@@ -467,8 +500,6 @@ def draw_balmer_fits(analysis: Analysis) -> Figure:
         res.tick_params(labelsize=7)
         if k == 0:
             ax.legend(fontsize=5.5, loc="upper left")
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
     return fig
 
 
@@ -492,7 +523,7 @@ def draw_calibration(analysis: Analysis) -> Figure:
         constrained_layout=True,
         gridspec_kw={"height_ratios": (1.5, 1.0)},
     )
-    ax.errorbar(
+    bars = ax.errorbar(
         observed,
         (z - z0) * to_kms,
         yerr=zerr * to_kms,
@@ -500,8 +531,9 @@ def draw_calibration(analysis: Analysis) -> Figure:
         marker="o",
         ms=4,
         color=COLOURS[0],
-        label="forbidden lines, fitted centres [processed], scaled 1 sigma",
+        label="forbidden lines, fitted centres, scaled 1 sigma",
     )
+    role(bars, "processed")
     velocity = (z - z0) * to_kms
     for text, members, dy in CALIBRATION_LABELS:
         k = [names.index(m) for m in members]
@@ -514,25 +546,27 @@ def draw_calibration(analysis: Analysis) -> Figure:
             fontsize=6.5,
         )
     ends = np.array([3800.0, 7400.0])
-    ax.plot(
+    (curve,) = ax.plot(
         ends,
         (cal.at(ends) - z0) * to_kms,
         color=COLOURS[1],
         ls="--",
         label="calibration z(lambda), a straight line",
     )
-    ax.plot(
+    role(curve, "simulated")
+    (curve,) = ax.plot(
         ends,
         np.full(2, (float(flat.params[0]) - z0) * to_kms),
         color="0.45",
         ls=":",
         label="one z for all lines",
     )
+    role(curve, "simulated")
     ax.set_ylabel("velocity about z0 [km/s]", fontsize=8)
     ax.set_ylim(-22, 22)
     ax.set_title("The redshift of the forbidden lines", fontsize=10)
     ax.legend(fontsize=6.5, loc="lower right")
-    res.errorbar(
+    bars = res.errorbar(
         observed,
         [cal.velocity(n) for n in names],
         yerr=zerr * to_kms,
@@ -541,13 +575,12 @@ def draw_calibration(analysis: Analysis) -> Figure:
         ms=4,
         color=COLOURS[2],
     )
+    role(bars, RESIDUAL)
     res.axhline(0, color="0.4", lw=0.8)
     res.set_xlabel("observed wavelength [Angstrom]")
     res.set_ylabel("residual [km/s]", fontsize=8)
     fig.align_ylabels((ax, res))
     res.set_title("Offsets about the calibration", fontsize=9)
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
     return fig
 
 
@@ -563,17 +596,18 @@ def draw_rydberg_law(analysis: Analysis) -> Figure:
     fig, (ax, res) = plt.subplots(
         1, 2, figsize=(6.8, 3.2), constrained_layout=True, width_ratios=(1.0, 1.3)
     )
-    ax.plot(
+    (points,) = ax.plot(
         terms,
         per * terms / 1e6,
         ls="none",
         marker="o",
         ms=5,
         color=COLOURS[0],
-        label="Balmer lines, calibrated [processed]",
+        label="Balmer lines, calibrated",
     )
+    role(points, "processed")
     ends = np.array([0.0, 0.25])
-    ax.plot(
+    (curve,) = ax.plot(
         ends,
         ends * ryd.r / 1e6,
         color=COLOURS[1],
@@ -581,6 +615,7 @@ def draw_rydberg_law(analysis: Analysis) -> Figure:
         lw=1.0,
         label="Rydberg formula, fitted R",
     )
+    role(curve, "simulated")
     for n, x, y in zip(levels, terms, per * terms / 1e6, strict=True):
         ax.annotate(
             "n = " + str(n),
@@ -596,7 +631,7 @@ def draw_rydberg_law(analysis: Analysis) -> Figure:
     ax.legend(fontsize=6.5, loc="lower right")
 
     to_kms = C_KMS
-    res.errorbar(
+    bars = res.errorbar(
         levels,
         (R_H / per - 1) * to_kms,
         yerr=err / per * to_kms,
@@ -606,7 +641,8 @@ def draw_rydberg_law(analysis: Analysis) -> Figure:
         color=COLOURS[0],
         label="calibrated z(lambda)",
     )
-    res.plot(
+    role(bars, RESIDUAL)
+    (points,) = res.plot(
         levels + 0.12,
         [(R_H / flat.per_line[n] - 1) * to_kms for n in levels],
         ls="none",
@@ -616,30 +652,32 @@ def draw_rydberg_law(analysis: Analysis) -> Figure:
         color="0.45",
         label="one z",
     )
+    role(points, RESIDUAL)
     span = np.array([2.7, 6.3])
-    res.plot(
+    (curve,) = res.plot(
         span,
         np.full(2, (R_H / ryd.r - 1) * to_kms),
         color=COLOURS[1],
         ls="--",
         label="fitted R",
     )
-    res.plot(
+    role(curve, "simulated")
+    (curve,) = res.plot(
         span,
         np.full(2, (R_H / bohr_lab_rydberg(ryd.levels) - 1) * to_kms),
         color=COLOURS[2],
         ls="-.",
         label="laboratory H",
     )
-    res.axhline(0, color="0.3", lw=0.8, label="R_H (CODATA)")
+    role(curve, "simulated")
+    # The zero of the offsets: the formula with R_H, a reference.
+    role(res.axhline(0, color="0.3", lw=0.8, label="R_H (CODATA)"), REFERENCE)
     res.set_xticks(levels, [f"n = {n}" for n in levels])
     res.set_xlabel("upper level of the line [1]")
     res.set_ylabel("residual from R_H [km/s]", fontsize=8)
     res.set_title("Offsets from the formula with R_H", fontsize=10)
     res.set_ylim(-34, 6)
     res.legend(fontsize=6, loc="lower center", ncols=3)
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
     return fig
 
 
@@ -764,10 +802,26 @@ def run() -> Experiment:
     )
     experiment.number("neiii-shift", shifts["no [Ne III]"], ".0f")
 
-    experiment.figure("fig-spectrum", partial(draw_spectrum, spectrum, analysis))
-    experiment.figure("fig-balmer-fits", partial(draw_balmer_fits, analysis))
-    experiment.figure("fig-calibration", partial(draw_calibration, analysis))
-    experiment.figure("fig-rydberg-law", partial(draw_rydberg_law, analysis))
+    experiment.figure(
+        "fig-spectrum",
+        partial(draw_spectrum, spectrum, analysis),
+        provenance=SPECTRUM,
+    )
+    experiment.figure(
+        "fig-balmer-fits",
+        partial(draw_balmer_fits, analysis),
+        provenance=BALMER_FITS,
+    )
+    experiment.figure(
+        "fig-calibration",
+        partial(draw_calibration, analysis),
+        provenance=CALIBRATION,
+    )
+    experiment.figure(
+        "fig-rydberg-law",
+        partial(draw_rydberg_law, analysis),
+        provenance=RYDBERG_LAW,
+    )
 
     with experiment.capture("proton-exercise"):
         proton_exercise()

@@ -9,11 +9,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
-from support.figures import assert_declared
+from support.figures import assert_cell_declared, assert_declared, dataset_figures
 
 from pbc.astrophysics.experiments import exoplanet_light_curves as lab
 from pbc.authoring.tables import is_numeric_console_block
-from pbc.data.plotting import check_figure, figure_status
+from pbc.data.figure_provenance import role_of
 from pbc.data.reference import tess_wasp18
 
 MODULE = "pbc.astrophysics.experiments.exoplanet_light_curves"
@@ -215,11 +215,19 @@ def test_the_exercises_print_what_their_solutions_say(experiment):
     assert "standard error of the period: 0.38 s" in period
 
 
-def test_only_the_pilot_figure_declares_its_provenance(experiment):
-    # Issue #524: the transit fit opts in, processed measurement with
-    # simulated models; every other figure keeps its painted status.
-    assert experiment.provenance == {"fig-transit-fit": lab.TRANSIT_FIT}
+def test_every_dataset_figure_declares_its_provenance(experiment):
+    # Issue #531: every figure of the light curve states its status and
+    # credit at its caption and in its PNG, from the card.
+    assert set(experiment.provenance) == set(dataset_figures(PAGE))
+    assert experiment.provenance["fig-transit-fit"] == lab.TRANSIT_FIT
     assert lab.TRANSIT_FIT.combines == ("simulated",)
+
+
+@pytest.mark.parametrize("label", sorted(dataset_figures(PAGE)))
+def test_each_dataset_figure_states_one_status_and_carries_its_provenance(
+    experiment, label
+):
+    assert_cell_declared(experiment, PAGE, label, residuals=label == "fig-transit-fit")
 
 
 @pytest.mark.parametrize("label", sorted(lab.run().figures))
@@ -228,24 +236,21 @@ def test_every_figure_has_its_status_and_follows_the_conventions(experiment, lab
     try:
         expected = "calibrated" if label == "fig-light-curve" else "processed"
         residuals = label == "fig-transit-fit"
-        if label in experiment.provenance:
-            # Issue #524: the declared figure states its status at the caption
-            # and in its PNG; its legend entries carry roles, not status words.
-            assert_declared(experiment, label, figure, expected, residuals)
-            return
-        assert figure_status(figure) == expected
-        assert check_figure(figure, residuals=residuals) == []
+        # Issue #531: every figure is declared; it states its status at the
+        # caption and in its PNG, and its legend entries carry roles, not
+        # status words.
+        assert_declared(experiment, label, figure, expected, residuals)
         for ax in figure.axes:
             legend = ax.get_legend()
-            for t in [] if legend is None else legend.get_texts():
-                text = t.get_text()
+            if legend is None:
+                continue
+            handles, labels = ax.get_legend_handles_labels()
+            for handle, text in zip(handles, labels, strict=True):
+                assert "[" not in text, (label, text)
                 if text.startswith(("measured", "PDCSAP")):
-                    assert f"[{expected}]" in text or "[calibrated]" in text, (
-                        label,
-                        text,
-                    )
+                    assert role_of(handle) in (expected, "calibrated"), (label, text)
                 if text.startswith(("model", "baseline model")):
-                    assert "[simulated]" in text, (label, text)
+                    assert role_of(handle) == "simulated", (label, text)
     finally:
         plt.close(figure)
 

@@ -494,7 +494,7 @@ excerpt(experiment.draw_strouhal)
 #| label: fig-strouhal
 #| echo: false
 #| fig-cap: "The hot-wire Strouhal numbers sort by cylinder, not by Reynolds number: the wider the cylinder in the same channel, the higher St, as blockage predicts in kind; the continuity correction overshoots and reverses the order."
-#| fig-alt: "Two panels. Left: Strouhal number against Reynolds number on a log axis; a solid curve rises at low Reynolds numbers, a dashed curve continues it higher and flattens, one diamond lies below the dashed curve, and ten markers of three shapes lie further right and higher, scattered without a trend. Right: Strouhal number against blockage; filled markers at three blockages rise with a dotted straight line, and open markers at the same blockages lie lower and fall from left to right."
+#| fig-alt: "Two panels. Left: Strouhal number against Reynolds number on a log axis; a dash-dotted curve rises at low Reynolds numbers, a dashed curve continues it higher and flattens, one diamond lies below the dashed curve, and ten markers of three shapes lie further right and higher, scattered without a trend. Right: Strouhal number against blockage; filled markers at three blockages rise with a dotted straight line, and open markers at the same blockages lie lower and fall from left to right."
 #| fig-status: processed
 #| fig-dataset: ost-hotwire-cylinder-wakes
 #| fig-artifact: processed-measured

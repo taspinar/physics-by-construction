@@ -37,6 +37,12 @@ rights:
     weight column of the calculated pattern not carried). This data/work was created by employees of
     NIST and is not subject to copyright protection in the United States (17 U.S.C. 105); it may be subject
     to foreign copyright. Provided by NIST ''AS IS'', without warranty.'
+  figure_credit:
+    short: 'Data: NIST; Black, Cline, Mendenhall, SRM 660c, doi 10.18434/mds2-2315'
+    visible: required
+    source: 'https://www.nist.gov/open/license, section ''Fair Use of Other NIST Data/Works'', read
+      2026-11-09: NIST is to be acknowledged explicitly as the source, so a figure saved without its page
+      names NIST on its face (Issue #531)'
 artifacts:
 - name: srm_660c_cifs_20201029_081700.zip, its 20 CIFs, blocks pd_proc_..._meas
   type: processed-measured

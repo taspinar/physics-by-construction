@@ -24,8 +24,9 @@ from matplotlib.figure import Figure
 
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import soil_temperature_series
+from pbc.data.figure_provenance import RESIDUAL, FigureProvenance, role
 from pbc.data.fit import FitResult, fit_curve
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.plotting import COLOURS
 from pbc.data.reference.dwd_soil import (
     DAY,
     DEPTHS,
@@ -58,12 +59,31 @@ SHOWN_SUMMER = 2024  # the summer from which it shows a typical day
 WEEK_START = "2024-07-01"  # the hourly week of fig-soil-record
 RESIDUAL_LAGS = (4, 40)  # readings: one day and ten days at four a day
 # endregion: choices
-CREDIT = (
-    "Data: Deutscher Wetterdienst (DWD), Climate Data Center, hourly soil "
-    "temperature of station 03987 Potsdam, archive "
-    "stundenwerte_EB_03987_19510101_20251231_hist.zip, CC BY 4.0. Rows selected "
-    "unchanged. Fitted harmonics, model lines and residuals: this lesson's code, "
-    "not part of the record."
+# The provenance each figure of the record declares (Issue #531): its status
+# and credit at the caption and in its PNG, from the card.
+SOIL_RECORD = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    processing="The record's hourly soil temperature at five depths, one summer"
+    " week, rows selected unchanged: the selection is this lesson's code, not"
+    " part of the record.",
+)
+HARMONIC_FITS = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    combines=("simulated",),
+    processing="The record's soil temperature of one year and of one summer day,"
+    " rows selected unchanged; the fitted annual and daily harmonics and their"
+    " residuals: this lesson's code, not part of the record.",
+)
+DEPTH_PROFILES = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    combines=("simulated",),
+    processing="The amplitude and phase lag of the annual and daily harmonics at"
+    " each depth, fitted to the record period by period, their means and"
+    " standard errors, the straight lines of the uniform soil and their"
+    " residuals: this lesson's code, not part of the record.",
 )
 STYLES = ("-", "--", "-.", ":", (0, (5, 1, 1, 1, 1, 1)))
 MARKERS = ("o", "s", "^", "D", "v")
@@ -466,21 +486,20 @@ def draw_soil_record(hourly: Readings) -> Figure:
     days = seconds(hourly.time[inside], start) / DAY
     for k, z in enumerate(DEPTHS):
         series = soil_temperature_series(hourly, k)
-        bottom.plot(
+        (line,) = bottom.plot(
             days,
             series.y[inside],
             lw=1.0,
             ls=STYLES[k],
             color=COLOURS[k],
-            label=f"{100 * z:.0f} cm, measured [{series.status}]",
+            label=f"{100 * z:.0f} cm, measured",
         )
+        role(line, series.status)
     bottom.set_xlabel(f"days from {WEEK_START} 00 h (MESS_DATUM) [d]")
     bottom.set_ylabel("soil temperature [degC]")
     bottom.set_title("Hourly readings, one summer week", fontsize=10)
     bottom.set_ylim(10, 44)
     bottom.legend(fontsize=6.5, ncols=3, loc="upper center")
-    add_credit(fig, CREDIT)
-    label_status(fig, series.status)
     return fig
 
 
@@ -503,7 +522,7 @@ def draw_harmonic_fits(
         t, y, result = year_fit(annual, SHOWN_YEAR, k)
         mean, a, b = result.params
         label = f"{100 * DEPTHS[k]:.0f} cm"
-        year_ax.plot(
+        (readings,) = year_ax.plot(
             t,
             y,
             # The 100 cm readings vary smoothly and are joined by a line.
@@ -513,10 +532,11 @@ def draw_harmonic_fits(
             ms=2.0,
             mew=0,  # an outline adds bytes to the page, not detail
             color=COLOURS[k],
-            label=f"{label} [{status}]",
+            label=label,
         )
+        role(readings, status)
         grid = np.linspace(0.0, 366.0, 367)
-        year_ax.plot(
+        (harmonic,) = year_ax.plot(
             grid,
             mean
             + a * np.cos(OMEGA_YEAR * grid * DAY)
@@ -526,7 +546,8 @@ def draw_harmonic_fits(
             color="0.15" if k == 0 else "0.45",
             label=f"{label}, fitted harmonic",
         )
-        year_res.plot(
+        role(harmonic, "simulated")
+        (rest,) = year_res.plot(
             t,
             result.residuals,
             # The 100 cm readings vary smoothly and are joined by a line.
@@ -538,6 +559,7 @@ def draw_harmonic_fits(
             color=COLOURS[k],
             label=label,
         )
+        role(rest, RESIDUAL)
     year_ax.set_xlabel(f"day of {SHOWN_YEAR} [d]")
     year_ax.set_ylabel("soil temperature [degC]")
     year_ax.set_title(f"One year ({SHOWN_YEAR}), four a day", fontsize=10)
@@ -553,29 +575,33 @@ def draw_harmonic_fits(
     for k in range(4):
         hours, y, result, centre = day_fit(hourly, day, k)
         label = f"{100 * DEPTHS[k]:.0f} cm"
-        day_ax.plot(
+        (readings,) = day_ax.plot(
             hours,
             y,
             ls="none",
             marker=MARKERS[k],
             ms=3.0,
             color=COLOURS[k],
-            label=f"{label} [{status}]",
+            label=label,
         )
+        role(readings, status)
         grid = np.linspace(0.0, 23.0, 93) * 3600.0
         mean, trend, a, b = result.params
-        day_ax.plot(
+        (harmonic,) = day_ax.plot(
             grid / 3600.0,
             mean
             + trend * (grid - centre)
             + a * np.cos(OMEGA_DAY * grid)
             + b * np.sin(OMEGA_DAY * grid),
-            ls=STYLES[k],
+            # A model is never solid beside the readings (Issue #531): the
+            # shallowest curve takes the one style the panel does not use.
+            ls=STYLES[k] if k else STYLES[-1],
             lw=1.0,
             color=COLOURS[k],
             label="fitted harmonic and trend" if k == 0 else "_fitted",
         )
-        day_res.plot(
+        role(harmonic, "simulated")
+        (rest,) = day_res.plot(
             hours,
             result.residuals,
             ls="none",
@@ -584,6 +610,7 @@ def draw_harmonic_fits(
             color=COLOURS[k],
             label=label,
         )
+        role(rest, RESIDUAL)
     when = str(day)
     day_ax.set_xlabel(f"hour of {when} (MESS_DATUM) [h]")
     day_ax.set_ylabel("soil temperature [degC]")
@@ -598,17 +625,16 @@ def draw_harmonic_fits(
     low, high = day_res.get_ylim()
     day_res.set_ylim(low, high + 0.4 * (high - low))
     day_res.legend(fontsize=6.5, loc="upper center", ncols=4)
-    add_credit(fig, CREDIT)
-    label_status(fig, status)
     return fig
 
 
-def _straight(ax, z_end: float, value, **kwargs) -> None:
+def _straight(ax, z_end: float, value, **kwargs):
     """A straight model line from z = 0 to ``z_end``, drawn from its two ends:
     Agg rasterises a long run of collinear segments differently from one
     call to the next, and the page's figure has to be the same bytes."""
     ends = np.array([0.0, z_end])
-    ax.plot(ends, value(ends), **kwargs)
+    (line,) = ax.plot(ends, value(ends), **kwargs)
+    return line
 
 
 def draw_depth_profiles(annual: Wave, diurnal: Wave, found: dict) -> Figure:
@@ -636,7 +662,7 @@ def draw_depth_profiles(annual: Wave, diurnal: Wave, found: dict) -> Figure:
         amp_line, lag_line = f["lines"]["amplitude"], f["lines"]["phase"]
         sa, ia = amp_line.value("slope"), amp_line.value("intercept")
         sl, il = lag_line.value("slope"), lag_line.value("intercept")
-        amp_ax.errorbar(
+        bars = amp_ax.errorbar(
             z,
             a_mean,
             yerr=a_err,
@@ -644,9 +670,10 @@ def draw_depth_profiles(annual: Wave, diurnal: Wave, found: dict) -> Figure:
             marker=marker,
             ms=5,
             color=colour,
-            label=f"{name} wave, measured [processed], {span}",
+            label=f"{name} wave, measured, {span}",
         )
-        _straight(
+        role(bars, "processed")
+        line = _straight(
             amp_ax,
             z[-1] + 0.05,
             lambda x, s=sa, i=ia: np.exp(-(s * x + i)),
@@ -654,9 +681,10 @@ def draw_depth_profiles(annual: Wave, diurnal: Wave, found: dict) -> Figure:
             lw=1.2,
             color=colour,
             label=f"{name}: exp(-z/d), $\\alpha$ = "
-            f"{1e6 * f['amplitude']['alpha']:.2f} $\\times$ 10⁻⁶ m²/s [simulated]",
+            f"{1e6 * f['amplitude']['alpha']:.2f} $\\times$ 10⁻⁶ m²/s",
         )
-        lag_ax.errorbar(
+        role(line, "simulated")
+        bars = lag_ax.errorbar(
             z,
             l_mean,
             yerr=l_err,
@@ -664,9 +692,10 @@ def draw_depth_profiles(annual: Wave, diurnal: Wave, found: dict) -> Figure:
             marker=marker,
             ms=5,
             color=colour,
-            label=f"{name} wave, measured [processed], {span}",
+            label=f"{name} wave, measured, {span}",
         )
-        _straight(
+        role(bars, "processed")
+        line = _straight(
             lag_ax,
             z[-1] + 0.05,
             lambda x, s=sl, i=il: s * x + i,
@@ -674,9 +703,10 @@ def draw_depth_profiles(annual: Wave, diurnal: Wave, found: dict) -> Figure:
             lw=1.2,
             color=colour,
             label=f"{name}: lag z/d, $\\alpha$ = "
-            f"{1e6 * f['phase']['alpha']:.2f} $\\times$ 10⁻⁶ m²/s [simulated]",
+            f"{1e6 * f['phase']['alpha']:.2f} $\\times$ 10⁻⁶ m²/s",
         )
-        amp_res.errorbar(
+        role(line, "simulated")
+        bars = amp_res.errorbar(
             z,
             -amp_line.residuals,
             yerr=a_err / a_mean,
@@ -687,7 +717,8 @@ def draw_depth_profiles(annual: Wave, diurnal: Wave, found: dict) -> Figure:
             color=colour,
             label=f"{name} wave",
         )
-        lag_res.errorbar(
+        role(bars, RESIDUAL)
+        bars = lag_res.errorbar(
             z,
             lag_line.residuals,
             yerr=l_err,
@@ -698,6 +729,7 @@ def draw_depth_profiles(annual: Wave, diurnal: Wave, found: dict) -> Figure:
             color=colour,
             label=f"{name} wave",
         )
+        role(bars, RESIDUAL)
     amp_ax.set_yscale("log")
     amp_ax.set_ylim(0.04, 30)
     amp_ax.set_ylabel("amplitude of the harmonic [K]")
@@ -716,8 +748,6 @@ def draw_depth_profiles(annual: Wave, diurnal: Wave, found: dict) -> Figure:
     amp_res.set_title("Residuals of the line in ln A", fontsize=10)
     lag_res.set_ylabel("residual of the lag [rad]")
     lag_res.set_title("Residuals of the line in the lag", fontsize=10)
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
     return fig
 
 
@@ -836,16 +866,22 @@ def run() -> Experiment:
     experiment.number("rho-day", shallow_found["rho"][0], ".2f")
     experiment.number("rho-ten-days", shallow_found["rho"][1], ".2f")
 
-    experiment.figure("fig-soil-record", partial(draw_soil_record, hourly))
+    experiment.figure(
+        "fig-soil-record",
+        partial(draw_soil_record, hourly),
+        provenance=SOIL_RECORD,
+    )
     experiment.figure(
         "fig-harmonic-fits",
         partial(draw_harmonic_fits, annual_readings, hourly, day),
+        provenance=HARMONIC_FITS,
     )
     experiment.figure(
         "fig-depth-profiles",
         partial(
             draw_depth_profiles, annual, diurnal, {"annual": yearly, "daily": daily}
         ),
+        provenance=DEPTH_PROFILES,
     )
 
     with experiment.capture("cellar-exercise"):

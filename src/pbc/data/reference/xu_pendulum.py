@@ -32,8 +32,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.special import ellipk
 
+from pbc.data.figure_provenance import REFERENCE as REFERENCE_ROLE
+from pbc.data.figure_provenance import RESIDUAL, FigureProvenance, role
 from pbc.data.fit import FitResult, fit_curve
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.plotting import COLOURS
 
 RAW_FIELDS = (
     "Time (s) Run #1",
@@ -338,6 +340,19 @@ def analyse(sample: Sample) -> dict:
     }
 
 
+# The provenance of the reference figure (Issue #531): its status and credit
+# at no place on the chart, in its PNG's record, from the card.
+REFERENCE = FigureProvenance(
+    status="processed",
+    dataset="xu-damped-pendulum",
+    combines=("simulated",),
+    artifact="processed-measured",
+    processing="The record's files raw_data/len1..5_cond1_1.csv at commit cbf8267,"
+    " unmodified; the cycles, corrections, envelope, and fits: the reference"
+    " figure's code (pbc.data.reference.xu_pendulum), not part of the record.",
+)
+
+
 def make_figure(data_dir: Path) -> plt.Figure:
     sample = load(data_dir)
     result = analyse(sample)
@@ -354,27 +369,35 @@ def make_figure(data_dir: Path) -> plt.Figure:
     reference = {"color": "0.35", "ls": ":", "lw": 1.2}
 
     start, end = CLEAN_WINDOW
-    ax_angle.axvspan(
+    window = ax_angle.axvspan(
         start, end, color="0.92", label="window of the record's cleaned file"
     )
-    ax_angle.plot(
+    role(window, "processed")
+    (angle,) = ax_angle.plot(
         first.time,
         first.angle,
         color=COLOURS[0],
         lw=0.6,
         label=f"measured angle, L = {first.length:.3f} m (encoder step 0.18 deg)",
     )
+    role(angle, "processed")
     t = np.linspace(c.start[0], c.start[-1] + c.period[-1], 300)
     a1, tau = envelope.value("A1"), envelope.value("tau")
     curve = a1 * np.exp(-(t - c.start[0]) / tau)
-    ax_angle.plot(
+    (upper,) = ax_angle.plot(
         t,
         c.centre + curve,
         label=f"fitted exponential envelope, tau = {tau:.0f} s (Q = {q:.0f})",
         **model,
     )
-    ax_angle.plot(t, c.centre - curve, **model)
-    ax_angle.axvline(first.time[release(first)], label="release", **reference)
+    role(upper, "simulated")
+    (lower,) = ax_angle.plot(t, c.centre - curve, **model)
+    role(lower, "simulated")
+    # The moment of the release, drawn for comparison: a reference (Issue #531).
+    role(
+        ax_angle.axvline(first.time[release(first)], label="release", **reference),
+        REFERENCE_ROLE,
+    )
     ax_angle.set_xlabel("time [s]")
     ax_angle.set_ylabel("angle [rad]")
     ax_angle.set_title(
@@ -387,7 +410,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
 
     degrees = np.degrees(c.amplitude)
     t0 = c.small_amplitude_period
-    ax_period.axhspan(
+    band = ax_period.axhspan(
         p1.t0 - p1.scatter,
         p1.t0 + p1.scatter,
         color=COLOURS[0],
@@ -395,20 +418,23 @@ def make_figure(data_dir: Path) -> plt.Figure:
         lw=0,
         label=f"T0 of the run +/- 1 sd of one cycle ({1000 * p1.scatter:.1f} ms)",
     )
-    ax_period.errorbar(
+    role(band, "processed")
+    bars = ax_period.errorbar(
         degrees,
         c.period,
         yerr=c.period_error,
         label="period of each cycle",
         **{**measured, "marker": "x", "color": COLOURS[2]},
     )
-    ax_period.errorbar(
+    role(bars, "processed")
+    bars = ax_period.errorbar(
         degrees,
         t0,
         yerr=c.period_error * t0 / c.period,
         label="corrected to small amplitude, T pi / (2 K)",
         **measured,
     )
+    role(bars, "processed")
     ax_period.text(
         0.02,
         0.07,
@@ -421,10 +447,13 @@ def make_figure(data_dir: Path) -> plt.Figure:
         fontsize=7,
         va="bottom",
     )
-    ax_period.axhline(
-        simple_period(first.length),
-        label=f"2 pi sqrt(L/g), stated L, g = {G_LOCAL} m/s^2",
-        **reference,
+    role(
+        ax_period.axhline(
+            simple_period(first.length),
+            label=f"2 pi sqrt(L/g), stated L, g = {G_LOCAL} m/s^2",
+            **reference,
+        ),
+        "simulated",
     )
     ax_period.set_xlabel("amplitude of the cycle [deg]")
     ax_period.set_ylabel("period [s]")
@@ -442,10 +471,11 @@ def make_figure(data_dir: Path) -> plt.Figure:
     squares = np.array([p.t0 for p in periods]) ** 2
     span = np.linspace(0, lengths.max() * 1.05, 50)
     fit = result["length_fit"]
-    ax_length.plot(
+    (points,) = ax_length.plot(
         lengths, squares, label="T0^2 of each length (first run, air)", **measured
     )
-    ax_length.plot(
+    role(points, "processed")
+    (fitted,) = ax_length.plot(
         span,
         fit.value("a") * span + fit.value("b"),
         label=(
@@ -454,12 +484,14 @@ def make_figure(data_dir: Path) -> plt.Figure:
         ),
         **model,
     )
-    ax_length.plot(
+    role(fitted, "simulated")
+    (simple_line,) = ax_length.plot(
         span,
         4 * np.pi**2 * span / G_LOCAL,
         label=f"4 pi^2 L / g, g = {G_LOCAL} m/s^2 (simple pendulum)",
         **reference,
     )
+    role(simple_line, "simulated")
     ax_length.set_xlim(0, span[-1])
     ax_length.set_ylim(0, None)
     ax_length.set_xlabel("stated length L [m]")
@@ -470,13 +502,20 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ax_length.legend(fontsize=7.5, loc="upper left")
 
     excess = 1000 * (np.array(result["effective_lengths"]) - lengths)
-    ax_res.plot(
+    (points,) = ax_res.plot(
         lengths, excess, label="L_eff - L, L_eff = g T0^2 / (4 pi^2)", **measured
     )
+    role(points, RESIDUAL)
     line = effective_length(1.0) * (fit.value("a") * span + fit.value("b")) - span
-    ax_res.plot(span, 1000 * line, label="the same for the fitted line", **model)
+    (fitted,) = ax_res.plot(
+        span, 1000 * line, label="the same for the fitted line", **model
+    )
+    role(fitted, "simulated")
     ax_res.set_xlim(0, span[-1])
-    ax_res.axhline(0, label="simple pendulum of the stated length", **reference)
+    role(
+        ax_res.axhline(0, label="simple pendulum of the stated length", **reference),
+        "simulated",
+    )
     ax_res.set_xlabel("stated length L [m]")
     ax_res.set_ylabel("residual of the simple pendulum, L_eff - L [mm]")
     ax_res.set_title(
@@ -486,13 +525,4 @@ def make_figure(data_dir: Path) -> plt.Figure:
     )
     ax_res.legend(fontsize=7.5, loc="upper right")
 
-    add_credit(
-        fig,
-        "Data: E. Xu, T. Tran, H. Zhao, Y. Wang, M. Huai, H. Shao, Damped Pendulum "
-        "Dataset, github.com/EnzeXu/Damped_Pendulum_Dataset at commit cbf8267, "
-        "Apache-2.0; files raw_data/len1..5_cond1_1.csv, unmodified. Cycles, "
-        "corrections, envelope, and fits: this figure's code "
-        "(pbc.data.reference.xu_pendulum), not part of the record.",
-    )
-    label_status(fig, "processed")
     return fig

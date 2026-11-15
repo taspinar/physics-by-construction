@@ -35,7 +35,23 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import least_squares
 
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.figure_provenance import REFERENCE as REFERENCE_ROLE
+from pbc.data.figure_provenance import RESIDUAL, FigureProvenance, role
+from pbc.data.plotting import COLOURS
+
+# The provenance the reference figure declares (Issue #531): its status and
+# credit at the caption and in its PNG, from the card.
+REFERENCE = FigureProvenance(
+    status="processed",
+    dataset="nist-srm660c-lab6",
+    artifact="processed-measured",
+    combines=("simulated",),
+    processing="The record's measured and calculated patterns (converted from CIF"
+    " to CSV, values unchanged); the wavelength and the certified value from the"
+    " certificate of SRM 660c (2015); the peak fits and the Nelson-Riley"
+    " extrapolation: this module's code (pbc.data.reference.srm660c), not NIST's"
+    " analysis and not part of the record.",
+)
 
 # Certificate of SRM 660c (NIST, 29 October 2015): Table 1 and the certified
 # value with its expanded uncertainty (k = 2), at 22.5 degC.
@@ -326,13 +342,14 @@ def make_figure(data_dir: Path) -> plt.Figure:
 
     ax = axes["pattern"]
     for k, ix in enumerate(windows(shown.two_theta)):
-        ax.semilogy(
+        (line,) = ax.semilogy(
             shown.two_theta[ix],
             shown.intensity[ix],
             color=COLOURS[0],
             lw=0.7,
             label="measured, specimen " + SHOWN if k == 0 else None,
         )
+        role(line, "processed")
     for peak in measured[SHOWN].peaks[::3]:
         top = shown.intensity[np.argmin(np.abs(shown.two_theta - peak.two_theta))]
         ax.annotate(
@@ -359,7 +376,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
     x = shown.two_theta[ix]
     fitted = doublet(peak.params, x, measured[SHOWN].ratio, measured[SHOWN].share)
     ax = axes["peak"]
-    ax.errorbar(
+    bars = ax.errorbar(
         x,
         shown.intensity[ix],
         yerr=shown.sigma[ix],
@@ -369,7 +386,8 @@ def make_figure(data_dir: Path) -> plt.Figure:
         elinewidth=0.6,
         label="measured (bars: 1$\\sigma$ counting error)",
     )
-    ax.plot(
+    role(bars, "processed")
+    (line,) = ax.plot(
         x,
         fitted,
         color=COLOURS[1],
@@ -377,9 +395,11 @@ def make_figure(data_dir: Path) -> plt.Figure:
         lw=1.2,
         label="K$\\alpha_1$ + K$\\alpha_2$ pseudo-Voigt fit",
     )
-    ax.plot(
+    role(line, "simulated")
+    (line,) = ax.plot(
         x, shown.calc[ix], color=COLOURS[2], ls=":", lw=1.4, label="NIST's model (CIF)"
     )
+    role(line, "simulated")
     ax.axvline(peak.two_theta, color=COLOURS[1], ls="-.", lw=0.8)
     ax.set_ylabel("intensity [counts per time]")
     ax.set_title(
@@ -391,7 +411,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
     resid = axes["resid"]
     resid.sharex(ax)
     ax.tick_params(labelbottom=False)
-    resid.plot(
+    (line,) = resid.plot(
         x,
         (shown.intensity[ix] - fitted) / shown.sigma[ix],
         ".",
@@ -399,7 +419,8 @@ def make_figure(data_dir: Path) -> plt.Figure:
         color=COLOURS[1],
         label="fit",
     )
-    resid.plot(
+    role(line, RESIDUAL)
+    (line,) = resid.plot(
         x,
         (shown.intensity[ix] - shown.calc[ix]) / shown.sigma[ix],
         ".",
@@ -407,6 +428,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
         color=COLOURS[2],
         label="NIST's model",
     )
+    role(line, RESIDUAL)
     resid.axhline(0, color="0.4", lw=0.8)
     resid.set_xlabel("2$\\theta$ [degrees]")
     resid.set_ylabel("residual [$\\sigma$]")
@@ -418,21 +440,31 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ax = axes["nr"]
     grid = np.linspace(0, NR_XMAX, 50)
     for k, s in enumerate(SPECIMENS):
-        ax.plot(
+        (line,) = ax.plot(
             grid,
             (measured[s].a0 + measured[s].slope * grid) * pm,
             color="0.75",
             lw=0.6,
             label="measured: the line of each of the 20 specimens" if k == 0 else None,
         )
-    for analysis, colour, marker, ls, name in (
-        (measured[SHOWN], COLOURS[0], "o", "--", f"measured, {SHOWN}"),
-        (model[SHOWN], COLOURS[2], "s", ":", f"NIST's model of {SHOWN}, same method"),
+        role(line, "processed")
+    # The measured line solid (Issue #531): beside a model, a measurement is
+    # never dashed or dotted.
+    for analysis, colour, marker, ls, name, kind in (
+        (measured[SHOWN], COLOURS[0], "o", "-", f"measured, {SHOWN}", "processed"),
+        (
+            model[SHOWN],
+            COLOURS[2],
+            "s",
+            ":",
+            f"NIST's model of {SHOWN}, same method",
+            "simulated",
+        ),
     ):
         x_nr = nelson_riley([p.theta for p in analysis.peaks])
         a = np.array([p.a for p in analysis.peaks]) * pm
         used = np.array([p.two_theta > NR_MIN for p in analysis.peaks])
-        ax.errorbar(
+        bars = ax.errorbar(
             x_nr[used],
             a[used],
             yerr=np.array([p.a_error for p in analysis.peaks])[used] * pm,
@@ -443,8 +475,9 @@ def make_figure(data_dir: Path) -> plt.Figure:
             capsize=2,
             label=f"{name}: a per reflection, 2$\\theta$ > {NR_MIN:.0f}°",
         )
+        role(bars, kind)
         ax.plot(x_nr[~used], a[~used], marker, mfc="none", color=colour, ms=4)
-        ax.plot(
+        (line,) = ax.plot(
             grid,
             (analysis.a0 + analysis.slope * grid) * pm,
             color=colour,
@@ -452,15 +485,28 @@ def make_figure(data_dir: Path) -> plt.Figure:
             lw=1.2,
             label=f"{name}: Nelson-Riley line",
         )
-    ax.axhline(
-        nist.mean() * pm,
-        color=COLOURS[3],
-        ls="-",
-        lw=1.0,
-        label="NIST's refined a (CIF, mean, 20.85 °C)",
+        role(line, kind)
+    # NIST's refined and certified values, drawn for comparison: references,
+    # in any style (Issue #531).
+    role(
+        ax.axhline(
+            nist.mean() * pm,
+            color=COLOURS[3],
+            ls="-",
+            lw=1.0,
+            label="NIST's refined a (CIF, mean, 20.85 °C)",
+        ),
+        REFERENCE_ROLE,
     )
-    ax.axhline(
-        CERTIFIED_A * pm, color="0.3", ls="-.", lw=1.0, label="certified a (22.5 °C)"
+    role(
+        ax.axhline(
+            CERTIFIED_A * pm,
+            color="0.3",
+            ls="-.",
+            lw=1.0,
+            label="certified a (22.5 °C)",
+        ),
+        REFERENCE_ROLE,
     )
     ax.set_xlim(0, NR_XMAX)
     ax.set_ylim(*NR_FRAME)
@@ -481,14 +527,15 @@ def make_figure(data_dir: Path) -> plt.Figure:
     index = np.arange(len(SPECIMENS))
     m_mean, m_sd, _ = summary(a_meas)
     c_mean, _, _ = summary(a_model)
-    ax.plot(
+    (points,) = ax.plot(
         index,
         a_meas * pm,
         "o",
         color=COLOURS[0],
         label=f"measured: {m_mean * pm:.4f} pm, SD {m_sd * pm:.4f}",
     )
-    ax.plot(
+    role(points, "processed")
+    (points,) = ax.plot(
         index,
         a_model * pm,
         "s",
@@ -496,18 +543,23 @@ def make_figure(data_dir: Path) -> plt.Figure:
         color=COLOURS[2],
         label=f"NIST's model, same method: {c_mean * pm:.4f} pm",
     )
-    ax.plot(
+    role(points, "simulated")
+    (points,) = ax.plot(
         index,
         nist * pm,
         "x",
         color=COLOURS[3],
         label=f"NIST's refined a (CIF): {nist.mean() * pm:.4f} pm",
     )
-    ax.axhspan(
-        (CERTIFIED_A - CERTIFIED_U) * pm,
-        (CERTIFIED_A + CERTIFIED_U) * pm,
-        color="0.85",
-        label="certified a ± U (k = 2), 22.5 °C",
+    role(points, REFERENCE_ROLE)
+    role(
+        ax.axhspan(
+            (CERTIFIED_A - CERTIFIED_U) * pm,
+            (CERTIFIED_A + CERTIFIED_U) * pm,
+            color="0.85",
+            label="certified a ± U (k = 2), 22.5 °C",
+        ),
+        REFERENCE_ROLE,
     )
     ax.set_xticks(index, SPECIMENS, rotation=90, fontsize=7)
     ax.set_xlabel("specimen (bottle and specimen) [label]")
@@ -523,14 +575,4 @@ def make_figure(data_dir: Path) -> plt.Figure:
     )
     ax.legend(fontsize=7, loc="center right")
 
-    add_credit(
-        fig,
-        "Data: D. Black, J. Cline, M. Mendenhall (NIST), 'Diffraction Data for "
-        "SRM 660c', doi 10.18434/mds2-2315, NIST open data licence; measured and "
-        "calculated patterns converted from CIF to CSV, values unchanged. "
-        "Wavelength and certified value: certificate of SRM 660c (2015). Peak "
-        "fits and Nelson-Riley extrapolation: this figure's code "
-        "(pbc.data.reference.srm660c), not NIST's analysis.",
-    )
-    label_status(fig, "processed")
     return fig

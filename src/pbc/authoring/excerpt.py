@@ -2,10 +2,12 @@
 
 The display forms of ADR 002 and ADR 023 decisions 3 and 4: the whole
 object; an exact selection of its lines (one range, a named region, or
-several ranges joined by visible omission markers, optionally without the
-docstring), each part with its source line numbers; a signature generated
-from the function at build time; and the Source link alone. Every form ends
-with a compact Source link to the object at the built commit.
+several ranges, optionally without the docstring), each part with its
+source line numbers and every gap a compact ``(...)`` line; a one-line
+header generated from the function at build time, above a selection that
+does not show the header as written; and the Source link alone. Every form
+ends with a compact link to the object at the built commit: "Source", or
+"Full function on GitHub" under a selection (Issue #536).
 """
 
 import ast
@@ -81,18 +83,24 @@ class Omission:
     last_line: int
     docstring: bool  # the omitted lines are exactly the object's docstring
 
-    def markdown(self) -> str:
+    def sentence(self) -> str:
+        """What a screen reader hears for the marker."""
         where = _line_range(self.first_line, self.last_line)
         verb = "is" if self.first_line == self.last_line else "are"
-        text = (
-            f"The docstring, {where}, is not shown."
-            if self.docstring
-            else f"{where.capitalize()} {verb} not shown."
-        )
+        if self.docstring:
+            return f"The docstring, {where}, is not shown."
+        return f"{where.capitalize()} {verb} not shown."
+
+    def markdown(self) -> str:
+        """A compact ``(...)`` line of its own, outside the code blocks; the
+        lines it stands for are in its data attribute and, for a screen
+        reader, in a visually hidden sentence. The dots are escaped so that
+        the typography does not turn them into an ellipsis."""
         return (
             f'::: {{.excerpt-omission omitted="{self.lines[0]}-{self.lines[1]}"'
             f' what="{"docstring" if self.docstring else "lines"}"}}\n'
-            f"{text}\n:::\n\n"
+            f'[(\\.\\.\\.)]{{.omission-mark aria-hidden="true"}}'
+            f" [{self.sentence()}]{{.visually-hidden}}\n:::\n\n"
         )
 
 
@@ -128,6 +136,9 @@ class Excerpt:
     signature: str | None = None  # the generated signature
     signature_lines: tuple[int, int] | None = None  # the header it stands for
     figure: bool = False  # a Figure source link alone
+    # The number of lines of the object, so that the lines after the last
+    # part are marked as left out; None when the display reads no object.
+    total: int | None = None
 
     @property
     def source(self) -> str:
@@ -157,18 +168,30 @@ class Excerpt:
 
     def _omission(self, first: int, last: int) -> Omission:
         """The lines ``first`` to ``last`` of the object, left out."""
+        # The file line of the object's first line; for a region of a
+        # module, the span is the region, and the object starts at line 1.
+        start = self.parts[0].first_line - self.parts[0].lines[0] + 1
         return Omission(
             lines=(first, last),
-            first_line=self.span[0] + first - 1,
-            last_line=self.span[0] + last - 1,
+            first_line=start + first - 1,
+            last_line=start + last - 1,
             docstring=(first, last) == self.docstring,
         )
 
     def leading_omission(self) -> Omission | None:
-        """The lines between a generated signature and the first part."""
-        if self.signature_lines is None or not self.parts:
+        """The lines of a selection before its first part, after the
+        generated header when there is one."""
+        if not self.selection or not self.parts:
             return None
-        first, last = self.signature_lines[1] + 1, self.parts[0].lines[0] - 1
+        first = 1 if self.signature_lines is None else self.signature_lines[1] + 1
+        last = self.parts[0].lines[0] - 1
+        return self._omission(first, last) if first <= last else None
+
+    def trailing_omission(self) -> Omission | None:
+        """The lines of a selection after its last part."""
+        if not self.selection or not self.parts or self.total is None:
+            return None
+        first, last = self.parts[-1].lines[1] + 1, self.total
         return self._omission(first, last) if first <= last else None
 
     def omissions(self) -> tuple[Omission, ...]:
@@ -195,17 +218,23 @@ class Excerpt:
             return ""
         first = self.span[0] + self.signature_lines[0] - 1
         last = self.span[0] + self.signature_lines[1] - 1
+        explanation = (
+            f"the header of {self.object_name} generated when this page was"
+            " built, its names and defaults read from the function, not the"
+            " source text; it stands for"
+            f" {_line_range(first, last)}"
+        )
+        title = explanation[0].upper() + explanation[1:]
         return (
-            f"::: {{.excerpt-label}}\nGenerated signature of `{self.object_name}`,"
-            " not the source text: the names and defaults are read from the"
-            " function when this page is built, the units from its docstring."
-            f" It stands for {_line_range(first, last)}, the signature as"
-            " written.\n:::\n\n"
+            "::: {.excerpt-header}\n"
             f"{_fence(self.signature)}{{.python .excerpt-signature"
             f' signature="{self.name}"'
             f' replaces="{self.signature_lines[0]}-{self.signature_lines[1]}"}}\n'
             f"{self.signature.rstrip()}\n"
             f"{_fence(self.signature)}\n\n"
+            f'::: {{.excerpt-label title="{title}."}}\n'
+            f"Shortened function[: {explanation}.]{{.visually-hidden}}\n:::\n"
+            ":::\n\n"
         )
 
     def _block(self, part: Part, classes: str, attributes: str) -> str:
@@ -236,27 +265,41 @@ class Excerpt:
                 )
             return self._block(self.parts[0], f".{LISTING_CLASS}", f" {shown}")
         ranges = ",".join(f"{p.lines[0]}-{p.lines[1]}" for p in self.parts)
+        # The selection is labelled for a screen reader (ADR 023 decision
+        # 3); on the screen, the header, the line numbers, the (...) lines,
+        # and the link to the whole object say it (Issue #536).
+        blocks = [
+            f"[Selected lines of `{self.object_name}`, not the whole"
+            f" {self.kind}; the numbers are its line numbers in the"
+            " file.]{.visually-hidden}\n\n"
+        ]
         leading = self.leading_omission()
-        blocks = [leading.markdown()] if leading is not None else []
+        if leading is not None:
+            blocks.append(leading.markdown())
         blocks.append(self._block(self.parts[0], f".{LISTING_CLASS} .excerpt-part", ""))
         for omission, part in zip(self.omissions(), self.parts[1:], strict=True):
             blocks += [
                 omission.markdown(),
                 self._block(part, f".{LISTING_CLASS} .excerpt-part", ""),
             ]
+        trailing = self.trailing_omission()
+        if trailing is not None:
+            blocks.append(trailing.markdown())
+        # The parts and the (...) lines scroll sideways together, in one
+        # box that the keyboard reaches; the parts do not scroll on their
+        # own (``number_lines``).
         return (
-            f'::: {{.excerpt-selection {shown} lines="{ranges}"}}\n'
+            f'::: {{.excerpt-selection {shown} lines="{ranges}" tabindex="0"}}\n'
             f"{''.join(blocks)}:::\n\n"
         )
 
-    def _label(self) -> str:
-        if not self.selection:
-            return ""
-        return (
-            f"::: {{.excerpt-label}}\nSelected lines of `{self.object_name}`,"
-            f" not the whole {self.kind}: the numbers are its line numbers in"
-            " the file, and the Source link opens all of it.\n:::\n\n"
-        )
+    def link_text(self) -> str:
+        """The words of the link under the excerpt."""
+        if self.figure:
+            return "Figure source"
+        if self.selection and self.kind in ("function", "class"):
+            return f"Full {self.kind} on GitHub"
+        return "Source"
 
     def _notes(self) -> str:
         if not self.notes:
@@ -287,6 +330,7 @@ class Excerpt:
                 None if self.signature_lines is None else list(self.signature_lines)
             ),
             "figure": self.figure,
+            "total": self.total,
         }
 
     @classmethod
@@ -319,6 +363,7 @@ class Excerpt:
                 else (signature_lines[0], signature_lines[1])
             ),
             figure=payload["figure"],
+            total=payload.get("total"),
         )
 
     def _repr_markdown_(self) -> str:
@@ -332,19 +377,22 @@ class Excerpt:
             self.span,
             self.commit,
             self.repository,
-            "Figure source" if self.figure else "Source",
+            self.link_text(),
         )
         if not self.parts:
             classes = (
                 ".excerpt-source .figure-source" if self.figure else ".excerpt-source"
             )
             return f"::: {{{classes}}}\n{link}\n:::\n"
+        listing = f"{self._signature()}{self._listing()}"
+        if self.selection:
+            # One frame for a selection (Issue #536): the generated header
+            # at its top, then the parts and the (...) lines between them.
+            listing = f"::: {{.excerpt-frame}}\n{listing}:::\n\n"
         return (
             "::: {.excerpt}\n"
             f"{self._interface_table()}"
-            f"{self._signature()}"
-            f"{self._label()}"
-            f"{self._listing()}"
+            f"{listing}"
             f"{self._notes()}"
             f"::: {{.excerpt-source}}\n{link}\n:::\n"
             ":::\n"
@@ -396,6 +444,22 @@ _LISTING = re.compile(
     re.S,
 )
 _DATA = re.compile(r'data-(first-line|marked)="([^"]*)"')
+# The start of a generated header as highlighted: ``def`` and the name up to
+# its parenthesis, which a narrow screen should not break apart.
+_HEADER_START = re.compile(r'(<span class="kw">def</span> [A-Za-z_]\w*\()')
+SIGNATURE_CLASS = "excerpt-signature"
+PART_CLASS = "excerpt-part"
+
+
+def _keep_name_together(found: re.Match[str]) -> str:
+    """Wrap ``def name(`` of a generated header in a span that does not
+    break, so that a long header wraps only after its parenthesis and at the
+    spaces after its commas; the text of the header is unchanged."""
+    if SIGNATURE_CLASS not in found.group(2).split():
+        return found.group(0)
+    return _HEADER_START.sub(
+        r'<span class="excerpt-name">\1</span><wbr>', found.group(0), count=1
+    )
 
 
 def number_lines(region: str) -> str:
@@ -412,7 +476,7 @@ def number_lines(region: str) -> str:
 
     def rewrite(found: re.Match[str]) -> str:
         if LISTING_CLASS not in found.group(2).split():
-            return found.group(0)
+            return _keep_name_together(found)
         data = dict(_DATA.findall(found.group(1)))
         first = int(data["first-line"])
         marked = dict(
@@ -427,8 +491,13 @@ def number_lines(region: str) -> str:
             return f'<span class="line marked" data-line="{number}" data-note="{note}">'
 
         body = _LINE_SPAN.sub(line, found.group(3))
+        attributes = found.group(1)
+        if PART_CLASS in found.group(2).split():
+            # A part of a selection scrolls with the frame's scroll area,
+            # not on its own, so it is no stop of the keyboard.
+            attributes = attributes.replace(' tabindex="0"', "")
         return (
-            f'<div class="sourceCode"{found.group(1)}>'
+            f'<div class="sourceCode"{attributes}>'
             f'<pre class="sourceCode {found.group(2)}"{body}</pre></div>'
         )
 
@@ -623,10 +692,11 @@ def header_lines(text: str) -> tuple[int, int]:
 
 
 def generated_signature(text: str, units: Mapping[str, str] | None = None) -> str:
-    """The signature of the function whose source is ``text``, generated from
-    it: the parameters and their kinds, the defaults as the source writes
-    them, without annotations, one parameter per line with its unit as a
-    comment, ending in ``: ...``."""
+    """The header of the function whose source is ``text``, generated from
+    it on one line: the parameters and their kinds, the defaults as the
+    source writes them, without annotations, ending in ``:``, and the units
+    the docstring gives, of the parameters and of the return value, as one
+    trailing comment (``# dt (s), return (m)``)."""
     node = _definition(text)
     if isinstance(node, ast.ClassDef):
         raise TypeError("a generated signature is of a function, not a class")
@@ -658,13 +728,10 @@ def generated_signature(text: str, units: Mapping[str, str] | None = None) -> st
     if arguments.kwarg is not None:
         entries.append((f"**{arguments.kwarg.arg}", arguments.kwarg.arg))
     prefix = "async def" if isinstance(node, ast.AsyncFunctionDef) else "def"
-    lines = [f"{prefix} {node.name}("]
-    for entry, name in entries:
-        unit = units.get(name, "") if name else ""
-        lines.append(f"    {entry},{f'  # {unit}' if unit else ''}")
-    returned = units.get("return", "")
-    lines.append(f"): ...{f'  # returns {returned}' if returned else ''}")
-    return "\n".join(lines) + "\n"
+    header = f"{prefix} {node.name}({', '.join(entry for entry, _ in entries)}):"
+    named = [name for _, name in entries if name] + ["return"]
+    comment = ", ".join(f"{name} ({units[name]})" for name in named if units.get(name))
+    return f"{header}{f'  # {comment}' if comment else ''}\n"
 
 
 def _check_signature(obj: object, text: str, name: str) -> None:
@@ -773,15 +840,19 @@ def excerpt(
     ranges, in order and not touching, joined by a marker that names the
     lines left out; ``region="name"`` shows the lines between
     ``# region: name`` and ``# endregion: name`` in its source. They must
-    exist, or the build fails. A selection is labelled as one and shows its
-    source line numbers.
+    exist, or the build fails. A selection shows its source line numbers, a
+    ``(...)`` line wherever it leaves lines out, and, for a function, its
+    header on one line above it: as written when the selection shows all of
+    it and the source writes it on one line, else generated (a part of it
+    fails the build); it ends with the link
+    "Full function on GitHub".
 
     ``docstring=False`` leaves the docstring of a function or class out of
-    the display, with a marker; the source keeps it, and the Source link
-    opens it. ``signature=True`` shows, instead of the header of a function
-    as written, a signature generated from it: the parameter names and the
-    defaults the source writes, and the units of the docstring, labelled as
-    generated.
+    the display, with a marker; the source keeps it, and the link opens it.
+    ``signature=True`` shows, instead of the header of a function as
+    written, the header generated from it: the parameter names and the
+    defaults the source writes, and the units of the docstring unless the
+    interface table gives them, labelled "Shortened function".
 
     ``notes`` maps a line of what is shown, written without its indentation,
     to a short note. The line is marked and the note is listed under the
@@ -819,11 +890,27 @@ def excerpt(
         if ranges == before:
             raise ValueError(f"the lines shown of {full_name} hold no docstring")
     generated = header = None
-    if signature:
-        header = header_lines(text)
-        _check_signature(obj, text, full_name)
-        generated = generated_signature(text, _units(obj))
-        ranges = _subtract(ranges, *header)
+    selection = not whole or not docstring or signature
+    if kind == "function" and selection:
+        # Above every selection of a function, its header on one line: as
+        # written when the selection shows it whole and the source writes
+        # its ``def`` on one line, generated otherwise (Issue #536), so that
+        # it is shown once and never one argument per line.
+        lines_of_header = header_lines(text)
+        shown_whole = any(a == 1 and b >= lines_of_header[1] for a, b in ranges)
+        if not shown_whole and any(a <= lines_of_header[1] for a, _ in ranges):
+            raise ValueError(
+                f"the lines shown of {full_name} hold a part of its header;"
+                f" show lines 1 to {lines_of_header[1]} or none of them"
+            )
+        one_line = _definition(text).lineno == lines_of_header[1]
+        if signature or not shown_whole or not one_line:
+            header = lines_of_header
+            _check_signature(obj, text, full_name)
+            # With the interface table above it, the units are in the table,
+            # and the header stays short.
+            generated = generated_signature(text, {} if interface else _units(obj))
+            ranges = _subtract(ranges, *header)
     if not ranges:
         raise ValueError(f"nothing of {full_name} is left to show")
     parts = tuple(
@@ -857,12 +944,13 @@ def excerpt(
         repository=repository_url(),
         kind=kind,
         region=region,
-        selection=not whole or not docstring or signature,
+        selection=selection,
         notes=tuple(sorted(marked, key=lambda note: note.line)),
         interface=_interface(obj, name) if interface else (),
         docstring=omitted_docstring,
         signature=generated,
         signature_lines=header,
+        total=len(object_lines),
     )
 
 

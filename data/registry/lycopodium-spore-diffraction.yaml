@@ -34,6 +34,12 @@ rights:
   attribution: 'Voronkin, O., Lushchin, S., ''Morphometry and Optical Data of Lycopodium Spores for the
     Study of Diffraction and Interference'', Zenodo, 2025, doi 10.5281/zenodo.15846643, CC BY 4.0. The
     two intensity profiles converted from XLSX to CSV with values unchanged; the morphometry files re-encoded from Latin-1 to UTF-8, nothing else changed.'
+  figure_credit:
+    short: 'Data: Voronkin, Lushchin, doi 10.5281/zenodo.15846643, CC BY 4.0'
+    visible: required
+    source: 'https://creativecommons.org/licenses/by/4.0/legalcode section 3(a): the creators, the licence,
+      and a link go with the shared material, so a figure saved without its page carries them on its face; the
+      link and the changes are in its metadata and at the caption (Issue #531)'
 artifacts:
 - name: Diffraction_Lycopodium_HeNe_0.6328um_Nokia5.jpg and the other diffraction photographs
   type: raw-measured

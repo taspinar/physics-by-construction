@@ -37,6 +37,12 @@ rights:
     contributors, licensed CC BY 3.0, https://creativecommons.org/licenses/by/3.0/. The green channel of
     frames 000-002 with its grey levels unchanged and the README unmodified; the tracks are this project''s processing of frames 000-039 (NumPy, SciPy),
     not the provider''s.'
+  figure_credit:
+    short: 'Data: trackpy-examples contributors, bulk_water, CC BY 3.0'
+    visible: required
+    source: 'https://creativecommons.org/licenses/by/3.0/legalcode section 4(b), read 2026-11-08: the
+      credit, the title and the licence go with an adaptation, so a figure saved without its page carries them
+      on its face; the link and the changes are in its metadata and at the caption (Issue #531)'
 artifacts:
 - name: bulk_water_000.png to bulk_water_039.png
   type: raw-measured

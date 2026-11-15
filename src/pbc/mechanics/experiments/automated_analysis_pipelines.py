@@ -18,12 +18,25 @@ from matplotlib.figure import Figure
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.data import flume_analysis
+from pbc.data.figure_provenance import FigureProvenance, role
 from pbc.data.pipeline import EXPECTED_DIR, check_report, differences
 from pbc.data.uncertainty import propagate
 from pbc.experiment import Experiment, main
 from pbc.mechanics import analysis
 from pbc.mechanics.analysis import SPEED, SPEED_SIGMA
 from pbc.mechanics.projectile import projectile_range
+
+# The provenance the window sweep of the flume record declares (Issue #531):
+# its status and credit at the caption and in its PNG, from the card.
+WINDOW_SWEEP = FigureProvenance(
+    status="processed",
+    dataset="aalborg-submerged-bar",
+    artifact="processed-measured",
+    processing="The record's surface elevation at gauge 5 of wave condition 1, five"
+    " aligned repetitions, unmodified; the RMS elevation in each window, its mean"
+    " over the repetitions and their standard error: this lesson's code, not part"
+    " of the record.",
+)
 
 
 def angle_sweep():
@@ -153,15 +166,16 @@ def draw_window_sweep(window_scan, sigmas) -> Figure:
     """The mean RMS elevation against the end of the window."""
     ends = window_scan.values
     window_fig, window_ax = plt.subplots(figsize=(6.4, 3.6))
-    window_ax.errorbar(
+    bars = window_ax.errorbar(
         ends,
         1e3 * window_scan.results["rms"],
         yerr=sigmas,
         color=FIGURE_COLOURS[0],
         marker="o",
         capsize=3,
-        label="mean of five repetitions [processed]",
+        label="mean of five repetitions",
     )
+    role(bars, "processed")
     window_ax.set_xlabel("end of the window (s)")
     window_ax.set_ylabel("RMS elevation (mm)")
     window_ax.legend()
@@ -301,7 +315,9 @@ def run() -> Experiment:
     experiment.number("resolution", resolution, ".2f")
     window_scan, sigmas = window_sweep(measured)
     experiment.figure(
-        "fig-window-sweep", partial(draw_window_sweep, window_scan, sigmas)
+        "fig-window-sweep",
+        partial(draw_window_sweep, window_scan, sigmas),
+        provenance=WINDOW_SWEEP,
     )
     spread = window_table(experiment, window_scan, sigmas)
     experiment.number(

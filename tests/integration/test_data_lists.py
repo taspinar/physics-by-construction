@@ -20,6 +20,7 @@ import yaml
 
 from pbc.data.card import load_cards
 from pbc.data.check import check_repository
+from pbc.data.figure_provenance import FigureProvenance
 from pbc.data.registry import (
     DOCS_README,
     TOOLS_README,
@@ -88,6 +89,12 @@ def add_dataset(root: Path, name: str, monkeypatch) -> list[Path]:
     # from pbc.data.reference, where this test cannot write a file.
     stub = types.ModuleType(f"pbc.data.reference.{module}")
     stub.make_figure = lambda data_dir: None
+    # Its figure's provenance (Issue #531), of the scratch card.
+    stub.REFERENCE = FigureProvenance(
+        status=card["reference_figure"]["status"],
+        dataset=name,
+        processing="The record, unmodified.",
+    )
     monkeypatch.setitem(sys.modules, stub.__name__, stub)
     return written
 

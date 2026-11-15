@@ -10,11 +10,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
+from support.figures import assert_cell_declared, dataset_figures
 
 from pbc.authoring.tables import is_numeric_console_block
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import dart_residual_series
-from pbc.data.plotting import check_figure, figure_status
+from pbc.data.figure_provenance import RESIDUAL, role_of
+from pbc.data.plotting import check_figure
 from pbc.data.reference import kamchatka_tsunami
 from pbc.experiment import encode
 from pbc.fluids.experiments import reconstructing_the_2025_kamchatka_tsunami as capstone
@@ -268,24 +270,50 @@ def test_every_figure_is_the_same_bytes_on_every_draw(experiment, label):
     assert len(drawings) == 1
 
 
+def test_every_dataset_figure_declares_its_provenance(experiment):
+    # Issue #531: every figure of the inputs states its status and credit at
+    # its caption and in its PNG, from the card; the benchmarks name none.
+    assert set(experiment.provenance) == set(dataset_figures(PAGE))
+    assert "fig-tsunami-benchmarks" not in experiment.provenance
+
+
+@pytest.mark.parametrize("label", sorted(dataset_figures(PAGE)))
+def test_each_figure_states_one_status_and_carries_its_provenance(experiment, label):
+    assert_cell_declared(
+        experiment, PAGE, label, residuals=label == "fig-tsunami-comparison"
+    )
+
+
 def test_the_figures_follow_the_conventions(experiment):
     comparison = experiment.figures["fig-tsunami-comparison"]()
     figure_map = experiment.figures["fig-tsunami-map"]()
     try:
-        assert figure_status(comparison) == "processed"
-        assert check_figure(comparison, residuals=True) == []
-        texts = [
+        assert experiment.provenance["fig-tsunami-comparison"].status == "processed"
+        assert check_figure(comparison, residuals=True, declared="processed") == []
+        entries = [
+            (t, h)
+            for ax in comparison.axes
+            for h, t in zip(*ax.get_legend_handles_labels(), strict=True)
+        ]
+        texts = [t for t, _ in entries]
+        assert texts == [
             t.get_text()
             for ax in comparison.axes
             if ax.get_legend() is not None
             for t in ax.get_legend().get_texts()
         ]
-        assert any(t.startswith("record [processed]") for t in texts)
-        assert all(
-            "[simulated]" in t for t in texts if t.startswith("model") and "[" in t
+        # Issue #531: the statuses are the entries' roles, not words.
+        assert any(
+            t.startswith("record") and role_of(h) == "processed" for t, h in entries
         )
-        assert figure_status(figure_map) == "simulated"
-        assert check_figure(figure_map) == []
+        assert not any("[" in t for t in texts)
+        for ax in comparison.axes:
+            residual = "residual" in ax.get_ylabel().lower()
+            for h, t in zip(*ax.get_legend_handles_labels(), strict=True):
+                if t.startswith("model"):
+                    assert role_of(h) == (RESIDUAL if residual else "simulated"), t
+        assert experiment.provenance["fig-tsunami-map"].status == "simulated"
+        assert check_figure(figure_map, declared="simulated") == []
     finally:
         plt.close(comparison)
         plt.close(figure_map)

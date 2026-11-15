@@ -10,10 +10,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
+from support.figures import assert_cell_declared, dataset_figures
 
 from pbc.authoring.tables import is_numeric_console_block
 from pbc.data.adapters import luma_profile_series
-from pbc.data.plotting import check_figure, figure_status
+from pbc.data.figure_provenance import role_of
 from pbc.data.reference import lycopodium
 from pbc.experiment import encode
 from pbc.waves import halo
@@ -227,25 +228,33 @@ def test_every_figure_is_the_same_bytes_on_every_draw(experiment, label):
     assert len(drawings) == 1
 
 
+def test_every_dataset_figure_declares_its_provenance(experiment):
+    # Issue #531: every figure of the dataset states its status and credit
+    # at its caption and in its PNG, from the card; the halo is a model of it.
+    assert set(experiment.provenance) == set(dataset_figures(PAGE))
+    assert set(experiment.figures) == set(dataset_figures(PAGE))
+
+
+@pytest.mark.parametrize("label", sorted(dataset_figures(PAGE)))
+def test_each_figure_states_one_status_and_carries_its_provenance(experiment, label):
+    # The status is the caption's and the PNG's, not painted; the
+    # conventions are checked with it, the ratio's residual panel included.
+    expected = "simulated" if label == "fig-halo-model" else "processed"
+    assert experiment.provenance[label].status == expected
+    assert_cell_declared(experiment, PAGE, label, residuals=label == "fig-scaling")
+
+
 @pytest.mark.parametrize("label", sorted(lab.run().figures))
 def test_every_figure_follows_the_conventions(experiment, label):
     figure = experiment.figures[label]()
     try:
-        expected = "simulated" if label == "fig-halo-model" else "processed"
-        assert figure_status(figure) == expected
-        assert check_figure(figure, residuals=label == "fig-scaling") == []
         for ax in figure.axes:
-            legend = ax.get_legend()
-            for t in [] if legend is None else legend.get_texts():
-                text = t.get_text()
-                if (
-                    "measured" in text
-                    and "[simulated]" not in text
-                    and "minus" not in text
-                ):
-                    assert "[processed]" in text, (label, text)
+            # The status of an entry is its role (Issue #531), not a word.
+            for handle, text in zip(*ax.get_legend_handles_labels(), strict=True):
+                if "measured" in text and "halo of" not in text and "minus" not in text:
+                    assert role_of(handle) == "processed", (label, text)
                 if "halo of" in text or "one disk" in text:
-                    assert "[simulated]" in text, (label, text)
+                    assert role_of(handle) == "simulated", (label, text)
                 # Issue #453: nothing fitted to the rings is drawn as a model.
                 assert "fit" not in text.replace("no fit", ""), (label, text)
     finally:

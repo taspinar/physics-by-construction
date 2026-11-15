@@ -33,13 +33,26 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
+from pbc.data.figure_provenance import RESIDUAL, FigureProvenance, role
 from pbc.data.fit import FitResult, fit_curve
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.plotting import COLOURS
 
 STEM = "C00FeDP980Numisheet2020R01T1.424W17.93-S-Stress-Strain"
 FILE = STEM + ".csv"
 ATTRIBUTES = STEM + "-attributes.csv"
 FIELDS = ("Time", "Estrain", "Estress", "Tstrain", "Tstress")
+# The provenance the reference figure declares (Issue #531): its status and
+# credit at the caption and in its PNG, from the card.
+REFERENCE = FigureProvenance(
+    status="processed",
+    dataset="nist-numisheet-dp980",
+    combines=("simulated",),
+    processing="The record's engineering stress and strain of test R01 (file"
+    " C00FeDP980Numisheet2020R01T1.424W17.93-S-Stress-Strain.csv), unmodified;"
+    " the elastic fit, the offset line, the yield, the loop area, and the"
+    " residuals: this module's code (pbc.data.reference.nist_numisheet), not part"
+    " of the record.",
+)
 UNITS = {
     "Time": "s",
     "Estress": "MPa",
@@ -267,8 +280,9 @@ def make_figure(data_dir: Path) -> plt.Figure:
         (slice(seg.compression, None), "3: tension to fracture", COLOURS[2]),
     )
     for part, label, colour in parts:
-        ax_full.plot(e[part], s[part], color=colour, label=label, **point)
-    ax_full.fill(
+        (curve,) = ax_full.plot(e[part], s[part], color=colour, label=label, **point)
+        role(curve, "processed")
+    (area,) = ax_full.fill(
         e[rows],
         s[rows],
         color=COLOURS[4],
@@ -276,7 +290,8 @@ def make_figure(data_dir: Path) -> plt.Figure:
         label=f"loop, closed at e = {e[cycle.start]:.4f}: "
         f"enclosed area {cycle.work:.1f} MJ/m^3 (clockwise)",
     )
-    ax_full.plot(
+    role(area, "processed")
+    (mark,) = ax_full.plot(
         e[cycle.start],
         s[cycle.start],
         "k^",
@@ -284,13 +299,15 @@ def make_figure(data_dir: Path) -> plt.Figure:
         label=f"stress maximum, loop start: {s[cycle.start]:.0f} MPa "
         f"at e = {e[cycle.start]:.4f}",
     )
-    ax_full.plot(
+    role(mark, "processed")
+    (mark,) = ax_full.plot(
         e[neck],
         s[neck],
         "kv",
         ms=6,
         label=f"necking starts: {s[neck]:.0f} MPa at e = {e[neck]:.3f}",
     )
+    role(mark, "processed")
     ax_full.axhline(0, color="0.5", lw=0.8)
     ax_full.set_xlabel("engineering strain e [mm/mm]")
     ax_full.set_ylabel("engineering stress S [MPa]")
@@ -301,7 +318,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
 
     first = slice(0, seg.reversal + 1)
     mask = e[first] < 0.012
-    ax_low.plot(
+    (points,) = ax_low.plot(
         e[first][mask],
         s[first][mask],
         color=COLOURS[0],
@@ -310,10 +327,11 @@ def make_figure(data_dir: Path) -> plt.Figure:
         ls="none",
         label="measured, first tension",
     )
+    role(points, "processed")
     grid = np.linspace(0, 0.012, 200)
     line = modulus * 1e3 * grid + result.value("S0")
     shown = line < 1000
-    ax_low.plot(
+    (fit_line,) = ax_low.plot(
         grid[shown],
         line[shown],
         color=COLOURS[1],
@@ -322,9 +340,10 @@ def make_figure(data_dir: Path) -> plt.Figure:
         label=f"elastic fit, {ELASTIC_WINDOW[0]:.0f}-{ELASTIC_WINDOW[1]:.0f} MPa: "
         f"E = {modulus:.0f} GPa",
     )
+    role(fit_line, "simulated")
     shifted = modulus * 1e3 * (grid - OFFSET) + result.value("S0")
     keep = (shifted > 0) & (shifted < 1000)
-    ax_low.plot(
+    (fit_line,) = ax_low.plot(
         grid[keep],
         shifted[keep],
         color=COLOURS[3],
@@ -332,11 +351,15 @@ def make_figure(data_dir: Path) -> plt.Figure:
         lw=1.2,
         label="the same line shifted by 0.2 %",
     )
-    ax_low.axhline(
-        yield_stress,
-        color="0.5",
-        lw=0.8,
-        label=f"0.2 % offset yield: {yield_stress:.0f} MPa",
+    role(fit_line, "simulated")
+    role(
+        ax_low.axhline(
+            yield_stress,
+            color="0.5",
+            lw=0.8,
+            label=f"0.2 % offset yield: {yield_stress:.0f} MPa",
+        ),
+        "processed",
     )
     ax_low.set_xlim(0, 0.012)
     ax_low.set_ylim(0, 1050)
@@ -347,12 +370,18 @@ def make_figure(data_dir: Path) -> plt.Figure:
     )
     ax_low.legend(fontsize=7, loc="lower right")
 
-    ax_time.plot(t, s, color=COLOURS[0], marker=".", ms=2, lw=0.6, label="stress")
-    ax_time.axvspan(
-        t[seg.reversal],
-        t[seg.hold_end],
-        color="0.85",
-        label="holds",
+    (curve,) = ax_time.plot(
+        t, s, color=COLOURS[0], marker=".", ms=2, lw=0.6, label="stress"
+    )
+    role(curve, "processed")
+    role(
+        ax_time.axvspan(
+            t[seg.reversal],
+            t[seg.hold_end],
+            color="0.85",
+            label="holds",
+        ),
+        "processed",
     )
     ax_time.axvspan(t[seg.compression], t[seg.second_hold_end], color="0.85")
     ax_time.axhline(0, color="0.5", lw=0.8)
@@ -366,7 +395,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
     fitted = (s[first] > ELASTIC_WINDOW[0]) & (s[first] < ELASTIC_WINDOW[1])
     upto = s[first] < 650
     model = modulus * 1e3 * e[first] + result.value("S0")
-    ax_res.plot(
+    (points,) = ax_res.plot(
         s[first][upto],
         (s[first] - model)[upto],
         color=COLOURS[2],
@@ -374,7 +403,8 @@ def make_figure(data_dir: Path) -> plt.Figure:
         ls="none",
         label="measured minus elastic line",
     )
-    ax_res.axvspan(*ELASTIC_WINDOW, color="0.9", label="fit window")
+    role(points, RESIDUAL)
+    role(ax_res.axvspan(*ELASTIC_WINDOW, color="0.9", label="fit window"), "processed")
     ax_res.axhline(0, color="0.5", lw=0.8)
     rms = float(np.sqrt(np.mean((s[first] - model)[fitted] ** 2)))
     ax_res.set_xlabel("engineering stress S [MPa]")
@@ -383,13 +413,4 @@ def make_figure(data_dir: Path) -> plt.Figure:
         f"Residuals: {rms:.1f} MPa rms in the window, then the curve bends", fontsize=10
     )
     ax_res.legend(fontsize=7, loc="lower left")
-    add_credit(
-        fig,
-        "Data: NIST, Luecke, Rust, Iadicola, 'Data for Numisheet 2020 uniaxial tensile "
-        "and tension/compression tests', doi 10.18434/M32202, v1.2.0; file "
-        f"{FILE}, unmodified (NIST data, 17 U.S.C. 105). Fits, offset line and loop "
-        "area: this figure's code (pbc.data.reference.nist_numisheet), not part of "
-        "the record.",
-    )
-    label_status(fig, "processed")
     return fig

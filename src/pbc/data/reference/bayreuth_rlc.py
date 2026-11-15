@@ -27,8 +27,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import brentq, minimize_scalar
 
+from pbc.data.figure_provenance import RESIDUAL, FigureProvenance, role
 from pbc.data.fit import FitResult, fit_curve
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.plotting import COLOURS
 
 FILE = "rlc_circuit.json"
 FIELDS = (
@@ -46,6 +47,17 @@ FIELDS = (
 # "9.7 mOhm" (a typo for 9.7 Ohm, which the fit shows), factory tolerance 10 %.
 NOMINAL = {"R": 9.7, "L": 5.0, "C": 2.2}  # Ohm, mH, uF
 NAMES = ("R", "L", "C")
+# The provenance the reference figure declares (Issue #531): its status and
+# credit at the caption and in its PNG, from the card.
+REFERENCE = FigureProvenance(
+    status="processed",
+    dataset="bayreuth-rlc-impedance",
+    combines=("simulated",),
+    processing="The record's impedance spectrum (file rlc_circuit.json),"
+    " unmodified; the fit of C parallel to (R + jwL), its marked frequencies, and"
+    " the residuals: this module's code (pbc.data.reference.bayreuth_rlc), not"
+    " part of the record.",
+)
 
 
 @dataclass(frozen=True)
@@ -180,12 +192,21 @@ def make_figure(data_dir: Path) -> plt.Figure:
         f"C = {result.value('C'):.3f} uF"
     )
 
-    ax_mag.loglog(
+    (points,) = ax_mag.loglog(
         f, np.abs(z), label="measured (no uncertainty per point given)", **measured
     )
-    ax_mag.loglog(dense, np.abs(model), label=fit_label, **fitted)
-    ax_mag.axvline(
-        peak, color="0.5", lw=0.8, ls=":", label=f"maximum of the fit: {peak:.0f} Hz"
+    role(points, "processed")
+    (line,) = ax_mag.loglog(dense, np.abs(model), label=fit_label, **fitted)
+    role(line, "simulated")
+    role(
+        ax_mag.axvline(
+            peak,
+            color="0.5",
+            lw=0.8,
+            ls=":",
+            label=f"maximum of the fit: {peak:.0f} Hz",
+        ),
+        "simulated",
     )
     ax_mag.set_xlabel("frequency [Hz]")
     ax_mag.set_ylabel("|Z| [Ohm]")
@@ -196,11 +217,20 @@ def make_figure(data_dir: Path) -> plt.Figure:
     )
     ax_mag.legend(fontsize=8, loc="lower center")
 
-    ax_phase.semilogx(f, np.degrees(np.angle(z)), label="measured", **measured)
-    ax_phase.semilogx(dense, np.degrees(np.angle(model)), label="fit", **fitted)
+    (points,) = ax_phase.semilogx(
+        f, np.degrees(np.angle(z)), label="measured", **measured
+    )
+    role(points, "processed")
+    (line,) = ax_phase.semilogx(
+        dense, np.degrees(np.angle(model)), label="fit", **fitted
+    )
+    role(line, "simulated")
     ax_phase.axhline(0, color="0.5", lw=0.8)
-    ax_phase.axvline(
-        zero, color="0.5", lw=0.8, ls=":", label=f"zero of the fit: {zero:.0f} Hz"
+    role(
+        ax_phase.axvline(
+            zero, color="0.5", lw=0.8, ls=":", label=f"zero of the fit: {zero:.0f} Hz"
+        ),
+        "simulated",
     )
     ax_phase.set_xlabel("frequency [Hz]")
     ax_phase.set_ylabel("phase of Z [deg]")
@@ -209,8 +239,10 @@ def make_figure(data_dir: Path) -> plt.Figure:
     )
     ax_phase.legend(fontsize=8)
 
-    ax_nyq.plot(z.real, -z.imag, label="measured", **measured)
-    ax_nyq.plot(model.real, -model.imag, label="fit", **fitted)
+    (points,) = ax_nyq.plot(z.real, -z.imag, label="measured", **measured)
+    role(points, "processed")
+    (line,) = ax_nyq.plot(model.real, -model.imag, label="fit", **fitted)
+    role(line, "simulated")
     ax_nyq.set_aspect("equal")
     ax_nyq.set_xlabel("Re Z [Ohm]")
     ax_nyq.set_ylabel("-Im Z [Ohm]")
@@ -218,8 +250,11 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ax_nyq.legend(fontsize=8)
 
     residual = relative_residual(spectrum, result) * 100
-    ax_res.semilogx(f, residual.real, color=COLOURS[2], marker=".", label="real part")
-    ax_res.semilogx(
+    (line,) = ax_res.semilogx(
+        f, residual.real, color=COLOURS[2], marker=".", label="real part"
+    )
+    role(line, RESIDUAL)
+    (line,) = ax_res.semilogx(
         f,
         residual.imag,
         color=COLOURS[3],
@@ -228,20 +263,16 @@ def make_figure(data_dir: Path) -> plt.Figure:
         ls="--",
         label="imaginary part",
     )
+    role(line, RESIDUAL)
     ax_res.axhline(0, color="0.5", lw=0.8)
-    ax_res.axvline(
-        f0, color="0.5", lw=0.8, ls=":", label=f"1/(2 pi sqrt(LC)) = {f0:.0f} Hz"
+    role(
+        ax_res.axvline(
+            f0, color="0.5", lw=0.8, ls=":", label=f"1/(2 pi sqrt(LC)) = {f0:.0f} Hz"
+        ),
+        "simulated",
     )
     ax_res.set_xlabel("frequency [Hz]")
     ax_res.set_ylabel("residual Z_fit / Z_measured - 1 [%]")
     ax_res.set_title("Residuals: structured, largest at the resonance")
     ax_res.legend(fontsize=8)
-    add_credit(
-        fig,
-        "Data: Danzer, Plank, Ruether (Univ. Bayreuth), 'Impedance data for various "
-        "electrochemical and electrical systems', Zenodo 10.5281/zenodo.10794584, "
-        "v1.0.0, CC BY 4.0; file rlc_circuit.json, unmodified. Fit and residuals: "
-        "this figure's code (pbc.data.reference.bayreuth_rlc), not part of the record.",
-    )
-    label_status(fig, "processed")
     return fig

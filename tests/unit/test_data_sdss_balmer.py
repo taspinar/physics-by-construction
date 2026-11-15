@@ -16,9 +16,10 @@ import numpy as np
 import pytest
 import yaml
 
+from pbc.data import figure_provenance as fp
 from pbc.data.card import validate_card
 from pbc.data.plotting import check_figure, figure_status
-from pbc.data.reference import sdss_balmer
+from pbc.data.reference import reference_png, sdss_balmer
 
 ROOT = Path(__file__).parents[2]
 CONVERTER = ROOT / "tools/datasets/sdss_spec_to_csv.py"
@@ -390,11 +391,17 @@ def test_the_sensitivity_variants_run_and_name_their_choices(sample_dir):
 def test_the_reference_figure_is_processed_and_follows_the_conventions(
     sample_dir,
 ):
+    # Since Issue #531 the status and the credit are the declaration's, off
+    # the chart area: in the PNG's record and its painted line of credit.
+    declared = sdss_balmer.REFERENCE
+    assert declared.status == "processed"
     figure = sdss_balmer.make_figure(sample_dir)
-    assert figure_status(figure) == "processed"
-    assert check_figure(figure) == []
-    text = " ".join(t.get_text() for t in figure.texts)
-    assert "Sloan Digital Sky Survey" in text and "not part of the record" in text
+    assert figure_status(figure) is None
+    assert check_figure(figure, declared="processed") == []
+    assert fp.check_roles(figure, declared) == []
+    record = fp.read_metadata(reference_png(sdss_balmer, sample_dir))
+    assert "Sloan Digital Sky Survey" in record["pbc:visible-credit"]
+    assert "not part of the record" in record["pbc:processing"]
 
 
 def test_the_dossier_states_the_status_of_its_figure_and_the_decision():

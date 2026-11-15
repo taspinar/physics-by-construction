@@ -117,3 +117,34 @@ def test_a_card_that_no_longer_gives_the_record_fails_the_build(page_dir, tmp_pa
     with pytest.raises(InvalidFigure, match="no card"):
         annotate(html, page_dir, tmp_path / "empty")
     assert (REGISTRY_DIR / f"{DATASET}.yaml").is_file()
+
+
+def test_a_model_of_a_dataset_is_matched_by_the_captions_model_of(tmp_path):
+    # Issue #531: a fig-model-of figure's caption names the card as
+    # data-model-of, and its record as pbc:model-of with no pbc:dataset.
+    halo = fp.FigureProvenance(
+        status="simulated",
+        dataset="lycopodium-spore-diffraction",
+        model_of=True,
+        processing="The halo of this lesson's model.",
+    )
+    card = fp.card_of(halo.dataset)
+    (tmp_path / "halo.png").write_bytes(
+        encode(_draw, metadata=fp.metadata(halo, card, IDENTITY))
+    )
+
+    def caption(attributes: str) -> str:
+        return (
+            '<figure><div><img src="halo.png" alt="a" width="1" height="1"></div>'
+            '<figcaption>Figure&nbsp;1: <span class="figure-status"'
+            f' data-status="simulated"{attributes}>simulated</span> The halo.'
+            "</figcaption></figure>"
+        )
+
+    done, count = annotate(
+        caption(' data-model-of="lycopodium-spore-diffraction"'), tmp_path
+    )
+    assert count == 1
+    assert card["rights"]["figure_credit"]["short"] in done
+    with pytest.raises(InvalidFigure, match="data-dataset"):
+        annotate(caption(' data-dataset="lycopodium-spore-diffraction"'), tmp_path)

@@ -46,6 +46,13 @@ rights:
     Spain. KAGRA is supported by Ministry of Education, Culture, Sports, Science and Technology (MEXT), Japan Society
     for the Promotion of Science (JSPS) in Japan; National Research Foundation (NRF) and Ministry of Science and ICT
     (MSIT) in Korea; Academia Sinica (AS) and National Science and Technology Council (NSTC) in Taiwan."
+  figure_credit:
+    short: 'Data: GWOSC, GW150914 (LIGO, Virgo), doi 10.7935/82H3-HH23, CC BY 4.0'
+    visible: required
+    source: 'https://creativecommons.org/licenses/by/4.0/legalcode section 3(a): the creators, the licence,
+      and a link go with the shared material, so a figure saved without its page carries them on its face; the
+      link and the changes are in its metadata and at the caption (Issue #531); the GWOSC acknowledgement
+      (https://gwosc.org/acknowledgement/) is in the full attribution'
 artifacts:
 - name: H-H1_GWOSC_4KHZ_R1-1126259447-32.txt.gz
   type: calibrated-observation

@@ -12,6 +12,7 @@ import socket
 import stat
 import subprocess
 import sys
+import types
 from datetime import date
 from pathlib import Path
 
@@ -22,6 +23,7 @@ import yaml
 from pbc.data import check
 from pbc.data.card import ARTIFACT_TYPES, load_cards, validate_card
 from pbc.data.check import check_repository
+from pbc.data.figure_provenance import FigureProvenance
 from pbc.data.registry import (
     SURVEYED,
     go_cards,
@@ -91,8 +93,21 @@ class Repo:
 
 
 @pytest.fixture
-def repo(tmp_path) -> Repo:
-    return Repo(tmp_path)
+def repo(tmp_path, monkeypatch) -> Repo:
+    # The demo card's own reference module, which declares its figure's
+    # provenance for 'demo' (Issue #531); npl's module declares npl's.
+    stub = types.ModuleType("pbc.data.reference.scratch_demo")
+    stub.make_figure = lambda data_dir: None
+    stub.REFERENCE = FigureProvenance(
+        status=CARDS["npl-onwafer-sparameters"]["reference_figure"]["status"],
+        dataset="demo",
+        processing="The record, unmodified.",
+    )
+    monkeypatch.setitem(sys.modules, stub.__name__, stub)
+    repo = Repo(tmp_path)
+    repo.card["reference_module"] = "scratch_demo"
+    repo.write()
+    return repo
 
 
 def test_the_valid_minimal_repository_passes(repo):

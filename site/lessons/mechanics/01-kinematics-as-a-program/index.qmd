@@ -29,7 +29,7 @@ lesson:
 
 ```{python}
 #| echo: false
-from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
 from pbc.mechanics import kinematics
 from pbc.mechanics.experiments import kinematics as experiment
 
@@ -52,36 +52,13 @@ method is explicit Euler, the simplest one there is.
 
 Because the acceleration is known, the exact motion is known too. So we can
 measure how wrong the program is, and how the error shrinks when the time step
-does. Checking a simulation against something you can calculate by hand is the
-habit the rest of this course builds on.
-
-## Assumptions
-
-The model and the program rest on these assumptions. Each one names what goes
-wrong when it does not hold.
-
-1. **A point particle on a line.** One number $x(t)$ gives the position. A
-   body that rotates, bends, or moves in a plane needs more state than this
-   lesson carries.
-2. **The acceleration depends on time only.** $a(t)$ is known in advance and
-   does not depend on where the particle is or how fast it moves. A spring
-   (acceleration depends on $x$) or air drag (depends on $v$) breaks this. The
-   update rule below still runs for them, but the exact solutions used here
-   for comparison no longer apply.
-3. **Newtonian motion.** Speeds are far below the speed of light, and one
-   clock serves everyone.
-4. **The acceleration is smooth within a step.** The error estimate needs
-   $a(t)$ to change little during one time step. A jump inside a step, such
-   as an impact, makes the error larger than estimated.
-5. **Round-off is negligible.** The program computes with double-precision
-   floating-point numbers, and every operation rounds its result. For the
-   time steps used here that rounding is many orders of magnitude smaller
-   than the error of the method. With very many very small steps it would
-   become visible.
-
-The worked examples add one more: **free fall without air.** Near the Earth's
-surface and without drag the acceleration is the constant $-g$. For a light
-ball at high speed, drag is not small, and a later lesson adds it.
+does. We take one step by hand first and compare it with the real ball, then
+find where the difference comes from and how it grows, and then follow whole
+flights with smaller and smaller steps. Checking a simulation against
+something you can calculate by hand is the habit the rest of this course
+builds on. The model is a point on a line under an acceleration known in
+advance, and the program's rounding is taken as negligible; Assumptions
+(below) lists each assumption and what goes wrong when it fails.
 
 ## From rates of change to an update rule {#explanation}
 
@@ -128,11 +105,6 @@ The right-hand sides use only values the program already has, which is what
 
 ```{python}
 #| echo: false
-excerpt(experiment.draw_state_and_update)
-```
-
-```{python}
-#| echo: false
 #| label: fig-state-and-update
 #| fig-cap: "The program holds one state and one rule. The rule turns the state at one step into the state at the next, using nothing but that state."
 #| fig-status: conceptual
@@ -140,10 +112,119 @@ excerpt(experiment.draw_state_and_update)
 result.show("fig-state-and-update")
 ```
 
+```{python}
+#| echo: false
+source_link(experiment.draw_state_and_update, figure=True)
+```
+
 A simulation is this arrow applied again and again, and everything the arrow
 may use sits in the box on its left. The sketch computes nothing.
 
+In the program, the box is a small immutable record:
+
+```{python}
+#| echo: false
+excerpt(kinematics.State)
+```
+
+and the arrow is a function from one state to the next. It changes nothing
+and remembers nothing, so it can be tested on its own. Its three lines are the
+three lines of the update rule:
+
+```{python}
+#| echo: false
+excerpt(kinematics.euler_step)
+```
+
+### One step by hand {#one-step}
+
+Take the ball of the question. It leaves a hand above the ground, moving
+upward, and the acceleration is that of gravity, $a = -g$. The program starts
+from these values:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="setup")
+```
+
+Before reading on, predict the result of one step. After one time step, is the
+computed ball above or below the real one, and does its velocity differ?
+
+The update rule gives $x_1 = x_0 + v_0\,\Delta t$ =
+`{python} result["one-step-x"]` m and $v_1 = v_0 - g\,\Delta t$ =
+`{python} result["one-step-v"]` m/s. The real ball follows
+$x(t) = x_0 + v_0\,t - \tfrac{1}{2}\,g\,t^{2}$ and $v(t) = v_0 - g\,t$, so after
+`{python} result["one-step-time"]` s it is at
+`{python} result["one-step-exact-x"]` m, moving at
+`{python} result["one-step-exact-v"]` m/s. The velocities agree. The computed
+ball is `{python} result["one-step-gap"]` m too high.
+
+Why too high? The step moved the ball for the whole time step with the speed
+it had at the start, $v_0$. The real ball slowed down during that time, so it
+rose less. The difference is exactly the term the update rule dropped,
+$\tfrac{1}{2}\,g\,\Delta t^{2}$ = `{python} result["one-step-predicted"]` m.
+The velocity has no such error: under a constant acceleration it changes by
+$-g\,\Delta t$ in every step, and that is what the rule adds.
+
+So one step is right in the velocity and wrong in the position, by an amount
+of the size of $\Delta t^{2}$. Two questions follow: what happens to this gap
+over many steps, and how does it change when the step shrinks?
+
+### The gap after many steps {#the-lag}
+
+For a constant acceleration $a$ we can say exactly what the method does. The
+exact motion from the initial values $x_0$ and $v_0$ at $t_0 = 0$ is
+
+$$
+\begin{aligned}
+x(t) &= x_0 + v_0\,t + \tfrac{1}{2}\,a\,t^{2},\\
+v(t) &= v_0 + a\,t.
+\end{aligned}
+$$
+
+The update rule adds $a\,\Delta t$ to the velocity in every step, so
+$v_n = v_0 + a\,t_n$: the computed velocity is exact. The position collects
+those velocities:
+
+$$
+\begin{aligned}
+x_n
+&= x_0 + \sum_{k=0}^{n-1} v_k\,\Delta t\\
+&= x_0 + v_0 t_n + a\,\Delta t^{2} \sum_{k=0}^{n-1} k\\
+&= x_0 + v_0 t_n + a\,\Delta t^{2}\,\frac{n\,(n-1)}{2}\\
+&= x_0 + v_0 t_n + \tfrac{1}{2} a\,t_n (t_n - \Delta t)
+\end{aligned}
+$$
+
+using $\sum_{k=0}^{n-1} k = n(n-1)/2$ and $t_n = n\,\Delta t$.
+
+Subtracting the exact position leaves
+
+$$
+x_n - x(t_n) = -\tfrac{1}{2}\,a\,t_n\,\Delta t.
+$$
+
+Each step moves the particle with the velocity it had at the *start* of the
+step, so the computed position lags behind the change in velocity. The lag
+grows in proportion to the elapsed time and to the time step. Since
+$t_n = n\,\Delta t$, it is $n$ times $-\tfrac{1}{2}\,a\,\Delta t^{2}$: every
+step adds the same amount, the gap of the first step. For the ball, with
+$a = -g$, the computed ball gets `{python} result["one-step-gap"]` m further
+above the real one with every step.
+
+[For a constant acceleration the position error of explicit Euler is exactly
+$-\tfrac{1}{2}\,a\,t_n\,\Delta t$.]{.claim type="numerically-verified"
+scope="constant acceleration"
+evidence="fig-ball-thrown-up"} The derivation above is the proof for the
+model. Whether the *program* behaves like the model is a separate question,
+and the first worked example asks it: it recomputes the lag with the
+simulation, to the digits shown.
+
 ### How large is the error?
+
+For a constant acceleration the gaps of the single steps add up exactly. When
+the acceleration changes in time there is no such formula, but the same
+counting still gives the size of the error.
 
 Two errors need to be told apart. The *local* error is what a single step
 gets wrong: it drops terms of size $\Delta t^{2}$, so it adds an error of at
@@ -158,46 +239,6 @@ explicit Euler a **first-order** method, and it is the practical rule: halve
 the time step and the error at time $T$ halves, at twice the work. The bound
 is an argument for the order, not yet a measurement; the examples measure it.
 
-For a constant acceleration $a$ we can say exactly what the method does. The
-exact motion from the initial values $x_0$ and $v_0$ at $t_0 = 0$ is
-
-$$
-x(t) = x_0 + v_0\,t + \tfrac{1}{2}\,a\,t^{2},
-\qquad
-v(t) = v_0 + a\,t.
-$$
-
-The update rule adds $a\,\Delta t$ to the velocity in every step, so
-$v_n = v_0 + a\,t_n$: the computed velocity is exact. The position collects
-those velocities:
-
-$$
-x_n
-= x_0 + \sum_{k=0}^{n-1} \bigl(v_0 + a\,k\,\Delta t\bigr)\,\Delta t
-= x_0 + v_0\,t_n + a\,\Delta t^{2}\,\frac{n\,(n-1)}{2}
-= x_0 + v_0\,t_n + \tfrac{1}{2}\,a\,t_n\,(t_n - \Delta t),
-$$
-
-using $\sum_{k=0}^{n-1} k = n(n-1)/2$ and $t_n = n\,\Delta t$.
-
-Subtracting the exact position leaves
-
-$$
-x_n - x(t_n) = -\tfrac{1}{2}\,a\,t_n\,\Delta t.
-$$
-
-Each step moves the particle with the velocity it had at the *start* of the
-step, so the computed position lags behind the change in velocity. The lag
-grows in proportion to the elapsed time and to the time step.
-
-[For a constant acceleration the position error of explicit Euler is exactly
-$-\tfrac{1}{2}\,a\,t_n\,\Delta t$.]{.claim type="numerically-verified"
-scope="constant acceleration"
-evidence="fig-ball-thrown-up"} The derivation above is the proof for the
-model. Whether the *program* behaves like the model is a separate question,
-and the first worked example asks it: it recomputes the lag with the
-simulation, to the digits shown.
-
 ::: {.go-deeper ref="euler-local-global-error"}
 It explains why adding up the errors of single steps still gives an error
 that is proportional to the time step, although every step starts from a value
@@ -206,25 +247,39 @@ that depends on time only, which is the case of this lesson. The lesson does
 not need it: everything used below is derived above.
 :::
 
+## Assumptions
+
+The model and the program rest on these assumptions. Each one names what goes
+wrong when it does not hold.
+
+1. **A point particle on a line.** One number $x(t)$ gives the position. A
+   body that rotates, bends, or moves in a plane needs more state than this
+   lesson carries.
+2. **The acceleration depends on time only.** $a(t)$ is known in advance and
+   does not depend on where the particle is or how fast it moves. A spring
+   (acceleration depends on $x$) or air drag (depends on $v$) breaks this. The
+   update rule above still runs for them, but the exact solutions used here
+   for comparison no longer apply.
+3. **Newtonian motion.** Speeds are far below the speed of light, and one
+   clock serves everyone.
+4. **The acceleration is smooth within a step.** The error estimate needs
+   $a(t)$ to change little during one time step. A jump inside a step, such
+   as an impact, makes the error larger than estimated.
+5. **Round-off is negligible.** The program computes with double-precision
+   floating-point numbers, and every operation rounds its result. For the
+   time steps used here that rounding is many orders of magnitude smaller
+   than the error of the method. With very many very small steps it would
+   become visible.
+
+The thrown ball adds one more: **free fall without air.** Near the Earth's
+surface and without drag the acceleration is the constant $-g$. For a light
+ball at high speed, drag is not small, and a later lesson adds it.
+
 ## The program {#code}
 
-The code lives in the module `pbc.mechanics.kinematics` of the repository.
-The listings in this section are read from that file when the site is built.
-
-The state is a small immutable record:
-
-```{python}
-#| echo: false
-excerpt(kinematics.State)
-```
-
-One step is a function from a state to the next state. It changes nothing
-and remembers nothing, so it can be tested on its own:
-
-```{python}
-#| echo: false
-excerpt(kinematics.euler_step)
-```
+The state and the step shown above live in the module
+`pbc.mechanics.kinematics`, beside the two functions that run a simulation and
+give the exact motion to check it with.
 
 The acceleration is passed in as a function of time, so the same step serves
 every motion in this lesson. A simulation is that step in a loop, with the
@@ -247,22 +302,18 @@ excerpt(kinematics.constant_acceleration)
 
 ### A ball thrown straight up
 
-Will the program show the lag the derivation predicts? A ball thrown straight
-up has an exact motion we can write down, so any gap between the program and
-the exact curve belongs to the method. The prediction is specific: the
-velocities agree in every row, and the positions differ by
-$-\tfrac{1}{2}\,a\,t\,\Delta t$. The ball leaves a hand above the ground,
-moving upward, and we follow it until shortly before it is back at that
-height, with the exact motion evaluated at the same instants.
+The first step put the computed ball `{python} result["one-step-gap"]` m above
+the real one, and the derivation says that every step adds as much. Will the
+program show this lag over a whole flight? The ball of the first step, from
+the same values, is followed until shortly before it is back at the height of
+the hand, with the exact motion evaluated at the same instants. The motion is
+exact, so any gap between the program and the exact curve belongs to the
+method. The derivation predicts it in every row: the velocities agree, and
+the positions differ by $-\tfrac{1}{2}\,a\,t\,\Delta t$.
 
 ```{python}
 #| echo: false
-excerpt(experiment, region="setup")
-```
-
-```{python}
-#| echo: false
-excerpt(experiment.thrown_ball)
+excerpt(experiment.thrown_ball, lines=(4, 5))
 ```
 
 ```{python}
@@ -280,16 +331,16 @@ derivation predicts.
 
 ```{python}
 #| echo: false
-excerpt(experiment.draw_ball_thrown_up)
-```
-
-```{python}
-#| echo: false
 #| label: fig-ball-thrown-up
 #| fig-cap: "Height of the ball: explicit Euler with a coarse time step against the exact motion. The simulated ball stays above the exact one by a gap that grows with time, the lag of a method that moves the ball with the velocity from the start of each step."
 #| fig-status: simulated
 #| fig-alt: "Line plot of height in metres against time in seconds. The exact motion is a parabola: the ball rises, peaks halfway through the plotted time, and comes back down almost to its starting height. The explicit Euler points start on the parabola and then lie above it, by a distance that grows steadily with time."
 result.show("fig-ball-thrown-up")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_ball_thrown_up, figure=True)
 ```
 
 The Euler points start on the parabola and drift away from it, always on the
@@ -300,17 +351,20 @@ behind the velocity.
 ### Halving the time step
 
 A first-order method should halve its error when the time step halves. The
-cell repeats the simulation over the same duration, doubling the number of
-steps each time, and compares the final position with the exact one.
+experiment repeats the simulation over the same duration, doubling the number
+of steps each time, and compares the final position with the exact one:
 
 ```{python}
 #| echo: false
 excerpt(experiment.final_error)
 ```
 
+For each number of steps it keeps that error and its ratio to the error before
+the halving:
+
 ```{python}
 #| echo: false
-excerpt(experiment.halving)
+excerpt(experiment.halving, lines=[(3, 3), (12, 12)])
 ```
 
 ```{python}
@@ -323,7 +377,7 @@ the last ratio of the table is `{python} result["last-ratio"]`,
 because the error is exactly $\tfrac{1}{2}\,g\,t\,\Delta t$.
 
 The fifth assumption said that round-off stays far below the error of the
-method. The cell below puts a number on it: the spacing between neighbouring
+method. The experiment puts a number on it: the spacing between neighbouring
 double-precision numbers at the height of the ball is
 `{python} result["spacing"]` m, and the smallest error of the table is
 `{python} result["smallest-error"]` m, which is
@@ -355,7 +409,7 @@ excerpt(experiment, region="cart")
 
 ```{python}
 #| echo: false
-excerpt(experiment.shaking_cart)
+excerpt(experiment.shaking_cart, lines=(4, 5))
 ```
 
 ```{python}
@@ -373,16 +427,19 @@ On logarithmic axes a first-order error is a straight line of slope one.
 
 ```{python}
 #| echo: false
-excerpt(experiment.draw_error_against_time_step)
-```
-
-```{python}
-#| echo: false
 #| label: fig-error-against-time-step
 #| fig-cap: "Error of the final position against the time step, for both examples. Both fall along lines parallel to the reference line: the error is proportional to the time step."
 #| fig-status: simulated
 #| fig-alt: "Log-log plot of the size of the final position error in metres against the time step in seconds. The points for the thrown ball and the points for the cart on the shaking table each lie on a straight line. Both lines are parallel to a dotted reference line of slope 1: the error falls in proportion to the time step."
 result.show("fig-error-against-time-step")
+```
+
+The time steps are those of the two tables, and the dotted reference line is
+the time step plotted against itself, a line of slope one on these axes:
+
+```{python}
+#| echo: false
+excerpt(experiment.draw_error_against_time_step, lines=[(5, 5), (19, 19)])
 ```
 
 [On logarithmic axes both errors follow the reference line of slope one, so

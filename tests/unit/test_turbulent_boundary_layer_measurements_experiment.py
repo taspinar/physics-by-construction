@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
+from support.figures import assert_cell_declared, dataset_figures
 
 from pbc.authoring.tables import is_numeric_console_block
 from pbc.data.adapters import (
@@ -17,7 +18,7 @@ from pbc.data.adapters import (
     hot_wire_intensity_series,
     hot_wire_profile_series,
 )
-from pbc.data.plotting import check_figure, figure_status
+from pbc.data.figure_provenance import role_of
 from pbc.data.reference import grazing_flow_hwa, tudelft_boundary_layer
 from pbc.experiment import encode
 from pbc.fluids.experiments import turbulent_boundary_layer_measurements as lab
@@ -318,23 +319,30 @@ def test_every_figure_is_the_same_bytes_on_every_draw(experiment, label):
     assert len(drawings) == 1
 
 
-@pytest.mark.parametrize("label", sorted(lab.run().figures))
+def test_every_dataset_figure_declares_its_provenance(experiment):
+    # Issue #531: every figure of the records states its status and credit at
+    # its caption and in its PNG, from the card.
+    assert set(experiment.provenance) == set(dataset_figures(PAGE))
+    assert set(experiment.figures) == set(dataset_figures(PAGE))
+
+
+@pytest.mark.parametrize("label", sorted(dataset_figures(PAGE)))
 def test_every_figure_is_processed_measurement_and_follows_the_conventions(
     experiment, label
 ):
+    # The status is the caption's and the PNG's, not painted (Issue #531);
+    # the conventions are checked with it, the wall units' residuals included.
+    assert_cell_declared(experiment, PAGE, label, residuals=label == "fig-wall-units")
     figure = experiment.figures[label]()
     try:
-        assert figure_status(figure) == "processed"
-        assert check_figure(figure, residuals=label == "fig-wall-units") == []
         for ax in figure.axes:
-            legend = ax.get_legend()
-            for t in [] if legend is None else legend.get_texts():
-                text = t.get_text()
-                measured = ", PIV [" in text or ", PTV" in text or "hot wire, " in text
-                if measured and "[" in text:
-                    assert "[processed]" in text, (label, text)
+            # The status of an entry is its role, not a word of it.
+            for handle, text in zip(*ax.get_legend_handles_labels(), strict=True):
+                measured = ", PIV" in text or ", PTV" in text or "hot wire, " in text
+                if measured and ax.get_ylabel() != "residual of U+ [1]":
+                    assert role_of(handle) == "processed", (label, text)
                 if "Blasius" in text or "log law" in text or "sublayer" in text:
-                    assert "[simulated]" in text, (label, text)
+                    assert role_of(handle) == "simulated", (label, text)
     finally:
         plt.close(figure)
 

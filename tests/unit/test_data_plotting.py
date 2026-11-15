@@ -1,7 +1,7 @@
 """The plotting helpers enforce the figure conventions, and the reference
-figure of every go dataset is made with them and carries the status label its
-card declares and its dossier states (the cases come from the cards, Issue
-#456).
+figure of every go dataset is made with them and declares the status its
+card gives and its dossier states (the cases come from the cards, Issue
+#456), with its provenance off the chart area (Issue #531).
 """
 
 import matplotlib.pyplot as plt
@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pbc.data import SAMPLES_DIR
+from pbc.data import figure_provenance as fp
 from pbc.data.plotting import (
     add_credit,
     check_figure,
@@ -19,6 +20,8 @@ from pbc.data.plotting import (
     signed_image,
     signed_norm,
 )
+from pbc.data.reference import identity as reference_identity
+from pbc.data.reference import reference_png
 from pbc.data.registry import go_cards, import_reference_module
 from pbc.data.series import Series
 
@@ -194,9 +197,23 @@ CASES = [
 def test_each_reference_figure_is_made_with_the_helpers_and_has_its_dossiers_status(
     module, path, status, residuals
 ):
+    # Since F173 (Issue #531) the status is the declaration's, at no place on
+    # the chart: the figure paints no status and no credit, keeps every other
+    # convention, gives each legend entry a declared role, and its PNG carries
+    # exactly the record of the declaration and the card, with the line of
+    # credit the card gives.
+    declared = module.REFERENCE
+    card = fp.card_of(declared.dataset)
+    assert declared.dataset == path.name
+    assert declared.status == status
     fig = module.make_figure(path)
-    assert figure_status(fig) == status
-    assert check_figure(fig, residuals=residuals) == []
+    assert figure_status(fig) is None
+    assert check_figure(fig, residuals=residuals, declared=status) == []
+    assert fp.check_roles(fig, declared) == []
+    png = reference_png(module, path)
+    assert fp.check_png(png, declared, card, reference_identity(module)) == []
+    assert fp.read_metadata(png)["pbc:visible-credit"] == fp.visible_credit(card)
+    assert png == reference_png(module, path)
 
 
 def test_the_dossiers_state_the_status_of_their_figure():
@@ -204,3 +221,36 @@ def test_the_dossiers_state_the_status_of_their_figure():
     for name, status in ((n, c["reference_figure"]["status"]) for n, c in GO.items()):
         text = (root / f"{name}.md").read_text().replace("**", "")
         assert f"Status label: {status}" in text, name
+
+
+def test_the_declared_helpers_give_roles_instead_of_painted_and_written_statuses():
+    # Issue #531: in a declared figure the helpers paint no status, the legend
+    # entries carry no status words, and every line and band has its role.
+    from pbc.data.figure_provenance import FigureProvenance, check_roles
+
+    measured = series("processed-measured")
+    model = series("modelled-reference", shift=0.1)
+    fig, (top, _) = measured_vs_model(measured, {"model": model}, declared=True)
+    top.set_title("t")
+    assert figure_status(fig) is None
+    assert check_figure(fig, residuals=True, declared="processed") == []
+    legend = " ".join(t.get_text() for t in top.get_legend().get_texts())
+    assert "[" not in legend
+    mixed = FigureProvenance(
+        status="processed",
+        dataset="tess-exoplanet-light-curves",
+        combines=("simulated",),
+        processing="p",
+    )
+    assert check_roles(fig, mixed) == []
+    assert top.lines[-1].get_linestyle() == "--", "the model is drawn apart"
+    fig, ax = series_with_band(measured, "m", declared=True)
+    ax.set_title("t")
+    assert figure_status(fig) is None
+    alone = FigureProvenance(
+        status="processed", dataset="nist-numisheet-dp980", processing="p"
+    )
+    assert check_roles(fig, alone) == []
+    # Undeclared, the helpers are unchanged.
+    fig, (top, _) = measured_vs_model(measured, {"model": model})
+    assert figure_status(fig) == "processed"

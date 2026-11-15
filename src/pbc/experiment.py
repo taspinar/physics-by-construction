@@ -298,7 +298,11 @@ class Experiment:
                         self.identity(label),
                         visualization=visualization,
                     ),
-                    credit=portable.visible_credit(card, visualization=visualization),
+                    credit=portable.visible_credit(
+                        card,
+                        visualization=visualization,
+                        also=portable.also_cards(provenance),
+                    ),
                 )
         return self._encoded[label]
 
