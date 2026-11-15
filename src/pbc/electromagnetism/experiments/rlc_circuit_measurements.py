@@ -25,7 +25,7 @@ from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import impedance_series
 from pbc.data.figure_provenance import RESIDUAL, FigureProvenance, role
 from pbc.data.fit import FitResult, fit_curve
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.plotting import COLOURS
 from pbc.data.reference.bayreuth_rlc import Spectrum, load
 from pbc.electromagnetism.circuits import CoilParallelCapacitor, impedance_peak
 from pbc.experiment import Experiment, main
@@ -42,12 +42,6 @@ AMPLITUDE = 30e-3  # A, the amplitude of the current the instrument imposes
 NAMES = ("R", "L", "C")
 UNITS = {"R": "ohm", "L": "mH", "C": "uF"}
 SCALE = {"R": 1.0, "L": 1e-3, "C": 1e-6}  # from the fitted unit to SI
-CREDIT = (
-    "Data: Danzer, Plank, Ruether (Univ. Bayreuth), 'Impedance data for various "
-    "electrochemical and electrical systems', Zenodo 10.5281/zenodo.10794584, "
-    "v1.0.0, CC BY 4.0; file rlc_circuit.json, unmodified. Models and residuals: "
-    "this lesson's code, not part of the record."
-)
 # The provenance the impedance figure declares (Issue #524).
 IMPEDANCE_FIT = FigureProvenance(
     status="processed",
@@ -55,6 +49,15 @@ IMPEDANCE_FIT = FigureProvenance(
     combines=("simulated",),
     processing="The record's impedance spectrum, unmodified; the circuit with the"
     " printed component values, the fitted circuit, and the residuals of both:"
+    " this lesson's code, not part of the record.",
+)
+# The provenance of the detail around the resonance (Issue #531).
+RESONANCE_DETAIL = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    combines=("simulated",),
+    processing="The record's impedance spectrum, selected 1000 to 2400 Hz and"
+    " otherwise unmodified; the fitted circuit and the frequencies marked on it:"
     " this lesson's code, not part of the record.",
 )
 
@@ -307,8 +310,8 @@ def band_sensitivity(
     }
 
 
-def _mark(ax, x: float, style: str, label: str) -> None:
-    ax.axvline(x, color="0.35", lw=0.9, ls=style, label=label)
+def _mark(ax, x: float, style: str, label: str, status: str) -> None:
+    role(ax.axvline(x, color="0.35", lw=0.9, ls=style, label=label), status)
 
 
 def draw_impedance_fit(spectrum: Spectrum, result: FitResult) -> Figure:
@@ -420,38 +423,41 @@ def draw_resonance_detail(
         2, 1, figsize=(6.4, 5.4), sharex=True, constrained_layout=True
     )
     style = {"color": COLOURS[0], "marker": "o", "ms": 4.5, "ls": "none"}
-    top.plot(
-        modulus.x, modulus.y, label=f"measured samples [{modulus.status}]", **style
-    )
-    top.plot(
+    (points,) = top.plot(modulus.x, modulus.y, label="measured samples", **style)
+    role(points, modulus.status)
+    (line,) = top.plot(
         dense,
         np.abs(z),
         "--",
         color=COLOURS[1],
         lw=1.4,
-        label="model, fitted values [simulated]",
+        label="model, fitted values",
     )
-    bottom.plot(phase.x, phase.y, label=f"measured samples [{phase.status}]", **style)
-    bottom.plot(
+    role(line, "simulated")
+    (points,) = bottom.plot(phase.x, phase.y, label="measured samples", **style)
+    role(points, phase.status)
+    (line,) = bottom.plot(
         dense,
         np.degrees(np.angle(z)),
         "--",
         color=COLOURS[1],
         lw=1.4,
-        label="model, fitted values [simulated]",
+        label="model, fitted values",
     )
+    role(line, "simulated")
     marks = [
-        (measured["peak-frequency"], "-", "highest measured sample"),
+        (measured["peak-frequency"], "-", "highest measured sample", modulus.status),
         (
             hz(impedance_peak(tank)),
             "--",
             "largest |Z| of the model, at 1/(2 pi sqrt(LC))",
+            "simulated",
         ),
-        (hz(tank.phase_zero_frequency), "-.", "phase zero of the model"),
+        (hz(tank.phase_zero_frequency), "-.", "phase zero of the model", "simulated"),
     ]
-    for x, line, label in marks:
-        _mark(top, x, line, label)
-        _mark(bottom, x, line, "_" + label)
+    for x, line, label, status in marks:
+        _mark(top, x, line, label, status)
+        _mark(bottom, x, line, "_" + label, status)
     bottom.axhline(0, color="0.5", lw=0.8)
     top.set_ylabel("|Z| [ohm]")
     top.set_title("Around the resonance: the sweep against the fitted model")
@@ -460,8 +466,6 @@ def draw_resonance_detail(
     bottom.set_xlabel("frequency [Hz]")
     bottom.set_title("Phase around the resonance")
     bottom.legend(fontsize=7.5, loc="upper right")
-    add_credit(fig, CREDIT + f" Steps: {modulus.disclosure()}.")
-    label_status(fig, modulus.status)
     return fig
 
 
@@ -557,6 +561,7 @@ def run() -> Experiment:
     experiment.figure(
         "fig-resonance-detail",
         partial(draw_resonance_detail, spectrum, result, measured),
+        provenance=RESONANCE_DETAIL,
     )
 
     with experiment.capture("tank-exercise"):

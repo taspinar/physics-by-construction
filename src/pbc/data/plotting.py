@@ -81,16 +81,25 @@ def _unit_label(name: str, unit: str) -> str:
     return f"{name} [{unit}]"
 
 
-def plot_series(ax, series: Series, label: str, *, colour: str, **kwargs):
+def plot_series(
+    ax, series: Series, label: str, *, colour: str, declared: bool = False, **kwargs
+):
     """Draw ``series`` and its uncertainty band; a processed series says so.
 
     The legend entry names the steps taken, so that a smoothed or interpolated
     curve cannot pass for the recording. A modelled series is drawn dashed.
+
+    In a figure that declares its provenance (``declared``, Issue #531) the
+    status is not a word of the legend entry but the role of the line and
+    the band (``pbc.data.figure_provenance.role``): the caption states it.
     """
+    from pbc.data.figure_provenance import role
+
     steps = f" ({series.disclosure()})" if series.steps else ""
+    status = "" if declared else f" [{series.status}]"
     style = "--" if series.status == "simulated" else "-"
     if series.sigma is not None:
-        ax.fill_between(
+        band = ax.fill_between(
             series.x,
             series.y - series.sigma,
             series.y + series.sigma,
@@ -99,28 +108,35 @@ def plot_series(ax, series: Series, label: str, *, colour: str, **kwargs):
             lw=0,
             label=f"{label}: 1 sigma",
         )
+        if declared:
+            role(band, series.status)
     (line,) = ax.plot(
         series.x,
         series.y,
         color=colour,
         linestyle=kwargs.pop("linestyle", style),
         lw=kwargs.pop("lw", 1.2),
-        label=f"{label} [{series.status}]{steps}",
+        label=f"{label}{status}{steps}",
         **kwargs,
     )
+    if declared:
+        role(line, series.status)
     return line
 
 
 def series_with_band(
-    series: Series, label: str, *, figsize=(7, 3.5)
+    series: Series, label: str, *, figsize=(7, 3.5), declared: bool = False
 ) -> tuple[Figure, plt.Axes]:
-    """One time series with its uncertainty band and the status label."""
+    """One time series with its uncertainty band and the status label; in a
+    figure that declares its provenance (``declared``) the status is at the
+    caption and the series carries it as its role."""
     fig, ax = plt.subplots(figsize=figsize, constrained_layout=True)
-    plot_series(ax, series, label, colour=COLOURS[0])
+    plot_series(ax, series, label, colour=COLOURS[0], declared=declared)
     ax.set_xlabel(_unit_label(series.x_name, series.x_unit))
     ax.set_ylabel(_unit_label(series.y_name, series.y_unit))
     ax.legend(fontsize=8)
-    label_status(fig, series.status)
+    if not declared:
+        label_status(fig, series.status)
     return fig, ax
 
 
@@ -135,14 +151,20 @@ def measured_vs_model(
     *,
     window: tuple[float, float] | None = None,
     figsize=(8, 6),
+    declared: bool = False,
 ) -> tuple[Figure, tuple[plt.Axes, plt.Axes]]:
     """Measurement with its band, the models apart from it, and the residuals.
 
     The upper panel draws the measurement as a solid line with its uncertainty
     band and every model dashed; the lower panel is model minus measurement on
     the measurement's grid. The model is interpolated for that; the panel title
-    says so. The status label is the measurement's.
+    says so. The status label is the measurement's; in a figure that declares
+    its provenance (``declared``, Issue #531) it is at the caption, and every
+    line carries its role: the measurement's status, ``simulated``, or the
+    residual.
     """
+    from pbc.data.figure_provenance import RESIDUAL, role
+
     for name, model in models.items():
         if model.status != "simulated":
             raise ValueError(f"model {name!r} is {model.status}, not simulated")
@@ -151,23 +173,27 @@ def measured_vs_model(
     fig, (top, bottom) = plt.subplots(
         2, 1, figsize=figsize, sharex=True, constrained_layout=True
     )
-    plot_series(top, measured, "measurement", colour=COLOURS[0], lw=1.6)
+    plot_series(
+        top, measured, "measurement", colour=COLOURS[0], lw=1.6, declared=declared
+    )
     bottom.axhline(0, color="0.5", lw=0.8)
     for k, (name, model) in enumerate(models.items(), start=1):
         colour = COLOURS[k % len(COLOURS)]
-        plot_series(top, model, name, colour=colour)
+        plot_series(top, model, name, colour=colour, declared=declared)
         r = residual(measured, model)
         inside = np.ones(r.shape, bool)
         if window is not None:
             inside = (measured.x >= window[0]) & (measured.x <= window[1])
         rms = np.sqrt(np.nanmean(r[inside] ** 2))
-        bottom.plot(
+        (line,) = bottom.plot(
             measured.x,
             r,
             color=colour,
             lw=1,
             label=f"{name}: RMS {rms:.3g} {measured.y_unit} in window",
         )
+        if declared:
+            role(line, RESIDUAL)
     if window is not None:
         for axis in (top, bottom):
             axis.axvspan(*window, color="0.5", alpha=0.12, lw=0)
@@ -178,7 +204,8 @@ def measured_vs_model(
     bottom.set_ylabel(_unit_label("residual", measured.y_unit))
     bottom.set_title("Residual: model minus measurement, model interpolated")
     bottom.legend(fontsize=8)
-    label_status(fig, measured.status)
+    if not declared:
+        label_status(fig, measured.status)
     return fig, (top, bottom)
 
 

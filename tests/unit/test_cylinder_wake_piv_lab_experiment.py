@@ -14,10 +14,11 @@ from support.experiments import (
     page_of,
     run_entry_point,
 )
+from support.figures import assert_cell_declared, dataset_figures
 
 from pbc.authoring.tables import is_numeric_console_block
 from pbc.data.adapters import hot_wire_series, piv_probe_series
-from pbc.data.plotting import check_figure, figure_status
+from pbc.data.figure_provenance import role_of
 from pbc.data.reference import cylinder_wake
 from pbc.experiment import encode
 from pbc.fluids import piv
@@ -263,18 +264,32 @@ def test_every_figure_is_the_same_bytes_on_every_draw(experiment, label):
     assert len(drawings) == 1
 
 
+def test_every_dataset_figure_declares_its_provenance(experiment):
+    # Issue #531: every figure of a record states its status and credit at
+    # its caption and in its PNG, from the card.
+    assert set(experiment.provenance) == set(dataset_figures(PAGE))
+
+
+@pytest.mark.parametrize("label", sorted(dataset_figures(PAGE)))
+def test_each_figure_states_one_status_and_carries_its_provenance(experiment, label):
+    assert_cell_declared(experiment, PAGE, label)
+
+
 @pytest.mark.parametrize("label", LABELS)
 def test_every_figure_follows_the_conventions(experiment, label):
     figure = experiment.figures[label]()
     try:
-        assert figure_status(figure) == "processed"
-        assert check_figure(figure) == []
+        assert experiment.provenance[label].status == "processed"
         for ax in figure.axes:
             legend = ax.get_legend()
-            for t in [] if legend is None else legend.get_texts():
-                text = t.get_text()
+            handles, labels = ax.get_legend_handles_labels()
+            for handle, text in zip(handles, labels, strict=True):
                 if "hot wire" in text or " at 2 D" in text or "PIV" in text:
-                    assert "[processed]" in text, (label, text)
+                    # Issue #531: the status is the entry's role, not a word.
+                    assert role_of(handle) == "processed", (label, text)
+                    assert "[processed]" not in text, (label, text)
+            if legend is not None:
+                assert [t.get_text() for t in legend.get_texts()] == labels
     finally:
         plt.close(figure)
 

@@ -39,8 +39,10 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
+from pbc.data.figure_provenance import REFERENCE as REFERENCE_ROLE
+from pbc.data.figure_provenance import RESIDUAL, FigureProvenance, role
 from pbc.data.fit import FitResult, fit_curve
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.plotting import COLOURS
 
 GALAXIES = ("NGC3198", "NGC2403", "NGC2841", "DDO154", "NGC2903")
 COLUMNS = ("Rad", "Vobs", "errV", "Vgas", "Vdisk", "Vbul", "SBdisk", "SBbul")
@@ -325,9 +327,24 @@ def analyse(sample: dict[str, Galaxy]) -> dict:
     }
 
 
+# The provenance of the reference figure (Issue #531): its status and credit
+# at no place on the chart, in its PNG's record, from the card.
+REFERENCE = FigureProvenance(
+    status="processed",
+    dataset="sparc-rotation-curves",
+    combines=("simulated",),
+    artifact="processed-measured",
+    processing="The files NGC3198, NGC2403, NGC2841, DDO154 and NGC2903_rotmod.dat"
+    " of Rotmod_LTG.zip, unmodified; Vgas, Vdisk and Vbul are the SPARC team's"
+    " models of the baryons. The fits, halos, chi-square profiles and the maximum"
+    " disk: the reference figure's code (pbc.data.reference.sparc_rotmod), not"
+    " part of the record.",
+)
+
+
 def _curve_panel(ax, ax_res, galaxy: Galaxy, fits: dict, styles: dict) -> None:
     r = galaxy.radius
-    ax.errorbar(
+    bars = ax.errorbar(
         r,
         galaxy.v_obs,
         yerr=galaxy.v_err,
@@ -338,9 +355,10 @@ def _curve_panel(ax, ax_res, galaxy: Galaxy, fits: dict, styles: dict) -> None:
         elinewidth=0.8,
         label="Vobs +/- errV (SPARC rotation curve)",
     )
+    role(bars, "processed")
     iso = fits["iso"]
     stellar = iso.stellar
-    ax.plot(
+    (gas,) = ax.plot(
         r,
         galaxy.v_gas,
         label="gas, Vgas (SPARC model; < 0: net outward pull)",
@@ -348,7 +366,8 @@ def _curve_panel(ax, ax_res, galaxy: Galaxy, fits: dict, styles: dict) -> None:
         ls=":",
         lw=1.5,
     )
-    ax.plot(
+    role(gas, "simulated")
+    (stars,) = ax.plot(
         r,
         np.sqrt(galaxy.stars_squared(stellar)),
         label=f"stars, sqrt(Y) Vdisk (and Vbul), Y = {stellar:.2f} of the core fit",
@@ -356,7 +375,8 @@ def _curve_panel(ax, ax_res, galaxy: Galaxy, fits: dict, styles: dict) -> None:
         ls=":",
         lw=1.5,
     )
-    ax.plot(
+    role(stars, "simulated")
+    (halo_alone,) = ax.plot(
         r,
         np.sqrt(iso.halo_squared(r)),
         label="the core fit's halo alone",
@@ -364,16 +384,22 @@ def _curve_panel(ax, ax_res, galaxy: Galaxy, fits: dict, styles: dict) -> None:
         ls=(0, (5, 2, 1, 2)),
         lw=1.0,
     )
+    role(halo_alone, "simulated")
     for halo in HALOS:
         m = fits[halo]
         line = {k: v for k, v in styles[halo].items() if k != "marker"}
-        ax.plot(
+        if line["ls"] == "-":
+            # A model beside the measurement is never solid (check_roles,
+            # Issue #531): the core fit, solid elsewhere, is long-dashed here.
+            line["ls"] = (0, (8, 2))
+        (total,) = ax.plot(
             r,
             m.total(galaxy),
             label=f"{HALO_NAMES[halo]}: chi2/dof = {m.reduced_chi2:.1f}",
             **line,
         )
-        ax_res.plot(
+        role(total, "simulated")
+        (points,) = ax_res.plot(
             r,
             galaxy.v_obs - m.total(galaxy),
             marker=styles[halo]["marker"],
@@ -382,7 +408,8 @@ def _curve_panel(ax, ax_res, galaxy: Galaxy, fits: dict, styles: dict) -> None:
             ls="none",
             label=HALO_NAMES[halo],
         )
-    ax_res.errorbar(
+        role(points, RESIDUAL)
+    bars = ax_res.errorbar(
         r,
         np.zeros_like(r),
         yerr=galaxy.v_err,
@@ -391,6 +418,7 @@ def _curve_panel(ax, ax_res, galaxy: Galaxy, fits: dict, styles: dict) -> None:
         elinewidth=0.8,
         label="+/- errV about zero",
     )
+    role(bars, "processed")
     ax_res.axhline(0, color="0.5", lw=0.6)
     ax.set_ylim(0, None)
     ax.set_xlim(0, r.max() * 1.03)
@@ -445,7 +473,8 @@ def make_figure(data_dir: Path) -> plt.Figure:
             chi2 = stellar_profile(galaxy, halo, values, floor=floor) / dof
             best = fits[(name, halo, floor)]
             which = "errV" if floor == 0 else f"errV + {100 * FLOOR:.0f} % floor"
-            ax_deg.plot(
+            # A chi-square compares the measurement with a model: a residual.
+            (profile,) = ax_deg.plot(
                 values,
                 chi2,
                 color=styles[halo]["color"],
@@ -454,6 +483,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
                 alpha=alpha,
                 label=f"{HALO_NAMES[halo]}, {which}: best Y = {best.stellar:.2f}",
             )
+            role(profile, RESIDUAL)
             ax_deg.plot(
                 best.stellar,
                 best.reduced_chi2,
@@ -463,13 +493,14 @@ def make_figure(data_dir: Path) -> plt.Figure:
                 marker=styles[halo]["marker"],
                 color=styles[halo]["color"],
             )
-    ax_deg.axvline(
+    maximum = ax_deg.axvline(
         y_max,
         color="0.3",
         ls=":",
         lw=1.2,
         label=f"maximum disk, Y = {y_max:.2f} (stars + gas reach Vobs + errV)",
     )
+    role(maximum, REFERENCE_ROLE)  # a limit, drawn for comparison (Issue #531)
     ax_deg.axhline(1, color="0.5", lw=0.8)
     ax_deg.set_yscale("log")
     ax_deg.set_xlabel(
@@ -489,7 +520,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
         offset = (k - 1) * 0.22
         given = [fits[(n, halo, 0.0)].reduced_chi2 for n in GALAXIES]
         floored = [fits[(n, halo, FLOOR)].reduced_chi2 for n in GALAXIES]
-        ax_all.plot(
+        (points,) = ax_all.plot(
             x + offset,
             given,
             ls="none",
@@ -498,7 +529,8 @@ def make_figure(data_dir: Path) -> plt.Figure:
             ms=7,
             label=f"{HALO_NAMES[halo]}, errV",
         )
-        ax_all.plot(
+        role(points, RESIDUAL)
+        (points,) = ax_all.plot(
             x + offset,
             floored,
             ls="none",
@@ -508,6 +540,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
             ms=7,
             label=f"{HALO_NAMES[halo]}, errV + {100 * FLOOR:.0f} % floor",
         )
+        role(points, RESIDUAL)
     ax_all.axhline(1, color="0.5", lw=0.8)
     ax_all.set_yscale("log")
     ax_all.set_ylim(0.05, 3e4)
@@ -523,16 +556,4 @@ def make_figure(data_dir: Path) -> plt.Figure:
     )
     ax_all.legend(fontsize=6.5, loc="upper right", ncol=2)
 
-    add_credit(
-        fig,
-        "Data: SPARC (Spitzer Photometry and Accurate Rotation Curves), "
-        "https://astroweb.case.edu/SPARC/; Lelli, F., McGaugh, S. S., Schombert, J. M. "
-        "2016, AJ 152, 157. Files NGC3198, NGC2403, NGC2841, DDO154, and "
-        "NGC2903_rotmod.dat "
-        "of Rotmod_LTG.zip, unmodified, redistributed with the authors' permission. "
-        "Vgas, Vdisk, Vbul are the SPARC team's models of the baryons. Fits, halos, "
-        "and the maximum disk: this figure's code (pbc.data.reference.sparc_rotmod), "
-        "not part of the record.",
-    )
-    label_status(fig, "processed")
     return fig

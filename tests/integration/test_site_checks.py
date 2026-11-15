@@ -1792,3 +1792,31 @@ def test_a_credit_without_a_record_in_the_png_is_reported(make_site: Site):
     site = make_site(body=declared_figure(end).replace("fig.png", "pixel.png"))
 
     assert rules(site_checks.check_figure_credits(site)) == {"figure-credit"}
+
+
+@pytest.mark.parametrize(
+    ("replaced", "by"),
+    [
+        (
+            'data-dataset="tess-exoplanet-light-curves"',
+            'data-dataset="nist-numisheet-dp980"',
+        ),
+        (
+            'data-dataset="tess-exoplanet-light-curves"',
+            'data-model-of="tess-exoplanet-light-curves"',
+        ),
+    ],
+)
+def test_a_caption_that_names_another_dataset_than_its_png_is_reported(
+    make_site: Site, replaced: str, by: str
+):
+    # Issue #531: the built page's caption names the PNG's dataset, as the
+    # cell's fig-dataset, or the card it models, as fig-model-of.
+    after, end = _completed_caption()
+    site = make_site(body=declared_figure(end, after).replace(replaced, by))
+    (site / "fig.png").write_bytes(_declared_png())
+
+    violations = site_checks.check_figure_credits(site)
+
+    assert rules(violations) == {"figure-credit"}
+    assert "is not the PNG's" in site_checks.describe(violations)

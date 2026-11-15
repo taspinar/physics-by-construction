@@ -119,8 +119,11 @@ def validate_card(card: dict, name: str | None = None) -> list[str]:
                 out.append(f"rights.{question}.answer: one of {', '.join(ANSWERS)}")
             if not _text(answer.get("source")):
                 out.append(f"rights.{question}.source: where the answer was read")
-        if "figure_credit" in rights:
-            # The credit of a portable figure (Issue #524), checked per card.
+        go = (card.get("decision") or {}).get("value") == "go"
+        if go or "figure_credit" in rights:
+            # The credit of a portable figure (Issue #524), checked per card;
+            # every card with a go has one, since its figures declare their
+            # provenance (Issue #531).
             from pbc.data.figure_provenance import credit_problems
 
             out.extend(credit_problems(card))

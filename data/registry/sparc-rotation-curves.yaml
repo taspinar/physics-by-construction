@@ -45,6 +45,12 @@ rights:
     157; SPARC website https://astroweb.case.edu/SPARC/. Files NGC3198_rotmod.dat, NGC2403_rotmod.dat,
     NGC2841_rotmod.dat, DDO154_rotmod.dat and NGC2903_rotmod.dat of Rotmod_LTG.zip, unmodified, redistributed
     with the authors'' permission.'
+  figure_credit:
+    short: 'Data: SPARC, Lelli, McGaugh, Schombert 2016, AJ 152, 157'
+    visible: required
+    source: 'the authors'' permission (rights.redistribution_of_subsets), read by the owner on 2026-11-10 as
+      covering the figures derived from the files with the attribution it asks for, so a figure saved without
+      its page names SPARC and its paper on its face (Issue #531)'
 artifacts:
 - name: <galaxy>_rotmod.dat, columns Rad, Vobs, errV
   type: processed-measured

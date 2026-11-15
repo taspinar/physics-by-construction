@@ -69,7 +69,7 @@ NCEI's event files are in "meters", but their heights are 3878 m at a station 57
 uv run python -m pbc.data.reference kamchatka-2025-tsunami-inputs --out kamchatka.png
 ```
 
-The code is `src/pbc/data/reference/kamchatka_tsunami.py`. **Status label: processed.** Panels: (a) the ETOPO crop around the source with the USGS vertical deformation as contours (uplift solid, subsidence dashed), the epicentre and the two stations; (b) NCEI height / NDBC height − 0.670 at every matched timestamp of both stations; (c, d) the corrected residual at 21416 and 21415 from −30 to +180 min, with the interval of seafloor shaking at 21416 shaded and the two √(gh) arrival times as vertical lines (dashed: from the nearest uplift of at least 1 m; dotted: from the epicentre), labelled `[simulated]` and drawn apart from the record.
+The code is `src/pbc/data/reference/kamchatka_tsunami.py`. **Status label: processed.** Panels: (a) the ETOPO crop around the source with the USGS vertical deformation as contours (uplift dash-dotted, subsidence dashed), the epicentre and the two stations; (b) NCEI height / NDBC height − 0.670 at every matched timestamp of both stations; (c, d) the corrected residual at 21416 and 21415 from −30 to +180 min, with the interval of seafloor shaking at 21416 shaded and the two √(gh) arrival times as vertical lines (dashed: from the nearest uplift of at least 1 m; dotted: from the epicentre), drawn apart from the record.
 
 **The chain, each step in the code:**
 

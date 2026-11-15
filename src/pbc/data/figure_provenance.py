@@ -1,4 +1,5 @@
-"""The provenance of a measured figure, off its chart area (F172, Issue #524).
+"""The provenance of a figure of a dataset, off its chart area (F172, Issue
+#524; rolled out by F173, Issue #531).
 
 A figure that opts in declares its provenance in the lesson's experiment
 (``Experiment.figure(label, draw, provenance=FigureProvenance(...))``); the
@@ -26,13 +27,15 @@ status words of the legend entries by a role on each drawn artist, and
 A figure that declares nothing is drawn and encoded exactly as before.
 
 The visualization credit is the owner's choice of 2026-11-14 on Issue #524,
-"with subtle branding", for the three figures of the pilot (AST8, MAT6, the
-RLC lab), which are the only declared figures: each shows the small line
+"with subtle branding", first for the three figures of the pilot (AST8,
+MAT6, the RLC lab) and, by the owner's rollout decision of the same day,
+for every figure F173 (Issue #531) declares: every figure of a dataset but
+AI6's model-input picture, and every reference figure. Each shows the
+small line
 "Visualization: Physics by Construction" under the figure, outside the plot
 area, so that a downloaded or shared image still shows where the
 visualization comes from. It is not a per-figure choice: it goes with the
-declaration, and a figure that declares nothing shows no line. Any further
-rollout of declarations, and so of the line, goes through F173. Where the
+declaration, and a figure that declares nothing shows no line. Where the
 card shows a dataset credit (``visible`` ``required`` or ``chosen``) the two
 form one line ("Visualization: Physics by Construction · Data: ..."). No
 box, no logo; the type size and grey of the figure credits. No wording may
@@ -67,9 +70,9 @@ if TYPE_CHECKING:
 
 SCHEMA = "pbc-figure-provenance/1"
 # The owner's choice on Issue #524 (2026-11-14): with subtle branding. It
-# applies to the declared figures only, which in the pilot are its three
-# (AST8, MAT6, the RLC lab); an undeclared figure is encoded without it. A
-# further rollout goes through F173; this is a constant, not a setting.
+# applies to the declared figures only, which since the rollout (F173,
+# Issue #531) are every figure of a dataset but AI6's model input; an
+# undeclared figure is encoded without it. A constant, not a setting.
 VISUALIZATION_CREDIT = True
 VISUALIZATION_PREFIX = "Visualization: Physics by Construction"
 CREDIT_PREFIX = "Data: "
@@ -83,12 +86,18 @@ CREDIT_GID = "pbc-portable-credit"
 # A role of a drawn artist besides the figure statuses: a residual combines
 # the measurement and a model.
 RESIDUAL = "residual"
+# A fixed or published value drawn for comparison (a bound, a limit, a
+# certified or published value, the moment a rule stops): neither the
+# measurement nor a model, so no line style is required of it (Issue #531).
+REFERENCE = "reference"
+# The keys that hold a provider's attribution as its card gives it.
+_NOTICES = ("pbc:attribution", "pbc:also-attribution")
 _ROLE = "_pbc_role"
 # Fields an image tool reads as ownership; never written.
 FORBIDDEN_KEYS = ("Author", "Copyright", "Creation Time", "Software")
+_MARK = re.compile(r"©|\(c\)\s")
 _OWNERSHIP = re.compile(
-    r"©|\(c\)\s"
-    r"|\bcopyright\s+(?:\(c\)\s+)?(?:\d{4}\s+)?(?:by\s+)?physics by construction"
+    r"\bcopyright\s+(?:\(c\)\s+)?(?:\d{4}\s+)?(?:by\s+)?physics by construction"
     r"|\b(?:our|owned by|property of)\b",
     re.IGNORECASE,
 )
@@ -97,6 +106,16 @@ _STATEMENT = {
     "measured": "measurement",
     "calibrated": "calibrated measurement",
     "processed": "processed measurement",
+    "simulated": "simulation",
+}
+# What a figure draws beside its own status, in words: the models of a
+# measurement, or a further stage of it (a spectrum processed from a
+# calibrated record, Issue #531).
+_COMBINED = {
+    "simulated": "simulated models",
+    "processed": "processed data",
+    "calibrated": "calibrated data",
+    "measured": "measured data",
 }
 
 
@@ -106,14 +125,19 @@ def _flat(text: object) -> str:
 
 @dataclass(frozen=True)
 class FigureProvenance:
-    """What a measured figure shows: its status, its dataset, the statuses of
-    what it draws beside the measurement, and what the lesson's code did.
+    """What a figure of a dataset shows: its status, its dataset, the
+    statuses of what it draws beside it, and what the lesson's code did.
 
-    ``status`` is the status of the measurement (``fig-status`` of the
-    cell); ``combines`` the statuses of the models drawn with it, for
-    example ``("simulated",)`` for fitted curves; ``artifact`` the artifact
-    type (``fig-artifact``) where the card needs one; ``processing`` what
-    the lesson's code computed from the record, which is not part of it.
+    ``status`` is the status of the figure (``fig-status`` of the cell): a
+    measurement's, or ``simulated`` for a modelled artifact of the card
+    (``fig-artifact: modelled-reference``) or for a model of the dataset
+    (``model_of``, the cell's ``fig-model-of``, Issue #531); ``combines``
+    the statuses of the models drawn with it, for example
+    ``("simulated",)`` for fitted curves; ``artifact`` the artifact type
+    (``fig-artifact``) where the card needs one; ``processing`` what the
+    lesson's code computed from the record, which is not part of it;
+    ``also`` the further datasets whose data the figure draws (FL9's
+    Strouhal figure, Issue #531), whose credits it carries as well.
     """
 
     status: str
@@ -121,12 +145,21 @@ class FigureProvenance:
     processing: str
     combines: tuple[str, ...] = ()
     artifact: str | None = None
+    model_of: bool = False
+    also: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        if self.status not in MEASURED_STATUSES:
+        if self.status not in (*MEASURED_STATUSES, "simulated"):
             raise ValueError(
-                f"a declared figure shows a measurement: {self.status!r} is not"
-                f" one of {MEASURED_STATUSES}"
+                f"a declared figure shows a measurement or a simulation of a"
+                f" dataset: {self.status!r} is neither"
+            )
+        if self.model_of and (self.status != "simulated" or self.artifact):
+            raise ValueError("a model of a dataset is simulated and names no artifact")
+        if self.status == "simulated" and not (self.model_of or self.artifact):
+            raise ValueError(
+                "a simulated figure of a dataset shows its modelled artifact"
+                " (artifact=) or is a model of it (model_of=True)"
             )
         for other in self.combines:
             if other not in FIGURE_STATUSES or other in (self.status, "conceptual"):
@@ -135,6 +168,8 @@ class FigureProvenance:
             raise ValueError("a combined status is named twice")
         if not _flat(self.processing):
             raise ValueError("the processing note is empty")
+        if self.dataset in self.also or len(set(self.also)) != len(self.also):
+            raise ValueError("a further dataset is named twice")
 
     def roles(self) -> set[str]:
         """The statuses the drawn artists of the figure carry."""
@@ -143,8 +178,10 @@ class FigureProvenance:
     def statement(self) -> str:
         """The status in words, with what the figure combines."""
         words = _STATEMENT[self.status]
+        if self.model_of:
+            words += " modelled on the dataset"
         if self.combines:
-            words += " with " + " and ".join(f"{c} models" for c in self.combines)
+            words += " with " + " and ".join(_COMBINED[c] for c in self.combines)
         return words
 
 
@@ -153,11 +190,17 @@ def card_of(dataset: str, registry: Path = REGISTRY_DIR) -> dict:
     return load_card(registry / f"{dataset}.yaml")
 
 
-def ownership_problems(text: str) -> list[str]:
+def ownership_problems(text: str, *, notice: bool = False) -> list[str]:
     """Wording that claims ownership of external data, or names the project
-    other than in the visualization credit."""
+    other than in the visualization credit.
+
+    A copyright mark is ownership wording, except in ``notice``: the
+    provider's own attribution, copied from its card, which keeps the
+    provider's copyright notice as its licence asks (trackpy's CC BY 3.0
+    sample, Issue #531); a claim for the project is refused there too.
+    """
     out = []
-    if _OWNERSHIP.search(text):
+    if _OWNERSHIP.search(text) or (not notice and _MARK.search(text)):
         out.append(f"ownership wording in {text!r}")
     rest = text.replace(VISUALIZATION_PREFIX, "")
     if _PROJECT.lower() in rest.lower():
@@ -229,6 +272,19 @@ def declaration_problems(provenance: FigureProvenance, card: dict) -> list[str]:
         )
     if (card.get("decision") or {}).get("value") != "go":
         out.append(f"{provenance.dataset}: a figure needs a card with a go")
+    for other in provenance.also:
+        try:
+            further = card_of(other)
+        except (OSError, ValueError) as error:
+            out.append(f"{other}: no card ({error})")
+            continue
+        if (further.get("decision") or {}).get("value") != "go":
+            out.append(f"{other}: a figure needs a card with a go")
+        out.extend(f"{other}: {p}" for p in credit_problems(further))
+    if provenance.model_of:
+        # A model of the dataset (fig-model-of): simulated, of no artifact.
+        out.extend(f"{provenance.dataset}: {p}" for p in credit_problems(card))
+        return out
     if provenance.artifact is None and needs_artifact(card):
         out.append(f"{provenance.dataset}: the declaration names no artifact")
     allowed = allowed_statuses(card, provenance.artifact)
@@ -241,23 +297,47 @@ def declaration_problems(provenance: FigureProvenance, card: dict) -> list[str]:
     return out
 
 
+def _painted_short(card: dict) -> str | None:
+    credit = card["rights"]["figure_credit"]
+    return credit["short"] if credit["visible"] in PAINTED else None
+
+
 def visible_credit(
-    card: dict, *, visualization: bool = VISUALIZATION_CREDIT
+    card: dict,
+    *,
+    visualization: bool = VISUALIZATION_CREDIT,
+    also: tuple[dict, ...] = (),
 ) -> str | None:
-    """The one line painted under a portable figure, or None.
+    """The line painted under a portable figure, or None.
 
     With the visualization credit (the default, the owner's choice), the
     line "Visualization: Physics by Construction", followed by " · " and
     the card's short credit where the card shows it (``visible``
     ``required`` or ``chosen``). Without it, that short credit, or nothing.
+    The shown credits of the further cards ``also`` (``FigureProvenance.
+    also``) follow on a second line, so the first keeps its width.
     """
-    credit = card["rights"]["figure_credit"]
-    data = credit["short"] if credit["visible"] in PAINTED else None
+    data = _painted_short(card)
     if visualization:
-        return (
+        line = (
             VISUALIZATION_PREFIX if data is None else f"{VISUALIZATION_PREFIX} · {data}"
         )
-    return data
+    else:
+        line = data
+    further = [short for c in also if (short := _painted_short(c)) is not None]
+    if further:
+        rest = " · ".join(further)
+        return rest if line is None else f"{line}\n{rest}"
+    return line
+
+
+def also_cards(record_or_provenance: Any) -> tuple[dict, ...]:
+    """The cards of the further datasets of a declaration or a PNG record."""
+    if isinstance(record_or_provenance, FigureProvenance):
+        names = record_or_provenance.also
+    else:
+        names = tuple(record_or_provenance.get("pbc:also", "").split())
+    return tuple(card_of(name) for name in names)
 
 
 def source_link(card: dict) -> str:
@@ -286,22 +366,52 @@ def metadata(
         raise ValueError("; ".join(problems))
     rights = card["rights"]
     short = rights["figure_credit"]["short"]
-    painted = visible_credit(card, visualization=visualization)
+    further = also_cards(provenance)
+    painted = visible_credit(card, visualization=visualization, also=further)
+    # A model of the dataset names it as such, not as its dataset: the
+    # caption's fig-model-of (Issue #531); every other record is the pilot's.
+    dataset = (
+        {"pbc:dataset": "", "pbc:model-of": provenance.dataset}
+        if provenance.model_of
+        else {"pbc:dataset": provenance.dataset}
+    )
     return {
         "Title": f"{identity} ({card['title']})",
-        "Description": f"Status: {provenance.statement()}. {short}.",
+        "Description": " ".join(
+            [
+                f"Status: {provenance.statement()}. {short}.",
+                *(f"{c['rights']['figure_credit']['short']}." for c in further),
+            ]
+        ),
         "Source": source_link(card),
         "pbc:schema": SCHEMA,
         "pbc:figure": identity,
         "pbc:status": provenance.status,
         "pbc:combines": " ".join(provenance.combines),
-        "pbc:dataset": provenance.dataset,
+        **dataset,
         "pbc:artifact": provenance.artifact or "",
         "pbc:licence": str(rights["licence"]),
         "pbc:credit": short,
         "pbc:visible-credit": painted or "",
         "pbc:attribution": _flat(rights["attribution"]),
         "pbc:processing": _flat(provenance.processing),
+        # Only a figure of further datasets has these keys (Issue #531).
+        **(
+            {
+                "pbc:also": " ".join(provenance.also),
+                "pbc:also-credit": " | ".join(
+                    c["rights"]["figure_credit"]["short"] for c in further
+                ),
+                "pbc:also-licence": " | ".join(
+                    str(c["rights"]["licence"]) for c in further
+                ),
+                "pbc:also-attribution": " | ".join(
+                    _flat(c["rights"]["attribution"]) for c in further
+                ),
+            }
+            if further
+            else {}
+        ),
     }
 
 
@@ -381,14 +491,17 @@ def check_png(
     )
     out.extend(f"metadata holds {key!r}" for key in FORBIDDEN_KEYS if key in found)
     for key, value in found.items():
-        out.extend(f"metadata {key!r}: {p}" for p in ownership_problems(value))
+        notice = key in _NOTICES and value == expected.get(key)
+        out.extend(
+            f"metadata {key!r}: {p}" for p in ownership_problems(value, notice=notice)
+        )
     return out
 
 
 def role(artist: Any, status: str) -> Any:
     """Mark a drawn artist (a line, a band, an errorbar container) with the
-    status of what it shows, or ``RESIDUAL``; return it."""
-    if status not in (*FIGURE_STATUSES, RESIDUAL):
+    status of what it shows, ``RESIDUAL``, or ``REFERENCE``; return it."""
+    if status not in (*FIGURE_STATUSES, RESIDUAL, REFERENCE):
         raise ValueError(f"unknown role {status!r}")
     setattr(artist, _ROLE, status)
     return artist
@@ -410,19 +523,57 @@ def _linestyle(handle: Any) -> str | None:
     return style if isinstance(style, str) else None
 
 
+def _drawn(ax: Any) -> list[Any]:
+    """The artists a panel draws that can carry a role."""
+    return [
+        *ax.lines,
+        *ax.collections,
+        *ax.images,
+        *ax.patches,
+        *ax.containers,
+    ]
+
+
 def check_roles(fig: Figure, provenance: FigureProvenance) -> list[str]:
     """The legend semantics of a declared figure; an empty list means none.
 
     Every legend entry is an artist with a role, every role is one the
     declaration names (a residual only where a measurement meets a model),
-    every declared role is drawn, every entry of a panel is in its legend,
-    a model is never a solid line and a measurement never a dashed or
-    dotted one.
+    every declared role is drawn (by a legend entry or, in a panel without
+    one, such as an image, by a drawn artist with the role, Issue #531),
+    every entry of a panel is in its legend; in a panel that holds a
+    measurement a model is never a solid line, and in a panel that holds a
+    model a measurement is never a dashed or dotted one. A ``REFERENCE``
+    (a bound, a limit, a published value) may be drawn in any figure and
+    style.
     """
     out: list[str] = []
     seen: set[str] = set()
-    allowed = provenance.roles() | ({RESIDUAL} if provenance.combines else set())
+    allowed = (
+        provenance.roles()
+        | ({RESIDUAL} if provenance.combines else set())
+        | {REFERENCE}
+    )
     for k, ax in enumerate(fig.axes):
+        # The style rules hold within a panel: a model beside a measurement
+        # it is drawn with (Issue #531; the pilot's figures pass either way).
+        here = {role_of(a) for a in _drawn(ax)}
+        here |= {role_of(h) for h in ax.get_legend_handles_labels()[0]}
+        measured = bool(here & set(MEASURED_STATUSES))
+        modelled = "simulated" in here
+        for artist in _drawn(ax):
+            kind = role_of(artist)
+            if kind is None:
+                continue
+            if kind not in allowed:
+                out.append(
+                    f"panel {k + 1}: an artist is {kind!r}; the figure declares"
+                    f" {', '.join(sorted(allowed))}"
+                )
+            elif ax.get_legend() is None and kind != REFERENCE:
+                # A panel without a legend (an image, one series) shows its
+                # roles by its drawn artists; one with a legend by its entries.
+                seen.add(kind)
         handles, labels = ax.get_legend_handles_labels()
         legend = ax.get_legend()
         shown = [] if legend is None else [t.get_text() for t in legend.get_texts()]
@@ -438,14 +589,15 @@ def check_roles(fig: Figure, provenance: FigureProvenance) -> list[str]:
                     f"panel {k + 1}: {label!r} is {kind!r}; the figure declares"
                     f" {', '.join(sorted(allowed))}"
                 )
-            seen.add(kind)
+            if kind != REFERENCE:
+                seen.add(kind)
             style = _linestyle(handle)
-            if kind == "simulated" and style in ("-", "solid"):
+            if measured and kind == "simulated" and style in ("-", "solid"):
                 out.append(f"panel {k + 1}: the model {label!r} is a solid line")
             # Beside a model, a measurement is never dashed or dotted; a
             # figure of the measurement alone may tell its parts apart so.
             if (
-                provenance.combines
+                modelled
                 and kind in MEASURED_STATUSES
                 and style in ("--", ":", "-.", "dashed", "dotted")
             ):
@@ -454,8 +606,16 @@ def check_roles(fig: Figure, provenance: FigureProvenance) -> list[str]:
                 )
     missing = provenance.roles() - seen
     if missing:
-        out.append(f"no legend entry of the declared {', '.join(sorted(missing))}")
+        out.append(
+            "no legend entry (or, in a panel without a legend, drawn artist)"
+            f" of the declared {', '.join(sorted(missing))}"
+        )
     return out
+
+
+def dataset_of(record: dict[str, str]) -> str:
+    """The card a PNG's record names: its dataset, or what it models."""
+    return record.get("pbc:model-of") or record.get("pbc:dataset", "")
 
 
 def caption_html(meta: dict[str, str], card: dict) -> tuple[str, str]:
@@ -469,7 +629,7 @@ def caption_html(meta: dict[str, str], card: dict) -> tuple[str, str]:
     combines = meta.get("pbc:combines", "").split()
     after = ""
     if combines:
-        words = " and ".join(f"{escape(c)} models" for c in combines)
+        words = " and ".join(escape(_COMBINED.get(c, c)) for c in combines)
         kinds = escape(" ".join(combines), quote=True)
         after = (
             f' <span class="figure-combines" data-combines="{kinds}">'
@@ -491,11 +651,30 @@ def caption_html(meta: dict[str, str], card: dict) -> tuple[str, str]:
     ]
     painted = meta.get("pbc:visible-credit", "")
     if painted:
-        items.insert(4, ("On the image", escape(painted)))
+        items.insert(4, ("On the image", escape(_flat(painted))))
+    further = also_cards(meta)
+    for k, other in enumerate(further):
+        # The further datasets the figure draws (Issue #531), after the
+        # processing, each with its own attribution, licence, and source.
+        link = source_link(other)
+        items.insert(
+            4 + k,
+            (
+                "Also from",
+                f"{escape(_flat(other['rights']['attribution']))}"
+                f" Licence: {escape(str(other['rights']['licence']))}."
+                f' <a href="{escape(link, quote=True)}">{escape(link)}</a>',
+            ),
+        )
     rows = "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in items)
     short = escape(rights["figure_credit"]["short"])
+    shorts = "".join(
+        f' <span class="figure-credit-also">'
+        f"{escape(other['rights']['figure_credit']['short'])}</span>"
+        for other in further
+    )
     end = (
-        f' <span class="figure-credit">{short}</span>'
+        f' <span class="figure-credit">{short}</span>{shorts}'
         '<details class="figure-provenance"><summary>Full provenance</summary>'
         f"<dl>{rows}</dl></details>"
     )

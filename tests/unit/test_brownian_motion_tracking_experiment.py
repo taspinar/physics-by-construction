@@ -3,23 +3,27 @@ the page claims is what the committed tracks give, D and the drift are the
 dossier's, the stated uncertainties' assumptions are checked on the data, and
 the figures follow the conventions of a measured-data lab."""
 
+import re
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
+from support.figures import assert_cell_declared, dataset_figures
 
 from pbc.authoring.tables import is_numeric_console_block
 from pbc.data import tracking
 from pbc.data.adapters import track_series
-from pbc.data.plotting import check_figure, figure_status
+from pbc.data.figure_provenance import role_of
+from pbc.data.plotting import check_figure
 from pbc.data.reference import trackpy_bulk_water
 from pbc.experiment import encode
 from pbc.thermodynamics.experiments import brownian_motion_tracking as lab
 
 MODULE = "pbc.thermodynamics.experiments.brownian_motion_tracking"
 PAGE = "thermodynamics/11-brownian-motion-tracking"
+STATUS_WORD = re.compile(r"\[(measured|calibrated|processed|simulated|conceptual)\]")
 
 
 @pytest.fixture(scope="module")
@@ -214,19 +218,34 @@ def test_every_figure_is_the_same_bytes_on_every_draw(experiment, label):
 def test_every_figure_follows_the_conventions_of_its_status(experiment, label):
     figure = experiment.figures[label]()
     try:
+        # Issue #531: the status is declared (caption and PNG), not painted;
+        # the legend entries carry roles instead of status words.
         expected = "measured" if label == "fig-frame" else "processed"
-        assert figure_status(figure) == expected
-        assert check_figure(figure, residuals=label == "fig-msd") == []
+        assert experiment.provenance[label].status == expected
+        residuals = label == "fig-msd"
+        assert check_figure(figure, residuals=residuals, declared=expected) == []
         for ax in figure.axes:
-            legend = ax.get_legend()
-            for t in [] if legend is None else legend.get_texts():
-                text = t.get_text()
+            for handle, text in zip(*ax.get_legend_handles_labels(), strict=True):
+                assert not STATUS_WORD.search(text), (label, text)
                 if "MSD," in text or "track" in text or "steps," in text:
-                    assert "[processed]" in text, (label, text)
+                    assert role_of(handle) == "processed", (label, text)
                 if text.startswith("Stokes-Einstein"):
-                    assert "[simulated]" in text, (label, text)
+                    assert role_of(handle) == "simulated", (label, text)
     finally:
         plt.close(figure)
+
+
+def test_every_dataset_figure_declares_its_provenance(experiment):
+    # Issue #531: every figure of the frames states its status and credit at
+    # its caption and in its PNG, from the card.
+    assert set(experiment.provenance) == set(dataset_figures(PAGE))
+
+
+@pytest.mark.parametrize("label", sorted(dataset_figures(PAGE)))
+def test_each_dataset_figure_states_one_status_and_carries_its_provenance(
+    experiment, label
+):
+    assert_cell_declared(experiment, PAGE, label, residuals=label == "fig-msd")
 
 
 def test_no_printed_output_is_a_block_of_numbers(experiment):

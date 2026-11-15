@@ -1402,7 +1402,8 @@ main figcaption {
   font-weight: 600;
 }
 
-.figure-credit {
+.figure-credit,
+.figure-credit-also {
   display: block;
   margin-top: var(--pbc-space-1);
 }

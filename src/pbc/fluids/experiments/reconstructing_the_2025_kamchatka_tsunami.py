@@ -36,10 +36,9 @@ from scipy.spatial import cKDTree
 
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import dart_residual_series
+from pbc.data.figure_provenance import RESIDUAL, FigureProvenance, role
 from pbc.data.plotting import (
     COLOURS,
-    add_credit,
-    label_status,
     plot_series,
     residual,
     sequential_image,
@@ -79,11 +78,25 @@ SHOWN = {"21416": (20.0, 100.0), "21415": (40.0, 120.0)}  # min, drawn
 SAMPLING = 0.5  # min: half the one-minute spacing of the records
 # endregion: choices
 GRID_NAMES = {FINE: "4'", BASE: "8'", COARSE: "16'", COARSEST: "32'"}
-CREDIT = (
-    "Data: NOAA NDBC and NCEI, DART 21416 and 21415 (doi 10.7289/V5F18WNS), "
-    "residual divided by 0.670; USGS NEIC, us6000qw60_1 v5; NOAA NCEI ETOPO "
-    "2022 (CC0), every fourth cell. US-government works, not endorsed by NOAA "
-    "or the USGS. Model: this lesson's code."
+# The provenance each figure of the inputs declares (Issue #531): its status
+# and credit at the caption and in its PNG, from the card.
+TSUNAMI_MAP = FigureProvenance(
+    status="simulated",
+    dataset=DATASET,
+    artifact="modelled-reference",
+    processing="The shallow-water run of this lesson's code on the 8' grid, from"
+    " the ETOPO 2022 bathymetry (every fourth cell) and the uplift of the USGS"
+    " finite-fault model us6000qw60_1 v5; its largest height and arrival times"
+    " are the model's, not part of the record.",
+)
+TSUNAMI_COMPARISON = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact="processed-measured",
+    combines=("simulated",),
+    processing="The NCEI de-tided residuals of DART 21416 and 21415 divided by"
+    " 0.670; the modelled series of this lesson's runs and their residuals:"
+    " this lesson's code, not part of the record.",
 )
 STYLES = ("-", "--", ":", "-.")
 MARKERS = ("o", "s", "^", "D")
@@ -964,7 +977,7 @@ def draw_map() -> Figure:
     extent = (d.grid.lon[0], d.grid.lon[-1], d.grid.lat[0], d.grid.lat[-1])
     fig, ax = plt.subplots(figsize=(5.0, 4.2), layout="constrained")
     peak = np.where(land, np.nan, np.clip(run.peak, 0.0, 1.0))
-    sequential_image(
+    image = sequential_image(
         ax,
         peak,
         label="largest height",
@@ -1008,6 +1021,7 @@ def draw_map() -> Figure:
             fontsize=7,
             color="w",
         )
+    role(image, "simulated")
     handles = [
         Line2D([], [], color="w", lw=0.6, label="arrival, every 15 min"),
         Line2D([], [], color="k", lw=0.7, label="USGS uplift 1, 3, 5 m"),
@@ -1015,6 +1029,11 @@ def draw_map() -> Figure:
         Line2D([], [], ls="", marker="*", mfc="w", mec="k", ms=8, label="epicentre"),
         Line2D([], [], ls="", marker="^", mfc="w", mec="k", label="DART station"),
     ]
+    # The legend keys are added to the panel without data (they draw
+    # nothing), so that its legend entries are the panel's, with the role of
+    # the modelled map they describe (Issue #531).
+    for handle in handles:
+        ax.add_line(role(handle, "simulated"))
     # Anchored below the axis label "longitude", which it must not cover; the
     # constrained layout keeps room for it above the credit.
     ax.legend(
@@ -1028,8 +1047,6 @@ def draw_map() -> Figure:
     ax.set_xlabel("longitude [degrees E]")
     ax.set_ylabel("latitude [degrees N]")
     ax.set_title("Model, 8' grid: height and arrival")
-    label_status(fig, "simulated")
-    add_credit(fig, CREDIT)
     return fig
 
 
@@ -1062,7 +1079,7 @@ def draw_comparison() -> Figure:
         record = measured(station)
         if record.status == "simulated":
             raise ValueError("the record is a simulation")
-        plot_series(top, record, "record", colour=COLOURS[0], lw=1.4)
+        plot_series(top, record, "record", colour=COLOURS[0], lw=1.4, declared=True)
         bottom.axhline(0, color="0.5", lw=0.8)
         for (name, model), colour in zip(
             comparison_models(station).items(), COLOURS[1:], strict=False
@@ -1071,15 +1088,16 @@ def draw_comparison() -> Figure:
                 raise ValueError(f"model {name!r} is {model.status}, not simulated")
             style = styles[name.split(", ")[1]]
             keep = (model.x >= SHOWN[station][0]) & (model.x <= SHOWN[station][1])
-            top.plot(
+            (line,) = top.plot(
                 model.x[keep],
                 model.y[keep],
                 color=colour,
                 lw=1.1,
                 ls=style,
-                label=f"{name} [{model.status}]",
+                label=name,
             )
-            bottom.plot(
+            role(line, model.status)
+            (line,) = bottom.plot(
                 record.x,
                 residual(record, model),
                 color=colour,
@@ -1087,6 +1105,7 @@ def draw_comparison() -> Figure:
                 ls=style,
                 label=name,
             )
+            role(line, RESIDUAL)
         for ax in (top, bottom):
             ax.axvspan(*WINDOWS[station], color="0.5", alpha=0.12, lw=0)
             ax.set_xlim(*SHOWN[station])
@@ -1097,8 +1116,6 @@ def draw_comparison() -> Figure:
         bottom.set_xlabel("time after the origin [min]")
         bottom.set_ylabel("residual [m]", fontsize=8)
         bottom.legend(fontsize=6, loc="lower right" if k == 0 else "upper left")
-    label_status(fig, record.status)
-    add_credit(fig, CREDIT)
     return fig
 
 
@@ -1128,8 +1145,10 @@ def run() -> Experiment:
         "fig-tsunami-benchmarks",
         lambda: draw_plane_wave_convergence(plane_errors, PLANE_CELLS),
     )
-    experiment.figure("fig-tsunami-map", draw_map)
-    experiment.figure("fig-tsunami-comparison", draw_comparison)
+    experiment.figure("fig-tsunami-map", draw_map, provenance=TSUNAMI_MAP)
+    experiment.figure(
+        "fig-tsunami-comparison", draw_comparison, provenance=TSUNAMI_COMPARISON
+    )
     return experiment
 
 

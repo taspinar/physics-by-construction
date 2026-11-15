@@ -1649,9 +1649,10 @@ class ExperimentFigures:
     ``DataUse`` follows them through the cells of a page.
     """
 
-    def __init__(self, source: str):
+    def __init__(self, source: str, module: str = ""):
         self._tree = ast.parse(source)
         self._use = DataUse([source], inert=_records(self._tree))
+        self.module = module
 
     def uses(self, label: str) -> bool | None:
         """Whether the figure ``label`` is made from data; None when the
@@ -1734,17 +1735,31 @@ def _declaration_problems(
             " not a FigureProvenance of literal values",
         )
         return
-    for option, key in (
-        ("fig-status", "status"),
-        ("fig-dataset", "dataset"),
-        ("fig-artifact", "artifact"),
-    ):
-        if options.get(option) != declared.get(key):
+    # A model of the dataset (``model_of=True``) names it as fig-model-of
+    # and has no fig-dataset (Issue #531).
+    model_of = declared.get("model_of") is True
+    expected = {
+        "fig-status": declared.get("status"),
+        "fig-dataset": None if model_of else declared.get("dataset"),
+        "fig-model-of": declared.get("dataset") if model_of else None,
+        "fig-artifact": declared.get("artifact"),
+    }
+    for option, value in expected.items():
+        if options.get(option) != value:
             yield (
                 "figure-dataset",
                 f"figure cell '{name}' has {option} {options.get(option)!r}; its"
-                f" experiment declares {declared.get(key)!r}",
+                f" experiment declares {value!r}",
             )
+
+
+# The figures of a dataset that declare no provenance (Issue #531): AI6's
+# picture D is a model input whose replay evidence was recorded with its
+# painted status and credit, and changes only after its own review
+# (I37; docs/architecture.md, "Figure provenance off the chart area").
+UNDECLARED_MODEL_INPUTS = frozenset(
+    {("pbc.mechanics.experiments.multimodal_physics_reasoning", "fig-picture-d")}
+)
 
 
 def _experiment_figures(repository: Path, lesson: Lesson) -> ExperimentFigures | None:
@@ -1761,9 +1776,27 @@ def _experiment_figures(repository: Path, lesson: Lesson) -> ExperimentFigures |
     if not file.is_file():
         return None
     try:
-        return ExperimentFigures(file.read_text(encoding="utf-8"))
+        return ExperimentFigures(file.read_text(encoding="utf-8"), module)
     except SyntaxError:
         return None
+
+
+def declared_figure_pages(repository: Path) -> list[Path]:
+    """The lesson pages with a figure whose experiment declares its
+    provenance (Issues #524, #531): their captions carry the card's credit."""
+    pages = []
+    for page in lesson_pages(repository):
+        lesson = read_lesson(page)
+        experiment = _experiment_figures(repository, lesson)
+        if experiment is None:
+            continue
+        for cell, _options in _figure_cells(lesson):
+            shown = _SHOWN.search(cell.code)
+            declared = None if shown is None else experiment.declaration(shown.group(1))
+            if declared is not None and not declared.get("unreadable"):
+                pages.append(page)
+                break
+    return pages
 
 
 def _artifact_problems(
@@ -1904,6 +1937,20 @@ def _format_2_problems(
         )
         if declared is not None:
             yield from _declaration_problems(name, options, declared)
+        elif (
+            (dataset is not None or model_of is not None)
+            and experiment is not None
+            and shown is not None
+            and (experiment.module, shown.group(1)) not in UNDECLARED_MODEL_INPUTS
+        ):
+            # Since F173 every figure of a dataset declares its provenance:
+            # its status and credit at the caption and in its PNG (I37).
+            yield (
+                "figure-dataset",
+                f"figure cell '{name}' names a dataset, but its experiment"
+                " declares no provenance: pass provenance=FigureProvenance(...)"
+                " to experiment.figure",
+            )
         if dataset is None and model_of is None and made_from_data:
             yield (
                 "figure-dataset",

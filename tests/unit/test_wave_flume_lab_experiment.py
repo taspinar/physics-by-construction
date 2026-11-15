@@ -8,10 +8,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
+from support.figures import assert_cell_declared, dataset_figures
 
 from pbc.authoring.tables import is_numeric_console_block
 from pbc.data.comparison import SCHEMA
-from pbc.data.plotting import check_figure, figure_status
+from pbc.data.figure_provenance import role_of
+from pbc.data.status import MEASURED_STATUSES
 from pbc.waves.experiments import wave_flume_lab as lab
 
 MODULE = "pbc.waves.experiments.wave_flume_lab"
@@ -99,14 +101,29 @@ def test_the_comparator_data_is_the_measurement_and_labels_every_model(experimen
         np.testing.assert_allclose(model["residual"], residual, atol=2e-5)
 
 
-@pytest.mark.parametrize("label", sorted(lab.run().figures))
+def test_every_dataset_figure_declares_its_provenance(experiment):
+    # Issue #531: every figure of the flume states its status and credit at
+    # its caption and in its PNG, from the card.
+    assert set(experiment.provenance) == set(dataset_figures(PAGE))
+    assert set(experiment.figures) == set(dataset_figures(PAGE))
+
+
+@pytest.mark.parametrize("label", sorted(dataset_figures(PAGE)))
 def test_every_figure_is_processed_measurement_and_follows_the_conventions(
     experiment, label
 ):
+    # The status is the caption's and the PNG's (Issue #531), not painted;
+    # the conventions are checked with the declared status, and the two
+    # figures with a residual panel are checked for it.
+    assert_cell_declared(
+        experiment, PAGE, label, residuals=label in ("fig-arrival", "fig-waveform")
+    )
+
+
+@pytest.mark.parametrize("label", sorted(lab.run().figures))
+def test_each_solver_is_labelled_by_its_artifact_type(experiment, label):
     figure = experiment.figures[label]()
     try:
-        assert figure_status(figure) == "processed"
-        assert check_figure(figure, residuals=label == "fig-waveform") == []
         # Each solver is labelled by its artifact type wherever it appears.
         for solver in ("i-VoF", "M-sigma", "D-SPH"):
             for ax in figure.axes:
@@ -125,11 +142,11 @@ def test_no_measured_series_is_drawn_as_simulated(experiment):
         figure = draw()
         try:
             for ax in figure.axes:
-                legend = ax.get_legend()
-                for t in [] if legend is None else legend.get_texts():
-                    text = t.get_text()
+                # A measured series carries a measured status as its role
+                # (Issue #531), not a status word in its legend entry.
+                for handle, text in zip(*ax.get_legend_handles_labels(), strict=True):
                     if text.startswith("measure"):
-                        assert "[simulated]" not in text, (label, text)
+                        assert role_of(handle) in MEASURED_STATUSES, (label, text)
         finally:
             plt.close(figure)
 

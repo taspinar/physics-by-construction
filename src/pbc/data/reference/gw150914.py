@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import signal
 
+from pbc.data.figure_provenance import REFERENCE as REFERENCE_ROLE
+from pbc.data.figure_provenance import FigureProvenance, role
 from pbc.data.gwosc import (
     EVENT_GPS,
     FILES,
@@ -20,11 +22,20 @@ from pbc.data.gwosc import (
     Strain,
     read_strain,
 )
-from pbc.data.plotting import label_status
 
 BAND = (35.0, 350.0)  # Hz
 G_M_SUN_OVER_C3 = 4.925490947e-6  # s, G * M_sun / c^3
 LAG_L1 = 0.0069  # s; L1 is shifted by the light-travel delay and inverted to overlay H1
+# The provenance the reference figure declares (Issue #531): its status and
+# credit at the caption and in its PNG, from the card.
+REFERENCE = FigureProvenance(
+    status="processed",
+    dataset="gw150914-strain",
+    processing="The record's calibrated strain of both detectors whitened and"
+    " band-passed 35-350 Hz, its spectrogram, and the"
+    " network matched-filter SNR of leading-order chirp templates: this module's"
+    " code, not part of the record; the published chirp mass for comparison.",
+)
 
 
 def whiten(strain: Strain, band: tuple[float, float] = BAND) -> np.ndarray:
@@ -107,21 +118,23 @@ def make_figure(data_dir: Path) -> plt.Figure:
     expected = PUBLISHED_CHIRP_MASS_SOURCE * (1 + PUBLISHED_REDSHIFT)
 
     fig, axes = plt.subplots(
-        4,
+        3,
         1,
         figsize=(8, 10.5),
         constrained_layout=True,
-        gridspec_kw={"height_ratios": [3, 3, 3, 0.5]},
+        gridspec_kw={"height_ratios": [3, 3, 3]},
     )
-    top, middle, bottom, credit = axes
+    top, middle, bottom = axes
     span = (time > -0.3) & (time < 0.1)
-    top.plot(time[span], white["H1"][span], label="H1", color="#0072B2")
-    top.plot(
+    (line,) = top.plot(time[span], white["H1"][span], label="H1", color="#0072B2")
+    role(line, "processed")
+    (line,) = top.plot(
         time[span] - LAG_L1,
         -white["L1"][span],
         label=f"L1 (shifted {LAG_L1 * 1e3:.1f} ms, inverted)",
         color="#D55E00",
     )
+    role(line, "processed")
     top.set_xlabel(f"time since GPS {EVENT_GPS} [s]")
     top.set_ylabel("whitened strain [arb. units]")
     top.set_title(
@@ -136,15 +149,21 @@ def make_figure(data_dir: Path) -> plt.Figure:
     mesh = middle.pcolormesh(
         t[keep] - shift, f, np.sqrt(sxx[:, keep]), shading="auto", cmap="viridis"
     )
+    role(mesh, "processed")
     middle.set_ylim(20, 400)
     middle.set_xlabel("time since the event [s]")
     middle.set_ylabel("frequency [Hz]")
     middle.set_title("Processed: H1 spectrogram of the whitened strain")
     fig.colorbar(mesh, ax=middle, label="amplitude [arb. units] (false colour)")
 
-    bottom.plot(fit["masses"], fit["network_snr"], color="#009E73")
-    bottom.axvline(
-        expected, color="k", linestyle="--", label="published, detector frame"
+    role(
+        bottom.plot(fit["masses"], fit["network_snr"], color="#009E73")[0], "processed"
+    )
+    role(
+        bottom.axvline(
+            expected, color="k", linestyle="--", label="published, detector frame"
+        ),
+        REFERENCE_ROLE,  # a published value, drawn for comparison (Issue #531)
     )
     bottom.set_xlabel("template chirp mass, detector frame [solar masses]")
     bottom.set_ylabel("network matched-filter SNR [1]")
@@ -154,16 +173,4 @@ def make_figure(data_dir: Path) -> plt.Figure:
         f"{PUBLISHED_CHIRP_MASS_SOURCE} x (1+z) = {expected:.0f} Msun"
     )
     bottom.legend()
-    credit.axis("off")
-    credit.text(
-        0,
-        1,
-        "Data: GWOSC, GW150914 v3 strain, CC BY 4.0. This research has made use of "
-        "data or software obtained from the\nGravitational Wave Open Science Center "
-        "(gwosc.org), a service of the LIGO Scientific Collaboration, the Virgo\n"
-        "Collaboration, and KAGRA.",
-        fontsize=7,
-        va="top",
-    )
-    label_status(fig, "processed")
     return fig

@@ -44,7 +44,9 @@ from scipy.integrate import solve_ivp
 from scipy.io import loadmat
 from scipy.optimize import brentq
 
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.figure_provenance import REFERENCE as REFERENCE_ROLE
+from pbc.data.figure_provenance import FigureProvenance, role
+from pbc.data.plotting import COLOURS
 
 CASES = ("U05", "U10", "U15", "U20")
 PIV_FIELDS = (
@@ -271,6 +273,20 @@ def blasius(eta_max: float = 10.0) -> Blasius:
     return Blasius(eta, u, float(curvature), eta99, ds, th, ds / th)
 
 
+# The provenance of the reference figure (Issue #531): its status and credit
+# at no place on the chart, in its PNG's record, from the card.
+REFERENCE = FigureProvenance(
+    status="processed",
+    dataset="tudelft-turbulent-boundary-layer",
+    combines=("simulated",),
+    artifact="processed-measured",
+    processing="The record's PIV and PTV profiles at four speeds, PTV y converted"
+    " from mm to m; the inner scaling, fits, recomputed H, and the Blasius and"
+    " log-law references: the reference figure's code"
+    " (pbc.data.reference.tudelft_boundary_layer), not part of the record.",
+)
+
+
 def make_figure(data_dir: Path) -> plt.Figure:
     data = load(data_dir)
     lam = blasius()
@@ -278,21 +294,26 @@ def make_figure(data_dir: Path) -> plt.Figure:
     (ax_in, ax_out), (ax_uv, ax_h) = axes
     markers = ("o", "s", "^", "D")
     styles = ("-", "--", "-.", ":")
+    # Beside a model a measurement is never dashed or dotted (check_roles,
+    # Issue #531): in the panels of the log law and of Blasius the four cases
+    # are solid, told apart by their colours (and markers); elsewhere by their
+    # line styles too.
 
     for (case, (piv, ptv)), colour, ls, mk in zip(
         data.items(), COLOURS, styles, markers, strict=False
     ):
         k, b, _ = log_fit(piv)
-        ax_in.plot(
+        (line,) = ax_in.plot(
             piv.yplus,
             piv.Uplus,
             color=colour,
-            ls=ls,
+            ls="-",
             lw=1.2,
             label=f"{case} PIV, Re_tau {re_tau(piv):.0f} "
             f"(fit kappa {k:.3f}, B {b:.2f})",
         )
-        ax_in.plot(
+        role(line, "processed")
+        (line,) = ax_in.plot(
             ptv.yplus,
             ptv.Uplus,
             mk,
@@ -301,9 +322,13 @@ def make_figure(data_dir: Path) -> plt.Figure:
             mfc="none",
             label=f"{case} PTV",
         )
+        role(line, "processed")
         y, u = spliced(piv, ptv)
-        ax_out.plot(y / piv.delta, u, color=colour, ls=ls, lw=1.2, label=f"{case}")
-        ax_uv.plot(
+        (line,) = ax_out.plot(
+            y / piv.delta, u, color=colour, ls="-", lw=1.2, label=f"{case}"
+        )
+        role(line, "processed")
+        (line,) = ax_uv.plot(
             piv.y / piv.delta,
             -piv.uv / piv.Utau**2,
             color=colour,
@@ -311,7 +336,8 @@ def make_figure(data_dir: Path) -> plt.Figure:
             lw=1.2,
             label=f"{case} PIV",
         )
-        ax_h.plot(
+        role(line, "processed")
+        (line,) = ax_h.plot(
             re_theta(piv),
             piv.H,
             mk,
@@ -319,7 +345,8 @@ def make_figure(data_dir: Path) -> plt.Figure:
             ms=7,
             label=f"{case}: H {piv.H:.3f} (file)",
         )
-        ax_h.plot(
+        role(line, "processed")
+        (line,) = ax_h.plot(
             re_theta(piv),
             shape_factor(y, u, piv.delta)[2],
             mk,
@@ -328,9 +355,10 @@ def make_figure(data_dir: Path) -> plt.Figure:
             mfc="none",
             label=f"{case}: H recomputed from the profile",
         )
+        role(line, "processed")
 
     grid = np.logspace(0, np.log10(5000), 200)
-    ax_in.plot(
+    (line,) = ax_in.plot(
         grid[grid < 15],
         grid[grid < 15],
         color="0.3",
@@ -338,7 +366,8 @@ def make_figure(data_dir: Path) -> plt.Figure:
         lw=1.0,
         label="viscous sublayer U+ = y+ (model)",
     )
-    ax_in.plot(
+    role(line, "simulated")
+    (line,) = ax_in.plot(
         grid[grid > 20],
         np.log(grid[grid > 20]) / KAPPA_REF + B_REF,
         color="0.3",
@@ -346,6 +375,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
         lw=1.0,
         label=f"log law, kappa {KAPPA_REF}, B {B_REF} (reference, not fitted)",
     )
+    role(line, "simulated")
     ax_in.set_xscale("log")
     ax_in.set_xlabel("y+ = y u_tau / nu [-]")
     ax_in.set_ylabel("U+ = U / u_tau [-]")
@@ -353,7 +383,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ax_in.set_ylim(0, 45)  # headroom: the legend sits above the profiles
     ax_in.legend(fontsize=6.5, loc="upper left")
 
-    ax_out.plot(
+    (line,) = ax_out.plot(
         lam.eta / lam.eta99,
         lam.u,
         color="0.2",
@@ -361,6 +391,7 @@ def make_figure(data_dir: Path) -> plt.Figure:
         lw=1.6,
         label=f"Blasius laminar layer, H {lam.H:.3f} (model)",
     )
+    role(line, "simulated")
     ax_out.set_xlim(0, 1.3)
     ax_out.set_xlabel("y / delta [-] (laminar: y / delta_99)")
     ax_out.set_ylabel("U / U_inf [-]")
@@ -370,8 +401,11 @@ def make_figure(data_dir: Path) -> plt.Figure:
     )
     ax_out.legend(fontsize=8, loc="lower right")
 
-    ax_uv.axhline(
-        1.0, color="0.3", ls="--", lw=1.0, label="wall shear stress, -u'v'+ = 1"
+    role(
+        ax_uv.axhline(
+            1.0, color="0.3", ls="--", lw=1.0, label="wall shear stress, -u'v'+ = 1"
+        ),
+        REFERENCE_ROLE,  # the stress at the wall in inner units, for comparison
     )
     ax_uv.set_xscale("log")
     ax_uv.set_xlabel("y / delta [-]")
@@ -379,8 +413,11 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ax_uv.set_title("Processed: Reynolds shear stress, PIV", fontsize=10)
     ax_uv.legend(fontsize=8, loc="lower left")
 
-    ax_h.axhline(
-        lam.H, color="0.2", ls=(0, (5, 2, 1, 2)), lw=1.4, label="Blasius (model)"
+    role(
+        ax_h.axhline(
+            lam.H, color="0.2", ls=(0, (5, 2, 1, 2)), lw=1.4, label="Blasius (model)"
+        ),
+        "simulated",
     )
     ax_h.set_xscale("log")
     ax_h.set_ylim(1.0, 2.8)
@@ -389,15 +426,4 @@ def make_figure(data_dir: Path) -> plt.Figure:
     ax_h.set_title("Processed: H, turbulent against laminar", fontsize=10)
     ax_h.legend(fontsize=6.5, loc="center right", ncol=1)
 
-    add_credit(
-        fig,
-        "Data: M. Knoop, A. Hassanein, W. Baars, 'Dataset underlying the "
-        "publication: Development and characterisation of a turbulent boundary "
-        "layer facility at the Delft University of Technology', 4TU.ResearchData, "
-        "doi 10.4121/d0af5e8b-6bde-4c02-a165-c752b5ab435a.v1, CC BY 4.0; PTV y "
-        "converted from mm to m. Inner scaling, fits, recomputed H, and the "
-        "Blasius and log-law references: this figure's code "
-        "(pbc.data.reference.tudelft_boundary_layer), not part of the record.",
-    )
-    label_status(fig, "processed")
     return fig

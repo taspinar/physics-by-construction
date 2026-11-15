@@ -36,7 +36,7 @@ from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import light_curve_series
 from pbc.data.figure_provenance import RESIDUAL, FigureProvenance, role
 from pbc.data.fit import FitResult, fit_curve
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.plotting import COLOURS
 from pbc.data.reference import tess_wasp18 as reference
 from pbc.data.reference.tess_wasp18 import Analysis, LightCurve
 from pbc.experiment import Experiment, main
@@ -52,15 +52,33 @@ R_JUPITER = 7.1492e7  # m, Jupiter's nominal equatorial radius (IAU 2015)
 # endregion: tic
 BIN = 0.1  # h, the width of the bins of the folded figure (6 minutes)
 PHASE_BIN = 0.02  # the width in orbital phase of the bins of the phase curve
-CREDIT = (
-    "Data: TESS mission, SPOC 2-minute light curve of TIC 100100827 (WASP-18), "
-    "sector 29, file tess2020238165205-s0029-0000000100100827-0193-s_lc.fits, "
-    "obtained from the MAST data archive at STScI; funding for TESS by the NASA "
-    "Explorer Program; public domain (MAST data use policy). Columns converted to "
-    "CSV unchanged. Cleaning, normalisation, folding, fits and residuals: this "
-    "lesson's code, not part of the record."
+# The provenance each figure of the light curve declares (Issues #524, #531):
+# its status and credit at the caption and in its PNG, from the card.
+LIGHT_CURVE = FigureProvenance(
+    status="calibrated",
+    dataset=DATASET,
+    processing="The record's PDCSAP flux and its one-sigma errors of sector 29,"
+    " unmodified; the split by quality flag and the two-day window: this lesson's"
+    " code, not part of the record.",
 )
-# The provenance the transit-fit figure declares (Issue #524).
+DETRENDING = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    combines=("calibrated", "simulated"),
+    processing="The record's PDCSAP flux of the cadences with quality 0; the"
+    " phase curve binned outside the transits, the parabola fitted to one"
+    " transit's baseline, and that transit divided by it: this lesson's code,"
+    " not part of the record.",
+)
+MID_TIMES = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    combines=("simulated",),
+    processing="The mid-time of each transit fitted to the normalised flux with the"
+    " transit's shape held fixed, its standard error from the record's errors, and"
+    " the straight-line ephemeris fitted to them: this lesson's code, not part of"
+    " the record.",
+)
 TRANSIT_FIT = FigureProvenance(
     status="processed",
     dataset=DATASET,
@@ -449,7 +467,7 @@ def draw_light_curve(lc: LightCurve, analysis: Analysis) -> Figure:
     # Every cadence is drawn as a small square without an edge: thousands of
     # round, outlined dots cost the page tens of kilobytes more as PNG.
     fig, (top, bottom) = plt.subplots(2, 1, figsize=(6.4, 4.8), constrained_layout=True)
-    top.plot(
+    (kept,) = top.plot(
         series.x[~flagged],
         series.y[~flagged],
         ls="none",
@@ -457,17 +475,19 @@ def draw_light_curve(lc: LightCurve, analysis: Analysis) -> Figure:
         ms=1.0,
         mew=0,
         color=COLOURS[0],
-        label=f"PDCSAP flux, quality 0 [{series.status}]",
+        label="PDCSAP flux, quality 0",
     )
-    top.plot(
+    role(kept, series.status)
+    (marked,) = top.plot(
         series.x[flagged],
         series.y[flagged],
         ls="none",
         marker="x",
         ms=6,
         color=COLOURS[1],
-        label=f"PDCSAP flux with a quality flag [{series.status}]",
+        label="PDCSAP flux with a quality flag",
     )
+    role(marked, series.status)
     top.set_xlabel(f"time [{series.x_unit}]")
     top.set_ylabel(f"PDCSAP flux [{series.y_unit}]")
     top.set_ylim(47300, 48450)
@@ -476,7 +496,7 @@ def draw_light_curve(lc: LightCurve, analysis: Analysis) -> Figure:
     eph = analysis.ephemeris
     start = eph.t0 + analysis.folded.epochs[0] * eph.period - 0.5
     near = (series.x > start) & (series.x < start + 2.0)
-    bottom.errorbar(
+    bars = bottom.errorbar(
         series.x[near],
         series.y[near],
         yerr=series.sigma[near],
@@ -485,15 +505,14 @@ def draw_light_curve(lc: LightCurve, analysis: Analysis) -> Figure:
         ms=2.5,
         elinewidth=0.5,
         color=COLOURS[0],
-        label=f"PDCSAP flux with the pipeline's one-sigma error [{series.status}]",
+        label="PDCSAP flux with the pipeline's one-sigma error",
     )
+    role(bars, series.status)
     bottom.set_xlabel(f"time [{series.x_unit}]")
     bottom.set_ylabel(f"PDCSAP flux [{series.y_unit}]")
     bottom.set_ylim(47100, 48100)
     bottom.set_title("Two days of it: two transits")
     bottom.legend(fontsize=7.5, loc="lower center")
-    add_credit(fig, CREDIT)
-    label_status(fig, series.status)
     return fig
 
 
@@ -509,7 +528,7 @@ def draw_detrending(curve: dict, window: dict, epoch: int) -> Figure:
     phase = fig.add_subplot(grid[0])
     top = fig.add_subplot(grid[1])
     bottom = fig.add_subplot(grid[2], sharex=top)
-    phase.errorbar(
+    bars = phase.errorbar(
         curve["phase"],
         curve["ppm"],
         yerr=curve["sem"],
@@ -518,15 +537,17 @@ def draw_detrending(curve: dict, window: dict, epoch: int) -> Figure:
         ms=3,
         color=COLOURS[0],
         label="measured outside the transits, bins of 0.02 in phase, "
-        "standard error of the mean [processed]",
+        "standard error of the mean",
     )
-    phase.axvspan(
+    role(bars, "processed")
+    left_out = phase.axvspan(
         -curve["mask"],
         curve["mask"],
         color="0.85",
         zorder=0,
         label="the transit, left out",
     )
+    role(left_out, "processed")
     phase.axhline(0.0, color="0.5", lw=0.8)
     phase.set_ylim(-700, 800)
     phase.set_xlabel("orbital phase from mid-transit [1]")
@@ -537,23 +558,25 @@ def draw_detrending(curve: dict, window: dict, epoch: int) -> Figure:
     )
     phase.legend(fontsize=7, loc="upper center")
     for ax in (top, bottom):
-        ax.axvspan(
+        excluded = ax.axvspan(
             -reference.HALF_MASK * 24,
             reference.HALF_MASK * 24,
             color="0.92",
             zorder=0,
             label="excluded from the baseline fit" if ax is top else None,
         )
-    top.plot(
+        role(excluded, "processed")
+    (used,) = top.plot(
         hours[base],
         window["flux"][base],
         ls="none",
         marker="o",
         ms=2.5,
         color=COLOURS[0],
-        label="measured, quality 0, used for the baseline [calibrated]",
+        label="measured, quality 0, used for the baseline",
     )
-    top.plot(
+    role(used, "calibrated")
+    (inside,) = top.plot(
         hours[~base],
         window["flux"][~base],
         ls="none",
@@ -561,38 +584,39 @@ def draw_detrending(curve: dict, window: dict, epoch: int) -> Figure:
         ms=2.5,
         mfc="none",
         color=COLOURS[0],
-        label="measured, quality 0, in the transit [calibrated]",
+        label="measured, quality 0, in the transit",
     )
-    top.plot(
+    role(inside, "calibrated")
+    (parabola,) = top.plot(
         dense * 24,
         np.polyval(window["parabola"], dense),
         "--",
         color=COLOURS[1],
         lw=1.4,
-        label="baseline model: parabola, fitted [simulated]",
+        label="baseline model: parabola, fitted",
     )
+    role(parabola, "simulated")
     top.set_ylim(46500, 48100)
     top.set_ylabel("PDCSAP flux [e-/s]")
     top.set_title(f"Transit number {epoch}: the flux and its baseline")
     top.legend(fontsize=7, loc="lower center")
     top.tick_params(labelbottom=False)
-    bottom.plot(
+    (normalised,) = bottom.plot(
         hours,
         window["normalised"],
         ls="none",
         marker=".",
         ms=3,
         color="0.35",
-        label="measured flux divided by the parabola [processed]",
+        label="measured flux divided by the parabola",
     )
+    role(normalised, "processed")
     bottom.axhline(1.0, color="0.5", lw=0.8)
     bottom.set_ylim(0.980, 1.003)
     bottom.set_ylabel("normalised flux [1]")
     bottom.set_xlabel("time from mid-transit [h]")
     bottom.set_title("The same transit, normalised")
     bottom.legend(fontsize=7, loc="lower center")
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
     return fig
 
 
@@ -697,7 +721,7 @@ def draw_mid_times(analysis: Analysis) -> Figure:
     """Observed minus computed mid-time of every transit with its standard
     error from the pipeline's errors."""
     fig, ax = plt.subplots(figsize=(6.4, 3.8), constrained_layout=True)
-    ax.errorbar(
+    bars = ax.errorbar(
         analysis.epochs,
         reference.o_minus_c(analysis),
         yerr=analysis.errors * 1440,
@@ -705,15 +729,19 @@ def draw_mid_times(analysis: Analysis) -> Figure:
         marker="o",
         ms=4,
         color=COLOURS[0],
-        label="mid-time of each transit, one standard error [processed]",
+        label="mid-time of each transit, one standard error",
     )
-    ax.axhline(0.0, color=COLOURS[1], ls="--", lw=1.2, label="the fitted ephemeris")
+    role(bars, "processed")
+    role(
+        ax.axhline(
+            0.0, color=COLOURS[1], ls="--", lw=1.2, label="the fitted ephemeris"
+        ),
+        "simulated",
+    )
     ax.set_xlabel("transit number from t0 [1]")
     ax.set_ylabel("observed minus computed [min]")
     ax.set_title("The mid-times against a constant period")
     ax.legend(fontsize=7.5, loc="upper left")
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
     return fig
 
 
@@ -863,14 +891,24 @@ def run() -> Experiment:
     experiment.number("density-difference", 100 * (1 - rho_tic / rho[0]), ".0f")
     experiment.number("density-sigmas", (rho[0] - rho_tic) / rho[1], ".0f")
 
-    experiment.figure("fig-light-curve", partial(draw_light_curve, lc, analysis))
-    experiment.figure("fig-detrending", partial(draw_detrending, curve, window, epoch))
+    experiment.figure(
+        "fig-light-curve",
+        partial(draw_light_curve, lc, analysis),
+        provenance=LIGHT_CURVE,
+    )
+    experiment.figure(
+        "fig-detrending",
+        partial(draw_detrending, curve, window, epoch),
+        provenance=DETRENDING,
+    )
     experiment.figure(
         "fig-transit-fit",
         partial(draw_transit_fit, analysis, uniform),
         provenance=TRANSIT_FIT,
     )
-    experiment.figure("fig-mid-times", partial(draw_mid_times, analysis))
+    experiment.figure(
+        "fig-mid-times", partial(draw_mid_times, analysis), provenance=MID_TIMES
+    )
 
     with experiment.capture("radius-exercise"):
         radius_exercise(shape.value("p"))

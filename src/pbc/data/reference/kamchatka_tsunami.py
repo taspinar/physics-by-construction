@@ -42,7 +42,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
 
-from pbc.data.plotting import COLOURS, add_credit, label_status, signed_image
+from pbc.data.figure_provenance import FigureProvenance, role
+from pbc.data.plotting import COLOURS, signed_image
 
 NCEI_FILES = {
     "21416": "dart21416_20250727to20250803_meter.txt",
@@ -75,12 +76,18 @@ SEARCH = (26.0, 240.0)  # where the tsunami peak is searched
 BEFORE = (-24 * 60.0, 0.0)  # the day before the origin, for the noise floor
 UPLIFT_LEVELS = (0.5, 1.0, 2.0)  # m, sources for the nearest-uplift arrival
 
-ATTRIBUTION = (
-    "DART: NOAA National Data Buoy Center (stations 21416, 21415), event files of "
-    "NOAA NCEI (doi 10.7289/V5F18WNS), heights divided by 0.670 (double conversion "
-    "in the event files). Finite fault: USGS NEIC, us6000qw60, product us6000qw60_1 "
-    "v5. Bathymetry: NOAA NCEI ETOPO 2022 60 arc-second (doi 10.25921/fd45-gt74, "
-    "CC0), every fourth cell. US-government works, public domain."
+# The provenance the reference figure declares (Issue #531): its status and
+# credit at the caption and in its PNG, from the card.
+REFERENCE = FigureProvenance(
+    status="processed",
+    dataset="kamchatka-2025-tsunami-inputs",
+    artifact="processed-measured",
+    combines=("simulated",),
+    processing="NCEI's tide-removed DART residuals (stations 21416, 21415) divided"
+    " by 0.670 (the double conversion in the event files), the USGS finite-fault"
+    " surface deformation (us6000qw60_1 v5), and ETOPO 2022 every fourth cell; the"
+    " conversion ratios and the sqrt(gh) arrival estimates along the great circle:"
+    " this module's code, not part of the record.",
 )
 
 
@@ -474,7 +481,7 @@ def analyse(data_dir: Path) -> tuple[Inputs, dict[str, StationResult]]:
 
 def _map_panel(ax, inputs: Inputs) -> None:
     b, d = inputs.bathymetry, inputs.deformation
-    signed_image(
+    image = signed_image(
         ax,
         b.z.astype(float) / 1e3,
         label="elevation, ETOPO 2022",
@@ -482,8 +489,20 @@ def _map_panel(ax, inputs: Inputs) -> None:
         extent=(b.lon[0], b.lon[-1], b.lat[0], b.lat[-1]),
         aspect=1.6,
     )
-    ax.contour(d.lon, d.lat, d.up, levels=[1, 3, 5, 7], colors="k", linewidths=0.8)
-    ax.contour(
+    role(image, "processed")
+    # Uplift dash-dotted (Issue #531): where the figure holds a measurement, a
+    # model is never a solid line; subsidence stays dashed.
+    uplift = ax.contour(
+        d.lon,
+        d.lat,
+        d.up,
+        levels=[1, 3, 5, 7],
+        colors="k",
+        linewidths=0.8,
+        linestyles="-.",
+    )
+    role(uplift, "simulated")
+    subsidence = ax.contour(
         d.lon,
         d.lat,
         d.up,
@@ -492,6 +511,7 @@ def _map_panel(ax, inputs: Inputs) -> None:
         linewidths=0.8,
         linestyles="--",
     )
+    role(subsidence, "simulated")
     ax.plot(EPICENTRE[1], EPICENTRE[0], "*", ms=12, mfc="w", mec="k")
     for name, colour in zip(NCEI_FILES, COLOURS, strict=False):
         site = inputs.stations[name]
@@ -504,11 +524,34 @@ def _map_panel(ax, inputs: Inputs) -> None:
             fontsize=8,
         )
     handles = [
-        Line2D([], [], color="k", lw=0.8, label="uplift 1, 3, 5, 7 m (USGS model)"),
-        Line2D([], [], color="k", lw=0.8, ls="--", label="subsidence 1, 2, 4 m"),
-        Line2D([], [], ls="", marker="*", mfc="w", mec="k", ms=10, label="epicentre"),
-        Line2D([], [], ls="", marker="^", mfc="0.6", mec="k", label="DART station"),
+        role(
+            Line2D(
+                [],
+                [],
+                color="k",
+                lw=0.8,
+                ls="-.",
+                label="uplift 1, 3, 5, 7 m (USGS model)",
+            ),
+            "simulated",
+        ),
+        role(
+            Line2D([], [], color="k", lw=0.8, ls="--", label="subsidence 1, 2, 4 m"),
+            "simulated",
+        ),
+        role(
+            Line2D(
+                [], [], ls="", marker="*", mfc="w", mec="k", ms=10, label="epicentre"
+            ),
+            "processed",
+        ),
+        role(
+            Line2D([], [], ls="", marker="^", mfc="0.6", mec="k", label="DART station"),
+            "processed",
+        ),
     ]
+    for handle in handles:  # in the panel, so that its legend is its own
+        ax.add_line(handle)
     ax.legend(handles=handles, fontsize=7, loc="lower right")
     ax.set_xlim(150, 176)
     ax.set_ylim(44, 58)
@@ -522,31 +565,37 @@ def _record_panel(ax, inputs: Inputs, station: str, result: StationResult, colou
     m = record.minutes()
     order = np.argsort(m, kind="stable")
     shown = (m[order] > -30) & (m[order] < 180)
-    ax.plot(
+    (line,) = ax.plot(
         m[order][shown],
         record.corrected()[order][shown],
         "-o",
         ms=2,
         lw=1,
         color=colour,
-        label=f"DART {station}, NCEI residual / 0.670 [processed]",
+        label=f"DART {station}, NCEI residual / 0.670",
     )
+    role(line, "processed")
     if station == "21416":
-        ax.axvspan(*SEISMIC, color="0.88", label="seafloor shaking, not sea level")
-    ax.axvline(
+        role(
+            ax.axvspan(*SEISMIC, color="0.88", label="seafloor shaking, not sea level"),
+            "processed",
+        )
+    arrival = ax.axvline(
         result.uplift_arrival[1.0],
         color="k",
         ls="--",
         lw=1,
-        label="sqrt(gh) from nearest uplift >= 1 m [simulated]",
+        label="sqrt(gh) from nearest uplift >= 1 m",
     )
-    ax.axvline(
+    role(arrival, "simulated")
+    arrival = ax.axvline(
         result.epicentre_arrival,
         color="k",
         ls=":",
         lw=1,
-        label="sqrt(gh) from the epicentre [simulated]",
+        label="sqrt(gh) from the epicentre",
     )
+    role(arrival, "simulated")
     ax.axhline(0, color="0.5", lw=0.5)
     ax.set_xlim(-30, 180)
     ax.set_xlabel("time after the origin [min]")
@@ -566,7 +615,7 @@ def _ratio_panel(ax, inputs: Inputs) -> None:
         ncei, ndbc = inputs.ncei[name], inputs.ndbc[name]
         matched, ratios = conversion_ratios(ncei, ndbc)
         m = minutes_after_origin(ncei.time[matched])
-        ax.plot(
+        (points,) = ax.plot(
             m / 60.0,
             (ratios - NDBC_FACTOR) * 1e6,
             marker,
@@ -575,6 +624,7 @@ def _ratio_panel(ax, inputs: Inputs) -> None:
             color=colour,
             label=f"DART {name}",
         )
+        role(points, "processed")
     ax.axhline(0, color="0.5", lw=0.5)
     ax.set_xlabel("time after the origin [h]")
     ax.set_ylabel("NCEI / NDBC height - 0.670 [1e-6]")
@@ -590,6 +640,4 @@ def make_figure(data_dir: Path) -> plt.Figure:
     _ratio_panel(fig.add_subplot(grid[0, 1]), inputs)
     for k, (name, colour) in enumerate(zip(NCEI_FILES, COLOURS, strict=False)):
         _record_panel(fig.add_subplot(grid[1, k]), inputs, name, results[name], colour)
-    label_status(fig, "processed")
-    add_credit(fig, ATTRIBUTION)
     return fig

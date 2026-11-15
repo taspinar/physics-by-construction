@@ -8,10 +8,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
+from support.figures import assert_cell_declared, assert_declared, dataset_figures
 
 from pbc.authoring.tables import is_numeric_console_block
 from pbc.data.adapters import diffraction_pattern_series
-from pbc.data.plotting import check_figure, figure_status
+from pbc.data.figure_provenance import role_of
 from pbc.data.reference import srm660c
 from pbc.experiment import encode
 from pbc.materials.experiments import xray_diffraction_lab as lab
@@ -280,27 +281,47 @@ def test_every_figure_is_the_same_bytes_on_every_draw(experiment, label):
     assert len(drawings) == 1
 
 
+def test_every_dataset_figure_declares_its_provenance(experiment):
+    # Issue #531: every figure of the patterns states its status and credit
+    # at its caption and in its PNG, from the card.
+    assert set(experiment.provenance) == set(dataset_figures(PAGE))
+
+
+@pytest.mark.parametrize("label", sorted(dataset_figures(PAGE)))
+def test_each_dataset_figure_states_one_status_and_carries_its_provenance(
+    experiment, label
+):
+    assert_cell_declared(experiment, PAGE, label, residuals=label == "fig-peaks")
+
+
 @pytest.mark.parametrize("label", FIGURES)
 def test_every_figure_is_processed_measurement_and_follows_the_conventions(
     experiment, label
 ):
     figure = experiment.figures[label]()
     try:
-        assert figure_status(figure) == "processed"
-        assert check_figure(figure, residuals=label == "fig-peaks") == []
+        # Issue #531: every figure is declared; it states its status at the
+        # caption and in its PNG, and its legend entries carry roles, not
+        # status words.
+        assert_declared(experiment, label, figure, "processed", label == "fig-peaks")
         for ax in figure.axes:
-            legend = ax.get_legend()
-            for t in [] if legend is None else legend.get_texts():
-                text = t.get_text()
+            if ax.get_legend() is None:
+                continue
+            handles, labels = ax.get_legend_handles_labels()
+            for handle, text in zip(handles, labels, strict=True):
+                assert "[" not in text, (label, text)
                 if text.startswith("measured"):
-                    assert "[processed]" in text, (label, text)
+                    assert role_of(handle) == "processed", (label, text)
                 if any(
                     word in text
-                    for word in ("model", "fit [", "Bragg", "line [", "first order")
+                    for word in ("model", "fit", "Bragg", "line", "first order")
                 ) and not text.startswith("measured"):
-                    assert "[simulated]" in text or text.startswith(
-                        ("NIST's refined", "certified")
-                    ), (label, text)
+                    expected = (
+                        "processed"
+                        if text.startswith(("NIST's refined", "certified"))
+                        else "simulated"
+                    )
+                    assert role_of(handle) == expected, (label, text)
     finally:
         plt.close(figure)
 

@@ -225,7 +225,7 @@ def _figure_credit_problems(
             return ["a caption carries a figure credit, but its PNG no record"]
         return []
     label = record.get("pbc:figure", "?")
-    dataset = record.get("pbc:dataset", "")
+    dataset = figure_provenance.dataset_of(record)
     if not (registry_dir / f"{dataset}.yaml").is_file():
         return [f"{label}: no card for {dataset!r}"]
     card = load_card(registry_dir / f"{dataset}.yaml")
@@ -236,14 +236,24 @@ def _figure_credit_problems(
         out.append(f"{label}: the PNG's credit is not the card's")
     if record.get("pbc:attribution") != " ".join(str(rights["attribution"]).split()):
         out.append(f"{label}: the PNG's attribution is not the card's")
-    painted = figure_provenance.visible_credit(card) or ""
+    further = figure_provenance.also_cards(record)
+    painted = figure_provenance.visible_credit(card, also=further) or ""
     if record.get("pbc:visible-credit", "") != painted:
         out.append(f"{label}: the PNG's painted line is not the card's")
-    if painted and f"<dd>{html_escape(painted)}</dd>" not in figure:
+    flat = " ".join(painted.split())
+    if painted and f"<dd>{html_escape(flat)}</dd>" not in figure:
         out.append(f"{label}: the full provenance does not name the painted line")
     shown = f'<span class="figure-credit">{html_escape(short)}</span>'
     if credits != 1 or figure.count(shown) != 1:
         out.append(f"{label}: the caption does not show the card's short credit once")
+    # The further datasets a figure draws (Issue #531): each credit shown
+    # once, each attribution in the full provenance.
+    for other in further:
+        also = other["rights"]["figure_credit"]["short"]
+        span = f'<span class="figure-credit-also">{html_escape(also)}</span>'
+        flat_attribution = " ".join(str(other["rights"]["attribution"]).split())
+        if figure.count(span) != 1 or html_escape(flat_attribution) not in figure:
+            out.append(f"{label}: the caption does not credit {other['id']}")
     attribution = html_escape(" ".join(str(rights["attribution"]).split()))
     if details != 1 or attribution not in figure:
         out.append(f"{label}: the caption has no full provenance with the attribution")
@@ -255,6 +265,13 @@ def _figure_credit_problems(
     )
     if attributes.get("data-status") != record.get("pbc:status"):
         out.append(f"{label}: the caption's status is not the PNG's")
+    for attribute, key in (
+        ("data-dataset", "pbc:dataset"),
+        ("data-model-of", "pbc:model-of"),
+        ("data-artifact", "pbc:artifact"),
+    ):
+        if attributes.get(attribute, "") != record.get(key, ""):
+            out.append(f"{label}: the caption's {attribute} is not the PNG's")
     combines = record.get("pbc:combines", "")
     found = re.search(r'class="figure-combines" data-combines="([^"]*)"', figure)
     if (found.group(1) if found else "") != combines:

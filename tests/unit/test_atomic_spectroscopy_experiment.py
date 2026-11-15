@@ -14,10 +14,11 @@ from support.experiments import (
     page_of,
     run_entry_point,
 )
+from support.figures import assert_cell_declared, dataset_figures
 
 from pbc.authoring.tables import is_numeric_console_block
 from pbc.data.adapters import sdss_flux_series
-from pbc.data.plotting import check_figure, figure_status
+from pbc.data.figure_provenance import role_of
 from pbc.data.reference import sdss_balmer
 from pbc.experiment import encode
 from pbc.quantum.experiments import atomic_spectroscopy as lab
@@ -240,20 +241,25 @@ def test_every_figure_is_the_same_bytes_on_every_draw(experiment, label):
     assert len(drawings) == 1
 
 
-@pytest.mark.parametrize("label", sorted(lab.run().figures))
+def test_every_dataset_figure_declares_its_provenance(experiment):
+    # Issue #531: every figure of the spectrum states its status and credit at
+    # its caption and in its PNG, from the card.
+    assert set(experiment.provenance) == set(dataset_figures(PAGE))
+    assert set(experiment.figures) == set(dataset_figures(PAGE))
+
+
+@pytest.mark.parametrize("label", sorted(dataset_figures(PAGE)))
 def test_every_figure_follows_the_conventions(experiment, label):
+    expected = "calibrated" if label == "fig-spectrum" else "processed"
+    assert dataset_figures(PAGE)[label]["fig-status"] == expected
+    residuals = label != "fig-spectrum"
+    assert_cell_declared(experiment, PAGE, label, residuals=residuals)
     figure = experiment.figures[label]()
     try:
-        expected = "calibrated" if label == "fig-spectrum" else "processed"
-        assert figure_status(figure) == expected
-        residuals = label != "fig-spectrum"
-        assert check_figure(figure, residuals=residuals) == []
         for ax in figure.axes:
-            legend = ax.get_legend()
-            for t in [] if legend is None else legend.get_texts():
-                text = t.get_text()
+            for handle, text in zip(*ax.get_legend_handles_labels(), strict=True):
                 if "measured" in text or "fitted centres" in text:
-                    assert f"[{expected}]" in text, (label, text)
+                    assert role_of(handle) == expected, (label, text)
     finally:
         plt.close(figure)
 

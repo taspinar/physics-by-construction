@@ -25,7 +25,8 @@ from scipy.special import jn_zeros
 
 from pbc.data import SAMPLES_DIR
 from pbc.data.adapters import luma_profile_series
-from pbc.data.plotting import COLOURS, add_credit, label_status
+from pbc.data.figure_provenance import REFERENCE, RESIDUAL, FigureProvenance, role
+from pbc.data.plotting import COLOURS
 from pbc.data.reference.lycopodium import (
     MORPHOMETRY,
     SATURATED,
@@ -53,13 +54,43 @@ from pbc.waves import halo
 DATASET = "lycopodium-spore-diffraction"
 RED = 0.6328  # um, the helium-neon laser
 VIOLET = 0.405  # um, the semiconductor laser
-CREDIT = (
-    "Data: O. Voronkin, S. Lushchin, 'Morphometry and Optical Data of "
-    "Lycopodium Spores for the Study of Diffraction and Interference', Zenodo, "
-    "doi 10.5281/zenodo.15846643, CC BY 4.0; converted to UTF-8 CSV, values "
-    "unchanged. Analysis: this lesson's code."
-)
 STYLES = {RED: (COLOURS[1], "-", "o"), VIOLET: (COLOURS[0], "--", "s")}
+ARTIFACT = "processed-measured"
+# The provenance each figure of the dataset declares (Issue #531): its status
+# and credit at the caption and in its PNG, from the card.
+PROFILES = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact=ARTIFACT,
+    processing="The record's two line profiles of the halos, about their centres;"
+    " the dark ring of each fold and its range over the smoothing widths: this"
+    " lesson's code, not part of the record.",
+)
+DIAMETERS = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact=ARTIFACT,
+    processing="The record's diameters of whole spores at both magnifications,"
+    " binned into histograms: this lesson's code, not part of the record.",
+)
+HALO_MODEL = FigureProvenance(
+    status="simulated",
+    dataset=DATASET,
+    model_of=True,
+    processing="The halo of one disk of the mean diameter and of the record's"
+    " measured diameters, computed in closed form, and its dark rings: this"
+    " lesson's code, not part of the record.",
+)
+SCALING = FigureProvenance(
+    status="processed",
+    dataset=DATASET,
+    artifact=ARTIFACT,
+    combines=("simulated",),
+    processing="The record's two line profiles folded about their centres and"
+    " smoothed; the ratio of their dark rings at each smoothing width against"
+    " the ratio of the wavelengths, and its residual: this lesson's code, not"
+    " part of the record.",
+)
 
 
 def nm(wavelength: float) -> str:
@@ -310,7 +341,7 @@ def draw_profiles(
     for w, p in profiles.items():
         colour, ls, _ = STYLES[w]
         series = luma_profile_series(p)
-        ax.plot(
+        (line,) = ax.plot(
             series.x - centre(p),
             series.y,
             color=colour,
@@ -319,8 +350,9 @@ def draw_profiles(
             # The trace is speckle from sample to sample: without antialiasing
             # its PNG is a third smaller and looks the same at screen size.
             antialiased=False,
-            label=f"{nm(w)}, measured [{series.status}]",
+            label=f"{nm(w)}, measured",
         )
+        role(line, series.status)
         low, high = ranges[w]
         for sign in (-1, 1):
             ax.axvline(sign * radii[w], color=colour, ls=":", lw=1.0)
@@ -331,8 +363,14 @@ def draw_profiles(
                 alpha=0.2,
                 lw=0,
             )
-    ax.axhline(
-        SATURATED, color="0.35", lw=0.8, label=f"saturated: luma {SATURATED:.0f} and up"
+    role(
+        ax.axhline(
+            SATURATED,
+            color="0.35",
+            lw=0.8,
+            label=f"saturated: luma {SATURATED:.0f} and up",
+        ),
+        REFERENCE,  # the camera's threshold, drawn for comparison (Issue #531)
     )
     ax.set_xlim(-45, 45)
     ax.set_ylim(0, 300)
@@ -344,8 +382,6 @@ def draw_profiles(
         fontsize=9,
     )
     ax.legend(fontsize=7, loc="upper right")
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
     return fig
 
 
@@ -357,7 +393,7 @@ def draw_diameters(tables: dict) -> Figure:
         tables.items(), (COLOURS[2], COLOURS[3]), ("-", "--"), strict=True
     ):
         spores = whole_spores(table)
-        ax.hist(
+        _, _, patches = ax.hist(
             spores,
             bins=bins,
             density=True,
@@ -365,15 +401,15 @@ def draw_diameters(tables: dict) -> Figure:
             color=colour,
             ls=ls,
             lw=1.3,
-            label=f"{name}, {spores.size} whole spores, measured [processed]",
+            label=f"{name}, {spores.size} whole spores, measured",
         )
+        for patch in patches:
+            role(patch, "processed")
     ax.set_xlabel("diameter of the circle of equal area d [um]")
     ax.set_ylabel("fraction per um [1/um]")
     ax.set_title("Microscope diameters of whole spores (d > 15 um)", fontsize=10)
     ax.set_ylim(0, 0.3)
     ax.legend(fontsize=7, loc="upper right")
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
     return fig
 
 
@@ -385,23 +421,25 @@ def draw_halo_model(diameters: np.ndarray, minima) -> Figure:
     one = halo.halo(u / mean, [mean])
     many = halo.halo(u / mean, diameters)
     fig, ax = plt.subplots(figsize=(5.4, 3.0), constrained_layout=True)
-    ax.plot(
+    (line,) = ax.plot(
         u,
         one,
         color=COLOURS[4],
         ls=":",
         lw=1.3,
-        label="one disk of the mean diameter (Airy) [simulated]",
+        label="one disk of the mean diameter (Airy)",
     )
-    ax.plot(
+    role(line, "simulated")
+    (line,) = ax.plot(
         u,
         many,
         color=COLOURS[0],
         ls="--",
         lw=1.3,
-        label=f"halo of the {diameters.size} measured diameters [simulated]",
+        label=f"halo of the {diameters.size} measured diameters",
     )
-    ax.plot(
+    role(line, "simulated")
+    (line,) = ax.plot(
         mean * minima,
         halo.halo(minima, diameters),
         ls="none",
@@ -410,6 +448,7 @@ def draw_halo_model(diameters: np.ndarray, minima) -> Figure:
         color=COLOURS[0],
         label="its dark rings",
     )
+    role(line, "simulated")
     ax.set_yscale("log")
     # Room above the curves for the legend.
     ax.set_ylim(1e-5, 10)
@@ -418,8 +457,6 @@ def draw_halo_model(diameters: np.ndarray, minima) -> Figure:
     ax.set_ylabel("intensity / centre [1]")
     ax.set_title("The halo of the measured diameters (log scale)", fontsize=10)
     ax.legend(fontsize=7, loc="upper right")
-    add_credit(fig, CREDIT)
-    label_status(fig, "simulated")
     return fig
 
 
@@ -451,14 +488,15 @@ def draw_scaling(
         # The moving average of the analysis: WIDTH in x, an odd count of samples.
         smoothed = fold.smooth(max(3, round(WIDTH / (r[1] - r[0])) | 1))
         keep = r / w <= 60
-        ax_fold.plot(
+        (line,) = ax_fold.plot(
             r[keep] / w,
             smoothed.y[keep],
             color=colour,
             ls=ls,
             lw=1.1,
-            label=f"{nm(w)}, folded, moving average {WIDTH:g} [{smoothed.status}]",
+            label=f"{nm(w)}, folded, moving average {WIDTH:g}",
         )
+        role(line, smoothed.status)
         ax_fold.axvline(radii[w][nominal] / w, color=colour, ls=":", lw=1.0)
     ax_fold.set_xlim(0, 60)
     ax_fold.set_ylim(0, 300)
@@ -470,7 +508,7 @@ def draw_scaling(
     widths = np.array(WIDTHS)
     ratios = radii[VIOLET] / radii[RED]
     ends = np.array([0.3, 2.2])
-    ax_ratio.plot(
+    (line,) = ax_ratio.plot(
         ends,
         [predicted, predicted],
         color="0.2",
@@ -478,15 +516,17 @@ def draw_scaling(
         lw=1.1,
         label="prediction: 405 / 632.8, no fit",
     )
-    ax_ratio.plot(
+    role(line, "simulated")
+    (line,) = ax_ratio.plot(
         widths,
         ratios,
         ls="none",
         marker="o",
         ms=5,
         color=COLOURS[2],
-        label="measured ratio [processed]",
+        label="measured ratio",
     )
+    role(line, "processed")
     ax_ratio.set_xlim(*ends)
     ax_ratio.set_ylim(0.58, 0.72)
     ax_ratio.set_ylabel("ratio [1]")
@@ -494,7 +534,7 @@ def draw_scaling(
     ax_ratio.legend(fontsize=6.5, loc="lower right")
     ax_ratio.tick_params(labelbottom=False)
     ax_res.axhline(0, color="0.4", lw=0.8)
-    ax_res.plot(
+    (line,) = ax_res.plot(
         widths,
         ratios - predicted,
         ls="-",
@@ -504,13 +544,12 @@ def draw_scaling(
         color=COLOURS[2],
         label="measured minus predicted",
     )
+    role(line, RESIDUAL)
     ax_res.set_ylim(-0.04, 0.06)
     ax_res.set_xlabel("smoothing width [unit of x]")
     ax_res.set_ylabel("residual [1]")
     ax_res.set_title("Residual of the ratio", fontsize=10)
     ax_res.legend(fontsize=6.5, loc="lower right")
-    add_credit(fig, CREDIT)
-    label_status(fig, "processed")
     return fig
 
 
@@ -631,11 +670,23 @@ def run() -> Experiment:
         w: (float(rings["radii"][w].min()), float(rings["radii"][w].max()))
         for w in (RED, VIOLET)
     }
-    experiment.figure("fig-profiles", partial(draw_profiles, profiles, radius, spans))
-    experiment.figure("fig-diameters", partial(draw_diameters, tables))
-    experiment.figure("fig-halo-model", partial(draw_halo_model, diameters, minima))
     experiment.figure(
-        "fig-scaling", partial(draw_scaling, profiles, rings["radii"], predicted)
+        "fig-profiles",
+        partial(draw_profiles, profiles, radius, spans),
+        provenance=PROFILES,
+    )
+    experiment.figure(
+        "fig-diameters", partial(draw_diameters, tables), provenance=DIAMETERS
+    )
+    experiment.figure(
+        "fig-halo-model",
+        partial(draw_halo_model, diameters, minima),
+        provenance=HALO_MODEL,
+    )
+    experiment.figure(
+        "fig-scaling",
+        partial(draw_scaling, profiles, rings["radii"], predicted),
+        provenance=SCALING,
     )
 
     with experiment.capture("tabletop-exercise"):

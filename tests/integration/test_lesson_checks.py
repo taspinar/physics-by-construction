@@ -2632,3 +2632,52 @@ def test_a_declaration_that_is_not_literal_is_reported(make_format_2: Repository
     violations = format_2_checks(make_format_2(changes, files=files))
 
     assert "not a FigureProvenance of literal values" in details(violations)
+
+
+# Since the rollout (F173, Issue #531) every figure of a dataset declares.
+
+
+def test_a_cell_of_a_dataset_whose_experiment_declares_nothing_is_reported(
+    make_format_2: Repository,
+):
+    changes, files = _declares(
+        "#| fig-status: processed\n#| fig-dataset: gw150914-strain\n",
+        _EXPERIMENT_OF_DATA,
+    )
+    violations = format_2_checks(make_format_2(changes, files=files))
+
+    assert "its experiment declares no provenance" in details(violations)
+
+
+def test_the_model_input_of_ai6_is_the_one_undeclared_figure_of_a_dataset():
+    assert {
+        ("pbc.mechanics.experiments.multimodal_physics_reasoning", "fig-picture-d")
+    } == lesson_checks.UNDECLARED_MODEL_INPUTS
+
+
+_DECLARED_MODEL = _DECLARED_PROVENANCE.replace(
+    "LINE = FigureProvenance(status='processed', dataset=DATASET,",
+    "LINE = FigureProvenance(status='simulated', dataset=DATASET, model_of=True,",
+)
+
+
+@pytest.mark.parametrize(
+    ("options", "text"),
+    [
+        ("#| fig-status: simulated\n#| fig-model-of: gw150914-strain\n", None),
+        (
+            "#| fig-status: simulated\n#| fig-dataset: gw150914-strain\n",
+            "has fig-dataset 'gw150914-strain'; its experiment declares None",
+        ),
+    ],
+)
+def test_a_model_of_a_dataset_is_named_by_fig_model_of(
+    make_format_2: Repository, options: str, text: str | None
+):
+    changes, files = _declares(options, _DECLARED_MODEL)
+    violations = format_2_checks(make_format_2(changes, files=files))
+
+    if text is None:
+        assert "its experiment declares" not in details(violations), details(violations)
+    else:
+        assert text in details(violations)

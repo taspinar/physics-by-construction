@@ -14,11 +14,12 @@ from support.experiments import (
     page_of,
     run_entry_point,
 )
+from support.figures import assert_cell_declared, assert_declared, dataset_figures
 
 from pbc.astrophysics.experiments import galaxy_rotation_curves as lab
 from pbc.authoring.tables import is_numeric_console_block
 from pbc.data.adapters import rotation_curve_series
-from pbc.data.plotting import check_figure, figure_status
+from pbc.data.figure_provenance import role_of
 from pbc.data.reference import sparc_rotmod
 from pbc.experiment import encode
 
@@ -246,18 +247,36 @@ def test_every_figure_is_the_same_bytes_on_every_draw(experiment, label):
     assert len(drawings) == 1
 
 
+def test_every_dataset_figure_declares_its_provenance(experiment):
+    # Issue #531: every figure of the rotation curves states its status and
+    # credit at its caption and in its PNG, from the card.
+    assert set(experiment.provenance) == set(dataset_figures(PAGE))
+
+
+@pytest.mark.parametrize("label", sorted(dataset_figures(PAGE)))
+def test_each_dataset_figure_states_one_status_and_carries_its_provenance(
+    experiment, label
+):
+    assert_cell_declared(experiment, PAGE, label, residuals=label != "fig-curves")
+
+
 @pytest.mark.parametrize("label", sorted(lab.run().figures))
 def test_every_figure_follows_the_conventions(experiment, label):
     figure = experiment.figures[label]()
     try:
-        assert figure_status(figure) == "processed"
         residuals = label != "fig-curves"
-        assert check_figure(figure, residuals=residuals) == []
+        # Issue #531: every figure is declared; it states its status at the
+        # caption and in its PNG, and its legend entries carry roles, not
+        # status words.
+        assert_declared(experiment, label, figure, "processed", residuals)
         for ax in figure.axes:
-            legend = ax.get_legend()
-            for t in [] if legend is None else legend.get_texts():
-                if "measured" in t.get_text():
-                    assert "[processed]" in t.get_text(), (label, t.get_text())
+            if ax.get_legend() is None:
+                continue
+            handles, labels = ax.get_legend_handles_labels()
+            for handle, text in zip(handles, labels, strict=True):
+                assert "[" not in text, (label, text)
+                if "measured" in text:
+                    assert role_of(handle) == "processed", (label, text)
     finally:
         plt.close(figure)
 

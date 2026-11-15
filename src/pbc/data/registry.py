@@ -129,6 +129,31 @@ def check_reference_modules(cards: dict[str, dict]) -> list[str]:
             continue
         if not callable(getattr(imported, "make_figure", None)):
             out.append(f"{name}: reference module {qualified} has no make_figure()")
+            continue
+        out.extend(_reference_declaration_problems(name, cards[name], imported))
+    return out
+
+
+def _reference_declaration_problems(
+    name: str, card: dict, module: ModuleType
+) -> list[str]:
+    """The reference figure declares its provenance (Issue #531): a
+    ``FigureProvenance`` of the card, with the status the card gives its
+    reference figure."""
+    from pbc.data.figure_provenance import FigureProvenance
+
+    declared = getattr(module, "REFERENCE", None)
+    if not isinstance(declared, FigureProvenance):
+        return [f"{name}: reference module {module.__name__} declares no REFERENCE"]
+    out = []
+    if declared.dataset != name:
+        out.append(f"{name}: REFERENCE names the dataset {declared.dataset!r}")
+    status = (card.get("reference_figure") or {}).get("status")
+    if declared.status != status:
+        out.append(
+            f"{name}: REFERENCE has the status {declared.status!r}, the card's"
+            f" reference figure {status!r}"
+        )
     return out
 
 

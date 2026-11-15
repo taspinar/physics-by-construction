@@ -31,6 +31,12 @@ rights:
   attribution: 'Creators as above, ''Wave Propagation over a Submerged Bar: Datasets from Wave Flume Experiments
     and CFD'', Zenodo, doi 10.5281/zenodo.15049542, CC BY 4.0; the source paper is Andersen et al. 2025
     (benchmarking of VoF, sigma-transformation, and SPH models).'
+  figure_credit:
+    short: 'Data: Andersen et al. (Aalborg University), doi 10.5281/zenodo.15049542, CC BY 4.0'
+    visible: required
+    source: 'https://creativecommons.org/licenses/by/4.0/legalcode section 3(a): the creators, the licence,
+      and a link go with the shared material, so a figure saved without its page carries them on its face; the
+      link and the changes are in its metadata and at the caption (Issue #531)'
 artifacts:
 - name: Exp/dataset/Exp_WC*_surfaceElevation.csv
   type: processed-measured

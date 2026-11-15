@@ -12,8 +12,8 @@ from pathlib import Path
 import pytest
 import yaml
 from playwright.sync_api import Browser, Page
-from support import site_checks
-from support.paths import SITE_SOURCE
+from support import lesson_checks, site_checks
+from support.paths import REPO_ROOT, SITE_SOURCE
 from support.site_checks import DESKTOP, describe
 from support.site_server import (
     SiteServer,
@@ -369,16 +369,25 @@ def test_a_figure_made_from_a_dataset_carries_a_status_its_card_allows(
 def test_a_declared_figure_states_its_status_and_credit_at_the_caption(
     site_dir: Path,
 ):
-    """The three figures of the pilot of Issue #524 carry their provenance
-    record, and their captions state it from the card."""
+    """Every figure whose experiment declares its provenance (Issues #524,
+    #531) carries its record, and its caption states it from the card;
+    exactly the lessons with such a figure show a credit at a caption."""
     violations = site_checks.check_figure_credits(site_dir)
     assert not violations, describe(violations)
-    declared = [
-        page
+    credited = {
+        page.relative_to(site_dir).as_posix()
         for page in site_checks.html_pages(site_dir)
         if 'class="figure-credit"' in page.read_text(encoding="utf-8")
-    ]
-    assert len(declared) == 3, declared
+    }
+    expected = {
+        page.relative_to(SITE_SOURCE).with_suffix(".html").as_posix()
+        for page in lesson_checks.declared_figure_pages(REPO_ROOT)
+    }
+    assert expected, "no lesson declares the provenance of a figure"
+    assert credited == expected, (
+        f"credited without a declaration: {sorted(credited - expected)};"
+        f" declared without a credit: {sorted(expected - credited)}"
+    )
 
 
 def test_the_measured_data_pattern_shows_the_card_the_labels_and_the_no_llm_path(

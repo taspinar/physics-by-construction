@@ -46,6 +46,14 @@ rights:
     Aeronautics and Space Administration, the Japanese Monbukagakusho, the Max Planck Society, and the
     Higher Education Funding Council for England. The SDSS Web Site is http://www.sdss.org/. File spec-1949-53433-0480.fits
     of Data Release 17.'
+  figure_credit:
+    short: 'Data: Sloan Digital Sky Survey (SDSS), DR17'
+    visible: chosen
+    source: 'https://www.sdss.org/collaboration/image-use-policy/, read 2026-11-09: public domain; the SDSS
+      acknowledgement is asked for in publications, not on a figure; the terms do not require the credit on
+      the figure; the project shows it for clear scientific attribution when the metadata is lost in a
+      screenshot or a re-export, the owner''s reason of 2026-11-14 for TESS (Issue #524), applied by the
+      rollout (Issue #531); the full attribution is in the metadata and at the caption of its page'
 artifacts:
 - name: spec-1949-53433-0480.fits
   type: calibrated-observation
