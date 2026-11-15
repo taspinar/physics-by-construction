@@ -291,6 +291,14 @@ def run() -> Experiment:
     experiment.number("end-time", euler.t[-1], ".1f")
     experiment.number("ball-gap", euler.x[-1] - exact.x[-1], ".3f")
     experiment.number("predicted-lag", g * euler.t[-1] * dt / 2, ".3f")
+    # The first step by hand: the state after one step, simulated and exact.
+    experiment.number("one-step-time", euler.t[1], ".1f")
+    experiment.number("one-step-x", euler.x[1], ".3f")
+    experiment.number("one-step-exact-x", exact.x[1], ".3f")
+    experiment.number("one-step-v", euler.v[1], ".3f")
+    experiment.number("one-step-exact-v", exact.v[1], ".3f")
+    experiment.number("one-step-gap", euler.x[1] - exact.x[1], ".3f")
+    experiment.number("one-step-predicted", g * dt**2 / 2, ".3f")
     experiment.figure("fig-ball-thrown-up", partial(draw_ball_thrown_up, euler))
 
     ball_errors = halving(experiment)
