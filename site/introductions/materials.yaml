@@ -59,9 +59,11 @@ learn:
     of a support fades with distance ({slot:MAT3}).
   - >-
     Derive the equilibrium fraction of vacancies from the free energy,
-    simulate a vacancy that hops at the Arrhenius rate, and measure how much
-    more slowly the atoms it moves diffuse than a random walker
-    ({slot:MAT4}).
+    simulate how a vacancy moves through a crystal at the Arrhenius rate,
+    check the diffusion of the vacancy against the random-walk law, and
+    compare the resulting diffusion of the atoms with the prediction of a
+    simple random-walk model: the tracer correlation factor measures how
+    far it falls below ({slot:MAT4}).
   - >-
     Index a measured powder pattern with one lattice parameter, and keep
     the statistical error, the systematic errors, and the uncertainty of a
@@ -99,15 +101,15 @@ order:
 
 method:
   - >-
-    Each model of the course is small enough to be solved exactly in a
-    second way, and the lesson does it: the eigenvalues of a finite chain
-    against the closed-form dispersion, the energies of a ring against the
-    closed-form bands, the finite elements of a bar against its closed
-    form and of a plate against a uniform tension that they must recover
-    exactly, and the count of vacancies and their diffusion against the
-    exact count of arrangements and the random-walk law. A model that
-    passes these checks is right about itself; whether it is right about a
-    material is the question of the labs.
+    The course uses numerical experiments and chooses checks that fit each
+    problem. Where an exact result is available, it serves as a benchmark:
+    the eigenvalues of a finite chain against the closed-form dispersion,
+    the energies of a ring against the closed-form bands, the finite
+    elements of a bar against its closed form and of a plate against a
+    uniform tension that they must recover exactly, and the diffusion of a
+    hopping vacancy against the random-walk law. A model that passes its
+    checks is right about itself; whether it is right about a material is
+    the question of the labs.
   - >-
     The labs use records that the National Institute of Standards and
     Technology made and published, and keep the measurement, its
