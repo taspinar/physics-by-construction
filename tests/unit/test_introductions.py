@@ -35,7 +35,9 @@ TERMS = tuple(entry.term for entry in GLOSSARY.entries)
 PILOT = ("mechanics", "law-discovery")
 # The first batch of introductions (F159, Issue #519).
 BATCH_1 = ("thermodynamics", "waves", "electromagnetism")
-INTRODUCED = PILOT + BATCH_1
+# The third batch (F162, Issue #538).
+BATCH_3 = ("astrophysics", "materials")
+INTRODUCED = PILOT + BATCH_1 + BATCH_3
 AVAILABLE = frozenset(INTRODUCED)
 
 
@@ -565,6 +567,57 @@ def test_the_header_of_a_batch_1_lesson_links_to_its_course_introduction(
         in header
     )
     assert "Introduction" not in without
+
+
+@pytest.mark.parametrize(
+    ("lesson_id", "sequence_id", "title"),
+    [
+        (
+            "three-body-problem",
+            "astrophysics",
+            "Astrophysics, cosmology, and relativity",
+        ),
+        (
+            "galaxy-rotation-curves",
+            "astrophysics",
+            "Astrophysics, cosmology, and relativity",
+        ),
+        (
+            "crystal-lattices-and-phonons",
+            "materials",
+            "Condensed matter and materials physics",
+        ),
+        ("xray-diffraction-lab", "materials", "Condensed matter and materials physics"),
+    ],
+)
+def test_the_header_of_a_batch_3_lesson_links_to_its_course_introduction(
+    lesson_id, sequence_id, title
+):
+    """F162: a lesson and a lab of a course of the third batch link the
+    course's name to its introduction, and do not without it."""
+    path = ATLAS.path
+    header = LessonHeader(path, path.lesson(lesson_id), None, (), AVAILABLE).markdown()
+    without = LessonHeader(
+        path, path.lesson(lesson_id), None, (), AVAILABLE - {sequence_id}
+    ).markdown()
+
+    assert (
+        f"Introduction\n:   [{title}](../../../courses/{sequence_id}/index.html)\n"
+        in header
+    )
+    assert "Introduction" not in without
+
+
+@pytest.mark.parametrize("sequence_id", BATCH_3)
+def test_a_batch_3_introduction_says_its_course_has_no_capstone_project(sequence_id):
+    """Decision 43 and the editorial voice: a course without a capstone
+    project says so; neither course of the third batch has one."""
+    sequence = next(s for s in ATLAS.sequences() if s.id == sequence_id)
+    capstone = " ".join(_data(sequence_id)["capstone"])
+
+    assert not any(row.is_capstone for row in _content(sequence_id).sequence.rows)
+    assert "no capstone project" in capstone
+    assert sequence.title in _content(sequence_id).markdown()
 
 
 def test_the_header_without_introductions_is_what_it_was():

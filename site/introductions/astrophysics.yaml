@@ -1,0 +1,156 @@
+# The introduction of the course Astrophysics, cosmology, and relativity
+# (F162, requirements decision 43). Prose and references only; see
+# site/introductions/mechanics.yaml for the rules.
+sequence: astrophysics
+
+why:
+  - >-
+    The sky is a laboratory in which nobody can set up the experiment. A
+    star cannot be brought closer and a galaxy cannot be put on a scale;
+    what reaches an observer is light, its timing, its colour, and its
+    brightness, and sometimes a ripple in spacetime. Astrophysics reads the
+    masses, forces, and histories behind those signals with the laws that
+    govern a falling stone, and says where those laws have to be replaced.
+  - >-
+    Few of these systems have a closed-form solution, and the formulas that
+    do exist, for the turn of an orbit in general relativity or the Hubble
+    law, are approximations whose order matters. Built as
+    programs, they can be checked: an orbit against an exact solution and
+    against its first-order formula, the bending of light against its
+    weak-field limit, a transit against its geometry, and then a model
+    against a record that a telescope made.
+
+questions:
+  - >-
+    What can three bodies under their mutual gravity do that two cannot,
+    and how far ahead can a simulation of them be trusted?
+  - >-
+    What does an orbit reveal about the law of the force that holds it,
+    and what can it not reveal?
+  - >-
+    How do space and time differ between observers who move, and what is
+    the same for all of them?
+  - >-
+    How does a mass bend the path of light and turn the ellipse of an
+    orbit, and when is the first correction to Newton enough?
+  - >-
+    How does the expansion of the universe relate the redshift of a source
+    to its distance?
+  - >-
+    What does the wave from two bodies spiralling together say about their
+    masses, and what does it leave open?
+  - >-
+    What can a measured light curve or a measured rotation curve establish,
+    and which conclusions rest on what the data do not carry?
+
+learn:
+  - >-
+    Reproduce Lagrange's rotating triangle against its exact motion, check
+    the growth of a disturbance against Routh's criterion, and tell a
+    conserved energy from a trajectory that is right ({slot:AST1}).
+  - >-
+    Measure the turn of the periapsis under a central force that is not the
+    inverse square, and confirm its first-order prediction and the gap of
+    second order ({slot:AST2}).
+  - >-
+    Compute the deflection of light from the photon orbit, find the images
+    and the magnification of a point lens, and say why a microlensing light
+    curve does not fix the mass alone ({slot:AST3}).
+  - >-
+    Transform events and four-momenta by Lorentz boosts, read time dilation
+    and length contraction off the transformed events, and recover Newton's
+    mechanics at low speed ({slot:AST10}).
+  - >-
+    Integrate a relativistic orbit, check the turn of its periapsis against
+    the first-order formula by the size of the gap, and find the innermost
+    stable circular orbit ({slot:AST4}).
+  - >-
+    Integrate the scale factor of simple Friedmann models, compute the
+    distances to a redshift by two independent methods, and recover the
+    Hubble law at low redshift ({slot:AST5}).
+  - >-
+    Compute the gravitational wave of a binary from its motion with the
+    quadrupole formula, check it against the closed-form chirp, and explain
+    why the chirp fixes the chirp mass and not the two masses
+    ({slot:AST6}).
+  - >-
+    Simulate the light curve of a transiting planet from its orbit and the
+    disk of its star, and check the depth and the durations against the
+    geometry ({slot:AST7}).
+  - >-
+    Fit models to a light curve recorded from space and to the rotation
+    curves of disk galaxies, and keep apart what a fit determines and what
+    it assumes ({slot:AST8}, {slot:AST9}).
+
+order:
+  - >-
+    The course begins where {sequence:mechanics} ends, with gravity between
+    more than two bodies. {slot:AST1} shows that three bodies already defeat
+    a closed form: a rotating triangle is an exact solution whose stability
+    depends on the masses, and in a close encounter nearby starts part
+    company while the energy is kept. {slot:AST2} then keeps two bodies and
+    changes the law of the force, so that the turn of an orbit becomes a
+    measurement of the force, and {slot:AST3} follows light instead of a
+    planet past a mass, where the path bends.
+  - >-
+    {slot:AST10} sets up the spacetime that the rest of the course needs:
+    events and momenta seen by observers in relative motion, with Newton's
+    mechanics as the slow limit. With it, {slot:AST4} returns to the orbit
+    about a mass, now in general relativity, where the turn of the
+    periapsis that {slot:AST2} produced with a force chosen by hand comes
+    out of the theory, and the first-order formula is judged by the size of
+    what it leaves out. {slot:AST5} widens the scale to the universe as a
+    whole, where the expansion sets the distance that a redshift implies.
+  - >-
+    {slot:AST6} follows a binary whose orbit shrinks and computes the wave
+    it sends out, the model behind the measured strain of {slot:M16}.
+    {slot:AST7} turns to the light of a star and the dip in it when a
+    planet crosses. The labs on measured data come last: {slot:AST8} fits
+    the transit model to a real light curve, and {slot:AST9} asks whether
+    the gas and the stars of disk galaxies can produce their measured
+    speeds, questions that a comparison with a formula cannot answer.
+
+method:
+  - >-
+    Every lesson builds its system as a program and checks it against
+    something outside the program: an exact solution, such as Lagrange's
+    triangle or the analytic cases of an expanding universe, a conserved
+    quantity, a
+    limit in which the familiar law returns, or a second, independent
+    method that must agree. Much of the course is about approximations,
+    the first correction to Newton or the leading order of a chirp, and a
+    lesson states an approximation by measuring how its error shrinks as
+    the field weakens or the speed falls, not only by quoting the formula.
+  - >-
+    Several lessons end with what an observation cannot decide: a
+    microlensing light curve fixes a combination of mass, distance, and
+    speed, the leading-order chirp only the chirp mass, an orbit a
+    modification of gravity only near its own scale, and a rotation curve
+    not the mass of the stars. The labs set the models beside records that
+    others measured, keep the data, their processing, and the fit apart,
+    and name the uncertainties that the files do not carry. None of the
+    lessons of this course uses an artificial-intelligence agent.
+
+capstone:
+  - >-
+    The curriculum has no capstone project for this course. Its two labs
+    draw most of it together, because each asks of a real record what the
+    simulations asked of a formula.
+  - >-
+    {slot:AST8} fits the transit model of {slot:AST7} to the light of a star
+    recorded by the TESS satellite, and judges the fit by its residuals, the
+    timing of the transits, a simpler model, and its sensitivity to the
+    choices of the analysis. {slot:AST9} sets the Newtonian model of a disk
+    galaxy against measured rotation curves, with and without a dark halo,
+    and separates the conclusions that survive every assumption tried from
+    those that rest on the inclination, the distance, and the errors that
+    the files leave out.
+
+next:
+  - >-
+    The orbits of this course return in {sequence:law-discovery}, whose
+    optional lessons turn the question around: in {slot:D3} and {slot:D4}
+    the force law of a toy world is hidden, a language model probes it by
+    experiments, and the lesson scores the law it reports. For the strain
+    record that {slot:AST6} models, and for orbits without relativity,
+    return to {sequence:mechanics}.
