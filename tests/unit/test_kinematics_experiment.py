@@ -42,6 +42,22 @@ def test_the_lag_of_the_ball_is_the_predicted_one(results):
         assert row[3] == row[4]
 
 
+def test_the_first_step_is_high_by_half_g_dt_squared(results):
+    _, found = results
+    numbers = found["numbers"]
+
+    # One step of explicit Euler from the launch: the velocity is exact, the
+    # height is too high by g dt^2 / 2, in the digits shown.
+    assert numbers["one-step-v"] == numbers["one-step-exact-v"]
+    assert numbers["one-step-gap"] == numbers["one-step-predicted"] == "0.049"
+    assert float(numbers["one-step-x"]) > float(numbers["one-step-exact-x"])
+    # Every step adds the same gap: the gap of the whole flight is n times it.
+    steps = int(numbers["n-steps"])
+    assert float(numbers["ball-gap"]) == pytest.approx(
+        steps * kinematics.g * kinematics.dt**2 / 2, abs=5e-4
+    )
+
+
 def test_the_error_halves_with_the_time_step(results):
     _, found = results
 
