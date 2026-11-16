@@ -8,6 +8,7 @@ from support import shards
 from support.paths import BUILT_SITE, REPO_ROOT, SITE_SOURCE
 from support.site_server import SiteServer, configured_base_path
 
+from pbc.authoring import pages as page_selection
 from pbc.authoring import selection as selecting
 
 
@@ -105,6 +106,19 @@ def pytest_collection_modifyitems(
         gone = set(left_out)
         config.hook.pytest_deselected(items=left_out)
         items[:] = [item for item in items if item not in gone]
+
+
+def pytest_terminal_summary(terminalreporter) -> None:
+    """The log of the run names the pages the checks of one page ran for, and
+    why, and those they skipped (#230, m3); a session that ran none of these
+    checks prints nothing."""
+    from support import site_checks
+
+    if site_checks.checked_record is None:
+        return
+    terminalreporter.section("pages of the checks of one page")
+    for line in page_selection.summary(site_checks.checked_record):
+        terminalreporter.write_line(line)
 
 
 @pytest.hookimpl(trylast=True)

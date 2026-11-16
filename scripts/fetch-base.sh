@@ -47,8 +47,8 @@ set -euo pipefail
 # The archive is data. It is unpacked only when every name in it is a plain
 # relative path and it holds no link; nothing in it is executed or read as
 # configuration here. A base that is missing, rejected, or damaged is not an
-# error: the script says why, leaves <directory> absent, and the run verifies
-# everything. With GITHUB_OUTPUT set it writes accepted=true|false and
+# error: the script says why (in GitHub Actions also as a workflow warning),
+# leaves <directory> absent, and the run verifies everything. With GITHUB_OUTPUT set it writes accepted=true|false and
 # run-id=<id>.
 #
 # Needs the tools gh, jq, unzip and sha256sum (or shasum). In CI the
@@ -111,9 +111,21 @@ output() {
   fi
 }
 
-# Without a base the run verifies everything. Says why, and why only.
+# Without a base the run verifies everything. Says why, and why only. In
+# GitHub Actions it also says so as a workflow warning, with the reason, so a
+# fallback caused by a change of the API, a permission, or a format is seen on
+# the run and not only as a longer run (#230, m4). The fallback itself is the
+# same: exit 0 and a full run. The reason is escaped as a workflow command's
+# message, so no text of a reason starts another command.
 without_base() {
   echo "No base: $1. Every lesson is executed and checked."
+  if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+    local message="No base: $1. Every lesson is executed and checked."
+    message="${message//'%'/%25}"
+    message="${message//$'\r'/%0D}"
+    message="${message//$'\n'/%0A}"
+    echo "::warning title=No verification base::$message"
+  fi
   rm -rf "$target" "$fetched_record"
   output "accepted=false" "run-id="
   exit 0

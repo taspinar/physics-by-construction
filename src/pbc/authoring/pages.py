@@ -13,8 +13,9 @@ difference in any of them, a file the base does not have, or a file the base
 has and the site lacks, selects every page; it selects no lesson for execution,
 which only the digests of the lessons decide (``pbc.authoring.selection``).
 
-The checks of one page write what they ran for, and why, to
-``CHECKED_FILE``: the record of the checked pages of the run.
+The checks of one page write what they ran for, and why, and the pages they
+skipped, to ``CHECKED_FILE``: the record of the checked pages of the run, which
+``summary`` turns into the lines the log of the run shows (#230, m3).
 
 The record of a base is data; nothing in it is executed or read as
 configuration, and a record that cannot be read selects every page.
@@ -123,6 +124,7 @@ def _every(site_dir: Path, reason: str) -> dict:
         "reason": reason,
         "assets": [],
         "pages": dict.fromkeys(pages(site_dir), "every"),
+        "skipped": [],
     }
 
 
@@ -133,7 +135,9 @@ def checked(site_dir: Path, root: Path = REPOSITORY_ROOT) -> dict:
     every page (mode ``every``). Otherwise (mode ``selective``) every page of
     a lesson this run executed, every page whose bytes differ from the base's,
     and, when a file that is not a page differs, every other page with the
-    reason ``asset``.
+    reason ``asset``. ``skipped`` lists the pages it does not check: those
+    byte-identical to the page of the base, which the run that made the base
+    checked.
     """
     selection = selecting.read(root)
     if selection is None:
@@ -159,7 +163,33 @@ def checked(site_dir: Path, root: Path = REPOSITORY_ROOT) -> dict:
         "reason": "",
         "assets": assets,
         "pages": dict(sorted(chosen.items())),
+        "skipped": [page for page in every if page not in chosen],
     }
+
+
+def summary(data: dict) -> list[str]:
+    """The lines that tell the log of a run which pages the checks of one page
+    ran for, and why, and which they skipped, from a record of ``checked``."""
+    checked_pages = data.get("pages", {})
+    skipped = data.get("skipped", [])
+    total = len(checked_pages) + len(skipped)
+    if data.get("mode") == "every":
+        lines = [
+            f"Per-page checks: every page ({total}), {data.get('reason', '')}".rstrip()
+        ]
+    else:
+        lines = [
+            f"Per-page checks: {len(checked_pages)} of {total} pages checked,"
+            f" {len(skipped)} skipped as byte-identical to the base"
+        ]
+        if data.get("assets"):
+            lines.append(
+                "A file that is not a page differs, which checks every page: "
+                + ", ".join(data["assets"])
+            )
+    lines += [f"  checked ({why}): {page}" for page, why in checked_pages.items()]
+    lines += [f"  skipped: {page}" for page in skipped]
+    return lines
 
 
 def selected(site_dir: Path, root: Path = REPOSITORY_ROOT) -> list[str] | None:

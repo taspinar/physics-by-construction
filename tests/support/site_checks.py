@@ -43,6 +43,9 @@ PHONE = {"width": 320, "height": 568}
 
 # The record of the checked pages of the run (pbc.authoring.pages).
 CHECKED_RECORD = REPO_ROOT / page_selection.CHECKED_FILE
+# The record the checks of one page made in this session, which the end of the
+# session prints (tests/e2e/conftest.py), or None before they ran.
+checked_record: dict | None = None
 
 WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]
 
@@ -618,8 +621,10 @@ def checked_pages(site_dir: Path) -> list[Path]:
     # built from a fixture.
     if site_dir.resolve() != BUILT_SITE.resolve():
         return pages
+    global checked_record
     data = page_selection.checked(site_dir)
     page_selection.write_checked(CHECKED_RECORD, data)
+    checked_record = data
     if data["mode"] == "every":
         return pages
     return [page for page in pages if _name(site_dir, page) in data["pages"]]

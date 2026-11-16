@@ -298,6 +298,68 @@ def test_a_run_that_checks_every_page_records_why(
     assert set(written["pages"]) == set(EVERY_PAGE)
 
 
+def test_the_record_names_the_pages_the_checks_skipped_and_the_log_shows_them(
+    tmp_path: Path, base: Path, chosen, monkeypatch: pytest.MonkeyPatch
+):
+    """Every page is either checked, with its reason, or skipped, and the
+    lines for the log of the run name each of them (#230, m3)."""
+    site = built(
+        tmp_path / "site",
+        RUN_COMMIT,
+        {LESSON_TWO: f"<p>Two changed, built from {RUN_COMMIT}.</p>"},
+    )
+    chosen(selective(base, execute=[]))
+    monkeypatch.setattr(site_checks, "BUILT_SITE", site)
+    monkeypatch.setattr(site_checks, "CHECKED_RECORD", tmp_path / "checked.json")
+    monkeypatch.setattr(site_checks, "checked_record", None)
+
+    site_checks.checked_pages(site)
+
+    written = json.loads((tmp_path / "checked.json").read_text(encoding="utf-8"))
+    assert written["pages"] == {LESSON_TWO: pages.DIFFERS}
+    assert written["skipped"] == ["index.html", LESSON_ONE]
+    assert site_checks.checked_record == written
+    lines = pages.summary(written)
+    assert lines[0] == (
+        "Per-page checks: 1 of 3 pages checked, 2 skipped as byte-identical to the base"
+    )
+    assert f"  checked (differs): {LESSON_TWO}" in lines
+    assert "  skipped: index.html" in lines
+    assert f"  skipped: {LESSON_ONE}" in lines
+
+
+def test_a_run_that_checks_every_page_skips_none_and_says_why_in_the_log(
+    tmp_path: Path, base: Path, chosen
+):
+    site = built(tmp_path / "site", RUN_COMMIT)
+    chosen(None)
+
+    data = pages.checked(site)
+    lines = pages.summary(data)
+
+    assert data["skipped"] == []
+    assert lines[0] == "Per-page checks: every page (3), the run has no base"
+    assert not [line for line in lines if "skipped:" in line]
+    assert len([line for line in lines if "checked (every)" in line]) == 3
+
+
+def test_a_file_that_is_not_a_page_is_named_in_the_log_of_the_checked_pages(
+    tmp_path: Path, base_with_assets: Path, chosen
+):
+    site = built(
+        tmp_path / "site", RUN_COMMIT, {**ASSETS, **ASSET_CHANGES["a style sheet"]}
+    )
+    chosen(selective(base_with_assets, execute=[]))
+
+    data = pages.checked(site)
+
+    assert data["skipped"] == []
+    assert (
+        "A file that is not a page differs, which checks every page: assets/site.css"
+        in pages.summary(data)
+    )
+
+
 def test_the_checks_of_one_page_run_for_the_selected_pages_only(
     tmp_path: Path, base: Path, chosen, monkeypatch: pytest.MonkeyPatch
 ):

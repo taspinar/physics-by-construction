@@ -521,3 +521,75 @@ def _html_marker(text: str) -> str:
     attributes = re.search(r"\{\.pbc-context ([^}]*)\}", text).group(1)
     data = re.sub(r"pbc-", "data-pbc-", attributes)
     return f'<div class="pbc-context" {data}>\n</div>'
+
+
+def _rebuilt(site: Path, kind: str, payload: dict) -> tuple[str, str]:
+    """The page of one marker of ``kind``, regenerated for the commit of the
+    base and for that of the run."""
+    page = "extra/index.qmd"
+    cell_output = f"<main>{_html_marker(marker(kind, page, payload))}</main>"
+    return (
+        regenerate_page(cell_output, page, site, BASE_COMMIT, REPOSITORY),
+        regenerate_page(cell_output, page, site, RUN_COMMIT, REPOSITORY),
+    )
+
+
+def test_a_lean_excerpt_region_is_rebuilt_for_the_commit_of_the_run(tmp_path: Path):
+    """The Lean excerpt shows its text, and the link to its file and lines
+    follows the commit of the run (#230, m2)."""
+    from pbc.authoring.lean import LeanExcerpt
+
+    shown = LeanExcerpt(
+        name="PhysicsByConstruction.Mechanics.Kinematics:velocity",
+        source="theorem velocity_is_constant : 1 + 1 = 2 := by\n  norm_num",
+        path="lean/PhysicsByConstruction/Mechanics/Kinematics.lean",
+        first_line=12,
+        last_line=13,
+        commit=BASE_COMMIT,
+        repository=REPOSITORY,
+    )
+
+    first, second = _rebuilt(
+        site_with_a_lesson(tmp_path), "lean-excerpt", shown.payload()
+    )
+
+    for text in (first, second):
+        assert "pbc-context" not in text
+        assert "velocity_is_constant" in text
+        assert "lean-excerpt" in text
+    link = f"{REPOSITORY}/blob/{{}}/{shown.path}#L12-L13"
+    assert link.format(BASE_COMMIT.sha) in first
+    assert link.format(RUN_COMMIT.sha) in second
+    assert BASE_COMMIT.sha not in second
+
+
+def test_a_lean_evidence_region_is_rebuilt_for_the_commit_of_the_run(tmp_path: Path):
+    """The Lean evidence names the versions it was compiled with, and the
+    commit, the file links, and the web-editor link are those of the run, never
+    those of the build that left the marker (#230, m2)."""
+    from pbc.authoring.lean import LeanEvidence
+
+    module = "PhysicsByConstruction.Mechanics.Kinematics"
+    path = "lean/PhysicsByConstruction/Mechanics/Kinematics.lean"
+    shown = LeanEvidence(
+        modules=(module,),
+        lean="4.34.1",
+        mathlib="v4.34.1",
+        mathlib_revision="0123456789",
+        commit=BASE_COMMIT,
+        repository=REPOSITORY,
+    )
+
+    first, second = _rebuilt(
+        site_with_a_lesson(tmp_path), "lean-evidence", shown.payload()
+    )
+
+    for text in (first, second):
+        assert "pbc-context" not in text
+        assert "Lean 4.34.1" in text and "0123456789" in text
+    for commit, text in ((BASE_COMMIT, first), (RUN_COMMIT, second)):
+        assert f"{REPOSITORY}/tree/{commit.sha}" in text
+        assert f"{REPOSITORY}/blob/{commit.sha}/{path}" in text
+        # The web-editor link names the raw file at the same commit.
+        assert f"%2F{commit.sha}%2F" in text
+    assert BASE_COMMIT.sha not in second

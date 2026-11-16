@@ -622,6 +622,80 @@ def test_a_failing_api_gives_no_base_and_does_not_fail_the_run(api: Api):
     assert_no_base(api, api.fetch(), "cannot be listed")
 
 
+WARNING = "::warning title=No verification base::No base: "
+
+
+def test_a_fallback_in_ci_is_a_workflow_warning_with_the_reason(api: Api):
+    """In GitHub Actions a run without a base says so as a warning on the run,
+    with the reason, and still exits 0 and runs everything (#230, m4)."""
+    for file in api.api.iterdir():
+        file.unlink()
+
+    result = api.fetch(GITHUB_ACTIONS="true")
+
+    assert_no_base(api, result, "cannot be listed")
+    warnings = [line for line in result.stdout.splitlines() if line.startswith("::")]
+    assert warnings == [
+        f"{WARNING}the runs of earlier pushes to main cannot be listed."
+        " Every lesson is executed and checked."
+    ], output(result)
+
+
+def test_a_rejected_base_in_ci_is_a_workflow_warning_too(api: Api):
+    api.put(f"repos/{REPO}/actions/runs/{RUN}", {"id": RUN, "event": "pull_request"})
+
+    result = api.fetch(GITHUB_ACTIONS="true")
+
+    assert_no_base(api, result, "not a push run")
+    assert f"{WARNING}no run offers a base that passes the provenance checks" in (
+        result.stdout
+    ), output(result)
+
+
+def test_an_accepted_base_and_a_run_outside_ci_give_no_warning(api: Api):
+    accepted = api.fetch(GITHUB_ACTIONS="true")
+    assert accepted.returncode == 0, output(accepted)
+    assert "::warning" not in accepted.stdout + accepted.stderr
+
+    for file in api.api.iterdir():
+        file.unlink()
+    api.github_output.unlink()
+    local = api.fetch(without=("GITHUB_ACTIONS",))
+    assert_no_base(api, local, "cannot be listed")
+    assert "::warning" not in local.stdout + local.stderr
+
+
+def test_the_reason_of_a_warning_cannot_start_another_workflow_command(
+    api: Api, tmp_path: Path
+):
+    """A name in an archive is part of a reason; a line break or a percent sign
+    in it is escaped, so it stays inside the one warning."""
+    script = (SCRIPTS / "fetch-base.sh").read_text()
+    start = script.index("without_base() {")
+    function = script[start : script.index("\n}\n", start) + 3]
+    probe = tmp_path / "probe.sh"
+    probe.write_text(
+        "set -euo pipefail\noutput() { :; }\ntarget=x\nfetched_record=y\n"
+        f"{function}\nwithout_base $'a%b\\n::error::injected\\rc'\n"
+    )
+
+    result = subprocess.run(
+        ["bash", str(probe)],
+        env={**os.environ, "GITHUB_ACTIONS": "true"},
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=tmp_path,
+    )
+
+    warning = [
+        line for line in result.stdout.split("\n") if line.startswith("::warning")
+    ]
+    assert warning == [
+        f"{WARNING}a%25b%0A::error::injected%0Dc. Every lesson is executed and checked."
+    ], output(result)
+
+
 def test_what_an_earlier_base_left_is_replaced_even_when_none_is_accepted(api: Api):
     api.target.mkdir(parents=True)
     (api.target / "stale").write_text("old")
