@@ -197,6 +197,37 @@ def test_a_changed_module_selects_the_lessons_that_import_it(repository, base, n
     assert chosen(repository, base)["execute"] == [LESSON]
 
 
+@pytest.mark.parametrize(
+    ("name", "mode", "execute"),
+    [
+        (f"{LESSON}/notes.txt", "selective", [LESSON]),
+        ("tests/support/local_helper.py", "full", [LESSON, LESSON_TWO]),
+    ],
+    ids=["in a lesson directory", "in a directory of the checks"],
+)
+def test_a_file_git_ignores_or_does_not_track_still_selects(
+    repository, base, name, mode, execute
+):
+    """The digest reads the working tree, not the Git index (#230, m5): a file
+    that Git ignores or does not track counts like a tracked one. Locally that
+    can select more than CI, never less; restricting the digest to the tracked
+    files is not done, because it would drop any input a run makes before the
+    digest (docs/development.md, "Selection against a base")."""
+    subprocess.run(["git", "init", "-q", str(repository)], check=True)
+    _write(repository, ".gitignore", "notes.txt\nlocal_helper.py\n")
+    subprocess.run(["git", "-C", str(repository), "add", "-A"], check=True)
+    _write(repository, name, "local\n")
+    ignored = subprocess.run(
+        ["git", "-C", str(repository), "check-ignore", "-q", name], check=False
+    )
+    assert ignored.returncode == 0
+
+    result = chosen(repository, base)
+
+    assert result["mode"] == mode
+    assert result["execute"] == execute
+
+
 def test_a_module_nobody_imports_selects_nothing(repository, base):
     append(repository, "src/pbc/mech/other.py")
     assert chosen(repository, base)["execute"] == []

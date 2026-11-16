@@ -432,7 +432,9 @@ each other is an error.
 
 CI takes the base from the artifact of an earlier run of `main` with
 `scripts/fetch-base.sh` and publishes it with `scripts/collect-base.sh`
-(see [deployment](deployment.md)). Locally you give a directory with
+(see [deployment](deployment.md)). When CI finds no base it can accept,
+it says why in the log and as a workflow warning on the run, and runs
+everything. Locally you give a directory with
 the same three parts (`digests.json`, `pages.json`, `freeze/`; the build
 leaves them beside the site as `site/_digests.json`, `site/_pages.json`, and
 `site/_freeze/`).
@@ -453,6 +455,18 @@ option combines with `--only`, not with `--reuse` or `--groups`. A run
 without it removes an earlier selection and verifies everything. The record
 of a run with a base carries a `selection:` line that names the base, and
 `--reuse` never takes such a record for a verification of the content alone.
+
+The digest reads the working tree, not the Git index: a file that Git ignores
+or does not track, in a lesson directory, a dataset (`data/downloads/` after
+`scripts/fetch-data.sh`), or a directory of the checks (`tests/e2e`,
+`tests/support`), counts like a tracked one. On your machine the selection can
+therefore name more lessons than CI makes for the same commit, or a full run,
+never fewer (`test_a_file_git_ignores_or_does_not_track_still_selects`). The
+digest is not restricted to the tracked files (#230, m5): CI works in a fresh
+checkout and never runs `scripts/fetch-data.sh`, so the restriction would make
+no run there cheaper, and it would drop any file a run makes before it
+computes the digest that a lesson reads, which would select less. To get the
+selection CI makes, run in a clean clone or remove the local files.
 
 What the selection controls (ADR 014 decision 3):
 
@@ -490,7 +504,9 @@ What the selection controls (ADR 014 decision 3):
   a difference in any of them, or one added or removed, checks every page; it
   executes no lesson. The checks write which pages they ran for, and why
   (`differs`, `executed`, `asset`, or `every` when there is no usable base or
-  record), to `.agents/verification/checked-pages.json`. **The reproduction in a fresh clone** runs for
+  record), and which pages they skipped as byte-identical to the base, to
+  `.agents/verification/checked-pages.json`; the end of the end-to-end tests
+  prints the same list in the log of the run. **The reproduction in a fresh clone** runs for
   the executed lessons, and compares bytes with the page this run built. Every
   other check runs as before.
 
