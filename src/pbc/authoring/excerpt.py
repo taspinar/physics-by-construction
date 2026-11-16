@@ -136,6 +136,9 @@ class Excerpt:
     signature: str | None = None  # the generated signature
     signature_lines: tuple[int, int] | None = None  # the header it stands for
     figure: bool = False  # a Figure source link alone
+    # The words of a Source link alone, where "Source" would not tell two
+    # links apart; None for the default words.
+    text: str | None = None
     # The number of lines of the object, so that the lines after the last
     # part are marked as left out; None when the display reads no object.
     total: int | None = None
@@ -295,6 +298,8 @@ class Excerpt:
 
     def link_text(self) -> str:
         """The words of the link under the excerpt."""
+        if self.text is not None:
+            return self.text
         if self.figure:
             return "Figure source"
         if self.selection and self.kind in ("function", "class"):
@@ -314,7 +319,7 @@ class Excerpt:
 
     def payload(self) -> dict:
         """What the region is built from, apart from the commit."""
-        return {
+        payload = {
             "name": self.name,
             "path": self.path,
             "parts": [[*p.lines, p.first_line, p.source] for p in self.parts],
@@ -332,6 +337,11 @@ class Excerpt:
             "figure": self.figure,
             "total": self.total,
         }
+        # Only when set, so that the payload of every other excerpt, and the
+        # digest of its page, stays as it was.
+        if self.text is not None:
+            payload["text"] = self.text
+        return payload
 
     @classmethod
     def from_payload(
@@ -364,6 +374,7 @@ class Excerpt:
             ),
             figure=payload["figure"],
             total=payload.get("total"),
+            text=payload.get("text"),
         )
 
     def _repr_markdown_(self) -> str:
@@ -378,6 +389,7 @@ class Excerpt:
             self.commit,
             self.repository,
             self.link_text(),
+            named=self.text is not None,
         )
         if not self.parts:
             classes = (
@@ -419,19 +431,25 @@ def source_link_markdown(
     commit: BuildCommit,
     repository: str,
     text: str = "Source",
+    named: bool = False,
 ) -> str:
     """The compact Source link of an excerpt (U1b): the word, with the object
     and its lines for a screen reader; the path, the lines, and the commit in
     the address and in the link's data attributes. Without a known commit
-    there is nothing to link to, and the path and lines are written out."""
+    there is nothing to link to, and the path and lines are written out.
+    ``named``: ``text`` already says what the link opens, so the screen
+    reader's words add the object after a comma, not after "of"."""
     first, last = span
     where = _line_range(first, last)
     object_name = name.partition(":")[2] or name.partition(":")[0]
     if commit.sha is None:
         return f"{text}: `{path}`, {where}."
     address = f"{repository}/blob/{commit.sha}/{path}#L{first}-L{last}"
+    hidden = (
+        f"[, `{object_name}`, {where}]" if named else f" [of `{object_name}`, {where}]"
+    )
     return (
-        f"[{text} [of `{object_name}`, {where}]{{.visually-hidden}}]({address})"
+        f"[{text}{hidden}{{.visually-hidden}}]({address})"
         f'{{.source-link title="{path}, {where}, at commit {commit.sha[:12]}"'
         f' source-name="{name}" path="{path}" lines="{first}-{last}"'
         f' commit="{commit.sha}"}}'
@@ -954,14 +972,19 @@ def excerpt(
     )
 
 
-def source_link(obj: object, *, figure: bool = False) -> Excerpt:
+def source_link(
+    obj: object, *, figure: bool = False, text: str | None = None
+) -> Excerpt:
     """Return the Source link alone to a function or class of ``pbc``, the
     display form for code the lesson does not teach (ADR 023; U1h).
 
     ``figure=True`` names it "Figure source", for the function that draws a
-    figure shown on the page. The link opens the whole object at the built
-    commit.
+    figure shown on the page. ``text`` names it where two links next to each
+    other would both read "Source", such as "Source of the methods table".
+    The link opens the whole object at the built commit.
     """
+    if text is not None and not text.strip():
+        raise ValueError("the words of a Source link cannot be empty")
     module, name, kind = _resolve(obj)
     if kind == "module":
         raise TypeError("a Source link opens a function or class, not a module")
@@ -975,4 +998,5 @@ def source_link(obj: object, *, figure: bool = False) -> Excerpt:
         repository=repository_url(),
         kind=kind,
         figure=figure,
+        text=text,
     )

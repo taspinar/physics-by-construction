@@ -332,7 +332,7 @@ def spread(values):
 
 
 def energy_formulas(experiment: Experiment):
-    """The energy formulas of the explanation against the runs of the
+    """The energy formulas of the lesson against the runs of the
     figure; record the table and return the runs and modified energies."""
     results = {
         integrator.name: run_method(integrator, n, n_periods)[0]
@@ -385,7 +385,7 @@ def energy_formulas(experiment: Experiment):
             ("derived", "", ".8f"),
             ("largest deviation", "", ".1e"),
         ],
-        caption="The energy formulas of the explanation against the runs of the "
+        caption="The energy formulas derived in the lesson against the runs of the "
         "figure: the per-step energy ratio, and how far the modified energy "
         "strays from constant.",
     )
