@@ -24,6 +24,7 @@ from matplotlib.figure import Figure
 
 from pbc.agents.display import AllowlistDisplay, RunDisplay
 from pbc.agents.loop import MAX_CALLS_PER_MESSAGE
+from pbc.authoring import FIGURE_COLOURS
 from pbc.authoring.repository import REPOSITORY_ROOT
 from pbc.discovery import (
     CentralForceEnvironment,
@@ -44,6 +45,7 @@ from pbc.discovery.force_lab import (
     replay_run,
 )
 from pbc.experiment import Experiment, main
+from pbc.figure_language import MUTED, figsize, figure_style, finish
 
 # The live run of the lesson: a model, its key, and the extra openai.
 LIVE = "pbc.discovery.force_lab black-box"
@@ -136,43 +138,47 @@ def draw_force_probes(data, own) -> Figure:
     beyond the bounds."""
     grid = grid_probe(environment(RUN))
     distances = np.geomspace(1.0, 12.0, 100)
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    ax.loglog(
-        [s["distance"] for s in grid.settings],
-        grid.values / np.array([s["mass"] for s in grid.settings]),
-        "o",
-        color="#9aa4ae",
-        markersize=4,
-        label="grid baseline readings",
-    )
-    ax.loglog(
-        [s["distance"] for s in data.settings],
-        data.values / np.array([s["mass"] for s in data.settings]),
-        "o",
-        color="#93003a",
-        markersize=7,
-        label="agent's readings",
-    )
-    inside = distances <= 4.0
-    line = own["strength"] * distances ** -own["exponent"]
-    ax.loglog(
-        distances[inside],
-        line[inside],
-        color="#00429d",
-        label="fit to the agent's readings",
-    )
-    ax.loglog(
-        distances[~inside],
-        line[~inside],
-        "--",
-        color="#00429d",
-        label="extrapolated beyond the bounds",
-    )
-    ax.axvline(4.0, color="#57606a", linestyle=":")
-    ax.set_xlabel("distance (m)")
-    ax.set_ylabel("force per unit mass (N/kg)")
-    ax.legend(fontsize=8)
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=4))
+        # The grid's readings in the muted grey (the lighter grey of before
+        # had less than 3:1 against the plate).
+        ax.loglog(
+            [s["distance"] for s in grid.settings],
+            grid.values / np.array([s["mass"] for s in grid.settings]),
+            "o",
+            color=MUTED,
+            markersize=4,
+            label="grid baseline readings",
+        )
+        ax.loglog(
+            [s["distance"] for s in data.settings],
+            data.values / np.array([s["mass"] for s in data.settings]),
+            "o",
+            color=FIGURE_COLOURS[1],
+            markersize=7,
+            label="agent's readings",
+        )
+        inside = distances <= 4.0
+        line = own["strength"] * distances ** -own["exponent"]
+        ax.loglog(
+            distances[inside],
+            line[inside],
+            color=FIGURE_COLOURS[0],
+            label="fit to the agent's readings",
+        )
+        ax.loglog(
+            distances[~inside],
+            line[~inside],
+            "--",
+            color=FIGURE_COLOURS[0],
+            label="extrapolated beyond the bounds",
+        )
+        ax.axvline(4.0, color=MUTED, linestyle=":")
+        ax.set_xlabel("distance (m)")
+        ax.set_ylabel("force per unit\nmass (N/kg)")
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def sparse_on_a_collinear_library(experiment: Experiment) -> None:

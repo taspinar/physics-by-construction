@@ -20,6 +20,7 @@ from matplotlib.figure import Figure
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, figsize, figure_style, finish
 from pbc.materials.bands import (
     bloch_centre,
     chain_hamiltonian,
@@ -113,49 +114,55 @@ def draw_bands(data) -> Figure:
     energies, k = data
     q = np.linspace(-np.pi, np.pi, 300)
     lower, upper = two_site_bands(q, DELTA, T)
-    fig, ax = plt.subplots(figsize=(6.4, 4.0))
-    ax.axhspan(-DELTA, DELTA, color=FIGURE_COLOURS[2], alpha=0.15, label="gap, 2 Delta")
-    folded_lower, folded_upper = two_site_bands(q, 0.0, T)
-    ax.plot(q, folded_lower, color=FIGURE_COLOURS[2], linestyle=":", label="Delta = 0")
-    ax.plot(q, folded_upper, color=FIGURE_COLOURS[2], linestyle=":")
-    ax.plot(
-        q,
-        lower,
-        color=FIGURE_COLOURS[0],
-        linestyle="-",
-        label="lower band, closed form",
-    )
-    ax.plot(
-        q,
-        upper,
-        color=FIGURE_COLOURS[0],
-        linestyle="--",
-        label="upper band, closed form",
-    )
-    # Each level is drawn at +|k| and -|k|: the ring holds both states.
-    k, energies = np.concatenate([k, -k]), np.concatenate([energies, energies])
-    filled_mask = energies < 0
-    ax.plot(
-        k[filled_mask],
-        energies[filled_mask],
-        "o",
-        color=FIGURE_COLOURS[1],
-        label="ring, filled",
-    )
-    ax.plot(
-        k[~filled_mask],
-        energies[~filled_mask],
-        "o",
-        color=FIGURE_COLOURS[1],
-        markerfacecolor="none",
-        label="ring, empty",
-    )
-    ax.set_xlim(-np.pi, np.pi)
-    ax.set_xticks([-np.pi, 0, np.pi], ["-pi/a", "0", "pi/a"])
-    ax.set_xlabel("wavenumber k (units of 1/a, a the cell length)")
-    ax.set_ylabel("energy E (units of t)")
-    ax.legend(fontsize="small", loc="upper left", bbox_to_anchor=(1.0, 1.0))
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=6))
+        ax.axhspan(
+            -DELTA, DELTA, color=FIGURE_COLOURS[2], alpha=0.15, label="gap, 2 Delta"
+        )
+        folded_lower, folded_upper = two_site_bands(q, 0.0, T)
+        ax.plot(
+            q, folded_lower, color=FIGURE_COLOURS[2], linestyle=":", label="Delta = 0"
+        )
+        ax.plot(q, folded_upper, color=FIGURE_COLOURS[2], linestyle=":")
+        ax.plot(
+            q,
+            lower,
+            color=FIGURE_COLOURS[0],
+            linestyle="-",
+            label="lower band, closed form",
+        )
+        ax.plot(
+            q,
+            upper,
+            color=FIGURE_COLOURS[0],
+            linestyle="--",
+            label="upper band, closed form",
+        )
+        # Each level is drawn at +|k| and -|k|: the ring holds both states.
+        k, energies = np.concatenate([k, -k]), np.concatenate([energies, energies])
+        filled_mask = energies < 0
+        ax.plot(
+            k[filled_mask],
+            energies[filled_mask],
+            "o",
+            color=FIGURE_COLOURS[1],
+            label="ring, filled",
+        )
+        ax.plot(
+            k[~filled_mask],
+            energies[~filled_mask],
+            "o",
+            color=FIGURE_COLOURS[1],
+            markerfacecolor="none",
+            label="ring, empty",
+        )
+        ax.set_xlim(-np.pi, np.pi)
+        ax.set_xticks([-np.pi, 0, np.pi], ["-pi/a", "0", "pi/a"])
+        ax.set_xlabel("wavenumber k (units of 1/a,\na the cell length)")
+        ax.set_ylabel("energy E (units of t)")
+        # Six entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def one_band_checks(experiment: Experiment):
@@ -202,26 +209,29 @@ def draw_counting() -> Figure:
     cells = 16
     energies = ring_energies(cells, [EPS0], T)
     e = np.linspace(-2.6 * T, 2.6 * T, 600)
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    ax.plot(
-        e,
-        cells * counting(e, EPS0, T),
-        color=FIGURE_COLOURS[0],
-        linestyle="--",
-        label="closed form N arccos(-E/2t) / pi",
-    )
-    ax.step(
-        e,
-        np.searchsorted(energies, e, side="left"),
-        where="post",
-        color=FIGURE_COLOURS[1],
-        linestyle="-",
-        label="levels of the ring below E",
-    )
-    ax.set_xlabel("energy E (units of t)")
-    ax.set_ylabel("number of levels below E (dimensionless)")
-    ax.legend(fontsize="small", loc="upper left")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        ax.plot(
+            e,
+            cells * counting(e, EPS0, T),
+            color=FIGURE_COLOURS[0],
+            linestyle="--",
+            linewidth=LINE["model"],
+            label="closed form N arccos(-E/2t) / pi",
+        )
+        ax.step(
+            e,
+            np.searchsorted(energies, e, side="left"),
+            where="post",
+            color=FIGURE_COLOURS[1],
+            linestyle="-",
+            label="levels of the ring below E",
+        )
+        ax.set_xlabel("energy E (units of t)")
+        ax.set_ylabel("number of levels below E\n(dimensionless)")
+        # The legend would cover the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def fill(experiment: Experiment):
@@ -318,34 +328,38 @@ def draw_bloch(data) -> Figure:
     force = 0.1
     t = np.linspace(0, run.t[-1], 400)
     x0 = run.centre[0]
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
-    ax.plot(
-        t,
-        bloch_centre(t, x0, shift, T, force) - x0,
-        color=FIGURE_COLOURS[0],
-        linestyle="--",
-        label="closed form",
-    )
-    ax.plot(
-        t,
-        force * t**2 / (2 * effective_mass(T)),
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label="free particle of mass m*",
-    )
-    ax.plot(
-        run.t[::8],
-        run.centre[::8] - x0,
-        "o",
-        color=FIGURE_COLOURS[1],
-        markerfacecolor="none",
-        label="exact propagation",
-    )
-    ax.set_ylim(-5, 4.6 * T / force)
-    ax.set_xlabel("time t (units of hbar/t)")
-    ax.set_ylabel("displacement of the centre (units of a)")
-    ax.legend(fontsize="small", loc="upper right")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        ax.plot(
+            t,
+            bloch_centre(t, x0, shift, T, force) - x0,
+            color=FIGURE_COLOURS[0],
+            linestyle="--",
+            linewidth=LINE["model"],
+            label="closed form",
+        )
+        ax.plot(
+            t,
+            force * t**2 / (2 * effective_mass(T)),
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            linewidth=LINE["model"],
+            label="free particle of mass m*",
+        )
+        ax.plot(
+            run.t[::8],
+            run.centre[::8] - x0,
+            "o",
+            color=FIGURE_COLOURS[1],
+            markerfacecolor="none",
+            label="exact propagation",
+        )
+        ax.set_ylim(-5, 4.6 * T / force)
+        ax.set_xlabel("time t (units of hbar/t)")
+        ax.set_ylabel("displacement of the centre\n(units of a)")
+        # The legend would cover the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def gap_closes():

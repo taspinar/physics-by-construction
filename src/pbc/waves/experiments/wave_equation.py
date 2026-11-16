@@ -14,7 +14,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
 
+from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, TEXT, figsize, figure_style, finish
 from pbc.waves.wave import (
     amplitude_growth,
     error_norm,
@@ -70,17 +72,30 @@ def pulse_run():
 
 def draw_pulse_reflections(pulse, pick, exact) -> Figure:
     """The pulse at five times, computed and exact, shifted for each time."""
-    fig, ax = plt.subplots(figsize=(6.4, 4.2))
-    for row, (j, e) in enumerate(zip(pick, exact, strict=True)):
-        offset = -1.2 * row
-        ax.plot(x, pulse.u[j] + offset, color="#00429d")
-        ax.plot(x, e + offset, color="#93003a", linestyle="--", linewidth=1)
-        ax.text(1.02, offset, f"{pulse.t[j] * 1000:.0f} ms", va="center")
-    ax.set_xlabel("position (m)")
-    ax.set_ylabel("displacement, shifted for each time (arbitrary units)")
-    ax.set_yticks([])
-    ax.set_xlim(0, 1.12)
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        for row, (j, e) in enumerate(zip(pick, exact, strict=True)):
+            offset = -1.2 * row
+            ax.plot(x, pulse.u[j] + offset, color=FIGURE_COLOURS[0])
+            ax.plot(
+                x,
+                e + offset,
+                color=FIGURE_COLOURS[1],
+                linestyle="--",
+                linewidth=LINE["model"],
+            )
+            ax.text(
+                1.02,
+                offset,
+                f"{pulse.t[j] * 1000:.0f} ms",
+                va="center",
+                fontsize=TEXT["note"],
+            )
+        ax.set_xlabel("position (m)")
+        ax.set_ylabel("displacement, shifted\nfor each time\n(arbitrary units)")
+        ax.set_yticks([])
+        ax.set_xlim(0, 1.12)
+    return finish(fig)
 
 
 def final_error(n_cells, shape, reference, time):
@@ -145,26 +160,36 @@ def convergence(experiment: Experiment):
 
 def draw_convergence(spacing, pulse_errors, mode_errors) -> Figure:
     """The error against the spacing, with slopes one and two."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    ax.loglog(spacing, pulse_errors, "o-", color="#00429d", label="pulse")
-    ax.loglog(spacing, mode_errors, "s-", color="#93003a", label="standing mode")
-    ax.loglog(
-        spacing,
-        mode_errors[-1] * (spacing / spacing[-1]) ** 2,
-        color="gray",
-        label="slope two",
-    )
-    ax.loglog(
-        spacing,
-        mode_errors[-1] * (spacing / spacing[-1]),
-        color="gray",
-        linestyle=":",
-        label="slope one",
-    )
-    ax.set_xlabel("grid spacing (m)")
-    ax.set_ylabel("largest error of the displacement")
-    ax.legend()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=4))
+        ax.loglog(spacing, pulse_errors, "o-", color=FIGURE_COLOURS[0], label="pulse")
+        ax.loglog(
+            spacing, mode_errors, "s-", color=FIGURE_COLOURS[1], label="standing mode"
+        )
+        ax.loglog(
+            spacing,
+            mode_errors[-1] * (spacing / spacing[-1]) ** 2,
+            color="gray",
+            linewidth=LINE["guide"],
+            label="slope two",
+        )
+        ax.loglog(
+            spacing,
+            mode_errors[-1] * (spacing / spacing[-1]),
+            color="gray",
+            linestyle=":",
+            linewidth=LINE["guide"],
+            label="slope one",
+        )
+        # The spacings as the ticks: the minor labels of the log axis ran
+        # into each other at this width.
+        ax.set_xticks(spacing, labels=[f"{value:.2g}" for value in spacing])
+        ax.minorticks_off()
+        ax.set_xlabel("grid spacing (m)")
+        ax.set_ylabel("largest error of\nthe displacement")
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 # region: courants
@@ -208,18 +233,28 @@ def cfl_run(experiment: Experiment):
 def draw_cfl(runs) -> Figure:
     """The largest value of the zigzag against the step, for five Courant
     numbers."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    for c, colour in zip(
-        (0.9, 1.0, 1.02, 1.1, 1.5),
-        ("#4a7ab5", "#00429d", "#c9a227", "#d9622b", "#93003a"),
-        strict=True,
-    ):
-        size = np.max(np.abs(runs[c].u), axis=1) / 1e-10
-        ax.semilogy(size, color=colour, label=f"C = {c}")
-    ax.set_xlabel("step")
-    ax.set_ylabel("largest value (units of the start)")
-    ax.legend()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=5))
+        # The yellow of before (#c9a227, 2.4:1 against the plate) is the
+        # next palette colour not used here (S3).
+        for c, colour in zip(
+            (0.9, 1.0, 1.02, 1.1, 1.5),
+            (
+                "#4a7ab5",
+                FIGURE_COLOURS[0],
+                FIGURE_COLOURS[3],
+                "#d9622b",
+                FIGURE_COLOURS[1],
+            ),
+            strict=True,
+        ):
+            size = np.max(np.abs(runs[c].u), axis=1) / 1e-10
+            ax.semilogy(size, color=colour, label=f"C = {c}")
+        ax.set_xlabel("step")
+        ax.set_ylabel("largest value\n(units of the start)")
+        # Five entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def free_ends():

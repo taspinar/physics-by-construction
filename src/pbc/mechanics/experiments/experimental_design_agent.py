@@ -37,6 +37,7 @@ from pbc.agents.design_lab import (
 from pbc.agents.display import AllowlistDisplay, AssessmentDisplay, RunDisplay
 from pbc.authoring.repository import REPOSITORY_ROOT
 from pbc.experiment import Experiment, main
+from pbc.figure_language import figsize, figure_style, finish
 
 # The live run of the lesson: a model, its key, and the extra openai.
 LIVE = "pbc.agents.design_lab"
@@ -113,30 +114,31 @@ def draw_design(assessment) -> Figure:
     fitted models and the readings of the campaign."""
     fits = {f.model.name: f.fit for f in assessment.fits}
     speeds = np.linspace(0.5, 20, 100)
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    ax.plot(
-        speeds,
-        quadratic(speeds, 3.0, fits["quadratic drag"].value("k")) / speeds,
-        label="quadratic drag, fitted",
-    )
-    ax.plot(
-        speeds,
-        linear(speeds, 3.0, fits["linear drag"].value("g")) / speeds,
-        label="linear drag, fitted",
-    )
-    for m in assessment.measurements:
-        if m.arguments["time"] == 3.0:
-            ax.plot(
-                m.arguments["initial_speed"],
-                m.value / m.arguments["initial_speed"],
-                "ko",
-                markersize=4,
-            )
-    ax.set_xlabel("start speed (m/s)")
-    ax.set_ylabel("fraction of the start speed left after 3 s")
-    ax.set_ylim(0, 1.05)
-    ax.legend()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        ax.plot(
+            speeds,
+            quadratic(speeds, 3.0, fits["quadratic drag"].value("k")) / speeds,
+            label="quadratic drag, fitted",
+        )
+        ax.plot(
+            speeds,
+            linear(speeds, 3.0, fits["linear drag"].value("g")) / speeds,
+            label="linear drag, fitted",
+        )
+        for m in assessment.measurements:
+            if m.arguments["time"] == 3.0:
+                ax.plot(
+                    m.arguments["initial_speed"],
+                    m.value / m.arguments["initial_speed"],
+                    "ko",
+                    markersize=4,
+                )
+        ax.set_xlabel("start speed (m/s)")
+        ax.set_ylabel("fraction of the start\nspeed left after 3 s")
+        ax.set_ylim(0, 1.05)
+        ax.legend()
+    return finish(fig)
 
 
 def a_fifth_reading():

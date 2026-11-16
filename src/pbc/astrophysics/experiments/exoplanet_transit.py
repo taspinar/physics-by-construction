@@ -31,6 +31,7 @@ from pbc.astrophysics.transit import (
 )
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, figsize, figure_style, finish
 
 # region: setup
 GM_SUN = 1.32712440018e20  # m³/s², the Sun's mass parameter
@@ -115,37 +116,38 @@ def one_transit(experiment: Experiment):
 def draw_transit(run_, grid, closed) -> Figure:
     """The simulated light curve, the closed-form curve, and the four
     contacts of the integrated orbit."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
     step = 8
-    ax.plot(
-        run_["hours"][::step],
-        grid[::step],
-        "o",
-        color=FIGURE_COLOURS[0],
-        markerfacecolor="none",
-        label="simulated (grid over the planet)",
-    )
-    ax.plot(
-        run_["hours"],
-        closed,
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        linewidth=1.2,
-        label="closed-form overlap",
-    )
-    for k, time in enumerate(np.concatenate([run_["outer"], run_["inner"]])):
-        ax.axvline(
-            time,
-            color=FIGURE_COLOURS[2],
-            linestyle=":",
-            linewidth=1,
-            label="contacts of the integrated orbit" if k == 0 else None,
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=3))
+        ax.plot(
+            run_["hours"][::step],
+            grid[::step],
+            "o",
+            color=FIGURE_COLOURS[0],
+            markerfacecolor="none",
+            label="simulated (grid over the planet)",
         )
-    ax.set_xlabel("time from mid-transit (hours)")
-    ax.set_ylabel("flux / flux out of transit")
-    ax.legend(fontsize="small", loc="upper center")
-    fig.tight_layout()
-    return fig
+        ax.plot(
+            run_["hours"],
+            closed,
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            linewidth=LINE["model"],
+            label="closed-form overlap",
+        )
+        for k, time in enumerate(np.concatenate([run_["outer"], run_["inner"]])):
+            ax.axvline(
+                time,
+                color=FIGURE_COLOURS[2],
+                linestyle=":",
+                linewidth=LINE["guide"],
+                label="contacts of the integrated orbit" if k == 0 else None,
+            )
+        ax.set_xlabel("time from mid-transit (hours)")
+        ax.set_ylabel("flux / flux out of transit")
+        # Three long names over the curve: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def impact_scan(experiment: Experiment):
@@ -195,22 +197,22 @@ def impact_scan(experiment: Experiment):
 
 def draw_impacts(curves) -> Figure:
     """The light curves of the impact parameters."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
     styles = ("-", "--", "-.", ":", (0, (1, 3)))
-    for k, ((b, hours, flux), line) in enumerate(zip(curves, styles, strict=True)):
-        ax.plot(
-            hours,
-            flux,
-            color=FIGURE_COLOURS[k % len(FIGURE_COLOURS)],
-            linestyle=line,
-            linewidth=1.5,
-            label=f"b = {b:.2f}",
-        )
-    ax.set_xlabel("time from mid-transit (hours)")
-    ax.set_ylabel("flux / flux out of transit")
-    ax.legend(fontsize="small", loc="lower center", bbox_to_anchor=(0.5, 1.0), ncols=5)
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=5))
+        for k, ((b, hours, flux), line) in enumerate(zip(curves, styles, strict=True)):
+            ax.plot(
+                hours,
+                flux,
+                color=FIGURE_COLOURS[k % len(FIGURE_COLOURS)],
+                linestyle=line,
+                label=f"b = {b:.2f}",
+            )
+        ax.set_xlabel("time from mid-transit (hours)")
+        ax.set_ylabel("flux / flux out of transit")
+        # Five entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def limb_darkening(experiment: Experiment):
@@ -248,31 +250,33 @@ def limb_darkening(experiment: Experiment):
 
 def draw_limb(hours, uniform_curve, darker_curve) -> Figure:
     """A central transit on a uniform and on a limb-darkened star."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    ax.plot(
-        hours,
-        uniform_curve,
-        color=FIGURE_COLOURS[0],
-        linestyle="-",
-        linewidth=1.5,
-        label="uniform star",
-    )
-    ax.plot(
-        hours,
-        darker_curve,
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        linewidth=1.5,
-        label="limb-darkened star",
-    )
-    ax.axhline(
-        1 - p**2, color=FIGURE_COLOURS[2], linestyle=":", linewidth=1, label="1 - p^2"
-    )
-    ax.set_xlabel("time from mid-transit (hours)")
-    ax.set_ylabel("flux / flux out of transit")
-    ax.legend(fontsize="small", loc="upper center")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        ax.plot(
+            hours,
+            uniform_curve,
+            color=FIGURE_COLOURS[0],
+            linestyle="-",
+            label="uniform star",
+        )
+        ax.plot(
+            hours,
+            darker_curve,
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            label="limb-darkened star",
+        )
+        ax.axhline(
+            1 - p**2,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            linewidth=LINE["guide"],
+            label="1 - p^2",
+        )
+        ax.set_xlabel("time from mid-transit (hours)")
+        ax.set_ylabel("flux / flux out of transit")
+        ax.legend(loc="upper center")
+    return finish(fig)
 
 
 def earth_transit():

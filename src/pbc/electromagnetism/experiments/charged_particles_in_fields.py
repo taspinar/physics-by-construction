@@ -15,6 +15,7 @@ from functools import partial
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
+from matplotlib.ticker import MaxNLocator
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.electromagnetism.motion import (
@@ -34,6 +35,7 @@ from pbc.electromagnetism.motion import (
     measured_angular_frequency,
 )
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, direct_label, figsize, figure_style, finish
 from pbc.verification.estimates import fitted_order
 
 NO_FIELD = np.zeros(3)
@@ -252,24 +254,33 @@ def draw_drift(orbits: dict[str, tuple[Trajectory, float]]) -> Figure:
     """The paths of the proton and the electron over four turns of the
     proton."""
     shown_time = 4 * orbits["proton"][1]  # four turns of the proton
-    fig, ax = plt.subplots(figsize=(6.4, 3.2))
-    for (name, (orbit, _)), colour, style in zip(
-        orbits.items(), FIGURE_COLOURS[:2], ["-", "--"], strict=True
-    ):
-        shown = orbit.t <= shown_time
-        ax.plot(
-            orbit.x[shown, 0] * 1e6,
-            orbit.x[shown, 1] * 1e6,
-            color=colour,
-            linestyle=style,
-            label=name,
-        )
-    ax.axhline(0.0, color=FIGURE_COLOURS[2], linewidth=0.6)
-    ax.set_aspect("equal")
-    ax.set_xlabel("x (μm)")
-    ax.set_ylabel("y (μm)")
-    ax.legend(fontsize=8, loc="upper left", bbox_to_anchor=(1.0, 1.0))
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        for (name, (orbit, _)), colour, style, below in zip(
+            orbits.items(), FIGURE_COLOURS[:2], ["-", "--"], [False, True], strict=True
+        ):
+            shown = orbit.t <= shown_time
+            x = orbit.x[shown, 0] * 1e6
+            y = orbit.x[shown, 1] * 1e6
+            ax.plot(x, y, color=colour, linestyle=style, label=name)
+            # The name beside the end of its path (S5), on its side of the
+            # starting line.
+            direct_label(
+                ax,
+                x[-1],
+                0.0,
+                name,
+                colour,
+                offset=(4.0, -3.0 if below else 3.0),
+                va="top" if below else "bottom",
+            )
+        ax.axhline(0.0, color=FIGURE_COLOURS[2], linewidth=LINE["guide"])
+        ax.set_aspect("equal")
+        # A flat plot: three ticks on y, so that their labels stay apart.
+        ax.yaxis.set_major_locator(MaxNLocator(3))
+        ax.set_xlabel("x (μm)")
+        ax.set_ylabel("y (μm)")
+    return finish(fig)
 
 
 def mass_spectrometer() -> tuple[float, float]:

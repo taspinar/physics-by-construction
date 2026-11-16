@@ -1,4 +1,4 @@
-"""The figure language of the pilot (F170): one style for a lesson figure.
+"""The figure language (F170, revised by F171): one style for a lesson figure.
 
 A figure opts in inside its ``draw_`` function: it draws in a ``with
 figure_style():`` block, under ``RC`` on top of the settings of
@@ -7,7 +7,8 @@ figure_style():`` block, under ``RC`` on top of the settings of
 decorator: a lesson shows its ``draw_`` functions with ``excerpt``, which
 must find each one, and its lines, in the lesson's own module.
 Nothing changes for a figure that does not opt in: ``FIGURE_SETTINGS`` stays
-as it is (a global change is F171, after the owner's decision).
+as it is. F171 revised the sizes (the owner's decision on Issue #544) and
+opted in the figures that ``docs/authoring.md`` ("Figure language") lists.
 
 The values come from the design tokens of ``pbc.authoring.design`` (the ink,
 the muted grey, the rule, the white plate, the figure colours); the module
@@ -16,13 +17,19 @@ adds sizes, line weights, and the rules below, and no colour of its own.
 each part applies.
 
 - **Dimensions.** One width, ``WIDTH``, for every figure; heights from
-  ``ASPECTS``. On a phone the page scales a figure down to about 306 CSS px,
-  so a figure narrower than the old default keeps its text legible there.
+  ``ASPECTS``; two panels stacked, never side by side. On a phone the page
+  scales a figure down to about 306 CSS px (375 px phone) or 251 CSS px
+  (320 px phone), so the width and the type are chosen together: the
+  smallest text is 9 CSS px or more at 320 px (F171).
 - **Typography.** DejaVu Sans, the face Matplotlib ships: the site's STIX Two
   Text exists only as web-font subsets, and the STIXGeneral Matplotlib ships
   shares its name with system copies (macOS), so the face a machine picks,
   and the bytes, would depend on the machine. Sizes from ``TEXT``; nothing
-  smaller than ``MIN_TEXT`` points.
+  smaller than ``MIN_TEXT`` points; at most ``TICKS`` ticks on an axis
+  Matplotlib places.
+- **Legends.** At most three entries inside the axes, where they cover no
+  data; otherwise the series are named beside the curves (``direct_label``)
+  or the legend goes under the plot in one column.
 - **Hierarchy.** Labels and titles in ink, tick labels in the muted grey,
   axes and ticks in the rule's grey, no top or right spine on a line plot;
   data lines ``LINE["data"]``, models ``LINE["model"]``, reference lines and
@@ -51,6 +58,7 @@ from typing import TYPE_CHECKING
 import matplotlib
 import numpy as np
 from matplotlib import cycler, patheffects
+from matplotlib.ticker import AutoLocator, MaxNLocator
 
 from pbc.authoring.design import CONTROL_CONTRAST, FIGURE_COLOURS, PAGE, contrast_ratio
 
@@ -60,23 +68,35 @@ if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
 
-# The width of every figure, in inches: 538 CSS px on a desktop, scaled to
-# 0.57 on a phone.
-WIDTH = 5.6
-# Height over width, by the kind of figure.
+# The width of every figure, in inches: 394 CSS px on a desktop, scaled to
+# 0.78 on a 375 px phone and 0.64 on a 320 px phone (F171, the revised
+# language: one PNG serves every width, so the text-to-width ratio sets the
+# size a phone shows).
+WIDTH = 4.1
+# Height over width, by the kind of figure. Two panels are stacked, never
+# side by side: side by side, each would have half the width on a phone.
 ASPECTS = {
-    "line": 0.62,  # one panel of lines
-    "pair": 0.5,  # two panels side by side
-    "square": 0.9,  # a trajectory or an orbit with equal axes
-    "stacked": 0.95,  # two panels, one above the other
-    "measured": 1.15,  # three stacked panels of measured data and residuals
+    "line": 0.78,  # one panel of lines
+    "pair": 1.3,  # two panels, one above the other
+    "square": 1.0,  # a trajectory or an orbit with equal axes
+    "stacked": 1.3,  # two panels, one above the other
+    "measured": 1.6,  # three stacked panels of measured data and residuals
 }
-# Type sizes in points. At WIDTH, a point is 1.33 CSS px on a desktop and
-# 0.76 CSS px on a phone (306 CSS px, PHONE_WIDTH of pbc.figure_audit), so
-# MIN_TEXT is 12.7 and 7.2 CSS px; the tight crop of a saved figure widens
-# it by up to 2 %, so a phone shows at least 7.07 CSS px (the tests' bound).
-TEXT = {"tick": 10.0, "label": 11.0, "title": 11.0, "legend": 10.0, "note": 9.5}
-MIN_TEXT = 9.5
+# Type sizes in points. At WIDTH, a point is 1.33 CSS px on a desktop,
+# 0.78 CSS px on a 375 px phone (306 CSS px, PHONE_WIDTH of
+# pbc.figure_audit) and 0.64 CSS px on a 320 px phone (251 CSS px), so
+# MIN_TEXT is 14.7, 11.4 and 9.3 CSS px; the tight crop of a saved figure
+# widens it by up to 2.5 %, so a 320 px phone shows at least 9.0 CSS px
+# (the tests' bound).
+TEXT = {"tick": 11.0, "label": 12.0, "title": 12.0, "legend": 11.0, "note": 11.0}
+MIN_TEXT = 11.0
+# The height one entry of a legend under the plot takes, in inches (an
+# 11 pt line and its spacing): ``figsize`` adds it per entry, so that the
+# plot keeps its height when the legend moves under it.
+LEGEND_ROW = 0.24
+# At most this many major ticks on a linear axis whose ticks Matplotlib
+# places itself (``finish``); a figure's own tick set is kept.
+TICKS = 5
 # Line widths in points: the hierarchy of a figure.
 LINE = {"data": 1.8, "model": 1.4, "guide": 1.0, "axis": 0.8, "grid": 0.6}
 # The casing of an isoline, in points on each side of its stroke.
@@ -128,9 +148,10 @@ RC = {
 }
 
 
-def figsize(kind: str) -> tuple[float, float]:
-    """The size of a figure of the kind ``kind`` (a key of ``ASPECTS``)."""
-    return (WIDTH, round(WIDTH * ASPECTS[kind], 2))
+def figsize(kind: str, *, legend: int = 0) -> tuple[float, float]:
+    """The size of a figure of the kind ``kind`` (a key of ``ASPECTS``), with
+    room for ``legend`` entries of a legend under the plot."""
+    return (WIDTH, round(WIDTH * ASPECTS[kind] + legend * LEGEND_ROW, 2))
 
 
 def line_colours(palette: Sequence[str]) -> tuple[str, ...]:
@@ -185,7 +206,9 @@ def _has_image(ax: Axes) -> bool:
 
 def finish(fig: Figure, *, grid: bool = False) -> Figure:
     """Set the grid of every axes of ``fig``, only where ``grid`` asks for
-    it; a field keeps its frame and never has a grid."""
+    it; a field keeps its frame and never has a grid. A linear axis whose
+    ticks Matplotlib places itself gets at most ``TICKS`` major ticks; an
+    axis with a tick set of its own, or a log axis, keeps its ticks."""
     for ax in fig.axes:
         image = _has_image(ax)
         if image:
@@ -201,6 +224,9 @@ def finish(fig: Figure, *, grid: bool = False) -> Figure:
             )
         else:
             ax.grid(False)
+        for axis, scale in ((ax.xaxis, ax.get_xscale()), (ax.yaxis, ax.get_yscale())):
+            if scale == "linear" and type(axis.get_major_locator()) is AutoLocator:
+                axis.set_major_locator(MaxNLocator(TICKS, steps=[1, 2, 2.5, 5, 10]))
     return fig
 
 

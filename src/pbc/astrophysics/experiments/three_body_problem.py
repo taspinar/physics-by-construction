@@ -30,6 +30,7 @@ from pbc.astrophysics.three_body import (
 )
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, MUTED, TEXT, figsize, figure_style, finish
 from pbc.mechanics.dynamics import State, simulate
 from pbc.mechanics.integrators import rk4_step
 from pbc.mechanics.nbody import angular_momentum, gravity, total_energy
@@ -158,49 +159,48 @@ def stability_scan(experiment: Experiment):
 
 
 def draw_stability(rows, curves) -> Figure:
-    """Left: the departure from equilateral over time for a stable and an
-    unstable triangle. Right: the growth rate against 27 beta, measured and
+    """Top: the departure from equilateral over time for a stable and an
+    unstable triangle. Bottom: the growth rate against 27 beta, measured and
     predicted."""
-    fig, (left, right) = plt.subplots(1, 2, figsize=(6.4, 3.4))
-    for q, colour, line in ((small[0], 0, "-"), (small[-1], 1, "--")):
-        t, departure = curves[q]
-        left.semilogy(
-            t,
-            departure,
-            color=FIGURE_COLOURS[colour],
-            linestyle=line,
-            label=f"q = {q:g}",
-        )
-    left.set_xlabel("time (periods)")
-    left.set_ylabel("departure from equilateral")
-    left.legend(fontsize="small", loc="upper left")
-
     # The prediction of three_body.lagrange_growth_rate, as a function of 27 beta.
     k = np.linspace(0.3, 9.2, 400)
     predicted = 0.5 * np.sqrt(np.sqrt(np.maximum(k, 1)) - 1)
-    right.plot(
-        k,
-        predicted,
-        color=FIGURE_COLOURS[0],
-        linestyle="--",
-        linewidth=1,
-        label="Routh's prediction",
-    )
-    right.plot(
-        [row[2] for row in rows],
-        [row[3] for row in rows],
-        "o",
-        color=FIGURE_COLOURS[1],
-        markerfacecolor="none",
-        label="measured",
-    )
-    right.axvline(1.0, color="#57606a", linestyle=":", linewidth=1)
-    right.text(1.15, 0.62, "27 beta = 1", fontsize="small")
-    right.set_xlabel("27 beta")
-    right.set_ylabel("growth rate / omega")
-    right.legend(fontsize="small", loc="lower right")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=figsize("pair"))
+        for q, colour, line in ((small[0], 0, "-"), (small[-1], 1, "--")):
+            t, departure = curves[q]
+            top.semilogy(
+                t,
+                departure,
+                color=FIGURE_COLOURS[colour],
+                linestyle=line,
+                label=f"q = {q:g}",
+            )
+        top.set_xlabel("time (periods)")
+        top.set_ylabel("departure from\nequilateral")
+        top.legend(loc="upper left")
+        bottom.plot(
+            k,
+            predicted,
+            color=FIGURE_COLOURS[0],
+            linestyle="--",
+            linewidth=LINE["model"],
+            label="Routh's prediction",
+        )
+        bottom.plot(
+            [row[2] for row in rows],
+            [row[3] for row in rows],
+            "o",
+            color=FIGURE_COLOURS[1],
+            markerfacecolor="none",
+            label="measured",
+        )
+        bottom.axvline(1.0, color=MUTED, linestyle=":", linewidth=LINE["guide"])
+        bottom.text(1.15, 0.62, "27 beta = 1", fontsize=TEXT["note"])
+        bottom.set_xlabel("27 beta")
+        bottom.set_ylabel("growth rate / omega")
+        bottom.legend(loc="lower right")
+    return finish(fig)
 
 
 def pythagorean_runs(experiment: Experiment):
@@ -331,31 +331,33 @@ def draw_divergence(times, runs, separations) -> Figure:
     relative energy error of the reference run, against time, log scale."""
     m, _ = pythagorean_start()
     energy = total_energy(G, m, runs[0])
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
-    ax.semilogy(
-        times[1:],
-        separations[0][1:],
-        color=FIGURE_COLOURS[0],
-        label="tolerance 1e-13 against 1e-12",
-    )
-    ax.semilogy(
-        times[1:],
-        separations[1][1:],
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        label="start moved by 1e-6",
-    )
-    ax.semilogy(
-        times[1:],
-        np.abs(energy[1:] / energy[0] - 1),
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label="relative energy error, reference run",
-    )
-    ax.set_xlabel("time (units of the problem)")
-    ax.set_ylabel("largest coordinate difference, energy error")
-    ax.legend(fontsize="small", loc="lower right")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=3))
+        ax.semilogy(
+            times[1:],
+            separations[0][1:],
+            color=FIGURE_COLOURS[0],
+            label="tolerance 1e-13 against 1e-12",
+        )
+        ax.semilogy(
+            times[1:],
+            separations[1][1:],
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            label="start moved by 1e-6",
+        )
+        ax.semilogy(
+            times[1:],
+            np.abs(energy[1:] / energy[0] - 1),
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            label="relative energy error, reference run",
+        )
+        ax.set_xlabel("time (units of the problem)")
+        ax.set_ylabel("largest coordinate\ndifference, energy error")
+        # Three long names over the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def critical_mass_ratio():

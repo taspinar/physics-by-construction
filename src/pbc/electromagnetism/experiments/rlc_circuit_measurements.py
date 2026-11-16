@@ -341,9 +341,8 @@ def draw_impedance_fit(spectrum: Spectrum, result: FitResult) -> Figure:
             gridspec_kw={"height_ratios": [1.6, 1.0, 1.0]},
         )
         measured = {"color": COLOURS[0], "marker": "o", "ms": 3.2, "ls": "none"}
-        # One legend for the three series, in the empty upper left of the
-        # magnitude panel; each entry kept narrow, so that it stays there at
-        # the phone's size of type. The status is at the caption, not in it.
+        # One legend for the three series, above the plot; each entry kept
+        # narrow. The status is at the caption, not in it.
         (points,) = top.loglog(
             modulus.x,
             modulus.y,
@@ -394,12 +393,17 @@ def draw_impedance_fit(spectrum: Spectrum, result: FitResult) -> Figure:
             )
         middle.axhline(0, color=MUTED, lw=LINE["axis"])
         top.set_ylabel("|Z| [ohm]")
-        top.set_title("Magnitude of the impedance, coil parallel to a capacitor")
-        # Room above the peak, so that the legend clears the rising curve.
+        top.set_title("Magnitude of the impedance,\ncoil parallel to a capacitor")
+        # Room above the peak (F170's limit, kept: F171 changes no limit).
         top.set_ylim(top=5 * float(np.max(modulus.y)))
-        top.legend(loc="upper left", labelspacing=0.3)
+        # At the language's size of type the legend would cover the peak, and
+        # the credit line takes the foot of the figure: the panel's legend
+        # goes above the plot and its title, in one column.
+        top.legend(
+            loc="lower center", bbox_to_anchor=(0.5, 1.28), ncols=1, labelspacing=0.3
+        )
         middle.set_ylabel("phase of Z [deg]")
-        middle.set_title("Phase: inductive below the resonance, capacitive above")
+        middle.set_title("Phase: inductive below the resonance,\ncapacitive above")
         bottom.set_yscale("log")
         bottom.set_ylabel("residual [%]")
         bottom.set_xlabel("frequency [Hz]")

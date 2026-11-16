@@ -319,8 +319,8 @@ excerpt(experiment.grating_lobes)
 ```{python}
 #| label: fig-grating-lobes
 #| echo: false
-#| fig-cap: "Left: at a spacing of a wavelength, a beam steered to thirty degrees has a second lobe of full height; at half a wavelength it has none. Right: the spacing at which the second lobe appears follows the closed form."
-#| fig-alt: "Two panels. Left: two power patterns against direction, both peaking at the same angle; the dashed one has a second peak of full height on the far side of broadside, the solid one does not. Right: a curve of onset spacing in wavelengths falling with the steering angle, with square markers of the bisection on it."
+#| fig-cap: "Top: at a spacing of a wavelength, a beam steered to thirty degrees has a second lobe of full height; at half a wavelength it has none. Bottom: the spacing at which the second lobe appears follows the closed form."
+#| fig-alt: "Two stacked panels. Top: two power patterns against direction, both peaking at the same angle; the dashed one has a second peak of full height on the far side of broadside, the solid one does not. Bottom: a curve of onset spacing in wavelengths falling with the steering angle, with square markers of the bisection on it."
 #| fig-status: simulated
 result.show("fig-grating-lobes")
 ```

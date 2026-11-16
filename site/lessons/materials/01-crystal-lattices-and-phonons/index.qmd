@@ -304,7 +304,7 @@ excerpt(experiment.draw_dispersion)
 #| label: fig-dispersion
 #| echo: false
 #| fig-cap: "The normal modes of the ring lie on the closed-form dispersion: one branch for one atom per cell, an acoustic and an optical branch with a gap between them for two."
-#| fig-alt: "Two panels of frequency against wavenumber from zero to pi over a. Left, the monatomic chain: a solid sine-shaped curve rises from zero and flattens at the zone edge; a dotted straight line, the sound line, follows it at small wavenumbers and then rises above it; open circles, the ring's modes, lie on the curve. Right, the diatomic chain: a solid acoustic curve rises from zero and flattens, a dashed optical curve falls gently from its top at zero wavenumber; a shaded horizontal band between them marks the gap; open squares lie on both curves."
+#| fig-alt: "Two stacked panels of frequency against wavenumber from zero to pi over a. Top, the monatomic chain: a solid sine-shaped curve rises from zero and flattens at the zone edge; a dotted straight line, the sound line, follows it at small wavenumbers and then rises above it; open circles, the ring's modes, lie on the curve. Bottom, the diatomic chain: a solid acoustic curve rises from zero and flattens, a dashed optical curve falls gently from its top at zero wavenumber; a shaded horizontal band between them marks the gap; open squares lie on both curves."
 #| fig-status: simulated
 result.show("fig-dispersion")
 ```

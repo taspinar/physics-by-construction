@@ -16,7 +16,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
 
+from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import figsize, figure_style, finish
 from pbc.waves.modes import measured_frequency, spectrum_peaks, triangle
 from pbc.waves.sound import (
     SPEED_OF_SOUND,
@@ -240,34 +242,42 @@ def draw_doppler(speeds, from_source, from_observer) -> Figure:
     """The heard frequency over the emitted against the speed, formulas and
     computed points."""
     v = np.linspace(-0.4, 0.4, 161) * SOUND
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    ax.plot(
-        v / SOUND,
-        [source_shift(F0, SOUND, s) / F0 for s in v],
-        color="#00429d",
-        label="source: formula",
-    )
-    ax.plot(
-        v / SOUND,
-        [observer_shift(F0, SOUND, s) / F0 for s in v],
-        color="#93003a",
-        label="listener: formula",
-    )
-    ax.plot(v / SOUND, 1 + v / SOUND, color="gray", linestyle=":", label="first order")
-    ax.plot(
-        speeds / SOUND, from_source / F0, "o", color="#00429d", label="source: computed"
-    )
-    ax.plot(
-        speeds / SOUND,
-        from_observer / F0,
-        "s",
-        color="#93003a",
-        label="listener: computed",
-    )
-    ax.set_xlabel("speed towards, in units of the speed of sound")
-    ax.set_ylabel("heard frequency over emitted")
-    ax.legend(fontsize=8)
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=5))
+        ax.plot(
+            v / SOUND,
+            [source_shift(F0, SOUND, s) / F0 for s in v],
+            color=FIGURE_COLOURS[0],
+            label="source: formula",
+        )
+        ax.plot(
+            v / SOUND,
+            [observer_shift(F0, SOUND, s) / F0 for s in v],
+            color=FIGURE_COLOURS[1],
+            label="listener: formula",
+        )
+        ax.plot(
+            v / SOUND, 1 + v / SOUND, color="gray", linestyle=":", label="first order"
+        )
+        ax.plot(
+            speeds / SOUND,
+            from_source / F0,
+            "o",
+            color=FIGURE_COLOURS[0],
+            label="source: computed",
+        )
+        ax.plot(
+            speeds / SOUND,
+            from_observer / F0,
+            "s",
+            color=FIGURE_COLOURS[1],
+            label="listener: computed",
+        )
+        ax.set_xlabel("speed towards, in units of\nthe speed of sound")
+        ax.set_ylabel("heard frequency\nover emitted")
+        # Five entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def siren():

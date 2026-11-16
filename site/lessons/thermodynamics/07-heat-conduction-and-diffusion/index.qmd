@@ -357,8 +357,8 @@ result.table("time-convergence")
 ```{python}
 #| label: fig-heat-convergence
 #| echo: false
-#| fig-cap: "The error of the explicit scheme falls with the square of the grid spacing at fixed r (left) and in proportion to the time step on a fixed grid (right), parallel to the reference slopes."
-#| fig-alt: "Two log-log panels. Left: largest error against the grid spacing, five points on a straight line parallel to a dotted reference line of slope two. Right: largest error against the time step, five points on a straight line parallel to a dotted reference line of slope one."
+#| fig-cap: "The error of the explicit scheme falls with the square of the grid spacing at fixed r (top) and in proportion to the time step on a fixed grid (bottom), parallel to the reference slopes."
+#| fig-alt: "Two log-log panels, one above the other. Top: largest error against the grid spacing, five points on a straight line parallel to a dotted reference line of slope two. Bottom: largest error against the time step, five points on a straight line parallel to a dotted reference line of slope one."
 #| fig-status: simulated
 result.show("fig-heat-convergence")
 ```
@@ -401,7 +401,7 @@ excerpt(conduction.steady_plate)
 #| label: fig-plate-temperature
 #| echo: false
 #| fig-cap: "Heat creeps into the plate from its hot edge: after a minute only the lowest few centimetres have warmed, and the transient settles on the steady field computed by one sparse solve."
-#| fig-alt: "Two square false-colour maps of the plate temperature on one colour scale, with four labelled isotherms, white with a dark outline over the cooler colours and dark with a white outline over the warmer ones. Left, after a minute: a warm band along the bottom edge, the rest still cold. Right, the steady state: the isotherms bulge further up into the plate, highest in the middle, and every one runs down to the bottom corners, where the cold side edges meet the hot bottom edge."
+#| fig-alt: "Two square false-colour maps of the plate temperature, one above the other, on one colour scale, with four labelled isotherms, white with a dark outline over the cooler colours and dark with a white outline over the warmer ones. Top, after a minute: a warm band along the bottom edge, the rest still cold. Bottom, the steady state: the isotherms bulge further up into the plate, highest in the middle, and every one runs down to the bottom corners, where the cold side edges meet the hot bottom edge."
 #| fig-status: simulated
 result.show("fig-plate-temperature")
 ```

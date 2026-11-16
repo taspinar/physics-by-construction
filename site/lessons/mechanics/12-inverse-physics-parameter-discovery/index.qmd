@@ -196,12 +196,12 @@ excerpt(experiment.draw_profiles)
 #| label: fig-profiles
 #| echo: false
 #| fig-cap: "Chi-square against one parameter, the others refitted at each value, relative to the minimum. The angular frequency of the damped oscillation has a narrow bowl; the spring constant of the free oscillation, where the mass can compensate, has a flat profile with no interval. The dotted line marks one above the minimum."
-#| fig-alt: "Two panels sharing a logarithmic vertical axis of chi-square above its minimum. The left panel, angular frequency, shows a narrow V-shaped bowl whose two arms rise steeply and cross a dotted horizontal line at one, a little either side of the minimum. The right panel, spring constant from one to ten, shows a flat line along the very bottom of the axis that never approaches the dotted line."
+#| fig-alt: "Two stacked panels sharing a logarithmic vertical axis of chi-square above its minimum. The top panel, angular frequency, shows a narrow V-shaped bowl whose two arms rise steeply and cross a dotted horizontal line at one, a little either side of the minimum. The bottom panel, spring constant from one to ten, shows a flat line along the very bottom of the axis that never approaches the dotted line."
 #| fig-status: simulated
 result.show("fig-profiles")
 ```
 
-The left panel is the contrast: a parameter that the data bound, with an
+The top panel is the contrast: a parameter that the data bound, with an
 interval from `{python} result["omega-low"]` to `{python} result["omega-high"]` radians per second
 at one above the minimum.
 

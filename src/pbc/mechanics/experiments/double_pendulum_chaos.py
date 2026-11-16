@@ -18,6 +18,7 @@ from scipy.constants import g
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, MUTED, direct_label, figsize, figure_style, finish
 from pbc.mechanics.chaos import (
     double_pendulum,
     double_pendulum_energy,
@@ -143,33 +144,52 @@ def separations(regular_run, chaotic_run):
 
 def draw_separation(regular_run, chaotic_run, regular_gap, chaotic_gap, rate) -> Figure:
     """The distance between two nearby starts against time."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    ax.semilogy(
-        regular_run.t,
-        regular_gap,
-        color=FIGURE_COLOURS[0],
-        linestyle="-",
-        label="regular start",
-    )
-    ax.semilogy(
-        chaotic_run.t,
-        chaotic_gap,
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        label="chaotic start",
-    )
-    t_line = np.linspace(0.0, 14.0, 50)
-    ax.semilogy(
-        t_line,
-        offset * np.exp(rate * t_line),
-        color="#57606a",
-        linestyle=":",
-        label="slope of the exponent",
-    )
-    ax.set_xlabel("time (s)")
-    ax.set_ylabel("distance between the two starts")
-    ax.legend(loc="lower right")
-    return fig
+    regular, chaotic = FIGURE_COLOURS[0], FIGURE_COLOURS[1]
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        ax.semilogy(
+            regular_run.t,
+            regular_gap,
+            color=regular,
+            linestyle="-",
+            label="regular start",
+        )
+        ax.semilogy(
+            chaotic_run.t,
+            chaotic_gap,
+            color=chaotic,
+            linestyle="--",
+            label="chaotic start",
+        )
+        t_line = np.linspace(0.0, 14.0, 50)
+        ax.semilogy(
+            t_line,
+            offset * np.exp(rate * t_line),
+            color=MUTED,
+            linestyle=":",
+            linewidth=LINE["guide"],
+            label="slope of the exponent",
+        )
+        ax.set_xlabel("time (s)")
+        ax.set_ylabel("distance between\nthe two starts")
+        # The series named beside the curves: a legend inside the axes
+        # covered the regular start's curve.
+        direct_label(
+            ax, 35.0, 3e-6, "regular start", regular, offset=(0.0, 0.0), ha="center"
+        )
+        direct_label(
+            ax, 32.0, 3e-1, "chaotic start", chaotic, offset=(0.0, 0.0), ha="center"
+        )
+        direct_label(
+            ax,
+            10.5,
+            1e-1,
+            "slope of the\nexponent",
+            MUTED,
+            offset=(-6.0, 0.0),
+            ha="right",
+        )
+    return finish(fig, grid=True)
 
 
 def lyapunov_table(experiment: Experiment, estimates) -> list:

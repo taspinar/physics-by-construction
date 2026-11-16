@@ -30,6 +30,7 @@ from pbc.discovery.equations import (
     sparse_regression,
 )
 from pbc.experiment import Experiment, main
+from pbc.figure_language import figsize, figure_style, finish
 from pbc.mechanics.dynamics import State, simulate
 from pbc.mechanics.integrators import rk4_step
 
@@ -124,23 +125,27 @@ def held_out(equation: Equation) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 def draw_held_out(t: np.ndarray, truth: np.ndarray, found: np.ndarray) -> Figure:
     """The true and the found motion from the held-out start, and their
     difference."""
-    fig, (top, bottom) = plt.subplots(
-        2,
-        1,
-        figsize=(6.4, 4.4),
-        sharex=True,
-        constrained_layout=True,
-        gridspec_kw={"height_ratios": [2, 1]},
-    )
-    top.plot(t, truth, color=FIGURE_COLOURS[0], linestyle="-", label="true equation")
-    top.plot(t, found, color=FIGURE_COLOURS[1], linestyle="--", label="found equation")
-    top.set_ylabel("position (m)")
-    top.legend(loc="upper right", fontsize=8)
-    bottom.plot(t, found - truth, color=FIGURE_COLOURS[1], linestyle="-")
-    bottom.set_ylabel("difference (m)")
-    bottom.set_xlabel("time (s)")
-    bottom.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(
+            2,
+            1,
+            figsize=figsize("stacked"),
+            sharex=True,
+            gridspec_kw={"height_ratios": [2, 1]},
+        )
+        top.plot(
+            t, truth, color=FIGURE_COLOURS[0], linestyle="-", label="true equation"
+        )
+        top.plot(
+            t, found, color=FIGURE_COLOURS[1], linestyle="--", label="found equation"
+        )
+        top.set_ylabel("position (m)")
+        top.legend(loc="upper right")
+        bottom.plot(t, found - truth, color=FIGURE_COLOURS[1], linestyle="-")
+        bottom.set_ylabel("difference (m)")
+        bottom.set_xlabel("time (s)")
+        bottom.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
+    return finish(fig)
 
 
 def one_orbit(experiment: Experiment) -> tuple[np.ndarray, np.ndarray]:
@@ -194,28 +199,30 @@ def draw_singular_values(
     single: np.ndarray, several: np.ndarray, floor: float
 ) -> Figure:
     """The singular values of the library on one orbit and on four."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6), constrained_layout=True)
     index = np.arange(1, len(single) + 1)
-    ax.semilogy(
-        index,
-        np.maximum(single, floor),
-        color=FIGURE_COLOURS[1],
-        marker="s",
-        linestyle="--",
-        label=f"one orbit (below {floor:g} drawn at {floor:g})",
-    )
-    ax.semilogy(
-        index,
-        several,
-        color=FIGURE_COLOURS[0],
-        marker="o",
-        linestyle="-",
-        label="four orbits",
-    )
-    ax.set_xlabel("singular value, largest first")
-    ax.set_ylabel("relative to the largest (dimensionless)")
-    ax.legend(loc="lower left", fontsize=8)
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=2))
+        ax.semilogy(
+            index,
+            np.maximum(single, floor),
+            color=FIGURE_COLOURS[1],
+            marker="s",
+            linestyle="--",
+            label=f"one orbit (below {floor:g} drawn at {floor:g})",
+        )
+        ax.semilogy(
+            index,
+            several,
+            color=FIGURE_COLOURS[0],
+            marker="o",
+            linestyle="-",
+            label="four orbits",
+        )
+        ax.set_xlabel("singular value, largest first")
+        ax.set_ylabel("relative to the largest\n(dimensionless)")
+        # A long name over the points: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def pendulum(experiment: Experiment) -> None:

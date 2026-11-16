@@ -18,6 +18,7 @@ from matplotlib.figure import Figure
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, TEXT, figsize, figure_style, finish
 from pbc.verification.estimates import fitted_order
 from pbc.waves.refraction import (
     bisect_root,
@@ -100,55 +101,58 @@ def least_time_run(experiment: Experiment):
 def draw_refraction(found) -> Figure:
     """The refracted angle against the angle of incidence: Snell's law as
     lines, the paths of least time as markers."""
-    fig, ax = plt.subplots(figsize=(7.6, 3.8))
     styles = {
         "air to water": (FIGURE_COLOURS[0], "-", "o"),
         "air to glass": (FIGURE_COLOURS[1], "--", "s"),
         "glass to air": (FIGURE_COLOURS[4], "-.", "^"),
     }
-    for name, (n1, n2) in pairs.items():
-        colour, line, marker = styles[name]
-        top = critical_angle(n1, n2) if n1 > n2 else np.pi / 2
-        theta = np.linspace(0.0, top, 400)
-        ax.plot(
-            np.degrees(theta),
-            np.degrees(snell_angle(theta, n1, n2)),
-            color=colour,
-            linestyle=line,
-            label=f"{name}: Snell's law",
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("square", legend=7))
+        for name, (n1, n2) in pairs.items():
+            colour, line, marker = styles[name]
+            top = critical_angle(n1, n2) if n1 > n2 else np.pi / 2
+            theta = np.linspace(0.0, top, 400)
+            ax.plot(
+                np.degrees(theta),
+                np.degrees(snell_angle(theta, n1, n2)),
+                color=colour,
+                linestyle=line,
+                label=f"{name}: Snell's law",
+            )
+            ax.plot(
+                np.degrees(found[name][:, 0]),
+                np.degrees(found[name][:, 1]),
+                marker,
+                color=colour,
+                label=f"{name}: least time",
+            )
+        critical = np.degrees(critical_angle(GLASS, AIR))
+        ax.axvline(
+            critical, color=FIGURE_COLOURS[2], linestyle=":", linewidth=LINE["axis"]
+        )
+        ax.annotate(
+            "critical angle,\nglass to air",
+            (critical, 4.0),
+            xytext=(4, 0),
+            textcoords="offset points",
+            fontsize=TEXT["note"],
+            color=FIGURE_COLOURS[2],
         )
         ax.plot(
-            np.degrees(found[name][:, 0]),
-            np.degrees(found[name][:, 1]),
-            marker,
-            color=colour,
-            label=f"{name}: least time",
+            [0, 90],
+            [0, 90],
+            color=FIGURE_COLOURS[2],
+            linewidth=LINE["grid"],
+            linestyle=":",
+            label="angle unchanged",
         )
-    critical = np.degrees(critical_angle(GLASS, AIR))
-    ax.axvline(critical, color=FIGURE_COLOURS[2], linestyle=":", linewidth=0.8)
-    ax.annotate(
-        "critical angle, glass to air",
-        (critical, 4.0),
-        xytext=(4, 0),
-        textcoords="offset points",
-        fontsize="small",
-        color=FIGURE_COLOURS[2],
-    )
-    ax.plot(
-        [0, 90],
-        [0, 90],
-        color=FIGURE_COLOURS[2],
-        linewidth=0.6,
-        linestyle=":",
-        label="angle unchanged",
-    )
-    ax.set_xlim(0, 90)
-    ax.set_ylim(0, 90)
-    ax.set_xlabel("angle of incidence (degrees)")
-    ax.set_ylabel("angle of refraction (degrees)")
-    ax.legend(fontsize=7, loc="upper left", bbox_to_anchor=(1.02, 1.0))
-    fig.tight_layout()
-    return fig
+        ax.set_xlim(0, 90)
+        ax.set_ylim(0, 90)
+        ax.set_xlabel("angle of incidence (degrees)")
+        ax.set_ylabel("angle of refraction (degrees)")
+        # Seven entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def fresnel_run(experiment: Experiment):
@@ -228,47 +232,49 @@ def below(value: float, bound: float = 1e-12) -> str:
 def draw_fresnel() -> Figure:
     """R_s and R_p against the angle of incidence, from air into glass and
     from glass into air, with the Brewster and the critical angles."""
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.4), sharey=True)
-    for ax, (name, (n1, n2)) in zip(
-        axes,
-        (("air to glass", (AIR, GLASS)), ("glass to air", (GLASS, AIR))),
-        strict=True,
-    ):
-        theta = np.radians(np.linspace(0.0, 89.9, 600))
-        solved = fresnel_solved(theta, n1, n2)
-        ax.plot(
-            np.degrees(theta),
-            reflectance(solved["rs"]),
-            color=FIGURE_COLOURS[0],
-            label="R_s",
-        )
-        ax.plot(
-            np.degrees(theta),
-            reflectance(solved["rp"]),
-            color=FIGURE_COLOURS[1],
-            linestyle="--",
-            label="R_p",
-        )
-        ax.axvline(
-            np.degrees(brewster_angle(n1, n2)),
-            color=FIGURE_COLOURS[2],
-            linestyle=":",
-            label="Brewster angle",
-        )
-        if n1 > n2:
-            ax.axvline(
-                np.degrees(critical_angle(n1, n2)),
-                color=FIGURE_COLOURS[3],
-                linestyle="-.",
-                label="critical angle",
+    with figure_style():
+        fig, axes = plt.subplots(2, 1, figsize=figsize("pair", legend=4), sharey=True)
+        for ax, (name, (n1, n2)) in zip(
+            axes,
+            (("air to glass", (AIR, GLASS)), ("glass to air", (GLASS, AIR))),
+            strict=True,
+        ):
+            theta = np.radians(np.linspace(0.0, 89.9, 600))
+            solved = fresnel_solved(theta, n1, n2)
+            ax.plot(
+                np.degrees(theta),
+                reflectance(solved["rs"]),
+                color=FIGURE_COLOURS[0],
+                label="R_s",
             )
-        ax.set_title(name, fontsize="medium")
-        ax.set_xlabel("angle of incidence (degrees)")
-        ax.set_xlim(0, 90)
-    axes[0].set_ylabel("reflected fraction of the power\n(dimensionless)")
-    axes[0].legend(fontsize=7, loc="upper left")
-    axes[1].legend(fontsize=7, loc="center right")
-    return fig
+            ax.plot(
+                np.degrees(theta),
+                reflectance(solved["rp"]),
+                color=FIGURE_COLOURS[1],
+                linestyle="--",
+                label="R_p",
+            )
+            ax.axvline(
+                np.degrees(brewster_angle(n1, n2)),
+                color=FIGURE_COLOURS[2],
+                linestyle=":",
+                label="Brewster angle",
+            )
+            if n1 > n2:
+                ax.axvline(
+                    np.degrees(critical_angle(n1, n2)),
+                    color=FIGURE_COLOURS[3],
+                    linestyle="-.",
+                    label="critical angle",
+                )
+            ax.set_title(name)
+            ax.set_xlabel("angle of incidence (degrees)")
+            ax.set_xlim(0, 90)
+            ax.set_ylabel("reflected fraction of\nthe power (dimensionless)")
+        # The four entries of the lower panel (the upper panel's three are
+        # among them): once, under the plot.
+        fig.legend(*axes[1].get_legend_handles_labels(), loc="outside lower center")
+    return finish(fig)
 
 
 def gaussian(z):
@@ -338,24 +344,26 @@ def draw_interface_pulse() -> Figure:
     """The pulse at the start and after it has crossed the interface, on
     the grid and exact."""
     x, u, exact = pulse(400)
-    fig, ax = plt.subplots(figsize=(6.4, 3.4))
-    ax.axvspan(INTERFACE, 1.0, color=FIGURE_COLOURS[2], alpha=0.12, linewidth=0)
-    ax.plot(x, gaussian(x), color=FIGURE_COLOURS[2], linestyle=":", label="start")
-    ax.plot(x, exact, color=FIGURE_COLOURS[0], label="exact, after crossing")
-    ax.plot(
-        x[::4],
-        u[::4],
-        "o",
-        markersize=3,
-        color=FIGURE_COLOURS[1],
-        label="grid, after crossing",
-    )
-    ax.annotate("air", (0.05, 0.85), xycoords="axes fraction")
-    ax.annotate("glass", (0.85, 0.85), xycoords="axes fraction")
-    ax.set_xlabel("position (m)")
-    ax.set_ylabel("electric field (units of the incident peak)")
-    ax.legend(fontsize=7, loc="center left")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        ax.axvspan(INTERFACE, 1.0, color=FIGURE_COLOURS[2], alpha=0.12, linewidth=0)
+        ax.plot(x, gaussian(x), color=FIGURE_COLOURS[2], linestyle=":", label="start")
+        ax.plot(x, exact, color=FIGURE_COLOURS[0], label="exact, after crossing")
+        ax.plot(
+            x[::4],
+            u[::4],
+            "o",
+            markersize=3,
+            color=FIGURE_COLOURS[1],
+            label="grid, after crossing",
+        )
+        ax.annotate("air", (0.05, 0.85), xycoords="axes fraction")
+        ax.annotate("glass", (0.85, 0.85), xycoords="axes fraction")
+        ax.set_xlabel("position (m)")
+        ax.set_ylabel("electric field\n(units of the incident peak)")
+        # The legend would cover the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def glass_slab():

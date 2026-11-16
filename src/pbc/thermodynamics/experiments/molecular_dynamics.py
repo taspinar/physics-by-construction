@@ -21,6 +21,7 @@ from matplotlib.ticker import NullFormatter, NullLocator
 from pbc.abm.gas import mean_and_error
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, figsize, figure_style, finish
 from pbc.thermodynamics.molecular import (
     initial_velocities,
     shifted_force,
@@ -133,50 +134,50 @@ def energy_check(experiment: Experiment, runs) -> tuple[list, float]:
 
 
 def draw_energy_drift(runs, fluctuations) -> Figure:
-    """Left: the change of the total energy per particle against the time,
-    for the three time steps. Right: its fluctuation against the time step,
+    """Top: the change of the total energy per particle against the time,
+    for the three time steps. Bottom: its fluctuation against the time step,
     log-log, with a reference line of slope two."""
-    fig, (left, right) = plt.subplots(
-        1, 2, figsize=(7.2, 3.4), gridspec_kw={"width_ratios": [1.8, 1.0]}
-    )
-    for (line, colour, marker), dt, run in zip(
-        STEP_STYLES, time_steps, runs, strict=True
-    ):
-        left.plot(
-            run.times,
-            (run.energy - run.energy[0]) / N,
-            color=colour,
-            linestyle=line,
-            linewidth=0.8,
-            label=f"step {dt:g}",
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=figsize("pair", legend=3))
+        for (line, colour, marker), dt, run in zip(
+            STEP_STYLES, time_steps, runs, strict=True
+        ):
+            top.plot(
+                run.times,
+                (run.energy - run.energy[0]) / N,
+                color=colour,
+                linestyle=line,
+                linewidth=LINE["guide"],
+                label=f"step {dt:g}",
+            )
+            bottom.loglog(
+                dt,
+                fluctuations[time_steps.index(dt)],
+                color=colour,
+                marker=marker,
+                linestyle="none",
+            )
+        top.set_xlabel(r"time ($\sigma\sqrt{m/\epsilon}$)")
+        top.set_ylabel(r"$(E(t) - E(0))/N$ ($\epsilon$)")
+        steps = np.array([time_steps[-1], time_steps[0]])
+        reference = fluctuations[-1] * (steps / time_steps[-1]) ** 2
+        bottom.loglog(
+            steps,
+            reference,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            label="slope 2 (reference)",
         )
-        right.loglog(
-            dt,
-            fluctuations[time_steps.index(dt)],
-            color=colour,
-            marker=marker,
-            linestyle="none",
-        )
-    left.set_xlabel(r"time ($\sigma\sqrt{m/\epsilon}$)")
-    left.set_ylabel(r"$(E(t) - E(0))/N$ ($\epsilon$)")
-    left.legend(frameon=False, loc="lower left", ncols=3, fontsize="small")
-    steps = np.array([time_steps[-1], time_steps[0]])
-    reference = fluctuations[-1] * (steps / time_steps[-1]) ** 2
-    right.loglog(
-        steps,
-        reference,
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label="slope 2 (reference)",
-    )
-    right.set_xticks(time_steps, labels=[f"{dt:g}" for dt in time_steps])
-    right.xaxis.set_minor_locator(NullLocator())
-    right.yaxis.set_minor_formatter(NullFormatter())
-    right.set_xlabel("time step (reduced units)")
-    right.set_ylabel(r"fluctuation of $E/N$ ($\epsilon$)")
-    right.legend(frameon=False, loc="upper left", fontsize="small")
-    fig.tight_layout()
-    return fig
+        bottom.set_xticks(time_steps, labels=[f"{dt:g}" for dt in time_steps])
+        bottom.xaxis.set_minor_locator(NullLocator())
+        bottom.yaxis.set_minor_formatter(NullFormatter())
+        bottom.set_xlabel("time step (reduced units)")
+        bottom.set_ylabel(r"fluctuation of $E/N$ ($\epsilon$)")
+        bottom.legend(loc="lower right")
+        # The steps over the noisy energy: the top panel's three entries
+        # under the plot.
+        fig.legend(*top.get_legend_handles_labels(), loc="outside lower center")
+    return finish(fig)
 
 
 def mixture_runs():

@@ -52,6 +52,7 @@ from pbc.discovery.worlds import (
     terms_force,
 )
 from pbc.experiment import Experiment, main
+from pbc.figure_language import figsize, figure_style, finish
 
 # The live run of the lesson: a model, its key, and the extra openai.
 LIVE = "pbc.discovery.world_lab"
@@ -182,26 +183,32 @@ def draw_predictive_test(curves) -> Figure:
     """The relative position error of each claim against time, on the
     held-out starts, with the tolerance."""
     styles = (("-", "o"), ("--", "s"), (":", "^"), ("-.", "D"))
-    fig, ax = plt.subplots(figsize=(6.4, 4.2))
-    for (name, errors), colour, (line, marker) in zip(
-        curves.items(), (FIGURE_COLOURS[i] for i in (1, 0, 4, 3)), styles, strict=False
-    ):
-        ax.plot(
-            CURVE_TIMES,
-            errors,
-            linestyle=line,
-            marker=marker,
-            markevery=5,
-            color=colour,
-            label=name,
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=len(curves) + 1))
+        for (name, errors), colour, (line, marker) in zip(
+            curves.items(),
+            (FIGURE_COLOURS[i] for i in (1, 0, 4, 3)),
+            styles,
+            strict=False,
+        ):
+            ax.plot(
+                CURVE_TIMES,
+                errors,
+                linestyle=line,
+                marker=marker,
+                markevery=5,
+                color=colour,
+                label=name,
+            )
+        ax.axhline(
+            TOLERANCE, color=FIGURE_COLOURS[2], linestyle="--", label="tolerance"
         )
-    ax.axhline(TOLERANCE, color=FIGURE_COLOURS[2], linestyle="--", label="tolerance")
-    ax.set_yscale("log")
-    ax.set_xlabel("time since the held-out start (s)")
-    ax.set_ylabel("position error / size of the system")
-    ax.legend(fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=3)
-    fig.tight_layout()
-    return fig
+        ax.set_yscale("log")
+        ax.set_xlabel("time since the held-out start (s)")
+        ax.set_ylabel("position error /\nsize of the system")
+        # Under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def coupling_ratios(experiment: Experiment, score) -> None:

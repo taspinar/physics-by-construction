@@ -37,6 +37,7 @@ from pbc.astrophysics.special_relativity import (
 )
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, MUTED, figsize, figure_style, finish
 from pbc.verification.estimates import fitted_order
 
 # region: setup
@@ -132,68 +133,75 @@ def draw_spacetime() -> Figure:
     interval -1 and +1, the events (1, 0) and (0, 1) carried by boosts along
     x, and the axes of the frame that moves with the largest of them."""
     shown = [-0.6, -0.3, 0.0, 0.3, 0.6]
-    fig, ax = plt.subplots(figsize=(6.0, 5.0))
     w = np.linspace(-1.2, 1.2, 200)
-    ax.plot(
-        np.sinh(w),
-        np.cosh(w),
-        color=FIGURE_COLOURS[0],
-        linestyle="--",
-        linewidth=1,
-        label="squared interval -1 (timelike)",
-    )
-    ax.plot(
-        np.cosh(w),
-        np.sinh(w),
-        color=FIGURE_COLOURS[1],
-        linestyle="-.",
-        linewidth=1,
-        label="squared interval +1 (spacelike)",
-    )
-    edge = np.array([-1.9, 1.9])
-    ax.plot(edge, edge, color="#57606a", linestyle=":", linewidth=1, label="light cone")
-    ax.plot(edge, -edge, color="#57606a", linestyle=":", linewidth=1)
-    for event, colour, marker, name in (
-        (
-            [1.0, 0.0, 0.0, 0.0],
-            FIGURE_COLOURS[0],
-            "o",
-            "boosted images of (t, x) = (1, 0)",
-        ),
-        (
-            [0.0, 1.0, 0.0, 0.0],
-            FIGURE_COLOURS[1],
-            "s",
-            "boosted images of (t, x) = (0, 1)",
-        ),
-    ):
-        moved = np.array([boost([b, 0.0, 0.0]) @ event for b in shown])
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("square", legend=6))
         ax.plot(
-            moved[:, 1],
-            moved[:, 0],
-            marker,
-            color=colour,
-            markerfacecolor="none",
-            label=name,
+            np.sinh(w),
+            np.cosh(w),
+            color=FIGURE_COLOURS[0],
+            linestyle="--",
+            linewidth=LINE["guide"],
+            label="squared interval -1 (timelike)",
         )
-    beta = shown[-1]
-    ax.plot(
-        edge * beta,
-        edge,
-        color=FIGURE_COLOURS[2],
-        linewidth=1.2,
-        label=f"axes of the frame moving with {beta} c",
-    )
-    ax.plot(edge, edge * beta, color=FIGURE_COLOURS[2], linewidth=1.2)
-    ax.set_xlim(-1.9, 1.9)
-    ax.set_ylim(-1.9, 1.9)
-    ax.set_aspect("equal")
-    ax.set_xlabel("x (light-seconds)")
-    ax.set_ylabel("t (s)")
-    ax.legend(
-        loc="lower center", bbox_to_anchor=(0.5, 1.0), ncols=2, fontsize="x-small"
-    )
-    return fig
+        ax.plot(
+            np.cosh(w),
+            np.sinh(w),
+            color=FIGURE_COLOURS[1],
+            linestyle="-.",
+            linewidth=LINE["guide"],
+            label="squared interval +1 (spacelike)",
+        )
+        edge = np.array([-1.9, 1.9])
+        ax.plot(
+            edge,
+            edge,
+            color=MUTED,
+            linestyle=":",
+            linewidth=LINE["guide"],
+            label="light cone",
+        )
+        ax.plot(edge, -edge, color=MUTED, linestyle=":", linewidth=LINE["guide"])
+        for event, colour, marker, name in (
+            (
+                [1.0, 0.0, 0.0, 0.0],
+                FIGURE_COLOURS[0],
+                "o",
+                "boosted images of (t, x) = (1, 0)",
+            ),
+            (
+                [0.0, 1.0, 0.0, 0.0],
+                FIGURE_COLOURS[1],
+                "s",
+                "boosted images of (t, x) = (0, 1)",
+            ),
+        ):
+            moved = np.array([boost([b, 0.0, 0.0]) @ event for b in shown])
+            ax.plot(
+                moved[:, 1],
+                moved[:, 0],
+                marker,
+                color=colour,
+                markerfacecolor="none",
+                label=name,
+            )
+        beta = shown[-1]
+        ax.plot(
+            edge * beta,
+            edge,
+            color=FIGURE_COLOURS[2],
+            linewidth=LINE["model"],
+            label=f"axes of the frame moving with {beta} c",
+        )
+        ax.plot(edge, edge * beta, color=FIGURE_COLOURS[2], linewidth=LINE["model"])
+        ax.set_xlim(-1.9, 1.9)
+        ax.set_ylim(-1.9, 1.9)
+        ax.set_aspect("equal")
+        ax.set_xlabel("x (light-seconds)")
+        ax.set_ylabel("t (s)")
+        # Six entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def dilation(experiment: Experiment):
@@ -286,33 +294,34 @@ def draw_collision(newtonian_at) -> Figure:
     """The change of the total Newtonian momentum of the collision against
     the observer's velocity, beside the change of the relativistic momentum."""
     w = np.linspace(-0.95, 0.95, 191)
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
-    ax.axhline(
-        0.0,
-        color=FIGURE_COLOURS[0],
-        linestyle="--",
-        linewidth=1.5,
-        label="relativistic momentum m gamma v (conserved)",
-    )
-    ax.plot(
-        w,
-        newtonian_at(w),
-        color=FIGURE_COLOURS[1],
-        linestyle="-",
-        label="Newtonian momentum m v",
-    )
-    ax.plot(
-        frames,
-        newtonian_at(np.array(frames)),
-        "o",
-        color=FIGURE_COLOURS[1],
-        markerfacecolor="none",
-        label="observers of the table",
-    )
-    ax.set_xlabel("observer's velocity along x (c)")
-    ax.set_ylabel("change of total momentum (m c)")
-    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncols=2, fontsize="small")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        ax.axhline(
+            0.0,
+            color=FIGURE_COLOURS[0],
+            linestyle="--",
+            label="relativistic momentum m gamma v\n(conserved)",
+        )
+        ax.plot(
+            w,
+            newtonian_at(w),
+            color=FIGURE_COLOURS[1],
+            linestyle="-",
+            label="Newtonian momentum m v",
+        )
+        ax.plot(
+            frames,
+            newtonian_at(np.array(frames)),
+            "o",
+            color=FIGURE_COLOURS[1],
+            markerfacecolor="none",
+            label="observers of the table",
+        )
+        ax.set_xlabel("observer's velocity along x (c)")
+        ax.set_ylabel("change of total\nmomentum (m c)")
+        # Three long names: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def newtonian_change(before, after, w):
@@ -365,32 +374,39 @@ def low_speed(experiment: Experiment):
 def draw_limit(gaps) -> Figure:
     """The three relative gaps against beta, log-log, with a reference line
     of slope two."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
-    for gap, colour, marker, name in zip(
-        gaps,
-        FIGURE_COLOURS,
-        ("o", "s", "^"),
-        ("kinetic energy", "velocity addition", "Lorentz against Galileo"),
-        strict=False,
-    ):
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=4))
+        for gap, colour, marker, name in zip(
+            gaps,
+            FIGURE_COLOURS,
+            ("o", "s", "^"),
+            ("kinetic energy", "velocity addition", "Lorentz against Galileo"),
+            strict=False,
+        ):
+            ax.loglog(
+                betas,
+                gap,
+                marker,
+                color=colour,
+                markerfacecolor="none",
+                linestyle="-",
+                linewidth=LINE["guide"],
+                label=name,
+            )
+        b = np.geomspace(betas[0], betas[-1], 50)
         ax.loglog(
-            betas,
-            gap,
-            marker,
-            color=colour,
-            markerfacecolor="none",
-            linestyle="-",
-            linewidth=0.8,
-            label=name,
+            b,
+            0.2 * b**2,
+            color=MUTED,
+            linestyle=":",
+            linewidth=LINE["model"],
+            label="reference: slope two",
         )
-    b = np.geomspace(betas[0], betas[-1], 50)
-    ax.loglog(
-        b, 0.2 * b**2, color="#57606a", linestyle=":", label="reference: slope two"
-    )
-    ax.set_xlabel("speed beta (units of c)")
-    ax.set_ylabel("relative gap from Newton's result")
-    ax.legend(fontsize="small")
-    return fig
+        ax.set_xlabel("speed beta (units of c)")
+        ax.set_ylabel("relative gap from\nNewton's result")
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def muon(experiment: Experiment):

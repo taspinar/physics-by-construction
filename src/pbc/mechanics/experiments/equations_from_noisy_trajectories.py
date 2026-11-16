@@ -31,6 +31,7 @@ from pbc.discovery.equations import (
     sparse_regression,
 )
 from pbc.experiment import Experiment, main
+from pbc.figure_language import figsize, figure_style, finish
 from pbc.mechanics.dynamics import State, simulate
 from pbc.mechanics.experiments.discovering_differential_equations import (
     DEGREE,
@@ -102,42 +103,44 @@ def draw_step_errors(errors: dict[float, list[float]]) -> Figure:
     """Log-log error of the second difference against the step, one curve
     per noise, with the slope of truncation and the predicted noise of the
     noisiest record as references."""
-    fig, ax = plt.subplots(figsize=(6.4, 4.0), constrained_layout=True)
     steps = np.array(STRIDES) * FINE
     styles = [("o", "-", 0), ("s", "--", 1), ("^", "-.", 3)]
-    for (noise, error), (marker, line, colour) in zip(
-        errors.items(), styles, strict=True
-    ):
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=5))
+        for (noise, error), (marker, line, colour) in zip(
+            errors.items(), styles, strict=True
+        ):
+            ax.loglog(
+                steps,
+                error,
+                marker=marker,
+                linestyle=line,
+                color=FIGURE_COLOURS[colour],
+                label="no noise" if noise == 0 else f"noise {noise:g} m",
+            )
+        clean = errors[0.0]
         ax.loglog(
             steps,
-            error,
-            marker=marker,
-            linestyle=line,
-            color=FIGURE_COLOURS[colour],
-            label="no noise" if noise == 0 else f"noise {noise:g} m",
+            clean[-1] * (steps / steps[-1]) ** 2,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            label="slope 2 (truncation)",
         )
-    clean = errors[0.0]
-    ax.loglog(
-        steps,
-        clean[-1] * (steps / steps[-1]) ** 2,
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label="slope 2 (truncation)",
-    )
-    top = max(errors)
-    ax.loglog(
-        steps,
-        np.sqrt(6) * top / steps**2,
-        color=FIGURE_COLOURS[2],
-        linestyle=(0, (1, 4)),
-        linewidth=2.5,
-        label=f"predicted noise for {top:g} m",
-    )
-    ax.set_ylim(min(clean) / 3, max(max(e) for e in errors.values()) * 3)
-    ax.set_xlabel("sampling interval (s)")
-    ax.set_ylabel("error of the acceleration (m/s²)")
-    ax.legend(loc="upper center", fontsize=8, ncols=2)
-    return fig
+        top = max(errors)
+        ax.loglog(
+            steps,
+            np.sqrt(6) * top / steps**2,
+            color=FIGURE_COLOURS[2],
+            linestyle=(0, (1, 4)),
+            linewidth=2.5,
+            label=f"predicted noise for {top:g} m",
+        )
+        ax.set_ylim(min(clean) / 3, max(max(e) for e in errors.values()) * 3)
+        ax.set_xlabel("sampling interval (s)")
+        ax.set_ylabel("error of the\nacceleration (m/s²)")
+        # Five entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 Differentiator = Callable[[np.ndarray, float], Derivatives]
@@ -215,22 +218,29 @@ def sweep(
 def draw_sweep(counts: dict[str, list[int]], errors: dict[str, list[float]]) -> Figure:
     """The fraction of copies recovered and the median coefficient error
     against the noise, for both differentiators, with the tolerance."""
-    fig, (top, bottom) = plt.subplots(
-        2, 1, figsize=(6.4, 5.6), sharex=True, constrained_layout=True
-    )
     styles = list(zip(("o", "s"), ("-", "--"), FIGURE_COLOURS, strict=False))
-    for name, (marker, line, colour) in zip(counts, styles, strict=False):
-        style = {"marker": marker, "linestyle": line, "color": colour, "label": name}
-        top.semilogx(NOISE_LEVELS, np.array(counts[name]) / SEEDS, **style)
-        bottom.loglog(NOISE_LEVELS, errors[name], **style)
-    bottom.axhline(TOLERANCE, color="0.3", linestyle=":", label="tolerance")
-    top.set_ylabel(f"fraction of {SEEDS} copies recovered")
-    top.set_ylim(-0.05, 1.05)
-    top.legend(loc="lower left", fontsize=8)
-    bottom.set_xlabel("noise of the positions (m)")
-    bottom.set_ylabel("median coefficient error (relative)")
-    bottom.legend(loc="lower right", fontsize=8)
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(
+            2, 1, figsize=figsize("stacked", legend=3), sharex=True
+        )
+        for name, (marker, line, colour) in zip(counts, styles, strict=False):
+            style = {
+                "marker": marker,
+                "linestyle": line,
+                "color": colour,
+                "label": name,
+            }
+            top.semilogx(NOISE_LEVELS, np.array(counts[name]) / SEEDS, **style)
+            bottom.loglog(NOISE_LEVELS, errors[name], **style)
+        bottom.axhline(TOLERANCE, color="0.3", linestyle=":", label="tolerance")
+        top.set_ylabel(f"fraction of {SEEDS}\ncopies recovered")
+        top.set_ylim(-0.05, 1.05)
+        bottom.set_xlabel("noise of the positions (m)")
+        bottom.set_ylabel("median coefficient\nerror (relative)")
+        # Inside the panels the legends covered the curves: the lower
+        # panel's three entries, which name both, under the plot.
+        fig.legend(*bottom.get_legend_handles_labels(), loc="outside lower center")
+    return finish(fig)
 
 
 def last_success(counts: list[int]) -> float:

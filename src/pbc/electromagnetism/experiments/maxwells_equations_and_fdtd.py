@@ -35,6 +35,7 @@ from pbc.electromagnetism.fdtd import (
 )
 from pbc.electromagnetism.fields import EPSILON_0
 from pbc.experiment import Experiment, main
+from pbc.figure_language import TEXT, figsize, figure_style, finish, reference_slope
 from pbc.verification.estimates import fitted_order
 
 # region: pulse
@@ -336,86 +337,85 @@ def plane() -> tuple[Plane, list]:
 def draw_interface(shown) -> Figure:
     """E_z along the line at the start, at the interface, and after."""
     x, snapshots, middle = shown
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    centimetres = 100 * x
-    ax.axvspan(
-        centimetres[middle], centimetres[-1], color=FIGURE_COLOURS[2], alpha=0.12
-    )
-    for e, line, colour, label in zip(
-        snapshots,
-        ("-", "--", "-."),
-        (FIGURE_COLOURS[0], FIGURE_COLOURS[2], FIGURE_COLOURS[1]),
-        ("start", "at the interface", "after"),
-        strict=True,
-    ):
-        ax.plot(centimetres, e, color=colour, linestyle=line, label=label)
-    ax.text(
-        centimetres[middle] + 1.0, 0.85, "dielectric, n = 2", color=FIGURE_COLOURS[2]
-    )
-    ax.set_xlabel("x (cm)")
-    ax.set_ylabel(r"$E_z$ / incident peak (dimensionless)")
-    ax.legend(frameon=False, loc="lower left")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        centimetres = 100 * x
+        ax.axvspan(
+            centimetres[middle], centimetres[-1], color=FIGURE_COLOURS[2], alpha=0.12
+        )
+        for e, line, colour, label in zip(
+            snapshots,
+            ("-", "--", "-."),
+            (FIGURE_COLOURS[0], FIGURE_COLOURS[2], FIGURE_COLOURS[1]),
+            ("start", "at the interface", "after"),
+            strict=True,
+        ):
+            ax.plot(centimetres, e, color=colour, linestyle=line, label=label)
+        ax.text(
+            centimetres[middle] + 1.0,
+            0.85,
+            "dielectric, n = 2",
+            color=FIGURE_COLOURS[2],
+            fontsize=TEXT["note"],
+        )
+        ax.set_xlabel("x (cm)")
+        ax.set_ylabel("$E_z$ / incident peak\n(dimensionless)")
+        # The legend would cover the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def draw_dispersion(gaps: dict) -> Figure:
     """Log-log gap of the measured speed to c / n against dx, both media,
-    with a reference slope two."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    for (n, (spacings, to_c)), marker, line, colour in zip(
-        gaps.items(),
-        ("o", "s"),
-        ("-", "--"),
-        (FIGURE_COLOURS[0], FIGURE_COLOURS[1]),
-        strict=True,
-    ):
-        h = 1e3 * np.array(spacings)
-        ax.loglog(
-            h,
-            to_c,
-            color=colour,
-            marker=marker,
-            linestyle=line,
-            label="vacuum" if n == 1 else f"dielectric, n = {n:g}",
-        )
-    h = 1e3 * np.array(gaps[INDICES[0]][0])
-    ax.loglog(
-        h,
-        0.5 * gaps[INDICES[0]][1][0] * (h / h[0]) ** 2,
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label="reference, slope two",
-    )
-    ax.set_xticks(h, labels=[f"{value:.3g}" for value in h])
-    ax.minorticks_off()
-    ax.set_xlabel("dx (mm)")
-    ax.set_ylabel("1 - measured speed / (c/n)")
-    ax.legend(frameon=False, loc="upper left")
-    fig.tight_layout()
-    return fig
+    with a reference slope two, named on the plot."""
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        for (n, (spacings, to_c)), marker, line, colour in zip(
+            gaps.items(),
+            ("o", "s"),
+            ("-", "--"),
+            (FIGURE_COLOURS[0], FIGURE_COLOURS[1]),
+            strict=True,
+        ):
+            h = 1e3 * np.array(spacings)
+            ax.loglog(
+                h,
+                to_c,
+                color=colour,
+                marker=marker,
+                linestyle=line,
+                label="vacuum" if n == 1 else f"dielectric, n = {n:g}",
+            )
+        h = 1e3 * np.array(gaps[INDICES[0]][0])
+        reference_slope(ax, h, gaps[INDICES[0]][1][0], 2)
+        ax.set_xticks(h, labels=[f"{value:.3g}" for value in h])
+        ax.minorticks_off()
+        ax.set_xlabel("dx (mm)")
+        ax.set_ylabel("1 - measured speed / (c/n)")
+        ax.legend(loc="upper left")
+    return finish(fig, grid=True)
 
 
 def draw_stability(runs: dict) -> Figure:
     """The largest |E| against the step, just below and just above the
     limit, one panel per dimension."""
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.4), sharey=True)
     steps = np.arange(1, STABILITY_STEPS + 1)
-    for ax, dimensions in zip(axes, (1, 2), strict=True):
-        for factor, line, colour, label in (
-            (1.0 - MARGIN, "-", FIGURE_COLOURS[0], "just below the limit"),
-            (1.0 + MARGIN, "--", FIGURE_COLOURS[1], "just above the limit"),
-        ):
-            peaks = runs[(dimensions, factor)]
-            ax.semilogy(
-                steps, peaks / peaks[0], color=colour, linestyle=line, label=label
-            )
-        ax.set_title(f"{dimensions}D", fontsize="medium")
-        ax.set_xlabel("step")
-    axes[0].set_ylabel("largest |E| / first (log scale)")
-    axes[0].legend(frameon=False, loc="upper left")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, axes = plt.subplots(2, 1, figsize=figsize("pair"), sharey=True)
+        for ax, dimensions in zip(axes, (1, 2), strict=True):
+            for factor, line, colour, label in (
+                (1.0 - MARGIN, "-", FIGURE_COLOURS[0], "just below the limit"),
+                (1.0 + MARGIN, "--", FIGURE_COLOURS[1], "just above the limit"),
+            ):
+                peaks = runs[(dimensions, factor)]
+                ax.semilogy(
+                    steps, peaks / peaks[0], color=colour, linestyle=line, label=label
+                )
+            ax.set_title(f"{dimensions}D")
+            ax.set_xlabel("step")
+            ax.set_ylabel("largest |E| / first\n(log scale)")
+        axes[0].legend(loc="upper left")
+    return finish(fig)
 
 
 def draw_plane(grid: Plane, snapshots: list) -> Figure:

@@ -19,6 +19,7 @@ from matplotlib.figure import Figure
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, TEXT, figsize, figure_style, finish
 from pbc.verification.estimates import fitted_order
 from pbc.waves.diffraction import (
     AIRY_FIRST_ZERO,
@@ -150,44 +151,45 @@ def draw_slits() -> Figure:
             slits(GRATING["count"], GRATING["width"], GRATING["period"], 40),
         ),
     ]
-    fig, axes = plt.subplots(3, 1, figsize=(6.4, 5.6), sharex=True)
-    for ax, (name, (points, widths)), colour in zip(
-        axes,
-        setups,
-        (FIGURE_COLOURS[0], FIGURE_COLOURS[1], FIGURE_COLOURS[4]),
-        strict=True,
-    ):
-        i = np.abs(far_field(s, points, widths, WAVELENGTH)) ** 2
-        ax.plot(s, i / i.max(), color=colour, linewidth=0.9)
-        ax.set_ylabel("intensity\n(of the peak,\ndimensionless)")
-        ax.set_title(name, fontsize="small", loc="left")
-    for m in (1, 2, 3, 4, 5):
-        for sign in (-1, 1):
-            axes[0].axvline(
-                sign * single_slit_zero(m, WIDTH, WAVELENGTH),
+    with figure_style():
+        # Three stacked panels.
+        fig, axes = plt.subplots(3, 1, figsize=figsize("measured"), sharex=True)
+        for ax, (name, (points, widths)), colour in zip(
+            axes,
+            setups,
+            (FIGURE_COLOURS[0], FIGURE_COLOURS[1], FIGURE_COLOURS[4]),
+            strict=True,
+        ):
+            i = np.abs(far_field(s, points, widths, WAVELENGTH)) ** 2
+            ax.plot(s, i / i.max(), color=colour, linewidth=LINE["guide"])
+            ax.set_ylabel("intensity\n(of the peak,\ndimensionless)")
+            ax.set_title(name, loc="left")
+        for m in (1, 2, 3, 4, 5):
+            for sign in (-1, 1):
+                axes[0].axvline(
+                    sign * single_slit_zero(m, WIDTH, WAVELENGTH),
+                    color=FIGURE_COLOURS[2],
+                    linestyle=":",
+                    linewidth=LINE["axis"],
+                )
+        for m in range(5):  # the zeros inside the central lobe of one slit
+            for sign in (-1, 1):
+                axes[1].axvline(
+                    sign * double_slit_zero(m, SEPARATION, WAVELENGTH),
+                    color=FIGURE_COLOURS[2],
+                    linestyle=":",
+                    linewidth=0.5,
+                )
+        axes[1].set_xlim(-0.07, 0.07)
+        for m in range(-4, 5):
+            axes[2].axvline(
+                grating_maximum(m, GRATING["period"], WAVELENGTH),
                 color=FIGURE_COLOURS[2],
                 linestyle=":",
-                linewidth=0.8,
+                linewidth=LINE["axis"],
             )
-    for m in range(5):  # the zeros inside the central lobe of one slit
-        for sign in (-1, 1):
-            axes[1].axvline(
-                sign * double_slit_zero(m, SEPARATION, WAVELENGTH),
-                color=FIGURE_COLOURS[2],
-                linestyle=":",
-                linewidth=0.5,
-            )
-    axes[1].set_xlim(-0.07, 0.07)
-    for m in range(-4, 5):
-        axes[2].axvline(
-            grating_maximum(m, GRATING["period"], WAVELENGTH),
-            color=FIGURE_COLOURS[2],
-            linestyle=":",
-            linewidth=0.8,
-        )
-    axes[2].set_xlabel("sin(theta), the direction on the screen")
-    fig.tight_layout()
-    return fig
+        axes[2].set_xlabel("sin(theta), the direction\non the screen")
+    return finish(fig)
 
 
 def airy_run(experiment: Experiment):
@@ -225,36 +227,69 @@ def draw_airy_rayleigh() -> Figure:
     """The Airy pattern, and the image of two points at three separations."""
     unit = GREEN / DIAMETER
     s = np.linspace(-3.0, 3.0, 1201)
-    fig, (left, right) = plt.subplots(1, 2, figsize=(7.2, 3.2))
-    left.plot(
-        s, circular_field(s * unit, DIAMETER, GREEN) ** 2, color=FIGURE_COLOURS[0]
-    )
-    left.axvline(AIRY_FIRST_ZERO, color=FIGURE_COLOURS[2], linestyle=":")
-    left.axvline(-AIRY_FIRST_ZERO, color=FIGURE_COLOURS[2], linestyle=":")
-    left.set_xlabel("sin(theta) in units of lambda / D")
-    left.set_ylabel("intensity\n(of the centre, dimensionless)")
-    left.set_title("one point: the Airy pattern", fontsize="small")
-    styles = [
-        ("-", FIGURE_COLOURS[0]),
-        ("--", FIGURE_COLOURS[1]),
-        ("-.", FIGURE_COLOURS[4]),
-    ]
-    for sep, (line, colour) in zip(separations[1:], styles, strict=True):
-        image = two_points(s * unit, sep * unit, DIAMETER, GREEN)
-        right.plot(
-            s,
-            image / image.max(),
-            color=colour,
-            linestyle=line,
-            label=f"{sep:.2f} lambda / D",
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=figsize("pair"))
+        top.plot(
+            s, circular_field(s * unit, DIAMETER, GREEN) ** 2, color=FIGURE_COLOURS[0]
         )
-    right.set_xlim(-2.5, 2.5)
-    right.set_xlabel("sin(theta) in units of lambda / D")
-    right.set_ylabel("intensity\n(of the brightest, dimensionless)")
-    right.set_title("two points", fontsize="small")
-    right.legend(fontsize=7, loc="lower center")
-    fig.tight_layout()
-    return fig
+        top.axvline(
+            AIRY_FIRST_ZERO,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            linewidth=LINE["guide"],
+        )
+        top.axvline(
+            -AIRY_FIRST_ZERO,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            linewidth=LINE["guide"],
+        )
+        top.set_xlabel("sin(theta) in units of lambda / D")
+        top.set_ylabel("intensity\n(of the centre,\ndimensionless)")
+        top.set_title("one point: the Airy pattern")
+        styles = [
+            ("-", FIGURE_COLOURS[0]),
+            ("--", FIGURE_COLOURS[1]),
+            ("-.", FIGURE_COLOURS[4]),
+        ]
+        for k, (sep, (line, colour)) in enumerate(
+            zip(separations[1:], styles, strict=True)
+        ):
+            image = two_points(s * unit, sep * unit, DIAMETER, GREEN)
+            image = image / image.max()
+            bottom.plot(
+                s, image, color=colour, linestyle=line, label=f"{sep:.2f} lambda / D"
+            )
+            # The separation named beside its curve (S5), by a thin leader
+            # line to a point of it that no other curve hides: the peaks of
+            # the two closer pairs from above, the dip of the widest pair
+            # from the empty space under it.
+            anchor, text = (
+                ((0.0, 0.983), (-1.45, 1.17)),
+                ((0.6, 1.0), (1.45, 1.17)),
+                ((0.0, 0.398), (0.0, 0.2)),
+            )[k]
+            bottom.annotate(
+                f"{sep:.2f} lambda / D",
+                anchor,
+                xytext=text,
+                color=colour,
+                fontsize=TEXT["note"],
+                ha="center",
+                va="center",
+                arrowprops={
+                    "arrowstyle": "-",
+                    "color": colour,
+                    "linewidth": LINE["axis"],
+                    "shrinkA": 2,
+                    "shrinkB": 1,
+                },
+            )
+        bottom.set_xlim(-2.5, 2.5)
+        bottom.set_xlabel("sin(theta) in units of lambda / D")
+        bottom.set_ylabel("intensity\n(of the brightest,\ndimensionless)")
+        bottom.set_title("two points", pad=20)
+    return finish(fig)
 
 
 def doublet_image(count: int):
@@ -308,25 +343,29 @@ def doublet_run(experiment: Experiment):
 
 def draw_doublet() -> Figure:
     """The first-order image of the sodium doublet for three gratings."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.4))
-    styles = [
-        (":", FIGURE_COLOURS[2]),
-        ("--", FIGURE_COLOURS[1]),
-        ("-", FIGURE_COLOURS[0]),
-    ]
-    for count, (line, colour) in zip(counts, styles, strict=True):
-        s, image = doublet_image(count)
-        ax.plot(s * 1e3, image, color=colour, linestyle=line, label=f"{count} slits")
-    for lam in SODIUM:
-        ax.axvline(
-            grating_maximum(1, DOUBLET_PERIOD, lam) * 1e3,
-            color=FIGURE_COLOURS[3],
-            linewidth=0.6,
-        )
-    ax.set_xlabel("sin(theta), times 1000")
-    ax.set_ylabel("intensity\n(of the brightest, dimensionless)")
-    ax.legend(fontsize=7, loc="upper left")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        styles = [
+            (":", FIGURE_COLOURS[2]),
+            ("--", FIGURE_COLOURS[1]),
+            ("-", FIGURE_COLOURS[0]),
+        ]
+        for count, (line, colour) in zip(counts, styles, strict=True):
+            s, image = doublet_image(count)
+            ax.plot(
+                s * 1e3, image, color=colour, linestyle=line, label=f"{count} slits"
+            )
+        for lam in SODIUM:
+            ax.axvline(
+                grating_maximum(1, DOUBLET_PERIOD, lam) * 1e3,
+                color=FIGURE_COLOURS[3],
+                linewidth=LINE["guide"],
+            )
+        ax.set_xlabel("sin(theta), times 1000")
+        ax.set_ylabel("intensity\n(of the brightest, dimensionless)")
+        # The legend would cover the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def fraunhofer_run(experiment: Experiment):
@@ -378,21 +417,30 @@ def fraunhofer_run(experiment: Experiment):
 def draw_fraunhofer_limit(numbers, departures) -> Figure:
     """The departure from the far-field pattern against the Fresnel number,
     log-log, with a slope-two reference."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.4))
-    ax.loglog(
-        numbers, departures, "o-", color=FIGURE_COLOURS[0], label="sum of wavelets at L"
-    )
-    ax.loglog(
-        numbers,
-        3 * departures[0] * (numbers / numbers[0]) ** 2,
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label="slope 2 (reference, drawn above)",
-    )
-    ax.set_xlabel("Fresnel number a^2 / (lambda L), dimensionless")
-    ax.set_ylabel("largest departure of the intensity\n(of the centre, dimensionless)")
-    ax.legend(fontsize=8, loc="upper left")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        ax.loglog(
+            numbers,
+            departures,
+            "o-",
+            color=FIGURE_COLOURS[0],
+            label="sum of wavelets at L",
+        )
+        ax.loglog(
+            numbers,
+            3 * departures[0] * (numbers / numbers[0]) ** 2,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            linewidth=LINE["guide"],
+            label="slope 2 (reference, drawn above)",
+        )
+        ax.set_xlabel("Fresnel number a^2 / (lambda L),\ndimensionless")
+        ax.set_ylabel(
+            "largest departure\nof the intensity (of the\ncentre, dimensionless)"
+        )
+        # The legend would cover the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig, grid=True)
 
 
 def telescope():

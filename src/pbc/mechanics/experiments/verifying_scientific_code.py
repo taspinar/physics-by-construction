@@ -13,7 +13,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
 
+from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import figsize, figure_style, finish
 from pbc.mechanics.dynamics import State
 from pbc.mechanics.integrators import rk4_step, verlet_step
 from pbc.verification import (
@@ -89,27 +91,33 @@ def verlet_convergence():
 def draw_verification_convergence() -> Figure:
     """The error against the step for two correct and two faulty steppers."""
     series = {
-        "velocity Verlet": (verlet_step, "#00429d", "-"),
+        "velocity Verlet": (verlet_step, FIGURE_COLOURS[0], "-"),
         "Runge-Kutta 4": (rk4_step, "#00734f", "-"),
-        "verlet without the half": (verlet_without_the_half, "#93003a", "--"),
+        "verlet without the half": (verlet_without_the_half, FIGURE_COLOURS[1], "--"),
         "rk4 with equal weights": (rk4_with_equal_weights, "#b34700", "-."),
     }
-    fig, ax = plt.subplots(figsize=(6.4, 4.2))
-    for name, (step, color, style) in series.items():
-        errors = [oscillator_error(lambda: step, n) for n in counts]  # noqa: B023
-        ax.loglog(
-            steps,
-            errors,
-            color=color,
-            linestyle=style,
-            marker="o",
-            markersize=3,
-            label=name,
-        )
-    ax.set_xlabel("time step (s)")
-    ax.set_ylabel("largest error over two periods (m)")
-    ax.legend(loc="lower right")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=4))
+        for name, (step, color, style) in series.items():
+            errors = [oscillator_error(lambda: step, n) for n in counts]  # noqa: B023
+            ax.loglog(
+                steps,
+                errors,
+                color=color,
+                linestyle=style,
+                marker="o",
+                markersize=3,
+                label=name,
+            )
+        # The steps as the ticks: the minor labels of the log axis ran into
+        # each other at this width.
+        ax.set_xticks(steps, labels=[f"{value:.2g}" for value in steps])
+        ax.minorticks_off()
+        ax.set_xlabel("time step (s)")
+        ax.set_ylabel("largest error over\ntwo periods (m)")
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def gallery():

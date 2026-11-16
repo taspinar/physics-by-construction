@@ -19,6 +19,7 @@ from matplotlib.figure import Figure
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, figsize, figure_style, finish
 from pbc.waves.diffraction import aperture, far_field, field_at, slits
 from pbc.waves.inverse import (
     detector,
@@ -90,39 +91,44 @@ def fit_run(experiment: Experiment):
 def draw_fit(s, counts, result) -> Figure:
     """The counts, the fitted model, and the Pearson residuals."""
     model = double_slit_model(s, *result.values, WAVELENGTH)
-    fig, (top, bottom) = plt.subplots(
-        2, 1, figsize=(6.4, 4.6), sharex=True, gridspec_kw={"height_ratios": [3, 1]}
-    )
-    top.plot(
-        s * 1e3,
-        counts,
-        ".",
-        markersize=2,
-        color=FIGURE_COLOURS[2],
-        label="synthetic counts",
-    )
-    top.plot(
-        s * 1e3,
-        model,
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        linewidth=0.9,
-        label="fitted model",
-    )
-    top.set_ylabel("photons per pixel")
-    top.legend(fontsize=7, loc="upper right")
-    bottom.plot(
-        s * 1e3,
-        residuals(result.values, s, counts, WAVELENGTH),
-        ".",
-        markersize=2,
-        color=FIGURE_COLOURS[0],
-    )
-    bottom.axhline(0.0, color=FIGURE_COLOURS[2], linewidth=0.8)
-    bottom.set_ylabel("residual (sigma)")
-    bottom.set_xlabel("sin(theta), times 1000")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(
+            2,
+            1,
+            figsize=figsize("stacked"),
+            sharex=True,
+            gridspec_kw={"height_ratios": [3, 1]},
+        )
+        top.plot(
+            s * 1e3,
+            counts,
+            ".",
+            markersize=2,
+            color=FIGURE_COLOURS[2],
+            label="synthetic counts",
+        )
+        top.plot(
+            s * 1e3,
+            model,
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            linewidth=LINE["model"],
+            label="fitted model",
+        )
+        top.set_ylabel("photons per pixel")
+        # The legend would cover the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+        bottom.plot(
+            s * 1e3,
+            residuals(result.values, s, counts, WAVELENGTH),
+            ".",
+            markersize=2,
+            color=FIGURE_COLOURS[0],
+        )
+        bottom.axhline(0.0, color=FIGURE_COLOURS[2], linewidth=LINE["guide"])
+        bottom.set_ylabel("residual (sigma)")
+        bottom.set_xlabel("sin(theta), times 1000")
+    return finish(fig)
 
 
 def pulls_run(experiment: Experiment):

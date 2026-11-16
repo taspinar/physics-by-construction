@@ -51,6 +51,7 @@ from pbc.discovery.latent_lab import (
     with_readings_at,
 )
 from pbc.experiment import Experiment, main
+from pbc.figure_language import figsize, figure_style, finish
 
 # The live run of the lesson: a model, its key, and the extra openai.
 LIVE = "pbc.discovery.latent_lab"
@@ -169,36 +170,40 @@ def draw_disambiguation(spread, chosen) -> Figure:
     """The disagreement of the rival laws against the mass, one line style
     and marker per time, the chosen setting marked."""
     styles = (("-", "o"), ("--", "s"), (":", "^"), ("-.", "D"))
-    fig, ax = plt.subplots(figsize=(6.4, 4.2))
-    for (line, marker), colour, t in zip(
-        styles, [FIGURE_COLOURS[i] for i in (0, 1, 4, 3)], TIMES, strict=True
-    ):
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=len(TIMES) + 2))
+        for (line, marker), colour, t in zip(
+            styles, [FIGURE_COLOURS[i] for i in (0, 1, 4, 3)], TIMES, strict=True
+        ):
+            ax.plot(
+                MASSES,
+                [spread[(m, t)] for m in MASSES],
+                linestyle=line,
+                marker=marker,
+                color=colour,
+                label=f"time {t:g} s",
+            )
         ax.plot(
-            MASSES,
-            [spread[(m, t)] for m in MASSES],
-            linestyle=line,
-            marker=marker,
-            color=colour,
-            label=f"time {t:g} s",
+            [chosen["mass"]],
+            [spread[(chosen["mass"], chosen["time"])]],
+            linestyle="none",
+            marker="*",
+            markersize=16,
+            color=FIGURE_COLOURS[2],
+            label="chosen experiment",
         )
-    ax.plot(
-        [chosen["mass"]],
-        [spread[(chosen["mass"], chosen["time"])]],
-        linestyle="none",
-        marker="*",
-        markersize=16,
-        color=FIGURE_COLOURS[2],
-        label="chosen experiment",
-    )
-    ax.axvline(
-        RECORD_MASS, color=FIGURE_COLOURS[2], linestyle=":", label="mass of the record"
-    )
-    ax.set_yscale("log")
-    ax.set_xlabel("mass of the body (kg)")
-    ax.set_ylabel("disagreement of the rival laws (noise standard deviations)")
-    ax.legend(fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=3)
-    fig.tight_layout()
-    return fig
+        ax.axvline(
+            RECORD_MASS,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            label="mass of the record",
+        )
+        ax.set_yscale("log")
+        ax.set_xlabel("mass of the body (kg)")
+        ax.set_ylabel("disagreement of the\nrival laws (noise\nstandard deviations)")
+        # Under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def score_table(experiment: Experiment, score) -> None:

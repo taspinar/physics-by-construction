@@ -290,7 +290,7 @@ result.table("mesh-quality")
 #| label: fig-annulus-mesh
 #| echo: false
 #| fig-cap: "A mesh of the insulation generated in the lesson, with the pipe wall and the outer surface marked, and the smallest angles of its triangles: they stay in the same narrow band as the mesh is refined, far from a slender triangle."
-#| fig-alt: "Left: a ring-shaped mesh of small triangles between an inner polygon, drawn solid, and an outer polygon, drawn dashed. Right: step histograms of the smallest angle per triangle for three refinements, solid, dashed, and dotted; all three lie in one narrow band, well clear of zero and left of a vertical line marking the equilateral triangle."
+#| fig-alt: "Top: a ring-shaped mesh of small triangles between an inner polygon, drawn solid, and an outer polygon, drawn dashed. Bottom: step histograms of the smallest angle per triangle for three refinements, solid, dashed, and dotted; all three lie in one narrow band, well clear of zero and left of a vertical line marking the equilateral triangle."
 #| fig-status: simulated
 result.show("fig-annulus-mesh")
 ```
@@ -356,8 +356,8 @@ two to thirty-two layers" evidence="pipe fig-fem-convergence"}
 ```{python}
 #| label: fig-fem-convergence
 #| echo: false
-#| fig-cap: "Linear elements converge as expected: the temperature error falls with the square of the mesh size and the gradient error in proportion to it (left), and the pipe's heat loss from the residual falls with the square of the mesh size, the flux from the gradient only in proportion to it (right)."
-#| fig-alt: "Two log-log panels against the mesh size h. Left: the L2 error, solid with circles, parallel to a dotted reference of slope two; the H1 error, dashed with squares, parallel to a dash-dotted reference of slope one. Right: the relative error of the heat loss from the residual, solid with circles, near the slope-two reference; from the gradient, dashed with squares, parallel to the slope-one reference and far above."
+#| fig-cap: "Linear elements converge as expected: the temperature error falls with the square of the mesh size and the gradient error in proportion to it (top), and the pipe's heat loss from the residual falls with the square of the mesh size, the flux from the gradient only in proportion to it (bottom)."
+#| fig-alt: "Two stacked log-log panels against the mesh size h. Top: the L2 error, solid with circles, parallel to a dotted reference labelled slope 2; the H1 error, dashed with squares, parallel to a dotted reference labelled slope 1. Bottom: the relative error of the heat loss from the residual, solid with circles, near the slope-two reference; from the gradient, dashed with squares, parallel to the slope-one reference and far above."
 #| fig-status: simulated
 result.show("fig-fem-convergence")
 ```

@@ -33,6 +33,7 @@ from pbc.astrophysics.central_force import (
 )
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, MUTED, TEXT, figsize, figure_style, finish
 from pbc.verification.estimates import fitted_order
 
 # region: setup
@@ -111,34 +112,36 @@ def draw_rosette(paths) -> Figure:
     """The closed ellipse of the inverse square and the rosette of the power
     law, with the periapses of the power law marked."""
     newtonian, modified = paths
-    fig, ax = plt.subplots(figsize=(6.4, 4.4))
-    ax.plot(
-        *modified.x.T,
-        color=FIGURE_COLOURS[1],
-        linestyle="-",
-        linewidth=0.8,
-        label=f"power law, delta = {shown_delta}",
-    )
-    ax.plot(
-        *newtonian.x.T,
-        color=FIGURE_COLOURS[0],
-        linestyle="--",
-        linewidth=1.5,
-        label="inverse square",
-    )
-    ax.plot(
-        *modified.periapsis_x.T,
-        "o",
-        color=FIGURE_COLOURS[1],
-        markerfacecolor="none",
-        label="periapses, power law",
-    )
-    ax.plot(0.0, 0.0, "+", color="#57606a", markersize=10, label="centre")
-    ax.set_aspect("equal")
-    ax.set_xlabel("x (units of a)")
-    ax.set_ylabel("y (units of a)")
-    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncols=2, fontsize="small")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("square", legend=4))
+        ax.plot(
+            *modified.x.T,
+            color=FIGURE_COLOURS[1],
+            linestyle="-",
+            linewidth=LINE["guide"],
+            label=f"power law, delta = {shown_delta}",
+        )
+        ax.plot(
+            *newtonian.x.T,
+            color=FIGURE_COLOURS[0],
+            linestyle="--",
+            linewidth=LINE["model"],
+            label="inverse square",
+        )
+        ax.plot(
+            *modified.periapsis_x.T,
+            "o",
+            color=FIGURE_COLOURS[1],
+            markerfacecolor="none",
+            label="periapses, power law",
+        )
+        ax.plot(0.0, 0.0, "+", color=MUTED, markersize=10, label="centre")
+        ax.set_aspect("equal")
+        ax.set_xlabel("x (units of a)")
+        ax.set_ylabel("y (units of a)")
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def power_law_scan(experiment: Experiment):
@@ -177,35 +180,38 @@ def power_law_scan(experiment: Experiment):
 def draw_power_law(measured) -> Figure:
     """The turn per orbit against delta, log-log: measured, the first-order
     line, and the near-circular formula."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
-    d = np.geomspace(deltas[0], deltas[-1], 100)
-    ax.loglog(
-        d,
-        power_law_precession(d, E),
-        color=FIGURE_COLOURS[0],
-        linestyle="--",
-        linewidth=1,
-        label="first-order prediction, e = 0.5",
-    )
-    ax.loglog(
-        deltas,
-        measured,
-        "o",
-        color=FIGURE_COLOURS[1],
-        markerfacecolor="none",
-        label="measured, e = 0.5",
-    )
-    ax.loglog(
-        d,
-        near_circular_precession(d),
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label="nearly circular orbit, any delta",
-    )
-    ax.set_xlabel("delta, the departure of the exponent from 2 (dimensionless)")
-    ax.set_ylabel("turn of the periapsis per orbit (rad)")
-    ax.legend(fontsize="small")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        d = np.geomspace(deltas[0], deltas[-1], 100)
+        ax.loglog(
+            d,
+            power_law_precession(d, E),
+            color=FIGURE_COLOURS[0],
+            linestyle="--",
+            linewidth=LINE["model"],
+            label="first-order prediction, e = 0.5",
+        )
+        ax.loglog(
+            deltas,
+            measured,
+            "o",
+            color=FIGURE_COLOURS[1],
+            markerfacecolor="none",
+            label="measured, e = 0.5",
+        )
+        ax.loglog(
+            d,
+            near_circular_precession(d),
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            linewidth=LINE["model"],
+            label="nearly circular orbit, any delta",
+        )
+        ax.set_xlabel("delta, the departure of the exponent\nfrom 2 (dimensionless)")
+        ax.set_ylabel("turn of the periapsis\nper orbit (rad)")
+        # The legend would cover the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def yukawa_scan(experiment: Experiment):
@@ -250,40 +256,45 @@ def yukawa_scan(experiment: Experiment):
 def draw_yukawa(measured) -> Figure:
     """The turn per orbit per unit alpha against the range, log-log:
     measured, and the first-order prediction on a fine grid."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
-    fine = np.geomspace(scales[0], scales[-1], 120)
-    prediction = [first_order_precession(yukawa_term(GM, s), GM, A, E) for s in fine]
-    ax.loglog(
-        fine,
-        prediction,
-        color=FIGURE_COLOURS[0],
-        linestyle="--",
-        linewidth=1,
-        label="first-order prediction",
-    )
-    ax.loglog(
-        scales,
-        measured,
-        "o",
-        color=FIGURE_COLOURS[1],
-        markerfacecolor="none",
-        label="measured, alpha = 0.001",
-    )
-    for r, name in ((A * (1 - E), "periapsis"), (A * (1 + E), "apoapsis")):
-        ax.axvline(r, color="#57606a", linestyle=":", linewidth=1)
-        ax.text(
-            r * 1.05,
-            0.05,
-            name,
-            fontsize="small",
-            rotation=90,
-            va="bottom",
-            transform=ax.get_xaxis_transform(),
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        fine = np.geomspace(scales[0], scales[-1], 120)
+        prediction = [
+            first_order_precession(yukawa_term(GM, s), GM, A, E) for s in fine
+        ]
+        ax.loglog(
+            fine,
+            prediction,
+            color=FIGURE_COLOURS[0],
+            linestyle="--",
+            linewidth=LINE["model"],
+            label="first-order prediction",
         )
-    ax.set_xlabel("range lambda / a (dimensionless)")
-    ax.set_ylabel("turn per orbit / alpha (rad)")
-    ax.legend(fontsize="small", loc="lower left")
-    return fig
+        ax.loglog(
+            scales,
+            measured,
+            "o",
+            color=FIGURE_COLOURS[1],
+            markerfacecolor="none",
+            label="measured, alpha = 0.001",
+        )
+        for r, name in ((A * (1 - E), "periapsis"), (A * (1 + E), "apoapsis")):
+            ax.axvline(r, color=MUTED, linestyle=":", linewidth=LINE["guide"])
+            ax.text(
+                r * 1.05,
+                0.05,
+                name,
+                fontsize=TEXT["note"],
+                color=MUTED,
+                rotation=90,
+                va="bottom",
+                transform=ax.get_xaxis_transform(),
+            )
+        ax.set_xlabel("range lambda / a (dimensionless)")
+        ax.set_ylabel("turn per orbit / alpha (rad)")
+        # The legend would cover the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def near_circular():

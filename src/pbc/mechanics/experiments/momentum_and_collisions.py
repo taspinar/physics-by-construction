@@ -15,8 +15,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
 
-from pbc.authoring import diagrams
+from pbc.authoring import FIGURE_COLOURS, diagrams
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, direct_label, figsize, figure_style, finish
 from pbc.mechanics.dynamics import State, simulate
 from pbc.mechanics.integrators import INTEGRATORS
 from pbc.mechanics.oscillator import harmonic_motion
@@ -253,29 +254,51 @@ def draw_head_on_collision(trajectory, positions, velocities) -> Figure:
     energies = kinetic_energy([m1, m2], velocities)
     stored = pair_potential_energy(positions, contact)
 
-    fig, (top, bottom) = plt.subplots(2, 1, figsize=(6.4, 5.2), sharex=True)
-    top.plot(
-        trajectory.t, positions[:, 0, 0], color="#93003a", label=f"{m1:g} kg sphere"
-    )
-    top.plot(
-        trajectory.t,
-        positions[:, 1, 0],
-        color="#00429d",
-        linestyle="--",
-        label=f"{m2:g} kg sphere",
-    )
-    top.set_ylabel("position (m)")
-    top.legend(loc="upper left")
-    bottom.plot(trajectory.t, energies, color="#93003a", label="kinetic")
-    bottom.plot(trajectory.t, stored, color="#00429d", linestyle="--", label="contact")
-    bottom.plot(
-        trajectory.t, energies + stored, color="#555555", linestyle=":", label="total"
-    )
-    bottom.set_xlabel("time (s)")
-    bottom.set_ylabel("energy (J)")
-    bottom.legend(loc="center left")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=figsize("stacked"), sharex=True)
+        top.plot(
+            trajectory.t,
+            positions[:, 0, 0],
+            color=FIGURE_COLOURS[1],
+            label=f"{m1:g} kg sphere",
+        )
+        top.plot(
+            trajectory.t,
+            positions[:, 1, 0],
+            color=FIGURE_COLOURS[0],
+            linestyle="--",
+            label=f"{m2:g} kg sphere",
+        )
+        top.set_ylabel("position (m)")
+        # The spheres named beside the ends of their paths (S5): one legend
+        # under the plot would give "1 kg sphere" and "kinetic" the same key.
+        for k, colour in ((0, FIGURE_COLOURS[1]), (1, FIGURE_COLOURS[0])):
+            direct_label(
+                top,
+                trajectory.t[-1],
+                positions[-1, k, 0],
+                f"{(m1, m2)[k]:g} kg\nsphere",
+                colour,
+            )
+        bottom.plot(trajectory.t, energies, color=FIGURE_COLOURS[1], label="kinetic")
+        bottom.plot(
+            trajectory.t,
+            stored,
+            color=FIGURE_COLOURS[0],
+            linestyle="--",
+            label="contact",
+        )
+        bottom.plot(
+            trajectory.t,
+            energies + stored,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            label="total",
+        )
+        bottom.set_xlabel("time (s)")
+        bottom.set_ylabel("energy (J)")
+        bottom.legend(loc="center left")
+    return finish(fig)
 
 
 def steps_per_contact(experiment: Experiment):
@@ -404,40 +427,46 @@ def stiffness_sweep(experiment: Experiment, rows) -> None:
 def draw_glancing_collision(moment, hard, paths) -> Figure:
     """The paths of the glancing collision for two stiffnesses and of the
     hard spheres."""
-    fig, ax = plt.subplots(figsize=(6.4, 4.2))
     after = np.linspace(0.0, 1.0, 2)[:, np.newaxis]
     touch = np.array([-1.0 + moment, offset])
-    for sphere, start_point in ((hard[0], touch), (hard[1], np.zeros(2))):
-        line = start_point + after * sphere
-        ax.plot(
-            line[:, 0],
-            line[:, 1],
-            color="#555555",
-            linestyle=":",
-            label="hard spheres" if sphere is hard[0] else None,
-        )
-    for stiffness, style in ((100.0, "--"), (10_000.0, "-")):
-        for i in range(2):
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("square", legend=3))
+        for sphere, start_point in ((hard[0], touch), (hard[1], np.zeros(2))):
+            line = start_point + after * sphere
             ax.plot(
-                paths[stiffness][:, i, 0],
-                paths[stiffness][:, i, 1],
-                color="#93003a" if i == 0 else "#00429d",
-                linestyle=style,
-                label=f"{stiffness:.0f} N/m" if i == 0 else None,
+                line[:, 0],
+                line[:, 1],
+                color=FIGURE_COLOURS[2],
+                linestyle=":",
+                label="hard spheres" if sphere is hard[0] else None,
             )
-    for centre_point in (touch, np.zeros(2)):
-        ax.add_patch(
-            plt.Circle(
-                centre_point, diameter / 2, fill=False, color="#555555", linewidth=0.8
+        for stiffness, style in ((100.0, "--"), (10_000.0, "-")):
+            for i in range(2):
+                ax.plot(
+                    paths[stiffness][:, i, 0],
+                    paths[stiffness][:, i, 1],
+                    color=FIGURE_COLOURS[1] if i == 0 else FIGURE_COLOURS[0],
+                    linestyle=style,
+                    label=f"{stiffness:.0f} N/m" if i == 0 else None,
+                )
+        for centre_point in (touch, np.zeros(2)):
+            ax.add_patch(
+                plt.Circle(
+                    centre_point,
+                    diameter / 2,
+                    fill=False,
+                    color=FIGURE_COLOURS[2],
+                    linewidth=LINE["axis"],
+                )
             )
-        )
-    ax.set_xlim(-1.1, 1.0)
-    ax.set_ylim(-0.6, 0.9)
-    ax.set_aspect("equal")
-    ax.set_xlabel("x (m)")
-    ax.set_ylabel("y (m)")
-    ax.legend(loc="upper left")
-    return fig
+        ax.set_xlim(-1.1, 1.0)
+        ax.set_ylim(-0.6, 0.9)
+        ax.set_aspect("equal")
+        ax.set_xlabel("x (m)")
+        ax.set_ylabel("y (m)")
+        # Under the plot: inside, the legend would lie over the paths.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def energy_transfer(experiment: Experiment) -> None:

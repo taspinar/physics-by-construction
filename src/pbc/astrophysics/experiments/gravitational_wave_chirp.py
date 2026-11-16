@@ -34,6 +34,7 @@ from pbc.astrophysics.gravitational_waves import (
 )
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, figsize, figure_style, finish
 from pbc.mechanics.chirp import (
     chirp_frequency,
     chirp_mass,
@@ -170,56 +171,64 @@ def draw_waveform(t, h_plus, f, measured, mc, end) -> Figure:
     amplitude. Bottom: the frequency of the computed wave, from its phase,
     against the closed form, and the frequency of the innermost stable
     orbit."""
-    fig, (top, bottom) = plt.subplots(2, 1, figsize=(6.4, 5.0), sharex=True)
     scale = 1e-22
-    top.plot(
-        t,
-        h_plus / scale,
-        color=FIGURE_COLOURS[0],
-        linewidth=0.8,
-        label="h+ from the motion",
-    )
-    envelope = strain_amplitude(f, mc, distance) / scale
-    top.plot(
-        t,
-        envelope,
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        linewidth=1.2,
-        label="closed-form amplitude",
-    )
-    top.plot(t, -envelope, color=FIGURE_COLOURS[1], linestyle="--", linewidth=1.2)
-    top.set_ylabel("strain h+ (units of 1e-22)")
-    top.legend(fontsize="small", loc="upper left")
-    step = len(t) // 30
-    bottom.plot(
-        t[::step],
-        measured[::step],
-        "o",
-        color=FIGURE_COLOURS[0],
-        markerfacecolor="none",
-        label="from the computed wave",
-    )
-    bottom.plot(
-        t,
-        f,
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        linewidth=1.2,
-        label="closed form",
-    )
-    bottom.axhline(
-        isco_frequency(sum(masses)),
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label="innermost stable orbit",
-    )
-    bottom.set_xlabel("time from the start (s)")
-    bottom.set_ylabel("wave frequency (Hz)")
-    bottom.set_xlim(0, end)
-    bottom.legend(fontsize="small", loc="center left")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(
+            2, 1, figsize=figsize("stacked", legend=5), sharex=True
+        )
+        top.plot(
+            t,
+            h_plus / scale,
+            color=FIGURE_COLOURS[0],
+            linewidth=LINE["guide"],
+            label="h+ from the motion",
+        )
+        envelope = strain_amplitude(f, mc, distance) / scale
+        top.plot(
+            t,
+            envelope,
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            linewidth=LINE["model"],
+            label="closed-form amplitude",
+        )
+        top.plot(
+            t,
+            -envelope,
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            linewidth=LINE["model"],
+        )
+        top.set_ylabel("strain h+\n(units of 1e-22)")
+        step = len(t) // 30
+        bottom.plot(
+            t[::step],
+            measured[::step],
+            "o",
+            color=FIGURE_COLOURS[0],
+            markerfacecolor="none",
+            label="from the computed wave",
+        )
+        bottom.plot(
+            t,
+            f,
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            linewidth=LINE["model"],
+            label="closed form",
+        )
+        bottom.axhline(
+            isco_frequency(sum(masses)),
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            label="innermost stable orbit",
+        )
+        bottom.set_xlabel("time from the start (s)")
+        bottom.set_ylabel("wave frequency (Hz)")
+        bottom.set_xlim(0, end)
+        # The five entries of both panels: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def inclination_scan(experiment: Experiment):
@@ -303,38 +312,38 @@ def same_chirp_mass(experiment: Experiment):
 
 def draw_same_chirp_mass(tracks) -> Figure:
     """The wave frequency of the three binaries against time, each ending at
-    its innermost stable orbit (marked): the whole record on the left, its
-    last tenth of a second on the right."""
-    fig, (whole, last) = plt.subplots(1, 2, figsize=(6.4, 3.6), sharey=True)
+    its innermost stable orbit (marked): the whole record on top, its last
+    tenth of a second below."""
     end = max(track[-1] for track in tracks)
-    for k, ((m1, m2, t, frequency, _), line, marker) in enumerate(
-        zip(tracks, ("-", "--", ":"), ("o", "s", "^"), strict=True)
-    ):
-        inner = slice(2, -2)
-        for ax in (whole, last):
-            ax.plot(
-                t[inner],
-                frequency[inner],
-                color=FIGURE_COLOURS[k],
-                linestyle=line,
-                linewidth=1.5,
-                label=f"{m1:.0f} + {m2:.1f} M_sun",
-            )
-            ax.plot(
-                t[-3],
-                frequency[-3],
-                marker,
-                color=FIGURE_COLOURS[k],
-                markersize=8,
-                markerfacecolor="none",
-            )
-    whole.set_xlabel("time from 20 Hz (s)")
-    whole.set_ylabel("wave frequency (Hz)")
-    whole.legend(fontsize="small", loc="upper left")
-    last.set_xlim(end - 0.1, end + 0.005)
-    last.set_xlabel("time from 20 Hz (s), the last 0.1 s")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, (whole, last) = plt.subplots(2, 1, figsize=figsize("pair"), sharey=True)
+        for k, ((m1, m2, t, frequency, _), line, marker) in enumerate(
+            zip(tracks, ("-", "--", ":"), ("o", "s", "^"), strict=True)
+        ):
+            inner = slice(2, -2)
+            for ax in (whole, last):
+                ax.plot(
+                    t[inner],
+                    frequency[inner],
+                    color=FIGURE_COLOURS[k],
+                    linestyle=line,
+                    label=f"{m1:.0f} + {m2:.1f} M_sun",
+                )
+                ax.plot(
+                    t[-3],
+                    frequency[-3],
+                    marker,
+                    color=FIGURE_COLOURS[k],
+                    markersize=8,
+                    markerfacecolor="none",
+                )
+        whole.set_xlabel("time from 20 Hz (s)")
+        whole.set_ylabel("wave frequency (Hz)")
+        whole.legend(loc="upper left")
+        last.set_xlim(end - 0.1, end + 0.005)
+        last.set_xlabel("time from 20 Hz (s), the last 0.1 s")
+        last.set_ylabel("wave frequency (Hz)")
+    return finish(fig)
 
 
 def band(experiment: Experiment):

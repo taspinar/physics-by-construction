@@ -338,7 +338,7 @@ excerpt(experiment.stability_run)
 #| label: fig-fdtd-stability
 #| echo: false
 #| fig-cap: "One per cent below the limit of the grid the field stays bounded; one per cent above it grows exponentially, in one and in two dimensions."
-#| fig-alt: "Two panels, one dimension and two dimensions, of the largest field over its first value against the step, on a log scale. In each, a solid line stays flat near one, and a dashed line rises as a straight line on the log scale by many orders of magnitude."
+#| fig-alt: "Two stacked panels, one dimension and two dimensions, of the largest field over its first value against the step, on a log scale. In each, a solid line stays flat near one, and a dashed line rises as a straight line on the log scale by many orders of magnitude."
 #| fig-status: simulated
 result.show("fig-fdtd-stability")
 ```

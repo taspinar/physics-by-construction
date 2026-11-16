@@ -20,6 +20,16 @@ from matplotlib.figure import Figure
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import (
+    LEGEND_ROW,
+    LINE,
+    MUTED,
+    WIDTH,
+    direct_label,
+    figsize,
+    figure_style,
+    finish,
+)
 from pbc.mechanics.dynamics import State, simulate
 from pbc.mechanics.integrators import INTEGRATORS, rk4_step, verlet_step
 from pbc.mechanics.nbody import (
@@ -191,25 +201,26 @@ def drift_per_integrator(experiment: Experiment):
 def draw_energy_drift(curves) -> Figure:
     """The relative energy error over time, one curve per integrator."""
     styles = [("-", None), ("--", None), ("-", "o"), (":", "s")]
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
-    for (name, t, error), (line, marker), colour in zip(
-        curves, styles, FIGURE_COLOURS, strict=False
-    ):
-        ax.plot(
-            t,
-            error,
-            color=colour,
-            linestyle=line,
-            marker=marker,
-            markevery=24,
-            markersize=4,
-            label=name,
-        )
-    ax.set_yscale("log")
-    ax.set_xlabel("time (yr)")
-    ax.set_ylabel("relative energy error, largest per 5 yr")
-    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncols=2, fontsize="small")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=4))
+        for (name, t, error), (line, marker), colour in zip(
+            curves, styles, FIGURE_COLOURS, strict=False
+        ):
+            ax.plot(
+                t,
+                error,
+                color=colour,
+                linestyle=line,
+                marker=marker,
+                markevery=24,
+                label=name,
+            )
+        ax.set_yscale("log")
+        ax.set_xlabel("time (yr)")
+        ax.set_ylabel("relative energy error,\nlargest per 5 yr")
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def figure_eight_start(scale=1.0):
@@ -288,40 +299,43 @@ def draw_figure_eight(run) -> Figure:
     later (open)."""
     bodies = unstack(run.x, 3)
     later = len(run.t) // 12
-    fig, ax = plt.subplots(figsize=(6.4, 3.4))
-    for k in range(3):
-        ax.plot(
-            bodies[:, k, 0],
-            bodies[:, k, 1],
-            color="#57606a",
-            linestyle="-",
-            linewidth=1.0,
-            label="the path of every body" if k == 0 else None,
-        )
-    for k, marker in enumerate(("o", "s", "^")):
-        ax.plot(
-            bodies[0, k, 0],
-            bodies[0, k, 1],
-            color=FIGURE_COLOURS[k],
-            marker=marker,
-            markersize=9,
-            linestyle="",
-            label=f"body {k + 1}",
-        )
-        ax.plot(
-            bodies[later, k, 0],
-            bodies[later, k, 1],
-            color=FIGURE_COLOURS[k],
-            marker=marker,
-            markersize=9,
-            markerfacecolor="white",
-            linestyle="",
-        )
-    ax.set_aspect("equal")
-    ax.set_xlabel("x (units of the problem)")
-    ax.set_ylabel("y (units of the problem)")
-    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncols=4, fontsize="small")
-    return fig
+    with figure_style():
+        # The figure eight is three times as wide as high: a low plot.
+        fig, ax = plt.subplots(figsize=(WIDTH, 0.45 * WIDTH + 4 * LEGEND_ROW))
+        for k in range(3):
+            ax.plot(
+                bodies[:, k, 0],
+                bodies[:, k, 1],
+                color=MUTED,
+                linestyle="-",
+                linewidth=LINE["guide"],
+                label="the path of every body" if k == 0 else None,
+            )
+        for k, marker in enumerate(("o", "s", "^")):
+            ax.plot(
+                bodies[0, k, 0],
+                bodies[0, k, 1],
+                color=FIGURE_COLOURS[k],
+                marker=marker,
+                markersize=9,
+                linestyle="",
+                label=f"body {k + 1}",
+            )
+            ax.plot(
+                bodies[later, k, 0],
+                bodies[later, k, 1],
+                color=FIGURE_COLOURS[k],
+                marker=marker,
+                markersize=9,
+                markerfacecolor="white",
+                linestyle="",
+            )
+        ax.set_aspect("equal")
+        ax.set_xlabel("x (units of the problem)")
+        ax.set_ylabel("y (units of\nthe problem)")
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def draw_solar_system() -> Figure:
@@ -330,34 +344,49 @@ def draw_solar_system() -> Figure:
     masses, start = solar_system()
     run = simulate(start, gravity(G, masses), dt, 600, step=verlet_step)
     bodies = unstack(run.x, 3)
-    fig, (left, right) = plt.subplots(1, 2, figsize=(6.4, 3.4))
-    for k, (name, line) in enumerate((("Jupiter", "--"), ("Saturn", ":")), start=1):
-        left.plot(
-            bodies[:, k, 0],
-            bodies[:, k, 1],
-            color=FIGURE_COLOURS[k],
-            linestyle=line,
-            label=name,
+    with figure_style():
+        # Two panels of equal axes, stacked: tall enough that each keeps the
+        # full width.
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=(WIDTH, 1.7 * WIDTH))
+        for k, (name, line) in enumerate((("Jupiter", "--"), ("Saturn", ":")), start=1):
+            top.plot(
+                bodies[:, k, 0],
+                bodies[:, k, 1],
+                color=FIGURE_COLOURS[k],
+                linestyle=line,
+                label=name,
+            )
+            # The name beside the top of its orbit (S5): Jupiter inside its
+            # circle, Saturn outside its own.
+            i = int(np.argmax(bodies[:, k, 1]))
+            direct_label(
+                top,
+                bodies[i, k, 0],
+                bodies[i, k, 1],
+                name,
+                FIGURE_COLOURS[k],
+                offset=(0.0, -10.0 if k == 1 else 4.0),
+                ha="center",
+                va="top" if k == 1 else "bottom",
+            )
+        top.plot(
+            0.0, 0.0, color=FIGURE_COLOURS[0], marker="o", linestyle="", label="Sun"
         )
-    left.plot(0.0, 0.0, color=FIGURE_COLOURS[0], marker="o", linestyle="", label="Sun")
-    left.set_aspect("equal")
-    left.set_xlabel("x (AU)")
-    left.set_ylabel("y (AU)")
-    left.legend(
-        loc="lower center", bbox_to_anchor=(0.5, 1.0), ncols=3, fontsize="small"
-    )
-    right.plot(
-        1e3 * bodies[:, 0, 0],
-        1e3 * bodies[:, 0, 1],
-        color=FIGURE_COLOURS[0],
-        linestyle="-",
-    )
-    right.plot(0.0, 0.0, color="#57606a", marker="+", markersize=10, linestyle="")
-    right.set_aspect("equal")
-    right.set_xlabel("x of the Sun (0.001 AU)")
-    right.set_ylabel("y of the Sun (0.001 AU)")
-    fig.tight_layout()
-    return fig
+        direct_label(top, 0.0, 0.0, "Sun", FIGURE_COLOURS[0], offset=(6.0, 0.0))
+        top.set_aspect("equal")
+        top.set_xlabel("x (AU)")
+        top.set_ylabel("y (AU)")
+        bottom.plot(
+            1e3 * bodies[:, 0, 0],
+            1e3 * bodies[:, 0, 1],
+            color=FIGURE_COLOURS[0],
+            linestyle="-",
+        )
+        bottom.plot(0.0, 0.0, color=MUTED, marker="+", markersize=10, linestyle="")
+        bottom.set_aspect("equal")
+        bottom.set_xlabel("x of the Sun (0.001 AU)")
+        bottom.set_ylabel("y of the Sun (0.001 AU)")
+    return finish(fig)
 
 
 def halved_step(experiment: Experiment):

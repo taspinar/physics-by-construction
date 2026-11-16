@@ -237,7 +237,7 @@ excerpt(experiment.draw_energy_drift)
 #| label: fig-energy-drift
 #| echo: false
 #| fig-cap: "The total energy fluctuates about its start without drifting away, with sharp spikes at close encounters of two particles, and the fluctuation falls by four each time the step is halved, as the reference line of slope two."
-#| fig-alt: "Two panels. Left: the change of the energy per particle against the time for three time steps; each curve fluctuates about zero with occasional spikes, the largest step with the largest fluctuation, and none drifts away. Right: log-log plot of the fluctuation against the time step, three points lying along a dotted reference line of slope two."
+#| fig-alt: "Two stacked panels. Top: the change of the energy per particle against the time for three time steps; each curve fluctuates about zero with occasional spikes, the largest step with the largest fluctuation, and none drifts away. Bottom: log-log plot of the fluctuation against the time step, three points lying along a dotted reference line of slope two."
 #| fig-status: simulated
 result.show("fig-energy-drift")
 ```

@@ -1,6 +1,9 @@
-"""The figure language of the pilot (F170): its rules hold on the six sample
-figures, at desktop and phone widths, and a figure that does not opt in is
-left as it was."""
+"""The figure language (F170, revised by F171): its rules hold on the six
+sample figures and on the figures the rollout opted in, at desktop and phone
+widths down to 320 CSS px, and a figure that does not opt in is left as it
+was."""
+
+import importlib
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -15,7 +18,15 @@ from pbc.authoring.design import (
 )
 from pbc.data.plotting import COLOURS
 from pbc.experiment import FIGURE_SETTINGS, encode
-from pbc.figure_audit import PHONE_WIDTH, PIXELS_PER_POINT, measure, sample_figures
+from pbc.figure_audit import (
+    PHONE_WIDTH,
+    PIXELS_PER_POINT,
+    ROLLOUT,
+    SMALL_PHONE_WIDTH,
+    measure,
+    rollout_figures,
+    sample_figures,
+)
 from pbc.figure_language import (
     INK,
     MIN_TEXT,
@@ -23,6 +34,7 @@ from pbc.figure_language import (
     RULE,
     SEQUENTIAL,
     TEXT,
+    TICKS,
     WIDTH,
     cased,
     figure_style,
@@ -32,12 +44,16 @@ from pbc.figure_language import (
 )
 
 # The tight crop of a saved figure (bbox_inches="tight") widens it by up to
-# this much beyond WIDTH: 548 px for 538.
-CROP = 1.02
+# this much beyond WIDTH: 405 px for 394.
+CROP = 1.03
 # The least size of type on a phone, in CSS px: MIN_TEXT at the widest
-# cropped figure, scaled to the phone's width of a figure (PHONE_WIDTH,
-# 306 CSS px, measured on a built page): 7.07, docs/authoring.md.
+# cropped figure, scaled to the phone's width of a figure: 11.07 at 375 CSS
+# px (PHONE_WIDTH, 306 CSS px, measured on a built page) and 9.08 at 320 CSS
+# px (SMALL_PHONE_WIDTH, 251 CSS px), docs/authoring.md.
 PHONE_TEXT = MIN_TEXT * PIXELS_PER_POINT * PHONE_WIDTH / (CROP * WIDTH * 96)
+SMALL_PHONE_TEXT = MIN_TEXT * PIXELS_PER_POINT * SMALL_PHONE_WIDTH / (CROP * WIDTH * 96)
+# The owner's floor for the revised language (Issue #544): 9 CSS px at 320.
+SMALL_PHONE_FLOOR = 9.0
 
 
 @pytest.fixture(scope="module")
@@ -48,6 +64,16 @@ def samples():
 @pytest.fixture(scope="module")
 def audits(samples):
     return {label: measure(draw) for label, (_, draw) in samples.items()}
+
+
+@pytest.fixture(scope="module")
+def rollout():
+    return {(module, label): draw for module, label, draw in rollout_figures()}
+
+
+@pytest.fixture(scope="module")
+def rollout_audits(rollout):
+    return {key: measure(draw) for key, draw in rollout.items()}
 
 
 def test_the_six_classes_are_sampled_once_each(samples):
@@ -64,22 +90,100 @@ def test_the_six_classes_are_sampled_once_each(samples):
     )
 
 
-def test_every_sample_has_the_one_width(audits):
-    # bbox_inches="tight" crops a few pixels; the width is the language's.
-    for label, audit in audits.items():
-        assert abs(audit.natural_width - WIDTH * 96) <= 0.05 * WIDTH * 96, label
-        assert audit.natural_width <= CROP * WIDTH * 96, label
+def _canvas_width(draw):
+    fig = draw()
+    try:
+        return fig.get_figwidth()
+    finally:
+        plt.close(fig)
+
+
+def _assert_the_one_width(name, draw, audit):
+    # Every figure is drawn on the language's canvas; bbox_inches="tight"
+    # crops it, by a few pixels for a line plot and more for equal-aspect
+    # panels narrower than the canvas, and widens it by no more than CROP.
+    assert _canvas_width(draw) == WIDTH, name
+    assert audit.natural_width <= CROP * WIDTH * 96, name
+
+
+def test_every_sample_has_the_one_width(samples, audits):
+    for label, (_, draw) in samples.items():
+        _assert_the_one_width(label, draw, audits[label])
+    lines = [a for label, a in audits.items() if label != "fig-plate-temperature"]
+    for audit in lines:
+        assert abs(audit.natural_width - WIDTH * 96) <= 0.05 * WIDTH * 96
 
 
 def test_the_phone_minimum_is_the_documented_one():
-    assert round(PHONE_TEXT, 2) == 7.07
+    assert round(PHONE_TEXT, 2) == 11.07
+    assert round(SMALL_PHONE_TEXT, 2) == 9.08
+    assert SMALL_PHONE_TEXT >= SMALL_PHONE_FLOOR
+
+
+def _assert_legible(name, audit):
+    assert audit.smallest_text >= MIN_TEXT, (name, audit.smallest_text)
+    assert audit.smallest_phone_px >= PHONE_TEXT, (name, audit)
+    assert audit.smallest_small_phone_px >= SMALL_PHONE_FLOOR, (name, audit)
+    assert audit.smallest_desktop_px >= 14.5, (name, audit)
 
 
 def test_no_text_of_a_sample_is_smaller_than_the_least_size(audits):
     for label, audit in audits.items():
-        assert audit.smallest_text >= MIN_TEXT, (label, audit.smallest_text)
-        assert audit.smallest_phone_px >= PHONE_TEXT, (label, audit)
-        assert audit.smallest_desktop_px >= 12.0, (label, audit)
+        _assert_legible(label, audit)
+
+
+def test_the_rollout_is_the_approved_list_and_opts_in():
+    # List A of the plan (28 figures), and phase 2c: list B (4) and the
+    # figures of the three tested types that passed the gate (84); none of
+    # them a sample, each drawn by a draw_ function that opts in
+    # (figure_style, finish). The four that failed the gate stay out.
+    import inspect
+
+    from pbc.figure_audit import ROLLOUT_LIST_B_AND_TYPES, SAMPLES
+
+    assert len(ROLLOUT) == len(set(ROLLOUT)) == 28 + 88
+    assert len(ROLLOUT_LIST_B_AND_TYPES) == 88
+    labels = {label for _, label in ROLLOUT_LIST_B_AND_TYPES}
+    assert {"fig-drift", "fig-solar-system", "fig-limit-cycle"} <= labels
+    assert "fig-airy-rayleigh" in labels
+    left_out = {
+        ("pbc.mechanics.experiments.energy_conservation", "fig-pendulum-energy"),
+        (
+            "pbc.mechanics.experiments.proving_what_the_simulation_showed",
+            "fig-proved-energy-growth",
+        ),
+        ("pbc.materials.experiments.elasticity_and_deformation", "fig-plate"),
+        ("pbc.astrophysics.experiments.three_body_problem", "fig-pythagorean"),
+    }
+    assert not left_out & set(ROLLOUT)
+    assert not {label for _, label in ROLLOUT} & {label for *_, label in SAMPLES}
+    # The one figure whose draw function lives outside its lesson's module.
+    drawn_in = {"fig-tsunami-benchmarks": "pbc.fluids.tsunami_benchmarks"}
+    for module, label in ROLLOUT:
+        source = inspect.getsource(importlib.import_module(drawn_in.get(label, module)))
+        assert "figure_style()" in source and "finish(" in source, (module, label)
+
+
+def test_every_figure_of_the_rollout_meets_the_language(rollout, rollout_audits):
+    for (module, label), audit in rollout_audits.items():
+        name = f"{module}:{label}"
+        _assert_the_one_width(name, rollout[(module, label)], audit)
+        assert abs(audit.natural_width - WIDTH * 96) <= 0.05 * WIDTH * 96, name
+        _assert_legible(name, audit)
+        if audit.least_line_contrast is not None:
+            assert audit.least_line_contrast >= CONTROL_CONTRAST, name
+        # At most three entries in a legend inside the axes; more go under
+        # the plot, a figure legend.
+        assert audit.axes_legend_entries <= 3, name
+
+
+@pytest.mark.parametrize(
+    "key",
+    ROLLOUT,
+    ids=[f"{module.rsplit('.', 1)[1]}:{label}" for module, label in ROLLOUT],
+)
+def test_every_figure_of_the_rollout_is_the_same_bytes_on_every_draw(rollout, key):
+    assert len({encode(rollout[key]) for _ in range(2)}) == 1
 
 
 def test_every_line_of_a_sample_has_three_to_one_against_the_plate(audits):
@@ -314,3 +418,53 @@ def test_an_excerpt_of_a_sample_points_to_its_own_module(samples):
         assert inspect.getsourcefile(function).endswith(
             module.replace(".", "/") + ".py"
         ), label
+
+
+def test_an_axis_the_language_places_shows_at_most_five_ticks(samples, rollout):
+    # finish() gives a linear axis whose ticks Matplotlib places itself at
+    # most TICKS ticks (MaxNLocator); an axis with its own ticks keeps them.
+    from matplotlib.ticker import MaxNLocator
+
+    draws = [draw for _, draw in samples.values()] + list(rollout.values())
+    placed = 0
+    for draw in draws:
+        with matplotlib.rc_context():
+            matplotlib.rcdefaults()
+            matplotlib.rcParams.update(FIGURE_SETTINGS)
+            fig = draw()
+            try:
+                fig.canvas.draw()
+                for ax in fig.axes:
+                    for axis, limits in (
+                        (ax.xaxis, ax.get_xlim()),
+                        (ax.yaxis, ax.get_ylim()),
+                    ):
+                        if not isinstance(axis.get_major_locator(), MaxNLocator):
+                            continue
+                        low, high = sorted(limits)
+                        shown = [
+                            t
+                            for t in axis.get_majorticklocs()
+                            if low - 1e-12 <= t <= high + 1e-12
+                        ]
+                        assert len(shown) <= TICKS, (ax.get_xlabel(), shown)
+                        placed += 1
+            finally:
+                plt.close(fig)
+    assert placed > 0
+
+
+def test_finish_keeps_a_tick_set_of_the_figure_and_a_log_axis():
+    from matplotlib.ticker import FixedLocator, LogLocator
+
+    with figure_style():
+        fig, (lin, log) = plt.subplots(2, 1, figsize=(WIDTH, 3.0))
+        lin.plot([0, 1, 2, 3], [0, 1, 4, 9])
+        lin.set_xticks([0, 1, 2, 3])
+        log.loglog([1, 10, 100], [1, 10, 100])
+    finish(fig)
+    try:
+        assert isinstance(lin.xaxis.get_major_locator(), FixedLocator)
+        assert isinstance(log.xaxis.get_major_locator(), LogLocator)
+    finally:
+        plt.close(fig)

@@ -326,7 +326,7 @@ excerpt(experiment.draw_bar)
 #| label: fig-bar
 #| echo: false
 #| fig-cap: "Four linear elements give the hanging rod's displacement exactly at the nodes, and a stress constant on each element that crosses the true linear stress at the element's midpoint."
-#| fig-alt: "Two panels against the distance from the support. Left, the displacement: a solid curve rising and bending slightly downward, with open circles joined by dashed straight segments lying on it at five nodes. Right, the stress: a solid straight line falling from the support to the free end, and a dashed staircase of four steps, each step crossing the line at its middle, where an open square marks it."
+#| fig-alt: "Two stacked panels against the distance from the support. Top, the displacement: a solid curve rising and bending slightly downward, with open circles joined by dashed straight segments lying on it at five nodes. Bottom, the stress: a solid straight line falling from the support to the free end, and a dashed staircase of four steps, each step crossing the line at its middle, where an open square marks it."
 #| fig-status: simulated
 result.show("fig-bar")
 ```

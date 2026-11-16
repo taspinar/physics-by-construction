@@ -47,6 +47,7 @@ from pbc.discovery.noise_lab import (
     replay_run,
 )
 from pbc.experiment import Experiment, main
+from pbc.figure_language import figsize, figure_style, finish
 
 # The live run of the lesson: a model, its key, and the extra openai.
 LIVE = "pbc.discovery.noise_lab"
@@ -231,28 +232,31 @@ def draw_degradation(found) -> Figure:
         zip(METHODS, (("-", "o"), ("--", "s"), ("-", "^"), ("--", "D")), strict=True)
     )
     colours = dict(zip(METHODS, [FIGURE_COLOURS[i] for i in (0, 1, 4, 3)], strict=True))
-    fig, ax = plt.subplots(figsize=(6.4, 4.6))
-    for design, name in BASELINES:
-        line, marker = styles[name]
-        rows = [d for d in found if d.method == f"{design} + {name}"]
-        random = design == "random"
-        ax.plot(
-            [d.sigma for d in rows],
-            [d.median for d in rows],
-            linestyle=":" if random else line,
-            marker=marker,
-            markerfacecolor="none" if random else colours[name],
-            color=colours[name],
-            label=f"{design} + {name}",
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=len(BASELINES) + 1))
+        for design, name in BASELINES:
+            line, marker = styles[name]
+            rows = [d for d in found if d.method == f"{design} + {name}"]
+            random = design == "random"
+            ax.plot(
+                [d.sigma for d in rows],
+                [d.median for d in rows],
+                linestyle=":" if random else line,
+                marker=marker,
+                markerfacecolor="none" if random else colours[name],
+                color=colours[name],
+                label=f"{design} + {name}",
+            )
+        ax.axhline(
+            TOLERANCE, color=FIGURE_COLOURS[2], linestyle="--", label="tolerance"
         )
-    ax.axhline(TOLERANCE, color=FIGURE_COLOURS[2], linestyle="--", label="tolerance")
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_xlabel("standard deviation of the noise (N)")
-    ax.set_ylabel("median held-out error (relative)")
-    ax.legend(fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=2)
-    fig.tight_layout()
-    return fig
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_xlabel("standard deviation of the noise (N)")
+        ax.set_ylabel("median held-out\nerror (relative)")
+        # Under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def run() -> Experiment:

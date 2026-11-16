@@ -20,6 +20,7 @@ from functools import partial
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
+from matplotlib.ticker import NullFormatter
 
 from pbc.agents import ModelMessage, Step, ToolCall
 from pbc.agents.display import AllowlistDisplay, RunDisplay, VerdictDisplay
@@ -33,8 +34,10 @@ from pbc.agents.hunter_lab import (
     replay_hunt,
     tools,
 )
+from pbc.authoring import FIGURE_COLOURS
 from pbc.authoring.repository import REPOSITORY_ROOT
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, figsize, figure_style, finish
 
 # The live run of the lesson: a model, its key, and the extra openai.
 LIVE = "pbc.agents.hunter_lab"
@@ -125,28 +128,37 @@ def draw_hunt(transcript, open_transcript) -> Figure:
     claims and the experiments the agent ran."""
     function = tools().tool(TOOL).function
     steps = np.array([16, 20, 24, 32, 48, 64, 100, 150, 200])
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
-    for method, claim, colour in (
-        ("symplectic Euler", FALSE_CLAIM, "#93003a"),
-        ("velocity Verlet", OPEN_CLAIM, "#00429d"),
-    ):
-        drift = [function(method, int(n), 50)["max_energy_drift"] for n in steps]
-        ax.loglog(steps, drift, color=colour, label=method)
-        ax.axhline(claim.limit, color=colour, linestyle="--", linewidth=1)
-    for hunt in (transcript, open_transcript):
-        for step in hunt.steps:
-            for call, result in zip(step.message.tool_calls, step.results, strict=True):
-                if result.ok and call.arguments["periods"] == 50:
-                    ax.plot(
-                        call.arguments["steps_per_period"],
-                        result.content["max_energy_drift"],
-                        "ko",
-                        markersize=4,
-                    )
-    ax.set_xlabel("steps per period")
-    ax.set_ylabel("largest energy drift")
-    ax.legend()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        for method, claim, colour in (
+            ("symplectic Euler", FALSE_CLAIM, FIGURE_COLOURS[1]),
+            ("velocity Verlet", OPEN_CLAIM, FIGURE_COLOURS[0]),
+        ):
+            drift = [function(method, int(n), 50)["max_energy_drift"] for n in steps]
+            ax.loglog(steps, drift, color=colour, label=method)
+            ax.axhline(
+                claim.limit, color=colour, linestyle="--", linewidth=LINE["guide"]
+            )
+        for hunt in (transcript, open_transcript):
+            for step in hunt.steps:
+                for call, result in zip(
+                    step.message.tool_calls, step.results, strict=True
+                ):
+                    if result.ok and call.arguments["periods"] == 50:
+                        ax.plot(
+                            call.arguments["steps_per_period"],
+                            result.content["max_energy_drift"],
+                            "ko",
+                            markersize=4,
+                        )
+        # At this width the labels of the log axis's minor ticks run into
+        # each other: four labelled steps instead.
+        ax.set_xticks([20, 50, 100, 200], labels=["20", "50", "100", "200"])
+        ax.xaxis.set_minor_formatter(NullFormatter())
+        ax.set_xlabel("steps per period")
+        ax.set_ylabel("largest energy drift")
+        ax.legend()
+    return finish(fig)
 
 
 def smallest_counterexample():

@@ -33,6 +33,7 @@ from pbc.data.gwstrain import (
 )
 from pbc.data.inverse import profile, recover, residual_autocorrelation, verdict
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, figsize, figure_style, finish
 from pbc.mechanics import chirp
 
 
@@ -141,27 +142,26 @@ def frequency_profile():
 
 def draw_profiles(profile_w, profile_k) -> Figure:
     """The profile of a determined and of an undetermined parameter."""
-    fig, (left, right) = plt.subplots(
-        1, 2, figsize=(7.6, 3.6), sharey=True, constrained_layout=True
-    )
-    left.semilogy(
-        profile_w.grid,
-        np.maximum(profile_w.chi2 - profile_w.chi2.min(), 1e-3),
-        color=FIGURE_COLOURS[0],
-    )
-    left.set_xlabel("angular frequency (rad/s)")
-    left.set_ylabel("chi-square above its minimum")
-    left.set_title("Determined")
-    right.semilogy(
-        profile_k.grid,
-        np.maximum(profile_k.chi2 - profile_k.chi2.min(), 1e-3),
-        color=FIGURE_COLOURS[1],
-    )
-    right.set_xlabel("spring constant (N/m)")
-    right.set_title("Not determined")
-    for ax in (left, right):
-        ax.axhline(1.0, color="0.4", linestyle=":")
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=figsize("pair"), sharey=True)
+        top.semilogy(
+            profile_w.grid,
+            np.maximum(profile_w.chi2 - profile_w.chi2.min(), 1e-3),
+            color=FIGURE_COLOURS[0],
+        )
+        top.set_xlabel("angular frequency (rad/s)")
+        top.set_title("Determined")
+        bottom.semilogy(
+            profile_k.grid,
+            np.maximum(profile_k.chi2 - profile_k.chi2.min(), 1e-3),
+            color=FIGURE_COLOURS[1],
+        )
+        bottom.set_xlabel("spring constant (N/m)")
+        bottom.set_title("Not determined")
+        for ax in (top, bottom):
+            ax.axhline(1.0, color="0.4", linestyle=":", linewidth=LINE["guide"])
+            ax.set_ylabel("chi-square above\nits minimum")
+    return finish(fig)
 
 
 def wrong_model(y_damped):
@@ -180,14 +180,18 @@ def wrong_model(y_damped):
 
 def draw_residuals(wrong, right_fit) -> Figure:
     """The residuals of the right and of the wrong model."""
-    fig, ax = plt.subplots(figsize=(7.0, 3.4), constrained_layout=True)
-    ax.plot(t, right_fit.residuals / SIGMA, color="0.55", label="right model")
-    ax.plot(t, wrong.residuals / SIGMA, color=FIGURE_COLOURS[0], label="wrong model")
-    ax.axhline(0.0, color="0.3", lw=0.6)
-    ax.set_xlabel("time (s)")
-    ax.set_ylabel("residual (noise units)")
-    ax.legend()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        ax.plot(t, right_fit.residuals / SIGMA, color="0.55", label="right model")
+        ax.plot(
+            t, wrong.residuals / SIGMA, color=FIGURE_COLOURS[0], label="wrong model"
+        )
+        ax.axhline(0.0, color="0.3", linewidth=LINE["guide"])
+        ax.set_xlabel("time (s)")
+        ax.set_ylabel("residual (noise units)")
+        # The legend would cover the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def strain_fit():

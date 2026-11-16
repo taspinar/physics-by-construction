@@ -47,6 +47,7 @@ from pbc.electromagnetism.waveguides import (
     phase_velocity,
 )
 from pbc.experiment import Experiment, main
+from pbc.figure_language import figsize, figure_style, finish, reference_slope
 from pbc.verification.estimates import fitted_order
 
 # region: guide
@@ -355,24 +356,18 @@ def two_elements(experiment: Experiment):
 
 def draw_cutoff_convergence(spacings, errors) -> Figure:
     """Log-log largest relative error of the cut-off frequencies against the
-    grid spacing, with a reference slope two."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    h = 1e3 * np.array(spacings)
-    ax.loglog(h, errors, color=FIGURE_COLOURS[0], marker="o", label="eigenproblem")
-    ax.loglog(
-        h,
-        0.5 * errors[0] * (h / h[0]) ** 2,
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label="reference, slope two",
-    )
-    ax.set_xticks(h, labels=[f"{value:.3g}" for value in h])
-    ax.minorticks_off()
-    ax.set_xlabel("dx (mm)")
-    ax.set_ylabel("largest relative error of f_c")
-    ax.legend(frameon=False, loc="upper left")
-    fig.tight_layout()
-    return fig
+    grid spacing, with a reference slope two, named on the plot."""
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        h = 1e3 * np.array(spacings)
+        ax.loglog(h, errors, color=FIGURE_COLOURS[0], marker="o", label="eigenproblem")
+        reference_slope(ax, h, errors[0], 2)
+        ax.set_xticks(h, labels=[f"{value:.3g}" for value in h])
+        ax.minorticks_off()
+        ax.set_xlabel("dx (mm)")
+        ax.set_ylabel("largest relative error of f_c")
+        ax.legend(loc="upper left")
+    return finish(fig, grid=True)
 
 
 def draw_guide_field(snapshots) -> Figure:
@@ -406,46 +401,47 @@ def draw_dispersion(measured: dict) -> Figure:
     """beta above and alpha below the cut-off against frequency: the
     continuum curves and the FDTD measurements."""
     f_c = cutoff_frequency(1, 0, A, B)
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
     above = np.linspace(f_c, 1.05 * ABOVE[-1], 300)
     below_ = np.linspace(0.9 * BELOW[0], f_c, 300)
-    ax.plot(
-        1e-9 * above,
-        guide_wavenumber(above, f_c),
-        color=FIGURE_COLOURS[0],
-        label=r"$\beta$, continuum",
-    )
-    ax.plot(
-        1e-9 * below_,
-        attenuation(below_, f_c),
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        label=r"$\alpha$, continuum",
-    )
-    ax.plot(
-        [1e-9 * f for f in ABOVE],
-        [measured[f] for f in ABOVE],
-        color=FIGURE_COLOURS[0],
-        marker="o",
-        linestyle="none",
-        label=r"$\beta$, FDTD",
-    )
-    ax.plot(
-        [1e-9 * f for f in BELOW],
-        [measured[f] for f in BELOW],
-        color=FIGURE_COLOURS[1],
-        marker="s",
-        linestyle="none",
-        label=r"$\alpha$, FDTD",
-    )
-    ax.axvline(
-        1e-9 * f_c, color=FIGURE_COLOURS[2], linestyle=":", label="cut-off, TE10"
-    )
-    ax.set_xlabel("frequency (GHz)")
-    ax.set_ylabel(r"$\beta$ (rad/m) or $\alpha$ (Np/m)")
-    ax.legend(frameon=False, loc="upper left", fontsize="small")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=5))
+        ax.plot(
+            1e-9 * above,
+            guide_wavenumber(above, f_c),
+            color=FIGURE_COLOURS[0],
+            label=r"$\beta$, continuum",
+        )
+        ax.plot(
+            1e-9 * below_,
+            attenuation(below_, f_c),
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            label=r"$\alpha$, continuum",
+        )
+        ax.plot(
+            [1e-9 * f for f in ABOVE],
+            [measured[f] for f in ABOVE],
+            color=FIGURE_COLOURS[0],
+            marker="o",
+            linestyle="none",
+            label=r"$\beta$, FDTD",
+        )
+        ax.plot(
+            [1e-9 * f for f in BELOW],
+            [measured[f] for f in BELOW],
+            color=FIGURE_COLOURS[1],
+            marker="s",
+            linestyle="none",
+            label=r"$\alpha$, FDTD",
+        )
+        ax.axvline(
+            1e-9 * f_c, color=FIGURE_COLOURS[2], linestyle=":", label="cut-off, TE10"
+        )
+        ax.set_xlabel("frequency (GHz)")
+        ax.set_ylabel(r"$\beta$ (rad/m) or $\alpha$ (Np/m)")
+        # Five entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def draw_patterns(curves: dict, arrays: dict) -> Figure:

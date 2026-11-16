@@ -20,6 +20,7 @@ from matplotlib.ticker import NullFormatter
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, TEXT, figsize, figure_style, finish
 from pbc.quantum.eigenstates import (
     box_energy,
     eigenstates,
@@ -95,46 +96,48 @@ def levels_run(experiment: Experiment):
 def draw_levels(grid, energies, vectors, reference) -> Figure:
     """The potential, the levels, and the eigenfunctions drawn at the height
     of their level, computed and exact."""
-    fig, ax = plt.subplots(figsize=(6.4, 4.4))
     x = grid.x
-    ax.plot(
-        x,
-        oscillator_potential(x),
-        color=FIGURE_COLOURS[2],
-        linewidth=1.5,
-        label="potential x^2 / 2",
-    )
-    for j, energy in enumerate(energies):
-        turning = np.sqrt(2 * energy)
-        ax.hlines(
-            energy,
-            -turning,
-            turning,
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=3))
+        ax.plot(
+            x,
+            oscillator_potential(x),
             color=FIGURE_COLOURS[2],
-            linestyle=":",
-            linewidth=1,
+            linewidth=LINE["model"],
+            label="potential x^2 / 2",
         )
-        ax.plot(
-            x,
-            energy + 0.4 * vectors[:, j],
-            color=FIGURE_COLOURS[0],
-            label="grid eigenfunction" if j == 0 else None,
-        )
-        ax.plot(
-            x,
-            energy + 0.4 * reference[j],
-            color=FIGURE_COLOURS[1],
-            linestyle="--",
-            linewidth=1,
-            label="Hermite function" if j == 0 else None,
-        )
-        ax.text(4.0, energy + 0.08, f"n = {j}", va="bottom")
-    ax.set_xlim(-5, 5)
-    ax.set_ylim(0, 7.2)
-    ax.set_xlabel("position x (units of sqrt(hbar / m omega))")
-    ax.set_ylabel("energy (units of hbar omega)")
-    ax.legend(loc="upper center", ncol=3, fontsize="small")
-    return fig
+        for j, energy in enumerate(energies):
+            turning = np.sqrt(2 * energy)
+            ax.hlines(
+                energy,
+                -turning,
+                turning,
+                color=FIGURE_COLOURS[2],
+                linestyle=":",
+                linewidth=LINE["guide"],
+            )
+            ax.plot(
+                x,
+                energy + 0.4 * vectors[:, j],
+                color=FIGURE_COLOURS[0],
+                label="grid eigenfunction" if j == 0 else None,
+            )
+            ax.plot(
+                x,
+                energy + 0.4 * reference[j],
+                color=FIGURE_COLOURS[1],
+                linestyle="--",
+                linewidth=LINE["guide"],
+                label="Hermite function" if j == 0 else None,
+            )
+            ax.text(4.0, energy + 0.08, f"n = {j}", va="bottom", fontsize=TEXT["note"])
+        ax.set_xlim(-5, 5)
+        ax.set_ylim(0, 7.2)
+        ax.set_xlabel("position x (units of sqrt(hbar / m omega))")
+        ax.set_ylabel("energy (units of hbar omega)")
+        # As the approved example: the three series under the plot.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def convergence(experiment: Experiment):
@@ -174,32 +177,34 @@ def convergence(experiment: Experiment):
 def draw_convergence(spacings, errors) -> Figure:
     """The size of the error of three levels against h, log-log, with the
     predicted error."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
     markers = ["o", "s", "^"]
     h = np.geomspace(spacings[-1], spacings[0], 50)
-    for colour, marker, n in zip(FIGURE_COLOURS, markers, shown, strict=False):
-        ax.loglog(
-            spacings,
-            np.abs(errors[:, n]),
-            marker,
-            color=colour,
-            markerfacecolor="none",
-            label=f"level {n}, grid",
-        )
-        ax.loglog(
-            h,
-            np.abs(oscillator_shift(n, h)),
-            color=colour,
-            linestyle="--",
-            linewidth=1,
-            label=f"level {n}, predicted",
-        )
-    ax.xaxis.set_minor_formatter(NullFormatter())
-    ax.set_xticks(spacings, [f"{v:g}" for v in spacings])
-    ax.set_xlabel("spacing h (units of sqrt(hbar / m omega))")
-    ax.set_ylabel("size of the error (units of hbar omega)")
-    ax.legend(fontsize="small", ncol=2)
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=6))
+        for colour, marker, n in zip(FIGURE_COLOURS, markers, shown, strict=False):
+            ax.loglog(
+                spacings,
+                np.abs(errors[:, n]),
+                marker,
+                color=colour,
+                markerfacecolor="none",
+                label=f"level {n}, grid",
+            )
+            ax.loglog(
+                h,
+                np.abs(oscillator_shift(n, h)),
+                color=colour,
+                linestyle="--",
+                linewidth=LINE["model"],
+                label=f"level {n}, predicted",
+            )
+        ax.xaxis.set_minor_formatter(NullFormatter())
+        ax.set_xticks(spacings, [f"{v:g}" for v in spacings])
+        ax.set_xlabel("spacing h\n(units of sqrt(hbar / m omega))")
+        ax.set_ylabel("size of the error\n(units of hbar omega)")
+        # Six entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def walls_run(experiment: Experiment):

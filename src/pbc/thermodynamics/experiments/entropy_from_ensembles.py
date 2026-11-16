@@ -18,7 +18,9 @@ import numpy as np
 from matplotlib.figure import Figure
 
 from pbc.abm.gas import mean_and_error
+from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, figsize, figure_style, finish
 from pbc.thermodynamics.entropy import (
     distribution,
     ehrenfest_ensemble,
@@ -129,22 +131,31 @@ def ensemble_runs(experiment: Experiment):
 def draw_entropy_growth(mean_estimate, exact_entropy) -> Figure:
     """The entropy of the ensemble and of the exact distribution against the
     step."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
     steps = np.arange(STEPS + 1)
-    ax.plot(steps, mean_estimate, color="#00429d", label="ensemble of boxes")
-    ax.plot(
-        steps,
-        exact_entropy,
-        color="#e08214",
-        linestyle=":",
-        linewidth=2.5,
-        label="exact distribution",
-    )
-    ax.axhline(equilibrium_entropy(N), color="#93003a", linestyle="--", label="N ln 2")
-    ax.set_xlabel("step")
-    ax.set_ylabel(r"entropy $S/k_B$")
-    ax.legend()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        ax.plot(
+            steps, mean_estimate, color=FIGURE_COLOURS[0], label="ensemble of boxes"
+        )
+        ax.plot(
+            steps,
+            exact_entropy,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            linewidth=2.5,
+            label="exact distribution",
+        )
+        ax.axhline(
+            equilibrium_entropy(N),
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            linewidth=LINE["guide"],
+            label="N ln 2",
+        )
+        ax.set_xlabel("step")
+        ax.set_ylabel(r"entropy $S/k_B$")
+        ax.legend()
+    return finish(fig)
 
 
 def mean_check(experiment: Experiment, runs) -> float:

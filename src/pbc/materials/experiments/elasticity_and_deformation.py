@@ -17,12 +17,14 @@ from functools import partial
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
+from matplotlib.ticker import MaxNLocator
 from matplotlib.tri import Triangulation
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
 from pbc.fem.assembly import solve
 from pbc.fem.mesh import rectangle
+from pbc.figure_language import figsize, figure_style, finish
 from pbc.materials.elasticity import (
     bar_displacement,
     bar_load,
@@ -120,53 +122,55 @@ def draw_bar() -> Figure:
     the closed form."""
     bar = solve_bar(LENGTH, 4, E, AREA, WEIGHT, FORCE)
     x = np.linspace(0, LENGTH, 200)
-    fig, (left, right) = plt.subplots(1, 2, figsize=(7.2, 3.2))
-    left.plot(
-        x,
-        1e3 * bar_displacement(x, LENGTH, E, AREA, WEIGHT, FORCE),
-        color=FIGURE_COLOURS[0],
-        linestyle="-",
-        label="closed form",
-    )
-    left.plot(
-        bar.x,
-        1e3 * bar.u,
-        "o--",
-        color=FIGURE_COLOURS[1],
-        markerfacecolor="none",
-        label="four linear elements",
-    )
-    left.set_ylabel("displacement u (mm)")
-    right.plot(
-        x,
-        bar_stress(x, LENGTH, AREA, WEIGHT, FORCE) / 1e6,
-        color=FIGURE_COLOURS[0],
-        linestyle="-",
-        label="closed form",
-    )
-    right.stairs(
-        bar.stress / 1e6,
-        bar.x,
-        baseline=None,
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        label="element stress",
-    )
-    right.plot(
-        (bar.x[:-1] + bar.x[1:]) / 2,
-        bar.stress / 1e6,
-        "s",
-        color=FIGURE_COLOURS[1],
-        markerfacecolor="none",
-        label="at the midpoints",
-    )
-    right.set_ylabel("stress sigma (MPa)")
-    for ax in (left, right):
-        ax.set_xlabel("distance x from the support (m)")
-        ax.set_xlim(0, LENGTH)
-        ax.legend(fontsize="small", loc="best")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=figsize("pair"))
+        top.plot(
+            x,
+            1e3 * bar_displacement(x, LENGTH, E, AREA, WEIGHT, FORCE),
+            color=FIGURE_COLOURS[0],
+            linestyle="-",
+            label="closed form",
+        )
+        top.plot(
+            bar.x,
+            1e3 * bar.u,
+            "o--",
+            color=FIGURE_COLOURS[1],
+            markerfacecolor="none",
+            label="four linear elements",
+        )
+        top.set_ylabel("displacement u (mm)")
+        bottom.plot(
+            x,
+            bar_stress(x, LENGTH, AREA, WEIGHT, FORCE) / 1e6,
+            color=FIGURE_COLOURS[0],
+            linestyle="-",
+            label="closed form",
+        )
+        bottom.stairs(
+            bar.stress / 1e6,
+            bar.x,
+            baseline=None,
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            label="element stress",
+        )
+        bottom.plot(
+            (bar.x[:-1] + bar.x[1:]) / 2,
+            bar.stress / 1e6,
+            "s",
+            color=FIGURE_COLOURS[1],
+            markerfacecolor="none",
+            label="at the midpoints",
+        )
+        bottom.set_ylabel("stress sigma (MPa)")
+        for ax in (top, bottom):
+            ax.set_xlabel("distance x from the support (m)")
+            ax.set_xlim(0, LENGTH)
+            # From 0 to 100 Matplotlib's five intervals would place six ticks.
+            ax.xaxis.set_major_locator(MaxNLocator(4, steps=[1, 2, 2.5, 5, 10]))
+            ax.legend(loc="best")
+    return finish(fig)
 
 
 def plate(cells: int, supports):

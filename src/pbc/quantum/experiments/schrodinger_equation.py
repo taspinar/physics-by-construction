@@ -19,6 +19,7 @@ from matplotlib.ticker import NullFormatter
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, TEXT, figsize, figure_style, finish
 from pbc.quantum.schrodinger import (
     Line,
     box_mode,
@@ -142,37 +143,44 @@ def packet_run(experiment: Experiment):
 
 def draw_packet(grid: Line, run, exact) -> Figure:
     """The probability density at five times, computed and exact."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    for j, (t, psi, e) in enumerate(zip(run.t, run.psi, exact, strict=True)):
-        ax.plot(
-            grid.x,
-            np.abs(psi) ** 2,
-            color=FIGURE_COLOURS[0],
-            label="Crank-Nicolson" if j == 0 else None,
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        for j, (t, psi, e) in enumerate(zip(run.t, run.psi, exact, strict=True)):
+            ax.plot(
+                grid.x,
+                np.abs(psi) ** 2,
+                color=FIGURE_COLOURS[0],
+                label="Crank-Nicolson" if j == 0 else None,
+            )
+            ax.plot(
+                grid.x,
+                np.abs(e) ** 2,
+                color=FIGURE_COLOURS[1],
+                linestyle="--",
+                linewidth=LINE["model"],
+                label="exact" if j == 0 else None,
+            )
+            peak = np.argmax(np.abs(psi))
+            ax.annotate(
+                f"t = {t:g}",
+                (grid.x[peak], np.abs(psi[peak]) ** 2),
+                textcoords="offset points",
+                # Right of the peak: above it, at this size, the label lay on
+                # the packet before.
+                xytext=(5, 0),
+                ha="left",
+                va="bottom",
+                color=FIGURE_COLOURS[2],
+                fontsize=TEXT["note"],
+            )
+        ax.set_xlim(-20, 25)
+        ax.set_ylim(0, 0.46)
+        ax.set_xlabel("position x (units with hbar = m = 1)")
+        ax.set_ylabel(
+            r"probability density $|\psi|^2$" "\n(per unit length,\nhbar = m = 1)"
         )
-        ax.plot(
-            grid.x,
-            np.abs(e) ** 2,
-            color=FIGURE_COLOURS[1],
-            linestyle="--",
-            linewidth=1,
-            label="exact" if j == 0 else None,
-        )
-        peak = np.argmax(np.abs(psi))
-        ax.annotate(
-            f"t = {t:g}",
-            (grid.x[peak], np.abs(psi[peak]) ** 2),
-            textcoords="offset points",
-            xytext=(0, 4),
-            ha="center",
-            color=FIGURE_COLOURS[2],
-        )
-    ax.set_xlim(-20, 25)
-    ax.set_ylim(0, 0.46)
-    ax.set_xlabel("position x (units with hbar = m = 1)")
-    ax.set_ylabel(r"probability density $|\psi|^2$" "\n(per unit length, hbar = m = 1)")
-    ax.legend(loc="upper right")
-    return fig
+        ax.legend(loc="upper right")
+    return finish(fig)
 
 
 def convergence(experiment: Experiment):
@@ -274,40 +282,42 @@ def dispersion_run(experiment: Experiment):
 def draw_dispersion(grid: Line, rows) -> Figure:
     """omega against k: free, grid, and scheme, with the measured modes."""
     k = np.linspace(0, np.pi / grid.h, 400)
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    ax.plot(
-        k,
-        free_energy(k),
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label=r"free, $k^2/2$",
-    )
-    ax.plot(
-        k,
-        grid_energy(k, grid.h),
-        color=FIGURE_COLOURS[0],
-        linestyle="--",
-        label="grid energy",
-    )
-    ax.plot(
-        k,
-        crank_nicolson_frequency(grid_energy(k, grid.h), dt),
-        color=FIGURE_COLOURS[1],
-        label="Crank-Nicolson",
-    )
-    ax.plot(
-        [r[0] for r in rows],
-        [r[5] for r in rows],
-        "o",
-        color=FIGURE_COLOURS[1],
-        markerfacecolor="none",
-        label="measured modes",
-    )
-    ax.set_ylim(0, 1.2 * grid_energy(np.pi / grid.h, grid.h))
-    ax.set_xlabel("wavenumber k (units with hbar = m = 1)")
-    ax.set_ylabel(r"angular frequency $\omega$")
-    ax.legend()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=4))
+        ax.plot(
+            k,
+            free_energy(k),
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            label=r"free, $k^2/2$",
+        )
+        ax.plot(
+            k,
+            grid_energy(k, grid.h),
+            color=FIGURE_COLOURS[0],
+            linestyle="--",
+            label="grid energy",
+        )
+        ax.plot(
+            k,
+            crank_nicolson_frequency(grid_energy(k, grid.h), dt),
+            color=FIGURE_COLOURS[1],
+            label="Crank-Nicolson",
+        )
+        ax.plot(
+            [r[0] for r in rows],
+            [r[5] for r in rows],
+            "o",
+            color=FIGURE_COLOURS[1],
+            markerfacecolor="none",
+            label="measured modes",
+        )
+        ax.set_ylim(0, 1.2 * grid_energy(np.pi / grid.h, grid.h))
+        ax.set_xlabel("wavenumber k (units with hbar = m = 1)")
+        ax.set_ylabel(r"angular frequency $\omega$")
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def euler_run(experiment: Experiment):
