@@ -1,0 +1,142 @@
+# The introduction of the course Condensed matter and materials physics
+# (F162, requirements decision 43). Prose and references only; see
+# site/introductions/mechanics.yaml for the rules.
+sequence: materials
+
+why:
+  - >-
+    Why does one solid conduct electricity and another not, why does a
+    metal spring back from a small load but not from a large one, and how
+    can atoms move through a crystal at all? The answers start from one
+    fact: in a crystal the atoms sit on a lattice that repeats, and the
+    repetition shapes how the crystal vibrates, which energies its
+    electrons may have, and how it carries a load.
+  - >-
+    Real materials are far too large to compute atom by atom, so the course
+    works with models small enough to build and check: a chain of masses
+    and springs, an electron hopping between sites, a bar divided into
+    finite elements, a vacancy on a lattice. The course chooses a check for
+    each model. The two labs then use X-ray diffraction and stress–strain
+    measurements to see how far the models apply to real materials.
+
+questions:
+  - >-
+    How do atoms bound to their neighbours vibrate together, and what does
+    the repetition of a lattice do to those vibrations?
+  - >-
+    Which energies can an electron have in a crystal, and what decides
+    whether the crystal conducts?
+  - >-
+    How does a solid deform under a load, and where does the linear model
+    of that deformation stop?
+  - >-
+    Why does every crystal hold defects in equilibrium, and how do they let
+    its atoms move?
+  - >-
+    How is the spacing of a lattice measured, and how well can it be
+    known?
+  - >-
+    Does a real steel follow the straight line of the elastic model, and
+    what happens when the load reverses?
+
+learn:
+  - >-
+    Build the force-constant matrix of a chain, compute its normal modes as
+    eigenvalues, and check them against the dispersion that a plane-wave
+    trial solution gives ({slot:MAT1}).
+  - >-
+    Explain the acoustic and the optical branch, the sound speed, and the
+    gap at the edge of the Brillouin zone, and show that a wave packet
+    moves at the group velocity ({slot:MAT1}).
+  - >-
+    Build a tight-binding Hamiltonian, check its energies against the
+    closed-form bands, read an effective mass, and decide from the filling
+    of the bands whether the chain conducts ({slot:MAT2}).
+  - >-
+    Solve a loaded bar and a plate in plane stress with finite elements,
+    check them against their closed forms, and explain why the disturbance
+    of a support fades with distance ({slot:MAT3}).
+  - >-
+    Derive the equilibrium fraction of vacancies from the free energy,
+    simulate how a vacancy moves through a crystal at the Arrhenius rate,
+    check the diffusion of the vacancy against the random-walk law, and
+    compare the resulting diffusion of the atoms with the prediction of a
+    simple random-walk model: the tracer correlation factor measures how
+    far it falls below ({slot:MAT4}).
+  - >-
+    Index a measured powder pattern with one lattice parameter, and keep
+    the statistical error, the systematic errors, and the uncertainty of a
+    certificate apart ({slot:MAT5}).
+  - >-
+    Fit Young's modulus to a measured tensile test, locate where the
+    straight line ends, and test the elastic prediction for an unloading
+    ({slot:MAT6}).
+
+order:
+  - >-
+    The course starts with the lattice itself. {slot:MAT1} treats a crystal
+    as a chain of masses and springs, the oscillators of
+    {sequence:mechanics} coupled in a line, and shows how the repetition turns its normal modes into
+    a dispersion with branches and a gap. {slot:MAT2} puts an electron on
+    the same chain: the plane-wave argument now gives bands of energy, and
+    their filling decides between a metal and an insulator. It also needs
+    the quantum mechanics of {slot:Q3}.
+  - >-
+    The course then moves from single modes to the behaviour of a
+    piece of material. {slot:MAT3} models a solid as a continuum that
+    stretches under stress, solved with finite elements as in {slot:T10}.
+    {slot:MAT4} returns to the atoms: to the vacancies that every crystal
+    holds in equilibrium, a balance of energy and entropy as in {slot:T3},
+    and to the random walk, as in {slot:T1}, by which they let atoms move.
+  - >-
+    The labs on measured data close the course, each on the lesson it
+    tests. {slot:MAT5} measures, from the diffraction of X-rays by a
+    certified powder, the lattice spacing that {slot:MAT1} only assumed,
+    and {slot:MAT6} holds the elastic model of {slot:MAT3} against a steel
+    that was pulled, pushed back, and pulled again. They come last because
+    a record that someone else measured raises questions that a closed
+    form never does: a missing calibration, a choice of window, and an
+    error that no fit of the data can reveal.
+
+method:
+  - >-
+    The course uses numerical experiments and chooses checks that fit each
+    problem. Where an exact result is available, it serves as a benchmark:
+    the eigenvalues of a finite chain against the closed-form dispersion,
+    the energies of a ring against the closed-form bands, the finite
+    elements of a bar against its closed form and of a plate against a
+    uniform tension that they must recover exactly, and the diffusion of a
+    hopping vacancy against the random-walk law. A model that passes its
+    checks is right about itself; whether it is right about a material is
+    the question of the labs.
+  - >-
+    The labs use records that the National Institute of Standards and
+    Technology made and published, and keep the measurement, its
+    processing, and the analysis apart. They tell the standard error of a
+    fit from the sensitivity of the analysis to its choices and from the
+    errors that no fit can reveal, and say which of them limits a
+    comparison. Each lesson also says where its model stops, as linear
+    elasticity does at yield. None of the lessons of this course uses an
+    artificial-intelligence agent.
+
+capstone:
+  - >-
+    The curriculum has no capstone project for this course. Its two labs
+    draw most of it together, because each takes the model of an earlier
+    lesson to a measurement and asks how far it holds.
+  - >-
+    {slot:MAT5} indexes a powder pattern of lanthanum hexaboride, a
+    certified standard, with one lattice parameter and compares the result
+    with the certified value, weighing the systematic errors of the method
+    against the statistical one. {slot:MAT6} fits the stiffness of a
+    dual-phase steel, explains why a steel that yields gradually has no
+    single elastic limit, and tests the elastic model against a measured
+    reversal of the load.
+
+next:
+  - >-
+    The continuum of {slot:MAT3} is a solid that holds its shape;
+    {sequence:fluids} carries the idea of a continuum to matter that flows.
+    The quantum mechanics behind the bands of {slot:MAT2} is the subject of
+    {sequence:quantum}, and {sequence:autonomous-research} plans an
+    optional lesson on materials, {slot:R5}.
