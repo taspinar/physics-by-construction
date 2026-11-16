@@ -455,7 +455,7 @@ Decide for each block why the learner reads it at that point (the
 | Exact selection | `excerpt(f, lines=(a, b))`, `lines=[(a, b), (c, d)]`, or `region="name"` | One frame: the function's header on one line at its top (generated, unless the selection shows the header as written and the source writes it on one line, which is then shown once); the lines, each with its line number in the file; `(...)` on a line of its own inside the frame wherever lines are left out, also before the first and after the last range; one scroll area for the lines and the `(...)` lines; the link "Full function on GitHub" once, under the frame; no copy button, since a fragment is not a runnable whole |
 | Without the docstring | `excerpt(f, docstring=False)`, alone or with `lines` | `(...)` where the docstring was; the source keeps it, and the link opens it |
 | Generated signature | `excerpt(f, signature=True)`, alone or with `lines` | Instead of the header as written, the generated one, also when the selection shows the header |
-| Source link only | `source_link(f)`, or `source_link(f, figure=True)` for the function that draws a figure on the page | The link alone, "Source" or "Figure source" |
+| Source link only | `source_link(f)`, or `source_link(f, figure=True)` for the function that draws a figure on the page; `text="Source of the methods table"` names a link that would otherwise read "Source" next to another | The link alone, "Source", "Figure source", or the words given |
 
 - Leave out a docstring only where the prose next to the listing says what
   it says; keep it where it gives an assumption, a unit, or a caveat the
@@ -1691,6 +1691,24 @@ MathML when the site is built, and the build fails on an equation that
 cannot be converted. Stay with standard LaTeX and `amsmath` constructs such
 as `aligned`, `\frac`, `\sum`, and `pmatrix`; do not define macros.
 `site/rendering-check.qmd` shows constructs that are known to work.
+
+Coupled formulas that belong together, such as the two lines of one update
+rule, go in a div with the class `equation-pair`, one `$$...$$` each, in
+place of one equation joined by `\qquad`. They stand side by side on a wide
+screen and one under the other on a narrow one, where a joined equation
+would scroll sideways.
+
+```markdown
+::: {.equation-pair}
+$$
+x_{n+1} = x_n + v_n\,\Delta t,
+$$
+
+$$
+v_{n+1} = v_n + a_n\,\Delta t.
+$$
+:::
+```
 
 ## Agent lessons
 

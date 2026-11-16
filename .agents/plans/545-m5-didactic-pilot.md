@@ -190,3 +190,24 @@ review; it is not assumed (the Issue's instructions).
 10. Criteria 1, 2, the sequence review, and the request for the owner's
     decision recorded on the Issue. Criteria 7, 8, and the decision of 11
     follow the session.
+
+## The owner's improvements (2026-11-16)
+
+The owner accepted the pilot approach (Issue comment 6912662602) and asked
+for three improvements to M5 before the merge:
+
+11. Coupled formulas stack on a narrow screen: every pair that was joined by
+    `\qquad` (the four update rules, and the three pairs of the depth
+    section) is a div `.equation-pair` of two display equations, side by
+    side where the column is wide enough (`site/assets/site.css`; the form
+    in `docs/authoring.md`, "Equations"). Runge-Kutta's four rates are one
+    per row, so the pair fits a phone. Checked at 1280, 375, and 320 px.
+12. The explorer's figure and controls follow the prediction question
+    directly; the paragraph on how the runs are built and its excerpt
+    follow the tables and their answer. Not collapsed: the site has no
+    collapsible block outside hints and solutions, and the note is short.
+    The explorer's markup, data, controls, and tests are unchanged.
+13. The second Source link under `Integrator` reads "Source of the methods
+    table": `source_link` takes the words of the link (`text=`), and the
+    screen reader hears the object after a comma. The payload carries the
+    words only when they are set, so no other page changes.

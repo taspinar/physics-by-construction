@@ -624,6 +624,21 @@ def test_figure_source_is_a_link_alone():
     assert file[shown.span[0] - 1].startswith("def offset_crossing(")
 
 
+def test_a_source_link_can_be_named_apart_from_its_neighbour():
+    shown = source_link(stress_strain.offset_crossing, text="Source of the table")
+
+    markdown = shown.markdown()
+    assert markdown.startswith("::: {.excerpt-source}\n")
+    assert "[Source of the table[, `offset_crossing`, lines" in markdown
+    again = Excerpt.from_payload(shown.payload(), shown.commit, shown.repository)
+    assert again == shown
+    # A link without words of its own keeps the payload, and so the page
+    # digest, it had before the option existed.
+    assert "text" not in source_link(stress_strain.offset_crossing).payload()
+    with pytest.raises(ValueError):
+        source_link(stress_strain.offset_crossing, text=" ")
+
+
 # Pandoc's HTML of a highlighted block, as `quarto pandoc` writes it.
 _CONVERTED = (
     '<div class="sourceCode" id="ctx-cb1" data-marked="11:1" data-first-line="10"'

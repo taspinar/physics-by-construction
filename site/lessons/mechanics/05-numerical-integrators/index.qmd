@@ -91,11 +91,15 @@ as possible for the number of times the force has to be evaluated.
 velocity moves the position, and the current acceleration changes the
 velocity. Both rates are held at their starting values for the whole step.
 
+::: {.equation-pair}
 $$
 x_{n+1} = x_n + v_n\,\Delta t,
-\qquad
+$$
+
+$$
 v_{n+1} = v_n + a(t_n, x_n, v_n)\,\Delta t.
 $$
+:::
 
 It follows the Taylor expansion of the exact motion only through the term in
 $\Delta t$, and misses $\tfrac12 a\,\Delta t^2$ in the position, which is why
@@ -107,11 +111,15 @@ moves the particle. This is the
 velocity-first ordering; updating the position first, with the old velocity,
 is explicit Euler.
 
+::: {.equation-pair}
 $$
 v_{n+1} = v_n + a(t_n, x_n, v_n)\,\Delta t,
-\qquad
+$$
+
+$$
 x_{n+1} = x_n + v_{n+1}\,\Delta t.
 $$
+:::
 
 It costs exactly as much as explicit Euler and has the same order, and it
 does something entirely different to the energy, as the examples show.
@@ -142,11 +150,15 @@ position is known, the force can be evaluated there. The velocity then changes
 by the average of the acceleration at the start and at the end of the step:
 a trapezoid in place of the rectangle that Euler uses.
 
+::: {.equation-pair}
 $$
 x_{n+1} = x_n + v_n\,\Delta t + \tfrac{1}{2}\,a_n\,\Delta t^2,
-\qquad
+$$
+
+$$
 v_{n+1} = v_n + \tfrac{1}{2}\,(a_n + a_{n+1})\,\Delta t,
 $$
+:::
 
 with $a_n = a(t_n, x_n, v_n)$ and $a_{n+1} = a(t_{n+1}, x_{n+1}, \cdot)$.
 When the force does not depend on the velocity, the dot is immaterial, and
@@ -184,16 +196,20 @@ each time at a state predicted with the rates found so far. Their weighted
 average advances both position and velocity. For the pair $y = (x, v)$ with the
 rate $f(t, y) = (v, a(t, x, v))$,
 
+::: {.equation-pair}
 $$
 \begin{aligned}
-k_1 &= f(t_n, y_n), &
+k_1 &= f(t_n, y_n), \\
 k_2 &= f\bigl(t_n + \tfrac{1}{2}\Delta t,\; y_n + \tfrac{1}{2}\Delta t\,k_1\bigr), \\
-k_3 &= f\bigl(t_n + \tfrac{1}{2}\Delta t,\; y_n + \tfrac{1}{2}\Delta t\,k_2\bigr), &
+k_3 &= f\bigl(t_n + \tfrac{1}{2}\Delta t,\; y_n + \tfrac{1}{2}\Delta t\,k_2\bigr), \\
 k_4 &= f\bigl(t_n + \Delta t,\; y_n + \Delta t\,k_3\bigr),
 \end{aligned}
-\qquad
+$$
+
+$$
 y_{n+1} = y_n + \tfrac{\Delta t}{6}\,(k_1 + 2k_2 + 2k_3 + k_4).
 $$
+:::
 
 The weights are not arbitrary. When the rate does not depend on $y$ at all,
 $k_2 = k_3$ is the rate at the midpoint, and the step is
@@ -333,16 +349,6 @@ per period. At four steps per period $\omega\,\Delta t$ is about
 `{python} result["omega-dt-4"]`, and the stability limits of the summary
 decide which curves survive: which of them do you expect to, and why?
 
-The runs behind the figure come from the cell below, which calls the
-integrators shown above for every method at nine step counts when the page
-is built. The script of the figure draws these results and computes no
-physics of its own.
-
-```{python}
-#| echo: false
-excerpt(experiment.run, region="explorer")
-```
-
 ::: {#integrator-explorer data-widget="integrator-explorer" data-enhancement=""}
 ```{python}
 #| label: fig-integrator-explorer
@@ -383,6 +389,16 @@ the starting energy, though within their bands, and Runge-Kutta has lost
 most of its energy. Surviving is not the same as being accurate. Make the
 step finer, and the order of each method decides how fast it closes in on
 the exact curve; the worked examples measure that.
+
+The runs behind the figure and the tables come from the cell below, which
+calls the integrators shown above for every method at nine step counts when
+the page is built. The script of the figure draws these results and computes no
+physics of its own.
+
+```{python}
+#| echo: false
+excerpt(experiment.run, region="explorer")
+```
 
 ```{python}
 #| echo: false
@@ -454,7 +470,7 @@ excerpt(integrators.Integrator)
 
 ```{python}
 #| echo: false
-source_link(experiment.methods)
+source_link(experiment.methods, text="Source of the methods table")
 ```
 
 ```{python}
@@ -763,13 +779,17 @@ For Runge-Kutta, collect the real and the imaginary part,
 $R(iz) = \bigl(1 - \tfrac{z^2}{2} + \tfrac{z^4}{24}\bigr) + i\bigl(z - \tfrac{z^3}{6}\bigr)$,
 and square both: the terms in $z^2$ and $z^4$ cancel, and what is left is
 
+::: {.equation-pair}
 $$
 \frac{E_{n+1}}{E_n} = |1 + iz|^2 = 1 + z^2
 \quad\text{(explicit Euler)},
-\qquad
+$$
+
+$$
 \frac{E_{n+1}}{E_n} = |R(iz)|^2 = 1 - \frac{z^6}{72} + \frac{z^8}{576}
 \quad\text{(Runge-Kutta)}.
 $$
+:::
 
 The first is the factor of the previous lesson. The second is below one for
 $z < 2\sqrt 2$: Runge-Kutta *loses* energy, by a tiny fixed fraction per
@@ -786,13 +806,17 @@ is not a fixed multiple of the energy before. What decides their behaviour is
 the matrix that takes $(x_n, v_n)$ to $(x_{n+1}, v_{n+1})$. For the
 oscillator, substituting $a = -\omega^2 x$ into the update rules gives
 
+::: {.equation-pair}
 $$
 M_{\mathrm{SE}} =
 \begin{pmatrix} 1 - z^2 & \Delta t \\ -\omega^2\Delta t & 1 \end{pmatrix},
-\qquad
+$$
+
+$$
 M_{\mathrm{VV}} =
 \begin{pmatrix} 1 - \tfrac{z^2}{2} & \Delta t \\ -\omega^2\Delta t\,\bigl(1 - \tfrac{z^2}{4}\bigr) & 1 - \tfrac{z^2}{2} \end{pmatrix}.
 $$
+:::
 
 Both have determinant exactly one, and trace $2 - z^2$. A determinant of one
 is the statement that the step preserves areas of phase space, as the true
@@ -812,11 +836,15 @@ state can grow in proportion to the number of steps.
 The closed curve is an ellipse of a quadratic form that the step conserves
 *exactly*, a slightly different quantity from the energy:
 
+::: {.equation-pair}
 $$
 \tilde E_{\mathrm{SE}} = \tfrac{1}{2} m \bigl(v^2 + \omega^2 x^2 - \omega^2 \Delta t\,x\,v\bigr),
-\qquad
+$$
+
+$$
 \tilde E_{\mathrm{VV}} = \tfrac{1}{2} m \Bigl(v^2 + \omega^2 \bigl(1 - \tfrac{1}{4}\omega^2 \Delta t^2\bigr)\,x^2\Bigr).
 $$
+:::
 
 Each **modified energy** differs from the true one by a term of order
 $\Delta t$ (symplectic Euler) or $\Delta t^2$ (velocity Verlet) that

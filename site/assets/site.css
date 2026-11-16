@@ -149,6 +149,25 @@ math {
   overflow-y: hidden;
 }
 
+/* Coupled formulas, such as the two lines of one update rule, stand side by
+   side where the column is wide enough and one under the other on a narrow
+   screen, instead of scrolling (docs/authoring.md, "Equations"). Each keeps
+   its own scroll box for a formula wider than the screen. */
+.equation-pair {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  column-gap: 2em;
+  margin-bottom: 1rem;
+}
+
+.equation-pair > * {
+  min-width: 0;
+  max-width: 100%;
+  margin-bottom: 0;
+}
+
 /* A figure scales down to the width of a narrow screen. Its width and height
    attributes still reserve the right space before the image loads. */
 main img {
