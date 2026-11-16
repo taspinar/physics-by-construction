@@ -15,10 +15,9 @@ why:
     Real materials are far too large to compute atom by atom, so the course
     works with models small enough to build and check: a chain of masses
     and springs, an electron hopping between sites, a bar divided into
-    finite elements, a vacancy on a lattice. Each is checked against an
-    exact result of its own, and two of them are then taken to records made
-    in a laboratory, where a measured pattern and a measured test decide
-    how far the model holds.
+    finite elements, a vacancy on a lattice. The course chooses a check for
+    each model. The two labs then use X-ray diffraction and stress–strain
+    measurements to see how far the models apply to real materials.
 
 questions:
   - >-

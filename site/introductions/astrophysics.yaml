@@ -85,13 +85,14 @@ learn:
 order:
   - >-
     The course takes up gravity where {sequence:mechanics} leaves it, with
-    more than two bodies. {slot:AST1} shows that three bodies already defeat
-    a closed form: a rotating triangle is an exact solution whose stability
-    depends on the masses, and in a close encounter nearby starts part
-    company while the energy is kept. {slot:AST2} then keeps two bodies and
-    changes the law of the force, so that the turn of an orbit becomes a
-    measurement of the force, and {slot:AST3} follows light instead of a
-    planet past a mass, where the path bends.
+    more than two bodies. The general three-body problem has no simple
+    closed-form solution, though special configurations such as Lagrange's
+    rotating triangle do. {slot:AST1} shows that the stability of the
+    triangle depends on the masses, and that in a close encounter nearby
+    starts part company while the energy is kept. {slot:AST2} then keeps
+    two bodies and changes the law of the force, so that the turn of an
+    orbit becomes a measurement of the force, and {slot:AST3} follows light
+    instead of a planet past a mass, where the path bends.
   - >-
     {slot:AST10} sets up the spacetime that {slot:AST4} and {slot:AST5} need:
     events and momenta seen by observers in relative motion, with Newton's
