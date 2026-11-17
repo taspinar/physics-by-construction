@@ -19,6 +19,7 @@ from matplotlib.figure import Figure
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import figsize, figure_style, finish
 from pbc.quantum.barrier import (
     HBAR,
     KINETIC,
@@ -103,44 +104,46 @@ def draw_transmission(t, r) -> Figure:
     step."""
     e = np.linspace(0.01, 3.0, 600)
     exact = transmission(e, HEIGHT, WIDTH)
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    ax.plot(e / HEIGHT, exact, color=FIGURE_COLOURS[0], label="T, closed form")
-    ax.plot(
-        e / HEIGHT,
-        1 - exact,
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        label="R, closed form",
-    )
-    ax.plot(
-        np.array(energies) / HEIGHT,
-        t,
-        "o",
-        color=FIGURE_COLOURS[0],
-        markerfacecolor="none",
-        label="T, Runge-Kutta",
-    )
-    ax.plot(
-        np.array(energies) / HEIGHT,
-        r,
-        "s",
-        color=FIGURE_COLOURS[1],
-        markerfacecolor="none",
-        label="R, Runge-Kutta",
-    )
-    ax.step(
-        [0, 1, 3],
-        [0, 1, 1],
-        where="post",
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label="T of a classical particle",
-    )
-    ax.set_xlabel("energy over barrier height, E / V0 (dimensionless)")
-    ax.set_ylabel("probability (dimensionless)")
-    ax.set_ylim(-0.02, 1.05)
-    ax.legend(loc="center right", fontsize="small")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=5))
+        ax.plot(e / HEIGHT, exact, color=FIGURE_COLOURS[0], label="T, closed form")
+        ax.plot(
+            e / HEIGHT,
+            1 - exact,
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            label="R, closed form",
+        )
+        ax.plot(
+            np.array(energies) / HEIGHT,
+            t,
+            "o",
+            color=FIGURE_COLOURS[0],
+            markerfacecolor="none",
+            label="T, Runge-Kutta",
+        )
+        ax.plot(
+            np.array(energies) / HEIGHT,
+            r,
+            "s",
+            color=FIGURE_COLOURS[1],
+            markerfacecolor="none",
+            label="R, Runge-Kutta",
+        )
+        ax.step(
+            [0, 1, 3],
+            [0, 1, 1],
+            where="post",
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            label="T of a classical particle",
+        )
+        ax.set_xlabel("energy over barrier height,\nE / V0 (dimensionless)")
+        ax.set_ylabel("probability\n(dimensionless)")
+        ax.set_ylim(-0.02, 1.05)
+        # Five entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def convergence(experiment: Experiment):
@@ -211,37 +214,38 @@ def draw_widths(a, exact, computed, law) -> Figure:
     """T against the width on a logarithmic axis, with the thick-barrier
     law."""
     w = np.linspace(0.05, 2.1, 200)
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    ax.semilogy(
-        w,
-        transmission(check_energy, HEIGHT, w),
-        color=FIGURE_COLOURS[0],
-        label="closed form",
-    )
-    ax.semilogy(
-        a,
-        computed,
-        "o",
-        color=FIGURE_COLOURS[0],
-        markerfacecolor="none",
-        label="Runge-Kutta",
-    )
     kappa = np.sqrt((HEIGHT - check_energy) / KINETIC)
-    ax.semilogy(
-        w,
-        16
-        * check_energy
-        * (HEIGHT - check_energy)
-        / HEIGHT**2
-        * np.exp(-2 * kappa * w),
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        label="thick-barrier law",
-    )
-    ax.set_xlabel("barrier width a (nm)")
-    ax.set_ylabel("transmission T (dimensionless)")
-    ax.legend()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        ax.semilogy(
+            w,
+            transmission(check_energy, HEIGHT, w),
+            color=FIGURE_COLOURS[0],
+            label="closed form",
+        )
+        ax.semilogy(
+            a,
+            computed,
+            "o",
+            color=FIGURE_COLOURS[0],
+            markerfacecolor="none",
+            label="Runge-Kutta",
+        )
+        ax.semilogy(
+            w,
+            16
+            * check_energy
+            * (HEIGHT - check_energy)
+            / HEIGHT**2
+            * np.exp(-2 * kappa * w),
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            label="thick-barrier law",
+        )
+        ax.set_xlabel("barrier width a (nm)")
+        ax.set_ylabel("transmission T\n(dimensionless)")
+        ax.legend()
+    return finish(fig)
 
 
 def packet_evolution(h: float, records: int = 1):

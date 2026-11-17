@@ -17,6 +17,7 @@ from functools import partial
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
+from matplotlib.ticker import MaxNLocator
 from scipy.optimize import brentq
 
 from pbc.authoring import FIGURE_COLOURS
@@ -326,75 +327,82 @@ def plate():
 def draw_lumped_against_slab(curves: dict) -> Figure:
     """The mean temperature of the slab against time in lumped time
     constants, scheme and lumped model, for the three Biot numbers."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
     styles = ["-", "--", "-."]
-    for (biot, (t, scheme, _)), line, colour in zip(
-        curves.items(),
-        styles,
-        (FIGURE_COLOURS[0], FIGURE_COLOURS[1], FIGURE_COLOURS[4]),
-        strict=True,
-    ):
-        ax.plot(t, scheme, color=colour, linestyle=line, label=f"slab, Bi = {biot:g}")
-    t, _, lumped = curves[BIOTS[0]]
-    ax.plot(
-        t,
-        lumped,
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        linewidth=2.2,
-        label="lumped model",
-    )
-    ax.set_xlabel("time / lumped time constant")
-    ax.set_ylabel("mean temperature, dimensionless")
-    ax.set_xlim(0, 3)
-    ax.set_ylim(0, 1)
-    ax.legend(frameon=False)
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=4))
+        for (biot, (t, scheme, _)), line, colour in zip(
+            curves.items(),
+            styles,
+            (FIGURE_COLOURS[0], FIGURE_COLOURS[1], FIGURE_COLOURS[4]),
+            strict=True,
+        ):
+            ax.plot(
+                t, scheme, color=colour, linestyle=line, label=f"slab, Bi = {biot:g}"
+            )
+        t, _, lumped = curves[BIOTS[0]]
+        ax.plot(
+            t,
+            lumped,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            linewidth=2.2,
+            label="lumped model",
+        )
+        ax.set_xlabel("time / lumped time constant")
+        ax.set_ylabel("mean temperature,\ndimensionless")
+        ax.set_xlim(0, 3)
+        ax.set_ylim(0, 1)
+        # From 0 to 1 Matplotlib's five intervals would place six ticks.
+        ax.yaxis.set_major_locator(MaxNLocator(4, steps=[1, 2, 2.5, 5, 10]))
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def draw_stability() -> Figure:
     """The measured growth per step against r, in one and two dimensions,
     with the limits of the grid marked."""
     r = np.linspace(0.05, 0.65, 61)
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    for dimension, line, marker, colour in (
-        (1, "-", "o", FIGURE_COLOURS[0]),
-        (2, "--", "s", FIGURE_COLOURS[1]),
-    ):
-        g = growth(dimension)
-        ax.plot(
-            r,
-            [g(value) for value in r],
-            color=colour,
-            linestyle=line,
-            marker=marker,
-            markersize=3,
-            label=f"{dimension}D",
-        )
-        ax.axvline(
-            discrete_stability_limit(INTERIOR, dimension),
-            color=colour,
-            linestyle=":",
-            label=f"limit of the grid, {dimension}D",
-        )
-    ax.axhline(1.0, color=FIGURE_COLOURS[2], linewidth=0.8)
-    ax.set_ylim(0.0, 4.5)
-    ax.set_xlabel(r"$r = \alpha\,\Delta t / \Delta x^2$ (dimensionless)")
-    ax.set_ylabel("growth per step (dimensionless)")
-    ax.legend(frameon=False, loc="upper left")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=4))
+        for dimension, line, marker, colour in (
+            (1, "-", "o", FIGURE_COLOURS[0]),
+            (2, "--", "s", FIGURE_COLOURS[1]),
+        ):
+            g = growth(dimension)
+            ax.plot(
+                r,
+                [g(value) for value in r],
+                color=colour,
+                linestyle=line,
+                marker=marker,
+                markersize=3,
+                label=f"{dimension}D",
+            )
+            ax.axvline(
+                discrete_stability_limit(INTERIOR, dimension),
+                color=colour,
+                linestyle=":",
+                linewidth=LINE["guide"],
+                label=f"limit of the grid, {dimension}D",
+            )
+        ax.axhline(1.0, color=FIGURE_COLOURS[2], linewidth=LINE["axis"])
+        ax.set_ylim(0.0, 4.5)
+        ax.set_xlabel(r"$r = \alpha\,\Delta t / \Delta x^2$ (dimensionless)")
+        ax.set_ylabel("growth per step\n(dimensionless)")
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def draw_convergence(grid, time) -> Figure:
-    """Log-log errors against dx and against dt, with reference slopes below
-    the data, named on the plot."""
+    """Log-log errors against dx (top) and against dt (bottom), with
+    reference slopes below the data, named on the plot."""
     with figure_style():
-        fig, (left, right) = plt.subplots(1, 2, figsize=figsize("pair"))
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=figsize("pair"))
         for ax, (steps, errs), slope, label, unit in (
-            (left, grid, 2, "dx (mm)", 1e3),
-            (right, time, 1, "dt (s)", 1.0),
+            (top, grid, 2, "dx (mm)", 1e3),
+            (bottom, time, 1, "dt (s)", 1.0),
         ):
             h = np.array(steps) * unit
             e = np.array(errs)
@@ -403,19 +411,16 @@ def draw_convergence(grid, time) -> Figure:
             ax.set_xticks(h, labels=[f"{value:.3g}" for value in h])
             ax.minorticks_off()
             ax.set_xlabel(label)
-        # The tick labels of the time steps are long: every other one is shown.
-        for tick in right.get_xticklabels()[1::2]:
-            tick.set_visible(False)
-        left.set_ylabel("largest error (degrees C)")
-        right.set_ylabel("largest error (dimensionless)")
+        top.set_ylabel("largest error\n(degrees C)")
+        bottom.set_ylabel("largest error\n(dimensionless)")
     return finish(fig, grid=True)
 
 
 def draw_plate(snapshot, steady) -> Figure:
-    """The plate's temperature at SNAPSHOT and in the steady state, false
-    colour on one sequential scale."""
+    """The plate's temperature at SNAPSHOT (top) and in the steady state
+    (bottom), false colour on one sequential scale."""
     with figure_style():
-        fig, axes = plt.subplots(1, 2, figsize=figsize("pair"), sharey=True)
+        fig, axes = plt.subplots(2, 1, figsize=figsize("pair"), sharex=True)
         extent = (0.0, 100 * SIDE, 0.0, 100 * SIDE)
         for ax, field, title in (
             (axes[0], snapshot, f"after {SNAPSHOT:.0f} s"),
@@ -455,10 +460,10 @@ def draw_plate(snapshot, steady) -> Figure:
                     manual=[(extent[1] / 2, top)],
                 )
             ax.set_title(title)
-            ax.set_xlabel("x (cm)")
+            ax.set_ylabel("y (cm)")
             ax.set_xticks([0, 5, 10])
             ax.set_yticks([0, 5, 10])
-        axes[0].set_ylabel("y (cm)")
+        axes[1].set_xlabel("x (cm)")
         fig.colorbar(image, ax=axes, label="temperature (°C), false colour")
     return finish(fig)
 

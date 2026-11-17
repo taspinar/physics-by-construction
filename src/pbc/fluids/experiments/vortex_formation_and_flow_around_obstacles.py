@@ -22,6 +22,7 @@ from matplotlib.patches import Circle
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import figsize, figure_style, finish
 from pbc.fluids.navier_stokes import (
     Grid,
     kinetic_energy,
@@ -257,33 +258,34 @@ def draw_karman_street(wake) -> Figure:
 def draw_wake_signal(wakes: dict) -> Figure:
     """The cross-stream velocity at the probe against time, at both
     Reynolds numbers."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
     shedding, steady = wakes["shedding"], wakes["steady"]
-    ax.plot(
-        shedding.t,
-        shedding.probe,
-        color=FIGURE_COLOURS[0],
-        label=f"Re = {SHEDDING_RE:.0f}",
-    )
-    ax.plot(
-        steady.t,
-        steady.probe,
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        label=f"Re = {STEADY_RE:.0f}",
-    )
-    ax.axvspan(
-        DURATION - WINDOW,
-        DURATION,
-        color=FIGURE_COLOURS[2],
-        alpha=0.12,
-        label="window of the frequency",
-    )
-    ax.set_xlabel("time (D/U)")
-    ax.set_ylabel("cross-stream velocity (U)")
-    ax.legend(frameon=False, loc="lower left", fontsize="small")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        ax.plot(
+            shedding.t,
+            shedding.probe,
+            color=FIGURE_COLOURS[0],
+            label=f"Re = {SHEDDING_RE:.0f}",
+        )
+        ax.plot(
+            steady.t,
+            steady.probe,
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            label=f"Re = {STEADY_RE:.0f}",
+        )
+        ax.axvspan(
+            DURATION - WINDOW,
+            DURATION,
+            color=FIGURE_COLOURS[2],
+            alpha=0.12,
+            label="window of the frequency",
+        )
+        ax.set_xlabel("time (D/U)")
+        ax.set_ylabel("cross-stream velocity (U)")
+        # The legend would cover the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def blockage_run(experiment: Experiment) -> None:

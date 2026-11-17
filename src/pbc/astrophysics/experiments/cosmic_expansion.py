@@ -38,6 +38,7 @@ from pbc.astrophysics.cosmology import (
 )
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, MUTED, TEXT, figsize, figure_style, finish
 from pbc.verification.estimates import fitted_order
 
 # region: setup
@@ -126,25 +127,28 @@ def expansion_histories(experiment: Experiment):
 
 def draw_expansion(histories) -> Figure:
     """The scale factor against the time from today for the four models."""
-    fig, ax = plt.subplots(figsize=(6.4, 4.0))
-    for (name, _), history, (colour, style, _) in zip(
-        MODELS.items(), histories, STYLES, strict=True
-    ):
-        ax.plot(history.tau, history.a, color=colour, linestyle=style, label=name)
-    ax.axvline(0.0, color="#57606a", linewidth=0.8)
-    ax.text(
-        0.03,
-        0.03,
-        "today",
-        transform=ax.get_xaxis_transform(),
-        va="bottom",
-        fontsize="small",
-    )
-    ax.set_xlabel("time from today (Hubble times 1/H0)")
-    ax.set_ylabel("scale factor a (1 today)")
-    ax.set_ylim(0.0, 4.5)
-    ax.legend(fontsize="small", loc="upper left")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=4))
+        for (name, _), history, (colour, style, _) in zip(
+            MODELS.items(), histories, STYLES, strict=True
+        ):
+            ax.plot(history.tau, history.a, color=colour, linestyle=style, label=name)
+        ax.axvline(0.0, color=MUTED, linewidth=LINE["guide"])
+        ax.text(
+            0.03,
+            0.03,
+            "today",
+            transform=ax.get_xaxis_transform(),
+            va="bottom",
+            fontsize=TEXT["note"],
+            color=MUTED,
+        )
+        ax.set_xlabel("time from today (Hubble times 1/H0)")
+        ax.set_ylabel("scale factor a (1 today)")
+        ax.set_ylim(0.0, 4.5)
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig, grid=True)
 
 
 def distances(experiment: Experiment):
@@ -215,40 +219,47 @@ def distances(experiment: Experiment):
 def draw_distances(curves) -> Figure:
     """The luminosity distance against redshift, log-log: the quadrature as
     markers, the analytic forms as lines."""
-    fig, ax = plt.subplots(figsize=(6.4, 4.2))
     z = np.geomspace(redshifts[0], redshifts[-1], 200)
     lines = {
         EDS: (1 + z) * einstein_de_sitter_comoving(z),
         MILNE: milne_luminosity(z),
         DE_SITTER: (1 + z) * de_sitter_comoving(z),
     }
-    for (name, model), (colour, style, marker) in zip(
-        MODELS.items(), STYLES, strict=True
-    ):
-        if model in lines:
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=8))
+        for (name, model), (colour, style, marker) in zip(
+            MODELS.items(), STYLES, strict=True
+        ):
+            if model in lines:
+                ax.loglog(
+                    z,
+                    lines[model],
+                    color=colour,
+                    linestyle=style,
+                    linewidth=LINE["guide"],
+                    label=f"{name}, analytic",
+                )
             ax.loglog(
-                z,
-                lines[model],
+                redshifts,
+                curves[model],
+                marker,
                 color=colour,
-                linestyle=style,
-                linewidth=1,
-                label=f"{name}, analytic",
+                markerfacecolor="none",
+                label=f"{name}, quadrature",
             )
         ax.loglog(
-            redshifts,
-            curves[model],
-            marker,
-            color=colour,
-            markerfacecolor="none",
-            label=f"{name}, quadrature",
+            z,
+            z,
+            color=MUTED,
+            linestyle=(0, (1, 4)),
+            linewidth=LINE["guide"],
+            label="Hubble law, D = cz/H0",
         )
-    ax.loglog(
-        z, z, color="#57606a", linestyle=(0, (1, 4)), label="Hubble law, D = cz/H0"
-    )
-    ax.set_xlabel("redshift z")
-    ax.set_ylabel("luminosity distance (c/H0)")
-    ax.legend(fontsize="x-small", loc="upper left")
-    return fig
+        ax.set_xlabel("redshift z")
+        ax.set_ylabel("luminosity distance (c/H0)")
+        # Eight entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def hubble_law(experiment: Experiment):
@@ -292,33 +303,35 @@ def turnover(model):
 def draw_angular(peaks) -> Figure:
     """The angular diameter distance against redshift for the matter-only
     and the toy model, with their maxima marked."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
     z = np.linspace(0.01, 10.0, 400)
-    for model, (colour, style, marker), name, peak in zip(
-        (EDS, TOY),
-        (STYLES[0], STYLES[3]),
-        ("matter only", "flat toy model"),
-        peaks,
-        strict=True,
-    ):
-        ax.plot(
-            z,
-            [angular_diameter_distance(model, x) for x in z],
-            color=colour,
-            linestyle=style,
-            label=name,
-        )
-        ax.plot(
-            *peak,
-            marker,
-            color=colour,
-            markerfacecolor="none",
-            label=f"largest distance, {name}",
-        )
-    ax.set_xlabel("redshift z")
-    ax.set_ylabel("angular diameter distance (c/H0)")
-    ax.legend(fontsize="small")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=4))
+        for model, (colour, style, marker), name, peak in zip(
+            (EDS, TOY),
+            (STYLES[0], STYLES[3]),
+            ("matter only", "flat toy model"),
+            peaks,
+            strict=True,
+        ):
+            ax.plot(
+                z,
+                [angular_diameter_distance(model, x) for x in z],
+                color=colour,
+                linestyle=style,
+                label=name,
+            )
+            ax.plot(
+                *peak,
+                marker,
+                color=colour,
+                markerfacecolor="none",
+                label=f"largest distance, {name}",
+            )
+        ax.set_xlabel("redshift z")
+        ax.set_ylabel("angular diameter\ndistance (c/H0)")
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def supernova(z=0.5):

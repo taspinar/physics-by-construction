@@ -22,6 +22,7 @@ from matplotlib.figure import Figure
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, figsize, figure_style, finish
 from pbc.fluids.navier_stokes import (
     Grid,
     divergence,
@@ -225,33 +226,38 @@ def convergence_run(experiment: Experiment) -> dict:
 def draw_convergence(found: dict) -> Figure:
     """The errors against the cell width, log-log, with a reference line of
     slope two."""
-    fig, ax = plt.subplots(figsize=(6.4, 4.0))
     h = found["widths"]
     series = (
         ("vortex", "Taylor-Green velocity", "o", "-"),
         ("velocity", "manufactured velocity", "s", "--"),
         ("pressure", "manufactured pressure", "^", ":"),
     )
-    for (key, label, marker, style), colour in zip(
-        series, FIGURE_COLOURS, strict=False
-    ):
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=4))
+        for (key, label, marker, style), colour in zip(
+            series, FIGURE_COLOURS, strict=False
+        ):
+            ax.loglog(
+                h, found[key], marker=marker, linestyle=style, color=colour, label=label
+            )
+        reference = found["pressure"][0] * 2.0 * (h / h[0]) ** 2
         ax.loglog(
-            h, found[key], marker=marker, linestyle=style, color=colour, label=label
+            h,
+            reference,
+            color=FIGURE_COLOURS[2],
+            linestyle="-.",
+            linewidth=LINE["guide"],
+            label="slope 2 (reference)",
         )
-    reference = found["pressure"][0] * 2.0 * (h / h[0]) ** 2
-    ax.loglog(
-        h,
-        reference,
-        color=FIGURE_COLOURS[2],
-        linestyle="-.",
-        linewidth=0.9,
-        label="slope 2 (reference)",
-    )
-    ax.set_xlabel("cell width (m)")
-    ax.set_ylabel("largest error at one second")
-    ax.legend(frameon=False, fontsize="small")
-    fig.tight_layout()
-    return fig
+        # The widths as the ticks: the minor labels of the log axis ran
+        # into each other at this width.
+        ax.set_xticks(h, labels=[f"{value:.3g}" for value in h])
+        ax.minorticks_off()
+        ax.set_xlabel("cell width (m)")
+        ax.set_ylabel("largest error at\none second")
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def energy_field(grid: Grid) -> tuple[np.ndarray, np.ndarray]:
@@ -336,41 +342,41 @@ def draw_energy_budget(found: dict) -> Figure:
     """Top: the kinetic energy against time, and the energy at the start
     minus the dissipated energy. Bottom: their difference relative to the
     energy at the start."""
-    fig, (top, bottom) = plt.subplots(
-        2, 1, figsize=(6.4, 4.8), sharex=True, height_ratios=(2, 1)
-    )
     t = found["t"]
     balance = found["energy"][0] - found["dissipated"]
-    top.plot(
-        t,
-        found["energy"],
-        color=FIGURE_COLOURS[0],
-        linewidth=2.2,
-        label="kinetic energy",
-    )
-    top.plot(
-        t,
-        balance,
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        label="start minus the dissipated energy",
-    )
-    top.set_ylabel("energy (m⁴/s²)")
-    top.legend(frameon=False)
-    bottom.plot(
-        t,
-        (found["energy"] - balance) / found["energy"][0],
-        color=FIGURE_COLOURS[2],
-        marker=".",
-        markersize=2,
-        linestyle="none",
-    )
-    bottom.axhline(0.0, color=FIGURE_COLOURS[2], linewidth=0.6)
-    bottom.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
-    bottom.set_ylabel("difference\n(relative)")
-    bottom.set_xlabel("time (s)")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(
+            2, 1, figsize=figsize("stacked"), sharex=True, height_ratios=(2, 1)
+        )
+        top.plot(
+            t,
+            found["energy"],
+            color=FIGURE_COLOURS[0],
+            label="kinetic energy",
+        )
+        top.plot(
+            t,
+            balance,
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            linewidth=LINE["model"],
+            label="start minus the dissipated energy",
+        )
+        top.set_ylabel("energy (m⁴/s²)")
+        top.legend(loc="upper right")
+        bottom.plot(
+            t,
+            (found["energy"] - balance) / found["energy"][0],
+            color=FIGURE_COLOURS[2],
+            marker=".",
+            markersize=2,
+            linestyle="none",
+        )
+        bottom.axhline(0.0, color=FIGURE_COLOURS[2], linewidth=LINE["guide"])
+        bottom.ticklabel_format(axis="y", style="sci", scilimits=(0, 0))
+        bottom.set_ylabel("difference\n(relative)")
+        bottom.set_xlabel("time (s)")
+    return finish(fig)
 
 
 # region: reynolds

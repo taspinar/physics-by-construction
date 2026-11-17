@@ -16,9 +16,11 @@ from functools import partial
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
+from matplotlib.ticker import MaxNLocator
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, figsize, figure_style, finish
 from pbc.materials.phonons import (
     closed_form_frequencies,
     diatomic_dispersion,
@@ -174,42 +176,49 @@ def draw_dispersion(data) -> Figure:
     chain with its sound line, the diatomic chain with its gap."""
     (w1, k1), (w2, k2) = data
     k = np.linspace(0, np.pi, 200)
-    fig, (left, right) = plt.subplots(1, 2, figsize=(7.2, 3.4), sharey=True)
-    left.plot(
-        k,
-        monatomic_dispersion(k, MONATOMIC[0], K),
-        color=FIGURE_COLOURS[0],
-        linestyle="-",
-        label="closed form",
-    )
-    left.plot(
-        k,
-        sound_speed(MONATOMIC, K) * k,
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label="sound line",
-    )
-    left.plot(
-        k1, w1, "o", color=FIGURE_COLOURS[1], markerfacecolor="none", label="ring"
-    )
-    left.set_ylim(0, 2.1)
-    left.set_title("monatomic chain", fontsize="medium")
-    acoustic, optical = diatomic_dispersion(k, *DIATOMIC, K)
-    right.plot(k, acoustic, color=FIGURE_COLOURS[0], linestyle="-", label="acoustic")
-    right.plot(k, optical, color=FIGURE_COLOURS[0], linestyle="--", label="optical")
-    top, bottom, _ = zone_boundary(*DIATOMIC, K)
-    right.axhspan(top, bottom, color=FIGURE_COLOURS[2], alpha=0.15, label="gap")
-    right.plot(
-        k2, w2, "s", color=FIGURE_COLOURS[1], markerfacecolor="none", label="ring"
-    )
-    right.set_title("diatomic chain, m2 = 2 m1", fontsize="medium")
-    for ax in (left, right):
-        ax.set_xlim(0, np.pi)
-        ax.set_xticks([0, np.pi / 2, np.pi], ["0", "pi/2a", "pi/a"])
-        ax.set_xlabel("wavenumber k (units of 1/a)")
-        ax.legend(fontsize="small", loc="lower right")
-    left.set_ylabel("frequency omega (units of sqrt(K/m1))")
-    return fig
+    with figure_style():
+        fig, (upper, lower) = plt.subplots(
+            2, 1, figsize=figsize("pair", legend=4), sharey=True
+        )
+        upper.plot(
+            k,
+            monatomic_dispersion(k, MONATOMIC[0], K),
+            color=FIGURE_COLOURS[0],
+            linestyle="-",
+            label="closed form",
+        )
+        upper.plot(
+            k,
+            sound_speed(MONATOMIC, K) * k,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            label="sound line",
+        )
+        upper.plot(
+            k1, w1, "o", color=FIGURE_COLOURS[1], markerfacecolor="none", label="ring"
+        )
+        upper.set_ylim(0, 2.1)
+        upper.set_title("monatomic chain")
+        acoustic, optical = diatomic_dispersion(k, *DIATOMIC, K)
+        lower.plot(
+            k, acoustic, color=FIGURE_COLOURS[0], linestyle="-", label="acoustic"
+        )
+        lower.plot(k, optical, color=FIGURE_COLOURS[0], linestyle="--", label="optical")
+        top, bottom, _ = zone_boundary(*DIATOMIC, K)
+        lower.axhspan(top, bottom, color=FIGURE_COLOURS[2], alpha=0.15, label="gap")
+        lower.plot(
+            k2, w2, "s", color=FIGURE_COLOURS[1], markerfacecolor="none", label="ring"
+        )
+        lower.set_title("diatomic chain, m2 = 2 m1")
+        for ax in (upper, lower):
+            ax.set_xlim(0, np.pi)
+            ax.set_xticks([0, np.pi / 2, np.pi], ["0", "pi/2a", "pi/a"])
+            ax.set_xlabel("wavenumber k (units of 1/a)")
+            ax.set_ylabel("frequency omega\n(units of sqrt(K/m1))")
+        upper.legend(loc="lower right")
+        # Four entries: the lower panel's legend under the plot.
+        fig.legend(*lower.get_legend_handles_labels(), loc="outside lower center")
+    return finish(fig)
 
 
 def packets(experiment: Experiment):
@@ -253,49 +262,53 @@ def draw_packet(run) -> Figure:
     time with the lines of the group and the phase velocity."""
     vg = float(group_velocity(k0, MONATOMIC[0], K))
     vp = float(phase_velocity(k0, MONATOMIC[0], K))
-    fig, (top, bottom) = plt.subplots(2, 1, figsize=(6.4, 4.6))
     n = np.arange(ATOMS)
     styles = ("-", "--", ":")
-    for index, style in zip((0, len(run.t) // 2, len(run.t) - 1), styles, strict=True):
-        top.plot(
-            n,
-            run.u[index],
-            color=FIGURE_COLOURS[0],
-            linestyle=style,
-            linewidth=0.8,
-            label=f"t = {run.t[index]:.0f}",
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=figsize("stacked", legend=6))
+        for index, style in zip(
+            (0, len(run.t) // 2, len(run.t) - 1), styles, strict=True
+        ):
+            top.plot(
+                n,
+                run.u[index],
+                color=FIGURE_COLOURS[0],
+                linestyle=style,
+                linewidth=LINE["guide"],
+                label=f"t = {run.t[index]:.0f}",
+            )
+        top.set_xlim(100, 600)
+        # From 100 to 600 Matplotlib's five intervals would place six ticks.
+        top.xaxis.set_major_locator(MaxNLocator(4, steps=[1, 2, 2.5, 5, 10]))
+        top.set_xlabel("atom n (position in units of a)")
+        top.set_ylabel("displacement u\n(arbitrary units)")
+        bottom.plot(
+            run.t,
+            START + vp * run.t,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            label="moving at the phase velocity",
         )
-    top.set_xlim(100, 600)
-    top.set_xlabel("atom n (position in units of a)")
-    top.set_ylabel("displacement u (arbitrary units)")
-    top.legend(fontsize="small", loc="upper right")
-    bottom.plot(
-        run.t,
-        START + vp * run.t,
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label="moving at the phase velocity",
-    )
-    bottom.plot(
-        run.t,
-        START + vg * run.t,
-        color=FIGURE_COLOURS[0],
-        linestyle="--",
-        label="moving at the group velocity",
-    )
-    bottom.plot(
-        run.t[::10],
-        run.centre[::10],
-        "o",
-        color=FIGURE_COLOURS[1],
-        markerfacecolor="none",
-        label="centre of the packet",
-    )
-    bottom.set_xlabel("time t (units of sqrt(m/K))")
-    bottom.set_ylabel("centre (units of a)")
-    bottom.legend(fontsize="small", loc="upper left")
-    fig.tight_layout()
-    return fig
+        bottom.plot(
+            run.t,
+            START + vg * run.t,
+            color=FIGURE_COLOURS[0],
+            linestyle="--",
+            label="moving at the group velocity",
+        )
+        bottom.plot(
+            run.t[::10],
+            run.centre[::10],
+            "o",
+            color=FIGURE_COLOURS[1],
+            markerfacecolor="none",
+            label="centre of the packet",
+        )
+        bottom.set_xlabel("time t (units of sqrt(m/K))")
+        bottom.set_ylabel("centre (units of a)")
+        # The six entries of both panels: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def equal_masses():

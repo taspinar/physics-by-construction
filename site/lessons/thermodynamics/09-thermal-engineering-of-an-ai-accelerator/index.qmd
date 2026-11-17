@@ -361,8 +361,8 @@ result.table("time-step-study")
 ```{python}
 #| label: fig-package-refinement
 #| echo: false
-#| fig-cap: "Both methods converge at second order in space against the exact cosine mode (left); in time, backward Euler converges at first order and Crank-Nicolson at second order against the exact solution of the same equations (right)."
-#| fig-alt: "Two log-log panels. Left: root-mean-square error in kelvin against mesh spacing in millimetres; finite elements, solid with circles, and finite differences, dashed with squares, both parallel to a dotted reference line of slope two. Right: largest error in kelvin against time step in seconds; backward Euler, solid with circles, parallel to a dash-dotted reference of slope one; Crank-Nicolson, dashed with squares, steeper and parallel to a dotted reference of slope two."
+#| fig-cap: "Both methods converge at second order in space against the exact cosine mode (top); in time, backward Euler converges at first order and Crank-Nicolson at second order against the exact solution of the same equations (bottom)."
+#| fig-alt: "Two stacked log-log panels. Top: root-mean-square error in kelvin against mesh spacing in millimetres; finite elements, solid with circles, and finite differences, dashed with squares, both parallel to a dotted reference line of slope two. Bottom: largest error in kelvin against time step in seconds; backward Euler, solid with circles, parallel to a dash-dotted reference of slope one; Crank-Nicolson, dashed with squares, steeper and parallel to a dotted reference of slope two."
 #| fig-status: simulated
 result.show("fig-package-refinement")
 ```
@@ -405,8 +405,8 @@ result.table("transient")
 ```{python}
 #| label: fig-package-transient
 #| echo: false
-#| fig-cap: "After a power step the hottest junction rises to its steady value within a few seconds, the implicit elements and the explicit finite differences agreeing (left), while every step of both conserves energy to round-off (right)."
-#| fig-alt: "Left: hottest junction in degrees Celsius against time in seconds; a dashed curve for the explicit finite differences, circles for the elements, and a dash-dotted curve for the design with inserts, all rising steeply then levelling below a dotted horizontal limit line. Right: relative energy-balance gap, dimensionless, on a logarithmic axis against step number; scattered points of the three computations, all several decades below a dotted tolerance line."
+#| fig-cap: "After a power step the hottest junction rises to its steady value within a few seconds, the implicit elements and the explicit finite differences agreeing (top), while every step of both conserves energy to round-off (bottom)."
+#| fig-alt: "Top: hottest junction in degrees Celsius against time in seconds; a dashed curve for the explicit finite differences, circles for the elements, and a dash-dotted curve for the design with inserts, all rising steeply then levelling below a dotted horizontal limit line. Bottom: relative energy-balance gap, dimensionless, on a logarithmic axis against step number; scattered points of the three computations, all several decades below a dotted tolerance line."
 #| fig-status: simulated
 result.show("fig-package-transient")
 ```

@@ -21,6 +21,7 @@ from matplotlib.figure import Figure
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, figsize, figure_style, finish
 from pbc.materials.defects import (
     BOLTZMANN,
     SQUARE_LATTICE_CORRELATION,
@@ -108,34 +109,45 @@ def draw_free_energy() -> Figure:
     g = free_energy(sites, n, FORMATION, t)
     energy = n * FORMATION
     exact = exact_vacancies(sites, FORMATION, t)
-    fig, (top, bottom) = plt.subplots(2, 1, figsize=(6.4, 5.2), sharex=True)
-    top.plot(n, energy, color=FIGURE_COLOURS[1], linestyle="--", label="energy n E_f")
-    top.plot(
-        n, g - energy, color=FIGURE_COLOURS[2], linestyle=":", label="entropy term -T S"
-    )
-    top.plot(n, g, color=FIGURE_COLOURS[0], linestyle="-", label="free energy G")
-    top.set_ylabel("change of energy (eV)")
-    top.legend(fontsize="small", loc="upper left")
-    bottom.plot(n, g, color=FIGURE_COLOURS[0], linestyle="-", label="free energy G")
-    bottom.plot(
-        exact,
-        g[exact],
-        "o",
-        color=FIGURE_COLOURS[0],
-        markerfacecolor="none",
-        markersize=9,
-        label="exact minimum",
-    )
-    bottom.axvline(
-        closed, color=FIGURE_COLOURS[3], linestyle="-.", label="closed form N c_v"
-    )
-    bottom.set_xlabel("number of vacancies n")
-    bottom.set_ylabel("G, enlarged (eV)")
-    bottom.legend(fontsize="small", loc="upper center")
-    for ax in (top, bottom):
-        ax.axhline(0, color=FIGURE_COLOURS[2], linewidth=0.6)
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(
+            2, 1, figsize=figsize("stacked", legend=5), sharex=True
+        )
+        top.plot(
+            n, energy, color=FIGURE_COLOURS[1], linestyle="--", label="energy n E_f"
+        )
+        top.plot(
+            n,
+            g - energy,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            label="entropy term -T S",
+        )
+        top.plot(n, g, color=FIGURE_COLOURS[0], linestyle="-", label="free energy G")
+        top.set_ylabel("change of energy (eV)")
+        bottom.plot(n, g, color=FIGURE_COLOURS[0], linestyle="-", label="free energy G")
+        bottom.plot(
+            exact,
+            g[exact],
+            "o",
+            color=FIGURE_COLOURS[0],
+            markerfacecolor="none",
+            markersize=9,
+            label="exact minimum",
+        )
+        bottom.axvline(
+            closed, color=FIGURE_COLOURS[3], linestyle="-.", label="closed form N c_v"
+        )
+        bottom.set_xlabel("number of vacancies n")
+        bottom.set_ylabel("G, enlarged (eV)")
+        for ax in (top, bottom):
+            ax.axhline(0, color=FIGURE_COLOURS[2], linewidth=LINE["grid"])
+        # Inside, the legends covered the lines: the entries of both panels
+        # under the plot, the free energy once.
+        handles, labels = top.get_legend_handles_labels()
+        more, names = bottom.get_legend_handles_labels()
+        fig.legend(handles + more[1:], labels + names[1:], loc="outside lower center")
+    return finish(fig)
 
 
 def walk_coefficient(paths, times):
@@ -204,37 +216,39 @@ def against_t1(experiment: Experiment):
 def draw_msd(lattice, t1, predicted) -> Figure:
     """The mean squared displacement of both walks against T1's line
     4 D t."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
     t_l, p_l = lattice
     t_w, p_w = t1
-    ax.plot(
-        1e9 * t_w,
-        1e18 * 4 * predicted * t_w,
-        color=FIGURE_COLOURS[2],
-        linestyle="--",
-        label="T1's prediction 4 D t, D = a^2 / (4 tau)",
-    )
-    ax.plot(
-        1e9 * t_l,
-        1e18 * mean_squared_displacement(p_l),
-        "o",
-        color=FIGURE_COLOURS[0],
-        markerfacecolor="none",
-        label="vacancy on the lattice",
-    )
-    ax.plot(
-        1e9 * t_w[::4],
-        1e18 * mean_squared_displacement(p_w)[::4],
-        "s",
-        color=FIGURE_COLOURS[1],
-        markerfacecolor="none",
-        label="T1's walk",
-    )
-    ax.set_xlabel("time t (ns)")
-    ax.set_ylabel("mean squared displacement (nm^2)")
-    ax.legend(fontsize="small", loc="upper left")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        ax.plot(
+            1e9 * t_w,
+            1e18 * 4 * predicted * t_w,
+            color=FIGURE_COLOURS[2],
+            linestyle="--",
+            linewidth=LINE["model"],
+            label="T1's prediction 4 D t, D = a^2 / (4 tau)",
+        )
+        ax.plot(
+            1e9 * t_l,
+            1e18 * mean_squared_displacement(p_l),
+            "o",
+            color=FIGURE_COLOURS[0],
+            markerfacecolor="none",
+            label="vacancy on the lattice",
+        )
+        ax.plot(
+            1e9 * t_w[::4],
+            1e18 * mean_squared_displacement(p_w)[::4],
+            "s",
+            color=FIGURE_COLOURS[1],
+            markerfacecolor="none",
+            label="T1's walk",
+        )
+        ax.set_xlabel("time t (ns)")
+        ax.set_ylabel("mean squared\ndisplacement (nm^2)")
+        # Three long names over the data: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def arrhenius(experiment: Experiment):

@@ -255,7 +255,7 @@ excerpt(experiment.draw_deflection)
 #| label: fig-deflection
 #| echo: false
 #| fig-cap: "The exact deflection approaches the weak-field formula 4m/b far from the mass and lies above it close in; what remains, scaled by the square of b/m, approaches the predicted coefficient of the next term. The Newtonian turn is half."
-#| fig-alt: "Two panels. Left: log-log plot of the deflection against the impact parameter in units of m. Open circles, the exact deflection, lie on a dashed straight line, the weak-field formula, except at the smallest impact parameter where they lie above it; a dotted line, the Newtonian turn, runs parallel at half the height. Right: the scaled remainder against the impact parameter on a log axis; square markers fall from high values at small impact parameters onto a dashed horizontal line, the predicted coefficient."
+#| fig-alt: "Two stacked panels. Top: log-log plot of the deflection against the impact parameter in units of m. Open circles, the exact deflection, lie on a dashed straight line, the weak-field formula, except at the smallest impact parameter where they lie above it; a dotted line, the Newtonian turn, runs parallel at half the height. Bottom: the scaled remainder against the impact parameter on a log axis; square markers fall from high values at small impact parameters onto a dashed horizontal line, the predicted coefficient."
 #| fig-status: simulated
 result.show("fig-deflection")
 ```

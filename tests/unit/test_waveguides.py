@@ -146,3 +146,11 @@ def test_the_array_factor_of_two_elements_half_a_wavelength_apart():
     # Along the line joining them the two waves arrive half a period apart.
     np.testing.assert_allclose(in_phase, [0.0, 2.0], atol=1e-12)
     np.testing.assert_allclose(antiphase, [2.0, 0.0], atol=1e-12)
+
+
+def test_the_cutoffs_are_the_same_on_every_run():
+    """The sparse eigenproblem starts from a fixed vector, so two runs give
+    the same frequencies to the last bit (the figures are byte-identical)."""
+    first = cross_section_cutoffs(A, B, 36, 16, "TE", 5)
+    second = cross_section_cutoffs(A, B, 36, 16, "TE", 5)
+    assert np.array_equal(first, second)

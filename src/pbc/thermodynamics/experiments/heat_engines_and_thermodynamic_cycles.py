@@ -18,6 +18,7 @@ from matplotlib.figure import Figure
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import TEXT, figsize, figure_style, finish
 from pbc.thermodynamics.cycles import (
     Gas,
     R,
@@ -241,41 +242,47 @@ def draw_otto_against_carnot() -> Figure:
         balance(gas, otto(gas, HOT, COLD, V_LARGE, r, 401), HOT, COLD) for r in ratios
     ]
     fine = np.linspace(1.2, largest, 300)
-    fig, (top, bottom) = plt.subplots(2, 1, figsize=(6.4, 4.6), sharex=True)
-    top.plot(
-        fine, otto_efficiency(gas, fine), color=FIGURE_COLOURS[0], label="closed form"
-    )
-    top.plot(
-        ratios,
-        [b.efficiency for b in computed],
-        color=FIGURE_COLOURS[1],
-        marker="o",
-        linestyle="none",
-        label="from the sampled path",
-    )
-    top.axhline(
-        carnot_efficiency(HOT, COLD),
-        color=FIGURE_COLOURS[2],
-        linestyle="--",
-        label="Carnot bound",
-    )
-    top.set_ylabel("efficiency")
-    top.legend(frameon=False, loc="lower right")
-    bottom.plot(ratios, [b.work for b in computed], color=FIGURE_COLOURS[1], marker="o")
-    bottom.axvline(largest, color=FIGURE_COLOURS[2], linestyle=":")
-    bottom.annotate(
-        "compression reaches 600 K",
-        (largest, 0.85),
-        xycoords=("data", "axes fraction"),
-        xytext=(-6, 0),
-        textcoords="offset points",
-        ha="right",
-        color=FIGURE_COLOURS[2],
-    )
-    bottom.set_xlabel("compression ratio r")
-    bottom.set_ylabel("work per cycle (J)")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=figsize("stacked"), sharex=True)
+        top.plot(
+            fine,
+            otto_efficiency(gas, fine),
+            color=FIGURE_COLOURS[0],
+            label="closed form",
+        )
+        top.plot(
+            ratios,
+            [b.efficiency for b in computed],
+            color=FIGURE_COLOURS[1],
+            marker="o",
+            linestyle="none",
+            label="from the sampled path",
+        )
+        top.axhline(
+            carnot_efficiency(HOT, COLD),
+            color=FIGURE_COLOURS[2],
+            linestyle="--",
+            label="Carnot bound",
+        )
+        top.set_ylabel("efficiency")
+        top.legend(loc="lower right")
+        bottom.plot(
+            ratios, [b.work for b in computed], color=FIGURE_COLOURS[1], marker="o"
+        )
+        bottom.axvline(largest, color=FIGURE_COLOURS[2], linestyle=":")
+        bottom.annotate(
+            "compression\nreaches 600 K",
+            (largest, 0.85),
+            xycoords=("data", "axes fraction"),
+            xytext=(-6, 0),
+            textcoords="offset points",
+            ha="right",
+            color=FIGURE_COLOURS[2],
+            fontsize=TEXT["note"],
+        )
+        bottom.set_xlabel("compression ratio r")
+        bottom.set_ylabel("work per cycle (J)")
+    return finish(fig)
 
 
 def impossible_engine(experiment: Experiment) -> None:

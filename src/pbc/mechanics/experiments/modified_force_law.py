@@ -24,6 +24,7 @@ from matplotlib.figure import Figure
 
 from pbc.agents.display import AllowlistDisplay, RunDisplay
 from pbc.agents.loop import MAX_CALLS_PER_MESSAGE
+from pbc.authoring import FIGURE_COLOURS
 from pbc.authoring.repository import REPOSITORY_ROOT
 from pbc.discovery import CentralForceEnvironment, comparison, environment_allowlist
 from pbc.discovery.baselines import grid_probe
@@ -43,6 +44,7 @@ from pbc.discovery.force_lab import (
     task_of,
 )
 from pbc.experiment import Experiment, main
+from pbc.figure_language import MUTED, figsize, figure_style, finish
 
 # The live run of the lesson: a model, its key, and the extra openai.
 LIVE = "pbc.discovery.force_lab modified"
@@ -229,39 +231,43 @@ def draw_unlearning(results, familiar, own_data) -> Figure:
     grid = grid_probe(environment(RUN))
     free = {b.name: b for b in results}["grid + least squares"].claim
     r = np.linspace(1.0, 4.0, 100)
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    ax.plot(
-        [s["distance"] for s in grid.settings],
-        signature(grid),
-        "o",
-        color="#9aa4ae",
-        markersize=4,
-        label="grid baseline readings",
-    )
-    ax.plot(
-        [s["distance"] for s in own_data.settings],
-        signature(own_data),
-        "o",
-        color="#93003a",
-        markersize=7,
-        label="agent's readings",
-    )
-    ax.plot(
-        r,
-        free["strength"] * r ** (2 - free["exponent"]),
-        color="#00429d",
-        label="free fit",
-    )
-    ax.axhline(
-        familiar.claim["strength"],
-        color="#57606a",
-        linestyle="--",
-        label="inverse-square fit",
-    )
-    ax.set_xlabel("distance (m)")
-    ax.set_ylabel("force × distance² per unit mass (N m²/kg)")  # noqa: RUF001
-    ax.legend(fontsize=8)
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=4))
+        # The grid's readings in the muted grey (the lighter grey of before
+        # had less than 3:1 against the plate).
+        ax.plot(
+            [s["distance"] for s in grid.settings],
+            signature(grid),
+            "o",
+            color=MUTED,
+            markersize=4,
+            label="grid baseline readings",
+        )
+        ax.plot(
+            [s["distance"] for s in own_data.settings],
+            signature(own_data),
+            "o",
+            color=FIGURE_COLOURS[1],
+            markersize=7,
+            label="agent's readings",
+        )
+        ax.plot(
+            r,
+            free["strength"] * r ** (2 - free["exponent"]),
+            color=FIGURE_COLOURS[0],
+            label="free fit",
+        )
+        ax.axhline(
+            familiar.claim["strength"],
+            color=MUTED,
+            linestyle="--",
+            label="inverse-square fit",
+        )
+        ax.set_xlabel("distance (m)")
+        ax.set_ylabel("force × distance² per\nunit mass (N m²/kg)")  # noqa: RUF001
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def small_modifications(experiment: Experiment) -> None:

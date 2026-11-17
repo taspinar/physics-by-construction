@@ -51,6 +51,7 @@ from pbc.discovery.invariants import (
     rotation_defect,
 )
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, TEXT, figsize, figure_style, finish
 from pbc.fluids.burgers import godunov_flux, max_speed
 from pbc.fluids.finite_volume import conservative_update, interface_fluxes, periodic
 from pbc.mechanics.rigid_body import Top, simulate_top, tilted_start
@@ -391,7 +392,6 @@ def draw_verdicts(ratios) -> Figure:
     """The conservation ratio of each candidate on the held-out trajectories
     at the three integration settings, on a logarithmic axis, with the
     tolerance."""
-    fig, ax = plt.subplots(figsize=(7.0, 3.8))
     names = list(ratios)
     styles = {
         OWN: ("o", FIGURE_COLOURS[0]),
@@ -399,56 +399,65 @@ def draw_verdicts(ratios) -> Figure:
         REFERENCE: ("^", FIGURE_COLOURS[1]),
     }
     floor = 1e-16
-    for offset, (setting, (marker, colour)) in zip(
-        (-0.2, 0.0, 0.2), styles.items(), strict=True
-    ):
-        ax.semilogy(
-            np.arange(len(names)) + offset,
-            [max(ratios[n][setting] or floor, floor) for n in names],
-            marker,
-            color=colour,
-            linestyle="none",
-            label=setting,
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=4))
+        for offset, (setting, (marker, colour)) in zip(
+            (-0.2, 0.0, 0.2), styles.items(), strict=True
+        ):
+            ax.semilogy(
+                np.arange(len(names)) + offset,
+                [max(ratios[n][setting] or floor, floor) for n in names],
+                marker,
+                color=colour,
+                linestyle="none",
+                label=setting,
+            )
+        ax.axhline(
+            TOLERANCE, color=FIGURE_COLOURS[2], linestyle="--", label="tolerance"
         )
-    ax.axhline(TOLERANCE, color=FIGURE_COLOURS[2], linestyle="--", label="tolerance")
-    ax.set_xticks(np.arange(len(names)), names, rotation=30, ha="right", fontsize=8)
-    ax.set_ylabel("conservation ratio (dimensionless)")
-    ax.set_ylim(floor / 3, 3)
-    ax.legend(fontsize=8, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=4)
-    return fig
+        ax.set_xticks(
+            np.arange(len(names)), names, rotation=45, ha="right", fontsize=TEXT["tick"]
+        )
+        ax.set_ylabel("conservation ratio\n(dimensionless)")
+        ax.set_ylim(floor / 3, 3)
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def draw_burgers() -> Figure:
     """The relative change of the total of u² against time for each number
     of cells, with the time the shock forms."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
     colours = (
         FIGURE_COLOURS[0],
         FIGURE_COLOURS[1],
         FIGURE_COLOURS[4],
         FIGURE_COLOURS[3],
     )
-    for cells, style, colour in zip(
-        BURGERS_CELLS, ("-", "--", "-.", ":"), colours, strict=True
-    ):
-        times, totals = burgers_totals(cells, AFTER)
-        ax.plot(
-            times,
-            1 - totals[:, 1] / totals[0, 1],
-            style,
-            color=colour,
-            label=f"{cells} cells",
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=5))
+        for cells, style, colour in zip(
+            BURGERS_CELLS, ("-", "--", "-.", ":"), colours, strict=True
+        ):
+            times, totals = burgers_totals(cells, AFTER)
+            ax.plot(
+                times,
+                1 - totals[:, 1] / totals[0, 1],
+                style,
+                color=colour,
+                label=f"{cells} cells",
+            )
+        ax.axvline(
+            1 / (2 * np.pi * BURGERS_AMPLITUDE),
+            color=FIGURE_COLOURS[2],
+            linewidth=LINE["guide"],
+            label="shock forms",
         )
-    ax.axvline(
-        1 / (2 * np.pi * BURGERS_AMPLITUDE),
-        color=FIGURE_COLOURS[2],
-        linewidth=0.8,
-        label="shock forms",
-    )
-    ax.set_xlabel("time (s)")
-    ax.set_ylabel("loss of the total of u² (relative)")
-    ax.legend(fontsize=8)
-    return fig
+        ax.set_xlabel("time (s)")
+        ax.set_ylabel("loss of the total\nof u² (relative)")
+        # Five entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def run() -> Experiment:

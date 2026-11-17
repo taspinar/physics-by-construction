@@ -21,6 +21,7 @@ from matplotlib.figure import Figure
 from pbc.authoring import FIGURE_COLOURS
 from pbc.discovery.symbolic import PowerLaw, Search, noise_floor, power_law_search
 from pbc.experiment import Experiment, main
+from pbc.figure_language import TEXT, figsize, figure_style, finish
 from pbc.mechanics.dynamics import State, newton, simulate
 from pbc.mechanics.integrators import rk4_step
 from pbc.mechanics.pendulum import pendulum_force, pendulum_period
@@ -287,45 +288,47 @@ def simplest_rival(search: Search) -> PowerLaw:
 def draw_pareto(search: Search) -> Figure:
     """The best chi-square of each complexity, the limit of consistency, and
     the chosen form."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.8), constrained_layout=True)
     front = search.pareto()
-    ax.semilogy(
-        [f.complexity for f in front],
-        [f.chi2 for f in front],
-        color=FIGURE_COLOURS[0],
-        marker="o",
-        linestyle="-",
-        label="best form of each complexity",
-    )
-    ax.axhline(
-        search.limit,
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        label="limit of consistency",
-    )
-    chosen = search.chosen
-    ax.semilogy(
-        [chosen.complexity],
-        [chosen.chi2],
-        linestyle="none",
-        marker="*",
-        markersize=16,
-        color=FIGURE_COLOURS[2],
-        label="chosen: " + chosen.shape,
-    )
-    for form in front:
-        ax.annotate(
-            "constant" if form.shape == "1" else form.shape,
-            (form.complexity, form.chi2),
-            textcoords="offset points",
-            xytext=(6, 6),
-            fontsize=8,
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=3))
+        ax.semilogy(
+            [f.complexity for f in front],
+            [f.chi2 for f in front],
+            color=FIGURE_COLOURS[0],
+            marker="o",
+            linestyle="-",
+            label="best form of each complexity",
         )
-    ax.set_xticks(range(max(f.complexity for f in front) + 1))
-    ax.set_xlabel("complexity of the form")
-    ax.set_ylabel("chi-square (dimensionless)")
-    ax.legend(loc="upper right", fontsize=8)
-    return fig
+        ax.axhline(
+            search.limit,
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            label="limit of consistency",
+        )
+        chosen = search.chosen
+        ax.semilogy(
+            [chosen.complexity],
+            [chosen.chi2],
+            linestyle="none",
+            marker="*",
+            markersize=16,
+            color=FIGURE_COLOURS[2],
+            label="chosen: " + chosen.shape,
+        )
+        for form in front:
+            ax.annotate(
+                "constant" if form.shape == "1" else form.shape,
+                (form.complexity, form.chi2),
+                textcoords="offset points",
+                xytext=(6, 6),
+                fontsize=TEXT["note"],
+            )
+        ax.set_xticks(range(max(f.complexity for f in front) + 1))
+        ax.set_xlabel("complexity of the form")
+        ax.set_ylabel("chi-square\n(dimensionless)")
+        # Three long names over the forms' labels: under the plot.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def draw_noise_sweep(
@@ -334,35 +337,37 @@ def draw_noise_sweep(
     """How often the search chooses the form of the law, and how often
     another form, against the noise; the predicted level where a simpler form
     passes."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6), constrained_layout=True)
     noise = [100 * o[0] for o in outcomes]
-    ax.semilogx(
-        noise,
-        [o[1] / SEEDS for o in outcomes],
-        color=FIGURE_COLOURS[0],
-        marker="o",
-        linestyle="-",
-        label="form of the law chosen",
-    )
-    ax.semilogx(
-        noise,
-        [o[2] / SEEDS for o in outcomes],
-        color=FIGURE_COLOURS[1],
-        marker="s",
-        linestyle="--",
-        label="another form chosen",
-    )
-    ax.axvline(
-        100 * floor,
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label="predicted: a simpler form passes",
-    )
-    ax.set_xlabel("relative noise of the period (%)")
-    ax.set_ylabel(f"fraction of {SEEDS} noisy copies")
-    ax.set_ylim(-0.05, 1.05)
-    ax.legend(loc="center left", fontsize=8)
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=3))
+        ax.semilogx(
+            noise,
+            [o[1] / SEEDS for o in outcomes],
+            color=FIGURE_COLOURS[0],
+            marker="o",
+            linestyle="-",
+            label="form of the law chosen",
+        )
+        ax.semilogx(
+            noise,
+            [o[2] / SEEDS for o in outcomes],
+            color=FIGURE_COLOURS[1],
+            marker="s",
+            linestyle="--",
+            label="another form chosen",
+        )
+        ax.axvline(
+            100 * floor,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            label="predicted: a simpler form passes",
+        )
+        ax.set_xlabel("relative noise of the period (%)")
+        ax.set_ylabel(f"fraction of {SEEDS}\nnoisy copies")
+        ax.set_ylim(-0.05, 1.05)
+        # Three long names over the curves: under the plot.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def units_filter(search: Search) -> list[PowerLaw]:

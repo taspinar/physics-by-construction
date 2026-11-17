@@ -19,6 +19,7 @@ from matplotlib.figure import Figure
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, figsize, figure_style, finish
 from pbc.fluids.finite_volume import (
     conservative_update,
     evolve,
@@ -180,45 +181,50 @@ def draw_dam_break() -> Figure:
     x, q = dam_profile(n)
     exact = dam_break(UPSTREAM, DOWNSTREAM)
     fine = np.linspace(-LENGTH / 2, LENGTH / 2, 4001)
-    fig, (top, bottom) = plt.subplots(2, 1, figsize=(6.4, 5.2), sharex=True)
-    top.plot(
-        fine,
-        exact.depth(fine, DAM_TIME),
-        color=FIGURE_COLOURS[2],
-        linewidth=1.2,
-        label="exact",
-    )
-    top.plot(
-        x,
-        q[:, 0],
-        color=FIGURE_COLOURS[0],
-        linestyle="none",
-        marker="o",
-        markersize=2.5,
-        label="HLL, 200 cells",
-    )
-    top.set_ylabel("depth (m)")
-    top.legend(loc="upper right", frameon=False)
-    bottom.plot(
-        fine,
-        exact.velocity(fine, DAM_TIME),
-        color=FIGURE_COLOURS[2],
-        linewidth=1.2,
-        label="exact",
-    )
-    bottom.plot(
-        x,
-        velocity(q),
-        color=FIGURE_COLOURS[1],
-        linestyle="none",
-        marker="s",
-        markersize=2.5,
-        label="HLL, 200 cells",
-    )
-    bottom.set_ylabel("velocity (m/s)")
-    bottom.set_xlabel("position (m)")
-    bottom.legend(loc="upper left", frameon=False)
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(
+            2, 1, figsize=figsize("stacked", legend=2), sharex=True
+        )
+        top.plot(
+            fine,
+            exact.depth(fine, DAM_TIME),
+            color=FIGURE_COLOURS[2],
+            linewidth=LINE["model"],
+            label="exact",
+        )
+        top.plot(
+            x,
+            q[:, 0],
+            color=FIGURE_COLOURS[0],
+            linestyle="none",
+            marker="o",
+            markersize=2.5,
+            label="HLL, 200 cells",
+        )
+        top.set_ylabel("depth (m)")
+        top.legend(loc="upper right")
+        bottom.plot(
+            fine,
+            exact.velocity(fine, DAM_TIME),
+            color=FIGURE_COLOURS[2],
+            linewidth=LINE["model"],
+            label="exact",
+        )
+        bottom.plot(
+            x,
+            velocity(q),
+            color=FIGURE_COLOURS[1],
+            linestyle="none",
+            marker="s",
+            markersize=2.5,
+            label="HLL, 200 cells",
+        )
+        bottom.set_ylabel("velocity (m/s)")
+        bottom.set_xlabel("position (m)")
+        # Inside, the lower panel's legend lay over the data at every
+        # corner: under the plot.
+        fig.legend(*bottom.get_legend_handles_labels(), loc="outside lower center")
+    return finish(fig)
 
 
 def dry_run(experiment: Experiment) -> float:

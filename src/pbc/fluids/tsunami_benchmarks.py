@@ -12,6 +12,7 @@ from matplotlib.ticker import NullFormatter
 from scipy.special import erf, j0
 
 from pbc.authoring import FIGURE_COLOURS
+from pbc.figure_language import LINE, figsize, figure_style, finish
 from pbc.fluids import tsunami
 from pbc.fluids.shallow_water import GRAVITY
 
@@ -120,27 +121,29 @@ def draw_plane_wave_convergence(
     """The errors of ``plane_wave_errors`` against the cell size, log-log,
     with reference slopes one and two from the first point of the first and
     the last scheme."""
-    fig, ax = plt.subplots(figsize=(4.6, 2.8), layout="constrained")
     sizes = PLANE["length"] / 1e3 / np.array(cells)
-    for (name, values), marker, style in zip(
-        errors.items(), ("o", "s", "^"), ("-", "--", ":"), strict=False
-    ):
-        ax.loglog(
-            sizes, values, marker=marker, ms=4, ls=style, color=FIGURE_COLOURS[0],
-            label=name,
-        )  # fmt: skip
-    ends = sizes[[0, -1]]
-    values = list(errors.values())
-    first, last = values[0], values[-1]
-    for slope, style, start in ((1, ":", first[0]), (2, "-.", last[0])):
-        ax.loglog(
-            ends, start * (ends / sizes[0]) ** slope, ls=style, color="0.5", lw=1,
-            label=f"slope {slope} (reference)",
-        )  # fmt: skip
-    ax.set_xticks(sizes, labels=[f"{size:g}" for size in sizes])
-    ax.xaxis.set_minor_formatter(NullFormatter())
-    ax.set_xlabel("cell size (km)")
-    ax.set_ylabel("rms error / amplitude")
-    ax.set_title("Plane wave against d'Alembert's solution")
-    ax.legend(fontsize=7)
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=len(errors) + 2))
+        for (name, values), marker, style in zip(
+            errors.items(), ("o", "s", "^"), ("-", "--", ":"), strict=False
+        ):
+            ax.loglog(
+                sizes, values, marker=marker, ms=4, ls=style, color=FIGURE_COLOURS[0],
+                label=name,
+            )  # fmt: skip
+        ends = sizes[[0, -1]]
+        values = list(errors.values())
+        first, last = values[0], values[-1]
+        for slope, style, start in ((1, ":", first[0]), (2, "-.", last[0])):
+            ax.loglog(
+                ends, start * (ends / sizes[0]) ** slope, ls=style, color="0.5",
+                lw=LINE["guide"], label=f"slope {slope} (reference)",
+            )  # fmt: skip
+        ax.set_xticks(sizes, labels=[f"{size:g}" for size in sizes])
+        ax.xaxis.set_minor_formatter(NullFormatter())
+        ax.set_xlabel("cell size (km)")
+        ax.set_ylabel("rms error / amplitude")
+        ax.set_title("Plane wave against\nd'Alembert's solution")
+        # Under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)

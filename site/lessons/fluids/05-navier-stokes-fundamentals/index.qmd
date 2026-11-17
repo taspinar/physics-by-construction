@@ -462,7 +462,7 @@ it; the rest sets out the plot and is behind the Source link.
 
 ```{python}
 #| echo: false
-excerpt(experiment.draw_energy_budget, lines=[(8, 9), (26, 28)])
+excerpt(experiment.draw_energy_budget, lines=[(5, 6), (27, 29)])
 ```
 
 ```{python}

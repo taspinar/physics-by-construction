@@ -15,7 +15,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
 
+from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, figsize, figure_style, finish
 from pbc.waves.modes import (
     centroid,
     measured_frequency,
@@ -155,18 +157,19 @@ def draw_modes_spectrum(record, dt) -> Figure:
     )
     frequency = np.arange(spectrum.size) / (size * dt)
     band = frequency < 320.0
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    ax.plot(frequency[band], spectrum[band], color="#00429d")
-    for n in range(1, 7):
-        ax.axvline(
-            string_frequency(n, length=LENGTH, c=SPEED),
-            color="#93003a",
-            linestyle="--",
-            linewidth=0.8,
-        )
-    ax.set_xlabel("frequency (Hz)")
-    ax.set_ylabel("spectrum magnitude (arbitrary units)")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        ax.plot(frequency[band], spectrum[band], color=FIGURE_COLOURS[0])
+        for n in range(1, 7):
+            ax.axvline(
+                string_frequency(n, length=LENGTH, c=SPEED),
+                color=FIGURE_COLOURS[1],
+                linestyle="--",
+                linewidth=LINE["axis"],
+            )
+        ax.set_xlabel("frequency (Hz)")
+        ax.set_ylabel("spectrum magnitude\n(arbitrary units)")
+    return finish(fig)
 
 
 def resonance_run(experiment: Experiment):
@@ -227,15 +230,30 @@ def draw_resonance(on, off) -> Figure:
     exact."""
     t_on, amp_on, exact_on = on
     t_off, amp_off, exact_off = off
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    ax.plot(t_on * 1000, amp_on, color="#00429d", label="at the mode frequency")
-    ax.plot(t_on * 1000, exact_on, color="#00429d", linestyle="--", linewidth=0.8)
-    ax.plot(t_off * 1000, amp_off, color="#93003a", label="at seven tenths of it")
-    ax.plot(t_off * 1000, exact_off, color="#93003a", linestyle="--", linewidth=0.8)
-    ax.set_xlabel("time (ms)")
-    ax.set_ylabel("amplitude of the first mode (arbitrary units)")
-    ax.legend()
-    return fig
+    on_colour, off_colour = FIGURE_COLOURS[:2]
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        ax.plot(t_on * 1000, amp_on, color=on_colour, label="at the mode frequency")
+        ax.plot(
+            t_on * 1000,
+            exact_on,
+            color=on_colour,
+            linestyle="--",
+            linewidth=LINE["model"],
+        )
+        ax.plot(t_off * 1000, amp_off, color=off_colour, label="at seven tenths of it")
+        ax.plot(
+            t_off * 1000,
+            exact_off,
+            color=off_colour,
+            linestyle="--",
+            linewidth=LINE["model"],
+        )
+        ax.set_xlabel("time (ms)")
+        ax.set_ylabel("amplitude of the first mode\n(arbitrary units)")
+        # The legend would cover the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 # region: dispersion
@@ -328,16 +346,29 @@ def interference_run():
 
 def draw_interference(angle, intensity, formula) -> Figure:
     """The intensity of two sources against the angle."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    ax.plot(angle, intensity, color="#00429d", label="waves added")
-    ax.plot(
-        angle, formula, color="#93003a", linestyle="--", linewidth=0.8, label="formula"
-    )
-    ax.axhline(2.0, color="gray", linestyle=":", label="sum of two intensities")
-    ax.set_xlabel("angle (rad)")
-    ax.set_ylabel("intensity (units of one source)")
-    ax.legend(loc="upper right", fontsize=8)
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        ax.plot(angle, intensity, color=FIGURE_COLOURS[0], label="waves added")
+        ax.plot(
+            angle,
+            formula,
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            linewidth=LINE["model"],
+            label="formula",
+        )
+        ax.axhline(
+            2.0,
+            color="gray",
+            linestyle=":",
+            linewidth=LINE["guide"],
+            label="sum of two intensities",
+        )
+        ax.set_xlabel("angle (rad)")
+        ax.set_ylabel("intensity\n(units of one source)")
+        # The legend would cover the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def free_end():

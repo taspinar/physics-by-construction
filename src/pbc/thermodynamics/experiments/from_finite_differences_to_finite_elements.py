@@ -32,6 +32,15 @@ from pbc.fem.assembly import (
     stiffness,
 )
 from pbc.fem.mesh import Mesh, angles, annulus, areas, radius_ratio, rectangle, size
+from pbc.figure_language import (
+    LINE,
+    TEXT,
+    WIDTH,
+    figsize,
+    figure_style,
+    finish,
+    reference_slope,
+)
 from pbc.thermodynamics.conduction import steady_plate
 from pbc.verification.estimates import fitted_order
 
@@ -365,112 +374,103 @@ def pipe_refinement(experiment: Experiment):
 def draw_annulus_mesh() -> Figure:
     """The coarsest useful annulus mesh, and the distribution of the smallest
     angle of its triangles for three refinements."""
-    fig, (left, right) = plt.subplots(
-        1, 2, figsize=(7.2, 3.4), gridspec_kw={"width_ratios": [1, 1.2]}
-    )
     mesh = annulus(R_PIPE, R_OUTER, LAYERS[1])
-    left.triplot(
-        Triangulation(*(1e2 * mesh.nodes.T), mesh.triangles),
-        color=FIGURE_COLOURS[0],
-        linewidth=0.6,
-    )
-    for name, line in (("inner", "-"), ("outer", "--")):
-        edges = mesh.boundary[name]
-        for a, b in edges:
-            left.plot(
-                *(1e2 * mesh.nodes[[a, b]].T),
-                color=FIGURE_COLOURS[1],
+    bins = np.arange(40, 62, 2)
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=(WIDTH, 1.7 * WIDTH))
+        top.triplot(
+            Triangulation(*(1e2 * mesh.nodes.T), mesh.triangles),
+            color=FIGURE_COLOURS[0],
+            linewidth=LINE["grid"],
+        )
+        for name, line in (("inner", "-"), ("outer", "--")):
+            edges = mesh.boundary[name]
+            for a, b in edges:
+                top.plot(
+                    *(1e2 * mesh.nodes[[a, b]].T),
+                    color=FIGURE_COLOURS[1],
+                    linestyle=line,
+                    linewidth=1.6,
+                )
+        top.set_aspect("equal")
+        top.set_xlabel("x (cm)")
+        top.set_ylabel("y (cm)")
+        for layers, line, colour in (
+            (LAYERS[1], "-", FIGURE_COLOURS[0]),
+            (LAYERS[2], "--", FIGURE_COLOURS[1]),
+            (LAYERS[4], ":", FIGURE_COLOURS[4]),
+        ):
+            smallest = angles(annulus(R_PIPE, R_OUTER, layers)).min(axis=1)
+            bottom.hist(
+                smallest,
+                bins=bins,
+                density=True,
+                histtype="step",
+                color=colour,
                 linestyle=line,
                 linewidth=1.6,
+                label=f"{layers} layers",
             )
-    left.set_aspect("equal")
-    left.set_xlabel("x (cm)")
-    left.set_ylabel("y (cm)")
-    bins = np.arange(40, 62, 2)
-    for layers, line, colour in (
-        (LAYERS[1], "-", FIGURE_COLOURS[0]),
-        (LAYERS[2], "--", FIGURE_COLOURS[1]),
-        (LAYERS[4], ":", FIGURE_COLOURS[4]),
-    ):
-        smallest = angles(annulus(R_PIPE, R_OUTER, layers)).min(axis=1)
-        right.hist(
-            smallest,
-            bins=bins,
-            density=True,
-            histtype="step",
-            color=colour,
-            linestyle=line,
-            linewidth=1.6,
-            label=f"{layers} layers",
+        bottom.axvline(60.0, color=FIGURE_COLOURS[2], linewidth=LINE["axis"])
+        bottom.annotate(
+            "equilateral",
+            (60.0, 0.5),
+            xycoords=("data", "axes fraction"),
+            xytext=(-4, 0),
+            textcoords="offset points",
+            ha="right",
+            rotation=90,
+            color=FIGURE_COLOURS[2],
+            fontsize=TEXT["note"],
         )
-    right.axvline(60.0, color=FIGURE_COLOURS[2], linewidth=0.8)
-    right.annotate(
-        "equilateral",
-        (60.0, 0.5),
-        xycoords=("data", "axes fraction"),
-        xytext=(-4, 0),
-        textcoords="offset points",
-        ha="right",
-        rotation=90,
-        color=FIGURE_COLOURS[2],
-        fontsize="small",
-    )
-    right.set_xlabel("smallest angle of a triangle (degrees)")
-    right.set_ylabel("fraction per degree")
-    right.legend(frameon=False, loc="upper left")
-    fig.tight_layout()
-    return fig
+        bottom.set_xlabel("smallest angle of a triangle (degrees)")
+        bottom.set_ylabel("fraction per degree")
+        bottom.legend(loc="upper left")
+    return finish(fig)
 
 
 def draw_fem_convergence(manufactured_errors, pipe_errors) -> Figure:
     """Log-log errors against h: the manufactured solution in L2 and H1, and
     the pipe's heat loss from the residual and from the gradient, with
     reference slopes."""
-    fig, (left, right) = plt.subplots(1, 2, figsize=(7.2, 3.6))
     h, l2, h1 = (np.array(v) for v in manufactured_errors)
-    left.loglog(h, l2, color=FIGURE_COLOURS[0], marker="o", label="L2 error")
-    left.loglog(
-        h, h1, color=FIGURE_COLOURS[1], marker="s", linestyle="--", label="H1 error"
-    )
     hp, consistent, gradient = (np.array(v) for v in pipe_errors)
     hp = 1e3 * hp
-    right.loglog(
-        hp, consistent, color=FIGURE_COLOURS[0], marker="o", label="residual flux"
-    )
-    right.loglog(
-        hp,
-        gradient,
-        color=FIGURE_COLOURS[1],
-        marker="s",
-        linestyle="--",
-        label="gradient flux",
-    )
-    for ax, x, top, bottom in ((left, h, h1, l2), (right, hp, gradient, consistent)):
-        ax.loglog(
-            x,
-            0.5 * bottom[0] * (x / x[0]) ** 2,
-            color=FIGURE_COLOURS[2],
-            linestyle=":",
-            label="reference, slope two",
+    with figure_style():
+        fig, (top_ax, bottom_ax) = plt.subplots(2, 1, figsize=figsize("pair"))
+        top_ax.loglog(h, l2, color=FIGURE_COLOURS[0], marker="o", label="L2 error")
+        top_ax.loglog(
+            h, h1, color=FIGURE_COLOURS[1], marker="s", linestyle="--", label="H1 error"
         )
-        ax.loglog(
-            x,
-            0.5 * top[0] * (x / x[0]),
-            color=FIGURE_COLOURS[2],
-            linestyle="-.",
-            label="reference, slope one",
+        bottom_ax.loglog(
+            hp, consistent, color=FIGURE_COLOURS[0], marker="o", label="residual flux"
         )
-        ax.set_xticks(x, labels=[f"{value:.2g}" for value in x])
-        ax.minorticks_off()
-        low, high = ax.get_ylim()
-        ax.set_ylim(low, high * 100)
-        ax.legend(frameon=False, loc="upper left", fontsize="small")
-    left.set_xlabel("h (dimensionless)")
-    left.set_ylabel("error (dimensionless)")
-    right.set_xlabel("h (mm)")
-    right.set_ylabel("relative error of the heat loss")
-    fig.tight_layout()
-    return fig
+        bottom_ax.loglog(
+            hp,
+            gradient,
+            color=FIGURE_COLOURS[1],
+            marker="s",
+            linestyle="--",
+            label="gradient flux",
+        )
+        for ax, x, top, bottom in (
+            (top_ax, h, h1, l2),
+            (bottom_ax, hp, gradient, consistent),
+        ):
+            # The reference slopes on the plot (S4): the same lines as before,
+            # half the first error at the first h.
+            reference_slope(ax, x, bottom[0], 2)
+            reference_slope(ax, x, top[0], 1)
+            ax.set_xticks(x, labels=[f"{value:.2g}" for value in x])
+            ax.minorticks_off()
+            low, high = ax.get_ylim()
+            ax.set_ylim(low, high * 100)
+            ax.legend(loc="upper left")
+        top_ax.set_xlabel("h (dimensionless)")
+        top_ax.set_ylabel("error (dimensionless)")
+        bottom_ax.set_xlabel("h (mm)")
+        bottom_ax.set_ylabel("relative error of\nthe heat loss")
+    return finish(fig)
 
 
 def draw_pipe_temperature() -> Figure:

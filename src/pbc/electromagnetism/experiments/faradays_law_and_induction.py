@@ -28,6 +28,7 @@ from pbc.electromagnetism.induction import (
     rotating_coil,
 )
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, figsize, figure_style, finish
 
 
 def uniform(vector):
@@ -111,28 +112,30 @@ def moving_loop_run(experiment: Experiment) -> Passage:
 
 def draw_moving_loop(passage: Passage) -> Figure:
     """The flux through the passing loop, and its EMF computed both ways."""
-    fig, (top, bottom) = plt.subplots(2, 1, figsize=(6.4, 4.6), sharex=True)
-    top.plot(times * 1e3, passage.fluxes * 1e3, color=FIGURE_COLOURS[0])
-    top.set_ylabel("flux (mWb)")
-    bottom.plot(
-        times * 1e3,
-        passage.motional * 1e3,
-        color=FIGURE_COLOURS[0],
-        label="EMF along the wire",
-    )
-    bottom.plot(
-        times[::8] * 1e3,
-        passage.from_flux[::8] * 1e3,
-        "o",
-        markerfacecolor="none",
-        color=FIGURE_COLOURS[1],
-        label="minus the rate of the flux",
-    )
-    bottom.axhline(0.0, color=FIGURE_COLOURS[2], linewidth=0.6)
-    bottom.set_xlabel("time (ms)")
-    bottom.set_ylabel("EMF (mV)")
-    bottom.legend(fontsize=8)
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=figsize("stacked"), sharex=True)
+        top.plot(times * 1e3, passage.fluxes * 1e3, color=FIGURE_COLOURS[0])
+        top.set_ylabel("flux (mWb)")
+        bottom.plot(
+            times * 1e3,
+            passage.motional * 1e3,
+            color=FIGURE_COLOURS[0],
+            label="EMF along the wire",
+        )
+        bottom.plot(
+            times[::8] * 1e3,
+            passage.from_flux[::8] * 1e3,
+            "o",
+            markerfacecolor="none",
+            color=FIGURE_COLOURS[1],
+            label="minus the rate of the flux",
+        )
+        bottom.axhline(0.0, color=FIGURE_COLOURS[2], linewidth=LINE["guide"])
+        bottom.set_xlabel("time (ms)")
+        bottom.set_ylabel("EMF (mV)")
+        # The legend would cover the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 # region: coil

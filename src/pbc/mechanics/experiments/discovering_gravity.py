@@ -41,6 +41,7 @@ from pbc.discovery.gravity_lab import (
     sensitivity,
 )
 from pbc.experiment import Experiment, main
+from pbc.figure_language import figsize, figure_style, finish
 
 # The live run of the lesson: a model, its key, and the extra openai.
 LIVE = "pbc.discovery.gravity_lab"
@@ -227,25 +228,28 @@ def draw_transfer(scans) -> Figure:
     colours = dict(
         zip(PARAMETERS, [FIGURE_COLOURS[i] for i in (0, 1, 4, 3)], strict=True)
     )
-    fig, ax = plt.subplots(figsize=(6.4, 4.2))
-    for p, scan in scans.items():
-        line, marker = styles[p]
-        colour = colours[p]
-        ax.plot(
-            [s.shift for s in scan],
-            [s.transfer_error for s in scan],
-            linestyle=line,
-            marker=marker,
-            color=colour,
-            label=p.replace("_", " "),
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=len(scans) + 1))
+        for p, scan in scans.items():
+            line, marker = styles[p]
+            colour = colours[p]
+            ax.plot(
+                [s.shift for s in scan],
+                [s.transfer_error for s in scan],
+                linestyle=line,
+                marker=marker,
+                color=colour,
+                label=p.replace("_", " "),
+            )
+        ax.axhline(
+            TOLERANCE, color=FIGURE_COLOURS[2], linestyle="--", label="tolerance"
         )
-    ax.axhline(TOLERANCE, color=FIGURE_COLOURS[2], linestyle="--", label="tolerance")
-    ax.set_yscale("log")
-    ax.set_xlabel("parameter held from the fit (standard errors)")
-    ax.set_ylabel("transfer error (relative)")
-    ax.legend(fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=5)
-    fig.tight_layout()
-    return fig
+        ax.set_yscale("log")
+        ax.set_xlabel("parameter held from the fit\n(standard errors)")
+        ax.set_ylabel("transfer error (relative)")
+        # Under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def far_shifts(experiment: Experiment, data) -> None:

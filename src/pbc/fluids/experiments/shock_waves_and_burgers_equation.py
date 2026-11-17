@@ -18,6 +18,7 @@ from matplotlib.figure import Figure
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import figsize, figure_style, finish
 from pbc.fluids.burgers import (
     breaking_time,
     characteristic_solution,
@@ -217,41 +218,42 @@ def draw_steepening() -> Figure:
         ("-.", "^", FIGURE_COLOURS[3]),
         (":", "D", FIGURE_COLOURS[2]),
     ]
-    fig, ax = plt.subplots(figsize=(6.4, 4.4))
-    u = initial(x)
-    now = 0.0
-    for t, (line, marker, colour) in zip(times, styles, strict=True):
-        if t > now:
-            u = evolve(u, dx, t - now, godunov(periodic), max_speed, COURANT).q
-            now = t
-        label = "t = 0 s" if t == 0 else f"t = {t:.2f} s"
-        if t == t_break:
-            label += ", breaking"
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=5))
+        u = initial(x)
+        now = 0.0
+        for t, (line, marker, colour) in zip(times, styles, strict=True):
+            if t > now:
+                u = evolve(u, dx, t - now, godunov(periodic), max_speed, COURANT).q
+                now = t
+            label = "t = 0 s" if t == 0 else f"t = {t:.2f} s"
+            if t == t_break:
+                label += ", breaking"
+            ax.plot(
+                x,
+                u,
+                color=colour,
+                linestyle=line,
+                marker=marker,
+                markevery=25,
+                markersize=4,
+                label=label,
+            )
+        exact = characteristic_solution(initial, x[::8], 0.15, LENGTH)
         ax.plot(
-            x,
-            u,
-            color=colour,
-            linestyle=line,
-            marker=marker,
-            markevery=25,
-            markersize=4,
-            label=label,
+            x[::8],
+            exact,
+            linestyle="none",
+            marker="x",
+            color=FIGURE_COLOURS[2],
+            markersize=5,
+            label="characteristics, t = 0.15 s",
         )
-    exact = characteristic_solution(initial, x[::8], 0.15, LENGTH)
-    ax.plot(
-        x[::8],
-        exact,
-        linestyle="none",
-        marker="x",
-        color=FIGURE_COLOURS[2],
-        markersize=5,
-        label="characteristics, t = 0.15 s",
-    )
-    ax.set_xlabel("position (m)")
-    ax.set_ylabel("u (m/s)")
-    fig.subplots_adjust(bottom=0.24)
-    fig.legend(loc="lower center", ncol=3, frameon=False, fontsize=8)
-    return fig
+        ax.set_xlabel("position (m)")
+        ax.set_ylabel("u (m/s)")
+        # Five entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def rarefaction_run(experiment: Experiment) -> float:

@@ -32,6 +32,7 @@ from pbc.astrophysics.lensing import (
 )
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, MUTED, figsize, figure_style, finish
 
 # region: setup
 GM_SUN = 1.32712440018e20  # m³/s², the Sun's mass parameter
@@ -99,56 +100,56 @@ def deflection_scan(experiment: Experiment):
 
 
 def draw_deflection(exact, coefficient) -> Figure:
-    """Left: the deflection against b/m, log-log, exact, weak field, and
-    Newtonian. Right: the scaled remainder against b/m with its limit."""
-    fig, (left, right) = plt.subplots(1, 2, figsize=(6.4, 3.4))
+    """Top: the deflection against b/m, log-log, exact, weak field, and
+    Newtonian. Bottom: the scaled remainder against b/m with its limit."""
     b = np.geomspace(impacts[0], impacts[-1], 100)
-    left.loglog(
-        impacts,
-        exact,
-        "o",
-        color=FIGURE_COLOURS[0],
-        markerfacecolor="none",
-        label="exact (quadrature)",
-    )
-    left.loglog(
-        b,
-        weak_field_deflection(b),
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        linewidth=1,
-        label="weak field 4m / b",
-    )
-    left.loglog(
-        b,
-        newtonian_deflection(b),
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label="Newtonian",
-    )
-    left.set_xlabel("impact parameter b / m")
-    left.set_ylabel("deflection (rad)")
-    left.legend(fontsize="small")
-    right.semilogx(
-        impacts,
-        coefficient,
-        "s",
-        color=FIGURE_COLOURS[0],
-        markerfacecolor="none",
-        label="(exact - 4m/b)(b/m)^2",
-    )
-    right.axhline(
-        15 * np.pi / 4,
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        linewidth=1,
-        label="15 pi / 4",
-    )
-    right.set_xlabel("impact parameter b / m")
-    right.set_ylabel("scaled remainder")
-    right.legend(fontsize="small")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=figsize("pair"))
+        top.loglog(
+            impacts,
+            exact,
+            "o",
+            color=FIGURE_COLOURS[0],
+            markerfacecolor="none",
+            label="exact (quadrature)",
+        )
+        top.loglog(
+            b,
+            weak_field_deflection(b),
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            linewidth=LINE["model"],
+            label="weak field 4m / b",
+        )
+        top.loglog(
+            b,
+            newtonian_deflection(b),
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            label="Newtonian",
+        )
+        top.set_xlabel("impact parameter b / m")
+        top.set_ylabel("deflection (rad)")
+        top.legend()
+        bottom.semilogx(
+            impacts,
+            coefficient,
+            "s",
+            color=FIGURE_COLOURS[0],
+            markerfacecolor="none",
+            label="(exact - 4m/b)(b/m)^2",
+        )
+        bottom.axhline(
+            15 * np.pi / 4,
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            linewidth=LINE["model"],
+            label="15 pi / 4",
+        )
+        bottom.set_xlabel("impact parameter b / m")
+        bottom.set_ylabel("scaled remainder")
+        bottom.legend()
+    return finish(fig)
 
 
 def images_run(experiment: Experiment):
@@ -187,51 +188,53 @@ def draw_images(hit) -> Figure:
     second offset, the Einstein ring, the unlensed source, the predicted
     image centres, and the lens."""
     u = offsets[1]
-    fig, ax = plt.subplots(figsize=(6.4, 4.8))
-    ax.imshow(
-        hit,
-        origin="lower",
-        extent=(-half, half, -half, half),
-        cmap="Greys",
-        vmin=0,
-        vmax=1.4,
-        interpolation="nearest",
-    )
-    angle = np.linspace(0, 2 * np.pi, 400)
-    ax.plot(
-        np.cos(angle),
-        np.sin(angle),
-        color=FIGURE_COLOURS[0],
-        linestyle="--",
-        linewidth=1,
-        label="Einstein ring",
-    )
-    ax.plot(
-        u + radius * np.cos(angle),
-        radius * np.sin(angle),
-        color=FIGURE_COLOURS[1],
-        linestyle=":",
-        linewidth=1.5,
-        label="source without the lens",
-    )
-    outer, inner = image_positions(u)
-    ax.plot(
-        [outer, inner],
-        [0, 0],
-        "x",
-        color=FIGURE_COLOURS[0],
-        markersize=9,
-        markeredgewidth=2,
-        label="images of the source's centre (formula)",
-    )
-    ax.plot(0, 0, "+", color="#57606a", markersize=10, label="lens")
-    ax.set_xlim(-1.8, 1.8)
-    ax.set_ylim(-1.4, 1.4)
-    ax.set_aspect("equal")
-    ax.set_xlabel("x (Einstein radii)")
-    ax.set_ylabel("y (Einstein radii)")
-    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncols=2, fontsize="small")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("square", legend=4))
+        ax.imshow(
+            hit,
+            origin="lower",
+            extent=(-half, half, -half, half),
+            cmap="Greys",
+            vmin=0,
+            vmax=1.4,
+            interpolation="nearest",
+        )
+        angle = np.linspace(0, 2 * np.pi, 400)
+        ax.plot(
+            np.cos(angle),
+            np.sin(angle),
+            color=FIGURE_COLOURS[0],
+            linestyle="--",
+            linewidth=LINE["guide"],
+            label="Einstein ring",
+        )
+        ax.plot(
+            u + radius * np.cos(angle),
+            radius * np.sin(angle),
+            color=FIGURE_COLOURS[1],
+            linestyle=":",
+            linewidth=1.5,
+            label="source without the lens",
+        )
+        outer, inner = image_positions(u)
+        ax.plot(
+            [outer, inner],
+            [0, 0],
+            "x",
+            color=FIGURE_COLOURS[0],
+            markersize=9,
+            markeredgewidth=2,
+            label="images of the source's centre (formula)",
+        )
+        ax.plot(0, 0, "+", color=MUTED, markersize=10, label="lens")
+        ax.set_xlim(-1.8, 1.8)
+        ax.set_ylim(-1.4, 1.4)
+        ax.set_aspect("equal")
+        ax.set_xlabel("x (Einstein radii)")
+        ax.set_ylabel("y (Einstein radii)")
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def degeneracy(experiment: Experiment):
@@ -277,24 +280,26 @@ def degeneracy(experiment: Experiment):
 
 def draw_light_curves(t, curves) -> Figure:
     """The magnification against time of the three lenses."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    for k, (curve, (mass, distance), line, marker) in enumerate(
-        zip(curves, lenses, ("-", "--", ":"), (None, "o", "s"), strict=True)
-    ):
-        ax.plot(
-            t,
-            curve,
-            color=FIGURE_COLOURS[k],
-            linestyle=line,
-            marker=marker,
-            markevery=(10 * k, 40),
-            markerfacecolor="none",
-            label=f"{mass:g} M_sun at {distance:g} kpc",
-        )
-    ax.set_xlabel("time from the closest approach (days)")
-    ax.set_ylabel("magnification")
-    ax.legend(fontsize="small")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        for k, (curve, (mass, distance), line, marker) in enumerate(
+            zip(curves, lenses, ("-", "--", ":"), (None, "o", "s"), strict=True)
+        ):
+            ax.plot(
+                t,
+                curve,
+                color=FIGURE_COLOURS[k],
+                linestyle=line,
+                marker=marker,
+                markevery=(10 * k, 40),
+                markerfacecolor="none",
+                label=f"{mass:g} M_sun at {distance:g} kpc",
+            )
+        ax.set_xlabel("time from the closest approach (days)")
+        ax.set_ylabel("magnification")
+        # The legend would cover the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def solar_limb():

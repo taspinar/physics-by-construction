@@ -18,6 +18,7 @@ from matplotlib.figure import Figure
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, MUTED, figsize, figure_style, finish
 from pbc.mechanics.rigid_body import (
     Top,
     axial_momentum,
@@ -230,31 +231,33 @@ def precession(experiment: Experiment):
 def draw_precession(spins_, differences) -> Figure:
     """The relative difference of the measured rate from the fast-top limit
     over the spin, log-log, with the reference slope minus two."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    ax.plot(
-        spins_,
-        differences,
-        color=FIGURE_COLOURS[0],
-        marker="o",
-        linestyle="-",
-        label="measured",
-    )
-    reference = differences[0] * (spins_ / spins_[0]) ** -2.0
-    ax.plot(
-        spins_,
-        reference,
-        color="#57606a",
-        linestyle=":",
-        label="reference slope minus two",
-    )
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_xticks(spins_, labels=[f"{spin:.0f}" for spin in spins_])
-    ax.minorticks_off()
-    ax.set_xlabel("spin (rad/s)")
-    ax.set_ylabel("relative difference from the limit")
-    ax.legend(loc="upper right", fontsize="small")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        ax.plot(
+            spins_,
+            differences,
+            color=FIGURE_COLOURS[0],
+            marker="o",
+            linestyle="-",
+            label="measured",
+        )
+        reference = differences[0] * (spins_ / spins_[0]) ** -2.0
+        ax.plot(
+            spins_,
+            reference,
+            color=MUTED,
+            linestyle=":",
+            linewidth=LINE["guide"],
+            label="reference slope minus two",
+        )
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_xticks(spins_, labels=[f"{spin:.0f}" for spin in spins_])
+        ax.minorticks_off()
+        ax.set_xlabel("spin (rad/s)")
+        ax.set_ylabel("relative difference\nfrom the limit")
+        ax.legend(loc="lower left")
+    return finish(fig, grid=True)
 
 
 def steady(experiment: Experiment):

@@ -50,6 +50,9 @@ PIXELS_PER_POINT = FIGURE_SETTINGS["figure.dpi"] / 72
 # measured on a built lesson page (324 px), less the plate's padding (two
 # times --pbc-space-2) and its rule (two times 1 px).
 PHONE_WIDTH = 324 - 2 * 8 - 2 * 1
+# The same on a phone of 320 CSS px, the narrowest the site supports: the
+# column is about the viewport less 51 px (F171).
+SMALL_PHONE_WIDTH = 320 - 51 - 2 * 8 - 2 * 1
 # Wider than any figure: on a desktop the page shows a figure at its
 # natural size (measured: half its pixel width, at 1280 CSS px).
 DESKTOP_WIDTH = 760
@@ -86,6 +89,224 @@ SAMPLES = (
 )
 
 
+# The figures F171 opted in beyond the samples (list A of its plan, approved
+# by the owner on Issue #544): the experiment module and the figure's label.
+ROLLOUT = tuple(
+    (f"pbc.{module}", label)
+    for module, label in (
+        ("astrophysics.experiments.exoplanet_transit", "fig-limb"),
+        ("astrophysics.experiments.gravitational_lensing", "fig-light-curves"),
+        ("astrophysics.experiments.modified_gravity", "fig-power-law"),
+        ("astrophysics.experiments.modified_gravity", "fig-yukawa"),
+        ("astrophysics.experiments.special_relativity", "fig-collision"),
+        (
+            "electromagnetism.experiments.adaptive_phased_array_beam_steering",
+            "fig-quantisation",
+        ),
+        ("electromagnetism.experiments.faradays_law_and_induction", "fig-moving-loop"),
+        (
+            "electromagnetism.experiments.maxwells_equations_and_fdtd",
+            "fig-fdtd-dispersion",
+        ),
+        (
+            "electromagnetism.experiments.maxwells_equations_and_fdtd",
+            "fig-pulse-at-interface",
+        ),
+        (
+            "electromagnetism.experiments.rlc_circuits_and_resonance",
+            "fig-rlc-resonance",
+        ),
+        (
+            "electromagnetism.experiments.waveguides_and_antenna_basics",
+            "fig-cutoff-convergence",
+        ),
+        ("fluids.experiments.navier_stokes_fundamentals", "fig-energy-budget"),
+        (
+            "fluids.experiments.vortex_formation_and_flow_around_obstacles",
+            "fig-wake-signal",
+        ),
+        ("materials.experiments.defects_and_material_properties", "fig-msd"),
+        ("materials.experiments.electronic_band_structure", "fig-bloch"),
+        ("materials.experiments.electronic_band_structure", "fig-counting"),
+        ("mechanics.experiments.discovering_differential_equations", "fig-held-out"),
+        ("mechanics.experiments.inverse_physics", "fig-residuals"),
+        ("mechanics.experiments.rotational_motion", "fig-precession-rate"),
+        ("quantum.experiments.open_quantum_systems", "fig-convergence"),
+        ("thermodynamics.experiments.entropy_from_ensembles", "fig-entropy-growth"),
+        (
+            "thermodynamics.experiments.heat_engines_and_thermodynamic_cycles",
+            "fig-otto-against-carnot",
+        ),
+        ("waves.experiments.diffraction_and_imaging", "fig-doublet"),
+        ("waves.experiments.diffraction_and_imaging", "fig-fraunhofer-limit"),
+        ("waves.experiments.interference_and_resonance", "fig-interference"),
+        ("waves.experiments.interference_and_resonance", "fig-resonance"),
+        ("waves.experiments.inverse_optics", "fig-fit"),
+        ("waves.experiments.refraction_and_snells_law", "fig-interface-pulse"),
+    )
+)
+
+
+# Phase 2c (the owner's decisions 7 and 8 on Issue #544): list B with
+# direct labels, and the figures of the three tested types (a legend of
+# four or more entries, a family of more than five curves, semi-log axes)
+# that passed the gate per figure.
+ROLLOUT_LIST_B_AND_TYPES = tuple(
+    (f"pbc.{module}", label)
+    for module, label in (
+        ("astrophysics.experiments.cosmic_expansion", "fig-angular"),
+        ("astrophysics.experiments.cosmic_expansion", "fig-distances"),
+        ("astrophysics.experiments.cosmic_expansion", "fig-expansion"),
+        ("astrophysics.experiments.exoplanet_transit", "fig-impacts"),
+        ("astrophysics.experiments.exoplanet_transit", "fig-transit"),
+        ("astrophysics.experiments.gravitational_lensing", "fig-deflection"),
+        ("astrophysics.experiments.gravitational_lensing", "fig-images"),
+        ("astrophysics.experiments.gravitational_wave_chirp", "fig-same-chirp-mass"),
+        ("astrophysics.experiments.gravitational_wave_chirp", "fig-waveform"),
+        ("astrophysics.experiments.modified_gravity", "fig-rosette"),
+        ("astrophysics.experiments.relativistic_orbits", "fig-orbit"),
+        ("astrophysics.experiments.relativistic_orbits", "fig-potential"),
+        ("astrophysics.experiments.relativistic_orbits", "fig-precession"),
+        ("astrophysics.experiments.special_relativity", "fig-limit"),
+        ("astrophysics.experiments.special_relativity", "fig-spacetime"),
+        ("astrophysics.experiments.three_body_problem", "fig-divergence"),
+        ("astrophysics.experiments.three_body_problem", "fig-stability"),
+        ("astrophysics.experiments.unknown_physical_worlds", "fig-predictive-test"),
+        (
+            "electromagnetism.experiments.adaptive_phased_array_beam_steering",
+            "fig-grating-lobes",
+        ),
+        (
+            "electromagnetism.experiments.adaptive_phased_array_beam_steering",
+            "fig-steered-pattern",
+        ),
+        (
+            "electromagnetism.experiments.adaptive_phased_array_beam_steering",
+            "fig-taper-and-null",
+        ),
+        ("electromagnetism.experiments.charged_particles_in_fields", "fig-drift"),
+        (
+            "electromagnetism.experiments.maxwells_equations_and_fdtd",
+            "fig-fdtd-stability",
+        ),
+        (
+            "electromagnetism.experiments.rlc_circuits_and_resonance",
+            "fig-step-response",
+        ),
+        (
+            "electromagnetism.experiments.waveguides_and_antenna_basics",
+            "fig-guide-dispersion",
+        ),
+        ("fluids.experiments.navier_stokes_fundamentals", "fig-ns-convergence"),
+        ("fluids.experiments.particle_based_fluid_simulation", "fig-particle-gradient"),
+        (
+            "fluids.experiments.reconstructing_the_2025_kamchatka_tsunami",
+            "fig-tsunami-benchmarks",
+        ),
+        ("fluids.experiments.shallow_water_equations", "fig-dam-break"),
+        (
+            "fluids.experiments.shock_waves_and_burgers_equation",
+            "fig-burgers-steepening",
+        ),
+        ("materials.experiments.crystal_lattices_and_phonons", "fig-dispersion"),
+        ("materials.experiments.crystal_lattices_and_phonons", "fig-packet"),
+        ("materials.experiments.defects_and_material_properties", "fig-free-energy"),
+        ("materials.experiments.elasticity_and_deformation", "fig-bar"),
+        ("materials.experiments.electronic_band_structure", "fig-bands"),
+        ("mechanics.experiments.black_box_force_law", "fig-force-probes"),
+        ("mechanics.experiments.counterexample_hunter", "fig-hunt"),
+        ("mechanics.experiments.discovering_conservation_laws", "fig-burgers-totals"),
+        ("mechanics.experiments.discovering_conservation_laws", "fig-verdicts"),
+        (
+            "mechanics.experiments.discovering_differential_equations",
+            "fig-singular-values",
+        ),
+        ("mechanics.experiments.discovering_gravity", "fig-transfer"),
+        ("mechanics.experiments.discovery_under_noise", "fig-degradation"),
+        ("mechanics.experiments.double_pendulum_chaos", "fig-separation"),
+        ("mechanics.experiments.equations_from_noisy_trajectories", "fig-step-errors"),
+        ("mechanics.experiments.equations_from_noisy_trajectories", "fig-sweep"),
+        ("mechanics.experiments.experimental_design_agent", "fig-design"),
+        ("mechanics.experiments.hidden_variables", "fig-disambiguation"),
+        ("mechanics.experiments.inverse_physics", "fig-profiles"),
+        ("mechanics.experiments.many_body_gravitation", "fig-energy-drift"),
+        ("mechanics.experiments.many_body_gravitation", "fig-figure-eight"),
+        ("mechanics.experiments.many_body_gravitation", "fig-solar-system"),
+        ("mechanics.experiments.modified_force_law", "fig-unlearning"),
+        ("mechanics.experiments.momentum_and_collisions", "fig-glancing-collision"),
+        ("mechanics.experiments.momentum_and_collisions", "fig-head-on-collision"),
+        (
+            "mechanics.experiments.nonlinear_dynamics_and_bifurcations",
+            "fig-critical-slowing",
+        ),
+        (
+            "mechanics.experiments.nonlinear_dynamics_and_bifurcations",
+            "fig-hoop-bifurcation",
+        ),
+        (
+            "mechanics.experiments.nonlinear_dynamics_and_bifurcations",
+            "fig-limit-cycle",
+        ),
+        ("mechanics.experiments.symbolic_regression", "fig-noise-sweep"),
+        ("mechanics.experiments.symbolic_regression", "fig-pareto"),
+        (
+            "mechanics.experiments.verifying_scientific_code",
+            "fig-verification-convergence",
+        ),
+        ("quantum.experiments.open_quantum_systems", "fig-bloch-length"),
+        ("quantum.experiments.open_quantum_systems", "fig-ramsey"),
+        ("quantum.experiments.quantum_harmonic_oscillator", "fig-convergence"),
+        ("quantum.experiments.quantum_harmonic_oscillator", "fig-levels"),
+        ("quantum.experiments.quantum_tunnelling", "fig-transmission"),
+        ("quantum.experiments.quantum_tunnelling", "fig-widths"),
+        ("quantum.experiments.schrodinger_equation", "fig-dispersion"),
+        ("quantum.experiments.schrodinger_equation", "fig-packet"),
+        (
+            "thermodynamics.experiments.from_finite_differences_to_finite_elements",
+            "fig-annulus-mesh",
+        ),
+        (
+            "thermodynamics.experiments.from_finite_differences_to_finite_elements",
+            "fig-fem-convergence",
+        ),
+        (
+            "thermodynamics.experiments.heat_conduction_and_diffusion",
+            "fig-lumped-against-slab",
+        ),
+        (
+            "thermodynamics.experiments.heat_conduction_and_diffusion",
+            "fig-stability-limit",
+        ),
+        ("thermodynamics.experiments.molecular_dynamics", "fig-energy-drift"),
+        (
+            "thermodynamics.experiments.thermal_engineering_of_an_ai_accelerator",
+            "fig-package-layout",
+        ),
+        (
+            "thermodynamics.experiments.thermal_engineering_of_an_ai_accelerator",
+            "fig-package-refinement",
+        ),
+        (
+            "thermodynamics.experiments.thermal_engineering_of_an_ai_accelerator",
+            "fig-package-transient",
+        ),
+        ("waves.experiments.diffraction_and_imaging", "fig-airy-rayleigh"),
+        ("waves.experiments.diffraction_and_imaging", "fig-slits"),
+        ("waves.experiments.interference_and_resonance", "fig-modes-spectrum"),
+        ("waves.experiments.polarisation_and_maluss_law", "fig-malus"),
+        ("waves.experiments.polarisation_and_maluss_law", "fig-polariser-chain"),
+        ("waves.experiments.polarisation_and_maluss_law", "fig-wave-plate"),
+        ("waves.experiments.refraction_and_snells_law", "fig-fresnel"),
+        ("waves.experiments.refraction_and_snells_law", "fig-refraction"),
+        ("waves.experiments.sound_and_the_doppler_effect", "fig-doppler"),
+        ("waves.experiments.wave_equation", "fig-cfl"),
+        ("waves.experiments.wave_equation", "fig-convergence"),
+        ("waves.experiments.wave_equation", "fig-pulse-reflections"),
+    )
+)
+ROLLOUT += ROLLOUT_LIST_B_AND_TYPES
+
+
 @dataclass(frozen=True)
 class Audit:
     """What a reader meets in one figure."""
@@ -97,6 +318,9 @@ class Audit:
     smallest_text: float  # pt
     largest_text: float  # pt
     legend_entries: int
+    # The most entries of one legend inside an axes; a legend under the plot
+    # (a figure legend) is not counted here (F171).
+    axes_legend_entries: int
     titles: int
     line_widths: tuple[float, ...]
     markers: int
@@ -115,6 +339,13 @@ class Audit:
     @property
     def smallest_phone_px(self) -> float:
         return self.text_px(self.smallest_text, self.phone_scale)
+
+    @property
+    def smallest_small_phone_px(self) -> float:
+        """The smallest text on a phone of 320 CSS px."""
+        return self.text_px(
+            self.smallest_text, min(1.0, SMALL_PHONE_WIDTH / self.natural_width)
+        )
 
 
 def _texts(fig: Figure) -> list[Text]:
@@ -207,8 +438,8 @@ def _stroke_contrasts(ax, collection: Collection, plate: str) -> list[float]:
 def _inspect(fig: Figure) -> dict:
     fig.canvas.draw()  # creates the tick labels the page shows
     sizes = [t.get_fontsize() for t in _texts(fig)]
-    legends = [ax.get_legend() for ax in fig.axes if ax.get_legend() is not None]
-    legends += [x for x in fig.legends]
+    inside = [ax.get_legend() for ax in fig.axes if ax.get_legend() is not None]
+    legends = [*inside, *fig.legends]
     lines = [
         line
         for ax in fig.axes
@@ -252,6 +483,9 @@ def _inspect(fig: Figure) -> dict:
         "smallest_text": min(sizes),
         "largest_text": max(sizes),
         "legend_entries": sum(len(legend.get_texts()) for legend in legends),
+        "axes_legend_entries": max(
+            (len(legend.get_texts()) for legend in inside), default=0
+        ),
         "titles": sum(1 for ax in fig.axes if ax.get_title()),
         "line_widths": tuple(widths),
         "markers": markers,
@@ -292,6 +526,17 @@ def sample_figures() -> list[tuple[str, str, Callable[[], Figure]]]:
         if module not in runs:
             runs[module] = importlib.import_module(module).run()
         out.append((kind, label, runs[module].figures[label]))
+    return out
+
+
+def rollout_figures() -> list[tuple[str, str, Callable[[], Figure]]]:
+    """The module, the label, and the drawing of every figure of ``ROLLOUT``."""
+    runs: dict = {}
+    out = []
+    for module, label in ROLLOUT:
+        if module not in runs:
+            runs[module] = importlib.import_module(module).run()
+        out.append((module, label, runs[module].figures[label]))
     return out
 
 

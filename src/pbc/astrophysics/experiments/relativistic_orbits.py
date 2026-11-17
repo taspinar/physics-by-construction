@@ -34,6 +34,7 @@ from pbc.astrophysics.relativistic_orbits import (
 )
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, MUTED, figsize, figure_style, finish
 from pbc.verification.estimates import fitted_order
 
 # region: setup
@@ -79,41 +80,43 @@ def strong_field(experiment: Experiment):
 def draw_orbit(path) -> Figure:
     """The precessing orbit of a strong field beside Kepler's ellipse with
     the same turning points, with the relativistic periapses marked."""
-    fig, ax = plt.subplots(figsize=(6.4, 4.8))
     r = 1 / path.u
-    ax.plot(
-        r * np.cos(path.phi),
-        r * np.sin(path.phi),
-        color=FIGURE_COLOURS[1],
-        linewidth=0.8,
-        label=f"Schwarzschild orbit, m/p = {strong_m}",
-    )
-    nu = np.linspace(0.0, 2 * np.pi, 400)
-    kepler = P / (1 + E * np.cos(nu))
-    ax.plot(
-        kepler * np.cos(nu),
-        kepler * np.sin(nu),
-        color=FIGURE_COLOURS[0],
-        linestyle="--",
-        linewidth=1.5,
-        label="Kepler ellipse",
-    )
-    rp = P / (1 + E)
-    angles = np.concatenate([[0.0], path.periapsis_phi])
-    ax.plot(
-        rp * np.cos(angles),
-        rp * np.sin(angles),
-        "o",
-        color=FIGURE_COLOURS[1],
-        markerfacecolor="none",
-        label="periapses",
-    )
-    ax.plot(0.0, 0.0, "+", color="#57606a", markersize=10, label="central mass")
-    ax.set_aspect("equal")
-    ax.set_xlabel("x (units of p)")
-    ax.set_ylabel("y (units of p)")
-    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncols=2, fontsize="small")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("square", legend=4))
+        ax.plot(
+            r * np.cos(path.phi),
+            r * np.sin(path.phi),
+            color=FIGURE_COLOURS[1],
+            linewidth=LINE["guide"],
+            label=f"Schwarzschild orbit, m/p = {strong_m}",
+        )
+        nu = np.linspace(0.0, 2 * np.pi, 400)
+        kepler = P / (1 + E * np.cos(nu))
+        ax.plot(
+            kepler * np.cos(nu),
+            kepler * np.sin(nu),
+            color=FIGURE_COLOURS[0],
+            linestyle="--",
+            linewidth=LINE["model"],
+            label="Kepler ellipse",
+        )
+        rp = P / (1 + E)
+        angles = np.concatenate([[0.0], path.periapsis_phi])
+        ax.plot(
+            rp * np.cos(angles),
+            rp * np.sin(angles),
+            "o",
+            color=FIGURE_COLOURS[1],
+            markerfacecolor="none",
+            label="periapses",
+        )
+        ax.plot(0.0, 0.0, "+", color=MUTED, markersize=10, label="central mass")
+        ax.set_aspect("equal")
+        ax.set_xlabel("x (units of p)")
+        ax.set_ylabel("y (units of p)")
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def precession_scan(experiment: Experiment):
@@ -171,62 +174,67 @@ def draw_precession(exact, pn) -> Figure:
     """Two panels against m/p, log-log: the turn per orbit (first order,
     exact, post-Newtonian), and the size of each gap from the first order
     with the second-order term of the exact turn."""
-    fig, (top, bottom) = plt.subplots(2, 1, figsize=(6.4, 6.0), sharex=True)
     x = np.geomspace(fields[-1], fields[0], 100)
-    top.loglog(
-        x,
-        first_order_precession(x, P),
-        color=FIGURE_COLOURS[0],
-        linestyle="--",
-        linewidth=1,
-        label="first order, 6 pi m/p",
-    )
-    top.loglog(
-        fields,
-        exact,
-        "o",
-        color=FIGURE_COLOURS[1],
-        markerfacecolor="none",
-        label="exact (Schwarzschild)",
-    )
-    top.loglog(
-        fields,
-        pn,
-        "^",
-        color=FIGURE_COLOURS[2],
-        markerfacecolor="none",
-        label="post-Newtonian, integrated",
-    )
-    top.set_ylabel("turn per orbit (rad)")
-    top.legend(fontsize="small")
-    first = first_order_precession(fields, P)
-    bottom.loglog(
-        fields,
-        np.abs(exact - first),
-        "o",
-        color=FIGURE_COLOURS[1],
-        markerfacecolor="none",
-        label="exact - first order",
-    )
-    bottom.loglog(
-        fields,
-        np.abs(pn - first),
-        "^",
-        color=FIGURE_COLOURS[2],
-        markerfacecolor="none",
-        label="|post-Newtonian - first order|",
-    )
-    bottom.loglog(
-        x,
-        second_order_coefficient(E) * x**2,
-        color="#57606a",
-        linestyle=":",
-        label="(3 pi / 2)(18 + e^2)(m/p)^2",
-    )
-    bottom.set_xlabel("field strength m/p")
-    bottom.set_ylabel("gap from first order (rad)")
-    bottom.legend(fontsize="small")
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(
+            2, 1, figsize=figsize("stacked", legend=6), sharex=True
+        )
+        top.loglog(
+            x,
+            first_order_precession(x, P),
+            color=FIGURE_COLOURS[0],
+            linestyle="--",
+            linewidth=LINE["model"],
+            label="first order, 6 pi m/p",
+        )
+        top.loglog(
+            fields,
+            exact,
+            "o",
+            color=FIGURE_COLOURS[1],
+            markerfacecolor="none",
+            label="exact (Schwarzschild)",
+        )
+        top.loglog(
+            fields,
+            pn,
+            "^",
+            color=FIGURE_COLOURS[2],
+            markerfacecolor="none",
+            label="post-Newtonian, integrated",
+        )
+        top.set_ylabel("turn per orbit (rad)")
+        first = first_order_precession(fields, P)
+        bottom.loglog(
+            fields,
+            np.abs(exact - first),
+            "o",
+            color=FIGURE_COLOURS[1],
+            markerfacecolor="none",
+            label="exact - first order",
+        )
+        bottom.loglog(
+            fields,
+            np.abs(pn - first),
+            "^",
+            color=FIGURE_COLOURS[2],
+            markerfacecolor="none",
+            label="|post-Newtonian - first order|",
+        )
+        bottom.loglog(
+            x,
+            second_order_coefficient(E) * x**2,
+            color=MUTED,
+            linestyle=":",
+            linewidth=LINE["model"],
+            label="(3 pi / 2)(18 + e^2)(m/p)^2",
+        )
+        bottom.set_xlabel("field strength m/p")
+        bottom.set_ylabel("gap from first\norder (rad)")
+        # Inside the panels the legends would cover the data: the six
+        # entries under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def gauss_check():
@@ -297,42 +305,44 @@ def draw_potential() -> Figure:
     """The effective potential against r/m for several h/m, with the minima,
     the stable circular orbits, marked, and the innermost stable circular
     orbit."""
-    fig, ax = plt.subplots(figsize=(6.4, 4.0))
     r = np.linspace(2.2, 40.0, 600)
-    for h, colour, style in zip(
-        (3.2, 2 * np.sqrt(3), 4.0, 4.4),
-        FIGURE_COLOURS,
-        ("-.", ":", "--", "-"),
-        strict=False,
-    ):
-        ax.plot(
-            r,
-            effective_potential(r, h, 1.0),
-            color=colour,
-            linestyle=style,
-            label=f"h/m = {h:.3g}",
-        )
-        radii = circular_orbit_radii(h, 1.0)
-        if radii is not None:
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=5))
+        for h, colour, style in zip(
+            (3.2, 2 * np.sqrt(3), 4.0, 4.4),
+            FIGURE_COLOURS,
+            ("-.", ":", "--", "-"),
+            strict=False,
+        ):
             ax.plot(
-                radii[1],
-                effective_potential(radii[1], h, 1.0),
-                "o",
+                r,
+                effective_potential(r, h, 1.0),
                 color=colour,
-                markerfacecolor="none",
+                linestyle=style,
+                label=f"h/m = {h:.3g}",
             )
-    ax.axvline(
-        6.0,
-        color="#57606a",
-        linestyle=(0, (1, 4)),
-        linewidth=1,
-        label="innermost stable orbit, r = 6m",
-    )
-    ax.set_ylim(0.85, 1.05)
-    ax.set_xlabel("r (units of m = GM/c^2)")
-    ax.set_ylabel("effective potential (squared energy per rest energy)")
-    ax.legend(fontsize="small", loc="lower right")
-    return fig
+            radii = circular_orbit_radii(h, 1.0)
+            if radii is not None:
+                ax.plot(
+                    radii[1],
+                    effective_potential(radii[1], h, 1.0),
+                    "o",
+                    color=colour,
+                    markerfacecolor="none",
+                )
+        ax.axvline(
+            6.0,
+            color=MUTED,
+            linestyle=(0, (1, 4)),
+            linewidth=LINE["guide"],
+            label="innermost stable orbit, r = 6m",
+        )
+        ax.set_ylim(0.85, 1.05)
+        ax.set_xlabel("r (units of m = GM/c^2)")
+        ax.set_ylabel("effective potential\n(squared energy\nper rest energy)")
+        # Five entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def mercury():

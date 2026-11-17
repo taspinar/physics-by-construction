@@ -21,6 +21,7 @@ from matplotlib.patches import Ellipse
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import figsize, figure_style, finish, reference_slope
 from pbc.fluids.sph import (
     Particles,
     angular_momentum,
@@ -156,7 +157,6 @@ def gradient_run(experiment: Experiment) -> dict:
 
 def draw_particle_gradient(found: dict) -> Figure:
     """The errors against the spacing, log-log, with a reference slope two."""
-    fig, ax = plt.subplots(figsize=(6.4, 4.0))
     h = found["spacing"]
     series = (
         ("central", "grid, central difference", "o", "-"),
@@ -164,24 +164,26 @@ def draw_particle_gradient(found: dict) -> Figure:
         ("plain", "disordered, plain sum", "^", ":"),
         ("difference", "disordered, difference", "D", "-."),
     )
-    for (key, label, marker, style), colour in zip(
-        series, FIGURE_COLOURS, strict=False
-    ):
-        ax.loglog(
-            h, found[key], marker=marker, linestyle=style, color=colour, label=label
-        )
-    ax.loglog(
-        h,
-        0.5 * found["central"][0] * (h / h[0]) ** 2,
-        color=FIGURE_COLOURS[2],
-        linewidth=0.8,
-        label="slope 2 (reference)",
-    )
-    ax.set_xlabel("particle or grid spacing (m)")
-    ax.set_ylabel("largest gradient error (1/m)")
-    ax.legend(frameon=False, fontsize="small")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=4))
+        for (key, label, marker, style), colour in zip(
+            series, FIGURE_COLOURS, strict=False
+        ):
+            ax.loglog(
+                h, found[key], marker=marker, linestyle=style, color=colour, label=label
+            )
+        # The reference slope on the plot (S4): the same line as before,
+        # half the first central error at the first spacing.
+        reference_slope(ax, h, found["central"][0], 2)
+        # The widths as the ticks: the minor labels of the log axis ran
+        # into each other at this width.
+        ax.set_xticks(h, labels=[f"{value:.3g}" for value in h])
+        ax.minorticks_off()
+        ax.set_xlabel("particle or grid spacing (m)")
+        ax.set_ylabel("largest gradient\nerror (1/m)")
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def percent(fraction: float) -> float:

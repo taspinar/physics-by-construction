@@ -379,7 +379,7 @@ excerpt(experiment.draw_same_chirp_mass)
 #| label: fig-same-chirp-mass
 #| echo: false
 #| fig-cap: "Three binaries with one chirp mass have one frequency track; they differ only in where the model ends, at the innermost stable orbit of each total mass."
-#| fig-alt: "Two panels of wave frequency against time. Left, the whole record: three curves, solid, dashed, and dotted, lie on top of one another and rise ever faster; each ends with a hollow marker, a triangle lowest, a square higher, a circle at the top. Right, the last tenth of a second enlarged: the same single curve, with the triangle, the square, and the circle at successively later times and higher frequencies."
+#| fig-alt: "Two stacked panels of wave frequency against time. Top, the whole record: three curves, solid, dashed, and dotted, lie on top of one another and rise ever faster; each ends with a hollow marker, a triangle lowest, a square higher, a circle at the top. Bottom, the last tenth of a second enlarged: the same single curve, with the triangle, the square, and the circle at successively later times and higher frequencies."
 #| fig-status: simulated
 result.show("fig-same-chirp-mass")
 ```

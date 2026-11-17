@@ -251,8 +251,8 @@ excerpt(experiment.draw_malus)
 ```{python}
 #| label: fig-malus
 #| echo: false
-#| fig-cap: "The intensity behind an analyser, as a dimensionless fraction of the incident intensity, against its angle to the polarisation of the light, from zero to one hundred eighty degrees; the intensity axis is linear on the left and logarithmic on the right. The curves are Malus's law for an ideal and for a leaky analyser, the markers the intensity measured from the sampled field. On the logarithmic scale the leaky analyser never goes dark: crossed, it passes its leak."
-#| fig-alt: "Two panels of the transmitted intensity, a dimensionless fraction of the incident, against the analyser angle from zero to one hundred eighty degrees. On the linear left panel a single cosine-squared curve falls from one to zero at ninety degrees and rises back to one; markers of both analysers lie on it. On the right panel, whose intensity axis is logarithmic, the solid ideal curve plunges towards zero at ninety degrees, while the dashed leaky curve and its square markers level off at a floor."
+#| fig-cap: "The intensity behind an analyser, as a dimensionless fraction of the incident intensity, against its angle to the polarisation of the light, from zero to one hundred eighty degrees; the intensity axis is linear in the top panel and logarithmic in the bottom one. The curves are Malus's law for an ideal and for a leaky analyser, the markers the intensity measured from the sampled field. On the logarithmic scale the leaky analyser never goes dark: crossed, it passes its leak."
+#| fig-alt: "Two stacked panels of the transmitted intensity, a dimensionless fraction of the incident, against the analyser angle from zero to one hundred eighty degrees. On the linear top panel a single cosine-squared curve falls from one to zero at ninety degrees and rises back to one; markers of both analysers lie on it. On the bottom panel, whose intensity axis is logarithmic, the solid ideal curve plunges towards zero at ninety degrees, while the dashed leaky curve and its square markers level off at a floor."
 #| fig-status: simulated
 result.show("fig-malus")
 ```

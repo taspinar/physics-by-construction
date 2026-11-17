@@ -29,6 +29,7 @@ from scipy.linalg import eigh
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
 from pbc.fem.transient import midpoints, theta_march
+from pbc.figure_language import LINE, TEXT, figsize, figure_style, finish
 from pbc.thermodynamics.conduction import (
     Material,
     growth_per_step,
@@ -1070,199 +1071,214 @@ def draw_package_transient(curves, gaps) -> Figure:
     """The hottest junction after the power step, both methods, and the
     relative energy-balance gap of every step."""
     times, fem_curve, fd_times, fd_curve, insert_curve = curves
-    fig, (left, right) = plt.subplots(1, 2, figsize=(7.4, 3.4))
-    left.plot(
-        fd_times,
-        fd_curve,
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        label="copper, finite differences, explicit",
-    )
-    left.plot(
-        times,
-        fem_curve,
-        color=FIGURE_COLOURS[0],
-        marker="o",
-        markevery=10,
-        markersize=3.5,
-        linestyle="none",
-        label="copper, elements, backward Euler",
-    )
-    left.plot(
-        times,
-        insert_curve,
-        color=FIGURE_COLOURS[4],
-        linestyle="-.",
-        label="copper inserts, elements",
-    )
-    left.axhline(JUNCTION_LIMIT, color=FIGURE_COLOURS[2], linestyle=":", linewidth=1.0)
-    left.annotate(
-        "limit",
-        (times[-1], JUNCTION_LIMIT),
-        xytext=(0, 3),
-        textcoords="offset points",
-        ha="right",
-        color=FIGURE_COLOURS[2],
-        fontsize="small",
-    )
-    left.set_xlabel("time after switch-on (s)")
-    left.set_ylabel("hottest junction (°C)")
-    left.legend(frameon=False, fontsize="small", loc="lower right")
-    fem_gap, fd_gap, insert_gap = gaps
-    floor = 1e-17  # a gap of exactly zero cannot be drawn on a log axis
-    right.semilogy(
-        np.arange(1, len(fem_gap) + 1),
-        np.maximum(fem_gap, floor),
-        color=FIGURE_COLOURS[0],
-        marker="o",
-        markersize=2.5,
-        linestyle="none",
-        label="copper, elements",
-    )
-    right.semilogy(
-        np.arange(1, len(fd_gap) + 1),
-        np.maximum(fd_gap, floor),
-        color=FIGURE_COLOURS[1],
-        marker=".",
-        markersize=1.5,
-        linestyle="none",
-        label="copper, finite differences",
-    )
-    right.semilogy(
-        np.arange(1, len(insert_gap) + 1),
-        np.maximum(insert_gap, floor),
-        color=FIGURE_COLOURS[4],
-        marker="s",
-        markersize=2.0,
-        linestyle="none",
-        label="copper inserts, elements",
-    )
-    right.axhline(
-        1e-10,
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        linewidth=1.0,
-        label="tolerance stated, 1e-10",
-    )
-    right.set_xlabel("step number")
-    right.set_ylabel("relative energy-balance gap (dimensionless)")
-    right.legend(frameon=False, fontsize="small", loc="upper right")
-    low, high = right.get_ylim()
-    right.set_ylim(low, high * 1e3)
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=figsize("pair", legend=7))
+        top.plot(
+            fd_times,
+            fd_curve,
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            label="copper, finite differences, explicit",
+        )
+        top.plot(
+            times,
+            fem_curve,
+            color=FIGURE_COLOURS[0],
+            marker="o",
+            markevery=10,
+            markersize=3.5,
+            linestyle="none",
+            label="copper, elements, backward Euler",
+        )
+        top.plot(
+            times,
+            insert_curve,
+            color=FIGURE_COLOURS[4],
+            linestyle="-.",
+            label="copper inserts, elements",
+        )
+        top.axhline(
+            JUNCTION_LIMIT,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            linewidth=LINE["guide"],
+        )
+        top.annotate(
+            "limit",
+            (times[-1], JUNCTION_LIMIT),
+            xytext=(0, 3),
+            textcoords="offset points",
+            ha="right",
+            color=FIGURE_COLOURS[2],
+            fontsize=TEXT["note"],
+        )
+        top.set_xlabel("time after switch-on (s)")
+        top.set_ylabel("hottest junction (°C)")
+        fem_gap, fd_gap, insert_gap = gaps
+        floor = 1e-17  # a gap of exactly zero cannot be drawn on a log axis
+        bottom.semilogy(
+            np.arange(1, len(fem_gap) + 1),
+            np.maximum(fem_gap, floor),
+            color=FIGURE_COLOURS[0],
+            marker="o",
+            markersize=2.5,
+            linestyle="none",
+            label="copper, elements",
+        )
+        bottom.semilogy(
+            np.arange(1, len(fd_gap) + 1),
+            np.maximum(fd_gap, floor),
+            color=FIGURE_COLOURS[1],
+            marker=".",
+            markersize=1.5,
+            linestyle="none",
+            label="copper, finite differences",
+        )
+        bottom.semilogy(
+            np.arange(1, len(insert_gap) + 1),
+            np.maximum(insert_gap, floor),
+            color=FIGURE_COLOURS[4],
+            marker="s",
+            markersize=2.0,
+            linestyle="none",
+            label="copper inserts, elements",
+        )
+        bottom.axhline(
+            1e-10,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            linewidth=LINE["guide"],
+            label="tolerance stated, 1e-10",
+        )
+        bottom.set_xlabel("step number")
+        bottom.set_ylabel("relative energy-balance\ngap (dimensionless)")
+        low, high = bottom.get_ylim()
+        bottom.set_ylim(low, high * 1e3)
+        # Inside, the top panel's legend lay over the start of the curves:
+        # the entries of both panels under the plot, the top panel's first.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def draw_package_refinement(space, time) -> Figure:
     """Log-log: the cosine-mode error against the spacing for both methods,
     and the time-step error of the two theta methods, with reference
     slopes."""
-    fig, (left, right) = plt.subplots(1, 2, figsize=(7.4, 3.5))
     spacings, fem, fd = (np.array(v) for v in space)
     h = 1e3 * spacings
-    left.loglog(h, fem, color=FIGURE_COLOURS[0], marker="o", label="finite elements")
-    left.loglog(
-        h,
-        fd,
-        color=FIGURE_COLOURS[1],
-        marker="s",
-        linestyle="--",
-        label="finite differences",
-    )
-    left.loglog(
-        h,
-        0.5 * min(fem[0], fd[0]) * (h / h[0]) ** 2,
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label="reference, slope two",
-    )
-    left.set_xlabel("spacing (mm)")
-    left.set_ylabel("rms error over the plate (K)")
     steps, euler, crank = (np.array(v) for v in time)
-    right.loglog(
-        steps, euler, color=FIGURE_COLOURS[0], marker="o", label="backward Euler"
-    )
-    right.loglog(
-        steps,
-        crank,
-        color=FIGURE_COLOURS[1],
-        marker="s",
-        linestyle="--",
-        label="Crank-Nicolson",
-    )
-    right.loglog(
-        steps,
-        0.5 * euler[-1] * (steps / steps[-1]),
-        color=FIGURE_COLOURS[2],
-        linestyle="-.",
-        label="reference, slope one",
-    )
-    right.loglog(
-        steps,
-        0.5 * crank[-1] * (steps / steps[-1]) ** 2,
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label="reference, slope two",
-    )
-    right.set_xlabel("time step (s)")
-    right.set_ylabel("largest error (K)")
-    for ax, x in ((left, h), (right, steps)):
-        ax.set_xticks(x, labels=[f"{value:.3g}" for value in x])
-        ax.minorticks_off()
-        low, high = ax.get_ylim()
-        ax.set_ylim(low, high * 30)
-        ax.legend(frameon=False, fontsize="small", loc="upper left")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=figsize("pair", legend=7))
+        top.loglog(h, fem, color=FIGURE_COLOURS[0], marker="o", label="finite elements")
+        top.loglog(
+            h,
+            fd,
+            color=FIGURE_COLOURS[1],
+            marker="s",
+            linestyle="--",
+            label="finite differences",
+        )
+        top.loglog(
+            h,
+            0.5 * min(fem[0], fd[0]) * (h / h[0]) ** 2,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            label="reference, slope two",
+        )
+        top.set_xlabel("spacing (mm)")
+        top.set_ylabel("rms error over\nthe plate (K)")
+        bottom.loglog(
+            steps, euler, color=FIGURE_COLOURS[0], marker="o", label="backward Euler"
+        )
+        bottom.loglog(
+            steps,
+            crank,
+            color=FIGURE_COLOURS[1],
+            marker="s",
+            linestyle="--",
+            label="Crank-Nicolson",
+        )
+        bottom.loglog(
+            steps,
+            0.5 * euler[-1] * (steps / steps[-1]),
+            color=FIGURE_COLOURS[2],
+            linestyle="-.",
+            label="reference, slope one",
+        )
+        bottom.loglog(
+            steps,
+            0.5 * crank[-1] * (steps / steps[-1]) ** 2,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            label="reference, slope two",
+        )
+        bottom.set_xlabel("time step (s)")
+        bottom.set_ylabel("largest error (K)")
+        for ax, x in ((top, h), (bottom, steps)):
+            ax.set_xticks(x, labels=[f"{value:.3g}" for value in x])
+            ax.minorticks_off()
+            low, high = ax.get_ylim()
+            ax.set_ylim(low, high * 30)
+        top.legend(loc="upper left")
+        # Inside, the top panel's legend lay over the start of the curves:
+        # the entries of both panels under the plot, the top panel's first.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def draw_package_layout(curves) -> Figure:
     """The hottest junction against the die separation for the three
     spreaders, the limit and the optimum of each marked."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
     styles = {
         "aluminium": (FIGURE_COLOURS[0], "o", "-"),
         "copper": (FIGURE_COLOURS[1], "s", "--"),
         "aluminium, copper inserts": (FIGURE_COLOURS[4], "^", "-."),
     }
-    for design, (separations, values) in curves.items():
-        colour, marker, line = styles[design]
-        label = f"{design}, {1e3 * thickest(design):.2f} mm"
-        ax.plot(
-            1e3 * separations,
-            values,
-            color=colour,
-            marker=marker,
-            linestyle=line,
-            markersize=4,
-            label=label,
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=3))
+        for design, (separations, values) in curves.items():
+            colour, marker, line = styles[design]
+            label = f"{design}, {1e3 * thickest(design):.2f} mm"
+            ax.plot(
+                1e3 * separations,
+                values,
+                color=colour,
+                marker=marker,
+                linestyle=line,
+                markersize=4,
+                label=label,
+            )
+            best = int(np.argmin(values))
+            ax.plot(
+                1e3 * separations[best],
+                values[best],
+                marker=marker,
+                markersize=10,
+                markerfacecolor="none",
+                color=colour,
+                linestyle="none",
+            )
+        ax.axhline(
+            JUNCTION_LIMIT,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            linewidth=LINE["guide"],
         )
-        best = int(np.argmin(values))
-        ax.plot(
-            1e3 * separations[best],
-            values[best],
-            marker=marker,
-            markersize=10,
-            markerfacecolor="none",
-            color=colour,
-            linestyle="none",
+        ax.annotate(
+            "junction limit",
+            (1e3 * SEPARATIONS[0], JUNCTION_LIMIT),
+            xytext=(2, 3),
+            textcoords="offset points",
+            color=FIGURE_COLOURS[2],
+            fontsize=TEXT["note"],
         )
-    ax.axhline(JUNCTION_LIMIT, color=FIGURE_COLOURS[2], linestyle=":", linewidth=1.0)
-    ax.annotate(
-        "junction limit",
-        (1e3 * SEPARATIONS[0], JUNCTION_LIMIT),
-        xytext=(2, 3),
-        textcoords="offset points",
-        color=FIGURE_COLOURS[2],
-        fontsize="small",
-    )
-    ax.set_xlabel("separation of the compute dies, centre to centre (mm)")
-    ax.set_ylabel("hottest junction (°C)")
-    ax.legend(frameon=False, fontsize="small", loc="upper center")
-    low, high = ax.get_ylim()
-    ax.set_ylim(low, high + 0.35 * (high - low))
-    fig.tight_layout()
-    return fig
+        ax.set_xlabel("separation of the compute dies,\ncentre to centre (mm)")
+        ax.set_ylabel("hottest junction (°C)")
+        low, high = ax.get_ylim()
+        ax.set_ylim(low, high + 0.35 * (high - low))
+        # Three long names: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def draw_package_sensitivity(fem, fd, ins) -> Figure:

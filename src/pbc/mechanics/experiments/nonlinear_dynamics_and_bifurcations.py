@@ -19,6 +19,15 @@ from matplotlib.figure import Figure
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import (
+    LINE,
+    MUTED,
+    TEXT,
+    direct_label,
+    figsize,
+    figure_style,
+    finish,
+)
 from pbc.mechanics.bifurcation import (
     critical_rotation,
     final_amplitude,
@@ -126,58 +135,64 @@ def draw_bifurcation(omegas, plus, minus) -> Figure:
     with the branches of the closed form."""
     dense = np.linspace(0.5 * omega_c, 2.0 * omega_c, 600)
     branch = hoop_equilibrium(g, radius, dense)
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
-    stable_bottom = dense <= omega_c
-    ax.plot(
-        dense[stable_bottom],
-        0 * dense[stable_bottom],
-        color=FIGURE_COLOURS[0],
-        linestyle="-",
-        label="stable, closed form",
-    )
-    ax.plot(
-        dense[~stable_bottom],
-        0 * dense[~stable_bottom],
-        color=FIGURE_COLOURS[0],
-        linestyle="--",
-        label="unstable, closed form",
-    )
-    ax.plot(
-        dense[~stable_bottom],
-        branch[~stable_bottom],
-        color=FIGURE_COLOURS[0],
-        linestyle="-",
-    )
-    ax.plot(
-        dense[~stable_bottom],
-        -branch[~stable_bottom],
-        color=FIGURE_COLOURS[0],
-        linestyle="-",
-    )
-    ax.plot(
-        omegas,
-        plus,
-        color=FIGURE_COLOURS[1],
-        marker="o",
-        markersize=4,
-        linestyle="",
-        label=r"settled, released at $+\theta_0$",
-    )
-    ax.plot(
-        omegas,
-        minus,
-        color=FIGURE_COLOURS[2],
-        marker="s",
-        markersize=4,
-        markerfacecolor="white",
-        linestyle="",
-        label=r"settled, released at $-\theta_0$",
-    )
-    ax.axvline(omega_c, color="#57606a", linestyle=":", label="critical rate")
-    ax.set_xlabel("rotation rate of the hoop (rad/s)")
-    ax.set_ylabel("angle of the bead (rad)")
-    ax.legend(loc="upper left", fontsize="small")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=5))
+        stable_bottom = dense <= omega_c
+        ax.plot(
+            dense[stable_bottom],
+            0 * dense[stable_bottom],
+            color=FIGURE_COLOURS[0],
+            linestyle="-",
+            label="stable, closed form",
+        )
+        ax.plot(
+            dense[~stable_bottom],
+            0 * dense[~stable_bottom],
+            color=FIGURE_COLOURS[0],
+            linestyle="--",
+            label="unstable, closed form",
+        )
+        ax.plot(
+            dense[~stable_bottom],
+            branch[~stable_bottom],
+            color=FIGURE_COLOURS[0],
+            linestyle="-",
+        )
+        ax.plot(
+            dense[~stable_bottom],
+            -branch[~stable_bottom],
+            color=FIGURE_COLOURS[0],
+            linestyle="-",
+        )
+        ax.plot(
+            omegas,
+            plus,
+            color=FIGURE_COLOURS[1],
+            marker="o",
+            linestyle="",
+            label=r"settled, released at $+\theta_0$",
+        )
+        ax.plot(
+            omegas,
+            minus,
+            color=FIGURE_COLOURS[2],
+            marker="s",
+            markerfacecolor="white",
+            linestyle="",
+            label=r"settled, released at $-\theta_0$",
+        )
+        ax.axvline(
+            omega_c,
+            color=MUTED,
+            linestyle=":",
+            linewidth=LINE["guide"],
+            label="critical rate",
+        )
+        ax.set_xlabel("rotation rate of the hoop (rad/s)")
+        ax.set_ylabel("angle of the bead (rad)")
+        # Five entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def near_threshold(experiment: Experiment):
@@ -229,46 +244,49 @@ def near_threshold(experiment: Experiment):
 def draw_critical_slowing(run, near) -> Figure:
     """The angle over time near and at the threshold, log-log, with the
     reference slope of the algebraic decay."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
     t = run.t[1:]
     styles = [
         ("--", FIGURE_COLOURS[1]),
         ("-.", FIGURE_COLOURS[2]),
         ((0, (3, 1, 1, 1, 1, 1)), FIGURE_COLOURS[3]),
     ]
-    for (line, colour), r in zip(styles, (0.95, 0.98, 0.995), strict=True):
-        i = int(np.argmin(np.abs(near - r)))
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=5))
+        for (line, colour), r in zip(styles, (0.95, 0.98, 0.995), strict=True):
+            i = int(np.argmin(np.abs(near - r)))
+            ax.plot(
+                t,
+                np.abs(run.x[1:, i]),
+                color=colour,
+                linestyle=line,
+                linewidth=LINE["model"],
+                label=f"{r:.3g} of the critical rate",
+            )
         ax.plot(
             t,
-            np.abs(run.x[1:, i]),
-            color=colour,
-            linestyle=line,
-            label=f"{r:.3g} of the critical rate",
+            np.abs(run.x[1:, -1]),
+            color=FIGURE_COLOURS[0],
+            linestyle="-",
+            linewidth=2.4,
+            label="at the critical rate",
         )
-    ax.plot(
-        t,
-        np.abs(run.x[1:, -1]),
-        color=FIGURE_COLOURS[0],
-        linestyle="-",
-        linewidth=2.0,
-        label="at the critical rate",
-    )
-    reference = np.sqrt(2.0 * gamma) / omega_c / np.sqrt(t)
-    ax.plot(
-        t,
-        reference,
-        color="#57606a",
-        linestyle=":",
-        linewidth=2.0,
-        label="reference slope minus one half",
-    )
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_ylim(1e-6, 1.0)
-    ax.set_xlabel("time (s)")
-    ax.set_ylabel("angle of the bead (rad)")
-    ax.legend(loc="lower left", fontsize="small")
-    return fig
+        reference = np.sqrt(2.0 * gamma) / omega_c / np.sqrt(t)
+        ax.plot(
+            t,
+            reference,
+            color=MUTED,
+            linestyle=":",
+            linewidth=LINE["data"],
+            label="reference slope minus one half",
+        )
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_ylim(1e-6, 1.0)
+        ax.set_xlabel("time (s)")
+        ax.set_ylabel("angle of the bead (rad)")
+        # Five entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def limit_cycle(experiment: Experiment):
@@ -330,38 +348,76 @@ def draw_limit_cycle() -> Figure:
         round(60.0 / cycle_dt),
         step=rk4_step,
     )
-    fig, ax = plt.subplots(figsize=(6.4, 4.4))
-    ax.plot(
-        run.x[:, 0],
-        run.v[:, 0],
-        color=FIGURE_COLOURS[0],
-        linestyle="-",
-        linewidth=0.8,
-        label="start inside",
-    )
-    ax.plot(
-        run.x[:, 1],
-        run.v[:, 1],
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        linewidth=0.8,
-        label="start outside",
-    )
-    angle = np.linspace(0, 2 * np.pi, 300)
-    a = float(limit_cycle_amplitude(mu))
-    ax.plot(
-        a * np.cos(angle),
-        a * np.sin(angle),
-        color="#57606a",
-        linestyle=":",
-        linewidth=2.0,
-        label=r"circle of radius $2\sqrt{\mu}$",
-    )
-    ax.set_aspect("equal")
-    ax.set_xlabel("x (dimensionless)")
-    ax.set_ylabel("velocity (dimensionless)")
-    ax.legend(loc="upper left", bbox_to_anchor=(1.0, 1.0), fontsize="small")
-    return fig
+    inside, outside = FIGURE_COLOURS[0], FIGURE_COLOURS[1]
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("square"))
+        ax.plot(
+            run.x[:, 0],
+            run.v[:, 0],
+            color=inside,
+            linestyle="-",
+            linewidth=LINE["guide"],
+            label="start inside",
+        )
+        ax.plot(
+            run.x[:, 1],
+            run.v[:, 1],
+            color=outside,
+            linestyle="--",
+            linewidth=LINE["guide"],
+            label="start outside",
+        )
+        angle = np.linspace(0, 2 * np.pi, 300)
+        a = float(limit_cycle_amplitude(mu))
+        ax.plot(
+            a * np.cos(angle),
+            a * np.sin(angle),
+            color=MUTED,
+            linestyle=":",
+            linewidth=LINE["model"],
+            label=r"circle of radius $2\sqrt{\mu}$",
+        )
+        ax.set_aspect("equal")
+        ax.set_xlabel("x (dimensionless)")
+        ax.set_ylabel("velocity (dimensionless)")
+        # The series named beside the curves (S5), the start inside by a
+        # thin leader line from its starting point.
+        ax.annotate(
+            "start inside",
+            (0.05, 0.0),
+            xytext=(1.55, -1.12),
+            color=inside,
+            fontsize=TEXT["note"],
+            ha="center",
+            va="center",
+            arrowprops={
+                "arrowstyle": "-",
+                "color": inside,
+                "linewidth": LINE["axis"],
+                "shrinkA": 4,
+                "shrinkB": 2,
+            },
+        )
+        direct_label(
+            ax,
+            2.5,
+            0.0,
+            "start outside",
+            outside,
+            offset=(-4.0, 8.0),
+            ha="right",
+            va="bottom",
+        )
+        direct_label(
+            ax,
+            a * np.cos(np.pi / 4),
+            a * np.sin(np.pi / 4),
+            r"circle, radius $2\sqrt{\mu}$",
+            MUTED,
+            offset=(10.0, 10.0),
+            va="bottom",
+        )
+    return finish(fig)
 
 
 def crossing_period(t, signal):

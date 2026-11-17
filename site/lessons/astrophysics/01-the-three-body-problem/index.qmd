@@ -264,7 +264,7 @@ excerpt(experiment.draw_stability)
 #| label: fig-stability
 #| echo: false
 #| fig-cap: "A disturbance of Lagrange's triangle stays at its starting size when one mass dominates and grows exponentially when the masses are comparable; the growth rate follows Routh's prediction on both sides of the threshold."
-#| fig-alt: "Two panels. Left: the departure from an equilateral shape against time in periods, on a log scale. The curve for a small second and third mass oscillates near its starting level; the curve for equal masses rises along a straight line for about four periods and then levels off near one. Right: the growth rate divided by omega against twenty-seven times Routh's parameter. A dashed curve, the prediction, is zero up to a dotted vertical line at the threshold and then rises steeply and flattens. Open circles, the measurements, lie on it, one at zero below the threshold and the others on the rising part."
+#| fig-alt: "Two stacked panels. Top: the departure from an equilateral shape against time in periods, on a log scale. The curve for a small second and third mass oscillates near its starting level; the curve for equal masses rises along a straight line for about four periods and then levels off near one. Bottom: the growth rate divided by omega against twenty-seven times Routh's parameter. A dashed curve, the prediction, is zero up to a dotted vertical line at the threshold and then rises steeply and flattens. Open circles, the measurements, lie on it, one at zero below the threshold and the others on the rising part."
 #| fig-status: simulated
 result.show("fig-stability")
 ```
@@ -280,7 +280,7 @@ oscillates, as the complex roots make it, is the main source of the gap. For
 equal masses the measured rate is `{python} result["equal-rate"]` times
 $\omega$: the disturbance grows by a factor of about
 `{python} result["equal-factor"]` in every turn. Once the departure reaches
-order one the linear theory no longer applies, and the left panel shows the
+order one the linear theory no longer applies, and the top panel shows the
 triangle broken up.
 
 ### The Pythagorean problem

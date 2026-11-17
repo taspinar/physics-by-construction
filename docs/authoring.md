@@ -875,10 +875,10 @@ Lesson cells also draw axes and annotations in the page's muted grey
 (`PAGE["muted"]`), so that colour keeps its value when the page palette
 changes: a change to it would change figures and displayed code.
 
-**Figure language (pilot).** One style for a lesson figure, proven on six
-sample figures (F170) and applied to them only; every other figure keeps
-Matplotlib's defaults under `FIGURE_SETTINGS` until the owner decides on a
-rollout (F171). The style is `pbc.figure_language`, beside
+**Figure language.** One style for a lesson figure, proven on six sample
+figures (F170), revised for phones and rolled out to 116 more (F171, the
+owner's decisions on Issue #544); every other figure keeps Matplotlib's
+defaults under `FIGURE_SETTINGS`. The style is `pbc.figure_language`, beside
 `FIGURE_SETTINGS`, built from the tokens of `pbc.authoring.design`; a figure
 opts in inside its `draw_` function and changes none of its values:
 
@@ -897,19 +897,29 @@ def draw_energy() -> Figure:
 No decorator: `excerpt` must find the function and its lines in the
 lesson's own module.
 
-- **Dimensions.** One width, `WIDTH` (5.6 in, 538 CSS px on a desktop);
-  heights from `ASPECTS` by the kind of figure (`figsize("line")`,
-  `"pair"`, `"square"`, `"stacked"`, `"measured"`). On a phone (375 CSS px)
-  the page scales a figure to about 306 px, so a narrower figure keeps its
-  type legible there.
+- **Dimensions.** One width, `WIDTH` (4.1 in, 394 CSS px on a desktop,
+  about 404 after the tight crop); heights from `ASPECTS` by the kind of
+  figure (`figsize("line")`, `"pair"`, `"square"`, `"stacked"`,
+  `"measured"`); `figsize(kind, legend=n)` adds the height of a legend of
+  `n` entries under the plot (`LEGEND_ROW`, 0.24 in each), so that the plot
+  keeps its height. Two panels are stacked, never side by side (`"pair"` is
+  stacked too); two stacked panels of equal axes take 1.7 times the width
+  in height, so that each keeps the full width. One PNG serves every width: the page scales a figure to
+  about 306 CSS px on a 375 px phone and 251 px on a 320 px phone, the
+  narrowest width the site supports, so the width and the type are chosen
+  together.
 - **Typography.** DejaVu Sans, the face Matplotlib ships: the site's STIX
   Two Text exists only as web-font subsets, and Matplotlib's own STIXGeneral
   shares its name with system copies, so the face and the bytes would
-  depend on the machine. Sizes from `TEXT` (ticks and legends 10 pt, axis
-  labels and titles 11 pt, notes 9.5 pt); nothing below `MIN_TEXT` (9.5 pt:
-  12.7 CSS px on a desktop, 7.2 on a phone at the nominal width; the
-  tight crop of a saved figure widens it by up to 2 %, so the least text a
-  phone shows is 7.07 CSS px, the minimum the tests enforce).
+  depend on the machine. Sizes from `TEXT` (ticks, legends and notes 11 pt,
+  axis labels and titles 12 pt); nothing below `MIN_TEXT` (11 pt: 14.7 CSS
+  px on a desktop; the tight crop widens a figure by up to 3 %, so the least
+  text is 11.07 CSS px on a 375 px phone and 9.08 on a 320 px phone; the
+  tests hold the owner's floor of 9 CSS px at 320 px). A long axis label or
+  panel title is broken onto two or three lines (the same words) rather than
+  widen the figure. A linear axis whose ticks Matplotlib places gets at most
+  `TICKS` (five) major ticks (`finish`); a figure's own tick set and a log
+  axis keep theirs.
 - **Plate and hierarchy.** The white plate of the page; labels and titles
   in ink, tick labels in the muted grey, axes and ticks in the rule's grey;
   no top or right spine on a line plot, a full frame on a field. Line
@@ -942,8 +952,12 @@ lesson's own module.
   better of the line's colour and its casing's at each sample.
 - **Labels.** A series is named beside its curve (`direct_label`) where the
   curves lie apart; a legend stays where labels would collide or sit on the
-  data, and then it is one legend of at most three entries, placed where
-  the curves leave room. A legend entry or a direct label is never dropped
+  data, and then it is one legend of at most three entries, inside the axes
+  only where it covers no data; otherwise it goes under the plot in one
+  column (`fig.legend(loc="outside lower center", ncols=1)`), which takes
+  height, not width. A figure with a painted credit line has its foot
+  taken by the credit, so its panel's legend goes above the plot and its
+  title (`check_figure` reads the legend of the panel). A legend entry or a direct label is never dropped
   to save space where it carries the uncertainty, the model's identity,
   the unit, or the status. A figure that declares its provenance
   (`FigureProvenance`) carries its status at the caption and by the role
@@ -964,7 +978,38 @@ lesson's own module.
 width, the smallest type at desktop and phone width, legend entries, line
 widths, markers, colour maps, the least contrast of a line), the same
 measurement before and after; `tests/unit/test_figure_language.py` holds
-the rules on the samples.
+the rules on the samples and on the rollout's figures (`ROLLOUT` of
+`pbc.figure_audit`).
+
+*The rollout's scope (F171).* The language applies to the six samples and
+to `ROLLOUT`, in two steps the owner approved on Issue #544. First (list
+A, 28 figures): line and log-log plots of one panel or two stacked panels
+with at most five curves and at most three legend entries, trajectories
+and phase-space curves of one panel, convergence plots with a reference
+slope, whose text was below the phone floor or whose line was under 3:1.
+Then (88 figures): the four figures whose legend lay outside the axes or
+over side-by-side panels, now with their series named beside the curves
+(`direct_label`, or a thin leader line to a point of the curve no other
+curve hides); and every figure of the three types the owner reviewed an
+example of: a legend of four or more entries (under the plot), a family of
+more than five curves, and semi-log axes. Each figure passed a gate of its
+own: 9 CSS px or more at 320 px, 3:1 for every line, no legend or label
+over the data at 320 px, and the same data, axis scales, limits and
+axis-label words before and after. Four did not pass and keep their form:
+a four-panel grid with offset tick labels (`fig-pendulum-energy`), a line
+drawn as white dashes inside another by design (`fig-proved-energy-growth`),
+a finite-element field beside a line panel (`fig-plate`), and paths at
+equal aspect whose automatic limits follow the panel's shape, so stacking
+changed them (`fig-pythagorean`). The language
+changes how a figure is drawn, never a value or a series. Out of the
+rollout, until the owner has reviewed a representative example: error
+bars, bars and histograms of their own, bands, scatter, diverging maps,
+polar axes, more than four panels and the other untested types; measured
+figures with declared provenance, whose painted credit line sets their
+width (Issue #546); M1 to M5 (the teaching pilots); AI6's model-input
+figures (I37); conceptual diagrams. The figures that already met the floor
+keep their form. The plan, `.agents/plans/544-figure-language-rollout.md`,
+lists each figure and the reason.
 
 **The reading column.** A lesson reads in the calm column of the specification
 when its front matter has the line `body-classes: pbc-reading-column` (a

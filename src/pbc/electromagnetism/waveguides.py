@@ -119,12 +119,17 @@ def cross_section_cutoffs(
     laplacian = sparse.kron(dx_a, eye_b) + sparse.kron(eye_a, dx_b)
     extra = 1 if kind == "TE" else 0
     # Shift-invert about a small negative value finds the smallest
-    # eigenvalues of -laplacian, also the zero of the TE problem.
+    # eigenvalues of -laplacian, also the zero of the TE problem. A fixed
+    # start vector makes the result the same on every run: ARPACK's default
+    # is random, which moves the eigenvalues in their last digits. It is
+    # seeded noise, not a constant, so that no mode is orthogonal to it.
+    start = np.random.default_rng(0).standard_normal(laplacian.shape[0])
     values = eigsh(
         -laplacian.tocsc(),
         k=count + extra,
         sigma=-1.0,
         which="LM",
+        v0=start,
         return_eigenvectors=False,
     )
     values = np.sort(values)[extra:]

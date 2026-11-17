@@ -46,6 +46,7 @@ from pbc.electromagnetism.arrays import (
 )
 from pbc.electromagnetism.fdtd import SPEED_OF_LIGHT
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, figsize, figure_style, finish
 
 # region: requirements
 FREQUENCY = 10e9  # Hz, the carrier
@@ -697,141 +698,144 @@ def draw_steered_pattern(direct, closed, nulls) -> Figure:
     """The power pattern of the equal-amplitude array steered to 30
     degrees: the direct sum, the closed form, the commanded angle and the
     closed-form nulls."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
     degrees = np.degrees(ANGLES)
     power = db(np.maximum(np.abs(direct) ** 2 / COUNT**2, 1e-12))
-    ax.plot(degrees, power, color=FIGURE_COLOURS[0], label="direct sum")
     every = slice(0, None, 40)
-    ax.plot(
-        degrees[every],
-        db(np.maximum(closed[every] ** 2 / COUNT**2, 1e-12)),
-        color=FIGURE_COLOURS[1],
-        marker="o",
-        markersize=3,
-        linestyle="none",
-        label="closed form",
-    )
-    ax.axvline(
-        np.degrees(CHECK_STEER),
-        color=FIGURE_COLOURS[2],
-        linestyle="--",
-        label="commanded angle",
-    )
-    for i, null in enumerate(nulls):
-        ax.axvline(
-            np.degrees(null),
-            color=FIGURE_COLOURS[3],
-            linestyle=":",
-            label="nulls, closed form" if i == 0 else None,
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=4))
+        ax.plot(degrees, power, color=FIGURE_COLOURS[0], label="direct sum")
+        ax.plot(
+            degrees[every],
+            db(np.maximum(closed[every] ** 2 / COUNT**2, 1e-12)),
+            color=FIGURE_COLOURS[1],
+            marker="o",
+            markersize=3,
+            linestyle="none",
+            label="closed form",
         )
-    ax.set_ylim(-60, 3)
-    ax.set_xlim(-90, 90)
-    ax.set_xlabel("direction from broadside (deg)")
-    ax.set_ylabel("power below the peak (dB)")
-    ax.legend(frameon=False, loc="upper left", fontsize="small")
-    fig.tight_layout()
-    return fig
+        ax.axvline(
+            np.degrees(CHECK_STEER),
+            color=FIGURE_COLOURS[2],
+            linestyle="--",
+            linewidth=LINE["guide"],
+            label="commanded angle",
+        )
+        for i, null in enumerate(nulls):
+            ax.axvline(
+                np.degrees(null),
+                color=FIGURE_COLOURS[3],
+                linestyle=":",
+                linewidth=LINE["guide"],
+                label="nulls, closed form" if i == 0 else None,
+            )
+        ax.set_ylim(-60, 3)
+        ax.set_xlim(-90, 90)
+        ax.set_xlabel("direction from broadside (deg)")
+        ax.set_ylabel("power below the peak (dB)")
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def draw_grating_lobes(curves, measured) -> Figure:
-    """Left: patterns steered to 30 degrees at two spacings. Right: the
+    """Top: patterns steered to 30 degrees at two spacings. Bottom: the
     measured onset spacing against lambda / (1 + sin psi0)."""
-    fig, (left, right) = plt.subplots(1, 2, figsize=(7.2, 3.6))
     degrees = np.degrees(ANGLES)
-    for (ratio, power), colour, line in zip(
-        curves.items(), FIGURE_COLOURS[:2], ("-", "--"), strict=True
-    ):
-        left.plot(
-            degrees,
-            power,
-            color=colour,
-            linestyle=line,
-            label=f"d = {ratio:g} wavelength",
-        )
-    left.set_ylim(-40, 3)
-    left.set_xlim(-90, 90)
-    left.set_xlabel("direction from broadside (deg)")
-    left.set_ylabel("power below the peak (dB)")
-    left.legend(
-        frameon=False,
-        loc="upper center",
-        bbox_to_anchor=(0.5, -0.2),
-        fontsize="x-small",
-    )
     steer = np.radians(np.linspace(0.0, 70.0, 200))
-    right.plot(
-        np.degrees(steer),
-        1.0 / (1.0 + np.sin(steer)),
-        color=FIGURE_COLOURS[0],
-        label="closed form",
-    )
-    right.plot(
-        [row[0] for row in measured],
-        [row[1] for row in measured],
-        color=FIGURE_COLOURS[1],
-        marker="s",
-        linestyle="none",
-        label="bisection",
-    )
-    right.set_xlabel("steered to (deg)")
-    right.set_ylabel("onset spacing (wavelengths)")
-    right.legend(frameon=False, loc="upper right", fontsize="x-small")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=figsize("pair", legend=2))
+        for (ratio, power), colour, line in zip(
+            curves.items(), FIGURE_COLOURS[:2], ("-", "--"), strict=True
+        ):
+            top.plot(
+                degrees,
+                power,
+                color=colour,
+                linestyle=line,
+                label=f"d = {ratio:g} wavelength",
+            )
+        top.set_ylim(-40, 3)
+        top.set_xlim(-90, 90)
+        top.set_xlabel("direction from broadside (deg)")
+        top.set_ylabel("power below\nthe peak (dB)")
+        bottom.plot(
+            np.degrees(steer),
+            1.0 / (1.0 + np.sin(steer)),
+            color=FIGURE_COLOURS[0],
+            label="closed form",
+        )
+        bottom.plot(
+            [row[0] for row in measured],
+            [row[1] for row in measured],
+            color=FIGURE_COLOURS[1],
+            marker="s",
+            linestyle="none",
+            label="bisection",
+        )
+        bottom.set_xlabel("steered to (deg)")
+        bottom.set_ylabel("onset spacing\n(wavelengths)")
+        bottom.legend(loc="upper right")
+        # The patterns cover the top panel: its two entries under the plot.
+        fig.legend(*top.get_legend_handles_labels(), loc="outside lower center")
+    return finish(fig)
 
 
 def draw_taper_and_null(curves) -> Figure:
     """The design beam: the Chebyshev taper, and the taper with the null
     toward the interferer."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
     degrees = np.degrees(ANGLES)
-    for (name, power), colour, line in zip(
-        curves.items(), FIGURE_COLOURS[:2], ("-", "--"), strict=True
-    ):
-        ax.plot(degrees, power, color=colour, linestyle=line, label=name)
-    ax.axhline(
-        -SIDELOBES,
-        color=FIGURE_COLOURS[3],
-        linewidth=0.8,
-        linestyle="-.",
-        label="taper design level",
-    )
-    ax.axvline(
-        np.degrees(INTERFERER),
-        color=FIGURE_COLOURS[4],
-        linewidth=0.8,
-        label="interferer",
-    )
-    ax.set_ylim(-60, 3)
-    ax.set_xlim(-90, 90)
-    ax.set_xlabel("direction from broadside (deg)")
-    ax.set_ylabel("power below the peak (dB)")
-    ax.legend(frameon=False, loc="upper left", fontsize="x-small")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=4))
+        for (name, power), colour, line in zip(
+            curves.items(), FIGURE_COLOURS[:2], ("-", "--"), strict=True
+        ):
+            ax.plot(degrees, power, color=colour, linestyle=line, label=name)
+        ax.axhline(
+            -SIDELOBES,
+            color=FIGURE_COLOURS[3],
+            linewidth=LINE["guide"],
+            linestyle="-.",
+            label="taper design level",
+        )
+        ax.axvline(
+            np.degrees(INTERFERER),
+            color=FIGURE_COLOURS[4],
+            linewidth=LINE["guide"],
+            label="interferer",
+        )
+        ax.set_ylim(-60, 3)
+        ax.set_xlim(-90, 90)
+        ax.set_xlabel("direction from broadside (deg)")
+        ax.set_ylabel("power below the peak (dB)")
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def draw_quantisation(measured) -> Figure:
     """The mean null depth against the bits of the phase shifters: the Monte
     Carlo mean against the exact expectation."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.2))
-    bits = [row[0] for row in measured]
-    ax.plot(
-        bits, [row[2] for row in measured], color=FIGURE_COLOURS[0], label="expected"
-    )
-    ax.plot(
-        bits,
-        [row[1] for row in measured],
-        color=FIGURE_COLOURS[1],
-        marker="o",
-        linestyle="none",
-        label="Monte Carlo mean",
-    )
-    ax.set_xlabel("phase-shifter bits")
-    ax.set_ylabel("mean null depth (dB)")
-    ax.legend(frameon=False, loc="upper right", fontsize="small")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        bits = [row[0] for row in measured]
+        ax.plot(
+            bits,
+            [row[2] for row in measured],
+            color=FIGURE_COLOURS[0],
+            label="expected",
+        )
+        ax.plot(
+            bits,
+            [row[1] for row in measured],
+            color=FIGURE_COLOURS[1],
+            marker="o",
+            linestyle="none",
+            label="Monte Carlo mean",
+        )
+        ax.set_xlabel("phase-shifter bits")
+        ax.set_ylabel("mean null depth (dB)")
+        ax.legend(loc="upper right")
+    return finish(fig, grid=True)
 
 
 def draw_tracking_sequence(frames) -> Figure:

@@ -19,6 +19,7 @@ from matplotlib.figure import Figure
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import figsize, figure_style, finish
 from pbc.waves.polarisation import (
     chain_transmission,
     circular,
@@ -100,42 +101,46 @@ def draw_malus() -> Figure:
     """The transmitted intensity against the analyser angle, on a linear and
     on a logarithmic scale."""
     fine = np.radians(np.linspace(0.0, 180.0, 721))
-    fig, (left, right) = plt.subplots(1, 2, figsize=(7.2, 3.4))
-    for ax in (left, right):
-        ax.plot(
-            np.degrees(fine), malus(fine), color=FIGURE_COLOURS[0], label="cos^2, ideal"
-        )
-        ax.plot(
-            np.degrees(fine),
-            malus(fine, LEAK),
-            color=FIGURE_COLOURS[1],
-            linestyle="--",
-            label="cos^2 + leak sin^2",
-        )
-        ax.plot(
-            np.degrees(angles),
-            [transmitted(a) for a in angles],
-            "o",
-            color=FIGURE_COLOURS[0],
-            label="ideal, from the field",
-        )
-        ax.plot(
-            np.degrees(angles),
-            [transmitted(a, LEAK) for a in angles],
-            "s",
-            markerfacecolor="none",
-            color=FIGURE_COLOURS[1],
-            label="leaky, from the field",
-        )
-        ax.set_xlabel("analyser angle (degrees)")
-        ax.set_xticks([0, 45, 90, 135, 180])
-    left.set_ylabel("transmitted intensity\n(of the incident, dimensionless)")
-    right.set_yscale("log")
-    right.set_ylim(1e-5, 2.0)
-    right.set_title("logarithmic scale", fontsize="medium")
-    left.legend(fontsize=7, loc="upper center")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=figsize("pair", legend=4))
+        for ax in (top, bottom):
+            ax.plot(
+                np.degrees(fine),
+                malus(fine),
+                color=FIGURE_COLOURS[0],
+                label="cos^2, ideal",
+            )
+            ax.plot(
+                np.degrees(fine),
+                malus(fine, LEAK),
+                color=FIGURE_COLOURS[1],
+                linestyle="--",
+                label="cos^2 + leak sin^2",
+            )
+            ax.plot(
+                np.degrees(angles),
+                [transmitted(a) for a in angles],
+                "o",
+                color=FIGURE_COLOURS[0],
+                label="ideal, from the field",
+            )
+            ax.plot(
+                np.degrees(angles),
+                [transmitted(a, LEAK) for a in angles],
+                "s",
+                markerfacecolor="none",
+                color=FIGURE_COLOURS[1],
+                label="leaky, from the field",
+            )
+            ax.set_xlabel("analyser angle (degrees)")
+            ax.set_xticks([0, 45, 90, 135, 180])
+            ax.set_ylabel("transmitted intensity\n(of the incident,\ndimensionless)")
+        bottom.set_yscale("log")
+        bottom.set_ylim(1e-5, 2.0)
+        bottom.set_title("logarithmic scale")
+        # Four entries, the same in both panels: once, under the plot.
+        fig.legend(*top.get_legend_handles_labels(), loc="outside lower center")
+    return finish(fig)
 
 
 def unpolarised_run(experiment: Experiment):
@@ -217,35 +222,37 @@ def chain_run(experiment: Experiment):
 def draw_polariser_chain(counts, computed) -> Figure:
     """The transmission of a chain of polarisers against their number."""
     fine = np.arange(1, 61)
-    fig, ax = plt.subplots(figsize=(6.4, 3.4))
-    ax.plot(
-        fine,
-        [chain_transmission(n) for n in fine],
-        color=FIGURE_COLOURS[0],
-        label="cos^(2N)(pi / 2N)",
-    )
-    ax.plot(
-        counts,
-        computed,
-        "o",
-        markersize=3,
-        color=FIGURE_COLOURS[1],
-        label="from the field",
-    )
-    ax.plot(
-        fine[1:],
-        1 - np.pi**2 / (4 * fine[1:]),
-        color=FIGURE_COLOURS[2],
-        linestyle=":",
-        label="1 - pi^2 / (4N), large N",
-    )
-    ax.set_xscale("log")
-    ax.set_xticks([1, 2, 5, 10, 20, 50], labels=["1", "2", "5", "10", "20", "50"])
-    ax.set_ylim(-0.02, 1.02)
-    ax.set_xlabel("number of polarisers N")
-    ax.set_ylabel("transmitted intensity\n(of the incident, dimensionless)")
-    ax.legend(fontsize=7, loc="lower right")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=3))
+        ax.plot(
+            fine,
+            [chain_transmission(n) for n in fine],
+            color=FIGURE_COLOURS[0],
+            label="cos^(2N)(pi / 2N)",
+        )
+        ax.plot(
+            counts,
+            computed,
+            "o",
+            markersize=3,
+            color=FIGURE_COLOURS[1],
+            label="from the field",
+        )
+        ax.plot(
+            fine[1:],
+            1 - np.pi**2 / (4 * fine[1:]),
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            label="1 - pi^2 / (4N), large N",
+        )
+        ax.set_xscale("log")
+        ax.set_xticks([1, 2, 5, 10, 20, 50], labels=["1", "2", "5", "10", "20", "50"])
+        ax.set_ylim(-0.02, 1.02)
+        ax.set_xlabel("number of polarisers N")
+        ax.set_ylabel("transmitted intensity\n(of the incident,\ndimensionless)")
+        # Three entries over the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def stokes_run(experiment: Experiment):
@@ -343,41 +350,47 @@ def draw_wave_plate() -> Figure:
     fine = np.linspace(450e-9, 750e-9, 301)
     zero = (np.pi / 2) * DESIGN / fine
     multi = (2 * np.pi * ORDER + np.pi / 2) * DESIGN / fine
-    fig, ax = plt.subplots(figsize=(7.6, 3.4))
-    ax.plot(fine * 1e9, np.sin(zero), color=FIGURE_COLOURS[0], label="zero-order plate")
-    ax.plot(
-        fine * 1e9,
-        np.sin(multi),
-        color=FIGURE_COLOURS[1],
-        linestyle="--",
-        label="multi-order plate",
-    )
-    ax.plot(
-        wavelengths * 1e9,
-        [circular_degree(g) for g in (np.pi / 2) * DESIGN / wavelengths],
-        "o",
-        color=FIGURE_COLOURS[0],
-        label="zero-order, measured",
-    )
-    ax.plot(
-        wavelengths * 1e9,
-        [
-            circular_degree(g)
-            for g in (2 * np.pi * ORDER + np.pi / 2) * DESIGN / wavelengths
-        ],
-        "s",
-        markerfacecolor="none",
-        color=FIGURE_COLOURS[1],
-        label="multi-order, measured",
-    )
-    ax.axvline(
-        DESIGN * 1e9, color=FIGURE_COLOURS[2], linestyle=":", label="design wavelength"
-    )
-    ax.set_xlabel("wavelength (nm)")
-    ax.set_ylabel("degree of circular polarisation\n(dimensionless)")
-    ax.legend(fontsize=7, loc="upper left", bbox_to_anchor=(1.02, 1.0))
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=5))
+        ax.plot(
+            fine * 1e9, np.sin(zero), color=FIGURE_COLOURS[0], label="zero-order plate"
+        )
+        ax.plot(
+            fine * 1e9,
+            np.sin(multi),
+            color=FIGURE_COLOURS[1],
+            linestyle="--",
+            label="multi-order plate",
+        )
+        ax.plot(
+            wavelengths * 1e9,
+            [circular_degree(g) for g in (np.pi / 2) * DESIGN / wavelengths],
+            "o",
+            color=FIGURE_COLOURS[0],
+            label="zero-order, measured",
+        )
+        ax.plot(
+            wavelengths * 1e9,
+            [
+                circular_degree(g)
+                for g in (2 * np.pi * ORDER + np.pi / 2) * DESIGN / wavelengths
+            ],
+            "s",
+            markerfacecolor="none",
+            color=FIGURE_COLOURS[1],
+            label="multi-order, measured",
+        )
+        ax.axvline(
+            DESIGN * 1e9,
+            color=FIGURE_COLOURS[2],
+            linestyle=":",
+            label="design wavelength",
+        )
+        ax.set_xlabel("wavelength (nm)")
+        ax.set_ylabel("degree of circular\npolarisation\n(dimensionless)")
+        # Five entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def crossing_width():

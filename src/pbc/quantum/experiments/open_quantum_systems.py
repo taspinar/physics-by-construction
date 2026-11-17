@@ -19,6 +19,7 @@ from matplotlib.ticker import NullFormatter
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, TEXT, figsize, figure_style, finish
 from pbc.quantum.bell import SINGLET, density
 from pbc.quantum.open_systems import (
     choi,
@@ -139,43 +140,45 @@ def ramsey_run(experiment: Experiment):
 def draw_ramsey(times, fringe, t2) -> Figure:
     """The probability of +x against time, computed and closed form, with
     the fringe of the isolated qubit and the envelope."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
     fine = np.linspace(0, times[-1], 801)
-    ax.plot(
-        fine,
-        ramsey(fine, DETUNING, np.inf),
-        color=FIGURE_COLOURS[2],
-        linewidth=0.8,
-        label="isolated qubit, no environment",
-    )
-    ax.plot(
-        fine,
-        (1 + np.exp(-fine / t2)) / 2,
-        color=FIGURE_COLOURS[1],
-        linestyle=":",
-        label="envelope (1 + exp(-t / T2)) / 2",
-    )
-    ax.plot(
-        times,
-        fringe,
-        color=FIGURE_COLOURS[0],
-        linewidth=1.8,
-        label="Lindblad, exponential integrator",
-    )
-    ax.plot(
-        fine[::20],
-        ramsey(fine[::20], DETUNING, t2),
-        "o",
-        color=FIGURE_COLOURS[1],
-        markerfacecolor="none",
-        markersize=4,
-        label="closed form",
-    )
-    ax.set_ylim(-0.02, 1.3)
-    ax.set_xlabel("time t (units of 1 / Delta)")
-    ax.set_ylabel("probability of +1 along x")
-    ax.legend(fontsize="small", ncol=2, loc="upper center")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=4))
+        ax.plot(
+            fine,
+            ramsey(fine, DETUNING, np.inf),
+            color=FIGURE_COLOURS[2],
+            linewidth=LINE["guide"],
+            label="isolated qubit, no environment",
+        )
+        ax.plot(
+            fine,
+            (1 + np.exp(-fine / t2)) / 2,
+            color=FIGURE_COLOURS[1],
+            linestyle=":",
+            label="envelope (1 + exp(-t / T2)) / 2",
+        )
+        ax.plot(
+            times,
+            fringe,
+            color=FIGURE_COLOURS[0],
+            linewidth=LINE["data"],
+            label="Lindblad, exponential integrator",
+        )
+        ax.plot(
+            fine[::20],
+            ramsey(fine[::20], DETUNING, t2),
+            "o",
+            color=FIGURE_COLOURS[1],
+            markerfacecolor="none",
+            markersize=4,
+            label="closed form",
+        )
+        ax.set_ylim(-0.02, 1.3)
+        ax.set_xlabel("time t (units of 1 / Delta)")
+        ax.set_ylabel("probability of +1\nalong x")
+        # Four entries: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def integrators_run(experiment: Experiment):
@@ -241,36 +244,38 @@ def integrators_run(experiment: Experiment):
 def draw_lengths(lengths) -> Figure:
     """The length of the Bloch vector against time for the three
     integrators at the step 0.5, with the surface of the Bloch ball."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
     dt = steps[0]
     styles = [("-", "o"), ("--", "s"), (":", "^")]
-    for colour, (line, marker), name in zip(
-        FIGURE_COLOURS, styles, INTEGRATORS, strict=False
-    ):
-        length = lengths[name, dt]
-        t = np.arange(length.size) * dt
-        ax.semilogy(
-            t,
-            length,
-            color=colour,
-            linestyle=line,
-            marker=marker,
-            markevery=10,
-            markerfacecolor="none",
-            label=name,
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=3))
+        for colour, (line, marker), name in zip(
+            FIGURE_COLOURS, styles, INTEGRATORS, strict=False
+        ):
+            length = lengths[name, dt]
+            t = np.arange(length.size) * dt
+            ax.semilogy(
+                t,
+                length,
+                color=colour,
+                linestyle=line,
+                marker=marker,
+                markevery=10,
+                markerfacecolor="none",
+                label=name,
+            )
+        ax.axhline(1.0, color=FIGURE_COLOURS[2], linewidth=LINE["guide"])
+        ax.text(
+            long_end,
+            1.15,
+            "surface of the Bloch ball:\nbeyond it rho is not positive",
+            fontsize=TEXT["note"],
+            ha="right",
         )
-    ax.axhline(1.0, color=FIGURE_COLOURS[2], linewidth=1)
-    ax.text(
-        long_end,
-        1.15,
-        "surface of the Bloch ball: beyond it rho is not positive",
-        fontsize="small",
-        ha="right",
-    )
-    ax.set_xlabel("time t (units of 1 / Delta)")
-    ax.set_ylabel("length of the Bloch vector (log scale)")
-    ax.legend(fontsize="small", loc="upper left", bbox_to_anchor=(0, 0.9))
-    return fig
+        ax.set_xlabel("time t (units of 1 / Delta)")
+        ax.set_ylabel("length of the Bloch\nvector (log scale)")
+        # Three entries over the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
 
 
 def convergence_run(experiment: Experiment):
@@ -316,31 +321,46 @@ def convergence_run(experiment: Experiment):
 
 def draw_convergence(errors) -> Figure:
     """The error against the step, log-log, with reference slopes."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.8))
     h = np.array(convergence_steps)
-    for colour, marker, name in zip(
-        FIGURE_COLOURS,
-        ["o", "s"],
-        ("explicit Euler", "Runge-Kutta, fourth order"),
-        strict=False,
-    ):
-        ax.loglog(
-            h, errors[name], marker, color=colour, markerfacecolor="none", label=name
-        )
-    for order, anchor, name in (
-        (1, "explicit Euler", "slope one"),
-        (4, "Runge-Kutta, fourth order", "slope four"),
-    ):
-        reference = 0.5 * errors[anchor][-1] * (h / h[-1]) ** order
-        ax.loglog(h, reference, color=FIGURE_COLOURS[2], linestyle=":", linewidth=1)
-        ax.text(h[0], reference[0], f" {name}", va="center", fontsize="small")
-    ax.xaxis.set_minor_formatter(NullFormatter())
-    ax.set_xticks(h, [f"{v:g}" for v in h])
-    ax.set_xlim(h[-1] * 0.8, h[0] * 2.2)
-    ax.set_xlabel("step dt (units of 1 / Delta)")
-    ax.set_ylabel("largest error of rho at t = 10")
-    ax.legend(fontsize="small", loc="lower right")
-    return fig
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        for colour, marker, name in zip(
+            FIGURE_COLOURS,
+            ["o", "s"],
+            ("explicit Euler", "Runge-Kutta, fourth order"),
+            strict=False,
+        ):
+            ax.loglog(
+                h,
+                errors[name],
+                marker,
+                color=colour,
+                markerfacecolor="none",
+                label=name,
+            )
+        for order, anchor, name in (
+            (1, "explicit Euler", "slope one"),
+            (4, "Runge-Kutta, fourth order", "slope four"),
+        ):
+            reference = 0.5 * errors[anchor][-1] * (h / h[-1]) ** order
+            ax.loglog(
+                h,
+                reference,
+                color=FIGURE_COLOURS[2],
+                linestyle=":",
+                linewidth=LINE["guide"],
+            )
+            ax.text(h[0], reference[0], f" {name}", va="center", fontsize=TEXT["note"])
+        ax.xaxis.set_minor_formatter(NullFormatter())
+        ax.set_xticks(h, [f"{v:g}" for v in h])
+        ax.set_xlim(h[-1] * 0.8, h[0] * 2.2)
+        # The step labels are long for the width: turned, so they do not meet.
+        ax.tick_params(axis="x", labelrotation=30)
+        ax.set_xlabel("step dt (units of 1 / Delta)")
+        ax.set_ylabel("largest error of rho\nat t = 10")
+        # The legend would cover the curves: under the plot, in one column.
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig, grid=True)
 
 
 def phase_kicks():

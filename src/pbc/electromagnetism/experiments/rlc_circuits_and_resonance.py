@@ -29,6 +29,7 @@ from pbc.electromagnetism.circuits import (
     step_response,
 )
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, TEXT, figsize, figure_style, finish
 
 # region: circuit
 INDUCTANCE = 10e-3  # H
@@ -294,29 +295,32 @@ def tuning(experiment: Experiment) -> None:
 def draw_step_response(curves: dict) -> Figure:
     """The capacitor voltage after the step, simulated (markers) on the
     closed form (lines), in the three regimes."""
-    fig, ax = plt.subplots(figsize=(6.4, 3.6))
-    for (regime, (t, simulated, exact)), line, marker, colour in zip(
-        curves.items(),
-        ("-", "--", "-."),
-        ("o", "s", "^"),
-        (FIGURE_COLOURS[0], FIGURE_COLOURS[1], FIGURE_COLOURS[4]),
-        strict=True,
-    ):
-        ax.plot(1e3 * t, exact / SOURCE, color=colour, linestyle=line, label=regime)
-        ax.plot(
-            1e3 * t[::30],
-            simulated[::30] / SOURCE,
-            color=colour,
-            marker=marker,
-            linestyle="none",
-            markersize=4,
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=4))
+        for (regime, (t, simulated, exact)), line, marker, colour in zip(
+            curves.items(),
+            ("-", "--", "-."),
+            ("o", "s", "^"),
+            (FIGURE_COLOURS[0], FIGURE_COLOURS[1], FIGURE_COLOURS[4]),
+            strict=True,
+        ):
+            ax.plot(1e3 * t, exact / SOURCE, color=colour, linestyle=line, label=regime)
+            ax.plot(
+                1e3 * t[::30],
+                simulated[::30] / SOURCE,
+                color=colour,
+                marker=marker,
+                linestyle="none",
+                markersize=4,
+            )
+        ax.axhline(1.0, color=FIGURE_COLOURS[2], linewidth=LINE["axis"], linestyle=":")
+        ax.set_xlabel("time (ms)")
+        ax.set_ylabel("capacitor voltage /\nstep (dimensionless)")
+        # The regimes and the legend's title: under the plot, in one column.
+        fig.legend(
+            loc="outside lower center", ncols=1, title="closed form; markers simulated"
         )
-    ax.axhline(1.0, color=FIGURE_COLOURS[2], linewidth=0.8, linestyle=":")
-    ax.set_xlabel("time (ms)")
-    ax.set_ylabel("capacitor voltage / step (dimensionless)")
-    ax.legend(frameon=False, loc="lower right", title="closed form; markers simulated")
-    fig.tight_layout()
-    return fig
+    return finish(fig)
 
 
 def draw_resonance(rlc: SeriesRLC, omegas, simulated, band) -> Figure:
@@ -325,34 +329,43 @@ def draw_resonance(rlc: SeriesRLC, omegas, simulated, band) -> Figure:
     w0 = rlc.natural_frequency
     fine = np.linspace(omegas[0], omegas[-1], 600)
     exact = rlc.current_phasor(SOURCE, fine)
-    fig, (top, bottom) = plt.subplots(2, 1, figsize=(6.4, 5.0), sharex=True)
-    for ax in (top, bottom):
-        ax.axvspan(band[0] / w0, band[1] / w0, color=FIGURE_COLOURS[2], alpha=0.15)
-    top.plot(fine / w0, 1e3 * np.abs(exact), color=FIGURE_COLOURS[0], label="V / |Z|")
-    top.plot(
-        omegas / w0,
-        1e3 * np.abs(simulated),
-        color=FIGURE_COLOURS[1],
-        marker="o",
-        linestyle="none",
-        label="simulated",
-    )
-    top.set_ylabel("current amplitude (mA)")
-    top.legend(frameon=False, loc="upper left")
-    top.text(band[1] / w0 + 0.01, 0.9e3 * np.abs(exact).max(), "half-power width")
-    bottom.plot(fine / w0, np.degrees(np.angle(exact)), color=FIGURE_COLOURS[0])
-    bottom.plot(
-        omegas / w0,
-        np.degrees(np.angle(simulated)),
-        color=FIGURE_COLOURS[1],
-        marker="o",
-        linestyle="none",
-    )
-    bottom.axhline(0.0, color=FIGURE_COLOURS[2], linewidth=0.8, linestyle=":")
-    bottom.set_ylabel("phase of the current (degrees)")
-    bottom.set_xlabel(r"driving frequency $\omega/\omega_0$")
-    fig.tight_layout()
-    return fig
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=figsize("stacked"), sharex=True)
+        for ax in (top, bottom):
+            ax.axvspan(band[0] / w0, band[1] / w0, color=FIGURE_COLOURS[2], alpha=0.15)
+        top.plot(
+            fine / w0, 1e3 * np.abs(exact), color=FIGURE_COLOURS[0], label="V / |Z|"
+        )
+        top.plot(
+            omegas / w0,
+            1e3 * np.abs(simulated),
+            color=FIGURE_COLOURS[1],
+            marker="o",
+            linestyle="none",
+            label="simulated",
+        )
+        top.set_ylabel("current amplitude\n(mA)")
+        top.legend(loc="upper left")
+        top.text(
+            band[1] / w0 + 0.01,
+            0.9e3 * np.abs(exact).max(),
+            "half-power width",
+            fontsize=TEXT["note"],
+        )
+        bottom.plot(fine / w0, np.degrees(np.angle(exact)), color=FIGURE_COLOURS[0])
+        bottom.plot(
+            omegas / w0,
+            np.degrees(np.angle(simulated)),
+            color=FIGURE_COLOURS[1],
+            marker="o",
+            linestyle="none",
+        )
+        bottom.axhline(
+            0.0, color=FIGURE_COLOURS[2], linewidth=LINE["guide"], linestyle=":"
+        )
+        bottom.set_ylabel("phase of the current\n(degrees)")
+        bottom.set_xlabel(r"driving frequency $\omega/\omega_0$")
+    return finish(fig)
 
 
 def run() -> Experiment:
