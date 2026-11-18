@@ -240,9 +240,12 @@ class DataUse:
                     parts = _dotted(node)
                     if parts is not None and self._name_is_data(parts):
                         return True
-                elif isinstance(node, ast.Constant) and isinstance(node.value, str):
-                    if _DATA_PATH.search(node.value):
-                        return True
+                elif (
+                    isinstance(node, ast.Constant)
+                    and isinstance(node.value, str)
+                    and _DATA_PATH.search(node.value)
+                ):
+                    return True
         return False
 
     def _derive(self, names: Iterable[str]) -> None:
