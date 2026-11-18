@@ -371,7 +371,15 @@ lessons (`683a8b3`) took 75 minutes in that job, 83 % of 90, with 110
 lessons projected at about 88 minutes (a projection); 110 lessons stay the
 planning boundary, the points of 75 and 95 lessons are reached, and the next
 decision is the owner's earlier if a complete run on `main` approaches 100
-minutes; a run on `main` can now last up to about 120 minutes.
+minutes; a run on `main` can now last up to about 120 minutes. Raised by
+the owner on 2026-11-15 (Issue #543, requirements question 23) to a
+timeout of 150 minutes for the job `build`, every other job at 45, after
+fourteen complete runs on `main` at 109 lessons took 52 to 93 minutes in
+that job, with 127 lessons projected at about 108 minutes (a projection);
+the planning boundary becomes 127 lessons, the complete planned
+curriculum, and capacity is reassessed before the next lesson batch if a
+complete run on `main` approaches 125 minutes; a run on `main` can now
+last up to about 150 minutes. Incremental `main` is not approved by it.
 
 For the unresolved question 10 of the requirements and the full-run gate of
 Phase 4 (`docs/roadmap.md`, "The full run on `main` at the current lesson

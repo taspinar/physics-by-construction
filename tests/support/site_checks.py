@@ -1181,11 +1181,15 @@ PAYLOAD_BUDGET = 3_000_000
 # lossless WebP, about half the bytes of the PNGs, and the page with its
 # previews measured 3,128,900 bytes at 74 lessons (3,983,688 as PNG); at about
 # 7 KB of HTML and 14 to 16 KB of preview per lesson it is about 3.9 MB at
-# 110 lessons. A fixed number, not one that grows with the lesson count
-# (docs/architecture.md, "Budgets").
+# 110 lessons (the projection of Issue #319). Measured again on 2026-11-15 at
+# 109 lessons (run 43696361545): 3,063,173 bytes, about 3.5 MB at 127 lessons,
+# the lesson limit of Issue #543 (a projection). A fixed number, not one that
+# grows with the lesson count (docs/architecture.md, "Budgets").
 PATH_PAGE_BUDGET = 4_000_000
 # The search index is fetched when a reader searches, on top of the page. One
-# budget for the planned curriculum of 119 lessons (docs/architecture.md,
+# budget for the planned curriculum of 127 lessons (Issue #543; 119 in the
+# derivation of 2026-10-19), measured at 2,718,125 bytes at 109 lessons on
+# 2026-11-15 and about 3.2 MB at 127 (a projection; docs/architecture.md,
 # "Budgets").
 SEARCH_INDEX_BUDGET = 3_500_000
 # Pages that site/search-index.py leaves out of the index.

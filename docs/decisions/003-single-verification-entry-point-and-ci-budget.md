@@ -32,7 +32,9 @@ decision record that decision 6 requires before a check runs less often:
 on a pull request the lesson checks run for the lessons whose inputs
 changed, by content and failing safe; a run on `main` runs everything, in
 same-machine shards that keep every job within the timeout at 110 lessons
-(ADR 014 decisions 7 and 11).
+(ADR 014 decisions 7 and 11). Since the owner's decision of 2026-11-15
+(Issue #543) the shards stay paused and a full run is one `build` job of
+at most 150 minutes up to 127 lessons (ADR 014, its note of 2026-11-15).
 
 The typical-pull-request row of decision 5 is amended by
 [ADR 015](015-typical-pull-request-budget-of-twenty-minutes.md)

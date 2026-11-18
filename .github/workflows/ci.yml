@@ -98,19 +98,22 @@ jobs:
   # main the deploy job publishes exactly this artifact.
   build:
     runs-on: ubuntu-24.04
-    # The interim full-run gate (ADR 014, status): 120 minutes for the one job
-    # of a full run, by the owner's decision of 2026-11-04 (Issue #373), in
-    # place of the 90 minutes of 2026-10-24 (60 before). Evidence: at 94
-    # lessons a complete run on main (683a8b3) took 75 minutes in this job,
-    # 83% of 90; 110 lessons are projected at about 88 minutes (a
-    # projection). 110 lessons stay a planning boundary that no check
-    # enforces, and the next decision is the owner's earlier if a complete
-    # run on main approaches 100 minutes, repeated runs show too little
-    # margin, or verification failures point to a capacity problem. The
-    # accepted cost: a run on main can last up to about 120 minutes, so a
-    # merge is published later; pull requests are not affected. Every other
-    # job keeps 45 minutes.
-    timeout-minutes: 120
+    # The interim full-run gate (ADR 014, status, up to 2026-11-04): 150 minutes
+    # for the one job of a full run, by the owner's decision of 2026-11-15
+    # (Issue #543, requirements question 23), in place of the 120 minutes of
+    # 2026-11-04 (Issue #373; 90 from 2026-10-24, 60 before). Evidence: the 14
+    # push runs on main from 2026-11-13 to 2026-11-15 at 109 lessons took 52 to
+    # 93 minutes in this job, median 69; the slowest, projected linearly to 127
+    # lessons, is about 108 minutes (a projection). 127 lessons, the lessons
+    # needed to complete the planned curriculum, are a planning boundary that no
+    # check enforces; capacity is reassessed before the next lesson batch if a
+    # complete run on main approaches 125 minutes, repeated runs show too little
+    # margin, or verification failures point to a capacity problem. Every push
+    # to main still runs everything; incremental main (F121, ADR 017) is not
+    # approved. The accepted cost: a run on main can last up to about 150
+    # minutes, so a merge is published later; pull requests are not affected.
+    # Every other job keeps 45 minutes.
+    timeout-minutes: 150
     # The one added scope: reading the runs and artifacts of earlier runs, to
     # find the verified base of a pull request (ADR 014 decision 2).
     permissions:

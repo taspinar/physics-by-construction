@@ -7,7 +7,10 @@ the Autonomous Physics Lab, the starter and its pin, and the decision record
 of the slice, which settles the unresolved questions 19 (optional dependency
 packaging) and 21 (the frontend of the local products), and the record of
 F140's desk spike, a recommendation on the questions 17 (the device) and
-18 (the budget) for the owner's decision. The learner's own
+18 (the budget), which the owner decided on #508 on 2026-11-13
+(<https://github.com/taspinar/physics-by-construction/issues/508#issuecomment-6865116429>): the
+Analog Discovery 3 Pro Bundle (DigiKey NL 471-060) and a maximum budget
+of EUR 1,000 ("The owner's decision" below). The learner's own
 material is `products/physics-lab/README.md`.
 
 ## The instrument contract (`pbc.instruments`)
@@ -207,6 +210,19 @@ the standard library for the interface; no external measurement framework
 
 ## Decision record: the instrument desk spike (F140, 2026-11-13)
 
+**The owner's decision (#508, 2026-11-13; recorded here by Issue #543,
+2026-11-15).** Questions 17 and 18 are answered on #508
+(<https://github.com/taspinar/physics-by-construction/issues/508#issuecomment-6865116429>):
+the device is the Analog Discovery 3 Pro Bundle (DigiKey NL 471-060),
+and the maximum budget is EUR 1,000 for the device and the first RC or
+RLC breadboard set-up. The physical pilot of F140 starts only after the
+owner confirms that the device is available; the current total price
+including VAT, shipping, and the needed accessories is checked before
+any purchase; the owner buys, the project buys nothing. The budget this
+record proposed (EUR 500, or EUR 550 for the Pro Bundle, in "Question
+18" and "Purchase options" below) is superseded history, kept as
+written; the record below is otherwise the desk spike's, unchanged.
+
 **Scope.** The first part of F140 (Issue #508): a desk spike from vendor
 documentation and the F138 contract with its fake live driver
 (`tests/unit/test_instruments.py`), no purchase, no device, no vendor
@@ -365,8 +381,9 @@ licence the pilot must read; the envelope must add a lower limit on the
 circuit's R (or a lower amplitude) so that the current stays within
 30 mA.
 
-**Question 18: the proposed budget of €500, including VAT and
-shipping, and the open question of raising it to €550.** The estimated
+**Question 18 (superseded history: the owner decided a maximum of
+EUR 1,000 on #508, 2026-11-13): the proposed budget of €500, including
+VAT and shipping, and the open question of raising it to €550.** The estimated
 starting cost is about €484 to €519 for the Pro Bundle with the RLC
 material, and about €452 to €487 for the base kit with it, both before
 shipping and any missing tools ("Purchase options"). The base kit fits
@@ -440,7 +457,9 @@ Against the proposed budget of €500 including VAT and shipping
 tools; the Pro Bundle fits only at the lower end of the material's
 estimate, and not once shipping or a tool is added. A budget of €550 is
 proposed for the Pro Bundle, the material, shipping, and small tools;
-it is a proposal for the owner's decision, not an approved budget.
+it is a proposal for the owner's decision, not an approved budget
+(superseded history: the owner decided a maximum of EUR 1,000 on #508,
+2026-11-13).
 
 ### The first experimental phase
 

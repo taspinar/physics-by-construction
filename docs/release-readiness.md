@@ -219,13 +219,15 @@ exceeded wall-clock budget recorded here, the 20 minutes of a pull request
 (ADR 015), the planning budget of a full run, or a complete run on `main`
 above 45 minutes, is a measurement for the owner's decision, not a failed
 gate and not a mandate to optimise. The owner decides at the re-assessment
-points of the decision of 2026-11-04 (ADR 014 status, Issue #373), which
-raises the `build` job's timeout from 90 to 120 minutes for the interim
-full-run gate of 110 lessons, the whole reference curriculum (the decision
-of 2026-10-24, Issue #278): decide earlier when a complete run on `main`
-approaches 100 minutes, repeated runs show too little margin, or
-verification failures point to a capacity problem, with the `build` job's
-duration and the run's total duration reported separately (the former
+points of the decision of 2026-11-15 (Issue #543, requirements question
+23), which raises the `build` job's timeout from 120 to 150 minutes and the
+interim full-run gate from 110 lessons to 127, the lessons needed to
+complete the planned curriculum: reassess capacity before the next lesson
+batch when a complete run on `main` approaches 125 minutes, repeated runs
+show too little margin, or verification failures point to a capacity
+problem, with the `build` job's duration and the run's total duration
+reported separately (the 120 minutes and the point of a run approaching
+100 minutes of the decision of 2026-11-04, Issue #373, and the former
 points, 42 and 44 lessons or a complete run on `main` above 45 minutes, 55
 and 60 lessons or a `build` job approaching 55 minutes under the decision
 of 2026-10-21, and 75 and 95 lessons, both reached, or a complete run
@@ -738,6 +740,90 @@ on `main` can last up to about 120 minutes, so the publication after a
 merge comes later; pull requests are not affected. The choice between F113
 (lesson shards) and F121 with ADR 017 (incremental `main`), both paused,
 stays the owner's.
+
+**Capacity at 109 lessons: the timeout raised to 150 minutes.** Measured
+from 2026-11-13 to 2026-11-15: fourteen push runs on `main` at 109
+published lessons (runs 43510685147 to 43696361545) took 52 min 28 s to
+92 min 51 s in the `build` job, median about 69 minutes; the slowest is
+78 % of the 120-minute timeout. A linear projection of the slowest run to
+127 lessons is about 108 minutes (a projection, not a measurement). On
+2026-11-15 the owner raised the `build` job's timeout from 120 to 150
+minutes, every other job at 45 (Issue #543, requirements question 23),
+and set the lesson limit to 127, the exact number of lessons needed to
+complete the planned curriculum, in place of 110. 127 lessons are a
+planning boundary that no check enforces; capacity is reassessed before
+the next lesson batch if a complete run on `main` approaches 125 minutes,
+repeated runs show too little margin, or verification failures point to a
+capacity problem. Every push to `main` still runs everything; F113 stays a
+possible next step, and F121 with ADR 017 is not approved by this
+decision. The accepted cost: a run on `main` can last up to about 150
+minutes.
+
+*The lesson limit, derived from `site/curriculum.yaml` and the roadmap*
+(lesson pages, `site/lessons/<strand>/<lesson>/index.qmd`, at `0cdde75`):
+
+| Line | Lessons | Source |
+|---|---|---|
+| Published lessons on `main` | 109 | the lesson pages: 99 fill core slots, 5 fill extension slots (AI6, D1, D3, D4, D5), 4 are the Lean lessons beyond the baseline (`lean/02` to `lean/05`), 1 has no slot (`agents-llm/10-equations-from-noisy-trajectories`) |
+| Core slots without a lesson: 13 taught lessons | + 13 | SA1, SA3, SA4, SA6, AE1, AE4, AE5, AE6, RR1, RR2, RR3, RR6, RR7 (116 core slots in the curriculum file, 99 filled; F141 to F155) |
+| Core slots without a lesson: the product capstones | + 4 | SA9, MD10, AE7, RR8 (F145, F148, F151, F155) |
+| A Lean lesson beyond the slots | + 1 | F22, agent-assisted theorem proving, kept as approved (roadmap, "Features: state" of `part-b-scientific-products-and-research`) |
+| **The planned curriculum, complete** | **127** | |
+| Not counted | 0 | the extension slots AI8 (F97) and R5 (F110), optional and scheduled only when the owner asks; each would raise the limit by one by the owner's decision. The 17 published lessons that Part B reuses or extends are already counted; the course and path introductions and the other pages are not lessons |
+
+Where the documents disagreed: the roadmap's "about 126" (2026-11-13,
+"State at the change cycle `teaching-by-construction`") leaves out F22;
+`docs/architecture.md`, "Assumptions and risks", counted about 127 with
+it; the "119 lessons" of the search-index budget and of the roadmap's
+count reconciliation of `final-curriculum` are 115 slots and the 4 Lean
+lessons of that cycle, before requirements decision 42 made 116 core
+slots and the extension slots. Resolved from the curriculum file: 127.
+
+*The measured `build` job on `main`* (push runs; the job's own duration
+from the Actions API; the lessons counted at each run's commit). The 18
+successful runs of 2026-11-11 to 2026-11-13 (95 to 107 lessons) took 52
+to 84 minutes, median 61 (the roadmap, "State at the change cycle
+`teaching-by-construction`"). The runs since:
+
+| Run | Commit | Lessons | `build` |
+|---|---|---|---|
+| 43510685147 | `2c411ac` | 109 | 78 min 15 s (the job passed; the run failed in another job) |
+| 43535930725 | `6efd4ca` | 109 | 61 min 49 s |
+| 43550959885 | `affb650` | 109 | 92 min 51 s |
+| 43555518131 | `7f63f68` | 109 | 53 min 56 s |
+| 43572043214 | `49f9f3e` | 109 | 67 min 8 s |
+| 43572077754 | `e7ca8ad` | 109 | 86 min 19 s |
+| 43582960443 | `d8337b8` | 109 | 63 min 28 s |
+| 43593294540 | `6e784eb` | 109 | 70 min 2 s |
+| 43604698355 | `9012619` | 109 | 63 min 44 s |
+| 43623691175 | `4a54433` | 109 | 52 min 28 s |
+| 43631882931 | `a53018c` | 109 | 72 min 14 s |
+| 43669317223 | `e4b5b8c` | 109 | 64 min 18 s |
+| 43687550027 | `3cef0c3` | 109 | 86 min 29 s |
+| 43696361545 | `2f08418` | 109 | 91 min 46 s |
+
+Fourteen runs at 109 lessons: 52 to 93 minutes, median about 69; the
+spread is again the runner and its caches, not the lesson count. The
+slowest run (92 min 51 s) is 78 % of the 120-minute timeout and near the
+re-decision point of 100 minutes of #373. A linear projection of the
+slowest run to 127 lessons, labelled so, is about 108 minutes, a margin
+of about 42 minutes (28 %) to 150; the median projects to about 80
+minutes. Reassessment: before the next lesson batch, when a complete run
+on `main` approaches 125 minutes (five sixths of 150, as 100 was of
+120), repeated runs show too little margin, verification failures point
+to a capacity problem, or a lesson feature would take the count past
+127.
+
+*The budgets at 127 lessons* (measured on the site that run 43696361545
+published, at 109 lessons; none is raised by this decision): the
+Learning path page with its previews is 3,063,173 bytes, about 3.5 MB at
+127 lessons at 7 KB of HTML and 16 KB of preview per lesson, within 4 MB;
+the search index is 2,718,125 bytes, about 3.2 MB at 127 in proportion
+to the lessons (3.3 MB if every new lesson is as large as the p90 of the
+derivation in `docs/architecture.md`, "Budgets"), within 3.5 MB with a
+margin of about 10 %. Neither projection makes its budget insufficient,
+so no finding for the owner arises; the margin of the search index is
+the smallest.
 
 **Learner walkthrough (criterion 7).** A fresh subagent that did not write
 the pages followed the published instructions on a clean clone of the merged

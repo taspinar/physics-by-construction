@@ -186,6 +186,23 @@ Change cycle `pbc-planning-change-four-workstreams` (2026-10-15):
   are not affected. The 30-second budget of a lesson page and the payload
   budgets are unchanged, and the choice between decision 11 (F113) and
   ADR 017 (F121), both paused, stays the owner's.
+- *Amendment note (Issue #543, 2026-11-15; https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* The owner raised the
+  timeout of the one `build` job of a full run from 120 to **150
+  minutes**, every other timeout unchanged, and replaced the planning
+  boundary of 110 lessons by **127 lessons**, the exact number needed to
+  complete the planned curriculum (109 published, 13 taught lessons and 4
+  product capstones in the empty core slots, and the Lean lesson of F22);
+  the 120 minutes and the 110 lessons of the notes above are superseded.
+  The evidence is fourteen push runs on `main` at 109 lessons, whose
+  `build` job took 52 to 93 minutes, median about 69; the slowest projects
+  to about 108 minutes at 127 lessons (a projection). Capacity is
+  reassessed before the next lesson batch if a complete run on `main`
+  approaches 125 minutes, repeated runs show too little margin,
+  verification failures point to a capacity problem, or a lesson feature
+  would take the count past 127 (`docs/release-readiness.md`, "Capacity at
+  109 lessons: the timeout raised to 150 minutes"). Every push to `main`
+  still runs everything. Decision 11 (F113) stays paused as a possible next
+  step; ADR 017 (F121) is not approved by this decision.
 
 Date: 2026-10-12
 

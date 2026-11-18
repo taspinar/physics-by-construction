@@ -285,12 +285,13 @@ def test_the_starter_check_runs_in_a_job_with_the_full_history():
 def test_the_jobs_have_the_agreed_timeouts():
     # 45 minutes per job since 2026-10-11, by the owner, and kept by ADR 012,
     # decision 9, in place of the 30 of ADR 003; for the one job `build` of a
-    # full run, 60 minutes from 2026-10-15, 90 minutes from 2026-10-24, and
-    # 120 minutes since 2026-11-04 (the interim full-run gate of ADR 014, for
-    # up to 110 lessons as a planning boundary; Issue #373).
+    # full run, 60 minutes from 2026-10-15, 90 minutes from 2026-10-24, 120
+    # minutes from 2026-11-04 (Issue #373), and 150 minutes since 2026-11-15
+    # (the interim full-run gate of ADR 014, for up to 127 lessons as a
+    # planning boundary; Issue #543, requirements question 23).
     jobs = load(CI)["jobs"]
     for name, job in check_jobs().items():
-        assert job["timeout-minutes"] == (120 if name == "build" else 45), name
+        assert job["timeout-minutes"] == (150 if name == "build" else 45), name
     assert jobs[AGGREGATE]["timeout-minutes"] == 5
     assert jobs[DEPLOY]["timeout-minutes"] == 10
     assert jobs[BASE_JOB]["timeout-minutes"] == 10
