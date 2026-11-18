@@ -175,6 +175,13 @@ findings of earlier rounds that are still open, by that identifier. Give, in
 Set `continues` to `null` for every new finding. When no earlier finding is
 listed as open, return an empty `dispositions` list.
 
+The calling script may also list what the implementer recorded in the handoff
+note about each finding to fix: `fixed`, or returned to the triage as
+`refuted`, `not_reproduced`, or `not_executable`, with its evidence. It is the
+implementer's statement, not evidence: check a `fixed` claim against the code,
+and give a returned finding that still holds the disposition `open`, with what
+you found about the recorded check.
+
 ## Review of changes only
 
 When the calling script says that this is a review of changes only, an earlier

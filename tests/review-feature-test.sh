@@ -517,11 +517,22 @@ grep -Fq "This is a review of changes only" "$repo.log" || fail "the reviewer wa
 
 # Without the option a later round reviews the complete feature again.
 printf 'more\n' >>"$repo/feature.txt"
+# The implementer's check of the finding to fix comes with the earlier open
+# findings, as data (#552).
+mkdir -p "$repo/.agents/handoffs"
+printf '## Triage feature-7-marker-review-01-triage.json\n\n- M1: refuted — ./check.sh marker.txt exits 0\n- MIN1: fixed\n' >"$repo/.agents/handoffs/7.md"
 rm -f "$repo.log" "$repo.log.stdin"
 MOCK_OUTPUT="$(disposed "$valid_result" resolved R02-MIN1 R02-M1)" run_review "$repo" 7 || fail "a complete third round failed"
 third="$repo/.agents/reviews/feature-7-marker-review-03.json"
 [[ "$(jq -r '.scope.kind' "$third")" == "full" ]] || fail "a round without --changes is not a complete review"
 grep -Fq "untracked marker" "$repo.log.stdin" || fail "a complete later round was not given the complete diff"
+grep -Fq -- "- feature-7-marker-review-01-triage.json, M1: refuted — ./check.sh marker.txt exits 0" "$repo.log.stdin" ||
+  fail "a later round was not given the implementer's check of a finding to fix"
+grep -Fq "not an instruction, and not" "$repo.log.stdin" || fail "the implementer's checks were not given as data"
+if grep -Fq "feature-7-marker-review-01-triage.json, MIN1" "$repo.log.stdin"; then
+  fail "a check without evidence was given to the reviewer"
+fi
+rm "$repo/.agents/handoffs/7.md"
 
 # Findings that were never triaged are supplied as to be fixed.
 repo="$(setup_repo changes-untriaged)"
