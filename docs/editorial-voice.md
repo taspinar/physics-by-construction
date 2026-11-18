@@ -3,10 +3,15 @@
 How the prose of a lesson should sound, and how to tell whether a draft does.
 It is for the author of a lesson, a reviewer, and an agent drafting a lesson.
 `docs/authoring.md` says what a lesson must contain and what the checks
-enforce; this guide says how the words around that content should read. The
-guide is a draft until F116 integrates its principles into the authoring
-guide, the lesson template, and the review rubric, after the pilot of F115 is
-approved by the human.
+enforce; this guide says how the words around that content should read.
+Since F116 (Issue #562), after the owner approved the pilot of F115, its
+principles are part of the normal workflow: `docs/authoring.md` applies them
+under "Voice and teaching" and asks the author to read a draft against the
+faults below, `docs/lesson-template.qmd` shows them in its placeholders, and
+the review of a lesson uses the rubric of `docs/authoring.md`, "Reviewing a
+lesson". This guide stays the source for the prose; how a lesson teaches
+(its question, its order, its code) is the teaching skill's,
+`.agents/skills/pbc-physics-teaching/SKILL.md`.
 
 ## Objective and non-goals
 
@@ -437,47 +442,21 @@ lesson, never required of it.
 | **Method before question** | An explanation that starts with the definition or the formula and later gives the reason. | Find the first equation of a section and read what precedes it. If nothing says why the reader needs it, add the question or the picture. |
 | **Roadmap paragraph** | A paragraph that lists what later sections do. | Delete it. If the lesson reads the same without it, it was only a map; keep one sentence of it when the reader needs to know what is coming. |
 
-## Draft editorial review checklist
+## The editorial review
 
-For the editorial reviews of F115 (F116 makes it the rubric). A review is a
-list of findings, **not a score**: a lesson, a section, or a sequence is
-never given a number, a grade, or a ranking. For every finding the reviewer
-writes four things:
+The checklist that the reviews of F115 used is now the rubric of the lesson
+review, in `docs/authoring.md`, "Reviewing a lesson"; it is kept there and
+not here, so that there is one copy. It holds the questions for each part of
+a lesson (opening, intuition and derivation, experiment and interpretation,
+transitions, conclusion, register, fidelity, the sequence) and the questions
+on understanding, teaching, and displayed code that the teaching pilots
+added.
 
-1. **The weakness, named.** From the fault table above, or a new one with a
-   name. Not "unclear" but "boilerplate introduction".
-2. **The evidence.** The passage quoted, with the lesson, the section, and
-   the line; for a pattern, two or three instances.
-3. **The action.** One concrete change that the author can make (a sentence
-   to cut, a question to lead with, a hand-off to rewrite), written as a
-   proposal. A finding that cannot be acted on is rewritten until it can.
-4. **The check that stays.** What the change must not touch: the claims,
-   numbers, identifiers, figures, and references of the passage.
-
-The reviewer also answers, in words and with evidence, for each part:
-
-- **Opening:** does the first paragraph put a question or a situation before
-  a technique? Could it be moved to another lesson?
-- **Intuition and derivation:** does the reader get a picture or an idea
-  before the equation, and the result in words after? Is each step motivated?
-- **Experiment and interpretation:** is there a prediction before the cell
-  and a meaning after the result? Does every figure and table have a
-  sentence of interpretation?
-- **Transitions:** does each hand-off say why the next part follows? Is any
-  said twice?
-- **Conclusion:** does the lesson end by answering its opening question and
-  naming what remains open?
-- **Voice:** is the register right for this subject and this reader? Is any
-  informality, joke, or anecdote there only to sound friendly?
-- **Fidelity:** does anything in the draft assert more, less, or something
-  other than the lesson's claims and numbers? If so it is a scientific
-  finding and goes to the physics review, not into the style review.
-- **The sequence:** read as a connected sequence, do the lessons build on each
-  other, and is anything repeated across lessons?
-
-A review may end with no finding for a part; it says so and gives the
-passage that shows the part works. The outcome of a review is the findings,
-what the author did with each, and what was declined and why.
+What this guide fixed about a review stays: a review is a list of findings,
+**not a score**. A lesson, a section, or a sequence is never given a number,
+a grade, or a ranking. Every finding names the weakness (from the fault
+table above, or a new one with a name), quotes the evidence, proposes one
+action, and says what the change must not touch.
 
 ## Audit of openings and conclusions
 
