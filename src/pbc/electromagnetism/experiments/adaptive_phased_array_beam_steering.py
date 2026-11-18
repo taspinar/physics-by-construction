@@ -51,19 +51,21 @@ from pbc.figure_language import LINE, figsize, figure_style, finish
 # region: requirements
 FREQUENCY = 10e9  # Hz, the carrier
 BAND = (9.5e9, 10.5e9)  # Hz, the band the array must work over
-COUNT = 16  # elements
-SPACING = 15e-3  # m, half a wavelength at the carrier
 SCAN = np.radians(50.0)  # the receiver may be up to this far from broadside
-SIDELOBES = 30.0  # dB below the main lobe, the taper's design level
 NULL_DEPTH = 30.0  # dB below the main lobe toward the interferer
+CONFIDENCE = 0.95  # the share of realised arrays that must meet the null
 FEASIBLE_LOSS = 3.0  # dB of gain a null may cost the receiver
 # endregion: requirements
+# region: choices
+COUNT = 16  # elements
+SPACING = 15e-3  # m, half a wavelength at the carrier
+SIDELOBES = 30.0  # dB below the main lobe, the taper's design level
+# endregion: choices
 # region: errors
 BITS = [2, 3, 4, 5, 6, 7]  # phase-shifter bits compared
 PHASE_ERROR = np.radians(2.0)  # rms phase error of a channel
 AMPLITUDE_ERROR = 0.02  # rms relative amplitude error of a channel
 DRAWS = 20000  # realised arrays per Monte Carlo estimate
-CONFIDENCE = 0.95  # the share of realised arrays that must meet the null
 LOBE_BITS, LOBE_DRAWS = 3, 40  # the quantisation-lobe comparison
 SEED = 301
 # endregion: errors
@@ -171,6 +173,28 @@ def half_power_width(weights, steer: float) -> float:
     low = brentq(gap, np.arcsin(u[left]), top, xtol=1e-14)
     high = brentq(gap, top, np.arcsin(u[right]), xtol=1e-14)
     return high - low
+
+
+def brief(experiment: Experiment) -> None:
+    """The brief of the design in words, from the constants the studies
+    use: the requirements, the success criteria, the hardware's errors, the
+    scenario, and the design's own choices, kept apart. Record the numbers."""
+    experiment.number("carrier", FREQUENCY / 1e9, ".0f")
+    experiment.number("band-low", BAND[0] / 1e9, ".1f")
+    experiment.number("band-high", BAND[1] / 1e9, ".1f")
+    experiment.number("scan", np.degrees(SCAN), ".0f")
+    experiment.number("null-depth", NULL_DEPTH, ".0f")
+    experiment.number("confidence", 100 * CONFIDENCE, ".0f")
+    experiment.number("feasible-loss", FEASIBLE_LOSS, ".0f")
+    experiment.number("phase-error", np.degrees(PHASE_ERROR), ".0f")
+    experiment.number("amplitude-error", 100 * AMPLITUDE_ERROR, ".0f")
+    experiment.number("road", ROAD, ".0f")
+    experiment.number("speed", SPEED, ".0f")
+    experiment.number("interferer", np.degrees(INTERFERER), ".0f")
+    experiment.number("count", COUNT, "d")
+    experiment.number("sidelobes", SIDELOBES, ".0f")
+    experiment.number("bits-low", min(BITS), "d")
+    experiment.number("bits-high", max(BITS), "d")
 
 
 def model_checks(experiment: Experiment):
@@ -967,6 +991,7 @@ def bits_for_null(experiment: Experiment) -> None:
 def run() -> Experiment:
     """Everything the lesson's page shows."""
     experiment = Experiment()
+    brief(experiment)
     direct, closed, nulls = model_checks(experiment)
     experiment.figure(
         "fig-steered-pattern", partial(draw_steered_pattern, direct, closed, nulls)

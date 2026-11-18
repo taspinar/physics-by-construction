@@ -104,3 +104,31 @@ def test_phase_steering_squints_across_the_band(results):
     assert max(depths) <= -30.0
     assert float(found["numbers"]["edge-null"]) == pytest.approx(max(depths), abs=0.05)
     assert float(found["numbers"]["edge-null-margin"]) > 0.0
+
+
+def test_the_decision_meets_each_requirement_of_the_brief(results):
+    # The page's decision recalls the brief requirement by requirement; each
+    # statement it makes must hold for the numbers the brief records.
+    _, found = results
+    numbers = found["numbers"]
+    depth = float(numbers["null-depth"])
+    # No grating lobe over the band and the scan, with a margin in angle.
+    assert float(numbers["spacing"]) < float(numbers["largest-spacing"])
+    assert float(numbers["onset-scan"]) > float(numbers["scan"])
+    # The success criterion: the share of realised arrays of the chosen
+    # number of bits short of the null depth is at most 1 - confidence.
+    bits = int(numbers["chosen-bits"])
+    rows = {int(row[0]): row for row in found["tables"]["decision"]["rows"]}
+    assert float(rows[bits][3]) <= 1.0 - float(numbers["confidence"]) / 100.0
+    assert int(numbers["bits-low"]) <= bits <= int(numbers["bits-high"])
+    # Over the pass the null, where placed, meets the depth; it is not
+    # placed in a window around the interferer.
+    assert float(numbers["worst-null"]) <= -depth
+    assert (
+        float(numbers["window-low"])
+        < float(numbers["interferer"])
+        < float(numbers["window-high"])
+    )
+    assert float(numbers["met-share"]) < 1.0
+    # At the band edges the ideal null still meets the depth.
+    assert float(numbers["edge-null"]) <= -depth
