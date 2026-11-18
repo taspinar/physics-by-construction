@@ -11,7 +11,7 @@ faults below, `docs/lesson-template.qmd` shows them in its placeholders, and
 the review of a lesson uses the rubric of `docs/authoring.md`, "Reviewing a
 lesson". This guide stays the source for the prose; how a lesson teaches
 (its question, its order, its code) is the teaching skill's,
-`.agents/skills/pbc-physics-teaching/SKILL.md`.
+.agents/skills/pbc-physics-teaching/SKILL.md.
 
 ## Objective and non-goals
 

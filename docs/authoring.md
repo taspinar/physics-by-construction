@@ -14,7 +14,7 @@ verified".
 A page can pass every check and still read like a specification. How a
 lesson should read and teach is in "Voice and teaching" below, which applies
 the editorial voice guide, `docs/editorial-voice.md`, and the teaching skill,
-`.agents/skills/pbc-physics-teaching/SKILL.md`; how a lesson is reviewed for
+.agents/skills/pbc-physics-teaching/SKILL.md; how a lesson is reviewed for
 it is in "Reviewing a lesson". Neither changes a rule of this guide or a
 check.
 
@@ -388,7 +388,7 @@ and this section applies them without repeating them:
   the principle for each part of a lesson with before-and-after examples
   from published lessons, the list of what a style edit never changes, and
   the table of recurring faults with a test for each.
-- **The teaching skill**, `.agents/skills/pbc-physics-teaching/SKILL.md`,
+- **The teaching skill**, .agents/skills/pbc-physics-teaching/SKILL.md,
   owns the pedagogical reasoning: who the learner is, the central question,
   the archetype of the lesson, where the learner predicts or interprets,
   which derivations are essential, and why each code block is on the page.
