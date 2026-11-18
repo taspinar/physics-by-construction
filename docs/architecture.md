@@ -1911,7 +1911,8 @@ permits figures and modification). `encode(draw, metadata=..., credit=...)`
 writes the record as PNG text chunks in a fixed order (`Title`,
 `Description`, `Source`, and the `pbc:` keys of the declaration and the
 card; no date, software, author, or copyright field) and paints one line
-below the figure; called without them it is the encoder of
+below the figure, broken within the width of what the figure draws where
+it is wider (Issue #546); called without them it is the encoder of
 every other figure, byte for byte. The page's caption is completed after
 the render by `site/figure-credits.py` (`pbc.authoring.figure_credits`)
 from the PNG's record and the card, and the build fails when the caption's

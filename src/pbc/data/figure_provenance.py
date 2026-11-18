@@ -9,7 +9,8 @@ what the figure is and whose data it shows:
 - the PNG: ``pbc.experiment.encode`` writes the text chunks of ``metadata``
   (status, figure identity, dataset, licence, attribution, processing),
   deterministically and without a date, a software version, an author, or
-  a copyright field, and paints one short line under the axes: the
+  a copyright field, and paints one short line under the axes (broken
+  within the figure's width where it is wider, Issue #546): the
   visualization credit, combined with the card's short credit where
   ``rights.figure_credit.visible`` is ``required`` (the terms ask for it)
   or ``chosen`` (the project shows it for clear attribution);
@@ -66,6 +67,8 @@ from pbc.data.status import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from matplotlib.contour import ContourSet
     from matplotlib.figure import Figure
 
@@ -416,22 +419,76 @@ def metadata(
     }
 
 
-def paint_credit(fig: Figure, text: str) -> None:
-    """One line of credit under the figure, outside the chart area.
+def paint_credit(fig: Figure, text: str, *, dpi: float | None = None) -> None:
+    """The credit under the figure, outside the chart area, within the
+    figure's width (Issue #546).
 
     It sits below the figure's lower edge, so the axes keep their place and
-    the tight bounding box of ``encode`` takes it in.
+    the tight bounding box of ``encode`` takes it in. It starts at the left
+    edge of what the figure draws and breaks between words, or inside a
+    word longer than a line, onto further lines wherever it would reach past
+    the right edge: the tight bounding box keeps the width of the figure
+    without the credit, so the page does not scale the chart and its labels
+    down for it. ``dpi`` is the resolution the figure is saved at (text
+    widths depend on it slightly); the figure's own when None. The text is
+    ``text`` with line breaks added, nothing else.
     """
-    fig.text(
-        0.0,
-        0.0,
-        text,
-        ha="left",
-        va="top",
-        fontsize=7,
-        color="0.25",
-        gid=CREDIT_GID,
-    )
+    original = fig.dpi
+    if dpi is not None:
+        fig.set_dpi(dpi)
+    try:
+        # Lays the figure out (a layout engine places the axes on draw) and
+        # measures what it draws, in display units.
+        renderer = fig.canvas.get_renderer()
+        fig.draw_without_rendering()
+        drawn = fig.get_tightbbox(renderer).transformed(fig.dpi_scale_trans)
+        left = drawn.x0 / fig.bbox.width
+        credit = fig.text(
+            left,
+            0.0,
+            text,
+            ha="left",
+            va="top",
+            fontsize=7,
+            color="0.25",
+            gid=CREDIT_GID,
+        )
+
+        def fits(line: str) -> bool:
+            credit.set_text(line)
+            return drawn.x0 + credit.get_window_extent(renderer).width <= drawn.x1
+
+        credit.set_text(
+            "\n".join(
+                wrapped for line in text.split("\n") for wrapped in _wrap(line, fits)
+            )
+        )
+    finally:
+        fig.set_dpi(original)
+
+
+def _wrap(line: str, fits: Callable[[str], bool]) -> list[str]:
+    """``line`` broken greedily into lines that ``fits`` accepts: between
+    words, and inside a word no line can hold."""
+    out: list[str] = []
+    current = ""
+    for word in line.split(" "):
+        candidate = f"{current} {word}" if current else word
+        if fits(candidate):
+            current = candidate
+            continue
+        if current:
+            out.append(current)
+        current = ""
+        while word and not fits(word):
+            # The longest head of the word that fits, at least one character.
+            cut = max((k for k in range(1, len(word) + 1) if fits(word[:k])), default=1)
+            out.append(word[:cut])
+            word = word[cut:]
+        current = word
+    if current or not out:
+        out.append(current)
+    return out
 
 
 def read_metadata(png: bytes) -> dict[str, str]:

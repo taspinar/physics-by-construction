@@ -67,9 +67,9 @@ def encode(
     A figure that declares its provenance (``Experiment.figure`` with
     ``provenance``, Issue #524) passes the text chunks of ``metadata``,
     written in their order and nothing else, and the one line ``credit``
-    its card requires visible, painted under the figure
-    (``pbc.data.figure_provenance``). Without them the bytes are those of
-    every other figure.
+    its card requires visible, painted under the figure and broken within
+    its width (``pbc.data.figure_provenance.paint_credit``, Issue #546).
+    Without them the bytes are those of every other figure.
     """
     import matplotlib.pyplot as plt
 
@@ -81,7 +81,9 @@ def encode(
             if credit is not None:
                 from pbc.data.figure_provenance import paint_credit
 
-                paint_credit(figure, credit)
+                paint_credit(
+                    figure, credit, dpi=FIGURE_SETTINGS["figure.dpi"] * PIXEL_RATIO
+                )
             output = BytesIO()
             figure.savefig(
                 output,
