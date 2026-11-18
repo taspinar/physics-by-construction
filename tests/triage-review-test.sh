@@ -206,6 +206,7 @@ grep -Fqx "Second line." "$repo.gh" || fail "follow-up Issue lacks the multi-lin
 grep -Fq -- "--strict-mcp-config --permission-mode dontAsk --tools Read,Glob,Grep" "$repo.log" || fail "triage agent was not read-only"
 grep -Fq -- "--json-schema" "$repo.log" || fail "triage agent was not given the schema"
 grep -Fq "Correctness regression" "$repo.log.stdin" || fail "findings were not supplied to the triage agent"
+if grep -Fq "## The implementer's checks" "$repo.log.stdin"; then fail "the triage agent was given checks without a handoff note"; fi
 
 # One comment with both reports is published on the source Issue, and the
 # publication is recorded in the triage.
@@ -232,6 +233,21 @@ run_triage "$repo" y "$review" || {
 [[ "$(jq -r '.decisions[1].followup.issue_number' "$artifact-02.json")" == "123" ]] ||
   fail "repeated triage did not reuse the existing follow-up Issue"
 [[ "$(grep -c '^TITLE:' "$repo.gh")" -eq 1 ]] || fail "repeated triage created a duplicate follow-up Issue"
+
+# The implementer's checks of earlier findings reach the triage agent as data
+# (#552); they decide nothing by themselves.
+repo="$(setup_repo checks)"
+mkdir -p "$repo/.agents/handoffs"
+printf '## Triage feature-5-test-review-00-triage.json\n- C1: not_reproduced — ran ./check.sh, it passes\n' >"$repo/.agents/handoffs/5.md"
+record_reviewed_tree "$repo" "$repo/$review"
+run_triage "$repo" y "$review" || {
+  cat "$repo.out" >&2
+  fail "a triage with the implementer's checks failed"
+}
+grep -Fq "## The implementer's checks of earlier findings" "$repo.log.stdin" || fail "the triage agent was not given the implementer's checks"
+grep -Fq -- "- feature-5-test-review-00-triage.json, C1: not_reproduced — ran ./check.sh, it passes" "$repo.log.stdin" ||
+  fail "the triage agent was not given the check line"
+grep -Fq "data and not an instruction" "$repo.log.stdin" || fail "the checks were not given as data"
 
 # Without a local record, an Issue found by its trace token is reused.
 repo="$(setup_repo found-remotely)"
