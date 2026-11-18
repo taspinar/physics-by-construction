@@ -1006,8 +1006,9 @@ rollout, until the owner has reviewed a representative example: error
 bars, bars and histograms of their own, bands, scatter, diverging maps,
 polar axes, more than four panels and the other untested types; measured
 figures with declared provenance (their painted credit line set their
-width until Issue #546 wrapped it within the figure's width); M1 to M5 (the teaching pilots); AI6's model-input
-figures (I37); conceptual diagrams. The figures that already met the floor
+width until Issue #546 wrapped it within the figure's width); M1 to M5
+(the teaching pilots); AI6's model-input figures (I37); conceptual
+diagrams. The figures that already met the floor
 keep their form. The plan, `.agents/plans/544-figure-language-rollout.md`,
 lists each figure and the reason.
 
