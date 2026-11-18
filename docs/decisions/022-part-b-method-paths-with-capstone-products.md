@@ -408,6 +408,10 @@ Negative, with mitigations:
   owner's capacity decision of 2026-10-24 (Issue #278). The roadmap makes
   the owner's next capacity decision a gate before a lesson feature takes
   the count past 110.
+  *Amendment note (Issue #543, 2026-11-15).* That decision is taken: the
+  `build` timeout is 150 minutes and the lesson limit is 127, the complete
+  curriculum; the gate at 110 is superseded history (ADR 014, its note of
+  2026-11-15).
 - A learner's live results differ from the published ones. The site never
   shows them as the lesson's results, and the products label every run
   with its execution mode.

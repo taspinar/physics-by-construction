@@ -105,8 +105,9 @@ and that every job that runs checks does so only through the entry point.
 - Typical pull request: 20 min warm, 25 cold, 15 a non-blocking target (ADR
   015 decisions 1 and 2, ADR 003 decision 5; `docs/release-readiness.md`);
   unit tests 2 min, Lean and site builds 3 min each. No check enforces them.
-- Job timeout 45 min; `build` 120 min, approved for up to 110 lessons as a
-  planning boundary (ADR 012 decision 9; ADR 014 status notes;
+- Job timeout 45 min; `build` 150 min, approved for up to 127 lessons, the
+  complete planned curriculum, as a planning boundary (the owner's decision
+  of 2026-11-15, Issue #543; ADR 012 decision 9; ADR 014 status notes;
   `.github/workflows/ci.yml`).
 - One lesson page and its experiment: a warning from 30 s, a failure at 60 s;
   a line of `scripts/lesson-budgets.conf` raises one lesson's limit with a

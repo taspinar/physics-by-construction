@@ -28,6 +28,8 @@ the human picks the next feature among those whose dependencies are done.
 Review the later-phase features against the current architecture before
 starting them.
 
+*Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* Every statement in this roadmap that bounds the lesson count, a full run, or the `build` timeout at 110 lessons, or measures a full run against a projection to 110 lessons, is superseded history wherever it stands, with or without a note beside it: the limit is 127 lessons, the complete planned curriculum, with the one `build` job's timeout at 150 minutes (requirements question 23, Issue #543; `docs/release-readiness.md`, "Capacity at 109 lessons: the timeout raised to 150 minutes"). Same-machine lesson shards (F113) stay paused, a possible next step, and incremental `main` (ADR 017) is not approved. Those statements stay as the record of their day: among them the ADR 014 bullet of "Architecture decisions of this change cycle", the bound of #278, the criteria of F61 and F113, the capacity gate of Phase 9, the option "Keep the cap at 110", and the outcomes of wave C0 and of the Capacity row.
+
 ## State at the change cycle `physics-next-phase`
 
 Checked on 2026-10-09 at the base commit `2f011ea` of the planning branch
@@ -195,6 +197,12 @@ the linked Q5/Q8 pair in F90 and F103); none adds a slot.
   delivers the selection, with F62, before the first lesson feature of
   this phase; F113 delivers the lesson shards before the lesson count
   passes the lesson-shard size.
+
+  *Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* The timeout at 110
+  lessons is superseded history: the one `build` job of a full run fits
+  its timeout of 150 minutes up to 127 lessons, the complete planned
+  curriculum (requirements question 23, Issue #543), and F113's lesson
+  shards stay paused, a possible next step.
 
 No accepted ADR conflicts with the re-approved requirements; ADR 008's
 single-additional-course rule is the one decision the requirements asked
@@ -886,6 +894,8 @@ Issues #150 (F113, paused) and #278 (the owner's decision of 2026-10-24:
 the `build` job at 90 minutes for up to 110 lessons, re-measured at 75 and
 95) are open.
 
+*Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* The bound of #278 (the `build` job at 90 minutes for up to 110 lessons) is history: the limit is 127 lessons with the `build` timeout at 150 minutes (requirements question 23, Issue #543).
+
 ### Published lessons
 
 Ninety-four lesson directories in eleven strands at `cd69524` (mechanics
@@ -974,6 +984,12 @@ feature with an Issue that is not delivered, and it has not started.
 | F133, #338, pull request #351 | Open | Continues unchanged; F136 starts after it is merged and adapts its four sequence descriptions and the concepts' slot lists (reconciliation notes). |
 | F113, #150; #278 | Open (F113 paused) | Unchanged; the owner's next capacity decision is a gate of Phase 9 before the lesson count passes 110 ("Phase 9", rules). |
 
+*Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* The row of F113
+above: the gate "before the lesson count passes 110" is superseded
+history. The capacity decision is taken (requirements question 23): the
+`build` timeout at 150 minutes up to 127 lessons; F113 stays paused and
+open as a possible next step.
+
 ### Architecture decisions of this change cycle
 
 - **ADR 022** records the new per-path labels (SA, MD, AE, RR), the
@@ -1042,9 +1058,16 @@ feature with an Issue that is not delivered, and it has not started.
   127 lessons when complete (`docs/architecture.md`, "Assumptions and
   risks"), past the 110 lessons of the owner's decision on #278. The
   projection is the architecture's, labelled so; the gate is in "Phase 9".
+
+  *Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* The bound of the
+  decision on #278 (110 lessons) is superseded history: the limit is
+  127 lessons, the complete curriculum, with the `build` timeout at 150
+  minutes (requirements question 23, Issue #543).
 - **Requirements questions 17 to 22** are open; each is settled where
   `docs/architecture.md`, "Requirements coverage of open choices", says,
   and none blocks this planning.
+
+  *Note of the owner's decision of 2026-11-13 (https://github.com/taspinar/physics-by-construction/issues/508#issuecomment-6865116429).* Since then questions 17 and 18 are decided on #508 on 2026-11-13: the Analog Discovery 3 Pro Bundle, at most EUR 1,000; F140's physical pilot starts when the owner confirms that the device is available.
 
 ## State at the change cycle `textbook-layer`
 
@@ -1195,6 +1218,9 @@ re-approved by #511):
   the owner's decision on questions 17 and 18 and the physical pilot),
   and #353, #423, #494 (pull request #504).
 
+  *Note of the owner's decision of 2026-11-13 (https://github.com/taspinar/physics-by-construction/issues/508#issuecomment-6865116429).* The Issue's wait is over for the decision:
+  questions 17 and 18 are decided on #508 on 2026-11-13: the Analog Discovery 3 Pro Bundle, at most EUR 1,000; F140's physical pilot starts when the owner confirms that the device is available.
+
 So the status rows of F52, F53, and F54 in the earlier snapshots ("no
 Issue; not started") and their slot rows ("gated") are history: all
 three are delivered. **Slots at `2c411ac`** (filled from the front
@@ -1282,12 +1308,75 @@ timeout is the cheapest way to finish Part B now, and shards or
 incremental `main` are the way to keep the run on `main` short; they are
 not exclusive.
 
+*Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* Superseded
+by that decision: the lesson limit is 127, not 110, so the statement
+above that the capacity gate (110) stops the second new lesson, and the
+option "Keep the cap at 110" with its cost, are history. The option
+taken is the further timeout, 150 minutes for the `build` job up to the
+127 lessons of the complete curriculum, so Part B stages C and D can
+proceed (the note on question 23 in this section).
+
 **Reuse of a passed verification group: requirements question 24**
 (Appendix A6, the owner's parked proposal #385). Planned here only as a
 conditional block, F179, which starts if the owner answers yes: what
 counts as a group's inputs, where passes are stored, and when reuse is
 forbidden, with a Level 3 final verification always run in full. Kept
 parked otherwise, with #385 open.
+
+*Note of the owner's decision of 2026-11-13 (https://github.com/taspinar/physics-by-construction/issues/508#issuecomment-6865116429).* Questions 17 and 18
+are answered on #508: the Analog Discovery 3 Pro Bundle (DigiKey NL
+471-060) and a maximum budget of EUR 1,000. Recorded by Issue #543 on
+2026-11-15, with the owner's conditions of that day: the physical pilot
+of F140 starts only after the owner confirms the device is available;
+the current total price including VAT, shipping, and the needed
+accessories is checked before any purchase; the owner buys, the project
+buys nothing. The desk spike's budget proposal (EUR 500, or EUR 550 for
+the Pro Bundle) is superseded history (`docs/products.md`, the F140
+decision record).
+
+*Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* Question 14: F128 is
+parked. The interactive pendulum has no priority now: no interactive
+pendulum is added to the site, the existing implementation and
+validation code are kept unchanged, and F128 is reconsidered when there
+is a concrete didactic need.
+
+*Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* Question 23: a higher
+timeout and an exact lesson limit. The `build` job of a full run gets
+150 minutes (from 120), and the lesson limit becomes 127 in place of
+110, the exact number of lessons needed to complete the planned
+curriculum: 109 published on `main`, 13 taught lessons and 4 product
+capstones for the 17 empty core slots of `site/curriculum.yaml`, and the
+Lean lesson of F22; the optional extension lessons of F97 and F110 only
+if the owner schedules them. The "about 126" above leaves out F22, and
+the "119 lessons" of the search-index budget are the count of
+`final-curriculum`; the curriculum file resolves both to 127. Fourteen
+push runs on `main` at 109 lessons, 2026-11-13 to 2026-11-15, took 52 to
+93 minutes in the `build` job, median about 69; the slowest projects to
+about 108 minutes at 127 lessons (a projection), a margin of about 42
+minutes to 150. Capacity is reassessed before the next lesson batch if a
+complete run on `main` approaches 125 minutes, repeated runs show too
+little margin, verification failures point to a capacity problem, or a
+lesson feature would take the count past 127. The path-page and
+search-index budgets hold at 127 lessons (projections), and none is
+raised. The line-by-line derivation, the run IDs, and the budget
+measurements are in `docs/release-readiness.md`, "Capacity at 109 lessons: the timeout raised to 150 minutes". Full verification on every push to `main`
+stays (I26 unchanged in substance). F113 stays a possible next step;
+incremental `main` (F121) and ADR 017 are not approved by this decision.
+
+*Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* What question 23 means
+for questions 9, 10, and 12: question 9 (incremental `main`) stays
+unresolved and is not approved; question 10 (the timeout of an
+exceptional full run) is answered by 150 minutes for the one `build` job
+up to 127 lessons; question 12 (closing F113) stays open, F113 remaining
+a possible follow-up with #150 open and its branch preserved.
+
+*Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* Question 24: #385 and F179
+stay parked. Question 23 is solved by the higher timeout and the lesson
+limit; the reuse of verification groups is assessed later on the
+measured time saved on ordinary changes; a Level 3 final verification
+always runs in full; the decision gives no permission for incremental
+`main`. Recorded on #385
+(<https://github.com/taspinar/physics-by-construction/issues/385#issuecomment-6902453316>).
 
 **No conflict with the requirements** was found. The change request's
 lesson names are replaced by slot labels and paths as decision 44 says;
@@ -1602,6 +1691,12 @@ reads the same way.
 | F177 | First selected lesson interaction (conditional) | F167, F168, the owner's choice; F07 | Medium |
 | F178 | Second selected lesson interaction (conditional) | F177, the owner's choice; F07 | Medium |
 | F179 | Reuse of a passed verification group (conditional, question 24, #385) | The owner's yes to question 24 | High (`scripts/verify.sh` and the workflow scripts are protected paths: Level 3 by path) |
+
+*Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* F128 (question 14) and F179
+(question 24, #385) are parked; for F140 the owner decided questions 17
+and 18 on #508 on 2026-11-13 (the Analog Discovery 3 Pro Bundle, at most
+EUR 1,000), and its physical pilot waits for the owner's confirmation
+that the device is available (the notes on their blocks).
 
 Risk levels follow `.agents/policies/autonomy.md` and, since
 `risk-proportionate-workflow`, ADR 020 decision 1. Every feature that adds
@@ -4847,6 +4942,12 @@ and reports rather than hides.
 
 ### F113 — Bounded full verification: same-machine lesson shards of the build
 
+*Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* A possible next step
+(requirements questions 12 and 23). Capacity up to the 127 lessons of
+the complete curriculum is met by the `build` timeout of 150 minutes,
+not by this feature. F113 stays paused and open as a possible follow-up
+(#150 open, its branch preserved); question 12 (closing it) stays open.
+
 **Still paused by the change cycle `risk-proportionate-workflow`
 (requirements decision 39, ADR 020 decision 8, 2026-10-19):** not
 justified by lead-time evidence; Issue #150 stays open and the branch
@@ -5031,6 +5132,8 @@ not depend on the machine, and criterion 2 proves it on the hosted
 runners. If it does not hold, the feature records the evidence and stops,
 and the fallback of ADR 014 decision 11 is decided by the human as a
 revision of that record.
+
+*Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* The projections to 110 lessons and the four shards at 110 in this block are the design of their day: the full run now fits the one `build` job's timeout of 150 minutes up to 127 lessons (requirements question 23, Issue #543), and F113 stays paused, a possible next step. If it resumes, its plan projects to 127 lessons against the timeout of that day.
 
 **Detailed implementation plan expected.** Yes.
 
@@ -7585,6 +7688,12 @@ measurement branch only and is reviewed as such.
 
 ### F121 — Incremental `main` and the exceptional full run, if ADR 017 is accepted
 
+*Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* Not approved
+(requirements questions 9, 23, and 24). Capacity is met by the `build`
+timeout of 150 minutes up to 127 lessons; incremental `main` and ADR 017
+are explicitly not approved by that decision, and question 9 stays
+unresolved. Every push to `main` keeps executing every lesson.
+
 **Not started, by the change cycle `risk-proportionate-workflow`
 (requirements decision 39, ADR 020 decision 8, 2026-10-19):** ADR 017
 decisions 1 to 6 and 9 stay proposed and paused, not justified by
@@ -8695,6 +8804,13 @@ review catch regressions; nothing scientific changes.
 plan.
 
 ### F128 — The validated interactive pendulum on the home page
+
+*Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* Parked (requirements
+question 14). The interactive pendulum has no priority now. No
+interactive pendulum is added to the site; the existing implementation
+and validation code are kept unchanged; the feature is reconsidered when
+there is a concrete didactic need. No Issue is created until then. The
+block below is kept as approved.
 
 **Changed by the change cycle `site-navigation-and-atlas` (requirements
 decision 40 and unresolved question 14, 2026-10-30):** since F134 the home
@@ -9962,6 +10078,9 @@ Rules of this phase:
   flight with it: F150 is the only feature that changes
   `pbc.agents.review_lab`, and F153 uses the extended lab as it is. Issues are created just in time in this dependency
   order, and a slot is not a feature.
+
+  *Note of the owner's decision of 2026-11-13 (https://github.com/taspinar/physics-by-construction/issues/508#issuecomment-6865116429).* Those decisions are taken:
+  questions 17 and 18 are decided on #508 on 2026-11-13: the Analog Discovery 3 Pro Bundle, at most EUR 1,000; F140's physical pilot starts when the owner confirms that the device is available.
 - **The capacity gate.** No lesson feature of any phase takes the number
   of published lessons past 110 before the owner's next capacity decision
   on #278 (with #150), the bound of the owner's decision of 2026-10-24,
@@ -9974,6 +10093,12 @@ Rules of this phase:
   pages); the 17 extended lessons add none. The projection for the
   complete curriculum is in `docs/architecture.md`, "Assumptions and
   risks".
+
+  *Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* The bound is 127 lessons
+  in place of 110, the lessons needed to complete the planned
+  curriculum, with the `build` timeout at 150 minutes (requirements
+  question 23, Issue #543; the derivation and the measured runs in
+  `docs/release-readiness.md`, "Capacity at 109 lessons: the timeout raised to 150 minutes").
 - **Lessons stay lessons.** Every new or extended lesson is substantive
   and self-contained at its declared prerequisites: the physical argument,
   worked examples, runnable code, interpreted figures, exercises, and
@@ -10027,6 +10152,9 @@ Rules of this phase:
   low-voltage, bounded to the first two capstones, and called demonstrated
   only after F140's physical pilot; no purchase is made by any feature
   without the owner's decision on questions 17 and 18.
+
+  *Note of the owner's decision of 2026-11-13 (https://github.com/taspinar/physics-by-construction/issues/508#issuecomment-6865116429).* That decision is taken:
+  questions 17 and 18 are decided on #508 on 2026-11-13: the Analog Discovery 3 Pro Bundle, at most EUR 1,000; F140's physical pilot starts when the owner confirms that the device is available. No feature buys the device without it.
 - **Verification tier.** A feature that changes the curriculum file,
   `pbc.authoring`, or other shared inputs is a full run; a feature that
   changes a lesson's front matter fields of the path and the headers is
@@ -10322,6 +10450,17 @@ agent runs only on the maintainer's machine under ADR 010).
 **Detailed implementation plan expected.** Yes, short, with limits.
 
 ### F140 — One-instrument feasibility spike and physical pilot
+
+*Note of the owner's decision of 2026-11-13 (https://github.com/taspinar/physics-by-construction/issues/508#issuecomment-6865116429).* Questions 17 and 18 are
+decided: the device is the Analog Discovery 3 Pro Bundle (DigiKey NL
+471-060), with a maximum budget of EUR 1,000. The desk spike is
+delivered (pull request #509). Recorded by Issue #543 on 2026-11-15 with
+the owner's conditions of that day: the physical pilot starts only after
+the owner confirms that the device is available; the current total price
+including VAT, shipping, and the needed accessories is checked before
+any purchase; the owner buys it, the project buys nothing. The desk
+spike's budget proposal (EUR 500, or EUR 550 for the Pro Bundle) is
+superseded history. The block below is kept as approved.
 
 **Source.** Change request sections 5 and 10.1 (pilot 3); requirements
 decision 42 ("Hardware", "Pilots"), the amendment of decision 28, the
@@ -12723,6 +12862,13 @@ chosen lesson.
 
 ### F179 — Reuse of a passed verification group (conditional, requirements question 24)
 
+*Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* Parked (requirements
+question 24; recorded on #385). #385 and this feature stay parked;
+question 23 is solved by the higher timeout and the lesson limit. The
+reuse of verification groups is assessed later, on the measured time it
+saves on ordinary changes; a Level 3 final verification always runs in
+full; the decision gives no permission for incremental `main`.
+
 **Source.** The change request's Appendix A6; the owner's proposal #385;
 requirements unresolved question 24.
 
@@ -13259,6 +13405,8 @@ gates under "Phase 4"); there is no cost exception.
 | C3 | After F64 and F113: F87 after F76; F88 after F73; F89 to F95 by dependency; F96, F97, F98, F99, F100, F101; F102 to F108 through their gates | The thermal and tsunami capstones (the tsunami comparison only after its gate), quantum, astrophysics with relativity, materials, the remaining reasoning, discovery, and benchmarking lessons, and gated labs |
 | C4 | After F64 and F113: F109, F110, F111; F49 and F22 as their dependencies are met; F112 after every lesson feature of the phase | The research capstone, the last path lessons, and the completion audit, which declares completion only when no core slot is outstanding |
 
+
+*Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* The outcome of wave C0 above, "a full run that fits the timeout at 110 lessons (open: F113 paused, ADR 017 proposed, the interim gate under question 10)", is superseded history: the full run fits the one `build` job's timeout of 150 minutes up to 127 lessons, the complete planned curriculum (requirements question 23, Issue #543). F113 stays paused, a possible next step, and ADR 017 is not approved; the waves' order is unchanged.
 Phase 5, the change cycle `pbc-planning-change-four-workstreams`
 (2026-10-15), as four workstreams that run beside each other in separate
 worktrees. The budget and documentation work does not wait for the
@@ -13361,6 +13509,14 @@ capacity gate once the count would pass 110.
 | Part B, Stage C | F141; then F142 and F144; then F143; then F145. Beside them, F146 and F147; then F148 after F145 | Path 1 with the Autonomous Physics Lab, then Path 2 with the System Discovery Lab |
 | Part B, Stage D | F152 (may start after F136); F153 after F150; F154 after both; then F155. F149, then F150, then F151 (after F145) | Path 3 with the Scientific Agent Testbench, Path 4 with the Scientific Research Workspace |
 
+*Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* The capacity gate of these
+waves is 127 lessons, not 110 (requirements question 23): the gate
+"once the count would pass 110" in the paragraph above is superseded
+history, and a lesson feature waits for the owner's reassessment only
+when it would take the count past 127; F140's
+physical pilot also waits for the owner's confirmation that the device
+is available (questions 17 and 18, decided on #508 on 2026-11-13).
+
 Phase 10, the change cycle `textbook-layer` (2026-11-04), by dependency
 (the rules under "Phase 10"). F156 waits for F136 and is never in flight
 with it; F156, F157, and F158 run one after the other, since all three
@@ -13388,6 +13544,14 @@ on the owner's recorded decision.
 | Teaching 3 (calibration and integration) | F168 after F167's decision; F169 if the owner approves; F116 after F168's decision; then F127 (after F174 and F175, as its block says) | Four archetype maps; at most one further redesign; the authoring guide, template, and rubric carry the approved principles |
 | Teaching 4 (conditional rollouts) | F171 after F170's decision; F173 after F172's decision; F177 and then F178 after the owner's choices on F167 or F168 | Figure language and provenance across the site, as decided; at most two purposeful interactions |
 | Capacity (questions 23 and 24) | The owner's decision at the review of this planning; then F113, F121, or the workflow's timeout as chosen; F179 only on a yes to question 24 | A full run that fits before Part B stages C and D pass 110 lessons |
+
+*Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* Questions 23 and 24 are
+decided: the workflow's `build` timeout at 150 minutes and the lesson
+limit at 127; F113 a possible next step, F121 not approved; F179 and the
+proposal #385 parked. The Capacity row's outcome "before Part B stages C
+and D pass 110 lessons" is superseded history: the 150-minute timeout
+covers the full run up to the 127 lessons of the complete curriculum,
+stages C and D included.
 
 Features F13 (#89) and F14 (#94) are delivered with their approved scope;
 F64 keeps their progress marks and recommendations on the redesigned path.

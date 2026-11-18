@@ -1193,7 +1193,11 @@ counts and links keep running. No JavaScript physics and no illustrative
 motion until the validated interactive pendulum (F128): its browser
 implementation is tested against reference values from `src/pbc` as the
 verified display forms require for a widget that computes, and the owner
-decides the feature (requirements, unresolved question 14).
+decides the feature (requirements, unresolved question 14). Since the
+owner's decision of 2026-11-15 (Issue #543) F128 is parked: no
+interactive pendulum is added to the site, the existing implementation
+and validation code are kept unchanged, and the feature is reconsidered
+when there is a concrete didactic need.
 
 **Rendered review** (ADR 018 decision 6). Three parts for every feature
 that changes a user-facing visual surface: the implementer records
@@ -1744,7 +1748,8 @@ CSS) and is verified by the full run its targeted run reports. A batch
 feature changes the headers of its sequences' lessons, so it runs at
 least `--base`. The introduction pages execute no lesson and add little
 to the build; they are not lessons and do not count toward the capacity
-gate of 110 lessons.
+gate (127 lessons since the owner's decision of 2026-11-15, Issue #543;
+110 before).
 
 ### Teaching by construction: the teaching skill, the code a lesson shows, figure provenance, and the reading experience (teaching by construction, ADR 023, F164 to F178)
 
@@ -2100,7 +2105,7 @@ shown.
 | I23 | One canonical project description and attribution, discreet, truthful, and consistent across home (its footer and the one link to About; since Issue #481 its introduction is the owner's shorter copy without the sentence), footer, About, README, instructor packs, and citation metadata; no marketing surface, lead form, mailing list, analytics, or endorsement claim. | Built-site check that the canonical text appears where required and nowhere else (F57); review. |
 | I24 | Coding agents and Lean generation run only on the learner's machine under a sandbox profile with an allowlist, a budget, and human review. The site and CI verify the produced code, tests, and proofs and never run an agent. | Authoring rule and workflow test (F45; since the change cycle `part-b-scientific-products-and-research` F141, which carries the coding-agent workflow of the dropped F45, covering the Agentic Coding Template of the products' guided route); the boundary test F122 creates for the agent skills (I32), which F141 extends to coding agents; ADR 010, ADR 022. |
 | I25 | Every page stays within the payload budget below; heavy interactive data loads only on demand from the site's own origin. | Built-site check (F44, F43). |
-| I26 | A run on `main` executes and checks every lesson. A pull request run executes and checks every lesson whose inputs changed and every page whose bytes differ from the verified base; when the inputs of a lesson cannot be followed, when a shared input changed, or when the checks differ from those that produced the base, every lesson is executed; a page's navigation and the commit it names are never taken from the base; a comparison of bytes is made only against a result the run computed on the machine of the comparison; the selection is made by `./scripts/verify.sh` from content digests, never by a path filter in the workflow; no check is dropped; and every job of a full run fits the job timeout at 110 lessons (final curriculum). The first sentence stands until the owner accepts ADR 017 (four workstreams, requirements decision 35, unresolved question 9); the last clause is not established: at thirty-two lessons the one `build` job fits the timeout (measured), and the bound at 110 lessons is re-established by the owner's interim timeout (question 10), by F121, or by F113 resumed. | The verification script and its tests; the workflow passes a base only on pull requests (F61); the lesson shards and the assembly (F113, paused); ADR 014; ADR 017 (proposed); F118, F120, F121. |
+| I26 | A run on `main` executes and checks every lesson. A pull request run executes and checks every lesson whose inputs changed and every page whose bytes differ from the verified base; when the inputs of a lesson cannot be followed, when a shared input changed, or when the checks differ from those that produced the base, every lesson is executed; a page's navigation and the commit it names are never taken from the base; a comparison of bytes is made only against a result the run computed on the machine of the comparison; the selection is made by `./scripts/verify.sh` from content digests, never by a path filter in the workflow; no check is dropped; and every job of a full run fits the job timeout at 127 lessons (the complete planned curriculum; 110 before the owner's decision of 2026-11-15, Issue #543). The first sentence stands until the owner accepts ADR 017 (four workstreams, requirements decision 35, unresolved question 9), which the decision of 2026-11-15 does not approve; the last clause is not established: at 109 lessons the one `build` job fits the timeout of 150 minutes (measured, 52 to 93 minutes), and the bound at 127 lessons rests on the owner's interim timeout (question 10, answered on 2026-11-15 by 150 minutes) and a projection of about 108 minutes; F113 stays a possible next step. | The verification script and its tests; the workflow passes a base only on pull requests (F61); the lesson shards and the assembly (F113, paused); ADR 014; ADR 017 (proposed); F118, F120, F121. |
 | I27 | The hidden truth of a discovery environment (the law, the parameters, the invariant, the held-out worlds) is never reachable by the agent's tools, the prompt, or the displayed data; a benchmark score shown on the site is recomputed by the build from a frozen trace, with its non-agent baselines (final curriculum). Since the Part B products (ADR 022), the same holds for a product's hidden systems, withheld tests, and evaluator answers: a hidden or final evaluation states its actual isolation assumptions, a test the agent can read is not called private, the evaluator recomputes scores and resource use from the records, and a candidate's own log or reported cost is never the evaluation. | Allowlist tests of `pbc.discovery` and replay (F65); the evidence contract's tests, including a candidate that fabricates a high score and fails (F137), and the product tests (F145, F148, F151, F155); ADR 004, ADR 022. |
 | I28 | The reference curriculum has one declared source, lessons fill its slots by front matter, no slot is filled twice, and a planned slot is never shown as published or counted; the site's course-first path and its method paths are views over the canonical lesson pages (final curriculum). Since ADR 022, the reference curriculum's counts are those of its core slots (116: 81, 34, 1); an extension slot of a method path is shown as optional depth after the path's core slots and counted apart; no old slot label changes meaning, and a retired label is never reused (Part B products). | Lesson source check and path page test (F62, F64); the curriculum test of core and extension counts (F136); ADR 013, ADR 022. |
 | I29 | An applied capstone is labelled with its credibility boundary (teaching prototype, array-factor model, teaching-scale propagation model), compares with a stated reference, shows refinement and failure modes, and says which aspects are physically validated; its required path runs on the pinned stack, and any heavy tool is optional and its output a declared `modelled-reference` input (final curriculum). | Lesson source check for the required claim and figure labels; review (F76, F80, F87, F88); ADR 007. |
@@ -2281,6 +2286,9 @@ One workflow, triggered by `pull_request` and by `push` to `main`:
   the one site; the `e2e` jobs then wait for `assemble`. At 110 lessons
   that is four lesson shards; the script derives the number from the
   lesson count and a test keeps the workflow's lesson shards equal to it.
+  (F113's design, paused since 2026-10-15 and not in the workflow: a full
+  run is one `build` job, at 150 minutes up to 127 lessons since the
+  owner's decision of 2026-11-15, Issue #543.)
 - **verify** (always, also after a failure): passes only when every job
   above succeeded.
 - **deploy job** (only `push` to `main`, after verify succeeds): publish the
@@ -2311,9 +2319,9 @@ Budget (required by the requirements; rationale in ADR 003):
 |---|---|
 | Typical pull request, warm caches, wall clock | 20 minutes or less, with a base (ADR 014), by the owner's decision of 2026-10-14 (ADR 015, requirements decision 34; 12 minutes before it); 15 minutes is a non-blocking target, and every measurement records the duration and whether the target was met; the acceptance criterion of F61 at the lesson count of its day and projected to 110 lessons |
 | Cold caches (for example after a Mathlib bump) | 25 minutes or less, for a pull request |
-| Run on `main`, or any full run | Verifies everything; grows with the curriculum; no wall-clock budget, but every job of it fits the job timeout at 110 lessons (ADR 014, decision 7) |
-| One job of a full run | 35 minutes with cold caches, leaving 10 minutes of the timeout for a runner slower than any measured (history: the 35-minute budget is the planning budget of a typical full run; the 45-minute timeout it was set against is superseded: the `build` job has a timeout of 120 minutes up to 110 lessons since the owner's decision of 2026-11-04, 90 minutes from 2026-10-24); a shard of the build holds at most 32 lessons, about 27 minutes at 41 seconds per lesson over about 5 minutes of fixed cost, both derived from the slowest run F58 measured (the cold `build` job, 20 min 27 s at twenty-two lessons), so about 8 minutes under the budget on that runner; the shard size is confirmed or lowered by the per-lesson cost F61 and F113 measure on the slowest runner of their runs (ADR 014, decisions 7 and 11; F113). Since 2026-10-15: F113 is paused, the one `build` job carries thirty-two lessons in 21 to 31 minutes (measured, below), and the timeout and lesson count of an exceptional full run are the owner's decision on F118's record (requirements, unresolved question 10) |
-| Job timeout | 45 minutes per job, and for the one `build` job of a full run 120 minutes since the owner's decision of 2026-11-04 (Issue #373: a complete run on `main` at 94 lessons, `683a8b3`, took 75 minutes in the `build` job, 83 % of 90, and 110 lessons are projected at about 88 minutes, a projection; the owner's interim full-run gate, ADR 014 status, Issue #278: up to 110 lessons, the whole reference curriculum, as a planning boundary that no check enforces; the points of 75 and 95 lessons are reached, and the next decision is the owner's earlier if a complete run on `main` approaches 100 minutes, repeated runs show too little margin, or verification failures point to a capacity problem; the accepted cost is a run on `main` of up to about 120 minutes and a later publication after a merge, while pull requests are not affected); 90 minutes from 2026-10-24 (Issue #278, decided again earlier at a run approaching 80 minutes; superseded history); 60 minutes from 2026-10-15, approved for up to 45 lessons and, by the decision of 2026-10-21, for up to 64 lessons (superseded history); 30 in ADR 003; raised by the owner on 2026-10-11, kept by ADR 012, decision 9, and by ADR 014, decision 7, which bounds a full run with shards instead of raising it); unchanged by ADR 015; the timeout of the one job of an exceptional full run is reconsidered from measurements under ADR 017 and unresolved question 10 |
+| Run on `main`, or any full run | Verifies everything; grows with the curriculum; no wall-clock budget, but every job of it fits the job timeout at 127 lessons, the complete planned curriculum (ADR 014, decision 7; 110 lessons before the owner's decision of 2026-11-15, Issue #543) |
+| One job of a full run | 35 minutes with cold caches, leaving 10 minutes of the timeout for a runner slower than any measured (history: the 35-minute budget is the planning budget of a typical full run; the 45-minute timeout it was set against is superseded: the `build` job has a timeout of 150 minutes up to 127 lessons since the owner's decision of 2026-11-15, 120 minutes up to 110 lessons from 2026-11-04, 90 minutes from 2026-10-24); a shard of the build holds at most 32 lessons, about 27 minutes at 41 seconds per lesson over about 5 minutes of fixed cost, both derived from the slowest run F58 measured (the cold `build` job, 20 min 27 s at twenty-two lessons), so about 8 minutes under the budget on that runner; the shard size is confirmed or lowered by the per-lesson cost F61 and F113 measure on the slowest runner of their runs (ADR 014, decisions 7 and 11; F113). Since 2026-10-15: F113 is paused, the one `build` job carries thirty-two lessons in 21 to 31 minutes (measured, below), and the timeout and lesson count of an exceptional full run are the owner's decision on F118's record (requirements, unresolved question 10) |
+| Job timeout | 45 minutes per job, and for the one `build` job of a full run 150 minutes since the owner's decision of 2026-11-15 (Issue #543, requirements question 23: fourteen push runs on `main` at 109 lessons, 2026-11-13 to 2026-11-15, took 52 to 93 minutes in the `build` job, median 69, the slowest 78 % of 120, and 127 lessons are projected at about 108 minutes, a projection, a margin of about 42 minutes; the owner's interim full-run gate: up to 127 lessons, the lessons needed to complete the planned curriculum, as a planning boundary that no check enforces; capacity is reassessed before the next lesson batch if a complete run on `main` approaches 125 minutes, repeated runs show too little margin, or verification failures point to a capacity problem; the accepted cost is a run on `main` of up to about 150 minutes and a later publication after a merge, while pull requests are not affected; the run IDs and the derivation of 127 are in `docs/release-readiness.md`, "Capacity at 109 lessons: the timeout raised to 150 minutes"); 120 minutes from 2026-11-04 (Issue #373: a complete run on `main` at 94 lessons, `683a8b3`, took 75 minutes in the `build` job, 83 % of 90, and 110 lessons were projected at about 88 minutes; up to 110 lessons, with the re-decision point of a run approaching 100 minutes; superseded history); 90 minutes from 2026-10-24 (Issue #278, decided again earlier at a run approaching 80 minutes; superseded history); 60 minutes from 2026-10-15, approved for up to 45 lessons and, by the decision of 2026-10-21, for up to 64 lessons (superseded history); 30 in ADR 003; raised by the owner on 2026-10-11, kept by ADR 012, decision 9, and by ADR 014, decision 7, which bounds a full run with shards instead of raising it); unchanged by ADR 015; the timeout of the one job of an exceptional full run is reconsidered from measurements under ADR 017 and unresolved question 10 |
 | Unit tests | 2 minutes or less |
 | Lean build after the Mathlib cache is in place | 3 minutes or less |
 | One lesson page, executed | A warning from 30 seconds; a failure at the 60-second default limit (ADR 020 decision 6, addendum 2026-11-05) |
@@ -2406,12 +2414,14 @@ justified by lead-time evidence and stay proposed; F120 is finished (its
 evidence in `docs/incremental-main-evidence.md`, pull request #224, Issue
 #196 closed), F121 is not started, F113 stays paused and open, and they
 are reopened only at the owner's triggers (since the decision of
-2026-11-04, ADR 014 status, the `build` job at 120 minutes: a decision
-earlier if a complete run on `main` approaches 100 minutes, repeated runs
-show too little margin, or verification failures point to a capacity
-problem; the former points of 42 and 44 lessons, of 55 and 60 lessons, and
-of 75 and 95 lessons or a run approaching 80 minutes, are superseded
-history). Decisions 7 and 8, accepted and applied, are the tiers the
+2026-11-15, Issue #543, the `build` job at 150 minutes for up to 127
+lessons: capacity reassessed before the next lesson batch if a complete
+run on `main` approaches 125 minutes, repeated runs show too little
+margin, or verification failures point to a capacity problem; F113 a
+possible next step, F121 and ADR 017 not approved by it; the former points
+of 42 and 44 lessons, of 55 and 60 lessons, of 75 and 95 lessons or a run
+approaching 80 minutes, and a run approaching 100 minutes under the
+decision of 2026-11-04, are superseded history). Decisions 7 and 8, accepted and applied, are the tiers the
 workflow uses.
 
 - **Incremental `main` from a chain of verified bases** (ADR 017 decisions
@@ -2702,13 +2712,15 @@ fingerprint.
 
 **Budgets and the time log** (ADR 020 decisions 6 and 7). An exceeded
 wall-clock budget is a measurement for the owner at the chosen
-re-assessment points (since the owner's decision of 2026-11-04, ADR 014
-status, the `build` job at 120 minutes: a decision earlier if a complete
-run on `main` approaches 100 minutes, repeated runs show too little
-margin, or verification failures point to a capacity problem, with the
-job's duration and the run's total duration reported separately; the
-former points of 42 and 44 lessons, of 55 and 60 lessons, and of 75 and 95
-lessons or a run approaching 80 minutes, are superseded history); it starts no
+re-assessment points (since the owner's decision of 2026-11-15, Issue
+#543, the `build` job at 150 minutes for up to 127 lessons: capacity
+reassessed before the next lesson batch if a complete run on `main`
+approaches 125 minutes, repeated runs show too little margin, or
+verification failures point to a capacity problem, with the job's duration
+and the run's total duration reported separately; the former points of 42
+and 44 lessons, of 55 and 60 lessons, of 75 and 95 lessons or a run
+approaching 80 minutes, and a run approaching 100 minutes under the
+decision of 2026-11-04, are superseded history); it starts no
 mandatory optimisation and never changes scientific content; hard checks
 keep failing, with the table of limits `scripts/lesson-budgets.conf`: a lesson
 page that takes 30 seconds or more passes with a warning and one that takes
@@ -2844,7 +2856,7 @@ Choices the requirements left to planning, and where they are settled:
 | Eight courses, their identifiers, and where their lessons live (decisions 23 and 24) | Eight fixed course identifiers; every course a strand with the same identifier, created by its first lesson feature; the reference curriculum as declared data that lessons fill by `slot`; F15 reconciled as dropped | ADR 013; F62 |
 | The four method paths (decision 25) | A facet derived from the slot: a view over the canonical pages, no course, strand, or page of its own | ADR 013; F62, F64 |
 | Planned lessons without placeholder pages (recommended default of the change cycle) | Unfilled slots of the curriculum file, shown as planned with label and working title only, never linked or counted | ADR 013; F62, F64 |
-| Verification that scales with the curriculum (decision 30) | Content digests per lesson against the verified result of `main`, restored and never committed; the navigation and the commit of a page regenerated on every build; the checks versioned with the base; an unfollowable lesson, a shared input, or changed checks make a full run; `main` runs everything (under review by decision 35: ADR 017 proposed), in same-machine lesson shards that fit the timeout at 110 lessons (paused with F113); selection in the verification script; Lean in full | ADR 014; F61, F113 (paused); ADR 017 (proposed); F118 to F121 |
+| Verification that scales with the curriculum (decision 30) | Content digests per lesson against the verified result of `main`, restored and never committed; the navigation and the commit of a page regenerated on every build; the checks versioned with the base; an unfollowable lesson, a shared input, or changed checks make a full run; `main` runs everything (under review by decision 35: ADR 017 proposed), with the one `build` job's timeout at 150 minutes up to the 127 lessons of the complete curriculum (the owner's decision of 2026-11-15, Issue #543; the 110 lessons of the decisions of 2026-10-24 and 2026-11-04 are superseded history); same-machine lesson shards (F113) stay paused, a possible next step; selection in the verification script; Lean in full | ADR 014; F61, F113 (paused); ADR 017 (proposed); F118 to F121 |
 | Editorial voice (decision 32) | A style guide with before-and-after examples, a pilot on mechanics 01 to 05 behind the human's approval, the principles in the authoring guide, the template, and a qualitative review rubric; nothing scientific changes for style | `docs/roadmap.md`, F114, F115, F116 |
 | Learner instructions without a website build (decision 33) | Every lesson declares a tested experiment entry point; the footer names the activity and keeps its anchor; the setup page is organised by activity with the Python-only path (the project dependencies alone, `--no-dev`) separate from Lean and from live agent calls; no maintained guide instructs a rebuild or preview, and none is relocated; the experiment commands are verified under the selection rule of the page reproduction | ADR 016; F117 |
 | The typical-pull-request budget (decision 34) | 20 minutes with warm caches, 15 minutes as a target, nothing else changed | ADR 015 |
@@ -2864,7 +2876,8 @@ Choices the requirements left to planning, and where they are settled:
 | Bounded optional hardware (amendment of decision 28) | Local, optional, first two capstones only, behind `pbc.instruments` with the safety envelope outside the model; one device after the feasibility spike and the physical pilot; Part A's labs unchanged | ADR 022; I34; F140 |
 
 Unresolved questions of the requirements that stay open, with the feature
-that must settle them:
+that must settle them (a row that the owner has since decided or parked
+says so, with its date; the decisions of 2026-11-15 are Issue #543):
 
 | Unresolved question | Settled when | Effect on the architecture |
 |---|---|---|
@@ -2872,22 +2885,22 @@ that must settle them:
 | 6. Second course topic | Settled by the change cycle `final-curriculum`: the eight courses and their slots are named by the human (requirements decisions 23 and 24, ADR 013); the human still approves each course's concrete lesson list in its Issues | The eight course strands and the curriculum file (F62). |
 | 7. Release citation and DOI | When a release policy exists | `CITATION.cff` gains a DOI then (F57 leaves the field out). |
 | 8. Lean build under selective verification | By the human, with or after F61; the decision record of decision 35 (ADR 017) is the next such record | None until then: ADR 014 decision 8 keeps the Lean build in full on every pull request. |
-| 9. Incremental `main` | By the owner on ADR 017, after the evidence of F118 and F120 | None until then: every push to `main` executes every lesson (I26). If accepted, F121 changes the run on `main`, the base format, and the site's provenance record. |
-| 10. Timeout of an exceptional full run | By the owner on F118's record of the measured full runs | The interim full-run gate of the roadmap; the one `build` job's timeout for full runs. |
+| 9. Incremental `main` | By the owner on ADR 017, after the evidence of F118 and F120; unresolved and not approved by the owner's decision of 2026-11-15 on question 23 (Issue #543) | None until then: every push to `main` executes every lesson (I26). If accepted, F121 changes the run on `main`, the base format, and the site's provenance record. |
+| 10. Timeout of an exceptional full run | Answered by the owner on 2026-11-15 (Issue #543, with question 23): 150 minutes for the one `build` job of a full run, up to the 127 lessons of the complete curriculum, on the measured runs of `docs/release-readiness.md`, "Capacity at 109 lessons: the timeout raised to 150 minutes" | The interim full-run gate of the roadmap; the one `build` job's `timeout-minutes: 150` in `.github/workflows/ci.yml`. |
 | 11. Scheduled full audits | Not authorised; the owner decides on ADR 017's analysis if ever | None unless approved. |
-| 12. Closing F113 | By the owner once question 9 is decided; F120 proposes it on Issue #150 | None: the branch and the closed pull request stay as a record either way. |
+| 12. Closing F113 | By the owner once question 9 is decided; F120 proposes it on Issue #150. Still open after the owner's decision of 2026-11-15 (Issue #543): F113 stays a possible follow-up | None: the branch and the closed pull request stay as a record either way. |
 | 13. Which third-party skills pass the audit | Per candidate, by the audit of F122 and the owner's approval of each outcome (vendored, adapted, or dropped) | None for the site; the skills directory and the skills configuration check of ADR 019 hold whatever passes. |
-| 14. The validated interactive pendulum | By the owner, as its own feature (F128) after the numerical validation and the cross-language reference check exist; since decision 40 also where (the mechanics course or "How we verify the science") | Since F134 the home opening is the hero, not the pendulum figure; if decided, a widget that computes in the browser under the verified display forms, on the page the owner names. |
+| 14. The validated interactive pendulum | Parked by the owner on 2026-11-15 (Issue #543): no interactive pendulum is added to the site; the existing implementation and validation code are kept unchanged; F128 is reconsidered when there is a concrete didactic need (before: by the owner, as its own feature after the numerical validation and the cross-language reference check exist, and since decision 40 also where) | None: the home opening is the hero (F134), and no widget is added. If reconsidered, a widget that computes in the browser under the verified display forms, on the page the owner names. |
 | 15. A Manim pilot | Not scheduled; starts only when the owner names one explanation where a static figure is inadequate | None; a pilot's dependencies stay outside the pinned learner and CI environments and its rendering out of normal CI. |
 | 16. A contribution form without a GitHub account | By the owner, as its own decision; a yes amends "No backend or runtime server" and "no runtime secrets" through its own change and Issue | None until then: I1 holds, and F135's links to GitHub's forms are the only route. |
-| 17. Instrument and accessories | By the owner, on the desk spike of F140 (drivers, Python access, limits, bill of materials, cost; no purchase), which depends only on F138; the physical pilot of F140 follows the decision | None until then: the live adapter is not written beyond a fake driver, and no hardware support is claimed. |
-| 18. Acquisition budget | By the owner, on the desk spike of F140 and before any purchase; F140's physical pilot starts only after it and question 17 | None. |
+| 17. Instrument and accessories | Decided by the owner on #508 on 2026-11-13 (<https://github.com/taspinar/physics-by-construction/issues/508#issuecomment-6865116429>), on the desk spike of F140: the Analog Discovery 3 Pro Bundle (DigiKey NL 471-060). F140's physical pilot starts only after the owner confirms the device is available | None until the pilot: the live adapter is not written beyond a fake driver, and no hardware support is claimed. |
+| 18. Acquisition budget | Decided by the owner on #508 on 2026-11-13: a maximum of EUR 1,000. The current total price including VAT, shipping, and the needed accessories is checked before any purchase; the owner buys, the project buys nothing. The desk spike's proposal of EUR 500 or 550 is superseded history | None. |
 | 19. Optional dependency packaging | In F138, for the slice, and extended by each product feature | One optional group per product or concern in `pyproject.toml`, never installed by the build or CI. |
 | 20. Final curriculum labels and primary course homes | Proposed by ADR 022 (SA, MD, AE, RR); settled by the owner's approval of the curriculum file in F136; each new lesson's primary course in its feature's Issue | The curriculum file and the front matter of the moved lessons (F136). |
 | 21. Frontend of the local products | In F138, with evidence, within ADR 022 decision 5 | The local interface of `pbc.products`; none for the site. |
 | 22. First reproduction paper and learner workload | The paper in F155 (its reproduction track); the workload after F138 and F139 | None; the products' material states workload only after the pilots. |
-| 23. Capacity beyond 110 lessons | By the owner at the review of this planning, on the measurements and costed options of `docs/roadmap.md`, "State at the change cycle `teaching-by-construction`" (shards, F113; incremental `main`, ADR 017 and F121; a further timeout; or keeping the cap); before Part B stages C and D | Shards change the `build` job into a matrix and an assembly (ADR 014 decision 11); incremental `main` changes the run on `main` and the deploy (ADR 017, which would then be accepted); a further timeout changes one line of the workflow; keeping the cap changes nothing and holds the lessons at 110. Settles how questions 9, 10, and 12 proceed. |
-| 24. Reuse of a passed verification group (#385) | By the owner with question 23; if planned, F179 defines the inputs of a group, where passes are stored, and when reuse is forbidden | None until then; if planned, a passed group's result is reused only on unchanged inputs and the same checks, and a Level 3 final verification always runs in full (ADR 020). |
+| 23. Capacity beyond 110 lessons | Decided by the owner on 2026-11-15 (Issue #543), on the measurements and costed options of `docs/roadmap.md`, "State at the change cycle `teaching-by-construction`": a further timeout, 150 minutes for the `build` job, and the lesson limit at exactly 127, the lessons needed to complete the planned curriculum, with the derivation, the measured runs, and the reassessment trigger recorded in `docs/release-readiness.md`, "Capacity at 109 lessons: the timeout raised to 150 minutes". Full verification on every push to `main` stays; F113 stays a possible next step; incremental `main` (F121) and ADR 017 are not approved. For question 9: unresolved and not approved; 10: answered by 150 minutes up to 127 lessons; 12: open, F113 a possible follow-up | One line of the workflow (`timeout-minutes: 150` of the `build` job) and this document's record; the run on `main` and the deploy are unchanged (I26). |
+| 24. Reuse of a passed verification group (#385) | Parked by the owner on 2026-11-15 (Issue #543, recorded on #385): #385 and F179 stay parked; the reuse of verification groups is assessed later on the measured time saved on ordinary changes; a Level 3 final verification always runs in full; no permission for incremental `main` | None; if planned later, a passed group's result is reused only on unchanged inputs and the same checks, and a Level 3 final verification always runs in full (ADR 020). |
 
 ## Assumptions and risks
 
@@ -2983,13 +2996,26 @@ that must settle them:
   75 and 95 lessons are reached. 110 lessons stay a planning boundary that
   no check enforces, the next decision is the owner's earlier if a
   complete run on `main` approaches 100 minutes, and a run on `main` can
-  now last up to about 120 minutes. The routes past it are
+  now last up to about 120 minutes (superseded history: the 110 lessons,
+  the 120 minutes and the point of 100 are replaced by the decision of
+  2026-11-15 below). The routes past it are
   F121 (inherited results on `main`, if the owner accepts ADR 017) or
   F113 resumed; both stay paused and neither is started by the
   extensions. The
   80 minutes at 110 lessons projected from the 2026-10-12 cost are
   superseded by the projection of 73 to 86 minutes from the measured runs
-  (2026-10-24).
+  (2026-10-24). On 2026-11-15 (Issue #543, requirements question 23) the
+  owner raised the `build` job's timeout from 120 to 150 minutes and the
+  lesson limit from 110 to 127, the lessons needed to complete the
+  planned curriculum: at 109 lessons the job took 52 to 93 minutes in
+  fourteen runs on `main`, and the slowest projects to about 108 minutes
+  at 127 lessons (a projection). 127 is a planning boundary that no check
+  enforces; capacity is reassessed before the next lesson batch if a
+  complete run on `main` approaches 125 minutes, repeated runs show too
+  little margin, or verification failures point to a capacity problem;
+  a run on `main` can now last up to about 150 minutes. Full verification
+  on every push to `main` stays; F113 stays a possible next step, and
+  F121 and ADR 017 are not approved by that decision.
 - **Inherited results are a weaker guarantee than execution on the
   published commit.** If the owner accepts ADR 017, an input the digest
   does not follow or an environment difference the identity does not
@@ -3165,7 +3191,15 @@ that must settle them:
   of #412 (95 lessons; a run on `main` near 80 minutes) are met. The
   decision is requirements question 23; its options and costs are in
   `docs/roadmap.md`, "State at the change cycle
-  `teaching-by-construction`".
+  `teaching-by-construction`". The owner decided it on 2026-11-15 (Issue
+  #543): the `build` timeout at 150 minutes and the lesson limit at
+  exactly 127 (109 published, 13 taught lessons and 4 product capstones
+  in the empty core slots, and the Lean lesson of F22; the extension
+  lessons of F97 and F110 only if the owner schedules them), with the
+  measured runs, the projection of about 108 minutes, and the
+  reassessment trigger recorded in `docs/release-readiness.md`, "Capacity at 109 lessons: the timeout raised to 150 minutes".
+  The gate before a lesson feature takes the count past 110, and the
+  120-minute timeout above, are therefore superseded history.
 - **A teaching pilot may change science by accident** (teaching by
   construction). Moving a derivation, a figure, or an experiment can
   change what a sentence claims or which guard a displayed fragment

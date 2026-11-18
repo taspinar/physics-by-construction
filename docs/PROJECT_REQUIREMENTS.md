@@ -2574,6 +2574,10 @@ Questions 1 to 4 and 6 are settled. They keep their numbers, because other
 documents refer to them; questions 5, 7, 8, 9 to 12, 13 to 16, and 17 to
 24 are open.
 
+*Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* Questions 10 and 23 are
+decided, 14 and 24 are parked, and 17 and 18 were decided on #508 on
+2026-11-13 (the notes under each question); 9 and 12 stay open.
+
 1. **Default LLM provider for agent lessons.** Settled in F09: OpenAI is the
    default live provider, as an optional dependency behind the thin provider
    interface, which stays the swap point (ADR 004).
@@ -2613,11 +2617,20 @@ documents refer to them; questions 5, 7, 8, 9 to 12, 13 to 16, and 17 to
    2026-10-19), the record was amended without being accepted, and by
    decision 39 it stays paused until the owner's triggers (42 lessons
    measured, 44 decided, or a complete `main` run above 45 minutes).
+
+   *Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* Not approved by the
+   decision on question 23: question 9 stays unresolved, and every push
+   to `main` keeps executing every lesson.
 10. **Timeout of an exceptional full run.** The per-job timeout and the
     budget of a complete verification at representative larger lesson
     counts are set from measurements under decision 35, not from the
     45-minute timeout alone and not from projections; the owner approves
     the value.
+
+    *Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* Answered with question
+    23: 150 minutes for the one `build` job of a full run, up to the 127
+    lessons of the complete curriculum, on the measured runs of
+    `docs/release-readiness.md`, "Capacity at 109 lessons: the timeout raised to 150 minutes".
 11. **Scheduled full audits.** Not authorised. If the planner recommends
     one, it names the precise defect it detects, why event-driven checks
     cannot detect it, its cost, and the residual risk, and the owner
@@ -2626,6 +2639,9 @@ documents refer to them; questions 5, 7, 8, 9 to 12, 13 to 16, and 17 to
     with its branch preserved; the planner proposes how the Issue is
     closed or superseded, non-destructively, once the replacement decision
     of question 9 is taken.
+
+    *Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* Still open after the
+    decision on question 23: F113 stays a possible follow-up.
 13. **Which third-party skills pass the audit.** Decision 38 names the
     candidates and their policy; whether Impeccable, Anthropic Frontend
     Design, and Diagram Design are vendored, adapted, or dropped is
@@ -2640,6 +2656,12 @@ documents refer to them; questions 5, 7, 8, 9 to 12, 13 to 16, and 17 to
     as its own feature after the numerical validation and the
     cross-language reference check of decision 36 exist; the verified
     implementation is kept meanwhile.
+
+    *Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* Parked: the interactive
+    pendulum has no priority now; no interactive pendulum is added to the
+    site; the existing implementation and validation code are kept
+    unchanged; F128 is reconsidered when there is a concrete didactic
+    need.
 15. **A Manim pilot.** Not scheduled. It starts only when the owner names
     one concrete explanation where a static figure is inadequate
     (decision 38), with its rendering time, dependency burden, asset
@@ -2661,8 +2683,20 @@ the curriculum mapping.
 17. **Instrument and accessories.** The exact device (for example Analog
     Discovery or Red Pitaya) and its accessories, decided on the
     feasibility spike and the physical pilot.
+
+    *Note of the owner's decision of 2026-11-13 (https://github.com/taspinar/physics-by-construction/issues/508#issuecomment-6865116429).* Decided on the desk
+    spike: the Analog Discovery 3 Pro Bundle (DigiKey NL 471-060). Recorded
+    by Issue #543 on 2026-11-15: the physical pilot of F140 starts only
+    after the owner confirms the device is available.
 18. **Acquisition budget.** The total hardware cost the owner accepts;
     no purchase is authorised until the owner decides it.
+
+    *Note of the owner's decision of 2026-11-13 (https://github.com/taspinar/physics-by-construction/issues/508#issuecomment-6865116429).* A maximum of EUR 1,000.
+    Recorded by Issue #543 on 2026-11-15: the current total price
+    including VAT, shipping, and the needed accessories is checked before
+    any purchase; the owner buys, the project buys nothing. The desk
+    spike's proposal (EUR 500, or EUR 550 for the Pro Bundle) is
+    superseded history.
 19. **Optional dependency packaging.** How the optional dependencies of the
     products (drivers, measurement frameworks, discovery engines, model
     providers) are grouped and pinned without entering the required
@@ -2695,7 +2729,26 @@ at the review of the planning, on the planner's fresh measurements
     the options: shards, incremental `main`, a further timeout, or keeping
     the cap. The decision is needed before Part B stages C and D, and it
     also settles how questions 9, 10, and 12 proceed.
+
+    *Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* The `build` timeout is
+    raised to 150 minutes, and the lesson limit becomes 127 in place of
+    110, the exact number of lessons needed to complete the planned
+    curriculum (109 published, 17 for the empty core slots, and the Lean
+    lesson of F22; derived line by line, with the measured run times, in
+    `docs/release-readiness.md`, "Capacity at 109 lessons: the timeout raised to 150 minutes"). Full verification on every push to `main` stays. Capacity is
+    reassessed before the next lesson batch if the margin becomes
+    insufficient. F113 stays a possible next step; incremental `main`
+    (F121) and ADR 017 are not approved. So question 9 stays unresolved
+    and not approved; question 10 is answered by 150 minutes for the one
+    `build` job up to 127 lessons; question 12 stays open, F113 remaining
+    a possible follow-up.
 24. **Reuse of a passed verification group (#385).** Whether the parked
     proposal is planned: what counts as a group's inputs, where passes are
     stored, and when reuse is forbidden, with a Level 3 final verification
     always running in full. The planner presents it with question 23.
+
+    *Note of the owner's decision of 2026-11-15 (https://github.com/taspinar/physics-by-construction/issues/543#issuecomment-6902942907).* Parked: #385 and F179
+    stay parked; the reuse of verification groups is assessed later on
+    the measured time saved on ordinary changes; a Level 3 final
+    verification always runs in full; the decision gives no permission
+    for incremental `main`.

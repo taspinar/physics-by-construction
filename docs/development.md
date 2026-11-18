@@ -185,22 +185,27 @@ whole run, the 20 minutes of a pull request (ADR 015), the planning budget
 of a full run, or a complete run on `main` above 45 minutes, is a
 measurement for the owner when it is exceeded, not a failed gate and not a
 mandate to optimise: the owner decides at the re-assessment points, choosing
-from the responses of ADR 003 decision 6. The interim full-run gate covers
+from the responses of ADR 003 decision 6. The interim full-run gate covered
 110 lessons, the whole reference curriculum (the owner's decision of
-2026-10-24, ADR 014 status, Issue #278), and since the owner's decision of
-2026-11-04 (Issue #373) the `build` job's timeout is 120 minutes, in place
+2026-10-24, ADR 014 status, Issue #278), and from the owner's decision of
+2026-11-04 (Issue #373) the `build` job's timeout was 120 minutes, in place
 of the 90 minutes of 2026-10-24: a complete run on `main` at 94 lessons
 (`683a8b3`) took 75 minutes in the `build` job, 83 % of 90, and 110
-lessons are projected at about 88 minutes (a projection). The points of 75
-and 95 lessons are reached; the next decision is the owner's earlier when a
-complete run on `main` approaches 100 minutes, repeated runs show too little
-margin, or verification failures point to a capacity problem, with the job's
-duration and the run's total duration reported separately (the former points
-of 42 and 44 lessons, of 55 and 60 lessons under the decision of 2026-10-21,
-and a run approaching 80 minutes under the decision of 2026-10-24, are
-superseded history). The 110 lessons are a planning boundary, not a check.
-The owner accepted the cost: a run on `main` can last up to about 120
-minutes, so the publication after a merge comes later; a pull request is not
+lessons are projected at about 88 minutes (a projection). Since the
+owner's decision of 2026-11-15 (Issue #543, requirements question 23) the
+timeout is 150 minutes and the gate covers 127 lessons, the lessons needed
+to complete the planned curriculum: fourteen complete runs on `main` at 109
+lessons took 52 to 93 minutes in the `build` job, and 127 lessons are
+projected at about 108 minutes (a projection). Capacity is reassessed before
+the next lesson batch when a complete run on `main` approaches 125 minutes,
+repeated runs show too little margin, or verification failures point to a
+capacity problem, with the job's duration and the run's total duration
+reported separately (the former points of 42 and 44 lessons, of 55 and 60
+lessons under the decision of 2026-10-21, a run approaching 80 minutes under
+the decision of 2026-10-24, and a run approaching 100 minutes under the
+decision of 2026-11-04, are superseded history). The 127 lessons are a
+planning boundary, not a check. The owner accepted the cost: a run on `main`
+can last up to about 150 minutes, so the publication after a merge comes later; a pull request is not
 affected, since it pays for what it changes. `docs/release-readiness.md` records the
 measurements.
 
