@@ -73,9 +73,11 @@ data can exist only once at least ten features have gone through review on
 the new contract.
 
 **Baseline.** The study behind the template's step (Agent Codeyard #296,
-commit `f6301b2`): in this repository 25 findings of round 2 and later in 17 features, of
-which *unresolved* plus *introduced by a repair* made up 9 of 25 (with proven
-origin only, 7 of 17). Add the features since then that have review
+commit `f6301b2`), made in the template repository (Agent Codeyard), not
+in this one: 25 findings of round 2 and later in 17 features, of which
+*unresolved* plus *introduced by a repair* made up 9 of 25 (with proven
+origin only, 7 of 17). These are the template's figures; this repository's
+own baseline still has to be counted from its features with review
 comments, among them #543, which needed four review rounds for one class of
 defect (stale gates of 110 lessons) because each fix repaired only the place
 the finding named.
