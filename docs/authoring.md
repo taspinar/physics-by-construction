@@ -1868,6 +1868,46 @@ To use another provider, write one client module that reads its own key
 variable and change `PROVIDER` in `src/pbc/agents/providers.py`; the lesson
 page explains it. Only that provider's key is needed then.
 
+## Coding-agent exercises
+
+A coding-agent exercise lets the learner drive a coding agent of their own
+choice, on their own machine, from a specification to tested code (ADR 010,
+invariant I24). It is a different thing from an agent lesson: the build
+replays nothing, and the site never runs, installs, or holds a credential
+of a coding agent. `docs/coding-agent-workflow.md` defines the workflow;
+`site/lessons/mechanics/09-verifying-scientific-code/index.qmd` is the
+example to copy.
+
+What a lesson with such an exercise has:
+
+- **`coding-agents` among its `methods`**, beside the method of the lesson
+  itself.
+- **The specification on the page**, in the parts of the workflow document
+  (physics, assumptions, interface, units, claim, the tests the result must
+  pass, what is not allowed).
+- **A reference solution and its tests** in `src/pbc` and `tests/unit`,
+  verified like all code, and **the provided tests** as checks in the
+  evidence form of `docs/validation-contract.md`, each shown to fail on a
+  subject known to be wrong.
+- **The sandbox profile and the review rubric in full** on the page, as the
+  workflow document states them, not by a link alone.
+- **What the build runs, stated at once**: the reference solution and the
+  checks. A submission the page verifies is a stand-in the build can run
+  (a deliberately faulty solution), and the page says so.
+- **The exercise itself marked "not verified"**: its commands name what they
+  need on a `# needs:` line, name no agent as a requirement, and the
+  solution promises no success.
+- **A transcript only as an example**: inside a "not verified" block that
+  names the agent with its version or model and the date, says how it was
+  shortened, and says whether the profile was enforced or given as
+  instructions. No transcript is committed as a file, and none is read by
+  the build. Code an agent wrote in a session is not committed with the
+  lesson.
+
+`tests/unit/test_coding_agent_boundary.py` fails when a file of the build,
+the checks, or CI starts a coding agent or names its credential, and when
+the transcript of the example lesson loses its marker.
+
 ## Discovery lessons
 
 A lesson of the law-discovery or agent-benchmark paths uses `pbc.discovery`; it
