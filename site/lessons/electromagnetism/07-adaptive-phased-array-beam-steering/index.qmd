@@ -345,7 +345,7 @@ $\sin\psi$:
 
 ```{python}
 #| echo: false
-excerpt(experiment.model_checks, lines=[(6, 10), (13, 22), (34, 42), (68, 78)])
+excerpt(experiment.model_checks, lines=[(6, 11), (13, 22), (34, 42), (68, 79)])
 ```
 
 ```{python}
