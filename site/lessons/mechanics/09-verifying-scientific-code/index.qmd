@@ -4,7 +4,9 @@ description: >-
   How a piece of simulation code is shown to be right or wrong: independent
   tests from limits, conservation, and convergence, six deliberately faulty
   steppers that the tests must catch, and the written contract that says what
-  a verifier checks, in what order, and with what evidence.
+  a verifier checks, in what order, and with what evidence; then a model
+  turned into tested code, and the checks and the review of code a coding
+  agent wrote.
 lesson:
   id: verifying-scientific-code
   strand: mechanics
@@ -14,11 +16,13 @@ lesson:
   slot: SA2
   preview: fig-verification-convergence
   experiment: pbc.mechanics.experiments.verifying_scientific_code
-  methods: [simulation]
+  methods: [simulation, coding-agents]
   outcomes:
     - Test a simulation against limits, conservation, and convergence with references independent of the code
     - Catch a deliberately faulty stepper with a named test and explain why other tests miss it
     - Evaluate a piece of code against a stated claim, with the evidence in a fixed form
+    - Turn a physical model into code with a specification, and check its limits, convergence, units, and energy balance
+    - Verify and review code a coding agent wrote, under a sandbox profile, a budget, and a rubric
   related: []
   prerequisites:
     lessons: [numerical-integrators, energy-conservation]
@@ -28,9 +32,10 @@ lesson:
 
 ```{python}
 #| echo: false
-from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
+from pbc.mechanics import resonance
 from pbc.mechanics.experiments import verifying_scientific_code as experiment
-from pbc.verification import checks, estimates
+from pbc.verification import checks, driven, estimates, faulty_driven
 
 result = experiment.run()
 lesson_header()
@@ -56,6 +61,12 @@ as the *Scientific validation contract*, in the file
 `docs/validation-contract.md` of the repository. The lesson follows the
 contract and names it where it applies; the multi-agent review of a later
 lesson and the rubric for code written by an agent use the same contract.
+
+The second half of the page takes the contract to where it is needed most.
+A model the tests were not written for, the damped driven oscillator, is
+turned into code from a written specification and checked, and then the same
+specification is handed to a coding agent, whose output is checked and
+reviewed in the same way.
 
 ## Assumptions
 
@@ -367,6 +378,420 @@ print(result.output("report"), end="")
 The last two lines are part of the report. The tests were run on one model,
 and a claim about another is not supported until it is run there.
 
+## From a model to tested code {#model-to-code}
+
+The second exercise below ends on a warning: the linear oscillator cannot
+show a fault that needs a force depending on the velocity or on the time.
+Every test so far ran on a model chosen because it is easy. The models worth
+simulating are not, and their code is written by someone, or something,
+other than the person who has to trust it. So take a model with both kinds
+of force, write down what its code must do before any code exists, and find
+out which of the five tests carry over.
+
+### The model and its specification
+
+A mass $m$ on a spring of constant $k$ moves against a linear drag $b$ and
+is pushed by a force that oscillates with the angular frequency $\Omega$:
+
+$$
+m\,\ddot x + b\,\dot x + k\,x = F_0 \cos(\Omega t).
+$$
+
+The drag depends on the velocity and the driving force on the time. The
+lesson *Resonance and driven oscillators* studies what this system does;
+here it is only the subject of the tests, and all that is needed from that
+lesson is that the motion has a closed form: after a decaying start the mass
+swings at the driving frequency with a known amplitude.
+
+The specification of the code has five parts, in the form the coding-agent
+workflow of this project gives to every such task
+(`docs/coding-agent-workflow.md` in the repository).
+
+- **Physics.** The equation above.
+- **Assumptions.** Motion along one line; constant $m$, $k$, $b$, $F_0$,
+  and $\Omega$; drag linear in the velocity and against it; the time in the
+  cosine is the time of the state, not the time since the first step.
+- **Interface.** One function,
+  `simulate_driven(initial, mass, k, b, force, omega, dt, n_steps)`, that
+  returns the initial state and the state after every step, and refuses a
+  mass, a spring constant, or a time step that is not positive and a drag
+  that is negative.
+- **Units.** SI: kg, N/m, kg/s, N, rad/s, s. The frequency is an angular
+  frequency. This line is not a formality: five parameters carry five
+  different units, and two of the faults below are unit mistakes.
+- **The tests the result must pass.** Four checks of the contract, under
+  the claim that the method is of order four.
+
+The physics becomes code term by term. The driving force is a function of
+the time, like every force of this course:
+
+```{python}
+#| echo: false
+excerpt(resonance.driving_force)
+```
+
+and the simulation adds it to the spring and the drag, divides by the mass,
+and steps with the classical Runge-Kutta method:
+
+```{python}
+#| echo: false
+excerpt(resonance.simulate_driven)
+```
+
+This function is the reference solution. The course has used the same
+computation since the resonance lesson; here it is the subject under test.
+
+### Which of the five tests carry over?
+
+`clock` and `purity` test a stepper and stay as they are. `limits` and
+`convergence-order` keep their names and get references of this model.
+`bounded-energy` has no meaning here: the drag removes energy and the drive
+supplies it, so nothing is conserved.
+
+Before adding anything, try what already exists. Two of the six faulty
+steppers passed every physical test on the oscillator: the stopped clock,
+caught only by `clock`, and the stepper that remembers, caught only by
+`purity`. Put each inside the simulation of the driven oscillator, claim
+order two as for velocity Verlet, and run the model's checks, which the next
+section describes. The force now depends on the time. Decide, before you
+look, which of the two faults becomes visible in the motion.
+
+```{python}
+#| echo: false
+excerpt(experiment.steppers_on_the_model, lines=(6, 13))
+```
+
+```{python}
+#| echo: false
+result.table("steppers-on-the-model")
+```
+
+The stopped clock is no longer an interface fault that happens to be
+harmless. Its force is evaluated at the same instant for ever, the motion is
+wrong, and two checks say so. The stepper that remembers still passes: each
+simulation takes its steps one after another on a stepper of its own, which
+is the one way of calling it that hides the leak. The model's checks did not
+make `purity` unnecessary.
+
+### The four checks of the model
+
+1. **`limits`.** Three cases with a closed form. At rest with no force the
+   mass stays at rest. Under a constant force, $\Omega = 0$, it stays at
+   the static deflection $F_0/k$. Both hold exactly for any method, because
+   the acceleration is zero. With no driving force the motion is the free
+   decay, known in closed form, and the simulation must follow it within a
+   tolerance fixed for a method of order two or more.
+2. **`convergence-order`.** Against the exact driven motion, halving the
+   step divides the error by two to the claimed order.
+3. **`units`.** New. Write the same experiment in grams, then in
+   centimetres, then in milliseconds, converting every number by the power
+   of the unit it carries, and convert the result back. The motion must be
+   the same. A term with the wrong unit changes when the unit does.
+4. **`energy-balance`.** New, and in the place of `bounded-energy`. The
+   energy is not conserved, but its change is accounted for:
+   $$
+   \frac{\mathrm{d}}{\mathrm{d}t}\Bigl(\tfrac12 m v^2 + \tfrac12 k x^2\Bigr)
+   = F_0 \cos(\Omega t)\,v - b\,v^2 .
+   $$
+   The left side follows from multiplying the equation of motion by $v$.
+   Integrated over the run, the change of the energy must equal the work of
+   the drive minus what the drag dissipated. The check computes both
+   integrals from the simulated motion and needs no exact solution, which
+   is what remains when a model has none.
+
+The unit check is the least familiar, so here is the whole of its
+measurement. Each line of the converted call multiplies a number by the
+factors its unit holds: a spring constant in N/m is a mass over a time
+squared.
+
+```{python}
+#| echo: false
+excerpt(driven.rescaled, lines=(8, 23))
+```
+
+The energy balance is the equation above, term for term:
+
+```{python}
+#| echo: false
+excerpt(driven.energy_balance)
+```
+
+A claim of order one is refused by these checks. The tolerances of the free
+decay and of the balance were fixed for a method of order two or more, and
+a first-order method measured against them would fail for being what it
+says it is. A tolerance belongs to a claim.
+
+### The reference solution passes
+
+```{python}
+#| echo: false
+result.table("driven-findings")
+```
+
+Every check passes, with the tolerances fixed in the module before this
+cell ran. Values at the level of round-off are shown as below their bound,
+because their digits differ from one machine to the next.
+
+```{python}
+#| label: fig-driven-limits
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Two limits of the reference solution. Without a driving force the simulated motion stays inside the decaying envelope of the closed form. Driven steadily, its amplitude lies on the closed-form curve at every frequency tried and meets the static deflection as the driving slows."
+#| fig-alt: "Two panels, one above the other. The upper panel plots position in metres against time in seconds for the motion without a driving force: an oscillation that shrinks, between two dotted envelope curves that close in on zero. The lower panel plots amplitude in metres against driving frequency in radians per second: a dashed closed-form curve that starts at the level of a dotted horizontal line labelled static deflection, rises to a peak near the natural frequency, and falls below the line; seven simulated points lie on the curve."
+result.show("fig-driven-limits")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_driven_limits, figure=True)
+```
+
+The upper panel is the third case of `limits` as a picture. The lower panel
+is a limit the check does not run, because it needs a long simulation at
+each frequency: the steady amplitude, measured on the simulation, against
+the formula of the resonance lesson. Both references are closed forms of
+the model, computed without the simulation.
+
+```{python}
+#| label: fig-driven-convergence
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Largest error against the exact driven motion over two periods, against the time step. The reference solution follows slope four and the same simulation stepped with velocity Verlet slope two; the simulation that holds the driving force fixed within a step follows slope one, whatever its stepper claims."
+#| fig-alt: "Log-log plot of the error in metres against the time step in seconds, with three series. The reference solution is lowest and steepest, parallel to a dotted line labelled slope 4. Velocity Verlet lies above it with a smaller slope. The series labelled drive frozen lies highest and is the flattest, parallel to a dotted line labelled slope 1."
+result.show("fig-driven-convergence")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_driven_convergence, figure=True)
+```
+
+The dotted lines are reference slopes for comparison, not fits. The errors
+are distances from the closed-form motion, so the figure shows that the code
+solves this equation at these steps; it does not show that the equation
+describes a real oscillator.
+
+### Four faulty simulations
+
+As with the steppers, the checks are worth what they catch. Four
+simulations, each the reference solution with one mistake of the kind made
+when a model becomes code. Two of them:
+
+```{python}
+#| echo: false
+excerpt(faulty_driven.drive_not_divided_by_mass)
+```
+
+```{python}
+#| echo: false
+excerpt(faulty_driven.drive_frozen_within_the_step)
+```
+
+```{python}
+#| echo: false
+result.table("faulty-simulations")
+```
+
+Each fault fails a check, and the reference solution fails none. The
+patterns can be read like those of the steppers.
+
+- *Drive frozen within the step* is correct in every limit and under every
+  change of units. The method has four stages and the force is computed for
+  the first. Only the checks that measure accuracy see it: the order is one,
+  and the balance does not close. A reader of the code would look at this
+  line and see a force at a time.
+- *Frequency in hertz* is the unit mistake that the unit check cannot find.
+  A factor of $2\pi$ has no unit, so the motion converts correctly from
+  grams to kilograms. It is found because the specification said "angular
+  frequency" and the exact motion was computed for one.
+- *Drag with the wrong sign* fails the first limit that has a drag in it:
+  the free motion grows.
+- *Drive not divided by the mass* fails everything here. That it does is
+  owed to a decision made before any code was run.
+
+### A fault that hides at a convenient value
+
+The mass of the checks is half a kilogram. Suppose it had been one kilogram,
+the value a test is most likely to be written with.
+
+```{python}
+#| echo: false
+result.table("unit-mass")
+```
+
+At a mass of one kilogram the missing division changes nothing, and the
+simulation converges to the exact motion at fourth order: a wrong program
+that passes its sharpest test. The unit check finds it at any mass, and it
+names the unit: the motion changes with the unit of mass and with no other,
+which says where in the code to look. The parameters of the checks are
+deliberately not round numbers, and a test asserts that none of them is one.
+
+## Code a coding agent wrote {#coding-agent}
+
+The specification above was written for a reader who does not share your
+history with the code. A coding agent is such a reader: a program that
+takes a task in words, writes files, and runs commands. The kind of evidence
+in this section has to be stated first, because it is of two kinds. What the
+build runs is the reference solution, the checks, and the faulty
+simulations: results of this page, computed again with every build. What an
+agent did is a record of one session, shown once below and marked "not
+verified". This site never runs a coding agent, in its build or in its
+checks, and holds no credential of one.
+
+Everything needed to check an agent's work already exists. The claim came
+with the task. The checks are the four above. What is new is that the
+author of the code will run commands on your machine, and that the code
+arrives with a confident summary. The first calls for a sandbox, the second
+for a rubric.
+
+### The sandbox profile
+
+The profile is the same for every coding-agent exercise of this project.
+Set it up before the agent starts; each rule names what it prevents.
+
+1. **A scratch checkout.** The agent works in a fresh clone or an empty
+   directory, never in a checkout you care about. A wrong command then
+   costs a directory you can delete.
+2. **An allowlist of commands.** The agent may run the tests, the
+   formatter, and the task's own scripts, and nothing else: no installer,
+   no version control, no shell beyond those commands. Most agents can be
+   configured to ask before any other command; refuse. Without a container
+   or a separate machine this is a setting of the agent, not a limit your
+   machine enforces.
+3. **No network beyond the agent's own provider.** The task needs none. An
+   agent that fetches a package or a page has left the specification. Like
+   the allowlist, this holds only where a container, a firewall, or a
+   separate machine enforces it.
+4. **The credential stays in your environment.** The agent's account and
+   key are yours, kept where its own documentation says, never in a file of
+   the checkout and never in a prompt. The agent's commands run as you, so
+   every credential in your environment variables is readable to them, not
+   only the agent's own key: start the agent in a shell that holds no other.
+   A credential stored in a file the agent's commands can read (an SSH key,
+   the configuration of a cloud tool, a stored Git credential, the agent's
+   own login) is just as readable to them, wherever the checkout is: only a
+   container or a separate machine keeps such a file out of reach.
+5. **A budget, set before the start.** A number of steps or tool calls, a
+   time, and a cost. When it is spent the session ends, passed or not. This
+   is the stopping condition of the lesson on experiment specifications,
+   for the same reason.
+6. **Read every diff before you run it.** The tests execute the agent's
+   code. Read what was written first, and never run a command the agent
+   proposes on a checkout that matters. This covers what you run. It does
+   not cover the code the agent runs itself while it works, such as the
+   tests it runs on its own draft: that code runs before anyone has read
+   it, and only the scratch checkout and any isolation limit what it can
+   reach.
+
+The profile is a way of working that limits the damage of a mistake. It is
+not a security boundary: without further isolation, rules 2 and 3 are
+settings of the agent, not limits the machine enforces, and an agent that
+leaves them is stopped only by a container or a separate machine with no
+credential but the agent's own. Nor does the profile make the code right.
+
+### The review rubric
+
+The provided tests decide whether the claim is supported. The rubric asks
+what tests cannot, in this order.
+
+1. **The diff.** Was only the requested file written? Does it import only
+   what the specification allows? A solution that imports the reference
+   solution passes every test and has shown nothing.
+2. **Assumptions.** Which decisions did the agent make that the
+   specification left open, and are they acceptable? Ask the agent to list
+   them; then look for the ones it did not list.
+3. **Units.** Does every term of the acceleration have the unit of an
+   acceleration? Is the frequency used as an angular frequency?
+4. **Update order.** Is the force evaluated at each stage of the step, at
+   that stage's time, position, and velocity? Is the clock the state's?
+5. **Tests.** Did the provided tests run unchanged, and what do they not
+   cover? An agent's own added tests count for nothing until you have read
+   them.
+6. **Failure modes.** What does the code do with a step too large, a
+   negative mass, a start at another time than zero?
+
+The rubric is the contract's last sentence made into a list: the checks
+find that something is wrong, the reading finds what.
+
+### A submission, verified
+
+The page cannot show an agent's code as verified, so it verifies a stand-in
+the build can run: one of the faulty simulations above, handed in as if it
+were a submission. The report is generated from the findings, in the form
+of the contract.
+
+```{python}
+#| echo: false
+excerpt(experiment.report_on_a_submission)
+```
+
+```{python}
+#| echo: false
+print(result.output("submission-report"), end="")
+```
+
+The verdict needs no judgement, and the last two lines say what a passing
+report would still leave open. A learner's own submission gets the same
+report from the same function.
+
+### One recorded session
+
+The session below is an example, not a result. The build did not run it and
+cannot check it; it is here to show what the workflow looks like and what a
+review adds to passing tests.
+
+::: {.not-verified}
+**Example transcript, condensed by the author of this lesson.**
+Agent: Claude Fable 5.2 (`claude-fable-5-2`), run as a subagent through the
+Claude Agent SDK. Date: 2026-11-18. The sandbox profile was given to the
+agent as instructions; the harness of that session did not enforce it.
+
+```text
+TASK      The specification of this page, a scratch directory holding it
+          and the provided test file, and the profile: write driven.py
+          only; run only the tests, the formatter, and the linter; no
+          network; do not open the reference solution or the checks;
+          at most 12 tool calls and 3 runs of the tests.
+
+AGENT     Read the specification, the test file, and the State and
+          Trajectory classes it may import. Wrote driven.py: the classical
+          Runge-Kutta method by hand on x' = v,
+          v' = (F0 cos(Omega t) - b v - k x) / m, with the time of each
+          step computed as t0 + i dt.
+
+TESTS     Run 1: "4 passed". The linter then reported an unsorted import
+          block; the agent removed one blank line. Run 2: "4 passed".
+
+AGENT     Reported assumptions the specification did not state: a negative
+          number of steps raises an error; zero steps return one row; force
+          and omega are not validated; values that are not finite are not
+          checked. Reported what the tests do not cover: the refusal of
+          invalid inputs; stiff parameters, where the method diverges
+          without warning. Reported 11 tool calls and 2 test runs used.
+
+REVIEW    Diff: one new file; imports numpy and the two allowed classes;
+          the repository was unchanged after the session.
+          Tests, run again by the reviewer: all four checks pass, fitted
+          order 4.01.
+          Units and update order, by reading: the drive is divided by the
+          mass; the force is evaluated at each stage, at that stage's time.
+          Not covered by the tests: the four refusals of the interface.
+          Checked by hand: each raises the error the specification asks
+          for. A start at a time other than zero keeps its clock.
+```
+:::
+
+The passing tests are the smallest part of the record. The review item with
+content is the fifth: the provided tests never call the function with a
+negative mass, the agent said so, and the reviewer checked those four cases
+by hand. Another session, with another agent or the same one, will differ
+in its path and may fail; nothing here says how often an agent succeeds.
+
+What reaches a repository from such a session is a matter of the ordinary
+route: a pull request, read by a person, checked by the same tests, and
+marked as drafted with an agent. The transcript is never an input of a
+build.
+
 ## Exercises
 
 ::: {.exercise}
@@ -430,6 +855,47 @@ add.
 :::
 :::
 
+::: {.exercise}
+**Drive a coding agent yourself (optional, on your machine).** Give a
+coding agent of your choice the specification of the driven oscillator and
+the provided tests, under the sandbox profile, with a budget you set
+first. Then review its work with the rubric before you believe the tests.
+The site does not run this exercise, names no agent as a requirement, and
+does not promise that an agent succeeds.
+
+::: {.not-verified}
+```bash
+# needs: an account with the coding agent's provider, and its credential in
+# your environment (see the agent's own documentation)
+git clone https://github.com/taspinar/physics-by-construction.git scratch
+cd scratch
+uv sync --locked
+mkdir exercise
+# put the specification and the provided test of
+# docs/coding-agent-workflow.md into exercise/, start your coding agent
+# there with the allowlist and the budget of the profile, and when it is
+# done, read the diff; only then:
+cd exercise
+uv run --locked python -m pytest test_driven.py
+```
+:::
+
+::: {.solution}
+There is no number to compare with: the outcome is the report and your
+review. If the four tests pass, the claim of order four is supported on the
+oscillator of the checks, and the rubric decides what else you know. Go
+through it with the file open. The questions that most often have an answer
+are the first, the second, and the fifth: whether the file imports the
+reference solution, which assumptions were made silently, and what the
+tests do not call. If a test fails, the name of the check and its evidence
+say where to look, as in the table of the faulty simulations: a failure of
+`units` alone names the unit, a failure of `convergence-order` alone with
+every limit passing points at the stages of the step. If the budget ends
+first, the session has ended without a result, which is an outcome and not
+a reason to raise the budget until the tests pass.
+:::
+:::
+
 ## Run this experiment {#reproduce-this}
 
 ```{python}
@@ -439,11 +905,15 @@ reproduce_this(
         "src/pbc/verification/estimates.py",
         "src/pbc/verification/checks.py",
         "src/pbc/verification/faulty.py",
+        "src/pbc/mechanics/resonance.py",
+        "src/pbc/verification/driven.py",
+        "src/pbc/verification/faulty_driven.py",
         "src/pbc/mechanics/experiments/verifying_scientific_code.py",
         "src/pbc/experiment.py",
     ],
     tests=[
         "tests/unit/test_verification.py",
+        "tests/unit/test_verification_driven.py",
         "tests/unit/test_verifying_scientific_code_experiment.py",
     ],
 )

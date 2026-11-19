@@ -93,14 +93,24 @@ more. A claim about another model needs its own run.
   an allowlist, the verdicts are read from the recomputed findings and never
   from a reviewer's text, and a failed recomputed check stands against a
   reviewer that did not run it.
-- **F45, agent-assisted simulation development.** The rubric for code a coding
-  agent wrote is this contract: the claim comes with the task, the checks run
-  on the result, and the evidence is part of what the learner reads.
+- **F45, agent-assisted simulation development** (delivered by F141, which
+  carries its scope). The rubric for code a coding agent wrote is this
+  contract: the claim comes with the task, the checks run on the result, and
+  the evidence is part of what the learner reads. `docs/coding-agent-workflow.md`
+  is the workflow, with the sandbox profile and the rubric.
 - **A new model.** The checks of a different model keep their names where
   they ask the same question (`limits`, `convergence-order`) and add their own
   where the model has a conserved quantity or a symmetry of its own. A
   conserved quantity gets a bounded-or-drifting check like check 5; a
   symmetry gets a check that the result transforms as the model does.
+  `pbc.verification.driven` is the first: the damped driven oscillator, whose
+  subject is a whole simulation. It keeps `limits` and `convergence-order`
+  with the closed forms of that model, and adds `units` (the motion does not
+  depend on the units the experiment is written in, a symmetry) and
+  `energy-balance` (the change of the energy equals the work of the drive
+  minus the dissipation, in the place of a conserved quantity). Its
+  tolerances are fixed for a claim of order two or more, and it refuses a
+  lower claim; `pbc.verification.faulty_driven` holds its negative tests.
 
 ## What the contract does not do
 
