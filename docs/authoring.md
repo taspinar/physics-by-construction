@@ -613,9 +613,12 @@ excerpt(kinematics.euler_step)
 and checks that every Source link opens the lines of its object at one
 commit.
 
-Decide for each block why the learner reads it at that point (the
-`pbc-physics-teaching` skill, "Code the learner reads"), then choose its form
-(ADR 023):
+Decide for each block why the learner reads it at that point: a physical
+relationship, a numerical update, scientific processing or validation, an
+engineering trade-off, agent control, a formal proof ("it draws the next
+figure" is not a reason). Record the reason in the plan or the review, not
+on the page (the `pbc-physics-teaching` skill, "Code the learner reads").
+Then choose its form (ADR 023):
 
 | Form | Call | What the page shows |
 |---|---|---|
@@ -662,15 +665,10 @@ Decide for each block why the learner reads it at that point (the
   alone.
 
 **Choosing what a block shows.** Select code for what it teaches, block by
-block; no form is the default of a whole lesson (the skill, "Code the
-learner reads", has the reasoning and three worked cases).
+block, each for the reason decided above; no form is the default of a
+whole lesson (the skill has the reasoning under "Code the learner reads" and
+three worked cases under "Before and after, from PBC").
 
-- **A reason for each block.** Before a block goes on the page, say why the
-  learner reads it at that point: a physical relationship, a numerical
-  update, scientific processing or validation, an engineering trade-off,
-  agent control, a formal proof. "It draws the next figure" is not a
-  reason. The reason is recorded in the plan or the review, not on the
-  page.
 - **Show** the calculations, the assumptions, the guards, and the
   transformations the lesson's conclusions rest on. **Link** code that only
   draws or formats: `source_link(f, figure=True)` under the figure, so that
