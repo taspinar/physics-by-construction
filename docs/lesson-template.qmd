@@ -1,4 +1,11 @@
 ---
+# The structure of a lesson varies by its subject. This template shows the
+# required parts on a small simulation; it is not an outline to fill in. A
+# measured-data lab, a capstone, an agent lesson, and a proof are built
+# differently: before writing, read docs/authoring.md, "Voice and teaching",
+# and the example lessons it names for the archetype of yours. The section
+# identifiers, the header cell, and the last section stay; the order and the
+# titles of what is inside them are yours.
 title: "Title of the lesson"
 description: >-
   One sentence that says what the lesson builds and what it checks.
@@ -27,7 +34,7 @@ lesson:
 
 ```{python}
 #| echo: false
-from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
 from pbc.mechanics import kinematics
 from pbc.mechanics.experiments import lesson_template as experiment
 
@@ -35,39 +42,67 @@ result = experiment.run()
 lesson_header()
 ```
 
-Open with two or three short paragraphs, without a heading. Start with the
-physical question: the problem this lesson answers and where it appears, before
-any equation or code. Then say what the lesson builds and how the result is
-checked. "What you'll learn" is added by the header above, from `outcomes`.
+Open with the question, in the reader's terms and without a heading: what is
+puzzling, what goes wrong, what we want to know. No equation, no method, and
+no code yet. For the example of this template it could read: a cart is
+rolling and the brake goes on. Where does it stop? And if a program moves the
+cart forward one small step at a time, does it stop the cart in the same
+place?
+
+Then one short paragraph on what the lesson gives the reader to answer the
+question, and why the answer can be trusted: here, a motion we can write down
+exactly, so that any gap between it and the program belongs to the program.
+Do not list what the lesson derives, shows, and measures; that paragraph
+would fit any lesson. If the page shows something other than a plain
+computation (a measurement, a recorded run of a model, a hypothetical design),
+say which here. "What you'll learn" is added by the header above, from
+`outcomes`.
 
 ## Assumptions
 
 State every assumption of the model and of the program, and for each one what
-goes wrong when it does not hold.
+goes wrong when it does not hold. Keep each short: the complete list lives
+here, and the explanation recalls an assumption at the step that uses it. A
+capstone puts its design brief first in this section, in words: the
+requirements, the constraints, and the success criteria, apart from the
+choices the design makes.
 
 1. **First assumption.** What it means, and what breaks without it.
 2. **Second assumption.** What it means, and what breaks without it.
 
 ## Explanation
 
-Explain the physics and the method. Equations are LaTeX and become MathML:
+Give the reader something to hold before each equation: the situation, the
+picture, the one idea the equation will write down. Freeze the cart at one
+instant. To say where it will be a moment later you need to know where it is
+and how fast it is moving, and the brake says how the speed changes. Equations
+are LaTeX and become MathML; two that belong together go in a pair:
 
+::: {.equation-pair}
 $$
 \frac{\mathrm{d}x}{\mathrm{d}t} = v,
-\qquad
-\frac{\mathrm{d}v}{\mathrm{d}t} = a(t).
 $$
 
-To give the section a title of its own, keep the identifier:
+$$
+\frac{\mathrm{d}v}{\mathrm{d}t} = a(t).
+$$
+:::
+
+After the equation, say in a sentence what it says: the position changes at
+the rate of the velocity, and the velocity at the rate the brake sets. To give
+the section a title of its own, keep the identifier:
 `## From rates of change to an update rule {#explanation}`.
 
-Say what each equation is for before you write it, and give the essential
-derivation steps here: the core explanation never lives behind a link. Label a
+Say where a derivation is going before the algebra, give each step its reason
+in words, and state the result in words afterwards. The derivations the
+lesson's question rests on stay here, step by step: the core explanation never
+lives behind a link. Only a derivation that is truly optional moves to a
+section of its own after the worked examples, linked from here. Label a
 statement a reader could take for a result with its claim type
 (`observational`, `experimentally-supported`, `numerically-verified`, or
 `formal-theorem`; the guide defines each). `scope` and `evidence` are optional.
 
-[The computed position agrees with the exact one at every time step shown.]{.claim type="numerically-verified" scope="constant acceleration" evidence="fig-replace-with-a-name"}
+[The computed position is ahead of the exact one at every time step after the start, and the gap grows with time.]{.claim type="numerically-verified" scope="constant braking, the steps shown" evidence="fig-replace-with-a-name"}
 
 An optional "Go deeper" block names a key of `site/references.yaml`, never a
 raw URL. The text is the reason to visit. Delete the block when no source adds
@@ -82,20 +117,41 @@ does not need it.
 ## Code
 
 Reusable code lives in `src/pbc` with unit tests. Show it by reference; the
-listing is read from the file when the site is built.
+listing is read from the file when the site is built. Show a block only when
+you can say why the reader meets it at this point. The step below is here
+because it is the update rule of the explanation, written as a program: each
+term of the equations can be found in it. It is short and its order of
+operations is the point, so it is shown whole, as exact source.
 
 ```{python}
 #| echo: false
 excerpt(kinematics.euler_step)
 ```
 
+A page keeps three kinds of code apart, and the build labels each. Exact
+source is the object as the file has it, as above. An exact selection is some
+of its lines, unchanged, with a mark where lines are left out; the first
+worked example shows one. A derived form is not the source text: the
+generated signature, `excerpt(f, signature=True)`, is the only one. Show the
+calculations, assumptions, guards, and transformations the conclusions rest
+on, and link code that only draws or formats. The guide has the forms and the
+rules ("Code").
+
 ## Worked examples
 
 ### Name of the first example
 
+Start an example from a question and a prediction, not from what the cell
+does. The brake takes the same speed off the cart every second, so the exact
+motion can be written down. The program moves the cart through each step with
+the speed it had when the step began. Before you look at the result: will the
+computed cart end ahead of the exact one, or behind it?
+
 Everything the page computes is in the lesson's experiment, which the
 header cell runs once as `result`. A cell shows the experiment's code by
-reference and its result: a listing, then what it printed or a table.
+reference and its result: a listing, then what it printed or a table. The
+first listing is an exact selection, the lines of one named region; choose a
+selection so that it reads on its own and ends on a whole statement.
 
 ```{python}
 #| echo: false
@@ -121,12 +177,10 @@ of results is built with `table()`, not printed; see the guide.
 A cell that draws a figure has a `fig-` label, a caption that says what the
 figure shows and what to conclude, alternative text that describes its shape,
 and a status: `measured`, `calibrated`, `processed`, `simulated`, or
-`conceptual`.
-
-```{python}
-#| echo: false
-excerpt(experiment.draw_replace_with_a_name)
-```
+`conceptual`. The function that draws this figure only draws, so its code is
+not listed: the Figure source link under the figure opens it. Read a drawing
+function before you link it. If it computes something the conclusion rests on
+(a residual, an offset, a fit), show those lines as an exact selection.
 
 ```{python}
 #| label: fig-replace-with-a-name
@@ -137,8 +191,20 @@ excerpt(experiment.draw_replace_with_a_name)
 result.show("fig-replace-with-a-name")
 ```
 
-After each figure or table, say what it means: what the reader sees, where
-the data came from, and what it was checked against.
+```{python}
+#| echo: false
+source_link(experiment.draw_replace_with_a_name, figure=True)
+```
+
+After each figure or table, say what it means for the question of the lesson,
+with where the data came from and what it was checked against. Reporting the
+content is not interpreting it. Here: the computed cart is ahead of the exact
+one, and the gap grows with every step, because each step moves the cart with
+the speed it had when the step began, and the brake lowers that speed while
+the step lasts. Both curves are computed; none of this is measured.
+
+A transition says why the next part follows, once: we know the direction of
+the error, but not yet its size, and the exercise measures it.
 
 Material that the build does not run or check carries the "not verified"
 marker, as a block or inside a sentence:
@@ -152,14 +218,23 @@ state = step(state)  # a sketch that is not executed
 A measured or quoted value is marked the same way:
 [about 9.8 m/s² at sea level]{.not-verified}.
 
+End the worked examples on the conclusion, as the last paragraph before the
+limits: what the reader can now do or understand, tied back to the opening
+question, and what remains open. We asked whether a program that moves the
+cart in small steps stops it where the exact motion does. It does not, and we
+can say in which direction it misses and why. What we cannot say yet is how
+the miss depends on the size of the step; that is the next lesson's question.
+
 ## Limits {#limits}
 
 What the result does not show: where the model or the method fails, and what
-was not measured or proved. One paragraph or a short list.
+was not measured or proved. One paragraph or a short list. A limit is stated
+here in full and once; elsewhere it is at most a clause with its scope.
 
 ::: {.exercise .self-check}
 One concise conceptual question, different from the exercises. It closes the
-explanation, so it comes after the limits. It has no number.
+explanation, so it comes after the limits. It has no number. Ask for an
+interpretation the reader has to make, not for a fact to look up.
 
 ::: {.solution}
 The answer, in a few sentences.

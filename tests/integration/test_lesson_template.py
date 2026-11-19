@@ -166,8 +166,22 @@ def test_lesson_made_from_the_template_builds_with_every_construct(
             "pbc.mechanics.kinematics:euler_step",
             "pbc.mechanics.experiments.lesson_template:",
             "pbc.mechanics.experiments.lesson_template:braking_cart",
-            "pbc.mechanics.experiments.lesson_template:draw_replace_with_a_name",
             "pbc.mechanics.experiments.lesson_template:largest_error",
+        ]
+        # The function that draws the figure is not listed: it is reached by
+        # the one Figure source link of the page (ADR 023, docs/authoring.md,
+        # "Code").
+        opened = browser.new_page()
+        opened.goto(server.url + page)
+        figure_sources = opened.eval_on_selector_all(
+            "a.source-link",
+            "links => links"
+            ".filter((link) => link.textContent.trim().startsWith('Figure source'))"
+            ".map((link) => link.getAttribute('data-source-name'))",
+        )
+        opened.close()
+        assert figure_sources == [
+            "pbc.mechanics.experiments.lesson_template:draw_replace_with_a_name"
         ]
     assert not violations, describe(violations)
     # The marker of the template reached the page as a block and as a phrase.
