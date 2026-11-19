@@ -329,6 +329,7 @@ class Ledger:
         self.frozen.append(frozen)
         return frozen
 
+    # region: add-final
     def add_final(self, final: FinalEvaluation, root: Path) -> None:
         """Record the final evaluation of a frozen candidate, once per cycle,
         only while its artifacts are still those it was frozen with."""
@@ -358,6 +359,8 @@ class Ledger:
                 f" {frozen.version}; record a new cycle and freeze it again"
             )
         self.finals.append(final)
+
+    # endregion: add-final
 
     def new_cycle(self, reason: str) -> Cycle:
         """Start a new development and evaluation cycle, saying why."""

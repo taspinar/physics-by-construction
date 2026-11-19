@@ -1,0 +1,393 @@
+---
+title: "Failure analysis, reviewer evaluation, and regressions"
+description: >-
+  Review agents tested on eight pieces of code whose truth is known, each
+  role recorded twice: their missed errors and false alarms counted from
+  the decisions in their traces, each failure traced to the checks that
+  were run, rules and ablations measured the same way, a rule overfitted to
+  one review exposed, and regressions detected from frozen traces.
+lesson:
+  id: failure-analysis-and-reviewer-evaluation
+  strand: agents-llm
+  order: 24
+  difficulty: 3
+  course: mechanics
+  slot: AE6
+  experiment: pbc.mechanics.experiments.failure_analysis_and_reviewer_evaluation
+  methods: [simulation, llm-agents]
+  outcomes:
+    - Evaluate a reviewer on controlled cases with known truth, counting missed errors and false alarms apart
+    - Trace each wrong decision to what the recomputed checks show, not to what the reviewer wrote
+    - Measure what removing a reviewer or a check costs, and recognise a rule fitted to too few cases
+    - Detect a regression in the code under review and in the evaluator from frozen traces
+  related: []
+  format: 2
+  preview: fig-review-outcomes
+  prerequisites:
+    lessons: [scientific-review, robustness-and-statistical-uncertainty]
+    outside:
+      - "Python: reading a short function and a dictionary"
+---
+
+```{python}
+#| echo: false
+from pbc.agents import review_lab
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
+from pbc.evidence import reviewers
+from pbc.mechanics.experiments import failure_analysis_and_reviewer_evaluation as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+In the lesson with three reviewers, two pieces of code were reviewed, one
+correct and one faulty, and the review rejected the faulty one. That says
+the review worked once. It does not say how often a reviewer accepts a
+faulty piece (a **missed error**) or rejects a correct one (a **false
+alarm**), and those two rates are what anyone relying on a review needs.
+They can only be measured on cases whose truth is known in advance.
+
+This lesson builds such cases and measures the reviewers on them. The
+evidence is of two kinds. The reviewers are recorded runs of a language
+model, replayed by the build, which runs every check they asked for again;
+their decisions are read from a `decide` tool they called, never from
+their prose. The rules the lesson compares with them are the evaluator's
+own, applied to the same recomputed checks.
+
+## Assumptions
+
+1. **The truth of each case is known.** The pieces are the
+   `{python} result["correct"]` correct methods of the lesson on verifying
+   scientific code and `{python} result["faulty"]` faulty steppers of its
+   gallery, each with the claim of the method it is
+   or poses as. Which is which was fixed before the recordings.
+2. **The numbers say nothing.** The order of the pieces is fixed and
+   carries no hint; no prompt or tool says which piece is faulty.
+3. **The checks are deterministic.** A check gives the same result every
+   time it runs on a piece, so two reviewers that run it see the same
+   numbers; they differ only in what they run and what they decide.
+4. **A decision is a tool call.** Each reviewer records accept or reject
+   for every piece with `decide`; a later call replaces an earlier one.
+5. **The reviewers are those of the lesson with three reviewers.** The physics reviewer has the limits and
+   the bounded-energy checks, the numerics reviewer the clock, purity, and
+   order checks, with that lesson's descriptions. That lesson is not
+   changed; its replay and its tests are as they were.
+
+## Two errors, counted apart {#explanation}
+
+Every decision on a case of known truth is one of four outcomes:
+
+| | accepted | rejected |
+|---|---|---|
+| **correct piece** | correct acceptance | false alarm |
+| **faulty piece** | missed error | correct rejection |
+
+Missed errors are counted over the faulty pieces and false alarms over the
+correct ones, and never added: a reviewer that rejects everything misses
+nothing and raises an alarm on every correct piece. A reviewer can also be
+right for a reason its evidence does not give, and the lesson keeps that
+apart as well.
+
+The cause of each wrong decision comes from the checks the reviewer ran on
+that piece, which the build recomputes:
+
+- a **missed error** with no failing check means the fault is invisible to
+  the reviewer's checks: a gap in coverage, not in judgement;
+- a **missed error** after a failing check that applies means the reviewer
+  saw the evidence and accepted anyway;
+- a **false alarm** after a failing check that the claim does not include
+  means the reviewer applied a check outside its claim.
+
+A check **applies** to a piece when it tests something the piece claims.
+The classical Runge–Kutta method does not claim a bounded energy: its energy drifts slowly by
+design, so the bounded-energy check fails on it and is not evidence
+against it. This is the rule of the validation contract
+(`pbc.verification.checks.verify`).
+
+## Code
+
+The tool with which a reviewer records a decision, from the panel's
+allowlist:
+
+```{python}
+#| echo: false
+excerpt(review_lab.panel_allowlist, region="decide")
+```
+
+The classification of a decision:
+
+```{python}
+#| echo: false
+excerpt(reviewers.classify)
+```
+
+The contract's rule, which lets a failed check reject a piece only where
+it applies:
+
+```{python}
+#| echo: false
+excerpt(reviewers.contract_rule)
+```
+
+An ablation reruns a rule on the same recomputed checks with a reviewer
+or a check left out:
+
+```{python}
+#| echo: false
+excerpt(reviewers.ablate)
+```
+
+## Worked examples
+
+### The sessions
+
+Each role was recorded twice with the same prompt, in fresh sessions. One
+of the physics reviewer's sessions, as recorded:
+
+```{python}
+#| echo: false
+result.display("physics-run")
+```
+
+Before reading on: the physics reviewer can run only the limits and the
+bounded-energy checks. Which faulty pieces should it miss, and which
+correct piece might it reject?
+
+```{python}
+#| label: ae6-sessions
+#| echo: false
+result.table("ae6-sessions")
+```
+
+```{python}
+#| label: ae6-cases
+#| echo: false
+result.table("ae6-cases")
+```
+
+[Both numerics sessions missed only the explicit Euler step posing as
+symplectic Euler and raised no false alarm; the two physics sessions
+agreed on `{python} result["physics-agreement"]` of the
+`{python} result["cases"]` pieces, and only the first raised a false
+alarm, on the classical Runge–Kutta method.]{.claim type="numerically-verified" scope="four
+recorded sessions of one model over the eight controlled pieces"
+evidence="ae6-sessions ae6-cases"} The numerics repeats agreed on
+`{python} result["numerics-agreement"]` of `{python} result["cases"]`.
+Repeating the physics session changed two decisions, on the two
+fourth-order pieces, so a single session would have given either of two
+different error counts for the same reviewer.
+
+```{python}
+#| echo: false
+source_link(experiment.draw_review_outcomes, figure=True)
+```
+
+```{python}
+#| label: fig-review-outcomes
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Every decision of every recorded session on the eight pieces. The physics sessions miss the faults their checks cannot see and disagree with each other on the two fourth-order pieces; the numerics sessions agree and miss only the fault in the energy."
+#| fig-alt: "A grid of markers with the eight pieces along the horizontal axis, each marked faulty or correct, and the four sessions down the vertical axis. Circles mark correct acceptances and squares correct rejections. Large crosses mark missed errors: two or three in each physics row, on faulty pieces, and one in each numerics row, on the same piece. One large triangle in the first physics row marks a false alarm on a correct piece."
+result.show("fig-review-outcomes")
+```
+
+### Why each decision went wrong
+
+```{python}
+#| label: ae6-causes
+#| echo: false
+result.table("ae6-causes")
+```
+
+[Every missed error of the four sessions is on a piece where no check the
+session ran failed, or failed only on what the claim does not include; the
+one false alarm is the classical Runge–Kutta method rejected after the bounded-energy check,
+which its claim does not include, failed.]{.claim
+type="numerically-verified" scope="four recorded sessions over the eight
+controlled pieces" evidence="ae6-causes"} No session accepted a piece
+after a check that applies had failed on it: the failures of these
+reviewers are failures of coverage and of applicability, not of reading
+the evidence. The first physics session also rejected the faulty
+fourth-order piece on the energy check alone, which its claim does not
+include: right, for a reason its evidence did not give. Its words gave
+another reason, that no tool measured the order; the table reports what
+the checks show.
+
+### Rules, ablations, and an overfitted rule
+
+The evaluator can decide from the same recomputed checks by a fixed rule.
+Here the checks of all four sessions are pooled (they are the same
+numbers wherever two sessions ran the same check):
+
+```{python}
+#| echo: false
+excerpt(experiment.rules, region="rules")
+```
+
+```{python}
+#| label: ae6-rules
+#| echo: false
+result.table("ae6-rules")
+```
+
+[With both reviewers' checks, the contract's rule makes no error on the
+eight pieces and the three-reviewer rule makes one, a false alarm on the classical Runge–Kutta method;
+each reviewer alone misses errors, and the rule "reject when the energy
+check fails" is wrong on `{python} result["overfit-ai4-wrong"]` of the three-reviewer lesson's
+`{python} result["overfit-ai4-cases"]` pieces and misses
+`{python} result["overfit-missed"]` faults and raises
+`{python} result["overfit-false"]` false alarm on the eight.]{.claim
+type="numerically-verified" scope="the recomputed checks of the four
+recorded sessions, the eight controlled pieces and the two pieces of the
+three-reviewer lesson"
+evidence="ae6-rules"} The last rule is what a review tuned to the three-reviewer lesson's one
+example learns: on those two pieces the bounded-energy check was the only
+one that told them apart, so a rule using only it is perfect there. That
+is evaluator overfitting, and only cases it was not chosen on can expose
+it. The ablations say what each part of the panel buys: without the
+numerics reviewer three faults pass, without the physics reviewer one.
+
+### Regressions
+
+A regression is a change that makes an outcome worse after it was once
+right. Frozen traces detect two kinds. The first is in the code under
+review: replaced after the recording by a piece that steps differently,
+the second piece no longer gives the results the trace recorded, and the
+replay of the frozen numerics session stops:
+
+```{python}
+#| echo: false
+excerpt(experiment.regression_checks, region="code-regression")
+```
+
+The replay reports: `{python} result["code-regression"]`. The second kind
+is in the evaluator: its rule changed from the contract's to the three-reviewer rule. Applied
+to the same recorded checks and compared with the outcomes frozen under the
+old rule:
+
+```{python}
+#| label: ae6-regressions
+#| echo: false
+result.table("ae6-regressions")
+```
+
+[Replacing the contract's rule by the three-reviewer rule turns one
+outcome worse: the classical Runge–Kutta method, correctly accepted under the contract's rule, becomes a false
+alarm.]{.claim type="numerically-verified" scope="the recomputed checks of
+the four recorded sessions" evidence="ae6-regressions"} The three-reviewer rule was
+right for that lesson's two pieces, which make the same claim; it is wrong for
+pieces whose claims differ.
+
+## Limits {#limits}
+
+- **Eight cases, two repeats.** Rates over five faulty and three correct
+  pieces, with two sessions per role, describe these cases. Other faults,
+  or more repeats, could give other rates.
+- **The faults are a gallery.** Each is a single deliberate change of a
+  known method. Real faults combine, hide in larger code, and include
+  wrong claims as well as wrong steps.
+- **Coverage is set by the tools.** The missed errors follow from which
+  checks each role was given. A reviewer with every check, as the evidence
+  reviewer of the three-reviewer lesson has, would be measured differently; it was not recorded
+  here.
+- **The decision is a tool call.** The reviewers' words often agree with
+  their decisions and sometimes add reasons; the page does not grade the
+  words.
+- **Recorded through a harness the sessions could see.** The sessions ran
+  their messages through a harness command in a Claude Code session and
+  were told to run nothing else; their sessions, checked afterwards, ran
+  only that command. They could have read the repository, where the truth
+  of each piece is.
+
+::: {.exercise .self-check}
+The numerics reviewer missed one error in each of its two sessions, and the
+physics reviewer two or three. Which statement does this lesson support?
+
+::: {.choices}
+::: {.choice}
+The numerics reviewer is the better reviewer and could replace the panel.
+
+::: {.feedback}
+Its one miss is a fault only the energy check sees, which it does not
+have. The ablation shows the panel without the physics reviewer misses it.
+:::
+:::
+
+::: {.choice correct="true"}
+Each role's missed errors are the faults its checks cannot see; the panel
+with both roles and the contract's rule misses none of these eight, and
+that holds for these cases, not for faults outside the gallery.
+
+::: {.feedback}
+Right. The causes table traces every miss to coverage, and the scope of
+the result is the eight controlled pieces.
+:::
+:::
+
+::: {.choice}
+The physics reviewer is inconsistent, so its decisions should be ignored.
+
+::: {.feedback}
+It disagreed with itself on two of eight pieces, both fourth-order
+methods where its checks give no evidence about the claim. That locates
+the inconsistency; it does not make its other decisions worthless.
+:::
+:::
+:::
+
+::: {.solution}
+The second statement is what the outcomes, the causes, and the ablations
+together show, within the scope of the eight pieces.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+Design one more controlled case that the panel with both reviewers and the
+contract's rule would miss. What must its fault leave unchanged?
+
+::: {.solution}
+A fault that passes all five checks: for example a stepper that is exact
+for the oscillator and for constant forces but wrong for a force that
+depends on velocity, which none of the checks uses. Its fault must leave
+the clock, the purity, the limits, the order on the oscillator, and the
+energy band unchanged. A missed error on it would be a gap in the
+contract, which only a new check can close.
+:::
+:::
+
+::: {.exercise}
+Why is a rule chosen because it was perfect on the three-reviewer lesson's two pieces not
+evidence that it is a good rule, and what would be?
+
+::: {.solution}
+On two pieces almost any rule that separates them is perfect; the choice
+used the same cases that measure it, so its error there is zero by
+construction. Evidence would be its errors on cases it was not chosen on,
+such as the eight here, and, as in the lesson on sealed evaluation, a set
+of cases fixed before the rule was chosen and used once.
+:::
+:::
+
+## Replay this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/agents/review_lab.py",
+        "src/pbc/evidence/reviewers.py",
+        "src/pbc/verification/checks.py",
+        "src/pbc/verification/faulty.py",
+        "src/pbc/mechanics/experiments/failure_analysis_and_reviewer_evaluation.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_review_lab.py",
+        "tests/unit/test_review_panel.py",
+        "tests/unit/test_evidence_reviewers.py",
+        "tests/unit/test_failure_analysis_and_reviewer_evaluation_experiment.py",
+    ],
+)
+```

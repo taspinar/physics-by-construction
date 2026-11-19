@@ -1,0 +1,368 @@
+---
+title: "Independent scoring, sealed evaluation, and provenance"
+description: >-
+  The evaluator, not the candidate, computes every score and every count of
+  resources from the replayed runs; a score a candidate reports for itself
+  fails, an edited run is invalid, the final evaluation is bound to a frozen
+  candidate, and a candidate selected on its development error is evaluated
+  once on a split it was never scored on.
+lesson:
+  id: independent-scoring-and-sealed-evaluation
+  strand: agents-llm
+  order: 22
+  difficulty: 3
+  course: mechanics
+  slot: AE4
+  experiment: pbc.mechanics.experiments.independent_scoring_and_sealed_evaluation
+  methods: [simulation, llm-agents]
+  outcomes:
+    - Keep the score an evaluator recomputes apart from the score a candidate reports for itself
+    - Recognise an edited or changed run from its digest and replay, and say what becomes of the claims that rested on it
+    - Freeze a selected candidate and bind its one final evaluation to that frozen version
+    - Explain why the error that selected a candidate is not the error to report, and evaluate it on a withheld split
+  related: []
+  format: 2
+  preview: fig-evaluator-scores
+  prerequisites:
+    lessons: [agent-versus-non-agent-baselines, defining-scientific-quality]
+    outside:
+      - "Python: reading a short method of a class"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
+from pbc.evidence import records, sealed
+from pbc.mechanics.experiments import independent_scoring_and_sealed_evaluation as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+A benchmark table says that a candidate recovered a law with a held-out
+error of a thousandth. Who computed that number? If the candidate did, the
+table holds a claim, not a result. And if the number belongs to the best of
+several candidates, chosen because it scored best, is it still an honest
+estimate of how that candidate will do on settings nobody has scored it on?
+
+This lesson answers both questions with the evidence contract of the
+project, `pbc.evidence`. Everything on this page is of one kind: recorded
+runs of a language model, made earlier for other lessons, which the build
+replays (every tool call executed again) and scores itself. No model is
+called. A run's own statements about itself, its score, its cost, its last
+message, are kept beside the evaluation, labelled unverified, and never
+used to decide anything.
+
+## Assumptions
+
+1. **The judge is the protocol's.** Each run is scored under the protocol
+   it was recorded with: the same held-out settings, seed, and tolerance of
+   `{python} result["tolerance"]` as in the benchmark lessons.
+2. **Replay is the check of a run.** A fixture whose recorded tool results
+   differ from what the current code computes does not replay; its attempt
+   is invalid, whatever it claims.
+3. **A digest names bytes, not truth.** The digest of a fixture says that
+   it is the file that was evaluated and has not changed since. Two files
+   with the same wrong claim have the same digest.
+4. **Withheld is not secret.** The held-out settings and the sealed split
+   are in this repository. They are withheld from the candidates' tools and
+   from the selection, and a reader of the source can read them.
+
+## The ledger of an evaluation {#explanation}
+
+The evaluator keeps a ledger with four kinds of entry, kept apart:
+
+- **Attempts.** One per run of a candidate, with its status: *completed*
+  (evaluated), *failed* (nothing to evaluate, such as no claim), *invalid*
+  (its fixture does not replay), *inconclusive*, or *missing*. Every
+  attempt stays in the ledger and in the denominator of any rate.
+- **Evaluations.** What the evaluator recomputed from the replayed run: the
+  held-out error, whether it is within the tolerance, and the resources it
+  counted (probes, refused calls, messages, tool calls), with the digest of
+  every file it read.
+- **Reports.** What the candidate says about itself, stored apart and
+  labelled unverified. The summary says only whether a report agrees with
+  the evaluation.
+- **Claims.** A sentence linked to the attempts it rests on. Its status is
+  derived from their evaluations, never written by hand: *failed* if an
+  evaluation contradicts it, *not evaluated* if an evaluation it rests on
+  was invalidated by a changed file.
+
+A selected candidate is **frozen**: the ledger records the digest of its
+files and a version. Its **final evaluation** names that digest and that
+version, runs once in each cycle of development, and is refused if the files
+changed since the freeze. A change after the final evaluation starts a new
+cycle with a new version; the earlier final evaluation stays in the
+ledger, marked invalidated.
+
+## Code
+
+The rules of the final evaluation are the control flow of one method of
+the ledger. Each `raise` is one of the refusals the worked examples below
+run into:
+
+```{python}
+#| echo: false
+excerpt(records.Ledger, region="add-final")
+```
+
+The selection of the sealed section reads development evaluations only,
+and the final evaluation scores the frozen claim on the sealed split:
+
+```{python}
+#| echo: false
+excerpt(sealed.select)
+```
+
+```{python}
+#| echo: false
+excerpt(sealed.final_on_sealed)
+```
+
+## Worked examples
+
+### The evaluator scores, the candidate reports
+
+The projectile task of the benchmark: find the gravity of a world from at
+most twenty noisy range readings. Three candidates are evaluated: the agent
+told the form of the law, the plain model that had no `measure` tool and
+answered from what it knew, and least squares on a grid of readings, which
+the evaluator runs itself. The plain model never reported a score; the
+lesson attaches to its attempt a report it did not achieve, a held-out
+error of `{python} result["fabricated-error"]` and a claim that it
+recovered the law, as a dishonest or mistaken candidate would:
+
+```{python}
+#| echo: false
+excerpt(experiment.scoring, region="fabricated")
+```
+
+```{python}
+#| label: ae4-scoring
+#| echo: false
+result.table("ae4-scoring")
+```
+
+[The plain model's report of an error of a thousandth disagrees with the
+evaluator, which recomputes `{python} result["plain-error"]` from its
+replayed run, and the claim that the plain model recovers the gravity
+is `{python} result["plain-claim-status"]`.]{.claim
+type="numerically-verified" scope="the projectile task of the benchmark,
+the committed runs of EV2 and EV3" evidence="ae4-scoring"} The report is
+still in the ledger, word for word; it is never an input.
+
+The agent's resources are counted from its replay too. The evaluator
+counts `{python} result["agent-calls-counted"]` tool calls in
+`{python} result["agent-messages-counted"]` model messages, and
+`{python} result["agent-refused"]` calls the harness refused. The
+recording's own cost record says `{python} result["agent-calls-recorded"]`
+calls; the two agree here, and if they did not, the count would still be
+the evaluator's.
+
+### What the contract does with a change
+
+Each row below starts from a fresh copy of the committed fixtures in a
+temporary directory, changes one thing, and records what the ledger did.
+These are the cases of the tests of the evidence contract
+(`tests/unit/test_evidence_pilot.py`), run here on the page:
+
+```{python}
+#| label: ae4-tampering
+#| echo: false
+result.table("ae4-tampering")
+```
+
+[Readings edited before the evaluation make the attempt invalid and its
+claim failed; a fixture edited after the evaluation invalidates the
+evaluations that read it and leaves its claim not evaluated; a candidate
+changed after its freeze, and a second final evaluation in one cycle, are
+refused; a change after the final evaluation is a new cycle, and the final
+evaluation of the first version stays, marked invalidated.]{.claim
+type="numerically-verified" scope="copies of the committed fixtures of the
+projectile task, each changed once" evidence="ae4-tampering"}
+
+The last row is how a candidate is legitimately improved after its final
+evaluation:
+
+```{python}
+#| echo: false
+excerpt(experiment.tampering, region="new-cycle")
+```
+
+### A final evaluation on a withheld split
+
+The spring of the lesson on prior knowledge: find the angular frequency
+from at most twenty noisy displacements read in the first three seconds,
+scored on settings far later. That lesson recorded three runs: the agent
+told the form of the law, told only the name of the parameter, and told
+nothing. The development evaluation scores all three on the protocol's
+held-out settings; the one with the smallest error among those within the
+tolerance is selected and frozen. Its final evaluation scores it once on a
+**sealed split**: later times still, at amplitudes inside the probed range,
+fixed in the configuration whose digest the ledger recorded before any
+development evaluation, and used by nothing else. The page does not print
+the times of either split; they are the judge's.
+
+The selected run's development error was
+`{python} result["selected-development"]`. It was selected because that
+error was the smallest of three. Before reading the table, decide: will its
+error on the later, sealed times be smaller, about the same, or larger, and
+why?
+
+```{python}
+#| label: ae4-sealed
+#| echo: false
+result.table("ae4-sealed")
+```
+
+[The run `{python} result["selected"]` was selected on a development
+error of
+`{python} result["selected-development"]` and scored
+`{python} result["selected-sealed"]` on the sealed split, still within
+the tolerance of `{python} result["sealed-tolerance"]`; the other two runs
+were never scored on the sealed split.]{.claim type="numerically-verified"
+scope="the three recorded runs of D2 on the spring, one sealed split"
+evidence="ae4-sealed"} Two effects make it larger, and this one run cannot
+tell them apart. The sealed times are later, and a small error in the
+angular frequency puts the phase further off the longer the spring swings.
+And a candidate chosen for having the smallest error of several is partly
+chosen for luck; on settings that played no part in the choice, the luck
+does not repeat. The sealed number is the one to report. The frozen
+version `{python} result["frozen-version"]` carries the digest
+`{python} result["frozen-digest"]` (the first twelve characters), so a
+reader can check that the file evaluated is the file on the page of the
+lesson on prior knowledge.
+
+```{python}
+#| echo: false
+source_link(experiment.draw_evaluator_scores, figure=True)
+```
+
+```{python}
+#| label: fig-evaluator-scores
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Above, the projectile's three candidates: the held-out error the evaluator recomputed, and the one error a candidate reported for itself, far below its recomputed error. Below, the spring's three runs in development, and the one sealed evaluation of the frozen run, above its development error and below the tolerance."
+#| fig-alt: "Two stacked panels with a logarithmic vertical axis of the relative held-out error and a dashed horizontal line for the tolerance. In the upper panel, filled circles for the agent, the plain model, and the grid baseline; the plain model's circle lies far above the line, and an open square for its own report lies far below it. In the lower panel, filled circles for the three spring runs, one below the line and two above it, and a filled diamond beside the lowest circle, slightly higher, for its sealed evaluation."
+result.show("fig-evaluator-scores")
+```
+
+Both panels show held-out errors on a log scale against the protocol's
+tolerance; each point is computed by the evaluator from a replay, except
+the open square, which is a number the candidate stated.
+
+## Limits {#limits}
+
+- **Not private.** The hidden worlds, the held-out settings, and the sealed
+  split are in the repository. A candidate that could read it could submit
+  the hidden value; the contract would score it correct. The tests of the
+  contract show this case.
+- **One run per candidate.** The sealed error describes one recorded run.
+  How large the gap between development and sealed errors is on average
+  needs many runs, which the next lesson begins to collect.
+- **Selection of three.** With three candidates the optimism of selection
+  is small; with hundreds of configurations tried on one split it can be
+  the whole of an apparent improvement.
+- **Identity, not truth.** A frozen digest proves which file was evaluated.
+  It does not prove the claim in the file, and it does not prove that the
+  code of the evaluator was right; the ledger also records the digest of
+  that code.
+- **Simulated, not measured.** Both tasks are simulations of this site.
+
+::: {.exercise .self-check}
+The selected spring run scored within the tolerance in development and on
+the sealed split. Which statement does this lesson support?
+
+::: {.choices}
+::: {.choice}
+The agent told the form recovers the spring's frequency, because it passed
+two evaluations.
+
+::: {.feedback}
+Both evaluations are of one recorded run. They say that run's claim
+predicts both splits within the tolerance, not how often the agent would.
+:::
+:::
+
+::: {.choice correct="true"}
+The sealed error is the estimate to report for the frozen run, because the
+development error took part in choosing it; the frozen digest shows which
+file that estimate belongs to.
+
+::: {.feedback}
+Right. Selection used the development split, so its error is optimistic
+for the chosen run; the sealed split played no part in the choice.
+:::
+:::
+
+::: {.choice}
+The run told nothing would have passed on a split closer to the probed
+times, so it should have been selected.
+
+::: {.feedback}
+Choosing the split, or the candidate, after seeing how candidates do on it
+is exactly what sealing prevents. The split was fixed before any score.
+:::
+:::
+:::
+
+::: {.solution}
+Only the second statement follows from the ledger. The first generalises
+from one run; the third tunes the evaluation to the result.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+A candidate's report says its run used 4 tool calls; the evaluator counts 9
+from the replay. Which number goes into a comparison of cost, and what
+would you need to trust the candidate's number instead?
+
+::: {.solution}
+The evaluator's: it is counted from the replayed run, which the evaluator
+executed. The candidate's number could be trusted only if it could be
+checked against an artifact the evaluator reads, which is what the replay
+already is; a number nobody can check is a report, and stays labelled
+unverified.
+:::
+:::
+
+::: {.exercise}
+After the sealed evaluation, someone edits the selected run's last message
+and wants to evaluate it on the sealed split again. What does the ledger
+do, and what must they do instead?
+
+::: {.solution}
+The ledger refuses a second final evaluation in the same cycle, and a final
+evaluation of a candidate whose files changed since the freeze. They must
+start a new cycle with its reason, evaluate the changed run in development,
+freeze it as a new version, and evaluate it once. The sealed split is no
+longer unseen for this candidate's developers, which the new cycle's
+reason should say.
+:::
+:::
+
+## Replay this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/evidence/records.py",
+        "src/pbc/evidence/pilot.py",
+        "src/pbc/evidence/sealed.py",
+        "src/pbc/discovery/benchmark.py",
+        "src/pbc/discovery/force_lab.py",
+        "src/pbc/discovery/protocol.py",
+        "src/pbc/mechanics/experiments/independent_scoring_and_sealed_evaluation.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_evidence_records.py",
+        "tests/unit/test_evidence_pilot.py",
+        "tests/unit/test_evidence_sealed.py",
+        "tests/unit/test_independent_scoring_and_sealed_evaluation_experiment.py",
+    ],
+)
+```
