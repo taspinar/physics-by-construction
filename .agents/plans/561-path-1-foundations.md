@@ -224,23 +224,39 @@ What CI and the build are made of is computed, not listed by hand: the CI
 workflows and actions, the commands of `scripts/verify.conf`, every script
 those reach by name (transitively), `site/`, `src/`, `lean/`, `data/`,
 `products/` without its learner documents, the pytest suites CI runs, and
-the manifests. The test asserts:
+the manifests (the build side); and the self-tests of the development
+workflow, the commands of `scripts/verify-workflow.conf` with every script
+they reach, which CI runs with `verify.sh --all` (ADR 005; added by review
+finding M1 of round 1, which showed that the first version left them out).
+The test asserts:
 
 1. the scan sees the machinery (the workflow, the build script, the
    package, the lesson pages) and is not empty by accident;
-2. none of it starts a coding agent: no command line or argument list
-   names a coding-agent program (Claude Code, Codex, Aider, Gemini CLI,
-   Cursor agent, OpenCode, Goose, Copilot CLI, the Agentic Coding
-   Template), outside material marked "not verified" on a page;
+2. nothing of the build side starts a coding agent: no command line or
+   argument list names a coding-agent program (Claude Code, Codex, Aider,
+   Gemini CLI, Cursor agent, OpenCode, Goose, Copilot CLI, the Agentic
+   Coding Template), outside material marked "not verified" on a page;
 3. the one launcher of the development workflow, `scripts/lib/agent.sh`,
-   is reached by no CI job, no check of `scripts/verify.conf`, and no
-   build script, and no module of `src/pbc` or page starts a process with
-   an agent's name;
-4. none of it names a coding agent's credential (the variables and
-   credential files of those tools), CI uses no secret beyond the
-   workflow's own token, and the one provider key of the harness agents
-   (ADR 004) is named only by its client, the pages' "not verified"
-   blocks, and `.env.example`, which holds names only;
+   is reached by nothing of the build side (no CI workflow, no check of
+   `scripts/verify.conf`, no build script), and no module of `src/pbc` or
+   page starts a process with an agent's name. CI does reach the launcher
+   through the workflow's self-tests, and only through them: every
+   self-test that can start an agent (one that calls `agent_run`, the one
+   function of the launcher that starts a program, or reaches a script
+   that does) makes a fake of every program the launcher starts and begins
+   every `PATH` it sets with those fakes (or sets the system directories
+   alone, the case of a missing program), and nothing CI runs installs a
+   coding agent;
+4. none of it, the self-tests and what they reach included, names a coding
+   agent's credential (the variables and credential files of those
+   tools), and CI uses no secret beyond the workflow's own token. The one
+   provider key of the harness agents (ADR 004) is named by no CI job,
+   check, reached script, or executed cell of a page, and `.env.example`
+   holds names only; other modules and pages name the variable to tell the
+   learner to set it, and only its client
+   (`src/pbc/agents/clients/openai.py`) hands that name to a call or looks
+   it up (review finding S1: the first wording, "named only by its
+   client", was more than the test checked and more than is true);
 5. no file of the build or the checks depends on the Agentic Coding
    Template;
 6. the transcript on the SA2 page is inside a "not verified" block that
@@ -282,6 +298,15 @@ the manifests. The test asserts:
   protected paths; the boundary test follows the paths a command runs or
   sources (and resolves the one loop that sources by a variable), and
   fails on a sourced file it cannot name.
+- **CI does load the launcher (review finding M1).** The first version
+  started the reach from the CI workflows and `scripts/verify.conf` only,
+  and so said that no CI job reaches `scripts/lib/agent.sh`. CI runs
+  `verify.sh --all`, which runs the self-tests of
+  `scripts/verify-workflow.conf`; 13 of the 26 reach the launcher and 12
+  can start a program through it. The boundary is therefore stated in two
+  parts (plan item 3), and the text of a failure message
+  (`... || fail "Run ./scripts/revise-planning.sh"`) is not a command. The
+  check is static: it reads how the self-tests are written.
 - **A provider name as a key of a mapping is not a start.**
   `pbc.authoring.route` maps the provider names of `.agents/agents.conf`
   to the words the page "How we verify the science" shows; the Python rule
