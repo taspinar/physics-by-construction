@@ -239,6 +239,20 @@ new dataset; changes to AI6's or D10's lessons (linked as depth only).
   payload, the on-demand budget and loading after an action, the widget
   sources and storage), run on single-page renders in a scratch copy; the
   clip viewer's own tests pass there too.
+- **Two planned exercises became worked examples** (recorded after review
+  01, MIN2). SA3's exercise (3), the tool with wide bounds, is the last of
+  the five requests of the worked example "What the envelope stops", with a
+  tool whose bounds allow a thousand volts instead of 10 V; SA4's exercise
+  (2), the lost samples, is the worked example "Lost samples" (about a third
+  of the samples lost in bursts instead of 30 %). The reason: each case is
+  the evidence of a claim span of its page (`refusal-table`,
+  `missing-table`), asserted by the page's experiment test, and on SA4 the
+  lost samples are one of the three imperfections of the first capture,
+  which the worked examples read one by one; as an exercise its result
+  would have stood in a solution without a claim. Each page keeps a
+  self-check and two exercises with solutions (SA3: the forgetful adapter,
+  the recording asked for more; SA4: reading the set-up, the frame rate for
+  the needle), so the lesson rule is met.
 
 ## Where the teaching skill changed the learning experience
 

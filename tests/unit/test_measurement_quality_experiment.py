@@ -72,7 +72,8 @@ def test_the_calibration_finds_the_chain_and_corrects_the_amplitude(results):
 
 def test_below_the_nyquist_rate_the_record_shows_the_alias():
     """Claim: above the Nyquist rate the record shows the drive; below it the
-    strongest component is the predicted alias."""
+    strongest component is the predicted alias, and nothing in the record
+    says so: a sinusoid at the alias fits the record down to its noise."""
     for rate, per_period, found, predicted in lab.sampling():
         assert predicted == alias(lab.FREQUENCY_HZ, rate)
         assert abs(found - predicted) < 0.01 * lab.FREQUENCY_HZ
@@ -80,6 +81,13 @@ def test_below_the_nyquist_rate_the_record_shows_the_alias():
             assert abs(found - lab.FREQUENCY_HZ) < 0.01 * lab.FREQUENCY_HZ
         else:
             assert abs(found - lab.FREQUENCY_HZ) > 0.5 * lab.FREQUENCY_HZ
+            bench = lab.SimulatedRLCBench(seed=lab.SEED)
+            bench.set_output(lab.AMPLITUDE_V, lab.FREQUENCY_HZ)
+            record = bench.capture(rate, round(lab.SAMPLING_DURATION * rate) + 1)
+            v, phase = record.channels["response"], 2 * np.pi * predicted * record.t
+            basis = np.column_stack([np.sin(phase), np.cos(phase), np.ones_like(phase)])
+            coefficients = np.linalg.lstsq(basis, v, rcond=None)[0]
+            assert np.std(v - basis @ coefficients) < 1.5 * bench.noise_v
 
 
 def test_the_spread_falls_as_the_square_root_and_the_fit_reports_it(results):
@@ -164,7 +172,7 @@ def test_the_tracking_is_deterministic_and_matches_the_ground_truth(filmed):
 def test_the_frame_rate_decides_the_field_read(results):
     """Claim: above twice the needle's frequency the clip gives the field
     within two per cent; below it the alias, and a field many times too
-    small."""
+    small: more than three times, as (alias / frequency)^2 predicts."""
     needle = compass.Needle()
     for rate, _, found, predicted, field_mt in lab.frame_rates():
         assert predicted == alias(needle.frequency, rate)
@@ -174,7 +182,8 @@ def test_the_frame_rate_decides_the_field_read(results):
             assert abs(ratio - 1) < 0.02
             assert abs(ratio - 1) < 0.005  # "a few parts in a thousand"
         else:
-            assert ratio < 0.5
+            assert ratio < 0.3  # "many times too small"
+            assert ratio == pytest.approx((predicted / needle.frequency) ** 2, rel=0.03)
 
 
 def test_the_slow_clip_reading_is_uncertain_and_contradicted(results):
