@@ -180,3 +180,13 @@ def test_a_run_is_scored_with_its_own_tools():
     assert (agent.probes, agent.refused) == (1, 0)
     assert (plain.probes, plain.refused) == (0, 1)
     assert plain.claim == agent.claim
+
+
+def test_the_check_refuses_entries_told_different_things_only_when_both_say():
+    p = PROTOCOLS["projectile"]
+    told = Entry("a", p, 20, 20, 0.01, True, knowledge="the form")
+    blind = Entry("b", p, 20, 20, 0.01, True, knowledge="nothing")
+    silent = Entry("c", p, 20, 20, 0.01, True)
+    assert comparable(told, blind) == ("prior knowledge differs (the form, nothing)",)
+    assert comparable(told, silent) == ()
+    assert comparable(told, replace(blind, knowledge="the form")) == ()

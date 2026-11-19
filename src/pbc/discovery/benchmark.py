@@ -307,6 +307,10 @@ class Entry:
     probes: int  # the probes it spent
     held_out_error: float
     recovered: bool
+    # What the contestant was told of the law before it probed (lesson AE3):
+    # "the form", "the names", "a library of terms", "nothing". ``None``
+    # leaves prior knowledge out of the check, as in the lessons before it.
+    knowledge: str | None = None
 
 
 def agent_entry(
@@ -339,7 +343,8 @@ def comparable(a: Entry, b: Entry) -> tuple[str, ...]:
 
     Two entries compare when they were scored on the same environment, the
     same hidden world, the same held-out settings, and the same tolerance,
-    with the same number of probes allowed. The reasons name what differs,
+    with the same number of probes allowed, and, when both state it, the
+    same prior knowledge of the law. The reasons name what differs,
     never its value: the world and the held-out settings are the judge's."""
     p, q = a.protocol, b.protocol
     reasons = []
@@ -356,6 +361,14 @@ def comparable(a: Entry, b: Entry) -> tuple[str, ...]:
         reasons.append(f"tolerances differ ({p.tolerance:g}, {q.tolerance:g})")
     if a.allowed != b.allowed:
         reasons.append(f"budgets differ ({a.allowed}, {b.allowed} probes)")
+    # region: knowledge
+    if (
+        a.knowledge is not None
+        and b.knowledge is not None
+        and a.knowledge != b.knowledge
+    ):
+        reasons.append(f"prior knowledge differs ({a.knowledge}, {b.knowledge})")
+    # endregion: knowledge
     return tuple(reasons)
 
 

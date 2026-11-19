@@ -19,6 +19,7 @@ lesson:
     - Separate what the tools add from what the model already knows, with a plain model as the control
     - Recognise a comparison made unfair by a difference in budget, and say what it measures instead
     - Explain why a method that can be rerun on many seeds is easier to rank than one recorded run
+    - Match what each contestant is told of the law, and say what a comparison with unmatched prior knowledge measures
   related: []
   format: 2
   preview: fig-agent-versus-baselines
@@ -30,7 +31,7 @@ lesson:
 
 ```{python}
 #| echo: false
-from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
 from pbc.mechanics.experiments import agent_versus_non_agent_baselines as experiment
 
 result = experiment.run()
@@ -43,8 +44,16 @@ choose its own experiments. Is the combination better than simpler methods?
 The honest answer depends on what "better" is measured against, and the
 comparisons are easy to rig by accident.
 
+The rows of this lesson are of three kinds, and the difference matters for
+every comparison below. The agent's rows and the plain model's are runs a
+language model made once, recorded and replayed by the build, which executes
+their tool calls again; one run per system. The baselines are procedures
+without a model that the build runs itself, on as many seeds as it likes.
+One judge scores both.
+
 This lesson sets the agent of the discovery benchmark beside four methods on
-the same three simulated systems: a **plain model**, the same language model
+the same three simulated systems (the projectile, the spring, which the
+tables call the oscillator environment, and the central force): a **plain model**, the same language model
 with the same task but no way to measure; **random selection**, settings drawn
 at random and fitted by least squares; a **grid** of settings fitted by least
 squares; and a grid fitted by **sparse identification**, the symbolic fit of
@@ -224,7 +233,7 @@ confused.
 
 ```{python}
 #| echo: false
-excerpt(experiment.draw_methods)
+source_link(experiment.draw_methods, figure=True)
 ```
 
 ```{python}
@@ -239,6 +248,83 @@ result.show("fig-agent-versus-baselines")
 The figure shows errors of simulated runs and fits that this build computed.
 The agent's two zeros come from rounding onto round hidden values (see the
 limits); the baselines' small errors come from the noise.
+
+### Prior knowledge as a controlled variable
+
+Budgets are one thing two contestants can differ in; what they were told
+before probing is another. Least squares fits the family of the law, so it
+is told the form. Sparse identification searches a library of terms. The
+agent of the benchmark was run under three conditions, told the form, told
+the names of the parameters, or told nothing, and the plain model had the
+agent's task with the names. The lesson on prior knowledge in discovery
+compared the conditions on one system; here the same idea becomes a field
+of each entry, and `comparable` refuses a pair whose stated knowledge
+differs. The check is the last branch of `comparable`, shown in full
+above:
+
+```{python}
+#| echo: false
+excerpt(comparable, region="knowledge")
+```
+
+On the spring, the agent told nothing missed the law and least squares
+recovered it. Before reading the table, decide what that pair measures: the
+agent against least squares, or something else?
+
+```{python}
+#| echo: false
+excerpt(experiment.knowledge_pairs, region="pairs")
+```
+
+```{python}
+#| label: ev3-knowledge
+#| echo: false
+result.table("ev3-knowledge")
+```
+
+[On each of the three systems, the agent told the form and least squares
+on a grid, also told the form, with the same budget, are comparable, and
+both recover the law; the check refuses every pair whose stated prior
+knowledge or budget differs.]{.claim type="numerically-verified"
+scope="one recorded agent run per system and condition, one seed per
+baseline, the simulated systems of the benchmark" evidence="ev3-knowledge"}
+The pair on the spring measures the value of being told the form, not the
+agent against least squares: the agent told the form recovered it as well.
+Once the knowledge is matched, the comparison that is left is the one the
+benchmark was built for, and on these systems both contestants succeed.
+
+One agent run per cell has no spread to show; the baseline does:
+
+```{python}
+#| label: ev3-knowledge-seeds
+#| echo: false
+result.table("ev3-knowledge-seeds")
+```
+
+[Least squares told the form, at random settings with the whole budget,
+recovers the law on every one of twenty seeds on each system.]{.claim
+type="numerically-verified" scope="twenty seeds of the random settings, the
+simulated systems of the benchmark" evidence="ev3-knowledge-seeds"} On the
+spring its largest error comes close to the tolerance: twenty seeds are
+what shows that a single seed might have been the lucky one.
+
+```{python}
+#| echo: false
+source_link(experiment.draw_knowledge_control, figure=True)
+```
+
+```{python}
+#| label: fig-knowledge-control
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Held-out error of the agent's three conditions and of least squares told the form, on each system, with the range of least squares at random settings over twenty seeds; the tolerance dashed. Matched in knowledge, the agent told the form and least squares both lie below the tolerance everywhere."
+#| fig-alt: "A scatter plot on a logarithmic error axis with three systems side by side: projectile, spring, and central force. In each, three markers for the agent told the form, the names, and nothing, a diamond for grid plus least squares, and a vertical bar for the range of random plus least squares over twenty seeds. A dashed line marks the tolerance and a dotted floor near the bottom is labelled error zero. On the projectile and the central force, the agent's markers lie low, several on the floor. On the spring, the agent told the form and the diamond lie below the tolerance and the agent told the names and told nothing lie above it; the bar reaches up to just below the tolerance."
+result.show("fig-knowledge-control")
+```
+
+The figure shows the same numbers as the two tables. Read it within one
+system and between markers told the same thing; an error on the floor is a
+claim that equals the hidden value after rounding.
 
 ### Run the plain model yourself
 
@@ -276,6 +362,10 @@ uv run --locked --no-dev --extra openai python -m pbc.discovery.benchmark plain-
   because the agent's says how many probes it has. The task text is the same.
 - **The recordings are not API runs.** As in the benchmark lesson: Claude Code
   sessions, no token count or price reported.
+- **Prior knowledge is stated, not measured.** The labels say what each
+  contestant was told. What a model already knows from training (Newton's
+  laws, Earth's gravity) is not controlled by its task text; the plain model
+  shows how much of it reaches a claim without data.
 
 ::: {.exercise .self-check}
 Random selection with least squares recovered the law on all three systems,
