@@ -62,3 +62,38 @@ decision 4; `docs/development.md`, "Reviewing only the changes"):
   Otherwise the round it is committed on reviews the complete feature.
 - **`completion/v2`, Level 3:** every round reviews the complete feature, and
   the last one is made on the full verification.
+
+## Measuring the fix rounds
+
+Whether the class search and the check before the change of a fix session
+(Issue #552, see "Reviewing a feature" in `docs/development.md`) make fix
+rounds cheaper is a follow-up evaluation, not part of the change that
+introduced them: it compares features before and after that change, so its
+data can exist only once at least ten features have gone through review on
+the new contract.
+
+**Baseline.** The study behind the template's step (Agent Codeyard #296,
+commit `f6301b2`), made in the template repository (Agent Codeyard), not
+in this one: 25 findings of round 2 and later in 17 features, of which
+*unresolved* plus *introduced by a repair* made up 9 of 25 (with proven
+origin only, 7 of 17). These are the template's figures; this repository's
+own baseline still has to be counted from its features with review
+comments, among them #543, which needed four review rounds for one class of
+defect (stale gates of 110 lessons) because each fix repaired only the place
+the finding named.
+
+**Per feature, before and after**, with the classification of the study, and
+where each figure comes from:
+
+- wall time from the first review start to PASS, and the number of rounds to
+  PASS: the review and triage reports that `triage-review.sh` publishes on the
+  feature Issue, and the `round` and `created_at` of the review artifacts;
+- repair work: the `apply-triage.sh` sessions and the size of each repair
+  diff, to see that the scope does not grow;
+- unjustified blocks: findings later classified as invalid, and the lines
+  `refuted` under `## Triage <triage file name>` in the handoff note;
+- the later findings by category, as absolute counts next to the share, since
+  the share of one category can fall only because another rises.
+
+A returned finding or a refused check is an intercepted inconsistency, not yet
+a proven saving.

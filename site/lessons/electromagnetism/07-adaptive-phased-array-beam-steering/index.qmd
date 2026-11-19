@@ -56,7 +56,10 @@ a wire from short elements and showed that identical antennas in a row give
 the element pattern times an **array factor**. Here that array factor is the
 whole model: it is checked against its closed forms, then used the way an
 engineer would, to turn a set of requirements into a design decision, with
-the model's failures in view.
+the model's failures in view. The design question is this: which array,
+with which phase shifters, keeps a beam on a receiver driving past and a
+deep null on a fixed interferer across a band, and where can no array of
+this size do it?
 
 **The credibility boundary.** The model is an **array factor**: identical,
 ideal elements that do not change each other's currents, fed with exactly
@@ -70,6 +73,57 @@ support is the comparison of design choices under its assumptions; what it
 cannot support is a claim about the performance of real hardware.
 
 ## Assumptions
+
+### The brief {#the-brief}
+
+A hypothetical array has to keep a beam on a receiver passing on a road and
+hold a null toward a fixed interferer, over a band around the carrier. The
+brief keeps apart what the design must achieve, how it is judged, what the
+hardware gives, and what the design itself chooses; every study below
+answers to one of its lines, and the decision goes back through them.
+
+**What the design must achieve.** A design that misses one of these fails.
+
+1. **The band.** Work from `{python} result["band-low"]` to
+   `{python} result["band-high"]` GHz, around a carrier of
+   `{python} result["carrier"]` GHz.
+2. **The scan.** Keep the beam on a receiver anywhere up to
+   `{python} result["scan"]` degrees from broadside, on either side.
+3. **The null.** Hold the interferer at least
+   `{python} result["null-depth"]` dB below the main beam.
+4. **The price of the null.** A null may cost the receiver at most
+   `{python} result["feasible-loss"]` dB of gain; where it would cost more,
+   none is placed.
+
+**How a design is judged.** The success criteria, which the studies
+measure:
+
+- no second beam of full height, a grating lobe, for any beam within the
+  scan at any frequency of the band;
+- the null at least as deep as required in
+  `{python} result["confidence"]` per cent of realised arrays, nineteen in
+  twenty, with the phase shifters and channel errors below;
+- on the pass, the null depth met wherever a null is placed, and the
+  updates where none can be placed named;
+- the null still as deep as required at the edges of the band.
+
+**What the hardware gives.** Phase shifters, not delay lines, available
+with `{python} result["bits-low"]` to `{python} result["bits-high"]` bits;
+channels calibrated to `{python} result["phase-error"]` degrees of phase
+and `{python} result["amplitude-error"]` per cent of amplitude, rms.
+
+**The scenario.** The receiver drives past on a road
+`{python} result["road"]` m from the array at `{python} result["speed"]`
+m/s; the interferer stays at `{python} result["interferer"]` degrees.
+
+**What the design chooses.** These are not requirements but the choices the
+studies test: `{python} result["count"]` elements,
+`{python} result["spacing"]` mm apart (half a wavelength at the carrier);
+amplitudes tapered toward the edges for sidelobes
+`{python} result["sidelobes"]` dB below the beam; a fixed, random feed-line
+phase per element; and the number of bits, which the studies choose.
+
+### The model's assumptions {#model-assumptions}
 
 1. **A linear array of identical elements.** Sixteen elements on a line,
    evenly spaced, each radiating the same pattern; the direction $\psi$ is
@@ -106,10 +160,15 @@ the phase it had, and the sum is largest there: the beam is **steered** to
 $\psi_0$. For $N$ equal amplitudes, spacing $d$, and the array centred on
 the origin, the sum is a geometric series:
 
+::: {.equation-pair}
 $$
 \mathrm{AF}(\psi) = \frac{\sin(N x / 2)}{\sin(x / 2)},
-\qquad x = k d\,(\sin\psi - \sin\psi_0).
 $$
+
+$$
+x = k d\,(\sin\psi - \sin\psi_0).
+$$
+:::
 
 Everything follows from this closed form:
 
@@ -139,9 +198,15 @@ weights, $\mathrm{AF}(\psi_i) = 0$. The weights closest to the steered ones
 that satisfy it are their projection on the complement of the interferer's
 steering vector. For equal amplitudes the projection keeps the fraction
 
+::: {.equation-pair}
 $$
-G = 1 - r^2, \qquad r = \frac{\mathrm{AF}_{\psi_0}(\psi_i)}{N},
+G = 1 - r^2,
 $$
+
+$$
+r = \frac{\mathrm{AF}_{\psi_0}(\psi_i)}{N},
+$$
+:::
 
 of the gain toward the receiver, where $r$ is the steered beam's own
 field toward the interferer: a null in the sidelobes is almost free, a null
@@ -239,17 +304,26 @@ excerpt(arrays.grating_onset)
 
 ## Worked examples
 
-### The requirements
+### The brief in code {#the-requirements}
 
-A hypothetical array has to keep a beam on a receiver passing on a road and
-hold a null toward a fixed interferer, over a band around the carrier:
+The [brief](#the-brief) as the constants every study below reads. What the
+design must achieve, with the share of realised arrays that must meet the
+null:
 
 ```{python}
 #| echo: false
 excerpt(experiment, region="requirements")
 ```
 
-The phase shifters and the channels it may be built with, and the pass:
+What the design chooses:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="choices")
+```
+
+The phase shifters and the channels it may be built with, with the size of
+the Monte Carlo samples, and the pass:
 
 ```{python}
 #| echo: false
@@ -264,11 +338,14 @@ excerpt(experiment, region="pass")
 ### Is the model right?
 
 Before the model decides anything it is checked against the closed form.
-The beam of equal amplitudes steered to $30^\circ$:
+The beam of equal amplitudes steered to $30^\circ$: the direct sum against
+the closed form, the peak found by search, the nulls predicted and found,
+and the pattern steered against the broadside one translated in
+$\sin\psi$:
 
 ```{python}
 #| echo: false
-excerpt(experiment.model_checks)
+excerpt(experiment.model_checks, lines=[(6, 11), (13, 22), (34, 42), (68, 79)])
 ```
 
 ```{python}
@@ -355,9 +432,13 @@ a beam steered beyond `{python} result["onset-scan"]` degrees.
 
 ### Amplitudes and the null
 
+The taper's sidelobes, width, and loss against equal amplitudes; the depth
+of the ideal null; and its cost as the receiver approaches the interferer,
+against $1 - r^2$ and with the taper:
+
 ```{python}
 #| echo: false
-excerpt(experiment.taper_and_null)
+excerpt(experiment.taper_and_null, lines=[(6, 17), (37, 40), (43, 58)])
 ```
 
 ```{python}
@@ -405,9 +486,13 @@ taper, not with the closed form.
 
 ### Quantised phase shifters
 
+The design beam is realised many times with random insertion phases and
+compared with the exact expectation; then the same taper is rounded with
+and without insertion phases:
+
 ```{python}
 #| echo: false
-excerpt(experiment.degradation)
+excerpt(experiment.degradation, lines=[(8, 17), (54, 61)])
 ```
 
 ```{python}
@@ -445,6 +530,14 @@ the array at all.
 
 ### Errors of the channels
 
+The same comparison with channel errors alone, the amplitude error of the
+brief and a growing phase error:
+
+```{python}
+#| echo: false
+excerpt(experiment.degradation, lines=[(71, 78)])
+```
+
 ```{python}
 #| label: channel-errors
 #| echo: false
@@ -463,7 +556,14 @@ over.
 
 ### The choice of phase shifter
 
-With the channel-error budget of the requirements, the number of bits:
+With the channel errors of the brief and the quantisation together, each
+number of bits is tried in turn, and the first whose null depth at the
+brief's share of realised arrays meets the requirement is chosen:
+
+```{python}
+#| echo: false
+excerpt(experiment.degradation, lines=[(107, 118)])
+```
 
 ```{python}
 #| label: decision
@@ -584,15 +684,43 @@ The design that meets the hypothetical requirements, under this model:
 `{python} result["spacing"]` mm spacing, a thirty-decibel Chebyshev taper,
 `{python} result["chosen-bits"]`-bit phase shifters with insertion phases,
 channels calibrated to two degrees and two per cent, and a null placed only
-where it costs at most three decibels. It is a **qualified** decision. It
-fails in a window of a few degrees around the interferer, which no weight
-of this aperture can avoid: only a longer array, with a narrower beam,
-shrinks that window. At the band edges only the ideal null is shown to
-meet the requirement, for the interferer of the requirements; the error
-budget was measured at the carrier, and everything holds only for ideal,
-uncoupled elements with the errors assumed. The next step for a real design would be the one this
-model cannot take: element patterns with coupling from a full-wave
-computation of the array, and measured channel errors.
+where it costs at most three decibels. Against the [brief](#the-brief),
+requirement by requirement:
+
+1. **The band: met, with a margin, and one condition.** No grating lobe
+   appears anywhere in the band for a beam within the scan: that needs a
+   spacing below `{python} result["largest-spacing"]` mm, the design's is
+   `{python} result["spacing"]` mm, and at the top of the band the first
+   would appear only for a beam steered beyond
+   `{python} result["onset-scan"]` degrees. The condition, which the brief
+   does not bound: at the top of the band a beam set for the edge of the
+   scan squints `{python} result["squint"]` degrees toward broadside.
+2. **The scan: met, at a price.** The realised beam follows the receiver
+   over the whole pass. Near the edge of the scan the element pattern of a
+   half-wave dipole is `{python} result["element-loss"]` dB below its
+   broadside value, the scan loss no array factor removes.
+3. **The null: met at the carrier.** With
+   `{python} result["chosen-bits"]` bits and the channel errors of the
+   brief, nineteen realised arrays in twenty hold it at least as deep as
+   required, the success criterion; fewer bits do not. At the band edges
+   only the ideal null is shown to meet the requirement, with
+   `{python} result["edge-null-margin"]` dB to spare, for the interferer of
+   the brief; the error budget was measured at the carrier.
+4. **The price of the null: met by the rule, at a cost.** The rule places
+   a null only where it costs at most three decibels, and wherever it was
+   placed on the pass the interferer stayed below the requirement. While
+   the receiver is between `{python} result["window-low"]` and
+   `{python} result["window-high"]` degrees no null can be placed at that
+   price, so the null requirement holds at a share
+   `{python} result["met-share"]` of the updates, not at all of them.
+
+It is a **qualified** decision. It fails in a window of a few degrees
+around the interferer, which no weight of this aperture can avoid: only a
+longer array, with a narrower beam, shrinks that window. Everything holds
+only for ideal, uncoupled elements with the errors assumed. The next step
+for a real design would be the one this model cannot take: element
+patterns with coupling from a full-wave computation of the array, and
+measured channel errors.
 
 ## Limits {#limits}
 

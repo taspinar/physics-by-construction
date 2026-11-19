@@ -112,6 +112,7 @@ the website describes the current template.
 | `docs/process.md` | The rules of the development process in force: the verification tiers, the CI jobs, the budgets, the risk levels, review, triage, and the owner's approval, each with its ADR decision and the script that carries it out (Issue #404) | You |
 | `docs/authoring.md`, `docs/lesson-template.qmd` | How to write a lesson, and the page a new lesson starts from | You |
 | `docs/atelier.md` | The design specification of the scientific atelier (F123): the direction, the tokens, the components, the asset classes, the mobile and accessibility rules, and what the agent skills changed | You |
+| `docs/teaching-calibration.md` | The teaching calibration of F168: the teaching maps of four lesson archetypes (measured data, engineering capstone, AI evidence, formal proof) with their good practice and gaps, where the mechanics pilots' method does not transfer, the skill rows found under-specified, and the proposal for F169 with the owner's decision | You |
 | `docs/content-proposals.md` | How a lesson is proposed, assessed, drafted, and merged, for contributors and the maintainer | You |
 | `docs/workflow.md` | The workflow in flow, artifact, reference, and principles views | Template |
 | `docs/example.md` | A complete run with a sample project | Template |

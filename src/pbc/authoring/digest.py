@@ -1179,9 +1179,13 @@ def _safe_names(tree: ast.AST, exported: frozenset[str] = frozenset()) -> set[st
                 )
                 if _mentions(node.value, names) and _is_safe_path(node.value, names):
                     names |= {t.id for t in targets if isinstance(t, ast.Name)}
-            elif isinstance(node, ast.For) and isinstance(node.target, ast.Name):
-                if _mentions(node.iter, names) and _is_safe_iterable(node.iter, names):
-                    names.add(node.target.id)
+            elif (
+                isinstance(node, ast.For)
+                and isinstance(node.target, ast.Name)
+                and _mentions(node.iter, names)
+                and _is_safe_iterable(node.iter, names)
+            ):
+                names.add(node.target.id)
         changed = len(names) != before
     return names
 
