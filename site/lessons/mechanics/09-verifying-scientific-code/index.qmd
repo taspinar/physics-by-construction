@@ -655,24 +655,35 @@ Set it up before the agent starts; each rule names what it prevents.
 2. **An allowlist of commands.** The agent may run the tests, the
    formatter, and the task's own scripts, and nothing else: no installer,
    no version control, no shell beyond those commands. Most agents can be
-   configured to ask before any other command; refuse.
+   configured to ask before any other command; refuse. Without a container
+   or a separate machine this is a setting of the agent, not a limit your
+   machine enforces.
 3. **No network beyond the agent's own provider.** The task needs none. An
-   agent that fetches a package or a page has left the specification.
+   agent that fetches a package or a page has left the specification. Like
+   the allowlist, this holds only where a container, a firewall, or a
+   separate machine enforces it.
 4. **The credential stays in your environment.** The agent's account and
    key are yours, kept where its own documentation says, never in a file of
-   the checkout and never in a prompt.
+   the checkout and never in a prompt. The agent's commands run as you, so
+   every credential in your environment variables is readable to them, not
+   only the agent's own key: start the agent in a shell that holds no other.
 5. **A budget, set before the start.** A number of steps or tool calls, a
    time, and a cost. When it is spent the session ends, passed or not. This
    is the stopping condition of the lesson on experiment specifications,
    for the same reason.
 6. **Read every diff before you run it.** The tests execute the agent's
    code. Read what was written first, and never run a command the agent
-   proposes on a checkout that matters.
+   proposes on a checkout that matters. This covers what you run. It does
+   not cover the code the agent runs itself while it works, such as the
+   tests it runs on its own draft: that code runs before anyone has read
+   it, and only the scratch checkout and any isolation limit what it can
+   reach.
 
-The profile limits the damage of a mistake. It does not make the code
-right, and it is not a security boundary against an agent that is
-determined to leave it: that would need a container or a separate machine,
-which a careful learner may add.
+The profile is a way of working that limits the damage of a mistake. It is
+not a security boundary: without further isolation, rules 2 and 3 are
+settings of the agent, not limits the machine enforces, and an agent that
+leaves them is stopped only by a container or a separate machine with no
+credential but the agent's own. Nor does the profile make the code right.
 
 ### The review rubric
 

@@ -67,26 +67,37 @@ checklist. The learner sets it up before the agent starts.
 2. **An allowlist of commands.** The agent may run the tests, the
    formatter, and the exercise's own scripts, and nothing else: no
    installer, no version control, no other shell command. Where the agent
-   asks for permission to run another command, the answer is no.
-   *Prevents:* the agent changing the environment the tests run in.
-3. **No network beyond the agent's own provider.** *Prevents:* fetched
-   code or data entering the solution, and anything leaving the machine.
+   asks for permission to run another command, the answer is no. Without
+   a container or a separate machine this is a setting of the agent, not a
+   limit the machine enforces. *Prevents:* the agent changing the
+   environment the tests run in.
+3. **No network beyond the agent's own provider.** Like the allowlist, it
+   holds only where a container, a firewall, or a separate machine enforces
+   it. *Prevents:* fetched code or data entering the solution, and anything
+   leaving the machine.
 4. **The credential stays in the learner's environment**, where the
    agent's own documentation says: never in a file of the checkout, never
-   in a prompt, never in anything committed. *Prevents:* a leaked key.
+   in a prompt, never in anything committed. The agent's commands run as
+   the learner, so every credential in the environment variables of its
+   shell is readable to them, not only the agent's own key: the agent starts
+   in a shell that holds no other. *Prevents:* a leaked key.
 5. **A budget, set before the start** (section 3).
 6. **Every diff is read before it is run.** The tests execute the agent's
    code; the learner reads what was written first, and never runs a command
-   the agent proposes on a checkout that matters. *Prevents:* running code
-   nobody has looked at.
+   the agent proposes on a checkout that matters. This covers what the
+   learner runs, not the code the agent runs itself while it works (the
+   tests on its own draft, for example): that code runs unread, and only
+   the scratch checkout and any isolation limit what it reaches.
+   *Prevents:* the learner running code nobody has looked at.
 
-**What the profile is not.** It limits the damage of a mistake. It is not a
-security boundary against an agent that leaves it: an agent's own
-permission settings are the only enforcement the profile assumes, and they
-differ between tools and versions. A learner who needs a boundary runs the
-agent in a container or on a separate machine with no credential but the
-agent's own. The profile also does not make the code right; sections 4 and
-5 are for that.
+**What the profile is not.** It is a way of working that limits the damage
+of a mistake, not a security boundary. Without further isolation, rules 2
+and 3 are settings of the agent, not limits the machine enforces: an agent's
+own permission settings are the only enforcement the profile assumes, and
+they differ between tools and versions. A learner who needs a boundary runs
+the agent in a container or on a separate machine with no credential but
+the agent's own. The profile also does not make the code right; sections 4
+and 5 are for that.
 
 ## 3. The budget
 
