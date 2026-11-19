@@ -403,9 +403,10 @@ result.show("fig-grammars")
 [On the clean periods no form of whole powers is consistent, and the
 search makes no claim; the half and the quarter grammar both choose the
 small-angle law. On the same noisy copies, the quarter grammar loses the
-law at a lower noise than the half grammar, to
-`{python} result["quarter-rival"]`, as the predicted noise of its nearest
-simpler form, `{python} result["quarter-floor"]` percent against
+law at a lower noise than the half grammar, most often to
+`{python} result["quarter-lost-to"]`, its nearest simpler form
+`{python} result["quarter-rival"]`, as the predicted noise of that form,
+`{python} result["quarter-floor"]` percent against
 `{python} result["half-floor"]` percent, says it
 should.]{.claim type="numerically-verified"
 scope="these simulated pendulums, power laws with whole, half, and quarter exponents from -2 to 2, twenty seeds per noise level, noise known to the search"

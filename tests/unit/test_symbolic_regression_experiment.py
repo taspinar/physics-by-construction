@@ -113,9 +113,14 @@ def test_the_richer_grammar_loses_the_law_at_a_lower_noise_as_predicted(results)
     lost_half = next(n for n, h in zip(noise, half, strict=True) if h < 10)
     lost_quarter = next(n for n, q in zip(noise, quarter, strict=True) if q < 10)
     assert lost_quarter < lost_half
-    # It loses it to a form with a fourth root, at about its predicted noise,
+    # The noisy searches lose it to the nearest simpler form the clean search
+    # predicts, a form with a fourth root, at about its predicted noise,
     # which is lower than the half grammar's.
+    assert numbers["quarter-lost-to"] == numbers["quarter-rival"]
     assert "1/4" in numbers["quarter-rival"]
+    grammars = {row[0]: row for row in found["tables"]["grammars"]["rows"]}
+    assert grammars["half powers"][4] == "L^(1/2)"
+    assert grammars["quarter powers"][4] == "L^(1/2) g^(-1/4)"
     assert float(numbers["quarter-floor"]) < float(numbers["half-floor"])
     for floor, lost in (
         (numbers["quarter-floor"], lost_quarter),

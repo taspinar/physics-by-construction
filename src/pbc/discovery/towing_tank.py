@@ -4,11 +4,12 @@ competing models").
 
 A sphere is towed through a fluid at a set speed; the experimenter chooses
 the speed and the diameter of the sphere and reads the drag force, with a
-relative noise of known size. The fluid is outside the boundary of the
-system: it is held fixed and cannot be read. The law of the drag, a power
-law of the speed and the diameter with a constant that holds the fluid, is
-hidden, and so are the settings at which a claim is scored, which lie
-beyond what the carriage can tow and the tank can hold.
+relative noise of known size. The fluid is inside the boundary of the
+system, but it is neither set nor read: it is held fixed and out of reach.
+The law of the drag, a power law of the speed and the diameter with a
+constant that holds the fluid, is hidden, and so are the settings at which
+a claim is scored, which lie beyond what the carriage can tow and the tank
+can hold.
 
 Two worlds share the box. In ``WATER`` the drag is Newton's quadratic drag
 on a sphere, ``F = C_d rho (pi / 8) d^2 v^2``, with a drag coefficient

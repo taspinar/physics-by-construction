@@ -359,8 +359,8 @@ result.table("rlc-correlation")
 The real part of the impedance is $R$ alone, so the estimate of $R$ is
 uncorrelated with the others. The imaginary part holds $L$ and $C$
 together, and they are anticorrelated: a slightly larger inductance can be
-partly made up for by a slightly larger capacitance, which keeps the
-resonance in place. They are still determined, because the sweep reaches
+partly made up for by a slightly smaller capacitance, which keeps the
+product $LC$, and with it the resonance, in place. They are still determined, because the sweep reaches
 far enough on both sides of the resonance, where one or the other
 dominates. The exercise on a sweep below the resonance shows what happens
 when it does not.

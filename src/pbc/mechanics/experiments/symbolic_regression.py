@@ -301,6 +301,20 @@ def simplest_rival(search: Search) -> PowerLaw:
     return min(simpler, key=lambda f: noise_floor(search, f))
 
 
+def lost_to(searches: list[list[Search]]) -> str:
+    """The form chosen most often instead of the law, at the first noise
+    where the law is chosen in fewer than half of the copies."""
+    for level in searches:
+        if sum(right_form(s) for s in level) < len(level) / 2:
+            others = Counter(
+                s.chosen.shape
+                for s in level
+                if s.chosen is not None and not right_form(s)
+            )
+            return others.most_common(1)[0][0] if others else "no claim"
+    return "not lost"
+
+
 def grammars(
     experiment: Experiment, variables: dict, periods: np.ndarray
 ) -> dict[str, list[int]]:
@@ -320,17 +334,18 @@ def grammars(
         if key == "quarter":
             experiment.number("quarter-forms", len(clean.forms))
             experiment.number("quarter-rival", rival.shape)
-        chosen[name] = [
-            sum(
-                right_form(
-                    power_law_search(
-                        variables, noisy_periods(periods, noise, seed), noise, exponents
-                    )
+        searches = [
+            [
+                power_law_search(
+                    variables, noisy_periods(periods, noise, seed), noise, exponents
                 )
                 for seed in range(SEEDS)
-            )
+            ]
             for noise in GRAMMAR_NOISE
         ]
+        chosen[name] = [sum(right_form(s) for s in level) for level in searches]
+        if key == "quarter":
+            experiment.number("quarter-lost-to", lost_to(searches))
         rows.append(
             (
                 name,

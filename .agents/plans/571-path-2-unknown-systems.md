@@ -136,9 +136,9 @@ no model run.
   candidate structures, and the prior (which candidates are admitted).
 - **The system.** A towing tank, outside electronics: a sphere pulled
   through a fluid at a set speed, the diameter chosen from the tank's
-  spheres, the drag force read with a relative noise. The fluid is outside
-  the boundary: held fixed and not readable. The law is hidden
-  (`TowingTankEnvironment`, `pbc.discovery`); the routes reach it only
+  spheres, the drag force read with a relative noise. The fluid is inside
+  the boundary, but neither set nor read: held fixed and out of reach. The
+  law is hidden (`TowingTankEnvironment`, `pbc.discovery`); the routes reach it only
   through its allowlist.
 - **Two conditions on the same probes.** Knowledge-informed: the two drag
   laws (Stokes, linear in speed and diameter; Newton's quadratic drag,
