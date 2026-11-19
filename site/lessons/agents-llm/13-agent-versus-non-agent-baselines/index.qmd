@@ -259,11 +259,12 @@ the names of the parameters, or told nothing, and the plain model had the
 agent's task with the names. The lesson on prior knowledge in discovery
 compared the conditions on one system; here the same idea becomes a field
 of each entry, and `comparable` refuses a pair whose stated knowledge
-differs:
+differs. The check is the last branch of `comparable`, shown in full
+above:
 
 ```{python}
 #| echo: false
-excerpt(comparable)
+excerpt(comparable, region="knowledge")
 ```
 
 On the spring, the agent told nothing missed the law and least squares

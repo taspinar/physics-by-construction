@@ -30,7 +30,7 @@ import json
 import math
 import sys
 from collections.abc import Mapping
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -44,7 +44,6 @@ from pbc.agents.replay import Recording, load_recording, replay, save_recording
 from pbc.agents.vision import Question, Source, answer_sheet
 from pbc.authoring import FIGURE_COLOURS
 from pbc.discovery.baselines import BaselineResult, least_squares, random_probe
-from pbc.discovery.environment import Environment
 from pbc.discovery.force_lab import BUDGET, MAX_STEPS, SEED, TOLERANCE, Run
 from pbc.discovery.protocol import (
     PROMPT_VERSION,
@@ -635,14 +634,6 @@ def withheld_unreachable(protocol: Protocol = PROTOCOL) -> dict[str, bool]:
             math.isclose(p, v, rel_tol=1e-9) for p in public for v in drawn
         ),
     }
-
-
-def environment_of(protocol: Protocol) -> Environment:
-    return protocol.make(SEED)
-
-
-def with_budget(protocol: Protocol, budget: int) -> Protocol:
-    return replace(protocol, budget=budget)
 
 
 # ---------------------------------------------------------------------------

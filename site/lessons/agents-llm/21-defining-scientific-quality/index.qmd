@@ -52,11 +52,31 @@ of one of two kinds. Most are runs a language model made once, recorded,
 and replayed here by the build, which executes their tool calls again and
 computes every measure from the replayed trace; the model's own words are
 shown on the pages that hold the runs and are never read by a measure. The
-rest are two methods without a model that the build runs itself. The
-systems and the runs are those of the benchmark lesson that follows this
-one on the path: a projectile, a spring, and a central force, each with a
-hidden parameter, the three conditions of prior knowledge of the lesson on
-prior knowledge, and a plain model that could not measure.
+rest are two methods without a model that the build runs itself.
+
+### The runs measured here
+
+The two lessons that follow this one on the path build these runs and
+compare them; this lesson only measures them, so each is introduced here
+in a few lines and treated in depth there.
+
+- **The benchmark grid.** Three simulated systems, a projectile, a spring
+  (the tables call it the oscillator), and a central force, each with a
+  hidden parameter, crossed with the three conditions of the lesson on
+  prior knowledge: the agent told the form of the law, told only the names
+  of its parameters, or told nothing. That is nine runs of one language
+  model with two tools, `measure` and `submit`, and a budget of
+  `{python} result["budget"]` probes each.
+- **The drawn world.** One more run, told nothing, on a central force whose
+  strength and exponent the judge drew at random and never showed, scored
+  on cases at distances the agent's tools cannot reach.
+- **The plain model.** The same language model with the agent's task told
+  the names, but no tool: it cannot measure and answers from what it
+  already knows. One run per system.
+- **Two methods without a model.** Least squares of the law's family on
+  readings taken on a regular grid of settings, and on readings at random
+  settings, each spending the whole budget. They are the baselines a
+  claim of discovery has to stand beside.
 
 ## Assumptions
 
@@ -251,9 +271,13 @@ information far above the grid's.
 
 ### Understanding on a picture
 
-The benchmark lesson adds a task of nine questions about two pictures drawn
-by the build from the mechanics code, with the answers computed from the
-same code. Picture A is the launcher:
+The last kind of measure needs a different task, which the next lesson on
+the path builds: nine questions about two pictures, a launcher and a
+spring, drawn by the build from the mechanics code, with every answer
+computed from the same code. Each question asks for one kind of
+understanding: a value read off the picture, a concept, what the device
+can or cannot do, or what would change if one quantity changed. Picture A
+is the launcher:
 
 ```{python}
 #| label: fig-task-launcher

@@ -29,6 +29,7 @@ from pbc.authoring.repository import REPOSITORY_ROOT
 from pbc.discovery import tasks
 from pbc.discovery.baselines import grid_probe, least_squares, random_probe
 from pbc.discovery.benchmark import (
+    BUDGET,
     ENVIRONMENTS,
     GRID,
     PLAIN_RUNS,
@@ -295,6 +296,7 @@ def run() -> Experiment:
     """Everything the lesson's page shows."""
     experiment = Experiment()
     experiment.number("tolerance", TOLERANCE, "g")
+    experiment.number("budget", BUDGET)
     found = profiles()
     profile_table(experiment, found)
     disagreements(experiment, found)

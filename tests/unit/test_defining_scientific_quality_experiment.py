@@ -45,6 +45,20 @@ def test_refused_calls_and_informative_settings_are_measured_apart(results):
     _, found = results
     hidden = dict(found["tables"]["ae1-disagreements"]["rows"])
     assert hidden["refused calls, yet settings more informative than a grid"] == "3"
+    # The claim names the three runs, and the spring's partial run, refused
+    # as often as its full run, far below the grid.
+    profiles = _profiles(found)
+    named = [
+        ("projectile", "agent, full"),
+        ("projectile", "agent, partial"),
+        ("oscillator", "agent, full"),
+    ]
+    for run in named:
+        assert int(profiles[run][-2]) > 0, run
+        assert float(profiles[run][-1]) > 1, run
+    partial = profiles["oscillator", "agent, partial"]
+    assert partial[-2] == profiles["oscillator", "agent, full"][-2]
+    assert float(partial[-1]) < 0.5
     assert (
         hidden["the readings support a recovery, yet the claim is not correct"] == "2"
     )
@@ -54,5 +68,8 @@ def test_the_items_are_scored_by_kind(results):
     _, found = results
     rows = {r[0]: r[1:] for r in found["tables"]["ae1-items"]["rows"]}
     assert rows["reading"][1:3] == ["2", "0"]
+    # With the pictures, every question of every kind is answered correctly.
+    for kind, row in rows.items():
+        assert row[1] == row[0], kind
     for kind in ("concept", "counterfactual"):
         assert rows[kind][1] == rows[kind][2] == rows[kind][0]

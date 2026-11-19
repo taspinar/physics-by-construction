@@ -361,12 +361,14 @@ def comparable(a: Entry, b: Entry) -> tuple[str, ...]:
         reasons.append(f"tolerances differ ({p.tolerance:g}, {q.tolerance:g})")
     if a.allowed != b.allowed:
         reasons.append(f"budgets differ ({a.allowed}, {b.allowed} probes)")
+    # region: knowledge
     if (
         a.knowledge is not None
         and b.knowledge is not None
         and a.knowledge != b.knowledge
     ):
         reasons.append(f"prior knowledge differs ({a.knowledge}, {b.knowledge})")
+    # endregion: knowledge
     return tuple(reasons)
 
 

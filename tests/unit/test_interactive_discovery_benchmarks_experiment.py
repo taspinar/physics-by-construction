@@ -67,12 +67,21 @@ def test_the_diagram_task_is_scored_against_the_computed_key(results):
     assert tally["reading"][2] == "0"
     assert tally["concept"][2] == tally["concept"][0]
     assert tally["counterfactual"][2] == tally["counterfactual"][0]
+    # The claim: without the pictures, the run misses the reach question (1).
+    items = {row[0]: row for row in _table(found, "ae2-items")}
+    assert items["1"][1] == "physical tool"
+    assert items["1"][4] == "yes"
+    assert items["1"][6] == "no"
 
 
 def test_the_drawn_world_is_judged_like_the_grid(results):
     _, found = results
     world = {row[0]: row[1:] for row in _table(found, "ae2-world")}
+    # The claim: the agent and least squares, on a grid and at random
+    # settings, recover the law; sparse identification does not.
     assert world["agent"][3] == "yes"
+    assert world["grid + least squares"][3] == "yes"
+    assert world["random + least squares"][3] == "yes"
     assert world["grid + sparse identification"][3] == "no"
     for method, row in world.items():
         assert row[0] == found["numbers"]["budget"]
