@@ -1212,9 +1212,10 @@ changes how a figure is drawn, never a value or a series. Out of the
 rollout, until the owner has reviewed a representative example: error
 bars, bars and histograms of their own, bands, scatter, diverging maps,
 polar axes, more than four panels and the other untested types; measured
-figures with declared provenance, whose painted credit line sets their
-width (Issue #546); M1 to M5 (the teaching pilots); AI6's model-input
-figures (I37); conceptual diagrams. The figures that already met the floor
+figures with declared provenance (their painted credit line set their
+width until Issue #546 wrapped it within the figure's width); M1 to M5
+(the teaching pilots); AI6's model-input figures (I37); conceptual
+diagrams. The figures that already met the floor
 keep their form. The plan, `.agents/plans/544-figure-language-rollout.md`,
 lists each figure and the reason.
 
@@ -2392,7 +2393,10 @@ An agent may help a learner explore, but its conclusions are never data.
    `chosen` where they do not and the project shows it for clear
    attribution, otherwise `not-required`). The encoder writes the fixed,
    deterministic record into the PNG (the addendum to ADR 016 decision 2),
-   paints one small line under the axes, the visualization credit
+   paints one small line under the axes (broken onto further lines
+   within the figure's width where it is wider, Issue #546, so that it
+   never widens the figure and the page never scales the chart down for
+   it), the visualization credit
    "Visualization: Physics by Construction" (the owner's choice on Issue
    #524, which goes with the declaration, so every declared figure carries
    it), joined by " · " to the short credit where the card makes it
