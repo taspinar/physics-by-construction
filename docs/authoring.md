@@ -1948,6 +1948,17 @@ metrics of each, a slider, and the displayed values as text.
   nothing animates.
 - One component per lab that needs it. A new component copies the pattern and
   adds its tests in `tests/e2e/`, as `tests/e2e/test_comparator.py` does.
+- The second component is the clip viewer of the lesson "Measurement quality
+  and multimodal observations", `site/widgets/clip-viewer.js` (F142): the
+  frames of clips the build generates from a simulation, as PNG data in one
+  file written by `widget_asset`, shown one at a time with the time of each,
+  chosen by radio buttons, a slider, and two buttons. It never plays a clip,
+  so nothing moves without the reader; the static figure holds the first
+  frames of each clip, and the frame takes its box. A clip follows the rules
+  of generated clips (F97): labelled generated on the page and in the file,
+  reproduced by the build, no clip of a person, and its tracking compared
+  with the simulation by a test (`tests/e2e/test_clip_viewer.py`, and the
+  experiment's unit test).
 
 | Check | Reports |
 |---|---|
