@@ -80,7 +80,11 @@ checklist. The learner sets it up before the agent starts.
    in a prompt, never in anything committed. The agent's commands run as
    the learner, so every credential in the environment variables of its
    shell is readable to them, not only the agent's own key: the agent starts
-   in a shell that holds no other. *Prevents:* a leaked key.
+   in a shell that holds no other. A credential stored in a file the agent's
+   commands can read (an SSH key, the configuration of a cloud tool, a
+   stored Git credential, the agent's own login) is just as readable to
+   them, wherever the checkout is: only a container or a separate machine
+   keeps such a file out of reach. *Prevents:* a leaked key.
 5. **A budget, set before the start** (section 3).
 6. **Every diff is read before it is run.** The tests execute the agent's
    code; the learner reads what was written first, and never runs a command
@@ -269,12 +273,28 @@ and by hand.
 ## 10. The boundary test
 
 `tests/unit/test_coding_agent_boundary.py` keeps the boundary (ADR 010
-decision 6): it computes what CI and the build are made of (the CI
-workflows, the checks of `scripts/verify.conf` and the scripts they reach,
-the site, the package, the test suites CI runs) and fails when any of it
-starts a coding agent, reaches the launcher of the development workflow
-(`scripts/lib/agent.sh`, which the maintainer's own scripts use on the
-maintainer's machine, ADR 006), names a coding agent's credential, or
-depends on the Agentic Coding Template; and it checks that the transcript
-of the lesson is marked. It extends `tests/unit/test_skills_boundary.py`,
-the boundary of the agent skills (I32).
+decision 6). It computes what CI and the build are made of, in two parts.
+
+- **The build side:** the CI workflows, the checks of `scripts/verify.conf`
+  and the scripts they run or source, the site, the package, the test
+  suites CI runs. The test fails when any of it starts a coding agent,
+  reaches the launcher of the development workflow (`scripts/lib/agent.sh`,
+  which the maintainer's own scripts use on the maintainer's machine,
+  ADR 006), names a coding agent's credential, or depends on the Agentic
+  Coding Template.
+- **The self-tests of the development workflow:** the checks of
+  `scripts/verify-workflow.conf`, which CI runs with `verify.sh --all`
+  (ADR 005). CI does reach the launcher here, and only here: these
+  self-tests load it and call it, and what they start under the name of an
+  agent is a fake program the test wrote. The test fails when a self-test
+  that can start an agent does not make a fake of every program the
+  launcher starts, or sets a `PATH` that does not begin with those fakes
+  (a `PATH` of the system directories alone is the one other form, for the
+  case of a missing program); when a file of that reach names a credential;
+  or when anything CI runs installs a coding agent.
+
+Both parts are read from the text of the files: the test shows how CI, the
+scripts, and the self-tests are written, not what one run of them did. It
+also checks that the transcript of the lesson is marked. It extends
+`tests/unit/test_skills_boundary.py`, the boundary of the agent skills
+(I32).

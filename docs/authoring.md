@@ -1906,7 +1906,10 @@ What a lesson with such an exercise has:
 
 `tests/unit/test_coding_agent_boundary.py` fails when a file of the build,
 the checks, or CI starts a coding agent or names its credential, and when
-the transcript of the example lesson loses its marker.
+the transcript of the example lesson loses its marker. The self-tests of
+the development workflow, which CI also runs, load the workflow's launcher
+and start only fake programs of their own; the test checks that too
+(`docs/coding-agent-workflow.md`, section 10).
 
 ## Discovery lessons
 

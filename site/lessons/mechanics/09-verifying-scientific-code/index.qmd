@@ -667,6 +667,10 @@ Set it up before the agent starts; each rule names what it prevents.
    the checkout and never in a prompt. The agent's commands run as you, so
    every credential in your environment variables is readable to them, not
    only the agent's own key: start the agent in a shell that holds no other.
+   A credential stored in a file the agent's commands can read (an SSH key,
+   the configuration of a cloud tool, a stored Git credential, the agent's
+   own login) is just as readable to them, wherever the checkout is: only a
+   container or a separate machine keeps such a file out of reach.
 5. **A budget, set before the start.** A number of steps or tool calls, a
    time, and a cost. When it is spent the session ends, passed or not. This
    is the stopping condition of the lesson on experiment specifications,

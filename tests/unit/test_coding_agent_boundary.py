@@ -1,22 +1,34 @@
 """Coding agents run only on the learner's machine (ADR 010 decision 6,
 invariant I24; ``docs/coding-agent-workflow.md``): nothing CI or the build
-is made of starts a coding agent, reaches the launcher of the development
-workflow, names a coding agent's credential, or depends on the Agentic
-Coding Template (ADR 022 decision 7); and a transcript of an agent session
-is an example on a page, marked "not verified" with the agent and the date,
-never a file the build reads.
+is made of starts a coding agent, names a coding agent's credential, or
+depends on the Agentic Coding Template (ADR 022 decision 7); and a
+transcript of an agent session is an example on a page, marked "not
+verified" with the agent and the date, never a file the build reads.
 
 This extends ``test_skills_boundary.py``, the boundary of the agent skills
-(I32). What "CI and the build" are made of is computed: the CI workflows,
-the checks of ``scripts/verify.conf``, every script those reach by name,
-the site, the package, the products' code, and the test suites CI runs. The
-development workflow (``scripts/*-feature.sh``, ``scripts/lib/agent.sh``)
-does start a coding agent, on the maintainer's machine (ADR 006): the test
-shows that its patterns find that launcher, and that nothing of CI or the
-build reaches it.
+(I32). What "CI and the build" are made of is computed, in two parts:
+
+- the build side: the CI workflows, the checks of ``scripts/verify.conf``,
+  every script those run or source, the site, the package, the products'
+  code, and the test suites CI runs. None of it starts a coding agent or
+  reaches the launcher of the development workflow;
+- the self-tests of the development workflow, the checks of
+  ``scripts/verify-workflow.conf``, which CI runs with ``verify.sh --all``
+  (ADR 005). The development workflow (``scripts/*-feature.sh``,
+  ``scripts/lib/agent.sh``) does start a coding agent, on the maintainer's
+  machine (ADR 006), and its self-tests load that launcher in CI. So CI
+  does reach the launcher, through these self-tests only, and what they
+  start under an agent's name is a fake program of the test: every
+  self-test that can start one writes a fake for each program the launcher
+  starts and puts it first on every ``PATH`` it sets, no file of that
+  reach names a credential, and nothing CI runs installs an agent.
+
+The second part is read from the text of the self-tests, as the first is:
+it shows how they are written, not what a run of them did.
 """
 
 import ast
+import functools
 import re
 import subprocess
 from pathlib import Path
@@ -54,6 +66,16 @@ HARNESS_KEY = "OPENAI_API_KEY"
 # The only token a CI job may name: the workflow's own.
 CI_TOKENS = {"GH_TOKEN", "GITHUB_TOKEN"}
 TEMPLATE = re.compile(r"agentic[-_ ]coding[-_ ]template", re.IGNORECASE)
+# The packages and installers those programs come from: what a job would
+# name to install one.
+PACKAGES = re.compile(
+    r"@anthropic-ai/claude-code|claude\.ai/install|@openai/codex|aider-chat"
+    r"|aider-install|@google/gemini-cli|cursor\.com/install|opencode-ai"
+    r"|opencode\.ai/install|block/goose"
+)
+WORKFLOW_CONF = "scripts/verify-workflow.conf"
+# The one function of the launcher that starts a program.
+STARTS = re.compile(r"\bagent_run\b")
 # How a script or a command runs another script: by its path after "./", after
 # a variable that holds a directory, or after "bash"; and how it sources one.
 # A path that is only named (in a message, a comment, a list of protected
@@ -62,9 +84,22 @@ RUNS = re.compile(
     r"""(?:\./|\$\{?\w+\}?"?/|\bbash\s+(?:-[a-z]+\s+)*"?)"""
     r"""((?:(?:scripts|tests)/)?(?:lib/)?[\w.-]+\.(?:sh|py))"""
 )
-SOURCES = re.compile(r"""^\s*(?:source|\.)\s+(\S+)""")
+# "source" where a command starts (at the start of a line, after ";", "&&",
+# "|", "(", an opening quote of "bash -c", "then", "do", "else"), or "." at
+# the start of a line; and its argument, up to the script's name.
+SOURCES = re.compile(
+    r"""(?:(?:^|[;&|(']|\b(?:then|do|else)\b)\s*source|^\s*\.)\s+"""
+    r"""(?:([^;]*?\.sh)(?=["';\s)]|$))?"""
+)
+SOURCED_NAME = re.compile(
+    r"""(?:^|[/"'])((?:(?:scripts|tests)/)?(?:lib/)?[\w.-]+\.sh)$"""
+)
 LOOP = re.compile(r"^\s*for\s+(\w+)\s+in\s+(.+?);\s*do\b")
 MESSAGE = re.compile(r"^\s*(?:echo|printf)\b")
+# The text a script hands to a function that reports a failure, wherever
+# the call stands on its line ("... || fail \"run ./scripts/x.sh\""): a
+# message, unless a command substitution in it runs something.
+FAILURE_TEXT = re.compile(r"""\b(?:fail|\w+_fail)\s+"(?:[^"$`\\]|\\.|\$(?!\())*\"""")
 NOT_VERIFIED = re.compile(r"(?ms)^(:{3,}) *\{[^}\n]*\.not-verified[^}\n]*\}.*?^\1 *$")
 PYTHON_SUITES = (
     "tests/unit/", "tests/integration/", "tests/lessons/", "tests/e2e/",
@@ -122,14 +157,18 @@ def runs(text: str) -> tuple[set[str], list[str]]:
     for line in code_lines(text):
         if loop := LOOP.match(line):
             loops[loop.group(1)] = loop.group(2).split()
+        line = FAILURE_TEXT.sub("", line)
         found |= {s for m in RUNS.finditer(line) if (s := _script(m.group(1)))}
-        if sourced := SOURCES.match(line):
-            path = sourced.group(1).strip('"')
+        for sourced in SOURCES.finditer(line):
+            path = sourced.group(1) or ""
             variable = re.search(r"/lib/\$\{?(\w+)\}?\.sh$", path)
+            named = SOURCED_NAME.search(path)
             names = (
                 [f"lib/{word}.sh" for word in loops.get(variable.group(1), [])]
                 if variable
-                else re.findall(r"(lib/[\w.-]+\.sh)$", path)
+                else [named.group(1)]
+                if named
+                else []
             )
             scripts = [script for name in names if (script := _script(name))]
             if not scripts:
@@ -138,10 +177,10 @@ def runs(text: str) -> tuple[set[str], list[str]]:
     return found, unresolved
 
 
-def reached_scripts() -> list[str]:
-    """The scripts CI and the checks of verify.conf run: those they run by
-    path, and those a reached script runs or sources, to any depth."""
-    start = "\n".join([*map(read, ci_files()), *verify_conf.checks().values()])
+@functools.cache
+def reach(start: str) -> tuple[str, ...]:
+    """The scripts the commands of ``start`` run by path, and those a
+    reached script runs or sources, to any depth."""
     reached: set[str] = set()
     queue = sorted(runs(start)[0])
     while queue:
@@ -151,16 +190,140 @@ def reached_scripts() -> list[str]:
         reached.add(path)
         if path.endswith(".sh"):
             queue += sorted(runs(read(path))[0])
-    return sorted(reached)
+    return tuple(sorted(reached))
 
 
-def shell_like() -> dict[str, str]:
-    """What runs as commands in CI and the build, by a name for the report."""
-    texts = {path: read(path) for path in (*ci_files(), *reached_scripts())}
+def workflow_checks() -> dict[str, str]:
+    """The self-tests of the development workflow, as name -> command: the
+    checks of verify-workflow.conf, which ``verify.sh --all`` runs in CI."""
+    found = {}
+    for line in read(WORKFLOW_CONF).splitlines():
+        entry = re.match(r"^([a-z0-9][a-z0-9-]*)(?:\s*\[[a-z0-9-]+\])?:\s*(.*\S)", line)
+        if entry and entry.group(1) != "paths":
+            found[entry.group(1)] = entry.group(2)
+    return found
+
+
+def build_scripts() -> list[str]:
+    """The build side: the scripts the CI workflows and the checks of
+    verify.conf run or source."""
+    start = [*map(read, ci_files()), *verify_conf.checks().values()]
+    return list(reach("\n".join(start)))
+
+
+def self_test_scripts() -> list[str]:
+    """The scripts the self-tests of the development workflow run or
+    source, the self-tests included."""
+    return list(reach("\n".join(workflow_checks().values())))
+
+
+def reached_scripts() -> list[str]:
+    """Every script CI runs: the build side and the workflow's self-tests."""
+    return sorted({*build_scripts(), *self_test_scripts()})
+
+
+def build_like() -> dict[str, str]:
+    """What runs as commands on the build side, by a name for the report."""
+    texts = {path: read(path) for path in (*ci_files(), *build_scripts())}
     texts.update(
         {f"verify.conf:{name}": cmd for name, cmd in verify_conf.checks().items()}
     )
     return texts
+
+
+def shell_like() -> dict[str, str]:
+    """What runs as commands in CI and the build, by a name for the report:
+    the build side, and the self-tests with what they reach."""
+    texts = build_like()
+    texts.update({path: read(path) for path in self_test_scripts()})
+    texts.update(
+        {f"verify-workflow.conf:{name}": cmd for name, cmd in workflow_checks().items()}
+    )
+    return texts
+
+
+def launcher_programs() -> set[str]:
+    """The programs the launcher of the development workflow names."""
+    return set(COMMAND_WORD.findall("\n".join(code_lines(read(LAUNCHER)))))
+
+
+def calls_the_launcher(path: str) -> bool:
+    return bool(STARTS.search("\n".join(code_lines(read(path)))))
+
+
+def starting_self_tests() -> dict[str, str]:
+    """The self-tests that can start a program under an agent's name: those
+    that call the starting function of the launcher, or reach a script that
+    does. By name -> the script of the self-test."""
+    found = {}
+    for name, command in workflow_checks().items():
+        scripts = reach(command)
+        if LAUNCHER in scripts and any(
+            calls_the_launcher(path) for path in scripts if path != LAUNCHER
+        ):
+            (found[name],) = runs(command)[0]
+    return found
+
+
+WRITES = re.compile(r"""(?:>\s*|\bcp\s+\S+\s+)"(\$\w+(?:/[\w-]+)*)/(\$?\w+)\"""")
+FAKES_CALL = re.compile(r"""^\s*make_fake_agents\s+"([^"]+)"\s*$""")
+SYSTEM_DIRECTORIES = {"/usr/bin", "/bin"}
+PATH_VALUE = re.compile(r"""\bPATH="([^"]*)\"""")
+
+
+def written_programs(text: str) -> dict[str, set[str]]:
+    """The files a shell script writes or copies into a directory, as
+    directory -> names: how a self-test makes its fake programs. A name
+    that is a loop variable stands for every word of the loop."""
+    found: dict[str, set[str]] = {}
+    loops: dict[str, list[str]] = {}
+    for line in text.splitlines():
+        if loop := LOOP.match(line):
+            loops[loop.group(1)] = loop.group(2).split()
+        for directory, name in WRITES.findall(line):
+            names = loops.get(name[1:], []) if name.startswith("$") else [name]
+            found.setdefault(directory, set()).update(names)
+    return found
+
+
+def fake_directories(text: str, needed: set[str]) -> set[str]:
+    """The directories in which a self-test makes a fake of every needed
+    program: by ``make_fake_agents`` of tests/lib-fakes.sh, or by itself."""
+    shared = written_programs(read("tests/lib-fakes.sh")).get("$bin", set())
+    found = {d for d, names in written_programs(text).items() if needed <= names}
+    if needed <= shared and "tests/lib-fakes.sh" in runs(text)[0]:
+        found |= {
+            call.group(1)
+            for line in text.splitlines()
+            if (call := FAKES_CALL.match(line))
+        }
+    return found
+
+
+def unshadowed_paths(text: str, needed: set[str]) -> list[str]:
+    """The values a self-test gives ``PATH`` that do not start with a
+    directory of its fakes; all of them when it makes no fakes or sets no
+    ``PATH``. A value that only extends the ``PATH`` it inherits, with a
+    directory of the test's own in front, counts when the test has exported
+    a ``PATH`` that starts with the fakes. A value of the system directories
+    alone counts too: it is how a self-test shows that a missing program is
+    refused, and it finds an agent only where one is installed in the
+    system, which nothing CI runs does (the test of the installers)."""
+    fakes = fake_directories(text, needed)
+    values = PATH_VALUE.findall("\n".join(code_lines(text)))
+    if not fakes or not values:
+        return ["(no fakes)" if not fakes else "(no PATH)", *values]
+    exported = any(
+        value.split(":")[0] in fakes
+        for value in re.findall(r"""export PATH="([^"]*)\"""", text)
+    )
+    return [
+        value
+        for value in values
+        if (entries := value.split(":"))[0] not in fakes
+        and not set(entries) <= SYSTEM_DIRECTORIES
+        and not (exported and entries[0].startswith("$tmp/") and entries[-1] == "$PATH")
+    ]
 
 
 def python_sources() -> list[str]:
@@ -194,6 +357,51 @@ def agent_arguments(source: str) -> list[str]:
     return found
 
 
+def key_holders() -> set[str]:
+    """The names a module of the package binds to the harness key's name."""
+    found = set()
+    for path in python_sources():
+        if not path.startswith(("src/", "site/", "products/")):
+            continue
+        for node in ast.walk(ast.parse(read(path))):
+            if (
+                isinstance(node, ast.Assign)
+                and isinstance(node.value, ast.Constant)
+                and node.value.value == HARNESS_KEY
+            ):
+                found |= {t.id for t in node.targets if isinstance(t, ast.Name)}
+    return found
+
+
+def reads_the_harness_key(source: str, holders: set[str] = frozenset()) -> bool:
+    """Whether ``source`` hands the name of the harness key to a call or
+    looks it up in a mapping, by its text or by a name bound to it: how
+    Python reads a variable of the environment. A message or a docstring
+    that tells the learner to set the variable does neither."""
+
+    def is_key(node: ast.AST) -> bool:
+        return (
+            (isinstance(node, ast.Constant) and node.value == HARNESS_KEY)
+            or (isinstance(node, ast.Name) and node.id in holders)
+            or (isinstance(node, ast.Attribute) and node.attr in holders)
+        )
+
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Call):
+            values = [*node.args, *(keyword.value for keyword in node.keywords)]
+        elif isinstance(node, ast.Subscript):
+            values = [node.slice]
+        else:
+            continue
+        if any(is_key(value) for value in values):
+            return True
+    return False
+
+
+EXECUTED_CELL = re.compile(r"(?ms)^```\{python[^}\n]*\}\n(.*?)^```")
+HARNESS_CLIENT = "src/pbc/agents/clients/openai.py"
+
+
 def pages() -> list[str]:
     return [p for p in FILES if p.startswith("site/") and p.endswith(".qmd")]
 
@@ -220,7 +428,7 @@ def build_inputs() -> list[str]:
 
 def test_the_scan_sees_ci_the_build_the_package_and_the_pages():
     assert ".github/workflows/ci.yml" in ci_files()
-    reached = reached_scripts()
+    built = build_scripts()
     for script in (
         "scripts/verify.sh",
         "scripts/build-site.sh",
@@ -228,7 +436,23 @@ def test_the_scan_sees_ci_the_build_the_package_and_the_pages():
         "scripts/check-lean.sh",
         "scripts/preflight.sh",
     ):
-        assert script in reached, script
+        assert script in built, script
+    # The self-tests of the workflow, which CI runs with --all (ADR 005).
+    assert any("./scripts/verify.sh --all" in read(path) for path in ci_files()), (
+        "CI no longer runs verify.sh --all: revise what this test calls CI"
+    )
+    assert len(workflow_checks()) > 20
+    tested = self_test_scripts()
+    for script in (
+        "tests/agent-test.sh",
+        "tests/start-feature-test.sh",
+        "tests/lib-fakes.sh",
+        "scripts/start-feature.sh",
+        "scripts/review-feature.sh",
+        "scripts/lib/review-run.sh",
+    ):
+        assert script in tested, script
+    assert set(tested) <= set(reached_scripts())
     sources = python_sources()
     assert "src/pbc/mechanics/resonance.py" in sources
     assert "src/pbc/verification/driven.py" in sources
@@ -287,6 +511,8 @@ def test_running_and_sourcing_a_script_are_told_from_naming_it():
     text = """
 # see ./scripts/start-feature.sh for the session
 echo "then run ./scripts/finish-planning.sh" >&2
+fail "revise with ./scripts/revise-planning.sh and review \\"again\\""
+[[ -n "$reviews" ]] || fail "no review ($latest): ./scripts/review-planning.sh"
 protected=(
   scripts/lib/agent.sh
 )
@@ -307,7 +533,25 @@ done
     assert unresolved == []
     assert runs('source "$root/scripts/lib/$other.sh"')[1]
     assert runs("./scripts/start-feature.sh 12")[0] == {"scripts/start-feature.sh"}
+    # a failure text that runs a command is not only a message
+    assert runs('fail "got $(./scripts/doctor.sh 2>&1)"')[0] == {"scripts/doctor.sh"}
     assert runs('bash -eo pipefail "$here/lib/agent.sh"')[0] == {LAUNCHER}
+    # sourcing, however the path is written and wherever the command starts
+    for line in (
+        'source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/lib/agent.sh"',
+        'x="$(source "$repo/scripts/lib/risk.sh" && source "$repo/scripts/lib/agent.sh',
+        "  tree=\"$(bash -c 'source scripts/lib/risk.sh; source scripts/lib/agent.sh",
+        'if true; then source "$source_root/scripts/lib/agent.sh"; fi',
+    ):
+        assert LAUNCHER in runs(line)[0], line
+        assert runs(line)[1] == [], line
+    assert runs('source "$source_root/tests/lib-fakes.sh"')[0] == {"tests/lib-fakes.sh"}
+    # a word "source" that starts no command sources nothing
+    assert runs('jq --arg source ".agents/reviews/r.sh" . file') == (set(), [])
+    assert runs('expect "a source change" RISK_PATH_MIN 2') == (set(), [])
+    # a file this function cannot name is reported
+    assert runs('source "$RUN_CONTROL/$role.sh"')[1]
+    assert runs('. "$venv/bin/activate"')[1]
 
 
 def test_a_command_line_on_a_page_is_found_outside_a_marked_block_only():
@@ -342,34 +586,106 @@ def test_the_patterns_find_the_launcher_of_the_development_workflow():
     assert COMMAND_WORD.search(read(LAUNCHER))
 
 
+def test_fakes_of_a_self_test_and_a_path_that_does_not_shadow_are_found():
+    needed = {"claude", "codex"}
+    own = """
+for provider in codex claude; do
+  cat >"$tmp/bin/$provider" <<'FAKE'
+FAKE
+done
+export PATH="$tmp/bin:$PATH"
+(PATH="$tmp/silent-bin:$PATH" agent_run unattended codex model "$dir" "prompt")
+"""
+    assert written_programs(own) == {"$tmp/bin": needed}
+    assert fake_directories(own, needed) == {"$tmp/bin"}
+    assert unshadowed_paths(own, needed) == []
+    shared = """
+source "$source_root/tests/lib-fakes.sh"
+make_fake_agents "$tmp/bin"
+    PATH="$tmp/bin:/usr/bin:/bin" MOCK_AGENT_LOG="$repo.log" ./scripts/start-feature.sh
+"""
+    assert fake_directories(shared, needed) == {"$tmp/bin"}
+    assert unshadowed_paths(shared, needed) == []
+    # the real program would be found first, or alone
+    late = shared.replace('"$tmp/bin:/usr/bin:/bin"', '"/usr/bin:/bin:$tmp/bin"')
+    assert unshadowed_paths(late, needed) == ["/usr/bin:/bin:$tmp/bin"]
+    inherited = shared.replace('"$tmp/bin:/usr/bin:/bin"', '"$HOME/.local/bin:$PATH"')
+    assert unshadowed_paths(inherited, needed) == ["$HOME/.local/bin:$PATH"]
+    # the system directories alone: the case of a missing program
+    system = shared + '  PATH="/usr/bin:/bin" ./scripts/start-planning.sh\n'
+    assert unshadowed_paths(system, needed) == []
+    assert unshadowed_paths(own.replace("export ", ""), needed) == [
+        "$tmp/silent-bin:$PATH"
+    ]
+    # a fake of one program only, no fakes, no PATH
+    one = own.replace("codex claude; do", "codex; do")
+    assert unshadowed_paths(one, needed)[0] == "(no fakes)"
+    assert unshadowed_paths("./scripts/start-feature.sh 12", needed) == ["(no fakes)"]
+    assert unshadowed_paths(shared.split("    PATH=")[0], needed) == ["(no PATH)"]
+
+
+def test_an_installed_agent_is_found():
+    for line in (
+        "npm install -g @anthropic-ai/claude-code",
+        "run: npm i -g @openai/codex",
+        "uv tool install aider-chat",
+        "curl -fsSL https://claude.ai/install.sh | bash",
+    ):
+        assert PACKAGES.search(line), line
+    assert not PACKAGES.search("uv sync --locked --all-extras")
+
+
+def test_a_module_that_reads_the_harness_key_is_found():
+    assert reads_the_harness_key('key = os.environ["OPENAI_API_KEY"]')
+    assert reads_the_harness_key('key = os.getenv("OPENAI_API_KEY")')
+    assert reads_the_harness_key('os.environ.get(key="OPENAI_API_KEY")')
+    bound = 'KEY_VARIABLE = "OPENAI_API_KEY"\nsecret = Secret.read(KEY_VARIABLE)'
+    assert reads_the_harness_key(bound, {"KEY_VARIABLE"})
+    assert reads_the_harness_key("os.environ[openai.KEY_VARIABLE]", {"KEY_VARIABLE"})
+    # telling the learner to set the variable reads nothing
+    assert not reads_the_harness_key('HINT = " (with OPENAI_API_KEY set)"')
+    assert not reads_the_harness_key(
+        'LIVE = "OPENAI_API_KEY"\nlines = [f"export {LIVE}=..."]', {"LIVE"}
+    )
+
+
 # --- The boundary. ---
 
 
 def test_no_ci_job_check_or_build_script_starts_a_coding_agent():
+    # The build side. The self-tests of the workflow do name the programs:
+    # the tests below say what they start.
     found = {
         name: match.group(0)
-        for name, text in shell_like().items()
+        for name, text in build_like().items()
         if (match := COMMAND_WORD.search(text))
     }
     assert found == {}
 
 
+# The files a self-test sources that it wrote itself, in its temporary
+# directory: the replies run-feature-test.sh gives its fake agent.
+WRITTEN_BY_THE_TEST = {"tests/run-feature-test.sh": '"$RUN_CONTROL/'}
+
+
 def test_every_sourced_file_of_a_reached_script_is_known():
     # The reach is only as good as what it can read: a script that sources
     # a file by a name this test cannot resolve fails here, not silently.
-    unresolved = {
-        path: lines
-        for path in reached_scripts()
-        if path.endswith(".sh") and (lines := runs(read(path))[1])
-    }
+    unresolved = {}
+    for path in reached_scripts():
+        if not path.endswith(".sh"):
+            continue
+        own = WRITTEN_BY_THE_TEST.get(path)
+        if lines := [x for x in runs(read(path))[1] if not (own and own in x)]:
+            unresolved[path] = lines
     assert unresolved == {}
 
 
-def test_nothing_ci_or_the_build_runs_reaches_the_launcher():
-    reached = reached_scripts()
-    assert LAUNCHER not in reached
+def test_the_build_side_of_ci_does_not_reach_the_launcher():
+    built = build_scripts()
+    assert LAUNCHER not in built
     # The scripts that source the launcher are the development workflow's,
-    # and none of them is reached either.
+    # and none of them is on the build side either.
     launching = [
         path
         for path in FILES
@@ -377,14 +693,75 @@ def test_nothing_ci_or_the_build_runs_reaches_the_launcher():
     ]
     assert "scripts/start-feature.sh" in launching
     assert "scripts/review-feature.sh" in launching
-    assert set(launching).isdisjoint(reached)
+    assert "scripts/start-planning.sh" in launching
+    assert set(launching).isdisjoint(built)
     call = re.compile(r"\bagent_(?:run|resolve|parse_args)\b")
     found = [
         name
-        for name, text in shell_like().items()
+        for name, text in build_like().items()
         if call.search("\n".join(code_lines(text)))
     ] + [path for path in python_sources() if "lib/agent.sh" in read(path)]
     assert found == []
+
+
+def test_ci_reaches_the_launcher_through_the_workflow_self_tests():
+    # Stated as it is: the self-tests CI runs with --all load the launcher,
+    # and some of them call the function that starts a program.
+    assert LAUNCHER in self_test_scripts()
+    starting = starting_self_tests()
+    for name in ("agent", "start-feature", "review-feature", "start-planning"):
+        assert name in starting, name
+    assert all(
+        re.fullmatch(r"tests/[\w-]+-test\.sh", script) for script in starting.values()
+    ), starting
+
+
+def test_the_launcher_starts_a_program_in_one_function_only():
+    # What "can start an agent" means above: a call of agent_run. Before
+    # that function, the launcher names the programs only as the labels of
+    # a case and in the text of a message; nothing after it is another
+    # function.
+    text = read(LAUNCHER)
+    before, _, after = text.partition("\nagent_run() {\n")
+    assert after, "the launcher has no function agent_run"
+    label = re.compile(r"^\s*[\w:|* -]+\)\s*(?:;;)?\s*$")
+    found = [
+        line.strip()
+        for line in code_lines(before)
+        if COMMAND_WORD.search(re.sub(r'"[^"]*"', '""', line)) and not label.match(line)
+    ]
+    assert found == []
+    assert not re.search(r"(?m)^\w+\(\) \{$", after)
+    assert launcher_programs() == {"claude", "codex"}
+
+
+def test_a_self_test_that_can_start_an_agent_starts_its_own_fake():
+    # Each one makes a fake of every program the launcher starts, and every
+    # PATH it sets begins with the directory of those fakes: the program a
+    # command of the test finds under an agent's name is the fake.
+    needed = launcher_programs()
+    shared = written_programs(read("tests/lib-fakes.sh"))
+    assert needed <= shared["$bin"]
+    found = {
+        script: paths
+        for script in starting_self_tests().values()
+        if (paths := unshadowed_paths(read(script), needed))
+    }
+    assert found == {}
+
+
+def test_nothing_ci_runs_installs_a_coding_agent():
+    # The fakes are the only programs of those names in CI: no workflow,
+    # action, check, or reached script installs one.
+    found = {
+        name: match.group(0)
+        for name, text in shell_like().items()
+        if (match := PACKAGES.search(text))
+    }
+    for path in ("pyproject.toml", *(p for p in FILES if p.endswith("package.json"))):
+        if match := PACKAGES.search(read(path)):
+            found[path] = match.group(0)
+    assert found == {}
 
 
 def test_no_module_page_product_or_test_starts_a_coding_agent():
@@ -407,10 +784,15 @@ def test_no_credential_of_a_coding_agent_is_named_in_ci_or_the_build():
         for path in (*build_inputs(), *pages(), ".env.example")
         if not path.startswith(suites) and (match := CREDENTIALS.search(read(path)))
     }
-    for name, command in verify_conf.checks().items():
-        if match := CREDENTIALS.search(command):
-            found[f"verify.conf:{name}"] = match.group(0)
+    for name, command in shell_like().items():
+        if name.startswith("verify") and (match := CREDENTIALS.search(command)):
+            found[name] = match.group(0)
     assert found == {}
+    # build_inputs() holds the self-tests of the workflow and what they
+    # reach: the launcher and its tests name no credential either.
+    assert {LAUNCHER, "tests/agent-test.sh", "tests/lib-fakes.sh"} <= set(
+        build_inputs()
+    )
 
 
 def test_a_test_names_such_a_credential_only_to_remove_it():
@@ -439,6 +821,28 @@ def test_the_harness_key_is_named_by_no_ci_job_check_or_build_script():
     # .env.example lists names only, each on a comment line.
     for line in read(".env.example").splitlines():
         assert not line.strip() or line.startswith("#"), line
+
+
+def test_only_the_provider_client_reads_the_harness_key():
+    # Other modules and pages name the variable to tell the learner to set
+    # it. One module hands its name to a call: the client of the provider.
+    holders = key_holders()
+    assert "KEY_VARIABLE" in holders
+    reading = [
+        path
+        for path in python_sources()
+        if path.startswith(("src/", "site/", "products/"))
+        and reads_the_harness_key(read(path), holders)
+    ]
+    assert reading == [HARNESS_CLIENT]
+    # No executed cell of a page names it, outside a "not verified" block.
+    cells = {
+        path: cell
+        for path in pages()
+        for cell in EXECUTED_CELL.findall(outside_not_verified(read(path)))
+        if HARNESS_KEY in cell or any(name in cell for name in holders)
+    }
+    assert cells == {}
 
 
 def test_no_file_of_the_build_or_the_checks_depends_on_the_coding_template():
@@ -495,3 +899,13 @@ def test_the_workflow_document_states_the_profile_the_page_states():
     assert "Read every diff before you run it." in page
     assert "Every diff is read before it is run." in workflow
     assert "credential stays in" in workflow and "credential stays in" in page
+    # Rule 4 names the credential files, in the same words in both places.
+    files = (
+        "A credential stored in a file the agent's commands can read (an SSH"
+        " key, the configuration of a cloud tool, a stored Git credential, the"
+        " agent's own login) is just as readable to them, wherever the checkout"
+        " is: only a container or a separate machine keeps such a file out of"
+        " reach."
+    )
+    for text in (workflow, page):
+        assert files in " ".join(text.split())
