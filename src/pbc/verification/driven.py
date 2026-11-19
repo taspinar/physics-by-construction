@@ -183,8 +183,8 @@ def rescaled(
 ) -> float:
     """The relative difference between a run in SI units and the same run
     with the unit of mass, of length, and of time divided by the factors
-    ``mass``, ``length``, and ``time`` (so every number is multiplied by the
-    power of the factors its unit holds), converted back."""
+    ``mass``, ``length``, and ``time``, so every number is multiplied by the
+    power of the factors its unit holds, converted back."""
     dt = PERIOD / 100
     reference = simulate(START, MASS, K, B, FORCE, DRIVE, dt, n)
     converted = simulate(
