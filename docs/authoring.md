@@ -2165,7 +2165,16 @@ obtain a verdict. Messages written by an author or an assistant, not produced
 by a model through a provider API, are authored examples: the page passes
 `authored=True` to `RunDisplay` and never calls them recorded.
 
-The experimental design lesson (F20, `pbc.agents.design`, re-recorded with
+A physical constraint is a hunt with a known place to look
+(`pbc.verification.constraints`, the section "Physical constraints" of the
+same lesson): dimensions, symmetries, limiting cases, and conservation, each
+run over a fixed list of cases with a tolerance written before the run, and
+reported as a witness (a counterexample) or as "none found", never as a
+proof. A deliberately wrong candidate lives in a module that says so in its
+first line (`pbc.verification.faulty_motion`), names the checks that must
+catch it, and is imported only by its lesson and the tests.
+
+
 `python -m pbc.agents.design_lab --rig <name> --record`) puts two models to an
 agent that chooses where to measure. The build recomputes each reading from the
 arguments, scores the design from them alone, and fits both models. The
