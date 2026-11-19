@@ -408,11 +408,12 @@ def clips() -> dict[str, compass.Clip]:
 def tracks(filmed: dict[str, compass.Clip]) -> dict[str, np.ndarray]:
     """The angle of the needle found in every frame of each clip (rad)."""
     # region: track
-    return {
+    angles = {
         name: np.array([compass.track_angle(frame) for frame in clip.frames])
         for name, clip in filmed.items()
     }
     # endregion: track
+    return angles
 
 
 def frame_rates() -> list[tuple[float, float, float, float, float]]:
