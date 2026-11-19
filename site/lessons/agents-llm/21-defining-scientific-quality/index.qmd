@@ -141,7 +141,10 @@ number would make them the same.
 
 The three measures that are new in this lesson are short. Reasoning tests
 the claim against the run's own readings; the threshold is the one every
-baseline of the discovery package uses for a fit consistent with the noise:
+baseline of the discovery package uses for a fit consistent with the noise.
+An agent's claim keeps as many degrees of freedom as readings, since the
+build did not fit it; a baseline's claim, fitted to those readings, loses
+one per parameter, as in the package's own test of a fit:
 
 ```{python}
 #| echo: false

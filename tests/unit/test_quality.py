@@ -83,3 +83,29 @@ def test_the_chance_distribution_is_a_distribution_with_the_right_mean():
     pmf = chance_distribution(p)
     assert pmf.sum() == pytest.approx(1.0)
     assert np.dot(np.arange(len(pmf)), pmf) == pytest.approx(sum(p))
+
+
+def _readings_with_chi2(world, claim, chi2: float) -> Dataset:
+    """Readings that sit off ``claim``'s predictions by exactly ``chi2``."""
+    sigma = world.observation.sigma
+    offset = math.sqrt(chi2 / len(SETTINGS))
+    values = [world.predict(claim, s) + offset * sigma for s in SETTINGS]
+    return Dataset(tuple(SETTINGS), np.array(values), sigma)
+
+
+def test_a_fitted_claim_loses_a_degree_of_freedom_per_parameter():
+    # Six readings, one parameter: the chi-square lies between the bound for
+    # five degrees of freedom (14.5) and the bound for six (16.4). A claim
+    # fitted to the readings fails, as the package's own test of a fit
+    # (baselines.consistent with best.dof) would; one not fitted here passes.
+    from pbc.discovery.baselines import BaselineResult, consistent
+    from pbc.discovery.quality import baseline_profile
+
+    world = PROTOCOL.make(SEED)
+    claim = {"g": 9.81}
+    data = _readings_with_chi2(world, claim, 15.5)
+    assert consistent(15.5, 6) and not consistent(15.5, 5)
+    assert reasoning(world, claim, data) is True
+    assert reasoning(world, claim, data, fitted=True) is False
+    fit = BaselineResult("least-squares", len(SETTINGS), True, claim, 0.0, "")
+    assert baseline_profile("projectile", PROTOCOL, fit, data, SEED).reasoning is False

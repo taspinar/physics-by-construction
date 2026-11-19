@@ -16,8 +16,8 @@ the wall, and the period are only on the pictures.
 exponent the judge draws from a stated distribution, with three held-out
 settings also drawn, beyond the bounds of the probes. The agent is told
 nothing of the form (condition ``none``). The distribution and the seed of
-the draw are the judge's configuration: they reach no prompt, tool, or
-page, which shows the distribution only.
+the draw are the judge's configuration. The seed and the drawn values reach
+no prompt, tool, or page; the page states only the distribution.
 
 The runs are replay fixtures on the page of AE2; their records, the
 ``TraceInfo`` of each, are kept here and checked against the fixtures by a

@@ -86,17 +86,23 @@ def first(data: Dataset, n: int) -> Dataset:
 
 
 def reasoning(
-    world: Environment, claim: Mapping[str, float] | None, data: Dataset
+    world: Environment,
+    claim: Mapping[str, float] | None,
+    data: Dataset,
+    fitted: bool = False,
 ) -> bool | None:
     """Does ``claim`` reproduce the readings it was drawn from? The
-    chi-square of its predictions against ``data``, with as many degrees of
-    freedom as readings (the claim was not fitted here), is within what the
-    noise gives. ``None`` without readings or without a claim."""
+    chi-square of its predictions against ``data`` is within what the noise
+    gives. A claim the build did not fit to ``data`` (an agent's) has as
+    many degrees of freedom as readings; a claim ``fitted`` to them (a
+    baseline's) has one fewer per parameter, as the package's own test of a
+    fit. ``None`` without readings or without a claim."""
     if claim is None or not data.settings:
         return None
     predicted = np.array([world.predict(claim, s) for s in data.settings])
     chi2 = float(np.sum(((data.values - predicted) / data.sigma) ** 2))
-    return consistent(chi2, len(data.settings))
+    dof = len(data.settings) - (len(claim) if fitted else 0)
+    return consistent(chi2, dof)
 
 
 def supports(protocol: Protocol, data: Dataset, seed: int) -> bool:
@@ -204,7 +210,7 @@ def baseline_profile(
         environment=environment,
         held_out_error=result.held_out_error,
         correct=correct,
-        reasoning=reasoning(world, result.claim, data),
+        reasoning=reasoning(world, result.claim, data, fitted=True),
         evidence=supports(protocol, data, seed),
         completed=result.claim is not None,
         model_calls=None,
