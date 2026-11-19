@@ -25,7 +25,15 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from pbc.mechanics.drag import linear_drag
-from pbc.mechanics.dynamics import Force, State, Trajectory, Vector, newton, simulate
+from pbc.mechanics.dynamics import (
+    Force,
+    State,
+    Stepper,
+    Trajectory,
+    Vector,
+    newton,
+    simulate,
+)
 from pbc.mechanics.integrators import rk4_step
 from pbc.mechanics.oscillator import spring
 
@@ -139,6 +147,33 @@ def driven_motion(
     return Trajectory(t=times, x=x[:, None], v=v[:, None])
 
 
+def simulate_driven(
+    initial: State,
+    mass: float,
+    k: float,
+    b: float,
+    force: float,
+    omega: float,
+    dt: float,
+    n_steps: int,
+    step: Stepper = rk4_step,
+) -> Trajectory:
+    """The motion of the damped driven oscillator from the one-dimensional
+    ``initial`` state, simulated in ``n_steps`` steps of ``dt`` (s): the
+    spring ``k`` (N/m), the linear drag ``b`` (kg/s), and the driving force
+    of amplitude ``force`` (N) and angular frequency ``omega`` (rad/s) on the
+    ``mass`` (kg), with the classical Runge-Kutta method unless another
+    ``step`` is given. The driving force is on the clock of ``initial.t``."""
+    _check(mass, k, b)
+    return simulate(
+        initial,
+        newton(mass, spring(k), linear_drag(b), driving_force(force, omega)),
+        dt,
+        n_steps,
+        step=step,
+    )
+
+
 def fit_amplitude(
     trajectory: Trajectory, omega: float, after: float
 ) -> tuple[float, float]:
@@ -180,12 +215,8 @@ def measured_resonance_curve(
         settle = np.ceil(decay_times / damping_rate(mass, b) / period) * period
         dt = period / steps_per_period
         n_steps = round((settle + fit_periods * period) / dt)
-        run = simulate(
-            State(t=0.0, x=[0.0], v=[0.0]),
-            newton(mass, spring(k), linear_drag(b), driving_force(force, omega)),
-            dt,
-            n_steps,
-            step=rk4_step,
+        run = simulate_driven(
+            State(t=0.0, x=[0.0], v=[0.0]), mass, k, b, force, omega, dt, n_steps
         )
         amplitude, phase = fit_amplitude(run, omega, settle)
         amplitudes.append(amplitude)

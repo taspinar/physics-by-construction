@@ -11,9 +11,12 @@ or checked.** Code is executed or read from the tested package, numbers and
 figures are the output of that code, and anything else is visibly marked "not
 verified".
 
-For how the prose of a lesson should read (openings, intuition, derivations,
-experiments, interpretation, transitions, conclusions), see the editorial
-voice guide, `docs/editorial-voice.md`. It changes none of the rules below.
+A page can pass every check and still read like a specification. How a
+lesson should read and teach is in "Voice and teaching" below, which applies
+the editorial voice guide, `docs/editorial-voice.md`, and the teaching skill,
+.agents/skills/pbc-physics-teaching/SKILL.md; how a lesson is reviewed for
+it is in "Reviewing a lesson". Neither changes a rule of this guide or a
+check.
 
 ## Create a lesson
 
@@ -90,6 +93,17 @@ voice guide, `docs/editorial-voice.md`. It changes none of the rules below.
    front-matter fields that form the learning path and the headers of its
    neighbours, needs `./scripts/verify.sh --base`; when a change needs the
    full `./scripts/verify.sh`, the targeted run says so.
+
+   These commands check the structure of the page; none of them reads it.
+   So read the draft yourself, once, from the first line to the last, against
+   the table of recurring faults in `docs/editorial-voice.md` ("Recurring
+   faults and how to spot them"): each fault has a test you can apply in a
+   minute, such as swapping the subject of the first two paragraphs for
+   another one, or asking "so what?" after every sentence that holds a
+   number. Then answer the questions of "Reviewing a lesson" below for your
+   own page, since the review will ask them. Repair what you find in the
+   sentences only: the claims, numbers, figures, identifiers, and references
+   stay as they are ("What never changes" in the voice guide).
 
 ## Front matter
 
@@ -364,6 +378,160 @@ WebP files under `site/assets/atlas/`, registered with their origin, licence,
 and master hash; the scripts that made them are in `tools/illustrations/`
 (its README), outside the build.
 
+## Voice and teaching
+
+The sections after this one say what a lesson must contain. This one says
+how it should read and how it should teach. Two sources own those questions,
+and this section applies them without repeating them:
+
+- **The editorial voice guide**, `docs/editorial-voice.md`, owns the prose:
+  the principle for each part of a lesson with before-and-after examples
+  from published lessons, the list of what a style edit never changes, and
+  the table of recurring faults with a test for each.
+- **The teaching skill**, .agents/skills/pbc-physics-teaching/SKILL.md,
+  owns the pedagogical reasoning: who the learner is, the central question,
+  the archetype of the lesson, where the learner predicts or interprets,
+  which derivations are essential, and why each code block is on the page.
+  The plan of a feature that writes or revises a lesson's teaching selects
+  it ("Visual deliverables and skills").
+
+Read both before you write; where this section and one of them differ, the
+source is right. Neither is a template. **Structure varies by subject:** a
+simulation, a measured-data lab, a capstone, an agent lesson, and a proof do
+not open, build, or conclude alike, and no outline here or there is to be
+filled in. The required sections of "Sections" are found by their
+identifiers, and their order is recommended, not enforced; what goes inside
+them, and what a lesson adds around them, follows the subject.
+
+### The voice, by part of a lesson
+
+One line for each part; the voice guide has the reasons and the examples.
+
+| Part | What to do | Where it goes |
+|---|---|---|
+| Opening | Put the question first, in the reader's terms: what is puzzling, what goes wrong, what we want to know. Then say in one short paragraph what the lesson gives the reader to answer it. Do not list what the lesson derives, shows, and measures. | The paragraphs before the first heading |
+| Intuition | Give the reader something to hold before an equation (the situation, the picture, the one idea), and say in a sentence afterwards what the equation states. | The explanation |
+| Derivation | Say where it is going before the algebra, give each step its reason in words, and state the result in words with what it means for the program. Never "it can be shown". | The explanation, or a depth section (below) |
+| Experiment | Start from a question and a prediction: what do we expect to see, and what would count as seeing something else? Describe the mechanics of the cell only as far as the reader needs. | Before each worked example |
+| Interpretation | After every number, table, and figure, one sentence on what it means for the question of the lesson. Say what the result does show before what it does not, and state a limit once, with its scope. | After each result |
+| Transition | Say why the next part follows from this one (a gap just exposed, a question just raised), not only where it is. Say each hand-off once. | Between parts and between lessons |
+| Conclusion | End with what the reader can now do or understand, tied back to the opening question, and with what remains open. No section is required for it: it is the last prose before "Limits". A lab or a capstone may give it a level-3 heading of its own ("What the lab shows", "The decision"). | The end of the worked examples |
+
+The voice is not a uniform register. No joke, anecdote, or informal turn is
+added to sound friendly, and no passage is rewritten because it "sounds like
+a model": the test is whether it teaches better, never a detector. A style
+edit touches sentences only; a rewrite that makes a claim stronger, weaker,
+or wider than its label is a scientific change with its own review.
+
+### Teaching decisions
+
+Make these before writing, and record them in the plan of the feature when
+it has one. The skill's sections, named in brackets, hold the reasoning.
+
+- **The learner and the central question** (section 1). Write down what the
+  learner holds at the start (the `prerequisites` of the front matter and
+  what the earlier lessons of the path established), the one question the
+  lesson answers, and what the learner would get wrong without it. A topic
+  is not a question. The opening asks the question and the conclusion
+  answers it.
+- **The archetype** (section 2). Name it before choosing an order; the
+  examples below show one journey for each. A lesson that combines two
+  names the main one.
+- **One or two deliberate moments** (section 3). Choose where the learner
+  predicts or interprets before being told: just before the table, figure,
+  or run that settles the point, with a question that has a checkable
+  answer. The self-check is usually the interpretation moment. More
+  questions than that are decoration.
+- **The kind of every result** (section 4). The learner can always tell a
+  prediction of the model, a derived property, a simulation output, a
+  measurement, and an inference about reality apart, and meets each where
+  it is earned. The claim labels and figure status ("Lesson format 2") mark
+  the kind; the order of the page makes it understood.
+- **The evidence status from the start.** A page whose evidence is not a
+  plain computation says near its opening what kind of evidence it shows.
+  An agent lesson names it there ("Agent lessons"): a model transcript, a
+  written example, a recorded run, a tool replay, or an independent
+  evaluation. These are different levels of evidence, and a statement the
+  model makes about its own result is none of them. A capstone states its
+  credibility boundary there; a measured lab says what was measured and by
+  whom.
+- **Assumptions where they are needed** (section 6). The complete list stays
+  in "Assumptions". Keep its first reading short and recall an assumption,
+  by a pointer, at the step that uses it.
+
+### Archetype examples
+
+Each archetype has published lessons to read before writing one of its
+kind. Take from them the teaching principle in the last column, **not the
+order or the titles of their sections**: two examples of one archetype
+already differ from each other.
+
+| Archetype | Read | What carries over |
+|---|---|---|
+| Model or simulation | M1, `site/lessons/mechanics/01-kinematics-as-a-program/index.qmd`; M3, `site/lessons/mechanics/03-projectile-motion-with-drag/index.qmd`; M5, `site/lessons/mechanics/05-numerical-integrators/index.qmd` | The physical question first; a prediction the learner makes before the table or figure that settles it; a small first calculation before the general analysis; a check against something known before the result is trusted; the code that carries the method shown and the drawing code linked |
+| Measured-data investigation | AST8, `site/lessons/astrophysics/09-exoplanet-light-curves/index.qmd`; MAT6, `site/lessons/materials/05-stress-strain-measurements/index.qmd` | The lineage visible and in order (the values as recorded, quality and cleaning as a labelled selection, processing, the model, the fit, residuals, uncertainty in its layers, the warranted conclusion); the lines of a processing or drawing function that the conclusion depends on kept on the page |
+| Engineering design or capstone | T11, `site/lessons/thermodynamics/09-thermal-engineering-of-an-ai-accelerator/index.qmd`; EM9, `site/lessons/electromagnetism/07-adaptive-phased-array-beam-steering/index.qmd` | T11 for the brief in words before the model, as the first part of "Assumptions"; EM9 for the credibility boundary stated before any derivation, the model checked before it decides anything, and a qualified decision (F169, Issue #556, gives EM9 the brief placement of T11) |
+| AI agent or evaluation | SA5, `site/lessons/agents-llm/01-an-agent-runs-an-experiment/index.qmd`; AE3, `site/lessons/agents-llm/13-agent-versus-non-agent-baselines/index.qmd` | What the agent may and may not do stated plainly; a model's statement reported as the model's statement, not as evidence; each baseline a control for one known difference; a conclusion as narrow as the runs |
+| Formal proof | `site/lessons/lean/01-proving-what-the-simulation-showed/index.qmd`; `site/lessons/lean/04-lean-exercises-on-your-machine/index.qmd` | Assumptions, theorem, checked proof, and numeric example kept apart, the example labelled an instance and never a step of the proof; hints that open one decision at a time |
+
+The skill's table has a sixth archetype, the agent-based model; no pilot
+or calibration covered it, so no example is named for it here.
+
+The examples are not finished models. `docs/teaching-calibration.md` records
+what each of four of them does well and where it falls short, and the rules
+below come from those gaps. Reading an example does not make it a pattern
+to copy, and no published lesson is rewritten to match another.
+
+**A measured-data lab shows its first observation early.** The reader may
+see the phenomenon before the extended processing: the measurement as the
+file gives it, with the status `measured` or `calibrated`, in the opening or
+in a short section before "Assumptions", with one sentence on what is
+visible without any model. What is not moved is the lineage: cleaning, the
+model, the fit, the residuals, and the uncertainties keep their order and
+each keeps its provenance, so that no processed result appears before the
+step that produced it ("Measured data").
+
+**A capstone begins with its design brief.** The requirements, the
+constraints, and the success criteria are stated in words before the
+method, and apart from the choices the design makes: a requirement is what
+the design must meet, a choice is what this design does to meet it. A
+requirement that exists only as a constant of the code is not stated. The
+decision at the end walks the requirements again, one by one, and points to
+the evidence on the page that each is met, or names the condition under
+which it is.
+
+**A Lean exercise gives the statement first.** The theorem in words and as
+a Lean statement with its hypotheses, and the proof goal the learner faces,
+come before the attempt; then the hints in order; then the checked
+solution. A numeric instance comes after the statement it instances
+("Lean exercises").
+
+### The main route and the depth
+
+A lesson has a main route that answers its question. A derivation is on it
+when the question, a later check, or a later lesson rests on its result or
+on its method (the skill, section 5); it then stays in the explanation,
+step by step. Only a derivation that is truly optional moves: to a
+level-2 section of its own with an explicit identifier, after the worked
+examples that check its result, linked from where it was. M5's "The energy
+of one step, in depth" (`#energy-in-depth`) is the example. Nothing is
+deleted, and the place it moved from keeps the result with a plain reason
+and the scope.
+
+Where an `outside` prerequisite is needed only for the depth section, say
+so in the opening, as M5 does for complex numbers and two-by-two matrices.
+Do not say it where the prerequisite carries the main route: the note
+would be false for a lab whose fit and covariance are its result.
+
+### Interaction
+
+An interactive visualization is optional, and most lessons need none
+("Widgets"). Add one only for a stated purpose: a question the learner can
+answer by changing a parameter and cannot answer as well from a fixed
+figure. Place the figure and its controls directly after the question they
+are for, and the account of how the runs were built after the answer. The
+page stays complete without it.
+
 ## Sections
 
 A lesson opens with a short introduction without a heading, followed by
@@ -445,9 +613,12 @@ excerpt(kinematics.euler_step)
 and checks that every Source link opens the lines of its object at one
 commit.
 
-Decide for each block why the learner reads it at that point (the
-`pbc-physics-teaching` skill, "Code the learner reads"), then choose its form
-(ADR 023):
+Decide for each block why the learner reads it at that point: a physical
+relationship, a numerical update, scientific processing or validation, an
+engineering trade-off, agent control, a formal proof ("it draws the next
+figure" is not a reason). Record the reason in the plan or the review, not
+on the page (the `pbc-physics-teaching` skill, "Code the learner reads").
+Then choose its form (ADR 023):
 
 | Form | Call | What the page shows |
 |---|---|---|
@@ -492,6 +663,38 @@ Decide for each block why the learner reads it at that point (the
   pilot lesson has needed it. Use an exact selection, the prose, and the
   Source link, or an executed cell for code that belongs to this lesson
   alone.
+
+**Choosing what a block shows.** Select code for what it teaches, block by
+block, each for the reason decided above; no form is the default of a
+whole lesson (the skill has the reasoning under "Code the learner reads" and
+three worked cases under "Before and after, from PBC").
+
+- **Show** the calculations, the assumptions, the guards, and the
+  transformations the lesson's conclusions rest on. **Link** code that only
+  draws or formats: `source_link(f, figure=True)` under the figure, so that
+  the drawing code is one click away and not between the reader and the
+  result.
+- **Read a function before you link it.** A drawing function, a function
+  that records a table, or a long experiment function may hold the only
+  visible calculation behind a conclusion: a residual, a smoothing, an
+  offset, a calibration, a binning, a scaling of an uncertainty. Surface
+  those lines as an exact selection, or state the transformation where the
+  result is read. MAT6's `draw_elastic_regime` shows the selection.
+- **A selection reads as a fragment.** Its lines make sense without the
+  lines left out: it begins and ends on whole statements, never inside an
+  expression, a call, or a bracket, and a name it uses is defined in the
+  selection, in the function's header, or in the sentence before it. It is
+  labelled as a selection by the build and is never offered as something
+  to copy and run.
+- **Three kinds of code, kept apart.** Exact source is the object as the
+  file has it. An exact selection is some of its lines, unchanged, with
+  `(...)` where lines are left out. A derived form is not the source text:
+  the generated signature is the only one available, and the build labels
+  it. Simplified teaching code is not introduced while no check of it
+  exists; as said above, it is not available yet.
+- **Types and docstrings** stay where they are the concept or supply what
+  the prose does not (a state, a schema, a unit, an assumption); Lean code
+  is never selected away from its hypotheses and never simplified.
 
 **An annotated excerpt.** When a lesson shows several excerpts under one
 sentence, or the point is one line, say which lines matter:
@@ -649,6 +852,10 @@ On a page, show the stub with `lean_stub(name, anchor)` from
 in `lean/Exercises/` with a Source link like any excerpt, and the solution with
 `lean_excerpt`. Put the hints in `.hint` divs as for any exercise, and list the
 solution modules in `lesson.lean-modules`.
+
+Give the theorem statement and the proof goal first, then the learner's
+attempt, the hints, and the solution; a numeric instance of a statement
+comes after the statement ("Voice and teaching", "Archetype examples").
 
 ## Numbers
 
@@ -1005,9 +1212,10 @@ changes how a figure is drawn, never a value or a series. Out of the
 rollout, until the owner has reviewed a representative example: error
 bars, bars and histograms of their own, bands, scatter, diverging maps,
 polar axes, more than four panels and the other untested types; measured
-figures with declared provenance, whose painted credit line sets their
-width (Issue #546); M1 to M5 (the teaching pilots); AI6's model-input
-figures (I37); conceptual diagrams. The figures that already met the floor
+figures with declared provenance (their painted credit line set their
+width until Issue #546 wrapped it within the figure's width); M1 to M5
+(the teaching pilots); AI6's model-input figures (I37); conceptual
+diagrams. The figures that already met the floor
 keep their form. The plan, `.agents/plans/544-figure-language-rollout.md`,
 lists each figure and the reason.
 
@@ -1116,7 +1324,8 @@ and following a skill is no evidence that a figure or a page is correct.
 - **The review** looks at the rendered page at desktop and phone width, or at
   the generated figure and the code and data behind it, checks the physics
   against independent computations and tests, and checks that the guidance
-  was followed.
+  was followed. For a lesson's voice and teaching it uses the rubric of
+  "Reviewing a lesson".
 
 A scientific figure follows the PBC Scientific Visualization skill (the
 choice of visual, axes and units, uncertainty, captions, accessible
@@ -1125,6 +1334,100 @@ diagram also follows Diagram Design. Nothing is imposed on an existing
 lesson that a feature does not change. The skills configuration check
 (`skills-config`) fails when a selected skill is missing or at another
 revision.
+
+## Reviewing a lesson
+
+The review of a feature that writes or revises a lesson reads the lesson
+for its voice and its teaching with the rubric of this section, beside the
+checks and the scientific review and never in place of them. The author
+uses the same rubric on the draft (step 6 of "Create a lesson"). It is part
+of the ordinary review of the feature (`docs/process.md`, "Agent skills"):
+it adds no agent, no call of a model, no review round, and no step of the
+workflow, and it is not a narrative template. The rubric asks whether a
+learner understands, not only whether the parts are present.
+
+### The record of a review
+
+The result of the rubric is a list of findings and **never a score**: no
+number, grade, percentage, ranking, or pass mark is given to a lesson, a
+section, or a sequence, and none is given to a single item either. Every
+finding has four parts:
+
+1. **The weakness, named.** A name from the tables below or from the
+   recurring faults of `docs/editorial-voice.md`, or a new one with a name.
+   Not "unclear" but "boilerplate introduction" or "brief after the method".
+2. **The evidence.** The passage quoted, with the lesson, the section, and
+   the line; for a pattern, two or three instances. For a weakness of
+   understanding, the question the learner cannot answer and the place
+   where the page should have answered it.
+3. **The action.** One concrete change the author can make (a sentence to
+   cut, a question to lead with, a block to replace by its link), written
+   as a proposal. A finding that cannot be acted on is rewritten until it
+   can.
+4. **What stays.** What the change must not touch: the claims, numbers,
+   identifiers, figures, and references of the passage.
+
+For an item without a finding, the record says so and gives the passage
+that shows the item works. The findings are part of the review's report
+and are triaged like its other findings (`docs/evaluation.md`); the
+outcome is the findings, what the author did with each, and what was
+declined and why. A finding that the page asserts more, less, or something
+other than its claims and numbers is a scientific finding, not a style
+finding, and is treated as one.
+
+Structures vary by subject, so a lesson is judged against its own
+archetype and question. That it is built differently from another lesson
+is never a finding, and a criterion
+of sounding human, or the verdict of a detector of generated text, is never
+one either.
+
+### Understanding
+
+The reviewer answers these in words, from the page alone, before reading
+for form. An answer the page does not support is a finding.
+
+| Item | The review asks | Named weakness | Typical action |
+|---|---|---|---|
+| The central question | Can a learner who has read the lesson answer its central question? State the question and the answer in a sentence each, with the passage that gives the answer. | *No central question* (a topic, not a question); *question not answered* (the conclusion answers a different one) | Ask the question in the opening; end the worked examples on its answer |
+| The need for each step | Does the learner know, at the point where it appears, why each calculation, figure, and code block is needed? | *Unmotivated step*; *block without a purpose* | Put the question the step answers before it; replace a block that teaches nothing by its Source link |
+| The meaning of each result | After every number, table, and figure, does the page say what it means for the question, and which kind of result it is (a prediction, a derived property, a simulation output, a measurement, an inference)? | *Conclusion that does not interpret*; *kinds of result mixed* (agreement with the model read as agreement with reality) | Add the sentence of interpretation; move the result to where it is earned |
+| The limits | Does the learner know which assumptions the result rests on and where it stops holding, without being unable to tell what *is* shown? | *Limit missing where it applies*; *needlessly defensive wording* | Recall the assumption at the step that uses it; state the limit once, with its scope |
+| Conceptual synthesis | Does the lesson tie its result back to the physical idea, and to what came before and after it in its sequence, not only present sections that are each correct? Read the lesson end to end, then its predecessor and successor. | *Result not tied to the idea*; *sequence not connected* (what an earlier lesson established is used without being named, or the hand-off to the next names no gap) | State in the conclusion what the result says about the physical idea; name what carries over from the earlier lesson and what the next one changes |
+
+### Voice
+
+| Item | The review asks | Named weakness | Typical action |
+|---|---|---|---|
+| Opening | Does the first paragraph put a question or a situation before a technique? Could it be moved to another lesson? | *Boilerplate introduction*; *roadmap paragraph* | Lead with the question; cut the list of what the lesson does |
+| Intuition and derivation | Does the reader get a picture or an idea before the equation and the result in words after it? Is each step motivated? | *Method before question*; *step left to trust* ("as substitution confirms") | Add the picture before the first equation; show the short step |
+| Experiment and interpretation | Is there a prediction before the cell and a meaning after the result? | *Mechanics before question*; *conclusion that does not interpret* | Open the example with what is expected and what would count against it |
+| Transitions | Does each hand-off say why the next part follows? Is any said twice? | *Pointer without a reason*; *repetition* | Give the reason; say the hand-off once |
+| Conclusion | Does the lesson end by answering its opening question and naming what remains open? | *Ends on a hedge, a procedure, or a pointer to an exercise* | Write the last paragraph before "Limits" as the answer |
+| Register | Is the register right for this subject and this reader? Is any informality, joke, or anecdote there only to sound friendly? Do ten sentences in a row have one shape? | *Decoration*; *monotonous sentence structure* | Cut it; vary the sentence that carries the point |
+| Fidelity | Does anything in the prose assert more, less, or something other than the lesson's claims and numbers? | *Claim moved by wording* (a scientific finding) | Restore the scope of the claim label |
+
+### Teaching and code
+
+| Item | The review asks | Named weakness | Typical action |
+|---|---|---|---|
+| Archetype and order | Does the order serve the journey of this lesson's archetype? In a measured lab, is the first observation shown before the extended processing, with the lineage in order? In a capstone, do the requirements, constraints, and success criteria stand in words before the method, apart from the design choices, and does the decision walk them again with the evidence? In a Lean exercise, do the statement and the proof goal come before the attempt, the hints, and the solution? | *Observation after the processing*; *lineage out of order*; *brief after the method*; *requirements only in code*; *decision not checked against the brief*; *instance before the statement* | Move the first observation up and leave the lineage in order; state the brief in words before the method; show the statement first |
+| The provenance of an AI lesson, stated at once | Does an agent lesson say near its opening which kind of evidence it shows: a model transcript, a written example, a recorded run, a tool replay, or an independent evaluation? Does the stated kind match what the page does, for every result it sets side by side? Is a statement of the model kept apart from all five? | *Evidence kind not stated at once*; *stated kind does not match the page* (a written example presented as a run, a replay read as a measurement of capability); *model claim read as evidence* | Name the kind in the opening paragraphs, for each row or run; correct the kind to what the page does |
+| Deliberate moments | Is there a place where the learner predicts or interprets before being told, where the counterintuitive point meets the evidence? Are questions sprinkled that the next sentence answers? | *Answer before the question*; *decorative questions* | Ask one question with a checkable answer before the result; cut the others |
+| The main route and the depth | Is every derivation on the main route essential, and is anything essential hidden in a depth section or behind a link? Does the opening say which prerequisite is needed only for the depth, and only where that is true? | *Optional derivation on the main route*; *essential derivation moved*; *false prerequisite note* | Move the optional derivation to a linked depth section; bring the essential one back |
+| Interaction | Does an interactive visualization have a stated purpose, and does it follow directly on the question it is for? Is the page complete without it? | *Interaction without a purpose*; *controls far from their question* | Remove it, or place it after its question |
+| Code on the page | Can the reviewer state why the learner reads each displayed block where it is? Are calculations, assumptions, guards, and transformations shown, and pure drawing and formatting code linked? Does a linked drawing, table, or experiment function hide the only calculation behind a conclusion? Does a selection read as a fragment, end on a whole statement, and keep every guard and assumption the conclusion depends on? Is any code shown that is neither exact, nor an exact selection, nor a generated signature, nor marked "not verified"? | *Block without a purpose*; *drawing code on the page*; *hidden transformation*; *selection ends inside an expression*; *guard left out of a selection*; *unchecked teaching code* | Replace the block by its Figure source link; surface the lines that compute; extend the selection to the whole statement |
+
+The reviewer also reads the lessons of a sequence as a sequence when the
+feature changes more than one of them: do they build on each other, and is
+anything repeated across them?
+
+### First use, and published lessons
+
+The first use of the rubric is the review of the next feature that writes
+or revises a lesson. No published lesson is edited to meet the rubric: a
+weakness the rubric finds in a lesson outside the scope of the feature
+under review is recorded as an observation and gets a scope of its own
+only where there is a reason for one.
 
 ## Not verified
 
@@ -1765,6 +2068,13 @@ example to copy.
 
 What a lesson of this kind has:
 
+- **The kind of evidence, stated at once.** Near its opening the page says
+  what kind of evidence it shows: a model transcript, a written example, a
+  recorded run, a tool replay, or an independent evaluation. They are
+  different levels of evidence. A page that sets several side by side says
+  which each is, and keeps a statement of the model about its own result
+  apart from all of them. The review checks that the stated kind matches
+  what the page does ("Reviewing a lesson").
 - **An experiment module** in `src/pbc/agents/`, like `projectile_lab.py`: the
   system prompt, the task, the step limit, the tolerance, the allowlist, and a
   `main()` that runs it live. The allowlist wraps functions of `src/pbc` with
@@ -1868,6 +2178,49 @@ To use another provider, write one client module that reads its own key
 variable and change `PROVIDER` in `src/pbc/agents/providers.py`; the lesson
 page explains it. Only that provider's key is needed then.
 
+## Coding-agent exercises
+
+A coding-agent exercise lets the learner drive a coding agent of their own
+choice, on their own machine, from a specification to tested code (ADR 010,
+invariant I24). It is a different thing from an agent lesson: the build
+replays nothing, and the site never runs, installs, or holds a credential
+of a coding agent. `docs/coding-agent-workflow.md` defines the workflow;
+`site/lessons/mechanics/09-verifying-scientific-code/index.qmd` is the
+example to copy.
+
+What a lesson with such an exercise has:
+
+- **`coding-agents` among its `methods`**, beside the method of the lesson
+  itself.
+- **The specification on the page**, in the parts of the workflow document
+  (physics, assumptions, interface, units, claim, the tests the result must
+  pass, what is not allowed).
+- **A reference solution and its tests** in `src/pbc` and `tests/unit`,
+  verified like all code, and **the provided tests** as checks in the
+  evidence form of `docs/validation-contract.md`, each shown to fail on a
+  subject known to be wrong.
+- **The sandbox profile and the review rubric in full** on the page, as the
+  workflow document states them, not by a link alone.
+- **What the build runs, stated at once**: the reference solution and the
+  checks. A submission the page verifies is a stand-in the build can run
+  (a deliberately faulty solution), and the page says so.
+- **The exercise itself marked "not verified"**: its commands name what they
+  need on a `# needs:` line, name no agent as a requirement, and the
+  solution promises no success.
+- **A transcript only as an example**: inside a "not verified" block that
+  names the agent with its version or model and the date, says how it was
+  shortened, and says whether the profile was enforced or given as
+  instructions. No transcript is committed as a file, and none is read by
+  the build. Code an agent wrote in a session is not committed with the
+  lesson.
+
+`tests/unit/test_coding_agent_boundary.py` fails when a file of the build,
+the checks, or CI starts a coding agent or names its credential, and when
+the transcript of the example lesson loses its marker. The self-tests of
+the development workflow, which CI also runs, load the workflow's launcher
+and start only fake programs of their own; the test checks that too
+(`docs/coding-agent-workflow.md`, section 10).
+
 ## Discovery lessons
 
 A lesson of the law-discovery or agent-benchmark paths uses `pbc.discovery`; it
@@ -1963,6 +2316,10 @@ is fitted to them, and the page states which loophole or selection the data
 do not close. `site/rendering-check.qmd` shows the pattern in the
 smallest form.
 Evidence and decisions are in `docs/datasets/`.
+
+A lab may show its first observation before the extended processing, while
+the order and the provenance of cleaning, model, fit, residuals, and
+uncertainties stay as they are ("Voice and teaching", "Archetype examples").
 
 **The gate.** Before any lesson commitment a dataset gets a dossier,
 `docs/datasets/<dataset>.md`: an actual small file inspected, named with its
@@ -2079,7 +2436,10 @@ An agent may help a learner explore, but its conclusions are never data.
    `chosen` where they do not and the project shows it for clear
    attribution, otherwise `not-required`). The encoder writes the fixed,
    deterministic record into the PNG (the addendum to ADR 016 decision 2),
-   paints one small line under the axes, the visualization credit
+   paints one small line under the axes (broken onto further lines
+   within the figure's width where it is wider, Issue #546, so that it
+   never widens the figure and the page never scales the chart down for
+   it), the visualization credit
    "Visualization: Physics by Construction" (the owner's choice on Issue
    #524, which goes with the declaration, so every declared figure carries
    it), joined by " · " to the short credit where the card makes it

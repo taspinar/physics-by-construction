@@ -320,6 +320,18 @@ was read; the reviewer reports named pedagogical weaknesses with evidence
 and an action, never a score. The selection adds no review role, agent,
 model call, or review round.
 
+**The review of a lesson** (F116, Issue #562). The review of a feature that
+writes or revises a lesson uses the rubric of `docs/authoring.md`,
+"Reviewing a lesson", for the lesson's voice and teaching: questions on
+understanding, voice, teaching, and displayed code, among them conceptual
+synthesis and the provenance of an AI lesson stated at once. Its result is
+findings in the record format given there (the named weakness, the
+evidence, the action, what stays) inside the ordinary review report, never
+a score, and it judges a lesson against its own archetype, not against the
+structure of another lesson. It is guidance for the review that already
+takes place: no agent, model call, review round, or workflow step is
+added, and no check changes.
+
 ## Proposals, not rules
 
 The owner deferred the first two items on 2026-11-08 (Issue #412; "The

@@ -2,8 +2,9 @@
 I32): no workflow, script, check, build step, or CI job invokes, installs,
 fetches, or reads a skill, except the skills configuration check, which
 validates .agents/skills/ as data; and the structural checks pass on a copy
-of the repository without the directory. F45 extends this boundary to coding
-agents (I24)."""
+of the repository without the directory. F141, which carries the scope of the
+dropped F45, extends this boundary to coding agents (I24) in
+``test_coding_agent_boundary.py``."""
 
 import re
 import shutil

@@ -4,6 +4,7 @@ credit a card requires, the caption's credit, and the legend's roles; a
 figure that declares nothing keeps its bytes."""
 
 import copy
+import re
 import struct
 import subprocess
 import sys
@@ -16,7 +17,13 @@ import pytest
 
 from pbc.data import figure_provenance as fp
 from pbc.data.figure_provenance import RESIDUAL, FigureProvenance, role
-from pbc.experiment import FIGURE_SETTINGS, PIXEL_RATIO, Experiment, encode
+from pbc.experiment import (
+    FIGURE_SETTINGS,
+    PIXEL_RATIO,
+    Experiment,
+    encode,
+    png_size,
+)
 
 TESS = "tess-exoplanet-light-curves"
 NIST = "nist-numisheet-dp980"
@@ -209,8 +216,10 @@ def test_a_card_that_requires_a_visible_credit_gets_one_line_under_the_axes():
     with_line = encode(draw, credit=line)
     texts = [t for t in drawn[-1].texts if t.get_gid() == fp.CREDIT_GID]
     assert [t.get_text() for t in texts] == [line]
-    # Below the figure's lower edge, outside every panel.
-    assert texts[0].get_position() == (0.0, 0.0) and texts[0].get_va() == "top"
+    # Below the figure's lower edge, outside every panel, from the left edge
+    # of what the figure draws (Issue #546).
+    x, y = texts[0].get_position()
+    assert 0.0 < x < 0.1 and y == 0.0 and texts[0].get_va() == "top"
     assert all(ax.get_position().y0 > 0 for ax in drawn[-1].axes)
     without = encode(draw)
     assert with_line != without
@@ -231,6 +240,87 @@ def test_a_card_that_requires_a_visible_credit_gets_one_line_under_the_axes():
     hidden = _with_credit(TESS, visible="not-required")
     assert fp.visible_credit(hidden, visualization=False) is None
     assert fp.visible_credit(hidden) == fp.VISUALIZATION_PREFIX
+
+
+def _narrow_language_figure():
+    """A figure of the figure language's width (F171), one panel."""
+    from pbc.figure_language import figsize, figure_style
+
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line"))
+        (line,) = ax.plot([0, 1, 2], [1, 0, 1], marker="o", ls="none", label="m")
+        role(line, "processed")
+        ax.set_xlabel("time [s]")
+        ax.set_ylabel("flux [1]")
+    return fig
+
+
+def test_a_credit_longer_than_the_figure_wraps_within_its_width():
+    # Issue #546: a credit line wider than the figure breaks onto further
+    # lines inside the figure's width, so the page does not scale the chart
+    # and its labels down for it.
+    drawn = []
+
+    def draw():
+        drawn.append(_narrow_language_figure())
+        return drawn[-1]
+
+    card = fp.card_of(BAYREUTH)
+    line = fp.visible_credit(card, also=(fp.card_of(TESS),))
+    long_word = "https://example.org/" + "a" * 120
+    credit = f"{line} · {long_word}"
+    bare = encode(draw)
+    painted = encode(draw, credit=credit)
+    width, height = png_size(bare)
+    # The same width as the figure without a credit, and taller: the credit
+    # takes further lines, not width.
+    assert png_size(painted)[0] == width
+    assert png_size(painted)[1] > height
+    # In one line it would be wider than the figure.
+    fig = drawn[-1]
+    texts = [t for t in fig.texts if t.get_gid() == fp.CREDIT_GID]
+    assert len(texts) == 1
+    shown = texts[0].get_text()
+    # Only line breaks added: the words, and the word longer than a line,
+    # are all there, in order.
+    assert shown != credit
+    assert shown.split()[: len(line.split())] == line.split()
+    assert re.sub(r"\s", "", shown) == re.sub(r"\s", "", credit)
+    assert long_word not in shown and long_word in shown.replace("\n", "")
+    # The further card's credit keeps its own line.
+    further = line.split("\n")[1]
+    assert any(row.startswith(further) for row in shown.split("\n"))
+    assert len(shown.splitlines()) > len(credit.splitlines())
+    # The page shows it at the same width and the same scale on every width.
+    from pbc.figure_audit import PHONE_WIDTH, SMALL_PHONE_WIDTH
+
+    for column in (760, PHONE_WIDTH, SMALL_PHONE_WIDTH):
+        bare_scale = min(1.0, column / (width // PIXEL_RATIO))
+        painted_scale = min(1.0, column / (png_size(painted)[0] // PIXEL_RATIO))
+        assert painted_scale == bare_scale
+
+
+def test_the_credit_of_em8s_pilot_figure_takes_no_width():
+    # The case of Issue #546: EM8's figure of the figure language grew from
+    # 404 to 621 CSS px with its credit line, and the page scaled it down.
+    from pbc.electromagnetism.experiments import rlc_circuit_measurements
+
+    experiment = rlc_circuit_measurements.run()
+    for label in experiment.provenance:
+        bare = encode(experiment.figures[label])
+        assert png_size(experiment.png(label))[0] == png_size(bare)[0], label
+
+
+def test_a_credit_that_fits_stays_one_line():
+    drawn = []
+
+    def draw():
+        drawn.append(_narrow_language_figure())
+        return drawn[-1]
+
+    encode(draw, credit="Visualization: Physics by Construction")
+    texts = [t for t in drawn[-1].texts if t.get_gid() == fp.CREDIT_GID]
+    assert [t.get_text() for t in texts] == ["Visualization: Physics by Construction"]
 
 
 def test_the_visualization_credit_names_the_project_only_as_the_visualization():

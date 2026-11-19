@@ -1,0 +1,491 @@
+---
+title: "From research question to experiment specification"
+description: >-
+  A research question about a thrown ball is written as a specification with
+  a hypothesis a result can contradict, variables with units, permitted
+  actions, success criteria, and a stopping condition; a check refuses it
+  when a part is missing, and a scripted route with no model in it runs it
+  and reports a verdict.
+lesson:
+  id: experiment-specification
+  strand: mechanics
+  order: 21
+  difficulty: 2
+  course: mechanics
+  slot: SA1
+  methods: [simulation]
+  outcomes:
+    - Write an experiment specification with a hypothesis that a result can contradict, variables with roles and units, an observable, permitted actions, success criteria, and a stopping condition
+    - Say why a specification without a unit or without a stopping condition is refused before anything runs
+    - Read the record of a scripted route, its runs, why it stopped, the criteria, and the verdict
+    - Tell a refuted hypothesis from an experiment that failed
+  related: [agent-experiment]
+  format: 2
+  preview: fig-specified-search
+  experiment: pbc.mechanics.experiments.experiment_specification
+  prerequisites:
+    lessons: [projectile-with-drag]
+    outside:
+      - "Python: reading a dictionary and a short function"
+---
+
+```{python}
+#| echo: false
+from pbc.agents import specification
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
+from pbc.mechanics.experiments import experiment_specification as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+At what angle should a tennis ball be thrown to land as far away as possible?
+The projectile lesson answered by scanning the angle and looking at the
+curve. That worked because a person was watching: someone chose the angles,
+decided that the curve was smooth enough, and stopped when the answer looked
+settled. Hand the same question to a program, or to a colleague who will run
+it next week, and each of those decisions has to exist somewhere other than
+in a head. Which angles may be tried? What counts as an answer? When is it
+over?
+
+There is a second reason to write the decisions down first, and it has
+nothing to do with programs. An idea is tested only by a result that could
+have come out against it. If the expectation is chosen after the curve is on
+the screen, the curve cannot contradict it, and the experiment has shown
+nothing about the idea.
+
+This lesson writes the question as an **experiment specification**: seven
+parts of plain data, fixed before the first run. A check reads the
+specification and refuses it when a part is missing. Then a **scripted
+route** runs it. The route is a fixed procedure with no model and no
+judgement in it, and every run on this page is made by it and computed by the
+build. In the lesson *An agent runs an experiment* a language model takes the
+route's place on the same ball; the specification is what stays.
+
+## Assumptions
+
+1. **The question has an answer the simulation can give.** The observable is
+   the range that the simulation of the projectile lesson returns. A question
+   about something the permitted actions cannot observe has no specification.
+2. **The range has one maximum inside the specified angles.** The route
+   closes in on the best of the angles it has tried. With two separate
+   maxima it would report one of them and not know of the other; with the
+   best angle at the end of the range it reports that and gives no answer.
+3. **The first scan is fine enough.** The route's first angles are spread
+   evenly over the range. A maximum much narrower than their spacing would
+   be stepped over.
+4. **The laboratory states its units truthfully.** The check compares the
+   unit written in the specification with the unit the action declares. It
+   cannot know that an action which says degrees computes in radians; that
+   is what the tests of the action are for.
+5. **The numerical variable only has to be small enough.** The time step is
+   not physics. The specification says so by giving it the role
+   `numerical`, and the success criteria ask that the answer survives
+   halving it. An answer that moves with the time step is an answer about
+   the method.
+
+## What has to be decided before the first run {#explanation}
+
+Start from a plan as it is usually said aloud: *throw the ball at different
+angles, see which goes furthest; it should be less than forty-five degrees
+because of drag.* Try to run it as written. Which angles, and how many? Is
+"different angles" in degrees? How close to the best angle is close enough?
+What would it take for "less than forty-five degrees" to be wrong? When does
+the trying stop? A person fills these gaps while working, without noticing,
+and fills them knowing the results so far. Each gap becomes a part of the
+specification.
+
+1. **Question.** One sentence, with the conditions that make it one
+   question: which ball, which speed.
+2. **Hypothesis.** A statement of what is expected and why, and with it a
+   **prediction**: a number the result can be compared with. "Lower than
+   without drag" is not yet a prediction, because a result a
+   hair below forty-five degrees would agree with it and mean nothing. The
+   prediction here names a bound that lies below forty-five degrees by the
+   resolution of the answer.
+3. **Variables.** Each with a role and a unit. The angle is `varied`, over a
+   stated range. The speed is `fixed`. The time step is `numerical`: a
+   parameter of the method that the physics does not contain.
+4. **Observable.** What is read off each run, its unit, and whether the
+   largest or the smallest value is sought.
+5. **Permitted actions.** What may be done to get a value. Here one action:
+   run the simulation of the throw with drag. Nothing else, however useful,
+   may be called.
+6. **Success criteria.** When the answer counts as an answer: the best angle
+   is enclosed in a bracket no wider than the stated resolution, and the
+   bracket still holds the best angle when the time step is halved.
+7. **Stopping conditions.** When the experiment is over whatever has been
+   found: after a stated number of runs.
+
+Success and stopping are different things, and keeping them apart is what
+makes an honest failure possible. The experiment can stop without having met
+its criteria, and then it gives no verdict. It can also meet every criterion
+and contradict the hypothesis. That second outcome is a successful
+experiment.
+
+```{python}
+#| label: fig-specification-parts
+#| echo: false
+#| fig-cap: "The seven parts of a specification in three groups, and what reads each. The route takes its settings from the middle group and its stop from the last; the verdict compares the record of the route with the prediction, which was written before any run."
+#| fig-status: conceptual
+#| fig-alt: "A diagram with three boxes in a row. The first, headed what is asked, holds question and hypothesis. The second, headed what may be done, holds variables, observable, and actions. The third, headed when it is over, holds success and stopping. An arrow labelled settings, in range, runs from the second box down to a box named route, and a dashed arrow labelled when to stop runs from the third box to the route. From the route an arrow labelled runs points to a box named laboratory, and an arrow labelled record points to a box named verdict. A dotted arrow labelled prediction runs from the first box around the others to the verdict."
+result.show("fig-specification-parts")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_specification_parts, figure=True)
+```
+
+The diagram is a sketch and computes nothing. It answers the question the
+list raises: who reads which part? The route never sees the hypothesis. It
+cannot steer towards the expected answer, because the expected answer is not
+among the things it is given.
+
+### A number without a unit is another experiment
+
+Units look like the part that could be left to common sense. Take the number
+[0.7]{.given} as a launch angle. Read as degrees, the ball leaves almost
+along the ground and lands after `{python} result["range-as-degrees"]` m.
+Read as radians, it is a throw at about forty degrees and lands after
+`{python} result["range-as-radians"]` m. Both runs succeed, and neither
+prints a warning. The simulation of this course takes degrees, a
+mathematics library takes radians, and a specification that says only
+"angle" leaves the choice to whoever runs it. So the check asks for a unit
+on every quantity and compares it with the unit the action declares. It does
+not convert: a mismatch is refused, and the author converts, once and
+visibly.
+
+### Why a stopping condition is part of the science
+
+Without a stopping condition there are two ways to end an experiment. One is
+never. The other is "when the result looks right", and that one is worse,
+because it lets the expected answer decide how much evidence is collected: a
+run that agrees ends the search, a run that disagrees prompts one more. A
+budget fixed in advance removes the choice. It also creates the third
+outcome a careful experiment needs beside "supported" and "refuted": the
+budget ran out, the criteria were not met, and nothing is concluded.
+
+## Code
+
+### The specification
+
+The specification of the throw is a dictionary in the lesson's experiment.
+It is data: nothing in it runs.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="specification")
+```
+
+The resolution is one degree, the precision the question of the agent lesson
+asks for, and the prediction is a bound of
+`{python} result["bound"]` degrees: one resolution below the forty-five
+degrees of the throw without drag. The budget is
+`{python} result["budget"]` runs.
+
+The actions come from a laboratory: the list of what exists, with the unit
+of every argument and result. The first action is the tool that the agent
+of the later lesson is given, bounds included; the second is the same
+simulation without drag, which the lesson needs once, below.
+
+```{python}
+#| echo: false
+excerpt(experiment.laboratory, docstring=False)
+```
+
+### The check
+
+`parse` reads a specification against a laboratory and either returns it in
+a checked form or raises with every problem it found, each naming its part.
+It executes nothing. Two of its rules are the ones argued for above. The
+stopping rule:
+
+```{python}
+#| echo: false
+excerpt(specification._stopping)
+```
+
+And the unit rule, inside the comparison of each variable with the action
+that will receive it. A unit that is not the action's ends the comparison:
+a number in another unit is not measured against the bounds.
+
+```{python}
+#| echo: false
+excerpt(specification._against_the_action, lines=(19, 37))
+```
+
+### The scripted route
+
+The route is short enough to read whole, and its control flow is the point.
+`measure` is the only place where anything is executed: it refuses to go
+beyond the budget, sends the call through the allowlist of the laboratory,
+which checks the name and the bounds again, and records the run. The body
+scans, halves the bracket until it is no wider than the resolution, repeats
+the last three settings with the numerical variable halved, and stops.
+
+```{python}
+#| echo: false
+excerpt(specification.execute, docstring=False)
+```
+
+The verdict is given only when the route stopped with every criterion met.
+It compares the whole bracket with the predicted bound, so there are three
+outcomes, not two:
+
+```{python}
+#| echo: false
+excerpt(specification.verdict)
+```
+
+## Worked examples
+
+### Three specifications that never run
+
+Leave out the stopping condition, leave out the unit of the angle, or write
+the angle in radians, and the check answers before a single throw is
+simulated.
+
+```{python}
+#| echo: false
+excerpt(experiment.refusals, lines=(4, 11))
+```
+
+```{python}
+#| echo: false
+result.table("refusals")
+```
+
+Each refusal names the part to repair. The third is the instructive one: the
+radian values were consistent with each other and would have described a
+sensible experiment, and the check still refuses, because the action takes
+degrees and a silent conversion is the kind of help that hides a mistake.
+
+### The specification, executed
+
+```{python}
+#| echo: false
+excerpt(experiment.run, region="execute")
+```
+
+```{python}
+#| label: specified-runs
+#| echo: false
+result.table("runs")
+```
+
+The route used `{python} result["drag-runs"]` of its
+`{python} result["budget"]` runs and stopped with the reason
+"`{python} result["drag-stop"]`": `{python} result["drag-criteria"]`. The
+first `{python} result["drag-scan"]` runs are the scan, the next
+`{python} result["drag-refine"]` halve the bracket, two runs for each
+halving, and the last `{python} result["drag-check"]` repeat the bracket's
+two ends and its middle at half the time step, where the middle is still
+the best of the three. The bracket is
+`{python} result["drag-low"]` to `{python} result["drag-high"]` degrees.
+
+[The launch angle of the longest simulated throw lies between the two ends
+of the bracket, and the whole bracket lies below the predicted
+bound.]{.claim type="numerically-verified" scope="the simulated tennis ball
+with quadratic drag at 25 m/s, explicit Euler at the specified time step and
+at half of it, no measurement" evidence="specified-runs"} The verdict of the
+route is "`{python} result["drag-verdict"]`". The table came from the route.
+As a check from outside it, the experiment scans the same range in eighths
+of a degree at a quarter of the time step, directly on the simulation, and
+finds the best angle at `{python} result["scan-best"]` degrees, inside the
+bracket.
+
+### Can this specification fail?
+
+A hypothesis that was supported has shown little if nothing could have
+refuted it. So run the specification where the answer is known to be
+different: the same ball, the same speed, the same simulation, without drag.
+One line changes, the permitted action. The hypothesis, the prediction, the
+criteria, and the budget stay as they were written.
+
+Before reading on, decide what the route will report. The throw without drag
+goes furthest at forty-five degrees. Will the verdict be "refuted", will it
+be "undecided", or will the route fail to meet its criteria?
+
+```{python}
+#| echo: false
+excerpt(experiment.without_drag, docstring=False)
+```
+
+The route stopped with "`{python} result["vacuum-stop"]`"
+(`{python} result["vacuum-criteria"]`) after
+`{python} result["vacuum-runs"]` runs, with the bracket
+`{python} result["vacuum-low"]` to `{python} result["vacuum-high"]` degrees,
+and its verdict is "`{python} result["vacuum-verdict"]`". The experiment
+worked, and the hypothesis is wrong for this ball: every criterion was met,
+and the whole bracket lies on the wrong side of the bound. Had the
+prediction been "below forty-five degrees", the bracket would have
+contained the bound and the verdict would have been "undecided", however
+many runs were allowed. The margin of one resolution in the prediction is
+what lets this specification come out against its hypothesis.
+
+```{python}
+#| label: fig-specified-search
+#| echo: false
+#| fig-cap: "The runs of the scripted route with drag and without. Each search closes in on its own maximum, and the two brackets, the shaded bands, lie on opposite sides of the bound the hypothesis predicted: supported with drag, refuted without."
+#| fig-alt: "A plot of range in metres against launch angle in degrees with two series of points joined by lines. The lower series, with drag, rises to a flat maximum near forty degrees and falls; its points crowd together around the maximum, inside a narrow shaded band. The upper series, without drag, is higher everywhere and symmetric about its maximum at forty-five degrees, with its points crowded inside a second narrow band there. A dotted vertical line labelled predicted bound stands between the two bands."
+#| fig-status: simulated
+result.show("fig-specified-search")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_specified_search, figure=True)
+```
+
+Every point is a run one of the two routes made through the allowlist; the
+lines only join them. The crowding near each maximum is the halving of the
+bracket. The figure shows simulated throws and says nothing about a real
+ball, and the bound is drawn where the specification put it before either
+search began.
+
+We began with a plan that could not be run because its decisions lived in a
+head. Written as seven parts, the same plan was refused three times for what
+it left out, was run by a procedure that had no opinion about the answer,
+and came out for its hypothesis with drag and against it without. The two
+verdicts together are the result: this specification can tell the two cases
+apart.
+
+## Limits {#limits}
+
+- **One kind of question.** The format and the route handle the best setting
+  of one varied variable. A question about a trend, a threshold, or two
+  variables at once needs other success criteria and another route; the
+  seven parts stay.
+- **The route trusts assumptions two and three.** It does not test that the
+  maximum is single or that the scan saw it. The independent scan above is
+  the page's check of that for this ball, and it is not part of the route.
+- **Units are compared as text.** The check knows that `deg` is not `rad`.
+  It does not know that `m/s` and `km/h` measure the same quantity, and it
+  never converts.
+- **A verdict about the model.** "Supported" means the simulated ball
+  behaved as predicted. No ball was thrown, and the simulation's own error
+  enters only through the halving of the time step.
+- **A specification does not make a result true.** It makes it checkable:
+  the record says what was run and why it stopped, and someone else can run
+  the same data again.
+
+::: {.exercise .self-check}
+A route met every success criterion, and its verdict was "refuted". A
+colleague says the experiment failed and should be repeated with a wider
+range of angles until it works. What is wrong with that, and when would
+repeating be justified?
+
+::: {.solution}
+The experiment did not fail: it met its criteria, so its answer counts, and
+the answer contradicts the hypothesis. Changing the specification after
+seeing the verdict, until the verdict changes, is choosing the result. What
+has failed is the idea, and the honest next step is a new hypothesis with a
+new prediction, written down before its own run. Repeating is justified
+when the criteria were not met, as when the budget ran out or the best angle
+sat at the end of the range, because then nothing was concluded; and even
+then the change to the specification is made for that stated reason, not
+because of what the runs so far suggested.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A specification of your own.** At 25 m/s the bracket of the best angle
+ended below 41 degrees. Write the specification of the next question: is the
+best angle of the same ball lower still at 40 m/s? State a hypothesis with a
+reason, and a prediction relative to the first result, before you look at
+any run. Then let the route execute it.
+
+::: {.solution}
+The specification changes the question, the hypothesis, and the fixed
+speed, and keeps everything else:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="at-forty")
+```
+
+The route stopped with "`{python} result["forty-stop"]`"
+(`{python} result["forty-criteria"]`) after
+`{python} result["forty-runs"]` runs. The bracket is
+`{python} result["forty-low"]` to `{python} result["forty-high"]` degrees
+and the verdict is "`{python} result["forty-verdict"]`": the whole bracket
+lies below the bound of forty degrees that the prediction took from the
+first experiment. The reason given in the hypothesis, drag growing with the
+square of the speed, is not tested by this: the experiment supports the
+prediction, and a prediction can come true for another reason than the one
+its author had.
+:::
+:::
+
+::: {.exercise}
+**Find the defects.** A colleague edits the lesson's specification: the
+`stopping` part is deleted "because the route always finishes anyway", the
+unit of the angle is removed "because it is obvious", and the time step is
+written as 4 in `ms`. Predict what the check reports, part by part.
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.defective, docstring=False)
+```
+
+```{python}
+#| echo: false
+result.table("defects")
+```
+
+Three problems, one for each edit, and all three are reported together. The
+time step of four milliseconds is the same duration as the original, and it
+is still refused: the action takes seconds, and the check does not convert.
+Note what is absent from the list. Once the unit differs, the check does not
+go on to compare the number with the bounds of the action, because a number
+in another unit has no meaning there.
+:::
+:::
+
+::: {.exercise}
+**A budget that is too small.** Set the budget of the lesson's
+specification to 12 runs and execute it. What does the route report, and
+what may be concluded about the hypothesis?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.small_budget, docstring=False)
+```
+
+The route stopped with "`{python} result["short-stop"]`" after
+`{python} result["short-runs"]` runs: `{python} result["short-criteria"]`.
+Its verdict is "`{python} result["short-verdict"]`". The record still holds
+a bracket, `{python} result["short-low"]` to
+`{python} result["short-high"]` degrees, which lies below the bound, and it
+is tempting to read "supported" into it. The specification does not allow
+that: the bracket is wider than the resolution it asked for, and the check
+at half the time step was never made. Nothing is concluded about the
+hypothesis. What may be concluded is that twelve runs are not enough for
+this route at this resolution, which is a reason, stated in advance of the
+next attempt, to write a larger budget.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/agents/specification.py",
+        "src/pbc/agents/tools.py",
+        "src/pbc/agents/projectile_lab.py",
+        "src/pbc/mechanics/experiments/experiment_specification.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_specification.py",
+        "tests/unit/test_experiment_specification_experiment.py",
+    ],
+)
+```
