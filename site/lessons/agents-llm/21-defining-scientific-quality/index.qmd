@@ -1,0 +1,413 @@
+---
+title: "Defining scientific quality"
+description: >-
+  Every frozen run of the discovery benchmark, and two methods without a
+  model, measured apart on correctness, reasoning, evidence, completion,
+  cost, measurement efficiency, the software interface, and physical-tool
+  use, with a diagram task scored by the kind of understanding it asks for;
+  the build recomputes every measure from the traces.
+lesson:
+  id: defining-scientific-quality
+  strand: agents-llm
+  order: 21
+  difficulty: 3
+  course: mechanics
+  slot: AE1
+  experiment: pbc.mechanics.experiments.defining_scientific_quality
+  methods: [simulation, llm-agents]
+  outcomes:
+    - Measure a discovery run on separate metrics, from its frozen trace, without adding them into one score
+    - Tell a correct claim from a claim the run's own readings support, and both from a run that merely finished
+    - Separate calling a software tool correctly from choosing measurements the instrument makes informative
+    - Score answers about verified pictures by the kind of understanding each question asks for
+  related: []
+  format: 2
+  preview: fig-probe-information
+  prerequisites:
+    lessons: [prior-knowledge-in-discovery]
+    outside:
+      - "Statistics: least squares and the chi-square of residuals"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
+from pbc.discovery import quality
+from pbc.mechanics.experiments import defining_scientific_quality as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+An agent "solved" a discovery task: its claim predicted settings it never
+probed within the tolerance. What exactly did it do well? It may have
+measured where the system is informative and inferred the law from what it
+read. It may also have guessed a round number that happened to be right,
+or finished with a wrong claim after collecting everything it needed. One
+score cannot tell these apart, and a benchmark that reports one score
+cannot either.
+
+This lesson measures each of these things on its own. Every row below is
+of one of two kinds. Most are runs a language model made once, recorded,
+and replayed here by the build, which executes their tool calls again and
+computes every measure from the replayed trace; the model's own words are
+shown on the pages that hold the runs and are never read by a measure. The
+rest are two methods without a model that the build runs itself. The
+systems and the runs are those of the benchmark lesson that follows this
+one on the path: a projectile, a spring, and a central force, each with a
+hidden parameter, the three conditions of prior knowledge of the lesson on
+prior knowledge, and a plain model that could not measure.
+
+## Assumptions
+
+1. **The judge and the runs are the benchmark's.** Each run is scored under
+   its system's protocol: the same held-out settings, seed, and tolerance
+   of `{python} result["tolerance"]`. Nothing here changes a protocol or a
+   score; the lesson adds measures beside the score.
+2. **A measure reads the trace, never the text.** The tool calls, the
+   readings the replay recomputes, and the claim. What a model wrote about
+   its own reasoning is not evidence of it.
+3. **The noise is known.** Every system states the standard deviation of
+   its noise. The measures of reasoning and evidence rest on it; with an
+   unknown noise they would need an estimate of it first.
+4. **Information is computed at the run's own fit.** The measure of
+   physical-tool use takes the derivatives of the law's public family at
+   the fit to the run's readings, never at the hidden value, so it reveals
+   nothing the run's readings did not.
+5. **One run per cell.** Each system and condition was recorded once. A
+   profile describes that run, not the model.
+
+## Measures of a run {#explanation}
+
+A discovery run produces a trace: the settings it chose, the readings it
+got, the calls the harness accepted or refused, and a claim. From the trace
+alone the build computes nine measures, each answering one question:
+
+- **Correctness.** Does the claim predict the held-out settings within the
+  tolerance? This is the benchmark's score.
+- **Reasoning.** Does the claim reproduce the readings the run itself
+  collected? Its chi-square against those readings,
+  $\chi^2 = \sum_i \big((y_i - f(x_i;\theta))/\sigma\big)^2$, must be what
+  the noise alone gives for that many readings. A claim that contradicts the
+  run's own data was not inferred from it. Undefined for a run without
+  readings.
+- **Evidence.** Did the readings contain the answer? Least squares of the
+  law's family on exactly those readings recovers the law, whatever the run
+  concluded. Undefined without readings.
+- **Completion.** Did the run submit a claim and end within its limits?
+- **Cost.** The model messages and tool calls the run recorded. The tokens
+  and the price are those the recording reported; a Claude Code session
+  reports neither, so the table cannot show them.
+- **Measurement efficiency.** The probes spent of those allowed, and the
+  fewest of the run's first readings that already supported a recovery
+  ("probes to evidence").
+- **The software interface.** The calls the harness refused: arguments out
+  of bounds, or more calls in one message than it runs.
+- **Physical-tool use.** How much the settings the run chose say about the
+  law's parameters, compared with a regular grid of as many probes. With
+  $J$ the derivatives of the predicted reading with respect to the
+  parameters at each chosen setting, the information is
+  $\det(J^\mathsf{T} J)^{1/p}$ for $p$ parameters; the table shows the
+  run's value divided by the grid's. Above one, the run chose settings
+  where the instrument is more sensitive than a grid's.
+- **Understanding on pictures.** Questions about verified figures, scored
+  by kind: reading a value, a concept, the physical tool, a counterfactual.
+
+None of these is added to another. A run that is correct and a run that is
+correct with readings that support it are different results, and a single
+number would make them the same.
+
+## Code
+
+The three measures that are new in this lesson are short. Reasoning tests
+the claim against the run's own readings; the threshold is the one every
+baseline of the discovery package uses for a fit consistent with the noise:
+
+```{python}
+#| echo: false
+excerpt(quality.reasoning)
+```
+
+Measurement efficiency fits the first readings, one more at a time, until
+they support a recovery:
+
+```{python}
+#| echo: false
+excerpt(quality.probes_to_evidence)
+```
+
+Physical-tool use compares the information of the chosen settings with a
+grid of the same size:
+
+```{python}
+#| echo: false
+excerpt(quality.information)
+```
+
+## Worked examples
+
+### Every run, measured apart
+
+One row of the table is made like this, for a recorded run:
+
+```{python}
+#| echo: false
+excerpt(experiment.profiles, region="one-row")
+```
+
+The spring's run in the partial condition (told the names of the
+parameters, not the form) is the benchmark's best-known failure: its claim
+missed the held-out settings. Before reading the table, decide which of the
+other measures it fails. Did it collect too little, or conclude badly from
+enough?
+
+```{python}
+#| label: ae1-profiles
+#| echo: false
+result.table("ae1-profiles")
+```
+
+[On the spring, the runs in the partial and none conditions fail
+correctness and pass reasoning, evidence, and completion: their readings
+supported a recovery, and their claims reproduce those readings within the
+noise, yet predict the held-out settings outside the
+tolerance.]{.claim type="numerically-verified" scope="one recorded run per
+system and condition, the simulated systems of the benchmark"
+evidence="ae1-profiles"} The claims fit eight readings taken in the first
+three seconds and drift away from the truth at the held-out times, which
+lie far later. Passing the reasoning measure is necessary, not sufficient:
+it shows the claim agrees with the data, not that it is the best the data
+allow. The partial run's readings supported a recovery after
+`{python} result["spring-evidence"]` of its `{python} result["spring-probes"]`
+probes.
+
+[The plain model completes on every system and is correct on none; reasoning
+and evidence are undefined for it, because it collected no
+reading.]{.claim type="numerically-verified" scope="one recorded run per
+system, the simulated systems of the benchmark" evidence="ae1-profiles"} A
+completion rate alone would rank it with every other run.
+
+The two baselines pass every measure that applies to them, and the
+measures apply to them unchanged: a method without a model has no
+messages, and a grid has information one against itself by definition.
+
+### What one score hides
+
+```{python}
+#| echo: false
+excerpt(experiment.disagreements)
+```
+
+```{python}
+#| label: ae1-disagreements
+#| echo: false
+result.table("ae1-disagreements")
+```
+
+Each row is a pair of measures that a single score would merge. The second
+row is the spring's two failures; the third adds the plain model's runs. The
+last row is every run that could probe: the agents kept measuring after
+their readings already supported a recovery. That is not waste by itself,
+since a run cannot know when its evidence is enough, but a fit of two or
+three readings is fragile, and a metric of efficiency that rewarded
+stopping there would reward luck.
+
+### Calling the tool and understanding it
+
+Two runs can both call `measure` correctly and still differ in whether they
+understood the instrument. On the spring, how much a reading at time $t$
+can say about the frequency is bounded by the amplitude times the time,
+$|\partial x/\partial\omega| = A\,t\,|\sin\omega t| \le A\,t$, whatever the
+hidden stiffness: late readings at large amplitudes are the informative
+ones.
+
+```{python}
+#| echo: false
+source_link(experiment.draw_probe_information, figure=True)
+```
+
+```{python}
+#| label: fig-probe-information
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Where the three spring runs and a grid of as many probes measured, over dotted contours of amplitude times time, the bound on what a reading tells about the frequency. The full run probes late and at full amplitude and carries about as much information as the grid; the partial run stays at small amplitudes and carries far less."
+#| fig-alt: "A plane of amplitude against time since the release, with dotted hyperbolic contours labelled A t, rising toward the upper right. Plus signs mark a regular grid at the corners and edges. Open circles of the full run lie along the middle amplitude and reach the latest time and the largest amplitude. Open squares of the partial run lie mostly along a small amplitude. Open triangles of the none run lie at the middle amplitude, the largest amplitude, and a very small one. The legend gives each run's information relative to the grid."
+result.show("fig-probe-information")
+```
+
+[Three runs had calls refused by the harness and still chose settings more
+informative than a grid of as many probes: the projectile's full and
+partial runs and the spring's full run; the spring's partial run, with as
+many refused calls as its full run, chose settings far less informative
+than the grid.]{.claim type="numerically-verified" scope="one recorded run
+per system and condition, information at each run's own fit"
+evidence="ae1-profiles ae1-disagreements"} The refusals were the software
+interface: more calls in one message than the harness runs. They say
+nothing about whether the run understood where the instrument is
+sensitive, and the information says nothing about whether it used the
+interface well. On the projectile the range depends on gravity most at
+large speeds, and the agents chose large speeds; that is what puts their
+information far above the grid's.
+
+### Understanding on a picture
+
+The benchmark lesson adds a task of nine questions about two pictures drawn
+by the build from the mechanics code, with the answers computed from the
+same code. Picture A is the launcher:
+
+```{python}
+#| label: fig-task-launcher
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Picture A of the benchmark's diagram task: three drag-free trajectories of one launch speed and a wall. Questions about it ask for a reading, a concept, what the launcher can do, and a counterfactual."
+#| fig-alt: "Height against distance from the launcher. Three parabolas start at the origin, labelled by their launch angles: a low flat one and a tall narrow one land at the same distance, short of a hatched wall; the middle one reaches farthest and passes over the wall. A note at the top gives the launch speed."
+result.show("fig-task-launcher")
+```
+
+Two recorded runs answered them, one with the pictures and one told only
+their descriptions. Scored by what each question asks for:
+
+```{python}
+#| label: ae1-items
+#| echo: false
+result.table("ae1-items")
+```
+
+[With the pictures, every question of every kind is answered correctly;
+without them, both readings fail and the concepts and counterfactuals are
+still answered correctly.]{.claim type="numerically-verified" scope="one
+recorded run per condition, the nine questions of the benchmark's diagram
+task" evidence="ae1-items"} A total out of nine would hide that the two
+runs differ in one kind of understanding only. Of the physical-tool
+questions, the run without the pictures missed the one that needs the
+launch speed, which only the picture shows; on the other two it was right
+from general knowledge. The benchmark lesson shows the answers question by
+question.
+
+## Limits {#limits}
+
+- **Few runs.** One recorded run per cell: a profile describes that run.
+  Rates of any measure over a model need many runs, as the lessons on the
+  benchmark and on fair baselines explain.
+- **Reasoning is tested, not read.** The measure asks whether the claim
+  agrees with the readings, which a lucky guess that fits the data passes
+  too. Whether the model's text gives a correct argument is not measured.
+- **The thresholds are choices.** The chi-square threshold is the
+  discovery package's, fixed before these runs; the tolerance is the
+  benchmark's. Other thresholds would move rows between "yes" and "no".
+- **Information is local.** It uses the derivatives at the run's fit; for a
+  law that is far from linear in its parameters, a design that is good at
+  one value can be poor at another. A run with too few readings for a fit
+  has no information shown.
+- **Cost is incomplete.** The recordings are Claude Code sessions, which
+  report no tokens or price; only messages and calls are shown.
+- **Simulated, not measured.** Every system is a simulation of this site.
+
+::: {.exercise .self-check}
+On the projectile, every agent run is correct, passes reasoning and
+evidence, and chose settings far more informative than a grid. On the
+spring, two agent runs fail correctness. Which statement does this lesson
+support?
+
+::: {.choices}
+::: {.choice}
+The agent understands the projectile better than the spring, because its
+score is higher there.
+
+::: {.feedback}
+The systems have different laws, held-out settings, and difficulty; a
+score on one system does not compare with a score on another. The profiles
+describe runs, not understanding.
+:::
+:::
+
+::: {.choice correct="true"}
+On the spring, the failing runs collected readings that contained the
+answer and stated claims consistent with them; their failure lies between
+consistency with the data and accuracy on settings far away, not in
+measuring or in finishing.
+
+::: {.feedback}
+Right. Evidence, reasoning, and completion pass and correctness fails: the
+measures place the failure where a single score cannot.
+:::
+:::
+
+::: {.choice}
+The spring runs failed because they called the tool badly: they had calls
+refused.
+
+::: {.feedback}
+The spring's full run had as many refused calls and is correct. Refusals
+are the software interface; they do not explain a wrong claim here.
+:::
+:::
+:::
+
+::: {.solution}
+The supported statement is the one that names which measures pass and
+which fail for those runs. Comparing systems, or explaining the failure by
+the refused calls, reads more into the profiles than they hold.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+A benchmark reports one number per run: the average of correctness,
+reasoning, evidence, and completion, each counted as one or zero. Compute
+it for the spring's partial run and for the projectile's partial run from
+the profile table. What does the average say about the difference between
+them, and what does it hide?
+
+::: {.solution}
+The projectile's partial run passes all four and scores one; the spring's
+partial run passes three of four and scores three quarters. The average
+says the spring run is slightly worse. It hides that the only measure it
+fails is the one the benchmark exists for, correctness, and that a run
+which guessed a correct claim with no readings at all would score one half
+if an undefined measure counted as zero, or one if it were left out: the
+rule for an undefined measure would decide the ranking. The profile, read column by column, says what failed.
+:::
+:::
+
+::: {.exercise}
+The measure of physical-tool use divides the run's information by a grid's
+of as many probes. Why compare with a grid of the same size rather than
+with the grid of the whole budget, and why compute the derivatives at the
+run's own fit rather than at the hidden value?
+
+::: {.solution}
+With more probes the information grows whatever the choice of settings, so
+a comparison with the whole budget would measure how many probes a run
+spent, which the efficiency measure already reports. A grid of the same
+size isolates where the probes went. The hidden value is the judge's: a
+measure computed at it would leak a number about the hidden world into
+every table that shows the measure. At the run's own fit, the measure uses
+nothing the run's readings did not already contain.
+:::
+:::
+
+## Replay this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/discovery/quality.py",
+        "src/pbc/discovery/benchmark.py",
+        "src/pbc/discovery/tasks.py",
+        "src/pbc/discovery/baselines.py",
+        "src/pbc/discovery/protocol.py",
+        "src/pbc/discovery/environment.py",
+        "src/pbc/mechanics/experiments/defining_scientific_quality.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_quality.py",
+        "tests/unit/test_tasks.py",
+        "tests/unit/test_benchmark.py",
+        "tests/unit/test_defining_scientific_quality_experiment.py",
+    ],
+)
+```

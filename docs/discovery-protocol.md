@@ -141,6 +141,35 @@ environment (`benchmark.GRID`): within an environment only the task text
 differs, and across environments only the shared numbers (budget, step limit,
 seed, tolerance) are equal, so its results are read per environment.
 
+Prior knowledge is a field of an entry too (`Entry.knowledge`, F149): what
+the contestant was told of the law before it probed ("the form", "the
+names", "a library of terms", "nothing"). When both entries state it and it
+differs, the check gives "prior knowledge differs"; an entry that leaves it
+unset is judged as before. Least squares fits the family, so it is told the
+form, and is compared with the agent's `full` condition.
+
+## Measures of a run
+
+Besides the judge's score, a run can be measured apart on its reasoning
+(the claim reproduces its own readings within the noise), its evidence
+(least squares on its own readings recovers the law), completion, cost,
+measurement efficiency (probes to evidence), the refused calls of the
+software interface, and the information of its settings against a grid of
+as many probes, computed at the run's own fit (`pbc.discovery.quality`,
+lesson AE1). None is added to another, and none reads the agent's text or
+the hidden value.
+
+## Tasks beyond a number
+
+A benchmark may ask questions about pictures the build draws, with a key
+computed from the same code, and may draw its hidden world from a stated
+distribution with the evaluation cases beyond the probes' bounds
+(`pbc.discovery.tasks`, lesson AE2). The page states the distribution and
+never the drawn values; a test checks that no drawn value or evaluation
+case reaches the prompt, the tools, or the fixture, and that `measure`
+refuses every evaluation case (I27). The draw is in the source: the
+isolation is the tools', and the page says so.
+
 ## The plain model
 
 A **plain model** is the agent's model with the agent's task (the `partial`

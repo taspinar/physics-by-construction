@@ -28,9 +28,11 @@ from scipy.stats import fisher_exact
 
 from pbc.agents.display import AllowlistDisplay, RunDisplay
 from pbc.agents.loop import MAX_CALLS_PER_MESSAGE
+from pbc.agents.vision import chance as guess
+from pbc.agents.vision import score as score_answers
 from pbc.authoring import FIGURE_COLOURS
 from pbc.authoring.repository import REPOSITORY_ROOT
-from pbc.discovery import environment_allowlist, force_lab
+from pbc.discovery import environment_allowlist, force_lab, tasks
 from pbc.discovery.benchmark import (
     BUDGET,
     ENVIRONMENTS,
@@ -51,7 +53,9 @@ from pbc.discovery.benchmark import (
     verdict,
 )
 from pbc.discovery.protocol import CONDITIONS
+from pbc.discovery.quality import chance_distribution
 from pbc.experiment import Experiment, main
+from pbc.figure_language import figsize, figure_style, finish
 
 # The live runs of the lesson: a model, its key, and the extra openai.
 LIVE = (
@@ -375,6 +379,294 @@ def chance(experiment: Experiment, recovered: dict[str, int]) -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# Tasks beyond a number (F149): the diagram task and the drawn world.
+
+
+def _shown(question, value) -> str:
+    """An answer or a truth as the table shows it: the option's words, or
+    the number in its unit."""
+    if value is None:
+        return "none"
+    if question.numeric:
+        return f"{value:.3g} {question.unit}"
+    return question.options[int(value) - 1]
+
+
+def diagram_items(experiment: Experiment) -> dict[str, list]:
+    """Replay both runs of the diagram task, score them against the key the
+    build computes, and record the tables; return the scored answers of each
+    run."""
+    key = tasks.diagram_key()
+    scored = {}
+    for item in tasks.ITEM_RUNS:
+        recording, transcript = tasks.replay_items(item, LESSON)
+        experiment.display(f"run-{item.id}-task", RunDisplay(recording, transcript))
+        scored[item.id] = score_answers(tasks.QUESTIONS, key, transcript)
+    pictures, text = scored["pictures"], scored["text"]
+    experiment.table(
+        "ae2-items",
+        [
+            (
+                a.question.number,
+                tasks.CATEGORY[a.question.number],
+                _shown(a.question, a.truth),
+                _shown(a.question, a.answer),
+                "yes" if a.correct else "no",
+                _shown(b.question, b.answer),
+                "yes" if b.correct else "no",
+                guess(a.question, a.truth),
+            )
+            for a, b in zip(pictures, text, strict=True)
+        ],
+        [
+            ("question", "", "d"),
+            ("category", "", ""),
+            ("answer the build computes", "", ""),
+            ("with the pictures", "", ""),
+            ("correct", "", ""),
+            ("without them", "", ""),
+            ("correct", "", ""),
+            ("chance of a guess", "", ".2f"),
+        ],
+        "Every question of the diagram task, the answer the build computes"
+        " from the physics that draws the pictures, and the answers of the two"
+        " recorded runs.",
+    )
+    rows = []
+    for category in tasks.CATEGORIES:
+        mine = [
+            k
+            for k, a in enumerate(pictures)
+            if tasks.CATEGORY[a.question.number] == category
+        ]
+        rows.append(
+            (
+                category,
+                len(mine),
+                sum(pictures[k].correct for k in mine),
+                sum(text[k].correct for k in mine),
+                sum(guess(pictures[k].question, pictures[k].truth) for k in mine),
+            )
+        )
+    experiment.table(
+        "ae2-item-tally",
+        rows,
+        [
+            ("category", "", ""),
+            ("questions", "", "d"),
+            ("correct with the pictures", "", "d"),
+            ("correct without them", "", "d"),
+            ("a guess, on average", "", ".1f"),
+        ],
+        "Correct answers per category: the two recorded runs, and a uniform guess.",
+    )
+    pmf = chance_distribution([guess(a.question, a.truth) for a in pictures])
+    cumulative = np.cumsum(pmf)
+    experiment.number("items", len(tasks.QUESTIONS))
+    experiment.number("items-pictures", sum(a.correct for a in pictures))
+    experiment.number("items-text", sum(a.correct for a in text))
+    experiment.number("guess-mean", float(np.dot(np.arange(len(pmf)), pmf)), ".1f")
+    experiment.number("guess-95", int(np.searchsorted(cumulative, 0.95)))
+    experiment.number(
+        "guess-at-least-text",
+        float(pmf[sum(a.correct for a in text) :].sum()),
+        ".1g",
+    )
+    return scored
+
+
+def drawn_world(experiment: Experiment):
+    """Replay and score the run on the drawn world, set the baselines with
+    the same budget beside it, spread them over seeds and over other drawn
+    worlds, and record the tables; return what the figure draws."""
+    p = tasks.PROTOCOL
+    # region: world
+    recording, transcript, agent = tasks.replay_world(LESSON)
+    entries = {"agent": agent_entry("agent", p, agent)}
+    for result in tasks.world_baselines(p):
+        entries[result.name] = baseline_entry(p, result)
+    # endregion: world
+    experiment.display("run-drawn-world", RunDisplay(recording, transcript))
+    experiment.table(
+        "ae2-world",
+        [
+            (
+                who,
+                e.allowed,
+                e.probes,
+                e.held_out_error,
+                "yes" if e.recovered else "no",
+                "-" if who == "agent" else verdict(entries["agent"], e),
+            )
+            for who, e in entries.items()
+        ],
+        [
+            ("method", "", ""),
+            ("probes allowed", "", "d"),
+            ("probes spent", "", "d"),
+            ("held-out error", "relative", ".2g"),
+            ("recovered", "", ""),
+            ("against the agent", "", ""),
+        ],
+        "The drawn world: the recorded run and the baselines with the same"
+        " budget, scored on the withheld evaluation cases.",
+    )
+    seeds = [tasks.world_random_fit(p, seed) for seed in tasks.PROBE_SEEDS]
+    worlds = {
+        seed: tasks.world_baselines(tasks.world_protocol(seed))
+        for seed in tasks.OTHER_WORLDS
+    }
+    spread = [
+        (
+            "random + least squares, other seeds of the probes",
+            "the agent's",
+            len(seeds),
+            sum(baseline_entry(p, r).recovered for r in seeds),
+        )
+    ]
+    for k, name in enumerate(entries):
+        if name == "agent":
+            continue
+        spread.append(
+            (
+                name,
+                "other drawn worlds",
+                len(worlds),
+                sum(
+                    baseline_entry(tasks.world_protocol(s), worlds[s][k - 1]).recovered
+                    for s in worlds
+                ),
+            )
+        )
+    experiment.table(
+        "ae2-world-spread",
+        spread,
+        [
+            ("method", "", ""),
+            ("world", "", ""),
+            ("runs", "", "d"),
+            ("recovered", "", "d"),
+        ],
+        "The baselines again, over twenty seeds of the random probes and over"
+        " twenty other worlds drawn from the same distribution.",
+    )
+    column = replay_cell(
+        GRID["central-force", "none"], home(GRID["central-force", "none"])
+    )[2]
+    experiment.table(
+        "ae2-world-comparisons",
+        [
+            (
+                "the agent on the drawn world against grid + least squares on it",
+                verdict(entries["agent"], entries["grid + least squares"]),
+            ),
+            (
+                "the agent on the drawn world against the none run of the"
+                " central-force column",
+                verdict(
+                    entries["agent"],
+                    agent_entry("central force, none", PROTOCOLS["black-box"], column),
+                ),
+            ),
+        ],
+        [("comparison", "", ""), ("the check says", "", "")],
+        "Two comparisons with the drawn world, judged from the protocols.",
+    )
+    experiment.table(
+        "ae2-withheld",
+        [
+            (check, "yes" if holds else "no")
+            for check, holds in tasks.withheld_unreachable().items()
+        ],
+        [("what the build checks", "", ""), ("holds", "", "")],
+        "The drawn truth and the evaluation cases, out of the agent's reach.",
+    )
+    experiment.number("world-error", agent.held_out_error, ".2g")
+    experiment.number("world-probes", agent.probes)
+    experiment.number("strength-low", tasks.STRENGTHS[0], "g")
+    experiment.number("strength-high", tasks.STRENGTHS[1], "g")
+    experiment.number("exponent-low", tasks.EXPONENTS[0], "g")
+    experiment.number("exponent-high", tasks.EXPONENTS[1], "g")
+    experiment.number("case-near", tasks.EVALUATION_DISTANCES[0], "g")
+    experiment.number("case-far", tasks.EVALUATION_DISTANCES[1], "g")
+    experiment.number("reach", environment("black-box").controls[0].high, "g")
+    return entries, seeds, worlds
+
+
+WORLD_NAMES = (
+    "grid + least squares",
+    "random + least squares",
+    "grid + sparse identification",
+)
+
+
+def draw_drawn_world(entries, seeds, worlds) -> Figure:
+    """The held-out error on the drawn world, one row per method: the
+    agent's world (filled), the baselines over other drawn worlds and
+    random selection over other seeds of its probes (open), and the
+    tolerance. Nothing is transformed but an error below the axis floor,
+    which is drawn on it."""
+    names = ["agent", *WORLD_NAMES]
+    labels = [
+        "agent",
+        "grid +\nleast squares",
+        "random +\nleast squares",
+        "grid + sparse\nidentification",
+    ]
+    rng = np.random.default_rng(0)  # vertical jitter of the open markers only
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=3))
+        for k, name in enumerate(names):
+            ax.scatter(
+                [max(entries[name].held_out_error, FLOOR)],
+                [k],
+                marker="o",
+                s=40,
+                color=FIGURE_COLOURS[0],
+                zorder=4,
+                label="the agent's world" if k == 0 else None,
+            )
+        for k, _name in enumerate(WORLD_NAMES, start=1):
+            x = [max(r[k - 1].held_out_error, FLOOR) for r in worlds.values()]
+            ax.scatter(
+                x,
+                k + 0.22 + rng.uniform(-0.07, 0.07, len(x)),
+                marker="^",
+                s=18,
+                facecolors="none",
+                edgecolors=FIGURE_COLOURS[1],
+                zorder=3,
+                label="other drawn worlds" if k == 1 else None,
+            )
+        x = [max(r.held_out_error, FLOOR) for r in seeds]
+        ax.scatter(
+            x,
+            2 - 0.22 + rng.uniform(-0.07, 0.07, len(x)),
+            marker="s",
+            s=18,
+            facecolors="none",
+            edgecolors=FIGURE_COLOURS[4],
+            zorder=3,
+            label="other seeds of the probes",
+        )
+        ax.axvline(TOLERANCE, color=FIGURE_COLOURS[2], linestyle="--")
+        ax.annotate(
+            "tolerance",
+            (TOLERANCE, 0.0),
+            xycoords=("data", "axes fraction"),
+            xytext=(3, 3),
+            textcoords="offset points",
+            va="bottom",
+        )
+        ax.set_xscale("log")
+        ax.set_yticks(range(len(names)), labels)
+        ax.invert_yaxis()
+        ax.set_xlabel("held-out error (relative, log scale)")
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
+
+
 def run() -> Experiment:
     """Everything the lesson's page shows."""
     experiment = Experiment()
@@ -400,6 +692,11 @@ def run() -> Experiment:
         "fig-benchmark-errors", partial(draw_benchmark_errors, runs, fits)
     )
     chance(experiment, recovered)
+    experiment.figure("fig-task-launcher", tasks.draw_launcher)
+    experiment.figure("fig-task-spring", tasks.draw_spring)
+    diagram_items(experiment)
+    world = drawn_world(experiment)
+    experiment.figure("fig-drawn-world", partial(draw_drawn_world, *world))
     return experiment
 
 

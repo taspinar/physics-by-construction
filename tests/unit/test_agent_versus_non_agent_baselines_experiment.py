@@ -60,3 +60,20 @@ def test_random_selection_with_few_probes_fails_on_some_seeds_of_the_spring(resu
     seeds = {row[0]: row[2:] for row in found["tables"]["ev3-seeds"]["rows"]}
     recovered, total = map(int, seeds["oscillator"])
     assert 0 < recovered < total
+
+
+def test_pairs_with_matched_knowledge_compare_and_others_are_refused(results):
+    _, found = results
+    for _, pair, _, _, verdict in found["tables"]["ev3-knowledge"]["rows"]:
+        if pair.startswith("agent told the form"):
+            assert verdict == "comparable"
+        elif "plain model" in pair:
+            assert verdict.startswith("not meaningful: budgets differ")
+        else:
+            assert "prior knowledge differs" in verdict
+
+
+def test_least_squares_told_the_form_recovers_on_every_seed(results):
+    _, found = results
+    for _, recovered, seeds, *_ in found["tables"]["ev3-knowledge-seeds"]["rows"]:
+        assert recovered == seeds
