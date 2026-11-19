@@ -82,3 +82,43 @@ def test_noise_removes_the_gravity_near_the_predicted_level(results):
             assert float(row[2]) == pytest.approx(float(row[3]), rel=0.5)
     more = [int(row[1]) for row in found["tables"]["more-samples"]["rows"]]
     assert more[1] > right[noise.index(20.0)]
+
+
+def test_whole_powers_find_no_law_and_half_and_quarter_powers_find_it(results):
+    _, found = results
+    numbers = found["numbers"]
+    rows = {row[0]: row for row in found["tables"]["grammars"]["rows"]}
+
+    assert list(rows) == ["whole powers", "half powers", "quarter powers"]
+    # Whole powers: no consistent form, so no claim, and the reason says so.
+    assert rows["whole powers"][2] == "0" and rows["whole powers"][3] == "none"
+    assert numbers["whole-reason"].startswith("no form of the grammar")
+    # Half and quarter powers choose the small-angle law on the clean periods.
+    for name in ("half powers", "quarter powers"):
+        assert rows[name][3] == "L^(1/2) g^(-1/2)"
+    assert int(numbers["quarter-forms"]) > 12 * int(rows["half powers"][1])
+
+
+def test_the_richer_grammar_loses_the_law_at_a_lower_noise_as_predicted(results):
+    _, found = results
+    numbers = found["numbers"]
+    rows = found["tables"]["grammar-noise"]["rows"]
+    noise = [float(row[0]) for row in rows]
+    whole, half, quarter = ([int(row[k]) for row in rows] for k in (1, 2, 3))
+
+    assert set(whole) == {0}
+    # The quarter grammar never chooses the law more often than the half one,
+    # and less often at some noise: it loses the law sooner.
+    assert all(q <= h for q, h in zip(quarter, half, strict=True))
+    lost_half = next(n for n, h in zip(noise, half, strict=True) if h < 10)
+    lost_quarter = next(n for n, q in zip(noise, quarter, strict=True) if q < 10)
+    assert lost_quarter < lost_half
+    # It loses it to a form with a fourth root, at about its predicted noise,
+    # which is lower than the half grammar's.
+    assert "1/4" in numbers["quarter-rival"]
+    assert float(numbers["quarter-floor"]) < float(numbers["half-floor"])
+    for floor, lost in (
+        (numbers["quarter-floor"], lost_quarter),
+        (numbers["half-floor"], lost_half),
+    ):
+        assert float(floor) / 2 < lost < 2 * float(floor)

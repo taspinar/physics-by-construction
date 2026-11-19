@@ -64,3 +64,83 @@ def test_the_calibrated_fit_on_random_settings_degrades_like_on_the_grid(results
         1.5 < float(r[2]) / float(g[2]) < 3 for r, g in zip(random, grid, strict=True)
     )
     assert {r[0] for r in table} == {f"{design} + {name}" for design, name in BASELINES}
+
+
+A = "A: inverse square, gauge reads high"
+B = "B: true gauge, shallower law"
+
+
+def test_two_explanations_fit_the_same_readings_and_differ_beyond_them(results):
+    _, found = results
+    numbers = found["numbers"]
+    rows = _rows(found, "explanations")
+    chi2 = {name: float(row[1]) for name, row in rows.items()}
+
+    # Both consistent with the readings ...
+    assert rows[A][3] == rows[B][3] == "yes"
+    # ... their chi-squares less than one apart, B the lower, though A is true.
+    assert abs(chi2[A] - chi2[B]) < 1.0
+    assert float(numbers["delta-chi2"]) == pytest.approx(
+        abs(chi2[A] - chi2[B]), abs=0.01
+    )
+    assert chi2[B] < chi2[A]
+    # Their laws part where nothing was probed: A within a percent, B far off.
+    assert float(numbers["a-far-error"]) == pytest.approx(
+        abs(float(rows[A][4])), abs=0.1
+    )
+    assert float(numbers["a-far-error"]) < 1.0
+    assert float(numbers["b-far-error"]) > 15.0
+
+
+def test_the_precise_exponent_of_b_is_far_from_the_truth(results):
+    _, found = results
+    numbers = found["numbers"]
+    exponent = float(numbers["b-exponent"])
+    error = float(numbers["b-exponent-error"])
+
+    assert exponent < 2.0 and (2.0 - exponent) / error > 5
+    assert int(numbers["b-exponent-off"]) == round((2.0 - exponent) / error)
+
+
+def test_the_offset_is_correlated_and_its_interval_holds_both_explanations(results):
+    _, found = results
+    numbers = found["numbers"]
+
+    assert float(numbers["correlation"]) > 0.9
+    low, high = float(numbers["offset-low"]), float(numbers["offset-high"])
+    a_offset = float(_rows(found, "explanations")[A][0].split("offset ")[1].split()[0])
+    # Zero, B's offset, and A's fitted offset are both inside the interval.
+    assert low < 0.0 < a_offset < high
+
+
+def test_readings_at_zero_mass_reject_b_and_keep_a(results):
+    _, found = results
+    numbers = found["numbers"]
+    rows = _rows(found, "separated")
+    before = _rows(found, "explanations")
+
+    assert rows[A][3] == "yes" and rows[B][3] == "no"
+    assert float(numbers["null-chi2-rise"]) == pytest.approx(
+        float(rows[B][1]) - float(before[B][1]), abs=1
+    )
+    assert numbers["null-readings"] == "2"
+    assert f"offset {numbers['null-offset']}" in rows[A][0]
+    # The measured offset holds the truth of the synthetic gauge within
+    # two standard errors.
+    offset, error = float(numbers["null-offset"]), float(numbers["null-offset-error"])
+    assert abs(offset - float(numbers["truth-offset"])) < 2 * error
+
+
+def test_more_of_the_same_readings_separate_them_only_slowly(results):
+    _, found = results
+    numbers = found["numbers"]
+    rows = found["tables"]["more-of-the-same"]["rows"]
+
+    # The predicted separating noise is below the lesson's noise.
+    assert float(numbers["separating-noise"]) < float(numbers["sigma"])
+    assert float(numbers["misfit"]) < float(numbers["margin"])
+    first = next(int(r[0]) for r in rows if r[3] == "yes")
+    assert (
+        int(numbers["enough-readings"]) == first > 100 * int(numbers["null-readings"])
+    )
+    assert all(r[3] == "no" for r in rows if int(r[0]) < first)

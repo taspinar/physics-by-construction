@@ -122,3 +122,31 @@ def test_a_search_needs_a_positive_noise_and_two_measurements():
         power_law_search({"a": [1.0, 2.0]}, [1.0, 2.0], sigma=0.0)
     with pytest.raises(ValueError, match="two"):
         power_law_search({"a": [1.0]}, [1.0], sigma=0.1)
+
+
+def test_the_complexity_counts_the_steps_of_the_grammar():
+    from pbc.discovery.symbolic import HALF_STEPS, grammar_step
+
+    assert grammar_step(HALF_STEPS) == 0.5
+    assert grammar_step([-2.0, -1.0, 0.0, 1.0, 2.0]) == 1.0
+    assert grammar_step([k / 4 for k in range(-8, 9)]) == 0.25
+    assert grammar_step([0.0]) == 1.0
+    rng = np.random.default_rng(1)
+    x = rng.uniform(1, 2, 12)
+    y = 3.0 * x**0.5
+    half = power_law_search({"x": x}, y, 0.01)
+    quarter = power_law_search({"x": x}, y, 0.01, [k / 4 for k in range(-8, 9)])
+    # The square root is one half step and two quarter steps.
+    assert half.chosen.complexity == 2 and quarter.chosen.complexity == 3
+
+
+def test_a_list_of_forms_fits_only_those_candidates():
+    rng = np.random.default_rng(2)
+    a, b = rng.uniform(1, 3, (2, 20))
+    y = 2.0 * a**2 * b**2
+    search = power_law_search({"a": a, "b": b}, y, 0.01, forms=[(1, 1), (2, 2)])
+
+    assert len(search.forms) == 2
+    assert search.chosen.exponents == (2.0, 2.0)
+    assert search.step == 1.0
+    assert [f.exponents for f in search.consistent()] == [(2.0, 2.0)]

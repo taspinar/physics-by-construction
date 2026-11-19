@@ -5,7 +5,10 @@ The same model probes the same hidden spring under the three conditions of
 prior knowledge (``pbc.discovery.force_lab``, runs ``prior-full``,
 ``prior-partial``, ``prior-none``): the check that only the task differs, the
 replay of the three runs, their scores on the same held-out settings, the
-motion fitted to each run's own readings, and the baselines without a model.
+motion fitted to each run's own readings, and the baselines without a model;
+and, without a model, a towing tank whose drag law is unknown
+(``pbc.discovery.towing_tank``): its boundary, the two conditions of prior
+knowledge on two designs, the learner's own probes, and an unknown world.
 Run it as a program to write the figure and numbers of the page:
 
     uv run --locked --no-dev \\
@@ -26,8 +29,9 @@ from matplotlib.figure import Figure
 
 from pbc.agents.display import AllowlistDisplay, RunDisplay
 from pbc.agents.loop import MAX_CALLS_PER_MESSAGE
+from pbc.authoring import FIGURE_COLOURS, diagrams
 from pbc.authoring.repository import REPOSITORY_ROOT
-from pbc.discovery import comparison, environment_allowlist, run_baselines
+from pbc.discovery import comparison, environment_allowlist, run_baselines, towing_tank
 from pbc.discovery.force_lab import (
     BUDGET,
     MAX_STEPS,
@@ -42,7 +46,20 @@ from pbc.discovery.force_lab import (
     replay_run,
     task_of,
 )
+from pbc.discovery.towing_tank import (
+    CONDITIONS as TANK_CONDITIONS,
+)
+from pbc.discovery.towing_tank import (
+    UNKNOWN,
+    WATER,
+    Outcome,
+    grid_design,
+    one_sphere_design,
+    random_design,
+    route,
+)
 from pbc.experiment import Experiment, main
+from pbc.figure_language import figsize, figure_style, finish
 
 # The live runs of the lesson: a model, its key, and the extra openai.
 LIVE = "pbc.discovery.force_lab prior-full prior-partial prior-none"
@@ -256,6 +273,180 @@ def phase_shift(experiment: Experiment, scores, fits) -> None:
     )
 
 
+def tank_boundary(experiment: Experiment) -> None:
+    """The four decisions before the first probe, for the towing tank."""
+    box = towing_tank.tank()
+    controls = ", ".join(f"{c.name} ({c.unit})" for c in box.controls)
+    experiment.table(
+        "tank-boundary",
+        [
+            (
+                "boundary",
+                "the sphere and the fluid around it; the carriage and the"
+                " gauge are outside",
+            ),
+            ("set by the experimenter", controls),
+            (
+                "read",
+                f"{box.observation.name} ({box.observation.unit}), with a"
+                f" relative noise of {100 * box.observation.sigma:g} percent",
+            ),
+            (
+                "inside but not accessible",
+                "the density and the viscosity of the fluid: fixed, never read",
+            ),
+            ("candidate structures", "power laws of the speed and the diameter"),
+            (
+                "prior",
+                "knowledge-informed: the two drag laws; restricted prior:"
+                " every power law of the grammar",
+            ),
+        ],
+        columns=[("decision", "", "s"), ("in the towing tank", "", "s")],
+        caption="What is decided before the first probe of the towing tank.",
+    )
+
+
+def _outcome_row(design: str, outcome: Outcome) -> tuple:
+    return (
+        design,
+        outcome.condition,
+        outcome.forms,
+        outcome.consistent,
+        outcome.chosen,
+        "no claim" if outcome.chosen == "none" else f"{outcome.held_out_error:.2g}",
+        "yes" if outcome.recovered else "no",
+    )
+
+
+_OUTCOME_COLUMNS = [
+    ("design", "", "s"),
+    ("condition", "", "s"),
+    ("forms", "", "d"),
+    ("consistent", "", "d"),
+    ("chosen", "", "s"),
+    ("held-out error", "", "s"),
+    ("recovered", "", "s"),
+]
+
+
+def tank_conditions(experiment: Experiment) -> dict[tuple[str, str], Outcome]:
+    """Both conditions on the same readings of the water tank, for the grid
+    and for one sphere; record the table and return the outcomes."""
+    designs = {"grid": grid_design(), "one sphere": one_sphere_design()}
+    found = {
+        (name, condition): route(WATER, design, condition)
+        for name, design in designs.items()
+        for condition in TANK_CONDITIONS
+    }
+    experiment.table(
+        "tank-conditions",
+        [_outcome_row(design, o) for (design, _), o in found.items()],
+        _OUTCOME_COLUMNS,
+        caption="The two conditions on the same twelve readings of the towing"
+        " tank, for each design: the forms searched, how many are consistent,"
+        " the form chosen (v the speed, d the diameter), and the judge's"
+        " held-out error, relative, to two significant digits.",
+    )
+    return found
+
+
+def draw_tank_boundary() -> Figure:
+    """The towing tank as a system: the boundary, what is set, what is read,
+    and what is inside but out of reach."""
+    fig, ax = diagrams.canvas(6.4, 3.4, (0.0, 10.0), (0.0, 5.3))
+    diagrams.line(
+        ax,
+        [(3.4, 0.9), (6.6, 0.9), (6.6, 4.7), (3.4, 4.7), (3.4, 0.9)],
+        colour=2,
+        linestyle=":",
+    )
+    diagrams.text(ax, (5.0, 5.0), "system boundary", colour=2)
+    diagrams.circle(ax, (5.0, 3.0), 0.7, colour=0)
+    diagrams.text(ax, (5.0, 3.0), "sphere")
+    diagrams.text(
+        ax,
+        (5.0, 1.55),
+        "fluid: density,\nviscosity; fixed,\nnever read",
+        colour="#57606a",
+    )
+    diagrams.state_box(ax, (1.3, 3.0), "carriage", width=1.9, height=0.8, colour=0)
+    diagrams.arrow(ax, (2.25, 3.25), (4.33, 3.25), colour=0)
+    diagrams.text(ax, (2.0, 3.75), "sets $v$, $d$", ha="left")
+    diagrams.state_box(ax, (8.7, 3.0), "gauge", width=1.9, height=0.8, colour=1)
+    diagrams.arrow(ax, (5.67, 2.75), (7.75, 2.75), colour=1, linestyle="--")
+    diagrams.text(ax, (6.75, 2.25), "reads $F$", ha="left")
+    diagrams.text(
+        ax,
+        (5.0, 0.35),
+        "solid: set by the experimenter;  dashed: read",
+        colour="#57606a",
+    )
+    return fig
+
+
+def draw_tank_conditions(found: dict[tuple[str, str], Outcome]) -> Figure:
+    """The judge's error of each condition on each design, with the
+    tolerance."""
+    designs = list(dict.fromkeys(design for design, _ in found))
+    x = np.arange(len(designs))
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=3))
+        for k, (condition, hatch) in enumerate(
+            zip(TANK_CONDITIONS, ("", "//"), strict=True)
+        ):
+            ax.bar(
+                x + (k - 0.5) * 0.36,
+                [found[(d, condition)].held_out_error for d in designs],
+                0.36,
+                color=FIGURE_COLOURS[k],
+                hatch=hatch,
+                edgecolor="white",
+                label=condition,
+            )
+        ax.axhline(
+            towing_tank.TOLERANCE,
+            color=FIGURE_COLOURS[2],
+            linestyle="--",
+            label="tolerance",
+        )
+        ax.set_yscale("log")
+        ax.set_xticks(x, designs)
+        ax.set_xlabel("design of the twelve probes")
+        ax.set_ylabel("held-out error\n(relative)")
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
+
+
+def own_probes(experiment: Experiment) -> Outcome:
+    """Exercise: twelve probes at random settings, the grammar of the
+    restricted prior, and the judge's score."""
+    outcome = route(WATER, random_design(), "restricted prior")
+    experiment.table(
+        "tank-own-probes",
+        [_outcome_row("random", outcome)],
+        _OUTCOME_COLUMNS,
+        caption="Twelve probes at random settings of the towing tank, searched"
+        " with every power law of the grammar and scored by the judge;"
+        " held-out error relative, to two significant digits.",
+    )
+    return outcome
+
+
+def unknown_world(experiment: Experiment) -> dict[str, Outcome]:
+    """Exercise: both conditions on the grid of a tank whose fluid is of no
+    known kind; record the table."""
+    found = {c: route(UNKNOWN, grid_design(), c, seed=1) for c in TANK_CONDITIONS}
+    experiment.table(
+        "tank-unknown",
+        [_outcome_row("grid", o) for o in found.values()],
+        _OUTCOME_COLUMNS,
+        caption="The two conditions on the grid of the tank with an unknown"
+        " fluid; held-out error relative, to two significant digits.",
+    )
+    return found
+
+
 def run() -> Experiment:
     """Everything the lesson's page shows."""
     experiment = Experiment()
@@ -284,6 +475,29 @@ def run() -> Experiment:
     )
     the_agents_budget(experiment, scores["full"].probes)
     phase_shift(experiment, scores, fits)
+
+    tank_boundary(experiment)
+    experiment.figure("fig-tank-boundary", draw_tank_boundary)
+    found = tank_conditions(experiment)
+    experiment.figure("fig-tank-conditions", partial(draw_tank_conditions, found))
+    one_sphere = found[("one sphere", "restricted prior")]
+    experiment.number("tank-budget", towing_tank.BUDGET)
+    experiment.number("tank-tolerance", towing_tank.TOLERANCE, "g")
+    experiment.number("tank-noise", 100 * towing_tank.NOISE, "g")
+    experiment.number("one-sphere-rivals", one_sphere.consistent)
+    experiment.number("one-sphere-chosen", one_sphere.chosen)
+    experiment.number("one-sphere-error", one_sphere.held_out_error, ".2f")
+    own = own_probes(experiment)
+    experiment.number("own-chosen", own.chosen)
+    experiment.number("own-outcome", "recovered" if own.recovered else "not recovered")
+    unknown = unknown_world(experiment)
+    experiment.number(
+        "unknown-reason",
+        unknown["knowledge-informed"].reason.replace(
+            "no form of the grammar", "neither candidate"
+        ),
+    )
+    experiment.number("unknown-chosen", unknown["restricted prior"].chosen)
     return experiment
 
 

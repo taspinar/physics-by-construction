@@ -19,6 +19,7 @@ lesson:
     - Calibrate a gauge with a null measurement and reject faulty readings with a robust fit and a stated threshold
     - Measure how the held-out error of a method degrades as the noise grows, over several seeds, and read where a method stops recovering the law
     - Analyse a failed fit by its chi-square and decide which remedy the failure needs
+    - Recognise two explanations that the readings cannot separate, by their correlated parameters and their profile, and name the measurement that separates them
   related: [modified-force-law]
   format: 2
   preview: fig-degradation
@@ -332,6 +333,112 @@ at the largest noise, because there the faults are hidden in the scatter and
 the rule can no longer see them. A failure the chi-square cannot see is the
 most dangerous kind.
 
+### Two explanations the readings cannot separate {#equivalent-explanations}
+
+Every method above was judged against one family, a strength, an
+exponent, and perhaps an offset. A fit that passes the chi-square rule
+says the family can describe the readings. It does not say that only one
+member of it can, or that a different story could not describe them as
+well. This section leaves the agent's gauge, whose truth stays hidden,
+and takes a **synthetic gauge whose truth the page states**, so that each
+explanation can be compared with it: the inverse-square law with a
+strength of `{python} result["truth-strength"]` $\mathrm{N\,m^2/kg}$, read on one
+kilogram at `{python} result["synthetic-readings"]` distances from two to
+four metres, by a gauge that reads high by
+`{python} result["truth-offset"]` N, with the lesson's noise and no
+faulty readings. Nobody took a reading at zero mass.
+
+Two explanations of these readings, each with two parameters:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="explanations")
+```
+
+A says the law is the inverse square and the gauge reads high. B says the
+gauge is true and the law falls more slowly. Both are fitted to the same
+readings; the family with a free exponent *and* a free offset, which holds
+both, is fitted as well, and the offset is profiled in it with the helper
+of the inverse-physics lesson.
+
+```{python}
+#| echo: false
+excerpt(experiment.equivalent_explanations)
+```
+
+```{python}
+#| label: explanations
+#| echo: false
+result.table("explanations")
+```
+
+[Both explanations are consistent with the readings, and their chi-squares
+differ by `{python} result["delta-chi2"]`, less than one; B fits slightly
+better than A, which is the true one. Their laws differ where nothing was
+probed: at twelve metres A's law is within
+`{python} result["a-far-error"]` percent of the truth and B's is
+`{python} result["b-far-error"]` percent off.]{.claim
+type="numerically-verified"
+scope="the synthetic gauge of this section, one seeded set of readings at one mass from two to four metres, the lesson's noise"
+evidence="explanations"} The readings cannot choose between them, and the
+choice decides the law.
+
+B also looks precise. Its exponent, `{python} result["b-exponent"]`, has a
+standard error of `{python} result["b-exponent-error"]` and lies about
+`{python} result["b-exponent-off"]` of those errors from the true two. The
+standard error is the error of the exponent *if B is the explanation*;
+it says nothing about whether B is. The family that holds both shows what
+the data really constrain: in it the exponent and the offset have a
+correlation of `{python} result["correlation"]`, and the profile of the
+offset stays within one of its minimum from
+`{python} result["offset-low"]` to `{python} result["offset-high"]` N. A
+larger offset is paid for with a steeper law, and zero, B's offset, is
+inside the interval as much as A's is.
+
+```{python}
+#| label: fig-equivalent-explanations
+#| echo: false
+#| fig-cap: "The readings and the two explanations fitted to them, drawn beyond the probed distances on both sides, and below, B minus A in units of the noise, with a band of one. Over the probed distances (shaded) the two differ by less than the noise; they part where nothing was read."
+#| fig-alt: "Two stacked panels sharing a logarithmic distance axis, the probed range shaded. The top panel shows readings with error bars falling with distance and two lines through them, dashed for A and dotted for B, which coincide over the shaded range and separate on either side, A levelling off at large distances while B keeps falling. The bottom panel shows the difference B minus A in units of the noise: inside a band of one over the shaded range, and leaving the band on both sides, negative at large distances."
+#| fig-status: simulated
+result.show("fig-equivalent-explanations")
+```
+
+The two curves are one curve where the readings are and two curves where
+they are not. The difference A predicts and B does not is the offset: at
+zero mass, A says the gauge reads the offset and B says it reads nothing.
+Before the table below: one reading at zero mass, with the lesson's noise,
+which explanation can it reject, and by how much does it raise that
+explanation's chi-square?
+
+```{python}
+#| echo: false
+excerpt(experiment.the_null_readings)
+```
+
+```{python}
+#| label: separated
+#| echo: false
+result.table("separated")
+```
+
+[With `{python} result["null-readings"]` readings at zero mass added, B's
+chi-square rises by `{python} result["null-chi2-rise"]` and B is rejected,
+while A stays consistent and measures the offset as
+`{python} result["null-offset"]` ± `{python} result["null-offset-error"]`
+N.]{.claim type="numerically-verified"
+scope="the synthetic gauge of this section, the same seeded readings and two readings at zero mass"
+evidence="separated"} A reading where the explanations disagree is worth
+more than many where they agree: the null reading is the calibration of
+the first section, now seen as the measurement that separates two
+explanations. More readings of the same kind would separate them too, but
+slowly. B's misfit on noise-free readings adds a chi-square of
+`{python} result["misfit"]` to the noise, against a margin of
+`{python} result["margin"]` that the rule allows, so these distances would
+reject B only at a noise below `{python} result["separating-noise"]` N,
+the same reasoning as the noise floor of the symbolic-regression lesson.
+The exercise below asks how many readings that would take.
+
 ### Run the agent yourself
 
 This needs your own key and costs a few cents. The build does not run it, so
@@ -449,6 +556,37 @@ everything.
 :::
 :::
 
+::: {.exercise}
+**More of the same.** At the lesson's noise, the twelve readings on one
+kilogram between two and four metres cannot reject explanation B. How many
+readings over the same distances, on the same kilogram, would it take, and
+how does that compare with the readings at zero mass?
+
+::: {.hint}
+B's misfit grows in proportion to the number of readings; the margin of
+the limit grows as the square root of the degrees of freedom.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.more_of_the_same)
+```
+
+```{python}
+#| echo: false
+result.table("more-of-the-same")
+```
+
+It takes `{python} result["enough-readings"]` readings before B's misfit
+exceeds the margin, against `{python} result["null-readings"]` at zero
+mass. The misfit grows with the number of readings $n$ and the margin as
+$\sqrt{n}$, so their ratio improves only as $\sqrt{n}$: readings where the
+explanations agree carry little information about which is true, however
+many there are. A reading where they disagree carries it at once.
+:::
+:::
+
 ## Replay this experiment {#reproduce-this}
 
 ```{python}
@@ -459,6 +597,8 @@ reproduce_this(
         "src/pbc/discovery/environment.py",
         "src/pbc/discovery/protocol.py",
         "src/pbc/discovery/baselines.py",
+        "src/pbc/data/fit.py",
+        "src/pbc/data/inverse.py",
         "src/pbc/mechanics/experiments/discovery_under_noise.py",
         "src/pbc/experiment.py",
     ],

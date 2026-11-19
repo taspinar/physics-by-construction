@@ -2,7 +2,9 @@
 
 The recovery of known parameters from synthetic data (``pbc.data.inverse``),
 a parameter the data do not determine, a wrong model, and the chirp mass of
-GW150914 with injections into its noise (``pbc.data.gwinjection``). Run it
+GW150914 with injections into its noise (``pbc.data.gwinjection``); and the
+series RLC circuit of ``pbc.electromagnetism.circuits`` identified from its
+step response and from its impedance. Run it
 as a program to write the figures and numbers of the page:
 
     uv run --locked --no-dev python -m pbc.mechanics.experiments.inverse_physics out
@@ -13,6 +15,7 @@ from functools import partial
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
+from matplotlib.ticker import NullFormatter
 
 from pbc.authoring import FIGURE_COLOURS
 from pbc.data import SAMPLES_DIR
@@ -31,7 +34,14 @@ from pbc.data.gwstrain import (
     make_whitener,
     noise_sigma,
 )
-from pbc.data.inverse import profile, recover, residual_autocorrelation, verdict
+from pbc.data.inverse import (
+    Recovery,
+    profile,
+    recover,
+    residual_autocorrelation,
+    verdict,
+)
+from pbc.electromagnetism.circuits import SeriesRLC, step_response
 from pbc.experiment import Experiment, main
 from pbc.figure_language import LINE, figsize, figure_style, finish
 from pbc.mechanics import chirp
@@ -60,6 +70,16 @@ WINDOW = (-0.2, 0.0)
 TRUTH_MC, TRUTH_TC = 35.0, 0.03
 CENTRES = [-12.0, -8.0, 8.0, 12.0]  # seconds from the event: no event there
 # endregion: injection
+# region: rlc
+RLC_NAMES = ("R", "L", "C")
+RLC_TRUTH = (10.0, 10.0, 1.0)  # ohm, mH, µF
+RLC_TOLERANCE = 0.02  # relative: bias and scatter of each recovered parameter
+STEP_SIGMA = 0.01  # V, noise of the capacitor voltage after a step of 1 V
+step_times = np.linspace(0.0, 5e-3, 200)  # s
+IMPEDANCE_SIGMA = 0.5  # ohm, noise of the real and the imaginary part
+sweep = np.geomspace(3e3, 3e4, 40)  # rad/s, around the resonance at 1e4
+low_sweep = np.geomspace(5e2, 3e3, 40)  # rad/s, below it
+# endregion: rlc
 
 
 def recovery(experiment: Experiment):
@@ -391,6 +411,226 @@ def joint_fit():
     )
 
 
+def circuit(R, L, C) -> SeriesRLC:
+    """The series circuit with R in ohm, L in mH, and C in µF."""
+    return SeriesRLC(R, L * 1e-3, C * 1e-6)
+
+
+# region: rlc-models
+def step_by_rates(t, alpha, omega0):
+    """The capacitor voltage (V) after a step of 1 V, underdamped, as a
+    function of the decay rate ``alpha`` (1/s) and the natural frequency
+    ``omega0`` (rad/s): the two numbers the response depends on."""
+    wd = np.sqrt(np.maximum(omega0**2 - alpha**2, 1e-12))
+    return 1.0 - np.exp(-alpha * t) * (np.cos(wd * t) + alpha / wd * np.sin(wd * t))
+
+
+def step_by_elements(t, R, L, C):
+    """The same response with the three element values as parameters:
+    alpha = R / (2 L) and omega0 = 1 / sqrt(L C)."""
+    return step_response(circuit(R, L, C), 1.0, t)
+
+
+def impedance_parts(x, R, L, C):
+    """The real parts and then the imaginary parts (ohm) of the impedance
+    Z = R + j (omega L - 1 / (omega C)) at the angular frequencies of the
+    first half of ``x`` (rad/s; the second half repeats them)."""
+    z = circuit(R, L, C).impedance(x[: len(x) // 2])
+    return np.concatenate([z.real, z.imag])
+
+
+# endregion: rlc-models
+
+
+def _recovery_rows(domain: str, report: Recovery) -> list[tuple]:
+    return [
+        (
+            domain,
+            name,
+            truth,
+            mean,
+            rms / truth * 100,
+            stated / truth * 100,
+            100 * cover,
+        )
+        for name, truth, mean, rms, stated, cover in zip(
+            report.names,
+            report.truth,
+            report.mean,
+            report.rms_error,
+            report.mean_stderr,
+            report.coverage,
+            strict=True,
+        )
+    ]
+
+
+def rlc_in_two_domains(experiment: Experiment) -> tuple[Recovery, Recovery]:
+    """The recovery of the step response by its rates and of the impedance
+    by its elements, each from 200 noisy copies; record one table."""
+    truth = circuit(*RLC_TRUTH)
+    in_time = recover(
+        step_by_rates,
+        step_times,
+        (truth.damping_rate, truth.natural_frequency),
+        sigma=STEP_SIGMA,
+        trials=200,
+        seed=12,
+        names=("alpha", "omega0"),
+    )
+    in_frequency = recover(
+        impedance_parts,
+        np.concatenate([sweep, sweep]),
+        RLC_TRUTH,
+        sigma=IMPEDANCE_SIGMA,
+        trials=200,
+        seed=13,
+        names=RLC_NAMES,
+        bounds=(1e-6, np.inf),
+    )
+    experiment.table(
+        "rlc-recovery",
+        _recovery_rows("step response", in_time)
+        + _recovery_rows("impedance", in_frequency),
+        columns=[
+            ("measurement", "", "s"),
+            ("parameter", "", "s"),
+            ("truth", "", "g"),
+            ("mean estimate", "", ".5g"),
+            ("scatter of the estimates", "%", ".3f"),
+            ("stated standard error", "%", ".3f"),
+            ("interval holds the truth", "%", ".0f"),
+        ],
+        caption="Recovery of the series circuit from 200 noisy copies of each"
+        " measurement: the step response by its decay rate (1/s) and natural"
+        " frequency (rad/s), the impedance by R (ohm), L (mH), and C (µF). The"
+        " scatter and the stated error are relative to the truth.",
+    )
+    return in_time, in_frequency
+
+
+def step_with_elements():
+    """One noisy step response fitted with R, L, and C as parameters."""
+    rng = np.random.default_rng(14)
+    y = step_by_elements(step_times, *RLC_TRUTH)
+    y = y + STEP_SIGMA * rng.normal(size=step_times.size)
+    return fit_curve(
+        step_by_elements,
+        step_times,
+        y,
+        [12.0, 8.0, 1.2],
+        sigma=STEP_SIGMA,
+        names=RLC_NAMES,
+        bounds=(1e-6, np.inf),
+    )
+
+
+def impedance_fit(frequencies: np.ndarray, seed: int = 15):
+    """One noisy impedance sweep at ``frequencies`` (rad/s), fitted with R,
+    L, and C; return the fit and the noisy parts."""
+    x = np.concatenate([frequencies, frequencies])
+    rng = np.random.default_rng(seed)
+    y = impedance_parts(x, *RLC_TRUTH) + IMPEDANCE_SIGMA * rng.normal(size=x.size)
+    fit = fit_curve(
+        impedance_parts,
+        x,
+        y,
+        [12.0, 8.0, 1.2],
+        sigma=IMPEDANCE_SIGMA,
+        names=RLC_NAMES,
+        bounds=(1e-6, np.inf),
+    )
+    return fit, y
+
+
+def rlc_sensitivity(experiment: Experiment, fit) -> None:
+    """The correlations of the fitted R, L, and C: how a change of one is
+    absorbed by the others."""
+    experiment.table(
+        "rlc-correlation",
+        [(n, *fit.correlation[k]) for k, n in enumerate(fit.names)],
+        columns=[("", "", "s"), *((n, "", "+.2f") for n in fit.names)],
+        caption="Correlations of the estimates of R, L, and C from one impedance"
+        " sweep around the resonance, to two decimals.",
+    )
+
+
+def below_resonance(experiment: Experiment) -> None:
+    """Exercise: the sweep only below the resonance; record the relative
+    standard errors of both sweeps."""
+    around, _ = impedance_fit(sweep)
+    below, _ = impedance_fit(low_sweep)
+    experiment.table(
+        "below-resonance",
+        [
+            (n, 100 * a / v, 100 * b / w)
+            for n, a, v, b, w in zip(
+                RLC_NAMES,
+                around.stderr,
+                around.params,
+                below.stderr,
+                below.params,
+                strict=True,
+            )
+        ],
+        columns=[
+            ("parameter", "", "s"),
+            ("relative error, around the resonance", "%", ".3f"),
+            ("relative error, below it", "%", ".3f"),
+        ],
+        caption="Stated standard errors of one fit of each sweep, relative to the"
+        " estimate, to three decimals.",
+    )
+
+
+def draw_impedance(fit, y) -> Figure:
+    """The noisy real and imaginary parts of the impedance with the fitted
+    model, and the residuals of both in units of the noise."""
+    n = sweep.size
+    dense = np.geomspace(sweep[0], sweep[-1], 300)
+    model = impedance_parts(np.concatenate([dense, dense]), *fit.params)
+    residuals = fit.residuals / IMPEDANCE_SIGMA
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(
+            2, 1, sharex=True, figsize=figsize("pair", legend=4)
+        )
+        for k, (part, marker) in enumerate(
+            (("real part", "o"), ("imaginary part", "s"))
+        ):
+            top.plot(
+                sweep,
+                y[k * n : (k + 1) * n],
+                linestyle="none",
+                marker=marker,
+                markerfacecolor="none",
+                color=FIGURE_COLOURS[k],
+                label=f"{part}, noisy",
+            )
+            top.plot(
+                dense,
+                model[k * 300 : (k + 1) * 300],
+                color=FIGURE_COLOURS[k],
+                linestyle="-" if k == 0 else "--",
+                label=f"{part}, fitted model",
+            )
+            bottom.plot(
+                sweep,
+                residuals[k * n : (k + 1) * n],
+                linestyle="none",
+                marker=marker,
+                markerfacecolor="none",
+                color=FIGURE_COLOURS[k],
+            )
+        top.set_xscale("log")
+        bottom.xaxis.set_minor_formatter(NullFormatter())
+        top.set_ylabel("impedance (ohm)")
+        bottom.axhspan(-2.0, 2.0, color=FIGURE_COLOURS[4], alpha=0.15)
+        bottom.set_ylabel("residual\n(units of the noise)")
+        bottom.set_xlabel("angular frequency (rad/s)")
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
+
+
 def run() -> Experiment:
     """Everything the lesson's page shows."""
     experiment = Experiment()
@@ -453,6 +693,39 @@ def run() -> Experiment:
     experiment.number("gw-published", gw_published, ".0f")
     degenerate_masses(experiment, gw_fit)
     experiment.number("gw-singular-ratio", gw_fit.fit.singular_ratio, ".1e")
+
+    in_time, in_frequency = rlc_in_two_domains(experiment)
+    experiment.number("rlc-tolerance", 100 * RLC_TOLERANCE, "g")
+    experiment.number(
+        "rlc-time-recovered",
+        "recovered" if in_time.recovered(RLC_TOLERANCE) else "not recovered",
+    )
+    experiment.number(
+        "rlc-frequency-recovered",
+        "recovered" if in_frequency.recovered(RLC_TOLERANCE) else "not recovered",
+    )
+    elements = step_with_elements()
+    experiment.number(
+        "step-identified",
+        ", ".join(
+            n for n, ok in zip(RLC_NAMES, elements.identifiable, strict=True) if ok
+        )
+        or "none",
+    )
+    experiment.number("step-warning", "; ".join(elements.warnings))
+    experiment.number("step-singular-ratio", elements.singular_ratio, ".0e")
+    sweep_fit, sweep_parts = impedance_fit(sweep)
+    experiment.number("sweep-chi2", sweep_fit.reduced_chi2, ".2f")
+    experiment.number(
+        "sweep-autocorrelation",
+        residual_autocorrelation(sweep_fit.residuals[: sweep.size])[0],
+        ".2f",
+    )
+    rlc_sensitivity(experiment, sweep_fit)
+    experiment.figure(
+        "fig-rlc-impedance", partial(draw_impedance, sweep_fit, sweep_parts)
+    )
+    below_resonance(experiment)
 
     short_record(experiment)
     with experiment.capture("joint-fit"):

@@ -5,7 +5,8 @@ its mass, and its amplitude, and an exhaustive search over power laws of
 the four (``pbc.discovery.symbolic``): the recovery of the small-angle law
 from clean data, its test on held-out pendulums, a variable the data do not
 vary, a law outside the grammar, and the noise at which the search stops
-finding the law. Run it as a program to write the figures and numbers of
+finding the law; and three grammars of different operators compared on the
+same periods. Run it as a program to write the figures and numbers of
 the page:
 
     uv run --locked --no-dev python -m pbc.mechanics.experiments.symbolic_regression out
@@ -19,7 +20,13 @@ import numpy as np
 from matplotlib.figure import Figure
 
 from pbc.authoring import FIGURE_COLOURS
-from pbc.discovery.symbolic import PowerLaw, Search, noise_floor, power_law_search
+from pbc.discovery.symbolic import (
+    HALF_STEPS,
+    PowerLaw,
+    Search,
+    noise_floor,
+    power_law_search,
+)
 from pbc.experiment import Experiment, main
 from pbc.figure_language import TEXT, figsize, figure_style, finish
 from pbc.mechanics.dynamics import State, newton, simulate
@@ -52,6 +59,14 @@ HELD_OUT = (  # length (m), gravity (m/s²), amplitude (rad)
 NOISE_LEVELS = (0.001, 0.01, 0.03, 0.1, 0.2, 0.3, 0.5)  # relative
 SEEDS = 20
 # endregion: noise
+# region: grammars
+GRAMMARS = {  # the operators of each grammar, and its exponents
+    "whole powers": tuple(float(k) for k in range(-2, 3)),  # times, divided by
+    "half powers": HALF_STEPS,  # and the square root
+    "quarter powers": tuple(k / 4 for k in range(-8, 9)),  # and the fourth root
+}
+GRAMMAR_NOISE = (0.01, 0.03, 0.1, 0.2, 0.3)  # relative
+# endregion: grammars
 EARTH = 9.80665  # m/s²
 WIDE_AMPLITUDES = (0.02, 1.2)  # rad
 
@@ -281,8 +296,82 @@ def noise_sweep(
 def simplest_rival(search: Search) -> PowerLaw:
     """Of the forms simpler than the chosen one, the one the least noise
     makes consistent."""
-    simpler = [f for f in search.forms if f.complexity < search.chosen.complexity]
+    chosen = search.chosen.complexity
+    simpler = [f for f in search.forms if f.complexity < chosen]
     return min(simpler, key=lambda f: noise_floor(search, f))
+
+
+def grammars(
+    experiment: Experiment, variables: dict, periods: np.ndarray
+) -> dict[str, list[int]]:
+    """Each grammar of ``GRAMMARS`` on the clean periods and on the same
+    noisy copies; record what each finds, and return how often each chooses
+    the form of the law at each noise of ``GRAMMAR_NOISE``."""
+    rows, chosen = [], {}
+    for name, exponents in GRAMMARS.items():
+        clean = power_law_search(variables, periods, RESOLUTION, exponents)
+        rival = simplest_rival(clean) if clean.chosen is not None else None
+        key = name.split()[0]
+        if rival is None:
+            experiment.number(f"{key}-best", clean.forms[0].shape)
+            experiment.number(f"{key}-reason", clean.reason)
+        else:
+            experiment.number(f"{key}-floor", 100 * noise_floor(clean, rival), ".0f")
+        if key == "quarter":
+            experiment.number("quarter-forms", len(clean.forms))
+            experiment.number("quarter-rival", rival.shape)
+        chosen[name] = [
+            sum(
+                right_form(
+                    power_law_search(
+                        variables, noisy_periods(periods, noise, seed), noise, exponents
+                    )
+                )
+                for seed in range(SEEDS)
+            )
+            for noise in GRAMMAR_NOISE
+        ]
+        rows.append(
+            (
+                name,
+                len(clean.forms),
+                len(clean.consistent()),
+                clean.chosen.shape if clean.chosen else "none",
+                rival.shape if rival else "",
+                100 * noise_floor(clean, rival) if rival else None,
+            )
+        )
+    experiment.table(
+        "grammars",
+        rows,
+        columns=[
+            ("grammar", "", "s"),
+            ("forms", "", "d"),
+            ("consistent on the clean periods", "", "d"),
+            ("chosen", "", "s"),
+            ("nearest simpler form", "", "s"),
+            ("predicted noise at which it passes", "%", ".0f"),
+        ],
+        caption="Three grammars on the same clean periods: how many forms each"
+        " holds, how many are consistent, the form chosen, and the simpler form"
+        " that the least noise makes consistent, with that noise as the"
+        " helper noise_floor predicts it, to whole percent.",
+    )
+    experiment.table(
+        "grammar-noise",
+        [
+            (100 * noise, *(chosen[name][k] for name in GRAMMARS))
+            for k, noise in enumerate(GRAMMAR_NOISE)
+        ],
+        columns=[
+            ("noise", "%", "g"),
+            *((f"{name}: law chosen (of {SEEDS})", "", "d") for name in GRAMMARS),
+        ],
+        caption=f"How often each grammar chooses the form of the small-angle law"
+        f" on the same {SEEDS} noisy copies of the periods at each noise, the"
+        " noise known to the search.",
+    )
+    return chosen
 
 
 def draw_pareto(search: Search) -> Figure:
@@ -367,6 +456,29 @@ def draw_noise_sweep(
         ax.set_ylim(-0.05, 1.05)
         # Three long names over the curves: under the plot.
         fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
+
+
+def draw_grammars(chosen: dict[str, list[int]]) -> Figure:
+    """How often each grammar chooses the form of the law, against the
+    noise."""
+    styles = (("s", ":"), ("o", "-"), ("^", "--"))
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=3))
+        for k, (name, counts) in enumerate(chosen.items()):
+            marker, line = styles[k]
+            ax.semilogx(
+                [100 * n for n in GRAMMAR_NOISE],
+                [c / SEEDS for c in counts],
+                color=FIGURE_COLOURS[k],
+                marker=marker,
+                linestyle=line,
+                label=name,
+            )
+        ax.set_xlabel("relative noise of the period (%)")
+        ax.set_ylabel(f"law chosen, fraction\nof {SEEDS} noisy copies")
+        ax.set_ylim(-0.05, 1.05)
+        fig.legend(loc="outside lower center", ncols=3)
     return finish(fig)
 
 
@@ -469,6 +581,9 @@ def run() -> Experiment:
     experiment.number("rival", rival.shape)
     experiment.number("floor", 100 * floor, ".0f")
     experiment.figure("fig-noise-sweep", partial(draw_noise_sweep, outcomes, floor))
+
+    chosen_by_grammar = grammars(experiment, variables, periods)
+    experiment.figure("fig-grammars", partial(draw_grammars, chosen_by_grammar))
 
     more_samples(experiment)
     return experiment

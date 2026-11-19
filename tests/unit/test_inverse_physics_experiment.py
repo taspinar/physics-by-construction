@@ -68,3 +68,63 @@ def test_the_figures_state_their_status_once_at_the_caption():
         finally:
             plt.close(figure)
     assert experiment.provenance == {}
+
+
+def test_the_circuit_is_recovered_in_time_and_in_frequency(results):
+    _, found = results
+    numbers = found["numbers"]
+    rows = found["tables"]["rlc-recovery"]["rows"]
+    tolerance = float(numbers["rlc-tolerance"])
+
+    assert [(r[0], r[1]) for r in rows] == [
+        ("step response", "alpha"),
+        ("step response", "omega0"),
+        ("impedance", "R"),
+        ("impedance", "L"),
+        ("impedance", "C"),
+    ]
+    for _domain, name, truth, mean, scatter, stated, coverage in rows:
+        # Bias and scatter within the tolerance, stated errors the size of the
+        # scatter, intervals that hold the truth.
+        assert abs(float(mean) / float(truth) - 1) * 100 < tolerance, name
+        assert float(scatter) < tolerance, name
+        assert float(stated) == pytest.approx(float(scatter), rel=0.3), name
+        assert float(coverage) >= 85, name
+    assert numbers["rlc-time-recovered"] == "recovered"
+    assert numbers["rlc-frequency-recovered"] == "recovered"
+
+
+def test_the_step_response_does_not_identify_the_three_elements(results):
+    _, found = results
+    numbers = found["numbers"]
+
+    assert numbers["step-identified"] == "none"
+    assert "do not determine R, L, C separately" in numbers["step-warning"]
+    assert float(numbers["step-singular-ratio"]) < 1e-4
+
+
+def test_the_impedance_fit_leaves_no_structure_and_ties_only_l_and_c(results):
+    _, found = results
+    numbers = found["numbers"]
+
+    assert 0.7 < float(numbers["sweep-chi2"]) < 1.3
+    # Independent noise: within three standard deviations of zero (80 samples).
+    assert abs(float(numbers["sweep-autocorrelation"])) < 3 / 80**0.5
+    rows = {
+        r[0]: [float(v) for v in r[1:]]
+        for r in found["tables"]["rlc-correlation"]["rows"]
+    }
+    assert rows["R"][1] == rows["R"][2] == 0.0
+    assert rows["L"][2] < -0.2
+
+
+def test_below_the_resonance_l_loses_and_c_gains_precision(results):
+    _, found = results
+    rows = {
+        r[0]: (float(r[1]), float(r[2]))
+        for r in found["tables"]["below-resonance"]["rows"]
+    }
+
+    assert 7 < rows["L"][1] / rows["L"][0] < 14
+    assert rows["C"][1] < rows["C"][0]
+    assert rows["R"][1] == pytest.approx(rows["R"][0], rel=0.01)
