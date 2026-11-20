@@ -84,11 +84,11 @@ class SimulatedRLCBench:
             amplitude, omega = self._amplitude, 2.0 * np.pi * self._frequency
             settle = self.settle_decays / self.circuit.damping_rate
             times = np.concatenate([[0.0], settle + record])
-            charge, _ = simulate(
+            charge, current = simulate(
                 self.circuit, lambda t: amplitude * np.cos(omega * t), times
             )
             source = amplitude * np.cos(omega * times[1:])
-            response = charge[1:] / self.circuit.capacitance
+            response = self._probe(charge[1:], current[1:])
         return Capture(
             sample_rate_hz=sample_rate_hz,
             t=record,
@@ -98,3 +98,20 @@ class SimulatedRLCBench:
             },
             units=UNITS,
         )
+
+    def _probe(self, charge: np.ndarray, current: np.ndarray) -> np.ndarray:
+        """The voltage the response probe reads (V): across the capacitor."""
+        return charge / self.circuit.capacitance
+
+
+class ResistorProbeBench(SimulatedRLCBench):
+    """The same bench with the response probe moved from the capacitor to
+    the resistor: channel ``response`` reads R i (F142, the still-image
+    exercise of "Measurement quality and multimodal observations")."""
+
+    def identity(self) -> Mapping[str, str]:
+        return {**super().identity(), "probe": "response across the resistor"}
+
+    def _probe(self, charge: np.ndarray, current: np.ndarray) -> np.ndarray:
+        """The voltage the response probe reads (V): across the resistor."""
+        return self.circuit.resistance * current
