@@ -1,0 +1,362 @@
+---
+title: "Robustness and statistical uncertainty"
+description: >-
+  Ten recorded trials of one discovery task, repeated, with noisier
+  readings, and with an instrument that fails, each replayed and scored by
+  the evaluator; the rate of recovery with its exact interval beside two
+  baselines over twenty seeds, and the costs each recording reported.
+lesson:
+  id: robustness-and-statistical-uncertainty
+  strand: agents-llm
+  order: 23
+  difficulty: 3
+  course: mechanics
+  slot: AE5
+  experiment: pbc.mechanics.experiments.robustness_and_statistical_uncertainty
+  methods: [simulation, llm-agents]
+  outcomes:
+    - Repeat an agent's task in fresh sessions and report every trial, failures included
+    - Give a success rate from a few trials with its exact interval, and say what it cannot rule out
+    - Perturb the observations and the tools without telling the agent, and measure what changes
+    - Quote costs and call counts from the runs that produced the fixtures, never from the build
+  related: []
+  format: 2
+  preview: fig-success-intervals
+  prerequisites:
+    lessons: [independent-scoring-and-sealed-evaluation, prior-knowledge-in-discovery]
+    outside:
+      - "Statistics: the binomial distribution and an interval for a proportion"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
+from pbc.evidence import robustness
+from pbc.mechanics.experiments import robustness_and_statistical_uncertainty as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+In the lesson on prior knowledge, an agent told the name of the parameter
+but not the form of the law measured a spring and claimed an angular
+frequency of `{python} result["d2-claim"]` rad/s. Its held-out error was
+`{python} result["d2-error"]`, outside the tolerance: it failed. Every
+lesson since has carried that one run. Was the failure the model, or that
+run? And would the agent still succeed if its readings were noisier, or if
+its instrument sometimes did not answer?
+
+One run cannot say. This lesson runs the same task again,
+`{python} result["trials"]` times, in fresh sessions, and changes the
+conditions without telling the agent. Every trial is a recorded run of a
+language model (Claude Opus, recorded in a Claude Code session on the date
+the replay below shows), replayed by the build, which executes each tool call again and
+scores the claim itself. The rates and their intervals are computed from
+those scores. The costs are the counts each recording session reported,
+quoted, never measured by the build.
+
+## Assumptions
+
+1. **One task, one prompt.** Every trial is the spring of the lesson on
+   prior knowledge, told the name of the parameter: the same system prompt,
+   task, tools, budget of `{python} result["budget"]` probes, and tolerance
+   of `{python} result["tolerance"]`. Only the variant and the noise seed
+   change.
+2. **Trials are independent.** Each is a fresh session of the model, with
+   no memory of the others, so a count of recoveries is a draw from a
+   binomial distribution with an unknown rate.
+3. **The agent is not told.** A variant changes the system or the tool, not
+   the prompt; whatever the agent learns of it, it learns from the results
+   of its calls.
+4. **The baselines are the evaluator's.** Least squares on a grid and on
+   random settings run over twenty noise seeds of each variant, as in the
+   lesson on fair baselines. On the failing instrument they are not run
+   through it: they are the published variant's baselines by construction.
+
+## Rates from few trials {#explanation}
+
+A trial either recovers the law or does not. With $k$ recoveries in $n$
+trials, $k/n$ estimates the rate $p$, and the question is how far $p$ could
+be from it. The exact (Clopper–Pearson) interval at a confidence of
+`{python} result["level"]` keeps every rate
+under which a count as extreme as $k$ is not too unlikely: its lower end is
+the $p$ at which $P(K \ge k) = \alpha/2$, its upper end the $p$ at which
+$P(K \le k) = \alpha/2$, for $K$ binomial with $n$ and $p$ and $\alpha$
+one minus the confidence. Two cases carry
+the lesson:
+
+- **One failure in one trial.** The interval runs from zero to
+  `{python} result["one-failure-high"]`. The published run rules out almost
+  nothing about the rate.
+- **All $n$ trials succeed.** The lower end solves $p^n = \alpha/2$, so
+  $p_{\text{low}} = (\alpha/2)^{1/n}$: `{python} result["low-4"]` for four
+  trials, `{python} result["low-20"]` for twenty. A
+  clean record of a few trials is compatible with a rate well below one
+  half.
+
+The three variants of the task:
+
+- **Repeated:** the spring as published, at other noise seeds.
+- **Noisier readings:** the noise of every reading five times larger. The
+  prompt still says only that the readings have noise.
+- **Failing instrument:** every third `measure` call the harness accepts
+  returns an error, "the instrument did not respond", and uses no probe.
+
+## Code
+
+The perturbations are small pieces of code, kept apart from the system and
+the tools they perturb. The failing instrument wraps the measure tool of
+the published task:
+
+```{python}
+#| echo: false
+excerpt(robustness.failing_instrument)
+```
+
+The noisier readings are the same spring with a larger noise:
+
+```{python}
+#| echo: false
+excerpt(robustness.NoisierOscillator)
+```
+
+The interval of a rate:
+
+```{python}
+#| echo: false
+excerpt(robustness.success_interval)
+```
+
+## Worked examples
+
+### Every trial
+
+Before reading the table: the published run in this condition failed. Of
+four more trials on the same task, how many do you expect to recover?
+
+```{python}
+#| label: ae5-trials
+#| echo: false
+result.table("ae5-trials")
+```
+
+[All `{python} result["repeated-trials"]` repeated trials recovered the
+law; `{python} result["noisier-recovered"]` of
+`{python} result["noisier-trials"]` with noisier readings and
+`{python} result["failing-recovered"]` of
+`{python} result["failing-trials"]` with the failing instrument did; in
+all, `{python} result["recovered"]` of `{python} result["trials"]`.]{.claim
+type="numerically-verified" scope="ten recorded trials of one model on the
+spring, told the name of the parameter" evidence="ae5-trials"} The
+recording sessions reported between `{python} result["messages-low"]` and
+`{python} result["messages-high"]` model messages and between
+`{python} result["calls-low"]` and `{python} result["calls-high"]` tool
+calls per trial; the sessions reported no tokens and no price. Those are
+the costs of these runs as recorded, not a measurement the build makes.
+Refused calls are the harness's limit of four calls per message, which
+the prompt does not state.
+
+One trial of the failing instrument, as recorded; the calls the
+instrument failed are in the tool results:
+
+```{python}
+#| echo: false
+result.display("failing-run")
+```
+
+### What a trial's outcome turns on
+
+```{python}
+#| label: ae5-claims
+#| echo: false
+result.table("ae5-claims")
+```
+
+[The ten trials made `{python} result["claims-distinct"]` distinct claims,
+from `{python} result["claim-low"]` to `{python} result["claim-high"]`
+rad/s; every trial that failed claimed `{python} result["claims-failing"]`,
+and every other claim is within the tolerance.]{.claim
+type="numerically-verified" scope="ten recorded trials of one model on the
+spring" evidence="ae5-claims ae5-trials"} The held-out settings lie far
+later than the probed times, so a hundredth of a radian per second in the
+claim moves the predicted phase by more than the tolerance allows. Whether
+a trial passed is decided by the last digit the agent chose to report, not
+by how well its readings determined the law: the claims differ by
+hundredths of a radian per second at most. A benchmark that wants to measure discovery rather
+than rounding would ask for more digits, or score the error in $\omega$
+directly; this one inherits the protocol of the lesson on prior knowledge and says
+so.
+
+### Rates and their intervals
+
+```{python}
+#| label: ae5-rates
+#| echo: false
+result.table("ae5-rates")
+```
+
+[Four of four repeated trials give a rate whose exact interval reaches
+down to `{python} result["repeated-low"]`; with noisier readings the
+grid baseline recovers in `{python} result["noisier-grid"]` and the
+random baseline in `{python} result["noisier-random"]` of
+`{python} result["baseline-seeds"]` seeds, and every interval of the
+agent's three trials per perturbed variant overlaps the baselines'
+interval.]{.claim type="numerically-verified" scope="the recorded trials,
+and the baselines over twenty noise seeds of each variant"
+evidence="ae5-rates"} No comparison of the agent with a baseline, or of one
+variant with another, is settled by these trials. The baselines are not
+run on the failing instrument. A baseline that retries every failed call
+reads there what it reads on the published spring, so its failing-instrument
+rows are the published baseline's by construction, and the price,
+`{python} result["calls-for-budget"]` calls for twenty readings, is
+computed from the instrument's rule, not counted from a run. Those rows
+say nothing about how an agent copes with failures, only that failures
+cost calls.
+
+```{python}
+#| echo: false
+source_link(experiment.draw_success_intervals, figure=True)
+```
+
+```{python}
+#| label: fig-success-intervals
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "The share of runs that recovered the law in each variant, with its exact interval: the agent's few recorded trials leave wide intervals that overlap the baselines' in every variant. The baselines of the failing instrument are those of the published readings by construction."
+#| fig-alt: "Three groups along the horizontal axis, published readings, five times the noise, and failing instrument. In each, three points with vertical interval bars: open circles for the agent, filled squares and triangles for the two baselines. The agent's bars are long, spanning most of the axis in the perturbed variants; the baselines' bars are short, near the top for the published readings and the failing instrument and in the lower middle for the noisier readings."
+result.show("fig-success-intervals")
+```
+
+The figure shows proportions with exact intervals, the baselines over
+twenty seeds and the agent over its three or four trials; nothing on it is
+measured live.
+
+```{python}
+#| echo: false
+source_link(experiment.draw_trial_spread, figure=True)
+```
+
+```{python}
+#| label: fig-trial-spread
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "The held-out error of every recorded trial and of the two baselines over twenty noise seeds, by variant. The agent's trials take only a few values, set by the claims they rounded to; five times the noise spreads the baselines across the tolerance. The baselines of the failing instrument are those of the published readings by construction: a baseline that retries every failed call reads the same values."
+#| fig-alt: "A strip plot with a logarithmic vertical axis of the relative held-out error, a dashed horizontal line for the tolerance, and three groups: published readings, five times the noise, and failing instrument. In each group, dashes and crosses for twenty runs of each baseline and open circles for the agent's trials. In the middle group the baselines' points spread above and below the line; in the other two they lie below it. The open circles sit at a few repeated heights."
+result.show("fig-trial-spread")
+```
+
+## Limits {#limits}
+
+- **Few trials.** Three or four trials per variant bound a rate only
+  loosely; the intervals say how loosely. Ranking variants or contestants
+  needs many more.
+- **One model, one task.** Every trial is the same model on the spring.
+  Another task, prompt, or model may vary differently.
+- **Rounding decides.** The tolerance and the far held-out times make the
+  outcome turn on the reported digits, as the claims table shows.
+- **Costs as reported.** A Claude Code session reports messages and calls,
+  not tokens or price; the build neither measures nor estimates them.
+- **The noise is fixed per setting.** In these simulated systems a reading
+  at one setting and seed is the same every time it is taken, so repeating
+  a probe adds nothing; several trials noticed it. A real instrument's
+  repeated readings would differ.
+- **Recorded through a harness the trials could see.** The trials ran
+  their messages through a harness command in a Claude Code session and
+  were told to run nothing else; their sessions, checked afterwards, ran
+  only that command. They could have read the repository, where the hidden
+  world is.
+
+::: {.exercise .self-check}
+The agent recovered the law in four of four repeated trials and in one of
+three with noisier readings. Which statement does this lesson support?
+
+::: {.choices}
+::: {.choice}
+Noisier readings lower the agent's rate of recovery.
+
+::: {.feedback}
+The intervals of four and three trials overlap widely; the difference
+could be chance. The claims table also shows the failures share one
+rounded claim.
+:::
+:::
+
+::: {.choice correct="true"}
+These trials are compatible with a rate of recovery anywhere from
+`{python} result["repeated-low"]` to 1 on the published spring, and say little about the noisier
+variant; the outcome of a trial is set by the digits it reported.
+
+::: {.feedback}
+Right. The intervals and the claims table together say what the ten
+trials can and cannot show.
+:::
+:::
+
+::: {.choice}
+The published run's failure was bad luck, since the four repeated trials
+all succeeded.
+
+::: {.feedback}
+The published run was of another model and claimed `{python} result["d2-claim"]`,
+which these trials never did. The trials do not explain that run; they show how little one run says.
+:::
+:::
+:::
+
+::: {.solution}
+Only the second statement follows from the intervals and the table of
+claims.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+How many trials, all of them successful, would put the lower end of the
+exact interval above [0.9]{.given}?
+
+::: {.solution}
+With all $n$ successful the lower end is $0.025^{1/n}$. It exceeds
+[0.9]{.given} when
+$n \ln 0.9 < \ln 0.025$, that is when $n$ exceeds
+`{python} result["n-bound"]`:
+`{python} result["n-needed"]` trials. Each costs a
+recorded session, which is why rates of agents are expensive to establish.
+:::
+:::
+
+::: {.exercise}
+Change the scoring so that rounding cannot decide the outcome: what would
+you score instead of the held-out error of the submitted claim, and what
+would you lose?
+
+::: {.solution}
+Score the claim's error in $\omega$ relative to its own uncertainty (ask
+the agent for an uncertainty, or fit it from the run's readings), or ask
+for more digits. Either separates finding the law from reporting it, but
+the held-out error measures what a user of the claim experiences; a claim
+correct to its stated uncertainty can still predict badly far away.
+:::
+:::
+
+## Replay this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/evidence/robustness.py",
+        "src/pbc/evidence/records.py",
+        "src/pbc/discovery/force_lab.py",
+        "src/pbc/discovery/baselines.py",
+        "src/pbc/discovery/protocol.py",
+        "src/pbc/discovery/environment.py",
+        "src/pbc/mechanics/experiments/robustness_and_statistical_uncertainty.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_evidence_robustness.py",
+        "tests/unit/test_robustness_and_statistical_uncertainty_experiment.py",
+    ],
+)
+```
