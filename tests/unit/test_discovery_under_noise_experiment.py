@@ -2,10 +2,13 @@
 
 from pathlib import Path
 
+import numpy as np
 import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
 
+import pbc.mechanics.experiments.discovery_under_noise as m
 from pbc.discovery.noise_lab import BASELINES
+from pbc.experiment import Experiment
 
 MODULE = "pbc.mechanics.experiments.discovery_under_noise"
 PAGE = "agents-llm/18-discovery-under-noise"
@@ -111,6 +114,28 @@ def test_the_offset_is_correlated_and_its_interval_holds_both_explanations(resul
     a_offset = float(_rows(found, "explanations")[A][0].split("offset ")[1].split()[0])
     # Zero, B's offset, and A's fitted offset are both inside the interval.
     assert low < 0.0 < a_offset < high
+
+
+def test_the_curves_part_outside_the_probed_range_as_the_figure_shows():
+    """What fig-equivalent-explanations' alt text describes, on the curves
+    the figure draws."""
+    found = m.equivalent_explanations(Experiment())
+    a, b = found["a"], found["b"]
+    distances = np.geomspace(1.5, 16.0, 200)
+    law_a = m.offset_gauge(distances, m.MASS, *a.params)
+    law_b = m.shallower_law(distances, m.MASS, *b.params)
+    difference = (law_b - law_a) / m.SIGMA
+    probed = (distances >= m.DISTANCES[0]) & (distances <= m.DISTANCES[-1])
+
+    # Inside the band of one over the probed range, outside it on both sides,
+    # negative at large distances.
+    assert np.all(np.abs(difference[probed]) < 1.0)
+    assert abs(difference[0]) > 1.0 and difference[-1] < -1.0
+    # A levels off towards its offset, which dominates it at the far end;
+    # B keeps falling, below A.
+    offset = a.value("offset")
+    assert offset < law_a[-1] < 2 * offset
+    assert np.all(np.diff(law_b) < 0) and law_b[-1] < law_a[-1]
 
 
 def test_readings_at_zero_mass_reject_b_and_keep_a(results):

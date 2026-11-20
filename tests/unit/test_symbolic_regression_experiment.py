@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
 
+from pbc.mechanics.experiments.symbolic_regression import SEEDS
+
 MODULE = "pbc.mechanics.experiments.symbolic_regression"
 PAGE = "agents-llm/08-symbolic-regression"
 
@@ -113,6 +115,12 @@ def test_the_richer_grammar_loses_the_law_at_a_lower_noise_as_predicted(results)
     lost_half = next(n for n, h in zip(noise, half, strict=True) if h < 10)
     lost_quarter = next(n for n, q in zip(noise, quarter, strict=True) if q < 10)
     assert lost_quarter < lost_half
+    # What fig-grammars' alt text describes: each grammar chooses the law on
+    # every copy below the noise where it loses it, and the quarter grammar
+    # loses it one noise level before the half one.
+    assert noise.index(lost_half) - noise.index(lost_quarter) == 1
+    for counts, lost in ((half, lost_half), (quarter, lost_quarter)):
+        assert set(counts[: noise.index(lost)]) == {SEEDS}
     # The noisy searches lose it to the nearest simpler form the clean search
     # predicts, a form with a fourth root, at about its predicted noise,
     # which is lower than the half grammar's.
