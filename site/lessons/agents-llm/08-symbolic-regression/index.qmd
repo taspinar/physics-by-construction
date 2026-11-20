@@ -19,6 +19,7 @@ lesson:
     - Test a recovered formula on held-out cases and state the range in which it holds
     - Recognise when several formulas describe the same observations, and name the measurement or the prior knowledge that separates them
     - Predict the noise at which a search loses a term of the law, and check the prediction over seeded repetitions
+    - Compare grammars of different operators on the same data, and say what each can find and why
   related: []
   format: 2
   preview: fig-pareto
@@ -333,6 +334,91 @@ when its effect over the probed range is larger than what the noise hides;
 below that, a simpler formula describes the data as well, and choosing it is
 the honest reading. Wider ranges or more pendulums move the level, as the
 second exercise shows.
+
+### Operator choices: three grammars on the same periods {#operator-choices}
+
+Everything so far was found inside one grammar, and the second assumption
+chose it: products of powers with half steps. The operators of a grammar
+are a choice of the person who runs the search, made before the data are
+read. Whole powers allow multiplying and dividing the variables; half
+powers add the square root; quarter powers add the fourth root. Would a
+search with fewer operators, or with more, have found the same law in the
+same periods?
+
+```{python}
+#| echo: false
+excerpt(experiment, region="grammars")
+```
+
+The complexity of a form is counted in the steps of its own grammar, so
+that a fourth root costs one step in the quarter grammar as a square root
+costs one in the half grammar. The rule is `grammar_step`, and `Search`
+above counts with it; for the half grammar the count is the one used so
+far.
+
+```{python}
+#| echo: false
+excerpt(symbolic.grammar_step)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.grammars)
+```
+
+```{python}
+#| label: grammars
+#| echo: false
+result.table("grammars")
+```
+
+On the clean periods the grammar of whole powers has no consistent form:
+the search reports `{python} result["whole-reason"]`, with
+`{python} result["whole-best"]` as its best form, and makes no claim. The
+law contains a square root, and no product of whole powers comes close
+enough. The quarter grammar holds `{python} result["quarter-forms"]` forms,
+more than twelve times as many as the half grammar, and chooses the same
+law: a richer grammar that contains the law finds it in clean data as
+well.
+
+Before the noise sweep, predict from the last two columns: as the noise
+grows, does the quarter grammar keep the law longer than the half grammar,
+or lose it sooner?
+
+```{python}
+#| label: grammar-noise
+#| echo: false
+result.table("grammar-noise")
+```
+
+```{python}
+#| label: fig-grammars
+#| echo: false
+#| fig-cap: "How often each grammar chooses the form of the small-angle law on the same noisy copies of the periods. Whole powers never do; quarter powers lose the law at a lower noise than half powers, to a form with a fourth root."
+#| fig-alt: "Line plot with markers of the fraction of noisy copies on which the law is chosen, from zero to one, against the relative noise in percent on a logarithmic axis, one curve per grammar. The curve of whole powers lies at zero throughout. The curve of half powers stays at one up to the middle of the axis and then falls. The curve of quarter powers stays at one at the smallest noise levels and falls one level earlier than that of half powers."
+#| fig-status: simulated
+result.show("fig-grammars")
+```
+
+[On the clean periods no form of whole powers is consistent, and the
+search makes no claim; the half and the quarter grammar both choose the
+small-angle law. On the same noisy copies, the quarter grammar loses the
+law at a lower noise than the half grammar, most often to
+`{python} result["quarter-lost-to"]`, its nearest simpler form
+`{python} result["quarter-rival"]`, as the predicted noise of that form,
+`{python} result["quarter-floor"]` percent against
+`{python} result["half-floor"]` percent, says it
+should.]{.claim type="numerically-verified"
+scope="these simulated pendulums, power laws with whole, half, and quarter exponents from -2 to 2, twenty seeds per noise level, noise known to the search"
+evidence="grammars grammar-noise fig-grammars"}
+The quarter grammar contains the law and still does worse, because it
+also contains simpler forms closer to the law. Between the law and the
+square root of the length alone it holds the law with only the fourth root
+of the gravity, whose misfit is smaller, so a smaller noise hides it. The
+operators decide two things: whether the law can be found at all (the
+whole powers cannot), and how much noise the search tolerates before a
+nearby simpler form takes its place. More operators is not more
+discovery; each one added has to be paid for with data.
 
 ## Limits {#limits}
 

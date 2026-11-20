@@ -300,6 +300,27 @@ that the body may feel forces it cannot see).
   disambiguating experiment** is the setting where the rivals' predictions
   spread most, in standard deviations of the noise.
 
+## Unknown systems and competing models
+
+Lesson MD1 (`pbc.discovery.towing_tank`, F146) adds a box whose law is not
+given and whose route uses no model. A sphere is towed through a fluid; the
+controls are the speed and the diameter, the observation the drag force with
+a stated relative noise, and the fluid is inside the system but neither set
+nor read, so its properties live in the hidden constant of the law. The
+claim is a power law of the speed and the diameter, scored by the judge at
+settings beyond the bounds of both controls.
+
+- **Two conditions of prior knowledge** search the same readings with
+  `pbc.discovery.symbolic.power_law_search`: *knowledge-informed*, the two
+  drag laws of the textbook as the only forms (`forms=`), and *restricted
+  prior*, every power law of the grammar in half steps.
+- **Two worlds**: one whose law is one of the candidates, and an unknown
+  one whose law is neither; the second is where a prior excludes the
+  answer and the search reports no claim.
+- **The route** probes and submits through `environment_allowlist`, as an
+  agent would; a test shows that no tool, description, or public attribute
+  reaches either world's law or the withheld settings (I27).
+
 ## Generalisation
 
 Lesson D12 (`pbc.discovery.generalisation_lab`, F98) challenges a claim on a

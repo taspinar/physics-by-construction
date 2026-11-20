@@ -271,7 +271,9 @@ src/pbc/                 Importable Python package with all reusable lesson code
                          black-box force-law lessons D1 to D3 (`force_lab`, F66); symbolic
                          regression and equation discovery from trajectories (`symbolic`,
                          `equations`, F67); conserved quantities from trajectories and their
-                         verdicts (`invariants`, `invariant_lab`, F82)
+                         verdicts (`invariants`, `invariant_lab`, F82); the towing tank with
+                         its hidden drag law and two conditions of prior knowledge
+                         (`towing_tank`, lesson MD1, F146)
   verification/          Order estimation, invariant checks, the named checks of the validation
                          contract, and a gallery of deliberately faulty steppers (F46); the
                          contract's checks on a model, the damped driven oscillator, as the tests
