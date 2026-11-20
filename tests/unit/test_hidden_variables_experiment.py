@@ -2,8 +2,11 @@
 
 from pathlib import Path
 
+import numpy as np
 import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
+
+from pbc.mechanics.experiments import failing_law
 
 MODULE = "pbc.mechanics.experiments.hidden_variables"
 PAGE = "agents-llm/19-hidden-variables"
@@ -42,3 +45,73 @@ def test_the_agent_recovers_and_its_readings_need_both_effects(results):
     assert [h for h, row in readings.items() if row[2] == "yes"] == [
         "a hidden force and drag"
     ]
+
+
+def test_the_known_law_fails_and_so_does_a_missing_constant_force(results):
+    _, found = results
+    numbers = found["numbers"]
+    (stokes, *s), (force, *f) = found["tables"]["known-law"]["rows"]
+
+    assert stokes == "Stokes' law" and s[3] == "no"
+    assert force == "a missing constant force" and f[3] == "no"
+    # The residuals are systematic: light spheres fast, heavy ones slow.
+    assert float(numbers["residual-light"]) > 2
+    assert float(numbers["residual-heavy"]) < 0
+    assert float(numbers["reynolds-least"]) < float(numbers["reynolds-most"]) < 1
+
+
+def test_two_extensions_fit_the_record_and_the_chosen_sphere_rejects_one(results):
+    _, found = results
+    numbers = found["numbers"]
+    record = {row[0]: row for row in found["tables"]["extensions-record"]["rows"]}
+    after = {row[0]: row for row in found["tables"]["extensions-after"]["rows"]}
+
+    for name in ("quadratic drag", "power-law drag"):
+        assert record[name][4] == "yes" and record[name][5] == "yes"
+    # The heaviest sphere the lab owns, where the fits part by many sigmas.
+    assert float(numbers["chosen-weight"]) == pytest.approx(11.0, abs=0.05)
+    assert float(numbers["chosen-apart"]) > 10
+    assert numbers["faster-extension"] == "power-law drag"
+    assert after["power-law drag"][4] == "no"
+    assert after["quadratic drag"][4] == "yes"
+    assert numbers["survivors"] == (
+        "quadratic drag; quadratic drag and a constant force"
+    )
+
+
+def test_the_remaining_ambiguity_is_a_bounded_force_and_the_world_is_oseens(results):
+    _, found = results
+    numbers = found["numbers"]
+
+    low, high = float(numbers["force-low"]), float(numbers["force-high"])
+    assert low < 0 < high
+    assert numbers["force-excludes-zero"] == "includes"
+    assert float(numbers["force-share"]) == pytest.approx(
+        100 * max(abs(low), abs(high)) * 1e-6 / 1e-4, abs=0.1
+    )
+    assert float(numbers["quadratic-ratio"]) == pytest.approx(1.0, abs=0.1)
+
+
+def test_the_discriminating_readings_lie_where_the_figure_says():
+    # The caption and the alt text of the extensions figure: the readings of
+    # the heaviest sphere lie near the quadratic drag fitted to the record,
+    # and well below the power law and the constant force.
+    weights = np.array(failing_law.RECORD)
+    speeds = failing_law.readings(weights, failing_law.SEED)
+    names = ("quadratic drag", "power-law drag", "a missing constant force")
+    fits = {name: failing_law.fit(name, weights, speeds) for name in names}
+    chosen = failing_law.discriminating_weight(
+        fits["quadratic drag"], fits["power-law drag"]
+    )
+    read = failing_law.readings(
+        np.full(failing_law.NEW_READINGS, chosen), failing_law.SEED + 1
+    ).mean()
+    apart = {
+        name: (read - failing_law.MODELS[name][0](chosen, *fit.params))
+        / (failing_law.NOISE * read)
+        for name, fit in fits.items()
+    }
+
+    assert apart["power-law drag"] < 0 and apart["a missing constant force"] < 0
+    near = abs(apart["quadratic drag"])
+    assert 5 * near < min(-apart["power-law drag"], -apart["a missing constant force"])

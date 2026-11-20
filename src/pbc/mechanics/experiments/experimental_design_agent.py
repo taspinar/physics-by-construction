@@ -38,6 +38,7 @@ from pbc.agents.display import AllowlistDisplay, AssessmentDisplay, RunDisplay
 from pbc.authoring.repository import REPOSITORY_ROOT
 from pbc.experiment import Experiment, main
 from pbc.figure_language import figsize, figure_style, finish
+from pbc.mechanics.experiments import design_strategies
 
 # The live run of the lesson: a model, its key, and the extra openai.
 LIVE = "pbc.agents.design_lab"
@@ -183,6 +184,7 @@ def run() -> Experiment:
         a_fifth_reading()
     with experiment.capture("slow-difference"):
         slow_difference(slow_assessment)
+    experiment.figure("fig-strategies", design_strategies.extend(experiment))
     return experiment
 
 

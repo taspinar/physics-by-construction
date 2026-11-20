@@ -46,3 +46,52 @@ def test_the_orbits_amplify_the_agents_error_of_the_strength(results):
     assert len(rows) == 3
     assert all(float(claimed) > 1 for claimed, _ in rows.values())
     assert min(float(square) for _, square in rows.values()) < 1
+
+
+def test_the_thermal_law_transfers_to_three_levels_and_fails_two(results):
+    _, found = results
+    numbers = found["numbers"]
+    rows = {row[0]: row for row in found["tables"]["thermal-transfer"]["rows"]}
+    tolerance = float(numbers["thermal-tolerance"])
+
+    assert [row[1] for row in rows.values()] == [
+        "interpolation",
+        "new excitation",
+        "new parameters",
+        "new regime",
+        "another structure",
+    ]
+    assert {row[2] for row in rows.values()} == {"never"}
+    assert numbers["thermal-probed-worlds"] == "none"
+    assert numbers["thermal-in-bounds"] == "all"
+    for name in ("interpolation", "oscillating air", "cold room"):
+        assert float(rows[name][4]) < tolerance / 10 and rows[name][5] == "yes"
+    for name in ("hot start", "sheathed sphere"):
+        assert float(rows[name][4]) > tolerance and rows[name][5] == "no"
+    assert numbers["thermal-failed"] == "hot start and sheathed sphere"
+    # The figure's text: the sheathed sphere's bar is the longest.
+    assert float(rows["sheathed sphere"][4]) == max(float(r[4]) for r in rows.values())
+    assert numbers["thermal-passed"] == "interpolation, oscillating air, cold room"
+    assert float(numbers["thermal-largest-passed"]) == pytest.approx(
+        max(
+            float(rows[n][4]) for n in ("interpolation", "oscillating air", "cold room")
+        ),
+        rel=0.5,
+    )
+
+
+def test_the_thermal_law_is_consistent_and_radiation_explains_the_hot_failure(
+    results,
+):
+    _, found = results
+    numbers = found["numbers"]
+    dof = int(numbers["thermal-dof"])
+
+    assert float(numbers["thermal-chi2"]) < dof + 3 * (2 * dof) ** 0.5
+    assert int(numbers["thermal-probes"]) == int(numbers["thermal-budget"])
+    assert float(numbers["radiation-share-probed"]) < 5
+    assert float(numbers["radiation-share-hot"]) > 3 * float(
+        numbers["radiation-share-probed"]
+    )
+    # The sheathed sphere's nearest probed start is its own start.
+    assert found["tables"]["thermal-transfer"]["rows"][-1][3] == "0"

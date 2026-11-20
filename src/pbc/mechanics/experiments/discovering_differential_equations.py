@@ -32,6 +32,7 @@ from pbc.discovery.equations import (
 from pbc.experiment import Experiment, main
 from pbc.figure_language import figsize, figure_style, finish
 from pbc.mechanics.dynamics import State, simulate
+from pbc.mechanics.experiments import state_selection
 from pbc.mechanics.integrators import rk4_step
 
 # region: oscillator
@@ -290,6 +291,7 @@ def run() -> Experiment:
         "fig-singular-values", partial(draw_singular_values, single, several, floor)
     )
     pendulum(experiment)
+    experiment.figure("fig-missing-state", state_selection.extend(experiment))
     return experiment
 
 

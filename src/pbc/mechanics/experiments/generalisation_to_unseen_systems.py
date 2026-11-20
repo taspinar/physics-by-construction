@@ -45,6 +45,7 @@ from pbc.discovery.generalisation_lab import (
     replay_run,
 )
 from pbc.experiment import Experiment, main
+from pbc.mechanics.experiments import thermal_transfer
 
 # The live run of the lesson: a model, its key, and the extra openai.
 LIVE = "pbc.discovery.generalisation_lab"
@@ -272,6 +273,7 @@ def run() -> Experiment:
     errors = the_suite(experiment, score, results)
     orbit_sensitivity(experiment, score)
     experiment.figure("fig-generalisation", partial(draw_generalisation, errors))
+    experiment.figure("fig-thermal-transfer", thermal_transfer.extend(experiment))
     return experiment
 
 
