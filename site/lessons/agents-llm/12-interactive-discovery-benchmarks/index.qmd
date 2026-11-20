@@ -19,7 +19,8 @@ lesson:
     - Score frozen runs again from their tool calls and set them beside baselines with the same budget
     - Say which comparisons of a benchmark are meaningful and which are not, and why
     - Explain why a handful of runs cannot rank conditions of prior knowledge
-  related: []
+    - Build a picture task and a drawn hidden world whose answers the build computes and whose truth the tools cannot reach
+  related: [multimodal-physics-reasoning, unknown-physical-worlds]
   format: 2
   preview: fig-benchmark-errors
   prerequisites:
@@ -31,7 +32,9 @@ lesson:
 ```{python}
 #| echo: false
 from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.discovery import tasks
 from pbc.mechanics.experiments import interactive_discovery_benchmarks as experiment
+from pbc.mechanics.experiments.interactive_discovery_benchmarks import drawn_world
 
 result = experiment.run()
 lesson_header()
@@ -57,6 +60,15 @@ The build replays every run, scores it again on settings the agent could not
 probe, and asks two further questions. Did the readings each run collected
 support the answer, whatever the agent concluded? And of the comparisons a
 reader might draw from the grid, which does the design actually allow?
+
+Every result on this page is of one of three kinds, and each is named where
+it appears: a run recorded once by a language model and replayed by the
+build, which executes its tool calls again; a method without a model, which
+the build runs; and the judge's score, which the build computes. The last
+part of the page adds two tasks of a kind the grid lacks: questions about
+pictures, scored against answers the build computes from the physics that
+draws them, and a world whose law the judge draws at random and keeps from
+the agent.
 
 ## Assumptions
 
@@ -332,6 +344,218 @@ The figure shows errors of simulated runs that this build scored again. Read it
 column by column: a column is one protocol. Comparing heights across columns
 mixes systems whose held-out errors mean different things.
 
+### Tasks beyond a number
+
+The grid asks for one kind of answer: the parameters of a law, scored on
+held-out settings. A benchmark of scientific work needs more kinds, and each
+new kind must keep the two properties the grid has: the build computes the
+right answer itself, and the agent's tools cannot reach it. This section
+adds two tasks. The lessons on multimodal physics reasoning and on unknown
+physical worlds, linked in the header, take each kind further; the tasks
+here are this benchmark's own and need neither.
+
+#### A diagram task
+
+Two pictures, drawn by the build from the mechanics code: three drag-free
+trajectories launched at one speed, with a wall, and a mass on a spring
+released at two amplitudes. The launch speed, the wall, and the period are
+on the pictures and nowhere in the task's text.
+
+```{python}
+#| label: fig-task-launcher
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Picture A of the diagram task: three drag-free trajectories of one launch speed under Earth's gravity, and a wall. The middle trajectory alone passes over it."
+#| fig-alt: "Height against distance from the launcher. Three parabolas start at the origin, labelled by their launch angles: a low flat one and a tall narrow one land at the same distance, short of a hatched wall; the middle one reaches farthest and passes over the wall. A note at the top gives the launch speed."
+result.show("fig-task-launcher")
+```
+
+```{python}
+#| label: fig-task-spring
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Picture B of the diagram task: the displacement of a mass on a spring released at rest from two amplitudes. Both oscillate with the same period."
+#| fig-alt: "Displacement against time for two cosine curves, dashed for the smaller amplitude and solid for the larger. Their peaks and zero crossings line up: the period does not depend on the amplitude."
+result.show("fig-task-spring")
+```
+
+Nine questions ask four kinds of thing: to **read** a value off a picture,
+to apply a **concept**, to judge the **physical tool** (what the apparatus
+can do, and where a measurement with it is informative), and to answer a
+**counterfactual** about a world the picture does not show. The answers are
+not written anywhere: the build computes them from the same code that draws
+the pictures. These lines answer the questions on the launcher and on where
+a reading of the spring is informative:
+
+```{python}
+#| echo: false
+excerpt(tasks.diagram_key, region="launcher")
+```
+
+```{python}
+#| echo: false
+excerpt(tasks.diagram_key, region="spring")
+```
+
+The second region differentiates the motion with respect to the frequency:
+a reading tells most about the frequency where a small change of it moves
+the curve most, and the code compares the first and the last second.
+
+Two runs were recorded, both by a Claude model in a Claude Code session on
+the same day, each a fresh sub-agent given the system prompt, the task, and
+the tool. One opened the two pictures as image files; the other was told
+that the pictures were not available and to answer from what it knows. That
+second run is the control: it has the same questions and the same tool,
+without the information the pictures carry. Before reading the table,
+predict which kinds of question the run without the pictures will get
+wrong.
+
+```{python}
+#| echo: false
+result.display("run-pictures-task")
+```
+
+```{python}
+#| echo: false
+result.display("run-text-task")
+```
+
+```{python}
+#| label: ae2-items
+#| echo: false
+result.table("ae2-items")
+```
+
+```{python}
+#| label: ae2-item-tally
+#| echo: false
+result.table("ae2-item-tally")
+```
+
+[The run with the pictures answers `{python} result["items-pictures"]` of
+the `{python} result["items"]` questions correctly and the run without them
+`{python} result["items-text"]`; the run without the pictures misses both
+readings and the question whether the launcher can reach the stated
+distance, and answers every concept and counterfactual
+correctly.]{.claim type="numerically-verified" scope="one recorded run per
+condition, the two pictures and nine questions of this task"
+evidence="ae2-items ae2-item-tally replay-picturetask replay-texttask"} The
+concepts and the counterfactuals follow from physics the model knows; the
+readings and the reach of this launcher need the picture. Its answer to the
+wall was right without the picture, and its own message calls it an
+estimate: a correct answer is not always an answer the run could know.
+
+A uniform guess is the baseline without a model: on average it gets
+`{python} result["guess-mean"]` right, and nineteen times in twenty no more
+than `{python} result["guess-95"]`. The chance that guessing does as well as
+the run without the pictures is about `{python} result["guess-at-least-text"]`.
+With nine questions and one run per condition, the counts do not rank the
+two conditions on other pictures; the table per question is the result.
+
+#### A drawn world
+
+The grid's hidden values were chosen by hand and are round, which flatters
+an agent that rounds. Here the judge draws the world: the force has the form
+of the central-force box, its strength is drawn uniformly in its logarithm
+between `{python} result["strength-low"]` and
+`{python} result["strength-high"]` $\mathrm{N\,m^p/kg}$ and its exponent
+uniformly between `{python} result["exponent-low"]` and
+`{python} result["exponent-high"]`, and three evaluation cases are drawn at
+distances between `{python} result["case-near"]` and
+`{python} result["case-far"]` m, beyond the `{python} result["reach"]` m the
+agent can probe.
+The page states this distribution and never the values it gave.
+
+```{python}
+#| echo: false
+excerpt(tasks.drawn_world)
+```
+
+The agent is told nothing of the form (the condition **none**), and has the
+benchmark's budget, step limit, and tolerance. Hidden here means hidden from
+the agent's tools: anyone who reads the source can compute the draw, as
+with every protocol of this page. The build checks the isolation that the
+run relied on:
+
+```{python}
+#| echo: false
+excerpt(tasks.withheld_unreachable)
+```
+
+```{python}
+#| label: ae2-withheld
+#| echo: false
+result.table("ae2-withheld")
+```
+
+The run was recorded by the same Claude model as the diagram task, as a
+fresh sub-agent that received the harness's results in messages and chose
+every call itself.
+
+```{python}
+#| echo: false
+result.display("run-drawn-world")
+```
+
+```{python}
+#| echo: false
+excerpt(drawn_world, region="world")
+```
+
+```{python}
+#| label: ae2-world
+#| echo: false
+result.table("ae2-world")
+```
+
+[On the drawn world, the agent's claim predicts the withheld evaluation
+cases with a relative error of `{python} result["world-error"]`, within the
+tolerance, after `{python} result["world-probes"]` probes; least squares on
+a grid and at random settings, with the same budget, recover the law too,
+and sparse identification does not.]{.claim type="numerically-verified"
+scope="one recorded run, one drawn world, one seed of the noise"
+evidence="ae2-world replay-drawnworld"} The agent's error is close to the
+tolerance: it left the weak readings beyond about two and a half metres out
+of its fit, as its messages say. Sparse identification fails because the
+drawn exponent is not a whole number and its library has only whole powers.
+
+One world and one seed say little about a method, and the baselines cost
+nothing to run again:
+
+```{python}
+#| label: ae2-world-spread
+#| echo: false
+result.table("ae2-world-spread")
+```
+
+```{python}
+#| label: fig-drawn-world
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Held-out error on the drawn world, one row per method, with the tolerance dashed. Filled: the agent's world. Open: the baselines on other drawn worlds, and random selection with other seeds on the agent's world. The least-squares baselines stay mostly below the tolerance; sparse identification stays above it."
+#| fig-alt: "A horizontal strip plot on a logarithmic error axis with four rows: agent, grid plus least squares, random plus least squares, and grid plus sparse identification. A dashed vertical line marks the tolerance. The agent's single filled marker lies just left of the line. The two least-squares rows have their filled marker and a spread of open triangles left of the line; the random row also has a cluster of open squares around the line, a few of them right of it. The sparse row has its filled marker and all its open triangles right of the line."
+result.show("fig-drawn-world")
+```
+
+The spread is the uncertainty that one run hides. Random selection on the
+agent's own world fails on some seeds of its probes, and an agent recorded
+once could be a lucky or an unlucky draw of the same kind. A drawn world is
+also a new task, and the check says so:
+
+```{python}
+#| label: ae2-world-comparisons
+#| echo: false
+result.table("ae2-world-comparisons")
+```
+
+[The check finds the agent on the drawn world comparable with a baseline on
+the same world, and not comparable with the run of the central-force column
+that was given the same prompt.]{.claim type="numerically-verified"
+scope="the protocols of the drawn world and of the central-force column"
+evidence="ae2-world-comparisons"} The two runs read the same task text and
+the same tools; only the protocols show that the worlds and the evaluation
+cases differ.
+
 ### Run the agents yourself
 
 This needs your own key and costs a few cents per run. The build does not run
@@ -343,6 +567,8 @@ uv sync --locked --no-dev --extra openai
 export OPENAI_API_KEY="..."
 cd site/lessons/agents-llm/12-interactive-discovery-benchmarks
 uv run --locked --no-dev --extra openai python -m pbc.discovery.benchmark projectile-full projectile-partial projectile-none central-full central-none
+uv run --locked --no-dev --extra openai python -m pbc.discovery.tasks items
+uv run --locked --no-dev --extra openai python -m pbc.discovery.tasks world
 ```
 :::
 
@@ -374,6 +600,19 @@ would be marked "not verified" here.
   retry answered with a summary instead of a message; both were discarded
   before any run was kept. The sessions reported no token count or price.
 - **Simulated, not measured.** Nothing here is a reading of a real system.
+- **The diagram task is small and clean.** Nine questions on two pictures of
+  this site, drawn in one style with labelled axes. Its control shows which
+  questions need the picture, not how a model reads pictures in general;
+  the multimodal lesson goes further.
+- **The picture run opened files.** It was allowed to open the two image
+  files and nothing else; the run without the pictures used no tool of its
+  own.
+- **One drawn world for the agent.** The baselines were run on twenty more;
+  the agent was not, so its result is one draw. The isolation is the tools':
+  the draw is in the source, which the agent could not read.
+- **The form leaks through the tools here too.** The drawn world's claim
+  names a strength and an exponent, so "told nothing" still names the
+  parameters of a power law.
 
 ::: {.exercise .self-check}
 On the central force, the full, partial, and none runs all recovered the law,
@@ -465,6 +704,22 @@ and compare recovery rates over many worlds, not two runs.
 :::
 :::
 
+::: {.exercise}
+The run without the pictures answered the wall question correctly. Should a
+benchmark count that answer as evidence that the model judged the
+apparatus? Say what in the run tells you, and how the task could be changed
+so that a correct answer requires the picture.
+
+::: {.solution}
+No. Its own message calls the answer an estimate: it guessed that the
+trajectory that reaches farthest clears the wall, and on this picture it
+does. The score is right and the reasoning had no access to the wall. A
+task in which the farthest trajectory hits the wall, or in which the wall's
+position varies between versions of the picture, makes a guess from general
+knowledge wrong; the build would compute the new answer from the same code.
+:::
+:::
+
 ## Replay this experiment {#reproduce-this}
 
 ```{python}
@@ -472,6 +727,7 @@ and compare recovery rates over many worlds, not two runs.
 reproduce_this(
     code=[
         "src/pbc/discovery/benchmark.py",
+        "src/pbc/discovery/tasks.py",
         "src/pbc/discovery/force_lab.py",
         "src/pbc/discovery/environment.py",
         "src/pbc/discovery/protocol.py",
@@ -481,6 +737,7 @@ reproduce_this(
     ],
     tests=[
         "tests/unit/test_benchmark.py",
+        "tests/unit/test_tasks.py",
         "tests/unit/test_discovery.py",
         "tests/unit/test_interactive_discovery_benchmarks_experiment.py",
     ],

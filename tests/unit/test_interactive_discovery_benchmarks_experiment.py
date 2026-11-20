@@ -55,3 +55,49 @@ def test_the_check_refuses_comparisons_across_systems_and_worlds(results):
 def test_one_run_per_cell_cannot_tell_the_conditions_apart(results):
     _, found = results
     assert all(float(p) > 0.5 for _, p in _table(found, "ev2-chance"))
+
+
+def test_the_diagram_task_is_scored_against_the_computed_key(results):
+    _, found = results
+    tally = {row[0]: row[1:] for row in _table(found, "ae2-item-tally")}
+    assert set(tally) == {"reading", "concept", "physical tool", "counterfactual"}
+    assert found["numbers"]["items-pictures"] == "9"
+    assert found["numbers"]["items-text"] == "6"
+    # Without the pictures, the readings fail and the concepts hold.
+    assert tally["reading"][2] == "0"
+    assert tally["concept"][2] == tally["concept"][0]
+    assert tally["counterfactual"][2] == tally["counterfactual"][0]
+    # The claim: without the pictures, the run misses the reach question (1).
+    items = {row[0]: row for row in _table(found, "ae2-items")}
+    assert items["1"][1] == "physical tool"
+    assert items["1"][4] == "yes"
+    assert items["1"][6] == "no"
+
+
+def test_the_drawn_world_is_judged_like_the_grid(results):
+    _, found = results
+    world = {row[0]: row[1:] for row in _table(found, "ae2-world")}
+    # The claim: the agent and least squares, on a grid and at random
+    # settings, recover the law; sparse identification does not.
+    assert world["agent"][3] == "yes"
+    assert world["grid + least squares"][3] == "yes"
+    assert world["random + least squares"][3] == "yes"
+    assert world["grid + sparse identification"][3] == "no"
+    for method, row in world.items():
+        assert row[0] == found["numbers"]["budget"]
+        if method != "agent":
+            assert row[-1] == "comparable"
+    assert {row[1] for row in _table(found, "ae2-withheld")} == {"yes"}
+    verdicts = [v for _, v in _table(found, "ae2-world-comparisons")]
+    assert verdicts[0] == "comparable"
+    assert "hidden worlds differ" in verdicts[1]
+
+
+def test_the_baselines_spread_over_seeds_and_worlds(results):
+    _, found = results
+    spread = {row[0]: row[2:] for row in _table(found, "ae2-world-spread")}
+    runs, recovered = map(
+        int, spread["random + least squares, other seeds of the probes"]
+    )
+    assert 0 < recovered < runs
+    assert spread["grid + sparse identification"][1] == "0"
