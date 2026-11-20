@@ -520,10 +520,11 @@ determined.
 Stokes' law fails. Compare two extensions of the drag, each with two
 parameters and each reducing to Stokes' law at small speeds: a quadratic
 correction, $F = b\,v + c\,v^2$, and a power law, $F = b\,v^n$. Fit both to
-the record. Then choose, among the spheres the lab owns (effective weights
-from 0.05 mN to 11 mN), the one where the two fitted extensions predict
-terminal speeds furthest apart in units of the noise, take three readings of
-it, and judge both again. Which extension survives, and what does the data
+the record. Then choose, among the spheres the lab owns, with effective
+weights from `{python} result["reach-lightest"]` mN to
+`{python} result["reach-heaviest"]` mN, the one where the two fitted
+extensions predict terminal speeds furthest apart in units of the noise,
+take three readings of it, and judge both again. Which extension survives, and what does the data
 still leave open?
 
 ::: {.hint}

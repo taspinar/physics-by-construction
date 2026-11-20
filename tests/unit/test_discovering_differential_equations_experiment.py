@@ -94,7 +94,10 @@ def test_a_state_without_the_second_mass_is_detected_and_its_cure_named(results)
     # The state test fails on one mass and passes on both.
     assert numbers["one-mass-test"] == "fails" and float(one_largest) > limit
     assert numbers["two-mass-test"] == "passes" and float(two_largest) <= limit
+    # Both verdicts rest on pairs from separate visits, not on neighbours
+    # in time, which agree whatever the state.
     assert int(one_pairs) > 0 and int(two_pairs) > 0
+    assert numbers["two-mass-pairs"] == two_pairs
     assert float(numbers["one-mass-largest"]) == pytest.approx(
         float(one_largest), rel=0.05
     )

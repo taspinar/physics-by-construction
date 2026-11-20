@@ -34,6 +34,12 @@ Run the model on one seed live on your machine (needs a model and its key;
 the optional dependency ``openai``)::
 
     uv run --extra openai python -m pbc.agents.strategy_lab --seed 1
+
+With ``--record`` the run overwrites the fixture of its seed, stamped with
+the live model and today's date. ``replay_session`` accepts only a fixture
+of ``MODEL`` recorded on ``RECORDED``, so after a new recording set both
+constants to the new session's (and record every seed again, since all five
+must match), or the ledger counts the LLM and hybrid attempts as invalid.
 """
 
 import argparse
@@ -544,7 +550,10 @@ def main(argv: list[str] | None = None) -> int:
         today = datetime.date.today().isoformat()
         path = Path(LESSON) / RECORDINGS[options.seed]
         save_recording(path, transcript, today, *client.secrets)
-        print(f"\nRecorded to {path}. Review it before you commit it.")
+        print(
+            f"\nRecorded to {path}. Review it before you commit it, and set"
+            " MODEL and RECORDED to this session's: replays accept no other."
+        )
     return 0
 
 

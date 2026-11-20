@@ -22,6 +22,7 @@ from scipy.integrate import solve_ivp
 from pbc.authoring import FIGURE_COLOURS
 from pbc.discovery.equations import central_differences
 from pbc.discovery.state_selection import (
+    APART,
     RADIUS,
     SMOOTHNESS,
     Found,
@@ -77,16 +78,25 @@ def recorded(start) -> tuple[np.ndarray, np.ndarray]:
     return motion.x[:, 0], motion.x[:, 1]
 
 
-def samples() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def samples() -> tuple[np.ndarray, ...]:
     """The state of both masses and their accelerations at every interior
-    sample of the four orbits, from central differences of the positions."""
-    states, first, second = [], [], []
-    for start in STARTS:
+    sample of the four orbits, from central differences of the positions,
+    with the orbit and the time (s) of each sample."""
+    states, first, second, orbits, times = [], [], [], [], []
+    for orbit, start in enumerate(STARTS):
         one, two = (central_differences(x, DT) for x in recorded(start))
         states.append(np.column_stack([one.x, one.v, two.x, two.v]))
         first.append(one.a)
         second.append(two.a)
-    return np.vstack(states), np.concatenate(first), np.concatenate(second)
+        orbits.append(np.full(len(one.a), orbit))
+        times.append(DT * np.arange(1, len(one.a) + 1))
+    return (
+        np.vstack(states),
+        np.concatenate(first),
+        np.concatenate(second),
+        np.concatenate(orbits),
+        np.concatenate(times),
+    )
 
 
 def integrate_state(accelerations, start, t: np.ndarray) -> np.ndarray:
@@ -111,18 +121,21 @@ def integrate_state(accelerations, start, t: np.ndarray) -> np.ndarray:
     return solution.y[0]
 
 
-def two_states(values, a1, a2) -> dict[str, tuple[list[Found], object, float]]:
+def two_states(
+    values, a1, a2, orbits, times
+) -> dict[str, tuple[list[Found], object, float]]:
     """The search and the state test on the state of the first mass and on
     the state of both, with the largest error of the first mass's position
     from the held-out start over the duration. ``values`` holds x1, v1, x2,
-    v2 at every sample, ``a1`` and ``a2`` the accelerations of the masses."""
+    v2 at every sample, ``a1`` and ``a2`` the accelerations of the masses,
+    ``orbits`` and ``times`` the orbit and the time (s) of each sample."""
     t = np.arange(round(DURATION / DT) + 1) * DT
     truth = recorded(HELD_OUT)[0]
     found = {}
     for names, targets in ((ONE_MASS, (a1,)), (TWO_MASSES, (a1, a2))):
         columns = values[:, : len(names)]
         equations = [search(names, columns, a, DEGREE) for a in targets]
-        test = state_test(columns, a1)
+        test = state_test(columns, a1, orbits, times)
         path = integrate_state([e.acceleration for e in equations], HELD_OUT, t)
         found[names] = (equations, test, float(np.max(np.abs(path - truth))))
     return found
@@ -146,8 +159,8 @@ def extend(experiment: Experiment):
     """The choice of state variables, for the lesson's page;
     returns the drawing of its figure, which the lesson's experiment
     records."""
-    values, a1, a2 = samples()
-    found = two_states(values, a1, a2)
+    values, a1, a2, orbits, times = samples()
+    found = two_states(values, a1, a2, orbits, times)
     size = np.sqrt((a1**2).mean())
     rows = []
     for names, (equations, test, error) in found.items():
@@ -169,20 +182,24 @@ def extend(experiment: Experiment):
             ("state", "", "s"),
             ("found equation of the first mass", "", "s"),
             ("residual", "% of rms acceleration", ".2g"),
-            ("pairs at nearly the same state", "", "d"),
+            ("pairs from separate visits", "", "d"),
             ("largest acceleration difference", "rms acceleration", ".2g"),
             ("largest held-out error", "m", ".2g"),
         ],
         caption="The search and the state test on two choices of state, on the"
         " four orbits of the coupled masses: the equation found for the"
         " acceleration of the first mass, the root-mean-square of its residual,"
-        " the pairs of samples closer than the radius of the test, the largest"
-        " difference of their accelerations, and the largest error of the first"
+        " the pairs of samples closer than the radius of the test from separate"
+        f" visits (different orbits, or one orbit at least {APART:g} s apart),"
+        " the largest difference of their accelerations, and the largest error"
+        " of the first"
         " mass's position from the held-out start over ten seconds, to two"
         " significant digits.",
     )
     (one, one_test, one_error), (two, two_test, two_error) = found.values()
     experiment.number("radius", RADIUS, "g")
+    experiment.number("apart", APART, "g")
+    experiment.number("two-mass-pairs", two_test.pairs, "d")
     experiment.number("smoothness-limit", SMOOTHNESS * RADIUS, "g")
     experiment.number("one-mass-found", one[0].formula())
     experiment.number("one-mass-terms", len(one[0].coefficients))

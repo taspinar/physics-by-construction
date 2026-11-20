@@ -5,6 +5,8 @@ from pathlib import Path
 import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
 
+from pbc.mechanics.experiments import design_strategies as strategies
+
 MODULE = "pbc.mechanics.experiments.experimental_design_agent"
 PAGE = "agents-llm/04-an-experimental-design-agent"
 
@@ -84,3 +86,21 @@ def test_the_intervals_overlap_and_the_mean_margins_order_the_strategies(results
     # A strategy correct at every seed and one correct at four of five.
     assert {r[2] for r in shared} == {"4", "5"}
     assert int(numbers["llm-readings-least"]) <= 8
+
+
+def test_the_figure_text_matches_the_differences_of_the_strategies():
+    # The caption, the alt text, and "the model's sessions lie between":
+    # on average the adaptive rule and the hybrid highest, the scripted grid
+    # lowest with one point below the threshold, the LLM between; every
+    # point of the other three above the threshold.
+    record = strategies.ledger(strategies.LESSON, strategies.MORE_SEEDS)
+    found = strategies.summary(record, strategies.LESSON)
+    shared = strategies.rows_by_strategy(found, strategies.SEEDS)
+    points = strategies.differences(shared)
+    means = {name: sum(v) / len(v) for name, v in points.items()}
+    below = {
+        name: sum(x < strategies.THRESHOLD for x in v) for name, v in points.items()
+    }
+
+    assert below == {"scripted": 1, "adaptive": 0, "LLM": 0, "hybrid": 0}
+    assert means["scripted"] < means["LLM"] < min(means["adaptive"], means["hybrid"])

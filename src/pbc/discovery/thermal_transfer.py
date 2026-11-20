@@ -291,10 +291,10 @@ def transfer_error(law: CoolingLaw, world: World) -> float:
 
 
 def never_probed(trace, world: World) -> tuple[bool, float]:
-    """Whether any accepted probe of ``trace`` had the conditions of
-    ``world`` (its start, still air at the room's temperature, the bare
-    sphere), and the distance of the nearest accepted start from the world's
-    (°C)."""
+    """Whether any accepted probe of ``trace`` had the conditions of the
+    world ``world``: its start, still air at the room's temperature, and the
+    bare sphere. Also the distance of the nearest accepted start from the
+    world's (°C)."""
     accepted = [call.arguments for call, result in trace if result.ok]
     nearest = min(abs(a["start"] - world.start) for a in accepted)
     conditions = world.still_air == AIR and world.structure == "bare"

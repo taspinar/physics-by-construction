@@ -2,8 +2,11 @@
 
 from pathlib import Path
 
+import numpy as np
 import pytest
 from support.experiments import assert_the_page_and_the_results_agree, run_entry_point
+
+from pbc.mechanics.experiments import failing_law
 
 MODULE = "pbc.mechanics.experiments.hidden_variables"
 PAGE = "agents-llm/19-hidden-variables"
@@ -72,7 +75,7 @@ def test_two_extensions_fit_the_record_and_the_chosen_sphere_rejects_one(results
     assert after["power-law drag"][4] == "no"
     assert after["quadratic drag"][4] == "yes"
     assert numbers["survivors"] == (
-        "quadratic drag and quadratic drag and a constant force"
+        "quadratic drag; quadratic drag and a constant force"
     )
 
 
@@ -87,3 +90,28 @@ def test_the_remaining_ambiguity_is_a_bounded_force_and_the_world_is_oseens(resu
         100 * max(abs(low), abs(high)) * 1e-6 / 1e-4, abs=0.1
     )
     assert float(numbers["quadratic-ratio"]) == pytest.approx(1.0, abs=0.1)
+
+
+def test_the_discriminating_readings_lie_where_the_figure_says():
+    # The caption and the alt text of the extensions figure: the readings of
+    # the heaviest sphere lie near the quadratic drag fitted to the record,
+    # and well below the power law and the constant force.
+    weights = np.array(failing_law.RECORD)
+    speeds = failing_law.readings(weights, failing_law.SEED)
+    names = ("quadratic drag", "power-law drag", "a missing constant force")
+    fits = {name: failing_law.fit(name, weights, speeds) for name in names}
+    chosen = failing_law.discriminating_weight(
+        fits["quadratic drag"], fits["power-law drag"]
+    )
+    read = failing_law.readings(
+        np.full(failing_law.NEW_READINGS, chosen), failing_law.SEED + 1
+    ).mean()
+    apart = {
+        name: (read - failing_law.MODELS[name][0](chosen, *fit.params))
+        / (failing_law.NOISE * read)
+        for name, fit in fits.items()
+    }
+
+    assert apart["power-law drag"] < 0 and apart["a missing constant force"] < 0
+    near = abs(apart["quadratic drag"])
+    assert 5 * near < min(-apart["power-law drag"], -apart["a missing constant force"])

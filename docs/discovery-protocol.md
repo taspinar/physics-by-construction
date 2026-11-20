@@ -317,9 +317,12 @@ equation search. `search` is the sequentially thresholded least squares of
 position and the velocity it gives the published search, which a test
 checks). `state_test` asks whether the variables are a state: every pair of
 samples closer than a stated radius, in standard deviations of each
-variable, is compared, and the state is rejected when a pair's accelerations
-differ by more than a stated multiple of the radius in units of the
-root-mean-square acceleration; the pair that does is the witness. On two
+variable, is compared when it comes from separate visits (different orbits,
+or one orbit a stated time apart; neighbours in time agree for any smooth
+record), and the state is rejected when a pair's accelerations differ by
+more than a stated multiple of the radius in units of the root-mean-square
+acceleration; the pair that does is the witness. Without a pair of separate
+visits the test does not pass. On two
 coupled masses observed through one, the search returns a short wrong
 equation, the test rejects the state, and the state of both masses keeps
 exactly the true terms.

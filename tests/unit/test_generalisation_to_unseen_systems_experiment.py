@@ -69,6 +69,8 @@ def test_the_thermal_law_transfers_to_three_levels_and_fails_two(results):
     for name in ("hot start", "sheathed sphere"):
         assert float(rows[name][4]) > tolerance and rows[name][5] == "no"
     assert numbers["thermal-failed"] == "hot start and sheathed sphere"
+    # The figure's text: the sheathed sphere's bar is the longest.
+    assert float(rows["sheathed sphere"][4]) == max(float(r[4]) for r in rows.values())
     assert numbers["thermal-passed"] == "interpolation, oscillating air, cold room"
     assert float(numbers["thermal-largest-passed"]) == pytest.approx(
         max(

@@ -140,6 +140,17 @@ def draw_strategies(differences: dict[str, list[float]], threshold: float) -> Fi
     return finish(fig)
 
 
+def differences(shared) -> dict[str, list[float]]:
+    """The chi-square difference of each completed attempt of the rows
+    ``shared``, by strategy: the points of the figure."""
+    return {
+        name: [
+            r.metrics["chi-square difference"] for r in rows if r.status == COMPLETED
+        ]
+        for name, rows in shared.items()
+    }
+
+
 def extend(experiment: Experiment):
     """The comparison of the four strategies, for the lesson's page;
     returns the drawing of its figure, which the lesson's experiment
@@ -180,10 +191,4 @@ def extend(experiment: Experiment):
         "llm-readings-least",
         min(readings[r.attempt] for r in shared["LLM"] if r.attempt in readings),
     )
-    differences = {
-        name: [
-            r.metrics["chi-square difference"] for r in rows if r.status == COMPLETED
-        ]
-        for name, rows in shared.items()
-    }
-    return partial(draw_strategies, differences, THRESHOLD)
+    return partial(draw_strategies, differences(shared), THRESHOLD)

@@ -7,14 +7,19 @@ state is named, any number of variables, and two things are done with it:
 
 - ``search`` writes the acceleration as a sparse sum of the products of the
   state's variables up to a degree, by the sequentially thresholded least
-  squares of ``pbc.discovery.equations.sparse_regression`` (the same rule
-  and the same threshold; on the state of position and velocity it gives the
-  same equation, which a test checks);
+  squares of ``pbc.discovery.equations.sparse_regression``, with the same
+  rule and the same threshold: on the state of position and velocity it
+  gives the same equation, which a test checks;
 - ``state_test`` asks whether the variables are a state at all: if they
   are, two moments at which they nearly agree have nearly the same
-  acceleration. A pair of samples closer than ``RADIUS`` (in standard
-  deviations of each variable) whose accelerations differ by much more is a
-  witness that something the dynamics need is missing from the state.
+  acceleration. Two samples count as nearly the same state when they are
+  closer than ``RADIUS``, each variable measured in its standard deviation.
+  Only pairs from separate visits are compared: from different orbits, or
+  from one orbit at least ``APART`` apart in time. Two samples next to each
+  other in time are always close and always nearly agree, whatever the
+  state, so they would test nothing. A compared pair whose accelerations
+  differ by much more is a witness that something the dynamics need is
+  missing from the state.
 
 The search alone cannot tell: given an incomplete state it still returns a
 short equation, fitted as well as those variables allow.
@@ -34,7 +39,11 @@ Array = NDArray[np.float64]
 
 # Two samples are "at nearly the same state" when they are closer than this,
 # with each variable measured in its standard deviation over the samples.
-RADIUS = 0.05
+RADIUS = 0.1
+# Two samples of one orbit are separate visits when they are at least this
+# far apart in time (s): less than half the shortest period of the motions
+# here, more than the time to cross the radius.
+APART = 1.0
 # A state passes the test when no pair closer than RADIUS differs in
 # acceleration by more than this many radii, in units of the root-mean-square
 # acceleration: a smooth law changes the acceleration across a small step of
@@ -73,8 +82,8 @@ def _powers(names: Sequence[str], term: str) -> list[int]:
 
 
 def evaluate(names: Sequence[str], terms: Sequence[str], values: Array) -> Array:
-    """The columns of ``terms`` at the samples ``values`` (one row per
-    sample, one column per variable of ``names``)."""
+    """The columns of ``terms`` at the samples ``values``: one row per
+    sample, one column per variable of ``names``."""
     values = np.atleast_2d(np.asarray(values, dtype=float))
     columns = []
     for term in terms:
@@ -146,9 +155,10 @@ def search(
 
 @dataclass(frozen=True)
 class StateTest:
-    """The result of ``state_test``: how many pairs of samples lie within
-    the radius, the largest difference of their accelerations relative to
-    the root-mean-square acceleration, and the pair that has it."""
+    """The result of ``state_test``: how many pairs of samples from separate
+    visits lie within the radius, the largest difference of their
+    accelerations relative to the root-mean-square acceleration, and the
+    pair that has it."""
 
     pairs: int
     largest: float
@@ -162,16 +172,32 @@ class StateTest:
         return self.pairs > 0 and self.largest <= SMOOTHNESS * RADIUS
 
 
-def state_test(values: Array, target: Array, radius: float = RADIUS) -> StateTest:
-    """Do the variables of ``values`` (one row per sample) determine the
-    acceleration ``target``? Every pair of samples closer than ``radius``,
-    each variable measured in its standard deviation, is compared."""
+def state_test(
+    values: Array,
+    target: Array,
+    orbits: Array,
+    times: Array,
+    radius: float = RADIUS,
+    apart: float = APART,
+) -> StateTest:
+    """Do the variables of the samples ``values``, one row per sample,
+    determine the acceleration ``target``? Every pair of samples closer than
+    ``radius``, each variable measured in its standard deviation, is
+    compared, unless both lie on the same orbit of ``orbits`` less than
+    ``apart`` apart in ``times`` (s): such neighbours agree for any smooth
+    record."""
     scaled = values / values.std(axis=0)
     pairs = cKDTree(scaled).query_pairs(radius, output_type="ndarray")
+    if len(pairs):
+        first, second = pairs[:, 0], pairs[:, 1]
+        separate = (orbits[first] != orbits[second]) | (
+            np.abs(times[first] - times[second]) >= apart
+        )
+        pairs = pairs[separate]
     if len(pairs) == 0:
         return StateTest(0, 0.0, None)
     size = np.sqrt((target**2).mean())
-    apart = np.abs(target[pairs[:, 0]] - target[pairs[:, 1]]) / size
-    worst = int(np.argmax(apart))
-    first, second = (int(i) for i in pairs[worst])
-    return StateTest(len(pairs), float(apart[worst]), (first, second))
+    difference = np.abs(target[pairs[:, 0]] - target[pairs[:, 1]]) / size
+    worst = int(np.argmax(difference))
+    i, j = (int(k) for k in pairs[worst])
+    return StateTest(len(pairs), float(difference[worst]), (i, j))

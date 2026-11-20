@@ -321,7 +321,11 @@ acceleration. The **state test** compares every such pair, closer than
 `{python} result["radius"]` standard deviations of each variable, and
 accepts the state when no pair differs by more than
 `{python} result["smoothness-limit"]` of the root-mean-square acceleration,
-the change a smooth law allows across so small a step.
+the change a smooth law allows across so small a step. It compares only
+separate visits: two samples of different orbits, or of one orbit at least
+`{python} result["apart"]` s apart. Two samples next to each other in time
+are always close and always nearly agree, whatever the state, so they would
+test nothing; without a pair of separate visits the test does not pass.
 
 ```{python}
 #| echo: false
@@ -347,7 +351,8 @@ same position and velocity, about `{python} result["witness-x"]` m and
 `{python} result["witness-a-second"]` $\mathrm{m/s^2}$, a difference of
 `{python} result["one-mass-largest"]` times the root-mean-square
 acceleration. On the state of both masses the test
-`{python} result["two-mass-test"]`, and the search
+`{python} result["two-mass-test"]` on its
+`{python} result["two-mass-pairs"]` pairs of separate visits, and the search
 `{python} result["two-mass-recovered"]`:
 `{python} result["two-mass-found"]`.]{.claim type="numerically-verified"
 scope="two coupled masses, positions without noise every 0.01 s, the cubic

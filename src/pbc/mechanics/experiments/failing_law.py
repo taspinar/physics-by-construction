@@ -235,6 +235,8 @@ def extend(experiment: Experiment):
     experiment.number("noise-percent", 100 * NOISE, "g")
     experiment.number("lightest", weights[0] * 1e3, ".2f")
     experiment.number("heaviest", weights[-1] * 1e3, ".2f")
+    experiment.number("reach-lightest", REACH[0] * 1e3, ".2g")
+    experiment.number("reach-heaviest", REACH[1] * 1e3, ".2g")
     experiment.number("residual-light", residuals[0], ".1f")
     experiment.number("residual-middle", residuals[len(residuals) // 2], ".1f")
     experiment.number("residual-heavy", residuals[-1], ".1f")
@@ -281,7 +283,7 @@ def extend(experiment: Experiment):
         " the quadratic drag.",
     )
     survivors = [name for name, result in after.items() if consistent(result)]
-    experiment.number("survivors", " and ".join(survivors) if survivors else "none")
+    experiment.number("survivors", "; ".join(survivors) if survivors else "none")
     force = after["quadratic drag and a constant force"]
     low, high = force.interval("p2")
     experiment.number("force-low", low * 1e6, ".1f")

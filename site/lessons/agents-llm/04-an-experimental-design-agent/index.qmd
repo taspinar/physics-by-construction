@@ -384,7 +384,7 @@ continuous measure of how far apart the readings put the models, separates
 them better: the adaptive rule and the hybrid, which choose each reading
 (the hybrid, its second half) where the fitted models part, leave a mean margin at least
 `{python} result["margin-ratio"]` times that of the grid.
-The model's sessions lie between: they started fast and slow blocks and
+The model's sessions lie between on average: they started fast and slow blocks and
 measured long times, as the explanation suggests, but did not push every
 reading to where the models part most. One session stopped at
 `{python} result["llm-readings-least"]` readings, which the evaluator
@@ -400,8 +400,8 @@ two models apart by their readings.
 #| label: fig-strategies
 #| echo: false
 #| fig-status: simulated
-#| fig-cap: "The chi-square difference between the two models that each strategy's readings gave, one point per seed, against the threshold that counts as telling the models apart. The adaptive rule and the hybrid lie highest; the scripted grid lies closest to the threshold."
-#| fig-alt: "A strip chart with four columns of open markers, one column per strategy: scripted, adaptive, LLM, and hybrid, each with five points. The vertical axis is the chi-square difference. A dashed horizontal line marks the threshold. The scripted points lie just above the line, one of them below it; the adaptive and hybrid points spread well above it; the LLM points lie between."
+#| fig-cap: "The chi-square difference between the two models that each strategy's readings gave, one point per seed, against the threshold that counts as telling the models apart. On average the adaptive rule and the hybrid lie highest and the scripted grid lowest, closest to the threshold."
+#| fig-alt: "A strip chart with four columns of open markers, one column per strategy: scripted, adaptive, LLM, and hybrid, each with five points. The vertical axis is the chi-square difference. A dashed horizontal line marks the threshold. The scripted points lie lowest on average, one of them below the line; the adaptive and hybrid points all lie above it and highest on average; the LLM points all lie above it, between the two on average."
 result.show("fig-strategies")
 ```
 
