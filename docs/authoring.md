@@ -2174,7 +2174,7 @@ proof. A deliberately wrong candidate lives in a module that says so in its
 first line (`pbc.verification.faulty_motion`), names the checks that must
 catch it, and is imported only by its lesson and the tests.
 
-
+The experimental design lesson (F20, `pbc.agents.design`, re-recorded with
 `python -m pbc.agents.design_lab --rig <name> --record`) puts two models to an
 agent that chooses where to measure. The build recomputes each reading from the
 arguments, scores the design from them alone, and fits both models. The
