@@ -19,6 +19,7 @@ lesson:
     - Say what makes a measurement useful for telling two models apart, and score a design before any reading exists
     - Read a worked run of an agent that chooses its measurements, and the assessment the build recomputed from it
     - Explain why measurements that fit one model better are not yet a result, and what an inconclusive design looks like
+    - Compare scripted, classical adaptive, language-model, and hybrid choices of readings under one budget, scored by an independent evaluator, with their uncertainty over seeds
   related: []
   prerequisites:
     lessons: [counterexample-hunter, inverse-physics]
@@ -269,6 +270,151 @@ excerpt(experiment.draw_design)
 result.show("fig-design")
 ```
 
+### Four strategies under one budget {#four-strategies}
+
+The two runs above show what one design can do. They do not say whether a
+language model is a good way to choose readings. A fixed plan written before
+any reading, or a classical rule that looks at each reading before choosing
+the next, might do as well for nothing. The fair question puts the
+strategies on the same rig, with the same budget, scored by the same judge,
+and repeats each one, because one run per strategy cannot rank them.
+
+The evidence here is of two kinds, kept apart. The strategies without a
+model are computed by this build. The model's choices are
+`{python} result["strategy-seeds"]` recorded sessions, one per seed of the
+instrument: each was a fresh Claude model in a Claude Code session on
+`{python} result["strategy-recorded"]`, given the system prompt, the task, and the tool, and nothing
+else, which sent each message through a harness command that ran its calls
+through the rig's allowlist. Those sessions could have read the repository;
+they were told not to, and their logs show only the harness command. Every
+reading below is recomputed from the arguments.
+
+The rig is new: a launcher that starts the block at no more than
+`{python} result["strategy-speed"]` m/s. On the full rig almost any spread
+of start speeds separates the models; on this one a good design of
+`{python} result["strategy-readings"]` readings clears the threshold and a
+mediocre one may not. The noise of a reading now depends on a **seed** of
+the instrument as well as on the arguments, so the same strategy meets
+other noise at another seed. No strategy is told the seed.
+
+```{python}
+#| echo: false
+from pbc.agents import strategy_lab
+from pbc.authoring import source_link
+from pbc.mechanics.experiments import design_strategies
+
+excerpt(strategy_lab, region="strategies")
+```
+
+- **Scripted.** The grid above, four start speeds at two times, fixed
+  before any reading.
+- **Adaptive.** Two opening readings, then each reading where the two
+  models, each fitted to the readings so far, predict speeds furthest
+  apart. This is the classical sequential rule of model discrimination: it
+  asks the rig the question on which the current best versions of the two
+  models disagree.
+- **LLM.** The model, in its recorded session at that seed.
+- **Hybrid.** The model's first `{python} result["hybrid-opening"]`
+  readings of its session at the same seed, then the adaptive rule.
+
+The adaptive rule, in full: its loop over the candidates is the point.
+
+```{python}
+#| echo: false
+excerpt(strategy_lab.adaptive)
+```
+
+```{python}
+#| echo: false
+excerpt(strategy_lab.hybrid)
+```
+
+Every strategy reaches the rig through the same harness: the two without a
+model are put in as clients that ask for one reading per message, with the
+same allowlist, the same budget of readings, and at most
+`{python} result["strategy-messages"]` messages. The **evaluator** of the
+evidence contract (the ledger of `pbc.evidence`) then records each strategy
+at each seed as an attempt, recomputes the judge's outcome from the
+readings, counts the readings and the messages itself, and stores what a
+session said in its last message apart, as its own unverified report. An
+attempt is correct when the readings discriminate the models in favour of
+quadratic drag, the law the simulated rig follows:
+
+```{python}
+#| echo: false
+excerpt(strategy_lab, region="correct")
+```
+
+A rate from five seeds is uncertain, and so is a mean. The table gives each
+strategy's count of correct attempts with its exact interval, and the mean
+chi-square difference with its standard error over the seeds:
+
+```{python}
+#| echo: false
+excerpt(design_strategies, region="uncertainty")
+```
+
+Before reading the table, predict: which strategy separates the models by
+the largest chi-square on average, and can five seeds per strategy say
+which one succeeds most often?
+
+```{python}
+#| label: strategies
+#| echo: false
+result.table("strategies")
+```
+
+[Of `{python} result["attempts"]` attempts in the ledger,
+`{python} result["not-completed"]` were invalid, missing, failed, or
+inconclusive, and `{python} result["invalidated"]` evaluations were
+invalidated by a changed artifact. On the five shared seeds
+the scripted grid was correct `{python} result["correct-scripted"]` times,
+the adaptive rule `{python} result["correct-adaptive"]`, the model
+`{python} result["correct-llm"]`, and the hybrid
+`{python} result["correct-hybrid"]`; the intervals of the four rates
+`{python} result["overlap-shared"]`. By the mean chi-square difference the
+order is `{python} result["difference-order"]`.]{.claim
+type="numerically-verified" scope="the medium rig, five seeds for every
+strategy and forty for the two without a model, the recorded sessions"
+evidence="strategies replay-one replay-two replay-three
+replay-four replay-five"} Five seeds cannot rank the strategies by
+success: a strategy correct at every seed and one correct at four have
+intervals that share most of their range. The chi-square difference, a
+continuous measure of how far apart the readings put the models, separates
+them better: the adaptive rule and the hybrid, which choose each reading
+(the hybrid, its second half) where the fitted models part, leave a mean margin at least
+`{python} result["margin-ratio"]` times that of the grid.
+The model's sessions lie between on average: they started fast and slow blocks and
+measured long times, as the explanation suggests, but did not push every
+reading to where the models part most. One session stopped at
+`{python} result["llm-readings-least"]` readings, which the evaluator
+counted, not the session.
+
+Over `{python} result["more-seeds"]` seeds the grid was correct `{python} result["correct-scripted-more"]`
+times and the adaptive rule `{python} result["correct-adaptive-more"]`; even
+there, their intervals `{python} result["overlap-more"]`. Telling two
+strategies apart by their rate of success needs many more runs than telling
+two models apart by their readings.
+
+```{python}
+#| label: fig-strategies
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "The chi-square difference between the two models that each strategy's readings gave, one point per seed, against the threshold that counts as telling the models apart. On average the adaptive rule and the hybrid lie highest and the scripted grid lowest, closest to the threshold."
+#| fig-alt: "A strip chart with four columns of open markers, one column per strategy: scripted, adaptive, LLM, and hybrid, each with five points. The vertical axis is the chi-square difference. A dashed horizontal line marks the threshold. The scripted points lie lowest on average, one of them below the line; the adaptive and hybrid points all lie above it and highest on average; the LLM points all lie above it, between the two on average."
+result.show("fig-strategies")
+```
+
+```{python}
+#| echo: false
+source_link(design_strategies.draw_strategies, figure=True)
+```
+
+The points are the evaluator's recomputed differences; the figure draws
+them and nothing else. A larger difference is not a truer law: every
+correct attempt favoured the same model, and the difference says only how
+far from the threshold the readings left the decision.
+
 ### Run the agent yourself
 
 This needs your own key and costs a few cents. The build does not run it, so
@@ -308,6 +454,10 @@ page with real recorded runs using the same commands and `--record`.
   written for the page, not a measurement of how a model designs. Nothing in
   the build checks whether its reasoning was sound, only the readings it asked
   for.
+- **Five sessions, one rig.** The comparison of the strategies holds for
+  this rig, this budget, and these seeds. Five recorded sessions measure how
+  this model chose readings with this prompt on that day, not how language
+  models design experiments; the intervals say how little five seeds fix.
 - **The examples are not recorded runs.** Each fixture says which model wrote
   its messages and when. They were written in a Claude Code session, not
   produced through the provider API, and a live run will choose other
@@ -371,13 +521,17 @@ reproduce_this(
     code=[
         "src/pbc/agents/design.py",
         "src/pbc/agents/design_lab.py",
+        "src/pbc/agents/strategy_lab.py",
         "src/pbc/data/fit.py",
+        "src/pbc/evidence/records.py",
         "src/pbc/mechanics/experiments/experimental_design_agent.py",
+        "src/pbc/mechanics/experiments/design_strategies.py",
         "src/pbc/experiment.py",
     ],
     tests=[
         "tests/unit/test_agents_design.py",
         "tests/integration/test_agent_replay.py",
+        "tests/unit/test_strategy_lab.py",
         "tests/unit/test_experimental_design_agent_experiment.py",
     ],
 )

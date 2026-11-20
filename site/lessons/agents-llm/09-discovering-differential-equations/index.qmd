@@ -19,6 +19,7 @@ lesson:
     - Find an equation of motion as a sparse sum of library terms with sequentially thresholded least squares
     - Test a found equation by integrating it from a held-out start
     - Detect with the singular values of the library when the data admit several equations, and say which data remove the ambiguity
+    - Test a choice of state variables, detect that a state lacks a variable the dynamics need, and name the state that removes the failure
   related: [equations-from-noisy-trajectories]
   format: 2
   preview: fig-held-out
@@ -31,7 +32,7 @@ lesson:
 
 ```{python}
 #| echo: false
-from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
 from pbc.discovery import equations
 from pbc.mechanics.experiments import discovering_differential_equations as experiment
 
@@ -272,6 +273,124 @@ ironic: the most important property of the motion hides its equation. The
 remedy is data that break the relation, such as several energies, or a
 library chosen so that the relation cannot be written in it.
 
+### A state that is not a state {#state-that-is-not-a-state}
+
+Every search so far was handed its **state**: the position and the velocity
+of the one mass. That is a hypothesis, not a fact of the data. A state is
+what you need to know to say what happens next; for one mass on a spring the
+position and the velocity are enough, because the force depends on nothing
+else. If the dynamics need a variable that the camera does not record, the
+search is asked a question that has no answer in its library.
+
+Take two equal masses, each on its own spring, joined by a third spring. The
+camera tracks only the first one. Its acceleration depends on where the
+second mass is, through the spring between them:
+
+$$
+\ddot x_1 = -\left(\frac{k}{m} + \frac{k_c}{m}\right) x_1 + \frac{k_c}{m}\, x_2 .
+$$
+
+```{python}
+#| echo: false
+from pbc.discovery import state_selection as selection
+from pbc.mechanics.experiments import state_selection as coupled
+
+excerpt(coupled, region="coupled")
+```
+
+The search on a named state uses the same rule as before: every product of
+the state's variables up to the third power, the same threshold, and the
+same thresholded least squares as `sparse_regression`.
+
+```{python}
+#| echo: false
+excerpt(selection.library)
+```
+
+Before reading on, predict what the search returns on the state
+$(x_1, v_1)$ alone: an error, a long sum of every term, or a short equation?
+
+The regression has no way to object. It returns the best sum of the terms it
+was given, and here that is a short one:
+`{python} result["one-mass-found"]`, with
+`{python} result["one-mass-terms"]` terms. It reads like a slightly
+nonlinear spring. Only a test of the state itself shows what is wrong. If
+$(x_1, v_1)$ were a state, two moments at which the position and the
+velocity of the first mass nearly agree would have nearly the same
+acceleration. The **state test** compares every such pair, closer than
+`{python} result["radius"]` standard deviations of each variable, and
+accepts the state when no pair differs by more than
+`{python} result["smoothness-limit"]` of the root-mean-square acceleration,
+the change a smooth law allows across so small a step. It compares only
+separate visits: two samples of different orbits, or of one orbit at least
+`{python} result["apart"]` s apart. Two samples next to each other in time
+are always close and always nearly agree, whatever the state, so they would
+test nothing; without a pair of separate visits the test does not pass.
+
+```{python}
+#| echo: false
+excerpt(selection.state_test)
+```
+
+```{python}
+#| echo: false
+excerpt(coupled.two_states)
+```
+
+```{python}
+#| label: state-selection
+#| echo: false
+result.table("state-selection")
+```
+
+[On the state of the first mass the search returns a short equation and
+the state test `{python} result["one-mass-test"]`: two samples at nearly the
+same position and velocity, about `{python} result["witness-x"]` m and
+`{python} result["witness-v"]` m/s, have accelerations of
+`{python} result["witness-a-first"]` and
+`{python} result["witness-a-second"]` $\mathrm{m/s^2}$, a difference of
+`{python} result["one-mass-largest"]` times the root-mean-square
+acceleration. On the state of both masses the test
+`{python} result["two-mass-test"]` on its
+`{python} result["two-mass-pairs"]` pairs of separate visits, and the search
+`{python} result["two-mass-recovered"]`:
+`{python} result["two-mass-found"]`.]{.claim type="numerically-verified"
+scope="two coupled masses, positions without noise every 0.01 s, the cubic
+library of each state" evidence="state-selection"}
+The witness pair names the missing variable. At the first sample the second
+mass was at `{python} result["witness-x2-first"]` m, at the other at
+`{python} result["witness-x2-second"]` m: the same state of the first mass,
+pulled in opposite directions by the spring between them. The state that
+removes the failure is the one that adds the second mass's position and
+velocity, which here means pointing the camera at it too.
+
+```{python}
+#| label: fig-missing-state
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "The position of the first mass from a held-out start: the true motion, the motion of the equation found on the state of the first mass alone, and the motion of the equations found on the state of both masses. The first drifts away within a few seconds; the second follows the truth."
+#| fig-alt: "Line plot of the position of the first mass against time over ten seconds, with three curves told apart by line style. The solid true motion beats as energy passes between the two masses. The dashed curve of the one-mass equation oscillates with a steady amplitude and soon departs from it. The dotted curve of the two-mass equations lies on the solid curve throughout."
+result.show("fig-missing-state")
+```
+
+```{python}
+#| echo: false
+source_link(coupled.draw_missing_state, figure=True)
+```
+
+[From the held-out start the equation of the one-mass state is wrong by up
+to `{python} result["one-mass-held-out"]` m within ten seconds; the
+equations of the two-mass state follow the truth within
+`{python} result["two-mass-held-out"]` m.]{.claim
+type="numerically-verified" scope="one held-out start, ten seconds, the
+coupled masses" evidence="fig-missing-state state-selection"}
+The one-mass equation cannot beat, because a single equation in $x_1$ and
+$v_1$ has no place to store the energy that the true motion passes to the
+second mass and back. A missing state shows up three ways here: a residual
+far above the error of the differences, a pair of samples that the state
+calls the same and the dynamics do not, and a failed prediction. Only the
+second points to the cure.
+
 ## Limits {#limits}
 
 - **Clean data only.** The derivatives here are exact up to the time step.
@@ -287,6 +406,11 @@ library chosen so that the relation cannot be written in it.
 - **One held-out start is one test.** The found equation agrees with the
   truth from one start for ten seconds. That supports it over the probed
   amplitudes, not for every start or every time.
+- **The state is chosen, not found.** The state test can reject a state
+  and its witness pair can point to what is missing, but the cure, a
+  variable to record, comes from physics outside the data. A variable that
+  cannot be measured would need to be inferred, which this lesson does not
+  attempt.
 - **Recovered is not explained.** The regression returns coefficients, not
   their meaning. That the $x$ coefficient is a stiffness over a mass and the
   $v$ coefficient a damping rate is the reader's physics, not the method's
@@ -354,12 +478,15 @@ contain it. The found equation is a law of the training range.
 reproduce_this(
     code=[
         "src/pbc/discovery/equations.py",
+        "src/pbc/discovery/state_selection.py",
         "src/pbc/mechanics/integrators.py",
         "src/pbc/mechanics/experiments/discovering_differential_equations.py",
+        "src/pbc/mechanics/experiments/state_selection.py",
         "src/pbc/experiment.py",
     ],
     tests=[
         "tests/unit/test_equations.py",
+        "tests/unit/test_state_selection.py",
         "tests/unit/test_discovering_differential_equations_experiment.py",
     ],
 )

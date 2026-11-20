@@ -1,0 +1,163 @@
+{
+  "format": 1,
+  "model": "claude-opus-5-5 in a Claude Code session",
+  "recorded": "2026-11-20",
+  "system": "You are a careful experimenter who designs measurements. You can only use the tools you are given, and only a limited number of measurements. Choose each measurement so that it helps to tell the two models apart, and say why. At the end say which model the measurements favour and how sure you are, or say that they do not tell the models apart. Do not say that a model is true because it fits.",
+  "task": "A block of 2 kg slides on a table and slows down; the launcher of this rig cannot start it faster than 4 m/s. Two models of the drag compete: linear drag, v = v0 exp(-g t), and quadratic drag, v = v0 / (1 + k v0 t), with g and k unknown. Each reading of the speed has a standard uncertainty of 0.1 m/s. Choose at most 8 measurements, with a start speed of at most 4 m/s, that tell the two models apart.",
+  "steps": [
+    {
+      "text": "Plan: the two models differ most in how the decay depends on the start speed. Linear drag gives a fractional decay exp(-g t) that is the same for every v0; quadratic drag decays faster at high v0 and has a long 1/t tail. So I first measure at the highest allowed start speed, 4 m/s, at a short and a long time, to estimate the rate and the shape of the curve. Then I will compare with a low start speed.",
+      "tool_calls": [
+        {
+          "id": "call-1-1",
+          "name": "measure_speed",
+          "arguments": {
+            "initial_speed": 4.0,
+            "time": 1.0,
+            "repeat": 1
+          }
+        },
+        {
+          "id": "call-1-2",
+          "name": "measure_speed",
+          "arguments": {
+            "initial_speed": 4.0,
+            "time": 4.0,
+            "repeat": 1
+          }
+        }
+      ],
+      "results": [
+        {
+          "call_id": "call-1-1",
+          "ok": true,
+          "content": {
+            "speed": 3.30532366513733
+          }
+        },
+        {
+          "call_id": "call-1-2",
+          "ok": true,
+          "content": {
+            "speed": 2.1336766149175688
+          }
+        }
+      ]
+    },
+    {
+      "text": "From v0=4: v(1)=3.31, v(4)=2.13. Linear fitted to t=1 (g~0.19) predicts v(4)~1.87; quadratic fitted to t=1 (k~0.053) predicts v(4)~2.17. Suggestive of quadratic, but one point each. The sharpest test is the v0 dependence: with parameters fitted at v0=4 (g~0.16 using both points, k~0.053), at v0=1 linear predicts v(5)~0.45, v(10)~0.21, while quadratic predicts v(5)~0.79, v(10)~0.66 -- differences of 3-4 sigma per reading. I also add v0=4 at t=10 (linear ~0.83, quadratic ~1.29) to test the long tail.",
+      "tool_calls": [
+        {
+          "id": "call-2-1",
+          "name": "measure_speed",
+          "arguments": {
+            "initial_speed": 1.0,
+            "time": 5.0,
+            "repeat": 1
+          }
+        },
+        {
+          "id": "call-2-2",
+          "name": "measure_speed",
+          "arguments": {
+            "initial_speed": 1.0,
+            "time": 10.0,
+            "repeat": 1
+          }
+        },
+        {
+          "id": "call-2-3",
+          "name": "measure_speed",
+          "arguments": {
+            "initial_speed": 4.0,
+            "time": 10.0,
+            "repeat": 1
+          }
+        }
+      ],
+      "results": [
+        {
+          "call_id": "call-2-1",
+          "ok": true,
+          "content": {
+            "speed": 0.643060739082488
+          }
+        },
+        {
+          "call_id": "call-2-2",
+          "ok": true,
+          "content": {
+            "speed": 0.6363368025347153
+          }
+        },
+        {
+          "call_id": "call-2-3",
+          "ok": true,
+          "content": {
+            "speed": 1.331852321273805
+          }
+        }
+      ]
+    },
+    {
+      "text": "Results: v0=1: v(5)=0.64, v(10)=0.64; v0=4: v(10)=1.33. Linear with one g cannot fit: v0=4,t=1 needs g~0.19 while v0=1,t=10 needs g~0.045; with g~0.16 it predicts 0.21 and 0.83 at t=10, 4-5 sigma below. Quadratic (k~0.053) predicts 0.79, 0.66, 1.29: the t=10 points agree, v0=1,t=5 is 1.5 sigma low. Because v(5) and v(10) at v0=1 look equal, I check them with independent repeats, and add a third start speed, v0=2 at t=10 (quadratic ~0.98, linear ~0.42), to test the v0 dependence once more.",
+      "tool_calls": [
+        {
+          "id": "call-3-1",
+          "name": "measure_speed",
+          "arguments": {
+            "initial_speed": 1.0,
+            "time": 5.0,
+            "repeat": 2
+          }
+        },
+        {
+          "id": "call-3-2",
+          "name": "measure_speed",
+          "arguments": {
+            "initial_speed": 1.0,
+            "time": 10.0,
+            "repeat": 2
+          }
+        },
+        {
+          "id": "call-3-3",
+          "name": "measure_speed",
+          "arguments": {
+            "initial_speed": 2.0,
+            "time": 10.0,
+            "repeat": 1
+          }
+        }
+      ],
+      "results": [
+        {
+          "call_id": "call-3-1",
+          "ok": true,
+          "content": {
+            "speed": 0.7708188280422191
+          }
+        },
+        {
+          "call_id": "call-3-2",
+          "ok": true,
+          "content": {
+            "speed": 0.7517094289715022
+          }
+        },
+        {
+          "call_id": "call-3-3",
+          "ok": true,
+          "content": {
+            "speed": 1.1253607012296194
+          }
+        }
+      ]
+    },
+    {
+      "text": "Conclusion (8 measurements used). Data: v0=4: v(1)=3.31, v(4)=2.13, v(10)=1.33; v0=2: v(10)=1.13; v0=1: v(5)=0.64, 0.77 (mean 0.71), v(10)=0.64, 0.75 (mean 0.69). The key design choice was varying the start speed: linear drag predicts the same fractional decay for every v0, quadratic drag predicts that slow blocks decay much more slowly. The fractional decay at t=10 is 0.33 (v0=4), 0.56 (v0=2), 0.69 (v0=1): strongly dependent on v0, which no single g can reproduce. Linear drag with g fitted to the early v0=4 data (~0.16-0.19) misses v0=4,t=10 by ~5 sigma, v0=2,t=10 by ~7 sigma and the v0=1,t=10 mean by ~6 sigma; no other g fits the early and late points together. Quadratic drag with k~0.05 /(m) fits all points within about 1.5 sigma (largest residuals: v0=2,t=10 observed 1.13 vs ~0.98; v0=1 decays slightly less between t=5 and t=10 than predicted). Verdict: the measurements clearly favour quadratic over linear drag; I am highly confident linear drag is ruled out for this rig. This does not show that quadratic drag is the true law: it is only the better of the two candidates, and the small residuals (weaker decay at low speed) leave room for another speed dependence, which more low-speed, long-time readings would test.",
+      "tool_calls": [],
+      "results": []
+    }
+  ]
+}

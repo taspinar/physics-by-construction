@@ -12,6 +12,7 @@ from pbc.agents.bounded_lab import REPLAY_FILE as BOUNDED_REPLAY_FILE
 from pbc.agents.design_lab import RIGS, replay_rig
 from pbc.agents.hunter_lab import HUNTS, replay_hunt
 from pbc.agents.projectile_lab import RECORD_COMMAND, REPLAY_FILE, replay_fixture
+from pbc.agents.strategy_lab import RECORDINGS
 
 ROOT = Path(__file__).parents[2]
 LESSON = ROOT / "site" / "lessons" / "agents-llm" / "01-an-agent-runs-an-experiment"
@@ -161,7 +162,9 @@ def test_the_design_fixtures_hold_no_credential_and_are_not_placeholders(name):
     assert "placeholder" not in recording.model.lower()
 
 
-def test_the_design_lesson_holds_only_the_page_and_its_two_fixtures():
+def test_the_design_lesson_holds_only_the_page_and_its_fixtures():
+    # The two rigs' runs, and the five recorded sessions of MD8's language-model
+    # strategy (F147).
     kept = {p.name for p in DESIGN_LESSON.iterdir() if p.name != "index_files"}
-    fixtures = {rig.fixture for rig in RIGS.values()}
+    fixtures = {rig.fixture for rig in RIGS.values()} | set(RECORDINGS.values())
     assert kept - {"index.html"} == {"index.qmd", *fixtures}
