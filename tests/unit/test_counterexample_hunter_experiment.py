@@ -34,3 +34,50 @@ def test_the_judge_decides_from_the_results_not_the_words(results):
     assert said[0].endswith("counterexample")
     assert not said[1].endswith(": counterexample")
     assert "counterexample" not in found["outputs"]["forged-results"].split(":")[1]
+
+
+# --- Physical constraints (SA7). ---
+
+
+def test_the_exact_motion_has_no_counterexample(results):
+    _, found = results
+    rows = {row[0]: row[1:] for row in found["tables"]["constraint-outcomes"]["rows"]}
+
+    assert rows["exact motion"] == ["none found"] * 4
+
+
+def test_each_check_finds_a_counterexample_to_a_wrong_candidate(results):
+    _, found = results
+    table = found["tables"]["constraint-outcomes"]
+    rows = [row[1:] for row in table["rows"] if row[0] != "exact motion"]
+
+    assert len(rows) == 4
+    for column in range(4):
+        assert "counterexample" in [row[column] for row in rows]
+
+
+def test_the_witnesses_are_the_counterexamples_of_the_outcomes(results):
+    _, found = results
+    outcomes = found["tables"]["constraint-outcomes"]
+    checks = outcomes["columns"][1:]
+    expected = {
+        (row[0], check)
+        for row in outcomes["rows"]
+        for check, outcome in zip(checks, row[1:], strict=True)
+        if outcome == "counterexample"
+    }
+    witnesses = found["tables"]["constraint-witnesses"]["rows"]
+
+    assert {(row[0], row[1]) for row in witnesses} == expected
+
+
+def test_the_missing_root_at_a_unit_ratio_is_found_by_dimensions_alone(results):
+    _, found = results
+    assert found["numbers"]["unit-ratio-checks"] == "dimensions"
+
+
+def test_the_exercise_candidate_fails_dimensions_and_limits(results):
+    _, found = results
+    rows = found["tables"]["constraint-exercise"]["rows"]
+
+    assert [row[1] for row in rows] == ["dimensions", "limits"]

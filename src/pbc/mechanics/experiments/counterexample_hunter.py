@@ -3,7 +3,10 @@
 An agent that hunts for a counterexample to a claim about the energy drift
 of an integrator (``pbc.agents.hunter_lab``): the bounds of its one tool,
 the replay of two recorded hunts, and the judge that decides from the
-recomputed results, not from what the agent says. Run it as a program to
+recomputed results, not from what the agent says; then physical constraints
+as hunts for a counterexample to a closed form of the oscillator's motion
+(``pbc.verification.constraints``), on the exact motion and on four closed
+forms that are wrong on purpose. Run it as a program to
 write the figure and numbers of the page:
 
     uv run --locked --no-dev \\
@@ -38,6 +41,19 @@ from pbc.authoring import FIGURE_COLOURS
 from pbc.authoring.repository import REPOSITORY_ROOT
 from pbc.experiment import Experiment, main
 from pbc.figure_language import LINE, figsize, figure_style, finish
+from pbc.mechanics.dynamics import State
+from pbc.mechanics.oscillator import energy, harmonic_motion
+from pbc.verification.constraints import (
+    CHECKS,
+    SCALINGS,
+    TOLERANCE,
+    WEAK,
+    Case,
+    conservation,
+    examine,
+    symmetry,
+)
+from pbc.verification.faulty_motion import EXERCISE, GALLERY
 
 # The live run of the lesson: a model, its key, and the extra openai.
 LIVE = "pbc.agents.hunter_lab"
@@ -188,6 +204,135 @@ def stricter_claim(open_transcript):
     print("original claim:", judge(OPEN_CLAIM, open_transcript, tools()).outcome)
 
 
+# --- Physical constraints as hunts for a counterexample (SA7). ---
+
+# The exact motion and the four closed forms that are wrong on purpose.
+CANDIDATES = (
+    ("exact motion", harmonic_motion),
+    *((g.name, g.motion) for g in GALLERY),
+)
+# The start of the second case, at a ratio k / m of one per second squared.
+UNIT_RATIO = (Case(mass=1.0, k=1.0, x0=0.12, v0=-0.45),)
+
+
+def constraint_rows():
+    """One row per candidate: the outcome of each check."""
+    return [
+        (name, *(f.outcome for f in examine(motion))) for name, motion in CANDIDATES
+    ]
+
+
+def _witness_row(name, finding):
+    case = finding.case
+    return (
+        name,
+        finding.check,
+        finding.trial,
+        case.mass,
+        case.k,
+        case.x0,
+        case.v0,
+        finding.deviation,
+    )
+
+
+def witness_rows(candidates):
+    """One row per counterexample: the candidate, the check, the trial, the
+    case, and the relative deviation."""
+    return [
+        _witness_row(name, f)
+        for name, motion in candidates
+        for f in examine(motion)
+        if f.counterexample
+    ]
+
+
+WITNESS_COLUMNS = [
+    ("candidate", "", ""),
+    ("check", "", ""),
+    ("trial", "", ""),
+    ("m", "kg", "g"),
+    ("k", "N/m", "g"),
+    ("x0", "m", "g"),
+    ("v0", "m/s", "g"),
+    ("relative deviation", "", ".2f"),
+]
+
+
+def draw_constraint_witnesses() -> Figure:
+    """Two witnesses, each beside what its constraint demands: the energy of
+    the frequency in hertz against the exact motion's, and the arctangent's
+    motion from the mirrored start against the mirror image of its motion
+    from the start."""
+    hertz = conservation(GALLERY[3].motion)
+    mirror = symmetry(GALLERY[1].motion)
+    demanded = {"linestyle": "--", "color": FIGURE_COLOURS[0]}
+    wrong = {"linestyle": "-", "color": FIGURE_COLOURS[1]}
+    with figure_style():
+        fig, (top, bottom) = plt.subplots(2, 1, figsize=figsize("pair", legend=3))
+        case = hertz.case
+        t = np.linspace(0.0, case.times()[-1], 400)
+        for motion, style in ((harmonic_motion, demanded), (GALLERY[3].motion, wrong)):
+            e = energy(motion(case.start(), case.mass, case.k, t), case.mass, case.k)
+            top.plot(t, e / e[0], **style)
+        top.set_xlabel("time (s)")
+        top.set_ylabel("energy over its\nstarting value")
+        top.set_title("Conservation: frequency in hertz")
+
+        case = mirror.case
+        t = np.linspace(0.0, case.times()[-1], 400)
+        motion = GALLERY[1].motion
+        forward = motion(case.start(), case.mass, case.k, t)
+        mirrored = motion(State(0.0, -case.x0, -case.v0), case.mass, case.k, t)
+        bottom.plot(
+            t, -forward.x[:, 0], **demanded, label="what the constraint demands"
+        )
+        bottom.plot(t, mirrored.x[:, 0], **wrong, label="the wrong candidate")
+        bottom.plot(0.0, -case.x0, "ko", markersize=4, label="the mirrored start")
+        bottom.set_xlabel("time (s)")
+        bottom.set_ylabel("position (m)")
+        bottom.set_title("The mirror: phase from the arctangent")
+        fig.legend(*bottom.get_legend_handles_labels(), loc="outside lower center")
+    return finish(fig)
+
+
+def unit_ratio():
+    """The checks that find the missing square root at k / m = 1 s⁻²."""
+    found = examine(GALLERY[0].motion, UNIT_RATIO)
+    return ", ".join(f.check for f in found if f.counterexample)
+
+
+def constraints_on_the_page(experiment: Experiment) -> None:
+    """The numbers, tables, and figure of the section on physical
+    constraints."""
+    experiment.number("constraint-tolerance", TOLERANCE, ".0e")
+    experiment.number("constraint-scalings", len(SCALINGS), "d")
+    experiment.number("constraint-weak", WEAK, ".0e")
+    experiment.number("unit-ratio-checks", unit_ratio())
+    experiment.table(
+        "constraint-outcomes",
+        constraint_rows(),
+        [("candidate", "", ""), *((check, "", "") for check in CHECKS)],
+        "The outcome of each check on each candidate: a counterexample, or"
+        " none found in the trials of the check.",
+    )
+    experiment.table(
+        "constraint-witnesses",
+        witness_rows(CANDIDATES),
+        WITNESS_COLUMNS,
+        "The first counterexample each check found: the candidate, the trial,"
+        " the case, and the relative deviation from what the constraint"
+        " demands, to two decimals (the tolerance is far below).",
+    )
+    experiment.figure("fig-constraint-witnesses", draw_constraint_witnesses)
+    experiment.table(
+        "constraint-exercise",
+        witness_rows([(EXERCISE.name, EXERCISE.motion)]),
+        WITNESS_COLUMNS,
+        "The counterexamples the checks find to the candidate of the exercise.",
+    )
+
+
 def run() -> Experiment:
     """Everything the lesson's page shows."""
     experiment = Experiment()
@@ -222,6 +367,7 @@ def run() -> Experiment:
         smallest_counterexample()
     with experiment.capture("stricter-claim"):
         stricter_claim(open_transcript)
+    constraints_on_the_page(experiment)
     return experiment
 
 

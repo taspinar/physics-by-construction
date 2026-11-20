@@ -4,7 +4,10 @@ description: >-
   A language model tries to refute two claims about integrators through a
   bounded list of simulations; the build recomputes every experiment and
   decides the verdict itself, so that only a recomputed counterexample counts
-  as a result and a failed hunt is labelled inconclusive.
+  as a result and a failed hunt is labelled inconclusive. Then dimensions,
+  symmetries, limiting cases, and conservation as hunts with a known place to
+  look, which reject four plausible but wrong formulas for the motion of an
+  oscillator.
 lesson:
   id: counterexample-hunter
   strand: agents-llm
@@ -19,6 +22,8 @@ lesson:
     - State a falsifiable claim with a predicate and a budget of experiments
     - Read a worked hunt and the verdict the build recomputed from it
     - Explain why a failed hunt is inconclusive and not a proof
+    - Reject a plausible formula with a check of its dimensions, symmetries, limiting cases, or conservation, and name its counterexample
+    - Explain why a formula that passes every constraint check is not thereby correct
   related: [verifying-scientific-code]
   prerequisites:
     lessons: [agent-experiment, numerical-integrators]
@@ -332,6 +337,192 @@ it computed itself, not the model's words. A maintainer can replace the two
 authored fixtures of this page with real recorded runs, with the same commands
 and `--record`.
 
+## Physical constraints {#physical-constraints}
+
+The hunts above searched without knowing where a counterexample might be:
+the agent chose steps and run lengths, and the budget bounded what it could
+try. A claim about physics often says where to look. Every correct motion of
+a mass on a spring obeys constraints that need no reference solution: it does
+not depend on the units it is computed in, it has the symmetries of its force,
+it becomes a known motion in a limiting case, and it keeps its energy. Each
+constraint is itself a claim about every input, so one input that breaks it
+is a counterexample, and the constraint names the input to try.
+
+No model runs in this section. The candidates are closed forms written for
+the page, four of them wrong on purpose, and the build computes every outcome
+below.
+
+### The claim and its candidates
+
+The claim is that a closed form is the motion of a mass $m$ on a spring of
+constant $k$, $\ddot x = -(k/m)\,x$, from the position $x_0$ and the velocity
+$v_0$. The exact motion is
+
+$$
+x(t) = x_0 \cos \omega t + \frac{v_0}{\omega} \sin \omega t,
+\qquad \omega = \sqrt{k/m},
+$$
+
+the function `harmonic_motion` of the course. Four candidates are wrong in
+the ways a formula derived by hand, or written by a model, is often wrong.
+They live in `pbc.verification.faulty_motion`, a module that says in its first
+line that they are wrong on purpose, as the faulty steppers of the lesson on
+verifying scientific code do. Two of them:
+
+```{python}
+#| echo: false
+from pbc.authoring import source_link
+from pbc.verification import constraints, faulty_motion
+
+excerpt(faulty_motion.phase_from_the_arctangent)
+```
+
+```{python}
+#| echo: false
+excerpt(faulty_motion.frequency_in_hertz)
+```
+
+The other two are the *missing square root*, $\omega = k/m$, and the *phase
+with the wrong sign*, $\cos(\omega t + \varphi)$ where the derivation gives
+$\cos(\omega t - \varphi)$. Each is one plausible line. The arctangent gives
+the right motion for every start at a positive displacement; the frequency in
+hertz differs from the right one by a factor $2\pi$, which has no unit.
+
+### Four checks, each a hunt
+
+A check is a hunt with a fixed list of trials. It goes through the cases below
+in order and stops at the first trial that breaks its constraint by more than
+a relative `{python} result["constraint-tolerance"]`, a tolerance written down
+before any check ran. That trial is the **witness**: a recomputed
+counterexample to the claim. A check that finds none says how many trials it
+made, and nothing more.
+
+```{python}
+#| echo: false
+excerpt(constraints, region="cases")
+```
+
+- **Dimensions.** The motion computed in
+  `{python} result["constraint-scalings"]` other systems of units of mass,
+  length, and time, and converted back, is the same motion.
+- **Symmetry.** The mirror, and time reversal.
+- **Limits.** At the start the motion is the start itself; on a spring with
+  $k/m$ = `{python} result["constraint-weak"]` per second squared, too weak to
+  matter over two periods, it is the free motion $x_0 + v_0 t$.
+- **Conservation.** The energy $\tfrac12 m v^2 + \tfrac12 k x^2$ does not
+  change.
+
+The symmetry check, whole: each symmetry becomes two motions that must agree.
+
+```{python}
+#| echo: false
+excerpt(constraints.symmetry)
+```
+
+The dimensions check needs no solution of the motion at all, only the
+candidate and a change of units. For each case, with `reference` the motion
+at the case's times `t`, it computes the motion again in other units and
+converts it back:
+
+```{python}
+#| echo: false
+excerpt(constraints.dimensions, lines=(9, 17))
+```
+
+### Which check finds which fault?
+
+The frequency in hertz is the fault that the unit check of the lesson on
+verifying scientific code could not find in its simulation of the driven
+oscillator, because a factor of $2\pi$ has no unit. Before reading the table:
+which of the four checks finds it here? And which wrong candidate can only
+one check see?
+
+```{python}
+#| label: constraint-outcomes
+#| echo: false
+result.table("constraint-outcomes")
+```
+
+[The exact motion passes all four checks, and every check finds a
+counterexample to at least one wrong candidate; three of the four faults are
+found by one check alone.]{.claim type="numerically-verified"
+scope="the closed forms and the cases of this section"
+evidence="constraint-outcomes"} Each fault meets the constraint it breaks:
+
+- The **frequency in hertz** escapes the dimensions check here, as it escaped
+  the unit check there, and is found by conservation: at the wrong frequency
+  the kinetic and the potential energy no longer trade at the rate the spring
+  sets.
+- The **missing square root** is found by dimensions and by conservation. At
+  a ratio $k/m$ of one per second squared, the value a test is most likely
+  written with, $k/m$ and $\sqrt{k/m}$ are the same number, and of the four
+  checks only `{python} result["unit-ratio-checks"]` finds it: a change of
+  units does not keep the convenient number.
+- The **phase from the arctangent** is found by the mirror only. Every case
+  starts at a positive displacement, as most tests would; the mirror asks for
+  the motion from a negative one, an input no case contains.
+- The **phase with the wrong sign** is found by the limits only, and not in
+  the first case: from rest the wrong sign changes nothing. With a velocity,
+  the motion leaves its start in the wrong direction.
+
+The witnesses, as the checks report them:
+
+```{python}
+#| label: constraint-witnesses
+#| echo: false
+result.table("constraint-witnesses")
+```
+
+Two of them, drawn beside what their constraints demand:
+
+```{python}
+#| label: fig-constraint-witnesses
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Two counterexamples, each beside what its constraint demands. Top: the energy of the frequency in hertz falls and rises over two periods while the exact motion keeps it. Bottom: from the mirrored start, the phase from the arctangent runs on top of the unmirrored motion instead of its mirror image, and does not begin at its start."
+#| fig-alt: "Two stacked line charts against time in seconds. Top: energy over its starting value; a dashed line stays at one, a solid curve starts at one, falls almost to zero, and begins to rise again. Bottom: position in metres; a dashed curve starts at a dot below zero and oscillates, a solid curve starts above zero and oscillates in opposite phase to it."
+result.show("fig-constraint-witnesses")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_constraint_witnesses, figure=True)
+```
+
+Both curves are closed forms evaluated by the build at the witness's case.
+The lower panel shows more than the mirror asked: from a negative
+displacement the arctangent's motion does not even begin where it starts. A
+limit check would have seen that, if a case had started there; the symmetry
+reached the input without anyone writing it down.
+
+### Passing is not a proof
+
+The exact motion passes because it solves the equation, which the course
+derived; the four checks did not make it right. They are necessary
+conditions, run on a few cases. A closed form whose velocity is not the
+derivative of its position can keep an energy constant and still be no
+motion: none of the four checks compares the two. A candidate that passes
+every check has the status of an inconclusive hunt: no counterexample was
+found in these trials.
+
+### The debugging cases of verifying scientific code
+
+The lesson on verifying scientific code applies the same kinds of constraint
+to code instead of a formula, and its faulty steppers and faulty simulations
+are the cases to read beside these.
+
+| Constraint here | There |
+|---|---|
+| Dimensions | The units check of the driven oscillator, which rescales mass, length, and time and finds the drive not divided by the mass at any mass |
+| Limits | The limit tests: a constant force, the free decay, the static deflection; Verlet without the half fails the first |
+| Conservation | The energy test of the steppers and the energy balance of the driven oscillator; explicit Euler posing as symplectic fails the first |
+| Symmetry | No test of its own. A symmetry works the other way there: the oscillator's force does not depend on the time, so Verlet with a stopped clock passes every physical test, and only the interface test `clock` finds it |
+
+The frequency in hertz is the same mistake in both lessons, and the same
+kind of constraint finds it: here the conservation of the energy, there the
+energy balance, together with the convergence to the exact motion, which was
+computed for an angular frequency.
+
 ## Limits {#limits}
 
 - **A counterexample refutes a claim about every case; it measures nothing
@@ -350,6 +541,12 @@ and `--record`.
   its messages and on what date. These two were written by a Claude model in a
   Claude Code session, not produced through the provider API of the live
   client, and a live run will choose other experiments.
+- **The constraint checks are necessary conditions, run on a few cases.**
+  A counterexample they find refutes a candidate; a candidate they pass is
+  not shown to be the motion. The four constraints are those of the
+  oscillator, and another system has its own: a damped motion does not keep
+  its energy, and a driven one does not have time reversal. The candidates
+  are written for the page, not produced by a model.
 
 ## Exercises
 
@@ -399,6 +596,35 @@ number, and its verdict is still inconclusive.
 :::
 :::
 
+::: {.exercise}
+Another way to get the closed form wrong: $x_0 \cos \omega t + v_0 \sin \omega t$,
+with the velocity its derivative, forgets the division by $\omega$. Which of
+the four checks find a counterexample? One of them passes although the
+formula is wrong: what does it conserve?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(faulty_motion.division_by_omega_forgotten)
+```
+
+```{python}
+#| label: constraint-exercise
+#| echo: false
+result.table("constraint-exercise")
+```
+
+Dimensions and the limits find it. The term $v_0 \sin \omega t$ is a velocity
+where a length belongs, and a change of units shows it, in the second case,
+the first with a velocity. At the start the velocity is $v_0 \omega$, not
+$v_0$. Conservation passes: the candidate keeps
+$\tfrac12 k (x_0^2 + v_0^2)$ constant, a sum of a squared length and a
+squared velocity, which is a constant and not an energy. A check passes only
+what it tests; the dimensions check is the one that says what is wrong with
+the formula.
+:::
+:::
+
 ## Replay this experiment {#reproduce-this}
 
 ```{python}
@@ -408,12 +634,16 @@ reproduce_this(
         "src/pbc/agents/hunter.py",
         "src/pbc/agents/hunter_lab.py",
         "src/pbc/agents/tools.py",
+        "src/pbc/verification/constraints.py",
+        "src/pbc/verification/faulty_motion.py",
+        "src/pbc/mechanics/oscillator.py",
         "src/pbc/mechanics/experiments/counterexample_hunter.py",
         "src/pbc/experiment.py",
     ],
     tests=[
         "tests/unit/test_agents_hunter.py",
         "tests/unit/test_agents_tools.py",
+        "tests/unit/test_verification_constraints.py",
         "tests/unit/test_counterexample_hunter_experiment.py",
     ],
 )
