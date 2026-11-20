@@ -344,7 +344,7 @@ closely than the agent's claim, which is a rounded result of mental
 arithmetic. With one run, this says nothing about which way of probing is
 better in general.
 
-### When a known law fails {#known-law}
+### When a known law fails {#failing-known-law}
 
 The four hypotheses above were members of one family that named its latent
 effects. An experimenter is often in a harder position: a **known law**,

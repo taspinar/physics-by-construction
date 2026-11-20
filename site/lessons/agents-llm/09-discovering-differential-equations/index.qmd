@@ -273,7 +273,7 @@ ironic: the most important property of the motion hides its equation. The
 remedy is data that break the relation, such as several energies, or a
 library chosen so that the relation cannot be written in it.
 
-### A state that is not a state {#state-selection}
+### A state that is not a state {#state-that-is-not-a-state}
 
 Every search so far was handed its **state**: the position and the velocity
 of the one mass. That is a hypothesis, not a fact of the data. A state is

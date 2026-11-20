@@ -270,7 +270,7 @@ excerpt(experiment.draw_design)
 result.show("fig-design")
 ```
 
-### Four strategies under one budget {#strategies}
+### Four strategies under one budget {#four-strategies}
 
 The two runs above show what one design can do. They do not say whether a
 language model is a good way to choose readings. A fixed plan written before
