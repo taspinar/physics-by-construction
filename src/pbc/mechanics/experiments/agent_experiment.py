@@ -547,8 +547,21 @@ def run() -> Experiment:
     experiment.number("bounded-max-steps", bounded_lab.MAX_STEPS, "d")
     experiment.number("converged", 100 * bounded_lab.CONVERGED, ".1f")
     experiment.figure("fig-bounded-protocol", draw_bounded_protocol)
-    with experiment.capture("bounded-task"):
-        print(bounded_lab.TASK)
+    # The task as the model receives it: its first sentences, then one row
+    # per numbered line of the protocol (a table, not printed lines of
+    # numbers; docs/authoring.md, "Result tables and printed output").
+    experiment.number("bounded-goal", bounded_lab.GOAL)
+    experiment.table(
+        "bounded-task",
+        [
+            (number, step, text)
+            for number, (step, text) in enumerate(bounded_lab.PROTOCOL, start=1)
+        ],
+        [("line", "", "d"), ("step", "", ""), ("text of the task", "", "")],
+        "The protocol of the bounded task, line by line, as the model receives"
+        " it after the first sentences. The step names are the page's; the"
+        " model sees only the numbered text.",
+    )
     bounded, bounded_transcript = bounded_lab.replay_fixture(LESSON)
     experiment.display("bounded-run", RunDisplay(bounded, bounded_transcript))
     experiment.number("bounded-model", bounded.model)

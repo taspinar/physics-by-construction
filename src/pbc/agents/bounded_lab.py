@@ -74,11 +74,12 @@ SYSTEM = (
     " Follow the protocol of the task step by step. Report your conclusion in"
     " plain text and give the evidence for it."
 )
-TASK = (
+GOAL = (
     "A tennis ball is thrown at 25 m/s from the ground, with air drag. Find the"
     " launch angle, to within one degree, at which it lands furthest away."
-    " Follow this protocol:\n"
-    + "\n".join(f"{n}. {text}" for n, (_, text) in enumerate(PROTOCOL, start=1))
+)
+TASK = f"{GOAL} Follow this protocol:\n" + "\n".join(
+    f"{n}. {text}" for n, (_, text) in enumerate(PROTOCOL, start=1)
 )
 
 FIXTURE = "site/lessons/agents-llm/01-an-agent-runs-an-experiment/replay-bounded.json"

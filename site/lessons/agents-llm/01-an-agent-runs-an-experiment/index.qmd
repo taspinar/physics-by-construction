@@ -540,11 +540,13 @@ The first run let the model choose everything within the bounds: the time
 steps, the angles, how many runs, and when to stop. Its task asked it to use
 "as few simulation runs as you can", which is a wish, not a rule. A bounded
 agent gets rules that can be checked. The task of the second run states
-them:
+them. It begins "`{python} result["bounded-goal"]`" and goes on with
+"Follow this protocol:" and its numbered lines:
 
 ```{python}
+#| label: bounded-task
 #| echo: false
-print(result.output("bounded-task"), end="")
+result.table("bounded-task")
 ```
 
 ```{python}

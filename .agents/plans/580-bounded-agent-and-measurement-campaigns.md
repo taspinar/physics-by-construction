@@ -52,7 +52,7 @@ fixture, new modules under `src/pbc/`, new unit tests, `docs/authoring.md`
 
 ## Visual deliverables
 
-Skills: pbc-physics-teaching@49f9f3e, pbc-scientific-visualization@a0c284f
+Skills: pbc-physics-teaching@7f34987, pbc-scientific-visualization@a70b501
 
 | Deliverable | Class | Cell | Validation | Accessible fallback |
 |---|---|---|---|---|
@@ -215,6 +215,15 @@ projectile run.
 - **SA6 needs a Code section** (`lesson-checks`): the excerpts of
   `measure_point`, `suggest`, `check_suggestion`, and `run_segment` moved
   there; the explanation keeps the reasoning in prose.
+- **The bounded task is a table, not printed lines** (CI on PR #582,
+  `site-checks-other`): its numbered protocol lines each hold two numbers
+  or more, so printing the task made a block of numbers
+  (`is_numeric_console_block`). The page quotes the task's first sentences
+  (`bounded_lab.GOAL`, from which `TASK` is built unchanged, so the
+  recorded run still matches it) and shows the protocol through `table()`,
+  one row per numbered line with the step name of the figure. The other
+  printed outputs of both pages (`rough-ball`, `lost-basis`) are no block
+  of numbers; the run transcripts are display output, not stdout.
 
 ## Where the teaching skill changed the learning experience
 
