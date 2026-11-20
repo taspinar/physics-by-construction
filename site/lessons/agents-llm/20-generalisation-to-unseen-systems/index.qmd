@@ -18,6 +18,7 @@ lesson:
     - Challenge a discovered law on a suite of held-out worlds, settings beyond the bounds, other conditions, and another system that uses the law as a force
     - Show from a frozen trace that no held-out world was probed, and say why that is the condition of a fair generalisation test
     - Explain why a law can pass every test within the reach of the data and still fail beyond it, and which held-out worlds can reveal that
+    - Separate interpolation, new excitation, new parameters, new regimes, and another structure, in a mechanical and a thermal system, and report where transfer fails
   related: [discovering-gravity]
   format: 2
   preview: fig-generalisation
@@ -30,7 +31,7 @@ lesson:
 
 ```{python}
 #| echo: false
-from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
 from pbc.mechanics.experiments import generalisation_to_unseen_systems as experiment
 
 result = experiment.run()
@@ -302,6 +303,132 @@ result.table("d12-comparison")
 The agent used fewer probes than the baselines. With one run, this says
 nothing about which way of probing is better in general.
 
+### Levels of transfer, and a law that is not mechanical {#levels}
+
+The suite mixes worlds that ask different things of a law. Naming the kind
+of each makes a result say what it covers. Five **levels of transfer** are
+commonly kept apart:
+
+1. **interpolation**: new settings among those the law was made from;
+2. **new excitation**: the same system driven in a way it never was while
+   it was probed;
+3. **new parameters**: the same system with a quantity changed that was
+   held fixed while it was probed;
+4. **new regime**: settings where another effect, negligible in the probed
+   range, takes part;
+5. **another structure**: a system built differently, which the law has to
+   describe or serve inside.
+
+In this lesson's suite, interpolation is the first level; heavier bodies
+change a parameter that the probes varied only over a small range; farther
+and closer distances are new regimes, and the closer one is where the hidden
+short-range term takes part; the orbits are another structure, a system in
+which the law is one part. No world of the suite is a new excitation: a
+force law of distance and mass has nothing that is driven in time.
+
+A second discovery, outside mechanics, fills every level. A small aluminium
+sphere cools in the air of a room. A box hides its law and lets a
+discoverer set the sphere's start temperature, between
+`{python} result["thermal-low"]` and `{python} result["thermal-high"]`
+°C, and read its temperature after a time, with noise; the room stays at
+`{python} result["thermal-air"]` °C. The discoverer here is a script, not a
+model: it reads a grid and fits Newton's law of cooling,
+$\mathrm{d}T/\mathrm{d}t = -k\,(T - T_\mathrm{air})$, through the solution
+for still air.
+
+```{python}
+#| echo: false
+from pbc.discovery import thermal_transfer
+from pbc.mechanics.experiments import thermal_transfer as thermal
+
+excerpt(thermal_transfer, region="box")
+```
+
+```{python}
+#| echo: false
+excerpt(thermal_transfer.discover)
+```
+
+With `{python} result["thermal-probes"]` readings of a budget of
+`{python} result["thermal-budget"]`, the law found has $k = $
+`{python} result["thermal-k"]` $\pm$ `{python} result["thermal-k-error"]`
+$\times 10^{-3}$ per second (one standard error), a time
+constant of `{python} result["thermal-time-constant"]` s, and a chi-square
+of `{python} result["thermal-chi2"]` for `{python} result["thermal-dof"]`
+degrees of freedom: consistent with the noise. The law is then carried to
+five held-out worlds, one per level, that the box's allowlist cannot reach:
+an unprobed start, air whose temperature oscillates, a colder room, a start
+at several hundred degrees, and the same sphere inside a thin sheath. Each
+is scored by the error of the predicted temperature relative to the true
+excess over the air, against a tolerance of
+`{python} result["thermal-tolerance"]`:
+
+```{python}
+#| echo: false
+excerpt(thermal_transfer, region="judge")
+```
+
+The trace says which conditions the discoverer ever had. A world counts as
+probed only if a probe had its start, still air at the room's temperature,
+and the bare sphere:
+
+```{python}
+#| echo: false
+excerpt(thermal_transfer.never_probed)
+```
+
+Before reading the table, predict: of interpolation, oscillating air, a
+colder room, a hot start, and a sheathed sphere, which does the law found in
+still air fail?
+
+```{python}
+#| label: thermal-transfer
+#| echo: false
+result.table("thermal-transfer")
+```
+
+[Every probe of the discoverer lies within the allowed starts
+(`{python} result["thermal-in-bounds"]` of them), and no held-out world was
+probed (probed worlds: `{python} result["thermal-probed-worlds"]`). The law
+transfers to `{python} result["thermal-passed"]`, with errors up to about
+`{python} result["thermal-largest-passed"]`, and fails the
+`{python} result["thermal-failed"]`: errors of
+`{python} result["thermal-error-hot"]` and
+`{python} result["thermal-error-sheathed"]`.]{.claim
+type="numerically-verified" scope="the simulated sphere, one seed of the
+noise, the five held-out thermal worlds" evidence="thermal-transfer"}
+
+```{python}
+#| label: fig-thermal-transfer
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "The error of Newton's law of cooling, found in still air at moderate temperatures, in each held-out thermal world. Interpolation, oscillating air, and a colder room lie far below the tolerance; the hot start and the sheathed sphere lie above it."
+#| fig-alt: "A horizontal bar chart on a logarithmic axis of relative error for five held-out worlds: interpolation, oscillating air, cold room, hot start, and sheathed sphere. A dashed vertical line marks the tolerance. The first three bars end well left of the line; the last two, hatched, cross it, the sheathed sphere furthest."
+result.show("fig-thermal-transfer")
+```
+
+```{python}
+#| echo: false
+source_link(thermal.draw_thermal_transfer, figure=True)
+```
+
+The successes and the failures have reasons that the levels name. The law
+transfers to oscillating air because what was found is a law of the
+dynamics, a rate of change, not the curve the probes traced: the fitted
+exponential by itself could not even be evaluated for air that moves, but the
+equation it solves can be integrated for any air. It transfers to a colder
+room because it is written in the excess over the air. The hot start is a
+new regime: radiation grows with the fourth power of the absolute
+temperature, and its share of the heat lost rises from
+`{python} result["radiation-share-probed"]` percent at the hottest probed
+start to `{python} result["radiation-share-hot"]` percent at the hot one,
+where the linear law underestimates the cooling. The sheathed sphere is
+another structure: a second heat capacity sits between the thermometer and
+the air, the response starts late, and no single rate $k$ can describe it.
+It is the missing state of the lesson on discovering differential equations,
+met as a transfer failure. Its nearest probed start is the same as its own:
+having probed the same setting of a different system says nothing about it.
+
 ### Run the agent yourself
 
 This needs your own key and costs a few cents. The build does not run it, so
@@ -330,6 +457,10 @@ in which worlds its law holds.
 - **The closer world is a design choice.** It was put in the suite to show
   where the evidence stops; its failure is a property of the hidden world,
   fixed before the run, not a finding about the agent.
+- **A scripted thermal discoverer.** The thermal case has no model: its
+  discoverer is a fixed grid and a fit, and its worlds were chosen to show
+  each level, two of them to fail. It shows what the levels separate, not
+  how an agent would fare.
 - **Simulated, not measured.** No force here was measured. A real
   laboratory would have systematic errors that no noise model of this world
   contains.
@@ -445,11 +576,14 @@ reproduce_this(
         "src/pbc/discovery/baselines.py",
         "src/pbc/astrophysics/central_force.py",
         "src/pbc/mechanics/experiments/generalisation_to_unseen_systems.py",
+        "src/pbc/discovery/thermal_transfer.py",
+        "src/pbc/mechanics/experiments/thermal_transfer.py",
         "src/pbc/experiment.py",
     ],
     tests=[
         "tests/unit/test_generalisation_lab.py",
         "tests/unit/test_generalisation_to_unseen_systems_experiment.py",
+        "tests/unit/test_thermal_transfer.py",
     ],
 )
 ```

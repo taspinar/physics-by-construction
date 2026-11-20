@@ -299,6 +299,60 @@ that the body may feel forces it cannot see).
   gravity fitted to the record, whose chi-square passes. **The
   disambiguating experiment** is the setting where the rivals' predictions
   spread most, in standard deviations of the noise.
+- **A known law that fails** (MD6, F147, D3's outcome as its own exercise):
+  a stated synthetic world apart from the agent's, a falling-ball
+  viscometer (`pbc.mechanics.experiments.failing_law`). Stokes' law and the
+  diagnosis of a missing constant force are rejected by the chi-square rule
+  of lesson A4; two extensions of the drag with two parameters each, a
+  quadratic correction and a power law, fit the record; the experiment is
+  the weight within the lab's reach where the two fits part most in units of
+  the noise; the remaining ambiguity (a constant force bounded, not
+  determined; extensions not tried; weights beyond the reach) is stated.
+
+## State selection
+
+Lesson MD4 (`pbc.discovery.state_selection`, F147) names the state of an
+equation search. `search` is the sequentially thresholded least squares of
+`pbc.discovery.equations` on the products of any named variables (on the
+position and the velocity it gives the published search, which a test
+checks). `state_test` asks whether the variables are a state: every pair of
+samples closer than a stated radius, in standard deviations of each
+variable, is compared, and the state is rejected when a pair's accelerations
+differ by more than a stated multiple of the radius in units of the
+root-mean-square acceleration; the pair that does is the witness. On two
+coupled masses observed through one, the search returns a short wrong
+equation, the test rejects the state, and the state of both masses keeps
+exactly the true terms.
+
+## Strategies of design under one budget
+
+Lesson MD8 (`pbc.agents.strategy_lab`, F147) compares four ways of choosing
+the readings of lesson A4's drag experiment on a rig whose launcher reaches
+4 m/s: a grid fixed in advance, the classical adaptive rule (each reading
+where the two models fitted so far disagree most), a language model in a
+fresh recorded session per seed of the instrument, and a hybrid (the
+model's first half of the budget, then the adaptive rule).
+
+- **One harness.** The strategies without a model are put through
+  `pbc.agents.loop.run` as clients, with the same allowlist, budget of
+  readings, and number of messages as the model, and every strategy is
+  assessed by `pbc.agents.design.judge` from the recomputed readings.
+- **The evaluator of the evidence contract.** Every strategy at every seed
+  is an attempt of a `pbc.evidence` ledger; the evaluator counts the
+  readings and messages, recomputes the outcome, and decides correctness (a
+  discrimination in favour of the rig's law); a session's last message is
+  its unverified report. An edited fixture is an invalid attempt of the
+  model and of the hybrid, kept in the record.
+- **Uncertainty over seeds.** Five seeds shared by the four strategies,
+  forty for the two without a model: the count of correct attempts with its
+  exact interval, and the mean chi-square difference with its standard
+  error. The page does not rank strategies whose intervals overlap.
+- **How the recordings were made.** As for AE5 and AE6 (below): each
+  session was a fresh sub-agent (Claude Opus, 2026-11-20) given the system
+  prompt, the task, and the tool specification, which delivered each
+  message through one harness command; the harness ran every call through
+  the rig's allowlist with `pbc.agents.loop.run` and wrote the fixture with
+  `save_recording`.
 
 ## Unknown systems and competing models
 
@@ -337,6 +391,16 @@ probe can reach it, and fails every claim of the family.
   lies within the bounds and on no held-out setting, and the page shows the
   nearest probe to each world in units of the controls' ranges. A test
   checks the same on the committed fixture.
+- **Levels of transfer** (MD9, F147): interpolation, new excitation, new
+  parameters, new regime, and another structure. A thermal case without a
+  model fills every level (`pbc.discovery.thermal_transfer`): a scripted
+  discoverer finds Newton's law of cooling through the allowlist of a box
+  (start temperature and time only, at the room's air temperature), and
+  the law is judged in five held-out worlds (an unprobed start, oscillating
+  air, a colder room, a hot start where radiation matters, the sphere in a
+  sheath), each by the relative error of its temperature. The trace shows
+  that no world was probed; the hot start and the sheath fail, and the page
+  reports both as results.
 
 ## The frozen trace and the replay
 

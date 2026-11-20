@@ -273,7 +273,11 @@ src/pbc/                 Importable Python package with all reusable lesson code
                          `equations`, F67); conserved quantities from trajectories and their
                          verdicts (`invariants`, `invariant_lab`, F82); the towing tank with
                          its hidden drag law and two conditions of prior knowledge
-                         (`towing_tank`, lesson MD1, F146)
+                         (`towing_tank`, lesson MD1, F146); a search on a named
+                         state and the state test (`state_selection`, lesson MD4,
+                         F147); a cooling box, its scripted discoverer, and the
+                         held-out worlds of five levels of transfer
+                         (`thermal_transfer`, lesson MD9, F147)
   verification/          Order estimation, invariant checks, the named checks of the validation
                          contract, and a gallery of deliberately faulty steppers (F46); the
                          contract's checks on a model, the damped driven oscillator, as the tests
@@ -299,7 +303,9 @@ src/pbc/                 Importable Python package with all reusable lesson code
                          panel over controlled cases of AE6, F150; `design` and
                          `design_lab`: the design of measurements that tell two models apart, scored
                          and judged by the build, F20); the experiment specification, its check,
-                         and the scripted route without a model (`specification`, SA1, F141)
+                         and the scripted route without a model (`specification`, SA1, F141);
+                         four strategies of design under one budget, scored by the evaluator of
+                         the evidence contract (`strategy_lab`, lesson MD8, F147)
   authoring/             Helpers lessons use to display code, proofs, tables, diagrams,
                          references, and claim labels by reference
   data/                  The dataset card schema and check; the readers (GWOSC text,

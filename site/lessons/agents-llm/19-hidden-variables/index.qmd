@@ -19,7 +19,8 @@ lesson:
     - Show that an observational record can be consistent with every hypothesis while their predictions part far outside it
     - Choose a disambiguating experiment as the setting where the laws the record cannot tell apart disagree most, in units of the noise
     - Judge hypotheses by the chi-square and by whether the readings determine their parameters
-  related: [experimental-design-agent]
+    - Diagnose whether a failing known law lacks a state, a force, or an adequate form, compare distinguishable extensions of it on the same data and on a discriminating experiment, and state the ambiguity that remains
+  related: [experimental-design-agent, modified-force-law]
   format: 2
   preview: fig-disambiguation
   prerequisites:
@@ -31,7 +32,7 @@ lesson:
 
 ```{python}
 #| echo: false
-from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
 from pbc.mechanics.experiments import hidden_variables as experiment
 
 result = experiment.run()
@@ -343,6 +344,68 @@ closely than the agent's claim, which is a rounded result of mental
 arithmetic. With one run, this says nothing about which way of probing is
 better in general.
 
+### When a known law fails {#known-law}
+
+The four hypotheses above were members of one family that named its latent
+effects. An experimenter is often in a harder position: a **known law**,
+trusted for good reasons, does not fit the data, and nobody has said what
+it lacks. Three things can be missing. A **state**: a variable the dynamics
+depend on that the record does not hold (the lesson on discovering
+differential equations tests that, with two coupled masses). A **force**:
+an effect the law left out, as the hidden force of this lesson. Or the law
+itself is **inadequate**: its form is right only in a limit.
+
+The example is a falling-ball viscometer, a world stated in the code and
+kept apart from the agent's hidden one, so that each conclusion below can
+be compared with it. Spheres of one diameter and several densities sink
+through an oil at their terminal speed. Stokes' law says the drag is
+proportional to the speed, $F = 3\pi\mu d\,v$, so the terminal speed is the
+effective weight (weight minus buoyancy) divided by $3\pi\mu d$:
+proportional to it.
+
+```{python}
+#| echo: false
+from pbc.mechanics.experiments import failing_law
+
+excerpt(failing_law, region="viscometer")
+```
+
+The record holds `{python} result["record-spheres"]` spheres, of effective
+weights from `{python} result["lightest"]` mN to
+`{python} result["heaviest"]` mN, each speed read with a relative
+uncertainty of `{python} result["noise-percent"]` percent. The known law and
+the first diagnosis, a constant force the law left out, both fitted to it:
+
+```{python}
+#| label: known-law
+#| echo: false
+result.table("known-law")
+```
+
+[Stokes' law is not consistent with the record, and neither is the law with
+a missing constant force. The residuals of Stokes' law are not scattered:
+`{python} result["residual-light"]` standard deviations at the lightest
+sphere, `{python} result["residual-middle"]` in the middle, and
+`{python} result["residual-heavy"]` at the heaviest.]{.claim
+type="numerically-verified" scope="the simulated viscometer, one seed, the
+record of the stated weights" evidence="known-law"} Light spheres fall faster
+than the fitted law and heavy ones slower: the speed grows less than in
+proportion to the weight. A constant force would shift every speed by the
+same amount and cannot bend the line, which is why it fails too. What bends
+it is the drag law, and there is a physical reason to suspect it: Stokes'
+law holds when the Reynolds number $\mathrm{Re} = \rho v d/\mu$ is far below
+one, and in this record it runs from `{python} result["reynolds-least"]`
+to `{python} result["reynolds-most"]`. The diagnosis is an inadequate model
+of the drag, not a hidden force. The record has one reading per sphere,
+so it cannot show a missing state; that needs readings that the state calls
+the same, as in the lesson on differential equations.
+
+A diagnosis is not yet an extension. Several laws reduce to Stokes' law at
+small speeds and bend the way the record bends. Choosing between them is the
+last exercise of this lesson. The lesson on a modified force law ("Unlearning
+a familiar law: a modified force") treats the same question at depth, with a
+language model as the experimenter; the exercise below needs nothing from it.
+
 ### Run the agent yourself
 
 This needs your own key and costs a few cents. The build does not run it, so
@@ -373,7 +436,9 @@ drag against the hidden force. The held-out score says which.
 - **One step of design.** The disambiguating experiment is chosen once,
   from the record. A sequential design would choose again after each
   reading, as the lesson on an experimental-design agent does.
-- **Simulated, not measured.** No body fell here.
+- **Simulated, not measured.** No body fell here, and no sphere sank in
+  the viscometer; its world is stated so that the extensions can be
+  compared with it.
 - **The recording is not an API run.** It is a Claude Code session, told to
   answer in the harness's format and to use no tool of its own; the session
   reported no token count or price.
@@ -450,6 +515,105 @@ determined.
 :::
 :::
 
+::: {.exercise}
+**Extending a known law.** Take the record of the viscometer above, where
+Stokes' law fails. Compare two extensions of the drag, each with two
+parameters and each reducing to Stokes' law at small speeds: a quadratic
+correction, $F = b\,v + c\,v^2$, and a power law, $F = b\,v^n$. Fit both to
+the record. Then choose, among the spheres the lab owns (effective weights
+from 0.05 mN to 11 mN), the one where the two fitted extensions predict
+terminal speeds furthest apart in units of the noise, take three readings of
+it, and judge both again. Which extension survives, and what does the data
+still leave open?
+
+::: {.hint}
+Before choosing the sphere, write the terminal speed of each extension for
+a large weight: the quadratic drag grows like $\sqrt{W}$, the power law like
+$W$ raised to the inverse of $n$, with $n$ close to one. Which predicts the faster heavy sphere?
+:::
+
+::: {.solution}
+The two extensions, and the third that adds a constant force to the
+quadratic drag:
+
+```{python}
+#| echo: false
+excerpt(failing_law, region="extensions")
+```
+
+On the record:
+
+```{python}
+#| label: extensions-record
+#| echo: false
+result.table("extensions-record")
+```
+
+[Both extensions are consistent with the record and the record determines
+the parameters of each: on these weights the two cannot be told
+apart.]{.claim type="numerically-verified" scope="the simulated viscometer,
+the record of the stated weights" evidence="extensions-record"} They are
+nevertheless genuinely different laws, which part outside the record. The
+experiment is chosen where they part most, from the fits alone:
+
+```{python}
+#| echo: false
+excerpt(failing_law, region="discriminate")
+```
+
+[Within the lab's reach the fitted extensions part most at the heaviest
+sphere, of `{python} result["chosen-weight"]` mN, by about
+`{python} result["chosen-apart"]` standard deviations of a reading; there
+`{python} result["faster-extension"]` predicts the faster
+sphere.]{.claim type="numerically-verified" scope="the extensions fitted to
+the record, the weights the lab owns" evidence="fig-extensions"}
+
+```{python}
+#| label: extensions-after
+#| echo: false
+result.table("extensions-after")
+```
+
+```{python}
+#| label: fig-extensions
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "Terminal speed relative to Stokes' law fitted to the record, against the effective weight of the sphere on a logarithmic axis. The record and the extensions fitted to it agree over the record's weights; the extensions part beyond them, and the readings of the heaviest sphere lie near the quadratic drag and far from the power law and the constant force."
+#| fig-alt: "Line plot of the terminal speed divided by the Stokes prediction against the effective weight on a logarithmic axis. Filled points with small error bars, the record, fall gently from slightly above one to slightly below one. A dotted curve of the constant-force law flattens out near one at large weights, a dashed curve of the power law falls slowly, and a solid curve of the quadratic drag falls steeply. Open squares at the heaviest weight lie near the solid curve, well below the other two."
+result.show("fig-extensions")
+```
+
+```{python}
+#| echo: false
+source_link(failing_law.draw_extensions, figure=True)
+```
+
+[With the readings of the heaviest sphere the power law is rejected; the
+consistent extensions are `{python} result["survivors"]`. The constant
+force of the third lies between `{python} result["force-low"]` and
+`{python} result["force-high"]` micronewtons at about two standard errors,
+an interval that `{python} result["force-excludes-zero"]` zero.]{.claim
+type="numerically-verified" scope="the simulated viscometer, the record and
+three readings of the heaviest sphere" evidence="extensions-after"}
+
+The quadratic correction survives, and its coefficient comes out
+`{python} result["quadratic-ratio"]` times the inertial correction of
+Oseen, $\tfrac{9\pi}{16}\rho d^2$, which the stated world contains. Three
+things remain open, and a report should say them:
+
+- **A small force is not excluded.** A constant force up to about
+  `{python} result["force-share"]` percent of the lightest sphere's weight
+  fits as well; the data bound it and do not determine whether it is there.
+- **One survivor is not the law.** The power law was one rival. Any other
+  extension that bends like the quadratic drag over the weights read, a
+  cubic term or a drag that depends on the Reynolds number in another way,
+  has not been tested.
+- **Nothing beyond the reach.** Spheres heavier than the lab owns, at higher
+  Reynolds numbers, may need another law; this experiment says nothing about
+  them.
+:::
+:::
+
 ## Replay this experiment {#reproduce-this}
 
 ```{python}
@@ -461,6 +625,8 @@ reproduce_this(
         "src/pbc/discovery/protocol.py",
         "src/pbc/discovery/baselines.py",
         "src/pbc/mechanics/experiments/hidden_variables.py",
+        "src/pbc/mechanics/experiments/failing_law.py",
+        "src/pbc/data/fit.py",
         "src/pbc/experiment.py",
     ],
     tests=[

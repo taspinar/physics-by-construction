@@ -67,3 +67,51 @@ def test_a_pendulum_gives_the_law_of_its_training_range(results):
     ]
     assert "x^3" not in linear and "x^3" in cubic and "+" in cubic
     assert float(drift_large) < float(drift_small)
+
+
+def test_a_state_without_the_second_mass_is_detected_and_its_cure_named(results):
+    _, found = results
+    numbers = found["numbers"]
+    (
+        (one, one_found, one_res, one_pairs, one_largest, one_err),
+        (
+            two,
+            two_found,
+            two_res,
+            two_pairs,
+            two_largest,
+            two_err,
+        ),
+    ) = found["tables"]["state-selection"]["rows"]
+    limit = float(numbers["smoothness-limit"])
+
+    assert (one, two) == ("x1, v1", "x1, v1, x2, v2")
+    assert float(one_err) > 100 * float(two_err)
+    # The search on the one-mass state returns a short equation regardless.
+    assert one_found == numbers["one-mass-found"]
+    assert 1 <= int(numbers["one-mass-terms"]) <= 4
+    assert float(one_res) > 10 and float(two_res) < 1e-4
+    # The state test fails on one mass and passes on both.
+    assert numbers["one-mass-test"] == "fails" and float(one_largest) > limit
+    assert numbers["two-mass-test"] == "passes" and float(two_largest) <= limit
+    assert int(one_pairs) > 0 and int(two_pairs) > 0
+    assert float(numbers["one-mass-largest"]) == pytest.approx(
+        float(one_largest), rel=0.05
+    )
+    assert numbers["two-mass-recovered"] == "keeps exactly the true terms"
+    assert two_found == numbers["two-mass-found"] == "a = -5.5 x1 + 1.5 x2"
+    # The witness pair: the same state of the first mass, the second mass
+    # on opposite sides, the accelerations of opposite signs.
+    assert float(numbers["witness-x2-first"]) * float(numbers["witness-x2-second"]) < 0
+    assert float(numbers["witness-a-first"]) * float(numbers["witness-a-second"]) < 0
+
+
+def test_only_the_complete_state_predicts_a_held_out_start(results):
+    _, found = results
+    numbers = found["numbers"]
+
+    assert float(numbers["one-mass-held-out"]) > 1.0
+    assert float(numbers["two-mass-held-out"]) < 1e-2
+    assert float(numbers["two-mass-held-out"]) * 100 < float(
+        numbers["one-mass-held-out"]
+    )

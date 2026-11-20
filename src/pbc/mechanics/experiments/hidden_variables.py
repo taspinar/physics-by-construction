@@ -52,6 +52,7 @@ from pbc.discovery.latent_lab import (
 )
 from pbc.experiment import Experiment, main
 from pbc.figure_language import figsize, figure_style, finish
+from pbc.mechanics.experiments import failing_law
 
 # The live run of the lesson: a model, its key, and the extra openai.
 LIVE = "pbc.discovery.latent_lab"
@@ -294,6 +295,7 @@ def run() -> Experiment:
     score_table(experiment, score)
     the_agents_readings(experiment, transcript)
     beside_the_baselines(experiment, score, results)
+    experiment.figure("fig-extensions", failing_law.extend(experiment))
     return experiment
 
 
