@@ -42,6 +42,7 @@ FAIL_AT = 3  # the third accepted run fails
 # than this fraction of the range.
 CONVERGED = 0.001
 FAILURE = "the simulation worker stopped before it returned a result"
+SPEED_OF_TASK = 25.0  # m/s: the throw the task asks about; runs at others do not count
 
 # The protocol the agent is given, step by step, and the script follows.
 PROTOCOL = (
@@ -75,8 +76,9 @@ SYSTEM = (
     " plain text and give the evidence for it."
 )
 GOAL = (
-    "A tennis ball is thrown at 25 m/s from the ground, with air drag. Find the"
-    " launch angle, to within one degree, at which it lands furthest away."
+    f"A tennis ball is thrown at {SPEED_OF_TASK:g} m/s from the ground, with air"
+    " drag. Find the launch angle, to within one degree, at which it lands"
+    " furthest away."
 )
 TASK = f"{GOAL} Follow this protocol:\n" + "\n".join(
     f"{n}. {text}" for n, (_, text) in enumerate(PROTOCOL, start=1)
@@ -194,26 +196,24 @@ def check_protocol(
     runs: Sequence[Run], stopped_by_itself: bool
 ) -> tuple[tuple[Check, ...], Outcome]:
     """Check the steps of the protocol after the plan from ``runs`` alone:
-    the settings asked for and the results received, never the words."""
-    received = {}  # setting -> range, for the runs that returned one
-    for entry in runs:
-        setting = _setting(entry.call)
-        if entry.result.ok and setting is not None:
-            received[setting] = float(entry.result.content["range_m"])
+    the settings asked for and the results received, never the words. Only
+    runs of the task's throw, at ``SPEED_OF_TASK``, can meet the time step
+    and the search."""
+    received = _received(runs)  # (angle, dt) -> range
 
     converged = sorted(
         dt
-        for (speed, angle, dt), coarse in received.items()
-        if (fine := received.get((speed, angle, dt / 2))) is not None
+        for (angle, dt), coarse in received.items()
+        if (fine := received.get((angle, dt / 2))) is not None
         and abs(coarse - fine) < CONVERGED * fine
     )
     dt = converged[-1] if converged else None
     peaks = sorted(
         angle
-        for (speed, angle, step), value in received.items()
+        for (angle, step), value in received.items()
         if step == dt
-        and value > received.get((speed, angle - 1, step), float("inf"))
-        and value > received.get((speed, angle + 1, step), float("inf"))
+        and value > received.get((angle - 1, step), float("inf"))
+        and value > received.get((angle + 1, step), float("inf"))
     )
     angle = peaks[0] if peaks else None
 
@@ -276,12 +276,18 @@ def check_protocol(
     return checks, Outcome(dt, angle, spent)
 
 
+def _received(runs: Sequence[Run]) -> dict[tuple[float, float], float]:
+    """The ranges received for the task's throw, by (angle, dt)."""
+    received = {}
+    for entry in runs:
+        setting = _setting(entry.call)
+        if entry.result.ok and setting is not None and setting[0] == SPEED_OF_TASK:
+            received[setting[1:]] = float(entry.result.content["range_m"])
+    return received
+
+
 def _found(runs: Sequence[Run], dt: float | None, angle: float) -> bool:
-    got = {
-        _setting(r.call)[1]: r.result.content["range_m"]
-        for r in runs
-        if r.result.ok and _setting(r.call) is not None and _setting(r.call)[2] == dt
-    }
+    got = {a: value for (a, step), value in _received(runs).items() if step == dt}
     return {angle - 1, angle, angle + 1} <= set(got) and got[angle] > max(
         got[angle - 1], got[angle + 1]
     )
@@ -292,7 +298,10 @@ class BudgetSpent(RuntimeError):
 
 
 def scripted_route(
-    allowlist: Allowlist, speed: float = 25.0, angle: float = 40.0, dt: float = 0.01
+    allowlist: Allowlist,
+    speed: float = SPEED_OF_TASK,
+    angle: float = 40.0,
+    dt: float = 0.01,
 ) -> tuple[tuple[Run, ...], str]:
     """The protocol as a program, through ``allowlist``: compare dt with
     dt / 2 at ``angle`` and halve until they agree, then climb one degree at

@@ -69,6 +69,10 @@ INTERRUPTED, COMPLETE, BUDGET_SPENT, NO_BRACKET = (
     "no bracket",
 )
 
+# The first diagnostic of a segment's attempt: how the campaign ended. The
+# ledger's status says only completed or inconclusive; this says which.
+STATUS_NOTE = "{status} after {made} measurements; output off"
+
 # The checks of a resume, in the order they are made.
 RESUME_CHECKS = ("recorded", "unchanged", "protocol", "bench", "unfinished")
 
@@ -464,7 +468,7 @@ def _record(
 ) -> None:
     """The segment as an attempt of the campaign, its checkpoint the
     artifact with the digest it has now; a complete one is evaluated."""
-    notes = [f"{status} after {len(made)} measurements; output off"]
+    notes = [STATUS_NOTE.format(status=status, made=len(made))]
     if lost is not None:
         notes.append(
             f"the measurement at {lost.frequency_hz:.1f} Hz ({lost.stage}) was in"
@@ -514,6 +518,17 @@ def evaluate_segment(
     return evaluation
 
 
+def _interrupted(attempt: Attempt) -> bool:
+    """Whether the segment of ``attempt`` was stopped: the only way a
+    campaign is unfinished. A segment that spent the budget or found no
+    bracket is inconclusive too, but its campaign has finished."""
+    return (
+        attempt.status == INCONCLUSIVE
+        and bool(attempt.diagnostics)
+        and attempt.diagnostics[0].startswith(f"{INTERRUPTED} after ")
+    )
+
+
 def resume(
     ledger: Ledger, root: Path, path: Path, plan: Plan, instrument: Instrument
 ) -> tuple[Checkpoint, str]:
@@ -523,8 +538,15 @@ def resume(
     segments = [a for a in ledger.attempts if a.candidate == CANDIDATE]
     latest = segments[-1] if segments else None
     recorded = latest.artifacts[0] if latest is not None else None
-    relative = path.resolve().relative_to(root.resolve()).as_posix()
-    if recorded is None or recorded.path != relative:
+    try:
+        relative = path.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:  # outside the ledger's root: never one it recorded
+        relative = None
+    if (
+        recorded is None
+        or recorded.sha256 is None  # no checkpoint existed when recorded
+        or recorded.path != relative
+    ):
         raise ResumeRefused(
             "recorded", "it is not the latest checkpoint the ledger recorded"
         )
@@ -535,7 +557,7 @@ def resume(
         raise ResumeRefused("protocol", "it was written for another protocol or plan")
     if dict(checkpoint.device) != device(instrument):
         raise ResumeRefused("bench", "it was written on another bench")
-    if latest.status != INCONCLUSIVE:
+    if not _interrupted(latest):
         raise ResumeRefused("unfinished", "its campaign has finished")
     return checkpoint, latest.id
 

@@ -276,6 +276,37 @@ def test_a_resume_of_a_finished_campaign_is_refused(tmp_path):
     assert _refused(ledger, tmp_path, tmp_path / "c.json") == "unfinished"
 
 
+@pytest.mark.parametrize(
+    "change", [{"budget": 12}, {"low_hz": 10_000.0, "high_hz": 20_000.0}]
+)
+def test_a_resume_of_a_campaign_that_spent_its_budget_or_has_no_bracket_is_refused(
+    tmp_path, change
+):
+    """Both end inconclusive, and both have finished: only an interrupted
+    segment is unfinished."""
+    plan = replace(PLAN, **change)
+    segment, ledger = campaign(tmp_path, plan)
+    assert segment.status != INTERRUPTED
+    assert ledger.attempts[-1].status == INCONCLUSIVE
+    assert _refused(ledger, tmp_path, tmp_path / "c.json", plan) == "unfinished"
+
+
+def test_a_resume_after_a_stop_before_the_first_measurement_is_refused(tmp_path):
+    """No measurement was made, so no checkpoint was written and none was
+    recorded: there is nothing to resume from."""
+    first, ledger, _ = interrupted(tmp_path, stop_at=1)
+    assert first.status == INTERRUPTED and first.measurements == ()
+    assert not (tmp_path / "c.json").exists()
+    assert _refused(ledger, tmp_path, tmp_path / "c.json") == "recorded"
+
+
+def test_a_resume_from_a_checkpoint_outside_the_root_is_refused(stopped, tmp_path):
+    root, ledger = stopped
+    outside = tmp_path / "c.json"
+    shutil.copy(root / "c.json", outside)
+    assert _refused(ledger, root, outside) == "recorded"
+
+
 def test_a_resume_without_a_recorded_segment_is_refused(tmp_path):
     _, ledger, _ = interrupted(tmp_path)
     shutil.copy(tmp_path / "c.json", tmp_path / "copy.json")

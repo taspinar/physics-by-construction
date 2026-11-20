@@ -609,13 +609,17 @@ result.table("protocol-check")
 
 [Checked from its runs and their recomputed results, the recorded agent met
 every step of the protocol after the plan: it chose a converged time step,
-found an angle that beats both neighbours, used no value of the failed run,
-stayed within the budget, and stopped by itself with no run after the search
-was met.]{.claim type="numerically-verified" scope="the one recorded run, as
-replayed by this build; the rules about runs, not the agent's words or its
-plan" evidence="protocol-check replay-bounded"} The agent asked for several
-angles in one message, among them the one that failed, and did not repeat
-it: the search was met without it. The protocol allowed one repeat, and
+found an angle that beats both neighbours, met the failed run and repeated it
+no more than once, stayed within the budget, and stopped by itself with no
+run after the search was met.]{.claim type="numerically-verified"
+scope="the one recorded run, as replayed by this build; the rules about
+runs, not the agent's words or its plan"
+evidence="protocol-check replay-bounded"} That no value of the failed run
+was used is not a separate check: a failed run returns no value, and the
+time step and the search are computed from the results received, at the
+task's speed only. The agent asked for several angles in one message, among
+them the one that failed, and did not repeat it: the search was met without
+it. The protocol allowed one repeat, and
 neither needing nor using it is recovery too. The answer the agent gives
 in words is not checked; the angle that the check finds from the runs is.
 

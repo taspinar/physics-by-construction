@@ -332,8 +332,9 @@ an older copy cannot silently throw measurements away or repeat them.
 edited or truncated file is caught. *Protocol*: the checkpoint's plan must be
 the plan of the campaign being resumed, so that points chosen for one target
 are not finished under another. *Bench*: the device must be the one the
-checkpoint was written on. *Unfinished*: a campaign that has finished is
-evaluated, not continued.
+checkpoint was written on. *Unfinished*: only a campaign whose last segment
+was stopped is continued; one that ended by itself, complete, with its budget
+spent, or without a bracket, is not.
 
 Here is each check failing, each on a copy of the interrupted campaign:
 

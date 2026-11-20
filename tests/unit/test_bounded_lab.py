@@ -29,8 +29,9 @@ LESSON = (
 )
 
 
-def call(angle, dt, n=0):
-    return ToolCall(f"c{n}", "range_with_drag", {"speed": 25, "angle": angle, "dt": dt})
+def call(angle, dt, n=0, speed=25):
+    arguments = {"speed": speed, "angle": angle, "dt": dt}
+    return ToolCall(f"c{n}", "range_with_drag", arguments)
 
 
 def test_the_failure_is_the_configured_accepted_run_and_costs_budget():
@@ -87,6 +88,22 @@ def test_a_failed_run_repeated_twice_breaks_the_recovery_rule():
     ])  # fmt: skip
     checks, _ = check_protocol(runs, stopped_by_itself=True)
     assert {c.step: c.met for c in checks}["recovery"] is False
+
+
+def test_runs_at_another_speed_than_the_tasks_meet_neither_step_nor_search():
+    """The same pattern of ranges at 30 m/s answers another question: no
+    step of the task's throw is chosen and no angle is found."""
+    runs = tuple(
+        Run(call(a, dt, n, speed=30), ToolResult(f"c{n}", "range_with_drag", *res), n)
+        for n, (a, dt, *res) in enumerate([
+            (40, 0.01, *ok(35.79)), (40, 0.005, *ok(35.76)), (39, 0.01, *FAILED),
+            (39, 0.01, *ok(35.76)), (41, 0.01, *ok(35.78)),
+        ])
+    )  # fmt: skip
+    checks, outcome = check_protocol(runs, stopped_by_itself=True)
+    assert (outcome.dt, outcome.angle) == (None, None)
+    met = {c.step: c.met for c in checks}
+    assert not met["time step"] and not met["search"] and not met["stop"]
 
 
 def test_a_run_after_the_search_was_met_breaks_the_stopping_rule():
