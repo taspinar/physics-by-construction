@@ -11,6 +11,12 @@ starts a product, or contacts a model, an instrument, or the network.
   ``pbc.products.physics_lab``, and no page imports ``pbc.products`` (the
   capstone page of F145, which executes the deterministic simulator route,
   is the first that may, and changes this test with it).
+- A page may run the instrument contract on its simulated and recorded
+  adapters (the lessons of slots SA3 and SA4, F142): it names only the
+  contract and those adapters, the contract tests, and the channel adapter,
+  never the live mode, and the experiment it runs is held to the import rule
+  of ``pbc.instruments`` itself. (Before F142 no page could name
+  ``pbc.instruments`` at all.)
 - The one check that touches the products, ``starters``, runs the starter
   checks, which read the repository's own history and start no product.
 - ``pbc.instruments`` and the product package import no network client, no
@@ -127,9 +133,74 @@ def test_no_check_script_workflow_or_page_starts_a_product():
     importing = [
         p.relative_to(ROOT).as_posix()
         for p in pages
-        if re.search(r"\bpbc\.products\b|\bpbc\.instruments\b", p.read_text())
+        if re.search(r"\bpbc\.products\b", p.read_text())
     ]
     assert importing == []
+
+
+# A page may run the instrument contract on its simulated and recorded
+# adapters (F142, the lessons of slots SA3 and SA4): these modules and no
+# other part of pbc.instruments, and never the live mode, whose adapter is
+# F140's and optional.
+PAGE_INSTRUMENT_MODULES = {
+    "pbc.instruments",
+    "pbc.instruments.contract",
+    "pbc.instruments.simulated",
+    "pbc.instruments.recorded",
+    "pbc.instruments.conformance",
+    "pbc.instruments.channels",
+}
+INSTRUMENT_PAGES = {
+    "site/lessons/electromagnetism/10-simulators-and-instruments/index.qmd",
+    "site/lessons/electromagnetism/11-measurement-quality/index.qmd",
+}
+EXPERIMENTS = sorted((ROOT / "src/pbc").glob("*/experiments/*.py"))
+
+
+def test_a_page_runs_only_the_simulated_and_recorded_instrument_contract():
+    pages = [p for p in (ROOT / "site").rglob("*") if p.suffix in {".qmd", ".py"}]
+    named = {
+        p.relative_to(ROOT).as_posix(): set(
+            re.findall(r"\bpbc\.instruments(?:\.\w+)*", p.read_text())
+        )
+        for p in pages
+    }
+    named = {page: modules for page, modules in named.items() if modules}
+    assert set(named) == INSTRUMENT_PAGES
+    for page, modules in named.items():
+        assert modules <= PAGE_INSTRUMENT_MODULES, (page, modules)
+        assert not re.search(r"\bLIVE\b", (ROOT / page).read_text()), page
+
+
+@pytest.mark.parametrize(
+    "path",
+    [p for p in EXPERIMENTS if "pbc.instruments" in p.read_text()],
+    ids=lambda p: p.relative_to(ROOT).as_posix(),
+)
+def test_an_experiment_on_the_contract_imports_no_driver_network_or_model(path):
+    """An experiment a page runs on the instrument contract is held to the
+    rule of the contract's own package, and uses neither the live mode nor
+    a product."""
+    tree = ast.parse(path.read_text())
+    imports = set(all_imports(tree))
+    assert {i for i in imports if forbidden(i)} == set()
+    assert {i for i in imports if i.startswith("pbc.instruments")} <= (
+        PAGE_INSTRUMENT_MODULES
+    )
+    assert not any(i.startswith("pbc.products") for i in imports)
+    assert not re.search(r"\bLIVE\b", path.read_text())
+
+
+def test_the_experiments_on_the_contract_are_the_two_lessons():
+    using = {
+        p.relative_to(ROOT).as_posix()
+        for p in EXPERIMENTS
+        if "pbc.instruments" in p.read_text()
+    }
+    assert using == {
+        "src/pbc/electromagnetism/experiments/simulators_and_instruments.py",
+        "src/pbc/electromagnetism/experiments/measurement_quality.py",
+    }
 
 
 def test_the_one_product_check_is_the_starter_check():

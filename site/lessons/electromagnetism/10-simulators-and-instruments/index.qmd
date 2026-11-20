@@ -1,0 +1,488 @@
+---
+title: "Connecting simulators and instruments"
+description: >-
+  One procedure measures the resonance of the RLC circuit through a guarded
+  instrument, on a simulated bench and on a recorded sample, with the same
+  code; the instrument refuses what lies outside its envelope before
+  anything reaches the device, and every adapter passes the same contract
+  tests. Live hardware is optional and not demonstrated.
+lesson:
+  id: simulators-and-instruments
+  strand: electromagnetism
+  order: 10
+  difficulty: 2
+  course: electromagnetism
+  slot: SA3
+  methods: [simulation]
+  outcomes:
+    - Measure a frequency response through an instrument interface that does not reveal whether a model, a recording, or a device is below it
+    - Say what an instrument must enforce below its caller (ranges with units, interlocks, timeouts, stop) and show that a refused operation reaches nothing
+    - Tell a recorded run from a new experiment, and say why a recorded adapter refuses a setting it did not record
+    - Run the same contract tests on every adapter and say what passing them does not show
+  related: []
+  format: 2
+  preview: fig-response-through-the-contract
+  experiment: pbc.electromagnetism.experiments.simulators_and_instruments
+  prerequisites:
+    lessons: [rlc-circuits-and-resonance, experiment-specification]
+    outside:
+      - "Python: reading a class and a short function"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
+from pbc.electromagnetism.experiments import simulators_and_instruments as experiment
+from pbc.instruments import conformance, contract, recorded
+
+result = experiment.run()
+lesson_header()
+```
+
+The lesson on RLC circuits found the resonance of a series circuit from its
+equations. On a bench the same question is answered with two instruments: a
+function generator drives the circuit, an oscilloscope records the voltage
+across the capacitor, and someone sets a frequency, reads the ratio of the
+two traces, writes it down, and sets the next frequency. Now hand the bench
+to a program. The program should not care whether the samples come from a
+model of the circuit, from a file of captures made last week, or from a real
+oscilloscope on a desk. And the generator should not care who the program
+is: a careful script, a tool written in a hurry, or an agent that was asked
+nicely to stay below two volts.
+
+Both wishes are met by one thin layer between the program and the device.
+This lesson builds the measurement on that layer, the instrument contract of
+the Autonomous Physics Lab, and asks what it must guarantee. Every run on
+the page is made by the build, on a **simulated** bench (a model of the
+circuit) or on a **recorded** sample of earlier simulated captures. No
+hardware is used and no live result is shown; a live adapter is optional and,
+until the project's physical pilot reports, not demonstrated.
+
+## Assumptions
+
+1. **The bench is the circuit of the RLC lesson.** The simulated adapter
+   integrates the state equations of that series circuit and adds Gaussian
+   noise of `{python} result["noise"]` mV to each channel, with a fixed seed.
+   A capture from it is a simulation output, not a measurement.
+2. **The channels are ideal.** Gain one, no offset, no delay, no clipping,
+   no lost samples. The next lesson, on measurement quality, removes this
+   assumption one step at a time.
+3. **The recorded sample says what it is.** Its declaration names its
+   origin (here: simulated), its units, and how it was made. A recorded
+   adapter cannot check that the declaration is true.
+4. **The envelope is right for the device.** The instrument enforces the
+   ranges it is given. Whether two volts is safe for a particular circuit
+   is decided by whoever writes the envelope, not by the code.
+5. **The procedure measures a steady state.** Each capture starts after the
+   transient of switching on has decayed (the adapter waits
+   `{python} result["settle"]` decay times) and spans a whole number of periods, so that the phasor of each
+   channel is exact for a sinusoid.
+
+## Six things a program needs from an instrument {#explanation}
+
+Watch the person at the bench and list what they do without thinking about
+it. Each item becomes a part of the interface.
+
+1. **Configuration.** They know which circuit is connected and how the
+   probes are set. A program needs the identity of the device and its
+   calibration, in words it can store with the data.
+2. **Excitation.** They turn the generator to a frequency and an amplitude.
+3. **Acquisition.** They press "single" on the oscilloscope and get a trace:
+   a number of samples at a sample rate.
+4. **Units.** They read volts off the screen because the screen says volts.
+   A program gets numbers; every channel has to carry its unit.
+5. **Validation.** They would never turn the amplitude knob to two hundred
+   volts on a circuit rated for a few. A program has no such reluctance, so
+   the ranges have to be enforced somewhere, and somewhere that every caller
+   passes through.
+6. **Snapshots.** At any moment they can say what the bench is doing: the
+   output is on at this setting, or off. A program needs to ask the same,
+   and to write it into the record of the run.
+
+The contract arranges these in layers. The caller holds an `Instrument`.
+The instrument holds a driver, the adapter of one execution mode, and is the
+only thing that calls it.
+
+```{python}
+#| label: fig-instrument-layers
+#| echo: false
+#| fig-cap: "The layers between a measuring program and a device. Every caller reaches the adapter only through the instrument, which validates each operation against the envelope first; the three adapters implement the same four calls. The live adapter is optional and not demonstrated."
+#| fig-status: conceptual
+#| fig-alt: "A diagram of four layers from top to bottom. At the top a box for the caller: a script, a tool, or an agent. An arrow labelled validated operations leads to a box for the instrument, which lists envelope, interlocks, timeout, stop, snapshot, and run record. An arrow labelled only within the envelope leads to a box for the driver with its four calls. From the driver three arrows lead to three boxes, simulated, recorded, and live; the arrow to live is dashed, and live is annotated as optional and not demonstrated."
+result.show("fig-instrument-layers")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_instrument_layers, figure=True)
+```
+
+The diagram is a sketch and computes nothing. It answers the question of
+the opening: where can a limit be enforced so that no caller can get past
+it? Only in the middle layer, because every arrow from the top to the bottom
+passes through it.
+
+## Code
+
+### The adapter's side: four calls
+
+An adapter implements four calls and says which mode it is. Everything the
+lesson does to a device goes through these.
+
+```{python}
+#| echo: false
+excerpt(contract.Driver)
+```
+
+`output_off` carries the most weight: it is what a stop does, so it must be
+safe to call at any time, also while another call is still running.
+
+### The instrument's side: the envelope first
+
+The envelope gives each quantity a permitted range with its unit. The
+bench's envelope, as the experiment states it:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="envelope")
+```
+
+A `Limit` refuses anything that is not a finite number inside its range,
+and says why in the quantity's own unit:
+
+```{python}
+#| echo: false
+excerpt(contract.Limit)
+```
+
+The instrument applies the limits before it calls the driver. Here is how
+it switches the output on: check the amplitude, check the frequency, check
+every interlock, and only then call the adapter, under the timeout. If a stop
+arrived while the adapter was switching on, the output goes off again.
+
+```{python}
+#| echo: false
+excerpt(contract.Instrument, lines=(21, 37))
+```
+
+### The procedure that does not know its adapter
+
+The measurement of one point: excite, acquire `{python} result["periods"]`
+periods at `{python} result["samples-per-period"]` samples per period, and take the ratio of the response's phasor to the
+source's. The function receives an instrument and never asks what is below
+it.
+
+```{python}
+#| echo: false
+excerpt(experiment.measure_response)
+```
+
+## Worked examples
+
+### A sweep on the simulated bench
+
+Before trusting a measurement procedure, check it where the answer is known.
+The simulated bench is the circuit of the RLC lesson, and that lesson gave
+the capacitor's response in closed form. If the procedure is right, the
+measured gain and phase lie on the closed form, off it only by what the
+noise of the channels allows.
+
+```{python}
+#| echo: false
+excerpt(experiment.run, region="simulated")
+```
+
+```{python}
+#| label: simulated-sweep
+#| echo: false
+result.table("simulated")
+```
+
+[At all `{python} result["points"]` frequencies the gain measured through the
+instrument is within `{python} result["gain-deviation"]` % of the closed form
+and the phase within `{python} result["phase-deviation"]` degrees.]{.claim
+type="numerically-verified" scope="the simulated bench with its seeded noise,
+eight periods per point; a check of the procedure against the model, no
+measurement" evidence="simulated-sweep"} The procedure measures what the model
+says, so a difference that appears later, on another adapter, belongs to that
+adapter and not to the procedure.
+
+### The same procedure on a recording
+
+The recorded adapter replays a sample: the captures of this sweep, made once
+on the simulated bench and stored with a declaration that says so. The
+procedure is called again, unchanged; only the adapter differs.
+
+```{python}
+#| echo: false
+excerpt(experiment.run, region="recorded")
+```
+
+The sweep from the recording is `{python} result["recorded-identical"]` to the
+sweep from the simulated bench, sample for sample, and the figure shows both
+on the closed form.
+
+```{python}
+#| label: fig-response-through-the-contract
+#| echo: false
+#| fig-cap: "Gain and phase of the capacitor voltage measured by one procedure through the instrument, on the simulated adapter (circles) and on the recorded adapter (crosses), on the closed form of the circuit (line). The two adapters give the same points, and both lie on the model."
+#| fig-status: simulated
+#| fig-alt: "Two stacked panels against frequency in kilohertz. The upper panel shows the gain: a line rising to a peak near five kilohertz and falling again, with circles and crosses on the line at each measured frequency, each cross inside its circle. The lower panel shows the phase falling from near zero to near minus one hundred and sixty degrees, steepest at the peak, with the circles and crosses again on the line."
+result.show("fig-response-through-the-contract")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_response, figure=True)
+```
+
+Every point is a call of the same function; the line is the closed form of
+the RLC lesson. Agreement here shows that the procedure and both adapters
+implement the model. It says nothing about a real circuit, because neither
+adapter measured one.
+
+The two runs did not produce the same kind of record:
+
+```{python}
+#| echo: false
+result.table("run-records")
+```
+
+The recorded run is never a new experiment. Its numbers can be analysed
+again as often as one likes, but they cannot count as a second observation
+of the circuit, and the record says so where any later reader will look.
+
+Now ask the recording for something it does not hold. The sweep has points
+at five and at five and a half kilohertz. The procedure asks the recorded
+adapter for `{python} result["between"]` Hz, halfway between. Before reading
+on, decide: does the adapter interpolate between its two neighbours, answer
+with the nearest one, or refuse?
+
+```{python}
+#| echo: false
+excerpt(recorded.RecordedBench, lines=(26, 49))
+```
+
+It refuses (`_same` compares two numbers to a relative part in a
+billion):
+
+> `{python} result["between-refusal"]`
+
+Interpolating would have been easy, and it would have been a lie of a
+particular kind: a number for a setting that nobody ran, presented by an
+adapter whose whole meaning is that it returns what was recorded. The
+response of a resonant circuit between two points is exactly what one does
+not know without measuring it. A recorded adapter that cannot answer says so,
+and the caller decides whether to run a new experiment, on another adapter.
+
+### What the envelope stops
+
+The instrument of the next example sits on a call log: an adapter that
+passes every call on to the simulated bench and writes it down, so the page
+can show what reached the bench. Five requests lie outside the envelope. The
+last arrives through a tool whose own bounds allow a thousand volts, written
+the way a hurried tool for an agent might be:
+
+```{python}
+#| echo: false
+excerpt(experiment.refusals, region="requests")
+```
+
+```{python}
+#| label: refusal-table
+#| echo: false
+result.table("refusals")
+```
+
+[None of the five requests reached the adapter: the call log holds
+`{python} result["refusals-reaching"]` calls from them.]{.claim
+type="numerically-verified" scope="the instrument contract with the
+simulated adapter behind a call log; the same holds for any adapter, which
+the contract tests check" evidence="refusal-table"} The tool's wide bounds
+did not matter, because the tool also reaches the adapter only through the
+instrument. The limit lives below every caller, which is the only place
+where it holds for all of them.
+
+The stop works the same way. After one more measurement the experiment
+requests a stop and then tries to measure again. The second measurement is
+refused with "`{python} result["stop-reason"]`", `{python} result["stop-reaching"]`
+of its calls reach the adapter, and the last call the adapter received was
+`{python} result["stop-last-call"]`. The snapshot, which is always permitted,
+records the state:
+
+```{python}
+#| echo: false
+result.table("snapshot")
+```
+
+### The same tests for every adapter
+
+A program that works on the simulated adapter should work on any other, so
+every adapter is held to the same list of checks: it names itself and its
+calibration, switches off at any time, returns what was asked for in the
+units declared, puts the set excitation on the source channel, has nothing
+left on it after `output_off`, and gives the same samples again when it is
+not a live device. Two more checks run the instrument on top of it: the
+envelope refuses before the adapter, and the stop holds.
+
+```{python}
+#| echo: false
+excerpt(conformance.check_driver)
+```
+
+```{python}
+#| label: conformance-table
+#| echo: false
+result.table("conformance")
+```
+
+[The simulated and the recorded adapter each pass all
+`{python} result["checks"]` contract tests.]{.claim
+type="numerically-verified" scope="the two adapters of this lesson at one
+setting of the bench" evidence="conformance-table"} The unit tests of the
+project run the same checks on the adapter of the next lesson, on a bench
+with the probe moved to the resistor, and on a stand-in that has the live
+mode, and each check is shown to fail on an adapter with the one fault it is
+written for.
+
+### The hardware adapter, optional
+
+A live adapter is a fourth class with the same four calls, written for one
+device: its `capture` asks a real oscilloscope for samples, its `set_output`
+sets a real generator. It lives behind an optional dependency group, so the
+site, its build, and its checks never import a device driver, and it reaches
+the device only through the instrument, with the envelope enforced in code
+before each call. Before anyone relies on it, it passes the same contract
+tests as the adapters above. Passing them is necessary and not enough: the
+tests run against what the adapter reports, and a device can report what it
+was told while doing something else. The project's physical pilot exists to
+find that out, on a real device, with the envelope and the stop tried on it.
+Until the pilot reports a go, live hardware is not demonstrated, and nothing
+on this page depends on it.
+
+One procedure, two adapters, one envelope. The resonance measured through the
+contract lies on the model, the recording reproduces it and refuses to
+invent what it never held, no request outside the envelope reached the bench,
+and both adapters passed the same tests. The answer to the opening question
+is a division of labour: the procedure knows the physics, the adapter knows
+its device, and the instrument between them enforces the limits and keeps the
+record honest, whoever is calling.
+
+## Limits {#limits}
+
+- **No device was measured.** Every number on the page is a simulation
+  output or a replay of one. The agreement with the closed form checks the
+  procedure and the adapters against the model, not the model against a
+  circuit.
+- **The envelope is only as good as its numbers.** The instrument enforces
+  the ranges it is given and cannot know whether they are safe for the
+  circuit on the bench.
+- **The contract tests check behaviour the adapter reports.** An adapter
+  that says the output is off while a device keeps driving the circuit
+  would pass the stop check; only its own check of the source channel, or a
+  test on the device, finds that.
+- **The timeout and the interlocks are not exercised here.** The unit tests
+  of the contract cover them with a fake device that blocks; a page that
+  waited for a timeout would slow the build for no new insight.
+- **A recording replays; it does not reproduce.** Its numbers can be
+  analysed again, but they are not a second observation, and the adapter
+  cannot detect a false declaration.
+
+::: {.exercise .self-check}
+A new live adapter passes all `{python} result["checks"]` contract tests on the first try, with the
+oscilloscope and the generator connected. A colleague concludes that the
+project now supports live hardware. What do the passed tests show, and what
+do they not?
+
+::: {.solution}
+They show that the adapter implements the four calls in the way every
+program on the contract relies on: it names itself, returns captures of the
+right length in the declared units, puts the set excitation on the source
+channel, has nothing left there after `output_off`, and sits correctly below
+the envelope and the stop. They do not show that the device does what the
+adapter reports. The source channel is read through the same adapter, so an
+output that keeps running on the bench while the reading says otherwise, a
+miscalibrated probe, or a stop that the device ignores are invisible to them.
+Support is demonstrated by the physical pilot: the envelope's refusal and the
+stop tried on the real device, a recorded run with its calibration and
+operating conditions, and a decision on the evidence.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**An adapter that forgets.** A colleague writes an adapter in which
+`output_off` does nothing, because "the instrument switches the output off
+anyway". Which contract test fails, and which one, perhaps surprisingly,
+passes? Why does the difference matter on a real bench?
+
+::: {.solution}
+The adapter is `ForgetfulBench` of the experiment: the simulated bench with an
+empty `output_off`. It passes `{python} result["forgetful-passed"]` of the
+`{python} result["checks"]` checks.
+
+```{python}
+#| echo: false
+result.table("forgetful")
+```
+
+The check that fails switches the output off and then looks at the source
+channel, where the full amplitude is still there:
+
+```{python}
+#| echo: false
+excerpt(conformance._off_means_off)
+```
+
+The stop check passes. The instrument did everything right: it called
+`output_off` at once and refused every later operation. It cannot see that
+the call did nothing, because it only knows what the adapter tells it. On a
+bench that is the dangerous case: the program believes the generator is off,
+the snapshot says "off", and the circuit is still driven. Only a check that
+looks at the signal itself catches it, which is why that check belongs to
+every adapter's tests.
+:::
+:::
+
+::: {.exercise}
+**A recording asked for more.** The recorded sample holds the nine
+frequencies of the sweep. You want the resonance more precisely and ask the
+procedure for ten points between 4.8 and 5.2 kHz on the recorded adapter.
+What happens, and what should you do instead?
+
+::: {.solution}
+Every request whose setting is not exactly one of the recorded ones is
+refused with the message the worked example showed, which ends "a recorded
+run cannot make a new measurement". At most one of the requested points can
+be answered: the resonance point of the sweep, and only if a requested
+frequency falls on it exactly. The recording
+answers questions about the captures it holds, and a finer sweep is a new
+experiment: run it on the simulated adapter, whose answers are model outputs
+and say so, or on a device. Interpolating the recorded points yourself is an
+analysis, and is labelled as one; it is not a measurement of the points in
+between.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/instruments/contract.py",
+        "src/pbc/instruments/simulated.py",
+        "src/pbc/instruments/recorded.py",
+        "src/pbc/instruments/conformance.py",
+        "src/pbc/electromagnetism/circuits.py",
+        "src/pbc/electromagnetism/experiments/simulators_and_instruments.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_instruments.py",
+        "tests/unit/test_instrument_conformance.py",
+        "tests/unit/test_simulators_and_instruments_experiment.py",
+    ],
+)
+```
