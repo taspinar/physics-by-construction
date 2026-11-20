@@ -18,9 +18,10 @@ from functools import partial
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.figure import Figure
+from matplotlib.ticker import MaxNLocator
 from scipy.constants import g
 
-from pbc.agents import Allowlist, ReplayMismatch, Tool, ToolCall
+from pbc.agents import Allowlist, ReplayMismatch, Tool, ToolCall, bounded_lab
 from pbc.agents.display import AllowlistDisplay, RunDisplay
 from pbc.agents.projectile_lab import (
     ANGLE,
@@ -37,9 +38,10 @@ from pbc.agents.projectile_lab import (
     tools,
 )
 from pbc.agents.replay import replay
-from pbc.authoring import diagrams
+from pbc.authoring import FIGURE_COLOURS, diagrams
 from pbc.authoring.repository import REPOSITORY_ROOT
 from pbc.experiment import Experiment, main
+from pbc.figure_language import LINE, MARKER, figsize, figure_style, finish
 from pbc.mechanics.projectile import projectile_range
 
 # The live run of the lesson: a model, its key, and the extra openai.
@@ -356,6 +358,161 @@ def new_tool(experiment: Experiment) -> None:
     )
 
 
+def draw_bounded_protocol() -> Figure:
+    """The steps of the protocol, in order, and the budget the runs use up,
+    as a sketch."""
+    fig, ax = diagrams.canvas(6.4, 3.2, (0.0, 12.8), (0.0, 6.4))
+    steps = [name for name, _ in bounded_lab.PROTOCOL]
+    for n, name in enumerate(steps):
+        x = 1.3 + 2.55 * n
+        diagrams.state_box(
+            ax, (x, 4.9), name, width=2.2, height=0.9, colour=0 if n else 2
+        )
+        if n:
+            diagrams.arrow(ax, (x - 1.45, 4.9), (x - 1.1, 4.9), colour=0)
+    diagrams.text(ax, (6.4, 3.75), "every run, failed or not, uses one unit")
+    for n in range(bounded_lab.BUDGET):
+        diagrams.state_box(
+            ax, (1.1 + 1.18 * n, 2.6), "", width=1.0, height=0.7,
+            colour=3 if n + 1 == bounded_lab.FAIL_AT else 1,
+        )  # fmt: skip
+    diagrams.text(
+        ax, (1.1 + 1.18 * (bounded_lab.FAIL_AT - 1), 3.35), "fails",
+        colour="#57606a",
+    )  # fmt: skip
+    diagrams.text(ax, (6.4, 1.6), "the budget of runs; one of them will fail")
+    diagrams.text(
+        ax, (6.4, 0.6), "checked from the runs, never from the words",
+        colour="#57606a",
+    )  # fmt: skip
+    return fig
+
+
+def bounded_routes(experiment: Experiment, transcript) -> tuple:
+    """The protocol check of the recorded agent run and of the scripted
+    route, each through a fresh allowlist with the same budget and the same
+    injected failure; record the tables and return both routes' runs."""
+    # region: routes
+    agent_runs = bounded_lab.runs_of(transcript)
+    agent_checks, agent = bounded_lab.check_protocol(agent_runs, transcript.finished)
+    script_runs, stopped = bounded_lab.scripted_route(bounded_lab.tools())
+    script_checks, script = bounded_lab.check_protocol(script_runs, True)
+    # endregion: routes
+    experiment.table(
+        "protocol-check",
+        [
+            (
+                a.step,
+                "met" if a.met else "not met",
+                a.evidence,
+                "met" if b.met else "not met",
+                b.evidence,
+            )
+            for a, b in zip(agent_checks, script_checks, strict=True)
+        ],
+        [
+            ("step", "", ""),
+            ("agent", "", ""),
+            ("agent: from its runs", "", ""),
+            ("script", "", ""),
+            ("script: from its runs", "", ""),
+        ],
+        "The steps of the protocol after the plan, checked from the runs of"
+        " each route and their recomputed results.",
+    )
+    fine = TIME_STEP.low
+    grid = np.arange(35.0, 46.0 + 1e-9, 0.25)
+    scan = [projectile_range(25.0, a, MASS, DRAG, fine) for a in grid]
+    best = float(grid[int(np.argmax(scan))])
+    experiment.table(
+        "two-routes",
+        [
+            ("answer, degrees", agent.angle, script.angle),
+            ("time step chosen, s", agent.dt, script.dt),
+            ("runs spent", agent.runs, script.runs),
+            ("model messages", len(transcript.steps), 0),
+            (
+                "distance from the best angle of a fine scan, degrees",
+                abs(agent.angle - best),
+                abs(script.angle - best),
+            ),
+        ],
+        [("", "", ""), ("agent", "", ".4g"), ("script", "", ".4g")],
+        "The two routes through the same protocol, budget, and failure, and"
+        " the best angle of an independent scan at the smallest allowed step.",
+    )
+    experiment.number("scan-best", best, ".2f")
+    experiment.number("agent-runs", agent.runs, "d")
+    experiment.number("script-runs", script.runs, "d")
+    experiment.number("script-stopped", stopped)
+    return agent_runs, script_runs
+
+
+def draw_two_routes(agent_runs, script_runs) -> Figure:
+    """The angle of each run of the two routes in order, the failed run
+    marked, against the budget."""
+    with figure_style():
+        fig, axes = plt.subplots(2, 1, figsize=figsize("stacked"), sharex=True)
+        for ax, runs, name in (
+            (axes[0], agent_runs, "agent"),
+            (axes[1], script_runs, "script"),
+        ):
+            for n, entry in enumerate(runs, start=1):
+                angle = entry.call.arguments["angle"]
+                if not entry.result.ok:
+                    ax.plot(n, angle, marker="x", markersize=MARKER + 4,
+                            color=FIGURE_COLOURS[3], linestyle="none")  # fmt: skip
+                elif entry.call.arguments["dt"] < 0.01:
+                    ax.plot(n, angle, marker="o", markersize=MARKER + 2,
+                            markerfacecolor="none", color=FIGURE_COLOURS[1],
+                            linestyle="none")  # fmt: skip
+                else:
+                    ax.plot(n, angle, marker="o", markersize=MARKER + 2,
+                            color=FIGURE_COLOURS[0], linestyle="none")  # fmt: skip
+            ax.axvline(
+                bounded_lab.BUDGET + 0.5, color=FIGURE_COLOURS[2], linestyle="--",
+                linewidth=LINE["guide"],
+            )  # fmt: skip
+            ax.set_ylabel(f"{name}: angle (deg)")
+            ax.set_ylim(36.5, 43.5)
+        axes[1].set_xlim(0.5, bounded_lab.BUDGET + 1.0)
+        axes[1].set_xlabel("run number (dashed: end of the budget)")
+        axes[1].xaxis.set_major_locator(MaxNLocator(integer=True))
+        axes[1].plot([], [], "o", color=FIGURE_COLOURS[0], label="dt = 0.01 s")
+        axes[1].plot([], [], "o", markerfacecolor="none", color=FIGURE_COLOURS[1],
+                     label="dt = 0.005 s")  # fmt: skip
+        axes[1].plot([], [], "x", color=FIGURE_COLOURS[3], label="failed")
+        axes[1].legend(loc="upper right")
+    return finish(fig)
+
+
+def small_budget(experiment: Experiment) -> None:
+    """Exercise 3: the scripted route with a budget of four runs."""
+    runs, stopped = bounded_lab.scripted_route(bounded_lab.tools(budget=4))
+    experiment.table(
+        "small-budget",
+        [
+            (
+                n,
+                entry.call.arguments["angle"],
+                entry.call.arguments["dt"],
+                entry.result.content.get("range_m"),
+                entry.result.content.get("error", "ran"),
+            )
+            for n, entry in enumerate(runs, start=1)
+        ],
+        [
+            ("run", "", "d"),
+            ("angle", "degrees", ".0f"),
+            ("time step", "s", ".3f"),
+            ("range", "m", ".4f"),
+            ("outcome", "", ""),
+        ],
+        "The scripted route with a budget of four runs.",
+    )
+    experiment.number("small-budget-stopped", stopped)
+
+
 def run() -> Experiment:
     """Everything the lesson's page shows."""
     experiment = Experiment()
@@ -384,6 +541,23 @@ def run() -> Experiment:
     experiment.number("best-angle", best_angle, ".2f")
     step_bounds(experiment)
     new_tool(experiment)
+
+    experiment.number("budget", bounded_lab.BUDGET, "d")
+    experiment.number("fail-at", bounded_lab.FAIL_AT, "d")
+    experiment.number("bounded-max-steps", bounded_lab.MAX_STEPS, "d")
+    experiment.number("converged", 100 * bounded_lab.CONVERGED, ".1f")
+    experiment.figure("fig-bounded-protocol", draw_bounded_protocol)
+    with experiment.capture("bounded-task"):
+        print(bounded_lab.TASK)
+    bounded, bounded_transcript = bounded_lab.replay_fixture(LESSON)
+    experiment.display("bounded-run", RunDisplay(bounded, bounded_transcript))
+    experiment.number("bounded-model", bounded.model)
+    experiment.number("bounded-recorded", bounded.recorded)
+    agent_runs, script_runs = bounded_routes(experiment, bounded_transcript)
+    experiment.figure(
+        "fig-two-routes", partial(draw_two_routes, agent_runs, script_runs)
+    )
+    small_budget(experiment)
     return experiment
 
 

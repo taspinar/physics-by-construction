@@ -2116,6 +2116,16 @@ its data, in a module apart from the rest, so that the figures that use no
 data are not made from a dataset (`pbc.agents.multimodal_questions` and
 `pbc.agents.multimodal_lab`, the lessons AI6 and AI7).
 
+**Protocols, budgets, and failures.** A lesson that bounds an agent by a
+written protocol states the steps in the task, gives the allowlist a budget
+(`Allowlist(..., budget=...)`, which counts a run that fails as spent), and
+injects a failure in the tool function, never in the prompt, so that a replay
+meets it again at the same run. Whether the run followed the protocol is
+computed from the tool calls and their recomputed results, never from the
+model's words, and a scripted route runs the same protocol through the same
+allowlist (`pbc.agents.bounded_lab`, the bounded part of
+`site/lessons/agents-llm/01-an-agent-runs-an-experiment/index.qmd`, F143).
+
 Never put a credential in the lesson, the fixture, or a test. The harness
 removes the client's key from every model message before it is kept, printed,
 or saved, but the fixture is reviewed before it is committed. A fixture

@@ -12,11 +12,11 @@ starts a product, or contacts a model, an instrument, or the network.
   capstone page of F145, which executes the deterministic simulator route,
   is the first that may, and changes this test with it).
 - A page may run the instrument contract on its simulated and recorded
-  adapters (the lessons of slots SA3 and SA4, F142): it names only the
-  contract and those adapters, the contract tests, and the channel adapter,
-  never the live mode, and the experiment it runs is held to the import rule
-  of ``pbc.instruments`` itself. (Before F142 no page could name
-  ``pbc.instruments`` at all.)
+  adapters (the lessons of slots SA3 and SA4, F142, and the campaign of
+  SA6, F143): it names only the contract and those adapters, the contract
+  tests, and the channel adapter, never the live mode, and the experiment it
+  runs is held to the import rule of ``pbc.instruments`` itself. (Before
+  F142 no page could name ``pbc.instruments`` at all.)
 - The one check that touches the products, ``starters``, runs the starter
   checks, which read the repository's own history and start no product.
 - ``pbc.instruments`` and the product package import no network client, no
@@ -191,7 +191,9 @@ def test_an_experiment_on_the_contract_imports_no_driver_network_or_model(path):
     assert not re.search(r"\bLIVE\b", path.read_text())
 
 
-def test_the_experiments_on_the_contract_are_the_two_lessons():
+def test_the_experiments_on_the_contract_are_the_three_lessons():
+    """SA3 and SA4 (F142), and SA6 (F143), whose campaign runs on the
+    simulated adapter; each is held to the rule of the test above."""
     using = {
         p.relative_to(ROOT).as_posix()
         for p in EXPERIMENTS
@@ -200,6 +202,7 @@ def test_the_experiments_on_the_contract_are_the_two_lessons():
     assert using == {
         "src/pbc/electromagnetism/experiments/simulators_and_instruments.py",
         "src/pbc/electromagnetism/experiments/measurement_quality.py",
+        "src/pbc/electromagnetism/experiments/measurement_campaigns.py",
     }
 
 
