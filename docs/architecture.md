@@ -282,7 +282,9 @@ src/pbc/                 Importable Python package with all reusable lesson code
   evidence/              The minimal capstone evidence contract: run and attempt records, the
                          evaluator's recomputed scores apart from candidate diagnostics, claim links
                          with an evidence status, the frozen candidate and the versioned final
-                         evaluation (Part B products, F137, ADR 022)
+                         evaluation (Part B products, F137, ADR 022); the sealed split, repeated
+                         trials, and reviewer evaluation of the lessons AE4 to AE6 (`sealed`,
+                         `robustness`, `reviewers`, F150)
   instruments/           The instrument contract (configuration with units and ranges, excitation,
                          acquisition, validation, state snapshots, the safety envelope) and its
                          simulated, recorded, and optional live adapters (Part B products, F138,
@@ -293,7 +295,8 @@ src/pbc/                 Importable Python package with all reusable lesson code
                          F148, F151, F155, ADR 022)
   abm/                   Agent-based models
   agents/                Agent harness: provider interface, tool allowlist, replay; the lesson
-                         modules (`projectile_lab`, `review_lab`: three reviewers, F18; `design` and
+                         modules (`projectile_lab`, `review_lab`: three reviewers, F18, and the
+                         panel over controlled cases of AE6, F150; `design` and
                          `design_lab`: the design of measurements that tell two models apart, scored
                          and judged by the build, F20); the experiment specification, its check,
                          and the scripted route without a model (`specification`, SA1, F141)

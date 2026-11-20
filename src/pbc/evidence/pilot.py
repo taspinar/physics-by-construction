@@ -47,11 +47,36 @@ from pbc.evidence.records import (
     digest_value,
 )
 
-ROOT = Path(__file__).parents[3]
-LESSONS = Path("site") / "lessons" / "agents-llm"
+# The repository, found from this file when it is needed. It is not a
+# constant of the module: the input digest of a page that imports a module
+# cannot follow a constant naming the whole repository
+# (``pbc.authoring.digest``); the pages that read the fixtures name their
+# directories themselves.
+_LEVELS = 3
+
+
+def repository() -> Path:
+    """The root of the repository that holds this module."""
+    return Path(__file__).parents[_LEVELS]
+
+
+def _root(root: Path | None) -> Path:
+    return repository() if root is None else root
+
+
+def __getattr__(name: str) -> Path:
+    # ``ROOT``, the repository, as the callers of the pilot know it.
+    if name == "ROOT":
+        return repository()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+# The pages that hold the candidates' fixtures, relative to the repository,
+# as strings, so that the input digest of a page that imports this module can
+# follow them (``pbc.authoring.digest``).
 HOMES = {
-    "EV2": LESSONS / "12-interactive-discovery-benchmarks",
-    "EV3": LESSONS / "13-agent-versus-non-agent-baselines",
+    "EV2": "site/lessons/agents-llm/12-interactive-discovery-benchmarks",
+    "EV3": "site/lessons/agents-llm/13-agent-versus-non-agent-baselines",
 }
 PROTOCOL = "projectile"
 # The frozen runs that are candidates, by their name in ``benchmark.RUNS``.
@@ -147,8 +172,9 @@ def run_record() -> RunRecord:
     )
 
 
-def fixture(candidate: str, root: Path = ROOT) -> Path:
+def fixture(candidate: str, root: Path | None = None) -> Path:
     """Where the fixture of ``candidate`` is under ``root``."""
+    root = _root(root)
     cell = CANDIDATES[candidate]
     return root / HOMES[cell.home] / benchmark.RUNS[cell.run].fixture
 
@@ -213,7 +239,7 @@ def evaluate_attempt(
     ledger: Ledger,
     attempt_id: str,
     candidate: str,
-    root: Path = ROOT,
+    root: Path | None = None,
     prior: tuple[str, ...] = (),
     reported: dict[str, Any] | None = None,
     claims_correct: bool | None = None,
@@ -222,6 +248,7 @@ def evaluate_attempt(
     report: the cost record and last message of the run, with ``reported``
     (what the candidate says beside them, never evaluated) and the
     correctness it claims."""
+    root = _root(root)
     status, notes, artifact, evaluation = _evaluate(
         candidate, attempt_id, root, EVALUATOR
     )
@@ -266,18 +293,20 @@ def evaluate_baseline(ledger: Ledger, attempt_id: str) -> Attempt:
     return attempt
 
 
-def freeze(ledger: Ledger, candidate: str, version: str, root: Path = ROOT):
+def freeze(ledger: Ledger, candidate: str, version: str, root: Path | None = None):
     """Freeze ``candidate`` by the digest of its fixture."""
+    root = _root(root)
     artifact = Artifact.of("replay fixture", fixture(candidate, root), root, RAW)
     return ledger.freeze(candidate, version, (artifact,))
 
 
 def final_evaluation(
-    ledger: Ledger, candidate: str, root: Path = ROOT
+    ledger: Ledger, candidate: str, root: Path | None = None
 ) -> FinalEvaluation:
     """Evaluate the frozen ``candidate`` of the current cycle once, by the
     final evaluator, and record it (``Ledger.add_final`` refuses a second
     one, and one of a changed candidate)."""
+    root = _root(root)
     frozen = ledger.frozen_of(candidate, ledger.cycle)
     if frozen is None:
         raise ValueError(f"{candidate} is not frozen in cycle {ledger.cycle}")
@@ -327,10 +356,11 @@ SCOPE = (
 )
 
 
-def run_pilot(root: Path = ROOT) -> Ledger:
+def run_pilot(root: Path | None = None) -> Ledger:
     """The pilot: the three candidates evaluated, the two claims of EV3
     linked to them, and the agent frozen as version 1 with its final
     evaluation."""
+    root = _root(root)
     ledger = Ledger(run_record())
     ids = {"agent": "agent-1", "plain": "plain-1", "baseline": "baseline-1"}
     evaluate_attempt(ledger, ids["agent"], "projectile-full", root)
@@ -338,7 +368,7 @@ def run_pilot(root: Path = ROOT) -> Ledger:
     evaluate_baseline(ledger, ids["baseline"])
     sources = (
         "docs/discovery-protocol.md",
-        (HOMES["EV3"] / "index.qmd").as_posix(),
+        f"{HOMES['EV3']}/index.qmd",
     )
     for id_, text, runs in CLAIMS:
         linked = {ids[k]: v for k, v in runs.items()}

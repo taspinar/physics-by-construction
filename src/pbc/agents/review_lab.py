@@ -38,7 +38,7 @@ from pbc.mechanics.dynamics import Stepper
 from pbc.mechanics.integrators import symplectic_euler_step
 from pbc.verification import checks
 from pbc.verification.checks import CHECKS, Claim
-from pbc.verification.faulty import explicit_euler_as_symplectic
+from pbc.verification.faulty import CORRECT, GALLERY, explicit_euler_as_symplectic
 
 # What both pieces of code claim: first order, and an oscillator energy that
 # stays in a band.
@@ -398,6 +398,237 @@ class ReviewDisplay:
         return "\n".join(lines) + "\n"
 
 
+# --- Lesson AE6 (F150): the panel over controlled cases. ---
+#
+# Nothing above changes: AI4's two pieces, its three reviewers, their tools
+# and prompts, ``verdicts``, ``resolve``, and the display are those its page
+# replays. The panel below is a second review over eight cases whose truth is
+# known: the three correct methods of the gallery and five faulty ones of
+# ``pbc.verification.faulty``, each checked against the claim of the method
+# it is or poses as. The number of a case says nothing about it. A reviewer
+# of the panel records a decision for every case with ``decide``, so that
+# its missed errors and false alarms are counted from the trace.
+
+
+@dataclass(frozen=True)
+class Case:
+    """A controlled case: a stepper, its claim, and whether it is faulty."""
+
+    name: str
+    build: Callable[[], Stepper]
+    claim: Claim
+    faulty: bool
+
+
+def _cases() -> dict[int, Case]:
+    faulty = {f.name: f for f in GALLERY}
+    correct = {name: (build, claim) for name, build, claim in CORRECT}
+
+    def bad(name: str) -> Case:
+        return Case(name, faulty[name].build, faulty[name].claim, True)
+
+    def good(name: str) -> Case:
+        return Case(name, *correct[name], False)
+
+    order = (
+        bad("verlet with a stopped clock"),
+        good("symplectic Euler"),
+        bad("rk4 with equal weights"),
+        bad("verlet that remembers"),
+        good("Runge-Kutta 4"),
+        bad("explicit Euler as symplectic"),
+        good("velocity Verlet"),
+        bad("verlet without the half"),
+    )
+    return dict(enumerate(order, start=1))
+
+
+CASES: Mapping[int, Case] = _cases()
+PANEL_MAX_STEPS = 12  # model messages per panel reviewer
+PANEL_DIRECTORY = "site/lessons/agents-llm/24-failure-analysis-and-reviewer-evaluation"
+PANEL_MODEL = "claude-opus-5-5 in a Claude Code session"
+PANEL_RECORDED = "2026-11-19"
+PANEL_RECORD_COMMAND = (
+    "uv run --extra openai python -m pbc.agents.review_lab --panel --record"
+    " (with OPENAI_API_KEY set)"
+)
+
+
+def _claim_words(claim: Claim) -> str:
+    order = {1: "first", 2: "second", 4: "fourth"}[claim.order]
+    energy = (
+        "and a bounded energy"
+        if claim.bounded_energy
+        else "and do not claim a bounded energy"
+    )
+    return f"{order} order {energy}"
+
+
+def _claims_sentence(cases: Mapping[int, Case]) -> str:
+    groups: dict[str, list[int]] = {}
+    for number, case in cases.items():
+        groups.setdefault(_claim_words(case.claim), []).append(number)
+    parts = []
+    for words, numbers in groups.items():
+        names = ", ".join(str(n) for n in numbers[:-1])
+        names = f"{names} and {numbers[-1]}" if names else str(numbers[0])
+        parts.append(f"pieces {names} claim {words}")
+    return "; ".join(parts)
+
+
+PANEL_SHARED = (
+    f"You review {len(CASES)} pieces of code, numbered 1 to {len(CASES)}, each"
+    " a method for Newton's second law, against its own claim: "
+    + _claims_sentence(CASES)
+    + ". A bounded energy means that the energy of the harmonic oscillator"
+    " stays in a band that does not grow. You can only use the tools you are"
+    " given, and a tool is the only source of a result. For every piece,"
+    " record your decision with decide: accept 1 if the evidence you have"
+    " supports its claim, 0 if it does not. Then report what you checked and"
+    " what you did not."
+)
+
+
+def panel_allowlist(role: str, cases: Mapping[int, Case] = CASES) -> Allowlist:
+    """The tools of a panel reviewer over ``cases``, for ``role`` either
+    ``"physics"`` or ``"numerics"``: the checks of its role in AI4, each
+    against the claim of the piece, and ``decide``."""
+    piece = Parameter(
+        "candidate",
+        f"the piece of code: 1 to {len(cases)}",
+        1,
+        len(cases),
+        integer=True,
+    )
+
+    def check(name: str, description: str) -> Tool:
+        def function(candidate: int) -> dict[str, float]:
+            case = cases[candidate]
+            finding = _CHECK_FUNCTIONS[name](case.build, case.claim)
+            return {
+                "measured": finding.measured,
+                "tolerance": finding.tolerance,
+                "passed": float(finding.passed),
+            }
+
+        return Tool(f"check_{name.replace('-', '_')}", description, (piece,), function)
+
+    checks_of = {
+        "physics": (("limits", _LIMITS), ("bounded-energy", _BOUNDED)),
+        "numerics": (
+            ("clock", _CLOCK),
+            ("purity", _PURITY),
+            ("convergence-order", _ORDER),
+        ),
+    }[role]
+    # region: decide
+    decide = Tool(
+        name="decide",
+        description=(
+            "Record your decision on a piece: accept 1 if the evidence supports"
+            " its claim, 0 if it does not. A later decision on the same piece"
+            " replaces an earlier one."
+        ),
+        parameters=(
+            piece,
+            Parameter("accept", "1 to accept, 0 to reject", 0, 1, integer=True),
+        ),
+        function=lambda candidate, accept: {"recorded": 1.0},
+    )
+    # endregion: decide
+    tools = tuple(check(name, tool.description) for name, tool in checks_of)
+    return Allowlist((*tools, decide))
+
+
+PANEL = (
+    Reviewer(
+        "physics",
+        "physical assumptions",
+        PANEL_SHARED + " Your part is the physics: does the code obey the motion it"
+        " models and the conservation it claims?",
+        "Check every piece against its physical claim with your tools, then"
+        " record a decision on every piece with decide.",
+        panel_allowlist("physics"),
+    ),
+    Reviewer(
+        "numerics",
+        "numerical implementation",
+        PANEL_SHARED + " Your part is the implementation: does a step behave as a"
+        " step of a method of the claimed order must?",
+        "Check every piece as a numerical method with your tools, then record"
+        " a decision on every piece with decide.",
+        panel_allowlist("numerics"),
+    ),
+)
+
+
+@dataclass(frozen=True)
+class PanelSession:
+    """One recorded session of a panel reviewer: its role, which repeat of
+    the same prompt it is, and the cost the session reported."""
+
+    role: str
+    repeat: int
+    model_messages: int
+    tool_calls: int
+
+    @property
+    def reviewer(self) -> Reviewer:
+        return next(r for r in PANEL if r.id == self.role)
+
+    @property
+    def name(self) -> str:
+        return f"{self.role}-{self.repeat}"
+
+    @property
+    def fixture(self) -> str:
+        return f"replay-{self.role}{('one', 'two')[self.repeat - 1]}.json"
+
+
+# The recorded sessions: each role twice, with the same prompt (repeated
+# assessment). Tokens and price were not reported by the session.
+PANEL_SESSIONS = (
+    PanelSession("physics", 1, 7, 36),
+    PanelSession("physics", 2, 7, 36),
+    PanelSession("numerics", 1, 9, 52),
+    PanelSession("numerics", 2, 9, 52),
+)
+
+
+def replay_panel(
+    session: PanelSession,
+    directory: Path = Path(),
+    cases: Mapping[int, Case] = CASES,
+) -> tuple[Recording, Transcript]:
+    """Replay ``session`` from ``directory`` against the checks of ``cases``
+    (the controlled cases unless a test or a lesson replaces one)."""
+    recording = load_recording(directory / session.fixture)
+    if (recording.model, recording.recorded) != (PANEL_MODEL, PANEL_RECORDED):
+        raise ValueError(f"{session.fixture} is not the session recorded for it")
+    reviewer = session.reviewer
+    transcript = replay(
+        recording,
+        panel_allowlist(reviewer.id, cases),
+        system=reviewer.system,
+        task=reviewer.task,
+        tolerance=TOLERANCE,
+        max_steps=PANEL_MAX_STEPS,
+        rerecord=PANEL_RECORD_COMMAND,
+    )
+    return recording, transcript
+
+
+def decisions(transcript: Transcript) -> dict[int, bool]:
+    """The decision on each piece, from the accepted ``decide`` calls; a
+    later one replaces an earlier one. The words of the model are not read."""
+    found: dict[int, bool] = {}
+    for step in transcript.steps:
+        for call, result in zip(step.message.tool_calls, step.results, strict=True):
+            if call.name == "decide" and result.ok:
+                found[int(call.arguments["candidate"])] = bool(call.arguments["accept"])
+    return found
+
+
 def _show(step: Step, *secrets: Secret) -> None:
     if step.message.text:
         print(redact(step.message.text, *secrets))
@@ -420,6 +651,12 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help=f"write each run to {DIRECTORY}/replay-<reviewer>.json",
     )
+    parser.add_argument(
+        "--panel",
+        action="store_true",
+        help="run the panel of lesson AE6 over the controlled cases instead,"
+        f" each session to {PANEL_DIRECTORY}/replay-<role><repeat>.json",
+    )
     options = parser.parse_args(argv)
     try:
         client = load_client(PROVIDER)
@@ -427,6 +664,23 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {error}", file=sys.stderr)
         return 1
     today = datetime.date.today().isoformat()
+    if options.panel:
+        for session in PANEL_SESSIONS:
+            reviewer = session.reviewer
+            print(f"\n== panel {session.name} ({client.model}) ==\n{reviewer.task}\n")
+            transcript = run(
+                client,
+                reviewer.allowlist,
+                reviewer.system,
+                reviewer.task,
+                PANEL_MAX_STEPS,
+                on_step=lambda step: _show(step, *client.secrets),
+            )
+            if options.record:
+                path = Path(PANEL_DIRECTORY) / session.fixture
+                save_recording(path, transcript, today, *client.secrets)
+                print(f"\nRecorded to {path}. Review it before you commit it.")
+        return 0
     for reviewer in REVIEWERS:
         print(f"\n== {reviewer.role} ({client.model}) ==\nTask: {reviewer.task}\n")
         transcript = run(

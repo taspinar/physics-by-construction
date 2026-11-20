@@ -49,7 +49,9 @@ from pbc.discovery.benchmark import (
     task_of,
     verdict,
 )
+from pbc.discovery.protocol import CONDITIONS
 from pbc.experiment import Experiment, main
+from pbc.figure_language import figsize, figure_style, finish
 
 # The live runs of the lesson: a model, its key, and the extra openai.
 LIVE = "pbc.discovery.benchmark plain-projectile plain-oscillator plain-central-force"
@@ -273,6 +275,181 @@ def seeds(experiment: Experiment, found) -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# Prior knowledge as a controlled variable (F149)
+
+# What each contestant is told of the law before it probes. Least squares
+# fits the family, so it is told the form; sparse identification searches a
+# library of terms; the plain model has the agent's partial task.
+KNOWLEDGE = {"full": "the form", "partial": "the names", "none": "nothing"}
+FORM = "the form"
+LIBRARY = "a library of terms"
+
+
+def knowledge_pairs(experiment: Experiment):
+    """On each environment, the agent's three conditions beside methods told
+    the same or other things, each pair judged by ``comparable`` with prior
+    knowledge stated; record the table and return the entries the figure
+    draws."""
+    rows, found = [], {}
+    for name, protocol in ENVIRONMENTS.items():
+        p = PROTOCOLS[protocol]
+        cells = {c: GRID[name, c] for c in CONDITIONS}
+        # region: pairs
+        agent = {
+            c: replace(
+                agent_entry(f"agent, {c}", p, replay_cell(cell, home(cell))[2]),
+                knowledge=KNOWLEDGE[c],
+            )
+            for c, cell in cells.items()
+        }
+        grid, _, sparse = baselines(protocol)
+        told = replace(baseline_entry(p, grid), knowledge=FORM)
+        searched = replace(baseline_entry(p, sparse), knowledge=LIBRARY)
+        plain = replay_cell(PLAIN_RUNS[name], home(PLAIN_RUNS[name]))[2]
+        names = replace(
+            agent_entry("plain model", p, plain, plain=True), knowledge="the names"
+        )
+        pairs = [
+            ("agent told the form, grid + least squares", agent["full"], told),
+            ("agent told nothing, grid + least squares", agent["none"], told),
+            (
+                "agent told nothing, grid + sparse identification",
+                agent["none"],
+                searched,
+            ),
+            (
+                "agent told the names, plain model told the names",
+                agent["partial"],
+                names,
+            ),
+        ]
+        # endregion: pairs
+        rows += [
+            (name, what, a.held_out_error, b.held_out_error, verdict(a, b))
+            for what, a, b in pairs
+        ]
+        found[name] = (agent, told)
+    experiment.table(
+        "ev3-knowledge",
+        rows,
+        [
+            ("environment", "", ""),
+            ("pair", "", ""),
+            ("error of the first", "relative", ".2g"),
+            ("error of the second", "relative", ".2g"),
+            ("the check says", "", ""),
+        ],
+        "Pairs with prior knowledge stated, judged by the build: what each"
+        " contestant was told decides what the pair measures.",
+    )
+    return found
+
+
+def knowledge_seeds(experiment: Experiment) -> dict[str, list[float]]:
+    """Least squares told the form, at random settings with the full budget,
+    over twenty seeds on each environment; record the table and return the
+    errors."""
+    errors, rows = {}, []
+    for name, protocol in ENVIRONMENTS.items():
+        p = PROTOCOLS[protocol]
+        results = [random_fit(protocol, BUDGET, seed) for seed in SEEDS]
+        errors[name] = [r.held_out_error for r in results]
+        rows.append(
+            (
+                name,
+                sum(baseline_entry(p, r).recovered for r in results),
+                len(SEEDS),
+                min(errors[name]),
+                float(np.median(errors[name])),
+                max(errors[name]),
+            )
+        )
+    experiment.table(
+        "ev3-knowledge-seeds",
+        rows,
+        [
+            ("environment", "", ""),
+            ("seeds that recover", "", "d"),
+            ("seeds", "", "d"),
+            ("smallest error", "relative", ".2g"),
+            ("median error", "relative", ".2g"),
+            ("largest error", "relative", ".2g"),
+        ],
+        "Random selection with least squares, told the form, with the full"
+        " budget, over twenty seeds.",
+    )
+    return errors
+
+
+def draw_knowledge_control(found, errors) -> Figure:
+    """The agent's three conditions and least squares told the form on each
+    environment, with the range of least squares at random settings over
+    twenty seeds; the tolerance dashed. An error below the axis floor is
+    drawn on it."""
+    names = list(found)
+    markers = {"full": "o", "partial": "s", "none": "^"}
+    colours = {"full": 0, "partial": 1, "none": 4}
+    with figure_style():
+        fig, ax = plt.subplots(figsize=figsize("line", legend=5))
+        for i, name in enumerate(names):
+            agent, told = found[name]
+            low, high = max(min(errors[name]), FLOOR), max(errors[name])
+            ax.vlines(
+                i + 0.27,
+                low,
+                high,
+                color=FIGURE_COLOURS[2],
+                linewidth=3,
+                label="random + least squares, twenty seeds" if i == 0 else None,
+            )
+            ax.scatter(
+                [i + 0.13],
+                [max(told.held_out_error, FLOOR)],
+                marker="D",
+                s=30,
+                color=FIGURE_COLOURS[3],
+                zorder=3,
+                label="grid + least squares (told the form)" if i == 0 else None,
+            )
+            for k, c in enumerate(CONDITIONS):
+                ax.scatter(
+                    [i - 0.27 + 0.13 * k],
+                    [max(agent[c].held_out_error, FLOOR)],
+                    marker=markers[c],
+                    s=36,
+                    color=FIGURE_COLOURS[colours[c]],
+                    zorder=3,
+                    label=f"agent told {KNOWLEDGE[c]}" if i == 0 else None,
+                )
+        ax.axhline(TOLERANCE, color=FIGURE_COLOURS[2], linestyle="--")
+        ax.annotate(
+            "tolerance",
+            (0.0, TOLERANCE),
+            xycoords=("axes fraction", "data"),
+            xytext=(3, 3),
+            textcoords="offset points",
+            va="bottom",
+        )
+        ax.set_yscale("log")
+        ax.set_ylim(FLOOR / 2, 1.0)
+        ax.axhline(FLOOR, color=FIGURE_COLOURS[2], linestyle=":", linewidth=0.8)
+        ax.annotate(
+            "error 0",
+            (1.0, FLOOR),
+            xycoords=("axes fraction", "data"),
+            xytext=(-3, 3),
+            textcoords="offset points",
+            ha="right",
+            va="bottom",
+        )
+        shown = {"oscillator": "spring\n(oscillator)"}
+        ax.set_xticks(range(len(names)), [shown.get(n, n) for n in names])
+        ax.set_ylabel("held-out error\n(relative, log scale)")
+        fig.legend(loc="outside lower center", ncols=1)
+    return finish(fig)
+
+
 def run() -> Experiment:
     """Everything the lesson's page shows."""
     experiment = Experiment()
@@ -289,6 +466,11 @@ def run() -> Experiment:
     tally(experiment, found)
     experiment.figure("fig-agent-versus-baselines", partial(draw_methods, found))
     seeds(experiment, found)
+    controlled = knowledge_pairs(experiment)
+    errors = knowledge_seeds(experiment)
+    experiment.figure(
+        "fig-knowledge-control", partial(draw_knowledge_control, controlled, errors)
+    )
     return experiment
 
 
