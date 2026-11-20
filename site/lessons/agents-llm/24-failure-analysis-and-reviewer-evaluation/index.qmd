@@ -88,15 +88,17 @@ nothing and raises an alarm on every correct piece. A reviewer can also be
 right for a reason its evidence does not give, and the lesson keeps that
 apart as well.
 
-The cause of each wrong decision comes from the checks the reviewer ran on
-that piece, which the build recomputes:
+What each wrong decision rests on is read from the checks the reviewer ran
+on that piece, which the build recomputes:
 
 - a **missed error** with no failing check means the fault is invisible to
   the reviewer's checks: a gap in coverage, not in judgement;
 - a **missed error** after a failing check that applies means the reviewer
   saw the evidence and accepted anyway;
-- a **false alarm** after a failing check that the claim does not include
-  means the reviewer applied a check outside its claim.
+- a **false alarm** where the only failing check is one the claim does not
+  include, or where no check failed, has no evidence against the piece in
+  the checks: they do not say why the reviewer rejected it, and its
+  recorded words have to be read for that.
 
 A check **applies** to a piece when it tests something the piece claims.
 The classical Runge–Kutta method does not claim a bounded energy: its energy drifts slowly by
@@ -191,7 +193,7 @@ source_link(experiment.draw_review_outcomes, figure=True)
 result.show("fig-review-outcomes")
 ```
 
-### Why each decision went wrong
+### What the checks show of each wrong decision
 
 ```{python}
 #| label: ae6-causes
@@ -200,18 +202,21 @@ result.table("ae6-causes")
 ```
 
 [Every missed error of the four sessions is on a piece where no check the
-session ran failed, or failed only on what the claim does not include; the
-one false alarm is the classical Runge–Kutta method rejected after the bounded-energy check,
-which its claim does not include, failed.]{.claim
+session ran failed, or failed only on what the claim does not include; on
+the one false alarm, the classical Runge–Kutta method, the only check that
+failed is the bounded-energy check, which its claim does not include.]{.claim
 type="numerically-verified" scope="four recorded sessions over the eight
 controlled pieces" evidence="ae6-causes"} No session accepted a piece
-after a check that applies had failed on it: the failures of these
-reviewers are failures of coverage and of applicability, not of reading
-the evidence. The first physics session also rejected the faulty
-fourth-order piece on the energy check alone, which its claim does not
-include: right, for a reason its evidence did not give. Its words gave
-another reason, that no tool measured the order; the table reports what
-the checks show.
+after a check that applies had failed on it: the missed errors are
+failures of coverage, not of reading the evidence. The false alarm is not
+explained by the checks, and the session's words say why. It ran the
+energy check on the two fourth-order pieces "for information (they do not
+claim it)", and rejected both because no tool of its own measures the
+order, so its evidence did not support a fourth-order claim. That is the
+same gap in coverage, met with a stricter standard of acceptance than the
+second physics session's, which accepted both. On the faulty fourth-order
+piece the same decision was a correct rejection: right, for a reason the
+checks do not give.
 
 ### Rules, ablations, and an overfitted rule
 

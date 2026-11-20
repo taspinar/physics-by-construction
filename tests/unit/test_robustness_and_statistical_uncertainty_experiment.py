@@ -62,3 +62,23 @@ def test_every_agent_interval_overlaps_the_baselines(results):
         for low, high in baselines:
             assert agent[0] <= high and low <= agent[1]
     assert found["numbers"]["repeated-low"] == "0.40"
+
+
+def test_the_noisier_counts_name_each_baseline(results):
+    # Review 01, S1: the claim quotes the grid and the random baseline apart.
+    _, found = results
+    rows = found["tables"]["ae5-rates"]["rows"]
+    counts = {r[1]: r[2].split(" of ")[0] for r in rows if r[0] == "noisier"}
+    assert found["numbers"]["noisier-grid"] == counts["grid + least squares"]
+    assert found["numbers"]["noisier-random"] == counts["random + least squares"]
+
+
+def test_the_failing_baseline_rows_equal_the_published_ones(results):
+    # Review 01, MIN1: equal by construction, as the page and caption say.
+    _, found = results
+    rows = found["tables"]["ae5-rates"]["rows"]
+    by = {(r[0], r[1]): r[2:] for r in rows if not r[1].startswith("agent")}
+    for (variant, who), cells in by.items():
+        if variant == "failing":
+            assert cells == by[("repeated", who)]
+    assert "by construction" in found["tables"]["ae5-rates"]["caption"]

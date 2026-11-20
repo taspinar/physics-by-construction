@@ -150,7 +150,10 @@ def rate_table(experiment: Experiment, found) -> None:
         ],
         "The share of runs that recovered the law, with its exact"
         " (Clopper-Pearson) interval. The agent's trials are recorded; each"
-        " baseline runs over twenty noise seeds.",
+        " baseline runs over twenty noise seeds. On the failing instrument the"
+        " baselines are not run through it: a baseline that retries every"
+        " failed call reads what it reads on the published spring, so its"
+        " rows equal the published ones by construction.",
     )
     k, n = found["repeated"]["agent"]
     low, _ = success_interval(k, n)
@@ -168,8 +171,8 @@ def rate_table(experiment: Experiment, found) -> None:
         k, n = found[variant]["agent"]
         experiment.number(f"{variant}-recovered", k)
         experiment.number(f"{variant}-trials", n)
-    k, n = found["noisier"]["grid"]
-    experiment.number("noisier-grid", k)
+    experiment.number("noisier-grid", found["noisier"]["grid"][0])
+    experiment.number("noisier-random", found["noisier"]["random"][0])
     experiment.number("baseline-seeds", len(BASELINE_SEEDS))
     experiment.number("calls-for-budget", calls_for(BASE.budget))
 

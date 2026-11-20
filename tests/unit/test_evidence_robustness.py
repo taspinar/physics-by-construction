@@ -15,11 +15,13 @@ from pbc.discovery.protocol import prompt_sha
 from pbc.evidence import robustness, summary
 from pbc.evidence.robustness import (
     BASE,
+    BASELINE_SEEDS,
     FAIL_EVERY,
     FAILURE,
     NOISE_FACTOR,
     TRIALS,
     VARIANTS,
+    baseline,
     calls_for,
     failed_calls,
     failing_instrument,
@@ -210,3 +212,13 @@ def test_every_refusal_of_the_trials_is_the_limit_of_calls_per_message():
             if not r.ok
         }
         assert errors <= {"at most 4 tool calls per message", FAILURE}, name
+
+
+def test_the_failing_baselines_are_the_published_ones_by_construction():
+    # Review 01, MIN1: the baselines are not run through the failing
+    # instrument; the page says their rows equal the published ones.
+    for method in ("grid", "random"):
+        for seed in BASELINE_SEEDS:
+            assert baseline("failing", method, seed) == baseline(
+                "repeated", method, seed
+            )

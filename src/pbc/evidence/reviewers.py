@@ -151,14 +151,16 @@ def cause(
     verdicts: Iterable[Verdict],
     cases: Mapping[int, Case] = CASES,
 ) -> str:
-    """Why a decision on case ``number`` went wrong, from the recomputed
-    checks the reviewer ran on it: for a missed error, whether a check it ran
-    failed (seen and accepted), only a check that does not apply to the
-    claim failed, or none did (not seen by its checks); for a
+    """What the recomputed checks the reviewer ran on case ``number`` show
+    about a wrong or unsupported decision: for a missed error, whether a
+    check it ran failed (seen and accepted), only a check that does not
+    apply to the claim failed, or none did (not seen by its checks); for a
     false alarm, whether the only failures were of checks that do not apply
-    to the claim, or no check failed at all; for a correct rejection, whether
-    it rested on no check that applies (right, for a reason the evidence
-    does not give); otherwise empty."""
+    to the claim, or no check failed at all; for a correct rejection,
+    whether no check that applies failed (right, for a reason the checks do
+    not give); otherwise empty. It says what the checks show, never why the
+    reviewer decided: where no applicable check failed, the reason is in
+    the reviewer's words, not in the checks."""
     case = cases[number]
     mine = [v for v in verdicts if v.candidate == number]
     failed = [v for v in mine if not v.passed]
@@ -170,12 +172,12 @@ def cause(
         return "no check the reviewer ran fails on this fault"
     if outcome == FALSE_ALARM:
         if failed and not any(applies(v.check, case) for v in failed):
-            return "a check failed that the claim does not include"
+            return "the only failing check is one the claim does not include"
         if not failed:
             return "rejected although every check run passed"
         return "a failing check applies"
     if outcome == CORRECT_REJECTION and not any(applies(v.check, case) for v in failed):
-        return "rejected, but on no check the claim includes"
+        return "rejected, and no check the claim includes failed"
     return ""
 
 

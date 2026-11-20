@@ -199,8 +199,11 @@ nothing. The development evaluation scores all three on the protocol's
 held-out settings; the one with the smallest error among those within the
 tolerance is selected and frozen. Its final evaluation scores it once on a
 **sealed split**: later times still, at amplitudes inside the probed range,
-fixed in the configuration whose digest the ledger recorded before any
-development evaluation, and used by nothing else. The page does not print
+part of the configuration whose digest the ledger records before the
+development evaluations of each build, and used by nothing else. That
+digest shows a change of the split between the selection and the final
+evaluation; it does not show when the split was chosen, and this one was
+written after the three development errors had been published. The page does not print
 the times of either split; they are the judge's.
 
 The selected run's development error was
@@ -263,6 +266,13 @@ the open square, which is a number the candidate stated.
 - **Selection of three.** With three candidates the optimism of selection
   is small; with hundreds of configurations tried on one split it can be
   the whole of an apparent improvement.
+- **Sealed in the build, not before the scores.** The split was written
+  for this lesson, after the development errors of the three runs had been
+  published on the page of the lesson on prior knowledge, and its digest
+  is computed by each build from the current source. Nothing on this page
+  shows that the split was not chosen, among several, for how the selected
+  run does on it. A sealed split that shows this is committed, with its
+  digest, to the history before any score is seen.
 - **Identity, not truth.** A frozen digest proves which file was evaluated.
   It does not prove the claim in the file, and it does not prove that the
   code of the evaluator was right; the ledger also records the digest of
@@ -301,7 +311,11 @@ times, so it should have been selected.
 
 ::: {.feedback}
 Choosing the split, or the candidate, after seeing how candidates do on it
-is exactly what sealing prevents. The split was fixed before any score.
+is exactly what sealing prevents. Here the split could not change between
+the selection and the final evaluation, but it was written after the
+development errors were public (see the Limits): a reader has to trust that
+it was not chosen for the runs, which a split committed before any score
+would not ask.
 :::
 :::
 :::

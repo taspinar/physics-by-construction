@@ -70,7 +70,8 @@ quoted, never measured by the build.
    of its calls.
 4. **The baselines are the evaluator's.** Least squares on a grid and on
    random settings run over twenty noise seeds of each variant, as in the
-   lesson on fair baselines.
+   lesson on fair baselines. On the failing instrument they are not run
+   through it: they are the published variant's baselines by construction.
 
 ## Rates from few trials {#explanation}
 
@@ -196,17 +197,21 @@ result.table("ae5-rates")
 
 [Four of four repeated trials give a rate whose exact interval reaches
 down to `{python} result["repeated-low"]`; with noisier readings the
-baselines recover in `{python} result["noisier-grid"]` of
+grid baseline recovers in `{python} result["noisier-grid"]` and the
+random baseline in `{python} result["noisier-random"]` of
 `{python} result["baseline-seeds"]` seeds, and every interval of the
 agent's three trials per perturbed variant overlaps the baselines'
 interval.]{.claim type="numerically-verified" scope="the recorded trials,
 and the baselines over twenty noise seeds of each variant"
 evidence="ae5-rates"} No comparison of the agent with a baseline, or of one
-variant with another, is settled by these trials. The baselines retry a
-failed call, so on the failing instrument they read what they read on the
-published spring, at the price of `{python} result["calls-for-budget"]`
-calls for twenty readings; their rate there says nothing about how an agent
-copes with failures, only that failures cost calls.
+variant with another, is settled by these trials. The baselines are not
+run on the failing instrument. A baseline that retries every failed call
+reads there what it reads on the published spring, so its failing-instrument
+rows are the published baseline's by construction, and the price,
+`{python} result["calls-for-budget"]` calls for twenty readings, is
+computed from the instrument's rule, not counted from a run. Those rows
+say nothing about how an agent copes with failures, only that failures
+cost calls.
 
 ```{python}
 #| echo: false
@@ -217,7 +222,7 @@ source_link(experiment.draw_success_intervals, figure=True)
 #| label: fig-success-intervals
 #| echo: false
 #| fig-status: simulated
-#| fig-cap: "The share of runs that recovered the law in each variant, with its exact interval: the agent's few recorded trials leave wide intervals that overlap the baselines' in every variant."
+#| fig-cap: "The share of runs that recovered the law in each variant, with its exact interval: the agent's few recorded trials leave wide intervals that overlap the baselines' in every variant. The baselines of the failing instrument are those of the published readings by construction."
 #| fig-alt: "Three groups along the horizontal axis, published readings, five times the noise, and failing instrument. In each, three points with vertical interval bars: open circles for the agent, filled squares and triangles for the two baselines. The agent's bars are long, spanning most of the axis in the perturbed variants; the baselines' bars are short, near the top for the published readings and the failing instrument and in the lower middle for the noisier readings."
 result.show("fig-success-intervals")
 ```
@@ -235,7 +240,7 @@ source_link(experiment.draw_trial_spread, figure=True)
 #| label: fig-trial-spread
 #| echo: false
 #| fig-status: simulated
-#| fig-cap: "The held-out error of every recorded trial and of the two baselines over twenty noise seeds, by variant. The agent's trials take only a few values, set by the claims they rounded to; five times the noise spreads the baselines across the tolerance."
+#| fig-cap: "The held-out error of every recorded trial and of the two baselines over twenty noise seeds, by variant. The agent's trials take only a few values, set by the claims they rounded to; five times the noise spreads the baselines across the tolerance. The baselines of the failing instrument are those of the published readings by construction: a baseline that retries every failed call reads the same values."
 #| fig-alt: "A strip plot with a logarithmic vertical axis of the relative held-out error, a dashed horizontal line for the tolerance, and three groups: published readings, five times the noise, and failing instrument. In each group, dashes and crosses for twenty runs of each baseline and open circles for the agent's trials. In the middle group the baselines' points spread above and below the line; in the other two they lie below it. The open circles sit at a few repeated heights."
 result.show("fig-trial-spread")
 ```

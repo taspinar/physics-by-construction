@@ -13,9 +13,15 @@ and scores its claim on ``SEALED``, later times that no development
 evaluation used.
 
 The sealed split is part of the configuration whose digest the run record
-holds before any development evaluation, so a change of it after the
-selection shows. It is withheld from the candidates' tools and from the
-selection; it is not secret: it is in this module (``ISOLATION``).
+holds before the development evaluations of the same build, so a change of
+it between the selection and the final evaluation shows. That digest is
+computed in the build, from this module as it is now: it does not show when
+the split was chosen. The split was written after D2's development errors
+had been published on D2's page, so nothing here shows that it was chosen
+without them; a real sealing commits the split, and its digest, to history
+before any score is seen. It is withheld from the candidates' tools and
+from the selection; it is not secret: it is in this module
+(``ISOLATION``).
 
 The module reads the fixtures under ``root`` and writes nothing there; no
 model, credential, or network is used.
@@ -83,8 +89,10 @@ CANDIDATES = {
 }
 
 # The withheld split: later times than the development held-out settings
-# (5 to 12 s), at amplitudes inside the probe bounds. Fixed before any
-# development evaluation; used by the final evaluation only.
+# (5 to 12 s), at amplitudes inside the probe bounds. Recorded in the
+# configuration digest before the development evaluations of each build, but
+# written after D2's development errors were published (``ISOLATION``); used
+# by the final evaluation only.
 SEALED: tuple[Mapping[str, float], ...] = (
     {"amplitude": 1.0, "time": 15.0},
     {"amplitude": 2.0, "time": 20.0},
@@ -109,6 +117,11 @@ ISOLATION = (
     "The candidates were recorded before the sealed split was chosen; a"
     " candidate recorded after it could have been tuned to it by someone"
     " who read it.",
+    "The sealed split was written after the candidates' development errors"
+    " had been published on the page of D2; the configuration digest is"
+    " computed in the build, from the current source, and shows a change"
+    " between the selection and the final evaluation, not that the split"
+    " was chosen before any score was seen.",
 )
 
 
@@ -120,8 +133,9 @@ def sealed_protocol() -> Protocol:
 
 def configuration_identity() -> str:
     """The digest of the development protocol and of the sealed split
-    together: recorded before the development evaluations, it shows a
-    change of either afterwards."""
+    together: recorded before the development evaluations of a build, it
+    shows a change of either later in that build. It is computed from the
+    current source, so it does not date the choice of the split."""
     return digest_value(
         {"development": asdict(PROTOCOL), "sealed": [dict(s) for s in SEALED]}
     )

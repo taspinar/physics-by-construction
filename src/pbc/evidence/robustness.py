@@ -318,9 +318,12 @@ def success_interval(successes: int, trials: int, level: float = 0.95):
 
 def baseline(variant: str, method: str, seed: int) -> BaselineResult:
     """A baseline without a model on ``variant`` at noise seed ``seed``:
-    ``"grid"`` or ``"random"`` probing and least squares. A baseline retries a
-    failed call, so on the failing instrument it reads what it reads on the
-    published one, with more calls."""
+    ``"grid"`` or ``"random"`` probing and least squares. It is not run
+    through the failing instrument: a baseline that retried every failed
+    call would read what it reads on the published one, so on the
+    ``"failing"`` variant it is the published baseline by construction, and
+    the calls the retries would cost are computed by ``calls_for``, not
+    run."""
     world = VARIANTS[variant].protocol.make(seed)
     data = grid_probe(world) if method == "grid" else random_probe(world, seed)
     return least_squares(VARIANTS[variant].protocol.make(seed), data, method)

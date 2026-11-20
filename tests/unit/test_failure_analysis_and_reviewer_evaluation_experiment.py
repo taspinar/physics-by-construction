@@ -50,7 +50,7 @@ def test_no_session_accepted_a_piece_after_a_failing_check_that_applies(results)
     assert all("a failing check was run" not in row[3] for row in causes)
     alarms = [row for row in causes if row[2] == "false alarm"]
     assert [row[3] for row in alarms] == [
-        "a check failed that the claim does not include"
+        "the only failing check is one the claim does not include"
     ]
 
 

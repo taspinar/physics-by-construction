@@ -5,7 +5,7 @@ The panel of ``pbc.agents.review_lab``: the physics and numerics reviewers of
 AI4, each recorded twice with the same prompt, over eight steppers whose
 truth is known. Every session is replayed (each check executed again), its
 decisions are read from its ``decide`` calls and classified
-(``pbc.evidence.reviewers``), and every wrong decision gets the cause the
+(``pbc.evidence.reviewers``), and every wrong decision gets what the
 recomputed checks show. Then the evaluator's own rules on the same
 recomputed checks: AI4's rule and the contract's, ablations of a reviewer
 or a check, a rule fitted to AI4's two pieces, and two regressions, one in

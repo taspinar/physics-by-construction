@@ -89,13 +89,15 @@ def test_the_cause_of_a_decision_is_read_from_the_checks_run():
     outside = [v("physics", RK4, "bounded-energy", False)]
     assert (
         cause(RK4, FALSE_ALARM, outside)
-        == "a check failed that the claim does not include"
+        == "the only failing check is one the claim does not include"
     )
     assert cause(RK4, FALSE_ALARM, []) == "rejected although every check run passed"
     rk4_faulty = next(n for n, c in CASES.items() if c.name == "rk4 with equal weights")
     energy = [v("physics", rk4_faulty, "bounded-energy", False)]
     assert cause(rk4_faulty, MISSED_ERROR, energy).startswith("only a check")
-    assert cause(rk4_faulty, CORRECT_REJECTION, energy).startswith("rejected, but")
+    assert cause(rk4_faulty, CORRECT_REJECTION, energy).startswith(
+        "rejected, and no check"
+    )
     assert cause(CLOCK, CORRECT_REJECTION, seen) == ""
 
 

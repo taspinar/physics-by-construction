@@ -518,7 +518,12 @@ ledger of `pbc.evidence.records` are unchanged.
   selected (`select` reads development evaluations only), frozen, and
   evaluated once on `SEALED`, later times at amplitudes inside the probed
   range. The split is part of the configuration whose digest the run
-  record holds before any development evaluation. It is withheld from the
+  record holds before the development evaluations of each build; that
+  digest is computed from the current source, so it shows a change between
+  the selection and the final evaluation, not when the split was chosen.
+  The split was written after D2's development errors were published;
+  a real sealing commits the split and its digest to the history before
+  any score is seen, and the isolation says so. It is withheld from the
   candidates' tools and from the selection, not secret: it is in the
   repository, and the isolation of the final evaluation says so. A page
   never prints the times of either split. Unlike the projectile, where the
@@ -534,7 +539,10 @@ ledger of `pbc.evidence.records` are unchanged.
   neither perturbation. Every trial is an attempt of a ledger, replayed and
   scored by the evaluator; a rate is reported with its exact
   (Clopper-Pearson) 95 % interval, beside the baselines over twenty noise
-  seeds of the same variant. The cost of a trial is the record of the
+  seeds of the same variant. The baselines are not run through the failing
+  instrument: one that retries every failed call reads what it reads on the
+  published spring, so there it is the published baseline by
+  construction, with the cost of the retries computed, not run. The cost of a trial is the record of the
   session that produced its fixture (`TRIALS`), checked against the
   fixture by a test and never measured by the build.
 - **Reviewer evaluation** (`pbc.agents.review_lab` panel and
@@ -545,8 +553,10 @@ ledger of `pbc.evidence.records` are unchanged.
   twice with the same prompt. A reviewer records a decision for every
   piece with a `decide` tool, so that missed errors (a faulty piece
   accepted) and false alarms (a correct piece rejected) are counted from
-  the trace, apart, over their own denominators; the cause of each wrong
-  decision is read from the recomputed checks the reviewer ran. Rules that
+  the trace, apart, over their own denominators; what each wrong decision
+  rests on is read from the recomputed checks the reviewer ran, which say
+  what failed, not why the reviewer decided (where no check that applies
+  failed, the reason is in the reviewer's words). Rules that
   decide from those checks are measured the same way: AI4's rule (any
   failed check rejects) and the contract's (a check counts only when it
   applies to the claim), with ablations of a reviewer or a check. A
