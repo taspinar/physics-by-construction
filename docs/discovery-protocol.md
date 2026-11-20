@@ -505,6 +505,77 @@ evaluation itself (`pilot.ISOLATION`):
   existing replay and judge; the contract adds only the records around
   them.
 
+## The sealed split, repeated trials, and reviewer evaluation
+
+F150 (lessons AE4 to AE6) extends the evidence contract where its tasks
+need more, as the pilot's decision record foresaw; the records and the
+ledger of `pbc.evidence.records` are unchanged.
+
+- **The sealed split** (`pbc.evidence.sealed`, AE4). On the spring of D2
+  (protocol `f66-prior-knowledge-1`), D2's three recorded runs are
+  evaluated in development on the protocol's held-out settings; the one
+  with the smallest development error among those within the tolerance is
+  selected (`select` reads development evaluations only), frozen, and
+  evaluated once on `SEALED`, later times at amplitudes inside the probed
+  range. The split is part of the configuration whose digest the run
+  record holds before the development evaluations of each build; that
+  digest is computed from the current source, so it shows a change between
+  the selection and the final evaluation, not when the split was chosen.
+  The split was written after D2's development errors were published;
+  a real sealing commits the split and its digest to the history before
+  any score is seen, and the isolation says so. It is withheld from the
+  candidates' tools and from the selection, not secret: it is in the
+  repository, and the isolation of the final evaluation says so. A page
+  never prints the times of either split. Unlike the projectile, where the
+  relative error of a claimed gravity is the same at every setting, the
+  error of a claimed angular frequency grows with time, so a later split
+  tests the claim further than the development split did.
+- **Repeated trials** (`pbc.evidence.robustness`, AE5). The same task, D2's
+  spring in the partial condition with D2's prompt, tools, and budget, run
+  again in fresh recorded sessions under three variants, each its own
+  protocol version: the readings as published at other noise seeds, the
+  noise five times larger, and an instrument whose every third accepted
+  `measure` call fails without using a probe. The agent is told of
+  neither perturbation. Every trial is an attempt of a ledger, replayed and
+  scored by the evaluator; a rate is reported with its exact
+  (Clopper-Pearson) 95 % interval, beside the baselines over twenty noise
+  seeds of the same variant. The baselines are not run through the failing
+  instrument: one that retries every failed call reads what it reads on the
+  published spring, so there it is the published baseline by
+  construction, with the cost of the retries computed, not run. The cost of a trial is the record of the
+  session that produced its fixture (`TRIALS`), checked against the
+  fixture by a test and never measured by the build.
+- **Reviewer evaluation** (`pbc.agents.review_lab` panel and
+  `pbc.evidence.reviewers`, AE6). Eight controlled steppers with known
+  truth (three correct methods and five faulty ones of
+  `pbc.verification.faulty`, each with the claim of the method it is or
+  poses as), reviewed by AI4's physics and numerics roles, each recorded
+  twice with the same prompt. A reviewer records a decision for every
+  piece with a `decide` tool, so that missed errors (a faulty piece
+  accepted) and false alarms (a correct piece rejected) are counted from
+  the trace, apart, over their own denominators; what each wrong decision
+  rests on is read from the recomputed checks the reviewer ran, which say
+  what failed, not why the reviewer decided (where no check that applies
+  failed, the reason is in the reviewer's words). Rules that
+  decide from those checks are measured the same way: AI4's rule (any
+  failed check rejects) and the contract's (a check counts only when it
+  applies to the claim), with ablations of a reviewer or a check. A
+  regression is detected from the frozen traces: a changed piece of code
+  breaks their replay, and a changed rule is compared with the outcomes
+  frozen under the old one. AI4's pieces, reviewers, tools, and replay are
+  unchanged.
+- **How the recordings were made.** Each session of AE5 and AE6 was a
+  fresh sub-agent (Claude Opus, 2026-11-19) given the system prompt, the
+  task, and the tool specifications, which delivered each message through
+  one harness command of the implementer's Claude Code session; the
+  harness ran every call through the run's allowlist with
+  `pbc.agents.loop.run` and wrote the fixture with `save_recording`. One
+  session (the first repeated trial) could not run the command and had its
+  messages relayed by the implementer's session through the same harness.
+  The sub-agents were told to run nothing else, and their session logs,
+  checked afterwards, show only that command. They could have read the
+  repository; the pages say so.
+
 ## Limits
 
 Scores say how well a claim predicts outside the probed region of a simulated
