@@ -639,7 +639,9 @@ voltage across the capacitor peaks below the natural frequency
 frequency rises. Its status was "inferred", and the inference used the wrong
 quantity: it is the current that peaks at the natural frequency. Moving the
 probe to the resistor reads the current, and the counterfactual is confirmed
-exactly: gain one, in phase, at the natural frequency, whatever R is. Halving
+on both benches it was checked on, R and R doubled: the sweep peaks at the
+natural frequency, with a gain of one, in phase. "Whatever R is" rests on its
+reason, that the impedance there is R alone; the check covers two values. Halving
 the peak by doubling R is confirmed for this circuit, roughly, and stays
 uncertain as a reading of the diagram: it needs the peak to be about Q, which
 holds only for Q well above one, and the diagram gives no values.

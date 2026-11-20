@@ -142,6 +142,26 @@ def test_the_readings_of_the_diagram_are_typed_and_checked(results):
     assert [r[2] for r in rows(results, "readings")] == outcomes
 
 
+def test_the_resistor_probe_peaks_at_the_natural_frequency_for_two_resistances():
+    """Review 02, MIN1: the counterfactual's check tests what it states,
+    the peak, its gain and phase, for R and for R doubled; and channel 2's
+    check tells the capacitor from the inductor by the phase."""
+    step = 0.25 * lab.F0_HZ / 50
+    circuit = lab.BENCH_CIRCUIT
+    doubled = lab.SeriesRLC(
+        2 * circuit.resistance, circuit.inductance, circuit.capacitance
+    )
+    for c in (circuit, doubled):
+        peak_f, gain = lab._sweep_peak(lab.ResistorProbeBench, c)
+        assert abs(peak_f - lab.F0_HZ) <= step / 2
+        assert abs(gain - 1) < 1e-3
+        assert abs(lab._at(lab.ResistorProbeBench, lab.F0_HZ, c)[1]) < 0.1
+    evidence = lab.check_readings()[4].evidence
+    assert "R = 100 ohm: peak at 5033 Hz, gain 1.000" in evidence
+    assert "R = 200 ohm: peak at 5033 Hz, gain 1.000" in evidence
+    assert "phase -90.00 deg" in lab.check_readings()[1].evidence
+
+
 def test_the_capacitor_peaks_below_the_natural_frequency():
     """The independent reason the fourth reading is contradicted: the
     capacitor voltage of a series circuit peaks at f0 sqrt(1 - 1 / (2 Q^2))."""
@@ -192,6 +212,10 @@ def test_the_slow_clip_reading_is_uncertain_and_contradicted(results):
         (UNCERTAIN, CONTRADICTED),
         (INFERRED, CONFIRMED),
     ]
+    # Review 02, MIN1 (its class): the confirmed reading says "about half a
+    # millitesla", and its evidence gives the field read, near 0.5 mT.
+    read_mt = float(table[1][3].split("read ")[1].split(" mT")[0])
+    assert abs(read_mt / 0.5 - 1) < 0.1
 
 
 def test_the_clip_file_holds_every_frame_as_generated(results, filmed):

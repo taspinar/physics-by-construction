@@ -288,10 +288,12 @@ def _sweep_peak(bench_class, circuit: SeriesRLC) -> tuple[float, float]:
     return float(frequencies[best]), float(gains[best])
 
 
-def _at(bench_class, frequency_hz: float) -> tuple[float, float]:
+def _at(
+    bench_class, frequency_hz: float, circuit: SeriesRLC = BENCH_CIRCUIT
+) -> tuple[float, float]:
     """Gain and phase (deg) of the response against the source at one
     frequency, on a noiseless bench."""
-    record = capture(bench_class(seed=SEED, noise_v=0.0), frequency_hz)
+    record = capture(bench_class(circuit=circuit, seed=SEED, noise_v=0.0), frequency_hz)
     source = fit_sine(record.t, record.channels["source"], frequency_hz)
     response = fit_sine(record.t, record.channels["response"], frequency_hz)
     phase = math.degrees(response.phase - source.phase)
@@ -344,8 +346,9 @@ def check_readings() -> list[Check]:
     bench with R doubled."""
     bench = capture(SimulatedRLCBench(seed=SEED, noise_v=0.0), F0_HZ)
     source = fit_sine(bench.t, bench.channels["source"], F0_HZ).amplitude
-    capacitor_gain, _ = _at(SimulatedRLCBench, F0_HZ)
-    resistor_gain, resistor_phase = _at(ResistorProbeBench, F0_HZ)
+    # At f0 the inductor's voltage also has a gain of Q; the capacitor's alone
+    # lags the source by a quarter period.
+    capacitor_gain, capacitor_phase = _at(SimulatedRLCBench, F0_HZ)
     # The current from channel 2, against the current from a resistor probe.
     response = fit_sine(bench.t, bench.channels["response"], F0_HZ).amplitude
     current_from_c = BENCH_CIRCUIT.capacitance * 2 * math.pi * F0_HZ * response
@@ -360,14 +363,23 @@ def check_readings() -> list[Check]:
     )
     _, doubled_peak = _sweep_peak(SimulatedRLCBench, doubled)
     half = doubled_peak / peak
+    # The probe on the resistor, for R and for R doubled: where the sweep
+    # peaks, how high, and the phase at the natural frequency.
+    step = 0.25 * F0_HZ / 50  # the step of the sweep (Hz)
+    on_resistor = [
+        (*_sweep_peak(ResistorProbeBench, c), _at(ResistorProbeBench, F0_HZ, c)[1])
+        for c in (BENCH_CIRCUIT, doubled)
+    ]
     return [
         check(
             READINGS[0], abs(source - AMPLITUDE_V) < 1e-3, f"{source:.3f} V at 1 V set"
         ),
         check(
             READINGS[1],
-            abs(capacitor_gain / BENCH_CIRCUIT.quality_factor - 1) < 1e-3,
-            f"gain {capacitor_gain:.3f} at f0, Q = {BENCH_CIRCUIT.quality_factor:.3f}",
+            abs(capacitor_gain / BENCH_CIRCUIT.quality_factor - 1) < 1e-3
+            and abs(capacitor_phase + 90.0) < 0.1,
+            f"gain {capacitor_gain:.3f} at f0, Q = {BENCH_CIRCUIT.quality_factor:.3f};"
+            f" phase {capacitor_phase:.2f} deg, lagging as a capacitor's",
         ),
         check(
             READINGS[2],
@@ -382,9 +394,17 @@ def check_readings() -> list[Check]:
         ),
         check(
             READINGS[4],
-            abs(resistor_gain - 1) < 1e-3 and abs(resistor_phase) < 0.1,
-            f"gain {resistor_gain:.3f}, phase difference"
-            f" {abs(resistor_phase):.2f} deg at f0",
+            all(
+                abs(f - F0_HZ) <= step / 2 and abs(g - 1) < 1e-3 and abs(p) < 0.1
+                for f, g, p in on_resistor
+            ),
+            "; ".join(
+                f"R = {c.resistance:.0f} ohm: peak at {f:.0f} Hz, gain {g:.3f},"
+                f" phase difference {abs(p):.2f} deg"
+                for c, (f, g, p) in zip(
+                    (BENCH_CIRCUIT, doubled), on_resistor, strict=True
+                )
+            ),
         ),
         check(
             READINGS[5],
@@ -759,6 +779,9 @@ def run() -> Experiment:
         " needle at four frame rates, with the frequency the sampling theorem"
         f" predicts; the field set in the simulation is {1e3 * compass.FIELD:g} mT.",
     )
+    fast_field = compass.field_from_frequency(
+        fits["fast"].frequency, fits["fast"].damping
+    )
     clip_checks = [
         check(
             Interpretation(
@@ -778,15 +801,12 @@ def run() -> Experiment:
                 "the frequency and decay of the track, the needle's m and I,"
                 " and B = I (omega^2 + gamma^2) / m for small swings",
             ),
-            abs(
-                compass.field_from_frequency(
-                    fits["fast"].frequency, fits["fast"].damping
-                )
-                / needle.field
-                - 1
-            )
-            < 0.02,
-            f"the simulation's field is {1e3 * needle.field:.2f} mT",
+            # The read field agrees with the simulation's, and both are about
+            # half a millitesla, as the statement says.
+            abs(fast_field / needle.field - 1) < 0.02
+            and abs(fast_field / 0.5e-3 - 1) < 0.1,
+            f"read {1e3 * fast_field:.3f} mT; the simulation's field is"
+            f" {1e3 * needle.field:.2f} mT",
         ),
     ]
     experiment.table(
