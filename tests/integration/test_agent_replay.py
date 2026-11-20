@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from pbc.agents import load_recording
+from pbc.agents.bounded_lab import REPLAY_FILE as BOUNDED_REPLAY_FILE
 from pbc.agents.design_lab import RIGS, replay_rig
 from pbc.agents.hunter_lab import HUNTS, replay_hunt
 from pbc.agents.projectile_lab import RECORD_COMMAND, REPLAY_FILE, replay_fixture
@@ -65,10 +66,11 @@ def test_the_published_fixture_is_a_recorded_run_not_a_placeholder():
     )
 
 
-def test_the_replay_fixture_is_the_only_file_besides_the_page():
-    # A preview or a render leaves ignored output next to the page.
+def test_the_lesson_holds_only_the_page_and_its_two_fixtures():
+    # A preview or a render leaves ignored output next to the page. The
+    # projectile run and the bounded run of SA5 (F143) are the two fixtures.
     kept = {p.name for p in LESSON.iterdir() if p.name != "index_files"}
-    assert kept - {"index.html"} == {"index.qmd", REPLAY_FILE}
+    assert kept - {"index.html"} == {"index.qmd", REPLAY_FILE, BOUNDED_REPLAY_FILE}
 
 
 @pytest.mark.parametrize("workflow", WORKFLOWS, ids=lambda p: p.name)
