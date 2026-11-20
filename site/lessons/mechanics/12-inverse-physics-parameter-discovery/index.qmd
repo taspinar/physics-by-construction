@@ -18,6 +18,7 @@ lesson:
     - Tell from a profile of the chi-square whether the data bound a parameter, and recognise two parameters that appear only as a combination
     - List the reasons not to take a converged fit as evidence for its model
     - State the uncertainty of a parameter fitted to measured data, with the scatter that an injection of a known signal shows
+    - Identify a circuit from its step response and from its impedance, and say which parameters each measurement determines and how sensitively
   related: []
   format: 2
   preview: fig-profiles
@@ -255,6 +256,115 @@ A fit is evidence for a model only when it is a good fit *and* nothing is left i
 residuals *and* the data determine the parameters. Each of the three can fail
 alone.
 
+### The same oscillator in a circuit: time and frequency {#rlc}
+
+A resistor $R$, an inductor $L$, and a capacitor $C$ in series obey
+$L\,\ddot q + R\,\dot q + q/C = V(t)$ for the charge $q$ on the
+capacitor: the equation of the damped mass on a spring, with the
+inductance in the place of the mass, the resistance in that of the
+friction, and $1/C$ in that of the spring constant. The model is the one of
+the circuits lesson of the electromagnetism course
+(`pbc.electromagnetism.circuits`). A laboratory can identify such a circuit
+in two ways. In the **time domain** it switches a step of one volt onto
+the circuit and records the capacitor voltage as it rings and settles. In
+the **frequency domain** it drives the circuit with a sine at one frequency
+after another and records the impedance $Z = V/I$, a complex number per
+frequency,
+$Z(\omega) = R + \mathrm{j}\,(\omega L - 1/(\omega C))$.
+
+The step response depends on the element values only through two
+combinations, the decay rate $\alpha = R/(2L)$ and the natural frequency
+$\omega_0 = 1/\sqrt{LC}$:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="rlc-models")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment, region="rlc")
+```
+
+Before the fits: the step response has three element values behind it.
+How many of them can a fit of it determine, and what will the helper say
+about the others?
+
+```{python}
+#| echo: false
+excerpt(experiment.rlc_in_two_domains)
+```
+
+```{python}
+#| label: rlc-recovery
+#| echo: false
+result.table("rlc-recovery")
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.step_with_elements)
+```
+
+Fitted with $R$, $L$, and $C$ as parameters, the step response returns
+three numbers and a warning: `{python} result["step-warning"]`. The helper
+marks as identified: `{python} result["step-identified"]`, with a singular
+ratio of `{python} result["step-singular-ratio"]`.
+
+[On synthetic data of a known circuit, the step response recovers its
+decay rate and natural frequency, and the impedance sweep recovers $R$,
+$L$, and $C$, each with a bias and a scatter within
+`{python} result["rlc-tolerance"]` percent and stated errors the size of the
+scatter: `{python} result["rlc-time-recovered"]` in time,
+`{python} result["rlc-frequency-recovered"]` in frequency. The same step
+response fitted with $R$, $L$, and $C$ is reported as not identified: the
+helper flags all three.]{.claim type="numerically-verified"
+scope="the series RLC circuit of 10 ohm, 10 mH and 1 µF, a step of one volt sampled for 5 ms with noise of 0.01 V, an impedance sweep of 40 frequencies around the resonance with noise of 0.5 ohm on each part, 200 noisy copies each"
+evidence="rlc-recovery"}
+The domain is not what decides this; the observation is. The capacitor
+voltage after a step is a ratio of voltages, and nothing in it carries the
+scale of an impedance in ohms: double $R$ and $L$ and halve $C$, and the
+response is the same. The impedance is a voltage per current, so it fixes
+the ohms, and with them all three values. Like the spring and the mass
+earlier, the remedy is a different measurement, not a different fit.
+
+A fit in the frequency domain is checked the same way as one in time: its
+residuals, and how its parameters lean on each other.
+
+```{python}
+#| label: fig-rlc-impedance
+#| echo: false
+#| fig-cap: "One noisy impedance sweep around the resonance, its real and imaginary parts with the fitted model, and below, the residuals of both in units of the noise, with a band of two. The residuals scatter without a pattern: the model leaves nothing behind."
+#| fig-alt: "Two stacked panels sharing a logarithmic axis of angular frequency. The top panel shows the real part of the impedance as open circles along a flat line slightly above zero, and the imaginary part as open squares on a dashed curve rising from large negative values through zero at the resonance to large positive values. The bottom panel shows the residuals of both parts scattered about zero, nearly all inside a shaded band from minus two to two, with no trend across the frequencies."
+#| fig-status: simulated
+result.show("fig-rlc-impedance")
+```
+
+The reduced chi-square of this fit is `{python} result["sweep-chi2"]` and the
+lag-one autocorrelation of the residuals of the real part
+`{python} result["sweep-autocorrelation"]`: a good fit, with nothing left in
+the residuals.
+
+```{python}
+#| echo: false
+excerpt(experiment.rlc_sensitivity)
+```
+
+```{python}
+#| label: rlc-correlation
+#| echo: false
+result.table("rlc-correlation")
+```
+
+The real part of the impedance is $R$ alone, so the estimate of $R$ is
+uncorrelated with the others. The imaginary part holds $L$ and $C$
+together, and they are anticorrelated: a slightly larger inductance can be
+partly made up for by a slightly smaller capacitance, which keeps the
+product $LC$, and with it the resonance, in place. They are still determined, because the sweep reaches
+far enough on both sides of the resonance, where one or the other
+dominates. The exercise on a sweep below the resonance shows what happens
+when it does not.
+
 ### The measured case: the chirp mass of GW150914 {#measured}
 
 The gravitational-wave lesson fitted the Newtonian chirp to the whitened
@@ -489,6 +599,40 @@ Changing the experiment gave the fit what it lacked.
 :::
 :::
 
+::: {.exercise}
+**A sweep below the resonance.** Fit the impedance of the circuit from a
+sweep of 40 frequencies between 500 and 3000 rad/s only, far below its
+resonance at 10 000 rad/s, with the same noise. Which parameter loses
+precision against the sweep around the resonance, which one gains, and why?
+
+::: {.hint}
+Below the resonance, compare the two terms of the imaginary part, the
+reactance of the inductor and that of the capacitor, at the frequencies of
+the sweep.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.below_resonance)
+```
+
+```{python}
+#| echo: false
+result.table("below-resonance")
+```
+
+The inductance loses about a factor of ten in precision, the capacitance
+gains, and the resistance stays as it was. Below the resonance the
+imaginary part is almost all $-1/(\omega C)$; the term $\omega L$ is a small
+correction to it, so the noise hides most of what $L$ does, while $C$ sets
+nearly everything the sweep reads. The real part is $R$ at every frequency,
+which is why its error does not change. A parameter is measured where the
+observation is sensitive to it; a sweep that does not reach the frequencies
+where $\omega L$ matters still identifies $L$, but poorly.
+:::
+:::
+
 ## Run this experiment {#reproduce-this}
 
 ```{python}
@@ -500,6 +644,7 @@ reproduce_this(
         "src/pbc/data/gwinjection.py",
         "src/pbc/data/gwstrain.py",
         "src/pbc/mechanics/chirp.py",
+        "src/pbc/electromagnetism/circuits.py",
         "src/pbc/mechanics/experiments/inverse_physics.py",
         "src/pbc/experiment.py",
     ],

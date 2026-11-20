@@ -46,12 +46,14 @@ class PowerLaw:
     exponents: tuple[float, ...]
     constant: float
     chi2: float
+    step: float = 0.5  # the step of the grammar's exponents
 
     @property
     def complexity(self) -> int:
-        """The number of variables the form uses plus the number of half
-        steps in its exponents: 1 for sqrt(L), 4 for sqrt(L / g)."""
-        return sum((p != 0) + round(abs(2 * p)) for p in self.exponents)
+        """The number of variables the form uses plus the number of steps
+        of the grammar in its exponents: in half steps, 2 for sqrt(L) and
+        4 for sqrt(L / g)."""
+        return sum((p != 0) + round(abs(p / self.step)) for p in self.exponents)
 
     def predict(self, variables: Mapping[str, ArrayLike]) -> Array:
         """The value of the form at ``variables``, one array per name."""
@@ -93,6 +95,7 @@ class Search:
     chi2: Array
     dof: int
     sigma: float
+    step: float = 0.5  # the step of the grammar's exponents
 
     def form(self, index: int) -> PowerLaw:
         """The form of row ``index``."""
@@ -101,6 +104,7 @@ class Search:
             tuple(map(float, self.exponents[index])),
             float(self.constants[index]),
             float(self.chi2[index]),
+            self.step,
         )
 
     @cached_property
@@ -116,7 +120,7 @@ class Search:
     @property
     def complexity(self) -> NDArray[np.int64]:
         """The complexity of each form, as ``PowerLaw.complexity``."""
-        steps = np.rint(np.abs(2 * self.exponents)).astype(int)
+        steps = np.rint(np.abs(self.exponents / self.step)).astype(int)
         return (self.exponents != 0).sum(axis=1) + steps.sum(axis=1)
 
     def _consistent(self) -> NDArray[np.intp]:
@@ -158,18 +162,32 @@ class Search:
         return tuple(front)
 
 
+def grammar_step(exponents: ArrayLike) -> float:
+    """The step of a grammar: the largest number of which every exponent
+    is a whole multiple (one half for the default grammar, one for whole
+    powers); one when every exponent is zero."""
+    fractions = {Fraction(float(p)).limit_denominator(12) for p in np.unique(exponents)}
+    numerator = math.gcd(*(f.numerator for f in fractions))
+    denominator = math.lcm(*(f.denominator for f in fractions))
+    return float(Fraction(numerator, denominator)) if numerator else 1.0
+
+
 def power_law_search(
     variables: Mapping[str, ArrayLike],
     y: ArrayLike,
     sigma: float,
     exponents: Sequence[float] = HALF_STEPS,
+    *,
+    forms: Sequence[Sequence[float]] | None = None,
 ) -> Search:
     """Fit every power law of ``variables`` to ``y``.
 
     ``variables`` maps a name to its positive values, one per measurement;
     ``y`` holds the positive measurements, with a relative noise of standard
     deviation ``sigma`` (the standard deviation of ``ln y``). Each variable
-    takes each exponent of ``exponents``."""
+    takes each exponent of ``exponents``; with ``forms``, a list of exponents
+    with one entry per variable, only those forms are fitted: the candidates
+    of a stated prior instead of a grammar."""
     names = tuple(variables)
     logs = np.column_stack([np.log(np.asarray(variables[n], float)) for n in names])
     log_y = np.log(np.asarray(y, float))
@@ -177,16 +195,25 @@ def power_law_search(
         raise ValueError(f"sigma must be positive, got {sigma}")
     if len(log_y) < 2:
         raise ValueError("a search needs at least two measurements")
-    grid = np.array(list(itertools.product(exponents, repeat=len(names))), float)
+    if forms is None:
+        forms = list(itertools.product(exponents, repeat=len(names)))
+    grid = np.array(forms, float).reshape(-1, len(names))
+    step = grammar_step(grid)
     # In logarithms each form is a straight line: the constant is the mean of
     # what the exponents leave of ln y, and the rest is the misfit.
     residual = log_y[:, None] - logs @ grid.T
     log_c = residual.mean(axis=0)
     chi2 = ((residual - log_c) ** 2).sum(axis=0) / sigma**2
-    unsorted = Search(names, grid, np.exp(log_c), chi2, len(log_y) - 1, sigma)
+    unsorted = Search(names, grid, np.exp(log_c), chi2, len(log_y) - 1, sigma, step)
     order = np.lexsort((unsorted.complexity, chi2))
     return Search(
-        names, grid[order], np.exp(log_c[order]), chi2[order], len(log_y) - 1, sigma
+        names,
+        grid[order],
+        np.exp(log_c[order]),
+        chi2[order],
+        len(log_y) - 1,
+        sigma,
+        step,
     )
 
 

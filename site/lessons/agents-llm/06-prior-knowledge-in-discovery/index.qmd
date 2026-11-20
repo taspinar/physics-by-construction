@@ -19,7 +19,8 @@ lesson:
     - Infer a spring's force law from the motion it causes, and say why late times constrain it most
     - Separate what a run's readings support from what the agent concluded from them
     - Explain why one run per condition cannot rank the conditions
-  related: []
+    - State a system's boundary, accessible variables, candidate structures, and prior before probing it, and say what a knowledge-informed and a restricted prior each can and cannot find
+  related: [unknown-physical-worlds]
   format: 2
   preview: fig-condition-errors
   prerequisites:
@@ -32,6 +33,7 @@ lesson:
 ```{python}
 #| echo: false
 from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.discovery import towing_tank
 from pbc.mechanics.experiments import prior_knowledge_in_discovery as experiment
 
 result = experiment.run()
@@ -320,6 +322,134 @@ current directory. A comparison worth stating needs many runs per condition,
 on several seeds; such a benchmark runs outside the build and would be marked
 "not verified" here.
 
+## Before the first probe: boundary, variables, candidates {#competing-models}
+
+The three runs were handed their family: a claim was one frequency of an
+undamped linear spring, and nothing outside it could be said. A system
+whose law nobody has given you starts earlier. Before the first probe
+four things are decided, and each one limits what any number of probes
+can find:
+
+- **the boundary of the system**: what belongs to it and what is held
+  fixed around it;
+- **the accessible variables**: what the experimenter can set, what can
+  be read, and what is inside but out of reach;
+- **the candidate structures**: the forms a law may take;
+- **the prior**: which candidates are admitted, and so which are not.
+
+This section takes them one at a time on a system outside the spring, a
+**towing tank**. No language model is used: a scripted route probes the
+tank, a search chooses the law, and the build runs both and scores the
+result. The tank is a simulated box of `pbc.discovery` with a hidden law,
+like the spring: the route reaches it only through the tools `measure` and
+`submit`, and the judge scores a claim at settings no probe can reach,
+faster than the carriage tows and with larger spheres than the tank
+holds. The page does not print them.
+
+```{python}
+#| label: fig-tank-boundary
+#| echo: false
+#| fig-cap: "The towing tank as a system: the carriage sets the speed and the sphere, the gauge reads the drag, and the fluid, inside the boundary, is neither set nor read."
+#| fig-alt: "A sketch. A dotted rectangle labelled system boundary holds a circle labelled sphere and, below it, a note that the density and viscosity of the fluid are fixed and never read. A box labelled carriage on the left sends a solid arrow, labelled sets v and d, into the sphere. A dashed arrow, labelled reads F, leads from the sphere to a box labelled gauge on the right. A note at the bottom says solid arrows are set by the experimenter and dashed ones are read."
+#| fig-status: conceptual
+result.show("fig-tank-boundary")
+```
+
+The sketch shows no result; it answers where the line is drawn.
+
+```{python}
+#| label: tank-boundary
+#| echo: false
+result.table("tank-boundary")
+```
+
+The density and the viscosity of the fluid are part of the system, and
+they decide the drag, but the experimenter can neither set nor read them.
+Whatever they contribute ends up in the constant of the law, which is why a
+law found here holds for this fluid only. The candidates come from what is
+known about drag on a sphere: **Stokes' drag** of slow, viscous flow,
+$F \propto d\,v$, and the **quadratic drag** of fast flow,
+$F \propto d^2 v^2$, the drag of the projectile lesson. Two conditions
+search the same readings:
+
+- **knowledge-informed**: the two drag laws are the only candidates, each
+  with one fitted constant;
+- **restricted prior**: every power law of the speed and the diameter
+  with exponents in half steps from $-2$ to $2$, the grammar of the
+  symbolic-regression lesson; in logarithms each form is a straight line,
+  fitted and judged by its chi-square at the known noise, and the simplest
+  consistent form is chosen.
+
+```{python}
+#| echo: false
+excerpt(towing_tank.search)
+```
+
+Two designs spend the same `{python} result["tank-budget"]` probes, each
+reading with a relative noise of `{python} result["tank-noise"]` percent:
+four speeds on each of three spheres, or twelve speeds on one sphere.
+
+```{python}
+#| echo: false
+excerpt(towing_tank, region="designs")
+```
+
+The route probes, searches, submits, and is scored:
+
+```{python}
+#| echo: false
+excerpt(towing_tank.route)
+```
+
+Before the table: on one sphere the diameter never changes. Which
+condition can still predict the drag on the larger spheres of the judge,
+and why?
+
+```{python}
+#| echo: false
+excerpt(experiment.tank_conditions)
+```
+
+```{python}
+#| label: tank-conditions
+#| echo: false
+result.table("tank-conditions")
+```
+
+```{python}
+#| label: fig-tank-conditions
+#| echo: false
+#| fig-cap: "The judge's held-out error of each condition on each design, on a logarithmic axis, with the tolerance. On the grid both conditions recover the law; on one sphere only the knowledge-informed condition does."
+#| fig-alt: "A bar chart on a logarithmic axis of held-out error, with two groups of bars, grid and one sphere, and a dashed horizontal line for the tolerance. In each group a solid bar is the knowledge-informed condition and a hatched bar the restricted prior. Both bars of the grid group and the solid bar of the one-sphere group lie far below the tolerance; the hatched bar of the one-sphere group rises far above it."
+#| fig-status: simulated
+result.show("fig-tank-conditions")
+```
+
+[On the grid both conditions choose the quadratic drag and recover the law
+within the tolerance of `{python} result["tank-tolerance"]`. On one sphere
+the knowledge-informed condition still recovers it, while the restricted
+prior finds `{python} result["one-sphere-rivals"]` consistent forms, one
+for each exponent of the diameter in its grammar, chooses the simplest,
+`{python} result["one-sphere-chosen"]`, and misses the held-out drag by a
+relative `{python} result["one-sphere-error"]`.]{.claim
+type="numerically-verified"
+scope="the simulated towing tank of this section, one seed, twelve probes per design"
+evidence="tank-conditions fig-tank-conditions"} On one sphere the readings
+say nothing about the diameter, as one gravity said nothing about the
+gravity in the symbolic-regression lesson; the grammar can only choose the
+simplest of forms the data cannot tell apart. The prior supplies what the
+design left out: both drag laws tie the exponent of the diameter to that of
+the speed, so the speed alone decides between them. Prior knowledge is
+worth most where the data are thin, and it is a bet: the exercises below
+show the bet lost in a world where neither candidate holds.
+
+These two runs are not evidence that one condition is better. They show
+what each condition can and cannot find from one design; whether a prior
+helps depends on whether it is true, which the probes cannot know in
+advance. The lessons on black-box force laws and on unknown physical
+worlds go further in depth: a language model probing a central force, and
+three bodies with hidden pair forces.
+
 ## Limits {#limits}
 
 - **One run per condition cannot rank the conditions.** The full condition
@@ -444,6 +574,86 @@ exposes it.
 :::
 :::
 
+::: {.exercise}
+**A black box of your own.** The towing tank answers `measure` with the
+drag on a sphere of diameter $d$ (0.02 to 0.1 m) towed at a speed $v$ (0.2
+to 2 m/s), with a relative noise of 2 percent, at most 12 times. Choose
+twelve settings at random within the bounds, find the form of the law with
+the grammar of power laws in half steps, and submit it. The judge scores it
+at settings you cannot probe. Does it predict them within the tolerance?
+
+::: {.hint}
+Take logarithms: every form of the grammar is then a straight line in
+$\ln v$ and $\ln d$, and the search tries all of them.
+:::
+
+::: {.hint}
+With random settings both variables change from probe to probe. Which
+problem of the one-sphere design does that remove?
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(towing_tank.random_design)
+```
+
+```{python}
+#| echo: false
+excerpt(experiment.own_probes)
+```
+
+```{python}
+#| echo: false
+result.table("tank-own-probes")
+```
+
+The search chooses `{python} result["own-chosen"]`, and the judge scores
+it `{python} result["own-outcome"]`. Random settings vary the speed and the
+diameter together, so the readings constrain both exponents and the
+grammar needs no prior to find the form. The law found holds for this
+fluid, which the constant carries, and for the range of Reynolds numbers
+the tank covers; the simulated world keeps the drag coefficient constant
+beyond it, which a real sphere would not.
+:::
+:::
+
+::: {.exercise}
+**An unknown world.** A second tank holds a fluid of no known kind. Its
+tools are the same, and nothing they return, and nothing in the box that a
+tool can reach, gives away its law or where the judge scores it; a test of
+the repository checks exactly that. Run both conditions on the grid of four
+speeds and three spheres. Which of them makes a claim, and is it right?
+
+::: {.hint}
+A search makes no claim when none of its candidates is consistent with the
+readings.
+:::
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.unknown_world)
+```
+
+```{python}
+#| echo: false
+result.table("tank-unknown")
+```
+
+The knowledge-informed condition makes no claim: `{python} result["unknown-reason"]`.
+The restricted prior finds `{python} result["unknown-chosen"]` and predicts
+the withheld settings within the tolerance. In this world neither drag law
+of the textbook holds, so the prior that won on one sphere has excluded
+the answer. Refusing to claim is the honest outcome of a wrong prior; the
+grammar, which assumed less, could find what the prior ruled out. Both
+answers come from the tools alone: the tank's law and its withheld
+settings are in no tool, no description, and no public attribute
+(`tests/unit/test_towing_tank.py`), so the route could not have found them
+another way.
+:::
+:::
+
 ## Replay this experiment {#reproduce-this}
 
 ```{python}
@@ -454,12 +664,15 @@ reproduce_this(
         "src/pbc/discovery/environment.py",
         "src/pbc/discovery/protocol.py",
         "src/pbc/discovery/baselines.py",
+        "src/pbc/discovery/towing_tank.py",
+        "src/pbc/discovery/symbolic.py",
         "src/pbc/data/fit.py",
         "src/pbc/mechanics/experiments/prior_knowledge_in_discovery.py",
         "src/pbc/experiment.py",
     ],
     tests=[
         "tests/unit/test_force_lab.py",
+        "tests/unit/test_towing_tank.py",
         "tests/unit/test_discovery.py",
         "tests/unit/test_prior_knowledge_in_discovery_experiment.py",
     ],
