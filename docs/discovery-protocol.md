@@ -439,6 +439,17 @@ depends on it only after the pilot below.
   attempts, so that an invalid, missing, failed, or inconclusive attempt
   lowers it instead of leaving it; every claim with its status; every final
   evaluation with its status, verdict, diagnostics, and validity; and every invalidation.
+- **The report** (`pbc.evidence.report`, F144, lesson SA8): the statements
+  of an experiment report, each *observed* (what a recording or a
+  measurement holds), *computed* (what the evaluator computed), or
+  *proposed* (an interpretation or a next step). An observed or computed
+  statement names the claim that records it, the figures and tables that
+  show it, the assumptions of the run record it rests on by their number,
+  and its uncertainty; an observed one rests on a raw artifact. A proposed
+  statement names no record and is marked *proposed, not evaluated*. A
+  report that breaks a rule is refused with every problem; a traced
+  statement takes the evidence status of its claim, so a changed artifact
+  shows on the report.
 
 **A digest establishes identity, not scientific truth.** It says that an
 artifact is the one evaluated and unchanged since, never that what it

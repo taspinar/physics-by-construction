@@ -1,5 +1,6 @@
 """The experiment of "A prediction and its explanation" (agents-llm 15, AI7)."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -46,3 +47,66 @@ def test_the_constructed_answers_fail_where_the_page_says(results):
     assert rows[0][3:] == ["yes", "yes", "no", "no"]
     assert rows[1][3:] == ["no", "yes", "yes", "no"]
     assert rows[2][3:] == ["yes", "no", "no", "no"]
+
+
+# --- The experiment report (SA8). ---
+
+PAGE_FILE = Path(__file__).parents[2] / "site/lessons" / PAGE / "index.qmd"
+
+
+def test_every_statement_resolves_to_a_record_or_is_marked(results):
+    _, found = results
+    rows = found["tables"]["report-statements"]["rows"]
+
+    assert {row[2] for row in rows} == {"observed", "computed", "proposed"}
+    for _, _, kind, status in rows:
+        if kind == "proposed":
+            assert status == "proposed, not evaluated"
+        else:
+            assert status == "completed"
+
+
+def test_every_traced_statement_names_runs_figures_assumptions_and_uncertainty(
+    results,
+):
+    _, found = results
+    kinds = {row[0]: row[2] for row in found["tables"]["report-statements"]["rows"]}
+    labels = set(re.findall(r"^#\|\s*label:\s*(\S+)\s*$", PAGE_FILE.read_text(), re.M))
+    for id_, runs, data, shown, assumptions, uncertainty in found["tables"][
+        "report-traces"
+    ]["rows"]:
+        if kinds[id_] == "proposed":
+            assert (runs, data, shown, assumptions) == ("none",) * 4
+            continue
+        assert runs != "none" and uncertainty != "none"
+        assert set(shown.split(", ")) <= labels
+        assert all(1 <= int(a) <= 5 for a in assumptions.split(", "))
+        if kinds[id_] == "observed":
+            assert data == "replay.json"
+
+
+def test_the_run_record_holds_the_assumptions_of_the_page():
+    from pbc.agents.explanation_lab import PREDICTION_TOLERANCE
+    from pbc.mechanics.experiments.interpretable_physics_explanations import (
+        ASSUMPTIONS,
+    )
+
+    page = PAGE_FILE.read_text()
+    section = page.split("## Assumptions", 1)[1].split("\n## ", 1)[0]
+    headings = re.findall(r"^\d+\. \*\*(.+?)\*\*", section, re.M | re.S)
+    tolerance = '`{python} result["prediction-tolerance"]`'
+    percent = f"{100 * PREDICTION_TOLERANCE:.0f}"
+    headings = [" ".join(h.replace(tolerance, percent).split()) for h in headings]
+
+    assert headings == list(ASSUMPTIONS)
+
+
+def test_a_changed_recording_withdraws_what_rests_on_it(results):
+    _, found = results
+    rows = {row[0]: row[1:] for row in found["tables"]["report-changed"]["rows"]}
+
+    for _kind, before, _after in rows.values():
+        assert before in ("completed", "proposed, not evaluated")
+    assert rows["answers"][2] == rows["interval"][2] == "not evaluated"
+    assert rows["fit"][2] == rows["dimensions"][2] == "completed"
+    assert rows["harder-scene"][2] == "proposed, not evaluated"

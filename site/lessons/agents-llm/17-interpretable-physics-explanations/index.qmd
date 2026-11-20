@@ -5,6 +5,9 @@ description: >-
   and explains each prediction with a relation; the build tests the
   predictions against the exact solution and, separately, tests each
   explanation by its units, its dimensions, its physics, and its interval.
+  The findings then become an experiment report whose statements are each
+  observed, computed, or proposed, and traced to their runs, data, figures,
+  assumptions, and uncertainty.
 lesson:
   id: interpretable-physics-explanations
   strand: agents-llm
@@ -19,6 +22,7 @@ lesson:
     - Test an explanation by its unit, by a scaling test of its dimensions, and against a verified result
     - Check that an explanation supports the prediction it came with, and that a stated interval covers the truth
     - Compare a model with a curve fit, which predicts without explaining, and with dimensional analysis, which explains without data
+    - Trace each statement of an experiment report to its runs, data, figures, assumptions, and uncertainty, and mark it observed, computed, or proposed
   related: []
   format: 2
   preview: fig-explanation-intervals
@@ -212,6 +216,102 @@ evidence="ai7-baselines"} The velocity at a time depends on the
 dimensionless ratio of the time to the time constant, and dimensions cannot
 say through which function.
 
+## The experiment report {#experiment-report}
+
+The page so far holds three kinds of statement side by side: what the
+recording holds (the model's numbers, intervals, and words), what the build
+computed from it (the verified results and the tests), and what the author
+proposes (a limit, a next experiment). A reader who cannot tell them apart,
+or cannot find what each rests on, cannot check any of them. This section
+writes the findings of the lesson as a report of
+`{python} result["report-statements-count"]` statements, each marked with its
+kind and traced to its runs, its data, the tables and figures that show it,
+the assumptions it rests on, and its uncertainty.
+
+No model runs here. The recording is the run of the worked example, and
+every evidence status below is computed by the build from a ledger of
+`pbc.evidence`, the evidence contract of the capstone path.
+
+### A statement and its kind
+
+```{python}
+#| echo: false
+from pbc.authoring import source_link
+from pbc.evidence.report import Statement, problems
+
+excerpt(Statement)
+```
+
+- **Observed**: what a recording or a measurement holds, read and not
+  computed. The interval the model gave is observed: the build reads it from
+  the recording and computes nothing.
+- **Computed**: what the build computed from the recording or from the given
+  values: a verified result, a test that passed.
+- **Proposed**: an interpretation or a next step that no record supports.
+  It belongs in a report when it is marked, and only then.
+
+An observed or a computed statement names a claim of the ledger. The ledger
+holds the run record (the task, the five assumptions of this page in their
+order, the budget of model messages), one attempt for each question of the
+recorded run with the recording as its data, one attempt for each question
+of each baseline, the build's evaluation of every attempt, and the claims.
+Each claim says which outcome it asserts for each of its runs, and its
+evidence status follows from the evaluations; the report has no field for
+a status.
+
+```{python}
+#| echo: false
+source_link(experiment.ledger, text="Source of the ledger")
+```
+
+Before any status is given, the report must meet its rules. Each statement
+`s` is checked; `problem` records a rule it breaks, and `known` is the number
+of assumptions in the run record:
+
+```{python}
+#| echo: false
+excerpt(problems, lines=(13, 36))
+```
+
+A computed statement without a record, a record the ledger does not have, an
+observed statement with nothing recorded behind it, an assumption the run
+record does not hold: each is refused, with every problem at once.
+
+### The report, traced
+
+Before reading the tables: which statements rest on the recording, and
+which would still stand if it were lost?
+
+```{python}
+#| label: report-statements
+#| echo: false
+result.table("report-statements")
+```
+
+```{python}
+#| label: report-traces
+#| echo: false
+result.table("report-traces")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.report, text="Source of the statements")
+```
+
+[Every statement of the report resolves to a claim of the ledger whose
+evidence status is completed, or is marked proposed.]{.claim
+type="numerically-verified" scope="this report and the ledger of this lesson"
+evidence="report-statements report-traces"} The predictions, the
+explanations, and the widest interval rest on the recording, whose data is
+the file `replay.json`; the curve fit and dimensional analysis rest on
+nothing recorded, because the build computes them from the given values and
+the picture. The interval is observed, and its status says only that the
+recording is the one the build evaluated and that it replays, not that the
+interval is good: the fifth assumption says the model's words are data. The
+proposed statement has no run, no table, no assumption, and no uncertainty,
+and says so: it is the first limit below, turned into the next experiment.
+
 ## Limits {#limits}
 
 - **One recorded run on an easy scene.** The model passed every test on a
@@ -230,6 +330,11 @@ say through which function.
   need another verified result.
 - **The recording is not an API run.** As in the previous lesson: a Claude
   Code session, no token count or price reported.
+- **A traced statement is as good as its claim.** Its status says that the
+  build's evaluations agree with what its claim asserts, on these artifacts.
+  The kind of a statement is given by its author, and a computed statement
+  whose words say more than its claim asserts is not caught: the rules see a
+  missing record, not an overreaching sentence.
 
 ::: {.exercise .self-check}
 A model predicts the velocity after four seconds correctly and explains it
@@ -314,6 +419,30 @@ supply.
 :::
 :::
 
+::: {.exercise}
+A copy of the recording has one interval widened by a tenth of its upper
+end. The report is traced again against the copy. Which statements keep
+their status, and why does the build not say whether the edited interval is
+better or worse?
+
+::: {.solution}
+```{python}
+#| label: report-changed
+#| echo: false
+result.table("report-changed")
+```
+
+The digest of the recording changed, so every evaluation that depended on it
+is invalidated, and the statements whose claims rest on those evaluations
+are not evaluated any more: the predictions and explanations, and the
+observed interval. The curve fit and dimensional analysis rest on nothing
+recorded and keep their status, and the proposed statement stays marked.
+Nothing was replayed or judged: the digest shows that the data is not the
+data that was evaluated, which says nothing about whether the new interval
+is right. A digest establishes identity, not truth.
+:::
+:::
+
 ### Run it yourself
 
 This needs your own key and a model that accepts images. The build does not
@@ -340,11 +469,14 @@ reproduce_this(
         "src/pbc/agents/explanation_lab.py",
         "src/pbc/agents/vision.py",
         "src/pbc/mechanics/drag.py",
+        "src/pbc/evidence/records.py",
+        "src/pbc/evidence/report.py",
         "src/pbc/mechanics/experiments/interpretable_physics_explanations.py",
         "src/pbc/experiment.py",
     ],
     tests=[
         "tests/unit/test_agents_vision.py",
+        "tests/unit/test_evidence_report.py",
         "tests/unit/test_interpretable_physics_explanations_experiment.py",
     ],
 )
