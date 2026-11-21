@@ -279,7 +279,8 @@ def narrowed_claim(transcripts) -> None:
     )
     inv.steer(board, inv.Steering(inv.ACCEPT, 2, "first order holds"))
     print(f"piece 2: {inv.decision(board, 2)}")
-    kept = [v for v in board.fields["verdicts"] if v.candidate == 2 and not v.passed]
+    found = board.read("human", "verdicts")
+    kept = [v for v in found if v.candidate == 2 and not v.passed]
     print(f"failed checks still in the record: {sorted({v.check for v in kept})}")
 
 

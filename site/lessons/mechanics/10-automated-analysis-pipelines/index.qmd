@@ -447,8 +447,9 @@ the failure would make the remaining windows look chosen in advance.
 
 ### What a resume refuses {#what-a-resume-refuses}
 
-`problems` is the check a resume runs before it continues. It reads every
-state of the branch's lineage again:
+`problems` is the check a resume runs before it continues, and the first run
+of a fork runs it too on the states it shares. It reads every state of the
+branch's lineage again:
 
 ```{python}
 #| echo: false
@@ -557,9 +558,10 @@ only the shift from them.
   It does not replace the tests of the code that computes the numbers.
 - A valid state is the one that was recorded, with the current code,
   configuration, and data; a digest says nothing about whether the state is
-  right. The code digest covers the five source files of the pipeline, not
-  the libraries they import: a new version of NumPy is not refused, and the
-  run record names the versions it ran with instead.
+  right. The code digest covers every project module the stages import by
+  name, directly or through each other, not the libraries outside the
+  project: a new version of NumPy is not refused, and the run record names
+  the versions it ran with instead.
 
 ::: {.exercise .self-check}
 The report of the throw matches its committed expectation, and the build

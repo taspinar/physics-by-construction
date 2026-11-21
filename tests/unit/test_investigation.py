@@ -122,6 +122,22 @@ def test_a_required_check_must_be_run_before_an_acceptance(board):
         inv.steer(lean, inv.Steering(inv.ACCEPT, 1, "every check passed"))
 
 
+def test_the_steering_is_read_through_the_human_interface_only(board):
+    inv.steer(board, inv.Steering(inv.SEND_BACK, 2, "bounded-energy failed"))
+
+    assert inv.steering(board) == board.read("human", "steering")
+    for role in ("extraction", "implementation", "review"):
+        with pytest.raises(inv.OutOfBounds, match=f"{role} role may not read"):
+            board.read(role, "steering")
+
+
+def test_the_acceptance_gate_follows_the_contract_rule_applies(board, monkeypatch):
+    assert inv.failed_checks(board, 2) == ["bounded-energy"]
+    monkeypatch.setattr(inv, "applies", lambda check, case: False)
+
+    assert inv.failed_checks(board, 2) == []
+
+
 @pytest.fixture(scope="module")
 def recorded_panel():
     return inv.panel(REPOSITORY_ROOT / PANEL_DIRECTORY)

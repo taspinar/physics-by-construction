@@ -18,7 +18,10 @@ was written by the current code, with the configuration of the branch, on
 data whose digest has not changed, and the last attempt did not fail.
 Otherwise it refuses and names every cause. ``Research.fork`` starts a
 branch that shares the first stages of its parent, and refuses when a
-shared stage read a key the branch changes. The lineage of an attempt is
+shared stage read a key the branch changes; its first ``run`` continues
+from the shared states only when they pass the same checks. A state names
+the digest of the bytes of the state it read, not the digest the ledger
+recorded. The lineage of an attempt is
 the chain of the attempts it follows.
 
 A digest establishes identity, not truth: a valid state is the one that was
@@ -40,6 +43,7 @@ from pbc.evidence.records import (
     ContractError,
     Ledger,
     RunRecord,
+    digest_bytes,
     digest_file,
 )
 
@@ -103,6 +107,12 @@ def write_state(state: State, path: Path) -> None:
 
 def read_state(path: Path) -> State:
     return State(**json.loads(path.read_text(encoding="utf-8")))
+
+
+def _load(path: Path) -> tuple[State, str]:
+    """The state at ``path`` and the digest of the bytes it was read from."""
+    data = path.read_bytes()
+    return State(**json.loads(data.decode("utf-8"))), digest_bytes(data)
 
 
 @dataclass
@@ -209,18 +219,25 @@ class Research:
 
     def run(self, name: str, stop_after: str | None = None) -> None:
         """Run the stages of a branch that has not run yet, up to
-        ``stop_after`` (all when ``None``)."""
+        ``stop_after`` (all when ``None``). A fork continues from the
+        shared states of its parent only when they are valid (``problems``),
+        as a resume does; otherwise it refuses with the causes."""
         branch = self.branches[name]
         done = self._done(branch)
         own = [a for _, a in done if a.candidate == name]
         if own:
             raise ContractError(f"{name} has already run; resume it")
         if done:
+            found = self.problems(name)
+            if found:
+                raise ContractError(
+                    f"{name} cannot continue from the shared states: "
+                    + "; ".join(found)
+                )
             index, attempt = done[-1]
-            previous = self.state(attempt.id)
-            self._continue(branch, index + 1, attempt, previous, stop_after)
+            self._continue(branch, index + 1, attempt, stop_after)
         else:
-            self._continue(branch, 0, None, None, stop_after)
+            self._continue(branch, 0, None, stop_after)
 
     # region: problems
     def problems(self, name: str) -> list[str]:
@@ -278,38 +295,41 @@ class Research:
         if not done:
             raise ContractError(f"{name} has no state to resume from; run it")
         index, attempt = done[-1]
-        self._continue(branch, index + 1, attempt, self.state(attempt.id), stop_after)
+        self._continue(branch, index + 1, attempt, stop_after)
 
     def _continue(
         self,
         branch: Branch,
         first: int,
         prior: Attempt | None,
-        previous: State | None,
         stop_after: str | None,
     ) -> None:
         last = len(self.stages) if stop_after is None else self._index(stop_after) + 1
         for index in range(first, last):
             stage = self.stages[index]
+            previous = None
+            if prior is not None:
+                previous = _load(self.path(*prior.id.split("/")))
             prior = self._stage(branch, stage, prior, previous)
             if prior.status != COMPLETED:
                 return
-            previous = self.state(prior.id)
 
     def _stage(
         self,
         branch: Branch,
         stage: Stage,
         prior: Attempt | None,
-        previous: State | None,
+        previous: tuple[State, str] | None,
     ) -> Attempt:
+        """Run ``stage`` on ``previous``, the state before it and the digest
+        of the bytes it was read from."""
         configuration = {k: branch.configuration[k] for k in stage.reads}
         data = {k: digest_file(p) for k, p in stage.files(configuration).items()}
         follows = (prior.id,) if prior is not None else ()
         attempt_id = f"{branch.name}/{stage.name}"
         try:
             output = _plain(
-                stage.function(previous.output if previous else {}, configuration)
+                stage.function(previous[0].output if previous else {}, configuration)
             )
         except ValueError as error:
             attempt = Attempt(
@@ -327,7 +347,7 @@ class Research:
             stage.name,
             self.code,
             configuration,
-            prior.artifacts[0].sha256 if prior is not None else None,
+            previous[1] if previous is not None else None,
             data,
             output,
         )

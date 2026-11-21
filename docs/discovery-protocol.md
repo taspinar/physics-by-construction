@@ -692,7 +692,8 @@ two more parts of a research process; `pbc.evidence.records` and
   one, a state of other code, a changed configuration (a new branch, never
   a resume), changed data, and a branch whose last attempt failed. A fork
   shares the stages of its parent up to a point and is refused when one of
-  them read a key the fork changes. The lineage of an attempt is the chain
+  them read a key the fork changes; its first run continues from the shared
+  states only when they pass the checks of a resume. The lineage of an attempt is the chain
   of the attempts it follows. On the flume record (`pbc.data.flume_stages`)
   the main branch, stopped and resumed, reproduces the committed report;
   the failed branch and the negative claim that the window does not matter

@@ -75,7 +75,7 @@ INTERFACES = (
     Interface("review", reads=("claim", "pieces"), writes=("verdicts",)),
     Interface(
         "human",
-        reads=("handover", "claim", "pieces", "verdicts"),
+        reads=("handover", "claim", "pieces", "verdicts", "steering"),
         writes=("steering",),
     ),
 )
@@ -209,10 +209,25 @@ def words(claim: Claim) -> str:
     return f"{order} order {energy}"
 
 
+def steering(board: Board) -> list[Steering]:
+    """The human's steering entries, read through the human's interface;
+    empty before the first."""
+    if "steering" not in board.fields:
+        return []
+    return board.read("human", "steering")
+
+
+@dataclass(frozen=True)
+class _Claimed:
+    """A piece's claim in the shape the contract's rule ``applies`` reads."""
+
+    claim: Claim
+
+
 def claim_of(board: Board, piece: int) -> Claim:
     """The claim of ``piece`` after the narrowings the human recorded."""
     claim = board.read("human", "claim")
-    for entry in board.fields.get("steering", []):
+    for entry in steering(board):
         if entry.action == NARROW and entry.piece == piece:
             claim = Claim(order=claim.order, bounded_energy=False)
     return claim
@@ -220,14 +235,12 @@ def claim_of(board: Board, piece: int) -> Claim:
 
 def failed_checks(board: Board, piece: int) -> list[str]:
     """The recomputed checks of ``piece`` that failed and apply to its claim."""
-    claim = claim_of(board, piece)
+    claimed = _Claimed(claim_of(board, piece))
     return sorted(
         {
             v.check
             for v in board.read("human", "verdicts")
-            if v.candidate == piece
-            and not v.passed
-            and (v.check != "bounded-energy" or claim.bounded_energy)
+            if v.candidate == piece and not v.passed and applies(v.check, claimed)
         }
     )
 
@@ -235,9 +248,7 @@ def failed_checks(board: Board, piece: int) -> list[str]:
 def _not_run(board: Board, piece: int) -> list[str]:
     ran = {v.check for v in board.read("human", "verdicts") if v.candidate == piece}
     required = {
-        e.check
-        for e in board.fields.get("steering", [])
-        if e.action == REQUIRE and e.piece == piece
+        e.check for e in steering(board) if e.action == REQUIRE and e.piece == piece
     }
     return sorted(required - ran)
 
@@ -276,7 +287,7 @@ def decision(board: Board, piece: int) -> str:
     """Where ``piece`` stands after the human's last acceptance or sending
     back, with the claim it is accepted for."""
     last = None
-    for entry in board.fields.get("steering", []):
+    for entry in steering(board):
         if entry.piece == piece and entry.action in (ACCEPT, SEND_BACK):
             last = entry
     if last is None:

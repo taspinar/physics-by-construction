@@ -1,6 +1,7 @@
 """A research pipeline that stops, resumes only from a valid state, and
 branches with a recorded lineage (F153, lesson RR4)."""
 
+import ast
 import json
 from pathlib import Path
 
@@ -174,6 +175,44 @@ def test_a_fork_shares_the_stages_before_it_and_records_its_lineage(tmp_path):
     assert research.state("double/add").output == {"z": 5}
 
 
+def test_a_fork_from_an_edited_shared_state_is_refused(tmp_path):
+    research = _research(tmp_path)
+    research.run("main", stop_after="source")
+    path = tmp_path / "main" / "source.json"
+    state = json.loads(path.read_text())
+    state["output"]["x"] = 5
+    path.write_text(json.dumps(state))
+    research.fork("main", "double", "source", {"factor": 2})
+
+    with pytest.raises(ContractError, match="source changed after it was recorded"):
+        research.run("double")
+    assert research.ledger.attempt("double/scale") is None
+
+
+def test_a_fork_under_other_code_is_refused(tmp_path):
+    research = _research(tmp_path)
+    research.run("main", stop_after="source")
+    later = Research(STAGES, _record("code-2"), tmp_path)
+    later.branches = research.branches
+    later.ledger = research.ledger
+    later.fork("main", "double", "source", {"factor": 2})
+
+    with pytest.raises(ContractError, match="main/source was written by other code"):
+        later.run("double")
+    assert later.ledger.attempt("double/scale") is None
+
+
+def test_a_fork_records_the_digest_of_the_state_it_read(tmp_path):
+    research = _research(tmp_path)
+    research.run("main", stop_after="source")
+    research.fork("main", "double", "source", {"factor": 2})
+    research.run("double")
+
+    assert research.state("double/scale").input == digest_file(
+        tmp_path / "main" / "source.json"
+    )
+
+
 def test_a_fork_after_a_stage_that_read_the_changed_key_is_refused(tmp_path):
     research = _research(tmp_path)
     research.run("main")
@@ -189,6 +228,41 @@ def test_a_branch_that_has_run_is_resumed_not_run_again(tmp_path):
 
     with pytest.raises(ContractError, match="resume it"):
         research.run("main")
+
+
+def _imported_modules(name: str, src: Path) -> set[str]:
+    """The project modules ``name`` imports by name, directly or through
+    each other, as paths relative to ``src``."""
+    found, todo = set(), [name]
+    while todo:
+        module = todo.pop()
+        parts = module.replace(".", "/")
+        path = next(
+            (
+                p
+                for p in (src / f"{parts}.py", src / parts / "__init__.py")
+                if p.is_file()
+            ),
+            None,
+        )
+        if path is None or path.relative_to(src).as_posix() in found:
+            continue
+        found.add(path.relative_to(src).as_posix())
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if isinstance(node, ast.ImportFrom) and (node.module or "").startswith(
+                "pbc"
+            ):
+                todo.append(node.module)
+                todo.extend(f"{node.module}.{a.name}" for a in node.names)
+            elif isinstance(node, ast.Import):
+                todo.extend(a.name for a in node.names if a.name.startswith("pbc"))
+    return found
+
+
+def test_the_code_identity_covers_every_module_the_stages_import():
+    src = Path(flume_stages.__file__).parents[2]
+
+    assert set(flume_stages.SOURCES) == _imported_modules("pbc.data.flume_stages", src)
 
 
 # The flume investigation of the lesson.

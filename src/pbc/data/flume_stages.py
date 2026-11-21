@@ -124,12 +124,17 @@ STAGES = (
     Stage("report", (), report),
 )
 
-# The code the states are written with, relative to ``src``.
+# The code the states are written with, relative to ``src``: every project
+# module this one imports by name, directly or through each other
+# (``tests/unit/test_evidence_resumable.py`` checks the set).
 SOURCES = (
+    "pbc/data/__init__.py",
     "pbc/data/flume.py",
     "pbc/data/flume_analysis.py",
     "pbc/data/flume_stages.py",
     "pbc/data/pipeline.py",
+    "pbc/data/uncertainty.py",
+    "pbc/evidence/records.py",
     "pbc/evidence/resumable.py",
 )
 
