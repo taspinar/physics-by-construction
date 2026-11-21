@@ -5,6 +5,7 @@ criterion 3), the report's evidence status of the review follows the log and
 not a revision of the prose (criterion 2), the bundle reproduces, and the
 memory checks each reuse."""
 
+import re
 from pathlib import Path
 
 import pytest
@@ -56,6 +57,28 @@ def test_every_number_and_citation_of_the_report_resolves_or_is_marked(made):
     # Every sentence that is not marked has at least one number or citation.
     checked = {r.sentence for r in resolutions if r.kind in (RECORD, PASSAGE)}
     assert checked == {s.key for s in lab.REPORT if not s.marked}
+
+
+NUMBER_WORDS = re.compile(
+    r"\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|half"
+    r"|twice|dozen|double|triple)\b",
+    re.IGNORECASE,
+)
+
+
+def test_no_sentence_of_the_report_states_a_quantity_in_words(made):
+    # The check reads digits: a quantity in words would escape it, so the
+    # report writes none outside its marked sentence.
+    assert [
+        (s.key, m.group(0))
+        for s in lab.REPORT
+        if not s.marked
+        for m in NUMBER_WORDS.finditer(s.text)
+    ] == []
+    _, _, fields = made
+    resolved = {(r.sentence, r.token): r.to for r in lab.check(lab.REPORT, fields)}
+    assert resolved[("question", "2")] == "original-plan.tolerance"
+    assert resolved[("coefficient", "0.5")] == "top-at-half-degree.resolution"
 
 
 def test_the_planted_errors_are_each_refused_and_nothing_else(made):

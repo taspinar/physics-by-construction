@@ -97,11 +97,32 @@ def test_the_digits_of_a_citation_key_are_not_numbers():
     assert problems(check(sentence)) == []
 
 
-def test_a_marked_sentence_is_listed_and_its_numbers_still_checked():
+def test_a_marked_sentence_is_listed_and_refuses_any_number_or_citation():
     marked = Sentence("s", "Probably lower still.", marked=True)
     assert [(r.kind, r.token) for r in check(marked)] == [(MARKED, "")]
     with_number = Sentence("s", "Probably below 43.", marked=True)
-    assert [r.kind for r in check(with_number)] == [REFUSED]
+    assert [r.kind for r in check(with_number)] == [REFUSED, MARKED]
+    # A number whose record exists does not make an interpretation a result:
+    # it is refused, and the sentence keeps its mark.
+    with_record = Sentence(
+        "s", "Probably above 43.75.", (Quantity("plan", "low"),), marked=True
+    )
+    assert [(r.token, r.kind, r.to) for r in check(with_record)] == [
+        ("43.75", REFUSED, "a marked sentence writes no number"),
+        ("", REFUSED, "plan.low: a marked sentence rests on no record"),
+        ("", MARKED, ""),
+    ]
+    cited = Sentence(
+        "s",
+        "Probably so [@sa1-bracket].",
+        citations={"sa1-bracket": "supports"},
+        claim="replication",
+        marked=True,
+    )
+    assert [(r.kind, r.to) for r in check(cited)] == [
+        (REFUSED, "a marked sentence cites no passage"),
+        (MARKED, ""),
+    ]
 
 
 def recipe(tmp_path: Path, value: dict, configuration="c") -> Recipe:

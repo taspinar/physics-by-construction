@@ -17,7 +17,10 @@ route's record by its digest), the revisions of the claim, and the
 decisions about each line of follow-up. The log only grows, and each entry
 names the digest of the entry before it (``verify_log``). Evidence names a
 test declared before it, and a record that is new: not one the claim
-already rested on, and not one recorded before the finding.
+already rested on, and not one recorded before the finding. Every entry
+after the claim names what the log already holds: a finding about its
+claim, a decision about a finding of the log, a revision resting on tests
+whose evidence is recorded.
 
 ``status`` derives the state of a finding from the log. A finding that asks
 for evidence is resolved only by evidence that decided one of its tests;
@@ -179,7 +182,19 @@ class Log:
             raise FollowUpRefused("the claim is the first entry of its log")
         return self._add(CLAIM, {"key": key, "text": text, "records": list(records)})
 
+    def _claimed(self, what: str) -> str:
+        """The key of the log's claim; ``what`` is refused before it."""
+        if not self.entries:
+            raise FollowUpRefused(f"{what}: the log has no claim yet")
+        return self.entries[0].content["key"]
+
     def find(self, finding: Finding) -> Entry:
+        """A finding of the review about the log's claim."""
+        claim = self._claimed(finding.key)
+        if finding.claim != claim:
+            raise FollowUpRefused(
+                f"{finding.key} is about {finding.claim}, the log about {claim}"
+            )
         if finding.kind not in KINDS:
             raise FollowUpRefused(
                 f"{finding.key}: the kind {finding.kind!r} is unknown"
@@ -247,9 +262,16 @@ class Log:
     ) -> Entry:
         """A new text of the claim, the findings it answers, and the tests
         whose evidence it rests on."""
+        self._claimed("a revision")
         unknown = [k for k in answers if k not in self.findings]
         if unknown:
             raise FollowUpRefused(f"the log has no finding {', '.join(unknown)}")
+        recorded = {e.content["test"] for e in self._of(RECORDED)}
+        missing = [k for k in evidence if k not in recorded]
+        if missing:
+            raise FollowUpRefused(
+                f"the log has no evidence of the test {', '.join(missing)}"
+            )
         return self._add(
             REVISED,
             {"text": text, "answers": list(answers), "evidence": list(evidence)},
@@ -258,6 +280,8 @@ class Log:
     def decide(self, finding: str, decision: str, reason: str, revisit: str) -> Entry:
         """Continue or stop the line of follow-up of ``finding``, with the
         reason and the condition that would warrant revisiting it."""
+        if finding not in self.findings:
+            raise FollowUpRefused(f"the log has no finding {finding}")
         if decision not in (CONTINUE, STOP):
             raise FollowUpRefused(f"the decision {decision!r} is unknown")
         if not reason.strip():

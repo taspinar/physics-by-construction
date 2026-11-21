@@ -100,6 +100,10 @@ def plan_record(plan: dict) -> dict:
         "speed": plan["specification"]["variables"]["speed"]["value"],
         "bound": plan["specification"]["hypothesis"]["prediction"]["value"],
         "control": plan["baselines"]["control"]["answer"],
+        "tolerance": (
+            plan["baselines"]["control"]["answer"]
+            - plan["specification"]["hypothesis"]["prediction"]["value"]
+        ),
         "low": low,
         "high": high,
         "withheld": record.withheld[0].best,
@@ -191,11 +195,12 @@ REPORT = (
     Sentence(
         "question",
         "Of 7 ideas about the simulated tennis ball, a rule declared before the"
-        " assessment selected one: is the best launch angle at 10 m/s within two"
-        " degrees of the 45 of a throw without drag?",
+        " assessment selected this question: is the best launch angle at 10 m/s"
+        " within 2 degrees of the 45 of a throw without drag?",
         (
             q("archive", "ideas"),
             q("original-plan", "speed"),
+            q("original-plan", "tolerance"),
             q("original-plan", "control"),
         ),
     ),
@@ -239,13 +244,14 @@ REPORT = (
     Sentence(
         "coefficient",
         "With the drag coefficient at 0.8 the bracket was 43.125 to 43.75"
-        " degrees, above the bound; at 1.0, to half a degree, it was 42.969 to"
+        " degrees, above the bound; at 1.0, to 0.5 degrees, it was 42.969 to"
         " 43.281 degrees, and the route could not decide.",
         (
             q("below-the-top", "cd"),
             q("below-the-top", "low"),
             q("below-the-top", "high"),
             q("top-at-half-degree", "cd"),
+            q("top-at-half-degree", "resolution"),
             q("top-at-half-degree", "low"),
             q("top-at-half-degree", "high"),
         ),

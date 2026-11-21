@@ -116,8 +116,11 @@ def test_revising_the_prose_never_resolves_a_request_for_evidence():
     log.revise("the claim, with a narrower scope", ["method", "words"], [])
     assert status(log, "method") == OPEN
     log.declare(follow_up())
-    log.revise("the claim, citing the declared test", ["method"], ["other-method"])
-    assert status(log, "method") == OPEN
+    with pytest.raises(FollowUpRefused, match="no evidence of the test other-method"):
+        log.revise("the claim, citing the declared test", ["method"], ["other-method"])
+    log.record("other-method", record(UNDECIDED))
+    log.revise("the claim, citing the test", ["method"], ["other-method"])
+    assert status(log, "method") == INCONCLUSIVE
     # A revision is what resolves a finding about the wording, and only that.
     assert status(log, "words") == REWORDED
     assert status(started(), "words") == OPEN
@@ -157,3 +160,29 @@ def test_the_claim_comes_first_and_a_finding_once():
         log.find(METHOD)
     with pytest.raises(FollowUpRefused, match="kind"):
         log.find(dataclasses.replace(METHOD, key="new", kind="taste"))
+
+
+def test_a_finding_or_a_revision_before_the_claim_is_refused():
+    with pytest.raises(FollowUpRefused, match="no claim yet"):
+        Log().find(METHOD)
+    with pytest.raises(FollowUpRefused, match="no claim yet"):
+        Log().revise("text", [], [])
+    with pytest.raises(FollowUpRefused, match="is about other"):
+        started().find(dataclasses.replace(METHOD, key="new", claim="other"))
+
+
+def test_a_decision_about_an_unknown_finding_is_refused():
+    with pytest.raises(FollowUpRefused, match="no finding unknown"):
+        started().decide("unknown", STOP, "why", "")
+
+
+def test_a_revision_rests_only_on_tests_with_recorded_evidence():
+    log = started()
+    with pytest.raises(FollowUpRefused, match="no evidence of the test nowhere"):
+        log.revise("the claim", ["method"], ["nowhere"])
+    log.declare(follow_up())
+    with pytest.raises(FollowUpRefused, match="no evidence of the test other-method"):
+        log.revise("the claim", ["method"], ["other-method"])
+    log.record("other-method", record(SUPPORTED))
+    log.revise("the claim", ["method"], ["other-method"])
+    assert [e.kind for e in log.entries][-1] == "claim revised"

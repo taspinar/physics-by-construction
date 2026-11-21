@@ -17,8 +17,9 @@ the text and resolves each, or names its problem:
   sentence gives it (``resolve_citation``).
 
 A number with no record, a record named for no number, a record or a
-field that does not exist, an unknown passage, and a role the passage does
-not play are problems. A number written with fewer decimals than its field
+field that does not exist, an unknown passage, a role the passage does
+not play, and a number, a citation, or a record in a marked sentence are
+problems. A number written with fewer decimals than its field
 is compared at those decimals, so a rounding passes and a transposition
 does not. Numbers written as words are not found: the check reads digits.
 
@@ -48,6 +49,10 @@ NUMBER = re.compile(r"(?<![\w.])\d+(?:\.\d+)?(?![\w])")
 RECORD = "record"
 PASSAGE = "passage"
 REFUSED = "refused"
+MARKED_REFUSALS = {
+    "number": "a marked sentence writes no number",
+    "citation": "a marked sentence cites no passage",
+}
 
 
 @dataclass(frozen=True)
@@ -131,7 +136,8 @@ def check_report(
     claims: Sequence[Statement],
 ) -> list[Resolution]:
     """Every number and citation of the report, in order, resolved or
-    refused; a marked sentence without either is listed once as marked."""
+    refused; a marked sentence is listed once as marked, and every number,
+    citation, or record in it is refused."""
     by_key = {p.key: p for p in passages}
     statements = {s.key: s for s in claims}
     found = []
@@ -145,6 +151,24 @@ def check_report(
                 if not any(c.start() <= m.start() < c.end() for c in cited)
             ]
         )
+        if sentence.marked:
+            # A marked sentence rests on no record: a number or a citation
+            # in it would dress an interpretation as a result.
+            found.extend(
+                Resolution(sentence.key, token, REFUSED, MARKED_REFUSALS[kind])
+                for _, kind, token in tokens
+            )
+            found.extend(
+                Resolution(
+                    sentence.key,
+                    "",
+                    REFUSED,
+                    f"{q.record}.{q.field}: a marked sentence rests on no record",
+                )
+                for q in sentence.numbers
+            )
+            found.append(Resolution(sentence.key, "", MARKED, ""))
+            continue
         sources = iter(sentence.numbers)
         for _, kind, token in tokens:
             if kind == "number":
@@ -166,8 +190,6 @@ def check_report(
                     f"{left.record}.{left.field} is named for no number",
                 )
             )
-        if sentence.marked and not tokens:
-            found.append(Resolution(sentence.key, "", MARKED, ""))
     return found
 
 
