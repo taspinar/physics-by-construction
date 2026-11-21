@@ -293,7 +293,9 @@ src/pbc/                 Importable Python package with all reusable lesson code
                          trials, and reviewer evaluation of the lessons AE4 to AE6 (`sealed`,
                          `robustness`, `reviewers`, F150); an experiment report whose
                          statements are observed, computed, or proposed and traced to the ledger
-                         (`report`, SA8, F144)
+                         (`report`, SA8, F144); a pipeline whose stages record states, resume
+                         only from a valid one, and branch with a recorded lineage
+                         (`resumable`, RR4, F153)
   instruments/           The instrument contract (configuration with units and ranges, excitation,
                          acquisition, validation, state snapshots, the safety envelope) and its
                          simulated, recorded, and optional live adapters (Part B products, F138,
@@ -310,14 +312,17 @@ src/pbc/                 Importable Python package with all reusable lesson code
                          and judged by the build, F20); the experiment specification, its check,
                          and the scripted route without a model (`specification`, SA1, F141);
                          four strategies of design under one budget, scored by the evaluator of
-                         the evidence contract (`strategy_lab`, lesson MD8, F147)
+                         the evidence contract (`strategy_lab`, lesson MD8, F147); the roles of an
+                         investigation with bounded interfaces, the human step, and the vote
+                         against the recomputed checks (`investigation`, RR5, F153)
   authoring/             Helpers lessons use to display code, proofs, tables, diagrams,
                          references, and claim labels by reference
   data/                  The dataset card schema and check; the readers (GWOSC text,
                          Touchstone, flume CSV) and `adapters.py` that wrap them as `Series`;
                          `status`, `series`, `uncertainty`, `calibration`, `fit`, and the
                          science-first `plotting` helpers of measured-data labs (F51); the
-                         reference figures of the F50 spikes, made with those helpers
+                         reference figures of the F50 spikes, made with those helpers; the flume
+                         analysis as the stages of a resumable pipeline (`flume_stages`, RR4, F153)
 data/                    Real datasets as declared inputs (F50, ADR 007)
   registry/<dataset>.yaml   One metadata card per surveyed dataset, including negative findings
   samples/<dataset>/        Small, version-pinned, rights-cleared samples under the size cap

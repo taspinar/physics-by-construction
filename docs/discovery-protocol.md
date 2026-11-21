@@ -675,6 +675,39 @@ ledger of `pbc.evidence.records` are unchanged.
   checked afterwards, show only that command. They could have read the
   repository; the pages say so.
 
+## Resumable runs and investigation roles
+
+F153 (lessons RR4 and RR5) uses the records of the evidence contract for
+two more parts of a research process; `pbc.evidence.records` and
+`pbc.agents.review_lab` are unchanged.
+
+- **Resumable runs and branches** (`pbc.evidence.resumable`, RR4). A
+  pipeline is a list of stages, each declaring the configuration keys and
+  the data files it reads. A stage run writes its state (the code digest,
+  the configuration it read, the digest of the state it continued from, the
+  digests of its data, its output) and records an attempt of the ledger
+  with the state as its artifact; a stage that fails is a failed attempt
+  with its reason. A resume re-reads every state of the branch's lineage
+  and refuses, naming each cause, a state whose digest is not the recorded
+  one, a state of other code, a changed configuration (a new branch, never
+  a resume), changed data, and a branch whose last attempt failed. A fork
+  shares the stages of its parent up to a point and is refused when one of
+  them read a key the fork changes; its first run continues from the shared
+  states only when they pass the checks of a resume. The lineage of an attempt is the chain
+  of the attempts it follows. On the flume record (`pbc.data.flume_stages`)
+  the main branch, stopped and resumed, reproduces the committed report;
+  the failed branch and the negative claim that the window does not matter
+  stay in the ledger.
+- **Investigation roles** (`pbc.agents.investigation`, RR5). Extraction,
+  implementation, and review are roles with bounded interfaces over one
+  board: each reads named fields and writes one, once. The extraction
+  quotes the handover for every property of the claim. The human writes
+  only steering entries (accept, send back, narrow, require), and an
+  acceptance is refused while a recomputed check that applies to the
+  piece's claim failed. The recorded panel sessions of AE6, replayed, show
+  that a vote of their decisions ties or gives a wrong majority where the
+  recomputed checks decide every faulty case.
+
 ## Limits
 
 Scores say how well a claim predicts outside the probed region of a simulated

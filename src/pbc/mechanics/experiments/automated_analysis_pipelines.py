@@ -11,16 +11,21 @@ figures and numbers of the page:
         python -m pbc.mechanics.experiments.automated_analysis_pipelines out
 """
 
+import json
+import tempfile
 from functools import partial
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
 from pbc.authoring import FIGURE_COLOURS
-from pbc.data import flume_analysis
-from pbc.data.figure_provenance import FigureProvenance, role
+from pbc.data import flume_analysis, flume_stages
+from pbc.data.figure_provenance import REFERENCE, FigureProvenance, role
 from pbc.data.pipeline import EXPECTED_DIR, check_report, differences
 from pbc.data.uncertainty import propagate
+from pbc.evidence import ContractError, claim_status
+from pbc.evidence.resumable import Research
 from pbc.experiment import Experiment, main
 from pbc.mechanics import analysis
 from pbc.mechanics.analysis import SPEED, SPEED_SIGMA
@@ -36,6 +41,19 @@ WINDOW_SWEEP = FigureProvenance(
     " aligned repetitions, unmodified; the RMS elevation in each window, its mean"
     " over the repetitions and their standard error: this lesson's code, not part"
     " of the record.",
+)
+
+# The provenance of the shifts of the alternative branches (F153): each is
+# read from the state files of the resumable pipeline on the same record.
+BRANCH_SHIFTS = FigureProvenance(
+    status="processed",
+    dataset="aalborg-submerged-bar",
+    artifact="processed-measured",
+    processing="The record's surface elevation at gauge 5 of wave condition 1, five"
+    " aligned repetitions, unmodified; the mean RMS elevation in each branch's"
+    " window and its shift from the main branch in standard errors, read from"
+    " the states of the resumable pipeline: this lesson's code, not part of the"
+    " record.",
 )
 
 
@@ -275,6 +293,197 @@ def euler_against_the_reference(best):
     )
 
 
+def resumable_run(experiment: Experiment, root: Path) -> Research:
+    """The main branch stopped after its window and resumed, the alternative
+    branches forked after the load, and both claims evaluated; record the
+    lineage table."""
+    research = flume_stages.investigation(root)
+    research.run("main", stop_after="window")
+    research.resume("main")
+    flume_stages.branch_out(research)
+    flume_stages.evaluate(research)
+    experiment.table(
+        "pipeline-lineage",
+        research.rows(),
+        columns=[
+            ("attempt", "", "s"),
+            ("follows", "", "s"),
+            ("status", "", "s"),
+            ("reason", "", "s"),
+        ],
+        caption="Every attempt of the investigation in the order it ran: the"
+        " attempt it follows, its status, and the reason of a failure.",
+    )
+    return research
+
+
+def _edit_state(root: Path, branch: str, stage: str) -> None:
+    path = root / branch / f"{stage}.json"
+    state = json.loads(path.read_text(encoding="utf-8"))
+    state["output"]["window"][1] += 0.5
+    path.write_text(json.dumps(state), encoding="utf-8")
+
+
+def _try_resume(research: Research, name: str) -> str:
+    try:
+        research.resume(name)
+    except ContractError as refusal:
+        return "refused: " + str(refusal).split(": ", 1)[1]
+    return "resumed"
+
+
+def resume_attempts(experiment: Experiment, root: Path) -> None:
+    """Five attempts to resume the main branch after its window, each in a
+    copy of its own: untouched, an edited state, other code, a changed
+    window, and the branch whose window failed; record the table."""
+    rows = []
+
+    def stopped(name: str, code: str | None = None) -> Research:
+        research = flume_stages.investigation(root / name, code)
+        research.run("main", stop_after="window")
+        return research
+
+    rows.append(("untouched", _try_resume(stopped("untouched"), "main")))
+    edited = stopped("edited")
+    _edit_state(root / "edited", "main", "window")
+    rows.append(("the window state edited", _try_resume(edited, "main")))
+    other = stopped("other")
+    later = flume_stages.investigation(root / "other", code="other code")
+    later.ledger = other.ledger
+    rows.append(("other code", _try_resume(later, "main")))
+    changed = stopped("changed")
+    main_branch = changed.branches["main"]
+    changed.branches["main"] = type(main_branch)(
+        "main", {**main_branch.configuration, "window": [5.0, 12.0]}
+    )
+    rows.append(("the window changed to end at 12 s", _try_resume(changed, "main")))
+    failing = stopped("failing")
+    failing.fork("main", "end-40", "load", {"window": [5.0, 40.0]})
+    failing.run("end-40")
+    rows.append(("the branch end-40", _try_resume(failing, "end-40")))
+    experiment.table(
+        "pipeline-resumes",
+        rows,
+        columns=[("state of the branch", "", "s"), ("outcome", "", "s")],
+        caption="Five attempts to resume after the window stage, each in its own"
+        " directory, and what the pipeline did.",
+    )
+
+
+def shared_window_refused(research: Research) -> None:
+    """A fork that would share the window stage while changing the window."""
+    try:
+        research.fork("main", "end-11", "window", {"window": [5.0, 11.0]})
+    except ContractError as refusal:
+        print(f"refused: {refusal}")
+
+
+def branch_table(experiment: Experiment, research: Research) -> dict[str, float]:
+    """The result of every branch, read from its states; record the table
+    and return the shifts of the alternatives in standard errors."""
+    shifts = flume_stages.shifts(research)
+    rows = []
+    for name, branch in research.branches.items():
+        end = branch.configuration["window"][1]
+        attempt = research.ledger.attempt(f"{name}/estimate")
+        if attempt is None:
+            rows.append((name, end, "none", "none", "failed at window"))
+            continue
+        rms = research.state(attempt.id).output["rms"]
+        shown = f"{1e3 * rms['mean']:.2f} +/- {1e3 * rms['sigma']:.2f}"
+        shift = f"{shifts.get(name, 0.0):.1f}"
+        rows.append((name, end, shown, shift, "completed"))
+    experiment.table(
+        "pipeline-branches",
+        rows,
+        columns=[
+            ("branch", "", "s"),
+            ("window end", "s", ".0f"),
+            ("RMS elevation", "mm", "s"),
+            ("shift from main, in standard errors", "", "s"),
+            ("status", "", "s"),
+        ],
+        caption="The mean RMS elevation of each branch with its standard error,"
+        " read from the branch's estimate state, and its shift from the main"
+        " branch in standard errors of the main branch.",
+    )
+    return shifts
+
+
+def claims_table(experiment: Experiment, research: Research) -> None:
+    """The claims of the ledger with the status the evaluations give them;
+    record the table."""
+    experiment.table(
+        "pipeline-claims",
+        [
+            (claim.text, ", ".join(claim.runs), claim_status(research.ledger, claim))
+            for claim in research.ledger.claims
+        ],
+        columns=[("claim", "", "s"), ("runs", "", "s"), ("evidence status", "", "s")],
+        caption="The two claims of the ledger, the attempts each rests on, and"
+        " the evidence status the evaluations give it.",
+    )
+
+
+def draw_branch_shifts(shifts: dict[str, float], ends: dict[str, float]) -> Figure:
+    """The shift of each alternative branch against the end of its window,
+    with the band of the negative claim and the end of the record."""
+    shift_fig, shift_ax = plt.subplots(figsize=(6.4, 3.6))
+    band = shift_ax.axhspan(
+        -flume_stages.WITHIN,
+        flume_stages.WITHIN,
+        color=FIGURE_COLOURS[1],
+        alpha=0.3,
+        label="within two standard errors of main",
+    )
+    role(band, REFERENCE)
+    (main_point,) = shift_ax.plot(
+        [ends["main"]],
+        [0.0],
+        color=FIGURE_COLOURS[0],
+        marker="o",
+        linestyle="none",
+        label="main branch",
+    )
+    role(main_point, "processed")
+    names = sorted(shifts, key=ends.get)
+    (alternatives,) = shift_ax.plot(
+        [ends[n] for n in names],
+        [shifts[n] for n in names],
+        color=FIGURE_COLOURS[0],
+        marker="s",
+        markerfacecolor="none",
+        linestyle="none",
+        label="alternative branches",
+    )
+    role(alternatives, "processed")
+    record_end = shift_ax.axvline(
+        30.0, color=FIGURE_COLOURS[2], linestyle=":", label="end of the record"
+    )
+    role(record_end, REFERENCE)
+    shift_ax.annotate(
+        "end-40 failed:\nno estimate",
+        xy=(30.0, max(shifts.values()) / 4),
+        xytext=(31.0, max(shifts.values()) / 4),
+    )
+    shift_ax.set_xlabel("end of the window (s)")
+    shift_ax.set_ylabel("shift of the RMS elevation (standard errors)")
+    shift_ax.set_xlim(8.0, 42.0)
+    shift_ax.legend(loc="upper right")
+    return shift_fig
+
+
+def edited_alternative(root: Path) -> None:
+    """Exercise 3: resume end-12 after one value of its window state is
+    edited."""
+    research = flume_stages.investigation(root)
+    research.run("main", stop_after="load")
+    research.fork("main", "end-12", "load", {"window": [5.0, 12.0]})
+    research.run("end-12", stop_after="window")
+    _edit_state(root, "end-12", "window")
+    print(_try_resume(research, "end-12"))
+
+
 def run() -> Experiment:
     """Everything the lesson's page shows."""
     experiment = Experiment()
@@ -328,6 +537,37 @@ def run() -> Experiment:
     experiment.number("rel-diff-max", max(rel_diff), ".1f")
     with experiment.capture("flume-expectation"):
         flume_expectation()
+
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        research = resumable_run(experiment, root / "lesson")
+        resume_attempts(experiment, root / "resumes")
+        with experiment.capture("shared-window-refused"):
+            shared_window_refused(research)
+        shifts = branch_table(experiment, research)
+        claims_table(experiment, research)
+        counts = {s: 0 for s in ("completed", "failed")}
+        for attempt in research.ledger.attempts:
+            counts[attempt.status] += 1
+        start, main_end = flume_stages.MAIN["window"]
+        experiment.number("branch-start", start, ".0f")
+        experiment.number("branch-main-end", main_end, ".0f")
+        for name, end in flume_stages.ALTERNATIVES.items():
+            experiment.number(f"branch-{name}", end, ".0f")
+        span = research.state("main/load").output["span"]
+        experiment.number("record-end", span[1], ".0f")
+        experiment.number("attempts-completed", counts["completed"])
+        experiment.number("attempts-failed", counts["failed"])
+        ends = {n: b.configuration["window"][1] for n, b in research.branches.items()}
+        experiment.figure(
+            "fig-branch-shifts",
+            partial(draw_branch_shifts, shifts, ends),
+            provenance=BRANCH_SHIFTS,
+        )
+        experiment.number("shift-min", min(shifts.values()), ".0f")
+        experiment.number("shift-max", max(shifts.values()), ".0f")
+        with experiment.capture("edited-alternative"):
+            edited_alternative(root / "exercise")
 
     with experiment.capture("halved-speed-uncertainty"):
         halved_speed_uncertainty(best)
