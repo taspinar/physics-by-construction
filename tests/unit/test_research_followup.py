@@ -60,7 +60,7 @@ def test_a_test_discriminates_only_when_no_outcome_is_predicted_by_both():
     assert discriminates(follow_up()) == []
     both = Explanation("fails", "fails somewhere else", (SUPPORTED, REFUTED))
     assert discriminates(follow_up(explanations=(HOLDS, both))) == [
-        "both explanations predict 'supported'"
+        "both explanations predict the verdict supported"
     ]
     silent = Explanation("silent", "predicts nothing", ())
     assert discriminates(follow_up(explanations=(HOLDS, silent))) == [

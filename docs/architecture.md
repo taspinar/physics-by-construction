@@ -316,7 +316,7 @@ src/pbc/                 Importable Python package with all reusable lesson code
                          by declared discriminating tests in a log chained by digest, whose
                          status a revision of the prose never resolves (`followup`, RR6); the
                          report whose every number and citation resolves to a record or a
-                         verified passage, the bundle of its records computed again, and the
+                         quoted passage, the bundle of its records computed again, and the
                          research memory with its checked reuse (`report`, `memory`, RR7), F154
   agents/                Agent harness: provider interface, tool allowlist, replay; the lesson
                          modules (`projectile_lab`, `review_lab`: three reviewers, F18, and the

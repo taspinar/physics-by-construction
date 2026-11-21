@@ -4,7 +4,7 @@ memory".
 The investigation of the slow throw, from the idea archive of RR1 to the
 revised claim of RR6, written up as a report whose numbers are typed by its
 author. ``pbc.research.report`` resolves every number to a field of a record
-and every citation to a verified passage of RR3's corpus in the role the
+and every citation to a quoted passage of RR3's corpus in the role the
 label rule gives it; a sentence no record supports is marked. The records
 form a bundle that is computed again and compared by digest. What the
 investigation leaves for the next one is kept in a research memory
@@ -216,7 +216,7 @@ REPORT = (
     Sentence(
         "literature",
         "The projectile lesson anticipates the direction for a slow throw"
-        " [@m3-ratio] but gives no bound, and none of 12 verified passages"
+        " [@m3-ratio] but gives no bound, and none of 12 passages of the corpus"
         " decides the claim.",
         (q("corpus", "passages"),),
         {"m3-ratio": "insufficient"},
@@ -435,7 +435,7 @@ def draw_report_trace() -> Figure:
     diagrams.state_box(ax, (1.9, 4.4), "sentence\nof the report", width=3.0, height=1.2)
     rows = (
         (7.4, "number", "field of\na record", "bundle: computed\nagain, compared"),
-        (4.4, "citation", "verified\npassage", "label for\nthe claim"),
+        (4.4, "citation", "quoted\npassage", "label for\nthe claim"),
     )
     for y, what, first, second in rows:
         diagrams.arrow(ax, (3.4, 4.4 + (y - 4.4) * 0.15), (5.0, y))
@@ -539,7 +539,7 @@ def run() -> Experiment:
             ("where", "", ""),
         ],
         "Every number and citation of the report in order, and the field of a"
-        " record or the verified passage it resolves to.",
+        " record or the quoted passage it resolves to.",
     )
     experiment.number("tokens", len(written), "d")
     experiment.number("refused", len(problems(written)), "d")

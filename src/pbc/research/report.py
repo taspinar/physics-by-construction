@@ -11,9 +11,10 @@ the text and resolves each, or names its problem:
 
 - a number resolves when the record's field, written with as many decimals
   as the sentence writes, gives the same text (``resolve_number``);
-- a citation resolves when the passage is in the corpus of verified
-  passages and the label the rule of ``pbc.research.literature`` computes
-  for the claim is the role the sentence gives it (``resolve_citation``).
+- a citation resolves when the passage is in the corpus (its quotation
+  checked against its page) and the label the rule of
+  ``pbc.research.literature`` computes for the claim is the role the
+  sentence gives it (``resolve_citation``).
 
 A number with no record, a record named for no number, a record or a
 field that does not exist, an unknown passage, and a role the passage does
@@ -110,11 +111,11 @@ def resolve_citation(
     passages: Mapping[str, Passage],
 ) -> tuple[str, str]:
     """The citation of the passage ``key`` in the ``role`` it is given for
-    ``claim``: (``PASSAGE``, the key and its label) when the passage is
-    verified and the rule labels it so, else (``REFUSED``, the reason)."""
+    ``claim``: (``PASSAGE``, the key and its label) when the corpus holds
+    the passage and the rule labels it so, else (``REFUSED``, the reason)."""
     passage = passages.get(key)
     if passage is None:
-        return REFUSED, "no verified passage has this key"
+        return REFUSED, "the corpus holds no passage with this key"
     if role is None or claim is None:
         return REFUSED, "the citation names no role for a claim"
     computed, reason = label(claim, passage.reading)

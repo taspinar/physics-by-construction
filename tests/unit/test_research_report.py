@@ -81,7 +81,7 @@ def test_a_citation_resolves_only_in_the_role_its_passage_plays():
     unknown = Sentence(
         "s", "See [@nowhere].", citations={"nowhere": "supports"}, claim="slow-throw"
     )
-    assert check(unknown)[0].to == "no verified passage has this key"
+    assert check(unknown)[0].to == "the corpus holds no passage with this key"
     no_role = Sentence("s", "See [@m3-ratio].", claim="slow-throw")
     assert check(no_role)[0].to == "the citation names no role for a claim"
 

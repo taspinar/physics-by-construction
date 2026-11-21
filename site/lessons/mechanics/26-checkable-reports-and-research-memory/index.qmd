@@ -4,7 +4,7 @@ description: >-
   The investigation of the slow throw, from the idea archive to the revised
   claim, is written up as a report with its numbers typed by its author. A
   check resolves every number to a field of a record and every citation to
-  a verified passage in the role the label rule gives it, and marks what no
+  a quoted passage in the role the label rule gives it, and marks what no
   record supports; the records form a bundle that the build computes again
   and compares by digest. A research memory keeps ideas, code, data,
   results, limitations, and open questions, and hands a result over only
@@ -65,7 +65,7 @@ it, and on what condition?
 its sentences typed by the author of this page as a report would be. Every
 record it rests on is computed by the build from the earlier lessons of
 this path: the idea archive, the two research plans, the corpus of
-verified passages, and the review's tests and log. No model is run, and no
+quoted passages, and the review's tests and log. No model is run, and no
 citation is written by a program.
 
 ## Assumptions
@@ -99,10 +99,12 @@ apart.
   many decimals as the sentence does. If the texts agree the number
   resolves; if not, the record's own value is shown beside it. Rounding is
   allowed, because a report rounds; a transposed digit is not.
-- A **citation** names a passage of the corpus of verified passages and the
-  role it plays for a claim. The check does not stop at "the passage
-  exists": it computes the label the literature lesson's rule gives the
-  passage for that claim and compares it with the role written. A passage
+- A **citation** names a passage of the corpus and the role it plays for a
+  claim. What is checked of the passage is its quotation, against its page;
+  its label for a claim is one annotator's reading. The check does not stop
+  at "the passage exists": it computes the label the literature lesson's
+  rule gives the passage for that claim and compares it with the role
+  written. A passage
   cited as support that the rule labels insufficient is refused, which is
   the most common way a real citation goes wrong: the source exists, is
   relevant, and does not say what the sentence needs.
@@ -122,9 +124,9 @@ since the record was made, before anything is recomputed.
 ```{python}
 #| label: fig-report-trace
 #| echo: false
-#| fig-cap: "Where a sentence of the report leads. A number leads to a field of a record, and the record to the bundle that computes it again; a citation leads to a verified passage and to the label the rule gives it for the claim; a marked sentence leads nowhere and says so. A number or a citation that leads nowhere is refused."
+#| fig-cap: "Where a sentence of the report leads. A number leads to a field of a record, and the record to the bundle that computes it again; a citation leads to a quoted passage and to the label the rule gives it for the claim; a marked sentence leads nowhere and says so. A number or a citation that leads nowhere is refused."
 #| fig-status: conceptual
-#| fig-alt: "A diagram. A box named sentence of the report at the left. An arrow labelled number goes up and right to a box named field of a record, then to a box named bundle, computed again and compared. An arrow labelled citation goes right to a box named verified passage, then to a box named label for the claim. A dotted arrow goes down to a grey box named marked, proposed, not evaluated. Beside it, in another colour, the words a number or citation that resolves to nothing, refused."
+#| fig-alt: "A diagram. A box named sentence of the report at the left. An arrow labelled number goes up and right to a box named field of a record, then to a box named bundle, computed again and compared. An arrow labelled citation goes right to a box named quoted passage, then to a box named label for the claim. A dotted arrow goes down to a grey box named marked, proposed, not evaluated. Beside it, in another colour, the words a number or citation that resolves to nothing, refused."
 result.show("fig-report-trace")
 ```
 
@@ -218,7 +220,7 @@ result.table("resolutions")
 
 [Every one of the `{python} result["numbers"]` numbers of the report
 resolves to a field of a record at the decimals it is written with, every
-one of its `{python} result["citations"]` citations resolves to a verified
+one of its `{python} result["citations"]` citations resolves to a quoted
 passage in the role the label rule gives it for the claim named, and the
 one sentence no record supports is marked.]{.claim
 type="numerically-verified" scope="the report of this page, the records of
@@ -355,9 +357,11 @@ investigation is run this way from the first idea to the last record.
   digits. "Hardly notices the air" is a quantitative claim in words, and
   nothing here checks it.
 - **A role, not a reading.** A citation is checked against the label the
-  rule computes from the annotator's reading of the passage. A reading
-  that is wrong makes the check wrong with it, as the literature lesson
-  says of its labels.
+  rule computes from the annotator's reading of the passage. That reading
+  was written once, by the coding agent that wrote the literature lesson;
+  no person and no second annotator has checked it. A reading that is
+  wrong makes the check wrong with it: the check confirms that a citation
+  agrees with the reading, not that the reading is right.
 - **Identity of the files named.** The bundle sees the source files each
   record names. A changed library, interpreter, or machine is not seen,
   and on another machine a record may differ in its last digits without

@@ -86,9 +86,14 @@ def test_a_revision_of_the_prose_alone_resolves_no_request_for_evidence():
 
 def test_the_test_at_the_bottom_of_the_range_is_refused():
     assert followup.discriminates(lab.bottom_of_range()) == [
-        "both explanations predict 'supported'"
+        "both explanations predict the verdict supported"
     ]
-    assert "does not discriminate" in lab.refused_test()
+    refused = lab.refused_test()
+    assert "does not discriminate" in refused
+    # The page places this text in its prose, where the renderer turns
+    # straight quotes into typographic ones, so the regenerated number would
+    # no longer be found on the page.
+    assert not set(refused) & set("'\"`")
     assert lab.old_record_as_evidence().endswith("the record is not new evidence")
 
 

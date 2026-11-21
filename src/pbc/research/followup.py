@@ -130,7 +130,7 @@ def discriminates(test: FollowUp) -> list[str]:
         f"{e.name} predicts no outcome" for e in test.explanations if not e.predicts
     ]
     for verdict in sorted(set(first.predicts) & set(second.predicts)):
-        found.append(f"both explanations predict {verdict!r}")
+        found.append(f"both explanations predict the verdict {verdict}")
     return found
 
 

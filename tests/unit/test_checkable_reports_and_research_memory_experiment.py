@@ -1,6 +1,6 @@
 """The experiment of "Independently checkable reports and research memory"
 (mechanics 26, RR7 of Issue #594): every number and citation of the report
-resolves to a record or a verified passage or is marked (acceptance
+resolves to a record or a quoted passage or is marked (acceptance
 criterion 3), the report's evidence status of the review follows the log and
 not a revision of the prose (criterion 2), the bundle reproduces, and the
 memory checks each reuse."""
