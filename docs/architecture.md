@@ -303,6 +303,14 @@ src/pbc/                 Importable Python package with all reusable lesson code
                          Research Workspace, with its local interface (Part B products, F138, F145,
                          F148, F151, F155, ADR 022)
   abm/                   Agent-based models
+  research/              Research with bounded assistance, path 4 of Part B: candidate questions
+                         assessed before any run, the declared rule that selects one, and the idea
+                         archive chained by digest (`ideas`, RR1); the research plan with
+                         baselines, withheld tests, success criteria, and stopping conditions,
+                         executed by the scripted route of SA1 (`plan`, RR2); a local corpus of
+                         verified passages of the site's own lessons, the labels of a claim
+                         against a passage, a lexical retrieval baseline, and the log of proposed
+                         sources (`corpus`, `literature`, RR3), F152
   agents/                Agent harness: provider interface, tool allowlist, replay; the lesson
                          modules (`projectile_lab`, `review_lab`: three reviewers, F18, and the
                          panel over controlled cases of AE6, F150; `design` and

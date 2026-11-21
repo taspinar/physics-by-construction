@@ -1,0 +1,474 @@
+---
+title: "Generating and selecting research ideas"
+description: >-
+  Seven candidate questions about the thrown tennis ball are checked before
+  any of them runs: can the laboratory run it, can a result contradict it,
+  does its budget cover the route, and what is already answered. A declared
+  rule selects one, the proposers' own ratings are kept and never used, and
+  every idea goes into an archive that shows any later edit.
+lesson:
+  id: generating-and-selecting-research-ideas
+  strand: mechanics
+  order: 22
+  difficulty: 2
+  course: mechanics
+  slot: RR1
+  methods: [simulation]
+  outcomes:
+    - Formulate several candidate questions as draft specifications and compare them for feasibility, falsifiability, resources, contribution, and interest
+    - Say which of these the build can compute before any run and which is a judgement, and record the judgement with its author and reason
+    - Keep a proposer's self-rating beside the assessment without treating it as evidence of an idea's quality
+    - Keep an archive of every idea, its decision, its reason, and the condition for revisiting it, in which an edit or a removal is found
+  related: []
+  format: 2
+  preview: fig-idea-assessment
+  experiment: pbc.mechanics.experiments.generating_and_selecting_research_ideas
+  prerequisites:
+    lessons: [experiment-specification, projectile-with-drag]
+    outside:
+      - "Python: reading a dictionary and a short function"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
+from pbc.mechanics.experiments import generating_and_selecting_research_ideas as experiment
+from pbc.research import ideas
+
+result = experiment.run()
+lesson_header()
+```
+
+The lesson *From research question to experiment specification* answered
+one question about the thrown tennis ball: its best launch angle at one
+speed, with drag. A good answer raises more questions than it settles. Is
+the angle lower still for a faster throw? Does a slow throw notice the air
+at all? What would spin do? Each could be the next investigation, each
+costs runs, and only some of them will teach anything. Which one is worth
+doing next, and what can decide that before a single run has been made?
+
+The usual answer is the proposer's own sense of the idea: they think it is
+feasible, interesting, and new. That sense is worth hearing, and it is not
+evidence. A proposer who has not tried to write the idea down as an
+experiment does not yet know whether it can be run; one who has not asked
+what result would refute it does not know whether it is a question at all.
+
+This lesson compares seven candidate questions on the evidence that exists
+before any run. **What kind of evidence the page shows:** the ideas are
+written examples, by the author of this page and a colleague, each with the
+ratings its proposer gave it. Every check is a computation the build makes
+on the written draft against the laboratory of the specification lesson,
+and nothing is simulated to assess an idea. The one judgement the build
+cannot make, interest, is recorded with its author and reason. No language
+model proposed, rated, or chose anything here; the later lessons of this
+path bring an agent into the investigation, and the records built here are
+what its proposals will be held to.
+
+## Assumptions
+
+1. **The laboratory is the specification lesson's.** It has two actions,
+   the throw with drag and the throw without, with bounds and units. An
+   idea that needs another action is not feasible *here*; that says nothing
+   about whether it is a good idea.
+2. **The archive of answered questions is short and known.** It holds the
+   two answers the specification lesson published and the formula without
+   drag. An idea it does not hold may have been answered elsewhere; the
+   lesson *Literature, novelty assessment, and evidence maps* takes that
+   up.
+3. **The route's procedure fixes its cost.** The number of runs is counted
+   from the scripted route as written, for a best setting inside the range.
+   A best setting at the edge ends the route early, which can only make it
+   cheaper.
+4. **Interest is a judgement.** It is recorded as one, with the name of who
+   made it and why, and it decides only between ideas that every computed
+   check has left equal.
+5. **The rule is written before the assessment.** If the rule were chosen
+   after seeing which idea it favours, it would be a ranking of the
+   chooser's preferences with extra steps.
+
+## What can be known before the first run {#explanation}
+
+An idea is a question with a reason to ask it. To compare ideas fairly, each
+is first written as far as possible in the seven parts of a specification:
+the question, a hypothesis with a prediction, the variables, the observable,
+the permitted actions, the success criteria, and the stopping condition.
+Writing it down is already the first test. Then five questions are asked of
+it, four of which a program can answer.
+
+1. **Is it feasible here?** The draft is checked against the laboratory by
+   the same `parse` that checks a specification: every action exists, every
+   setting is within its bounds, every unit matches. An idea that cannot be
+   written in the laboratory's terms fails here, and no later check is
+   reached.
+2. **Is it falsifiable?** A result of the route is a bracket around the
+   best setting, no wider than the resolution and inside the varied range.
+   A prediction can be contradicted only if such a bracket can lie on the
+   other side of its bound, so the bound must lie inside the range by at
+   least one resolution from each end. "Below sixty degrees" for angles
+   that stop at sixty is met by every bracket the route can report, whatever
+   the ball does.
+3. **Does the budget cover it?** The route's procedure is fixed: a scan,
+   two runs for each halving of the bracket, three runs to check the answer
+   at half the time step. So the number of runs it needs follows from the
+   range and the resolution alone, before any run.
+4. **What would it add?** The draft's action and fixed settings are looked
+   up in the archive of answered questions. The same action at the same
+   settings is a replication; the same action at another setting extends
+   an answer; the throw without drag is answered by a formula.
+5. **Is it interesting?** This one is not computed. A person says why the
+   answer would matter, and the page records who said it.
+
+```{python}
+#| label: fig-idea-checks
+#| echo: false
+#| fig-cap: "An idea passes four checks the build computes before any run, then a declared rule that also reads one named judgement; every idea ends in the archive with its decision. The proposer's self-rating goes into the archive with the idea and is read by nothing on the way."
+#| fig-status: conceptual
+#| fig-alt: "A diagram. A box named idea and draft at the upper left leads by arrows through four boxes in a row: feasible, falsifiable, in budget, and new, under a note saying computed before any run. From the last box an arrow goes down to a box named rule. A box named interest, a named judgement, sends a dashed arrow into the rule. From the rule an arrow labelled decision goes down to a long box named archive. At the left, a grey box named self-rating hangs under the idea by a dotted line, and a dotted arrow labelled kept, not read goes from it straight down to the archive, past everything else."
+result.show("fig-idea-checks")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_idea_checks, figure=True)
+```
+
+The diagram is a sketch and computes nothing. It answers one question:
+where does the proposer's opinion of the idea go? Into the archive, with the
+idea, where anyone can read it later. Not into the rule.
+
+### Why a self-rating is kept and not used
+
+Each idea comes with its proposer's ratings, from one to five, of its
+feasibility, interest, and novelty. They are not worthless: a proposer who
+rates an idea as hard to run may know something about it. But a rating is a
+statement about the idea by the person most attached to it, and it was made
+before the checks above existed. Where a check can answer the same question
+(can it be run?), the check is evidence and the rating is a prediction of
+the check. Where no check can (is it interesting?), the honest record is a
+judgement with its author, not a number that looks like a measurement. So
+the ratings go into the archive and into a table of the page, and the rule
+that selects an idea has no argument through which they could enter.
+
+### The archive
+
+Most ideas are not selected. Dropping them loses the reasons, and the next
+person to have the same idea repeats the work. The archive keeps every idea
+with its decision (selected, deferred, or rejected), the reason, and what
+would warrant revisiting it. Entries are only added: a new decision about an
+old idea is a new entry. Each entry carries the digest of its idea and the
+digest of the entry before it, so that an idea edited after its decision,
+or an entry removed, breaks a link that a check finds.
+
+## Code
+
+### An idea, written down
+
+The selected idea, as its proposer wrote it: the specification lesson's
+specification at another speed, with its own hypothesis. The prediction is
+"above forty-three degrees", two degrees below forty-five.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="slow-throw")
+```
+
+### The checks
+
+Falsifiability is a comparison of the predicted bound with the range and
+the resolution:
+
+```{python}
+#| echo: false
+excerpt(ideas.falsifiable)
+```
+
+The runs the route needs are counted from its procedure, without running
+it. The loop is the halving loop of the route, with the measurements left
+out:
+
+```{python}
+#| echo: false
+excerpt(ideas.runs_needed)
+```
+
+### The rule
+
+The rule is written before any idea is assessed. Of the ideas that pass
+every check, it takes the best contribution, then the fewest runs, then the
+higher interest a person judged, then the key, so that the result never
+depends on the order of a list. Its arguments are the assessments and the
+judgements: there is no way for a self-rating to reach it.
+
+```{python}
+#| echo: false
+excerpt(ideas.select)
+```
+
+### The archive
+
+`add` chains each entry to the one before; `verify_archive` recomputes
+every digest and reports what does not match.
+
+```{python}
+#| echo: false
+excerpt(ideas.Archive)
+```
+
+## Worked examples
+
+### Seven candidates
+
+The seven ideas, in the order they were proposed: the specification
+lesson's own question again (`replication`), the same ball with backspin
+(`spin`), a slow throw (`slow-throw`), the best angle "below sixty degrees"
+(`below-sixty`), a throw at a middle speed (`middle-throw`), the faster throw
+of the specification lesson's exercise (`fast-throw`), and the original
+question to a hundredth of a degree with a budget of twenty runs
+(`hundredth`).
+
+Before reading the table, look at the proposers' ratings below it and
+decide: which ideas will the checks remove, and are they the ones their
+proposers rated lowest?
+
+```{python}
+#| label: idea-assessment
+#| echo: false
+result.table("assessment")
+```
+
+```{python}
+#| label: self-ratings
+#| echo: false
+result.table("self-ratings")
+```
+
+The checks remove `{python} result["removed"]` of the
+`{python} result["ideas"]` ideas, and their proposers rated all of them
+four or five for feasibility. The idea with the highest ratings of all, `spin`, rated
+five for feasibility, fails the first check: "`{python} result["spin-problem"]`".
+The laboratory simulates a ball without spin, and no amount of confidence
+adds an action to it. `below-sixty`, rated five for feasibility too, can be
+run; it cannot fail, which the proposer did not ask. `hundredth` needs
+`{python} result["hundredth-runs"]` runs and was given
+`{python} result["hundredth-budget"]`. A rule that took the mean self-rating
+would have selected `{python} result["by-self-rating"]`, the one idea the
+laboratory cannot run.
+
+```{python}
+#| label: fig-idea-assessment
+#| echo: false
+#| fig-cap: "The checks of every idea beside its proposer's mean self-rating. The ideas the checks remove include the one rated highest, which fails the first check. An asterisk marks the selected idea."
+#| fig-status: simulated
+#| fig-alt: "A grid with one row for each of seven ideas and four columns of markers: feasible, falsifiable, in budget, and new. A filled circle means the check passed, a cross that it failed, and a small dot that it was not reached. A fifth column gives each idea's mean self-rating as a number, headed not used. The spin row has a cross under feasible and small dots after it, and the highest self-rating. The below-sixty row has a cross under falsifiable, the hundredth row a cross under in budget, and three rows have crosses under new. Two rows have filled circles in every column; one of them, slow-throw, carries an asterisk."
+result.show("fig-idea-assessment")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_idea_assessment, figure=True)
+```
+
+Every marker is a check the build computed from a written draft, before
+any run; the numbers of the last column are the proposers' own, shown and
+not used. The column
+"new" is passed by an idea that extends an answer of the archive and failed
+by one the archive already holds. Two ideas, `slow-throw` and `middle-throw`,
+pass every check, extend an answer, and need the same number of runs. The
+computed checks cannot tell them apart.
+
+### The selection
+
+```{python}
+#| echo: false
+excerpt(experiment.run, region="select")
+```
+
+The two equal ideas are separated by the one judgement on the page, made by
+its author before the selection and shown here with its reason:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="judgements")
+```
+
+The rule selects `{python} result["selected"]`. [The selected idea passes
+every computed check, extends an answer of the archive, and needs no more
+runs than any other idea that does, and the rule that selected it reads no
+self-rating.]{.claim type="numerically-verified" scope="the seven written
+ideas, the laboratory and the answers of the specification lesson, the
+declared rule" evidence="idea-assessment"} Its count of runs is a
+prediction made from the route's procedure:
+`{python} result["slow-runs-needed"]` runs. Executing its draft once, as a
+check of the count and not as part of the selection, the route makes
+`{python} result["slow-runs-made"]`. The count was right because it is the
+route's own loop.
+
+The decision between the two equal ideas rests on a person's view that the
+slow throw tests an argument the projectile lesson made without a number: a
+ball thrown well below its terminal speed hardly notices the air. That view
+could be wrong, and the archive records it as a view.
+
+### The archive, and what it finds
+
+```{python}
+#| label: idea-archive
+#| echo: false
+result.table("archive")
+```
+
+Every idea is there, with a reason a reader can check against the
+assessment table and a condition under which it comes back. `spin` is
+deferred, not rejected: the reason is the laboratory, and the condition is
+a laboratory with spin. `replication` waits for the moment before an
+extension builds on the specification lesson's result, which is the next
+lesson's first plan. The check of the intact archive finds
+`{python} result["archive-problems"]` problems.
+
+Now suppose someone later lowers the colleague's feasibility rating of
+`spin`, to make the record look more sensible, and deletes the entry of the
+idea that was deferred in favour of the selected one:
+
+```{python}
+#| label: archive-tampered
+#| echo: false
+result.table("tampered")
+```
+
+[The check of the archive finds the edited idea by its digest and the
+removed entry by the broken chain after it.]{.claim
+type="numerically-verified" scope="the archive of this page, one edit and
+one removal" evidence="archive-tampered"} It does not say what the entry
+said before, or who changed it. It says that the record is no longer the
+record that was written, which is what a reader needs to know before
+trusting it.
+
+We started with seven questions and the proposers' sense of them. The
+checks that need no run removed three ideas, all of them rated feasible by
+their proposers; the archive answered two others; one named judgement
+decided between the last two. The selected question, the slow throw, now
+needs a plan: hypotheses, baselines, a budget, and tests the search never
+sees, fixed before it runs. That is the lesson *From a question or
+publication to a research plan*.
+
+## Limits {#limits}
+
+- **Seven written ideas.** The ideas, their drafts, and their ratings are
+  examples written for this page. They show how the checks and the rule
+  work, not how often proposers misjudge their ideas.
+- **Feasible here.** The laboratory decides feasibility. An idea it cannot
+  run may be the best idea on the page; the archive keeps it for a
+  laboratory that can.
+- **Falsifiable is necessary, not sufficient.** The check asks whether a
+  result can fall on either side of the bound. A bound far from any
+  plausible answer passes it and is still a weak test.
+- **A small archive of answers.** "Extends an answer" means extends an
+  answer of this archive. Whether anyone else has answered the question is
+  the subject of the lesson on literature and novelty.
+- **Interest is one person's view.** The page records it; it does not test
+  it. Two people could rank the two equal ideas the other way, and the rule
+  would follow them.
+- **The archive detects; it does not prevent.** Anyone with the file can
+  rewrite it and its digests together. The chain shows a change against a
+  copy kept elsewhere, such as a commit of the repository.
+
+::: {.exercise .self-check}
+A proposer rated their idea five out of five for feasibility. The check
+against the laboratory refuses it. A colleague suggests averaging the
+rating and the check, so that a confident proposer is not overruled by "a
+technicality". What is wrong with that, and what is the rating evidence of?
+
+::: {.solution}
+The check answers the question the rating guesses at: whether the
+laboratory can run the idea. Once the answer is known, the guess adds
+nothing to it, and averaging would let confidence buy back an idea that
+cannot be run. The rating is evidence of what the proposer believed before
+the check: worth keeping, because a gap between belief and check says
+something about the proposer's model of the laboratory, and a rating far
+above the check is a reason to ask what they expected the laboratory to
+do. Where no check exists, as for interest, the honest form is a judgement
+with a name and a reason, not a number averaged with measurements.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Repair an idea.** The colleague's idea `below-sixty` was rejected because
+its bound lies at the end of the range of angles. Change the draft so that
+the check passes, without moving the bound to where you already know the
+answer lies. What changed in what the experiment can show?
+
+::: {.solution}
+Two repairs pass the check. Widening the range, say to seventy degrees,
+puts the bound inside it, but a bracket at about forty degrees is still far
+below sixty, so the result can contradict the prediction only in principle.
+Moving the bound towards forty-five degrees makes the prediction say
+something about drag, as the specification lesson's bound of forty-four
+did. The check accepts both; only the second makes a test that could
+plausibly fail. That is the limit "falsifiable is necessary, not
+sufficient" in practice, and why a person still reads the prediction.
+:::
+:::
+
+::: {.exercise}
+**A second decision.** After the slow throw is done, the author decides
+that the trend with speed is the next question and selects `middle-throw`.
+How is that recorded, and what does the check of the archive report?
+
+::: {.solution}
+As a new entry, appended after the seven, with its own reason; the entry
+that deferred the idea stays as it was:
+
+```{python}
+#| echo: false
+excerpt(experiment.readded)
+```
+
+The archive then has `{python} result["again-entries"]` entries and its
+check reports `{python} result["again-problems"]` problems. Editing the
+fifth entry's decision from "deferred" to "selected" instead would leave
+the entry no longer matching its digest, and recomputing the digest to hide
+that would break the link from the entry after it. Either way the record
+would no longer show that the idea was once set aside, or why.
+:::
+:::
+
+::: {.exercise}
+**Count before you run.** Before running anything, how many runs does the
+route need for the specification lesson's question at a resolution of half
+a degree? Use the procedure: a scan of nine angles between twenty and sixty
+degrees, two runs per halving of the bracket until it is no wider than the
+resolution, and three runs at half the time step. Then check your count with
+`runs_needed`.
+
+::: {.solution}
+The scan spaces the nine angles five degrees apart, so the first bracket is
+ten degrees wide. Halving it until it is no wider than half a degree takes
+five halvings (to five, two and a half, one and a quarter, five eighths,
+and five sixteenths of a degree), each two runs: nine, plus two for each
+halving, plus three. `runs_needed` gives
+`{python} result["half-degree-runs"]` runs, because it is the
+route's own loop with the measurements left out, and the tests of the page
+compare it with the runs the route makes for several resolutions.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/research/ideas.py",
+        "src/pbc/agents/specification.py",
+        "src/pbc/evidence/records.py",
+        "src/pbc/mechanics/experiments/experiment_specification.py",
+        "src/pbc/mechanics/experiments/generating_and_selecting_research_ideas.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_research_ideas.py",
+        "tests/unit/test_generating_and_selecting_research_ideas_experiment.py",
+    ],
+)
+```
