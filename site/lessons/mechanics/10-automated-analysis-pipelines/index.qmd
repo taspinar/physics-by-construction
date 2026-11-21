@@ -3,7 +3,9 @@ title: "Automated analysis pipelines"
 description: >-
   One reusable workflow, a parameter sweep, a statistic with its uncertainty,
   a figure, and a report that the build regenerates and compares with a
-  committed expectation, run on a simulated throw and on measured waves.
+  committed expectation, run on a simulated throw and on measured waves; then
+  the same analysis as stages that record their states, resume only from a
+  valid one, and keep failed branches and negative results.
 lesson:
   id: automated-analysis-pipelines
   strand: mechanics
@@ -17,6 +19,7 @@ lesson:
     - Carry the uncertainty of an input to a result, and check that propagation with a seeded Monte Carlo run
     - Tell the scatter of repetitions from the effect of an analysis choice, and report both
     - Turn the numbers of an analysis into a report that a build compares with a committed expectation
+    - Record each stage of a pipeline as a state that names its data, code, and configuration, resume only from a state that is still valid, and keep failed branches and negative results with their lineage
   related: []
   format: 2
   preview: fig-range-sweep
@@ -29,7 +32,7 @@ lesson:
 
 ```{python}
 #| echo: false
-from pbc.authoring import excerpt, lesson_header, reproduce_this
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
 from pbc.data import pipeline
 from pbc.mechanics import analysis
 from pbc.mechanics.experiments import automated_analysis_pipelines as experiment
@@ -378,6 +381,158 @@ excerpt(experiment.flume_expectation)
 print(result.output("flume-expectation"), end="")
 ```
 
+## A pipeline that can stop and resume {#resumable-pipeline}
+
+Everything above ran in one go. A real analysis is longer: it stops when a
+machine is shut down or a job runs out of time, and someone starts it again;
+or it is tried with another choice, and both versions are kept. The question
+of this section is how the second start can be sure that it continues the
+first, and how a reader of a number finds the data, the code, and the
+choices it came from, including the branches that failed or said no.
+
+Resuming is the dangerous step, not stopping. A resume that picks up a state
+written by older code, or a file that someone edited, joins two analyses,
+and the report at the end still looks complete. The pipeline below refuses
+that, and it is built on the records of the evidence contract: each stage
+run is an **attempt** in a ledger, its result is an **artifact** with the
+digest of its file, and a **claim** names the attempts it rests on. A digest
+is a fingerprint of a file's bytes: any change to the file changes it.
+
+### Stages and their states {#stages-and-states}
+
+The flume analysis of the previous section is cut into four stages: `load`
+names the record and its time span, `window` takes the RMS elevation and the
+period of each repetition inside the window, `estimate` takes their mean and
+standard error, and `report` writes the first lines of the report. Each stage
+declares the keys of the configuration it reads. Running it writes a state:
+
+```{python}
+#| echo: false
+from pbc.data import flume_stages
+from pbc.evidence import resumable
+
+excerpt(resumable.State)
+```
+
+The state names the code by the digest of its source files, the choices the
+stage read, the state it continued from by its digest, and the record by
+its digest. Nothing in it is a date or a machine. The `window` stage is the
+one with a physical guard: a window must lie inside the record.
+
+```{python}
+#| echo: false
+excerpt(flume_stages.window)
+```
+
+The main branch uses the window of the published report, from
+`{python} result["branch-start"]` to `{python} result["branch-main-end"]` s. The
+cell runs it up to its `window` stage, stops, and resumes it; then three
+alternative branches change the end of the window to `{python} result["branch-end-10"]`,
+`{python} result["branch-end-12"]`, and `{python} result["branch-end-40"]` s. They
+share the `load` stage of the main branch, which reads no window.
+
+```{python}
+#| label: pipeline-lineage
+#| echo: false
+result.table("pipeline-lineage")
+```
+
+The column "follows" is the lineage: every attempt names the one before it,
+and every branch leads back to `main/load`, the one reading of the record.
+The branch that asked for a window to `{python} result["branch-end-40"]` s, to resolve the
+period more finely, failed, because the record ends at `{python} result["record-end"]` s. Its attempt stays in the
+ledger with its reason: `{python} result["attempts-failed"]` failed and
+`{python} result["attempts-completed"]` completed attempts. A ledger without
+the failure would make the remaining windows look chosen in advance.
+
+### What a resume refuses {#what-a-resume-refuses}
+
+`problems` is the check a resume runs before it continues. It reads every
+state of the branch's lineage again:
+
+```{python}
+#| echo: false
+excerpt(resumable.Research, region="problems")
+```
+
+Five copies of the main branch were stopped after `window`, and each was
+changed in one way before the resume: none, the window state edited by half a
+second, a newer version of the code, the end of the window changed to `{python} result["branch-end-12"]` s,
+and the branch whose window failed. Before reading the table, decide which of
+the five the pipeline lets continue.
+
+```{python}
+#| label: pipeline-resumes
+#| echo: false
+result.table("pipeline-resumes")
+```
+
+Only the untouched state resumes. A changed choice is not refused because
+it is wrong: a window to `{python} result["branch-end-12"]` s is a reasonable analysis. It is
+refused as a resume because the states before it were made with the window to
+`{python} result["branch-main-end"]` s, and
+the stages that follow would mix the two. It is a new branch. A branch may
+share stages with its parent only if those stages did not read the choice
+it changes:
+
+```{python}
+#| echo: false
+excerpt(resumable.Research, region="fork")
+```
+
+```{python}
+#| echo: false
+print(result.output("shared-window-refused"), end="")
+```
+
+### Claims, the failed branch, and the negative result {#pipeline-claims-and-branches}
+
+The evaluator reads the states and decides two claims. The resumed main
+branch is compared with the committed expectation of the report, line by
+line. The alternative branches test the hypothesis that the window does not
+matter, within two standard errors of the main branch.
+
+```{python}
+#| label: pipeline-branches
+#| echo: false
+result.table("pipeline-branches")
+```
+
+```{python}
+#| label: pipeline-claims
+#| echo: false
+result.table("pipeline-claims")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_branch_shifts, figure=True)
+```
+
+```{python}
+#| label: fig-branch-shifts
+#| echo: false
+#| fig-cap: "Shift of the mean RMS elevation of each branch from the main branch, in standard errors of the main branch, against the end of its window. Both alternatives lie far outside the band of the hypothesis; the branch with the longest window has no point, because its window stage failed."
+#| fig-status: processed
+#| fig-dataset: aalborg-submerged-bar
+#| fig-artifact: processed-measured
+#| fig-alt: "Plot of the shift in standard errors against the end of the window in seconds. The main branch is a filled dot at zero inside a shaded band from minus two to plus two. Two open squares, for the windows ending at ten and twelve seconds, lie far above the band. A dotted vertical line marks the end of the record at thirty seconds, with a note that the branch to forty seconds failed and has no estimate."
+result.show("fig-branch-shifts")
+```
+
+[The main branch, stopped and resumed, reproduces the first seven lines of
+the committed report, and the alternative windows move the RMS elevation by
+`{python} result["shift-min"]` to `{python} result["shift-max"]` standard errors of the main
+branch.]{.claim type="experimentally-supported" scope="gauge five of the first wave condition, windows from five seconds to ends of 10, 12, and 14 s"
+evidence="pipeline-branches pipeline-claims aalborg-submerged-bar"}
+The hypothesis is false, and the ledger says so: its claim has the status
+"failed", and it stays there next to the claim that holds. This is the
+result of the window sweep above, now with its lineage. A reader of the
+report can follow each number back to a state, each state to its code,
+configuration, and record, and see the branches that were tried and did not
+make the report. The figure reads its values from the states; it computes
+only the shift from them.
+
 ## Limits {#limits}
 
 - The first-order uncertainty and the Monte Carlo run treat the launch speed as
@@ -400,6 +555,11 @@ print(result.output("flume-expectation"), end="")
 - An expectation compares the shown text. A change that stays below the shown
   digits passes, and so does a pair of errors that cancel in the shown digits.
   It does not replace the tests of the code that computes the numbers.
+- A valid state is the one that was recorded, with the current code,
+  configuration, and data; a digest says nothing about whether the state is
+  right. The code digest covers the five source files of the pipeline, not
+  the libraries they import: a new version of NumPy is not refused, and the
+  run record names the versions it ran with instead.
 
 ::: {.exercise .self-check}
 The report of the throw matches its committed expectation, and the build
@@ -470,6 +630,32 @@ silent, and the diff of the expectation shows its size.
 :::
 :::
 
+::: {.exercise}
+**An edited state.** The branch `end-12` stops after its `window` stage, and
+someone corrects one number of its state file by hand, to half a second
+later. Resume the branch. What does the pipeline do, and what should the
+person have done instead?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.edited_alternative)
+```
+
+```{python}
+#| echo: false
+print(result.output("edited-alternative"), end="")
+```
+
+The resume is refused: the state no longer has the digest the ledger
+recorded, so the pipeline cannot tell an edit from a corruption, and it
+does not try. A correction is a choice, and a changed choice is a new branch:
+fork from `main` after `load` with the window that was meant, run it, and keep
+both branches in the ledger. The edited file then shows as an invalidated
+artifact, not as a result.
+:::
+:::
+
 ## Run this experiment {#reproduce-this}
 
 ```{python}
@@ -479,6 +665,9 @@ reproduce_this(
         "src/pbc/data/pipeline.py",
         "src/pbc/data/flume_analysis.py",
         "src/pbc/data/reports.py",
+        "src/pbc/data/flume_stages.py",
+        "src/pbc/evidence/resumable.py",
+        "src/pbc/evidence/records.py",
         "src/pbc/mechanics/analysis.py",
         "src/pbc/mechanics/experiments/automated_analysis_pipelines.py",
         "src/pbc/experiment.py",
@@ -488,6 +677,7 @@ reproduce_this(
     tests=[
         "tests/unit/test_pipeline.py",
         "tests/unit/test_automated_analysis_pipelines_experiment.py",
+        "tests/unit/test_evidence_resumable.py",
     ],
 )
 ```

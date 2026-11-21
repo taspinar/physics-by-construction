@@ -21,12 +21,14 @@ import numpy as np
 from matplotlib.figure import Figure
 
 from pbc.agents import ModelMessage, ReplayMismatch, ToolCall
+from pbc.agents import investigation as inv
 from pbc.agents import run as run_agent
 from pbc.agents.display import RunDisplay
 from pbc.agents.review_lab import (
     CANDIDATES,
     CLAIM,
     MAX_STEPS,
+    PANEL_DIRECTORY,
     REVIEWERS,
     TOLERANCE,
     ReviewDisplay,
@@ -36,6 +38,7 @@ from pbc.agents.review_lab import (
     resolve,
     verdicts,
 )
+from pbc.authoring import diagrams
 from pbc.authoring.repository import REPOSITORY_ROOT
 from pbc.experiment import Experiment, main
 from pbc.verification import checks, oscillator_error, verify
@@ -45,6 +48,8 @@ LIVE = "pbc.agents.review_lab"
 
 # The recorded reviews, next to the page that shows them.
 LESSON = REPOSITORY_ROOT / "site/lessons/agents-llm/03-three-reviewers"
+# The recorded panel sessions of lesson AE6, replayed where they are.
+PANEL = REPOSITORY_ROOT / PANEL_DIRECTORY
 
 
 class Boaster:
@@ -144,6 +149,140 @@ def a_conflict():
     print("rejected:", resolution.rejected, "| conflicts:", resolution.conflicts)
 
 
+def role_interfaces(experiment: Experiment) -> None:
+    """Record the table of what each role may read and write."""
+    experiment.table(
+        "role-interfaces",
+        [
+            (item.role, ", ".join(item.reads), ", ".join(item.writes))
+            for item in inv.INTERFACES
+        ],
+        columns=[("role", "", "s"), ("may read", "", "s"), ("may write", "", "s")],
+        caption="The interface of each role of the investigation: the fields of"
+        " the board it may read and the one it may write.",
+    )
+
+
+def investigate(transcripts) -> inv.Board:
+    """The extraction, the implementation, and the replayed review, written
+    to one board in that order."""
+    board = inv.Board()
+    inv.extract(board, inv.EXTRACTION)
+    inv.implement(board)
+    inv.review(board, transcripts)
+    return board
+
+
+def human_step(board: inv.Board) -> None:
+    """The human accepts piece 1, tries to accept piece 2, and sends piece 2
+    back with its failed check as the reason."""
+    inv.steer(board, inv.Steering(inv.ACCEPT, 1, "every check of its claim passed"))
+    try:
+        inv.steer(board, inv.Steering(inv.ACCEPT, 2, "the order is right"))
+    except inv.OutOfBounds as refusal:
+        print(f"refused: {refusal}")
+    failed = ", ".join(inv.failed_checks(board, 2))
+    inv.steer(board, inv.Steering(inv.SEND_BACK, 2, f"{failed} failed"))
+    for piece in CANDIDATES:
+        print(f"piece {piece}: {inv.decision(board, piece)}")
+
+
+def implementer_reads_the_verdicts(board: inv.Board) -> None:
+    """An implementer that asks for the reviewers' verdicts."""
+    try:
+        board.read("implementation", "verdicts")
+    except inv.OutOfBounds as refusal:
+        print(f"refused: {refusal}")
+
+
+def vote_against_checks(experiment: Experiment) -> int:
+    """The recorded panel sessions' decisions on the three tied cases,
+    counted as votes in every panel, beside the recomputed checks; record
+    the table and return the number of majorities that accept a faulty
+    case."""
+    decided, found = inv.panel(PANEL)
+    tied = (1, 4, 6)
+    rows = []
+    wrong = 0
+    for sessions in inv.panels():
+        cells = []
+        for case in tied:
+            accept, reject, outcome = inv.votes(decided, case, sessions)
+            wrong += outcome == "accept"
+            cells.append(f"{accept} to {reject}: {outcome}")
+        checks = sorted({inv.checked(found, case, sessions) for case in tied})
+        rows.append((", ".join(sessions), *cells, " and ".join(checks)))
+    experiment.table(
+        "vote-against-checks",
+        rows,
+        columns=[
+            ("panel", "", "s"),
+            ("case 1, accept to reject", "", "s"),
+            ("case 4, accept to reject", "", "s"),
+            ("case 6, accept to reject", "", "s"),
+            ("recomputed checks, all three", "", "s"),
+        ],
+        caption="The decisions of the recorded panel sessions of lesson AE6 on"
+        " the three faulty cases where four sessions tie, counted as votes, for"
+        " the panel of four and each panel of three, and the decision of the"
+        " recomputed checks the same sessions ran.",
+    )
+    return wrong
+
+
+def draw_investigation_roles() -> Figure:
+    """The roles of the investigation and what each hands on, as a sketch."""
+    fig, ax = diagrams.canvas(6.4, 3.6, (-0.6, 13.0), (-1.0, 5.4))
+    top, bottom = 4.0, 0.8
+    boxes = {
+        "extraction": ((3.3, top), "extraction\n(scripted)", 1),
+        "implementation": ((7.0, top), "implementation\n(scripted)", 1),
+        "review": ((10.9, top), "review\n(3 models)", 0),
+        "build": ((10.9, bottom), "build\n(recomputes)", 2),
+        "human": ((6.6, bottom), "human", 2),
+    }
+    for centre, label, colour in boxes.values():
+        diagrams.state_box(ax, centre, label, width=2.8, height=1.1, colour=colour)
+    diagrams.text(ax, (-0.5, top), "handover", ha="left")
+    diagrams.arrow(ax, (1.5, top), (1.9, top), colour=1)
+    for left, right, label in (
+        ("extraction", "implementation", "claim"),
+        ("implementation", "review", "pieces"),
+    ):
+        (x0, y), (x1, _) = boxes[left][0], boxes[right][0]
+        diagrams.arrow(ax, (x0 + 1.4, y), (x1 - 1.4, y), colour=1)
+        diagrams.text(ax, ((x0 + x1) / 2, y + 0.8), label)
+    diagrams.arrow(ax, (10.9, top - 0.55), (10.9, bottom + 0.55), colour=1)
+    diagrams.text(ax, (11.1, 2.4), "tool calls", ha="left")
+    diagrams.arrow(ax, (9.5, bottom), (8.0, bottom), colour=1)
+    diagrams.text(ax, (8.75, bottom - 0.8), "failed checks")
+    diagrams.arrow(ax, (5.2, bottom), (3.4, bottom), colour=2)
+    diagrams.text(ax, (3.2, bottom), "decision", ha="right")
+    diagrams.text(ax, (4.3, bottom - 0.8), "accept")
+    diagrams.arrow(
+        ax, (6.6, bottom + 0.55), (7.0, top - 0.55), colour=2, linestyle="--"
+    )
+    diagrams.text(ax, (7.1, 2.4), "send back", ha="left")
+    fig.tight_layout()
+    return fig
+
+
+def narrowed_claim(transcripts) -> None:
+    """Exercise 3: the human narrows the claim of piece 2 to first order for
+    a run of two periods, then accepts it."""
+    board = investigate(transcripts)
+    inv.steer(
+        board,
+        inv.Steering(
+            inv.NARROW, 2, "used for runs of two periods", drop="bounded_energy"
+        ),
+    )
+    inv.steer(board, inv.Steering(inv.ACCEPT, 2, "first order holds"))
+    print(f"piece 2: {inv.decision(board, 2)}")
+    kept = [v for v in board.fields["verdicts"] if v.candidate == 2 and not v.passed]
+    print(f"failed checks still in the record: {sorted({v.check for v in kept})}")
+
+
 def run() -> Experiment:
     """Everything the lesson's page shows."""
     experiment = Experiment()
@@ -175,6 +314,19 @@ def run() -> Experiment:
         every_check()
     with experiment.capture("a-conflict"):
         a_conflict()
+
+    transcripts = {name: transcript for name, (_, transcript) in replays.items()}
+    role_interfaces(experiment)
+    experiment.figure("fig-investigation-roles", draw_investigation_roles)
+    board = investigate(transcripts)
+    with experiment.capture("implementer-reads-the-verdicts"):
+        implementer_reads_the_verdicts(board)
+    with experiment.capture("human-step"):
+        human_step(board)
+    experiment.number("wrong-majorities", vote_against_checks(experiment))
+    experiment.number("panel-votes", 3 * len(inv.panels()))
+    with experiment.capture("narrowed-claim"):
+        narrowed_claim(transcripts)
     return experiment
 
 

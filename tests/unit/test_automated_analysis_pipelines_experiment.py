@@ -95,3 +95,41 @@ def test_each_dataset_figure_states_one_status_and_carries_its_provenance(
     shown = credit["visible"] in ("required", "chosen")
     data = f" · {credit['short']}" if shown else ""
     assert painted == portable.VISUALIZATION_PREFIX + data
+
+
+def test_only_the_untouched_state_resumes(results):
+    _, found = results
+    outcomes = dict(found["tables"]["pipeline-resumes"]["rows"])
+
+    assert outcomes.pop("untouched") == "resumed"
+    assert len(outcomes) == 4
+    assert all(outcome.startswith("refused: ") for outcome in outcomes.values())
+
+
+def test_the_lineage_keeps_the_failed_branch_and_leads_back_to_the_record(results):
+    _, found = results
+    rows = found["tables"]["pipeline-lineage"]["rows"]
+
+    failed = [row for row in rows if row[2] == "failed"]
+    assert [row[0] for row in failed] == ["end-40/window"]
+    assert all(row[1] == "main/load" for row in rows if row[0].endswith("/window"))
+
+
+def test_the_report_claim_holds_and_the_negative_claim_is_kept_failed(results):
+    _, found = results
+    statuses = [row[2] for row in found["tables"]["pipeline-claims"]["rows"]]
+
+    assert statuses == ["completed", "failed"]
+
+
+def test_the_figure_plots_the_shifts_of_the_branch_table(experiment):
+    rows = experiment.tables["pipeline-branches"].text()["rows"]
+    table = {row[0]: float(row[3]) for row in rows if row[3] != "none"}
+    figure = experiment.figures["fig-branch-shifts"]()
+    try:
+        lines = figure.axes[0].get_lines()
+        plotted = sorted(float(y) for line in lines[:2] for y in line.get_ydata())
+    finally:
+        plt.close(figure)
+
+    assert [round(y, 1) for y in plotted] == sorted(table.values())

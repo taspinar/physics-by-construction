@@ -5,7 +5,9 @@ description: >-
   implementation, and one for the evidence, each with a short list of checks
   from the scientific validation contract, review a correct stepper and a
   faulty one; where they disagree, the build recomputes every check and the
-  failed one stands.
+  failed one stands. Then the review becomes one role of an investigation,
+  beside extraction, implementation, and a human step, each with a bounded
+  interface, and a vote of recorded reviewers is set against the checks.
 lesson:
   id: scientific-review
   strand: agents-llm
@@ -20,6 +22,8 @@ lesson:
     - Give each of several review agents its own bounded list of checks over the same code
     - Read a disagreement between reviewers as a difference in what each one checked
     - Decide a review from recomputed check results, not from the words of a reviewer
+    - Give the extraction, implementation, and review roles of an investigation bounded interfaces, and say what each may read and write
+    - Place a human decision where it changes the question, and decide a disagreement by a recomputed check rather than a vote
   related: []
   prerequisites:
     lessons: [agent-experiment, verifying-scientific-code]
@@ -127,8 +131,9 @@ The allowlists of the three reviewers, as the models see them:
 ```{python}
 #| echo: false
 from pbc.agents.display import AllowlistDisplay
+from pbc.agents import investigation as inv
 from pbc.agents.review_lab import REVIEWERS, resolve, verdicts
-from pbc.authoring import excerpt, reproduce_this
+from pbc.authoring import excerpt, reproduce_this, source_link
 ```
 
 ```{python}
@@ -319,6 +324,134 @@ calls; the numbers of the checks it asks for are the numbers on this page, and
 the verdicts follow from them. The maintainer records the fixtures of this page
 with `--record`, reads the files, and commits them.
 
+## Roles, a human step, and checks instead of votes {#investigation-roles}
+
+The review above is one part of an investigation. Before it, someone read
+what was handed over and wrote down the claim; someone else wrote the code.
+After it, a person decides what happens to each piece. This section gives
+each of those parts a role with a bounded interface, places the person's
+decision where it can change something, and asks why the answer of several
+reviewers is not their majority.
+
+The kind of evidence differs by part, and the section says which at each
+step. The extraction and the implementation are played here by the author's
+code, not by models. The review is the three recorded runs above, replayed.
+The vote at the end counts the decisions of four recorded sessions of
+another lesson, replayed as well. No model runs in this build.
+
+### Roles and their interfaces {#roles-and-interfaces}
+
+Each role may read some fields of a shared board and write exactly one. The
+interfaces are the whole design, so here they are as code:
+
+```{python}
+#| echo: false
+excerpt(inv, region="interfaces")
+```
+
+```{python}
+#| label: role-interfaces
+#| echo: false
+result.table("role-interfaces")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_investigation_roles, figure=True)
+```
+
+```{python}
+#| label: fig-investigation-roles
+#| echo: false
+#| fig-status: conceptual
+#| fig-cap: "The roles of the investigation and what each hands to the next. The handover's words become a claim, the claim becomes pieces of code, the reviewers' tool calls are recomputed by the build, and only the failed checks reach the human, who accepts or sends a piece back."
+#| fig-alt: "A sketch of five boxes. Along the top, the handover leads to an extraction box, then an implementation box, then a review box played by three models. An arrow labelled tool calls goes down from the review to a build box that recomputes the checks. From the build, an arrow labelled failed checks goes left to a human box. From the human, a solid arrow labelled accept goes to the decision, and a dashed arrow labelled send back goes up to the implementation box."
+result.show("fig-investigation-roles")
+```
+
+The sketch shows who hands what to whom; it is not a result. Two choices in
+it matter. The implementation does not read the verdicts: an implementer that
+could see which checks were run, and which passed, could write code that
+passes exactly those. And the human reads everything but writes only
+steering. The board refuses a read or a write outside an interface:
+
+```{python}
+#| echo: false
+excerpt(inv.Board)
+```
+
+```{python}
+#| echo: false
+print(result.output("implementer-reads-the-verdicts"), end="")
+```
+
+The extraction is checked as well. It must quote, for each property of the
+claim, the words of the handover it rests on, and a quote the handover does
+not contain is refused; the claim must also be the one the recorded
+reviewers were given, or their replay would review something else.
+
+### The human step {#the-human-step}
+
+A person's decision is meaningful where it changes the question: which claim
+a piece is held to, what happens to it next, which check must run before
+anything is accepted. It is not meaningful where it would change an answer.
+The steering rule says so in code:
+
+```{python}
+#| echo: false
+excerpt(inv.steer)
+```
+
+On the board of this page the person accepts piece 1, tries to accept piece
+2, and then sends it back:
+
+```{python}
+#| echo: false
+print(result.output("human-step"), end="")
+```
+
+The acceptance of piece 2 is refused, whoever asks: the recomputed
+`bounded-energy` check failed, and that check is part of the claim. The person
+has two honest moves left. Sending the piece back is one. Narrowing the claim,
+so that the piece is used only where a growing energy does not matter, is
+the other; the last exercise tries it.
+
+### A vote, and what the checks say {#not-a-vote}
+
+The three reviewers of this page wrote words, not decisions. The four recorded
+sessions of the lesson on reviewer evaluation decided: each called a tool
+`decide` on each of eight cases, with accept or reject. Two sessions had the
+physics reviewer's checks and two the numerics reviewer's. Case 6 of that
+panel is piece 2 of this page. Counting their decisions is a vote; reading
+the checks they ran is the rule of this page, applied with each case's own
+claim.
+
+Before reading the table: on piece 2, the two physics sessions reject and
+the two numerics sessions accept. What does a vote of all four give, and what
+does it give when one physics session is left out?
+
+```{python}
+#| label: vote-against-checks
+#| echo: false
+result.table("vote-against-checks")
+```
+
+With four sessions the vote ties on all three faulty cases. With three, the
+majority depends on which session is left out, and in
+`{python} result["wrong-majorities"]` of the `{python} result["panel-votes"]`
+votes of the table it accepts a faulty case. The recomputed checks reject all
+three cases in every panel, because every panel still holds a session that
+ran the failing check: `clock` for case 1, `purity` for case 4, and
+`bounded-energy` for case 6. A vote counts reviewers; the check counts what
+was found. More reviewers help only by running more checks, and the list of
+checks no reviewer ran says when a panel is too small.
+
+The section has its own limits. The roles of extraction and implementation
+are scripted, so the page shows that the interfaces hold, not how a model
+would behave inside them. The human step is played by the author, with
+reasons written in advance. And the vote is over four sessions of one model
+in two roles; another panel would tie elsewhere.
+
 ## Exercises
 
 ::: {.exercise}
@@ -369,6 +502,30 @@ to be looked at before anything is concluded about the piece.
 :::
 :::
 
+::: {.exercise}
+A person needs piece 2 for runs of two periods, where its growing energy does
+not matter. Narrow its claim to first order, accept it, and say what the
+record still shows.
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.narrowed_claim)
+```
+
+```{python}
+#| echo: false
+print(result.output("narrowed-claim"), end="")
+```
+
+The narrowed claim is accepted, because no check of first order failed. The
+failed `bounded-energy` check stays in the verdicts: narrowing changes the
+question the piece is held to, not the answer to the original one, and the
+steering entry records who narrowed it and why. A reader of the record sees
+that piece 2 is accepted for first order only.
+:::
+:::
+
 ## Replay this experiment {#reproduce-this}
 
 ```{python}
@@ -376,6 +533,8 @@ to be looked at before anything is concluded about the piece.
 reproduce_this(
     code=[
         "src/pbc/agents/review_lab.py",
+        "src/pbc/agents/investigation.py",
+        "src/pbc/evidence/reviewers.py",
         "src/pbc/verification/checks.py",
         "src/pbc/verification/faulty.py",
         "src/pbc/mechanics/experiments/scientific_review.py",
@@ -385,6 +544,7 @@ reproduce_this(
         "tests/unit/test_review_lab.py",
         "tests/integration/test_review_replay.py",
         "tests/unit/test_scientific_review_experiment.py",
+        "tests/unit/test_investigation.py",
     ],
 )
 ```
