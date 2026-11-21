@@ -626,9 +626,22 @@ make_fake_agents "$tmp/bin"
     assert unshadowed_paths(shared.split("    PATH=")[0], needed) == ["(no PATH)"]
 
 
-HEREDOC = re.compile(r"""<<-?\s*(['"]?)(\w+)\1""")
+# A heredoc starts at a '<<' of the code: not a here-string ('<<<'), and
+# not a '<<' inside a string or a comment.
+HEREDOC = re.compile(r"""(?<!<)<<-?(?!<)\s*(['"]?)(\w+)\1""")
 # A string without a command substitution in it runs nothing.
 QUOTED = re.compile(r""""(?:[^"$`\\]|\\.|\$(?!\())*"|'[^']*'""")
+
+
+def heredoc_ending(line: str) -> str | None:
+    """The word that ends a heredoc the code of the line starts, if any."""
+    strings = [match.span() for match in QUOTED.finditer(line)]
+    for heredoc in HEREDOC.finditer(line):
+        if not any(start <= heredoc.start() < end for start, end in strings):
+            return heredoc.group(2)
+    return None
+
+
 # A presence check names a program to look it up, not to run it.
 PRESENCE = re.compile(r"""\b(?:have|command\s+-v|type\s+-[pP]|which|hash)\s+\S+""")
 CASE_LABEL = re.compile(r"^\s*[\w:*.-]+(?:\s*\|\s*[\w:*.-]+)*\)")
@@ -649,9 +662,10 @@ def direct_starts(text: str) -> list[str]:
             if line.strip() == ending:
                 ending = None
             continue
-        if heredoc := HEREDOC.search(line):
-            ending = heredoc.group(2)
-        if line.lstrip().startswith("#") or MESSAGE.match(line):
+        if line.lstrip().startswith("#"):
+            continue
+        ending = heredoc_ending(line)
+        if MESSAGE.match(line):
             continue
         code = LOOP_WORDS.sub("", PRESENCE.sub("", QUOTED.sub('""', line)))
         if CASE_LABEL.match(code):
@@ -707,6 +721,31 @@ echo "run claude -p to start a session"
 # claude -p in a comment
 """
     assert direct_starts(not_starts) == []
+
+
+def test_a_heredoc_word_in_a_string_or_a_comment_hides_no_later_line():
+    # A '<<' inside a string, in a comment, or a here-string starts no
+    # heredoc, so the lines after it are still read (scripts/sync-template.sh
+    # prints "<<<<<<< and"). A heredoc of the code still hides its body.
+    planted = """
+print_list "CONFLICTS, marked in the file with <<<<<<< and >>>>>>>:" x
+claude -p "after a quoted marker"
+and
+# usage: foo <<EOF
+codex exec "after a comment"
+EOF
+read -r word <<< "$text"
+aider --yes
+text
+cat <<'FAKE' >"$bin/claude"
+claude -p "the body of a fake"
+FAKE
+"""
+    assert direct_starts(planted) == [
+        'claude -p "after a quoted marker"',
+        'codex exec "after a comment"',
+        "aider --yes",
+    ]
 
 
 def test_no_script_a_self_test_reaches_starts_an_agent_outside_the_launcher():

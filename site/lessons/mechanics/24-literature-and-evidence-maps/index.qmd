@@ -69,9 +69,10 @@ was read once, and its reading written down, by the annotator,
 readings by a rule shown below and compared with labels the annotator gave
 directly. No person has annotated the passages, and no second, independent
 annotation has been made: every label on this page rests on that one
-agent's reading. The retrieval is a computation of the build. Nothing is read
-from the web, no model reads or labels anything, and no citation is written
-by a program.
+agent's reading. The retrieval is a computation of the build. While the
+build runs, nothing is read from the web, no model reads or labels anything,
+and no citation is written by a program; the readings and labels themselves
+were written beforehand by the coding agent named above.
 
 ## Assumptions
 
