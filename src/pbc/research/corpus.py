@@ -350,27 +350,53 @@ STATEMENTS = (
     ),
 )
 
-# The label of every pair, as the annotator gave it, apart from the readings.
-_SUPPORT_AND_CONTRADICTION = {
-    "replication": {"sa1-bracket": SUPPORTS, "sa1-exercise": SUPPORTS},
-    "slow-throw": {},
+# The label of every pair of a claim and a passage, as the annotator gave it,
+# written out pair by pair and apart from the readings. There is no default:
+# a passage added to the corpus has no label here until it is annotated, and
+# a test fails until then.
+ANNOTATIONS = {
+    "replication": {
+        "sa1-bracket": SUPPORTS,
+        "sa1-exercise": SUPPORTS,
+        "sa1-vacuum": INSUFFICIENT,
+        "m3-flatter": INSUFFICIENT,
+        "m3-formula": INSUFFICIENT,
+        "m3-ratio": INSUFFICIENT,
+        "sa5-without-air": INSUFFICIENT,
+        "sa5-moves-lower": INSUFFICIENT,
+        "sa5-table": INSUFFICIENT,
+        "m10-baseball": INSUFFICIENT,
+        "m2-terminal": INSUFFICIENT,
+        "m1-rose-less": INSUFFICIENT,
+    },
+    "slow-throw": {
+        "sa1-bracket": INSUFFICIENT,
+        "sa1-exercise": INSUFFICIENT,
+        "sa1-vacuum": INSUFFICIENT,
+        "m3-flatter": INSUFFICIENT,
+        "m3-formula": INSUFFICIENT,
+        "m3-ratio": INSUFFICIENT,
+        "sa5-without-air": INSUFFICIENT,
+        "sa5-moves-lower": INSUFFICIENT,
+        "sa5-table": INSUFFICIENT,
+        "m10-baseball": INSUFFICIENT,
+        "m2-terminal": INSUFFICIENT,
+        "m1-rose-less": INSUFFICIENT,
+    },
     "no-change": {
         "sa1-bracket": CONTRADICTS,
         "sa1-exercise": CONTRADICTS,
+        "sa1-vacuum": INSUFFICIENT,
         "m3-flatter": CONTRADICTS,
+        "m3-formula": INSUFFICIENT,
         "m3-ratio": CONTRADICTS,
+        "sa5-without-air": INSUFFICIENT,
         "sa5-moves-lower": CONTRADICTS,
+        "sa5-table": INSUFFICIENT,
         "m10-baseball": CONTRADICTS,
+        "m2-terminal": INSUFFICIENT,
+        "m1-rose-less": INSUFFICIENT,
     },
-}
-ANNOTATIONS = {
-    statement.key: {
-        passage.key: _SUPPORT_AND_CONTRADICTION[statement.key].get(
-            passage.key, INSUFFICIENT
-        )
-        for passage in PASSAGES
-    }
-    for statement in STATEMENTS
 }
 ANNOTATED_BY = "the author of this lesson, on 2026-11-20"
 

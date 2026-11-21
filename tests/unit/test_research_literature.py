@@ -4,6 +4,7 @@ passage verified against its lesson, the labels computed from the readings
 checked against the annotated labels, the retrieval baseline, and the log
 of proposals for human review."""
 
+import ast
 import inspect
 import re
 from pathlib import Path
@@ -66,6 +67,20 @@ def test_the_register_source_and_the_proposal_are_quoted_from_the_register():
 
 
 def test_every_pair_of_a_claim_and_a_passage_is_annotated():
+    # The table is written out pair by pair: a literal of literals, with no
+    # comprehension or default that would label a pair nobody annotated.
+    tree = ast.parse(Path(corpus.__file__).read_text())
+    (table,) = [
+        node.value
+        for node in tree.body
+        if isinstance(node, ast.Assign)
+        and [getattr(t, "id", None) for t in node.targets] == ["ANNOTATIONS"]
+    ]
+    assert isinstance(table, ast.Dict)
+    assert all(isinstance(row, ast.Dict) for row in table.values)
+    assert all(
+        isinstance(given, ast.Name) for row in table.values for given in row.values
+    )
     assert set(ANNOTATIONS) == {s.key for s in STATEMENTS}
     for given in ANNOTATIONS.values():
         assert set(given) == {p.key for p in PASSAGES}

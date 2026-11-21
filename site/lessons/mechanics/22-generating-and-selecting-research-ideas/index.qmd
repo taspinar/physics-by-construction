@@ -260,7 +260,7 @@ laboratory cannot run.
 #| echo: false
 #| fig-cap: "The checks of every idea beside its proposer's mean self-rating. The ideas the checks remove include the one rated highest, which fails the first check. An asterisk marks the selected idea."
 #| fig-status: simulated
-#| fig-alt: "A grid with one row for each of seven ideas and four columns of markers: feasible, falsifiable, in budget, and new. A filled circle means the check passed, a cross that it failed, and a small dot that it was not reached. A fifth column gives each idea's mean self-rating as a number, headed not used. The spin row has a cross under feasible and small dots after it, and the highest self-rating. The below-sixty row has a cross under falsifiable, the hundredth row a cross under in budget, and three rows have crosses under new. Two rows have filled circles in every column; one of them, slow-throw, carries an asterisk."
+#| fig-alt: "A grid with one row for each of seven ideas and four columns of markers: feasible, falsifiable, in budget, and new. A filled circle means the check passed, a cross that it failed, and a small dot that it was not reached. A fifth column gives each idea's mean self-rating as a number, headed not used. The spin row has a cross under feasible and small dots after it, and the highest self-rating. The below-sixty row has a cross under falsifiable, the hundredth row a cross under in budget, and four rows have crosses under new: replication, below-sixty, fast-throw, and hundredth. Two rows have filled circles in every column; one of them, slow-throw, carries an asterisk."
 result.show("fig-idea-assessment")
 ```
 

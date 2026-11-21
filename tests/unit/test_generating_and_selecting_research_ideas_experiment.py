@@ -72,6 +72,27 @@ def test_the_contributions_come_from_the_archive_of_answers(found):
     assert found["fast-throw"].contribution == REPLICATION
 
 
+def test_the_alt_text_names_the_rows_the_figure_crosses_under_new(found):
+    # The figure draws a cross under "new" for every reached contribution
+    # that is not an extension; the alt text names those rows.
+    crossed = {
+        k
+        for k, a in found.items()
+        if a.contribution is not None and a.contribution != EXTENSION
+    }
+    page = (Path(__file__).resolve().parents[2] / "site/lessons" / PAGE).joinpath(
+        "index.qmd"
+    )
+    (alt,) = [
+        line for line in page.read_text().splitlines() if "crosses under new" in line
+    ]
+    sentence = alt.split("crosses under new: ")[1].split(".")[0]
+    named = {k.strip() for k in sentence.replace(" and ", ",").split(",") if k.strip()}
+    assert named == crossed
+    words = {2: "two", 3: "three", 4: "four", 5: "five"}
+    assert f"{words[len(crossed)]} rows have crosses under new" in alt
+
+
 def test_the_rule_selects_the_slow_throw_by_the_judgement_of_interest(found):
     assert select(found, lab.JUDGEMENTS) == "slow-throw"
     # Without the judgement the two equal extensions are ordered by key.
