@@ -1,0 +1,456 @@
+---
+title: "Independently checkable reports and research memory"
+description: >-
+  The investigation of the slow throw, from the idea archive to the revised
+  claim, is written up as a report with its numbers typed by its author. A
+  check resolves every number to a field of a record and every citation to
+  a verified passage in the role the label rule gives it, and marks what no
+  record supports; the records form a bundle that the build computes again
+  and compares by digest. A research memory keeps ideas, code, data,
+  results, limitations, and open questions, and hands a result over only
+  with its limitations and only to a reuse that matches it.
+lesson:
+  id: checkable-reports-and-research-memory
+  strand: mechanics
+  order: 26
+  difficulty: 3
+  course: mechanics
+  slot: RR7
+  methods: [simulation]
+  outcomes:
+    - Write a report in which every number names the record it comes from and every citation the role its passage plays for a claim
+    - Check a report so that a mistyped number, a citation in the wrong role, and a number without a record are each found
+    - Bundle the records of an investigation so that a reader can compute them again and see whether they reproduce
+    - Keep ideas, code, data, results, limitations, and open questions for reuse, and check a reuse against what was kept
+  related: []
+  format: 2
+  preview: fig-report-checks
+  experiment: pbc.mechanics.experiments.checkable_reports_and_research_memory
+  prerequisites:
+    lessons: [discrepancies-and-follow-up-experiments, literature-and-evidence-maps]
+    outside:
+      - "Python: reading a dictionary and a short function"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
+from pbc.mechanics.experiments import (
+    checkable_reports_and_research_memory as experiment,
+)
+from pbc.research import memory, report
+
+result = experiment.run()
+lesson_header()
+```
+
+The investigation of the slow throw is done, as far as this path takes it.
+An idea was selected from an archive, a plan was frozen and executed, the
+literature at hand was searched, a review asked for evidence, and the claim
+was revised from new records. Now it has to be written up, and a report
+reaches readers who were not there. They cannot rerun the review in their
+heads. What they can do is check: does each number come from somewhere,
+does each citation say what the sentence says it does, and would the
+numbers come out again?
+
+A report that reads well can fail all three. A number can be mistyped
+after the analysis, a source can be cited for a claim it only touches,
+and a result can come from code that has since changed. None of this is
+visible in the prose. This lesson makes a report in which each of those
+can be checked by a program, and then asks the question a finished
+investigation leaves: what should the next one be allowed to take from
+it, and on what condition?
+
+**What kind of evidence the page shows:** the report is a written example,
+its sentences typed by the author of this page as a report would be. Every
+record it rests on is computed by the build from the earlier lessons of
+this path: the idea archive, the two research plans, the corpus of
+verified passages, and the review's tests and log. No model is run, and no
+citation is written by a program.
+
+## Assumptions
+
+1. **The records are the earlier lessons' records.** The report adds no
+   result of its own. A record that is wrong in the earlier lessons is
+   wrong here too, and the check resolves a number to it all the same.
+2. **A number is written in digits.** The check finds numbers by their
+   digits. "Two degrees" and "a few runs" are not found, and a report that
+   writes its results in words escapes the check.
+3. **A citation is judged for one claim.** Each sentence that cites names
+   the claim its passages are read for, and the role (supports,
+   contradicts, or insufficient) is compared with the label the rule of the
+   literature lesson computes. A passage relevant to two claims is checked
+   once per sentence that cites it.
+4. **The code that made a record is named by its files.** The bundle
+   digests the source files each record's computation runs. A change in a
+   file it does not name, a library or the interpreter, is not seen.
+5. **A digest identifies.** That a record reproduces, or that a reuse
+   matches, says that it is the same record or the same configuration as
+   before; it does not say that either is right.
+
+## A report that can be checked {#explanation}
+
+A **checkable report** is one in which every statement a reader could take
+for a result says where it comes from. Three kinds of sentence are kept
+apart.
+
+- A **number** names a field of a record: the bracket of a plan, the count
+  of a review's findings. The check takes the field and writes it with as
+  many decimals as the sentence does. If the texts agree the number
+  resolves; if not, the record's own value is shown beside it. Rounding is
+  allowed, because a report rounds; a transposed digit is not.
+- A **citation** names a passage of the corpus of verified passages and the
+  role it plays for a claim. The check does not stop at "the passage
+  exists": it computes the label the literature lesson's rule gives the
+  passage for that claim and compares it with the role written. A passage
+  cited as support that the rule labels insufficient is refused, which is
+  the most common way a real citation goes wrong: the source exists, is
+  relevant, and does not say what the sentence needs.
+- A **marked** sentence is one no record supports: an interpretation, an
+  expectation, a next step. It is shown as "proposed, not evaluated". A
+  report needs such sentences; it must not dress them as results.
+
+That makes every number and citation traceable to a record or a passage.
+It does not make the records right. The second half of checkability is
+that the records can be made again: each is kept in a **bundle** with the
+digest of its fields, of the configuration that produced it, and of the
+source files of the code that ran. A reader, or the build, computes every
+record again from its recipe and compares. A record that no longer comes
+out of its code and configuration is found, and so is code that changed
+since the record was made, before anything is recomputed.
+
+```{python}
+#| label: fig-report-trace
+#| echo: false
+#| fig-cap: "Where a sentence of the report leads. A number leads to a field of a record, and the record to the bundle that computes it again; a citation leads to a verified passage and to the label the rule gives it for the claim; a marked sentence leads nowhere and says so. A number or a citation that leads nowhere is refused."
+#| fig-status: conceptual
+#| fig-alt: "A diagram. A box named sentence of the report at the left. An arrow labelled number goes up and right to a box named field of a record, then to a box named bundle, computed again and compared. An arrow labelled citation goes right to a box named verified passage, then to a box named label for the claim. A dotted arrow goes down to a grey box named marked, proposed, not evaluated. Beside it, in another colour, the words a number or citation that resolves to nothing, refused."
+result.show("fig-report-trace")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_report_trace, figure=True)
+```
+
+The diagram is a sketch and computes nothing. It answers the question a
+reader asks of every sentence: what would I look at to check it?
+
+### Research memory
+
+An investigation ends with more than its report: ideas it deferred, code
+it wrote, the runs it made, its results, their limitations, and the
+questions it left open. A **research memory** keeps them so that the next
+investigation can start from them. Reuse is where it goes wrong. A result
+taken without its limitations is a stronger claim than the one that was
+made; a result computed for one configuration and reused for another is
+not a result about the other; a result made by code that has since changed
+may no longer come out of it.
+
+So each item is kept with its **identity**, the digests that say exactly
+what was kept: the code and the configuration of a result, the record of
+the data, the archive entry of an idea. A reuse presents the identities it
+needs, and the memory hands the item over only when they are the same,
+together with the limitations and open questions it was kept with. A
+mismatch is not an error to be worked around: it says that the thing kept
+is not the thing needed, and that it has to be computed again.
+
+## Code
+
+### A sentence of the report
+
+The numbers of a sentence name their records in the order they are
+written; the citations name their role, and the sentence names the claim
+they are read for:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="sentence")
+```
+
+### Resolving a number
+
+```{python}
+#| echo: false
+excerpt(report.resolve_number)
+```
+
+### Resolving a citation
+
+```{python}
+#| echo: false
+excerpt(report.resolve_citation)
+```
+
+### Recalling an item for reuse
+
+```{python}
+#| echo: false
+excerpt(memory.recall)
+```
+
+The memory also refuses to keep a result that names no limitation, so a
+recall always has some to hand over.
+
+## Worked examples
+
+### The report as written
+
+```{python}
+#| label: written-report
+#| echo: false
+result.table("report")
+```
+
+Every sentence but the last makes a claim; the last is marked. Before
+reading on, take
+one of them, the plan's bracket, and ask what a reader would need to check
+it. The text gives the bracket; it does not give the plan, the run, or the
+code that ran it.
+
+### Every number and every citation
+
+```{python}
+#| label: report-resolutions
+#| echo: false
+result.table("resolutions")
+```
+
+[Every one of the `{python} result["numbers"]` numbers of the report
+resolves to a field of a record at the decimals it is written with, every
+one of its `{python} result["citations"]` citations resolves to a verified
+passage in the role the label rule gives it for the claim named, and the
+one sentence no record supports is marked.]{.claim
+type="numerically-verified" scope="the report of this page, the records of
+the earlier lessons of this path, and the corpus of the literature lesson"
+evidence="report-resolutions"} The check refused
+`{python} result["refused"]` of `{python} result["tokens"]` entries. The
+literature sentence cites a passage as insufficient, and that is checked
+as carefully as a support: it says that the projectile lesson gives the
+direction and not the bound, which is exactly what the slow-throw plan
+contributes.
+
+### Three planted errors
+
+Here is the same report with three errors of the kind that survive a
+careful reading: a digit transposed in the plan's bracket, the projectile
+lesson's passage cited as support for the slow-throw claim, and a count of
+runs added to the method sentence with no record behind it. Before reading
+the table: which of the three could a reader find without the records, by
+reading the cited passage or the sentence itself, and which only with them?
+
+```{python}
+#| label: planted-errors
+#| echo: false
+result.table("planted")
+```
+
+```{python}
+#| label: fig-report-checks
+#| echo: false
+#| fig-cap: "Each number and citation of the report, sentence by sentence, marked by what it resolved to. As written, every number resolves to a record and every citation to a passage, and the outlook is marked. With three planted errors, the transposed digit, the citation in the wrong role, and the number with no record are each refused, and nothing else changes."
+#| fig-status: simulated
+#| fig-alt: "Two stacked panels, the report as written above and with planted errors below. Each has one row per sentence and, along the horizontal axis, the numbers and citations of that sentence in order. Filled circles mark numbers that resolve to a record, filled squares citations that resolve to a passage, and an open diamond the marked last sentence. In the lower panel three of the markers, in three different sentences, are crosses."
+result.show("fig-report-checks")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_report_checks, figure=True)
+```
+
+Every marker is the build's check of the typed text against the records
+it computed and the corpus; nothing in the figure is measured. [The
+check refuses the transposed digit, the citation in a role its passage does
+not play, and the number with no record, and accepts every other number and
+citation of the planted report.]{.claim type="numerically-verified"
+scope="the planted report of this page" evidence="planted-errors"} The
+wrong role could be found by a reader who opens the passage and reads it
+against the claim, which is what the rule does every time. The number
+without a record looks no different from the others and can only be found
+by asking each number for its source. The transposed digit can only be
+found with the record: `43.57` is a perfectly plausible bracket.
+
+### When the evidence status changes
+
+The report's sentence on the review states how many findings were resolved
+by new evidence. Its numbers resolve to a record computed from the review's
+log. Suppose the review had been answered in prose alone, as in the
+previous lesson's worked example, and the report kept its sentence:
+
+```{python}
+#| label: review-sentence-check
+#| echo: false
+result.table("review-sentence")
+```
+
+[Checked against a log in which the claim was revised in prose alone, the
+report's sentence on the review is refused: the record counts no finding
+resolved by new evidence.]{.claim type="numerically-verified" scope="the
+review sentence of this report and the two logs of the previous lesson"
+evidence="review-sentence-check"} A report cannot turn a revision of the
+prose into resolved findings by saying so: the status it states is
+recomputed from the log, and the log records what was run.
+
+### The bundle
+
+```{python}
+#| label: report-bundle
+#| echo: false
+result.table("bundle")
+```
+
+[All `{python} result["reproduced"]` of the `{python} result["records"]`
+records of the bundle reproduce when computed again, and with the
+projectile module edited every record whose code includes it is found
+changed before it is recomputed.]{.claim type="numerically-verified"
+scope="the bundle of this report, computed again by the build"
+evidence="report-bundle"} The edit is one comment line, and it changes no
+number. The bundle still refuses: it cannot know that the edit is harmless,
+and the records whose code did not include the module are untouched. A
+reader who wants the records back computes them again, which is cheap
+here, and the digests then agree or say what differs.
+
+### What the next investigation may take
+
+```{python}
+#| label: memory-items
+#| echo: false
+result.table("memory")
+```
+
+The memory holds `{python} result["items"]` items: the deferred idea of the
+archive, the route, the runs of the original plan, the revised result, its
+limitations, and its open questions. Five reuses ask for them:
+
+```{python}
+#| label: memory-reuses
+#| echo: false
+result.table("reuses")
+```
+
+[The revised result is handed over for the slow throw with its
+limitations and open questions, and refused for the throw at another
+speed and after the projectile module was edited; the deferred idea and
+the runs are handed over because their identities still match.]{.claim
+type="numerically-verified" scope="the memory of this page and the five
+reuses shown" evidence="memory-reuses"} The refusal for the other speed is
+the useful one. The result at the slow throw is not evidence about any
+other throw, however close; the memory can only say that it was not kept
+for it, and the next investigation runs the route again, which the deferred
+idea, handed over with its condition, is waiting for.
+
+We began with a finished investigation and a reader who was not there.
+Every number of its report now points to a field of a record, every
+citation to a passage that plays the role the sentence gives it, and the
+records come out again from their code and configuration; the one
+expectation is marked as such. What the investigation leaves is kept with
+what it rests on and what it does not show, and handed over only where it
+applies. The capstone of this path builds a workspace in which an
+investigation is run this way from the first idea to the last record.
+
+## Limits {#limits}
+
+- **Numbers in words and qualitative claims escape.** The check reads
+  digits. "Hardly notices the air" is a quantitative claim in words, and
+  nothing here checks it.
+- **A role, not a reading.** A citation is checked against the label the
+  rule computes from the annotator's reading of the passage. A reading
+  that is wrong makes the check wrong with it, as the literature lesson
+  says of its labels.
+- **Identity of the files named.** The bundle sees the source files each
+  record names. A changed library, interpreter, or machine is not seen,
+  and on another machine a record may differ in its last digits without
+  any file changing.
+- **Records of one project.** Every record and every passage comes from
+  this site. A report that cites a paper or a dataset outside it needs the
+  same check against a source the program can read, which a reference
+  register or a dataset card would have to provide.
+- **A memory without forgetting.** Items are only added. Deciding that a
+  kept result is superseded, and saying so to every reuse, is not built
+  here.
+
+::: {.exercise .self-check}
+A colleague starts an investigation of the throw at [15 m/s]{.given} and
+wants to begin from this page's result: "at the slow throw the best angle
+is above the bound, so at the faster throw it will be close." What should they take from the
+memory, what should come with it, and what must they compute again?
+
+::: {.solution}
+They cannot take the result as a result about the faster throw: it was kept for the
+slow throw's configuration, and the memory refuses the reuse. What they
+can take is the idea deferred in the archive, which is exactly their
+question, with its condition for revisiting; the route, as code whose
+identity still matches; and the open questions and limitations, which say
+what the slow-throw result does not show (a resolution of about a degree,
+a simulation only, a range of drag coefficients resting on an assumption).
+The best angle of the faster throw is computed again, with a plan of its
+own. The
+slow-throw result may still be quoted as a prediction of which way the
+answer goes, marked as such in their report.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**Rounded numbers.** A sentence gives the plan's bracket rounded to one
+decimal: "The plan's bracket was 43.8 to 44.4 degrees." Does the check
+accept it? Is a rounded number less checkable than the full one?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment, region="rounded")
+```
+
+The check gives "`{python} result["rounded"]`". Each number is compared at
+the decimals it is written with, so a rounding of the record's value is
+the record's value at that precision, and it resolves. It is as checkable
+as the full number, and it claims less: a reader learns the bracket to a
+tenth of a degree. What a rounding must not do is change the conclusion,
+and here the whole bracket stays above the bound at either precision. The
+transposed `43.57` of the planted report is refused, because no rounding
+of the record gives it.
+:::
+:::
+
+::: {.exercise}
+**A result without its limitations.** Try to keep the revised result in
+the memory a second time, under another key and with no links. What
+happens, and why is that rule in the memory and not left to the person
+reusing it?
+
+::: {.solution}
+The memory answers "`{python} result["bare-result"]`". Kept bare, the
+result would be handed over bare, and the next investigation would receive
+"above the bound" without "in a simulation", "to about a degree", or "for
+coefficients up to the one tested". By the time it is reused, the person
+who knew the limitations may not be the one reusing it. Putting the rule
+where the result is kept means every reuse gets the limitations without
+having to know they exist.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/research/report.py",
+        "src/pbc/research/memory.py",
+        "src/pbc/research/followup.py",
+        "src/pbc/research/literature.py",
+        "src/pbc/research/corpus.py",
+        "src/pbc/mechanics/experiments/discrepancies_and_follow_up_experiments.py",
+        "src/pbc/mechanics/experiments/checkable_reports_and_research_memory.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_research_report.py",
+        "tests/unit/test_research_memory.py",
+        "tests/unit/test_checkable_reports_and_research_memory_experiment.py",
+    ],
+)
+```
