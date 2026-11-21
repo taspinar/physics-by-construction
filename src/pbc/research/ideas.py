@@ -23,7 +23,10 @@ Interest is not computed: it is a judgement, recorded with its author and
 reason. ``select`` applies a rule declared before the assessment and reads
 no self-rating; the ratings are kept beside the assessment and shown, and
 nothing else. ``Archive`` keeps every idea and every decision, chained by
-digest, so that an edited or removed entry is found.
+digest, so that an entry edited, or removed before the last, is found when
+the digests after it were not recomputed. The chain has no head recorded
+outside its entries: a removed last entry, or a chain recomputed after an
+edit, is not found.
 """
 
 import copy
@@ -287,7 +290,11 @@ class Archive:
 def verify_archive(entries: list[Entry]) -> list[str]:
     """The problems of an archive's entries: an entry out of order, an idea
     changed after its entry was written, a broken chain, or an entry whose
-    own digest does not match. An empty list when none is found."""
+    own digest does not match. An empty list when none is found.
+
+    The entries are the only record it reads, so a change that leaves every
+    link intact is not found: the last entry removed, or an entry edited and
+    every digest from it on recomputed."""
     found = []
     previous = ""
     for position, entry in enumerate(entries, start=1):

@@ -18,8 +18,10 @@ angle between the claim's weights and each passage's. It is lexical: it
 finds shared words, and it does not know that "45" and "forty-five" are one
 number.
 
-``review_log`` records every item the retrieval proposed for a claim, with
-its status: a verified passage with the annotated label, never a label the
+``review_log`` records every item the retrieval proposed for a claim with
+two separate statuses: that of its quotation, which a test checks against
+its page (a check of the text only), and that of its label, which is one
+annotator's reading and was not checked independently, never a label the
 program chose; and every source that was proposed and not read, as awaiting
 human review. ``novelty`` says what a search found, and never that a claim
 is new.
@@ -33,6 +35,7 @@ from dataclasses import dataclass
 from pbc.research.corpus import (
     ANNOTATIONS,
     ANY,
+    AWAITING_REVIEW,
     CONTRADICTS,
     INSUFFICIENT,
     PROPOSALS,
@@ -141,16 +144,26 @@ def recall(
     return len(wanted & found) / len(wanted)
 
 
+# The status of a quotation the corpus holds: a test compares it with the
+# current source of its page. It checks the text, not what anyone read in it.
+QUOTATION_CHECKED = "quotation checked against its page"
+# A source the corpus does not hold, so there is no quotation to check.
+NOT_HELD = "not held"
+# The status of a label from ``ANNOTATIONS``: one annotator's reading.
+ONE_ANNOTATOR = "annotated by one annotator, not independently checked"
+
+
 @dataclass(frozen=True)
 class LogEntry:
     """One item of the review log: the claim, the proposed source, who
-    proposed it, its status, and the label a person's annotation gives it,
-    if any."""
+    proposed it, the status of its quotation, the status of its label, and
+    the label the annotation gives it, if any."""
 
     claim: str
     source: str
     proposed_by: str
-    status: str
+    quotation: str
+    label_status: str
     label: str = ""
 
 
@@ -158,8 +171,10 @@ def review_log(
     statements: tuple[Statement, ...], passages: tuple[Passage, ...], k: int
 ) -> list[LogEntry]:
     """What the retrieval proposed for each claim (its first ``k`` passages)
-    and the proposals nobody has read. A passage is logged with the label
-    of the annotations; nothing is accepted or labelled by the program."""
+    and the proposals nobody has read. A passage is logged with its checked
+    quotation and, apart from it, the label of the annotations and where
+    that label comes from; nothing is accepted or labelled by the
+    program."""
     entries = []
     for statement in statements:
         for key, _ in retrieve(statement.text, passages)[:k]:
@@ -169,7 +184,8 @@ def review_log(
                     claim=statement.key,
                     source=key,
                     proposed_by="retrieval baseline",
-                    status="verified passage" if given else "awaiting human review",
+                    quotation=QUOTATION_CHECKED,
+                    label_status=ONE_ANNOTATOR if given else AWAITING_REVIEW,
                     label=given or "",
                 )
             )
@@ -179,7 +195,8 @@ def review_log(
                 claim="all",
                 source=proposal.source,
                 proposed_by=proposal.proposed_by,
-                status=proposal.status,
+                quotation=NOT_HELD,
+                label_status=proposal.status,
             )
         )
     return entries

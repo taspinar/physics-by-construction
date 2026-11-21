@@ -171,9 +171,43 @@ def test_the_log_holds_every_proposal_and_labels_only_what_was_annotated():
     log = literature.review_log(STATEMENTS, PASSAGES, 3)
     assert len(log) == 3 * len(STATEMENTS) + len(corpus.PROPOSALS)
     for entry in log[:-1]:
-        assert entry.status == "verified passage"
         assert entry.label == ANNOTATIONS[entry.claim][entry.source]
-    assert log[-1].status == "awaiting human review" and log[-1].label == ""
+    assert log[-1].label == ""
+
+
+def test_the_log_keeps_the_quotation_check_apart_from_the_label_origin():
+    """A quotation the corpus holds rests on the test that compares it with
+    its page, and its label on one annotator's reading; nothing in the log
+    calls a label verified, and a source nobody read awaits review."""
+    log = literature.review_log(STATEMENTS, PASSAGES, 3)
+    held = {p.key for p in PASSAGES}
+    for entry in log[:-1]:
+        assert entry.source in held
+        assert entry.quotation == literature.QUOTATION_CHECKED
+        assert entry.label_status == literature.ONE_ANNOTATOR
+    proposal = log[-1]
+    assert proposal.source not in held
+    assert proposal.quotation == literature.NOT_HELD
+    assert proposal.label_status == corpus.AWAITING_REVIEW == "awaiting human review"
+    for entry in log:
+        assert "verified" not in entry.quotation + entry.label_status
+
+
+def test_a_passage_without_an_annotation_awaits_review(monkeypatch):
+    unread = dict(ANNOTATIONS["replication"])
+    first = literature.retrieve(STATEMENTS[0].text, PASSAGES)[0][0]
+    del unread[first]
+    monkeypatch.setitem(ANNOTATIONS, "replication", unread)
+    entry = literature.review_log(STATEMENTS[:1], PASSAGES, 1)[0]
+    assert entry.source == first and entry.label == ""
+    assert entry.quotation == literature.QUOTATION_CHECKED
+    assert entry.label_status == corpus.AWAITING_REVIEW
+
+
+def test_the_annotator_is_named_as_the_coding_agent_and_alone():
+    assert "coding agent" in corpus.ANNOTATED_BY
+    assert "Claude Opus" in corpus.ANNOTATED_BY and "2026-11-20" in corpus.ANNOTATED_BY
+    assert "no second, independent annotation" in corpus.__doc__
 
 
 def test_an_empty_search_never_says_new():

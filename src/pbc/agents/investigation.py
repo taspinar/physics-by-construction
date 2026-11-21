@@ -27,7 +27,7 @@ panel of three.
 nothing here calls a model.
 """
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from itertools import combinations
 from pathlib import Path
@@ -226,8 +226,11 @@ class _Claimed:
 
 def claim_of(board: Board, piece: int) -> Claim:
     """The claim of ``piece`` after the narrowings the human recorded."""
-    claim = board.read("human", "claim")
-    for entry in steering(board):
+    return _narrowed(board.read("human", "claim"), steering(board), piece)
+
+
+def _narrowed(claim: Claim, entries: Sequence[Steering], piece: int) -> Claim:
+    for entry in entries:
         if entry.action == NARROW and entry.piece == piece:
             claim = Claim(order=claim.order, bounded_energy=False)
     return claim
@@ -285,16 +288,22 @@ def steer(board: Board, entry: Steering) -> None:
 
 def decision(board: Board, piece: int) -> str:
     """Where ``piece`` stands after the human's last acceptance or sending
-    back, with the claim it is accepted for."""
+    back, with the claim it is accepted for: the claim as it stood at that
+    acceptance. A narrowing recorded after it does not change what was
+    accepted; the piece is accepted for the narrower claim only when a new
+    acceptance follows (#590)."""
+    entries = steering(board)
     last = None
-    for entry in steering(board):
+    for index, entry in enumerate(entries):
         if entry.piece == piece and entry.action in (ACCEPT, SEND_BACK):
-            last = entry
+            last = index
     if last is None:
         return "open"
-    if last.action == SEND_BACK:
-        return f"sent back to implementation: {last.reason}"
-    return f"accepted for the claim {words(claim_of(board, piece))!r}: {last.reason}"
+    entry = entries[last]
+    if entry.action == SEND_BACK:
+        return f"sent back to implementation: {entry.reason}"
+    accepted = _narrowed(board.read("human", "claim"), entries[:last], piece)
+    return f"accepted for the claim {words(accepted)!r}: {entry.reason}"
 
 
 # --- Not a vote: the recorded panel of lesson AE6, replayed. ---
