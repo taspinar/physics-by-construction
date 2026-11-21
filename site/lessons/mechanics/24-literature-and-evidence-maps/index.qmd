@@ -1,0 +1,501 @@
+---
+title: "Literature, novelty assessment, and evidence maps"
+description: >-
+  The claims of two research plans about the thrown tennis ball and an old
+  guess about drag are compared with a small local corpus of verified
+  passages: each passage supports a claim, contradicts it, or is
+  insufficient, judged with the assumptions it holds under. A lexical
+  retrieval baseline shows what a search finds and misses, every proposed
+  source is logged for human review, and an empty search is reported as
+  what it is, never as novelty.
+lesson:
+  id: literature-and-evidence-maps
+  strand: mechanics
+  order: 24
+  difficulty: 3
+  course: mechanics
+  slot: RR3
+  methods: [simulation]
+  outcomes:
+    - Compare a claim with verified passages and tell supporting, contradicting, and insufficient evidence apart
+    - Link a claim to the passages that decide it and to the assumptions each passage holds under
+    - Read the ranks and the recall of a simple retrieval baseline, and say what it can miss
+    - Log proposed sources for human review instead of accepting them, and state what an empty search shows without claiming novelty
+  related: []
+  format: 2
+  preview: fig-retrieval-ranks
+  experiment: pbc.mechanics.experiments.literature_and_evidence_maps
+  prerequisites:
+    lessons: [from-question-to-research-plan, projectile-with-drag]
+    outside:
+      - "Python: reading a dictionary and a short function"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
+from pbc.mechanics.experiments import literature_and_evidence_maps as experiment
+from pbc.research import corpus, literature
+
+result = experiment.run()
+lesson_header()
+```
+
+The research plans of the previous lesson produced two claims about the
+simulated tennis ball: at its usual speed its best launch angle lies below
+forty-four degrees, and at a slow throw it lies above forty-three. A third
+is older: the guess the projectile lesson considered before its simulation
+answered it, that drag scales every range down by the same factor and
+leaves the best angle at forty-five degrees. What does the existing
+literature say about each of them? And for the slow throw, the question
+chosen because it seemed open: can a search show that nobody has answered
+it?
+
+Two habits make these questions look easier than they are. One is to count
+a source as support because it mentions the right quantity. The other is
+to take a search that found nothing as a finding. This lesson replaces both
+with records: each passage that bears on a claim is labelled as supporting
+it, contradicting it, or insufficient, together with the assumptions it
+holds under, and each search is reported with what it searched and how
+well it finds what is known to be there.
+
+**What kind of evidence the page shows:** the literature is a small local
+corpus of `{python} result["passages"]` passages quoted from
+`{python} result["lessons"]` published lessons of this site. A test checks
+every quotation against its page, so the passages are verified, not only
+cited. Each passage was read once, and its reading written down, by the
+annotator, `{python} result["annotated-by"]`; the labels are computed from
+those readings by a rule shown below and compared with labels the annotator
+gave directly. The retrieval is a computation of the build. Nothing is read
+from the web, no model reads or labels anything, and no citation is written
+by a program.
+
+## Assumptions
+
+1. **The corpus is the site's own text.** Published lessons of this site,
+   under its Creative Commons attribution licence. A real literature
+   search reaches journals, books, and preprints; this corpus is small
+   enough that every passage can be read and checked, which is what the
+   lesson needs.
+2. **A reading is the annotator's.** Each passage's reading states the
+   quantity, the drag, the ball, the speed, and the bound it gives, partly
+   from the page around it (the speed of the page's ball, the bound of the
+   page's specification). Another reader could read a passage differently.
+3. **The claims are about the simulated ball.** So are the passages. A
+   passage that supports a claim here supports a statement about a model,
+   as the claim's label says.
+4. **The rule is fixed before the labels are read.** It compares the
+   assumptions first and the bound second; the annotations were written
+   apart from it, and a test compares the two.
+5. **The retrieval sees only words.** It knows nothing of physics,
+   numbers, or assumptions; that is the point of using it as a baseline.
+
+## Support, contradiction, and insufficient evidence {#explanation}
+
+A passage **supports** a claim when what it says implies the claim, in
+every case the claim covers. It **contradicts** the claim when what it says
+excludes the claim in some case the claim covers. Otherwise it is
+**insufficient**: it may be true, relevant, and even on the same quantity,
+and still not decide the claim.
+
+Three things make a passage insufficient, and they are checked in order.
+
+1. **Another quantity.** A passage about the terminal velocity says nothing
+   about the best launch angle, however many words they share.
+2. **Another assumption.** A passage about the throw without air says that
+   the best angle is forty-five degrees, and it is right; a claim about the
+   throw with drag is about another model. Another ball or another speed
+   is another case of the same kind.
+3. **A bound that does not decide.** "Flatter than forty-five degrees"
+   neither implies nor excludes "below forty-four".
+
+The first two are why a claim has to be linked to the **assumptions** of
+each passage, not only to the passage: two passages can agree word for word
+and hold under different conditions. The third is why the number matters:
+direction and size are different claims.
+
+There is one asymmetry. A claim about *every* ball is contradicted by one
+ball for which it fails, a counterexample, but it is not supported by one
+ball for which it holds. So a passage about the tennis ball can contradict
+the general guess and still be insufficient for a general
+claim that agrees with it.
+
+```{python}
+#| label: fig-evidence-chain
+#| echo: false
+#| fig-cap: "A claim and what the search returns for it. A passage the annotator read gets a label, and the label rests on the assumption the passage holds under, which may itself rest on a reviewed source of the register; a passage under another assumption is insufficient; a proposal nobody has read gets no label at all."
+#| fig-status: conceptual
+#| fig-alt: "A diagram. A box named claim at the left has three arrows to the right. A solid arrow labelled supports goes to a passage at the top, which has an arrow labelled holds under to a box named assumption, quadratic drag; a dashed arrow from a box named register source, reviewed for it, points up to that assumption. A dashed arrow labelled insufficient goes to a second passage in the middle, beside the words holds under no drag. A dotted arrow labelled no label yet goes to a grey box at the bottom named proposal, not read."
+result.show("fig-evidence-chain")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_evidence_chain, figure=True)
+```
+
+The diagram is a sketch and computes nothing. It answers the question this
+lesson asks of every label: what does it rest on? On a passage someone has
+read, under an assumption that is named and, where possible, backed by a
+source someone has reviewed for exactly that.
+
+### Passages and sources
+
+Two kinds of source enter the evidence map. A **passage** is text held in
+the corpus, quoted where it stands and checked against its page. A
+**register source** is an entry of the site's reference register: a page a
+person opened and checked for one stated purpose, linked and not copied.
+The claims here all assume quadratic drag, and the register holds a source
+reviewed for that, `{python} result["register-key"]`, which supports the
+assumption "`{python} result["register-assumption"]`" and nothing else. A
+register entry reviewed for one statement is not evidence for another until
+someone reads it for that.
+
+A third kind is a **proposal**: a source someone suggested and nobody has
+read. The register's own record of that entry names one, a paper that came
+up in a search and was not opened. A proposal is logged, with who proposed
+it, and waits for a person. A program that accepted it, or quoted it, or
+wrote a citation for it, would turn a search result into evidence without
+anyone having read it.
+
+### Searching, and what an empty search means
+
+Before a passage can be labelled it has to be found. The baseline here is
+the simplest serious retrieval: it weighs each word of a passage by how
+rare the word is in the corpus (TF-IDF), does the same for the claim, and
+ranks the passages by how closely the two sets of weights point the same
+way (the cosine of the angle between them). It is lexical. It finds shared
+words, and it does not know that `45`, "$45^\circ$", and "forty-five" are
+one number, or that "flatter" means "lower".
+
+A search that finds no deciding passage shows that this corpus, searched
+this way, holds none. Whether the question is new depends on everything
+the corpus does not hold and on everything the search could not find in
+it. The second part can be measured: on claims whose deciding passages are
+known from the annotations, the share the search finds in its first few
+results, its **recall**, says how often it misses what is there.
+
+## Code
+
+### A verified passage
+
+Each passage is held with its lesson, its place on the page, its licence,
+and the annotator's reading:
+
+```{python}
+#| echo: false
+excerpt(corpus, region="passage")
+```
+
+### The label
+
+The assumptions are compared first, and only a passage that shares them is
+compared on the bound:
+
+```{python}
+#| echo: false
+excerpt(literature.label)
+```
+
+### The retrieval baseline
+
+```{python}
+#| echo: false
+excerpt(literature.retrieve)
+```
+
+The words are what `words` returns: the text in lower case, split at every
+character that is not a letter or a digit, so that "$45^\circ$" becomes
+`45` and `circ`.
+
+## Worked examples
+
+### The corpus
+
+```{python}
+#| label: literature-corpus
+#| echo: false
+result.table("corpus")
+```
+
+Two of the lessons bear on the claims directly (the specification lesson
+and the projectile lesson), two describe related throws (the agent lesson
+the same ball, the analysis-pipelines lesson a baseball), and two are there because a corpus always holds passages that
+share words with a claim and say nothing about it.
+
+### One passage, one claim
+
+Take the replication's claim, that at its usual speed the best angle lies
+below forty-four degrees, and the passage of the agent lesson: "Without air
+the answer is forty-five degrees, as the projectile lesson shows." Before
+reading on, decide: does the passage support the claim, contradict it, or
+neither?
+
+The rule says "`{python} result["without-air-label"]`": "`{python} result["without-air-reason"]`".
+The passage is true and states a best angle for the same ball, and it
+contradicts nothing, because the claim is about the throw with drag. Read
+without its assumption it looks like a contradiction (forty-five is not
+below forty-four); read with it, it is about another model.
+
+```{python}
+#| label: replication-labels
+#| echo: false
+result.table("labels-replication")
+```
+
+[`{python} result["supports-replication"]` passages support the
+replication's claim, both from the specification lesson, and every other passage of the corpus is
+insufficient for it, each for the reason in the table.]{.claim
+type="numerically-verified" scope="the corpus of this page and the
+annotator's readings" evidence="replication-labels"} The projectile
+lesson's claim that the longest throw is flatter than forty-five degrees
+is about the same ball at the same speed, and it is insufficient: it gives
+a direction, and the replication's claim is a bound. The agent lesson's
+claim states the bound in its table, not in the passage, so the passage
+alone does not decide it. Following the claim to its evidence would; the
+site's evidence map lists that claim with the table it rests on.
+
+Across all three claims and every passage, the label the rule computes
+from the readings equals the label the annotator gave directly for
+`{python} result["agreed"]` of `{python} result["pairs"]` pairs. That is a
+check of consistency between two records by one annotator, not of
+correctness: it catches a slip in either record, and it cannot catch a
+reading that is wrong in both.
+
+### A general claim and its counterexamples
+
+The scaling guess says that drag leaves the best angle at forty-five
+degrees for any ball.
+
+```{python}
+#| label: no-change-labels
+#| echo: false
+result.table("labels-no-change")
+```
+
+[`{python} result["decisive-no-change"]` passages, from
+`{python} result["no-change-lessons"]` lessons and about two different
+balls, each contradict the guess that drag leaves the best angle of any
+ball at forty-five degrees; the two passages that state forty-five degrees do so
+without air and are insufficient.]{.claim type="numerically-verified"
+scope="the corpus of this page and the annotator's readings"
+evidence="no-change-labels"} One counterexample would have been enough,
+because the claim is general. The two passages that state forty-five
+degrees outright are exactly the ones that cannot support it: they hold
+without drag.
+
+### What the search finds
+
+The search returns the first `{python} result["k"]` passages for each
+claim.
+
+```{python}
+#| label: retrieval-ranks
+#| echo: false
+result.table("retrieved")
+```
+
+```{python}
+#| label: fig-retrieval-ranks
+#| echo: false
+#| fig-cap: "The score of every passage against each claim, in rank order, marked by its annotated label; the dashed line is the cut-off of the search. The replication's two supporting passages rank within it. For the scaling guess, most of the contradicting passages rank below it, under a passage about a ball thrown straight up. For the slow throw no passage decides the claim at any rank."
+#| fig-status: simulated
+#| fig-alt: "Three stacked plots of score against the rank of the passage, one for each claim, with a dashed vertical line after the third rank. In the top plot a filled circle has the highest score by far and a second filled circle sits at the third rank; the rest are open circles falling towards zero. In the middle plot every marker is an open circle. In the bottom plot the first rank is an open circle, a cross sits at the second rank, and the other crosses lie to the right of the dashed line, mixed with open circles."
+result.show("fig-retrieval-ranks")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_retrieval_ranks, figure=True)
+```
+
+Every score is the build's TF-IDF computation on the quoted text; the labels
+are the annotations. For the replication's claim the search works: its
+recall at the cut-off is `{python} result["recall-replication"]`, and its
+first passage, `{python} result["top-replication"]`, is the supporting
+passage of the specification lesson's exercise, which shares the
+claim's words: "bracket", "best angle", "below", and the speed. For the
+scaling guess it fails: its recall is `{python} result["recall-no-change"]`, and its
+first passage is `{python} result["top-no-change"]`, about a ball thrown
+straight up, which shares "ball", "down", and little else. The claim says
+"forty-five degrees"; the passages that contradict it say "flatter",
+"lower", "below the predicted bound", and "$45^\circ$", and only one of
+them writes "forty-five degrees".
+
+[At a cut-off of three passages, the lexical baseline finds every passage
+that decides the replication's claim and
+`{python} result["found-no-change"]` of the
+`{python} result["decisive-no-change"]` that decide the scaling
+guess.]{.claim type="numerically-verified" scope="the corpus and
+the three claims of this page, TF-IDF with cosine similarity, no stemming"
+evidence="retrieval-ranks"} For the slow throw, its first passage is
+`{python} result["top-slow-throw"]`, about the usual speed: the search is
+drawn to the passages that share the claim's words, and none of them is
+about a slow throw. Its recall there is "`{python} result["recall-slow-throw"]`":
+the annotations hold no deciding passage, so there is nothing a search
+could find or miss.
+
+### The review log
+
+Everything a search proposes is logged; nothing is accepted by the program.
+
+```{python}
+#| label: review-log
+#| echo: false
+result.table("review-log")
+```
+
+Every passage the search proposed has been read, so each carries the label
+of the annotations. The last entry has not: the paper the register's own
+search turned up is waiting for a person to open it, and until then it is
+not evidence for or against anything on this page, whatever its title
+promises.
+
+### The evidence map, and the slow throw
+
+```{python}
+#| label: evidence-map
+#| echo: false
+result.table("evidence-map")
+```
+
+The map links each claim to the passages that decide it and to the
+conditions each holds under, and through the assumption "quadratic drag" to
+the register source reviewed for it. The replication's claim is answered in
+the corpus, by the lesson it replicates. The scaling guess is contradicted
+from `{python} result["no-change-lessons"]` lessons. For the slow throw the map says
+"`{python} result["slow-novelty"]`".
+
+That is not "new". The projectile lesson's passage on the ratio of the
+launch speed to the terminal speed already says which way the answer goes
+for a slow ball: it hardly notices the air. The passage is insufficient for
+the slow throw's bound, because it gives a direction and no number, so the
+contribution of the slow-throw plan is the number, not the idea. And beyond
+the corpus, the search has a measured recall of
+`{python} result["recall-no-change"]` on a claim whose answers are known,
+and the corpus holds `{python} result["lessons"]` lessons of one site. [The search of this corpus
+finds no passage that decides the slow-throw claim, which shows that this
+corpus, searched this way, does not answer it, and not that the claim is
+new.]{.claim type="numerically-verified" scope="the corpus and the
+retrieval of this page" evidence="evidence-map"}
+
+We began with three claims and two temptations. Read with their
+assumptions, the passages support the replication, refute the scaling
+guess many times over, and leave the slow throw undecided; the retrieval
+found what shared the claims' words and missed what was phrased otherwise;
+the one source nobody had read stayed in the log. What the investigation
+can now say about the slow throw is narrow and exact: answered by its own
+plan for the simulated ball, anticipated in direction by the projectile
+lesson, and not found decided in a corpus whose limits are stated.
+
+## Limits {#limits}
+
+- **A small corpus of one site.** `{python} result["passages"]` passages
+  from `{python} result["lessons"]` lessons. The method scales; the conclusions do not, and nothing here says what the
+  wider literature holds.
+- **One annotator.** The readings and the direct labels were written by
+  the same person, who also wrote the claims. Their agreement shows
+  consistency, not correctness; agreement between independent annotators
+  is not measured.
+- **Readings simplify.** Each passage is reduced to a quantity, three
+  conditions, and a bound. A passage that qualifies its statement, or
+  states it for a range of speeds, loses detail in the reading, and the
+  label inherits the loss.
+- **A lexical baseline.** Stemming, synonyms, numbers written as words, or
+  a learned retrieval would change the ranks. A retrieval integration
+  would have to be compared with this baseline on the same annotated
+  claims before its results are trusted; none is built here.
+- **Passages are verified; sources are not all read.** The test checks
+  that every quotation stands on its page. The register source is trusted
+  for the one statement it was reviewed for, and the proposal is not
+  trusted at all.
+
+::: {.exercise .self-check}
+A search of a large database returns nothing for a research question. The
+author writes in the introduction that "to our knowledge, this question has
+not been studied". What would have to be reported alongside that sentence
+for a reader to know what it is worth?
+
+::: {.solution}
+What was searched (which databases, which years, which kinds of source),
+how (the queries, and whether numbers, synonyms, and other phrasings were
+tried), and how well that search finds what it should: its recall on
+questions whose answers are known to be in the database. With those, the
+sentence becomes "this search, with this recall, did not find it", which a
+reader can weigh. Without them it reports the author's knowledge, which is
+exactly what a search was supposed to go beyond. And a search that found
+the direction but not the number, as for the slow throw here, should say
+that too: the contribution is then the number.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A claim of your own.** Write the claim "Without drag the best launch
+angle of the tennis ball thrown at 25 m/s lies above 44 degrees" as a
+statement in the terms of the readings, and predict which passages support
+it, which contradict it, and which are insufficient. Then compute the
+labels.
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment, region="without-drag")
+```
+
+```{python}
+#| echo: false
+result.table("without-drag")
+```
+
+Three passages support it, every one of them about the throw without air:
+the specification lesson's run without drag, and the two statements that
+the answer without drag is forty-five degrees. None contradicts it. The
+passages that were decisive for the claims with drag are now all
+insufficient, by their assumption: the labels belong to the pair of a
+claim and a passage, not to the passage.
+:::
+:::
+
+::: {.exercise}
+**Rewrite the query.** The search missed most of the passages that
+contradict the scaling guess because they use other words. Rewrite the
+query in the words the passages use ("flatter", "$45^\circ$", "lower") and
+search again. Does the recall at the same cut-off improve, and is the
+search now good enough to report an empty result?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment, region="rewritten")
+```
+
+The rewritten query finds `{python} result["rewritten-found"]` of the
+`{python} result["decisive-no-change"]` deciding passages in its first
+three, a recall of `{python} result["rewritten-recall"]`. It helps, because
+the words now match, and it is still far from finding what is there.
+Rewriting a query after seeing which passages it should find is also a way
+of tuning the search to the answer: the recall it reaches on this claim
+says little about the next one. An empty result would still need the
+corpus and the recall stated beside it.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/research/corpus.py",
+        "src/pbc/research/literature.py",
+        "src/pbc/mechanics/experiments/literature_and_evidence_maps.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_research_literature.py",
+        "tests/unit/test_literature_and_evidence_maps_experiment.py",
+    ],
+)
+```

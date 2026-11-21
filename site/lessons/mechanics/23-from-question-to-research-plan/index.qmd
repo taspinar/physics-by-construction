@@ -1,0 +1,464 @@
+---
+title: "From a question or publication to a research plan"
+description: >-
+  A replication of a published result about the thrown tennis ball and an
+  original question from the idea archive are written as research plans
+  before anything runs: hypotheses, a positive control and a baseline,
+  budgets, stopping conditions, withheld tests, and success criteria. A
+  check refuses a plan without withheld tests or stopping conditions, the
+  scripted route executes the rest, and a change after the freeze is
+  reported as a deviation.
+lesson:
+  id: from-question-to-research-plan
+  strand: mechanics
+  order: 23
+  difficulty: 3
+  course: mechanics
+  slot: RR2
+  methods: [simulation]
+  outcomes:
+    - Scope a replication of a published result and an original investigation as research plans declared before execution
+    - Declare hypotheses, a positive control, a baseline, budgets, stopping conditions, withheld tests, and success criteria, and say what each protects against
+    - Say why a plan without withheld tests or without stopping conditions is refused before anything runs
+    - Tell the result of a plan from the result of a plan changed after it ran
+  related: []
+  format: 2
+  preview: fig-plan-results
+  experiment: pbc.mechanics.experiments.from_question_to_research_plan
+  prerequisites:
+    lessons: [generating-and-selecting-research-ideas, experiment-specification]
+    outside:
+      - "Python: reading a dictionary and a short function"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
+from pbc.mechanics.experiments import from_question_to_research_plan as experiment
+from pbc.research import plan
+
+result = experiment.run()
+lesson_header()
+```
+
+The idea archive of the previous lesson selected a question: is the best
+launch angle of the slow throw within two degrees of forty-five? It also
+deferred another, the specification lesson's own result, until "before an
+extension builds on" it. The slow throw is such an extension. So two
+investigations are due: a replication of a published result, and an
+original question. Before either runs, what has to be fixed so that its
+result can count?
+
+A specification already fixes a lot: the hypothesis, the actions, the
+success criteria, and a budget. It does not say how anyone would know that
+the search found the right answer, other than by the search's own record;
+it does not say what would show that the method itself is broken; and its
+budget covers one route, not an investigation. A research plan adds those
+parts, and it is written and frozen before the first run, so that no result
+can shape it.
+
+**What kind of evidence the page shows:** every run is made by the scripted
+route of the specification lesson, through the laboratory's allowlist, and
+computed by the build. The plans are written examples. No model is run; the
+"publication" replicated is a lesson of this site, so its procedure and its
+published result are both at hand.
+
+## Assumptions
+
+1. **The specification lesson's assumptions hold.** One best angle inside
+   the range, a first scan fine enough to see it, and a laboratory whose
+   units are true. A plan inherits every assumption of the specification
+   it contains.
+2. **The control's answer is known independently.** Without drag the best
+   angle is forty-five degrees, from a formula. A control whose stated
+   answer is wrong stops a sound plan, as an exercise shows.
+3. **A finer time step is a test the search never saw.** The route uses
+   the specification's time step and half of it. The withheld test uses a
+   quarter, the smallest the laboratory allows. A finer step of the same
+   simulation is a check of the numerics, not of the physics: it cannot
+   reveal that the drag law is wrong.
+4. **Withheld means withheld from the search, not secret.** The plan is
+   plain data in the repository. What makes the test withheld is that the
+   route is given nothing of it and it runs once, after the route has
+   stopped.
+5. **The published procedure is complete.** The replication repeats the
+   specification as the lesson published it. A publication that leaves out
+   a part of its procedure cannot be replicated this way.
+
+## A plan in seven parts {#explanation}
+
+A **replication** starts from a published claim and its procedure, and asks
+whether the procedure, carried out again, gives the claim again. An
+**original investigation** starts from a question nobody has answered in
+the sources at hand. The two need the same plan, with one difference: a
+replication names the result it is compared with.
+
+1. **Kind and source.** Replication or original; the reference and the
+   statement the plan starts from; for a replication, the verdict as
+   published. The replication compares with the publication, not with what
+   the replicator expects.
+2. **The specification.** The seven parts of the specification lesson,
+   checked by the same `parse`: the question, the hypothesis with its
+   prediction, the variables, the observable, the actions, the criteria of
+   the route, and its budget.
+3. **Baselines.** Two controls, each for one thing that could go wrong. A
+   **positive control** runs the same specification where the answer is
+   known: the throw without drag, whose best angle is forty-five degrees.
+   If the route misses a known answer, a verdict about the unknown one
+   means nothing. A **method baseline** spends the same number of runs on
+   an even grid of angles: it shows what the route's refinement adds.
+4. **Withheld tests.** A test the search never sees: here a scan of
+   two degrees either side of the route's best angle, in eighths of the
+   resolution, at a time step the route never uses. It is opened once,
+   after the route has stopped. It passes when its best angle lies inside
+   the route's bracket.
+5. **Success criteria.** The route's criteria met, the control finds its
+   known answer, every withheld test passes, and for a replication the
+   published verdict is reproduced. A verdict is given only when every
+   criterion is met.
+6. **Stopping conditions.** A budget of runs for all stages together, and
+   whether a failed control ends the plan. The route has a budget of its
+   own; the plan's budget must cover the control, the route, the baseline,
+   and the withheld tests at their largest.
+7. The plan is **frozen**: its digest is written down before the first run.
+   It is not a part of the data but what happens to it.
+
+Two refusals carry most of the weight. Without a withheld test, the only
+check of the route's answer is the route's own record, which can be wrong
+in ways it cannot see. Without a stopping condition for the whole plan,
+how long the investigation goes on is decided by how its results look.
+
+```{python}
+#| label: fig-plan-stages
+#| echo: false
+#| fig-cap: "The stages of a plan. A plan that fails the check is refused with every problem before anything runs; an accepted plan is frozen by its digest; a failed control stops it; the withheld tests are opened once, after the route and the baseline; and a plan executed that differs from its digest goes to the deviation record, not to the verdict."
+#| fig-status: conceptual
+#| fig-alt: "A diagram. Four boxes in a row: plan written, check, frozen with its digest, and positive control, joined by arrows. A dashed arrow from check points down to the words refused with every problem. A dashed arrow from positive control points to failed, stop; a solid arrow labelled passed goes down to route and grid baseline, then left to withheld tests opened once, then left to criteria and verdict. A dotted arrow from criteria and verdict, labelled the plan executed differs from its digest, points down to a box named deviation record."
+result.show("fig-plan-stages")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_plan_stages, figure=True)
+```
+
+The diagram is a sketch and computes nothing. It answers the question of
+order: everything that could be changed by a result is fixed to the left of
+the freeze, and everything to its right only reads what was fixed.
+
+## Code
+
+### The two plans
+
+The replication repeats the specification lesson's specification and names
+its published claim and verdict:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="replication")
+```
+
+The original plan changes the source, takes the selected idea's
+specification, and drops the criterion that only a replication has:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="original")
+```
+
+### What makes a test withheld
+
+The rule is short. The route uses the specification's numerical setting
+and, when the answer must be stable, half of it; a test at either repeats
+what the search saw. A test must also stay within the action's bounds and
+its own budget.
+
+```{python}
+#| echo: false
+excerpt(plan._withheld)
+```
+
+### The stopping conditions of the plan
+
+```{python}
+#| echo: false
+excerpt(plan._stopping)
+```
+
+`check` also adds up the stages at their largest, the control and the route
+at their budgets, the grid, and every withheld test, and refuses a plan
+whose budget does not cover them.
+
+### Execution
+
+The control first; then the route of the specification lesson, unchanged;
+then the grid; then each withheld test, once. The record says whether the
+plan executed is the plan whose digest was frozen.
+
+```{python}
+#| echo: false
+excerpt(plan.execute)
+```
+
+## Worked examples
+
+### Three plans that never run
+
+Take the original plan and remove its withheld test, or its stopping
+conditions, or move the withheld test to half the specification's time
+step:
+
+```{python}
+#| echo: false
+excerpt(experiment.seen_by_the_search)
+```
+
+```{python}
+#| label: plan-refusals
+#| echo: false
+result.table("refusals")
+```
+
+[A plan without a withheld test, a plan without stopping conditions, and a
+plan whose withheld test uses a time step the route uses are each refused
+before any run, with the part and the problem named.]{.claim
+type="numerically-verified" scope="the original plan of this page and the
+laboratory of the specification lesson" evidence="plan-refusals"} The third
+is the subtle one: the test is still there and still finer than the route's
+own step, but the route checks its answer at exactly that step, so the
+test would repeat what the search already saw.
+
+### The replication
+
+```{python}
+#| label: replication-stages
+#| echo: false
+result.table("replication-stages")
+```
+
+The plan stopped with "`{python} result["replication-status"]`" after
+`{python} result["replication-runs"]` runs of all stages:
+`{python} result["replication-criteria"]`. Its verdict is
+"`{python} result["replication-verdict"]`", the verdict the specification
+lesson published, with the bracket
+`{python} result["replication-low"]` to
+`{python} result["replication-high"]` degrees. The route's runs are
+`{python} result["reproduced"]` to those of the published specification.
+
+[The replication reproduces the published verdict, its control finds the
+known answer, and its withheld test, at a time step the route never used,
+puts the best angle inside the route's bracket.]{.claim
+type="numerically-verified" scope="the simulated tennis ball with
+quadratic drag at 25 m/s, the specification lesson's procedure, explicit
+Euler" evidence="replication-stages"} What this adds to the publication is
+modest and worth stating exactly. That the runs are identical shows that
+the published record is complete enough to repeat. The withheld test adds
+a check the publication made only after the fact, now declared in advance.
+Neither shows that the simulated ball behaves like a real one.
+
+### The original question
+
+Before reading the table, decide what could go wrong here. The control,
+the route, and the withheld test each could fail: which failure would mean
+that the hypothesis is wrong, which that the method is broken, and which
+that the route's answer is not to be trusted?
+
+```{python}
+#| label: original-stages
+#| echo: false
+result.table("original-stages")
+```
+
+None failed. The plan stopped with "`{python} result["original-status"]`"
+after `{python} result["original-runs"]` runs of all stages:
+`{python} result["original-criteria"]`. The route's bracket is
+`{python} result["original-low"]` to `{python} result["original-high"]`
+degrees, above the predicted bound of `{python} result["original-bound"]`
+degrees, and the verdict is "`{python} result["original-verdict"]`".
+[At the slow throw the best angle lies above the predicted bound, and
+every success criterion of the plan, declared before the first run, is
+met.]{.claim type="numerically-verified" scope="the simulated tennis ball
+with quadratic drag at 10 m/s, explicit Euler at the specified time step,
+half of it, and a quarter of it" evidence="original-stages"}
+
+Answering the question in advance: a failed control would have meant that
+the route cannot find even a known answer, so nothing it says about the
+ball could be believed, and the plan would have stopped. A route that met
+its criteria with the bracket below the bound would have refuted the
+hypothesis: a result, not a failure. A withheld test outside the bracket
+would have meant that the route's answer depends on the time step it
+happened to use; the plan would have given no verdict.
+
+```{python}
+#| label: fig-plan-results
+#| echo: false
+#| fig-cap: "The runs of both plans. The route's runs close in on the maximum, the grid baseline spends the same number of runs evenly, and the withheld test, run once after the route at a finer time step, peaks inside the route's bracket (the band) in both plans. The bracket lies below the bound in the replication and above it at the slow throw."
+#| fig-status: simulated
+#| fig-alt: "Two stacked plots of range in metres against launch angle in degrees, the upper for the replication and the lower for the original question. In each, open squares of the grid baseline and filled circles of the route trace a curve that rises to a flat maximum and falls; the route's circles crowd near the maximum. Small triangles of the withheld test form a short dense arc at the top. A narrow shaded band marks the route's bracket and a dotted vertical line the predicted bound: in the upper plot the band is left of the line, in the lower plot right of it."
+result.show("fig-plan-results")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_plan_results, figure=True)
+```
+
+Every point is a run through the allowlist; the figure shows simulated
+throws and nothing measured. The grid baseline, with as many runs as the
+route, spaces its angles `{python} result["grid-spacing"]` degrees apart
+and puts the slow throw's best angle at
+`{python} result["original-grid-best"]` degrees, outside the route's
+bracket: the same budget spent evenly cannot resolve the answer to the
+resolution the plan asked for, which is what the route's refinement is
+for. The withheld test ran at `{python} result["withheld-dt"]` s, the
+route at `{python} result["route-dt"]` s and half of it.
+
+### A deviation
+
+The result is in, and the whole bracket lies above the bound. It is
+tempting to move the bound up towards the result, here to forty-three and a
+half degrees, and report a stronger confirmed claim. The plan as changed
+runs like any other:
+
+```{python}
+#| echo: false
+excerpt(experiment.moved_prediction)
+```
+
+```{python}
+#| label: plan-deviation
+#| echo: false
+result.table("deviation")
+```
+
+The changed plan's route gives the verdict
+"`{python} result["deviation-verdict"]`" for the bound of
+`{python} result["deviation-bound"]` degrees, and the record's status is
+"`{python} result["deviation-status"]`". [A plan changed after its result
+is executed against the digest frozen before the first run and reported as
+a deviation, not as the plan's result.]{.claim type="numerically-verified"
+scope="the original plan of this page with its predicted bound moved"
+evidence="plan-deviation"} The sharper claim may well be true. It was
+not tested by a plan written before the result, and the record says so.
+
+We began with two questions and a specification for each. Written as plans,
+each gained a control that can tell a broken method from a wrong
+hypothesis, a baseline that shows what the method adds, a test the search
+never saw, and a budget for the whole; both were frozen before they ran,
+and both met every criterion. The replication shows that the published
+result can be repeated from its record; the original plan answers the
+selected question for the simulated ball. Whether anyone has answered it
+before, and what the existing sources say about both claims, is the
+subject of the lesson *Literature, novelty assessment, and evidence maps*.
+
+## Limits {#limits}
+
+- **A replication of a simulation by the same simulation.** Identical runs
+  show a complete record, not an independent confirmation. A replication
+  with another integrator, or of a measured result, could disagree for
+  reasons that teach something; this one cannot.
+- **Withheld from the search, not from the author.** The withheld test is
+  in the repository, and its author could have chosen a time step at which
+  it was known to pass. Freezing the plan before the run limits that; it
+  does not exclude it.
+- **One kind of withheld test.** A finer time step checks the numerics.
+  Withheld tests of the physics, such as predictions at settings the
+  search never explored, would need a question that makes such
+  predictions.
+- **The control tests the route, not the drag law.** A positive control
+  without drag finds that the route can find a known optimum. It cannot
+  find that quadratic drag is the wrong law for a tennis ball.
+- **A digest records; it does not enforce.** The deviation is reported
+  because the frozen digest was kept. A plan frozen nowhere has nothing to
+  deviate from.
+
+::: {.exercise .self-check}
+A replication repeats a published procedure, and every run comes out
+identical to the published ones. A colleague says the published claim is
+now confirmed twice. What has the replication shown, and what would it
+take to make the confirmation independent?
+
+::: {.solution}
+It has shown that the published record is complete: carried out again
+from what was published, the procedure gives the same runs, so nothing
+essential was left out of the paper. It has not added a second, independent
+test of the claim, because the same procedure on the same simulation must
+give the same numbers; agreement was certain before it ran. An independent
+confirmation varies something the claim should not depend on and that
+could have gone wrong: another integrator or time step (the withheld test
+does a little of this), another implementation of the drag, or, for a
+claim about a real ball, a measurement. Each such variation is a test that
+could have disagreed.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A plan of your own.** Write the plan for the idea the archive deferred
+in favour of the slow throw: the same question at 15 m/s. Keep the
+prediction "above forty-three degrees". Before you run it, look at the two
+plans of this page and say which outcome you expect.
+
+::: {.solution}
+The plan changes only the source and the speed:
+
+```{python}
+#| echo: false
+excerpt(experiment.medium_throw)
+```
+
+It stopped with "`{python} result["medium-status"]`":
+`{python} result["medium-criteria"]`. The bracket is
+`{python} result["medium-low"]` to `{python} result["medium-high"]`
+degrees and the verdict is "`{python} result["medium-verdict"]`": the
+bound lies inside the bracket. Every criterion was met, so this is not a
+failure of the plan. The plan answered its question as precisely as it
+asked it, and the answer is that a bound so close to the result cannot be
+decided at a resolution of one degree. A finer resolution is a new plan,
+written before it runs.
+:::
+:::
+
+::: {.exercise}
+**A wrong control.** Change the control's stated answer to forty-two
+degrees, as if the author had misremembered it, and run the plan. What
+happens, and what does it show about the order of the stages?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.wrong_control)
+```
+
+The plan stopped with "`{python} result["control-status"]`" after
+`{python} result["control-runs"]` runs, before the route ran, and gives
+"`{python} result["control-verdict"]`". The route itself is fine, and the
+stop costs the investigation. That is the price of a stopping condition
+that trusts the control: a control is only as good as its known answer,
+and it runs first precisely so that a broken method is caught before its
+results are read. The repair is a new plan with the right answer, and the
+record shows why it was needed.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/research/plan.py",
+        "src/pbc/research/ideas.py",
+        "src/pbc/agents/specification.py",
+        "src/pbc/mechanics/experiments/experiment_specification.py",
+        "src/pbc/mechanics/experiments/generating_and_selecting_research_ideas.py",
+        "src/pbc/mechanics/experiments/from_question_to_research_plan.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_research_plan.py",
+        "tests/unit/test_from_question_to_research_plan_experiment.py",
+    ],
+)
+```
