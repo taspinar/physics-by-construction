@@ -44,6 +44,11 @@ def test_the_command_writes_what_the_page_shows(results):
 def test_the_checks_remove_the_three_ideas_for_their_stated_reasons(found):
     assert not found["spin"].feasible
     assert found["spin"].falsifiable is None
+    # The action the page names as the reason is the one the refusal names.
+    (action,) = lab.SPIN["actions"]
+    assert found["spin"].problems[0] == (
+        f"actions: {action!r} is not an action of the laboratory"
+    )
     assert found["below-sixty"].feasible and not found["below-sixty"].falsifiable
     hundredth = found["hundredth"]
     assert hundredth.falsifiable and (hundredth.runs, hundredth.budget) == (32, 20)

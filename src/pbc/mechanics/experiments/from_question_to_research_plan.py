@@ -156,8 +156,11 @@ def wrong_control() -> dict:
     return changed
 
 
-def stage_table(experiment: Experiment, name: str, record: PlanRecord) -> None:
-    """Record what each stage of ``record`` did, as the table ``name``."""
+def stage_table(
+    experiment: Experiment, name: str, record: PlanRecord, plan: str
+) -> None:
+    """Record what each stage of ``record`` did, as the table ``name``; the
+    caption names the ``plan``, so no two tables of the page share one."""
     rows = [
         (
             "positive control",
@@ -195,8 +198,8 @@ def stage_table(experiment: Experiment, name: str, record: PlanRecord) -> None:
             ("high", "deg", ".3f"),
             ("outcome", "", ""),
         ],
-        "Each stage of the plan in the order it ran: the bracket of the"
-        " control and of the route (low and high), the best angle of the grid"
+        f"Each stage of the {plan} plan in the order it ran: the bracket of"
+        " the control and of the route (low and high), the best angle of the grid"
         " and of the withheld test, and what each found; angles to a"
         " thousandth of a degree.",
     )
@@ -363,7 +366,7 @@ def run() -> Experiment:
         " the problem the check names.",
     )
     replication = run_plan(REPLICATION)
-    stage_table(experiment, "replication-stages", replication)
+    stage_table(experiment, "replication-stages", replication, "replication")
     outcome(experiment, "replication", replication)
     # The published record: SA1's specification, run as SA1 runs it.
     lab = laboratory()
@@ -374,7 +377,7 @@ def run() -> Experiment:
     )
 
     original = run_plan(ORIGINAL)
-    stage_table(experiment, "original-stages", original)
+    stage_table(experiment, "original-stages", original, "original")
     outcome(experiment, "original", original)
     experiment.number("original-bound", record_bound(original), "g")
     experiment.number(

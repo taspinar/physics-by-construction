@@ -446,7 +446,10 @@ def run() -> Experiment:
     experiment.number("ideas", len(IDEAS), "d")
     experiment.number("removed", sum(not a.passed for a in found.values()), "d")
     experiment.number("by-self-rating", by_self_rating())
-    experiment.number("spin-problem", found["spin"].problems[0])
+    # The prose reads the action the refusal names, not the refusal: its
+    # quotation marks would be set as typographic quotes there; the archive
+    # table shows the refusal as written.
+    experiment.number("spin-action", SPIN["actions"][0])
     experiment.number("hundredth-runs", found["hundredth"].runs, "d")
     experiment.number("hundredth-budget", found["hundredth"].budget, "d")
 

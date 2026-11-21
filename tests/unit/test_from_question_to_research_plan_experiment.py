@@ -41,6 +41,15 @@ def test_the_command_writes_what_the_page_shows(results):
     assert_the_page_and_the_results_agree(PAGE, *results)
 
 
+def test_no_two_tables_share_a_caption(results):
+    # The page's tables are found by their captions: the stage tables of the
+    # two plans name their plan, or the second would stand for the first.
+    captions = [" ".join(t["caption"].split()) for t in results[1]["tables"].values()]
+    assert len(set(captions)) == len(captions)
+    assert "replication plan" in results[1]["tables"]["replication-stages"]["caption"]
+    assert "original plan" in results[1]["tables"]["original-stages"]["caption"]
+
+
 def test_both_plans_have_the_seven_parts():
     assert tuple(lab.REPLICATION) == research.PLAN_PARTS
     assert tuple(lab.ORIGINAL) == research.PLAN_PARTS

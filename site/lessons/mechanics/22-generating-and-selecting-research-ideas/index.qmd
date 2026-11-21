@@ -245,7 +245,8 @@ result.table("self-ratings")
 The checks remove `{python} result["removed"]` of the
 `{python} result["ideas"]` ideas, and their proposers rated all of them
 four or five for feasibility. The idea with the highest ratings of all, `spin`, rated
-five for feasibility, fails the first check: "`{python} result["spin-problem"]`".
+five for feasibility, fails the first check: its draft asks for the action
+`{python} result["spin-action"]`, which is not an action of the laboratory.
 The laboratory simulates a ball without spin, and no amount of confidence
 adds an action to it. `below-sixty`, rated five for feasibility too, can be
 run; it cannot fail, which the proposer did not ask. `hundredth` needs
