@@ -1,0 +1,508 @@
+---
+title: "Running adaptive and resumable measurement campaigns"
+description: >-
+  A campaign measures the resonance of the RLC bench point by point with the
+  frequency-response procedure of the physics lab: a sweep, local refinement
+  by bisection, and repeats, each next point linked to the measurements it
+  follows from. The campaign is stopped halfway, cleaned up, recorded in an
+  evidence ledger, and resumed only from a checkpoint that passes five checks.
+lesson:
+  id: measurement-campaigns
+  strand: electromagnetism
+  order: 12
+  difficulty: 2
+  course: electromagnetism
+  slot: SA6
+  methods: [simulation]
+  outcomes:
+    - Run a sweep, repeats, and local refinement of a known measurement protocol, and compare an adaptive campaign with a fixed sweep of as many points
+    - Link every suggested measurement to the measurements it follows from, and refuse one that follows from a measurement that was not made
+    - Handle an interruption with cleanup, a checkpoint, and an incomplete run recorded as such
+    - Resume a campaign only from a valid checkpoint, and say why each invalid one is refused
+  related: [agent-experiment, experimental-design-agent]
+  format: 2
+  preview: fig-campaign-steps
+  experiment: pbc.electromagnetism.experiments.measurement_campaigns
+  prerequisites:
+    lessons: [simulators-and-instruments, rlc-circuits-and-resonance]
+    outside:
+      - "Numerical methods: bisection, halving an interval that contains a root"
+      - "Statistics: the standard error of a mean"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
+from pbc.electromagnetism import campaign
+from pbc.electromagnetism.experiments import measurement_campaigns as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+The lesson on simulators and instruments measured the series RLC circuit at
+a list of frequencies chosen in advance, one point after another. A real
+measurement session rarely goes so: the first points tell you where the
+interesting part is, you go back and measure there more closely, you repeat
+a reading you doubt, and at some point somebody needs the bench, or the
+program crashes, and the session stops halfway. The question of this lesson
+is what a program must do so that such a session, a *campaign*, stays a
+measurement you can trust: how it decides where to measure next, how each
+decision is tied to the data it came from, and what has to be true of a
+saved state before the campaign may continue from it.
+
+The protocol itself is not in question. It is the frequency-response
+protocol of the physics lab: drive the circuit at one frequency, read the
+gain and the phase of the capacitor voltage against the source, find the
+resonance $f_0$ where the phase crosses $-90°$, and read the quality factor
+$Q$ from the gain there. What a campaign adds is the order of the points,
+the bookkeeping, and the stops.
+
+**What kind of evidence this page shows.** Every measurement on it is made
+by the build, now, on the simulated bench of the instrument contract: a
+model of the circuit with seeded noise behind the same guarded instrument a
+real oscilloscope would sit behind. Nothing here was measured on a real
+circuit, and the closed form of the circuit, which the campaign never sees,
+is the truth it is checked against: $f_0 =$ `{python} result["f0"]` Hz and
+$Q =$ `{python} result["q"]`.
+
+## Assumptions
+
+1. **The protocol is known and fixed.** The quantity measured, the
+   estimator, and the stopping rule are decided before the first
+   measurement and written in a plan. A campaign that changes its plan
+   halfway is a new campaign.
+2. **The resonance is bracketed by the sweep.** The plan's range,
+   `{python} result["low"]` Hz to `{python} result["high"]` Hz, contains
+   $f_0$, and the phase crosses $-90°$ once in it. Bisection needs a bracket
+   to start from.
+3. **The bench does not change between segments.** A resumed campaign
+   continues on the same circuit with the same probes. This is checked from
+   the bench's identity, not assumed.
+4. **Noise is independent from one acquisition to the next.** The simulated
+   bench draws new Gaussian noise for every acquisition, so repeats estimate
+   the noise; a resumed segment draws new noise too.
+5. **A stop can come at any moment.** The operator, a timeout, or a failure
+   can halt the instrument during an acquisition. Nothing the program does
+   after the stop may switch the output on again.
+
+## A campaign, step by step {#explanation}
+
+One point is measured as the physics lab measures it. The instrument sets
+the source to an amplitude and a frequency; the acquisition starts after the
+switching transient has decayed and spans a whole number of periods, so
+that the phasor of each channel is exact for a sinusoid; the gain and the
+phase are those of the response against the source.
+
+For the series circuit the phase of $V_C / V_S$ is exactly $-90°$ at the
+natural frequency, and the gain there is $Q$. Between two measured points
+whose phases lie on either side of $-90°$, the protocol estimates $f_0$ by a
+straight line in the phase against $\log f$, and $Q$ from the gains of the
+two points through the second-order response
+$|H| = 1 / \sqrt{(1 - x^2)^2 + (x/Q)^2}$ with $x = f / f_0$. The closer the
+two points, the less that straight line matters. So the whole job of a
+campaign is to put two points as close together as it can on either side of
+$-90°$, and to know how well it knows their phases.
+
+The campaign does it in three stages:
+
+- a **sweep** of `{python} result["sweep-points"]` frequencies spaced evenly
+  in $\log f$ over the plan's range, which finds the bracket;
+- **local refinement**: measure at the middle (in $\log f$) of the bracket,
+  keep the half in which the phase still crosses $-90°$, and repeat, until
+  the bracket is narrower than `{python} result["target-width"]` per cent;
+- **repeats**: measure each end of the final bracket until it has been
+  measured `{python} result["repeats"]` times, so that the spread of the
+  phases gives the uncertainty of $f_0$.
+
+This is a classical adaptive rule: bisection, with no model of the circuit
+and no learning. It is the baseline that any cleverer way of choosing the
+next point, an agent's included, has to beat at the same number of
+measurements.
+
+### Suggestions that name their evidence
+
+The rule is written as a function that looks at the measurements made so
+far and suggests the next one. Each suggestion carries its reason and the
+ids of the measurements it follows from, its *basis*. A refinement near the
+resonance is only as good as the two measurements that put the bracket
+there; if one of them was lost, or never made, the suggestion has no
+ground. So before any suggestion is measured, it is checked against the
+measurements the campaign actually holds. The check does not judge whether
+the suggestion is wise. It judges whether the evidence it claims to follow
+from exists, and a suggestion from a person, a script, or a language model
+passes through the same check.
+
+## Code
+
+### One point
+
+```{python}
+#| echo: false
+excerpt(campaign.measure_point)
+```
+
+### The rule and its suggestions
+
+The adaptive rule, stage by stage; each suggestion names its basis:
+
+```{python}
+#| echo: false
+excerpt(campaign.suggest)
+```
+
+Before any suggestion is measured, it is checked against the measurements
+the campaign holds:
+
+```{python}
+#| echo: false
+excerpt(campaign.check_suggestion)
+```
+
+### The campaign loop
+
+The loop asks for a suggestion, checks it, measures it, and writes a
+checkpoint after every measurement. A stop of the instrument ends it, and
+whatever happens the output is switched off before the segment is recorded:
+
+```{python}
+#| echo: false
+excerpt(campaign.run_segment)
+```
+
+Three things in it carry the rest of the lesson. The checkpoint is written
+after a measurement is complete, never during one. A measurement that a
+stop interrupts is remembered only as the suggestion that was lost, never
+as data. And the `finally` clause switches the output off on every path out
+of the loop, also when an error the loop did not expect is on its way up.
+
+## Worked examples
+
+### The uninterrupted campaign
+
+```{python}
+#| label: campaign-measurements
+#| echo: false
+result.table("campaign-measurements")
+```
+
+The campaign used `{python} result["measurements"]` of its budget of
+`{python} result["plan-budget"]` measurements and ended
+`{python} result["full-status"]`. The column "follows from" is the trail of
+the refinement: each midpoint names the two ends of the bracket it halved,
+and each repeat names the earlier measurements at its frequency.
+
+```{python}
+#| label: fig-campaign-steps
+#| echo: false
+#| fig-cap: "The order of a campaign. The sweep spreads its points over the whole range; the refinement closes in on the resonance, halving the bracket at each step; the repeats measure the two ends of the final bracket again."
+#| fig-status: simulated
+#| fig-alt: "A scatter plot of frequency in kilohertz, on a logarithmic axis, against the measurement number. Circles for the sweep climb from the lowest to the highest frequency over the first points. Squares for the refinement then jump back and settle step by step onto a dotted horizontal line marking the resonance of the closed form, with shrinking distance. Triangles for the repeats sit on the line at the end."
+result.show("fig-campaign-steps")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_campaign_steps, figure=True)
+```
+
+The figure shows the measurements of the table and the resonance of the
+closed form as a reference; it computes nothing new. What it makes visible
+is where the effort goes: after the sweep, every measurement lands within
+a few per cent of $f_0$, and soon within a few parts in a thousand.
+
+The evaluator recomputes the estimates from the campaign's last checkpoint,
+as the ledger recorded it, and compares them with the closed form:
+
+```{python}
+#| label: campaign-result
+#| echo: false
+result.table("campaign-result")
+```
+
+[The campaign's $f_0$ agrees with the closed form of the circuit within
+about one standard error of the repeats, and its $Q$ within a few parts in
+a hundred thousand.]{.claim type="numerically-verified" scope="the simulated
+bench with its seeded noise, the plan of this page; a check of the campaign
+against the model, no measurement" evidence="campaign-result"} The standard
+error comes from the spread of the repeated phases, carried through the
+straight line between the two ends of the bracket. It is the noise of the
+bench, measured by the campaign, not a number assumed for it.
+
+### How much does adapting buy?
+
+A fixed sweep spends its points evenly, most of them far from the resonance.
+Before you look at the comparison, predict: with
+`{python} result["compare-at"]` measurements, how much smaller is the error
+of $f_0$ from the adaptive campaign than from an even sweep over the same
+range of as many points? Twice? Ten times? A thousand times?
+
+```{python}
+#| label: adaptive-vs-sweep
+#| echo: false
+result.table("adaptive-vs-sweep")
+```
+
+```{python}
+#| label: fig-adaptive-against-sweep
+#| echo: false
+#| fig-cap: "Spending measurements where they matter. The error of the resonance from a fixed sweep falls slowly as points are added; the adaptive campaign, which spends every point after the sweep on the bracket, reaches the noise of the bench within a few more measurements."
+#| fig-status: simulated
+#| fig-alt: "A line chart of the absolute relative error of the resonance frequency, on a logarithmic axis, against the number of measurements. The fixed sweep, solid with circles, falls gently. The adaptive campaign, dashed with squares, starts at the same point, where both are the same sweep, then drops steeply by several decades and flattens."
+result.show("fig-adaptive-against-sweep")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_adaptive_against_sweep, figure=True)
+```
+
+[With `{python} result["compare-at"]` measurements the adaptive campaign
+locates $f_0$ about `{python} result["ratio-at"]` times more accurately than
+a fixed sweep of as many points over the same range.]{.claim
+type="numerically-verified" scope="this simulated bench, its noise, and this
+plan; the factor depends on the range, the noise, and the target"
+evidence="adaptive-vs-sweep"} At the first row the two are the same
+measurements, the sweep itself. The adaptive error then falls by about a
+factor of two per measurement, the halving of the bracket, until it meets
+the noise of the bench, where it flattens: more refinement cannot beat the
+noise of the phases. The fixed sweep's error falls slowly, because each new
+point narrows the spacing everywhere, mostly far from the resonance.
+
+### An interruption
+
+Now the campaign is stopped. An operator presses stop while acquisition number
+`{python} result["stop-at"]` is running. The stop comes from
+outside the campaign, through the instrument, as it would on a bench:
+
+```{python}
+#| echo: false
+excerpt(experiment.interrupted_campaign, region="interrupted")
+```
+
+The segment ended `{python} result["first-status"]` after
+`{python} result["first-measurements"]` measurements. The measurement in
+flight, the refinement at `{python} result["lost-frequency"]` Hz, was not
+kept: the instrument refused to hand out an acquisition during which a stop
+arrived, and the campaign remembers it only as the suggestion that was
+lost. The output of the source after the cleanup is
+`{python} result["first-output"]`. The checkpoint holds the
+`{python} result["first-measurements"]` complete measurements, and the
+evaluator's ledger records the segment:
+
+```{python}
+#| label: fig-checkpoint-and-resume
+#| echo: false
+#| fig-cap: "What survives a stop. The checkpoint after the last complete measurement and the ledger's record of the segment, with the checkpoint's digest, are what a resume starts from; the measurement in flight is not kept. A resume first passes five checks, in order."
+#| fig-status: conceptual
+#| fig-alt: "A diagram. At the top, a box for segment one with its complete measurements, and an arrow to a box for the measurement in flight, marked stop and output off. Below the first box, a box for the checkpoint after the last complete measurement, written after every measurement; beside it a box for the ledger, holding segment one as inconclusive with the checkpoint's digest. A dashed arrow labelled not kept runs from the measurement in flight towards the ledger. At the bottom a wide box lists the resume checks recorded, unchanged, protocol, bench, and unfinished, then segment two continuing from the lost measurement."
+result.show("fig-checkpoint-and-resume")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_checkpoint_and_resume, figure=True)
+```
+
+The sketch shows no result; it answers the question the stop raises: what
+exactly does a later program have to go on? Two records, the checkpoint
+file and the ledger's entry for the segment, and nothing else.
+
+The ledger is that of the evidence contract of the physics lab: the
+segment is an *attempt* of the campaign, with the checkpoint as its
+artifact and the digest the checkpoint had when it was recorded. An
+interrupted segment is recorded as `inconclusive`: it ran, and the protocol
+cannot yet decide anything from it. It is not deleted, and it is not
+dressed up as a result. An incomplete run is reported as incomplete.
+
+### What makes a checkpoint valid
+
+A checkpoint is a file, and a file can be the wrong file. The resume makes
+five checks, in order, before it asks the instrument to do anything:
+
+```{python}
+#| echo: false
+excerpt(campaign.resume)
+```
+
+Each check closes one way a resume could produce a campaign that never
+happened. *Recorded*: only the latest checkpoint the ledger knows, so that
+an older copy cannot silently throw measurements away or repeat them.
+*Unchanged*: the file must have the digest the ledger recorded, so that an
+edited or truncated file is caught. *Protocol*: the checkpoint's plan must be
+the plan of the campaign being resumed, so that points chosen for one target
+are not finished under another. *Bench*: the device must be the one the
+checkpoint was written on. *Unfinished*: only a campaign whose last segment
+was stopped is continued; one that ended by itself, complete, with its budget
+spent, or without a bracket, is not.
+
+Here is each check failing, each on a copy of the interrupted campaign:
+
+```{python}
+#| label: refused-resumes
+#| echo: false
+result.table("refused-resumes")
+```
+
+[Every one of the five invalid checkpoints was refused by the check meant
+for it, and no call reached the bench in any of them.]{.claim
+type="numerically-verified" scope="the five cases of the table, on the
+simulated bench behind a call log; a unit test repeats them"
+evidence="refused-resumes"} The edited checkpoint is still a perfectly
+well-formed file with plausible numbers in it, which is why its content
+cannot be the test; only the digest the ledger holds tells it apart.
+
+### A valid resume
+
+The valid resume runs on a new instrument, as a restarted program would:
+
+```{python}
+#| echo: false
+excerpt(experiment.resumed_campaign, region="resumed")
+```
+
+The ledger now holds both segments, the second following the first:
+
+```{python}
+#| label: ledger
+#| echo: false
+result.table("ledger")
+```
+
+And the resumed campaign against the one that was never stopped:
+
+```{python}
+#| label: resumed-vs-uninterrupted
+#| echo: false
+result.table("resumed-vs-uninterrupted")
+```
+
+[The resumed campaign took its first measurements from the checkpoint,
+measured at the same frequencies as the uninterrupted one, and found $f_0$
+within `{python} result["f0-difference"]` Hz of it, inside the combined
+standard error of `{python} result["f0-combined-error"]` Hz.]{.claim
+type="numerically-verified" scope="the simulated bench with seeded noise;
+one interruption at the stated acquisition" evidence="resumed-vs-uninterrupted"}
+The frequencies agree because the rule is deterministic and the decisions
+of the bisection are far larger than the noise. The values do not agree
+exactly, and should not: after the checkpoint the bench was measured again,
+with new noise. A resume is not a replay.
+
+## The boundary with active experimental design
+
+This lesson refines the execution of a *known* protocol: the quantity, the
+estimator, and the stopping rule were fixed before the first measurement,
+and the campaign only decides where the next point of that protocol goes.
+Active experimental design, in the lesson on an experimental design agent
+(`experimental-design-agent`), chooses an experiment because competing
+physical explanations predict different outcomes, so that the measurement
+tells them apart. A campaign here never asks which model of the circuit is
+right; it assumes one, the second-order response, and measures its
+parameters. When the question is which model, that is the other lesson.
+
+## Limits {#limits}
+
+- **Simulated, not measured.** Every point comes from a model of the bench
+  with Gaussian noise. A real bench drifts, its probes load the circuit,
+  and its noise is not independent from one acquisition to the next; the
+  standard error from repeats would then be too small.
+- **One kind of stop.** The interruption here is a stop request during an
+  acquisition, which the cleanup path handles. A crash that kills the
+  program before the ledger records the segment leaves a checkpoint the
+  ledger does not know, and a resume from it is refused: the measurements
+  since the last recorded segment are then lost, by design.
+- **A digest is identity, not truth.** The digest shows that the checkpoint
+  is the one recorded. It does not show that the measurements in it were
+  right.
+- **Bisection needs one crossing.** With two resonances in the range, or a
+  phase that wraps, the bracket of the sweep may not hold the one wanted,
+  and the rule would refine the wrong one without noticing.
+- **The baseline is not the best possible.** A rule that fits the response
+  near $f_0$ could need fewer points. The comparison shows what simple
+  adaptation buys over no adaptation, not what the best strategy is.
+
+::: {.exercise .self-check}
+The resumed campaign reached almost the same $f_0$ as the one that was
+never stopped, at the same frequencies. Were its measurements after the
+checkpoint the same measurements as the uninterrupted campaign's? What
+would it mean if they had been identical to the last digit?
+
+::: {.solution}
+No. The points before the checkpoint were taken from it unchanged; the
+points after it were measured again, on a new instrument, and the bench drew
+new noise for them. They are at the same frequencies only because the rule
+is deterministic and its decisions are much larger than the noise. If the
+values after the checkpoint were identical to the last digit, they would not
+be new measurements at all: either the noise was reused, which would make
+the repeats estimate nothing, or the values were copied, which would make
+the resume a replay presented as a measurement.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+After the interruption, someone suggests measuring at 5190 Hz "between m11
+and m12". Check the suggestion against the checkpoint. What happens, and
+what should they do instead?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.lost_basis)
+```
+
+```{python}
+#| echo: false
+print(result.output("lost-basis"), end="")
+```
+
+The suggestion is refused: `m12` was the measurement in flight when the stop
+came, and it was never kept. The suggestion claims to follow from evidence
+that does not exist. The right next step is to resume the campaign and let
+its rule suggest again from the measurements the checkpoint holds; it
+suggests the lost midpoint once more, and measures it anew.
+:::
+:::
+
+::: {.exercise}
+Raise the repeats at each end of the final bracket from three to ten, with
+a larger budget. What happens to the standard error of $f_0$, and to the
+difference between $f_0$ and the closed form?
+
+::: {.solution}
+```{python}
+#| label: more-repeats
+#| echo: false
+result.table("more-repeats")
+```
+
+The standard error falls roughly as one over the square root of the number
+of repeats. The difference from the closed form does not have to follow:
+it is one draw of the noise, and it lands within about two standard errors
+either way. A unit test checks over many seeds that the standard error is
+the right size; one campaign cannot show that, and a single difference
+larger than one standard error is no sign of a bias.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/electromagnetism/campaign.py",
+        "src/pbc/instruments/contract.py",
+        "src/pbc/instruments/simulated.py",
+        "src/pbc/evidence/records.py",
+        "src/pbc/electromagnetism/circuits.py",
+        "src/pbc/electromagnetism/experiments/measurement_campaigns.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_campaign.py",
+        "tests/unit/test_measurement_campaigns_experiment.py",
+    ],
+)
+```
