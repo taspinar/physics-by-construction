@@ -8,5 +8,9 @@ criteria, and stopping conditions, executed by the scripted route of
 ``pbc.agents.specification`` (RR2). ``corpus`` holds the verified passages
 of a small local literature, and ``literature`` the labels of a claim
 against a passage, a lexical retrieval baseline, and the log of proposed
-sources (RR3).
+sources (RR3). Since F154, ``followup`` holds review findings, the
+discriminating tests that answer them, and the log whose status a revision
+of the prose never resolves (RR6); ``report`` the check of a report's
+numbers and citations and the bundle of its records, and ``memory`` the
+research memory and the check of a reuse (RR7).
 """
