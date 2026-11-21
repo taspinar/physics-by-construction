@@ -4,6 +4,9 @@ description: >-
   A language model designs and runs an experiment on the projectile
   simulation through a short, bounded list of tools, and CI checks the
   recorded run by recomputing every tool result without a model or a key.
+  Then the agent is bounded further: a written protocol, a budget of runs,
+  a tool that fails, and a stopping rule, all checked from the record and
+  compared with a script that follows the same protocol.
 lesson:
   id: agent-experiment
   strand: agents-llm
@@ -17,7 +20,8 @@ lesson:
     - Read a recorded agent run as an experiment
     - Recompute every tool result of a run without a model or a key
     - Say what a replay does and does not show about an agent's conclusion
-  related: []
+    - Bound an agent by a protocol, a budget, and a stopping rule, check from its runs whether it recovered from a failing tool and stopped by the rule, and compare it with a scripted route through the same protocol
+  related: [measurement-campaigns, experimental-design-agent]
   format: 2
   preview: fig-agent-evidence
   experiment: pbc.mechanics.experiments.agent_experiment
@@ -62,6 +66,14 @@ instead of showing numbers that no code produced. What that check proves about
 the model's *conclusion*, and what it does not, is the subject of the second
 half of the lesson.
 
+A model given a free hand within bounds is only the start. The last part of
+the lesson, "A bounded agent", asks the same question under a written
+protocol: a fixed way to choose the time step, a search with a stated end, a
+budget of runs, and a tool that fails partway through. Whether the agent
+followed the protocol is computed from its runs, never read from its words,
+and a short script that follows the same protocol through the same tool is
+run beside it.
+
 ## Assumptions
 
 1. **The question has a checkable answer.** The agent looks for the launch
@@ -84,7 +96,11 @@ half of the lesson.
    are checked; the words are not. The page says which model made the
    recording and how, and a reader who doubts a recording can read the
    committed file.
-6. **The key stays on your machine.** The live run uses your own provider
+6. **A protocol is fixed before the run.** In the bounded part, the steps,
+   the budget, and the stopping rule are written in the task before the
+   model sees a result, and they are the same for the agent and the script.
+   A protocol changed after looking at the results would let any run pass.
+7. **The key stays on your machine.** The live run uses your own provider
    key, read from an environment variable. Anything you commit or paste can
    be copied, and a key that leaks can be used by others at your cost.
 
@@ -307,6 +323,44 @@ one.
 excerpt(replay)
 ```
 
+### The bounded agent: a failure, a budget, a protocol check
+
+The bounded part uses the same tool, `range_with_drag`, with the same
+bounds, through an allowlist with a budget of runs. The failure is injected
+in the tool, not in the prompt: the model is not told that a run will fail,
+and nothing in its messages can make it fail or not fail.
+
+```{python}
+#| echo: false
+from pbc.agents import bounded_lab
+
+excerpt(bounded_lab.failing)
+```
+
+```{python}
+#| echo: false
+excerpt(bounded_lab.tools)
+```
+
+The protocol check reads only the runs: the settings asked for and the
+results received. It finds the time step whose range agrees with that of
+half the step, the angle that beats both of its neighbours at that step,
+what happened to each failed run, the budget spent, and whether any run came
+after the search was met.
+
+```{python}
+#| echo: false
+excerpt(bounded_lab.check_protocol)
+```
+
+The scripted route is the protocol written as a program. It calls the same
+allowlist, so it meets the same budget and the same failure:
+
+```{python}
+#| echo: false
+excerpt(bounded_lab.scripted_route)
+```
+
 ## Worked examples
 
 ### The allowlist refuses what it should
@@ -465,6 +519,9 @@ uv sync --extra openai
 export OPENAI_API_KEY="..."
 
 uv run --extra openai python -m pbc.agents.projectile_lab
+
+# the bounded run: the protocol, the budget, and the failing tool
+uv run --extra openai python -m pbc.agents.bounded_lab
 ```
 :::
 
@@ -474,6 +531,157 @@ a key ever appears in one, revoke it at the provider and make a new one.
 
 The maintainer records the replay fixture of this page from a live run with
 the same command and `--record`, reads the file, and commits it.
+
+## A bounded agent
+
+### The protocol
+
+The first run let the model choose everything within the bounds: the time
+steps, the angles, how many runs, and when to stop. Its task asked it to use
+"as few simulation runs as you can", which is a wish, not a rule. A bounded
+agent gets rules that can be checked. The task of the second run states
+them. It begins "`{python} result["bounded-goal"]`" and goes on with
+"Follow this protocol:" and its numbered lines:
+
+```{python}
+#| label: bounded-task
+#| echo: false
+result.table("bounded-task")
+```
+
+```{python}
+#| label: fig-bounded-protocol
+#| echo: false
+#| fig-cap: "The protocol of the bounded run. The steps come in order; every run, also one that fails, uses one unit of the budget, and one of the runs will fail. Each step is checked from the runs, not from what the agent says about them."
+#| fig-status: conceptual
+#| fig-alt: "A diagram with a row of five boxes joined by arrows: plan, time step, search, recovery, stop. Below them a row of ten small boxes stands for the budget of runs; the third is drawn in a warning colour for the run that will fail. Text under the rows says that every run, failed or not, uses one unit, and that the steps are checked from the runs, never from the words."
+result.show("fig-bounded-protocol")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_bounded_protocol, figure=True)
+```
+
+The sketch shows no result. It answers the question the task raises: which
+of these rules can a program check? The plan is words, and the page only
+shows it. The other four are about runs, and the build checks them from the
+runs. The budget is `{python} result["budget"]` runs and run number
+`{python} result["fail-at"]` fails, the model has at most
+`{python} result["bounded-max-steps"]` messages, and a time step is
+accepted when its range and that of half the step differ by less than
+`{python} result["converged"]` per cent.
+
+Before you read the run, predict. The third run fails, and the failed run
+counts against the budget. How many runs does the protocol need at least,
+if the failed one is needed and has to be repeated? Should the agent repeat
+a failed run that the search does not need?
+
+### The bounded run, replayed
+
+The model's messages are recorded; every run is computed again by this
+build, through a fresh allowlist with the same budget and the same failure,
+so the third run fails again on every replay.
+
+```{python}
+#| echo: false
+result.display("bounded-run")
+```
+
+The messages come from `{python} result["bounded-model"]`, recorded on
+`{python} result["bounded-recorded"]`: a fresh session that was given the
+system prompt, the task, and the tool, and sent each message through one
+command that ran the loop of this lesson. It could not see this page or the
+script.
+
+### The protocol, checked from the runs
+
+```{python}
+#| echo: false
+excerpt(experiment.bounded_routes, region="routes")
+```
+
+```{python}
+#| label: protocol-check
+#| echo: false
+result.table("protocol-check")
+```
+
+[Checked from its runs and their recomputed results, the recorded agent met
+every step of the protocol after the plan: it chose a converged time step,
+found an angle that beats both neighbours, met the failed run and repeated it
+no more than once, stayed within the budget, and stopped by itself with no
+run after the search was met.]{.claim type="numerically-verified"
+scope="the one recorded run, as replayed by this build; the rules about
+runs, not the agent's words or its plan"
+evidence="protocol-check replay-bounded"} That no value of the failed run
+was used is not a separate check: a failed run returns no value, and the
+time step and the search are computed from the results received, at the
+task's speed only. The agent asked for several angles in one message, among
+them the one that failed, and did not repeat it: the search was met without
+it. The protocol allowed one repeat, and
+neither needing nor using it is recovery too. The answer the agent gives
+in words is not checked; the angle that the check finds from the runs is.
+
+To answer the prediction: the script below needs
+`{python} result["script-runs"]` runs, because the failed run is one of the
+neighbours it needs and it repeats it once; the agent spent
+`{python} result["agent-runs"]`, one of them on an angle the search did not
+need.
+
+### The same protocol without a model
+
+```{python}
+#| label: two-routes
+#| echo: false
+result.table("two-routes")
+```
+
+```{python}
+#| label: fig-two-routes
+#| echo: false
+#| fig-cap: "Two routes through one protocol. Both compare two time steps first, then search at the coarser one; both meet the failing run and finish well inside the budget. The agent asked for more angles at once, the script climbed one degree at a time and repeated the failed run."
+#| fig-status: simulated
+#| fig-alt: "Two stacked panels sharing a horizontal axis of run number, with a dashed vertical line at the end of the budget. The upper panel is the agent, the lower the script; each shows the launch angle of every run. Filled circles mark runs at the coarser time step, open circles the run at half the step, and a cross the run that failed. Both panels end well before the dashed line."
+result.show("fig-two-routes")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_two_routes, figure=True)
+```
+
+[The scripted route through the same allowlist, budget, and failure met
+every step of the protocol and reached the same angle and time step as the
+agent, with one run fewer, and both answers lie within one degree of the
+best angle of an independent scan at the smallest allowed step.]{.claim
+type="numerically-verified" scope="the simulated tennis ball with drag at 25
+m/s; the one recorded agent run and the deterministic script"
+evidence="two-routes protocol-check"} The scan finds the best angle at
+`{python} result["scan-best"]` degrees, between the two whole degrees the
+routes compare, so either answer is within the degree the task asks for. The script ends with its own
+report, "`{python} result["script-stopped"]`", which says which stopping
+rule ended it, as the protocol's last step asks.
+
+What does the comparison show? That this protocol can be run without a
+model, and that the agent, given it, ran it correctly once. It does not
+show that the agent adds anything: here it costs messages and a run more.
+An agent earns its place where the next step cannot be written down in
+advance, and a bounded task like this one is where to check that it can
+follow rules before it is trusted with one that cannot be scripted. The
+lesson on measurement campaigns (`measurement-campaigns`) uses the same idea
+with a measuring instrument: every suggested next point must name the
+measurements it follows from, whoever suggests it.
+
+### The boundary with active experimental design
+
+Both runs here execute a *known* protocol: the question, the quantity, and
+the stopping rule are fixed before the first run, and the agent only chooses
+which run comes next within them. Active experimental design, in the lesson
+on an experimental design agent (`experimental-design-agent`), chooses an
+experiment because competing physical explanations predict different
+outcomes, so that the result tells them apart. Nothing here asks which model
+of the ball is right; the drag law is given.
 
 ## Limits {#limits}
 
@@ -490,6 +698,14 @@ the same command and `--record`, reads the file, and commits it.
 - **The bounds are decisions, tested but not proved.** The unit tests try the
   attacks listed above and read the source for imports; they do not prove that
   no other route exists.
+- **One bounded run, one failure.** The bounded part shows one recorded
+  run with the failure at one place. A failure elsewhere, or a model that
+  does not repeat a run it needs, would give another result, and nothing
+  here measures how often a model follows a protocol.
+- **The protocol check sees runs, not reasons.** It can say that the agent
+  never used the failed run's value only because a failed run has no value
+  to use. A model that invented a number in its words would pass the check
+  of its runs; the replay shows the words, and the build does not read them.
 - **The live run is not verified.** The commands to run the agent yourself need
   a key, cost money, and are not run by the build, so they are marked.
 
@@ -560,6 +776,46 @@ or the replay changes; a lesson that uses the tool would record a new run.
 :::
 :::
 
+::: {.exercise}
+Give the scripted route a budget of four runs instead of ten. What does it
+return, and why is that the right answer rather than its best guess so far?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.small_budget)
+```
+
+```{python}
+#| label: small-budget
+#| echo: false
+result.table("small-budget")
+```
+
+The route stops with "`{python} result["small-budget-stopped"]`". The
+failed run and its repeat used two of the four runs, so the budget ran out
+before both neighbours of the starting angle were known. The best angle it
+has seen is not an answer under the protocol: the search was not met, and
+the run is reported as incomplete instead.
+:::
+:::
+
+::: {.exercise}
+Suppose an agent repeats the failed run, gets its range, but in its final
+message quotes a range for that angle that differs from the one it
+received. Which steps of the protocol check would still pass, and how
+would you find the problem?
+
+::: {.solution}
+Every step would pass: the check reads the settings asked for and the
+results received, and those are the same whatever the final message says.
+The number in the words is found only by reading the words against the
+recomputed results, which the replay shows side by side; the build does not
+do it. That is the limit of a check from the runs: it bounds what the agent
+did, not what it says it did.
+:::
+:::
+
 ## Replay this experiment {#reproduce-this}
 
 ```{python}
@@ -570,12 +826,14 @@ reproduce_this(
         "src/pbc/agents/loop.py",
         "src/pbc/agents/replay.py",
         "src/pbc/agents/projectile_lab.py",
+        "src/pbc/agents/bounded_lab.py",
         "src/pbc/mechanics/experiments/agent_experiment.py",
         "src/pbc/experiment.py",
     ],
     tests=[
         "tests/unit/test_agents_tools.py",
         "tests/unit/test_agents_replay.py",
+        "tests/unit/test_bounded_lab.py",
         "tests/unit/test_agent_experiment_experiment.py",
     ],
 )
