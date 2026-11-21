@@ -206,6 +206,81 @@ def test_the_experiments_on_the_contract_are_the_three_lessons():
     }
 
 
+def imports_the_contract(tree: ast.Module) -> bool:
+    return any(
+        name == "pbc.instruments" or name.startswith("pbc.instruments.")
+        for name in all_imports(tree)
+    )
+
+
+def library_modules_on_the_contract() -> list[Path]:
+    """The library modules under src/pbc that import pbc.instruments, by
+    their import statements: neither the contract's own package and the
+    product (held to the rule above), nor an experiment (held to the rule
+    of the experiments). A page or an experiment runs the contract through
+    such a module (SA6 through pbc.electromagnetism.campaign, F143)."""
+    own = {p for d in PACKAGES for p in d.rglob("*.py")}
+    return [
+        path
+        for path in sorted((ROOT / "src/pbc").rglob("*.py"))
+        if path not in own
+        and path not in EXPERIMENTS
+        and imports_the_contract(ast.parse(path.read_text()))
+    ]
+
+
+def breaks_the_experiment_rule(source: str) -> list[str]:
+    """What breaks the import rule of an experiment on the contract (the
+    test of the experiments above) in ``source``: a forbidden import, a
+    module of pbc.instruments a page may not run, a product, the live mode."""
+    imports = set(all_imports(ast.parse(source)))
+    found = sorted(i for i in imports if forbidden(i))
+    found += sorted(
+        i
+        for i in imports
+        if i.startswith("pbc.instruments") and i not in PAGE_INSTRUMENT_MODULES
+    )
+    found += sorted(i for i in imports if i.startswith("pbc.products"))
+    if re.search(r"\bLIVE\b", source):
+        found.append("LIVE")
+    return found
+
+
+def test_the_library_modules_on_the_contract_are_derived_and_include_the_campaign():
+    found = {p.relative_to(ROOT).as_posix() for p in library_modules_on_the_contract()}
+    assert "src/pbc/electromagnetism/campaign.py" in found
+    # a module that names the contract only in its text imports nothing
+    assert "src/pbc/electromagnetism/measurement.py" not in found
+
+
+@pytest.mark.parametrize(
+    "path",
+    library_modules_on_the_contract(),
+    ids=lambda p: p.relative_to(ROOT).as_posix(),
+)
+def test_a_library_module_on_the_contract_imports_no_driver_network_or_model(path):
+    """A library module that runs the contract for a page is held to the
+    import rule of the experiments on the contract (#584)."""
+    assert breaks_the_experiment_rule(path.read_text()) == []
+
+
+def test_a_forbidden_import_in_a_library_module_on_the_contract_is_found():
+    source = (ROOT / "src/pbc/electromagnetism/campaign.py").read_text()
+    assert breaks_the_experiment_rule(source) == []
+    for planted, expected in (
+        ("import pyvisa\n", "pyvisa"),
+        ("from urllib.request import urlopen\n", "urllib.request"),
+        ("import subprocess\n", "subprocess"),
+        (
+            "from pbc.agents.clients.openai import OpenAIClient\n",
+            "pbc.agents.clients.openai",
+        ),
+        ("from pbc.instruments.live import LiveInstrument\n", "pbc.instruments.live"),
+        ("from pbc.products.physics_lab import workflow\n", "pbc.products.physics_lab"),
+    ):
+        assert expected in breaks_the_experiment_rule(planted + source), planted
+
+
 def test_the_one_product_check_is_the_starter_check():
     commands = verify_conf.checks()
     touching = [

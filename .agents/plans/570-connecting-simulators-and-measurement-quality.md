@@ -25,8 +25,8 @@ names it, was rejected: it would satisfy the regular expression while
 defeating its purpose. Approval request `.agents/approvals/570.md`.
 
 Other paths: two new lessons, new modules under `src/pbc/`, new unit tests,
-a new widget `site/widgets/clip-viewer.js` with its style in
-`site/assets/site.css` and its built-site tests in `tests/e2e/` (check
+a new widget `site/widgets/clip-viewer.js` with its built-site tests in
+`tests/e2e/` (check
 identity and a shared input: the targeted run will report that CI runs
 everything), `docs/authoring.md` ("Widgets"), `docs/project-map.md`,
 `docs/architecture.md` (the module table; sensitive). No ADR, CI workflow,

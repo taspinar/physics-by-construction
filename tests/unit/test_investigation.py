@@ -107,6 +107,27 @@ def test_a_narrowed_claim_is_recorded_and_the_original_stays_failed(board):
     )
 
 
+def test_a_narrowing_after_an_acceptance_does_not_change_the_accepted_claim(board):
+    # The order of #590: piece 1 is accepted for its full claim, then narrowed.
+    inv.steer(board, inv.Steering(inv.ACCEPT, 1, "every check passed"))
+    inv.steer(
+        board,
+        inv.Steering(inv.NARROW, 1, "a shorter run", drop="bounded_energy"),
+    )
+
+    # The record still says what was accepted: the full claim.
+    assert inv.decision(board, 1) == (
+        "accepted for the claim 'first order and a bounded energy': every check passed"
+    )
+    # The piece's current claim is the narrower one, and only a new
+    # acceptance makes the record say that it was accepted for it.
+    assert not inv.claim_of(board, 1).bounded_energy
+    inv.steer(board, inv.Steering(inv.ACCEPT, 1, "accepted again, narrowed"))
+    assert inv.decision(board, 1) == (
+        "accepted for the claim 'first order only': accepted again, narrowed"
+    )
+
+
 def test_a_required_check_must_be_run_before_an_acceptance(board):
     lean = inv.Board()
     inv.extract(lean, inv.EXTRACTION)

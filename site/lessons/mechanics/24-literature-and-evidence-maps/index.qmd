@@ -2,8 +2,8 @@
 title: "Literature, novelty assessment, and evidence maps"
 description: >-
   The claims of two research plans about the thrown tennis ball and an old
-  guess about drag are compared with a small local corpus of verified
-  passages: each passage supports a claim, contradicts it, or is
+  guess about drag are compared with a small local corpus of quoted
+  passages, each checked against its page: each passage supports a claim, contradicts it, or is
   insufficient, judged with the assumptions it holds under. A lexical
   retrieval baseline shows what a search finds and misses, every proposed
   source is logged for human review, and an empty search is reported as
@@ -17,7 +17,7 @@ lesson:
   slot: RR3
   methods: [simulation]
   outcomes:
-    - Compare a claim with verified passages and tell supporting, contradicting, and insufficient evidence apart
+    - Compare a claim with quoted passages and tell supporting, contradicting, and insufficient evidence apart
     - Link a claim to the passages that decide it and to the assumptions each passage holds under
     - Read the ranks and the recall of a simple retrieval baseline, and say what it can miss
     - Log proposed sources for human review instead of accepting them, and state what an empty search shows without claiming novelty
@@ -62,11 +62,14 @@ well it finds what is known to be there.
 **What kind of evidence the page shows:** the literature is a small local
 corpus of `{python} result["passages"]` passages quoted from
 `{python} result["lessons"]` published lessons of this site. A test checks
-every quotation against its page, so the passages are verified, not only
-cited. Each passage was read once, and its reading written down, by the
-annotator, `{python} result["annotated-by"]`; the labels are computed from
-those readings by a rule shown below and compared with labels the annotator
-gave directly. The retrieval is a computation of the build. Nothing is read
+every quotation against its page, so the quotations are checked, not only
+cited; the test checks the text, not what anyone read in it. Each passage
+was read once, and its reading written down, by the annotator,
+`{python} result["annotated-by"]`; the labels are computed from those
+readings by a rule shown below and compared with labels the annotator gave
+directly. No person has annotated the passages, and no second, independent
+annotation has been made: every label on this page rests on that one
+agent's reading. The retrieval is a computation of the build. Nothing is read
 from the web, no model reads or labels anything, and no citation is written
 by a program.
 
@@ -177,7 +180,7 @@ results, its **recall**, says how often it misses what is there.
 
 ## Code
 
-### A verified passage
+### A quoted passage
 
 Each passage is held with its lesson, its place on the page, its licence,
 and the annotator's reading:
@@ -247,7 +250,8 @@ result.table("labels-replication")
 replication's claim, both from the specification lesson, and every other passage of the corpus is
 insufficient for it, each for the reason in the table.]{.claim
 type="numerically-verified" scope="the corpus of this page and the
-annotator's readings" evidence="replication-labels"} The projectile
+readings of its one annotator, the coding agent that wrote it"
+evidence="replication-labels"} The projectile
 lesson's claim that the longest throw is flatter than forty-five degrees
 is about the same ball at the same speed, and it is insufficient: it gives
 a direction, and the replication's claim is a bound. The agent lesson's
@@ -278,8 +282,8 @@ result.table("labels-no-change")
 balls, each contradict the guess that drag leaves the best angle of any
 ball at forty-five degrees; the two passages that state forty-five degrees do so
 without air and are insufficient.]{.claim type="numerically-verified"
-scope="the corpus of this page and the annotator's readings"
-evidence="no-change-labels"} One counterexample would have been enough,
+scope="the corpus of this page and the readings of its one annotator,
+the coding agent that wrote it" evidence="no-change-labels"} One counterexample would have been enough,
 because the claim is general. The two passages that state forty-five
 degrees outright are exactly the ones that cannot support it: they hold
 without drag.
@@ -327,7 +331,8 @@ that decides the replication's claim and
 `{python} result["found-no-change"]` of the
 `{python} result["decisive-no-change"]` that decide the scaling
 guess.]{.claim type="numerically-verified" scope="the corpus and
-the three claims of this page, TF-IDF with cosine similarity, no stemming"
+the three claims of this page, TF-IDF with cosine similarity, no stemming,
+the deciding passages as its one annotator read them"
 evidence="retrieval-ranks"} For the slow throw, its first passage is
 `{python} result["top-slow-throw"]`, about the usual speed: the search is
 drawn to the passages that share the claim's words, and none of them is
@@ -345,8 +350,11 @@ Everything a search proposes is logged; nothing is accepted by the program.
 result.table("review-log")
 ```
 
-Every passage the search proposed has been read, so each carries the label
-of the annotations. The last entry has not: the paper the register's own
+Each passage the search proposed has two statuses, kept apart. Its
+quotation is checked against its page by a test, a check of the text only.
+Its label is the annotator's reading, written once by the coding agent that
+wrote this page and checked by nobody else, so the log says so instead of
+calling it verified. The last entry has neither: the paper the register's own
 search turned up is waiting for a person to open it, and until then it is
 not evidence for or against anything on this page, whatever its title
 promises.
@@ -377,7 +385,8 @@ and the corpus holds `{python} result["lessons"]` lessons of one site. [The sear
 finds no passage that decides the slow-throw claim, which shows that this
 corpus, searched this way, does not answer it, and not that the claim is
 new.]{.claim type="numerically-verified" scope="the corpus and the
-retrieval of this page" evidence="evidence-map"}
+retrieval of this page, the readings of its one annotator"
+evidence="evidence-map"}
 
 We began with three claims and two temptations. Read with their
 assumptions, the passages support the replication, refute the scaling
@@ -393,10 +402,12 @@ lesson, and not found decided in a corpus whose limits are stated.
 - **A small corpus of one site.** `{python} result["passages"]` passages
   from `{python} result["lessons"]` lessons. The method scales; the conclusions do not, and nothing here says what the
   wider literature holds.
-- **One annotator.** The readings and the direct labels were written by
-  the same person, who also wrote the claims. Their agreement shows
-  consistency, not correctness; agreement between independent annotators
-  is not measured.
+- **One annotator, and not a person.** The readings and the direct labels
+  were written by the same annotator, the coding agent that wrote this
+  lesson and its claims. Their agreement shows consistency, not
+  correctness. No person has annotated the passages and no second,
+  independent annotation exists, so agreement between independent
+  annotators is not measured.
 - **Readings simplify.** Each passage is reduced to a quantity, three
   conditions, and a bound. A passage that qualifies its statement, or
   states it for a range of speeds, loses detail in the reading, and the
@@ -405,8 +416,9 @@ lesson, and not found decided in a corpus whose limits are stated.
   a learned retrieval would change the ranks. A retrieval integration
   would have to be compared with this baseline on the same annotated
   claims before its results are trusted; none is built here.
-- **Passages are verified; sources are not all read.** The test checks
-  that every quotation stands on its page. The register source is trusted
+- **Quotations are checked; readings and sources are not.** The test
+  checks that every quotation stands on its page, and nothing of what was
+  read in it. The register source is trusted
   for the one statement it was reviewed for, and the proposal is not
   trusted at all.
 

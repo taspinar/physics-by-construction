@@ -310,7 +310,8 @@ src/pbc/                 Importable Python package with all reusable lesson code
                          archive chained by digest (`ideas`, RR1); the research plan with
                          baselines, withheld tests, success criteria, and stopping conditions,
                          executed by the scripted route of SA1 (`plan`, RR2); a local corpus of
-                         verified passages of the site's own lessons, the labels of a claim
+                         passages quoted from the site's own lessons, each checked against its
+                         page, with one annotator's readings, the labels of a claim
                          against a passage, a lexical retrieval baseline, and the log of proposed
                          sources (`corpus`, `literature`, RR3), F152
   agents/                Agent harness: provider interface, tool allowlist, replay; the lesson

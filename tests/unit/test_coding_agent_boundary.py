@@ -20,8 +20,9 @@ This extends ``test_skills_boundary.py``, the boundary of the agent skills
   does reach the launcher, through these self-tests only, and what they
   start under an agent's name is a fake program of the test: every
   self-test that can start one writes a fake for each program the launcher
-  starts and puts it first on every ``PATH`` it sets, no file of that
-  reach names a credential, and nothing CI runs installs an agent.
+  starts and puts it first on every ``PATH`` it sets, no other script of
+  that reach starts an agent program itself (#569), no file of that reach
+  names a credential, and nothing CI runs installs an agent.
 
 The second part is read from the text of the self-tests, as the first is:
 it shows how they are written, not what a run of them did.
@@ -31,6 +32,7 @@ import ast
 import functools
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -622,6 +624,121 @@ make_fake_agents "$tmp/bin"
     assert unshadowed_paths(one, needed)[0] == "(no fakes)"
     assert unshadowed_paths("./scripts/start-feature.sh 12", needed) == ["(no fakes)"]
     assert unshadowed_paths(shared.split("    PATH=")[0], needed) == ["(no PATH)"]
+
+
+HEREDOC = re.compile(r"""<<-?\s*(['"]?)(\w+)\1""")
+# A string without a command substitution in it runs nothing.
+QUOTED = re.compile(r""""(?:[^"$`\\]|\\.|\$(?!\())*"|'[^']*'""")
+# A presence check names a program to look it up, not to run it.
+PRESENCE = re.compile(r"""\b(?:have|command\s+-v|type\s+-[pP]|which|hash)\s+\S+""")
+CASE_LABEL = re.compile(r"^\s*[\w:*.-]+(?:\s*\|\s*[\w:*.-]+)*\)")
+LOOP_WORDS = re.compile(r"\bfor\s+\w+\s+in\s+[^;]*;")
+
+
+def direct_starts(text: str) -> list[str]:
+    """The code lines of a shell script that run an agent program by its name
+    as a command word: not inside a heredoc (the body of a fake or a usage
+    text), not in a string without a command substitution, not a presence
+    check (``have claude``, ``command -v codex``), the label of a case, or
+    the words of a loop; and not a line that writes a fake, whose target is
+    a path (``>"$bin/claude"``) and so not a word of its own."""
+    found = []
+    ending = None
+    for line in text.splitlines():
+        if ending is not None:
+            if line.strip() == ending:
+                ending = None
+            continue
+        if heredoc := HEREDOC.search(line):
+            ending = heredoc.group(2)
+        if line.lstrip().startswith("#") or MESSAGE.match(line):
+            continue
+        code = LOOP_WORDS.sub("", PRESENCE.sub("", QUOTED.sub('""', line)))
+        if CASE_LABEL.match(code):
+            code = CASE_LABEL.sub("", code, count=1)
+        if COMMAND_WORD.search(code):
+            found.append(line.strip())
+    return found
+
+
+def reached_by_self_tests_outside_the_launcher() -> list[str]:
+    """The scripts a self-test reaches that may not start an agent program
+    themselves: all but the self-tests (tests/*-test.sh, held to their fakes
+    above) and the launcher."""
+    return [
+        path
+        for path in self_test_scripts()
+        if path.endswith(".sh")
+        and path != LAUNCHER
+        and not re.fullmatch(r"tests/[\w-]+-test\.sh", path)
+    ]
+
+
+def test_a_direct_start_is_told_from_a_check_a_fake_and_a_message():
+    planted = """
+claude -p "fix the failing test"
+result="$(codex exec "$task")"
+  exec aider --yes
+  claude -p task)
+"""
+    assert direct_starts(planted) == [
+        'claude -p "fix the failing test"',
+        'result="$(codex exec "$task")"',
+        "exec aider --yes",
+        "claude -p task)",
+    ]
+    not_starts = """
+if have "$agent"; then ok "found"; fi
+command -v claude >/dev/null || missing "claude CLI is not installed"
+for agent in codex claude; do
+  case "$agent" in
+    codex) codex_roles+=" $role" ;;
+    claude) claude_roles+=" $role" ;;
+  esac
+done
+cat >"$bin/claude" <<'FAKE'
+claude -p "the body of a fake"
+FAKE
+cat <<EOF
+  $0 --agent claude --model fable
+EOF
+if [[ "$agent" == "codex" ]]; then :; fi
+echo "run claude -p to start a session"
+# claude -p in a comment
+"""
+    assert direct_starts(not_starts) == []
+
+
+def test_no_script_a_self_test_reaches_starts_an_agent_outside_the_launcher():
+    # A script a self-test reaches starts a program under an agent's name
+    # only through the launcher, whose start the self-test shadows with its
+    # fake (the test above). A direct start, with the PATH the script
+    # inherits, could find an installed agent.
+    reached = reached_by_self_tests_outside_the_launcher()
+    for path in (
+        "scripts/doctor.sh",
+        "tests/lib-fakes.sh",
+        "scripts/start-planning.sh",
+    ):
+        assert path in reached, path
+    found = {path: lines for path in reached if (lines := direct_starts(read(path)))}
+    assert found == {}
+
+
+def test_a_planted_direct_start_in_a_reached_script_fails_the_boundary(monkeypatch):
+    # A script reached by a self-test, here doctor.sh, with a line that runs
+    # the program itself, without the launcher and with an inherited PATH.
+    line = 'claude -p "check the setup"'
+    planted = read("scripts/doctor.sh") + f"\n{line}\n"
+    assert direct_starts(planted) == [line]
+    real = read
+    monkeypatch.setattr(
+        sys.modules[__name__],
+        "read",
+        lambda path: planted if path == "scripts/doctor.sh" else real(path),
+    )
+    with pytest.raises(AssertionError, match="check the setup"):
+        test_no_script_a_self_test_reaches_starts_an_agent_outside_the_launcher()
 
 
 def test_an_installed_agent_is_found():

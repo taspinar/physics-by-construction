@@ -149,6 +149,25 @@ def test_the_archive_finds_an_edited_a_removed_and_a_reordered_entry():
     assert "entry 2: its digest does not match its content" in verify_archive(changed)
 
 
+def test_the_check_does_not_find_a_removed_last_entry_or_a_recomputed_chain():
+    """The limit the page, the outcome, and the docstring state (#598): the
+    entries are the only record the check reads, so a change that leaves
+    every link intact passes it."""
+    kept = Archive()
+    for key, speed in (("a", 25.0), ("b", 10.0), ("c", 15.0)):
+        kept.add(idea(key, at(speed)), SELECTED, "the reason", "")
+    assert verify_archive(kept.entries[:-1]) == []
+    rewritten = Archive()
+    for entry in kept.entries:
+        changed = entry.idea
+        if entry.number == 1:
+            changed = dataclasses.replace(changed, question="changed")
+        rewritten.add(changed, entry.decision, entry.reason, entry.revisit)
+    assert rewritten.entries[0].idea.question == "changed"
+    assert rewritten.entries[-1].digest != kept.entries[-1].digest
+    assert verify_archive(rewritten.entries) == []
+
+
 def test_a_decision_needs_its_reason_and_a_known_name():
     kept = Archive()
     with pytest.raises(ValueError, match="reason"):

@@ -290,8 +290,15 @@ decision 6). It computes what CI and the build are made of, in two parts.
   that can start an agent does not make a fake of every program the
   launcher starts, or sets a `PATH` that does not begin with those fakes
   (a `PATH` of the system directories alone is the one other form, for the
-  case of a missing program); when a file of that reach names a credential;
-  or when anything CI runs installs a coding agent.
+  case of a missing program); when a script a self-test reaches, other
+  than the self-tests themselves (`tests/*-test.sh`) and the launcher,
+  starts an agent program directly: a code line that uses the program's
+  name as a command word, outside a heredoc (the body of a fake or a usage
+  text), a string without a command substitution, a presence check such as
+  `have claude` or `command -v codex`, the label of a case, or the words of
+  a loop, so that a script cannot start an installed agent with the `PATH`
+  it inherits; when a file of that reach names a credential; or when
+  anything CI runs installs a coding agent.
 
 Both parts are read from the text of the files: the test shows how CI, the
 scripts, and the self-tests are written, not what one run of them did. It
