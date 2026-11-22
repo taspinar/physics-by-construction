@@ -1,0 +1,499 @@
+---
+title: "Discrepancies, ablations, and follow-up experiments"
+description: >-
+  A review of the slow-throw claim of the research plans lesson asks for
+  new evidence. Each request becomes a knowledge gap with two competing
+  explanations and a test declared before it runs, refused when both
+  explanations predict the same outcome. The tests and an ablation show
+  what the claim depends on, the claim is revised from the new records,
+  each line of follow-up is continued or stopped with its reason, and a
+  revision of the prose alone leaves every request for evidence open.
+lesson:
+  id: discrepancies-and-follow-up-experiments
+  strand: mechanics
+  order: 25
+  difficulty: 3
+  course: mechanics
+  slot: RR6
+  methods: [simulation]
+  outcomes:
+    - Turn a review finding into a knowledge gap with competing explanations and a test whose outcome they predict differently
+    - Run an ablation and say which ingredients of a result its verdict depends on
+    - Revise a claim from new records and continue or stop each line of follow-up with its reason and the condition for revisiting it
+    - Tell a finding answered by new evidence from one answered only by new words
+  related: []
+  format: 2
+  preview: fig-ablation-brackets
+  experiment: pbc.mechanics.experiments.discrepancies_and_follow_up_experiments
+  prerequisites:
+    lessons: [from-question-to-research-plan, scientific-review]
+    outside:
+      - "Python: reading a dictionary and a short function"
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header, reproduce_this, source_link
+from pbc.mechanics.experiments import (
+    discrepancies_and_follow_up_experiments as experiment,
+)
+from pbc.research import followup
+
+result = experiment.run()
+lesson_header()
+```
+
+The research plans lesson ended with a supported claim: at the slow throw,
+the best launch angle of the tennis ball lies above
+`{python} result["bound"]` degrees, and every success criterion of a plan
+frozen before the first run is met. Now a reviewer reads it, and doubts it.
+Every run used one integrator. The drag coefficient was taken from the
+projectile lesson as if it were known. The claim speaks of the tennis ball,
+and no tennis ball was thrown.
+
+None of these doubts says the claim is wrong. Each asks for something, and
+the question of this lesson is what has to happen before a doubt counts as
+answered. It is tempting to answer in the text: add "simulated", add "for
+the coefficient used", add a sentence on why the integrator does not
+matter. The finding then disappears from the page. Whether it has been
+answered is another matter, and this lesson keeps the two apart: a request
+for evidence is answered by a new record, a request for other words by a
+revision, and the record of the review shows which is which.
+
+**What kind of evidence the page shows:** every run is made by the scripted
+route of the specification lesson, through a laboratory's allowlist, and
+computed by the build. The review is a written example: its findings were
+written by the author of this page, acting as a reviewer. No model is run.
+
+## Assumptions
+
+1. **The research plans lesson's assumptions hold.** One best angle inside
+   the range, a first scan fine enough to see it, units that are true. The
+   follow-up tests use the same route and inherit them.
+2. **Each test changes one thing.** A test runs the claim's specification
+   with one change: another integrator, another drag coefficient, another
+   resolution. A test that changed two things could not say which of them
+   moved the result.
+3. **The best angle falls as the drag grows.** The ablation shows it for the
+   coefficients it runs; between them it is assumed. The revised claim's
+   range rests on it: a test at the top of a range stands for the whole
+   range only if nothing below the top is worse.
+4. **The reviewer's range is a reviewer's choice.** The coefficients from
+   [0.4]{.given} to [1.0]{.given} are what the reviewer considers plausible
+   for a worn or fuzzy ball, not a measurement. A different range would be
+   a different finding.
+5. **The route's verdict is the outcome.** Each explanation predicts a
+   verdict of the route on the bound: supported, refuted, or undecided. A
+   difference smaller than the route's bracket is not an outcome it can
+   report.
+
+## Findings, gaps, and discriminating tests {#explanation}
+
+A **finding** of a review says what is wrong with a claim and what kind of
+answer it asks for. Some findings ask for other words: the claim says more
+than it should, or says it unclearly. Others ask for **new evidence**: the
+claim may be true, but nothing recorded so far shows it under the condition
+the reviewer names. This lesson calls the condition the **knowledge gap**:
+the question the claim's records cannot answer.
+
+A gap is answered by an experiment, and not by any experiment. Before it
+runs, write down two **competing explanations** of what is true and, for
+each, the outcome it predicts for the experiment. The experiment is
+**discriminating** when no outcome is predicted by both: whatever happens
+then counts for one explanation against the other. An experiment both
+explanations expect to come out the same way tells us nothing about which
+is right, however reassuring its result. And an outcome neither predicted
+decides nothing: the gap stays open, and the next experiment has to be
+sharper.
+
+The evidence must also be **new**. Running the claim's own specification
+again reproduces its record exactly, because the simulation is
+deterministic; that shows the record is complete, as the replication of the
+research plans lesson did, and it answers no doubt about the method.
+
+Everything goes into a **log**, in the order it happened: the claim with
+the records it rests on, the findings, each test as declared, its evidence,
+the decisions, and the revisions of the claim. A test is declared once
+under its name, so its predictions cannot be swapped after its evidence
+came in, and its evidence is accepted only from the specification it was
+declared with. Each entry carries the digest of the one before it, so an
+entry changed afterwards is found. The status of a finding is derived
+from the log, never written by hand:
+
+- a finding that asks for evidence is **resolved by new evidence** when
+  one of its tests decided between its explanations, whichever way;
+- it is **inconclusive** when its tests ran and decided nothing;
+- it is **open** when nothing was recorded for it;
+- only a finding that asks for other words is **resolved by a revision**
+  of the claim.
+
+A revision of the claim never changes the status of a finding that asks for
+evidence. Rewriting the prose can narrow a claim until the finding no
+longer seems to apply, and that may be the right thing to do, but the log
+still says the request was not answered.
+
+```{python}
+#| label: fig-follow-up-chain
+#| echo: false
+#| fig-cap: "From a review finding to a revised claim. A finding opens a gap; two explanations predict the outcome of a test, which is refused when they predict alike; the test runs once and its record enters the log; the claim is revised from it; and each line of follow-up is continued or stopped. A revision of the prose with no new record leads back to the finding, which stays open."
+#| fig-status: conceptual
+#| fig-alt: "A diagram. Four boxes in a row: review finding, knowledge gap, two explanations with their predictions, and discriminating test, joined by arrows. A dashed arrow from the explanations points to the words refused if both predict alike. An arrow labelled run once goes down from the test to a box named new record in the log, then left to revised claim, then down to continue or stop, with the reason. At the left a grey box named prose revised, no new record has a dotted arrow back up to review finding, labelled finding stays open."
+result.show("fig-follow-up-chain")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_follow_up_chain, figure=True)
+```
+
+The diagram is a sketch and computes nothing. It answers one question: what
+lies between a finding and a revised claim? A test whose outcome could have
+gone either way, and its record.
+
+### Continuing and stopping
+
+A line of follow-up is a **branch**, and after each result someone decides
+whether to continue it. The decisions here follow a rule declared before
+the tests: stop when the finding is resolved; continue with a sharper,
+newly declared test when the evidence decided nothing; stop when no action
+of the laboratory can produce the evidence asked for. Each stop names what
+would warrant revisiting the branch, so a stopped branch is a record, not
+a loss.
+
+An **ablation** is the other tool of this lesson. It takes the claim as run
+and changes one of its ingredients at a time, to see which of them the
+result depends on. It is not a test of a finding: nobody declared an
+explanation in advance. It shows where the margin of a claim goes.
+
+## Code
+
+### What the follow-up tests may change
+
+The laboratory of the specification lesson, with two more actions. Each
+changes one thing of the throw with drag: one steps the same flight with
+the fourth-order method, the other takes the drag coefficient as an
+argument and turns it into the drag constant of the projectile lesson's
+ball.
+
+```{python}
+#| echo: false
+excerpt(experiment, region="actions")
+```
+
+### The findings
+
+```{python}
+#| echo: false
+excerpt(experiment, region="findings")
+```
+
+### A test, declared before it runs
+
+The first test of the coefficient finding, with its two explanations and
+the verdict each predicts:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="gap")
+```
+
+The log refuses a test that does not discriminate, with the reason:
+
+```{python}
+#| echo: false
+excerpt(followup.discriminates)
+```
+
+### The status of a finding
+
+```{python}
+#| echo: false
+excerpt(followup.status)
+```
+
+The revisions of the claim appear only in the first branch, for a finding
+about the wording. For every other finding the status is read from the
+evidence and nothing else.
+
+## Worked examples
+
+### The review
+
+```{python}
+#| label: review-findings
+#| echo: false
+result.table("findings")
+```
+
+Three findings ask for evidence and one for other words. The wording
+finding is fair and cheap to answer. The other three are doubts about the
+model behind the claim, and each needs a run, or a reason why none can be
+made here.
+
+### Tests declared before they run
+
+For the integrator finding: the claim belongs either to the model, in which
+case another method at the same time step gives the same verdict, or to
+explicit Euler, in which case it does not. For the coefficient finding: at
+the top of the reviewer's range, either the claim still holds or it fails.
+
+```{python}
+#| label: declared-tests
+#| echo: false
+result.table("tests")
+```
+
+The table holds four tests. The last two were declared after the first
+result of the coefficient finding, as the log below shows. A fifth was refused. The
+reviewer's range also has a bottom, and a test there looks like a fair
+check of the claim. Declared, it gets the answer
+"`{python} result["refused-test"]`". If the claim fails anywhere in the
+range, it fails where the drag is strongest, so at the bottom it holds
+under either explanation, and its result could only reassure.
+
+Before reading the results, decide: which of the two first tests will move
+the route's bracket, the fourth-order method or the coefficient at the top
+of the range? And if a test comes out undecided, which explanation does
+that count for?
+
+### The evidence and the decisions
+
+```{python}
+#| label: follow-up-log
+#| echo: false
+result.table("log")
+```
+
+The fourth-order method gives the verdict
+"`{python} result["fourth-order-verdict"]`" with the bracket
+`{python} result["fourth-order-low"]` to
+`{python} result["fourth-order-high"]` degrees, `{python} result["same-bracket"]`
+bracket as explicit Euler. [Stepped by the fourth-order method instead of
+explicit Euler, the route puts the best angle of the slow throw in the same
+bracket, above the bound.]{.claim type="numerically-verified" scope="the
+simulated tennis ball at 10 m/s, the route of the specification lesson at a
+resolution of one degree" evidence="follow-up-log ablation-brackets"} The integrator branch
+stops there.
+
+The coefficient at the top of the range gives
+"`{python} result["top-of-range-verdict"]`": the bracket
+`{python} result["top-of-range-low"]` to
+`{python} result["top-of-range-high"]` degrees contains the bound. Neither
+explanation predicted that, so the test decided nothing, and the answer to
+the second question above is: neither. The branch continued with two
+sharper tests, declared before they ran. The same coefficient at half a
+degree, `{python} result["top-at-half-degree-runs"]` runs, is still
+"`{python} result["top-at-half-degree-verdict"]`", between
+`{python} result["top-at-half-degree-low"]` and
+`{python} result["top-at-half-degree-high"]` degrees: the best angle there
+lies too close to the bound for the route to tell. A smaller coefficient,
+[0.8]{.given}, gives "`{python} result["below-the-top-verdict"]`", with the
+bracket `{python} result["below-the-top-low"]` to
+`{python} result["below-the-top-high"]` degrees.
+
+```{python}
+#| label: finding-statuses
+#| echo: false
+result.table("statuses")
+```
+
+[The integrator and coefficient findings are resolved by new evidence, the
+wording finding by a revision, and the request for a measured throw stays
+open, its branch stopped because no action of the laboratory can produce
+it.]{.claim type="numerically-verified" scope="the log of this page"
+evidence="finding-statuses"} The coefficient finding counts as resolved
+because one of its tests decided, and the answer it gives is not the one
+the reviewer asked about: the claim holds up to [0.8]{.given} and is
+undecided at the top of the range. The revised claim has to say exactly
+that. The check of the log's chain finds
+`{python} result["log-problems"]` problems.
+
+### What the claim depends on
+
+The tests answered the findings. An ablation asks a broader question of
+the same claim: change each ingredient once, and which changes move the
+verdict? Some rows are the records of the tests above, marked as such; the
+others are new runs, and none of them answers a finding.
+
+```{python}
+#| label: ablation-brackets
+#| echo: false
+result.table("ablation")
+```
+
+```{python}
+#| label: fig-ablation-brackets
+#| echo: false
+#| fig-cap: "The route's bracket around the best angle of the slow throw under each change, with the bound. Removing the drag moves the bracket up to forty-five degrees; the fourth-order method, a halved time step, and a smaller coefficient leave it where it was (the grey band); larger coefficients move it down, the largest onto the bound, where the verdict becomes undecided."
+#| fig-status: simulated
+#| fig-alt: "A plot with one row per condition, from the claim as run at the top to the largest drag coefficient at the bottom, against the best launch angle in degrees. Each row is a short horizontal bar, the route's bracket, with a marker at its best angle. A grey vertical band marks the bracket of the claim as run, and a dotted vertical line at the left marks the bound. Four rows lie inside the band; the row without drag lies right of it; the two rows of larger coefficients step left, the last one crossing the dotted line and drawn with a square marker instead of a circle."
+result.show("fig-ablation-brackets")
+```
+
+```{python}
+#| echo: false
+source_link(experiment.draw_ablation_brackets, figure=True)
+```
+
+Every bar is a run of the route through the allowlist; the figure shows
+simulated throws, at the resolution of one degree that the claim was made
+at. Without drag the best angle is `{python} result["vacuum-best"]`
+degrees, the known answer, so the route can see the effect of the drag at
+all. [At the claim's resolution the verdict on the slow throw does not
+depend on the integrator or on halving the time step, and the drag
+coefficient at the top of the reviewer's range moves the best angle by
+`{python} result["drag-shift"]` degrees and the verdict to
+undecided.]{.claim type="numerically-verified" scope="the simulated tennis
+ball at 10 m/s, the route of the specification lesson at a resolution of
+one degree" evidence="ablation-brackets"} "The same bracket" means no
+difference the route can see: the methods differ in the last digits of
+every range, too little to move a bracket a degree wide. The integrator,
+which a reviewer of numerics checks first, costs the claim nothing here;
+the coefficient, which nobody measured, takes most of its margin.
+
+### The revised claim
+
+The new text rests on the records of the tests:
+
+> `{python} result["revised"]`
+
+It keeps its number and narrows its scope. It drops one thing more. The
+hypothesis of the slow throw gave a reason: the drag at launch is under a
+fifth of the weight. At the coefficient of the projectile lesson the drag
+is `{python} result["ratio-5"]` of the weight; at [0.8]{.given} it is
+`{python} result["ratio-8"]`, and at [1.0]{.given}
+`{python} result["ratio-10"]`. The claim holds where its reason does not, so
+the reason was a heuristic that pointed the right way, and the revised
+claim no longer gives it.
+
+### A revision without a test
+
+Suppose the coefficient finding had been answered in words: "the best angle
+lies above the bound for any plausible drag coefficient", with no test.
+
+```{python}
+#| label: prose-only-revision
+#| echo: false
+result.table("prose-only")
+```
+
+[A revision of the claim that answers the findings in words leaves every
+finding that asks for evidence open; only the finding about the wording is
+resolved by it.]{.claim type="numerically-verified" scope="the two logs of
+this page" evidence="prose-only-revision"} The revised text might even be
+true, but nothing was run to show it, and the reader of the log can see
+that. Offering the claim's own route, run again, as the evidence for the
+integrator finding gets "`{python} result["old-record"]`": the same
+deterministic run gives the same record, and a record that existed before
+the finding cannot answer it.
+
+We began with a supported claim and a reviewer's doubts. Answered in
+order, two doubts became tests whose outcomes could have gone either way,
+one of which decided nothing and was followed by two sharper ones; the
+third doubt could not be tested here and stays open, with what would
+reopen it. The claim that survives is narrower than the one reviewed and
+better supported, and the log shows which part of it rests on which
+record. Writing that record up so that a reader can check it without
+having been there is the subject of the lesson *Independently checkable
+reports and research memory*.
+
+## Limits {#limits}
+
+- **A review by the author.** The findings were written by the person who
+  wrote the claim, acting as a reviewer. An independent reviewer would
+  have found other things; the method of answering them is the same.
+- **One instrument for every test.** Every test is a run of the same route
+  at a resolution of about a degree. A difference below its bracket is
+  invisible to it, so "the same bracket" bounds a difference, it does not
+  show that there is none.
+- **Monotonic between the runs.** The range of the revised claim relies on
+  the best angle falling as the drag grows, seen at the coefficients run
+  and assumed between them.
+- **Simulation answering simulation.** Every test is a simulation of the
+  same model. The finding that asks for a measured throw is the one that
+  could show the model wrong, and it is the one left open.
+- **A rule for stopping, not a cost.** The branches stop by a declared rule,
+  not by weighing the cost of a run against what it could change. With
+  runs this cheap the rule is enough; with expensive ones it is not.
+
+::: {.exercise .self-check}
+A paper is revised after review. To a reviewer's request for a check at a
+stronger drag, the authors reply: "We have revised the abstract to state
+that our result holds for the drag coefficient we used." Is the finding
+resolved? What would the log of this lesson say, and is the revision
+wrong?
+
+::: {.solution}
+The log would say "open": the finding asked for new evidence, and no test
+was recorded for it. The revision is not wrong. Narrowing a claim to what
+was shown is honest, and the narrowed abstract may now be true as written.
+But the reviewer's question, whether the result holds at a stronger drag,
+is unanswered, and a reader should be able to see that rather than infer
+from the silence that it was checked. The response that resolves the
+finding is a declared test at the stronger drag; the narrowed claim is
+the response that admits it was not run.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**A smaller range.** Suppose the reviewer's range had stopped at 0.9.
+Declare the test at the top of that range with the explanations of the
+coefficient finding, and predict its verdict from the ablation before you
+run it. Would the branch continue or stop?
+
+::: {.solution}
+The test is the coefficient test at [0.9]{.given}, with the same two explanations.
+The ablation has the bracket at [0.8]{.given} just above the bound and at
+[1.0]{.given} across it, so [0.9]{.given} lies where the route may not be able to
+tell. It gives "`{python} result["exercise-verdict"]`", the bracket
+`{python} result["exercise-low"]` to `{python} result["exercise-high"]`
+degrees. Neither explanation predicted that, so the test decides nothing,
+and under the declared rule the branch continues with a sharper test,
+exactly as it did at the top of the reviewer's range.
+:::
+:::
+
+::: {.exercise}
+**An entry changed afterwards.** Change the verdict of the first test of
+the coefficient finding in the log to "supported", as if it had decided for
+the claim, and check the log. What is found, and what would it take to hide
+the change?
+
+::: {.solution}
+```{python}
+#| echo: false
+excerpt(experiment.tampered)
+```
+
+The check finds: `{python} result["tampered"]`. The entry's digest was
+computed from what it held when it was written, and the edited content
+no longer matches it. Hiding the change would mean computing a new digest
+for that entry and for every entry after it, because each names the digest
+of the one before. Anyone holding a copy of the last digest would then see
+that the log changed; a log kept by only one person can be rewritten
+whole, which is why a digest records and does not prevent.
+:::
+:::
+
+## Run this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "src/pbc/research/followup.py",
+        "src/pbc/research/plan.py",
+        "src/pbc/agents/specification.py",
+        "src/pbc/mechanics/experiments/experiment_specification.py",
+        "src/pbc/mechanics/experiments/from_question_to_research_plan.py",
+        "src/pbc/mechanics/experiments/discrepancies_and_follow_up_experiments.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_research_followup.py",
+        "tests/unit/test_discrepancies_and_follow_up_experiments_experiment.py",
+    ],
+)
+```
