@@ -11,7 +11,8 @@ taking them up again (``revisit``).
 
 ``Memory.store`` keeps an item once, and refuses a result whose links name
 no stored limitation. ``recall`` hands an item over for reuse only when
-every identity it was stored with is the identity the reuse presents, and
+the reuse presents the identities the item was stored with, by the same
+names and with the same digests, no more and no fewer, and
 returns a result together with its limitations and open questions, so that
 a reuse cannot drop them. A mismatch refuses the reuse and names each
 difference: the thing kept is not the thing the reuse would need, and it is
@@ -89,7 +90,8 @@ class Memory:
 
 def recall(memory: Memory, key: str, presented: Mapping[str, str]) -> Recalled:
     """``key`` for a reuse that presents the identities ``presented``, with
-    every item it links; refused when an identity differs or is missing."""
+    every item it links; refused when an identity differs, is missing, or
+    was not kept with the item."""
     item = memory.items.get(key)
     if item is None:
         raise ReuseRefused([f"nothing is kept under {key}"])
@@ -99,6 +101,11 @@ def recall(memory: Memory, key: str, presented: Mapping[str, str]) -> Recalled:
         else f"the reuse presents no {name}"
         for name, digest in item.identity.items()
         if presented.get(name) != digest
+    ]
+    reasons += [
+        f"the reuse presents a {name} the item was not kept with"
+        for name in presented
+        if name not in item.identity
     ]
     if reasons:
         raise ReuseRefused(reasons)

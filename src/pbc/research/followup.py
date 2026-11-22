@@ -15,9 +15,11 @@ Everything enters a ``Log`` in order: the claim with the digests of the
 records it rests on, the findings, the tests as declared, the evidence (a
 route's record by its digest), the revisions of the claim, and the
 decisions about each line of follow-up. The log only grows, and each entry
-names the digest of the entry before it (``verify_log``). Evidence names a
-test declared before it, and a record that is new: not one the claim
-already rested on, and not one recorded before the finding. Every entry
+names the digest of the entry before it (``verify_log``). A test is
+declared once under its key. Evidence names a test declared before it, the
+specification the route ran, which must be the one declared, and a record
+that is new: not one the claim already rested on, and not one recorded
+before the finding. Every entry
 after the claim names what the log already holds: a finding about its
 claim, a decision about a finding of the log, a revision resting on tests
 whose evidence is recorded.
@@ -217,6 +219,10 @@ class Log:
             raise FollowUpRefused(
                 f"{test.key}: {test.finding} asks for other words, not for a test"
             )
+        if test.key in self.tests:
+            raise FollowUpRefused(
+                f"{test.key} is already declared; declare a new test under a new key"
+            )
         problems = discriminates(test)
         if problems:
             raise FollowUpRefused(
@@ -233,11 +239,21 @@ class Log:
             },
         )
 
-    def record(self, test: str, record: Record) -> Entry:
-        """The route's record of a declared test, by its digest. The record
-        is new: neither one the claim rested on nor one already in the log."""
+    def record(
+        self, test: str, record: Record, specification: Mapping[str, Any]
+    ) -> Entry:
+        """The route's record of a declared test, by its digest, with the
+        ``specification`` the route ran, which must be the one declared.
+        The record is new: neither one the claim rested on nor one already
+        in the log."""
         if test not in self.tests:
             raise FollowUpRefused(f"{test} was not declared before its evidence")
+        ran = digest_value(specification)
+        if ran != digest_value(self.tests[test].specification):
+            raise FollowUpRefused(
+                f"{test}: the record comes from another specification than the"
+                " one declared"
+            )
         if any(e.content["test"] == test for e in self._of(RECORDED)):
             raise FollowUpRefused(
                 f"{test} already has its evidence; declare a new test"
@@ -251,6 +267,7 @@ class Log:
             RECORDED,
             {
                 "test": test,
+                "specification": ran,
                 "record": digest,
                 "verdict": record.verdict,
                 "decided": decided(self.tests[test], record.verdict),

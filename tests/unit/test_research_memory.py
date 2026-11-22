@@ -65,3 +65,13 @@ def test_the_memory_refuses_a_second_key_an_unknown_link_or_no_identity():
     with pytest.raises(ReuseRefused) as refused:
         memory.store(Item("x", "rumour", "t", "s", {}, links=("nowhere",)))
     assert len(refused.value.reasons) == 3
+
+
+def test_a_reuse_that_presents_more_identities_than_were_kept_is_refused():
+    # The owner's review of PR #599 (4): identity is an exact match of the
+    # names as well as of the digests.
+    with pytest.raises(ReuseRefused) as refused:
+        recall(kept(), "result", {"code": "c", "configuration": "k", "data": "d"})
+    assert refused.value.reasons == (
+        "the reuse presents a data the item was not kept with",
+    )

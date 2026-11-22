@@ -16,12 +16,15 @@ the text and resolves each, or names its problem:
   ``pbc.research.literature`` computes for the claim is the role the
   sentence gives it (``resolve_citation``).
 
-A number with no record, a record named for no number, a record or a
-field that does not exist, an unknown passage, a role the passage does
-not play, and a number, a citation, or a record in a marked sentence are
-problems. A number written with fewer decimals than its field
-is compared at those decimals, so a rounding passes and a transposition
-does not. Numbers written as words are not found: the check reads digits.
+A number with no record, a record named for no number, a role given for
+a passage the sentence does not cite, a record or a field that does not
+exist, a field that holds no finite number, an unknown passage, a role
+the passage does not play, and a number, a citation, or a record in a
+marked sentence are problems; a passage or a claim key held twice is
+refused before any sentence is read. A number written with fewer
+decimals than its field is compared at those decimals, so a rounding
+passes and a transposition does not. Numbers written as words are not
+found: the check reads digits.
 
 The records form a ``Bundle``: each record's fields with the digests of
 its output, of the configuration that produced it, and of the code that
@@ -31,6 +34,7 @@ configuration is found, and so is code that changed since the record was
 written. A digest establishes identity, not truth.
 """
 
+import math
 import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -102,6 +106,15 @@ def resolve_number(
     if fields is None or quantity.field not in fields:
         return REFUSED, f"no record field {quantity.record}.{quantity.field}"
     value = fields[quantity.field]
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not math.isfinite(value)
+    ):
+        return (
+            REFUSED,
+            f"the record field {quantity.record}.{quantity.field} is not a number",
+        )
     decimals = len(written.partition(".")[2])
     shown = format(value, f".{decimals}f")
     if shown != written:
@@ -129,6 +142,17 @@ def resolve_citation(
     return PASSAGE, f"{key}, {role}"
 
 
+def _by_key(items: Sequence[Any], what: str) -> dict[str, Any]:
+    """``items`` by their key; a key held twice is refused, since a
+    citation of it could resolve to either."""
+    found: dict[str, Any] = {}
+    for item in items:
+        if item.key in found:
+            raise ValueError(f"the {what} key {item.key} is held twice")
+        found[item.key] = item
+    return found
+
+
 def check_report(
     sentences: Sequence[Sentence],
     records: Mapping[str, Mapping[str, Any]],
@@ -138,8 +162,8 @@ def check_report(
     """Every number and citation of the report, in order, resolved or
     refused; a marked sentence is listed once as marked, and every number,
     citation, or record in it is refused."""
-    by_key = {p.key: p for p in passages}
-    statements = {s.key: s for s in claims}
+    by_key = _by_key(passages, "passage")
+    statements = _by_key(claims, "claim")
     found = []
     for sentence in sentences:
         cited = list(CITATION.finditer(sentence.text))
@@ -190,6 +214,12 @@ def check_report(
                     f"{left.record}.{left.field} is named for no number",
                 )
             )
+        written = {m.group(1) for m in cited}
+        found.extend(
+            Resolution(sentence.key, "", REFUSED, f"{key} is given a role, not cited")
+            for key in sentence.citations
+            if key not in written
+        )
     return found
 
 
@@ -251,6 +281,7 @@ REPRODUCED = "reproduced"
 CODE_CHANGED = "the code changed since the record"
 CONFIGURATION_CHANGED = "the configuration changed since the record"
 DIFFERS = "computed again, the record differs"
+NO_RECIPE = "no recipe computes the record"
 
 
 def reproduce(
@@ -259,11 +290,14 @@ def reproduce(
     edited: Mapping[Path, bytes] | None = None,
 ) -> dict[str, str]:
     """Each record's status when it is computed again: the code and the
-    configuration are compared first, then the output."""
+    configuration are compared first, then the output. A record no recipe
+    computes is named so."""
     found = {}
     for name, entry in entries.items():
-        recipe = recipes[name]
-        if code_identity(recipe, edited) != entry.code:
+        recipe = recipes.get(name)
+        if recipe is None:
+            found[name] = NO_RECIPE
+        elif code_identity(recipe, edited) != entry.code:
             found[name] = CODE_CHANGED
         elif digest_value(recipe.configuration) != entry.configuration:
             found[name] = CONFIGURATION_CHANGED

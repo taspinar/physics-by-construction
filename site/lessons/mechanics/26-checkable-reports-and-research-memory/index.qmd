@@ -98,7 +98,8 @@ apart.
   of a review's findings. The check takes the field and writes it with as
   many decimals as the sentence does. If the texts agree the number
   resolves; if not, the record's own value is shown beside it. Rounding is
-  allowed, because a report rounds; a transposed digit is not.
+  allowed, because a report rounds; a transposed digit is not. A field
+  that holds no number, a verdict for instance, is refused.
 - A **citation** names a passage of the corpus and the role it plays for a
   claim. What is checked of the passage is its quotation, against its page;
   its label for a claim is one annotator's reading. The check does not stop
@@ -153,8 +154,8 @@ So each item is kept with its **identity**, the digests that say exactly
 what was kept: the code and the configuration of a result, the record of
 the data, the archive entry of an idea. A reuse presents the identities it
 needs, and the memory hands the item over only when they are the same,
-together with the limitations and open questions it was kept with. A
-mismatch is not an error to be worked around: it says that the thing kept
+by the same names and no more, together with the limitations and open
+questions it was kept with. A mismatch is not an error to be worked around: it says that the thing kept
 is not the thing needed, and that it has to be computed again.
 
 ## Code

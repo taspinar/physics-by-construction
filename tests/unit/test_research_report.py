@@ -11,6 +11,7 @@ from pbc.research.report import (
     CODE_CHANGED,
     CONFIGURATION_CHANGED,
     DIFFERS,
+    NO_RECIPE,
     PASSAGE,
     RECORD,
     REFUSED,
@@ -146,3 +147,40 @@ def test_a_bundle_reproduces_and_finds_what_changed(tmp_path):
 def test_a_number_is_found_beside_punctuation(text):
     sentence = Sentence("s", text, (Quantity("plan", "x"),))
     assert [r.token for r in check(sentence)] == ["1"]
+
+
+def test_a_field_that_holds_no_number_is_refused_with_its_reason():
+    # #604 and the owner's review of PR #599 (3): format() on a text field
+    # raised; a bool would have passed as 1 or 0.
+    records = {"plan": {**RECORDS["plan"], "best": None, "met": True}}
+    for name in ("verdict", "best", "met"):
+        assert resolve_number("1", Quantity("plan", name), records) == (
+            REFUSED,
+            f"the record field plan.{name} is not a number",
+        )
+    sentence = Sentence("s", "The verdict 1.", (Quantity("plan", "verdict"),))
+    assert [r.kind for r in check(sentence)] == [REFUSED]
+
+
+def test_a_passage_or_a_claim_held_twice_is_refused():
+    with pytest.raises(ValueError, match=r"passage key .+ is held twice"):
+        check_report([], RECORDS, [*PASSAGES, PASSAGES[0]], STATEMENTS)
+    with pytest.raises(ValueError, match=r"claim key .+ is held twice"):
+        check_report([], RECORDS, PASSAGES, [*STATEMENTS, STATEMENTS[0]])
+
+
+def test_a_role_given_for_a_passage_the_sentence_does_not_cite_is_refused():
+    sentence = Sentence(
+        "s",
+        "No citation here.",
+        citations={"sa1-bracket": "supports"},
+        claim="slow-throw",
+    )
+    assert [(r.kind, r.to) for r in check(sentence)] == [
+        (REFUSED, "sa1-bracket is given a role, not cited")
+    ]
+
+
+def test_a_record_that_no_recipe_computes_is_named_so(tmp_path):
+    entries = bundle({"r": recipe(tmp_path, {"a": 1})})
+    assert reproduce(entries, {}) == {"r": NO_RECIPE}

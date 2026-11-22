@@ -113,9 +113,12 @@ research plans lesson did, and it answers no doubt about the method.
 
 Everything goes into a **log**, in the order it happened: the claim with
 the records it rests on, the findings, each test as declared, its evidence,
-the decisions, and the revisions of the claim. Each entry carries the
-digest of the one before it, so an entry changed afterwards is found. The
-status of a finding is derived from the log, never written by hand:
+the decisions, and the revisions of the claim. A test is declared once
+under its name, so its predictions cannot be swapped after its evidence
+came in, and its evidence is accepted only from the specification it was
+declared with. Each entry carries the digest of the one before it, so an
+entry changed afterwards is found. The status of a finding is derived
+from the log, never written by hand:
 
 - a finding that asks for evidence is **resolved by new evidence** when
   one of its tests decided between its explanations, whichever way;

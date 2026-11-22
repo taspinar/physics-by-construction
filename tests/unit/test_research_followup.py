@@ -44,8 +44,11 @@ def record(verdict: str, value: float = 1.0) -> Record:
     return Record((run,), "criteria met", (43.5, 44.0, 44.5), {}, verdict)
 
 
+SPEC = {"actions": ["x"]}
+
+
 def follow_up(key: str = "other-method", explanations=(HOLDS, FAILS)) -> FollowUp:
-    return FollowUp(key, "method", "another method", {"actions": ["x"]}, explanations)
+    return FollowUp(key, "method", "another method", SPEC, explanations)
 
 
 def started(*findings: Finding, old: Record | None = None) -> Log:
@@ -89,23 +92,23 @@ def test_evidence_needs_a_declared_test_and_a_new_record():
     old = record(SUPPORTED, 0.0)
     log = started(old=old)
     with pytest.raises(FollowUpRefused, match="not declared"):
-        log.record("other-method", record(SUPPORTED))
+        log.record("other-method", record(SUPPORTED), SPEC)
     log.declare(follow_up())
     with pytest.raises(FollowUpRefused, match="not new evidence"):
-        log.record("other-method", old)
-    log.record("other-method", record(SUPPORTED))
+        log.record("other-method", old, SPEC)
+    log.record("other-method", record(SUPPORTED), SPEC)
     with pytest.raises(FollowUpRefused, match="already has its evidence"):
-        log.record("other-method", record(SUPPORTED, 2.0))
+        log.record("other-method", record(SUPPORTED, 2.0), SPEC)
 
 
 def test_a_finding_is_resolved_by_decisive_evidence_inconclusive_without_it():
     log = started()
     assert status(log, "method") == OPEN
     log.declare(follow_up("first"))
-    log.record("first", record(UNDECIDED))
+    log.record("first", record(UNDECIDED), SPEC)
     assert status(log, "method") == INCONCLUSIVE
     log.declare(follow_up("second"))
-    log.record("second", record(REFUTED, 2.0))
+    log.record("second", record(REFUTED, 2.0), SPEC)
     assert status(log, "method") == RESOLVED  # decided, against the claim
 
 
@@ -118,7 +121,7 @@ def test_revising_the_prose_never_resolves_a_request_for_evidence():
     log.declare(follow_up())
     with pytest.raises(FollowUpRefused, match="no evidence of the test other-method"):
         log.revise("the claim, citing the declared test", ["method"], ["other-method"])
-    log.record("other-method", record(UNDECIDED))
+    log.record("other-method", record(UNDECIDED), SPEC)
     log.revise("the claim, citing the test", ["method"], ["other-method"])
     assert status(log, "method") == INCONCLUSIVE
     # A revision is what resolves a finding about the wording, and only that.
@@ -139,7 +142,7 @@ def test_a_decision_states_its_reason():
 def test_an_edited_or_removed_entry_breaks_the_chain():
     log = started()
     log.declare(follow_up())
-    log.record("other-method", record(UNDECIDED))
+    log.record("other-method", record(UNDECIDED), SPEC)
     assert verify_log(log.entries) == []
     entries = list(log.entries)
     evidence = entries[-1]
@@ -183,6 +186,30 @@ def test_a_revision_rests_only_on_tests_with_recorded_evidence():
     log.declare(follow_up())
     with pytest.raises(FollowUpRefused, match="no evidence of the test other-method"):
         log.revise("the claim", ["method"], ["other-method"])
-    log.record("other-method", record(SUPPORTED))
+    log.record("other-method", record(SUPPORTED), SPEC)
     log.revise("the claim", ["method"], ["other-method"])
     assert [e.kind for e in log.entries][-1] == "claim revised"
+
+
+def test_a_second_declaration_under_a_declared_key_is_refused():
+    # The owner's review of PR #599 (1): a second declaration overwrote the
+    # test, and with it the predictions its recorded evidence is read by.
+    log = started()
+    log.declare(follow_up())
+    swapped = follow_up(explanations=(FAILS, HOLDS))
+    with pytest.raises(FollowUpRefused, match="other-method is already declared"):
+        log.declare(swapped)
+    assert log.tests["other-method"] == follow_up()
+    assert [e.kind for e in log.entries].count("test declared") == 1
+
+
+def test_a_record_of_another_specification_is_not_the_evidence_of_a_test():
+    # The owner's review of PR #599 (2): the record must come from the
+    # specification the test was declared with.
+    log = started()
+    log.declare(follow_up())
+    with pytest.raises(FollowUpRefused, match="another specification"):
+        log.record("other-method", record(REFUTED), {"actions": ["y"]})
+    assert status(log, "method") == OPEN
+    entry = log.record("other-method", record(REFUTED), dict(SPEC))
+    assert entry.content["specification"] == log.entries[-2].content["specification"]
