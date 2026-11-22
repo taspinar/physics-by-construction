@@ -143,7 +143,15 @@ def test_the_ci_fixture_replays_the_measured_sweep_without_the_device(tmp_path):
     assert replayed["run"]["mode"] == "recorded"
     assert replayed["run"]["new_experiment"] is False
     assert replayed["run"]["device"]["dataset"] == "ad3-rlc-pilot/capacitor"
-    assert replayed["check"]["metrics"] == live["check"]["metrics"]
+    # The same metrics to rounding: the platform's floating point (macOS
+    # where the run was recorded, Linux in CI) differs in the last digits.
+    metrics, expected = replayed["check"]["metrics"], live["check"]["metrics"]
+    assert metrics.keys() == expected.keys()
+    for name, value in expected.items():
+        if isinstance(value, float):
+            assert metrics[name] == pytest.approx(value, rel=1e-9), name
+        else:
+            assert metrics[name] == value, name
     with (tmp_path / "points.csv").open() as handle:
         rows = list(csv.DictReader(handle))
     with (directory / pilot.RAW).open() as handle:
