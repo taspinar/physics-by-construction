@@ -3,6 +3,7 @@ or stopping conditions, and executed by the scripted route
 (``pbc.research.plan``, RR2; acceptance criterion 3 of Issue #585)."""
 
 import copy
+from dataclasses import replace
 
 import numpy as np
 import pytest
@@ -183,3 +184,61 @@ def test_a_plan_changed_after_the_freeze_is_a_deviation():
     assert not found.as_registered
     assert found.status == research.NOT_REGISTERED
     assert research.freeze(PLAN) == frozen  # the digest is of the content
+
+
+@pytest.mark.parametrize("runs", [1, 0])
+def test_a_grid_baseline_of_fewer_than_two_runs_is_refused(runs):
+    # An even grid spans the varied range from end to end: one run has no
+    # spacing (#593), and execute would otherwise divide by zero.
+    data = copy.deepcopy(PLAN)
+    data["baselines"]["grid"]["runs"] = runs
+    assert [part for part, _ in problems(data)] == ["baselines"]
+    data["baselines"]["grid"]["runs"] = 2
+    assert research.check(data, laboratory()).grid_runs == 2
+
+
+def laboratory_up_to(high: float):
+    """The laboratory of the lesson with the angle permitted up to ``high``
+    degrees only: a range whose end lies near the route's best angle."""
+    lab = laboratory()
+    return type(lab)(
+        tuple(
+            replace(
+                action,
+                tool=replace(
+                    action.tool,
+                    parameters=tuple(
+                        replace(p, high=high) if p.name == "angle" else p
+                        for p in action.tool.parameters
+                    ),
+                ),
+            )
+            for action in lab.actions
+        )
+    )
+
+
+def test_a_withheld_test_near_the_end_of_the_range_is_clipped_to_it():
+    # The route's best angle lies within the withheld test's span of the end
+    # of the varied range, which is also what the action permits (#593).
+    data = copy.deepcopy(PLAN)
+    data["specification"]["variables"]["angle"]["high"] = 42.0
+    data["stopping"]["stop_if_control_fails"] = False  # 45 deg is out of range
+    lab = laboratory_up_to(42.0)
+    plan = research.check(data, lab)
+    _, centre, _ = execute(plan.specification, lab).bracket
+    (test,) = plan.withheld
+    unclipped = test.settings(centre, plan.specification.resolution)
+    assert max(unclipped) > 42.0
+    # Unclipped, the scan makes a call the action refuses.
+    with pytest.raises(RuntimeError, match="refused call"):
+        research._scan(lab, plan.specification, unclipped, test.numerical)
+
+    found = research.execute(plan, lab, research.freeze(data))
+    (outcome,) = found.withheld
+    assert found.stop == research.COMPLETED
+    assert list(outcome.settings) == [s for s in unclipped if s <= 42.0]
+    assert min(outcome.settings) >= 20.0 and max(outcome.settings) == 42.0
+    assert found.runs == len(found.control.record.runs) + len(
+        found.record.runs
+    ) + 20 + len(outcome.settings)

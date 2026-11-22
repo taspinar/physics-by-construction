@@ -4,7 +4,8 @@ maps".
 Three claims about the tennis ball (the replication and the original
 question of the research plans, and the scaling guess of the projectile
 lesson) compared with a
-small local corpus of verified passages from the site's own lessons
+small local corpus of passages quoted from the site's own lessons, each
+checked against its page
 (``pbc.research.corpus``): the label of every pair from the annotator's
 reading of each passage, checked against the labels the annotator gave
 directly; a lexical retrieval baseline, its ranks and its recall; the log of
@@ -310,18 +311,21 @@ def run() -> Experiment:
     experiment.table(
         "review-log",
         [
-            (e.claim, e.source, e.proposed_by, e.status, e.label)
+            (e.claim, e.source, e.proposed_by, e.quotation, e.label_status, e.label)
             for e in review_log(STATEMENTS, PASSAGES, K)
         ],
         [
             ("claim", "", ""),
             ("source", "", ""),
             ("proposed by", "", ""),
-            ("status", "", ""),
+            ("quotation", "", ""),
+            ("label status", "", ""),
             ("label", "", ""),
         ],
-        "The review log: every source proposed for a claim, by whom, its"
-        " status, and the label of the annotations where a person has read it.",
+        "The review log: every source proposed for a claim, by whom, whether"
+        " its quotation is checked against its page, where its label comes"
+        " from, and the label of the annotations where the annotator has read"
+        " it.",
     )
     experiment.table(
         "evidence-map",
