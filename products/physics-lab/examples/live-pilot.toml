@@ -1,0 +1,24 @@
+# The input of F140's physical pilot: one frequency sweep of the owner's
+# series RLC circuit on a breadboard (R 100 ohm, L 1 mH, C 10 nF; f0 near
+# 50 kHz) with an Analog Discovery 3 (docs/products.md, the pilot's record).
+#
+#   uv run --locked python -m pbc.products.physics_lab run --mode live \
+#       --input products/physics-lab/examples/live-pilot.toml \
+#       --circuit-confirmed --out physics-lab-live
+#
+# Wiring: W1 -> R -> L -> node A -> C -> ground; scope 1+ at W1, 2+ at node
+# A, 1- and 2- at ground. Close WaveForms first.
+
+[protocol]
+low_hz = 5000.0         # the sweep's lowest frequency, Hz
+high_hz = 200000.0      # its highest frequency, Hz (the live envelope's top)
+coarse_points = 13      # log-spaced points of the coarse sweep
+refine_points = 6       # points between the two that bracket -90 degrees
+amplitude_v = 1.0       # of the source, V (at most 30 mA through the circuit)
+periods = 8             # periods per acquisition
+samples_per_period = 64
+seed = 140              # unused by a device; kept in the run record
+agent_budget = 16
+# Not set here: you confirm the connected circuit with --circuit-confirmed
+# each time, and the instrument refuses its output until you do.
+circuit_confirmed = false

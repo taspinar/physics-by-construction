@@ -114,7 +114,13 @@ class Interlock:
 @dataclass(frozen=True)
 class Envelope:
     """The safety envelope of an instrument: the permitted ranges, the
-    interlocks, and the timeout of one driver call."""
+    interlocks, and the timeout of one driver call.
+
+    ``current``, with ``series_resistance_ohm``, bounds the current the
+    excitation can drive (F140): the current of a series circuit is at most
+    the amplitude over its series resistance, so an excitation whose
+    amplitude over ``series_resistance_ohm`` (the circuit's declared
+    resistance at its lower tolerance) is outside ``current`` is refused."""
 
     amplitude: Limit  # of the excitation, V
     frequency: Limit  # of the excitation, Hz
@@ -122,14 +128,31 @@ class Envelope:
     samples: Limit  # per acquisition
     timeout_s: float
     interlocks: tuple[Interlock, ...] = ()
+    current: Limit | None = None  # amplitude / series resistance, A
+    series_resistance_ohm: float | None = None
 
     def __post_init__(self):
         if not self.timeout_s > 0:
             raise ValueError("the timeout must be positive")
+        if self.current is not None:
+            r = self.series_resistance_ohm
+            if r is None or not math.isfinite(r) or not r > 0:
+                raise ValueError(
+                    "a current bound needs a positive, finite series resistance"
+                )
+
+    def check_current(self, amplitude_v: float) -> None:
+        """Refuse an amplitude that could drive more than the current bound
+        through the declared series resistance."""
+        if self.current is None:
+            return
+        self.current.check(amplitude_v / float(self.series_resistance_ohm or 0.0))
 
     def describe(self) -> dict[str, Any]:
-        limits = (self.amplitude, self.frequency, self.sample_rate, self.samples)
-        return {
+        limits = [self.amplitude, self.frequency, self.sample_rate, self.samples]
+        if self.current is not None:
+            limits.append(self.current)
+        described: dict[str, Any] = {
             "limits": [
                 {"quantity": x.quantity, "unit": x.unit, "low": x.low, "high": x.high}
                 for x in limits
@@ -137,6 +160,9 @@ class Envelope:
             "timeout_s": self.timeout_s,
             "interlocks": [i.name for i in self.interlocks],
         }
+        if self.series_resistance_ohm is not None:
+            described["series_resistance_ohm"] = self.series_resistance_ohm
+        return described
 
 
 @dataclass(frozen=True)
@@ -230,6 +256,7 @@ class Instrument:
         with self._guard():
             amplitude = self.envelope.amplitude.check(amplitude_v)
             frequency = self.envelope.frequency.check(frequency_hz)
+            self.envelope.check_current(amplitude)
             for interlock in self.envelope.interlocks:
                 if not interlock.closed():
                     raise InterlockOpen(

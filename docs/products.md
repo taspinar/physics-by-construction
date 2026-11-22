@@ -10,8 +10,10 @@ F140's desk spike, a recommendation on the questions 17 (the device) and
 18 (the budget), which the owner decided on #508 on 2026-11-13
 (<https://github.com/taspinar/physics-by-construction/issues/508#issuecomment-6865116429>): the
 Analog Discovery 3 Pro Bundle (DigiKey NL 471-060) and a maximum budget
-of EUR 1,000 ("The owner's decision" below). The learner's own
-material is `products/physics-lab/README.md`.
+of EUR 1,000 ("The owner's decision" below), and the record of F140's
+physical pilot of 2026-11-22: a go for the live adapter of the Analog
+Discovery 3 within its operating limits (the last section). The learner's
+own material is `products/physics-lab/README.md`.
 
 ## The instrument contract (`pbc.instruments`)
 
@@ -54,9 +56,13 @@ processing, and the timestamps:
   refuses to state. EM8's RLC data has no granted dataset gate, so the
   slice uses a synthetic sample written from the simulated bench and
   declared `simulated`; it is regenerated from its seed and never committed;
-- *live*: no adapter yet. F140 decides on hardware (its desk spike's
-  record is the last section of this page); its driver will be imported
-  only with the product's optional group.
+- *live*: the Analog Discovery 3 through the vendor's WaveForms SDK,
+  `pbc.instruments.analog_discovery` (F140's physical pilot, the last
+  section of this page), under the live bench's envelope with its current
+  bound. It is imported only by the command line's live mode, and its SDK
+  is the learner's own installation, never a locked dependency. A recorded
+  run may also replay a live export, the pilot's dataset `ad3-rlc-pilot`,
+  under the envelope and the circuit it was recorded with.
 
 The physical model (`pbc.electromagnetism`), the instrument layer
 (`pbc.instruments`), and the orchestration (`pbc.products.physics_lab`) are
@@ -574,3 +580,196 @@ The slots named in this record and their lessons:
 - [AD10] DigiKey Netherlands, Digilent 410-415, €407.09 including 21 % VAT (the owner's price check), <https://www.digikey.nl/en/products/detail/digilent-inc/410-415/19235661>
 - [AD11] DigiKey Netherlands, Digilent 471-060, €439.31 including 21 % VAT (the owner's price check), <https://www.digikey.nl/en/products/detail/digilent-inc/471-060/19235252>
 - [AD12] Digilent shop, Analog Discovery 3 Pro Bundle, its contents (given by the owner; not fetched in this session), <https://digilent.com/shop/analog-discovery-3-pro-bundle/>
+
+## Decision record: the physical pilot (F140, 2026-11-22)
+
+**Decision: go**, for the live adapter of the Analog Discovery 3 in the
+Autonomous Physics Lab, within the operating limits below. One condition
+remains for the owner at the merge gate: an independent observation, with
+the owner's multimeter, that the watchdog switches the generator off after
+the program is killed ("Failure handling"). The physical pilot is the
+second part of F140 (Issue #508). It ran on 2026-11-22 with the owner at
+the bench, after the owner's decisions on questions 17 and 18 (2026-11-13)
+and the owner's start of the pilot.
+
+**Scope and limits.** One device (Analog Discovery 3 Pro Bundle,
+SN:210415BFB222, WaveForms 3.25.1 on macOS, USB power only) and one circuit
+on a breadboard, the owner's parts: W1 → R → L → C → ground with R 100 Ω
+± 1 %, L 1 mH, C 10 nF ([the owner's circuit
+decision](https://github.com/taspinar/physics-by-construction/issues/508#issuecomment-7077711021);
+f0 near 50 kHz instead of the bench's 5 kHz, the same √(L/C) and Q).
+Low voltage only. No rewiring by software and no automatic switching. The
+parts were exchanged and the probes moved by the owner's hands.
+
+### What the pilot built
+
+- **The live adapter** `pbc.instruments.analog_discovery` (about 600 lines
+  with its watchdog). It implements the `Driver` protocol over the vendor's
+  C library through `ctypes` of the standard library. The library is loaded
+  from `/Library/Frameworks/dwf.framework/dwf` on macOS: the copy inside
+  `WaveForms.app` loads but finds no device. `PBC_DWF_LIBRARY` overrides the
+  path. The SDK is never in `uv.lock`, so the optional group `physics-lab`
+  gains no package and the adapter needs no dependency change. It is
+  imported only lazily, by the command line's live mode
+  (`tests/unit/test_products_boundary.py`).
+- **The envelope of the live bench**
+  (`pbc.products.physics_lab.protocol.live_envelope`): the bench's
+  amplitude, samples, and timeout. The frequency reaches 200 kHz and the
+  sample rate 20 MS/s for the owner's circuit. A new **current bound**
+  (`Envelope.current`) refuses an amplitude that could drive more than
+  30 mA, the AD3's distortion-free output current, through the circuit's
+  declared series resistance at its lower tolerance (a series circuit's
+  current is at most V/R).
+- **The realised sample rate.** The AD3's scope runs at 100 MHz over a
+  whole divider, so the capture reports the realised rate and its sample
+  times. The protocol reads a record that does not span whole periods by a
+  least-squares fit (`fitted_phasor`); the simulated and recorded routes
+  are unchanged. The contract change the desk spike expected
+  (`set_output` returning the frequency set) was not needed: the
+  generator's frequency is set to about 1e-8.
+- **The live mode** of the command line (`run --mode live`), the pilot's
+  input (`products/physics-lab/examples/live-pilot.toml`), and a run
+  record with the device, the SDK, the calibration statement, the declared
+  circuit, the processing, and the device's temperatures and supply at the
+  start and the end.
+- **The dataset** `ad3-rlc-pilot` (card, dossier `docs/datasets/ad3-rlc-pilot.md`,
+  sample, reference figure of the measured against the simulated response)
+  and its **CI fixture**. The recorded mode replays the committed sweep
+  without the device (`workflow.read_export`) and reproduces the live run's
+  points, f0, and Q.
+
+### Evidence
+
+| Item | Result on the device |
+|---|---|
+| Physical operation | Two sweeps at 1 V, 5 kHz to 200 kHz, 19 points, about 5 s each including the 2 s warm-up: f0 47,004 and 47,009 Hz, Q 1.542 and 1.549 |
+| Against the model | The nominal parts predict f0 50.3 kHz and Q 3.16. Measured apart (channel 2 moved to the R–L node): L 0.861 ± 0.010 mH, C 14.55 ± 0.15 nF, and a coil loss of 63 ± 3 Ω near the resonance. These predict 45.0 kHz and 1.50, within 5 % of the measurement. The coil's loss grows with the frequency, so no constant R fits the band (the dossier) |
+| The contract tests (`pbc.instruments.conformance`) | all pass on the device; `repeatable` is not applicable to a physical device |
+| The envelope's refusal | 2.5 V, 250 kHz, and 2 V into a declared 50 Ω (40 mA) refused; the adapter received no call and W1 read 1e-5 V |
+| The stop | W1 0.998 V → 2e-5 V at once, also during an acquisition; every later operation refused; a new instrument restarts at 0.998 V |
+| Latency of one point | excitation median 1.3 ms (max 6.9 ms), acquisition median 16 ms (max 20 ms), far below the 10 s timeout |
+| Fake driver | the same refusals, the stop during an acquisition, the contract tests, and the endings, on a stand-in for the SDK in CI (`tests/unit/test_analog_discovery.py`) |
+
+The device tests are `tests/unit/test_analog_discovery_device.py`. They
+skip unless `PBC_LIVE_DEVICE=1` with the circuit wired, so no verification
+and no CI job drives a device.
+
+### Failure handling
+
+| Case | What the pilot observed | What the adapter does |
+|---|---|---|
+| Stop requested | W1 off at once (above) | `output_off` waits at most 0.5 s for a running SDK call, then stops the generator anyway |
+| Call that hangs | (fake driver) | each acquisition polls under its own 5 s deadline, below the envelope's 10 s timeout |
+| Program ends without `close` | the interpreter crashed at exit (SIGSEGV) | closes the device at exit (`atexit`), output off first; exit 0, W1 off |
+| Pulled USB cable, W1 on | the next capture failed at once with a clear error, no hang; reopening reported "no device" until the cable was back; after reconnecting, W1 was off and the same serial captured | `close` treats the lost device as closed, keeps the reason (`lost`), and leaves the watchdog to stop W1 if the device comes back within its deadline |
+| Program killed (`kill -9`) | **W1 kept generating** (the owner's meter: 0.9 V at 2 V, 1 kHz, still 1 min 45 s after the kill) until the device was opened again and the output switched off. `DwfParamOnClose` = stop acts only on a proper close | every opening switches W1 off first; a **watchdog** process (below) switches it off when the program dies |
+| Restart | a new program opens the device with W1 off and measures normally | as above |
+
+**The watchdog.** When the adapter opens the device it starts the same
+module as a separate process (`python -m pbc.instruments.analog_discovery
+--watchdog SERIAL`), in its own session and deaf to Ctrl-C, hang-up, and
+terminate. The watchdog loads no SDK while the program lives: a process
+that has the SDK loaded can hold a device open (the pilot). It reads its
+standard input. A proper `close` sends "closed" and the watchdog ends. When
+the pipe closes without it, because the program ended in any other way,
+the watchdog waits for the device to come free (the pilot: 2 s after
+`kill -9`), opens it by its serial, switches W1 off, and closes it. In CI a
+real watchdog process acts on a parent killed with SIGKILL, without a
+device.
+
+**The bound of the crash case.** The watchdog cannot help when it is
+killed together with the program (for example `kill -9` of both), or when
+the device does not come back within 60 s. W1 then keeps the last setting
+the envelope permitted (at most 2 V and 30 mA into the declared circuit)
+until the device is opened again or unplugged. The learner's instruction
+(`products/physics-lab/README.md`): after a crash, start the lab again or
+unplug the USB cable.
+
+**Pending, for the owner:** the independent observation of the watchdog on
+the device. With the multimeter across W1 and ground:
+`PBC_LIVE_DEVICE=1 uv run --locked python
+tests/unit/test_analog_discovery_device.py --meter` switches W1 on at 2 V,
+1 kHz, kills the program after 15 s, and prints the times at which to read
+the meter. The meter should fall to 0 within a few seconds. This needs the
+owner at the bench and is not run unattended.
+
+### Operating limits
+
+| Quantity or condition | Limit |
+|---|---|
+| Excitation amplitude | 0.01 V to 2 V |
+| Excitation frequency | 1 kHz to 200 kHz |
+| Sample rate | 1 kS/s to 20 MS/s; realised as 100 MHz over a whole divider N, within 0.5/N of the rate asked (0.16 % at 5 kHz and 64 samples per period, up to 3.4 % at 147 kHz). The contract test's 1 % tolerance therefore holds only below about 2 MS/s; the protocol's fit does not need it |
+| Samples per acquisition | 16 to 16,384 |
+| Source current | at most 30 mA: amplitude over the declared series resistance at its lower tolerance (99 Ω for the pilot's circuit) |
+| One device call | at most 10 s (the acquisition's own deadline 5 s) |
+| Input ranges | channel 1 ±2.5 V (the source), channel 2 ±25 V (the capacitor, up to Q times the source) |
+| Power | USB only. With a powered auxiliary supply, a pulled USB cable does not remove the device's power; the run record reports the auxiliary voltage |
+| Software | WaveForms installed and closed while the lab runs; on macOS `dwf.framework` copied to `/Library/Frameworks` |
+| Calibration | the factory calibration; the relative gain and phase of the two channels on their different ranges are unknown (the dataset's dossier) |
+
+### Comparison with Bluesky and QCoDeS
+
+From their documentation only, accessed 2026-11-22; neither was installed
+or run (the plan's limit). The question is what each would add to the
+minimal adapter on the frequency-response protocol with this device.
+
+| Item | The minimal adapter (`pbc.instruments`) | Bluesky with ophyd [BS1–BS6] | QCoDeS [QC1–QC5] |
+|---|---|---|---|
+| Physical operation of the AD3 | the adapter above, over the SDK by `ctypes` | no hardware support in Bluesky itself; no Digilent driver among the listed interface packages; one would write an ophyd `Device` around the SDK (the tutorial covers EPICS signals only) | a driver is an `Instrument` with parameters; plain `Instrument` is the documented base for a DLL device; no Digilent driver in QCoDeS or its contrib drivers |
+| Limits before the device | the envelope: ranges, the current bound, the interlock, the timeout, outside any model (I34) | none enforced on `set` in the pages read; suspenders pause a plan on a condition, without switching an output | validators reject a value before it is sent; no interlock or envelope described |
+| Interruption | `request_stop` switches W1 off at once from any thread; the watchdog covers a killed program | the RunEngine catches Ctrl-C: pause at the next checkpoint, then resume, stop, abort, or halt; it stops the motors it touched; an output off is the device's own `pause` cleanup, and halt does none | Ctrl-C is delayed around critical code and ends the measurement; output off on interruption is not described; actions at close run only on an explicit close |
+| Valid restart | a new run on a new instrument; the SA6 campaign's checkpoints in the ledger (F143) | resume rewinds to the last checkpoint within the same process; nothing across a crash | a new run id per run; no resume or checkpoints described |
+| State capture | the run record: device, serial, SDK, calibration, configuration, circuit, conditions at start and end, processing, timestamps | descriptors carry each device's configuration; the run start carries the plan and its metadata | the station snapshot (all parameters, recursively) is saved with each run |
+| Measurement identity | the run record and the evidence ledger of `pbc.evidence`, exported files | a uid on every document, the run start's time, the run stop's exit status | an increasing run id and a GUID in an SQLite database |
+| Footprint | the standard library and NumPy; nothing added to the lock | the bluesky, ophyd, and event-model packages, BSD-3-Clause; their dependency footprint is not stated | the qcodes package, MIT, Python 3.11+; its footprint is not stated |
+
+**Conclusion.** For one device and one protocol, neither framework removes
+work. The device code, a wrapper around the same SDK, has to be written in
+each. Neither framework enforces the envelope, the current bound, or a stop
+that switches the output off. Neither covers a killed process, the case the
+pilot found to matter. Bluesky's documents and QCoDeS's snapshots duplicate
+what the run record and the evidence ledger already hold for this product.
+Both would add a large dependency to the optional group. The minimal
+adapter stays. Bluesky's checkpointed resume and its suspenders are the
+part worth revisiting for long campaigns over several devices, which are
+out of F140's scope.
+
+Sources (accessed 2026-11-22): [BS1] <https://blueskyproject.io/bluesky/main/hardware-interfaces.html>;
+[BS2] <https://blueskyproject.io/bluesky/main/state-machine.html>;
+[BS3] <https://blueskyproject.io/bluesky/main/documents.html> and
+<https://blueskyproject.io/bluesky/main/event_descriptors.html>;
+[BS4] <https://blueskyproject.io/ophyd/> and <https://blueskyproject.io/ophyd/tutorials/device.html>;
+[BS5] <https://blueskyproject.io/event-model/main/explanations/data-model.html>;
+[BS6] <https://github.com/bluesky/bluesky> (licence);
+[QC1] <https://microsoft.github.io/Qcodes/examples/writing_drivers/Creating-Instrument-Drivers.html>;
+[QC2] <https://microsoft.github.io/Qcodes/examples/DataSet/Performing-measurements-using-qcodes-parameters-and-dataset.html>;
+[QC3] <https://microsoft.github.io/Qcodes/dataset/introduction.html> and
+<https://microsoft.github.io/Qcodes/examples/basic_examples/15_minutes_to_QCoDeS.html>;
+[QC4] <https://qcodes.github.io/Qcodes_contrib_drivers/>;
+[QC5] <https://github.com/microsoft/Qcodes> (licence).
+
+### Cost
+
+| Item | Cost | Source |
+|---|---|---|
+| Analog Discovery 3 Pro Bundle | €439.31 including VAT at the owner's price check of 2026-11-13 | [AD11] of the desk spike; the final invoice is the owner's and not recorded here |
+| The circuit's parts and breadboard | the owner's own order (TinyTronics); its amount is not recorded on the Issue | the owner's circuit decision |
+| Software | none: WaveForms and its SDK are free to use with Digilent hardware (the licence in WaveForms, read on 2026-11-22) | Issue #508 |
+| Time per sweep | about 5 s for 19 points, including the 2 s warm-up | the run records |
+
+Within the owner's maximum of EUR 1,000. No second device, and no LCR
+meter: the parts were measured with the AD3 itself, against the known
+resistor.
+
+### What the go does not claim
+
+- One device and one circuit were measured; another circuit is a new
+  measurement, with its own declared parts and resistance bound.
+- The live adapter was run on macOS only; the library paths for Linux and
+  Windows are the vendor's names, untested.
+- No lesson takes a learner's own measurement; the lesson integration is
+  later work.
+- The pilot's run records are processed data with an unknown channel
+  calibration (the dossier); the dataset's go concerns these files, not a
+  calibrated instrument.

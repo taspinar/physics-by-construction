@@ -1,0 +1,129 @@
+id: ad3-rlc-pilot
+title: F140 physical pilot, a series RLC circuit swept with an Analog Discovery 3, 5 kHz to 200 kHz
+source:
+  url: https://github.com/taspinar/physics-by-construction/issues/508#issuecomment-7080355593
+  creator: Ahmet Taspinar (the project's owner, at the bench), with the live adapter of F140 (pbc.instruments.analog_discovery)
+    run by the supervising agent session
+  version: the pilot's live runs of 2026-11-22, run 2 (channel 2 at the L-C node, started 11:55:44 UTC) and
+    run 3 (channel 2 at the R-L node, started 12:57:46 UTC), as the physics lab exported them
+  accessed: &accessed 2026-11-22
+rights:
+  licence: CC-BY-4.0
+  local_download:
+    answer: permitted
+    source: 'The owner''s decision on Issue #508, 2026-11-22 (https://github.com/taspinar/physics-by-construction/issues/508#issuecomment-7079470015):
+      the pilot''s own measurements are published under CC BY 4.0; the terms at https://creativecommons.org/licenses/by/4.0/legalcode
+      permit reproducing and sharing the material'
+  redistribution_of_subsets:
+    answer: permitted
+    source: 'The owner''s decision on Issue #508, 2026-11-22 (issuecomment-7079470015), CC BY 4.0; https://creativecommons.org/licenses/by/4.0/legalcode
+      section 2(a)(1) permits sharing the material in whole or in part'
+  publication_of_figures:
+    answer: permitted
+    source: 'The owner''s decision on Issue #508, 2026-11-22 (issuecomment-7079470015), CC BY 4.0; https://creativecommons.org/licenses/by/4.0/legalcode
+      section 2(a)(1) permits producing and sharing adapted material'
+  modification_and_attribution:
+    answer: permitted
+    source: 'The owner''s decision on Issue #508, 2026-11-22 (issuecomment-7079470015), CC BY 4.0; https://creativecommons.org/licenses/by/4.0/legalcode
+      section 3(a) requires the creator, the licence, a link, and an indication of changes'
+  attribution: Taspinar, A., 'F140 physical pilot, series RLC circuit on an Analog Discovery 3', measured 2026-11-22,
+    https://github.com/taspinar/physics-by-construction/issues/508, CC BY 4.0; raw.csv and run.json of two sweeps,
+    unmodified.
+  figure_credit:
+    short: 'Data: A. Taspinar, F140 pilot (Analog Discovery 3), 2026-11-22, CC BY 4.0'
+    visible: required
+    source: 'https://creativecommons.org/licenses/by/4.0/legalcode section 3(a): the creator, the licence, and
+      a link go with the shared material, so a figure saved without its page carries them on its face'
+artifacts:
+- name: raw.csv
+  type: raw-measured
+  description: Every sample of every acquisition of a sweep, as the physics lab's live mode exported it
+    (pbc.products.physics_lab.workflow.write_raw); channel 1 (source) at the generator W1, channel 2 (response)
+    at the L-C node (sweep capacitor) or at the R-L node (sweep rl-node), both against ground, in volts
+    as the device returned them with its factory calibration. Times are the sample index over the rate the
+    device realised.
+- name: run.json
+  type: processed-measured
+  description: The run record of the sweep (device, serial, SDK, calibration statement, configuration, the
+    device's temperatures and supply at the start and the end, the declared circuit, units, processing,
+    timestamps) with the evaluator's check recomputed from raw.csv (f0, Q, and the comparison with the nominal
+    closed form). The check is the lab's processing, not a measurement; the sweep rl-node's check compares
+    a node the evaluator does not expect and is not meaningful (dossier).
+calibration: 'The device''s factory calibration, not adjusted (the run record says so). Channel 1 on the
+  5 V range (plus or minus 2.5 V), channel 2 on the 50 V range (plus or minus 25 V); the two channels''
+  relative gain and phase on these different ranges are not documented in the record and were not measured.
+  The parts are nominal (R 100 ohm at 1 %, L 1 mH, C 10 nF, unmeasured tolerances of L and C); L, C, and
+  the coil''s loss are derived apart from the sweep rl-node (dossier).'
+schema: 'Per sweep, raw.csv: columns point, frequency_hz, amplitude_v, t_s, source_v, response_v; 513 rows
+  per point (8 periods at 64 samples per period asked, plus one), points numbered in the order measured
+  (13 coarse points log-spaced from 5 kHz to 200 kHz, then up to 6 around the phase crossing). run.json:
+  one JSON object with product, protocol, route, status, run (the instrument run record), check, and evidence.'
+units: 'Stated in run.json: frequency Hz, amplitude V, time s, source and response V, gain V/V, phase degrees.'
+cadence: 'Sweep capacitor: 19 points (13 coarse, 6 refined between 44.9 and 56.0 kHz). Sweep rl-node: 13
+  points (no refinement: the phase of the R-L node does not cross -90 degrees). The sample rate is 100 MHz
+  over a whole divider, within 0.5 / divider of 64 samples per period (up to 3.4 % at 147 kHz); each acquisition
+  starts at least 10 ms after the excitation changed.'
+coordinates: 'One breadboard circuit, W1 -> R -> L -> C -> ground, on 2026-11-22 between 11:55 and 12:58
+  UTC; device Analog Discovery 3 SN:210415BFB222, WaveForms SDK 3.25.1, USB power only (auxiliary supply
+  0.04 V), die temperature 61.6 to 63.7 degrees C.'
+masks: 'None: every sample is finite, within the input range, and kept.'
+uncertainty: 'None per sample in the record. Derived (dossier): the noise of the phasor fits gives at most
+  5e-4 in the gain and 0.26 degrees in the phase per point (one standard deviation). From the sweep rl-node,
+  L = 0.861 +- 0.010 mH, C = 14.55 +- 0.15 nF, and a coil loss of 63 +- 3 ohm near the resonance (the
+  scatter of the fits with the resistor''s 1 % in quadrature); the loss grows with the frequency, so no constant
+  value fits the band. The channel mismatch and the factory calibration error are unknown and not included.'
+size:
+  description: Four files, 963,298 bytes in all; the sample is the whole record of the two sweeps. A repeat
+    of the capacitor sweep (run 1, f0 47,004 Hz, Q 1.542 against 47,009 Hz and 1.549) is not committed.
+format: CSV (plain text) and JSON
+reader: pbc.data.reference.ad3_rlc_pilot.read_traces and read_run (the csv and json modules of the standard
+  library and NumPy); the replay as a recorded sample is pbc.products.physics_lab.workflow.read_export. No
+  new dependency.
+samples:
+- path: capacitor/raw.csv
+  sha256: bf2eaf92e7cf88c63ad61f42519c238f8e636858e51725e65e903360e9ba8465
+  bytes: 568855
+  derivation: raw.csv of the pilot's run 2, written by the physics lab's live mode, copied byte for byte
+  test: tests/unit/test_data_ad3_rlc_pilot.py::test_ad3_rlc_pilot_sample_parses
+- path: capacitor/run.json
+  sha256: b48d3595531ea290b40e1fc55c6bb1c075a9722924d0b443e5bb6a38460c6cc1
+  bytes: 3831
+  derivation: run.json of the pilot's run 2, copied byte for byte
+  test: tests/unit/test_data_ad3_rlc_pilot.py::test_ad3_rlc_pilot_sample_parses
+- path: rl-node/raw.csv
+  sha256: 054d27ed7c42b9aa2563f6fdcca4083a8ace0baac03dac839014f180d1b65bcb
+  bytes: 386837
+  derivation: raw.csv of the pilot's run 3 (channel 2 moved to the R-L node by the owner), copied byte for
+    byte
+  test: tests/unit/test_data_ad3_rlc_pilot.py::test_ad3_rlc_pilot_sample_parses
+- path: rl-node/run.json
+  sha256: 8408b4e6165139b1e1a0086558db26a5e2b40c3c2bc83c59c0ba7a48088c1f3f
+  bytes: 3775
+  derivation: run.json of the pilot's run 3, copied byte for byte
+  test: tests/unit/test_data_ad3_rlc_pilot.py::test_ad3_rlc_pilot_sample_parses
+estimates:
+  runtime: 'Reference figure: about 3 s with the interpreter start; the reader parses both sweeps in under
+    1 s. The CI replay of the capacitor sweep: under 1 s.'
+  memory: About 150 MB peak resident for the figure.
+  page_payload: 963 KB committed, none of it sent to a reader's browser; a figure PNG of about 290 KB.
+  ci: 'Offline: four committed files; the replay needs no device and no SDK.'
+decision:
+  value: go
+  date: *accessed
+  reasons:
+  - 'Real files inspected: 19 and 13 points of 513 samples, every sample finite and within its input range;
+    the realised sample rates are 100 MHz over whole dividers, as the run records state.'
+  - The product's evaluator and this module's own reading agree to 1e-9 in the gain, and the recorded adapter
+    replays the capacitor sweep to the same points, f0, and Q as the live run (the CI fixture).
+  - 'The parts measured apart (sweep rl-node) bring the closed form within 5 % of the measured f0 and Q (45.0
+    kHz and 1.50 against 47.0 kHz and 1.55; nominal 50.3 kHz and 3.16); the residuals show the coil''s loss
+    growing with the frequency, stated, not fitted away.'
+  - 'The owner''s own measurement under CC BY 4.0 by the owner''s decision of 2026-11-22 on Issue #508.'
+dossier: docs/datasets/ad3-rlc-pilot.md
+reference_module: ad3_rlc_pilot
+reference_figure:
+  status: processed
+  residuals: true
+listing:
+  name: 'F140 pilot, series RLC on an Analog Discovery 3 (Issue #508)'
+  kind: raw oscilloscope traces of a frequency sweep, measured by the project's own live adapter

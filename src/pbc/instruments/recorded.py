@@ -49,10 +49,20 @@ class Declaration:
 
 @dataclass(frozen=True)
 class RecordedCapture:
+    """One acquisition: the setting it was asked at (``sample_rate_hz`` the
+    rate asked) and, for a device whose sample clock realises a rate near
+    the one asked (F140's live adapter), the rate it was made at."""
+
     amplitude_v: float
     frequency_hz: float
     sample_rate_hz: float
     channels: Mapping[str, tuple[float, ...]]
+    realised_rate_hz: float | None = None
+
+    @property
+    def rate_hz(self) -> float:
+        """The rate the samples were made at."""
+        return self.realised_rate_hz or self.sample_rate_hz
 
 
 @dataclass(frozen=True)
@@ -77,6 +87,11 @@ def load_sample(path: Path) -> RecordedSample:
             frequency_hz=float(c["frequency_hz"]),
             sample_rate_hz=float(c["sample_rate_hz"]),
             channels={k: tuple(map(float, v)) for k, v in c["channels"].items()},
+            realised_rate_hz=(
+                None
+                if c.get("realised_rate_hz") is None
+                else float(c["realised_rate_hz"])
+            ),
         )
         for c in data["captures"]
     )
@@ -149,8 +164,8 @@ class RecordedBench:
                 and all(len(v) == samples for v in c.channels.values())
             ):
                 return Capture(
-                    sample_rate_hz=c.sample_rate_hz,
-                    t=np.arange(samples) / c.sample_rate_hz,
+                    sample_rate_hz=c.rate_hz,
+                    t=np.arange(samples) / c.rate_hz,
                     channels={k: np.array(v) for k, v in c.channels.items()},
                     units={"t": "s", **self.sample.declaration.units},
                 )
