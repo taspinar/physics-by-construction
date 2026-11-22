@@ -584,10 +584,10 @@ The slots named in this record and their lessons:
 ## Decision record: the physical pilot (F140, 2026-11-22)
 
 **Decision: go**, for the live adapter of the Analog Discovery 3 in the
-Autonomous Physics Lab, within the operating limits below. One condition
-remains for the owner at the merge gate: an independent observation, with
-the owner's multimeter, that the watchdog switches the generator off after
-the program is killed ("Failure handling"). The physical pilot is the
+Autonomous Physics Lab, within the operating limits below. Its condition,
+an independent observation with the owner's multimeter that the watchdog
+switches the generator off after the program is killed, is met
+("Failure handling"). The physical pilot is the
 second part of F140 (Issue #508). It ran on 2026-11-22 with the owner at
 the bench, after the owner's decisions on questions 17 and 18 (2026-11-13)
 and the owner's start of the pilot.
@@ -685,13 +685,13 @@ until the device is opened again or unplugged. The learner's instruction
 (`products/physics-lab/README.md`): after a crash, start the lab again or
 unplug the USB cable.
 
-**Pending, for the owner:** the independent observation of the watchdog on
-the device. With the multimeter across W1 and ground:
+**The watchdog, observed independently** ([#508, 2026-11-22](https://github.com/taspinar/physics-by-construction/issues/508#issuecomment-7081162310)).
+With the owner's multimeter (V~) across W1 and ground,
 `PBC_LIVE_DEVICE=1 uv run --locked python
-tests/unit/test_analog_discovery_device.py --meter` switches W1 on at 2 V,
-1 kHz, kills the program after 15 s, and prints the times at which to read
-the meter. The meter should fall to 0 within a few seconds. This needs the
-owner at the bench and is not run unattended.
+tests/unit/test_analog_discovery_device.py --meter` switched W1 on at 2 V,
+1 kHz (the meter read about 0.9 V~) and killed the program after 15 s; the
+watchdog reported W1 off, and the meter fell to 0.0 at once. The test
+needs the owner at the bench and is not run unattended.
 
 ### Operating limits
 
