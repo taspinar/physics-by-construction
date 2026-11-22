@@ -274,7 +274,8 @@ def assessment_table(
             ("decision", "", ""),
         ],
         "The checks of every idea, computed before any run, and the decision"
-        " of the declared rule; a check after a failed one is not reached.",
+        " of the declared rule; an idea the laboratory cannot run reaches no"
+        " later check.",
     )
 
 

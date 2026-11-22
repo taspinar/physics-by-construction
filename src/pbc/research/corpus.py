@@ -1,22 +1,26 @@
-"""A small local literature: verified passages, a person's reading of each,
-and the claims they are compared with.
+"""A small local literature: quoted passages checked against their pages,
+one annotator's reading of each, and the claims they are compared with.
 
 Every passage is a quotation from a published lesson of this site, the
 project's own text under CC BY 4.0 (``LICENSE-CONTENT``), with its lesson
 and where on the page it stands: a typed claim of the page (its number among
 the page's claims) or a sentence of its prose. A test compares every
 quotation with the current source of its lesson, so a passage that no longer
-stands on its page fails the test: the passages are verified, not only
-cited. Nothing is read from a page while the build runs.
+stands on its page fails the test: the quotations are checked, not only
+cited. The check is of the text; it checks nothing of a reading or a
+label. Nothing is read from a page while the build runs.
 
-A ``Reading`` is what the annotator, the author of the lesson that uses the
-corpus, read in a passage, in the terms of the claims: the quantity, the
-drag, the ball, the launch speed, and the bound the passage puts on the
-best angle. Where the passage takes a condition from its page (the speed of
-the page's ball, the bound of the page's specification), ``note`` says so.
+A ``Reading`` is what the annotator (``ANNOTATED_BY``: the coding agent that
+wrote the lesson that uses the corpus) read in a passage, in the terms of
+the claims: the quantity, the drag, the ball, the launch speed, and the
+bound the passage puts on the best angle. Where the passage takes a
+condition from its page (the speed of the page's ball, the bound of the
+page's specification), ``note`` says so.
 ``ANNOTATIONS`` holds the label the annotator gave each pair of a claim and
 a passage directly, written apart from the readings; ``pbc.research.literature``
-computes the labels from the readings, and a test compares the two.
+computes the labels from the readings, and a test compares the two. Both
+records are the one annotator's: no person has annotated the passages, and
+no second, independent annotation has been made.
 
 The register entry the claims' drag assumption rests on is held the same way:
 its key and the statement a person checked, quoted from
@@ -101,6 +105,10 @@ class RegisterSource:
     statement: str
 
 
+# The status of a source, or a label, that nobody has read yet.
+AWAITING_REVIEW = "awaiting human review"
+
+
 @dataclass(frozen=True)
 class Proposal:
     """A source someone proposed and nobody has read: who proposed it, where
@@ -109,7 +117,7 @@ class Proposal:
     source: str
     proposed_by: str
     recorded_in: str
-    status: str = "awaiting human review"
+    status: str = AWAITING_REVIEW
 
 
 M3 = "lessons/mechanics/03-projectile-motion-with-drag/index.qmd"
@@ -398,7 +406,12 @@ ANNOTATIONS = {
         "m1-rose-less": INSUFFICIENT,
     },
 }
-ANNOTATED_BY = "the author of this lesson, on 2026-11-20"
+# Who wrote the readings and the labels: the coding agent of F152, not a
+# person, and nobody else.
+ANNOTATED_BY = (
+    "the coding agent that wrote this lesson (Claude Opus, the implementer"
+    " of F152), on 2026-11-20"
+)
 
 REGISTER = (
     RegisterSource(

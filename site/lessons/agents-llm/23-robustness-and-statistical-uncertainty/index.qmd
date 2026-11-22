@@ -42,16 +42,19 @@ In the lesson on prior knowledge, an agent told the name of the parameter
 but not the form of the law measured a spring and claimed an angular
 frequency of `{python} result["d2-claim"]` rad/s. Its held-out error was
 `{python} result["d2-error"]`, outside the tolerance: it failed. Every
-lesson since has carried that one run. Was the failure the model, or that
-run? And would the agent still succeed if its readings were noisier, or if
-its instrument sometimes did not answer?
+lesson since has carried that one run. How often does an agent recover the
+law on this task? And would it still succeed if its readings were noisier,
+or if its instrument sometimes did not answer?
 
-One run cannot say. This lesson runs the same task again,
-`{python} result["trials"]` times, in fresh sessions, and changes the
-conditions without telling the agent. Every trial is a recorded run of a
-language model (Claude Opus, recorded in a Claude Code session on the date
-the replay below shows), replayed by the build, which executes each tool call again and
-scores the claim itself. The rates and their intervals are computed from
+One run cannot say. That run was of Claude Sonnet. This lesson runs the
+same task `{python} result["trials"]` times with another model, Claude
+Opus, in fresh sessions, and changes the conditions without telling the
+agent. The published run is compared with these trials, not repeated by
+them: they measure how often Claude Opus recovers on this task, and cannot
+say whether the failure of the Sonnet run came from that model or from that
+one run. Every trial is a recorded run of Claude Opus in a Claude Code
+session, on the date the replay below shows, replayed by the build, which
+executes each tool call again and scores the claim itself. The rates and their intervals are computed from
 those scores. The costs are the counts each recording session reported,
 quoted, never measured by the build.
 
@@ -131,8 +134,9 @@ excerpt(robustness.success_interval)
 
 ### Every trial
 
-Before reading the table: the published run in this condition failed. Of
-four more trials on the same task, how many do you expect to recover?
+Before reading the table: the published run in this condition, of Claude
+Sonnet, failed. Of four trials of Claude Opus on the same task, how many do
+you expect to recover?
 
 ```{python}
 #| label: ae5-trials

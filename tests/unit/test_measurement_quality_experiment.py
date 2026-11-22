@@ -30,8 +30,9 @@ from pbc.electromagnetism.observations import (
 
 MODULE = "pbc.electromagnetism.experiments.measurement_quality"
 PAGE = "electromagnetism/11-measurement-quality"
-# The on-demand budget of a page is 3 MB with the initial payload under 5 MB
-# (docs/authoring.md, "On-demand data"); the clips stay far below it.
+# The on-demand data of a page is limited to 3 MB, and the initial payload
+# plus the on-demand data to 5 MB (docs/authoring.md, "On-demand data");
+# the clips stay far below both.
 CLIP_FILE_LIMIT = 300_000
 
 

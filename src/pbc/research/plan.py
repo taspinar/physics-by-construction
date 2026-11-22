@@ -91,7 +91,9 @@ class Withheld:
     resolutions below the route's best setting to ``span`` above, in steps
     of one ``fraction`` of the resolution, at the numerical setting
     ``numerical``; it passes when its best setting lies inside the route's
-    bracket. ``runs`` is its budget."""
+    bracket. ``runs`` is its budget. A scan near an end of the varied range
+    is clipped to that range, the range the specification was checked
+    against, so a setting outside it is not run (#593)."""
 
     name: str
     numerical: float
@@ -99,11 +101,22 @@ class Withheld:
     fraction: int
     runs: int
 
-    def settings(self, centre: float, resolution: float) -> list[float]:
+    def settings(
+        self,
+        centre: float,
+        resolution: float,
+        bounds: tuple[float, float] = (-math.inf, math.inf),
+    ) -> list[float]:
         step = resolution / self.fraction
         count = round(2.0 * self.span * self.fraction)
         start = centre - self.span * resolution
-        return [start + i * step for i in range(count + 1)]
+        low, high = bounds
+        slack = 1e-9 * step
+        return [
+            min(max(setting, low), high)
+            for i in range(count + 1)
+            if low - slack <= (setting := start + i * step) <= high + slack
+        ]
 
 
 @dataclass(frozen=True)
@@ -306,6 +319,15 @@ def _baselines(
         return None
     if not isinstance(grid, Mapping) or not _count(grid.get("runs")):
         found.append(Problem("baselines", "the grid baseline needs a number of runs"))
+        return None
+    if grid["runs"] < 2:
+        found.append(
+            Problem(
+                "baselines",
+                "the grid baseline needs at least 2 runs: an even grid spans the"
+                " varied range from its low end to its high end",
+            )
+        )
         return None
     return control["action"], float(control["answer"]), grid["runs"]
 
@@ -536,7 +558,7 @@ def execute(plan: Plan, laboratory: Laboratory, frozen: str) -> PlanRecord:
     if record.bracket is not None:
         low, centre, high = record.bracket
         for test in plan.withheld:
-            points = test.settings(centre, spec.resolution)
+            points = test.settings(centre, spec.resolution, (varied.low, varied.high))
             found = _scan(laboratory, spec, points, test.numerical)
             best = _best(points, found, spec.goal)
             outcomes.append(

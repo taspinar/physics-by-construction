@@ -5,7 +5,8 @@ description: >-
   any of them runs: can the laboratory run it, can a result contradict it,
   does its budget cover the route, and what is already answered. A declared
   rule selects one, the proposers' own ratings are kept and never used, and
-  every idea goes into an archive that shows any later edit.
+  every idea goes into an archive whose check finds an edit that breaks
+  its chain, and says which changes it cannot find.
 lesson:
   id: generating-and-selecting-research-ideas
   strand: mechanics
@@ -18,7 +19,7 @@ lesson:
     - Formulate several candidate questions as draft specifications and compare them for feasibility, falsifiability, resources, contribution, and interest
     - Say which of these the build can compute before any run and which is a judgement, and record the judgement with its author and reason
     - Keep a proposer's self-rating beside the assessment without treating it as evidence of an idea's quality
-    - Keep an archive of every idea, its decision, its reason, and the condition for revisiting it, in which an edit or a removal is found
+    - Keep an archive of every idea, its decision, its reason, and the condition for revisiting it, and say which edits and removals its check finds and which it cannot
   related: []
   format: 2
   preview: fig-idea-assessment
@@ -157,7 +158,13 @@ with its decision (selected, deferred, or rejected), the reason, and what
 would warrant revisiting it. Entries are only added: a new decision about an
 old idea is a new entry. Each entry carries the digest of its idea and the
 digest of the entry before it, so that an idea edited after its decision,
-or an entry removed, breaks a link that a check finds.
+or an entry removed before the last, breaks a link that a check finds, as
+long as whoever made the change did not recompute the digests after it.
+Two changes leave every link intact: removing the last entry, and editing
+an entry and recomputing every digest from it on. The check cannot find
+either, because the archive holds nothing to compare its last entry with;
+only a copy of the last digest and the number of entries, kept outside the
+archive, would show them.
 
 ## Code
 
@@ -304,7 +311,7 @@ check of the count and not as part of the selection, the route makes
 `{python} result["slow-runs-made"]`. The count was right because it is the
 route's own loop.
 
-The decision between the two equal ideas rests on a person's view that the
+The decision between the two equal ideas rests on its author's view that the
 slow throw tests an argument the projectile lesson made without a number: a
 ball thrown well below its terminal speed hardly notices the air. That view
 could be wrong, and the archive records it as a view.
@@ -338,7 +345,8 @@ result.table("tampered")
 [The check of the archive finds the edited idea by its digest and the
 removed entry by the broken chain after it.]{.claim
 type="numerically-verified" scope="the archive of this page, one edit and
-one removal" evidence="archive-tampered"} It does not say what the entry
+one removal before its last entry, no digest recomputed"
+evidence="archive-tampered"} It does not say what the entry
 said before, or who changed it. It says that the record is no longer the
 record that was written, which is what a reader needs to know before
 trusting it.
@@ -365,12 +373,14 @@ publication to a research plan*.
 - **A small archive of answers.** "Extends an answer" means extends an
   answer of this archive. Whether anyone else has answered the question is
   the subject of the lesson on literature and novelty.
-- **Interest is one person's view.** The page records it; it does not test
+- **Interest is one author's view.** The page records it; it does not test
   it. Two people could rank the two equal ideas the other way, and the rule
   would follow them.
-- **The archive detects; it does not prevent.** Anyone with the file can
-  rewrite it and its digests together. The chain shows a change against a
-  copy kept elsewhere, such as a commit of the repository.
+- **The archive detects only what breaks its chain; it prevents nothing.**
+  Removing the last entry leaves every link intact, and anyone with the
+  file can rewrite it and its digests together; the check then finds
+  nothing. Either change shows only against a copy kept elsewhere, such as
+  a commit of the repository.
 
 ::: {.exercise .self-check}
 A proposer rated their idea five out of five for feasibility. The check

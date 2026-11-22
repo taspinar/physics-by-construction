@@ -33,7 +33,7 @@ def test_the_command_writes_what_the_page_shows(results):
 
 def test_the_campaign_agrees_with_the_closed_form_within_its_error(results):
     """Claim 'campaign-result': f0 within about one standard error of the
-    repeats (here: within two), Q within a few parts in 1e5."""
+    repeats (here: within one), Q within a few parts in 1e5."""
     f0 = value(results, "campaign-result", "f0 of the campaign")
     error = value(results, "campaign-result", "its standard error, from the repeats")
     truth = value(results, "campaign-result", "f0 of the closed form")
