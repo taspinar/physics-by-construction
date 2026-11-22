@@ -60,6 +60,7 @@ from pbc.instruments.simulated import BENCH_CIRCUIT, SimulatedRLCBench
 from pbc.products.physics_lab import agent
 from pbc.products.physics_lab.baseline import run_baseline
 from pbc.products.physics_lab.protocol import (
+    LIVE_CURRENT_LIMIT_A,
     PROTOCOL_VERSION,
     Analysis,
     Check,
@@ -109,11 +110,13 @@ PILOT_RESISTANCE_TOLERANCE = 0.01
 LIVE_PROCESSING = (
     "each acquisition starts after the settling time and spans the asked"
     " number of periods at the asked rate, to within the realised rate",
-    *PROCESSING[1:],
-    "the device's divided sample clock realises a rate near the one asked; the"
-    " capture reports the realised rate, and a record that does not span a"
-    " whole number of periods is read by a least-squares fit of a cosine, a"
-    " sine, and a constant (pbc.products.physics_lab.protocol.fitted_phasor)",
+    "the device's divided sample clock realises a rate near the one asked, and"
+    " the capture reports the realised rate; the phasor of each channel is the"
+    " projection on cos and sin (pbc.electromagnetism.circuits.steady_phasor)"
+    " only when the record spans a whole number of periods, otherwise a"
+    " least-squares fit of a cosine, a sine, and a constant"
+    " (pbc.products.physics_lab.protocol.fitted_phasor)",
+    *PROCESSING[2:],
 )
 
 RERECORD = (
@@ -139,6 +142,22 @@ class Result:
     candidate_answer: str | None
     diagnostics: tuple[str, ...]
     files: dict[str, Path] = field(default_factory=dict)
+
+
+def live_confirmation(
+    circuit: SeriesRLC = PILOT_CIRCUIT,
+    resistance_tolerance: float = PILOT_RESISTANCE_TOLERANCE,
+) -> str:
+    """What the learner confirms in the live mode: the declared circuit and
+    the least series resistance the current bound assumes (#508 MIN2)."""
+    lowest = circuit.resistance * (1.0 - resistance_tolerance)
+    return (
+        f"confirm that the series RLC circuit W1 -> {circuit.resistance:g} ohm"
+        f" -> {circuit.inductance * 1e3:g} mH -> {circuit.capacitance * 1e9:g} nF"
+        f" -> ground is connected, with at least {lowest:g} ohm in series: the"
+        f" {LIVE_CURRENT_LIMIT_A * 1e3:g} mA current bound assumes it; the"
+        " product never rewires a circuit"
+    )
 
 
 def make_instrument(
@@ -176,8 +195,10 @@ def make_instrument(
         raise ValueError(f"unknown execution mode {mode!r}")
     confirmed = Interlock(
         "circuit-confirmed",
-        "confirm that the prepared series RLC circuit of the brief is connected;"
-        " the product never rewires a circuit",
+        live_confirmation(circuit, resistance_tolerance)
+        if live
+        else "confirm that the prepared series RLC circuit of the brief is"
+        " connected; the product never rewires a circuit",
         lambda: config.circuit_confirmed,
     )
     # A recorded sample drives nothing, so the interlock of the circuit does

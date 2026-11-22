@@ -48,7 +48,9 @@ artifacts:
     device's temperatures and supply at the start and the end, the declared circuit, units, processing,
     timestamps) with the evaluator's check recomputed from raw.csv (f0, Q, and the comparison with the nominal
     closed form). The check is the lab's processing, not a measurement; the sweep rl-node's check compares
-    a node the evaluator does not expect and is not meaningful (dossier).
+    a node the evaluator does not expect and is not meaningful (dossier). The first two processing lines
+    of both records (whole periods; projection by steady_phasor) predate the live mode's fix and do not hold
+    for them; every point was read by the least-squares fit (fitted_phasor) of the last processing line (dossier).
 calibration: 'The device''s factory calibration, not adjusted (the run record says so). Channel 1 on the
   5 V range (plus or minus 2.5 V), channel 2 on the 50 V range (plus or minus 25 V); the two channels''
   relative gain and phase on these different ranges are not documented in the record and were not measured.

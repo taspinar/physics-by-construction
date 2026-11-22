@@ -659,7 +659,7 @@ and no CI job drives a device.
 | Case | What the pilot observed | What the adapter does |
 |---|---|---|
 | Stop requested | W1 off at once (above) | `output_off` waits at most 0.5 s for a running SDK call, then stops the generator anyway |
-| Call that hangs | (fake driver) | each acquisition polls under its own 5 s deadline, below the envelope's 10 s timeout |
+| Call that hangs | (fake driver only: not observed on the device) | each acquisition polls under its own 5 s deadline, below the envelope's 10 s timeout. A stop that finds a call still running after 0.5 s calls the SDK outside the lock; that this is safe assumes the WaveForms SDK tolerates concurrent calls on one handle, which no cited source documents and the fake SDK cannot show |
 | Program ends without `close` | the interpreter crashed at exit (SIGSEGV) | closes the device at exit (`atexit`), output off first; exit 0, W1 off |
 | Pulled USB cable, W1 on | the next capture failed at once with a clear error, no hang; reopening reported "no device" until the cable was back; after reconnecting, W1 was off and the same serial captured | `close` treats the lost device as closed, keeps the reason (`lost`), and leaves the watchdog to stop W1 if the device comes back within its deadline |
 | Program killed (`kill -9`) | **W1 kept generating** (the owner's meter: 0.9 V at 2 V, 1 kHz, still 1 min 45 s after the kill) until the device was opened again and the output switched off. `DwfParamOnClose` = stop acts only on a proper close | every opening switches W1 off first; a **watchdog** process (below) switches it off when the program dies |

@@ -144,7 +144,11 @@ it.
    W1, 2+ between L and C, 1− and 2− at ground. The pilot's parts:
    R 100 ohm, L 1 mH, C 10 nF (f0 near 50 kHz).
 3. Close WaveForms, connect the device by USB, and run, confirming the
-   circuit yourself:
+   circuit yourself. The confirmation covers exactly the pilot's circuit,
+   W1 → 100 ohm → 1 mH → 10 nF → ground, with at least 99 ohm in series:
+   the 30 mA current bound assumes it, and the program prints it before it
+   opens the device. The command line takes no other circuit; with less
+   series resistance the bound does not hold.
 
 ```bash
 uv run --locked python -m pbc.products.physics_lab run --mode live \

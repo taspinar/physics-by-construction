@@ -16,7 +16,7 @@ Card: `data/registry/ad3-rlc-pilot.yaml`. Recorded 2026-11-22 for F140 (Issue #5
 | `rl-node/raw.csv` | run 3, channel 2 moved by the owner to the R–L node; 386,837 bytes |
 | `rl-node/run.json` | its run record; 3,775 bytes |
 
-The sample is the whole record of both sweeps, copied byte for byte from the pilot's exports. Run 1, a repeat of run 2 a few minutes earlier (f0 47,004 Hz and Q 1.542 against 47,009 Hz and 1.549), is not committed. Run 3's run record states the circuit and the configuration as run 2's; that channel 2 sat at the R–L node is recorded on the Issue and here, not in the file.
+The sample is the whole record of both sweeps, copied byte for byte from the pilot's exports. Run 1, a repeat of run 2 a few minutes earlier (f0 47,004 Hz and Q 1.542 against 47,009 Hz and 1.549), is not committed. Run 3's run record states the circuit and the configuration as run 2's; that channel 2 sat at the R–L node is recorded on the Issue and here, not in the file. The first two processing lines of both run records ("each acquisition spans a whole number of periods after the transient settled" and the projection on cos and sin, `steady_phasor`) come from the lab's processing before the live mode's fix and do not hold for these records: no acquisition spans a whole number of periods (see Cadence), and every point was read by the least-squares fit (`fitted_phasor`) that the record's last processing line names. The files are kept byte for byte; the live mode now writes the corrected lines.
 
 Reader: `pbc.data.reference.ad3_rlc_pilot.read_traces` and `read_run` (the standard library's `csv` and `json`, and NumPy); no dependency is added.
 

@@ -19,7 +19,11 @@ Subcommands:
 The interlock ``circuit-confirmed`` is the learner's own confirmation that
 the prepared circuit is connected: ``circuit_confirmed = true`` in the
 ``--input`` file, or the flag ``--circuit-confirmed``. Without either it
-stays open, and the instrument refuses to switch its output on.
+stays open, and the instrument refuses to switch its output on. In the live
+mode it covers the pilot's circuit (``workflow.PILOT_CIRCUIT``, W1 -> 100 ohm
+-> 1 mH -> 10 nF -> ground) and at least 99 ohm in series, which the 30 mA
+current bound assumes; the program prints that text before it opens the
+device.
 
 The site build and CI never run this program (invariant I33).
 """
@@ -83,6 +87,9 @@ def main(argv: list[str] | None = None) -> int:
         driver = None
         if arguments.mode == LIVE:
             from pbc.instruments.analog_discovery import AnalogDiscovery3
+
+            # The learner sees what the confirmation covers (#508 MIN2).
+            print(f"circuit-confirmed: {workflow.live_confirmation()}")
 
             try:
                 driver = AnalogDiscovery3()

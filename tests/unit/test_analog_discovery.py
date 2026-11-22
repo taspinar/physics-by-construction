@@ -19,6 +19,7 @@ import time
 import numpy as np
 import pytest
 
+from pbc.electromagnetism.circuits import SeriesRLC
 from pbc.instruments import (
     Envelope,
     Instrument,
@@ -495,6 +496,11 @@ def test_a_live_run_records_the_device_the_circuit_and_the_conditions(tmp_path):
     assert configuration["circuit"]["inductance_h"] == 1e-3
     assert set(configuration["conditions_at_start"]) >= {"die_temperature_c"}
     assert list(record["processing"]) == list(workflow.LIVE_PROCESSING)
+    # a live record claims neither whole periods nor the projection alone (#508 MIN1)
+    assert not any("whole number of periods after" in s for s in record["processing"])
+    assert all(
+        "steady_phasor" not in s or "fitted_phasor" in s for s in record["processing"]
+    )
     assert sdk.out["running"] == 0  # the run ends with the output off
     # the stand-in's flat gain of 0.5 is no resonance: inconclusive, honestly
     assert result.status == "inconclusive"
@@ -509,7 +515,25 @@ def test_a_live_run_with_the_circuit_unconfirmed_never_starts_the_generator(
     result = workflow.run(Config(), tmp_path, mode="live", driver=make(sdk))
     assert result.status == "failed"
     assert "circuit-confirmed" in result.diagnostics[0]
+    # the confirmation names the pilot's circuit and the series resistance the
+    # current bound assumes, not the brief's simulated circuit (#508 MIN2)
+    assert "W1 -> 100 ohm -> 1 mH -> 10 nF -> ground" in result.diagnostics[0]
+    assert "at least 99 ohm in series" in result.diagnostics[0]
+    assert "of the brief" not in result.diagnostics[0]
     assert not any(c[0] == "FDwfAnalogOutConfigure" and c[-1] == 1 for c in sdk.calls)
+
+
+def test_the_live_confirmation_names_the_declared_circuit_and_its_bound():
+    """MIN2 of review-01: the interlock of a live instrument states the
+    circuit it was declared with and the least resistance of its bound."""
+    circuit = SeriesRLC(resistance=47.0, inductance=10e-3, capacitance=100e-9)
+    instrument = workflow.make_instrument(
+        Config(), "live", driver=make(FakeSDK()), circuit=circuit
+    )
+    (interlock,) = instrument.envelope.interlocks
+    assert "W1 -> 47 ohm -> 10 mH -> 100 nF -> ground" in interlock.description
+    assert "at least 46.53 ohm in series" in interlock.description
+    assert instrument.envelope.series_resistance_ohm == pytest.approx(46.53)
 
 
 def test_ctypes_arguments_reach_the_sdk_with_their_c_types():

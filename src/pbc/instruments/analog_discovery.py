@@ -24,7 +24,9 @@ What the adapter does for safety, beyond the envelope:
   and is safe at any time and from any thread (each SDK call is serialised,
   never an operation as a whole, so a stop does not wait behind an
   acquisition, and it waits at most ``OFF_LOCK_WAIT_S`` behind a call that
-  hangs before it stops the generator anyway);
+  hangs before it stops the generator anyway; that stop outside the lock
+  assumes the WaveForms SDK tolerates concurrent calls on one handle, which
+  no cited source documents: shown with the fake SDK only);
 - an acquisition polls the device under its own deadline, shorter than the
   envelope's timeout, and a failed SDK call is refused with the SDK's
   message (``DeviceError``);
@@ -506,6 +508,7 @@ class AnalogDiscovery3:
         h = self._handle
         # Wait briefly for a running SDK call (milliseconds on the device);
         # one that hangs does not keep the output on: the stop goes anyway.
+        # Assumed, not documented: the SDK tolerates that concurrent call.
         locked = self._calls.acquire(timeout=OFF_LOCK_WAIT_S)
         try:
             stopped = _stop_generator(self._sdk, h)
