@@ -295,6 +295,17 @@ def test_the_decision_follows_the_predictions_as_declared():
     assert status(log, "method") == RESOLVED
 
 
+@pytest.mark.parametrize("verdict", [SUPPORTED, REFUTED, UNDECIDED])
+def test_the_log_decides_by_the_rule_of_decided(verdict):
+    # One rule (review 03 S1): the log's decision is the public ``decided``
+    # of the declared test, for every verdict, including "nothing".
+    test = follow_up()
+    log = started()
+    log.declare(test)
+    entry = log.record(test.key, record(verdict), SPEC)
+    assert entry.content["decided"] == decided(test, verdict)
+
+
 def test_two_explanations_of_one_name_are_refused():
     log = started()
     other = Explanation("holds", "the claim fails", (REFUTED,))

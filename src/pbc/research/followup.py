@@ -145,13 +145,20 @@ def discriminates(test: FollowUp) -> list[str]:
     return found
 
 
+def _decided_by(predictions: Mapping[str, Sequence[str]], verdict: str) -> str | None:
+    """The rule of the decision, over the predictions by name in declared
+    order: the first explanation that predicted ``verdict``, or ``None``.
+    ``decided`` and ``Log.record`` both use it, so they cannot differ."""
+    for name, predicts in predictions.items():
+        if verdict in predicts:
+            return name
+    return None
+
+
 def decided(test: FollowUp, verdict: str) -> str | None:
     """The explanation whose prediction the route's ``verdict`` met, or
     ``None`` when it met neither: the test decided nothing."""
-    for explanation in test.explanations:
-        if verdict in explanation.predicts:
-            return explanation.name
-    return None
+    return _decided_by({e.name: e.predicts for e in test.explanations}, verdict)
 
 
 def _entry_digest(number: int, kind: str, content: Any, previous: str) -> str:
@@ -302,14 +309,7 @@ class Log:
                 "specification": ran,
                 "record": digest,
                 "verdict": record.verdict,
-                "decided": next(
-                    (
-                        name
-                        for name, predicts in entry.content["predictions"].items()
-                        if record.verdict in predicts
-                    ),
-                    None,
-                ),
+                "decided": _decided_by(entry.content["predictions"], record.verdict),
             },
         )
 
