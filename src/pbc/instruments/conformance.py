@@ -43,6 +43,11 @@ NOT_APPLICABLE = "not applicable"
 CHANNELS = ("source", "response")
 # The excitation on the source channel is the one set within this fraction.
 EXCITATION_TOLERANCE = 0.1
+# A device with a divided sample clock realises a rate near the one asked
+# (F140: the AD3's scope runs at 100 MHz over an integer); it reports the
+# realised rate, within this fraction of the request, and its sample times
+# follow it.
+REALISED_RATE_TOLERANCE = 0.01
 # After the output is off, what remains on the source channel at the old
 # frequency is below this fraction of the old amplitude.
 OFF_FRACTION = 0.05
@@ -143,10 +148,14 @@ def _acquire(make: Callable[[], Driver], setting: Setting) -> tuple[Driver, Capt
 
 def _capture_shape(make: Callable[[], Driver], setting: Setting) -> Finding:
     _, capture = _acquire(make, setting)
-    n, rate = setting.samples, setting.sample_rate_hz
+    n, asked = setting.samples, setting.sample_rate_hz
+    rate = capture.sample_rate_hz
     problems = []
-    if capture.sample_rate_hz != rate:
-        problems.append(f"sample rate {capture.sample_rate_hz:g}, asked {rate:g}")
+    if not abs(rate / asked - 1.0) <= REALISED_RATE_TOLERANCE:
+        problems.append(
+            f"sample rate {rate:g}, asked {asked:g}: more than"
+            f" {REALISED_RATE_TOLERANCE:.0%} apart"
+        )
     if len(capture.t) != n or not np.allclose(capture.t, np.arange(n) / rate):
         problems.append("the sample times are not n / rate from zero")
     if set(capture.channels) != set(CHANNELS):
@@ -159,7 +168,10 @@ def _capture_shape(make: Callable[[], Driver], setting: Setting) -> Finding:
             problems.append(f"{name} holds an infinite value")
     if problems:
         return Finding("capture-shape", FAILED, "; ".join(problems))
-    return Finding("capture-shape", PASSED, f"{n} samples at {rate:g} samples/s")
+    realised = "" if rate == asked else f" (realised; {asked:g} asked)"
+    return Finding(
+        "capture-shape", PASSED, f"{n} samples at {rate:g} samples/s{realised}"
+    )
 
 
 def _units(make: Callable[[], Driver], setting: Setting) -> Finding:

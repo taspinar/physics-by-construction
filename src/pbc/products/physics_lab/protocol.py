@@ -51,6 +51,42 @@ def bench_envelope(interlocks: tuple[Interlock, ...] = ()) -> Envelope:
     )
 
 
+# The live bench of F140's pilot (the Analog Discovery 3, docs/products.md):
+# the AD3 drives 30 mA without distortion, so the excitation's amplitude over
+# the circuit's series resistance stays within it; the owner's circuit (1 mH,
+# 10 nF) resonates near 50 kHz, so the frequencies reach 200 kHz, sampled at
+# 64 samples per period at most.
+LIVE_CURRENT_LIMIT_A = 0.030
+LIVE_HIGH_HZ = 200_000.0
+LIVE_SAMPLE_RATE_HZ = 20_000_000.0
+
+
+def live_envelope(
+    series_resistance_ohm: float, interlocks: tuple[Interlock, ...] = ()
+) -> Envelope:
+    """The safety envelope of the live bench: the bench's amplitude, its
+    samples per acquisition and timeout, the frequencies of the owner's
+    circuit, and the current bound through ``series_resistance_ohm``, the
+    circuit's declared series resistance at its lower tolerance. The bound
+    is model-based: it assumes the passive series RLC circuit as declared
+    and does not hold under wrong wiring (the owner's review of PR #607)."""
+    return Envelope(
+        amplitude=Limit("excitation amplitude", "V", 0.01, 2.0),
+        frequency=Limit("excitation frequency", "Hz", 1_000.0, LIVE_HIGH_HZ),
+        sample_rate=Limit("sample rate", "samples/s", 1_000.0, LIVE_SAMPLE_RATE_HZ),
+        samples=Limit("samples per acquisition", "samples", 16, 16_384, integer=True),
+        timeout_s=10.0,
+        interlocks=interlocks,
+        current=Limit(
+            "source current bound (amplitude / series resistance)",
+            "A",
+            0.0,
+            LIVE_CURRENT_LIMIT_A,
+        ),
+        series_resistance_ohm=series_resistance_ohm,
+    )
+
+
 @dataclass(frozen=True)
 class Config:
     """One run of the protocol, as an example input states it."""
@@ -109,11 +145,35 @@ class Measurement:
     capture: Capture
 
 
+def whole_periods(t: np.ndarray, frequency_hz: float) -> bool:
+    """Whether the sample times ``t`` span a whole number of periods, as
+    ``steady_phasor`` requires."""
+    periods = (t[-1] - t[0]) * frequency_hz
+    return round(periods) >= 1 and abs(periods - round(periods)) <= 1e-9 * max(
+        periods, 1.0
+    )
+
+
+def fitted_phasor(signal: np.ndarray, t: np.ndarray, omega: float) -> complex:
+    """The complex amplitude A e^(j phi) of A cos(omega t + phi) plus a
+    constant, by least squares over the samples: for a record that does not
+    span a whole number of periods, as a device's divided sample clock gives
+    (F140). A cos(omega t + phi) = a cos(omega t) + b sin(omega t) with
+    a = A cos(phi) and b = -A sin(phi), so the phasor is a - j b."""
+    design = np.column_stack([np.cos(omega * t), np.sin(omega * t), np.ones(len(t))])
+    (a, b, _), *_ = np.linalg.lstsq(design, signal, rcond=None)
+    return complex(a, -b)
+
+
 def transfer(capture: Capture, frequency_hz: float) -> tuple[float, float]:
-    """The gain and the phase (degrees, in (-270, 90]) of response / source."""
+    """The gain and the phase (degrees, in (-270, 90]) of response / source:
+    from the phasors of whole periods (``steady_phasor``) when the record
+    spans them, otherwise by the least-squares fit (``fitted_phasor``)."""
     omega = 2.0 * math.pi * frequency_hz
-    source = steady_phasor(capture.channels["source"], capture.t, omega)
-    response = steady_phasor(capture.channels["response"], capture.t, omega)
+    t = np.asarray(capture.t, dtype=float)
+    phasor = steady_phasor if whole_periods(t, frequency_hz) else fitted_phasor
+    source = phasor(np.asarray(capture.channels["source"], dtype=float), t, omega)
+    response = phasor(np.asarray(capture.channels["response"], dtype=float), t, omega)
     ratio = response / source
     phase = math.degrees(math.atan2(ratio.imag, ratio.real))
     if phase > 90.0:

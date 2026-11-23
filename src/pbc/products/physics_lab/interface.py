@@ -35,7 +35,7 @@ from pbc import evidence
 from pbc.instruments import RECORDED, SIMULATED, Instrument
 from pbc.products.physics_lab import workflow
 from pbc.products.physics_lab.protocol import Config, Measurement
-from pbc.products.physics_lab.report import ALT
+from pbc.products.physics_lab.report import alt_text
 
 LOOPBACK_NAMES = {"localhost"}
 # The loopback names a browser on this machine may put in the Host header.
@@ -444,8 +444,9 @@ def _finished(result: workflow.Result) -> str:
     if figure_path is not None and figure_path.is_file():
         svg = figure_path.read_text(encoding="utf-8")
         svg = svg[svg.find("<svg") :]
+        label = _e(alt_text(check))
         figure = (
-            f'<figure role="img" aria-label="{_e(ALT)}">{svg}<figcaption>Measured'
+            f'<figure role="img" aria-label="{label}">{svg}<figcaption>Measured'
             " points, recomputed from the raw samples, against the closed form"
             " of the model (dashed). The dotted line marks the estimated"
             " resonance.</figcaption></figure>"

@@ -63,9 +63,13 @@ Choose the route and the execution mode:
 - `--mode simulated` (the default): the deterministic bench of
   `pbc.instruments.simulated`;
 - `--mode recorded --sample <file>`: a recorded sample, replayed, never a
-  new experiment. Until a measured RLC sample passes the dataset gate,
-  write a synthetic one, declared as simulated:
+  new experiment. A synthetic one, declared as simulated:
   `python -m pbc.products.physics_lab sample --input <input> --out sample.json`.
+  The sample may also be the directory of a live run's export: the measured
+  sweep of F140's pilot replays with
+  `--mode recorded --sample data/samples/ad3-rlc-pilot/capacitor`
+  and the pilot's input `examples/live-pilot.toml`;
+- `--mode live`: your own Analog Discovery 3 ("Your own instrument" below).
 
 The local interface shows the same on one page, on this machine only:
 
@@ -122,9 +126,63 @@ the interface.
 
 A stop request switches the output off at once and refuses every later
 operation. The product never rewires a circuit: a different circuit is a
-manual change that you confirm. There is no live adapter yet: real
-hardware is decided by the one-instrument pilot (F140), and nothing here
-claims that a physical circuit was measured.
+manual change that you confirm.
+
+## Your own instrument (live mode)
+
+The live mode drives a Digilent Analog Discovery 3 on your own computer,
+the one device F140's physical pilot measured with (`docs/products.md`,
+the pilot's record). It is optional; the site, the build, and CI never use
+it.
+
+1. Install WaveForms from Digilent; its SDK comes with it and is free to
+   use with Digilent hardware. It is not a Python package. On macOS, copy
+   `dwf.framework` from the WaveForms installer to `/Library/Frameworks`
+   (the copy inside `WaveForms.app` finds no device), or set
+   `PBC_DWF_LIBRARY` to the library.
+2. Build the circuit on a breadboard: W1 → R → L → C → ground; scope 1+ at
+   W1, 2+ between L and C, 1− and 2− at ground. The pilot's parts:
+   R 100 ohm, L 1 mH, C 10 nF (f0 near 50 kHz).
+3. Close WaveForms, connect the device by USB, and run, confirming the
+   circuit yourself. The confirmation covers exactly the pilot's circuit,
+   W1 → 100 ohm → 1 mH → 10 nF → ground, with at least 99 ohm in series:
+   the 30 mA current bound assumes it, and the program prints it before it
+   opens the device. The command line takes no other circuit; with less
+   series resistance the bound does not hold. The bound is computed from
+   the declared circuit, not measured: a wiring mistake (a short, a
+   missing resistor) can draw more current than it says.
+
+```bash
+uv run --locked python -m pbc.products.physics_lab run --mode live \
+    --input products/physics-lab/examples/live-pilot.toml \
+    --circuit-confirmed --out physics-lab-live
+```
+
+The live envelope differs from the simulated bench's:
+
+| Quantity | Permitted range |
+|---|---|
+| Excitation amplitude | 0.01 V to 2 V |
+| Excitation frequency | 1 kHz to 200 kHz |
+| Sample rate | 1 kHz to 20 MHz (the device realises 100 MHz over a whole number) |
+| Samples per acquisition | 16 to 16384 |
+| Source current | at most 30 mA: the amplitude over the circuit's declared resistance at its lower tolerance |
+
+The evaluator compares your result with the closed form of the declared
+parts. Real parts differ from their labels, and a coil has losses, so a
+live run is often "not correct" against the nominal parts. The pilot's
+dossier, `docs/datasets/ad3-rlc-pilot.md`, shows how to measure the parts
+apart.
+
+**If the lab crashes.** The adapter switches the generator off when it
+closes, and a watchdog process switches it off when the lab is killed or
+crashes. If the watchdog cannot (it was killed too, or the device did not
+come back within a minute), the generator keeps its last setting, inside
+the envelope. Start the lab again, which switches it off at once, or unplug
+the USB cable. The lab refuses to start without a watchdog that reports
+ready, and switches the generator on only while the watchdog runs. The
+watchdog is a protection in software, not an emergency stop: unplugging
+the USB cable is the one that does not depend on the computer.
 
 ## What is here
 

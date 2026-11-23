@@ -23,7 +23,13 @@ starts a product, or contacts a model, an instrument, or the network.
   process launcher, no provider SDK, and no device driver; the standard
   library's HTTP server only in the local interface, which binds to the
   loopback interface; a provider client only lazily, in the command line,
-  for a learner's own live recording.
+  for a learner's own live recording. The one exception for a device is
+  F140's live adapter, ``pbc.instruments.analog_discovery``: the only
+  module that may import ``ctypes`` (to load the vendor's SDK library, which
+  the learner installs) and ``subprocess`` (to start its own watchdog, the
+  same module run as a separate process, which switches the generator off
+  when the program that holds the device dies), and imported only lazily,
+  by the command line, for a learner's own live run.
 """
 
 import ast
@@ -64,8 +70,15 @@ FORBIDDEN = DRIVERS | {
 }  # fmt: skip
 # The local interface is the one module with a server, bound to loopback.
 SERVER = {"http.server": {"interface.py"}}
-# A live provider is loaded only lazily, inside the command line's function.
-LAZY = {"pbc.agents.providers": {"__main__.py"}}
+# The live adapter of F140 loads the vendor's SDK library by ctypes
+# and starts its watchdog, itself run as a separate process (python -m).
+DEVICE = {"ctypes": {"analog_discovery.py"}, "subprocess": {"analog_discovery.py"}}
+# A live provider and the live adapter are loaded only lazily, inside the
+# command line's function.
+LAZY = {
+    "pbc.agents.providers": {"__main__.py"},
+    "pbc.instruments.analog_discovery": {"__main__.py"},
+}
 
 
 def machinery() -> list[Path]:
@@ -296,7 +309,8 @@ def test_the_one_product_check_is_the_starter_check():
 def test_the_instrument_and_product_code_imports_no_driver_network_or_model(path):
     tree = ast.parse(path.read_text())
     imports = set(all_imports(tree))
-    assert {i for i in imports if forbidden(i)} == set()
+    allowed_here = {m for m, files in DEVICE.items() if path.name in files}
+    assert {i for i in imports if forbidden(i)} - allowed_here == set()
     for module, allowed in {**SERVER, **LAZY}.items():
         if module in imports:
             assert path.name in allowed, (path.name, module)
@@ -325,6 +339,7 @@ def test_importing_the_product_loads_no_provider_driver_or_server():
     )
     bad = {m for m in loaded if m.split(".")[0] in DRIVERS | {"openai", "anthropic"}}
     assert bad == set()
+    assert "pbc.instruments.analog_discovery" not in loaded
     assert "http.server" not in loaded
     assert "pbc.agents.clients" not in loaded
     assert not any(m.startswith("pbc.agents.clients.") for m in loaded)

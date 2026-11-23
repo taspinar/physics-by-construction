@@ -22,6 +22,7 @@ Cards added after the survey, for the measured-data labs:
 <!-- generated: later-table -->
 | Dataset | Kind | Decision | Dossier |
 |---|---|---|---|
+| F140 pilot, series RLC on an Analog Discovery 3 (Issue #508) | raw oscilloscope traces of a frequency sweep, measured by the project's own live adapter | **go** (2026-11-22) | [ad3-rlc-pilot](ad3-rlc-pilot.md) |
 | Bayreuth RLC impedance (EM8, Issue #418) | complex impedance measurement | **go** (2026-11-08) | [bayreuth-rlc-impedance](bayreuth-rlc-impedance.md) |
 | DWD Potsdam soil temperature (T7, Issue #438) | measured temperature profiles in the ground | **go** (2026-11-09) | [dwd-potsdam-soil-temperature](dwd-potsdam-soil-temperature.md) |
 | Grazing-flow hot-wire benchmark (FL8, Issue #441; the research's "VKI") | hot-wire profiles over solid and porous walls; solid-wall y fitted to canonical profiles by the providers | **go** (2026-11-09) | [grazing-flow-hwa-benchmark](grazing-flow-hwa-benchmark.md) |
@@ -50,6 +51,7 @@ The research of 2026-11-08 into open datasets for the measured-data labs is reco
 
 <!-- generated: conversions -->
 - Aalborg submerged-bar wave flume: no conversion; ZIP of CSV files (plus input archives and a PDF readme)
+- F140 pilot, series RLC on an Analog Discovery 3 (Issue #508): no conversion; CSV (plain text) and JSON
 - Bayreuth RLC impedance (EM8, Issue #418): no conversion; JSON (plain text)
 - DWD Potsdam soil temperature (T7, Issue #438): converted once by `tools/datasets/dwd_soil_extract.py`
 - Grazing-flow hot-wire benchmark (FL8, Issue #441; the research's "VKI"): no conversion; CSV in ZIP archives; the committed samples are the CSV files.

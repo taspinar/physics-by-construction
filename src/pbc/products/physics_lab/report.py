@@ -22,6 +22,7 @@ from pbc.electromagnetism.circuits import SeriesRLC
 from pbc.products.physics_lab.protocol import (
     F0_TOLERANCE,
     Q_TOLERANCE,
+    Check,
     Point,
     model_gain,
     model_phase,
@@ -37,6 +38,24 @@ ALT = (
     " resonance towards minus one hundred and eighty, markers on the dashed"
     " closed form. A dotted vertical line marks the estimated resonance."
 )
+# Where the points depart from the closed form (F140: a live circuit whose
+# parts differ from their declared values), the text says so instead.
+ALT_DEPARTING = (
+    "Two panels on a shared logarithmic frequency axis. Top: the gain of the"
+    " capacitor voltage over the source voltage, on a logarithmic axis; the"
+    " measured points as round markers and the dashed line of the closed form"
+    " of the declared circuit, from which the points depart (the table gives"
+    " f0 and Q of both). Bottom: the phase in degrees, falling from near zero"
+    " through minus ninety towards minus one hundred and eighty, markers and"
+    " the dashed closed form. A dotted vertical line marks the estimated"
+    " resonance."
+)
+
+
+def alt_text(check: Check | None) -> str:
+    """The figure's text alternative: ``ALT`` only when the evaluator found
+    the points within the tolerance of the closed form."""
+    return ALT if check is not None and check.correct else ALT_DEPARTING
 
 
 def draw_figure(path: Path, points: list[Point], circuit: SeriesRLC, f0: float | None):
@@ -147,7 +166,7 @@ def write_report(result, points: list[Point], circuit: SeriesRLC) -> None:
         "",
         "## Figure",
         "",
-        f"![{ALT}](frequency-response.svg)",
+        f"![{alt_text(check)}](frequency-response.svg)",
         "",
         "Measured points against the closed form of the model; the dotted"
         " line marks the estimated resonance. The channel noise is stated in"
@@ -174,8 +193,11 @@ def write_report(result, points: list[Point], circuit: SeriesRLC) -> None:
             "recorded": "It replays a recorded sample: it is not a new"
             " experiment, and it shows only what that sample holds"
             " (its declaration is in `run.json`).",
-            "live": "A live result varies within the declared tolerances and"
-            " stays on this machine.",
+            "live": "It is one measurement of this circuit on this device. The"
+            " closed form uses the declared values of the parts, not measured"
+            " ones, so a difference from it shows the parts' tolerances and"
+            " losses as well as the protocol. The result stays on this"
+            " machine.",
         }[run.mode],
         "",
         "## Files",

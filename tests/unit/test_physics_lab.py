@@ -22,6 +22,7 @@ from pbc.agents.messages import ModelMessage, ToolCall
 from pbc.agents.replay import ReplayMismatch, load_recording
 from pbc.instruments import InterlockOpen, Refused
 from pbc.instruments.recorded import load_sample
+from pbc.instruments.simulated import SimulatedRLCBench
 from pbc.products.physics_lab import agent, workflow
 from pbc.products.physics_lab.__main__ import main
 from pbc.products.physics_lab.interface import App, check_host
@@ -338,9 +339,18 @@ def test_the_recorded_mode_replays_the_synthetic_sample_and_says_so(tmp_path):
     assert "cannot make a new measurement" in failed.diagnostics[0]
 
 
-def test_there_is_no_live_adapter_yet(tmp_path):
-    with pytest.raises(ValueError, match="F140"):
+def test_the_live_mode_needs_an_opened_live_driver(tmp_path):
+    """F140: the live mode runs only on a live driver the caller opened; it
+    never opens a device by itself, and a simulated driver is no live one."""
+    with pytest.raises(ValueError, match="opened live driver"):
         workflow.run(Config(circuit_confirmed=True), tmp_path, mode="live")
+    with pytest.raises(ValueError, match="opened live driver"):
+        workflow.run(
+            Config(circuit_confirmed=True),
+            tmp_path,
+            mode="live",
+            driver=SimulatedRLCBench(),
+        )
 
 
 def test_a_stop_ends_the_run_as_failed_and_reported(tmp_path):

@@ -7,7 +7,9 @@
 Subcommands:
 
 - ``run``: one run of the protocol (``--route baseline`` or ``agent``,
-  ``--mode simulated`` or ``recorded``) and its export;
+  ``--mode simulated``, ``recorded``, or ``live``) and its export; the live
+  mode opens the learner's own Analog Discovery 3 through the WaveForms SDK
+  (``pbc.instruments.analog_discovery``; F140) and closes it at the end;
 - ``sample``: write the synthetic sample of the recorded mode;
 - ``serve``: the local interface on http://127.0.0.1:8765/ (loopback only);
 - ``record``: record the agent's trace, live with ``--provider`` (the
@@ -17,7 +19,11 @@ Subcommands:
 The interlock ``circuit-confirmed`` is the learner's own confirmation that
 the prepared circuit is connected: ``circuit_confirmed = true`` in the
 ``--input`` file, or the flag ``--circuit-confirmed``. Without either it
-stays open, and the instrument refuses to switch its output on.
+stays open, and the instrument refuses to switch its output on. In the live
+mode it covers the pilot's circuit (``workflow.PILOT_CIRCUIT``, W1 -> 100 ohm
+-> 1 mH -> 10 nF -> ground) and at least 99 ohm in series, which the 30 mA
+current bound assumes; the program prints that text before it opens the
+device.
 
 The site build and CI never run this program (invariant I33).
 """
@@ -28,7 +34,7 @@ import time
 from dataclasses import replace
 from pathlib import Path
 
-from pbc.instruments import RECORDED, SIMULATED, Refused
+from pbc.instruments import LIVE, RECORDED, SIMULATED, Refused
 from pbc.products.physics_lab import workflow
 from pbc.products.physics_lab.protocol import Config, load_config
 
@@ -59,7 +65,7 @@ def main(argv: list[str] | None = None) -> int:
                 "--route", choices=workflow.ROUTES, default=workflow.BASELINE
             )
             command.add_argument(
-                "--mode", choices=(SIMULATED, RECORDED), default=SIMULATED
+                "--mode", choices=(SIMULATED, RECORDED, LIVE), default=SIMULATED
             )
             command.add_argument("--sample", type=Path, default=None)
             command.add_argument("--trace", type=Path, default=workflow.TRACE)
@@ -78,18 +84,35 @@ def main(argv: list[str] | None = None) -> int:
     config = _config(arguments)
 
     if arguments.command == "run":
-        result = workflow.run(
-            config,
-            arguments.out,
-            route=arguments.route,
-            mode=arguments.mode,
-            sample=arguments.sample,
-            trace=arguments.trace,
-            on_point=lambda m: print(
-                f"  {m.point.frequency_hz:9.1f} Hz  gain {m.point.gain:7.4f}"
-                f"  phase {m.point.phase_deg:8.2f} degrees"
-            ),
-        )
+        driver = None
+        if arguments.mode == LIVE:
+            from pbc.instruments.analog_discovery import AnalogDiscovery3
+
+            # The learner sees what the confirmation covers (#508 MIN2).
+            print(f"circuit-confirmed: {workflow.live_confirmation()}")
+
+            try:
+                driver = AnalogDiscovery3()
+            except Refused as reason:
+                print(f"no live device: {reason}", file=sys.stderr)
+                return 1
+        try:
+            result = workflow.run(
+                config,
+                arguments.out,
+                route=arguments.route,
+                mode=arguments.mode,
+                sample=arguments.sample,
+                trace=arguments.trace,
+                driver=driver,
+                on_point=lambda m: print(
+                    f"  {m.point.frequency_hz:9.1f} Hz  gain {m.point.gain:7.4f}"
+                    f"  phase {m.point.phase_deg:8.2f} degrees"
+                ),
+            )
+        finally:
+            if driver is not None:
+                driver.close()
         print(f"{result.run.mode}: {result.run.label}")
         print((result.out_dir / "report.md").read_text(encoding="utf-8"))
         return 0 if result.status == "completed" else 1

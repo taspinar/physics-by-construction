@@ -39,6 +39,7 @@ from pbc.instruments import (
     RECORDED,
     SIMULATED,
     Capture,
+    Driver,
     Instrument,
     InstrumentRun,
     Interlock,
@@ -47,6 +48,7 @@ from pbc.instruments import (
     utc_now,
 )
 from pbc.instruments.recorded import (
+    MEASURED,
     Declaration,
     RecordedBench,
     RecordedCapture,
@@ -58,6 +60,7 @@ from pbc.instruments.simulated import BENCH_CIRCUIT, SimulatedRLCBench
 from pbc.products.physics_lab import agent
 from pbc.products.physics_lab.baseline import run_baseline
 from pbc.products.physics_lab.protocol import (
+    LIVE_CURRENT_LIMIT_A,
     PROTOCOL_VERSION,
     Analysis,
     Check,
@@ -67,6 +70,7 @@ from pbc.products.physics_lab.protocol import (
     analyse,
     bench_envelope,
     evaluate,
+    live_envelope,
     transfer,
 )
 
@@ -98,6 +102,23 @@ PROCESSING = (
     " response, averaged",
 )
 
+# The live bench of F140's pilot: the owner's circuit on a breadboard
+# (#508, 2026-11-22: R 100 ohm at 1 %, L 1 mH, C 10 nF), nominal values. The
+# envelope's current bound uses the resistor's lower tolerance.
+PILOT_CIRCUIT = SeriesRLC(resistance=100.0, inductance=1e-3, capacitance=10e-9)
+PILOT_RESISTANCE_TOLERANCE = 0.01
+LIVE_PROCESSING = (
+    "each acquisition starts after the settling time and spans the asked"
+    " number of periods at the asked rate, to within the realised rate",
+    "the device's divided sample clock realises a rate near the one asked, and"
+    " the capture reports the realised rate; the phasor of each channel is the"
+    " projection on cos and sin (pbc.electromagnetism.circuits.steady_phasor)"
+    " only when the record spans a whole number of periods, otherwise a"
+    " least-squares fit of a cosine, a sine, and a constant"
+    " (pbc.products.physics_lab.protocol.fitted_phasor)",
+    *PROCESSING[2:],
+)
+
 RERECORD = (
     "uv run --locked --extra physics-lab python -m pbc.products.physics_lab"
     " record --provider openai"
@@ -123,33 +144,72 @@ class Result:
     files: dict[str, Path] = field(default_factory=dict)
 
 
+def live_confirmation(
+    circuit: SeriesRLC = PILOT_CIRCUIT,
+    resistance_tolerance: float = PILOT_RESISTANCE_TOLERANCE,
+) -> str:
+    """What the learner confirms in the live mode: the declared circuit and
+    the least series resistance the current bound assumes (#508 MIN2), and
+    that the bound is model-based (the owner's review of PR #607)."""
+    lowest = circuit.resistance * (1.0 - resistance_tolerance)
+    return (
+        f"confirm that the series RLC circuit W1 -> {circuit.resistance:g} ohm"
+        f" -> {circuit.inductance * 1e3:g} mH -> {circuit.capacitance * 1e9:g} nF"
+        f" -> ground is connected, with at least {lowest:g} ohm in series: the"
+        f" {LIVE_CURRENT_LIMIT_A * 1e3:g} mA current bound assumes it. The"
+        " bound is computed from that circuit, not measured: with other"
+        " wiring (a short, a missing resistor) it does not hold. The product"
+        " never rewires a circuit"
+    )
+
+
 def make_instrument(
-    config: Config, mode: str = SIMULATED, sample: Path | None = None
+    config: Config,
+    mode: str = SIMULATED,
+    sample: Path | None = None,
+    *,
+    driver: Driver | None = None,
+    circuit: SeriesRLC = PILOT_CIRCUIT,
+    resistance_tolerance: float = PILOT_RESISTANCE_TOLERANCE,
 ) -> Instrument:
     """The guarded instrument of ``mode`` with the bench's envelope and the
-    interlock of the prepared circuit."""
+    interlock of the prepared circuit. The live mode takes its opened
+    ``driver`` (``pbc.instruments.analog_discovery.AnalogDiscovery3``; the
+    caller closes it) and the declared ``circuit``, whose resistance at its
+    lower tolerance bounds the current."""
+    live = False
     if mode == SIMULATED:
         driver = SimulatedRLCBench(seed=config.seed)
     elif mode == RECORDED:
         if sample is None:
             raise ValueError("the recorded mode needs a sample (--sample)")
+        if Path(sample).is_dir():
+            # A live export replays under the envelope and the circuit it was
+            # recorded with (F140's dataset ad3-rlc-pilot).
+            recorded, circuit = read_export(Path(sample))
+            lowest = circuit.resistance * (1.0 - resistance_tolerance)
+            return Instrument(RecordedBench(recorded), live_envelope(lowest))
         driver = RecordedBench(load_sample(sample))
     elif mode == LIVE:
-        raise ValueError(
-            "no live adapter exists yet: live hardware is decided by the"
-            " one-instrument pilot (F140)"
-        )
+        if driver is None or driver.mode != LIVE:
+            raise ValueError("the live mode needs an opened live driver")
+        live = True
     else:
         raise ValueError(f"unknown execution mode {mode!r}")
     confirmed = Interlock(
         "circuit-confirmed",
-        "confirm that the prepared series RLC circuit of the brief is connected;"
-        " the product never rewires a circuit",
+        live_confirmation(circuit, resistance_tolerance)
+        if live
+        else "confirm that the prepared series RLC circuit of the brief is"
+        " connected; the product never rewires a circuit",
         lambda: config.circuit_confirmed,
     )
     # A recorded sample drives nothing, so the interlock of the circuit does
     # not apply to it.
     interlocks = () if mode == RECORDED else (confirmed,)
+    if live:
+        lowest = circuit.resistance * (1.0 - resistance_tolerance)
+        return Instrument(driver, live_envelope(lowest, interlocks))
     return Instrument(driver, bench_envelope(interlocks))
 
 
@@ -164,6 +224,8 @@ def run(
     on_point: Callable[[Measurement], None] | None = None,
     on_instrument: Callable[[Instrument], None] | None = None,
     clock: Callable[[], str] = utc_now,
+    driver: Driver | None = None,
+    circuit: SeriesRLC | None = None,
 ) -> Result:
     """Run the protocol by ``route`` in ``mode`` and export the result to
     ``out_dir``. A refusal of the instrument (a stop, a timeout, an open
@@ -171,10 +233,26 @@ def run(
     reported, and the points measured before it are exported; on the agent
     route as well, where the refusal reaches the agent as a tool error and
     the replay then departs from its trace. A replay that does not match
-    its trace for any other reason raises ``ReplayMismatch``."""
+    its trace for any other reason raises ``ReplayMismatch``.
+
+    The live mode takes the opened ``driver`` and the declared ``circuit``
+    (default ``PILOT_CIRCUIT``), which the evaluator's closed form uses; its
+    run record adds the device's operating conditions at the start and the
+    end, when the driver reports them."""
     if route not in ROUTES:
         raise ValueError(f"unknown route {route!r}; choose one of {ROUTES}")
-    instrument = make_instrument(config, mode, sample)
+    if mode == LIVE:
+        circuit = circuit or PILOT_CIRCUIT
+        instrument = make_instrument(config, mode, driver=driver, circuit=circuit)
+    else:
+        circuit = BENCH_CIRCUIT
+        if mode == RECORDED and sample is not None and Path(sample).is_dir():
+            circuit = read_export(Path(sample))[1]
+        instrument = make_instrument(config, mode, sample)
+    conditions = getattr(driver, "conditions", None) if mode == LIVE else None
+    operating: dict[str, Any] = {}
+    if conditions is not None:
+        operating["conditions_at_start"] = conditions()
     if on_instrument is not None:
         on_instrument(instrument)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -221,19 +299,37 @@ def run(
     finally:
         instrument.output_off()
     finished = clock()
+    if conditions is not None:
+        operating["conditions_at_end"] = conditions()
+    if mode == LIVE:
+        operating["circuit"] = {
+            "resistance_ohm": circuit.resistance,
+            "inductance_h": circuit.inductance,
+            "capacitance_f": circuit.capacitance,
+            "declared": "nominal values of the prepared parts",
+        }
     record = instrument.run_record(
         configuration={
             **config.to_dict(),
             "route": route,
             "protocol": PROTOCOL_VERSION,
+            **operating,
         },
         units=UNITS,
-        processing=PROCESSING,
+        processing=(PROCESSING if mode != LIVE else LIVE_PROCESSING),
         started=started,
         finished=finished,
     )
     return _export(
-        config, out_dir, route, record, measurements, answer, diagnostics, sample
+        config,
+        out_dir,
+        route,
+        record,
+        measurements,
+        answer,
+        diagnostics,
+        sample,
+        circuit,
     )
 
 
@@ -368,6 +464,58 @@ def read_raw(path: Path) -> list[Point]:
     return points
 
 
+def read_export(directory: Path) -> tuple[RecordedSample, SeriesRLC]:
+    """A live run's export (``raw.csv`` and ``run.json``) as a recorded
+    sample, with the circuit its run record declares: the CI fixture of
+    F140's pilot, which replays the measured traces without the device.
+    Each capture keeps the rate the protocol asked (samples per period times
+    the frequency) and the rate the device realised, read from the sample
+    times."""
+    record = json.loads((directory / "run.json").read_text(encoding="utf-8"))
+    run_record = record["run"]
+    if run_record.get("mode") != LIVE:
+        raise ValueError(f"{directory}: not the export of a live run")
+    configuration = run_record["configuration"]
+    declared = configuration["circuit"]
+    circuit = SeriesRLC(
+        resistance=float(declared["resistance_ohm"]),
+        inductance=float(declared["inductance_h"]),
+        capacitance=float(declared["capacitance_f"]),
+    )
+    per_period = int(configuration["samples_per_period"])
+    rows: dict[int, list[dict[str, str]]] = {}
+    with (directory / "raw.csv").open(encoding="utf-8") as handle:
+        for row in csv.DictReader(handle):
+            rows.setdefault(int(row["point"]), []).append(row)
+    captures = []
+    for number in sorted(rows):
+        block = rows[number]
+        frequency = float(block[0]["frequency_hz"])
+        t = [float(r["t_s"]) for r in block]
+        captures.append(
+            RecordedCapture(
+                amplitude_v=float(block[0]["amplitude_v"]),
+                frequency_hz=frequency,
+                sample_rate_hz=per_period * frequency,
+                channels={
+                    "source": tuple(float(r["source_v"]) for r in block),
+                    "response": tuple(float(r["response_v"]) for r in block),
+                },
+                realised_rate_hz=(len(t) - 1) / (t[-1] - t[0]),
+            )
+        )
+    device = run_record["device"]
+    declaration = Declaration(
+        dataset=f"{directory.parent.name}/{directory.name}",
+        origin=MEASURED,
+        description=f"a live run on {device['device']} {device['serial']},"
+        f" started {run_record['started']}",
+        units={"source": "V", "response": "V"},
+        provenance=f"the export of the live run in {directory.name}",
+    )
+    return RecordedSample(declaration, tuple(captures)), circuit
+
+
 def write_points(path: Path, points: list[Point]) -> None:
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle, lineterminator="\n")
@@ -487,6 +635,7 @@ def _export(
     answer: str | None,
     diagnostics: tuple[str, ...],
     sample: Path | None,
+    circuit: SeriesRLC = BENCH_CIRCUIT,
 ) -> Result:
     from pbc.products.physics_lab.report import write_report
 
@@ -501,7 +650,6 @@ def _export(
     write_raw(files["raw"], measurements)
     write_points(files["points"], [m.point for m in measurements])
     recomputed = read_raw(files["raw"]) if measurements else []
-    circuit: SeriesRLC = BENCH_CIRCUIT
     check = evaluate(recomputed, circuit) if recomputed else None
     analysis = analyse(recomputed)
     if diagnostics:
