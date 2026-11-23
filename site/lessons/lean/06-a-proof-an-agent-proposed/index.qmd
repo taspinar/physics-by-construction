@@ -1,0 +1,788 @@
+---
+title: "A proof an agent proposed"
+description: >-
+  A conjecture about the kinetic energy of a collision, put through a
+  counterexample search that the build judges, formalized in Lean by a coding
+  agent on the author's machine, compiled, and reviewed by a person: what each
+  step decides, what a compiled proof establishes and what it does not, and
+  the sandbox profile for letting an agent write Lean.
+lesson:
+  id: agent-proposed-proof
+  strand: lean
+  order: 6
+  difficulty: 3
+  course: mechanics
+  methods: [lean, llm-agents, coding-agents]
+  outcomes:
+    - Turn a conjecture into a falsifiable claim and read the verdict of a counterexample search the build recomputes
+    - Give a coding agent a formalization task under the sandbox profile for Lean, and say why compiling an agent's file is running its code
+    - Review a compiled Lean statement against the physical claim, and name what the proof does not establish
+  related: []
+  format: 2
+  preview: fig-energy-change
+  experiment: pbc.mechanics.experiments.agent_proposed_proof
+  prerequisites:
+    lessons:
+      - collision-momentum-proved
+      - lean-exercises-on-your-machine
+      - counterexample-hunter
+      - verifying-scientific-code
+    outside:
+      - "Vectors: the dot product and the length of a vector"
+      - "Logic: reading a statement that says if these hypotheses hold, then this conclusion holds"
+  lean-modules:
+    - PhysicsByConstruction.Mechanics.CollisionEnergy
+    - PhysicsByConstruction.Mechanics.Collision
+---
+
+```{python}
+#| echo: false
+from pbc.authoring import excerpt, lesson_header
+from pbc.mechanics.experiments import agent_proposed_proof as experiment
+
+result = experiment.run()
+lesson_header()
+```
+
+An agent hands you a Lean file. It says the collision rule of the momentum
+lesson conserves the kinetic energy, and `lake build` compiles it without an
+error. What do you now know about the collision?
+
+Less than it seems, and more than nothing. The compiler has checked that the
+proof proves the statement in the file. It has not checked that the statement
+is the one you meant, and it cannot: that the formula says what the physics
+says is a judgement a person makes. Compiling the file also ran code the agent
+wrote on your machine, because Lean executes commands while it compiles. This
+lesson goes through the whole route once, on the theorem that the collision
+lesson left unproved, and says at each step what decides it.
+
+The route has five steps, and they produce different kinds of evidence:
+
+1. **A conjecture**, in words, by a person.
+2. **A counterexample search** by a language model in the harness of the
+   counterexample hunter. The page replays it: the messages are authored
+   examples, and the build runs every experiment again and decides the
+   verdict itself.
+3. **A formalization by a coding agent** on the author's machine. The page
+   shows a condensed transcript of that session, marked **not verified**. The
+   build never ran it and cannot check it.
+4. **A compiled proof.** The proof shown on this page is a module of the
+   repository's Lean library, compiled and audited by the same check as every
+   proof of the site.
+5. **A review of the statement**, by a person, against the claim in words.
+
+## Assumptions
+
+1. **The model is the rule of the momentum lesson.** Two spheres, masses
+   $m_1$ and $m_2$, velocities $\mathbf{v}_1$ and $\mathbf{v}_2$, and the
+   rule `firstAfter`, `secondAfter` of the collision proof, reused here and
+   not redefined. Another rule is another theorem.
+2. **The direction has unit length.** The hypothesis `hn : dot n n = 1`. The
+   momentum proof needed no such hypothesis; the energy does, and the search
+   below shows why.
+3. **Positive masses**, `hm₁` and `hm₂`, as in the momentum proof.
+4. **Real numbers, not floating-point numbers.** The theorems are about `ℝ`.
+   The program computes with doubles, and its changes of energy at round-off
+   are shown as zero.
+5. **The agents are untrusted.** The search agent reaches the simulation only
+   through an allowlist, and its text is data. The coding agent's file is
+   code from an unknown author until a person has read it.
+6. **The build replays, it does not run agents.** No model is called when
+   the page is built, and no coding agent is started, installed, or given a
+   key by the site or its checks.
+
+## Who decides what {#explanation}
+
+The conjecture is the one the momentum proof listed as not proved. A
+collision is elastic when it conserves the kinetic energy
+
+$$
+K = \tfrac12 m_1\,\mathbf{v}_1\cdot\mathbf{v}_1 + \tfrac12 m_2\,\mathbf{v}_2\cdot\mathbf{v}_2 ,
+$$
+
+and the rule changes the two velocities by multiples of one direction
+$\mathbf{n}$:
+
+$$
+\mathbf{v}_1' = \mathbf{v}_1 - \frac{2 m_2}{m_1 + m_2}\, s\, \mathbf{n},
+\qquad
+\mathbf{v}_2' = \mathbf{v}_2 + \frac{2 m_1}{m_1 + m_2}\, s\, \mathbf{n},
+$$
+
+with
+
+$$
+s = (\mathbf{v}_1 - \mathbf{v}_2)\cdot\mathbf{n}.
+$$
+
+Here $s$ is how fast the spheres approach each other along $\mathbf{n}$. The
+momentum lesson proved that this rule conserves the momentum for *any*
+$\mathbf{n}$. The tempting conjecture is that it conserves $K$ just as
+generally.
+
+Each step of the route has its own judge, and none of them can stand in for
+another.
+
+- **The counterexample search** is decided by the judge of the hunter, on
+  experiments the build runs again. A recomputed counterexample refutes the
+  claim; no counterexample is inconclusive.
+- **The formalization** is decided by nobody: the agent proposes, and a
+  proposal means nothing yet.
+- **The proof** is decided by `lake build` and the axiom audit. A pass means
+  that the proof proves *this statement*, with Lean's three standard axioms
+  and no `sorry`.
+- **The meaning** is decided by a person, with the review rubric below. A
+  pass means that the statement is the physical claim, as far as the
+  reviewer could tell.
+
+The last of these is the one this lesson is about. The first two lessons of the
+Lean strand compared a theorem with a simulation; here the theorem was not
+written by the person who reads it, and the comparison that matters is the
+one between the statement and the claim.
+
+## Code
+
+The search agent may call two functions. Both collide two spheres in a plane
+with the program's rule, `hard_sphere_collision` of the momentum lesson, and
+return the relative change of the kinetic energy. The first takes the
+direction as two components, of any length; the second as an angle, which
+gives a unit vector.
+
+```{python}
+#| echo: false
+result.display("allowlist")
+```
+
+The agent **may** call `{python} result["any-tool"]` and
+`{python} result["unit-tool"]` with the arguments above, run at most
+`{python} result["budget"]` experiments per hunt, make at most
+`{python} result["max-steps"]` model messages, and write text. It **may not**
+write or run code, and it never sees the Lean files: it is the harness agent
+of the counterexample hunter, not the coding agent of the next step.
+
+The computation behind both tools:
+
+```{python}
+#| echo: false
+from pbc.agents.proof_lab import energy_change
+
+excerpt(energy_change)
+```
+
+The claims are the hunter's `FalsifiableClaim`: a statement, a domain, a
+predicate (the relative change is at most
+`{python} result["limit"]`), and the budget, all written before either
+hunt.
+
+1. `{python} result["any-claim"]`.
+2. `{python} result["unit-claim"]`.
+
+The limit is far above the round-off of the arithmetic, about one part in
+$10^{16}$ per operation, and far below any change a wrong rule would make.
+The tools report a change below `{python} result["round-off"]` as zero: its
+digits are round-off, and they differ from one machine to another.
+
+## Worked examples
+
+### A counterexample, recomputed
+
+Before reading the run, look at the domain of the first claim: the
+components of $\mathbf{n}$ range from $-1$ to $1$. Which argument of an
+experiment would you change to break the claim, and would the energy go up
+or down?
+
+The messages are authored examples, not a recorded model run: a Claude model
+wrote them in a Claude Code session, after reading the tool results. Every
+result shown is computed by this build.
+
+```{python}
+#| echo: false
+excerpt(experiment.run, region="replay")
+```
+
+```{python}
+#| echo: false
+result.display("any-run")
+```
+
+```{python}
+#| echo: false
+result.display("any-verdict")
+```
+
+The direction $(1, 1)$ has length $\sqrt2$, and the energy grows. The
+shorter direction loses energy. Both unit directions keep it. The judge took
+the first experiment that broke the predicate; the last message's pattern,
+"exactly when $\mathbf{n}$ did not have length one", is the agent's reading
+of four experiments and is not part of the verdict.
+
+### A claim the search cannot settle
+
+The refined claim fixes the length. The second run is an authored example of
+the same kind.
+
+```{python}
+#| echo: false
+result.display("unit-run")
+```
+
+```{python}
+#| echo: false
+result.display("unit-verdict")
+```
+
+Six experiments found nothing, and the page says inconclusive. Another
+budget would find nothing either, and would not settle the claim: it speaks
+about every mass, velocity, and direction of the domain. That is the point
+where a proof is the next tool.
+
+### The task for the coding agent
+
+The task was written before the session, in the parts of the specification
+of the coding-agent workflow. The claim is in words; choosing the formal
+statement is part of the agent's work, and so is the proof.
+
+::: {.not-verified}
+```text
+# Specification: the kinetic energy in the collision of two hard spheres
+
+## Physics
+The rule of PhysicsByConstruction.Mechanics.Collision:
+    v1' = v1 - 2 m2 / (m1 + m2) ((v1 - v2) . n) n
+    v2' = v2 + 2 m1 / (m1 + m2) ((v1 - v2) . n) n
+The kinetic energy of a sphere is m |v|^2 / 2.
+
+## Claim
+For two spheres of positive mass and a direction n of unit length, the
+rule conserves the total kinetic energy of the pair, for all velocities,
+in any number of dimensions.
+
+## Assumptions
+Vectors ι → ℝ over a finite type of axes; real numbers; every physical
+assumption a hypothesis of the theorem, no axiom, no sorry.
+
+## Interface
+One new file, PhysicsByConstruction/Mechanics/CollisionEnergy.lean. It
+imports PhysicsByConstruction.Mechanics.Collision and uses its dot,
+firstAfter, and secondAfter, with no copies of its own.
+
+## Checks the result must pass
+    lake build PhysicsByConstruction.Mechanics.CollisionEnergy
+without errors and without "declaration uses 'sorry'"; the reviewer then
+runs the project's axiom audit.
+
+## Not allowed
+Any other file (the lakefile, the manifest, the toolchain, the audit, the
+library). In the file, anything but the allowed forms: import of the
+library and of Mathlib; namespace, section, end, open, variable; comments
+and doc comments; theorem, lemma, def, and noncomputable def with term
+proofs or tactics that Lean and Mathlib already define and that take as
+arguments only terms, hypotheses, lemma names, and other tactics of this
+kind, never a meta program or command written in the file. So, for example,
+no #eval, #eval!, run_cmd, run_meta, run_elab, run_tac, by_elab,
+initialize, syntax, macro, macro_rules, elab, elab_rules, notation,
+attribute or @[...], set_option, axiom, sorry, admit, native_decide,
+implemented_by, extern, or unsafe.
+```
+:::
+
+### The session
+
+The session below is an example, not a result. The build did not run it and
+cannot check it; it shows what the route looks like and what a review adds to
+a passing build.
+
+::: {.not-verified}
+**Example transcript, condensed by the author of this lesson.**
+Agent: Claude Opus 5.5 (`claude-opus-5-5`), run as a subagent through
+Claude Code. Date: 2026-11-23. The agent worked in a scratch copy of the
+Lean project without this lesson's module. The sandbox profile was given to
+the agent as instructions; the harness of that session did not enforce it.
+
+```text
+TASK      The specification above; write only the one file; run only
+          "lake build PhysicsByConstruction.Mechanics.CollisionEnergy" and
+          "lake env lean" on that file; no network; no reading outside the
+          scratch project except Mathlib's sources; at most 20 tool calls
+          and 5 builds.
+
+AGENT     Read the specification and Collision.lean. Wrote the file: three
+          lemmas that expand dot (v - t n) (v - t n), dot (v + t n) (...),
+          and dot (a - b) c, then the theorem
+
+            theorem collision_kinetic_energy {ι : Type*} [Fintype ι]
+                (m₁ m₂ : ℝ) (hm₁ : 0 < m₁) (hm₂ : 0 < m₂) (v₁ v₂ n : ι → ℝ)
+                (hn : dot n n = 1) :
+                m₁ * dot (firstAfter m₁ m₂ v₁ v₂ n) (firstAfter m₁ m₂ v₁ v₂ n) / 2 +
+                    m₂ * dot (secondAfter m₁ m₂ v₁ v₂ n) (secondAfter m₁ m₂ v₁ v₂ n) / 2 =
+                  m₁ * dot v₁ v₁ / 2 + m₂ * dot v₂ v₂ / 2
+
+BUILD     Run 1: failed, "Unknown constant `Finset.mul_sum`": the library
+          module does not import the Mathlib file that defines it. The
+          agent then ran "lake env lean" on the file by mistake (allowed,
+          not a build): the same error. It added
+          "import Mathlib.Algebra.BigOperators.Ring.Finset".
+          Run 2: "Build completed successfully".
+
+AGENT     Reported the decisions the specification left open: unit length
+          as dot n n = 1, the energy written inline as m * dot v v / 2, the
+          extra import ("you may want to check this is allowed"), and the
+          helper lemmas as public theorems. Reported what the statement
+          does not say: that each sphere keeps its own energy; anything
+          about approach or contact; anything for a direction that is not
+          of unit length; anything about the Python code; and that an
+          empty set of axes is included. Reported 7 tool calls, 2 builds.
+
+REVIEW    The file: the scratch project differs from the repository's in
+          this one file. Only the forms Lean rule 3 of the profile allows:
+          imports, a namespace, doc comments, one noncomputable def, and
+          theorems proved with existing tactics that take no code; no
+          attribute, no set_option, no run_tac, no #eval, no axiom, no
+          sorry. One import the specification did not name: a Mathlib
+          file, no
+          build file changed; accepted, and the next specification lists
+          the allowed imports.
+          The build and the audit, run again by the reviewer: lake build
+          passes; the project's axiom audit passes with only the three
+          standard axioms.
+          The statement: uses the library's dot, firstAfter, secondAfter;
+          the energy is one half m |v|^2, summed over both spheres; the
+          hypotheses are the claim's, and together satisfiable; no
+          hypothesis excludes an approach; the conclusion is for every
+          velocity and every finite set of axes. It is the claim.
+```
+:::
+
+The build passed on the second run, and the agent said so. Most of the review
+is about what the build does not look at: which files changed, whether the
+file contains a command that runs code, and whether the statement is the
+claim. The agent's own list of what it did not prove is useful and is still
+the agent's word; the reviewer checked it against the statement.
+
+The agent's file is not part of the repository. What the page shows next is
+the module of the lesson, written apart from the session and compiled by the
+site's check; the review found the two statements equal, and an exercise
+below asks you to check that.
+
+### The compiled proof
+
+```{python}
+#| echo: false
+from pbc.authoring import lean_evidence, lean_excerpt, reproduce_this
+
+ENERGY = "PhysicsByConstruction.Mechanics.CollisionEnergy"
+
+lean_evidence(ENERGY)
+```
+
+The energy of one sphere, with the scalar product of the momentum proof:
+
+```{python}
+#| echo: false
+lean_excerpt(ENERGY, "kinetic_energy")
+```
+
+The module proves more than the claim. It first computes the change of the
+energy for *any* direction. The proof writes each velocity after the
+collision as $\mathbf{v} + t\,\mathbf{n}$, expands both squared lengths, and
+lets `field_simp` and `ring` collect the terms; the approach $s$ is the
+difference of the two projections, which is what makes the cross terms
+cancel.
+
+```{python}
+#| echo: false
+lean_excerpt(ENERGY, "collision_energy_change")
+```
+
+[For two spheres of positive mass and any direction $\mathbf{n}$, the rule
+changes the total kinetic energy by
+$\frac{2 m_1 m_2}{m_1+m_2}\, s^2\,(\mathbf{n}\cdot\mathbf{n} - 1)$.]{.claim
+type="formal-theorem" scope="the hard-sphere rule of the momentum lesson,
+positive masses, real arithmetic" evidence="collision_energy_change"}
+
+The conservation is then one line: with `hn` the last factor is zero.
+
+```{python}
+#| echo: false
+lean_excerpt(ENERGY, "collision_energy")
+```
+
+[For two spheres of positive mass and a direction of unit length, the rule
+conserves the total kinetic energy, for all velocities and any number of
+axes.]{.claim type="formal-theorem" scope="the hard-sphere rule of the
+momentum lesson, positive masses, dot n n = 1, real arithmetic"
+evidence="collision_energy"}
+
+The identity is also the reason for the counterexample. A direction longer
+than one gives a positive last factor and the energy grows; a shorter one
+loses energy; a unit one, or a collision with $s = 0$, changes nothing. That
+is the pattern the search agent saw in four experiments, now stated for all
+of them.
+
+### The review of a statement
+
+A compiled theorem is a true statement. The review asks whether it is the
+statement you wanted, in this order.
+
+1. **The file.** Only the requested file changed; it imports the library's
+   definitions; it contains only the forms that the third rule for Lean,
+   below, allows; nothing is redefined.
+2. **The definitions.** The statement uses the library's `firstAfter`,
+   `secondAfter`, and `dot`, not copies, and its energy is the physical
+   one: one half the mass times the squared speed, for both spheres.
+3. **The hypotheses.** Each names a physical assumption; together they can
+   hold; none excludes the case the claim is about.
+4. **The conclusion.** It is the claim in words, for every value the claim
+   speaks of, not a special case.
+5. **The build and the audit.** `lake build` and the axiom audit pass on
+   your machine, not in the agent's report.
+6. **What it does not say.** Floating point, the program, and whatever the
+   hypotheses exclude, written down.
+
+The third item has a part that Lean can check. If the hypotheses contradicted each
+other, any conclusion would follow from them, and the theorem would be true
+for that reason alone. The module proves that they can hold together:
+
+```{python}
+#| echo: false
+lean_excerpt(ENERGY, "unit_direction_exists")
+```
+
+The other part of the third item is not something Lean checks. The module contains a
+theorem that compiles, passes the audit, has hypotheses that can hold, and
+has the right conclusion:
+
+```{python}
+#| echo: false
+lean_excerpt(ENERGY, "energy_without_approach")
+```
+
+Its hypothesis `hs` says that the spheres do not approach along
+$\mathbf{n}$. Then the rule changes no velocity at all, which the program
+shows for a direction of length two across the relative velocity:
+
+```{python}
+#| echo: false
+excerpt(experiment, region="no_approach")
+```
+
+```{python}
+#| echo: false
+print(result.output("without-approach"), end="")
+```
+
+### What a compiled proof establishes {#what-it-establishes}
+
+The proof of `collision_energy` establishes, with the certainty of Lean's
+kernel and three standard axioms:
+
+- that the statement in the file follows from its hypotheses, for every
+  value of its variables, in any number of axes;
+- nothing hidden: the audit rules out `sorry` and any axiom of the project.
+
+It does not establish:
+
+- **that the statement is the claim.** That the formula means "an elastic
+  collision of two hard spheres conserves their kinetic energy" is the
+  review's judgement, item by item, and a person makes it;
+- **anything about the program.** `hard_sphere_collision` computes with
+  doubles. The tables of this page compare it with the theorem for the
+  cases they run; the theorem says nothing about the Python code;
+- **anything about real spheres.** Whether a collision is elastic, and
+  whether contact is instantaneous, is a question for measurement;
+- **that the agent was right about anything else.** Its report of what the
+  statement does not cover was checked by reading, not by Lean.
+
+### One instance of the identity
+
+The experiments of the first hunt, with the change the program computed and
+the change that the right-hand side of `collision_energy_change` gives. This
+is an instance of the identity, not a step of its proof.
+
+```{python}
+#| label: hunt-instances
+#| echo: false
+result.table("hunt-instances")
+```
+
+The two columns agree in every row, at the precision shown; the unit
+directions give zero to round-off.
+
+The same comparison on `{python} result["samples"]` random collisions, with
+the change divided by $\frac{2 m_1 m_2}{m_1+m_2}\, s^2$ so that every
+collision should fall on one curve, $|\mathbf{n}|^2 - 1$:
+
+```{python}
+#| echo: false
+excerpt(experiment.sampled_collisions)
+```
+
+```{python}
+#| label: fig-energy-change
+#| echo: false
+#| fig-status: simulated
+#| fig-cap: "The change of the kinetic energy in random collisions, divided by 2 m₁m₂/(m₁+m₂) s², against the length of the direction. Every collision of the program lies on the curve of the Lean identity, which is zero only at unit length."
+#| fig-alt: "Plot of the normalised change of kinetic energy against the length of the direction, from short directions to long ones. Small dots of sampled collisions lie on a dashed rising parabola that passes below zero for short directions, through zero at length one, and above zero for long ones. Three black diamonds, the experiments of the first hunt, sit on the same curve: one below zero, one at zero, one above."
+result.show("fig-energy-change")
+```
+
+[Every sampled collision of the program lies within
+`{python} result["deviation-bound"]` of the curve $|\mathbf{n}|^2 - 1$ of the
+identity.]{.claim type="numerically-verified" scope="the sampled planar
+collisions of the figure, doubles" evidence="fig-energy-change"}
+
+The program and the theorem agree on these collisions, so the program
+implements the rule the theorem is about, on them. The agreement says
+nothing new about the theorem, which needs no samples, and it is not a proof
+that the program is right for every input.
+
+### The profile for Lean
+
+Letting an agent write Lean is a coding-agent exercise, with the sandbox
+profile of the lesson on verifying scientific code, unchanged. Set it up
+before the agent starts.
+
+1. **A scratch checkout.** The agent works in a fresh clone or an empty
+   directory, never in a checkout you care about. A wrong command then
+   costs a directory you can delete.
+2. **An allowlist of commands.** The agent may run the tests, the
+   formatter, and the task's own scripts, and nothing else: no installer,
+   no version control, no shell beyond those commands. Most agents can be
+   configured to ask before any other command; refuse. Without a container
+   or a separate machine this is a setting of the agent, not a limit your
+   machine enforces.
+3. **No network beyond the agent's own provider.** The task needs none. An
+   agent that fetches a package or a page has left the specification. Like
+   the allowlist, this holds only where a container, a firewall, or a
+   separate machine enforces it.
+4. **The credential stays in your environment.** The agent's account and
+   key are yours, kept where its own documentation says, never in a file of
+   the checkout and never in a prompt. The agent's commands run as you, so
+   every credential in your environment variables is readable to them, not
+   only the agent's own key: start the agent in a shell that holds no other.
+   A credential stored in a file the agent's commands can read (an SSH key,
+   the configuration of a cloud tool, a stored Git credential, the agent's
+   own login) is just as readable to them, wherever the checkout is: only a
+   container or a separate machine keeps such a file out of reach.
+5. **A budget, set before the start.** A number of steps or tool calls, a
+   time, and a cost. When it is spent the session ends, passed or not.
+6. **Read every diff before you run it.** Read what was written first, and
+   never run a command the agent proposes on a checkout that matters. This
+   covers what you run. It does not cover the code the agent runs itself
+   while it works: that code runs before anyone has read it, and only the
+   scratch checkout and any isolation limit what it can reach.
+
+Lean adds four rules.
+
+1. **Dependencies before the start.** You fetch the toolchain and Mathlib's
+   build cache yourself, in the scratch checkout, before the agent starts.
+   The agent's allowlist then holds only `lake build` of its own module and
+   `lake env lean` of its own file: never `lake update`, `lake exe`,
+   `elan`, or `git`, which change the project or use the network.
+2. **One new file.** The agent writes only the module the task names. It
+   never changes `lakefile.toml`, `lake-manifest.json`, `lean-toolchain`,
+   the library's modules, or the audit, and never creates a
+   `lakefile.lean`, which is a program that `lake` runs.
+3. **Compiling is running.** Lean runs code while it compiles a file,
+   and a file can run code without defining anything: a command such as
+   `#eval` or `run_meta`, a tactic such as `run_tac` inside a proof, or a
+   new syntax or elaborator can read files, start programs, and use the
+   network as you. The sixth rule therefore covers `lake build`: read the
+   file before you build it, and accept it only if it contains nothing but
+   the allowed forms: `import` of the library's modules and of Mathlib;
+   `namespace`, `section`, `end`, `open`, and `variable`; comments and doc
+   comments; and `theorem`, `lemma`, `def`, and `noncomputable def` whose
+   proofs are terms or use only tactics that Lean and Mathlib already
+   define and that take as arguments only terms, hypotheses, lemma names,
+   and other tactics of this kind, never a meta program or command written
+   in the file (so not `run_tac` or `by_elab`). Anything else is
+   refused, listed or not; for example `#eval`,
+   `#eval!`, `run_cmd`, `run_meta`, `run_elab`, `run_tac`, `by_elab`,
+   `initialize`, `syntax`, `macro`, `macro_rules`, `elab`, `elab_rules`,
+   `notation`, an attribute (`@[...]` or `attribute [...]`), which can
+   register code that runs later, `set_option`, `axiom`, `sorry`, `admit`,
+   `native_decide`, `implemented_by`, `extern`, and `unsafe`. The agent's
+   own builds of its drafts ran before
+   anyone read them; only the scratch checkout and any isolation limited
+   what they could reach.
+4. **The audit after the build.** Run the project's axiom audit on the
+   result: a proof that rests on `sorry` or on a new axiom is not a proof,
+   and the build alone does not say so.
+
+The profile is a way of working that limits the damage of a mistake. It is
+not a security boundary: without a container or a separate machine with no
+credential but the agent's own, the allowlist, the network rule, and the
+one-file rule are settings of the agent, not limits your machine enforces.
+Nor does the profile make the statement right; the review does what it can
+there.
+
+The question of the opening has an answer now. A compiled proof from an
+agent tells you that the statement in the file is true, and nothing about
+whether it is your claim. The review supplies that, and here it found the
+agent's statement to be the claim; it would have found `energy_without_approach`
+not to be. What remains open is everything outside the model: the program
+beyond the cases run, round-off, and real spheres.
+
+## Limits {#limits}
+
+- **One rule, two bodies, one collision.** The theorem is about the
+  hard-sphere rule. The soft contact of the momentum lesson exchanges energy
+  with a spring during the contact and is not covered, nor is a gas of many
+  spheres.
+- **One session.** The transcript is one condensed session of one agent on
+  one day. Another session, with another agent or the same one, will take
+  another path and may fail; nothing here says how often an agent succeeds.
+- **Authored search messages.** The messages of the two hunts were written
+  in a Claude Code session, not produced through a provider's interface. The
+  verdicts do not depend on them: the build runs every experiment again.
+- **The review is a reading.** The rubric makes it systematic, not
+  infallible. A subtle mismatch between statement and claim, such as a
+  notation that changes what a symbol means, is caught by reading only.
+- **The profile is not enforced by the site.** It is a checklist for your
+  machine. The session above was given it as instructions.
+
+::: {.exercise .self-check}
+`energy_without_approach` compiles, passes the axiom audit, has hypotheses
+that can hold together, and concludes that the energy is conserved. Which
+item of the review does it fail, and why does that matter for the claim?
+
+::: {.solution}
+The third item, the hypotheses: `hs` excludes the case the claim is about. A collision
+is the spheres approaching each other along the line of centres, $s \neq 0$;
+with $s = 0$ the rule changes no velocity, and the conservation is true for
+any direction, of any length, for that reason alone. The theorem is correct
+and says nothing about any collision. Lean cannot see this: it checks that
+the conclusion follows from the hypotheses, not that the hypotheses describe
+the situation you had in mind.
+:::
+:::
+
+## Exercises
+
+::: {.exercise}
+**The same statement?** The agent's statement writes the energy inline as
+`m₁ * dot v v / 2`; the module's uses `kineticEnergy`. Show that the two
+statements say the same thing, and say which one you would rather review.
+
+::: {.solution}
+`kineticEnergy m v` is defined as `m * dot v v / 2`, so unfolding the
+definition in `collision_energy` gives the agent's statement term by term:
+the energies of both spheres after the collision on the left, before on the
+right, under the same hypotheses `hm₁`, `hm₂`, `hn`. A named definition is
+easier to review: the energy is stated once, where its meaning can be checked
+against one half the mass times the squared speed, and every theorem that uses
+it inherits that check. An inline formula has to be read again in every
+statement.
+:::
+:::
+
+::: {.exercise}
+**A direction of length one, the other way.** The hypothesis `dot n n = 1`
+allows both $\mathbf{n}$ and $-\mathbf{n}$. Does the rule give the same
+velocities for both? Predict, then compare with the collision of the example
+above with $\mathbf{n}$ along $x$.
+
+::: {.solution}
+The same. The rule changes each velocity by a multiple of $s\,\mathbf{n}$,
+and $s$ changes sign with $\mathbf{n}$, so $s\,\mathbf{n}$ does not: the
+direction of the line of centres matters, its orientation does not.
+
+```{python}
+#| echo: false
+excerpt(experiment.opposite_direction)
+```
+
+```{python}
+#| echo: false
+result.table("opposite-direction")
+```
+:::
+:::
+
+::: {.exercise}
+**Review a statement.** A second agent proposes
+
+::: {.not-verified}
+```lean
+theorem energy_conserved {ι : Type*} [Fintype ι]
+    (m₁ m₂ : ℝ) (hm₁ : 0 < m₁) (hm₂ : 0 < m₂) (v₁ v₂ n : ι → ℝ)
+    (hn : dot n n = 1) (hv : v₂ = 0) :
+    kineticEnergy m₁ (firstAfter m₁ m₂ v₁ v₂ n)
+        + kineticEnergy m₂ (secondAfter m₁ m₂ v₁ v₂ n) =
+      kineticEnergy m₁ v₁
+```
+:::
+
+and says it compiles. Go through the review. Is it the claim?
+
+::: {.solution}
+It is not the claim; it is a special case. The fourth item fails: the hypothesis `hv`
+puts the second sphere at rest before the collision, and the conclusion is
+only stated for that case, while the claim is about all velocities. The
+statement is true (it is `collision_energy` with $\mathbf{v}_2 = 0$, where the
+second sphere's energy before is zero) and its hypotheses can hold, so items
+three and five would pass. A reader who knows that the general case follows from
+this one by a change of frame still has to prove that step; the statement
+does not contain it. The block above is not verified: nothing compiled it.
+:::
+:::
+
+::: {.exercise}
+**Drive a coding agent yourself (optional, on your machine).** Give a coding
+agent of your choice the specification above, under the profile for Lean,
+with a budget you set first. Then review its statement with the rubric
+before you believe the build. The site does not run this exercise, names no
+agent as a requirement, and does not promise that an agent succeeds.
+
+::: {.not-verified}
+```bash
+# needs: an account with the coding agent's provider, and its credential in
+# your environment (see the agent's own documentation)
+# clone the repository into a directory named scratch, as in the last
+# section of this page, then:
+cd scratch/lean
+lake exe cache get
+rm PhysicsByConstruction/Mechanics/CollisionEnergy.lean
+# put the specification of this page into SPECIFICATION.md, start your
+# coding agent here with the allowlist, the one-file rule, and the budget
+# of the profile, and when it is done, read the file before anything else;
+# only then:
+lake build PhysicsByConstruction.Mechanics.CollisionEnergy
+cd .. && ./scripts/check-lean.sh
+```
+:::
+
+::: {.solution}
+There is no number to compare with: the outcome is your review. If the build
+and the audit pass, the statement in the file is proved; the rubric decides
+whether it is the claim. The questions that most often have an answer are
+the first and the third: whether the file contains anything besides the
+statement and its proof, and whether a hypothesis has narrowed the claim (a
+sphere at rest, a direction along an axis, a fixed number of axes) or
+excluded it (no approach). If the budget ends without a passing build, the
+session has ended without a result, which is an outcome and not a reason to
+raise the budget.
+:::
+:::
+
+## Replay this experiment {#reproduce-this}
+
+```{python}
+#| echo: false
+reproduce_this(
+    code=[
+        "lean/PhysicsByConstruction/Mechanics/CollisionEnergy.lean",
+        "lean/PhysicsByConstruction/Mechanics/Collision.lean",
+        "src/pbc/agents/proof_lab.py",
+        "src/pbc/agents/hunter.py",
+        "src/pbc/mechanics/particles.py",
+        "src/pbc/mechanics/experiments/agent_proposed_proof.py",
+        "src/pbc/experiment.py",
+    ],
+    tests=[
+        "tests/unit/test_proof_lab.py",
+        "tests/unit/test_agent_proposed_proof_experiment.py",
+        "tests/integration/test_proof_replay.py",
+    ],
+)
+```

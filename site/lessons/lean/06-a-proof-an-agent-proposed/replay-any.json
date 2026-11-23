@@ -1,0 +1,112 @@
+{
+  "format": 1,
+  "model": "claude-opus-5-5 in a Claude Code session",
+  "recorded": "2026-11-23",
+  "system": "You are a careful experimenter who tries to refute claims. You can only use the tools you are given, and only a limited number of experiments. A counterexample is an experiment, inside the domain of the claim, whose result breaks it: name the experiment's arguments and result. If you find none, say that you found none and what you tried. Do not say that the claim is true because your experiments did not refute it.",
+  "task": "Claim: The collision rule of two hard spheres conserves the total kinetic energy, to a relative change of at most 1e-9, for all masses from 0.1 to 10 kg, all planar velocities with components from -5 to 5 m/s, and every direction n of the line of centres with components from -1 to 1. The relative change is the absolute difference of the total kinetic energy after and before the collision, divided by the energy before. Try to refute the claim with at most 6 experiments of the tool energy_change_any_direction, all inside the domain of the claim.",
+  "steps": [
+    {
+      "text": "The domain allows every direction with components from -1 to 1, so n need not have length one. The coefficients of the rule are the ones of an elastic collision when n is a unit vector; I expect the energy to change when it is not. I run a control first, a unit direction along x, and then the same collision with n = (1, 1), whose length is the square root of 2.",
+      "tool_calls": [
+        {
+          "id": "c0_0",
+          "name": "energy_change_any_direction",
+          "arguments": {
+            "m1": 1.0,
+            "m2": 2.0,
+            "v1x": 3.0,
+            "v1y": 0.0,
+            "v2x": -1.0,
+            "v2y": 0.0,
+            "nx": 1.0,
+            "ny": 0.0
+          }
+        },
+        {
+          "id": "c0_1",
+          "name": "energy_change_any_direction",
+          "arguments": {
+            "m1": 1.0,
+            "m2": 2.0,
+            "v1x": 3.0,
+            "v1y": 0.0,
+            "v2x": -1.0,
+            "v2y": 0.0,
+            "nx": 1.0,
+            "ny": 1.0
+          }
+        }
+      ],
+      "results": [
+        {
+          "call_id": "c0_0",
+          "ok": true,
+          "content": {
+            "relative_energy_change": 0.0
+          }
+        },
+        {
+          "call_id": "c0_1",
+          "ok": true,
+          "content": {
+            "relative_energy_change": 3.878787878787878
+          }
+        }
+      ]
+    },
+    {
+      "text": "The control reports zero, which the tool returns for a change at round-off, and n = (1, 1) changes the energy by almost four times its value: that experiment breaks the claim. To see whether only longer directions do it, I run the same collision with a shorter one, n = (0.5, 0), and an oblique unit direction, n = (0.6, 0.8), as a second control.",
+      "tool_calls": [
+        {
+          "id": "c1_0",
+          "name": "energy_change_any_direction",
+          "arguments": {
+            "m1": 1.0,
+            "m2": 2.0,
+            "v1x": 3.0,
+            "v1y": 0.0,
+            "v2x": -1.0,
+            "v2y": 0.0,
+            "nx": 0.5,
+            "ny": 0.0
+          }
+        },
+        {
+          "id": "c1_1",
+          "name": "energy_change_any_direction",
+          "arguments": {
+            "m1": 1.0,
+            "m2": 2.0,
+            "v1x": 3.0,
+            "v1y": 0.0,
+            "v2x": -1.0,
+            "v2y": 0.0,
+            "nx": 0.6,
+            "ny": 0.8
+          }
+        }
+      ],
+      "results": [
+        {
+          "call_id": "c1_0",
+          "ok": true,
+          "content": {
+            "relative_energy_change": 0.7272727272727273
+          }
+        },
+        {
+          "call_id": "c1_1",
+          "ok": true,
+          "content": {
+            "relative_energy_change": 0.0
+          }
+        }
+      ]
+    },
+    {
+      "text": "Counterexample: m1 = 1 kg, m2 = 2 kg, v1 = (3, 0) m/s, v2 = (-1, 0) m/s, n = (1, 1) gives a relative change of the kinetic energy of about 3.88, far above the limit of 1e-9. The shorter direction n = (0.5, 0) breaks the claim too, with a change of about 0.73, while both unit directions report zero. In these four experiments the energy changed exactly when n did not have length one, gained for the longer direction and lost for the shorter. That is a pattern in four experiments, not a statement about all collisions; a claim restricted to unit directions is the one worth testing next.",
+      "tool_calls": [],
+      "results": []
+    }
+  ]
+}
