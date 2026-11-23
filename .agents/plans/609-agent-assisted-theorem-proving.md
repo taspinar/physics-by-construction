@@ -136,13 +136,25 @@ document, and the same words on the page):
    It never edits `lakefile.toml`, `lake-manifest.json`, `lean-toolchain`,
    the reference modules, or `AxiomAudit.lean`, and never creates a
    `lakefile.lean`.
-3. **Compiling is running.** Lean runs code while it compiles: `#eval`,
-   `run_cmd`, `initialize`, `elab` and macro definitions, and a
-   `lakefile.lean` can read files, start processes, and use the network as
-   the learner. Rule 6 of the profile therefore covers `lake build`: read
-   the file before you build it, and refuse one that contains any of these
-   commands, a `set_option` that changes checking, `axiom`, `sorry`,
-   `native_decide`, `implemented_by`, `extern`, or `unsafe`.
+3. **Compiling is running.** Lean runs code while it compiles a file,
+   and a file can run code without defining anything: a command such as
+   `#eval` or `run_meta`, a tactic such as `run_tac` inside a proof, or a
+   new syntax or elaborator (and a `lakefile.lean`, rule 2) can read files,
+   start processes, and use the network as the learner. Rule 6 of the
+   profile therefore covers `lake build`: read the file before you build
+   it, and accept it only if it contains nothing but the allowed forms:
+   `import` of the library's modules and of Mathlib; `namespace`,
+   `section`, `end`, `open`, and `variable`; comments and doc comments; and
+   `theorem`, `lemma`, `def`, and `noncomputable def` whose proofs are
+   terms or use only tactics that Lean and Mathlib already define.
+   Anything else is refused, listed or not; for example `#eval`, `#eval!`,
+   `run_cmd`, `run_meta`, `run_elab`, `run_tac`, `by_elab`, `initialize`,
+   `syntax`, `macro`, `macro_rules`, `elab`, `elab_rules`, `notation`, an
+   attribute (`@[...]` or `attribute [...]`), which can register code that
+   runs later, `set_option`, `axiom`, `sorry`, `admit`, `native_decide`,
+   `implemented_by`, `extern`, and `unsafe`. (Review 01, M1: the first
+   version was a list of refused commands and missed the inline forms
+   `run_tac`, `run_meta`, `run_elab`, `by_elab`, and `#eval!`.)
 4. **The audit after the build.** Run the axiom audit
    (`./scripts/check-lean.sh`) on the result: a proof that leans on an
    axiom or on `sorry` is no proof.
@@ -152,11 +164,11 @@ completion evidence):
 
 | Threat | Where it acts | Mitigation in the profile | Residual |
 |---|---|---|---|
-| Code execution at compile time (`#eval`, `run_cmd`, `initialize`, macros, tactics written in the file) | The agent's own `lake build` of its draft; the learner's build of the result | Scratch checkout (rule 1); container or separate machine for a boundary; the learner reads the file before building it and refuses the listed commands (Lean rule 3) | The agent's own builds run unread code; only isolation limits them, as for the tests of the Python profile. Stated on the page |
+| Code execution at compile time: commands (`#eval`, `#eval!`, `run_cmd`, `run_meta`, `run_elab`, `initialize`), inline tactics in a proof (`run_tac`, `by_elab`), new syntax, macros, elaborators, and attributes that register hooks | The agent's own `lake build` of its draft; the learner's build of the result | Scratch checkout (rule 1); container or separate machine for a boundary; the learner reads the file before building it and accepts only the allowed forms (imports, namespaces and sections, comments, `theorem`/`lemma`/`def` with existing tactics), refusing everything else, listed or not (Lean rule 3) | The agent's own builds run unread code; only isolation limits them, as for the tests of the Python profile. Stated on the page |
 | A `lakefile.lean` or a changed `lakefile.toml`/manifest: build-time code, a new dependency fetched from the network | `lake build` | Lean rule 2 (no edit of the build files, no `lakefile.lean`); rule 3 of the profile (no network); dependencies fetched before the start | A setting of the agent without a container |
 | Network: `lake update`, `lake exe cache get`, `require` of a new package | `lake` | Not in the allowlist (Lean rule 1) | As above |
 | Credential exposure: Lean code can read files and environment variables | Compile time | Rule 4 of the profile unchanged (a shell without other credentials; files only out of reach in a container) | Unchanged from SA2 |
-| A proof that is not one: `sorry`, `axiom`, `native_decide` (`Lean.ofReduceBool`), `implemented_by`, `debug.skipKernelTC` | The proof | Lean rules 3 and 4 (refused by reading; the axiom audit fails on any non-standard axiom and on `sorry`) | `set_option` that weakens checking is caught by reading, not by the audit |
+| A proof that is not one: `sorry`, `axiom`, `native_decide` (`Lean.ofReduceBool`), `implemented_by`, `debug.skipKernelTC` | The proof | Lean rules 3 and 4 (not among the allowed forms, so refused by reading; the axiom audit fails on any non-standard axiom and on `sorry`) | `set_option` that weakens checking is caught by reading, not by the audit |
 | A statement that is not the claim (redefined notions, vacuous or excluding hypotheses, a special case, notation that changes meaning) | The meaning | The review rubric for a formal statement (below), human | The page says the match is a human judgement |
 | The site and CI | The build | Nothing changes: no agent, no credential, no transcript file (ADR 010 decision 6); the replay fixtures are harness fixtures of ADR 004, recomputed tool by tool | None new |
 

@@ -154,3 +154,66 @@ def test_the_page_and_the_workflow_document_state_the_profile_for_lean():
         assert rule in SOURCE, rule
     for command in ("#eval", "run_cmd", "initialize", "native_decide", "lakefile.lean"):
         assert command in SOURCE and command in WORKFLOW, command
+
+
+ALLOWLIST = (
+    "only if it contains nothing but the allowed forms",
+    "Anything else is refused, listed or not",
+)
+INLINE_EXECUTION = (
+    "run_tac",
+    "run_meta",
+    "run_elab",
+    "by_elab",
+    "#eval!",
+    "macro_rules",
+    "elab_rules",
+)
+
+
+def _rule_3(text: str) -> str:
+    return " ".join(
+        text.split("**Compiling is running.**")[1].split("\n4. **")[0].split()
+    )
+
+
+def test_rule_3_for_lean_is_an_allowlist_with_the_inline_execution_forms():
+    """Review 01, M1: a list of refused commands missed run_tac and the
+    other forms that run code without defining anything."""
+    plan = (
+        ROOT / ".agents" / "plans" / "609-agent-assisted-theorem-proving.md"
+    ).read_text(encoding="utf-8")
+    for name, text in (("page", SOURCE), ("workflow", WORKFLOW), ("plan", plan)):
+        rule = _rule_3(text)
+        for phrase in ALLOWLIST:
+            assert phrase in rule, (name, phrase)
+        for form in INLINE_EXECUTION:
+            assert f"`{form}`" in rule, (name, form)
+    not_allowed = " ".join(SOURCE.split("## Not allowed")[1].split("```")[0].split())
+    assert "anything but the allowed forms" in not_allowed
+    for form in (*INLINE_EXECUTION, "syntax", "elab", "attribute"):
+        assert re.search(rf"(?<![\w#!]){re.escape(form)}(?![\w!])", not_allowed), form
+
+
+def test_the_module_uses_only_the_forms_rule_3_allows():
+    allowed = re.compile(
+        r"(import|namespace|section|end|open|variable"
+        r"|theorem|lemma|def|noncomputable def)\b"
+    )
+    body = re.sub(r"(?s)/-.*?-/", "", LEAN)
+    body = re.sub(r"--[^\n]*", "", body)
+    top_level = [line for line in body.splitlines() if line and not line[0].isspace()]
+    assert top_level
+    for line in top_level:
+        assert allowed.match(line), line
+    for form in (
+        "@[",
+        "attribute",
+        "run_tac",
+        "by_elab",
+        "#eval",
+        "set_option",
+        "sorry",
+        "axiom ",
+    ):
+        assert form not in body, form

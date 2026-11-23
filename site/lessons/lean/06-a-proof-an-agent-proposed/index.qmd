@@ -273,8 +273,14 @@ runs the project's axiom audit.
 
 ## Not allowed
 Any other file (the lakefile, the manifest, the toolchain, the audit, the
-library); axiom, sorry, admit, native_decide, #eval, run_cmd, initialize,
-set_option, unsafe, implemented_by, extern, macros, notation.
+library). In the file, anything but the allowed forms: import of the
+library and of Mathlib; namespace, section, end, open, variable; comments
+and doc comments; theorem, lemma, def, and noncomputable def with term
+proofs or tactics that Lean and Mathlib already define. So, for example,
+no #eval, #eval!, run_cmd, run_meta, run_elab, run_tac, by_elab,
+initialize, syntax, macro, macro_rules, elab, elab_rules, notation,
+attribute or @[...], set_option, axiom, sorry, admit, native_decide,
+implemented_by, extern, or unsafe.
 ```
 :::
 
@@ -326,11 +332,13 @@ AGENT     Reported the decisions the specification left open: unit length
           empty set of axes is included. Reported 7 tool calls, 2 builds.
 
 REVIEW    The file: the scratch project differs from the repository's in
-          this one file. No command of Lean rule 3 of the profile (no
-          #eval, run_cmd, initialize, set_option, macro, notation, axiom,
-          sorry). One import the specification did not name: a Mathlib
-          file, no build file changed; accepted, and the next
-          specification lists the allowed imports.
+          this one file. Only the forms Lean rule 3 of the profile allows:
+          imports, a namespace, doc comments, one noncomputable def, and
+          theorems proved with existing tactics; no attribute, no
+          set_option, no run_tac, no #eval, no axiom, no sorry. One
+          import the specification did not name: a Mathlib file, no
+          build file changed; accepted, and the next specification lists
+          the allowed imports.
           The build and the audit, run again by the reviewer: lake build
           passes; the project's axiom audit passes with only the three
           standard axioms.
@@ -414,9 +422,8 @@ A compiled theorem is a true statement. The review asks whether it is the
 statement you wanted, in this order.
 
 1. **The file.** Only the requested file changed; it imports the library's
-   definitions; it contains none of the commands that the third rule for
-   Lean, below, refuses;
-   nothing is redefined.
+   definitions; it contains only the forms that the third rule for Lean,
+   below, allows; nothing is redefined.
 2. **The definitions.** The statement uses the library's `firstAfter`,
    `secondAfter`, and `dot`, not copies, and its energy is the physical
    one: one half the mass times the squared speed, for both spheres.
@@ -573,13 +580,23 @@ Lean adds four rules.
    never changes `lakefile.toml`, `lake-manifest.json`, `lean-toolchain`,
    the library's modules, or the audit, and never creates a
    `lakefile.lean`, which is a program that `lake` runs.
-3. **Compiling is running.** Lean runs code while it compiles a file:
-   `#eval`, `run_cmd`, `initialize`, and the definitions of new syntax,
-   tactics, and elaborators can read files, start programs, and use the
-   network as you. The sixth rule therefore covers `lake build`: read the file
-   before you build it, and refuse one that contains any of these, a
-   `set_option`, `axiom`, `sorry`, `native_decide`, `implemented_by`,
-   `extern`, or `unsafe`. The agent's own builds of its drafts ran before
+3. **Compiling is running.** Lean runs code while it compiles a file,
+   and a file can run code without defining anything: a command such as
+   `#eval` or `run_meta`, a tactic such as `run_tac` inside a proof, or a
+   new syntax or elaborator can read files, start programs, and use the
+   network as you. The sixth rule therefore covers `lake build`: read the
+   file before you build it, and accept it only if it contains nothing but
+   the allowed forms: `import` of the library's modules and of Mathlib;
+   `namespace`, `section`, `end`, `open`, and `variable`; comments and doc
+   comments; and `theorem`, `lemma`, `def`, and `noncomputable def` whose
+   proofs are terms or use only tactics that Lean and Mathlib already
+   define. Anything else is refused, listed or not; for example `#eval`,
+   `#eval!`, `run_cmd`, `run_meta`, `run_elab`, `run_tac`, `by_elab`,
+   `initialize`, `syntax`, `macro`, `macro_rules`, `elab`, `elab_rules`,
+   `notation`, an attribute (`@[...]` or `attribute [...]`), which can
+   register code that runs later, `set_option`, `axiom`, `sorry`, `admit`,
+   `native_decide`, `implemented_by`, `extern`, and `unsafe`. The agent's
+   own builds of its drafts ran before
    anyone read them; only the scratch checkout and any isolation limited
    what they could reach.
 4. **The audit after the build.** Run the project's axiom audit on the
