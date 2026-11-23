@@ -1570,7 +1570,9 @@ surface (ADR 022 decision 5). A new starter's pin is `pending` until the
 first pin bump after its feature merged: until then the at-pin check
 skips it, names the skip in its output, and the feature's completion
 record states it, while the current-tree check runs; F138 adds the at-pin
-check and the CI checkout with the repository's history it needs; each capstone page executes its simulator route within the
+check and the CI checkout with the repository's history it needs; the
+physics-lab starter's first pin bump is Issue #610's (2026-11-23), and its
+pin is kept current as `docs/products.md`, "The starter and its pin", says; each capstone page executes its simulator route within the
 page budget. Live hardware, paid or local models, heavy live evaluations, and
 optional integrations run outside `verify.conf` and are evidenced
 separately; nothing is weakened to fit them. The product packages are
@@ -3361,7 +3363,8 @@ to F155:
   questions 19 and 21 settled in `docs/products.md`); the starter's pin is
   `pending` until its first pin bump after the merge. The other protocols,
   the capstone page, the live adapter, and the other products remain (F140,
-  F145, and the product features).
+  F145, and the product features). The first pin bump was made by Issue
+  #610 (2026-11-23): the starter's at-pin check runs.
 - Of the 30 taught slots, 17 are filled by published lessons, 14 of them
   only after an extension that delivers the slot's new outcome; 13 taught
   slots and the four capstones have no lesson (the Phase 9 features).

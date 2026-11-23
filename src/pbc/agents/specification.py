@@ -18,7 +18,9 @@ and stops. Every call goes through the allowlist of ``pbc.agents.tools``
 with the budget of the specification, so the route can do nothing the
 specification does not permit. Its ``Record`` holds every run, the reason it
 stopped, the criteria, and the verdict on the hypothesis, which is given
-only when every success criterion is met.
+only when every success criterion is met, and the identity of the
+specification it ran: the digest of the data ``parse`` read, set by the
+execution and not by whoever passes the record on (Issue #606).
 
 The route assumes that the observable has one optimum inside the range of
 the varied variable and that the first scan is fine enough to see it; it
@@ -32,6 +34,7 @@ from typing import Any
 
 from pbc.agents.messages import ToolCall
 from pbc.agents.tools import Allowlist, Parameter, Tool
+from pbc.evidence.records import digest_value
 
 # The parts of a specification, in the order they are written.
 PARTS = (
@@ -151,6 +154,7 @@ class Specification:
     resolution: float  # in the unit of the varied variable
     stable: bool
     max_runs: int
+    digest: str = ""  # the digest of the data parsed: its identity
 
     @property
     def varied(self) -> Variable:
@@ -494,6 +498,7 @@ def parse(data: Any, laboratory: Laboratory) -> Specification:
         resolution=float(data["success"]["resolution"]["value"]),
         stable=data["success"]["stable"],
         max_runs=data["stopping"]["max_runs"],
+        digest=digest_value(data),
     )
 
 
@@ -512,7 +517,8 @@ class Run:
 class Record:
     """What the route did: the runs, why it stopped, the bracket around the
     best setting (low, best, high) when it found one, whether each success
-    criterion is met, and the verdict on the hypothesis."""
+    criterion is met, the verdict on the hypothesis, and the identity of the
+    specification the route ran (its ``digest``)."""
 
     runs: tuple[Run, ...]
     stop: str
@@ -520,6 +526,7 @@ class Record:
     criteria: Mapping[str, bool]
     verdict: str
     refusal: str = ""
+    specification: str = ""
 
 
 class _Stopped(Exception):
@@ -606,4 +613,5 @@ def execute(specification: Specification, laboratory: Laboratory) -> Record:
         criteria=criteria,
         verdict=verdict(spec.prediction, bracket) if met else NO_VERDICT,
         refusal=refusal,
+        specification=spec.digest,
     )

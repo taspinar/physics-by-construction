@@ -4,6 +4,7 @@ the pinned commit from the repository's own history, without a fetch, and
 fails on a broken pin; a `pending` pin is skipped and the skip named. Shown
 on temporary repositories whose package ``pbc`` says which commit it is."""
 
+import re
 import subprocess
 from pathlib import Path
 
@@ -140,8 +141,13 @@ def test_a_starter_without_a_pin_fails(repository):
     assert "declares no pin" in outcome(repo, "at pin").detail
 
 
-def test_the_physics_lab_starter_is_found_with_its_pending_pin():
+def test_the_physics_lab_starter_is_found_with_a_pin_of_a_commit():
+    # Issue #610 (A13): the starter is pinned, so its at-pin check runs; a
+    # pin never returns to `pending`. Whether the commit is in the history
+    # of HEAD is the `starters` check's, which has the full history.
     [starter] = [
         s for s in starters.find_starters(ROOT) if s.parent.name == "physics-lab"
     ]
-    assert starters.pin_of(starter) == starters.PENDING
+    pin = starters.pin_of(starter)
+    assert pin != starters.PENDING
+    assert re.fullmatch(r"[0-9a-f]{40}", pin)

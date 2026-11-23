@@ -16,10 +16,13 @@ records it rests on, the findings, the tests as declared, the evidence (a
 route's record by its digest), the revisions of the claim, and the
 decisions about each line of follow-up. The log only grows, and each entry
 names the digest of the entry before it (``verify_log``). A test is
-declared once under its key. Evidence names a test declared before it, the
-specification the route ran, which must be the one declared, and a record
-that is new: not one the claim already rested on, and not one recorded
-before the finding. Every entry
+declared once under its key. Evidence names a test declared before it, and
+a record that is new: not one the claim already rested on, and not one
+recorded before the finding. The record carries the identity of the
+specification the route ran, set by the execution (``Record.specification``,
+Issue #606), and it must be the digest of the specification declared for
+the test, so that a record of one experiment cannot be registered as the
+evidence of another. Every entry
 after the claim names what the log already holds: a finding about its
 claim, a decision about a finding of the log, a revision resting on tests
 whose evidence is recorded.
@@ -111,10 +114,11 @@ class Entry:
 
 
 def record_digest(record: Record) -> str:
-    """The digest of what a route did: every run, the bracket, the
-    criteria, and the verdict."""
+    """The digest of what a route did: the specification it ran, every
+    run, the bracket, the criteria, and the verdict."""
     return digest_value(
         {
+            "specification": record.specification,
             "runs": [
                 [r.number, r.stage, dict(r.arguments), r.value] for r in record.runs
             ],
@@ -240,16 +244,28 @@ class Log:
         )
 
     def record(
-        self, test: str, record: Record, specification: Mapping[str, Any]
+        self,
+        test: str,
+        record: Record,
+        specification: Mapping[str, Any] | None = None,
     ) -> Entry:
-        """The route's record of a declared test, by its digest, with the
-        ``specification`` the route ran, which must be the one declared.
-        The record is new: neither one the claim rested on nor one already
-        in the log."""
+        """The route's record of a declared test, by its digest. The record
+        names the specification the route ran (set by the execution), which
+        must be the one declared; a ``specification`` the caller passes must
+        be that one too. The record is new: neither one the claim rested on
+        nor one already in the log."""
         if test not in self.tests:
             raise FollowUpRefused(f"{test} was not declared before its evidence")
-        ran = digest_value(specification)
-        if ran != digest_value(self.tests[test].specification):
+        ran = record.specification
+        if not ran:
+            raise FollowUpRefused(
+                f"{test}: the record names no specification; only a record of"
+                " the route carries the one it ran"
+            )
+        declared = digest_value(self.tests[test].specification)
+        if ran != declared or (
+            specification is not None and digest_value(specification) != declared
+        ):
             raise FollowUpRefused(
                 f"{test}: the record comes from another specification than the"
                 " one declared"

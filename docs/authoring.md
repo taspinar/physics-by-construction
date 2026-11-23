@@ -732,6 +732,14 @@ excerpt(
   computed.
 - `interface=True` adds a table of the inputs and the output from the
   signature. Units come from the docstring, written as ``` ``dt`` (s) ```.
+  The unit of a name is the first such parenthesis after it whose text is
+  a unit: a unit expression (`kg m^2`, `m/s²`, `1/s`), alone or followed by
+  a remark after a comma, a semicolon, or a space (`kg/m; 0 for no drag`),
+  `<words> in <unit>` (`t in s, x in m`), or `units of ...`. A parenthesis
+  that is not a unit (a shape, a count, a description such as
+  `(one or two per cell)`) gives no unit, and a later parenthesis never
+  overrides the first; `pbc.authoring.excerpt.is_unit` decides it, and the
+  generated header reads the units the same way.
 - The text of the notes follows the rule of the lesson: say why each shown
   step implements the physics, then the update order, the state variables,
   the units, and how the step fails. Hide helpers that are not the point with

@@ -13,6 +13,7 @@ from pbc.agents.specification import (
     Record,
     Run,
 )
+from pbc.evidence.records import digest_value
 from pbc.research.followup import (
     EVIDENCE,
     INCONCLUSIVE,
@@ -39,12 +40,21 @@ METHOD = Finding("method", "claim", "a reviewer", "another method?", EVIDENCE)
 WORDS = Finding("words", "claim", "a reviewer", "say simulated", WORDING)
 
 
-def record(verdict: str, value: float = 1.0) -> Record:
-    run = Run(1, "scan", {"angle": 44.0}, value)
-    return Record((run,), "criteria met", (43.5, 44.0, 44.5), {}, verdict)
-
-
 SPEC = {"actions": ["x"]}
+
+
+def record(verdict: str, value: float = 1.0) -> Record:
+    # A record of the route on SPEC: the execution sets the identity of the
+    # specification it ran (Issue #606).
+    run = Run(1, "scan", {"angle": 44.0}, value)
+    return Record(
+        (run,),
+        "criteria met",
+        (43.5, 44.0, 44.5),
+        {},
+        verdict,
+        specification=digest_value(SPEC),
+    )
 
 
 def follow_up(key: str = "other-method", explanations=(HOLDS, FAILS)) -> FollowUp:
@@ -213,3 +223,45 @@ def test_a_record_of_another_specification_is_not_the_evidence_of_a_test():
     assert status(log, "method") == OPEN
     entry = log.record("other-method", record(REFUTED), dict(SPEC))
     assert entry.content["specification"] == log.entries[-2].content["specification"]
+
+
+def test_a_record_of_experiment_a_is_refused_as_the_evidence_of_test_b():
+    # Issue #606: the identity of the specification comes from the run.
+    # Experiment A (the top of the range) is executed by the route and
+    # registered under test B (a smaller coefficient): refused, also when
+    # the caller passes test B's specification beside it.
+    from pbc.mechanics.experiments import (
+        discrepancies_and_follow_up_experiments as rr6,
+    )
+
+    a, b = rr6.TOP_OF_RANGE, rr6.BELOW_THE_TOP
+    log = Log()
+    log.claim("slow-throw", rr6.CLAIM, [])
+    for finding in rr6.FINDINGS:
+        log.find(finding)
+    log.declare(b)
+    ran_a = rr6.run_route(a.specification)
+    assert ran_a.specification == digest_value(a.specification)
+    for supplied in (None, b.specification):
+        with pytest.raises(FollowUpRefused, match="another specification"):
+            log.record(b.key, ran_a, supplied)
+    assert log.evidence_of(b.finding) == []
+    entry = log.record(b.key, rr6.run_route(b.specification))
+    assert entry.content["specification"] == digest_value(b.specification)
+
+
+def test_a_record_that_names_no_specification_is_refused():
+    log = started()
+    log.declare(follow_up())
+    anonymous = dataclasses.replace(record(SUPPORTED), specification="")
+    with pytest.raises(FollowUpRefused, match="names no specification"):
+        log.record("other-method", anonymous, SPEC)
+    assert status(log, "method") == OPEN
+
+
+def test_the_record_digest_covers_the_specification_it_ran():
+    # A record cannot be relabelled with another specification without
+    # changing its digest.
+    ran = record(SUPPORTED)
+    relabelled = dataclasses.replace(ran, specification=digest_value({"other": 1}))
+    assert record_digest(relabelled) != record_digest(ran)

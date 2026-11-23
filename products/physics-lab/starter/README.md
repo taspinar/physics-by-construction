@@ -14,11 +14,11 @@ for your work are marked `YOUR WORK`:
 ## The pin
 
 `pyproject.toml` installs `pbc` from the repository by its Git address, at
-the `rev` it names: the full hash of a verified commit on `main`. The pin
-is `pending` now: this starter is new, and its first pin bump, a small
-change after the feature that created it merged, sets the pin to the merged
-commit. Until then the starter runs only inside the repository, against its
-current tree (below); a copy cannot install `pbc` yet.
+the `rev` it names: the full hash of a verified commit on `main`, whose
+`src/` the repository's `starters` check runs the starter's tests against.
+The pin moves only to a later merged commit of `main`, in a small change
+after a feature that altered what the starter imports
+(`docs/products.md`, "The starter and its pin").
 
 ## Copy it
 
@@ -41,7 +41,7 @@ PYTHONPATH=. uv run --locked --project ../../.. python -m pytest -c pyproject.to
 ```
 
 The repository's CI runs the same tests twice: against its current tree,
-and at the pin once it is set (`python -m pbc.products.starters`).
+and at its pin (`python -m pbc.products.starters`).
 
 ## After you change the task
 

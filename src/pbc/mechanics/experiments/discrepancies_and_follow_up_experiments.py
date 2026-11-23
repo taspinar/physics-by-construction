@@ -326,7 +326,7 @@ def follow_up() -> tuple[Log, dict[str, Record]]:
     def run_test(declared: FollowUp) -> None:
         log.declare(declared)
         records[declared.key] = run_route(declared.specification)
-        log.record(declared.key, records[declared.key], declared.specification)
+        log.record(declared.key, records[declared.key])
 
     run_test(FOURTH_ORDER)
     log.decide(
@@ -397,7 +397,7 @@ def old_record_as_evidence() -> str:
     )
     log.declare(again)
     try:
-        log.record(again.key, run_route(again.specification), again.specification)
+        log.record(again.key, run_route(again.specification))
     except FollowUpRefused as refused:
         return str(refused)
     return ""
