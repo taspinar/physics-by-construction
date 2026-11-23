@@ -263,7 +263,8 @@ and by hand.
 - **Lean generation (F22).** The agent writes Lean on the learner's
   machine under the same profile; a proof shown on the site is compiled by
   the Lean build like every proof; the semantic review is human (ADR 010
-  decision 5).
+  decision 5). Section 11 adds what Lean needs to the profile and gives the
+  review rubric for a formal statement.
 - **The guided route of the Part B products (ADR 022 decision 7).** The
   Agentic Coding Template is a coding-agent workflow on the learner's
   machine under this document: the route names a pinned, demonstrated
@@ -305,3 +306,77 @@ scripts, and the self-tests are written, not what one run of them did. It
 also checks that the transcript of the lesson is marked. It extends
 `tests/unit/test_skills_boundary.py`, the boundary of the agent skills
 (I32).
+
+## 11. Lean (F22)
+
+The lesson "A proof an agent proposed"
+(`site/lessons/lean/06-a-proof-an-agent-proposed/index.qmd`, Issue #609)
+lets a coding agent propose a formal statement and its proof in Lean. The
+profile of section 2 applies unchanged; Lean adds four rules, stated on the
+page in the same words.
+
+1. **Dependencies before the start.** The learner fetches the toolchain
+   and Mathlib's build cache (`lake exe cache get`) in the scratch
+   checkout before the agent starts. The agent's allowlist then holds only
+   `lake build` of its own module and `lake env lean` of its own file:
+   never `lake update`, `lake exe`, `elan`, or `git`, which change the
+   project or use the network. *Prevents:* a dependency fetched or changed
+   by the agent.
+2. **One new file.** The agent writes only the module the task names. It
+   never changes `lakefile.toml`, `lake-manifest.json`, `lean-toolchain`,
+   the library's modules, or the audit, and never creates a
+   `lakefile.lean`, which is a program that `lake` runs. *Prevents:* code
+   run by the build that is not in the file under review.
+3. **Compiling is running.** Lean runs code while it compiles a file:
+   `#eval`, `run_cmd`, `initialize`, and the definitions of new syntax,
+   tactics, and elaborators can read files, start programs, and use the
+   network as the learner. Rule 6 of section 2 therefore covers `lake
+   build`: the learner reads the file before building it and refuses one
+   that contains any of these, a `set_option`, `axiom`, `sorry`,
+   `native_decide`, `implemented_by`, `extern`, or `unsafe`. The agent's own
+   builds of its drafts run unread, like its own test runs; only the
+   scratch checkout and any isolation limit them. *Prevents:* the learner
+   running code nobody has read.
+4. **The audit after the build.** The learner runs the project's axiom
+   audit (`./scripts/check-lean.sh`) on the result: a proof that rests on
+   `sorry` or on a new axiom is not a proof, and the build alone does not
+   say so. *Prevents:* a proof that is not one.
+
+The task is a specification in the form of section 1: the claim in words
+(the "Claim" part), the definitions of the library the statement must use
+(the "Interface"), the build command (the "Tests the result must pass"),
+and the commands and constructs of rule 3 under "Not allowed". The formal
+statement is the agent's to propose, and it is what the review is about.
+
+**The review rubric for a formal statement.** A compiled theorem is a true
+statement; the review asks whether it is the claim. It replaces items 3
+and 4 of the rubric of section 5, which are about code.
+
+1. **The file.** Only the requested file changed; it imports the library's
+   definitions; it contains nothing that rule 3 refuses; nothing is
+   redefined.
+2. **The definitions.** The statement uses the library's definitions, not
+   copies, and each physical quantity is the physical one.
+3. **The hypotheses.** Each names a physical assumption; together they can
+   hold (a theorem of their satisfiability is the formal form of this
+   check); none excludes the case the claim is about.
+4. **The conclusion.** It is the claim in words, for every value the claim
+   speaks of, not a special case.
+5. **The build and the audit.** Both pass on the reviewer's machine, not in
+   the agent's report.
+6. **What it does not say.** Floating point, the program, and whatever the
+   hypotheses exclude, written down.
+
+**The security review of the profile for Lean** (Issue #609, recorded in
+its plan, `.agents/plans/609-agent-assisted-theorem-proving.md`): the
+profile is approved for Lean with the four rules above. The threats it
+weighed are code execution at compile time (by the agent's own builds and
+by the learner's), a build file or a dependency changed, the network,
+credentials readable to code run at compile time, a proof that rests on
+`sorry` or an axiom, and a statement that is not the claim. The residual
+risk is the one of section 2: without a container or a separate machine,
+rules 1 to 3 here and rules 2 and 3 of section 2 are settings of the agent,
+and the agent's own builds run code before anyone reads it. The site and CI
+gain nothing new to trust: the search of the lesson is a harness replay of
+ADR 004, its proof a module of the library, and its transcript an example
+on the page.

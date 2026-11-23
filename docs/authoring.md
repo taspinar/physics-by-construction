@@ -2251,6 +2251,14 @@ the development workflow, which CI also runs, load the workflow's launcher
 and start only fake programs of their own; the test checks that too
 (`docs/coding-agent-workflow.md`, section 10).
 
+A Lean exercise with a coding agent (F22) follows the same rules and adds
+the four rules of the profile for Lean and the review rubric for a formal
+statement (`docs/coding-agent-workflow.md`, section 11): the agent proposes
+the statement and the proof, the page shows only the library's compiled
+module as a proof, and it states what a compiled proof does and does not
+establish. `site/lessons/lean/06-a-proof-an-agent-proposed/index.qmd` is the
+example to copy.
+
 ## Discovery lessons
 
 A lesson of the law-discovery or agent-benchmark paths uses `pbc.discovery`; it
