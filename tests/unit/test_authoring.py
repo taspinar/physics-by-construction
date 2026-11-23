@@ -344,6 +344,9 @@ def test_the_units_come_only_from_the_first_unit_like_parenthesis():
         "t in s, x in m, v in m/s",
         "units of c",
         "dimensionless (V/V)",
+        "m, one row of three per mass",
+        "s, inf if never",
+        "m/s², downward",
     ],
 )
 def test_a_unit_in_the_documented_form_is_a_unit(text):
@@ -356,6 +359,11 @@ def test_a_unit_in_the_documented_form_is_a_unit(text):
         "same unit as the values",
         "one or two per cell",
         "n, 3",
+        "N, 3",
+        "T, N",
+        "N,",
+        "N + 1, 3",
+        "n_steps, 3",
         "1000 to show metres in mm",
         "S11 = 0",
         "relative",

@@ -737,7 +737,9 @@ excerpt(
   a remark after a comma, a semicolon, or a space (`kg/m; 0 for no drag`),
   `<words> in <unit>` (`t in s, x in m`), or `units of ...`. A parenthesis
   that is not a unit (a shape, a count, a description such as
-  `(one or two per cell)`) gives no unit, and a later parenthesis never
+  `(one or two per cell)`) gives no unit, also a shape whose first item is
+  a unit symbol (`(N, 3)`, `(T, N)`: items that are each a count or a
+  dimension name), and a later parenthesis never
   overrides the first; `pbc.authoring.excerpt.is_unit` decides it, and the
   generated header reads the units the same way.
 - The text of the notes follows the rule of the lesson: say why each shown

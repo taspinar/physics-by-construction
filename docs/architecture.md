@@ -1570,15 +1570,15 @@ surface (ADR 022 decision 5). A new starter's pin is `pending` until the
 first pin bump after its feature merged: until then the at-pin check
 skips it, names the skip in its output, and the feature's completion
 record states it, while the current-tree check runs; F138 adds the at-pin
-check and the CI checkout with the repository's history it needs; the
-physics-lab starter's first pin bump is Issue #610's (2026-11-23), and its
-pin is kept current as `docs/products.md`, "The starter and its pin", says; each capstone page executes its simulator route within the
+check and the CI checkout with the repository's history it needs; each capstone page executes its simulator route within the
 page budget. Live hardware, paid or local models, heavy live evaluations, and
 optional integrations run outside `verify.conf` and are evidenced
 separately; nothing is weakened to fit them. The product packages are
 ordinary inputs of the selection (ADR 014): a change to a product package
 that a capstone page imports re-executes that page, and a change to
-`pbc.instruments` or `pbc.evidence` follows the same input digests.
+`pbc.instruments` or `pbc.evidence` follows the same input digests. The
+physics-lab starter's first pin bump is Issue #610's (2026-11-23), and its
+pin is kept current as `docs/products.md`, "The starter and its pin", says.
 
 **Pilots and gates** (requirements decision 42, "Pilots"). The evidence
 pilot (F137) and the simulator vertical slice (F138) are the only common

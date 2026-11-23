@@ -52,6 +52,12 @@ _UNIT_EXPRESSION = rf"{_UNIT_TERM}(?:(?:/|·| ){_UNIT_TERM})*"
 _UNIT_LIKE = re.compile(
     rf"\s*(?:(?:in )?units of \S|(?:[A-Za-z ]+ in )?{_UNIT_EXPRESSION}(?=$|[,;\s]))"
 )
+# A shape: items separated by commas, each a count or a dimension name (one
+# letter, with digits or ``_name`` after it), with an optional ``+ 1``
+# (``N, 3``, ``T, N``, ``N,``, ``n + 1, 3``, ``n_steps, 3``). Its first
+# item can be a unit symbol (``N``, ``T``), so a shape is never a unit.
+_SHAPE_ITEM = r"\s*(?:\d+|[A-Za-z](?:\d+|_\w+)?|\.\.\.)(?:\s*[+-]\s*\d+)?\s*"
+_SHAPE = re.compile(rf"{_SHAPE_ITEM},(?:{_SHAPE_ITEM},)*(?:{_SHAPE_ITEM})?")
 
 # The classes of a listing whose lines are numbered after the conversion; a
 # selection's parts and a generated signature get no copy button.
@@ -647,7 +653,7 @@ def _note_text(template: str, values: Mapping[str, Real]) -> str:
 def is_unit(text: str) -> bool:
     """Whether ``text``, the parenthesis after a ``name`` in a docstring,
     is a unit in the documented form (``docs/authoring.md``, "Code")."""
-    return _UNIT_LIKE.match(text) is not None
+    return _UNIT_LIKE.match(text) is not None and _SHAPE.fullmatch(text) is None
 
 
 def _units(obj: object) -> dict[str, str]:
