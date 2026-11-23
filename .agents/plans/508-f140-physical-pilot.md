@@ -104,6 +104,26 @@ numbers. `Skills: none` for teaching (no lesson's teaching changes).
   Q and the lower f0 to within 5 %; the coil's loss grows with the
   frequency. The figure and its numbers: the dataset `ad3-rlc-pilot`.
 
+## The owner's review of PR #607 (2026-11-23)
+
+Four findings, fixed before the merge
+([#508 comment](https://github.com/taspinar/physics-by-construction/issues/508#issuecomment-7090028254)):
+
+- **A stop during `set_output`**: the configuration now runs under one
+  hold of the lock; a stop counter, raised by `output_off` before it waits
+  for the lock, is checked before W1 is switched on and again after; W1
+  stays off and the call is refused (`Stopped`). A stop that lands before
+  `set_output` begins is answered by the `Instrument`, which switches the
+  output off again when the call returns (unchanged).
+- **The watchdog's availability**: it reports `ready` after it has ignored
+  its signals; the adapter refuses the device without it (30 s) and refuses
+  a switch-on while the watchdog does not run. The switch-off path
+  (`_stop_generator`, `watch`, `switch_off`, the watchdog's `switch`) is
+  unchanged.
+- **The current bound is model-based** and **the watchdog is a software
+  protection, not a hardware emergency stop**: stated in the decision
+  record, the live confirmation, and the README.
+
 ## Steps
 
 1. The envelope's current bound and the live envelope; the phasor fit;

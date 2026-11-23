@@ -619,7 +619,10 @@ parts were exchanged and the probes moved by the owner's hands.
   (`Envelope.current`) refuses an amplitude that could drive more than
   30 mA, the AD3's distortion-free output current, through the circuit's
   declared series resistance at its lower tolerance (a series circuit's
-  current is at most V/R).
+  current is at most V/R). The bound is model-based: it holds for the
+  assumed passive series RLC circuit as wired and declared. It is not a
+  measured current limit, and with wrong wiring (a short, a missing
+  resistor) it need not hold.
 - **The realised sample rate.** The AD3's scope runs at 100 MHz over a
   whole divider, so the capture reports the realised rate and its sample
   times. The protocol reads a record that does not span whole periods by a
@@ -658,8 +661,9 @@ and no CI job drives a device.
 
 | Case | What the pilot observed | What the adapter does |
 |---|---|---|
-| Stop requested | W1 off at once (above) | `output_off` waits at most 0.5 s for a running SDK call, then stops the generator anyway |
-| Call that hangs | (fake driver only: not observed on the device) | each acquisition polls under its own 5 s deadline, below the envelope's 10 s timeout. A stop that finds a call still running after 0.5 s calls the SDK outside the lock; that this is safe assumes the WaveForms SDK tolerates concurrent calls on one handle, which no cited source documents and the fake SDK cannot show |
+| Stop requested | W1 off at once (above) | `output_off` waits at most 0.5 s for a running SDK call, then stops the generator anyway. `set_output` configures W1 under one hold of the lock and switches it on only when no stop arrived since it began; a stop that lands while W1 is switched on is followed by a second stop, and the call is refused (the owner's review of PR #607; fake SDK only) |
+| Call that hangs | (fake driver only: not observed on the device) | each acquisition polls under its own 5 s deadline, below the envelope's 10 s timeout. A stop that finds a call still running after 0.5 s calls the SDK outside the lock; that this is safe assumes the WaveForms SDK tolerates concurrent calls on one handle, which no cited source documents and the fake SDK cannot show. With an SDK that hangs, neither that stop nor the watchdog is an emergency stop: the watchdog is an additional protection in software, not an independent hardware emergency stop, and the hardware's own way out is to unplug the USB cable |
+| Wrong wiring | (not tried) | none detected: the current bound assumes the declared passive series RLC circuit, and the live confirmation says so; a short or a missing resistor can draw more than the bound, up to what the AD3's output itself limits |
 | Program ends without `close` | the interpreter crashed at exit (SIGSEGV) | closes the device at exit (`atexit`), output off first; exit 0, W1 off |
 | Pulled USB cable, W1 on | the next capture failed at once with a clear error, no hang; reopening reported "no device" until the cable was back; after reconnecting, W1 was off and the same serial captured | `close` treats the lost device as closed, keeps the reason (`lost`), and leaves the watchdog to stop W1 if the device comes back within its deadline |
 | Program killed (`kill -9`) | **W1 kept generating** (the owner's meter: 0.9 V at 2 V, 1 kHz, still 1 min 45 s after the kill) until the device was opened again and the output switched off. `DwfParamOnClose` = stop acts only on a proper close | every opening switches W1 off first; a **watchdog** process (below) switches it off when the program dies |
@@ -675,7 +679,13 @@ the pipe closes without it, because the program ended in any other way,
 the watchdog waits for the device to come free (the pilot: 2 s after
 `kill -9`), opens it by its serial, switches W1 off, and closes it. In CI a
 real watchdog process acts on a parent killed with SIGKILL, without a
-device.
+device. The adapter refuses the device unless the watchdog reports "ready"
+within 30 s of its start, and checks before every switch-on that the
+watchdog still runs; a watchdog that has ended keeps W1 off and the
+output is refused (the owner's review of PR #607). The watchdog is an
+additional protection in software, not an independent hardware emergency
+stop: it shares the computer, the USB connection, and the vendor's SDK
+with the program it guards.
 
 **The bound of the crash case.** The watchdog cannot help when it is
 killed together with the program (for example `kill -9` of both), or when
@@ -701,7 +711,7 @@ needs the owner at the bench and is not run unattended.
 | Excitation frequency | 1 kHz to 200 kHz |
 | Sample rate | 1 kS/s to 20 MS/s; realised as 100 MHz over a whole divider N, within 0.5/N of the rate asked (0.16 % at 5 kHz and 64 samples per period, up to 3.4 % at 147 kHz). The contract test's 1 % tolerance therefore holds only below about 2 MS/s; the protocol's fit does not need it |
 | Samples per acquisition | 16 to 16,384 |
-| Source current | at most 30 mA: amplitude over the declared series resistance at its lower tolerance (99 Ω for the pilot's circuit) |
+| Source current | at most 30 mA: amplitude over the declared series resistance at its lower tolerance (99 Ω for the pilot's circuit). Model-based, not measured: it holds for the assumed passive series RLC circuit, not under wrong wiring |
 | One device call | at most 10 s (the acquisition's own deadline 5 s) |
 | Input ranges | channel 1 ±2.5 V (the source), channel 2 ±25 V (the capacitor, up to Q times the source) |
 | Power | USB only. With a powered auxiliary supply, a pulled USB cable does not remove the device's power; the run record reports the auxiliary voltage |

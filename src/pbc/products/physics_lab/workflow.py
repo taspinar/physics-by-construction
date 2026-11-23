@@ -149,14 +149,17 @@ def live_confirmation(
     resistance_tolerance: float = PILOT_RESISTANCE_TOLERANCE,
 ) -> str:
     """What the learner confirms in the live mode: the declared circuit and
-    the least series resistance the current bound assumes (#508 MIN2)."""
+    the least series resistance the current bound assumes (#508 MIN2), and
+    that the bound is model-based (the owner's review of PR #607)."""
     lowest = circuit.resistance * (1.0 - resistance_tolerance)
     return (
         f"confirm that the series RLC circuit W1 -> {circuit.resistance:g} ohm"
         f" -> {circuit.inductance * 1e3:g} mH -> {circuit.capacitance * 1e9:g} nF"
         f" -> ground is connected, with at least {lowest:g} ohm in series: the"
-        f" {LIVE_CURRENT_LIMIT_A * 1e3:g} mA current bound assumes it; the"
-        " product never rewires a circuit"
+        f" {LIVE_CURRENT_LIMIT_A * 1e3:g} mA current bound assumes it. The"
+        " bound is computed from that circuit, not measured: with other"
+        " wiring (a short, a missing resistor) it does not hold. The product"
+        " never rewires a circuit"
     )
 
 

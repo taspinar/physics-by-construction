@@ -21,12 +21,17 @@ What the adapter does for safety, beyond the envelope:
 - before the device is opened it sets ``DwfParamOnClose`` to 1, *stop*, so
   that the outputs stop when the program closes the device or ends, instead
   of the vendor's samples' *continue*; ``output_off`` stops the generator
-  and is safe at any time and from any thread (each SDK call is serialised,
-  never an operation as a whole, so a stop does not wait behind an
-  acquisition, and it waits at most ``OFF_LOCK_WAIT_S`` behind a call that
-  hangs before it stops the generator anyway; that stop outside the lock
-  assumes the WaveForms SDK tolerates concurrent calls on one handle, which
-  no cited source documents: shown with the fake SDK only);
+  and is safe at any time and from any thread (each SDK call of an
+  acquisition is serialised, never the acquisition as a whole, so a stop
+  does not wait behind it, and it waits at most ``OFF_LOCK_WAIT_S`` behind a
+  call that hangs before it stops the generator anyway; that stop outside
+  the lock assumes the WaveForms SDK tolerates concurrent calls on one
+  handle, which no cited source documents: shown with the fake SDK only);
+- ``set_output`` configures W1 under one hold of the lock and switches it on
+  only when no stop arrived since it began, and only while the watchdog
+  lives; a stop that lands while W1 is switched on is answered by a second
+  stop, and the call is refused (``Stopped``): a stop is never followed by
+  an output that the stop did not see (owner's review of PR #607);
 - an acquisition polls the device under its own deadline, shorter than the
   envelope's timeout, and a failed SDK call is refused with the SDK's
   message (``DeviceError``);
@@ -43,8 +48,12 @@ What the adapter does for safety, beyond the envelope:
   ends without closing the device (killed, crashed, ended by a signal), it
   opens the device by its serial, switches W1 off, and closes it
   (``watch``, ``switch_off``; ``python -m pbc.instruments.analog_discovery
-  --watchdog SERIAL``). What it cannot cover: a watchdog killed together
-  with the program, or a device that does not come back within
+  --watchdog SERIAL``). The device is refused unless the watchdog reports
+  ``ready`` within ``READY_WAIT_S``, and W1 is switched on only while it
+  lives. It is an additional protection in software, not an independent
+  emergency stop in hardware. What it cannot cover: a watchdog killed
+  together with the program, a watchdog that cannot load the SDK when it
+  is needed, or a device that does not come back within
   ``WATCHDOG_DEADLINE_S``; the bound is then the last permitted setting,
   inside the envelope, until the device is opened again or unplugged.
 
@@ -69,7 +78,7 @@ from typing import IO, Any
 
 import numpy as np
 
-from pbc.instruments.contract import LIVE, Capture, Refused
+from pbc.instruments.contract import LIVE, Capture, Refused, Stopped
 
 ENVIRONMENT = "PBC_DWF_LIBRARY"
 LIBRARIES = {
@@ -109,6 +118,10 @@ OFF_LOCK_WAIT_S = 0.5
 # how long the watchdog waits for a dead program's device to come free (the
 # pilot: 2 s after kill -9), and how often it looks.
 CLOSED = "closed"
+# The line the watchdog sends when it watches (its signals ignored), and how
+# long the program waits for it before it refuses the device.
+READY = "ready"
+READY_WAIT_S = 30.0
 WATCHDOG_DEADLINE_S = 60.0
 WATCHDOG_POLL_S = 0.5
 DISMISS_WAIT_S = 2.0
@@ -173,15 +186,48 @@ class Watchdog:
     this program ends without ``dismiss``. It is started in its own session,
     so that a Ctrl-C or a hang-up of the terminal does not end it with the
     program, and it reads the program's end from its standard input: the
-    pipe closes when the program's process ends, however it ends."""
+    pipe closes when the program's process ends, however it ends.
 
-    def __init__(self, serial: str, library: str, stderr: IO | int | None = None):
+    The watchdog is confirmed before it counts: it reports ``ready`` on its
+    standard output once it watches, within ``ready_wait_s``; otherwise it
+    is ended and refused (``OSError``). ``command`` replaces the watchdog's
+    command line, for the tests."""
+
+    def __init__(
+        self,
+        serial: str,
+        library: str,
+        stderr: IO | int | None = None,
+        *,
+        command: list[str] | None = None,
+        ready_wait_s: float = READY_WAIT_S,
+    ):
         self.process = subprocess.Popen(
-            [sys.executable, "-m", MODULE, "--watchdog", serial,
-             "--library", library],
-            stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=stderr,
+            command or [sys.executable, "-m", MODULE, "--watchdog", serial,
+                        "--library", library],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=stderr,
             text=True, start_new_session=True,
         )  # fmt: skip
+        line: list[str] = []
+        reader = threading.Thread(
+            target=lambda: line.append(self.process.stdout.readline()),  # type: ignore[union-attr]
+            daemon=True,
+        )
+        reader.start()
+        reader.join(ready_wait_s)
+        if not line or line[0].strip() != READY:
+            self.process.kill()
+            self.process.wait()
+            ended = self.process.returncode
+            raise OSError(
+                f"the watchdog did not report ready within {ready_wait_s:g} s"
+                f" (it ended with {ended})"
+            )
+        self.process.stdout.close()  # type: ignore[union-attr]
+
+    def alive(self) -> bool:
+        """True while the watchdog process runs."""
+        return self.process.poll() is None
 
     def dismiss(self) -> None:
         """The program closed the device itself: the watchdog ends."""
@@ -270,6 +316,7 @@ def watchdog_main(arguments: list[str], stdin: IO[str] = sys.stdin) -> int:
     for name in ("SIGINT", "SIGHUP", "SIGTERM"):
         if hasattr(signal, name):
             signal.signal(getattr(signal, name), signal.SIG_IGN)
+    print(READY, flush=True)  # the program refuses the device without it
 
     def switch() -> None:
         print(
@@ -320,6 +367,7 @@ class AnalogDiscovery3:
         self.settle_s = settle_s
         self.poll_deadline_s = poll_deadline_s
         self._calls = threading.Lock()  # one SDK call at a time
+        self._stops = 0  # how many stops were requested; set_output checks it
         self._handle = ctypes.c_int(0)
         self._amplitude = 0.0
         self._frequency = 0.0
@@ -345,8 +393,11 @@ class AnalogDiscovery3:
     def _sdk_call(self, name: str, *arguments: Any) -> None:
         """One SDK call, serialised; a failure is refused with its message."""
         with self._calls:
-            ok = getattr(self._sdk, name)(*arguments)
-        if not ok:
+            self._held_call(name, *arguments)
+
+    def _held_call(self, name: str, *arguments: Any) -> None:
+        """One SDK call with the lock already held."""
+        if not getattr(self._sdk, name)(*arguments):
             raise DeviceError(f"{name} failed: {self._last_error()}")
 
     def _last_error(self) -> str:
@@ -475,32 +526,60 @@ class AnalogDiscovery3:
         return identity
 
     def set_output(self, amplitude_v: float, frequency_hz: float) -> None:
+        """Configure W1 and switch it on, under one hold of the lock. W1 is
+        switched on only when no stop arrived since the call began and the
+        watchdog lives; a stop that arrives while it is switched on (a stop
+        that did not wait for the lock) is followed by a second stop. In
+        each case W1 stays off and the call is refused."""
+        stops = self._stops  # before anything: a stop from now on counts
         if not self.is_open:
             raise DeviceError("the device is closed")
         h, ch, node = self._handle, ctypes.c_int(GENERATOR), ctypes.c_int(NODE_CARRIER)
-        self._sdk_call("FDwfAnalogOutNodeEnableSet", h, ch, node, ctypes.c_int(1))
-        self._sdk_call(
-            "FDwfAnalogOutNodeFunctionSet", h, ch, node, ctypes.c_ubyte(FUNC_SINE)
-        )
-        self._sdk_call(
-            "FDwfAnalogOutNodeFrequencySet", h, ch, node, ctypes.c_double(frequency_hz)
-        )
-        self._sdk_call(
-            "FDwfAnalogOutNodeAmplitudeSet", h, ch, node, ctypes.c_double(amplitude_v)
-        )
-        self._sdk_call("FDwfAnalogOutNodeOffsetSet", h, ch, node, ctypes.c_double(0.0))
-        self._sdk_call("FDwfAnalogOutConfigure", h, ch, ctypes.c_int(1))
-        realised = ctypes.c_double(0.0)
-        self._sdk_call(
-            "FDwfAnalogOutNodeFrequencyGet", h, ch, node, ctypes.byref(realised)
-        )
+        call = self._held_call
+        with self._calls:
+            call("FDwfAnalogOutNodeEnableSet", h, ch, node, ctypes.c_int(1))
+            call("FDwfAnalogOutNodeFunctionSet", h, ch, node, ctypes.c_ubyte(FUNC_SINE))
+            call(
+                "FDwfAnalogOutNodeFrequencySet", h, ch, node,
+                ctypes.c_double(frequency_hz),
+            )  # fmt: skip
+            call(
+                "FDwfAnalogOutNodeAmplitudeSet", h, ch, node,
+                ctypes.c_double(amplitude_v),
+            )  # fmt: skip
+            call("FDwfAnalogOutNodeOffsetSet", h, ch, node, ctypes.c_double(0.0))
+            refusal = self._refusal(stops)
+            if refusal is not None:
+                _stop_generator(self._sdk, h)
+                raise refusal
+            call("FDwfAnalogOutConfigure", h, ch, ctypes.c_int(1))
+            if self._stops != stops:
+                # The stop went out while W1 was switched on: once more.
+                _stop_generator(self._sdk, h)
+                raise Stopped("a stop arrived while W1 was switched on; W1 is off")
+            realised = ctypes.c_double(0.0)
+            call("FDwfAnalogOutNodeFrequencyGet", h, ch, node, ctypes.byref(realised))
         self._amplitude = float(amplitude_v)
         self._frequency = realised.value or float(frequency_hz)
         self._changed = self._clock()
 
+    def _refusal(self, stops: int) -> Refused | None:
+        """Why W1 may not be switched on now, if it may not."""
+        if self._stops != stops:
+            return Stopped("a stop arrived while W1 was configured; W1 stays off")
+        watchdog = self._watchdog
+        if watchdog is not None and not watchdog.alive():
+            return DeviceError(
+                "the watchdog has ended, so a crash would leave W1 running;"
+                " W1 stays off: close the lab and open it again"
+            )
+        return None
+
     def output_off(self) -> None:
         """Stop the generator W1. Safe before any output, after close, twice,
-        and from another thread."""
+        and from another thread; a ``set_output`` that is running when it
+        arrives does not switch W1 on."""
+        self._stops += 1  # first: a running set_output sees it
         self._amplitude = 0.0
         self._changed = self._clock()
         if not self.is_open:

@@ -481,6 +481,91 @@ def test_a_stop_during_an_acquisition_switches_the_generator_off_at_once():
     assert generator_calls(sdk)[-1][-1] == 0
 
 
+class StopDuring(FakeSDK):
+    """A stand-in whose call ``name`` (with ``start`` for the generator's
+    configure) starts ``driver.output_off`` on another thread, as the stop
+    button does, and lets that thread run for up to ``wait_s`` before the
+    call returns."""
+
+    def __init__(self, name, wait_s, start=None):
+        super().__init__()
+        self.trigger = (name, start)
+        self.wait_s = wait_s
+        self.driver = None
+        self.stopper = None
+        self.on_after_stop = False  # W1 switched on once the stop was pressed
+
+    def FDwfAnalogOutConfigure(self, handle, channel, start):
+        ok = super().FDwfAnalogOutConfigure(handle, channel, start)
+        if self.stopper is not None and self.out["running"]:
+            self.on_after_stop = True
+        return ok
+
+    def _log(self, name, *arguments):
+        ok = super()._log(name, *arguments)
+        armed = self.driver is not None and self.stopper is None
+        start = _value(arguments[-1]) if arguments else None
+        if armed and (name, self.trigger[1] and start) == self.trigger:
+            self.stopper = threading.Thread(target=self.driver.output_off)
+            self.stopper.start()
+            self.stopper.join(self.wait_s)
+        return ok
+
+
+@pytest.mark.parametrize(
+    ("name", "start", "wait_s"),
+    [
+        # the stop lands between the configuration and the switch-on; it
+        # waits OFF_LOCK_WAIT_S for the lock, then stops without it
+        ("FDwfAnalogOutNodeOffsetSet", None, 2.0),
+        # the stop lands while W1 is switched on and waits for the lock
+        ("FDwfAnalogOutConfigure", 1, 0.1),
+    ],
+    ids=["before-the-switch-on", "during-the-switch-on"],
+)
+def test_a_stop_during_set_output_is_never_followed_by_w1_on(name, start, wait_s):
+    """The owner's review of PR #607, finding 1: set_output made seven SDK
+    calls, each under the lock, and an output_off from another thread could
+    run between them; the last one then switched W1 on after the stop. Now
+    the stop counts from the moment it is requested: W1 stays off, the call
+    is refused, and the generator's last configure is a stop."""
+    sdk = StopDuring(name, wait_s, start)
+    driver = make(sdk)
+    sdk.driver = driver
+    with pytest.raises(Stopped, match="stop arrived"):
+        driver.set_output(1.0, 47_000.0)
+    sdk.stopper.join(5.0)
+    assert not sdk.stopper.is_alive()
+    assert sdk.out["running"] == 0 and sdk.out["enabled"] == 0
+    if start is None:  # W1 was never switched on after the stop
+        assert not sdk.on_after_stop
+    last = [c for c in generator_calls(sdk) if c[0] == "FDwfAnalogOutConfigure"][-1]
+    assert last[-1] == 0
+    # the next excitation, without a stop, switches W1 on as before
+    driver.set_output(1.0, 47_000.0)
+    assert sdk.out["running"] == 1
+
+
+def test_a_stop_through_the_instrument_during_set_output_leaves_w1_off():
+    """The same interleaving through the guarded instrument: the stop
+    button's request_stop arrives while excite configures W1. A check of the
+    composition, not a regression test: on this stand-in the old code also
+    ended with W1 off, because the stop disables the carrier before the
+    late configure (the driver test above fails on the old code)."""
+    sdk = StopDuring("FDwfAnalogOutNodeOffsetSet", 2.0)
+    driver = make(sdk)
+    instrument = Instrument(driver, live_envelope(99.0))
+    sdk.driver = type(
+        "Button", (), {"output_off": lambda _: instrument.request_stop()}
+    )()
+    with pytest.raises(Stopped):
+        instrument.excite(1.0, 47_000.0)
+    sdk.stopper.join(5.0)
+    assert sdk.out["running"] == 0 and not sdk.on_after_stop
+    with pytest.raises(Stopped):
+        instrument.excite(1.0, 47_000.0)
+
+
 def test_a_live_run_records_the_device_the_circuit_and_the_conditions(tmp_path):
     sdk = FakeSDK()
     driver = make(sdk)
@@ -533,6 +618,9 @@ def test_the_live_confirmation_names_the_declared_circuit_and_its_bound():
     (interlock,) = instrument.envelope.interlocks
     assert "W1 -> 47 ohm -> 10 mH -> 100 nF -> ground" in interlock.description
     assert "at least 46.53 ohm in series" in interlock.description
+    # the owner's review of PR #607, finding 3: the bound is model-based
+    assert "not measured" in interlock.description
+    assert "with other wiring" in interlock.description
     assert instrument.envelope.series_resistance_ohm == pytest.approx(46.53)
 
 
@@ -579,6 +667,10 @@ class FakeWatchdog:
     def __init__(self, serial, library):
         self.started = (serial, library)
         self.dismissed = False
+        self.running = True
+
+    def alive(self):
+        return self.running
 
     def dismiss(self):
         self.dismissed = True
@@ -642,6 +734,66 @@ def test_a_watchdog_that_does_not_start_leaves_the_device_closed():
     with pytest.raises(ad.DeviceError, match="watchdog did not start"):
         make(sdk, watchdog=failing)
     assert sdk.handle == 0
+
+
+def test_w1_is_switched_on_only_while_the_watchdog_lives():
+    """The owner's review of PR #607, finding 2: a watchdog that ended after
+    its start (a crash, an import error elsewhere) left the experiment
+    without its protection. set_output refuses then, and W1 stays off."""
+    sdk = FakeSDK()
+    watchdogs = []
+    driver = make(
+        sdk, watchdog=lambda *a: watchdogs.append(FakeWatchdog(*a)) or watchdogs[-1]
+    )
+    driver.set_output(1.0, 47_000.0)
+    assert sdk.out["running"] == 1
+    watchdogs[0].running = False
+    with pytest.raises(ad.DeviceError, match="watchdog has ended"):
+        driver.set_output(1.0, 50_000.0)
+    assert sdk.out["running"] == 0 and sdk.out["enabled"] == 0
+    configures = [c for c in generator_calls(sdk) if c[0] == "FDwfAnalogOutConfigure"]
+    assert configures[-1][-1] == 0
+
+
+def test_the_watchdog_counts_only_once_it_reports_ready(tmp_path):
+    """A real watchdog process reports ready; one that ends before (here a
+    module that does not exist) or says nothing within its wait is ended and
+    refused, and the device it would guard is closed again."""
+    import sys
+
+    dog = ad.Watchdog("SN:TEST", "/nonexistent/dwf")
+    assert dog.alive()
+    dog.dismiss()
+    assert not dog.alive() and dog.process.returncode == 0
+    with pytest.raises(OSError, match=r"did not report ready .*ended with 1"):
+        ad.Watchdog("SN:TEST", "x", command=[sys.executable, "-m", "pbc.no_such"])
+    silent = [sys.executable, "-c", "import time; time.sleep(60)"]
+    with pytest.raises(OSError, match=r"did not report ready within 0\.5 s"):
+        ad.Watchdog("SN:TEST", "x", command=silent, ready_wait_s=0.5)
+    sdk = FakeSDK()
+
+    def silent_watchdog(serial, library):
+        return ad.Watchdog(serial, library, command=silent, ready_wait_s=0.5)
+
+    with pytest.raises(ad.DeviceError, match="watchdog did not start"):
+        make(sdk, watchdog=silent_watchdog)
+    assert sdk.handle == 0 and sdk.out["running"] == 0
+
+
+def test_a_killed_watchdog_process_refuses_the_next_output():
+    """The real watchdog process, ended from outside after its start: the
+    next set_output is refused and W1 stays off."""
+    sdk = FakeSDK()
+    driver = make(sdk, watchdog=ad.Watchdog)
+    try:
+        driver.set_output(1.0, 47_000.0)
+        driver._watchdog.process.kill()
+        driver._watchdog.process.wait(10)
+        with pytest.raises(ad.DeviceError, match="watchdog has ended"):
+            driver.set_output(1.0, 47_000.0)
+        assert sdk.out["running"] == 0
+    finally:
+        driver.close()
 
 
 def test_watch_switches_off_only_when_the_program_ends_without_closing():

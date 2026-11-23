@@ -148,7 +148,9 @@ it.
    W1 → 100 ohm → 1 mH → 10 nF → ground, with at least 99 ohm in series:
    the 30 mA current bound assumes it, and the program prints it before it
    opens the device. The command line takes no other circuit; with less
-   series resistance the bound does not hold.
+   series resistance the bound does not hold. The bound is computed from
+   the declared circuit, not measured: a wiring mistake (a short, a
+   missing resistor) can draw more current than it says.
 
 ```bash
 uv run --locked python -m pbc.products.physics_lab run --mode live \
@@ -177,7 +179,10 @@ closes, and a watchdog process switches it off when the lab is killed or
 crashes. If the watchdog cannot (it was killed too, or the device did not
 come back within a minute), the generator keeps its last setting, inside
 the envelope. Start the lab again, which switches it off at once, or unplug
-the USB cable.
+the USB cable. The lab refuses to start without a watchdog that reports
+ready, and switches the generator on only while the watchdog runs. The
+watchdog is a protection in software, not an emergency stop: unplugging
+the USB cable is the one that does not depend on the computer.
 
 ## What is here
 

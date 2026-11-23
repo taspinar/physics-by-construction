@@ -67,7 +67,9 @@ def live_envelope(
     """The safety envelope of the live bench: the bench's amplitude, its
     samples per acquisition and timeout, the frequencies of the owner's
     circuit, and the current bound through ``series_resistance_ohm``, the
-    circuit's declared series resistance at its lower tolerance."""
+    circuit's declared series resistance at its lower tolerance. The bound
+    is model-based: it assumes the passive series RLC circuit as declared
+    and does not hold under wrong wiring (the owner's review of PR #607)."""
     return Envelope(
         amplitude=Limit("excitation amplitude", "V", 0.01, 2.0),
         frequency=Limit("excitation frequency", "Hz", 1_000.0, LIVE_HIGH_HZ),

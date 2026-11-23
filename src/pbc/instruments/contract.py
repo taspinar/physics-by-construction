@@ -143,7 +143,9 @@ class Envelope:
 
     def check_current(self, amplitude_v: float) -> None:
         """Refuse an amplitude that could drive more than the current bound
-        through the declared series resistance."""
+        through the declared series resistance. A bound from the model of
+        the declared circuit (I = V/R), not a measured current: it does not
+        hold when the circuit is wired otherwise."""
         if self.current is None:
             return
         self.current.check(amplitude_v / float(self.series_resistance_ohm or 0.0))
