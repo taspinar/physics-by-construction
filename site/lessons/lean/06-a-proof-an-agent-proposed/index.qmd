@@ -276,7 +276,9 @@ Any other file (the lakefile, the manifest, the toolchain, the audit, the
 library). In the file, anything but the allowed forms: import of the
 library and of Mathlib; namespace, section, end, open, variable; comments
 and doc comments; theorem, lemma, def, and noncomputable def with term
-proofs or tactics that Lean and Mathlib already define. So, for example,
+proofs or tactics that Lean and Mathlib already define and that take as
+arguments only terms, hypotheses, lemma names, and other tactics of this
+kind, never a meta program or command written in the file. So, for example,
 no #eval, #eval!, run_cmd, run_meta, run_elab, run_tac, by_elab,
 initialize, syntax, macro, macro_rules, elab, elab_rules, notation,
 attribute or @[...], set_option, axiom, sorry, admit, native_decide,
@@ -334,9 +336,10 @@ AGENT     Reported the decisions the specification left open: unit length
 REVIEW    The file: the scratch project differs from the repository's in
           this one file. Only the forms Lean rule 3 of the profile allows:
           imports, a namespace, doc comments, one noncomputable def, and
-          theorems proved with existing tactics; no attribute, no
-          set_option, no run_tac, no #eval, no axiom, no sorry. One
-          import the specification did not name: a Mathlib file, no
+          theorems proved with existing tactics that take no code; no
+          attribute, no set_option, no run_tac, no #eval, no axiom, no
+          sorry. One import the specification did not name: a Mathlib
+          file, no
           build file changed; accepted, and the next specification lists
           the allowed imports.
           The build and the audit, run again by the reviewer: lake build
@@ -590,7 +593,10 @@ Lean adds four rules.
    `namespace`, `section`, `end`, `open`, and `variable`; comments and doc
    comments; and `theorem`, `lemma`, `def`, and `noncomputable def` whose
    proofs are terms or use only tactics that Lean and Mathlib already
-   define. Anything else is refused, listed or not; for example `#eval`,
+   define and that take as arguments only terms, hypotheses, lemma names,
+   and other tactics of this kind, never a meta program or command written
+   in the file (so not `run_tac` or `by_elab`). Anything else is
+   refused, listed or not; for example `#eval`,
    `#eval!`, `run_cmd`, `run_meta`, `run_elab`, `run_tac`, `by_elab`,
    `initialize`, `syntax`, `macro`, `macro_rules`, `elab`, `elab_rules`,
    `notation`, an attribute (`@[...]` or `attribute [...]`), which can

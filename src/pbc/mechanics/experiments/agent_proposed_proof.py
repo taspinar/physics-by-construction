@@ -16,7 +16,8 @@ figure and numbers of the page:
 
 The live hunt, which asks a model and needs its key, is a separate command
 behind the optional dependency ``openai``: the module ``LIVE``, run with
-``uv run --locked --no-dev --extra openai python -m pbc.agents.proof_lab``.
+``uv run --locked --no-dev --extra openai python -m pbc.agents.proof_lab
+--claim any`` (or ``--claim unit``).
 """
 
 from functools import partial

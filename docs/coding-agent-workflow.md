@@ -337,7 +337,10 @@ page in the same words.
    library's modules and of Mathlib; `namespace`, `section`, `end`, `open`,
    and `variable`; comments and doc comments; and `theorem`, `lemma`,
    `def`, and `noncomputable def` whose proofs are terms or use only
-   tactics that Lean and Mathlib already define. Anything else is refused,
+   tactics that Lean and Mathlib already define and that take as
+   arguments only terms, hypotheses, lemma names, and other tactics of
+   this kind, never a meta program or command written in the file (so
+   not `run_tac` or `by_elab`). Anything else is refused,
    listed or not; for example `#eval`, `#eval!`, `run_cmd`, `run_meta`,
    `run_elab`, `run_tac`, `by_elab`, `initialize`, `syntax`, `macro`,
    `macro_rules`, `elab`, `elab_rules`, `notation`, an attribute

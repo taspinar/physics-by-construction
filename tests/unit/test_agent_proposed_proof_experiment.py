@@ -160,6 +160,13 @@ ALLOWLIST = (
     "only if it contains nothing but the allowed forms",
     "Anything else is refused, listed or not",
 )
+# Review 02, MIN1: the allowed tactics are defined by what they take, so
+# that no tactic that runs code written in the file (run_tac, by_elab) fits.
+TACTIC_ARGUMENTS = (
+    "take as arguments only terms, hypotheses, lemma names, and other"
+    " tactics of this kind, never a meta program or command written in the"
+    " file"
+)
 INLINE_EXECUTION = (
     "run_tac",
     "run_meta",
@@ -187,10 +194,18 @@ def test_rule_3_for_lean_is_an_allowlist_with_the_inline_execution_forms():
         rule = _rule_3(text)
         for phrase in ALLOWLIST:
             assert phrase in rule, (name, phrase)
+        assert TACTIC_ARGUMENTS in rule, name
+        assert "(so not `run_tac` or `by_elab`)" in rule, name
         for form in INLINE_EXECUTION:
             assert f"`{form}`" in rule, (name, form)
     not_allowed = " ".join(SOURCE.split("## Not allowed")[1].split("```")[0].split())
     assert "anything but the allowed forms" in not_allowed
+    assert TACTIC_ARGUMENTS in not_allowed
+    threat = " ".join(
+        plan.split("| Code execution at compile time")[1].split("\n")[0].split()
+    )
+    assert "existing tactics that take only terms, hypotheses, lemma names" in threat
+    assert "never a meta program or command written in the file" in threat
     for form in (*INLINE_EXECUTION, "syntax", "elab", "attribute"):
         assert re.search(rf"(?<![\w#!]){re.escape(form)}(?![\w!])", not_allowed), form
 

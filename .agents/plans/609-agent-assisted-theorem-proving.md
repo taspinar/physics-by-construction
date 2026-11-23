@@ -146,7 +146,10 @@ document, and the same words on the page):
    `import` of the library's modules and of Mathlib; `namespace`,
    `section`, `end`, `open`, and `variable`; comments and doc comments; and
    `theorem`, `lemma`, `def`, and `noncomputable def` whose proofs are
-   terms or use only tactics that Lean and Mathlib already define.
+   terms or use only tactics that Lean and Mathlib already define and
+   that take as arguments only terms, hypotheses, lemma names, and other
+   tactics of this kind, never a meta program or command written in the
+   file (so not `run_tac` or `by_elab`).
    Anything else is refused, listed or not; for example `#eval`, `#eval!`,
    `run_cmd`, `run_meta`, `run_elab`, `run_tac`, `by_elab`, `initialize`,
    `syntax`, `macro`, `macro_rules`, `elab`, `elab_rules`, `notation`, an
@@ -164,7 +167,7 @@ completion evidence):
 
 | Threat | Where it acts | Mitigation in the profile | Residual |
 |---|---|---|---|
-| Code execution at compile time: commands (`#eval`, `#eval!`, `run_cmd`, `run_meta`, `run_elab`, `initialize`), inline tactics in a proof (`run_tac`, `by_elab`), new syntax, macros, elaborators, and attributes that register hooks | The agent's own `lake build` of its draft; the learner's build of the result | Scratch checkout (rule 1); container or separate machine for a boundary; the learner reads the file before building it and accepts only the allowed forms (imports, namespaces and sections, comments, `theorem`/`lemma`/`def` with existing tactics), refusing everything else, listed or not (Lean rule 3) | The agent's own builds run unread code; only isolation limits them, as for the tests of the Python profile. Stated on the page |
+| Code execution at compile time: commands (`#eval`, `#eval!`, `run_cmd`, `run_meta`, `run_elab`, `initialize`), inline tactics in a proof (`run_tac`, `by_elab`), new syntax, macros, elaborators, and attributes that register hooks | The agent's own `lake build` of its draft; the learner's build of the result | Scratch checkout (rule 1); container or separate machine for a boundary; the learner reads the file before building it and accepts only the allowed forms (imports, namespaces and sections, comments, `theorem`/`lemma`/`def` with existing tactics that take only terms, hypotheses, lemma names, and such tactics as arguments, never a meta program or command written in the file), refusing everything else, listed or not (Lean rule 3) | The agent's own builds run unread code; only isolation limits them, as for the tests of the Python profile. Stated on the page |
 | A `lakefile.lean` or a changed `lakefile.toml`/manifest: build-time code, a new dependency fetched from the network | `lake build` | Lean rule 2 (no edit of the build files, no `lakefile.lean`); rule 3 of the profile (no network); dependencies fetched before the start | A setting of the agent without a container |
 | Network: `lake update`, `lake exe cache get`, `require` of a new package | `lake` | Not in the allowlist (Lean rule 1) | As above |
 | Credential exposure: Lean code can read files and environment variables | Compile time | Rule 4 of the profile unchanged (a shell without other credentials; files only out of reach in a container) | Unchanged from SA2 |
