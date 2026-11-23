@@ -22,7 +22,9 @@ recorded before the finding. The record carries the identity of the
 specification the route ran, set by the execution (``Record.specification``,
 Issue #606), and it must be the digest of the specification declared for
 the test, so that a record of one experiment cannot be registered as the
-evidence of another. Every entry
+evidence of another. The declared digest and predictions are read from the
+log's entry, never from the caller's specification again: a declaration
+cannot be changed after it is made (Issue #610). Every entry
 after the claim names what the log already holds: a finding about its
 claim, a decision about a finding of the log, a revision resting on tests
 whose evidence is recorded.
@@ -228,6 +230,11 @@ class Log:
                 f"{test.key} is already declared; declare a new test under a new key"
             )
         problems = discriminates(test)
+        first, second = test.explanations
+        if first.name == second.name:
+            # The entry keeps the predictions by name; the evidence decides
+            # for one of them by that name.
+            problems.append(f"both explanations are named {first.name}")
         if problems:
             raise FollowUpRefused(
                 f"{test.key} does not discriminate: {'; '.join(problems)}"
@@ -242,6 +249,10 @@ class Log:
                 "predictions": {e.name: list(e.predicts) for e in test.explanations},
             },
         )
+
+    def _declared(self, test: str) -> Entry:
+        """The entry that declared ``test``: what it was declared with."""
+        return next(e for e in self._of(DECLARED) if e.content["key"] == test)
 
     def record(
         self,
@@ -262,7 +273,12 @@ class Log:
                 f"{test}: the record names no specification; only a record of"
                 " the route carries the one it ran"
             )
-        declared = digest_value(self.tests[test].specification)
+        # The DECLARED entry is the authoritative identity of the test (the
+        # owner's review of PR #611): the specification object the caller
+        # declared stays mutable, and a later change of it must not change
+        # what counts as its evidence.
+        entry = self._declared(test)
+        declared = entry.content["specification"]
         if ran != declared or (
             specification is not None and digest_value(specification) != declared
         ):
@@ -286,7 +302,14 @@ class Log:
                 "specification": ran,
                 "record": digest,
                 "verdict": record.verdict,
-                "decided": decided(self.tests[test], record.verdict),
+                "decided": next(
+                    (
+                        name
+                        for name, predicts in entry.content["predictions"].items()
+                        if record.verdict in predicts
+                    ),
+                    None,
+                ),
             },
         )
 

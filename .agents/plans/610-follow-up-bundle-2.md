@@ -47,6 +47,23 @@ run": every construction of `Specification` or `Record` outside `parse` and
 `execute` (only the positive control of `pbc.research.plan`), and every call
 of `Log.record`.
 
+**The owner's review of PR #611 (major).** `Log.record` recomputed the
+declared identity from the caller's specification, a mutable `Mapping`, so
+a declaration of A could be changed to B after it was made. The DECLARED
+entry is now the authority: `Log.record` takes the declared digest and the
+predictions (for `decided`) from that entry, and `declare` refuses two
+explanations of one name, since the entry keeps the predictions by name.
+Tests: declare A, mutate the specification to B, run B: refused, and a
+record of A is still accepted; a predictions list changed after the
+declaration does not change the decision; two explanations of one name are
+refused. Defect class swept ("state read back from a caller-owned object
+instead of the log's record"): `Log.record` (the identity and `decided`),
+`Log.evidence_of` and `status` (they read `FollowUp.finding`, a string of a
+frozen dataclass, and the log's own entries), the claim's records and a
+revision's lists (copied into the entry); RR6's experiment changes its
+specifications only on deep copies (`with_action`, `with_coefficient`,
+`run_route`). No published claim of RR6 or SA1 changes.
+
 **Claims.** SA1 (`mechanics/21`), RR2 and RR6 (`mechanics/25`) compute the
 same runs, brackets, and verdicts; only record digests (hashes) change.
 
