@@ -217,6 +217,22 @@ def test_load_client_builds_the_client_with_the_key_and_the_default_model(sdk):
     assert callable(client.complete)
 
 
+def test_the_sdk_is_given_the_key_and_the_provider_address_explicitly(sdk, monkeypatch):
+    """The SDK reads ``ANTHROPIC_BASE_URL`` when no address is given, and
+    searches for credentials of its own when no key is given: both are
+    passed, so neither can redirect the key or add a credential (#615
+    MIN1)."""
+    monkeypatch.setenv("ANTHROPIC_BASE_URL", "http://elsewhere.example")
+    provider.make_client()
+    assert sdk.setup == {
+        "api_key": KEY,
+        "base_url": provider.BASE_URL,
+        "timeout": provider.TIMEOUT_SECONDS,
+        "max_retries": 1,
+    }
+    assert provider.BASE_URL == "https://api.anthropic.com"
+
+
 def test_the_model_is_the_argument_else_the_variable(sdk, monkeypatch):
     monkeypatch.setenv(provider.MODEL_VARIABLE, "  claude-sonnet-5-5 ")
     assert provider.make_client().model == "claude-sonnet-5-5"

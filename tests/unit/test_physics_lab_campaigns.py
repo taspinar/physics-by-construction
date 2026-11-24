@@ -558,6 +558,83 @@ def test_the_interface_reports_an_unconfirmed_circuit_with_what_to_do(tmp_path):
     assert "interlock" in page and "circuit was not confirmed" in page
 
 
+def test_a_free_call_with_no_reported_usage_does_not_stop_the_recording():
+    """A local server may leave usage out of its responses; at a price of
+    zero the call cannot cross the ceiling, so it is counted at zero tokens,
+    marked as unreported, and the recording goes on (#615 MIN2)."""
+
+    class SilentLocal:
+        model, secrets, last_usage = "a-local-model", (), None
+
+        def __init__(self):
+            self.inner = agent_campaign.ScriptedCampaignClient(PLAN)
+            self.calls = 0
+
+        def complete(self, system, conversation, tools):
+            self.calls += 1
+            return self.inner.complete(system, conversation, tools)
+
+    silent = SilentLocal()
+    metered = agent_campaign.MeteredClient(
+        silent, agent_campaign.Prices(0.0, 0.0), ceiling_eur=50.0
+    )
+    first = metered.complete(agent_campaign.SYSTEM, [], [])
+    second = metered.complete(agent_campaign.SYSTEM, [], [])
+    assert silent.calls == 2
+    assert first.tool_calls and "ceiling" not in second.text
+    summary = metered.summary()
+    assert not summary["stopped_at_ceiling"] and summary["stop_reason"] is None
+    assert not summary["usage_reported_on_every_call"]
+    assert summary["input_tokens"] == 0 and summary["cost_eur"] == 0.0
+
+
+@pytest.mark.parametrize("command", ["record-campaign", "record"])
+@pytest.mark.parametrize(
+    "provider, setting, expected",
+    [
+        ("local", {}, "PBC_LOCAL_MODEL"),
+        (
+            "local",
+            {"PBC_LOCAL_MODEL": "m", "PBC_LOCAL_BASE_URL": "http://example.org/v1"},
+            "not a loopback address",
+        ),
+        ("anthropic", {}, "ANTHROPIC_API_KEY"),
+        ("no-such-provider", {}, "no-such-provider"),
+    ],
+)
+def test_a_client_that_cannot_be_set_up_is_a_one_line_message(
+    tmp_path, monkeypatch, capsys, command, provider, setting, expected
+):
+    """A configuration error of a client ends the command with its message
+    and status 2, not a traceback (#615 S1)."""
+    from pbc.products.physics_lab.__main__ import main
+
+    for name in (
+        "PBC_LOCAL_MODEL",
+        "PBC_LOCAL_BASE_URL",
+        "ANTHROPIC_API_KEY",
+        "PBC_ANTHROPIC_MODEL",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in setting.items():
+        monkeypatch.setenv(name, value)
+    if command == "record-campaign":
+        plan = Path(__file__).parents[2] / "products/physics-lab/examples"
+        argv = [
+            command,
+            "--plan",
+            str(plan / "campaign-led-pair.toml"),
+            "--spend-ledger",
+            str(tmp_path / "spend.json"),
+        ]
+    else:
+        argv = [command]
+    argv += ["--out", str(tmp_path / "out.json"), "--provider", provider]
+    assert main(argv) == 2
+    error = capsys.readouterr().err
+    assert expected in error and "Traceback" not in error
+
+
 def test_the_interface_refuses_a_campaign_from_another_origin(tmp_path):
     app = _app(tmp_path)
     headers = {"host": "127.0.0.1:8765", "origin": "http://evil.example"}

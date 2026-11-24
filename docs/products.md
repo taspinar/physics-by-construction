@@ -894,7 +894,8 @@ counts the tokens of every call, prices them at the rates the recorder
 gives, adds them to a spend ledger kept outside the repository (required
 with `--provider`), and stops with what was recorded at the ceiling (EUR 50
 for this capstone), before a call that would cross it, or after a call
-whose usage the provider does not report.
+whose usage the provider does not report (unless its prices are zero, as
+for a local model).
 
 **The providers of a recording** (#615). `--provider` names a module of
 `pbc.agents.clients`, each of the shape `ModelClient` with its own
@@ -922,7 +923,10 @@ which the spend count reads:
   no prompt leaves the machine by it. The model is `PBC_LOCAL_MODEL`, which
   the recorder chooses: the project sets no default and downloads nothing.
   The tokens are counted where the server reports them, at a price of zero,
-  so the recording needs no `--price-in` or `--price-out`.
+  so the recording needs no `--price-in` or `--price-out`. A server that
+  leaves usage out does not stop the recording: such a call counts as zero
+  tokens, and the spend summary says that usage was not reported on every
+  call.
 
 The SDKs are optional: the group `physics-lab` holds both, and the default
 environment, the site build, and CI install neither. Only the modules of

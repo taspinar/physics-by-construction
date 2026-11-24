@@ -2,8 +2,14 @@
 
 It runs only on a learner's machine, or the recorder's (#615). The key is read
 from the environment variable ``ANTHROPIC_API_KEY`` and used for nothing but
-the provider request; it is handed to the SDK explicitly, so the SDK's own
-search for credentials (a stored login, another variable) is not used.
+the provider request. The key and the provider's address (``BASE_URL``) are
+handed to the SDK explicitly. Checked in the source of SDK 2.13: an explicit
+``api_key`` turns the SDK's own search for credentials off (it then reads
+neither its bearer-token variable nor a stored profile), and an explicit
+``base_url`` keeps ``ANTHROPIC_BASE_URL`` from sending the key to another
+host. The SDK still reads settings of its own that carry no credential of
+ours, such as extra headers (``ANTHROPIC_CUSTOM_HEADERS``); what a user puts
+there is theirs and is not removed from errors.
 Errors from the SDK, when it is set up and when it is asked, are re-raised
 without the SDK's own message chain, with the key removed, because an SDK may
 echo the request or its configuration in an error.
@@ -42,6 +48,8 @@ from pbc.agents.secrets import MissingKey, Secret, read_setting, redact
 KEY_VARIABLE = "ANTHROPIC_API_KEY"
 MODEL_VARIABLE = "PBC_ANTHROPIC_MODEL"
 MODEL = "claude-opus-5-5"
+# The provider's documented API address; passed explicitly (see above).
+BASE_URL = "https://api.anthropic.com"
 GROUP = "anthropic"
 # A turn of a campaign asks for one or a few tool calls; the limit keeps a
 # request well inside the SDK's limit for a request that is not streamed.
@@ -175,7 +183,10 @@ class AnthropicClient:
         self._secret = secret
         try:
             self._client = sdk.Anthropic(
-                api_key=secret.reveal(), timeout=TIMEOUT_SECONDS, max_retries=1
+                api_key=secret.reveal(),
+                base_url=BASE_URL,
+                timeout=TIMEOUT_SECONDS,
+                max_retries=1,
             )
         except Exception as error:
             raise self._failure(

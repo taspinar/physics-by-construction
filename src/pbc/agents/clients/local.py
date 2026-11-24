@@ -16,7 +16,10 @@ by this client. The model is ``PBC_LOCAL_MODEL`` (or the argument of
 
 The tokens are counted where the server reports them (``last_usage``); a
 local model costs nothing per token, so the client's ``prices_eur_per_mtok``
-are zero and a recording with it (``record-campaign``) needs no prices.
+are zero and a recording with it (``record-campaign``) needs no prices. A
+server that leaves usage out of a response does not stop the recording: at
+a price of zero the call is counted at zero tokens and the spend summary
+says that usage was not reported on every call.
 """
 
 import ipaddress
