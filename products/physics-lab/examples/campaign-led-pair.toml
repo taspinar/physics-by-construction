@@ -1,0 +1,19 @@
+# A campaign of the Autonomous Physics Lab on two LEDs of one colour in
+# anti-parallel behind a series resistor: the amplitude-dependent response
+# and the held-out check of the fitted characteristic (F145).
+#
+#   uv run --locked python -m pbc.products.physics_lab campaign \
+#       --plan products/physics-lab/examples/campaign-led-pair.toml \
+#       --circuit-confirmed --out physics-lab-led
+
+[campaign]
+circuit = "led-pair"
+protocols = ["amplitude-response"]
+amplitudes_v = [0.2, 0.5, 1.0, 1.4, 1.6, 1.8, 2.0]   # V; the envelope permits 2 V
+amplitude_frequency_hz = 1000.0
+amplitude_refinements = 2
+series_resistance_ohm = 100.0   # declared; the current is read through it
+budget = 20
+
+[run]
+seed = 145

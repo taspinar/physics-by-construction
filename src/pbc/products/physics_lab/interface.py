@@ -124,6 +124,10 @@ class App:
         self.runner = runner
         self.state = State()
         self._lock = threading.Lock()
+        # F145: the campaign section of the same page.
+        from pbc.products.physics_lab.campaign_interface import CampaignRunner
+
+        self.campaigns = CampaignRunner(out_root, threaded=threaded)
 
     # -- requests --------------------------------------------------------------
 
@@ -153,6 +157,21 @@ class App:
             return _redirect()
         if method == "GET" and path.startswith("/files/"):
             return self._file(path.removeprefix("/files/"))
+        if method == "POST" and path == "/campaign":
+            self.campaigns.start(form)
+            return _redirect()
+        if method == "POST" and path == "/campaign/stop":
+            self.campaigns.stop()
+            return _redirect()
+        if method == "GET" and path.startswith("/campaign-files/"):
+            found = self.campaigns.file(path.removeprefix("/campaign-files/"))
+            if found is None:
+                return Response(
+                    404, (("Content-Type", "text/plain; charset=utf-8"),), b""
+                )
+            return Response(
+                200, (("Content-Type", _TYPES[found.suffix]),), found.read_bytes()
+            )
         return Response(404, (("Content-Type", "text/plain; charset=utf-8"),), b"")
 
     def _refusal(
@@ -279,9 +298,27 @@ class App:
 
     # -- the page --------------------------------------------------------------
 
+    def _campaign_html(self) -> str:
+        return _campaign_section(self)
+
     def _page(self) -> Response:
-        body = render(self.state, self.config, self.token).encode("utf-8")
+        body = render(
+            self.state, self.config, self.token, self._campaign_html()
+        ).encode("utf-8")
         return Response(200, (("Content-Type", "text/html; charset=utf-8"),), body)
+
+
+def _campaign_section(app: App) -> str:
+    from pbc.products.physics_lab import campaign_interface
+
+    token = _token(app.token)
+    state = app.campaigns.state
+    return (
+        '<section class="campaign" aria-label="Campaign">'
+        f"{campaign_interface.form(state, token)}</section>"
+        '<section aria-live="polite" aria-label="Campaign progress and results">'
+        f"{campaign_interface.results(state, token)}</section>"
+    )
 
 
 def _redirect() -> Response:
@@ -469,11 +506,11 @@ def _finished(result: workflow.Result) -> str:
 <p>Exported to {_e(result.out_dir)}: {links}</p>"""
 
 
-def render(state: State, config: Config, token: str) -> str:
-    """The page for ``state``, its forms carrying ``token``."""
-    refresh = (
-        '<meta http-equiv="refresh" content="1">' if state.status == "running" else ""
-    )
+def render(state: State, config: Config, token: str, campaign: str = "") -> str:
+    """The page for ``state``, its forms carrying ``token``, with the
+    campaign section ``campaign`` (F145) below the sweep."""
+    running = state.status == "running" or "Campaign running" in campaign
+    refresh = '<meta http-equiv="refresh" content="1">' if running else ""
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -483,7 +520,7 @@ def render(state: State, config: Config, token: str) -> str:
 response</h1><p>{_e(_MODE_TEXT[state.mode])}</p></header>
 <main><section aria-label="Configuration">{_form(state, config, token)}</section>
 <section aria-live="polite" aria-label="Progress and results">{_results(state, token)}
-</section></main></body></html>
+</section>{campaign}</main></body></html>
 """
 
 

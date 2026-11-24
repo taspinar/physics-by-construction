@@ -115,12 +115,26 @@ def parse_response(response: Mapping[str, Any]) -> ModelMessage:
     return ModelMessage(text=message.get("content") or "", tool_calls=tuple(calls))
 
 
+def parse_usage(response: Mapping[str, Any]) -> dict[str, int] | None:
+    """The tokens of one chat completion, as ``input_tokens`` and
+    ``output_tokens``, or None when the provider reported none (F145: the
+    spend count of a recorded campaign)."""
+    usage = response.get("usage") or {}
+    if not usage:
+        return None
+    return {
+        "input_tokens": int(usage.get("prompt_tokens") or 0),
+        "output_tokens": int(usage.get("completion_tokens") or 0),
+    }
+
+
 class OpenAIClient:
     """A ``ModelClient`` that calls the provider with the learner's key."""
 
     def __init__(self, secret: Secret, sdk: Any, model: str = MODEL):
         self.model = model
         self.secrets = (secret,)
+        self.last_usage: dict[str, int] | None = None
         self._secret = secret
         try:
             self._client = sdk.OpenAI(
@@ -146,7 +160,9 @@ class OpenAIClient:
         request = build_request(self.model, system, conversation, tools)
         try:
             response = self._client.chat.completions.create(**request)
-            return parse_response(response.model_dump())
+            data = response.model_dump()
+            self.last_usage = parse_usage(data)
+            return parse_response(data)
         except Exception as error:
             raise self._failure("the provider request failed", error) from None
 

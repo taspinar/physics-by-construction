@@ -6,7 +6,8 @@ it was made at, and its ``Declaration``: the dataset it comes from, whether
 it was measured or simulated, its units, and its provenance (ADR 007: a
 measured sample enters the repository only as a dataset sample with its
 card). The adapter answers an acquisition only with the recorded one of the
-same setting; a setting the sample does not hold is refused, never computed,
+same setting (amplitude, frequency, waveform, sample rate, length); a
+setting the sample does not hold is refused, never computed,
 because a recorded run cannot make a new measurement. Its run record says so
 (``InstrumentRun.new_experiment`` is False).
 """
@@ -20,7 +21,14 @@ from typing import Any
 
 import numpy as np
 
-from pbc.instruments.contract import RECORDED, Capture, Driver, Refused
+from pbc.instruments.contract import (
+    RECORDED,
+    SINE,
+    WAVEFORMS,
+    Capture,
+    Driver,
+    Refused,
+)
 
 FORMAT = 1
 MEASURED = "measured"
@@ -51,13 +59,16 @@ class Declaration:
 class RecordedCapture:
     """One acquisition: the setting it was asked at (``sample_rate_hz`` the
     rate asked) and, for a device whose sample clock realises a rate near
-    the one asked (F140's live adapter), the rate it was made at."""
+    the one asked (F140's live adapter), the rate it was made at. The
+    waveform of the excitation is a sine unless it says otherwise (F145),
+    so that a sample written before F145 reads as it did."""
 
     amplitude_v: float
     frequency_hz: float
     sample_rate_hz: float
     channels: Mapping[str, tuple[float, ...]]
     realised_rate_hz: float | None = None
+    waveform: str = SINE
 
     @property
     def rate_hz(self) -> float:
@@ -92,6 +103,7 @@ def load_sample(path: Path) -> RecordedSample:
                 if c.get("realised_rate_hz") is None
                 else float(c["realised_rate_hz"])
             ),
+            waveform=str(c.get("waveform", SINE)),
         )
         for c in data["captures"]
     )
@@ -102,12 +114,17 @@ def record_sample(
     driver: Driver,
     settings: Sequence[tuple[float, float, float, int]],
     declaration: Declaration,
+    waveform: str = SINE,
 ) -> RecordedSample:
     """Acquire one capture for each (amplitude, frequency, sample rate,
-    samples) on ``driver``, for a synthetic sample of a simulated driver."""
+    samples) on ``driver``, for a synthetic sample of a simulated driver,
+    with the excitation ``waveform``."""
     captures = []
     for amplitude, frequency, rate, samples in settings:
-        driver.set_output(amplitude, frequency)
+        if waveform == SINE:
+            driver.set_output(amplitude, frequency)
+        else:
+            driver.set_output(amplitude, frequency, waveform=waveform)  # type: ignore[call-arg]
         capture = driver.capture(rate, samples)
         captures.append(
             RecordedCapture(
@@ -115,6 +132,7 @@ def record_sample(
                 frequency,
                 rate,
                 {k: tuple(float(x) for x in v) for k, v in capture.channels.items()},
+                waveform=waveform,
             )
         )
     driver.output_off()
@@ -126,13 +144,21 @@ def _same(a: float, b: float) -> bool:
 
 
 class RecordedBench:
-    """A driver that replays a recorded sample."""
+    """A driver that replays a recorded sample. ``sequential`` replays a
+    campaign that measured one setting more than once (F145: the
+    repetitions of a ring-down): each capture answers once, in the order
+    recorded, so that the n-th acquisition at a setting is the n-th one
+    recorded there; a setting asked more often than recorded is refused."""
 
     mode = RECORDED
+    # A recorded sample answers any waveform it holds a capture of.
+    waveforms = WAVEFORMS
 
-    def __init__(self, sample: RecordedSample):
+    def __init__(self, sample: RecordedSample, sequential: bool = False):
         self.sample = sample
-        self._setting: tuple[float, float] | None = None
+        self.sequential = sequential
+        self._used: set[int] = set()
+        self._setting: tuple[float, float, str] | None = None
 
     def identity(self) -> Mapping[str, Any]:
         d = self.sample.declaration
@@ -144,8 +170,10 @@ class RecordedBench:
             "calibration": "as declared by the sample",
         }
 
-    def set_output(self, amplitude_v: float, frequency_hz: float) -> None:
-        self._setting = (float(amplitude_v), float(frequency_hz))
+    def set_output(
+        self, amplitude_v: float, frequency_hz: float, waveform: str = SINE
+    ) -> None:
+        self._setting = (float(amplitude_v), float(frequency_hz), waveform)
 
     def output_off(self) -> None:
         self._setting = None
@@ -155,14 +183,19 @@ class RecordedBench:
             raise NotRecorded(
                 "the recorded sample holds no capture with the output off"
             )
-        amplitude, frequency = self._setting
-        for c in self.sample.captures:
+        amplitude, frequency, waveform = self._setting
+        for index, c in enumerate(self.sample.captures):
+            if self.sequential and index in self._used:
+                continue
             if (
-                _same(c.amplitude_v, amplitude)
+                c.waveform == waveform
+                and _same(c.amplitude_v, amplitude)
                 and _same(c.frequency_hz, frequency)
                 and _same(c.sample_rate_hz, sample_rate_hz)
                 and all(len(v) == samples for v in c.channels.values())
             ):
+                if self.sequential:
+                    self._used.add(index)
                 return Capture(
                     sample_rate_hz=c.rate_hz,
                     t=np.arange(samples) / c.rate_hz,
@@ -171,6 +204,7 @@ class RecordedBench:
                 )
         raise NotRecorded(
             f"the recorded sample holds no capture at {amplitude:g} V,"
-            f" {frequency:g} Hz, {sample_rate_hz:g} samples/s, {samples} samples;"
+            f" {frequency:g} Hz, {waveform}, {sample_rate_hz:g} samples/s,"
+            f" {samples} samples;"
             " a recorded run cannot make a new measurement"
         )

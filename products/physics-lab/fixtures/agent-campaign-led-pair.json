@@ -1,0 +1,162 @@
+{
+  "format": 1,
+  "model": "placeholder: scripted policy, not a model",
+  "recorded": "2026-11-24",
+  "system": "You run a measurement campaign on a prepared electronic circuit through the tools you are given; each drives the circuit and returns what one measurement shows, with standard errors, and whether the measurement passed the quality gate. An invalid measurement is never used: decide whether to repeat it. You cannot change the circuit. Spend few measurements, stop when you can answer, and report only what the valid measurements show, with their uncertainty.",
+  "task": "Find how the gain and the third harmonic of the response change with the amplitude between 0.2 V and 2 V, and the amplitude where the gain starts to fall. You have at most 20 measurements. Report each result with its uncertainty.",
+  "steps": [
+    {
+      "text": "",
+      "tool_calls": [
+        {
+          "id": "call-0-0",
+          "name": "measure_amplitude",
+          "arguments": {
+            "amplitude_v": 0.2
+          }
+        },
+        {
+          "id": "call-0-1",
+          "name": "measure_amplitude",
+          "arguments": {
+            "amplitude_v": 0.5
+          }
+        },
+        {
+          "id": "call-0-2",
+          "name": "measure_amplitude",
+          "arguments": {
+            "amplitude_v": 1.0
+          }
+        },
+        {
+          "id": "call-0-3",
+          "name": "measure_amplitude",
+          "arguments": {
+            "amplitude_v": 1.4
+          }
+        }
+      ],
+      "results": [
+        {
+          "call_id": "call-0-0",
+          "ok": true,
+          "content": {
+            "id": "m001",
+            "valid": true,
+            "gain": 0.9991906918075991,
+            "gain_se": 0.0008913249373633409,
+            "h3": 0.0015337984939034794,
+            "h3_se": 0.000642017852699889
+          }
+        },
+        {
+          "call_id": "call-0-1",
+          "ok": true,
+          "content": {
+            "id": "m002",
+            "valid": true,
+            "gain": 1.0000815785454669,
+            "gain_se": 0.0003476718784516407,
+            "h3": 0.0002669906697690531,
+            "h3_se": 0.00024218054860959348
+          }
+        },
+        {
+          "call_id": "call-0-2",
+          "ok": true,
+          "content": {
+            "id": "m003",
+            "valid": true,
+            "gain": 0.9998037279773455,
+            "gain_se": 0.0001860718938052425,
+            "h3": 0.00013943030955917217,
+            "h3_se": 0.00012868609688911986
+          }
+        },
+        {
+          "call_id": "call-0-3",
+          "ok": true,
+          "content": {
+            "id": "m004",
+            "valid": true,
+            "gain": 0.9996938528348781,
+            "gain_se": 0.00012572522483117517,
+            "h3": 0.00015429895691086658,
+            "h3_se": 8.728603310119986e-05
+          }
+        }
+      ]
+    },
+    {
+      "text": "",
+      "tool_calls": [
+        {
+          "id": "call-1-0",
+          "name": "measure_amplitude",
+          "arguments": {
+            "amplitude_v": 1.6
+          }
+        },
+        {
+          "id": "call-1-1",
+          "name": "measure_amplitude",
+          "arguments": {
+            "amplitude_v": 1.8
+          }
+        },
+        {
+          "id": "call-1-2",
+          "name": "measure_amplitude",
+          "arguments": {
+            "amplitude_v": 2.0
+          }
+        }
+      ],
+      "results": [
+        {
+          "call_id": "call-1-0",
+          "ok": true,
+          "content": {
+            "id": "m005",
+            "valid": true,
+            "gain": 0.9963167220092363,
+            "gain_se": 0.00011905866289872391,
+            "h3": 0.0030864911946059154,
+            "h3_se": 8.729892313243973e-05
+          }
+        },
+        {
+          "call_id": "call-1-1",
+          "ok": true,
+          "content": {
+            "id": "m006",
+            "valid": true,
+            "gain": 0.9722782323883817,
+            "gain_se": 0.0001158097184675012,
+            "h3": 0.022687741474393324,
+            "h3_se": 9.86168058250327e-05
+          }
+        },
+        {
+          "call_id": "call-1-2",
+          "ok": true,
+          "content": {
+            "id": "m007",
+            "valid": true,
+            "gain": 0.9294139099741513,
+            "gain_se": 0.00021880512932263713,
+            "h3": 0.05345766026757101,
+            "h3_se": 0.00022783533742635272
+          }
+        }
+      ]
+    },
+    {
+      "text": "Scripted placeholder: 7 valid measurements made; the evaluator computes the results from the raw samples.",
+      "tool_calls": [],
+      "results": []
+    }
+  ],
+  "placeholder": true
+}

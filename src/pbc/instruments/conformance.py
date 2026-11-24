@@ -15,6 +15,12 @@ before anyone relies on it. Passing them is not a demonstration on a device.
 
 The checks are written for the two-channel bench of the frequency-response
 protocol: a ``source`` and a ``response`` channel in volts.
+
+The waveform checks (F145, ``check_waveforms``) are apart from ``CHECKS``:
+an adapter that declares the square wave outputs it between 0 V and the
+amplitude on the source channel, and a waveform the envelope does not
+permit, or the adapter does not declare, is refused before the adapter is
+called.
 """
 
 import math
@@ -27,6 +33,8 @@ import numpy as np
 from pbc.instruments.contract import (
     LIVE,
     MODES,
+    SINE,
+    SQUARE,
     Capture,
     Driver,
     Envelope,
@@ -35,6 +43,7 @@ from pbc.instruments.contract import (
     OutOfEnvelope,
     Refused,
     Stopped,
+    driver_waveforms,
 )
 
 PASSED = "passed"
@@ -81,14 +90,21 @@ class CallLog:
     def __init__(self, driver: Driver):
         self.driver = driver
         self.mode = driver.mode
+        self.waveforms = driver_waveforms(driver)
         self.calls: list[tuple[Any, ...]] = []
 
     def identity(self) -> Mapping[str, str]:
         return self.driver.identity()
 
-    def set_output(self, amplitude_v: float, frequency_hz: float) -> None:
-        self.calls.append(("set_output", amplitude_v, frequency_hz))
-        self.driver.set_output(amplitude_v, frequency_hz)
+    def set_output(
+        self, amplitude_v: float, frequency_hz: float, waveform: str = SINE
+    ) -> None:
+        if waveform == SINE:
+            self.calls.append(("set_output", amplitude_v, frequency_hz))
+            self.driver.set_output(amplitude_v, frequency_hz)
+        else:
+            self.calls.append(("set_output", amplitude_v, frequency_hz, waveform))
+            self.driver.set_output(amplitude_v, frequency_hz, waveform=waveform)  # type: ignore[call-arg]
 
     def output_off(self) -> None:
         self.calls.append(("output_off",))
@@ -307,6 +323,128 @@ def check_driver(make: Callable[[], Driver], setting: Setting) -> list[Finding]:
     that raises is a failed check, with the error as its detail."""
     findings = []
     for name, check in CHECKS:
+        try:
+            findings.append(check(make, setting))
+        except Exception as error:  # the check reports any failure
+            findings.append(Finding(name, FAILED, f"raised {error!r}"))
+    return findings
+
+
+# -- the waveform checks (F145) ------------------------------------------------
+
+# The levels of the square wave on the source channel are within this
+# fraction of the amplitude of 0 V and of the amplitude.
+SQUARE_LEVEL_TOLERANCE = 0.05
+
+
+@dataclass(frozen=True)
+class SquareSetting:
+    """One square-wave operation of the bench: the amplitude (V), the
+    frequency (Hz), and an acquisition (samples/s, samples) that spans at
+    least one whole period."""
+
+    amplitude_v: float
+    frequency_hz: float
+    sample_rate_hz: float
+    samples: int
+
+
+def _square_envelope(setting: SquareSetting, waveforms: tuple[str, ...]) -> Envelope:
+    return Envelope(
+        amplitude=Limit("excitation amplitude", "V", 0.0, 2.0 * setting.amplitude_v),
+        frequency=Limit(
+            "excitation frequency",
+            "Hz",
+            setting.frequency_hz / 10.0,
+            setting.frequency_hz * 10.0,
+        ),
+        sample_rate=Limit(
+            "sample rate", "samples/s", setting.sample_rate_hz, setting.sample_rate_hz
+        ),
+        samples=Limit("samples", "samples", 1, setting.samples, integer=True),
+        timeout_s=10.0,
+        waveforms=waveforms,
+    )
+
+
+def _square_on_source(make: Callable[[], Driver], setting: SquareSetting) -> Finding:
+    name = "square-on-source"
+    driver = make()
+    if SQUARE not in driver_waveforms(driver):
+        return Finding(name, NOT_APPLICABLE, "the adapter declares no square wave")
+    driver.set_output(setting.amplitude_v, setting.frequency_hz, waveform=SQUARE)  # type: ignore[call-arg]
+    capture = driver.capture(setting.sample_rate_hz, setting.samples)
+    driver.output_off()
+    source = np.asarray(capture.channels["source"], dtype=float)
+    source = source[np.isfinite(source)]
+    a = setting.amplitude_v
+    low, high = float(np.percentile(source, 10)), float(np.percentile(source, 90))
+    detail = (
+        f"levels {low:.3f} V and {high:.3f} V on the source channel, 0 V and"
+        f" {a:g} V set"
+    )
+    tolerance = SQUARE_LEVEL_TOLERANCE * a
+    if abs(low) > tolerance or abs(high - a) > tolerance:
+        return Finding(name, FAILED, detail)
+    if source.min() < -tolerance or source.max() > a + tolerance:
+        return Finding(name, FAILED, detail + "; a sample beyond 0 V to the amplitude")
+    return Finding(name, PASSED, detail)
+
+
+def _waveform_before_adapter(
+    make: Callable[[], Driver], setting: SquareSetting
+) -> Finding:
+    name = "waveform-before-adapter"
+    log = CallLog(make())
+    instrument = Instrument(log, _square_envelope(setting, (SINE,)))
+    try:
+        instrument.excite(setting.amplitude_v, setting.frequency_hz, SQUARE)
+    except OutOfEnvelope:
+        pass
+    else:
+        return Finding(name, FAILED, "a square wave the envelope does not permit")
+    if log.device_calls():
+        return Finding(name, FAILED, f"the adapter saw {log.device_calls()}")
+    return Finding(
+        name, PASSED, "a waveform the envelope does not permit; nothing reached it"
+    )
+
+
+def _undeclared_waveform(make: Callable[[], Driver], setting: SquareSetting) -> Finding:
+    name = "undeclared-waveform"
+    driver = make()
+    if SQUARE in driver_waveforms(driver):
+        return Finding(name, NOT_APPLICABLE, "the adapter declares the square wave")
+    log = CallLog(driver)
+    instrument = Instrument(log, _square_envelope(setting, (SINE, SQUARE)))
+    try:
+        instrument.excite(setting.amplitude_v, setting.frequency_hz, SQUARE)
+    except Refused:
+        pass
+    else:
+        return Finding(name, FAILED, "an undeclared square wave was accepted")
+    if log.device_calls():
+        return Finding(name, FAILED, f"the adapter saw {log.device_calls()}")
+    return Finding(name, PASSED, "refused before the adapter was called")
+
+
+WAVEFORM_CHECKS: tuple[
+    tuple[str, Callable[[Callable[[], Driver], SquareSetting], Finding]], ...
+] = (
+    ("square-on-source", _square_on_source),
+    ("waveform-before-adapter", _waveform_before_adapter),
+    ("undeclared-waveform", _undeclared_waveform),
+)
+
+
+def check_waveforms(
+    make: Callable[[], Driver], setting: SquareSetting
+) -> list[Finding]:
+    """The waveform checks on fresh adapters from ``make`` at ``setting``
+    (a recorded adapter must hold the square-wave capture). A check that
+    raises is a failed check, with the error as its detail."""
+    findings = []
+    for name, check in WAVEFORM_CHECKS:
         try:
             findings.append(check(make, setting))
         except Exception as error:  # the check reports any failure

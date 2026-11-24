@@ -13,6 +13,10 @@ which
 - runs each driver call under the envelope's timeout: a call that does not
   return in time is refused, the output is switched off, and the instrument
   is faulted until it is made again;
+- refuses a waveform that the envelope does not permit, or that the driver
+  does not declare, before the driver is called (F145: the square wave of
+  the transient protocol; every envelope permits only the sine unless it
+  names the square wave);
 - honours a stop request from any thread: the output is switched off at once
   and every later operation is refused. The halt is checked again after the
   operation lock is taken and right before each driver call, and after a
@@ -41,6 +45,15 @@ RECORDED = "recorded"
 LIVE = "live"
 # The three execution modes (requirements, "Data and persistence").
 MODES = (SIMULATED, RECORDED, LIVE)
+
+# The waveforms of the excitation (F145). A sine of amplitude A swings from
+# -A to A. A square wave of amplitude A steps between 0 V and A, never below
+# 0 V and never above A: each edge is a step of height A, so the current a
+# step drives through a declared series circuit is bounded by A over its
+# series resistance as the sine's is (``Envelope.check_current``).
+SINE = "sine"
+SQUARE = "square"
+WAVEFORMS = (SINE, SQUARE)
 
 _LABELS = {
     SIMULATED: "simulated experiment on a deterministic model, not a measurement",
@@ -120,7 +133,13 @@ class Envelope:
     excitation can drive (F140): the current of a series circuit is at most
     the amplitude over its series resistance, so an excitation whose
     amplitude over ``series_resistance_ohm`` (the circuit's declared
-    resistance at its lower tolerance) is outside ``current`` is refused."""
+    resistance at its lower tolerance) is outside ``current`` is refused.
+    The bound holds for both waveforms: the step response of a series RLC
+    circuit to a step of height A peaks at (A / (Q R)) e^(-alpha t*), at
+    most A / R, and a diode in series only takes voltage away (F145).
+
+    ``waveforms`` are the waveforms the envelope permits; sine only unless
+    an envelope names the square wave."""
 
     amplitude: Limit  # of the excitation, V
     frequency: Limit  # of the excitation, Hz
@@ -130,10 +149,14 @@ class Envelope:
     interlocks: tuple[Interlock, ...] = ()
     current: Limit | None = None  # amplitude / series resistance, A
     series_resistance_ohm: float | None = None
+    waveforms: tuple[str, ...] = (SINE,)
 
     def __post_init__(self):
         if not self.timeout_s > 0:
             raise ValueError("the timeout must be positive")
+        unknown = [w for w in self.waveforms if w not in WAVEFORMS]
+        if unknown or not self.waveforms:
+            raise ValueError(f"the waveforms must be among {WAVEFORMS}, got {unknown}")
         if self.current is not None:
             r = self.series_resistance_ohm
             if r is None or not math.isfinite(r) or not r > 0:
@@ -150,6 +173,16 @@ class Envelope:
             return
         self.current.check(amplitude_v / float(self.series_resistance_ohm or 0.0))
 
+    def check_waveform(self, waveform: Any) -> str:
+        """``waveform`` when the envelope permits it; otherwise raise
+        ``OutOfEnvelope``."""
+        if waveform not in self.waveforms:
+            raise OutOfEnvelope(
+                f"the waveform {waveform!r} is not permitted; the envelope"
+                f" permits {', '.join(self.waveforms)}"
+            )
+        return waveform
+
     def describe(self) -> dict[str, Any]:
         limits = [self.amplitude, self.frequency, self.sample_rate, self.samples]
         if self.current is not None:
@@ -162,6 +195,8 @@ class Envelope:
             "timeout_s": self.timeout_s,
             "interlocks": [i.name for i in self.interlocks],
         }
+        if self.waveforms != (SINE,):
+            described["waveforms"] = list(self.waveforms)
         if self.series_resistance_ohm is not None:
             described["series_resistance_ohm"] = self.series_resistance_ohm
         return described
@@ -181,7 +216,12 @@ class Capture:
 class Driver(Protocol):
     """What an adapter of one execution mode implements. Only an
     ``Instrument`` calls it. ``output_off`` must be safe to call at any
-    time, also while another call is running: it is the stop behaviour."""
+    time, also while another call is running: it is the stop behaviour.
+
+    A driver that can output a square wave says so in its attribute
+    ``waveforms`` and takes the keyword ``waveform`` in ``set_output``; a
+    driver without the attribute outputs a sine only and is called with
+    the amplitude and the frequency alone (``driver_waveforms``)."""
 
     mode: str
 
@@ -194,6 +234,11 @@ class Driver(Protocol):
     def output_off(self) -> None: ...
 
     def capture(self, sample_rate_hz: float, samples: int) -> Capture: ...
+
+
+def driver_waveforms(driver: Driver) -> tuple[str, ...]:
+    """The waveforms ``driver`` declares; a sine only without the attribute."""
+    return tuple(getattr(driver, "waveforms", (SINE,)))
 
 
 @dataclass(frozen=True)
@@ -244,7 +289,7 @@ class Instrument:
         self._lock = threading.Lock()  # one driver operation at a time
         self._stop = threading.Event()
         self._halt: str | None = None  # why operations are refused
-        self._output: tuple[float, float] | None = None
+        self._output: tuple[float, float, str] | None = None
         self.counts = {"accepted": 0, "refused": 0}
 
     @property
@@ -253,9 +298,17 @@ class Instrument:
 
     # -- the operations --------------------------------------------------------
 
-    def excite(self, amplitude_v: float, frequency_hz: float) -> None:
-        """Switch the output on at ``amplitude_v`` and ``frequency_hz``."""
+    def excite(
+        self, amplitude_v: float, frequency_hz: float, waveform: str = SINE
+    ) -> None:
+        """Switch the output on at ``amplitude_v`` and ``frequency_hz``, as
+        a sine (from -A to A) or a square wave (from 0 V to A)."""
         with self._guard():
+            shape = self.envelope.check_waveform(waveform)
+            if shape not in driver_waveforms(self._driver):
+                raise Refused(
+                    f"the {self.mode} adapter does not output the waveform {shape!r}"
+                )
             amplitude = self.envelope.amplitude.check(amplitude_v)
             frequency = self.envelope.frequency.check(frequency_hz)
             self.envelope.check_current(amplitude)
@@ -264,8 +317,13 @@ class Instrument:
                     raise InterlockOpen(
                         f"interlock {interlock.name} is open: {interlock.description}"
                     )
-            self._call(self._driver.set_output, amplitude, frequency)
-            self._output = (amplitude, frequency)
+            if shape == SINE:
+                # As before F145: a driver written for the sine alone is
+                # called as it always was.
+                self._call(self._driver.set_output, amplitude, frequency)
+            else:
+                self._call(self._set_waveform, amplitude, frequency, shape)
+            self._output = (amplitude, frequency, shape)
             if self._halted():
                 # A stop or timeout while the output was being switched on:
                 # it goes off again, and the operation is refused.
@@ -282,6 +340,9 @@ class Instrument:
                 # A stop during the acquisition: its data are not handed out.
                 raise Stopped("stopped during the acquisition")
             return capture
+
+    def _set_waveform(self, amplitude: float, frequency: float, shape: str) -> None:
+        self._driver.set_output(amplitude, frequency, waveform=shape)  # type: ignore[call-arg]
 
     def output_off(self) -> None:
         """Switch the output off. Always permitted."""
@@ -305,13 +366,22 @@ class Instrument:
         return {
             "mode": self.mode,
             "device": dict(self._driver.identity()),
-            "output": None
-            if self._output is None
-            else {"amplitude_v": self._output[0], "frequency_hz": self._output[1]},
+            "output": self._output_state(),
             "halted": self._halt,
             "operations": dict(self.counts),
             "envelope": self.envelope.describe(),
         }
+
+    def _output_state(self) -> dict[str, Any] | None:
+        """The output that is on, if any; a square wave is named, a sine is
+        the default and stays unnamed, as before F145."""
+        if self._output is None:
+            return None
+        amplitude, frequency, shape = self._output
+        state: dict[str, Any] = {"amplitude_v": amplitude, "frequency_hz": frequency}
+        if shape != SINE:
+            state["waveform"] = shape
+        return state
 
     def run_record(
         self,
