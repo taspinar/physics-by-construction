@@ -575,19 +575,23 @@ def run_segment(
     journal: Path,
     policy: Policy = next_step,
     start: int | None = None,
+    refused: Refused | None = None,
 ) -> Segment:
     """Run ``campaign`` under ``policy`` until it is done, its budget is
     spent, or the instrument refuses; switch the output off at the end in
     every case; record the segment in ``journal``. The segment made the
     records from index ``start`` on: by default those made here; a caller
     that executed steps before (the agent's replay) passes the count it
-    started from."""
+    started from, and the refusal that already ended them as ``refused``,
+    so that the journal records the segment as failed with its reason."""
     number = len(load_journal(journal)) + 1
     start = len(campaign.records) if start is None else start
     status, lost, diagnostics = COMPLETE, None, ()
+    if refused is not None:
+        status, diagnostics = FAILED, (str(refused),)
     try:
         # region: segment
-        while True:
+        while refused is None:
             step = policy(campaign.plan, campaign.records)
             if step is None:
                 break

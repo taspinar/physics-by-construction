@@ -53,7 +53,14 @@ from pbc.products.physics_lab.campaign import (
 )
 
 AGENT = "agent"
-TOLERANCE = 1e-9
+# Replayed results are compared with the recorded ones to this relative and
+# absolute tolerance. The bench is deterministic, but the standard errors of
+# the nonlinear fits come from a finite-difference Jacobian, and those agree
+# between platforms to about eight digits, not to round-off (f0_se of the
+# ring-down differed by 1.1e-8 relative between macOS arm64, where the
+# placeholder was recorded, and CI's Linux x86-64). 1e-6 is far below every
+# reported standard error and far above that difference.
+TOLERANCE = 1e-6
 # The numbers a tool returns, per protocol: what a learner would read off
 # the bench, with their standard errors.
 RESULT_KEYS = {

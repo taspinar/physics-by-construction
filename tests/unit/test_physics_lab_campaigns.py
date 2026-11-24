@@ -31,6 +31,7 @@ from pbc.products.physics_lab.campaign import (
     CampaignPlan,
     ResumeRefused,
     Step,
+    load_journal,
     next_step,
     resume,
     run_segment,
@@ -342,6 +343,15 @@ def test_a_stop_during_the_agent_replay_fails_the_segment_with_its_reason(tmp_pa
     assert "halted" in result.segment.diagnostics[0]
     assert len(result.records) == 3
     assert result.segment.made == tuple(r.id for r in result.records)
+    # The journal, run.json and evidence.json carry one status and reason.
+    last = load_journal(tmp_path / "agent" / "checkpoints" / "journal.json")[-1]
+    assert last["status"] == "failed"
+    assert list(last["diagnostics"]) == list(result.segment.diagnostics)
+    run = json.loads((tmp_path / "agent" / "run.json").read_text(encoding="utf-8"))
+    assert run["segment"]["status"] == "failed"
+    assert list(run["segment"]["diagnostics"]) == list(result.segment.diagnostics)
+    (attempt,) = evidence.load(tmp_path / "agent" / "evidence.json").attempts
+    assert attempt.diagnostics == ("failed after 3 measurements", *last["diagnostics"])
 
 
 def test_the_metered_client_stops_at_the_ceiling_with_what_was_recorded():

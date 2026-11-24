@@ -267,20 +267,9 @@ def _agent_segment(
         if refusals:
             # A refusal of the instrument turned a recorded success into a
             # tool error: the segment failed, it did not drift.
-            campaign.instrument.output_off()
-            segment = run_segment(campaign, journal, policy, start)
-            return (
-                Segment(
-                    segment.number,
-                    "failed",
-                    segment.made,
-                    None,
-                    segment.checkpoint_digest,
-                    segment.output,
-                    (str(refusals[0]),),
-                ),
-                "",
-            )
+            # run_segment records it so, in the journal as in the export.
+            segment = run_segment(campaign, journal, policy, start, refused=refusals[0])
+            return segment, ""
         raise
     segment = run_segment(campaign, journal, policy, start)
     answer = transcript.steps[-1].message.text if transcript.steps else ""
