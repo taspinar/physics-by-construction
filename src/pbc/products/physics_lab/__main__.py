@@ -22,11 +22,13 @@ Subcommands:
   or ``live``; ``--resume`` continues an interrupted campaign from its
   checkpoint in ``--out``;
 - ``record-campaign`` (F145): record an agent campaign's trace on the
-  simulated bench with ``--provider``, the recorder's prices, and the
-  required ``--spend-ledger``, counting the spend across recordings and
-  stopping at ``--ceiling-eur`` (or before a call that would cross it, or
-  after a call whose usage the provider does not report), or with
-  ``--scripted`` (a placeholder).
+  simulated bench with ``--provider`` (``openai``, ``anthropic``, or
+  ``local``; ``pbc.agents.clients``), the recorder's prices (none for
+  ``local``, whose tokens cost nothing), and the required
+  ``--spend-ledger``, counting the spend across recordings and stopping at
+  ``--ceiling-eur`` (or before a call that would cross it, or after a call
+  whose usage the provider does not report), or with ``--scripted`` (a
+  placeholder).
 
 The interlock ``circuit-confirmed`` is the learner's own confirmation that
 the prepared circuit is connected: ``circuit_confirmed = true`` in the
@@ -213,13 +215,6 @@ def _campaign_main(arguments) -> int:
         if arguments.scripted:
             client, placeholder = agent_campaign.ScriptedCampaignClient(plan), True
         else:
-            if arguments.price_in is None or arguments.price_out is None:
-                print(
-                    "a live recording needs --price-in and --price-out (EUR per"
-                    " million tokens)",
-                    file=sys.stderr,
-                )
-                return 2
             if arguments.spend_ledger is None:
                 print(
                     "a live recording needs --spend-ledger (a file outside the"
@@ -237,9 +232,22 @@ def _campaign_main(arguments) -> int:
                     file=sys.stderr,
                 )
                 return 1
+            live = load_client(arguments.provider)
+            # A client with prices of its own (a local model, at zero) needs
+            # none from the recorder; any other needs both.
+            own = getattr(live, "prices_eur_per_mtok", None) or (None, None)
+            price_in = own[0] if arguments.price_in is None else arguments.price_in
+            price_out = own[1] if arguments.price_out is None else arguments.price_out
+            if price_in is None or price_out is None:
+                print(
+                    "a live recording needs --price-in and --price-out (EUR per"
+                    " million tokens)",
+                    file=sys.stderr,
+                )
+                return 2
             client = agent_campaign.MeteredClient(
-                load_client(arguments.provider),
-                agent_campaign.Prices(arguments.price_in, arguments.price_out),
+                live,
+                agent_campaign.Prices(price_in, price_out),
                 arguments.ceiling_eur,
                 spent,
             )

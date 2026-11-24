@@ -19,14 +19,20 @@ dependencies = [
 # learner who runs an agent lesson with their own key installs it; the site
 # build and CI never do.
 openai = ["openai>=3.51.0"]
+# The live client of pbc.agents for Claude (pbc.agents.clients.anthropic,
+# #615): the provider's own SDK, installed the same way and never by the
+# site build or CI. The client of a local model (pbc.agents.clients.local)
+# reuses the openai group and needs nothing more.
+anthropic = ["anthropic>=2.13.0"]
 # The Autonomous Physics Lab (docs/products.md, question 19): what the
 # product's optional routes need beyond the default environment, one group
-# per product. Its live agent route uses the provider SDK; the live adapter
+# per product. Its live agent route uses a provider SDK (OpenAI, Claude, or
+# a local model through the OpenAI one); the live adapter
 # of a device (F140) adds its driver here. Its simulated and recorded routes
 # and its local interface need nothing beyond the default environment. Only
 # a learner who runs an optional route installs it; the site build and CI
 # never do.
-physics-lab = ["openai>=3.51.0"]
+physics-lab = ["anthropic>=2.13.0", "openai>=3.51.0"]
 
 [project.urls]
 Homepage = "https://taspinar.github.io/physics-by-construction/"

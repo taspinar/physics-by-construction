@@ -9,6 +9,7 @@ comparison of routes by the measurements they need."""
 
 import dataclasses
 import json
+from pathlib import Path
 
 import pytest
 
@@ -563,3 +564,49 @@ def test_the_interface_refuses_a_campaign_from_another_origin(tmp_path):
     response = app.handle("POST", "/campaign", {"token": app.token}, headers)
     assert response.status == 403
     assert app.campaigns.state.status == "idle"
+
+
+def test_a_recording_with_a_local_model_needs_no_prices(tmp_path, monkeypatch):
+    """``record-campaign`` takes the prices of a client that has its own (the
+    local client, at zero, #615) and asks the recorder for them otherwise."""
+    import pbc.agents.providers as providers
+    from pbc.products.physics_lab.__main__ import main
+
+    plan_path = (
+        Path(__file__).parents[2]
+        / "products/physics-lab/examples/campaign-led-pair.toml"
+    )
+    plan, _ = lab.load_plan(plan_path)
+
+    class Local:
+        model, secrets = "a-local-model", ()
+
+        def __init__(self, prices):
+            self.inner = agent_campaign.ScriptedCampaignClient(plan)
+            self.last_usage = None
+            if prices is not None:
+                self.prices_eur_per_mtok = prices
+
+        def complete(self, system, conversation, tools):
+            self.last_usage = {"input_tokens": 500, "output_tokens": 20}
+            return self.inner.complete(system, conversation, tools)
+
+    asked = []
+
+    def load(provider):
+        asked.append(provider)
+        return Local((0.0, 0.0) if provider == "local" else None)
+
+    monkeypatch.setattr(providers, "load_client", load)
+    ledger = tmp_path / "spend.json"
+    command = ["record-campaign", "--plan", str(plan_path), "--spend-ledger"]
+    out = tmp_path / "local.json"
+    assert main([*command, str(ledger), "--out", str(out), "--provider", "local"]) == 0
+    entry = json.loads(ledger.read_text())["recordings"][0]
+    assert entry["model"] == "a-local-model" and entry["calls"] > 0
+    assert entry["cost_eur"] == 0.0 and entry["input_tokens"] > 0
+    assert entry["prices_eur_per_mtok"] == {"input": 0.0, "output": 0.0}
+    # A client without prices of its own needs the recorder's.
+    other = ["--out", str(tmp_path / "other.json"), "--provider", "openai"]
+    assert main([*command, str(ledger), *other]) == 2
+    assert asked == ["local", "openai"]

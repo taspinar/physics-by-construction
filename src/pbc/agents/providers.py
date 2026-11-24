@@ -13,7 +13,11 @@ To switch provider:
 2. Change ``PROVIDER`` to ``"<name>"``.
 
 Nothing else imports a provider SDK or names a provider's key variable, and
-the replay client and the tests do not depend on any of them.
+the replay client and the tests do not depend on any of them. The clients
+that exist are ``openai`` (the default), ``anthropic`` (Claude), and
+``local`` (an open-weights model behind an OpenAI-compatible server on the
+learner's own machine); a command can ask for one by name, as the Physics
+Lab's ``--provider`` does, without changing ``PROVIDER``.
 """
 
 import importlib

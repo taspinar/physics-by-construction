@@ -158,7 +158,8 @@ build on it.
 **Question 19, optional dependency packaging: one optional group per
 product in `pyproject.toml`, locked in `uv.lock`.** The product's group is
 `physics-lab`; it holds what the product's optional routes need beyond the
-default environment, today the provider SDK of a live agent run, and F140
+default environment, today the provider SDKs of a live agent run (OpenAI and,
+since #615, Claude), and F140
 adds the driver of its device there. The simulated and recorded routes and
 the local interface need nothing beyond the default environment. The group
 is pinned by the lock like every dependency, installed only by a learner
@@ -198,7 +199,7 @@ the result is a simulation or recorded data.
 
 **Cost.** No model call, no network, no instrument, and no new package in
 the default environment; the optional group adds no package beyond the
-existing provider SDK. A reference run takes about 1 to 2 s on the
+provider SDKs. A reference run takes about 1 to 2 s on the
 maintainer's machine (19 time-domain integrations), the replayed agent run
 under 1 s; the new tests take about 25 s together (the starter checks'
 temporary repositories most of it), and the check `starters` about 4 s.
@@ -893,12 +894,43 @@ counts the tokens of every call, prices them at the rates the recorder
 gives, adds them to a spend ledger kept outside the repository (required
 with `--provider`), and stops with what was recorded at the ceiling (EUR 50
 for this capstone), before a call that would cross it, or after a call
-whose usage the provider does not report. The
-Claude client needs the provider's SDK in an optional dependency group, a
-change of `pyproject.toml` and `uv.lock`, and a client for a local
-open-weights model needs a decision on the boundary of the agent package
-(no module there but the provider client reads a key variable or the
-environment); each is its own small change, not part of part 1.
+whose usage the provider does not report.
+
+**The providers of a recording** (#615). `--provider` names a module of
+`pbc.agents.clients`, each of the shape `ModelClient` with its own
+`make_client()`, and each reporting the tokens of a call in `last_usage`,
+which the spend count reads:
+
+- `openai`: the default provider of the agent lessons (`PROVIDER` stays
+  `"openai"`), its SDK in the optional group `openai`, the key in
+  `OPENAI_API_KEY`;
+- `anthropic`: Claude, through the provider's own SDK in the optional group
+  `anthropic` (`uv sync --extra anthropic`), the key in `ANTHROPIC_API_KEY`,
+  the model in `PBC_ANTHROPIC_MODEL` or by default `claude-opus-5-5`, the
+  current Opus of the provider's model table (2026-11-24). The harness keeps
+  the text and the tool calls of a turn, not the model's thinking blocks,
+  and sends the conversation back without them, which the provider accepts;
+  a declined request ends the campaign with a message that says so. Tokens
+  written to or read from the prompt cache count as input at the full price,
+  so the count never undercounts;
+- `local`: an open-weights model on the learner's own machine, behind a
+  server that speaks the OpenAI-compatible API (Ollama, LM Studio, a
+  llama.cpp server), through the `openai` SDK and no new dependency. The
+  address is `PBC_LOCAL_BASE_URL` or by default Ollama's
+  `http://localhost:11434/v1`, and it must be a loopback address (`localhost`,
+  127.0.0.0/8, `[::1]`); the client ignores any proxy of the environment, so
+  no prompt leaves the machine by it. The model is `PBC_LOCAL_MODEL`, which
+  the recorder chooses: the project sets no default and downloads nothing.
+  The tokens are counted where the server reports them, at a price of zero,
+  so the recording needs no `--price-in` or `--price-out`.
+
+The SDKs are optional: the group `physics-lab` holds both, and the default
+environment, the site build, and CI install neither. Only the modules of
+`pbc.agents.clients` import an SDK, each its own, and only they read the
+environment, each the variables of its own provider and through
+`pbc.agents.secrets` (`tests/unit/test_agents_boundary.py`,
+`tests/unit/test_coding_agent_boundary.py`). The tests use a stand-in for
+each SDK: no test calls a provider or holds a key.
 
 **The interface** gains a campaign section on the same page and under the
 same loopback, Host, Origin, and token rules: the plan, the route, the
