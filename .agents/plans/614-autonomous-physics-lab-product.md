@@ -306,6 +306,27 @@ page SA9 (part 2).
   placeholder policy sends its amplitudes in groups of four.
 - **A campaign repeats settings** (the ring-downs), so the recorded adapter
   gains a `sequential` mode that answers each capture once, in order.
+- **No separate `invalid.csv`.** An invalid measurement is a row of
+  `measurements.csv` with `valid = 0` and its reason in `note`, its samples
+  are in `raw.csv` with `valid = 0`, and `run.json` lists it under
+  `invalid`; a fourth file would repeat them (triage of review 01, S1).
+- **The ring-down figure draws no envelope curve e^(-alpha t)**: it shows
+  the response after the step, the fitted damped oscillation, and the
+  residuals; the fitted decay rate reaches the report as f0 and Q with
+  their standard errors (triage of review 01, S1).
+- **The agent route runs its baselines** (triage of review 01, M1): an
+  agent campaign on the simulator also runs the adaptive policy and the
+  scripted sweep on fresh benches with the same plan and seed, and its
+  `run.json` (`comparison`) and `report.md` compare the three routes by the
+  measurements each needed for the same interval width of f0
+  (`lab.baseline_comparison`). A plan without a frequency response
+  compares the measurement counts only; a recorded or live agent campaign
+  has no baseline (it would need the circuit again).
+- **A live recording needs the spend ledger** (triage of review 01, MIN2):
+  `record-campaign --provider` refuses without `--spend-ledger`, and the
+  metered client stops before a call that would cross the ceiling
+  (estimated at the dearest call so far) and after a call whose usage the
+  provider does not report.
 - **The draft pull request** of the Issue's instructions is not opened in
   this session: the session's instruction is not to commit or push, and
   `scripts/finish-feature.sh` and `scripts/publish-feature.sh` do it.

@@ -865,7 +865,11 @@ campaign's journal; a stop ends the segment with the output off, and a
 resume accepts only the journal's latest checkpoint, unchanged, of the
 same plan, on the same bench, from an interrupted segment. The routes are
 compared by the measurements each needed for the same interval width of
-f0 (`lab.compare_routes`).
+f0 (`lab.compare_routes`): every agent campaign on the simulator runs the
+adaptive policy and the scripted sweep on fresh benches with the same
+plan and seed, and its `run.json` (`comparison`) and `report.md` put the
+three routes side by side (`lab.baseline_comparison`; a plan without a
+frequency response compares the measurement counts only).
 
 **The export** of a campaign: `raw.csv` (every sample, valid or not),
 `measurements.csv`, `report.md` with its figures, `run.json` (the run
@@ -886,8 +890,10 @@ placeholders of a scripted policy, not of a model, until the owner or the
 supervisor session records real campaigns with `record-campaign`; the
 build replays every call against a fresh simulated bench. The recording
 counts the tokens of every call, prices them at the rates the recorder
-gives, adds them to a spend ledger kept outside the repository, and stops
-at the ceiling (EUR 50 for this capstone) with what was recorded. The
+gives, adds them to a spend ledger kept outside the repository (required
+with `--provider`), and stops with what was recorded at the ceiling (EUR 50
+for this capstone), before a call that would cross it, or after a call
+whose usage the provider does not report. The
 Claude client needs the provider's SDK in an optional dependency group, a
 change of `pyproject.toml` and `uv.lock`, and a client for a local
 open-weights model needs a decision on the boundary of the agent package

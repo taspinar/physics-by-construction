@@ -290,6 +290,29 @@ def test_the_committed_agent_campaigns_replay_against_the_simulated_bench(
     data = json.loads((tmp_path / "agent" / "run.json").read_text())
     assert data["candidate_answer"]["label"] == evidence.UNVERIFIED
     assert data["verdict"] is True
+    # Every agent result stands beside the classical adaptive policy and the
+    # scripted sweep, on fresh benches with the same plan and seed (#614 M1).
+    comparison = data["comparison"]
+    assert comparison["seed"] == seed and comparison["mode"] == SIMULATED
+    assert set(comparison["measurements"]) == {lab.AGENT, lab.ADAPTIVE, lab.SCRIPTED}
+    assert comparison["measurements"][lab.AGENT] == len(result.records)
+    report = (tmp_path / "agent" / "report.md").read_text()
+    assert "## The agent beside the classical routes" in report
+    if FREQUENCY_RESPONSE in plan.protocols:
+        routes = comparison["routes"]
+        assert set(routes) == {lab.AGENT, lab.ADAPTIVE, lab.SCRIPTED}
+        assert comparison["target"] == max(r["final_width"] for r in routes.values())
+        assert all(r["needed"] <= r["measurements"] for r in routes.values())
+        assert f"{comparison['target']:.3g}" in report
+    else:
+        assert comparison["target"] is None and "counts only" in comparison["note"]
+    assert not (tmp_path / "agent" / "checkpoints" / "adaptive-journal.json").exists()
+
+
+def test_the_baselines_need_the_simulated_bench():
+    comparison = lab.baseline_comparison(PLAN, RECORDED, 0, True, [])
+    assert comparison["target"] is None and comparison["routes"] == {}
+    assert "no baseline in the recorded mode" in comparison["note"]
 
 
 def test_a_stop_during_the_agent_replay_fails_the_segment_with_its_reason(tmp_path):
@@ -347,6 +370,78 @@ def test_the_metered_client_stops_at_the_ceiling_with_what_was_recorded():
     assert summary["spent_total_eur"] == 25.0
     assert "ceiling" in transcript.steps[-1].message.text
     assert len(campaign.records) == 8  # the two sweep messages, then the stop
+
+
+def test_the_metered_client_stops_after_a_call_with_no_reported_usage():
+    class Silent:
+        model, secrets, last_usage = "silent", (), None
+
+        def __init__(self):
+            self.inner = agent_campaign.ScriptedCampaignClient(PLAN)
+            self.calls = 0
+
+        def complete(self, system, conversation, tools):
+            self.calls += 1
+            return self.inner.complete(system, conversation, tools)
+
+    silent = Silent()
+    metered = agent_campaign.MeteredClient(
+        silent, agent_campaign.Prices(10.0, 30.0), ceiling_eur=50.0
+    )
+    first = metered.complete(agent_campaign.SYSTEM, [], [])
+    again = metered.complete(agent_campaign.SYSTEM, [], [])
+    assert silent.calls == 1  # the provider is never called again
+    assert first.tool_calls == () and again.tool_calls == ()
+    assert "no token usage" in first.text
+    summary = metered.summary()
+    assert summary["stopped_at_ceiling"] and not summary["usage_reported_on_every_call"]
+
+
+def test_the_metered_client_stops_before_a_call_that_would_cross_the_ceiling():
+    class Dear:
+        model, secrets = "dear", ()
+
+        def __init__(self):
+            self.inner = agent_campaign.ScriptedCampaignClient(PLAN)
+            self.last_usage = None
+            self.calls = 0
+
+        def complete(self, system, conversation, tools):
+            self.calls += 1
+            self.last_usage = {"input_tokens": 1_000_000, "output_tokens": 0}
+            return self.inner.complete(system, conversation, tools)
+
+    dear = Dear()
+    metered = agent_campaign.MeteredClient(
+        dear, agent_campaign.Prices(10.0, 30.0), ceiling_eur=25.0
+    )
+    metered.complete(agent_campaign.SYSTEM, [], [])  # EUR 10
+    metered.complete(agent_campaign.SYSTEM, [], [])  # EUR 20; a third would be 30
+    stop = metered.complete(agent_campaign.SYSTEM, [], [])
+    assert dear.calls == 2 and metered.spent == 20.0
+    assert "would cross" in stop.text and stop.tool_calls == ()
+
+
+def test_a_live_recording_needs_a_spend_ledger(tmp_path, capsys):
+    from pbc.products.physics_lab.__main__ import main
+
+    code = main(
+        [
+            "record-campaign",
+            "--plan",
+            str(lab.EXAMPLES / "campaign-series-rlc.toml"),
+            "--out",
+            str(tmp_path / "trace.json"),
+            "--provider",
+            "openai",
+            "--price-in",
+            "1",
+            "--price-out",
+            "1",
+        ]
+    )
+    assert code == 2 and "--spend-ledger" in capsys.readouterr().err
+    assert not (tmp_path / "trace.json").exists()
 
 
 def test_the_spend_ledger_accumulates_across_recordings(tmp_path):

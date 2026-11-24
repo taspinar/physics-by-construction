@@ -304,9 +304,13 @@ class MeteredClient:
     """A client that counts the tokens of every call of ``client`` (its
     ``last_usage``, ``{"input_tokens", "output_tokens"}``, after each call),
     adds their cost at ``prices`` to ``spent_before`` (EUR, from the
-    recorder's spend ledger), and, once the total reaches ``ceiling_eur``,
-    answers with a final message instead of calling the provider: the
-    campaign then ends with what was recorded."""
+    recorder's spend ledger), and stops, answering with a final message
+    instead of calling the provider, when the total reaches ``ceiling_eur``
+    or when the next call, estimated at the cost of the dearest call so
+    far, would cross it. A call whose usage the provider does not report
+    cannot be counted: its message is dropped and the client stops, so an
+    uncounted spend never runs on. The campaign then ends with what was
+    recorded."""
 
     client: Any
     prices: Prices
@@ -327,18 +331,38 @@ class MeteredClient:
         return self.spent_before + sum(c["cost_eur"] for c in self.calls)
 
     @property
+    def unmetered(self) -> bool:
+        return any(not c["usage_reported"] for c in self.calls)
+
+    @property
     def stopped(self) -> bool:
-        return self.spent >= self.ceiling_eur
+        return self.stop_reason is not None
+
+    @property
+    def stop_reason(self) -> str | None:
+        if self.unmetered:
+            return (
+                "the provider reported no token usage, so the spend cannot be"
+                f" counted against the ceiling of EUR {self.ceiling_eur:g}"
+            )
+        if self.spent >= self.ceiling_eur:
+            return f"the spend reached the ceiling of EUR {self.ceiling_eur:g}"
+        estimate = max((c["cost_eur"] for c in self.calls), default=0.0)
+        if self.spent + estimate > self.ceiling_eur:
+            return (
+                f"the next call (about EUR {estimate:.4g}) would cross the"
+                f" ceiling of EUR {self.ceiling_eur:g}"
+            )
+        return None
 
     def complete(
         self, system: str, conversation: Sequence[Turn], tools: Sequence[ToolSpec]
     ) -> ModelMessage:
         if self.stopped:
-            return ModelMessage(
-                f"Stopped at the spend ceiling of EUR {self.ceiling_eur:g}.", ()
-            )
+            return self._stop()
         message = self.client.complete(system, conversation, tools)
         usage = getattr(self.client, "last_usage", None) or {}
+        reported = "input_tokens" in usage and "output_tokens" in usage
         tokens_in = int(usage.get("input_tokens", 0))
         tokens_out = int(usage.get("output_tokens", 0))
         self.calls.append(
@@ -346,10 +370,15 @@ class MeteredClient:
                 "input_tokens": tokens_in,
                 "output_tokens": tokens_out,
                 "cost_eur": self.prices.cost(tokens_in, tokens_out),
-                "usage_reported": bool(usage),
+                "usage_reported": reported,
             }
         )
+        if not reported:
+            return self._stop()
         return message
+
+    def _stop(self) -> ModelMessage:
+        return ModelMessage(f"Stopped at the spend ceiling: {self.stop_reason}.", ())
 
     def summary(self) -> dict[str, Any]:
         return {
@@ -365,6 +394,7 @@ class MeteredClient:
             "spent_total_eur": round(self.spent, 6),
             "ceiling_eur": self.ceiling_eur,
             "stopped_at_ceiling": self.stopped,
+            "stop_reason": self.stop_reason,
             "prices_eur_per_mtok": {
                 "input": self.prices.input_eur_per_mtok,
                 "output": self.prices.output_eur_per_mtok,

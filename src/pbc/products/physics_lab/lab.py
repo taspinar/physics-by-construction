@@ -19,7 +19,9 @@ The export of a campaign, in its output directory:
   ``amplitude-response.svg``: the report and its figures;
 - ``run.json``: the run record of every segment with its execution mode,
   the plan, the evaluator's checks, the consistency verdict, and, for the
-  agent route, the agent's own answer labelled unverified;
+  agent route, the agent's own answer labelled unverified and its
+  comparison with the classical adaptive policy and the scripted sweep
+  (``baseline_comparison``);
 - ``evidence.json``: the ledger of ``pbc.evidence``;
 - ``checkpoints/``: the checkpoint and the journal of the segments.
 
@@ -35,6 +37,7 @@ import csv
 import json
 import math
 import platform
+import tempfile
 import tomllib
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
@@ -202,9 +205,10 @@ def run_campaign(
     if on_campaign is not None:
         on_campaign(campaign)
     started = clock()
-    answer = None
+    answer, comparison = None, None
     if route == AGENT:
         segment, answer = _agent_segment(campaign, journal, trace or trace_path(plan))
+        comparison = baseline_comparison(plan, mode, seed, confirmed, campaign.records)
     else:
         policy = next_step if route == ADAPTIVE else scripted_policy
         segment = run_segment(campaign, journal, policy)
@@ -223,7 +227,15 @@ def run_campaign(
         finished=finished,
     )
     return export(
-        out_dir, plan, route, record.to_dict(), campaign.records, segment, answer, seed
+        out_dir,
+        plan,
+        route,
+        record.to_dict(),
+        campaign.records,
+        segment,
+        answer,
+        seed,
+        comparison,
     )
 
 
@@ -617,11 +629,12 @@ def consistency(
     """The independent check of a live or recorded RLC circuit: the
     frequency response and the ring-down agree on f0 and on Q."""
     # region: consistency
-    return (
+    checks = (
         agreement("f0_hz", FREQUENCY_RESPONSE, fit.f0_hz, TRANSIENT, f0),
         agreement("q", FREQUENCY_RESPONSE, fit.q, TRANSIENT, q),
     )
     # endregion: consistency
+    return checks
 
 
 def _verdict(evaluation: dict[str, Any]) -> bool | None:
@@ -643,6 +656,7 @@ def export(
     segment: Segment,
     answer: str | None,
     seed: int,
+    comparison: dict[str, Any] | None = None,
 ) -> LabResult:
     from pbc.products.physics_lab.campaign_report import write_report
 
@@ -710,6 +724,7 @@ def export(
         "candidate_answer": None
         if answer is None
         else {"text": answer, "label": evidence.UNVERIFIED},
+        "comparison": comparison,
         "evidence": {
             "file": files["evidence"].name,
             "summary": evidence.summary(ledger, out_dir).text(),
@@ -879,4 +894,58 @@ def compare_routes(
             }
             for route, h in histories.items()
         },
+    }
+
+
+def baseline_comparison(
+    plan: CampaignPlan,
+    mode: str,
+    seed: int,
+    confirmed: bool,
+    agent_records: Sequence[Record],
+) -> dict[str, Any]:
+    """The agent's campaign beside the classical adaptive policy and the
+    scripted sweep: each baseline runs on a fresh simulated bench with the
+    same plan and seed (its checkpoints in a temporary directory, never in
+    the export), and the three routes are compared by the measurements each
+    needed for the same interval width of f0 (``compare_routes``). Only a
+    simulated agent campaign has baselines: on a recorded sample or a live
+    bench a baseline would need the circuit again, so the comparison says
+    so and holds no route."""
+    base: dict[str, Any] = {
+        "mode": SIMULATED,
+        "seed": seed,
+        "quantity": "relative width of the interval of f0",
+        "baselines": [ADAPTIVE, SCRIPTED],
+    }
+    if mode != SIMULATED:
+        return {
+            **base,
+            "target": None,
+            "routes": {},
+            "measurements": {AGENT: len(agent_records)},
+            "note": f"no baseline in the {mode} mode: the classical routes run"
+            " beside the agent only on the simulated bench",
+        }
+    records: dict[str, Sequence[Record]] = {AGENT: agent_records}
+    with tempfile.TemporaryDirectory() as scratch:
+        for route, policy in ((ADAPTIVE, next_step), (SCRIPTED, scripted_policy)):
+            instrument, rails = make_instrument(
+                plan, SIMULATED, seed=seed, confirmed=confirmed
+            )
+            baseline = Campaign(plan, instrument, rails)
+            run_segment(baseline, Path(scratch) / f"{route}-journal.json", policy)
+            records[route] = baseline.records
+    compared = compare_routes({r: width_history(rs) for r, rs in records.items()})
+    note = (
+        None
+        if compared["target"] is not None
+        else "the plan has no fitted frequency response: the routes are"
+        " compared by their measurement counts only"
+    )
+    return {
+        **base,
+        **compared,
+        "measurements": {r: len(rs) for r, rs in records.items()},
+        "note": note,
     }

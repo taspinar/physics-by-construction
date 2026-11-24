@@ -140,6 +140,15 @@ class CampaignRunner:
         return path if path.is_file() else None
 
 
+# What the page calls a quantity and a protocol; the export keeps the keys.
+_QUANTITY_NAMES = {"f0_hz": "f0", "q": "Q"}
+_PROTOCOL_NAMES = {
+    "frequency-response": "Frequency response",
+    "transient": "Ring-down",
+    "amplitude-response": "Amplitude response",
+}
+
+
 def _e(text: object) -> str:
     return html.escape(str(text), quote=True)
 
@@ -228,7 +237,8 @@ def _finished(result: lab.LabResult) -> str:
     for a in evaluation.get("agreements", []):
         word = "agree" if a["agree"] else "do not agree"
         verdicts.append(
-            f"<li>{_e(a['quantity'])}: the two protocols {word}"
+            f"<li>{_e(_QUANTITY_NAMES.get(a['quantity'], a['quantity']))}:"
+            f" the two protocols {word}"
             f" ({a['sigmas']:.2f} combined standard errors apart).</li>"
         )
     amplitude = evaluation.get("amplitude-response", {})
@@ -241,7 +251,8 @@ def _finished(result: lab.LabResult) -> str:
         )
     for protocol, check in evaluation.get("simulator_checks", {}).items():
         word = "passes" if check["correct"] else "fails"
-        verdicts.append(f"<li>{_e(protocol)} {word} the closed form's check.</li>")
+        name = _PROTOCOL_NAMES.get(protocol, protocol)
+        verdicts.append(f"<li>{_e(name)}: {word} the closed form's check.</li>")
     invalid = [r for r in result.records if not r.valid]
     invalid_html = (
         "<h3>Invalid measurements, recorded and never fitted</h3><ul>"

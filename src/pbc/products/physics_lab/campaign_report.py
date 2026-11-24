@@ -112,7 +112,7 @@ def draw_frequency_response(path: Path, evaluation: dict[str, Any], points) -> N
         )
     gain_axes.set_xscale("log")
     gain_axes.set_yscale("log")
-    gain_axes.set_ylabel("gain |V_response / V_source| (dimensionless)")
+    gain_axes.set_ylabel("gain |V_response / V_source|\n(dimensionless)")
     phase_axes.set_ylabel("phase (degrees)")
     phase_axes.set_xlabel("frequency (Hz)")
     _save(figure, gain_axes, path)
@@ -187,7 +187,7 @@ def draw_amplitude_response(path: Path, evaluation: dict[str, Any]) -> None:
         color=BLUE,
     )
     gain_axes.set_ylabel("fundamental gain (dimensionless)")
-    h3_axes.set_ylabel("third harmonic / fundamental (dimensionless)")
+    h3_axes.set_ylabel("third harmonic / fundamental\n(dimensionless)")
     h3_axes.set_xlabel("source amplitude (V)")
     _save(figure, gain_axes, path)
 
@@ -354,6 +354,7 @@ def write_report(result, data: dict[str, Any]) -> dict[str, Path]:
             "",
             f"> {result.answer or '(no answer)'}",
         ]
+    lines += _comparison_lines(data.get("comparison"))
     lines += [
         "",
         "## What this campaign does not show",
@@ -374,3 +375,41 @@ def write_report(result, data: dict[str, Any]) -> dict[str, Path]:
     ]
     result.files["report"].write_text("\n".join(lines), encoding="utf-8")
     return files
+
+
+def _comparison_lines(comparison: dict[str, Any] | None) -> list[str]:
+    """The agent beside the classical routes (``lab.baseline_comparison``)."""
+    if comparison is None:
+        return []
+    lines = [
+        "",
+        "## The agent beside the classical routes",
+        "",
+    ]
+    if comparison.get("note"):
+        lines.append(f"{comparison['note'][0].upper()}{comparison['note'][1:]}.")
+    if comparison["target"] is None:
+        lines += [""] if comparison.get("note") else []
+        lines += ["| Route | Measurements |", "|---|---|"]
+        lines += [f"| {r} | {n} |" for r, n in comparison["measurements"].items()]
+        return lines
+    lines += [
+        f"The adaptive policy and the scripted sweep ran on fresh simulated"
+        f" benches with the same plan and seed ({comparison['seed']}). The"
+        f" common target is a relative width of the interval of f0 of"
+        f" {comparison['target']:.3g}, the widest final width among the routes;"
+        " each route is counted by the frequency-response measurements it"
+        " needed to reach it.",
+        "",
+        "| Route | Measurements (all protocols) | Frequency-response measurements"
+        " | Final relative width of f0 | Needed for the target |",
+        "|---|---|---|---|---|",
+    ]
+    for route, r in comparison["routes"].items():
+        final = "" if r["final_width"] is None else f"{r['final_width']:.3g}"
+        needed = "not reached" if r["needed"] is None else str(r["needed"])
+        lines.append(
+            f"| {route} | {comparison['measurements'][route]} | {r['measurements']}"
+            f" | {final} | {needed} |"
+        )
+    return lines

@@ -22,9 +22,11 @@ Subcommands:
   or ``live``; ``--resume`` continues an interrupted campaign from its
   checkpoint in ``--out``;
 - ``record-campaign`` (F145): record an agent campaign's trace on the
-  simulated bench with ``--provider`` and the recorder's prices, counting
-  the spend into ``--spend-ledger`` and stopping at ``--ceiling-eur``, or
-  with ``--scripted`` (a placeholder).
+  simulated bench with ``--provider``, the recorder's prices, and the
+  required ``--spend-ledger``, counting the spend across recordings and
+  stopping at ``--ceiling-eur`` (or before a call that would cross it, or
+  after a call whose usage the provider does not report), or with
+  ``--scripted`` (a placeholder).
 
 The interlock ``circuit-confirmed`` is the learner's own confirmation that
 the prepared circuit is connected: ``circuit_confirmed = true`` in the
@@ -215,6 +217,13 @@ def _campaign_main(arguments) -> int:
                 print(
                     "a live recording needs --price-in and --price-out (EUR per"
                     " million tokens)",
+                    file=sys.stderr,
+                )
+                return 2
+            if arguments.spend_ledger is None:
+                print(
+                    "a live recording needs --spend-ledger (a file outside the"
+                    " repository): the ceiling counts across recordings",
                     file=sys.stderr,
                 )
                 return 2
