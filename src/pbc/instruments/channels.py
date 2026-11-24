@@ -20,7 +20,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
-from pbc.instruments.contract import Capture, Driver
+from pbc.instruments.contract import SINE, Capture, Driver, driver_waveforms
 
 
 @dataclass(frozen=True)
@@ -104,6 +104,7 @@ class ImperfectChannels:
     ):
         self.driver = driver
         self.mode = driver.mode
+        self.waveforms = driver_waveforms(driver)
         self.chains = dict(chains)
         self.dropouts = dropouts
         self._captures = 0
@@ -117,8 +118,13 @@ class ImperfectChannels:
             identity["dropouts"] = f"{d.bursts} bursts of {d.length} samples"
         return identity
 
-    def set_output(self, amplitude_v: float, frequency_hz: float) -> None:
-        self.driver.set_output(amplitude_v, frequency_hz)
+    def set_output(
+        self, amplitude_v: float, frequency_hz: float, waveform: str = SINE
+    ) -> None:
+        if waveform == SINE:
+            self.driver.set_output(amplitude_v, frequency_hz)
+        else:
+            self.driver.set_output(amplitude_v, frequency_hz, waveform=waveform)  # type: ignore[call-arg]
 
     def output_off(self) -> None:
         self.driver.output_off()

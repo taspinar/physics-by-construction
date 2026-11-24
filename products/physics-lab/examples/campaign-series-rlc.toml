@@ -1,0 +1,31 @@
+# A campaign of the Autonomous Physics Lab on the prepared series RLC
+# circuit: the frequency response and the ring-down after a step, with
+# intervals, the classical adaptive policy, and the consistency check of
+# the two protocols (F145; products/physics-lab/README.md).
+#
+#   uv run --locked python -m pbc.products.physics_lab campaign \
+#       --plan products/physics-lab/examples/campaign-series-rlc.toml \
+#       --circuit-confirmed --out physics-lab-campaign
+#
+# The simulated bench is EM5's circuit (f0 near 5 kHz, Q near 3.2).
+
+[campaign]
+circuit = "series-rlc"
+protocols = ["frequency-response", "transient"]
+amplitude_v = 1.0            # of the source, V
+low_hz = 1000.0              # the sweep, Hz
+high_hz = 25000.0
+sweep_points = 9
+f0_target = 0.00005          # relative width of the interval of f0
+square_hz = 100.0            # the square wave of the ring-down, Hz
+transient_rate_hz = 500000.0 # samples/s of a ring-down
+ringing_max_hz = 25000.0     # the highest ringing the sample rate must resolve
+min_ringdowns = 3
+q_target = 0.01              # relative width of the interval of Q
+series_resistance_ohm = 100.0
+inductance_h = 0.01          # the declared parts: EM5's L and C
+capacitance_f = 100e-9
+budget = 40                  # measurements, valid or not, over every segment
+
+[run]
+seed = 145                   # of the simulated noise; the same seed, the same run

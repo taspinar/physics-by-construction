@@ -796,3 +796,132 @@ resistor.
 - The pilot's run records are processed data with an unknown channel
   calibration (the dossier); the dataset's go concerns these files, not a
   calibrated instrument.
+
+## The product, part 1 (F145, Issue #614, 2026-11-24)
+
+Part 1 grows the slice into the product: three protocols on electronic
+circuits, campaigns over them, a quality gate, intervals, an independent
+check per protocol, the export, the interface, and the recording and
+replay of agent campaigns. Part 2, the capstone page SA9 and the complete
+`products/physics-lab/`, follows after F139. An educational and
+experimental tool, not a certified laboratory instrument.
+
+**The contract's square wave (Level 3, the safety boundary I34).** The
+transient protocol needs a step. The contract gains a second waveform, a
+square wave between 0 V and the amplitude, never below 0 V or above the
+amplitude. An envelope permits only the sine unless it names the square
+wave (`Envelope.waveforms`), and the instrument refuses a waveform that the
+envelope does not permit, or that the adapter does not declare, before any
+call reaches the adapter. A sine reaches an adapter as before, so the
+drivers of the lessons are unchanged. The simulated bench integrates the
+square drive piece by piece between its edges; the recorded adapter
+matches the waveform; the Analog Discovery 3 sets the SDK's square
+function with amplitude and offset each half of the amplitude (shown on
+the fake SDK only: the device is the owner's bench); the conformance suite
+has the waveform checks apart from its existing checks
+(`tests/unit/test_instrument_waveforms.py`). The current bound keeps its
+form, amplitude over the declared series resistance: a step of height A
+drives at most A / R through a series RLC circuit (the step response peaks
+at (A / (Q R)) e^(-alpha t*)) and through the LED pair, and the test
+compares the integrated peak with that closed form. A campaign refuses a
+square wave whose half period holds fewer than ten decay times of the
+declared circuit, so that one ring has died before the next step.
+
+**The three protocols** (`pbc.products.physics_lab`):
+
+| Protocol | Physics | Interval | Simulator's check | Check of a real circuit |
+|---|---|---|---|---|
+| Frequency response (`resonance`) | a linear system in the steady state | f0, Q, k by a weighted fit of the second-order response to the log-gain and the phase of every valid point, widened by the reduced chi-square | the closed form of the simulated circuit, within three standard errors and F138's 1 % and 3 % | agreement with the ring-down |
+| Transient response (`transient`, `ringdown`) | the same system's free decay after a step | f0 and Q of each ring-down from the fit of F139's manual route; repetitions by their weighted mean, widened by the Birge ratio | as above | agreement with the frequency response |
+| Amplitude response (`nonlinear`) | a memoryless, symmetric diode characteristic: two LEDs of one colour in anti-parallel behind a resistor | the fundamental gain and the third-harmonic ratio, fitted together with the odd harmonics; n and I_s of v = n V_T asinh(i / 2 I_s) | n within 5 % and the voltage at 1 mA within 10 mV of the simulated LEDs | the held-out prediction: the characteristic fitted at the largest amplitude predicts the gain at every other one |
+
+Two estimates agree when they differ by at most two combined standard
+errors (`estimates.agreement`). The nominal closed form is the
+simulator's check only: on F140's circuit it fails (L about 0.86 mH, C
+about 14.5 nF, a coil loss that depends on frequency), and this feature
+reports that discrepancy as `ad3-rlc-pilot` holds it, without a
+resolution. The held-out check tests the model of the pair, not the
+declared resistor: a wrong resistor rescales the fitted saturation current
+exactly, so it cannot be seen there; two LEDs of different colours fail
+it.
+
+**The quality gate** (`quality`) passes every capture before a number is
+read: clipping at the declared rails of the execution mode, lost samples
+beyond 1 %, the Nyquist rate of the highest frequency the protocol reads,
+the declared calibration, and a source channel that does not carry the
+excitation. An invalid capture is recorded with its reason and raw
+samples, exported, retried once by the adaptive policy, and never fitted.
+
+**Campaigns** (`campaign`, `bench`, `lab`). A plan declares the circuit
+(series RLC or LED pair, with its nominal parts and series resistance),
+the protocols, their settings, the targets of the intervals, and the
+budget. The routes reach the instrument only through `Campaign.execute`:
+the classical adaptive policy (bisection of the -90 degree bracket until
+the interval of f0 is at its target, repeated ring-downs until the
+interval of Q is, refinement where the LED gain changes most), the
+scripted sweep, and the bounded agent replayed from its trace. A
+checkpoint follows every measurement and its digest goes into the
+campaign's journal; a stop ends the segment with the output off, and a
+resume accepts only the journal's latest checkpoint, unchanged, of the
+same plan, on the same bench, from an interrupted segment. The routes are
+compared by the measurements each needed for the same interval width of
+f0 (`lab.compare_routes`): every agent campaign on the simulator runs the
+adaptive policy and the scripted sweep on fresh benches with the same
+plan and seed, and its `run.json` (`comparison`) and `report.md` put the
+three routes side by side (`lab.baseline_comparison`; a plan without a
+frequency response compares the measurement counts only).
+
+**The export** of a campaign: `raw.csv` (every sample, valid or not),
+`measurements.csv`, `report.md` with its figures, `run.json` (the run
+record with the execution mode, the plan, the evaluator's checks, the
+invalid measurements, the agent's answer labelled unverified),
+`evidence.json`, and the checkpoints. The evaluator recomputes every
+number from `raw.csv`. A campaign's export replays as a recorded campaign
+(`lab.read_campaign_export`, the recorded adapter in order), never a new
+experiment: a live campaign's export becomes a declared dataset this way
+(ADR 007), after the owner confirms its licence on the Issue.
+
+**Agent campaigns.** One allowlisted tool per protocol of the plan
+(`agent_campaign`); a result gives the gate's verdict and the numbers with
+their errors, never the circuit's values. The committed fixtures
+`products/physics-lab/fixtures/agent-campaign-series-rlc.json` and
+`products/physics-lab/fixtures/agent-campaign-led-pair.json` are
+placeholders of a scripted policy, not of a model, until the owner or the
+supervisor session records real campaigns with `record-campaign`; the
+build replays every call against a fresh simulated bench. The recording
+counts the tokens of every call, prices them at the rates the recorder
+gives, adds them to a spend ledger kept outside the repository (required
+with `--provider`), and stops with what was recorded at the ceiling (EUR 50
+for this capstone), before a call that would cross it, or after a call
+whose usage the provider does not report. The
+Claude client needs the provider's SDK in an optional dependency group, a
+change of `pyproject.toml` and `uv.lock`, and a client for a local
+open-weights model needs a decision on the boundary of the agent package
+(no module there but the provider client reads a key variable or the
+environment); each is its own small change, not part of part 1.
+
+**The interface** gains a campaign section on the same page and under the
+same loopback, Host, Origin, and token rules: the plan, the route, the
+confirmation of the declared circuit, the progress measurement by
+measurement, the intervals, the verdicts, the invalid measurements with
+their reasons, the figures, the stop, and the export. A live campaign
+starts from the command line, which prints the confirmation before the
+device opens.
+
+**Commands.**
+`uv run --locked python -m pbc.products.physics_lab campaign --plan
+products/physics-lab/examples/campaign-series-rlc.toml --circuit-confirmed
+--out <directory>` (also `campaign-led-pair.toml`; `--route adaptive`,
+`scripted`, or `agent`; `--mode recorded --sample <export>`; `--resume`).
+The owner's bench sessions use
+`products/physics-lab/examples/live-campaign-series-rlc.toml` (the pilot's
+circuit, both protocols on one wiring) and
+`products/physics-lab/examples/live-campaign-led-pair.toml` (two red LEDs
+behind 100 ohm, at most 20 mA at 2 V) with `--mode live`.
+
+**Limits.** No live campaign, model campaign, or dataset of this part has
+been recorded yet: they are the owner's, at the bench and with a key. The
+fake SDK shows the square wave's SDK calls, not the device's output. The
+LED model has no series resistance of its own and no temperature
+dependence. The coil-resistance measurement that discriminates between the
+explanations of the pilot's discrepancy is reserved for F155.

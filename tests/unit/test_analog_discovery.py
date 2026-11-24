@@ -913,3 +913,23 @@ def test_a_dismissed_watchdog_process_ends_without_acting(tmp_path):
     )  # fmt: skip
     assert out.stdout.strip() == "0"
     assert log.read_text() == ""
+
+
+def test_the_square_wave_steps_w1_between_zero_and_the_amplitude():
+    """F145: the square wave of the contract is the SDK's square function
+    with amplitude and offset each half of the amplitude, so that W1 stays
+    within 0 V and the amplitude; the sine keeps offset 0 V."""
+    sdk = FakeSDK()
+    driver = make(sdk)
+    assert ad.SQUARE in driver.waveforms
+    driver.set_output(1.6, 2_000.0, waveform=ad.SQUARE)
+    calls = {c[0]: c for c in generator_calls(sdk)}
+    assert calls["FDwfAnalogOutNodeFunctionSet"][-1] == ad.FUNC_SQUARE == 2
+    assert calls["FDwfAnalogOutNodeAmplitudeSet"][-1] == pytest.approx(0.8)
+    assert calls["FDwfAnalogOutNodeOffsetSet"][-1] == pytest.approx(0.8)
+    driver.set_output(1.6, 2_000.0)
+    sine = [c for c in generator_calls(sdk) if c[0] == "FDwfAnalogOutNodeOffsetSet"]
+    assert sine[-1][-1] == 0.0
+    with pytest.raises(Refused):
+        driver.set_output(1.0, 2_000.0, waveform="triangle")
+    driver.close()

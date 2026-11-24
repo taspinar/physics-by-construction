@@ -1,0 +1,22 @@
+# The live campaign of the owner's bench session 2 (F145): two red 5 mm LEDs
+# in anti-parallel behind 100 ohm.
+#
+#   uv run --locked python -m pbc.products.physics_lab campaign --mode live \
+#       --plan products/physics-lab/examples/live-campaign-led-pair.toml \
+#       --circuit-confirmed --out physics-lab-live-led
+#
+# Wiring: W1 -> 100 ohm -> the LED pair -> ground; scope 1+ at W1, 2+ across
+# the pair, 1- and 2- at ground. At 2 V the current is at most 20 mA (the
+# bound A / R); another colour needs a wider envelope, the owner's decision.
+
+[campaign]
+circuit = "led-pair"
+protocols = ["amplitude-response"]
+amplitudes_v = [0.2, 0.5, 1.0, 1.2, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
+amplitude_frequency_hz = 1000.0
+amplitude_refinements = 2
+series_resistance_ohm = 100.0
+budget = 20
+
+[run]
+seed = 0

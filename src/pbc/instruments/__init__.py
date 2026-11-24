@@ -7,7 +7,9 @@ execution mode. The adapters: ``simulated`` (a deterministic bench over the
 series RLC circuit of ``pbc.electromagnetism.circuits``) and ``recorded`` (a
 declared sample replayed, never a new experiment). The live adapter, an
 optional driver behind its optional dependency group, is F140's; no module
-here imports a device driver.
+here imports a device driver. The excitation is a sine or, where the
+envelope and the driver permit it, a square wave between 0 V and the
+amplitude (F145).
 """
 
 from pbc.instruments.contract import (
@@ -15,6 +17,9 @@ from pbc.instruments.contract import (
     MODES,
     RECORDED,
     SIMULATED,
+    SINE,
+    SQUARE,
+    WAVEFORMS,
     Capture,
     Driver,
     Envelope,
@@ -27,6 +32,7 @@ from pbc.instruments.contract import (
     OutOfEnvelope,
     Refused,
     Stopped,
+    driver_waveforms,
     utc_now,
 )
 
@@ -35,6 +41,9 @@ __all__ = [
     "MODES",
     "RECORDED",
     "SIMULATED",
+    "SINE",
+    "SQUARE",
+    "WAVEFORMS",
     "Capture",
     "Driver",
     "Envelope",
@@ -47,5 +56,6 @@ __all__ = [
     "OutOfEnvelope",
     "Refused",
     "Stopped",
+    "driver_waveforms",
     "utc_now",
 ]

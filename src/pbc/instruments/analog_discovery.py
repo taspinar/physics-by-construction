@@ -78,7 +78,7 @@ from typing import IO, Any
 
 import numpy as np
 
-from pbc.instruments.contract import LIVE, Capture, Refused, Stopped
+from pbc.instruments.contract import LIVE, SINE, SQUARE, Capture, Refused, Stopped
 
 ENVIRONMENT = "PBC_DWF_LIBRARY"
 LIBRARIES = {
@@ -99,6 +99,7 @@ PARAM_ON_CLOSE = 4  # DwfParamOnClose: 0 continue, 1 stop, 2 shutdown
 ON_CLOSE_STOP = 1
 NODE_CARRIER = 0
 FUNC_SINE = 1
+FUNC_SQUARE = 2
 STATE_DONE = 2
 GENERATOR = 0  # W1
 SOURCE_CHANNEL = 0  # scope channel 1
@@ -341,6 +342,7 @@ class AnalogDiscovery3:
     the same reason. The device is opened here and closed by ``close``."""
 
     mode = LIVE
+    waveforms = (SINE, SQUARE)
 
     def __init__(
         self,
@@ -457,7 +459,9 @@ class AnalogDiscovery3:
             "calibration": "the device's factory calibration, not adjusted;"
             f" channel 1 (source) on the {SOURCE_RANGE_V:g} V range, channel 2"
             f" (response) on the {RESPONSE_RANGE_V:g} V range, both against"
-            " ground; the generator W1, sine, offset 0 V",
+            " ground; the generator W1, a sine with offset 0 V, or a square"
+            " wave between 0 V and the amplitude (amplitude and offset each"
+            " half of it)",
             "on_close": "stop",
         }
 
@@ -525,8 +529,13 @@ class AnalogDiscovery3:
             identity["frequency_set_hz"] = f"{self._frequency:.12g}"
         return identity
 
-    def set_output(self, amplitude_v: float, frequency_hz: float) -> None:
-        """Configure W1 and switch it on, under one hold of the lock. W1 is
+    def set_output(
+        self, amplitude_v: float, frequency_hz: float, waveform: str = SINE
+    ) -> None:
+        """Configure W1 and switch it on, under one hold of the lock: a sine
+        of ``amplitude_v`` about 0 V, or a square wave between 0 V and
+        ``amplitude_v`` (the SDK's amplitude and offset each half of it;
+        F145). W1 is
         switched on only when no stop arrived since the call began and the
         watchdog lives; a stop that arrives while it is switched on (a stop
         that did not wait for the lock) is followed by a second stop. In
@@ -534,20 +543,26 @@ class AnalogDiscovery3:
         stops = self._stops  # before anything: a stop from now on counts
         if not self.is_open:
             raise DeviceError("the device is closed")
+        if waveform == SINE:
+            function, amplitude, offset = FUNC_SINE, amplitude_v, 0.0
+        elif waveform == SQUARE:
+            function, amplitude, offset = FUNC_SQUARE, amplitude_v / 2, amplitude_v / 2
+        else:
+            raise DeviceError(f"W1 has no waveform {waveform!r} here")
         h, ch, node = self._handle, ctypes.c_int(GENERATOR), ctypes.c_int(NODE_CARRIER)
         call = self._held_call
         with self._calls:
             call("FDwfAnalogOutNodeEnableSet", h, ch, node, ctypes.c_int(1))
-            call("FDwfAnalogOutNodeFunctionSet", h, ch, node, ctypes.c_ubyte(FUNC_SINE))
+            call("FDwfAnalogOutNodeFunctionSet", h, ch, node, ctypes.c_ubyte(function))
             call(
                 "FDwfAnalogOutNodeFrequencySet", h, ch, node,
                 ctypes.c_double(frequency_hz),
             )  # fmt: skip
             call(
                 "FDwfAnalogOutNodeAmplitudeSet", h, ch, node,
-                ctypes.c_double(amplitude_v),
+                ctypes.c_double(amplitude),
             )  # fmt: skip
-            call("FDwfAnalogOutNodeOffsetSet", h, ch, node, ctypes.c_double(0.0))
+            call("FDwfAnalogOutNodeOffsetSet", h, ch, node, ctypes.c_double(offset))
             refusal = self._refusal(stops)
             if refusal is not None:
                 _stop_generator(self._sdk, h)
