@@ -571,13 +571,19 @@ Policy = Callable[[CampaignPlan, Sequence[Record]], Step | None]
 
 
 def run_segment(
-    campaign: Campaign, journal: Path, policy: Policy = next_step
+    campaign: Campaign,
+    journal: Path,
+    policy: Policy = next_step,
+    start: int | None = None,
 ) -> Segment:
     """Run ``campaign`` under ``policy`` until it is done, its budget is
     spent, or the instrument refuses; switch the output off at the end in
-    every case; record the segment in ``journal``."""
+    every case; record the segment in ``journal``. The segment made the
+    records from index ``start`` on: by default those made here; a caller
+    that executed steps before (the agent's replay) passes the count it
+    started from."""
     number = len(load_journal(journal)) + 1
-    start = len(campaign.records)
+    start = len(campaign.records) if start is None else start
     status, lost, diagnostics = COMPLETE, None, ()
     try:
         # region: segment

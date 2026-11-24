@@ -287,7 +287,14 @@ def test_the_committed_agent_campaigns_replay_against_the_simulated_bench(
     assert len(result.records) == sum(
         len(s.message.tool_calls) for s in recording.steps
     )
+    # The segment made every measurement of the replay, and the run record
+    # and the evidence package say so (#614 review 02, MIN1).
+    made = tuple(r.id for r in result.records)
+    assert result.segment.made == made
     data = json.loads((tmp_path / "agent" / "run.json").read_text())
+    assert data["segment"]["made"] == list(made)
+    package = (tmp_path / "agent" / "evidence.json").read_text()
+    assert f"complete after {len(made)} measurements" in package
     assert data["candidate_answer"]["label"] == evidence.UNVERIFIED
     assert data["verdict"] is True
     # Every agent result stands beside the classical adaptive policy and the
@@ -334,6 +341,7 @@ def test_a_stop_during_the_agent_replay_fails_the_segment_with_its_reason(tmp_pa
     assert result.segment.status == "failed"
     assert "halted" in result.segment.diagnostics[0]
     assert len(result.records) == 3
+    assert result.segment.made == tuple(r.id for r in result.records)
 
 
 def test_the_metered_client_stops_at_the_ceiling_with_what_was_recorded():

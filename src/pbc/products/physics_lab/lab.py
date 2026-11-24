@@ -252,6 +252,7 @@ def _agent_segment(
     def policy(_plan: CampaignPlan, _records: Sequence[Record]) -> Step | None:
         return None  # the agent's calls ran inside the replay
 
+    start = len(campaign.records)  # the segment made what the replay makes
     try:
         transcript = replay(
             recording,
@@ -267,7 +268,7 @@ def _agent_segment(
             # A refusal of the instrument turned a recorded success into a
             # tool error: the segment failed, it did not drift.
             campaign.instrument.output_off()
-            segment = run_segment(campaign, journal, policy)
+            segment = run_segment(campaign, journal, policy, start)
             return (
                 Segment(
                     segment.number,
@@ -281,7 +282,7 @@ def _agent_segment(
                 "",
             )
         raise
-    segment = run_segment(campaign, journal, policy)
+    segment = run_segment(campaign, journal, policy, start)
     answer = transcript.steps[-1].message.text if transcript.steps else ""
     return segment, answer
 
