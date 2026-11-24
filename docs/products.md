@@ -126,10 +126,23 @@ dependencies of the current environment, and only `src/` comes from the
 pin: the starter's tests and its trace in `products/physics-lab/fixtures/`
 come from the current tree.
 
-**Bootstrap and the follow-up pin bump.** This starter is new, so its pin is
-`pending` and its at-pin check is skipped. The first pin bump, a small
-change after F138 merged, sets the pin to the merged commit of `main` and
-ends the skip; a pin never returns to `pending`.
+**Bootstrap and the pin bumps.** A new starter's pin is `pending` and its
+at-pin check is skipped; its first pin bump, a small change after its
+feature merged, sets the pin to a merged commit of `main` and ends the
+skip, and a pin never returns to `pending`. The physics-lab starter's first
+pin bump came later than F138 planned, with Issue #610 (2026-11-23),
+which set the pin to 84d1477bbfef063a0bec3ca1d92c94787a2c8fcf, the commit
+of F140 on `main`.
+
+**Keeping the pin current.** The pin is bumped in a small change after a
+merged feature changed what the starter imports from `pbc` or the trace
+its tests replay, never inside that feature, whose commit is not yet on
+`main`: the change sets `rev` to the commit of that feature on `main` (CI
+passed on it) and runs the `starters` check, whose at-pin half shows that the starter's
+tests pass against that commit's `src/`. A feature that changes neither
+leaves the pin where it is; the at-pin check keeps running against it, so
+a later change of the starter that the pinned `pbc` cannot run fails its
+pull request and asks for the bump.
 
 ## Decision record: the simulator vertical slice (F138, 2026-11-04)
 
@@ -206,7 +219,7 @@ not the starter as it was at the pin: after a pin bump, a change to the
 starter or its trace is tested against the older `pbc`, which can fail
 spuriously or hide a difference from what a learner who copies the starter
 at the pin receives. The starter cannot be installed outside the repository until its first pin
-bump. The run takes its timestamps from the wall clock; only the results
+bump (made by Issue #610, 2026-11-23). The run takes its timestamps from the wall clock; only the results
 are reproducible.
 
 **The simplest viable implementation** is the one delivered: plain Python

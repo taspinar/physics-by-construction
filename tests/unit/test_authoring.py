@@ -15,6 +15,7 @@ from pbc.authoring.excerpt import (
     docstring_lines,
     generated_signature,
     header_lines,
+    is_unit,
     number_lines,
     select,
     source_link,
@@ -310,6 +311,67 @@ def test_interface_lists_inputs_output_and_the_units_of_the_docstring():
     assert rows["state"].type == "State"
     assert rows["return"].kind == "output"
     assert "| `dt` | input |" in shown.markdown()
+
+
+def test_the_units_come_only_from_the_first_unit_like_parenthesis():
+    # Issue #610 (W11): a parenthesis after a name that is not a unit gives
+    # no unit, and a later occurrence never overrides the first.
+    from pbc.abm.acceptance import agreement
+    from pbc.authoring.excerpt import _units
+    from pbc.materials.bands import ring_hamiltonian
+
+    assert "allowance" not in _units(agreement)  # (same unit as the values)
+    assert "onsite" not in _units(ring_hamiltonian)  # (one or two per cell)
+    rows = {r.name: r.unit for r in excerpt(ring_hamiltonian, interface=True).interface}
+    assert rows["onsite"] == ""
+
+    def documented(dt, n):
+        """A step ``dt`` (s) over ``n`` (one or two per cell) cells; the
+        step ``dt`` (ms) is the documented one only once."""
+
+    assert _units(documented) == {"dt": "s"}
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "s",
+        "m/s²",
+        "kg m^2",
+        "1/s",
+        "kg/m; 0 for no drag",
+        "degrees above the horizontal",
+        "t in s, x in m, v in m/s",
+        "units of c",
+        "dimensionless (V/V)",
+        "m, one row of three per mass",
+        "s, inf if never",
+        "m/s², downward",
+    ],
+)
+def test_a_unit_in_the_documented_form_is_a_unit(text):
+    assert is_unit(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "same unit as the values",
+        "one or two per cell",
+        "n, 3",
+        "N, 3",
+        "T, N",
+        "N,",
+        "N + 1, 3",
+        "n_steps, 3",
+        "1000 to show metres in mm",
+        "S11 = 0",
+        "relative",
+        "a key of ``SCHEMES``",
+    ],
+)
+def test_a_shape_a_count_or_a_description_is_not_a_unit(text):
+    assert not is_unit(text)
 
 
 # --- exact selections, the docstring, the generated signature (ADR 023) -------

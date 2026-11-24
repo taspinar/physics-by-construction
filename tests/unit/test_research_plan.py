@@ -242,3 +242,15 @@ def test_a_withheld_test_near_the_end_of_the_range_is_clipped_to_it():
     assert found.runs == len(found.control.record.runs) + len(
         found.record.runs
     ) + 20 + len(outcome.settings)
+
+
+def test_the_control_record_does_not_carry_the_identity_of_the_specification(
+    record,
+):
+    # Issue #606: the control runs another action than the specification,
+    # so its record names a specification of its own; the route's record
+    # names the plan's specification, as SA1's route alone does.
+    lab = laboratory()
+    alone = execute(parse(copy.deepcopy(SPECIFICATION), lab), lab)
+    assert record.record.specification == alone.specification != ""
+    assert record.control.record.specification not in ("", alone.specification)

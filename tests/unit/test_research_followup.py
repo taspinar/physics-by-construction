@@ -2,6 +2,7 @@
 (``pbc.research.followup``, RR6, Issue #594). A revision of the claim never
 resolves a finding that asks for new evidence (acceptance criterion 2)."""
 
+import copy
 import dataclasses
 
 import pytest
@@ -13,6 +14,7 @@ from pbc.agents.specification import (
     Record,
     Run,
 )
+from pbc.evidence.records import digest_value
 from pbc.research.followup import (
     EVIDENCE,
     INCONCLUSIVE,
@@ -39,12 +41,21 @@ METHOD = Finding("method", "claim", "a reviewer", "another method?", EVIDENCE)
 WORDS = Finding("words", "claim", "a reviewer", "say simulated", WORDING)
 
 
-def record(verdict: str, value: float = 1.0) -> Record:
-    run = Run(1, "scan", {"angle": 44.0}, value)
-    return Record((run,), "criteria met", (43.5, 44.0, 44.5), {}, verdict)
-
-
 SPEC = {"actions": ["x"]}
+
+
+def record(verdict: str, value: float = 1.0) -> Record:
+    # A record of the route on SPEC: the execution sets the identity of the
+    # specification it ran (Issue #606).
+    run = Run(1, "scan", {"angle": 44.0}, value)
+    return Record(
+        (run,),
+        "criteria met",
+        (43.5, 44.0, 44.5),
+        {},
+        verdict,
+        specification=digest_value(SPEC),
+    )
 
 
 def follow_up(key: str = "other-method", explanations=(HOLDS, FAILS)) -> FollowUp:
@@ -213,3 +224,107 @@ def test_a_record_of_another_specification_is_not_the_evidence_of_a_test():
     assert status(log, "method") == OPEN
     entry = log.record("other-method", record(REFUTED), dict(SPEC))
     assert entry.content["specification"] == log.entries[-2].content["specification"]
+
+
+def test_a_record_of_experiment_a_is_refused_as_the_evidence_of_test_b():
+    # Issue #606: the identity of the specification comes from the run.
+    # Experiment A (the top of the range) is executed by the route and
+    # registered under test B (a smaller coefficient): refused, also when
+    # the caller passes test B's specification beside it.
+    from pbc.mechanics.experiments import (
+        discrepancies_and_follow_up_experiments as rr6,
+    )
+
+    a, b = rr6.TOP_OF_RANGE, rr6.BELOW_THE_TOP
+    log = Log()
+    log.claim("slow-throw", rr6.CLAIM, [])
+    for finding in rr6.FINDINGS:
+        log.find(finding)
+    log.declare(b)
+    ran_a = rr6.run_route(a.specification)
+    assert ran_a.specification == digest_value(a.specification)
+    for supplied in (None, b.specification):
+        with pytest.raises(FollowUpRefused, match="another specification"):
+            log.record(b.key, ran_a, supplied)
+    assert log.evidence_of(b.finding) == []
+    entry = log.record(b.key, rr6.run_route(b.specification))
+    assert entry.content["specification"] == digest_value(b.specification)
+
+
+def test_a_declaration_cannot_be_changed_by_mutating_its_specification():
+    # The owner's review of PR #611: declare A, mutate the caller's
+    # specification to B, execute B: its evidence is refused, because the
+    # identity is the digest in the DECLARED entry. A record of A as
+    # declared is still accepted.
+    from pbc.mechanics.experiments import (
+        discrepancies_and_follow_up_experiments as rr6,
+    )
+
+    a = rr6.TOP_OF_RANGE
+    spec = copy.deepcopy(a.specification)
+    declared_a = dataclasses.replace(a, specification=spec)
+    log = Log()
+    log.claim("slow-throw", rr6.CLAIM, [])
+    for finding in rr6.FINDINGS:
+        log.find(finding)
+    log.declare(declared_a)
+    digest_a = digest_value(a.specification)
+    spec.clear()
+    spec.update(copy.deepcopy(rr6.BELOW_THE_TOP.specification))
+    assert digest_value(spec) != digest_a
+    ran_b = rr6.run_route(declared_a.specification)
+    assert ran_b.specification == digest_value(spec)
+    for supplied in (None, spec):
+        with pytest.raises(FollowUpRefused, match="another specification"):
+            log.record(a.key, ran_b, supplied)
+    assert log.evidence_of(a.finding) == []
+    entry = log.record(a.key, rr6.run_route(a.specification))
+    assert entry.content["specification"] == digest_a
+
+
+def test_the_decision_follows_the_predictions_as_declared():
+    # The same defect class for the predictions: a list of verdicts changed
+    # after the declaration does not change what the evidence decides.
+    predicts = [SUPPORTED]
+    holds = Explanation("holds", "the claim holds", predicts)
+    log = started()
+    log.declare(follow_up(explanations=(holds, FAILS)))
+    predicts[:] = [UNDECIDED]
+    entry = log.record("other-method", record(SUPPORTED), SPEC)
+    assert entry.content["decided"] == "holds"
+    assert status(log, "method") == RESOLVED
+
+
+@pytest.mark.parametrize("verdict", [SUPPORTED, REFUTED, UNDECIDED])
+def test_the_log_decides_by_the_rule_of_decided(verdict):
+    # One rule (review 03 S1): the log's decision is the public ``decided``
+    # of the declared test, for every verdict, including "nothing".
+    test = follow_up()
+    log = started()
+    log.declare(test)
+    entry = log.record(test.key, record(verdict), SPEC)
+    assert entry.content["decided"] == decided(test, verdict)
+
+
+def test_two_explanations_of_one_name_are_refused():
+    log = started()
+    other = Explanation("holds", "the claim fails", (REFUTED,))
+    with pytest.raises(FollowUpRefused, match="both explanations are named holds"):
+        log.declare(follow_up(explanations=(HOLDS, other)))
+
+
+def test_a_record_that_names_no_specification_is_refused():
+    log = started()
+    log.declare(follow_up())
+    anonymous = dataclasses.replace(record(SUPPORTED), specification="")
+    with pytest.raises(FollowUpRefused, match="names no specification"):
+        log.record("other-method", anonymous, SPEC)
+    assert status(log, "method") == OPEN
+
+
+def test_the_record_digest_covers_the_specification_it_ran():
+    # A record cannot be relabelled with another specification without
+    # changing its digest.
+    ran = record(SUPPORTED)
+    relabelled = dataclasses.replace(ran, specification=digest_value({"other": 1}))
+    assert record_digest(relabelled) != record_digest(ran)

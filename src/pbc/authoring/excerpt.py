@@ -35,6 +35,29 @@ from pbc.authoring.repository import (
 _LITERAL_NUMBER = re.compile(r"(?<![\w.])\d")
 _PLACEHOLDER = re.compile(r"\{[^{}]*\}")
 _UNIT = re.compile(r"``(\w+)``\s*\(([^()]*)\)")
+# What makes the text of such a parenthesis a unit (Issue #610, W11): it
+# begins with a unit expression, symbols or names of units joined by ``/``,
+# ``·``, or a space, with powers (``kg m^2``, ``m/s²``, ``1/s``), followed by
+# its end or by a remark after a comma, a semicolon, or a space (``kg/m; 0
+# for no drag``, ``degrees above the horizontal``); or with words and ``in``
+# before such an expression (``t in s, x in m``); or with ``units of``. Any
+# other parenthesis (a shape, a count, a description) is not a unit.
+_UNIT_SYMBOL = (
+    "solar masses|stellar radii|Einstein radii|dimensionless|radians|degrees"
+    "|seconds|metres|meters|frames|M_sun|ohm|rad|deg|min|mol|kg|Hz|Pa|eV|AU"
+    "|mm|cm|km|ms|°C|J|W|N|V|T|K|C|A|S|m|s|g|c"
+)
+_UNIT_TERM = rf"(?:1/)?(?:{_UNIT_SYMBOL})(?:\^-?\d+|[²³])?"
+_UNIT_EXPRESSION = rf"{_UNIT_TERM}(?:(?:/|·| ){_UNIT_TERM})*"
+_UNIT_LIKE = re.compile(
+    rf"\s*(?:(?:in )?units of \S|(?:[A-Za-z ]+ in )?{_UNIT_EXPRESSION}(?=$|[,;\s]))"
+)
+# A shape: items separated by commas, each a count or a dimension name (one
+# letter, with digits or ``_name`` after it), with an optional ``+ 1``
+# (``N, 3``, ``T, N``, ``N,``, ``n + 1, 3``, ``n_steps, 3``). Its first
+# item can be a unit symbol (``N``, ``T``), so a shape is never a unit.
+_SHAPE_ITEM = r"\s*(?:\d+|[A-Za-z](?:\d+|_\w+)?|\.\.\.)(?:\s*[+-]\s*\d+)?\s*"
+_SHAPE = re.compile(rf"{_SHAPE_ITEM},(?:{_SHAPE_ITEM},)*(?:{_SHAPE_ITEM})?")
 
 # The classes of a listing whose lines are numbered after the conversion; a
 # selection's parts and a generated signature get no copy button.
@@ -627,8 +650,21 @@ def _note_text(template: str, values: Mapping[str, Real]) -> str:
         ) from None
 
 
+def is_unit(text: str) -> bool:
+    """Whether ``text``, the parenthesis after a ``name`` in a docstring,
+    is a unit in the documented form (``docs/authoring.md``, "Code")."""
+    return _UNIT_LIKE.match(text) is not None and _SHAPE.fullmatch(text) is None
+
+
 def _units(obj: object) -> dict[str, str]:
-    return dict(_UNIT.findall(inspect.getdoc(obj) or ""))
+    """The unit of each name of ``obj``'s docstring: the text of its first
+    ``name`` (unit) whose parenthesis is a unit. A parenthesis that is not
+    one is no unit, and a later one never overrides the first."""
+    units: dict[str, str] = {}
+    for name, text in _UNIT.findall(inspect.getdoc(obj) or ""):
+        if name not in units and is_unit(text):
+            units[name] = text
+    return units
 
 
 def _interface(obj: object, name: str) -> tuple[Parameter, ...]:

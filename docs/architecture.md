@@ -1576,7 +1576,9 @@ optional integrations run outside `verify.conf` and are evidenced
 separately; nothing is weakened to fit them. The product packages are
 ordinary inputs of the selection (ADR 014): a change to a product package
 that a capstone page imports re-executes that page, and a change to
-`pbc.instruments` or `pbc.evidence` follows the same input digests.
+`pbc.instruments` or `pbc.evidence` follows the same input digests. The
+physics-lab starter's first pin bump is Issue #610's (2026-11-23), and its
+pin is kept current as `docs/products.md`, "The starter and its pin", says.
 
 **Pilots and gates** (requirements decision 42, "Pilots"). The evidence
 pilot (F137) and the simulator vertical slice (F138) are the only common
@@ -3361,7 +3363,8 @@ to F155:
   questions 19 and 21 settled in `docs/products.md`); the starter's pin is
   `pending` until its first pin bump after the merge. The other protocols,
   the capstone page, the live adapter, and the other products remain (F140,
-  F145, and the product features).
+  F145, and the product features). The first pin bump was made by Issue
+  #610 (2026-11-23): the starter's at-pin check runs.
 - Of the 30 taught slots, 17 are filled by published lessons, 14 of them
   only after an extension that delivers the slot's new outcome; 13 taught
   slots and the four capstones have no lesson (the Phase 9 features).

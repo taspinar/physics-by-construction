@@ -3,9 +3,9 @@
 #
 # The pin is the `rev` of pbc below: the full hash of a verified commit on
 # main of Physics by Construction, from which uv installs pbc by its Git
-# address (ADR 022 decision 5). It is `pending` until the first pin bump
-# after the feature that created the starter merged; until then the starter
-# runs only inside the repository, against its current tree.
+# address (ADR 022 decision 5). It moves only to a merged commit of main, in
+# a small change after a feature that altered what the starter imports
+# (docs/products.md, "The starter and its pin").
 [project]
 name = "my-physics-lab"
 version = "0.1.0"
@@ -19,7 +19,7 @@ dependencies = ["pbc"]
 live = ["pbc[physics-lab]"]
 
 [tool.uv.sources]
-pbc = { git = "https://github.com/taspinar/physics-by-construction", rev = "pending" }
+pbc = { git = "https://github.com/taspinar/physics-by-construction", rev = "84d1477bbfef063a0bec3ca1d92c94787a2c8fcf" }
 
 [dependency-groups]
 dev = ["pytest>=9.2.0"]

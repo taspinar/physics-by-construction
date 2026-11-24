@@ -520,7 +520,17 @@ def execute(plan: Plan, laboratory: Laboratory, frozen: str) -> PlanRecord:
     specification, the grid baseline, and then each withheld test once.
     ``frozen`` is the digest written before the first run."""
     spec = plan.specification
-    control_spec = Specification(**{**spec.__dict__, "measure": plan.control_action})
+    # The control runs another action than the plan's specification, so its
+    # record carries an identity of its own (Issue #606).
+    control_spec = Specification(
+        **{
+            **spec.__dict__,
+            "measure": plan.control_action,
+            "digest": digest_value(
+                {"specification": spec.digest, "measure": plan.control_action}
+            ),
+        }
+    )
     control_record = route(control_spec, laboratory)
     low, high = (
         (control_record.bracket[0], control_record.bracket[2])

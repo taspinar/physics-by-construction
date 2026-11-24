@@ -364,3 +364,17 @@ def test_an_action_declares_the_unit_of_every_argument():
         Action(tool, units={"angle": "deg"}, returns={"height_m": "m"})
     with pytest.raises(ValueError, match="returns nothing"):
         Action(tool, units={"angle": "deg", "h": "m"}, returns={})
+
+
+def test_the_record_carries_the_identity_of_the_specification_it_ran():
+    # Issue #606: the execution, not the caller, sets the identity: the
+    # digest of the data parsed. Another specification gives another one.
+    from pbc.evidence.records import digest_value
+
+    hill = Hill()
+    spec = parse(written(), hill.laboratory())
+    assert spec.digest == digest_value(written())
+    assert execute(spec, hill.laboratory()).specification == spec.digest
+    other = written()
+    other["success"]["resolution"]["value"] = 0.5
+    assert parse(other, hill.laboratory()).digest != spec.digest

@@ -241,12 +241,16 @@ def run(
     end, when the driver reports them."""
     if route not in ROUTES:
         raise ValueError(f"unknown route {route!r}; choose one of {ROUTES}")
+    # A live export replayed in the recorded mode (F140's dataset
+    # ad3-rlc-pilot) keeps what the live run was: its circuit, its envelope,
+    # and its processing (Issue #608).
+    live_export = mode == RECORDED and sample is not None and Path(sample).is_dir()
     if mode == LIVE:
         circuit = circuit or PILOT_CIRCUIT
         instrument = make_instrument(config, mode, driver=driver, circuit=circuit)
     else:
         circuit = BENCH_CIRCUIT
-        if mode == RECORDED and sample is not None and Path(sample).is_dir():
+        if live_export:
             circuit = read_export(Path(sample))[1]
         instrument = make_instrument(config, mode, sample)
     conditions = getattr(driver, "conditions", None) if mode == LIVE else None
@@ -316,7 +320,7 @@ def run(
             **operating,
         },
         units=UNITS,
-        processing=(PROCESSING if mode != LIVE else LIVE_PROCESSING),
+        processing=(LIVE_PROCESSING if mode == LIVE or live_export else PROCESSING),
         started=started,
         finished=finished,
     )

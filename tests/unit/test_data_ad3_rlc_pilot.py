@@ -161,6 +161,22 @@ def test_the_ci_fixture_replays_the_measured_sweep_without_the_device(tmp_path):
     assert [r["frequency_hz"] for r in rows] == list(recorded.values())
 
 
+@pytest.mark.parametrize("name", ["capacitor", "rl-node"])
+def test_the_replay_of_a_live_export_writes_the_live_processing(tmp_path, name):
+    """Issue #608: the replayed captures carry the device's realised rate,
+    so the protocol reads a point by the fitted phasor when its record does
+    not span whole periods. The replay's run record says so, as the live
+    mode's does, and claims neither whole periods nor the steady_phasor
+    projection unconditionally."""
+    directory = SAMPLE / name
+    workflow.run(config_of(directory), tmp_path, mode=RECORDED, sample=directory)
+    processing = json.loads((tmp_path / "run.json").read_text())["run"]["processing"]
+    assert processing == list(workflow.LIVE_PROCESSING)
+    assert workflow.PROCESSING[0] not in processing
+    assert workflow.PROCESSING[1] not in processing
+    assert any("fitted_phasor" in line for line in processing)
+
+
 def test_the_fixture_replays_under_the_live_envelope_it_was_recorded_with():
     """200 kHz is outside the simulated bench's envelope (50 kHz) and inside
     the live one; the replay keeps the live envelope and its current bound,
