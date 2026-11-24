@@ -212,9 +212,11 @@ def results(state: CampaignState, token_field: str) -> str:
         parts.append(
             '<div class="failure" role="alert"><p class="status">The campaign did'
             f" not finish.</p><p>{_e(state.error)}</p><p>An open interlock means"
-            " the circuit was not confirmed. A stopped campaign keeps its"
-            " checkpoint; resume it from the command line with --resume, or start"
-            " it again here.</p></div>"
+            " the circuit was not confirmed. A stopped campaign of the adaptive"
+            " or the scripted route keeps its checkpoint; resume it from the"
+            " command line with --resume, or start it again here. The agent"
+            " route replays its trace from the start and cannot be resumed:"
+            " start it again.</p></div>"
         )
     if state.result is not None:
         parts.append(_finished(state.result))

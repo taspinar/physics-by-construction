@@ -551,6 +551,9 @@ def test_the_interface_reports_an_unconfirmed_circuit_with_what_to_do(tmp_path):
     _post(app, "/campaign", {"plan": "campaign-series-rlc.toml", "route": "scripted"})
     page = _get(app, "/").body.decode()
     assert "The campaign did not finish" in page
+    # The guidance is right for every route: only the adaptive and scripted
+    # routes resume; the agent route replays from the start (review 04, S1).
+    assert "The agent route replays its trace from the start" in page
     assert "interlock" in page and "circuit was not confirmed" in page
 
 
