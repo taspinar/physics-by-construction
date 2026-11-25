@@ -1,0 +1,149 @@
+{
+  "format": 1,
+  "model": "placeholder: scripted policy, not a model",
+  "recorded": "2026-11-25",
+  "system": "You review the report of a reproduction of a published spectrum fit. You can recompute the reviewer's checks through one tool, run_check, which returns passed (1 passed, 0 failed, -1 undecided) and the check's number. You cannot change the records. Propose as findings only checks that failed when you ran them, on a last line 'FINDINGS: <names>' or 'FINDINGS: none'.",
+  "task": "Review the reproduction report of the COBE FIRAS spectrum fit. Run the checks you need, at most 8, and propose the failing ones as findings. The checks: sample-digest, control, discrepancies-typed, independent-refit, by-construction-stated, t0-not-claimed, bounds-statistical, covariance-weighting.",
+  "steps": [
+    {
+      "text": "",
+      "tool_calls": [
+        {
+          "id": "call-0-0",
+          "name": "run_check",
+          "arguments": {
+            "name": "sample-digest"
+          }
+        },
+        {
+          "id": "call-0-1",
+          "name": "run_check",
+          "arguments": {
+            "name": "control"
+          }
+        },
+        {
+          "id": "call-0-2",
+          "name": "run_check",
+          "arguments": {
+            "name": "discrepancies-typed"
+          }
+        },
+        {
+          "id": "call-0-3",
+          "name": "run_check",
+          "arguments": {
+            "name": "independent-refit"
+          }
+        }
+      ],
+      "results": [
+        {
+          "call_id": "call-0-0",
+          "ok": true,
+          "content": {
+            "passed": 1.0,
+            "value": 2388.0
+          }
+        },
+        {
+          "call_id": "call-0-1",
+          "ok": true,
+          "content": {
+            "passed": 1.0,
+            "value": 92.0
+          }
+        },
+        {
+          "call_id": "call-0-2",
+          "ok": true,
+          "content": {
+            "passed": 1.0,
+            "value": 0.0
+          }
+        },
+        {
+          "call_id": "call-0-3",
+          "ok": true,
+          "content": {
+            "passed": 1.0,
+            "value": 2.3644544073460903e-16
+          }
+        }
+      ]
+    },
+    {
+      "text": "",
+      "tool_calls": [
+        {
+          "id": "call-1-0",
+          "name": "run_check",
+          "arguments": {
+            "name": "by-construction-stated"
+          }
+        },
+        {
+          "id": "call-1-1",
+          "name": "run_check",
+          "arguments": {
+            "name": "t0-not-claimed"
+          }
+        },
+        {
+          "id": "call-1-2",
+          "name": "run_check",
+          "arguments": {
+            "name": "bounds-statistical"
+          }
+        },
+        {
+          "id": "call-1-3",
+          "name": "run_check",
+          "arguments": {
+            "name": "covariance-weighting"
+          }
+        }
+      ],
+      "results": [
+        {
+          "call_id": "call-1-0",
+          "ok": true,
+          "content": {
+            "passed": 1.0,
+            "value": 0.0
+          }
+        },
+        {
+          "call_id": "call-1-1",
+          "ok": true,
+          "content": {
+            "passed": 1.0,
+            "value": 0.0
+          }
+        },
+        {
+          "call_id": "call-1-2",
+          "ok": true,
+          "content": {
+            "passed": 1.0,
+            "value": 0.0
+          }
+        },
+        {
+          "call_id": "call-1-3",
+          "ok": true,
+          "content": {
+            "passed": 0.0,
+            "value": 0.0
+          }
+        }
+      ]
+    },
+    {
+      "text": "I ran 8 checks; 1 failed.\nFINDINGS: covariance-weighting",
+      "tool_calls": [],
+      "results": []
+    }
+  ],
+  "placeholder": true
+}

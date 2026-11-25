@@ -1013,3 +1013,52 @@ of the exercises, so its change is a follow-up of its own, and
 The boundary test (`tests/unit/test_coding_agent_boundary.py`) now knows
 the template by both names: no file of the build or the checks depends
 on it.
+
+## The Scientific Research Workspace, part 1 (F155, Issue #619, 2026-11-25)
+
+Part 1 of F155 delivers the workspace and its reproduction track; the
+original track, the capstone page RR8, and the starter follow in later
+parts. The package is `pbc.products.research_workspace`; the learner's
+material is `products/research-workspace/README.md`.
+
+**The reproduction track.** The spectrum fit of Fixsen et al. (1996)
+regenerated from the dataset `cobe-firas-monopole`, the LAMBDA file that
+holds Table 4 of the paper (`docs/datasets/cobe-firas-monopole.md`). Its
+goal is the published spectrum fit from the derived data, not the absolute
+temperature calibration. The published values rest on words quoted on the
+register entry `fixsen-1996-firas-spectrum`; a value whose words are not in
+the entry's checked statement is refused (`sources.py`).
+
+**What the workspace holds** (a project directory, `project.py`): the
+questions considered, each assessed before any run (a declared dataset with
+a go, at least two reachable outcomes, the stage budget) and archived with
+its decision in the chain of `pbc.research.ideas` (`questions.py`); the
+registered plan, refused when two explanations predict one outcome or when
+it has no withheld part or stopping conditions, with its digest, and
+refusing evidence measured before its freeze (`registration.py`); the run
+graph over `pbc.evidence.resumable`, with the branches of the stage `fit`
+in sequence and the declared criterion (a parameter continues when it
+lowers chi-square by more than 4), a failed attempt kept with its reason
+(`graph.py`, `firas.py`); the rows of the reproduction, each a typed
+discrepancy whose type needs a supporting check (`reproduction.py`,
+`discrepancy.py`); the follow-up log of findings, evidence, revisions, and
+the human's decisions, where a revision never resolves a finding that asks
+for evidence and an agent's finding is accepted only through a recomputed
+check (`log.py`); the scripted reviewer (`review.py`); the report, whose
+claims carry run and source links and evidence statuses, whose numbers
+resolve to records, and whose first lines say that a report is not a proof
+of success (`report.py`); and the static view, one HTML file with no
+server and no JavaScript (`view.py`).
+
+**The agent reviewer** (`agent.py`) has one allowlisted tool, `run_check`,
+over the scripted reviewer's checks; the committed fixture is a placeholder
+of a scripted policy until the owner or the supervisor records a model's
+session, metered against the capstone's ceiling of EUR 50 with the physics
+lab's `MeteredClient`.
+
+**What part 1 does not claim.** The rows that reproduce the weighted rms
+and the residual figure do so by construction, since the file's residuals
+are the paper's own fit; the absolute T0 is `not-reproduced`, typed
+`method`; the fits weight with the diagonal uncertainties, and the review's
+finding that asks for the paper's covariance between frequencies stays
+open.

@@ -1,0 +1,68 @@
+# The questions considered for the reproduction track, each with its
+# decision, its reason, and what would warrant revisiting it. The selection
+# rule is declared before the assessment: a question is selected only when
+# every check passes (feasible, falsifiable, within the budget); no rating
+# of the proposer is read.
+
+[budget]
+stages = 3
+
+[question.spectrum-fit]
+question = "Does the LAMBDA file reproduce the published spectrum fit (the shape against a blackbody and the weighted rms), with the scope of T0 against the derived data?"
+proposer = "the plan of Issue #619"
+datasets = ["cobe-firas-monopole"]
+outcomes = ["reproduced", "not-reproduced", "inconclusive"]
+stages = ["load", "fit"]
+decision = "selected"
+reason = "the data are a declared dataset with a go; the rule has three reachable outcomes"
+revisit = "if LAMBDA's written confirmation restricts the use of the file"
+
+[question.distortions]
+question = "Are the bounds on y and mu regenerated from the derived data, with the statistical bound beside the published one?"
+proposer = "the plan of Issue #619"
+datasets = ["cobe-firas-monopole"]
+outcomes = ["reproduced", "not-reproduced", "inconclusive"]
+stages = ["load", "fit"]
+decision = "selected"
+reason = "option A of the owner's decision of 2026-11-25; the same file and stages"
+revisit = "if the paper's covariance between frequencies is admitted as an input"
+
+[question.absolute-t0]
+question = "Can the absolute temperature 2.728 K be regenerated?"
+proposer = "the plan of Issue #619"
+datasets = ["cobe-firas-calibrator"]
+outcomes = ["reproduced", "not-reproduced"]
+stages = ["load", "calibrate", "fit"]
+decision = "rejected"
+reason = "it needs the calibrator data, which the derived columns do not carry; no such dataset is declared"
+revisit = "if LAMBDA distributes the calibrator data in a form the dataset rules allow"
+
+[question.dipole]
+question = "Is the dipole amplitude 3.372 mK regenerated from LAMBDA's dipole spectrum?"
+proposer = "the plan of Issue #619"
+datasets = ["cobe-firas-dipole"]
+outcomes = ["reproduced", "not-reproduced"]
+stages = ["load", "fit"]
+decision = "deferred"
+reason = "option C was not chosen; a second dataset would need its own gate"
+revisit = "if the owner chooses option C"
+
+[question.firas-wmap]
+question = "Does a combined FIRAS and WMAP temperature reproduce the later 2.72548 K?"
+proposer = "the plan of Issue #619"
+datasets = ["cobe-firas-monopole", "wmap-temperature"]
+outcomes = ["reproduced", "not-reproduced"]
+stages = ["load", "load second instrument", "combine", "fit"]
+decision = "rejected"
+reason = "it needs a second instrument's data and the paper's combination; beyond the budget"
+revisit = "if a later lesson declares WMAP data"
+
+[question.energy-release]
+question = "Which energy-release history does the bound on mu allow?"
+proposer = "the plan of Issue #619"
+datasets = ["cobe-firas-monopole"]
+outcomes = ["allowed"]
+stages = ["load", "fit"]
+decision = "rejected"
+reason = "beyond the paper, and its rule has one outcome only: no result could contradict it"
+revisit = "as a learner's extension in 'Explore and extend' of RR8"
