@@ -2,11 +2,13 @@
 current tree and at the starter's pin (ADR 022 decision 5); run them in
 your copy with ``uv run pytest``."""
 
+import dataclasses
+import inspect
 import json
 from pathlib import Path
 
 import pytest
-from my_lab import agent, sweep
+from my_lab import agent, ringdown, sweep
 
 from pbc.agents.replay import ReplayMismatch
 from pbc.electromagnetism.circuits import SeriesRLC
@@ -64,3 +66,20 @@ def test_a_changed_recorded_result_fails_the_replay(tmp_path):
     changed.write_text(json.dumps(data))
     with pytest.raises(ReplayMismatch):
         agent.replay_trace(changed)
+
+
+def test_the_ringdown_skeleton_keeps_the_interface_of_its_specification():
+    """SPECIFICATION.md fixes the dataclass and the signature; the work is
+    the body of ``fit_ringdown`` alone."""
+    fields = [f.name for f in dataclasses.fields(ringdown.RingdownFit)]
+    assert fields == [
+        "decay_rate",
+        "decay_rate_se",
+        "damped_frequency_hz",
+        "damped_frequency_se",
+        "f0_hz",
+        "f0_se",
+        "q",
+        "q_se",
+    ]
+    assert list(inspect.signature(ringdown.fit_ringdown).parameters) == ["t_s", "v"]

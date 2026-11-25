@@ -67,7 +67,10 @@ CREDENTIALS = re.compile(
 HARNESS_KEY = "OPENAI_API_KEY"
 # The only token a CI job may name: the workflow's own.
 CI_TOKENS = {"GH_TOKEN", "GITHUB_TOKEN"}
-TEMPLATE = re.compile(r"agentic[-_ ]coding[-_ ]template", re.IGNORECASE)
+# The template, by its old name and by its new one (F139, Issue #613).
+TEMPLATE = re.compile(
+    r"agentic[-_ ]coding[-_ ]template|agent[-_ ]?codeyard", re.IGNORECASE
+)
 # The packages and installers those programs come from: what a job would
 # name to install one.
 PACKAGES = re.compile(
