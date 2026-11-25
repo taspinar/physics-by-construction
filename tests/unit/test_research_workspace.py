@@ -390,7 +390,10 @@ def test_a_changed_rule_of_the_outcome_code_is_named_by_verify(
     monkeypatch.setattr(graph, "PACKAGE", package)
     found = project.verify(built)
     assert len(found) == 1 and found[0].startswith("the outcome code changed")
-    assert "reproduction.py" in found[0]
+    # Only the changed file is named (Issue #628): a message that listed
+    # every module would pass a check for the name alone.
+    assert "changed: reproduction.py)" in found[0]
+    assert "review.py" not in found[0]
     # The stage code is unchanged, so no state reads as written by other code.
     assert not any("other code" in p for p in found)
 

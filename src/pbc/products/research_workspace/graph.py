@@ -157,6 +157,13 @@ def outcome_code_digest() -> str:
     )
 
 
+def outcome_file_digests() -> dict[str, str]:
+    """The digest of each file of ``outcome_code_digest``, by its name, so
+    ``project.verify`` names the file that changed and no other."""
+    files = (*_stage_files(), *(PACKAGE / name for name in OUTCOME_MODULES))
+    return {Path(p).name: digest_bytes(Path(p).read_bytes()) for p in files}
+
+
 def run_record(registration_digest: str) -> RunRecord:
     return RunRecord(
         task="Regenerate the published spectrum fit of Fixsen et al. (1996) from the"

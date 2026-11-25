@@ -77,7 +77,8 @@ uv run --locked python -m pbc.products.research_workspace select --project /tmp/
 `verify` checks every chain (the question archive, the follow-up log, the
 evidence ledger) and every digest (the inputs, the sample, the states, the
 code the stages run, and the outcome code: every module that decides the
-rows, the claims, or the checks, so a changed rule threshold is named) and
+rows, the claims, or the checks, so the file of a changed rule threshold is
+named) and
 names every problem. `review` replays the agent reviewer from its
 fixture and enters the findings it proposes; each is accepted only when its
 recomputed check confirms it, and only once: a replayed review leaves an

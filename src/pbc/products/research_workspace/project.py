@@ -228,6 +228,7 @@ def run(example: Path, directory: Path) -> Path:
             "modes": MODES,
             "code": research.code,
             "outcome_code": graph.outcome_code_digest(),
+            "outcome_files": graph.outcome_file_digests(),
             "results": [asdict(r) for r in results],
         },
     )
@@ -498,9 +499,17 @@ def verify(directory: Path) -> list[str]:
             " be checked)"
         )
     elif outcome != graph.outcome_code_digest():
+        recorded = run_record.get("outcome_files", {})
+        current = graph.outcome_file_digests()
+        changed = sorted(
+            name
+            for name in recorded.keys() | current.keys()
+            if recorded.get(name) != current.get(name)
+        )
+        named = ", ".join(changed) if recorded and changed else "not recorded by file"
         found.append(
-            "the outcome code changed after the run (a module that decides"
-            f" the rows, claims, or checks: {', '.join(graph.OUTCOME_MODULES)});"
+            "the outcome code changed after the run (the code that decides"
+            f" the rows, claims, or checks; changed: {named});"
             " the recorded rows were decided by the old code"
         )
     for invalid in records.check(research.ledger, directory / "states"):
