@@ -15,8 +15,8 @@ was started for the plan only.
 **Part 1 is approved (the owner's start of part 1, 2026-11-25, on the
 Issue); parts 2, 2b, 3, and 4 are not.** The owner confirmed the review's
 proposals for questions 1 to 6, 8, and 9 (the comment "Owner's decisions on
-the plan's nine questions", 2026-11-25); question 7 (the multimeter) stays
-open. The first two sessions wrote this plan only; the part-1 session of
+the plan's nine questions", 2026-11-25); question 7 (the multimeter) stayed
+open until the start of part 0. The first two sessions wrote this plan only; the part-1 session of
 2026-11-25 ran the dataset gate (see "Discoveries", the gate of
 `cobe-firas-monopole`). After the owner's decision on question 10 (the
 NASA basis accepted, LAMBDA asked beside it), a second part-1 session the
@@ -25,11 +25,21 @@ same day committed the sample and built part 1's steps 2 to 8 (see
 (2026-11-25) confirmed the register entry, made the residual figure's
 rule post-hoc, asked for the view at phone width and 200 % text, and
 approved question 11 as an optional follow-up outside part 1 (see
-"Discoveries", part 1 session 3).
+"Discoveries", part 1 session 3). Part 1 merged as f6859ae (pull request
+#621).
 
-**The registered follow-up below is not frozen yet.** It becomes frozen as
-"Freezing the registration" defines; until then nobody makes any of its
-measurements.
+**Part 0 (2026-11-25).** The owner answered question 7 (the multimeter, a
+Mastech MAS830BC without a capacitance range, so G3 is dropped) and started
+part 0, the plan alone. The part-0 session wrote the meter and its
+registered specification into the registration, recorded the decided
+questions as decided, added the Discoveries entry of part 1 session 3,
+named the follow-ups #623 and #624 before part 2, and recomputed the
+digest last (see "Discoveries", part 0).
+
+**The registration below is no longer a draft. It is frozen when this
+text is on `main` after the owner's approving review** of the exact head
+of part 0's pull request, as "Freezing the registration" defines; until
+then nobody makes any of its measurements.
 
 **Revised after the owner's plan review of 2026-11-25** (the comment on
 #619, "Plan review of 2026-11-25, supplied by the owner"). A later session
@@ -41,9 +51,8 @@ against the published uncertainty; the multimeter's uncertainty model in
 M4, with the shorted leads before and after; the boundary cases of the
 decision rules, and the thresholds checked once more. The registration's
 digest is recomputed, the review's proposals stand beside the open
-questions, and "The checklist of part 0" is added. The registration is
-still not frozen; the review advises against freezing until these edits
-are read.
+questions, and "The checklist of part 0" is added. (The digest of that
+session is void since part 0; see the line after the end marker.)
 
 ## The parts of the Issue
 
@@ -55,7 +64,7 @@ record is `partial` with the later parts under `remaining`, until the last.
 | Part | What it delivers | Criteria it clears | What its pull request leaves open |
 |---|---|---|---|
 | 1. The workspace and the reproduction track | The dataset `cobe-firas-monopole` through its gate (card, dossier, sample, reader, reference figure, parsing test); the register entry of the paper; `pbc.products.research_workspace` (project state on disk, question selection, the registered plan, the run graph with its guided branch comparison, source evidence, typed discrepancies, review findings and follow-up decisions, report export with evidence statuses, the static workspace view, the command line, the scripted reviewer); the reproduction track end to end, its positive control, its bounded extension; example inputs and placeholder fixtures under `products/research-workspace/`; `docs/products.md`, `docs/architecture.md`, `docs/project-map.md` | 2 met; 3 met for the reproduction report; F145's 3 and 6 for this product (criterion 1 below) met for what part 1 contains | 4 for the original track; F145's 1, 4 (the starter), 5; the page |
-| 0. The freeze (after part 1) | This plan alone, merged into `main` after the owner's approving review of its exact head (Level 1). It freezes the registration of the original track. It waits for the owner's multimeter (question 7) and comes as its own plan-only pull request after part 1. | none (the precondition of the reserved measurement) | everything |
+| 0. The freeze (after part 1) | This plan alone, merged into `main` after the owner's approving review of its exact head (Level 1). It freezes the registration of the original track. Started 2026-11-25 after the owner's answer to question 7 (the multimeter), as its own plan-only pull request after part 1. | none (the precondition of the reserved measurement) | everything |
 | 2. The original track | The coil-loss investigation on `ad3-rlc-pilot`: the analysis of the existing sweeps (the parts measured apart, the sensitivity to a channel mismatch), the registration as data, copied from the frozen plan and checked against its digest, the follow-up log over more than two explanations, the decision rules, and a simulated positive control of each rule; the track runs end to end with the follow-up's evidence `not evaluated` | 4 met (both tracks end to end without a model account); 3 met for the investigation's report as far as it goes | the follow-up's measurement and verdicts; the page; the starter |
 | 2b. The follow-up's evidence (small) | After the owner's bench session: the dataset `ad3-rlc-coil-followup` through its gate (owner's readings and exports, CC BY 4.0 on the owner's word); the registered rules applied, unchanged; the verdicts and the revised claim in the log | the investigation substantive, as the goal asks ("one substantive investigation completed") | the page; the starter |
 | 3. The page and the learner material | The capstone page RR8; `products/research-workspace/` complete (brief, scientific criteria, example inputs, reference workflow, rubric, manual route, guided route, starter with a `pending` pin); the design of the optional materials track (criterion 5); the fresh-clone run recorded on the Issue | F145's 1, 4, 5 for this product; 5 (optional) met as design; 6 | the starter's first pin bump (the follow-up change of ADR 022 decision 5) |
@@ -69,10 +78,22 @@ small pull request of its own.
 "Splitsing is goed").** Part 1 comes first and does not wait for the
 freeze: the freeze concerns only the registration of the original track,
 which part 1 does not build. The text between the registration markers
-below is a **draft until part 0**: it stays as the plan-only session left
-it, nobody makes any of its measurements, and this plan is committed with
+was a draft until part 0: it stayed as the plan-only session left it,
+nobody made any of its measurements, and this plan was committed with
 part 1 without freezing anything (a plan on a feature branch is not
-frozen; see "Freezing the registration").
+frozen; see "Freezing the registration"). Part 0 finishes the text and
+freezes it by its merge.
+
+**Before part 2 builds on part 1's code.** The follow-ups of part 1's
+review round 3 are closed first, because part 2 reuses the code they
+concern: #623, the code identity of the project (`graph.code_digest`
+covers only some of the modules that apply the registered rules, so
+`verify` misses a changed rule); the registration's withheld part rests
+on exactly this guarantee, the identity of the outcome code, recorded
+before M1 and checked after. #624, the `uncertainty` branch of
+`reproduction._bound_row`, which asserts its check and its budget term
+instead of deriving them from the records; part 2 types its own
+discrepancies with the same rule.
 
 The order 1, 2, 2b, 3 follows the block (the reproduction first) and puts
 the page last, so that it shows the follow-up's real outcome. If the bench
@@ -431,7 +452,8 @@ resistance of the parts or a loss that exists only in alternating current;
 G2, are the rise of that loss with the frequency and the growing phase
 residual properties of the circuit or of the two channels. G3, whether the
 capacitance (14.55 nF against 10 nF nominal) is the part's own tolerance,
-is optional and needs a meter with a capacitance range (open question 7).
+needed a meter with a capacitance range; the owner's meter has none
+(question 7, answered 2026-11-25), so G3 is dropped.
 
 **The thresholds were chosen after seeing the pilot's data**; only the new
 measurements of the registration are confirmatory, and the record says so.
@@ -447,6 +469,9 @@ in the log.
 
 <!-- registration:begin -->
 Registration: F155 (Issue #619), the coil-loss follow-up of `ad3-rlc-pilot`.
+It is frozen when this text is on `main` after the owner's approving review
+of the exact head of the pull request that merges it (part 0); its sha256
+is recorded after the end marker.
 
 Circuit. The pilot's circuit of F140 on the breadboard, with the same
 physical parts if they can be identified: W1 -> 100 ohm resistor -> 1 mH
@@ -462,21 +487,21 @@ M3. Same-node sweep: scope 1+ and 2+ both at W1. The physics lab reports
     no -90 degree crossing and an inconclusive run; its raw samples at the
     13 coarse frequencies are the measurement.
 M4. Output off, USB unplugged. Lift one lead of the capacitor and one of
-    the resistor out of the breadboard. With the owner's multimeter, two
-    wire, on its lowest resistance range that holds the largest reading
-    of the parts, one range for every reading of M4 where the meter
-    allows it: Z1, the leads shorted (three readings), before any part;
+    the resistor out of the breadboard. With the owner's multimeter, the
+    Mastech MAS830BC (manual ranging, 3 1/2 digits, 1999 counts), two
+    wire, on its 200 ohm range (resolution q = 0.1 ohm) for every
+    reading of M4; a part whose reading overloads that range is read on
+    the 2 kohm range (q = 1 ohm), and its offset then does not cancel
+    (below): Z1, the leads shorted (three readings), before any part;
     the inductor across its two breadboard rows (three readings, R_dc_bb);
     the inductor out of the breadboard (three readings, R_dc); the
     resistor across its two breadboard rows with the inductor lifted
     (three readings, R_s_bb); Z2, the leads shorted again (three
     readings), after the last part. Recorded per reading: the value, the
     range, the resolution on that range (the step of the last digit), the
-    meter's make and model, its accuracy specification on that range in
-    the words of its manual (percent of reading plus digits), the time.
-    Optional, only if the meter has a capacitance range: the leads open on
-    that range (three readings), then the capacitor out of the breadboard
-    (three readings, C_meter), recorded in the same way.
+    meter's make and model, the registered specification on that range
+    (below), the time. The meter has no capacitance range: no capacitance
+    reading is made, and G3 is dropped.
 M5. Put the parts back; repeat M2 (repeatability).
 
 Derived quantities. Phasors by the least-squares fit of the pilot's
@@ -493,8 +518,17 @@ quadrature:
     the reading and of the zero, each rectangular of full width q);
   u_contact = |dz| / (2 sqrt(3)) (rectangular, half-width |dz| / 2);
   the specification. The accuracy limit on r is a = p |reading| + n q,
-    p the percent of reading, n the digits, taken from the manual, and
-    read as the half-width of a rectangular distribution: a standard
+    p the percent of reading, n the digits, registered as p = 0.8 % and
+    n = 3 on the 200 ohm range and, an assumption named, on the 2 kohm
+    range. These are the values of the resistance table of the manual of
+    the Mastech MAS830B for its 200 ohm range (resolution 0.1 ohm), read
+    by the owner on 2026-11-25. That manual names only the MAS830B: the
+    owner has no manual of this meter, the MAS830BC, no table of the BC
+    variant was found, and the meter is not calibrated. A third party's
+    summary of the MAS830B gives 1.2 % + 3 digits; nobody read it at its
+    source, and it is reported as a sensitivity (u recomputed with
+    p = 1.2 %) that decides no outcome.
+    a is read as the half-width of a rectangular distribution: a standard
     uncertainty of a / sqrt(3) (a Type B evaluation). It is a property of
     the meter, not of the readings, and is NOT reduced by repeating or by
     averaging. Its two parts are treated apart, because the reading and
@@ -507,8 +541,7 @@ quadrature:
     u_gain(X) = p |X| / sqrt(3).
 u_X = sqrt(u_repeat^2 + u_res^2 + u_contact^2 + u_off^2 + u_gain(X)^2),
 with u_off = 0 when the offset cancels. The non-gain part u_X,ng is u_X
-without u_gain(X). The capacitance is treated in the same way, with the
-open-lead readings as its zero and no contact term.
+without u_gain(X).
 
 Z(f) = R_s_bb H / (1 - H) from M2, with H uncorrected (for G1) and H / m
 (for G2). R_L(f) = Re Z(f). R_L0 = the mean of R_L at 31.6, 43.0, and
@@ -564,21 +597,16 @@ frequencies, and not measurable otherwise.
   Rise between 2 u_hi and 3 u_hi, and a Rise <= 2 u_hi without a
   measurable mismatch, which the precondition then examines).
 
-G3 (optional; dropped, and not reported as inconclusive, when the meter
-has no capacitance range). E = C_meter - 14.55 nF, u_C =
-sqrt(u_Cmeter^2 + (0.15 nF)^2), with u_Cmeter by the model of the meter
-readings above.
-  Explanation TOLERANCE (the part's own value): predicts "agrees": |E| <=
-  2 u_C.
-  Explanation ELSEWHERE (the 4.5 nF come from the measurement or the
-  wiring): predicts "nominal": |C_meter - 10 nF| <= 2 u_C and E < -3 u_C.
-  Every other outcome decides nothing and is "inconclusive".
+G3 (the capacitance) is dropped: the meter has no capacitance range (the
+owner's answer of 2026-11-25). It is not evaluated and not reported as
+inconclusive; the question stays in the archive, deferred.
 
 Withheld part. M1 to M5 are the confirmatory measurements; the pilot's data
 chose the thresholds. The analysis code that computes the outcomes is
-committed before M1 is made, with its code identity recorded in the log; a
-change of that code after M1 is recorded as a deviation, and its result is
-exploratory.
+merged into `main` (part 2) before M1 is made, with its code identity
+recorded in the log; that identity covers every module that computes an
+outcome or applies a rule. A change of that code after M1 is recorded as a
+deviation, and its result is exploratory.
 
 Stopping. One bench session. A failed run (an invalid capture, a refused
 output) is repeated once and both are kept; a second failure stops the
@@ -592,12 +620,46 @@ inconclusive.
 
 Registration digest (sha256 of the bytes from the line after the begin
 marker to the line before the end marker, both lines included, with their
-final newline): `89973f3975b28f07c7beb0274e8e43391be0e4a96f5eac54fa4d42e294497758`
-(recomputed on 2026-11-25 after the owner's review; the earlier digest
-`c7c8054e…d033` is void). Recompute it with
+final newline): `932d2b60fb1610b5adbd837b10c7c0c9fcbf58cfd67b85fe29fc2990e2942d96`
+(recomputed on 2026-11-25 in part 0, after every other edit of this plan;
+the earlier digests `89973f39…7758` and `c7c8054e…d033` are void). Recompute it with
 `awk '/^<!-- registration:begin -->$/{f=1;next}/^<!-- registration:end -->$/{f=0}f' .agents/plans/619-research-workspace.md | shasum -a 256`;
 any edit between the markers before the freeze requires a new digest on
-this line.
+this line, and after the freeze is a new registration.
+
+**The meter's numbers in the model of M4** (a worked example, outside the
+registration; it changes no rule and no threshold). On the 200 Ω range of
+the MAS830BC, q = 0.1 Ω, p = 0.8 %, n = 3:
+
+- u_res = q / sqrt(6) = 0.041 Ω.
+- The offset n q = 0.3 Ω cancels against the zero on the same range. If
+  a part had to be read on another range than the zero, u_off would be
+  sqrt(2) · 0.3 Ω / sqrt(3) = 0.24 Ω for q = 0.1 Ω on both (on the 2 kΩ
+  range, n q = 3 Ω, which would make u_off about 1.7 Ω).
+- u_gain(X) = p |X| / sqrt(3) = 0.0046 |X|: 0.09 Ω for 20 Ω, 0.29 Ω for
+  63 Ω, 0.46 Ω for the 100 Ω resistor.
+- Assumed for the example only (the readings decide): a spread of the
+  three readings s = 0.05 Ω (u_repeat = 0.029 Ω) and a drift of the zero
+  dz = 0.1 Ω (u_contact = 0.029 Ω); then u_X,ng = 0.058 Ω.
+
+For a plausible coil of R_dc_bb = 20 Ω and the pilot's R_L0 = 63 Ω with
+its spread over the three frequencies of 3 Ω: D = 43 Ω, the meter's part
+of u is sqrt(u_dc,ng^2 + (p D / sqrt(3))^2 + (R_L0 u_Rs,ng / R_s_bb)^2) =
+0.21 Ω, and u = 3.01 Ω, below the 5 Ω at which G1 is undecidable. The
+outcome would be "short" (D > 3 u = 9.0 Ω and D > 5 Ω). For a coil of
+R_dc_bb = 63 Ω (the DC explanation), D = 0, the meter adds 0.07 Ω, u =
+3.00 Ω, and "accounted" holds for |D| <= 6.0 Ω. The meter contributes at
+most about 0.5 Ω to u for |D| up to about 100 Ω; with the third party's
+1.2 % in place of 0.8 % the gain part would be one and a half times as
+large (0.30 Ω at D = 43 Ω, the meter's part 0.31 Ω, u = 3.02 Ω). So u of
+G1 is set by the spread of R_L over the three frequencies, not by the
+meter, and the choice between the two published values changes no
+outcome of the example.
+
+A check of the meter, reported and deciding no outcome: R_s_bb should
+read 100 Ω ± 1 % within the meter's limit a = 0.8 Ω + 0.3 Ω, so between
+about 97.9 and 102.1 Ω; a reading outside that band points to a gross
+error of the meter or of the contacts, and the report says so beside G1.
 
 **Freezing the registration.** "Frozen" means: this plan, with the text
 between the markers unchanged, is in a commit on `main` that merged a pull
@@ -623,11 +685,15 @@ is its own pull request, with this plan alone):
 2. The owner has read the revised registration, and has answered question
    7 (the meter's make and model, its accuracy formula on the low
    resistance range, its resolution, a capacitance range or none) on the
-   Issue; G3 is dropped without a capacitance range. Answering does not
-   change the registration: the readings record the meter, the rule reads
-   its specification.
+   Issue; G3 is dropped without a capacitance range. *Answered 2026-11-25:*
+   the Mastech MAS830BC, 200 Ω range with q = 0.1 Ω, no capacitance range
+   (G3 dropped). The registration names the meter and registers p = 0.8 %
+   and n = 3 (the MAS830B manual's table, read by the owner on
+   2026-11-25; it replaces the supervisor's first proposal of a third
+   party's 1.2 %); the owner approves or changes these values in the
+   review of part 0's pull request.
 3. The owner has confirmed or changed the proposals for questions 1 to 6,
-   8, and 9 on the Issue.
+   8, and 9 on the Issue. *Confirmed 2026-11-25.*
 4. The digest line matches the text between the markers (the command
    above), on the exact head of the pull request.
 5. The pull request changes this plan only (Level 1), and the owner's
@@ -650,8 +716,7 @@ that the outcome sets are disjoint (`registration.discriminates`).
 simulate (or, for the meter readings, construct) values just below, at,
 and just above every threshold of the rules: 0.3 degrees for max |dphi|,
 0.003 for max |dg|, the factors 2 and 3 of u and of u_hi, the floor of
-5 ohm on D, the limit u > 5 ohm, P0 / 2, and for G3 the factors 2 and 3
-of u_C. For each case they check that the outcome is the one the rule's
+5 ohm on D, the limit u > 5 ohm, and P0 / 2 (G3 is dropped). For each case they check that the outcome is the one the rule's
 text gives at that value (the side of "<=" and ">"), that no two outcomes
 of a rule are returned together, and that every case between the
 predicted outcomes is `inconclusive`. They also check the uncertainty
@@ -679,8 +744,9 @@ the freeze, a change of any threshold is a new registration, or the
 analysis with it is exploratory and labelled so.
 
 **Questions considered** (the archive of part 2, prepared): the coil-loss
-question (selected); the capacitance (G3, deferred unless the meter has
-the range); the LED pair's model (rejected: SA9's protocol; revisit if the
+question (selected); the capacitance (G3, deferred: the owner's meter
+has no capacitance range; revisit with a meter that has one, as a new
+registration); the LED pair's model (rejected: SA9's protocol; revisit if the
 held-out prediction fails on the owner's bench); the die temperature's
 effect (rejected: the pilot's record holds 61.6 to 63.7 °C only, no
 variation to test; revisit with a cooling or warming run).
@@ -768,10 +834,10 @@ holds no key and records nothing.
 
 | Session | When | On the breadboard | What it needs | Commands |
 |---|---|---|---|---|
-| F (the follow-up) | after the freeze; recommended after part 2 is merged (open question 3) | the pilot's circuit, the same parts where they can be identified: the 100 Ω ± 1 % resistor, the 1 mH inductor, the 10 nF capacitor; the AD3 with its two probes | the AD3 Pro Bundle, the multimeter (its make and model, its accuracy formula and resolution on the low resistance range and, for G3, the capacitance range), about one hour | `uv run --locked python -m pbc.products.physics_lab run --mode live --input products/physics-lab/examples/live-pilot.toml --circuit-confirmed --out <dir>` for M1, M2, M3, M5, the probes moved between runs as the registration says; the readings of M4 written into the CSV template that part 2 provides |
+| F (the follow-up) | after the freeze; recommended after part 2 is merged (open question 3) | the pilot's circuit, the same parts where they can be identified: the 100 Ω ± 1 % resistor, the 1 mH inductor, the 10 nF capacitor; the AD3 with its two probes | the AD3 Pro Bundle, the multimeter (the Mastech MAS830BC, its 200 Ω range; no capacitance range, so no G3), about one hour | `uv run --locked python -m pbc.products.physics_lab run --mode live --input products/physics-lab/examples/live-pilot.toml --circuit-confirmed --out <dir>` for M1, M2, M3, M5, the probes moved between runs as the registration says; the readings of M4 written into the CSV template that part 2 provides |
 
 **Reserved until the freeze:** M1 to M5 entirely, and in particular every
-multimeter reading of the inductor, the resistor, and the capacitor, and
+multimeter reading of the inductor and the resistor, and
 any sweep with both probes on one node. F145's bench sessions (the live
 campaigns of #614) may use the same circuit; they make none of these
 measurements. The reproduction track needs no bench.
@@ -864,7 +930,11 @@ then `pr_ci` pending).
 Part 1: `README.md` (brief, criteria, run it, routes, limits),
 `examples/` (the reproduction's project input and its question file),
 `fixtures/` (placeholders). Part 2: `examples/coil-loss/` (the
-registration, the question file, the readings template). Part 3: the
+registration, the question file, the readings template of M4: one row
+per reading with the quantity (Z1, R_dc_bb, R_dc, R_s_bb, Z2), the
+reading's number, the meter (Mastech MAS830BC), the range (200 Ω, or
+2 kΩ on an overload), the resolution on that range, the registered p and
+n, the value, and the time). Part 3: the
 reference workflow, the assessment rubric, the manual route, the guided
 route, `materials-track.md`, and `starter/` with a `pending` pin: the
 learner writes the registration of their own question and the analysis of
@@ -964,8 +1034,13 @@ link-only is a last resort), 5 (the implementer quotes, the owner confirms
 before part 1 merges), 6 (part 2b before part 3, or part 3 first with
 `not evaluated` if the bench is more than about two weeks away), 8 (at most
 an optional reference), and 9 (part 0 as its own plan-only pull request)
-as the review proposed. Question 7 stays open. The list below keeps the
-questions as they were put.
+as the review proposed. Question 10 was decided the same day (the NASA
+basis accepted as `equivalent-permission`, LAMBDA asked for a written
+confirmation beside it), question 11 in the owner's review of part 1 (an
+optional follow-up, not part 1), and question 7 was answered at the start
+of part 0 (the Mastech MAS830BC, no capacitance range; p and n as the
+registration states, for the owner's review of part 0). No question of
+this plan is open. The list below keeps the questions as they were put.
 
 **Open since the gate of part 1 (2026-11-25): question 10.** Is the basis
 for the FIRAS rights that the gate found (see "Discoveries") sufficient
@@ -1025,6 +1100,11 @@ no stated licence (ADR 007 addendum, decision 1).*
    freeze, so that the readings template names the meter and the
    uncertainty model of M4 can be checked against its specification.*
    *The review: stays open; it needs the owner's answer.*
+   *Answered 2026-11-25 (the Issue's section "Owner's answer to question
+   7 and the start of part 0"): the Mastech MAS830BC, 200 Ω range,
+   resolution 0.1 Ω, no capacitance range; p = 0.8 %, n = 3 registered
+   from the MAS830B manual's table as the owner read it (the Issue's
+   comment of 2026-11-25), subject to the owner's review of part 0.*
 8. **The guided route.** Name only the coding agent workflow, or also Agent
    Codeyard as optional. *Recommendation: follow SA9's decision in F145
    part 2.*
@@ -1178,6 +1258,43 @@ dependency group.
   eight checks over two messages. The positive control gained a
   `noise_scale` so that its own test shows it failing on understated
   uncertainties. The view was looked at as a desktop render only (a
-  thumbnail by `qlmanage`), not at phone width; the impeccable detector
+  thumbnail by `qlmanage`), not at phone width (session 3 below did that); the impeccable detector
   did not run (the adapter forbids it).
+- (2026-11-25, part 1 session 3, the owner's review of part 1 and the
+  triage of review 01) The static view rendered with the repository's
+  Playwright and axe at 375 px with the text at 100 % and 200 %, and at
+  1280 px. Fixed: at 200 % the footer's unbreakable file name widened the
+  page (`overflow-wrap: break-word` on the body); table captions clipped
+  in their scroll box (now a paragraph above it, the table labelled by
+  it); the scroll box not focusable by keyboard (`role=region`,
+  `tabindex=0`, a label); at phone width the verdict and status columns
+  off-screen (below 40rem every row is a card whose cells carry their
+  column name); a status clipped at 200 % in a card (it may wrap). axe
+  reports no violation at 375 and 1280 px. Review 01's M1 added two rows,
+  sigma_y and sigma_mu: the regenerated statistical sigma of y and mu
+  against the paper's (3.61 x 1e-6 against 6 x 1e-6, and 3.43 x 1e-5 against 4 x 1e-5),
+  `not-reproduced`, typed `uncertainty` (the central values agree within
+  the published sigma; the other term named is the covariance weighting
+  of section 3.3), each marked post-hoc by its criterion in the example
+  registration and linked to the open finding
+  `review-covariance-weighting`; the bound rows keep their registered
+  verdict and point to the sigma row. Review 03's two minor findings were
+  deferred to #623 and #624 (see "The parts of the Issue").
+- (2026-11-25, part 0) The owner's meter, a Mastech MAS830BC, has no
+  specification table at hand; two published values of the MAS830B
+  disagree (0.8 % and 1.2 % of reading, both + 3 digits). The session
+  first registered the wider one, found by a web search and read by
+  nobody at its source; the owner then read the MAS830B manual's table
+  (0.8 % + 3 digits on the 200 Ω range), and the registration takes that
+  value, names its source and its limits (the manual names only the
+  MAS830B, not the BC variant), states that the meter is not calibrated,
+  and reports 1.2 % as a sensitivity. With it the meter adds at most
+  about 0.5 Ω to u of G1 (the worked example after the end marker), so no
+  threshold was tuned to the meter and none changed. G3 and every
+  capacitance reading are dropped, as the plan provided. Inside the
+  markers part 0 also wrote down two recorded decisions that the text did
+  not hold: the bench session after part 2 is merged (question 3: "merged
+  into `main` (part 2) before M1"), and the code identity covering every
+  module that computes an outcome or applies a rule (the guarantee #623
+  repairs); and a sentence on when the text is frozen (question 9).
 
