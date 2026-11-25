@@ -919,8 +919,9 @@ which the spend count reads:
   llama.cpp server), through the `openai` SDK and no new dependency. The
   address is `PBC_LOCAL_BASE_URL` or by default Ollama's
   `http://localhost:11434/v1`, and it must be a loopback address (`localhost`,
-  127.0.0.0/8, `[::1]`); the client ignores any proxy of the environment, so
-  no prompt leaves the machine by it. The model is `PBC_LOCAL_MODEL`, which
+  127.0.0.0/8, `[::1]`); the client ignores any proxy of the environment and
+  follows no redirect of the server (a redirect fails the request), so no
+  prompt leaves the machine by it. The model is `PBC_LOCAL_MODEL`, which
   the recorder chooses: the project sets no default and downloads nothing.
   The tokens are counted where the server reports them, at a price of zero,
   so the recording needs no `--price-in` or `--price-out`. A server that

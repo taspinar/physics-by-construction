@@ -110,7 +110,7 @@ def test_load_client_builds_the_client_for_the_local_server(sdk):
     # a placeholder key, never a provider's; no proxy of the environment
     assert sdk.setup["api_key"] == local.PLACEHOLDER_KEY
     assert sdk.setup["http_client"] == "http-client"
-    assert sdk.http_options == {"trust_env": False}
+    assert sdk.http_options == {"trust_env": False, "follow_redirects": False}
     assert callable(client.complete)
 
 

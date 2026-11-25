@@ -10,8 +10,9 @@ SDK is given a placeholder so that it never looks for a provider key.
 The address is ``PBC_LOCAL_BASE_URL``, else ``DEFAULT_BASE_URL`` (the address
 Ollama serves the API on). It must name a loopback address, ``localhost`` or
 an address of 127.0.0.0/8 or ``[::1]``, and the client sends its request
-without any proxy the environment configures, so no prompt leaves the machine
-by this client. The model is ``PBC_LOCAL_MODEL`` (or the argument of
+without any proxy the environment configures and follows no redirect the
+server answers with (a redirect is a failed request), so no prompt leaves the
+machine by this client. The model is ``PBC_LOCAL_MODEL`` (or the argument of
 ``make_client``), the name the server knows it by; the project chooses none.
 
 The tokens are counted where the server reports them (``last_usage``); a
@@ -91,7 +92,9 @@ class LocalClient:
                 base_url=self.base_url,
                 timeout=TIMEOUT_SECONDS,
                 max_retries=1,
-                http_client=sdk.DefaultHttpxClient(trust_env=False),
+                http_client=sdk.DefaultHttpxClient(
+                    trust_env=False, follow_redirects=False
+                ),
             )
         except Exception as error:
             raise _failure("the local client could not be set up", error) from None
