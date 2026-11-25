@@ -1,7 +1,10 @@
 # Plan 613: the guided ACT route piloted, with the manual route verified (F139)
 
-Issue #613. Risk Level 2 (documentation and starter files; no protected
-path, no check of `scripts/verify.conf`, no dependency changed).
+Issue #613. Risk Level 3 by a trigger: the starter's `tests/conftest.py`
+adds a conditional skip of the provided tests (review 01, M1; approval
+request `.agents/approvals/613.md`). The paths alone are Level 2
+(documentation and starter files; no protected path, no check of
+`scripts/verify.conf`, no dependency changed).
 
 Skills: none (documentation and a recorded pilot). The feature changes no
 lesson's teaching: the teaching line of ADR 023 decision 2 is not

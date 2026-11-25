@@ -63,12 +63,12 @@ def copy_of_the_starter(tmp_path: Path) -> Path:
     return copy
 
 
-def run_tests(copy: Path, *, passes: bool = True) -> str:
+def run_tests(copy: Path, *args: str, passes: bool = True) -> str:
     env = dict(os.environ)
     env["PYTHONPATH"] = os.pathsep.join([str(ROOT / "src"), str(copy)])
     env["PYTHONDONTWRITEBYTECODE"] = "1"
     result = subprocess.run(
-        [sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-q", "-rs"],
+        [sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-q", "-rs", *args],
         cwd=copy,
         env=env,
         capture_output=True,
@@ -118,3 +118,30 @@ def test_a_fit_that_raises_something_else_is_judged_by_the_tests(tmp_path):
     output = run_tests(copy, passes=False)
     assert count(output, "skipped") == 0
     assert count(output, "failed") >= 1
+
+
+# A learner's partial work: the input checks written first, the trailing
+# raise of the skeleton still in place.
+PARTIAL_FIT_BODY = """    if len(t_s) != len(v) or len(t_s) < 16:
+        raise ValueError("a record of at least 16 samples, t and v alike")
+    raise NotImplementedError("YOUR WORK: the ring-down fit")"""
+
+
+def test_partial_work_that_still_raises_skips_all_until_noconftest(tmp_path):
+    """The skip is all or nothing (review 01 of #613, S1): while the body
+    still ends in ``NotImplementedError`` every provided test is skipped,
+    those the written checks would pass among them. ``--noconftest``, which
+    the starter's README and ``ROUTES.md`` name, runs them on such work."""
+    copy = copy_of_the_starter(tmp_path)
+    skeleton = (copy / "my_lab/ringdown.py").read_text()
+    partial = skeleton.replace(
+        '    raise NotImplementedError("YOUR WORK: the ring-down fit")',
+        PARTIAL_FIT_BODY,
+    )
+    assert partial != skeleton
+    (copy / "my_lab/ringdown.py").write_text(partial)
+    output = run_tests(copy)
+    assert count(output, "skipped") == PROVIDED
+    output = run_tests(copy, "--noconftest", "tests/test_ringdown.py", passes=False)
+    assert count(output, "skipped") == 0
+    assert count(output, "passed") + count(output, "failed") == PROVIDED

@@ -14,7 +14,11 @@ for your work are marked `YOUR WORK`:
   transient-response protocol, specified in `SPECIFICATION.md` and checked
   by the provided tests `tests/test_ringdown.py`, which you do not change.
   Until you write it they are skipped with the reason "YOUR WORK"; then
-  they run (`uv run pytest tests/test_ringdown.py`). The routes to it, by
+  they run (`uv run pytest tests/test_ringdown.py`). The skip is all or
+  nothing: while the body still ends in `raise NotImplementedError`, all
+  twelve are skipped, even those your input checks would pass; replace
+  the `raise` first, or run `uv run pytest --noconftest
+  tests/test_ringdown.py`. The routes to it, by
   hand or with a coding agent, are in `products/physics-lab/ROUTES.md`
   of the repository.
 

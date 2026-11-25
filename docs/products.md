@@ -990,9 +990,11 @@ committed to the starter: the reference is
 
 **What the pilot measured.** The manual route and the coding agent without
 a template each passed the twelve tests within minutes (the agent: 164 s,
-18 turns); the Codeyard route took about 109 minutes of active time to an
-open pull request when it was run on after the limit with a reviewer of a
-second provider. Every run was made by a model or the supervisor session,
+18 turns); the Codeyard route reached no open pull request within its
+limit. Run on after the limit with a reviewer of a second provider, as a
+separate observation outside the pilot's result, it reached one after
+about 109 minutes of active time in all; that command is marked so in
+`ROUTES.md`. Every run was made by a model or the supervisor session,
 inside a subscription, with no per-call billing; no learner was timed, so
 the workload of Path 1 stays open question 22, and `ROUTES.md` gives only
 an estimate of the feature's size, labelled as from one pilot. The gaps

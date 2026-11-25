@@ -19,7 +19,12 @@ tests, the dataclass `RingdownFit`, nor the signature is yours to change.
 
 While `fit_ringdown` still raises `NotImplementedError`, the provided
 tests are skipped with the reason "YOUR WORK"; as soon as it does not,
-they run unchanged. The feature is done when all of them pass:
+they run unchanged. The skip is all or nothing: while the body still ends
+in that `raise`, all twelve are skipped, even those your input checks
+would already pass. To run them on partial work, replace the `raise`
+first, or run them without the starter's `conftest.py`:
+`uv run pytest --noconftest tests/test_ringdown.py`. The feature is done
+when all of them pass:
 
 ```bash
 uv run pytest tests/test_ringdown.py
@@ -74,9 +79,11 @@ Agent Codeyard (`taspinar/agent-codeyard`, formerly the Agentic Coding
 Template) is a plan, act, and evaluate workflow for a whole project: a
 planning interview, reviewed plans, a feature cycle with an independent
 review, and pull requests. **The pinned revision is the commit
-`df5430aa` of `taspinar/agent-codeyard`.** Only the commands below ran in
-the pilot, at that commit; for their arguments and the steps around them,
-follow the template's README at that commit, not a later one.
+`df5430aa` of `taspinar/agent-codeyard`.** Only the steps and commands
+below ran in the pilot, at that commit, and all of them within its limit
+except the one marked as observed after it. Where the pilot's record
+names no argument, take it from the template's README at that commit, not
+a later one (the owner's decision of 2026-11-25 on Issue #613).
 
 Its conditions, from the pilot:
 
@@ -98,14 +105,27 @@ Its conditions, from the pilot:
 The commands that ran, in order, in a private repository created from the
 template:
 
-1. The README's steps before the first run, then `./scripts/doctor.sh`.
+1. The README's steps before the first run. The record names them as
+   setting the roles in `.agents/agents.conf` and deleting `website/` and
+   `.github/workflows/pages.yml` (the first attempt, at an earlier
+   commit); at `df5430aa`, as a setup pull request that also put the
+   starter at the repository root and the task files in `task/`, with a
+   green `verify` and then merged, and as the merge settings and the
+   ruleset of `main` with the required check `verify`. Then
+   `./scripts/doctor.sh`.
 2. `./scripts/start-planning.sh` (interactive: you hold the planning
    interview at a terminal), `./scripts/review-planning.sh`,
    `./scripts/revise-planning.sh`, `./scripts/finish-planning.sh`.
 3. `./scripts/create-feature-issue.sh F01`.
-4. `./scripts/run-feature.sh <issue>`. In the pilot it reached an open
-   pull request only with a reviewer of a second provider, chosen for the
-   run with `AGENT_CONFIG_FILE=<roles file> ./scripts/run-feature.sh <issue>`.
+4. `./scripts/run-feature.sh <issue>`. Within the limit it implemented
+   and verified the feature and stopped at its first review, which it
+   refused: every role was of one provider. No pull request.
+5. **Observed after the limit, outside the pilot's result:**
+   `AGENT_CONFIG_FILE=<roles file> ./scripts/run-feature.sh <issue>`, with
+   a reviewer of a second provider in the roles file, reached an open pull
+   request. The pilot did not show this within its limit; it is listed so
+   that you know how the cycle went on, as the owner's narrower go of
+   2026-11-25 records it.
 
 **The pilot's run.** Setup 7 minutes, planning 54 minutes (four review
 rounds), feature cycle 59 minutes to the limit: the implementation passed
@@ -113,9 +133,10 @@ the twelve provided tests, the starter's own, and the 24 tests the planning
 added after about 35 minutes, and the first review was refused (same
 provider) and retried for 14 minutes. Within the two hours no pull
 request was open. Run on after the limit with a reviewer of a second
-provider, as a separate observation: 13 more minutes to an open pull
-request, about 109 minutes of active time in all, 745 added lines in 18
-files, the fit 307 lines. Inside a subscription; no per-call billing.
+provider, as a separate observation outside the pilot's result: 13 more
+minutes to an open pull request, about 109 minutes of active time in all
+(the refused review's 14 minutes of retries not counted), 745 added lines
+in 18 files, the fit 307 lines. Inside a subscription; no per-call billing.
 
 **Go or no-go.** A narrower go (the owner, 2026-11-25): the route is
 optional, the manual route is the default, and no workload is promised from
@@ -128,8 +149,10 @@ An estimate from one pilot, not a measurement of a learner: no learner was
 timed. The pilot shows the size of one feature of Path 1: one function of
 about 110 to 300 lines against a written specification and twelve given
 tests, which a model finished by hand, and a coding agent under the
-workflow document, in minutes, and which the full Codeyard workflow took
-about two hours of active time to bring to a reviewed pull request. How
+workflow document, in minutes, and which the full Codeyard workflow did
+not bring to a pull request within its limit of two hours of active time
+(run on after the limit, as a separate observation, it reached a reviewed
+pull request). How
 long a learner needs for it is not known from this pilot; the workload of
 the path stays an open question of the planning (question 22), the
 owner's.
