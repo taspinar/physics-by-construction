@@ -1,0 +1,161 @@
+id: cobe-firas-monopole
+title: COBE FIRAS CMB monopole spectrum (LAMBDA, firas_monopole_spec_v1.txt); the residuals, uncertainties,
+  and Galactic spectrum of Table 4 of Fixsen et al. 1996
+source:
+  url: https://lambda.gsfc.nasa.gov/data/cobe/firas/monopole_spec/firas_monopole_spec_v1.txt
+  creator: 'NASA COBE mission, FIRAS instrument; the residual, uncertainty, and Galaxy columns from Table
+    4 of D. J. Fixsen, E. S. Cheng, J. M. Gales, J. C. Mather, R. A. Shafer, and E. L. Wright 1996, ApJ
+    473, 576 (arXiv:astro-ph/9605054); the file written and distributed by LAMBDA (the Legacy Archive
+    for Microwave Background Data Analysis, part of HEASARC at NASA Goddard Space Flight Center); product
+    page https://lambda.gsfc.nasa.gov/product/cobe/firas_monopole_spect.html'
+  version: 'v1, "initial release, May 2005" (the header''s revision history); the product page''s file
+    table gives 2003-03-01 as the delivery date; no DOI, so the sha256 is the version'
+  accessed: &accessed 2026-11-25
+rights:
+  licence: equivalent-permission
+  local_download:
+    answer: permitted
+    source: 'NASA SPD-41, Scientific Information Policy for the Science Mission Directorate (2021, the PDF
+      linked from https://science.nasa.gov/researchers/science-information-policy/), read 2026-11-25,
+      section IV, footnote 22: "Mission data are released into the public domain and non-SMD-funded activities
+      have no requirements with respect to the usage of that data"; LAMBDA, https://lambda.gsfc.nasa.gov/contact/,
+      read 2026-11-25: "There is no cost involved in the use of LAMBDA". Accepted as equivalent-permission
+      by the owner on 2026-11-25 (https://github.com/taspinar/physics-by-construction/issues/619, "Owner''s
+      decision on the FIRAS data rights"), as for the TESS card on MAST''s policy'
+  redistribution_of_subsets:
+    answer: permitted
+    source: 'SPD-41 section IV, footnote 22 (above: public domain, no requirements on usage); NASA APD
+      Policy-13 v1.8 (2023), section 3.2 f, read 2026-11-25: "If there are no other restrictions on the
+      data, the data shall be released with a Creative Commons Zero license"; LAMBDA states no licence
+      for the file. The owner''s decision of 2026-11-25 (#619) accepts this basis; the owner has asked
+      LAMBDA for a written confirmation, sent and pending (written_confirmation below). A refusal or
+      a restriction in the answer reopens the gate: the sample is then removed'
+  publication_of_figures:
+    answer: permitted
+    source: 'SPD-41 section IV, footnote 22 and section III, footnote 7, read 2026-11-25: "Government
+      works are by default in the U.S. public domain and should be used if no other license applies";
+      LAMBDA''s acknowledgement statement (https://lambda.gsfc.nasa.gov/contact/) asks for an acknowledgement
+      in publications, which the figure, the page, and About carry (ADR 007 decision 7). The owner''s
+      decision of 2026-11-25 (#619)'
+  modification_and_attribution:
+    answer: permitted
+    source: 'Public domain under SPD-41 section IV, footnote 22 (read 2026-11-25); LAMBDA requests the
+      acknowledgement "We acknowledge the use of the Legacy Archive for Microwave Background Data Analysis
+      (LAMBDA), part of the High Energy Astrophysics Science Archive Center (HEASARC). HEASARC/LAMBDA is
+      a service of the Astrophysics Science Division at the NASA Goddard Space Flight Center." (https://lambda.gsfc.nasa.gov/contact/,
+      read 2026-11-25). The sample is the file unmodified; the paper is cited for the Table 4 columns;
+      nothing of the paper''s text or figures is committed beyond the short statements of the register
+      entry fixsen-1996-firas-spectrum'
+  written_confirmation: 'Requested from LAMBDA by the owner on 2026-11-25 (the owner''s decision on #619);
+    sent and pending. When the answer arrives it is recorded here in a change of its own.'
+  attribution: 'COBE FIRAS CMB monopole spectrum, file firas_monopole_spec_v1.txt of LAMBDA (https://lambda.gsfc.nasa.gov/product/cobe/firas_monopole_spect.html),
+    unmodified; columns 3 to 5 from Table 4 of Fixsen et al. 1996, ApJ 473, 576. We acknowledge the use
+    of the Legacy Archive for Microwave Background Data Analysis (LAMBDA), part of the High Energy Astrophysics
+    Science Archive Center (HEASARC). HEASARC/LAMBDA is a service of the Astrophysics Science Division
+    at the NASA Goddard Space Flight Center.'
+  figure_credit:
+    short: 'Data: NASA COBE FIRAS / LAMBDA; Fixsen et al. 1996'
+    visible: chosen
+    source: 'Public domain (SPD-41 section IV, footnote 22); LAMBDA requests an acknowledgement in publications,
+      not as a condition. Named on the image, as for the TESS card (Issue #524), so that the source survives
+      a screenshot; the full acknowledgement is in the metadata and at the caption of its page'
+artifacts:
+- name: firas_monopole_spec_v1.txt, columns 3 to 5 (residual, sigma, Galaxy)
+  type: calibrated-observation
+  description: 'Table 4 of Fixsen et al. 1996 as the file gives it: per frequency the residual of the
+    calibrated monopole spectrum after the paper''s fit of a temperature shift and a Galactic term (its
+    Fig. 5 caption: "I0 - B(T0) - dT dB/dT - G0 g(nu)"), the 1-sigma uncertainty, and the modelled Galactic
+    spectrum at the Galactic poles, all in kJy/sr, as integers. The Galaxy column is a model of the paper,
+    used as a template.'
+- name: firas_monopole_spec_v1.txt, column 2 (monopole)
+  type: calibrated-observation
+  description: 'The monopole "computed as the sum of a 2.725 K BB spectrum and the residual in column 3"
+    (header), in MJy/sr with three decimals; rebuilt here to within 0.8 kJy/sr from B_nu(2.725 K) with
+    the CODATA 1986 constants plus column 3 (with the exact SI 2019 constants, to within 7.6 kJy/sr).'
+- name: reference analysis (pbc.data.reference.cobe_firas)
+  type: modelled-reference
+  description: 'Not part of the record: the Planck intensity, its derivative in T, and the weighted
+    fit of dT and the Galactic scale to the residual, computed by this repository and drawn apart from
+    the measurement.'
+reference_temperature:
+  value: 2.725
+  unit: K
+  statement: '"Column 2 = FIRAS monopole spectrum computed as the sum of a 2.725 K BB spectrum and the
+    residual in column 3, units = MJy/sr" (header of the file)'
+  source: 'The product page https://lambda.gsfc.nasa.gov/product/cobe/firas_monopole_spect.html, read
+    2026-11-25: "Subsequent analyses by Mather et al. (1999) and Fixsen et al. (2002) improved the FIRAS
+    calibration accuracy and provided a best-estimate for the absolute CMB temperature of 2725 +/- 1 mK";
+    the header names Fixsen & Mather 2002, ApJ 581, 817 as its second reference. Not the 2.728 K of the
+    1996 paper, against whose fit the residuals of column 3 were taken'
+calibration: 'By the FIRAS team before release: the sky spectra calibrated against the external blackbody
+  calibrator (Fixsen et al. 1994b, 1996 section 3.4), the monopole separated from the dipole and the Galaxy
+  by a fit of spatial templates (1996 section 5), the residual taken after a fit of dT and a Galactic
+  term (1996 section 6). The absolute temperature rests on the thermometry of the calibrator; the derived
+  columns do not carry it. No calibration is applied here.'
+schema: 'Plain ASCII text: 18 comment lines starting with "#" (the references, the five columns and
+  their units, the revision history), then 43 rows of five whitespace-separated numbers: wavenumber,
+  monopole, residual, uncertainty, Galaxy. Wavenumbers increase; the residual, uncertainty, and Galaxy
+  are integers.'
+units: 'Wavenumber nu~ in cm^-1 (frequency nu = c nu~); monopole in MJy/sr; residual, 1-sigma uncertainty,
+  and Galaxy in kJy/sr (1 Jy = 1e-26 W m^-2 Hz^-1).'
+cadence: 'Not a time series. 43 frequencies from 2.27 to 21.33 cm^-1 on a grid of 0.4538 cm^-1 (the
+  paper, section 3.3), rounded to 0.01 cm^-1 in the file.'
+coordinates: 'The monopole: the isotropic part of the sky spectrum over the whole sky (the paper''s
+  fit of spatial templates); the Galaxy column at the Galactic poles.'
+masks: 'No missing value and no flag; every uncertainty is positive.'
+uncertainty: 'Column 4, 1-sigma per frequency, 10 to 282 kJy/sr, the diagonal only: the paper weights
+  with a covariance between frequencies C = sigma sigma'' Q(|nu - nu''|) that its section 3.3 states and
+  the file does not carry. Derived (dossier): a weighted fit of dT and G with the diagonal weights gives
+  chi-square 45.0 for 41 degrees of freedom and dT = 0.5 +- 8.1 microK (statistical); the paper gives
+  chi-square 46/40 with its covariance and a detector-noise part of 10 microK. The systematic terms of
+  the paper''s uncertainties (the thermometry, the Galactic model) are not in the file.'
+size:
+  description: The file is 2,388 bytes, committed unchanged.
+format: plain text (whitespace-separated columns)
+reader: pbc.data.reference.cobe_firas.read_spectrum (NumPy loadtxt and the header); no new dependency.
+downloads:
+- url: https://lambda.gsfc.nasa.gov/data/cobe/firas/monopole_spec/firas_monopole_spec_v1.txt
+  filename: firas_monopole_spec_v1.txt
+  algorithm: sha256
+  digest: df793c3dca09ebfa7dbc5aa0ec1951daa8884431bc30eff28a710d7516cf50fa
+  digest_source: computed on 2026-11-25 from the file downloaded from LAMBDA (HTTP 200, 2,388 bytes);
+    LAMBDA publishes no digest
+samples:
+- path: firas_monopole_spec_v1.txt
+  sha256: df793c3dca09ebfa7dbc5aa0ec1951daa8884431bc30eff28a710d7516cf50fa
+  bytes: 2388
+  derivation: the download above, byte for byte
+  test: tests/unit/test_data_cobe_firas.py::test_cobe_firas_sample_parses
+estimates:
+  runtime: 'Reference figure: about 2 s with the interpreter start; the fit of 43 points takes under
+    a millisecond.'
+  memory: About 120 MB peak resident for the figure.
+  page_payload: 2.4 kB committed, read at build time and not shipped; a figure PNG of about 150 kB.
+  ci: 'Offline: one committed file.'
+decision:
+  value: go
+  date: *accessed
+  reasons:
+  - 'Real file inspected: 43 rows of five columns, 2.27 to 21.33 cm^-1, sha256 recorded; columns 3 to
+    5 equal Table 4 of the paper row for row (read from arXiv:astro-ph/9605054 on 2026-11-25).'
+  - 'The reference temperature of column 2 is 2.725 K (the header), the later calibration of Fixsen and
+    Mather 2002; column 2 is rebuilt from it to within 0.8 kJy/sr with the CODATA 1986 constants.'
+  - 'A reproducible figure from source-controlled code: the weighted fit of dT and G to the residuals
+    gives chi-square 45.0 for 41 and a weighted rms of 49.2 ppm of the peak of B_nu(2.725 K); the residuals
+    are already those of the paper''s fit, so dT and G are close to zero by construction, as the figure
+    says.'
+  - 'Uncertainty: the diagonal 1-sigma of Table 4; the covariance between frequencies and the systematic
+    terms are named in the dossier, not in the file.'
+  - 'Rights: public domain under NASA''s policy for mission data (SPD-41; APD Policy-13), LAMBDA''s acknowledgement
+    requested; accepted as equivalent-permission by the owner on 2026-11-25 (#619), with LAMBDA''s written
+    confirmation requested beside it.'
+  - 'Recorded by F155 part 1 (Issue #619) under the owner''s decision of 2026-11-25 on the Issue.'
+dossier: docs/datasets/cobe-firas-monopole.md
+reference_module: cobe_firas
+reference_figure:
+  status: processed
+  residuals: true
+listing:
+  name: 'COBE FIRAS monopole spectrum (RR8, F155 part 1, Issue #619)'
+  kind: the CMB monopole spectrum with the residuals, uncertainties, and Galactic spectrum of Fixsen et
+    al. 1996, Table 4

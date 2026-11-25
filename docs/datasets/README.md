@@ -24,6 +24,7 @@ Cards added after the survey, for the measured-data labs:
 |---|---|---|---|
 | F140 pilot, series RLC on an Analog Discovery 3 (Issue #508) | raw oscilloscope traces of a frequency sweep, measured by the project's own live adapter | **go** (2026-11-22) | [ad3-rlc-pilot](ad3-rlc-pilot.md) |
 | Bayreuth RLC impedance (EM8, Issue #418) | complex impedance measurement | **go** (2026-11-08) | [bayreuth-rlc-impedance](bayreuth-rlc-impedance.md) |
+| COBE FIRAS monopole spectrum (RR8, F155 part 1, Issue #619) | the CMB monopole spectrum with the residuals, uncertainties, and Galactic spectrum of Fixsen et al. 1996, Table 4 | **go** (2026-11-25) | [cobe-firas-monopole](cobe-firas-monopole.md) |
 | DWD Potsdam soil temperature (T7, Issue #438) | measured temperature profiles in the ground | **go** (2026-11-09) | [dwd-potsdam-soil-temperature](dwd-potsdam-soil-temperature.md) |
 | Grazing-flow hot-wire benchmark (FL8, Issue #441; the research's "VKI") | hot-wire profiles over solid and porous walls; solid-wall y fitted to canonical profiles by the providers | **go** (2026-11-09) | [grazing-flow-hwa-benchmark](grazing-flow-hwa-benchmark.md) |
 | Kamchatka 2025 tsunami inputs (FL10, F88 phase 1, Issue #444) | DART bottom-pressure records, the USGS finite fault, and an ETOPO 2022 bathymetry crop | **go** (2026-11-09; the inputs only; the model and the comparison are phase 2) | [kamchatka-2025-tsunami-inputs](kamchatka-2025-tsunami-inputs.md) |
@@ -53,6 +54,7 @@ The research of 2026-11-08 into open datasets for the measured-data labs is reco
 - Aalborg submerged-bar wave flume: no conversion; ZIP of CSV files (plus input archives and a PDF readme)
 - F140 pilot, series RLC on an Analog Discovery 3 (Issue #508): no conversion; CSV (plain text) and JSON
 - Bayreuth RLC impedance (EM8, Issue #418): no conversion; JSON (plain text)
+- COBE FIRAS monopole spectrum (RR8, F155 part 1, Issue #619): no conversion; plain text (whitespace-separated columns)
 - DWD Potsdam soil temperature (T7, Issue #438): converted once by `tools/datasets/dwd_soil_extract.py`
 - Grazing-flow hot-wire benchmark (FL8, Issue #441; the research's "VKI"): no conversion; CSV in ZIP archives; the committed samples are the CSV files.
 - GW150914 strain: no conversion; gzip-compressed plain text, one number per line

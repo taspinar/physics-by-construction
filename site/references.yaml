@@ -496,3 +496,83 @@ references:
     lessons: [galaxy-rotation-curves]
     last-checked: 2026-11-13
     licence: arXiv non-exclusive distribution licence; linked, not copied or rehosted.
+  - key: fixsen-1996-firas-spectrum
+    concept: >-
+      The CMB spectrum from the full COBE FIRAS data set: the monopole fitted
+      by a blackbody with a temperature shift and a Galactic term, the
+      weighted rms of the residuals, and the limits on the Compton y and the
+      chemical potential mu
+    url: https://arxiv.org/abs/astro-ph/9605054
+    title: The Cosmic Microwave Background Spectrum from the Full COBE FIRAS Data Set
+    author: >-
+      D. J. Fixsen, E. S. Cheng, J. M. Gales, J. C. Mather, R. A. Shafer, and
+      E. L. Wright (The Astrophysical Journal 473, 576, 1996)
+    section: >-
+      abstract; sections 3.3 (the covariance), 4 (the absolute temperature),
+      6 to 6.3 (the cosmic spectrum, Eq. 3 to 7), 8; Table 2; Table 4; the
+      caption of Fig. 5
+    role: paper
+    statement: >-
+      Quoted from the arXiv version (v1, 10 May 1996), opened and read by the
+      implementer of F155 part 1 on 2026-11-25; the owner checked these
+      statements against the typeset article and confirmed them on Issue
+      #619 on 2026-11-25 (the human review of the selection protocol), the
+      weighted-rms formula included. Abstract: "The RMS
+      deviations are less than 50 parts per million of the peak of the
+      CMBR. For the Comptonization and chemical potential we find |y| <15 x
+      10^-6 and |mu| <9 x 10^-5 (95% CL). There are also refinements in the
+      absolute temperature, 2.728 +- 0.004 K (95% CL)". Section 6, Eq. 3:
+      "a linear fit I0(nu) = B_nu(T0) + DeltaT dB_nu/dT + G0 g(nu) + p
+      dSc/dp can be performed to the unknown parameters p, G0, and DeltaT";
+      "We fit either the Kompaneets parameter or the chemical potential, but
+      the two are too similar to fit them simultaneously". Section 6.1: the
+      nu^2 B_nu(T) Galactic model "produces a lower chi2 with a temperature
+      of 9 K and we use this model for the analysis in Table 4"; "When p is
+      fixed at 0, i.e. there is only a Galactic deviation fit, the weighted
+      rms deviation in the frequency range 2 to 21 cm-1 is 50 ppm (parts per
+      million) of the peak brightness. The weighted rms is defined as" the
+      square root of the sum over nu of (Delta_nu/sigma_nu)^2 divided by the
+      sum over nu of 1/sigma_nu^2 (as the owner confirmed against the
+      typeset formula), "where Delta_nu is the difference of the model and the data at
+      spectrum point nu, and sigma_nu is the uncertainty of the spectrum
+      point nu. The formal chi2 per degree of freedom = 46/40 = 1.15"; "The
+      best fit temperature is 2.728 K, which is determined by our choice of
+      frequency and thermometry scales"; "the systematic thermometry
+      uncertainty of 2 mK (1 sigma) should be included. The detector noise
+      part of the temperature uncertainty is only 10 microK". Section 6.2,
+      Eq. 5: dS_mu/dmu = -(T0/x) dB_nu/dT; "The current FIRAS result is
+      mu=-1 +- 4 x 10^-5, or a 95% confidence level upper limit of |mu| <9 x
+      10^-5". Section 6.3, Eq. 7: dS_y/dy = T0 (x coth(x/2) - 4) dB_nu/dT;
+      "The results are y=-1 +- 6 x 10^-6. ... We include a systematic
+      uncertainty of 4 x 10^-6 ... for a final 95% confidence level upper
+      limit of 15 x 10^-6". Table 2 (fit value, statistical, systematic,
+      final uncertainty): CMBR Temp 2.728, 0.00001, 0.002, 0.002 K; y -1,
+      6, 4, 7 x 10^-6; mu -1, 4, 1, 4 x 10^-5. Section 3.3: "We use the
+      inverse of the covariance matrix to weight the data. The covariance
+      between frequencies is well approximated by C = sigma_nu sigma_nu'
+      Q(|nu - nu'|)", with the 43 values of Q listed there. Section 4: "We
+      conclude the absolute temperature of the CMBR is 2.728 +- 0.004 K (95%
+      CL), entirely dominated by the systematic errors". Fig. 5 caption:
+      "FIRAS measured CMBR residuals, I0 - B_nu(T0) - DeltaT dB/dT -
+      G0 g(nu)". Table 4: "Residual of monopole spectrum. Intensities in
+      kJy/sr", 43 rows of frequency, residual, 1-sigma uncertainty, and
+      Galaxy at the pole, equal row for row to columns 1, 3, 4, and 5 of the
+      dataset cobe-firas-monopole.
+    alternatives: >-
+      Fixsen and Mather 2002 (ApJ 581, 817) give the later absolute
+      temperature 2.725 K, the reference of the LAMBDA file's column 2; it
+      is not reproduced and was not read for the statements above, so it is
+      named on the dataset's card as the source of the reference
+      temperature, not here. Mather et al. 1994 (the earlier FIRAS limits)
+      was not opened. The 1996 paper is the one whose Table 4 the dataset
+      holds, and the only one whose fit the reproduction track regenerates.
+    lessons: []
+    reserved: >-
+      The reproduction track of the Scientific Research Workspace (F155 part
+      1, Issue #619) quotes these statements as its source evidence; the
+      capstone page RR8 (F155 part 3) will name the key.
+    last-checked: 2026-11-25
+    licence: >-
+      arXiv non-exclusive distribution licence; the paper is the publisher's
+      (AAS). Linked, not copied or rehosted; only these short statements are
+      quoted.

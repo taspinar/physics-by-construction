@@ -1,0 +1,89 @@
+# The published values of the reproduction track, each with the words it
+# rests on. Every quote must stand in the checked statement of the register
+# entry `fixsen-1996-firas-spectrum` (site/references.yaml); the workspace
+# refuses a value whose words are not there. The owner confirms these values
+# on Issue #619 before part 1 merges.
+
+[source.shape]
+quantity = "the monopole is a blackbody with a temperature shift and a Galactic term"
+register = "fixsen-1996-firas-spectrum"
+place = "section 6, Eq. 3"
+quote = "a linear fit I0(nu) = B_nu(T0) + DeltaT dB_nu/dT + G0 g(nu) + p dSc/dp can be performed to the unknown parameters p, G0, and DeltaT"
+
+[source.t0]
+quantity = "the absolute temperature T0"
+value = 2.728
+uncertainty = 0.004
+unit = "K"
+confidence = "95% CL"
+register = "fixsen-1996-firas-spectrum"
+place = "abstract"
+quote = "absolute temperature, 2.728 +- 0.004 K (95% CL)"
+
+[source.t0_statistical]
+quantity = "the statistical part of the uncertainty of T0"
+value = 0.00001
+unit = "K"
+confidence = "1 sigma, Table 2"
+register = "fixsen-1996-firas-spectrum"
+place = "Table 2"
+quote = "CMBR Temp 2.728, 0.00001, 0.002, 0.002 K"
+
+[source.rms]
+quantity = "the weighted rms deviation from a blackbody"
+value = 50.0
+unit = "ppm"
+confidence = "as stated"
+register = "fixsen-1996-firas-spectrum"
+place = "section 6.1"
+quote = "the weighted rms deviation in the frequency range 2 to 21 cm-1 is 50 ppm (parts per million) of the peak brightness"
+
+[source.figure]
+quantity = "the residuals of the monopole after the fit"
+register = "fixsen-1996-firas-spectrum"
+place = "caption of Fig. 5; Table 4"
+quote = "FIRAS measured CMBR residuals, I0 - B_nu(T0) - DeltaT dB/dT - G0 g(nu)"
+
+[source.y]
+quantity = "the bound on the Compton parameter y"
+value = 15e-6
+unit = "1"
+confidence = "95% CL"
+register = "fixsen-1996-firas-spectrum"
+place = "abstract; section 6.3"
+quote = "|y| <15 x 10^-6"
+
+[source.y_value]
+quantity = "the fitted y with its statistical uncertainty"
+value = -1e-6
+uncertainty = 6e-6
+unit = "1"
+confidence = "1 sigma"
+register = "fixsen-1996-firas-spectrum"
+place = "section 6.3"
+quote = "The results are y=-1 +- 6 x 10^-6"
+
+[source.mu]
+quantity = "the bound on the chemical potential mu"
+value = 9e-5
+unit = "1"
+confidence = "95% CL"
+register = "fixsen-1996-firas-spectrum"
+place = "abstract; section 6.2"
+quote = "|mu| <9 x 10^-5 (95% CL)"
+
+[source.mu_value]
+quantity = "the fitted mu with its uncertainty"
+value = -1e-5
+uncertainty = 4e-5
+unit = "1"
+confidence = "1 sigma"
+register = "fixsen-1996-firas-spectrum"
+place = "section 6.2"
+quote = "mu=-1 +- 4 x 10^-5"
+
+[source.covariance]
+quantity = "the covariance between frequencies the paper weights with"
+register = "fixsen-1996-firas-spectrum"
+place = "section 3.3"
+quote = "We use the inverse of the covariance matrix to weight the data."

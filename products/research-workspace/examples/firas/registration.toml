@@ -1,0 +1,98 @@
+# The registered plan of the reproduction track, copied from the plan of
+# Issue #619 ("What counts as reproduced", declared before any fit on the
+# file). The workspace records its digest; the fit reads no published value.
+
+key = "firas-spectrum-fit"
+kind = "replication"
+question = """Do the derived data of the LAMBDA monopole file reproduce the \
+published spectrum fit of Fixsen et al. (1996): the shape against a \
+blackbody, the weighted rms of the residuals, and the bounds on y and mu? \
+Not the absolute temperature calibration, which the derived columns do not \
+carry."""
+hypotheses = [
+    "The weighted fit of dT and G to the file's residuals leaves a weighted rms below the published 50 ppm of the peak.",
+    "y and mu are consistent with zero, with statistical bounds of the size of the published ones.",
+]
+outcomes = ["reproduced", "not-reproduced", "inconclusive", "not evaluated"]
+rule = """Each row below is decided by its rule. A positive control that \
+fails makes every row 'not evaluated'. A discrepancy is typed (input, \
+method, uncertainty, numerical, unexplained); a type other than unexplained \
+needs a recorded check that supports it."""
+withheld = """The published values are not read by the fit: they enter only \
+at the comparison of each row, from the project's source evidence."""
+stopping = [
+    "The positive control recovers the injected dT and y within two standard errors in fewer than 90 of 100 seeds: the method is failed and every row is not evaluated.",
+    "The committed sample's digest differs from the card: no stage resumes.",
+    "A branch whose stage raises is kept as a failed attempt and not resumed; another choice is a new branch.",
+]
+
+[[explanation]]
+name = "R"
+statement = "The derived data reproduce the published value of the row."
+predicts = ["reproduced"]
+
+[[explanation]]
+name = "N"
+statement = "The derived data do not reproduce it, for a reason the type names."
+predicts = ["not-reproduced"]
+
+[[criterion]]
+quantity = "the spectrum fit: dT against the file's reference"
+source = "shape"
+rule = "|dT| of b1 at most 2 sigma_T, and the weighted rms row reproduced"
+otherwise = "a typed discrepancy"
+
+[[criterion]]
+quantity = "T0, the absolute temperature"
+source = "t0"
+rule = "only by a regenerated T0 that does not rest on the file's reference; a T_fit equal to T_ref by construction is no reproduction, whatever its difference to 2.728 K"
+otherwise = "not-reproduced, typed method, supported by b4 showing that T_fit follows the reference"
+
+[[criterion]]
+quantity = "the uncertainty of T0"
+source = "t0"
+rule = "the statistical sigma_T reported beside the published uncertainty, never substituted for it"
+otherwise = "the type uncertainty, with the published budget's other terms named from the paper"
+
+[[criterion]]
+quantity = "the weighted rms deviation from a blackbody"
+source = "rms"
+rule = "the paper's weighted rms of the residuals after the fit of T and G below 50 ppm of the peak of B_nu(T_fit)"
+otherwise = "a typed discrepancy"
+
+[[criterion]]
+quantity = "the residual figure"
+source = "figure"
+rule = "the regenerated residuals from the documented inputs within 1 sigma of the published residuals at every frequency (compared by the numbers, not by the look)"
+otherwise = "a typed discrepancy"
+post_hoc = "the threshold of 1 sigma was set in F155 part 1 after a scratch fit of the file had been seen, because the plan said only that the figure is compared by its numbers; it was not preregistered (the owner's review of 2026-11-25 on Issue #619)"
+
+[[criterion]]
+quantity = "|y| (95 %)"
+source = "y"
+rule = "y within 1.96 sigma_y of zero, and the statistical bound at most 1.5 times the published one; both bounds shown"
+otherwise = "a typed discrepancy; a y beyond 1.96 sigma_y or a bound above 3 times the published one is not-reproduced unless a supported type explains it"
+
+[[criterion]]
+quantity = "sigma_y, the statistical uncertainty of y"
+source = "y_value"
+rule = "the regenerated statistical sigma_y rounds to the paper's statistical uncertainty of y at the precision the paper quotes (within half a unit of its last digit)"
+otherwise = "not-reproduced, typed uncertainty when the central y agrees with the published one within its published sigma (the other term named: the paper's weighting with the covariance between frequencies, section 3.3), unexplained otherwise; linked to the review's open finding review-covariance-weighting"
+post_hoc = "added in the triage of the first review of F155 part 1 (2026-11-25), after the fits had been seen: the registered bound rule compares only the 95 % bounds, and the review asked that the statistical uncertainties be compared with the paper's as well; it was not preregistered"
+
+[[criterion]]
+quantity = "|mu| (95 %)"
+source = "mu"
+rule = "as for y"
+otherwise = "as for y"
+
+[[criterion]]
+quantity = "sigma_mu, the statistical uncertainty of mu"
+source = "mu_value"
+rule = "the regenerated statistical sigma_mu rounds to the paper's statistical uncertainty of mu at the precision the paper quotes (within half a unit of its last digit)"
+otherwise = "not-reproduced, typed uncertainty when the central mu agrees with the published one within its published sigma (the other term named: the paper's weighting with the covariance between frequencies, section 3.3), unexplained otherwise; linked to the review's open finding review-covariance-weighting"
+post_hoc = "added in the triage of the first review of F155 part 1 (2026-11-25), after the fits had been seen: the registered bound rule compares only the 95 % bounds, and the review asked that the statistical uncertainties be compared with the paper's as well; it was not preregistered"
+
+[branches]
+criterion = "A branch that adds a parameter continues when it lowers chi-square by more than 4, and stops otherwise; b4 and b5 add none and are always run and reported."
+search = "none: the branches run in sequence (the sequential baseline)"
