@@ -1,9 +1,11 @@
 # The reference workflow on the simulator
 
 The steps a learner takes to install the Autonomous Physics Lab and run
-every protocol, a campaign with a refused measurement, the agent route
+every protocol, a campaign with refinement and repeated ring-downs (and
+the interlock that refuses it without the confirmation), the agent route
 beside the classical ones, and the replay of a measured record, with no
-device and no model account. The capstone page SA9 runs the same steps in
+device and no model account. A measurement refused by the quality gate and
+retried is not in these commands; the capstone page's experiment runs one. The capstone page SA9 runs the same steps in
 its experiment (`pbc.electromagnetism.experiments.autonomous_physics_lab`).
 Every command is run from the root of a clone of the repository.
 

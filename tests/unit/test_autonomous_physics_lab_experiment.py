@@ -58,9 +58,15 @@ def test_the_lossy_measurement_is_refused_retried_and_never_fitted(results):
     assert refused[5].startswith("refused:") and "lost" in refused[5]
     assert retry[2] == "retry" and retry[4] == found["invalid-id"]
     assert retry[3] == refused[3]  # the same frequency, measured again
+    # The page: "Measurement {invalid-id}, a refinement, was refused".
+    assert refused[1] == "frequency-response" and refused[2] == "refine"
     # The next refinement follows from the retry, never from the refused one.
-    later = [r for r in rows(results, "campaign-measurements") if r[2] == "refine"]
+    ordered = rows(results, "campaign-measurements")
+    later = [r for r in ordered if r[2] == "refine"]
     assert all(found["invalid-id"] not in r[4] for r in later if r[0] != refused[0])
+    after_retry = ordered[[r[0] for r in ordered].index(found["retry-id"]) + 1 :]
+    following = next(r for r in after_retry if r[2] == "refine")
+    assert found["retry-id"] in following[4].split(", ")
     # Twelve valid frequency-response points of thirteen were fitted.
     frequency = [r for r in table.values() if r[1] == "frequency-response"]
     assert int(found["valid-points"]) == len(frequency) - 1
@@ -74,6 +80,12 @@ def test_both_protocols_pass_the_simulator_check_and_agree(results):
     assert [r[7] for r in rows(results, "simulator-checks")] == ["passed"] * 2
     assert [r[4] for r in rows(results, "consistency")] == ["agree"] * 2
     assert float(numbers(results)["reduced-chi2"]) < 2.0
+    # The page: "The ring-down gives the wider interval" (of f0, relative).
+    width = {
+        r[0]: float(r[2]) / float(r[1].replace(",", ""))
+        for r in rows(results, "simulator-checks")
+    }
+    assert width["ring-down"] > width["frequency response"]
 
 
 def test_the_led_pair_recovers_its_diodes_and_its_held_out_prediction(results):

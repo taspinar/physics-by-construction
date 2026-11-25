@@ -7,11 +7,12 @@ starts a product, or contacts a model, an instrument, or the network.
   ``scripts/verify.conf`` install no optional group (no ``--extra``, no
   ``--all-extras``, no ``pip install``), and the default environment holds
   none of the optional groups' packages.
-- No check, script, or workflow starts a product: none names
-  ``pbc.products.physics_lab``. No page imports ``pbc.products`` but the
-  capstone page of F145 (SA9), which executes the deterministic simulator
-  route and the recorded replay: it, its experiment, and the module that
-  shows the pilot's record name only the product modules of
+- No check, script, workflow, or page starts a product: none names
+  ``pbc.products.physics_lab`` by its dotted name or its path, and no page
+  imports ``pbc.products``, but the capstone page of F145 (SA9), which
+  executes the deterministic simulator route and the recorded replay: it,
+  its experiment, and the module that shows the pilot's record name only
+  the product modules of
   ``CAPSTONE_PRODUCT_MODULES`` (the protocols, the campaign, the export,
   the evaluator, the agent's tools replayed from a fixture), never the
   command line, the interface, a provider client, or the live mode.
@@ -190,10 +191,14 @@ def product_modules(source: str) -> set[str]:
 
 def test_no_check_script_workflow_or_page_starts_a_product():
     pages = [p for p in (ROOT / "site").rglob("*") if p.suffix in {".qmd", ".py"}]
+    # The capstone page alone may name the product, by its dotted name or by
+    # its path (its reproduce_this list); every other page, check, script,
+    # and workflow names it in neither form.
     found = [
         p.relative_to(ROOT).as_posix()
-        for p in machinery()
-        if STARTS.search(p.read_text(errors="replace"))
+        for p in [*machinery(), *pages]
+        if p.relative_to(ROOT).as_posix() != CAPSTONE_PAGE
+        and STARTS.search(p.read_text(errors="replace"))
     ]
     assert found == []
     importing = [
@@ -222,20 +227,18 @@ CAPSTONE_UNREACHABLE = {
 }
 
 
-def test_the_capstone_modules_reach_no_command_line_server_or_provider():
-    """Following the top-level imports of the product modules the capstone
-    names, through the product package, reaches no command line, no local
-    server, no provider client, and no live adapter: what the page runs is
-    the simulated and recorded route."""
+def capstone_reach(source_of) -> set[str]:
+    """The product modules reached from ``CAPSTONE_PRODUCT_MODULES`` by every
+    import of each, at module level or inside a function (a lazy import), as
+    ``source_of(module)`` gives their text; fails on a module of
+    ``CAPSTONE_UNREACHABLE`` or a forbidden import met on the way."""
     seen, todo = set(), sorted(CAPSTONE_PRODUCT_MODULES)
     while todo:
         module = todo.pop()
         if module in seen:
             continue
         seen.add(module)
-        path = ROOT / "src" / f"{module.replace('.', '/')}.py"
-        tree = ast.parse(path.read_text())
-        for node in tree.body:
+        for node in ast.walk(ast.parse(source_of(module))):
             if (
                 isinstance(node, ast.ImportFrom)
                 and node.module == "pbc.products.physics_lab"
@@ -250,7 +253,38 @@ def test_the_capstone_modules_reach_no_command_line_server_or_provider():
                 assert not forbidden(name), (module, name)
                 if name.startswith("pbc.products.physics_lab."):
                     todo.append(".".join(name.split(".")[:4]))
-    assert seen >= CAPSTONE_PRODUCT_MODULES
+    return seen
+
+
+def product_source(module: str) -> str:
+    return (ROOT / "src" / f"{module.replace('.', '/')}.py").read_text()
+
+
+def test_the_capstone_modules_reach_no_command_line_server_or_provider():
+    """Following every import of the product modules the capstone names,
+    lazy ones inside a function included, through the product package,
+    reaches no command line, no local server, no provider client, and no
+    live adapter: what the page runs is the simulated and recorded route."""
+    assert capstone_reach(product_source) >= CAPSTONE_PRODUCT_MODULES
+
+
+@pytest.mark.parametrize(
+    "planted",
+    [
+        "from pbc.agents.providers import make_client\n",
+        "from pbc.products.physics_lab import interface\n",
+        "import pbc.products.physics_lab.__main__\n",
+    ],
+)
+def test_a_lazy_import_in_a_capstone_module_is_followed(planted):
+    lazy = "def run_campaign():\n    " + planted
+
+    def source_of(module):
+        source = product_source(module)
+        return source + lazy if module.endswith(".lab") else source
+
+    with pytest.raises(AssertionError):
+        capstone_reach(source_of)
 
 
 def test_the_capstone_product_names_are_read():
