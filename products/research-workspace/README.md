@@ -78,7 +78,9 @@ uv run --locked python -m pbc.products.research_workspace select --project /tmp/
 evidence ledger) and every digest (the inputs, the sample, the states, the
 code) and names every problem. `review` replays the agent reviewer from its
 fixture and enters the findings it proposes; each is accepted only when its
-recomputed check confirms it. Each decision is appended to the project's
+recomputed check confirms it, and only once: a replayed review leaves an
+accepted finding as it is, and a second `accept-finding` is refused. Each
+decision is appended to the project's
 chains and the view is written again.
 
 ## What the reproduction finds (part 1)
@@ -102,7 +104,16 @@ The rows the run writes, from the committed sample:
   statistical 8 µK is shown beside the published ±0.004 K, which is
   dominated by the thermometry.
 - y and μ: consistent with zero, with statistical bounds below the
-  published ones, which hold systematic terms.
+  published ones, which hold systematic terms (the registered bound rule:
+  reproduced, not a better limit).
+- σ_y and σ_μ: **not reproduced, typed `uncertainty`**. The statistical
+  uncertainties of the fits are 0.60 and 0.86 of the paper's (3.61 against
+  6 × 10⁻⁶, 3.43 against 4 × 10⁻⁵), while the central values agree. The
+  candidate cause is the paper's weighting with the covariance between
+  frequencies (section 3.3), the review's open finding
+  `review-covariance-weighting`. These two rows were added after the fits
+  had been seen, so they are marked **post-hoc rule, not a confirmatory
+  result**.
 - The review keeps one finding open: the fits weight with the diagonal of
   the uncertainties, the paper with the covariance between frequencies of
   its section 3.3. It asks for a fit with that covariance, so no revision

@@ -54,13 +54,14 @@ HIGH_CUT = 20.0
 
 
 def x_of(wavenumber: np.ndarray, temperature: float) -> np.ndarray:
-    """``x = h c nu~ / (k T)``, dimensionless."""
+    """``x`` (dimensionless) ``= h c nu~ / (k T)``."""
     return H * C * 100.0 * np.asarray(wavenumber, dtype=float) / (K_B * temperature)
 
 
 def shapes(spectrum: Spectrum, temperature: float) -> dict[str, np.ndarray]:
-    """The four templates at ``temperature`` (K), each in kJy/sr per unit of
-    its parameter: dB/dT per K, the Galaxy column, the y and mu shapes."""
+    """The four templates at ``temperature`` (K), each per unit of its
+    parameter: ``dB_dT`` (kJy/sr per K), the Galaxy column ``g`` (kJy/sr),
+    and the y and mu shapes ``Y`` (kJy/sr) and ``M`` (kJy/sr)."""
     derivative = dplanck_dt(spectrum.wavenumber, temperature) * KJY_PER_MJY
     x = x_of(spectrum.wavenumber, temperature)
     return {
@@ -100,8 +101,8 @@ def occupation_shapes(spectrum: Spectrum, temperature: float, step: float = 1e-7
 @dataclass(frozen=True)
 class Fit:
     """A weighted linear fit: the parameters with their statistical errors,
-    chi-square, the degrees of freedom, the weighted rms of the residual it
-    leaves (kJy/sr), and the reference temperature it was taken against."""
+    chi-square, the degrees of freedom, ``weighted_rms`` (kJy/sr) of the
+    residual it leaves, and the reference temperature it was taken against."""
 
     parameters: Mapping[str, float]
     errors: Mapping[str, float]
@@ -113,7 +114,7 @@ class Fit:
 
     @property
     def temperature(self) -> float:
-        """``T_ref + dT`` (K)."""
+        """``temperature`` (K) ``= T_ref + dT``."""
         return self.t_ref + self.parameters.get(TEMPERATURE, 0.0)
 
     def bound(self, name: str) -> float:
@@ -289,7 +290,7 @@ def pulls(
     injected: Mapping[str, float] | None = None,
 ) -> dict[str, np.ndarray]:
     """The positive control seed by seed, for its figure: the recovered
-    minus the injected dT and y over their standard errors (dimensionless),
+    minus the injected dT and y over their standard errors, ``pull`` (dimensionless),
     with the same seeds and draws as ``control``."""
     injected = dict(injected or {TEMPERATURE: 50e-6, GALAXY: 0.5, COMPTON: 20e-6})
     out = {TEMPERATURE: [], COMPTON: []}

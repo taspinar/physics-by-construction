@@ -10,7 +10,7 @@
 - ``select --project DIR --question KEY --decision D --reason R --revisit V``:
   a new decision about a question, appended to the archive.
 - ``accept-finding --project DIR --finding KEY``: accept a proposed finding,
-  only through its recomputed check.
+  only through its recomputed check, and once (a second one is refused).
 - ``review --project DIR``: replay the agent reviewer from its fixture
   (no model account) and enter its proposed findings.
 - ``record --project DIR --out FILE (--scripted | --provider P ...)``: record

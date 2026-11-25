@@ -27,6 +27,14 @@ FIGURE_SIGMA = 1.0
 # published bound; not reproduced above 3 times it.
 BOUND_REPRODUCED = 1.5
 BOUND_FAILED = 3.0
+# The rule of the statistical uncertainties of y and mu (stated in the
+# registration): the regenerated sigma reproduces the published one when it
+# rounds to it at the precision the paper quotes (half a unit of its last
+# digit). It is post-hoc: added in the triage of the review of part 1, after
+# the fits had been seen; the registration's criteria carry the reason.
+SIGMA_ROUNDING = 0.5
+# The open finding of the review that names the candidate cause.
+COVARIANCE_FINDING = "review-covariance-weighting"
 PAPER_REFERENCE_NOTE = (
     "the residuals of the file are those of the paper's own fit (the caption of"
     " its Fig. 5), so this criterion is met by construction: it confirms that"
@@ -162,7 +170,8 @@ def _bound_row(
             note = (
                 "the regenerated bound is statistical only and lies below the"
                 " published one, which holds systematic terms: it is not a"
-                " better limit"
+                " better limit; its statistical uncertainty is compared with"
+                f" the paper's in the row sigma_{name}"
             )
         return d.Discrepancy(
             head,
@@ -199,6 +208,78 @@ def _bound_row(
     )
 
 
+def _quoted_half_unit(value: float) -> float:
+    """Half a unit of the last digit of a value quoted to one significant
+    digit, as the paper quotes sigma_y and sigma_mu."""
+    return SIGMA_ROUNDING * 10.0 ** np.floor(np.log10(abs(value)))
+
+
+def sigma_row(
+    name: str, branch: str, fit: firas.Fit, source: Source, scale: float, unit: str
+) -> d.Discrepancy:
+    """The regenerated statistical uncertainty of y or mu against the
+    paper's statistical one (``source``, the fitted value with its 1 sigma).
+    The registered bound rule compares only the 95 % bounds; this row shows
+    whether the statistical uncertainty itself is reproduced."""
+    value, error = fit.parameters[name], fit.errors[name]
+    published_value = float(source.value)
+    published_sigma = float(source.uncertainty)
+    met = abs(error - published_sigma) <= _quoted_half_unit(published_sigma)
+    head = f"sigma_{name}, the statistical uncertainty of {name}"
+    published = (
+        f"{name} = {published_value / scale:g} +- {published_sigma / scale:g}"
+        f" x {unit} ({source.confidence}, {source.place})"
+    )
+    regenerated = (
+        f"sigma_{name} = {error / scale:.2f} x {unit} (statistical, diagonal"
+        f" weights), {error / published_sigma:.2f} of the published; {name} ="
+        f" {value / scale:.2f} x {unit}"
+    )
+    if met:
+        return d.Discrepancy(
+            head, published, source.register, regenerated, d.REPRODUCED
+        )
+    central = abs(value - published_value) <= published_sigma
+    candidate = (
+        "a candidate cause, open: the paper weights with the inverse of the"
+        " covariance between frequencies (section 3.3), the fit with the"
+        f" diagonal only (the review's open finding {COVARIANCE_FINDING}); a"
+        " fit with that covariance would show the size of its effect"
+    )
+    return d.Discrepancy(
+        head,
+        published,
+        source.register,
+        regenerated,
+        d.NOT_REPRODUCED,
+        d.UNCERTAINTY if central else d.UNEXPLAINED,
+        d.Check(
+            "statistical-sigma-against-published",
+            f"{branch}/fit",
+            {
+                "sigma": error,
+                "published_sigma": published_sigma,
+                "ratio": error / published_sigma,
+                "value": value,
+                "published_value": published_value,
+            },
+            central,
+            f"the central {name} agrees with the published one within its"
+            " published sigma; the statistical uncertainty does not"
+            if central
+            else f"the central {name} differs from the published one by more"
+            " than its published sigma",
+        ),
+        terms=(
+            "the weighting of the published fit with the inverse of the"
+            " covariance between frequencies, section 3.3",
+        )
+        if central
+        else (),
+        note=candidate,
+    )
+
+
 def rows(
     spectrum,
     fits: Mapping[str, Sequence[firas.Fit]],
@@ -222,7 +303,9 @@ def rows(
                 ("the weighted rms deviation from a blackbody", "rms"),
                 ("the residual figure", "figure"),
                 ("|y| (95 %)", "y"),
+                ("sigma_y, the statistical uncertainty of y", "y_value"),
                 ("|mu| (95 %)", "mu"),
+                ("sigma_mu, the statistical uncertainty of mu", "mu_value"),
             )
         ]
     out = _t_rows(fits, sources)
@@ -231,7 +314,15 @@ def rows(
         _bound_row(firas.COMPTON, "b2", fits["b2"][0], sources["y"], 1e-6, "1e-6")
     )
     out.append(
+        sigma_row(firas.COMPTON, "b2", fits["b2"][0], sources["y_value"], 1e-6, "1e-6")
+    )
+    out.append(
         _bound_row(firas.CHEMICAL, "b3", fits["b3"][0], sources["mu"], 1e-5, "1e-5")
+    )
+    out.append(
+        sigma_row(
+            firas.CHEMICAL, "b3", fits["b3"][0], sources["mu_value"], 1e-5, "1e-5"
+        )
     )
     d.validate(out)
     return out

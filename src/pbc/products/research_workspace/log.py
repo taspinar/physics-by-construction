@@ -133,12 +133,23 @@ class Log:
             },
         )
 
+    def accepted(self, finding: str) -> bool:
+        """The log already holds the acceptance of ``finding``."""
+        return any(
+            e.content["subject"] == finding and e.content["decision"] == ACCEPTED
+            for e in self.of(DECISION)
+        )
+
     def accept(self, finding: str, check_passed: bool | None, by: str) -> Entry:
         """Accept a proposed finding, only through its recomputed check: the
-        check must have failed (the finding is real) on record."""
+        check must have failed (the finding is real) on record. A finding
+        is accepted once; a second acceptance is refused, so that the
+        decisions record each of the human's decisions once."""
         entry = self.findings().get(finding)
         if entry is None:
             raise LogRefused(f"there is no finding {finding!r}")
+        if self.accepted(finding):
+            raise LogRefused(f"{finding} is already accepted")
         if check_passed is not False:
             raise LogRefused(
                 f"{finding} is accepted only when its recomputed check"

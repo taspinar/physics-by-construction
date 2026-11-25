@@ -242,7 +242,7 @@ def test_the_reproduction_track_runs_end_to_end_and_verifies(built):
     text = (built / "report.md").read_text()
     lines = [line for line in text.splitlines() if line.startswith(">")]
     assert lines[0] == f"> {rep.BANNER}"
-    assert lines[1].startswith("> Claims: 8 (")
+    assert lines[1].startswith("> Claims: 10 (")
     # Every claim has a run or a source link and an evidence status.
     for claim in data["research"].ledger.claims:
         assert claim.runs or claim.sources
@@ -272,7 +272,11 @@ def test_the_post_hoc_rule_of_the_figure_never_reads_as_confirmatory(built):
     # figure was set after a scratch fit had been seen.
     plan = registration.load(EXAMPLE / "registration.toml")
     post_hoc = {c.quantity for c in plan.criteria if c.post_hoc}
-    assert post_hoc == {"the residual figure"}
+    assert post_hoc == {
+        "the residual figure",
+        "sigma_y, the statistical uncertainty of y",
+        "sigma_mu, the statistical uncertainty of mu",
+    }
     data = project.summary(built)
     rows = {r.quantity: r for r in data["rows"]}
     assert rows["the residual figure"].post_hoc
@@ -281,7 +285,7 @@ def test_the_post_hoc_rule_of_the_figure_never_reads_as_confirmatory(built):
     claims = {c.id: c for c in data["research"].ledger.claims}
     number = list(rows).index("the residual figure") + 1
     assert label in claims[f"row-{number}"].text
-    assert sum(label in c.text for c in claims.values()) == 1
+    assert sum(label in c.text for c in claims.values()) == len(post_hoc)
     report = (built / "report.md").read_text()
     figure_line = next(
         x for x in report.splitlines() if x.startswith("| the residual figure")
@@ -290,7 +294,7 @@ def test_the_post_hoc_rule_of_the_figure_never_reads_as_confirmatory(built):
     assert f"- Row {number}: " in report and "Post-hoc rule: " in report
     page = (built / "view.html").read_text()
     assert f'<span class="post-hoc">{html.escape(label)}</span>' in page
-    assert page.count('class="post-hoc"') == 1
+    assert page.count('class="post-hoc"') == len(post_hoc)
     # A registration without the reason leaves the row unmarked.
     plain = replace(
         plan, criteria=tuple(replace(c, post_hoc="") for c in plan.criteria)
@@ -300,6 +304,42 @@ def test_the_post_hoc_rule_of_the_figure_never_reads_as_confirmatory(built):
         discrepancy.from_dict(discrepancy.as_dict(rows["the residual figure"]))
         == rows["the residual figure"]
     )
+
+
+def test_the_statistical_sigmas_of_y_and_mu_are_compared_with_the_paper(built):
+    # Review 01 of #619, M1: the bound rule alone showed y and mu reproduced
+    # while their statistical uncertainties differ from the paper's.
+    evidence = sources.by_id(sources.load(EXAMPLE / "sources.toml"))
+    rows = {r.quantity: r for r in project.summary(built)["rows"]}
+    for name, key, ratio in (("y", "y_value", 0.60), ("mu", "mu_value", 0.86)):
+        row = rows[f"sigma_{name}, the statistical uncertainty of {name}"]
+        published = float(evidence[key].uncertainty)
+        assert row.verdict == discrepancy.NOT_REPRODUCED
+        assert row.type == discrepancy.UNCERTAINTY and row.check.supports
+        assert row.check.values["published_sigma"] == published
+        assert abs(row.check.values["ratio"] - ratio) < 0.01
+        assert reproduction.COVARIANCE_FINDING in row.note
+        assert "section 3.3" in row.terms[0]
+        assert row.post_hoc and not discrepancy.problems(row)
+        # The registered bound rule keeps its verdict.
+        bound = rows[f"|{name}| (95 %)"]
+        assert bound.verdict == discrepancy.REPRODUCED
+        assert f"sigma_{name}" in bound.note
+    assert "review-covariance-weighting" in worklog.load(built / "log.json").findings()
+
+
+def test_a_statistical_sigma_that_rounds_to_the_published_one_reproduces(spectrum):
+    fit = firas.fit(spectrum, (firas.TEMPERATURE, firas.GALAXY, firas.COMPTON))
+    error = fit.errors[firas.COMPTON]
+    near = sources.Source(
+        "y_value", "q", 0.0, error * 1.05, "1", "1 sigma", "r", "p", "w"
+    )
+    row = reproduction.sigma_row(firas.COMPTON, "b2", fit, near, 1e-6, "1e-6")
+    assert row.verdict == discrepancy.REPRODUCED and not discrepancy.problems(row)
+    far = replace(near, value=1.0, uncertainty=error * 2)
+    row = reproduction.sigma_row(firas.COMPTON, "b2", fit, far, 1e-6, "1e-6")
+    assert row.verdict == discrepancy.NOT_REPRODUCED
+    assert row.type == discrepancy.UNEXPLAINED
 
 
 def test_a_failed_control_makes_every_row_not_evaluated(spectrum):
@@ -444,6 +484,35 @@ def test_the_reviewer_fixture_replays_and_its_findings_need_their_checks(built):
     assert agent.enter(fake, context, log, "the check") == []
     assert log.findings()["agent-control"].content["state"] == worklog.PROPOSED
     assert "agent-no-such-check" not in log.findings()
+
+
+def test_a_replayed_review_or_a_repeated_acceptance_records_one_acceptance(
+    built, tmp_path, capsys
+):
+    # Review 01 of #619, MIN2: each replay of the review, and each repeated
+    # accept-finding, appended another identical acceptance.
+    copy = _copy(built, tmp_path)
+    args = ["--project", str(copy)]
+
+    def acceptances():
+        log = worklog.load(copy / "log.json")
+        return [
+            e
+            for e in log.of(worklog.DECISION)
+            if e.content["decision"] == worklog.ACCEPTED
+        ]
+
+    assert main(["review", *args]) == 0
+    assert main(["review", *args]) == 0
+    assert "accepted none" in capsys.readouterr().out.splitlines()[-1]
+    assert [e.content["subject"] for e in acceptances()] == [
+        "agent-covariance-weighting"
+    ]
+    finding = ["--finding", "agent-covariance-weighting"]
+    assert main(["accept-finding", *args, *finding]) == 1
+    assert "already accepted" in capsys.readouterr().err
+    assert len(acceptances()) == 1
+    assert main(["verify", *args]) == 0
 
 
 def test_an_edited_fixture_no_longer_replays(built, tmp_path):

@@ -74,10 +74,24 @@ rule = "y within 1.96 sigma_y of zero, and the statistical bound at most 1.5 tim
 otherwise = "a typed discrepancy; a y beyond 1.96 sigma_y or a bound above 3 times the published one is not-reproduced unless a supported type explains it"
 
 [[criterion]]
+quantity = "sigma_y, the statistical uncertainty of y"
+source = "y_value"
+rule = "the regenerated statistical sigma_y rounds to the paper's statistical uncertainty of y at the precision the paper quotes (within half a unit of its last digit)"
+otherwise = "not-reproduced, typed uncertainty when the central y agrees with the published one within its published sigma (the other term named: the paper's weighting with the covariance between frequencies, section 3.3), unexplained otherwise; linked to the review's open finding review-covariance-weighting"
+post_hoc = "added in the triage of the first review of F155 part 1 (2026-11-25), after the fits had been seen: the registered bound rule compares only the 95 % bounds, and the review asked that the statistical uncertainties be compared with the paper's as well; it was not preregistered"
+
+[[criterion]]
 quantity = "|mu| (95 %)"
 source = "mu"
 rule = "as for y"
 otherwise = "as for y"
+
+[[criterion]]
+quantity = "sigma_mu, the statistical uncertainty of mu"
+source = "mu_value"
+rule = "the regenerated statistical sigma_mu rounds to the paper's statistical uncertainty of mu at the precision the paper quotes (within half a unit of its last digit)"
+otherwise = "not-reproduced, typed uncertainty when the central mu agrees with the published one within its published sigma (the other term named: the paper's weighting with the covariance between frequencies, section 3.3), unexplained otherwise; linked to the review's open finding review-covariance-weighting"
+post_hoc = "added in the triage of the first review of F155 part 1 (2026-11-25), after the fits had been seen: the registered bound rule compares only the 95 % bounds, and the review asked that the statistical uncertainties be compared with the paper's as well; it was not preregistered"
 
 [branches]
 criterion = "A branch that adds a parameter continues when it lowers chi-square by more than 4, and stops otherwise; b4 and b5 add none and are always run and reported."

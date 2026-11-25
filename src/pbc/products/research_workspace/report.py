@@ -42,6 +42,8 @@ ROW_RUNS = {
     "the residual figure": ("b1/fit",),
     "|y|": ("b2/fit",),
     "|mu|": ("b3/fit",),
+    "sigma_y": ("b2/fit",),
+    "sigma_mu": ("b3/fit",),
 }
 SCOPE = (
     "the LAMBDA monopole file, diagonal weights, statistical uncertainties only;"

@@ -1061,6 +1061,8 @@ and the residual figure do so by construction, since the file's residuals
 are the paper's own fit, and the figure's rule of 1 sigma is post-hoc (set
 after a scratch fit had been seen; its row says so in the report and the
 view, never as a confirmatory result); the absolute T0 is `not-reproduced`, typed
-`method`; the fits weight with the diagonal uncertainties, and the review's
-finding that asks for the paper's covariance between frequencies stays
-open.
+`method`; the statistical uncertainties of y and μ are `not-reproduced`,
+typed `uncertainty` (0.60 and 0.86 of the paper's, rows added post-hoc
+beside the registered bounds); the fits weight with the diagonal
+uncertainties, and the review's finding that asks for the paper's
+covariance between frequencies stays open.

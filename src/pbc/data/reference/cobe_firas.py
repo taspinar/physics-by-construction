@@ -16,7 +16,7 @@ What this module computes, apart from the record: the Planck intensity
 
     B_nu(T) = (2 h nu^3 / c^2) / (exp(x) - 1),   x = h nu / (k T),   nu = c nu~,
 
-with nu~ the wavenumber of the file (cm^-1), in MJy/sr (1 Jy = 1e-26
+with ``nu~`` (cm^-1) the wavenumber of the file and ``B_nu`` (MJy/sr; 1 Jy = 1e-26
 W m^-2 Hz^-1); its derivative in T; and the weighted least-squares fit of
 the residual to dT dB/dT + G g(nu), with the file's uncertainties as the
 weights. The fit is linear and diagonal: the paper weighted with the full
@@ -85,7 +85,8 @@ def reference_temperature(card: dict | None = None) -> float:
 
 
 def header_temperature(header: tuple[str, ...]) -> float:
-    """The temperature the header names for column 2's blackbody (K)."""
+    """The temperature ``T_header`` (K) the header names for column 2's
+    blackbody."""
     match = _HEADER_T.search(" ".join(line.lstrip("# ").strip() for line in header))
     if match is None:
         raise ValueError("the header names no reference blackbody")
@@ -125,28 +126,30 @@ def read_spectrum(path: Path, *, t_ref: float | None = None) -> Spectrum:
 
 
 def planck(wavenumber: np.ndarray, temperature: float, *, h=H, k=K_B) -> np.ndarray:
-    """``B_nu(T)`` (MJy/sr) at wavenumbers ``wavenumber`` (cm^-1)."""
+    """``B_nu`` (MJy/sr) of a blackbody at ``temperature`` (K), at
+    ``wavenumber`` (cm^-1)."""
     nu = C * 100.0 * np.asarray(wavenumber, dtype=float)
     x = h * nu / (k * temperature)
     return 2 * h * nu**3 / C**2 / np.expm1(x) / MJY
 
 
 def dplanck_dt(wavenumber: np.ndarray, temperature: float) -> np.ndarray:
-    """``dB_nu/dT`` (MJy/sr per K): ``B_nu x e^x / ((e^x - 1) T)``."""
+    """``dB_nu_dT`` (MJy/sr per K) ``= B_nu x e^x / ((e^x - 1) T)``."""
     nu = C * 100.0 * np.asarray(wavenumber, dtype=float)
     x = H * nu / (K_B * temperature)
     return planck(wavenumber, temperature) * x * np.exp(x) / np.expm1(x) / temperature
 
 
 def rebuild_monopole(spectrum: Spectrum) -> np.ndarray:
-    """Column 2 rebuilt as the header says: ``B_nu(T_ref)`` with the CODATA
-    1986 constants plus the residual (MJy/sr)."""
+    """Column 2 ``I_0`` (MJy/sr) rebuilt as the header says: ``B_nu(T_ref)``
+    with the CODATA 1986 constants plus the residual."""
     blackbody = planck(spectrum.wavenumber, spectrum.t_ref, h=H_1986, k=K_B_1986)
     return blackbody + spectrum.residual / KJY_PER_MJY
 
 
 def peak_brightness(temperature: float) -> float:
-    """The maximum of ``B_nu(T)`` over frequency (MJy/sr), at x = 2.8214."""
+    """``B_peak`` (MJy/sr), the maximum of ``B_nu(T)`` over frequency, at
+    x = 2.8214."""
     x_peak = 2.821439372122079  # the root of 3 (1 - e^-x) = x
     wavenumber = x_peak * K_B * temperature / (H * C * 100.0)
     return float(planck(np.array([wavenumber]), temperature)[0])

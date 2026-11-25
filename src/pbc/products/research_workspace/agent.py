@@ -148,7 +148,9 @@ def enter(
     transcript: Transcript, context: review.Context, log: worklog.Log, by: str
 ) -> list[str]:
     """Enter the agent's proposed findings in the log, and accept each only
-    through its recomputed check. Returns the accepted keys."""
+    through its recomputed check. A finding the log already accepts is left
+    as it is, so a replayed review adds no second acceptance. Returns the
+    keys accepted by this call."""
     accepted = []
     held = log.findings()
     for name in proposed(transcript):
@@ -165,6 +167,8 @@ def enter(
                 definition.kind,
                 name,
             )
+        if log.accepted(key):
+            continue
         result = review.run_check(name, context)
         try:
             log.accept(key, result.passed, by)
