@@ -15,8 +15,9 @@ import pytest
 
 from pbc import evidence
 from pbc.agents.replay import load_recording
-from pbc.instruments import RECORDED, SIMULATED, Refused
+from pbc.instruments import LIVE, RECORDED, SIMULATED, Refused
 from pbc.instruments.channels import ImperfectChannels
+from pbc.instruments.conformance import CallLog
 from pbc.products.physics_lab import agent_campaign, lab
 from pbc.products.physics_lab.bench import make_instrument
 from pbc.products.physics_lab.campaign import (
@@ -486,9 +487,14 @@ def test_lost_samples_are_detected_in_every_protocol(tmp_path):
     from pbc.instruments.channels import Dropouts
 
     plan = dataclasses.replace(PLAN, budget=4)
-    instrument_, rails = instrument(plan)
-    instrument_._driver = ImperfectChannels(  # a lossy link below the guard
-        instrument_._driver, {}, Dropouts(bursts=4, length=30, seed=1)
+    instrument_, rails = make_instrument(  # a lossy link below the guard
+        plan,
+        SIMULATED,
+        seed=3,
+        confirmed=True,
+        wrap_driver=lambda driver: ImperfectChannels(
+            driver, {}, Dropouts(bursts=4, length=30, seed=1)
+        ),
     )
     campaign = Campaign(plan, instrument_, rails)
     run_segment(campaign, tmp_path / "journal.json")
@@ -687,3 +693,34 @@ def test_a_recording_with_a_local_model_needs_no_prices(tmp_path, monkeypatch):
     other = ["--out", str(tmp_path / "other.json"), "--provider", "openai"]
     assert main([*command, str(ledger), *other]) == 2
     assert asked == ["local", "openai"]
+
+
+def test_the_driver_hook_wraps_the_bench_below_the_guard():
+    # Issue #626: the hook is applied before the Instrument is built, so the
+    # envelope refuses a request before the wrapped driver sees it.
+    logs = []
+
+    def logged(driver):
+        logs.append(CallLog(driver))
+        return logs[-1]
+
+    guarded, _ = make_instrument(PLAN, SIMULATED, confirmed=True, wrap_driver=logged)
+    with pytest.raises(Refused):
+        guarded.excite(50.0, 5000.0)
+    assert logs[0].device_calls() == []
+    guarded.excite(1.0, 5000.0)
+    assert logs[0].device_calls() == [("set_output", 1.0, 5000.0)]
+    guarded.output_off()
+
+
+def test_the_driver_hook_wraps_only_the_simulated_bench_and_keeps_its_mode():
+    class Relabelled(CallLog):
+        def __init__(self, driver):
+            super().__init__(driver)
+            self.mode = RECORDED
+
+    with pytest.raises(ValueError, match="keep the simulated mode"):
+        make_instrument(PLAN, SIMULATED, wrap_driver=Relabelled)
+    for mode in (RECORDED, LIVE):
+        with pytest.raises(ValueError, match="only the simulated driver"):
+            make_instrument(PLAN, mode, wrap_driver=CallLog)

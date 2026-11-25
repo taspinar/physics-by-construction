@@ -110,9 +110,10 @@ def _t_rows(
                 "published_statistical": float(stat.value),
                 "published": float(t0.uncertainty),
             },
-            True,
+            sigma_t < float(t0.uncertainty),
             "the regenerated statistical uncertainty is reported beside the"
-            " published one and never in its place",
+            " published one and never in its place; it lies below the published"
+            " total, which the systematic terms named here dominate",
         ),
         terms=(
             "the systematic thermometry uncertainty of 2 mK (1 sigma), section 6.1",
@@ -151,9 +152,19 @@ def figure_row(spectrum, fit: firas.Fit, source: Source) -> d.Discrepancy:
     )
 
 
-def _bound_row(
-    name: str, branch: str, fit: firas.Fit, source: Source, scale: float, unit: str
+def bound_row(
+    name: str,
+    branch: str,
+    fit: firas.Fit,
+    source: Source,
+    scale: float,
+    unit: str,
+    systematic: Source | None = None,
 ) -> d.Discrepancy:
+    """The regenerated 95 % bound of y or mu against the published one
+    (``source``) by the registered rule; ``systematic`` is the quoted
+    systematic term of the published budget, which an ``uncertainty``
+    type names, if the project's sources hold one."""
     value, error = fit.parameters[name], fit.errors[name]
     bound = fit.bound(name)
     published = float(source.value)
@@ -190,6 +201,29 @@ def _bound_row(
             d.NOT_REPRODUCED,
             d.UNEXPLAINED,
         )
+    # The bound lies between BOUND_REPRODUCED and BOUND_FAILED times the
+    # published one, with the value consistent with zero: an uncertainty
+    # discrepancy only when the paper's budget names its other term in
+    # quoted words (``systematic``); otherwise it is unexplained.
+    if systematic is None or systematic.value is None:
+        return d.Discrepancy(
+            head,
+            published_text,
+            source.register,
+            regenerated,
+            d.NOT_REPRODUCED,
+            d.UNEXPLAINED,
+            note="no quoted source names the other terms of the published"
+            f" budget of {name}, so the difference of the bounds is not typed",
+        )
+    values = {
+        "value": value,
+        "error": error,
+        "z95": firas.Z95,
+        "bound": bound,
+        "published": published,
+        "systematic": float(systematic.value),
+    }
     return d.Discrepancy(
         head,
         published_text,
@@ -200,12 +234,25 @@ def _bound_row(
         d.Check(
             "statistical-beside-published",
             f"{branch}/fit",
-            {"bound": bound, "published": published},
-            True,
-            "the central value is consistent with zero; the bound differs",
+            values,
+            band_supports(values),
+            f"the central {name} is consistent with zero and the statistical"
+            " bound lies within the band of the rule; the published bound"
+            " also holds the systematic term quoted beside it",
         ),
-        terms=("the systematic uncertainty of the Galactic model, Table 2",),
+        terms=(f"{systematic.quantity}: {systematic.quote!r} ({systematic.place})",),
     )
+
+
+def band_supports(values: Mapping[str, float]) -> bool:
+    """Whether the numbers a bound row's check records support the type
+    ``uncertainty``: the value consistent with zero at 95 %, the regenerated
+    bound above ``BOUND_REPRODUCED`` and at most ``BOUND_FAILED`` times the
+    published one, and a quoted systematic term above zero."""
+    consistent = abs(values["value"]) <= values["z95"] * values["error"]
+    ratio = values["bound"] / values["published"]
+    within = BOUND_REPRODUCED < ratio <= BOUND_FAILED
+    return consistent and within and values["systematic"] > 0
 
 
 def _quoted_half_unit(value: float) -> float:
@@ -311,13 +358,29 @@ def rows(
     out = _t_rows(fits, sources)
     out.append(figure_row(spectrum, fits["b1"][0], sources["figure"]))
     out.append(
-        _bound_row(firas.COMPTON, "b2", fits["b2"][0], sources["y"], 1e-6, "1e-6")
+        bound_row(
+            firas.COMPTON,
+            "b2",
+            fits["b2"][0],
+            sources["y"],
+            1e-6,
+            "1e-6",
+            sources.get("y_systematic"),
+        )
     )
     out.append(
         sigma_row(firas.COMPTON, "b2", fits["b2"][0], sources["y_value"], 1e-6, "1e-6")
     )
     out.append(
-        _bound_row(firas.CHEMICAL, "b3", fits["b3"][0], sources["mu"], 1e-5, "1e-5")
+        bound_row(
+            firas.CHEMICAL,
+            "b3",
+            fits["b3"][0],
+            sources["mu"],
+            1e-5,
+            "1e-5",
+            sources.get("mu_systematic"),
+        )
     )
     out.append(
         sigma_row(

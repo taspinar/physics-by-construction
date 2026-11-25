@@ -63,6 +63,15 @@ register = "fixsen-1996-firas-spectrum"
 place = "section 6.3"
 quote = "The results are y=-1 +- 6 x 10^-6"
 
+[source.y_systematic]
+quantity = "the systematic term of the published budget of y, beside the statistical one"
+value = 4e-6
+unit = "1"
+confidence = "as stated"
+register = "fixsen-1996-firas-spectrum"
+place = "section 6.3; Table 2"
+quote = "We include a systematic uncertainty of 4 x 10^-6"
+
 [source.mu]
 quantity = "the bound on the chemical potential mu"
 value = 9e-5
@@ -81,6 +90,15 @@ confidence = "1 sigma"
 register = "fixsen-1996-firas-spectrum"
 place = "section 6.2"
 quote = "mu=-1 +- 4 x 10^-5"
+
+[source.mu_systematic]
+quantity = "the systematic term of the published budget of mu, beside the statistical one"
+value = 1e-5
+unit = "1"
+confidence = "as Table 2 gives it"
+register = "fixsen-1996-firas-spectrum"
+place = "Table 2 (fit value, statistical, systematic, final uncertainty)"
+quote = "mu -1, 4, 1, 4 x 10^-5"
 
 [source.covariance]
 quantity = "the covariance between frequencies the paper weights with"
